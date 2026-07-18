@@ -123,9 +123,9 @@ source-generic state table `tables/realm-source-materialization-actions.yaml`.
 | Source state | Primary action | Result |
 |---|---|---|
 | `materialization_available` | `Become my partner` / `成为我的伙伴` | Emit only `MaterializeRealmSource(CharacterSourceRefV3, requestId)` for the selected WorldCharacter or PersonaCharacter. Runtime owns account/grant/bearer resolution, Packet v3 acquisition and validation, SnapshotV2, provenance, and LocalAgent identity. |
-| `grant_required` | `Grant required` | Disable the action until the canonical Realm materialization grant is requested through its admitted flow. |
-| `grant_pending` | `Grant pending` | Disable the action while the canonical grant remains pending. |
-| `grant_denied` | `Grant denied` | Disable the action; visibility, ownership, or app identity must not be treated as permission. |
+| `sign_in_required` | `Sign in required` | Disable the action until a current authenticated Realm account exists; do not manufacture an App permission. |
+| `source_not_ready` | `Source not ready` | Disable the action while canonical source or dependency readiness is incomplete. |
+| `source_access_denied` | `Source unavailable` | Disable the action when Realm visibility or account policy denies materialization; do not infer an alternate authority path. |
 | `materializing` | `Materializing` | Disable duplicate actions while Runtime owns the in-flight idempotent transaction. |
 | `local_agent_available` | `Open partner` | Open an existing Runtime-owned LocalAgent discovered from Runtime inventory/provenance. |
 | `local_agent_ambiguous` | `Open from partners` | Fail closed because Runtime inventory/provenance returned more than one matching partner. |

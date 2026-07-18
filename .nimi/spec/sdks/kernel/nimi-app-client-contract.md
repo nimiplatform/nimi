@@ -143,62 +143,30 @@ accept a principal selector, inspect Runtime config, or infer storage from
 filesystem existence. Tombstoned data is delete-only owner state and cannot be
 rebound by SDK.
 
-## S-APP-012 — Declared Nimi-API Scopes Carrier
+## S-APP-012 — Public Permission Declaration Boundary
 
-**Background fact.** The developer-authored manifest carries a
-`permissions.declared_nimi_api_scopes` list of `{ scope, qualifier?,
-purpose }` entries as transparency for review and UI, not as an enforcement
-control. The verified catalog descriptor's `permissions_ref` (`P-NAPP-018`)
-remains review vocabulary only. For `LOCAL_APP`, enforcement is the exact
-Runtime K-GRANT account+principal record plus the canonical operation owner
-policy; trust tier/class and manifest declarations have no permission effect.
+The developer-authored manifest may carry only `permissions: [{ id, reason }]`
+using admitted rows from the Platform public permission catalog. The verified
+registry projects the same list as `permission_requirements`; release
+descriptors may reference that reviewed list through `permissions_ref`.
+Declaration is request eligibility and review transparency, not authority.
 
-`MUST` (transparency carrier surface). SDK Nimi App client surface
-admits a typed read-only accessor that exposes the developer-submitted
-manifest's declared Nimi-API scope list as it was reviewed for
-admission. The accessor surfaces an array of entries each with the
-typed fields:
+The runtime app client does not expose legacy scope/qualifier carriers and does
+not derive live permission posture from a manifest or descriptor. Live status
+and requests use only the host-injected `permissions.status(permissionId)` and
+`permissions.request({ permissionId, reason })` surface. Current posture comes
+from the row's single decision owner; an app declaration, trust tier, review
+result, app id, or prior success cannot manufacture `granted`.
 
-- `scope` — a closed `P-PERM-002` scope enum value;
-- `qualifier` — an optional typed qualifier string (e.g.
-  `app-local-drafts` per `P-PERM-011`); absent when the declared scope
-  does not require one;
-- `purpose` — the developer-authored, review-vetted purpose string
-  recorded on the manifest entry.
+The SDK must reject unknown, reserved, or non-admitted permission ids before a
+positive request and must never expose `AIScopeRef`, `scopeFamily`, `scopeName`,
+`qualifier`, internal `operationId`/`resourceRef`, selector fingerprints, or
+owner grant identifiers. Base entitlements and app-owned authority are
+forbidden from manifest permission declarations and remain usable without a
+permission request.
 
-The accessor is read-only. It exposes the declared-scopes list to the
-calling app, to Apps surface consumers, and to Desktop hosted shell
-projections that display the manifest review trail. The shape of each
-entry MUST mirror the parent manifest § 6 entry shape verbatim; the
-SDK surface MUST NOT collapse the three sub-fields into a single
-string, MUST NOT drop `purpose`, and MUST NOT re-derive entries from
-runtime grant state.
-
-`MUST NOT` (transparency, not enforcement). The declared-scopes
-carrier MUST NOT be admitted as an enforcement surface. The carrier
-does not grant, withhold, gate, or refuse any operation; it does not
-substitute for Runtime K-GRANT or the per-operation fail-closed enforcement at
-RuntimeAgent/Cognition and any independently consumed Realm owner path. Apps and
-Apps-surface consumers MUST NOT infer that a scope listed in this carrier is
-currently granted; local-app grant posture comes only from the host-injected
-local-app carrier. `S-PERM-*` remains a separate consumer contract where
-independently admitted and cannot substitute for the local grant. A SDK caller
-MUST NOT short-circuit a grant request, a grant subscription, or a fail-closed
-denial on the basis of this carrier; doing so
-collapses the parent `PI-W1-8` "transparency for review and UI; not
-control" invariant.
-
-`MUST NOT` (no developer-supplied enforcement claim). The carrier MUST
-NOT admit developer-asserted entitlement, deny-list, or any
-"manifest-claimed grant" projection that would suggest the manifest
-itself controls runtime behavior. The carrier is a projection of the
-admitted-for-review manifest content over the verified descriptor; the
-authoritative local-app grant truth is Runtime K-GRANT.
-
-Cross-references: `P-NAPP-018` (descriptor `permissions_ref` field;
-not redefined here), `P-PERM-002` (closed scope enum; not extended
-here), `P-PERM-011` (`app-local-drafts` qualifier semantics; not
-redefined here), parent invariant `PI-W1-8`.
+Cross-references: `P-NAPP-018`, `P-PERM-002`, `P-PERM-007`,
+`P-PERM-015`, and `S-PERM-*`.
 
 ## S-APP-013 — Destructive Local-App Data Deletion Non-Admission
 
@@ -231,8 +199,8 @@ NOT be exposed as active SDK APIs:
 - `file.delete(path)`
 - `file.move(sourcePath, destinationPath)`
 
-`P-PERM-011` admits the `app-local-drafts` qualifier as permission-review
-and scope-expression semantics. `K-APP-018` explicitly does not admit a
+`P-PERM-011` retires the former `app-local-drafts`, `file.read.scoped`, and
+`file.write.scoped` permission vocabulary. `K-APP-018` explicitly does not admit a
 generic Runtime-mediated file API. The three exact S-APP-017 JSON storage
 operations are not a file client: they accept no bytes, directory, move, raw
 delete, mode, range, root, or absolute-path input. Therefore the SDK MUST NOT map
@@ -241,13 +209,13 @@ Desktop bridge helpers, Realm REST calls, generic HTTP proxy calls, or
 direct filesystem paths. Missing file client support is a fail-closed
 non-admission state, not a fallback to another transport.
 
-SDK may expose read-only descriptor/projection data that tells a consumer a
-file scope was declared or granted. That projection MUST NOT imply that a
-callable Nimi-mediated file API exists.
+SDK must not expose a legacy file-scope declaration or grant projection. Future
+external-file access can be admitted only through the `files.open` / `files.save`
+one-shot picker rows and their owner-issued handles.
 
 Cross-references: `K-APP-018` (Runtime-mediated file-API non-admission),
-`P-PERM-011` (`app-local-drafts` qualifier semantics; not a callable
-surface), `P-PERM-002` (closed scope enum; not extended), `P-NAPP-027` /
+`P-PERM-011` (retired file-scope identifiers), `P-PERM-002` (closed public
+permission catalog), `P-NAPP-027` /
 `P-NAPP-028` (`nimi-mediated-default` vs `app-owned-os-storage` posture).
 
 ## S-APP-015 — Review-Evidence Accessor
@@ -361,15 +329,17 @@ uses `local-app` instead.
 
 `MUST` (`local-app`). This value maps only to Runtime `LOCAL_APP`. The SDK
 receives a host-injected typed standard-shell carrier and projects session
-status plus exact selected operations. It never receives principal/record/grant
+status, public permission posture/request, and app-private JSON storage. It never receives principal/record/permission-decision
 identifiers, launch material, process proof, endpoint, bearer or authorization
-metadata. A valid zero-grant session is projected as session-bound plus denied
-operation posture, not authenticated success.
+metadata. A valid session is projected as session-bound independently of every
+permission; base entitlements may work while protected permissions remain
+unavailable.
 
-`MUST` (projection). `NimiAppAuthProjection` must distinguish session-bound
-zero-grant, session-bound granted, action-required, revoked, process-replaced,
-account-changed, Runtime-restarted, and unavailable states. It must not collapse
-session validity and authorization. `NimiAppAuthUnavailable` is the typed
+`MUST` (projection). `NimiAppAuthProjection` must distinguish session-bound,
+action-required, revoked, project-changed, process-replaced, account-changed,
+Runtime-restarted, and unavailable states. Permission posture is exposed only
+through the separate product permission client and never changes the session
+state. `NimiAppAuthUnavailable` is the typed
 fail-closed branch for absent carrier, failed principal/record resolution,
 custody unavailable, or unavailable operation owner.
 
@@ -409,10 +379,11 @@ the app observes no principal id and cannot request any root.
 The 0K checkpoint admits exactly `storage.readJson`, `storage.writeJson`, and
 `storage.removeJson` on the protected local-app carrier. SDK exposes them as
 `storage.readJson(relativePath)`, `storage.writeJson(relativePath, value)`, and
-`storage.removeJson(relativePath)`. Each call is bound to the matching
-`app_storage.json.read|write|remove` operation, the exact
-`storage:<canonical-relative-json-path>` resource, and the current process-bound
-session/grant. Runtime enforces a 240-byte canonical relative `.json` path, a
+`storage.removeJson(relativePath)`. These calls are the `app.private_storage`
+base entitlement, not public permissions. Each call is bound to the exact
+current principal/session/account partition and canonical relative JSON path;
+no permission row, prompt, owner selector or grant participates. Runtime
+enforces a 240-byte canonical relative `.json` path, a
 256 KiB document bound, a 16 MiB principal-partition quota, symlink/non-regular
 file rejection, and idempotent remove. The SDK projects only JSON value,
 `sizeBytes`, or `removed`; it rejects any root/path/authority field.
@@ -485,9 +456,9 @@ from file existence.
 ## S-APP-021 — Local App Record Projection
 
 `MUST`：SDK exposes read-only typed status for the current host-injected
-local-app carrier: trust class, record state, session state, grant posture and
+local-app carrier: trust class, record state, session state, public permission posture and
 typed reason. The projection omits `local_app_principal_id`, lineage, SID
-partition, launch/process/session identifiers, grant identifiers/revisions,
+partition, launch/process/session identifiers, permission-decision identifiers/revisions,
 digests and provenance-attestation refs.
 
 `MUST NOT`：SDK exposes no workspace-adoption, install, import, promote or
@@ -499,25 +470,28 @@ path, app id or file existence.
 ## S-APP-022 - Local App Bootstrap Custody Boundary
 
 `MUST`: the local-app SDK bootstrap accepts exactly one host-neutral
-`standardShell` input and exposes session status, read-only permission posture,
-explicit exact-operation permission request, plus the selected typed operations
-admitted by `P-KIT-044`: Runtime artifact bytes and explicit
-RuntimeAgent open-conversation, send-turn, subscribe-turn and
-conversation-snapshot. It preserves typed carrier failures and treats a valid
-zero-grant session as denied for those operations.
+`standardShell` input and exposes only bounded session status, product-facing
+permission status/request, and Nimi-mediated app-private JSON storage. A valid
+session may use base entitlements without any permission. Protected
+Nimi/Realm/Agent/Cognition operations remain unavailable until their complete
+public-permission slice is admitted.
 
-`permission.request` maps only to Runtime `RequestLocalAppGrant`, carries exact
-operation/resource/purpose, and returns only redacted request posture. It never
-returns request/challenge/grant/principal/record identifiers and cannot approve,
-revoke, enumerate grants, or proxy an Account method.
+`permissions.status` and `permissions.request` map only to Runtime
+`GetLocalAppPermissionStatus` and `RequestLocalAppPermission`. They carry a
+public `permissionId` plus a bounded user-facing reason and return only
+`permissionId`, public posture, `canRequest`, and a typed reason. They never
+carry internal operation/resource identity or return request/challenge/grant/
+principal/record identifiers, and cannot approve, revoke, enumerate grants, or
+proxy an Account method.
 
 `MUST NOT`: SDK input/output must not contain Runtime or Realm clients, account
-caller posture, local-app principal/record/grant ids, launch binding/nonce,
+caller posture, local-app principal/record/permission-decision ids, launch binding/nonce,
 launch host, release/capability refs, app session metadata, endpoint,
 authorization, credential, ordinary gRPC, generic method-id/bytes forwarding,
 or developer-registration fallback. Missing/unadmitted carrier or unavailable
-operation family is a typed fail-closed result and cannot be replaced by
-renderer metadata.
+permission is a typed fail-closed result and cannot be replaced by renderer
+metadata. App-native SQLite, media, settings, cache, routes and product commands
+remain outside this Runtime permission client.
 
 Cross-references: `P-SCAF-016` (scaffolded local-app binding custody),
 `K-ACCSVC-022` / `K-ACCSVC-026` (local-app caller and operation posture),

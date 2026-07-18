@@ -178,25 +178,15 @@ const appClient = createNimiAppClient({
   async status() { return { appId: 'dev.nimi.surface', launchReadiness: 'ready' }; },
 });
 const localAppStandardShell: NimiAppRuntimePlatformStandardShell = {
-  session: { async status() { return { state: 'zero-grant', reasonCode: 'grant-required', retryable: false }; } },
+  session: { async status() { return { state: 'ready', reasonCode: 'ACTION_EXECUTED', retryable: false }; } },
   permission: {
-    async posture() { return {}; },
+    async status() { return {}; },
     async request() { return {}; },
   },
-  artifacts: { async readRuntimeBytes() { return {}; } },
   storage: {
     async readJson() { return {}; },
     async writeJson() { return {}; },
     async removeJson() { return {}; },
-  },
-  agent: {
-    async inventory() { return {}; },
-    async openConversation() { return {}; },
-    async sendTurn() { return {}; },
-    async subscribeTurn() { return {}; },
-    async getConversationSnapshot() { return {}; },
-    async transcribeVoice() { return {}; },
-    async subscribeVoiceStream() { return {}; },
   },
 };
 const localApp = createNimiAppRuntimePlatformClient({ standardShell: localAppStandardShell });

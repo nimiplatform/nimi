@@ -179,6 +179,13 @@ Host-owned `commandPolicy` hooks may deny selected standard or app-domain
 commands before their handlers run; policy denials surface as structured
 fail-closed shell errors rather than pseudo-success.
 
+Desktop-supervised third-party apps use `registerNimiElectronAppBridge`. Its
+optional `appCommandHandlers` map registers exact native product commands under
+the app's own authority. Those handlers receive the fixed renderer URL/origin
+checks, cannot occupy the reserved `nimi.shell.*` namespace, and never create a
+Nimi permission row or prompt. A handler must not proxy protected Runtime,
+Realm, account, credential, Agent, or Cognition operations.
+
 ### Tauri shell crate
 
 ```rust

@@ -38,8 +38,8 @@ func TestNewAccountRealmSourceMaterializationIssuerRequiresExactDependencies(t *
 
 func TestAccountRealmSourceMaterializationIssuerContractIdentity(t *testing.T) {
 	var _ runtimeagentservice.RealmSourceMaterializationIssuer = (*accountRealmSourceMaterializationIssuer)(nil)
-	if sourceMaterializationAccessPolicyDigestV4 != "34f338ae76cbd85de58054cd6fc4d0ee18500030a0bc12f091e88d46f2fc572f" {
-		t.Fatalf("access policy digest = %q", sourceMaterializationAccessPolicyDigestV4)
+	if sourceMaterializationAccessPolicyDigestV5 != "7649e8c7aa85f6667b1af5134686fc653f33ed5094e5d11483a5e60f39765faa" {
+		t.Fatalf("access policy digest = %q", sourceMaterializationAccessPolicyDigestV5)
 	}
 }
 
@@ -51,8 +51,8 @@ func TestAccountRealmSourceMaterializationIssuerClassifiesAcquisitionFailures(t 
 	}{
 		{name: "invalid Packet request", in: accountservice.ErrRealmSourceMaterializationInvalidRequest, want: runtimeagentservice.ErrRealmSourceMaterializationAcquisitionInvalidRequest},
 		{name: "stale source binding", in: accountservice.ErrRealmSourceMaterializationSourceBinding, want: runtimeagentservice.ErrRealmSourceMaterializationAcquisitionSourceBinding},
-		{name: "grant or visibility denied", in: accountservice.ErrRealmSourceMaterializationDenied, want: runtimeagentservice.ErrRealmSourceMaterializationAcquisitionDenied},
-		{name: "grant denied or malformed", in: fmt.Errorf("wrapped: %w", accountservice.ErrRealmSourceMaterializationContract), want: runtimeagentservice.ErrRealmSourceMaterializationAcquisitionDenied},
+		{name: "source policy or visibility denied", in: accountservice.ErrRealmSourceMaterializationDenied, want: runtimeagentservice.ErrRealmSourceMaterializationAcquisitionDenied},
+		{name: "producer contract denied or malformed", in: fmt.Errorf("wrapped: %w", accountservice.ErrRealmSourceMaterializationContract), want: runtimeagentservice.ErrRealmSourceMaterializationAcquisitionDenied},
 		{name: "capacity", in: accountservice.ErrRealmSourceMaterializationResponseSize, want: runtimeagentservice.ErrRealmSourceMaterializationAcquisitionCapacity},
 		{name: "account generation", in: accountservice.ErrRealmSourceMaterializationAccountLease, want: runtimeagentservice.ErrRealmSourceMaterializationAcquisitionAccount},
 	} {

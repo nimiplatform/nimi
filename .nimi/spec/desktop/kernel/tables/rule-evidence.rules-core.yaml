@@ -379,7 +379,7 @@ rules:
   - desktop_lint_gate
   - desktop_test_gate
   - desktop_e2e_journey_gate
-  note: Local-app child renderers receive exact typed operations and stable posture only; bearer, endpoint, principal, grant, lease, session, process proof, Runtime epoch, and generic forwarding are forbidden.
+  note: Local-app child renderers receive only exact typed operations and stable posture; bearer, endpoint, principal, permission-decision, lease, session, process proof, Runtime epoch, and generic forwarding are forbidden.
   evidence_requirement: required
 - rule_id: D-STATE-001
   evidence_refs:

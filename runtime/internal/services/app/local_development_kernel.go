@@ -87,7 +87,7 @@ func (s *Service) createLocalDevelopmentPrincipalRecord(ctx context.Context, aut
 		ProvenanceRevision:                1,
 		ActiveReleaseOrProjectIdentityRef: localDevelopmentProjectIdentityRef(observation.CanonicalProjectFileID),
 		InstallOrProjectGeneration:        1,
-		ActiveCapabilityFingerprint:       localDevelopmentCapabilityRef(authorization.Project.CapabilityFingerprint),
+		ActiveCapabilityFingerprint:       localDevelopmentCapabilityRef(authorization.Project.PermissionRequirementFingerprint),
 		ExecutionProfileRef:               localDevelopmentExecutionProfileRef(authorization.Project.ShellKind),
 		HostExecutableDigest:              observation.HostExecutableDigest,
 		PayloadRootDigest:                 observation.PayloadRootDigest,
@@ -115,7 +115,7 @@ func (s *Service) prepareLocalDevelopmentRecord(ctx context.Context, authorizati
 	record, err := s.localAppKernel.Records().GetByPrincipalID(ctx, principal.LocalAppPrincipalID)
 	if err != nil || record.TrustClass != localappkernel.TrustClassLocalDevelopment || record.LifecycleState != localappkernel.LifecycleStateActive ||
 		record.ActiveReleaseOrProjectIdentityRef != localDevelopmentProjectIdentityRef(observation.CanonicalProjectFileID) ||
-		record.ActiveCapabilityFingerprint != localDevelopmentCapabilityRef(authorization.Project.CapabilityFingerprint) ||
+		record.ActiveCapabilityFingerprint != localDevelopmentCapabilityRef(authorization.Project.PermissionRequirementFingerprint) ||
 		record.ExecutionProfileRef != localDevelopmentExecutionProfileRef(authorization.Project.ShellKind) {
 		return localappkernel.Principal{}, localappkernel.Record{}, errLocalDevelopmentProjectChanged
 	}
@@ -142,7 +142,7 @@ func (s *Service) resolveLocalDevelopmentRecord(ctx context.Context, session loc
 		return localappkernel.Principal{}, localappkernel.Record{}, errLocalDevelopmentSessionRevoked
 	}
 	record, err := s.localAppKernel.Records().GetByPrincipalID(ctx, session.LocalAppPrincipalID)
-	if err != nil || record.LocalAppRecordID != session.LocalAppRecordID || record.ProvenanceRevision != session.ProvenanceRevision || record.InstallOrProjectGeneration != session.ProjectGeneration || record.PayloadRootDigest != session.PayloadDigest || record.ActiveCapabilityFingerprint != localDevelopmentCapabilityRef(session.CapabilityFingerprint) || record.LifecycleState != localappkernel.LifecycleStateActive || localDevelopmentProcessDigestRef(session.Process) != record.HostExecutableDigest {
+	if err != nil || record.LocalAppRecordID != session.LocalAppRecordID || record.ProvenanceRevision != session.ProvenanceRevision || record.InstallOrProjectGeneration != session.ProjectGeneration || record.PayloadRootDigest != session.PayloadDigest || record.ActiveCapabilityFingerprint != localDevelopmentCapabilityRef(session.PermissionRequirementFingerprint) || record.LifecycleState != localappkernel.LifecycleStateActive || localDevelopmentProcessDigestRef(session.Process) != record.HostExecutableDigest {
 		return localappkernel.Principal{}, localappkernel.Record{}, errLocalDevelopmentSessionRevoked
 	}
 	return principal, record, nil

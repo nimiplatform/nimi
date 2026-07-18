@@ -33,27 +33,6 @@ def _decode_model(model_type, value: object):
     return model_type(**{key: val for key, val in source.items() if key in names})
 
 
-@dataclass(frozen=True)
-class AccountGrantsViewDto:
-    accountId: str | None = None
-    grants: tuple[AccountGrantViewRowDto, ...] = field(default_factory=tuple)
-    schemaVersion: float | None = None
-    updatedAt: str | None = None
-
-@dataclass(frozen=True)
-class AccountGrantViewRowDto:
-    appId: str | None = None
-    expiresAt: str | None = None
-    grantId: str | None = None
-    qualifier: str | None = None
-    scopeFamily: AppPermissionScopeFamily | None = None
-    scopeName: AppPermissionScopeName | None = None
-    state: AccountGrantViewState | None = None
-    subjectAccountId: str | None = None
-    version: float | None = None
-
-AccountGrantViewState = Literal["pending", "granted", "denied", "expired", "revoked", "superseded"]
-
 AccountRelationType = Literal["ALLY", "RIVAL", "ENEMY"]
 
 AccountStatus = Literal["ONBOARDING", "CHECK_INVITED", "ACTIVE", "SUSPENDED", "BANNED"]
@@ -69,71 +48,6 @@ class AddGroupParticipantInputDto:
 @dataclass(frozen=True)
 class AddGroupSourceParticipantInputDto:
     sourceRef: GroupSourceRefDto | None = None
-
-@dataclass(frozen=True)
-class AppPermissionGrantDecisionDto:
-    expectedVersion: float | None = None
-    reason: str | None = None
-
-@dataclass(frozen=True)
-class AppPermissionGrantDto:
-    appId: str | None = None
-    deniedAt: str | None = None
-    deniedByAccountId: str | None = None
-    expiredAt: str | None = None
-    expiresAt: str | None = None
-    grantId: str | None = None
-    grantedAt: str | None = None
-    grantedByAccountId: str | None = None
-    qualifier: str | None = None
-    reason: str | None = None
-    requestedAt: str | None = None
-    requestedByAccountId: str | None = None
-    revokedAt: str | None = None
-    revokedByAccountId: str | None = None
-    scopeFamily: AppPermissionScopeFamily | None = None
-    scopeName: AppPermissionScopeName | None = None
-    state: AppPermissionGrantState | None = None
-    subjectAccountId: str | None = None
-    supersededAt: str | None = None
-    supersededByAccountId: str | None = None
-    supersededByGrantId: str | None = None
-    version: float | None = None
-
-@dataclass(frozen=True)
-class AppPermissionGrantGrantDto:
-    expectedVersion: float | None = None
-    expiresAt: str | None = None
-    reason: str | None = None
-
-@dataclass(frozen=True)
-class AppPermissionGrantListDto:
-    items: tuple[AppPermissionGrantDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class AppPermissionGrantRequestDto:
-    appId: str | None = None
-    qualifier: str | None = None
-    reason: str | None = None
-    scopeFamily: AppPermissionScopeFamily | None = None
-    scopeName: AppPermissionScopeName | None = None
-
-AppPermissionGrantState = Literal["PENDING", "GRANTED", "DENIED", "EXPIRED", "REVOKED", "SUPERSEDED"]
-
-@dataclass(frozen=True)
-class AppPermissionGrantStatusDto:
-    generatedAt: str | None = None
-    grants: tuple[AppPermissionGrantDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class AppPermissionGrantSupersedeDto:
-    expectedVersion: float | None = None
-    reason: str | None = None
-    supersededByGrantId: str | None = None
-
-AppPermissionScopeFamily = Literal["realm_source"]
-
-AppPermissionScopeName = Literal["realm_source.snapshot.consume"]
 
 @dataclass(frozen=True)
 class AssetDetailDto:
@@ -676,7 +590,6 @@ class CreateReviewDto:
 
 @dataclass(frozen=True)
 class CreateSourceMaterializationPacketV3Dto:
-    accessGrantId: str | None = None
     challengeDigest: str | None = None
     challengeExpiresAt: str | None = None
     challengeId: str | None = None
@@ -1763,18 +1676,6 @@ ReviewRating = Literal["POSITIVE", "NEGATIVE"]
 class ReviewStatsDto:
     positiveRate: float | None = None
     totalCount: float | None = None
-
-@dataclass(frozen=True)
-class RuntimeRealmGrantIssueRequestDto:
-    appId: str | None = None
-    scopes: tuple[str, ...] = field(default_factory=tuple)
-    subjectUserId: str | None = None
-
-@dataclass(frozen=True)
-class RuntimeRealmGrantIssueResponseDto:
-    expiresAt: str | None = None
-    token: str | None = None
-    version: str | None = None
 
 @dataclass(frozen=True)
 class SendGiftDto:
@@ -3411,28 +3312,6 @@ class RealmDeleteResourceOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
-class RealmDenyMyAppPermissionGrantOperationPath:
-    grantId: str
-
-
-@dataclass(frozen=True)
-class RealmDenyMyAppPermissionGrantOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmDenyMyAppPermissionGrantOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmDenyMyAppPermissionGrantOperationRequest:
-    path: RealmDenyMyAppPermissionGrantOperationPath
-    query: RealmDenyMyAppPermissionGrantOperationQuery | None = None
-    headers: RealmDenyMyAppPermissionGrantOperationHeaders | None = None
-    body: AppPermissionGrantDecisionDto | None = None
-
-@dataclass(frozen=True)
 class RealmDisable2FaOperationPath:
     pass
 
@@ -4144,28 +4023,6 @@ class RealmEnable2FaOperationRequest:
     body: Me2faVerifyDto | None = None
 
 @dataclass(frozen=True)
-class RealmExpireMyAppPermissionGrantOperationPath:
-    grantId: str
-
-
-@dataclass(frozen=True)
-class RealmExpireMyAppPermissionGrantOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmExpireMyAppPermissionGrantOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmExpireMyAppPermissionGrantOperationRequest:
-    path: RealmExpireMyAppPermissionGrantOperationPath
-    query: RealmExpireMyAppPermissionGrantOperationQuery | None = None
-    headers: RealmExpireMyAppPermissionGrantOperationHeaders | None = None
-    body: AppPermissionGrantDecisionDto | None = None
-
-@dataclass(frozen=True)
 class RealmExploreControllerCheckStatusOperationPath:
     pass
 
@@ -4436,72 +4293,6 @@ class RealmGetMutualFriendsCountOperationRequest:
     path: RealmGetMutualFriendsCountOperationPath
     query: RealmGetMutualFriendsCountOperationQuery | None = None
     headers: RealmGetMutualFriendsCountOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmGetMyAppPermissionGrantOperationPath:
-    grantId: str
-
-
-@dataclass(frozen=True)
-class RealmGetMyAppPermissionGrantOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetMyAppPermissionGrantOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetMyAppPermissionGrantOperationRequest:
-    path: RealmGetMyAppPermissionGrantOperationPath
-    query: RealmGetMyAppPermissionGrantOperationQuery | None = None
-    headers: RealmGetMyAppPermissionGrantOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmGetMyAppPermissionGrantStatusOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetMyAppPermissionGrantStatusOperationQuery:
-    appId: str | None = None
-
-
-@dataclass(frozen=True)
-class RealmGetMyAppPermissionGrantStatusOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetMyAppPermissionGrantStatusOperationRequest:
-    path: RealmGetMyAppPermissionGrantStatusOperationPath
-    query: RealmGetMyAppPermissionGrantStatusOperationQuery | None = None
-    headers: RealmGetMyAppPermissionGrantStatusOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmGetMyAppPermissionGrantViewOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetMyAppPermissionGrantViewOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetMyAppPermissionGrantViewOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetMyAppPermissionGrantViewOperationRequest:
-    path: RealmGetMyAppPermissionGrantViewOperationPath
-    query: RealmGetMyAppPermissionGrantViewOperationQuery | None = None
-    headers: RealmGetMyAppPermissionGrantViewOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -4906,28 +4697,6 @@ class RealmGetWorldPostsOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
-class RealmGrantMyAppPermissionGrantOperationPath:
-    grantId: str
-
-
-@dataclass(frozen=True)
-class RealmGrantMyAppPermissionGrantOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGrantMyAppPermissionGrantOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGrantMyAppPermissionGrantOperationRequest:
-    path: RealmGrantMyAppPermissionGrantOperationPath
-    query: RealmGrantMyAppPermissionGrantOperationQuery | None = None
-    headers: RealmGrantMyAppPermissionGrantOperationHeaders | None = None
-    body: AppPermissionGrantGrantDto | None = None
-
-@dataclass(frozen=True)
 class RealmIntrospectSessionOperationPath:
     pass
 
@@ -5014,28 +4783,6 @@ class RealmInvitationControllerVerifyCodeOperationRequest:
     query: RealmInvitationControllerVerifyCodeOperationQuery | None = None
     headers: RealmInvitationControllerVerifyCodeOperationHeaders | None = None
     body: VerifyInvitationCodeDto | None = None
-
-@dataclass(frozen=True)
-class RealmIssueRuntimeRealmGrantOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmIssueRuntimeRealmGrantOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmIssueRuntimeRealmGrantOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmIssueRuntimeRealmGrantOperationRequest:
-    path: RealmIssueRuntimeRealmGrantOperationPath
-    query: RealmIssueRuntimeRealmGrantOperationQuery | None = None
-    headers: RealmIssueRuntimeRealmGrantOperationHeaders | None = None
-    body: RuntimeRealmGrantIssueRequestDto | None = None
 
 @dataclass(frozen=True)
 class RealmLikePostOperationPath:
@@ -5244,28 +4991,6 @@ class RealmListMessagesOperationRequest:
     path: RealmListMessagesOperationPath
     query: RealmListMessagesOperationQuery | None = None
     headers: RealmListMessagesOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmListMyAppPermissionGrantsOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListMyAppPermissionGrantsOperationQuery:
-    appId: str | None = None
-
-
-@dataclass(frozen=True)
-class RealmListMyAppPermissionGrantsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListMyAppPermissionGrantsOperationRequest:
-    path: RealmListMyAppPermissionGrantsOperationPath
-    query: RealmListMyAppPermissionGrantsOperationQuery | None = None
-    headers: RealmListMyAppPermissionGrantsOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -5993,28 +5718,6 @@ class RealmRequestEmailOtpOperationRequest:
     body: EmailOtpRequestDto | None = None
 
 @dataclass(frozen=True)
-class RealmRequestMyAppPermissionGrantOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRequestMyAppPermissionGrantOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRequestMyAppPermissionGrantOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRequestMyAppPermissionGrantOperationRequest:
-    path: RealmRequestMyAppPermissionGrantOperationPath
-    query: RealmRequestMyAppPermissionGrantOperationQuery | None = None
-    headers: RealmRequestMyAppPermissionGrantOperationHeaders | None = None
-    body: AppPermissionGrantRequestDto | None = None
-
-@dataclass(frozen=True)
 class RealmReviewControllerCreateReviewOperationPath:
     pass
 
@@ -6057,28 +5760,6 @@ class RealmReviewControllerGetReviewsOperationRequest:
     query: RealmReviewControllerGetReviewsOperationQuery | None = None
     headers: RealmReviewControllerGetReviewsOperationHeaders | None = None
     body: None | None = None
-
-@dataclass(frozen=True)
-class RealmRevokeMyAppPermissionGrantOperationPath:
-    grantId: str
-
-
-@dataclass(frozen=True)
-class RealmRevokeMyAppPermissionGrantOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRevokeMyAppPermissionGrantOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRevokeMyAppPermissionGrantOperationRequest:
-    path: RealmRevokeMyAppPermissionGrantOperationPath
-    query: RealmRevokeMyAppPermissionGrantOperationQuery | None = None
-    headers: RealmRevokeMyAppPermissionGrantOperationHeaders | None = None
-    body: AppPermissionGrantDecisionDto | None = None
 
 @dataclass(frozen=True)
 class RealmSearchHumanUsersOperationPath:
@@ -6245,28 +5926,6 @@ class RealmStartChatOperationRequest:
     query: RealmStartChatOperationQuery | None = None
     headers: RealmStartChatOperationHeaders | None = None
     body: StartChatInputDto | None = None
-
-@dataclass(frozen=True)
-class RealmSupersedeMyAppPermissionGrantOperationPath:
-    grantId: str
-
-
-@dataclass(frozen=True)
-class RealmSupersedeMyAppPermissionGrantOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmSupersedeMyAppPermissionGrantOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmSupersedeMyAppPermissionGrantOperationRequest:
-    path: RealmSupersedeMyAppPermissionGrantOperationPath
-    query: RealmSupersedeMyAppPermissionGrantOperationQuery | None = None
-    headers: RealmSupersedeMyAppPermissionGrantOperationHeaders | None = None
-    body: AppPermissionGrantSupersedeDto | None = None
 
 @dataclass(frozen=True)
 class RealmSyncChatEventsOperationPath:
@@ -7836,16 +7495,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="deleteResource", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
 
-    async def deny_my_app_permission_grant(self, request: RealmDenyMyAppPermissionGrantOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmDenyMyAppPermissionGrantOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="denyMyAppPermissionGrant", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AppPermissionGrantDto, raw)
-
     async def disable2_fa(self, request: RealmDisable2FaOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmDisable2FaOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -8166,16 +7815,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="enable2Fa", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(Me2faOperationResultDto, raw)
 
-    async def expire_my_app_permission_grant(self, request: RealmExpireMyAppPermissionGrantOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmExpireMyAppPermissionGrantOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="expireMyAppPermissionGrant", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AppPermissionGrantDto, raw)
-
     async def explore_controller_check_status(self, request: RealmExploreControllerCheckStatusOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmExploreControllerCheckStatusOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -8295,36 +7934,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMutualFriendsCount", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(Mapping[str, object], raw)
-
-    async def get_my_app_permission_grant(self, request: RealmGetMyAppPermissionGrantOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyAppPermissionGrantOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyAppPermissionGrant", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AppPermissionGrantDto, raw)
-
-    async def get_my_app_permission_grant_status(self, request: RealmGetMyAppPermissionGrantStatusOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyAppPermissionGrantStatusOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyAppPermissionGrantStatus", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AppPermissionGrantStatusDto, raw)
-
-    async def get_my_app_permission_grant_view(self, request: RealmGetMyAppPermissionGrantViewOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyAppPermissionGrantViewOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyAppPermissionGrantView", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AccountGrantsViewDto, raw)
 
     async def get_my_blocked_users(self, request: RealmGetMyBlockedUsersOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyBlockedUsersOperationResponse:
         envelope: dict[str, object] = {
@@ -8506,16 +8115,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getWorldPosts", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(FeedResponseDto, raw)
 
-    async def grant_my_app_permission_grant(self, request: RealmGrantMyAppPermissionGrantOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGrantMyAppPermissionGrantOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="grantMyAppPermissionGrant", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AppPermissionGrantDto, raw)
-
     async def introspect_session(self, request: RealmIntrospectSessionOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmIntrospectSessionOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -8555,16 +8154,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="InvitationController_verifyCode", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(bool, raw)
-
-    async def issue_runtime_realm_grant(self, request: RealmIssueRuntimeRealmGrantOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmIssueRuntimeRealmGrantOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="issueRuntimeRealmGrant", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RuntimeRealmGrantIssueResponseDto, raw)
 
     async def like_post(self, request: RealmLikePostOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmLikePostOperationResponse:
         envelope: dict[str, object] = {
@@ -8655,16 +8244,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="listMessages", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListMessagesResultDto, raw)
-
-    async def list_my_app_permission_grants(self, request: RealmListMyAppPermissionGrantsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListMyAppPermissionGrantsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="listMyAppPermissionGrants", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AppPermissionGrantListDto, raw)
 
     async def list_my_friend_ids(self, request: RealmListMyFriendIdsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListMyFriendIdsOperationResponse:
         envelope: dict[str, object] = {
@@ -8986,16 +8565,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="requestEmailOtp", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(EmailOtpResponseDto, raw)
 
-    async def request_my_app_permission_grant(self, request: RealmRequestMyAppPermissionGrantOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRequestMyAppPermissionGrantOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="requestMyAppPermissionGrant", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AppPermissionGrantDto, raw)
-
     async def review_controller_create_review(self, request: RealmReviewControllerCreateReviewOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmReviewControllerCreateReviewOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -9015,16 +8584,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="ReviewController_getReviews", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(tuple[ReviewDto, ...], raw)
-
-    async def revoke_my_app_permission_grant(self, request: RealmRevokeMyAppPermissionGrantOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRevokeMyAppPermissionGrantOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="revokeMyAppPermissionGrant", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AppPermissionGrantDto, raw)
 
     async def search_human_users(self, request: RealmSearchHumanUsersOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmSearchHumanUsersOperationResponse:
         envelope: dict[str, object] = {
@@ -9085,16 +8644,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="startChat", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(StartChatResultDto, raw)
-
-    async def supersede_my_app_permission_grant(self, request: RealmSupersedeMyAppPermissionGrantOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmSupersedeMyAppPermissionGrantOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="supersedeMyAppPermissionGrant", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AppPermissionGrantDto, raw)
 
     async def sync_chat_events(self, request: RealmSyncChatEventsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmSyncChatEventsOperationResponse:
         envelope: dict[str, object] = {

@@ -5,16 +5,11 @@ import { FakeIpcMain, createInvokeEvent, invokeBridge } from './electron-shell-t
 
 const FINAL_LOCAL_APP_COMMANDS = [
   'nimi.shell.localApp.sessionStatus',
-  'nimi.shell.localApp.permissionPosture',
+  'nimi.shell.localApp.permissionStatus',
   'nimi.shell.localApp.permissionRequest',
-  'nimi.shell.localApp.artifacts.readRuntimeBytes',
   'nimi.shell.storage.readJson',
   'nimi.shell.storage.writeJson',
   'nimi.shell.storage.removeJson',
-  'nimi.shell.localApp.agent.openConversation',
-  'nimi.shell.localApp.agent.sendTurn',
-  'nimi.shell.localApp.agent.subscribeTurn',
-  'nimi.shell.localApp.agent.getConversationSnapshot',
 ] as const;
 
 function createBridge() {
@@ -35,6 +30,40 @@ function createBridge() {
 }
 
 describe('Electron local-app carrier behavior', () => {
+  it('routes exact app-owned commands without turning them into Nimi permissions', async () => {
+    const ipcMain = new FakeIpcMain();
+    registerNimiElectronAppBridge({
+      appId: 'nimi.thirdparty.fixture',
+      allowedRendererUrls: ['http://localhost:1430/'],
+      ipcMain,
+      appCommandHandlers: {
+        'fixture.sqlite.read': ({ payload }) => ({ owner: 'fixture', payload }),
+      },
+    });
+    const { event } = createInvokeEvent();
+    const exactEvent = {
+      ...event,
+      senderFrame: { ...event.senderFrame, url: 'http://localhost:1430/' },
+    };
+
+    await expect(invokeBridge(ipcMain, exactEvent, {
+      command: 'fixture.sqlite.read',
+      payload: { rowId: 'row-1' },
+    })).resolves.toEqual({ owner: 'fixture', payload: { rowId: 'row-1' } });
+  });
+
+  it('keeps the Nimi shell namespace unavailable to app-owned handlers', () => {
+    const ipcMain = new FakeIpcMain();
+    expect(() => registerNimiElectronAppBridge({
+      appId: 'nimi.thirdparty.fixture',
+      allowedRendererUrls: ['http://localhost:1430/'],
+      ipcMain,
+      appCommandHandlers: {
+        'nimi.shell.runtime.unary': () => ({ forged: true }),
+      },
+    })).toThrow(/command handler is invalid/i);
+  });
+
   it('routes every final local-app command to the protected carrier rather than generic capability denial', async () => {
     for (const command of FINAL_LOCAL_APP_COMMANDS) {
       const { ipcMain, event } = createBridge();
@@ -42,9 +71,17 @@ describe('Electron local-app carrier behavior', () => {
       expect(error).toBeInstanceOf(Error);
       expect(error).not.toMatchObject({ reasonCode: 'electron-standard-capability-not-in-host-set' });
       expect(String((error as { reasonCode?: unknown }).reasonCode || '')).toMatch(
-        /^(protected-carrier-required|runtime-service-unavailable|runtime-service-untrusted|runtime-unauthenticated|no-grant|invalid-payload)$/,
+        /^(protected-carrier-required|runtime-service-unavailable|runtime-service-untrusted|runtime-unauthenticated|permission-unavailable|invalid-payload)$/,
       );
     }
+  });
+
+  it('denies protected Agent operations until a public permission is admitted', async () => {
+    const { ipcMain, event } = createBridge();
+    await expect(invokeBridge(ipcMain, event, {
+      command: 'nimi.shell.localApp.agent.sendTurn',
+      payload: {},
+    })).rejects.toMatchObject({ code: 'capability-unavailable' });
   });
 
   it('denies generic proxy, lifecycle, auth, OAuth, filesystem and desktop-private commands', async () => {

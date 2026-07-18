@@ -18,11 +18,12 @@ Discipline.
   header. This is a breaking pre-1.0 minor change.
 - Hardcut the pre-1.0 Electron local-app carrier to
   `registerNimiElectronAppBridge` and `local-app-standard-shell-v1`. The public
-  surface is now exactly session status, permission posture, Runtime artifact
-  read, and four selected RuntimeAgent conversation operations. Consumers must
-  replace the retired artifact-only host/bootstrap helpers with
+  surface is now exactly session status, reserved public-permission posture,
+  and bounded app-private JSON storage. Consumers must replace the retired
+  operation/resource grant, Runtime artifact, Agent inventory/conversation,
+  voice, and artifact-only host/bootstrap helpers with
   `createNimiLocalAppStandardShellSurface`; no compatibility alias is shipped.
-  This is a breaking pre-1.0 minor change.
+  Kit advances to `0.3.0` for this breaking pre-1.0 minor change.
 
 ### Added
 

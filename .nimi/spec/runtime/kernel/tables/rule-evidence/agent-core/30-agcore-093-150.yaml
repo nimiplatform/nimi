@@ -281,7 +281,7 @@ rules:
       - runtime_kernel_consistency
     test_files:
       - scripts/check-local-agent-full-chain-hardcut.mjs
-    note: MaterializeRealmSource accepts only CharacterSourceRefV3 plus request intent; Runtime exclusively owns current grant/JWKS acquisition, private challenge/closure-set transaction, Packet v3 verification, atomic SnapshotV2/LocalAgent commit, replay, cleanup, and no-rebase/write-back boundaries.
+    note: MaterializeRealmSource accepts only CharacterSourceRefV3 plus request intent; Runtime exclusively owns authenticated first-party Packet/JWKS acquisition, private challenge/closure-set transaction, Packet v3 verification, atomic SnapshotV2/LocalAgent commit, replay, cleanup, and no-rebase/write-back boundaries. No app grant participates.
     evidence_requirement: required
   - rule_id: K-AGCORE-140
     evidence_refs:

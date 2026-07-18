@@ -132,8 +132,8 @@ Mode D 投影规则按 Phase 分层：
   exact Runtime-derived origin/operation policy.
 - Public/binding-only calls cannot be upgraded by a bearer, app id, caller enum
   or metadata. Removed public token/refresh and credential-grant methods remain
-  reserved. Local-app grant status/mutation uses the protected owner surface
-  and never returns a portable credential.
+  reserved. Local-app public permission posture/request uses the protected
+  owner surface and never returns a portable credential or owner decision id.
 - `metadata.extra` and renderer IPC must reject `authorization`, provider keys,
   Realm bases, protected session ids and origin material rather than silently
   stripping and continuing.
@@ -155,15 +155,20 @@ account-changed, untrusted-host, or unavailable carrier produces a stable typed
 failure before a business call. Session material never enters renderer IPC,
 application state, telemetry, errors, or retry callbacks.
 
-Local-development transport does not widen the Runtime method set. It carries
-only typed session status, read-only permission posture, explicit exact-operation
-permission request, `artifacts.readRuntimeBytes`, and the
-selected RuntimeAgent open-conversation, send-turn, subscribe-turn and
-conversation-snapshot operations. Missing operation families remain typed
-unavailable; every account-control, lifecycle mutation, Realm, broad AI,
-realtime, media, admin, memory, generic RuntimeAgent or generic proxy attempt
-remains unavailable even when a grant exists. Ordinary Electron/Tauri IPC and
-localhost gRPC cannot claim this transport type.
+Local-development transport does not widen the Runtime method set. Its exact
+positive business surface is public permission posture/request and app-private
+JSON read/write/remove. App-private storage is a base entitlement and succeeds
+for a live principal/session/account partition without a user permission.
+Every public permission is currently reserved, so posture/request returns typed
+`unavailable`; it does not manufacture an owner decision.
+
+Artifact, Agent, conversation, voice, account-control, lifecycle mutation,
+Realm, broad AI, realtime, media, admin, memory and generic Runtime forwarding
+are absent from the third-party local-app carrier until their complete public
+permission or first-party service slice is admitted. App-native SQLite, media,
+settings, routes and exact product commands remain outside this SDK permission
+surface. Missing operation families remain typed unavailable. Ordinary
+Electron/Tauri IPC and localhost gRPC cannot claim this transport type.
 
 ## S-TRANSPORT-011 背压投影
 

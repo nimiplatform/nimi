@@ -504,30 +504,32 @@ Fixed rules:
 - `local-first-party-app` and `local-app` are the only local app modes. A mode
   name, app id, manifest, registry row, project path or loopback connectivity
   does not authorize.
-- The `local-app` facade exposes session status, read-only permission posture,
-  explicit exact-operation permission request, and only the exact
-  artifact/RuntimeAgent operations admitted by `S-APP-022`. It does not expose
+- The `local-app` facade exposes session status, public permission posture and
+  request by product permission id, plus app-private JSON storage. The current
+  public permission set is reserved, so it exposes no Artifact/RuntimeAgent
+  operation. It does not expose
   login/logout/switch, account control, presence mutation, scoped/workspace
   binding control, generic Realm, generic Runtime or generic RuntimeAgent APIs.
-- Session-bound zero-grant, granted, revoked, process-replaced,
-  account-changed, Runtime-restarted and unavailable are distinct projections.
-  SDK cannot infer or cache authorization from prior success.
+- Session-bound zero-permission, process-replaced, account-changed,
+  Runtime-restarted and unavailable are distinct session projections.
+  Permission posture is a separate owner projection; SDK cannot infer or cache
+  authorization from session state or prior success.
 - Shipped Zhiyu/Avatar stay bundled first-party. An isolated Zhiyu integration
   build is `local-app` and cannot inherit bundled identity or bindings.
 - The Desktop account-UX facade may expose only methods listed in the protected
   transport matrix and only when the injected native carrier proves
   `desktop_account_host`; SDK never derives that role.
-- Removed public token/refresh and credential-grant wire identities remain
-  reserved. Protected local-app grant methods project status/mutation only and
-  expose no credential.
+- Removed public token/refresh, credential-grant and exact-operation local-app
+  grant wire identities remain reserved. Apps may only read/request admitted
+  product permission ids and cannot approve, revoke or mutate owner decisions.
 - No local mode accepts or exposes `auth.accessToken`, refresh token,
   authorization-header/subject provider, session store, JWT hook, Realm base,
   principal/record/grant/session identifiers, or equivalent credential surface.
 - Runtime-mediated operation tables remain exact allowlists; SDK cannot fall
   back to direct Realm, `MeService`, HTTP proxy, direct daemon, SDK-owned 401
   refresh, generated descriptor or a broader Runtime client.
-- Missing carrier, account state when required, record, session, grant or
-  operation owner state fails closed with typed unavailable/permission results,
+- Missing carrier, account state when required, record, session, admitted
+  permission decision/selector or operation-owner state fails closed with typed unavailable/permission results,
   never anonymous, fixture or mock success.
 
 Web/cloud adapter 与 external-principal mode 仍可保留 app-provided token / subject provider 输入，但这些 mode 必须在公共 surface 上显式 fenced，且不得对 local first-party 消费可达。
@@ -580,8 +582,9 @@ SDK 必须暴露通用 artifact bytes 取回 surface，与 typed media projectio
   transport admission。普通 `Runtime.generated`、`Runtime.artifacts`、app
   session metadata 和 direct local gRPC 必须返回
   `SDK_RUNTIME_METHOD_UNAVAILABLE` 且不得发出请求；只有当前 admitted 的
-  protected local-app carrier在 exact grant、owner policy 与 artifact audience
-  同时成立后才能消费该 binding。
+  protected local-app carrier、admitted product permission、owner selector/policy
+  与 artifact audience 同时成立后才能消费该 binding。当前 `artifacts.open` 尚未
+  admitted，因此第三方 local app 必须得到 typed unavailable。
 - SDK Runtime class 的 `artifacts` module 必须暴露 Runtime-owned generated voice cleanup RPC binding：`cleanupGeneratedVoiceArtifacts({ agentId?, conversationAnchorId? })`，绑定到 `RuntimeArtifactService.CleanupGeneratedVoiceArtifacts`；SDK 不得在 app/Avatar 层实现文件删除逻辑。
 - SDK 不得以 singleton const（如 `export const runtime = { artifacts }`）形式暴露 artifacts namespace；必须通过 Runtime class 实例化路径（`new Runtime(options)` 或 `createLocalFirstPartyRuntimePlatformClient(...)`）。
 - `expectedMimePrefix` 用于 SDK fail-fast：runtime 返回 `mime_type` 不以 prefix 开头（case-insensitive）时，SDK throw `NimiError(reasonCode: ARTIFACT_MIME_MISMATCH)`，不暴露 bytes。

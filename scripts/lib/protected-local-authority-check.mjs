@@ -216,29 +216,29 @@ function validateStores(bundle, issues) {
   }
 
   if (
-    grant?.grant?.store_identity !== 'local_app_grants'
-    || !equalArray(grant?.grant?.key, [
+    grant?.current_admission?.store_identity !== 'absent_pre_admission'
+    || grant?.current_admission?.positive_mutation_path !== 'absent'
+    || !equalArray(grant?.future_owner_lifecycle?.key, [
       'local_os_user_anchor',
       'account_id',
       'local_app_principal_id',
-      'capability_resource_fingerprint',
+      'permission_id',
+      'owner_selector_digest',
     ])
-    || grant?.store_separation?.principal_record_store_dependency !== 'reference_only'
-    || grant?.store_separation?.launch_session_store_dependency !== 'none'
-    || grant?.store_separation?.shared_serialized_record !== 'forbidden'
-    || grant?.store_separation?.app_id_positive_key !== 'forbidden'
-    || !hasEvery(grant?.grant?.invariants, [
-      'install_project_authorization_or_promotion_creates_zero_grant',
-      'trust_class_has_no_permission_effect',
-      'account_switch_never_transfers_grant',
-      'next_protected_operation_reads_current_grant',
+    || grant?.authority_classes?.base_entitlement?.permission_record !== 'forbidden'
+    || grant?.authority_classes?.app_owned_authority?.permission_record !== 'forbidden'
+    || !hasEvery(grant?.future_owner_lifecycle?.invariants, [
+      'catalog_row_alone_is_not_authority',
+      'no_trust_tier_permission_effect',
+      'account_switch_never_transfers_permission',
+      'every_protected_operation_reads_current_owner_decision',
       'no_app_id_only_positive_lookup',
     ])
   ) {
     issues.push(issue(
-      'GRANT_STORE_SEPARATION_REQUIRED',
+      'PERMISSION_LIFECYCLE_ADMISSION_REQUIRED',
       AUTHORITY_PATHS.grant,
-      'Grant authority must remain a separate account-and-principal keyed store; trust, install, and app id cannot imply permission.',
+      'Pre-admission permission storage must remain absent; any admitted owner lifecycle must bind the public permission and owner selector without absorbing base or app-owned authority.',
     ));
   }
 
@@ -457,7 +457,9 @@ function validateTransport(bundle, issues) {
     || !hasEvery(openWire?.response?.forbidden_fields, [
       'local_app_principal_id',
       'local_record_id',
-      'grant_id',
+      'permission_id',
+      'permission_state',
+      'permission_decision_id',
       'session_id',
       'session_proof',
       'launch_lease',
@@ -474,7 +476,7 @@ function validateTransport(bundle, issues) {
     issues.push(issue(
       'LOCAL_APP_SESSION_WIRE_REQUIRED',
       AUTHORITY_PATHS.transport,
-      'OpenLocalAppSession must be request-empty, exact-process/lease bound, non-portable, and atomically create a private zero-grant session.',
+      'OpenLocalAppSession must be request-empty, exact-process/lease bound, non-portable, and atomically create a private base-entitlement-ready session without a permission decision.',
     ));
   }
 
@@ -483,8 +485,11 @@ function validateTransport(bundle, issues) {
     ['/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession', [['local_app_bootstrap'], ['local_app_process']]],
     ['/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch', [['desktop_control'], ['local_app_control']]],
     ['/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess', [['desktop_control'], ['local_app_control']]],
-    ['/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant', [['local_app_host'], ['local_app_session']]],
-    ['/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes', [['local_app_host'], ['local_app_session']]],
+    ['/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus', [['local_app_host'], ['local_app_session']]],
+    ['/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission', [['local_app_host'], ['local_app_session']]],
+    ['/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson', [['local_app_host'], ['local_app_session']]],
+    ['/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson', [['local_app_host'], ['local_app_session']]],
+    ['/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson', [['local_app_host'], ['local_app_session']]],
   ]);
   for (const [methodId, [transports, roles]] of requiredRoutes) {
     const route = routeByMethod.get(methodId);
@@ -500,6 +505,16 @@ function validateTransport(bundle, issues) {
       || !equalArray(postureRoles, roles)
     ) invalidRoute = true;
   }
+
+  const expectedLocalAppHostMethods = [...requiredRoutes]
+    .filter(([, [transports]]) => equalArray(transports, ['local_app_host']))
+    .map(([methodId]) => methodId)
+    .sort();
+  const actualLocalAppHostMethods = (matrix?.methods ?? [])
+    .filter((row) => row?.allowed_transport_classes?.includes('local_app_host'))
+    .map((row) => row.method_id)
+    .sort();
+  if (!equalArray(actualLocalAppHostMethods, expectedLocalAppHostMethods)) invalidRoute = true;
 
   const expectedDesktopProductControlIds = [...DESKTOP_PRODUCT_CONTROL_METHODS].sort();
   const desktopProductControlRows = (matrix?.methods ?? [])
@@ -573,7 +588,7 @@ function validatePortableBoundary(bundle, issues) {
   const launchProfiles = rowsBy(launchSession?.profiles, 'os');
   const windowsLaunch = launchProfiles.get('windows');
   const macosLaunch = launchProfiles.get('macos');
-  const portableOutputs = ['bearer', 'token', 'portable_grant_credential', 'session_proof'];
+  const portableOutputs = ['bearer', 'token', 'permission_decision_id', 'session_proof'];
   if (
     matrix?.portable_privileged_session !== 'forbidden'
     || matrix?.request_role_selection !== 'forbidden'
@@ -585,7 +600,7 @@ function validatePortableBoundary(bundle, issues) {
     || windowsLaunch?.admission !== 'admitted_fixed_service_child_carrier'
     || macosLaunch?.admission !== 'requirements_only_fail_closed_pending_native_admission'
     || !String(macosLaunch?.launch_session_equivalent ?? '').includes('atomically_consumes_bootstrap')
-    || !hasEvery(grant?.forbidden_outputs, portableOutputs)
+    || !hasEvery(grant?.forbidden_public_fields, portableOutputs)
     || (matrix?.methods ?? []).some((row) => row.portable_session_allowed !== false || row.request_may_select_role !== false)
   ) {
     issues.push(issue(

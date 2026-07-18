@@ -276,18 +276,16 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	var localAppGRPCServer *grpc.Server
 	accountSvc := accountservice.New(logger)
 	if protected != nil {
-		localAppGrantControl := newLocalAppGrantControlBridge(protected.DesktopSessions)
 		accountSvc = accountservice.NewProduction(logger, accountservice.ProductionConfig{
-			RealmBaseURL:         protected.AccountRealmBaseURL,
-			AuthorizationURL:     protected.AccountAuthorizationURL,
-			TokenURL:             protected.AccountTokenURL,
-			CustodyPartition:     protected.AccountPartition,
-			Custody:              protected.AccountCustody,
-			AppRegistry:          appRegistry,
-			AppSessionValidator:  authSvc,
-			LocalAppKernel:       localAppKernel,
-			LocalAppGrantControl: localAppGrantControl,
-			AuditStore:           auditStore,
+			RealmBaseURL:        protected.AccountRealmBaseURL,
+			AuthorizationURL:    protected.AccountAuthorizationURL,
+			TokenURL:            protected.AccountTokenURL,
+			CustodyPartition:    protected.AccountPartition,
+			Custody:             protected.AccountCustody,
+			AppRegistry:         appRegistry,
+			AppSessionValidator: authSvc,
+			LocalAppKernel:      localAppKernel,
+			AuditStore:          auditStore,
 		})
 	}
 	authSvc.SetRuntimeAccountSecurityContextProvider(accountSvc)
@@ -627,7 +625,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	artifactSvc := runtimeartifactservice.New(artifactStore, logger, runtimeartifactservice.WithLocalAppOperationAuthorizer(accountSvc))
 	if protected != nil {
 		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, appSvc, appSvc, protected.DesktopSessions)
-		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, appSvc, artifactSvc, agentSvc)
+		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, appSvc)
 	}
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)
 	appSvc.RegisterInternalConsumer("runtime.agent", agentSvc.ConsumePublicChatAppMessage)

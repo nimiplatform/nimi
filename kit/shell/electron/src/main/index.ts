@@ -12,30 +12,23 @@ export {
 export {
   createNimiElectronLocalAppHost,
   NimiElectronLocalAppHostError,
-  type NimiElectronLocalAppArtifactBytes,
   type NimiElectronLocalAppHost,
   type NimiElectronLocalAppRecord,
 } from './local-app-host.js';
 export { resolveElectronRuntimeDefaults } from './runtime.js';
-export {
-  createNimiElectronLocalAppGrantHost,
-  isElectronLocalAppGrantCommand,
-  type NimiElectronLocalAppGrantBinding,
-  type NimiElectronLocalAppGrantHost,
-} from './local-app-grant-host.js';
 export {
   createNimiElectronLocalDevelopmentControl,
   type NimiElectronLocalDevelopmentAuthorization,
   type NimiElectronLocalDevelopmentControl,
   type NimiElectronLocalDevelopmentDecision,
   type NimiElectronLocalDevelopmentEvaluation,
+  type NimiElectronLocalDevelopmentPermissionRequirement,
   type NimiElectronLocalDevelopmentProject,
   type NimiElectronLocalDevelopmentShell,
 } from './local-development-control.js';
 export type {
   NimiElectronLocalDevelopmentAuthoritySummary,
   NimiElectronLocalDevelopmentDeveloperModeSummary,
-  NimiElectronLocalDevelopmentGrantSummary,
   NimiElectronLocalDevelopmentProjectAuthorizationSummary,
   NimiElectronLocalDevelopmentSummaryAvailability,
   NimiElectronLocalDevelopmentSummaryUnavailableReason,

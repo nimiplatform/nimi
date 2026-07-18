@@ -199,31 +199,44 @@ function checkLocalAppKernelTables() {
     fail(`${principalRel}: immutable package seam must be typed unavailable and non-reshapeable in 0K`);
   }
 
-  if (String(grantDoc?.grant?.store_identity || '').trim() !== 'local_app_grants') {
-    fail(`${grantRel}: grant.store_identity must be local_app_grants`);
+  if (String(grantDoc?.current_admission?.store_identity || '').trim() !== 'absent_pre_admission'
+    || String(grantDoc?.current_admission?.positive_mutation_path || '').trim() !== 'absent') {
+    fail(`${grantRel}: current permission persistence and positive mutation path must be absent before admission`);
   }
-  const grantKey = Array.isArray(grantDoc?.grant?.key) ? grantDoc.grant.key.map(String) : [];
-  const expectedGrantKey = ['local_os_user_anchor', 'account_id', 'local_app_principal_id', 'capability_resource_fingerprint'];
+  const grantKey = Array.isArray(grantDoc?.future_owner_lifecycle?.key) ? grantDoc.future_owner_lifecycle.key.map(String) : [];
+  const expectedGrantKey = ['local_os_user_anchor', 'account_id', 'local_app_principal_id', 'permission_id', 'owner_selector_digest'];
   if (grantKey.length !== expectedGrantKey.length || expectedGrantKey.some((field) => !grantKey.includes(field))) {
-    fail(`${grantRel}: grant key must bind OS-user anchor, account, principal, and capability/resource fingerprint`);
+    fail(`${grantRel}: future owner lifecycle key must bind OS-user anchor, account, principal, public permission, and owner selector`);
   }
-  const grantInvariants = new Set((Array.isArray(grantDoc?.grant?.invariants) ? grantDoc.grant.invariants : []).map(String));
+  const grantInvariants = new Set((Array.isArray(grantDoc?.future_owner_lifecycle?.invariants) ? grantDoc.future_owner_lifecycle.invariants : []).map(String));
   for (const invariant of [
-    'install_project_authorization_or_promotion_creates_zero_grant',
-    'grant_mutation_does_not_rotate_identity_session',
+    'catalog_row_alone_is_not_authority',
+    'lifecycle_mutation_does_not_rotate_identity_session',
     'no_app_id_only_positive_lookup',
+    'no_base_entitlement_permission_row',
+    'no_app_owned_authority_permission_row',
   ]) {
-    if (!grantInvariants.has(invariant)) fail(`${grantRel}: missing invariant ${invariant}`);
+    if (!grantInvariants.has(invariant)) fail(`${grantRel}: future owner lifecycle missing invariant ${invariant}`);
   }
 
   const outcomeEnum = new Set((Array.isArray(presenceDoc?.outcome_enum) ? presenceDoc.outcome_enum : []).map(String));
-  const expectedOutcomes = ['none', 'grant_presence', 'operation_presence', 'bounded_lease'];
+  const expectedOutcomes = ['none', 'user_decision_presence', 'operation_presence', 'bounded_lease'];
   if (outcomeEnum.size !== expectedOutcomes.length || expectedOutcomes.some((value) => !outcomeEnum.has(value))) {
     fail(`${presenceRel}: outcome_enum must be the four-mode presence protocol`);
   }
-  if (presenceDoc?.assignments?.ordinary_operation_with_exact_grant !== 'none'
-    || presenceDoc?.assignments?.remembered_project_reactivation !== 'grant_presence') {
-    fail(`${presenceRel}: ordinary exact grants require no repeated presence and remembered reactivation requires grant_presence`);
+  const expectedPresenceAssignments = {
+    developer_project_first_authorization: 'user_decision_presence',
+    remembered_project_reactivation: 'user_decision_presence',
+    development_capability_expansion: 'user_decision_presence',
+    base_entitlement_operation: 'none',
+    ordinary_admitted_user_permission_operation: 'none',
+    domain_high_impact_operation: 'owner_supplied_operation_presence_or_bounded_lease',
+    immutable_import_or_capability_expansion: 'reserved_for_0p',
+  };
+  for (const [assignment, expected] of Object.entries(expectedPresenceAssignments)) {
+    if (presenceDoc?.assignments?.[assignment] !== expected) {
+      fail(`${presenceRel}: assignment ${assignment} must be ${expected}`);
+    }
   }
 }
 

@@ -125,10 +125,10 @@ function checkRuntimePermissionMatrix() {
   assertDecision(desktop, 'InvokeRealmUnary', 'allow_when');
   assertDecision(firstParty, 'InvokeRealmUnary', 'deny');
   assertDecision(localApp, 'InvokeRealmUnary', 'deny');
-  assertDecision(localApp, 'GetLocalAppGrantStatus', 'allow_when');
-  assertDecision(localApp, 'RequestLocalAppGrant', 'allow_when');
-  assertDecision(desktop, 'DecideLocalAppGrant', 'allow_when');
-  assertDecision(desktop, 'RevokeLocalAppGrant', 'allow_when');
+  assertDecision(localApp, 'GetLocalAppPermissionStatus', 'allow_when');
+  assertDecision(localApp, 'RequestLocalAppPermission', 'allow_when');
+  assertDecision(desktop, 'GetLocalAppPermissionStatus', 'deny');
+  assertDecision(desktop, 'RequestLocalAppPermission', 'deny');
   runGoTest('^TestAccountRPCPermissionMatrixKeepsAccountControlDesktopOwned$');
 }
 
@@ -234,8 +234,9 @@ function checkSdkLocalAppProtectedCarrier() {
   const realm = read('sdks/typescript/core/app/runtime-account-realm.ts');
   requireMatch(client, /export function createNimiAppRuntimePlatformClient/u, 'local-app client constructor is missing');
   requireMatch(client, /NimiAppRuntimePlatformStandardShell/u, 'local-app client does not require the typed standard shell');
-  requireMatch(client, /session-bound-zero-grant/u, 'local-app client collapses the zero-grant identity session');
-  requireMatch(client, /readRuntimeBytes/u, 'local-app client does not expose the protected artifact reader');
+  requireMatch(client, /session-bound/u, 'local-app client does not project the bound identity session');
+  requireMatch(client, /createNimiAppRuntimeStorageClient/u, 'local-app client does not expose app-private base-entitlement storage');
+  forbidMatch(client, /readRuntimeBytes|agentInventory|openConversation|transcribeVoice/u, 'local-app client exposes an unadmitted Artifact, Agent, conversation, or voice operation');
   requireMatch(client, /assertExactKeys\(input, \['standardShell'\]/u, 'local-app client does not reject caller-owned authority fields');
   forbidMatch(
     client,

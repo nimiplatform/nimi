@@ -71,36 +71,25 @@ const transport = {
   async *serverStream() {},
 };
 
-const realmCalls = [];
-const realmTransport = {
-  async unary(request) {
-    realmCalls.push(request.methodId);
-    if (request.methodId === 'listMyAppPermissionGrants') {
-      return {
-        items: [{
-          grantId: 'grant-1',
-          subjectAccountId: 'account-1',
-          appId: 'tester.app',
-          scopeFamily: 'account',
-          scopeName: 'account.read',
-          state: 'GRANTED',
-          reason: 'root consumer smoke',
-          version: 1,
-          requestedAt: '2026-06-10T00:00:00.000Z',
-          requestedByAccountId: 'account-1',
-        }],
-      };
-    }
-    throw new Error('unexpected realm method ' + request.methodId);
+const permissionTransport = {
+  async status(permissionId) { return { permissionId, posture: 'unavailable', canRequest: false }; },
+  async request({ permissionId }) { return { permissionId, posture: 'unavailable', canRequest: false }; },
+  subscribe(permissionId, callback) {
+    callback({ status: { permissionId, posture: 'unavailable', canRequest: false } });
+    return () => {};
   },
-  async *serverStream() {},
 };
 
-const client = sdk.createNimiClient({ appId: 'dev.nimi.consumer', runtime: { transport } });
+const client = sdk.createNimiClient({
+  appId: 'dev.nimi.consumer',
+  runtime: { transport },
+  permissions: permissionTransport,
+});
 assert(client instanceof sdk.NimiClient);
 assert.equal((await client.runtime.ready()).status, 3);
 assert.equal(client.runtime.runtimeVersion(), '0.6.0');
-assert.equal(client.requireScopes().listCatalog().appId, 'dev.nimi.consumer');
+assert.equal('scopes' in client, false);
+assert.equal((await client.requirePermissions().status('agents.interact')).posture, 'unavailable');
 
 const model = client.ai.createRuntimeModel({
   model: { providerId: 'runtime', modelId: 'root-model' },
@@ -118,14 +107,6 @@ assert.throws(
   (error) => sdk.isNimiError(error) && error.reasonCode === 'SDK_CLIENT_REALM_REQUIRED',
 );
 
-const realmClient = sdk.createNimiClient({
-  appId: 'tester.app',
-  runtime: { transport },
-  realm: { transport: realmTransport },
-});
-const grants = await realmClient.requirePermissions().list({ kind: 'app', ownerId: 'tester.app' });
-assert.equal(grants[0]?.state, 'granted');
-assert.deepEqual(realmCalls, ['listMyAppPermissionGrants']);
 `);
 
   writeFileSync(path.join(tempRoot, 'consumer.ts'), `
@@ -144,18 +125,17 @@ const transport: CoreTransport = {
     yield { status: 3 } as Response;
   },
 };
-const realmTransport: CoreTransport = {
-  async unary<Response>() {
-    return { items: [] } as Response;
-  },
-  async *serverStream<Response>() {
-    yield { items: [] } as Response;
-  },
-};
-
 const config: NimiClientConfig = {
   appId: 'dev.nimi.consumer',
   runtime: { transport },
+  permissions: {
+    async status(permissionId) { return { permissionId, posture: 'unavailable', canRequest: false }; },
+    async request({ permissionId }) { return { permissionId, posture: 'unavailable', canRequest: false }; },
+    subscribe(permissionId, callback) {
+      callback({ status: { permissionId, posture: 'unavailable', canRequest: false } });
+      return () => {};
+    },
+  },
 };
 const client: NimiClient = createNimiClient(config);
 client.ai.createRuntimeModel({
@@ -166,13 +146,7 @@ client.features.generation.createRuntimeClient({
   head: { modelId: 'root-model' },
 });
 client.features.knowledge.createRuntimeContextClient({});
-client.requireScopes().listCatalog();
-const realmClient: NimiClient = createNimiClient({
-  appId: 'tester.app',
-  runtime: { transport },
-  realm: { transport: realmTransport },
-});
-realmClient.requirePermissions().list({ kind: 'app', ownerId: 'tester.app' });
+client.requirePermissions().status('agents.interact');
 `);
 }
 

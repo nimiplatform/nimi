@@ -1,74 +1,85 @@
 import { parse as parseYaml } from 'yaml';
 
-const CLOSED_PERMISSION_SCOPES = new Set([
-  'account.read',
-  'account.session.read',
-  'data.scope.read',
-  'data.scope.write',
-  'agent.identity.project',
-  'agent.identity.bind',
-  'ai.spend.meter',
-  'ai.spend.delegate',
-  'memory.read.bounded',
-  'memory.write.admitted',
-  'knowledge.read.bounded',
-  'knowledge.write.admitted',
-  'notification.send',
-  'notification.subscribe',
-  'file.read.scoped',
-  'file.write.scoped',
-  'device.use.scoped',
-  'audit.read.scoped',
-  'ai_profile.selection.consume',
+const KNOWN_PERMISSION_IDS = new Set([
+  'agents.interact',
+  'artifacts.open',
+  'account.profile.read',
+  'memory.read',
+  'memory.write',
+  'knowledge.read',
+  'knowledge.write',
+  'notifications.send',
+  'notifications.receive',
+  'files.open',
+  'files.save',
+  'realm.library.read',
+  'realm.library.manage',
+  'realm.publish',
+  'ai.background',
+  'shared_resources.open',
 ]);
-const APP_LOCAL_DRAFTS_SCOPES = new Set(['file.read.scoped', 'file.write.scoped']);
-const RUNTIME_ARTIFACT_SCOPES = new Set(['data.scope.read']);
-const CANONICAL_PERMISSION_QUALIFIER = /^[A-Za-z0-9](?:[A-Za-z0-9._:-]{0,158}[A-Za-z0-9])?$/;
+const ADMITTED_PERMISSION_IDS = new Set();
+const MAX_REASON_BYTES = 240;
 
-export function assertManifestPermissionDeclarations(manifest, manifestPath) {
+export function normalizePermissionRequirements(input) {
+  const source = input === undefined ? [] : input;
+  if (!Array.isArray(source)) throw new Error('Permission requirements must be an array');
+  const seen = new Set();
+  return source.map((requirement, index) => {
+    if (!requirement || typeof requirement !== 'object' || Array.isArray(requirement)) {
+      throw new Error(`Invalid permission requirement ${index}`);
+    }
+    if (JSON.stringify(Object.keys(requirement).sort()) !== JSON.stringify(['id', 'reason'])) {
+      throw new Error(`Invalid permission requirement fields at index ${index}`);
+    }
+    const id = typeof requirement.id === 'string' ? requirement.id.trim() : '';
+    const reason = typeof requirement.reason === 'string' ? requirement.reason.trim() : '';
+    if (!id || id !== requirement.id || !reason || reason !== requirement.reason || Buffer.byteLength(reason, 'utf8') > MAX_REASON_BYTES) {
+      throw new Error(`Invalid permission requirement ${id || index}`);
+    }
+    if (!KNOWN_PERMISSION_IDS.has(id)) throw new Error(`Unknown permission requirement: ${id}`);
+    if (!ADMITTED_PERMISSION_IDS.has(id)) throw new Error(`Reserved permission requirement: ${id}`);
+    if (seen.has(id)) throw new Error(`Duplicate permission requirement: ${id}`);
+    seen.add(id);
+    return { id, reason };
+  });
+}
+
+export function assertManifestPermissionRequirements(manifest, manifestPath) {
   let parsed;
   try {
     parsed = parseYaml(manifest);
   } catch (error) {
     throw new Error(`Submitted manifest YAML cannot be parsed: ${error instanceof Error ? error.message : String(error)}`);
   }
-  const declarations = parsed?.permissions?.declared_nimi_api_scopes;
-  if (declarations == null) return;
-  if (!Array.isArray(declarations)) {
-    throw new Error('Submitted manifest declared_nimi_api_scopes must be an array');
+  if (!Object.hasOwn(parsed || {}, 'permissions') || !Array.isArray(parsed.permissions)) {
+    throw new Error('Submitted manifest permissions must be an array');
   }
-  for (const [index, declaration] of declarations.entries()) {
-    if (!declaration || typeof declaration !== 'object' || Array.isArray(declaration)) {
-      throw new Error(`Submitted manifest permission declaration ${index} must be an object`);
+  const seen = new Set();
+  for (const [index, requirement] of parsed.permissions.entries()) {
+    if (!requirement || typeof requirement !== 'object' || Array.isArray(requirement)) {
+      throw new Error(`Submitted manifest permission requirement ${index} must be an object`);
     }
-    const scope = typeof declaration.scope === 'string' ? declaration.scope.trim() : '';
-    const qualifier = typeof declaration.qualifier === 'string' ? declaration.qualifier.trim() : '';
-    const purpose = typeof declaration.purpose === 'string' ? declaration.purpose.trim() : '';
-    if (!scope || !purpose) {
-      throw new Error(`Submitted manifest permission declaration ${index} requires scope and purpose`);
+    if (JSON.stringify(Object.keys(requirement).sort()) !== JSON.stringify(['id', 'reason'])) {
+      throw new Error(`Submitted manifest permission requirement ${index} fields must be exactly id and reason`);
     }
-    if (!CLOSED_PERMISSION_SCOPES.has(scope)) {
-      throw new Error(`Submitted manifest permission declaration ${index} uses non-canonical scope: ${scope}`);
+    const id = typeof requirement.id === 'string' ? requirement.id.trim() : '';
+    const reason = typeof requirement.reason === 'string' ? requirement.reason.trim() : '';
+    if (!id || id !== requirement.id || !reason || reason !== requirement.reason || Buffer.byteLength(reason, 'utf8') > MAX_REASON_BYTES) {
+      throw new Error(`Submitted manifest permission requirement ${index} requires canonical id and bounded reason`);
     }
-    if (typeof declaration.qualifier === 'string' && qualifier.length === 0) {
-      throw new Error(`Submitted manifest permission declaration ${index} qualifier must be omitted or non-empty`);
+    if (!KNOWN_PERMISSION_IDS.has(id)) {
+      throw new Error(`Submitted manifest permission requirement ${index} uses unknown permission id: ${id}`);
     }
-    if (qualifier && !CANONICAL_PERMISSION_QUALIFIER.test(qualifier)) {
-      throw new Error(`Submitted manifest permission declaration ${index} uses non-canonical qualifier: ${qualifier}`);
+    if (!ADMITTED_PERMISSION_IDS.has(id)) {
+      throw new Error(`Submitted manifest permission requirement ${index} uses reserved permission id: ${id}`);
     }
-    if (qualifier === 'app-local-drafts' && !APP_LOCAL_DRAFTS_SCOPES.has(scope)) {
-      throw new Error(`Submitted manifest permission declaration ${index} app-local-drafts qualifier is only admitted for file.read.scoped or file.write.scoped`);
+    if (seen.has(id)) {
+      throw new Error(`Submitted manifest permission requirement ${index} duplicates permission id: ${id}`);
     }
-    if (qualifier === 'runtime.artifacts' && !RUNTIME_ARTIFACT_SCOPES.has(scope)) {
-      throw new Error(`Submitted manifest permission declaration ${index} runtime.artifacts qualifier is only admitted for data.scope.read`);
-    }
-    for (const grantField of ['grantId', 'grant_id', 'state', 'granted', 'granted_permissions']) {
-      if (Object.hasOwn(declaration, grantField)) {
-        throw new Error(`Submitted manifest permission declaration ${index} contains grant lifecycle field ${grantField}`);
-      }
-    }
+    seen.add(id);
   }
   if (!manifestPath.endsWith('nimi.app.yaml')) {
-    throw new Error('Submitted manifest permission declarations were not read from nimi.app.yaml');
+    throw new Error('Submitted manifest permission requirements were not read from nimi.app.yaml');
   }
 }

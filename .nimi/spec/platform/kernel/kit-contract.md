@@ -113,15 +113,16 @@
 - Standard `data.pathResolve` and `storage.*` operations resolve under a
   host-owned app data root. Renderer payloads must not carry absolute storage
   roots; they may carry only `{ relativePath }` or `{ relativePath, value }`.
-  Once separately admitted for a caller, hosts obtain the root from a
+  Hosts obtain the root from a
   Runtime-internal principal/session-derived storage projection, never an app-id
   lookup or renderer input. `data.pathResolve` remains unavailable on the 0K
   local-app carrier. The exact `storage.readJson`, `storage.writeJson`, and
   `storage.removeJson` operations are admitted for that carrier by P-KIT-044:
-  Runtime derives the current principal partition, revalidates a distinct
-  operation/resource grant on every call, enforces the canonical relative JSON
-  path plus 256 KiB document and 16 MiB partition quotas, and returns no path or
-  root field. No generic file operation is implied.
+  Runtime derives and revalidates the current principal/account partition on
+  every call, enforces the canonical relative JSON path plus 256 KiB document
+  and 16 MiB partition quotas, and returns no path or root field. This is a base
+  entitlement with no permission row or prompt. No generic file operation is
+  implied.
 - `storage.removeJson` is an idempotent app-storage lifecycle primitive. If
   the file exists the host removes it; if it is already absent the operation
   still succeeds. Full standard hosts retain `{ path, removed }`; the protected
@@ -158,12 +159,11 @@
   `{ relativePath, mimeType?, dataBase64 }`; subtree escape fails closed as
   `invalid-path`. Written artifact paths are eligible inputs to
   `local-assets.resolveUrl`.
-- `artifacts.readRuntimeBytes` is the admitted local-app artifact operation;
-  selected RuntimeAgent conversation operations are separately exact-allowlisted.
-  It accepts exactly `{ artifactId }` and returns only canonical base64 bytes,
-  MIME, observed size, and MIME-inferred state from the opaque local-app
-  Runtime session. Renderer input cannot contain session, proof, account,
-  release, grant, endpoint, metadata, or method identifiers.
+- `artifacts.readRuntimeBytes` is not admitted for third-party local apps while
+  `artifacts.open` remains reserved. A future positive path requires the
+  owner-controlled artifact picker and one-shot handle in P-PERM-017; a
+  caller-supplied artifact id, session or internal operation id is not
+  authority.
 - `floating-window.*` operations act on the invoking window only.
   `beginManualDrag` is manual-only: it returns the current window origin with
   `mode: "manual"` so renderers can apply pointer-driven moves through
@@ -171,10 +171,9 @@
   `shell-ui.startWindowDrag`, not by floating-window manual drag. Hosts that
   cannot support an operation must fail closed with `capability-unavailable`,
   never simulate success.
-- Local-app capability sets forbid all P-KIT-041F operations by default.
-  The sole admitted exception is the separately specified
-  `artifacts.readRuntimeBytes` operation in P-KIT-044; every further operation
-  requires its own capability-set admission.
+- Local-app capability sets forbid all P-KIT-041F operations. Future external
+  file, Artifact or cross-app access must enter through its admitted public
+  permission and owner picker rather than a capability-set exception.
 
 ## P-KIT-042 — Renderer Shell Module
 
@@ -226,7 +225,7 @@
   carrier and must not be reconstructed as Electron metadata. The typed account
   probe may classify only `PRINCIPAL_UNAUTHORIZED` paired with
   `CALLER_UNAUTHORIZED` or `CALLER_ENVELOPE_MISMATCH`; explicit
-  `APP_NOT_REGISTERED`, `LOCAL_APP_GRANT_REVOKED`, and `SESSION_EXPIRED` retain their
+  `APP_NOT_REGISTERED`, `LOCAL_APP_PERMISSION_REVOKED`, and `SESSION_EXPIRED` retain their
   owner-specific typed handling. Endpoint, business, other permission, and
   unclassified failures never enter this recovery path or retry indefinitely.
 - Public/binding-only Runtime gRPC calls may use raw identity byte
@@ -246,8 +245,8 @@
 ## P-KIT-044 - Local App Standard Shell Capability Set
 
 Kit owns typed shell APIs and trusted carrier implementation only. It cannot
-create account, principal, provenance, record, grant, launch, process, session,
-or owner-operation truth. The final host-private carrier opens one common
+create account, principal, provenance, record, permission decision, launch,
+process, session, or owner-operation truth. The final host-private carrier opens one common
 request-empty local-app session after Runtime has bound the native connection
 to a current launch lease and verified process/record. It never accepts these
 facts from renderer, app, endpoint, environment, or caller metadata.
@@ -255,37 +254,28 @@ facts from renderer, app, endpoint, environment, or caller metadata.
 The Electron and Tauri host adapters consume the same local-app client and
 typed failure model. Fixed production AppHost and native development remain
 different execution profiles, but provenance has no permission effect. The
-selected checkpoint surface is exact typed permission posture, explicit
-single-operation permission request, artifact read, K-AGCORE-006e bounded
-RuntimeAgent inventory, and RuntimeAgent conversation operations; no
+admitted surface is exact typed session posture, product permission
+status/request, and the three P-KIT-044 local-app JSON storage operations; no
 method-id/bytes proxy or generic protected Runtime forwarding is admitted.
-The same exact client additionally carries only the three P-KIT-044 local-app
-JSON storage operations. Their renderer input contains a canonical relative
+Storage renderer input contains a canonical relative
 path and, for write, one JSON value. The native host invokes the corresponding
 closed RuntimeAppService methods; it does not call `GetAppStorage`, expose a
 data root, accept an app/principal selector, or fall back to Node filesystem
 access. Read/write return `{ value, sizeBytes }`; remove returns `{ removed }`.
-The same exact client carries the two K-VOICE-021 selected voice operations.
-`agent.transcribeVoice` accepts only agent/request correlation, bounded audio
-bytes, and a closed audio MIME value; Runtime derives the committed
-`audio.transcribe` route. `agent.subscribeVoiceStream` accepts only the exact
-agent/anchor/turn/voice-stream correlation plus an opaque carrier cursor and
-returns one bounded event page. Provider/model/connector/target/fallback fields,
-generic AI/Agent forwarding, public transport fallback, and renderer-owned
-route truth are rejected before dispatch.
-`agent.listInventory()` accepts no input and returns only the K-AGCORE-006e
-field whitelist. `permission.posture` is read-only. `permission.request` maps only to
-`RequestLocalAppGrant`, accepts exact operation/resource/purpose, returns a
-redacted pending posture, and cannot approve its own request. Missing operation
-families return typed owner-unavailable without app-id fallback.
+`permission.status` and `permission.request` carry only an admitted public
+`permissionId` and bounded user-facing reason and map to
+`GetLocalAppPermissionStatus` / `RequestLocalAppPermission`. Internal operation,
+resource, selector and owner-decision identity are forbidden. No public permission is
+currently admitted, so every reserved permission request returns typed
+unavailable. Artifact, Agent, conversation and voice methods are absent from
+the renderer/SDK surface until their complete product permission slice is
+admitted.
 
-A zero-grant session may project permission posture and bounded Agent inventory,
-but the inventory result authorizes no protected operation. Every other
-operation is evaluated against the current
-account-and-principal grant and its domain owner policy; grant revoke affects
-the next operation without requiring session rotation. Session, lease, proof,
-account, grant, principal, record, provenance, process, and boot-epoch material
-remain native-host private and are absent from preload/renderer/status/logs.
+A valid session may use app-private storage without any permission. App-owned
+SQLite, media, settings, cache, routes and exact product commands remain app
+native-host authority and do not enter this Runtime permission client. Session,
+lease, proof, account, principal, record, provenance, process, and boot-epoch
+material remain native-host private and are absent from preload/renderer/status/logs.
 
 The Windows fixed-service carrier is the positive path. Missing/untrusted
 service or carrier, process mismatch, revoke, account switch, or Runtime restart
@@ -330,12 +320,12 @@ renderer globals, terminal output, logs, exceptions, or status payloads.
 Electron and Tauri project identical state and operation semantics even though
 their native host restart mechanics differ.
 
-The positive surface contains only owner-admitted exact operations, including
-artifact read and the selected RuntimeAgent conversation family used by the
-checkpoint. Kit must not expose account control, credential material,
-lifecycle mutation, generic Runtime forwarding, or unadmitted operation
-families. A missing/untrusted carrier fails closed and cannot fall back to
-ordinary gRPC or inherit another principal's state.
+The positive surface contains session posture, public permission posture/request,
+and app-private JSON storage. Kit must not expose account control, credential
+material, permission lifecycle mutation, generic Runtime forwarding, or
+unadmitted protected operation families. App-native commands remain separate
+typed host commands. A missing/untrusted carrier fails closed and cannot fall
+back to ordinary gRPC or inherit another principal's state.
 
 ## P-KIT-043 — Runtime Capabilities Module
 

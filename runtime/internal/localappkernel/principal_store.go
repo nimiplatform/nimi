@@ -144,8 +144,8 @@ func (store *PrincipalStore) ListDevelopment(ctx context.Context, includeTombsto
 }
 
 // Tombstone permanently retires the principal and removes its current
-// lifecycle record. Existing grant rows remain historical K-GRANT truth and
-// cannot authorize because all positive grant reads require an active principal.
+// lifecycle record. Process-bound sessions and any future owner-internal
+// permission decisions cannot authorize a tombstoned principal.
 func (store *PrincipalStore) Tombstone(ctx context.Context, principalID string) (Principal, error) {
 	if store == nil || store.kernel == nil {
 		return Principal{}, fmt.Errorf("%w: principal store", ErrInvalidArgument)

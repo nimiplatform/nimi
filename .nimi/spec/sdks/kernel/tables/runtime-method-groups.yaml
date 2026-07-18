@@ -201,7 +201,7 @@ groups:
     service: RuntimeAccountService
     phase: 1
     status: active
-    carrier_scope: verified_desktop_account_ux_and_exact_local_app_grant_projection
+    carrier_scope: verified_desktop_account_ux_and_product_permission_projection
     note: >
       Runtime account authority is admitted by K-ACCSVC-* as the local
       first-party custody source, with K-ACCSVC-002 defining the frozen method
@@ -222,10 +222,8 @@ groups:
       - SwitchAccount
       - IssueScopedAppBinding
       - RevokeScopedAppBinding
-      - GetLocalAppGrantStatus
-      - RequestLocalAppGrant
-      - DecideLocalAppGrant
-      - RevokeLocalAppGrant
+      - GetLocalAppPermissionStatus
+      - RequestLocalAppPermission
     excluded:
       - name: IssueWorkspaceBinding
         authority_status: blocked_pending_separate_authority

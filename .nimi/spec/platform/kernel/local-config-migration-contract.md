@@ -11,7 +11,7 @@
 `~/.nimi` schema 文件的字段定义。每个 schema 文件的字段权威仍归其 surface owner
 authority family（`<runtime_owner_state_root>/nimi.json` → T1；
 `~/.nimi/profiles/factory-index.json` / `~/.nimi/runtime/default.json` → T2）。
-Runtime-owned local-app principal, record, grant, session, inventory, and
+Runtime-owned local-app principal, record, permission-decision, session, inventory, and
 package-seam state is service-owned protected state and is never a `~/.nimi`
 interactive-user projection. 本契约只拥有：
 

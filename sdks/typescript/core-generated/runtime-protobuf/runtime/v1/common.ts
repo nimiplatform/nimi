@@ -1093,8 +1093,8 @@ export enum ReasonCode {
      */
     LIFECYCLE_INTENT_EXPIRED = 641,
     /**
-     * LOCAL_APP family (642+). The third-party principal/record/grant/session
-     * evaluator uses one provenance-agnostic reason vocabulary (K-ERR-012).
+     * LOCAL_APP family (642+). The third-party principal/record/session and
+     * product-permission evaluator uses one provenance-agnostic reason vocabulary.
      *
      * @generated from protobuf enum value: LOCAL_APP_PRINCIPAL_REQUIRED = 642;
      */
@@ -1132,17 +1132,17 @@ export enum ReasonCode {
      */
     LOCAL_APP_SESSION_REVOKED = 650,
     /**
-     * @generated from protobuf enum value: LOCAL_APP_GRANT_REQUIRED = 651;
+     * @generated from protobuf enum value: LOCAL_APP_PERMISSION_REQUIRED = 651;
      */
-    LOCAL_APP_GRANT_REQUIRED = 651,
+    LOCAL_APP_PERMISSION_REQUIRED = 651,
     /**
-     * @generated from protobuf enum value: LOCAL_APP_GRANT_REVOKED = 652;
+     * @generated from protobuf enum value: LOCAL_APP_PERMISSION_DENIED = 652;
      */
-    LOCAL_APP_GRANT_REVOKED = 652,
+    LOCAL_APP_PERMISSION_DENIED = 652,
     /**
-     * @generated from protobuf enum value: LOCAL_APP_GRANT_SUPERSEDED = 653;
+     * @generated from protobuf enum value: LOCAL_APP_PERMISSION_REVOKED = 653;
      */
-    LOCAL_APP_GRANT_SUPERSEDED = 653,
+    LOCAL_APP_PERMISSION_REVOKED = 653,
     /**
      * @generated from protobuf enum value: LOCAL_APP_ACCOUNT_CHANGED = 654;
      */

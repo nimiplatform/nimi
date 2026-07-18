@@ -2,17 +2,7 @@ app_id: nimi.tester
 display_name: Nimi Lab
 profile: standalone
 manifest_role: submitted-input
-permissions:
-  declared_nimi_api_scopes:
-    - scope: file.read.scoped
-      qualifier: app-local-drafts
-      purpose: Read drafts owned by this app during author testing.
-    - scope: file.write.scoped
-      qualifier: app-local-drafts
-      purpose: Store drafts owned by this app during author testing.
-    - scope: data.scope.read
-      qualifier: runtime.artifacts
-      purpose: Read Runtime-owned bootstrap artifacts through the typed app-host surface.
+permissions: []
 local_development:
   electron:
     renderer_origin: http://127.0.0.1:1468

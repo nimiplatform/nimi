@@ -8,6 +8,8 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
+	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 )
 
@@ -15,7 +17,7 @@ var (
 	ErrLocalAppCallerUnauthorized   = errors.New("local-app caller is not currently authorized")
 	ErrLocalAppAccountChanged       = fmt.Errorf("%w: account generation changed", ErrLocalAppCallerUnauthorized)
 	ErrLocalAppProcessMismatch      = fmt.Errorf("%w: process binding changed", ErrLocalAppCallerUnauthorized)
-	ErrLocalAppOperationNotAdmitted = errors.New("local-app operation capability and grant are not admitted")
+	ErrLocalAppOperationNotAdmitted = errors.New("local-app operation authority is not admitted")
 )
 
 type LocalAppOperation string
@@ -71,8 +73,9 @@ type AccountAuthorityRevoker interface {
 }
 
 // LocalAppCallerDecision is an immutable per-call origin/account decision.
-// A later grant evaluation extends this Account-owned boundary; consumers must
-// not add independent session caches.
+// The operation coordinator extends this Account-owned boundary with exactly
+// one Runtime-derived authority class; consumers must not add independent
+// session caches.
 type LocalAppCallerDecision struct {
 	LocalOSUserAnchor       string
 	SessionID               protectedlocal.Identifier
@@ -85,7 +88,8 @@ type LocalAppCallerDecision struct {
 	Process                 protectedlocal.ProcessTuple
 	ExpiresAt               time.Time
 	Operation               LocalAppOperation
-	PermissionScope         string
+	AuthorityClass          localappop.AuthorityClass
+	OperationCapability     string
 	TrustClass              LocalAppTrustClass
 	AuthorizationID         protectedlocal.Identifier
 	AuthorizationGeneration uint64
@@ -142,7 +146,7 @@ func (s *Service) AuthorizeLocalAppCaller(ctx context.Context) (LocalAppCallerDe
 		binding.RuntimeBootEpoch == (protectedlocal.Identifier{}) || binding.Process.PID == 0 || !s.now().UTC().Before(binding.ExpiresAt.UTC()) ||
 		binding.TrustClass != LocalAppTrustClassDevelopment || binding.AuthorizationID == (protectedlocal.Identifier{}) ||
 		binding.AuthorizationGeneration == 0 || strings.TrimSpace(binding.ProjectRoot) == "" ||
-		binding.CapabilityFingerprint == (protectedlocal.Identifier{}) || len(binding.Capabilities) == 0 {
+		binding.CapabilityFingerprint == (protectedlocal.Identifier{}) {
 		return LocalAppCallerDecision{}, ErrLocalAppCallerUnauthorized
 	}
 	if strings.TrimSpace(binding.LocalAppPrincipalID) == "" || binding.LocalAppPrincipalID != strings.TrimSpace(binding.LocalAppPrincipalID) ||
@@ -175,9 +179,9 @@ func (s *Service) AuthorizeLocalAppCaller(ctx context.Context) (LocalAppCallerDe
 	}, nil
 }
 
-// LocalAppCallerAuthorizationReason maps the zero-grant caller revalidation
-// boundary to the same closed Runtime reason vocabulary used by selected
-// operations. Private resolver errors never cross the transport.
+// LocalAppCallerAuthorizationReason maps the process-bound session
+// revalidation boundary to the same closed Runtime reason vocabulary used by
+// protected operations. Private resolver errors never cross the transport.
 func LocalAppCallerAuthorizationReason(err error) runtimev1.ReasonCode {
 	switch {
 	case err == nil:
@@ -192,8 +196,9 @@ func LocalAppCallerAuthorizationReason(err error) runtimev1.ReasonCode {
 }
 
 // AuthorizeLocalAppOperation keeps the closed operation map and exact session
-// revalidation in one Account-owned entrypoint. Capability presence is only an
-// input posture; the final grant coordinator must still admit the operation.
+// revalidation in one Account-owned entrypoint. Base entitlements do not
+// require a manifest capability; user-permission operations still require the
+// current internal capability posture before the grant coordinator runs.
 func (s *Service) AuthorizeLocalAppOperation(ctx context.Context, operation LocalAppOperation) (LocalAppCallerDecision, error) {
 	required, ok := localAppOperationCapability(operation)
 	if !ok {
@@ -218,11 +223,16 @@ func (s *Service) AuthorizeLocalAppOperation(ctx context.Context, operation Loca
 		binding.CapabilityFingerprint != decision.CapabilityFingerprint {
 		return LocalAppCallerDecision{}, ErrLocalAppCallerUnauthorized
 	}
-	if !containsLocalAppCapability(binding.Capabilities, required) {
+	authorityClass, admitted := localappop.AuthorityClassForOperation(localappop.Operation(operation))
+	if !admitted {
+		return LocalAppCallerDecision{}, ErrLocalAppOperationNotAdmitted
+	}
+	if authorityClass == localappop.AuthorityClassUserPermission && !containsLocalAppCapability(binding.Capabilities, required) {
 		return LocalAppCallerDecision{}, ErrLocalAppOperationNotAdmitted
 	}
 	decision.Operation = operation
-	decision.PermissionScope = required
+	decision.AuthorityClass = authorityClass
+	decision.OperationCapability = required
 	return decision, nil
 }
 
@@ -243,10 +253,8 @@ func localAppOperationCapability(operation LocalAppOperation) (string, bool) {
 		return "runtime.agent.turn.write", true
 	case LocalAppOperationSubscribeConversation, LocalAppOperationConversationSnapshot:
 		return "runtime.agent.turn.read", true
-	case LocalAppOperationStorageJSONRead:
-		return "file.read.scoped#app-local-drafts", true
-	case LocalAppOperationStorageJSONWrite, LocalAppOperationStorageJSONRemove:
-		return "file.write.scoped#app-local-drafts", true
+	case LocalAppOperationStorageJSONRead, LocalAppOperationStorageJSONWrite, LocalAppOperationStorageJSONRemove:
+		return appstorage.LocalAppPrivateStorageEntitlement, true
 	case LocalAppOperationVoiceTranscribe:
 		return "runtime.agent.voice.transcribe", true
 	case LocalAppOperationVoiceStreamSubscribe:

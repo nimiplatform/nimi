@@ -391,19 +391,6 @@ message ListAgentsResponse {
   repeated AgentRecord agents = 1;
   string next_page_token = 2;
 }
-message LocalAppAgentInventoryItem {
-  string local_agent_ref = 1;
-  string display_name = 2;
-  string owner_user_id = 3;
-  string runtime_source_ref = 4;
-  bool source_ready = 5;
-}
-message ListLocalAppAgentInventoryRequest {}
-message ListLocalAppAgentInventoryResponse {
-  string owner_user_id = 1;
-  uint32 count = 2;
-  repeated LocalAppAgentInventoryItem local_agents = 3;
-}
 message GetAgentStateRequest {
   AgentRequestContext context = 1;
   string agent_id = 2;
@@ -557,16 +544,6 @@ message SubscribeAgentVoiceStreamRequest {
   string conversation_anchor_id = 3;
   string turn_id = 4;
   string agent_id = 5;
-}
-message TranscribeLocalAppAgentAudioRequest {
-  string agent_id = 1;
-  string client_request_id = 2;
-  bytes audio = 3;
-  string mime_type = 4;
-}
-message TranscribeLocalAppAgentAudioResponse {
-  string client_request_id = 1;
-  string transcript = 2;
 }
 message InterruptAgentVoicePlaybackRequest {
   AgentRequestContext context = 1;
@@ -778,7 +755,6 @@ service RuntimeAgentService {
   rpc TerminateAgent(TerminateAgentRequest) returns (TerminateAgentResponse);
   rpc GetAgent(GetAgentRequest) returns (GetAgentResponse);
   rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse);
-  rpc ListLocalAppAgentInventory(ListLocalAppAgentInventoryRequest) returns (ListLocalAppAgentInventoryResponse);
   rpc OpenConversationAnchor(OpenConversationAnchorRequest) returns (OpenConversationAnchorResponse);
   rpc GetConversationAnchorSnapshot(GetConversationAnchorSnapshotRequest) returns (GetConversationAnchorSnapshotResponse);
   rpc RegisterAvatarLiveInstanceBinding(RegisterAvatarLiveInstanceBindingRequest) returns (RegisterAvatarLiveInstanceBindingResponse);
@@ -829,7 +805,6 @@ service RuntimeAgentService {
   rpc ListParticipationAuditEvents(ListParticipationAuditEventsRequest) returns (ListParticipationAuditEventsResponse);
   rpc GetParticipationReplay(GetParticipationReplayRequest) returns (GetParticipationReplayResponse);
   rpc SubscribeAgentEvents(SubscribeAgentEventsRequest) returns (stream AgentEvent);
-  rpc TranscribeLocalAppAgentAudio(TranscribeLocalAppAgentAudioRequest) returns (TranscribeLocalAppAgentAudioResponse);
   rpc SubscribeAgentVoiceStream(SubscribeAgentVoiceStreamRequest) returns (stream AgentVoiceStreamEvent);
   rpc InterruptAgentVoicePlayback(InterruptAgentVoicePlaybackRequest) returns (InterruptAgentVoicePlaybackResponse);
   // K-AGCORE-144..150 Runtime Agent AI Config surface.

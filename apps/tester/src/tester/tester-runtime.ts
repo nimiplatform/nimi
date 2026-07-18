@@ -66,13 +66,10 @@ export async function inspectRuntimeReadiness(): Promise<TesterRuntimeInspection
   return {
     status: 'unavailable',
     mode: projection.mode,
-    detail: projection.localAppSession.operationAllowed
-      ? 'The local-app identity session is operation-granted. Only the eight typed local-app carrier operations are admitted; generic Runtime health, account, Realm, AIConfig, storage, lifecycle, and media surfaces remain blocked.'
-      : 'The local-app identity session is bound with zero grants. Identity does not authorize any operation; request and receive a separate operation grant in Nimi Desktop.',
+    detail: 'The local-app identity session is bound. App-private JSON storage is a base entitlement; all public permissions are reserved, and generic Runtime health, account, Realm, Agent, AI, lifecycle, and media surfaces remain unavailable.',
     healthJson: compactJson({
       sessionState: projection.localAppSession.state,
       sessionBound: projection.localAppSession.sessionBound,
-      operationAllowed: projection.localAppSession.operationAllowed,
       reasonCode: projection.localAppSession.reasonCode,
     }),
   };
@@ -87,6 +84,6 @@ export async function runTesterCapability(input: TesterCapabilityRunInput): Prom
   return capabilityUnavailable(
     capability,
     'sdk-method-unavailable',
-    'This local-app carrier does not admit generic AI or media execution. Only its eight typed operations are available, and every protected operation still requires a separate grant.',
+    'This local-app carrier admits only session posture, public permission posture/request, and app-private JSON storage. Generic AI and media execution remain unavailable until a complete product permission is admitted.',
   );
 }

@@ -373,7 +373,7 @@ function validateAppMemoryAccessSurface(entries) {
   const forbidden = new Set((Array.isArray(context?.forbidden_owner_inference)
     ? context.forbidden_owner_inference
     : []).map(String));
-  for (const field of ['app_id', 'local_app_principal_id', 'project_path', 'process', 'local_app_record', 'local_app_grant']) {
+  for (const field of ['app_id', 'local_app_principal_id', 'project_path', 'process', 'local_app_record', 'local_app_permission_decision']) {
     if (!forbidden.has(field)) fail(`${rel} app-memory surface missing forbidden owner inference ${field}`);
   }
   if (row?.policy_source_rule !== 'C-APMEM-009') {

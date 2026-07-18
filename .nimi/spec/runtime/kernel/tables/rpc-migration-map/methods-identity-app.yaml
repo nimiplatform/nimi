@@ -21,7 +21,7 @@ services:
   - RuntimeAccountService
   - RuntimeAppService
   - RuntimeDevelopmentService
-method_count: 58
+method_count: 56
 method_mappings:
   - design_service: RuntimeServiceControlService
     design_method: RequestRuntimeRestart
@@ -154,24 +154,14 @@ method_mappings:
     proto_method: RevokeWorkspaceBinding
     mapping_posture: aligned
   - design_service: RuntimeAccountService
-    design_method: GetLocalAppGrantStatus
+    design_method: GetLocalAppPermissionStatus
     proto_service: RuntimeAccountService
-    proto_method: GetLocalAppGrantStatus
+    proto_method: GetLocalAppPermissionStatus
     mapping_posture: aligned
   - design_service: RuntimeAccountService
-    design_method: RequestLocalAppGrant
+    design_method: RequestLocalAppPermission
     proto_service: RuntimeAccountService
-    proto_method: RequestLocalAppGrant
-    mapping_posture: aligned
-  - design_service: RuntimeAccountService
-    design_method: DecideLocalAppGrant
-    proto_service: RuntimeAccountService
-    proto_method: DecideLocalAppGrant
-    mapping_posture: aligned
-  - design_service: RuntimeAccountService
-    design_method: RevokeLocalAppGrant
-    proto_service: RuntimeAccountService
-    proto_method: RevokeLocalAppGrant
+    proto_method: RequestLocalAppPermission
     mapping_posture: aligned
   - design_service: RuntimeAppService
     design_method: SendAppMessage

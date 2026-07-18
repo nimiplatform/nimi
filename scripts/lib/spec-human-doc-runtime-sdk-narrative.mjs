@@ -174,7 +174,7 @@ Nimi 的错误由两层组成，二者正交：
   d.blank();
   d.rule('S-SURFACE-003');
 
-  d.text(`Realm、App/Permissions 与 scope catalog surfaces 各有最小稳定导出面：Realm 使用实例化 facade 入口（无全局配置），App/Permissions 通过显式 host transport 注入，scope catalog 暴露 in-memory register / publish / revoke 语义：`);
+  d.text(`Realm 与 App/Permissions surfaces 各有最小稳定导出面：Realm 使用实例化 facade 入口（无全局配置），App 读取 host projection，Permissions 仅通过显式 protected transport 暴露产品级 status / request。SDK 不提供 app-authored Realm/Runtime scope catalog：`);
   d.blank();
   d.rule('S-SURFACE-004');
 
@@ -309,7 +309,7 @@ SDK 的公开子路径之间有**物理级导入隔离**，而非仅靠文档约
 
 **Realm SDK** 通过 HTTP/WebSocket 与远程 Realm 服务器通信。每个 \`new Realm(options)\` 实例独立配置 endpoint、token、headers（如 S-TRANSPORT-004 所定义）；它保留为 low-level escape hatch，而 app 主路径优先经由显式 \`NimiClient\` 组合 Realm 实例。Realm SDK 的认证模型允许 \`NO_AUTH\` 模式用于公开数据读取。本地配置错误使用 \`SDK_REALM_*\` 族错误码。
 
-**App / Permissions / Scope catalog** 维护 host-injected app resource、permission 与纯内存权限目录。核心 scope catalog API 是 \`register\` / \`publish\` / \`revoke\` 三操作，不涉及网络通信。`);
+**App / Permissions** 维护 host-injected app projection 与闭集产品权限 posture。公共权限请求只接受 \`permissionId + reason\`，不提供 scope register / publish / revoke、operation selector、resource fingerprint 或 app 自建权限目录。`);
 
   d.text(`---
 

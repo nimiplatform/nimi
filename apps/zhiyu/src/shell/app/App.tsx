@@ -678,13 +678,13 @@ function ZhiyuBundledApp() {
       }
       return;
     }
-
     const readiness = projectZhiyuVoiceCaptureReadiness(renderEvidence.route);
     const controller = createZhiyuVoiceCaptureController({
       readiness,
       createRecorder: createBrowserVoiceCaptureRecorder,
       transcribe: (request) => createElectronVoiceCaptureTranscriber({
         agentId: renderEvidence.conversation.localAgentRef || '',
+        ownerUserId: renderEvidence.conversation.ownerUserId || renderEvidence.auth.accountId || '',
       })(request),
       onStateChange: (voiceCapture) => {
         setEvidence((current) => ({

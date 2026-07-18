@@ -43,9 +43,6 @@ async function resolveLocalAppProjection(): Promise<RuntimePlatformProjection> {
     if (!status.sessionBound) {
       return unavailableFromAuth(status);
     }
-    if (status.operationAllowed !== (status.state === 'session-bound-granted')) {
-      throw new Error('The local-app session projection contains inconsistent grant state.');
-    }
     return {
       status: 'ready',
       mode: 'local-app',
@@ -139,14 +136,14 @@ function actionHintFor(reasonCode: string): string {
     case 'account-changed':
       return 'reauthorize_for_current_account';
     case 'revoked':
-      return 'request_local_app_operation_grant';
+      return 'reopen_local_app_session';
     case 'project-changed':
       return 'readmit_local_development_project';
     case 'local-development-authorization-required':
     case 'local-development-reapproval-required':
       return 'complete_local_app_authorization';
     case 'local-development-session-revoked':
-      return 'request_local_app_operation_grant';
+      return 'restart_through_verified_desktop_supervisor';
     case 'local-development-project-changed':
       return 'readmit_local_development_project';
     default:

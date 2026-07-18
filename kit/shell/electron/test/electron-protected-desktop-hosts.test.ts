@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { ReasonCode } from '@nimiplatform/kit/core/sdk-contract';
 
 import {
   createNimiElectronDesktopAccountHostForBinding,
@@ -9,11 +10,6 @@ import {
   createNimiElectronDeveloperModeHostForBinding,
   isElectronDeveloperModeCommand,
 } from '../src/main/developer-mode-host.js';
-import {
-  createNimiElectronLocalAppGrantHostForBinding,
-  isElectronLocalAppGrantCommand,
-  type NimiElectronLocalAppGrantBinding,
-} from '../src/main/local-app-grant-host.js';
 import { createNimiElectronFixedRuntimeLifecycleHostForBinding } from '../src/main/runtime-lifecycle-host.js';
 import { createElectronRuntimeBridgeCommandNames } from '../src/main/runtime.js';
 import {
@@ -75,13 +71,13 @@ describe('Electron protected Desktop account host', () => {
     const denied = createNimiElectronDesktopAccountHostForBinding(accountBinding({
       desktopAccountSessionStatus: async () => ({
         status: 'error' as const,
-        reasonCode: 'PRINCIPAL_UNAUTHORIZED',
+        reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
         retryable: false,
       }),
     }));
     await expect(denied.invoke('runtime_account_session_status', {})).rejects.toMatchObject({
       code: 'runtime-permission-denied',
-      reasonCode: 'PRINCIPAL_UNAUTHORIZED',
+      reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
     });
 
     const malformed = createNimiElectronDesktopAccountHostForBinding(accountBinding({
@@ -154,144 +150,11 @@ describe('Electron Developer Mode host', () => {
   });
 });
 
-describe('Electron local-app grant host', () => {
-  const requestId = '11'.repeat(32);
-  const presenceChallengeId = '22'.repeat(32);
-  const pendingGrantId = '33'.repeat(32);
-  const grantId = pendingGrantId;
-
-  function binding(overrides: Partial<NimiElectronLocalAppGrantBinding> = {}): NimiElectronLocalAppGrantBinding {
-    return {
-      desktopPendingLocalAppGrant: async () => ({
-        status: 'ok' as const,
-        value: {
-          requestId,
-          presenceChallengeId,
-          pendingGrantId,
-          operationId: 'runtime_agent.conversation.open',
-          resourceRef: 'agent:agent-a',
-          expiresAtUnixMs: Date.now() + 60_000,
-        },
-      }),
-      desktopDecideLocalAppGrant: async () => ({
-        status: 'ok' as const,
-        value: {
-          state: 'granted',
-          grantId,
-          operationId: 'runtime_agent.conversation.open',
-          resourceRef: 'agent:agent-a',
-        },
-      }),
-      desktopRevokeLocalAppGrant: async () => ({
-        status: 'ok' as const,
-        value: {
-          state: 'revoked',
-          grantId,
-          operationId: '',
-          resourceRef: 'agent:agent-a',
-        },
-      }),
-      ...overrides,
-    };
-  }
-
-  it('keeps Runtime request, presence, pending-grant and grant identifiers behind selectors', async () => {
-    const decide = vi.fn(binding().desktopDecideLocalAppGrant);
-    const revoke = vi.fn(binding().desktopRevokeLocalAppGrant);
-    const host = createNimiElectronLocalAppGrantHostForBinding(binding({
-      desktopDecideLocalAppGrant: decide,
-      desktopRevokeLocalAppGrant: revoke,
-    }));
-    const pending = await host.invoke('local_app_grant_pending_list', {}) as Array<Record<string, unknown>>;
-    expect(pending).toHaveLength(1);
-    expect(pending[0]).toMatchObject({ state: 'pending', reasonCode: 'local-app-presence-required' });
-    expect(JSON.stringify(pending)).not.toContain(requestId);
-    expect(JSON.stringify(pending)).not.toContain(presenceChallengeId);
-    expect(JSON.stringify(pending)).not.toContain(pendingGrantId);
-
-    const selector = String(pending[0]?.selector);
-    const granted = await host.invoke('local_app_grant_decide', { payload: { selector, approved: true } });
-    expect(granted).toMatchObject({ state: 'granted', reasonCode: 'action-executed' });
-    expect(JSON.stringify(granted)).not.toContain(grantId);
-    expect(decide).toHaveBeenCalledWith({ requestId, presenceChallengeId, approved: true });
-
-    const grants = await host.invoke('local_app_grant_list', {}) as Array<Record<string, unknown>>;
-    const controlSelector = String(grants[0]?.selector);
-    const revoked = await host.invoke('local_app_grant_revoke', { payload: { selector: controlSelector } });
-    expect(revoked).toMatchObject({ state: 'revoked', reasonCode: 'local-app-grant-revoked' });
-    expect(revoke).toHaveBeenCalledWith({ grantId });
-    expect(await host.invoke('local_app_grant_list', {})).toEqual([]);
-  });
-
-  it('rejects decision projections that drift from the pending Runtime identity', async () => {
-    for (const drift of [
-      { grantId: '44'.repeat(32), operationId: 'runtime_agent.conversation.open', resourceRef: 'agent:agent-a' },
-      { grantId, operationId: 'runtime_agent.conversation.snapshot', resourceRef: 'agent:agent-a' },
-      { grantId, operationId: 'runtime_agent.conversation.open', resourceRef: 'agent:other' },
-    ]) {
-      const host = createNimiElectronLocalAppGrantHostForBinding(binding({
-        desktopDecideLocalAppGrant: async () => ({
-          status: 'ok' as const,
-          value: { state: 'granted', ...drift },
-        }),
-      }));
-      const pending = await host.invoke('local_app_grant_pending_list', {}) as Array<Record<string, unknown>>;
-      const selector = String(pending[0]?.selector);
-      await expect(host.invoke('local_app_grant_decide', { payload: { selector, approved: true } }))
-        .rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
-      expect(await host.invoke('local_app_grant_pending_list', {})).toHaveLength(1);
-      expect(await host.invoke('local_app_grant_list', {})).toEqual([]);
-    }
-  });
-
-  it('rejects revoke projections that drift from the Runtime grant identity', async () => {
-    for (const drift of [
-      { operationId: 'runtime_agent.conversation.open', resourceRef: 'agent:agent-a' },
-      { operationId: '', resourceRef: 'agent:other' },
-    ]) {
-      const host = createNimiElectronLocalAppGrantHostForBinding(binding({
-        desktopRevokeLocalAppGrant: async () => ({
-          status: 'ok' as const,
-          value: { state: 'revoked', grantId, ...drift },
-        }),
-      }));
-      const pending = await host.invoke('local_app_grant_pending_list', {}) as Array<Record<string, unknown>>;
-      await host.invoke('local_app_grant_decide', { payload: { selector: String(pending[0]?.selector), approved: true } });
-      const grants = await host.invoke('local_app_grant_list', {}) as Array<Record<string, unknown>>;
-      await expect(host.invoke('local_app_grant_revoke', { payload: { selector: String(grants[0]?.selector) } }))
-        .rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
-      expect(await host.invoke('local_app_grant_list', {})).toHaveLength(1);
-    }
-  });
-
-  it('pins only the four grant commands and restores a pending selector after native denial', async () => {
-    const host = createNimiElectronLocalAppGrantHostForBinding(binding({
-      desktopDecideLocalAppGrant: async () => ({
-        status: 'error' as const,
-        reasonCode: 'LOCAL_APP_GRANT_REQUIRED',
-        retryable: false,
-      }),
-    }));
-    const pending = await host.invoke('local_app_grant_pending_list', {}) as Array<Record<string, unknown>>;
-    const selector = String(pending[0]?.selector);
-    await expect(host.invoke('local_app_grant_decide', { payload: { selector, approved: true } }))
-      .rejects.toMatchObject({ reasonCode: 'LOCAL_APP_GRANT_REQUIRED' });
-    expect(await host.invoke('local_app_grant_pending_list', {})).toHaveLength(1);
-    for (const command of [
-      'local_app_grant_pending_list',
-      'local_app_grant_decide',
-      'local_app_grant_list',
-      'local_app_grant_revoke',
-    ]) expect(isElectronLocalAppGrantCommand(command)).toBe(true);
-    expect(isElectronLocalAppGrantCommand('local_app_permission_request')).toBe(false);
-  });
-});
-
 describe('Electron local-development protected control', () => {
   const evaluationId = '55'.repeat(32);
   const authorizationId = '66'.repeat(32);
   const supervisorRunId = '77'.repeat(32);
-  const capabilityFingerprint = '88'.repeat(32);
+  const permissionRequirementFingerprint = '88'.repeat(32);
   const project = {
     appId: 'com.nimi.zhiyu.dev',
     displayName: 'Zhiyu Development',
@@ -299,8 +162,8 @@ describe('Electron local-development protected control', () => {
     canonicalManifestPath: 'D:\\nimi-realm\\nimi\\apps\\zhiyu\\nimi.app.yaml',
     shell: 'electron',
     accountId: 'account-a',
-    requestedCapabilities: ['runtime_agent.conversation.open'],
-    capabilityFingerprint,
+    permissionRequirements: [],
+    permissionRequirementFingerprint,
   };
   const authorization = {
     authorizationId,
@@ -324,16 +187,6 @@ describe('Electron local-development protected control', () => {
       deniedCount: 3,
       revokedCount: 4,
       unavailableReason: null,
-    },
-    grantSummary: {
-      availability: 'unavailable',
-      pendingCount: 0,
-      grantedCount: 0,
-      deniedCount: 0,
-      expiredCount: 0,
-      revokedCount: 0,
-      supersededCount: 0,
-      unavailableReason: 'local-app-operation-unavailable',
     },
   };
 
@@ -375,7 +228,7 @@ describe('Electron local-development protected control', () => {
       supervisorRunId,
     });
     expect(result.evaluationId).toBe(evaluationId);
-    expect(result.project.capabilityFingerprint).toBe(capabilityFingerprint);
+    expect(result.project.permissionRequirementFingerprint).toBe(permissionRequirementFingerprint);
     expect(evaluate).toHaveBeenCalledWith({
       expectedAppId: project.appId,
       projectRoot: project.canonicalProjectRoot,
@@ -412,11 +265,7 @@ describe('Electron local-development protected control', () => {
         status: 'ok' as const,
         value: {
           ...authoritySummary,
-          grantSummary: {
-            ...authoritySummary.grantSummary,
-            grantedCount: 1,
-            grantId: 'forbidden',
-          },
+          grantSummary: { grantedCount: 1, grantId: 'forbidden' },
         },
       }),
     }));

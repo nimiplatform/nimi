@@ -121,7 +121,7 @@ func (t *fakeTransport) Unary(ctx context.Context, req sdkstypes.CoreUnaryReques
 					OwnerAccountId: "account-conformance", SourceHash: strings.Repeat("e", 64),
 				}},
 				AuthorizationDecisionDigest: strings.Repeat("f", 64),
-				AccessPolicyVersionDigest:   "34f338ae76cbd85de58054cd6fc4d0ee18500030a0bc12f091e88d46f2fc572f",
+				AccessPolicyVersionDigest:   "7649e8c7aa85f6667b1af5134686fc653f33ed5094e5d11483a5e60f39765faa",
 				MaterializationContextHash:  strings.Repeat("1", 64),
 				PayloadHash:                 strings.Repeat("b", 64),
 				ClosureSetManifestHash:      strings.Repeat("c", 64),

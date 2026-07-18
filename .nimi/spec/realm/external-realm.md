@@ -18,23 +18,21 @@ Nimi owns only consumer behavior:
 - typed rejection handling for auth, transport, schema, and domain errors
 - local projection boundaries outside Realm canonical truth
 
-The 0K local-app principal, record, local grant, process/session and selected
-RuntimeAgent/Cognition access decision are Nimi local authority. A Realm grant
-is neither a prerequisite nor a substitute for that local decision. When a
-selected operation independently consumes Realm-owned data, Runtime still uses
-the canonical Realm consumer path and Realm policy; it never exports bearer
-material or mirrors Realm grant truth into the local-app stores.
+The 0K local-app principal, record, process/session, base entitlements and any
+future Runtime-owned public-permission decision are Nimi local authority.
+Realm-owned data operations and Realm-owned permission decisions remain subject
+to canonical Realm account/resource policy; Runtime never exports bearer
+material or mirrors Realm policy decisions into a local decision store.
 
 No Realm server/domain definitions, forks, or mirrors are part of this pointer
 under `.nimi/spec/realm/**`.
 
-For source materialization, Nimi consumes the current external Realm permission
-grant catalog and lifecycle through the Runtime-owned acquisition path. The
-Realm request projection is kept separate from Platform/Runtime-local
-`permission_scope_ref`: Realm source-snapshot consumption cannot authorize a
-LocalAgent projection, and the local `agent.identity.project` scope cannot be
-sent to or interpreted by Realm. Runtime creates no LocalAgent until the Realm
-Packet has been strictly verified and atomically materialized.
+Source materialization is the external Realm authenticated first-party product
+operation defined by Realm policy v5, not an App permission. Runtime sends no
+app id, permission scope or access grant, and the retired Realm scope names are
+never projected into the Nimi app registry or a local permission store. The local
+`agents.interact` permission begins only after Runtime has strictly verified
+the Realm Packet and atomically materialized an opaque LocalAgent.
 
 ## Canonical Nimi Reading Path
 

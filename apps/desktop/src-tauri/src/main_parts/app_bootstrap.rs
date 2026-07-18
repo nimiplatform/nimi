@@ -308,9 +308,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
                     );
                 }
             }
-            app.manage(crate::desktop_local_app_grants::DesktopLocalAppGrantRuntime::start(
-                app.handle().clone(),
-            ));
             app.manage(crate::menu_bar_shell::MenuBarShellStore::new());
             match crate::desktop_release::initialize(app.handle()) {
                 Ok(info) => {
@@ -445,10 +442,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             crate::desktop_local_development::local_development_authorizations_list,
             crate::desktop_local_development::local_development_runs_list,
             crate::desktop_local_development::local_development_authorization_revoke,
-            crate::desktop_local_app_grants::local_app_grant_pending_list,
-            crate::desktop_local_app_grants::local_app_grant_decide,
-            crate::desktop_local_app_grants::local_app_grant_list,
-            crate::desktop_local_app_grants::local_app_grant_revoke,
             crate::desktop_product_control::product_control_record_get,
             crate::desktop_product_control::product_control_selected_data_root_get,
             crate::desktop_product_control::product_control_record_ensure_created,
@@ -535,11 +528,6 @@ pub(crate) fn run() {
                         crate::desktop_local_development::DesktopLocalDevelopmentRuntime,
                     >() {
                         tauri::async_runtime::block_on(runtime.shutdown());
-                    }
-                    if let Some(runtime) = app_handle.try_state::<
-                        crate::desktop_local_app_grants::DesktopLocalAppGrantRuntime,
-                    >() {
-                        runtime.shutdown();
                     }
                     if !crate::menu_bar_shell::is_enabled() {
                         return;

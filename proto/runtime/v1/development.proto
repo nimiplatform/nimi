@@ -70,27 +70,16 @@ message LocalDevelopmentProjectAuthorizationSummary {
   ReasonCode reason_code = 6;
 }
 
-message LocalDevelopmentGrantSummary {
-  LocalDevelopmentSummaryAvailability availability = 1;
-  uint64 pending_count = 2;
-  uint64 granted_count = 3;
-  uint64 denied_count = 4;
-  uint64 expired_count = 5;
-  uint64 revoked_count = 6;
-  uint64 superseded_count = 7;
-  ReasonCode reason_code = 8;
-}
-
 message GetLocalDevelopmentAuthoritySummaryRequest {}
 
 // Exact bounded diagnostic projection. These sections never contain an
-// account, project, principal, authorization, grant, request, operation,
-// resource, path, credential, session, or boot-epoch identifier.
+// account, project, principal, authorization, request, path, credential,
+// session, or boot-epoch identifier. Product permission lifecycle is not a
+// local-development authority dimension and is intentionally absent.
 message GetLocalDevelopmentAuthoritySummaryResponse {
   LocalDevelopmentDeveloperModeSummary developer_mode = 1;
   LocalDevelopmentProjectAuthorizationSummary project_authorization = 2;
-  LocalDevelopmentGrantSummary grant_summary = 3;
-  ReasonCode reason_code = 4;
+  ReasonCode reason_code = 3;
 }
 
 message SetDeveloperModeRequest {
@@ -104,6 +93,11 @@ message SetDeveloperModeResponse {
   ReasonCode reason_code = 4;
 }
 
+message LocalDevelopmentPermissionRequirement {
+  string permission_id = 1;
+  string reason = 2;
+}
+
 message LocalDevelopmentProjectProjection {
   string app_id = 1;
   string display_name = 2;
@@ -111,8 +105,8 @@ message LocalDevelopmentProjectProjection {
   string canonical_manifest_path = 4;
   LocalDevelopmentShellKind shell_kind = 5;
   string account_id = 6;
-  repeated string requested_capabilities = 7;
-  bytes capability_fingerprint = 8;
+  repeated LocalDevelopmentPermissionRequirement permission_requirements = 7;
+  bytes permission_requirement_fingerprint = 8;
   string trust_class = 9;
 }
 

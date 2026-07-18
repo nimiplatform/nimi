@@ -160,10 +160,11 @@ test('Tester is the second consumer for Kit shared primitives and shell bootstra
   assert.match(scaffoldBoundary, /local-app-runtime-platform\.ts/);
   assert.match(testerContract, /Runtime account projection without account control/);
   assert.match(testerRuntimePlatform, /testerLocalAppRuntimePlatform\.auth\.status\(\)/);
-  assert.match(testerRuntimePlatform, /operationAllowed/);
+  assert.match(testerRuntimePlatform, /status\.sessionBound/);
+  assert.doesNotMatch(testerRuntimePlatform, /operationAllowed/);
   assert.match(testerLocalAppPlatform, /createNimiAppRuntimePlatformClient/);
   assert.match(testerLocalAppPlatform, /createNimiLocalAppStandardShellSurface/);
-  assert.match(testerLocalAppPlatform, /testerLocalAppRuntimePlatform\.artifacts\.readRuntimeBytes/);
+  assert.doesNotMatch(testerLocalAppPlatform, /\.artifacts\b|readRuntimeBytes/);
   assert.doesNotMatch(testerRuntimePlatform, /testerInstalledAppBootstrap|bootstrapArtifactId/);
   assert.doesNotMatch(testerRuntimePlatform, /createRuntimeAccountBrowserBroker|createNimiRuntimeFullAppRegistration|getAccountSessionStatus|beginLogin|completeLogin|logout|switchAccount|refreshAccountSession|getAccessToken/);
   assert.doesNotMatch(testerRuntimePlatform, /desktop-runtime-oauth-url|#\/login|desktop_callback|runtimeEndpoint/);

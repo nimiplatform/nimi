@@ -115,10 +115,10 @@ canonical truth。
 
 ## K-ERR-012 Local App Kernel Reason Family
 
-Local-app principal/record/grant/launch/session failures use the closed
+Local-app principal/record/permission/launch/session failures use the closed
 `LOCAL_APP_*` family in `tables/reason-codes.yaml`. The response exposes only
 the stable reason, action hint, retryability and trace id; it must not expose
-principal/record/grant/session ids, lineage, SID partition, process proof,
+principal/record/permission-decision/session ids, lineage, SID partition, process proof,
 attestation refs, endpoint, bearer or native verification detail.
 
 Fixed action classes:

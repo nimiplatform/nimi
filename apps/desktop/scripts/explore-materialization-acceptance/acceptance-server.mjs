@@ -47,17 +47,7 @@ async function proxyRendererApiRequest({ request, response, requestUrl, apiOrigi
   const body = await readRequestBodyBuffer(request);
   let captureRecord = null;
   let packetRequestBody = null;
-  if (request.method === 'POST' && requestUrl.pathname === '/api/human/me/permission-grants') {
-    let grantRequestBody = null;
-    try { grantRequestBody = JSON.parse(body.toString('utf8')); } catch { grantRequestBody = null; }
-    captureRecord = { method: request.method, pathname: requestUrl.pathname, grantRequestBody };
-    capturedRequests.push(captureRecord);
-  } else if (request.method === 'POST' && /^\/api\/human\/me\/permission-grants\/by-id\/[^/]+\/grant$/u.test(requestUrl.pathname)) {
-    let grantDecisionBody = null;
-    try { grantDecisionBody = JSON.parse(body.toString('utf8')); } catch { grantDecisionBody = null; }
-    captureRecord = { method: request.method, pathname: requestUrl.pathname, grantDecisionBody };
-    capturedRequests.push(captureRecord);
-  } else if (request.method === 'POST' && requestUrl.pathname === '/api/realm/core/source-materialization-packets') {
+  if (request.method === 'POST' && requestUrl.pathname === '/api/realm/core/source-materialization-packets') {
     let sourceRef = null;
     try {
       packetRequestBody = JSON.parse(body.toString('utf8'));
@@ -120,17 +110,6 @@ async function proxyRendererApiRequest({ request, response, requestUrl, apiOrigi
           expiryBindingMatch: responseBody?.expiresAt === packetRequestBody?.challengeExpiresAt,
           limitsBindingMatch: JSON.stringify(responseBody?.publishedLimits) === JSON.stringify(packetRequestBody?.publishedLimits),
           sourceBindingMatch: JSON.stringify(responseBody?.sourceRef) === JSON.stringify(packetRequestBody?.sourceRef),
-        };
-      } else if (upstream.ok && captureRecord.pathname === '/api/human/me/permission-grants') {
-        captureRecord.grant = {
-          grantId: responseBody?.grantId || '', state: responseBody?.state || '', version: responseBody?.version,
-          selectorMatch: responseBody?.appId === 'nimi.avatar'
-            && responseBody?.scopeFamily === 'realm_source'
-            && responseBody?.scopeName === 'realm_source.snapshot.consume',
-        };
-      } else if (upstream.ok && /\/grant$/u.test(captureRecord.pathname)) {
-        captureRecord.grant = {
-          grantId: responseBody?.grantId || '', state: responseBody?.state || '', version: responseBody?.version,
         };
       } else if (upstream.ok) {
         captureRecord.keyIds = (responseBody?.keys || []).map((key) => key?.kid).filter(Boolean);

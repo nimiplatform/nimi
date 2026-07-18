@@ -136,11 +136,9 @@ import {
   Realm,
   Runtime,
   collectNimiTextStream,
-  createAppScopeRef,
   createNimiAppClient,
   createNimiClient,
   createNimiClientId,
-  createScopeCatalogModule,
 } from '@nimiplatform/sdk';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
@@ -229,71 +227,39 @@ const streamResult = await collectNimiTextStream((async function* () {
 assert.equal(streamResult.text, 'hello stream');
 assert.equal(streamResult.finishReason, 'stop');
 
-const realmCalls = [];
-function realmGrant(input = {}) {
-  return {
-    grantId: 'grant-1',
-    subjectAccountId: 'account-1',
-    appId: 'tester.app',
-    scopeFamily: 'account',
-    scopeName: 'account.read',
-    state: 'GRANTED',
-    reason: 'consumer smoke',
-    version: 5,
-    requestedAt: '2026-06-10T00:00:00.000Z',
-    requestedByAccountId: 'account-1',
-    ...input,
-  };
-}
 const realmTransport = {
-  async unary(request) {
-    realmCalls.push(request.methodId);
-    if (request.methodId === 'listMyAppPermissionGrants') return { items: [realmGrant()] };
-    if (request.methodId === 'getMyAppPermissionGrantStatus') {
-      return { generatedAt: '2026-06-10T00:00:01.000Z', grants: [realmGrant()] };
-    }
-    if (request.methodId === 'requestMyAppPermissionGrant') {
-      return realmGrant({ grantId: 'grant-requested', state: 'PENDING' });
-    }
-    if (request.methodId === 'getMyAppPermissionGrant') return realmGrant();
-    if (request.methodId === 'revokeMyAppPermissionGrant') return realmGrant({ state: 'REVOKED' });
-    return {};
-  },
+  async unary() { return {}; },
   async *serverStream() {},
 };
 const realm = createRealm({ baseUrl: 'https://realm.nimi.ai', transport: realmTransport });
 assert.ok(realm instanceof Realm);
 assert.equal(normalizeNimiRealmBaseUrl('https://realm.nimi.ai/'), 'https://realm.nimi.ai');
 
+const permissionEvents = [];
+const permissionTransport = {
+  async status(permissionId) {
+    return { permissionId, posture: 'unavailable', canRequest: false };
+  },
+  async request() {
+    throw new Error('reserved permission reached the transport');
+  },
+  subscribe(permissionId, callback) {
+    callback({ status: { permissionId, posture: 'unavailable', canRequest: false } });
+    return () => {};
+  },
+};
 const permissionClient = createNimiClient({
   appId: 'tester.app',
   runtime,
   realm: { transport: realmTransport },
+  permissions: permissionTransport,
 }).requirePermissions();
-const permissionScopeRef = createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' });
-const permissionScope = {
-  appId: 'tester.app',
-  scopeFamily: 'account',
-  scopeName: 'account.read',
-};
-assert.equal((await permissionClient.list(permissionScopeRef))[0]?.state, 'granted');
-assert.equal((await permissionClient.status(permissionScopeRef)).grants[0]?.grant.grantId, 'grant-1');
-assert.equal((await permissionClient.request(permissionScopeRef, { permissionScope, reason: 'consumer smoke' })).state, 'pending');
-assert.equal((await permissionClient.revoke(permissionScopeRef, 'grant-1')).state, 'revoked');
-assert.deepEqual(realmCalls, [
-  'listMyAppPermissionGrants',
-  'getMyAppPermissionGrantStatus',
-  'requestMyAppPermissionGrant',
-  'getMyAppPermissionGrant',
-  'revokeMyAppPermissionGrant',
-]);
+assert.equal((await permissionClient.status('agents.interact')).posture, 'unavailable');
+permissionClient.subscribe('agents.interact', (event) => permissionEvents.push(event))();
+assert.equal(permissionEvents[0]?.status.posture, 'unavailable');
 await assert.rejects(
-  permissionClient.request(permissionScopeRef, {
-    permissionScope,
-    subjectUserId: 'other-account',
-    reason: 'subject override',
-  }),
-  (error) => error?.reasonCode === 'SDK_REALM_PERMISSION_SUBJECT_NOT_ADMITTED',
+  permissionClient.request({ permissionId: 'agents.interact', reason: 'consumer smoke' }),
+  (error) => error?.reasonCode === 'SDK_PERMISSION_NOT_ADMITTED',
 );
 
 const app = createNimiAppClient({
@@ -316,9 +282,6 @@ const saved = configStore.save(createEmptyNimiAIConfig(scope));
 assert.equal(saved.scopeRef.ownerId, 'app.nimi.sdk-smoke');
 assert.deepEqual(saved.capabilities.targetRefs, {});
 assert.equal(typeof createNimiAIConfigSubscriptionRegistry().subscribe, 'function');
-
-const scopes = createScopeCatalogModule({ appId: 'app.nimi.sdk-smoke', defaultRealmScopes: ['realm.read'], defaultRuntimeScopes: ['runtime.read'] });
-assert.equal(scopes.listCatalog().defaultRuntimeScopes[0], 'runtime.read');
 
 const job = transitionNimiGenerationJob(createNimiGenerationJob({ id: 'job-1', prompt: 'image' }), { status: 'completed' });
 assert.equal(job.status, 'completed');

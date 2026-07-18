@@ -1,5 +1,6 @@
 import type { ZhiyuEvidence } from '../app/evidence';
-import { zhiyuLocalAppRuntimePlatform } from '../local-development/local-app-runtime-platform';
+import { runNimiRuntimeSpeechTranscription } from '@nimiplatform/sdk/features/generation';
+import { appId, getRuntimePlatformProjection } from '../auth/runtime-platform';
 
 export type ZhiyuVoiceCaptureState = 'idle' | 'recording' | 'transcribing' | 'failed';
 
@@ -212,8 +213,10 @@ export function createBrowserVoiceCaptureRecorder(): Promise<ZhiyuVoiceCaptureRe
 
 export function createElectronVoiceCaptureTranscriber(input: {
   readonly agentId: string;
+  readonly ownerUserId: string;
 }): (request: ZhiyuVoiceCaptureTranscribeInput) => Promise<ZhiyuVoiceCaptureTranscribeResult> {
   const agentId = normalizeVoiceCaptureText(input.agentId);
+  const ownerUserId = normalizeVoiceCaptureText(input.ownerUserId);
   if (!agentId) {
     throw Object.assign(new Error('Runtime Agent identity is required for voice transcription.'), {
       reasonCode: 'runtime-voice-capture-agent-required',
@@ -221,15 +224,41 @@ export function createElectronVoiceCaptureTranscriber(input: {
       source: 'runtime',
     });
   }
+  if (!ownerUserId) {
+    throw Object.assign(new Error('Runtime account identity is required for voice transcription.'), {
+      reasonCode: 'runtime-voice-capture-owner-required',
+      actionHint: 'authenticate_runtime_account',
+      source: 'runtime',
+    });
+  }
   return async (request) => {
-    const result = await zhiyuLocalAppRuntimePlatform.agent.transcribeVoice({
-      agentId,
-      clientRequestId: request.requestId,
-      audio: request.bytes,
+    const projection = await getRuntimePlatformProjection();
+    if (projection.status !== 'ready') {
+      throw Object.assign(new Error(projection.message), {
+        reasonCode: projection.reasonCode,
+        actionHint: projection.actionHint || 'start_external_runtime_daemon',
+        source: 'runtime',
+      });
+    }
+    const result = await runNimiRuntimeSpeechTranscription({
+      runtime: projection.accountRuntime,
+      head: {
+        appId,
+        subjectUserId: ownerUserId,
+      },
+      audio: { type: 'bytes', bytes: request.bytes },
       mimeType: request.mimeType,
+      requestId: request.requestId,
+      idempotencyKey: `${appId}:voice-transcription:${request.requestId}`,
+      labels: {
+        surface: 'zhiyu.agent-chat',
+        localAgentRef: agentId,
+      },
     });
     return {
       text: result.text,
+      jobId: result.job.jobId,
+      traceId: result.traceId,
     };
   };
 }

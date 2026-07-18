@@ -30,13 +30,13 @@
     }
   },
   {
-    "fixture_id": "grant-key-falls-back-to-app-id",
-    "code": "GRANT_STORE_SEPARATION_REQUIRED",
+    "fixture_id": "permission-store-appears-before-admission",
+    "code": "PERMISSION_LIFECYCLE_ADMISSION_REQUIRED",
     "target": ".nimi/spec/runtime/kernel/tables/local-app-grant-binding-schema.yaml",
     "mutation": {
       "kind": "replace_exact",
-      "from": "  key:\n    - local_os_user_anchor\n    - account_id\n    - local_app_principal_id\n    - capability_resource_fingerprint",
-      "to": "  key:\n    - local_os_user_anchor\n    - app_id\n    - local_app_principal_id\n    - capability_resource_fingerprint"
+      "from": "  store_identity: absent_pre_admission",
+      "to": "  store_identity: local_app_permissions"
     }
   },
   {
@@ -120,13 +120,13 @@
     }
   },
   {
-    "fixture_id": "artifact-read-uses-control-role",
+    "fixture_id": "app-storage-uses-control-role",
     "code": "LOCAL_APP_ROUTE_POSTURE_REQUIRED",
     "target": ".nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml",
     "mutation": {
       "kind": "replace_exact",
-      "from": "  - { method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes, operation_class: local_app_artifact_read, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session]",
-      "to": "  - { method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes, operation_class: local_app_artifact_read, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_control]"
+      "from": "  - { method_id: /nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson, operation_class: local_app_json_storage, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session]",
+      "to": "  - { method_id: /nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson, operation_class: local_app_json_storage, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_control]"
     }
   },
   {

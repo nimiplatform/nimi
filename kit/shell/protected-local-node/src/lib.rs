@@ -7,19 +7,13 @@ use nimi_shell_protected_local::{
     DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse,
     DesktopAccountSessionStatusRequest, DesktopProductControlError, DesktopProductControlMethod,
     DesktopProductControlRequest, DesktopRuntimeConsumerMethod, DesktopRuntimeConsumerRequest,
-    FixedRuntimeServiceControl, LocalAppAgentConversationSnapshotRequest,
-    LocalAppAgentInventoryRequest, LocalAppAgentOpenConversationRequest,
-    LocalAppAgentSendTurnRequest, LocalAppAgentSubscribeTurnRequest,
-    LocalAppAgentSubscribeVoiceStreamRequest, LocalAppAgentTranscribeVoiceRequest,
-    LocalAppAgentVoiceStreamPage, LocalAppArtifactBytes, LocalAppArtifactReadRequest,
-    LocalAppGrantControlDecisionRequest, LocalAppGrantControlPending,
-    LocalAppGrantControlProjection, LocalAppGrantControlState, LocalAppOperationError,
-    LocalAppPermissionPosture, LocalAppPermissionPostureRequest, LocalAppPermissionRequest,
-    LocalAppReasonCode, LocalAppSessionStatus, LocalAppStorageReadRequest,
-    LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest, LocalDevelopmentAuthoritySummary,
-    LocalDevelopmentAuthorization, LocalDevelopmentDecision, LocalDevelopmentDecisionRequest,
-    LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest,
-    LocalDevelopmentLaunchRequest, LocalDevelopmentReactivationRequest, LocalDevelopmentShellKind,
+    FixedRuntimeServiceControl, LocalAppOperationError, LocalAppPermissionRequest,
+    LocalAppPermissionStatus, LocalAppPermissionStatusRequest, LocalAppReasonCode,
+    LocalAppSessionStatus, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
+    LocalAppStorageWriteRequest, LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
+    LocalDevelopmentDecision, LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest,
+    LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchRequest,
+    LocalDevelopmentReactivationRequest, LocalDevelopmentShellKind,
     LocalDevelopmentSummaryAvailability, NimiDesktopControl, NimiHostError,
     NimiHostErrorReasonCode, NimiLocalAppCarrier, NimiLocalAppSession,
     NimiProtectedLocalHostCarrier, ProtectedCarrierError, RuntimeServiceActionOutcome,
@@ -332,60 +326,6 @@ pub async fn desktop_developer_mode_set(input: NativeDeveloperModeSetInput) -> N
             .set_developer_mode(input.enabled)
             .await
             .map(project_developer_mode_status)
-    })
-    .await
-}
-
-#[napi(js_name = "desktopPendingLocalAppGrant")]
-pub async fn desktop_pending_local_app_grant() -> NativeJsonOutcome {
-    invoke_desktop_json(|control| async move {
-        control.pending_local_app_grant().await.map(|pending| {
-            pending
-                .map(project_pending_local_app_grant)
-                .unwrap_or(JsonValue::Null)
-        })
-    })
-    .await
-}
-
-#[napi(js_name = "desktopDecideLocalAppGrant")]
-pub async fn desktop_decide_local_app_grant(
-    input: NativeLocalAppGrantDecisionInput,
-) -> NativeJsonOutcome {
-    let request_id = match decode_identifier(&input.request_id) {
-        Some(value) => value,
-        None => return NativeJsonOutcome::host_reason("runtime-service-untrusted", false),
-    };
-    let presence_challenge_id = match decode_identifier(&input.presence_challenge_id) {
-        Some(value) => value,
-        None => return NativeJsonOutcome::host_reason("runtime-service-untrusted", false),
-    };
-    invoke_desktop_json(|control| async move {
-        control
-            .decide_local_app_grant(LocalAppGrantControlDecisionRequest {
-                request_id,
-                presence_challenge_id,
-                approved: input.approved,
-            })
-            .await
-            .map(project_local_app_grant)
-    })
-    .await
-}
-
-#[napi(js_name = "desktopRevokeLocalAppGrant")]
-pub async fn desktop_revoke_local_app_grant(
-    input: NativeLocalAppGrantRevokeInput,
-) -> NativeJsonOutcome {
-    let grant_id = match decode_identifier(&input.grant_id) {
-        Some(value) => value,
-        None => return NativeJsonOutcome::host_reason("runtime-service-untrusted", false),
-    };
-    invoke_desktop_json(|control| async move {
-        control
-            .revoke_local_app_grant(grant_id)
-            .await
-            .map(project_local_app_grant)
     })
     .await
 }

@@ -13,28 +13,43 @@ const (
 	selectorStorage
 )
 
-var operationSpecs = map[Operation]selectorShape{
-	OperationArtifactRead:          selectorArtifact,
-	OperationConversationOpen:      selectorAgent,
-	OperationConversationTurnSend:  selectorAgentAnchorTurn,
-	OperationConversationSubscribe: selectorAgentAnchor,
-	OperationConversationSnapshot:  selectorAgentAnchor,
-	OperationStorageJSONRead:       selectorStorage,
-	OperationStorageJSONWrite:      selectorStorage,
-	OperationStorageJSONRemove:     selectorStorage,
-	OperationVoiceTranscribe:       selectorAgent,
-	OperationVoiceStreamSubscribe:  selectorAgentAnchorTurnVoice,
+type operationSpec struct {
+	selector       selectorShape
+	authorityClass AuthorityClass
+}
+
+var operationSpecs = map[Operation]operationSpec{
+	OperationArtifactRead:          {selector: selectorArtifact, authorityClass: AuthorityClassUserPermission},
+	OperationConversationOpen:      {selector: selectorAgent, authorityClass: AuthorityClassUserPermission},
+	OperationConversationTurnSend:  {selector: selectorAgentAnchorTurn, authorityClass: AuthorityClassUserPermission},
+	OperationConversationSubscribe: {selector: selectorAgentAnchor, authorityClass: AuthorityClassUserPermission},
+	OperationConversationSnapshot:  {selector: selectorAgentAnchor, authorityClass: AuthorityClassUserPermission},
+	OperationStorageJSONRead:       {selector: selectorStorage, authorityClass: AuthorityClassBaseEntitlement},
+	OperationStorageJSONWrite:      {selector: selectorStorage, authorityClass: AuthorityClassBaseEntitlement},
+	OperationStorageJSONRemove:     {selector: selectorStorage, authorityClass: AuthorityClassBaseEntitlement},
+	OperationVoiceTranscribe:       {selector: selectorAgent, authorityClass: AuthorityClassUserPermission},
+	OperationVoiceStreamSubscribe:  {selector: selectorAgentAnchorTurnVoice, authorityClass: AuthorityClassUserPermission},
+}
+
+// AuthorityClassForOperation returns the Runtime-owned authority path for an
+// exact closed operation. Callers cannot select or override this value.
+func AuthorityClassForOperation(operation Operation) (AuthorityClass, bool) {
+	spec, ok := operationSpecs[operation]
+	if !ok {
+		return "", false
+	}
+	return spec.authorityClass, true
 }
 
 func validateRequest(req Request) Reason {
 	if !validOpaque(req.NativeConnectionRef) {
 		return ReasonProtocolEnvelopeInvalid
 	}
-	shape, ok := operationSpecs[req.Operation]
+	spec, ok := operationSpecs[req.Operation]
 	if !ok {
 		return ReasonLocalAppOperationUnavailable
 	}
-	if !selectorMatches(shape, req.Selector) {
+	if !selectorMatches(spec.selector, req.Selector) {
 		return ReasonProtocolEnvelopeInvalid
 	}
 	return ""

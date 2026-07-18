@@ -15,7 +15,7 @@ export function appendSpecHumanDocNarrative(d) {
 
 ## 2. 认证体系
 
-Nimi Runtime 的认证与本地应用授权分为四个层次：**Token 验证**（AuthN）、**访问控制**（AuthZ）、**会话管理**（AuthService）和**local-app grant 控制**（RuntimeAccountService + Runtime-private evaluator）。四层严格分工；不存在公共 GrantService 或可携带 local-app credential。
+Nimi Runtime 的认证与本地应用授权分为四个层次：**Token 验证**（AuthN）、**访问控制**（AuthZ）、**会话管理**（AuthService）和**app authority classification**（RuntimeAccountService + canonical owner policy）。四层严格分工；不存在公共 GrantService、通用 operation/resource grant engine 或可携带 local-app credential。
 
 ### 2.1 Token 验证（AuthN）
 
@@ -68,14 +68,14 @@ AuthZ 在 AuthN 通过后执行，负责判断"这个用户能不能访问这个
   d.rule('K-AUTHSVC-004');
   d.rule('K-AUTHSVC-005');
 
-  d.text(`### 2.4 Local-app Grant
+  d.text(`### 2.4 Local-app Permission 与 Authority Class
 
-公共 \`RuntimeGrantService\` 已硬切删除。local-app grant 由 \`RuntimeAccountService\` 的受保护本地方法承载；Runtime 私有 evaluator 每次按当前 principal、record、process、session、account、grant 与 owner policy 决策，不签发可携带 credential。`);
+公共 \`RuntimeGrantService\` 已硬切删除。每个 app action 必须归入 \`base_entitlement\`、\`user_permission\`、\`one_shot_consent\`、\`app_owned_authority\` 或 \`os_right\` 之一。只有已完整准入的 \`user_permission\` 可以创建 owner-internal durable decision；app 自己的 SQLite、媒体、设置、路由和产品命令不创建 Nimi permission row。`);
   d.blank();
   d.rule('K-GRANT-001');
   d.rule('K-GRANT-002');
 
-  d.text(`Local-app identity session 可以在 zero-grant 状态建立；grant 独立请求、审批、撤销，并且不能折叠进 session、AccountCaller、app_id 或 renderer-held bearer。`);
+  d.text(`Local-app identity session 与 permission decision 相互独立。当前十六个第三方公共 permission id 全部处于 \`reserved\`，状态与请求返回 typed \`unavailable\`；app 仍可使用 base entitlement 与 app-owned authority。未来 permission admission 必须由 canonical owner 原子交付 selector、decision lifecycle、端点 enforcement、SDK/Kit、UX、audit、revoke 与正向证据，且不能折叠进 session、AccountCaller、app_id 或 renderer-held bearer。`);
   d.blank();
   d.rule('K-GRANT-003');
   d.rule('K-GRANT-014');

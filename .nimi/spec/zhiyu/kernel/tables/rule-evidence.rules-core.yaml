@@ -23,9 +23,9 @@ entries:
   - rule_id: Z-PROD-001
     evidence_requirement: product-authority-contract.md
   - rule_id: Z-AUTH-002
-    evidence_requirement: authority-owner-matrix.yaml and registry-scope-posture.yaml
+    evidence_requirement: authority-owner-matrix.yaml and permission-posture.yaml
   - rule_id: Z-AUTH-003
-    evidence_requirement: registry-scope-posture.yaml runtime_scoped_binding_request_projection and apps/zhiyu/test/nimi-app-manifest-authority.test.mjs request-eligibility-only checks
+    evidence_requirement: permission-posture.yaml and apps/zhiyu/test/nimi-app-manifest-authority.test.mjs empty-permission and legacy-field rejection checks
   - rule_id: Z-AUTH-004
     evidence_requirement: authority-owner-matrix.yaml and sdk-kit-consumption-surface.yaml forbidden LocalAgent prompt/context surfaces
   - rule_id: Z-AUTH-005

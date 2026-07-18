@@ -101,14 +101,14 @@ surfaces:
       - archive/sdk-pre-vnext-20260606/src/app
       - archive/sdk-pre-vnext-20260606/src/scope
       - archive/sdk-pre-vnext-20260606/src/platform-catalog
-    current_capability: App identity/status projection, scope catalog, permission grant client, first-run local platform catalog projection, and hardcut old scope/platform subpaths.
+    current_capability: App identity/status projection, closed product-permission posture/request client, first-run local platform catalog projection, and hardcut old scope/platform subpaths plus the app-authored scope catalog.
     replacement_status: implemented
     acceptance_blocker: false
     evidence_class: replacement
     vnext_targets:
       - "@nimiplatform/sdk/app"
     vnext_owner: sdks/typescript/core/app
-    required_binding: App, scope, permission, and platform catalog capability belongs to vNext App contracts and may not recreate old public subpaths.
+    required_binding: App identity, product permission, and platform catalog capability belongs to vNext App contracts; no app-authored Realm/Runtime scope catalog or old public subpath may be recreated.
     verification_gates:
       - check:sdk-vnext-app-consumer-smoke
       - check:app-identity-surfaces

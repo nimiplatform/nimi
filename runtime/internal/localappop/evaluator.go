@@ -74,32 +74,16 @@ func evaluate(req Request, snapshot Snapshot) Decision {
 		return unavailable(ReasonLocalAppOperationUnavailable)
 	}
 	if policy.Operation != req.Operation || !equalSelector(policy.Selector, req.Selector) ||
-		!validOpaque(policy.CapabilityResourceFingerprint) || policy.PolicyRevision == 0 {
+		!validOpaque(policy.OwnerSelectorDigest) || policy.PolicyRevision == 0 {
 		return unavailable(ReasonLocalAppOperationUnavailable)
 	}
 
-	grant := snapshot.Grant
-	if grant == nil || !validOpaque(grant.ID) {
-		return deny(ReasonLocalAppGrantRequired)
+	authorityClass, ok := AuthorityClassForOperation(req.Operation)
+	if !ok {
+		return unavailable(ReasonLocalAppOperationUnavailable)
 	}
-	switch grant.State {
-	case GrantStateRevoked:
-		return deny(ReasonLocalAppGrantRevoked)
-	case GrantStateSuperseded:
-		return deny(ReasonLocalAppGrantSuperseded)
-	case GrantStateExpired:
-		return deny(ReasonLocalAppPresenceExpired)
-	case GrantStateGranted:
-		// Continue.
-	default:
-		return deny(ReasonLocalAppGrantRequired)
-	}
-	if grant.LocalOSUserAnchor != snapshot.LocalOSUserAnchor ||
-		grant.AccountID != snapshot.Account.ID ||
-		grant.PrincipalID != snapshot.Principal.ID ||
-		grant.CapabilityResourceFingerprint != policy.CapabilityResourceFingerprint ||
-		grant.Generation == 0 || grant.Revision == 0 {
-		return deny(ReasonLocalAppGrantRequired)
+	if authorityClass == AuthorityClassUserPermission {
+		return unavailable(ReasonLocalAppOperationUnavailable)
 	}
 
 	if policy.Status != OwnerPolicyAllowed {
@@ -109,37 +93,27 @@ func evaluate(req Request, snapshot Snapshot) Decision {
 		}
 		return deny(reason)
 	}
-	if policy.PresenceRequired {
-		if snapshot.Presence == nil {
-			return deny(ReasonLocalAppPresenceRequired)
-		}
-		if !validPresence(req, snapshot) {
-			return deny(ReasonLocalAppPresenceExpired)
-		}
-	}
-
 	return Decision{
 		Outcome: OutcomeAllowed,
 		Reason:  ReasonActionExecuted,
 		Authorization: &AuthorizationContext{
-			LocalOSUserAnchor:             snapshot.LocalOSUserAnchor,
-			PrincipalID:                   snapshot.Principal.ID,
-			PrincipalKind:                 snapshot.Principal.Kind,
-			Lineage:                       snapshot.Principal.Lineage,
-			RecordID:                      snapshot.Record.ID,
-			ProvenanceRevision:            snapshot.Record.ProvenanceRevision,
-			InstallOrProjectGeneration:    snapshot.Record.InstallOrProjectGeneration,
-			SessionID:                     snapshot.Session.ID,
-			AccountID:                     snapshot.Account.ID,
-			AccountGeneration:             snapshot.Account.Generation,
-			Process:                       snapshot.CurrentProcess,
-			BootEpoch:                     snapshot.BootEpoch,
-			GrantID:                       grant.ID,
-			GrantRevision:                 grant.Revision,
-			PolicyRevision:                policy.PolicyRevision,
-			CapabilityResourceFingerprint: policy.CapabilityResourceFingerprint,
-			Operation:                     req.Operation,
-			Selector:                      req.Selector,
+			AuthorityClass:             authorityClass,
+			LocalOSUserAnchor:          snapshot.LocalOSUserAnchor,
+			PrincipalID:                snapshot.Principal.ID,
+			PrincipalKind:              snapshot.Principal.Kind,
+			Lineage:                    snapshot.Principal.Lineage,
+			RecordID:                   snapshot.Record.ID,
+			ProvenanceRevision:         snapshot.Record.ProvenanceRevision,
+			InstallOrProjectGeneration: snapshot.Record.InstallOrProjectGeneration,
+			SessionID:                  snapshot.Session.ID,
+			AccountID:                  snapshot.Account.ID,
+			AccountGeneration:          snapshot.Account.Generation,
+			Process:                    snapshot.CurrentProcess,
+			BootEpoch:                  snapshot.BootEpoch,
+			PolicyRevision:             policy.PolicyRevision,
+			OwnerSelectorDigest:        policy.OwnerSelectorDigest,
+			Operation:                  req.Operation,
+			Selector:                   req.Selector,
 		},
 	}
 }
@@ -183,24 +157,4 @@ func validProcess(process ProcessBinding) bool {
 
 func equalProcess(left, right ProcessBinding) bool {
 	return left == right
-}
-
-func validPresence(req Request, snapshot Snapshot) bool {
-	presence := snapshot.Presence
-	policy := snapshot.OwnerPolicy
-	if presence == nil || presence.State != PresenceStateActive || snapshot.ResolvedAt.IsZero() ||
-		presence.ExpiresAt.IsZero() || !snapshot.ResolvedAt.Before(presence.ExpiresAt) {
-		return false
-	}
-	return presence.LocalOSUserAnchor == snapshot.LocalOSUserAnchor &&
-		presence.AccountID == snapshot.Account.ID &&
-		presence.AccountGeneration == snapshot.Account.Generation &&
-		presence.PrincipalID == snapshot.Principal.ID &&
-		presence.RecordID == snapshot.Record.ID &&
-		presence.ProvenanceRevision == snapshot.Record.ProvenanceRevision &&
-		presence.InstallOrProjectGeneration == snapshot.Record.InstallOrProjectGeneration &&
-		presence.Operation == req.Operation &&
-		presence.CapabilityResourceFingerprint == policy.CapabilityResourceFingerprint &&
-		presence.ResourceImpactDigest == policy.ResourceImpactDigest &&
-		presence.PolicyRevision == policy.PolicyRevision
 }

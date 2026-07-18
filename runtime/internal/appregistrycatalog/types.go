@@ -27,7 +27,6 @@ type AdmissionStatus string
 const (
 	AdmissionStatusAdmitted                AdmissionStatus = "admitted"
 	AdmissionStatusGatedByAvatarMasterGate AdmissionStatus = "gated_by_avatar_master_gate"
-	AdmissionStatusPermissionFabricPending AdmissionStatus = "permission_fabric_pending"
 	AdmissionStatusDeferred                AdmissionStatus = "deferred"
 	AdmissionStatusRetired                 AdmissionStatus = "retired"
 )
@@ -35,7 +34,7 @@ const (
 func (a AdmissionStatus) Valid() bool {
 	switch a {
 	case AdmissionStatusAdmitted, AdmissionStatusGatedByAvatarMasterGate,
-		AdmissionStatusPermissionFabricPending, AdmissionStatusDeferred, AdmissionStatusRetired:
+		AdmissionStatusDeferred, AdmissionStatusRetired:
 		return true
 	}
 	return false
@@ -83,16 +82,12 @@ func (v OrdinaryVisibility) Valid() bool {
 	return false
 }
 
-const PermissionScopeRefPending = "permission_fabric_pending"
-
-// PermissionScopeRef captures a single permission scope row from the
-// registry. Wave 5 owns the full grant lifecycle; this struct is the
-// registry-side typed reference.
-type PermissionScopeRef struct {
-	AppID       string
-	ScopeFamily string
-	ScopeName   string
-	Qualifier   string
+// PermissionRequirement is the complete app-authored public manifest shape.
+// App/account/principal/selector and internal operation facts are host-derived
+// and deliberately absent.
+type PermissionRequirement struct {
+	PermissionID string
+	Reason       string
 }
 
 // App is a typed Nimi App registry entry.
@@ -108,8 +103,7 @@ type App struct {
 	CapabilitySetRefs         []string
 	LocalComputePackRefs      []string
 	RuntimeRegistrationMode   RuntimeRegistrationMode
-	PermissionScopeRefPending bool
-	PermissionScopeRefs       []PermissionScopeRef
+	PermissionRequirements    []PermissionRequirement
 	HealthRepairProjection    []string
 	OrdinaryVisibility        OrdinaryVisibility
 	ReleaseDescriptorRef      string
@@ -118,21 +112,16 @@ type App struct {
 	SourceRule                string
 }
 
-// PermissionCapabilities projects the canonical permission rows into the
-// Runtime app-registry capability vocabulary consumed by admission checks.
-func (a App) PermissionCapabilities() []string {
-	capabilities := make([]string, 0, len(a.PermissionScopeRefs))
-	for _, scope := range a.PermissionScopeRefs {
-		name := strings.TrimSpace(scope.ScopeName)
-		if name == "" {
-			continue
+// PublicPermissionIDs returns only product-facing ids. It never projects
+// internal operations, selectors, qualifiers, or grant keys.
+func (a App) PublicPermissionIDs() []string {
+	permissions := make([]string, 0, len(a.PermissionRequirements))
+	for _, requirement := range a.PermissionRequirements {
+		if id := strings.TrimSpace(requirement.PermissionID); id != "" {
+			permissions = append(permissions, id)
 		}
-		if qualifier := strings.TrimSpace(scope.Qualifier); qualifier != "" {
-			name += "#" + qualifier
-		}
-		capabilities = append(capabilities, name)
 	}
-	return capabilities
+	return permissions
 }
 
 type Registry struct {
@@ -144,14 +133,15 @@ type Registry struct {
 }
 
 var (
-	ErrRegistryParse                 = errors.New("nimi-app-registry parse failed")
-	ErrRegistryMissingFields         = errors.New("nimi-app-registry missing table_family/owner/catalog_id")
-	ErrAppMissingRequiredField       = errors.New("app row missing required field")
-	ErrAppUnknownPackageKind         = errors.New("app row package_kind is not nimi-app (public mod / extension admission forbidden)")
-	ErrAppUnknownTrustTier           = errors.New("app row trust_tier_ref is not canonical")
-	ErrAppUnknownAdmissionStatus     = errors.New("app row admission_status is not canonical")
-	ErrAppUnknownRuntimeRegistration = errors.New("app row runtime_registration_mode is not canonical")
-	ErrAppUnknownOrdinaryVisibility  = errors.New("app row ordinary_visibility is not canonical")
-	ErrAppInvalidPermissionScopeRef  = errors.New("app row permission_scope_ref is not canonical")
-	ErrAppNotFound                   = errors.New("app not found in registry")
+	ErrRegistryParse                   = errors.New("nimi-app-registry parse failed")
+	ErrRegistryMissingFields           = errors.New("nimi-app-registry missing table_family/owner/catalog_id")
+	ErrAppMissingRequiredField         = errors.New("app row missing required field")
+	ErrAppUnknownPackageKind           = errors.New("app row package_kind is not nimi-app (public mod / extension admission forbidden)")
+	ErrAppUnknownTrustTier             = errors.New("app row trust_tier_ref is not canonical")
+	ErrAppUnknownAdmissionStatus       = errors.New("app row admission_status is not canonical")
+	ErrAppUnknownRuntimeRegistration   = errors.New("app row runtime_registration_mode is not canonical")
+	ErrAppUnknownOrdinaryVisibility    = errors.New("app row ordinary_visibility is not canonical")
+	ErrAppInvalidPermissionRequirement = errors.New("app row permission_requirements is not canonical")
+	ErrAppPermissionNotAdmitted        = errors.New("app row requests a public permission that is not admitted")
+	ErrAppNotFound                     = errors.New("app not found in registry")
 )

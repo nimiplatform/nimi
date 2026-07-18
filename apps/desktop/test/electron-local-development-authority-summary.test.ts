@@ -28,16 +28,6 @@ function availableSummary(): NimiElectronLocalDevelopmentAuthoritySummary {
       revokedCount: 7,
       unavailableReason: null,
     },
-    grantSummary: {
-      availability: 'available',
-      pendingCount: 11,
-      grantedCount: 13,
-      deniedCount: 17,
-      expiredCount: 19,
-      revokedCount: 23,
-      supersededCount: 29,
-      unavailableReason: null,
-    },
   };
 }
 
@@ -79,13 +69,12 @@ test('Electron publisher writes the PID-bound bounded authority summary beside p
       'desktopAppId', 'desktopPid', 'endpoint', 'lastHeartbeatAt', 'schemaVersion', 'startedAt',
     ]);
     assert.deepEqual(Object.keys(summary).sort(), [
-      'capturedAt', 'desktopAppId', 'desktopPid', 'developerMode', 'grantSummary',
+      'capturedAt', 'desktopAppId', 'desktopPid', 'developerMode',
       'projectAuthorization', 'schemaVersion',
     ]);
     assert.equal(summary.desktopPid, 4_242);
     assert.equal(summary.capturedAt, '2026-07-17T03:04:05.678Z');
     assert.equal((summary.developerMode as Record<string, unknown>).reasonCode, 'action-executed');
-    assert.equal((summary.grantSummary as Record<string, unknown>).supersededCount, 29);
     assert.doesNotMatch(
       JSON.stringify(summary),
       /accountId|authorizationId|grantId|token|credential|canonicalProjectRoot/u,
@@ -134,9 +123,9 @@ test('Electron publisher deletes the previous authority summary when the protect
 test('Electron authority descriptor rejects unsafe counts and inconsistent unavailable sections', () => {
   assert.throws(() => authoritySummaryDescriptor({
     ...availableSummary(),
-    grantSummary: {
-      ...availableSummary().grantSummary,
-      grantedCount: Number.MAX_SAFE_INTEGER + 1,
+    projectAuthorization: {
+      ...availableSummary().projectAuthorization,
+      activeCount: Number.MAX_SAFE_INTEGER + 1,
     },
   }, 42, '2026-07-17T03:04:05.678Z'), /local-development-authority-summary-untrusted/u);
 

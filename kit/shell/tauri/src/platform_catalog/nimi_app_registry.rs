@@ -49,7 +49,7 @@ pub struct PlatformNimiAppReleaseDescriptorRow {
 }
 
 pub const PLATFORM_NIMI_APP_REGISTRY_CATALOG_ID: &str = "platform_nimi_app_registry";
-pub const PLATFORM_NIMI_APP_REGISTRY_CATALOG_VERSION: u32 = 1;
+pub const PLATFORM_NIMI_APP_REGISTRY_CATALOG_VERSION: u32 = 2;
 
 pub const PLATFORM_NIMI_APP_REGISTRY_ROWS: &[PlatformNimiAppRegistryRow] = &[
     PlatformNimiAppRegistryRow {
@@ -130,7 +130,7 @@ pub const PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS: &[PlatformNimiAppReleaseDes
         package_kind: "nimi-app",
         entry_ref: "avatar-runtime-registration",
         sandbox_ref: "first-party-bundled-app",
-        permissions_ref: "nimi.avatar.permission_scope_ref",
+        permissions_ref: "nimi.avatar.permission_requirements",
         storage_policy_ref: "nimi-data-app-roots",
         digest_algorithm: "sha256",
         mutable_source_allowed: false,
@@ -152,7 +152,7 @@ pub const PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS: &[PlatformNimiAppReleaseDes
         package_kind: "nimi-app",
         entry_ref: "realm-persona-studio-runtime-registration",
         sandbox_ref: "first-party-bundled-app",
-        permissions_ref: "nimi.realm-persona-studio.permission_scope_ref",
+        permissions_ref: "nimi.realm-persona-studio.permission_requirements",
         storage_policy_ref: "nimi-data-app-roots",
         digest_algorithm: "sha256",
         mutable_source_allowed: false,
@@ -174,7 +174,7 @@ pub const PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS: &[PlatformNimiAppReleaseDes
         package_kind: "nimi-app",
         entry_ref: "realm-world-studio-runtime-registration",
         sandbox_ref: "first-party-bundled-app",
-        permissions_ref: "nimi.realm-world-studio.permission_scope_ref",
+        permissions_ref: "nimi.realm-world-studio.permission_requirements",
         storage_policy_ref: "nimi-data-app-roots",
         digest_algorithm: "sha256",
         mutable_source_allowed: false,
@@ -196,7 +196,7 @@ pub const PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS: &[PlatformNimiAppReleaseDes
         package_kind: "nimi-app",
         entry_ref: "zhiyu-runtime-registration",
         sandbox_ref: "first-party-bundled-app",
-        permissions_ref: "nimi.zhiyu.permission_scope_ref",
+        permissions_ref: "nimi.zhiyu.permission_requirements",
         storage_policy_ref: "nimi-data-app-roots",
         digest_algorithm: "sha256",
         mutable_source_allowed: false,

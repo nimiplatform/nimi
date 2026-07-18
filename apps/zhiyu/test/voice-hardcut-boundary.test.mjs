@@ -23,8 +23,10 @@ test('Zhiyu voice hardcut leaves no deferred voice product variants or app-local
   assert.doesNotMatch(source, /\b(?:whisper|webkitSpeechRecognition|SpeechRecognition|openai\/audio\/transcriptions)\b/u);
   assert.doesNotMatch(source, /\/v1\/audio\/(?:speech|transcriptions)/u);
   assert.match(source, /audio\.transcribe/u);
-  assert.match(source, /agent\.transcribeVoice/u);
-  assert.match(source, /agent\.subscribeVoiceStream/u);
-  assert.doesNotMatch(source, /runNimiRuntimeSpeechTranscription/u);
+  assert.match(source, /runNimiRuntimeSpeechTranscription/u);
+  assert.match(source, /createNimiRuntimeAgentVoiceModule/u);
+  assert.match(source, /voice\.subscribeStream/u);
+  assert.doesNotMatch(source, /zhiyuLocalAppRuntimePlatform/u);
+  assert.doesNotMatch(source, /\.agent\.transcribeVoice|\.agent\.subscribeVoiceStream/u);
   assert.doesNotMatch(source, /new Runtime\s*\(/u);
 });

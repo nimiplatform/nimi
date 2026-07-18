@@ -22,7 +22,7 @@ test('Desktop approval UI exposes the complete user decision and project identit
     'approval.canonicalProjectRoot',
     'approval.shell',
     'approval.accountId',
-    'approval.requestedCapabilities',
+    'approval.permissionRequirements',
     "submit('deny')",
     "submit('allow-run-once')",
     "submit('allow-remember-project')",

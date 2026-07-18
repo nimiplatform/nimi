@@ -8,7 +8,7 @@ const COMPONENT_SET_DOMAIN = 'nimi.realm.materialization-component-set/v3\0';
 const CLOSURE_SET_MANIFEST_DOMAIN = 'nimi.realm.materialization-closure-set-manifest/v3\0';
 const AUTHORIZATION_DECISION_DOMAIN = 'nimi.realm.materialization-authorization-decision/v3\0';
 const MATERIALIZATION_KEY_ID = 'desktop-realm-v3-fixture-rs256';
-const ACCESS_POLICY_VERSION_DIGEST = '34f338ae76cbd85de58054cd6fc4d0ee18500030a0bc12f091e88d46f2fc572f';
+const ACCESS_POLICY_VERSION_DIGEST = '7649e8c7aa85f6667b1af5134686fc653f33ed5094e5d11483a5e60f39765faa';
 const MATERIALIZATION_KEYS = generateKeyPairSync('rsa', { modulusLength: 2048 });
 const MATERIALIZATION_PUBLIC_JWK = MATERIALIZATION_KEYS.publicKey.export({ format: 'jwk' });
 
@@ -169,15 +169,16 @@ export function createFixtureSourceMaterializationPacket(request) {
     materializerAccountId: request.materializerAccountId,
     sourceRef: request.sourceRef,
     authorizationDecisionDigest: hashDomain(AUTHORIZATION_DECISION_DOMAIN, {
-      accessGrantId: request.accessGrantId,
-      appId: 'nimi.avatar',
-      scopeFamily: 'realm_source',
-      scopeName: 'realm_source.snapshot.consume',
-      qualifier: null,
-      qualifierKey: '',
-      state: 'GRANTED',
-      materializerAccountId: request.materializerAccountId,
+      decisionSchemaVersion: 'realm.materialization-authorization-decision/v3',
       sourceRef: request.sourceRef,
+      materializerAccountId: request.materializerAccountId,
+      authenticatedAccountId: request.materializerAccountId,
+      scope: 'materialize',
+      decidedAt: issuedAt.toISOString(),
+      accessPolicyVersionDigest: ACCESS_POLICY_VERSION_DIGEST,
+      visibilityDecision: 'allow',
+      readinessDecision: 'allow',
+      grant: 'allow',
     }),
     accessPolicyVersionDigest: ACCESS_POLICY_VERSION_DIGEST,
     materializationContextHash: reference.materializationContextHash,
@@ -333,7 +334,9 @@ function prepareComponent(component, globalComponentOrdinal, limits) {
     chunks.push({ componentOffset: offset, length: chunk.byteLength, chunkSha256: sha256(chunk) });
   }
   if (chunks.length === 0) throw new Error(`fixture component is empty: ${component.componentId}`);
-  const { canonicalBytes: _canonicalBytes, ...metadata } = component;
+  const metadata = Object.fromEntries(
+    Object.entries(component).filter(([key]) => key !== 'canonicalBytes'),
+  );
   return { globalComponentOrdinal, metadata, canonicalBytes, chunks };
 }
 
@@ -344,12 +347,11 @@ function assertFixtureRequest(request) {
   if (canonicalJSON(request?.sourceRef) !== canonicalJSON(expected)) {
     throw new Error('Realm fixture received an unknown CharacterSourceRefV3');
   }
-  if (!request.accessGrantId
-      || !request.materializerAccountId
+  if (!request.materializerAccountId
       || !request.challengeId
       || !/^[a-f0-9]{64}$/u.test(request.challengeDigest)
       || !request.intendedRuntimeAudience) {
-    throw new Error('Realm fixture requires grant and Runtime-issued challenge bindings');
+    throw new Error('Realm fixture requires authenticated account and Runtime-issued challenge bindings');
   }
   const limits = request.publishedLimits;
   for (const key of [

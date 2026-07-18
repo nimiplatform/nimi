@@ -30,11 +30,8 @@ func newRealmSourceMaterializationStagingV3(databasePath string) (*realmSourceMa
 		return nil, fmt.Errorf("Realm source materialization staging requires an absolute data-root path")
 	}
 	root := filepath.Join(filepath.Dir(databasePath), realmSourceMaterializationStagingDirectoryV3)
-	if err := os.MkdirAll(root, 0o700); err != nil {
+	if err := ensureRealmSourceMaterializationPrivateDirectoryV3(root); err != nil {
 		return nil, fmt.Errorf("create Realm source materialization staging root: %w", err)
-	}
-	if err := os.Chmod(root, 0o700); err != nil {
-		return nil, fmt.Errorf("protect Realm source materialization staging root: %w", err)
 	}
 	return &realmSourceMaterializationStagingV3{root: root}, nil
 }
@@ -73,25 +70,16 @@ func (s *realmSourceMaterializationStagingV3) stagePacket(
 	}
 	partitionSum := sha256.Sum256([]byte(accountID + "\x00" + requestID))
 	partitionDir := filepath.Join(s.root, hex.EncodeToString(partitionSum[:]))
-	if err := os.MkdirAll(partitionDir, 0o700); err != nil {
+	if err := ensureRealmSourceMaterializationPrivateDirectoryV3(partitionDir); err != nil {
 		return nil, sourceMaterializationV3Error(sourceMaterializationFailureCleanupV3, "create private Packet partition: %v", err)
 	}
-	if err := os.Chmod(partitionDir, 0o700); err != nil {
-		_ = os.Remove(partitionDir)
-		return nil, sourceMaterializationV3Error(sourceMaterializationFailureCleanupV3, "protect private Packet partition: %v", err)
-	}
-	attemptDir, err := os.MkdirTemp(partitionDir, "attempt-")
+	attemptDir, err := createRealmSourceMaterializationPrivateTempDirectoryV3(partitionDir, "attempt-")
 	if err != nil {
 		_ = os.Remove(partitionDir)
 		return nil, sourceMaterializationV3Error(sourceMaterializationFailureCleanupV3, "create private Packet attempt: %v", err)
 	}
-	if err := os.Chmod(attemptDir, 0o700); err != nil {
-		_ = os.RemoveAll(attemptDir)
-		_ = os.Remove(partitionDir)
-		return nil, sourceMaterializationV3Error(sourceMaterializationFailureCleanupV3, "protect private Packet attempt: %v", err)
-	}
 	packetPath := filepath.Join(attemptDir, "transport")
-	file, err := os.OpenFile(packetPath, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0o600)
+	file, err := openRealmSourceMaterializationPrivateFileV3(packetPath)
 	if err != nil {
 		_ = os.RemoveAll(attemptDir)
 		_ = os.Remove(partitionDir)

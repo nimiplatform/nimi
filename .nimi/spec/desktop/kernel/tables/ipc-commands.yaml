@@ -550,27 +550,6 @@ commands:
     description: List stable Desktop supervisor run states without PID, launch ticket, Runtime epoch, protected endpoint, credential, or technical-session proof.
     source_rule: D-IPC-019
 
-  # Exact-operation local-app grant approval and management
-  - command: local_app_grant_pending_list
-    module: desktop-local-app-grants
-    description: List renderer-safe exact-operation grant requests selected by native memory handles; raw request, challenge, grant, session, principal, and presence identifiers remain native-only.
-    source_rule: D-IPC-020
-
-  - command: local_app_grant_decide
-    module: desktop-local-app-grants
-    description: Approve or deny one native-selected pending request; approval requires Runtime-owned fresh presence while denial consumes the request without presence.
-    source_rule: D-IPC-020
-
-  - command: local_app_grant_list
-    module: desktop-local-app-grants
-    description: List renderer-safe current local-app grants with app, operation, resource, state, and expiry only; native grant identifiers remain in the Desktop host vault.
-    source_rule: D-IPC-020
-
-  - command: local_app_grant_revoke
-    module: desktop-local-app-grants
-    description: Revoke one grant selected by a native-only management handle; renderer cannot supply or recover the Runtime grant identifier.
-    source_rule: D-IPC-020
-
   - command: local_development_authorization_revoke
     module: desktop-local-development
     description: Revoke one Runtime-owned remembered development authorization through the live protected Desktop control connection.

@@ -1,4 +1,4 @@
-version: 3
+version: 5
 table_family: owner_matrix
 owner: platform
 matrix_id: nimi_app_local_development_admission
@@ -27,33 +27,36 @@ user_development_authorization:
     - local_app_principal_id
     - canonical_project_file_id
     - declared_app_id
-    - manifest_capability_fingerprint
+    - manifest_permission_requirement_fingerprint
     - account_id
     - fixed_shell_entry_policy
   choices: [run_once, remember_project]
-  initial_grant_state: zero
+  initial_permission_decision_state: none
   remembered_reactivation_requires_fresh_presence: true
   account_switch_transfers_authorization: false
-  app_owned_or_renderer_storage: forbidden
-runtime_scoped_binding_requests:
-  manifest_field: local_development.runtime_scoped_binding_requests
-  owner: runtime_k_app_request_eligibility
-  admitted_request_scopes:
-    - runtime.agent.turn.read
-    - runtime.agent.turn.write
-    - runtime.agent.voice.read
-    - runtime.agent.voice.transcribe
+  permission_requirements_may_be_empty: true
+  app_owned_native_host_storage: allowed
+  nimi_permission_required_for_app_owned_native_host_storage: false
+  renderer_direct_native_filesystem_access: forbidden
+  renderer_storage_or_account_partition_projection: forbidden
+  app_owned_host_commands: exact_app_registered_typed_allowlist
+  app_owned_host_commands_create_nimi_grant: false
+permission_requirements:
+  manifest_field: permissions
+  owner: platform_permission_catalog
+  current_admitted_permission_ids: []
   item_shape:
-    required_fields: [scope, purpose]
-    qualifier: forbidden
-    duplicate_scope: forbidden
-    unknown_scope: forbidden
-  capability_fingerprint_inclusion: canonical_sorted_set
+    required_fields: [id, reason]
+    optional_fields: []
+    duplicate_id: forbidden
+    unknown_or_reserved_id: forbidden
+  permission_requirement_fingerprint_inclusion: canonical_sorted_id_and_reason_set
+  empty_list_valid: true
   request_eligibility_only: true
   creates_operation_grant: false
   creates_scoped_binding: false
-  runtime_issued_binding_still_required: true
-  platform_registry_permission_equivalence: forbidden
+  owner_selector_and_permission_decision_still_required: true
+  app_owned_authority_or_base_entitlement_inclusion: forbidden
   app_renderer_or_manifest_positive_authority: forbidden
 technical_launch_and_session:
   owner: runtime_k_plocal
@@ -73,6 +76,7 @@ technical_launch_and_session:
     - shell_kind
     - account_generation
     - account_id
+    - opaque_app_data_partition
     - runtime_boot_epoch
   new_process_requires_new_lease_and_session: true
   material_visibility: runtime_and_native_host_private_only
@@ -85,7 +89,7 @@ continuity_matrix:
     - controlled_host_replacement_same_authorization
     - runtime_restart_during_live_supervisor_run
   invalidate_or_require_fresh_approval:
-    - capability_expansion
+    - permission_requirement_change
     - declared_app_id_change
     - canonical_project_file_identity_change
     - copied_project
@@ -98,7 +102,7 @@ continuity_matrix:
     - executable_or_renderer_origin_outside_controlled_outputs
     - remote_or_uncontrolled_dev_server
 lifetimes:
-  run_once_ends_on: [supervisor_run_termination, mode_off, logout_or_account_switch, revoke, identity_capability_or_shell_mismatch]
+  run_once_ends_on: [supervisor_run_termination, mode_off, logout_or_account_switch, revoke, identity_permission_requirement_or_shell_mismatch]
   run_once_terminal_transition: tombstone_principal_and_mark_record_removed
   subsequent_run_once: fresh_approval_new_principal_and_record
   remember_project_on_mode_off: dormant
@@ -109,11 +113,15 @@ risk_and_background:
   production_account_allowed_through_runtime_mediation: true
   runtime_credential_custody_required: true
   native_os_risk_disclosure_required: true
-  nimi_grants_cover_all_windows_rights: false
+  nimi_permissions_cover_all_windows_rights: false
   nimi_managed_logon_or_boot_autostart: forbidden
 operation_posture:
-  same_grant_and_owner_policy_as_other_trust_classes: true
-  selected_checkpoint_families:
+  same_permission_and_owner_policy_as_other_trust_classes: true
+  app_private_base_entitlement_requires_grant: false
+  app_private_base_entitlement_requires_live_principal_session_account_binding: true
+  app_owned_host_operations_are_nimi_operations: false
+  selected_checkpoint_families: []
+  blocked_until_atomic_public_permission_or_attested_first_party_carrier:
     - runtime_artifact_read
     - runtime_agent_conversation
     - runtime_agent_selected_voice

@@ -1800,20 +1800,6 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
-  - id: gate.sdk.scope-catalog-drift
-    description: SDK scope catalog drift check.
-    command: pnpm check:scope-catalog-drift
-    runner: pnpm
-    tiers: [fast, release]
-    targets: [sdk]
-    timeout_seconds: 60
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
   - id: gate.sdk.npm-binary-smoke
     description: NPM binary launcher smoke (after build:runtime).
     command: pnpm check:npm-binary-smoke

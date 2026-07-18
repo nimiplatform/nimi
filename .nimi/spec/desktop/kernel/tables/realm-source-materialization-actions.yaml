@@ -15,22 +15,22 @@ states:
     emits: materialize_realm_source_intent
     runtime_operation: MaterializeRealmSource
     request_fields: [sourceRef, requestId]
-    description: Desktop has a closed CharacterSourceRefV3 and emits intent only. Runtime owns canonical account/grant/bearer resolution, Packet v3 acquisition and strict validation, SnapshotV2/provenance, and LocalAgent identity.
-  - state: grant_required
+    description: Desktop has a closed CharacterSourceRefV3 and emits intent only. Runtime owns canonical account/bearer resolution, Realm source-visibility enforcement, Packet v3 acquisition and strict validation, SnapshotV2/provenance, and LocalAgent identity.
+  - state: sign_in_required
     source_kinds: [worldCharacter, personaCharacter]
-    primary_action: Grant required
+    primary_action: Sign in required
     disabled: true
-    description: Canonical Realm materialization grant is absent; visibility, ownership, or app identity is not permission.
-  - state: grant_pending
+    description: No current authenticated Realm account is available; Desktop does not manufacture an app permission or alternate bearer path.
+  - state: source_not_ready
     source_kinds: [worldCharacter, personaCharacter]
-    primary_action: Grant pending
+    primary_action: Source not ready
     disabled: true
-    description: Canonical Realm materialization grant is pending and materialization remains fail closed.
-  - state: grant_denied
+    description: Canonical Realm source or dependency readiness is incomplete; materialization remains fail closed without a user permission prompt.
+  - state: source_access_denied
     source_kinds: [worldCharacter, personaCharacter]
-    primary_action: Grant denied
+    primary_action: Source unavailable
     disabled: true
-    description: Canonical Realm materialization grant was denied and Desktop must not infer an alternate permission path.
+    description: Realm canonical visibility or account policy denied materialization; Desktop must not infer an alternate permission or identity path.
   - state: materializing
     source_kinds: [worldCharacter, personaCharacter]
     primary_action: Materializing

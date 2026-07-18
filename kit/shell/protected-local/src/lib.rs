@@ -23,7 +23,6 @@ mod windows_desktop_account;
 #[allow(unsafe_code)]
 mod windows_local_app;
 #[cfg(target_os = "windows")]
-mod windows_local_app_grant_control;
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
 mod windows_local_development;
@@ -47,18 +46,12 @@ pub use adapters::{
     WindowsLocalAppCarrier, WindowsNamedPipeCarrier,
 };
 pub use carrier::{
-    LocalAppAgentConversationSnapshotRequest, LocalAppAgentInventoryRequest,
-    LocalAppAgentOpenConversationRequest, LocalAppAgentProjection, LocalAppAgentSendTurnRequest,
-    LocalAppAgentSubscribeTurnRequest, LocalAppAgentSubscribeVoiceStreamRequest,
-    LocalAppAgentTranscribeVoiceRequest, LocalAppAgentVoiceStreamEvent,
-    LocalAppAgentVoiceStreamPage, LocalAppAgentVoiceTranscription, LocalAppArtifactBytes,
-    LocalAppArtifactReadRequest, LocalAppGrantControlDecisionRequest, LocalAppGrantControlPending,
-    LocalAppGrantControlProjection, LocalAppGrantControlState, LocalAppOperationError,
-    LocalAppPermissionPosture, LocalAppPermissionPostureRequest, LocalAppPermissionRequest,
-    LocalAppPermissionState, LocalAppReasonCode, LocalAppSessionState, LocalAppSessionStatus,
-    LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
-    LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, NimiDesktopControl,
-    NimiLocalAppCarrier, NimiLocalAppSession, NimiProtectedLocalHostCarrier,
+    LocalAppOperationError, LocalAppPermissionRequest, LocalAppPermissionState,
+    LocalAppPermissionStatus, LocalAppPermissionStatusRequest, LocalAppReasonCode,
+    LocalAppSessionState, LocalAppSessionStatus, LocalAppStorageDocument,
+    LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult,
+    LocalAppStorageWriteRequest, NimiDesktopControl, NimiLocalAppCarrier, NimiLocalAppSession,
+    NimiProtectedLocalHostCarrier,
 };
 pub use desktop_account::{
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
@@ -79,11 +72,11 @@ pub use local_development::{
     LocalDevelopmentAuthorization, LocalDevelopmentAuthorizationState, LocalDevelopmentDecision,
     LocalDevelopmentDecisionRequest, LocalDevelopmentDeveloperModeSummary,
     LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest,
-    LocalDevelopmentGrantSummary, LocalDevelopmentLaunchOutcome, LocalDevelopmentLaunchRequest,
-    LocalDevelopmentProject, LocalDevelopmentProjectAuthorizationSummary,
-    LocalDevelopmentReactivationRequest, LocalDevelopmentShellKind,
-    LocalDevelopmentSummaryAvailability, NimiHostError, NimiHostErrorReasonCode,
-    LOCAL_DEVELOPMENT_TRUST_CLASS,
+    LocalDevelopmentLaunchOutcome, LocalDevelopmentLaunchRequest,
+    LocalDevelopmentPermissionRequirement, LocalDevelopmentProject,
+    LocalDevelopmentProjectAuthorizationSummary, LocalDevelopmentReactivationRequest,
+    LocalDevelopmentShellKind, LocalDevelopmentSummaryAvailability, NimiHostError,
+    NimiHostErrorReasonCode, LOCAL_DEVELOPMENT_TRUST_CLASS,
 };
 pub use reason::{ProtectedCarrierError, ProtectedCarrierReasonCode};
 pub use service::{

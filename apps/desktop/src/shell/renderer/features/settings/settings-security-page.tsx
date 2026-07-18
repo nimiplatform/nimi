@@ -23,7 +23,6 @@ import {
   ShieldIcon,
 } from './settings-security-controls.js';
 import { LocalDevelopmentAuthorizations } from '@renderer/features/local-development/local-development-authorizations';
-import { LocalAppGrantManagement } from '@renderer/features/local-app-grants/local-app-grant-management';
 
 export function SecurityPage() {
   const { t } = useTranslation();
@@ -363,7 +362,6 @@ export function SecurityPage() {
       </section>
 
       <LocalDevelopmentAuthorizations />
-      <LocalAppGrantManagement />
 
       <SaveFooter
         onSave={() => {

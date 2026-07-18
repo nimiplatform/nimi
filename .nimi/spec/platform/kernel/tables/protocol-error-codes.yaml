@@ -24,9 +24,9 @@ values:
   - LOCAL_APP_LAUNCH_LEASE_REPLAY
   - LOCAL_APP_PROCESS_MISMATCH
   - LOCAL_APP_SESSION_REVOKED
-  - LOCAL_APP_GRANT_REQUIRED
-  - LOCAL_APP_GRANT_REVOKED
-  - LOCAL_APP_GRANT_SUPERSEDED
+  - LOCAL_APP_PERMISSION_REQUIRED
+  - LOCAL_APP_PERMISSION_DENIED
+  - LOCAL_APP_PERMISSION_REVOKED
   - LOCAL_APP_ACCOUNT_CHANGED
   - LOCAL_APP_OPERATION_UNAVAILABLE
   - LOCAL_APP_PRESENCE_REQUIRED
@@ -105,9 +105,9 @@ codes:
   - { name: LOCAL_APP_LAUNCH_LEASE_REPLAY, group: local_app, source_rule: P-PROTO-020 }
   - { name: LOCAL_APP_PROCESS_MISMATCH, group: local_app, source_rule: P-PROTO-020 }
   - { name: LOCAL_APP_SESSION_REVOKED, group: local_app, source_rule: P-PROTO-020 }
-  - { name: LOCAL_APP_GRANT_REQUIRED, group: local_app, source_rule: P-PROTO-040 }
-  - { name: LOCAL_APP_GRANT_REVOKED, group: local_app, source_rule: P-PROTO-040 }
-  - { name: LOCAL_APP_GRANT_SUPERSEDED, group: local_app, source_rule: P-PROTO-040 }
+  - { name: LOCAL_APP_PERMISSION_REQUIRED, group: local_app, source_rule: P-PROTO-040 }
+  - { name: LOCAL_APP_PERMISSION_DENIED, group: local_app, source_rule: P-PROTO-040 }
+  - { name: LOCAL_APP_PERMISSION_REVOKED, group: local_app, source_rule: P-PROTO-040 }
   - { name: LOCAL_APP_ACCOUNT_CHANGED, group: local_app, source_rule: P-PROTO-020 }
   - { name: LOCAL_APP_OPERATION_UNAVAILABLE, group: local_app, source_rule: P-PROTO-020 }
   - { name: LOCAL_APP_PRESENCE_REQUIRED, group: local_app, source_rule: P-PROTO-020 }

@@ -45,7 +45,7 @@ Removing an active immutable record or revoking a development authorization
 transactionally revokes its leases/sessions and permanently tombstones the
 principal. Retained durable data remains keyed to the tombstone and is
 delete-only after fresh presence. Reinstall or re-authorization allocates a
-new non-reused principal and inherits no grant, storage, app-scoped audience,
+new non-reused principal and inherits no permission decision, storage, app-scoped audience,
 session, or audit subject.
 
 Before 0P/P, immutable remove/uninstall is typed unavailable because no 0K
@@ -108,7 +108,7 @@ exact target generation, and applicable Runtime-issued presence challenge in
 one service-owned transaction. Returned evaluation/job/bootstrap ids are
 correlation only.
 
-The logical role covers local-app lifecycle UX coordination, grant UX,
+The logical role covers local-app lifecycle UX coordination, future permission UX,
 protected launch, and development supervision. It does not generalize
 `OpenDesktopSession` account control and creates no portable controller
 credential. A future controller requires a separate transport/identity
@@ -120,13 +120,13 @@ Production Developer Mode is the sole positive 0K lifecycle. Enabling the
 global mode grants nothing. `EvaluateLocalDevelopmentProject` resolves the
 canonical project-root file identity, declared app id, capability fingerprint,
 current account, and fixed shell/entry policy without creating authority.
-`DecideLocalDevelopmentProject` consumes fresh grant presence and exactly
+`DecideLocalDevelopmentProject` consumes fresh user decision presence and exactly
 `run_once | remember_project`, then creates a new isolated development
-principal/record with zero grant. A developer manifest may include closed,
+principal/record with zero user permissions. A developer manifest may include closed,
 typed `local_development.runtime_scoped_binding_requests` in the capability
 fingerprint. Such a declaration is request eligibility only: it grants no
 operation, binding, account authority, or Runtime Agent turn authority. The
-common K-GRANT flow and a Runtime-issued scoped binding remain required.
+admitted public permission flow and a Runtime-issued scoped binding remain required.
 
 Every supervised host process uses `PrepareLocalAppLaunch`, a new process bind,
 and a new common local-app session. Controlled HMR/rebuild/restart and Runtime

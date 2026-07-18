@@ -8,11 +8,14 @@ import YAML from 'yaml';
 
 import { extractRealmCore } from '../sdks/generators/lib/realm-openapi.mjs';
 import {
-  ACCESS_POLICY_SELECTOR,
+  ACCESS_POLICY_AUTHORITY_CLASS,
   ACCESS_POLICY_VERSION,
   ADMISSION_SCHEMA_VERSION,
+  AUTHORIZATION_INPUTS,
+  FORBIDDEN_INPUTS,
   LOCK_SCHEMA_VERSION,
-  RUNTIME_GRANT_ACQUISITION,
+  RETIRED_ENDPOINTS,
+  RETIRED_IDENTIFIERS,
   assertAccessPolicyAdmission,
   canonicalJson,
   compareUtf16CodeUnits,
@@ -85,10 +88,6 @@ function assertCurrentOperations(realm, admission) {
     ['WorldCoreController_replaceWorldCharacter', 'PUT', '/api/realm/core/world-characters/by-id/{characterId}'],
     ['EconomyController_getSourceOrigin', 'POST', '/api/economy/revenue-share/source-origin'],
     ['EconomyController_previewRevenueDistribution', 'POST', '/api/economy/revenue-share/preview'],
-    ['getMyAppPermissionGrant', 'GET', '/api/human/me/permission-grants/by-id/{grantId}'],
-    ['listMyAppPermissionGrants', 'GET', '/api/human/me/permission-grants'],
-    ['requestMyAppPermissionGrant', 'POST', '/api/human/me/permission-grants'],
-    ['grantMyAppPermissionGrant', 'POST', '/api/human/me/permission-grants/by-id/{grantId}/grant'],
   ];
   for (const [operationId, method, operationPath] of expected) {
     const operation = operationById.get(operationId);
@@ -102,49 +101,30 @@ function assertCurrentOperations(realm, admission) {
     realm.operations.every((operation) => !operation.operation_id.includes(retiredPersonaToken)),
     'retired persona operation remains generated',
   );
+  for (const operation of realm.operations) {
+    assert(
+      !operation.operation_id.includes('AppPermissionGrant')
+        && !RETIRED_ENDPOINTS.some(
+          (retired) => operation.path === retired || operation.path.startsWith(`${retired}/`),
+        ),
+      `retired Realm permission operation remains generated: ${operation.operation_id}`,
+    );
+  }
 }
 
-function assertGrantPolicyModels(modelByName, operationById, admission) {
-  assertExactStrings(
-    modelByName.get('AppPermissionScopeFamily')?.values,
-    [ACCESS_POLICY_SELECTOR.scopeFamily],
-    'Realm permission scope family enum',
-  );
-  assertExactStrings(
-    modelByName.get('AppPermissionScopeName')?.values,
-    [ACCESS_POLICY_SELECTOR.scopeName],
-    'Realm permission scope name enum',
-  );
-  assertExactStrings(
-    modelByName.get('AppPermissionGrantState')?.values,
-    ['PENDING', 'GRANTED', 'DENIED', 'EXPIRED', 'REVOKED', 'SUPERSEDED'],
-    'Realm permission grant states',
-  );
-  const request = modelByName.get('AppPermissionGrantRequestDto');
-  const grant = modelByName.get('AppPermissionGrantGrantDto');
+function assertFirstPartyMaterializationPolicy(modelByName, operationById, admission) {
+  for (const name of modelByName.keys()) {
+    assert(
+      !name.startsWith('AppPermissionGrant') && !name.startsWith('AppPermissionScope'),
+      `retired Realm permission model remains generated: ${name}`,
+    );
+  }
   const packet = modelByName.get('CreateSourceMaterializationPacketV3Dto');
-  assert(request?.kind === 'object'
-    && property(request, 'appId')?.required === true
-    && property(request, 'scopeFamily')?.required === true
-    && property(request, 'scopeName')?.required === true
-    && property(request, 'qualifier')?.required === false,
-  'Realm permission request DTO does not encode canonical qualifier omission');
-  assert(grant?.kind === 'object'
-    && property(grant, 'expectedVersion')?.required === true
-    && property(grant, 'expectedVersion')?.schema?.minimum === 1,
-  'Realm explicit grant DTO does not require expectedVersion');
-  assert(packet?.kind === 'object'
-    && property(packet, admission.accessPolicy.lifecycle.packet.grantIdField)?.required === true,
-  'Realm packet request does not require accessGrantId');
-
-  const requestOperation = operationById.get(admission.accessPolicy.lifecycle.request.operationId);
-  const grantOperation = operationById.get(admission.accessPolicy.lifecycle.grant.operationId);
-  const packetOperation = operationById.get(admission.accessPolicy.lifecycle.packet.operationId);
-  assert(requestOperation?.request_schema_ref === '#/components/schemas/AppPermissionGrantRequestDto',
-    'Realm permission request operation schema drift');
-  assert(grantOperation?.request_schema_ref === '#/components/schemas/AppPermissionGrantGrantDto'
-    && grantOperation?.path_parameters?.some((parameter) => parameter.name === 'grantId' && parameter.required === true),
-  'Realm explicit grant operation schema/path parameter drift');
+  assert(packet?.kind === 'object' && packet.closed === true, 'Realm packet request is not closed');
+  for (const forbidden of ['appId', 'scopeFamily', 'scopeName', 'accessGrantId']) {
+    assert(!property(packet, forbidden), `Realm packet request retains ${forbidden}`);
+  }
+  const packetOperation = operationById.get(admission.accessPolicy.packetOperation.operationId);
   assert(packetOperation?.request_schema_ref === '#/components/schemas/CreateSourceMaterializationPacketV3Dto',
     'Realm packet operation schema drift');
 }
@@ -208,7 +188,7 @@ function assertMaterializationClosure(realm, admission) {
   }
   assertSourceRefModels(modelByName, admission);
   assertPublishedLimits(modelByName, admission);
-  assertGrantPolicyModels(modelByName, operationById, admission);
+  assertFirstPartyMaterializationPolicy(modelByName, operationById, admission);
 
   const schemaText = JSON.stringify(realm.model_schemas);
   for (const schemaVersion of Object.values(admission.schemaVersions)) {
@@ -290,12 +270,20 @@ function runNegativeMutations(sourceRealm, admission) {
       const limits = realm.model_schemas.find((model) => model.name === 'SourceMaterializationPublishedLimitsDto').schema;
       property(limits, 'maxSetBytes').schema.maximum += 1;
     }],
-    ['local scope as Realm selector', (realm) => {
-      realm.model_schemas.find((model) => model.name === 'AppPermissionScopeName').schema.values = ['agent.identity.project'];
+    ['retired permission model', (realm) => {
+      realm.model_schemas.push({
+        name: 'AppPermissionGrantDto',
+        schema: { kind: 'object', closed: true, properties: [], required_properties: [] },
+      });
     }],
-    ['grant without CAS', (realm) => {
-      const grant = realm.model_schemas.find((model) => model.name === 'AppPermissionGrantGrantDto').schema;
-      property(grant, 'expectedVersion').required = false;
+    ['packet permission input', (realm) => {
+      const packet = realm.model_schemas.find((model) => model.name === 'CreateSourceMaterializationPacketV3Dto').schema;
+      packet.properties.push({
+        name: 'accessGrantId',
+        required: true,
+        schema: { kind: 'scalar', type: 'string' },
+      });
+      packet.required_properties.push('accessGrantId');
     }],
   ];
   for (const [label, mutate] of mutations) {
@@ -309,23 +297,46 @@ function main() {
   const lock = YAML.parse(fs.readFileSync(lockPath, 'utf8'));
   assert(admission?.schemaVersion === ADMISSION_SCHEMA_VERSION, 'current producer admission schema drift');
   assertAccessPolicyAdmission(admission);
-  assert(lock?.schema_version === LOCK_SCHEMA_VERSION, 'current lock schema is not v3');
+  assert(lock?.schema_version === LOCK_SCHEMA_VERSION, 'current lock schema is not v4');
   assert(lock?.openapi?.document_sha256 === admission.openapi.sha256, 'lock/OpenAPI admission digest drift');
   assertExactStrings(lock?.schema_versions, admission.schemaVersions, 'lock schema versions');
   assert(lock?.access_policy?.version === ACCESS_POLICY_VERSION, 'lock access-policy version drift');
   assert(lock?.access_policy?.digest === admission.accessPolicy.digest, 'lock access-policy digest drift');
-  assertExactStrings(lock?.access_policy?.selector, admission.accessPolicy.selector, 'lock Realm grant selector');
-  assertExactStrings(lock?.access_policy?.lifecycle, admission.accessPolicy.lifecycle, 'lock Realm grant lifecycle');
-  assertExactStrings(
-    lock?.access_policy?.runtime_acquisition,
-    RUNTIME_GRANT_ACQUISITION,
-    'lock Runtime grant acquisition',
+  assert(
+    lock?.access_policy?.authority_class === ACCESS_POLICY_AUTHORITY_CLASS,
+    'lock authority class drift',
+  );
+  assert(
+    lock?.access_policy?.third_party_app_permission_required === false
+      && lock?.access_policy?.permission_catalog === 'empty',
+    'lock app-permission posture drift',
   );
   assertExactStrings(
-    lock?.access_policy?.non_authorizing_scope_names,
-    admission.accessPolicy.nonAuthorizingScopeNames,
-    'lock non-authorizing scopes',
+    lock?.access_policy?.packet_operation,
+    admission.accessPolicy.packetOperation,
+    'lock first-party packet operation',
   );
+  assertExactStrings(
+    lock?.access_policy?.authorization_inputs,
+    AUTHORIZATION_INPUTS,
+    'lock authorization inputs',
+  );
+  assertExactStrings(
+    lock?.access_policy?.forbidden_inputs,
+    FORBIDDEN_INPUTS,
+    'lock forbidden inputs',
+  );
+  assertExactStrings(
+    lock?.access_policy?.retired_identifiers,
+    RETIRED_IDENTIFIERS,
+    'lock retired identifiers',
+  );
+  assertExactStrings(
+    lock?.access_policy?.retired_endpoints,
+    RETIRED_ENDPOINTS,
+    'lock retired endpoints',
+  );
+  assert(lock?.producer_admission?.tracked_only === true, 'lock producer admission is not tracked-only');
 
   const sourceRealm = extractRealmCore();
   assertSourceRealm(sourceRealm, admission);

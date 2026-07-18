@@ -113,7 +113,7 @@ rules:
   - rule_id: K-AGCORE-006e
     evidence_refs:
       - runtime_kernel_consistency
-    note: The bounded zero-grant inventory is enforced by the protected transport matrix, exact response projection, and Runtime owner tests.
+    note: The former zero-permission Agent inventory exception is reserved; protected transport, SDK and Kit tests must prove every third-party Agent inventory/read/mutation remains unavailable until agents.interact is fully admitted.
     evidence_requirement: required
   - rule_id: K-AGCORE-007
     evidence_refs: []

@@ -32,44 +32,41 @@ func runtimeChecklistPart1(
 		},
 		{
 			ID:          "RS-11-03",
-			Requirement: "local-app grant key and transition tests",
-			Tests:       []testRef{{Package: pkgLocalApp, Name: "TestGrantKeyIncludesAccountPrincipalAndFingerprint"}},
+			Requirement: "local-app kernel has no pre-admission permission persistence",
+			Tests:       []testRef{{Package: pkgLocalApp, Name: "TestKernelSchemaContainsIdentityAndProvenanceAuthorityOnly"}},
 		},
 		{
 			ID:          "RS-11-04",
-			Requirement: "local-app principal/record/grant store separation",
+			Requirement: "local-app principal and provenance record separation",
 			Tests: []testRef{
-				{Package: pkgLocalApp, Name: "TestStoresUseSeparateTablesWithoutGrantFieldsInRecord"},
-				{Package: pkgLocalApp, Name: "TestGrantKeyIncludesAccountPrincipalAndFingerprint"},
+				{Package: pkgLocalApp, Name: "TestKernelSchemaContainsIdentityAndProvenanceAuthorityOnly"},
+				{Package: pkgLocalApp, Name: "TestRecordRequiresMatchingPrincipalKindAndOneCurrentRecord"},
 			},
 		},
 		{
 			ID:          "RS-11-05",
-			Requirement: "principal tombstone revokes inheritance",
-			Tests:       []testRef{{Package: pkgLocalApp, Name: "TestTombstoneRemovesRecordAndNeverInheritsGrantOrKeys"}},
+			Requirement: "principal tombstone revokes storage-key inheritance",
+			Tests:       []testRef{{Package: pkgLocalApp, Name: "TestTombstoneRemovesRecordAndNeverInheritsKeys"}},
 		},
 		{
 			ID:          "RS-11-06",
-			Requirement: "grant supersession requires exact prior grant",
-			Tests:       []testRef{{Package: pkgLocalApp, Name: "TestGrantKeyIncludesAccountPrincipalAndFingerprint"}},
+			Requirement: "app-owned storage uses base entitlement without user permission",
+			Tests:       []testRef{{Package: pkgAccount, Name: "TestAuthorizeLocalAppStorageUsesBaseEntitlementWithoutPermission"}},
 		},
 		{
 			ID:          "RS-11-07",
-			Requirement: "grant capability and resource fingerprint isolation",
-			Tests:       []testRef{{Package: pkgLocalApp, Name: "TestGrantKeyIncludesAccountPrincipalAndFingerprint"}},
+			Requirement: "reserved public permission catalog remains unavailable",
+			Tests:       []testRef{{Package: pkgAccount, Name: "TestLocalAppPublicPermissionStatusKeepsReservedCatalogUnavailable"}},
 		},
 		{
 			ID:          "RS-11-08",
-			Requirement: "grant approval requires presence evidence",
-			Tests: []testRef{
-				{Package: pkgAccount, Name: "TestLocalAppGrantZeroRequestPresenceDecisionAndReplay"},
-				{Package: pkgAccount, Name: "TestLocalAppGrantExplicitDenialConsumesChallengeWithoutPresence"},
-			},
+			Requirement: "public permission API rejects internal operation ids and authority assertions",
+			Tests:       []testRef{{Package: pkgAccount, Name: "TestLocalAppPublicPermissionRejectsInternalIDsAndAuthorityFields"}},
 		},
 		{
 			ID:          "RS-11-09",
-			Requirement: "provenance promotion invalidates leases and sessions without grant mutation",
-			Tests:       []testRef{{Package: pkgLocalApp, Name: "TestProvenanceAdvanceAtomicallyRecordsInvalidationWithoutGrantMutation"}},
+			Requirement: "provenance promotion invalidates leases and sessions",
+			Tests:       []testRef{{Package: pkgLocalApp, Name: "TestProvenanceAdvanceAtomicallyRecordsLaunchAndSessionInvalidation"}},
 		},
 		{
 			ID:          "RS-11-10",
@@ -164,8 +161,8 @@ func runtimeChecklistPart1(
 		},
 		{
 			ID:          "RS-11-22",
-			Requirement: "local-app grant lifecycle audit field completeness (P-PERM-004/K-AUDIT-001)",
-			Tests:       []testRef{{Package: pkgAccount, Name: "TestLocalAppGrantLifecycleAuditFields"}},
+			Requirement: "retired operation-grant mutation RPCs are absent from the public service",
+			Tests:       []testRef{{Package: pkgGrpc, Name: "TestRuntimeAccountServiceDoesNotExposeRetiredOperationGrantRPCs"}},
 		},
 		{
 			ID:          "RS-11-23",

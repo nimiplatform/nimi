@@ -251,12 +251,11 @@ function workspaceKitSourceAliasPlugin() {
           export function hasShellHostInvoke() { return true; }
           export function createNimiLocalAppStandardShellSurface() {
             return {
-              session: { async status() { return { state: 'zero-grant', reasonCode: 'no-grant', retryable: false }; } },
+              session: { async status() { return { state: 'ready', reasonCode: 'session-bound', retryable: false }; } },
               permission: {
-                async posture(input) { return { state: 'zero-grant', ...input, reasonCode: 'no-grant', actionHint: 'request', retryable: false }; },
-                async request(input) { return { state: 'pending', ...input, reasonCode: 'no-grant', actionHint: 'await', retryable: true }; },
+                async status(input) { return { state: 'unavailable', ...input, canRequest: false, reasonCode: 'permission-not-admitted' }; },
+                async request(input) { return { state: 'unavailable', ...input, canRequest: false, reasonCode: 'permission-not-admitted' }; },
               },
-              artifacts: { async readRuntimeBytes() { throw new Error('unexpected artifact read'); } },
               storage: {
                 async readJson() {
                   if (globalThis.__zhiyuConversationAnchorStorageValue == null) {
@@ -272,15 +271,6 @@ function workspaceKitSourceAliasPlugin() {
                   return { value, sizeBytes: new TextEncoder().encode(JSON.stringify(value)).byteLength };
                 },
                 async removeJson() { return { removed: true }; },
-              },
-              agent: {
-                async inventory() { return { ownerUserId: 'user-a', count: 0, localAgents: [] }; },
-                async openConversation() { throw new Error('unexpected local-app conversation open'); },
-                async sendTurn() { throw new Error('unexpected local-app turn'); },
-                async subscribeTurn() { throw new Error('unexpected local-app subscribe'); },
-                async getConversationSnapshot() { throw new Error('unexpected local-app snapshot'); },
-                async transcribeVoice() { throw new Error('unexpected local-app voice transcription'); },
-                async subscribeVoiceStream() { throw new Error('unexpected local-app voice stream subscription'); },
               },
             };
           }

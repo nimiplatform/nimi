@@ -77,8 +77,10 @@ local first-party Runtime / SDK account and agent authorization paths.
 
 Third-party `LOCAL_APP` callers do not mint or attach first-party scoped
 bindings. They present no portable credential: the protected transport resolves
-their current process-bound local-app session, and `K-ACCSVC-026` separately
-resolves the exact grant and owner policy for each selected operation.
+their current process-bound local-app session. A protected Agent operation is
+admitted only after `agents.interact` resolves through its owner-issued selector,
+current permission decision and exact Agent/conversation policy. The current
+permission is reserved, so all such third-party calls are typed unavailable.
 
 Fixed rules:
 

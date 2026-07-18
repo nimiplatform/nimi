@@ -27,20 +27,22 @@ Desktop-hosted Home 拥有），也不拥有 Cognition memory access 政策（�
 
 - 一个 family 可拥有多个 persona。
 - 一个 persona 可被多个 app projection 引用。
-- projection 是 app-app 隔离的 identity 视图，绑定 app scope 与
-  `permission_scope_ref` (`P-PERM-*`)。
+- projection 是 app-app 隔离的 identity 视图，绑定 Runtime-derived app
+  principal、owner-issued selector 与对应 public permission decision
+  (`P-PERM-*`)。
 
 `MUST NOT`：apps 不得通过 cache、约定、或 inferred channel 在不同 app
 之间共享 persona 的 raw identity material；persona 共享必须经 Realm 投影。
 
 ## P-AGID-003 — App-Specific Projection
 
-`MUST`：每个 app 对某 persona 收到的 projection 是稳定的、scope-bound
-的、可撤销的。projection 绑定到 app 的 `permission_scope_ref`
-（`P-PERM-007`）。
+`MUST`：每个 app 对某 persona 收到的 projection 是稳定的、selector-bound
+的、可撤销的。projection 绑定到 Runtime-derived app principal 与 owner-issued
+selected-Agent handle；app 不得提交 app/account/principal/agent raw identity
+作为授权事实（`P-PERM-007`）。
 
-`MUST NOT`：app 不得跨 scope 重用 projection；projection lifetime 与
-对应 permission grant 绑定。
+`MUST NOT`：app 不得跨 principal 或 selector 重用 projection；projection
+lifetime 与对应 public permission decision 和 owner policy 绑定。
 
 ## P-AGID-004 — ConversationAnchor Continuity Binding
 

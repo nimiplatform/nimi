@@ -35,6 +35,7 @@ entries:
   - delegated_projection_admission_gate
   - canonical_capability_catalog_gate
   - public_raw_token_authority_hardcut_gate
+  - protected_local_authority_gate
 platform_kernel_consistency:
   type: static_gate
   evidence_type: structural
@@ -107,3 +108,9 @@ public_raw_token_authority_hardcut_gate:
   command: pnpm check:public-raw-token-authority-hardcut
   path: scripts/check-public-raw-token-authority.mjs
   description: Cross-domain structural gate rejecting the retired raw-account capability id and any app-specific path that could restore public Runtime bearer projection.
+protected_local_authority_gate:
+  type: static_gate
+  evidence_type: structural
+  command: pnpm check:protected-local-authority
+  path: scripts/check-protected-local-authority.mjs
+  description: Cross-layer gate enforcing the protected local carrier, principal, session, permission, and base-entitlement authority boundary.

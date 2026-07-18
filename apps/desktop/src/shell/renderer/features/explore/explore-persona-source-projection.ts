@@ -1,5 +1,4 @@
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import type { CharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
 import type { ProfileDetailSeed } from '@renderer/features/relationship/profile-detail-modal.js';
 import type { PostCardAuthorProfileTarget } from '../home/post-card';
 import type { ExplorePersonaSourceCardData } from './explore-cards';

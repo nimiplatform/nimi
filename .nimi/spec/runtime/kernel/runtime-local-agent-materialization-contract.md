@@ -31,65 +31,41 @@ and SDKs never submit a Realm base, bearer, grant id, challenge, packet, proof,
 segment, component, chunk, source core, or LocalAgent identity.
 
 Runtime creates the challenge and eight published limits, resolves the current
-canonical Realm base, authenticated account bearer, and exact current
-materialization grant through Runtime-owned account/custody interfaces, and
-calls a constructor-injected private `RealmMaterializationIssuer`. The exact
-Realm grant selector is:
+canonical Realm base and authenticated account bearer through Runtime-owned
+account/custody interfaces, and calls a constructor-injected private
+`RealmMaterializationIssuer`. Source materialization is an authenticated
+first-party product operation, not an App permission or synthetic grant.
 
-- `appId=nimi.avatar`;
-- `scopeFamily=realm_source`;
-- `scopeName=realm_source.snapshot.consume`;
-- `qualifier=null` and `qualifierKey=""`;
-- `state=GRANTED`; and
-- subject equal to the authenticated Runtime account.
+The production authority chain is exact and internal to Runtime acquisition:
 
-The `appId=nimi.avatar` value above is only a field of this fixed external
-Realm grant selector. It is not a caller identity, a Runtime-local app
-principal, an Avatar seed grant, or evidence of any Nimi local permission.
+1. Runtime captures one authenticated account generation and one strict typed
+   source ref selected by the product flow;
+2. Runtime sends only that source ref, the authenticated account id, a fresh
+   Runtime challenge/audience/expiry and the eight published limits to
+   `POST /api/realm/core/source-materialization-packets`;
+3. Realm reloads canonical source/world/dependency truth, enforces current
+   materialization visibility for the authenticated account, requires complete
+   readiness, and returns a short-lived signed Packet v3; and
+4. Runtime verifies the complete Packet/closure/proof/replay/account binding and
+   performs one atomic LocalAgent commit.
 
-The production lifecycle is exact and internal to Runtime acquisition:
-
-1. `POST /api/human/me/permission-grants` requests that Realm-owned tuple. The
-   request omits the optional qualifier field so Realm canonicalizes
-   `qualifier=null` and `qualifierKey=""`. Runtime accepts only the canonical
-   response for the authenticated subject, exact selector, id, version, and an
-   admitted state of `PENDING` or current `GRANTED`;
-2. when the canonical response is `PENDING`,
-   `POST /api/human/me/permission-grants/by-id/{grantId}/grant` performs the
-   explicit decision on that same id using the returned version as
-   `expectedVersion`, and Runtime requires the result to be the same grant in
-   `GRANTED` with the version advanced exactly once;
-3. when the canonical response is already current `GRANTED`, Runtime reuses
-   that durable scope authorization and MUST NOT call the grant decision
-   endpoint again; and
-4. `POST /api/realm/core/source-materialization-packets` supplies the canonical
-   id from step 2 or step 3 as `accessGrantId`. Every materialization still
-   uses a fresh Runtime challenge, nonce, TTL, Packet v3 proof, and Realm-side
-   authorization evaluation.
-
-Returning an existing exact `GRANTED` record is durable-grant reuse, not a
-default, seeded, inferred, automatically granted, or pseudo-success path. A
-new `PENDING` record never bypasses the explicit decision. A `PENDING` record
-that cannot complete its exact version-guarded transition, or any stale,
-expired, revoked, denied, superseded, cross-subject, wrong-scope,
-wrong-qualifier, otherwise mismatched, or ambiguous grant response returns a
-typed denial before product mutation. `realm_source.snapshot.bind` is non-authorizing
-for Packet issuance. The issuer is not a generic Realm proxy,
-does not accept caller-selected grant ids, headers, or URLs, and does not
-transfer credential/profile/custody authority into the materialization domain.
+The request and decision contain or consult none of `appId`, `scopeFamily`,
+`scopeName`, `qualifier`, `accessGrantId`, `AppPermissionGrant`, a Runtime-local
+K-GRANT row, or a caller-selected bearer, header, endpoint or grant id. Runtime
+MUST NOT call a Realm permission request or decision endpoint as part of this
+flow, especially not request and approve a grant with the same account bearer.
+The retired `realm_source.snapshot.consume` and
+`realm_source.snapshot.bind` identifiers are non-authorizing and forbidden
+from positive implementation or evidence.
 
 `MaterializeRealmSource` does not establish, infer, request, or check a
-Runtime-local app grant or first-party local app principal. In particular,
+Runtime-local app permission decision or first-party local app principal. In particular,
 `agent.identity.project` and any Avatar local seed grant are not inputs,
-authorization gates, or outputs of this operation. This exclusion does not
-convert the Realm grant into local permission truth: the exact
-`realm_source.snapshot.consume` grant authorizes only Realm Packet issuance
-for the authenticated account and is never persisted, mirrored, aliased, or
-interpreted as a Nimi local grant. Realm owns canonical Character/World/grant
-truth and current Packet v3 issuance; it has no Agent or LocalAgent ontology.
-Runtime alone owns acquisition, verification, transaction, LocalAgent,
-snapshot, provenance, context compilation, and lifecycle, and no LocalAgent
-exists before the verified atomic commit.
+authorization gates, or outputs of this operation. Realm owns canonical
+Character/World visibility and current Packet v3 issuance; it has no Agent or
+LocalAgent ontology. Runtime alone owns acquisition, verification,
+transaction, LocalAgent, snapshot, provenance, context compilation, and
+lifecycle, and no LocalAgent exists before the verified atomic commit.
 
 Runtime accepts only `realm.source-materialization-packet/v3` with a complete
 `MaterializationClosureSetManifestV3` and ordered segments. Before any
@@ -452,7 +428,7 @@ pre-v3/orphan/residue. Any failure rolls back the whole reset and leaves the
 epoch unchanged.
 
 The reset never changes account/session/token custody, protected-local ledgers,
-local-app grants or storage, provider/model/config, Realm canonical records, or
+local-app permission decisions or storage, provider/model/config, Realm canonical records, or
 non-source-backed LocalAgents. It reports only safe ids and exact counts.
 
 Source revision, Realm deletion/availability, app metadata, and provider

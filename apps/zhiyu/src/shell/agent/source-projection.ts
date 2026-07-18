@@ -37,12 +37,7 @@ export function projectZhiyuRuntimeSourceProjection(input: {
     message: sourceProjectionMessage(projected.status),
     ownerUserId: normalized(input.ownerUserId),
     runtimeSourceRef: normalized(input.runtimeSourceRef),
-    sourceRef: sourceRef ? {
-      kind: sourceRef.kind,
-      worldId: sourceRef.worldId,
-      sourceId: sourceRef.sourceId,
-      sourceContentHash: sourceRef.sourceContentHash,
-    } : null,
+    sourceRef,
     projectionState: projected.status,
     sourceContextStatus: sourceStatus,
     turnContextSummary: input.turnContextSummary ?? null,

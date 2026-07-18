@@ -87,22 +87,14 @@ describe('Electron standard shell capability catalog', () => {
       appPackageKind: 'nimi-app',
       launchResolution: 'runtime_prepare_local_app_launch_and_verified_process_binding',
       authBinding: 'runtime_owned_request_empty_local_app_session',
-      authorityStatus: '0k_final_surface_windows_development_positive',
+      authorityStatus: 'permission_model_v1_base_entitlement_only',
       plannedOperationsDisposition: 'deny_until_separate_operation_admission',
       sourceRule: 'P-KIT-044',
     });
     expect(localAppSet?.allowedOperations).toEqual([
       'local-app.sessionStatus',
-      'local-app.permissionPosture',
+      'local-app.permissionStatus',
       'local-app.permissionRequest',
-      'local-app.artifactsReadRuntimeBytes',
-      'local-app.agentInventory',
-      'local-app.agentOpenConversation',
-      'local-app.agentSendTurn',
-      'local-app.agentSubscribeTurn',
-      'local-app.agentGetConversationSnapshot',
-      'local-app.agentTranscribeVoice',
-      'local-app.agentSubscribeVoiceStream',
       'storage.readJson',
       'storage.writeJson',
       'storage.removeJson',
@@ -110,16 +102,8 @@ describe('Electron standard shell capability catalog', () => {
     ]);
     expect(localAppSet?.allowedCommands).toEqual([
       'nimi.shell.localApp.sessionStatus',
-      'nimi.shell.localApp.permissionPosture',
+      'nimi.shell.localApp.permissionStatus',
       'nimi.shell.localApp.permissionRequest',
-      'nimi.shell.localApp.artifacts.readRuntimeBytes',
-      'nimi.shell.localApp.agent.inventory',
-      'nimi.shell.localApp.agent.openConversation',
-      'nimi.shell.localApp.agent.sendTurn',
-      'nimi.shell.localApp.agent.subscribeTurn',
-      'nimi.shell.localApp.agent.getConversationSnapshot',
-      'nimi.shell.localApp.agent.transcribeVoice',
-      'nimi.shell.localApp.agent.subscribeVoiceStream',
       'nimi.shell.storage.readJson',
       'nimi.shell.storage.writeJson',
       'nimi.shell.storage.removeJson',
@@ -127,6 +111,8 @@ describe('Electron standard shell capability catalog', () => {
     ]);
     expect(localAppSet?.plannedOperations).toEqual(expect.arrayContaining([
       'ai-config.get',
+      'data.pathResolve',
+      'config.get',
     ]));
     expect(localAppSet?.plannedOperations).not.toContain('desktop-open.openIntent');
     expect(localAppSet?.forbiddenCommands).toContain(NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.status']);

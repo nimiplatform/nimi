@@ -1,7 +1,7 @@
 {
   "schemaId": "nimi.repository.candidate-evidence.v2",
   "evidenceId": "synthetic-authority-convergence",
-  "candidateBindingSha256": "daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12",
+  "candidateBindingSha256": "b564cd59273dedd59c8d7575d9b11dc7a805ad94ecd0df5c854e15386b608c5e",
   "evidenceKind": "authority_convergence",
   "claims": [
     {"rowId":"A-01","claimId":"authority.truth_map_converged"},

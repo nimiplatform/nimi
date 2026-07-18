@@ -9,7 +9,7 @@ import {
   type NimiAppRuntimePlatformStandardShell,
 } from '@nimiplatform/sdk/app';
 
-const OPEN_CONVERSATION_OPERATION = 'runtime_agent.conversation.open';
+const RESERVED_AGENT_PERMISSION = 'agents.interact';
 
 export async function runAppAuthorizationLifecycle(
   standardShell: NimiAppRuntimePlatformStandardShell,
@@ -20,42 +20,31 @@ export async function runAppAuthorizationLifecycle(
     throw new Error(`${session.reasonCode}: ${session.actionHint}`);
   }
 
-  // Bounded inventory is available to the session without granting a concrete
-  // operation. It does not expose a principal, token, grant id, or transport.
-  const inventory = await app.agent.listInventory();
-  const agent = inventory.localAgents.find((candidate) => candidate.sourceReady);
-  if (!agent) {
-    throw new Error('No source-ready Runtime Agent is available for this example.');
-  }
-
-  const resourceRef = `agent:${agent.localAgentRef}`;
-  const permissionInput = {
-    operationId: OPEN_CONVERSATION_OPERATION,
-    resourceRef,
-  };
-  const posture = await app.permissions.posture(permissionInput);
-
-  if (posture.state !== 'granted') {
-    const request = posture.state === 'pending'
-      ? posture
-      : await app.permissions.request({
-        ...permissionInput,
-        purpose: 'Open or resume this Runtime-owned Agent conversation',
-      });
-    console.log('approval required:', request.state, request.reasonCode, request.actionHint);
-    console.log('Approve the exact operation and resource in Desktop, then run this flow again.');
-    return;
-  }
-
-  // The posture check is only UX guidance. Runtime still enforces the current
-  // account, process-bound session, exact grant, and resource at this call.
-  const conversation = await app.agent.openConversation({
-    agentId: agent.localAgentRef,
-    requestedAnchorDisposition: 'create-or-resume',
+  // App-private JSON is a base entitlement. It needs no manifest permission,
+  // user prompt, operation id, resource ref, or app-supplied account identity.
+  const written = await app.storage.writeJson('examples/authority.json', {
+    permissionModel: 'five-authority-classes',
   });
-  const conversationAnchorId = conversation.anchor?.conversationAnchorId;
-  if (!conversationAnchorId) {
-    throw new Error('Runtime returned no conversation anchor.');
+  const stored = await app.storage.readJson('examples/authority.json');
+  console.log('app-private storage:', written.sizeBytes, stored.value);
+
+  // Product permissions are semantic ids. The current catalog is fully
+  // reserved, so Agent inventory and conversation methods are not exposed.
+  const permission = await app.permissions.status(RESERVED_AGENT_PERMISSION);
+  if (permission.posture !== 'unavailable' || permission.canRequest) {
+    throw new Error('Reserved agents.interact permission unexpectedly became requestable.');
   }
-  console.log('owner-enforced conversation:', conversationAnchorId);
+
+  try {
+    await app.permissions.request({
+      permissionId: RESERVED_AGENT_PERMISSION,
+      reason: 'Interact with an Agent selected through the future owner picker.',
+    });
+    throw new Error('Reserved permission request unexpectedly succeeded.');
+  } catch (error) {
+    if ((error as { reasonCode?: string }).reasonCode !== 'SDK_PERMISSION_NOT_ADMITTED') {
+      throw error;
+    }
+    console.log('reserved permission remains unavailable:', RESERVED_AGENT_PERMISSION);
+  }
 }

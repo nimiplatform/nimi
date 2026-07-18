@@ -1,15 +1,13 @@
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import {
   NimiElectronLocalAppHostError,
-  type NimiElectronLocalAppArtifactBytes,
   type NimiElectronLocalAppHost,
   type NimiElectronLocalAppRecord,
 } from './local-app-host.js';
 import { NimiElectronShellHostError } from './types.js';
 
 const MAX_IDENTIFIER_LENGTH = 512;
-const MAX_USER_TEXT_LENGTH = 256 * 1024;
-const MAX_VOICE_AUDIO_BYTES = 8 * 1024 * 1024;
+const MAX_PERMISSION_REASON_BYTES = 240;
 const FORBIDDEN_RENDERER_FIELDS = new Set([
   'endpoint', 'authorization', 'token', 'localAppPrincipalId', 'localAppRecordId',
   'trustClass', 'provenanceRevision', 'launchLease', 'bootstrap', 'processId',
@@ -18,19 +16,11 @@ const FORBIDDEN_RENDERER_FIELDS = new Set([
 
 const COMMAND_METHODS = new Map<string, keyof NimiElectronLocalAppHost>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sessionStatus'], 'sessionStatus'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionPosture'], 'permissionPosture'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionStatus'], 'permissionStatus'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionRequest'], 'permissionRequest'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactsReadRuntimeBytes'], 'artifactsReadRuntimeBytes'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'], 'storageReadJson'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'], 'storageWriteJson'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'], 'storageRemoveJson'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentInventory'], 'agentInventory'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentOpenConversation'], 'agentOpenConversation'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSendTurn'], 'agentSendTurn'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSubscribeTurn'], 'agentSubscribeTurn'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentGetConversationSnapshot'], 'agentGetConversationSnapshot'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentTranscribeVoice'], 'agentTranscribeVoice'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSubscribeVoiceStream'], 'agentSubscribeVoiceStream'],
 ]);
 
 export function isElectronLocalAppCommand(command: string): boolean {
@@ -49,10 +39,6 @@ export async function dispatchElectronLocalAppCommand(input: {
   if (!input.host) throw carrierRequired(input.command);
   try {
     if (method === 'sessionStatus') return await input.host.sessionStatus();
-    if (method === 'agentInventory') return await input.host.agentInventory();
-    if (method === 'artifactsReadRuntimeBytes') {
-      return projectArtifact(await input.host.artifactsReadRuntimeBytes(payload));
-    }
     if (method === 'storageReadJson') return await input.host.storageReadJson(payload);
     if (method === 'storageWriteJson') return await input.host.storageWriteJson(payload);
     if (method === 'storageRemoveJson') return await input.host.storageRemoveJson(payload);
@@ -76,15 +62,16 @@ function validatePayload(
 ): NimiElectronLocalAppRecord {
   switch (method) {
     case 'sessionStatus':
-    case 'agentInventory':
       assertExactKeys(payload, [], command);
       return {};
-    case 'permissionPosture':
-      return identifiers(payload, ['operationId', 'resourceRef'], command);
+    case 'permissionStatus':
+      return identifiers(payload, ['permissionId'], command);
     case 'permissionRequest':
-      return identifiers(payload, ['operationId', 'resourceRef', 'purpose'], command);
-    case 'artifactsReadRuntimeBytes':
-      return identifiers(payload, ['artifactId'], command);
+      assertExactKeys(payload, ['permissionId', 'reason'], command);
+      return {
+        permissionId: requiredText(payload.permissionId, 'permissionId', command, MAX_IDENTIFIER_LENGTH),
+        reason: requiredUtf8Text(payload.reason, 'reason', command, MAX_PERMISSION_REASON_BYTES),
+      };
     case 'storageReadJson':
     case 'storageRemoveJson':
       return storagePathPayload(payload, command);
@@ -92,70 +79,7 @@ function validatePayload(
       assertExactKeys(payload, ['relativePath', 'value'], command);
       validateStorageJsonValue(payload.value, command);
       return { ...storagePathPayload({ relativePath: payload.relativePath }, command), value: payload.value as NimiElectronLocalAppRecord[string] };
-    case 'agentOpenConversation':
-      return identifiers(payload, ['agentId', 'requestedAnchorDisposition'], command);
-    case 'agentSendTurn': {
-      assertExactKeys(payload, ['agentId', 'conversationAnchorId', 'clientTurnId', 'userText'], command);
-      const record = identifiers(
-        payload,
-        ['agentId', 'conversationAnchorId', 'clientTurnId'],
-        command,
-        new Set(),
-        ['agentId', 'conversationAnchorId', 'clientTurnId', 'userText'],
-      );
-      const userText = requiredText(payload.userText, 'userText', command, MAX_USER_TEXT_LENGTH);
-      return { ...record, userText };
-    }
-    case 'agentSubscribeTurn':
-      return identifiers(payload, ['agentId', 'conversationAnchorId', 'cursor'], command, new Set(['cursor']));
-    case 'agentGetConversationSnapshot':
-      return identifiers(payload, ['agentId', 'conversationAnchorId'], command);
-    case 'agentTranscribeVoice': {
-      assertExactKeys(payload, ['agentId', 'clientRequestId', 'audioBase64', 'mimeType'], command);
-      const record = identifiers(
-        payload,
-        ['agentId', 'clientRequestId'],
-        command,
-        new Set(),
-        ['agentId', 'clientRequestId', 'audioBase64', 'mimeType'],
-      );
-      const audioBase64 = canonicalBase64(payload.audioBase64, command, MAX_VOICE_AUDIO_BYTES);
-      const mimeType = admittedAudioMime(payload.mimeType, command);
-      return { ...record, audioBase64, mimeType };
-    }
-    case 'agentSubscribeVoiceStream':
-      return identifiers(
-        payload,
-        ['agentId', 'conversationAnchorId', 'turnId', 'voiceStreamId', 'cursor'],
-        command,
-        new Set(['cursor']),
-      );
   }
-}
-
-function canonicalBase64(value: unknown, command: string, maxBytes: number): string {
-  if (
-    typeof value !== 'string'
-    || value.length === 0
-    || value.length % 4 !== 0
-    || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(value)
-  ) {
-    throw invalidPayload(command, 'audioBase64 is invalid');
-  }
-  const bytes = Buffer.from(value, 'base64');
-  if (bytes.byteLength === 0 || bytes.byteLength > maxBytes || bytes.toString('base64') !== value) {
-    throw invalidPayload(command, 'audioBase64 exceeds the admitted bound');
-  }
-  return value;
-}
-
-function admittedAudioMime(value: unknown, command: string): string {
-  const text = requiredText(value, 'mimeType', command, 128);
-  const base = text.split(';', 1)[0]?.trim().toLowerCase() ?? '';
-  if (!['audio/webm', 'audio/ogg', 'audio/wav', 'audio/mpeg', 'audio/mp4', 'audio/flac'].includes(base)) {
-    throw invalidPayload(command, 'mimeType is not admitted');
-  }
-  return base;
 }
 
 function identifiers(
@@ -249,13 +173,12 @@ function requiredText(value: unknown, field: string, command: string, maxLength:
   return normalized;
 }
 
-function projectArtifact(value: NimiElectronLocalAppArtifactBytes) {
-  return {
-    dataBase64: Buffer.from(value.bytes).toString('base64'),
-    mimeType: value.mimeType,
-    sizeBytes: value.sizeBytes,
-    mimeInferred: value.mimeInferred,
-  };
+function requiredUtf8Text(value: unknown, field: string, command: string, maxBytes: number): string {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (!normalized || normalized !== value || Buffer.byteLength(normalized, 'utf8') > maxBytes) {
+    throw invalidPayload(command, `${field} is invalid`);
+  }
+  return normalized;
 }
 
 function mapHostError(error: NimiElectronLocalAppHostError, command: string): NimiElectronShellHostError {
@@ -290,7 +213,7 @@ function actionHint(reasonCode: string): string {
     case 'runtime-service-unavailable': return 'start_fixed_runtime_service';
     case 'runtime-service-repair-required': return 'repair_fixed_runtime_service';
     case 'runtime-unauthenticated': return 'open_request_empty_local_app_session';
-    case 'no-grant': return 'request_local_app_operation_grant';
+    case 'permission-unavailable': return 'continue_without_optional_permission';
     default: return 'refresh_local_app_runtime_projection';
   }
 }

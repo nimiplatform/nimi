@@ -24,13 +24,12 @@ import (
 
 const (
 	compactRealmMaterializationBearer       = "compact-account-bearer"
-	compactRealmMaterializationPolicyDigest = "34f338ae76cbd85de58054cd6fc4d0ee18500030a0bc12f091e88d46f2fc572f"
-	compactRealmMaterializationGrantReason  = "Nimi Runtime Realm source materialization"
+	compactRealmMaterializationPolicyDigest = "7649e8c7aa85f6667b1af5134686fc653f33ed5094e5d11483a5e60f39765faa"
 )
 
 // TestRealmSourceMaterializationCompactHermeticProtocolFullChain is the
 // platform-neutral protocol proof. Unlike the focused issuer and verifier
-// tests, it joins the real Account custody/grant HTTP implementation to the
+// tests, it joins the real Account custody and first-party service operation to the
 // real Runtime acquisition, streaming verifier, atomic product transaction,
 // SnapshotV2 store, and five-lane compiler. Its in-process Realm is explicitly
 // hermetic and cannot satisfy the separate current-Realm live acceptance.
@@ -53,7 +52,7 @@ func TestRealmSourceMaterializationCompactHermeticProtocolFullChain(t *testing.T
 	svc, closeService := openSourceMaterializationTransportTestService(t, statePath)
 	svc.sourceMaterializationNow = func() time.Time { return now }
 	svc.SetRealmSourceMaterializationIssuer(&compactRealmMaterializationAccountIssuer{
-		account: account, expectedIssuer: worldVector.Expectation.Issuer,
+		t: t, account: account, expectedIssuer: worldVector.Expectation.Issuer,
 	})
 
 	type admittedProduct struct {
@@ -76,6 +75,7 @@ func TestRealmSourceMaterializationCompactHermeticProtocolFullChain(t *testing.T
 		response, materializeErr := svc.MaterializeRealmSource(ctx, request)
 		if materializeErr == nil && response.GetReasonCode() != runtimev1.RealmSourceMaterializationReasonCode_REALM_SOURCE_MATERIALIZATION_REASON_CODE_NONE {
 			t.Logf("compact %s verifier detail: %v", vectorName, realm.verificationError())
+			t.Logf("compact %s server detail: %s", vectorName, realm.debugState())
 		}
 		assertRealmSourceMaterializationSuccess(t, response, materializeErr, vectorName)
 
@@ -244,25 +244,6 @@ func TestRealmSourceMaterializationCompactSecurityMutationsRollbackWithoutResidu
 		})
 	}
 
-	grantMutations := []struct {
-		name   string
-		mutate func(map[string]any)
-	}{
-		{name: "denied-grant", mutate: compactRealmMaterializationGrantState("DENIED", "deniedAt", "deniedByAccountId")},
-		{name: "revoked-grant", mutate: compactRealmMaterializationGrantState("REVOKED", "revokedAt", "revokedByAccountId")},
-		{name: "expired-grant", mutate: compactRealmMaterializationGrantState("EXPIRED", "expiredAt", "")},
-		{name: "superseded-grant", mutate: compactRealmMaterializationGrantState("SUPERSEDED", "supersededAt", "supersededByAccountId")},
-		{name: "wrong-scope-grant", mutate: func(grant map[string]any) { grant["scopeName"] = "realm_source.snapshot.bind" }},
-		{name: "local-scope-grant", mutate: func(grant map[string]any) { grant["scopeName"] = "agent.identity.project" }},
-	}
-	for _, mutation := range grantMutations {
-		mutation := mutation
-		t.Run(mutation.name, func(t *testing.T) {
-			runCompactRealmMaterializationRejectedScenario(t, func(realm *compactRealmMaterializationServer) {
-				realm.grantMutation = mutation.mutate
-			}, runtimev1.RealmSourceMaterializationReasonCode_REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_DENIED)
-		})
-	}
 }
 
 func TestRealmSourceMaterializationCompactNonceReplayIsRejectedAtomically(t *testing.T) {
@@ -280,7 +261,7 @@ func TestRealmSourceMaterializationCompactNonceReplayIsRejectedAtomically(t *tes
 	svc, closeService := openSourceMaterializationTransportTestService(t, filepath.Join(t.TempDir(), "compact-nonce-state.json"))
 	defer closeService()
 	svc.sourceMaterializationNow = func() time.Time { return now }
-	svc.SetRealmSourceMaterializationIssuer(&compactRealmMaterializationAccountIssuer{account: account, expectedIssuer: vector.Expectation.Issuer})
+	svc.SetRealmSourceMaterializationIssuer(&compactRealmMaterializationAccountIssuer{t: t, account: account, expectedIssuer: vector.Expectation.Issuer})
 
 	ctx, worldRequest := realmSourceMaterializationServiceTestRequest(t, "world-character", "compact-nonce-world")
 	world, err := svc.MaterializeRealmSource(ctx, worldRequest)
@@ -321,7 +302,7 @@ func runCompactRealmMaterializationRejectedScenario(
 	svc, closeService := openSourceMaterializationTransportTestService(t, filepath.Join(t.TempDir(), "compact-rejected-state.json"))
 	defer closeService()
 	svc.sourceMaterializationNow = func() time.Time { return now }
-	svc.SetRealmSourceMaterializationIssuer(&compactRealmMaterializationAccountIssuer{account: account, expectedIssuer: vector.Expectation.Issuer})
+	svc.SetRealmSourceMaterializationIssuer(&compactRealmMaterializationAccountIssuer{t: t, account: account, expectedIssuer: vector.Expectation.Issuer})
 
 	ctx, request := realmSourceMaterializationServiceTestRequest(t, "world-character", "compact-rejected-"+strings.ReplaceAll(t.Name(), "/", "-"))
 	response, err := svc.MaterializeRealmSource(ctx, request)
@@ -334,6 +315,7 @@ func runCompactRealmMaterializationRejectedScenario(
 }
 
 type compactRealmMaterializationAccountIssuer struct {
+	t              *testing.T
 	account        *accountservice.Service
 	expectedIssuer string
 }
@@ -366,6 +348,7 @@ func (issuer *compactRealmMaterializationAccountIssuer) AcquireRealmSourceMateri
 	}
 	acquisition, err := issuer.account.AcquireRealmSourceMaterialization(ctx, accountRequest)
 	if err != nil {
+		issuer.t.Logf("compact account acquisition error: %v", err)
 		return RealmSourceMaterializationAcquisition{}, compactRealmMaterializationClassifyAccountError(err)
 	}
 	return RealmSourceMaterializationAcquisition{
@@ -479,14 +462,10 @@ type compactRealmMaterializationServer struct {
 	mu                   sync.Mutex
 	paths                []string
 	violations           []string
-	nextGrant            int
-	pendingGrantVersions map[string]uint64
-	granted              map[string]bool
 	signingKey           *rsa.PrivateKey
 	signingKeyID         string
 	currentKey           *rsa.PrivateKey
 	currentKeyID         string
-	grantMutation        func(map[string]any)
 	requestMutation      func(*RealmSourceMaterializationIssuanceRequest)
 	packetMutation       func([]byte) ([]byte, error)
 	packetVectorOverride string
@@ -500,7 +479,7 @@ func newCompactRealmMaterializationServer(t *testing.T, now time.Time) *compactR
 	t.Helper()
 	key := sourceMaterializationTestPrivateKey(t)
 	return &compactRealmMaterializationServer{
-		t: t, now: now, pendingGrantVersions: make(map[string]uint64), granted: make(map[string]bool),
+		t: t, now: now,
 		signingKey: key, signingKeyID: realmSourceMaterializationServiceTestKeyID,
 		currentKey: key, currentKeyID: realmSourceMaterializationServiceTestKeyID,
 	}
@@ -523,10 +502,6 @@ func (realm *compactRealmMaterializationServer) ServeHTTP(response http.Response
 		realm.violation("Realm request did not forbid transport compression")
 	}
 	switch {
-	case request.Method == http.MethodPost && request.URL.Path == "/api/human/me/permission-grants":
-		realm.serveGrantRequest(response, request)
-	case request.Method == http.MethodPost && strings.HasPrefix(request.URL.Path, "/api/human/me/permission-grants/by-id/") && strings.HasSuffix(request.URL.Path, "/grant"):
-		realm.serveGrantDecision(response, request)
 	case request.Method == http.MethodPost && request.URL.Path == "/api/realm/core/source-materialization-packets":
 		realm.servePacket(response, request)
 	default:
@@ -536,48 +511,10 @@ func (realm *compactRealmMaterializationServer) ServeHTTP(response http.Response
 	}
 }
 
-func (realm *compactRealmMaterializationServer) serveGrantRequest(response http.ResponseWriter, request *http.Request) {
-	body := compactRealmMaterializationDecodeObject(realm, request)
-	if len(body) != 4 || body["appId"] != "nimi.avatar" || body["scopeFamily"] != "realm_source" || body["scopeName"] != "realm_source.snapshot.consume" || body["reason"] != compactRealmMaterializationGrantReason {
-		realm.violation(fmt.Sprintf("wrong Realm source grant selector: %#v", body))
-	}
-	if _, present := body["qualifier"]; present {
-		realm.violation("Realm source grant request did not omit qualifier")
-	}
-	realm.mu.Lock()
-	realm.nextGrant++
-	grantID := fmt.Sprintf("compact-grant-%d", realm.nextGrant)
-	version := uint64(10 + realm.nextGrant)
-	realm.pendingGrantVersions[grantID] = version
-	mutation := realm.grantMutation
-	realm.mu.Unlock()
-	grant := compactRealmMaterializationGrant(realm.now, grantID, "PENDING", version)
-	if mutation != nil {
-		mutation(grant)
-	}
-	compactRealmMaterializationWriteJSON(response, http.StatusOK, grant)
-}
-
-func (realm *compactRealmMaterializationServer) serveGrantDecision(response http.ResponseWriter, request *http.Request) {
-	grantID := strings.TrimSuffix(strings.TrimPrefix(request.URL.Path, "/api/human/me/permission-grants/by-id/"), "/grant")
-	body := compactRealmMaterializationDecodeObject(realm, request)
-	realm.mu.Lock()
-	version, found := realm.pendingGrantVersions[grantID]
-	if found && body["expectedVersion"] == float64(version) {
-		realm.granted[grantID] = true
-	}
-	realm.mu.Unlock()
-	if !found || len(body) != 1 || body["expectedVersion"] != float64(version) {
-		realm.violation(fmt.Sprintf("grant decision did not bind same id/version: id=%s body=%#v", grantID, body))
-	}
-	compactRealmMaterializationWriteJSON(response, http.StatusOK, compactRealmMaterializationGrant(realm.now, grantID, "GRANTED", version+1))
-}
-
 func (realm *compactRealmMaterializationServer) servePacket(response http.ResponseWriter, request *http.Request) {
 	var body struct {
 		SourceRef               json.RawMessage                    `json:"sourceRef"`
 		MaterializerAccountID   string                             `json:"materializerAccountId"`
-		AccessGrantID           string                             `json:"accessGrantId"`
 		ChallengeID             string                             `json:"challengeId"`
 		ChallengeDigest         string                             `json:"challengeDigest"`
 		IntendedRuntimeAudience string                             `json:"intendedRuntimeAudience"`
@@ -585,6 +522,7 @@ func (realm *compactRealmMaterializationServer) servePacket(response http.Respon
 		PublishedLimits         RealmSourceMaterializationLimitsV3 `json:"publishedLimits"`
 	}
 	decoder := json.NewDecoder(request.Body)
+	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&body); err != nil {
 		realm.violation("decode Packet request: " + err.Error())
 		response.WriteHeader(http.StatusBadRequest)
@@ -592,15 +530,14 @@ func (realm *compactRealmMaterializationServer) servePacket(response http.Respon
 	}
 	_ = request.Body.Close()
 	realm.mu.Lock()
-	grantCurrent := realm.granted[body.AccessGrantID]
 	requestMutation := realm.requestMutation
 	packetMutation := realm.packetMutation
 	vectorOverride := realm.packetVectorOverride
 	nonceOverride := realm.nonceOverride
 	signingKey, signingKeyID := realm.signingKey, realm.signingKeyID
 	realm.mu.Unlock()
-	if !grantCurrent || body.MaterializerAccountID != "materializer-1" {
-		realm.violation(fmt.Sprintf("Packet request did not use exact current grant/account: grant=%s account=%s", body.AccessGrantID, body.MaterializerAccountID))
+	if body.MaterializerAccountID != "materializer-1" {
+		realm.violation(fmt.Sprintf("Packet request did not use the authenticated account: account=%s", body.MaterializerAccountID))
 	}
 	var sourceRef sourceMaterializationCharacterSourceRefV3
 	if err := json.Unmarshal(body.SourceRef, &sourceRef); err != nil || sourceRef.validate() != nil {
@@ -710,6 +647,12 @@ func (realm *compactRealmMaterializationServer) verificationError() error {
 	return err
 }
 
+func (realm *compactRealmMaterializationServer) debugState() string {
+	realm.mu.Lock()
+	defer realm.mu.Unlock()
+	return fmt.Sprintf("paths=%v violations=%v", realm.paths, realm.violations)
+}
+
 func (realm *compactRealmMaterializationServer) setSigningAndCurrentKey(key *rsa.PrivateKey, keyID string) {
 	realm.mu.Lock()
 	realm.signingKey, realm.signingKeyID = key, keyID
@@ -749,65 +692,19 @@ func (realm *compactRealmMaterializationServer) assertExactSuccessfulLifecycle(t
 	realm.assertNoProtocolViolations(t)
 	realm.mu.Lock()
 	defer realm.mu.Unlock()
-	if len(realm.paths) != attempts*4 {
-		t.Fatalf("compact Realm lifecycle calls=%d want=%d: %v", len(realm.paths), attempts*4, realm.paths)
+	if len(realm.paths) != attempts*2 {
+		t.Fatalf("compact Realm lifecycle calls=%d want=%d: %v", len(realm.paths), attempts*2, realm.paths)
 	}
 	for index := 0; index < attempts; index++ {
-		grantID := fmt.Sprintf("compact-grant-%d", index+1)
 		want := []string{
-			http.MethodPost + " /api/human/me/permission-grants",
-			http.MethodPost + " /api/human/me/permission-grants/by-id/" + grantID + "/grant",
 			http.MethodPost + " /api/realm/core/source-materialization-packets",
 			http.MethodGet + " /api/auth/jwks/source-materialization",
 		}
-		got := realm.paths[index*4 : index*4+4]
+		got := realm.paths[index*2 : index*2+2]
 		if strings.Join(got, "\n") != strings.Join(want, "\n") {
 			t.Fatalf("compact Realm lifecycle %d=%v want=%v", index, got, want)
 		}
 	}
-}
-
-func compactRealmMaterializationGrant(now time.Time, grantID, state string, version uint64) map[string]any {
-	grant := map[string]any{
-		"grantId": grantID, "subjectAccountId": "materializer-1", "appId": "nimi.avatar",
-		"scopeFamily": "realm_source", "scopeName": "realm_source.snapshot.consume", "qualifier": nil,
-		"state": state, "reason": compactRealmMaterializationGrantReason, "version": version,
-		"requestedAt": now.Add(-time.Minute).Format(time.RFC3339Nano), "requestedByAccountId": "materializer-1",
-		"grantedAt": nil, "grantedByAccountId": nil, "deniedAt": nil, "deniedByAccountId": nil,
-		"expiredAt": nil, "expiresAt": nil, "revokedAt": nil, "revokedByAccountId": nil,
-		"supersededAt": nil, "supersededByAccountId": nil, "supersededByGrantId": nil,
-	}
-	if state == "GRANTED" {
-		grant["grantedAt"] = now.Add(-30 * time.Second).Format(time.RFC3339Nano)
-		grant["grantedByAccountId"] = "materializer-1"
-	}
-	return grant
-}
-
-func compactRealmMaterializationGrantState(state, atField, byField string) func(map[string]any) {
-	return func(grant map[string]any) {
-		grant["state"] = state
-		if atField != "" {
-			grant[atField] = realmSourceMaterializationServiceTestNow.Add(-time.Second).Format(time.RFC3339Nano)
-		}
-		if byField != "" {
-			grant[byField] = "materializer-1"
-		}
-		if state == "SUPERSEDED" {
-			grant["supersededByGrantId"] = "compact-grant-successor"
-		}
-	}
-}
-
-func compactRealmMaterializationDecodeObject(realm *compactRealmMaterializationServer, request *http.Request) map[string]any {
-	defer request.Body.Close()
-	decoder := json.NewDecoder(request.Body)
-	var body map[string]any
-	if err := decoder.Decode(&body); err != nil {
-		realm.violation("decode Realm request: " + err.Error())
-		return map[string]any{}
-	}
-	return body
 }
 
 func compactRealmMaterializationWriteJSON(response http.ResponseWriter, status int, value any) {

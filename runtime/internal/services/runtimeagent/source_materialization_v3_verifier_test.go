@@ -301,7 +301,7 @@ func loadSourceMaterializationReferenceVectorV3(t *testing.T, name string) sourc
 
 func sourceMaterializationReferenceVectorPathV3(t *testing.T, name string) string {
 	t.Helper()
-	path, err := filepath.Abs(filepath.Join("..", "..", "..", "..", "..", "scripts", "realm-materialization", "vectors", "reference-packet-v3", name+".json"))
+	path, err := filepath.Abs(filepath.Join("..", "..", "..", "..", "apps", "desktop", "e2e", "fixtures", "source-materialization-reference-v3", name+".json"))
 	if err != nil {
 		t.Fatal(err)
 	}

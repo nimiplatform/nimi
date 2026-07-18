@@ -20,20 +20,12 @@ func TestRealmSourceMaterializationStagingExactBoundaryAndCleanup(t *testing.T) 
 	if err != nil {
 		t.Fatalf("stage exact boundary: %v", err)
 	}
-	mode, err := staged.file.Stat()
-	if err != nil {
-		t.Fatalf("stat staged Packet: %v", err)
-	}
-	if mode.Mode().Perm() != 0o600 {
-		t.Fatalf("staged Packet mode = %o, want 600", mode.Mode().Perm())
+	if err := validateRealmSourceMaterializationPrivatePathV3(staged.file.Name(), false); err != nil {
+		t.Fatalf("validate private staged Packet: %v", err)
 	}
 	for _, directory := range []string{staging.root, staged.partitionDir, staged.attemptDir} {
-		info, statErr := os.Stat(directory)
-		if statErr != nil {
-			t.Fatalf("stat private directory %s: %v", directory, statErr)
-		}
-		if info.Mode().Perm() != 0o700 {
-			t.Fatalf("private directory %s mode = %o, want 700", directory, info.Mode().Perm())
+		if err := validateRealmSourceMaterializationPrivatePathV3(directory, true); err != nil {
+			t.Fatalf("validate private directory %s: %v", directory, err)
 		}
 	}
 	readback, err := io.ReadAll(staged.reader())

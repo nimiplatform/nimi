@@ -16,27 +16,33 @@ entries:
   - diagnostics
 capabilities:
   conversation:
-    posture: v1_admitted_via_runtime_agent_turn
+    posture: product_contract_admitted_carrier_pending
+    current_local_development_carrier: fail_closed_not_admitted
     owner: runtime_sdk_kit_zhiyu
     source_rule: Z-CHAT-001
   ai_model_config:
-    posture: v1_required_operation_surface
+    posture: product_contract_admitted_carrier_pending
+    current_local_development_carrier: fail_closed_not_admitted
     owner: runtime_sdk_kit_platform
     source_rule: Z-CONFIG-001
   avatar_config_launch:
-    posture: v1_required_operation_surface_launch_only_carrier
+    posture: product_contract_admitted_carrier_pending
+    current_local_development_carrier: fail_closed_not_admitted
     owner: avatar_runtime_kit
     source_rule: Z-AV-001
   memory_projection:
-    posture: v1_read_only_projection
+    posture: product_contract_admitted_carrier_pending
+    current_local_development_carrier: fail_closed_not_admitted
     owner: runtime_cognition_realm
     source_rule: Z-MEM-001
   revisit_continuity_projection:
-    posture: v1_read_only_projection
+    posture: product_contract_admitted_carrier_pending
+    current_local_development_carrier: fail_closed_not_admitted
     owner: runtime_cognition_realm
     source_rule: Z-MEM-001
   relationship_state_projection:
-    posture: v1_read_only_projection
+    posture: product_contract_admitted_carrier_pending
+    current_local_development_carrier: fail_closed_not_admitted
     owner: runtime_cognition_realm
     source_rule: Z-MEM-001
   proactive_notification:
@@ -44,7 +50,8 @@ capabilities:
     owner: platform_runtime_notification
     source_rule: Z-AUTH-003
   voice:
-    posture: v1_full_support
+    posture: product_contract_admitted_carrier_pending
+    current_local_development_carrier: fail_closed_not_admitted
     owner: runtime_sdk_avatar
     source_rule: Z-AV-003
   image_creation:
@@ -52,7 +59,8 @@ capabilities:
     owner: runtime_platform_sdk_if_future_admitted
     source_rule: Z-ACT-002
   runtime_image_artifact_display:
-    posture: v1_display_projection_only
+    posture: product_contract_admitted_carrier_pending
+    current_local_development_carrier: fail_closed_not_admitted
     owner: runtime_sdk_kit
     source_rule: Z-CHAT-005
   diagnostics:

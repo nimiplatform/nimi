@@ -798,7 +798,7 @@ async function collectProductionFiles(root) {
   return files.sort();
 }
 
-test('local-development journey treats every terminal grant reason as lost access', async () => {
+test('local-development journey separates app-owned authority from reserved public permissions', async () => {
   const source = await readFile(path.join(
     appRoot,
     'src',
@@ -806,9 +806,11 @@ test('local-development journey treats every terminal grant reason as lost acces
     'local-development',
     'ZhiyuLocalDevelopmentJourney.tsx',
   ), 'utf8');
-  for (const reason of ['grant-revoked', 'grant-superseded', 'presence-expired']) {
-    assert.match(source, new RegExp(`['\"]${reason}['\"]`, 'u'));
-  }
+  assert.match(source, /app-private-base-entitlement-round-trip-succeeded/u);
+  assert.match(source, /agents\.interact/u);
+  assert.match(source, /agents-interact-not-admitted/u);
+  assert.match(source, /SQLite、媒体、设置、产品路由、产品命令和私有文件属于应用自身/u);
+  assert.doesNotMatch(source, /grant-revoked|grant-superseded|request-open-grant|conversation-grants/u);
 });
 
 async function readAgentChatSource() {

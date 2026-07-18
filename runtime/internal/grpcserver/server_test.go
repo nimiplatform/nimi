@@ -345,6 +345,7 @@ apps:
     ordinary_visibility: ordinary-visible
     release_descriptor_ref: nimi.example-app.bundled-with-nimi
     install_storage_policy_ref: nimi-data-app-roots
+    permission_requirements: []
     admission_status: admitted
     source_rule: P-NAPP-011
 `
@@ -394,6 +395,7 @@ apps:
     ordinary_visibility: ordinary-visible
     release_descriptor_ref: nimi.example-app.bundled-with-nimi
     install_storage_policy_ref: nimi-data-app-roots
+    permission_requirements: []
     admission_status: admitted
     source_rule: P-NAPP-011
 `
@@ -430,6 +432,7 @@ apps:
     ordinary_visibility: ordinary-visible
     release_descriptor_ref: nimi.example-app.bundled-with-nimi
     install_storage_policy_ref: other-storage-policy
+    permission_requirements: []
     admission_status: admitted
     source_rule: P-NAPP-011
 `

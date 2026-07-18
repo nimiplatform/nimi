@@ -37,7 +37,6 @@ export function localRecord(
     trustClass: 'local_development',
     recordState,
     sessionState: recordState === 'active' ? 'session-bound' : 'unavailable',
-    grantPosture: recordState === 'active' ? 'granted' : 'unavailable',
     ...overrides,
   };
 }

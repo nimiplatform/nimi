@@ -46,10 +46,7 @@ func protectedDesktopMethodRole(method string) (protectedlocal.OriginRole, bool)
 		"/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
 		"/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding":
 		return protectedlocal.RoleDesktopAccountHost, true
-	case "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus",
-		"/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppGrant",
-		"/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppGrant",
-		"/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
+	case "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
 		"/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentAuthoritySummary",

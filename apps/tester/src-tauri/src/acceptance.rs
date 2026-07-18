@@ -18,12 +18,11 @@ pub(crate) fn tester_tauri_acceptance_command_checks() -> Vec<serde_json::Value>
             "expectError": true,
         }),
         serde_json::json!({
-            "id": "local-app.permission-posture.native-unavailable",
-            "command": "local_app_permission_posture",
+            "id": "local-app.permission-status.native-unavailable",
+            "command": "local_app_permission_status",
             "payload": {
                 "payload": {
-                    "operationId": "runtime_agent.conversation.turn.send",
-                    "resourceRef": "agent:tester/conversation:acceptance",
+                    "permissionId": "agents.interact",
                 }
             },
             "expectError": true,
@@ -33,55 +32,37 @@ pub(crate) fn tester_tauri_acceptance_command_checks() -> Vec<serde_json::Value>
             "command": "local_app_permission_request",
             "payload": {
                 "payload": {
-                    "operationId": "runtime_agent.conversation.turn.send",
-                    "resourceRef": "agent:tester/conversation:acceptance",
-                    "purpose": "Tester plain-shell negative acceptance",
+                    "permissionId": "agents.interact",
+                    "reason": "Tester plain-shell negative acceptance",
                 }
             },
             "expectError": true,
         }),
         serde_json::json!({
-            "id": "local-app.artifact-read.native-unavailable",
-            "command": "local_app_artifacts_read_runtime_bytes",
+            "id": "app-private-storage.read.native-unavailable",
+            "command": "storage_read_json",
             "payload": {
                 "payload": {
-                    "artifactId": "runtime-artifact-acceptance",
+                    "relativePath": "acceptance/private.json",
                 }
             },
             "expectError": true,
         }),
         serde_json::json!({
-            "id": "local-app.agent-open.native-unavailable",
-            "command": "local_app_agent_open_conversation",
-            "payload": { "payload": { "agentId": "tester", "requestedAnchorDisposition": "create-or-resume" } },
+            "id": "app-private-storage.write.native-unavailable",
+            "command": "storage_write_json",
+            "payload": { "payload": { "relativePath": "acceptance/private.json", "value": { "source": "tester" } } },
             "expectError": true,
         }),
         serde_json::json!({
-            "id": "local-app.agent-send.native-unavailable",
-            "command": "local_app_agent_send_turn",
-            "payload": { "payload": { "agentId": "tester", "conversationAnchorId": "anchor", "clientTurnId": "turn", "userText": "hello" } },
-            "expectError": true,
-        }),
-        serde_json::json!({
-            "id": "local-app.agent-subscribe.native-unavailable",
-            "command": "local_app_agent_subscribe_turn",
-            "payload": { "payload": { "agentId": "tester", "conversationAnchorId": "anchor", "cursor": "" } },
-            "expectError": true,
-        }),
-        serde_json::json!({
-            "id": "local-app.agent-snapshot.native-unavailable",
-            "command": "local_app_agent_get_conversation_snapshot",
-            "payload": { "payload": { "agentId": "tester", "conversationAnchorId": "anchor" } },
+            "id": "app-private-storage.remove.native-unavailable",
+            "command": "storage_remove_json",
+            "payload": { "payload": { "relativePath": "acceptance/private.json" } },
             "expectError": true,
         }),
         serde_json::json!({
             "id": "ai-config.unadmitted.negative",
             "command": "ai_config_get",
-            "expectError": true,
-        }),
-        serde_json::json!({
-            "id": "standard-storage.unadmitted.negative",
-            "command": "storage_read_json",
             "expectError": true,
         }),
         serde_json::json!({

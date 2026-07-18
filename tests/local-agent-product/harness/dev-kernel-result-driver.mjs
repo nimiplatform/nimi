@@ -46,11 +46,12 @@ export async function persistOwnerMinimalResult(context) {
         && zhiyuAudit.storage.authorityMaterialObserved === false;
       const facts = [
         ['dev-principal-session', observations.runOnceApproval.decision === 'allow-run-once'],
-        ['zero-grant-session', observations.zeroGrant.session?.state === 'session-bound-zero-grant'],
-        ['operation-denied-before-grant', observations.noGrant.lastError?.reasonCode === 'no-grant'],
-        ['selected-runtime-agent-operation', Boolean(observations.ownerSelectedOperation.conversationAnchorId)],
+        ['session-bound', observations.sessionBound.session?.sessionBound === true],
+        ['reserved-permission-unavailable', observations.sessionBound.permission?.posture === 'unavailable'
+          && observations.sessionBound.permission?.canRequest === false],
+        ['reserved-permission-request-denied', observations.reservedPermission.permissionRequest?.state === 'rejected'],
+        ['app-private-storage-base-entitlement', observations.appPrivateStorage.appPrivateStorage?.state === 'succeeded'],
         ['process-mismatch-denied', isRuntimeObservedProcessMismatch(observations.processMismatch)],
-        ['grant-revoked-next-operation-denied', ['grant-revoked', 'revoked'].includes(observations.grantRevoked.lastError?.reasonCode)],
       ];
       const checkpoints = facts.map(([checkpointId, passed]) => ({
         checkpointId,
@@ -65,11 +66,11 @@ export async function persistOwnerMinimalResult(context) {
         accountState: observations.primaryAccountSession?.state || null,
         developerMode: observations.developerModeEnabled,
         runOnceDecision: observations.runOnceApproval.decision,
-        zeroGrantState: observations.zeroGrant.session?.state || null,
-        noGrantReason: observations.noGrant.lastError?.reasonCode || null,
-        selectedOperationAnchorId: observations.ownerSelectedOperation.conversationAnchorId || null,
+        sessionState: observations.sessionBound.session?.state || null,
+        permissionPosture: observations.sessionBound.permission?.posture || null,
+        permissionRequestState: observations.reservedPermission.permissionRequest?.state || null,
+        appPrivateStorageState: observations.appPrivateStorage.appPrivateStorage?.state || null,
         processMismatchReason: observations.processMismatch.lastError?.reasonCode || null,
-        grantRevokedReason: observations.grantRevoked.lastError?.reasonCode || null,
         privacyOk,
       });
       const pageSummaryPath = path.join(artifactsRoot, 'owner-minimal-dom-console-a11y.json');
@@ -130,7 +131,7 @@ export async function persistCoreResult(context) {
     desktopAuditBeforeSwitch, desktopAuditAfterSwitch, zhiyuAudit, zhiyuAuditBeforeSwitch,
     zhiyuAuditAfterSwitch, zhiyuRevokedNarrowMethod, zhiyuRevokedNarrowMetrics,
     desktopNarrowMethod, desktopNarrowMetrics, screenshotsRoot, serviceBefore, fixtureConfig,
-    anchorId, firstTurn, processLedger, journey, architecture, trial, sourceState, outputDir,
+    firstStorage, secondStorage, processLedger, journey, architecture, trial, sourceState, outputDir,
     startedAt, started, buildMarker,
   } = context;
     const fixtureManifest = await (await fetch(`${fixture.origin}/__fixture/control/manifest`)).json();
@@ -143,7 +144,7 @@ export async function persistCoreResult(context) {
     const desktopAudit = await pageAudit(desktop, 'desktop-final');
     await observer.flush();
     const desktopAccessibility = assessAccessibilityAudit(desktopAudit);
-    const zhiyuAccessibility = assessAccessibilityAudit(zhiyuAudit, { requiresInput: true });
+    const zhiyuAccessibility = assessAccessibilityAudit(zhiyuAudit);
     const pageSummary = {
       desktop: {
         audit: desktopAudit,
@@ -159,7 +160,7 @@ export async function persistCoreResult(context) {
         auditAfterSwitch: zhiyuAuditAfterSwitch,
         accessibilityAcceptance: zhiyuAccessibility,
         narrowMethod: observations.zhiyuNarrowMethod,
-        narrowMetrics: observations.zhiyuZeroNarrowMetrics,
+        narrowMetrics: observations.zhiyuAuthorityNarrowMetrics,
         revokedNarrowMethod: zhiyuRevokedNarrowMethod,
         revokedNarrowMetrics: zhiyuRevokedNarrowMetrics,
       },
@@ -197,27 +198,24 @@ export async function persistCoreResult(context) {
         runtimeCandidateId: serviceBefore.runtimeCandidateId,
       },
       runOnceApproval: observations.runOnceApproval,
-      zeroGrant: {
-        state: observations.zeroGrant.state,
-        session: observations.zeroGrant.session,
+      sessionBound: {
+        state: observations.sessionBound.state,
+        session: observations.sessionBound.session,
+        permission: observations.sessionBound.permission,
       },
-      noGrantReason: observations.noGrant.lastError?.reasonCode,
-      selectedOperationAnchorId: observations.ownerSelectedOperation.conversationAnchorId,
+      reservedPermission: observations.reservedPermission.permissionRequest,
+      appPrivateStorage: observations.appPrivateStorage.appPrivateStorage,
       processMismatchReason: observations.processMismatch.lastError?.reasonCode,
-      grantRevokedReason: observations.grantRevoked.lastError?.reasonCode,
       rememberedApproval: observations.rememberedApproval,
-      rememberedInitialGrantPosture: {
-        posture: observations.rememberedInitialGrantPosture.posture,
-        state: observations.rememberedInitialGrantPosture.evidence.state,
-        reasonCode: observations.rememberedInitialGrantPosture.evidence.lastError?.reasonCode || null,
+      rememberedInitialAuthorityPosture: {
+        posture: observations.rememberedInitialAuthorityPosture.posture,
+        state: observations.rememberedInitialAuthorityPosture.evidence.state,
+        permission: observations.rememberedInitialAuthorityPosture.evidence.permission,
       },
       rememberedAuthorization: observations.rememberedAuthorization,
-      conversation: {
-        anchorId,
-        threadId: firstTurn.evidence.threadId,
-        eventNames: firstTurn.evidence.eventNames,
-        transcriptMessageCount: firstTurn.evidence.transcript.length,
-        keyboardFocusTestId: firstTurn.focused,
+      rememberedAuthorityBoundary: {
+        permissionRequest: observations.rememberedReservedPermission.permissionRequest,
+        storage: observations.rememberedAppPrivateStorage.appPrivateStorage,
       },
       editBuildRestart: observations.editBuildRestart,
       mode: {
@@ -230,16 +228,13 @@ export async function persistCoreResult(context) {
       runtimeRestart: observations.runtimeRestart,
       accountSwitch: observations.accountSwitch,
       projectRevoke: {
-        operationId: observations.projectRevoke.operationId,
         attempted: observations.projectRevoke.attempted,
-        beforeState: observations.projectRevoke.beforeState,
-        beforeReasonCode: observations.projectRevoke.beforeReasonCode,
         denial: {
           state: observations.projectRevoke.denial?.state || '',
-          lastError: observations.projectRevoke.denial?.lastError || null,
+          session: observations.projectRevoke.denial?.session || null,
         },
       },
-      sendDisabledAfterEmptyDraft: observations.sendDisabledAfterEmptyDraft,
+      agentInteractionDisabled: observations.agentInteractionDisabled,
     };
     const journeySummaryPath = path.join(artifactsRoot, 'dev-kernel-journey-summary.json');
     writeJson(journeySummaryPath, safeObservations);
@@ -270,12 +265,11 @@ export async function persistCoreResult(context) {
       && (observations.firstRun.reusedReady === true
         || observations.firstRun.layout.narrowMetrics.scrollWidth <= observations.firstRun.layout.narrowMetrics.clientWidth)
       && desktopNarrowMetrics.scrollWidth <= desktopNarrowMetrics.clientWidth;
-    const zhiyuLayoutOk = observations.zhiyuZeroNarrowMetrics.scrollWidth
-      <= observations.zhiyuZeroNarrowMetrics.clientWidth
+    const zhiyuLayoutOk = observations.zhiyuAuthorityNarrowMetrics.scrollWidth
+      <= observations.zhiyuAuthorityNarrowMetrics.clientWidth
       && zhiyuRevokedNarrowMetrics.scrollWidth <= zhiyuRevokedNarrowMetrics.clientWidth;
-    const accountSwitchDenied = ['account-changed', 'revoked', 'process-replaced'].includes(
-      observations.accountSwitch.evidence?.lastError?.reasonCode,
-    ) || observations.accountSwitch.runs.some((run) => (
+    const accountSwitchDenied = observations.accountSwitch.evidence?.session?.sessionBound === false
+      || observations.accountSwitch.runs.some((run) => (
       ['authorization-required', 'revoked', 'stopped'].includes(run.state)
       && ['principal-unauthorized', 'account-changed', 'local-app-account-changed'].includes(run.reasonCode)
     ));
@@ -319,42 +313,44 @@ export async function persistCoreResult(context) {
     });
     pass('developer-mode-enabled', observations.developerModeEnabled === 'on');
     pass('run-once-project-admitted', observations.runOnceApproval.decision === 'allow-run-once');
-    pass('zero-grant-session', observations.zeroGrant.session?.state === 'session-bound-zero-grant');
-    pass('operation-denied-before-grant', observations.noGrant.lastError?.reasonCode === 'no-grant');
-    pass('selected-operation-granted', observations.ownerSelectedOperation.openPermission?.state === 'granted');
-    pass('selected-runtime-agent-operation', Boolean(observations.ownerSelectedOperation.conversationAnchorId), { conversationAnchorId: observations.ownerSelectedOperation.conversationAnchorId });
+    pass('local-app-session-bound', observations.sessionBound.session?.sessionBound === true);
+    pass('app-private-storage-base-entitlement', observations.appPrivateStorage.appPrivateStorage?.state === 'succeeded');
+    pass('reserved-permission-unavailable', observations.sessionBound.permission?.posture === 'unavailable'
+      && observations.sessionBound.permission?.canRequest === false);
+    pass('reserved-permission-request-denied', observations.reservedPermission.permissionRequest?.state === 'rejected');
     pass('process-mismatch-denied', processMismatchDenied, { reasonCode: observations.processMismatch.lastError?.reasonCode || null });
-    pass('grant-revoked-next-operation-denied', ['grant-revoked', 'revoked'].includes(observations.grantRevoked.lastError?.reasonCode));
     pass('remembered-project-admitted', observations.rememberedApproval.decision === 'allow-remember-project'
-      && ['session-zero-grant', 'revoked-grant-history'].includes(observations.rememberedInitialGrantPosture.posture)
+      && observations.rememberedInitialAuthorityPosture.posture === 'session-bound-reserved-unavailable'
       && observations.rememberedAuthorization.state === 'active'
       && observations.rememberedAuthorization.persistence === 'allow-remember-project', {
-      initialGrantPosture: observations.rememberedInitialGrantPosture.posture,
+      initialAuthorityPosture: observations.rememberedInitialAuthorityPosture.posture,
     });
-    pass('runtime-agent-conversation', firstTurn.evidence.eventNames.includes('runtime.agent.turn.completed') && firstTurn.evidence.transcript.length >= 2, { conversationAnchorId: anchorId });
+    pass('remembered-authority-boundary', observations.rememberedReservedPermission.permissionRequest?.state === 'rejected'
+      && observations.rememberedAppPrivateStorage.appPrivateStorage?.state === 'succeeded');
     pass('edit-build-process-replaced', observations.editBuildRestart.preEditRuns[0]?.hostGeneration < observations.editBuildRestart.postEditRuns[0]?.hostGeneration, { buildMarker });
-    pass('conversation-resumed-after-process-replacement', observations.editBuildRestart.anchorAfter === anchorId && observations.editBuildRestart.transcriptAfter > observations.editBuildRestart.transcriptBefore, { conversationAnchorId: anchorId });
+    pass('app-private-storage-after-process-replacement', observations.editBuildRestart.storageAfter?.state === 'succeeded'
+      && observations.editBuildRestart.permissionAfter?.posture === 'unavailable');
     pass('mode-off-dormant', observations.modeOff === 'off'
       && observations.dormantAuthorization.state === 'dormant'
       && observations.dormantAuthorization.selector === observations.rememberedAuthorization.selector);
     pass('remembered-project-reactivated', observations.modeOn === 'on'
       && observations.reactivationApproval.decision === 'allow-remember-project'
       && observations.reactivatedAuthorization.state === 'active'
-      && observations.reactivatedAuthorization.selector === observations.rememberedAuthorization.selector);
+      && observations.reactivatedAuthorization.selector === observations.rememberedAuthorization.selector
+      && observations.reactivatedAppPrivateStorage.appPrivateStorage?.state === 'succeeded');
     pass('fixed-service-restarted', isRuntimeRestartUiTransition(observations.runtimeRestart), {
       beforeProcessId: observations.runtimeRestart.before.processId,
       afterProcessId: observations.runtimeRestart.after.processId,
       unavailableState: observations.runtimeRestart.unavailableUi.state,
       recoveredState: observations.runtimeRestart.recoveredUi.state,
     });
-    pass('conversation-resumed-after-runtime-restart', observations.runtimeRestart.anchorAfter === anchorId && observations.runtimeRestart.transcriptAfter > observations.runtimeRestart.transcriptBefore, { conversationAnchorId: anchorId });
+    pass('app-private-storage-after-runtime-restart', observations.runtimeRestart.storageAfter?.state === 'succeeded');
     pass('account-switch-invalidated', accountSwitchDenied, { secondaryAccountId: fixtureConfig.secondaryAccountId });
-    pass('project-revoked-next-operation-denied', isTypedProjectRevocationDenial(observations.projectRevoke), {
-      operationId: observations.projectRevoke.operationId,
-      reasonCode: observations.projectRevoke.denial?.lastError?.reasonCode || null,
+    pass('project-revoked-session-invalidated', isTypedProjectRevocationDenial(observations.projectRevoke), {
+      reasonCode: observations.projectRevoke.denial?.session?.reasonCode || null,
     });
     pass('desktop-real-shell-acceptance', desktopLayoutOk && desktopAccessibility.ok && observations.runOnceApproval.disabledBeforeRisk === true);
-    pass('zhiyu-real-shell-acceptance', zhiyuLayoutOk && zhiyuAccessibility.ok && firstTurn.focused === 'zhiyu-dev-kernel-composer' && observations.sendDisabledAfterEmptyDraft === true);
+    pass('zhiyu-real-shell-acceptance', zhiyuLayoutOk && zhiyuAccessibility.ok && observations.agentInteractionDisabled === true);
     pass('protected-carrier-privacy-closeout', privacyOk && processBudget.ok);
 
     const processSummaryPath = path.join(artifactsRoot, 'process-summary.json');
@@ -403,7 +399,6 @@ export async function persistCoreResult(context) {
       accountId: fixtureConfig.primaryAccountId,
       runtimeSourceRef: fixtureConfig.agent.runtimeSourceRef,
       localAgentRef: fixtureConfig.agent.localAgentRef,
-      conversationAnchorId: anchorId,
       runtimeProcessId: runtimeFinal.processId,
     };
     const { checkpoints, checkpointById } = buildCheckpointResults({

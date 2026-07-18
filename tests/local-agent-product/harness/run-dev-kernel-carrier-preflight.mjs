@@ -8,22 +8,23 @@ import { repoRoot } from './registry.mjs';
 import { captureSourceState } from './source-state.mjs';
 
 const expectedTests = Object.freeze([
-  'TestLocalAppGrantPreflightExactSharedGrantProjection',
-  'TestLocalAppGrantPreflightStaleSupervisedProcessIsProcessReplaced',
-  'TestLocalAppGrantPreflightRevokeDeniesNextOperation',
-  'TestLocalAppGrantPreflightDistinguishesRawUncarriedFromStaleProcess',
+  'TestLocalAppPublicPermissionStatusKeepsReservedCatalogUnavailable',
+  'TestAuthorizeLocalAppStorageUsesBaseEntitlementWithoutPermission',
+  'TestAuthorizeLocalAppStorageStillRequiresExactLiveProcess',
+  'TestLocalAppPermissionPreflightDistinguishesRawUncarriedFromStaleProcess',
+  'TestProtectedLocalAppPoliciesExposeOnlyBaseEntitlementsAndPermissionPosture',
 ]);
 const rustProjectionTest = 'local_app_preflight_stale_process_projects_process_replaced';
 
 if (process.platform !== 'win32' || process.arch !== 'x64') {
-  throw new Error(`dev-kernel grant preflight requires Windows x64, got ${process.platform}/${process.arch}`);
+  throw new Error(`dev-kernel protected-carrier preflight requires Windows x64, got ${process.platform}/${process.arch}`);
 }
 
 const sourceState = captureSourceState(repoRoot);
 const before = requireFixedService(readFixedServiceStatus());
 const result = spawnSync('go', [
   'test', './internal/services/account', './internal/grpcserver',
-  '-run', '^TestLocalAppGrantPreflight', '-count=1', '-json',
+  '-run', `^(${expectedTests.join('|')})$`, '-count=1', '-json',
 ], {
   cwd: path.join(repoRoot, 'runtime'),
   encoding: 'utf8',
@@ -41,7 +42,7 @@ const failed = rows
   .filter((row) => row.Action === 'fail' && typeof row.Test === 'string')
   .map((row) => row.Test);
 if (result.status !== 0 || failed.length > 0 || expectedTests.some((name) => !passed.has(name))) {
-  throw new Error(`dev-kernel grant preflight owner matrix failed: ${JSON.stringify({
+  throw new Error(`dev-kernel protected-carrier preflight owner matrix failed: ${JSON.stringify({
     exitCode: result.status,
     failed,
     missing: expectedTests.filter((name) => !passed.has(name)),
@@ -57,16 +58,16 @@ const rust = spawnSync('cargo', [
 });
 if (rust.error) throw rust.error;
 if (rust.status !== 0 || !String(rust.stdout || '').includes('test result: ok')) {
-  throw new Error(`dev-kernel grant preflight projection matrix failed: ${JSON.stringify({ exitCode: rust.status })}`);
+  throw new Error(`dev-kernel protected-carrier preflight projection matrix failed: ${JSON.stringify({ exitCode: rust.status })}`);
 }
 const after = requireFixedService(readFixedServiceStatus());
 if (after.processId !== before.processId
   || after.runtimeCandidateId !== before.runtimeCandidateId
   || after.runtimeBinarySha256 !== before.runtimeBinarySha256) {
-  throw new Error('fixed Runtime service changed during grant preflight');
+  throw new Error('fixed Runtime service changed during protected-carrier preflight');
 }
 const evidence = {
-  schemaVersion: 'nimi.dev-kernel-grant-preflight/v1',
+  schemaVersion: 'nimi.dev-kernel-carrier-preflight/v1',
   acceptanceEligible: false,
   posture: 'targeted_source_and_fixed_service_preflight',
   observedAt: new Date().toISOString(),
@@ -87,11 +88,11 @@ const evidence = {
     [rustProjectionTest]: 'passed',
   },
 };
-const evidenceRoot = path.join(repoRoot, '.nimi', 'local', 'evidence', 'dev-kernel-grant-preflight');
+const evidenceRoot = path.join(repoRoot, '.nimi', 'local', 'evidence', 'dev-kernel-carrier-preflight');
 fs.mkdirSync(evidenceRoot, { recursive: true });
 const evidencePath = path.join(evidenceRoot, `${sourceState.sourceDigest.slice(0, 16)}-${Date.now()}.json`);
 fs.writeFileSync(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`, { mode: 0o600 });
-process.stdout.write(`dev-kernel grant preflight: PASS (${evidencePath})\n`);
+process.stdout.write(`dev-kernel protected-carrier preflight: PASS (${evidencePath})\n`);
 
 function requireFixedService(status) {
   if (status?.serviceName !== 'NimiRuntime'
@@ -104,7 +105,7 @@ function requireFixedService(status) {
     || !/^dev-kernel-runtime-[a-f0-9]{32}$/u.test(String(status?.runtimeCandidateId || ''))
     || !/^[a-f0-9]{64}$/u.test(String(status?.runtimeBinarySha256 || ''))
     || !/^[a-f0-9]{64}$/u.test(String(status?.runtimeBuildRecordSha256 || ''))) {
-    throw new Error('fixed Runtime service is not ready for targeted grant preflight');
+    throw new Error('fixed Runtime service is not ready for targeted protected-carrier preflight');
   }
   return status;
 }

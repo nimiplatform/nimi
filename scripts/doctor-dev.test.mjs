@@ -38,16 +38,6 @@ const validAuthoritySummary = {
     revokedCount: 7,
     reasonCode: 'action-executed',
   },
-  grantSummary: {
-    availability: 'available',
-    pendingCount: 11,
-    grantedCount: 13,
-    deniedCount: 17,
-    expiredCount: 19,
-    revokedCount: 23,
-    supersededCount: 29,
-    reasonCode: 'action-executed',
-  },
 };
 
 test('presence validation accepts only the exact fresh loopback descriptor', () => {
@@ -82,17 +72,6 @@ test('authority summary validation accepts only fresh, PID-bound, bounded fields
       dormantCount: 3,
       deniedCount: 5,
       revokedCount: 7,
-    },
-    {
-      id: 'grant-summary',
-      state: 'ok',
-      reason: 'bounded-grant-summary-available',
-      pendingCount: 11,
-      grantedCount: 13,
-      deniedCount: 17,
-      expiredCount: 19,
-      revokedCount: 23,
-      supersededCount: 29,
     },
   ]);
 
@@ -130,8 +109,8 @@ test('authority summary validation accepts only fresh, PID-bound, bounded fields
   ).reason, 'desktop-authority-summary-shape-invalid');
 
   const unavailableWithCount = structuredClone(validAuthoritySummary);
-  unavailableWithCount.grantSummary.availability = 'unavailable';
-  unavailableWithCount.grantSummary.reasonCode = 'principal-unauthorized';
+  unavailableWithCount.projectAuthorization.availability = 'unavailable';
+  unavailableWithCount.projectAuthorization.reasonCode = 'principal-unauthorized';
   assert.equal(validateLocalDevelopmentAuthoritySummary(
     unavailableWithCount,
     100,

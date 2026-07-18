@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { pathToFileURL } from 'node:url';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import { buildWithTsc } from './tsc-build.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -57,14 +58,14 @@ test('Tester local-app projection fails closed before a protected carrier is ava
   assert.equal('accountRuntime' in projection, false);
 });
 
-test('Tester preserves a zero-grant identity session without implying operation authorization', async () => {
+test('Tester preserves a bound identity session without conflating permission state', async () => {
   const previousElectronTest = globalThis.__NIMI_ELECTRON_TEST__;
   const calls = [];
   globalThis.__NIMI_ELECTRON_TEST__ = {
     async invoke(command, payload) {
       calls.push({ command, payload });
       assert.equal(command, 'nimi.shell.localApp.sessionStatus');
-      return { state: 'zero-grant', reasonCode: 'no-grant', retryable: false };
+      return { state: 'ready', reasonCode: ReasonCode.ACTION_EXECUTED, retryable: false };
     },
     listen() { return () => {}; },
   };
@@ -76,11 +77,10 @@ test('Tester preserves a zero-grant identity session without implying operation 
     assert.equal(projection.mode, 'local-app');
     assert.deepEqual(projection.localAppSession, {
       mode: 'local-app',
-      state: 'session-bound-zero-grant',
+      state: 'session-bound',
       sessionBound: true,
-      operationAllowed: false,
-      reasonCode: 'no-grant',
-      actionHint: 'request_local_app_operation_grant',
+      reasonCode: ReasonCode.ACTION_EXECUTED,
+      actionHint: 'continue_local_app_session',
       retryable: false,
     });
     assert.deepEqual(calls, [{ command: 'nimi.shell.localApp.sessionStatus', payload: {} }]);
@@ -90,35 +90,27 @@ test('Tester preserves a zero-grant identity session without implying operation 
   }
 });
 
-test('Tester Runtime artifact readback crosses the final SDK and Kit local-app carrier', async () => {
+test('Tester app-private storage crosses the final SDK and Kit local-app carrier without a permission request', async () => {
   const previousElectronTest = globalThis.__NIMI_ELECTRON_TEST__;
   const calls = [];
   globalThis.__NIMI_ELECTRON_TEST__ = {
     async invoke(command, payload) {
       calls.push({ command, payload });
       return {
-        dataBase64: 'AQIDBA==',
-        mimeType: 'image/png',
-        sizeBytes: 4,
-        mimeInferred: false,
+        value: { theme: 'calm' },
+        sizeBytes: 16,
       };
     },
     listen() { return () => {}; },
   };
   try {
-    const { testerLocalRuntimeArtifactReader } = await importLocalAppRuntimePlatform();
-    const result = await testerLocalRuntimeArtifactReader.readArtifactBytes({ artifactId: 'runtime-artifact-1' });
+    const { testerLocalAppRuntimePlatform } = await importLocalAppRuntimePlatform();
+    const result = await testerLocalAppRuntimePlatform.storage.writeJson('settings/profile.json', { theme: 'calm' });
 
-    assert.deepEqual([...result.bytes], [1, 2, 3, 4]);
-    assert.deepEqual({ ...result, bytes: undefined }, {
-      bytes: undefined,
-      mimeType: 'image/png',
-      sizeBytes: '4',
-      mimeInferred: false,
-    });
+    assert.deepEqual(result, { value: { theme: 'calm' }, sizeBytes: 16 });
     assert.deepEqual(calls, [{
-      command: 'nimi.shell.localApp.artifacts.readRuntimeBytes',
-      payload: { payload: { artifactId: 'runtime-artifact-1' } },
+      command: 'nimi.shell.storage.writeJson',
+      payload: { payload: { relativePath: 'settings/profile.json', value: { theme: 'calm' } } },
     }]);
   } finally {
     if (previousElectronTest === undefined) delete globalThis.__NIMI_ELECTRON_TEST__;

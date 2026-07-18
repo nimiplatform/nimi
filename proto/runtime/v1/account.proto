@@ -400,67 +400,40 @@ message RevokeWorkspaceBindingResponse {
   bool production_inert = 5;
 }
 
-enum LocalAppGrantState {
-  LOCAL_APP_GRANT_STATE_UNSPECIFIED = 0;
-  LOCAL_APP_GRANT_STATE_NO_GRANT = 1;
-  LOCAL_APP_GRANT_STATE_PENDING = 2;
-  LOCAL_APP_GRANT_STATE_GRANTED = 3;
-  LOCAL_APP_GRANT_STATE_DENIED = 4;
-  LOCAL_APP_GRANT_STATE_EXPIRED = 5;
-  LOCAL_APP_GRANT_STATE_REVOKED = 6;
-  LOCAL_APP_GRANT_STATE_SUPERSEDED = 7;
+// Product-facing third-party app permission posture. Internal grant lifecycle,
+// operation identity, selector fingerprints, and owner policy never cross this
+// projection.
+enum LocalAppPermissionPosture {
+  LOCAL_APP_PERMISSION_POSTURE_UNSPECIFIED = 0;
+  LOCAL_APP_PERMISSION_POSTURE_PROMPT = 1;
+  LOCAL_APP_PERMISSION_POSTURE_PENDING = 2;
+  LOCAL_APP_PERMISSION_POSTURE_GRANTED = 3;
+  LOCAL_APP_PERMISSION_POSTURE_DENIED = 4;
+  LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE = 5;
 }
 
-message LocalAppGrantProjection {
-  LocalAppGrantState state = 1;
-  string operation_id = 2;
-  string resource_ref = 3;
-  bytes request_id = 4;
-  bytes grant_id = 5;
-  uint64 grant_generation = 6;
-  uint64 grant_revision = 7;
-  google.protobuf.Timestamp expires_at = 8;
-  ReasonCode reason_code = 9;
-  // Present only on the verified Desktop local_app_control projection. The
-  // local-app carrier never receives this host-private decision correlation.
-  bytes presence_challenge_id = 10;
+message LocalAppPermissionProjection {
+  string permission_id = 1;
+  LocalAppPermissionPosture posture = 2;
+  bool can_request = 3;
+  ReasonCode reason_code = 4;
 }
 
-message GetLocalAppGrantStatusRequest {
-  string operation_id = 1;
-  string resource_ref = 2;
+message GetLocalAppPermissionStatusRequest {
+  string permission_id = 1;
 }
 
-message GetLocalAppGrantStatusResponse {
-  LocalAppGrantProjection projection = 1;
+message GetLocalAppPermissionStatusResponse {
+  LocalAppPermissionProjection projection = 1;
 }
 
-message RequestLocalAppGrantRequest {
-  string operation_id = 1;
-  string resource_ref = 2;
-  string purpose = 3;
+message RequestLocalAppPermissionRequest {
+  string permission_id = 1;
+  string reason = 2;
 }
 
-message RequestLocalAppGrantResponse {
-  LocalAppGrantProjection projection = 1;
-}
-
-message DecideLocalAppGrantRequest {
-  bytes request_id = 1;
-  bool approved = 2;
-  bytes presence_challenge_id = 3;
-}
-
-message DecideLocalAppGrantResponse {
-  LocalAppGrantProjection projection = 1;
-}
-
-message RevokeLocalAppGrantRequest {
-  bytes grant_id = 1;
-}
-
-message RevokeLocalAppGrantResponse {
-  LocalAppGrantProjection projection = 1;
+message RequestLocalAppPermissionResponse {
+  LocalAppPermissionProjection projection = 1;
 }
 
 service RuntimeAccountService {
@@ -476,8 +449,6 @@ service RuntimeAccountService {
   rpc RevokeScopedAppBinding(RevokeScopedAppBindingRequest) returns (RevokeScopedAppBindingResponse);
   rpc IssueWorkspaceBinding(IssueWorkspaceBindingRequest) returns (IssueWorkspaceBindingResponse);
   rpc RevokeWorkspaceBinding(RevokeWorkspaceBindingRequest) returns (RevokeWorkspaceBindingResponse);
-  rpc GetLocalAppGrantStatus(GetLocalAppGrantStatusRequest) returns (GetLocalAppGrantStatusResponse);
-  rpc RequestLocalAppGrant(RequestLocalAppGrantRequest) returns (RequestLocalAppGrantResponse);
-  rpc DecideLocalAppGrant(DecideLocalAppGrantRequest) returns (DecideLocalAppGrantResponse);
-  rpc RevokeLocalAppGrant(RevokeLocalAppGrantRequest) returns (RevokeLocalAppGrantResponse);
+  rpc GetLocalAppPermissionStatus(GetLocalAppPermissionStatusRequest) returns (GetLocalAppPermissionStatusResponse);
+  rpc RequestLocalAppPermission(RequestLocalAppPermissionRequest) returns (RequestLocalAppPermissionResponse);
 }

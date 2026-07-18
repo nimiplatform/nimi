@@ -82,7 +82,7 @@ test('browser auth driver rejects authorization origin, path, and query mismatch
 test('browser auth driver admits Runtime-generated opaque presence purposes', () => {
   const url = new URL(authorizationUrl('state-presenceopaque1'));
   url.searchParams.set('prompt', 'login');
-  url.searchParams.set('presence_purpose', 'local_app_grant/runtime_agent.conversation.open/lacrf_v1_Aa0-_');
+  url.searchParams.set('presence_purpose', 'local_app_session/nimi.zhiyu/launch_v1_Aa0-_');
   url.searchParams.set('presence_nonce', 'nonce-Aa0_1234567890');
   assert.doesNotThrow(() => requireCapturedAuthorizationUrl(url.toString()));
 });

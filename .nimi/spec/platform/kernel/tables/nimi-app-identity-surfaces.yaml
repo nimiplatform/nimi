@@ -5,7 +5,7 @@ catalog_id: platform_nimi_app_identity_surfaces
 source_rule: P-NAPP-012
 entries:
   - canonical app_id is the shared display and routing identifier used by Platform, Runtime projections, SDK appId, and OS bundle derivation
-  - local_app_principal_id is the Runtime-assigned random non-reused security subject for third-party grants, private storage, app-scoped audience, sessions, and audit
+  - local_app_principal_id is the Runtime-assigned random non-reused security subject for third-party permission decisions, private storage, app-scoped audience, sessions, and audit
   - trust_class and publisher trust tier are provenance/review facts and never security principals
   - tauri_identifier is derived only as ai.nimi.apps.<app_id>
   - tauri_identifier is OS bundle/signing/update identity only and must not be used as Runtime or Platform app identity
@@ -35,7 +35,7 @@ identity_schema:
     - runtime_app_id must equal canonical_app_id
     - tauri_identifier must equal ai.nimi.apps.<canonical_app_id> when tauri_identifier_required is true
     - active source must not use app.nimi.* or dev.nimi.* as app identity
-    - app_id must not key a third-party grant private storage audience session or audit subject
+    - app_id must not key a third-party permission decision, private storage, audience, session, or audit subject
     - a local development integration profile must use an isolated Runtime local_app_principal_id
 
 apps:

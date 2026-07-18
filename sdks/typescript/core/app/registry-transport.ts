@@ -26,7 +26,6 @@ import {
 export type NimiAppAdmissionStatus =
   | 'admitted'
   | 'gated_by_avatar_master_gate'
-  | 'permission_fabric_pending'
   | 'deferred'
   | 'retired';
 
@@ -247,7 +246,6 @@ function admissionToReadiness(
       return descriptorResolution.ok ? 'package-unavailable' : 'unsupported';
     case 'gated_by_avatar_master_gate':
       return 'blocked-by-master-gate';
-    case 'permission_fabric_pending':
     case 'deferred':
     case 'retired':
       return 'unsupported';
@@ -375,7 +373,7 @@ function resolveOpenReadiness(
   if (localRecord?.recordState === 'removed') return 'unsupported';
   if (localRecord?.recordState === 'active') {
     if (localRecord.sessionState !== 'session-bound') return 'unsupported';
-    return localRecord.grantPosture === 'granted' ? 'ready' : 'permission-required';
+    return 'ready';
   }
   return catalog ? 'package-unavailable' : 'unsupported';
 }
@@ -388,7 +386,6 @@ function resolveNextActions(
   const actions = new Set<NimiAppInventoryNextAction>();
   if (!hasAccount && hasLocalRecord) actions.add('sign-in');
   if (openReadiness === 'ready') actions.add('open');
-  if (openReadiness === 'permission-required') actions.add('review-permissions');
   return [...actions];
 }
 

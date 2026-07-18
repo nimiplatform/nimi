@@ -25,7 +25,7 @@ rows:
   - Runtime product control is rooted at <runtime_owner_state_root>/nimi.json;
     production binds that root to installer-verified service state and never
     reads an interactive-user copy or fallback
-  - Runtime-owned local-app principal, record, grant, session, inventory, and
+  - Runtime-owned local-app principal, record, permission-decision, session, inventory, and
     package-seam state is excluded; retired user-local app projections are not
     repair or migration inputs
   - unknown future schemaVersion or broken pointer in any governed file routes

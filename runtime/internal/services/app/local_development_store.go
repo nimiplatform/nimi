@@ -45,15 +45,20 @@ var (
 )
 
 type localDevelopmentProjectSnapshot struct {
-	AppID                 string
-	DisplayName           string
-	ProjectRoot           string
-	ManifestPath          string
-	ShellKind             runtimev1.LocalDevelopmentShellKind
-	AccountID             string
-	AccountGeneration     uint64
-	Capabilities          []string
-	CapabilityFingerprint protectedlocal.Identifier
+	AppID                            string
+	DisplayName                      string
+	ProjectRoot                      string
+	ManifestPath                     string
+	ShellKind                        runtimev1.LocalDevelopmentShellKind
+	AccountID                        string
+	AccountGeneration                uint64
+	PermissionRequirements           []localDevelopmentPermissionRequirement
+	PermissionRequirementFingerprint protectedlocal.Identifier
+}
+
+type localDevelopmentPermissionRequirement struct {
+	PermissionID string `json:"permission_id"`
+	Reason       string `json:"reason"`
 }
 
 type localDevelopmentEvaluation struct {
@@ -233,7 +238,7 @@ func (store *localDevelopmentStore) Evaluate(ctx context.Context, project localD
 	}
 	now := store.now().UTC()
 	expiresAt := now.Add(localDevelopmentEvaluationTTL)
-	capabilities, err := json.Marshal(project.Capabilities)
+	permissionRequirements, err := json.Marshal(project.PermissionRequirements)
 	if err != nil {
 		return localDevelopmentEvaluation{}, err
 	}
@@ -242,7 +247,7 @@ func (store *localDevelopmentStore) Evaluate(ctx context.Context, project localD
 		account_id, account_generation, capabilities_json, capability_fingerprint, state, issued_unix_nano, expires_unix_nano
 	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
 		evaluationID[:], runID[:], project.AppID, project.DisplayName, project.ProjectRoot, project.ManifestPath, int32(project.ShellKind),
-		project.AccountID, project.AccountGeneration, string(capabilities), project.CapabilityFingerprint[:], now.UnixNano(), expiresAt.UnixNano()); err != nil {
+		project.AccountID, project.AccountGeneration, string(permissionRequirements), project.PermissionRequirementFingerprint[:], now.UnixNano(), expiresAt.UnixNano()); err != nil {
 		return localDevelopmentEvaluation{}, err
 	}
 	state := runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_CONFIRMATION_REQUIRED
@@ -307,7 +312,7 @@ func (store *localDevelopmentStore) Decide(ctx context.Context, evaluationID pro
 	if _, err := tx.ExecContext(ctx, `UPDATE local_development_authorization SET state = 'revoked', updated_unix_nano = ? WHERE state = 'active' AND account_id = ? AND (project_root = ? OR app_id = ?)`, now.UnixNano(), evaluation.Project.AccountID, evaluation.Project.ProjectRoot, evaluation.Project.AppID); err != nil {
 		return localDevelopmentAuthorization{}, err
 	}
-	capabilities, _ := json.Marshal(evaluation.Project.Capabilities)
+	permissionRequirements, _ := json.Marshal(evaluation.Project.PermissionRequirements)
 	if _, err := tx.ExecContext(ctx, `INSERT INTO local_development_authorization(
 		authorization_id, supervisor_run_id, app_id, display_name, project_root, manifest_path, shell_kind,
 		account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state,
@@ -315,7 +320,7 @@ func (store *localDevelopmentStore) Decide(ctx context.Context, evaluationID pro
 	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		authorizationID[:], evaluation.RunID[:], evaluation.Project.AppID, evaluation.Project.DisplayName, evaluation.Project.ProjectRoot,
 		evaluation.Project.ManifestPath, int32(evaluation.Project.ShellKind), evaluation.Project.AccountID, evaluation.Project.AccountGeneration,
-		string(capabilities), evaluation.Project.CapabilityFingerprint[:], int32(decision), authorizationState, generation, now.UnixNano(), now.UnixNano()); err != nil {
+		string(permissionRequirements), evaluation.Project.PermissionRequirementFingerprint[:], int32(decision), authorizationState, generation, now.UnixNano(), now.UnixNano()); err != nil {
 		return localDevelopmentAuthorization{}, err
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE local_development_evaluation SET state = ? WHERE evaluation_id = ? AND state = 'pending'`, evaluationState, evaluationID[:]); err != nil {
@@ -419,15 +424,14 @@ func (store *localDevelopmentStore) RevokeAccountAuthority(ctx context.Context, 
 	return tx.Commit()
 }
 
-func localDevelopmentCapabilityFingerprint(capabilities []string) protectedlocal.Identifier {
-	normalized := append([]string(nil), capabilities...)
-	for index := range normalized {
-		normalized[index] = strings.TrimSpace(normalized[index])
-	}
-	sort.Strings(normalized)
+func localDevelopmentPermissionRequirementFingerprint(requirements []localDevelopmentPermissionRequirement) protectedlocal.Identifier {
+	normalized := append([]localDevelopmentPermissionRequirement(nil), requirements...)
+	sort.Slice(normalized, func(left, right int) bool {
+		return normalized[left].PermissionID < normalized[right].PermissionID
+	})
 	hash := sha256.New()
-	for _, capability := range normalized {
-		_, _ = io.WriteString(hash, fmt.Sprintf("%d:%s", len(capability), capability))
+	for _, requirement := range normalized {
+		_, _ = io.WriteString(hash, fmt.Sprintf("%d:%s%d:%s", len(requirement.PermissionID), requirement.PermissionID, len(requirement.Reason), requirement.Reason))
 	}
 	var fingerprint protectedlocal.Identifier
 	copy(fingerprint[:], hash.Sum(nil))
@@ -440,18 +444,18 @@ func validateLocalDevelopmentProject(project localDevelopmentProjectSnapshot) er
 		filepath.Clean(project.ManifestPath) != project.ManifestPath || !pathWithinLocalDevelopmentRoot(project.ProjectRoot, project.ManifestPath) ||
 		(project.ShellKind != runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON && project.ShellKind != runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_TAURI) ||
 		strings.TrimSpace(project.AccountID) == "" || project.AccountID != strings.TrimSpace(project.AccountID) || project.AccountGeneration == 0 ||
-		len(project.Capabilities) == 0 || project.CapabilityFingerprint == (protectedlocal.Identifier{}) || project.CapabilityFingerprint != localDevelopmentCapabilityFingerprint(project.Capabilities) {
+		len(project.PermissionRequirements) != 0 || project.PermissionRequirementFingerprint == (protectedlocal.Identifier{}) || project.PermissionRequirementFingerprint != localDevelopmentPermissionRequirementFingerprint(project.PermissionRequirements) {
 		return errLocalDevelopmentInvalid
 	}
-	seen := make(map[string]struct{}, len(project.Capabilities))
-	for _, capability := range project.Capabilities {
-		if capability == "" || capability != strings.TrimSpace(capability) {
+	seen := make(map[string]struct{}, len(project.PermissionRequirements))
+	for _, requirement := range project.PermissionRequirements {
+		if requirement.PermissionID == "" || requirement.PermissionID != strings.TrimSpace(requirement.PermissionID) || requirement.Reason == "" || requirement.Reason != strings.TrimSpace(requirement.Reason) || len([]byte(requirement.Reason)) > 240 {
 			return errLocalDevelopmentInvalid
 		}
-		if _, duplicate := seen[capability]; duplicate {
+		if _, duplicate := seen[requirement.PermissionID]; duplicate {
 			return errLocalDevelopmentInvalid
 		}
-		seen[capability] = struct{}{}
+		seen[requirement.PermissionID] = struct{}{}
 	}
 	return nil
 }
@@ -478,7 +482,7 @@ func localDevelopmentAuthorizationMatches(authorization localDevelopmentAuthoriz
 func localDevelopmentProjectsMatch(approved localDevelopmentProjectSnapshot, current localDevelopmentProjectSnapshot) bool {
 	return approved.AppID == current.AppID && approved.ProjectRoot == current.ProjectRoot && approved.ManifestPath == current.ManifestPath &&
 		approved.ShellKind == current.ShellKind && approved.AccountID == current.AccountID &&
-		approved.CapabilityFingerprint == current.CapabilityFingerprint
+		approved.PermissionRequirementFingerprint == current.PermissionRequirementFingerprint
 }
 
 func (store *localDevelopmentStore) readIdentifier() (protectedlocal.Identifier, error) {

@@ -13,6 +13,7 @@ import type {
   NimiRuntimeAgentIdentitySafetyProjection,
   NimiRuntimeAgentPresentationProfileProjection,
   NimiRuntimeAgentSourceContextStatus,
+  NimiRuntimeAgentSourceRef,
   NimiRuntimeAgentTurnContextSummary,
   NimiRuntimeAgentProactiveDeliveryChannel,
   NimiRuntimeAgentProactiveFrequencyCapState,
@@ -219,12 +220,7 @@ export type ZhiyuEvidence = {
     readonly message: string;
     readonly ownerUserId: string | null;
     readonly runtimeSourceRef: string | null;
-    readonly sourceRef: {
-      readonly kind: string;
-      readonly worldId: string;
-      readonly sourceId: string;
-      readonly sourceContentHash: string;
-    } | null;
+    readonly sourceRef: NimiRuntimeAgentSourceRef | null;
     readonly projectionState: 'ready' | 'blocked' | 'truncated' | 'failed' | 'unknown';
     readonly sourceContextStatus: NimiRuntimeAgentSourceContextStatus | null;
     readonly turnContextSummary: NimiRuntimeAgentTurnContextSummary | null;

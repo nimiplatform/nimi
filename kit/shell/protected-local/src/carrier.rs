@@ -30,9 +30,9 @@ pub enum LocalAppReasonCode {
     RuntimeRestarted,
     Revoked,
     ProjectChanged,
-    NoGrant,
-    GrantRevoked,
-    GrantSuperseded,
+    PermissionRequired,
+    PermissionDenied,
+    PermissionRevoked,
     PresenceExpired,
     RuntimePermissionDenied,
     InvalidPayload,
@@ -55,9 +55,9 @@ impl LocalAppReasonCode {
             Self::RuntimeRestarted => "runtime-restarted",
             Self::Revoked => "revoked",
             Self::ProjectChanged => "project-changed",
-            Self::NoGrant => "no-grant",
-            Self::GrantRevoked => "grant-revoked",
-            Self::GrantSuperseded => "grant-superseded",
+            Self::PermissionRequired => "permission-required",
+            Self::PermissionDenied => "permission-denied",
+            Self::PermissionRevoked => "permission-revoked",
             Self::PresenceExpired => "presence-expired",
             Self::RuntimePermissionDenied => "runtime-permission-denied",
             Self::InvalidPayload => "invalid-payload",
@@ -101,13 +101,13 @@ impl Error for LocalAppOperationError {}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LocalAppSessionState {
-    ZeroGrant,
+    Ready,
 }
 
 impl LocalAppSessionState {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::ZeroGrant => "zero-grant",
+            Self::Ready => "ready",
         }
     }
 }
@@ -120,64 +120,43 @@ pub struct LocalAppSessionStatus {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct LocalAppPermissionPostureRequest {
-    pub operation_id: String,
-    pub resource_ref: String,
+pub struct LocalAppPermissionStatusRequest {
+    pub permission_id: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LocalAppPermissionRequest {
-    pub operation_id: String,
-    pub resource_ref: String,
-    pub purpose: String,
+    pub permission_id: String,
+    pub reason: String,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LocalAppPermissionState {
-    ZeroGrant,
+    Prompt,
     Pending,
     Granted,
     Denied,
-    Revoked,
-    Superseded,
     Unavailable,
 }
 
 impl LocalAppPermissionState {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::ZeroGrant => "zero-grant",
+            Self::Prompt => "prompt",
             Self::Pending => "pending",
             Self::Granted => "granted",
             Self::Denied => "denied",
-            Self::Revoked => "revoked",
-            Self::Superseded => "superseded",
             Self::Unavailable => "unavailable",
         }
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct LocalAppPermissionPosture {
+pub struct LocalAppPermissionStatus {
     pub state: LocalAppPermissionState,
-    pub operation_id: String,
-    pub resource_ref: String,
+    pub permission_id: String,
+    pub can_request: bool,
     pub reason_code: LocalAppReasonCode,
-    pub action_hint: String,
-    pub retryable: bool,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppArtifactReadRequest {
-    pub artifact_id: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppArtifactBytes {
-    pub bytes: Vec<u8>,
-    pub mime_type: String,
-    pub size_bytes: i64,
-    pub mime_inferred: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -205,120 +184,6 @@ pub struct LocalAppStorageDocument {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppStorageRemoveResult {
     pub removed: bool,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppAgentInventoryRequest;
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppAgentOpenConversationRequest {
-    pub agent_id: String,
-    pub requested_anchor_disposition: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppAgentSendTurnRequest {
-    pub agent_id: String,
-    pub conversation_anchor_id: String,
-    pub client_turn_id: String,
-    pub user_text: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppAgentSubscribeTurnRequest {
-    pub agent_id: String,
-    pub conversation_anchor_id: String,
-    pub cursor: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppAgentConversationSnapshotRequest {
-    pub agent_id: String,
-    pub conversation_anchor_id: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppAgentTranscribeVoiceRequest {
-    pub agent_id: String,
-    pub client_request_id: String,
-    pub audio: Vec<u8>,
-    pub mime_type: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppAgentVoiceTranscription {
-    pub client_request_id: String,
-    pub text: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppAgentSubscribeVoiceStreamRequest {
-    pub agent_id: String,
-    pub conversation_anchor_id: String,
-    pub turn_id: String,
-    pub voice_stream_id: String,
-    pub cursor: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppAgentVoiceStreamEvent {
-    pub voice_stream_id: String,
-    pub conversation_anchor_id: String,
-    pub turn_id: String,
-    pub stream_id: String,
-    pub message_id: String,
-    pub chunk_sequence: u64,
-    pub chunk: Vec<u8>,
-    pub mime_type: String,
-    pub voice_output_mode: i32,
-    pub playback_target: String,
-    pub terminal: bool,
-    pub voice_playback_state: i32,
-    pub terminal_reason: String,
-    pub replay_truncated: bool,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppAgentVoiceStreamPage {
-    pub cursor: String,
-    pub events: Vec<LocalAppAgentVoiceStreamEvent>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct LocalAppAgentProjection {
-    pub value: JsonValue,
-}
-
-#[derive(Clone, Copy, Eq, PartialEq)]
-pub enum LocalAppGrantControlState {
-    Pending,
-    Granted,
-    Denied,
-    Revoked,
-}
-
-/// Host-private pending grant request. Opaque identifiers never cross the
-/// Desktop native selector vault into renderer IPC, logs, storage, or errors.
-pub struct LocalAppGrantControlPending {
-    pub request_id: [u8; 32],
-    pub presence_challenge_id: [u8; 32],
-    pub pending_grant_id: [u8; 32],
-    pub operation_id: String,
-    pub resource_ref: String,
-    pub expires_at_unix_ms: i64,
-}
-
-pub struct LocalAppGrantControlDecisionRequest {
-    pub request_id: [u8; 32],
-    pub presence_challenge_id: [u8; 32],
-    pub approved: bool,
-}
-
-pub struct LocalAppGrantControlProjection {
-    pub state: LocalAppGrantControlState,
-    pub grant_id: [u8; 32],
-    pub operation_id: String,
-    pub resource_ref: String,
 }
 
 /// Opaque host-only handle for one connection-bound protected Desktop session.
@@ -424,30 +289,6 @@ pub trait NimiDesktopControl: Send + Sync {
         enabled: bool,
     ) -> Pin<Box<dyn Future<Output = Result<DeveloperModeStatus, NimiHostError>> + Send + '_>>;
 
-    fn pending_local_app_grant(
-        &self,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<Option<LocalAppGrantControlPending>, NimiHostError>>
-                + Send
-                + '_,
-        >,
-    >;
-
-    fn decide_local_app_grant(
-        &self,
-        request: LocalAppGrantControlDecisionRequest,
-    ) -> Pin<
-        Box<dyn Future<Output = Result<LocalAppGrantControlProjection, NimiHostError>> + Send + '_>,
-    >;
-
-    fn revoke_local_app_grant(
-        &self,
-        grant_id: [u8; 32],
-    ) -> Pin<
-        Box<dyn Future<Output = Result<LocalAppGrantControlProjection, NimiHostError>> + Send + '_>,
-    >;
-
     fn evaluate_local_development_project(
         &self,
         request: LocalDevelopmentEvaluationRequest,
@@ -516,12 +357,12 @@ pub trait NimiLocalAppSession: Send + Sync {
         Box<dyn Future<Output = Result<LocalAppSessionStatus, LocalAppOperationError>> + Send + '_>,
     >;
 
-    fn permission_posture(
+    fn permission_status(
         &self,
-        request: LocalAppPermissionPostureRequest,
+        request: LocalAppPermissionStatusRequest,
     ) -> Pin<
         Box<
-            dyn Future<Output = Result<LocalAppPermissionPosture, LocalAppOperationError>>
+            dyn Future<Output = Result<LocalAppPermissionStatus, LocalAppOperationError>>
                 + Send
                 + '_,
         >,
@@ -532,17 +373,10 @@ pub trait NimiLocalAppSession: Send + Sync {
         request: LocalAppPermissionRequest,
     ) -> Pin<
         Box<
-            dyn Future<Output = Result<LocalAppPermissionPosture, LocalAppOperationError>>
+            dyn Future<Output = Result<LocalAppPermissionStatus, LocalAppOperationError>>
                 + Send
                 + '_,
         >,
-    >;
-
-    fn artifacts_read_runtime_bytes(
-        &self,
-        request: LocalAppArtifactReadRequest,
-    ) -> Pin<
-        Box<dyn Future<Output = Result<LocalAppArtifactBytes, LocalAppOperationError>> + Send + '_>,
     >;
 
     fn storage_read_json(
@@ -573,83 +407,6 @@ pub trait NimiLocalAppSession: Send + Sync {
     ) -> Pin<
         Box<
             dyn Future<Output = Result<LocalAppStorageRemoveResult, LocalAppOperationError>>
-                + Send
-                + '_,
-        >,
-    >;
-
-    fn agent_open_conversation(
-        &self,
-        request: LocalAppAgentOpenConversationRequest,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<LocalAppAgentProjection, LocalAppOperationError>>
-                + Send
-                + '_,
-        >,
-    >;
-
-    fn agent_inventory(
-        &self,
-        request: LocalAppAgentInventoryRequest,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<LocalAppAgentProjection, LocalAppOperationError>>
-                + Send
-                + '_,
-        >,
-    >;
-
-    fn agent_send_turn(
-        &self,
-        request: LocalAppAgentSendTurnRequest,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<LocalAppAgentProjection, LocalAppOperationError>>
-                + Send
-                + '_,
-        >,
-    >;
-
-    fn agent_subscribe_turn(
-        &self,
-        request: LocalAppAgentSubscribeTurnRequest,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<LocalAppAgentProjection, LocalAppOperationError>>
-                + Send
-                + '_,
-        >,
-    >;
-
-    fn agent_get_conversation_snapshot(
-        &self,
-        request: LocalAppAgentConversationSnapshotRequest,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<LocalAppAgentProjection, LocalAppOperationError>>
-                + Send
-                + '_,
-        >,
-    >;
-
-    fn agent_transcribe_voice(
-        &self,
-        request: LocalAppAgentTranscribeVoiceRequest,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<LocalAppAgentVoiceTranscription, LocalAppOperationError>>
-                + Send
-                + '_,
-        >,
-    >;
-
-    fn agent_subscribe_voice_stream(
-        &self,
-        request: LocalAppAgentSubscribeVoiceStreamRequest,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<LocalAppAgentVoiceStreamPage, LocalAppOperationError>>
                 + Send
                 + '_,
         >,

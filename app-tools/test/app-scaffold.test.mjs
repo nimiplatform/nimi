@@ -283,9 +283,8 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assert.match(generated.read('src-tauri/Cargo.toml'), /name = "acme-widget-shell"/);
     assert.match(generated.read('src-tauri/Cargo.toml'), /nimi-shell-tauri = "0\.1\.0"/);
     assert.match(generated.read('src-tauri/Cargo.toml'), /time = "=0\.3\.47"/);
-    assert.match(generated.read('nimi.app.yaml'), /scope: data\.scope\.read/);
-    assert.match(generated.read('nimi.app.yaml'), /qualifier: runtime\.artifacts/);
-    assert.doesNotMatch(generated.read('nimi.app.yaml'), /scope: app\.local\.drafts/);
+    assert.match(generated.read('nimi.app.yaml'), /^permissions: \[\]$/m);
+    assert.doesNotMatch(generated.read('nimi.app.yaml'), /scope:|qualifier:|operation_id:|resource_ref:/);
 
     const identityScannedFiles = [
       'nimi.app.yaml',
@@ -347,7 +346,7 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     const runtimePlatform = generated.read('src/shell/auth/runtime-platform.ts');
     assert.match(runtimePlatform, /getNimiAppRuntimePlatformClient/);
     assert.match(runtimePlatform, /\.auth\.status\(\)/);
-    assert.match(runtimePlatform, /status\.state !== 'session-bound-zero-grant'/);
+    assert.match(runtimePlatform, /!status\.sessionBound/);
     assert.match(runtimePlatform, /runtimeAccountLoginEnabled = false/);
     assert.doesNotMatch(runtimePlatform, /createNimiClient|developerRegistration|developer-registered-local-app/);
     assert.match(generated.read('nimi.app.yaml'), /manifest_role: submitted-input/);
@@ -372,14 +371,15 @@ test('tester-reference scaffold keeps the full proof app explicit', () => {
     assert.equal(packageJson.devDependencies.playwright, versions.playwrightVersion);
     assert.match(generated.read('nimi.app.yaml'), /profile: tester-reference/);
     assert.match(generated.read('src/shell/routes/product-area.tsx'), /TesterWorkbench/);
-    assert.match(generated.read('src/tester/tester-runtime.ts'), /Only the eight typed local-app carrier operations are admitted/);
+    assert.match(generated.read('src/tester/tester-runtime.ts'), /session posture, public permission posture\/request, and app-private JSON storage/);
     const runtimePlatform = generated.read('src/shell/auth/runtime-platform.ts');
     const localAppPlatform = generated.read('src/shell/local-app-runtime-platform.ts');
+    const permissionLab = generated.read('src/tester/local-app-permission-lab.tsx');
     assert.match(runtimePlatform, /testerLocalAppRuntimePlatform\.auth\.status\(\)/);
-    assert.match(runtimePlatform, /operationAllowed/);
+    assert.match(runtimePlatform, /!status\.sessionBound/);
     assert.match(localAppPlatform, /createNimiAppRuntimePlatformClient/);
     assert.match(localAppPlatform, /createNimiLocalAppStandardShellSurface/);
-    assert.match(localAppPlatform, /testerLocalAppRuntimePlatform\.artifacts\.readRuntimeBytes/);
+    assert.match(permissionLab, /testerLocalAppRuntimePlatform\.storage\.writeJson/);
     assert.doesNotMatch(runtimePlatform, /testerInstalledAppBootstrap|bootstrapArtifactId/);
     assert.match(generated.read('src/shell/ai/tester-ai-config-settings.tsx'), /TesterAiConfigSettings/);
     assert.match(generated.read('src-tauri/src/main.rs'), /world_tour/);
@@ -861,61 +861,39 @@ test('doctor fails closed on managed drift and update preserves app-owned produc
   }
 });
 
-test('update regenerates submitted manifest permission declarations from scaffold intent', () => {
+test('update regenerates an empty admitted permission requirement list from scaffold intent', () => {
   const generated = cliScaffold('standalone');
   try {
     const intentPath = path.join(generated.target, '.nimi/app-scaffold/intent.json');
     const intent = JSON.parse(generated.read('.nimi/app-scaffold/intent.json'));
-    intent.permissionDeclarations = [
-      {
-        scope: 'ai.spend.meter',
-        purpose: 'Meter Runtime AI execution.',
-      },
-      {
-        scope: 'ai_profile.selection.consume',
-        purpose: 'Consume Runtime profile selections.',
-      },
-      {
-        scope: 'file.read.scoped',
-        qualifier: 'app-local-drafts',
-        purpose: 'Read drafts owned by this app during author testing.',
-      },
-      {
-        scope: 'file.write.scoped',
-        qualifier: 'app-local-drafts',
-        purpose: 'Store drafts owned by this app during author testing.',
-      },
-    ];
+    intent.permissionRequirements = [];
     writeFileSync(intentPath, `${JSON.stringify(intent, null, 2)}\n`);
 
     let result = runNimiApp(['update', '--dir', generated.target], generated.tempRoot, { env: generated.env });
     assert.equal(result.status, 0, result.stderr);
     result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
     assert.equal(result.status, 0, result.stderr);
-    assert.match(generated.read('nimi.app.yaml'), /scope: ai\.spend\.meter/);
-    assert.match(generated.read('nimi.app.yaml'), /scope: ai_profile\.selection\.consume/);
+    assert.match(generated.read('nimi.app.yaml'), /^permissions: \[\]$/m);
     const lock = JSON.parse(generated.read('.nimi/app-scaffold/lock.json'));
-    assert.deepEqual(lock.permissionDeclarations, intent.permissionDeclarations);
+    assert.deepEqual(lock.permissionRequirements, intent.permissionRequirements);
   } finally {
     generated.cleanup();
   }
 });
 
-test('doctor accepts canonical product qualifiers without treating declarations as grants', () => {
+test('update rejects reserved permission ids before generating a manifest', () => {
   const generated = cliScaffold('standalone');
   try {
     const intentPath = path.join(generated.target, '.nimi/app-scaffold/intent.json');
     const intent = JSON.parse(generated.read('.nimi/app-scaffold/intent.json'));
-    intent.permissionDeclarations.unshift({
-      scope: 'data.scope.read',
-      qualifier: 'realm.core.worlds',
-      purpose: 'Declare the reviewed world-read product boundary.',
-    });
+    intent.permissionRequirements = [{
+      id: 'agents.interact',
+      reason: 'Talk with an Agent selected by me.',
+    }];
     writeFileSync(intentPath, `${JSON.stringify(intent, null, 2)}\n`);
-    let result = runNimiApp(['update', '--dir', generated.target], generated.tempRoot, { env: generated.env });
-    assert.equal(result.status, 0, result.stderr);
-    result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
-    assert.equal(result.status, 0, result.stderr);
+    const result = runNimiApp(['update', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Reserved permission requirement: agents\.interact/);
   } finally {
     generated.cleanup();
   }
@@ -944,11 +922,7 @@ test('doctor audits an existing submitted app without converting it into a manag
       'display_name: Existing App',
       'profile: standalone',
       'manifest_role: submitted-input',
-      'permissions:',
-      '  declared_nimi_api_scopes:',
-      '    - scope: data.scope.read',
-      '      qualifier: runtime.artifacts',
-      '      purpose: Read the Runtime artifact audience.',
+      'permissions: []',
       '',
     ].join('\n'));
     writeFileSync(path.join(target, 'src', 'main.ts'), 'export const app = true;\n');
@@ -1165,22 +1139,22 @@ test('doctor requires official Desktop-supervised development scripts', () => {
   }
 });
 
-test('doctor fails closed on non-canonical submitted permission declarations', () => {
+test('doctor fails closed on legacy, reserved, and authority-bearing permission requirements', () => {
   const cases = [
     {
-      replace: /scope: data\.scope\.read/,
-      with: 'scope: app.local.drafts',
-      pattern: /non-canonical scope: app\.local\.drafts/,
+      replace: 'permissions: []',
+      with: 'permissions:\n  declared_nimi_api_scopes: []',
+      pattern: /permissions must be an array/,
     },
     {
-      replace: /scope: data\.scope\.read/,
-      with: 'scope: account.read',
-      pattern: /runtime\.artifacts qualifier is only admitted/,
+      replace: 'permissions: []',
+      with: 'permissions:\n  - id: agents.interact\n    reason: Talk with an Agent selected by me.',
+      pattern: /reserved permission id: agents\.interact/,
     },
     {
-      replace: /purpose: Read Runtime-owned bootstrap artifacts through the typed app-host surface\./,
-      with: 'purpose: Read Runtime-owned bootstrap artifacts through the typed app-host surface.\n      state: granted',
-      pattern: /grant lifecycle field state/,
+      replace: 'permissions: []',
+      with: 'permissions:\n  - id: agents.interact\n    reason: Talk with an Agent selected by me.\n    grant_id: forged',
+      pattern: /fields must be exactly id and reason/,
     },
   ];
   for (const testCase of cases) {
@@ -1370,7 +1344,7 @@ test('default profiles generate local-app carrier boundaries without tester or f
       assert.match(runtimePlatform, /getNimiAppRuntimePlatformClient/, `${profile} must consume the final SDK client`);
       assert.match(localAppClient, /createNimiAppRuntimePlatformClient/, `${profile} must consume the SDK local-app owner surface`);
       assert.match(localAppClient, /createNimiLocalAppStandardShellSurface/, `${profile} must compose the Kit local-app shell`);
-      assert.match(runtimePlatform, /status\.state !== 'session-bound-zero-grant'/, `${profile} must distinguish a bound zero-grant session`);
+      assert.match(runtimePlatform, /!status\.sessionBound/, `${profile} must require a bound local-app session without conflating permissions`);
       assert.doesNotMatch(runtimePlatform, /createNimiClient|RuntimeOptions|runtime\.account|runtime\.ai|bootstrapArtifact/i, `${profile} must keep non-carrier operations absent`);
 
       for (const forbidden of [

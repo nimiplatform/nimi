@@ -403,7 +403,7 @@ or shell/origin mismatch invalidates or reapproves as specified by
 `tables/nimi-app-local-development-admission.yaml`.
 
 An approved project may use a controlled production account solely through
-Runtime-mediated operations and the same account-and-principal grant/owner
+Runtime-mediated operations and the same admitted permission-decision/owner
 policy as every local app. It never receives account/provider credentials,
 portable session proof, a generic protected proxy, or persistent Nimi-managed
 logon/boot autostart. Product UX continuously identifies project/account/risk

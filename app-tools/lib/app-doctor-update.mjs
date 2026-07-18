@@ -13,7 +13,7 @@ import {
   SCAFFOLD_VERSION,
   SUPPORTED_APP_SCAFFOLD_PROFILES,
 } from './app-scaffold.mjs';
-import { assertManifestPermissionDeclarations } from './app-manifest-permissions.mjs';
+import { assertManifestPermissionRequirements } from './app-manifest-permissions.mjs';
 
 const SCAN_EXCLUDED_DIRS = new Set([
   '.git',
@@ -178,7 +178,7 @@ function expectedSnapshotFromLock(lock, versions, intent = null) {
     packageName: lock.packageName,
     author: lock.packageAuthor || '',
     accentPack: lock.accentPack || lock.appIdentity?.accentPack || 'nimi-accent',
-    permissionDeclarations: intent?.permissionDeclarations || lock.permissionDeclarations || lock.appIdentity?.permissionDeclarations,
+    permissionRequirements: intent?.permissionRequirements || lock.permissionRequirements || lock.appIdentity?.permissionRequirements,
     scaffoldOmissions: intent?.scaffoldOmissions || lock.scaffoldOmissions || lock.appIdentity?.scaffoldOmissions,
   });
 }
@@ -195,7 +195,7 @@ function ensureLockMatchesCurrentGenerator(lock, snapshot) {
   assertSameJson(lock.cargoPackageName, snapshot.lock.cargoPackageName, 'Cargo package name');
   assertSameJson(lock.tauriIdentifier, snapshot.lock.tauriIdentifier, 'Tauri identifier');
   assertSameJson(lock.accentPack, snapshot.lock.accentPack, 'Accent pack');
-  assertSameJson(lock.permissionDeclarations, snapshot.lock.permissionDeclarations, 'Permission declarations');
+  assertSameJson(lock.permissionRequirements, snapshot.lock.permissionRequirements, 'Permission requirements');
   assertSameJson(lock.scaffoldOmissions, snapshot.lock.scaffoldOmissions, 'Scaffold omissions');
   assertSameJson(lock.managedFileTaxonomy, snapshot.lock.managedFileTaxonomy, 'Managed file taxonomy');
   assertSameJson(lock.dependencyMatrix, snapshot.lock.dependencyMatrix, 'Dependency matrix');
@@ -447,7 +447,7 @@ function assertSemanticMarkers(targetDir) {
   if (!manifest.includes('manifest_role: submitted-input')) {
     throw new Error('Submitted manifest marker missing');
   }
-  assertManifestPermissionDeclarations(manifest, manifestPath);
+  assertManifestPermissionRequirements(manifest, manifestPath);
   if (/admitted|descriptor_role:\s*release|grant(ed)?_permissions/i.test(manifest)) {
     throw new Error('Submitted manifest contains admission or grant wording');
   }
@@ -624,7 +624,7 @@ function validateExistingSubmittedApp(targetDir) {
   if (parsed?.manifest_role !== 'submitted-input') {
     throw new Error('Submitted manifest marker missing');
   }
-  assertManifestPermissionDeclarations(manifest, manifestPath);
+  assertManifestPermissionRequirements(manifest, manifestPath);
   assertOfficialDevelopmentEntrypoints(targetDir);
   const forbiddenFindings = scanForbiddenPatterns(targetDir, profile, LOCAL_DEVELOPMENT_BYPASS_LABELS);
   if (forbiddenFindings.length > 0) {

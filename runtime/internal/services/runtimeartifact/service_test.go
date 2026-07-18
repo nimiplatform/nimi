@@ -11,6 +11,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 )
@@ -85,7 +86,8 @@ func artifactTestDecision() accountservice.LocalAppCallerDecision {
 		AccountGeneration:       7,
 		RuntimeBootEpoch:        artifactTestIdentifier(0x41),
 		Operation:               accountservice.LocalAppOperationReadArtifactBytes,
-		PermissionScope:         "data.scope.read#runtime.artifacts",
+		AuthorityClass:          localappop.AuthorityClassUserPermission,
+		OperationCapability:     "data.scope.read#runtime.artifacts",
 		TrustClass:              accountservice.LocalAppTrustClassDevelopment,
 		AuthorizationID:         artifactTestIdentifier(0x42),
 		AuthorizationGeneration: 1,

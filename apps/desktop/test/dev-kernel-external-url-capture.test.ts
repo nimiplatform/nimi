@@ -59,7 +59,7 @@ test('dev-kernel external URL capture rejects non-Realm origins and paths', () =
 test('dev-kernel external URL capture admits Runtime-generated opaque presence purposes', () => {
   const url = new URL(authorizationUrl('state-presenceopaque1'));
   url.searchParams.set('prompt', 'login');
-  url.searchParams.set('presence_purpose', 'local_app_grant/runtime_agent.conversation.open/lacrf_v1_Aa0-_');
+  url.searchParams.set('presence_purpose', 'account_security/session_revoke/evidence_v1_Aa0-_');
   url.searchParams.set('presence_nonce', 'nonce-Aa0_1234567890');
   assert.doesNotThrow(() => requireDevKernelAuthorizationUrl(url.toString()));
 });

@@ -15,14 +15,8 @@ const projectRevocationReasonCodes = new Set(['revoked', 'project-changed']);
 export function isTypedProjectRevocationDenial(observation) {
   const denial = observation?.denial;
   return observation?.attempted === true
-    && observation?.operationId === 'runtime_agent.conversation.open'
-    && projectRevocationReasonCodes.has(denial?.lastError?.reasonCode)
-    && denial?.state === 'access-lost'
-    && typeof denial?.lastError?.actionHint === 'string'
-    && denial.lastError.actionHint.trim().length > 0
-    && typeof denial?.lastError?.message === 'string'
-    && denial.lastError.message.trim().length > 0
-    && typeof denial?.lastError?.retryable === 'boolean';
+    && denial?.session?.sessionBound === false
+    && [...projectRevocationReasonCodes].some((reason) => String(denial?.session?.reasonCode || '').includes(reason));
 }
 
 export function isRuntimeRestartUiTransition(observation) {
@@ -35,7 +29,8 @@ export function isRuntimeRestartUiTransition(observation) {
     && typeof observation?.unavailableUi?.reasonCode === 'string'
     && observation.unavailableUi.reasonCode.trim().length > 0
     && observation?.recoveredUi?.state !== 'runtime-unavailable'
-    && observation?.recoveredUi?.openPermissionState === 'granted';
+    && observation?.recoveredUi?.sessionBound === true
+    && observation?.recoveredUi?.permissionPosture === 'unavailable';
 }
 
 export function beginObservedProcess({ connect, start }) {

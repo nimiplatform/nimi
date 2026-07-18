@@ -49,19 +49,16 @@ import {
 } from './dev-kernel-first-run-driver.mjs';
 import {
   approveLocalDevelopment,
-  grantConversationOperations,
-  grantOpenConversation,
-  openConversation,
   readRememberedAuthorization,
   resetLocalDevelopmentProjectAuthorization,
-  revokeOperationGrant,
-  sendTurnWithKeyboard,
   setDeveloperMode,
   startRawMismatchedZhiyu,
   startZhiyuDev,
   summarizeProviderRequests,
+  verifyAppPrivateStorage,
+  verifyReservedPermissionBoundary,
   waitForRebuiltZhiyu,
-  waitRememberedInitialGrantPosture,
+  waitRememberedInitialAuthorityPosture,
   waitZhiyuEvidence,
 } from './dev-kernel-local-development-driver.mjs';
 import { persistOwnerMinimalResult } from './dev-kernel-result-driver.mjs';
@@ -69,20 +66,15 @@ import { persistDevKernelFailureBundle } from './dev-kernel-failure-bundle.mjs';
 import { runCoreReactivationJourney } from './dev-kernel-core-reactivation-driver.mjs';
 
 const FIXTURE_ORIGIN = 'http://127.0.0.1:19443';
-const OPEN_OPERATION = 'runtime_agent.conversation.open';
 const ACCOUNT_REALM_ORIGIN = 'http://localhost:3002';
 const ACCOUNT_WEB_ORIGIN = 'http://localhost:3000';
 const OWNER_MINIMAL_BROWSER_AUTH_PLAN = Object.freeze([
   'primary-login',
   'run-once-local-development',
-  'run-once-open-grant',
 ]);
 const CORE_BROWSER_AUTH_PLAN = Object.freeze([
   ...OWNER_MINIMAL_BROWSER_AUTH_PLAN,
   'remembered-local-development',
-  'remembered-open-grant',
-  'remembered-conversation-turn-send-grant',
-  'remembered-conversation-turn-subscribe-grant',
   'remembered-reactivation',
   'secondary-login',
   'primary-login-restored',
@@ -436,36 +428,28 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       label: 'run-once Zhiyu Electron launcher',
     });
     activeZhiyuConnection = runOnceZhiyu;
-    phase = 'run-once-zero-grant';
+    phase = 'run-once-authority-boundary';
     await waitForTestId(runOnceZhiyu.page, 'zhiyu-dev-kernel-root', 180_000);
-    const zeroGrant = await waitZhiyuEvidence(
+    const sessionBound = await waitZhiyuEvidence(
       runOnceZhiyu.page,
-      { state: 'session-bound-zero-grant' },
-      'zero-grant session',
+      { state: 'session-bound', sessionBound: true, permissionPosture: 'unavailable' },
+      'bound local-app session with reserved permission unavailable',
       90_000,
       { transientRuntimeUnavailableMs: 15_000 },
     );
-    await runOnceZhiyu.page.getByTestId('zhiyu-dev-kernel-attempt-open').click();
-    const noGrant = await waitZhiyuEvidence(runOnceZhiyu.page, { errorReason: 'no-grant' }, 'no-grant denial');
-    observations.zeroGrant = zeroGrant;
-    observations.noGrant = noGrant;
-    await runOnceZhiyu.page.screenshot({ path: path.join(screenshotsRoot, 'zhiyu-zero-grant-desktop.png') });
+    const reservedPermission = await verifyReservedPermissionBoundary(runOnceZhiyu.page);
+    const appPrivateStorage = await verifyAppPrivateStorage(runOnceZhiyu.page);
+    observations.sessionBound = sessionBound;
+    observations.reservedPermission = reservedPermission;
+    observations.appPrivateStorage = appPrivateStorage;
+    await runOnceZhiyu.page.screenshot({ path: path.join(screenshotsRoot, 'zhiyu-authority-boundary-desktop.png') });
     observations.zhiyuNarrowMethod = await setWindowBounds(runOnceZhiyu, 390, 780);
-    await runOnceZhiyu.page.screenshot({ path: path.join(screenshotsRoot, 'zhiyu-zero-grant-narrow.png') });
-    observations.zhiyuZeroNarrowMetrics = await runOnceZhiyu.page.evaluate(() => ({
+    await runOnceZhiyu.page.screenshot({ path: path.join(screenshotsRoot, 'zhiyu-authority-boundary-narrow.png') });
+    observations.zhiyuAuthorityNarrowMetrics = await runOnceZhiyu.page.evaluate(() => ({
       clientWidth: document.documentElement.clientWidth,
       scrollWidth: document.documentElement.scrollWidth,
     }));
     await setWindowBounds(runOnceZhiyu, 1060, 780);
-
-    phase = 'run-once-open-grant';
-    await grantOpenConversation(
-      desktop.page,
-      runOnceZhiyu.page,
-      browserAuth('primary', fixtureConfig.primaryAccountId, 'run-once-grant'),
-    );
-    const ownerOpen = await openConversation(runOnceZhiyu.page);
-    observations.ownerSelectedOperation = ownerOpen;
 
     phase = 'raw-uncarried-process-probe';
     const rawServiceBefore = readFixedServiceStatus();
@@ -498,9 +482,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
         return value?.lastError?.reasonCode !== 'runtime-service-unavailable' ? value : null;
       }, { timeoutMs: 30_000, intervalMs: 100, label: 'raw process exact transport recovery' });
     }
-    if (!rawInitial.lastError) {
-      await rawZhiyu.page.getByTestId('zhiyu-dev-kernel-attempt-open').click();
-    }
+    if (!rawInitial.lastError) await rawZhiyu.page.getByTestId('zhiyu-dev-kernel-refresh').click();
     const rawDenied = await waitUntil(async () => {
       const value = await rawZhiyu.page.evaluate(() => window.__nimiZhiyuDevKernelEvidence || null);
       return ['runtime-service-untrusted', 'runtime-service-unavailable'].includes(value?.lastError?.reasonCode)
@@ -525,17 +507,6 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     await terminateProcessTree(rawHandle);
     rawHandle = null;
     requireLiveDesktopCheckpoint(desktopHandle, desktop, 'after raw process mismatch');
-
-    phase = 'grant-revoke';
-    await revokeOperationGrant(desktop.page, OPEN_OPERATION);
-    requireLiveDesktopCheckpoint(desktopHandle, desktop, 'after grant revoke');
-    await runOnceZhiyu.page.getByTestId('zhiyu-dev-kernel-attempt-open').click();
-    observations.grantRevoked = await waitUntil(async () => {
-      const value = await runOnceZhiyu.page.evaluate(() => window.__nimiZhiyuDevKernelEvidence || null);
-      return ['grant-revoked', 'revoked'].includes(value?.lastError?.reasonCode) ? value : null;
-    }, { timeoutMs: 30_000, label: 'revoked grant denial' });
-    await runOnceZhiyu.page.screenshot({ path: path.join(screenshotsRoot, 'zhiyu-grant-revoked.png') });
-    requireLiveDesktopCheckpoint(desktopHandle, desktop, 'after revoked-operation evidence');
 
     if (executionMode === 'owner-minimal') {
       observations.browserAuthBudget = browserAuthDriver.audit();
@@ -579,9 +550,9 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     });
     activeZhiyuConnection = zhiyu;
     await waitForTestId(zhiyu.page, 'zhiyu-dev-kernel-root');
-    observations.rememberedInitialGrantPosture = await waitRememberedInitialGrantPosture(
+    observations.rememberedInitialAuthorityPosture = await waitRememberedInitialAuthorityPosture(
       zhiyu.page,
-      'remembered initial grant posture',
+      'remembered initial authority posture',
     );
     observations.rememberedAuthorization = await waitUntil(
       () => readRememberedAuthorization(desktop.page, {
@@ -590,29 +561,13 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       }),
       { timeoutMs: 30_000, label: 'active remembered authorization' },
     );
-    phase = 'remembered-grant-batch';
-    await grantOpenConversation(
-      desktop.page,
-      zhiyu.page,
-      browserAuth('primary', fixtureConfig.primaryAccountId, 'remembered-open-grant'),
-    );
-    const fullOpen = await openConversation(zhiyu.page);
-    await grantConversationOperations(
-      desktop.page,
-      zhiyu.page,
-      browserAuth('primary', fixtureConfig.primaryAccountId, 'remembered-conversation-grant'),
-    );
-    const firstTurn = await sendTurnWithKeyboard(
-      zhiyu.page,
-      '第一轮：请确认固定 Windows Runtime 服务、Desktop 授权与知语 local_development carrier 已真实连通。',
-      2,
-    );
-    observations.firstConversation = firstTurn;
-    const anchorId = firstTurn.evidence.conversationAnchorId;
-    const firstTranscriptCount = firstTurn.evidence.transcript.length;
-    await zhiyu.page.screenshot({ path: path.join(screenshotsRoot, 'zhiyu-conversation-desktop.png') });
+    phase = 'remembered-authority-boundary';
+    observations.rememberedReservedPermission = await verifyReservedPermissionBoundary(zhiyu.page);
+    const firstStorage = await verifyAppPrivateStorage(zhiyu.page);
+    observations.rememberedAppPrivateStorage = firstStorage;
+    await zhiyu.page.screenshot({ path: path.join(screenshotsRoot, 'zhiyu-remembered-authority-boundary.png') });
     const sendButton = zhiyu.page.getByTestId('zhiyu-dev-kernel-send');
-    observations.sendDisabledAfterEmptyDraft = await sendButton.isDisabled();
+    observations.agentInteractionDisabled = await sendButton.isDisabled();
 
     const editedProbe = originalProbe.toString('utf8').replace(
       "export const DEV_KERNEL_RESTART_PROBE = 'baseline';",
@@ -627,15 +582,12 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     activeZhiyuConnection = zhiyu;
     await waitForTestId(zhiyu.page, 'zhiyu-dev-kernel-root');
     await zhiyu.page.getByTestId('zhiyu-dev-kernel-refresh').click();
-    await waitZhiyuEvidence(zhiyu.page, { openPermission: 'granted', buildMarker }, 'post-edit grants');
-    const postEditOpen = await openConversation(zhiyu.page);
-    if (postEditOpen.conversationAnchorId !== anchorId) throw new Error('conversation anchor changed after supervised process replacement');
-    await waitZhiyuEvidence(zhiyu.page, { conversationGranted: true }, 'post-edit conversation grants');
-    const secondTurn = await sendTurnWithKeyboard(
+    await waitZhiyuEvidence(
       zhiyu.page,
-      '第二轮：这是源码编辑、重新构建和进程替换之后的连续性验证，请回复当前会话仍然连续。',
-      firstTranscriptCount + 2,
+      { sessionBound: true, permissionPosture: 'unavailable', buildMarker },
+      'post-edit authority boundary',
     );
+    const secondStorage = await verifyAppPrivateStorage(zhiyu.page);
     const postEditRuns = await invokeDesktop(desktop.page, 'local_development_runs_list');
     const preEditGeneration = Number(preEditRuns[0]?.hostGeneration);
     const postEditGeneration = Number(postEditRuns[0]?.hostGeneration);
@@ -652,10 +604,9 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       buildMarker,
       preEditRuns,
       postEditRuns,
-      anchorBefore: anchorId,
-      anchorAfter: secondTurn.evidence.conversationAnchorId,
-      transcriptBefore: firstTranscriptCount,
-      transcriptAfter: secondTurn.evidence.transcript.length,
+      storageBefore: firstStorage.appPrivateStorage,
+      storageAfter: secondStorage.appPrivateStorage,
+      permissionAfter: secondStorage.permission,
     };
 
     phase = 'developer-mode-cycle';
@@ -682,7 +633,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       architecture, journey, trial, sourceState, outputDir, fixture, fixtureConfig,
       providerRawPath, observations, artifactsRoot, screenshotsRoot, desktop, observer,
       observedPages, processLedger, processLogOptions, observeRegisteredProcess, browserAuth,
-      baseEnv, zhiyuCdpPort, anchorId, firstTurn, secondTurn, serviceBefore, startedAt,
+      baseEnv, zhiyuCdpPort, firstStorage, secondStorage, serviceBefore, startedAt,
       started, buildMarker,
       setPhase: (value) => { phase = value; },
       setReactivatedHandle: (value) => { reactivatedHandle = value; },
@@ -700,13 +651,13 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
         sourceState,
         desktop: desktopConnection,
         zhiyuConnections: [activeZhiyuConnection].filter(Boolean),
-        readDesktopGrantProjection: async () => {
+        readDesktopAuthorityProjection: async () => {
           if (!desktopConnection?.page || desktopConnection.page.isClosed()) return null;
-          const [pending, grants] = await Promise.all([
-            invokeDesktop(desktopConnection.page, 'local_app_grant_pending_list'),
-            invokeDesktop(desktopConnection.page, 'local_app_grant_list'),
-          ]);
-          return { pending, grants };
+          const authorizations = await invokeDesktop(
+            desktopConnection.page,
+            'local_development_authorizations_list',
+          );
+          return { authorizations };
         },
         runtimeService: (() => {
           try { return readFixedServiceStatus(); } catch { return serviceBefore; }

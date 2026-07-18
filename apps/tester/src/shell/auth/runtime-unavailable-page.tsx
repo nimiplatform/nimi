@@ -39,7 +39,6 @@ function userAction(actionHint: string | undefined): string {
     case 'complete_local_app_authorization':
       return 'Review and approve this project in Nimi Desktop.';
     case 'restart_official_nimi_app_dev_command':
-    case 'request_local_app_operation_grant':
       return 'Run the official development command again.';
     case 'restore_authorized_project_identity':
     case 'readmit_local_development_project':

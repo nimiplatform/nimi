@@ -98,7 +98,8 @@ test('NimiClient fail-closes optional composition surfaces until configured', ()
     () => client.requirePermissions(),
     (error) => isNimiError(error) && error.reasonCode === 'SDK_CLIENT_PERMISSIONS_REQUIRED',
   );
-  assert.equal(client.requireScopes().listCatalog().appId, 'dev.nimi.root');
+  assert.equal('scopes' in client, false);
+  assert.equal('requireScopes' in client, false);
 });
 
 test('NimiClient never treats Realm grants as local permission truth', () => {

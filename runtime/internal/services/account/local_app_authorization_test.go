@@ -8,6 +8,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 )
 
@@ -37,7 +38,8 @@ func TestAuthorizeLocalAppOperationRequiresExactLiveCapability(t *testing.T) {
 		t.Fatalf("authorize local-app artifact operation: %v", err)
 	}
 	if resolver.generation != generation || decision.TrustClass != LocalAppTrustClassDevelopment ||
-		decision.AuthorizationID != resolver.binding.AuthorizationID || decision.PermissionScope != "data.scope.read#runtime.artifacts" {
+		decision.AuthorizationID != resolver.binding.AuthorizationID || decision.AuthorityClass != localappop.AuthorityClassUserPermission ||
+		decision.OperationCapability != "data.scope.read#runtime.artifacts" {
 		t.Fatalf("unexpected local-app decision: %+v", decision)
 	}
 

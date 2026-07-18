@@ -285,22 +285,6 @@ function projectWorldCharacterCore(core: JsonObject, publicMedia: JsonObject | n
   };
 }
 
-function isTypedNotFoundError(error: unknown): boolean {
-  if (!error || typeof error !== 'object') {
-    return false;
-  }
-  const record = error as Record<string, unknown>;
-  if (record.status === 404 || record.statusCode === 404) {
-    return true;
-  }
-  const reasonCode = toNonEmptyString(record.reasonCode);
-  if (reasonCode && reasonCode.includes('NOT_FOUND')) {
-    return true;
-  }
-  const message = toNonEmptyString(record.message).toLowerCase();
-  return message.includes('not found');
-}
-
 async function loadRealmSourceDetailsBySourceRef(
   sourceRef: CharacterSourceRefV3,
   context?: { runtimeSourceRef?: string | null },

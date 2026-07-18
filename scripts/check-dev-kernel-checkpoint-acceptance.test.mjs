@@ -374,7 +374,7 @@ test('acceptance contract preserves close posture and defines exact row evidence
     .filter((claim) => claim.runner_profile === 'dev_kernel_core_v2');
   assert.ok(runnerBackedClaims.length > 1, 'real journey rows beyond F-04a must bind the v2 runner profile');
   assert.ok(runnerBackedClaims.every((claim) => claim.execution_binding === 'required'));
-  assert.equal(checkpoint.runner_profiles.dev_kernel_core_v2.exact_required_checkpoints.length, 23);
+  assert.equal(checkpoint.runner_profiles.dev_kernel_core_v2.exact_required_checkpoints.length, 22);
   assert.equal(checkpoint.runner_profiles.dev_kernel_core_v2.minimum_shell_screenshot_artifacts, 2);
 });
 

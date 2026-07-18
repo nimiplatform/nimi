@@ -18,7 +18,6 @@ var (
 	ErrPrincipalTombstoned = errors.New("local-app principal tombstoned")
 	ErrRevisionConflict    = errors.New("local-app provenance revision conflict")
 	ErrRandomExhausted     = errors.New("local-app identifier allocation exhausted")
-	ErrGrantTransition     = errors.New("local-app grant transition denied")
 )
 
 type PrincipalKind string
@@ -51,17 +50,6 @@ const (
 	LifecycleStateRevoked         LifecycleState = "revoked"
 	LifecycleStateSecurityRevoked LifecycleState = "security_revoked"
 	LifecycleStateRemoved         LifecycleState = "removed"
-)
-
-type GrantState string
-
-const (
-	GrantStatePending    GrantState = "pending"
-	GrantStateGranted    GrantState = "granted"
-	GrantStateDenied     GrantState = "denied"
-	GrantStateExpired    GrantState = "expired"
-	GrantStateRevoked    GrantState = "revoked"
-	GrantStateSuperseded GrantState = "superseded"
 )
 
 type Principal struct {
@@ -128,36 +116,6 @@ type UpdateDevelopmentRecordInput struct {
 	LifecycleState            LifecycleState
 }
 
-type Grant struct {
-	LocalOSUserAnchor             string
-	AccountID                     string
-	LocalAppPrincipalID           string
-	CapabilityResourceFingerprint string
-	GrantID                       string
-	CapabilityScope               []string
-	ResourceScope                 []string
-	GrantGeneration               uint64
-	GrantRevision                 uint64
-	State                         GrantState
-	IssuedAt                      time.Time
-	ExpiresAt                     *time.Time
-	SupersedesGrantID             string
-	PresenceEvidenceRef           string
-}
-
-type CreatePendingGrantInput struct {
-	AccountID                     string
-	LocalAppPrincipalID           string
-	CapabilityScope               []string
-	ResourceScope                 []string
-	CapabilityResourceFingerprint string
-	GrantGeneration               uint64
-	GrantRevision                 uint64
-	ExpiresAt                     *time.Time
-	SupersedesGrantID             string
-	PresenceEvidenceRef           string
-}
-
 type ProvenanceInvalidationFact struct {
 	Sequence                uint64
 	LocalOSUserAnchor       string
@@ -167,7 +125,6 @@ type ProvenanceInvalidationFact struct {
 	CurrentRevision         uint64
 	LaunchLeasesInvalidated bool
 	SessionsInvalidated     bool
-	GrantStateChanged       bool
 	RecordedAt              time.Time
 }
 
@@ -235,44 +192,10 @@ func validateRecordInput(input CreateRecordInput) error {
 	return nil
 }
 
-func validateGrantInput(input CreatePendingGrantInput) error {
-	for name, value := range map[string]string{
-		"account_id":                      input.AccountID,
-		"local_app_principal_id":          input.LocalAppPrincipalID,
-		"capability_resource_fingerprint": input.CapabilityResourceFingerprint,
-		"presence_evidence_ref":           input.PresenceEvidenceRef,
-	} {
-		if err := requireExactText(name, value); err != nil {
-			return err
-		}
-	}
-	if input.GrantGeneration == 0 || input.GrantRevision == 0 {
-		return fmt.Errorf("%w: grant generation and revision must be positive", ErrInvalidArgument)
-	}
-	if err := validateExactTextList("capability_scope", input.CapabilityScope); err != nil {
-		return err
-	}
-	if err := validateExactTextList("resource_scope", input.ResourceScope); err != nil {
-		return err
-	}
-	return nil
-}
-
 func validLifecycleState(state LifecycleState) bool {
 	switch state {
 	case LifecycleStateActive, LifecycleStateDormant, LifecycleStateRevoked, LifecycleStateSecurityRevoked, LifecycleStateRemoved:
 		return true
-	default:
-		return false
-	}
-}
-
-func validGrantTransition(from GrantState, to GrantState) bool {
-	switch from {
-	case GrantStatePending:
-		return to == GrantStateGranted || to == GrantStateDenied || to == GrantStateExpired
-	case GrantStateGranted:
-		return to == GrantStateRevoked || to == GrantStateExpired || to == GrantStateSuperseded
 	default:
 		return false
 	}

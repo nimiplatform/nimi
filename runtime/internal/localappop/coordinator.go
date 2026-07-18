@@ -20,6 +20,9 @@ func (c *Coordinator) Evaluate(ctx context.Context, req Request) Decision {
 		}
 		return Decision{Outcome: outcome, Reason: reason}
 	}
+	if authorityClass, ok := AuthorityClassForOperation(req.Operation); !ok || authorityClass == AuthorityClassUserPermission {
+		return Decision{Outcome: OutcomeUnavailable, Reason: ReasonLocalAppOperationUnavailable}
+	}
 	if c == nil || c.resolver == nil {
 		return Decision{Outcome: OutcomeUnavailable, Reason: ReasonLocalAppOperationUnavailable}
 	}

@@ -403,7 +403,7 @@ dev supervisor. The app-tools `nimi-app dev` request is a non-authorizing
 same-user intent containing only developer-visible project inputs. Desktop
 canonicalizes and validates those inputs, reads the current Runtime account
 projection over protected control, and displays app name/app id, canonical
-project root, shell kind, current account, requested manifest capabilities,
+project root, shell kind, current account, declared public permissions and host posture,
 `run once`, `remember this project`, and cancel/deny before requesting Runtime
 authorization.
 
@@ -449,14 +449,15 @@ autostart.
 `tables/local-app-control-surfaces.yaml` is the executable Desktop owner map.
 The Runtime-derived `local_app_control` role exists only on the verified
 Desktop control connection and is distinct from `desktop_account_host` and a
-local-app child session. It may coordinate Developer Mode, project evaluation,
-user grant decisions, revocation and native launch/process binding, but it owns
-none of the principal, record, grant, lease, session, account or operation
-policy truth.
+local-app child session. It coordinates Developer Mode, project evaluation,
+project revocation and native launch/process binding. No third-party public
+permission is currently admitted, so this role has no permission decision or
+management action. It owns none of the principal, record, permission, lease,
+session, account or operation-policy truth.
 
 Renderer IPC may carry renderer-safe status, project selectors and explicit
 user decisions only. `PrepareLocalAppLaunch`, process binding and native carrier
-attachment stay in the Desktop native supervisor. Principal/record/grant ids,
+attachment stay in the Desktop native supervisor. Principal/record/permission-decision ids,
 lineage, attestation refs, SID partition, process tuple, session proof, Runtime
 endpoint, bearer and authorization metadata must not enter renderer state,
 storage, network, logs or errors.

@@ -24,9 +24,10 @@ test('normalizes hash-bearing sourceRef without caller-known runtimeSourceRef', 
     ownerUserId: ' user-1 ',
     sourceRef: {
       kind: ' worldCharacter ',
+      id: ' source-1 ',
       worldId: ' world-1 ',
-      sourceId: ' source-1 ',
-      sourceContentHash: ' hash-1 ',
+      worldEntityRef: { kind: ' worldEntity ', worldId: ' world-1 ', entityId: ' source-1 ' },
+      sourceHash: ` ${'a'.repeat(64)} `,
     },
   });
 
@@ -35,9 +36,10 @@ test('normalizes hash-bearing sourceRef without caller-known runtimeSourceRef', 
     ownerUserId: 'user-1',
     sourceRef: {
       kind: 'worldCharacter',
+      id: 'source-1',
       worldId: 'world-1',
-      sourceId: 'source-1',
-      sourceContentHash: 'hash-1',
+      worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'source-1' },
+      sourceHash: 'a'.repeat(64),
     },
   });
 });
@@ -50,9 +52,10 @@ test('preserves runtimeSourceRef only as an extra discovery filter', async () =>
     runtimeSourceRef: ' opaque-runtime-source-ref ',
     sourceRef: {
       kind: 'worldCharacter',
+      id: 'source-1',
       worldId: 'world-1',
-      sourceId: 'source-1',
-      sourceContentHash: 'hash-1',
+      worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'source-1' },
+      sourceHash: 'a'.repeat(64),
     },
   });
 
@@ -65,9 +68,10 @@ test('rejects discovery without owner or complete hash-bearing sourceRef', async
   assert.equal(normalizeZhiyuLocalAgentDiscoveryInput({
     sourceRef: {
       kind: 'worldCharacter',
+      id: 'source-1',
       worldId: 'world-1',
-      sourceId: 'source-1',
-      sourceContentHash: 'hash-1',
+      worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'source-1' },
+      sourceHash: 'a'.repeat(64),
     },
   }), null);
 
@@ -80,9 +84,10 @@ test('rejects discovery without owner or complete hash-bearing sourceRef', async
     ownerUserId: 'user-1',
     sourceRef: {
       kind: 'worldCharacter',
+      id: 'source-1',
       worldId: 'world-1',
-      sourceId: 'source-1',
-      sourceContentHash: ' ',
+      worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'source-1' },
+      sourceHash: ' ',
     },
   }), null);
 });

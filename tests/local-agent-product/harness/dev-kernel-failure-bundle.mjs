@@ -16,7 +16,7 @@ export async function persistDevKernelFailureBundle({
   sourceState,
   desktop,
   zhiyuConnections = [],
-  readDesktopGrantProjection,
+  readDesktopAuthorityProjection,
   runtimeService,
   processLedger,
   observations,
@@ -39,7 +39,7 @@ export async function persistDevKernelFailureBundle({
     },
     runtimeCandidate: projectRuntimeCandidate(runtimeService),
     processLedger: processLedger?.snapshot?.() || null,
-    desktopGrantProjection: await safeRead(readDesktopGrantProjection),
+    desktopAuthorityProjection: await safeRead(readDesktopAuthorityProjection),
     lastDom: {
       desktop: await projectPage(desktop?.page),
       zhiyu: await projectPage(liveZhiyu?.page),
@@ -83,11 +83,11 @@ async function projectZhiyuEvidence(page) {
     return {
       state: evidence.state,
       buildMarker: evidence.buildMarker,
-      openPermission: evidence.openPermission,
-      conversationPermissions: evidence.conversationPermissions,
+      session: evidence.session,
+      permission: evidence.permission,
+      permissionRequest: evidence.permissionRequest,
+      appPrivateStorage: evidence.appPrivateStorage,
       lastError: evidence.lastError,
-      conversationAnchorPresent: Boolean(evidence.conversationAnchorId),
-      transcriptCount: Array.isArray(evidence.transcript) ? evidence.transcript.length : 0,
     };
   }).catch(() => null);
 }

@@ -68,14 +68,15 @@ Remembered project 在 run 结束后进入 `dormant`，下一次必须显式
 mode off、revoke、account switch 与 project identity change 必须按 Runtime
 规则产生新 lease/session 或立即 deny，旧 process/session 不得继承。
 
-`MUST`：Desktop 必须同时呈现 zero-grant session 与 separate grant posture，
-不得把 project admitted、process running 或 session open 显示成 permission
-approved。
+`MUST`：Desktop 必须把 zero-permission session 与独立的 product permission
+posture 分开呈现；不得把 project admitted、process running 或 session open
+显示成 permission approved。当前权限目录全部 reserved 时，不得渲染伪造的
+approve/revoke 管理中心。
 
 ## D-DEV-006 — Native Execution Risk And Failure UX
 
 `MUST`：确认面必须明确告知本地项目将在 Windows 原生进程中执行、可访问其
-OS user 权限范围内的资源，而 Nimi API 仍受独立 grant/owner policy 限制。首次
+OS user 权限范围内的资源，而 Nimi API 仍受独立 permission/owner policy 限制。首次
 批准及 disclosure revision 变化后必须重新确认。
 
 `MUST`：UI 必须有可判定的 loading、disabled、retry、no-grant、grant-approved、

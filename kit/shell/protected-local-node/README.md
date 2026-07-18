@@ -1,22 +1,14 @@
 # nimi-shell-protected-local-node
 
 Host-only Node-API projection of the shared Nimi protected carrier for Electron
-main processes. The addon exposes the exact fourteen Local App operations:
+main processes. The addon exposes the exact six Local App operations:
 
 - `localAppSessionStatus`
-- `localAppPermissionPosture`
+- `localAppPermissionStatus`
 - `localAppPermissionRequest`
-- `localAppArtifactsReadRuntimeBytes`
 - `localAppStorageReadJson`
 - `localAppStorageWriteJson`
 - `localAppStorageRemoveJson`
-- `localAppAgentInventory`
-- `localAppAgentOpenConversation`
-- `localAppAgentSendTurn`
-- `localAppAgentSubscribeTurn`
-- `localAppAgentGetConversationSnapshot`
-- `localAppAgentTranscribeVoice`
-- `localAppAgentSubscribeVoiceStream`
 
 For Nimi Desktop it additionally exposes two closed unary families:
 
@@ -30,5 +22,5 @@ opens; unrelated Runtime methods and every stream fail closed.
 
 Every call returns either `{ status: "ok", value }` or
 `{ status: "error", reasonCode, retryable }`. The addon has no arbitrary Runtime
-proxy and never returns an endpoint, token, principal, record, grant, launch,
+proxy and never returns an endpoint, token, principal, record, permission decision, launch,
 process, session proof, account identifier, or Runtime boot epoch.

@@ -69,7 +69,6 @@ export function validateLocalDevelopmentAuthoritySummary(
     'desktopAppId',
     'desktopPid',
     'developerMode',
-    'grantSummary',
     'projectAuthorization',
     'schemaVersion',
   ];
@@ -103,18 +102,7 @@ export function validateLocalDevelopmentAuthoritySummary(
     value.projectAuthorization,
     ['activeCount', 'dormantCount', 'deniedCount', 'revokedCount'],
   );
-  const grantSummary = validateCountSummary(
-    value.grantSummary,
-    [
-      'pendingCount',
-      'grantedCount',
-      'deniedCount',
-      'expiredCount',
-      'revokedCount',
-      'supersededCount',
-    ],
-  );
-  if (!developerMode || !projectAuthorization || !grantSummary) {
+  if (!developerMode || !projectAuthorization) {
     return { state: 'error', reason: 'desktop-authority-summary-shape-invalid' };
   }
 
@@ -139,14 +127,6 @@ export function validateLocalDevelopmentAuthoritySummary(
           ? 'bounded-project-authorization-summary-available'
           : projectAuthorization.reasonCode,
         ...projectAuthorization.counts,
-      },
-      {
-        id: 'grant-summary',
-        state: grantSummary.availability === 'available' ? 'ok' : 'unavailable',
-        reason: grantSummary.availability === 'available'
-          ? 'bounded-grant-summary-available'
-          : grantSummary.reasonCode,
-        ...grantSummary.counts,
       },
     ],
   };

@@ -17,15 +17,17 @@ const forbiddenVocabulary = Object.freeze([
   'RemoveLocalAppAdoption',
   'BindInstalledLaunchProcess',
   'RuntimeGrantService',
+  'GetLocalAppGrantStatus',
+  'RequestLocalAppGrant',
+  'DecideLocalAppGrant',
+  'RevokeLocalAppGrant',
 ]);
 
 const requiredMethodsByGroup = Object.freeze({
   auth_service_projection: ['OpenLocalAppSession'],
   account_service_projection: [
-    'GetLocalAppGrantStatus',
-    'RequestLocalAppGrant',
-    'DecideLocalAppGrant',
-    'RevokeLocalAppGrant',
+    'GetLocalAppPermissionStatus',
+    'RequestLocalAppPermission',
   ],
   local_development_service_projection: [
     'GetDeveloperModeStatus',
@@ -60,10 +62,10 @@ export function validateSdkLocalAppAuthority(input) {
   }
 
   const requiredText = [
-    ['appClient', 'local-first-party-app'],
     ['appClient', 'local-app'],
     ['appClient', 'standardShell'],
-    ['appClient', 'zero-grant'],
+    ['appClient', 'base entitlements'],
+    ['appClient', 'public-permission'],
     ['runtime', 'LOCAL_APP'],
     ['runtime', 'principal'],
     ['transport', 'host-injected'],

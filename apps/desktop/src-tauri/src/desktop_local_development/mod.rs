@@ -11,6 +11,7 @@ use self::domain::{
     project_run_status, random_identifier, random_selector, recordable_terminal_status,
     required_selector, sanitize_log, terminal_status_without_run, write_presence,
     InitialAuthorityResolution, PendingApproval, PendingApprovalTarget,
+    PermissionRequirementProjection,
 };
 pub(crate) use self::domain::{
     AuthorityRefresh, DeveloperModeProjection, DeveloperModeSetPayload,
@@ -401,7 +402,6 @@ impl DesktopLocalDevelopmentRuntime {
         }
         AuthorityRefresh::Active
     }
-
     async fn queue_approval(
         &self,
         run: Arc<RunContext>,
@@ -428,7 +428,15 @@ impl DesktopLocalDevelopmentRuntime {
             canonical_project_root: path_text(&evaluation.project.canonical_project_root),
             shell: evaluation.project.shell_kind.as_str().to_string(),
             account_id: evaluation.project.account_id.clone(),
-            requested_capabilities: evaluation.project.requested_capabilities.clone(),
+            permission_requirements: evaluation
+                .project
+                .permission_requirements
+                .iter()
+                .map(|requirement| PermissionRequirementProjection {
+                    permission_id: requirement.permission_id.clone(),
+                    reason: requirement.reason.clone(),
+                })
+                .collect(),
             approval_state: evaluation.state.as_str().to_string(),
         };
         let mut pending = self.inner.pending.write().await;
@@ -453,7 +461,6 @@ impl DesktopLocalDevelopmentRuntime {
         let _ = self.inner.app.emit(APPROVAL_EVENT, projection);
         Ok(())
     }
-
     pub(crate) async fn cancel(&self, run_id: &str) -> Option<LocalDevelopmentRunStatus> {
         let run = self.inner.runs.read().await.get(run_id).cloned()?;
         run.cancel_tx.send_replace(true);
@@ -468,7 +475,6 @@ impl DesktopLocalDevelopmentRuntime {
         }
         Some(run.status().await)
     }
-
     async fn terminate_all_runs_for_mode_off(&self) {
         let runs = self
             .inner

@@ -11,7 +11,7 @@ import (
 
 var (
 	// ErrRealmSourceMaterializationAcquisitionDenied marks a canonical Realm
-	// grant response that is non-authorizing or contract-invalid. It is distinct
+	// service-operation response that is non-authorizing or contract-invalid. It is distinct
 	// from transport availability so public consumers receive the closed denial
 	// outcome required by the materialization contract.
 	ErrRealmSourceMaterializationAcquisitionDenied         = errors.New("Realm source materialization acquisition denied")
@@ -22,8 +22,8 @@ var (
 )
 
 // RealmSourceMaterializationIssuer is the Runtime-private account/Realm seam.
-// Implementations own bearer refresh, exact current-grant selection and the
-// fixed Realm origin. No bearer, grant record, base URL or packet bytes cross
+// Implementations own bearer refresh, the authenticated first-party service
+// operation and the fixed Realm origin. No bearer, permission record, base URL or packet bytes cross
 // this interface into a public RPC or protected broker.
 type RealmSourceMaterializationIssuer interface {
 	AcquireRealmSourceMaterialization(context.Context, RealmSourceMaterializationIssuanceRequest) (RealmSourceMaterializationAcquisition, error)

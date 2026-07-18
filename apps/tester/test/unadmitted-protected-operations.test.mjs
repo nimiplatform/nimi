@@ -14,26 +14,28 @@ test('Tester consumes only the final typed local-app operation set', () => {
   const platform = read('src/shell/auth/runtime-platform.ts');
   const client = read('src/shell/local-app-runtime-platform.ts');
 
-  assert.match(runtime, /Only the eight typed local-app carrier operations are admitted/);
+  assert.match(runtime, /session posture, public permission posture\/request, and app-private JSON storage/);
   assert.match(runtime, /'sdk-method-unavailable'/);
-  assert.match(runtime, /generic Runtime health, account, Realm, AIConfig, storage, lifecycle, and media surfaces remain blocked/);
+  assert.match(runtime, /generic Runtime health, account, Realm, Agent, AI, lifecycle, and media surfaces remain unavailable/);
   assert.doesNotMatch(runtime, /invokeTesterCapability|projection\.client|new Runtime/);
   assert.match(platform, /testerLocalAppRuntimePlatform\.auth\.status/);
-  assert.match(client, /testerLocalAppRuntimePlatform\.artifacts\.readRuntimeBytes/);
+  assert.doesNotMatch(client, /artifacts\.readRuntimeBytes|openConversation|agentInventory/);
   assert.match(client, /createNimiLocalAppStandardShellSurface/);
   assert.doesNotMatch(platform, /localhost|127\.0\.0\.1|access[_-]?token|refresh[_-]?token|launch[_-]?ticket|session[_-]?token/i);
 });
 
-test('Tester exposes an exact fail-closed permission regression surface', () => {
+test('Tester exposes the reserved-permission denial and app-private storage success boundary', () => {
   const permissionLab = read('src/tester/local-app-permission-lab.tsx');
 
-  assert.match(permissionLab, /'app_storage\.json\.write'/);
-  assert.match(permissionLab, /'local-development\/launch-permission-proof\.json'/);
-  assert.match(permissionLab, /testerLocalAppRuntimePlatform\.permissions\.posture/);
+  assert.match(permissionLab, /'agents\.interact'/);
+  assert.match(permissionLab, /'authority-lab\/app-private-storage\.json'/);
+  assert.match(permissionLab, /testerLocalAppRuntimePlatform\.permissions\.status/);
   assert.match(permissionLab, /testerLocalAppRuntimePlatform\.permissions\.request/);
   assert.match(permissionLab, /testerLocalAppRuntimePlatform\.storage\.writeJson/);
+  assert.match(permissionLab, /testerLocalAppRuntimePlatform\.storage\.readJson/);
+  assert.match(permissionLab, /testerLocalAppRuntimePlatform\.storage\.removeJson/);
   assert.match(permissionLab, /reasonCode/);
-  assert.match(permissionLab, /actionHint/);
+  assert.match(permissionLab, /canRequest/);
   assert.doesNotMatch(permissionLab, /localhost|127\.0\.0\.1|access[_-]?token|refresh[_-]?token|launch[_-]?ticket|session[_-]?token|new Runtime|createNimiClient/i);
 });
 

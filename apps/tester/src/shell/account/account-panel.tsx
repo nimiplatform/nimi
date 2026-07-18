@@ -31,9 +31,7 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
       throw new Error(projection.message || 'Protected local-app session unavailable.');
     }
     setLocalAppSessionReady(true);
-    setStatusMessage(projection.localAppSession.operationAllowed
-      ? 'The protected local-app session has an operation grant; account identity and grant authority remain in Nimi Desktop.'
-      : 'The protected identity session has zero grants. This app receives no account token, subject identifier, or implied operation authorization.');
+    setStatusMessage('The protected identity session is bound. App-private storage is available as a base entitlement; protected Nimi resources remain unavailable without an admitted public permission. This app receives no account token or subject identifier.');
     return projection.localAppSession;
   }, []);
 

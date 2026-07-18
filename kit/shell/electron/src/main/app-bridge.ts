@@ -3,17 +3,27 @@ import { registerNimiElectronRuntimeBridge } from './host.js';
 import { createNimiElectronLocalAppHost } from './local-app-host.js';
 import {
   NimiElectronShellHostError,
+  type NimiElectronCommandHandler,
   type NimiElectronIpcMain,
   type RegisteredNimiElectronRuntimeBridge,
 } from './types.js';
 
 const LOCAL_APP_PROTECTED_CARRIER_SENTINEL = 'local-app-protected-carrier-only';
-const INPUT_KEYS = ['allowedRendererUrls', 'appId', 'ipcMain'] as const;
+const REQUIRED_INPUT_KEYS = ['allowedRendererUrls', 'appId', 'ipcMain'] as const;
+const OPTIONAL_INPUT_KEYS = ['appCommandHandlers'] as const;
+const RESERVED_COMMAND_PREFIX = 'nimi.shell.';
 
 export type RegisterNimiElectronAppBridgeInput = {
   readonly appId: string;
   readonly allowedRendererUrls: readonly string[];
   readonly ipcMain: NimiElectronIpcMain;
+  /**
+   * Exact commands implemented by this app's own native host. These commands
+   * are app-owned authority: they receive the same renderer origin checks as
+   * the local-app carrier, but they do not become Nimi permissions and cannot
+   * occupy the reserved `nimi.shell.*` namespace.
+   */
+  readonly appCommandHandlers?: Readonly<Record<string, NimiElectronCommandHandler>>;
 };
 
 /**
@@ -54,6 +64,7 @@ export function registerNimiElectronAppBridge(
       capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
       localAppHost,
     },
+    commandHandlers: validateAppCommandHandlers(input.appCommandHandlers),
   });
 }
 
@@ -65,14 +76,52 @@ function assertExactAppBridgeInput(input: RegisterNimiElectronAppBridgeInput): v
       'provide_exact_local_app_bridge_input',
     );
   }
-  const keys = Object.keys(input).sort();
-  if (JSON.stringify(keys) !== JSON.stringify([...INPUT_KEYS].sort())) {
+  const keys = Object.keys(input);
+  const allowedKeys = new Set<string>([...REQUIRED_INPUT_KEYS, ...OPTIONAL_INPUT_KEYS]);
+  if (
+    REQUIRED_INPUT_KEYS.some((key) => !Object.hasOwn(input, key))
+    || keys.some((key) => !allowedKeys.has(key))
+  ) {
     throw appBridgeInputError(
       'Electron app bridge input contains forbidden authority fields',
       'electron-local-app-bridge-input-forbidden',
       'remove_app_owned_local_app_authority',
     );
   }
+}
+
+function validateAppCommandHandlers(
+  value: RegisterNimiElectronAppBridgeInput['appCommandHandlers'],
+): Readonly<Record<string, NimiElectronCommandHandler>> | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw appBridgeInputError(
+      'Electron app command handlers must be an exact command map',
+      'electron-local-app-command-map-invalid',
+      'provide_exact_app_owned_command_handlers',
+    );
+  }
+  const handlers: Record<string, NimiElectronCommandHandler> = {};
+  for (const [command, handler] of Object.entries(value)) {
+    if (
+      !command
+      || command.trim() !== command
+      || command.length > 160
+      || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/u.test(command)
+      || command.toLowerCase().startsWith(RESERVED_COMMAND_PREFIX)
+      || typeof handler !== 'function'
+    ) {
+      throw appBridgeInputError(
+        `Electron app command handler is invalid: ${command || '<empty>'}`,
+        'electron-local-app-command-handler-invalid',
+        'use_non_reserved_exact_app_owned_command',
+      );
+    }
+    handlers[command] = handler;
+  }
+  return Object.freeze(handlers);
 }
 
 function normalizeRendererUrl(value: unknown): string {

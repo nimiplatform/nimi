@@ -1,79 +1,78 @@
-# Grant Service Contract
+# Runtime Permission Decision Contract
 
-> Owner Domain: `K-GRANT-*`
+> Owner Domain: `K-GRANT-*` (owner-internal decision lifecycle only)
 
 ## K-GRANT-001 Public Grant Family Hardcut
 
-The former public credential-grant service has been removed from proto,
-generated clients, SDK exports, Runtime handlers/registration and persistence.
-Its wire and field identities are reserved and must not be reused or recreated
-under aliases.
+The former public credential-grant service is removed from proto, generated
+clients, SDK exports, Runtime registration and persistence. Its wire identities
+are reserved. No token, bearer, scope list, resource fingerprint, operation id,
+delegation chain or app-selected endpoint may recreate it under another name.
 
-No public TCP, loopback gRPC, renderer IPC, ordinary SDK client, app-owned host,
-Desktop bearer, request-body consent, parent-token possession, scope claim, or
-portable session may revive this family.
+The app-facing surface is product-level permission status and request only.
+Apps cannot approve, decide, revoke, mint or carry authority. Desktop may own a
+future user decision UI, but Runtime or the canonical remote owner retains the
+decision truth and endpoint enforcement.
 
-## K-GRANT-002 Runtime-Private Grant Evaluation
+## K-GRANT-002 Authority-Class Separation
 
-Runtime may evaluate protected operations only inside its own security
-principal, after the admitted protected transport has established a
-Runtime-derived live origin and the operation-specific policy has authorized
-that origin. Such evaluation:
+Runtime resolves every local-app action to exactly one Platform authority class:
 
-- is a private Runtime call path rather than a `RuntimeGrantService` transport;
-- does not mint or return a reusable protected credential to Desktop, SDK,
-  renderer, app, or another ordinary local caller;
-- cannot be authorized by a caller-supplied `confirmed`, consent boolean,
-  principal id, token id, scope list, resource selector, or delegation chain;
-- records fail-closed authorization and audit state in Runtime-owned protected
-  storage; and
-- may expose only typed operation results and redacted status projection.
+- `base_entitlement`: the calling principal's bounded Nimi-private partition;
+- `user_permission`: durable access to a protected Nimi/Realm/Agent/Cognition
+  product capability through one admitted public permission id;
+- `one_shot_consent`: one owner-selected resource represented by a bounded,
+  non-forgeable handle;
+- `app_owned_authority`: the app host's own SQLite, media, settings, cache,
+  routes and product commands; or
+- `os_right`: authority actually granted to the native process by the OS.
 
-The final local-app grant binding and evaluator input are defined by
-K-GRANT-014. No public credential family is required or permitted.
+Only `user_permission` may use an owner-internal durable decision lifecycle.
+Base entitlements, app-owned authority, one-shot handles and OS rights never
+create a Runtime permission row. Launch approval, publisher review, Developer
+Mode, login, session existence, product-route availability, AI routing and
+metering are not permissions and cannot create synthetic permission truth.
 
-## K-GRANT-003 Removal And Drift Boundary
+## K-GRANT-003 No Generic Operation/Resource Grant Engine
 
-The authoritative removal is closed across:
+Public permissions come only from
+`../../platform/kernel/tables/nimi-app-permission-catalog.yaml`. Internal
+operation and resource identities remain implementation details of their
+canonical owner. They may be used for endpoint enforcement and protected audit,
+but are forbidden from manifests, permission requests, ordinary SDK/Kit
+surfaces, approval UI and app-readable diagnostics.
 
-- `tables/runtime-rpc-auth-posture/identity-access.yaml`;
-- `tables/protected-local-rpc-transport-matrix.yaml`;
-- `tables/rpc-methods.yaml`;
-- `tables/rpc-migration-map/methods-identity-app.yaml`; and
-- `../../sdks/kernel/tables/runtime-method-groups.yaml`.
+Runtime must not persist or evaluate a generic `capability_scope +
+resource_scope` grant. A catalog row alone is not authority. A permission can
+become admitted only when its decision owner, selector, lifecycle, endpoint
+mapping, audit, revoke, SDK/Kit projection, product UI and positive evidence
+arrive atomically. Until then status/request returns typed `unavailable` and
+every mapped protected operation fails closed.
 
-Any active SDK export, auth posture, transport/origin admission, generated
-symbol, handler, protected credential response or product caller for the
-removed family is authority drift and must fail validation.
+## K-GRANT-014 Local Public-Permission Lifecycle Admission Boundary
 
-Former public grant, delegation, scope-catalog, token-chain, and request-body
-consent behavior is retired pre-cutover authority history available from Git;
-it is not active product truth and must not be copied into a new facade.
+The current admitted third-party public-permission set is empty. Consequently
+Runtime has no positive local permission mutation path and no durable
+permission-decision store. A local app may
+still open a restricted process-bound session and use base entitlements; it may
+not list protected Agent/account/resource inventory merely to construct an
+authorization request.
 
-## K-GRANT-014 PC-local App Account Grant
+When a Runtime-owned public permission is admitted, its private lifecycle must
+bind at least:
 
-Runtime owns one protected `AppAccountGrant` lifecycle keyed by
-`local_os_user_anchor + account_id + local_app_principal_id +
-capability_resource_fingerprint`. The schema and exact state transitions are
-defined by `tables/local-app-grant-binding-schema.yaml`.
+`local_os_user_anchor + account_id + local_app_principal_id + permission_id +
+owner_selector_digest`.
 
-Principal/project/package admission and provenance promotion create zero grant.
-`LocalAppRecord` contains no grant boolean. Publisher tier, app id, provenance,
-catalog presence, session existence, or operation request cannot substitute for
-an active exact grant. Account switch never transfers it; uninstall/project
-revoke tombstones the principal and leaves no grant inheritance.
+The selector is produced by the canonical owner, never supplied as authority by
+the app. The lifecycle must have monotonic revision, explicit user decision
+evidence, account/principal isolation, revoke semantics, fresh reads at every
+protected endpoint and complete audit. Account switch, principal tombstone or
+owner-policy change must fail closed. Display `app_id`, publisher tier,
+provenance, catalog presence or a valid session cannot substitute for the
+current decision.
 
-A valid zero-grant local-app session may read redacted permission posture,
-read the K-AGCORE-006e bounded Agent inventory needed to select an exact grant
-resource, and request Desktop-owned grant UX. The inventory operation has no
-grant row, capability/resource fingerprint, or permission-request form and
-cannot authorize a conversation operation. Grant create/expand consumes the exact Runtime-
-issued presence challenge. Revoke/expire/supersede changes the grant revision
-without rotating the identity session; the next protected operation reads the
-current revision and denies or allows through the provenance-agnostic
-K-ACCSVC coordinator plus the domain owner policy.
-
-The grant store is separate from principal/record and launch/session stores.
-No dual read/write, app-id positive fallback, cloud grant prerequisite, public
-token, bearer, portable grant credential, or app/renderer mutation surface is
-admitted.
+The exact pre-admission and future target schema is defined by
+`tables/local-app-grant-binding-schema.yaml`. It intentionally declares
+`store_identity: absent_pre_admission`; changing that value requires the full
+permission admission slice, not a standalone schema or CRUD change.

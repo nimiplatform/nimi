@@ -117,13 +117,13 @@ rules:
     evidence_refs:
       - sdk_kernel_consistency
       - public_raw_token_authority_hardcut_gate
-    note: Generated-app Runtime platform client admits only local-first-party-app and local-app; the third-party branch receives a host-injected typed carrier with zero credential, principal, grant, endpoint, or caller-mode custody.
+    note: Generated-app Runtime platform client admits only local-first-party-app and local-app; the third-party branch receives a host-injected typed carrier with zero credential, principal, permission-decision, endpoint, or caller-mode custody.
     evidence_requirement: required
   - rule_id: S-APP-017
     evidence_refs:
       - sdk_kernel_consistency
       - sdk_behavioral_test
-    note: SDK preserves Runtime principal-partitioned storage truth and exposes exactly readJson/writeJson/removeJson through the protected carrier with per-operation/resource grant, relative-path, document/quota, and projection checks; GetAppStorage, roots, paths, and generic file APIs remain absent.
+    note: SDK preserves Runtime principal/account-partitioned storage truth and exposes exactly readJson/writeJson/removeJson as a base entitlement through the protected carrier with relative-path, document/quota, and projection checks; no permission row or prompt participates, and GetAppStorage, roots, paths, and generic file APIs remain absent.
     evidence_requirement: required
   - rule_id: S-APP-018
     evidence_refs:
@@ -153,5 +153,5 @@ rules:
     evidence_refs:
       - sdk_kernel_consistency
       - sdk_behavioral_test
-    note: SDK local-app bootstrap accepts only the host-neutral standardShell carrier and exposes exact read-only posture, exact-operation permission request, artifact and RuntimeAgent operations; zero grant and unavailable owners fail closed without generic Runtime forwarding.
+    note: SDK local-app bootstrap accepts only the host-neutral standardShell carrier and exposes session posture, product permission status/request, and app-private JSON storage; the current reserved permission catalog exposes no artifact or RuntimeAgent operation and unavailable owners fail closed without generic Runtime forwarding.
     evidence_requirement: required

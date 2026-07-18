@@ -7,7 +7,6 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -393,56 +392,27 @@ func (s *Service) SubscribeAgentVoiceStream(req *runtimev1.SubscribeAgentVoiceSt
 	if s == nil || s.agentVoiceStreams == nil {
 		return status.Error(codes.Unavailable, "agent voice stream broker unavailable")
 	}
-	localDecision, localAppAuthorized := accountservice.AuthorizedLocalAppDecisionFromContext(stream.Context())
-	var session publicChatAnchorState
-	var err error
-	if localAppAuthorized {
-		agentID := strings.TrimSpace(req.GetAgentId())
-		if localDecision.Operation != accountservice.LocalAppOperationVoiceStreamSubscribe || req.GetContext() != nil || agentID == "" {
-			return status.Error(codes.PermissionDenied, "local-app voice stream selector is invalid")
+	if strings.TrimSpace(req.GetAgentId()) != "" {
+		return status.Error(codes.InvalidArgument, "agent_id is not part of the scoped voice subscription request")
+	}
+	identity, _, identityErr := s.agentEntryForIdentityContext(req.GetContext())
+	if identityErr != nil {
+		return identityErr
+	}
+	callerAppID := strings.TrimSpace(req.GetContext().GetAppId())
+	if callerAppID == "" {
+		return status.Error(codes.InvalidArgument, "voice stream subscription requires app_id")
+	}
+	scopedBinding := req.GetContext().GetScopedBinding()
+	if scopedBinding != nil {
+		if scopedBindingAttachmentConversationAnchorMismatches(scopedBinding, conversationAnchorID) {
+			return status.Error(codes.PermissionDenied, "voice stream scoped binding conversation_anchor_id mismatch")
 		}
-		if s.localAppVoiceTranscriptionAuditStore() == nil {
-			return status.Error(codes.FailedPrecondition, "voice stream audit storage is unavailable")
-		}
-		if err := s.ValidateLocalAppConversationScope(stream.Context(), agentID, conversationAnchorID); err != nil {
+		if err := s.validateScopedBindingAttachment(scopedBinding, callerAppID, identity.LocalAgentRef, runtimeAgentTurnReadScope); err != nil {
 			return err
 		}
-		entry, identityErr := s.agentByID(agentID)
-		if identityErr != nil {
-			return identityErr
-		}
-		identity, identityErr := validateLocalAgentIdentity(entry.Agent.GetOwnerUserId(), entry.Agent.GetRuntimeSourceRef(), entry.Agent.GetLocalAgentRef())
-		if identityErr != nil || identity.OwnerUserID != localDecision.AccountID || entry.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
-			return status.Error(codes.PermissionDenied, "local-app voice stream Agent scope is invalid")
-		}
-		var turn publicChatTurnState
-		session, turn, err = s.resolveVoicePlaybackTurnScope(localDecision.AppID, identity, conversationAnchorID, turnID, nil, runtimeAgentTurnReadScope)
-		if err == nil && strings.TrimSpace(turn.TurnID) != turnID {
-			err = status.Error(codes.PermissionDenied, "local-app voice stream turn scope is invalid")
-		}
-	} else {
-		if strings.TrimSpace(req.GetAgentId()) != "" {
-			return status.Error(codes.InvalidArgument, "agent_id is reserved for protected local-app voice subscriptions")
-		}
-		identity, _, identityErr := s.agentEntryForIdentityContext(req.GetContext())
-		if identityErr != nil {
-			return identityErr
-		}
-		callerAppID := strings.TrimSpace(req.GetContext().GetAppId())
-		if callerAppID == "" {
-			return status.Error(codes.InvalidArgument, "voice stream subscription requires app_id")
-		}
-		scopedBinding := req.GetContext().GetScopedBinding()
-		if scopedBinding != nil {
-			if scopedBindingAttachmentConversationAnchorMismatches(scopedBinding, conversationAnchorID) {
-				return status.Error(codes.PermissionDenied, "voice stream scoped binding conversation_anchor_id mismatch")
-			}
-			if err := s.validateScopedBindingAttachment(scopedBinding, callerAppID, identity.LocalAgentRef, runtimeAgentTurnReadScope); err != nil {
-				return err
-			}
-		}
-		session, err = s.resolveVoicePlaybackAnchorScope(callerAppID, identity, conversationAnchorID, scopedBinding, runtimeAgentTurnReadScope)
 	}
+	session, err := s.resolveVoicePlaybackAnchorScope(callerAppID, identity, conversationAnchorID, scopedBinding, runtimeAgentTurnReadScope)
 	if err != nil {
 		return err
 	}
@@ -451,9 +421,6 @@ func (s *Service) SubscribeAgentVoiceStream(req *runtimev1.SubscribeAgentVoiceSt
 		return err
 	}
 	defer release()
-	if localAppAuthorized {
-		s.appendLocalAppVoiceStreamSubscriptionAudit(s.localAppVoiceTranscriptionAuditStore(), localDecision, len(backlog))
-	}
 	if err := stream.SendHeader(metadata.MD{}); err != nil {
 		return err
 	}

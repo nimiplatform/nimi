@@ -182,8 +182,8 @@ describe('standard shell capabilities', () => {
     const localAppSet = NIMI_STANDARD_SHELL_CAPABILITY_SETS.find(
       (set) => set.setId === NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
     );
-    expect(localAppSet?.allowedOperations).toContain('local-app.artifactsReadRuntimeBytes');
-    expect(localAppSet?.allowedCommands).toContain('nimi.shell.localApp.artifacts.readRuntimeBytes');
+    expect(localAppSet?.plannedOperations).toContain('data.pathResolve');
+    expect(localAppSet?.allowedCommands).not.toContain('nimi.shell.localApp.agent.sendTurn');
     expect(localAppSet?.allowedOperations).toContain('storage.removeJson');
     expect(readCapabilitySetList('planned_operations', catalog)).not.toContain('storage.removeJson');
   });
@@ -198,26 +198,20 @@ describe('standard shell capabilities', () => {
     expect(localAppSet?.forbiddenOperations).toEqual(readCapabilitySetList('forbidden_operations', catalog));
     expect(localAppSet?.allowedOperations).toEqual([
       'local-app.sessionStatus',
-      'local-app.permissionPosture',
+      'local-app.permissionStatus',
       'local-app.permissionRequest',
-      'local-app.artifactsReadRuntimeBytes',
-      'local-app.agentInventory',
-      'local-app.agentOpenConversation',
-      'local-app.agentSendTurn',
-      'local-app.agentSubscribeTurn',
-      'local-app.agentGetConversationSnapshot',
-      'local-app.agentTranscribeVoice',
-      'local-app.agentSubscribeVoiceStream',
       'storage.readJson',
       'storage.writeJson',
       'storage.removeJson',
       'desktop-open.openIntent',
     ]);
-    expect(localAppSet?.authorityStatus).toBe('0k_final_surface_windows_development_positive');
+    expect(localAppSet?.authorityStatus).toBe('permission_model_v1_base_entitlement_only');
     expect(localAppSet?.plannedOperationsDisposition).toBe('deny_until_separate_operation_admission');
     expect(readCapabilitySetList('planned_operations', catalog)).toEqual(expect.arrayContaining([
       'ai-config.get',
       'ai-config.set',
+      'data.pathResolve',
+      'config.get',
     ]));
     expect(localAppSet?.forbiddenOperations).toEqual(expect.arrayContaining([
       'runtime-defaults.get',
@@ -296,7 +290,7 @@ describe('standard shell capabilities', () => {
     expect(registry).toMatchObject({
       schemaVersion: 1,
       catalogId: 'platform_nimi_app_registry',
-      catalogVersion: 1,
+      catalogVersion: 2,
       updatedAt: '2026-06-27T00:00:00.000Z',
     });
     expect(registry.apps).toHaveLength(NIMI_PLATFORM_NIMI_APP_REGISTRY_ROWS.length);

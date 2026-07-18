@@ -357,26 +357,18 @@ function assertStandardShellCapabilityCatalog() {
       && capabilitySource.includes(`'P-KIT-044'`),
     'kit/shell/capabilities/src/index.ts: missing local-app capability-set projection',
   );
-  expect(localAppSet?.authority_status === '0k_final_surface_windows_development_positive', 'standard-shell-capabilities.yaml: local-app capability set must carry the final 0K Windows development authority status');
+  expect(localAppSet?.authority_status === 'permission_model_v1_base_entitlement_only', 'standard-shell-capabilities.yaml: local-app capability set must expose only base entitlements and permission posture');
   expect(
     JSON.stringify(localAppSet?.allowed_operations) === JSON.stringify([
       'local-app.sessionStatus',
-      'local-app.permissionPosture',
+      'local-app.permissionStatus',
       'local-app.permissionRequest',
-      'local-app.artifactsReadRuntimeBytes',
-      'local-app.agentInventory',
-      'local-app.agentOpenConversation',
-      'local-app.agentSendTurn',
-      'local-app.agentSubscribeTurn',
-      'local-app.agentGetConversationSnapshot',
-      'local-app.agentTranscribeVoice',
-      'local-app.agentSubscribeVoiceStream',
       'storage.readJson',
       'storage.writeJson',
       'storage.removeJson',
       'desktop-open.openIntent',
     ]),
-    'standard-shell-capabilities.yaml: local-app capability set must expose the exact final fifteen-operation allowlist',
+    'standard-shell-capabilities.yaml: local-app capability set must expose the exact six carrier operations plus desktop open intent',
   );
   expect(localAppSet?.planned_operations_disposition === 'deny_until_separate_operation_admission', 'standard-shell-capabilities.yaml: every other planned local-app operation must remain deny-only');
   for (const field of ['planned_operations', 'forbidden_operations', 'negative_tests']) {

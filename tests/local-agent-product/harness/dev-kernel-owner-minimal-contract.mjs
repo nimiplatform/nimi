@@ -1,10 +1,10 @@
 const REQUIRED_CHECKPOINTS = [
   'dev-principal-session',
-  'zero-grant-session',
-  'operation-denied-before-grant',
-  'selected-runtime-agent-operation',
+  'session-bound',
+  'reserved-permission-unavailable',
+  'reserved-permission-request-denied',
+  'app-private-storage-base-entitlement',
   'process-mismatch-denied',
-  'grant-revoked-next-operation-denied',
 ];
 
 export function validateOwnerMinimalResult(result) {

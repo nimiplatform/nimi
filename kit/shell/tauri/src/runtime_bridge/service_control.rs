@@ -8,13 +8,11 @@ use nimi_shell_protected_local::{
 };
 use nimi_shell_protected_local::{
     DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, DeveloperModeStatus,
-    FixedRuntimeServiceControl, LocalAppGrantControlDecisionRequest, LocalAppGrantControlPending,
-    LocalAppGrantControlProjection, LocalDevelopmentAuthoritySummary,
-    LocalDevelopmentAuthorization, LocalDevelopmentDecisionRequest,
-    LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest,
-    LocalDevelopmentLaunchOutcome, LocalDevelopmentLaunchRequest,
-    LocalDevelopmentReactivationRequest, NimiDesktopControl, NimiHostError,
-    NimiHostErrorReasonCode, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
+    FixedRuntimeServiceControl, LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
+    LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
+    LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
+    LocalDevelopmentLaunchRequest, LocalDevelopmentReactivationRequest, NimiDesktopControl,
+    NimiHostError, NimiHostErrorReasonCode, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
     ProtectedCarrierReasonCode, RuntimeServiceAction, RuntimeServiceActionOutcome,
     RuntimeServiceState, RuntimeServiceStatus,
 };
@@ -304,45 +302,6 @@ pub(super) async fn set_developer_mode(
         Err(error) if should_reconnect(error) => {
             clear_desktop_control_if_same(control).await;
             control_for_call().await?.set_developer_mode(enabled).await
-        }
-        Err(error) => Err(error),
-    }
-}
-
-pub(super) async fn pending_local_app_grant(
-) -> Result<Option<LocalAppGrantControlPending>, NimiHostError> {
-    let control = control_for_call().await?;
-    match control.pending_local_app_grant().await {
-        Ok(value) => Ok(value),
-        Err(error) if should_reconnect(error) => {
-            clear_desktop_control_if_same(control).await;
-            control_for_call().await?.pending_local_app_grant().await
-        }
-        Err(error) => Err(error),
-    }
-}
-
-pub(super) async fn decide_local_app_grant(
-    request: LocalAppGrantControlDecisionRequest,
-) -> Result<LocalAppGrantControlProjection, NimiHostError> {
-    control_for_call()
-        .await?
-        .decide_local_app_grant(request)
-        .await
-}
-
-pub(super) async fn revoke_local_app_grant(
-    grant_id: [u8; 32],
-) -> Result<LocalAppGrantControlProjection, NimiHostError> {
-    let control = control_for_call().await?;
-    match control.revoke_local_app_grant(grant_id).await {
-        Ok(value) => Ok(value),
-        Err(error) if should_reconnect(error) => {
-            clear_desktop_control_if_same(control).await;
-            control_for_call()
-                .await?
-                .revoke_local_app_grant(grant_id)
-                .await
         }
         Err(error) => Err(error),
     }

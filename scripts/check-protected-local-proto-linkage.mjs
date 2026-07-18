@@ -31,14 +31,18 @@ const RETIRED_PUBLIC_VOCABULARY = Object.freeze([
   'BindLocalDevelopmentHostProcess',
   'OpenLocalDevelopmentAppSession',
   'GetLocalDevelopmentSessionStatus',
+  'GetLocalAppGrantStatus',
+  'RequestLocalAppGrant',
+  'DecideLocalAppGrant',
+  'RevokeLocalAppGrant',
+  'LocalAppGrantProjection',
+  'LocalAppGrantState',
 ]);
 
 const FINAL_METHOD_MAPPINGS = Object.freeze([
   ['RuntimeAuthService', 'OpenLocalAppSession'],
-  ['RuntimeAccountService', 'GetLocalAppGrantStatus'],
-  ['RuntimeAccountService', 'RequestLocalAppGrant'],
-  ['RuntimeAccountService', 'DecideLocalAppGrant'],
-  ['RuntimeAccountService', 'RevokeLocalAppGrant'],
+  ['RuntimeAccountService', 'GetLocalAppPermissionStatus'],
+  ['RuntimeAccountService', 'RequestLocalAppPermission'],
   ['RuntimeAppService', 'PrepareLocalAppLaunch'],
   ['RuntimeAppService', 'BindLocalAppProcess'],
   ['RuntimeDevelopmentService', 'GetDeveloperModeStatus'],
@@ -56,9 +60,9 @@ const LOCAL_APP_REASONS = Object.freeze([
   'LOCAL_APP_LAUNCH_LEASE_REPLAY',
   'LOCAL_APP_PROCESS_MISMATCH',
   'LOCAL_APP_SESSION_REVOKED',
-  'LOCAL_APP_GRANT_REQUIRED',
-  'LOCAL_APP_GRANT_REVOKED',
-  'LOCAL_APP_GRANT_SUPERSEDED',
+  'LOCAL_APP_PERMISSION_REQUIRED',
+  'LOCAL_APP_PERMISSION_DENIED',
+  'LOCAL_APP_PERMISSION_REVOKED',
   'LOCAL_APP_ACCOUNT_CHANGED',
   'LOCAL_APP_OPERATION_UNAVAILABLE',
   'LOCAL_APP_PRESENCE_REQUIRED',
@@ -267,33 +271,23 @@ export function validateProtectedLocalProtoLinkage(bundle) {
       `AccountCallerMode reserved names are ${stable(reservedCallerNames)}`,
     );
   }
-  expectMessage(bundle.accountProto, 'LocalAppGrantProjection', expectedFields([
-    ['LocalAppGrantState', 'state', 1],
-    ['string', 'operation_id', 2],
-    ['string', 'resource_ref', 3],
-    ['bytes', 'request_id', 4],
-    ['bytes', 'grant_id', 5],
-    ['uint64', 'grant_generation', 6],
-    ['uint64', 'grant_revision', 7],
-    ['google.protobuf.Timestamp', 'expires_at', 8],
-    ['ReasonCode', 'reason_code', 9],
-    ['bytes', 'presence_challenge_id', 10],
-  ]), 'PLINK_GRANT_PROJECTION_SHAPE');
-  const grantMessages = [
-    ['GetLocalAppGrantStatusRequest', [['string', 'operation_id', 1], ['string', 'resource_ref', 2]]],
-    ['GetLocalAppGrantStatusResponse', [['LocalAppGrantProjection', 'projection', 1]]],
-    ['RequestLocalAppGrantRequest', [['string', 'operation_id', 1], ['string', 'resource_ref', 2], ['string', 'purpose', 3]]],
-    ['RequestLocalAppGrantResponse', [['LocalAppGrantProjection', 'projection', 1]]],
-    ['DecideLocalAppGrantRequest', [['bytes', 'request_id', 1], ['bool', 'approved', 2], ['bytes', 'presence_challenge_id', 3]]],
-    ['DecideLocalAppGrantResponse', [['LocalAppGrantProjection', 'projection', 1]]],
-    ['RevokeLocalAppGrantRequest', [['bytes', 'grant_id', 1]]],
-    ['RevokeLocalAppGrantResponse', [['LocalAppGrantProjection', 'projection', 1]]],
+  expectMessage(bundle.accountProto, 'LocalAppPermissionProjection', expectedFields([
+    ['string', 'permission_id', 1],
+    ['LocalAppPermissionPosture', 'posture', 2],
+    ['bool', 'can_request', 3],
+    ['ReasonCode', 'reason_code', 4],
+  ]), 'PLINK_PERMISSION_PROJECTION_SHAPE');
+  const permissionMessages = [
+    ['GetLocalAppPermissionStatusRequest', [['string', 'permission_id', 1]]],
+    ['GetLocalAppPermissionStatusResponse', [['LocalAppPermissionProjection', 'projection', 1]]],
+    ['RequestLocalAppPermissionRequest', [['string', 'permission_id', 1], ['string', 'reason', 2]]],
+    ['RequestLocalAppPermissionResponse', [['LocalAppPermissionProjection', 'projection', 1]]],
   ];
-  for (const [name, fields] of grantMessages) {
-    expectMessage(bundle.accountProto, name, expectedFields(fields), `PLINK_GRANT_MESSAGE_${issueSuffix(name)}`);
+  for (const [name, fields] of permissionMessages) {
+    expectMessage(bundle.accountProto, name, expectedFields(fields), `PLINK_PERMISSION_MESSAGE_${issueSuffix(name)}`);
   }
-  for (const method of ['GetLocalAppGrantStatus', 'RequestLocalAppGrant', 'DecideLocalAppGrant', 'RevokeLocalAppGrant']) {
-    expectRpc(bundle.accountProto, 'RuntimeAccountService', method, `${method}Request`, `${method}Response`, `PLINK_GRANT_RPC_${issueSuffix(method)}`);
+  for (const method of ['GetLocalAppPermissionStatus', 'RequestLocalAppPermission']) {
+    expectRpc(bundle.accountProto, 'RuntimeAccountService', method, `${method}Request`, `${method}Response`, `PLINK_PERMISSION_RPC_${issueSuffix(method)}`);
   }
 
   const authority = parseYaml(bundle.reasonAuthority);

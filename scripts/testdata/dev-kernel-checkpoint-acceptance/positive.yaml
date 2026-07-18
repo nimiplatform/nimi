@@ -3,7 +3,7 @@ manifestVersion: 1
 closeLevel: dev_kernel_checkpoint
 releasePosture: non_release
 productClosePromotion: non_promotable_to_product_close
-candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+candidateBindingSha256: b564cd59273dedd59c8d7575d9b11dc7a805ad94ecd0df5c854e15386b608c5e
 candidate:
   candidateId: synthetic-dev-kernel-candidate-0001
   repositories:
@@ -57,7 +57,7 @@ candidate:
       accountBindingSha256: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
       provenance: local_development
       recordRevision: 7
-      grantRevision: 11
+      projectGeneration: 11
       leaseId: launch-lease-synthetic-0001
       processId: 4242
       sessionId: local-app-session-synthetic-0001
@@ -94,63 +94,63 @@ evidence:
   - evidenceId: synthetic-authority-convergence
     kind: authority_convergence
     ref: synthetic-authority-convergence.json
-    sha256: d4739597ffdcb025f2e75f53e82a2ec9289ea5f5f9ba0058efa55392d2e75a8e
-    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+    sha256: 25a199e52951da5294125b0907d8ab800f9b240a5b1bf92d5cd96adcbaee04dc
+    candidateBindingSha256: b564cd59273dedd59c8d7575d9b11dc7a805ad94ecd0df5c854e15386b608c5e
   - evidenceId: synthetic-static-owner-gates
     kind: owner_gate
     ref: synthetic-static-owner-gates.json
-    sha256: b246c6e697fe009632492fd20fb867c8c216ec096e78c20fb081b9d13968c8fd
-    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+    sha256: 5e958dab40ed9639ff30413eb1929c64d0612b0f7eae24c5da2f3329d1433dba
+    candidateBindingSha256: b564cd59273dedd59c8d7575d9b11dc7a805ad94ecd0df5c854e15386b608c5e
   - evidenceId: synthetic-runtime-trace
     kind: runtime_trace
     ref: synthetic-runtime-trace.json
-    sha256: 1962d7d0da828d588f4c509d020df45b157845904f01cd79dd6aafac36fd7873
-    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+    sha256: 21e19cbc0471b12a022453d0ccdd98c1905f991b3d70f3e9bcbb0c263ce78216
+    candidateBindingSha256: b564cd59273dedd59c8d7575d9b11dc7a805ad94ecd0df5c854e15386b608c5e
   - evidenceId: synthetic-security-negative
     kind: security_negative
     ref: synthetic-security-negative.json
-    sha256: b3e63f5c553cd313b0d049bcea41896c5309a42af07c3a85e3817cf78fe0a8c3
-    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+    sha256: 230f2de258bf3555779612190296a52c29fa02ed96ded4edbc84cf4a3b50d160
+    candidateBindingSha256: b564cd59273dedd59c8d7575d9b11dc7a805ad94ecd0df5c854e15386b608c5e
   - evidenceId: synthetic-developer-mode-journey
     kind: developer_mode_journey
     ref: synthetic-developer-mode-journey.json
-    sha256: eb60375f32782cf6649c7bf8eb73b52d58e88e0bd0ab37cf2e526de8a339883a
-    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+    sha256: 8c3a30e8f67ea117c12d8a69636238ca7b03a6d8e54cd46d3762dcec56215a58
+    candidateBindingSha256: b564cd59273dedd59c8d7575d9b11dc7a805ad94ecd0df5c854e15386b608c5e
   - evidenceId: synthetic-local-agent-journey
     kind: local_agent_journey
     ref: synthetic-local-agent-journey.json
-    sha256: 4cc2b80b1d3256e6b7f908c8e7999ff51cd0c6f7198416a9d0ae36ad2bf9f0a2
-    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+    sha256: ef963a5510c007c35bbf5bbfb9bf3f09fff63df4f1c06cd458620a7f9a653361
+    candidateBindingSha256: b564cd59273dedd59c8d7575d9b11dc7a805ad94ecd0df5c854e15386b608c5e
   - evidenceId: synthetic-real-shell-audit
     kind: real_shell_audit
     ref: synthetic-real-shell-audit.json
-    sha256: a3377fdb4b385669d26c094db534710c1c40d585ef99fc37ec34f82990b2ba94
-    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+    sha256: 9020e4627a578872f9c3cf7ca7c5275945434eda81f722a34d70927e0854bb10
+    candidateBindingSha256: b564cd59273dedd59c8d7575d9b11dc7a805ad94ecd0df5c854e15386b608c5e
   - evidenceId: synthetic-execution-privacy-audit
     kind: privacy_audit
     ref: synthetic-execution-privacy-audit.json
-    sha256: 6df7aee9c33b15d77acac3855f4a937e1dcf389e30ef480a8ac7677b36f36d37
-    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+    sha256: e73b032e2f87e28eac3c6bffb3083d8250e24f27996a8c3550fc0882265e32a6
+    candidateBindingSha256: b564cd59273dedd59c8d7575d9b11dc7a805ad94ecd0df5c854e15386b608c5e
   - evidenceId: synthetic-static-privacy-audit
     kind: privacy_audit
     ref: synthetic-static-privacy-audit.json
-    sha256: d80bd69da8a27d5ea089fab1aa56a0d02242bb5ff80373b64d4d69d66bdecc5b
-    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+    sha256: 7343750a3ff41cd3cacefe515f767f61f9dbf4761383a987216321f36dc5a3ea
+    candidateBindingSha256: b564cd59273dedd59c8d7575d9b11dc7a805ad94ecd0df5c854e15386b608c5e
   - evidenceId: synthetic-execution-owner-gate
     kind: owner_gate
     ref: synthetic-execution-owner-gate.json
-    sha256: c860736c9f111362a042aebb8bf38687081995d4178720098eb6ec9e8379810f
-    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+    sha256: 35a198b82058d53ebf66c507a677d0757771e9e53b0c8b5f3ca3c275ed824ae6
+    candidateBindingSha256: b564cd59273dedd59c8d7575d9b11dc7a805ad94ecd0df5c854e15386b608c5e
   - evidenceId: synthetic-static-close-reconciliation
     kind: close_reconciliation
     ref: synthetic-static-close-reconciliation.json
-    sha256: 1708424ce846e6a65ef096db28a3efaee0b9ceaf377b7b2de8fb2a190e3d84fa
-    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+    sha256: 66f2e0ec0521c42b69aaf023fe5e830101127c5d8d2df5f34217a0b034db1290
+    candidateBindingSha256: b564cd59273dedd59c8d7575d9b11dc7a805ad94ecd0df5c854e15386b608c5e
   - evidenceId: synthetic-execution-close-reconciliation
     kind: close_reconciliation
     ref: synthetic-execution-close-reconciliation.json
-    sha256: 67b3f8eb68ca3db201dc857c73d9db8e34c7777f684c7c3240d59ec0ae5c878f
-    candidateBindingSha256: daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12
+    sha256: 7e86d860ce3b0426c5fe53bb425daebb63be6c06e2f31c8633add990f327eb66
+    candidateBindingSha256: b564cd59273dedd59c8d7575d9b11dc7a805ad94ecd0df5c854e15386b608c5e
 acceptanceRows:
   - { rowId: A-01, result: pass, evidenceRefs: [synthetic-authority-convergence, synthetic-static-owner-gates] }
   - { rowId: A-03, result: pass, evidenceRefs: [synthetic-authority-convergence, synthetic-security-negative] }

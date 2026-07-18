@@ -60,23 +60,8 @@ export const REALM_ACCOUNT_METHODS = [
   'updateMySettings',
 ] as const satisfies readonly RealmTypedMethodName[];
 
-const REALM_PERMISSION_GRANT_METHODS = [
-  'getMyAppPermissionGrant',
-  'getMyAppPermissionGrantStatus',
-  'getMyAppPermissionGrantView',
-  'listMyAppPermissionGrants',
-  'requestMyAppPermissionGrant',
-  'grantMyAppPermissionGrant',
-  'denyMyAppPermissionGrant',
-  'expireMyAppPermissionGrant',
-  'revokeMyAppPermissionGrant',
-  'supersedeMyAppPermissionGrant',
-] as const satisfies readonly RealmTypedMethodName[];
-
 const REALM_PRIVATE_GENERATED_METHODS = [
-  ...REALM_PERMISSION_GRANT_METHODS,
   'getSourceMaterializationJwks',
-  'issueRuntimeRealmGrant',
   'worldCoreControllerCreateSourceMaterializationPacket',
 ] as const satisfies readonly RealmTypedMethodName[];
 

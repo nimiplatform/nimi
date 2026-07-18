@@ -27,8 +27,18 @@ const (
 	OperationVoiceStreamSubscribe  Operation = "runtime_agent.voice.stream_subscribe"
 )
 
+// AuthorityClass records which mutually exclusive authority path owns an
+// operation decision. It is derived from the closed operation catalog and is
+// never accepted from an app request.
+type AuthorityClass string
+
+const (
+	AuthorityClassBaseEntitlement AuthorityClass = "base_entitlement"
+	AuthorityClassUserPermission  AuthorityClass = "user_permission"
+)
+
 // Selector carries only domain-owned resource selectors. It contains no
-// principal, account, grant, process, provenance, endpoint, or credential.
+// principal, account, permission, process, provenance, endpoint, or credential.
 type Selector struct {
 	ArtifactID           string
 	AgentID              string
@@ -98,7 +108,7 @@ const (
 )
 
 // Record is the current K-APP lifecycle record projection. It intentionally
-// contains no grant, account ownership, session proof, or policy result.
+// contains no permission decision, account ownership, session proof, or policy result.
 type Record struct {
 	LocalOSUserAnchor          string
 	ID                         string
@@ -127,8 +137,8 @@ const (
 	SessionStateRevoked SessionState = "revoked"
 )
 
-// Session is an identity session. It is valid with zero grant and therefore
-// contains no grant id, grant revision, or capability claim.
+// Session is an identity session. It is valid with zero user permissions and
+// therefore contains no permission decision or capability claim.
 type Session struct {
 	ID                         string
 	State                      SessionState
@@ -158,30 +168,6 @@ type Account struct {
 	State      AccountState
 }
 
-type GrantState string
-
-const (
-	GrantStatePending    GrantState = "pending"
-	GrantStateGranted    GrantState = "granted"
-	GrantStateDenied     GrantState = "denied"
-	GrantStateExpired    GrantState = "expired"
-	GrantStateRevoked    GrantState = "revoked"
-	GrantStateSuperseded GrantState = "superseded"
-)
-
-// Grant is the exact current K-GRANT record. There is no app-id-only lookup
-// key and no portable credential material.
-type Grant struct {
-	ID                            string
-	State                         GrantState
-	LocalOSUserAnchor             string
-	AccountID                     string
-	PrincipalID                   string
-	CapabilityResourceFingerprint string
-	Generation                    uint64
-	Revision                      uint64
-}
-
 type OwnerPolicyStatus string
 
 const (
@@ -192,43 +178,15 @@ const (
 
 // OwnerPolicyDecision is supplied by the canonical operation owner. The
 // coordinator does not infer Agent/conversation ownership or artifact
-// audience from app identity, provenance, or grant state.
+// audience from app identity or provenance.
 type OwnerPolicyDecision struct {
-	Status                        OwnerPolicyStatus
-	Operation                     Operation
-	Selector                      Selector
-	CapabilityResourceFingerprint string
-	PolicyRevision                uint64
-	ResourceImpactDigest          string
-	PresenceRequired              bool
-	Reason                        Reason
-}
-
-type PresenceState string
-
-const (
-	PresenceStateActive   PresenceState = "active"
-	PresenceStateConsumed PresenceState = "consumed"
-	PresenceStateCanceled PresenceState = "canceled"
-)
-
-// Presence is optional and is evaluated only when the owner policy requires
-// operation presence. Ordinary exact-grant operations require no repeated
-// presence.
-type Presence struct {
-	State                         PresenceState
-	LocalOSUserAnchor             string
-	AccountID                     string
-	AccountGeneration             uint64
-	PrincipalID                   string
-	RecordID                      string
-	ProvenanceRevision            uint64
-	InstallOrProjectGeneration    uint64
-	Operation                     Operation
-	CapabilityResourceFingerprint string
-	ResourceImpactDigest          string
-	PolicyRevision                uint64
-	ExpiresAt                     time.Time
+	Status               OwnerPolicyStatus
+	Operation            Operation
+	Selector             Selector
+	OwnerSelectorDigest  string
+	PolicyRevision       uint64
+	ResourceImpactDigest string
+	Reason               Reason
 }
 
 // Snapshot is one immutable, Runtime-owned view of all current owner facts
@@ -243,13 +201,11 @@ type Snapshot struct {
 	Record            Record
 	Session           Session
 	Account           Account
-	Grant             *Grant
 	OwnerPolicy       OwnerPolicyDecision
-	Presence          *Presence
 }
 
 // SnapshotResolver joins the independently owned principal, record, session,
-// account, grant, presence, and operation-policy truths for the current native
+// account and operation-policy truths for the current native
 // connection. The Request contains no caller-supplied authority fields.
 type SnapshotResolver interface {
 	ResolveLocalAppOperation(context.Context, Request) (Snapshot, error)
@@ -283,9 +239,9 @@ const (
 	ReasonLocalAppProvenanceUnavailable    Reason = "LOCAL_APP_PROVENANCE_UNAVAILABLE"
 	ReasonLocalAppProcessMismatch          Reason = "LOCAL_APP_PROCESS_MISMATCH"
 	ReasonLocalAppSessionRevoked           Reason = "LOCAL_APP_SESSION_REVOKED"
-	ReasonLocalAppGrantRequired            Reason = "LOCAL_APP_GRANT_REQUIRED"
-	ReasonLocalAppGrantRevoked             Reason = "LOCAL_APP_GRANT_REVOKED"
-	ReasonLocalAppGrantSuperseded          Reason = "LOCAL_APP_GRANT_SUPERSEDED"
+	ReasonLocalAppPermissionRequired       Reason = "LOCAL_APP_PERMISSION_REQUIRED"
+	ReasonLocalAppPermissionDenied         Reason = "LOCAL_APP_PERMISSION_DENIED"
+	ReasonLocalAppPermissionRevoked        Reason = "LOCAL_APP_PERMISSION_REVOKED"
 	ReasonLocalAppAccountChanged           Reason = "LOCAL_APP_ACCOUNT_CHANGED"
 	ReasonLocalAppOperationUnavailable     Reason = "LOCAL_APP_OPERATION_UNAVAILABLE"
 	ReasonLocalAppPresenceRequired         Reason = "LOCAL_APP_PRESENCE_REQUIRED"
@@ -297,24 +253,23 @@ const (
 // It is sufficient for owner execution and audit correlation but contains no
 // token, bearer, session proof, provider selection, or model selection.
 type AuthorizationContext struct {
-	LocalOSUserAnchor             string
-	PrincipalID                   string
-	PrincipalKind                 PrincipalKind
-	Lineage                       LineageBinding
-	RecordID                      string
-	ProvenanceRevision            uint64
-	InstallOrProjectGeneration    uint64
-	SessionID                     string
-	AccountID                     string
-	AccountGeneration             uint64
-	Process                       ProcessBinding
-	BootEpoch                     string
-	GrantID                       string
-	GrantRevision                 uint64
-	PolicyRevision                uint64
-	CapabilityResourceFingerprint string
-	Operation                     Operation
-	Selector                      Selector
+	AuthorityClass             AuthorityClass
+	LocalOSUserAnchor          string
+	PrincipalID                string
+	PrincipalKind              PrincipalKind
+	Lineage                    LineageBinding
+	RecordID                   string
+	ProvenanceRevision         uint64
+	InstallOrProjectGeneration uint64
+	SessionID                  string
+	AccountID                  string
+	AccountGeneration          uint64
+	Process                    ProcessBinding
+	BootEpoch                  string
+	PolicyRevision             uint64
+	OwnerSelectorDigest        string
+	Operation                  Operation
+	Selector                   Selector
 }
 
 type Decision struct {

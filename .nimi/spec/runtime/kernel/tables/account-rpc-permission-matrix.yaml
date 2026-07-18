@@ -1,4 +1,4 @@
-version: 3
+version: 4
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_account_rpc_permission_matrix
@@ -16,10 +16,8 @@ surfaces:
   - RevokeWorkspaceBinding
   - SubscribeAccountSessionEvents
   - SwitchAccount
-  - GetLocalAppGrantStatus
-  - RequestLocalAppGrant
-  - DecideLocalAppGrant
-  - RevokeLocalAppGrant
+  - GetLocalAppPermissionStatus
+  - RequestLocalAppPermission
 description: >-
   Per-caller RuntimeAccountService admission. Requirements are conjunctive.
   Protected origin and operation policy are always required; a caller enum,
@@ -67,10 +65,8 @@ callers:
       RevokeScopedAppBinding: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, host_bound_desktop_caller_envelope, binding_relation_match] }
       IssueWorkspaceBinding: { decision: deny, reason: workspace_binding_not_desktop_account_ux }
       RevokeWorkspaceBinding: { decision: deny, reason: workspace_binding_not_desktop_account_ux }
-      GetLocalAppGrantStatus: { decision: allow_when, requirements: [protected_desktop_control_origin, local_app_control_origin, registry_admitted_desktop_instance] }
-      RequestLocalAppGrant: { decision: deny, reason: local_app_child_request_only }
-      DecideLocalAppGrant: { decision: allow_when, requirements: [protected_desktop_control_origin, local_app_control_origin, host_bound_desktop_caller_envelope, matching_pending_request, fresh_presence_when_required] }
-      RevokeLocalAppGrant: { decision: allow_when, requirements: [protected_desktop_control_origin, local_app_control_origin, host_bound_desktop_caller_envelope, exact_current_grant] }
+      GetLocalAppPermissionStatus: { decision: deny, reason: local_app_child_projection_only }
+      RequestLocalAppPermission: { decision: deny, reason: local_app_child_request_only }
     source_rule: K-ACCSVC-024
 
   - caller_class: local_first_party_app
@@ -88,10 +84,8 @@ callers:
       RevokeScopedAppBinding: { decision: deny, reason: binding_owner_revokes }
       IssueWorkspaceBinding: { decision: deny, reason: workspace_binding_not_app_surface }
       RevokeWorkspaceBinding: { decision: deny, reason: workspace_binding_not_app_surface }
-      GetLocalAppGrantStatus: { decision: deny, reason: bundled_first_party_not_local_app_principal }
-      RequestLocalAppGrant: { decision: deny, reason: bundled_first_party_not_local_app_principal }
-      DecideLocalAppGrant: { decision: deny, reason: desktop_local_app_control_only }
-      RevokeLocalAppGrant: { decision: deny, reason: desktop_local_app_control_only }
+      GetLocalAppPermissionStatus: { decision: deny, reason: bundled_first_party_not_local_app_principal }
+      RequestLocalAppPermission: { decision: deny, reason: bundled_first_party_not_local_app_principal }
     source_rule: K-ACCSVC-024
 
   - caller_class: local_app
@@ -109,10 +103,8 @@ callers:
       RevokeScopedAppBinding: { decision: deny, reason: local_app_uses_process_bound_session }
       IssueWorkspaceBinding: { decision: deny, reason: workspace_binding_not_local_app_surface }
       RevokeWorkspaceBinding: { decision: deny, reason: workspace_binding_not_local_app_surface }
-      GetLocalAppGrantStatus: { decision: allow_when, requirements: [protected_local_app_origin, current_process_bound_session, current_principal_and_record] }
-      RequestLocalAppGrant: { decision: allow_when, requirements: [protected_local_app_origin, current_process_bound_session, current_principal_and_record, exact_requested_operation] }
-      DecideLocalAppGrant: { decision: deny, reason: desktop_local_app_control_only }
-      RevokeLocalAppGrant: { decision: deny, reason: desktop_local_app_control_only }
+      GetLocalAppPermissionStatus: { decision: allow_when, requirements: [protected_local_app_origin, current_process_bound_session, current_principal_and_record, canonical_public_permission_id] }
+      RequestLocalAppPermission: { decision: allow_when, requirements: [protected_local_app_origin, current_process_bound_session, current_principal_and_record, admitted_public_permission_id, canonical_user_facing_reason] }
     source_rule: K-ACCSVC-024
 
   - caller_class: binding_only_avatar
@@ -226,13 +218,3 @@ selected_operation_dependencies:
     caller_selected_realm_base: forbidden
     authority_owner: RuntimeAccountService
     source_rule: K-ACCSVC-023
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory
-    caller_class: local_app
-    runtime_caller_mode: ACCOUNT_CALLER_MODE_LOCAL_APP
-    decision: allow_when
-    requirements: [protected_local_app_origin, current_process_bound_session, current_principal_and_record, current_authenticated_account, local_development_trust_class, empty_request]
-    grant_requirement: none
-    caller_selected_resource: forbidden
-    authority_owner: RuntimeAgentService
-    account_dependency: AuthorizeLocalAppCaller
-    source_rule: K-AGCORE-006e

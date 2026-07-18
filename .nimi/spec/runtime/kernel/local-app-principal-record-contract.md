@@ -6,7 +6,8 @@
 
 This contract owns only the PC-local `LocalAppPrincipal` and
 `LocalAppRecord` lifecycle seam. Protected launch/process/session facts remain
-`K-PLOCAL-*`; account-and-principal grant truth remains `K-GRANT-*`; account
+`K-PLOCAL-*`; future Runtime-owned permission decisions follow `K-GRANT-*`;
+account
 and credential custody remains `K-ACCSVC-*`; operation and resource semantics
 remain with their existing owners.
 
@@ -23,7 +24,7 @@ Windows row remains the verified interactive-user SID established by
 The first Runtime data root admits exactly one active anchor. A different SID
 under the Windows row, or a different same-OS principal/login-session anchor
 under any future admitted row, fails closed before principal, record, private
-storage, grant, autostart, launch, session, or audit state can be read or
+storage, permission, autostart, launch, session, or audit state can be read or
 mutated. Fast User Switching cannot reuse the prior anchor. This is a single-PC
 partition and does not create device enrollment, cross-PC recovery, or cloud
 truth.
@@ -44,7 +45,7 @@ declared `app_id`. Exactly one principal-kind anchor is present.
 Update and exact imported-to-verified promotion preserve the principal.
 Uninstall or project-authorization revoke tombstones it permanently. Any
 reinstall or re-authorization, including the same signer, project, or app id,
-allocates a new principal and inherits no grant, storage, audience, session,
+allocates a new principal and inherits no permission decision, storage, audience, session,
 or audit identity. Retained tombstoned data is delete-only after fresh
 presence; rebind and migration are not admitted.
 

@@ -160,7 +160,7 @@ binding 事件家族（与 `K-ACCSVC-006` 一致）：
   `caller.app_id` / `caller.app_instance_id` 必须与待发放 binding relation 精确
   一致。Third-party `LOCAL_APP`, including local-development projects, is
   categorically ineligible for this binding and uses only its process-bound
-  session plus account-and-principal grant.
+  session plus any separately admitted public permission decision.
 - account state 不为 `authenticated` 时，binding 发放必须 fail-close（reason `account_unavailable`）。
 - account state 从 `authenticated` 转出时，active/issued binding 必须 revoke 或 suspend；覆盖 custody unavailable、refresh failure / reauth-required、logout、switch、daemon restart no-custody、policy revoke。
 - 切换 / logout / reauth-required / custody-unavailable 期间，正在飞的 binding issuance 必须取消并发出 `binding.revoked` reason `account_expired` / `user_switch` / `logout` / `account_unavailable`。

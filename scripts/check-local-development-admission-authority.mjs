@@ -40,16 +40,9 @@ const authorizationBindings = Object.freeze([
   'local_app_principal_id',
   'canonical_project_file_id',
   'declared_app_id',
-  'manifest_capability_fingerprint',
+  'manifest_permission_requirement_fingerprint',
   'account_id',
   'fixed_shell_entry_policy',
-]);
-
-const runtimeScopedBindingRequestScopes = Object.freeze([
-  'runtime.agent.turn.read',
-  'runtime.agent.turn.write',
-  'runtime.agent.voice.read',
-  'runtime.agent.voice.transcribe',
 ]);
 
 const sessionBindings = Object.freeze([
@@ -66,6 +59,7 @@ const sessionBindings = Object.freeze([
   'shell_kind',
   'account_generation',
   'account_id',
+  'opaque_app_data_partition',
   'runtime_boot_epoch',
 ]);
 
@@ -78,7 +72,7 @@ const continuityWithoutReapproval = Object.freeze([
 ]);
 
 const continuityInvalidators = Object.freeze([
-  'capability_expansion',
+  'permission_requirement_change',
   'declared_app_id_change',
   'canonical_project_file_identity_change',
   'copied_project',
@@ -97,7 +91,7 @@ const runOnceEnds = Object.freeze([
   'mode_off',
   'logout_or_account_switch',
   'revoke',
-  'identity_capability_or_shell_mismatch',
+  'identity_permission_requirement_or_shell_mismatch',
 ]);
 
 const developerMethods = Object.freeze([
@@ -112,8 +106,17 @@ const developerMethods = Object.freeze([
   'GetLocalDevelopmentAuthoritySummary',
 ]);
 
-const selectedOperationMethods = Object.freeze([
+const localAppHostMethods = Object.freeze([
+  ['/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus', 'local_app_public_permission_projection'],
+  ['/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission', 'local_app_public_permission_request'],
+  ['/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson', 'local_app_json_storage'],
+  ['/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson', 'local_app_json_storage'],
+  ['/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson', 'local_app_json_storage'],
+]);
+
+const protectedMethodsExcludedFromLocalApp = Object.freeze([
   '/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes',
+  '/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory',
   '/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor',
   '/nimi.runtime.v1.RuntimeAppService/SendAppMessage',
   '/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages',
@@ -123,14 +126,14 @@ const selectedOperationMethods = Object.freeze([
 ]);
 
 const requiredRuleClauses = Object.freeze([
-  ['platform', ['P-NAPP-035', /sole mutable third-party provenance/iu, /global Developer Mode toggle grants nothing/iu, /run_once.*remember_project/isu, /runtime_scoped_binding_requests/iu, /request eligibility only/iu, /Every build\/host replacement receives a new lease/iu, /account switch, mode-off,\s*revoke/isu, /no token, bearer/iu, /persistent Nimi-managed logon\/boot autostart/iu, /ordinary Windows rights/iu]],
+  ['platform', ['P-NAPP-035', /sole mutable third-party provenance/iu, /global Developer Mode toggle grants nothing/iu, /run_once.*remember_project/isu, /top-level `permissions` list/iu, /request eligibility only/iu, /current admitted list is empty/iu, /Every build\/host replacement receives\s+a\s+new lease/iu, /account switch, mode-off,\s*revoke/isu, /no token, bearer/iu, /persistent Nimi-managed logon\/boot autostart/iu, /ordinary Windows rights/iu]],
   ['runtimeSession', ['K-PLOCAL-009', /durable user\s+development authorization/iu, /run_once/iu, /remember_project.*dormant/isu, /actual\s+host PID and creation marker/isu, /new launch lease,\s*process bind and session/isu, /Runtime restart/iu, /never returned through renderer IPC, CLI output/isu, /It never autostarts/iu]],
-  ['account', ['K-ACCSVC-026', /exact\s+principal.*local record.*process-bound session/isu, /exact grant revision/iu, /owner.*resource policy/iu, /opening a session grants nothing/iu]],
-  ['grant', ['K-GRANT-014', /create zero grant/iu, /Account switch never transfers/iu, /next protected operation reads the\s+current revision/isu, /separate from principal\/record and launch\/session stores/iu]],
+  ['account', ['K-ACCSVC-026', /exact\s+principal.*local record.*process-bound session/isu, /current owner lifecycle/iu, /owner.*resource policy/iu, /creates no synthetic permission/iu]],
+  ['grant', ['K-GRANT-014', /admitted third-party public-permission set is empty/iu, /no positive local permission mutation path/iu, /owner_selector_digest/iu, /every\s+protected endpoint/isu]],
   ['desktop', ['D-IPC-019', /production account.*off by default.*grants nothing/isu, /exactly one Dev Trust Set/iu, /remember_project.*dormant.*reactivate/isu, /fresh host\/payload digest.*launch lease.*process bind.*local-app session/isu, /Native\s+Windows execution risk disclosure/isu, /never create persistent/iu]],
   ['desktop', ['D-IPC-020', /local_app_control.*verified\s+Desktop control connection/isu, /PrepareLocalAppLaunch.*process binding.*native supervisor/isu, /must not enter renderer state,\s*storage, network, logs or errors/isu]],
-  ['kit', ['P-KIT-046', /common local-app host\/client/iu, /controlled process replacement or Runtime restart/iu, /artifact read.*selected RuntimeAgent conversation/isu, /missing\/untrusted carrier fails closed/iu, /ordinary gRPC/iu]],
-  ['sdk', ['S-TRANSPORT-014', /host-injected by Kit.*never\s*renderer-constructed/isu, /request-empty `OpenLocalAppSession`/iu, /controlled host\/Runtime restart/iu, /selected RuntimeAgent open-conversation, send-turn, subscribe-turn and\s*conversation-snapshot/isu, /Missing operation families remain typed\s*unavailable/isu, /localhost gRPC cannot claim/iu]],
+  ['kit', ['P-KIT-046', /common local-app host\/client/iu, /controlled process replacement or Runtime restart/iu, /session posture, public permission posture\/request,\s*and app-private JSON storage/isu, /App-native commands remain separate\s*typed host commands/isu, /missing\/untrusted carrier fails closed/iu, /ordinary gRPC/iu]],
+  ['sdk', ['S-TRANSPORT-014', /host-injected by Kit.*never\s*renderer-constructed/isu, /request-empty `OpenLocalAppSession`/iu, /controlled host\/Runtime restart/iu, /public permission posture\/request and app-private\s*JSON read\/write\/remove/isu, /Artifact, Agent, conversation, voice/iu, /Missing operation families remain typed unavailable/iu, /localhost gRPC cannot claim/iu]],
 ]);
 
 function issue(code, target, reason) {
@@ -180,21 +183,6 @@ function hasExactTransportRow(row, operationClass, transport, role) {
     && row?.public_tcp_disposition === 'deny';
 }
 
-function hasExactSelectedVoiceTransportRow(row, methodId) {
-  if (methodId.endsWith('/TranscribeLocalAppAgentAudio')) {
-    return hasExactTransportRow(row, 'local_app_selected_voice', 'local_app_host', 'local_app_session')
-      && row?.generic_proxy === 'forbidden';
-  }
-  if (!methodId.endsWith('/SubscribeAgentVoiceStream')) return false;
-  return row?.operation_class === 'local_app_selected_voice'
-    && exactArray(row?.allowed_transport_classes, ['local_app_host'])
-    && exactArray(row?.required_origin_roles, ['local_app_session'])
-    && row?.request_may_select_role === false
-    && row?.portable_session_allowed === false
-    && row?.public_tcp_disposition === 'existing_authenticated_or_scoped_binding_unchanged'
-    && row?.generic_proxy === 'forbidden';
-}
-
 export function loadAuthorityBundle(root = repoRoot) {
   return Object.fromEntries(Object.entries(authorityPaths).map(([key, relative]) => {
     const absolute = path.join(root, relative);
@@ -236,12 +224,12 @@ export function validateLocalDevelopmentAuthority(bundle) {
   const policy = parsed.policy;
   if (policy) {
     if (
-      policy.version !== 3
+      policy.version !== 5
       || policy.table_family !== 'owner_matrix'
       || policy.owner !== 'platform'
       || policy.matrix_id !== 'nimi_app_local_development_admission'
     ) {
-      issues.push(issue('LOCAL_DEVELOPMENT_POLICY_IDENTITY_INVALID', authorityPaths.policy, 'Policy must be the Platform-owned v3 local-development owner matrix.'));
+      issues.push(issue('LOCAL_DEVELOPMENT_POLICY_IDENTITY_INVALID', authorityPaths.policy, 'Policy must be the Platform-owned v5 local-development owner matrix.'));
     }
 
     if (
@@ -273,32 +261,39 @@ export function validateLocalDevelopmentAuthority(bundle) {
       authorization?.owner !== 'runtime_k_app'
       || !exactArray(authorization?.bindings, authorizationBindings)
       || !exactArray(authorization?.choices, ['run_once', 'remember_project'])
-      || authorization?.initial_grant_state !== 'zero'
+      || authorization?.initial_permission_decision_state !== 'none'
       || authorization?.remembered_reactivation_requires_fresh_presence !== true
       || authorization?.account_switch_transfers_authorization !== false
-      || authorization?.app_owned_or_renderer_storage !== 'forbidden'
+      || authorization?.permission_requirements_may_be_empty !== true
+      || authorization?.app_owned_native_host_storage !== 'allowed'
+      || authorization?.nimi_permission_required_for_app_owned_native_host_storage !== false
+      || authorization?.renderer_direct_native_filesystem_access !== 'forbidden'
+      || authorization?.renderer_storage_or_account_partition_projection !== 'forbidden'
+      || authorization?.app_owned_host_commands !== 'exact_app_registered_typed_allowlist'
+      || authorization?.app_owned_host_commands_create_nimi_grant !== false
     ) {
-      issues.push(issue('LOCAL_DEVELOPMENT_USER_AUTHORIZATION_INVALID', authorityPaths.policy, 'Project authorization must use the exact principal/project/account/shell bindings, zero-grant start, and run-once/remember lifetimes.'));
+      issues.push(issue('LOCAL_DEVELOPMENT_USER_AUTHORIZATION_INVALID', authorityPaths.policy, 'Project authorization must use the exact principal/project/account/shell bindings, no permission decision, app-owned host authority, and run-once/remember lifetimes.'));
     }
 
-    const bindingRequests = policy.runtime_scoped_binding_requests;
+    const permissionRequirements = policy.permission_requirements;
     if (
-      bindingRequests?.manifest_field !== 'local_development.runtime_scoped_binding_requests'
-      || bindingRequests?.owner !== 'runtime_k_app_request_eligibility'
-      || !exactArray(bindingRequests?.admitted_request_scopes, runtimeScopedBindingRequestScopes)
-      || !exactArray(bindingRequests?.item_shape?.required_fields, ['scope', 'purpose'])
-      || bindingRequests?.item_shape?.qualifier !== 'forbidden'
-      || bindingRequests?.item_shape?.duplicate_scope !== 'forbidden'
-      || bindingRequests?.item_shape?.unknown_scope !== 'forbidden'
-      || bindingRequests?.capability_fingerprint_inclusion !== 'canonical_sorted_set'
-      || bindingRequests?.request_eligibility_only !== true
-      || bindingRequests?.creates_operation_grant !== false
-      || bindingRequests?.creates_scoped_binding !== false
-      || bindingRequests?.runtime_issued_binding_still_required !== true
-      || bindingRequests?.platform_registry_permission_equivalence !== 'forbidden'
-      || bindingRequests?.app_renderer_or_manifest_positive_authority !== 'forbidden'
+      permissionRequirements?.manifest_field !== 'permissions'
+      || permissionRequirements?.owner !== 'platform_permission_catalog'
+      || !exactArray(permissionRequirements?.current_admitted_permission_ids, [])
+      || !exactArray(permissionRequirements?.item_shape?.required_fields, ['id', 'reason'])
+      || !exactArray(permissionRequirements?.item_shape?.optional_fields, [])
+      || permissionRequirements?.item_shape?.duplicate_id !== 'forbidden'
+      || permissionRequirements?.item_shape?.unknown_or_reserved_id !== 'forbidden'
+      || permissionRequirements?.permission_requirement_fingerprint_inclusion !== 'canonical_sorted_id_and_reason_set'
+      || permissionRequirements?.empty_list_valid !== true
+      || permissionRequirements?.request_eligibility_only !== true
+      || permissionRequirements?.creates_operation_grant !== false
+      || permissionRequirements?.creates_scoped_binding !== false
+      || permissionRequirements?.owner_selector_and_permission_decision_still_required !== true
+      || permissionRequirements?.app_owned_authority_or_base_entitlement_inclusion !== 'forbidden'
+      || permissionRequirements?.app_renderer_or_manifest_positive_authority !== 'forbidden'
     ) {
-      issues.push(issue('LOCAL_DEVELOPMENT_RUNTIME_BINDING_REQUESTS_INVALID', authorityPaths.policy, 'Runtime scoped binding requests must be a closed fingerprint input that grants no operation or scoped binding authority.'));
+      issues.push(issue('LOCAL_DEVELOPMENT_PERMISSION_REQUIREMENTS_INVALID', authorityPaths.policy, 'Manifest permission requirements must use the empty admitted public set and grant no operation, selector, or permission authority.'));
     }
 
     const session = policy.technical_launch_and_session;
@@ -339,7 +334,7 @@ export function validateLocalDevelopmentAuthority(bundle) {
       risk?.production_account_allowed_through_runtime_mediation !== true
       || risk?.runtime_credential_custody_required !== true
       || risk?.native_os_risk_disclosure_required !== true
-      || risk?.nimi_grants_cover_all_windows_rights !== false
+      || risk?.nimi_permissions_cover_all_windows_rights !== false
       || risk?.nimi_managed_logon_or_boot_autostart !== 'forbidden'
     ) {
       issues.push(issue('LOCAL_DEVELOPMENT_RISK_POSTURE_INVALID', authorityPaths.policy, 'Production-account mediation requires Runtime custody, native Windows risk disclosure, and no Nimi-managed persistent autostart.'));
@@ -347,12 +342,16 @@ export function validateLocalDevelopmentAuthority(bundle) {
 
     const operation = policy.operation_posture;
     if (
-      operation?.same_grant_and_owner_policy_as_other_trust_classes !== true
-      || !exactArray(operation?.selected_checkpoint_families, ['runtime_artifact_read', 'runtime_agent_conversation', 'runtime_agent_selected_voice'])
+      operation?.same_permission_and_owner_policy_as_other_trust_classes !== true
+      || !exactArray(operation?.selected_checkpoint_families, [])
+      || !exactArray(operation?.blocked_until_atomic_public_permission_or_attested_first_party_carrier, ['runtime_artifact_read', 'runtime_agent_conversation', 'runtime_agent_selected_voice'])
+      || operation?.app_private_base_entitlement_requires_grant !== false
+      || operation?.app_private_base_entitlement_requires_live_principal_session_account_binding !== true
+      || operation?.app_owned_host_operations_are_nimi_operations !== false
       || operation?.missing_families !== 'typed_owner_unavailable'
       || operation?.generic_protected_proxy !== 'forbidden'
     ) {
-      issues.push(issue('LOCAL_DEVELOPMENT_OPERATION_POSTURE_INVALID', authorityPaths.policy, 'The checkpoint admits only artifact read, selected RuntimeAgent conversation, and selected RuntimeAgent voice through common grants/owner policy; missing families stay typed unavailable.'));
+      issues.push(issue('LOCAL_DEVELOPMENT_OPERATION_POSTURE_INVALID', authorityPaths.policy, 'App-private and app-owned operations remain non-permission authority; protected artifact and Runtime Agent families stay unavailable pending atomic permission or attested first-party carrier admission.'));
     }
 
     if (
@@ -387,15 +386,16 @@ export function validateLocalDevelopmentAuthority(bundle) {
   const grant = parsed.grantSchema;
   if (grant) {
     if (
-      grant.grant?.owner !== 'runtime_k_grant'
-      || !exactArray(grant.grant?.key, ['local_os_user_anchor', 'account_id', 'local_app_principal_id', 'capability_resource_fingerprint'])
-      || !grant.grant?.invariants?.includes('install_project_authorization_or_promotion_creates_zero_grant')
-      || !grant.grant?.invariants?.includes('account_switch_never_transfers_grant')
-      || !grant.grant?.invariants?.includes('next_protected_operation_reads_current_grant')
-      || grant.store_separation?.launch_session_store_dependency !== 'none'
-      || !includesAll(grant.forbidden_outputs, ['bearer', 'token', 'portable_grant_credential', 'session_proof'])
+      grant.current_admission?.store_identity !== 'absent_pre_admission'
+      || grant.current_admission?.positive_mutation_path !== 'absent'
+      || !exactArray(grant.future_owner_lifecycle?.key, ['local_os_user_anchor', 'account_id', 'local_app_principal_id', 'permission_id', 'owner_selector_digest'])
+      || !grant.future_owner_lifecycle?.invariants?.includes('account_switch_never_transfers_permission')
+      || !grant.future_owner_lifecycle?.invariants?.includes('every_protected_operation_reads_current_owner_decision')
+      || grant.authority_classes?.base_entitlement?.permission_record !== 'forbidden'
+      || grant.authority_classes?.app_owned_authority?.permission_record !== 'forbidden'
+      || !includesAll(grant.forbidden_public_fields, ['capability_scope', 'resource_scope', 'bearer', 'token', 'session_proof'])
     ) {
-      issues.push(issue('LOCAL_DEVELOPMENT_GRANT_SCHEMA_INVALID', authorityPaths.grantSchema, 'Grant state must be separately keyed by SID/account/principal/resource, start at zero, deny transfer, and expose no portable material.'));
+      issues.push(issue('LOCAL_DEVELOPMENT_PERMISSION_SCHEMA_INVALID', authorityPaths.grantSchema, 'Pre-admission permission persistence must be absent; any future lifecycle must bind public permission plus owner selector and never absorb base/app-owned authority.'));
     }
   }
 
@@ -407,8 +407,10 @@ export function validateLocalDevelopmentAuthority(bundle) {
       || presence.challenge?.request_supplied_authority !== 'forbidden'
       || presence.challenge?.consume !== 'atomic_with_state_change'
       || presence.challenge?.replay !== 'denied'
-      || presence.assignments?.developer_project_trust !== 'grant_presence'
-      || presence.assignments?.remembered_project_reactivation !== 'grant_presence'
+      || presence.assignments?.developer_project_first_authorization !== 'user_decision_presence'
+      || presence.assignments?.remembered_project_reactivation !== 'user_decision_presence'
+      || presence.assignments?.base_entitlement_operation !== 'none'
+      || presence.assignments?.ordinary_admitted_user_permission_operation !== 'none'
     ) {
       issues.push(issue('LOCAL_DEVELOPMENT_PRESENCE_PROTOCOL_INVALID', authorityPaths.presenceProtocol, 'Project approval and remembered reactivation require an exact Runtime-owned, atomic, non-replayable presence challenge.'));
     }
@@ -425,7 +427,7 @@ export function validateLocalDevelopmentAuthority(bundle) {
       || localWire?.connection_binding !== 'exact_bound_local_app_process_and_current_launch_lease'
       || localWire?.atomic_transition !== 'launch_lease_consume_and_private_local_app_session_insert'
       || localWire?.ordinary_grpc_disposition !== 'deny'
-      || !includesAll(localWire?.response?.forbidden_fields, ['local_app_principal_id', 'local_record_id', 'grant_id', 'session_id', 'session_proof', 'launch_lease', 'process_proof', 'endpoint', 'token', 'credential'])
+      || !includesAll(localWire?.response?.forbidden_fields, ['local_app_principal_id', 'local_record_id', 'permission_id', 'permission_state', 'permission_decision_id', 'session_id', 'session_proof', 'launch_lease', 'process_proof', 'endpoint', 'token', 'credential'])
     ) {
       issues.push(issue('LOCAL_DEVELOPMENT_OPEN_SESSION_WIRE_INVALID', authorityPaths.transportMatrix, 'OpenLocalAppSession must be request-empty, exact-process/lease-bound, atomic, non-gRPC, and non-portable.'));
     }
@@ -455,13 +457,22 @@ export function validateLocalDevelopmentAuthority(bundle) {
       }
     }
 
-    for (const methodId of selectedOperationMethods) {
+    for (const [methodId, operationClass] of localAppHostMethods) {
       const row = methods.get(methodId);
-      const valid = methodId.endsWith('/TranscribeLocalAppAgentAudio') || methodId.endsWith('/SubscribeAgentVoiceStream')
-        ? hasExactSelectedVoiceTransportRow(row, methodId)
-        : hasExactTransportRow(row, methodId.includes('ReadArtifactBytes') ? 'local_app_artifact_read' : 'local_app_agent_conversation', 'local_app_host', 'local_app_session');
-      if (!valid) {
-        issues.push(issue('LOCAL_DEVELOPMENT_SELECTED_OPERATION_INVALID', `${authorityPaths.transportMatrix}#${methodId}`, 'Selected checkpoint operations must require the exact local-app host/session carrier.'));
+      if (!hasExactTransportRow(row, operationClass, 'local_app_host', 'local_app_session') || row?.generic_proxy !== 'forbidden') {
+        issues.push(issue('LOCAL_DEVELOPMENT_BASE_SURFACE_INVALID', `${authorityPaths.transportMatrix}#${methodId}`, 'The local-app host carrier must expose exactly public permission posture/request and app-private JSON storage.'));
+      }
+    }
+    const actualLocalAppHostMethods = (transport.methods ?? [])
+      .filter((row) => row.allowed_transport_classes?.includes('local_app_host'))
+      .map((row) => row.method_id);
+    if (!sameSet(actualLocalAppHostMethods, localAppHostMethods.map(([methodId]) => methodId))) {
+      issues.push(issue('LOCAL_DEVELOPMENT_BASE_SURFACE_INVALID', authorityPaths.transportMatrix, 'The local-app host carrier contains a missing or extra operation outside permission posture/request and app-private JSON storage.'));
+    }
+    for (const methodId of protectedMethodsExcludedFromLocalApp) {
+      const row = methods.get(methodId);
+      if (row?.allowed_transport_classes?.includes('local_app_host') || row?.required_origin_roles?.includes('local_app_session')) {
+        issues.push(issue('LOCAL_DEVELOPMENT_PROTECTED_OPERATION_EXPOSED', `${authorityPaths.transportMatrix}#${methodId}`, 'Artifact, Agent, conversation and voice operations require a future atomic public-permission or first-party carrier admission.'));
       }
     }
     if (

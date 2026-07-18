@@ -1,58 +1,87 @@
-version: 1
+version: 2
 table_family: protocol_surface
 owner: runtime
-protocol_id: runtime_local_app_grant_binding_schema
+protocol_id: runtime_local_app_permission_lifecycle_boundary
 source_rule: K-GRANT-014
-surfaces: [grant, forbidden_outputs, store_separation, zero_grant_selected_operations]
-grant:
-  owner: runtime_k_grant
-  store_identity: local_app_grants
+surfaces:
+  - current_admission
+  - authority_classes
+  - future_owner_lifecycle
+  - forbidden_public_fields
+
+current_admission:
+  admitted_public_permissions: []
+  positive_mutation_path: absent
+  store_identity: absent_pre_admission
+  product_status: unavailable
+  protected_operation_posture: fail_closed
+
+authority_classes:
+  base_entitlement:
+    permission_record: forbidden
+    user_prompt: forbidden
+  user_permission:
+    permission_record: required_only_after_atomic_permission_admission
+    public_id_source: platform_permission_catalog
+  one_shot_consent:
+    permission_record: forbidden
+    authority_carrier: owner_issued_bounded_handle
+  app_owned_authority:
+    permission_record: forbidden
+    owner: app_native_host
+  os_right:
+    permission_record: forbidden
+    owner: operating_system
+
+future_owner_lifecycle:
+  activation_condition: complete_permission_admission_slice
+  owner: canonical_permission_decision_owner
   key:
     - local_os_user_anchor
     - account_id
     - local_app_principal_id
-    - capability_resource_fingerprint
-  fields:
-    - grant_id
-    - capability_scope
-    - resource_scope
-    - capability_resource_fingerprint
-    - grant_generation
-    - grant_revision
+    - permission_id
+    - owner_selector_digest
+  minimum_fields:
+    - permission_decision_id
+    - permission_id
+    - owner_selector_digest
+    - decision_generation
+    - decision_revision
     - state
-    - issued_at
+    - requested_at
+    - decided_at
     - expires_at
-    - supersedes_grant_id
-    - presence_evidence_ref
-  state_enum: [pending, granted, denied, expired, revoked, superseded]
-  allowed_transitions:
-    - pending_to_granted_denied_or_expired
-    - granted_to_revoked_expired_or_superseded
-    - denied_to_new_pending_request_only
+    - user_decision_evidence_ref
+  state_enum: [pending, granted, denied, expired, revoked]
   invariants:
-    - local_app_record_contains_no_grant_boolean
-    - install_project_authorization_or_promotion_creates_zero_grant
-    - trust_class_has_no_permission_effect
-    - account_switch_never_transfers_grant
-    - grant_mutation_does_not_rotate_identity_session
-    - next_protected_operation_reads_current_grant
+    - catalog_row_alone_is_not_authority
+    - selector_is_owner_issued_not_app_supplied
+    - account_switch_never_transfers_permission
+    - principal_tombstone_never_transfers_permission
+    - every_protected_operation_reads_current_owner_decision
+    - lifecycle_mutation_does_not_rotate_identity_session
     - no_app_id_only_positive_lookup
-forbidden_outputs:
+    - no_trust_tier_permission_effect
+    - no_base_entitlement_permission_row
+    - no_app_owned_authority_permission_row
+
+forbidden_public_fields:
+  - capability_scope
+  - resource_scope
+  - capability_resource_fingerprint
+  - internal_operation_id
+  - internal_resource_ref
+  - account_id
+  - local_app_principal_id
+  - owner_selector_digest
+  - permission_decision_id
   - bearer
   - token
-  - portable_grant_credential
   - session_proof
-  - owner_policy_result_cache
-store_separation:
-  principal_record_store_dependency: reference_only
-  launch_session_store_dependency: none
-  shared_serialized_record: forbidden
-  app_id_positive_key: forbidden
-zero_grant_selected_operations:
-  - operation_id: local-app.agentInventory
-    rpc_method: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory
-    request_shape: empty
-    implicit_resource: current_verified_os_user_and_authenticated_account_agent_set
-    grant_binding: forbidden
-    capability_resource_fingerprint: forbidden
-    source_rule: K-AGCORE-006e
+
+public_surface:
+  status_input: [permission_id]
+  request_input: [permission_id, reason]
+  posture_enum: [prompt, pending, granted, denied, unavailable]
+  app_mutation_methods: forbidden

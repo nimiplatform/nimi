@@ -225,7 +225,8 @@ advances the boot epoch and invalidates all outstanding local-app launch
 leases, process bindings, sessions, challenges and presence proofs before any
 protected listener becomes ready. Durable grants remain records, but no grant
 authorizes work until the caller opens a new session for the new boot epoch and
-the per-operation coordinator re-resolves the current grant revision.
+the per-operation coordinator re-resolves the current authority class and, for
+an admitted user permission, the current owner decision revision.
 
 Runtime restart must therefore support conversation continuity owned by
 RuntimeAgent/Cognition while refusing reuse of the pre-restart process carrier.

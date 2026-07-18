@@ -60,10 +60,6 @@ export const DESKTOP_ELECTRON_LOCAL_DEVELOPMENT_COMMANDS = [
   'local_development_authorizations_list',
   'local_development_runs_list',
   'local_development_authorization_revoke',
-  'local_app_grant_pending_list',
-  'local_app_grant_decide',
-  'local_app_grant_list',
-  'local_app_grant_revoke',
 ] as const;
 
 const DESKTOP_ELECTRON_PROTECTED_CONTROL_COMMANDS = [

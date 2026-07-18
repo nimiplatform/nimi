@@ -16,18 +16,11 @@ const mainEntry = path.join(root, 'dist-electron', 'main.js');
 const rendererAcceptanceUrl = `${pathToFileURL(path.join(root, 'dist', 'index.html')).toString()}?nimiElectronSdkAcceptance=1`;
 const localAppNegativeMatrix = [
   { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.sessionStatus'], payload: {} },
-  { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionPosture'], payload: { payload: { operationId: 'runtime_agent.conversation.turn.send', resourceRef: 'agent:tester/conversation:acceptance' } } },
-  { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionRequest'], payload: { payload: { operationId: 'runtime_agent.conversation.turn.send', resourceRef: 'agent:tester/conversation:acceptance', purpose: 'Plain Electron negative acceptance' } } },
-  { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentOpenConversation'], payload: { payload: { agentId: 'tester', requestedAnchorDisposition: 'create-or-resume' } } },
-  { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSendTurn'], payload: { payload: { agentId: 'tester', conversationAnchorId: 'anchor', clientTurnId: 'turn', userText: 'hello' } } },
-  { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSubscribeTurn'], payload: { payload: { agentId: 'tester', conversationAnchorId: 'anchor', cursor: '' } } },
-  { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentGetConversationSnapshot'], payload: { payload: { agentId: 'tester', conversationAnchorId: 'anchor' } } },
-  { command: NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'], payload: { relativePath: 'settings/profile.json' } },
-  { command: NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'], payload: { relativePath: 'settings/profile.json', value: {} } },
-  { command: NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'], payload: { relativePath: 'settings/profile.json' } },
-  { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentInventory'], payload: {} },
-  { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentTranscribeVoice'], payload: { payload: { agentId: 'tester', clientRequestId: 'voice-acceptance', audioBase64: 'YQ==', mimeType: 'audio/wav' } } },
-  { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentSubscribeVoiceStream'], payload: { payload: { agentId: 'tester', conversationAnchorId: 'anchor', turnId: 'turn', voiceStreamId: 'voice-stream', cursor: '' } } },
+  { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionStatus'], payload: { payload: { permissionId: 'agents.interact' } } },
+  { command: NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionRequest'], payload: { payload: { permissionId: 'agents.interact', reason: 'Plain Electron negative acceptance' } } },
+  { command: NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'], payload: { payload: { relativePath: 'settings/profile.json' } } },
+  { command: NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'], payload: { payload: { relativePath: 'settings/profile.json', value: {} } } },
+  { command: NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'], payload: { payload: { relativePath: 'settings/profile.json' } } },
 ];
 
 test('Electron acceptance matrix maps every standard shell command to e2e or host-unit coverage', async () => {
@@ -86,12 +79,6 @@ test('plain Electron boots the narrowed renderer but cannot acquire protected lo
       process: false,
     });
 
-    const artifactUnavailable = await captureInvokeError(
-      page,
-      NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactsReadRuntimeBytes'],
-      { payload: { artifactId: 'runtime-artifact-acceptance' } },
-    );
-    assertUnsupervisedLocalAppDenied(artifactUnavailable);
     for (const row of localAppNegativeMatrix) {
       const denied = await captureInvokeError(page, row.command, row.payload);
       assertUnsupervisedLocalAppDenied(denied);
@@ -102,9 +89,9 @@ test('plain Electron boots the narrowed renderer but cannot acquire protected lo
       Object.keys(globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__).sort(),
     );
     assert.deepEqual(sdkAcceptanceKeys, [
-      'localAppArtifactRead',
       'localAppAuthStatus',
       'localAppProjection',
+      'localAppStorageWrite',
     ]);
     const localAppAuthStatus = await page.evaluate(() =>
       globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__.localAppAuthStatus(),
@@ -124,12 +111,12 @@ test('plain Electron boots the narrowed renderer but cannot acquire protected lo
       reasonCode: sessionReasonCode,
       actionHint: expectedCarrierActionHint(sessionReasonCode),
     });
-    const sdkLocalAppArtifact = await page.evaluate(() =>
-      globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__.localAppArtifactRead(),
+    const sdkLocalAppStorage = await page.evaluate(() =>
+      globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__.localAppStorageWrite(),
     );
-    assert.equal(sdkLocalAppArtifact.transport, 'electron-ipc');
-    assert.equal(sdkLocalAppArtifact.ok, false);
-    assertUnsupervisedLocalAppDenied(sdkLocalAppArtifact);
+    assert.equal(sdkLocalAppStorage.transport, 'electron-ipc');
+    assert.equal(sdkLocalAppStorage.ok, false);
+    assertUnsupervisedLocalAppDenied(sdkLocalAppStorage);
 
     for (const commandKey of [
       'runtime-lifecycle.status',

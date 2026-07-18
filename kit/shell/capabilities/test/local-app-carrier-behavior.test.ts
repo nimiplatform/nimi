@@ -7,16 +7,8 @@ import {
 
 const FINAL_LOCAL_APP_OPERATIONS = [
   'local-app.sessionStatus',
-  'local-app.permissionPosture',
+  'local-app.permissionStatus',
   'local-app.permissionRequest',
-  'local-app.artifactsReadRuntimeBytes',
-  'local-app.agentInventory',
-  'local-app.agentOpenConversation',
-  'local-app.agentSendTurn',
-  'local-app.agentSubscribeTurn',
-  'local-app.agentGetConversationSnapshot',
-  'local-app.agentTranscribeVoice',
-  'local-app.agentSubscribeVoiceStream',
   'storage.readJson',
   'storage.writeJson',
   'storage.removeJson',
@@ -24,7 +16,7 @@ const FINAL_LOCAL_APP_OPERATIONS = [
 ] as const;
 
 describe('local-app public capability behavior', () => {
-  it('projects the exact final fifteen-operation allowlist and command set', () => {
+  it('projects the exact base-entitlement and product-permission shell set', () => {
     const set = NIMI_STANDARD_SHELL_CAPABILITY_SETS.find(
       (entry) => entry.setId === 'local-app-standard-shell-v1',
     );
@@ -32,13 +24,17 @@ describe('local-app public capability behavior', () => {
     expect(set).toMatchObject({
       hostClass: 'protected-local-app-host',
       authBinding: 'runtime_owned_request_empty_local_app_session',
-      authorityStatus: '0k_final_surface_windows_development_positive',
+      authorityStatus: 'permission_model_v1_base_entitlement_only',
       allowedOperations: FINAL_LOCAL_APP_OPERATIONS,
     });
     expect(set?.allowedCommands).toEqual(FINAL_LOCAL_APP_OPERATIONS.map(
       (operation) => NIMI_STANDARD_SHELL_COMMANDS[operation],
     ));
     expect(set?.allowedCommands.every((command) => typeof command === 'string' && command.length > 0)).toBe(true);
+    expect(set?.plannedOperations).toEqual(expect.arrayContaining([
+      'data.pathResolve',
+      'config.get',
+    ]));
   });
 
   it('keeps account, auth, lifecycle, OAuth, generic proxy, filesystem and desktop-private operations denied', () => {

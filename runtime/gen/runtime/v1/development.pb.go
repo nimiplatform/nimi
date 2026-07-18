@@ -536,106 +536,6 @@ func (x *LocalDevelopmentProjectAuthorizationSummary) GetReasonCode() ReasonCode
 	return ReasonCode_REASON_CODE_UNSPECIFIED
 }
 
-type LocalDevelopmentGrantSummary struct {
-	state           protoimpl.MessageState              `protogen:"open.v1"`
-	Availability    LocalDevelopmentSummaryAvailability `protobuf:"varint,1,opt,name=availability,proto3,enum=nimi.runtime.v1.LocalDevelopmentSummaryAvailability" json:"availability,omitempty"`
-	PendingCount    uint64                              `protobuf:"varint,2,opt,name=pending_count,json=pendingCount,proto3" json:"pending_count,omitempty"`
-	GrantedCount    uint64                              `protobuf:"varint,3,opt,name=granted_count,json=grantedCount,proto3" json:"granted_count,omitempty"`
-	DeniedCount     uint64                              `protobuf:"varint,4,opt,name=denied_count,json=deniedCount,proto3" json:"denied_count,omitempty"`
-	ExpiredCount    uint64                              `protobuf:"varint,5,opt,name=expired_count,json=expiredCount,proto3" json:"expired_count,omitempty"`
-	RevokedCount    uint64                              `protobuf:"varint,6,opt,name=revoked_count,json=revokedCount,proto3" json:"revoked_count,omitempty"`
-	SupersededCount uint64                              `protobuf:"varint,7,opt,name=superseded_count,json=supersededCount,proto3" json:"superseded_count,omitempty"`
-	ReasonCode      ReasonCode                          `protobuf:"varint,8,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *LocalDevelopmentGrantSummary) Reset() {
-	*x = LocalDevelopmentGrantSummary{}
-	mi := &file_runtime_v1_development_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LocalDevelopmentGrantSummary) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LocalDevelopmentGrantSummary) ProtoMessage() {}
-
-func (x *LocalDevelopmentGrantSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_development_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LocalDevelopmentGrantSummary.ProtoReflect.Descriptor instead.
-func (*LocalDevelopmentGrantSummary) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_development_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *LocalDevelopmentGrantSummary) GetAvailability() LocalDevelopmentSummaryAvailability {
-	if x != nil {
-		return x.Availability
-	}
-	return LocalDevelopmentSummaryAvailability_LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_UNSPECIFIED
-}
-
-func (x *LocalDevelopmentGrantSummary) GetPendingCount() uint64 {
-	if x != nil {
-		return x.PendingCount
-	}
-	return 0
-}
-
-func (x *LocalDevelopmentGrantSummary) GetGrantedCount() uint64 {
-	if x != nil {
-		return x.GrantedCount
-	}
-	return 0
-}
-
-func (x *LocalDevelopmentGrantSummary) GetDeniedCount() uint64 {
-	if x != nil {
-		return x.DeniedCount
-	}
-	return 0
-}
-
-func (x *LocalDevelopmentGrantSummary) GetExpiredCount() uint64 {
-	if x != nil {
-		return x.ExpiredCount
-	}
-	return 0
-}
-
-func (x *LocalDevelopmentGrantSummary) GetRevokedCount() uint64 {
-	if x != nil {
-		return x.RevokedCount
-	}
-	return 0
-}
-
-func (x *LocalDevelopmentGrantSummary) GetSupersededCount() uint64 {
-	if x != nil {
-		return x.SupersededCount
-	}
-	return 0
-}
-
-func (x *LocalDevelopmentGrantSummary) GetReasonCode() ReasonCode {
-	if x != nil {
-		return x.ReasonCode
-	}
-	return ReasonCode_REASON_CODE_UNSPECIFIED
-}
-
 type GetLocalDevelopmentAuthoritySummaryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -644,7 +544,7 @@ type GetLocalDevelopmentAuthoritySummaryRequest struct {
 
 func (x *GetLocalDevelopmentAuthoritySummaryRequest) Reset() {
 	*x = GetLocalDevelopmentAuthoritySummaryRequest{}
-	mi := &file_runtime_v1_development_proto_msgTypes[5]
+	mi := &file_runtime_v1_development_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -656,7 +556,7 @@ func (x *GetLocalDevelopmentAuthoritySummaryRequest) String() string {
 func (*GetLocalDevelopmentAuthoritySummaryRequest) ProtoMessage() {}
 
 func (x *GetLocalDevelopmentAuthoritySummaryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_development_proto_msgTypes[5]
+	mi := &file_runtime_v1_development_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -669,25 +569,25 @@ func (x *GetLocalDevelopmentAuthoritySummaryRequest) ProtoReflect() protoreflect
 
 // Deprecated: Use GetLocalDevelopmentAuthoritySummaryRequest.ProtoReflect.Descriptor instead.
 func (*GetLocalDevelopmentAuthoritySummaryRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_development_proto_rawDescGZIP(), []int{5}
+	return file_runtime_v1_development_proto_rawDescGZIP(), []int{4}
 }
 
 // Exact bounded diagnostic projection. These sections never contain an
-// account, project, principal, authorization, grant, request, operation,
-// resource, path, credential, session, or boot-epoch identifier.
+// account, project, principal, authorization, request, path, credential,
+// session, or boot-epoch identifier. Product permission lifecycle is not a
+// local-development authority dimension and is intentionally absent.
 type GetLocalDevelopmentAuthoritySummaryResponse struct {
 	state                protoimpl.MessageState                       `protogen:"open.v1"`
 	DeveloperMode        *LocalDevelopmentDeveloperModeSummary        `protobuf:"bytes,1,opt,name=developer_mode,json=developerMode,proto3" json:"developer_mode,omitempty"`
 	ProjectAuthorization *LocalDevelopmentProjectAuthorizationSummary `protobuf:"bytes,2,opt,name=project_authorization,json=projectAuthorization,proto3" json:"project_authorization,omitempty"`
-	GrantSummary         *LocalDevelopmentGrantSummary                `protobuf:"bytes,3,opt,name=grant_summary,json=grantSummary,proto3" json:"grant_summary,omitempty"`
-	ReasonCode           ReasonCode                                   `protobuf:"varint,4,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	ReasonCode           ReasonCode                                   `protobuf:"varint,3,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
 
 func (x *GetLocalDevelopmentAuthoritySummaryResponse) Reset() {
 	*x = GetLocalDevelopmentAuthoritySummaryResponse{}
-	mi := &file_runtime_v1_development_proto_msgTypes[6]
+	mi := &file_runtime_v1_development_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -699,7 +599,7 @@ func (x *GetLocalDevelopmentAuthoritySummaryResponse) String() string {
 func (*GetLocalDevelopmentAuthoritySummaryResponse) ProtoMessage() {}
 
 func (x *GetLocalDevelopmentAuthoritySummaryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_development_proto_msgTypes[6]
+	mi := &file_runtime_v1_development_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -712,7 +612,7 @@ func (x *GetLocalDevelopmentAuthoritySummaryResponse) ProtoReflect() protoreflec
 
 // Deprecated: Use GetLocalDevelopmentAuthoritySummaryResponse.ProtoReflect.Descriptor instead.
 func (*GetLocalDevelopmentAuthoritySummaryResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_development_proto_rawDescGZIP(), []int{6}
+	return file_runtime_v1_development_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetLocalDevelopmentAuthoritySummaryResponse) GetDeveloperMode() *LocalDevelopmentDeveloperModeSummary {
@@ -725,13 +625,6 @@ func (x *GetLocalDevelopmentAuthoritySummaryResponse) GetDeveloperMode() *LocalD
 func (x *GetLocalDevelopmentAuthoritySummaryResponse) GetProjectAuthorization() *LocalDevelopmentProjectAuthorizationSummary {
 	if x != nil {
 		return x.ProjectAuthorization
-	}
-	return nil
-}
-
-func (x *GetLocalDevelopmentAuthoritySummaryResponse) GetGrantSummary() *LocalDevelopmentGrantSummary {
-	if x != nil {
-		return x.GrantSummary
 	}
 	return nil
 }
@@ -752,7 +645,7 @@ type SetDeveloperModeRequest struct {
 
 func (x *SetDeveloperModeRequest) Reset() {
 	*x = SetDeveloperModeRequest{}
-	mi := &file_runtime_v1_development_proto_msgTypes[7]
+	mi := &file_runtime_v1_development_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -764,7 +657,7 @@ func (x *SetDeveloperModeRequest) String() string {
 func (*SetDeveloperModeRequest) ProtoMessage() {}
 
 func (x *SetDeveloperModeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_development_proto_msgTypes[7]
+	mi := &file_runtime_v1_development_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -777,7 +670,7 @@ func (x *SetDeveloperModeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetDeveloperModeRequest.ProtoReflect.Descriptor instead.
 func (*SetDeveloperModeRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_development_proto_rawDescGZIP(), []int{7}
+	return file_runtime_v1_development_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *SetDeveloperModeRequest) GetEnabled() bool {
@@ -799,7 +692,7 @@ type SetDeveloperModeResponse struct {
 
 func (x *SetDeveloperModeResponse) Reset() {
 	*x = SetDeveloperModeResponse{}
-	mi := &file_runtime_v1_development_proto_msgTypes[8]
+	mi := &file_runtime_v1_development_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -811,7 +704,7 @@ func (x *SetDeveloperModeResponse) String() string {
 func (*SetDeveloperModeResponse) ProtoMessage() {}
 
 func (x *SetDeveloperModeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_development_proto_msgTypes[8]
+	mi := &file_runtime_v1_development_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -824,7 +717,7 @@ func (x *SetDeveloperModeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetDeveloperModeResponse.ProtoReflect.Descriptor instead.
 func (*SetDeveloperModeResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_development_proto_rawDescGZIP(), []int{8}
+	return file_runtime_v1_development_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *SetDeveloperModeResponse) GetState() DeveloperModeState {
@@ -855,19 +748,71 @@ func (x *SetDeveloperModeResponse) GetReasonCode() ReasonCode {
 	return ReasonCode_REASON_CODE_UNSPECIFIED
 }
 
+type LocalDevelopmentPermissionRequirement struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PermissionId  string                 `protobuf:"bytes,1,opt,name=permission_id,json=permissionId,proto3" json:"permission_id,omitempty"`
+	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LocalDevelopmentPermissionRequirement) Reset() {
+	*x = LocalDevelopmentPermissionRequirement{}
+	mi := &file_runtime_v1_development_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalDevelopmentPermissionRequirement) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalDevelopmentPermissionRequirement) ProtoMessage() {}
+
+func (x *LocalDevelopmentPermissionRequirement) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_development_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalDevelopmentPermissionRequirement.ProtoReflect.Descriptor instead.
+func (*LocalDevelopmentPermissionRequirement) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_development_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *LocalDevelopmentPermissionRequirement) GetPermissionId() string {
+	if x != nil {
+		return x.PermissionId
+	}
+	return ""
+}
+
+func (x *LocalDevelopmentPermissionRequirement) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
 type LocalDevelopmentProjectProjection struct {
-	state                 protoimpl.MessageState    `protogen:"open.v1"`
-	AppId                 string                    `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	DisplayName           string                    `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	CanonicalProjectRoot  string                    `protobuf:"bytes,3,opt,name=canonical_project_root,json=canonicalProjectRoot,proto3" json:"canonical_project_root,omitempty"`
-	CanonicalManifestPath string                    `protobuf:"bytes,4,opt,name=canonical_manifest_path,json=canonicalManifestPath,proto3" json:"canonical_manifest_path,omitempty"`
-	ShellKind             LocalDevelopmentShellKind `protobuf:"varint,5,opt,name=shell_kind,json=shellKind,proto3,enum=nimi.runtime.v1.LocalDevelopmentShellKind" json:"shell_kind,omitempty"`
-	AccountId             string                    `protobuf:"bytes,6,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	RequestedCapabilities []string                  `protobuf:"bytes,7,rep,name=requested_capabilities,json=requestedCapabilities,proto3" json:"requested_capabilities,omitempty"`
-	CapabilityFingerprint []byte                    `protobuf:"bytes,8,opt,name=capability_fingerprint,json=capabilityFingerprint,proto3" json:"capability_fingerprint,omitempty"`
-	TrustClass            string                    `protobuf:"bytes,9,opt,name=trust_class,json=trustClass,proto3" json:"trust_class,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state                            protoimpl.MessageState                   `protogen:"open.v1"`
+	AppId                            string                                   `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	DisplayName                      string                                   `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	CanonicalProjectRoot             string                                   `protobuf:"bytes,3,opt,name=canonical_project_root,json=canonicalProjectRoot,proto3" json:"canonical_project_root,omitempty"`
+	CanonicalManifestPath            string                                   `protobuf:"bytes,4,opt,name=canonical_manifest_path,json=canonicalManifestPath,proto3" json:"canonical_manifest_path,omitempty"`
+	ShellKind                        LocalDevelopmentShellKind                `protobuf:"varint,5,opt,name=shell_kind,json=shellKind,proto3,enum=nimi.runtime.v1.LocalDevelopmentShellKind" json:"shell_kind,omitempty"`
+	AccountId                        string                                   `protobuf:"bytes,6,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	PermissionRequirements           []*LocalDevelopmentPermissionRequirement `protobuf:"bytes,7,rep,name=permission_requirements,json=permissionRequirements,proto3" json:"permission_requirements,omitempty"`
+	PermissionRequirementFingerprint []byte                                   `protobuf:"bytes,8,opt,name=permission_requirement_fingerprint,json=permissionRequirementFingerprint,proto3" json:"permission_requirement_fingerprint,omitempty"`
+	TrustClass                       string                                   `protobuf:"bytes,9,opt,name=trust_class,json=trustClass,proto3" json:"trust_class,omitempty"`
+	unknownFields                    protoimpl.UnknownFields
+	sizeCache                        protoimpl.SizeCache
 }
 
 func (x *LocalDevelopmentProjectProjection) Reset() {
@@ -942,16 +887,16 @@ func (x *LocalDevelopmentProjectProjection) GetAccountId() string {
 	return ""
 }
 
-func (x *LocalDevelopmentProjectProjection) GetRequestedCapabilities() []string {
+func (x *LocalDevelopmentProjectProjection) GetPermissionRequirements() []*LocalDevelopmentPermissionRequirement {
 	if x != nil {
-		return x.RequestedCapabilities
+		return x.PermissionRequirements
 	}
 	return nil
 }
 
-func (x *LocalDevelopmentProjectProjection) GetCapabilityFingerprint() []byte {
+func (x *LocalDevelopmentProjectProjection) GetPermissionRequirementFingerprint() []byte {
 	if x != nil {
-		return x.CapabilityFingerprint
+		return x.PermissionRequirementFingerprint
 	}
 	return nil
 }
@@ -1747,23 +1692,12 @@ const file_runtime_v1_development_proto_rawDesc = "" +
 	"\fdenied_count\x18\x04 \x01(\x04R\vdeniedCount\x12#\n" +
 	"\rrevoked_count\x18\x05 \x01(\x04R\frevokedCount\x12<\n" +
 	"\vreason_code\x18\x06 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\"\x98\x03\n" +
-	"\x1cLocalDevelopmentGrantSummary\x12X\n" +
-	"\favailability\x18\x01 \x01(\x0e24.nimi.runtime.v1.LocalDevelopmentSummaryAvailabilityR\favailability\x12#\n" +
-	"\rpending_count\x18\x02 \x01(\x04R\fpendingCount\x12#\n" +
-	"\rgranted_count\x18\x03 \x01(\x04R\fgrantedCount\x12!\n" +
-	"\fdenied_count\x18\x04 \x01(\x04R\vdeniedCount\x12#\n" +
-	"\rexpired_count\x18\x05 \x01(\x04R\fexpiredCount\x12#\n" +
-	"\rrevoked_count\x18\x06 \x01(\x04R\frevokedCount\x12)\n" +
-	"\x10superseded_count\x18\a \x01(\x04R\x0fsupersededCount\x12<\n" +
-	"\vreason_code\x18\b \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\",\n" +
-	"*GetLocalDevelopmentAuthoritySummaryRequest\"\x90\x03\n" +
+	"*GetLocalDevelopmentAuthoritySummaryRequest\"\xbc\x02\n" +
 	"+GetLocalDevelopmentAuthoritySummaryResponse\x12\\\n" +
 	"\x0edeveloper_mode\x18\x01 \x01(\v25.nimi.runtime.v1.LocalDevelopmentDeveloperModeSummaryR\rdeveloperMode\x12q\n" +
-	"\x15project_authorization\x18\x02 \x01(\v2<.nimi.runtime.v1.LocalDevelopmentProjectAuthorizationSummaryR\x14projectAuthorization\x12R\n" +
-	"\rgrant_summary\x18\x03 \x01(\v2-.nimi.runtime.v1.LocalDevelopmentGrantSummaryR\fgrantSummary\x12<\n" +
-	"\vreason_code\x18\x04 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"\x15project_authorization\x18\x02 \x01(\v2<.nimi.runtime.v1.LocalDevelopmentProjectAuthorizationSummaryR\x14projectAuthorization\x12<\n" +
+	"\vreason_code\x18\x03 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\"3\n" +
 	"\x17SetDeveloperModeRequest\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\"\xde\x01\n" +
@@ -1772,7 +1706,10 @@ const file_runtime_v1_development_proto_rawDesc = "" +
 	"\brevision\x18\x02 \x01(\x04R\brevision\x12-\n" +
 	"\x12account_generation\x18\x03 \x01(\x04R\x11accountGeneration\x12<\n" +
 	"\vreason_code\x18\x04 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\"\xc4\x03\n" +
+	"reasonCode\"d\n" +
+	"%LocalDevelopmentPermissionRequirement\x12#\n" +
+	"\rpermission_id\x18\x01 \x01(\tR\fpermissionId\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"\x95\x04\n" +
 	"!LocalDevelopmentProjectProjection\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x124\n" +
@@ -1781,9 +1718,9 @@ const file_runtime_v1_development_proto_rawDesc = "" +
 	"\n" +
 	"shell_kind\x18\x05 \x01(\x0e2*.nimi.runtime.v1.LocalDevelopmentShellKindR\tshellKind\x12\x1d\n" +
 	"\n" +
-	"account_id\x18\x06 \x01(\tR\taccountId\x125\n" +
-	"\x16requested_capabilities\x18\a \x03(\tR\x15requestedCapabilities\x125\n" +
-	"\x16capability_fingerprint\x18\b \x01(\fR\x15capabilityFingerprint\x12\x1f\n" +
+	"account_id\x18\x06 \x01(\tR\taccountId\x12o\n" +
+	"\x17permission_requirements\x18\a \x03(\v26.nimi.runtime.v1.LocalDevelopmentPermissionRequirementR\x16permissionRequirements\x12L\n" +
+	"\"permission_requirement_fingerprint\x18\b \x01(\fR permissionRequirementFingerprint\x12\x1f\n" +
 	"\vtrust_class\x18\t \x01(\tR\n" +
 	"trustClass\"\xab\x04\n" +
 	"'LocalDevelopmentAuthorizationProjection\x12)\n" +
@@ -1907,11 +1844,11 @@ var file_runtime_v1_development_proto_goTypes = []any{
 	(*GetDeveloperModeStatusResponse)(nil),              // 6: nimi.runtime.v1.GetDeveloperModeStatusResponse
 	(*LocalDevelopmentDeveloperModeSummary)(nil),        // 7: nimi.runtime.v1.LocalDevelopmentDeveloperModeSummary
 	(*LocalDevelopmentProjectAuthorizationSummary)(nil), // 8: nimi.runtime.v1.LocalDevelopmentProjectAuthorizationSummary
-	(*LocalDevelopmentGrantSummary)(nil),                // 9: nimi.runtime.v1.LocalDevelopmentGrantSummary
-	(*GetLocalDevelopmentAuthoritySummaryRequest)(nil),  // 10: nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryRequest
-	(*GetLocalDevelopmentAuthoritySummaryResponse)(nil), // 11: nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryResponse
-	(*SetDeveloperModeRequest)(nil),                     // 12: nimi.runtime.v1.SetDeveloperModeRequest
-	(*SetDeveloperModeResponse)(nil),                    // 13: nimi.runtime.v1.SetDeveloperModeResponse
+	(*GetLocalDevelopmentAuthoritySummaryRequest)(nil),  // 9: nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryRequest
+	(*GetLocalDevelopmentAuthoritySummaryResponse)(nil), // 10: nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryResponse
+	(*SetDeveloperModeRequest)(nil),                     // 11: nimi.runtime.v1.SetDeveloperModeRequest
+	(*SetDeveloperModeResponse)(nil),                    // 12: nimi.runtime.v1.SetDeveloperModeResponse
+	(*LocalDevelopmentPermissionRequirement)(nil),       // 13: nimi.runtime.v1.LocalDevelopmentPermissionRequirement
 	(*LocalDevelopmentProjectProjection)(nil),           // 14: nimi.runtime.v1.LocalDevelopmentProjectProjection
 	(*LocalDevelopmentAuthorizationProjection)(nil),     // 15: nimi.runtime.v1.LocalDevelopmentAuthorizationProjection
 	(*EvaluateLocalDevelopmentProjectRequest)(nil),      // 16: nimi.runtime.v1.EvaluateLocalDevelopmentProjectRequest
@@ -1937,60 +1874,58 @@ var file_runtime_v1_development_proto_depIdxs = []int32{
 	28, // 4: nimi.runtime.v1.LocalDevelopmentDeveloperModeSummary.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	4,  // 5: nimi.runtime.v1.LocalDevelopmentProjectAuthorizationSummary.availability:type_name -> nimi.runtime.v1.LocalDevelopmentSummaryAvailability
 	28, // 6: nimi.runtime.v1.LocalDevelopmentProjectAuthorizationSummary.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	4,  // 7: nimi.runtime.v1.LocalDevelopmentGrantSummary.availability:type_name -> nimi.runtime.v1.LocalDevelopmentSummaryAvailability
-	28, // 8: nimi.runtime.v1.LocalDevelopmentGrantSummary.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	7,  // 9: nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryResponse.developer_mode:type_name -> nimi.runtime.v1.LocalDevelopmentDeveloperModeSummary
-	8,  // 10: nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryResponse.project_authorization:type_name -> nimi.runtime.v1.LocalDevelopmentProjectAuthorizationSummary
-	9,  // 11: nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryResponse.grant_summary:type_name -> nimi.runtime.v1.LocalDevelopmentGrantSummary
-	28, // 12: nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	3,  // 13: nimi.runtime.v1.SetDeveloperModeResponse.state:type_name -> nimi.runtime.v1.DeveloperModeState
-	28, // 14: nimi.runtime.v1.SetDeveloperModeResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	0,  // 15: nimi.runtime.v1.LocalDevelopmentProjectProjection.shell_kind:type_name -> nimi.runtime.v1.LocalDevelopmentShellKind
-	14, // 16: nimi.runtime.v1.LocalDevelopmentAuthorizationProjection.project:type_name -> nimi.runtime.v1.LocalDevelopmentProjectProjection
-	2,  // 17: nimi.runtime.v1.LocalDevelopmentAuthorizationProjection.state:type_name -> nimi.runtime.v1.LocalDevelopmentAuthorizationState
-	1,  // 18: nimi.runtime.v1.LocalDevelopmentAuthorizationProjection.persistence:type_name -> nimi.runtime.v1.LocalDevelopmentDecision
-	29, // 19: nimi.runtime.v1.LocalDevelopmentAuthorizationProjection.approved_at:type_name -> google.protobuf.Timestamp
-	29, // 20: nimi.runtime.v1.LocalDevelopmentAuthorizationProjection.updated_at:type_name -> google.protobuf.Timestamp
-	28, // 21: nimi.runtime.v1.LocalDevelopmentAuthorizationProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	0,  // 22: nimi.runtime.v1.EvaluateLocalDevelopmentProjectRequest.shell_kind:type_name -> nimi.runtime.v1.LocalDevelopmentShellKind
-	14, // 23: nimi.runtime.v1.EvaluateLocalDevelopmentProjectResponse.project:type_name -> nimi.runtime.v1.LocalDevelopmentProjectProjection
-	2,  // 24: nimi.runtime.v1.EvaluateLocalDevelopmentProjectResponse.state:type_name -> nimi.runtime.v1.LocalDevelopmentAuthorizationState
-	15, // 25: nimi.runtime.v1.EvaluateLocalDevelopmentProjectResponse.authorization:type_name -> nimi.runtime.v1.LocalDevelopmentAuthorizationProjection
-	29, // 26: nimi.runtime.v1.EvaluateLocalDevelopmentProjectResponse.evaluation_expires_at:type_name -> google.protobuf.Timestamp
-	28, // 27: nimi.runtime.v1.EvaluateLocalDevelopmentProjectResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	1,  // 28: nimi.runtime.v1.DecideLocalDevelopmentProjectRequest.decision:type_name -> nimi.runtime.v1.LocalDevelopmentDecision
-	15, // 29: nimi.runtime.v1.DecideLocalDevelopmentProjectResponse.authorization:type_name -> nimi.runtime.v1.LocalDevelopmentAuthorizationProjection
-	28, // 30: nimi.runtime.v1.DecideLocalDevelopmentProjectResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	15, // 31: nimi.runtime.v1.ListLocalDevelopmentAuthorizationsResponse.authorizations:type_name -> nimi.runtime.v1.LocalDevelopmentAuthorizationProjection
-	28, // 32: nimi.runtime.v1.ListLocalDevelopmentAuthorizationsResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	15, // 33: nimi.runtime.v1.ReactivateLocalDevelopmentProjectResponse.authorization:type_name -> nimi.runtime.v1.LocalDevelopmentAuthorizationProjection
-	28, // 34: nimi.runtime.v1.ReactivateLocalDevelopmentProjectResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	15, // 35: nimi.runtime.v1.RevokeLocalDevelopmentAuthorizationResponse.authorization:type_name -> nimi.runtime.v1.LocalDevelopmentAuthorizationProjection
-	28, // 36: nimi.runtime.v1.RevokeLocalDevelopmentAuthorizationResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	28, // 37: nimi.runtime.v1.EndLocalDevelopmentRunResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	5,  // 38: nimi.runtime.v1.RuntimeDevelopmentService.GetDeveloperModeStatus:input_type -> nimi.runtime.v1.GetDeveloperModeStatusRequest
-	10, // 39: nimi.runtime.v1.RuntimeDevelopmentService.GetLocalDevelopmentAuthoritySummary:input_type -> nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryRequest
-	12, // 40: nimi.runtime.v1.RuntimeDevelopmentService.SetDeveloperMode:input_type -> nimi.runtime.v1.SetDeveloperModeRequest
-	16, // 41: nimi.runtime.v1.RuntimeDevelopmentService.EvaluateLocalDevelopmentProject:input_type -> nimi.runtime.v1.EvaluateLocalDevelopmentProjectRequest
-	18, // 42: nimi.runtime.v1.RuntimeDevelopmentService.DecideLocalDevelopmentProject:input_type -> nimi.runtime.v1.DecideLocalDevelopmentProjectRequest
-	20, // 43: nimi.runtime.v1.RuntimeDevelopmentService.ListLocalDevelopmentAuthorizations:input_type -> nimi.runtime.v1.ListLocalDevelopmentAuthorizationsRequest
-	22, // 44: nimi.runtime.v1.RuntimeDevelopmentService.ReactivateLocalDevelopmentProject:input_type -> nimi.runtime.v1.ReactivateLocalDevelopmentProjectRequest
-	24, // 45: nimi.runtime.v1.RuntimeDevelopmentService.RevokeLocalDevelopmentAuthorization:input_type -> nimi.runtime.v1.RevokeLocalDevelopmentAuthorizationRequest
-	26, // 46: nimi.runtime.v1.RuntimeDevelopmentService.EndLocalDevelopmentRun:input_type -> nimi.runtime.v1.EndLocalDevelopmentRunRequest
-	6,  // 47: nimi.runtime.v1.RuntimeDevelopmentService.GetDeveloperModeStatus:output_type -> nimi.runtime.v1.GetDeveloperModeStatusResponse
-	11, // 48: nimi.runtime.v1.RuntimeDevelopmentService.GetLocalDevelopmentAuthoritySummary:output_type -> nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryResponse
-	13, // 49: nimi.runtime.v1.RuntimeDevelopmentService.SetDeveloperMode:output_type -> nimi.runtime.v1.SetDeveloperModeResponse
-	17, // 50: nimi.runtime.v1.RuntimeDevelopmentService.EvaluateLocalDevelopmentProject:output_type -> nimi.runtime.v1.EvaluateLocalDevelopmentProjectResponse
-	19, // 51: nimi.runtime.v1.RuntimeDevelopmentService.DecideLocalDevelopmentProject:output_type -> nimi.runtime.v1.DecideLocalDevelopmentProjectResponse
-	21, // 52: nimi.runtime.v1.RuntimeDevelopmentService.ListLocalDevelopmentAuthorizations:output_type -> nimi.runtime.v1.ListLocalDevelopmentAuthorizationsResponse
-	23, // 53: nimi.runtime.v1.RuntimeDevelopmentService.ReactivateLocalDevelopmentProject:output_type -> nimi.runtime.v1.ReactivateLocalDevelopmentProjectResponse
-	25, // 54: nimi.runtime.v1.RuntimeDevelopmentService.RevokeLocalDevelopmentAuthorization:output_type -> nimi.runtime.v1.RevokeLocalDevelopmentAuthorizationResponse
-	27, // 55: nimi.runtime.v1.RuntimeDevelopmentService.EndLocalDevelopmentRun:output_type -> nimi.runtime.v1.EndLocalDevelopmentRunResponse
-	47, // [47:56] is the sub-list for method output_type
-	38, // [38:47] is the sub-list for method input_type
-	38, // [38:38] is the sub-list for extension type_name
-	38, // [38:38] is the sub-list for extension extendee
-	0,  // [0:38] is the sub-list for field type_name
+	7,  // 7: nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryResponse.developer_mode:type_name -> nimi.runtime.v1.LocalDevelopmentDeveloperModeSummary
+	8,  // 8: nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryResponse.project_authorization:type_name -> nimi.runtime.v1.LocalDevelopmentProjectAuthorizationSummary
+	28, // 9: nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,  // 10: nimi.runtime.v1.SetDeveloperModeResponse.state:type_name -> nimi.runtime.v1.DeveloperModeState
+	28, // 11: nimi.runtime.v1.SetDeveloperModeResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	0,  // 12: nimi.runtime.v1.LocalDevelopmentProjectProjection.shell_kind:type_name -> nimi.runtime.v1.LocalDevelopmentShellKind
+	13, // 13: nimi.runtime.v1.LocalDevelopmentProjectProjection.permission_requirements:type_name -> nimi.runtime.v1.LocalDevelopmentPermissionRequirement
+	14, // 14: nimi.runtime.v1.LocalDevelopmentAuthorizationProjection.project:type_name -> nimi.runtime.v1.LocalDevelopmentProjectProjection
+	2,  // 15: nimi.runtime.v1.LocalDevelopmentAuthorizationProjection.state:type_name -> nimi.runtime.v1.LocalDevelopmentAuthorizationState
+	1,  // 16: nimi.runtime.v1.LocalDevelopmentAuthorizationProjection.persistence:type_name -> nimi.runtime.v1.LocalDevelopmentDecision
+	29, // 17: nimi.runtime.v1.LocalDevelopmentAuthorizationProjection.approved_at:type_name -> google.protobuf.Timestamp
+	29, // 18: nimi.runtime.v1.LocalDevelopmentAuthorizationProjection.updated_at:type_name -> google.protobuf.Timestamp
+	28, // 19: nimi.runtime.v1.LocalDevelopmentAuthorizationProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	0,  // 20: nimi.runtime.v1.EvaluateLocalDevelopmentProjectRequest.shell_kind:type_name -> nimi.runtime.v1.LocalDevelopmentShellKind
+	14, // 21: nimi.runtime.v1.EvaluateLocalDevelopmentProjectResponse.project:type_name -> nimi.runtime.v1.LocalDevelopmentProjectProjection
+	2,  // 22: nimi.runtime.v1.EvaluateLocalDevelopmentProjectResponse.state:type_name -> nimi.runtime.v1.LocalDevelopmentAuthorizationState
+	15, // 23: nimi.runtime.v1.EvaluateLocalDevelopmentProjectResponse.authorization:type_name -> nimi.runtime.v1.LocalDevelopmentAuthorizationProjection
+	29, // 24: nimi.runtime.v1.EvaluateLocalDevelopmentProjectResponse.evaluation_expires_at:type_name -> google.protobuf.Timestamp
+	28, // 25: nimi.runtime.v1.EvaluateLocalDevelopmentProjectResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	1,  // 26: nimi.runtime.v1.DecideLocalDevelopmentProjectRequest.decision:type_name -> nimi.runtime.v1.LocalDevelopmentDecision
+	15, // 27: nimi.runtime.v1.DecideLocalDevelopmentProjectResponse.authorization:type_name -> nimi.runtime.v1.LocalDevelopmentAuthorizationProjection
+	28, // 28: nimi.runtime.v1.DecideLocalDevelopmentProjectResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	15, // 29: nimi.runtime.v1.ListLocalDevelopmentAuthorizationsResponse.authorizations:type_name -> nimi.runtime.v1.LocalDevelopmentAuthorizationProjection
+	28, // 30: nimi.runtime.v1.ListLocalDevelopmentAuthorizationsResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	15, // 31: nimi.runtime.v1.ReactivateLocalDevelopmentProjectResponse.authorization:type_name -> nimi.runtime.v1.LocalDevelopmentAuthorizationProjection
+	28, // 32: nimi.runtime.v1.ReactivateLocalDevelopmentProjectResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	15, // 33: nimi.runtime.v1.RevokeLocalDevelopmentAuthorizationResponse.authorization:type_name -> nimi.runtime.v1.LocalDevelopmentAuthorizationProjection
+	28, // 34: nimi.runtime.v1.RevokeLocalDevelopmentAuthorizationResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	28, // 35: nimi.runtime.v1.EndLocalDevelopmentRunResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	5,  // 36: nimi.runtime.v1.RuntimeDevelopmentService.GetDeveloperModeStatus:input_type -> nimi.runtime.v1.GetDeveloperModeStatusRequest
+	9,  // 37: nimi.runtime.v1.RuntimeDevelopmentService.GetLocalDevelopmentAuthoritySummary:input_type -> nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryRequest
+	11, // 38: nimi.runtime.v1.RuntimeDevelopmentService.SetDeveloperMode:input_type -> nimi.runtime.v1.SetDeveloperModeRequest
+	16, // 39: nimi.runtime.v1.RuntimeDevelopmentService.EvaluateLocalDevelopmentProject:input_type -> nimi.runtime.v1.EvaluateLocalDevelopmentProjectRequest
+	18, // 40: nimi.runtime.v1.RuntimeDevelopmentService.DecideLocalDevelopmentProject:input_type -> nimi.runtime.v1.DecideLocalDevelopmentProjectRequest
+	20, // 41: nimi.runtime.v1.RuntimeDevelopmentService.ListLocalDevelopmentAuthorizations:input_type -> nimi.runtime.v1.ListLocalDevelopmentAuthorizationsRequest
+	22, // 42: nimi.runtime.v1.RuntimeDevelopmentService.ReactivateLocalDevelopmentProject:input_type -> nimi.runtime.v1.ReactivateLocalDevelopmentProjectRequest
+	24, // 43: nimi.runtime.v1.RuntimeDevelopmentService.RevokeLocalDevelopmentAuthorization:input_type -> nimi.runtime.v1.RevokeLocalDevelopmentAuthorizationRequest
+	26, // 44: nimi.runtime.v1.RuntimeDevelopmentService.EndLocalDevelopmentRun:input_type -> nimi.runtime.v1.EndLocalDevelopmentRunRequest
+	6,  // 45: nimi.runtime.v1.RuntimeDevelopmentService.GetDeveloperModeStatus:output_type -> nimi.runtime.v1.GetDeveloperModeStatusResponse
+	10, // 46: nimi.runtime.v1.RuntimeDevelopmentService.GetLocalDevelopmentAuthoritySummary:output_type -> nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryResponse
+	12, // 47: nimi.runtime.v1.RuntimeDevelopmentService.SetDeveloperMode:output_type -> nimi.runtime.v1.SetDeveloperModeResponse
+	17, // 48: nimi.runtime.v1.RuntimeDevelopmentService.EvaluateLocalDevelopmentProject:output_type -> nimi.runtime.v1.EvaluateLocalDevelopmentProjectResponse
+	19, // 49: nimi.runtime.v1.RuntimeDevelopmentService.DecideLocalDevelopmentProject:output_type -> nimi.runtime.v1.DecideLocalDevelopmentProjectResponse
+	21, // 50: nimi.runtime.v1.RuntimeDevelopmentService.ListLocalDevelopmentAuthorizations:output_type -> nimi.runtime.v1.ListLocalDevelopmentAuthorizationsResponse
+	23, // 51: nimi.runtime.v1.RuntimeDevelopmentService.ReactivateLocalDevelopmentProject:output_type -> nimi.runtime.v1.ReactivateLocalDevelopmentProjectResponse
+	25, // 52: nimi.runtime.v1.RuntimeDevelopmentService.RevokeLocalDevelopmentAuthorization:output_type -> nimi.runtime.v1.RevokeLocalDevelopmentAuthorizationResponse
+	27, // 53: nimi.runtime.v1.RuntimeDevelopmentService.EndLocalDevelopmentRun:output_type -> nimi.runtime.v1.EndLocalDevelopmentRunResponse
+	45, // [45:54] is the sub-list for method output_type
+	36, // [36:45] is the sub-list for method input_type
+	36, // [36:36] is the sub-list for extension type_name
+	36, // [36:36] is the sub-list for extension extendee
+	0,  // [0:36] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_development_proto_init() }

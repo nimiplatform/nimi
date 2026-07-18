@@ -86,51 +86,15 @@ export interface LocalDevelopmentProjectAuthorizationSummary {
     reasonCode: ReasonCode;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalDevelopmentGrantSummary
- */
-export interface LocalDevelopmentGrantSummary {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalDevelopmentSummaryAvailability availability = 1
-     */
-    availability: LocalDevelopmentSummaryAvailability;
-    /**
-     * @generated from protobuf field: uint64 pending_count = 2
-     */
-    pendingCount: string;
-    /**
-     * @generated from protobuf field: uint64 granted_count = 3
-     */
-    grantedCount: string;
-    /**
-     * @generated from protobuf field: uint64 denied_count = 4
-     */
-    deniedCount: string;
-    /**
-     * @generated from protobuf field: uint64 expired_count = 5
-     */
-    expiredCount: string;
-    /**
-     * @generated from protobuf field: uint64 revoked_count = 6
-     */
-    revokedCount: string;
-    /**
-     * @generated from protobuf field: uint64 superseded_count = 7
-     */
-    supersededCount: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 8
-     */
-    reasonCode: ReasonCode;
-}
-/**
  * @generated from protobuf message nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryRequest
  */
 export interface GetLocalDevelopmentAuthoritySummaryRequest {
 }
 /**
  * Exact bounded diagnostic projection. These sections never contain an
- * account, project, principal, authorization, grant, request, operation,
- * resource, path, credential, session, or boot-epoch identifier.
+ * account, project, principal, authorization, request, path, credential,
+ * session, or boot-epoch identifier. Product permission lifecycle is not a
+ * local-development authority dimension and is intentionally absent.
  *
  * @generated from protobuf message nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryResponse
  */
@@ -144,11 +108,7 @@ export interface GetLocalDevelopmentAuthoritySummaryResponse {
      */
     projectAuthorization?: LocalDevelopmentProjectAuthorizationSummary;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalDevelopmentGrantSummary grant_summary = 3
-     */
-    grantSummary?: LocalDevelopmentGrantSummary;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 4
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 3
      */
     reasonCode: ReasonCode;
 }
@@ -183,6 +143,19 @@ export interface SetDeveloperModeResponse {
     reasonCode: ReasonCode;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.LocalDevelopmentPermissionRequirement
+ */
+export interface LocalDevelopmentPermissionRequirement {
+    /**
+     * @generated from protobuf field: string permission_id = 1
+     */
+    permissionId: string;
+    /**
+     * @generated from protobuf field: string reason = 2
+     */
+    reason: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.LocalDevelopmentProjectProjection
  */
 export interface LocalDevelopmentProjectProjection {
@@ -211,13 +184,13 @@ export interface LocalDevelopmentProjectProjection {
      */
     accountId: string;
     /**
-     * @generated from protobuf field: repeated string requested_capabilities = 7
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalDevelopmentPermissionRequirement permission_requirements = 7
      */
-    requestedCapabilities: string[];
+    permissionRequirements: LocalDevelopmentPermissionRequirement[];
     /**
-     * @generated from protobuf field: bytes capability_fingerprint = 8
+     * @generated from protobuf field: bytes permission_requirement_fingerprint = 8
      */
-    capabilityFingerprint: Uint8Array;
+    permissionRequirementFingerprint: Uint8Array;
     /**
      * @generated from protobuf field: string trust_class = 9
      */
@@ -811,109 +784,6 @@ class LocalDevelopmentProjectAuthorizationSummary$Type extends MessageType<Local
  */
 export const LocalDevelopmentProjectAuthorizationSummary = new LocalDevelopmentProjectAuthorizationSummary$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalDevelopmentGrantSummary$Type extends MessageType<LocalDevelopmentGrantSummary> {
-    constructor() {
-        super("nimi.runtime.v1.LocalDevelopmentGrantSummary", [
-            { no: 1, name: "availability", kind: "enum", T: () => ["nimi.runtime.v1.LocalDevelopmentSummaryAvailability", LocalDevelopmentSummaryAvailability, "LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_"] },
-            { no: 2, name: "pending_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 3, name: "granted_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 4, name: "denied_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 5, name: "expired_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 6, name: "revoked_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 7, name: "superseded_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 8, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
-        ]);
-    }
-    create(value?: PartialMessage<LocalDevelopmentGrantSummary>): LocalDevelopmentGrantSummary {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.availability = 0;
-        message.pendingCount = "0";
-        message.grantedCount = "0";
-        message.deniedCount = "0";
-        message.expiredCount = "0";
-        message.revokedCount = "0";
-        message.supersededCount = "0";
-        message.reasonCode = 0;
-        if (value !== undefined)
-            reflectionMergePartial<LocalDevelopmentGrantSummary>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalDevelopmentGrantSummary): LocalDevelopmentGrantSummary {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.LocalDevelopmentSummaryAvailability availability */ 1:
-                    message.availability = reader.int32();
-                    break;
-                case /* uint64 pending_count */ 2:
-                    message.pendingCount = reader.uint64().toString();
-                    break;
-                case /* uint64 granted_count */ 3:
-                    message.grantedCount = reader.uint64().toString();
-                    break;
-                case /* uint64 denied_count */ 4:
-                    message.deniedCount = reader.uint64().toString();
-                    break;
-                case /* uint64 expired_count */ 5:
-                    message.expiredCount = reader.uint64().toString();
-                    break;
-                case /* uint64 revoked_count */ 6:
-                    message.revokedCount = reader.uint64().toString();
-                    break;
-                case /* uint64 superseded_count */ 7:
-                    message.supersededCount = reader.uint64().toString();
-                    break;
-                case /* nimi.runtime.v1.ReasonCode reason_code */ 8:
-                    message.reasonCode = reader.int32();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: LocalDevelopmentGrantSummary, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.LocalDevelopmentSummaryAvailability availability = 1; */
-        if (message.availability !== 0)
-            writer.tag(1, WireType.Varint).int32(message.availability);
-        /* uint64 pending_count = 2; */
-        if (message.pendingCount !== "0")
-            writer.tag(2, WireType.Varint).uint64(message.pendingCount);
-        /* uint64 granted_count = 3; */
-        if (message.grantedCount !== "0")
-            writer.tag(3, WireType.Varint).uint64(message.grantedCount);
-        /* uint64 denied_count = 4; */
-        if (message.deniedCount !== "0")
-            writer.tag(4, WireType.Varint).uint64(message.deniedCount);
-        /* uint64 expired_count = 5; */
-        if (message.expiredCount !== "0")
-            writer.tag(5, WireType.Varint).uint64(message.expiredCount);
-        /* uint64 revoked_count = 6; */
-        if (message.revokedCount !== "0")
-            writer.tag(6, WireType.Varint).uint64(message.revokedCount);
-        /* uint64 superseded_count = 7; */
-        if (message.supersededCount !== "0")
-            writer.tag(7, WireType.Varint).uint64(message.supersededCount);
-        /* nimi.runtime.v1.ReasonCode reason_code = 8; */
-        if (message.reasonCode !== 0)
-            writer.tag(8, WireType.Varint).int32(message.reasonCode);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalDevelopmentGrantSummary
- */
-export const LocalDevelopmentGrantSummary = new LocalDevelopmentGrantSummary$Type();
-// @generated message type with reflection information, may provide speed optimized methods
 class GetLocalDevelopmentAuthoritySummaryRequest$Type extends MessageType<GetLocalDevelopmentAuthoritySummaryRequest> {
     constructor() {
         super("nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryRequest", []);
@@ -957,8 +827,7 @@ class GetLocalDevelopmentAuthoritySummaryResponse$Type extends MessageType<GetLo
         super("nimi.runtime.v1.GetLocalDevelopmentAuthoritySummaryResponse", [
             { no: 1, name: "developer_mode", kind: "message", T: () => LocalDevelopmentDeveloperModeSummary },
             { no: 2, name: "project_authorization", kind: "message", T: () => LocalDevelopmentProjectAuthorizationSummary },
-            { no: 3, name: "grant_summary", kind: "message", T: () => LocalDevelopmentGrantSummary },
-            { no: 4, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
         ]);
     }
     create(value?: PartialMessage<GetLocalDevelopmentAuthoritySummaryResponse>): GetLocalDevelopmentAuthoritySummaryResponse {
@@ -979,10 +848,7 @@ class GetLocalDevelopmentAuthoritySummaryResponse$Type extends MessageType<GetLo
                 case /* nimi.runtime.v1.LocalDevelopmentProjectAuthorizationSummary project_authorization */ 2:
                     message.projectAuthorization = LocalDevelopmentProjectAuthorizationSummary.internalBinaryRead(reader, reader.uint32(), options, message.projectAuthorization);
                     break;
-                case /* nimi.runtime.v1.LocalDevelopmentGrantSummary grant_summary */ 3:
-                    message.grantSummary = LocalDevelopmentGrantSummary.internalBinaryRead(reader, reader.uint32(), options, message.grantSummary);
-                    break;
-                case /* nimi.runtime.v1.ReasonCode reason_code */ 4:
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 3:
                     message.reasonCode = reader.int32();
                     break;
                 default:
@@ -1003,12 +869,9 @@ class GetLocalDevelopmentAuthoritySummaryResponse$Type extends MessageType<GetLo
         /* nimi.runtime.v1.LocalDevelopmentProjectAuthorizationSummary project_authorization = 2; */
         if (message.projectAuthorization)
             LocalDevelopmentProjectAuthorizationSummary.internalBinaryWrite(message.projectAuthorization, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.LocalDevelopmentGrantSummary grant_summary = 3; */
-        if (message.grantSummary)
-            LocalDevelopmentGrantSummary.internalBinaryWrite(message.grantSummary, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.ReasonCode reason_code = 4; */
+        /* nimi.runtime.v1.ReasonCode reason_code = 3; */
         if (message.reasonCode !== 0)
-            writer.tag(4, WireType.Varint).int32(message.reasonCode);
+            writer.tag(3, WireType.Varint).int32(message.reasonCode);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1138,6 +1001,61 @@ class SetDeveloperModeResponse$Type extends MessageType<SetDeveloperModeResponse
  */
 export const SetDeveloperModeResponse = new SetDeveloperModeResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class LocalDevelopmentPermissionRequirement$Type extends MessageType<LocalDevelopmentPermissionRequirement> {
+    constructor() {
+        super("nimi.runtime.v1.LocalDevelopmentPermissionRequirement", [
+            { no: 1, name: "permission_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalDevelopmentPermissionRequirement>): LocalDevelopmentPermissionRequirement {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.permissionId = "";
+        message.reason = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalDevelopmentPermissionRequirement>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalDevelopmentPermissionRequirement): LocalDevelopmentPermissionRequirement {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string permission_id */ 1:
+                    message.permissionId = reader.string();
+                    break;
+                case /* string reason */ 2:
+                    message.reason = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalDevelopmentPermissionRequirement, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string permission_id = 1; */
+        if (message.permissionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.permissionId);
+        /* string reason = 2; */
+        if (message.reason !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.reason);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalDevelopmentPermissionRequirement
+ */
+export const LocalDevelopmentPermissionRequirement = new LocalDevelopmentPermissionRequirement$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class LocalDevelopmentProjectProjection$Type extends MessageType<LocalDevelopmentProjectProjection> {
     constructor() {
         super("nimi.runtime.v1.LocalDevelopmentProjectProjection", [
@@ -1147,8 +1065,8 @@ class LocalDevelopmentProjectProjection$Type extends MessageType<LocalDevelopmen
             { no: 4, name: "canonical_manifest_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "shell_kind", kind: "enum", T: () => ["nimi.runtime.v1.LocalDevelopmentShellKind", LocalDevelopmentShellKind, "LOCAL_DEVELOPMENT_SHELL_KIND_"] },
             { no: 6, name: "account_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "requested_capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "capability_fingerprint", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 7, name: "permission_requirements", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalDevelopmentPermissionRequirement },
+            { no: 8, name: "permission_requirement_fingerprint", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
             { no: 9, name: "trust_class", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -1160,8 +1078,8 @@ class LocalDevelopmentProjectProjection$Type extends MessageType<LocalDevelopmen
         message.canonicalManifestPath = "";
         message.shellKind = 0;
         message.accountId = "";
-        message.requestedCapabilities = [];
-        message.capabilityFingerprint = new Uint8Array(0);
+        message.permissionRequirements = [];
+        message.permissionRequirementFingerprint = new Uint8Array(0);
         message.trustClass = "";
         if (value !== undefined)
             reflectionMergePartial<LocalDevelopmentProjectProjection>(this, message, value);
@@ -1190,11 +1108,11 @@ class LocalDevelopmentProjectProjection$Type extends MessageType<LocalDevelopmen
                 case /* string account_id */ 6:
                     message.accountId = reader.string();
                     break;
-                case /* repeated string requested_capabilities */ 7:
-                    message.requestedCapabilities.push(reader.string());
+                case /* repeated nimi.runtime.v1.LocalDevelopmentPermissionRequirement permission_requirements */ 7:
+                    message.permissionRequirements.push(LocalDevelopmentPermissionRequirement.internalBinaryRead(reader, reader.uint32(), options));
                     break;
-                case /* bytes capability_fingerprint */ 8:
-                    message.capabilityFingerprint = reader.bytes();
+                case /* bytes permission_requirement_fingerprint */ 8:
+                    message.permissionRequirementFingerprint = reader.bytes();
                     break;
                 case /* string trust_class */ 9:
                     message.trustClass = reader.string();
@@ -1229,12 +1147,12 @@ class LocalDevelopmentProjectProjection$Type extends MessageType<LocalDevelopmen
         /* string account_id = 6; */
         if (message.accountId !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.accountId);
-        /* repeated string requested_capabilities = 7; */
-        for (let i = 0; i < message.requestedCapabilities.length; i++)
-            writer.tag(7, WireType.LengthDelimited).string(message.requestedCapabilities[i]);
-        /* bytes capability_fingerprint = 8; */
-        if (message.capabilityFingerprint.length)
-            writer.tag(8, WireType.LengthDelimited).bytes(message.capabilityFingerprint);
+        /* repeated nimi.runtime.v1.LocalDevelopmentPermissionRequirement permission_requirements = 7; */
+        for (let i = 0; i < message.permissionRequirements.length; i++)
+            LocalDevelopmentPermissionRequirement.internalBinaryWrite(message.permissionRequirements[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* bytes permission_requirement_fingerprint = 8; */
+        if (message.permissionRequirementFingerprint.length)
+            writer.tag(8, WireType.LengthDelimited).bytes(message.permissionRequirementFingerprint);
         /* string trust_class = 9; */
         if (message.trustClass !== "")
             writer.tag(9, WireType.LengthDelimited).string(message.trustClass);

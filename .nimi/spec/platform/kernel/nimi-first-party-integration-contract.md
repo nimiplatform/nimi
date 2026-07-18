@@ -38,15 +38,17 @@ truth；不得让 Desktop hosted shell 或 first-party app 自行实现安装逻
 provider / connector / engine / model 字符串常量（`P-AIPS-008`、
 `P-HOME-005`）。
 
-## P-FPI-004 — Permission Scope Ref Consumption
+## P-FPI-004 — First-Party Authority Classification
 
-`MUST`：first-party app 通过 SDK `S-PERM-*` 请求 admitted grant
-list（`P-PERM-009`）。Avatar 的 grant list 必须严格匹配
-`tables/nimi-app-registry.yaml` 中的 `permission_scope_ref` typed object
-列表。
+`MUST`：first-party app 与第三方 app 使用同一 `P-PERM-015` 分类。Registry
+`permission_requirements` 只声明真正面向用户的已准入 public permission；
+当前 first-party rows 均为空列表。Built-in product/service operation 必须由
+其 Platform/Runtime/Realm/Cognition product contract 精确准入，app-private
+storage 与 app-owned commands 分别走 base entitlement 与 app-owned authority。
 
-`MUST NOT`：不得通过 host bridge implementation detail 或 ad-hoc IPC
-绕过 SDK permission client；不得在 grant lifecycle 之外授权 scope。
+`MUST NOT`：first-party publisher/review status 不得生成 seed grant、扩大
+第三方 permission、把 account/session/metering/profile/storage 伪装成 grant，
+或经 ad-hoc IPC 代理 protected Nimi operation。
 
 ## P-FPI-005 — Runtime Registration Consumer Relationship
 

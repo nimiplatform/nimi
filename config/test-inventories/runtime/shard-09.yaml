@@ -110,7 +110,6 @@ tests:
       - P-TEST-001
       - K-PLOCAL-008
       - K-ACCSVC-022
-  - path: runtime/internal/grpcserver/local_app_grant_control_test.go
     owner: runtime
     classification: contract_conformance
     tier: T5
@@ -412,7 +411,6 @@ tests:
     spec_refs:
       - P-TEST-001
       - K-ACCSVC-026
-  - path: runtime/internal/services/account/local_app_grants_test.go
     owner: runtime
     classification: behavior_unit
     tier: T4

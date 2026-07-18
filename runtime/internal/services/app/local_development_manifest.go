@@ -12,26 +12,21 @@ import (
 )
 
 type localAppManifest struct {
-	AppID            string                           `json:"app_id" yaml:"app_id"`
-	AppIDCamel       string                           `json:"appId" yaml:"appId"`
-	DisplayName      string                           `json:"display_name" yaml:"display_name"`
-	DisplayNameCamel string                           `json:"displayName" yaml:"displayName"`
-	Permissions      localAppManifestPerms            `json:"permissions" yaml:"permissions"`
-	LocalDevelopment localAppManifestLocalDevelopment `json:"local_development" yaml:"local_development"`
-}
-
-type localAppManifestPerms struct {
-	DeclaredNimiAPIScopes []localAppManifestCapability `json:"declared_nimi_api_scopes" yaml:"declared_nimi_api_scopes"`
+	AppID            string                              `json:"app_id" yaml:"app_id"`
+	AppIDCamel       string                              `json:"appId" yaml:"appId"`
+	DisplayName      string                              `json:"display_name" yaml:"display_name"`
+	DisplayNameCamel string                              `json:"displayName" yaml:"displayName"`
+	Permissions      []localAppManifestPermissionRequest `json:"permissions" yaml:"permissions"`
+	LocalDevelopment localAppManifestLocalDevelopment    `json:"local_development" yaml:"local_development"`
 }
 
 type localAppManifestLocalDevelopment struct {
-	RuntimeScopedBindingRequests []localAppManifestCapability `json:"runtime_scoped_binding_requests" yaml:"runtime_scoped_binding_requests"`
+	LegacyRuntimeScopedBindingRequests any `json:"runtime_scoped_binding_requests" yaml:"runtime_scoped_binding_requests"`
 }
 
-type localAppManifestCapability struct {
-	Scope     string `json:"scope" yaml:"scope"`
-	Qualifier string `json:"qualifier" yaml:"qualifier"`
-	Purpose   string `json:"purpose" yaml:"purpose"`
+type localAppManifestPermissionRequest struct {
+	PermissionID string `json:"id" yaml:"id"`
+	Reason       string `json:"reason" yaml:"reason"`
 }
 
 func loadLocalAppManifest(rootPath string) (string, string, localAppManifest, error) {

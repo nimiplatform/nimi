@@ -42,7 +42,7 @@ pub(crate) struct LocalDevelopmentApprovalProjection {
     pub(crate) canonical_project_root: String,
     pub(crate) shell: String,
     pub(crate) account_id: String,
-    pub(crate) requested_capabilities: Vec<String>,
+    pub(crate) permission_requirements: Vec<PermissionRequirementProjection>,
     pub(crate) approval_state: String,
 }
 
@@ -55,10 +55,17 @@ pub(crate) struct LocalDevelopmentAuthorizationProjection {
     pub(crate) canonical_project_root: String,
     pub(crate) shell: String,
     pub(crate) account_id: String,
-    pub(crate) requested_capabilities: Vec<String>,
+    pub(crate) permission_requirements: Vec<PermissionRequirementProjection>,
     pub(crate) persistence: String,
     pub(crate) state: String,
     pub(crate) updated_at_unix_ms: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct PermissionRequirementProjection {
+    pub(crate) permission_id: String,
+    pub(crate) reason: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -261,7 +268,15 @@ pub(super) fn project_authorization(
         canonical_project_root: path_text(&authorization.project.canonical_project_root),
         shell: authorization.project.shell_kind.as_str().to_string(),
         account_id: authorization.project.account_id,
-        requested_capabilities: authorization.project.requested_capabilities,
+        permission_requirements: authorization
+            .project
+            .permission_requirements
+            .into_iter()
+            .map(|requirement| PermissionRequirementProjection {
+                permission_id: requirement.permission_id,
+                reason: requirement.reason,
+            })
+            .collect(),
         persistence: authorization.persistence.as_str().to_string(),
         state: authorization.state.as_str().to_string(),
         updated_at_unix_ms: authorization.updated_at_unix_ms,

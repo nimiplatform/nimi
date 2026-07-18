@@ -159,38 +159,20 @@
           "response_stream": false
         },
         {
-          "name": "GetLocalAppGrantStatus",
-          "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus",
+          "name": "GetLocalAppPermissionStatus",
+          "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus",
           "kind": "unary",
-          "request_type": "GetLocalAppGrantStatusRequest",
-          "response_type": "GetLocalAppGrantStatusResponse",
+          "request_type": "GetLocalAppPermissionStatusRequest",
+          "response_type": "GetLocalAppPermissionStatusResponse",
           "request_stream": false,
           "response_stream": false
         },
         {
-          "name": "RequestLocalAppGrant",
-          "method_id": "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant",
+          "name": "RequestLocalAppPermission",
+          "method_id": "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission",
           "kind": "unary",
-          "request_type": "RequestLocalAppGrantRequest",
-          "response_type": "RequestLocalAppGrantResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "DecideLocalAppGrant",
-          "method_id": "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppGrant",
-          "kind": "unary",
-          "request_type": "DecideLocalAppGrantRequest",
-          "response_type": "DecideLocalAppGrantResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "RevokeLocalAppGrant",
-          "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppGrant",
-          "kind": "unary",
-          "request_type": "RevokeLocalAppGrantRequest",
-          "response_type": "RevokeLocalAppGrantResponse",
+          "request_type": "RequestLocalAppPermissionRequest",
+          "response_type": "RequestLocalAppPermissionResponse",
           "request_stream": false,
           "response_stream": false
         }
@@ -242,15 +224,6 @@
           "kind": "unary",
           "request_type": "ListAgentsRequest",
           "response_type": "ListAgentsResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "ListLocalAppAgentInventory",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory",
-          "kind": "unary",
-          "request_type": "ListLocalAppAgentInventoryRequest",
-          "response_type": "ListLocalAppAgentInventoryResponse",
           "request_stream": false,
           "response_stream": false
         },
@@ -694,15 +667,6 @@
           "response_type": "AgentEvent",
           "request_stream": false,
           "response_stream": true
-        },
-        {
-          "name": "TranscribeLocalAppAgentAudio",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppAgentAudio",
-          "kind": "unary",
-          "request_type": "TranscribeLocalAppAgentAudioRequest",
-          "response_type": "TranscribeLocalAppAgentAudioResponse",
-          "request_stream": false,
-          "response_stream": false
         },
         {
           "name": "SubscribeAgentVoiceStream",
@@ -2549,16 +2513,14 @@
   "method_ids": [
     "/nimi.runtime.v1.RuntimeAccountService/BeginLogin",
     "/nimi.runtime.v1.RuntimeAccountService/CompleteLogin",
-    "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppGrant",
     "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
-    "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus",
+    "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus",
     "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
     "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
     "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
     "/nimi.runtime.v1.RuntimeAccountService/Logout",
-    "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant",
+    "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission",
     "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
-    "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppGrant",
     "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
     "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
     "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
@@ -2597,7 +2559,6 @@
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests",
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics",
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles",
-    "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory",
     "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents",
     "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
     "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource",
@@ -2619,7 +2580,6 @@
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream",
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness",
     "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
-    "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppAgentAudio",
     "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
     "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
     "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig",
@@ -2833,14 +2793,6 @@
       "response_type": "CompleteLoginResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppGrant",
-      "service": "RuntimeAccountService",
-      "method": "DecideLocalAppGrant",
-      "kind": "unary",
-      "request_type": "DecideLocalAppGrantRequest",
-      "response_type": "DecideLocalAppGrantResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
       "service": "RuntimeAccountService",
       "method": "GetAccountSessionStatus",
@@ -2849,12 +2801,12 @@
       "response_type": "GetAccountSessionStatusResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus",
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus",
       "service": "RuntimeAccountService",
-      "method": "GetLocalAppGrantStatus",
+      "method": "GetLocalAppPermissionStatus",
       "kind": "unary",
-      "request_type": "GetLocalAppGrantStatusRequest",
-      "response_type": "GetLocalAppGrantStatusResponse"
+      "request_type": "GetLocalAppPermissionStatusRequest",
+      "response_type": "GetLocalAppPermissionStatusResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
@@ -2889,12 +2841,12 @@
       "response_type": "LogoutResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant",
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission",
       "service": "RuntimeAccountService",
-      "method": "RequestLocalAppGrant",
+      "method": "RequestLocalAppPermission",
       "kind": "unary",
-      "request_type": "RequestLocalAppGrantRequest",
-      "response_type": "RequestLocalAppGrantResponse"
+      "request_type": "RequestLocalAppPermissionRequest",
+      "response_type": "RequestLocalAppPermissionResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
@@ -2903,14 +2855,6 @@
       "kind": "unary",
       "request_type": "RequestPresenceVerificationRequest",
       "response_type": "RequestPresenceVerificationResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppGrant",
-      "service": "RuntimeAccountService",
-      "method": "RevokeLocalAppGrant",
-      "kind": "unary",
-      "request_type": "RevokeLocalAppGrantRequest",
-      "response_type": "RevokeLocalAppGrantResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
@@ -3217,14 +3161,6 @@
       "response_type": "ListDelegatedProviderProfilesResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory",
-      "service": "RuntimeAgentService",
-      "method": "ListLocalAppAgentInventory",
-      "kind": "unary",
-      "request_type": "ListLocalAppAgentInventoryRequest",
-      "response_type": "ListLocalAppAgentInventoryResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents",
       "service": "RuntimeAgentService",
       "method": "ListParticipationAuditEvents",
@@ -3391,14 +3327,6 @@
       "kind": "unary",
       "request_type": "TerminateAgentRequest",
       "response_type": "TerminateAgentResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppAgentAudio",
-      "service": "RuntimeAgentService",
-      "method": "TranscribeLocalAppAgentAudio",
-      "kind": "unary",
-      "request_type": "TranscribeLocalAppAgentAudioRequest",
-      "response_type": "TranscribeLocalAppAgentAudioResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
@@ -4971,14 +4899,6 @@
       "response_type": "CompleteLoginResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppGrant",
-      "service": "RuntimeAccountService",
-      "method": "DecideLocalAppGrant",
-      "kind": "unary",
-      "request_type": "DecideLocalAppGrantRequest",
-      "response_type": "DecideLocalAppGrantResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
       "service": "RuntimeAccountService",
       "method": "GetAccountSessionStatus",
@@ -4987,12 +4907,12 @@
       "response_type": "GetAccountSessionStatusResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus",
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus",
       "service": "RuntimeAccountService",
-      "method": "GetLocalAppGrantStatus",
+      "method": "GetLocalAppPermissionStatus",
       "kind": "unary",
-      "request_type": "GetLocalAppGrantStatusRequest",
-      "response_type": "GetLocalAppGrantStatusResponse"
+      "request_type": "GetLocalAppPermissionStatusRequest",
+      "response_type": "GetLocalAppPermissionStatusResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
@@ -5027,12 +4947,12 @@
       "response_type": "LogoutResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant",
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission",
       "service": "RuntimeAccountService",
-      "method": "RequestLocalAppGrant",
+      "method": "RequestLocalAppPermission",
       "kind": "unary",
-      "request_type": "RequestLocalAppGrantRequest",
-      "response_type": "RequestLocalAppGrantResponse"
+      "request_type": "RequestLocalAppPermissionRequest",
+      "response_type": "RequestLocalAppPermissionResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
@@ -5041,14 +4961,6 @@
       "kind": "unary",
       "request_type": "RequestPresenceVerificationRequest",
       "response_type": "RequestPresenceVerificationResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppGrant",
-      "service": "RuntimeAccountService",
-      "method": "RevokeLocalAppGrant",
-      "kind": "unary",
-      "request_type": "RevokeLocalAppGrantRequest",
-      "response_type": "RevokeLocalAppGrantResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
@@ -5355,14 +5267,6 @@
       "response_type": "ListDelegatedProviderProfilesResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory",
-      "service": "RuntimeAgentService",
-      "method": "ListLocalAppAgentInventory",
-      "kind": "unary",
-      "request_type": "ListLocalAppAgentInventoryRequest",
-      "response_type": "ListLocalAppAgentInventoryResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents",
       "service": "RuntimeAgentService",
       "method": "ListParticipationAuditEvents",
@@ -5529,14 +5433,6 @@
       "kind": "unary",
       "request_type": "TerminateAgentRequest",
       "response_type": "TerminateAgentResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppAgentAudio",
-      "service": "RuntimeAgentService",
-      "method": "TranscribeLocalAppAgentAudio",
-      "kind": "unary",
-      "request_type": "TranscribeLocalAppAgentAudioRequest",
-      "response_type": "TranscribeLocalAppAgentAudioResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
@@ -7244,8 +7140,6 @@
       "CreateKnowledgeBankResponse",
       "CreateRealmGroupMessageCandidateRequest",
       "CreateRealmGroupMessageCandidateResponse",
-      "DecideLocalAppGrantRequest",
-      "DecideLocalAppGrantResponse",
       "DecideLocalDevelopmentProjectRequest",
       "DecideLocalDevelopmentProjectResponse",
       "DelegatedApprovalRequest",
@@ -7363,8 +7257,8 @@
       "GetIngestTaskResponse",
       "GetKnowledgeBankRequest",
       "GetKnowledgeBankResponse",
-      "GetLocalAppGrantStatusRequest",
-      "GetLocalAppGrantStatusResponse",
+      "GetLocalAppPermissionStatusRequest",
+      "GetLocalAppPermissionStatusResponse",
       "GetLocalDevelopmentAuthoritySummaryRequest",
       "GetLocalDevelopmentAuthoritySummaryResponse",
       "GetPageRequest",
@@ -7488,8 +7382,6 @@
       "ListKnowledgeBanksResponse",
       "ListLinksRequest",
       "ListLinksResponse",
-      "ListLocalAppAgentInventoryRequest",
-      "ListLocalAppAgentInventoryResponse",
       "ListLocalAssetsRequest",
       "ListLocalAssetsResponse",
       "ListLocalAuditsRequest",
@@ -7530,8 +7422,7 @@
       "ListVoiceAssetsResponse",
       "LocalAgentSourceContextStatus",
       "LocalAgentSourceCoverageSectionStatus",
-      "LocalAppAgentInventoryItem",
-      "LocalAppGrantProjection",
+      "LocalAppPermissionProjection",
       "LocalAssetHealth",
       "LocalAssetRecord",
       "LocalAssetSource",
@@ -7542,7 +7433,7 @@
       "LocalCatalogVariantDescriptor",
       "LocalDevelopmentAuthorizationProjection",
       "LocalDevelopmentDeveloperModeSummary",
-      "LocalDevelopmentGrantSummary",
+      "LocalDevelopmentPermissionRequirement",
       "LocalDevelopmentProjectAuthorizationSummary",
       "LocalDevelopmentProjectProjection",
       "LocalDeviceProfile",
@@ -7736,8 +7627,8 @@
       "RequestAvatarDebugProbeResponse",
       "RequestCompanionParticipationRequest",
       "RequestCompanionParticipationResponse",
-      "RequestLocalAppGrantRequest",
-      "RequestLocalAppGrantResponse",
+      "RequestLocalAppPermissionRequest",
+      "RequestLocalAppPermissionResponse",
       "RequestMemoryEmbeddingRuntimeBindRequest",
       "RequestMemoryEmbeddingRuntimeBindResponse",
       "RequestMemoryEmbeddingRuntimeCutoverRequest",
@@ -7775,8 +7666,6 @@
       "RetryLocalEnvironmentDependencyJobRequest",
       "RetryLocalEnvironmentDependencyJobResponse",
       "RevokeExternalPrincipalSessionRequest",
-      "RevokeLocalAppGrantRequest",
-      "RevokeLocalAppGrantResponse",
       "RevokeLocalDevelopmentAuthorizationRequest",
       "RevokeLocalDevelopmentAuthorizationResponse",
       "RevokeScopedAppBindingRequest",
@@ -7906,8 +7795,6 @@
       "ToolOrCapabilityProjectionBlock",
       "ToolResult",
       "ToolSpec",
-      "TranscribeLocalAppAgentAudioRequest",
-      "TranscribeLocalAppAgentAudioResponse",
       "TraverseGraphRequest",
       "TraverseGraphResponse",
       "TriggerMessageRefBlock",
@@ -8072,7 +7959,7 @@
       "HookTriggerFamily",
       "KnowledgeBankScope",
       "KnowledgeIngestTaskStatus",
-      "LocalAppGrantState",
+      "LocalAppPermissionPosture",
       "LocalAppSessionState",
       "LocalAppTrustClass",
       "LocalAssetKind",
@@ -15342,46 +15229,6 @@
         "source_file": "proto/runtime/v1/agent_group_message_candidate.proto"
       },
       {
-        "name": "DecideLocalAppGrantRequest",
-        "fields": [
-          {
-            "name": "request_id",
-            "type": "bytes",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "approved",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "presence_challenge_id",
-            "type": "bytes",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/account.proto"
-      },
-      {
-        "name": "DecideLocalAppGrantResponse",
-        "fields": [
-          {
-            "name": "projection",
-            "type": "LocalAppGrantProjection",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/account.proto"
-      },
-      {
         "name": "DecideLocalDevelopmentProjectRequest",
         "fields": [
           {
@@ -18718,31 +18565,24 @@
         "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
-        "name": "GetLocalAppGrantStatusRequest",
+        "name": "GetLocalAppPermissionStatusRequest",
         "fields": [
           {
-            "name": "operation_id",
+            "name": "permission_id",
             "type": "string",
             "repeated": false,
             "optional": false,
             "number": 1
-          },
-          {
-            "name": "resource_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/account.proto"
       },
       {
-        "name": "GetLocalAppGrantStatusResponse",
+        "name": "GetLocalAppPermissionStatusResponse",
         "fields": [
           {
             "name": "projection",
-            "type": "LocalAppGrantProjection",
+            "type": "LocalAppPermissionProjection",
             "repeated": false,
             "optional": false,
             "number": 1
@@ -18773,18 +18613,11 @@
             "number": 2
           },
           {
-            "name": "grant_summary",
-            "type": "LocalDevelopmentGrantSummary",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
             "name": "reason_code",
             "type": "ReasonCode",
             "repeated": false,
             "optional": false,
-            "number": 4
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/development.proto"
@@ -22254,38 +22087,6 @@
         "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
-        "name": "ListLocalAppAgentInventoryRequest",
-        "fields": [],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "ListLocalAppAgentInventoryResponse",
-        "fields": [
-          {
-            "name": "owner_user_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "count",
-            "type": "uint32",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "local_agents",
-            "type": "LocalAppAgentInventoryItem",
-            "repeated": true,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
         "name": "ListLocalAssetsRequest",
         "fields": [
           {
@@ -23403,118 +23204,35 @@
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
       {
-        "name": "LocalAppAgentInventoryItem",
+        "name": "LocalAppPermissionProjection",
         "fields": [
           {
-            "name": "local_agent_ref",
+            "name": "permission_id",
             "type": "string",
             "repeated": false,
             "optional": false,
             "number": 1
           },
           {
-            "name": "display_name",
-            "type": "string",
+            "name": "posture",
+            "type": "LocalAppPermissionPosture",
             "repeated": false,
             "optional": false,
             "number": 2
           },
           {
-            "name": "owner_user_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "runtime_source_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "source_ready",
+            "name": "can_request",
             "type": "bool",
             "repeated": false,
             "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "LocalAppGrantProjection",
-        "fields": [
-          {
-            "name": "state",
-            "type": "LocalAppGrantState",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "operation_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "resource_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
             "number": 3
-          },
-          {
-            "name": "request_id",
-            "type": "bytes",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "grant_id",
-            "type": "bytes",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "grant_generation",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "grant_revision",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "expires_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 8
           },
           {
             "name": "reason_code",
             "type": "ReasonCode",
             "repeated": false,
             "optional": false,
-            "number": 9
-          },
-          {
-            "name": "presence_challenge_id",
-            "type": "bytes",
-            "repeated": false,
-            "optional": false,
-            "number": 10
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/account.proto"
@@ -24331,63 +24049,21 @@
         "source_file": "proto/runtime/v1/development.proto"
       },
       {
-        "name": "LocalDevelopmentGrantSummary",
+        "name": "LocalDevelopmentPermissionRequirement",
         "fields": [
           {
-            "name": "availability",
-            "type": "LocalDevelopmentSummaryAvailability",
+            "name": "permission_id",
+            "type": "string",
             "repeated": false,
             "optional": false,
             "number": 1
           },
           {
-            "name": "pending_count",
-            "type": "uint64",
+            "name": "reason",
+            "type": "string",
             "repeated": false,
             "optional": false,
             "number": 2
-          },
-          {
-            "name": "granted_count",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "denied_count",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "expired_count",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "revoked_count",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "superseded_count",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 8
           }
         ],
         "source_file": "proto/runtime/v1/development.proto"
@@ -24486,14 +24162,14 @@
             "number": 6
           },
           {
-            "name": "requested_capabilities",
-            "type": "string",
+            "name": "permission_requirements",
+            "type": "LocalDevelopmentPermissionRequirement",
             "repeated": true,
             "optional": false,
             "number": 7
           },
           {
-            "name": "capability_fingerprint",
+            "name": "permission_requirement_fingerprint",
             "type": "bytes",
             "repeated": false,
             "optional": false,
@@ -33197,38 +32873,31 @@
         "source_file": "proto/runtime/v1/agent_companion.proto"
       },
       {
-        "name": "RequestLocalAppGrantRequest",
+        "name": "RequestLocalAppPermissionRequest",
         "fields": [
           {
-            "name": "operation_id",
+            "name": "permission_id",
             "type": "string",
             "repeated": false,
             "optional": false,
             "number": 1
           },
           {
-            "name": "resource_ref",
+            "name": "reason",
             "type": "string",
             "repeated": false,
             "optional": false,
             "number": 2
-          },
-          {
-            "name": "purpose",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/account.proto"
       },
       {
-        "name": "RequestLocalAppGrantResponse",
+        "name": "RequestLocalAppPermissionResponse",
         "fields": [
           {
             "name": "projection",
-            "type": "LocalAppGrantProjection",
+            "type": "LocalAppPermissionProjection",
             "repeated": false,
             "optional": false,
             "number": 1
@@ -34256,32 +33925,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/auth.proto"
-      },
-      {
-        "name": "RevokeLocalAppGrantRequest",
-        "fields": [
-          {
-            "name": "grant_id",
-            "type": "bytes",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/account.proto"
-      },
-      {
-        "name": "RevokeLocalAppGrantResponse",
-        "fields": [
-          {
-            "name": "projection",
-            "type": "LocalAppGrantProjection",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/account.proto"
       },
       {
         "name": "RevokeLocalDevelopmentAuthorizationRequest",
@@ -38626,60 +38269,6 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
-        "name": "TranscribeLocalAppAgentAudioRequest",
-        "fields": [
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "client_request_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "audio",
-            "type": "bytes",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "mime_type",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "TranscribeLocalAppAgentAudioResponse",
-        "fields": [
-          {
-            "name": "client_request_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "transcript",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
         "name": "TraverseGraphRequest",
         "fields": [
           {
@@ -42141,16 +41730,14 @@
         "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
-        "name": "LocalAppGrantState",
+        "name": "LocalAppPermissionPosture",
         "values": [
-          "LOCAL_APP_GRANT_STATE_UNSPECIFIED",
-          "LOCAL_APP_GRANT_STATE_NO_GRANT",
-          "LOCAL_APP_GRANT_STATE_PENDING",
-          "LOCAL_APP_GRANT_STATE_GRANTED",
-          "LOCAL_APP_GRANT_STATE_DENIED",
-          "LOCAL_APP_GRANT_STATE_EXPIRED",
-          "LOCAL_APP_GRANT_STATE_REVOKED",
-          "LOCAL_APP_GRANT_STATE_SUPERSEDED"
+          "LOCAL_APP_PERMISSION_POSTURE_UNSPECIFIED",
+          "LOCAL_APP_PERMISSION_POSTURE_PROMPT",
+          "LOCAL_APP_PERMISSION_POSTURE_PENDING",
+          "LOCAL_APP_PERMISSION_POSTURE_GRANTED",
+          "LOCAL_APP_PERMISSION_POSTURE_DENIED",
+          "LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE"
         ],
         "source_file": "proto/runtime/v1/account.proto"
       },
@@ -43001,9 +42588,9 @@
           "LOCAL_APP_LAUNCH_LEASE_REPLAY",
           "LOCAL_APP_PROCESS_MISMATCH",
           "LOCAL_APP_SESSION_REVOKED",
-          "LOCAL_APP_GRANT_REQUIRED",
-          "LOCAL_APP_GRANT_REVOKED",
-          "LOCAL_APP_GRANT_SUPERSEDED",
+          "LOCAL_APP_PERMISSION_REQUIRED",
+          "LOCAL_APP_PERMISSION_DENIED",
+          "LOCAL_APP_PERMISSION_REVOKED",
           "LOCAL_APP_ACCOUNT_CHANGED",
           "LOCAL_APP_OPERATION_UNAVAILABLE",
           "LOCAL_APP_PRESENCE_REQUIRED",

@@ -13,7 +13,6 @@ func (s *Service) GetLocalDevelopmentAuthoritySummary(ctx context.Context, _ *ru
 	response := &runtimev1.GetLocalDevelopmentAuthoritySummaryResponse{
 		DeveloperMode:        unavailableDeveloperModeSummary(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE),
 		ProjectAuthorization: unavailableProjectAuthorizationSummary(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE),
-		GrantSummary:         unavailableGrantSummary(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE),
 		ReasonCode:           runtimev1.ReasonCode_ACTION_EXECUTED,
 	}
 	if s == nil {
@@ -35,7 +34,6 @@ func (s *Service) GetLocalDevelopmentAuthoritySummary(ctx context.Context, _ *ru
 	account, _, authenticated := s.authenticatedLifecycleAccount(ctx)
 	if !authenticated {
 		response.ProjectAuthorization = unavailableProjectAuthorizationSummary(runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
-		response.GrantSummary = unavailableGrantSummary(runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 		return response, nil
 	}
 	accountID := account.GetAccountId()
@@ -68,20 +66,6 @@ func (s *Service) GetLocalDevelopmentAuthoritySummary(ctx context.Context, _ *ru
 			}
 		}
 	}
-	if s.localAppKernel != nil {
-		if summary, err := s.localAppKernel.Grants().SummaryForAccount(ctx, accountID); err == nil {
-			response.GrantSummary = &runtimev1.LocalDevelopmentGrantSummary{
-				Availability:    runtimev1.LocalDevelopmentSummaryAvailability_LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_AVAILABLE,
-				PendingCount:    summary.Pending,
-				GrantedCount:    summary.Granted,
-				DeniedCount:     summary.Denied,
-				ExpiredCount:    summary.Expired,
-				RevokedCount:    summary.Revoked,
-				SupersededCount: summary.Superseded,
-				ReasonCode:      runtimev1.ReasonCode_ACTION_EXECUTED,
-			}
-		}
-	}
 	return response, nil
 }
 
@@ -95,13 +79,6 @@ func unavailableDeveloperModeSummary(reason runtimev1.ReasonCode) *runtimev1.Loc
 
 func unavailableProjectAuthorizationSummary(reason runtimev1.ReasonCode) *runtimev1.LocalDevelopmentProjectAuthorizationSummary {
 	return &runtimev1.LocalDevelopmentProjectAuthorizationSummary{
-		Availability: runtimev1.LocalDevelopmentSummaryAvailability_LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_UNAVAILABLE,
-		ReasonCode:   reason,
-	}
-}
-
-func unavailableGrantSummary(reason runtimev1.ReasonCode) *runtimev1.LocalDevelopmentGrantSummary {
-	return &runtimev1.LocalDevelopmentGrantSummary{
 		Availability: runtimev1.LocalDevelopmentSummaryAvailability_LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_UNAVAILABLE,
 		ReasonCode:   reason,
 	}

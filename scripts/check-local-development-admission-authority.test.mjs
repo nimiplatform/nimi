@@ -50,20 +50,37 @@ test('gate rejects loss of required v2 prose rather than accepting a machine-tab
   assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_AUTHORITY_CLAUSE_MISSING'));
 });
 
-test('gate rejects Runtime scoped binding requests that claim positive authority', () => {
+test('gate rejects manifest permission requirements that claim positive authority', () => {
   const bundle = loadAuthorityBundle();
   const policy = YAML.parse(bundle.policy);
-  policy.runtime_scoped_binding_requests.creates_scoped_binding = true;
+  policy.permission_requirements.creates_scoped_binding = true;
   const issues = validateLocalDevelopmentAuthority({ ...bundle, policy: YAML.stringify(policy) });
-  assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_RUNTIME_BINDING_REQUESTS_INVALID'));
+  assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_PERMISSION_REQUIREMENTS_INVALID'));
 });
 
-test('gate rejects a missing selected RuntimeAgent carrier row', () => {
+test('gate rejects a missing app-private storage carrier row', () => {
   const bundle = loadAuthorityBundle();
   const matrix = YAML.parse(bundle.transportMatrix);
-  matrix.methods = matrix.methods.filter((row) => row.method_id !== '/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor');
+  matrix.methods = matrix.methods.filter((row) => row.method_id !== '/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson');
   const issues = validateLocalDevelopmentAuthority({ ...bundle, transportMatrix: YAML.stringify(matrix) });
-  assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_SELECTED_OPERATION_INVALID'));
+  assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_BASE_SURFACE_INVALID'));
+});
+
+test('gate rejects exposing a protected Agent operation on the local-app carrier', () => {
+  const bundle = loadAuthorityBundle();
+  const matrix = YAML.parse(bundle.transportMatrix);
+  matrix.methods.push({
+    method_id: '/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor',
+    operation_class: 'local_app_agent_conversation',
+    allowed_transport_classes: ['local_app_host'],
+    required_origin_roles: ['local_app_session'],
+    request_may_select_role: false,
+    portable_session_allowed: false,
+    public_tcp_disposition: 'deny',
+    generic_proxy: 'forbidden',
+  });
+  const issues = validateLocalDevelopmentAuthority({ ...bundle, transportMatrix: YAML.stringify(matrix) });
+  assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_PROTECTED_OPERATION_EXPOSED'));
 });
 
 test('gate rejects Desktop/runtime role drift independently of the transport matrix', () => {

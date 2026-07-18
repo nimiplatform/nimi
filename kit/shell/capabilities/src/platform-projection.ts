@@ -39,7 +39,7 @@ export type NimiPlatformNimiAppReleaseDescriptorRow = {
 };
 
 export const NIMI_PLATFORM_NIMI_APP_REGISTRY_CATALOG_ID = 'platform_nimi_app_registry';
-export const NIMI_PLATFORM_NIMI_APP_REGISTRY_CATALOG_VERSION = 1;
+export const NIMI_PLATFORM_NIMI_APP_REGISTRY_CATALOG_VERSION = 2;
 
 export const NIMI_PLATFORM_NIMI_APP_REGISTRY_ROWS = [
   {
@@ -136,7 +136,7 @@ export const NIMI_PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS = [
     "provenanceRef": "nimi-first-party-signature-policy",
     "entryRef": "avatar-runtime-registration",
     "sandboxRef": "first-party-bundled-app",
-    "permissionsRef": "nimi.avatar.permission_scope_ref"
+    "permissionsRef": "nimi.avatar.permission_requirements"
   },
   {
     "descriptorId": "nimi.realm-persona-studio.bundled-with-nimi",
@@ -158,7 +158,7 @@ export const NIMI_PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS = [
     "provenanceRef": "nimi-first-party-signature-policy",
     "entryRef": "realm-persona-studio-runtime-registration",
     "sandboxRef": "first-party-bundled-app",
-    "permissionsRef": "nimi.realm-persona-studio.permission_scope_ref"
+    "permissionsRef": "nimi.realm-persona-studio.permission_requirements"
   },
   {
     "descriptorId": "nimi.realm-world-studio.bundled-with-nimi",
@@ -180,7 +180,7 @@ export const NIMI_PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS = [
     "provenanceRef": "nimi-first-party-signature-policy",
     "entryRef": "realm-world-studio-runtime-registration",
     "sandboxRef": "first-party-bundled-app",
-    "permissionsRef": "nimi.realm-world-studio.permission_scope_ref"
+    "permissionsRef": "nimi.realm-world-studio.permission_requirements"
   },
   {
     "descriptorId": "nimi.zhiyu.bundled-with-nimi",
@@ -202,7 +202,7 @@ export const NIMI_PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS = [
     "provenanceRef": "nimi-first-party-signature-policy",
     "entryRef": "zhiyu-runtime-registration",
     "sandboxRef": "first-party-bundled-app",
-    "permissionsRef": "nimi.zhiyu.permission_scope_ref"
+    "permissionsRef": "nimi.zhiyu.permission_requirements"
   }
 ] as const satisfies readonly NimiPlatformNimiAppReleaseDescriptorRow[];
 

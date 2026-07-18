@@ -83,7 +83,7 @@ type RendererApproval = {
   readonly canonicalProjectRoot: string;
   readonly shell: 'electron';
   readonly accountId: string;
-  readonly requestedCapabilities: readonly string[];
+  readonly permissionRequirements: readonly { readonly permissionId: string; readonly reason: string }[];
   readonly approvalState: string;
 };
 
@@ -94,7 +94,7 @@ type RendererAuthorization = {
   readonly canonicalProjectRoot: string;
   readonly shell: 'electron' | 'tauri';
   readonly accountId: string;
-  readonly requestedCapabilities: readonly string[];
+  readonly permissionRequirements: readonly { readonly permissionId: string; readonly reason: string }[];
   readonly persistence: string;
   readonly state: string;
   readonly updatedAtUnixMs: number;
@@ -306,7 +306,7 @@ class ElectronLocalDevelopmentHost {
         canonicalProjectRoot: evaluation.project.canonicalProjectRoot,
         shell: 'electron',
         accountId: evaluation.project.accountId,
-        requestedCapabilities: [...evaluation.project.requestedCapabilities],
+        permissionRequirements: evaluation.project.permissionRequirements.map((requirement) => ({ ...requirement })),
         approvalState: evaluation.state,
       },
     });
@@ -571,7 +571,7 @@ function projectAuthorization(selectorValue: string, authorization: NimiElectron
     canonicalProjectRoot: authorization.project.canonicalProjectRoot,
     shell: authorization.project.shell,
     accountId: authorization.project.accountId,
-    requestedCapabilities: [...authorization.project.requestedCapabilities],
+    permissionRequirements: authorization.project.permissionRequirements.map((requirement) => ({ ...requirement })),
     persistence: authorization.persistence,
     state: authorization.state,
     updatedAtUnixMs: authorization.updatedAtUnixMs,

@@ -8,14 +8,12 @@ pub(super) fn project_session_status(status: LocalAppSessionStatus) -> JsonValue
     })
 }
 
-pub(super) fn project_permission_posture(posture: LocalAppPermissionPosture) -> JsonValue {
+pub(super) fn project_permission_status(status: LocalAppPermissionStatus) -> JsonValue {
     json!({
-        "state": posture.state.as_str(),
-        "operationId": posture.operation_id,
-        "resourceRef": posture.resource_ref,
-        "reasonCode": posture.reason_code.as_str(),
-        "actionHint": posture.action_hint,
-        "retryable": posture.retryable,
+        "state": status.state.as_str(),
+        "permissionId": status.permission_id,
+        "canRequest": status.can_request,
+        "reasonCode": status.reason_code.as_str(),
     })
 }
 
@@ -101,32 +99,6 @@ pub(super) fn project_developer_mode_status(
     })
 }
 
-pub(super) fn project_pending_local_app_grant(pending: LocalAppGrantControlPending) -> JsonValue {
-    json!({
-        "requestId": encode_identifier(&pending.request_id),
-        "presenceChallengeId": encode_identifier(&pending.presence_challenge_id),
-        "pendingGrantId": encode_identifier(&pending.pending_grant_id),
-        "operationId": pending.operation_id,
-        "resourceRef": pending.resource_ref,
-        "expiresAtUnixMs": pending.expires_at_unix_ms,
-    })
-}
-
-pub(super) fn project_local_app_grant(projection: LocalAppGrantControlProjection) -> JsonValue {
-    let state = match projection.state {
-        LocalAppGrantControlState::Pending => "pending",
-        LocalAppGrantControlState::Granted => "granted",
-        LocalAppGrantControlState::Denied => "denied",
-        LocalAppGrantControlState::Revoked => "revoked",
-    };
-    json!({
-        "state": state,
-        "grantId": encode_identifier(&projection.grant_id),
-        "operationId": projection.operation_id,
-        "resourceRef": projection.resource_ref,
-    })
-}
-
 pub(super) fn project_local_development_authority_summary(
     summary: LocalDevelopmentAuthoritySummary,
 ) -> JsonValue {
@@ -143,16 +115,6 @@ pub(super) fn project_local_development_authority_summary(
             "deniedCount": summary.project_authorization.denied_count,
             "revokedCount": summary.project_authorization.revoked_count,
             "unavailableReason": project_summary_unavailable_reason(summary.project_authorization.unavailable_reason),
-        },
-        "grantSummary": {
-            "availability": project_summary_availability(summary.grant_summary.availability),
-            "pendingCount": summary.grant_summary.pending_count,
-            "grantedCount": summary.grant_summary.granted_count,
-            "deniedCount": summary.grant_summary.denied_count,
-            "expiredCount": summary.grant_summary.expired_count,
-            "revokedCount": summary.grant_summary.revoked_count,
-            "supersededCount": summary.grant_summary.superseded_count,
-            "unavailableReason": project_summary_unavailable_reason(summary.grant_summary.unavailable_reason),
         },
     })
 }
@@ -207,8 +169,11 @@ pub(super) fn project_local_development_project(
         "canonicalManifestPath": project.canonical_manifest_path.to_string_lossy(),
         "shell": project.shell_kind.as_str(),
         "accountId": project.account_id,
-        "requestedCapabilities": project.requested_capabilities,
-        "capabilityFingerprint": encode_identifier(&project.capability_fingerprint),
+        "permissionRequirements": project.permission_requirements.into_iter().map(|requirement| json!({
+            "permissionId": requirement.permission_id,
+            "reason": requirement.reason,
+        })).collect::<Vec<_>>(),
+        "permissionRequirementFingerprint": encode_identifier(&project.permission_requirement_fingerprint),
     })
 }
 
@@ -311,43 +276,6 @@ impl NativeJsonOutcome {
     }
 }
 
-impl NativeArtifactOutcome {
-    pub(super) fn success(artifact: LocalAppArtifactBytes) -> Self {
-        let Ok(size_bytes) = u32::try_from(artifact.size_bytes) else {
-            return Self::error(LocalAppOperationError::new(
-                LocalAppReasonCode::RuntimeServiceUntrusted,
-                false,
-            ));
-        };
-        if usize::try_from(size_bytes).ok() != Some(artifact.bytes.len()) {
-            return Self::error(LocalAppOperationError::new(
-                LocalAppReasonCode::RuntimeServiceUntrusted,
-                false,
-            ));
-        }
-        Self {
-            status: "ok".to_string(),
-            value: Some(NativeArtifactValue {
-                bytes: artifact.bytes.into(),
-                mime_type: artifact.mime_type,
-                size_bytes,
-                mime_inferred: artifact.mime_inferred,
-            }),
-            reason_code: None,
-            retryable: None,
-        }
-    }
-
-    pub(super) fn error(error: LocalAppOperationError) -> Self {
-        Self {
-            status: "error".to_string(),
-            value: None,
-            reason_code: Some(error.reason_code().as_str().to_string()),
-            retryable: Some(error.retryable()),
-        }
-    }
-}
-
 impl NativeBytesOutcome {
     pub(super) fn success(value: Vec<u8>) -> Self {
         Self {
@@ -397,50 +325,35 @@ mod tests {
     }
 
     #[test]
-    pub(super) fn session_status_is_zero_grant_without_authority_material() {
+    pub(super) fn session_status_is_ready_without_authority_material() {
         let value = project_session_status(LocalAppSessionStatus {
-            state: LocalAppSessionState::ZeroGrant,
-            reason_code: LocalAppReasonCode::NoGrant,
+            state: LocalAppSessionState::Ready,
+            reason_code: LocalAppReasonCode::ActionExecuted,
             retryable: false,
         });
         assert_eq!(
             value,
             json!({
-                "state": "zero-grant",
-                "reasonCode": "no-grant",
+                "state": "ready",
+                "reasonCode": "action-executed",
                 "retryable": false,
             })
         );
     }
 
     #[test]
-    pub(super) fn permission_projection_keeps_exact_operation_and_resource() {
-        let value = project_permission_posture(LocalAppPermissionPosture {
-            state: LocalAppPermissionState::Granted,
-            operation_id: "runtime_agent.conversation.open".to_string(),
-            resource_ref: "agent-a".to_string(),
-            reason_code: LocalAppReasonCode::ActionExecuted,
-            action_hint: "continue_local_app_operation".to_string(),
-            retryable: false,
+    pub(super) fn permission_projection_keeps_only_product_permission_fields() {
+        let value = project_permission_status(LocalAppPermissionStatus {
+            state: LocalAppPermissionState::Unavailable,
+            permission_id: "agents.interact".to_string(),
+            can_request: false,
+            reason_code: LocalAppReasonCode::RuntimePermissionDenied,
         });
-        assert_eq!(value["operationId"], "runtime_agent.conversation.open");
-        assert_eq!(value["resourceRef"], "agent-a");
-        assert_eq!(value["state"], "granted");
-    }
-
-    #[test]
-    pub(super) fn artifact_projection_fails_closed_on_impossible_size() {
-        let outcome = NativeArtifactOutcome::success(LocalAppArtifactBytes {
-            bytes: b"artifact".to_vec(),
-            mime_type: "text/plain".to_string(),
-            size_bytes: 7,
-            mime_inferred: false,
-        });
-        assert_eq!(outcome.status, "error");
-        assert_eq!(
-            outcome.reason_code.as_deref(),
-            Some("runtime-service-untrusted")
-        );
+        assert_eq!(value["permissionId"], "agents.interact");
+        assert_eq!(value["canRequest"], false);
+        assert_eq!(value["state"], "unavailable");
+        assert!(value.get("operationId").is_none());
+        assert!(value.get("resourceRef").is_none());
     }
 
     #[test]
@@ -453,7 +366,7 @@ mod tests {
     }
 
     #[test]
-    pub(super) fn local_app_grant_identifiers_round_trip_only_inside_the_native_binding() {
+    pub(super) fn local_development_identifiers_round_trip_only_inside_the_native_binding() {
         let identifier = [0xabu8; 32];
         let encoded = encode_identifier(&identifier);
         assert_eq!(encoded, "ab".repeat(32));
@@ -463,29 +376,9 @@ mod tests {
     }
 
     #[test]
-    pub(super) fn local_app_grant_native_projection_retains_private_selector_material() {
-        let value = project_pending_local_app_grant(LocalAppGrantControlPending {
-            request_id: [1; 32],
-            presence_challenge_id: [2; 32],
-            pending_grant_id: [3; 32],
-            operation_id: "runtime_agent.conversation.open".to_string(),
-            resource_ref: "agent:zhiyu".to_string(),
-            expires_at_unix_ms: 1_800_000_000_000,
-        });
-        assert_eq!(value["requestId"].as_str().map(str::len), Some(64));
-        assert_eq!(
-            value["presenceChallengeId"].as_str().map(str::len),
-            Some(64)
-        );
-        assert_eq!(value["pendingGrantId"].as_str().map(str::len), Some(64));
-        assert!(value.get("token").is_none());
-        assert!(value.get("sessionId").is_none());
-    }
-
-    #[test]
     fn authority_summary_projection_is_bounded_and_identifier_free() {
         use nimi_shell_protected_local::{
-            DeveloperModeState, LocalDevelopmentDeveloperModeSummary, LocalDevelopmentGrantSummary,
+            DeveloperModeState, LocalDevelopmentDeveloperModeSummary,
             LocalDevelopmentProjectAuthorizationSummary,
         };
 
@@ -503,23 +396,9 @@ mod tests {
                 revoked_count: 7,
                 unavailable_reason: None,
             },
-            grant_summary: LocalDevelopmentGrantSummary {
-                availability: LocalDevelopmentSummaryAvailability::Unavailable,
-                pending_count: 0,
-                granted_count: 0,
-                denied_count: 0,
-                expired_count: 0,
-                revoked_count: 0,
-                superseded_count: 0,
-                unavailable_reason: Some(NimiHostErrorReasonCode::LocalAppOperationUnavailable),
-            },
         });
         assert_eq!(value["developerMode"]["state"], "enabled");
         assert_eq!(value["projectAuthorization"]["activeCount"], 2);
-        assert_eq!(
-            value["grantSummary"]["unavailableReason"],
-            "local-app-operation-unavailable"
-        );
         let encoded = value.to_string();
         for forbidden in [
             "accountId",

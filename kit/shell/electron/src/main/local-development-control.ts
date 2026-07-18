@@ -14,6 +14,11 @@ type NativeJsonOutcome =
 export type NimiElectronLocalDevelopmentShell = 'electron' | 'tauri';
 export type NimiElectronLocalDevelopmentDecision = 'deny' | 'allow-run-once' | 'allow-remember-project';
 
+export type NimiElectronLocalDevelopmentPermissionRequirement = {
+  readonly permissionId: string;
+  readonly reason: string;
+};
+
 export type NimiElectronLocalDevelopmentProject = {
   readonly appId: string;
   readonly displayName: string;
@@ -21,9 +26,9 @@ export type NimiElectronLocalDevelopmentProject = {
   readonly canonicalManifestPath: string;
   readonly shell: NimiElectronLocalDevelopmentShell;
   readonly accountId: string;
-  readonly requestedCapabilities: readonly string[];
+  readonly permissionRequirements: readonly NimiElectronLocalDevelopmentPermissionRequirement[];
   /** Main-process private integrity material. Never project to a renderer. */
-  readonly capabilityFingerprint: string;
+  readonly permissionRequirementFingerprint: string;
 };
 
 export type NimiElectronLocalDevelopmentAuthorization = {
@@ -295,12 +300,18 @@ function parseAuthorization(value: unknown): NimiElectronLocalDevelopmentAuthori
 
 function parseProject(value: unknown): NimiElectronLocalDevelopmentProject {
   const row = exact(value, [
-    'accountId', 'appId', 'canonicalManifestPath', 'canonicalProjectRoot', 'capabilityFingerprint',
-    'displayName', 'requestedCapabilities', 'shell',
+    'accountId', 'appId', 'canonicalManifestPath', 'canonicalProjectRoot', 'displayName',
+    'permissionRequirementFingerprint', 'permissionRequirements', 'shell',
   ]);
-  if (!Array.isArray(row.requestedCapabilities) || row.requestedCapabilities.length === 0) invalid();
-  const requestedCapabilities = row.requestedCapabilities.map(boundedText);
-  if (new Set(requestedCapabilities).size !== requestedCapabilities.length) invalid();
+  if (!Array.isArray(row.permissionRequirements)) invalid();
+  const permissionRequirements = row.permissionRequirements.map((value) => {
+    const requirement = exact(value, ['permissionId', 'reason']);
+    const permissionId = boundedText(requirement.permissionId);
+    const reason = boundedText(requirement.reason);
+    if (Buffer.byteLength(reason, 'utf8') > 240) invalid();
+    return { permissionId, reason };
+  });
+  if (new Set(permissionRequirements.map(({ permissionId }) => permissionId)).size !== permissionRequirements.length) invalid();
   return {
     appId: boundedText(row.appId),
     displayName: boundedText(row.displayName),
@@ -308,8 +319,8 @@ function parseProject(value: unknown): NimiElectronLocalDevelopmentProject {
     canonicalManifestPath: boundedText(row.canonicalManifestPath),
     shell: shell(row.shell),
     accountId: boundedText(row.accountId),
-    requestedCapabilities,
-    capabilityFingerprint: identifier(row.capabilityFingerprint),
+    permissionRequirements,
+    permissionRequirementFingerprint: identifier(row.permissionRequirementFingerprint),
   };
 }
 

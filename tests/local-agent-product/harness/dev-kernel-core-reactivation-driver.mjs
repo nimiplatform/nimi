@@ -17,19 +17,16 @@ import {
 import { loginDesktop, setFixtureAccount } from './dev-kernel-first-run-driver.mjs';
 import {
   approveLocalDevelopment,
-  openConversation,
   pageAudit,
   projectRuntimeUiEvidence,
   readRememberedAuthorization,
   revokeProjectAuthorization,
-  sendTurnWithKeyboard,
   setDeveloperMode,
   startZhiyuDev,
+  verifyAppPrivateStorage,
   waitZhiyuEvidence,
 } from './dev-kernel-local-development-driver.mjs';
 import { persistCoreResult } from './dev-kernel-result-driver.mjs';
-
-const OPEN_OPERATION = 'runtime_agent.conversation.open';
 
 export async function runCoreReactivationJourney({
   architecture,
@@ -52,9 +49,8 @@ export async function runCoreReactivationJourney({
   browserAuth,
   baseEnv,
   zhiyuCdpPort,
-  anchorId,
-  firstTurn,
-  secondTurn,
+  firstStorage,
+  secondStorage,
   serviceBefore,
   startedAt,
   started,
@@ -80,7 +76,7 @@ export async function runCoreReactivationJourney({
     false,
     browserAuth('primary', fixtureConfig.primaryAccountId, 'reactivated-local-development'),
   );
-  let zhiyu = await waitForObservedProcessConnection({
+  const zhiyu = await waitForObservedProcessConnection({
     connectionPromise: reactivatedLaunch.connectionPromise,
     handle: reactivatedHandle,
     label: 'reactivated Zhiyu Electron launcher',
@@ -88,7 +84,13 @@ export async function runCoreReactivationJourney({
   setActiveZhiyuConnection(zhiyu);
   await waitForTestId(zhiyu.page, 'zhiyu-dev-kernel-root');
   await zhiyu.page.getByTestId('zhiyu-dev-kernel-refresh').click();
-  await waitZhiyuEvidence(zhiyu.page, { openPermission: 'granted', buildMarker: 'baseline' }, 'reactivated grants');
+  await waitZhiyuEvidence(
+    zhiyu.page,
+    { sessionBound: true, permissionPosture: 'unavailable', buildMarker: 'baseline' },
+    'reactivated authority boundary',
+  );
+  const reactivatedStorage = await verifyAppPrivateStorage(zhiyu.page);
+  observations.reactivatedAppPrivateStorage = reactivatedStorage;
   observations.reactivatedAuthorization = await waitUntil(
     () => readRememberedAuthorization(desktop.page, {
       accountId: fixtureConfig.primaryAccountId,
@@ -97,8 +99,6 @@ export async function runCoreReactivationJourney({
     }),
     { timeoutMs: 30_000, label: 'reactivated remembered authorization' },
   );
-  const reactivatedOpen = await openConversation(zhiyu.page);
-  if (reactivatedOpen.conversationAnchorId !== anchorId) throw new Error('conversation anchor changed after remembered-project reactivation');
 
   setPhase('fixed-service-restart');
   const runtimeBeforeRestart = readFixedServiceStatus();
@@ -126,33 +126,23 @@ export async function runCoreReactivationJourney({
   await zhiyu.page.getByTestId('zhiyu-dev-kernel-refresh').click();
   const runtimeRecoveredEvidence = await waitZhiyuEvidence(
     zhiyu.page,
-    { openPermission: 'granted' },
-    'post-Runtime-restart grants',
+    { sessionBound: true, permissionPosture: 'unavailable' },
+    'post-Runtime-restart authority boundary',
     90_000,
   );
+  const postRuntimeStorage = await verifyAppPrivateStorage(zhiyu.page);
   await zhiyu.page.screenshot({ path: path.join(screenshotsRoot, 'zhiyu-runtime-recovered.png') });
-  const postRuntimeOpen = await openConversation(zhiyu.page);
-  if (postRuntimeOpen.conversationAnchorId !== anchorId) throw new Error('conversation anchor changed after Runtime restart');
-  await waitZhiyuEvidence(zhiyu.page, { conversationGranted: true }, 'post-Runtime-restart conversation grants');
-  const thirdTurn = await sendTurnWithKeyboard(
-    zhiyu.page,
-    '第三轮：固定 Runtime 服务已经重启。请确认此前的会话仍可继续。',
-    secondTurn.evidence.transcript.length + 2,
-  );
   observations.runtimeRestart = {
     before: runtimeBeforeRestart,
     after: runtimeAfterRestart,
     unavailableUi: projectRuntimeUiEvidence(runtimeUnavailableEvidence),
     recoveredUi: projectRuntimeUiEvidence(runtimeRecoveredEvidence),
-    anchorBefore: anchorId,
-    anchorAfter: thirdTurn.evidence.conversationAnchorId,
-    transcriptBefore: secondTurn.evidence.transcript.length,
-    transcriptAfter: thirdTurn.evidence.transcript.length,
+    storageBefore: reactivatedStorage.appPrivateStorage,
+    storageAfter: postRuntimeStorage.appPrivateStorage,
   };
 
   const desktopAuditBeforeSwitch = await pageAudit(desktop, 'desktop-before-account-switch');
   const zhiyuAuditBeforeSwitch = await pageAudit(zhiyu, 'zhiyu-before-account-switch');
-  const preAccountSwitchEvidence = await zhiyu.page.evaluate(() => window.__nimiZhiyuDevKernelEvidence || null);
   setPhase('secondary-account-switch');
   const secondaryLogin = await loginDesktop(
     desktop,
@@ -160,17 +150,14 @@ export async function runCoreReactivationJourney({
     browserAuth('secondary', fixtureConfig.secondaryAccountId, 'secondary-login'),
   );
   await setFixtureAccount(fixture.origin, fixtureConfig.secondaryAccountId, '开发内核第二账号');
-  const postSwitchOperation = zhiyu.page.getByTestId('zhiyu-dev-kernel-attempt-open');
-  await postSwitchOperation.waitFor({ state: 'visible', timeout: 30_000 });
-  await postSwitchOperation.click();
+  await zhiyu.page.getByTestId('zhiyu-dev-kernel-refresh').click().catch(() => undefined);
   const accountSwitchEvidence = await waitUntil(async () => {
     const evidence = await zhiyu.page.evaluate(() => window.__nimiZhiyuDevKernelEvidence || null).catch(() => null);
-    const reasonCode = evidence?.lastError?.reasonCode;
-    if (!['account-changed', 'revoked', 'process-replaced'].includes(reasonCode)) return null;
-    if (reasonCode === preAccountSwitchEvidence?.lastError?.reasonCode
-      && evidence?.state === preAccountSwitchEvidence?.state) return null;
-    return evidence;
-  }, { timeoutMs: 30_000, label: 'new selected-operation denial after account switch' });
+    return evidence?.session?.sessionBound === false
+      && ['account-changed', 'revoked', 'process-replaced'].some((reason) => String(evidence.session.reasonCode || '').includes(reason))
+      ? evidence
+      : null;
+  }, { timeoutMs: 30_000, label: 'session invalidation after account switch' });
   const accountSwitchRuns = await invokeDesktop(desktop.page, 'local_development_runs_list');
   const desktopAuditAfterSwitch = await pageAudit(desktop, 'desktop-after-account-switch');
   const zhiyuAuditAfterSwitch = await pageAudit(zhiyu, 'zhiyu-after-account-switch-denial');
@@ -217,33 +204,28 @@ export async function runCoreReactivationJourney({
   setActiveZhiyuConnection(finalZhiyu);
   await waitForTestId(finalZhiyu.page, 'zhiyu-dev-kernel-root');
   await finalZhiyu.page.getByTestId('zhiyu-dev-kernel-refresh').click();
-  await waitZhiyuEvidence(finalZhiyu.page, { openPermission: 'granted' }, 'final primary grant posture');
-  const finalOpen = await openConversation(finalZhiyu.page);
-  if (finalOpen.conversationAnchorId !== anchorId) throw new Error('conversation anchor changed after returning to primary account');
+  await waitZhiyuEvidence(
+    finalZhiyu.page,
+    { sessionBound: true, permissionPosture: 'unavailable' },
+    'final primary authority boundary',
+  );
+  observations.finalAppPrivateStorage = await verifyAppPrivateStorage(finalZhiyu.page);
 
   setPhase('project-authorization-revoke');
-  const revokeProject = revokeProjectAuthorization(desktop.page);
-  await revokeProject;
+  await revokeProjectAuthorization(desktop.page);
   if (finalZhiyu.page.isClosed()) {
-    throw new Error('project revoke terminated the admitted renderer before the selected post-revoke operation could be attempted');
+    throw new Error('project revoke terminated the renderer before its invalidated session could be observed');
   }
-  const preRevokeAttemptEvidence = await finalZhiyu.page.evaluate(() => window.__nimiZhiyuDevKernelEvidence || null);
-  const postRevokeOperation = finalZhiyu.page.getByTestId('zhiyu-dev-kernel-attempt-open');
-  await postRevokeOperation.waitFor({ state: 'visible', timeout: 30_000 });
-  await postRevokeOperation.click();
+  await finalZhiyu.page.getByTestId('zhiyu-dev-kernel-refresh').click();
   const projectRevokeDenial = await waitUntil(async () => {
     const evidence = await finalZhiyu.page.evaluate(() => window.__nimiZhiyuDevKernelEvidence || null);
-    if (!['revoked', 'project-changed'].includes(evidence?.lastError?.reasonCode)) return null;
-    if (evidence.state !== 'access-lost') return null;
-    if (evidence.lastError.reasonCode === preRevokeAttemptEvidence?.lastError?.reasonCode
-      && preRevokeAttemptEvidence?.state === 'access-lost') return null;
-    return evidence;
-  }, { timeoutMs: 30_000, label: 'typed selected-operation denial after project revoke' });
+    return evidence?.session?.sessionBound === false
+      && ['revoked', 'project-changed'].some((reason) => String(evidence.session.reasonCode || '').includes(reason))
+      ? evidence
+      : null;
+  }, { timeoutMs: 30_000, label: 'session invalidation after project revoke' });
   observations.projectRevoke = {
-    operationId: OPEN_OPERATION,
     attempted: true,
-    beforeState: preRevokeAttemptEvidence?.state || '',
-    beforeReasonCode: preRevokeAttemptEvidence?.lastError?.reasonCode || '',
     denial: projectRevokeDenial,
   };
   const zhiyuAudit = await pageAudit(finalZhiyu, 'zhiyu-after-project-revoke-denial');
@@ -267,12 +249,12 @@ export async function runCoreReactivationJourney({
 
   observations.browserAuthBudget = auditBrowserAuth();
   setPhase('core-persist');
-  return await persistCoreResult({
+  return persistCoreResult({
     fixture, providerRawPath, observations, artifactsRoot, desktop, observer, observedPages,
     desktopAuditBeforeSwitch, desktopAuditAfterSwitch, zhiyuAudit, zhiyuAuditBeforeSwitch,
     zhiyuAuditAfterSwitch, zhiyuRevokedNarrowMethod, zhiyuRevokedNarrowMetrics,
     desktopNarrowMethod, desktopNarrowMetrics, screenshotsRoot, serviceBefore, fixtureConfig,
-    anchorId, firstTurn, processLedger, journey, architecture, trial, sourceState, outputDir,
+    firstStorage, secondStorage, processLedger, journey, architecture, trial, sourceState, outputDir,
     startedAt, started, buildMarker,
   });
 }

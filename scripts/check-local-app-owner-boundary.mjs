@@ -16,9 +16,9 @@ const authorityRules = [
     evidence: '.nimi/spec/runtime/kernel/tables/rule-evidence.rules-core-auth.yaml',
     clauses: [
       ['RUNTIME_REALM_OWNER_MISSING', /Runtime is the sole owner of authenticated Realm unary, realtime, and media data planes/iu],
-      ['RUNTIME_LOCAL_APP_COORDINATOR_OWNER_MISSING', /Runtime alone owns[\s\S]*local-app grant mutation[\s\S]*per-operation local-app decision coordinator/iu],
+      ['RUNTIME_LOCAL_APP_COORDINATOR_OWNER_MISSING', /Runtime alone owns[\s\S]*Runtime-owned portion of public permission enforcement[\s\S]*per-operation local-app decision coordinator/iu],
       ['APP_CREDENTIAL_NON_OWNER_MISSING', /Apps MUST NOT own account or session truth, bearer or refresh tokens, or signed upload credentials/iu],
-      ['NO_BLANKET_LOCAL_APP_AUTHORITY_MISSING', /local-app origin or grant never creates blanket authorization/iu],
+      ['NO_BLANKET_LOCAL_APP_AUTHORITY_MISSING', /local-app origin or permission posture never creates blanket authorization/iu],
     ],
   },
   {
@@ -28,7 +28,7 @@ const authorityRules = [
     clauses: [
       ['ATOMIC_LOCAL_APP_SESSION_MISSING', /local-app session only from an atomically consumed[\s\S]*launch lease on the verified child channel/iu],
       ['RUNTIME_DERIVED_LOCAL_APP_IDENTITY_MISSING', /`LOCAL_APP` caller class and[\s\S]*`local_app_principal_id` are Runtime-derived/iu],
-      ['ZERO_GRANT_DENIAL_MISSING', /zero-grant[\s\S]*session is valid origin proof and must still be denied[\s\S]*until an exact grant and owner policy allow the operation/iu],
+      ['ZERO_PERMISSION_BOUNDARY_MISSING', /zero-permission[\s\S]*session is valid origin proof[\s\S]*base entitlements[\s\S]*cannot list protected Agent\/account\/resource[\s\S]*Every user-permission operation remains unavailable/iu],
       ['PRIVATE_COORDINATOR_MISSING', /private provenance-agnostic per-operation[\s\S]*coordinator/iu],
       ['IMMUTABLE_PROVENANCE_UNAVAILABLE_MISSING', /Immutable provenance remains an opaque input seam and[\s\S]*returns typed unavailable until 0P\/P admits a producer/iu],
     ],
@@ -38,7 +38,7 @@ const authorityRules = [
     contract: '.nimi/spec/runtime/kernel/account-session-contract.md',
     evidence: '.nimi/spec/runtime/kernel/tables/rule-evidence.rules-core-auth.yaml',
     clauses: [
-      ['REALM_EXACT_SOURCE_READINESS_AUTHORITY_MISSING', /admits only the exact Desktop[\s\S]*source-readiness operations[\s\S]*An unlisted operation or any non-Desktop caller fails[\s\S]*generic proxy behavior is forbidden/iu],
+      ['REALM_EXACT_SOURCE_READINESS_AUTHORITY_MISSING', /InvokeRealmUnary` admits only[\s\S]*source-readiness operations enumerated by[\s\S]*An unlisted operation or any[\s\S]*non-Desktop caller fails[\s\S]*generic proxy[\s\S]*behavior is forbidden/iu],
       ['REALM_FALLBACK_DENIAL_MISSING', /No public grant, portable envelope, renderer\/app token[\s\S]*provider, caller-selected Realm base, direct Realm path, or fallback is[\s\S]*admitted/iu],
     ],
   },
@@ -47,7 +47,7 @@ const authorityRules = [
     contract: '.nimi/spec/runtime/kernel/account-session-contract.md',
     evidence: '.nimi/spec/runtime/kernel/tables/rule-evidence.rules-core-auth.yaml',
     clauses: [
-      ['EXACT_PERMISSION_ROWS_MISSING', /local-app grant[\s\S]*selected local-app operations[\s\S]*admitted only through their exact protected-transport and owner rows/iu],
+      ['PRODUCT_PERMISSION_ROWS_MISSING', /public[\s\S]*permission status\/request, selected local-app operations[\s\S]*admitted only through their exact protected-[\s\S]*transport and owner rows[\s\S]*no public permission decision or revoke RPC/iu],
       ['PORTABLE_BLANKET_AUTHORITY_DENIAL_MISSING', /admits no portable envelope, blanket local-app authority or raw-token[\s\S]*projection/iu],
       ['UNLISTED_OPERATION_DENIAL_MISSING', /Unlisted broker\/realtime\/media operation rows remain denied/iu],
     ],
@@ -68,10 +68,10 @@ const authorityRules = [
     evidence: '.nimi/spec/platform/kernel/tables/rule-evidence.rules-nimi-app.yaml',
     clauses: [
       ['PLATFORM_VOCABULARY_OWNER_MISSING', /Platform owns verified catalog\/release,[\s\S]*publisher\/review posture, the permission vocabulary, and the closed local[\s\S]*provenance taxonomy/iu],
-      ['RUNTIME_KERNEL_OWNER_SPLIT_MISSING', /Runtime K-APP owns PC-local principals and records;[\s\S]*K-GRANT owns account-and-principal grants; K-PLOCAL owns launch\/process\/session/iu],
+      ['RUNTIME_KERNEL_OWNER_SPLIT_MISSING', /Runtime K-APP owns PC-local principals and records;[\s\S]*canonical domain owners own admitted permission decisions and K-GRANT defines[\s\S]*Runtime-owned lifecycle boundary; K-PLOCAL owns launch\/process\/session/iu],
       ['APP_SELF_AUTHORIZATION_DENIAL_MISSING', /An app id, catalog row, trust class\/tier, manifest, renderer metadata, or[\s\S]*app-owned host description MUST NOT grant privilege or establish runnable[\s\S]*identity/iu],
       ['APP_TOOLS_NON_OWNER_MISSING', /app-tools owns authoring\/build orchestration only/iu],
-      ['DESKTOP_LAUNCHER_NON_OWNER_MISSING', /Desktop is the[\s\S]*current protected `local_app_control` UX\/launcher implementation and is not a[\s\S]*principal, grant, or session owner/iu],
+      ['DESKTOP_LAUNCHER_NON_OWNER_MISSING', /Desktop is the[\s\S]*current protected `local_app_control` UX\/launcher implementation and is not a[\s\S]*principal, permission-decision, or session owner/iu],
     ],
   },
   {
@@ -88,8 +88,8 @@ const authorityRules = [
     contract: '.nimi/spec/platform/kernel/nimi-app-admission-contract.md',
     evidence: '.nimi/spec/platform/kernel/tables/rule-evidence.rules-nimi-app.yaml',
     clauses: [
-      ['FIXED_SERVICE_LAUNCH_BOUNDARY_MISSING', /Windows positive third-party sessions require the fixed Runtime service,[\s\S]*`PrepareLocalAppLaunch`[\s\S]*native[\s\S]*peer\/process\/executable proof/iu],
-      ['LEASE_RENDERER_CUSTODY_DENIAL_MISSING', /launch lease is necessary but[\s\S]*not durable identity and never enters renderer\/app state/iu],
+      ['FIXED_SERVICE_LAUNCH_BOUNDARY_MISSING', /Positive third-party sessions[\s\S]*require the[\s\S]*same-OS fixed Runtime service[\s\S]*`PrepareLocalAppLaunch`[\s\S]*native peer\/process\/executable[\s\S]*proof/iu],
+      ['LEASE_RENDERER_CUSTODY_DENIAL_MISSING', /launch lease is necessary but not durable identity and never enters[\s\S]*renderer\/app state/iu],
       ['DIRECT_RUNTIME_LAUNCH_DENIAL_MISSING', /Ordinary gRPC, endpoint\/env[\s\S]*and direct Runtime process launch are forbidden/iu],
     ],
   },
@@ -98,13 +98,44 @@ const authorityRules = [
     contract: '.nimi/spec/platform/kernel/kit-contract.md',
     evidence: '.nimi/spec/platform/kernel/tables/rule-evidence.rules-kit.yaml',
     clauses: [
-      ['KIT_TRUTH_NON_OWNER_MISSING', /Kit owns typed shell APIs and trusted carrier implementation only[\s\S]*cannot[\s\S]*create account, principal, provenance, record, grant, launch, process, session,[\s\S]*or owner-operation truth/iu],
+      ['KIT_TRUTH_NON_OWNER_MISSING', /Kit owns typed shell APIs and trusted carrier implementation only[\s\S]*cannot[\s\S]*create account, principal, provenance, record, permission decision, launch,[\s\S]*process, session, or owner-operation truth/iu],
       ['REQUEST_EMPTY_LOCAL_APP_CARRIER_MISSING', /host-private carrier opens one common[\s\S]*request-empty local-app session/iu],
       ['ELECTRON_TAURI_SHARED_CARRIER_MISSING', /Electron and Tauri host adapters consume the same local-app client and[\s\S]*typed failure model/iu],
       ['GENERIC_PROXY_DENIAL_MISSING', /no\s+method-id\/bytes proxy or generic protected Runtime forwarding is\s+admitted/iu],
-      ['KIT_ZERO_GRANT_DENIAL_MISSING', /zero-grant session may project permission posture[\s\S]*but the inventory result authorizes no protected operation/iu],
+      ['KIT_ZERO_PERMISSION_BOUNDARY_MISSING', /No public permission is[\s\S]*currently admitted[\s\S]*Artifact, Agent, conversation and voice methods are absent[\s\S]*valid session may use app-private storage without any permission/iu],
       ['FIXED_SERVICE_POSITIVE_PATH_MISSING', /Windows fixed-service carrier is the positive path/iu],
       ['DIRECT_DAEMON_RENDERER_FALLBACK_DENIAL_MISSING', /Ordinary gRPC,[\s\S]*external-daemon mode, renderer auth, manually started host, and pseudo-success[\s\S]*fallback are forbidden/iu],
+    ],
+  },
+  {
+    ruleId: 'P-PERM-011',
+    contract: '.nimi/spec/platform/kernel/app-permission-contract.md',
+    evidence: '.nimi/spec/platform/kernel/tables/rule-evidence.rules-app-permission.yaml',
+    clauses: [
+      ['APP_PRIVATE_STORAGE_BASE_ENTITLEMENT_MISSING', /An app does not ask Nimi for permission to use its own SQLite, JSON store,[\s\S]*media, settings, cache or product routes/iu],
+      ['NATIVE_APP_STORAGE_AUTHORITY_MISSING', /Native app storage[\s\S]*is `app_owned_authority` under actual OS rights/iu],
+      ['EXTERNAL_RESOURCE_SEPARATION_MISSING', /External files are different:[\s\S]*None creates a generic filesystem permission/iu],
+    ],
+  },
+  {
+    ruleId: 'P-PERM-015',
+    contract: '.nimi/spec/platform/kernel/app-permission-contract.md',
+    evidence: '.nimi/spec/platform/kernel/tables/rule-evidence.rules-app-permission.yaml',
+    clauses: [
+      ['FIVE_AUTHORITY_CLASSES_MISSING', /`base_entitlement`[\s\S]*`user_permission`[\s\S]*`one_shot_consent`[\s\S]*`app_owned_authority`[\s\S]*`os_right`/iu],
+      ['AUTHORITY_CLASS_EXCLUSIVITY_MISSING', /The classes are mutually exclusive/iu],
+      ['APP_OWNED_PROXY_DENIAL_MISSING', /App-owned commands must not[\s\S]*proxy protected Nimi operations/iu],
+    ],
+  },
+  {
+    ruleId: 'P-PERM-017',
+    contract: '.nimi/spec/platform/kernel/app-permission-contract.md',
+    evidence: '.nimi/spec/platform/kernel/tables/rule-evidence.rules-app-permission.yaml',
+    clauses: [
+      ['ATOMIC_PERMISSION_ADMISSION_MISSING', /permission is admitted only when all of these land atomically:[\s\S]*catalog row[\s\S]*decision owner[\s\S]*endpoint[\s\S]*SDK\/Kit[\s\S]*approval UI[\s\S]*settings\/revoke UI[\s\S]*audit/iu],
+      ['HUMAN_INTENT_UX_BUDGET_MISSING', /one decision per recognizable intent and selected[\s\S]*resource set/iu],
+      ['INSTALL_METHOD_PERMISSION_WALL_DENIAL_MISSING', /Install-time permission walls, method-level prompts[\s\S]*are forbidden/iu],
+      ['ZERO_PROMPT_APP_OWNED_PATH_MISSING', /normal app using only its own data must launch with zero Nimi[\s\S]*permission prompts/iu],
     ],
   },
   {
@@ -209,7 +240,7 @@ function removeEvidenceLink(files, ruleId) {
 
 const negativeFixtures = [
   ['runtime-owner-removed', 'K-ACCSVC-001', 'RUNTIME_REALM_OWNER_MISSING'],
-  ['zero-grant-denial-removed', 'K-ACCSVC-022', 'ZERO_GRANT_DENIAL_MISSING'],
+  ['zero-permission-boundary-removed', 'K-ACCSVC-022', 'ZERO_PERMISSION_BOUNDARY_MISSING'],
   ['immutable-provenance-fallback', 'K-ACCSVC-022', 'IMMUTABLE_PROVENANCE_UNAVAILABLE_MISSING'],
   ['realm-exact-source-readiness-authority-removed', 'K-ACCSVC-023', 'REALM_EXACT_SOURCE_READINESS_AUTHORITY_MISSING'],
   ['realm-direct-fallback', 'K-ACCSVC-023', 'REALM_FALLBACK_DENIAL_MISSING'],
@@ -219,6 +250,9 @@ const negativeFixtures = [
   ['immutable-package-positive-before-0p', 'P-NAPP-033', 'IMMUTABLE_PACKAGE_UNAVAILABLE_MISSING'],
   ['direct-runtime-launch', 'P-NAPP-034', 'DIRECT_RUNTIME_LAUNCH_DENIAL_MISSING'],
   ['kit-nonempty-session', 'P-KIT-044', 'REQUEST_EMPTY_LOCAL_APP_CARRIER_MISSING'],
+  ['app-private-storage-requires-nimi-permission', 'P-PERM-011', 'APP_PRIVATE_STORAGE_BASE_ENTITLEMENT_MISSING'],
+  ['authority-classes-collapsed', 'P-PERM-015', 'AUTHORITY_CLASS_EXCLUSIVITY_MISSING'],
+  ['permission-admission-partial', 'P-PERM-017', 'ATOMIC_PERMISSION_ADMISSION_MISSING'],
   ['desktop-credential-custody', 'D-NET-006', 'DESKTOP_CREDENTIAL_CUSTODY_DENIAL_MISSING'],
 ].map(([fixtureId, ruleId, expectedCode]) => ({
   fixtureId,

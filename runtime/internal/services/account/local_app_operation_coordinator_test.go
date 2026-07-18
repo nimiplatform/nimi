@@ -6,217 +6,76 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 )
 
-func TestAuthorizeLocalAppProtectedOperationPreservesTerminalGrantReasons(t *testing.T) {
-	for _, test := range []struct {
-		name   string
-		state  localappkernel.GrantState
-		reason runtimev1.ReasonCode
+func TestAuthorizeLocalAppProtectedOperationsFailClosedUntilProductPermissionAdmission(t *testing.T) {
+	fixture := newLocalAppAuthorityFixture(t)
+	ctx := localAppOperationConnectionContext(t, fixture.resolver.binding.Process, fixture.resolver.binding.RuntimeBootEpoch)
+	tests := []struct {
+		operation LocalAppOperation
+		selector  localappop.Selector
 	}{
-		{name: "zero grant", reason: runtimev1.ReasonCode_LOCAL_APP_GRANT_REQUIRED},
-		{name: "revoked", state: localappkernel.GrantStateRevoked, reason: runtimev1.ReasonCode_LOCAL_APP_GRANT_REVOKED},
-		{name: "superseded", state: localappkernel.GrantStateSuperseded, reason: runtimev1.ReasonCode_LOCAL_APP_GRANT_SUPERSEDED},
-		{name: "expired", state: localappkernel.GrantStateExpired, reason: runtimev1.ReasonCode_LOCAL_APP_PRESENCE_EXPIRED},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			fixture := newLocalAppGrantFixture(t)
-			if test.state != "" {
-				establishLocalAppOperationGrant(t, fixture, test.state)
-			}
-			ctx := localAppOperationConnectionContext(t, fixture.resolver.binding.Process, fixture.resolver.binding.RuntimeBootEpoch)
-			_, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationOpenConversation, localappop.Selector{AgentID: "agent:matrix"})
-			if err == nil {
-				t.Fatal("terminal grant state authorized the operation")
-			}
-			if got := LocalAppOperationAuthorizationReason(err); got != test.reason {
-				t.Fatalf("reason = %s, want %s", got, test.reason)
-			}
-		})
+		{LocalAppOperationReadArtifactBytes, localappop.Selector{ArtifactID: "artifact-a"}},
+		{LocalAppOperationOpenConversation, localappop.Selector{AgentID: "agent-a"}},
+		{LocalAppOperationSendConversationTurn, localappop.Selector{AgentID: "agent-a", ConversationAnchorID: "anchor-a", TurnID: "turn-a"}},
+		{LocalAppOperationSubscribeConversation, localappop.Selector{AgentID: "agent-a", ConversationAnchorID: "anchor-a"}},
+		{LocalAppOperationConversationSnapshot, localappop.Selector{AgentID: "agent-a", ConversationAnchorID: "anchor-a"}},
+		{LocalAppOperationVoiceTranscribe, localappop.Selector{AgentID: "agent-a"}},
+		{LocalAppOperationVoiceStreamSubscribe, localappop.Selector{AgentID: "agent-a", ConversationAnchorID: "anchor-a", TurnID: "turn-a", VoiceStreamID: "voice-a"}},
+	}
+	for _, test := range tests {
+		if _, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, test.operation, test.selector); LocalAppOperationAuthorizationReason(err) != runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE {
+			t.Fatalf("operation %q reason = %s err=%v", test.operation, LocalAppOperationAuthorizationReason(err), err)
+		}
 	}
 }
 
-func TestAuthorizeLocalAppProtectedOperationAllowsOnlyExactLiveProcessAndGrant(t *testing.T) {
-	fixture := newLocalAppGrantFixture(t)
-	establishLocalAppOperationGrant(t, fixture, localappkernel.GrantStateGranted)
+func TestAuthorizeLocalAppStorageUsesBaseEntitlementWithoutPermission(t *testing.T) {
+	fixture := newLocalAppAuthorityFixture(t)
+	fixture.resolver.binding.Capabilities = nil
 	ctx := localAppOperationConnectionContext(t, fixture.resolver.binding.Process, fixture.resolver.binding.RuntimeBootEpoch)
-	decision, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationOpenConversation, localappop.Selector{AgentID: "agent:matrix"})
-	if err != nil || decision.LocalAppPrincipalID != fixture.resolver.binding.LocalAppPrincipalID || decision.Operation != LocalAppOperationOpenConversation {
-		t.Fatalf("exact operation decision = (%+v, %v)", decision, err)
+	decision, err := fixture.service.AuthorizeLocalAppProtectedOperation(
+		ctx,
+		LocalAppOperationStorageJSONWrite,
+		localappop.Selector{StorageRelativePath: "state/value.json"},
+	)
+	if err != nil {
+		t.Fatalf("app-private storage authorization failed: %v", err)
 	}
-
-	mismatchedProcess := fixture.resolver.binding.Process
-	mismatchedProcess.PID++
-	mismatchContext := localAppOperationConnectionContext(t, mismatchedProcess, fixture.resolver.binding.RuntimeBootEpoch)
-	if _, err := fixture.service.AuthorizeLocalAppProtectedOperation(mismatchContext, LocalAppOperationOpenConversation, localappop.Selector{AgentID: "agent:matrix"}); LocalAppOperationAuthorizationReason(err) != runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH {
-		t.Fatalf("process mismatch reason = %s err=%v", LocalAppOperationAuthorizationReason(err), err)
-	}
-
-	if _, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationOpenConversation, localappop.Selector{}); LocalAppOperationAuthorizationReason(err) != runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE {
-		t.Fatalf("invalid selector reason = %s err=%v", LocalAppOperationAuthorizationReason(err), err)
+	if decision.AuthorityClass != localappop.AuthorityClassBaseEntitlement ||
+		decision.OperationCapability != "app.private_storage" ||
+		decision.LocalAppPrincipalID != fixture.resolver.binding.LocalAppPrincipalID {
+		t.Fatalf("app-private storage decision = %+v", decision)
 	}
 }
 
-func TestAuthorizeLocalAppSendTurnRequiresExactCorrelationSelector(t *testing.T) {
-	fixture := newLocalAppGrantFixture(t)
-	const operationID = "runtime_agent.conversation.turn_send"
-	const resourceRef = "agent:agent:matrix/conversation:anchor:matrix"
-	pending, err := fixture.service.RequestLocalAppGrant(context.Background(), &runtimev1.RequestLocalAppGrantRequest{
-		OperationId: operationID,
-		ResourceRef: resourceRef,
-		Purpose:     "Send a turn to the selected conversation",
-	})
-	if err != nil || pending.GetProjection().GetState() != runtimev1.LocalAppGrantState_LOCAL_APP_GRANT_STATE_PENDING {
-		t.Fatalf("request send-turn grant = (%+v, %v)", pending, err)
-	}
-	granted, err := fixture.service.DecideLocalAppGrant(protectedDesktopAccountContext(t), &runtimev1.DecideLocalAppGrantRequest{
-		RequestId:           pending.GetProjection().GetRequestId(),
-		Approved:            true,
-		PresenceChallengeId: fixture.control.challenge.PresenceChallengeID,
-	})
-	if err != nil || granted.GetProjection().GetState() != runtimev1.LocalAppGrantState_LOCAL_APP_GRANT_STATE_GRANTED {
-		t.Fatalf("grant send-turn operation = (%+v, %v)", granted, err)
-	}
-
+func TestAuthorizeLocalAppStorageRejectsInvalidPathBeforeAuthorityEvaluation(t *testing.T) {
+	fixture := newLocalAppAuthorityFixture(t)
 	ctx := localAppOperationConnectionContext(t, fixture.resolver.binding.Process, fixture.resolver.binding.RuntimeBootEpoch)
-	selector := localappop.Selector{
-		AgentID:              "agent:matrix",
-		ConversationAnchorID: "anchor:matrix",
-		TurnID:               "client-turn:1",
-	}
-	decision, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationSendConversationTurn, selector)
-	if err != nil || decision.LocalAppPrincipalID != fixture.resolver.binding.LocalAppPrincipalID || decision.Operation != LocalAppOperationSendConversationTurn {
-		t.Fatalf("exact send-turn decision = (%+v, %v)", decision, err)
-	}
-
-	selector.TurnID = ""
-	if _, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationSendConversationTurn, selector); LocalAppOperationAuthorizationReason(err) != runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE {
-		t.Fatalf("missing turn correlation reason = %s err=%v", LocalAppOperationAuthorizationReason(err), err)
-	}
-}
-
-func TestAuthorizeLocalAppStorageRejectsInvalidPathBeforeGrantLookup(t *testing.T) {
-	fixture := newLocalAppGrantFixture(t)
-	ctx := localAppOperationConnectionContext(t, fixture.resolver.binding.Process, fixture.resolver.binding.RuntimeBootEpoch)
-	_, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationStorageJSONRead, localappop.Selector{StorageRelativePath: "../secret.json"})
+	_, err := fixture.service.AuthorizeLocalAppProtectedOperation(
+		ctx,
+		LocalAppOperationStorageJSONRead,
+		localappop.Selector{StorageRelativePath: "../secret.json"},
+	)
 	if got := LocalAppOperationAuthorizationReason(err); got != runtimev1.ReasonCode_APP_STORAGE_PATH_INVALID {
 		t.Fatalf("invalid storage selector reason = %s err=%v", got, err)
 	}
 }
 
-func TestLocalAppGrantPreflightStaleSupervisedProcessIsProcessReplaced(t *testing.T) {
-	fixture := newLocalAppGrantFixture(t)
-	establishLocalAppOperationGrant(t, fixture, localappkernel.GrantStateGranted)
-	staleProcess := fixture.resolver.binding.Process
-	staleProcess.PID++
-	ctx := localAppOperationConnectionContext(t, staleProcess, fixture.resolver.binding.RuntimeBootEpoch)
-	_, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationOpenConversation, localappop.Selector{AgentID: "agent:matrix"})
+func TestAuthorizeLocalAppStorageStillRequiresExactLiveProcess(t *testing.T) {
+	fixture := newLocalAppAuthorityFixture(t)
+	process := fixture.resolver.binding.Process
+	process.PID++
+	ctx := localAppOperationConnectionContext(t, process, fixture.resolver.binding.RuntimeBootEpoch)
+	_, err := fixture.service.AuthorizeLocalAppProtectedOperation(
+		ctx,
+		LocalAppOperationStorageJSONRead,
+		localappop.Selector{StorageRelativePath: "state/value.json"},
+	)
 	if got := LocalAppOperationAuthorizationReason(err); got != runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH {
-		t.Fatalf("stale supervised process reason = %s err=%v", got, err)
-	}
-}
-
-func TestLocalAppGrantPreflightRevokeDeniesNextOperation(t *testing.T) {
-	fixture := newLocalAppGrantFixture(t)
-	const operationID = "runtime_agent.conversation.open"
-	const resourceRef = "agent:agent:matrix"
-	pending, err := fixture.service.RequestLocalAppGrant(context.Background(), &runtimev1.RequestLocalAppGrantRequest{
-		OperationId: operationID, ResourceRef: resourceRef, Purpose: "Open the selected conversation",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	granted, err := fixture.service.DecideLocalAppGrant(protectedDesktopAccountContext(t), &runtimev1.DecideLocalAppGrantRequest{
-		RequestId: pending.GetProjection().GetRequestId(), Approved: true,
-		PresenceChallengeId: fixture.control.challenge.PresenceChallengeID,
-	})
-	if err != nil || granted.GetProjection().GetState() != runtimev1.LocalAppGrantState_LOCAL_APP_GRANT_STATE_GRANTED {
-		t.Fatalf("grant = (%+v, %v)", granted, err)
-	}
-	revoked, err := fixture.service.RevokeLocalAppGrant(protectedDesktopAccountContext(t), &runtimev1.RevokeLocalAppGrantRequest{
-		GrantId: granted.GetProjection().GetGrantId(),
-	})
-	if err != nil || revoked.GetProjection().GetState() != runtimev1.LocalAppGrantState_LOCAL_APP_GRANT_STATE_REVOKED {
-		t.Fatalf("revoke = (%+v, %v)", revoked, err)
-	}
-	ctx := localAppOperationConnectionContext(t, fixture.resolver.binding.Process, fixture.resolver.binding.RuntimeBootEpoch)
-	_, err = fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationOpenConversation, localappop.Selector{AgentID: "agent:matrix"})
-	if got := LocalAppOperationAuthorizationReason(err); got != runtimev1.ReasonCode_LOCAL_APP_GRANT_REVOKED {
-		t.Fatalf("next operation reason = %s err=%v", got, err)
-	}
-}
-
-func TestAuthorizeLocalAppProtectedOperationPreservesStaleBindingReasons(t *testing.T) {
-	for _, test := range []struct {
-		name   string
-		err    error
-		reason runtimev1.ReasonCode
-	}{
-		{name: "session revoked", err: ErrLocalAppCallerUnauthorized, reason: runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED},
-		{name: "account generation changed", err: ErrLocalAppAccountChanged, reason: runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED},
-		{name: "process replaced", err: ErrLocalAppProcessMismatch, reason: runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			fixture := newLocalAppGrantFixture(t)
-			establishLocalAppOperationGrant(t, fixture, localappkernel.GrantStateGranted)
-			fixture.resolver.err = test.err
-			ctx := localAppOperationConnectionContext(t, fixture.resolver.binding.Process, fixture.resolver.binding.RuntimeBootEpoch)
-			_, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationOpenConversation, localappop.Selector{AgentID: "agent:matrix"})
-			if got := LocalAppOperationAuthorizationReason(err); got != test.reason {
-				t.Fatalf("stale binding reason = %s, want %s err=%v", got, test.reason, err)
-			}
-		})
-	}
-}
-
-func TestAuthorizeLocalAppProtectedOperationRejectsCapabilityDrift(t *testing.T) {
-	fixture := newLocalAppGrantFixture(t)
-	establishLocalAppOperationGrant(t, fixture, localappkernel.GrantStateGranted)
-	fixture.resolver.binding.Capabilities = []string{"runtime.agent.turn.read"}
-	ctx := localAppOperationConnectionContext(t, fixture.resolver.binding.Process, fixture.resolver.binding.RuntimeBootEpoch)
-	_, err := fixture.service.AuthorizeLocalAppProtectedOperation(ctx, LocalAppOperationOpenConversation, localappop.Selector{AgentID: "agent:matrix"})
-	if got := LocalAppOperationAuthorizationReason(err); got != runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE {
-		t.Fatalf("capability drift reason = %s err=%v", got, err)
-	}
-}
-
-func establishLocalAppOperationGrant(t *testing.T, fixture *localAppGrantFixture, target localappkernel.GrantState) {
-	t.Helper()
-	const operationID = "runtime_agent.conversation.open"
-	const resourceRef = "agent:agent:matrix"
-	pending, err := fixture.service.RequestLocalAppGrant(context.Background(), &runtimev1.RequestLocalAppGrantRequest{
-		OperationId: operationID, ResourceRef: resourceRef, Purpose: "Open the selected conversation",
-	})
-	if err != nil || pending.GetProjection().GetState() != runtimev1.LocalAppGrantState_LOCAL_APP_GRANT_STATE_PENDING {
-		t.Fatalf("request grant = (%+v, %v)", pending, err)
-	}
-	granted, err := fixture.service.DecideLocalAppGrant(protectedDesktopAccountContext(t), &runtimev1.DecideLocalAppGrantRequest{
-		RequestId: pending.GetProjection().GetRequestId(), Approved: true,
-		PresenceChallengeId: fixture.control.challenge.PresenceChallengeID,
-	})
-	if err != nil || granted.GetProjection().GetState() != runtimev1.LocalAppGrantState_LOCAL_APP_GRANT_STATE_GRANTED {
-		t.Fatalf("grant operation = (%+v, %v)", granted, err)
-	}
-	if target == localappkernel.GrantStateGranted {
-		return
-	}
-	projection, _, authenticated := fixture.service.AuthenticatedRuntimeSecurityContext(context.Background())
-	if !authenticated || projection == nil {
-		t.Fatal("account projection unavailable")
-	}
-	binding, err := localAppGrantOperation(operationID, resourceRef)
-	if err != nil {
-		t.Fatal(err)
-	}
-	current, err := fixture.kernel.Grants().GetCurrent(context.Background(), projection.GetAccountId(), fixture.resolver.binding.LocalAppPrincipalID, binding.fingerprint)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := fixture.kernel.Grants().Transition(context.Background(), current.AccountID, current.LocalAppPrincipalID, current.CapabilityResourceFingerprint, current.GrantRevision, target, current.PresenceEvidenceRef); err != nil {
-		t.Fatalf("transition grant to %s: %v", target, err)
+		t.Fatalf("mismatched storage process reason = %s err=%v", got, err)
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/apppermission"
 	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
@@ -66,9 +67,11 @@ func AuthorizedLocalAppDecisionFromContext(ctx context.Context) (LocalAppCallerD
 }
 
 // AuthorizeLocalAppProtectedOperation joins the live transport/session,
-// principal, record, account, exact grant and operation-owner selector in the
-// provenance-agnostic coordinator. It resolves every fact for every call and
-// retains no positive decision cache.
+// principal, record, account and operation-owner selector in the
+// provenance-agnostic coordinator. Base entitlements resolve their owner
+// constraints directly. Product permissions remain unavailable until a
+// complete owner-backed positive slice is admitted. Every call re-resolves its
+// facts and no positive decision is cached.
 func (s *Service) AuthorizeLocalAppProtectedOperation(ctx context.Context, operation LocalAppOperation, selector localappop.Selector) (LocalAppCallerDecision, error) {
 	if s == nil || s.localAppKernel == nil {
 		return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
@@ -80,15 +83,29 @@ func (s *Service) AuthorizeLocalAppProtectedOperation(ctx context.Context, opera
 		}
 		return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
-	caller, binding, err := s.localAppGrantCallerBinding(ctx, string(operation), resourceRef)
-	if err != nil {
-		return LocalAppCallerDecision{}, localAppOperationDenied(localAppGrantErrorReason(err))
+	authorityClass, admitted := localappop.AuthorityClassForOperation(localappop.Operation(operation))
+	if !admitted {
+		return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
-	s.localAppGrantMu.Lock()
-	grant, grantErr := s.getCurrentLocalAppGrantLocked(ctx, caller, binding)
-	s.localAppGrantMu.Unlock()
-	if grantErr != nil && !errors.Is(grantErr, localappkernel.ErrNotFound) {
-		return LocalAppCallerDecision{}, localAppOperationDenied(localAppGrantErrorReason(grantErr))
+	var caller LocalAppCallerDecision
+	var binding localAppOperationBinding
+	switch authorityClass {
+	case localappop.AuthorityClassBaseEntitlement:
+		caller, binding, err = s.localAppBaseEntitlementCallerBinding(ctx, string(operation), resourceRef)
+	case localappop.AuthorityClassUserPermission:
+		permission, mapped := apppermission.ForOperation(string(operation))
+		if !mapped || !apppermission.IsAdmitted(permission.ID) {
+			return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+		}
+		// Catalog admission alone can never create authority. The positive path
+		// must arrive atomically with the owner selector, lifecycle, endpoint
+		// enforcement, audit, revoke, UI and evidence slice.
+		return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+	default:
+		return LocalAppCallerDecision{}, localAppOperationDenied(runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+	}
+	if err != nil {
+		return LocalAppCallerDecision{}, localAppOperationDenied(localAppAuthorityErrorReason(err))
 	}
 	principal, err := s.localAppKernel.Principals().Get(ctx, caller.LocalAppPrincipalID)
 	if err != nil {
@@ -137,26 +154,20 @@ func (s *Service) AuthorizeLocalAppProtectedOperation(ctx context.Context, opera
 		Account: localappop.Account{ID: caller.AccountID, Generation: caller.AccountGeneration, State: localappop.AccountStateAuthenticated},
 		OwnerPolicy: localappop.OwnerPolicyDecision{
 			Status: localappop.OwnerPolicyAllowed, Operation: localappop.Operation(operation), Selector: selector,
-			CapabilityResourceFingerprint: binding.fingerprint, PolicyRevision: localAppGrantPolicyRevision,
+			OwnerSelectorDigest: binding.fingerprint, PolicyRevision: localAppOwnerPolicyRevision,
 			ResourceImpactDigest: binding.fingerprint,
 		},
-	}
-	if grantErr == nil {
-		snapshot.Grant = &localappop.Grant{
-			ID: grant.GrantID, State: localAppOperationGrantState(grant.State), LocalOSUserAnchor: grant.LocalOSUserAnchor,
-			AccountID: grant.AccountID, PrincipalID: grant.LocalAppPrincipalID, CapabilityResourceFingerprint: grant.CapabilityResourceFingerprint,
-			Generation: grant.GrantGeneration, Revision: grant.GrantRevision,
-		}
 	}
 	coordinator := localappop.NewCoordinator(localappop.SnapshotResolverFunc(func(context.Context, localappop.Request) (localappop.Snapshot, error) {
 		return snapshot, nil
 	}))
 	result := coordinator.Evaluate(ctx, localappop.Request{NativeConnectionRef: connectionRef, Operation: localappop.Operation(operation), Selector: selector})
-	if result.Outcome != localappop.OutcomeAllowed || result.Authorization == nil {
+	if result.Outcome != localappop.OutcomeAllowed || result.Authorization == nil || result.Authorization.AuthorityClass != authorityClass {
 		return LocalAppCallerDecision{}, localAppOperationDenied(localAppOperationRuntimeReason(result.Reason))
 	}
 	caller.Operation = operation
-	caller.PermissionScope = binding.capability
+	caller.AuthorityClass = authorityClass
+	caller.OperationCapability = binding.capability
 	return caller, nil
 }
 
@@ -176,12 +187,12 @@ func localAppOperationRuntimeReason(reason localappop.Reason) runtimev1.ReasonCo
 		return runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH
 	case localappop.ReasonLocalAppSessionRevoked:
 		return runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED
-	case localappop.ReasonLocalAppGrantRequired:
-		return runtimev1.ReasonCode_LOCAL_APP_GRANT_REQUIRED
-	case localappop.ReasonLocalAppGrantRevoked:
-		return runtimev1.ReasonCode_LOCAL_APP_GRANT_REVOKED
-	case localappop.ReasonLocalAppGrantSuperseded:
-		return runtimev1.ReasonCode_LOCAL_APP_GRANT_SUPERSEDED
+	case localappop.ReasonLocalAppPermissionRequired:
+		return runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REQUIRED
+	case localappop.ReasonLocalAppPermissionDenied:
+		return runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED
+	case localappop.ReasonLocalAppPermissionRevoked:
+		return runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REVOKED
 	case localappop.ReasonLocalAppAccountChanged:
 		return runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED
 	case localappop.ReasonLocalAppPresenceRequired:
@@ -255,7 +266,4 @@ func localAppOperationTrustClass(value localappkernel.TrustClass) localappop.Tru
 }
 func localAppOperationRecordState(value localappkernel.LifecycleState) localappop.RecordState {
 	return localappop.RecordState(value)
-}
-func localAppOperationGrantState(value localappkernel.GrantState) localappop.GrantState {
-	return localappop.GrantState(value)
 }

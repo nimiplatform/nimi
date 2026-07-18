@@ -1,62 +1,41 @@
 package app
 
 import (
-	"reflect"
+	"strings"
 	"testing"
 )
 
-func TestNormalizeLocalDevelopmentCapabilitiesAcceptsClosedScopesAndCanonicalQualifiers(t *testing.T) {
-	capabilities, err := normalizeLocalDevelopmentCapabilities([]localAppManifestCapability{
-		{Scope: "data.scope.read", Qualifier: "runtime.artifacts", Purpose: "Read the Runtime artifact audience."},
-		{Scope: "data.scope.read", Qualifier: "realm.core.worlds", Purpose: "Declare the reviewed world-read boundary."},
-		{Scope: "ai.spend.meter", Purpose: "Declare metered AI execution."},
-	}, []localAppManifestCapability{
-		{Scope: "runtime.agent.turn.read", Purpose: "Request a Runtime-issued conversation read binding."},
-		{Scope: "runtime.agent.turn.write", Purpose: "Request a Runtime-issued conversation write binding."},
-		{Scope: "runtime.agent.voice.read", Purpose: "Request protected Runtime voice playback."},
-		{Scope: "runtime.agent.voice.transcribe", Purpose: "Request protected Runtime voice transcription."},
-	})
+func TestNormalizeLocalDevelopmentPermissionRequestsAcceptsZeroPermissionApp(t *testing.T) {
+	permissions, err := normalizeLocalDevelopmentPermissionRequests([]localAppManifestPermissionRequest{}, nil)
 	if err != nil {
-		t.Fatalf("normalize canonical declarations: %v", err)
+		t.Fatalf("normalize zero-permission manifest: %v", err)
 	}
-	want := []string{"ai.spend.meter", "data.scope.read#realm.core.worlds", "data.scope.read#runtime.artifacts", "runtime.agent.turn.read", "runtime.agent.turn.write", "runtime.agent.voice.read", "runtime.agent.voice.transcribe"}
-	if !reflect.DeepEqual(capabilities, want) {
-		t.Fatalf("unexpected normalized capabilities: got %v want %v", capabilities, want)
+	if len(permissions) != 0 {
+		t.Fatalf("zero-permission manifest projected authority: %v", permissions)
 	}
 }
 
-func TestNormalizeLocalDevelopmentCapabilitiesRejectsNonCanonicalDeclarations(t *testing.T) {
-	tests := []struct {
-		name        string
-		declaration localAppManifestCapability
+func TestNormalizeLocalDevelopmentPermissionRequestsRejectsReservedAndUnknownIDs(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		request localAppManifestPermissionRequest
 	}{
-		{name: "open scope", declaration: localAppManifestCapability{Scope: "runtime.ai.text.generate", Qualifier: "feature", Purpose: "Invalid open scope."}},
-		{name: "unsafe qualifier", declaration: localAppManifestCapability{Scope: "data.scope.read", Qualifier: "realm worlds", Purpose: "Invalid qualifier."}},
-		{name: "artifact qualifier on wrong scope", declaration: localAppManifestCapability{Scope: "account.read", Qualifier: "runtime.artifacts", Purpose: "Invalid artifact scope."}},
-		{name: "draft qualifier on wrong scope", declaration: localAppManifestCapability{Scope: "data.scope.write", Qualifier: "app-local-drafts", Purpose: "Invalid draft scope."}},
-	}
-	for _, test := range tests {
+		{name: "reserved", request: localAppManifestPermissionRequest{PermissionID: "agents.interact", Reason: "Talk with an Agent selected by me"}},
+		{name: "unknown", request: localAppManifestPermissionRequest{PermissionID: "runtime.agent.turn.write", Reason: "Internal operation is not a permission"}},
+		{name: "whitespace", request: localAppManifestPermissionRequest{PermissionID: " agents.interact", Reason: "Not canonical"}},
+		{name: "missing reason", request: localAppManifestPermissionRequest{PermissionID: "agents.interact"}},
+		{name: "long reason", request: localAppManifestPermissionRequest{PermissionID: "agents.interact", Reason: strings.Repeat("界", 81)}},
+	} {
 		t.Run(test.name, func(t *testing.T) {
-			if _, err := normalizeLocalDevelopmentCapabilities([]localAppManifestCapability{test.declaration}, nil); err == nil {
-				t.Fatal("invalid local-development permission declaration was accepted")
+			if _, err := normalizeLocalDevelopmentPermissionRequests([]localAppManifestPermissionRequest{test.request}, nil); err == nil {
+				t.Fatal("non-admitted permission request was accepted")
 			}
 		})
 	}
 }
 
-func TestNormalizeLocalDevelopmentCapabilitiesSeparatesRuntimeBindingRequests(t *testing.T) {
-	declarations := []localAppManifestCapability{{Scope: "account.session.read", Purpose: "Read the current account projection."}}
-	for _, request := range []localAppManifestCapability{
-		{Scope: "runtime.agent.turn.read", Qualifier: "conversation", Purpose: "Qualifier is not admitted."},
-		{Scope: "runtime.agent.ai_config.write", Purpose: "Open Runtime scope is not admitted."},
-	} {
-		if _, err := normalizeLocalDevelopmentCapabilities(declarations, []localAppManifestCapability{request}); err == nil {
-			t.Fatalf("invalid Runtime scoped binding request was accepted: %#v", request)
-		}
-	}
-	if _, err := normalizeLocalDevelopmentCapabilities([]localAppManifestCapability{{
-		Scope: "runtime.agent.turn.read", Purpose: "Runtime binding scopes are not registry permission declarations.",
-	}}, nil); err == nil {
-		t.Fatal("Runtime scoped binding request was accepted as a permission declaration")
+func TestNormalizeLocalDevelopmentPermissionRequestsRejectsRetiredRuntimeBindingSection(t *testing.T) {
+	if _, err := normalizeLocalDevelopmentPermissionRequests(nil, []any{}); err == nil {
+		t.Fatal("retired runtime_scoped_binding_requests was accepted")
 	}
 }

@@ -147,9 +147,10 @@ test('fails closed when Runtime inventory is empty or ambiguous', async () => {
 const boundedLocalAgentRef = 'local-agent:zhiyu-source-context';
 const boundedSourceRef = {
   kind: 'worldCharacter',
+  id: 'character-1',
   worldId: 'world-1',
-  sourceId: 'character-1',
-  sourceContentHash: 'a'.repeat(64),
+  worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'character-1' },
+  sourceHash: 'a'.repeat(64),
 };
 const boundedCoverage = [
   'identity', 'presentation', 'placement', 'biography', 'psychology', 'knowledge',
@@ -159,8 +160,8 @@ const boundedCoverage = [
 
 function boundedReadySource(overrides = {}) {
   return {
-    schemaVersion: 'v1', ready: true, state: 'ready', reasonCode: 'none', localAgentRef: boundedLocalAgentRef,
-    sourceRef: boundedSourceRef, sourceSchemaVersion: 'realm.world-character-core/v1', snapshotSchemaVersion: 'v1',
+    schemaVersion: 'v2', ready: true, state: 'ready', reasonCode: 'none', localAgentRef: boundedLocalAgentRef,
+    sourceRef: boundedSourceRef, sourceSchemaVersion: 'realm.world-character-core/v1', snapshotSchemaVersion: 'v2',
     snapshotHash: 'b'.repeat(64), capturedAt: '2026-07-10T05:00:00.123Z',
     worldContentHash: 'c'.repeat(64), materializationContextHash: 'd'.repeat(64),
     coverageSections: boundedCoverage,

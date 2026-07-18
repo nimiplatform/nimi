@@ -33,7 +33,6 @@ const SOURCE_STATUS_LABEL_KEYS: Record<NimiAppInventorySourceStatus, string> = {
 
 const OPEN_READINESS_LABEL_KEYS: Record<NimiAppOpenReadiness, string> = {
   ready: 'Apps.openReadiness.ready',
-  'permission-required': 'Apps.openReadiness.permissionRequired',
   'package-unavailable': 'Apps.state.immutablePackageUnavailable',
   'local-record-dormant': 'Apps.state.localRecordDormant',
   'blocked-by-master-gate': 'Apps.state.blockedByPolicy',

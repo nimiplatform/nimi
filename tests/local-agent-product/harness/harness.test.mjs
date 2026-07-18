@@ -25,7 +25,7 @@ import {
 } from './dev-kernel-cross-app-driver.mjs';
 import { waitForCdpEndpointRelease } from './dev-kernel-host-driver.mjs';
 import {
-  classifyRememberedInitialGrantPosture,
+  classifyRememberedInitialAuthorityPosture,
   selectRememberedProjectAuthorizations,
 } from './dev-kernel-local-development-driver.mjs';
 import { resolvePortableProcessInvocation } from './process-command.mjs';
@@ -368,7 +368,7 @@ test('architecture rejects dev-kernel owner-minimal checkpoint reordering', () =
   const mutated = clone(validArchitecture());
   const journey = mutated.journeys.journeys.find((row) => row.journey_id === 'dev-kernel-core');
   const processMismatch = journey.checkpoints.find((row) => row.checkpoint_id === 'process-mismatch-denied');
-  processMismatch.prerequisite_ids = ['zero-grant-session'];
+  processMismatch.prerequisite_ids = ['local-app-session-bound'];
   expectFailure(validateArchitecture(mutated), /dev-kernel-core.*checkpoint graph/i);
 });
 
@@ -405,24 +405,22 @@ test('process-mismatch checkpoint distinguishes stale supervised and raw uncarri
   assert.equal(isRuntimeObservedProcessMismatch({ probeKind: 'raw-uncarried', lastError: { reasonCode: 'runtime-service-unavailable' } }), false);
   assert.equal(isRuntimeObservedProcessMismatch({ probeKind: 'raw-uncarried', lastError: { reasonCode: 'process-replaced' } }), false);
   assert.equal(isRuntimeObservedProcessMismatch({ lastError: { reasonCode: 'protected-carrier-required' } }), false);
-  assert.equal(isRuntimeObservedProcessMismatch({ lastError: { reasonCode: 'no-grant' } }), false);
   assert.equal(isRuntimeObservedProcessMismatch(null), false);
 });
 
-test('remembered initial grant posture preserves exact revoked history without admitting other terminal states', () => {
-  assert.equal(classifyRememberedInitialGrantPosture({ state: 'session-bound-zero-grant' }), 'session-zero-grant');
-  assert.equal(classifyRememberedInitialGrantPosture({
-    state: 'access-lost',
-    lastError: { reasonCode: 'grant-revoked' },
-  }), 'revoked-grant-history');
+test('remembered initial authority posture requires a bound session and unavailable reserved permission', () => {
+  assert.equal(classifyRememberedInitialAuthorityPosture({
+    session: { sessionBound: true },
+    permission: { permissionId: 'agents.interact', posture: 'unavailable', canRequest: false },
+  }), 'session-bound-reserved-unavailable');
   for (const evidence of [
-    { state: 'error', lastError: { reasonCode: 'grant-revoked' } },
-    { state: 'access-lost', lastError: { reasonCode: 'revoked' } },
-    { state: 'access-lost', lastError: { reasonCode: 'grant-superseded' } },
-    { state: 'access-lost', lastError: { reasonCode: 'account-changed' } },
+    { session: { sessionBound: false }, permission: { permissionId: 'agents.interact', posture: 'unavailable', canRequest: false } },
+    { session: { sessionBound: true }, permission: { permissionId: 'agents.interact', posture: 'denied', canRequest: false } },
+    { session: { sessionBound: true }, permission: { permissionId: 'agents.interact', posture: 'unavailable', canRequest: true } },
+    { session: { sessionBound: true }, permission: { permissionId: 'knowledge.read', posture: 'unavailable', canRequest: false } },
     { state: 'runtime-unavailable', lastError: { reasonCode: 'runtime-service-unavailable' } },
   ]) {
-    assert.equal(classifyRememberedInitialGrantPosture(evidence), null);
+    assert.equal(classifyRememberedInitialAuthorityPosture(evidence), null);
   }
 });
 
@@ -445,18 +443,12 @@ test('remembered authorization selection uses the public Electron decision liter
   assert.deepEqual(selected.map((row) => row.selector), ['remembered-new', 'remembered-old']);
 });
 
-test('project revoke checkpoint requires an attempted selected operation and typed denial', () => {
+test('project revoke checkpoint requires an attempted refresh and an invalidated session', () => {
   const valid = {
     attempted: true,
-    operationId: 'runtime_agent.conversation.open',
     denial: {
       state: 'access-lost',
-      lastError: {
-        reasonCode: 'revoked',
-        actionHint: 'readmit_local_development_project',
-        message: 'The local-development project authorization was revoked.',
-        retryable: false,
-      },
+      session: { sessionBound: false, reasonCode: 'project-revoked' },
     },
   };
   assert.equal(isTypedProjectRevocationDenial(valid), true);
@@ -464,7 +456,7 @@ test('project revoke checkpoint requires an attempted selected operation and typ
   assert.equal(isTypedProjectRevocationDenial({ processTerminated: true, runs: [{ state: 'revoked' }] }), false);
   assert.equal(isTypedProjectRevocationDenial({
     ...valid,
-    denial: { ...valid.denial, lastError: { ...valid.denial.lastError, reasonCode: 'grant-revoked' } },
+    denial: { ...valid.denial, session: { sessionBound: false, reasonCode: 'account-changed' } },
   }), false);
 });
 
@@ -473,11 +465,11 @@ test('fixed-service restart checkpoint requires visible unavailable then recover
     before: { processId: 101 },
     after: { processId: 202 },
     unavailableUi: { state: 'runtime-unavailable', reasonCode: 'runtime-service-unavailable' },
-    recoveredUi: { state: 'open-granted', openPermissionState: 'granted' },
+    recoveredUi: { state: 'session-bound', sessionBound: true, permissionPosture: 'unavailable' },
   };
   assert.equal(isRuntimeRestartUiTransition(valid), true);
   assert.equal(isRuntimeRestartUiTransition({ ...valid, unavailableUi: null }), false);
-  assert.equal(isRuntimeRestartUiTransition({ ...valid, recoveredUi: { state: 'runtime-unavailable', openPermissionState: '' } }), false);
+  assert.equal(isRuntimeRestartUiTransition({ ...valid, recoveredUi: { state: 'runtime-unavailable', sessionBound: false, permissionPosture: '' } }), false);
   assert.equal(isRuntimeRestartUiTransition({ ...valid, after: { processId: 101 } }), false);
 });
 

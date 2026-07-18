@@ -60,23 +60,23 @@
     }
   },
   {
-    "fixture_id": "missing-grant-request-rpc",
+    "fixture_id": "missing-product-permission-request-rpc",
     "target": "proto/runtime/v1/account.proto",
-    "expected_issue": "PLINK_GRANT_RPC_REQUEST_LOCAL_APP_GRANT",
+    "expected_issue": "PLINK_PERMISSION_RPC_REQUEST_LOCAL_APP_PERMISSION",
     "mutation": {
       "kind": "replace_exact",
-      "from": "  rpc RequestLocalAppGrant(RequestLocalAppGrantRequest) returns (RequestLocalAppGrantResponse);",
-      "to": "  // fixture removes distinct grant request"
+      "from": "  rpc RequestLocalAppPermission(RequestLocalAppPermissionRequest) returns (RequestLocalAppPermissionResponse);",
+      "to": "  // fixture removes product permission request"
     }
   },
   {
-    "fixture_id": "grant-folded-into-account-caller",
+    "fixture_id": "permission-folded-into-account-caller",
     "target": "proto/runtime/v1/account.proto",
-    "expected_issue": "PLINK_GRANT_MESSAGE_GET_LOCAL_APP_GRANT_STATUS_REQUEST",
+    "expected_issue": "PLINK_PERMISSION_MESSAGE_GET_LOCAL_APP_PERMISSION_STATUS_REQUEST",
     "mutation": {
       "kind": "replace_exact",
-      "from": "message GetLocalAppGrantStatusRequest {\n  string operation_id = 1;",
-      "to": "message GetLocalAppGrantStatusRequest {\n  AccountCaller caller = 3;\n  string operation_id = 1;"
+      "from": "message GetLocalAppPermissionStatusRequest {\n  string permission_id = 1;",
+      "to": "message GetLocalAppPermissionStatusRequest {\n  AccountCaller caller = 2;\n  string permission_id = 1;"
     }
   },
   {
@@ -85,8 +85,8 @@
     "expected_issue": "PLINK_REASON_PROTO_RANGE",
     "mutation": {
       "kind": "replace_exact",
-      "from": "  LOCAL_APP_GRANT_REQUIRED = 651;",
-      "to": "  LOCAL_APP_GRANT_REQUIRED = 1661;"
+      "from": "  LOCAL_APP_PERMISSION_REQUIRED = 651;",
+      "to": "  LOCAL_APP_PERMISSION_REQUIRED = 1661;"
     }
   },
   {

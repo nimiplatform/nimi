@@ -34,11 +34,8 @@ export type NimiStandardShellNegativeState =
   | 'account-changed'
   | 'runtime-restarted'
   | 'revoked'
-  | 'no-grant'
-  | 'request-pending'
-  | 'grant-revoked'
-  | 'grant-superseded'
-  | 'presence-expired';
+  | 'permission-unavailable'
+  | 'request-pending';
 
 export interface NimiStandardShellOperation {
   id: string;
@@ -152,16 +149,8 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
     id: 'local-app',
     operations: [
       { id: 'sessionStatus', command: 'nimi.shell.localApp.sessionStatus', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-unauthenticated', 'process-replaced', 'account-changed', 'runtime-restarted', 'revoked'] },
-      { id: 'permissionPosture', command: 'nimi.shell.localApp.permissionPosture', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-unauthenticated', 'no-grant', 'grant-revoked', 'grant-superseded', 'presence-expired', 'account-changed', 'runtime-restarted'] },
-      { id: 'permissionRequest', command: 'nimi.shell.localApp.permissionRequest', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-unauthenticated', 'invalid-payload', 'request-pending', 'account-changed', 'runtime-restarted'] },
-      { id: 'artifactsReadRuntimeBytes', command: 'nimi.shell.localApp.artifacts.readRuntimeBytes', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-permission-denied', 'runtime-unauthenticated', 'invalid-payload', 'not-found', 'resource-exhausted'] },
-      { id: 'agentInventory', command: 'nimi.shell.localApp.agent.inventory', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-unauthenticated', 'account-changed', 'runtime-restarted', 'revoked', 'resource-exhausted'] },
-      { id: 'agentOpenConversation', command: 'nimi.shell.localApp.agent.openConversation', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-permission-denied', 'runtime-unauthenticated', 'invalid-payload'] },
-      { id: 'agentSendTurn', command: 'nimi.shell.localApp.agent.sendTurn', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-permission-denied', 'runtime-unauthenticated', 'invalid-payload'] },
-      { id: 'agentSubscribeTurn', command: 'nimi.shell.localApp.agent.subscribeTurn', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-permission-denied', 'runtime-unauthenticated', 'invalid-payload'] },
-      { id: 'agentGetConversationSnapshot', command: 'nimi.shell.localApp.agent.getConversationSnapshot', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-permission-denied', 'runtime-unauthenticated', 'invalid-payload', 'not-found'] },
-      { id: 'agentTranscribeVoice', command: 'nimi.shell.localApp.agent.transcribeVoice', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-permission-denied', 'runtime-unauthenticated', 'invalid-payload', 'resource-exhausted'] },
-      { id: 'agentSubscribeVoiceStream', command: 'nimi.shell.localApp.agent.subscribeVoiceStream', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-permission-denied', 'runtime-unauthenticated', 'invalid-payload', 'not-found', 'resource-exhausted'] },
+      { id: 'permissionStatus', command: 'nimi.shell.localApp.permissionStatus', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-unauthenticated', 'permission-unavailable', 'account-changed', 'runtime-restarted'] },
+      { id: 'permissionRequest', command: 'nimi.shell.localApp.permissionRequest', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-unauthenticated', 'invalid-payload', 'permission-unavailable', 'request-pending', 'account-changed', 'runtime-restarted'] },
     ],
   },
   {
@@ -265,16 +254,8 @@ const LOCAL_APP_PLANNED_OPERATIONS = [
 
 const LOCAL_APP_ALLOWED_OPERATIONS = [
   'local-app.sessionStatus',
-  'local-app.permissionPosture',
+  'local-app.permissionStatus',
   'local-app.permissionRequest',
-  'local-app.artifactsReadRuntimeBytes',
-  'local-app.agentInventory',
-  'local-app.agentOpenConversation',
-  'local-app.agentSendTurn',
-  'local-app.agentSubscribeTurn',
-  'local-app.agentGetConversationSnapshot',
-  'local-app.agentTranscribeVoice',
-  'local-app.agentSubscribeVoiceStream',
   'storage.readJson',
   'storage.writeJson',
   'storage.removeJson',
@@ -336,7 +317,7 @@ export const NIMI_STANDARD_SHELL_CAPABILITY_SETS = [
     appPackageKind: 'nimi-app',
     launchResolution: 'runtime_prepare_local_app_launch_and_verified_process_binding',
     authBinding: 'runtime_owned_request_empty_local_app_session',
-    authorityStatus: '0k_final_surface_windows_development_positive',
+    authorityStatus: 'permission_model_v1_base_entitlement_only',
     allowedOperations: LOCAL_APP_ALLOWED_OPERATIONS,
     plannedOperations: LOCAL_APP_PLANNED_OPERATIONS,
     plannedOperationsDisposition: 'deny_until_separate_operation_admission',
@@ -346,7 +327,8 @@ export const NIMI_STANDARD_SHELL_CAPABILITY_SETS = [
       .map(resolveOptionalStandardShellOperationCommand)
       .filter((command): command is string => Boolean(command)),
     negativeTests: [
-      'local-app-zero-grant-session-denies-operation',
+      'local-app-session-does-not-imply-protected-operation-authority',
+      'local-app-reserved-permission-request-fails-closed',
       'local-app-denies-runtime-lifecycle',
       'local-app-denies-generic-runtime-proxy',
       'local-app-denies-auth-session-custody',
@@ -356,8 +338,8 @@ export const NIMI_STANDARD_SHELL_CAPABILITY_SETS = [
       'local-app-denies-tauri-only-commands',
       'local-app-denies-file-system-handoff',
       'local-app-denies-floating-window',
-      'local-app-process-mismatch-denied',
-      'local-app-revoked-grant-denied-on-next-operation',
+      'local-app-process-mismatch_denied',
+      'local-app-reserved-permission-unavailable-on-protected-operation',
     ],
     sourceRule: 'P-KIT-044',
   },

@@ -15,14 +15,6 @@ import {
   waitUntil,
 } from './dev-kernel-host-driver.mjs';
 
-const OPEN_OPERATION = 'runtime_agent.conversation.open';
-// Subscribe and snapshot share the exact read capability/resource grant. Only
-// the operation that creates that pending grant receives a Desktop decision;
-// the final posture check still requires all three operations to be granted.
-const CONVERSATION_GRANT_APPROVAL_OPERATIONS = [
-  'runtime_agent.conversation.turn_send',
-  'runtime_agent.conversation.turn_subscribe',
-];
 const REQUIRED_PROVIDER_CONTEXT_LANES = [
   'runtime_policy', 'output_contract', 'source_identity', 'source_behavior', 'world_context',
   'relationship_context', 'source_knowledge', 'canonical_memory', 'conversation_history',
@@ -188,20 +180,20 @@ export async function waitZhiyuEvidence(page, predicate, label, timeoutMs = 90_0
       let matched = true;
       if (condition.state && evidence.state !== condition.state) matched = false;
       if (condition.errorReason && evidence.lastError?.reasonCode !== condition.errorReason) matched = false;
-      if (condition.openPermission && evidence.openPermission?.state !== condition.openPermission) matched = false;
-      if (condition.anchor && !evidence.conversationAnchorId) matched = false;
-      if (condition.completed && (evidence.state !== 'completed' || evidence.transcript.length < condition.completed)) matched = false;
+      if (condition.sessionBound !== undefined && evidence.session?.sessionBound !== condition.sessionBound) matched = false;
+      if (condition.permissionPosture && evidence.permission?.posture !== condition.permissionPosture) matched = false;
+      if (condition.permissionRequestState && evidence.permissionRequest?.state !== condition.permissionRequestState) matched = false;
+      if (condition.storageState && evidence.appPrivateStorage?.state !== condition.storageState) matched = false;
       if (condition.buildMarker && evidence.buildMarker !== condition.buildMarker) matched = false;
-      if (condition.conversationGranted) {
-        const values = Object.values(evidence.conversationPermissions || {});
-        if (values.length !== 3 || values.some((value) => value.state !== 'granted')) matched = false;
-      }
       return {
         matched,
-        terminal: Boolean(evidence.lastError) && ['error', 'access-lost', 'runtime-unavailable'].includes(evidence.state),
+        terminal: Boolean(evidence.lastError) && ['error', 'runtime-unavailable'].includes(evidence.state),
         evidence: {
           state: evidence.state,
-          openPermission: evidence.openPermission,
+          session: evidence.session,
+          permission: evidence.permission,
+          permissionRequest: evidence.permissionRequest,
+          appPrivateStorage: evidence.appPrivateStorage,
           lastError: evidence.lastError,
         },
       };
@@ -225,27 +217,30 @@ export async function waitZhiyuEvidence(page, predicate, label, timeoutMs = 90_0
   throw new Error(`${label} timed out with evidence: ${JSON.stringify(latest)}`);
 }
 
-export function classifyRememberedInitialGrantPosture(evidence) {
-  if (evidence?.state === 'session-bound-zero-grant') return 'session-zero-grant';
-  if (evidence?.state === 'access-lost' && evidence?.lastError?.reasonCode === 'grant-revoked') {
-    return 'revoked-grant-history';
+export function classifyRememberedInitialAuthorityPosture(evidence) {
+  if (evidence?.session?.sessionBound === true
+    && evidence?.permission?.permissionId === 'agents.interact'
+    && evidence?.permission?.posture === 'unavailable'
+    && evidence?.permission?.canRequest === false) {
+    return 'session-bound-reserved-unavailable';
   }
   return null;
 }
 
-export async function waitRememberedInitialGrantPosture(page, label, timeoutMs = 90_000) {
+export async function waitRememberedInitialAuthorityPosture(page, label, timeoutMs = 90_000) {
   const deadline = Date.now() + timeoutMs;
   let latest = null;
   while (Date.now() < deadline) {
     const evidence = await page.evaluate(() => window.__nimiZhiyuDevKernelEvidence || null);
     latest = evidence ? {
       state: evidence.state,
-      openPermission: evidence.openPermission,
+      session: evidence.session,
+      permission: evidence.permission,
       lastError: evidence.lastError,
     } : null;
-    const posture = classifyRememberedInitialGrantPosture(evidence);
+    const posture = classifyRememberedInitialAuthorityPosture(evidence);
     if (posture) return { posture, evidence };
-    if (latest?.lastError && ['error', 'access-lost', 'runtime-unavailable'].includes(latest.state)) {
+    if (latest?.lastError && ['error', 'runtime-unavailable'].includes(latest.state)) {
       throw new Error(`${label} failed with evidence: ${JSON.stringify(latest)}`);
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -258,59 +253,29 @@ export function projectRuntimeUiEvidence(evidence) {
     state: evidence?.state || '',
     reasonCode: evidence?.lastError?.reasonCode || evidence?.session?.reasonCode || '',
     actionHint: evidence?.lastError?.actionHint || '',
-    openPermissionState: evidence?.openPermission?.state || '',
+    sessionBound: evidence?.session?.sessionBound === true,
+    permissionPosture: evidence?.permission?.posture || '',
+    permissionCanRequest: evidence?.permission?.canRequest === true,
+    storageState: evidence?.appPrivateStorage?.state || '',
   };
 }
 
-async function approveGrant(page, expectedOperation, browserAuth) {
-  const dialog = await waitForTestId(page, 'local-app-grant-approval-dialog', 60_000);
-  await waitUntil(async () => (await dialog.innerText()).includes(expectedOperation), {
-    timeoutMs: 30_000,
-    label: `grant dialog ${expectedOperation}`,
-  });
-  await authenticatePresence({
-    ...browserAuth,
-    label: `${browserAuth?.label || 'grant'}-${expectedOperation.replace(/[^a-z0-9]+/gu, '-')}`.slice(0, 80),
-  }, page, () => page.getByTestId('local-app-grant-approve').click());
-  await waitUntil(async () => !(await dialog.isVisible()) || !(await dialog.innerText()).includes(expectedOperation), {
-    timeoutMs: 30_000,
-    label: `grant approval ${expectedOperation}`,
-  });
-}
-
-export async function grantOpenConversation(desktopPage, zhiyuPage, browserAuth) {
-  await zhiyuPage.getByTestId('zhiyu-dev-kernel-request-open-grant').click();
-  await waitZhiyuEvidence(zhiyuPage, { state: 'open-grant-pending' }, 'open grant pending');
-  await approveGrant(desktopPage, OPEN_OPERATION, browserAuth);
-  await zhiyuPage.getByTestId('zhiyu-dev-kernel-refresh').click();
-  await waitZhiyuEvidence(zhiyuPage, { openPermission: 'granted' }, 'open grant approved');
-}
-
-export async function openConversation(zhiyuPage) {
-  await zhiyuPage.getByTestId('zhiyu-dev-kernel-attempt-open').click();
-  return waitZhiyuEvidence(zhiyuPage, { anchor: true }, 'conversation open');
-}
-
-export async function grantConversationOperations(desktopPage, zhiyuPage, browserAuth) {
-  await zhiyuPage.getByTestId('zhiyu-dev-kernel-request-conversation-grants').click();
-  for (const operation of CONVERSATION_GRANT_APPROVAL_OPERATIONS) await approveGrant(desktopPage, operation, browserAuth);
-  await zhiyuPage.getByTestId('zhiyu-dev-kernel-refresh').click();
-  return waitZhiyuEvidence(zhiyuPage, { conversationGranted: true }, 'conversation grants approved');
-}
-
-export async function sendTurnWithKeyboard(zhiyuPage, text, minimumTranscriptMessages) {
-  const composer = zhiyuPage.getByTestId('zhiyu-dev-kernel-composer');
-  await composer.fill(text);
-  await composer.focus();
-  const focused = await zhiyuPage.evaluate(() => document.activeElement?.getAttribute('data-testid') || '');
-  await composer.press('Control+Enter');
-  const evidence = await waitZhiyuEvidence(
+export async function verifyReservedPermissionBoundary(zhiyuPage) {
+  await zhiyuPage.getByTestId('zhiyu-dev-kernel-verify-reserved-permission').click();
+  return waitZhiyuEvidence(
     zhiyuPage,
-    { completed: minimumTranscriptMessages },
-    'RuntimeAgent turn completion',
-    180_000,
+    { state: 'permission-request-rejected', permissionRequestState: 'rejected' },
+    'reserved agents.interact permission rejection',
   );
-  return { evidence, focused };
+}
+
+export async function verifyAppPrivateStorage(zhiyuPage) {
+  await zhiyuPage.getByTestId('zhiyu-dev-kernel-verify-private-storage').click();
+  return waitZhiyuEvidence(
+    zhiyuPage,
+    { state: 'app-private-storage-ready', storageState: 'succeeded' },
+    'app-private storage base entitlement',
+  );
 }
 
 async function openSettingsSecurity(page) {
@@ -322,27 +287,6 @@ async function openSettingsSecurity(page) {
   }
   await page.getByTestId('settings-nav:security').click();
   await waitForTestId(page, 'local-development-authorizations');
-}
-
-export async function revokeOperationGrant(desktopPage, operationId) {
-  await openSettingsSecurity(desktopPage);
-  const section = await waitForTestId(desktopPage, 'local-app-grant-management');
-  await waitUntil(async () => (await section.innerText()).includes(operationId), {
-    timeoutMs: 30_000,
-    label: `managed grant ${operationId}`,
-  });
-  const row = section.locator('[data-nimi-tone="card"]').filter({ hasText: operationId }).first();
-  const revoke = row.locator('[data-testid^="local-app-grant-revoke:"]');
-  await revoke.click();
-  try {
-    await waitUntil(async () => !(await section.innerText()).includes(operationId), {
-      timeoutMs: 30_000,
-      label: `revoked grant ${operationId}`,
-    });
-  } catch {
-    const evidence = (await section.innerText()).replace(/\s+/gu, ' ').trim().slice(0, 2_000);
-    throw new Error(`revoked grant ${operationId} failed with evidence: ${JSON.stringify(evidence)}`);
-  }
 }
 
 export async function revokeProjectAuthorization(desktopPage) {

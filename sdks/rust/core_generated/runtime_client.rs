@@ -32,14 +32,6 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "CompleteLoginResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppGrant",
-        service: "RuntimeAccountService",
-        method: "DecideLocalAppGrant",
-        kind: "unary",
-        request_type: "DecideLocalAppGrantRequest",
-        response_type: "DecideLocalAppGrantResponse",
-    },
-    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
         service: "RuntimeAccountService",
         method: "GetAccountSessionStatus",
@@ -48,12 +40,12 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetAccountSessionStatusResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus",
+        method_id: "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus",
         service: "RuntimeAccountService",
-        method: "GetLocalAppGrantStatus",
+        method: "GetLocalAppPermissionStatus",
         kind: "unary",
-        request_type: "GetLocalAppGrantStatusRequest",
-        response_type: "GetLocalAppGrantStatusResponse",
+        request_type: "GetLocalAppPermissionStatusRequest",
+        response_type: "GetLocalAppPermissionStatusResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
@@ -88,12 +80,12 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "LogoutResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant",
+        method_id: "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission",
         service: "RuntimeAccountService",
-        method: "RequestLocalAppGrant",
+        method: "RequestLocalAppPermission",
         kind: "unary",
-        request_type: "RequestLocalAppGrantRequest",
-        response_type: "RequestLocalAppGrantResponse",
+        request_type: "RequestLocalAppPermissionRequest",
+        response_type: "RequestLocalAppPermissionResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
@@ -102,14 +94,6 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "RequestPresenceVerificationRequest",
         response_type: "RequestPresenceVerificationResponse",
-    },
-    RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppGrant",
-        service: "RuntimeAccountService",
-        method: "RevokeLocalAppGrant",
-        kind: "unary",
-        request_type: "RevokeLocalAppGrantRequest",
-        response_type: "RevokeLocalAppGrantResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
@@ -416,14 +400,6 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListDelegatedProviderProfilesResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory",
-        service: "RuntimeAgentService",
-        method: "ListLocalAppAgentInventory",
-        kind: "unary",
-        request_type: "ListLocalAppAgentInventoryRequest",
-        response_type: "ListLocalAppAgentInventoryResponse",
-    },
-    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents",
         service: "RuntimeAgentService",
         method: "ListParticipationAuditEvents",
@@ -590,14 +566,6 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "TerminateAgentRequest",
         response_type: "TerminateAgentResponse",
-    },
-    RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppAgentAudio",
-        service: "RuntimeAgentService",
-        method: "TranscribeLocalAppAgentAudio",
-        kind: "unary",
-        request_type: "TranscribeLocalAppAgentAudioRequest",
-        response_type: "TranscribeLocalAppAgentAudioResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",

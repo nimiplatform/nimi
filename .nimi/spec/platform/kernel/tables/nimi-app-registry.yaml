@@ -1,4 +1,4 @@
-version: 1
+version: 2
 table_family: product_catalog
 owner: platform
 catalog_id: platform_nimi_app_registry
@@ -22,8 +22,10 @@ entries:
   - CI fixtures are not registry or product truth
   - verified non-bundled discovery may resolve an immutable release descriptor,
     but 0K does not claim local package/install readiness
-  - permission_scope_ref carries Runtime-local Nimi App permission requests only
-  - realm_permission_request_refs is a consumer projection over the external Realm positive scope catalog and never local permission truth
+  - permission_requirements carries only admitted public permission ids and
+    user-facing reasons; an empty list is valid and never blocks app launch
+  - base entitlements, first-party product operations, app-owned commands, and
+    OS rights are forbidden from permission_requirements
 
 # Canonical Nimi App registry — Platform admission/catalog authority.
 # See nimi-app-admission-contract.md (P-NAPP-001..P-NAPP-011; P-NAPP-013..P-NAPP-015; P-NAPP-018..P-NAPP-029)
@@ -43,8 +45,7 @@ app_schema:
     - capability_set_refs
     - local_compute_pack_refs
     - runtime_registration_mode
-    - permission_scope_ref
-    - realm_permission_request_refs
+    - permission_requirements
     - health_repair_projection
     - ordinary_visibility
     - release_descriptor_ref
@@ -60,7 +61,6 @@ app_schema:
     admission_status:
       - admitted
       - gated_by_avatar_master_gate
-      - permission_fabric_pending
       - deferred
       - retired
     ordinary_visibility:
@@ -79,15 +79,14 @@ app_schema:
       - stale-projection
 
 field_owners:
-  permission_scope_ref:
-    owner: platform_runtime_local_permission
+  permission_requirements:
+    owner: platform_public_permission_catalog
     schema_ref: P-PERM-007
-    realm_scope_families: forbidden
-  realm_permission_request_refs:
-    owner: external_realm_permission_grant
-    schema_ref: P-PERM-014
-    posture: consumer_projection_only
-    local_grant_projection: forbidden
+    item_shape:
+      required:
+        - id
+        - reason
+      additional_fields: forbidden
 
 apps:
   - app_id: nimi.avatar
@@ -109,44 +108,7 @@ apps:
       - local-image-native
       - local-gpu-support
     runtime_registration_mode: app-managed
-    permission_scope_ref:
-      - appId: nimi.avatar
-        scopeFamily: account
-        scopeName: account.session.read
-      - appId: nimi.avatar
-        scopeFamily: data
-        scopeName: data.scope.read
-        qualifier: realm.worlds.read-probe
-      - appId: nimi.avatar
-        scopeFamily: agent
-        scopeName: agent.identity.project
-      - appId: nimi.avatar
-        scopeFamily: memory
-        scopeName: memory.read.bounded
-        qualifier: persona-scoped
-      - appId: nimi.avatar
-        scopeFamily: memory
-        scopeName: memory.write.admitted
-        qualifier: session-scoped
-      - appId: nimi.avatar
-        scopeFamily: ai_spend
-        scopeName: ai.spend.meter
-      - appId: nimi.avatar
-        scopeFamily: file_device
-        scopeName: device.use.scoped
-      - appId: nimi.avatar
-        scopeFamily: file_device
-        scopeName: file.read.scoped
-      - appId: nimi.avatar
-        scopeFamily: ai_profile
-        scopeName: ai_profile.selection.consume
-    realm_permission_request_refs:
-      - appId: nimi.avatar
-        scopeFamily: realm_source
-        scopeName: realm_source.snapshot.consume
-        qualifier: null
-        qualifierKey: ""
-        authorizingState: GRANTED
+    permission_requirements: []
     health_repair_projection:
       - unavailable
       - setup-required
@@ -180,26 +142,7 @@ apps:
       - local-image-native
       - local-gpu-support
     runtime_registration_mode: app-managed
-    permission_scope_ref:
-      - appId: nimi.realm-persona-studio
-        scopeFamily: account
-        scopeName: account.session.read
-      - appId: nimi.realm-persona-studio
-        scopeFamily: data
-        scopeName: data.scope.write
-        qualifier: realm.world.posts
-      - appId: nimi.realm-persona-studio
-        scopeFamily: data
-        scopeName: data.scope.read
-        qualifier: realm.resources
-      - appId: nimi.realm-persona-studio
-        scopeFamily: data
-        scopeName: data.scope.write
-        qualifier: realm.resources
-      - appId: nimi.realm-persona-studio
-        scopeFamily: ai_spend
-        scopeName: ai.spend.meter
-    realm_permission_request_refs: []
+    permission_requirements: []
     health_repair_projection:
       - unavailable
       - setup-required
@@ -233,46 +176,7 @@ apps:
       - local-image-native
       - local-gpu-support
     runtime_registration_mode: app-managed
-    permission_scope_ref:
-      - appId: nimi.realm-world-studio
-        scopeFamily: account
-        scopeName: account.session.read
-      - appId: nimi.realm-world-studio
-        scopeFamily: data
-        scopeName: data.scope.write
-        qualifier: realm.core.oasis
-      - appId: nimi.realm-world-studio
-        scopeFamily: data
-        scopeName: data.scope.write
-        qualifier: realm.core.worlds
-      - appId: nimi.realm-world-studio
-        scopeFamily: data
-        scopeName: data.scope.read
-        qualifier: realm.core.world-entities
-      - appId: nimi.realm-world-studio
-        scopeFamily: data
-        scopeName: data.scope.write
-        qualifier: realm.core.world-entities
-      - appId: nimi.realm-world-studio
-        scopeFamily: data
-        scopeName: data.scope.read
-        qualifier: realm.core.world-relationships
-      - appId: nimi.realm-world-studio
-        scopeFamily: data
-        scopeName: data.scope.write
-        qualifier: realm.core.world-relationships
-      - appId: nimi.realm-world-studio
-        scopeFamily: data
-        scopeName: data.scope.read
-        qualifier: realm.resources
-      - appId: nimi.realm-world-studio
-        scopeFamily: data
-        scopeName: data.scope.write
-        qualifier: realm.resources
-      - appId: nimi.realm-world-studio
-        scopeFamily: ai_spend
-        scopeName: ai.spend.meter
-    realm_permission_request_refs: []
+    permission_requirements: []
     health_repair_projection:
       - unavailable
       - setup-required
@@ -301,48 +205,7 @@ apps:
     local_compute_pack_refs:
       - local-text
     runtime_registration_mode: app-managed
-    permission_scope_ref:
-      - appId: nimi.zhiyu
-        scopeFamily: account
-        scopeName: account.session.read
-      - appId: nimi.zhiyu
-        scopeFamily: data
-        scopeName: data.scope.read
-        qualifier: realm.worlds.read-probe
-      - appId: nimi.zhiyu
-        scopeFamily: agent
-        scopeName: agent.identity.project
-      - appId: nimi.zhiyu
-        scopeFamily: ai_spend
-        scopeName: ai.spend.meter
-      - appId: nimi.zhiyu
-        scopeFamily: ai_profile
-        scopeName: ai_profile.selection.consume
-      - appId: nimi.zhiyu
-        scopeFamily: memory
-        scopeName: memory.read.bounded
-        qualifier: persona-scoped
-      - appId: nimi.zhiyu
-        scopeFamily: memory
-        scopeName: memory.write.admitted
-        qualifier: session-scoped-chat-derived-projection
-      - appId: nimi.zhiyu
-        scopeFamily: notification
-        scopeName: notification.subscribe
-        qualifier: proactive_interruptibility_v1.in_app_surface
-      - appId: nimi.zhiyu
-        scopeFamily: audit
-        scopeName: audit.read.scoped
-        qualifier: zhiyu-own-audit-projections
-      - appId: nimi.zhiyu
-        scopeFamily: file_device
-        scopeName: file.read.scoped
-        qualifier: app-local-drafts
-      - appId: nimi.zhiyu
-        scopeFamily: file_device
-        scopeName: file.write.scoped
-        qualifier: app-local-drafts
-    realm_permission_request_refs: []
+    permission_requirements: []
     health_repair_projection:
       - unavailable
       - setup-required

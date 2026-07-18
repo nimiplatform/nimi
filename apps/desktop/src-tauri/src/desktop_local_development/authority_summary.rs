@@ -23,7 +23,6 @@ struct AuthoritySummaryDescriptor {
     captured_at: String,
     developer_mode: DeveloperModeSummaryDescriptor,
     project_authorization: ProjectAuthorizationSummaryDescriptor,
-    grant_summary: GrantSummaryDescriptor,
 }
 
 #[derive(Debug, Serialize)]
@@ -42,19 +41,6 @@ struct ProjectAuthorizationSummaryDescriptor {
     dormant_count: u64,
     denied_count: u64,
     revoked_count: u64,
-    reason_code: String,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct GrantSummaryDescriptor {
-    availability: String,
-    pending_count: u64,
-    granted_count: u64,
-    denied_count: u64,
-    expired_count: u64,
-    revoked_count: u64,
-    superseded_count: u64,
     reason_code: String,
 }
 
@@ -111,12 +97,6 @@ fn authority_summary_descriptor(
         summary.project_authorization.dormant_count,
         summary.project_authorization.denied_count,
         summary.project_authorization.revoked_count,
-        summary.grant_summary.pending_count,
-        summary.grant_summary.granted_count,
-        summary.grant_summary.denied_count,
-        summary.grant_summary.expired_count,
-        summary.grant_summary.revoked_count,
-        summary.grant_summary.superseded_count,
     ] {
         validate_summary_count(count)?;
     }
@@ -141,17 +121,6 @@ fn authority_summary_descriptor(
     {
         return Err(SUMMARY_UNTRUSTED.to_string());
     }
-    if summary.grant_summary.availability == LocalDevelopmentSummaryAvailability::Unavailable
-        && (summary.grant_summary.pending_count != 0
-            || summary.grant_summary.granted_count != 0
-            || summary.grant_summary.denied_count != 0
-            || summary.grant_summary.expired_count != 0
-            || summary.grant_summary.revoked_count != 0
-            || summary.grant_summary.superseded_count != 0)
-    {
-        return Err(SUMMARY_UNTRUSTED.to_string());
-    }
-
     Ok(AuthoritySummaryDescriptor {
         schema_version: 1,
         desktop_app_id: "nimi.desktop".to_string(),
@@ -174,19 +143,6 @@ fn authority_summary_descriptor(
             reason_code: summary_reason(
                 summary.project_authorization.availability,
                 summary.project_authorization.unavailable_reason,
-            )?,
-        },
-        grant_summary: GrantSummaryDescriptor {
-            availability: availability_text(summary.grant_summary.availability).to_string(),
-            pending_count: summary.grant_summary.pending_count,
-            granted_count: summary.grant_summary.granted_count,
-            denied_count: summary.grant_summary.denied_count,
-            expired_count: summary.grant_summary.expired_count,
-            revoked_count: summary.grant_summary.revoked_count,
-            superseded_count: summary.grant_summary.superseded_count,
-            reason_code: summary_reason(
-                summary.grant_summary.availability,
-                summary.grant_summary.unavailable_reason,
             )?,
         },
     })
@@ -227,8 +183,7 @@ fn summary_reason(
 mod tests {
     use super::*;
     use nimi_shell_tauri::capabilities::runtime::{
-        LocalDevelopmentDeveloperModeSummary, LocalDevelopmentGrantSummary,
-        LocalDevelopmentProjectAuthorizationSummary,
+        LocalDevelopmentDeveloperModeSummary, LocalDevelopmentProjectAuthorizationSummary,
     };
 
     fn available_summary() -> LocalDevelopmentAuthoritySummary {
@@ -244,16 +199,6 @@ mod tests {
                 dormant_count: 3,
                 denied_count: 5,
                 revoked_count: 7,
-                unavailable_reason: None,
-            },
-            grant_summary: LocalDevelopmentGrantSummary {
-                availability: LocalDevelopmentSummaryAvailability::Available,
-                pending_count: 11,
-                granted_count: 13,
-                denied_count: 17,
-                expired_count: 19,
-                revoked_count: 23,
-                superseded_count: 29,
                 unavailable_reason: None,
             },
         }
@@ -283,7 +228,6 @@ mod tests {
                 "desktopAppId",
                 "desktopPid",
                 "developerMode",
-                "grantSummary",
                 "projectAuthorization",
                 "schemaVersion",
             ]
@@ -303,22 +247,8 @@ mod tests {
                 "revokedCount",
             ]
         );
-        assert_eq!(
-            sorted_keys(&value["grantSummary"]),
-            vec![
-                "availability",
-                "deniedCount",
-                "expiredCount",
-                "grantedCount",
-                "pendingCount",
-                "reasonCode",
-                "revokedCount",
-                "supersededCount",
-            ]
-        );
         assert_eq!(value["developerMode"]["reasonCode"], "action-executed");
         assert_eq!(value["projectAuthorization"]["activeCount"], 2);
-        assert_eq!(value["grantSummary"]["supersededCount"], 29);
     }
 
     #[test]
@@ -337,16 +267,6 @@ mod tests {
                 revoked_count: 0,
                 unavailable_reason: Some(NimiHostErrorReasonCode::PrincipalUnauthorized),
             },
-            grant_summary: LocalDevelopmentGrantSummary {
-                availability: LocalDevelopmentSummaryAvailability::Unavailable,
-                pending_count: 0,
-                granted_count: 0,
-                denied_count: 0,
-                expired_count: 0,
-                revoked_count: 0,
-                superseded_count: 0,
-                unavailable_reason: Some(NimiHostErrorReasonCode::LocalAppOperationUnavailable),
-            },
         };
         let value = serde_json::to_value(
             authority_summary_descriptor(unavailable).expect("unavailable descriptor"),
@@ -355,10 +275,6 @@ mod tests {
         assert_eq!(
             value["developerMode"]["reasonCode"],
             "principal-unauthorized"
-        );
-        assert_eq!(
-            value["grantSummary"]["reasonCode"],
-            "local-app-operation-unavailable"
         );
     }
 
@@ -377,7 +293,7 @@ mod tests {
         assert!(authority_summary_descriptor(summary).is_err());
 
         let mut summary = available_summary();
-        summary.grant_summary.granted_count = MAX_SAFE_JSON_INTEGER + 1;
+        summary.project_authorization.active_count = MAX_SAFE_JSON_INTEGER + 1;
         assert!(authority_summary_descriptor(summary).is_err());
     }
 }

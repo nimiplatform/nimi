@@ -157,19 +157,11 @@ capability_sets:
     app_package_kind: nimi-app
     launch_resolution: runtime_prepare_local_app_launch_and_verified_process_binding
     auth_binding: runtime_owned_request_empty_local_app_session
-    authority_status: 0k_final_surface_windows_development_positive
+    authority_status: permission_model_v1_base_entitlement_only
     allowed_operations:
       - local-app.sessionStatus
-      - local-app.permissionPosture
+      - local-app.permissionStatus
       - local-app.permissionRequest
-      - local-app.artifactsReadRuntimeBytes
-      - local-app.agentInventory
-      - local-app.agentOpenConversation
-      - local-app.agentSendTurn
-      - local-app.agentSubscribeTurn
-      - local-app.agentGetConversationSnapshot
-      - local-app.agentTranscribeVoice
-      - local-app.agentSubscribeVoiceStream
       - storage.readJson
       - storage.writeJson
       - storage.removeJson
@@ -232,7 +224,8 @@ capability_sets:
       - electron.raw-ipc
       - node.raw-fs
     negative_tests:
-      - local-app-zero-grant-session-denies-operation
+      - local-app-session-does-not-imply-protected-operation-authority
+      - local-app-reserved-permission-request-fails-closed
       - local-app-denies-runtime-lifecycle
       - local-app-denies-generic-runtime-proxy
       - local-app-denies-auth-session-custody
@@ -243,17 +236,12 @@ capability_sets:
       - local-app-denies-file-system-handoff
       - local-app-denies-floating-window
       - local-app-process-mismatch_denied
-      - local-app-revoked_grant_denied_on_next_operation
-      - local-app-storage-zero-grant-denied
+      - local-app-reserved-permission-unavailable-on-protected-operation
+      - local-app-storage-zero-permission-allowed
       - local-app-storage-path-escape-denied
       - local-app-storage-cross-principal-denied
       - local-app-storage-quota-exceeded
       - local-app-storage-root-never-projected
-      - local-app-voice-zero-grant-denied
-      - local-app-voice-selector-mismatch-denied
-      - local-app-voice-route-selector-fields-denied
-      - local-app-voice-generic-ai-proxy-denied
-      - local-app-voice-public-transport-denied
     source_rule: P-KIT-044
 
 local_app_operation_contract:
@@ -272,66 +260,33 @@ local_app_operation_contract:
     - sessionId
     - sessionProof
     - accountId
-    - grantId
+    - permissionDecisionId
     - runtimeBootEpoch
-  status_states: [authorizing, zero-grant, ready, denied, runtime-unavailable, revoked, project-changed]
+  status_states: [authorizing, ready, denied, runtime-unavailable, revoked, project-changed]
   fixed_service_required: true
   generic_method_id_or_bytes_proxy: forbidden
   operation_families:
     storageReadJson:
       command: storage.readJson
       operation_id: app_storage.json.read
+      authority_class: base_entitlement
       request_fields: [relativePath]
       response_fields: [value, sizeBytes]
       owner: runtime_app_service
     storageWriteJson:
       command: storage.writeJson
       operation_id: app_storage.json.write
+      authority_class: base_entitlement
       request_fields: [relativePath, value]
       response_fields: [value, sizeBytes]
       owner: runtime_app_service
     storageRemoveJson:
       command: storage.removeJson
       operation_id: app_storage.json.remove
+      authority_class: base_entitlement
       request_fields: [relativePath]
       response_fields: [removed]
       owner: runtime_app_service
-    artifactsReadRuntimeBytes:
-      request_fields: [artifactId]
-      response_fields: [dataBase64, mimeType, sizeBytes, mimeInferred]
-      owner: runtime_artifact_service
-    agentOpenConversation:
-      request_fields: [agentId, requestedAnchorDisposition]
-      owner: runtime_agent_service
-    agentSendTurn:
-      request_fields: [agentId, conversationAnchorId, clientTurnId, userText]
-      owner: runtime_agent_service
-    agentSubscribeTurn:
-      request_fields: [agentId, conversationAnchorId, cursor]
-      owner: runtime_agent_service
-    agentGetConversationSnapshot:
-      request_fields: [agentId, conversationAnchorId]
-      owner: runtime_agent_service
-    agentTranscribeVoice:
-      command: local-app.agentTranscribeVoice
-      operation_id: runtime_agent.voice.transcribe
-      permission_scope: runtime.agent.voice.transcribe
-      resource_ref: "agent:<agent-id>/voice-transcription"
-      request_fields: [agentId, clientRequestId, audioBase64, mimeType]
-      response_fields: [clientRequestId, text]
-      forbidden_request_fields: [modelId, connectorId, provider, targetRef, routePolicy, fallback, prompt, language, timestamps, diarization, responseFormat, timeoutMs, labels, extensions]
-      audio_max_bytes: 8388608
-      transcript_max_utf8_bytes: 65536
-      owner: runtime_agent_service
-    agentSubscribeVoiceStream:
-      command: local-app.agentSubscribeVoiceStream
-      operation_id: runtime_agent.voice.stream_subscribe
-      permission_scope: runtime.agent.voice.read
-      resource_ref: "agent:<agent-id>/conversation:<anchor-id>/turn:<turn-id>/voice-stream:<voice-stream-id>"
-      request_fields: [agentId, conversationAnchorId, turnId, voiceStreamId, cursor]
-      response_fields: [cursor, events]
-      event_fields: [voiceStreamId, conversationAnchorId, turnId, streamId, messageId, chunkSequence, chunkBase64, mimeType, voiceOutputMode, playbackTarget, terminal, voicePlaybackState, terminalReason, replayTruncated]
-      owner: runtime_agent_service
 
 capabilities:
   - id: runtime
@@ -508,36 +463,12 @@ capabilities:
       - id: sessionStatus
         command: nimi.shell.localApp.sessionStatus
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, revoked]
-      - id: permissionPosture
-        command: nimi.shell.localApp.permissionPosture
-        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-unauthenticated, no-grant, grant-revoked, grant-superseded, account-changed, runtime-restarted]
+      - id: permissionStatus
+        command: nimi.shell.localApp.permissionStatus
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-unauthenticated, permission-unavailable, account-changed, runtime-restarted]
       - id: permissionRequest
         command: nimi.shell.localApp.permissionRequest
-        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-unauthenticated, invalid-payload, request-pending, account-changed, runtime-restarted]
-      - id: artifactsReadRuntimeBytes
-        command: nimi.shell.localApp.artifacts.readRuntimeBytes
-        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-permission-denied, runtime-unauthenticated, invalid-payload, not-found, resource-exhausted]
-      - id: agentInventory
-        command: nimi.shell.localApp.agent.inventory
-        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-unauthenticated, account-changed, runtime-restarted, revoked, resource-exhausted]
-      - id: agentOpenConversation
-        command: nimi.shell.localApp.agent.openConversation
-        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-permission-denied, runtime-unauthenticated, invalid-payload]
-      - id: agentSendTurn
-        command: nimi.shell.localApp.agent.sendTurn
-        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-permission-denied, runtime-unauthenticated, invalid-payload]
-      - id: agentSubscribeTurn
-        command: nimi.shell.localApp.agent.subscribeTurn
-        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-permission-denied, runtime-unauthenticated, invalid-payload]
-      - id: agentGetConversationSnapshot
-        command: nimi.shell.localApp.agent.getConversationSnapshot
-        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-permission-denied, runtime-unauthenticated, invalid-payload, not-found]
-      - id: agentTranscribeVoice
-        command: nimi.shell.localApp.agent.transcribeVoice
-        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-permission-denied, runtime-unauthenticated, invalid-payload, resource-exhausted, host-internal-error]
-      - id: agentSubscribeVoiceStream
-        command: nimi.shell.localApp.agent.subscribeVoiceStream
-        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-permission-denied, runtime-unauthenticated, invalid-payload, not-found, resource-exhausted]
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-unauthenticated, invalid-payload, permission-unavailable, request-pending, account-changed, runtime-restarted]
   - id: local-agent
     host_contract: NimiStandardShellCapabilityHost
     operations:

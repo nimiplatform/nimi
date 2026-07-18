@@ -109,8 +109,6 @@ surfaces:
   - methods_96
   - methods_97
   - methods_98
-  - methods_99
-  - methods_100
 description: Agent, AI, realtime, and cognition posture entries.
 services:
   - RuntimeAgentService
@@ -153,25 +151,9 @@ methods:
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory
-    posture: protected_origin_required
-    selected_operation_posture: protected_local_app_zero_grant_inventory
-    local_app_transport_class: local_app_host
-    local_app_required_origin_role: local_app_session
-    request_shape: empty
-    caller_selected_resource: forbidden
-    grant_binding: forbidden
-    rationale: current verified local-development session may enumerate only the bounded current-account projection needed to select an exact Agent grant resource
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTH-001
-      - K-ACCSVC-022
-      - K-AGCORE-006e
   - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor
-    posture: protected_or_scoped_binding_or_local_app_operation
-    local_app_transport_class: local_app_host
-    local_app_required_origin_role: local_app_session
-    rationale: LOCAL_APP requires the current coordinator decision and explicit agent relation; principal is caller/audit subject and never conversation or agent owner
+    posture: protected_or_scoped_binding_write
+    rationale: conversation anchor mutation requires an existing protected or scoped Runtime binding; third-party local-app access is not admitted
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
@@ -205,10 +187,8 @@ methods:
       - K-AUTH-001
       - K-AGCORE-138
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot
-    posture: protected_or_scoped_binding_or_local_app_operation
-    local_app_transport_class: local_app_host
-    local_app_required_origin_role: local_app_session
-    rationale: LOCAL_APP snapshot recovery requires the current coordinator decision and exact principal/agent/conversation relation; id possession is not authority
+    posture: protected_or_scoped_binding_read
+    rationale: snapshot recovery requires an existing protected or scoped Runtime binding; id possession is not authority and third-party local-app access is not admitted
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
@@ -457,16 +437,10 @@ methods:
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppAgentAudio
-    posture: protected_origin_required
-    protected_transport_class: local_app_host
-    required_origin_role: local_app_session
-    rationale: bounded audio transcription derives the committed Runtime Agent AI Config route and requires the exact current local-app operation/resource grant
-    kernel_refs: [K-AUTHN-006, K-GRANT-014, K-AGCORE-146, K-VOICE-021]
   - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream
     posture: protected_or_scoped_binding_read
-    rationale: ordinary callers require Runtime Agent identity/scoped turn-read authority; protected local apps require exact agent/anchor/turn/voice-stream grant and current conversation ownership
-    kernel_refs: [K-AUTHN-001, K-AUTH-006, K-GRANT-014, K-AGCORE-133, K-VOICE-019, K-VOICE-021]
+    rationale: existing Runtime Agent consumers require protected or scoped turn-read authority; third-party local-app access is not admitted
+    kernel_refs: [K-AUTHN-001, K-AUTH-006, K-AGCORE-133, K-VOICE-019, K-VOICE-021]
   - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession
     posture: anonymous_read
     rationale: subject_user_id taken from request head; no JWT validation in handler

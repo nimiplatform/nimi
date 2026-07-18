@@ -4,14 +4,13 @@ use crate::generated::runtime_development_service_client::RuntimeDevelopmentServ
 use crate::generated::{
     GetLocalDevelopmentAuthoritySummaryRequest, GetLocalDevelopmentAuthoritySummaryResponse,
     LocalDevelopmentDeveloperModeSummary as ProtoDeveloperModeSummary,
-    LocalDevelopmentGrantSummary as ProtoGrantSummary,
     LocalDevelopmentProjectAuthorizationSummary as ProtoProjectAuthorizationSummary, ReasonCode,
 };
 use crate::grpc_status::host_error_from_status;
 use crate::{
     DeveloperModeState, LocalDevelopmentAuthoritySummary, LocalDevelopmentDeveloperModeSummary,
-    LocalDevelopmentGrantSummary, LocalDevelopmentProjectAuthorizationSummary,
-    LocalDevelopmentSummaryAvailability, NimiHostError, NimiHostErrorReasonCode,
+    LocalDevelopmentProjectAuthorizationSummary, LocalDevelopmentSummaryAvailability,
+    NimiHostError, NimiHostErrorReasonCode,
 };
 
 const ACTION_EXECUTED: i32 = 1;
@@ -38,7 +37,6 @@ fn authority_summary_projection(
         project_authorization: project_authorization_summary_projection(
             response.project_authorization.ok_or_else(untrusted)?,
         )?,
-        grant_summary: grant_summary_projection(response.grant_summary.ok_or_else(untrusted)?)?,
     })
 }
 
@@ -88,34 +86,6 @@ fn project_authorization_summary_projection(
         dormant_count: summary.dormant_count,
         denied_count: summary.denied_count,
         revoked_count: summary.revoked_count,
-        unavailable_reason,
-    })
-}
-
-fn grant_summary_projection(
-    summary: ProtoGrantSummary,
-) -> Result<LocalDevelopmentGrantSummary, NimiHostError> {
-    let counts = [
-        summary.pending_count,
-        summary.granted_count,
-        summary.denied_count,
-        summary.expired_count,
-        summary.revoked_count,
-        summary.superseded_count,
-    ];
-    let (availability, unavailable_reason) = summary_availability(
-        summary.availability,
-        summary.reason_code,
-        counts.iter().all(|count| *count == 0),
-    )?;
-    Ok(LocalDevelopmentGrantSummary {
-        availability,
-        pending_count: summary.pending_count,
-        granted_count: summary.granted_count,
-        denied_count: summary.denied_count,
-        expired_count: summary.expired_count,
-        revoked_count: summary.revoked_count,
-        superseded_count: summary.superseded_count,
         unavailable_reason,
     })
 }
@@ -182,16 +152,6 @@ mod tests {
                 revoked_count: 3,
                 reason_code: ACTION_EXECUTED,
             }),
-            grant_summary: Some(ProtoGrantSummary {
-                availability: 1,
-                pending_count: 1,
-                granted_count: 2,
-                denied_count: 3,
-                expired_count: 4,
-                revoked_count: 5,
-                superseded_count: 6,
-                reason_code: ACTION_EXECUTED,
-            }),
             reason_code: ACTION_EXECUTED,
         }
     }
@@ -204,7 +164,6 @@ mod tests {
             LocalDevelopmentSummaryAvailability::Available
         );
         assert_eq!(projection.project_authorization.active_count, 2);
-        assert_eq!(projection.grant_summary.superseded_count, 6);
     }
 
     #[test]
@@ -232,10 +191,6 @@ mod tests {
 
     #[test]
     fn rejects_missing_sections_and_action_reason_on_unavailable_state() {
-        let mut missing = valid_response();
-        missing.grant_summary = None;
-        assert!(authority_summary_projection(missing).is_err());
-
         let mut malformed = valid_response();
         malformed.developer_mode = Some(ProtoDeveloperModeSummary {
             availability: 2,

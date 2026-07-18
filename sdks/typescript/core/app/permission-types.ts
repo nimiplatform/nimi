@@ -1,3 +1,5 @@
+// Application scope remains an SDK composition concept for app-owned config
+// and catalog helpers. It is not a permission selector or authority claim.
 export type NimiAppScopeKind = 'app';
 
 export interface NimiAppScopeRef {
@@ -6,183 +8,72 @@ export interface NimiAppScopeRef {
   readonly surfaceId?: string;
 }
 
-export type PermissionScopeFamily =
-  | 'account'
-  | 'data'
-  | 'agent'
-  | 'ai_spend'
-  | 'memory'
-  | 'knowledge'
-  | 'notification'
-  | 'file_device'
-  | 'audit'
-  | 'ai_profile';
+export const KNOWN_PERMISSION_IDS = [
+  'agents.interact',
+  'artifacts.open',
+  'account.profile.read',
+  'memory.read',
+  'memory.write',
+  'knowledge.read',
+  'knowledge.write',
+  'notifications.send',
+  'notifications.receive',
+  'files.open',
+  'files.save',
+  'realm.library.read',
+  'realm.library.manage',
+  'realm.publish',
+  'ai.background',
+  'shared_resources.open',
+] as const;
 
-export type PermissionScopeName =
-  | 'account.read'
-  | 'account.session.read'
-  | 'data.scope.read'
-  | 'data.scope.write'
-  | 'agent.identity.project'
-  | 'agent.identity.bind'
-  | 'ai.spend.meter'
-  | 'ai.spend.delegate'
-  | 'memory.read.bounded'
-  | 'memory.write.admitted'
-  | 'knowledge.read.bounded'
-  | 'knowledge.write.admitted'
-  | 'notification.send'
-  | 'notification.subscribe'
-  | 'file.read.scoped'
-  | 'file.write.scoped'
-  | 'device.use.scoped'
-  | 'audit.read.scoped'
-  | 'ai_profile.selection.consume';
+export type PermissionID = (typeof KNOWN_PERMISSION_IDS)[number];
 
-export type GrantState = 'pending' | 'granted' | 'denied' | 'expired' | 'revoked' | 'superseded';
+// The positive request set is intentionally empty until one complete
+// catalog+selector+owner+SDK+Kit+Desktop+audit+revoke slice is admitted.
+export const ADMITTED_PERMISSION_IDS: readonly PermissionID[] = [];
 
-export const CANONICAL_PERMISSION_SCOPE_FAMILIES: readonly PermissionScopeFamily[] = [
-  'account',
-  'data',
-  'agent',
-  'ai_spend',
-  'memory',
-  'knowledge',
-  'notification',
-  'file_device',
-  'audit',
-  'ai_profile',
-];
-
-export const CANONICAL_PERMISSION_SCOPE_NAMES: readonly PermissionScopeName[] = [
-  'account.read',
-  'account.session.read',
-  'data.scope.read',
-  'data.scope.write',
-  'agent.identity.project',
-  'agent.identity.bind',
-  'ai.spend.meter',
-  'ai.spend.delegate',
-  'memory.read.bounded',
-  'memory.write.admitted',
-  'knowledge.read.bounded',
-  'knowledge.write.admitted',
-  'notification.send',
-  'notification.subscribe',
-  'file.read.scoped',
-  'file.write.scoped',
-  'device.use.scoped',
-  'audit.read.scoped',
-  'ai_profile.selection.consume',
-];
-
-export const CANONICAL_GRANT_STATES: readonly GrantState[] = [
+export const PERMISSION_POSTURES = [
+  'prompt',
   'pending',
   'granted',
   'denied',
-  'expired',
-  'revoked',
-  'superseded',
-];
+  'unavailable',
+] as const;
 
-export interface PermissionScopeRef {
-  readonly appId: string;
-  readonly scopeFamily: PermissionScopeFamily;
-  readonly scopeName: PermissionScopeName;
-  readonly qualifier?: string;
-}
+export type PermissionPosture = (typeof PERMISSION_POSTURES)[number];
 
-export interface GrantRef {
-  readonly grantId: string;
-  readonly permissionScope: PermissionScopeRef;
-  readonly subjectUserId?: string;
-}
-
-export interface GrantStatus {
-  readonly scopeRef: NimiAppScopeRef;
-  readonly grant: GrantRef;
-  readonly state: GrantState;
-  readonly issuedAt?: string;
-  readonly expiresAt?: string;
-  readonly detail?: string;
-}
-
-export interface GrantSpec {
-  readonly permissionScope: PermissionScopeRef;
-  readonly subjectUserId?: string;
+export interface PermissionRequestInput {
+  readonly permissionId: PermissionID;
   readonly reason: string;
 }
 
-export interface PermissionStatusSnapshot {
-  readonly scopeRef: NimiAppScopeRef;
-  readonly grants: readonly GrantStatus[];
-  readonly generatedAt?: string;
+export interface PermissionStatus {
+  readonly permissionId: PermissionID;
+  readonly posture: PermissionPosture;
+  readonly canRequest: boolean;
+  readonly detail?: string;
 }
 
-export interface PermissionGrantEvent {
-  readonly scopeRef: NimiAppScopeRef;
-  readonly grant: GrantStatus;
+export interface PermissionPostureEvent {
+  readonly status: PermissionStatus;
   readonly eventId?: string;
 }
 
 export interface PermissionTransport {
-  list(scopeRef: NimiAppScopeRef): Promise<readonly GrantStatus[]>;
-  get(scopeRef: NimiAppScopeRef, grantId: string): Promise<GrantStatus>;
-  request(scopeRef: NimiAppScopeRef, grantSpec: GrantSpec): Promise<GrantStatus>;
-  revoke(scopeRef: NimiAppScopeRef, grantId: string): Promise<GrantStatus>;
-  status(scopeRef: NimiAppScopeRef): Promise<PermissionStatusSnapshot>;
-  subscribe(scopeRef: NimiAppScopeRef, callback: (event: PermissionGrantEvent) => void): () => void;
+  status(permissionId: PermissionID): Promise<PermissionStatus>;
+  request(input: PermissionRequestInput): Promise<PermissionStatus>;
+  subscribe(permissionId: PermissionID, callback: (event: PermissionPostureEvent) => void): () => void;
 }
 
-export interface ScopeManifest {
-  readonly manifestVersion: string;
-  readonly scopes: readonly string[];
+export function isKnownPermissionID(value: unknown): value is PermissionID {
+  return typeof value === 'string' && KNOWN_PERMISSION_IDS.includes(value as PermissionID);
 }
 
-export interface ScopeCatalogEntry {
-  readonly appId: string;
-  readonly manifestVersion: string;
-  readonly catalogHash: string;
-  readonly status: 'draft' | 'published' | 'revoked';
-  readonly scopes: readonly string[];
+export function isAdmittedPermissionID(value: unknown): value is PermissionID {
+  return isKnownPermissionID(value) && ADMITTED_PERMISSION_IDS.includes(value);
 }
 
-export interface ScopeCatalogDescriptor {
-  readonly appId: string;
-  readonly defaultRealmScopes: readonly string[];
-  readonly defaultRuntimeScopes: readonly string[];
-  readonly published: readonly ScopeCatalogEntry[];
-  readonly draft: ScopeCatalogEntry | null;
-}
-
-export interface ScopeCatalogPublishResult {
-  readonly appId: string;
-  readonly scopeCatalogVersion: string;
-  readonly catalogHash: string;
-  readonly status: 'published';
-}
-
-export interface ScopeCatalogRevokeResult {
-  readonly appId: string;
-  readonly revokedScopes: readonly string[];
-  readonly revokedVersions: readonly string[];
-}
-
-export interface ScopeCatalogModule {
-  listCatalog(): ScopeCatalogDescriptor;
-  registerAppScopes(input: { readonly manifest: ScopeManifest }): ScopeCatalogEntry;
-  publishCatalog(): ScopeCatalogPublishResult;
-  revokeAppScopes(input: { readonly scopes: readonly string[] }): ScopeCatalogRevokeResult;
-}
-
-export function isCanonicalPermissionScopeFamily(value: unknown): value is PermissionScopeFamily {
-  return typeof value === 'string' && CANONICAL_PERMISSION_SCOPE_FAMILIES.includes(value as PermissionScopeFamily);
-}
-
-export function isCanonicalPermissionScopeName(value: unknown): value is PermissionScopeName {
-  return typeof value === 'string' && CANONICAL_PERMISSION_SCOPE_NAMES.includes(value as PermissionScopeName);
-}
-
-export function isCanonicalGrantState(value: unknown): value is GrantState {
-  return typeof value === 'string' && CANONICAL_GRANT_STATES.includes(value as GrantState);
+export function isPermissionPosture(value: unknown): value is PermissionPosture {
+  return typeof value === 'string' && PERMISSION_POSTURES.includes(value as PermissionPosture);
 }

@@ -46,10 +46,10 @@ func runtimeChecklistPart2(
 		},
 		{
 			ID:          "RS-11-29",
-			Requirement: "local-app grant terminal transition coverage",
+			Requirement: "local-app pre-admission permission authority remains absent",
 			Tests: []testRef{
-				{Package: pkgLocalApp, Name: "TestGrantKeyIncludesAccountPrincipalAndFingerprint"},
-				{Package: pkgLocalApp, Name: "TestTombstoneRemovesRecordAndNeverInheritsGrantOrKeys"},
+				{Package: pkgLocalApp, Name: "TestKernelSchemaContainsIdentityAndProvenanceAuthorityOnly"},
+				{Package: pkgLocalApp, Name: "TestTombstoneRemovesRecordAndNeverInheritsKeys"},
 			},
 		},
 		{

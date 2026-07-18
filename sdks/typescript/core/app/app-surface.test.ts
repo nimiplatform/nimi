@@ -7,15 +7,14 @@ import {
   type NimiAICapabilityRequirementDeclaration,
 } from '../ai/index';
 import {
-  CANONICAL_PERMISSION_SCOPE_FAMILIES,
-  CANONICAL_PERMISSION_SCOPE_NAMES,
+  ADMITTED_PERMISSION_IDS,
+  KNOWN_PERMISSION_IDS,
   NimiAppClient,
   PermissionClient,
   createAppScopeRef,
   createNimiAppClient,
   createNimiAppRegistryTransport,
   createPermissionClient,
-  createScopeCatalogModule,
   isAdmittedNimiFirstRunLocalBaseline,
   loadNimiAppAIProfileFactoryCatalog,
   loadNimiAppRegistryRows,
@@ -23,8 +22,6 @@ import {
   parseNimiAppAccountInventoryRecord,
   parseNimiAppBridgeProjection,
   selectNimiAppFactoryAIProfileForFirstRun,
-  type GrantSpec,
-  type GrantStatus,
   type NimiAppAIProfileFactoryRow,
   type NimiAppAccountInventoryRecord,
   type NimiAppInventoryEntry,
@@ -36,8 +33,9 @@ import {
   type NimiAppScopeRef,
   type NimiAppStatus,
   type NimiAppTransport,
-  type PermissionGrantEvent,
-  type PermissionStatusSnapshot,
+  type PermissionPostureEvent,
+  type PermissionID,
+  type PermissionStatus,
   type PermissionTransport,
 } from './index';
 
@@ -137,7 +135,6 @@ function localRecord(overrides: Partial<NimiAppLocalRecordRow> = {}): NimiAppLoc
     trustClass: 'local_development',
     recordState: 'active',
     sessionState: 'session-bound',
-    grantPosture: 'zero-grant',
     ...overrides,
   };
 }
@@ -171,44 +168,35 @@ class StubAppTransport implements NimiAppTransport {
 }
 
 const scopeRef: NimiAppScopeRef = { kind: 'app', ownerId: 'tester.app', surfaceId: 'settings' };
-const permissionScope = { appId: 'tester.app', scopeFamily: 'account' as const, scopeName: 'account.read' as const };
-function grantStatus(state: GrantStatus['state'] = 'granted', grantId = 'grant-1'): GrantStatus {
-  return { scopeRef, grant: { grantId, permissionScope, subjectUserId: 'user-1' }, state };
+function permissionStatus(overrides: Partial<PermissionStatus> = {}): PermissionStatus {
+  return {
+    permissionId: 'agents.interact',
+    posture: 'unavailable',
+    canRequest: false,
+    ...overrides,
+  };
 }
 
 class StubPermissionTransport implements PermissionTransport {
   constructor(private readonly behavior: {
-    readonly list?: readonly GrantStatus[];
-    readonly subscribe?: PermissionGrantEvent;
+    readonly status?: PermissionStatus;
+    readonly subscribe?: PermissionPostureEvent;
   } = {}) {}
-  async list(): Promise<readonly GrantStatus[]> { return this.behavior.list ?? [grantStatus()]; }
-  async get(_scope: NimiAppScopeRef, grantId: string): Promise<GrantStatus> { return grantStatus('granted', grantId); }
-  async request(inputScopeRef: NimiAppScopeRef): Promise<GrantStatus> {
-    return { ...grantStatus('pending'), scopeRef: inputScopeRef };
+  async status(): Promise<PermissionStatus> { return this.behavior.status ?? permissionStatus(); }
+  async request(): Promise<PermissionStatus> {
+    throw new Error('no public permission is admitted');
   }
-  async revoke(_scope: NimiAppScopeRef, grantId: string): Promise<GrantStatus> { return grantStatus('revoked', grantId); }
-  async status(inputScopeRef: NimiAppScopeRef): Promise<PermissionStatusSnapshot> {
-    return { scopeRef: inputScopeRef, grants: [grantStatus()] };
-  }
-  subscribe(inputScopeRef: NimiAppScopeRef, callback: (event: PermissionGrantEvent) => void): () => void {
-    callback(this.behavior.subscribe ?? { scopeRef: inputScopeRef, grant: grantStatus() });
+  subscribe(_permissionId: PermissionID, callback: (event: PermissionPostureEvent) => void): () => void {
+    callback(this.behavior.subscribe ?? { status: permissionStatus() });
     return () => undefined;
   }
 }
 
-const grantSpec: GrantSpec = {
-  permissionScope,
-  subjectUserId: 'user-1',
-  reason: 'settings permission diagnostics',
-};
-
 describe('vNext app surface', () => {
-  it('keeps Realm grant selectors out of Runtime-local permission authority', () => {
-    assert.equal(CANONICAL_PERMISSION_SCOPE_FAMILIES.includes('agent'), true);
-    assert.equal(CANONICAL_PERMISSION_SCOPE_NAMES.includes('agent.identity.project'), true);
-    assert.equal(CANONICAL_PERMISSION_SCOPE_FAMILIES.includes('realm_source' as never), false);
-    assert.equal(CANONICAL_PERMISSION_SCOPE_NAMES.includes('realm_source.snapshot.consume' as never), false);
-    assert.equal(CANONICAL_PERMISSION_SCOPE_NAMES.includes('realm_source.snapshot.bind' as never), false);
+  it('exports product permission ids with an empty admitted request set', () => {
+    assert.equal(KNOWN_PERMISSION_IDS.includes('agents.interact'), true);
+    assert.equal(ADMITTED_PERMISSION_IDS.length, 0);
+    assert.equal(KNOWN_PERMISSION_IDS.includes('realm_source.snapshot.consume' as never), false);
   });
 
   it('exposes read projections without package lifecycle methods', async () => {
@@ -270,8 +258,8 @@ describe('vNext app surface', () => {
     assert.equal(readinessArguments, 0);
   });
 
-  it('projects local records without adoption paths or package jobs', async () => {
-    const zeroGrant = createNimiAppRegistryTransport({
+  it('allows a zero-permission local record to open without adoption paths or package jobs', async () => {
+    const zeroPermission = createNimiAppRegistryTransport({
       loadRows: () => [],
       loadReleaseDescriptors: () => [],
       loadAccountInventory: () => accountInventoryRecord([{
@@ -283,25 +271,10 @@ describe('vNext app surface', () => {
       loadLocalRecords: () => [localRecord()],
       loadPackageReadiness: () => packageUnavailable,
     });
-    const [denied] = await zeroGrant.list();
-    assert.equal(denied?.openReadiness, 'permission-required');
-    assert.deepEqual(denied?.nextActions, ['review-permissions']);
-    assert.equal('rootPath' in (denied?.sources.localRecord.value ?? {}), false);
-
-    const granted = createNimiAppRegistryTransport({
-      loadRows: () => [],
-      loadReleaseDescriptors: () => [],
-      loadAccountInventory: () => accountInventoryRecord([{
-        appId: appRow.appId,
-        accountState: 'verified',
-        installState: 'local-record-active',
-        dataPolicy: 'principal-retained',
-      }]),
-      loadLocalRecords: () => [localRecord({ grantPosture: 'granted' })],
-    });
-    const [ready] = await granted.list();
+    const [ready] = await zeroPermission.list();
     assert.equal(ready?.openReadiness, 'ready');
     assert.deepEqual(ready?.nextActions, ['open']);
+    assert.equal('rootPath' in (ready?.sources.localRecord.value ?? {}), false);
   });
 
   it('fails closed when package readiness leaks positive fields', async () => {
@@ -375,37 +348,25 @@ describe('vNext app surface', () => {
     );
   });
 
-  it('manages scope catalog drafts and namespace enforcement', () => {
-    const catalog = createScopeCatalogModule({ appId: 'tester.app' });
-    assert.equal(catalog.registerAppScopes({
-      manifest: { manifestVersion: '1.0.0', scopes: ['app.tester.app.settings.read'] },
-    }).status, 'draft');
-    assert.equal(catalog.publishCatalog().status, 'published');
-    assert.throws(
-      () => catalog.registerAppScopes({ manifest: { manifestVersion: '1.0.1', scopes: ['app.other.read'] } }),
-      /must use namespace/,
-    );
-  });
-
-  it('uses explicit permission transport and validates grants', async () => {
+  it('uses explicit permission transport and exposes reserved posture only', async () => {
     const client = createPermissionClient(new StubPermissionTransport());
     assert.equal(client instanceof PermissionClient, true);
     assert.deepEqual(createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' }), scopeRef);
-    assert.equal((await client.list(scopeRef))[0]?.state, 'granted');
-    assert.equal((await client.get(scopeRef, 'grant-1')).grant.grantId, 'grant-1');
-    assert.equal((await client.request(scopeRef, grantSpec)).state, 'pending');
-    assert.equal((await client.revoke(scopeRef, 'grant-1')).state, 'revoked');
-    assert.equal((await client.status(scopeRef)).grants.length, 1);
-    const events: PermissionGrantEvent[] = [];
-    client.subscribe(scopeRef, (event) => events.push(event))();
-    assert.equal(events[0]?.grant.state, 'granted');
+    assert.equal((await client.status('agents.interact')).posture, 'unavailable');
+    const events: PermissionPostureEvent[] = [];
+    client.subscribe('agents.interact', (event) => events.push(event))();
+    assert.equal(events[0]?.status.posture, 'unavailable');
+    await assert.rejects(
+      client.request({ permissionId: 'agents.interact', reason: 'Talk with an Agent selected by me' }),
+      (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_PERMISSION_NOT_ADMITTED',
+    );
   });
 
-  it('fails closed on mismatched permission scope projections', async () => {
+  it('fails closed when transport projects a reserved permission as granted', async () => {
     await assert.rejects(
       createPermissionClient(new StubPermissionTransport({
-        list: [{ ...grantStatus(), scopeRef: { kind: 'app', ownerId: 'other.app' } }],
-      })).list(scopeRef),
+        status: permissionStatus({ posture: 'granted' }),
+      })).status('agents.interact'),
       (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_PERMISSION_RESPONSE_INVALID',
     );
   });

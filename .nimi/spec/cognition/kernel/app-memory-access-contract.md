@@ -4,131 +4,121 @@
 
 ## Scope
 
-定义 Cognition 对 app memory / knowledge / skill access 的产品级 policy
-authority。本契约不替代 Cognition 既有 `C-COG-*` memory / knowledge /
-skill service 真相；它锁定 cross-app 消费这些 service 时必须遵守的 admitted
-policy enum、chat-derived projection 规则、与 no-implicit-allow rule。
+本契约定义第三方 Nimi App 访问 Cognition memory、knowledge 与 skill 的产品级
+权限边界。它不接管 Cognition 既有服务真相，也不把 app 自己的 SQLite、缓存、
+对话记录或知识库变成 Nimi 权限。
 
-## C-APMEM-001 — Cognition Owns App Memory / Knowledge / Skill Access Policy
+当前第三方公共权限全部处于 `reserved`；因此下述正向能力尚未准入，所有受保护
+端点必须返回 typed `unavailable` 或 deny。未来准入必须遵守 Platform
+`P-PERM-017` 的原子 admission 要求。
 
-`MUST`：Cognition 拥有 app 访问 memory / knowledge / skill 的 owner policy
-决策。对 PC-local `LOCAL_APP`，Runtime K-GRANT 的 exact account+principal grant
-决定本地 capability/resource 是否可进入 owner policy；Cognition 再决定具体
-read / write / projection 的形状与约束。Realm grant 仅在所选 operation 独立消费
-Realm-owned data 时按 Realm owner policy 生效，不是本地 grant/Cognition decision
-的 prerequisite、substitute 或 fallback。
+## C-APMEM-001 Cognition Owns Protected Memory Policy
 
-`MUST NOT`：Realm grant、Runtime local execution、Desktop hosted shell、SDK
-都不得自创 memory / knowledge / skill owner policy；K-GRANT 也不得把 capability
-allow 解释为 memory/knowledge ownership。
+Cognition 是 Nimi-owned memory、knowledge 与 skill 资源选择器和资源策略的唯一
+owner。Runtime 只负责调用方 principal/session/account 绑定、Runtime-owned 权限
+决策和端点前置校验；Realm 只负责 Realm-owned 数据与云端策略。Desktop、SDK、
+Kit、app host 与 renderer 都不能自创平行策略。
 
-`MUST`：RuntimeAgentService 仍是 agent lifecycle 中 canonical agent memory
-admission 的 semantic owner；本契约仅约束 app 访问 Cognition memory /
-knowledge / skill service 的 policy surface，不把 agent lifecycle memory
-truth 转移给 Desktop、SDK、Kit 或 app-local session code。
+App 自己创建并维护的数据属于 `app_owned_authority`，不经过 Cognition，也不得
+创建 Nimi permission row。只有读取或修改 Nimi/Cognition 拥有的资源时，才进入
+本契约。
 
-## C-APMEM-002 — Admitted Policy Enum
+## C-APMEM-002 Public Permission Mapping
 
-`MUST`：以下为 admitted policy 枚举：
+第三方产品表面只能使用以下公共 permission id：
 
-- `memory.read.persona-scoped-bounded`
-- `memory.read.session-scoped-bounded`
-- `memory.write.session-scoped-admitted`
-- `knowledge.read.bounded`
-- `knowledge.write.admitted`
-- `skill.run.bounded`
-- `chat_derived.projection.admitted`
+- `memory.read`
+- `memory.write`
+- `knowledge.read`
+- `knowledge.write`
 
-每条 policy 对应 `P-PERM-002` 中的 scope；Cognition 收到 grant 时按该映射
-执行 read / write / projection。
+Skill 执行尚无已准入的第三方公共 permission id，因此不得通过开放字符串、
+内部 operation id 或现有 memory/knowledge 权限推导。新增 skill 权限必须先修改
+Platform 公共 catalog 并完成独立 admission。
 
-`MUST NOT`：不得 admit 开放字符串 policy；新增 policy 必须修改本契约。
+公共 permission id 不等于 endpoint、table、collection id 或内部 policy enum。
+Cognition 可以把一个用户意图展开为精确内部检查，但这些检查不得泄露到 manifest、
+SDK 请求或用户审批 UI。
 
-## C-APMEM-003 — Chat-Derived Projection Rule
+## C-APMEM-003 Owner-Selected Resource Boundary
 
-`MUST`：chat transcript 转换为 memory truth 必须满足：
+未来正向准入时，Cognition owner picker 产生 bounded selector：
 
-- 存在 active `chat_derived.projection.admitted` grant
-- projection request 携带 `ConversationAnchor` 引用、Runtime-derived caller
-  subject（第三方本地 app 使用 `local_app_principal_id`）、target persona id、
-  与 admitted audit event id
-- Cognition 写入的 memory record 含 `source.anchor` 与
-  `source.caller_subject` 字段；`source.app_id` 只能作为非授权显示 metadata
+- `memory.read`：用户选择的 memory collection 与时间范围；
+- `memory.write`：用户选择的可写 memory collection；
+- `knowledge.read`：用户选择的 knowledge base；
+- `knowledge.write`：用户选择的可写 knowledge base。
 
-`MUST NOT`：不得在缺少 grant 时由 background job、passive cache、replay
-触发 chat → memory 转换；不得在 transcript display 路径上直接写入
-memory bank。
+Selector 及其 digest 由 owner 生成，app 不能提交 resource id 作为权限证据。每个
+端点必须重新验证当前 decision、selector、resource ownership、account、principal、
+session、revision 与 endpoint policy；缺失、过期、撤销或不匹配均 fail-close。
 
-## C-APMEM-004 — No Implicit Allow
+## C-APMEM-004 No Implicit Projection Or Write
 
-`MUST`：缺少 policy → deny；scope ambiguous → deny；orphan
-projection（无 active app / grant / anchor）→ deny。
+聊天 transcript、prompt context、缓存、background job、replay 或 display path 不得
+隐式生成 Nimi memory/knowledge truth。写入必须经过相应已准入的 write permission、
+owner-selected target、typed audit reason 与 Cognition 原子写入。
 
-`MUST NOT`：不得静默 fallback 到 default allow；不得通过缓存 invalidation
-迟滞绕过 deny。
+读取权限不能推导写入权限，write 也不能自动扩展到其他 collection、persona、
+knowledge base 或 account。Batch、retry 与异步任务必须继承同一 bounded decision，
+不能扩大 selector。
 
-## C-APMEM-005 — Memory Write Boundary
+## C-APMEM-005 Conversation-Derived Memory
 
-`MUST`：`memory.write.session-scoped-admitted` 写操作必须：
+将 app conversation 转换为 Nimi memory 时，必须同时满足：
 
-- session-scoped（绑定到当前 chat / app session）
-- persona-bound（指向具体 `AgentPersonaId`）
-- 写入 Realm audit event
+- 已准入且当前有效的 `memory.write` decision；
+- Cognition owner-selected collection；
+- Runtime-derived calling app principal 与 account；
+- canonical conversation anchor 与 persona relation；
+- typed audit event。
 
-`MUST NOT`：跨 persona / 跨 session 的写操作必须重新申请 grant；不得
-通过 batch 写绕过 audit。
+`app_id` 仅可作为显示 metadata，不能作为 owner、selector 或正向授权 key。没有
+上述完整事实时，不得由后台任务或缓存补写。
 
-## C-APMEM-006 — Knowledge Write Boundary
+## C-APMEM-006 Local App Principal Is Only A Caller Subject
 
-`MUST`：`knowledge.write.admitted` 写操作必须声明 knowledge base id、
-target scope、admitted policy class、与 audit reason。
+`local_app_principal_id` 只用于 caller、access-control 与 audit subject。Cognition
+必须从 RuntimeAgent/Cognition canonical relations 解析 agent、persona、conversation、
+memory collection 与 knowledge base owner，禁止从以下信息推导资源所有权或权限：
 
-`MUST NOT`：不得通过 implicit insertion 写入 knowledge；不得用 prompt
-context 直接成为 knowledge truth。
+- display `app_id`；
+- project path 或 package path；
+- process id；
+- local-app record；
+- permission decision 本身；
+- app-local cache 或 SQLite。
 
-## C-APMEM-007 — Skill Run Boundary
+有效 session、Developer Mode、项目启动批准、publisher tier、bundled identity 或
+first-party binding 都不能替代当前受保护资源 decision。
 
-`MUST`：`skill.run.bounded` 执行必须声明 capability set、persona scope、
-与 canonical `AIScopeRef`（`P-AISC-001`）。
+## C-APMEM-007 First-Party And Third-Party Separation
 
-`MUST NOT`：不得用 host bridge 绕过 Cognition skill service；不得让
-skill run 持有跨 app persona 的 persistent state。
+Bundled first-party 产品只能使用各自已准入的 service entitlement。第三方开发版
+Zhiyu 是独立 local-development principal，不能继承 shipped Zhiyu 的 agent、memory、
+knowledge 或 service entitlement。First-party entitlement 不写入第三方 permission
+ledger，也不能作为第三方正向 fallback。
 
-## C-APMEM-008 — Agent Chat Memory Projection Boundary
+## C-APMEM-008 Audit And Revocation
 
-`MUST`：Agent Chat 与 generic app chat / session surfaces 在缺少 active
-admitted Cognition policy grant 时不得 pre-cache 或 pre-project memory
-truth；任何 chat 上下文中的 memory projection 必须由本契约 admitted
-policy enum 触发。
+未来 admitted decision 的创建、拒绝、过期、撤销和每次写操作必须产生 owner audit。
+Account switch、principal tombstone、selector/resource policy 变化或 decision revoke
+必须使后续端点调用立即失败。App 只看到公共 posture，不得读取 decision id、selector
+digest、内部 operation/resource identity 或其他 app 的状态。
 
-`MUST NOT`：Desktop-hosted Home shell 不得维护 cross-session memory
-cache；session lifecycle 结束后必须 release projection。
+## C-APMEM-009 Current Admission Posture
 
-## C-APMEM-009 — Local App Principal Is Not Memory Or Agent Ownership
-
-`MUST`：第三方本地 app 的 `local_app_principal_id` 只作为 caller、access
-control 与 audit subject。Cognition 必须从 RuntimeAgent/Cognition canonical
-relation 解析显式 agent、persona、conversation anchor、memory bank 与 knowledge
-owner；不得从 principal、`app_id`、project path、process、record 或 grant 推断。
-
-`MUST`：来自 `LOCAL_APP` 的 selected RuntimeAgent operation 必须先携带
-Runtime `K-ACCSVC-026` 的不可变 allow decision，再由 Cognition 重新执行本规则
-拥有的 memory/knowledge policy。两层任一缺失、过期、撤销或 relation mismatch
-都 fail-close，且不得回退到 Realm grant、first-party binding 或 app-local cache。
-
-Bundled first-party Zhiyu/Avatar 保持各自已承认 posture；Zhiyu 的隔离
-`local_development` integration build 是独立第三方 principal，不能继承 shipped
-bundled identity、memory 或 agent ownership。
+当前 `memory.read`、`memory.write`、`knowledge.read`、`knowledge.write` 均为
+`reserved`，没有第三方正向 mutation/read path。Catalog 条目、manifest 声明、mock
+approval 或单独 CRUD endpoint 都不能宣称 admission 完成。
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/agent-identity-floor-contract.md` — `P-AGID-001..P-AGID-008`
-- `.nimi/spec/platform/kernel/ai-scope-contract.md` — `P-AISC-001..P-AISC-005`
-- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-013`
-- `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-010`
-- `.nimi/spec/cognition/kernel/memory-service-contract.md` — `C-COG-*` memory subset
-- `.nimi/spec/cognition/kernel/knowledge-service-contract.md` — `C-COG-*` knowledge subset
-- `.nimi/spec/cognition/kernel/skill-service-contract.md` — `C-COG-*` skill subset
-- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` — `K-AGCORE-*`
-- `.nimi/spec/sdks/kernel/nimi-permission-client-contract.md` — `S-PERM-001..S-PERM-008`
-- `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` — `D-HOME-001..D-HOME-012`
+- `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-*`
+- `.nimi/spec/platform/kernel/tables/nimi-app-permission-catalog.yaml`
+- `.nimi/spec/runtime/kernel/grant-service.md` — Runtime owner-internal decision boundary
+- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` — RuntimeAgent relations
+- `.nimi/spec/cognition/kernel/memory-service-contract.md` — memory owner truth
+- `.nimi/spec/cognition/kernel/knowledge-service-contract.md` — knowledge owner truth
+- `.nimi/spec/cognition/kernel/skill-service-contract.md` — skill owner truth
+- `.nimi/spec/sdks/kernel/nimi-permission-client-contract.md` — public SDK projection

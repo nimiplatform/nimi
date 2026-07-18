@@ -186,11 +186,6 @@ method_mappings:
     proto_method: ListAgents
     mapping_posture: aligned
   - design_service: RuntimeAgentService
-    design_method: ListLocalAppAgentInventory
-    proto_service: RuntimeAgentService
-    proto_method: ListLocalAppAgentInventory
-    mapping_posture: aligned
-  - design_service: RuntimeAgentService
     design_method: OpenConversationAnchor
     proto_service: RuntimeAgentService
     proto_method: OpenConversationAnchor
@@ -439,11 +434,6 @@ method_mappings:
     design_method: SubscribeAgentVoiceStream
     proto_service: RuntimeAgentService
     proto_method: SubscribeAgentVoiceStream
-    mapping_posture: aligned
-  - design_service: RuntimeAgentService
-    design_method: TranscribeLocalAppAgentAudio
-    proto_service: RuntimeAgentService
-    proto_method: TranscribeLocalAppAgentAudio
     mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: InterruptAgentVoicePlayback

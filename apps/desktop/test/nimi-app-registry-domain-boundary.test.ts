@@ -112,7 +112,7 @@ describe('Nimi App registry/admission domain boundary', () => {
   });
 
   it('keeps account app-inventory reads behind the SDK Runtime surface, not Desktop account projection truth', () => {
-    const accountProjection = readRepo('apps/desktop/src-tauri/src/account_apps_projection.rs');
+    const tauriMain = readRepo('apps/desktop/src-tauri/src/main.rs');
     const appBootstrap = readRepo('apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs');
     const appsPanelController = readRepo('apps/desktop/src/shell/renderer/features/apps/apps-panel-controller.ts');
     const appsLiveBridge = readRepo('apps/desktop/src/shell/renderer/features/apps/apps-live-bridge.ts');
@@ -120,10 +120,8 @@ describe('Nimi App registry/admission domain boundary', () => {
     assert.match(appsLiveBridge, /appLifecycle\.accountInventory/);
     assert.doesNotMatch(appsLiveBridge, /appLifecycle\.listLocalAdoptions/);
     assert.doesNotMatch(appBootstrap, /account_app_inventory_/);
-    assert.doesNotMatch(accountProjection, /inventory\.json|AccountAppInventory|write_app_inventory_record/);
+    assert.doesNotMatch(tauriMain, /account_apps_projection/);
     assert.doesNotMatch(appsPanelController, /desktopAppLibraryBridge\.apply|AccountAppLibraryMutationKind/);
-    assert.doesNotMatch(accountProjection, /PLATFORM_NIMI_APP_REGISTRY_ROWS/);
-    assert.doesNotMatch(accountProjection, /nimi-app-registry\.yaml/);
   });
 
 });

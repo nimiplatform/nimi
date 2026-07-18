@@ -52,16 +52,16 @@ describe('Desktop Apps unified read-only projection', () => {
 
   it('keeps local-development record presence separate from catalog discovery', async () => {
     const entry = inventoryEntry({
-      openReadiness: 'permission-required',
+      openReadiness: 'ready',
       installState: 'local-record-active',
       trustTier: 'local_development',
-      sources: { localRecord: { status: 'present', value: localRecord('active', { grantPosture: 'zero-grant' }) } },
+      sources: { localRecord: { status: 'present', value: localRecord('active') } },
     });
     const projection = await projectAppsPanel(clientFor(async () => [entry]));
     assert.equal(projection.status, 'loaded');
     if (projection.status !== 'loaded') return;
     assert.equal(projection.entries[0]?.cardState.inventory, 'local_record_active');
-    assert.equal(projection.entries[0]?.cardState.access, 'permission_required');
+    assert.equal(projection.entries[0]?.cardState.access, 'ready');
     assert.equal(projection.entries[0]?.catalogDiscoveryProof.admittedCatalogDiscovery, false);
   });
 

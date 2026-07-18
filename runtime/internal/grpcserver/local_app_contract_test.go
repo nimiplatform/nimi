@@ -17,7 +17,7 @@ func TestLocalAppSessionWireKeepsPrivateAuthorityOutOfMessages(t *testing.T) {
 	response := (&runtimev1.OpenLocalAppSessionResponse{}).ProtoReflect().Descriptor()
 	for _, forbidden := range []string{
 		"local_app_principal_id", "immutable_lineage_id", "local_record_id",
-		"grant_id", "grant_revision", "session_id", "session_proof",
+		"permission_id", "permission_state", "permission_decision_id", "session_id", "session_proof",
 		"launch_lease", "process_proof", "endpoint", "token", "credential",
 	} {
 		if response.Fields().ByName(protoreflect.Name(forbidden)) != nil {
@@ -31,24 +31,20 @@ func TestLocalAppSessionWireKeepsPrivateAuthorityOutOfMessages(t *testing.T) {
 	}
 }
 
-func TestLocalAppAgentInventoryWireIsEmptyAndBounded(t *testing.T) {
-	request := (&runtimev1.ListLocalAppAgentInventoryRequest{}).ProtoReflect().Descriptor()
-	if request.Fields().Len() != 0 {
-		t.Fatalf("inventory request must be empty, got %d fields", request.Fields().Len())
+func TestRuntimeAgentServiceDoesNotExposeRetiredLocalAppShortcuts(t *testing.T) {
+	service := runtimev1.File_runtime_v1_agent_service_proto.Services().ByName("RuntimeAgentService")
+	if service == nil {
+		t.Fatal("RuntimeAgentService descriptor is missing")
 	}
-	response := (&runtimev1.ListLocalAppAgentInventoryResponse{}).ProtoReflect().Descriptor()
-	assertExactProtoFields(t, response, []string{"owner_user_id", "count", "local_agents"})
-	item := (&runtimev1.LocalAppAgentInventoryItem{}).ProtoReflect().Descriptor()
-	assertExactProtoFields(t, item, []string{"local_agent_ref", "display_name", "owner_user_id", "runtime_source_ref", "source_ready"})
+	for _, retired := range []protoreflect.Name{"ListLocalAppAgentInventory", "TranscribeLocalAppAgentAudio"} {
+		if service.Methods().ByName(retired) != nil {
+			t.Fatalf("retired local-app shortcut RPC %q remains publicly callable", retired)
+		}
+	}
 }
 
 func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
-	if role, allowed := protectedDesktopMethodRole(protectedGetLocalAppGrantStatusMethod); !allowed || role != protectedlocal.RoleLocalAppControl {
-		t.Fatalf("Desktop grant-status role=(%q,%v)", role, allowed)
-	}
 	desktopMethods := []string{
-		"/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppGrant",
-		"/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppGrant",
 		"/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
 		"/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus",
@@ -75,38 +71,35 @@ func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 
 	assertProtectedLocalAppMethodPolicy(t, protectedOpenLocalAppSessionMethod, protectedlocal.TransportLocalAppBootstrap, protectedlocal.RoleLocalAppProcess)
 	for _, method := range []string{
-		protectedGetLocalAppGrantStatusMethod,
-		protectedRequestLocalAppGrantMethod,
-		protectedReadArtifactBytesMethod,
-		protectedListLocalAppAgentInventoryMethod,
-		protectedOpenConversationAnchorMethod,
-		protectedGetPublicChatSnapshotMethod,
-		protectedSendAppMessageMethod,
+		protectedGetLocalAppPermissionStatusMethod,
+		protectedRequestLocalAppPermissionMethod,
 		protectedReadLocalAppStorageJSONMethod,
 		protectedWriteLocalAppStorageJSONMethod,
 		protectedRemoveLocalAppStorageJSONMethod,
 	} {
 		assertProtectedLocalAppMethodPolicy(t, method, protectedlocal.TransportLocalAppHost, protectedlocal.RoleLocalAppSession)
-		if _, blocked := publicTransportDenial(method); method == protectedRequestLocalAppGrantMethod || method == protectedReadArtifactBytesMethod || method == protectedListLocalAppAgentInventoryMethod || method == protectedReadLocalAppStorageJSONMethod || method == protectedWriteLocalAppStorageJSONMethod || method == protectedRemoveLocalAppStorageJSONMethod {
-			if !blocked {
-				t.Fatalf("host local-app method %s is reachable from public transport", method)
-			}
+		if _, blocked := publicTransportDenial(method); !blocked {
+			t.Fatalf("host local-app method %s is reachable from public transport", method)
 		}
 	}
-	streamPolicy, ok := protectedLocalAppStreamMethodPolicies[protectedSubscribeAppMessagesMethod]
-	if !ok || streamPolicy.transport != protectedlocal.TransportLocalAppHost || streamPolicy.role != protectedlocal.RoleLocalAppSession {
-		t.Fatalf("SubscribeAppMessages stream policy = %+v, present=%v", streamPolicy, ok)
+	if len(protectedLocalAppStreamMethodPolicies) != 0 {
+		t.Fatalf("third-party local-app transport unexpectedly admits streams: %+v", protectedLocalAppStreamMethodPolicies)
 	}
 }
 
-func assertExactProtoFields(t testing.TB, descriptor protoreflect.MessageDescriptor, expected []string) {
-	t.Helper()
-	if descriptor.Fields().Len() != len(expected) {
-		t.Fatalf("%s fields = %d, want %d", descriptor.FullName(), descriptor.Fields().Len(), len(expected))
+func TestRuntimeAccountServiceDoesNotExposeRetiredOperationGrantRPCs(t *testing.T) {
+	service := runtimev1.File_runtime_v1_account_proto.Services().ByName("RuntimeAccountService")
+	if service == nil {
+		t.Fatal("RuntimeAccountService descriptor is missing")
 	}
-	for _, field := range expected {
-		if descriptor.Fields().ByName(protoreflect.Name(field)) == nil {
-			t.Fatalf("%s missing field %q", descriptor.FullName(), field)
+	for _, retired := range []protoreflect.Name{
+		"GetLocalAppGrantStatus",
+		"RequestLocalAppGrant",
+		"DecideLocalAppGrant",
+		"RevokeLocalAppGrant",
+	} {
+		if service.Methods().ByName(retired) != nil {
+			t.Fatalf("retired operation-grant RPC %q remains publicly callable", retired)
 		}
 	}
 }

@@ -45,7 +45,7 @@ surfaces:
   - methods_30
   - methods_31
   - methods_32
-description: Account, auth, protected local-app grants, app binding, and local-development posture entries.
+description: Account, auth, protected local-app permissions, app binding, and local-development posture entries.
 services:
   - RuntimeAccountService
   - RuntimeAuthService
@@ -221,44 +221,28 @@ methods:
       - K-AUTH-001
       - K-ACCSVC-019
       - K-BIND-018
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus
-    posture: protected_origin_required
-    protected_transport_classes: [desktop_control, local_app_host]
-    required_origin_roles_by_transport:
-      desktop_control: local_app_control
-      local_app_host: local_app_session
-    rationale: projects current exact grant posture without a portable credential
-    kernel_refs: [K-GRANT-014, K-ACCSVC-026]
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus
     posture: protected_origin_required
     protected_transport_class: local_app_host
     required_origin_role: local_app_session
-    rationale: zero-grant identity session may request one exact operation but cannot approve it
-    kernel_refs: [K-GRANT-014, K-ACCSVC-026]
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/DecideLocalAppGrant
+    rationale: projects only the calling app's public permission id and product posture; internal operation, selector and owner decision lifecycle remain private
+    kernel_refs: [P-PERM-003, P-PERM-007, K-ACCSVC-026]
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission
     posture: protected_origin_required
-    protected_transport_class: desktop_control
-    required_origin_role: local_app_control
-    rationale: verified Desktop UX decides the exact pending operation grant with current presence when required
-    kernel_refs: [K-GRANT-014, K-ACCSVC-026]
-  - method_id: /nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppGrant
-    posture: protected_origin_required
-    protected_transport_class: desktop_control
-    required_origin_role: local_app_control
-    rationale: revokes the exact current grant and causes the next operation to deny without rotating the identity session
-    kernel_refs: [K-GRANT-014, K-ACCSVC-026]
+    protected_transport_class: local_app_host
+    required_origin_role: local_app_session
+    rationale: accepts only an admitted public permission id and bounded user-facing reason; reserved, unknown and internal operation identifiers fail closed
+    kernel_refs: [P-PERM-002, P-PERM-007, P-PERM-017, K-ACCSVC-026]
   - method_id: /nimi.runtime.v1.RuntimeAppService/SendAppMessage
-    posture: authenticated_or_protected_local_app_operation
-    protected_transport_class_additional: local_app_host
-    rationale: ordinary callers use their admitted posture; LOCAL_APP may send only the selected runtime.agent turn through the per-operation coordinator
+    posture: authenticated_required
+    rationale: app messaging remains an authenticated Runtime surface; third-party local-app transport is not admitted
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages
-    posture: authenticated_or_protected_local_app_operation
-    protected_transport_class_additional: local_app_host
-    rationale: ordinary callers use their admitted posture; LOCAL_APP may subscribe only to the selected exact conversation through the per-operation coordinator
+    posture: authenticated_required
+    rationale: app message subscription remains an authenticated Runtime surface; third-party local-app transport is not admitted
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006
@@ -297,20 +281,20 @@ methods:
     posture: protected_origin_required
     protected_transport_class: local_app_host
     required_origin_role: local_app_session
-    rationale: exact current-principal JSON read requires a fresh app_storage.json.read resource grant; request and response expose no root or absolute path
-    kernel_refs: [K-AUTHN-006, K-GRANT-014, K-APP-022, K-APP-032]
+    rationale: exact current-principal JSON read is a base entitlement bound to the live principal/session/account partition; request and response expose no root or absolute path
+    kernel_refs: [K-AUTHN-006, P-PERM-011, K-APP-022, K-APP-032]
   - method_id: /nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson
     posture: protected_origin_required
     protected_transport_class: local_app_host
     required_origin_role: local_app_session
-    rationale: exact current-principal JSON write requires a fresh app_storage.json.write resource grant plus Runtime document and partition quotas
-    kernel_refs: [K-AUTHN-006, K-GRANT-014, K-APP-022, K-APP-032]
+    rationale: exact current-principal JSON write is a base entitlement and still enforces Runtime document and partition quotas
+    kernel_refs: [K-AUTHN-006, P-PERM-011, K-APP-022, K-APP-032]
   - method_id: /nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson
     posture: protected_origin_required
     protected_transport_class: local_app_host
     required_origin_role: local_app_session
-    rationale: idempotent current-principal JSON remove requires a fresh app_storage.json.remove resource grant and returns no path
-    kernel_refs: [K-AUTHN-006, K-GRANT-014, K-APP-022, K-APP-032]
+    rationale: idempotent current-principal JSON remove is a base entitlement bound to the current partition and returns no path
+    kernel_refs: [K-AUTHN-006, P-PERM-011, K-APP-022, K-APP-032]
   - method_id: /nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory
     posture: authenticated_required
     rationale: authenticated account app-inventory truth read; Runtime resolves the account binding before projecting verified/entitled rows and local materialization state
@@ -400,7 +384,7 @@ methods:
     posture: protected_origin_required
     protected_transport_class: local_app_bootstrap
     required_origin_role: local_app_process
-    rationale: request-empty open atomically consumes the current launch lease and binds a zero-grant local-app session to the exact connection
+    rationale: request-empty open atomically consumes the current launch lease and binds a zero-permission local-app session to the exact connection
     kernel_refs: [K-PLOCAL-008, K-AUTHSVC-002]
   - method_id: /nimi.runtime.v1.RuntimeAuthService/RefreshSession
     posture: authenticated_required

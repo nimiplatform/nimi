@@ -192,22 +192,21 @@ repository_static_close_manifest:
           - production-account-login
           - developer-mode-enabled
           - run-once-project-admitted
-          - zero-grant-session
-          - operation-denied-before-grant
-          - selected-operation-granted
-          - selected-runtime-agent-operation
+          - local-app-session-bound
+          - app-private-storage-base-entitlement
+          - reserved-permission-unavailable
+          - reserved-permission-request-denied
           - process-mismatch-denied
-          - grant-revoked-next-operation-denied
           - remembered-project-admitted
-          - runtime-agent-conversation
+          - remembered-authority-boundary
           - edit-build-process-replaced
-          - conversation-resumed-after-process-replacement
+          - app-private-storage-after-process-replacement
           - mode-off-dormant
           - remembered-project-reactivated
           - fixed-service-restarted
-          - conversation-resumed-after-runtime-restart
+          - app-private-storage-after-runtime-restart
           - account-switch-invalidated
-          - project-revoked-next-operation-denied
+          - project-revoked-session-invalidated
           - desktop-real-shell-acceptance
           - zhiyu-real-shell-acceptance
           - protected-carrier-privacy-closeout
@@ -258,7 +257,7 @@ repository_static_close_manifest:
           - { claim_id: security.no_app_held_account_or_provider_credential, allowed_evidence_kinds: [privacy_audit, local_agent_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
       C-09:
         required_claims:
-          - { claim_id: runtime.zero_grant_session_then_separate_grant, allowed_evidence_kinds: [runtime_trace, local_agent_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+          - { claim_id: runtime.authority_classes_separated, allowed_evidence_kinds: [runtime_trace, local_agent_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
       D-01:
         required_claims:
           - { claim_id: developer_mode.single_mode_and_trust_set_schema, allowed_evidence_kinds: [owner_gate], execution_binding: forbidden, runner_profile: null }
@@ -286,10 +285,10 @@ repository_static_close_manifest:
           - { claim_id: ui.native_windows_risk_disclosure_observed, allowed_evidence_kinds: [real_shell_audit], execution_binding: required, runner_profile: dev_kernel_core_v2 }
       E-01a:
         required_claims:
-          - { claim_id: runtime.dev_approval_zero_grant_then_grant, allowed_evidence_kinds: [runtime_trace, local_agent_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+          - { claim_id: runtime.dev_approval_binds_project_not_resource_permission, allowed_evidence_kinds: [runtime_trace, local_agent_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
       E-03:
         required_claims:
-          - { claim_id: runtime.reversible_operation_repeated_under_grant, allowed_evidence_kinds: [runtime_trace], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+          - { claim_id: runtime.app_private_storage_repeated_without_permission, allowed_evidence_kinds: [runtime_trace], execution_binding: required, runner_profile: dev_kernel_core_v2 }
       E-04a:
         required_claims:
           - { claim_id: developer_mode.reactivation_presence_lifecycle, allowed_evidence_kinds: [developer_mode_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
@@ -301,7 +300,7 @@ repository_static_close_manifest:
           - { claim_id: security.dev_persistent_autostart_denied, allowed_evidence_kinds: [security_negative], execution_binding: required, runner_profile: null }
       E-08:
         required_claims:
-          - { claim_id: runtime.representative_operations_shared_coordinator, allowed_evidence_kinds: [runtime_trace, local_agent_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+          - { claim_id: runtime.base_entitlement_and_permission_share_authority_coordinator, allowed_evidence_kinds: [runtime_trace, local_agent_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
       E-09:
         required_claims:
           - { claim_id: authority.provider_selection_owner_supplied, allowed_evidence_kinds: [owner_gate], execution_binding: forbidden, runner_profile: null }

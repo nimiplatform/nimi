@@ -673,9 +673,10 @@ package launch remains typed unavailable until 0P/P and cannot fall back to
 identity, process liveness, renderer metadata or ordinary gRPC.
 
 Every process replacement and Runtime restart requires a new lease, bind and
-session. Desktop exposes only Kit typed session status, read-only permission
-posture, explicit exact-operation permission request and selected operations; it
-injects no account/token/principal/grant/endpoint material.
+session. Desktop exposes only Kit typed session status, public permission
+status/request, base entitlements and exact app-owned commands; it injects no
+account/token/principal/permission-decision/endpoint material. Internal
+operation ids and resource refs never enter the renderer or approval UI.
 
 ## D-SHELL-039 - Desktop Open Intent Navigation Targets
 

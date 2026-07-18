@@ -8,6 +8,11 @@ import { invokeChecked } from '@renderer/bridge/runtime-bridge/invoke';
 
 const APPROVAL_EVENT = 'local-development://approval-requested';
 
+export type LocalDevelopmentPermissionRequirement = {
+  readonly permissionId: string;
+  readonly reason: string;
+};
+
 export type LocalDevelopmentApproval = {
   readonly requestId: string;
   readonly appId: string;
@@ -15,7 +20,7 @@ export type LocalDevelopmentApproval = {
   readonly canonicalProjectRoot: string;
   readonly shell: 'electron' | 'tauri';
   readonly accountId: string;
-  readonly requestedCapabilities: readonly string[];
+  readonly permissionRequirements: readonly LocalDevelopmentPermissionRequirement[];
   readonly approvalState: string;
 };
 
@@ -26,7 +31,7 @@ export type LocalDevelopmentAuthorization = {
   readonly canonicalProjectRoot: string;
   readonly shell: 'electron' | 'tauri';
   readonly accountId: string;
-  readonly requestedCapabilities: readonly string[];
+  readonly permissionRequirements: readonly LocalDevelopmentPermissionRequirement[];
   readonly persistence: string;
   readonly state: string;
   readonly updatedAtUnixMs: number;
@@ -142,7 +147,7 @@ function parseApproval(value: unknown): LocalDevelopmentApproval {
     'canonicalProjectRoot',
     'displayName',
     'requestId',
-    'requestedCapabilities',
+    'permissionRequirements',
     'shell',
   ]);
   return {
@@ -152,7 +157,7 @@ function parseApproval(value: unknown): LocalDevelopmentApproval {
     canonicalProjectRoot: requireText(record.canonicalProjectRoot, 'canonicalProjectRoot'),
     shell: requireShell(record.shell),
     accountId: requireText(record.accountId, 'accountId'),
-    requestedCapabilities: requireStringArray(record.requestedCapabilities),
+    permissionRequirements: requirePermissionRequirements(record.permissionRequirements),
     approvalState: requireText(record.approvalState, 'approvalState'),
   };
 }
@@ -164,7 +169,7 @@ function parseAuthorization(value: unknown): LocalDevelopmentAuthorization {
     'canonicalProjectRoot',
     'displayName',
     'persistence',
-    'requestedCapabilities',
+    'permissionRequirements',
     'selector',
     'shell',
     'state',
@@ -181,7 +186,7 @@ function parseAuthorization(value: unknown): LocalDevelopmentAuthorization {
     canonicalProjectRoot: requireText(record.canonicalProjectRoot, 'canonicalProjectRoot'),
     shell: requireShell(record.shell),
     accountId: requireText(record.accountId, 'accountId'),
-    requestedCapabilities: requireStringArray(record.requestedCapabilities),
+    permissionRequirements: requirePermissionRequirements(record.permissionRequirements),
     persistence: requireText(record.persistence, 'persistence'),
     state: requireText(record.state, 'state'),
     updatedAtUnixMs,
@@ -226,13 +231,21 @@ function requireShell(value: unknown): 'electron' | 'tauri' {
   return value;
 }
 
-function requireStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) throw new Error('Local development capabilities are invalid.');
-  const out = value.map((entry) => requireText(entry, 'capability'));
-  if (out.length === 0 || new Set(out).size !== out.length) {
-    throw new Error('Local development capabilities are invalid.');
+function requirePermissionRequirements(value: unknown): LocalDevelopmentPermissionRequirement[] {
+  if (!Array.isArray(value)) throw new Error('Local development permission requirements are invalid.');
+  const requirements = value.map((entry) => {
+    const record = requireExactRecord(entry, ['permissionId', 'reason']);
+    const permissionId = requireText(record.permissionId, 'permissionId');
+    const reason = requireText(record.reason, 'permission reason');
+    if (new TextEncoder().encode(reason).byteLength > 240) {
+      throw new Error('Local development permission reason is too long.');
+    }
+    return { permissionId, reason };
+  });
+  if (new Set(requirements.map(({ permissionId }) => permissionId)).size !== requirements.length) {
+    throw new Error('Local development permission requirements are invalid.');
   }
-  return out;
+  return requirements;
 }
 
 function requireSelector(value: unknown, prefix: string): string {

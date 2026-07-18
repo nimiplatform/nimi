@@ -18,7 +18,7 @@ test('auth glue exposes only the final local-app projection', () => {
   assert.match(authSource, /'local-app'/);
   assert.match(authSource, /runtimeAccountLoginEnabled = false/);
   assert.match(authSource, /testerLocalAppRuntimePlatform\.auth\.status\(\)/);
-  assert.match(authSource, /operationAllowed/);
+  assert.match(authSource, /status\.sessionBound/);
   assert.match(localAppPlatformSource, /createNimiAppRuntimePlatformClient/);
   assert.match(localAppPlatformSource, /createNimiLocalAppStandardShellSurface/);
   assert.doesNotMatch(authSource, /createNimiClient|new Runtime|new Realm/);
@@ -113,21 +113,16 @@ test('settings route avoids file directory collisions and keeps relative ESM imp
 
 test('manifest remains submitted input', () => {
   assert.match(manifest, /manifest_role: submitted-input/);
-  assert.match(manifest, /declared_nimi_api_scopes/);
-  assert.match(manifest, /scope: file\.read\.scoped/);
-  assert.match(manifest, /scope: file\.write\.scoped/);
-  assert.match(manifest, /scope: data\.scope\.read\s+qualifier: runtime\.artifacts/);
+  assert.match(manifest, /permissions:\s*\[\]/);
   assert.match(manifest, /local_development:\s+electron:\s+renderer_origin: http:\/\/127\.0\.0\.1:1468\s+execution_profile_ref: opaque:windows-native-electron-development-v1/);
-  assert.doesNotMatch(manifest, /scope: app\.local\.drafts/);
+  assert.doesNotMatch(manifest, /declared_nimi_api_scopes|scope:|qualifier:/);
 });
 
-test('validate script consumes SDK canonical permission scope names', () => {
+test('validate script enforces the empty admitted public permission set', () => {
   const validateSource = readFileSync(new URL('../scripts/validate.mjs', import.meta.url), 'utf8');
-  assert.match(validateSource, /from ['"]@nimiplatform\/sdk\/app['"]/);
-  assert.match(validateSource, /isCanonicalPermissionScopeName/);
-  assert.match(validateSource, /RUNTIME_ARTIFACT_SCOPES = new Set\(\['data\.scope\.read'\]\)/);
-  assert.match(validateSource, /qualifier === 'runtime\.artifacts'/);
-  assert.doesNotMatch(validateSource, /CLOSED_PERMISSION_SCOPES/);
+  assert.match(validateSource, /parsed\.permissions\.length !== 0/);
+  assert.match(validateSource, /admitted public permission set is empty/);
+  assert.doesNotMatch(validateSource, /isCanonicalPermissionScopeName|RUNTIME_ARTIFACT_SCOPES/);
 });
 
 test('local audit accepts the monorepo tester reference source without generated scaffold lock', () => {

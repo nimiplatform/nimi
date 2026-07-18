@@ -34,42 +34,11 @@ func TestLocalDevelopmentAuthoritySummaryIsProtectedBoundedAndSideEffectFree(t *
 	if _, err := store.Decide(ctx, evaluation.EvaluationID, runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT, project.AccountID, project.AccountGeneration); err != nil {
 		t.Fatal(err)
 	}
-	verifiedSID, err := localappkernel.ValidateVerifiedInteractiveUserSID("S-1-5-21-100-200-300-1001")
-	if err != nil {
-		t.Fatal(err)
-	}
-	kernel, err := localappkernel.OpenSQLite(ctx, filepath.Join(t.TempDir(), "local-app-kernel.db"), verifiedSID, localappkernel.Options{Now: func() time.Time { return now }})
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = kernel.Close() })
-	principal, err := kernel.Principals().Create(ctx, localappkernel.CreatePrincipalInput{
-		Kind:                       localappkernel.PrincipalKindDevelopment,
-		AppID:                      project.AppID,
-		DevelopmentAuthorizationID: "lda_v1_summary-test",
-		CanonicalProjectFileID:     "project-file-summary-test",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	grant, err := kernel.Grants().CreatePending(ctx, localappkernel.CreatePendingGrantInput{
-		AccountID: project.AccountID, LocalAppPrincipalID: principal.LocalAppPrincipalID,
-		CapabilityScope: []string{"runtime_agent.invoke"}, ResourceScope: []string{"agent:summary-test"},
-		CapabilityResourceFingerprint: "capfp:summary-test", GrantGeneration: 1, GrantRevision: 1,
-		PresenceEvidenceRef: "presence:summary-test",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := kernel.Grants().Transition(ctx, project.AccountID, principal.LocalAppPrincipalID, "capfp:summary-test", grant.GrantRevision, localappkernel.GrantStateGranted, "presence:summary-test"); err != nil {
-		t.Fatal(err)
-	}
 	account := &localDevelopmentHandlerAccount{accountID: project.AccountID, generation: project.AccountGeneration}
 	service := New(
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		WithRuntimeAccountProjectionProvider(account),
 		WithLocalDevelopmentAuthority(store, nil, nil, nil),
-		WithLocalAppKernel(kernel),
 	)
 	if _, err := service.GetLocalDevelopmentAuthoritySummary(ctx, &runtimev1.GetLocalDevelopmentAuthoritySummaryRequest{}); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("unprotected summary read error = %v", err)
@@ -91,9 +60,6 @@ func TestLocalDevelopmentAuthoritySummaryIsProtectedBoundedAndSideEffectFree(t *
 	if response.GetProjectAuthorization().GetAvailability() != available || response.GetProjectAuthorization().GetActiveCount() != 1 {
 		t.Fatalf("project authorization summary = %#v", response.GetProjectAuthorization())
 	}
-	if response.GetGrantSummary().GetAvailability() != available || response.GetGrantSummary().GetGrantedCount() != 1 {
-		t.Fatalf("grant summary = %#v", response.GetGrantSummary())
-	}
 	encoded, err := protojson.Marshal(response)
 	if err != nil {
 		t.Fatal(err)
@@ -105,10 +71,6 @@ func TestLocalDevelopmentAuthoritySummaryIsProtectedBoundedAndSideEffectFree(t *
 		if strings.Contains(string(encoded), forbidden) {
 			t.Fatalf("bounded summary leaked %s: %s", forbidden, encoded)
 		}
-	}
-	unchanged, err := kernel.Grants().GetCurrent(ctx, project.AccountID, principal.LocalAppPrincipalID, "capfp:summary-test")
-	if err != nil || unchanged.State != localappkernel.GrantStateGranted || unchanged.GrantRevision != 2 {
-		t.Fatalf("summary read mutated grant = (%#v, %v)", unchanged, err)
 	}
 }
 
@@ -130,11 +92,7 @@ func TestLocalDevelopmentHandlerRejectsAllowAfterAccountSwitchAndConsumesEvaluat
 	}
 	if err := os.WriteFile(filepath.Join(projectRoot, "nimi.app.yaml"), []byte(`app_id: account.switch.app
 display_name: Account Switch App
-permissions:
-  declared_nimi_api_scopes:
-    - scope: data.scope.read
-      qualifier: runtime.artifacts
-      purpose: Read Runtime artifacts during local development.
+permissions: []
 `), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -263,11 +221,7 @@ func TestLocalDevelopmentHandlerCompletesBootstrapAndRevokesTechnicalSessionWith
 	}
 	manifest := `app_id: sample.nimi.app
 display_name: Sample App
-permissions:
-  declared_nimi_api_scopes:
-    - scope: data.scope.read
-      qualifier: runtime.artifacts
-      purpose: Read Runtime artifacts during local development.
+permissions: []
 `
 	if err := os.WriteFile(filepath.Join(projectRoot, "nimi.app.yaml"), []byte(manifest), 0o600); err != nil {
 		t.Fatal(err)

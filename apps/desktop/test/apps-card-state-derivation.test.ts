@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   APP_ACCESS_STATES,
   APP_INVENTORY_PRESENCE_STATES,
@@ -25,7 +26,6 @@ describe('Desktop Apps read-only state dimensions', () => {
     const readiness = [
       'ready',
       'sign-in-required',
-      'permission-required',
       'package-unavailable',
       'local-record-dormant',
       'blocked-by-master-gate',
@@ -39,7 +39,7 @@ describe('Desktop Apps read-only state dimensions', () => {
     const state = deriveAppCardState(inventoryEntry({
       sources: {
         account: { status: 'degraded', reasonCode: 'ACCOUNT_RUNTIME_UNAVAILABLE' },
-        packageReadiness: { status: 'degraded', reasonCode: 'RUNTIME_UNAVAILABLE' },
+        packageReadiness: { status: 'degraded', reasonCode: ReasonCode.RUNTIME_UNAVAILABLE },
       },
     }));
     assert.equal(state.immutablePackage, 'immutable_package_unavailable');
@@ -76,9 +76,9 @@ describe('Desktop Apps action plan', () => {
     });
   });
 
-  it('does not project SDK open or permission hints into Apps package actions', () => {
+  it('does not project SDK open hints into Apps package actions', () => {
     assert.deepEqual(actionPlanForInventoryEntry(inventoryEntry({
-      nextActions: ['open', 'review-permissions'],
+      nextActions: ['open'],
     })), {
       primary: null,
       secondary: [{ id: 'details' }],

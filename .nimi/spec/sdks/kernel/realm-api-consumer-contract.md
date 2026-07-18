@@ -78,8 +78,9 @@ It must not synthesize Realm success.
 
 Desktop, Kit, and Web submit only `CharacterSourceRefV3` and `requestId` to the
 high-level authenticated Runtime `MaterializeRealmSource` operation. Runtime
-internally resolves the current account, canonical Realm base, bearer, exact
-current grant, challenge, Packet v3 response, and current JWKS. No app-facing
+internally resolves the current account, canonical Realm base, bearer, fresh
+challenge, Packet v3 response, and current JWKS. Realm applies its first-party
+source visibility/readiness policy directly; there is no app grant. No app-facing
 facade may receive or persist packet/proof/segment/component bytes, choose an
 audience, decode closure truth into app-owned records, or accept an unknown
 schema, field, enum, segment kind, limit, or hash branch as local success.

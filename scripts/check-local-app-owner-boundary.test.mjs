@@ -15,8 +15,10 @@ const bundleFiles = [
   '.nimi/spec/runtime/kernel/tables/rule-evidence.rules-core-auth.yaml',
   '.nimi/spec/platform/kernel/nimi-app-admission-contract.md',
   '.nimi/spec/platform/kernel/kit-contract.md',
+  '.nimi/spec/platform/kernel/app-permission-contract.md',
   '.nimi/spec/platform/kernel/tables/rule-evidence.rules-nimi-app.yaml',
   '.nimi/spec/platform/kernel/tables/rule-evidence.rules-kit.yaml',
+  '.nimi/spec/platform/kernel/tables/rule-evidence.rules-app-permission.yaml',
   '.nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml',
   '.nimi/spec/desktop/kernel/network-contract.md',
   '.nimi/spec/desktop/kernel/tables/rule-evidence.rules-shell-ui.yaml',
@@ -24,8 +26,9 @@ const bundleFiles = [
 
 const expectedFixtureCodes = [
   'RUNTIME_REALM_OWNER_MISSING',
-  'ZERO_GRANT_DENIAL_MISSING',
+  'ZERO_PERMISSION_BOUNDARY_MISSING',
   'IMMUTABLE_PROVENANCE_UNAVAILABLE_MISSING',
+  'REALM_EXACT_SOURCE_READINESS_AUTHORITY_MISSING',
   'REALM_FALLBACK_DENIAL_MISSING',
   'PORTABLE_BLANKET_AUTHORITY_DENIAL_MISSING',
   'NATIVE_CHANNEL_AUTHORITY_MISSING',
@@ -33,6 +36,9 @@ const expectedFixtureCodes = [
   'IMMUTABLE_PACKAGE_UNAVAILABLE_MISSING',
   'DIRECT_RUNTIME_LAUNCH_DENIAL_MISSING',
   'REQUEST_EMPTY_LOCAL_APP_CARRIER_MISSING',
+  'APP_PRIVATE_STORAGE_BASE_ENTITLEMENT_MISSING',
+  'AUTHORITY_CLASS_EXCLUSIVITY_MISSING',
+  'ATOMIC_PERMISSION_ADMISSION_MISSING',
   'DESKTOP_CREDENTIAL_CUSTODY_DENIAL_MISSING',
   'EVIDENCE_CHECKER_LINK_MISSING',
   'AUTH_BINDING_OWNER_INVALID',
@@ -80,12 +86,12 @@ test('baseline and independent negative fixtures bind the final local-app author
   for (const fixture of report.fixtures) assert.match(fixture.reason, /\S/u);
 });
 
-test('rejects removal of zero-grant operation denial from the candidate authority', async () => {
+test('rejects widening a zero-permission session into protected authority', async () => {
   await mutateAndReject(
     '.nimi/spec/runtime/kernel/account-session-contract.md',
-    'session is valid origin proof and must still be denied',
-    'session is valid origin proof and may proceed without a grant',
-    'ZERO_GRANT_DENIAL_MISSING',
+    'session is valid origin proof and may use only base entitlements',
+    'session is valid origin proof and may use protected resources',
+    'ZERO_PERMISSION_BOUNDARY_MISSING',
   );
 });
 

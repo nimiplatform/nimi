@@ -31,16 +31,11 @@ services:
   - RuntimeWorkflowService
 methods:
   - method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
-    posture: protected_origin_required
-    protected_transport_class: local_app_host
-    required_origin_roles: [local_app_session]
-    rationale: artifact id is a selector only; the coordinator requires the current principal, record, exact grant revision, live process-bound session, owner policy and durable principal/lineage/session/use audience match
+    posture: protected_or_scoped_binding_read
+    rationale: artifact id is a selector only; an existing protected or scoped Runtime consumer must match the owner-issued audience, and third-party local-app access is not admitted
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
-      - K-PLOCAL-008
-      - K-PLOCAL-009
-      - K-ACCSVC-022
       - K-AGCORE-053
   - method_id: /nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts
     posture: anonymous_read

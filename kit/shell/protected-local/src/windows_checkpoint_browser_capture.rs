@@ -264,7 +264,7 @@ mod tests {
             .append_pair("prompt", "login")
             .append_pair(
                 "presence_purpose",
-                "local_app_grant/runtime_agent.conversation.open/lacrf_v1_Aa0-_",
+                "local_app_session/nimi.zhiyu/launch_v1_Aa0-_",
             )
             .append_pair("presence_nonce", &"b".repeat(64));
         url.to_string()

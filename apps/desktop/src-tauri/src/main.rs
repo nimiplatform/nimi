@@ -1,7 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use nimi_shell_tauri::capabilities::runtime as runtime_bridge;
-mod account_apps_projection;
 mod account_profile_library;
 mod account_profile_library_commands;
 mod account_profile_library_files;
@@ -12,7 +11,6 @@ mod chat_ai_store;
 mod desktop_ai_config_library;
 mod desktop_avatar_instance_registry;
 mod desktop_e2e_fixture;
-mod desktop_local_app_grants;
 mod desktop_local_development;
 mod desktop_logs_export;
 mod desktop_open_intent;

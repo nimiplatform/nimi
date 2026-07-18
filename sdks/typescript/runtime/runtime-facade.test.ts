@@ -341,7 +341,7 @@ test('Runtime fails closed on incompatible Runtime major version metadata', asyn
   assert.equal(runtime.versionCompatibility().reason, 'major_mismatch');
 });
 
-test('Runtime facade exposes only bounded generated operations and no raw core bypass', async () => {
+test('Runtime facade blocks origin-only methods and routes scoped artifact reads to transport enforcement', async () => {
   const transport = new FakeRuntimeTransport();
   const runtime = new Runtime({ transport });
   const generated = runtime.generated as unknown as Record<string, unknown>;
@@ -394,16 +394,27 @@ test('Runtime facade exposes only bounded generated operations and no raw core b
     (error: unknown) =>
       (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_APP_LIFECYCLE_TYPED_CLIENT_REQUIRED',
   );
+  await assert.rejects(
+    runtime.generated.openDesktopSession({}),
+    (error: unknown) =>
+      (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
+  );
+  assert.equal(transport.unaryCalls.length, 0);
+
   for (const invoke of [
-    () => runtime.generated.openDesktopSession({}),
     () => runtime.generated.readArtifactBytes({ artifactId: 'artifact-1' }),
     () => runtime.artifacts.readArtifactBytes({ artifactId: 'artifact-1' }),
   ]) {
     await assert.rejects(
       invoke(),
-      (error: unknown) =>
-        (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
+      (error: unknown) => (error as { code?: string }).code === 'unexpected_runtime_unary',
     );
   }
-  assert.equal(transport.unaryCalls.length, 0);
+  assert.deepEqual(
+    transport.unaryCalls.map((call) => call.methodId),
+    [
+      '/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes',
+      '/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes',
+    ],
+  );
 });

@@ -48,16 +48,6 @@ type AuthoritySummaryDescriptor = {
     readonly revokedCount: number;
     readonly reasonCode: 'action-executed' | NimiElectronLocalDevelopmentSummaryUnavailableReason;
   };
-  readonly grantSummary: {
-    readonly availability: NimiElectronLocalDevelopmentSummaryAvailability;
-    readonly pendingCount: number;
-    readonly grantedCount: number;
-    readonly deniedCount: number;
-    readonly expiredCount: number;
-    readonly revokedCount: number;
-    readonly supersededCount: number;
-    readonly reasonCode: 'action-executed' | NimiElectronLocalDevelopmentSummaryUnavailableReason;
-  };
 };
 
 export type DesktopElectronLocalDevelopmentProjectionPublisher = {
@@ -182,15 +172,7 @@ export function authoritySummaryDescriptor(
     summary.projectAuthorization.deniedCount,
     summary.projectAuthorization.revokedCount,
   ];
-  const grantCounts = [
-    summary.grantSummary.pendingCount,
-    summary.grantSummary.grantedCount,
-    summary.grantSummary.deniedCount,
-    summary.grantSummary.expiredCount,
-    summary.grantSummary.revokedCount,
-    summary.grantSummary.supersededCount,
-  ];
-  for (const count of [...projectCounts, ...grantCounts]) requireSummaryCount(count);
+  for (const count of projectCounts) requireSummaryCount(count);
   if (!Number.isSafeInteger(processId) || processId <= 0
     || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u.test(capturedAt)) {
     throw new Error(AUTHORITY_SUMMARY_UNTRUSTED);
@@ -212,11 +194,6 @@ export function authoritySummaryDescriptor(
     summary.projectAuthorization.unavailableReason,
     projectCounts,
   );
-  requireCountSummaryConsistency(
-    summary.grantSummary.availability,
-    summary.grantSummary.unavailableReason,
-    grantCounts,
-  );
 
   return {
     schemaVersion: 1,
@@ -237,19 +214,6 @@ export function authoritySummaryDescriptor(
       reasonCode: summaryReason(
         summary.projectAuthorization.availability,
         summary.projectAuthorization.unavailableReason,
-      ),
-    },
-    grantSummary: {
-      availability: summary.grantSummary.availability,
-      pendingCount: summary.grantSummary.pendingCount,
-      grantedCount: summary.grantSummary.grantedCount,
-      deniedCount: summary.grantSummary.deniedCount,
-      expiredCount: summary.grantSummary.expiredCount,
-      revokedCount: summary.grantSummary.revokedCount,
-      supersededCount: summary.grantSummary.supersededCount,
-      reasonCode: summaryReason(
-        summary.grantSummary.availability,
-        summary.grantSummary.unavailableReason,
       ),
     },
   };

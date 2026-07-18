@@ -68,7 +68,7 @@ function validateShellParity() {
   requireText(localAppClient, 'createNimiAppRuntimePlatformClient', 'Renderer SDK client');
   requireText(localAppClient, 'createNimiLocalAppStandardShellSurface', 'Renderer Kit carrier');
   requireText(runtimePlatform, 'testerLocalAppRuntimePlatform.auth.status()', 'Renderer auth projection');
-  requireText(runtimePlatform, 'operationAllowed', 'Renderer zero-grant distinction');
+  requireText(runtimePlatform, 'status.sessionBound', 'Renderer session binding');
   forbid(runtimePlatform, /readonly client:|new Runtime|createNimiClient|[r]untimeEndpoint/u, 'Renderer generic authority');
 
   requireText(electronAppBridge, "const LOCAL_APP_PROTECTED_CARRIER_SENTINEL = 'local-app-protected-carrier-only'", 'Electron protected-local carrier');
@@ -77,18 +77,17 @@ function validateShellParity() {
   if (!localAppMacro) throw new Error('Tauri local-app handler macro missing');
   for (const operation of [
     'local_app_session_status',
-    'local_app_permission_posture',
+    'local_app_permission_status',
     'local_app_permission_request',
-    'local_app_artifacts_read_runtime_bytes',
-    'local_app_agent_open_conversation',
-    'local_app_agent_send_turn',
-    'local_app_agent_subscribe_turn',
-    'local_app_agent_get_conversation_snapshot',
+    'storage_read_json',
+    'storage_write_json',
+    'storage_remove_json',
   ]) {
     requireText(localAppMacro[0], operation, 'Tauri local-app operation set');
   }
   requireText(rendererBridge, "NIMI_STANDARD_SHELL_COMMANDS['local-app.sessionStatus']", 'Renderer local-app status command');
-  requireText(rendererBridge, "NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactsReadRuntimeBytes']", 'Renderer local-app artifact command');
+  requireText(rendererBridge, "NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionStatus']", 'Renderer local-app permission status command');
+  requireText(rendererBridge, "NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson']", 'Renderer app-private storage command');
 
   // Explicit negative fixture: retired installed/developer vocabulary may not
   // appear in Tester production sources after the atomic local-app hardcut.

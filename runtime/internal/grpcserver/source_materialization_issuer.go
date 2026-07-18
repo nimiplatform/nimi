@@ -10,7 +10,7 @@ import (
 	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
 )
 
-const sourceMaterializationAccessPolicyDigestV4 = "34f338ae76cbd85de58054cd6fc4d0ee18500030a0bc12f091e88d46f2fc572f"
+const sourceMaterializationAccessPolicyDigestV5 = "7649e8c7aa85f6667b1af5134686fc653f33ed5094e5d11483a5e60f39765faa"
 
 type accountRealmSourceMaterializationIssuer struct {
 	account        *accountservice.Service
@@ -59,7 +59,7 @@ func (issuer *accountRealmSourceMaterializationIssuer) AcquireRealmSourceMateria
 			AccountID: acquisition.AccountLease.AccountID, Generation: acquisition.AccountLease.Generation,
 		},
 		ExpectedIssuer:                    issuer.expectedIssuer,
-		ExpectedAccessPolicyVersionDigest: sourceMaterializationAccessPolicyDigestV4,
+		ExpectedAccessPolicyVersionDigest: sourceMaterializationAccessPolicyDigestV5,
 		PacketResponse:                    runtimeAgentSourceMaterializationHTTPResponse(acquisition.PacketResponse),
 	}, nil
 }

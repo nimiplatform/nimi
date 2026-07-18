@@ -50,23 +50,23 @@ func scanLocalDevelopmentAuthorization(scanner localDevelopmentRowScanner) (loca
 	if !ok {
 		return localDevelopmentAuthorization{}, errLocalDevelopmentInvalid
 	}
-	var capabilities []string
-	if err := json.Unmarshal([]byte(capabilitiesJSON), &capabilities); err != nil {
+	var permissionRequirements []localDevelopmentPermissionRequirement
+	if err := json.Unmarshal([]byte(capabilitiesJSON), &permissionRequirements); err != nil {
 		return localDevelopmentAuthorization{}, errLocalDevelopmentInvalid
 	}
 	authorization := localDevelopmentAuthorization{
 		ID:    parsedAuthorizationID,
 		RunID: parsedRunID,
 		Project: localDevelopmentProjectSnapshot{
-			AppID:                 appID,
-			DisplayName:           displayName,
-			ProjectRoot:           projectRoot,
-			ManifestPath:          manifestPath,
-			ShellKind:             runtimev1.LocalDevelopmentShellKind(shellKind),
-			AccountID:             accountID,
-			AccountGeneration:     accountGeneration,
-			Capabilities:          capabilities,
-			CapabilityFingerprint: parsedFingerprint,
+			AppID:                            appID,
+			DisplayName:                      displayName,
+			ProjectRoot:                      projectRoot,
+			ManifestPath:                     manifestPath,
+			ShellKind:                        runtimev1.LocalDevelopmentShellKind(shellKind),
+			AccountID:                        accountID,
+			AccountGeneration:                accountGeneration,
+			PermissionRequirements:           permissionRequirements,
+			PermissionRequirementFingerprint: parsedFingerprint,
 		},
 		Decision:   runtimev1.LocalDevelopmentDecision(decision),
 		State:      state,
@@ -98,22 +98,22 @@ func scanLocalDevelopmentEvaluation(scanner localDevelopmentRowScanner) (localDe
 	if !ok {
 		return localDevelopmentEvaluation{}, "", errLocalDevelopmentInvalid
 	}
-	var capabilities []string
-	if err := json.Unmarshal([]byte(capabilitiesJSON), &capabilities); err != nil {
+	var permissionRequirements []localDevelopmentPermissionRequirement
+	if err := json.Unmarshal([]byte(capabilitiesJSON), &permissionRequirements); err != nil {
 		return localDevelopmentEvaluation{}, "", errLocalDevelopmentInvalid
 	}
 	evaluation := localDevelopmentEvaluation{
 		RunID: parsedRunID,
 		Project: localDevelopmentProjectSnapshot{
-			AppID:                 appID,
-			DisplayName:           displayName,
-			ProjectRoot:           projectRoot,
-			ManifestPath:          manifestPath,
-			ShellKind:             runtimev1.LocalDevelopmentShellKind(shellKind),
-			AccountID:             accountID,
-			AccountGeneration:     accountGeneration,
-			Capabilities:          capabilities,
-			CapabilityFingerprint: parsedFingerprint,
+			AppID:                            appID,
+			DisplayName:                      displayName,
+			ProjectRoot:                      projectRoot,
+			ManifestPath:                     manifestPath,
+			ShellKind:                        runtimev1.LocalDevelopmentShellKind(shellKind),
+			AccountID:                        accountID,
+			AccountGeneration:                accountGeneration,
+			PermissionRequirements:           permissionRequirements,
+			PermissionRequirementFingerprint: parsedFingerprint,
 		},
 		ExpiresAt: time.Unix(0, expiresAt).UTC(),
 	}

@@ -143,7 +143,7 @@ Realm SDK 公开符号（类型名、service 名、公开方法名、property-en
   facade 包装成稳定 API。任何 Realm operation 在进入 SDK public domain
   之前必须先进入 Realm OpenAPI/codegen 或被登记为具名 typed adapter；不得以
   `unknown` request/response 和字面量 `/api/...` path 暴露。
-- 一旦 Realm-managed runtime grant 合同落地，bridge helper 必须直接调用生成的 typed service（`realm.services.RuntimeRealmGrantsService.issueRuntimeRealmGrant`），不得继续走 `realm.unsafeRaw.request(...)`。
+- Realm 不提供 runtime grant bridge；SDK 不得生成、包装或回退到 `issueRuntimeRealmGrant`。Source Materialization packet 是 Runtime 内部消费的已认证第一方产品操作，不进入 app-facing Realm facade，也不接受 app grant、scope 或 `accessGrantId`。
 
 执行命令：
 

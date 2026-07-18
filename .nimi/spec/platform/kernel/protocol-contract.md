@@ -60,10 +60,12 @@ inventory, not a compatibility path.
 
 ## P-PROTO-040 — 策略更新与 catalog 规则
 
-`MUST`: Local grant create/expand/revoke/supersede atomically increments the
-grant revision. Each protected operation resolves the exact current revision;
-prior success or a session-time snapshot never authorizes. Grant mutation does
-not rotate the identity session, and the next operation must reflect it.
+`MUST`: When a public permission is fully admitted, its canonical owner must
+atomically increment the decision revision on request/approve/deny/revoke or
+expiry. Each protected operation resolves the current owner decision and exact
+selector; prior success or a session-time snapshot never authorizes. Permission
+mutation does not rotate the identity session, and the next operation must
+reflect it. Before admission, no positive decision store or mutation path exists.
 
 ## P-PROTO-050 — World-App 产品关系
 

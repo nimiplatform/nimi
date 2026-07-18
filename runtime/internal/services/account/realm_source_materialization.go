@@ -11,7 +11,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -19,19 +18,11 @@ import (
 )
 
 const (
-	realmSourceMaterializationAppID             = "nimi.avatar"
-	realmSourceMaterializationScopeFamily       = "realm_source"
-	realmSourceMaterializationScopeName         = "realm_source.snapshot.consume"
-	realmSourceMaterializationRequestReason     = "Nimi Runtime Realm source materialization"
-	realmSourceMaterializationRequestGrantPath  = "/api/human/me/permission-grants"
-	realmSourceMaterializationGrantPathPrefix   = "/api/human/me/permission-grants/by-id/"
-	realmSourceMaterializationPacketPath        = "/api/realm/core/source-materialization-packets"
-	realmSourceMaterializationJWKSPath          = "/api/auth/jwks/source-materialization"
-	realmSourceMaterializationControlBodyBytes  = 64 * 1024
-	realmSourceMaterializationJWKSBodyBytes     = 64 * 1024
-	realmSourceMaterializationPacketBodyBytes   = 512 * 1024 * 1024
-	realmSourceMaterializationHTTPTimeout       = 30 * time.Second
-	realmSourceMaterializationMaxSafeJSONNumber = uint64(1<<53 - 1)
+	realmSourceMaterializationPacketPath      = "/api/realm/core/source-materialization-packets"
+	realmSourceMaterializationJWKSPath        = "/api/auth/jwks/source-materialization"
+	realmSourceMaterializationJWKSBodyBytes   = 64 * 1024
+	realmSourceMaterializationPacketBodyBytes = 512 * 1024 * 1024
+	realmSourceMaterializationHTTPTimeout     = 30 * time.Second
 )
 
 var (
@@ -111,21 +102,9 @@ type realmSourceMaterializationCredentialLease struct {
 	bearer  string
 }
 
-type realmSourceMaterializationGrantRequest struct {
-	AppID       string `json:"appId"`
-	ScopeFamily string `json:"scopeFamily"`
-	ScopeName   string `json:"scopeName"`
-	Reason      string `json:"reason"`
-}
-
-type realmSourceMaterializationGrantDecision struct {
-	ExpectedVersion uint64 `json:"expectedVersion"`
-}
-
 type realmSourceMaterializationPacketRequest struct {
 	SourceRef               any                                    `json:"sourceRef"`
 	MaterializerAccountID   string                                 `json:"materializerAccountId"`
-	AccessGrantID           string                                 `json:"accessGrantId"`
 	ChallengeID             string                                 `json:"challengeId"`
 	ChallengeDigest         string                                 `json:"challengeDigest"`
 	IntendedRuntimeAudience string                                 `json:"intendedRuntimeAudience"`
@@ -166,59 +145,10 @@ type realmSourceMaterializationPersonaRefV3JSON struct {
 	SourceHash     string `json:"sourceHash"`
 }
 
-type realmSourceMaterializationNullableString struct {
-	Present bool
-	Null    bool
-	Value   string
-}
-
-func (value *realmSourceMaterializationNullableString) UnmarshalJSON(raw []byte) error {
-	value.Present = true
-	if bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
-		value.Null = true
-		value.Value = ""
-		return nil
-	}
-	value.Null = false
-	return json.Unmarshal(raw, &value.Value)
-}
-
-type realmSourceMaterializationGrant struct {
-	GrantID               string                                   `json:"grantId"`
-	SubjectAccountID      string                                   `json:"subjectAccountId"`
-	AppID                 string                                   `json:"appId"`
-	ScopeFamily           string                                   `json:"scopeFamily"`
-	ScopeName             string                                   `json:"scopeName"`
-	Qualifier             realmSourceMaterializationNullableString `json:"qualifier"`
-	State                 string                                   `json:"state"`
-	Reason                string                                   `json:"reason"`
-	Version               json.Number                              `json:"version"`
-	RequestedAt           string                                   `json:"requestedAt"`
-	RequestedByAccountID  string                                   `json:"requestedByAccountId"`
-	GrantedAt             realmSourceMaterializationNullableString `json:"grantedAt"`
-	GrantedByAccountID    realmSourceMaterializationNullableString `json:"grantedByAccountId"`
-	DeniedAt              realmSourceMaterializationNullableString `json:"deniedAt"`
-	DeniedByAccountID     realmSourceMaterializationNullableString `json:"deniedByAccountId"`
-	ExpiredAt             realmSourceMaterializationNullableString `json:"expiredAt"`
-	ExpiresAt             realmSourceMaterializationNullableString `json:"expiresAt"`
-	RevokedAt             realmSourceMaterializationNullableString `json:"revokedAt"`
-	RevokedByAccountID    realmSourceMaterializationNullableString `json:"revokedByAccountId"`
-	SupersededAt          realmSourceMaterializationNullableString `json:"supersededAt"`
-	SupersededByAccountID realmSourceMaterializationNullableString `json:"supersededByAccountId"`
-	SupersededByGrantID   realmSourceMaterializationNullableString `json:"supersededByGrantId"`
-}
-
-func (grant realmSourceMaterializationGrant) version() (uint64, error) {
-	version, err := strconv.ParseUint(grant.Version.String(), 10, 64)
-	if err != nil || version == 0 || version > realmSourceMaterializationMaxSafeJSONNumber {
-		return 0, fmt.Errorf("%w: grant version is invalid", ErrRealmSourceMaterializationContract)
-	}
-	return version, nil
-}
-
-// AcquireRealmSourceMaterialization owns the exact Realm grant request,
-// optional PENDING decision, and Packet v3 request. Existing exact GRANTED
-// authority is reused and is never sent to the decision endpoint again.
+// AcquireRealmSourceMaterialization performs the authenticated first-party
+// source operation directly. Realm owns the canonical account/source
+// visibility decision; no app id, permission scope, grant id, or caller-side
+// decision endpoint participates in this authority path.
 func (s *Service) AcquireRealmSourceMaterialization(ctx context.Context, request RealmSourceMaterializationIssuanceRequest) (RealmSourceMaterializationAcquisition, error) {
 	if s == nil {
 		return RealmSourceMaterializationAcquisition{}, ErrRealmSourceMaterializationUnavailable
@@ -231,56 +161,7 @@ func (s *Service) AcquireRealmSourceMaterialization(ctx context.Context, request
 		return RealmSourceMaterializationAcquisition{}, err
 	}
 
-	grantRequest := realmSourceMaterializationGrantRequest{
-		AppID:       realmSourceMaterializationAppID,
-		ScopeFamily: realmSourceMaterializationScopeFamily,
-		ScopeName:   realmSourceMaterializationScopeName,
-		Reason:      realmSourceMaterializationRequestReason,
-	}
-	grantResponse, err := s.doRealmSourceMaterializationJSON(ctx, credential, http.MethodPost, realmSourceMaterializationRequestGrantPath, grantRequest, http.StatusOK, realmSourceMaterializationControlBodyBytes, true)
-	if err != nil {
-		return RealmSourceMaterializationAcquisition{}, err
-	}
-	grant, err := decodeRealmSourceMaterializationGrant(grantResponse)
-	if err != nil {
-		return RealmSourceMaterializationAcquisition{}, err
-	}
-	requestVersion, err := validateRealmSourceMaterializationGrant(grant, credential.lease.AccountID, s.now().UTC(), true)
-	if err != nil {
-		return RealmSourceMaterializationAcquisition{}, err
-	}
-
-	if grant.State == "PENDING" {
-		decisionResponse, decisionErr := s.doRealmSourceMaterializationJSON(
-			ctx,
-			credential,
-			http.MethodPost,
-			realmSourceMaterializationGrantPathPrefix+url.PathEscape(grant.GrantID)+"/grant",
-			realmSourceMaterializationGrantDecision{ExpectedVersion: requestVersion},
-			http.StatusOK,
-			realmSourceMaterializationControlBodyBytes,
-			true,
-		)
-		if decisionErr != nil {
-			return RealmSourceMaterializationAcquisition{}, decisionErr
-		}
-		decidedGrant, decodeErr := decodeRealmSourceMaterializationGrant(decisionResponse)
-		if decodeErr != nil {
-			return RealmSourceMaterializationAcquisition{}, decodeErr
-		}
-		decisionVersion, validateErr := validateRealmSourceMaterializationGrant(decidedGrant, credential.lease.AccountID, s.now().UTC(), false)
-		if validateErr != nil {
-			return RealmSourceMaterializationAcquisition{}, validateErr
-		}
-		if decidedGrant.State != "GRANTED" || decidedGrant.GrantID != grant.GrantID || requestVersion == realmSourceMaterializationMaxSafeJSONNumber || decisionVersion != requestVersion+1 {
-			return RealmSourceMaterializationAcquisition{}, fmt.Errorf("%w: grant decision did not advance the same PENDING record exactly once", ErrRealmSourceMaterializationContract)
-		}
-		grant = decidedGrant
-	} else if grant.State != "GRANTED" {
-		return RealmSourceMaterializationAcquisition{}, fmt.Errorf("%w: grant request returned non-authorizing state", ErrRealmSourceMaterializationContract)
-	}
-
-	packetBody, err := buildRealmSourceMaterializationPacketRequest(request, credential.lease.AccountID, grant.GrantID)
+	packetBody, err := buildRealmSourceMaterializationPacketRequest(request, credential.lease.AccountID)
 	if err != nil {
 		return RealmSourceMaterializationAcquisition{}, err
 	}
@@ -390,22 +271,6 @@ func (s *Service) captureRealmSourceMaterializationCredential(ctx context.Contex
 	return credential, nil
 }
 
-func (s *Service) doRealmSourceMaterializationJSON(ctx context.Context, credential realmSourceMaterializationCredentialLease, method, path string, body any, expectedStatus int, maxBytes int64, authenticated bool) ([]byte, error) {
-	response, err := s.doRealmSourceMaterializationStream(ctx, credential, method, path, body, expectedStatus, maxBytes, authenticated, false)
-	if err != nil {
-		return nil, err
-	}
-	defer response.Body.Close()
-	raw, err := io.ReadAll(response.Body)
-	if err != nil {
-		if errors.Is(err, ErrRealmSourceMaterializationResponseSize) {
-			return nil, err
-		}
-		return nil, fmt.Errorf("%w: read Realm response", ErrRealmSourceMaterializationUnavailable)
-	}
-	return raw, nil
-}
-
 func (s *Service) doRealmSourceMaterializationStream(ctx context.Context, credential realmSourceMaterializationCredentialLease, method, path string, body any, expectedStatus int, maxBytes int64, authenticated, noCache bool) (RealmSourceMaterializationHTTPResponse, error) {
 	if err := s.RevalidateRealmSourceMaterializationAccount(ctx, credential.lease); err != nil {
 		return RealmSourceMaterializationHTTPResponse{}, err
@@ -499,7 +364,7 @@ func realmSourceMaterializationHTTPStatusError(path string, statusCode int) erro
 		case http.StatusUnauthorized:
 			return fmt.Errorf("%w: Realm account authentication was rejected", ErrRealmSourceMaterializationAccountLease)
 		case http.StatusForbidden:
-			return fmt.Errorf("%w: Realm grant or source visibility was denied", ErrRealmSourceMaterializationDenied)
+			return fmt.Errorf("%w: Realm source visibility or account policy was denied", ErrRealmSourceMaterializationDenied)
 		case http.StatusConflict:
 			return fmt.Errorf("%w: canonical Realm source or dependency is stale or not ready", ErrRealmSourceMaterializationSourceBinding)
 		}
@@ -524,7 +389,7 @@ func validateRealmSourceMaterializationIssuanceRequest(request RealmSourceMateri
 		{limits.MaxSetSegments, 64}, {limits.MaxSetBytes, 134217728}, {limits.MaxSetComponentCount, 16384}, {limits.MaxSetChunks, 65536},
 	}
 	for _, value := range values {
-		if value.value == 0 || value.value > value.maximum || value.value > realmSourceMaterializationMaxSafeJSONNumber {
+		if value.value == 0 || value.value > value.maximum {
 			return fmt.Errorf("%w: published limits are outside the admitted range", ErrRealmSourceMaterializationContract)
 		}
 	}
@@ -534,17 +399,14 @@ func validateRealmSourceMaterializationIssuanceRequest(request RealmSourceMateri
 	return nil
 }
 
-func buildRealmSourceMaterializationPacketRequest(request RealmSourceMaterializationIssuanceRequest, accountID, grantID string) (realmSourceMaterializationPacketRequest, error) {
+func buildRealmSourceMaterializationPacketRequest(request RealmSourceMaterializationIssuanceRequest, accountID string) (realmSourceMaterializationPacketRequest, error) {
 	sourceRef, err := realmSourceMaterializationSourceRefJSON(request.SourceRef)
 	if err != nil {
 		return realmSourceMaterializationPacketRequest{}, err
 	}
-	if !validRealmSourceMaterializationGrantID(grantID) {
-		return realmSourceMaterializationPacketRequest{}, fmt.Errorf("%w: canonical grant id is invalid", ErrRealmSourceMaterializationContract)
-	}
 	limits := request.Limits
 	return realmSourceMaterializationPacketRequest{
-		SourceRef: sourceRef, MaterializerAccountID: accountID, AccessGrantID: grantID,
+		SourceRef: sourceRef, MaterializerAccountID: accountID,
 		ChallengeID: request.Challenge.ChallengeID, ChallengeDigest: request.Challenge.ChallengeDigest,
 		IntendedRuntimeAudience: request.Challenge.IntendedRuntimeAudience,
 		ChallengeExpiresAt:      request.Challenge.ExpiresAt.UTC().Format(time.RFC3339Nano),
@@ -578,64 +440,6 @@ func realmSourceMaterializationSourceRefJSON(source RealmSourceMaterializationSo
 	default:
 		return nil, fmt.Errorf("%w: source ref kind is invalid", ErrRealmSourceMaterializationContract)
 	}
-}
-
-func decodeRealmSourceMaterializationGrant(raw []byte) (realmSourceMaterializationGrant, error) {
-	if err := rejectRealmSourceMaterializationDuplicateJSONKeys(raw); err != nil {
-		return realmSourceMaterializationGrant{}, err
-	}
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.DisallowUnknownFields()
-	decoder.UseNumber()
-	var grant realmSourceMaterializationGrant
-	if err := decoder.Decode(&grant); err != nil {
-		return realmSourceMaterializationGrant{}, fmt.Errorf("%w: grant response schema is invalid", ErrRealmSourceMaterializationContract)
-	}
-	var trailing any
-	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
-		return realmSourceMaterializationGrant{}, fmt.Errorf("%w: grant response has trailing JSON", ErrRealmSourceMaterializationContract)
-	}
-	return grant, nil
-}
-
-func validateRealmSourceMaterializationGrant(grant realmSourceMaterializationGrant, accountID string, now time.Time, allowPending bool) (uint64, error) {
-	version, err := grant.version()
-	if err != nil {
-		return 0, err
-	}
-	if !validRealmSourceMaterializationGrantID(grant.GrantID) || grant.SubjectAccountID != accountID || grant.RequestedByAccountID != accountID || grant.AppID != realmSourceMaterializationAppID || grant.ScopeFamily != realmSourceMaterializationScopeFamily || grant.ScopeName != realmSourceMaterializationScopeName || !grant.Qualifier.Present || !grant.Qualifier.Null || len(grant.Reason) > 2000 {
-		return 0, fmt.Errorf("%w: canonical grant selector or subject is invalid", ErrRealmSourceMaterializationContract)
-	}
-	if _, err := time.Parse(time.RFC3339Nano, grant.RequestedAt); err != nil {
-		return 0, fmt.Errorf("%w: grant requestedAt is invalid", ErrRealmSourceMaterializationContract)
-	}
-	for _, terminal := range []realmSourceMaterializationNullableString{grant.DeniedAt, grant.DeniedByAccountID, grant.ExpiredAt, grant.RevokedAt, grant.RevokedByAccountID, grant.SupersededAt, grant.SupersededByAccountID, grant.SupersededByGrantID} {
-		if terminal.Present && !terminal.Null {
-			return 0, fmt.Errorf("%w: authorizing grant contains terminal state evidence", ErrRealmSourceMaterializationContract)
-		}
-	}
-	switch grant.State {
-	case "PENDING":
-		if !allowPending || (grant.GrantedAt.Present && !grant.GrantedAt.Null) || (grant.GrantedByAccountID.Present && !grant.GrantedByAccountID.Null) || (grant.ExpiresAt.Present && !grant.ExpiresAt.Null) {
-			return 0, fmt.Errorf("%w: PENDING grant state is invalid", ErrRealmSourceMaterializationContract)
-		}
-	case "GRANTED":
-		if !grant.GrantedAt.Present || grant.GrantedAt.Null || !grant.GrantedByAccountID.Present || grant.GrantedByAccountID.Null || grant.GrantedByAccountID.Value != accountID {
-			return 0, fmt.Errorf("%w: GRANTED record lacks exact decision evidence", ErrRealmSourceMaterializationContract)
-		}
-		if _, err := time.Parse(time.RFC3339Nano, grant.GrantedAt.Value); err != nil {
-			return 0, fmt.Errorf("%w: grant grantedAt is invalid", ErrRealmSourceMaterializationContract)
-		}
-		if grant.ExpiresAt.Present && !grant.ExpiresAt.Null {
-			expiresAt, parseErr := time.Parse(time.RFC3339Nano, grant.ExpiresAt.Value)
-			if parseErr != nil || !expiresAt.After(now) {
-				return 0, fmt.Errorf("%w: GRANTED record is expired", ErrRealmSourceMaterializationContract)
-			}
-		}
-	default:
-		return 0, fmt.Errorf("%w: grant state is not admitted", ErrRealmSourceMaterializationContract)
-	}
-	return version, nil
 }
 
 func canonicalRealmSourceMaterializationBaseURL(value string) (string, error) {
@@ -685,19 +489,6 @@ func validRealmSourceMaterializationIdentifier(value string, maximum int) bool {
 	return value != "" && value == strings.TrimSpace(value) && len(value) <= maximum
 }
 
-func validRealmSourceMaterializationGrantID(value string) bool {
-	if !validRealmSourceMaterializationIdentifier(value, 256) {
-		return false
-	}
-	for _, character := range []byte(value) {
-		if (character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z') || (character >= '0' && character <= '9') || strings.ContainsRune("-._~", rune(character)) {
-			continue
-		}
-		return false
-	}
-	return true
-}
-
 func isRealmSourceMaterializationLowerSHA256(value string) bool {
 	if len(value) != 64 {
 		return false
@@ -729,67 +520,6 @@ func headerContainsDirective(values []string, directive string) bool {
 		}
 	}
 	return false
-}
-
-func rejectRealmSourceMaterializationDuplicateJSONKeys(raw []byte) error {
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.UseNumber()
-	if err := scanRealmSourceMaterializationJSONValue(decoder); err != nil {
-		return fmt.Errorf("%w: grant response JSON is invalid", ErrRealmSourceMaterializationContract)
-	}
-	if token, err := decoder.Token(); !errors.Is(err, io.EOF) || token != nil {
-		return fmt.Errorf("%w: grant response has trailing JSON", ErrRealmSourceMaterializationContract)
-	}
-	return nil
-}
-
-func scanRealmSourceMaterializationJSONValue(decoder *json.Decoder) error {
-	token, err := decoder.Token()
-	if err != nil {
-		return err
-	}
-	delimiter, ok := token.(json.Delim)
-	if !ok {
-		return nil
-	}
-	switch delimiter {
-	case '{':
-		seen := make(map[string]struct{})
-		for decoder.More() {
-			keyToken, keyErr := decoder.Token()
-			if keyErr != nil {
-				return keyErr
-			}
-			key, ok := keyToken.(string)
-			if !ok {
-				return fmt.Errorf("object key is not a string")
-			}
-			if _, duplicate := seen[key]; duplicate {
-				return fmt.Errorf("duplicate object key")
-			}
-			seen[key] = struct{}{}
-			if err := scanRealmSourceMaterializationJSONValue(decoder); err != nil {
-				return err
-			}
-		}
-		end, err := decoder.Token()
-		if err != nil || end != json.Delim('}') {
-			return fmt.Errorf("object is not closed")
-		}
-	case '[':
-		for decoder.More() {
-			if err := scanRealmSourceMaterializationJSONValue(decoder); err != nil {
-				return err
-			}
-		}
-		end, err := decoder.Token()
-		if err != nil || end != json.Delim(']') {
-			return fmt.Errorf("array is not closed")
-		}
-	default:
-		return fmt.Errorf("invalid JSON delimiter")
-	}
-	return nil
 }
 
 type realmSourceMaterializationBoundedReadCloser struct {

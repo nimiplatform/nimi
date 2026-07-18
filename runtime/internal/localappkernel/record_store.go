@@ -210,8 +210,8 @@ func (store *RecordStore) AdvanceProvenanceRevision(ctx context.Context, princip
 	result, err = tx.ExecContext(ctx, `INSERT INTO local_app_provenance_invalidation_facts(
 		local_os_user_anchor, local_app_principal_id, local_app_record_id,
 		previous_revision, current_revision, launch_leases_invalidated,
-		sessions_invalidated, grant_state_changed, recorded_unix_nano
-	) VALUES (?, ?, ?, ?, ?, 1, 1, 0, ?)`, store.kernel.anchor, principalID, recordID, expectedRevision, nextRevision, now.UnixNano())
+		sessions_invalidated, recorded_unix_nano
+	) VALUES (?, ?, ?, ?, ?, 1, 1, ?)`, store.kernel.anchor, principalID, recordID, expectedRevision, nextRevision, now.UnixNano())
 	if err != nil {
 		return ProvenanceInvalidationFact{}, fmt.Errorf("record provenance invalidation fact: %w", err)
 	}
@@ -231,7 +231,6 @@ func (store *RecordStore) AdvanceProvenanceRevision(ctx context.Context, princip
 		CurrentRevision:         nextRevision,
 		LaunchLeasesInvalidated: true,
 		SessionsInvalidated:     true,
-		GrantStateChanged:       false,
 		RecordedAt:              now,
 	}, nil
 }
@@ -245,7 +244,7 @@ func (store *RecordStore) ListInvalidationFacts(ctx context.Context, principalID
 	}
 	rows, err := store.kernel.db.QueryContext(ctx, `SELECT sequence, local_os_user_anchor, local_app_principal_id,
 		local_app_record_id, previous_revision, current_revision, launch_leases_invalidated,
-		sessions_invalidated, grant_state_changed, recorded_unix_nano
+		sessions_invalidated, recorded_unix_nano
 		FROM local_app_provenance_invalidation_facts
 		WHERE local_os_user_anchor = ? AND local_app_principal_id = ? ORDER BY sequence`, store.kernel.anchor, principalID)
 	if err != nil {
@@ -257,15 +256,13 @@ func (store *RecordStore) ListInvalidationFacts(ctx context.Context, principalID
 		var fact ProvenanceInvalidationFact
 		var launchInvalidated int
 		var sessionsInvalidated int
-		var grantChanged int
 		var recordedUnixNano int64
 		if err := rows.Scan(&fact.Sequence, &fact.LocalOSUserAnchor, &fact.LocalAppPrincipalID, &fact.LocalAppRecordID,
-			&fact.PreviousRevision, &fact.CurrentRevision, &launchInvalidated, &sessionsInvalidated, &grantChanged, &recordedUnixNano); err != nil {
+			&fact.PreviousRevision, &fact.CurrentRevision, &launchInvalidated, &sessionsInvalidated, &recordedUnixNano); err != nil {
 			return nil, fmt.Errorf("scan provenance invalidation fact: %w", err)
 		}
 		fact.LaunchLeasesInvalidated = launchInvalidated == 1
 		fact.SessionsInvalidated = sessionsInvalidated == 1
-		fact.GrantStateChanged = grantChanged == 1
 		fact.RecordedAt = time.Unix(0, recordedUnixNano).UTC()
 		facts = append(facts, fact)
 	}

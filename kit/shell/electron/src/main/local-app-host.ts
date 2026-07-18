@@ -4,19 +4,11 @@ const WINDOWS_X64_BINDING_PACKAGE = '@nimiplatform/kit-protected-local-win32-x64
 
 const LOCAL_APP_BINDING_METHODS = [
   'localAppSessionStatus',
-  'localAppPermissionPosture',
+  'localAppPermissionStatus',
   'localAppPermissionRequest',
-  'localAppArtifactsReadRuntimeBytes',
   'localAppStorageReadJson',
   'localAppStorageWriteJson',
   'localAppStorageRemoveJson',
-  'localAppAgentInventory',
-  'localAppAgentOpenConversation',
-  'localAppAgentSendTurn',
-  'localAppAgentSubscribeTurn',
-  'localAppAgentGetConversationSnapshot',
-  'localAppAgentTranscribeVoice',
-  'localAppAgentSubscribeVoiceStream',
 ] as const;
 
 const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
@@ -30,10 +22,8 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'runtime-restarted',
   'revoked',
   'project-changed',
-  'no-grant',
-  'grant-revoked',
-  'grant-superseded',
-  'presence-expired',
+  'permission-unavailable',
+  'request-pending',
   'runtime-permission-denied',
   'invalid-payload',
   'not-found',
@@ -71,49 +61,26 @@ export type NimiElectronLocalAppRecord = {
   readonly [key: string]: NimiElectronLocalAppJson;
 };
 
-export type NimiElectronLocalAppArtifactBytes = {
-  readonly bytes: Uint8Array;
-  readonly mimeType: string;
-  readonly sizeBytes: number;
-  readonly mimeInferred: boolean;
-};
-
 type NativeLocalAppOutcome =
   | { readonly status: 'ok'; readonly value: unknown }
   | { readonly status: 'error'; readonly reasonCode: string; readonly retryable: boolean };
 
 export type NimiElectronProtectedLocalBinding = {
   readonly localAppSessionStatus: () => Promise<NativeLocalAppOutcome>;
-  readonly localAppPermissionPosture: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppPermissionStatus: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppPermissionRequest: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
-  readonly localAppArtifactsReadRuntimeBytes: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppStorageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppStorageWriteJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppStorageRemoveJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
-  readonly localAppAgentInventory: () => Promise<NativeLocalAppOutcome>;
-  readonly localAppAgentOpenConversation: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
-  readonly localAppAgentSendTurn: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
-  readonly localAppAgentSubscribeTurn: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
-  readonly localAppAgentGetConversationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
-  readonly localAppAgentTranscribeVoice: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
-  readonly localAppAgentSubscribeVoiceStream: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
 };
 
 export type NimiElectronLocalAppHost = {
   readonly sessionStatus: () => Promise<NimiElectronLocalAppRecord>;
-  readonly permissionPosture: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly permissionStatus: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly permissionRequest: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
-  readonly artifactsReadRuntimeBytes: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppArtifactBytes>;
   readonly storageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly storageWriteJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly storageRemoveJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
-  readonly agentInventory: () => Promise<NimiElectronLocalAppRecord>;
-  readonly agentOpenConversation: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
-  readonly agentSendTurn: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
-  readonly agentSubscribeTurn: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
-  readonly agentGetConversationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
-  readonly agentTranscribeVoice: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
-  readonly agentSubscribeVoiceStream: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
 };
 
 export class NimiElectronLocalAppHostError extends Error {
@@ -135,17 +102,12 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokeRecord(() => this.binding.localAppSessionStatus());
   }
 
-  permissionPosture(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeRecord(() => this.binding.localAppPermissionPosture(input));
+  permissionStatus(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppPermissionStatus(input));
   }
 
   permissionRequest(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeRecord(() => this.binding.localAppPermissionRequest(input));
-  }
-
-  async artifactsReadRuntimeBytes(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppArtifactBytes> {
-    const value = await invoke(() => this.binding.localAppArtifactsReadRuntimeBytes(input));
-    return validateArtifactBytes(value);
   }
 
   storageReadJson(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -160,33 +122,6 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokeStorageRemove(() => this.binding.localAppStorageRemoveJson(input));
   }
 
-  agentInventory(): Promise<NimiElectronLocalAppRecord> {
-    return invokeRecord(() => this.binding.localAppAgentInventory());
-  }
-
-  agentOpenConversation(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeRecord(() => this.binding.localAppAgentOpenConversation(input));
-  }
-
-  agentSendTurn(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeRecord(() => this.binding.localAppAgentSendTurn(input));
-  }
-
-  agentSubscribeTurn(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeRecord(() => this.binding.localAppAgentSubscribeTurn(input));
-  }
-
-  agentGetConversationSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeRecord(() => this.binding.localAppAgentGetConversationSnapshot(input));
-  }
-
-  agentTranscribeVoice(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeVoiceTranscription(() => this.binding.localAppAgentTranscribeVoice(input), input);
-  }
-
-  agentSubscribeVoiceStream(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeVoiceStreamPage(() => this.binding.localAppAgentSubscribeVoiceStream(input), input);
-  }
 }
 
 class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
@@ -201,16 +136,12 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
     return this.resolve().sessionStatus();
   }
 
-  permissionPosture(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return this.resolve().permissionPosture(input);
+  permissionStatus(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().permissionStatus(input);
   }
 
   permissionRequest(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().permissionRequest(input);
-  }
-
-  artifactsReadRuntimeBytes(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppArtifactBytes> {
-    return this.resolve().artifactsReadRuntimeBytes(input);
   }
 
   storageReadJson(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -225,33 +156,6 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
     return this.resolve().storageRemoveJson(input);
   }
 
-  agentInventory(): Promise<NimiElectronLocalAppRecord> {
-    return this.resolve().agentInventory();
-  }
-
-  agentOpenConversation(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return this.resolve().agentOpenConversation(input);
-  }
-
-  agentSendTurn(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return this.resolve().agentSendTurn(input);
-  }
-
-  agentSubscribeTurn(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return this.resolve().agentSubscribeTurn(input);
-  }
-
-  agentGetConversationSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return this.resolve().agentGetConversationSnapshot(input);
-  }
-
-  agentTranscribeVoice(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return this.resolve().agentTranscribeVoice(input);
-  }
-
-  agentSubscribeVoiceStream(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return this.resolve().agentSubscribeVoiceStream(input);
-  }
 }
 
 export function createNimiElectronLocalAppHost(): NimiElectronLocalAppHost {
@@ -333,78 +237,6 @@ async function invokeStorageRemove(call: () => Promise<NativeLocalAppOutcome>): 
   return Object.freeze({ removed: value.removed });
 }
 
-async function invokeVoiceTranscription(
-  call: () => Promise<NativeLocalAppOutcome>,
-  input: NimiElectronLocalAppRecord,
-): Promise<NimiElectronLocalAppRecord> {
-  const value = await invoke(call);
-  if (!isPlainRecord(value) || !hasExactKeys(value, ['clientRequestId', 'text'])) {
-    throw untrustedRuntimeError();
-  }
-  const clientRequestId = typeof value.clientRequestId === 'string' ? value.clientRequestId : '';
-  if (
-    clientRequestId !== input.clientRequestId
-    || typeof value.text !== 'string'
-    || Buffer.byteLength(value.text, 'utf8') > 64 * 1024
-  ) {
-    throw untrustedRuntimeError();
-  }
-  return Object.freeze({ clientRequestId, text: value.text });
-}
-
-async function invokeVoiceStreamPage(
-  call: () => Promise<NativeLocalAppOutcome>,
-  input: NimiElectronLocalAppRecord,
-): Promise<NimiElectronLocalAppRecord> {
-  const value = await invoke(call);
-  if (!isPlainRecord(value) || !hasExactKeys(value, ['cursor', 'events'])) throw untrustedRuntimeError();
-  const cursor = decimalText(value.cursor);
-  const previousCursor = input.cursor === '' ? undefined : decimalText(input.cursor);
-  if (!cursor || (previousCursor !== undefined && BigInt(cursor) <= BigInt(previousCursor))) {
-    throw untrustedRuntimeError();
-  }
-  if (!Array.isArray(value.events) || value.events.length !== 1) throw untrustedRuntimeError();
-  const event = value.events[0];
-  const eventKeys = [
-    'voiceStreamId', 'conversationAnchorId', 'turnId', 'streamId', 'messageId',
-    'chunkSequence', 'chunkBase64', 'mimeType', 'voiceOutputMode', 'playbackTarget',
-    'terminal', 'voicePlaybackState', 'terminalReason', 'replayTruncated',
-  ];
-  if (!isPlainRecord(event) || !hasExactKeys(event, eventKeys)) throw untrustedRuntimeError();
-  if (
-    event.voiceStreamId !== input.voiceStreamId
-    || event.conversationAnchorId !== input.conversationAnchorId
-    || event.turnId !== input.turnId
-    || !canonicalText(event.streamId)
-    || !canonicalText(event.messageId)
-    || !decimalText(event.chunkSequence)
-    || typeof event.chunkBase64 !== 'string'
-    || typeof event.mimeType !== 'string'
-    || typeof event.voiceOutputMode !== 'number'
-    || !Number.isInteger(event.voiceOutputMode)
-    || Number(event.voiceOutputMode) < 1
-    || Number(event.voiceOutputMode) > 4
-    || typeof event.playbackTarget !== 'string'
-    || event.playbackTarget.trim() !== event.playbackTarget
-    || typeof event.terminal !== 'boolean'
-    || typeof event.voicePlaybackState !== 'number'
-    || !Number.isInteger(event.voicePlaybackState)
-    || Number(event.voicePlaybackState) < 1
-    || Number(event.voicePlaybackState) > 5
-    || typeof event.terminalReason !== 'string'
-    || event.terminalReason.trim() !== event.terminalReason
-    || event.replayTruncated !== false
-  ) {
-    throw untrustedRuntimeError();
-  }
-  const chunk = decodeCanonicalBase64(event.chunkBase64, 32 * 1024 * 1024);
-  if ((event.terminal && chunk.byteLength !== 0) || (!event.terminal && chunk.byteLength === 0)) {
-    throw untrustedRuntimeError();
-  }
-  if (!event.terminal && !isAdmittedAudioMime(event.mimeType)) throw untrustedRuntimeError();
-  return Object.freeze({ cursor, events: [Object.freeze({ ...event })] }) as NimiElectronLocalAppRecord;
-}
-
 function validateJsonValue(value: unknown, depth = 0, budget = { nodes: 0 }): void {
   budget.nodes += 1;
   if (depth > 32 || budget.nodes > 100_000) throw untrustedRuntimeError();
@@ -424,31 +256,6 @@ function validateProjection(value: unknown): NimiElectronLocalAppRecord {
   return Object.freeze({ ...value }) as NimiElectronLocalAppRecord;
 }
 
-function hasExactKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
-  return JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...keys].sort());
-}
-
-function canonicalText(value: unknown): string | undefined {
-  return typeof value === 'string' && value.length > 0 && value.trim() === value ? value : undefined;
-}
-
-function decimalText(value: unknown): string | undefined {
-  return typeof value === 'string' && /^(?:0|[1-9]\d*)$/u.test(value) ? value : undefined;
-}
-
-function decodeCanonicalBase64(value: string, maxBytes: number): Buffer {
-  if (value.length % 4 !== 0 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(value)) {
-    throw untrustedRuntimeError();
-  }
-  const bytes = Buffer.from(value, 'base64');
-  if (bytes.byteLength > maxBytes || bytes.toString('base64') !== value) throw untrustedRuntimeError();
-  return bytes;
-}
-
-function isAdmittedAudioMime(value: string): boolean {
-  return ['audio/webm', 'audio/ogg', 'audio/wav', 'audio/mpeg', 'audio/mp4', 'audio/flac'].includes(value);
-}
-
 function validateProjectionValue(value: unknown): void {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
   if (typeof value === 'number' && Number.isFinite(value)) return;
@@ -463,37 +270,9 @@ function validateProjectionValue(value: unknown): void {
   }
 }
 
-function validateArtifactBytes(value: unknown): NimiElectronLocalAppArtifactBytes {
-  if (!isPlainRecord(value)) throw untrustedRuntimeError();
-  const keys = Object.keys(value).sort();
-  if (JSON.stringify(keys) !== JSON.stringify(['bytes', 'mimeInferred', 'mimeType', 'sizeBytes'])) {
-    throw untrustedRuntimeError();
-  }
-  const bytes = value.bytes;
-  const mimeType = typeof value.mimeType === 'string' ? value.mimeType : '';
-  const sizeBytes = Number(value.sizeBytes);
-  if (
-    !isUint8Array(bytes)
-    || !Number.isSafeInteger(sizeBytes)
-    || sizeBytes < 0
-    || bytes.byteLength !== sizeBytes
-    || !mimeType
-    || mimeType.trim() !== mimeType
-    || !mimeType.includes('/')
-    || typeof value.mimeInferred !== 'boolean'
-  ) {
-    throw untrustedRuntimeError();
-  }
-  return { bytes, mimeType, sizeBytes, mimeInferred: value.mimeInferred };
-}
-
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
     && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
-}
-
-function isUint8Array(value: unknown): value is Uint8Array {
-  return Object.prototype.toString.call(value) === '[object Uint8Array]';
 }
 
 function untrustedRuntimeError(): NimiElectronLocalAppHostError {

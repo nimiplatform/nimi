@@ -24,7 +24,6 @@ const (
 	RuntimeAgentService_TerminateAgent_FullMethodName                         = "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent"
 	RuntimeAgentService_GetAgent_FullMethodName                               = "/nimi.runtime.v1.RuntimeAgentService/GetAgent"
 	RuntimeAgentService_ListAgents_FullMethodName                             = "/nimi.runtime.v1.RuntimeAgentService/ListAgents"
-	RuntimeAgentService_ListLocalAppAgentInventory_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory"
 	RuntimeAgentService_OpenConversationAnchor_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
 	RuntimeAgentService_GetConversationAnchorSnapshot_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot"
 	RuntimeAgentService_RegisterAvatarLiveInstanceBinding_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding"
@@ -74,7 +73,6 @@ const (
 	RuntimeAgentService_ListParticipationAuditEvents_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents"
 	RuntimeAgentService_GetParticipationReplay_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/GetParticipationReplay"
 	RuntimeAgentService_SubscribeAgentEvents_FullMethodName                   = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents"
-	RuntimeAgentService_TranscribeLocalAppAgentAudio_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppAgentAudio"
 	RuntimeAgentService_SubscribeAgentVoiceStream_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream"
 	RuntimeAgentService_InterruptAgentVoicePlayback_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback"
 	RuntimeAgentService_GetRuntimeAgentAIConfig_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig"
@@ -95,7 +93,6 @@ type RuntimeAgentServiceClient interface {
 	TerminateAgent(ctx context.Context, in *TerminateAgentRequest, opts ...grpc.CallOption) (*TerminateAgentResponse, error)
 	GetAgent(ctx context.Context, in *GetAgentRequest, opts ...grpc.CallOption) (*GetAgentResponse, error)
 	ListAgents(ctx context.Context, in *ListAgentsRequest, opts ...grpc.CallOption) (*ListAgentsResponse, error)
-	ListLocalAppAgentInventory(ctx context.Context, in *ListLocalAppAgentInventoryRequest, opts ...grpc.CallOption) (*ListLocalAppAgentInventoryResponse, error)
 	OpenConversationAnchor(ctx context.Context, in *OpenConversationAnchorRequest, opts ...grpc.CallOption) (*OpenConversationAnchorResponse, error)
 	GetConversationAnchorSnapshot(ctx context.Context, in *GetConversationAnchorSnapshotRequest, opts ...grpc.CallOption) (*GetConversationAnchorSnapshotResponse, error)
 	RegisterAvatarLiveInstanceBinding(ctx context.Context, in *RegisterAvatarLiveInstanceBindingRequest, opts ...grpc.CallOption) (*RegisterAvatarLiveInstanceBindingResponse, error)
@@ -146,7 +143,6 @@ type RuntimeAgentServiceClient interface {
 	ListParticipationAuditEvents(ctx context.Context, in *ListParticipationAuditEventsRequest, opts ...grpc.CallOption) (*ListParticipationAuditEventsResponse, error)
 	GetParticipationReplay(ctx context.Context, in *GetParticipationReplayRequest, opts ...grpc.CallOption) (*GetParticipationReplayResponse, error)
 	SubscribeAgentEvents(ctx context.Context, in *SubscribeAgentEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentEvent], error)
-	TranscribeLocalAppAgentAudio(ctx context.Context, in *TranscribeLocalAppAgentAudioRequest, opts ...grpc.CallOption) (*TranscribeLocalAppAgentAudioResponse, error)
 	SubscribeAgentVoiceStream(ctx context.Context, in *SubscribeAgentVoiceStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentVoiceStreamEvent], error)
 	InterruptAgentVoicePlayback(ctx context.Context, in *InterruptAgentVoicePlaybackRequest, opts ...grpc.CallOption) (*InterruptAgentVoicePlaybackResponse, error)
 	// K-AGCORE-144..150 Runtime Agent AI Config surface.
@@ -208,16 +204,6 @@ func (c *runtimeAgentServiceClient) ListAgents(ctx context.Context, in *ListAgen
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListAgentsResponse)
 	err := c.cc.Invoke(ctx, RuntimeAgentService_ListAgents_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAgentServiceClient) ListLocalAppAgentInventory(ctx context.Context, in *ListLocalAppAgentInventoryRequest, opts ...grpc.CallOption) (*ListLocalAppAgentInventoryResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListLocalAppAgentInventoryResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_ListLocalAppAgentInventory_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -723,16 +709,6 @@ func (c *runtimeAgentServiceClient) SubscribeAgentEvents(ctx context.Context, in
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAgentService_SubscribeAgentEventsClient = grpc.ServerStreamingClient[AgentEvent]
 
-func (c *runtimeAgentServiceClient) TranscribeLocalAppAgentAudio(ctx context.Context, in *TranscribeLocalAppAgentAudioRequest, opts ...grpc.CallOption) (*TranscribeLocalAppAgentAudioResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(TranscribeLocalAppAgentAudioResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_TranscribeLocalAppAgentAudio_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *runtimeAgentServiceClient) SubscribeAgentVoiceStream(ctx context.Context, in *SubscribeAgentVoiceStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentVoiceStreamEvent], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[1], RuntimeAgentService_SubscribeAgentVoiceStream_FullMethodName, cOpts...)
@@ -823,7 +799,6 @@ type RuntimeAgentServiceServer interface {
 	TerminateAgent(context.Context, *TerminateAgentRequest) (*TerminateAgentResponse, error)
 	GetAgent(context.Context, *GetAgentRequest) (*GetAgentResponse, error)
 	ListAgents(context.Context, *ListAgentsRequest) (*ListAgentsResponse, error)
-	ListLocalAppAgentInventory(context.Context, *ListLocalAppAgentInventoryRequest) (*ListLocalAppAgentInventoryResponse, error)
 	OpenConversationAnchor(context.Context, *OpenConversationAnchorRequest) (*OpenConversationAnchorResponse, error)
 	GetConversationAnchorSnapshot(context.Context, *GetConversationAnchorSnapshotRequest) (*GetConversationAnchorSnapshotResponse, error)
 	RegisterAvatarLiveInstanceBinding(context.Context, *RegisterAvatarLiveInstanceBindingRequest) (*RegisterAvatarLiveInstanceBindingResponse, error)
@@ -874,7 +849,6 @@ type RuntimeAgentServiceServer interface {
 	ListParticipationAuditEvents(context.Context, *ListParticipationAuditEventsRequest) (*ListParticipationAuditEventsResponse, error)
 	GetParticipationReplay(context.Context, *GetParticipationReplayRequest) (*GetParticipationReplayResponse, error)
 	SubscribeAgentEvents(*SubscribeAgentEventsRequest, grpc.ServerStreamingServer[AgentEvent]) error
-	TranscribeLocalAppAgentAudio(context.Context, *TranscribeLocalAppAgentAudioRequest) (*TranscribeLocalAppAgentAudioResponse, error)
 	SubscribeAgentVoiceStream(*SubscribeAgentVoiceStreamRequest, grpc.ServerStreamingServer[AgentVoiceStreamEvent]) error
 	InterruptAgentVoicePlayback(context.Context, *InterruptAgentVoicePlaybackRequest) (*InterruptAgentVoicePlaybackResponse, error)
 	// K-AGCORE-144..150 Runtime Agent AI Config surface.
@@ -905,9 +879,6 @@ func (UnimplementedRuntimeAgentServiceServer) GetAgent(context.Context, *GetAgen
 }
 func (UnimplementedRuntimeAgentServiceServer) ListAgents(context.Context, *ListAgentsRequest) (*ListAgentsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListAgents not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) ListLocalAppAgentInventory(context.Context, *ListLocalAppAgentInventoryRequest) (*ListLocalAppAgentInventoryResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListLocalAppAgentInventory not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) OpenConversationAnchor(context.Context, *OpenConversationAnchorRequest) (*OpenConversationAnchorResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method OpenConversationAnchor not implemented")
@@ -1056,9 +1027,6 @@ func (UnimplementedRuntimeAgentServiceServer) GetParticipationReplay(context.Con
 func (UnimplementedRuntimeAgentServiceServer) SubscribeAgentEvents(*SubscribeAgentEventsRequest, grpc.ServerStreamingServer[AgentEvent]) error {
 	return status.Error(codes.Unimplemented, "method SubscribeAgentEvents not implemented")
 }
-func (UnimplementedRuntimeAgentServiceServer) TranscribeLocalAppAgentAudio(context.Context, *TranscribeLocalAppAgentAudioRequest) (*TranscribeLocalAppAgentAudioResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method TranscribeLocalAppAgentAudio not implemented")
-}
 func (UnimplementedRuntimeAgentServiceServer) SubscribeAgentVoiceStream(*SubscribeAgentVoiceStreamRequest, grpc.ServerStreamingServer[AgentVoiceStreamEvent]) error {
 	return status.Error(codes.Unimplemented, "method SubscribeAgentVoiceStream not implemented")
 }
@@ -1183,24 +1151,6 @@ func _RuntimeAgentService_ListAgents_Handler(srv interface{}, ctx context.Contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAgentServiceServer).ListAgents(ctx, req.(*ListAgentsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAgentService_ListLocalAppAgentInventory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListLocalAppAgentInventoryRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).ListLocalAppAgentInventory(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_ListLocalAppAgentInventory_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).ListLocalAppAgentInventory(ctx, req.(*ListLocalAppAgentInventoryRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2080,24 +2030,6 @@ func _RuntimeAgentService_SubscribeAgentEvents_Handler(srv interface{}, stream g
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAgentService_SubscribeAgentEventsServer = grpc.ServerStreamingServer[AgentEvent]
 
-func _RuntimeAgentService_TranscribeLocalAppAgentAudio_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TranscribeLocalAppAgentAudioRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).TranscribeLocalAppAgentAudio(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_TranscribeLocalAppAgentAudio_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).TranscribeLocalAppAgentAudio(ctx, req.(*TranscribeLocalAppAgentAudioRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _RuntimeAgentService_SubscribeAgentVoiceStream_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(SubscribeAgentVoiceStreamRequest)
 	if err := stream.RecvMsg(m); err != nil {
@@ -2218,10 +2150,6 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListAgents",
 			Handler:    _RuntimeAgentService_ListAgents_Handler,
-		},
-		{
-			MethodName: "ListLocalAppAgentInventory",
-			Handler:    _RuntimeAgentService_ListLocalAppAgentInventory_Handler,
 		},
 		{
 			MethodName: "OpenConversationAnchor",
@@ -2414,10 +2342,6 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetParticipationReplay",
 			Handler:    _RuntimeAgentService_GetParticipationReplay_Handler,
-		},
-		{
-			MethodName: "TranscribeLocalAppAgentAudio",
-			Handler:    _RuntimeAgentService_TranscribeLocalAppAgentAudio_Handler,
 		},
 		{
 			MethodName: "InterruptAgentVoicePlayback",

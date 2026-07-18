@@ -137,9 +137,9 @@ test('zhiyu Electron host boots sandboxed renderer and fails closed without Runt
         );
         assert.equal(runtimeReady.transport, 'electron-ipc');
         assert.equal(runtimeReady.ok, false);
-        assert.equal(runtimeReady.code, 'capability-unavailable', JSON.stringify(runtimeReady));
-        assert.equal(runtimeReady.reasonCode, 'DESKTOP_CONTROL_TRANSPORT_REQUIRED');
-        assert.equal(runtimeReady.actionHint, 'connect_protected_desktop_control_carrier');
+        assert.equal(runtimeReady.code, 'external-daemon-required', JSON.stringify(runtimeReady));
+        assert.equal(runtimeReady.reasonCode, 'electron-runtime-endpoint-unavailable');
+        assert.equal(runtimeReady.actionHint, 'start_external_runtime_daemon');
         const sharedAuthBroker = await page.evaluate(() =>
           globalThis.window.__NIMI_ZHIYU_ELECTRON_SDK_ACCEPTANCE__.sharedAuthBroker(),
         );

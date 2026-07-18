@@ -4,199 +4,114 @@
 
 ## Scope
 
-定义 SDK 对 Platform `P-PERM-*` app permission fabric 与 Cognition
-`C-APMEM-*` memory access policy 的 typed consumer surface。本契约确保
-SDK 是 app / developer 对 permission grant lifecycle 与 access policy
-的唯一接入入口；apps 不得绕过 SDK 直接访问 Realm 私有 transport 或
-Cognition private endpoint。
+定义 SDK 对 Platform `P-PERM-*` product-facing permission catalog 的唯一
+app-facing typed projection。本契约只覆盖第三方 app 访问 Nimi、Realm、Agent
+或 Cognition owner 资源时的用户权限；base entitlement、first-party product
+operation、app-owned authority 与 OS right 明确不属于本 client。
 
-## S-PERM-001 — Sole Admitted Access Path
+## S-PERM-001 — Sole Public Permission Path
 
-`MUST`：SDK Nimi permission client surface 是 app / developer 对
-permission grant 申请 / 撤销 / 查询 / 订阅的唯一 admitted access path。
+`MUST`：当某个 `P-PERM-017` permission slice 完整准入后，SDK permission
+client 是 app 查询自身 posture、发起用户可理解请求和订阅自身 posture 变化的
+唯一 public path。Transport 必须由 Kit/native host 注入，并从 protected carrier
+派生 app、account、principal 与 OS-user identity。
 
-`MUST NOT`：apps 不得：
+`MUST NOT`：app 不得直接调用 Realm grant REST、Runtime private grant RPC、
+Cognition private endpoint，或经 bridge implementation detail 读写 grant ledger。
 
-- 绕过 SDK 直接调用 Realm grant REST endpoint
-- 绕过 SDK 直接调用 Cognition memory / knowledge / skill API
-- 通过 host bridge implementation detail 推断或私自缓存 grant 状态
+## S-PERM-002 — Minimal Product Operation Set
 
-## S-PERM-002 — Logical Operation Set
+SDK logical surface 固定为：
 
-`MUST`：SDK 暴露以下 logical operation：
+- `permission.status(permissionId)` — 返回 calling app 对该 public id 的一个
+  public posture。
+- `permission.request({ permissionId, reason })` — 发起一次 public permission
+  request；需要 selector 时由 owner-owned picker 接管。
+- `permission.subscribe(permissionId, callback)` — 订阅 calling app 对该 id 的
+  public posture 变化。
 
-- `permission.list(scopeRef)` — 列出 app 当前 scope 下的 grant 集合。
-- `permission.get(scopeRef, grantId)` — 获取单个 grant。
-- `permission.request(scopeRef, grantSpec)` — 请求新 grant；返回
-  typed lifecycle state。
-- `permission.revoke(scopeRef, grantId)` — 撤销 grant。
-- `permission.subscribe(scopeRef, callback)` — 订阅 grant lifecycle
-  变更。
-- `permission.status(scopeRef)` — 获取 scope 下所有 grant 的状态快照。
+普通 app surface 不暴露 `list(scopeRef)`、`get(grantId)`、`revoke(grantId)`、
+grant history、raw lifecycle 或 other-app rows。用户撤销与审计管理属于 Desktop
+Settings；未来若 admit app-initiated release，必须作为独立 public semantic
+operation 准入，不得复用 raw grant id。
 
-## S-PERM-003 — Mandatory AIScopeRef
+## S-PERM-003 — Public Request Shape
 
-`MUST`：每个 logical operation 必须显式接收 `AIScopeRef`（`P-AISC-001`）。
+`MUST`：request input 精确为 `{ permissionId, reason }`。`reason` 是 bounded、
+面向用户的说明，不是 authority。App/account/principal/session/OS-user anchor 从
+protected carrier 派生；selector 与 selector digest 从 catalog 指定的 owner picker
+派生。
 
-`MUST NOT`：SDK 不得从 active chat、renderer-local current app、或默认
-scope 隐式推断；不得允许 caller 省略 `scopeRef`。
+`MUST NOT`：public SDK input/type/export 不得出现 `AIScopeRef`、`scopeFamily`、
+`scopeName`、`qualifier`、`operationId`、`resourceRef`、`grantId`、raw account/
+principal/session、token 或 credential。
 
-## S-PERM-004 — Fail-Closed Denial States
+## S-PERM-004 — Closed Catalog And Current Admission
 
-`MUST`：SDK 返回的 grant state 必须使用 `P-PERM-003` typed 枚举：
-`pending`, `granted`, `denied`, `expired`, `revoked`, `superseded`。
+`MUST`：`PermissionID` 仅包含
+`nimi-app-permission-catalog.yaml#public_permissions` 的稳定 product ids。
+只有 `admission: admitted` 且 `manifest_allowed: true` 的 id 可进入
+`request(...)`。Known-but-reserved id 可用于 `status(...)` 的 typed
+`unavailable` projection，但 request 必须在调用 transport 前 fail closed。
 
-`MUST NOT`：不得通过 generic boolean、null、或字符串状态隐藏 typed
-state；不得在 missing grant 时投影 `granted`。
+当前没有已准入的第三方 public permission；因此 current SDK request positive
+set 为空。该状态不影响 app 启动、私有存储、host commands 或 app-owned UI。
 
-## S-PERM-005 — No Fallback Knob
+## S-PERM-005 — Public Posture, Not Grant Lifecycle
 
-`MUST`：失败返回 typed error；遵循 `S-AICONF-002` no-fallback 模式。
+`MUST`：app-facing posture 闭集为 `prompt | pending | granted | denied |
+unavailable`，并至少返回 `{ permissionId, posture, canRequest }`。Transport
+返回未知值、mismatched id、reserved id 的 positive posture，或缺失字段时 SDK
+必须 fail closed。
 
-`MUST NOT`：不暴露 `{ fallback: 'allow' }` 类参数；不静默升级到 partial
-grant。
+`MUST NOT`：owner lifecycle 的 `expired | revoked | superseded`、revision、
+fingerprint 与 transition history 不得成为 ordinary app API。SDK 不得把 missing
+record、transport error 或 reserved id 投影为 `granted`。
 
-## S-PERM-006 — No Private Path
+## S-PERM-006 — No Fallback Or Parallel Ledger
 
-`MUST NOT`：SDK 不得：
+失败必须返回 typed actionable error。SDK 不得提供 `{ fallback: 'allow' }`、
+默认 scope、implicit current app、client-side optimistic grant、offline allow、
+Realm/Runtime 双 ledger 合并，或把 publish/review trust 当作 permission。
 
-- import Realm private client / private transport
-- import Cognition private endpoint
-- 通过 `runtime/internal/**` 路径绕过 admitted SDK surface
+## S-PERM-007 — Public/Internal Enforcement Separation
 
-## S-PERM-007 — Subscription Scope
+一个 public permission 可由 owner 映射到多个 exact operations、resource checks、
+quota、budget、rate、presence 与 audit events；这些映射保留在 owner backend。
+SDK/renderer 只见 public id、reason、public posture 与 owner-hosted picker flow，
+不得按 method、anchor、turn、stream 或 app-private file 逐项申请。
 
-`MUST`：`permission.subscribe(scopeRef, callback)` 仅承载 grant lifecycle
-变更事件。
+## S-PERM-008 — One-Shot And Cross-App Non-Admission
 
-`MUST NOT`：subscription 不承载 audit event；audit 必须通过 Realm
-admitted audit projection 路径访问。
+`files.open`、`files.save`、`artifacts.open` 与 `shared_resources.open` 当前均为
+reserved one-shot rows。Owner picker、non-forgeable handle、consume semantics 与
+audit 未原子准入前，SDK 不得暴露 callable file/cross-app shortcut、target app id、
+path 或 generic durable grant。
 
-## S-PERM-008 — Permission Scope Ref Shape
+## S-PERM-009 — App-Private Authority Exclusion
 
-`MUST`：SDK `permission.request(scopeRef, grantSpec)` 的 `grantSpec`
-schema 与 `P-PERM-007` 的 `permission_scope_ref` schema 对齐：
+Nimi-mediated private JSON storage 是 `app.private_storage` base entitlement；
+app 自建 SQLite、media、settings、cache、routes 和 exact native commands 是
+`app_owned_authority`；普通 filesystem/network/process/device authority 是
+`os_right`。三者均不得进入 `PermissionID`、manifest permission request、grant
+ledger 或用户批准 UI。
 
-```
-{
-  appId: string,
-  scopeFamily: 'account' | 'data' | 'agent' | 'ai_spend' | 'memory' | 'knowledge' | 'notification' | 'file_device' | 'audit' | 'ai_profile',
-  scopeName: <one of P-PERM-002 enum entries>,
-  qualifier?: string
-}
-```
+SDK storage/host-command helpers 仍必须依赖 live protected carrier、opaque
+principal/account partition、path/quota/symlink/origin/payload checks；“不是用户
+permission”不等于“没有安全边界”。
 
-`MUST NOT`：SDK 不得 admit 开放字符串 scope；不得允许 enum 之外的字段。
+## S-PERM-010 — Review Evidence Is Not Permission
 
-## S-PERM-009 — Cross-App Access Flow Shape Non-Admission
-
-`P-PERM-006` admits the Platform-side cross-app authorization rule:
-app A requesting app B's resources (data / memory / agent projection
-/ file / device) must flow through the grant lifecycle with source-app
-/ target-app / `AIScopeRef` recorded on the audit trail. This SDK
-rule admits only the typed non-live flow shape. It does not admit a
-callable cross-app access operation.
-
-`K-APP-018` also states that no Runtime-mediated file API is admitted
-on the current RuntimeAppService surface. Therefore this flow shape
-does not become a file API, Runtime method, SDK file client, Desktop
-bridge helper, or permission grant shortcut.
-
-`MUST` (flow-shape carrier; shape only, no live behavior). SDK Nimi
-permission client surface admits the typed flow shape fields:
-
-- `source_app_id` — the calling app's admitted `app_id`
-  (`P-NAPP-002`); resolved from the admitted `AIScopeRef`
-  (`P-AISC-007`), not from caller-supplied input;
-- `target_app_id` — the target app's admitted `app_id`;
-- `scopeRef` — the canonical `AIScopeRef` for the access request
-  (`P-AISC-001`);
-- `grantSpec` — the `S-PERM-008` typed `grantSpec` shape, with
-  `appId` resolving to the `target_app_id`;
-- `purpose` — review-vetted purpose string carried into the
-  cross-app audit record per `P-PERM-006` audit-trail requirement;
-- `user_confirmation_required` — boolean; fixed to `true` for the
-  non-live shape.
-
-The flow shape is admitted as a typed projection only. It is valid for
-review, UI explanation, and fail-closed diagnostics; it is not an
-operation that obtains data.
-
-`MUST NOT` (no live behavior). The SDK MUST NOT admit a callable
-`permission.requestCrossApp(...)` operation, MUST NOT admit a runtime
-path that returns a cross-app grant state other than the typed
-non-admitted state, and MUST NOT admit any Apps-surface or Desktop
-hosted shell consumer that treats this flow shape as a live grant
-entry point. Any caller attempt to invoke cross-app behavior through
-this shape MUST fail closed with typed reason
-`cross_app_access_not_admitted`.
-
-`MUST NOT` (no parallel-truth cross-app substrate). The SDK MUST
-NOT admit cross-app access through host-bridge implementation
-detail, shared filesystem, socket, or any private channel — the
-existing `P-PERM-006` `MUST NOT` is preserved. This rule does not
-weaken that posture; it only admits the SDK projection of the
-flow's typed shape for review, UI explanation, and fail-closed diagnostics.
-
-Cross-references: `P-PERM-006` (cross-app authorization rule; live
-operation not admitted here), `K-APP-018` (Runtime-mediated file-API
-non-admission), `P-AISC-001` / `P-AISC-007` (canonical `AIScopeRef`
-shape), `S-PERM-008` (`grantSpec` shape), `S-APP-014` (SDK file
-client non-admission).
-
-## S-PERM-010 — Anti-Target: Review-Evidence Accessor Not Admitted Here
-
-**Background fact.** The admitted release descriptor's review block
-(`P-NAPP-025` decision schema, `P-AUDIT-006` evidence shape) is
-exposed to SDK consumers via the review-evidence accessor admitted at
-`S-APP-015` in `.nimi/spec/sdks/kernel/nimi-app-client-contract.md`.
-The accessor belongs in S-APP because the
-review-decision record is an admission-evidence accessor over the
-admitted release descriptor, not a permission grant lifecycle
-accessor.
-
-`MUST NOT` (placement anti-target). This contract MUST NOT admit a
-review-evidence accessor or any review-decision-schema accessor for
-the admitted release descriptor's review block. The decision-schema
-fields (`decision`, `adjudicator_kind`, `adjudicator_ref`,
-`decided_at`) and the upstream audit-evidence references
-(`audit_evidence_ref`, `ai_audit_model_ref`, `scanner_results_ref`)
-are out of scope for `nimi-permission-client-contract.md`.
-
-`MUST NOT` (no review-state on grant lifecycle). The
-`S-PERM-004` typed grant-state enum (`pending`, `granted`, `denied`,
-`expired`, `revoked`, `superseded`) MUST NOT be extended with
-`approved`, `revision-requested`, `rejected`, or `kill-switched`
-values from the `P-NAPP-025` review-decision enum. The two enums are
-disjoint and owned by separate admission surfaces; collapsing the
-two enums or surfacing review-decision values on the grant
-lifecycle subscription channel is forbidden.
-
-`MUST NOT` (no review-state driven grant gating in this contract).
-The permission client contract MUST NOT admit a rule that gates,
-filters, or refuses grant requests on the basis of the admitted
-descriptor's review-decision record. Review-decision is consumed
-via the `S-APP-015` accessor as read-only admission evidence; the
-authoritative grant-lifecycle gates are
-`P-PERM-003`-typed states, `P-PERM-008` spend-grant binding, the
-per-tier `permission_ceiling_ref`, and the fail-closed per-endpoint
-enforcement at Runtime / Realm / Cognition.
-
-Cross-references: `S-APP-015` (review-evidence accessor — admitted
-location), `P-NAPP-025` (review-decision schema; not redefined),
-`P-AUDIT-006` (review-evidence shape; not redefined), `S-PERM-004`
-(grant-state enum; not extended with review-state values).
+Release review/attestation accessor 属于 `S-APP-*` admission evidence surface，
+不得出现在 permission posture、permission request、subscription 或 owner grant
+lifecycle。`approved | revision-requested | rejected | kill-switched` 与 public
+permission posture/lifecycle 是互斥词汇；review 结果不得 seed 或扩大 grant。
 
 ## Fact Sources
 
-- `.nimi/spec/sdks/kernel/ai-config-surface-contract.md` — `S-AICONF-001..S-AICONF-006`
-- `.nimi/spec/sdks/kernel/nimi-app-client-contract.md` — `S-APP-001..S-APP-015` (`S-APP-015` is the admitted location of the review-evidence accessor per `S-PERM-010`; `S-APP-014` is the SDK file-client non-admission referenced by `S-PERM-009`)
-- `.nimi/spec/sdks/kernel/surface-contract.md` — `S-SURFACE-*`
+- `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-017`
+- `.nimi/spec/platform/kernel/tables/nimi-app-permission-catalog.yaml`
+- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-*`
+- `.nimi/spec/runtime/kernel/app-lifecycle-contract.md` — `K-APP-*`
+- `.nimi/spec/sdks/kernel/nimi-app-client-contract.md` — `S-APP-*`
 - `.nimi/spec/sdks/kernel/error-projection.md` — `S-ERROR-*`
-- `.nimi/spec/platform/kernel/agent-identity-floor-contract.md` — `P-AGID-001..P-AGID-008`
-- `.nimi/spec/platform/kernel/ai-scope-contract.md` — `P-AISC-001..P-AISC-007`
-- `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-011` (`P-PERM-006` cross-app authorization; `P-PERM-011` `app-local-drafts` qualifier semantics)
-- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-025` review-decision schema (consumed by `S-APP-015`, anti-target recorded at `S-PERM-010`)
-- `.nimi/spec/platform/kernel/nimi-app-audit-pipeline-contract.md` — `P-AUDIT-006` review-evidence shape (consumed by `S-APP-015`, anti-target recorded at `S-PERM-010`)
-- `.nimi/spec/runtime/kernel/app-lifecycle-contract.md` — `K-APP-018` Runtime-mediated file-API non-admission (referenced by `S-PERM-009` flow-shape non-admission)
-- `.nimi/spec/cognition/kernel/app-memory-access-contract.md` — `C-APMEM-001..C-APMEM-008`

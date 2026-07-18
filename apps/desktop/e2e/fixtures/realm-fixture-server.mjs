@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import http from 'node:http';
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { Server as SocketIOServer } from 'socket.io';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
@@ -471,7 +471,6 @@ function normalizeWorldEntityRef(source, worldId, sourceId) {
     entityId: text(candidate?.entityId || source?.entityId || source?.entity?.id, `entity-${sourceId}`),
   };
 }
-
 function realmCoreOrigin(value, id, contentHash) {
   const origin = asRecord(value);
   const kind = text(origin?.kind || value, 'manual');
@@ -491,7 +490,6 @@ function realmCoreOrigin(value, id, contentHash) {
     sourceContentHash: contentHash,
   };
 }
-
 function projectPersonaCharacterCore(world, source) {
   const worldId = text(world?.id, 'world-e2e-1');
   const id = text(source?.id, 'persona-fixture');
@@ -567,8 +565,6 @@ function projectWorldCharacterCore(world, source) {
   const summary = text(source?.summary || source?.bio, 'Fixture world character used for desktop materialization coverage.');
   const tags = asArray(source?.tags).map(String).filter(Boolean);
   const media = normalizeSourceMedia(source);
-  const entity = asRecord(source?.entity);
-  const entityId = text(source?.entityId || entity?.id, `entity-${id}`);
   const profile = asRecord(source?.profile) || asRecord(source?.core) || {
     profileSchemaVersion: 'realm.character-profile-core/v1',
     identity: {
@@ -750,34 +746,6 @@ function normalizeSourceRef(manifest, source) {
   }
   const ownerAccountId = text(source?.ownerAccountId, '');
   return ownerAccountId ? { kind, id, worldId, ownerAccountId, sourceHash } : null;
-}
-
-function sourceMaterializationGrant(accountId, grantId, state, version, now = new Date()) {
-  const granted = state === 'GRANTED';
-  return {
-    grantId,
-    subjectAccountId: accountId,
-    appId: 'nimi.avatar',
-    scopeFamily: 'realm_source',
-    scopeName: 'realm_source.snapshot.consume',
-    qualifier: null,
-    state,
-    reason: 'Nimi Runtime Realm source materialization',
-    version,
-    requestedAt: new Date(now.getTime() - 60_000).toISOString(),
-    requestedByAccountId: accountId,
-    grantedAt: granted ? new Date(now.getTime() - 30_000).toISOString() : null,
-    grantedByAccountId: granted ? accountId : null,
-    deniedAt: null,
-    deniedByAccountId: null,
-    expiredAt: null,
-    expiresAt: null,
-    revokedAt: null,
-    revokedByAccountId: null,
-    supersededAt: null,
-    supersededByAccountId: null,
-    supersededByGrantId: null,
-  };
 }
 
 function positiveInt(value, fallback) {
@@ -1005,54 +973,6 @@ async function handleApi(request, response, manifestPath) {
     return undefined;
   }
 
-  if (request.method === 'POST' && pathname === '/api/human/me/permission-grants') {
-    const body = await parseBody(request);
-    if (!body
-        || Object.keys(body).length !== 4
-        || body.appId !== 'nimi.avatar'
-        || body.scopeFamily !== 'realm_source'
-        || body.scopeName !== 'realm_source.snapshot.consume'
-        || body.reason !== 'Nimi Runtime Realm source materialization') {
-      json(response, 400, { message: 'invalid Realm source grant selector' });
-      return undefined;
-    }
-    const accountId = text(manifest.realmFixture?.currentUser?.id, 'user-e2e-primary');
-    const grantId = `fixture-realm-source-grant-${randomUUID()}`;
-    const version = 1;
-    manifest.realmFixture = manifest.realmFixture || {};
-    manifest.realmFixture.sourceMaterializationGrants = [
-      ...(Array.isArray(manifest.realmFixture.sourceMaterializationGrants)
-        ? manifest.realmFixture.sourceMaterializationGrants
-        : []),
-      { grantId, accountId, state: 'PENDING', version },
-    ];
-    writeJsonFile(manifestPath, manifest);
-    json(response, 200, sourceMaterializationGrant(accountId, grantId, 'PENDING', version));
-    return undefined;
-  }
-
-  const sourceGrantDecisionMatch = pathname.match(/^\/api\/human\/me\/permission-grants\/by-id\/([^/]+)\/grant$/u);
-  if (request.method === 'POST' && sourceGrantDecisionMatch) {
-    const grantId = decodeURIComponent(sourceGrantDecisionMatch[1]);
-    const body = await parseBody(request);
-    const grants = Array.isArray(manifest.realmFixture?.sourceMaterializationGrants)
-      ? manifest.realmFixture.sourceMaterializationGrants
-      : [];
-    const grant = grants.find((candidate) => candidate.grantId === grantId);
-    if (!grant
-        || grant.state !== 'PENDING'
-        || Object.keys(body || {}).length !== 1
-        || body.expectedVersion !== grant.version) {
-      json(response, 409, { message: 'Realm source grant CAS mismatch' });
-      return undefined;
-    }
-    grant.state = 'GRANTED';
-    grant.version += 1;
-    writeJsonFile(manifestPath, manifest);
-    json(response, 200, sourceMaterializationGrant(grant.accountId, grant.grantId, grant.state, grant.version));
-    return undefined;
-  }
-
   if (request.method === 'POST' && pathname === '/api/auth/sessions/introspect') {
     json(response, 200, {
       active: true,
@@ -1172,17 +1092,22 @@ async function handleApi(request, response, manifestPath) {
 
   if (request.method === 'POST' && pathname === '/api/realm/core/source-materialization-packets') {
     const body = await parseBody(request);
+    const expectedKeys = [
+      'challengeDigest', 'challengeExpiresAt', 'challengeId', 'intendedRuntimeAudience',
+      'materializerAccountId', 'publishedLimits', 'sourceRef',
+    ];
+    if (Object.keys(body || {}).sort().join('\0') !== expectedKeys.sort().join('\0')) {
+      json(response, 400, { message: 'source materialization request contains unknown or missing fields' });
+      return undefined;
+    }
     const sourceRef = normalizeSourceRef(manifest, body?.sourceRef);
     if (!sourceRef) {
       json(response, 400, { message: 'sourceRef must be an exact CharacterSourceRefV3' });
       return undefined;
     }
-    const grants = Array.isArray(manifest.realmFixture?.sourceMaterializationGrants)
-      ? manifest.realmFixture.sourceMaterializationGrants
-      : [];
-    const grant = grants.find((candidate) => candidate.grantId === body?.accessGrantId);
-    if (!grant || grant.state !== 'GRANTED' || grant.accountId !== body?.materializerAccountId) {
-      json(response, 403, { message: 'accessGrantId is not the current granted Realm source authority' });
+    const authenticatedAccountId = text(manifest.realmFixture?.currentUser?.id, 'user-e2e-primary');
+    if (body?.materializerAccountId !== authenticatedAccountId) {
+      json(response, 403, { message: 'materializerAccountId must match the authenticated account' });
       return undefined;
     }
     const requestOrigin = `http://${request.headers.host}`;
@@ -1197,7 +1122,6 @@ async function handleApi(request, response, manifestPath) {
         : []),
       {
         sourceRef,
-        accessGrantId: body.accessGrantId,
         challengeId: text(body?.challengeId, ''),
         challengeDigest: text(body?.challengeDigest, ''),
         intendedRuntimeAudience: text(body?.intendedRuntimeAudience, ''),

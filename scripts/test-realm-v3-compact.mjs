@@ -177,11 +177,11 @@ async function validateFixedProducer(realmRoot) {
   const admissionBytes = await readFile(admissionPath);
   const admission = JSON.parse(admissionBytes.toString('utf8'));
   const expected = {
-    commit: 'a30b2f488806e967ccba9ab8b81fe93935bdf474',
-    tree: '3516b4727cbb17602d276e02755aeb36811ed2f2',
+    commit: '796aa4566e32bf117d0ea5142e77496f33a91fbf',
+    tree: '7e5465764395d14737ba5bdd362af7a27b8356bb',
     packetSchema: 'realm.source-materialization-packet/v3',
-    accessPolicy: 'realm.source-materialization-access-policy/v4',
-    accessPolicyDigest: '34f338ae76cbd85de58054cd6fc4d0ee18500030a0bc12f091e88d46f2fc572f',
+    accessPolicy: 'realm.source-materialization-access-policy/v5',
+    accessPolicyDigest: '7649e8c7aa85f6667b1af5134686fc653f33ed5094e5d11483a5e60f39765faa',
   };
   if (admission.admittedCommit !== expected.commit || admission.admittedTree !== expected.tree) {
     throw new Error('Nimi producer admission does not identify the fixed Realm commit/tree');
@@ -191,30 +191,25 @@ async function validateFixedProducer(realmRoot) {
     || admission.accessPolicy?.digest !== expected.accessPolicyDigest) {
     throw new Error('Nimi producer admission packet/access-policy identity drifted');
   }
-  const selector = admission.accessPolicy?.selector;
-  if (selector?.appId !== 'nimi.avatar'
-    || selector?.scopeFamily !== 'realm_source'
-    || selector?.scopeName !== 'realm_source.snapshot.consume'
-    || selector?.qualifier !== null
-    || selector?.qualifierKey !== ''
-    || selector?.state !== 'GRANTED') {
-    throw new Error('Nimi producer admission Realm selector drifted');
-  }
-  const lifecycle = admission.accessPolicy?.lifecycle;
-  if (lifecycle?.request?.method !== 'post'
-    || lifecycle?.request?.path !== '/api/human/me/permission-grants'
-    || lifecycle?.request?.resultState !== 'PENDING'
-    || lifecycle?.grant?.method !== 'post'
-    || lifecycle?.grant?.path !== '/api/human/me/permission-grants/by-id/{grantId}/grant'
-    || lifecycle?.grant?.requiresExpectedVersion !== true
-    || lifecycle?.packet?.method !== 'post'
-    || lifecycle?.packet?.path !== '/api/realm/core/source-materialization-packets'
-    || lifecycle?.packet?.grantIdField !== 'accessGrantId') {
-    throw new Error('Nimi producer admission explicit same-ID grant lifecycle drifted');
-  }
-  if (!admission.accessPolicy?.nonAuthorizingScopeNames?.includes('realm_source.snapshot.bind')
-    || !admission.accessPolicy?.nonAuthorizingScopeNames?.includes('agent.identity.project')) {
-    throw new Error('Nimi producer admission non-authorizing legacy/local scope split drifted');
+  const accessPolicy = admission.accessPolicy;
+  const requiredAuthorizationInputs = [
+    'authenticated_realm_account',
+    'canonical_source_and_world_materialization_visibility',
+    'exact_CharacterSourceRefV3',
+    'materialization_readiness',
+    'runtime_challenge_audience_limits_and_proof_boundary',
+  ];
+  const requiredForbiddenInputs = [
+    'app_id', 'permission_scope', 'access_grant_id', 'synthetic_grant_decision',
+  ];
+  if (accessPolicy?.authorityClass !== 'authenticated_first_party_product_operation'
+    || accessPolicy?.thirdPartyAppPermissionRequired !== false
+    || accessPolicy?.permissionCatalog !== 'empty'
+    || accessPolicy?.packetOperation?.method !== 'post'
+    || accessPolicy?.packetOperation?.path !== '/api/realm/core/source-materialization-packets'
+    || JSON.stringify(accessPolicy?.authorizationInputs) !== JSON.stringify(requiredAuthorizationInputs)
+    || JSON.stringify(accessPolicy?.forbiddenInputs) !== JSON.stringify(requiredForbiddenInputs)) {
+    throw new Error('Nimi producer admission first-party authorization boundary drifted');
   }
 
   await capture('git', ['cat-file', '-e', `${expected.commit}^{commit}`], realmRoot);
@@ -233,7 +228,7 @@ async function validateFixedProducer(realmRoot) {
 
   // The execution is bound to the immutable admitted commit. Current Root may
   // contain unrelated WIP, but the live mandatory surfaces must still match the
-  // admitted OpenAPI, grant policy, runtime requirements, and compact vectors.
+  // admitted OpenAPI, first-party access policy, runtime requirements, and compact vectors.
   const currentMandatoryInputs = [
     ...admission.semanticFiles.filter((input) => !input.path.includes('/core-contract.')),
     { path: admission.openapi.path, sha256: admission.openapi.sha256 },
@@ -246,7 +241,7 @@ async function validateFixedProducer(realmRoot) {
 
   return {
     ...expected,
-    realmSelector: selector,
+    realmAccessPolicy: accessPolicy,
     admissionSchemaVersion: admission.schemaVersion,
     admissionSha256: sha256(admissionBytes),
     admittedInputCount: admittedInputs.length,

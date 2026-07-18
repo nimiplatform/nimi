@@ -100,17 +100,11 @@ export type {
 } from './floating-window.js';
 export {
   createNimiLocalAppStandardShellSurface,
-  getNimiLocalAppAgentConversationSnapshot,
-  getNimiLocalAppPermissionPosture,
+  getNimiLocalAppPermissionStatus,
   getNimiLocalAppSessionStatus,
-  openNimiLocalAppAgentConversation,
   readNimiLocalAppStorageJson,
-  readNimiLocalAppRuntimeArtifactBytes,
   removeNimiLocalAppStorageJson,
-  sendNimiLocalAppAgentTurn,
-  subscribeNimiLocalAppAgentTurn,
-  subscribeNimiLocalAppAgentVoiceStream,
-  transcribeNimiLocalAppAgentVoice,
+  requestNimiLocalAppPermission,
   writeNimiLocalAppStorageJson,
 } from './local-app.js';
 export {
@@ -167,19 +161,8 @@ export type {
   AgentCenterShellHostScope,
 } from './agent-center.js';
 export type {
-  NimiLocalAppAgentGetConversationSnapshotInput,
-  NimiLocalAppAgentOpenConversationInput,
-  NimiLocalAppAgentSendTurnInput,
-  NimiLocalAppAgentSubscribeTurnInput,
-  NimiLocalAppAgentTurnCarrierEvent,
-  NimiLocalAppAgentTurnEventPage,
-  NimiLocalAppAgentSubscribeVoiceStreamInput,
-  NimiLocalAppAgentTranscribeVoiceInput,
-  NimiLocalAppAgentVoiceCarrierEvent,
-  NimiLocalAppAgentVoiceStreamPage,
-  NimiLocalAppAgentVoiceTranscription,
-  NimiLocalAppArtifactBytes,
-  NimiLocalAppPermissionPostureInput,
+  NimiLocalAppPermissionRequestInput,
+  NimiLocalAppPermissionStatusInput,
   NimiLocalAppSessionStatus,
   NimiLocalAppStorageDocument,
   NimiLocalAppStorageRemoveResult,

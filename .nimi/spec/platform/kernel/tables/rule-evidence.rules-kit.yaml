@@ -149,7 +149,7 @@ rules:
       - nimi_kit_gate
     evidence_requirement: required
     note: Final Kit typed-shell and request-empty trusted local-app carrier owner boundary, including the exact Runtime-owned principal-partitioned JSON storage operations.
-    evidence_scope_note: Kit Electron/Tauri behavior plus the owner-boundary checker prove shared carrier semantics without creating account, principal, grant, session, storage-root, or operation truth.
+    evidence_scope_note: Kit Electron/Tauri behavior plus the owner-boundary checker prove shared carrier semantics without creating account, principal, permission-decision, session, storage-root, or operation truth.
     test_files:
       - kit/shell/electron/test/electron-shell-capabilities.test.ts
       - apps/desktop/test/local-development-contract.test.ts

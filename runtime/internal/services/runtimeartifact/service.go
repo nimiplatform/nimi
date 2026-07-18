@@ -152,7 +152,7 @@ func validLocalAppArtifactDecision(decision accountservice.LocalAppCallerDecisio
 		strings.TrimSpace(decision.RealmEnvironmentID) != "" && decision.AccountGeneration > 0 &&
 		decision.RuntimeBootEpoch != (protectedlocal.Identifier{}) && decision.Process.PID > 0 &&
 		strings.TrimSpace(decision.Process.CreationMarker) != "" && decision.Process.ExecutableDigest == decision.HostExecutableDigest &&
-		decision.Operation == accountservice.LocalAppOperationReadArtifactBytes && decision.PermissionScope == "data.scope.read#runtime.artifacts" &&
+		decision.Operation == accountservice.LocalAppOperationReadArtifactBytes && decision.OperationCapability == "data.scope.read#runtime.artifacts" &&
 		now.Before(decision.ExpiresAt.UTC())
 	if !baseValid {
 		return false

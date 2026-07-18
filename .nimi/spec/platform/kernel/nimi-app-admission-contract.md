@@ -50,8 +50,9 @@ presence never creates a local principal, record, grant, lease, or session.
   `.nimi/spec/runtime/kernel/tables/local-compute-packs.yaml` 中已 admit 的
   pack；可为空。
 - `runtime_registration_mode` — 当前 admitted 值集合：`app-managed`。
-- `permission_scope_ref` — permission fabric 尚未 admit 具体 scope set 时的
-  fail-closed 引用；admitted value 为 `permission_fabric_pending`。
+- `permission_requirements` — public permission request 列表；每项固定为
+  `{ id, reason }`，只能引用 `P-PERM-002` 已准入 id。空列表是完整、有效的
+  zero-permission app posture，不影响安装、启动或 app-owned product UI。
 - `health_repair_projection` — fail-closed 状态集合（见 `P-NAPP-008`）。
 - `ordinary_visibility` — `ordinary-visible`、`hidden-internal`、
   `developer-only`、`not-admitted-visible` 之一。Apps 只能显示
@@ -61,8 +62,8 @@ presence never creates a local principal, record, grant, lease, or session.
   descriptor；bundled first-party app 可引用 atomic Nimi bundle descriptor。
 - `install_storage_policy_ref` — 引用 `P-NAPP-015` 的 storage policy。
 - `admission_status` — admitted 值集合：`admitted`,
-  `gated_by_avatar_master_gate`, `permission_fabric_pending`, `deferred`,
-  `retired`。
+  `gated_by_avatar_master_gate`, `deferred`, `retired`。Permission readiness
+  不得成为 app admission/launch status。
 - `source_rule` — `P-NAPP-NNN` 引用。
 
 ## P-NAPP-003 — AIProfile Selection Hint Resolution
@@ -145,14 +146,15 @@ completion 推断 `ready`。
 **Owner-only authority allocation.** Platform owns verified catalog/release,
 publisher/review posture, the permission vocabulary, and the closed local
 provenance taxonomy. Runtime K-APP owns PC-local principals and records;
-K-GRANT owns account-and-principal grants; K-PLOCAL owns launch/process/session;
+canonical domain owners own admitted permission decisions and K-GRANT defines
+the Runtime-owned lifecycle boundary; K-PLOCAL owns launch/process/session;
 RuntimeAccountService owns credential custody and enforcement coordination;
 RuntimeAgentService/Cognition and other domains retain operation semantics.
 An app id, catalog row, trust class/tier, manifest, renderer metadata, or
 app-owned host description MUST NOT grant privilege or establish runnable
 identity. app-tools owns authoring/build orchestration only. Desktop is the
 current protected `local_app_control` UX/launcher implementation and is not a
-principal, grant, or session owner.
+principal, permission-decision, or session owner.
 
 `MUST`：Desktop `Apps` surface（`D-HOME-004` / `D-HOME-005`）仅消费 registry/package/SDK projection。Ordinary Apps visibility 的闭合条件为：
 
@@ -185,14 +187,14 @@ and never maps them into the three third-party provenance classes.
 Shipped Avatar and Zhiyu are bundled Platform components and retain their
 existing owner-admitted caller semantics. Zhiyu's mutable integration build uses
 an isolated `local_development` principal without inheriting bundled identity,
-grant, storage, audience, session, Agent, or memory state. No bundled registry
+permission decisions, storage, audience, session, Agent, or memory state. No bundled registry
 row grants an external local-app principal or supplies package readiness.
 
 ## P-NAPP-012 — App Identity Surface Mapping
 
 `MUST`：Platform owns canonical `app_id` syntax and display/routing mapping.
 `app_id` is not the local security principal and MUST NOT by itself key a
-grant, private storage, app-scoped audience, session, or audit subject. Runtime
+permission decision, private storage, app-scoped audience, session, or audit subject. Runtime
 resolves those surfaces through a random/non-reused `local_app_principal_id`
 inside a Runtime-derived `local_os_user_anchor`. Current surface mappings are
 recorded in `tables/nimi-app-identity-surfaces.yaml`.
@@ -336,7 +338,8 @@ Required descriptor fields:
 - `runtime.entry_ref` — Runtime registration identifier (`P-NAPP-006`).
 - `runtime.sandbox_ref` — Runtime process-profile identifier; NOT an OS
   sandbox claim.
-- `permissions_ref` — admitted permission scope set.
+- `permissions_ref` — exact registry `permission_requirements` list; an empty
+  list is valid and does not block package admission or launch.
 - `storage_policy_ref` — storage policy identifier (`P-NAPP-015`).
 - `update_channel_ref` — admitted release channel identity.
 - `rollback_eligibility` — catalog-review marker only; it does not create a
@@ -584,8 +587,9 @@ endpoint reachability is forbidden (consistent with `P-NAPP-008`
 `MUST`：every third-party admitted release descriptor MUST carry a
 typed `storage_policy_ref.kind` resolving to the closed enum:
 
-- `nimi-mediated-default` — app uses Nimi-mediated file APIs and the
-  Nimi-owned data root tree;
+- `nimi-mediated-default` — app uses the bounded Nimi-mediated private-storage
+  surface and the Nimi-owned data root tree as an app-private base
+  entitlement;
 - `app-owned-os-storage` — app writes through OS-level file IO to
   paths it chooses; disclosure carried per `P-NAPP-028`.
 
@@ -613,6 +617,14 @@ behaviors without duplicating them. Template-resolution failure
 sub-path missing from the resolved template) fails admission closed
 with typed reason `nimi_mediated_storage_unresolved`.
 
+The calling app's own `nimi-mediated-default` partition is a P-PERM-015 base
+entitlement. It is not represented by `file.read.scoped` /
+`file.write.scoped`, the retired `app-local-drafts` qualifier, or a K-GRANT
+record. Runtime still requires the live principal/session/account partition
+and enforces the bounded storage owner's path, type, quota, and symlink policy.
+Cross-app, external-file, generic-file, or destructive retained-data access is
+not admitted by this base entitlement.
+
 `MUST NOT`：the `storage_policy_ref.kind` enum MUST NOT be extended
 with a third value under this contract. Adding a new posture is a
 separate authority-bearing admission event, not an in-place
@@ -626,6 +638,14 @@ guarantee clean-uninstall coverage of OS-level paths the app writes
 through OS-level IO — is what the `os_storage_disclosure` surface
 in `P-NAPP-028` exists to make visible. Acceptance at every trust
 tier is intentional; admission imposes disclosure, not posture choice.
+
+An `app-owned-os-storage` application may implement its own SQLite, media,
+settings, cache, and product-domain persistence in its native host. Nimi does
+not admit those schemas or commands into the protected-operation catalog and
+does not issue per-table, per-command, or per-file grants. If account
+partitioning is required, the native host consumes only the opaque
+session-derived partition handle admitted by P-PERM-015/P-KIT-044; raw account
+identity and credentials remain unavailable to the app.
 
 ## P-NAPP-028 — App-Owned OS Storage Disclosure
 

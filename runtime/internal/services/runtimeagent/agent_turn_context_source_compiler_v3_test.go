@@ -20,7 +20,7 @@ type realmSourceCompilerOfficialExpectationV3 struct {
 func TestCompileAgentTurnSourceSnapshotV3OfficialVectorsProduceReferenceEquivalentFiveLanes(t *testing.T) {
 	for vectorName, want := range map[string]realmSourceCompilerOfficialExpectationV3{
 		"world-character": {
-			PacketHash:               "9d56399a617f766a1cef5cd84b3eb853d21709f2f66d8de1a2ae5d1de3b6419a",
+			PacketHash:               "4feafc11dd697f0338874eb653c9df732fd4c45efd916eccfa3cbe2eb6508c2c",
 			ReferenceSourceLanesHash: "dab0d1cbe33dfcc89584ef8dd312ac7ff1a8fa925eafba12398281982f0292c6",
 			CompiledContentHash:      "ff27c241d88cee9d58d70f9bb76ce5e73431fbf4341a371661e99cff4bd45398",
 			LaneItemCounts: map[agentTurnContextLaneID]int{
@@ -32,7 +32,7 @@ func TestCompileAgentTurnSourceSnapshotV3OfficialVectorsProduceReferenceEquivale
 			AvatarResourceRef: "resource-avatar-mira",
 		},
 		"persona-character": {
-			PacketHash:               "0f946d95da7a7fdff385881f8230ff0baeba75f450ed1b1254e4f8cc33ac6281",
+			PacketHash:               "3b08a9a1b650175372b7ca23421b3d209223b0a06f194b2b0389a43da3b3604c",
 			ReferenceSourceLanesHash: "843f529e36d6bdb99b57fa929164b86dd9547d8fe0e9a156c59811a09ea6c0c2",
 			CompiledContentHash:      "22b167e648782277a5285687fafae97cbac61f292654ff8964ea7f3cfa9dcde1",
 			LaneItemCounts: map[agentTurnContextLaneID]int{

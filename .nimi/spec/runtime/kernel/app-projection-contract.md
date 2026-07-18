@@ -309,23 +309,14 @@ closed with typed storage state/reason.
 RuntimeAppService owns exactly three local-app storage methods:
 `ReadLocalAppStorageJson`, `WriteLocalAppStorageJson`, and
 `RemoveLocalAppStorageJson`. They are admitted only on `local_app_host` after
-the current process-bound session and exact operation/resource grant are
-revalidated. The request carries only `relative_path` and, for write, one JSON
-value. It carries no app id, principal id, account id, root, absolute path,
-quota, grant id, credential, endpoint, or method selector.
+the current process-bound session, principal and account partition are
+revalidated. This is the `app.private_storage` base entitlement: it creates no
+permission decision, user prompt, selector or grant row. The request carries
+only `relative_path` and, for write, one JSON value. It carries no app id,
+principal id, account id, root, absolute path, quota, permission id, decision
+id, credential, endpoint, or method selector.
 
-The closed operation mapping is:
-
-- `ReadLocalAppStorageJson` -> `app_storage.json.read` ->
-  `file.read.scoped#app-local-drafts`;
-- `WriteLocalAppStorageJson` -> `app_storage.json.write` ->
-  `file.write.scoped#app-local-drafts`;
-- `RemoveLocalAppStorageJson` -> `app_storage.json.remove` ->
-  `file.write.scoped#app-local-drafts`.
-
-Each grant resource is exactly
-`storage:<canonical-relative-json-path>`. Read, write, and remove use distinct
-operation fingerprints even when the resource is identical. Runtime resolves
+Runtime resolves
 `<nimi_data>/apps/<current-local-app-principal-id>/data` from K-APP-022,
 requires an ASCII slash-separated relative `.json` path of at most 240 UTF-8
 bytes, rejects empty/dot/parent/absolute/backslash/colon segments, and rejects

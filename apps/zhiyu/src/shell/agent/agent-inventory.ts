@@ -7,7 +7,6 @@ import {
 import { withZhiyuRuntimeAgentBindingRequired } from '../agent-chat/runtime-agent-binding';
 import type { ZhiyuEvidence } from '../app/evidence';
 import { appId } from '../auth/runtime-platform';
-import { zhiyuLocalAppRuntimePlatform } from '../local-development/local-app-runtime-platform';
 
 export type ZhiyuRuntimeAgentInventoryStatus = ZhiyuEvidence['inventory'];
 export type ZhiyuRuntimeAccountStatus = ZhiyuEvidence['auth'];
@@ -15,24 +14,6 @@ export type ZhiyuRuntimeAccountStatus = ZhiyuEvidence['auth'];
 export async function probeZhiyuRuntimeAgentInventory(
   auth: ZhiyuRuntimeAccountStatus,
 ): Promise<ZhiyuRuntimeAgentInventoryStatus> {
-  if (typeof window !== 'undefined' && window.__nimiZhiyuLocalDevelopment) {
-    try {
-      const inventory = await zhiyuLocalAppRuntimePlatform.agent.listInventory();
-      return {
-        transport: 'electron-ipc',
-        ready: true,
-        reasonCode: 'runtime-local-agent-inventory-ready',
-        actionHint: 'select_runtime_local_agent',
-        source: 'runtime',
-        message: 'Runtime LocalAgent inventory was listed through the bounded local-app carrier.',
-        ownerUserId: inventory.ownerUserId,
-        count: inventory.count,
-        localAgents: inventory.localAgents,
-      };
-    } catch (error) {
-      return normalizeInventoryError(error, null);
-    }
-  }
   if (!auth.ready || !auth.accountId) {
     return inventoryUnavailable({
       reasonCode: 'zhiyu-runtime-account-required',

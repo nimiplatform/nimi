@@ -495,7 +495,7 @@ rules:
   - rule_id: K-ERR-012
     evidence_refs: [runtime_kernel_consistency, runtime_go_test]
     evidence_requirement: required
-    note: Closed local-app failure family preserves actionable states without leaking principal, grant, session, process, endpoint or credential material.
+    note: Closed local-app failure family preserves actionable states without leaking principal, permission-decision, session, process, endpoint or credential material.
   - rule_id: K-GATE-001
     evidence_refs:
       - runtime_kernel_consistency

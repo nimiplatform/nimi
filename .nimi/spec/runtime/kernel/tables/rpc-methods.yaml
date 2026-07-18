@@ -330,18 +330,12 @@ services:
       - name: RevokeScopedAppBinding
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding
-      - name: GetLocalAppGrantStatus
+      - name: GetLocalAppPermissionStatus
         type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus
-      - name: RequestLocalAppGrant
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus
+      - name: RequestLocalAppPermission
         type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant
-      - name: DecideLocalAppGrant
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/DecideLocalAppGrant
-      - name: RevokeLocalAppGrant
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppGrant
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission
       - name: IssueWorkspaceBinding
         type: unary
         authority_status: blocked_pending_separate_authority
@@ -668,15 +662,9 @@ services:
         type: unary
       - name: SubscribeAgentEvents
         type: server_stream
-      - name: TranscribeLocalAppAgentAudio
-        type: unary
-        authority_status: admitted_local_app
-        transport_disposition: protected_local_app_host_only
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppAgentAudio
       - name: SubscribeAgentVoiceStream
         type: server_stream
-        authority_status: admitted_local_app_and_existing_scoped_consumer
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream
+        authority_status: existing_scoped_consumer_only
       - name: InterruptAgentVoicePlayback
         type: unary
       - name: GetRuntimeAgentAIConfig

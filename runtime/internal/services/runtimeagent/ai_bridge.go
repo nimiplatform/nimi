@@ -8,7 +8,6 @@ type runtimePrivateAIBridgeAI interface {
 	publicChatBindingResolverService
 	publicChatScenarioStreamer
 	publicChatActionScenarioExecutor
-	localAppVoiceTranscriptionScenarioExecutor
 }
 
 type RuntimePrivateAIBridge struct {
@@ -19,7 +18,6 @@ type RuntimePrivateAIBridge struct {
 	publicChatBinding   PublicChatBindingResolver
 	publicChatTurn      PublicChatTurnExecutor
 	publicChatAction    PublicChatActionExecutor
-	localAppVoice       LocalAppVoiceTranscriptionExecutor
 }
 
 func newRuntimePrivateAIBridge() *RuntimePrivateAIBridge {
@@ -31,7 +29,6 @@ func newRuntimePrivateAIBridge() *RuntimePrivateAIBridge {
 		publicChatBinding:   rejectingPublicChatBindingResolver{},
 		publicChatTurn:      rejectingPublicChatTurnExecutor{},
 		publicChatAction:    rejectingPublicChatActionExecutor{},
-		localAppVoice:       rejectingLocalAppVoiceTranscriptionExecutor{},
 	}
 }
 
@@ -47,7 +44,6 @@ func NewAIBackedRuntimePrivateAIBridge(ai runtimePrivateAIBridgeAI) *RuntimePriv
 	bridge.realmGroupCandidate = NewAIBackedRealmGroupMessageCandidateExecutorWithBinding(ai, bridge.publicChatBinding)
 	bridge.publicChatTurn = NewAIBackedPublicChatTurnExecutor(ai)
 	bridge.publicChatAction = NewAIBackedPublicChatActionExecutor(ai)
-	bridge.localAppVoice = NewAIBackedLocalAppVoiceTranscriptionExecutor(ai)
 	return bridge
 }
 
@@ -98,13 +94,6 @@ func (b *RuntimePrivateAIBridge) publicChatActionExecutor() PublicChatActionExec
 		return rejectingPublicChatActionExecutor{}
 	}
 	return b.publicChatAction
-}
-
-func (b *RuntimePrivateAIBridge) localAppVoiceTranscriptionExecutor() LocalAppVoiceTranscriptionExecutor {
-	if b == nil || b.localAppVoice == nil {
-		return rejectingLocalAppVoiceTranscriptionExecutor{}
-	}
-	return b.localAppVoice
 }
 
 func (s *Service) ensureRuntimePrivateAIBridgeLocked() *RuntimePrivateAIBridge {
@@ -197,17 +186,6 @@ func (s *Service) setPublicChatActionExecutor(executor PublicChatActionExecutor)
 	bridge.publicChatAction = executor
 }
 
-func (s *Service) setLocalAppVoiceTranscriptionExecutor(executor LocalAppVoiceTranscriptionExecutor) {
-	s.aiBridgeMu.Lock()
-	defer s.aiBridgeMu.Unlock()
-	bridge := s.ensureRuntimePrivateAIBridgeLocked()
-	if executor == nil {
-		bridge.localAppVoice = rejectingLocalAppVoiceTranscriptionExecutor{}
-		return
-	}
-	bridge.localAppVoice = executor
-}
-
 func (s *Service) currentLifeTrackExecutorFromBridge() LifeTrackExecutor {
 	s.aiBridgeMu.RLock()
 	defer s.aiBridgeMu.RUnlock()
@@ -260,13 +238,4 @@ func (s *Service) currentPublicChatActionExecutor() PublicChatActionExecutor {
 		return rejectingPublicChatActionExecutor{}
 	}
 	return s.aiBridge.publicChatActionExecutor()
-}
-
-func (s *Service) currentLocalAppVoiceTranscriptionExecutor() LocalAppVoiceTranscriptionExecutor {
-	s.aiBridgeMu.RLock()
-	defer s.aiBridgeMu.RUnlock()
-	if s == nil || s.aiBridge == nil {
-		return rejectingLocalAppVoiceTranscriptionExecutor{}
-	}
-	return s.aiBridge.localAppVoiceTranscriptionExecutor()
 }

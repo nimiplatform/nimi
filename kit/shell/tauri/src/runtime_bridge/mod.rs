@@ -36,16 +36,14 @@ pub use local_app::RuntimeBridgeLocalAppHost;
 pub use metadata::{RuntimeBridgeMetadata, RuntimeBridgeTrustedMetadata};
 pub use nimi_shell_protected_local::{
     DesktopAccountSessionStatusRequest, DeveloperModeState, DeveloperModeStatus,
-    LocalAppGrantControlDecisionRequest, LocalAppGrantControlPending,
-    LocalAppGrantControlProjection, LocalAppGrantControlState,
     LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
-    LocalDevelopmentAuthorizationState, LocalDevelopmentDecision,
-    LocalDevelopmentDecisionRequest, LocalDevelopmentDeveloperModeSummary,
-    LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest,
-    LocalDevelopmentGrantSummary, LocalDevelopmentLaunchOutcome, LocalDevelopmentLaunchRequest,
-    LocalDevelopmentProject, LocalDevelopmentProjectAuthorizationSummary,
-    LocalDevelopmentReactivationRequest, LocalDevelopmentShellKind,
-    LocalDevelopmentSummaryAvailability, NimiHostError, NimiHostErrorReasonCode,
+    LocalDevelopmentAuthorizationState, LocalDevelopmentDecision, LocalDevelopmentDecisionRequest,
+    LocalDevelopmentDeveloperModeSummary, LocalDevelopmentEndRunRequest,
+    LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
+    LocalDevelopmentLaunchRequest, LocalDevelopmentProject,
+    LocalDevelopmentProjectAuthorizationSummary, LocalDevelopmentReactivationRequest,
+    LocalDevelopmentShellKind, LocalDevelopmentSummaryAvailability, NimiHostError,
+    NimiHostErrorReasonCode,
 };
 pub use stream::RuntimeBridgeStreamOpenResult;
 pub use unary::{
@@ -620,23 +618,6 @@ pub async fn get_local_development_authority_summary(
 
 pub async fn set_developer_mode(enabled: bool) -> Result<DeveloperModeStatus, NimiHostError> {
     service_control::set_developer_mode(enabled).await
-}
-
-pub async fn pending_local_app_grant() -> Result<Option<LocalAppGrantControlPending>, NimiHostError>
-{
-    service_control::pending_local_app_grant().await
-}
-
-pub async fn decide_local_app_grant(
-    request: LocalAppGrantControlDecisionRequest,
-) -> Result<LocalAppGrantControlProjection, NimiHostError> {
-    service_control::decide_local_app_grant(request).await
-}
-
-pub async fn revoke_local_app_grant(
-    grant_id: [u8; 32],
-) -> Result<LocalAppGrantControlProjection, NimiHostError> {
-    service_control::revoke_local_app_grant(grant_id).await
 }
 
 pub async fn decide_local_development_project(

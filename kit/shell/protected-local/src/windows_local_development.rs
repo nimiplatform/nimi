@@ -130,7 +130,7 @@ mod developer_mode_projection_tests {
 fn report_windows_e2e_evaluation_response(response: &EvaluateLocalDevelopmentProjectResponse) {
     let project = response.project.as_ref();
     eprintln!(
-        "[protected-local local-development windows-e2e-fixture] stage=evaluation-response reason_code={} state={} confirmation_required={} evaluation_id_len={} project_present={} project_app_id_present={} project_display_name_present={} project_root_present={} project_manifest_present={} project_account_present={} capability_count={} capability_fingerprint_len={} trust_class_matches={} authorization_present={} expires_present={}",
+        "[protected-local local-development windows-e2e-fixture] stage=evaluation-response reason_code={} state={} confirmation_required={} evaluation_id_len={} project_present={} project_app_id_present={} project_display_name_present={} project_root_present={} project_manifest_present={} project_account_present={} permission_requirement_count={} permission_requirement_fingerprint_len={} trust_class_matches={} authorization_present={} expires_present={}",
         response.reason_code,
         response.state,
         response.confirmation_required,
@@ -141,8 +141,8 @@ fn report_windows_e2e_evaluation_response(response: &EvaluateLocalDevelopmentPro
         project.is_some_and(|value| !value.canonical_project_root.is_empty()),
         project.is_some_and(|value| !value.canonical_manifest_path.is_empty()),
         project.is_some_and(|value| !value.account_id.is_empty()),
-        project.map_or(0, |value| value.requested_capabilities.len()),
-        project.map_or(0, |value| value.capability_fingerprint.len()),
+        project.map_or(0, |value| value.permission_requirements.len()),
+        project.map_or(0, |value| value.permission_requirement_fingerprint.len()),
         project.is_some_and(|value| value.trust_class == LOCAL_DEVELOPMENT_TRUST_CLASS),
         response.authorization.is_some(),
         response.evaluation_expires_at.is_some(),
@@ -475,20 +475,32 @@ fn project_projection(
     if !canonical_manifest_path.starts_with(&canonical_project_root) {
         return Err(projection_error("project-manifest-boundary", untrusted()));
     }
-    let capability_fingerprint = required_identifier(project.capability_fingerprint)
-        .map_err(|error| projection_error("project-capability-fingerprint", error))?;
-    let mut previous: Option<&str> = None;
-    for capability in &project.requested_capabilities {
-        if capability.is_empty()
-            || capability.trim() != capability
-            || previous.is_some_and(|value| value >= capability.as_str())
+    let permission_requirement_fingerprint =
+        required_identifier(project.permission_requirement_fingerprint).map_err(|error| {
+            projection_error("project-permission-requirement-fingerprint", error)
+        })?;
+    let mut previous: Option<String> = None;
+    let mut permission_requirements = Vec::with_capacity(project.permission_requirements.len());
+    for requirement in project.permission_requirements {
+        if requirement.permission_id.is_empty()
+            || requirement.permission_id.trim() != requirement.permission_id
+            || requirement.reason.is_empty()
+            || requirement.reason.trim() != requirement.reason
+            || requirement.reason.len() > 240
+            || previous
+                .as_ref()
+                .is_some_and(|value| value.as_str() >= requirement.permission_id.as_str())
         {
-            return Err(projection_error("project-capability-order", untrusted()));
+            return Err(projection_error(
+                "project-permission-requirement",
+                untrusted(),
+            ));
         }
-        previous = Some(capability);
-    }
-    if project.requested_capabilities.is_empty() {
-        return Err(projection_error("project-capabilities-empty", untrusted()));
+        previous = Some(requirement.permission_id.clone());
+        permission_requirements.push(crate::LocalDevelopmentPermissionRequirement {
+            permission_id: requirement.permission_id,
+            reason: requirement.reason,
+        });
     }
     Ok(LocalDevelopmentProject {
         app_id: required_text(project.app_id)
@@ -500,8 +512,8 @@ fn project_projection(
         shell_kind,
         account_id: required_text(project.account_id)
             .map_err(|error| projection_error("project-account-id", error))?,
-        requested_capabilities: project.requested_capabilities,
-        capability_fingerprint,
+        permission_requirements,
+        permission_requirement_fingerprint,
     })
 }
 

@@ -17,67 +17,31 @@ type rawRegistry struct {
 	Apps        []rawApp `yaml:"apps"`
 }
 
-type rawPermissionScope struct {
-	AppID       string `yaml:"appId"`
-	ScopeFamily string `yaml:"scopeFamily"`
-	ScopeName   string `yaml:"scopeName"`
-	Qualifier   string `yaml:"qualifier"`
-}
-
-type rawPermissionScopeRef struct {
-	Pending bool
-	Scopes  []rawPermissionScope
-}
-
-func (r *rawPermissionScopeRef) UnmarshalYAML(value *yaml.Node) error {
-	switch value.Kind {
-	case yaml.ScalarNode:
-		normalized := strings.TrimSpace(value.Value)
-		if normalized != PermissionScopeRefPending {
-			return fmt.Errorf("permission_scope_ref scalar must be %q", PermissionScopeRefPending)
-		}
-		r.Pending = true
-		r.Scopes = nil
-		return nil
-	case yaml.SequenceNode:
-		scopes := make([]rawPermissionScope, 0, len(value.Content))
-		for index, item := range value.Content {
-			if item.Kind != yaml.MappingNode {
-				return fmt.Errorf("permission_scope_ref[%d] must be a permission scope object", index)
-			}
-			var scope rawPermissionScope
-			if err := item.Decode(&scope); err != nil {
-				return fmt.Errorf("permission_scope_ref[%d]: %w", index, err)
-			}
-			scopes = append(scopes, scope)
-		}
-		r.Pending = false
-		r.Scopes = scopes
-		return nil
-	default:
-		return fmt.Errorf("permission_scope_ref must be %q or a permission scope object sequence", PermissionScopeRefPending)
-	}
+type rawPermissionRequirement struct {
+	PermissionID string `yaml:"id"`
+	Reason       string `yaml:"reason"`
 }
 
 type rawApp struct {
-	AppID                     string                `yaml:"app_id"`
-	DisplayLabel              string                `yaml:"display_label"`
-	Publisher                 string                `yaml:"publisher"`
-	TrustTierRef              string                `yaml:"trust_tier_ref"`
-	PackageKind               string                `yaml:"package_kind"`
-	PackageSignaturePolicyRef string                `yaml:"package_signature_policy_ref"`
-	UpdateChannelRef          string                `yaml:"update_channel_ref"`
-	AIProfileSelectionRef     string                `yaml:"ai_profile_selection_ref"`
-	CapabilitySetRefs         []string              `yaml:"capability_set_refs"`
-	LocalComputePackRefs      []string              `yaml:"local_compute_pack_refs"`
-	RuntimeRegistrationMode   string                `yaml:"runtime_registration_mode"`
-	PermissionScopeRef        rawPermissionScopeRef `yaml:"permission_scope_ref"`
-	HealthRepairProjection    stringList            `yaml:"health_repair_projection"`
-	OrdinaryVisibility        string                `yaml:"ordinary_visibility"`
-	ReleaseDescriptorRef      string                `yaml:"release_descriptor_ref"`
-	InstallStoragePolicyRef   string                `yaml:"install_storage_policy_ref"`
-	AdmissionStatus           string                `yaml:"admission_status"`
-	SourceRule                string                `yaml:"source_rule"`
+	AppID                     string                     `yaml:"app_id"`
+	DisplayLabel              string                     `yaml:"display_label"`
+	Publisher                 string                     `yaml:"publisher"`
+	TrustTierRef              string                     `yaml:"trust_tier_ref"`
+	PackageKind               string                     `yaml:"package_kind"`
+	PackageSignaturePolicyRef string                     `yaml:"package_signature_policy_ref"`
+	UpdateChannelRef          string                     `yaml:"update_channel_ref"`
+	AIProfileSelectionRef     string                     `yaml:"ai_profile_selection_ref"`
+	CapabilitySetRefs         []string                   `yaml:"capability_set_refs"`
+	LocalComputePackRefs      []string                   `yaml:"local_compute_pack_refs"`
+	RuntimeRegistrationMode   string                     `yaml:"runtime_registration_mode"`
+	PermissionRequirements    []rawPermissionRequirement `yaml:"permission_requirements"`
+	LegacyPermissionScopeRef  any                        `yaml:"permission_scope_ref"`
+	HealthRepairProjection    stringList                 `yaml:"health_repair_projection"`
+	OrdinaryVisibility        string                     `yaml:"ordinary_visibility"`
+	ReleaseDescriptorRef      string                     `yaml:"release_descriptor_ref"`
+	InstallStoragePolicyRef   string                     `yaml:"install_storage_policy_ref"`
+	AdmissionStatus           string                     `yaml:"admission_status"`
+	SourceRule                string                     `yaml:"source_rule"`
 }
 
 type stringList []string
@@ -185,17 +149,25 @@ func convertApp(raw rawApp) (App, error) {
 	if !visibility.Valid() {
 		return App{}, fmt.Errorf("%w: %q", ErrAppUnknownOrdinaryVisibility, raw.OrdinaryVisibility)
 	}
-	scopes := make([]PermissionScopeRef, 0, len(raw.PermissionScopeRef.Scopes))
-	for _, scope := range raw.PermissionScopeRef.Scopes {
-		if strings.TrimSpace(scope.ScopeFamily) == "" || strings.TrimSpace(scope.ScopeName) == "" {
-			return App{}, fmt.Errorf("%w: scopeFamily and scopeName are required", ErrAppInvalidPermissionScopeRef)
+	if raw.LegacyPermissionScopeRef != nil || raw.PermissionRequirements == nil {
+		return App{}, ErrAppInvalidPermissionRequirement
+	}
+	requirements := make([]PermissionRequirement, 0, len(raw.PermissionRequirements))
+	seenPermissions := make(map[string]struct{}, len(raw.PermissionRequirements))
+	for index, requirement := range raw.PermissionRequirements {
+		permissionID := strings.TrimSpace(requirement.PermissionID)
+		reason := strings.TrimSpace(requirement.Reason)
+		if permissionID == "" || permissionID != requirement.PermissionID || reason == "" || reason != requirement.Reason || len([]byte(reason)) > 240 {
+			return App{}, fmt.Errorf("%w: item %d requires canonical id and bounded reason", ErrAppInvalidPermissionRequirement, index)
 		}
-		scopes = append(scopes, PermissionScopeRef{
-			AppID:       strings.TrimSpace(scope.AppID),
-			ScopeFamily: strings.TrimSpace(scope.ScopeFamily),
-			ScopeName:   strings.TrimSpace(scope.ScopeName),
-			Qualifier:   strings.TrimSpace(scope.Qualifier),
-		})
+		if _, duplicate := seenPermissions[permissionID]; duplicate {
+			return App{}, fmt.Errorf("%w: duplicate id %s", ErrAppInvalidPermissionRequirement, permissionID)
+		}
+		if !admittedPublicPermissionID(permissionID) {
+			return App{}, fmt.Errorf("%w: %s", ErrAppPermissionNotAdmitted, permissionID)
+		}
+		seenPermissions[permissionID] = struct{}{}
+		requirements = append(requirements, PermissionRequirement{PermissionID: permissionID, Reason: reason})
 	}
 	return App{
 		AppID:                     raw.AppID,
@@ -209,8 +181,7 @@ func convertApp(raw rawApp) (App, error) {
 		CapabilitySetRefs:         append([]string(nil), raw.CapabilitySetRefs...),
 		LocalComputePackRefs:      append([]string(nil), raw.LocalComputePackRefs...),
 		RuntimeRegistrationMode:   mode,
-		PermissionScopeRefPending: raw.PermissionScopeRef.Pending,
-		PermissionScopeRefs:       scopes,
+		PermissionRequirements:    requirements,
 		HealthRepairProjection:    append([]string(nil), raw.HealthRepairProjection...),
 		OrdinaryVisibility:        visibility,
 		ReleaseDescriptorRef:      raw.ReleaseDescriptorRef,
@@ -218,6 +189,13 @@ func convertApp(raw rawApp) (App, error) {
 		AdmissionStatus:           status,
 		SourceRule:                raw.SourceRule,
 	}, nil
+}
+
+// No third-party public permission is admitted in the current atomic cut.
+// Promoting a catalog row must update this enforcement point together with
+// selector, grant, SDK/Kit, Desktop UI, audit, revoke, and positive evidence.
+func admittedPublicPermissionID(string) bool {
+	return false
 }
 
 // FindByID returns the registry entry with the given app_id.

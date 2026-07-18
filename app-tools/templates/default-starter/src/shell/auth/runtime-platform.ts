@@ -11,8 +11,7 @@ export type RuntimePlatformReadyProjection = {
   readonly status: 'ready';
   readonly mode: RuntimeAuthMode;
   readonly appHost: {
-    readonly state: 'session-bound-zero-grant' | 'session-bound-granted';
-    readonly operationAllowed: boolean;
+    readonly state: 'session-bound';
     readonly reasonCode: string;
     readonly actionHint: string;
   };
@@ -44,10 +43,7 @@ export function getRuntimePlatformProjection(): Promise<RuntimePlatformProjectio
 async function resolveAppHostProjection(): Promise<RuntimePlatformProjection> {
   try {
     const status = await getNimiAppRuntimePlatformClient().auth.status();
-    if (
-      status.state !== 'session-bound-zero-grant'
-      && status.state !== 'session-bound-granted'
-    ) {
+    if (!status.sessionBound) {
       return {
         status: status.state === 'unavailable' ? 'unavailable' : 'action-required',
         mode: 'local-app',
@@ -60,8 +56,7 @@ async function resolveAppHostProjection(): Promise<RuntimePlatformProjection> {
       status: 'ready',
       mode: 'local-app',
       appHost: {
-        state: status.state,
-        operationAllowed: status.operationAllowed,
+        state: 'session-bound',
         reasonCode: status.reasonCode,
         actionHint: status.actionHint,
       },

@@ -23,7 +23,7 @@ test('tester exposes a first-class shell parity gate', () => {
   assert.match(source, /createNimiAppRuntimePlatformClient/);
   assert.match(source, /createNimiLocalAppStandardShellSurface/);
   assert.match(source, /local_app_session_status/);
-  assert.match(source, /local_app_artifacts_read_runtime_bytes/);
+  assert.match(source, /storage_write_json/);
   assert.match(source, /src-electron\/main\.ts/);
   assert.match(source, /src-tauri\/src\/main\.rs/);
   assert.match(source, /nimi_shell_tauri_local_app_standard_shell_handler/);
@@ -32,18 +32,16 @@ test('tester exposes a first-class shell parity gate', () => {
   const tauriAcceptance = read('scripts/run-tauri-acceptance.mjs');
   assert.match(tauriAcceptance, /commandMatrix/);
   assert.match(tauriAcceptance, /local_app_session_status/);
-  assert.match(tauriAcceptance, /local_app_artifacts_read_runtime_bytes/);
+  assert.match(tauriAcceptance, /storage_write_json/);
   assert.match(tauriAcceptance, /tester\.tauri\.plain-negative/);
   assert.doesNotMatch(tauriAcceptance, /officialLauncher|NIMI_RUNTIME_GRPC_ADDR|NIMI_TESTER_TAURI_ACCEPTANCE_STORAGE_ROOT/);
   for (const expectedCommand of [
-    'local_app_permission_posture',
+    'local_app_permission_status',
     'local_app_permission_request',
-    'local_app_agent_open_conversation',
-    'local_app_agent_send_turn',
-    'local_app_agent_subscribe_turn',
-    'local_app_agent_get_conversation_snapshot',
     'ai_config_get',
     'storage_read_json',
+    'storage_write_json',
+    'storage_remove_json',
     'unsupported-standard-command',
   ]) {
     assert.match(tauriAcceptance, new RegExp(expectedCommand));

@@ -17,7 +17,7 @@ model ids as non-identity facts.
 
 `tables/protected-local-rpc-transport-matrix.yaml` is the sole protected
 transport/origin authority for Desktop account-control, the host-neutral
-local-app launch/session/grant surface, immutable-package typed-unavailable
+local-app launch/session/permission surface, immutable-package typed-unavailable
 operations, and Runtime-private refresh. Method presence in proto or
 `tables/rpc-methods.yaml`, a loopback listener, and an authenticated portable
 session do not grant those roles. `OpenDesktopSession` retains Desktop account

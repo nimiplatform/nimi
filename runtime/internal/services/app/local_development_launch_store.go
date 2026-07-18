@@ -36,27 +36,27 @@ type localDevelopmentLaunchTicket struct {
 }
 
 type localDevelopmentSessionProjection struct {
-	LaunchID                protectedlocal.Identifier
-	SessionID               protectedlocal.Identifier
-	SessionProof            protectedlocal.Identifier
-	ExpiresAt               time.Time
-	AuthorizationID         protectedlocal.Identifier
-	AuthorizationGeneration uint64
-	SupervisorRunID         protectedlocal.Identifier
-	AppID                   string
-	ProjectRoot             string
-	CapabilityFingerprint   protectedlocal.Identifier
-	HostExecutableDigest    protectedlocal.Identifier
-	AccountID               string
-	AccountGeneration       uint64
-	RuntimeBootEpoch        protectedlocal.Identifier
-	Process                 protectedlocal.ProcessTuple
-	Capabilities            []string
-	LocalAppPrincipalID     string
-	LocalAppRecordID        string
-	ProvenanceRevision      uint64
-	ProjectGeneration       uint64
-	PayloadDigest           string
+	LaunchID                         protectedlocal.Identifier
+	SessionID                        protectedlocal.Identifier
+	SessionProof                     protectedlocal.Identifier
+	ExpiresAt                        time.Time
+	AuthorizationID                  protectedlocal.Identifier
+	AuthorizationGeneration          uint64
+	SupervisorRunID                  protectedlocal.Identifier
+	AppID                            string
+	ProjectRoot                      string
+	PermissionRequirementFingerprint protectedlocal.Identifier
+	HostExecutableDigest             protectedlocal.Identifier
+	AccountID                        string
+	AccountGeneration                uint64
+	RuntimeBootEpoch                 protectedlocal.Identifier
+	Process                          protectedlocal.ProcessTuple
+	PermissionRequirements           []localDevelopmentPermissionRequirement
+	LocalAppPrincipalID              string
+	LocalAppRecordID                 string
+	ProvenanceRevision               uint64
+	ProjectGeneration                uint64
+	PayloadDigest                    string
 }
 
 type localDevelopmentSessionBinding struct {
@@ -68,29 +68,29 @@ type localDevelopmentSessionBinding struct {
 }
 
 type localDevelopmentLaunchRow struct {
-	LaunchID              protectedlocal.Identifier
-	AuthorizationID       protectedlocal.Identifier
-	SupervisorRunID       protectedlocal.Identifier
-	AppID                 string
-	ProjectRoot           string
-	ManifestPath          string
-	ShellKind             runtimev1.LocalDevelopmentShellKind
-	AccountID             string
-	AccountGeneration     uint64
-	CapabilityFingerprint protectedlocal.Identifier
-	HostExecutable        string
-	RendererOrigin        string
-	RuntimeBootEpoch      protectedlocal.Identifier
-	Status                string
-	ExpiresAt             time.Time
-	BindDeadline          time.Time
-	Process               protectedlocal.ProcessTuple
-	LocalAppPrincipalID   string
-	LocalAppRecordID      string
-	ProvenanceRevision    uint64
-	ProjectGeneration     uint64
-	PayloadDigest         string
-	ExpectedHostDigest    protectedlocal.Identifier
+	LaunchID                         protectedlocal.Identifier
+	AuthorizationID                  protectedlocal.Identifier
+	SupervisorRunID                  protectedlocal.Identifier
+	AppID                            string
+	ProjectRoot                      string
+	ManifestPath                     string
+	ShellKind                        runtimev1.LocalDevelopmentShellKind
+	AccountID                        string
+	AccountGeneration                uint64
+	PermissionRequirementFingerprint protectedlocal.Identifier
+	HostExecutable                   string
+	RendererOrigin                   string
+	RuntimeBootEpoch                 protectedlocal.Identifier
+	Status                           string
+	ExpiresAt                        time.Time
+	BindDeadline                     time.Time
+	Process                          protectedlocal.ProcessTuple
+	LocalAppPrincipalID              string
+	LocalAppRecordID                 string
+	ProvenanceRevision               uint64
+	ProjectGeneration                uint64
+	PayloadDigest                    string
+	ExpectedHostDigest               protectedlocal.Identifier
 }
 
 const localDevelopmentLaunchSelect = `SELECT launch_id, authorization_id, supervisor_run_id, app_id, project_root, manifest_path, shell_kind, account_id, account_generation, capability_fingerprint,
@@ -155,7 +155,7 @@ func (store *localDevelopmentStore) PrepareLaunch(ctx context.Context, request l
 	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
 		launchID[:], request.AuthorizationID[:], request.SupervisorRunID[:], request.Project.AppID, request.Project.ProjectRoot,
 		request.Project.ManifestPath, int32(request.ShellKind), request.Project.AccountID, request.Project.AccountGeneration,
-		request.Project.CapabilityFingerprint[:], request.PrincipalID, request.RecordID, request.ProvenanceRevision, request.ProjectGeneration, request.PayloadDigest, request.ExpectedHostDigest[:],
+		request.Project.PermissionRequirementFingerprint[:], request.PrincipalID, request.RecordID, request.ProvenanceRevision, request.ProjectGeneration, request.PayloadDigest, request.ExpectedHostDigest[:],
 		filepath.Clean(request.HostExecutable), request.RendererOrigin,
 		store.bootEpoch[:], now.UnixNano(), expiresAt.UnixNano()); err != nil {
 		return localDevelopmentLaunchTicket{}, err
@@ -226,7 +226,7 @@ func (store *localDevelopmentStore) ConsumeLaunch(ctx context.Context, launchID 
 		return localDevelopmentSessionProjection{}, errLocalDevelopmentLaunchMismatch
 	}
 	authorization, err := scanLocalDevelopmentAuthorization(tx.QueryRowContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization WHERE authorization_id = ?`, row.AuthorizationID[:]))
-	if err != nil || authorization.State != localDevelopmentAuthorizationActive || authorization.Project.AppID != row.AppID || authorization.Project.ProjectRoot != row.ProjectRoot || authorization.Project.CapabilityFingerprint != row.CapabilityFingerprint || authorization.Project.AccountID != row.AccountID ||
+	if err != nil || authorization.State != localDevelopmentAuthorizationActive || authorization.Project.AppID != row.AppID || authorization.Project.ProjectRoot != row.ProjectRoot || authorization.Project.PermissionRequirementFingerprint != row.PermissionRequirementFingerprint || authorization.Project.AccountID != row.AccountID ||
 		(authorization.Decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE && authorization.RunID != row.SupervisorRunID) {
 		return localDevelopmentSessionProjection{}, errLocalDevelopmentAuthorization
 	}
@@ -258,7 +258,7 @@ func (store *localDevelopmentStore) ConsumeLaunch(ctx context.Context, launchID 
 		issued_unix_nano, expires_unix_nano
 	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		sessionID[:], proofHash[:], launchID[:], row.AuthorizationID[:], row.SupervisorRunID[:], row.AppID, row.ProjectRoot,
-		row.AccountID, row.AccountGeneration, row.CapabilityFingerprint[:], store.bootEpoch[:], processJSON,
+		row.AccountID, row.AccountGeneration, row.PermissionRequirementFingerprint[:], store.bootEpoch[:], processJSON,
 		row.LocalAppPrincipalID, row.LocalAppRecordID, row.ProvenanceRevision, row.ProjectGeneration, row.PayloadDigest,
 		now.UnixNano(), expiresAt.UnixNano()); err != nil {
 		return localDevelopmentSessionProjection{}, err
@@ -267,27 +267,27 @@ func (store *localDevelopmentStore) ConsumeLaunch(ctx context.Context, launchID 
 		return localDevelopmentSessionProjection{}, err
 	}
 	return localDevelopmentSessionProjection{
-		LaunchID:                row.LaunchID,
-		SessionID:               sessionID,
-		SessionProof:            sessionProof,
-		ExpiresAt:               expiresAt,
-		AuthorizationID:         row.AuthorizationID,
-		AuthorizationGeneration: authorization.Generation,
-		SupervisorRunID:         row.SupervisorRunID,
-		AppID:                   row.AppID,
-		ProjectRoot:             row.ProjectRoot,
-		CapabilityFingerprint:   row.CapabilityFingerprint,
-		HostExecutableDigest:    process.ExecutableDigest,
-		AccountID:               row.AccountID,
-		AccountGeneration:       row.AccountGeneration,
-		RuntimeBootEpoch:        store.bootEpoch,
-		Process:                 process,
-		Capabilities:            append([]string(nil), authorization.Project.Capabilities...),
-		LocalAppPrincipalID:     row.LocalAppPrincipalID,
-		LocalAppRecordID:        row.LocalAppRecordID,
-		ProvenanceRevision:      row.ProvenanceRevision,
-		ProjectGeneration:       row.ProjectGeneration,
-		PayloadDigest:           row.PayloadDigest,
+		LaunchID:                         row.LaunchID,
+		SessionID:                        sessionID,
+		SessionProof:                     sessionProof,
+		ExpiresAt:                        expiresAt,
+		AuthorizationID:                  row.AuthorizationID,
+		AuthorizationGeneration:          authorization.Generation,
+		SupervisorRunID:                  row.SupervisorRunID,
+		AppID:                            row.AppID,
+		ProjectRoot:                      row.ProjectRoot,
+		PermissionRequirementFingerprint: row.PermissionRequirementFingerprint,
+		HostExecutableDigest:             process.ExecutableDigest,
+		AccountID:                        row.AccountID,
+		AccountGeneration:                row.AccountGeneration,
+		RuntimeBootEpoch:                 store.bootEpoch,
+		Process:                          process,
+		PermissionRequirements:           append([]localDevelopmentPermissionRequirement(nil), authorization.Project.PermissionRequirements...),
+		LocalAppPrincipalID:              row.LocalAppPrincipalID,
+		LocalAppRecordID:                 row.LocalAppRecordID,
+		ProvenanceRevision:               row.ProvenanceRevision,
+		ProjectGeneration:                row.ProjectGeneration,
+		PayloadDigest:                    row.PayloadDigest,
 	}, nil
 }
 
@@ -347,32 +347,32 @@ func (store *localDevelopmentStore) ValidateSession(ctx context.Context, binding
 		return localDevelopmentSessionProjection{}, errLocalDevelopmentProcessMismatch
 	}
 	authorization, err := scanLocalDevelopmentAuthorization(store.db.QueryRowContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization WHERE authorization_id = ?`, parsedAuthorizationID[:]))
-	if err != nil || authorization.State != localDevelopmentAuthorizationActive || authorization.Project.AppID != appID || authorization.Project.ProjectRoot != projectRoot || authorization.Project.AccountID != accountID || authorization.Project.CapabilityFingerprint != parsedFingerprint ||
+	if err != nil || authorization.State != localDevelopmentAuthorizationActive || authorization.Project.AppID != appID || authorization.Project.ProjectRoot != projectRoot || authorization.Project.AccountID != accountID || authorization.Project.PermissionRequirementFingerprint != parsedFingerprint ||
 		(authorization.Decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE && authorization.RunID != parsedRunID) {
 		return localDevelopmentSessionProjection{}, errLocalDevelopmentSessionRevoked
 	}
 	return localDevelopmentSessionProjection{
-		LaunchID:                parsedLaunchID,
-		SessionID:               binding.SessionID,
-		SessionProof:            binding.SessionProof,
-		ExpiresAt:               time.Unix(0, expiresAt).UTC(),
-		AuthorizationID:         parsedAuthorizationID,
-		AuthorizationGeneration: authorization.Generation,
-		SupervisorRunID:         parsedRunID,
-		AppID:                   appID,
-		ProjectRoot:             projectRoot,
-		CapabilityFingerprint:   parsedFingerprint,
-		HostExecutableDigest:    process.ExecutableDigest,
-		AccountID:               accountID,
-		AccountGeneration:       accountGeneration,
-		RuntimeBootEpoch:        store.bootEpoch,
-		Process:                 process,
-		Capabilities:            append([]string(nil), authorization.Project.Capabilities...),
-		LocalAppPrincipalID:     principalID,
-		LocalAppRecordID:        recordID,
-		ProvenanceRevision:      provenanceRevision,
-		ProjectGeneration:       projectGeneration,
-		PayloadDigest:           payloadDigest,
+		LaunchID:                         parsedLaunchID,
+		SessionID:                        binding.SessionID,
+		SessionProof:                     binding.SessionProof,
+		ExpiresAt:                        time.Unix(0, expiresAt).UTC(),
+		AuthorizationID:                  parsedAuthorizationID,
+		AuthorizationGeneration:          authorization.Generation,
+		SupervisorRunID:                  parsedRunID,
+		AppID:                            appID,
+		ProjectRoot:                      projectRoot,
+		PermissionRequirementFingerprint: parsedFingerprint,
+		HostExecutableDigest:             process.ExecutableDigest,
+		AccountID:                        accountID,
+		AccountGeneration:                accountGeneration,
+		RuntimeBootEpoch:                 store.bootEpoch,
+		Process:                          process,
+		PermissionRequirements:           append([]localDevelopmentPermissionRequirement(nil), authorization.Project.PermissionRequirements...),
+		LocalAppPrincipalID:              principalID,
+		LocalAppRecordID:                 recordID,
+		ProvenanceRevision:               provenanceRevision,
+		ProjectGeneration:                projectGeneration,
+		PayloadDigest:                    payloadDigest,
 	}, nil
 }
 
@@ -426,7 +426,7 @@ func (store *localDevelopmentStore) RenewSession(ctx context.Context, binding lo
 		issued_unix_nano, expires_unix_nano
 	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		sessionID[:], proofHash[:], current.LaunchID[:], current.AuthorizationID[:], current.SupervisorRunID[:], current.AppID, current.ProjectRoot,
-		current.AccountID, current.AccountGeneration, current.CapabilityFingerprint[:], current.RuntimeBootEpoch[:], processJSON,
+		current.AccountID, current.AccountGeneration, current.PermissionRequirementFingerprint[:], current.RuntimeBootEpoch[:], processJSON,
 		current.LocalAppPrincipalID, current.LocalAppRecordID, current.ProvenanceRevision, current.ProjectGeneration, current.PayloadDigest,
 		now.UnixNano(), nextExpiry.UnixNano()); err != nil {
 		return localDevelopmentSessionProjection{}, err
@@ -566,7 +566,7 @@ func scanLocalDevelopmentLaunch(scanner localDevelopmentRowScanner) (localDevelo
 	row := localDevelopmentLaunchRow{
 		LaunchID: parsedLaunchID, AuthorizationID: parsedAuthorizationID, SupervisorRunID: parsedRunID,
 		AppID: appID, ProjectRoot: projectRoot, ManifestPath: manifestPath, ShellKind: runtimev1.LocalDevelopmentShellKind(shellKind),
-		AccountID: accountID, AccountGeneration: accountGeneration, CapabilityFingerprint: parsedFingerprint,
+		AccountID: accountID, AccountGeneration: accountGeneration, PermissionRequirementFingerprint: parsedFingerprint,
 		HostExecutable: hostExecutable, RendererOrigin: rendererOrigin, RuntimeBootEpoch: parsedBootEpoch, Status: status,
 		ExpiresAt:           time.Unix(0, expiresAt).UTC(),
 		LocalAppPrincipalID: principalID, LocalAppRecordID: recordID, ProvenanceRevision: provenanceRevision,

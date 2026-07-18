@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -22,7 +23,11 @@ func TestDesktopRealmSourceMaterializationFixtureV3(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	moduleURL := (&url.URL{Scheme: "file", Path: modulePath}).String()
+	moduleURLPath := filepath.ToSlash(modulePath)
+	if runtime.GOOS == "windows" {
+		moduleURLPath = "/" + moduleURLPath
+	}
+	moduleURL := (&url.URL{Scheme: "file", Path: moduleURLPath}).String()
 	for _, sourceKind := range []string{"worldCharacter", "personaCharacter"} {
 		sourceKind := sourceKind
 		t.Run(sourceKind, func(t *testing.T) {
@@ -89,7 +94,6 @@ const sourceRef = process.argv[3] === 'personaCharacter'
   ? fixture.FIXTURE_PERSONA_SOURCE_REF
   : fixture.FIXTURE_SOURCE_REF;
 const packet = fixture.createFixtureSourceMaterializationPacket({
-  accessGrantId: 'desktop-fixture-grant',
   materializerAccountId: 'materializer-1',
   sourceRef,
   challengeId: 'desktop-fixture-challenge-' + process.argv[3],

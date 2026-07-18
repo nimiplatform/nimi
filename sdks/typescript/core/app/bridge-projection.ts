@@ -21,7 +21,6 @@ const NIMI_APP_RELEASE_SOURCE_KINDS = new Set([
 const NIMI_APP_ADMISSION_STATUSES = new Set([
   'admitted',
   'gated_by_avatar_master_gate',
-  'permission_fabric_pending',
   'deferred',
   'retired',
 ]);

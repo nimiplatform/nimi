@@ -25,7 +25,7 @@ const expectedCodes = [
   'RETIRED_PUBLIC_VOCABULARY_FORBIDDEN',
   'SID_PARTITION_REQUIRED',
   'PRINCIPAL_RECORD_STORE_SEPARATION_REQUIRED',
-  'GRANT_STORE_SEPARATION_REQUIRED',
+  'PERMISSION_LIFECYCLE_ADMISSION_REQUIRED',
   'PRESENCE_AUTHORITY_BINDING_REQUIRED',
   'FIXED_WINDOWS_SERVICE_REQUIRED',
   'SERVICE_ACCEPTANCE_ISOLATION_REQUIRED',
@@ -83,7 +83,7 @@ test('the final transport, role, and request-empty local session shapes are exac
 
 test('every method resolves through one platform-neutral transport binding and G5 keeps current behavior', () => {
   const matrix = parseAuthority(AUTHORITY_PATHS.transport);
-  assert.equal(matrix.methods.length, 73);
+  assert.equal(matrix.methods.length, 63);
   assert.equal(matrix.method_platform_binding.coverage, 'every_methods_row');
   assert.equal(matrix.method_platform_binding.resolver, 'transport_class_bindings');
   assert.equal(matrix.method_platform_binding.missing_or_ambiguous_binding, 'fail_generation');
@@ -107,7 +107,7 @@ test('every method resolves through one platform-neutral transport binding and G
   assert.deepEqual(macos.implementation_bindings, []);
 });
 
-test('SID anchor and principal, record, and grant stores are structurally separate', () => {
+test('SID anchor and principal/record stores are separate while permission storage is absent', () => {
   const identity = parseAuthority(AUTHORITY_PATHS.principalRecord);
   const grant = parseAuthority(AUTHORITY_PATHS.grant);
   assert.equal(identity.local_os_user_anchor.platform_profile_ref, 'protected-local-os-profiles.yaml#same-os');
@@ -118,14 +118,17 @@ test('SID anchor and principal, record, and grant stores are structurally separa
   assert.equal(identity.record.store_identity, 'local_app_records');
   assert.equal(identity.store_separation.principal_and_record_are_distinct_records, true);
   assert.equal(identity.store_separation.app_id_positive_key, 'forbidden');
-  assert.deepEqual(grant.grant.key, [
+  assert.equal(grant.current_admission.store_identity, 'absent_pre_admission');
+  assert.equal(grant.current_admission.positive_mutation_path, 'absent');
+  assert.deepEqual(grant.future_owner_lifecycle.key, [
     'local_os_user_anchor',
     'account_id',
     'local_app_principal_id',
-    'capability_resource_fingerprint',
+    'permission_id',
+    'owner_selector_digest',
   ]);
-  assert.equal(grant.store_separation.principal_record_store_dependency, 'reference_only');
-  assert.equal(grant.store_separation.launch_session_store_dependency, 'none');
+  assert.equal(grant.authority_classes.base_entitlement.permission_record, 'forbidden');
+  assert.equal(grant.authority_classes.app_owned_authority.permission_record, 'forbidden');
 });
 
 test('platform profiles preserve the Windows chain and macOS UDS requirement', () => {
@@ -195,12 +198,9 @@ test('portable material and production/test trust conversion remain forbidden', 
   assert.equal(matrix.portable_privileged_session, 'forbidden');
   assert.equal(matrix.request_role_selection, 'forbidden');
   assert.equal(lifecycle.local_app_launch.portable_lease_or_session, 'forbidden');
-  assert.deepEqual(grant.forbidden_outputs.slice(0, 4), [
-    'bearer',
-    'token',
-    'portable_grant_credential',
-    'session_proof',
-  ]);
+  for (const field of ['bearer', 'token', 'permission_decision_id', 'session_proof']) {
+    assert.equal(grant.forbidden_public_fields.includes(field), true, `${field} must remain private`);
+  }
   assert.equal(trust.production_runtime_accepts_test_trust_set, false);
   assert.equal(trust.test_runtime_accepts_production_account_custody, false);
   assert.equal(trust.production_runtime_trusts_user_selected_executable, false);

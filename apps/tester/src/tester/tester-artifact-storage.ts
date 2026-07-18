@@ -14,10 +14,10 @@ export async function saveTesterArtifact(_input: {
   dataUrl: string;
 }): Promise<TesterArtifactSaveResult> {
   throw createNimiError({
-    message: 'Artifact materialization is not admitted by the 0K local-app carrier; only protected Runtime artifact readback is available.',
+    message: 'Nimi artifact materialization is not admitted by the local-app carrier. App-owned media persistence belongs in the native app host; opening a Nimi-owned artifact requires a future one-shot permission.',
     code: 'capability-unavailable',
     reasonCode: 'TESTER_LOCAL_APP_ARTIFACT_WRITE_UNAVAILABLE',
-    actionHint: 'use_runtime_artifact_read_or_await_artifact_write_admission',
+    actionHint: 'use_app_owned_media_storage_or_await_artifact_permission_admission',
     retryable: false,
     source: 'sdk',
   });

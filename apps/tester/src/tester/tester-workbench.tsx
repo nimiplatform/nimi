@@ -208,10 +208,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
     return [
       { label: 'Session', value: session?.state || 'Checking' },
       { label: 'Identity', value: session?.sessionBound ? 'Bound' : 'Pending' },
-      {
-        label: 'Operation grant',
-        value: session?.operationAllowed ? 'Granted' : 'Zero grant',
-      },
+      { label: 'Base entitlement', value: session?.sessionBound ? 'App-private storage' : 'Unavailable' },
     ];
   }, [localAppProjection]);
 
@@ -365,9 +362,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
                     >
                       <button
                         type="button"
-                        className={`workbench-topbar__attachment workbench-topbar__attachment--button workbench-topbar__attachment--${localAppProjection
-                          ? (localAppProjection.localAppSession.operationAllowed ? 'success' : 'warning')
-                          : 'neutral'}`}
+                        className={`workbench-topbar__attachment workbench-topbar__attachment--button workbench-topbar__attachment--${localAppProjection ? 'success' : 'neutral'}`}
                         data-testid="tester-local-app-status"
                         aria-label="打开 Local App 权限测试"
                         onClick={() => setPermissionLabOpen(true)}
@@ -397,8 +392,8 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
         kind="drawer"
         size="S"
         onClose={() => setPermissionLabOpen(false)}
-        title="Local App 权限测试"
-        description="验证 zero-grant、精确请求、Desktop 批准、成功写入，以及撤销后的即时拒绝。"
+        title="Local App 权限边界"
+        description="验证会话、保留权限 fail-close，以及无需 Nimi 批准的 app 私有存储。"
         panelClassName="flex flex-col overflow-hidden"
         contentClassName="min-h-0 min-w-0 flex-1 overflow-y-auto"
         footer={(

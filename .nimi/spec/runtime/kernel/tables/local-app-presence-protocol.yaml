@@ -1,9 +1,9 @@
-version: 1
+version: 2
 table_family: protocol_surface
 owner: runtime
-protocol_id: runtime_local_app_presence_protocol
+protocol_id: runtime_local_app_user_presence_protocol
 source_rule: K-ACCSVC-026
-outcome_enum: [none, grant_presence, operation_presence, bounded_lease]
+outcome_enum: [none, user_decision_presence, operation_presence, bounded_lease]
 challenge: &runtime_local_app_presence_challenge_surface
   owner: runtime_account_service
   required_bindings:
@@ -33,17 +33,19 @@ challenge: &runtime_local_app_presence_challenge_surface
     - provenance_or_generation_change
     - policy_revision_change
 assignments: &runtime_local_app_presence_assignment_surfaces
-  initial_exact_local_app_operation_grant: grant_presence
-  developer_project_trust: grant_presence
-  remembered_project_reactivation: grant_presence
-  development_capability_expansion: grant_presence
-  ordinary_operation_with_exact_grant: none
+  developer_project_first_authorization: user_decision_presence
+  remembered_project_reactivation: user_decision_presence
+  development_capability_expansion: user_decision_presence
+  base_entitlement_operation: none
+  ordinary_admitted_user_permission_operation: none
   domain_high_impact_operation: owner_supplied_operation_presence_or_bounded_lease
   immutable_import_or_capability_expansion: reserved_for_0p
 constraints:
-  - presence_does_not_create_a_grant_unless_atomically_consumed_by_k_grant
+  - presence_never_creates_a_permission_decision_by_itself
+  - permission_decision_requires_canonical_owner_atomic_consumption
   - account_login_state_alone_is_not_presence
   - trust_class_alone_never_requires_repeated_operation_presence
+  - app_owned_authority_never_uses_nimi_presence
 surfaces:
   challenge: *runtime_local_app_presence_challenge_surface
   assignments: *runtime_local_app_presence_assignment_surfaces

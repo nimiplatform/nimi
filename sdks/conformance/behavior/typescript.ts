@@ -88,7 +88,7 @@ class FakeTransport implements CoreTransport {
             sourceHash: 'e'.repeat(64),
           },
           authorizationDecisionDigest: 'f'.repeat(64),
-          accessPolicyVersionDigest: '34f338ae76cbd85de58054cd6fc4d0ee18500030a0bc12f091e88d46f2fc572f',
+          accessPolicyVersionDigest: '7649e8c7aa85f6667b1af5134686fc653f33ed5094e5d11483a5e60f39765faa',
           materializationContextHash: '1'.repeat(64),
           payloadHash: 'b'.repeat(64),
           closureSetManifestHash: 'c'.repeat(64),
@@ -224,7 +224,6 @@ async function main() {
         challengeId: 'challenge_conformance_0001',
         challengeDigest: 'a'.repeat(64),
         challengeExpiresAt: '2026-01-01T00:05:00.000Z',
-        accessGrantId: 'grant-conformance',
         publishedLimits: {
           maxSegmentBytes: 8_388_608,
           maxSegmentComponentCount: 256,
@@ -286,7 +285,6 @@ async function main() {
         challengeId: 'challenge_conformance_0001',
         challengeDigest: 'a'.repeat(64),
         challengeExpiresAt: '2026-01-01T00:05:00.000Z',
-        accessGrantId: 'grant-conformance',
         publishedLimits: {
           maxSegmentBytes: 8_388_608,
           maxSegmentComponentCount: 256,

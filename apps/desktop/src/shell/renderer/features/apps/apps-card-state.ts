@@ -23,7 +23,6 @@ export type AppInventoryPresenceState = typeof APP_INVENTORY_PRESENCE_STATES[num
 export const APP_ACCESS_STATES = [
   'ready',
   'sign_in_required',
-  'permission_required',
   'package_unavailable',
   'local_record_dormant',
   'blocked_by_policy',
@@ -66,7 +65,6 @@ export function postureForAppCardState(state: AppCardState): AppCardPosture {
     case 'ready':
       return state.inventory === 'local_record_active' ? 'normal' : 'disabled';
     case 'sign_in_required':
-    case 'permission_required':
     case 'local_record_dormant':
       return 'warning';
     case 'package_unavailable':
@@ -108,8 +106,6 @@ function deriveAccessState(readiness: NimiAppOpenReadiness): AppAccessState {
       return 'ready';
     case 'sign-in-required':
       return 'sign_in_required';
-    case 'permission-required':
-      return 'permission_required';
     case 'package-unavailable':
       return 'package_unavailable';
     case 'local-record-dormant':

@@ -22,7 +22,7 @@ apps:
     capability_set_refs: [text.generate]
     local_compute_pack_refs: [local-gpu-support]
     runtime_registration_mode: app-managed
-    permission_scope_ref: []
+    permission_requirements: []
     health_repair_projection: unavailable
     ordinary_visibility: hidden-internal
     release_descriptor_ref: nimi.avatar.bundled-with-nimi
@@ -41,7 +41,7 @@ apps:
     capability_set_refs: [text.generate]
     local_compute_pack_refs: []
     runtime_registration_mode: app-managed
-    permission_scope_ref: []
+    permission_requirements: []
     health_repair_projection: unavailable
     ordinary_visibility: ordinary-visible
     release_descriptor_ref: nimi.example-app.bundled-with-nimi
@@ -60,9 +60,8 @@ func TestLoadRegistry_ParsesValidYAML(t *testing.T) {
 	}
 }
 
-func TestLoadRegistry_ParsesPermissionFabricPendingSentinel(t *testing.T) {
-	yaml := strings.Replace(sampleRegistryYAML, "permission_scope_ref: []", "permission_scope_ref: permission_fabric_pending", 1)
-	r, err := LoadRegistry(strings.NewReader(yaml))
+func TestLoadRegistry_AcceptsZeroPermissionApp(t *testing.T) {
+	r, err := LoadRegistry(strings.NewReader(sampleRegistryYAML))
 	if err != nil {
 		t.Fatalf("LoadRegistry returned error: %v", err)
 	}
@@ -70,59 +69,32 @@ func TestLoadRegistry_ParsesPermissionFabricPendingSentinel(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindByID returned error: %v", err)
 	}
-	if !app.PermissionScopeRefPending {
-		t.Fatal("PermissionScopeRefPending = false, want true")
-	}
-	if len(app.PermissionScopeRefs) != 0 {
-		t.Fatalf("PermissionScopeRefs len = %d, want 0", len(app.PermissionScopeRefs))
+	if len(app.PermissionRequirements) != 0 || len(app.PublicPermissionIDs()) != 0 {
+		t.Fatalf("zero-permission app projected requirements: %+v", app.PermissionRequirements)
 	}
 }
 
-func TestLoadRegistry_ParsesConcretePermissionScopeRefs(t *testing.T) {
-	yaml := strings.Replace(sampleRegistryYAML, "permission_scope_ref: []", `permission_scope_ref:
-      - appId: nimi.avatar
-        scopeFamily: account
-        scopeName: account.session.read`, 1)
-	r, err := LoadRegistry(strings.NewReader(yaml))
-	if err != nil {
-		t.Fatalf("LoadRegistry returned error: %v", err)
-	}
-	app, err := r.FindByID("nimi.avatar")
-	if err != nil {
-		t.Fatalf("FindByID returned error: %v", err)
-	}
-	if app.PermissionScopeRefPending {
-		t.Fatal("PermissionScopeRefPending = true, want false")
-	}
-	if len(app.PermissionScopeRefs) != 1 {
-		t.Fatalf("PermissionScopeRefs len = %d, want 1", len(app.PermissionScopeRefs))
-	}
-	if app.PermissionScopeRefs[0].ScopeName != "account.session.read" {
-		t.Fatalf("ScopeName = %q, want account.session.read", app.PermissionScopeRefs[0].ScopeName)
-	}
-}
-
-func TestLoadRegistry_RejectsUnknownPermissionScopeRefScalar(t *testing.T) {
-	bad := strings.Replace(sampleRegistryYAML, "permission_scope_ref: []", "permission_scope_ref: granted", 1)
+func TestLoadRegistry_RejectsLegacyPermissionScopeRef(t *testing.T) {
+	bad := strings.Replace(sampleRegistryYAML, "permission_requirements: []", "permission_scope_ref: []", 1)
 	_, err := LoadRegistry(strings.NewReader(bad))
 	if err == nil {
-		t.Fatal("LoadRegistry accepted unknown permission_scope_ref scalar")
+		t.Fatal("LoadRegistry accepted retired permission_scope_ref")
 	}
-	if !errors.Is(err, ErrRegistryParse) {
-		t.Errorf("error = %v, want wrapped ErrRegistryParse", err)
+	if !errors.Is(err, ErrAppInvalidPermissionRequirement) {
+		t.Errorf("error = %v, want wrapped ErrAppInvalidPermissionRequirement", err)
 	}
 }
 
-func TestLoadRegistry_RejectsIncompletePermissionScopeRefObject(t *testing.T) {
-	bad := strings.Replace(sampleRegistryYAML, "permission_scope_ref: []", `permission_scope_ref:
-      - appId: nimi.avatar
-        scopeFamily: account`, 1)
+func TestLoadRegistry_RejectsUnadmittedPublicPermission(t *testing.T) {
+	bad := strings.Replace(sampleRegistryYAML, "permission_requirements: []", `permission_requirements:
+      - id: agents.interact
+        reason: Talk with an Agent selected by the user`, 1)
 	_, err := LoadRegistry(strings.NewReader(bad))
 	if err == nil {
-		t.Fatal("LoadRegistry accepted incomplete permission_scope_ref object")
+		t.Fatal("LoadRegistry accepted a reserved public permission")
 	}
-	if !errors.Is(err, ErrAppInvalidPermissionScopeRef) {
-		t.Errorf("error = %v, want wrapped ErrAppInvalidPermissionScopeRef", err)
+	if !errors.Is(err, ErrAppPermissionNotAdmitted) {
+		t.Errorf("error = %v, want wrapped ErrAppPermissionNotAdmitted", err)
 	}
 }
 

@@ -107,7 +107,7 @@ func TestPrincipalLineageAndRandomNonReuse(t *testing.T) {
 	}
 }
 
-func TestStoresUseSeparateTablesWithoutGrantFieldsInRecord(t *testing.T) {
+func TestKernelSchemaContainsIdentityAndProvenanceAuthorityOnly(t *testing.T) {
 	kernel := openTestKernel(t, Options{})
 	defer kernel.Close()
 	rows, err := kernel.db.Query(`SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('local_app_principals','local_app_records','local_app_grants') ORDER BY name`)
@@ -123,12 +123,12 @@ func TestStoresUseSeparateTablesWithoutGrantFieldsInRecord(t *testing.T) {
 		}
 		tables = append(tables, name)
 	}
-	wantTables := []string{"local_app_grants", "local_app_principals", "local_app_records"}
+	wantTables := []string{"local_app_principals", "local_app_records"}
 	if !reflect.DeepEqual(tables, wantTables) {
 		t.Fatalf("tables = %v, want %v", tables, wantTables)
 	}
 	columns := tableColumns(t, kernel.db, "local_app_records")
-	for _, forbidden := range []string{"grant_boolean", "permission_result", "account_owner", "session_proof", "operation_policy_result"} {
+	for _, forbidden := range []string{"grant_boolean", "permission_result", "account_owner", "session_proof", "operation_policy_result", "permission_id", "resource_scope"} {
 		if _, found := columns[forbidden]; found {
 			t.Fatalf("record table contains forbidden owner field %q", forbidden)
 		}
@@ -165,7 +165,7 @@ func TestRecordRequiresMatchingPrincipalKindAndOneCurrentRecord(t *testing.T) {
 	}
 }
 
-func TestTombstoneRemovesRecordAndNeverInheritsGrantOrKeys(t *testing.T) {
+func TestTombstoneRemovesRecordAndNeverInheritsKeys(t *testing.T) {
 	ctx := context.Background()
 	kernel := openTestKernel(t, Options{})
 	defer kernel.Close()
@@ -177,18 +177,11 @@ func TestTombstoneRemovesRecordAndNeverInheritsGrantOrKeys(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	grant := createPendingGrant(t, kernel, "account-a", oldPrincipal.LocalAppPrincipalID, "capfp:one", 1, 1, "")
-	if _, err := kernel.Grants().Transition(ctx, "account-a", oldPrincipal.LocalAppPrincipalID, "capfp:one", grant.GrantRevision, GrantStateGranted, "presence:approve"); err != nil {
-		t.Fatal(err)
-	}
 	if _, err := kernel.Principals().Tombstone(ctx, oldPrincipal.LocalAppPrincipalID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := kernel.Records().GetByPrincipalID(ctx, oldPrincipal.LocalAppPrincipalID); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("record after tombstone error = %v", err)
-	}
-	if _, err := kernel.Grants().GetCurrent(ctx, "account-a", oldPrincipal.LocalAppPrincipalID, "capfp:one"); !errors.Is(err, ErrPrincipalTombstoned) {
-		t.Fatalf("grant after tombstone error = %v", err)
 	}
 	if _, err := kernel.SecurityKeys().Derive(ctx, "account-a", oldPrincipal.LocalAppPrincipalID); !errors.Is(err, ErrPrincipalTombstoned) {
 		t.Fatalf("keys after tombstone error = %v", err)
@@ -207,99 +200,9 @@ func TestTombstoneRemovesRecordAndNeverInheritsGrantOrKeys(t *testing.T) {
 	if newKeys == oldKeys {
 		t.Fatal("reauthorization inherited old security keys")
 	}
-	if _, err := kernel.Grants().GetCurrent(ctx, "account-a", newPrincipal.LocalAppPrincipalID, "capfp:one"); !errors.Is(err, ErrNotFound) {
-		t.Fatalf("new principal inherited grant: %v", err)
-	}
 }
 
-func TestGrantKeyIncludesAccountPrincipalAndFingerprint(t *testing.T) {
-	ctx := context.Background()
-	kernel := openTestKernel(t, Options{})
-	defer kernel.Close()
-	principal := createDevelopmentPrincipal(t, kernel, "dev-auth:grant", "file-id:grant", "com.example.grant")
-	grant := createPendingGrant(t, kernel, "account-a", principal.LocalAppPrincipalID, "capfp:one", 1, 1, "")
-	granted, err := kernel.Grants().Transition(ctx, "account-a", principal.LocalAppPrincipalID, "capfp:one", 1, GrantStateGranted, "presence:grant")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if granted.State != GrantStateGranted || granted.GrantRevision != 2 {
-		t.Fatalf("granted = %#v", granted)
-	}
-	if _, err := kernel.Grants().GetCurrent(ctx, "account-b", principal.LocalAppPrincipalID, "capfp:one"); !errors.Is(err, ErrNotFound) {
-		t.Fatalf("account switch transferred grant: %v", err)
-	}
-	if _, err := kernel.Grants().Transition(ctx, "account-a", principal.LocalAppPrincipalID, "capfp:one", 2, GrantStateDenied, ""); !errors.Is(err, ErrGrantTransition) {
-		t.Fatalf("invalid granted->denied transition error = %v", err)
-	}
-	revoked, err := kernel.Grants().Transition(ctx, "account-a", principal.LocalAppPrincipalID, "capfp:one", 2, GrantStateRevoked, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := kernel.Grants().CreatePending(ctx, CreatePendingGrantInput{
-		AccountID: "account-a", LocalAppPrincipalID: principal.LocalAppPrincipalID,
-		CapabilityScope: []string{"runtime_agent.invoke"}, ResourceScope: []string{"agent:one"},
-		CapabilityResourceFingerprint: "capfp:one", GrantGeneration: 2, GrantRevision: 4,
-		SupersedesGrantID: "wrong", PresenceEvidenceRef: "presence:new-request",
-	}); !errors.Is(err, ErrInvalidArgument) {
-		t.Fatalf("wrong supersedes error = %v", err)
-	}
-	next := createPendingGrant(t, kernel, "account-a", principal.LocalAppPrincipalID, "capfp:one", 2, 4, revoked.GrantID)
-	if next.GrantID == grant.GrantID || next.State != GrantStatePending {
-		t.Fatalf("next grant = %#v", next)
-	}
-}
-
-func TestGrantSummaryCountsExactCurrentAccountStatesWithoutSelectors(t *testing.T) {
-	ctx := context.Background()
-	kernel := openTestKernel(t, Options{})
-	defer kernel.Close()
-	createState := func(label string, target GrantState) {
-		t.Helper()
-		principal := createDevelopmentPrincipal(t, kernel, "dev-auth:"+label, "file-id:"+label, "com.example."+label)
-		grant := createPendingGrant(t, kernel, "account-a", principal.LocalAppPrincipalID, "capfp:"+label, 1, 1, "")
-		switch target {
-		case GrantStatePending:
-			return
-		case GrantStateGranted, GrantStateDenied, GrantStateExpired:
-			if _, err := kernel.Grants().Transition(ctx, "account-a", principal.LocalAppPrincipalID, "capfp:"+label, grant.GrantRevision, target, "presence:"+label); err != nil {
-				t.Fatalf("transition %s grant: %v", target, err)
-			}
-		case GrantStateRevoked, GrantStateSuperseded:
-			granted, err := kernel.Grants().Transition(ctx, "account-a", principal.LocalAppPrincipalID, "capfp:"+label, grant.GrantRevision, GrantStateGranted, "presence:"+label)
-			if err != nil {
-				t.Fatalf("grant %s: %v", target, err)
-			}
-			if _, err := kernel.Grants().Transition(ctx, "account-a", principal.LocalAppPrincipalID, "capfp:"+label, granted.GrantRevision, target, ""); err != nil {
-				t.Fatalf("transition %s grant: %v", target, err)
-			}
-		default:
-			t.Fatalf("unsupported test state %s", target)
-		}
-	}
-	for _, state := range []GrantState{
-		GrantStatePending, GrantStateGranted, GrantStateDenied,
-		GrantStateExpired, GrantStateRevoked, GrantStateSuperseded,
-	} {
-		createState(string(state), state)
-	}
-	otherAccount := createDevelopmentPrincipal(t, kernel, "dev-auth:other", "file-id:other", "com.example.other")
-	createPendingGrant(t, kernel, "account-b", otherAccount.LocalAppPrincipalID, "capfp:other", 1, 1, "")
-	tombstoned := createDevelopmentPrincipal(t, kernel, "dev-auth:tombstoned", "file-id:tombstoned", "com.example.tombstoned")
-	createPendingGrant(t, kernel, "account-a", tombstoned.LocalAppPrincipalID, "capfp:tombstoned", 1, 1, "")
-	if _, err := kernel.Principals().Tombstone(ctx, tombstoned.LocalAppPrincipalID); err != nil {
-		t.Fatal(err)
-	}
-
-	summary, err := kernel.Grants().SummaryForAccount(ctx, "account-a")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if summary != (GrantSummary{Pending: 1, Granted: 1, Denied: 1, Expired: 1, Revoked: 1, Superseded: 1}) {
-		t.Fatalf("grant summary = %#v", summary)
-	}
-}
-
-func TestProvenanceAdvanceAtomicallyRecordsInvalidationWithoutGrantMutation(t *testing.T) {
+func TestProvenanceAdvanceAtomicallyRecordsLaunchAndSessionInvalidation(t *testing.T) {
 	ctx := context.Background()
 	kernel := openTestKernel(t, Options{Now: func() time.Time { return testNow }})
 	defer kernel.Close()
@@ -307,16 +210,11 @@ func TestProvenanceAdvanceAtomicallyRecordsInvalidationWithoutGrantMutation(t *t
 	if _, err := kernel.Records().Create(ctx, recordInput(principal.LocalAppPrincipalID)); err != nil {
 		t.Fatal(err)
 	}
-	grant := createPendingGrant(t, kernel, "account-a", principal.LocalAppPrincipalID, "capfp:one", 1, 1, "")
-	grant, err := kernel.Grants().Transition(ctx, "account-a", principal.LocalAppPrincipalID, "capfp:one", grant.GrantRevision, GrantStateGranted, "presence:grant")
-	if err != nil {
-		t.Fatal(err)
-	}
 	fact, err := kernel.Records().AdvanceProvenanceRevision(ctx, principal.LocalAppPrincipalID, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if fact.PreviousRevision != 1 || fact.CurrentRevision != 2 || !fact.LaunchLeasesInvalidated || !fact.SessionsInvalidated || fact.GrantStateChanged {
+	if fact.PreviousRevision != 1 || fact.CurrentRevision != 2 || !fact.LaunchLeasesInvalidated || !fact.SessionsInvalidated {
 		t.Fatalf("invalidation fact = %#v", fact)
 	}
 	record, err := kernel.Records().GetByPrincipalID(ctx, principal.LocalAppPrincipalID)
@@ -325,13 +223,6 @@ func TestProvenanceAdvanceAtomicallyRecordsInvalidationWithoutGrantMutation(t *t
 	}
 	if record.ProvenanceRevision != 2 {
 		t.Fatalf("record revision = %d", record.ProvenanceRevision)
-	}
-	unchangedGrant, err := kernel.Grants().GetCurrent(ctx, "account-a", principal.LocalAppPrincipalID, "capfp:one")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if unchangedGrant.State != grant.State || unchangedGrant.GrantRevision != grant.GrantRevision || unchangedGrant.GrantID != grant.GrantID {
-		t.Fatalf("grant changed during provenance advance: %#v -> %#v", grant, unchangedGrant)
 	}
 	if _, err := kernel.Records().AdvanceProvenanceRevision(ctx, principal.LocalAppPrincipalID, 1); !errors.Is(err, ErrRevisionConflict) {
 		t.Fatalf("stale revision error = %v", err)
@@ -407,20 +298,6 @@ func recordInput(principalID string) CreateRecordInput {
 		ActiveCapabilityFingerprint: "capability-fingerprint:one", ExecutionProfileRef: "execution-profile:electron",
 		HostExecutableDigest: "sha256:host", PayloadRootDigest: "sha256:payload", LifecycleState: LifecycleStateActive,
 	}
-}
-
-func createPendingGrant(t *testing.T, kernel *Kernel, accountID string, principalID string, fingerprint string, generation uint64, revision uint64, supersedes string) Grant {
-	t.Helper()
-	grant, err := kernel.Grants().CreatePending(context.Background(), CreatePendingGrantInput{
-		AccountID: accountID, LocalAppPrincipalID: principalID,
-		CapabilityScope: []string{"runtime_agent.invoke"}, ResourceScope: []string{"agent:one"},
-		CapabilityResourceFingerprint: fingerprint, GrantGeneration: generation, GrantRevision: revision,
-		SupersedesGrantID: supersedes, PresenceEvidenceRef: "presence:request",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	return grant
 }
 
 func tableColumns(t *testing.T, db *sql.DB, table string) map[string]struct{} {

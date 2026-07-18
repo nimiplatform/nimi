@@ -3,7 +3,6 @@ package account
 import (
 	"context"
 	"errors"
-	"io"
 	"log/slog"
 	"net/http"
 	"sync"
@@ -163,8 +162,6 @@ type Service struct {
 	localAppSessions        LocalAppSessionResolver
 	accountAuthorityRevoker AccountAuthorityRevoker
 	localAppKernel          *localappkernel.Kernel
-	localAppGrantControl    LocalAppGrantControlAuthority
-	localAppGrantRandom     io.Reader
 	auditStore              *auditlog.Store
 
 	partition                string
@@ -186,6 +183,4 @@ type Service struct {
 	events                       []*runtimev1.AccountSessionEvent
 	nextSubscriberID             uint64
 	subscribers                  map[uint64]subscriber
-	localAppGrantMu              sync.Mutex
-	localAppGrantRequests        map[string]localAppGrantPendingRequest
 }

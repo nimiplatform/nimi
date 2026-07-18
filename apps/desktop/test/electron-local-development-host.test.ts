@@ -36,16 +36,6 @@ function authoritySummary() {
       revokedCount: 0,
       unavailableReason: null,
     },
-    grantSummary: {
-      availability: 'available' as const,
-      pendingCount: 0,
-      grantedCount: 0,
-      deniedCount: 0,
-      expiredCount: 0,
-      revokedCount: 0,
-      supersededCount: 0,
-      unavailableReason: null,
-    },
   };
 }
 
@@ -57,8 +47,8 @@ function project(shell: 'electron' | 'tauri' = 'electron') {
     canonicalManifestPath: path.join(projectRoot, 'nimi.app.yaml'),
     shell,
     accountId: 'account-a',
-    requestedCapabilities: ['runtime_agent.conversation.open'],
-    capabilityFingerprint: '33'.repeat(32),
+    permissionRequirements: [],
+    permissionRequirementFingerprint: '33'.repeat(32),
   };
 }
 
@@ -127,7 +117,7 @@ test('Electron local-development host keeps Runtime identifiers behind approval 
     assert.equal(pending.length, 1);
     assert.equal(pending[0]?.approvalState, 'confirmation-required');
     assert.doesNotMatch(JSON.stringify(pending), new RegExp(evaluationId, 'u'));
-    assert.doesNotMatch(JSON.stringify(pending), /capabilityFingerprint|authorizationId|supervisorRunId/u);
+    assert.doesNotMatch(JSON.stringify(pending), /permissionRequirementFingerprint|authorizationId|supervisorRunId/u);
 
     const denied = await host.commandHandlers.local_development_decide!({
       command: 'local_development_decide',
@@ -150,7 +140,7 @@ test('Electron local-development host keeps Runtime identifiers behind approval 
     assert.equal(authorizations[1]?.shell, 'tauri');
     assert.match(String(authorizations[0]?.selector), /^dev-project-/u);
     assert.doesNotMatch(JSON.stringify(authorizations), new RegExp(authorizationId, 'u'));
-    assert.doesNotMatch(JSON.stringify(authorizations), /capabilityFingerprint/u);
+    assert.doesNotMatch(JSON.stringify(authorizations), /permissionRequirementFingerprint/u);
   } finally {
     await host.shutdown();
     await rm(home, { recursive: true, force: true });

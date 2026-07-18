@@ -313,8 +313,6 @@ jobs:
         run: pnpm check:runtime-startup-hardcut
       - name: gate.sdk.experimental-api-lifecycle
         run: pnpm check:experimental-api-lifecycle
-      - name: gate.sdk.scope-catalog-drift
-        run: pnpm check:scope-catalog-drift
       - name: gate.sdk.typed-surface-hardcut
         run: pnpm check:typed-surface-hardcut
       - name: gate.sdk.vnext-ai-capability-ledger
@@ -481,9 +479,6 @@ jobs:
 
       - name: SDK vNext Runtime facade check
         run: pnpm check:sdk-vnext-runtime-facade
-
-      - name: Scope catalog drift check
-        run: pnpm check:scope-catalog-drift
 
   runtime-quality:
     needs: changes

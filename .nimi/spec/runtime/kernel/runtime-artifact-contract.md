@@ -206,7 +206,7 @@ buffer was discarded.
   session, expired or revoked records and guessed ids fail closed.
 - capability/grant admission is an additional gate. The admitted mapping is
   `data.scope.read` qualified by `runtime.artifacts`; the Account-owned
-  coordinator revalidates the current local record, exact live grant revision,
+  coordinator revalidates the current local record, admitted permission decision and selector,
   process-bound session and artifact-owner policy on every read before the
   durable artifact audience is matched. Immutable provenance slots remain
   opaque and cannot become a positive package assertion before 0P/P.

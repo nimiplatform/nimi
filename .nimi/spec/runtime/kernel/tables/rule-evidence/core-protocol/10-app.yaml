@@ -238,5 +238,5 @@ rules:
   - rule_id: K-APP-032
     evidence_refs: [runtime_kernel_consistency, runtime_go_test, protected_local_authority_gate]
     evidence_requirement: required
-    note: Protected local-app JSON storage resolves only the current principal partition and requires an exact operation/resource grant, canonical relative path, document/quota enforcement, redacted responses, and no public or filesystem fallback.
+    note: Protected local-app JSON storage resolves only the current principal/account partition as a base entitlement, requires canonical relative paths plus document/quota enforcement and redacted responses, creates no permission row or prompt, and has no public or filesystem fallback.
     test_files: [scripts/check-protected-local-authority.mjs]

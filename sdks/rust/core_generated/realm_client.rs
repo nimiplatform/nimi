@@ -146,12 +146,6 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/resources/{resourceId}"),
     },
     RealmOperationDescriptor {
-        operation_id: "denyMyAppPermissionGrant",
-        service: "Me / Permission Grants",
-        method: "POST",
-        path: Some("/api/human/me/permission-grants/by-id/{grantId}/deny"),
-    },
-    RealmOperationDescriptor {
         operation_id: "disable2Fa",
         service: "Me2fa",
         method: "POST",
@@ -344,12 +338,6 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/auth/me/2fa/enable"),
     },
     RealmOperationDescriptor {
-        operation_id: "expireMyAppPermissionGrant",
-        service: "Me / Permission Grants",
-        method: "POST",
-        path: Some("/api/human/me/permission-grants/by-id/{grantId}/expire"),
-    },
-    RealmOperationDescriptor {
         operation_id: "ExploreController_checkStatus",
         service: "Explore",
         method: "GET",
@@ -420,24 +408,6 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "User",
         method: "GET",
         path: Some("/api/human/accounts/{id}/mutual-friends/count"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "getMyAppPermissionGrant",
-        service: "Me / Permission Grants",
-        method: "GET",
-        path: Some("/api/human/me/permission-grants/by-id/{grantId}"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "getMyAppPermissionGrantStatus",
-        service: "Me / Permission Grants",
-        method: "GET",
-        path: Some("/api/human/me/permission-grants/status"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "getMyAppPermissionGrantView",
-        service: "Me / Permission Grants",
-        method: "GET",
-        path: Some("/api/human/me/permission-grants/view"),
     },
     RealmOperationDescriptor {
         operation_id: "getMyBlockedUsers",
@@ -548,12 +518,6 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/world/by-id/{worldId}/posts"),
     },
     RealmOperationDescriptor {
-        operation_id: "grantMyAppPermissionGrant",
-        service: "Me / Permission Grants",
-        method: "POST",
-        path: Some("/api/human/me/permission-grants/by-id/{grantId}/grant"),
-    },
-    RealmOperationDescriptor {
         operation_id: "introspectSession",
         service: "Auth",
         method: "POST",
@@ -576,12 +540,6 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Invitations",
         method: "POST",
         path: Some("/api/invitations/verify"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "issueRuntimeRealmGrant",
-        service: "Runtime Realm Grants",
-        method: "POST",
-        path: Some("/api/runtime/realm-grants/issue"),
     },
     RealmOperationDescriptor {
         operation_id: "likePost",
@@ -636,12 +594,6 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Human Chats",
         method: "GET",
         path: Some("/api/human/chats/{chatId}/messages"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "listMyAppPermissionGrants",
-        service: "Me / Permission Grants",
-        method: "GET",
-        path: Some("/api/human/me/permission-grants"),
     },
     RealmOperationDescriptor {
         operation_id: "listMyFriendIds",
@@ -836,12 +788,6 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/auth/email/otp/request"),
     },
     RealmOperationDescriptor {
-        operation_id: "requestMyAppPermissionGrant",
-        service: "Me / Permission Grants",
-        method: "POST",
-        path: Some("/api/human/me/permission-grants"),
-    },
-    RealmOperationDescriptor {
         operation_id: "ReviewController_createReview",
         service: "Reviews (Economy/Trust)",
         method: "POST",
@@ -852,12 +798,6 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Reviews (Economy/Trust)",
         method: "GET",
         path: Some("/api/economy/reviews"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "revokeMyAppPermissionGrant",
-        service: "Me / Permission Grants",
-        method: "POST",
-        path: Some("/api/human/me/permission-grants/by-id/{grantId}/revoke"),
     },
     RealmOperationDescriptor {
         operation_id: "searchHumanUsers",
@@ -894,12 +834,6 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Human Chats",
         method: "POST",
         path: Some("/api/human/chats"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "supersedeMyAppPermissionGrant",
-        service: "Me / Permission Grants",
-        method: "POST",
-        path: Some("/api/human/me/permission-grants/by-id/{grantId}/supersede"),
     },
     RealmOperationDescriptor {
         operation_id: "syncChatEvents",

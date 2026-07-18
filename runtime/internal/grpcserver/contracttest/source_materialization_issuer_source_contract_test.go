@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-const expectedAccessPolicyDigestV4 = "34f338ae76cbd85de58054cd6fc4d0ee18500030a0bc12f091e88d46f2fc572f"
+const expectedAccessPolicyDigestV5 = "7649e8c7aa85f6667b1af5134686fc653f33ed5094e5d11483a5e60f39765faa"
 
 func TestSourceMaterializationProductionAdapterSourceContract(t *testing.T) {
 	issuer := parseGoSource(t, "..", "source_materialization_issuer.go")
@@ -53,8 +53,8 @@ func TestSourceMaterializationProductionAdapterSourceContract(t *testing.T) {
 		}
 	}
 
-	if got := stringConstant(t, issuer, "sourceMaterializationAccessPolicyDigestV4"); got != expectedAccessPolicyDigestV4 {
-		t.Errorf("access policy digest = %q, want %q", got, expectedAccessPolicyDigestV4)
+	if got := stringConstant(t, issuer, "sourceMaterializationAccessPolicyDigestV5"); got != expectedAccessPolicyDigestV5 {
+		t.Errorf("access policy digest = %q, want %q", got, expectedAccessPolicyDigestV5)
 	}
 
 	serverCalls := calledNames(server)

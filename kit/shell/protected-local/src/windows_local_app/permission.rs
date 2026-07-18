@@ -2,151 +2,81 @@ use tonic::transport::Channel;
 
 use crate::generated::runtime_account_service_client::RuntimeAccountServiceClient;
 use crate::generated::{
-    GetLocalAppGrantStatusRequest, LocalAppGrantProjection, ReasonCode, RequestLocalAppGrantRequest,
+    GetLocalAppPermissionStatusRequest, LocalAppPermissionPosture as ProtoPermissionPosture,
+    LocalAppPermissionProjection, ReasonCode, RequestLocalAppPermissionRequest,
 };
 use crate::grpc_status::{local_app_error_from_status, local_app_reason_from_proto};
 use crate::{
-    LocalAppOperationError, LocalAppPermissionPosture, LocalAppPermissionPostureRequest,
-    LocalAppPermissionRequest, LocalAppPermissionState, LocalAppReasonCode,
+    LocalAppOperationError, LocalAppPermissionRequest, LocalAppPermissionState,
+    LocalAppPermissionStatus, LocalAppPermissionStatusRequest,
 };
 
 use super::{require_text, untrusted};
 
-pub(super) async fn local_app_permission_posture(
+pub(super) async fn local_app_permission_status(
     channel: Channel,
-    request: LocalAppPermissionPostureRequest,
-) -> Result<LocalAppPermissionPosture, LocalAppOperationError> {
-    require_text(&request.operation_id)?;
-    if !request.resource_ref.is_empty() {
-        require_text(&request.resource_ref)?;
-    }
+    request: LocalAppPermissionStatusRequest,
+) -> Result<LocalAppPermissionStatus, LocalAppOperationError> {
+    require_text(&request.permission_id)?;
     let response = RuntimeAccountServiceClient::new(channel)
-        .get_local_app_grant_status(GetLocalAppGrantStatusRequest {
-            operation_id: request.operation_id.clone(),
-            resource_ref: request.resource_ref.clone(),
+        .get_local_app_permission_status(GetLocalAppPermissionStatusRequest {
+            permission_id: request.permission_id.clone(),
         })
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    project_permission_posture(
+    project_permission_status(
         response.projection.ok_or_else(untrusted)?,
-        request.operation_id,
-        request.resource_ref,
+        request.permission_id,
     )
 }
 
 pub(super) async fn request_local_app_permission(
     channel: Channel,
     request: LocalAppPermissionRequest,
-) -> Result<LocalAppPermissionPosture, LocalAppOperationError> {
-    require_text(&request.operation_id)?;
-    require_text(&request.resource_ref)?;
-    require_text(&request.purpose)?;
+) -> Result<LocalAppPermissionStatus, LocalAppOperationError> {
+    require_text(&request.permission_id)?;
+    require_text(&request.reason)?;
     let response = RuntimeAccountServiceClient::new(channel)
-        .request_local_app_grant(RequestLocalAppGrantRequest {
-            operation_id: request.operation_id.clone(),
-            resource_ref: request.resource_ref.clone(),
-            purpose: request.purpose,
+        .request_local_app_permission(RequestLocalAppPermissionRequest {
+            permission_id: request.permission_id.clone(),
+            reason: request.reason,
         })
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    let projection = project_permission_posture(
+    project_permission_status(
         response.projection.ok_or_else(untrusted)?,
-        request.operation_id,
-        request.resource_ref,
-    )?;
-    require_pending_permission(projection)
+        request.permission_id,
+    )
 }
 
-fn require_pending_permission(
-    projection: LocalAppPermissionPosture,
-) -> Result<LocalAppPermissionPosture, LocalAppOperationError> {
-    if projection.state != LocalAppPermissionState::Pending {
-        return Err(LocalAppOperationError::new(
-            projection.reason_code,
-            projection.retryable,
-        ));
+fn project_permission_status(
+    projection: LocalAppPermissionProjection,
+    permission_id: String,
+) -> Result<LocalAppPermissionStatus, LocalAppOperationError> {
+    if projection.permission_id != permission_id {
+        return Err(untrusted());
     }
-    Ok(projection)
-}
-
-fn project_permission_posture(
-    projection: LocalAppGrantProjection,
-    operation_id: String,
-    resource_ref: String,
-) -> Result<LocalAppPermissionPosture, LocalAppOperationError> {
-    if projection.operation_id != operation_id || projection.resource_ref != resource_ref {
+    let posture = ProtoPermissionPosture::try_from(projection.posture).map_err(|_| untrusted())?;
+    let state = match posture {
+        ProtoPermissionPosture::Prompt => LocalAppPermissionState::Prompt,
+        ProtoPermissionPosture::Pending => LocalAppPermissionState::Pending,
+        ProtoPermissionPosture::Granted => LocalAppPermissionState::Granted,
+        ProtoPermissionPosture::Denied => LocalAppPermissionState::Denied,
+        ProtoPermissionPosture::Unavailable => LocalAppPermissionState::Unavailable,
+        ProtoPermissionPosture::Unspecified => return Err(untrusted()),
+    };
+    if projection.can_request != matches!(state, LocalAppPermissionState::Prompt) {
         return Err(untrusted());
     }
     let runtime_reason = ReasonCode::try_from(projection.reason_code).map_err(|_| untrusted())?;
-    let (state, reason_code, action_hint, retryable) = match (projection.state, runtime_reason) {
-        (1, ReasonCode::LocalAppGrantRequired) => (
-            LocalAppPermissionState::ZeroGrant,
-            LocalAppReasonCode::NoGrant,
-            "request_local_app_operation_grant",
-            false,
-        ),
-        (2, ReasonCode::LocalAppPresenceRequired) => (
-            LocalAppPermissionState::Pending,
-            LocalAppReasonCode::NoGrant,
-            "await_local_app_grant_decision",
-            true,
-        ),
-        (3, ReasonCode::ActionExecuted) => (
-            LocalAppPermissionState::Granted,
-            LocalAppReasonCode::ActionExecuted,
-            "continue_local_app_operation",
-            false,
-        ),
-        (4, _) => {
-            let reason =
-                local_app_reason_from_proto(projection.reason_code).ok_or_else(untrusted)?;
-            if !matches!(
-                reason,
-                LocalAppReasonCode::RuntimePermissionDenied
-                    | LocalAppReasonCode::RuntimeUnauthenticated
-                    | LocalAppReasonCode::ProcessReplaced
-                    | LocalAppReasonCode::AccountChanged
-                    | LocalAppReasonCode::Revoked
-                    | LocalAppReasonCode::NoGrant
-            ) {
-                return Err(untrusted());
-            }
-            (
-                LocalAppPermissionState::Denied,
-                reason,
-                "request_local_app_operation_grant",
-                false,
-            )
-        }
-        (5, ReasonCode::LocalAppPresenceExpired) => (
-            LocalAppPermissionState::Revoked,
-            LocalAppReasonCode::PresenceExpired,
-            "request_local_app_operation_grant",
-            false,
-        ),
-        (6, ReasonCode::LocalAppGrantRevoked) => (
-            LocalAppPermissionState::Revoked,
-            LocalAppReasonCode::GrantRevoked,
-            "request_local_app_operation_grant",
-            false,
-        ),
-        (7, ReasonCode::LocalAppGrantSuperseded) => (
-            LocalAppPermissionState::Superseded,
-            LocalAppReasonCode::GrantSuperseded,
-            "refresh_local_app_permission_posture",
-            false,
-        ),
-        _ => return Err(untrusted()),
-    };
-    Ok(LocalAppPermissionPosture {
+    let reason_code = local_app_reason_from_proto(runtime_reason as i32).ok_or_else(untrusted)?;
+    Ok(LocalAppPermissionStatus {
         state,
-        operation_id,
-        resource_ref,
+        permission_id,
+        can_request: projection.can_request,
         reason_code,
-        action_hint: action_hint.to_string(),
-        retryable,
     })
 }
 
@@ -154,65 +84,28 @@ fn project_permission_posture(
 mod tests {
     use super::*;
 
-    fn projection(state: i32, reason_code: i32) -> LocalAppGrantProjection {
-        LocalAppGrantProjection {
-            state,
-            operation_id: "runtime_agent.conversation.open".to_string(),
-            resource_ref: "agent-a".to_string(),
-            request_id: Vec::new(),
-            grant_id: Vec::new(),
-            presence_challenge_id: Vec::new(),
-            grant_generation: 1,
-            grant_revision: 1,
-            expires_at: None,
-            reason_code,
-        }
-    }
-
-    fn project(
-        state: i32,
-        reason_code: i32,
-    ) -> Result<LocalAppPermissionPosture, LocalAppOperationError> {
-        project_permission_posture(
-            projection(state, reason_code),
-            "runtime_agent.conversation.open".to_string(),
-            "agent-a".to_string(),
-        )
+    #[test]
+    fn reserved_permission_projects_as_unavailable_without_internal_selector() {
+        let projection = LocalAppPermissionProjection {
+            permission_id: "agents.interact".to_string(),
+            posture: ProtoPermissionPosture::Unavailable as i32,
+            can_request: false,
+            reason_code: ReasonCode::LocalAppOperationUnavailable as i32,
+        };
+        let status = project_permission_status(projection, "agents.interact".to_string())
+            .expect("reserved posture");
+        assert_eq!(status.state, LocalAppPermissionState::Unavailable);
+        assert!(!status.can_request);
     }
 
     #[test]
-    fn denied_permission_request_preserves_the_runtime_projection_reason() {
-        let denied = project(4, 655).expect("denied projection");
-        let error = require_pending_permission(denied).expect_err("request must stay denied");
-        assert_eq!(
-            error.reason_code(),
-            LocalAppReasonCode::RuntimePermissionDenied
-        );
-    }
-
-    #[test]
-    fn permission_projection_preserves_terminal_reason_matrix() {
-        for (state, runtime_reason, expected) in [
-            (4, 651, LocalAppReasonCode::NoGrant),
-            (5, 657, LocalAppReasonCode::PresenceExpired),
-            (6, 652, LocalAppReasonCode::GrantRevoked),
-            (7, 653, LocalAppReasonCode::GrantSuperseded),
-        ] {
-            assert_eq!(
-                project(state, runtime_reason)
-                    .expect("terminal projection")
-                    .reason_code,
-                expected
-            );
-        }
-        assert!(project(4, 652).is_err());
-        assert!(project(6, 651).is_err());
-    }
-
-    #[test]
-    fn permission_projection_preserves_exact_operation_binding() {
-        let projection = project(1, 651).expect("zero-grant projection");
-        assert_eq!(projection.state, LocalAppPermissionState::ZeroGrant);
-        assert_eq!(projection.reason_code, LocalAppReasonCode::NoGrant);
+    fn permission_projection_rejects_mismatched_product_id() {
+        let projection = LocalAppPermissionProjection {
+            permission_id: "artifacts.open".to_string(),
+            posture: ProtoPermissionPosture::Unavailable as i32,
+            can_request: false,
+            reason_code: ReasonCode::LocalAppOperationUnavailable as i32,
+        };
+        assert!(project_permission_status(projection, "agents.interact".to_string()).is_err());
     }
 }

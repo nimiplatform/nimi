@@ -545,8 +545,8 @@ func (s *Service) ResolveLocalAppSession(ctx context.Context, accountGeneration 
 		AuthorizationID:         session.AuthorizationID,
 		AuthorizationGeneration: session.AuthorizationGeneration,
 		ProjectRoot:             session.ProjectRoot,
-		CapabilityFingerprint:   session.CapabilityFingerprint,
-		Capabilities:            append([]string(nil), session.Capabilities...),
+		CapabilityFingerprint:   session.PermissionRequirementFingerprint,
+		Capabilities:            localDevelopmentPermissionIDs(session.PermissionRequirements),
 		LocalAppPrincipalID:     principal.LocalAppPrincipalID,
 		LocalAppRecordID:        record.LocalAppRecordID,
 		ProvenanceRevision:      record.ProvenanceRevision,
@@ -601,16 +601,35 @@ func requireProtectedLocalDevelopmentDesktop(ctx context.Context) error {
 
 func localDevelopmentProjectToProto(project localDevelopmentProjectSnapshot) *runtimev1.LocalDevelopmentProjectProjection {
 	return &runtimev1.LocalDevelopmentProjectProjection{
-		AppId:                 project.AppID,
-		DisplayName:           project.DisplayName,
-		CanonicalProjectRoot:  project.ProjectRoot,
-		CanonicalManifestPath: project.ManifestPath,
-		ShellKind:             project.ShellKind,
-		AccountId:             project.AccountID,
-		RequestedCapabilities: append([]string(nil), project.Capabilities...),
-		CapabilityFingerprint: append([]byte(nil), project.CapabilityFingerprint[:]...),
-		TrustClass:            localDevelopmentTrustClass,
+		AppId:                            project.AppID,
+		DisplayName:                      project.DisplayName,
+		CanonicalProjectRoot:             project.ProjectRoot,
+		CanonicalManifestPath:            project.ManifestPath,
+		ShellKind:                        project.ShellKind,
+		AccountId:                        project.AccountID,
+		PermissionRequirements:           localDevelopmentPermissionRequirementsToProto(project.PermissionRequirements),
+		PermissionRequirementFingerprint: append([]byte(nil), project.PermissionRequirementFingerprint[:]...),
+		TrustClass:                       localDevelopmentTrustClass,
 	}
+}
+
+func localDevelopmentPermissionRequirementsToProto(requirements []localDevelopmentPermissionRequirement) []*runtimev1.LocalDevelopmentPermissionRequirement {
+	projected := make([]*runtimev1.LocalDevelopmentPermissionRequirement, 0, len(requirements))
+	for _, requirement := range requirements {
+		projected = append(projected, &runtimev1.LocalDevelopmentPermissionRequirement{
+			PermissionId: requirement.PermissionID,
+			Reason:       requirement.Reason,
+		})
+	}
+	return projected
+}
+
+func localDevelopmentPermissionIDs(requirements []localDevelopmentPermissionRequirement) []string {
+	permissionIDs := make([]string, 0, len(requirements))
+	for _, requirement := range requirements {
+		permissionIDs = append(permissionIDs, requirement.PermissionID)
+	}
+	return permissionIDs
 }
 
 func localDevelopmentAuthorizationToProto(authorization localDevelopmentAuthorization) *runtimev1.LocalDevelopmentAuthorizationProjection {

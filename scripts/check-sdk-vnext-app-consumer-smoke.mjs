@@ -59,7 +59,6 @@ import {
   createAppScopeRef,
   createNimiAppClient,
   createPermissionClient,
-  createScopeCatalogModule,
   isAdmittedNimiFirstRunLocalBaseline,
   selectNimiAppFactoryAIProfileForFirstRun,
 } from '@nimiplatform/sdk/app';
@@ -91,11 +90,14 @@ function entryFor(appId = row.appId) {
     sources: {
       catalog: { status: 'present', value: catalogRow },
       account: { status: 'absent' },
-      local: { status: 'absent' },
-      packageReadiness: { status: 'absent' },
+      localRecord: { status: 'absent' },
+      packageReadiness: {
+        status: 'present',
+        value: { state: 'unavailable', reasonCode: 'LOCAL_APP_OPERATION_UNAVAILABLE' },
+      },
     },
-    installState: 'not-installed',
-    openReadiness: 'install-required',
+    installState: 'not-present',
+    openReadiness: 'package-unavailable',
     activeJobs: [],
     nextActions: [],
   };
@@ -114,44 +116,21 @@ for (const retired of ['install', 'update', 'uninstall', 'launch', 'healthRepair
 
 const scopeRef = createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' });
 const launchScopeRef = createAppScopeRef({ appId: 'tester.app' });
-const permissionScope = {
-  appId: 'tester.app',
-  scopeFamily: 'account',
-  scopeName: 'account.read',
-};
-const grant = {
-  scopeRef,
-  grant: { grantId: 'grant-1', permissionScope },
-  state: 'granted',
-};
 const permission = createPermissionClient({
-  async list() { return [grant]; },
-  async get() { return grant; },
-  async request(inputScopeRef) {
-    return { ...grant, scopeRef: inputScopeRef, state: 'pending' };
-  },
-  async revoke() { return { ...grant, state: 'revoked' }; },
-  async status(inputScopeRef) { return { scopeRef: inputScopeRef, grants: [grant] }; },
-  subscribe(inputScopeRef, callback) {
-    callback({ scopeRef: inputScopeRef, grant });
+  async status(permissionId) { return { permissionId, posture: 'unavailable', canRequest: false }; },
+  async request({ permissionId }) { return { permissionId, posture: 'unavailable', canRequest: false }; },
+  subscribe(permissionId, callback) {
+    callback({ status: { permissionId, posture: 'unavailable', canRequest: false } });
     return () => {};
   },
 });
 assert(permission instanceof PermissionClient);
-assert.equal((await permission.list(scopeRef))[0].state, 'granted');
-assert.equal((await permission.request(scopeRef, {
-  permissionScope,
-  reason: 'consumer smoke',
-})).state, 'pending');
-
-const catalog = createScopeCatalogModule({ appId: 'tester.app' });
-catalog.registerAppScopes({
-  manifest: {
-    manifestVersion: '1.0.0',
-    scopes: ['app.tester.app.settings.read'],
-  },
-});
-assert.equal(catalog.publishCatalog().status, 'published');
+assert.equal((await permission.status('agents.interact')).posture, 'unavailable');
+await assert.rejects(
+  permission.request({ permissionId: 'agents.interact', reason: 'consumer smoke' }),
+  (error) => error?.reasonCode === 'SDK_PERMISSION_NOT_ADMITTED',
+);
+assert.equal(scopeRef.ownerId, launchScopeRef.ownerId);
 
 const appProfile = {
   profileId: 'tester-app-profile',
@@ -238,14 +217,11 @@ import {
   createAppScopeRef,
   createNimiAppClient,
   createPermissionClient,
-  createScopeCatalogModule,
-  type GrantSpec,
   type NimiAppInventoryEntry,
   type NimiAppRow,
   type NimiAppScopeRef,
   type NimiAppStatus,
   type NimiAppAIProfileFactoryRow,
-  type PermissionScopeRef,
 } from '@nimiplatform/sdk/app';
 
 const row: NimiAppRow = {
@@ -273,11 +249,14 @@ const entry: NimiAppInventoryEntry = {
   sources: {
     catalog: { status: 'present', value: row },
     account: { status: 'absent' },
-    local: { status: 'absent' },
-    packageReadiness: { status: 'absent' },
+    localRecord: { status: 'absent' },
+    packageReadiness: {
+      status: 'present',
+      value: { state: 'unavailable', reasonCode: 'LOCAL_APP_OPERATION_UNAVAILABLE' },
+    },
   },
-  installState: 'not-installed',
-  openReadiness: 'install-required',
+  installState: 'not-present',
+  openReadiness: 'package-unavailable',
   activeJobs: [],
   nextActions: [],
 };
@@ -289,21 +268,14 @@ const appClient: NimiAppClient = createNimiAppClient({
 });
 const scopeRef: NimiAppScopeRef = createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' });
 const launchScopeRef: NimiAppScopeRef = createAppScopeRef({ appId: 'tester.app' });
-const permissionScope: PermissionScopeRef = {
-  appId: 'tester.app',
-  scopeFamily: 'account',
-  scopeName: 'account.read',
-};
-const grantSpec: GrantSpec = { permissionScope, reason: 'consumer smoke' };
 const permissionClient: PermissionClient = createPermissionClient({
-  async list() { return []; },
-  async get() { return { scopeRef, grant: { grantId: 'grant-1', permissionScope }, state: 'granted' }; },
-  async request() { return { scopeRef, grant: { grantId: 'grant-1', permissionScope }, state: 'pending' }; },
-  async revoke() { return { scopeRef, grant: { grantId: 'grant-1', permissionScope }, state: 'revoked' }; },
-  async status() { return { scopeRef, grants: [] }; },
-  subscribe() { return () => {}; },
+  async status(permissionId) { return { permissionId, posture: 'unavailable', canRequest: false }; },
+  async request({ permissionId }) { return { permissionId, posture: 'unavailable', canRequest: false }; },
+  subscribe(permissionId, callback) {
+    callback({ status: { permissionId, posture: 'unavailable', canRequest: false } });
+    return () => {};
+  },
 });
-const catalog = createScopeCatalogModule({ appId: 'tester.app' });
 const profile: NimiAppAIProfileFactoryRow = {
   alias: 'local-small',
   privacyPosture: 'local-preferred',
@@ -356,8 +328,7 @@ const snapshot = createNimiAISnapshotRecord({
 
 void appClient;
 void permissionClient;
-void grantSpec;
-void catalog;
+void scopeRef;
 void profile;
 void hostAI;
 void appRequirements;

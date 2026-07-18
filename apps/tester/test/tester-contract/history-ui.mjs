@@ -586,7 +586,7 @@ test('tester artifact history persistence is real and fail-closed', () => {
   assert.match(workbench, /createTesterRunHistoryResultSnapshot\(historyResult\)/);
   assert.match(workbench, /appendTesterImageHistoryRecord/);
   // Artifact writes are outside the final carrier and fail closed; protected
-  // Runtime artifact readback remains available through the separate client.
+  // Nimi-owned artifact readback remains unavailable on the third-party local-app carrier.
   assert.match(artifactStorage, /createNimiError/);
   assert.match(artifactStorage, /TESTER_LOCAL_APP_ARTIFACT_WRITE_UNAVAILABLE/);
   assert.doesNotMatch(artifactStorage, /writeShellArtifact|convertTauriFileSrc|localStorage|invoke/);

@@ -21,8 +21,9 @@ const (
 	LocalAppJSONWriteOperationID  = "app_storage.json.write"
 	LocalAppJSONRemoveOperationID = "app_storage.json.remove"
 
-	LocalAppJSONReadCapability  = "file.read.scoped#app-local-drafts"
-	LocalAppJSONWriteCapability = "file.write.scoped#app-local-drafts"
+	// LocalAppPrivateStorageEntitlement is a Runtime-derived base entitlement,
+	// not a manifest capability or mutable user grant.
+	LocalAppPrivateStorageEntitlement = "app.private_storage"
 )
 
 var (
@@ -40,7 +41,7 @@ type LocalAppJSONDocument struct {
 
 // NormalizeLocalAppJSONRelativePath admits one cross-platform canonical path
 // grammar. It deliberately does not clean or repair caller input because the
-// exact string is also the grant resource selector.
+// exact string is also the owner-policy resource selector.
 func NormalizeLocalAppJSONRelativePath(value string) (string, error) {
 	if value == "" || value != strings.TrimSpace(value) || len([]byte(value)) > LocalAppJSONMaxRelativePathBytes ||
 		strings.ContainsAny(value, "\\:\x00") || path.IsAbs(value) || path.Clean(value) != value ||

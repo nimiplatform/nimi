@@ -35,8 +35,8 @@ func (authorizer localAppSubscriptionAuthorizer) AuthorizeLocalAppProtectedOpera
 
 func TestLocalAppSubscriptionRevalidatesAuthorityBeforeEveryDeliveredEvent(t *testing.T) {
 	for _, reason := range []runtimev1.ReasonCode{
-		runtimev1.ReasonCode_LOCAL_APP_GRANT_REVOKED,
-		runtimev1.ReasonCode_LOCAL_APP_GRANT_SUPERSEDED,
+		runtimev1.ReasonCode_LOCAL_APP_PERMISSION_DENIED,
+		runtimev1.ReasonCode_LOCAL_APP_PERMISSION_REVOKED,
 		runtimev1.ReasonCode_LOCAL_APP_PRESENCE_EXPIRED,
 		runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED,
 		runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH,

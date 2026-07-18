@@ -14,7 +14,6 @@ import { useDesktopMacosSmokeBootstrap } from '@renderer/infra/bootstrap/desktop
 import { useRuntimeHealthCoordinatorBootstrap } from '@renderer/features/runtime-config/runtime-health-coordinator';
 import { getDesktopMacosSmokeContext, pingDesktopMacosSmoke } from '@renderer/bridge/runtime-bridge/macos-smoke';
 import { LocalDevelopmentApprovalCenter } from '@renderer/features/local-development/local-development-approval-center';
-import { LocalAppGrantApprovalCenter } from '@renderer/features/local-app-grants/local-app-grant-approval-center';
 
 const WEB_BOOTSTRAP_TIMEOUT_MS = 15000;
 const DESKTOP_BOOTSTRAP_TIMEOUT_MS = 25000;
@@ -200,7 +199,6 @@ function AppBoot() {
     <>
       <AppRoutes />
       <LocalDevelopmentApprovalCenter />
-      <LocalAppGrantApprovalCenter />
     </>
   );
 }

@@ -31,7 +31,7 @@ posture_enum:
   - value: protected_or_scoped_binding_write
     meaning: Write requires either an exact protected origin or a Runtime-issued first-party scoped binding under the operation owner policy.
   - value: authenticated_or_protected_local_app_operation
-    meaning: Existing admitted callers use their owner-defined authenticated posture; LOCAL_APP is admitted only on local_app_host with current session, exact grant, relation and operation-owner decision.
+    meaning: Existing admitted callers use their owner-defined authenticated posture; LOCAL_APP is admitted only on local_app_host with a current session and the action's authority class. User-permission operations additionally require an admitted permission, owner selector/decision, relation and operation-owner policy.
   - value: protected_or_scoped_binding_or_local_app_operation
     meaning: Existing protected/first-party scoped consumers retain their posture; LOCAL_APP is separately admitted only through K-ACCSVC-026 without treating the principal as agent, conversation or memory owner.
   - value: unavailable_by_authority
@@ -83,7 +83,7 @@ posture_decision_doctrine: |
 method_shards:
   - path: ./runtime-rpc-auth-posture/identity-access.yaml
     id: nimicoding.runtime-rpc-auth-posture.identity-access.v1
-    method_count: 58
+    method_count: 56
     services:
       - RuntimeAccountService
       - RuntimeAuthService
@@ -92,7 +92,7 @@ method_shards:
       - RuntimeDevelopmentService
   - path: ./runtime-rpc-auth-posture/agent-ai-cognition.yaml
     id: nimicoding.runtime-rpc-auth-posture.agent-ai-cognition.v1
-    method_count: 100
+    method_count: 98
     services:
       - RuntimeAgentService
       - RuntimeAiService

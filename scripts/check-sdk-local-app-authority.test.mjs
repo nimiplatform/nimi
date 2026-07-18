@@ -4,7 +4,7 @@ import { validateSdkLocalAppAuthority } from './lib/sdk-local-app-authority-chec
 
 function positiveFixture() {
   return {
-    appClient: 'local-first-party-app local-app standardShell zero-grant',
+    appClient: 'local-app standardShell base entitlements public-permission',
     runtime: 'LOCAL_APP principal',
     transport: 'host-injected request-empty',
     index: 'nimi-app-client-contract.md',
@@ -13,7 +13,7 @@ function positiveFixture() {
         { group: 'auth_service_projection', methods: ['OpenLocalAppSession'] },
         {
           group: 'account_service_projection',
-          methods: ['GetLocalAppGrantStatus', 'RequestLocalAppGrant', 'DecideLocalAppGrant', 'RevokeLocalAppGrant'],
+          methods: ['GetLocalAppPermissionStatus', 'RequestLocalAppPermission'],
         },
         {
           group: 'local_development_service_projection',
@@ -42,14 +42,14 @@ test('rejects retired session vocabulary and an incomplete final method group', 
   fixture.methodGroups.groups.find((row) => row.group === 'account_service_projection').methods.pop();
   const errors = validateSdkLocalAppAuthority(fixture);
   assert.ok(errors.some((error) => error.includes('OpenDesktopLaunchedAppSession')));
-  assert.ok(errors.some((error) => error.includes('RevokeLocalAppGrant')));
+  assert.ok(errors.some((error) => error.includes('RequestLocalAppPermission')));
 });
 
-test('rejects a carrier that collapses zero-grant posture or lacks rule evidence', () => {
+test('rejects a carrier that omits base entitlement posture or lacks rule evidence', () => {
   const fixture = positiveFixture();
-  fixture.appClient = fixture.appClient.replace('zero-grant', 'authenticated');
+  fixture.appClient = fixture.appClient.replace('base entitlements', 'authenticated');
   fixture.evidence.rules = fixture.evidence.rules.filter((row) => row.rule_id !== 'S-APP-022');
   const errors = validateSdkLocalAppAuthority(fixture);
-  assert.ok(errors.some((error) => error.includes('zero-grant')));
+  assert.ok(errors.some((error) => error.includes('base entitlements')));
   assert.ok(errors.some((error) => error.includes('S-APP-022')));
 });

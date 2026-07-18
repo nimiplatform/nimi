@@ -28,56 +28,13 @@ pub const LOCAL_APP_COMMANDS: &[ShellCommandDescriptor] = &[
         boundary: ShellCommandBoundary::LocalApp,
     },
     ShellCommandDescriptor {
-        command_name: "local_app_permission_posture",
-        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_permission_posture",
+        command_name: "local_app_permission_status",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_permission_status",
         boundary: ShellCommandBoundary::LocalApp,
     },
     ShellCommandDescriptor {
         command_name: "local_app_permission_request",
         rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_permission_request",
-        boundary: ShellCommandBoundary::LocalApp,
-    },
-    ShellCommandDescriptor {
-        command_name: "local_app_artifacts_read_runtime_bytes",
-        rust_path:
-            "nimi_shell_tauri::capabilities::local_app::local_app_artifacts_read_runtime_bytes",
-        boundary: ShellCommandBoundary::LocalApp,
-    },
-    ShellCommandDescriptor {
-        command_name: "local_app_agent_inventory",
-        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_agent_inventory",
-        boundary: ShellCommandBoundary::LocalApp,
-    },
-    ShellCommandDescriptor {
-        command_name: "local_app_agent_open_conversation",
-        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_agent_open_conversation",
-        boundary: ShellCommandBoundary::LocalApp,
-    },
-    ShellCommandDescriptor {
-        command_name: "local_app_agent_send_turn",
-        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_agent_send_turn",
-        boundary: ShellCommandBoundary::LocalApp,
-    },
-    ShellCommandDescriptor {
-        command_name: "local_app_agent_subscribe_turn",
-        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_agent_subscribe_turn",
-        boundary: ShellCommandBoundary::LocalApp,
-    },
-    ShellCommandDescriptor {
-        command_name: "local_app_agent_get_conversation_snapshot",
-        rust_path:
-            "nimi_shell_tauri::capabilities::local_app::local_app_agent_get_conversation_snapshot",
-        boundary: ShellCommandBoundary::LocalApp,
-    },
-    ShellCommandDescriptor {
-        command_name: "local_app_agent_transcribe_voice",
-        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_agent_transcribe_voice",
-        boundary: ShellCommandBoundary::LocalApp,
-    },
-    ShellCommandDescriptor {
-        command_name: "local_app_agent_subscribe_voice_stream",
-        rust_path:
-            "nimi_shell_tauri::capabilities::local_app::local_app_agent_subscribe_voice_stream",
         boundary: ShellCommandBoundary::LocalApp,
     },
     ShellCommandDescriptor {
@@ -452,16 +409,8 @@ macro_rules! nimi_shell_tauri_local_app_standard_shell_handler {
     ($($app_command:path),* $(,)?) => {
         tauri::generate_handler![
             $crate::capabilities::local_app::local_app_session_status,
-            $crate::capabilities::local_app::local_app_permission_posture,
+            $crate::capabilities::local_app::local_app_permission_status,
             $crate::capabilities::local_app::local_app_permission_request,
-            $crate::capabilities::local_app::local_app_artifacts_read_runtime_bytes,
-            $crate::capabilities::local_app::local_app_agent_inventory,
-            $crate::capabilities::local_app::local_app_agent_open_conversation,
-            $crate::capabilities::local_app::local_app_agent_send_turn,
-            $crate::capabilities::local_app::local_app_agent_subscribe_turn,
-            $crate::capabilities::local_app::local_app_agent_get_conversation_snapshot,
-            $crate::capabilities::local_app::local_app_agent_transcribe_voice,
-            $crate::capabilities::local_app::local_app_agent_subscribe_voice_stream,
             $crate::capabilities::storage::storage_read_json,
             $crate::capabilities::storage::storage_write_json,
             $crate::capabilities::storage::storage_remove_json,

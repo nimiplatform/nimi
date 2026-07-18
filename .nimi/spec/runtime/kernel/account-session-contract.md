@@ -4,7 +4,7 @@
 
 ## K-ACCSVC-001 服务职责
 
-**Owner-only authority allocation.** Runtime is the sole owner of authenticated Realm unary, realtime, and media data planes. Runtime alone owns account and token custody, private refresh, authenticated Realm credential exchange, local-app grant mutation, and the per-operation local-app decision coordinator. Platform owns app catalog, trust-class and permission vocabulary; `K-APP-*` owns the local-app principal/record and Developer Mode state; `K-GRANT-*` owns local-app grant truth; `K-PLOCAL-*` owns launch leases and local-app sessions. Desktop owns account-control UX, Developer Mode UX, grant UX and the verified native supervisor/launcher, but no Developer Mode security state. SDK and Kit own typed APIs and trusted carriers only; app-tools remains authoring and build tooling.
+**Owner-only authority allocation.** Runtime is the sole owner of authenticated Realm unary, realtime, and media data planes. Runtime alone owns account and token custody, private refresh, authenticated Realm credential exchange, the Runtime-owned portion of public permission enforcement, and the per-operation local-app decision coordinator. Platform owns app catalog, trust-class and public permission vocabulary; `K-APP-*` owns the local-app principal/record and Developer Mode state; `K-GRANT-*` may own only owner-internal lifecycle records for admitted Runtime permissions; `K-PLOCAL-*` owns launch leases and local-app sessions. Desktop owns account-control UX, Developer Mode UX, future product permission UX, and the verified native supervisor/launcher, but no Developer Mode or permission truth. SDK and Kit own typed APIs and trusted carriers only; app-tools remains authoring and build tooling.
 
 Apps MUST NOT own account or session truth, bearer or refresh tokens, or signed upload credentials. A Desktop host, Kit bridge, SDK client, renderer, app manifest, or app-supplied callback may carry only owner-attested opaque inputs and results; none may originate credentials, refresh authenticated Realm state, or become a parallel unary, realtime, or media authority.
 
@@ -13,7 +13,7 @@ authority for transport, process, executable, challenge, boot-epoch and
 security-ledger facts. `K-APP-*`, `K-GRANT-*`, and `K-ACCSVC-*` jointly admit
 the common local-app decision without duplicating each other's state. Realm,
 realtime and media operations still require their own exact operation rows;
-local-app origin or grant never creates blanket authorization.
+local-app origin or permission posture never creates blanket authorization.
 
 `RuntimeAccountService` 拥有本地机器层的 account session truth、custody、login lifecycle、refresh、logout、user switch、daemon restart recovery、Runtime-mediated Realm broker 和 Runtime-issued scoped app binding issuance。它是 local account authority 与 refresh-token custody 的唯一所有者。
 
@@ -50,10 +50,8 @@ independently admitted broker or service operation.
 10. `RevokeScopedAppBinding`
 11. `IssueWorkspaceBinding`
 12. `RevokeWorkspaceBinding`
-13. `GetLocalAppGrantStatus`
-14. `RequestLocalAppGrant`
-15. `DecideLocalAppGrant`
-16. `RevokeLocalAppGrant`
+13. `GetLocalAppPermissionStatus`
+14. `RequestLocalAppPermission`
 
 Admitted 方法集合为冻结集合。`IssueWorkspaceBinding` /
 `RevokeWorkspaceBinding` are admitted only for workspace-specific attachment
@@ -62,9 +60,11 @@ mint/revoke under `K-ACCSVC-019` and `K-BIND-018`.
 checks under `K-ACCSVC-021`. Any further method must undergo a new rule
 admission before proto / RPC table projection.
 
-The four local-app grant methods are protected methods governed by
-`K-GRANT-014` and `K-ACCSVC-026`. They expose typed status and mutation results,
-never a portable grant credential. The removed `GetAccessToken` and
+The two local-app permission methods are protected local-app-host methods
+governed by `P-PERM-002`, `P-PERM-007`, `P-PERM-017`, and `K-ACCSVC-026`.
+They expose only a public permission id, public posture, requestability, and a
+typed reason. Internal operation/resource/grant identity and approval control
+are not RPC surface. The removed `GetAccessToken` and
 `RefreshAccountSession` identities remain reserved and must not be reintroduced
 under aliases.
 
@@ -317,11 +317,11 @@ binding 在 daemon 重启时全部失效；调用方必须重新申请。Runtime
 |---|---|---|---|---|
 | Desktop shell | Runtime-mediated Desktop host registration | `authenticated` 或 anonymous（仅 account UX） | Runtime account broker；account-control 仅此 caller mode | durable token custody、public refresh、renderer caller truth、任何 bearer projection |
 | SDK local first-party app | bundled first-party bootstrap | current Runtime-owned account generation when required | Runtime-owned first-party binding | account control、token、app-provided subject/session |
-| Third-party local app (`LOCAL_APP`) | `PrepareLocalAppLaunch` + verified process bind + request-empty `OpenLocalAppSession` | current Runtime-owned account generation when an operation requires account | local-app principal/record/session plus separate current grant | account control、token、caller-selected principal/account/grant、`app_id` fallback |
-| Default Avatar app (`nimi.avatar`) | shipped bundled first-party bootstrap | current Runtime-owned account generation when required | Runtime-owned first-party binding | third-party local-app principal/grant posture、account control、token |
+| Third-party local app (`LOCAL_APP`) | `PrepareLocalAppLaunch` + verified process bind + request-empty `OpenLocalAppSession` | current Runtime-owned account generation when an operation requires account | local-app principal/record/session; admitted public permission decision only when applicable | account control、token、caller-selected principal/account/permission/selector、`app_id` fallback |
+| Default Avatar app (`nimi.avatar`) | shipped bundled first-party bootstrap | current Runtime-owned account generation when required | Runtime-owned first-party service entitlement | third-party local-app principal/permission posture、account control、token |
 | Binding-only Avatar mode | 不允许直接 account registration | N/A | Runtime-issued scoped binding from owner surface | account access token、refresh token、anchor 创建、independent auth truth |
 | Web / cloud app | 显式 Web/cloud adapter | Web/cloud session | Web/cloud adapter | local Runtime account authority claim |
-| External principal | binding-only external-principal session | N/A for local account | none; public Grant family deny-all | every local protected account claim |
+| External principal | binding-only external-principal session | N/A for local account | none; public permission surface unavailable | every local protected account claim |
 
 ## K-ACCSVC-013 Activation Boundary
 
@@ -514,22 +514,22 @@ app-owned prompts. The only Realm-backed exception is the Runtime-owned
 `K-PLOCAL-008` admits a local-app session only from an atomically consumed
 launch lease on the verified child channel. The `LOCAL_APP` caller class and
 `local_app_principal_id` are Runtime-derived; the request cannot select caller
-class, account, principal, record, grant, release or capabilities.
-Account-control and credential-bearing methods remain denied. A zero-grant
-session is valid origin proof and must still be denied for protected Nimi API
-operations until an exact grant and owner policy allow the operation, except
-for the K-AGCORE-006e empty-request bounded inventory bootstrap. That bootstrap
-uses `AuthorizeLocalAppCaller` only, exposes no grant/resource input, and cannot
-be reused as an authorization decision for any Agent operation.
+class, account, principal, record, permission decision, release or capabilities.
+Account-control and credential-bearing methods remain denied. A zero-permission
+session is valid origin proof and may use only base entitlements and its own
+public permission posture. It cannot list protected Agent/account/resource
+inventory. Every user-permission operation remains unavailable until its full
+P-PERM-017 slice is admitted.
 
 `RuntimeAccountService` owns the private provenance-agnostic per-operation
 coordinator. On every selected local-app operation it combines the current
 account generation when required, `K-APP-*` principal/record resolution,
-`K-PLOCAL-*` live process/session resolution, `K-GRANT-*` exact current grant,
-presence when required, and the canonical operation owner policy. The
+`K-PLOCAL-*` live process/session resolution, the current owner permission
+decision when the authority class requires it, and the canonical operation
+owner policy. The
 coordinator returns one immutable decision and audit context; it owns none of
 those inputs and creates no secondary cache or portable credential. Missing,
-expired, revoked, tombstoned, superseded, process-mismatched or account-mismatched
+expired, revoked, denied, tombstoned, process-mismatched or account-mismatched
 inputs deny the operation. Immutable provenance remains an opaque input seam and
 returns typed unavailable until 0P/P admits a producer.
 
@@ -556,9 +556,10 @@ admitted.
 
 ## K-ACCSVC-024 Account RPC Permission Matrix
 
-The Desktop account projection/control, scoped-binding control, local-app grant
-control, selected local-app operations and Realm-broker transport prerequisites
-are admitted only through their exact protected-transport and owner rows. This
+The Desktop account projection/control, scoped-binding control, local-app public
+permission status/request, selected local-app operations and Realm-broker
+transport prerequisites are admitted only through their exact protected-
+transport and owner rows. There is no public permission decision or revoke RPC. This
 admits no portable envelope, blanket local-app authority or raw-token
 projection. Unlisted broker/realtime/media operation rows remain denied.
 
@@ -582,27 +583,30 @@ self-description, launch id and portable bearer remain non-authorizing. Local
 app authority comes only from the inherited native channel and its verified live
 peer. Direct local gRPC and Electron/Tauri renderer envelopes remain deny-all.
 
-## K-ACCSVC-026 Local App Operation Coordinator And Presence
+## K-ACCSVC-026 Local App Authority Coordinator And Presence
 
-For each protected local-app operation, Runtime must evaluate the exact
-principal, local record, process-bound session, current account id and account
-generation when required, exact grant revision, presence proof when the owner policy requires
-it, and the selected operation owner's resource policy in one decision. Grant
-issuance is separate from session issuance; enabling Developer Mode, admitting
-a project, or opening a session grants nothing.
+For each local-app operation, Runtime first resolves the authority class from
+`P-PERM-015`. A base entitlement evaluates the exact principal, local record,
+process-bound session, current account partition, path/quota and owner policy,
+but must not require a user permission. A user permission additionally requires an
+admitted public permission id, owner-issued selector, current owner lifecycle,
+permission-to-operation mapping, presence when required, and the operation
+owner's exact resource policy in one decision. App-owned commands and OS rights
+do not enter this coordinator. Enabling Developer Mode, admitting a project,
+opening a session, or being first party creates no synthetic permission.
 
 Presence follows `tables/local-app-presence-protocol.yaml`. Only a
 Runtime-owned OS verifier or fresh `NIMI_REAUTH` result can satisfy it. Caller
 assertions, renderer prompts, login state, bearer state and prior sessions do
 not. The coordinator records `local_app_principal_id`, the exact immutable or
-development principal-lineage branch, record/grant/session identifiers and
-revisions, account id/generation, process
-identity, operation and deny reason in the Runtime audit context without
+development principal-lineage branch, record/session identifiers and revisions,
+the permission decision revision only when an admitted user permission applies,
+account id/generation, process
+identity, permission id when applicable, internal operation and deny reason in the Runtime audit context without
 logging credentials. No downstream service may reinterpret or weaken this
 decision.
 
-K-AGCORE-006e is not a grant-coordinator operation. Its protected transport
-must obtain a fresh current-caller decision from this owner, bind that decision
-to the handler context, and audit the bounded read. Adding it must not alter
-grant revisions, presence, session rotation, boot epoch, dormant/reactivate, or
-the closed resource policy of conversation operations.
+K-AGCORE-006e is not a base entitlement. Until `agents.interact` has a complete
+admitted selector, lifecycle, SDK/Kit, UI, audit, revoke and endpoint slice,
+third-party Agent inventory and conversation operations remain unavailable.
+No old operation grant or caller-selected Agent id can promote them.

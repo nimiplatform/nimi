@@ -1,19 +1,19 @@
 {
   "schemaId": "nimi.repository.candidate-evidence.v2",
   "evidenceId": "synthetic-real-shell-audit",
-  "candidateBindingSha256": "daa28882d78351a0a1974b776267fa5edc14e0310d2924e3c7fb7def8cdb1d12",
+  "candidateBindingSha256": "b564cd59273dedd59c8d7575d9b11dc7a805ad94ecd0df5c854e15386b608c5e",
   "evidenceKind": "real_shell_audit",
   "claims": [
     {"rowId":"D-09","claimId":"ui.native_windows_risk_disclosure_observed"}
   ],
   "executionBinding": {
-    "executionSetId":"c1e22e7b27ad7a6172016c93591a40f4b6092b5d7c70c34b5fe00cace215d5cc",
+    "executionSetId":"fb257ef0a8a6fdd45c16158085ec5813b3f0159c7564091046acf9e2f7de0189",
     "journeyTrialId":"dev-kernel-core:L2:core:1",
     "sourceStateDigest":"2020202020202020202020202020202020202020202020202020202020202020"
   },
   "artifactRefs": [
-    {"role":"execution_observation","ref":"synthetic-execution-observation.json","sha256":"279ff8e43d5cf6659f622f26a605aec6a6e82e1af33d424e95ddd0e34f44a55e"},
-    {"role":"runner_result","ref":"runner/result.json","sha256":"fcba4e08e4311b293c0e2f57fdf6989c4e35c81df6226dbee755669eef4bc7da"},
-    {"role":"runner_artifact_manifest","ref":"runner/artifact-manifest.json","sha256":"f8538b21602c0b6d07bfa560f77b0442c70cfb124dbf18cfedf97d8c789e983b"}
+    {"role":"execution_observation","ref":"synthetic-execution-observation.json","sha256":"0623cf99333f8fbc0678438219fbeed30b4968cfeb89f08ce9a274ec1d1b1106"},
+    {"role":"runner_result","ref":"runner/result.json","sha256":"197b0b0055cfcdfedce02897f0d5dfa375bd4db8318dee5b23dcadd1cc6b4aa4"},
+    {"role":"runner_artifact_manifest","ref":"runner/artifact-manifest.json","sha256":"462162f78c78640a713900bc8e26187f9353b80846c52a7c064a8d3a0df64598"}
   ]
 }

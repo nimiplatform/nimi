@@ -35,7 +35,6 @@ const SOURCE_STATUS_LABEL_KEYS: Record<NimiAppInventorySourceStatus, string> = {
 
 const OPEN_READINESS_LABEL_KEYS: Record<NimiAppOpenReadiness, string> = {
   ready: 'Apps.openReadiness.ready',
-  'permission-required': 'Apps.openReadiness.permissionRequired',
   'package-unavailable': 'Apps.state.immutablePackageUnavailable',
   'local-record-dormant': 'Apps.state.localRecordDormant',
   'blocked-by-master-gate': 'Apps.state.blockedByPolicy',
@@ -392,7 +391,6 @@ function accessTone(state: AppAccessState): 'success' | 'warning' | 'danger' | '
   switch (state) {
     case 'ready': return 'success';
     case 'sign_in_required':
-    case 'permission_required':
     case 'local_record_dormant': return 'warning';
     case 'package_unavailable':
     case 'blocked_by_policy': return 'neutral';

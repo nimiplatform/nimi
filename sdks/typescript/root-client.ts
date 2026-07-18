@@ -12,10 +12,8 @@ import {
   PermissionClient,
   createNimiAppClient,
   createPermissionClient,
-  createScopeCatalogModule,
   type NimiAppTransport,
   type PermissionTransport,
-  type ScopeCatalogModule,
 } from './core/app';
 import {
   createNimiRuntimeAIModel,
@@ -60,11 +58,6 @@ export interface NimiClientConfig {
   readonly realm?: Realm | RealmOptions | false;
   readonly app?: NimiAppClient | NimiAppTransport | false;
   readonly permissions?: PermissionClient | PermissionTransport | false;
-  readonly scopeCatalog?: {
-    readonly appId?: string;
-    readonly defaultRealmScopes?: readonly string[];
-    readonly defaultRuntimeScopes?: readonly string[];
-  } | false;
 }
 
 export type NimiClientRuntimeModelOptions =
@@ -161,7 +154,6 @@ export class NimiClient {
   readonly realm?: Realm;
   readonly app?: NimiAppClient;
   readonly permissions?: PermissionClient;
-  readonly scopes?: ScopeCatalogModule;
   readonly ai: NimiClientAiSurface;
   readonly localAgent: NimiClientLocalAgentSurface;
   readonly features: NimiClientFeatureSurface;
@@ -172,7 +164,6 @@ export class NimiClient {
     this.realm = createOptionalRealm(config.realm);
     this.app = createOptionalAppClient(config.app);
     this.permissions = createOptionalPermissionClient(config.permissions);
-    this.scopes = createOptionalScopeCatalog(config.scopeCatalog, this.appId);
     this.ai = createAiSurface(this);
     this.localAgent = createLocalAgentSurface(this);
     this.features = createFeatureSurface(this);
@@ -199,12 +190,6 @@ export class NimiClient {
     return this.permissions;
   }
 
-  requireScopes(): ScopeCatalogModule {
-    if (!this.scopes) {
-      throwClientConfigurationError('SDK_CLIENT_SCOPE_CATALOG_REQUIRED', 'NimiClient scope catalog requires appId or explicit scopeCatalog config', 'provide_client_app_id');
-    }
-    return this.scopes;
-  }
 }
 
 export function createNimiClient(config: NimiClientConfig = {}): NimiClient {
@@ -345,20 +330,6 @@ function createOptionalPermissionClient(
 ): PermissionClient | undefined {
   if (!config) return undefined;
   return config instanceof PermissionClient ? config : createPermissionClient(config);
-}
-
-function createOptionalScopeCatalog(
-  config: NimiClientConfig['scopeCatalog'],
-  clientAppId: string | undefined,
-): ScopeCatalogModule | undefined {
-  if (config === false) return undefined;
-  const appId = normalizeText(config?.appId) || clientAppId;
-  if (!appId) return undefined;
-  return createScopeCatalogModule({
-    appId,
-    defaultRealmScopes: config?.defaultRealmScopes,
-    defaultRuntimeScopes: config?.defaultRuntimeScopes,
-  });
 }
 
 function resolveAppId(client: NimiClient, override: unknown, actionHint: string): string {

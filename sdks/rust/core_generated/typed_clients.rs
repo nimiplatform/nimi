@@ -1322,20 +1322,18 @@ impl Default for KnowledgeIngestTaskStatus {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum LocalAppGrantState {
-    LOCALAPPGRANTSTATEUNSPECIFIED,
-    LOCALAPPGRANTSTATENOGRANT,
-    LOCALAPPGRANTSTATEPENDING,
-    LOCALAPPGRANTSTATEGRANTED,
-    LOCALAPPGRANTSTATEDENIED,
-    LOCALAPPGRANTSTATEEXPIRED,
-    LOCALAPPGRANTSTATEREVOKED,
-    LOCALAPPGRANTSTATESUPERSEDED,
+pub enum LocalAppPermissionPosture {
+    LOCALAPPPERMISSIONPOSTUREUNSPECIFIED,
+    LOCALAPPPERMISSIONPOSTUREPROMPT,
+    LOCALAPPPERMISSIONPOSTUREPENDING,
+    LOCALAPPPERMISSIONPOSTUREGRANTED,
+    LOCALAPPPERMISSIONPOSTUREDENIED,
+    LOCALAPPPERMISSIONPOSTUREUNAVAILABLE,
 }
 
-impl Default for LocalAppGrantState {
+impl Default for LocalAppPermissionPosture {
     fn default() -> Self {
-        Self::LOCALAPPGRANTSTATEUNSPECIFIED
+        Self::LOCALAPPPERMISSIONPOSTUREUNSPECIFIED
     }
 }
 
@@ -2409,9 +2407,9 @@ pub enum ReasonCode {
     LOCALAPPLAUNCHLEASEREPLAY,
     LOCALAPPPROCESSMISMATCH,
     LOCALAPPSESSIONREVOKED,
-    LOCALAPPGRANTREQUIRED,
-    LOCALAPPGRANTREVOKED,
-    LOCALAPPGRANTSUPERSEDED,
+    LOCALAPPPERMISSIONREQUIRED,
+    LOCALAPPPERMISSIONDENIED,
+    LOCALAPPPERMISSIONREVOKED,
     LOCALAPPACCOUNTCHANGED,
     LOCALAPPOPERATIONUNAVAILABLE,
     LOCALAPPPRESENCEREQUIRED,
@@ -8816,65 +8814,6 @@ impl CreateRealmGroupMessageCandidateResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct DecideLocalAppGrantRequest {
-    pub request_id: Option<Vec<u8>>,
-    pub approved: Option<bool>,
-    pub presence_challenge_id: Option<Vec<u8>>,
-}
-
-impl DecideLocalAppGrantRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.request_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode request_id"); }
-        if let Some(value) = &self.approved { pairs.push(format!("approved={}", value)); }
-        if self.presence_challenge_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode presence_challenge_id"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["request_id", "presence_challenge_id"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.approved = pairs.get("approved").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct DecideLocalAppGrantResponse {
-    pub projection: Option<Box<LocalAppGrantProjection>>,
-}
-
-impl DecideLocalAppGrantResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode projection"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["projection"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct DecideLocalDevelopmentProjectRequest {
     pub evaluation_id: Option<Vec<u8>>,
     pub decision: Option<LocalDevelopmentDecision>,
@@ -12568,16 +12507,14 @@ impl GetKnowledgeBankResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetLocalAppGrantStatusRequest {
-    pub operation_id: Option<String>,
-    pub resource_ref: Option<String>,
+pub struct GetLocalAppPermissionStatusRequest {
+    pub permission_id: Option<String>,
 }
 
-impl GetLocalAppGrantStatusRequest {
+impl GetLocalAppPermissionStatusRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.operation_id { pairs.push(format!("operation_id={}", value)); }
-        if let Some(value) = &self.resource_ref { pairs.push(format!("resource_ref={}", value)); }
+        if let Some(value) = &self.permission_id { pairs.push(format!("permission_id={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -12585,18 +12522,17 @@ impl GetLocalAppGrantStatusRequest {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
 
-        out.operation_id = pairs.get("operation_id").cloned();
-        out.resource_ref = pairs.get("resource_ref").cloned();
+        out.permission_id = pairs.get("permission_id").cloned();
         out
     }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetLocalAppGrantStatusResponse {
-    pub projection: Option<Box<LocalAppGrantProjection>>,
+pub struct GetLocalAppPermissionStatusResponse {
+    pub projection: Option<Box<LocalAppPermissionProjection>>,
 }
 
-impl GetLocalAppGrantStatusResponse {
+impl GetLocalAppPermissionStatusResponse {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
         if self.projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode projection"); }
@@ -12642,7 +12578,6 @@ impl GetLocalDevelopmentAuthoritySummaryRequest {
 pub struct GetLocalDevelopmentAuthoritySummaryResponse {
     pub developer_mode: Option<Box<LocalDevelopmentDeveloperModeSummary>>,
     pub project_authorization: Option<Box<LocalDevelopmentProjectAuthorizationSummary>>,
-    pub grant_summary: Option<Box<LocalDevelopmentGrantSummary>>,
     pub reason_code: Option<ReasonCode>,
 }
 
@@ -12651,7 +12586,6 @@ impl GetLocalDevelopmentAuthoritySummaryResponse {
         let mut pairs: Vec<String> = Vec::new();
         if self.developer_mode.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode developer_mode"); }
         if self.project_authorization.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode project_authorization"); }
-        if self.grant_summary.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode grant_summary"); }
         if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
         pairs.join(";").into_bytes()
     }
@@ -12659,7 +12593,7 @@ impl GetLocalDevelopmentAuthoritySummaryResponse {
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["developer_mode", "project_authorization", "grant_summary", "reason_code"] {
+        for key in ["developer_mode", "project_authorization", "reason_code"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -16499,55 +16433,6 @@ impl ListLinksResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListLocalAppAgentInventoryRequest {
-
-}
-
-impl ListLocalAppAgentInventoryRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        if !raw.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
-        }
-        Self::default()
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListLocalAppAgentInventoryResponse {
-    pub owner_user_id: Option<String>,
-    pub count: Option<u32>,
-    pub local_agents: Vec<Box<LocalAppAgentInventoryItem>>,
-}
-
-impl ListLocalAppAgentInventoryResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.owner_user_id { pairs.push(format!("owner_user_id={}", value)); }
-        if let Some(value) = &self.count { pairs.push(format!("count={}", value)); }
-        if !self.local_agents.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode local_agents"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["local_agents"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.owner_user_id = pairs.get("owner_user_id").cloned();
-        out.count = pairs.get("count").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListLocalAssetsRequest {
     pub status_filter: Option<LocalAssetStatus>,
     pub kind_filter: Option<LocalAssetKind>,
@@ -17782,82 +17667,34 @@ impl LocalAgentSourceCoverageSectionStatus {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppAgentInventoryItem {
-    pub local_agent_ref: Option<String>,
-    pub display_name: Option<String>,
-    pub owner_user_id: Option<String>,
-    pub runtime_source_ref: Option<String>,
-    pub source_ready: Option<bool>,
-}
-
-impl LocalAppAgentInventoryItem {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.local_agent_ref { pairs.push(format!("local_agent_ref={}", value)); }
-        if let Some(value) = &self.display_name { pairs.push(format!("display_name={}", value)); }
-        if let Some(value) = &self.owner_user_id { pairs.push(format!("owner_user_id={}", value)); }
-        if let Some(value) = &self.runtime_source_ref { pairs.push(format!("runtime_source_ref={}", value)); }
-        if let Some(value) = &self.source_ready { pairs.push(format!("source_ready={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.local_agent_ref = pairs.get("local_agent_ref").cloned();
-        out.display_name = pairs.get("display_name").cloned();
-        out.owner_user_id = pairs.get("owner_user_id").cloned();
-        out.runtime_source_ref = pairs.get("runtime_source_ref").cloned();
-        out.source_ready = pairs.get("source_ready").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppGrantProjection {
-    pub state: Option<LocalAppGrantState>,
-    pub operation_id: Option<String>,
-    pub resource_ref: Option<String>,
-    pub request_id: Option<Vec<u8>>,
-    pub grant_id: Option<Vec<u8>>,
-    pub grant_generation: Option<u64>,
-    pub grant_revision: Option<u64>,
-    pub expires_at: Option<String>,
+pub struct LocalAppPermissionProjection {
+    pub permission_id: Option<String>,
+    pub posture: Option<LocalAppPermissionPosture>,
+    pub can_request: Option<bool>,
     pub reason_code: Option<ReasonCode>,
-    pub presence_challenge_id: Option<Vec<u8>>,
 }
 
-impl LocalAppGrantProjection {
+impl LocalAppPermissionProjection {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
-        if let Some(value) = &self.operation_id { pairs.push(format!("operation_id={}", value)); }
-        if let Some(value) = &self.resource_ref { pairs.push(format!("resource_ref={}", value)); }
-        if self.request_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode request_id"); }
-        if self.grant_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode grant_id"); }
-        if let Some(value) = &self.grant_generation { pairs.push(format!("grant_generation={}", value)); }
-        if let Some(value) = &self.grant_revision { pairs.push(format!("grant_revision={}", value)); }
-        if let Some(value) = &self.expires_at { pairs.push(format!("expires_at={}", value)); }
+        if let Some(value) = &self.permission_id { pairs.push(format!("permission_id={}", value)); }
+        if let Some(value) = &self.posture { pairs.push(format!("posture={:?}", value)); }
+        if let Some(value) = &self.can_request { pairs.push(format!("can_request={}", value)); }
         if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        if self.presence_challenge_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode presence_challenge_id"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["state", "request_id", "grant_id", "reason_code", "presence_challenge_id"] {
+        for key in ["posture", "reason_code"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
         }
 
-        out.operation_id = pairs.get("operation_id").cloned();
-        out.resource_ref = pairs.get("resource_ref").cloned();
-        out.grant_generation = pairs.get("grant_generation").and_then(|value| value.parse().ok());
-        out.grant_revision = pairs.get("grant_revision").and_then(|value| value.parse().ok());
-        out.expires_at = pairs.get("expires_at").cloned();
+        out.permission_id = pairs.get("permission_id").cloned();
+        out.can_request = pairs.get("can_request").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -18371,46 +18208,25 @@ impl LocalDevelopmentDeveloperModeSummary {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalDevelopmentGrantSummary {
-    pub availability: Option<LocalDevelopmentSummaryAvailability>,
-    pub pending_count: Option<u64>,
-    pub granted_count: Option<u64>,
-    pub denied_count: Option<u64>,
-    pub expired_count: Option<u64>,
-    pub revoked_count: Option<u64>,
-    pub superseded_count: Option<u64>,
-    pub reason_code: Option<ReasonCode>,
+pub struct LocalDevelopmentPermissionRequirement {
+    pub permission_id: Option<String>,
+    pub reason: Option<String>,
 }
 
-impl LocalDevelopmentGrantSummary {
+impl LocalDevelopmentPermissionRequirement {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.availability { pairs.push(format!("availability={:?}", value)); }
-        if let Some(value) = &self.pending_count { pairs.push(format!("pending_count={}", value)); }
-        if let Some(value) = &self.granted_count { pairs.push(format!("granted_count={}", value)); }
-        if let Some(value) = &self.denied_count { pairs.push(format!("denied_count={}", value)); }
-        if let Some(value) = &self.expired_count { pairs.push(format!("expired_count={}", value)); }
-        if let Some(value) = &self.revoked_count { pairs.push(format!("revoked_count={}", value)); }
-        if let Some(value) = &self.superseded_count { pairs.push(format!("superseded_count={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if let Some(value) = &self.permission_id { pairs.push(format!("permission_id={}", value)); }
+        if let Some(value) = &self.reason { pairs.push(format!("reason={}", value)); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["availability", "reason_code"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
 
-        out.pending_count = pairs.get("pending_count").and_then(|value| value.parse().ok());
-        out.granted_count = pairs.get("granted_count").and_then(|value| value.parse().ok());
-        out.denied_count = pairs.get("denied_count").and_then(|value| value.parse().ok());
-        out.expired_count = pairs.get("expired_count").and_then(|value| value.parse().ok());
-        out.revoked_count = pairs.get("revoked_count").and_then(|value| value.parse().ok());
-        out.superseded_count = pairs.get("superseded_count").and_then(|value| value.parse().ok());
+        out.permission_id = pairs.get("permission_id").cloned();
+        out.reason = pairs.get("reason").cloned();
         out
     }
 }
@@ -18462,8 +18278,8 @@ pub struct LocalDevelopmentProjectProjection {
     pub canonical_manifest_path: Option<String>,
     pub shell_kind: Option<LocalDevelopmentShellKind>,
     pub account_id: Option<String>,
-    pub requested_capabilities: Vec<String>,
-    pub capability_fingerprint: Option<Vec<u8>>,
+    pub permission_requirements: Vec<Box<LocalDevelopmentPermissionRequirement>>,
+    pub permission_requirement_fingerprint: Option<Vec<u8>>,
     pub trust_class: Option<String>,
 }
 
@@ -18476,8 +18292,8 @@ impl LocalDevelopmentProjectProjection {
         if let Some(value) = &self.canonical_manifest_path { pairs.push(format!("canonical_manifest_path={}", value)); }
         if let Some(value) = &self.shell_kind { pairs.push(format!("shell_kind={:?}", value)); }
         if let Some(value) = &self.account_id { pairs.push(format!("account_id={}", value)); }
-        for value in &self.requested_capabilities { pairs.push(format!("requested_capabilities={}", value)); }
-        if self.capability_fingerprint.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode capability_fingerprint"); }
+        if !self.permission_requirements.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode permission_requirements"); }
+        if self.permission_requirement_fingerprint.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode permission_requirement_fingerprint"); }
         if let Some(value) = &self.trust_class { pairs.push(format!("trust_class={}", value)); }
         pairs.join(";").into_bytes()
     }
@@ -18485,7 +18301,7 @@ impl LocalDevelopmentProjectProjection {
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["shell_kind", "capability_fingerprint"] {
+        for key in ["shell_kind", "permission_requirements", "permission_requirement_fingerprint"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -18496,7 +18312,6 @@ impl LocalDevelopmentProjectProjection {
         out.canonical_project_root = pairs.get("canonical_project_root").cloned();
         out.canonical_manifest_path = pairs.get("canonical_manifest_path").cloned();
         out.account_id = pairs.get("account_id").cloned();
-        out.requested_capabilities = parse_repeated_string(raw, "requested_capabilities");
         out.trust_class = pairs.get("trust_class").cloned();
         out
     }
@@ -25617,18 +25432,16 @@ impl RequestCompanionParticipationResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RequestLocalAppGrantRequest {
-    pub operation_id: Option<String>,
-    pub resource_ref: Option<String>,
-    pub purpose: Option<String>,
+pub struct RequestLocalAppPermissionRequest {
+    pub permission_id: Option<String>,
+    pub reason: Option<String>,
 }
 
-impl RequestLocalAppGrantRequest {
+impl RequestLocalAppPermissionRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.operation_id { pairs.push(format!("operation_id={}", value)); }
-        if let Some(value) = &self.resource_ref { pairs.push(format!("resource_ref={}", value)); }
-        if let Some(value) = &self.purpose { pairs.push(format!("purpose={}", value)); }
+        if let Some(value) = &self.permission_id { pairs.push(format!("permission_id={}", value)); }
+        if let Some(value) = &self.reason { pairs.push(format!("reason={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -25636,19 +25449,18 @@ impl RequestLocalAppGrantRequest {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
 
-        out.operation_id = pairs.get("operation_id").cloned();
-        out.resource_ref = pairs.get("resource_ref").cloned();
-        out.purpose = pairs.get("purpose").cloned();
+        out.permission_id = pairs.get("permission_id").cloned();
+        out.reason = pairs.get("reason").cloned();
         out
     }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RequestLocalAppGrantResponse {
-    pub projection: Option<Box<LocalAppGrantProjection>>,
+pub struct RequestLocalAppPermissionResponse {
+    pub projection: Option<Box<LocalAppPermissionProjection>>,
 }
 
-impl RequestLocalAppGrantResponse {
+impl RequestLocalAppPermissionResponse {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
         if self.projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode projection"); }
@@ -26840,64 +26652,6 @@ impl RevokeExternalPrincipalSessionRequest {
         let mut out = Self::default();
 
         out.external_session_id = pairs.get("external_session_id").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RevokeLocalAppGrantRequest {
-    pub grant_id: Option<Vec<u8>>,
-}
-
-impl RevokeLocalAppGrantRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.grant_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode grant_id"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["grant_id"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RevokeLocalAppGrantResponse {
-    pub projection: Option<Box<LocalAppGrantProjection>>,
-}
-
-impl RevokeLocalAppGrantResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode projection"); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["projection"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
         out
     }
 }
@@ -31134,64 +30888,6 @@ impl ToolSpec {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct TranscribeLocalAppAgentAudioRequest {
-    pub agent_id: Option<String>,
-    pub client_request_id: Option<String>,
-    pub audio: Option<Vec<u8>>,
-    pub mime_type: Option<String>,
-}
-
-impl TranscribeLocalAppAgentAudioRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.agent_id { pairs.push(format!("agent_id={}", value)); }
-        if let Some(value) = &self.client_request_id { pairs.push(format!("client_request_id={}", value)); }
-        if self.audio.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode audio"); }
-        if let Some(value) = &self.mime_type { pairs.push(format!("mime_type={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["audio"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.agent_id = pairs.get("agent_id").cloned();
-        out.client_request_id = pairs.get("client_request_id").cloned();
-        out.mime_type = pairs.get("mime_type").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct TranscribeLocalAppAgentAudioResponse {
-    pub client_request_id: Option<String>,
-    pub transcript: Option<String>,
-}
-
-impl TranscribeLocalAppAgentAudioResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.client_request_id { pairs.push(format!("client_request_id={}", value)); }
-        if let Some(value) = &self.transcript { pairs.push(format!("transcript={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-
-        out.client_request_id = pairs.get("client_request_id").cloned();
-        out.transcript = pairs.get("transcript").cloned();
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct TraverseGraphRequest {
     pub context: Option<Box<KnowledgeRequestContext>>,
     pub bank_id: Option<String>,
@@ -34541,18 +34237,6 @@ impl From<Vec<u8>> for CreateRealmGroupMessageCandidateResponse {
     }
 }
 
-impl From<Vec<u8>> for DecideLocalAppGrantRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for DecideLocalAppGrantResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for DecideLocalDevelopmentProjectRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -35255,13 +34939,13 @@ impl From<Vec<u8>> for GetKnowledgeBankResponse {
     }
 }
 
-impl From<Vec<u8>> for GetLocalAppGrantStatusRequest {
+impl From<Vec<u8>> for GetLocalAppPermissionStatusRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for GetLocalAppGrantStatusResponse {
+impl From<Vec<u8>> for GetLocalAppPermissionStatusResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -36005,18 +35689,6 @@ impl From<Vec<u8>> for ListLinksResponse {
     }
 }
 
-impl From<Vec<u8>> for ListLocalAppAgentInventoryRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ListLocalAppAgentInventoryResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for ListLocalAssetsRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -36257,13 +35929,7 @@ impl From<Vec<u8>> for LocalAgentSourceCoverageSectionStatus {
     }
 }
 
-impl From<Vec<u8>> for LocalAppAgentInventoryItem {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for LocalAppGrantProjection {
+impl From<Vec<u8>> for LocalAppPermissionProjection {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -36329,7 +35995,7 @@ impl From<Vec<u8>> for LocalDevelopmentDeveloperModeSummary {
     }
 }
 
-impl From<Vec<u8>> for LocalDevelopmentGrantSummary {
+impl From<Vec<u8>> for LocalDevelopmentPermissionRequirement {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -37493,13 +37159,13 @@ impl From<Vec<u8>> for RequestCompanionParticipationResponse {
     }
 }
 
-impl From<Vec<u8>> for RequestLocalAppGrantRequest {
+impl From<Vec<u8>> for RequestLocalAppPermissionRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for RequestLocalAppGrantResponse {
+impl From<Vec<u8>> for RequestLocalAppPermissionResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -37722,18 +37388,6 @@ impl From<Vec<u8>> for RetryLocalEnvironmentDependencyJobResponse {
 }
 
 impl From<Vec<u8>> for RevokeExternalPrincipalSessionRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for RevokeLocalAppGrantRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for RevokeLocalAppGrantResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -38513,18 +38167,6 @@ impl From<Vec<u8>> for ToolSpec {
     }
 }
 
-impl From<Vec<u8>> for TranscribeLocalAppAgentAudioRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for TranscribeLocalAppAgentAudioResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for TraverseGraphRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -39006,16 +38648,6 @@ where
         Ok(CompleteLoginResponse::from_transport(&raw))
     }
 
-    pub fn decide_local_app_grant(&self, request: DecideLocalAppGrantRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DecideLocalAppGrantResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppGrant".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(DecideLocalAppGrantResponse::from_transport(&raw))
-    }
-
     pub fn get_account_session_status(&self, request: GetAccountSessionStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAccountSessionStatusResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus".to_string(),
@@ -39026,14 +38658,14 @@ where
         Ok(GetAccountSessionStatusResponse::from_transport(&raw))
     }
 
-    pub fn get_local_app_grant_status(&self, request: GetLocalAppGrantStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetLocalAppGrantStatusResponse, T::Error> {
+    pub fn get_local_app_permission_status(&self, request: GetLocalAppPermissionStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetLocalAppPermissionStatusResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
         })?;
-        Ok(GetLocalAppGrantStatusResponse::from_transport(&raw))
+        Ok(GetLocalAppPermissionStatusResponse::from_transport(&raw))
     }
 
     pub fn invoke_realm_unary(&self, request: InvokeRealmUnaryRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<InvokeRealmUnaryResponse, T::Error> {
@@ -39076,14 +38708,14 @@ where
         Ok(LogoutResponse::from_transport(&raw))
     }
 
-    pub fn request_local_app_grant(&self, request: RequestLocalAppGrantRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RequestLocalAppGrantResponse, T::Error> {
+    pub fn request_local_app_permission(&self, request: RequestLocalAppPermissionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RequestLocalAppPermissionResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
         })?;
-        Ok(RequestLocalAppGrantResponse::from_transport(&raw))
+        Ok(RequestLocalAppPermissionResponse::from_transport(&raw))
     }
 
     pub fn request_presence_verification(&self, request: RequestPresenceVerificationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RequestPresenceVerificationResponse, T::Error> {
@@ -39094,16 +38726,6 @@ where
             timeout,
         })?;
         Ok(RequestPresenceVerificationResponse::from_transport(&raw))
-    }
-
-    pub fn revoke_local_app_grant(&self, request: RevokeLocalAppGrantRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RevokeLocalAppGrantResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppGrant".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(RevokeLocalAppGrantResponse::from_transport(&raw))
     }
 
     pub fn revoke_scoped_app_binding(&self, request: RevokeScopedAppBindingRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RevokeScopedAppBindingResponse, T::Error> {
@@ -39489,16 +39111,6 @@ where
         Ok(ListDelegatedProviderProfilesResponse::from_transport(&raw))
     }
 
-    pub fn list_local_app_agent_inventory(&self, request: ListLocalAppAgentInventoryRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListLocalAppAgentInventoryResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(ListLocalAppAgentInventoryResponse::from_transport(&raw))
-    }
-
     pub fn list_participation_audit_events(&self, request: ListParticipationAuditEventsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListParticipationAuditEventsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents".to_string(),
@@ -39716,16 +39328,6 @@ where
             timeout,
         })?;
         Ok(TerminateAgentResponse::from_transport(&raw))
-    }
-
-    pub fn transcribe_local_app_agent_audio(&self, request: TranscribeLocalAppAgentAudioRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<TranscribeLocalAppAgentAudioResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppAgentAudio".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(TranscribeLocalAppAgentAudioResponse::from_transport(&raw))
     }
 
     pub fn update_agent_state(&self, request: UpdateAgentStateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UpdateAgentStateResponse, T::Error> {
@@ -41696,29 +41298,6 @@ where
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AccountGrantsViewDto {
-    pub account_id: String,
-    pub grants: Vec<AccountGrantViewRowDto>,
-    pub schema_version: f64,
-    pub updated_at: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AccountGrantViewRowDto {
-    pub app_id: String,
-    pub expires_at: String,
-    pub grant_id: String,
-    pub qualifier: String,
-    pub scope_family: Box<AppPermissionScopeFamily>,
-    pub scope_name: Box<AppPermissionScopeName>,
-    pub state: Box<AccountGrantViewState>,
-    pub subject_account_id: String,
-    pub version: f64,
-}
-
-pub type AccountGrantViewState = String;
-
 pub type AccountRelationType = String;
 
 pub type AccountStatus = String;
@@ -41737,78 +41316,6 @@ pub struct AddGroupParticipantInputDto {
 pub struct AddGroupSourceParticipantInputDto {
     pub source_ref: Box<GroupSourceRefDto>,
 }
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AppPermissionGrantDecisionDto {
-    pub expected_version: f64,
-    pub reason: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AppPermissionGrantDto {
-    pub app_id: String,
-    pub denied_at: String,
-    pub denied_by_account_id: String,
-    pub expired_at: String,
-    pub expires_at: String,
-    pub grant_id: String,
-    pub granted_at: String,
-    pub granted_by_account_id: String,
-    pub qualifier: String,
-    pub reason: String,
-    pub requested_at: String,
-    pub requested_by_account_id: String,
-    pub revoked_at: String,
-    pub revoked_by_account_id: String,
-    pub scope_family: Box<AppPermissionScopeFamily>,
-    pub scope_name: Box<AppPermissionScopeName>,
-    pub state: Box<AppPermissionGrantState>,
-    pub subject_account_id: String,
-    pub superseded_at: String,
-    pub superseded_by_account_id: String,
-    pub superseded_by_grant_id: String,
-    pub version: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AppPermissionGrantGrantDto {
-    pub expected_version: f64,
-    pub expires_at: String,
-    pub reason: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AppPermissionGrantListDto {
-    pub items: Vec<AppPermissionGrantDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AppPermissionGrantRequestDto {
-    pub app_id: String,
-    pub qualifier: String,
-    pub reason: String,
-    pub scope_family: Box<AppPermissionScopeFamily>,
-    pub scope_name: Box<AppPermissionScopeName>,
-}
-
-pub type AppPermissionGrantState = String;
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AppPermissionGrantStatusDto {
-    pub generated_at: String,
-    pub grants: Vec<AppPermissionGrantDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AppPermissionGrantSupersedeDto {
-    pub expected_version: f64,
-    pub reason: String,
-    pub superseded_by_grant_id: String,
-}
-
-pub type AppPermissionScopeFamily = String;
-
-pub type AppPermissionScopeName = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AssetDetailDto {
@@ -42439,7 +41946,6 @@ pub struct CreateReviewDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreateSourceMaterializationPacketV3Dto {
-    pub access_grant_id: String,
     pub challenge_digest: String,
     pub challenge_expires_at: String,
     pub challenge_id: String,
@@ -43673,20 +43179,6 @@ pub type ReviewRating = String;
 pub struct ReviewStatsDto {
     pub positive_rate: f64,
     pub total_count: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeRealmGrantIssueRequestDto {
-    pub app_id: String,
-    pub scopes: Vec<String>,
-    pub subject_user_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeRealmGrantIssueResponseDto {
-    pub expires_at: String,
-    pub token: String,
-    pub version: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -45489,29 +44981,6 @@ pub struct RealmDeleteResourceOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmDenyMyAppPermissionGrantOperationPath {
-    pub grant_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmDenyMyAppPermissionGrantOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmDenyMyAppPermissionGrantOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmDenyMyAppPermissionGrantOperationRequest {
-    pub path: RealmDenyMyAppPermissionGrantOperationPath,
-    pub query: RealmDenyMyAppPermissionGrantOperationQuery,
-    pub headers: RealmDenyMyAppPermissionGrantOperationHeaders,
-    pub body: AppPermissionGrantDecisionDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmDisable2FaOperationPath {
 
 }
@@ -46255,29 +45724,6 @@ pub struct RealmEnable2FaOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmExpireMyAppPermissionGrantOperationPath {
-    pub grant_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmExpireMyAppPermissionGrantOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmExpireMyAppPermissionGrantOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmExpireMyAppPermissionGrantOperationRequest {
-    pub path: RealmExpireMyAppPermissionGrantOperationPath,
-    pub query: RealmExpireMyAppPermissionGrantOperationQuery,
-    pub headers: RealmExpireMyAppPermissionGrantOperationHeaders,
-    pub body: AppPermissionGrantDecisionDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmExploreControllerCheckStatusOperationPath {
 
 }
@@ -46559,75 +46005,6 @@ pub struct RealmGetMutualFriendsCountOperationRequest {
     pub path: RealmGetMutualFriendsCountOperationPath,
     pub query: RealmGetMutualFriendsCountOperationQuery,
     pub headers: RealmGetMutualFriendsCountOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyAppPermissionGrantOperationPath {
-    pub grant_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyAppPermissionGrantOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyAppPermissionGrantOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyAppPermissionGrantOperationRequest {
-    pub path: RealmGetMyAppPermissionGrantOperationPath,
-    pub query: RealmGetMyAppPermissionGrantOperationQuery,
-    pub headers: RealmGetMyAppPermissionGrantOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyAppPermissionGrantStatusOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyAppPermissionGrantStatusOperationQuery {
-    pub app_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyAppPermissionGrantStatusOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyAppPermissionGrantStatusOperationRequest {
-    pub path: RealmGetMyAppPermissionGrantStatusOperationPath,
-    pub query: RealmGetMyAppPermissionGrantStatusOperationQuery,
-    pub headers: RealmGetMyAppPermissionGrantStatusOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyAppPermissionGrantViewOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyAppPermissionGrantViewOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyAppPermissionGrantViewOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyAppPermissionGrantViewOperationRequest {
-    pub path: RealmGetMyAppPermissionGrantViewOperationPath,
-    pub query: RealmGetMyAppPermissionGrantViewOperationQuery,
-    pub headers: RealmGetMyAppPermissionGrantViewOperationHeaders,
     pub body: (),
 }
 
@@ -47051,29 +46428,6 @@ pub struct RealmGetWorldPostsOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGrantMyAppPermissionGrantOperationPath {
-    pub grant_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGrantMyAppPermissionGrantOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGrantMyAppPermissionGrantOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGrantMyAppPermissionGrantOperationRequest {
-    pub path: RealmGrantMyAppPermissionGrantOperationPath,
-    pub query: RealmGrantMyAppPermissionGrantOperationQuery,
-    pub headers: RealmGrantMyAppPermissionGrantOperationHeaders,
-    pub body: AppPermissionGrantGrantDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmIntrospectSessionOperationPath {
 
 }
@@ -47163,29 +46517,6 @@ pub struct RealmInvitationControllerVerifyCodeOperationRequest {
     pub query: RealmInvitationControllerVerifyCodeOperationQuery,
     pub headers: RealmInvitationControllerVerifyCodeOperationHeaders,
     pub body: VerifyInvitationCodeDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmIssueRuntimeRealmGrantOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmIssueRuntimeRealmGrantOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmIssueRuntimeRealmGrantOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmIssueRuntimeRealmGrantOperationRequest {
-    pub path: RealmIssueRuntimeRealmGrantOperationPath,
-    pub query: RealmIssueRuntimeRealmGrantOperationQuery,
-    pub headers: RealmIssueRuntimeRealmGrantOperationHeaders,
-    pub body: RuntimeRealmGrantIssueRequestDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -47403,29 +46734,6 @@ pub struct RealmListMessagesOperationRequest {
     pub path: RealmListMessagesOperationPath,
     pub query: RealmListMessagesOperationQuery,
     pub headers: RealmListMessagesOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListMyAppPermissionGrantsOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListMyAppPermissionGrantsOperationQuery {
-    pub app_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListMyAppPermissionGrantsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListMyAppPermissionGrantsOperationRequest {
-    pub path: RealmListMyAppPermissionGrantsOperationPath,
-    pub query: RealmListMyAppPermissionGrantsOperationQuery,
-    pub headers: RealmListMyAppPermissionGrantsOperationHeaders,
     pub body: (),
 }
 
@@ -48186,29 +47494,6 @@ pub struct RealmRequestEmailOtpOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRequestMyAppPermissionGrantOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRequestMyAppPermissionGrantOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRequestMyAppPermissionGrantOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRequestMyAppPermissionGrantOperationRequest {
-    pub path: RealmRequestMyAppPermissionGrantOperationPath,
-    pub query: RealmRequestMyAppPermissionGrantOperationQuery,
-    pub headers: RealmRequestMyAppPermissionGrantOperationHeaders,
-    pub body: AppPermissionGrantRequestDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmReviewControllerCreateReviewOperationPath {
 
 }
@@ -48252,29 +47537,6 @@ pub struct RealmReviewControllerGetReviewsOperationRequest {
     pub query: RealmReviewControllerGetReviewsOperationQuery,
     pub headers: RealmReviewControllerGetReviewsOperationHeaders,
     pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRevokeMyAppPermissionGrantOperationPath {
-    pub grant_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRevokeMyAppPermissionGrantOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRevokeMyAppPermissionGrantOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRevokeMyAppPermissionGrantOperationRequest {
-    pub path: RealmRevokeMyAppPermissionGrantOperationPath,
-    pub query: RealmRevokeMyAppPermissionGrantOperationQuery,
-    pub headers: RealmRevokeMyAppPermissionGrantOperationHeaders,
-    pub body: AppPermissionGrantDecisionDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -48447,29 +47709,6 @@ pub struct RealmStartChatOperationRequest {
     pub query: RealmStartChatOperationQuery,
     pub headers: RealmStartChatOperationHeaders,
     pub body: StartChatInputDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmSupersedeMyAppPermissionGrantOperationPath {
-    pub grant_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmSupersedeMyAppPermissionGrantOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmSupersedeMyAppPermissionGrantOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmSupersedeMyAppPermissionGrantOperationRequest {
-    pub path: RealmSupersedeMyAppPermissionGrantOperationPath,
-    pub query: RealmSupersedeMyAppPermissionGrantOperationQuery,
-    pub headers: RealmSupersedeMyAppPermissionGrantOperationHeaders,
-    pub body: AppPermissionGrantSupersedeDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -49980,10 +49219,6 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for deleteResource");
     }
 
-    pub fn deny_my_app_permission_grant(&self, _request: RealmDenyMyAppPermissionGrantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for denyMyAppPermissionGrant");
-    }
-
     pub fn disable2_fa(&self, _request: RealmDisable2FaOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Me2faOperationResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for disable2Fa");
     }
@@ -50112,10 +49347,6 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for enable2Fa");
     }
 
-    pub fn expire_my_app_permission_grant(&self, _request: RealmExpireMyAppPermissionGrantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for expireMyAppPermissionGrant");
-    }
-
     pub fn explore_controller_check_status(&self, _request: RealmExploreControllerCheckStatusOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ExploreController_checkStatus");
     }
@@ -50162,18 +49393,6 @@ where
 
     pub fn get_mutual_friends_count(&self, _request: RealmGetMutualFriendsCountOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMutualFriendsCount");
-    }
-
-    pub fn get_my_app_permission_grant(&self, _request: RealmGetMyAppPermissionGrantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyAppPermissionGrant");
-    }
-
-    pub fn get_my_app_permission_grant_status(&self, _request: RealmGetMyAppPermissionGrantStatusOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantStatusDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyAppPermissionGrantStatus");
-    }
-
-    pub fn get_my_app_permission_grant_view(&self, _request: RealmGetMyAppPermissionGrantViewOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AccountGrantsViewDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyAppPermissionGrantView");
     }
 
     pub fn get_my_blocked_users(&self, _request: RealmGetMyBlockedUsersOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
@@ -50248,10 +49467,6 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getWorldPosts");
     }
 
-    pub fn grant_my_app_permission_grant(&self, _request: RealmGrantMyAppPermissionGrantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for grantMyAppPermissionGrant");
-    }
-
     pub fn introspect_session(&self, _request: RealmIntrospectSessionOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<IntrospectSessionResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for introspectSession");
     }
@@ -50266,10 +49481,6 @@ where
 
     pub fn invitation_controller_verify_code(&self, _request: RealmInvitationControllerVerifyCodeOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<bool, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for InvitationController_verifyCode");
-    }
-
-    pub fn issue_runtime_realm_grant(&self, _request: RealmIssueRuntimeRealmGrantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RuntimeRealmGrantIssueResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for issueRuntimeRealmGrant");
     }
 
     pub fn like_post(&self, _request: RealmLikePostOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
@@ -50306,10 +49517,6 @@ where
 
     pub fn list_messages(&self, _request: RealmListMessagesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ListMessagesResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listMessages");
-    }
-
-    pub fn list_my_app_permission_grants(&self, _request: RealmListMyAppPermissionGrantsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantListDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listMyAppPermissionGrants");
     }
 
     pub fn list_my_friend_ids(&self, _request: RealmListMyFriendIdsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
@@ -50440,20 +49647,12 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for requestEmailOtp");
     }
 
-    pub fn request_my_app_permission_grant(&self, _request: RealmRequestMyAppPermissionGrantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for requestMyAppPermissionGrant");
-    }
-
     pub fn review_controller_create_review(&self, _request: RealmReviewControllerCreateReviewOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ReviewDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ReviewController_createReview");
     }
 
     pub fn review_controller_get_reviews(&self, _request: RealmReviewControllerGetReviewsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<ReviewDto>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ReviewController_getReviews");
-    }
-
-    pub fn revoke_my_app_permission_grant(&self, _request: RealmRevokeMyAppPermissionGrantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for revokeMyAppPermissionGrant");
     }
 
     pub fn search_human_users(&self, _request: RealmSearchHumanUsersOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserSearchResponseDto, T::Error> {
@@ -50478,10 +49677,6 @@ where
 
     pub fn start_chat(&self, _request: RealmStartChatOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<StartChatResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for startChat");
-    }
-
-    pub fn supersede_my_app_permission_grant(&self, _request: RealmSupersedeMyAppPermissionGrantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for supersedeMyAppPermissionGrant");
     }
 
     pub fn sync_chat_events(&self, _request: RealmSyncChatEventsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ChatSyncResultDto, T::Error> {

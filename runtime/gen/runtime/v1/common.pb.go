@@ -275,8 +275,8 @@ const (
 	ReasonCode_LIFECYCLE_INTENT_MISMATCH                            ReasonCode = 639
 	ReasonCode_LIFECYCLE_INTENT_REPLAY                              ReasonCode = 640
 	ReasonCode_LIFECYCLE_INTENT_EXPIRED                             ReasonCode = 641
-	// LOCAL_APP family (642+). The third-party principal/record/grant/session
-	// evaluator uses one provenance-agnostic reason vocabulary (K-ERR-012).
+	// LOCAL_APP family (642+). The third-party principal/record/session and
+	// product-permission evaluator uses one provenance-agnostic reason vocabulary.
 	ReasonCode_LOCAL_APP_PRINCIPAL_REQUIRED         ReasonCode = 642
 	ReasonCode_LOCAL_APP_RECORD_NOT_FOUND           ReasonCode = 643
 	ReasonCode_LOCAL_APP_RECORD_TOMBSTONED          ReasonCode = 644
@@ -286,9 +286,9 @@ const (
 	ReasonCode_LOCAL_APP_LAUNCH_LEASE_REPLAY        ReasonCode = 648
 	ReasonCode_LOCAL_APP_PROCESS_MISMATCH           ReasonCode = 649
 	ReasonCode_LOCAL_APP_SESSION_REVOKED            ReasonCode = 650
-	ReasonCode_LOCAL_APP_GRANT_REQUIRED             ReasonCode = 651
-	ReasonCode_LOCAL_APP_GRANT_REVOKED              ReasonCode = 652
-	ReasonCode_LOCAL_APP_GRANT_SUPERSEDED           ReasonCode = 653
+	ReasonCode_LOCAL_APP_PERMISSION_REQUIRED        ReasonCode = 651
+	ReasonCode_LOCAL_APP_PERMISSION_DENIED          ReasonCode = 652
+	ReasonCode_LOCAL_APP_PERMISSION_REVOKED         ReasonCode = 653
 	ReasonCode_LOCAL_APP_ACCOUNT_CHANGED            ReasonCode = 654
 	ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE      ReasonCode = 655
 	ReasonCode_LOCAL_APP_PRESENCE_REQUIRED          ReasonCode = 656
@@ -518,9 +518,9 @@ var (
 		648: "LOCAL_APP_LAUNCH_LEASE_REPLAY",
 		649: "LOCAL_APP_PROCESS_MISMATCH",
 		650: "LOCAL_APP_SESSION_REVOKED",
-		651: "LOCAL_APP_GRANT_REQUIRED",
-		652: "LOCAL_APP_GRANT_REVOKED",
-		653: "LOCAL_APP_GRANT_SUPERSEDED",
+		651: "LOCAL_APP_PERMISSION_REQUIRED",
+		652: "LOCAL_APP_PERMISSION_DENIED",
+		653: "LOCAL_APP_PERMISSION_REVOKED",
 		654: "LOCAL_APP_ACCOUNT_CHANGED",
 		655: "LOCAL_APP_OPERATION_UNAVAILABLE",
 		656: "LOCAL_APP_PRESENCE_REQUIRED",
@@ -747,9 +747,9 @@ var (
 		"LOCAL_APP_LAUNCH_LEASE_REPLAY":                        648,
 		"LOCAL_APP_PROCESS_MISMATCH":                           649,
 		"LOCAL_APP_SESSION_REVOKED":                            650,
-		"LOCAL_APP_GRANT_REQUIRED":                             651,
-		"LOCAL_APP_GRANT_REVOKED":                              652,
-		"LOCAL_APP_GRANT_SUPERSEDED":                           653,
+		"LOCAL_APP_PERMISSION_REQUIRED":                        651,
+		"LOCAL_APP_PERMISSION_DENIED":                          652,
+		"LOCAL_APP_PERMISSION_REVOKED":                         653,
 		"LOCAL_APP_ACCOUNT_CHANGED":                            654,
 		"LOCAL_APP_OPERATION_UNAVAILABLE":                      655,
 		"LOCAL_APP_PRESENCE_REQUIRED":                          656,
@@ -1466,7 +1466,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xfe<\n" +
+	"actionHint*\x89=\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1686,10 +1686,10 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x1fLOCAL_APP_LAUNCH_LEASE_MISMATCH\x10\x87\x05\x12\"\n" +
 	"\x1dLOCAL_APP_LAUNCH_LEASE_REPLAY\x10\x88\x05\x12\x1f\n" +
 	"\x1aLOCAL_APP_PROCESS_MISMATCH\x10\x89\x05\x12\x1e\n" +
-	"\x19LOCAL_APP_SESSION_REVOKED\x10\x8a\x05\x12\x1d\n" +
-	"\x18LOCAL_APP_GRANT_REQUIRED\x10\x8b\x05\x12\x1c\n" +
-	"\x17LOCAL_APP_GRANT_REVOKED\x10\x8c\x05\x12\x1f\n" +
-	"\x1aLOCAL_APP_GRANT_SUPERSEDED\x10\x8d\x05\x12\x1e\n" +
+	"\x19LOCAL_APP_SESSION_REVOKED\x10\x8a\x05\x12\"\n" +
+	"\x1dLOCAL_APP_PERMISSION_REQUIRED\x10\x8b\x05\x12 \n" +
+	"\x1bLOCAL_APP_PERMISSION_DENIED\x10\x8c\x05\x12!\n" +
+	"\x1cLOCAL_APP_PERMISSION_REVOKED\x10\x8d\x05\x12\x1e\n" +
 	"\x19LOCAL_APP_ACCOUNT_CHANGED\x10\x8e\x05\x12$\n" +
 	"\x1fLOCAL_APP_OPERATION_UNAVAILABLE\x10\x8f\x05\x12 \n" +
 	"\x1bLOCAL_APP_PRESENCE_REQUIRED\x10\x90\x05\x12\x1f\n" +

@@ -1,48 +1,9 @@
 schema_version: 1
 app_id: nimi.zhiyu
 display_name: 知语 Zhiyu
-permissions:
-  declared_nimi_api_scopes:
-    - scope: account.session.read
-      purpose: Project the current Runtime-owned account session posture.
-    - scope: data.scope.read
-      qualifier: realm.worlds.read-probe
-      purpose: Read the public world probe through the Runtime Realm broker.
-    - scope: agent.identity.project
-      purpose: Project the selected partner LocalAgent identity from Runtime authority.
-    - scope: ai.spend.meter
-      purpose: Display upstream spend posture for Runtime-mediated agent consumption.
-    - scope: ai_profile.selection.consume
-      purpose: Consume Runtime-owned AI profile selection and readiness projections.
-    - scope: memory.read.bounded
-      qualifier: persona-scoped
-      purpose: Display bounded persona memory projections owned by Runtime and Cognition.
-    - scope: memory.write.admitted
-      qualifier: session-scoped-chat-derived-projection
-      purpose: Carry admitted upstream conversation-derived memory projection intent.
-    - scope: notification.subscribe
-      qualifier: proactive_interruptibility_v1.in_app_surface
-      purpose: Subscribe to admitted in-app readiness notification projections.
-    - scope: audit.read.scoped
-      qualifier: zhiyu-own-audit-projections
-      purpose: Read Zhiyu-scoped audit projections for diagnostics.
-    - scope: file.read.scoped
-      qualifier: app-local-drafts
-      purpose: Read Zhiyu conversation anchor bindings from Runtime-partitioned app storage.
-    - scope: file.write.scoped
-      qualifier: app-local-drafts
-      purpose: Write Zhiyu conversation anchor bindings to Runtime-partitioned app storage.
+permissions: []
 disposition: bundled_component_with_isolated_integration_build
 local_development:
-  runtime_scoped_binding_requests:
-    - scope: runtime.agent.turn.read
-      purpose: Request a Runtime-issued binding for conversation state projection.
-    - scope: runtime.agent.turn.write
-      purpose: Request a Runtime-issued binding for user-authored conversation turns.
-    - scope: runtime.agent.voice.transcribe
-      purpose: Request bounded Runtime-selected transcription for captured microphone audio.
-    - scope: runtime.agent.voice.read
-      purpose: Request exact correlated Runtime Agent voice-stream consumption for playback.
   electron:
     renderer_origin: http://127.0.0.1:1472
     execution_profile_ref: opaque:windows-native-electron-development-v1

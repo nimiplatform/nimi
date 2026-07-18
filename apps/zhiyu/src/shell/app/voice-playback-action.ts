@@ -3,7 +3,13 @@ import {
   createZhiyuVoicePlaybackController,
   playZhiyuVoiceAudioBytes,
 } from '../agent-chat/voice-playback';
-import { zhiyuLocalAppRuntimePlatform } from '../local-development/local-app-runtime-platform';
+import { createNimiRuntimeAgentVoiceModule } from '@nimiplatform/sdk/runtime';
+import { appId, getRuntimePlatformProjection } from '../auth/runtime-platform';
+import {
+  createZhiyuRuntimeAgentBindingScopeRunner,
+  resolveZhiyuRuntimeAgentBindingDecisionFromHost,
+  withZhiyuRuntimeAgentBindingScopes,
+} from '../agent-chat/runtime-agent-binding';
 
 type ZhiyuEvidenceUpdater = (
   update: (current: ZhiyuEvidence) => ZhiyuEvidence,
@@ -13,12 +19,61 @@ export async function runZhiyuVoicePlaybackAction(
   evidence: ZhiyuEvidence,
   updateEvidence: ZhiyuEvidenceUpdater,
 ): Promise<void> {
-  const controller = createZhiyuVoicePlaybackController({
-    subscribeStream: (input) => zhiyuLocalAppRuntimePlatform.agent.subscribeVoiceStream(input),
-    readArtifactBytes: (artifactId) => zhiyuLocalAppRuntimePlatform.artifacts.readRuntimeBytes(artifactId),
-    playAudioBytes: playZhiyuVoiceAudioBytes,
-  });
   try {
+    const runtimeProjection = await getRuntimePlatformProjection();
+    if (runtimeProjection.status !== 'ready') {
+      throw Object.assign(new Error(runtimeProjection.message), {
+        reasonCode: runtimeProjection.reasonCode,
+        actionHint: runtimeProjection.actionHint || 'start_external_runtime_daemon',
+        source: 'runtime',
+      });
+    }
+    const runtimeBinding = resolveZhiyuRuntimeAgentBindingDecisionFromHost([
+      'runtime.agent.turn.read',
+      'runtime.artifact.read-bytes',
+    ]);
+    if (runtimeBinding.kind === 'missing') {
+      throw Object.assign(new Error(runtimeBinding.message), {
+        reasonCode: runtimeBinding.reasonCode,
+        actionHint: runtimeBinding.actionHint,
+        source: 'runtime',
+      });
+    }
+    if (runtimeBinding.kind === 'local-app-carrier') {
+      throw Object.assign(new Error('Agent voice playback is not admitted for third-party local apps.'), {
+        reasonCode: 'agents-interact-not-admitted',
+        actionHint: 'wait_for_agents_interact_admission',
+        source: 'runtime',
+      });
+    }
+    const ownerUserId = requiredText(evidence.conversation.ownerUserId, 'runtime-voice-owner-required');
+    const runtimeSourceRef = requiredText(evidence.conversation.runtimeSourceRef, 'runtime-voice-source-required');
+    const voice = createNimiRuntimeAgentVoiceModule({
+      runtime: {
+        appId,
+        auth: runtimeProjection.accountRuntime.auth,
+        agents: runtimeProjection.accountRuntime.agents,
+        artifacts: runtimeProjection.accountRuntime.artifacts,
+      },
+      getSubjectUserId: () => ownerUserId,
+      withScopes: createZhiyuRuntimeAgentBindingScopeRunner(() => runtimeBinding),
+    });
+    const controller = createZhiyuVoicePlaybackController({
+      subscribeStream: (input) => voice.subscribeStream({
+        ownerUserId,
+        runtimeSourceRef,
+        localAgentRef: input.agentId,
+        conversationAnchorId: input.conversationAnchorId,
+        turnId: input.turnId,
+        voiceStreamId: input.voiceStreamId,
+      }),
+      readArtifactBytes: (artifactId) => withZhiyuRuntimeAgentBindingScopes(
+        runtimeBinding,
+        ['runtime.artifact.read-bytes'],
+        (options) => voice.replayFinalArtifact({ artifactId }, options),
+      ),
+      playAudioBytes: playZhiyuVoiceAudioBytes,
+    });
     const result = await controller.run({
       voiceOutputMode: evidence.companion.voiceOutputMode,
       voicePlaybackState: evidence.companion.voicePlaybackState,
@@ -57,4 +112,14 @@ export async function runZhiyuVoicePlaybackAction(
       },
     }));
   }
+}
+
+function requiredText(value: unknown, reasonCode: string): string {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (text) return text;
+  throw Object.assign(new Error(reasonCode), {
+    reasonCode,
+    actionHint: 'refresh_runtime_conversation_anchor',
+    source: 'runtime',
+  });
 }

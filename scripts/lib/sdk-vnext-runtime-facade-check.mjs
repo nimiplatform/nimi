@@ -47,10 +47,8 @@ const DEFERRED_GROUPS = Object.freeze([
 const NATIVE_CONTROL_METHODS = new Set([
   'OpenDesktopSession',
   'OpenLocalAppSession',
-  'GetLocalAppGrantStatus',
-  'RequestLocalAppGrant',
-  'DecideLocalAppGrant',
-  'RevokeLocalAppGrant',
+  'GetLocalAppPermissionStatus',
+  'RequestLocalAppPermission',
   'PrepareLocalAppLaunch',
   'BindLocalAppProcess',
 ]);

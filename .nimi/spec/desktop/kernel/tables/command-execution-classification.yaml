@@ -455,21 +455,6 @@ registered_command_families:
       - sync_lock_contention
     source_rule: D-GATE-092
 
-  - family: protected_desktop_local_app_grant_control
-    match:
-      exact:
-        - local_app_grant_pending_list
-        - local_app_grant_decide
-        - local_app_grant_list
-        - local_app_grant_revoke
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: runtime-local-app-grant-protected-carrier
-    execution_class: request_response_async
-    remediation_required: false
-    admitted_risks:
-      - sync_lock_contention
-    source_rule: D-GATE-092
-
   - family: local_development_supervisor
     match:
       prefix: local_development_
@@ -625,19 +610,9 @@ dormant_command_families:
   - family: kit_local_app_commands_for_non_desktop_hosts
     match:
       exact:
-        - app_host_bootstrap
-        - artifacts_read_runtime_bytes
         - local_app_session_status
-        - local_app_permission_posture
+        - local_app_permission_status
         - local_app_permission_request
-        - local_app_artifacts_read_runtime_bytes
-        - local_app_agent_inventory
-        - local_app_agent_open_conversation
-        - local_app_agent_send_turn
-        - local_app_agent_subscribe_turn
-        - local_app_agent_get_conversation_snapshot
-        - local_app_agent_transcribe_voice
-        - local_app_agent_subscribe_voice_stream
     origin_crate: kit/shell/tauri
     owner_domain: local-app-standard-shell
     dormant_class: dormant_admitted

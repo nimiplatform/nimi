@@ -10,21 +10,17 @@ import type {
   NimiAppTransport,
 } from './inventory-types.js';
 import {
-  isCanonicalGrantState,
-  isCanonicalPermissionScopeFamily,
-  isCanonicalPermissionScopeName,
+  isAdmittedPermissionID,
+  isKnownPermissionID,
+  isPermissionPosture,
 } from './permission-types.js';
 import type {
-  GrantSpec,
-  GrantStatus,
   NimiAppScopeRef,
-  PermissionGrantEvent,
-  PermissionScopeRef,
-  PermissionStatusSnapshot,
+  PermissionID,
+  PermissionPostureEvent,
+  PermissionRequestInput,
+  PermissionStatus,
   PermissionTransport,
-  ScopeCatalogEntry,
-  ScopeCatalogModule,
-  ScopeManifest,
 } from './permission-types.js';
 
 export {
@@ -83,22 +79,9 @@ export type {
   NimiAppAuthProjection,
   NimiAppAuthUnavailable,
   NimiAppLocalSessionProjection,
-  NimiAppPermissionPosture,
-  NimiAppPermissionPostureInput,
   NimiAppPermissionRequestInput,
-  NimiAppRuntimeAgentConversationSnapshotInput,
-  NimiAppRuntimeAgentOpenConversationInput,
-  NimiAppRuntimeAgentSendTurnInput,
-  NimiAppRuntimeAgentSubscribeTurnInput,
-  NimiAppRuntimeAgentTurnEventPage,
-  NimiAppRuntimeAgentSubscribeVoiceStreamInput,
-  NimiAppRuntimeAgentTranscribeVoiceInput,
-  NimiAppRuntimeAgentVoiceOutputMode,
-  NimiAppRuntimeAgentVoicePlaybackState,
-  NimiAppRuntimeAgentVoiceStreamEvent,
-  NimiAppRuntimeAgentVoiceStreamPage,
-  NimiAppRuntimeAgentVoiceTranscription,
-  NimiAppRuntimeArtifactBytes,
+  NimiAppPermissionStatus,
+  NimiAppPermissionStatusInput,
   NimiAppRuntimePlatformClient,
   NimiAppRuntimePlatformClientInput,
   NimiAppRuntimePlatformStandardShell,
@@ -147,32 +130,22 @@ export type {
   NimiAppRegistryTransportOptions,
 } from './registry-transport.js';
 export {
-  CANONICAL_GRANT_STATES,
-  CANONICAL_PERMISSION_SCOPE_FAMILIES,
-  CANONICAL_PERMISSION_SCOPE_NAMES,
-  isCanonicalGrantState,
-  isCanonicalPermissionScopeFamily,
-  isCanonicalPermissionScopeName,
+  ADMITTED_PERMISSION_IDS,
+  KNOWN_PERMISSION_IDS,
+  PERMISSION_POSTURES,
+  isAdmittedPermissionID,
+  isKnownPermissionID,
+  isPermissionPosture,
 } from './permission-types.js';
 export type {
-  GrantRef,
-  GrantSpec,
-  GrantState,
-  GrantStatus,
   NimiAppScopeKind,
   NimiAppScopeRef,
-  PermissionGrantEvent,
-  PermissionScopeFamily,
-  PermissionScopeName,
-  PermissionScopeRef,
-  PermissionStatusSnapshot,
+  PermissionID,
+  PermissionPosture,
+  PermissionPostureEvent,
+  PermissionRequestInput,
+  PermissionStatus,
   PermissionTransport,
-  ScopeCatalogDescriptor,
-  ScopeCatalogEntry,
-  ScopeCatalogModule,
-  ScopeCatalogPublishResult,
-  ScopeCatalogRevokeResult,
-  ScopeManifest,
 } from './permission-types.js';
 export type NimiFirstRunInstallLevel = 'minimal' | 'recommended';
 
@@ -227,93 +200,47 @@ export class NimiAppClient {
 export class PermissionClient {
   constructor(private readonly transport: PermissionTransport) {
     if (!isPermissionTransport(transport)) {
-      appError('SDK_PERMISSION_TRANSPORT_INVALID', 'PermissionClient requires explicit grant transport', 'provide_permission_transport');
+      appError('SDK_PERMISSION_TRANSPORT_INVALID', 'PermissionClient requires an explicit protected posture transport', 'provide_permission_transport');
     }
   }
 
-  async list(scopeRef: NimiAppScopeRef): Promise<readonly GrantStatus[]> {
-    validateScopeRef(scopeRef);
+  async status(permissionId: PermissionID): Promise<PermissionStatus> {
+    validateKnownPermissionID(permissionId);
     try {
-      const grants = await this.transport.list(scopeRef);
-      if (!Array.isArray(grants)) {
-        appError('SDK_PERMISSION_RESPONSE_INVALID', 'permission list response must be an array', 'fix_permission_transport_response');
-      }
-      for (const grant of grants) {
-        validateGrantStatus(grant, scopeRef);
-      }
-      return grants;
+      const status = await this.transport.status(permissionId);
+      validatePermissionStatus(status, permissionId);
+      return status;
     } catch (error) {
-      throw wrapTransportError(error, 'list permission grants');
+      throw wrapPermissionTransportError(error, 'read permission posture');
     }
   }
 
-  async get(scopeRef: NimiAppScopeRef, grantId: string): Promise<GrantStatus> {
-    validateScopeRef(scopeRef);
-    requireText(grantId, 'grantId is required', 'SDK_PERMISSION_GRANT_ID_REQUIRED', 'provide_grant_id');
+  async request(input: PermissionRequestInput): Promise<PermissionStatus> {
+    const request = validatePermissionRequest(input);
     try {
-      const grant = await this.transport.get(scopeRef, grantId);
-      validateGrantStatus(grant, scopeRef);
-      return grant;
+      const status = await this.transport.request(request);
+      validatePermissionStatus(status, request.permissionId);
+      return status;
     } catch (error) {
-      throw wrapTransportError(error, 'get permission grant');
+      throw wrapPermissionTransportError(error, 'request permission');
     }
   }
 
-  async request(scopeRef: NimiAppScopeRef, grantSpec: GrantSpec): Promise<GrantStatus> {
-    validateScopeRef(scopeRef);
-    validateGrantSpec(grantSpec);
-    validateGrantSpecMatchesScopeRef(scopeRef, grantSpec);
-    try {
-      const grant = await this.transport.request(scopeRef, grantSpec);
-      validateGrantStatus(grant, scopeRef);
-      return grant;
-    } catch (error) {
-      throw wrapTransportError(error, 'request permission grant');
-    }
-  }
-
-  async revoke(scopeRef: NimiAppScopeRef, grantId: string): Promise<GrantStatus> {
-    validateScopeRef(scopeRef);
-    requireText(grantId, 'grantId is required', 'SDK_PERMISSION_GRANT_ID_REQUIRED', 'provide_grant_id');
-    try {
-      const grant = await this.transport.revoke(scopeRef, grantId);
-      validateGrantStatus(grant, scopeRef);
-      return grant;
-    } catch (error) {
-      throw wrapTransportError(error, 'revoke permission grant');
-    }
-  }
-
-  async status(scopeRef: NimiAppScopeRef): Promise<PermissionStatusSnapshot> {
-    validateScopeRef(scopeRef);
-    try {
-      const snapshot = await this.transport.status(scopeRef);
-      if (!snapshot || !Array.isArray(snapshot.grants)) {
-        appError('SDK_PERMISSION_RESPONSE_INVALID', 'permission status response must include grants', 'fix_permission_transport_response');
-      }
-      validateMatchingScopeRef(snapshot.scopeRef, scopeRef);
-      for (const grant of snapshot.grants) {
-        validateGrantStatus(grant, scopeRef);
-      }
-      return snapshot;
-    } catch (error) {
-      throw wrapTransportError(error, 'read permission status');
-    }
-  }
-
-  subscribe(scopeRef: NimiAppScopeRef, callback: (event: PermissionGrantEvent) => void): () => void {
-    validateScopeRef(scopeRef);
+  subscribe(permissionId: PermissionID, callback: (event: PermissionPostureEvent) => void): () => void {
+    validateKnownPermissionID(permissionId);
     if (typeof callback !== 'function') {
       appError('SDK_PERMISSION_CALLBACK_INVALID', 'permission subscribe callback is required', 'provide_permission_callback');
     }
     try {
-      return this.transport.subscribe(scopeRef, (event) => {
-        validateMatchingScopeRef(event.scopeRef, scopeRef);
-        validateGrantStatus(event.grant, scopeRef);
+      return this.transport.subscribe(permissionId, (event) => {
+        if (!event || typeof event !== 'object') {
+          appError('SDK_PERMISSION_RESPONSE_INVALID', 'permission posture event is missing', 'fix_permission_transport_response');
+        }
+        validatePermissionStatus(event.status, permissionId);
         callback(event);
       });
     } catch (error) {
-      throw wrapTransportError(error, 'subscribe permission grants');
+      throw wrapPermissionTransportError(error, 'subscribe permission posture');
     }
   }
 }
@@ -334,74 +261,6 @@ export function createAppScopeRef(input: {
     kind: 'app',
     ownerId: requireText(input.appId, 'scope appId is required', 'SDK_APP_ID_REQUIRED', 'set_app_id'),
     ...(normalizeText(input.surfaceId) ? { surfaceId: normalizeText(input.surfaceId) } : {}),
-  };
-}
-
-export function createScopeCatalogModule(input: {
-  readonly appId: string;
-  readonly defaultRealmScopes?: readonly string[];
-  readonly defaultRuntimeScopes?: readonly string[];
-}): ScopeCatalogModule {
-  const appId = requireText(input.appId, 'appId is required for scope catalog', 'SDK_APP_ID_REQUIRED', 'set_app_id');
-  let draft: ScopeCatalogEntry | null = null;
-  let published: ScopeCatalogEntry[] = [];
-  const revokedScopes = new Set<string>();
-  const revokedVersions = new Set<string>();
-
-  return {
-    listCatalog() {
-      return {
-        appId,
-        defaultRealmScopes: normalizeScopeList(input.defaultRealmScopes),
-        defaultRuntimeScopes: normalizeScopeList(input.defaultRuntimeScopes),
-        published: published.map((entry) => ({ ...entry, scopes: [...entry.scopes] })),
-        draft: draft ? { ...draft, scopes: [...draft.scopes] } : null,
-      };
-    },
-    registerAppScopes({ manifest }) {
-      const scopes = validateScopeManifest(appId, manifest);
-      draft = {
-        appId,
-        manifestVersion: manifest.manifestVersion,
-        catalogHash: scopeCatalogHash(manifest.manifestVersion, scopes),
-        status: 'draft',
-        scopes,
-      };
-      return draft;
-    },
-    publishCatalog() {
-      if (!draft) {
-        appError('SDK_SCOPE_CATALOG_INVALID', 'scope catalog has no draft to publish', 'register_app_scopes');
-      }
-      const entry: ScopeCatalogEntry = { ...draft, status: 'published' };
-      published.push(entry);
-      draft = null;
-      return {
-        appId,
-        scopeCatalogVersion: entry.manifestVersion,
-        catalogHash: entry.catalogHash,
-        status: 'published',
-      };
-    },
-    revokeAppScopes({ scopes }) {
-      for (const scope of normalizeScopeList(scopes)) {
-        revokedScopes.add(scope);
-      }
-      for (const entry of published) {
-        if (entry.scopes.some((scope) => revokedScopes.has(scope))) {
-          revokedVersions.add(entry.manifestVersion);
-        }
-      }
-      published = published.map((entry) =>
-        entry.scopes.some((scope) => revokedScopes.has(scope))
-          ? { ...entry, status: 'revoked' }
-          : entry);
-      return {
-        appId,
-        revokedScopes: [...revokedScopes].sort(),
-        revokedVersions: [...revokedVersions].sort(),
-      };
-    },
   };
 }
 
@@ -427,101 +286,51 @@ export function selectNimiAppFactoryAIProfileForFirstRun(
   return candidates[0] ?? null;
 }
 
-function validateScopeRef(scopeRef: NimiAppScopeRef | null | undefined): void {
-  if (!scopeRef || scopeRef.kind !== 'app' || !normalizeText(scopeRef.ownerId)) {
-    appError('SDK_SCOPE_REF_INVALID', 'explicit app scopeRef is required', 'provide_app_scope_ref');
+function validateKnownPermissionID(value: unknown): asserts value is PermissionID {
+  if (!isKnownPermissionID(value)) {
+    appError('SDK_PERMISSION_ID_UNKNOWN', `permission id "${String(value)}" is not in the public catalog`, 'use_known_permission_id');
   }
 }
 
-function validateMatchingScopeRef(actual: NimiAppScopeRef, expected: NimiAppScopeRef): void {
-  validateScopeRef(actual);
-  if (actual.kind !== expected.kind || actual.ownerId !== expected.ownerId || (actual.surfaceId ?? '') !== (expected.surfaceId ?? '')) {
-    appError('SDK_PERMISSION_RESPONSE_INVALID', 'permission response scopeRef does not match request', 'fix_permission_transport_response');
+function validatePermissionRequest(input: PermissionRequestInput | null | undefined): PermissionRequestInput {
+  if (!input || typeof input !== 'object') {
+    appError('SDK_PERMISSION_REQUEST_INVALID', 'permission request is required', 'provide_permission_request');
   }
+  const fields = Object.keys(input as object);
+  if (fields.some((field) => field !== 'permissionId' && field !== 'reason')) {
+    appError('SDK_PERMISSION_REQUEST_INVALID', 'permission request accepts only permissionId and reason', 'remove_permission_authority_fields');
+  }
+  validateKnownPermissionID(input.permissionId);
+  const reason = normalizeText(input.reason);
+  if (reason !== input.reason || new TextEncoder().encode(reason).length === 0 || new TextEncoder().encode(reason).length > 240) {
+    appError('SDK_PERMISSION_REQUEST_INVALID', 'permission reason must be canonical and at most 240 UTF-8 bytes', 'provide_permission_reason');
+  }
+  if (!isAdmittedPermissionID(input.permissionId)) {
+    appError('SDK_PERMISSION_NOT_ADMITTED', `permission "${input.permissionId}" is reserved and cannot be requested`, 'wait_for_permission_admission');
+  }
+  return { permissionId: input.permissionId, reason };
 }
 
-function validateGrantSpec(spec: GrantSpec | null | undefined): void {
-  if (!spec || typeof spec !== 'object') {
-    appError('SDK_PERMISSION_GRANT_SPEC_INVALID', 'grantSpec is required', 'provide_grant_spec');
-  }
-  validatePermissionScopeRef(spec.permissionScope);
-  requireText(spec.reason, 'grant reason is required', 'SDK_PERMISSION_GRANT_SPEC_INVALID', 'provide_permission_reason');
-}
-
-function validateGrantSpecMatchesScopeRef(scopeRef: NimiAppScopeRef, spec: GrantSpec): void {
-  if (normalizeText(spec.permissionScope.appId) !== normalizeText(scopeRef.ownerId)) {
-    appError(
-      'SDK_PERMISSION_CROSS_APP_ACCESS_NOT_ADMITTED',
-      'cross-app permission request is not admitted on permission.request',
-      'use_non_live_cross_app_permission_flow_shape',
-    );
-  }
-}
-
-function validatePermissionScopeRef(scope: PermissionScopeRef | null | undefined): void {
-  if (!scope || typeof scope !== 'object') {
-    appError('SDK_PERMISSION_SCOPE_INVALID', 'permissionScope is required', 'provide_permission_scope');
-  }
-  requireText(scope.appId, 'permissionScope appId is required', 'SDK_PERMISSION_SCOPE_INVALID', 'provide_permission_scope_app_id');
-  if (!isCanonicalPermissionScopeFamily(scope.scopeFamily)) {
-    appError('SDK_PERMISSION_SCOPE_INVALID', `permission scopeFamily "${String(scope.scopeFamily)}" is not canonical`, 'use_canonical_permission_scope');
-  }
-  if (!isCanonicalPermissionScopeName(scope.scopeName)) {
-    appError('SDK_PERMISSION_SCOPE_INVALID', `permission scopeName "${String(scope.scopeName)}" is not canonical`, 'use_canonical_permission_scope');
-  }
-}
-
-function validateGrantStatus(status: GrantStatus | null | undefined, expectedScopeRef: NimiAppScopeRef): void {
+function validatePermissionStatus(status: PermissionStatus | null | undefined, expectedPermissionId: PermissionID): void {
   if (!status || typeof status !== 'object') {
-    appError('SDK_PERMISSION_RESPONSE_INVALID', 'grant status is missing', 'fix_permission_transport_response');
+    appError('SDK_PERMISSION_RESPONSE_INVALID', 'permission status is missing', 'fix_permission_transport_response');
   }
-  validateMatchingScopeRef(status.scopeRef, expectedScopeRef);
-  if (!status.grant || !normalizeText(status.grant.grantId)) {
-    appError('SDK_PERMISSION_RESPONSE_INVALID', 'grant status missing grant id', 'fix_permission_transport_response');
+  if (status.permissionId !== expectedPermissionId || !isKnownPermissionID(status.permissionId)) {
+    appError('SDK_PERMISSION_RESPONSE_INVALID', 'permission response id does not match request', 'fix_permission_transport_response');
   }
-  validatePermissionScopeRef(status.grant.permissionScope);
-  if (normalizeText(status.grant.permissionScope.appId) !== normalizeText(expectedScopeRef.ownerId)) {
-    appError('SDK_PERMISSION_RESPONSE_INVALID', 'grant permissionScope appId does not match request scopeRef', 'fix_permission_transport_response');
+  if (!isPermissionPosture(status.posture) || typeof status.canRequest !== 'boolean') {
+    appError('SDK_PERMISSION_RESPONSE_INVALID', 'permission response posture is not canonical', 'fix_permission_transport_response');
   }
-  if (!isCanonicalGrantState(status.state)) {
-    appError('SDK_PERMISSION_RESPONSE_INVALID', `grant state "${String(status.state)}" is not canonical`, 'fix_permission_transport_response');
+  if (!isAdmittedPermissionID(status.permissionId) && (status.posture !== 'unavailable' || status.canRequest)) {
+    appError('SDK_PERMISSION_RESPONSE_INVALID', 'reserved permission must remain unavailable', 'fix_permission_transport_response');
   }
 }
 
 function isPermissionTransport(value: unknown): value is PermissionTransport {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Record<string, unknown>;
-  return ['list', 'get', 'request', 'revoke', 'status', 'subscribe']
+  return ['request', 'status', 'subscribe']
     .every((method) => typeof candidate[method] === 'function');
-}
-
-function validateScopeManifest(appId: string, manifest: ScopeManifest): readonly string[] {
-  requireText(manifest?.manifestVersion, 'scope manifestVersion is required', 'SDK_SCOPE_CATALOG_INVALID', 'set_scope_manifest_version');
-  const scopes = normalizeScopeList(manifest?.scopes);
-  if (scopes.length === 0) {
-    appError('SDK_SCOPE_CATALOG_INVALID', 'scope manifest must include at least one scope', 'add_app_scopes');
-  }
-  const prefix = `app.${appId}.`;
-  for (const scope of scopes) {
-    if (!scope.startsWith(prefix)) {
-      appError('SDK_SCOPE_NAMESPACE_FORBIDDEN', `scope "${scope}" must use namespace ${prefix}*`, 'use_app_namespace_scope');
-    }
-  }
-  return scopes;
-}
-
-function normalizeScopeList(scopes: readonly unknown[] | undefined): string[] {
-  return Array.from(new Set((scopes ?? []).map(normalizeText).filter(Boolean))).sort();
-}
-
-function scopeCatalogHash(version: string, scopes: readonly string[]): string {
-  const input = `${version}:${scopes.join(',')}`;
-  let hash = 0x811c9dc5;
-  for (let index = 0; index < input.length; index += 1) {
-    hash ^= input.charCodeAt(index);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return `fnv1a-${(hash >>> 0).toString(16).padStart(8, '0')}`;
 }
 
 function normalizeText(value: unknown): string {
@@ -541,6 +350,13 @@ function wrapTransportError(error: unknown, action: string): never {
     throw error;
   }
   appError('SDK_APP_TRANSPORT_FAILED', `failed to ${action}`, 'check_app_transport', error);
+}
+
+function wrapPermissionTransportError(error: unknown, action: string): never {
+  if (isNimiSdkError(error)) {
+    throw error;
+  }
+  appError('SDK_PERMISSION_TRANSPORT_FAILED', `failed to ${action}`, 'check_permission_transport', error);
 }
 
 function isNimiSdkError(error: unknown): boolean {

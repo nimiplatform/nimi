@@ -28,10 +28,6 @@ import {
   isElectronDeveloperModeCommand,
 } from './developer-mode-host.js';
 import {
-  createNimiElectronLocalAppGrantHost,
-  isElectronLocalAppGrantCommand,
-} from './local-app-grant-host.js';
-import {
   assertAllowedElectronRendererOrigin,
   assertAllowedElectronRendererUrl,
   createElectronCapabilityNotInHostSetError,
@@ -137,8 +133,7 @@ function classifyElectronHostCommand(
   }
   if (hasCommandHandler
     || isElectronDesktopAccountCommand(command)
-    || isElectronDeveloperModeCommand(command)
-    || isElectronLocalAppGrantCommand(command)) {
+    || isElectronDeveloperModeCommand(command)) {
     return 'app-domain';
   }
   return 'unknown';
@@ -176,9 +171,6 @@ export function registerNimiElectronRuntimeBridge(
     : undefined;
   const developerModeHost = appId === 'nimi.desktop'
     ? createNimiElectronDeveloperModeHost()
-    : undefined;
-  const localAppGrantHost = appId === 'nimi.desktop'
-    ? createNimiElectronLocalAppGrantHost()
     : undefined;
   let clientPromise: Promise<RuntimeGrpcBridgeClient> | undefined;
   const ensureClient = () => {
@@ -322,15 +314,15 @@ export function registerNimiElectronRuntimeBridge(
     if (developerModeHost && isElectronDeveloperModeCommand(command)) {
       return developerModeHost.invoke(command, payload);
     }
-    if (localAppGrantHost && isElectronLocalAppGrantCommand(command)) {
-      return localAppGrantHost.invoke(command, payload);
-    }
     if (isElectronRuntimeAccountCustodyCommand(command)) throw createElectronRuntimeAccountCustodyExternalError(command);
     if (commandHandler) return await commandHandler({ command, payload, event, appId, runtimeEndpoint });
     if (isStandardShellCommand(command)) throw createElectronCapabilityUnavailableError(command);
     if (
       capabilitySet?.capabilitySetRef === NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID
-      && LOCAL_APP_EXPLICITLY_FORBIDDEN_COMMANDS.has(command)
+      && (
+        LOCAL_APP_EXPLICITLY_FORBIDDEN_COMMANDS.has(command)
+        || String(command).startsWith('nimi.shell.localApp.')
+      )
     ) {
       throw createElectronCapabilityNotInHostSetError(command, capabilitySet.capabilitySetRef);
     }

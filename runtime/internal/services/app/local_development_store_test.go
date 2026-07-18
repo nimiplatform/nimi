@@ -70,15 +70,20 @@ func TestLocalDevelopmentStoreReusesRememberedAuthorizationAndRequiresReapproval
 		t.Fatalf("remembered project should reuse the authorization without confirmation: %#v", second)
 	}
 
-	capabilityExpanded := project
-	capabilityExpanded.Capabilities = []string{"data.scope.read#runtime.artifacts", "account.session.read"}
-	capabilityExpanded.CapabilityFingerprint = localDevelopmentCapabilityFingerprint(capabilityExpanded.Capabilities)
-	expanded, err := store.Evaluate(ctx, capabilityExpanded, localDevelopmentTestIdentifier(0x13))
-	if err != nil {
-		t.Fatalf("Evaluate expanded capability set: %v", err)
+	permissionExpanded := project
+	permissionExpanded.PermissionRequirements = []localDevelopmentPermissionRequirement{{PermissionID: "agents.interact", Reason: "Talk with an Agent selected by me."}}
+	permissionExpanded.PermissionRequirementFingerprint = localDevelopmentPermissionRequirementFingerprint(permissionExpanded.PermissionRequirements)
+	if _, err := store.Evaluate(ctx, permissionExpanded, localDevelopmentTestIdentifier(0x13)); !errors.Is(err, errLocalDevelopmentInvalid) {
+		t.Fatalf("reserved permission requirement must fail before reapproval: %v", err)
 	}
-	if expanded.State != runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REAPPROVAL_REQUIRED || expanded.EvaluationID == (protectedlocal.Identifier{}) {
-		t.Fatalf("capability expansion must require reapproval: %#v", expanded)
+	projectChanged := project
+	projectChanged.ManifestPath = filepath.Join(project.ProjectRoot, "nimi.changed.yaml")
+	changed, err := store.Evaluate(ctx, projectChanged, localDevelopmentTestIdentifier(0x13))
+	if err != nil {
+		t.Fatalf("Evaluate changed project identity: %v", err)
+	}
+	if changed.State != runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REAPPROVAL_REQUIRED || changed.EvaluationID == (protectedlocal.Identifier{}) {
+		t.Fatalf("project identity change must require reapproval: %#v", changed)
 	}
 
 	accountChanged := project
@@ -96,7 +101,7 @@ func TestLocalDevelopmentStoreReusesRememberedAuthorizationAndRequiresReapproval
 	}
 	if _, err := store.Decide(
 		ctx,
-		expanded.EvaluationID,
+		changed.EvaluationID,
 		runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_DENY,
 		"",
 		0,
@@ -226,17 +231,17 @@ func openLocalDevelopmentStoreForTest(t *testing.T, now time.Time) *localDevelop
 func localDevelopmentTestProject(t *testing.T) localDevelopmentProjectSnapshot {
 	t.Helper()
 	root := filepath.Join(t.TempDir(), "sample-app")
-	capabilities := []string{"data.scope.read#runtime.artifacts"}
+	permissionRequirements := []localDevelopmentPermissionRequirement{}
 	return localDevelopmentProjectSnapshot{
-		AppID:                 "sample.nimi.app",
-		DisplayName:           "Sample App",
-		ProjectRoot:           root,
-		ManifestPath:          filepath.Join(root, "nimi.app.yaml"),
-		ShellKind:             runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON,
-		AccountID:             "account-a",
-		AccountGeneration:     7,
-		Capabilities:          capabilities,
-		CapabilityFingerprint: localDevelopmentCapabilityFingerprint(capabilities),
+		AppID:                            "sample.nimi.app",
+		DisplayName:                      "Sample App",
+		ProjectRoot:                      root,
+		ManifestPath:                     filepath.Join(root, "nimi.app.yaml"),
+		ShellKind:                        runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON,
+		AccountID:                        "account-a",
+		AccountGeneration:                7,
+		PermissionRequirements:           permissionRequirements,
+		PermissionRequirementFingerprint: localDevelopmentPermissionRequirementFingerprint(permissionRequirements),
 	}
 }
 

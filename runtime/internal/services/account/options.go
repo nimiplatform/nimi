@@ -2,7 +2,6 @@ package account
 
 import (
 	"context"
-	"crypto/rand"
 	"io"
 	"log/slog"
 	"net/http"
@@ -20,24 +19,22 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
 	s := &Service{
-		logger:                logger,
-		now:                   time.Now,
-		custody:               unavailableCustody{},
-		exchanger:             inertExchanger{},
-		refresher:             inertRefresher{},
-		registry:              appregistry.New(),
-		realmHTTP:             &http.Client{Timeout: 30 * time.Second},
-		realmBaseURL:          "",
-		presenceVerifier:      inertPresenceVerifier{},
-		localAppGrantRandom:   rand.Reader,
-		partition:             "runtime-account:default-device",
-		eventRetention:        128,
-		state:                 runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
-		loginAttempts:         make(map[string]loginAttemptRecord),
-		bindings:              make(map[string]bindingRecord),
-		workspaceBindings:     make(map[string]workspaceBindingRecord),
-		subscribers:           make(map[uint64]subscriber),
-		localAppGrantRequests: make(map[string]localAppGrantPendingRequest),
+		logger:            logger,
+		now:               time.Now,
+		custody:           unavailableCustody{},
+		exchanger:         inertExchanger{},
+		refresher:         inertRefresher{},
+		registry:          appregistry.New(),
+		realmHTTP:         &http.Client{Timeout: 30 * time.Second},
+		realmBaseURL:      "",
+		presenceVerifier:  inertPresenceVerifier{},
+		partition:         "runtime-account:default-device",
+		eventRetention:    128,
+		state:             runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
+		loginAttempts:     make(map[string]loginAttemptRecord),
+		bindings:          make(map[string]bindingRecord),
+		workspaceBindings: make(map[string]workspaceBindingRecord),
+		subscribers:       make(map[uint64]subscriber),
 	}
 	for _, opt := range opts {
 		if opt != nil {
@@ -48,38 +45,19 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 	return s
 }
 
-// WithLocalAppKernel injects the sole Runtime-owned local-app principal,
-// record, and grant store. The account service never opens a parallel store.
+// WithLocalAppKernel injects the sole Runtime-owned local-app principal and
+// lifecycle record store. The account service never opens a parallel store.
 func WithLocalAppKernel(kernel *localappkernel.Kernel) Option {
 	return func(s *Service) {
 		s.localAppKernel = kernel
 	}
 }
 
-// WithLocalAppGrantControlAuthority injects the protected Desktop control
-// binding used to route and consume Runtime-issued grant-presence challenges.
-func WithLocalAppGrantControlAuthority(authority LocalAppGrantControlAuthority) Option {
-	return func(s *Service) {
-		s.localAppGrantControl = authority
-	}
-}
-
-// WithAuditStore binds Account-owned local-app grant lifecycle events to the
-// sole Runtime audit store. Production grant mutation fails closed when this
-// dependency is absent; the account service never opens a parallel audit log.
+// WithAuditStore binds Account-owned security events to the sole Runtime audit
+// store. The account service never opens a parallel audit log.
 func WithAuditStore(store *auditlog.Store) Option {
 	return func(s *Service) {
 		s.auditStore = store
-	}
-}
-
-// withLocalAppGrantRandom is intentionally package-private. Production uses
-// crypto/rand; focused tests may inject deterministic entropy.
-func withLocalAppGrantRandom(random io.Reader) Option {
-	return func(s *Service) {
-		if random != nil {
-			s.localAppGrantRandom = random
-		}
 	}
 }
 

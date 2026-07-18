@@ -1,309 +1,222 @@
-# App Permission Contract
+# Nimi App Permission Contract
 
 > Owner Domain: `P-PERM-*`
 
 ## Scope
 
-定义 Nimi App 的 product-facing permission vocabulary、grant state
-semantics、presence classes、audit mapping、cross-app boundary 与 fail-closed
-规则。Platform owns the taxonomy; Runtime K-GRANT owns the PC-local
-account-and-principal grant lifecycle for local apps. Realm grants/audit remain
-remote-domain truth and are not a prerequisite or competing local store.
-Runtime retains spend/credential custody/local audit; Cognition and
-RuntimeAgentService retain memory and Agent semantics.
+This contract defines the single product-facing authority model for third-party
+Nimi Apps. It governs only access to protected resources owned by Nimi, Realm,
+Agent, Cognition or another app. An app's own product domain, ordinary OS
+rights, publishing review, launch approval, session health, product routes, AI
+routing and usage metering are not user permissions.
 
-## P-PERM-001 — Product-Facing Authority
+## P-PERM-001 Product-Facing Permission Vocabulary
 
-`MUST`：Platform 拥有 Nimi App permission 的 product-facing taxonomy。
-Runtime K-GRANT implements one PC-local lifecycle keyed by account +
-`local_app_principal_id` + capability/resource fingerprint. Realm implements
-its remote grant/cloud-audit truth; Runtime implements local AI spend and local
-audit; Cognition implements memory/knowledge access policy.
+Platform owns the only public permission vocabulary through
+`tables/nimi-app-permission-catalog.yaml`. A public permission describes one
+user-recognizable product intent, not an RPC, endpoint, scope family, table,
+file path or internal resource fingerprint. Each permission has exactly one
+canonical decision owner. Backend owners may expand it into exact internal
+checks, but may not expose a parallel public vocabulary.
 
-`MUST NOT`：apps、Home shell、SDK 不得绕过 Platform-defined permission
-taxonomy 或 fail-closed denial state machine。
+## P-PERM-002 Closed Catalog And Current Admission
 
-## P-PERM-002 — Closed Permission Taxonomy
+The public permission id set is exactly the `public_permissions` section of the
+catalog. An id is requestable only when both `admission: admitted` and
+`manifest_allowed: true`. The current admitted set is empty; all sixteen rows
+are reserved. Apps that need only base entitlements, app-owned authority and OS
+rights remain fully runnable. Unknown ids, reserved ids, old scopes, Runtime
+operation ids and endpoint strings fail closed.
 
-`MUST`：app permission 的 scope 枚举为以下封闭集合：
+A row may move to admitted only as part of the complete P-PERM-017 slice. A
+catalog edit, manifest declaration, CRUD endpoint or mock approval UI alone is
+not admission.
 
-- `account.read`
-- `account.session.read`
-- `data.scope.read`
-- `data.scope.write`
-- `agent.identity.project`
-- `agent.identity.bind`
-- `ai.spend.meter`
-- `ai.spend.delegate`
-- `memory.read.bounded`
-- `memory.write.admitted`
-- `knowledge.read.bounded`
-- `knowledge.write.admitted`
-- `notification.send`
-- `notification.subscribe`
-- `file.read.scoped`
-- `file.write.scoped`
-- `device.use.scoped`
-- `audit.read.scoped`
-- `ai_profile.selection.consume`
+## P-PERM-003 Public Posture And Owner Lifecycle
 
-`MUST NOT`：不得 admit 开放字符串 scope；新增 scope 必须修改本契约并触发
-governance gate。
+The app-facing posture is the closed set `prompt | pending | granted | denied |
+unavailable`. Apps may query their own posture and request one admitted
+permission with a user-facing reason. They cannot approve, revoke, mint, carry
+or inspect owner-internal decision records.
 
-## P-PERM-003 — Grant Lifecycle State Machine
+A durable owner lifecycle, when admitted, uses monotonic revisions and the
+closed internal states `pending | granted | denied | expired | revoked`.
+Expired/revoked history is owner and audit truth, not an app workflow API.
+There is currently no positive Runtime local permission lifecycle or store.
 
-`MUST`：grant lifecycle 固定 typed state set：`pending`, `granted`,
-`denied`, `expired`, `revoked`, `superseded`。合法转移：
+## P-PERM-004 Audit
 
-- `pending → granted | denied | expired`
-- `granted → revoked | expired | superseded`
-- `denied → pending`（仅在新请求时）
-- 终止态不得静默回到 `granted`
+Every admitted durable decision transition and every one-shot handle issuance
+or consumption emits an owner audit event. It binds the owner-derived subject,
+calling app principal, display app id, public permission id, selector digest,
+old/new posture or one-shot action, trigger, timestamp and owner revision.
+Protected operation/resource identities may appear only in protected owner
+audit. Credentials, raw tokens and reusable proofs are never logged.
 
-## P-PERM-004 — Audit Event Mapping
+Audit events must not be silently coalesced across decisions. Missing audit or
+unavailable audit persistence fails the affected positive path closed.
 
-`MUST`：每个 local grant lifecycle 转移必须发出 admitted audit event；event
-shape 至少包含 `local_app_principal_id`、display `app_id`、`AIScopeRef`、`scope_name`、`old_state`、
-`new_state`、`triggered_by`、`timestamp`。Realm 拥有 cloud audit 写入；
-Runtime 拥有 local audit 写入；两者不得互相替代。
+## P-PERM-005 Fail-Closed Evaluation
 
-`MUST NOT`：不得通过 batch / coalesce 合并跨 grant 转移成单事件；不得跳
-过 audit。
+`user_permission` requires an admitted id, manifest eligibility, current owner
+decision, owner-issued selector, exact permission-to-operation mapping and the
+domain owner's current resource policy. Any missing, denied, expired, revoked,
+mismatched or unavailable fact denies the operation. Publisher tier, review,
+first-party identity, provenance and session existence do not widen it.
 
-## P-PERM-005 — Fail-Closed Denial State Machine
+`base_entitlement` never fails merely because no user permission exists, but
+still enforces its principal/session/account/path/quota boundary.
+`one_shot_consent` requires an owner-issued non-forgeable handle; a caller-
+supplied resource id is not proof.
 
-`MUST`：缺少 grant、grant `expired`、grant `revoked`、scope 不在
-`P-PERM-002` 枚举集合中、或 principal/account/resource fingerprint mismatch
-皆必须 `denied`。Publisher trust tier and local provenance never change the
-permission result.
+## P-PERM-006 Cross-App Resources
 
-`MUST NOT`：缺少 grant 时不得静默 allow；请求失败时不得跳过 audit。
+There is no generic durable cross-app grant. A source app or canonical resource
+owner must explicitly export through an admitted broker. The user selects one
+resource in an owner-controlled picker, producing a bounded one-shot handle
+audited against source app, target app and resource owner. Shared files,
+sockets, host bridge details and path conventions cannot substitute for this
+flow. `shared_resources.open` remains reserved until the full broker exists.
 
-## P-PERM-006 — Cross-App Authorization
+## P-PERM-007 Public Request Shape
 
-`MUST`：app A 请求 app B 的资源（data / memory / agent projection /
-file / device 等）必须通过 grant 流程；audit 必须记录 source app /
-target app / `AIScopeRef`。
+Manifest declaration is exactly `{ id, reason }`. Runtime request is exactly
+`{ permissionId, reason }`. `reason` is bounded explanatory text and carries no
+authority. App id, account, OS-user anchor and principal come from the protected
+carrier. Any selector comes from the catalog's canonical owner picker.
 
-`MUST NOT`：apps 不得通过 host bridge implementation detail、shared
-filesystem、socket 等私有 channel 实现 cross-app 数据访问。
+Public manifests, SDKs, Kit bridges and ordinary UI must not expose scope
+family/name, qualifier, operation id, resource ref, selector digest, decision
+id, account/principal/session identity, token or credential.
 
-## P-PERM-007 — Permission Scope Ref Shape
+## P-PERM-008 AI Metering Is Policy
 
-`MUST`：`permission_scope_ref` is the Runtime-local Nimi App permission request
-schema and is fixed as:
+Every cloud or local AI execution emits typed usage and obeys Runtime budget,
+rate, route and credential policy. Metering is mandatory owner policy, not a
+permission the app requests or the user disables. Background continuation is a
+different product intent represented by reserved `ai.background`; it remains
+unavailable until activity visibility, budget ceiling and cancellation exist.
 
-```
-{
-  localAppPrincipalId: opaque string,
-  appId: string, // display/routing only
-  scopeFamily: 'account' | 'data' | 'agent' | 'ai_spend' | 'memory' | 'knowledge' | 'notification' | 'file_device' | 'audit' | 'ai_profile',
-  scopeName: <one of P-PERM-002 enum entries>,
-  qualifier?: string
-}
-```
+## P-PERM-009 First-Party Product Authority
 
-The exact product permission for local-app callers retrieving their own
-Runtime artifact audience is `data.scope.read` with qualifier
-`runtime.artifacts`. This is an operation mapping, not a new permission scope:
-the Runtime operation id, product permission and AI capability namespaces stay
-distinct. A request/descriptor is only a static capability request; a current
-account-and-principal grant for the same scope/resource fingerprint is still
-required on every operation.
+Built-in Nimi products use exact service entitlements admitted by their own
+Platform/Runtime/Realm/Cognition contracts. Such entitlements are not synthetic
+third-party permissions and are never seeded into a local or Realm permission
+ledger. First-party status does not widen a third-party permission or bypass OS
+privacy, user preferences, account policy or owner checks.
 
-`tables/nimi-app-registry.yaml` 的 `permission_scope_ref` 必须解析到该
-schema；it must not contain a Realm-owned scope family or scope name.
-`permission_fabric_pending` 是 permission fabric 尚未 admit 具体 scope set
-时的 fail-closed 状态，不能被应用当作 granted scope。
+## P-PERM-010 Backend Ownership
 
-## P-PERM-008 — Spend Metering
+Realm retains cloud account, OAuth, Realm-owned decisions, domain data and
+endpoint enforcement. Runtime retains local identity/session, Runtime-owned
+decisions and local endpoint enforcement. Cognition retains memory/knowledge
+policy. Platform standardizes the product catalog and projection only; it does
+not copy backend truth. One user intent must not trigger duplicate approvals by
+multiple owners.
 
-`MUST`：所有 cloud / runtime AI execution 必须发射 typed spend record，
-绑定到 active `ai.spend.meter` 或 `ai.spend.delegate` grant。
+## P-PERM-011 App-Private Storage
 
-`MUST NOT`：缺少有效 spend grant 的 execution 必须 fail-closed；不得允
-许无监管的 cloud spend。
+An app does not ask Nimi for permission to use its own SQLite, JSON store,
+media, settings, cache or product routes. Runtime-mediated private JSON is a
+`base_entitlement` constrained to the live calling principal/account partition,
+canonical relative paths, quota and escape/symlink policy. Native app storage
+is `app_owned_authority` under actual OS rights and disclosed sandbox posture.
 
-## P-PERM-009 — First-Party Seed Grant Set
+External files are different: reserved `files.open` and `files.save` use one-
+shot native picker handles. Another app's resources use
+`shared_resources.open`. None creates a generic filesystem permission.
 
-`MUST`：Avatar first-party target 的 Runtime-local grant set admitted 如下：
+## P-PERM-012 Product Preferences
 
-- `nimi.avatar`：`account.session.read`, `agent.identity.project`,
-  `memory.read.bounded` (qualifier=persona-scoped),
-  `memory.write.admitted` (qualifier=session-scoped),
-  `ai.spend.meter`, `device.use.scoped`, `file.read.scoped`,
-  `ai_profile.selection.consume`。
-`MUST NOT`：first-party seed grant 不得 admit 超出本枚举的 scope；
-Avatar first-party seed grants are admitted only for the hardcut `nimi.avatar`
-row and do not expand ordinary Apps visibility.
+First-party preferences such as Zhiyu proactive interruptibility configure an
+already-admitted product surface. They are not third-party permissions. Signed-
+out, disabled, suppressed or unavailable owner state must produce typed
+suppression. Reserved notification permissions cannot be inferred from a
+first-party preference.
 
-## P-PERM-010 — Cross-Kernel Backend Retention
+## P-PERM-013 Local Identity And Permission Separation
 
-`MUST`：以下 backend authority 保留各自 kernel ownership：
+Project/package approval creates only a random, non-reused local principal and
+provenance record. Launch creates only a process-bound session. Neither creates
+or widens a permission. A valid zero-permission session may read its own public
+permission posture and use base entitlements; it may not enumerate protected
+Agent/account/resource inventory to manufacture a selector.
 
-- Realm `R-OAUTH-*` 与 Realm grant backend 仍拥有 cloud session / OAuth
-  / grant persistence 真相。
-- Runtime `account-session-contract.md` / `auth-service.md` /
-  `authn-token-validation.md` / `authz-ownership.md` / `grant-service.md`
-  仍拥有 Runtime local authority。
-- Cognition `C-APMEM-*` 仍拥有 memory / knowledge access policy。
+If a Runtime-owned permission is later admitted, its owner lifecycle binds the
+OS-user anchor, current account, opaque app principal, public permission id and
+owner selector digest. Every protected endpoint re-reads that current decision
+and owner policy. Display app id and trust tier are never positive keys.
 
-`MUST NOT`：Platform `P-PERM-*` 不得 supersede 上述 backend authority；
-本契约只锁定 product-facing surface 与跨域 owner split。
+## P-PERM-014 Realm Source Materialization Is A First-Party Product Operation
 
-## P-PERM-011 — App-Local-Drafts Qualifier Semantics
+`realm.source_materialize` is an authenticated
+first-party product operation, not a third-party permission or synthetic
+grant. Runtime uses its current Realm account, one typed
+`CharacterSourceRefV3` and a fresh audience-bound challenge. Realm reloads
+canonical source/world/dependency truth and current visibility/readiness, then
+returns a short-lived signed Packet v3. Runtime verifies current JWKS, purpose,
+audience, challenge, source, closure, limits, replay and account generation
+before an atomic commit.
 
-`MUST`：when a product reviews or projects a Nimi-mediated file scope —
-`file.read.scoped` or `file.write.scoped` per the `P-PERM-002` closed
-enum — with `qualifier: app-local-drafts`, the qualifier denotes the
-calling app's data root:
+The flow accepts no app id, permission id, scope, qualifier, `accessGrantId`,
+decision id or caller-selected Realm endpoint.
+Runtime must never request and approve a Realm grant with the same account bearer. The retired
+`realm_source.snapshot.consume` and `realm_source.snapshot.bind` are
+non-authorizing and forbidden from positive implementation or evidence.
+The public `agents.interact` permission applies only after a LocalAgent exists and
+only after that separate permission is admitted; it is not an input to source
+materialization.
 
-```text
-<nimi_data>/apps/<local_app_principal_id>/
-```
+## P-PERM-015 Five Authority Classes
 
-where `<local_app_principal_id>` is resolved by Runtime K-APP and is never
-caller-supplied. `app_id` remains display/routing metadata.
+Every app action resolves to exactly one class:
 
-This qualifier is permission-review and scope-expression semantics only.
-It does not by itself admit a Runtime-mediated file API, SDK file client,
-Desktop bridge helper, Realm REST path, or direct filesystem operation.
+| Class | Meaning | Manifest | User prompt | Durable permission row |
+|---|---|---:|---:|---:|
+| `base_entitlement` | Calling principal's bounded Nimi-private surface | forbidden | forbidden | forbidden |
+| `user_permission` | Durable access to protected owner resources | admitted id only | just in time | owner lifecycle |
+| `one_shot_consent` | One explicit owner-picker selection | admitted id only | per selection | forbidden |
+| `app_owned_authority` | App host's own product/storage/commands | forbidden | forbidden by Nimi | forbidden |
+| `os_right` | Authority actually granted by the OS/sandbox | forbidden | OS-owned if applicable | forbidden |
 
-`MUST`：the calling app's data root admitted by this rule is the
-same Nimi-owned data root admitted by `P-NAPP-015` and bound to
-`storage_policy_ref.kind: nimi-mediated-default` by `P-NAPP-027`.
-The `app-local-drafts` qualifier is the SDK / Runtime projection of
-that admitted root; it does not introduce a parallel root.
+The classes are mutually exclusive. Review, launch, route availability and
+feature flags are not a sixth permission class. App-owned commands must not
+proxy protected Nimi operations; protected operations must not be mislabeled as
+app-owned or base entitlements.
 
-`MUST NOT`：the closed `P-PERM-002` scope enum MUST NOT be extended
-under this rule. `P-PERM-011` admits qualifier semantics for the
-already-admitted `file.read.scoped` and `file.write.scoped` scopes
-ONLY; it does not admit a new scope. Additional scope admission is a
-separate authority-bearing change to `P-PERM-002`.
+## P-PERM-016 Public Intent Versus Internal Enforcement
 
-`MUST NOT`：no consumer may treat this qualifier as permission to
-silently allow a path that escapes the admitted root. Parent traversal,
-absolute paths leaving the root, paths into another app's root
-`<nimi_data>/apps/<other_local_app_principal_id>/`, symbolic-link traversal that
-crosses out of the root, heuristic "close enough" path resolution, and
-fallback remapping are all forbidden. If a callable Nimi-mediated file
-surface is admitted by its execution owner, escape attempts MUST fail
-closed with typed reason `out_of_data_root`.
+One public permission may expand internally into many exact operations,
+resource provenance checks, quotas, budgets, rate limits and owner policies.
+For example `agents.interact` represents one selected-Agent intent while the
+owner still enforces projection, conversation, text/voice and derived-artifact
+boundaries on every call.
 
-`MUST NOT`：cross-app file access is not admitted by this rule. A path
-resolving into `<nimi_data>/apps/<other_local_app_principal_id>/` is not made valid by
-declaring `qualifier: app-local-drafts`.
+Users must not approve RPC methods, conversation anchors, turns, streams or
+internal file operations one by one. Apps and renderers cannot construct or
+display internal operation/resource identities. Least privilege remains exact
+inside the owner while the product surface stays human-comprehensible.
 
-Cross-references: `K-APP-018` records the current Runtime-mediated
-file-API non-admission; `S-APP-014` records the current SDK file-client
-non-admission. This Platform rule keeps the qualifier semantics but does
-not admit an execution surface.
+## P-PERM-017 Admission Completeness And UX Budget
 
-## P-PERM-012 - Zhiyu Proactive Interruptibility Permission Binding
+A public permission is admitted only when all of these land atomically:
+catalog row, one decision owner, manifest validation, owner selector, durable
+decision or one-shot proof, closed internal mapping, enforcement at every
+endpoint, SDK/Kit surface, just-in-time approval UI, settings/revoke UI, audit,
+negative tests and real positive evidence.
 
-`proactive_interruptibility_v1` uses the following `AIScopeRef` for the Zhiyu
-product slice:
-
-```text
-{
-  appId: 'nimi.zhiyu',
-  scopeFamily: 'notification',
-  scopeName: 'notification.subscribe',
-  qualifier: 'proactive_interruptibility_v1.in_app_surface'
-}
-```
-
-This scope is a product-facing opt-in for Runtime/host in-app proactive
-companion projection only. It does not admit OS notification delivery,
-`notification.send`, app registry release/admission, ordinary app visibility,
-or an app-local scheduler.
-
-`MUST`: missing, denied, revoked, or expired grant evidence suppresses
-`proactive_interruptibility_v1` delivery and surfaces an owner-projected
-`suppression_reason` plus audit evidence from Realm/Runtime as applicable.
-
-`MUST NOT`: Zhiyu, SDKs, and apps may not treat this scope as granted without
-Realm/Runtime grant evidence.
-
-`MUST NOT`: `notification.not_admitted` is the required delivery-channel value
-for OS notification paths in this PP6 slice until separate host notification
-authority exists.
-
-## P-PERM-013 — Local Principal Grant And Presence Separation
-
-Local project/package admission creates a principal and lifecycle record with
-zero grant. Provenance promotion also creates or widens no grant. The active
-grant is a separate K-GRANT record keyed by Runtime-derived OS-user anchor,
-current account, opaque local principal, and exact capability/resource
-fingerprint. `LocalAppRecord` contains no authoritative grant boolean.
-
-A valid principal and launch may open a restricted zero-grant identity session
-for permission posture. Every protected operation independently re-reads the
-current grant and owner policy. Grant mutation does not require relaunch, but
-the very next operation observes the new revision.
-
-Presence outcomes are the closed set `none | grant_presence |
-operation_presence | bounded_lease`. Runtime issues and atomically consumes
-the challenge bound to protected control session, account/generation,
-principal/record/provenance/generation, action, resource-impact digest, nonce,
-policy revision, and expiry. Project trust/reactivation and capability
-expansion use grant presence; operation-time presence remains owned by the
-operation domain. Cancel, expiry, replay, account switch, control disconnect,
-principal change, or policy change fails closed.
-
-## P-PERM-014 — Realm Grant Request And Runtime-Local Grant Owner Split
-
-`permission_scope_ref` remains exclusively Platform/Runtime-local authority.
-The app registry carries Realm grant request intent, when required, in the
-separate `realm_permission_request_refs` field. That field is a typed consumer
-projection over the external Realm permission-grant positive catalog; Platform
-does not own its scope vocabulary or lifecycle, and Runtime local grant stores
-must not ingest, mirror, convert, alias, or infer it as local permission truth.
-
-For Realm source materialization, the only admitted request projection is:
-
-```yaml
-appId: nimi.avatar
-scopeFamily: realm_source
-scopeName: realm_source.snapshot.consume
-qualifier: null
-qualifierKey: ""
-authorizingState: GRANTED
-```
-
-The `appId=nimi.avatar` value is solely part of this fixed Realm-owned request
-selector. It does not identify a Runtime-local app principal, activate an
-Avatar first-party seed grant, or provide evidence for any Nimi local
-permission.
-
-The exact Realm lifecycle is request -> canonical active record. A canonical
-`PENDING` record requires an explicit version-guarded grant of the same id. A
-canonical current `GRANTED` record is durable scope authorization and is
-reused without calling the decision endpoint again. The Packet request uses
-that same canonical id as `accessGrantId`; each Packet acquisition still has a
-fresh Runtime challenge, nonce, TTL, proof, and Realm-side authorization
-evaluation. Every other state or selector/subject/version mismatch fails
-closed. `realm_source.snapshot.bind` is not current positive Realm
-authority.
-`agent.identity.project` remains in the Runtime-local Platform taxonomy, but
-Realm source materialization does not establish, infer, request, or check that
-scope and does not use any Avatar local seed grant as a commit gate. The Realm
-grant must never be ingested, mirrored, converted, aliased, or inferred as a
-substitute local grant. Realm owns source-snapshot consumption authority and
-has no Agent or LocalAgent ontology; Runtime owns all LocalAgent identity and
-lifecycle truth.
+The product UX budget is one decision per recognizable intent and selected
+resource set. Install-time permission walls, method-level prompts, hidden
+scope/qualifier editors, raw resource ids and duplicate Runtime/Realm approvals
+are forbidden. A normal app using only its own data must launch with zero Nimi
+permission prompts.
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/agent-identity-floor-contract.md` — `P-AGID-001..P-AGID-008`
-- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-011; P-NAPP-013..P-NAPP-015; P-NAPP-018..P-NAPP-029`
-- `.nimi/spec/platform/kernel/nimi-app-local-admission-contract.md` — `P-NAPP-030..P-NAPP-032`
-- `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
-- `.nimi/spec/platform/kernel/tables/nimi-app-trust-tiers.yaml`
-- `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-013`
-- `.nimi/spec/realm/kernel/social-contract.md` — `R-SOC-*`
-- `.nimi/spec/realm/kernel/oauth-authority-contract.md` — `R-OAUTH-*`
-- `.nimi/spec/cognition/kernel/app-memory-access-contract.md` — `C-APMEM-001..C-APMEM-008`
-- `.nimi/spec/sdks/kernel/nimi-permission-client-contract.md` — `S-PERM-001..S-PERM-008`
-- `.nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md` — `K-LENG-024..K-LENG-027`
-- `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` — `K-LENG-028`
+- `.nimi/spec/platform/kernel/tables/nimi-app-permission-catalog.yaml`
+- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md`
+- `.nimi/spec/runtime/kernel/grant-service.md`
+- `.nimi/spec/runtime/kernel/account-session-contract.md`
+- `.nimi/spec/sdks/kernel/nimi-permission-client-contract.md`
+- `.nimi/spec/realm/external-realm.md`
+- `.nimi/spec/cognition/kernel/app-memory-access-contract.md`

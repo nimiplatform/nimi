@@ -82,7 +82,7 @@ test('Electron local-app host does not synthesize Runtime account authority', ()
   assert.doesNotMatch(rendererAuthSource, /DeveloperRegistered|FullAppRegistration|AppSessionMetadataProvider/);
   assert.doesNotMatch(rendererAuthSource, /local-developer|developerRegistration|getRuntimeAccountCaller/);
   assert.match(rendererAuthSource, /testerLocalAppRuntimePlatform\.auth\.status\(\)/);
-  assert.match(rendererAuthSource, /operationAllowed/);
+  assert.match(rendererAuthSource, /status\.sessionBound/);
   assert.doesNotMatch(rendererAuthSource, /readonly client:|readonly auth:/);
 });
 

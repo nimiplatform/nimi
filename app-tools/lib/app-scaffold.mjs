@@ -2,6 +2,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { readAppSourceFile, resolveAppSource } from '../scripts/sync-app-source.mjs';
 import { loadDefaultStarterSource, readDefaultStarterSourceFile } from './app-scaffold-default-source.mjs';
+import { normalizePermissionRequirements } from './app-manifest-permissions.mjs';
 import {
   SUPPORTED_APP_SCAFFOLD_PROFILES,
   buildDefaultStarterFiles,
@@ -10,7 +11,7 @@ import {
 export { SUPPORTED_APP_SCAFFOLD_PROFILES };
 const DEFAULT_APP_ID = 'my-nimi-app';
 const DEFAULT_APP_TITLE = 'My Nimi App';
-export const SCAFFOLD_VERSION = '2026-07-12.local-development-v1';
+export const SCAFFOLD_VERSION = '2026-07-18.permission-model-v1';
 export const SCAFFOLD_STATE_DIR = '.nimi/app-scaffold';
 export const SCAFFOLD_INTENT_PATH = `${SCAFFOLD_STATE_DIR}/intent.json`;
 export const SCAFFOLD_LOCK_PATH = `${SCAFFOLD_STATE_DIR}/lock.json`;
@@ -32,14 +33,6 @@ const GENERATED_GITIGNORE = [
 ].join('\n');
 const MINIMAL_TAURI_ICON_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=', 'base64');
 const MINIMAL_TAURI_ICON_ICO = Buffer.from('AAABAAEAAQEAAAEAIABEAAAAFgAAAIlQTkcNChoKAAAADUlIRFIAAAABAAAAAQgGAAAAHxXEiQAAAAtJREFUeJxjYAACAAAFAAF6Xqs/AAAAAElFTkSuQmCC', 'base64');
-const CANONICAL_PERMISSION_SCOPES = new Set('account.read account.session.read data.scope.read data.scope.write agent.identity.project agent.identity.bind ai.spend.meter ai.spend.delegate memory.read.bounded memory.write.admitted knowledge.read.bounded knowledge.write.admitted notification.send notification.subscribe file.read.scoped file.write.scoped device.use.scoped audit.read.scoped ai_profile.selection.consume'.split(' '));
-const DEFAULT_PERMISSION_DECLARATIONS = Object.freeze([
-  Object.freeze({
-    scope: 'data.scope.read',
-    qualifier: 'runtime.artifacts',
-    purpose: 'Read Runtime-owned bootstrap artifacts through the typed app-host surface.',
-  }),
-]);
 
 function normalizeScaffoldOmissions(input) {
   const source = Array.isArray(input) ? input : [];
@@ -211,34 +204,7 @@ function deriveScaffoldDevPort(appId) {
   return 1430 + hash;
 }
 
-function normalizePermissionDeclarations(input) {
-  const source = Array.isArray(input) && input.length > 0
-    ? input
-    : DEFAULT_PERMISSION_DECLARATIONS;
-  const seen = new Set();
-  return source.map((entry, index) => {
-    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
-      throw new Error(`Invalid permission declaration ${index}`);
-    }
-    const scope = String(entry.scope || '').trim();
-    const qualifier = String(entry.qualifier || '').trim();
-    const purpose = String(entry.purpose || '').trim();
-    if (!CANONICAL_PERMISSION_SCOPES.has(scope)) {
-      throw new Error(`Invalid permission declaration scope: ${scope || 'missing'}`);
-    }
-    if (!purpose) {
-      throw new Error(`Invalid permission declaration purpose for ${scope}`);
-    }
-    const key = `${scope}\u0000${qualifier}`;
-    if (seen.has(key)) {
-      throw new Error(`Duplicate permission declaration: ${scope}${qualifier ? `:${qualifier}` : ''}`);
-    }
-    seen.add(key);
-    return qualifier ? { scope, qualifier, purpose } : { scope, purpose };
-  });
-}
-
-function buildAppIdentity(profile, appId, appTitle, packageName, author = '', accentPack = 'nimi-accent', permissionDeclarations = undefined, scaffoldOmissions = undefined) {
+function buildAppIdentity(profile, appId, appTitle, packageName, author = '', accentPack = 'nimi-accent', permissionRequirements = undefined, scaffoldOmissions = undefined) {
   const resolvedPackageName = packageName || packageSafeName(appId);
   return {
     appId,
@@ -250,7 +216,7 @@ function buildAppIdentity(profile, appId, appTitle, packageName, author = '', ac
     appSlug: appSlugFromAppId(appId),
     rendererEntryId: `${appSlugFromAppId(appId)}-app`,
     accentPack: String(accentPack || '').trim() || 'nimi-accent',
-    permissionDeclarations: normalizePermissionDeclarations(permissionDeclarations),
+    permissionRequirements: normalizePermissionRequirements(permissionRequirements),
     scaffoldOmissions: normalizeScaffoldOmissions(scaffoldOmissions),
     devPort: deriveScaffoldDevPort(appId),
     author: String(author || '').trim(),
@@ -372,27 +338,25 @@ function applyIdentityReplacement(content, manifest, target) {
   return rendered;
 }
 
-function renderPermissionDeclarations(declarations) {
+function renderPermissionRequirements(requirements) {
   const lines = [];
-  for (const declaration of declarations) {
-    lines.push(`    - scope: ${declaration.scope}`);
-    if (declaration.qualifier) {
-      lines.push(`      qualifier: ${declaration.qualifier}`);
-    }
-    lines.push(`      purpose: ${declaration.purpose}`);
+  for (const requirement of requirements) {
+    lines.push(`  - id: ${JSON.stringify(requirement.id)}`);
+    lines.push(`    reason: ${JSON.stringify(requirement.reason)}`);
   }
   return lines;
 }
 
 function buildNimiAppManifest(identity) {
+  const permissionLines = identity.permissionRequirements.length === 0
+    ? ['permissions: []']
+    : ['permissions:', ...renderPermissionRequirements(identity.permissionRequirements)];
   return [
     `app_id: ${identity.appId}`,
     `display_name: ${identity.appTitle}`,
     `profile: ${identity.profile}`,
     'manifest_role: submitted-input',
-    'permissions:',
-    '  declared_nimi_api_scopes:',
-    ...renderPermissionDeclarations(identity.permissionDeclarations),
+    ...permissionLines,
     '',
   ].join('\n');
 }
@@ -505,7 +469,7 @@ function buildScaffoldIntent(identity, versions) {
     cargoPackageName: identity.cargoPackageName,
     tauriIdentifier: identity.tauriIdentifier,
     accentPack: identity.accentPack,
-    permissionDeclarations: identity.permissionDeclarations,
+    permissionRequirements: identity.permissionRequirements,
     scaffoldOmissions: identity.scaffoldOmissions,
     devPort: identity.devPort,
     dependencyMatrix: buildDependencyMatrix(identity.profile, versions),
@@ -673,7 +637,7 @@ function buildScaffoldLock(identity, versions, files) {
     cargoPackageName: identity.cargoPackageName,
     tauriIdentifier: identity.tauriIdentifier,
     accentPack: identity.accentPack,
-    permissionDeclarations: identity.permissionDeclarations,
+    permissionRequirements: identity.permissionRequirements,
     scaffoldOmissions: identity.scaffoldOmissions,
     appIdentity: {
       appId: identity.appId,
@@ -683,7 +647,7 @@ function buildScaffoldLock(identity, versions, files) {
       cargoPackageName: identity.cargoPackageName,
       tauriIdentifier: identity.tauriIdentifier,
       accentPack: identity.accentPack,
-      permissionDeclarations: identity.permissionDeclarations,
+      permissionRequirements: identity.permissionRequirements,
       scaffoldOmissions: identity.scaffoldOmissions,
       identityRole: 'scaffold-generated-authoring-input',
     },
@@ -713,8 +677,8 @@ function buildScaffoldLock(identity, versions, files) {
   };
 }
 
-export function buildAppScaffoldSnapshot({ profile, versions, appId, appTitle, packageName, author, accentPack, permissionDeclarations, scaffoldOmissions }) {
-  const identity = buildAppIdentity(profile, appId, appTitle, packageName, author, accentPack, permissionDeclarations, scaffoldOmissions);
+export function buildAppScaffoldSnapshot({ profile, versions, appId, appTitle, packageName, author, accentPack, permissionRequirements, scaffoldOmissions }) {
+  const identity = buildAppIdentity(profile, appId, appTitle, packageName, author, accentPack, permissionRequirements, scaffoldOmissions);
   const createFiles = [
     ...buildScaffoldFiles(identity, versions),
     buildScaffoldIntentFile(identity, versions),
@@ -772,7 +736,7 @@ export function buildAppScaffoldSnapshotFromIntent({ intent, versions }) {
     packageName: intent.packageName,
     author: intent.packageAuthor || '',
     accentPack: intent.accentPack || 'nimi-accent',
-    permissionDeclarations: intent.permissionDeclarations || intent.appIdentity?.permissionDeclarations,
+    permissionRequirements: intent.permissionRequirements || intent.appIdentity?.permissionRequirements,
     scaffoldOmissions: intent.scaffoldOmissions || intent.appIdentity?.scaffoldOmissions,
   });
 }

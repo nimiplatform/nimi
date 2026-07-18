@@ -53,22 +53,9 @@ pub struct LocalDevelopmentProjectAuthorizationSummary {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct LocalDevelopmentGrantSummary {
-    pub availability: LocalDevelopmentSummaryAvailability,
-    pub pending_count: u64,
-    pub granted_count: u64,
-    pub denied_count: u64,
-    pub expired_count: u64,
-    pub revoked_count: u64,
-    pub superseded_count: u64,
-    pub unavailable_reason: Option<NimiHostErrorReasonCode>,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct LocalDevelopmentAuthoritySummary {
     pub developer_mode: LocalDevelopmentDeveloperModeSummary,
     pub project_authorization: LocalDevelopmentProjectAuthorizationSummary,
-    pub grant_summary: LocalDevelopmentGrantSummary,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -149,8 +136,14 @@ pub struct LocalDevelopmentProject {
     pub canonical_manifest_path: PathBuf,
     pub shell_kind: LocalDevelopmentShellKind,
     pub account_id: String,
-    pub requested_capabilities: Vec<String>,
-    pub capability_fingerprint: [u8; 32],
+    pub permission_requirements: Vec<LocalDevelopmentPermissionRequirement>,
+    pub permission_requirement_fingerprint: [u8; 32],
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LocalDevelopmentPermissionRequirement {
+    pub permission_id: String,
+    pub reason: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -234,9 +227,9 @@ pub enum NimiHostErrorReasonCode {
     LocalDevelopmentOperationForbidden,
     LocalDevelopmentDevServerUncontrolled,
     LocalDevelopmentApprovalDenied,
-    LocalAppGrantRequired,
-    LocalAppGrantRevoked,
-    LocalAppGrantSuperseded,
+    LocalAppPermissionRequired,
+    LocalAppPermissionDenied,
+    LocalAppPermissionRevoked,
     LocalAppPresenceRequired,
     LocalAppPresenceExpired,
     LocalAppOperationUnavailable,
@@ -263,9 +256,9 @@ impl NimiHostErrorReasonCode {
                 "local-development-dev-server-uncontrolled"
             }
             Self::LocalDevelopmentApprovalDenied => "local-development-approval-denied",
-            Self::LocalAppGrantRequired => "local-app-grant-required",
-            Self::LocalAppGrantRevoked => "local-app-grant-revoked",
-            Self::LocalAppGrantSuperseded => "local-app-grant-superseded",
+            Self::LocalAppPermissionRequired => "local-app-permission-required",
+            Self::LocalAppPermissionDenied => "local-app-permission-denied",
+            Self::LocalAppPermissionRevoked => "local-app-permission-revoked",
             Self::LocalAppPresenceRequired => "local-app-presence-required",
             Self::LocalAppPresenceExpired => "local-app-presence-expired",
             Self::LocalAppOperationUnavailable => "local-app-operation-unavailable",

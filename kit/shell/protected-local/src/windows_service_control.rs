@@ -25,8 +25,7 @@ use crate::{
     DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse, DesktopAccountSessionStatus,
     DesktopAccountSessionStatusRequest, DesktopProductControlError, DesktopProductControlRequest,
     DesktopProductControlResponse, DesktopRuntimeConsumerError, DesktopRuntimeConsumerRequest,
-    DesktopRuntimeConsumerResponse, DeveloperModeStatus, LocalAppGrantControlDecisionRequest,
-    LocalAppGrantControlPending, LocalAppGrantControlProjection, LocalDevelopmentAuthoritySummary,
+    DesktopRuntimeConsumerResponse, DeveloperModeStatus, LocalDevelopmentAuthoritySummary,
     LocalDevelopmentAuthorization, LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest,
     LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
     LocalDevelopmentLaunchRequest, LocalDevelopmentReactivationRequest, NimiDesktopControl,
@@ -240,44 +239,6 @@ impl NimiDesktopControl for WindowsDesktopControl {
         Box::pin(crate::windows_local_development::set_developer_mode(
             self.channel(),
             enabled,
-        ))
-    }
-
-    fn pending_local_app_grant(
-        &self,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<Option<LocalAppGrantControlPending>, NimiHostError>>
-                + Send
-                + '_,
-        >,
-    > {
-        Box::pin(crate::windows_local_app_grant_control::pending_grant(
-            self.channel(),
-        ))
-    }
-
-    fn decide_local_app_grant(
-        &self,
-        request: LocalAppGrantControlDecisionRequest,
-    ) -> Pin<
-        Box<dyn Future<Output = Result<LocalAppGrantControlProjection, NimiHostError>> + Send + '_>,
-    > {
-        Box::pin(crate::windows_local_app_grant_control::decide_grant(
-            self.channel(),
-            request,
-        ))
-    }
-
-    fn revoke_local_app_grant(
-        &self,
-        grant_id: [u8; 32],
-    ) -> Pin<
-        Box<dyn Future<Output = Result<LocalAppGrantControlProjection, NimiHostError>> + Send + '_>,
-    > {
-        Box::pin(crate::windows_local_app_grant_control::revoke_grant(
-            self.channel(),
-            grant_id,
         ))
     }
 

@@ -14,7 +14,7 @@ const manifest = readFileSync(new URL('../nimi.app.yaml', import.meta.url), 'utf
 test('generated app uses one typed local-app carrier for Electron and Tauri development', () => {
   assert.match(authSource, /getNimiAppRuntimePlatformClient/);
   assert.match(authSource, /\.auth\.status\(\)/);
-  assert.match(authSource, /status\.state !== 'session-bound-zero-grant'/);
+  assert.match(authSource, /status\.state !== 'session-bound'/);
   assert.match(authSource, /'local-app'/);
   assert.doesNotMatch(authSource, /DeveloperRegistered|developerRegistration|AppSessionMetadataProvider|createNimiClient/);
   assert.match(localAppClientSource, /createNimiAppRuntimePlatformClient/);
@@ -53,13 +53,12 @@ test('renderer installs the Kit bridge before render and exposes real session po
   const renderAt = mainSource.indexOf('.render(');
   assert.ok(bootstrapAt > -1 && renderAt > bootstrapAt);
   assert.match(productSource, /data-testid="nimi-app-host-status"/);
-  assert.match(productSource, /data-testid="nimi-app-host-artifact-status"/);
-  assert.match(productSource, /zero-grant-session/);
+  assert.match(productSource, /data-testid="nimi-app-host-authority-status"/);
+  assert.match(productSource, /app-private-base-entitlement-ready/);
 });
 
-test('manifest requests only the admitted Runtime artifact operation', () => {
+test('manifest requests no permission while the admitted public set is empty', () => {
   assert.match(manifest, /manifest_role: submitted-input/);
-  assert.match(manifest, /scope: data\.scope\.read/);
-  assert.match(manifest, /qualifier: runtime\.artifacts/);
-  assert.doesNotMatch(manifest, /grant|session|token/);
+  assert.match(manifest, /permissions:\s*\[\]/);
+  assert.doesNotMatch(manifest, /scope:|qualifier:|grant|session|token/);
 });

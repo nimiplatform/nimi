@@ -177,9 +177,9 @@ codes:
   - { name: LOCAL_APP_LAUNCH_LEASE_REPLAY, value: 648, family: LOCAL_APP, source_rule: K-ERR-012 }
   - { name: LOCAL_APP_PROCESS_MISMATCH, value: 649, family: LOCAL_APP, source_rule: K-ERR-012 }
   - { name: LOCAL_APP_SESSION_REVOKED, value: 650, family: LOCAL_APP, source_rule: K-ERR-012 }
-  - { name: LOCAL_APP_GRANT_REQUIRED, value: 651, family: LOCAL_APP, source_rule: K-ERR-012 }
-  - { name: LOCAL_APP_GRANT_REVOKED, value: 652, family: LOCAL_APP, source_rule: K-ERR-012 }
-  - { name: LOCAL_APP_GRANT_SUPERSEDED, value: 653, family: LOCAL_APP, source_rule: K-ERR-012 }
+  - { name: LOCAL_APP_PERMISSION_REQUIRED, value: 651, family: LOCAL_APP, source_rule: K-ERR-012 }
+  - { name: LOCAL_APP_PERMISSION_DENIED, value: 652, family: LOCAL_APP, source_rule: K-ERR-012 }
+  - { name: LOCAL_APP_PERMISSION_REVOKED, value: 653, family: LOCAL_APP, source_rule: K-ERR-012 }
   - { name: LOCAL_APP_ACCOUNT_CHANGED, value: 654, family: LOCAL_APP, source_rule: K-ERR-012 }
   - { name: LOCAL_APP_OPERATION_UNAVAILABLE, value: 655, family: LOCAL_APP, source_rule: K-ERR-012 }
   - { name: LOCAL_APP_PRESENCE_REQUIRED, value: 656, family: LOCAL_APP, source_rule: K-ERR-012 }

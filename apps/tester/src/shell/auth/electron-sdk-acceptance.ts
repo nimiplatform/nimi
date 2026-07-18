@@ -24,7 +24,7 @@ type TesterElectronSdkAcceptanceProbeResult =
 type TesterElectronSdkAcceptanceProbe = {
   localAppAuthStatus(): Promise<TesterElectronSdkAcceptanceProbeResult>;
   localAppProjection(): Promise<TesterElectronSdkAcceptanceProbeResult>;
-  localAppArtifactRead(): Promise<TesterElectronSdkAcceptanceProbeResult>;
+  localAppStorageWrite(): Promise<TesterElectronSdkAcceptanceProbeResult>;
 };
 
 const ELECTRON_SDK_ACCEPTANCE_QUERY = 'nimiElectronSdkAcceptance';
@@ -73,7 +73,6 @@ export function installTesterElectronSdkAcceptanceProbe(): void {
           status: status.state,
           reason: {
             sessionBound: status.sessionBound,
-            operationAllowed: status.operationAllowed,
             reasonCode: status.reasonCode,
             actionHint: status.actionHint,
           },
@@ -100,20 +99,19 @@ export function installTesterElectronSdkAcceptanceProbe(): void {
         return serializeSdkAcceptanceError(error, transport);
       }
     },
-    async localAppArtifactRead() {
+    async localAppStorageWrite() {
       const transport = acceptanceTransport();
       try {
-        const artifact = await testerLocalAppRuntimePlatform.artifacts.readRuntimeBytes(
-          'runtime-artifact-sdk-acceptance',
+        const document = await testerLocalAppRuntimePlatform.storage.writeJson(
+          'acceptance/app-private.json',
+          { source: 'tester-electron-acceptance' },
         );
         return {
           ok: true,
           transport,
-          status: 'local-app-artifact-readable',
+          status: 'app-private-storage-writable',
           reason: {
-            mimeType: artifact.mimeType,
-            sizeBytes: artifact.sizeBytes,
-            mimeInferred: artifact.mimeInferred,
+            sizeBytes: document.sizeBytes,
           },
         };
       } catch (error) {

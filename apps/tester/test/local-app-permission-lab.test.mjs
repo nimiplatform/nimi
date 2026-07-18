@@ -10,5 +10,5 @@ test('local app permission drawer keeps all controls reachable on narrow screens
 
   assert.match(source, /panelClassName="flex flex-col overflow-hidden"/);
   assert.match(source, /contentClassName="min-h-0 min-w-0 flex-1 overflow-y-auto"/);
-  assert.match(source, /撤销后的即时拒绝/);
+  assert.match(source, /保留权限 fail-close/);
 });

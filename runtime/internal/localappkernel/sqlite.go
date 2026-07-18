@@ -70,7 +70,6 @@ type Kernel struct {
 
 	principals *PrincipalStore
 	records    *RecordStore
-	grants     *GrantStore
 	keys       *KeyDeriver
 }
 
@@ -113,7 +112,6 @@ func OpenSQLite(ctx context.Context, databasePath string, sid VerifiedInteractiv
 	}
 	kernel.principals = &PrincipalStore{kernel: kernel}
 	kernel.records = &RecordStore{kernel: kernel}
-	kernel.grants = &GrantStore{kernel: kernel}
 	kernel.keys = &KeyDeriver{kernel: kernel}
 	return kernel, nil
 }
@@ -144,13 +142,6 @@ func (kernel *Kernel) Records() *RecordStore {
 		return nil
 	}
 	return kernel.records
-}
-
-func (kernel *Kernel) Grants() *GrantStore {
-	if kernel == nil {
-		return nil
-	}
-	return kernel.grants
 }
 
 func (kernel *Kernel) SecurityKeys() *KeyDeriver {
@@ -205,24 +196,6 @@ func (kernel *Kernel) initialize(ctx context.Context) error {
 			UNIQUE(local_os_user_anchor, local_app_principal_id),
 			FOREIGN KEY(local_os_user_anchor, local_app_principal_id) REFERENCES local_app_principals(local_os_user_anchor, local_app_principal_id)
 		)`,
-		`CREATE TABLE IF NOT EXISTS local_app_grants (
-			local_os_user_anchor TEXT NOT NULL,
-			account_id TEXT NOT NULL,
-			local_app_principal_id TEXT NOT NULL,
-			capability_resource_fingerprint TEXT NOT NULL,
-			grant_id TEXT NOT NULL UNIQUE,
-			capability_scope_json TEXT NOT NULL,
-			resource_scope_json TEXT NOT NULL,
-			grant_generation INTEGER NOT NULL CHECK(grant_generation > 0),
-			grant_revision INTEGER NOT NULL CHECK(grant_revision > 0),
-			state TEXT NOT NULL CHECK(state IN ('pending','granted','denied','expired','revoked','superseded')),
-			issued_unix_nano INTEGER NOT NULL,
-			expires_unix_nano INTEGER,
-			supersedes_grant_id TEXT,
-			presence_evidence_ref TEXT NOT NULL,
-			PRIMARY KEY(local_os_user_anchor, account_id, local_app_principal_id, capability_resource_fingerprint),
-			FOREIGN KEY(local_os_user_anchor, local_app_principal_id) REFERENCES local_app_principals(local_os_user_anchor, local_app_principal_id)
-		)`,
 		`CREATE TABLE IF NOT EXISTS local_app_provenance_invalidation_facts (
 			sequence INTEGER PRIMARY KEY AUTOINCREMENT,
 			local_os_user_anchor TEXT NOT NULL,
@@ -232,7 +205,6 @@ func (kernel *Kernel) initialize(ctx context.Context) error {
 			current_revision INTEGER NOT NULL CHECK(current_revision = previous_revision + 1),
 			launch_leases_invalidated INTEGER NOT NULL CHECK(launch_leases_invalidated = 1),
 			sessions_invalidated INTEGER NOT NULL CHECK(sessions_invalidated = 1),
-			grant_state_changed INTEGER NOT NULL CHECK(grant_state_changed = 0),
 			recorded_unix_nano INTEGER NOT NULL
 		)`,
 		`CREATE TRIGGER IF NOT EXISTS local_app_principal_identity_immutable

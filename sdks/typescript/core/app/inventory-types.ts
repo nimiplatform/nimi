@@ -15,7 +15,6 @@ export type NimiAppOrdinaryVisibility =
   | 'not-admitted-visible';
 export type AppLaunchReadiness =
   | 'ready'
-  | 'permission-required'
   | 'package-unavailable'
   | 'local-record-dormant'
   | 'blocked-by-master-gate'
@@ -28,7 +27,7 @@ export type NimiAppInventoryInstallState =
   | 'removed'
   | 'unknown';
 export type NimiAppInventorySourceStatus = 'present' | 'absent' | 'degraded';
-export type NimiAppInventoryNextAction = 'open' | 'review-permissions' | 'sign-in';
+export type NimiAppInventoryNextAction = 'open' | 'sign-in';
 
 export const CANONICAL_TRUST_TIERS: readonly TrustTierId[] = [
   'nimi-first-party',
@@ -44,7 +43,6 @@ export const CANONICAL_ORDINARY_VISIBILITY: readonly NimiAppOrdinaryVisibility[]
 ];
 export const CANONICAL_LAUNCH_READINESS: readonly AppLaunchReadiness[] = [
   'ready',
-  'permission-required',
   'package-unavailable',
   'local-record-dormant',
   'blocked-by-master-gate',
@@ -68,7 +66,6 @@ export const CANONICAL_APP_OPEN_READINESS: readonly NimiAppOpenReadiness[] = [
 ];
 export const CANONICAL_APP_INVENTORY_NEXT_ACTIONS: readonly NimiAppInventoryNextAction[] = [
   'open',
-  'review-permissions',
   'sign-in',
 ];
 
@@ -110,7 +107,6 @@ export interface NimiAppLocalRecordRow {
     | 'account-changed'
     | 'runtime-restarted'
     | 'unavailable';
-  readonly grantPosture?: 'zero-grant' | 'granted' | 'denied' | 'unavailable';
   readonly reasonCode?: string;
   readonly detail?: string;
 }

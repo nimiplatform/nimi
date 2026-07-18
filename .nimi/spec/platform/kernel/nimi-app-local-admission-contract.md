@@ -21,7 +21,7 @@ composed, at projection time, from the following typed conjunction:
   - `trust_tier_ref` (`P-NAPP-004` floor),
   - `package_kind` (`P-NAPP-001`),
   - `release_descriptor_ref` (`P-NAPP-014`),
-  - `permission_scope_ref` (`P-PERM-007`),
+  - `permission_requirements` (`P-PERM-007`; an empty list is resolved),
   - `runtime_registration_mode` (`P-NAPP-006`),
   - `storage_policy_ref` (`P-NAPP-015` / `P-NAPP-027`); AND
 - no host, runtime, or Realm projection emits a fail-close on the row
@@ -39,7 +39,7 @@ the explicit field-set composition that predicate evaluates over.
 
 `MUST NOT`：the listing predicate MUST NOT be reduced to a subset of
 the six resolved-field conjuncts. Each conjunct is independently
-required; collapsing two (e.g. treating `permission_scope_ref`
+required; collapsing two (e.g. treating `permission_requirements`
 resolution as implied by `release_descriptor_ref` resolution) fails
 the row out of `ordinary-visible` projection by violating the
 admitted conjunction.
@@ -53,9 +53,9 @@ admitted conjunction.
 - `local_record` — Runtime K-APP local principal/lifecycle projection.
 
 Source identity remains inspectable. Joining rows by display `app_id` cannot
-merge principals, grant state, storage, audience, or sessions. Catalog,
-account, local record, and current grant are separate facts and no inventory
-composer may turn one into another.
+merge principals, permission posture, storage, audience, or sessions. Catalog,
+account, local record, and current permission posture are separate facts and no
+inventory composer may turn one into another.
 
 ## P-NAPP-032 — Local Record Creation Boundary
 
@@ -63,37 +63,52 @@ A mutable project enters only through `local_development`; an immutable package
 remains typed unavailable until 0P admits the package-to-opaque-lineage mapping.
 Workspace adoption, workspace scanning, file presence, npm/npx installation,
 cloned source, process liveness, or app-local specs cannot create a principal,
-record, provenance, grant, launch lease, or session. No alias or inventory-only
-record may provide another positive path.
+record, provenance, permission decision, launch lease, or session. No alias or
+inventory-only record may provide another positive path.
 
 ## P-NAPP-035 — Production Developer Mode And Local Development
 
 `local_development` is the sole mutable third-party provenance class and uses
-the same principal, launch/session, grant, and owner-operation coordinator as
-immutable classes. The global Developer Mode toggle grants nothing. Each
+the same principal, launch/session, permission, and owner-operation coordinator
+as immutable classes. The global Developer Mode toggle grants nothing. Each
 project requires fresh presence and an explicit `run_once` or
 `remember_project` decision.
 
 Authorization binds canonical project-root file identity, declared app id,
-capability fingerprint, current account, fixed shell/entry policy, and
-development authorization. The fingerprint may include closed, typed
-`local_development.runtime_scoped_binding_requests`; those declarations are
-request eligibility only and never substitute for a Runtime grant or
-Runtime-issued scoped binding. Every build/host replacement receives a new lease,
-process binding, and local-app session. Controlled HMR/rebuild/restart and
-Runtime restart may rebind without repeated consent only while those durable
-bindings and the supervisor run remain exact. Account switch, mode-off,
-revoke, supervisor end, root/app/capability/shell/origin mismatch, or copied
+permission-requirement fingerprint, current account, fixed shell/entry policy,
+and development authorization. The top-level `permissions` list contains only
+closed public `{ id, reason }` requirements admitted by `P-PERM-002`; it is
+request eligibility only and never substitutes for an owner-issued selector or
+permission decision. The current admitted list is empty, so a non-empty local
+manifest fails before project approval. Every build/host replacement receives a
+new lease, process binding, and local-app session. Controlled HMR/rebuild/restart
+and Runtime restart may rebind without repeated consent only while those durable
+bindings and the supervisor run remain exact. Account switch, mode-off, revoke,
+supervisor end, root/app/permission-requirement/shell/origin mismatch, or copied
 project invalidates the applicable authority.
+
+The public permission-requirement list may be empty. An application that uses only
+its own native host, app-owned OS storage, or the bounded app-private storage
+base entitlement is still a valid local-development project. App-private base
+entitlements and exact app-owned host commands are not inserted into the
+permission-requirement fingerprint; changes to the native host remain
+covered by the existing host/payload digest, shell/entry, process, and project
+generation bindings. After a public permission is atomically admitted, any
+change to the manifest permission-requirement list changes the fingerprint and
+requires the existing reapproval flow.
 
 `remember_project` becomes dormant when mode is off and requires fresh
 presence to reactivate; it never auto-runs. `run_once` ends with the supervisor
 run or any invalidation trigger. Development may use a controlled production
 account through Runtime-mediated APIs but receives no token, bearer, stronger
 permission, or persistent Nimi-managed logon/boot autostart. UI must disclose
-that Nimi grants constrain Nimi APIs, not all ordinary OS rights of native
+that Nimi permissions constrain Nimi APIs, not all ordinary OS rights of native
 development code under the selected launch profile. For the admitted Windows
 row this preserves the current disclosure about ordinary Windows rights.
+The renderer receives no raw filesystem, account, credential, partition, or
+generic host proxy. Electron and Tauri may register exact app-owned commands in
+the native host; those commands are app authority, not Nimi permissions, and may not
+tunnel protected Runtime/Realm operations.
 
 ## P-NAPP-036 — Closed Local Provenance And Principal Relationship
 
@@ -109,5 +124,5 @@ The security subject is Runtime's random/non-reused
 provenance revision, execution-profile ref, and host/payload digest slots are
 frozen by 0K. 0P may map package and attestation inputs into those slots but
 cannot rename or reshape them. Promotion invalidates leases/sessions and never
-grants. Shipped Zhiyu remains bundled; its integration build is an isolated
+creates a permission decision. Shipped Zhiyu remains bundled; its integration build is an isolated
 development principal.

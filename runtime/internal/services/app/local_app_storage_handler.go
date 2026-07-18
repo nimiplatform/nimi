@@ -8,12 +8,13 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 )
 
 func (s *Service) ReadLocalAppStorageJson(ctx context.Context, req *runtimev1.ReadLocalAppStorageJsonRequest) (*runtimev1.ReadLocalAppStorageJsonResponse, error) {
-	decision, err := s.localAppStorageDecision(ctx, accountservice.LocalAppOperationStorageJSONRead, appstorage.LocalAppJSONReadCapability)
+	decision, err := s.localAppStorageDecision(ctx, accountservice.LocalAppOperationStorageJSONRead)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +35,7 @@ func (s *Service) ReadLocalAppStorageJson(ctx context.Context, req *runtimev1.Re
 }
 
 func (s *Service) WriteLocalAppStorageJson(ctx context.Context, req *runtimev1.WriteLocalAppStorageJsonRequest) (*runtimev1.WriteLocalAppStorageJsonResponse, error) {
-	decision, err := s.localAppStorageDecision(ctx, accountservice.LocalAppOperationStorageJSONWrite, appstorage.LocalAppJSONWriteCapability)
+	decision, err := s.localAppStorageDecision(ctx, accountservice.LocalAppOperationStorageJSONWrite)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +56,7 @@ func (s *Service) WriteLocalAppStorageJson(ctx context.Context, req *runtimev1.W
 }
 
 func (s *Service) RemoveLocalAppStorageJson(ctx context.Context, req *runtimev1.RemoveLocalAppStorageJsonRequest) (*runtimev1.RemoveLocalAppStorageJsonResponse, error) {
-	decision, err := s.localAppStorageDecision(ctx, accountservice.LocalAppOperationStorageJSONRemove, appstorage.LocalAppJSONWriteCapability)
+	decision, err := s.localAppStorageDecision(ctx, accountservice.LocalAppOperationStorageJSONRemove)
 	if err != nil {
 		return nil, err
 	}
@@ -71,12 +72,13 @@ func (s *Service) RemoveLocalAppStorageJson(ctx context.Context, req *runtimev1.
 	return &runtimev1.RemoveLocalAppStorageJsonResponse{Removed: removed, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
-func (s *Service) localAppStorageDecision(ctx context.Context, operation accountservice.LocalAppOperation, capability string) (accountservice.LocalAppCallerDecision, error) {
+func (s *Service) localAppStorageDecision(ctx context.Context, operation accountservice.LocalAppOperation) (accountservice.LocalAppCallerDecision, error) {
 	if s == nil || strings.TrimSpace(s.appStorageDataRoot) == "" {
 		return accountservice.LocalAppCallerDecision{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
 	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
-	if !ok || decision.Operation != operation || decision.PermissionScope != capability ||
+	if !ok || decision.Operation != operation || decision.AuthorityClass != localappop.AuthorityClassBaseEntitlement ||
+		decision.OperationCapability != appstorage.LocalAppPrivateStorageEntitlement ||
 		strings.TrimSpace(decision.LocalAppPrincipalID) == "" || decision.LocalAppPrincipalID != strings.TrimSpace(decision.LocalAppPrincipalID) ||
 		decision.ExpiresAt.IsZero() || !s.now().UTC().Before(decision.ExpiresAt.UTC()) {
 		return accountservice.LocalAppCallerDecision{}, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)

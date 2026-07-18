@@ -39,7 +39,7 @@ function validResult() {
   };
 }
 
-test('owner-minimal contract accepts the canonical six-step permission journey', () => {
+test('owner-minimal contract accepts the canonical six-step authority-boundary journey', () => {
   assert.deepEqual(validateOwnerMinimalResult(validResult()), []);
 });
 
@@ -66,7 +66,7 @@ test('owner-minimal runner reuses the core driver and prepares carriers only bet
   assert.match(runner, /runDevKernelOwnerMinimalTrial/);
   assert.match(driver, /runDevKernelTrial\(\{ \.\.\.input, executionMode: 'owner-minimal' \}\)/);
   assert.match(driver, /return await persistOwnerMinimalResult/);
-  assert.match(driver, /return await persistCoreResult/);
+  assert.match(driver, /return (?:await )?persistCoreResult/);
   assert.doesNotMatch(runner, /go(?:\.exe)?['"\s,]+run|serve|node-grpc|runtime_bridge_status/iu);
   assert.match(freshPreparation, /before fresh carrier preparation/);
   assert.match(freshPreparation, /after fresh-prepared journey cleanup/);
@@ -171,14 +171,14 @@ test('core revokes the exact run-once project before reusing its supervised host
   const driver = ownerDriverSource();
   assert.match(
     driver,
-    /phase = 'grant-revoke'[\s\S]*runOnceProjectRevocation = await resetLocalDevelopmentProjectAuthorization\([\s\S]*revokedCount !== 1[\s\S]*terminateProcessTree\(runOnceHandle\)[\s\S]*waitForCdpEndpointRelease\(zhiyuCdpPort, 'run-once Zhiyu'\)[\s\S]*phase = 'remembered-local-development-start'/u,
+    /runOnceProjectRevocation = await resetLocalDevelopmentProjectAuthorization\([\s\S]*revokedCount !== 1[\s\S]*terminateProcessTree\(runOnceHandle\)[\s\S]*waitForCdpEndpointRelease\(zhiyuCdpPort, 'run-once Zhiyu'\)[\s\S]*phase = 'remembered-local-development-start'/u,
   );
 });
 
 test('owner-minimal bounds only the exact supervised-host startup transport race', () => {
   const driver = ownerDriverSource();
   assert.match(driver, /latest\?\.state === 'runtime-unavailable'[\s\S]*lastError\?\.reasonCode === 'runtime-service-unavailable'[\s\S]*transientRuntimeUnavailableMs/iu);
-  assert.match(driver, /'zero-grant session',[\s\S]*transientRuntimeUnavailableMs:\s*15_000/iu);
+  assert.match(driver, /'bound local-app session with reserved permission unavailable',[\s\S]*transientRuntimeUnavailableMs:\s*15_000/iu);
   assert.match(driver, /rawInitial\.lastError\?\.reasonCode === 'runtime-service-unavailable'[\s\S]*zhiyu-dev-kernel-refresh[\s\S]*raw process exact transport recovery/iu);
   assert.match(driver, /\['runtime-service-untrusted', 'runtime-service-unavailable'\][\s\S]*raw process mismatch denial/iu);
   assert.match(driver, /rawServiceAfter\.processId !== rawServiceBefore\.processId[\s\S]*raw process denial overlapped a fixed Runtime service transition/iu);
@@ -193,10 +193,11 @@ test('owner-minimal resolves the Desktop-owned presence file from the real launc
 test('core browser-auth plan fits only the verified formal test-Realm budget', () => {
   const driver = fs.readFileSync(path.join(import.meta.dirname, 'dev-kernel-cross-app-driver.mjs'), 'utf8');
   const plan = driver.match(/const CORE_BROWSER_AUTH_PLAN = Object\.freeze\(\[([\s\S]*?)\]\);/u)?.[1] || '';
-  assert.match(plan, /remembered-conversation-turn-send-grant/u);
-  assert.match(plan, /remembered-conversation-turn-subscribe-grant/u);
+  assert.match(plan, /remembered-local-development/u);
+  assert.match(plan, /remembered-reactivation/u);
   assert.match(plan, /secondary-login/u);
   assert.match(plan, /primary-login-restored/u);
+  assert.match(plan, /final-local-development/u);
   assert.match(driver, /realmAuthPolicy\.passwordLoginLimit < browserAuthPlan\.length/u);
   assert.match(driver, /browserAuthDriver\.audit\(\)/u);
   assert.doesNotMatch(driver, /(?:15\s*\*\s*60|900_?000).*setTimeout|restart.*Realm.*rate/iu);

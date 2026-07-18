@@ -24,9 +24,9 @@ rows:
   - LOCAL_APP_LAUNCH_LEASE_REPLAY
   - LOCAL_APP_PROCESS_MISMATCH
   - LOCAL_APP_SESSION_REVOKED
-  - LOCAL_APP_GRANT_REQUIRED
-  - LOCAL_APP_GRANT_REVOKED
-  - LOCAL_APP_GRANT_SUPERSEDED
+  - LOCAL_APP_PERMISSION_REQUIRED
+  - LOCAL_APP_PERMISSION_DENIED
+  - LOCAL_APP_PERMISSION_REVOKED
   - LOCAL_APP_ACCOUNT_CHANGED
   - LOCAL_APP_OPERATION_UNAVAILABLE
   - LOCAL_APP_PRESENCE_REQUIRED
@@ -203,9 +203,9 @@ mappings:
   - { reason_code: LOCAL_APP_LAUNCH_LEASE_REPLAY, grpc_code: PERMISSION_DENIED, surface: local_app_launch, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
   - { reason_code: LOCAL_APP_PROCESS_MISMATCH, grpc_code: PERMISSION_DENIED, surface: local_app_process_binding, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
   - { reason_code: LOCAL_APP_SESSION_REVOKED, grpc_code: UNAUTHENTICATED, surface: local_app_session, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
-  - { reason_code: LOCAL_APP_GRANT_REQUIRED, grpc_code: PERMISSION_DENIED, surface: local_app_operation_grant, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
-  - { reason_code: LOCAL_APP_GRANT_REVOKED, grpc_code: PERMISSION_DENIED, surface: local_app_operation_grant, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
-  - { reason_code: LOCAL_APP_GRANT_SUPERSEDED, grpc_code: PERMISSION_DENIED, surface: local_app_operation_grant, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
+  - { reason_code: LOCAL_APP_PERMISSION_REQUIRED, grpc_code: PERMISSION_DENIED, surface: local_app_user_permission, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
+  - { reason_code: LOCAL_APP_PERMISSION_DENIED, grpc_code: PERMISSION_DENIED, surface: local_app_user_permission, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
+  - { reason_code: LOCAL_APP_PERMISSION_REVOKED, grpc_code: PERMISSION_DENIED, surface: local_app_user_permission, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
   - { reason_code: LOCAL_APP_ACCOUNT_CHANGED, grpc_code: UNAUTHENTICATED, surface: local_app_account_partition, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
   - { reason_code: LOCAL_APP_OPERATION_UNAVAILABLE, grpc_code: UNIMPLEMENTED, surface: local_app_operation_owner, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
   - { reason_code: LOCAL_APP_PRESENCE_REQUIRED, grpc_code: FAILED_PRECONDITION, surface: local_app_presence, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }

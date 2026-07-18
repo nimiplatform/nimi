@@ -285,8 +285,8 @@ enum ReasonCode {
   LIFECYCLE_INTENT_REPLAY = 640;
   LIFECYCLE_INTENT_EXPIRED = 641;
 
-  // LOCAL_APP family (642+). The third-party principal/record/grant/session
-  // evaluator uses one provenance-agnostic reason vocabulary (K-ERR-012).
+  // LOCAL_APP family (642+). The third-party principal/record/session and
+  // product-permission evaluator uses one provenance-agnostic reason vocabulary.
   LOCAL_APP_PRINCIPAL_REQUIRED = 642;
   LOCAL_APP_RECORD_NOT_FOUND = 643;
   LOCAL_APP_RECORD_TOMBSTONED = 644;
@@ -296,9 +296,9 @@ enum ReasonCode {
   LOCAL_APP_LAUNCH_LEASE_REPLAY = 648;
   LOCAL_APP_PROCESS_MISMATCH = 649;
   LOCAL_APP_SESSION_REVOKED = 650;
-  LOCAL_APP_GRANT_REQUIRED = 651;
-  LOCAL_APP_GRANT_REVOKED = 652;
-  LOCAL_APP_GRANT_SUPERSEDED = 653;
+  LOCAL_APP_PERMISSION_REQUIRED = 651;
+  LOCAL_APP_PERMISSION_DENIED = 652;
+  LOCAL_APP_PERMISSION_REVOKED = 653;
   LOCAL_APP_ACCOUNT_CHANGED = 654;
   LOCAL_APP_OPERATION_UNAVAILABLE = 655;
   LOCAL_APP_PRESENCE_REQUIRED = 656;

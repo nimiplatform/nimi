@@ -11,11 +11,6 @@ func TestRegistrationCapabilitiesIgnoreCatalogPrivilegeForBindingOnlyBootstrap(t
 	svc.nimiApps = &appregistrycatalog.Registry{Apps: []appregistrycatalog.App{{
 		AppID:           "nimi.avatar",
 		AdmissionStatus: appregistrycatalog.AdmissionStatusAdmitted,
-		PermissionScopeRefs: []appregistrycatalog.PermissionScopeRef{
-			{ScopeName: "account.session.read"},
-			{ScopeName: "account.raw-token"},
-			{ScopeName: "data.scope.read", Qualifier: "realm.worlds.read-probe"},
-		},
 	}}}
 
 	got := svc.registrationCapabilities("nimi.avatar", []string{"realm.admin", "attacker.claim"})

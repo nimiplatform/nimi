@@ -201,7 +201,7 @@ mod tests {
                 assert!(command_checks
                     .iter()
                     .any(|row| row.get("command").and_then(serde_json::Value::as_str)
-                        == Some("local_app_permission_posture")));
+                        == Some("local_app_permission_status")));
                 assert!(command_checks
                     .iter()
                     .any(|row| row.get("command").and_then(serde_json::Value::as_str)
@@ -209,7 +209,7 @@ mod tests {
                 assert!(command_checks
                     .iter()
                     .any(|row| row.get("command").and_then(serde_json::Value::as_str)
-                        == Some("local_app_artifacts_read_runtime_bytes")));
+                        == Some("storage_write_json")));
                 assert!(command_checks.iter().any(|row| {
                     row.get("command").and_then(serde_json::Value::as_str)
                         == Some("storage_read_json")

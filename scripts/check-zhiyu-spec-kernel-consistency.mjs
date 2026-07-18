@@ -33,7 +33,7 @@ const tableFiles = [
   `${tablesRoot}/authority-owner-matrix.yaml`,
   `${tablesRoot}/product-state-machine.yaml`,
   `${tablesRoot}/storybook-trace.yaml`,
-  `${tablesRoot}/registry-scope-posture.yaml`,
+  `${tablesRoot}/permission-posture.yaml`,
   `${tablesRoot}/capability-posture.yaml`,
   `${tablesRoot}/handoff-action-registry.yaml`,
   `${tablesRoot}/config-consumption-surface.yaml`,
@@ -206,70 +206,70 @@ function checkSdkKitConsumption() {
   ], 'rows[kind=forbidden_surface].symbol');
 }
 
-function checkRegistryScopePosture() {
-  const rel = `${tablesRoot}/registry-scope-posture.yaml`;
+function checkPermissionPosture() {
+  const rel = `${tablesRoot}/permission-posture.yaml`;
   const parsed = readYaml(rel);
-  const scopeNames = Object.keys(parsed?.scopes || {});
-  expectSetContains(rel, scopeNames, [
-    'account.session.read',
-    'agent.identity.project',
-    'ai.spend.meter',
-    'ai_profile.selection.consume',
-    'memory.read.bounded',
-    'memory.write.admitted',
-    'notification.subscribe',
-    'audit.read.scoped',
-  ], 'scopes');
-  expectSetContains(rel, parsed?.runtime_turn_authority?.required_scopes, [
-    'runtime.agent.turn.read',
-    'runtime.agent.turn.write',
-  ], 'runtime_turn_authority.required_scopes');
-  if (parsed?.runtime_turn_authority?.source !== 'runtime_scoped_binding') {
-    fail(`${rel} runtime_turn_authority.source must be runtime_scoped_binding`);
+  const requirements = parsed?.manifest_permission_requirements;
+  if (requirements?.source !== 'apps/zhiyu/nimi.app.yaml#permissions'
+    || requirements?.reserved_or_unknown_id !== 'reject_before_project_approval'
+    || requirements?.creates_permission_decision !== false
+    || !Array.isArray(requirements?.current_values)
+    || requirements.current_values.length !== 0
+    || !Array.isArray(requirements?.admitted_public_permission_ids)
+    || requirements.admitted_public_permission_ids.length !== 0) {
+    fail(`${rel} manifest_permission_requirements must preserve the current empty admitted set`);
   }
-  const requestProjection = parsed?.runtime_scoped_binding_request_projection;
-  if (requestProjection?.source !== 'apps/zhiyu/nimi.app.yaml#local_development.runtime_scoped_binding_requests'
-    || requestProjection?.source_rule !== 'Z-AUTH-003'
-    || requestProjection?.request_eligibility_only !== true
-    || requestProjection?.included_in_runtime_capability_fingerprint !== true
-    || requestProjection?.creates_operation_grant !== false
-    || requestProjection?.creates_scoped_binding !== false
-    || requestProjection?.positive_authority_owner !== 'runtime_account_service') {
-    fail(`${rel} runtime_scoped_binding_request_projection must remain request-only Runtime-owned authority input`);
+  const classifications = parsed?.authority_classifications || {};
+  for (const [field, authorityClass] of [
+    ['account_session_posture', 'base_entitlement'],
+    ['app_private_storage', 'base_entitlement'],
+    ['ai_metering', 'base_entitlement'],
+    ['ai_route_profile_consumption', 'base_entitlement'],
+    ['app_sqlite_media_settings_routes_cache_and_exact_native_commands', 'app_owned_authority'],
+    ['microphone_and_external_filesystem', 'os_right'],
+  ]) {
+    if (classifications?.[field]?.authority_class !== authorityClass) {
+      fail(`${rel} authority_classifications.${field} must be ${authorityClass}`);
+    }
   }
-  expectSetContains(rel, requestProjection?.requested_scopes, [
-    'runtime.agent.turn.read',
-    'runtime.agent.turn.write',
-  ], 'runtime_scoped_binding_request_projection.requested_scopes');
+  const productAuthority = parsed?.runtime_agent_product_authority;
+  if (productAuthority?.current_local_development_positive_carrier !== 'not_admitted'
+    || productAuthority?.current_posture !== 'fail_closed') {
+    fail(`${rel} Runtime Agent product authority must fail closed without an attested first-party carrier`);
+  }
+  expectSetContains(rel, productAuthority?.forbidden_positive_sources, [
+    'display_app_id',
+    'mutable_manifest',
+    'local_project_approval',
+    'account_session',
+    'public_permission_scope',
+  ], 'runtime_agent_product_authority.forbidden_positive_sources');
 }
 
 function checkCapabilityPosture() {
   const rel = `${tablesRoot}/capability-posture.yaml`;
   const parsed = readYaml(rel);
   const capabilities = parsed?.capabilities || {};
-  if (capabilities?.conversation?.posture !== 'v1_admitted_via_runtime_agent_turn') {
-    fail(`${rel} conversation posture must be v1_admitted_via_runtime_agent_turn`);
-  }
-  if (capabilities?.ai_model_config?.posture !== 'v1_required_operation_surface') {
-    fail(`${rel} ai_model_config posture must be v1_required_operation_surface`);
-  }
-  if (capabilities?.avatar_config_launch?.posture !== 'v1_required_operation_surface_launch_only_carrier') {
-    fail(`${rel} avatar_config_launch posture must be v1_required_operation_surface_launch_only_carrier`);
-  }
-  if (capabilities?.memory_projection?.posture !== 'v1_read_only_projection') {
-    fail(`${rel} memory_projection posture must be v1_read_only_projection`);
+  for (const field of [
+    'conversation',
+    'ai_model_config',
+    'avatar_config_launch',
+    'memory_projection',
+    'revisit_continuity_projection',
+    'relationship_state_projection',
+    'voice',
+    'runtime_image_artifact_display',
+  ]) {
+    if (capabilities?.[field]?.posture !== 'product_contract_admitted_carrier_pending'
+      || capabilities?.[field]?.current_local_development_carrier !== 'fail_closed_not_admitted') {
+      fail(`${rel} ${field} must expose the product-contract/carrier-pending split`);
+    }
   }
   if (capabilities?.proactive_notification?.posture !== 'deferred_v1_out_of_scope') {
     fail(`${rel} proactive_notification posture must be deferred_v1_out_of_scope`);
   }
-  if (capabilities?.voice?.posture !== 'v1_full_support') {
-    fail(`${rel} voice posture must be v1_full_support`);
-  }
   if (capabilities?.image_creation?.posture !== 'removed_from_zhiyu_v1') {
     fail(`${rel} image_creation posture must be removed_from_zhiyu_v1`);
-  }
-  if (capabilities?.runtime_image_artifact_display?.posture !== 'v1_display_projection_only') {
-    fail(`${rel} runtime_image_artifact_display posture must be v1_display_projection_only`);
   }
 }
 
@@ -406,7 +406,7 @@ for (const rel of tableFiles) {
 
 checkConfigConsumption();
 checkSdkKitConsumption();
-checkRegistryScopePosture();
+checkPermissionPosture();
 checkCapabilityPosture();
 checkTestQuarantine();
 checkAcceptanceGates();

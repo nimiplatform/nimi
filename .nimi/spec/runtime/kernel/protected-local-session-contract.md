@@ -143,23 +143,26 @@ Success atomically consumes the bootstrap, promotes that same connection to
 OS-user anchor, principal/record, provenance revision, release-or-project
 generation, execution profile/digests, process tuple, account generation, and
 current account id, and Runtime boot epoch. A valid identity may open with zero
-grant for redacted permission posture and the K-AGCORE-006e bounded Agent
-inventory bootstrap only. Inventory revalidates the same session facts but has
-no grant/resource binding; every other protected business operation separately
-resolves the current account-and-principal grant and owner policy.
+user permissions for redacted permission posture and admitted base entitlements
+only. It receives no protected Agent/account/resource inventory. A future
+`user_permission` operation must separately resolve its admitted public
+permission, owner-issued selector, current owner decision and domain policy.
 
 The lease TTL is 30 seconds and process-bind deadline is 10 seconds. Duplicate,
 expired, revoked, wrong process/principal/record/generation/account/epoch and
 ordinary-gRPC calls fail closed. Logout/account switch, lifecycle/security
 revoke, process replacement/exit, incompatible generation/profile change, and
-Runtime restart revoke the applicable lease/session transactionally. Grant
-mutation leaves identity session alive but changes the next operation decision.
+Runtime restart revoke the applicable lease/session transactionally. A future
+permission-decision mutation does not rotate identity/session, but every next
+protected call must read the current owner decision.
 
 After consumption, the connection retains only Runtime-private opaque session
 state. The K-PLOCAL session row is the sole launch/process/session truth and
-contains at most a non-authoritative observed grant revision. Every admitted
-operation revalidates the live process, current record/account/grant and owner
-policy; opaque handle, request metadata, or launch-time snapshot is insufficient.
+contains no permission authority. Every admitted operation revalidates the live
+process, current record/account and its own authority class. A user-permission
+operation also revalidates the current owner decision and selector; opaque
+handle, request metadata, session existence or launch-time snapshot is
+insufficient.
 
 The Windows row is admitted independently and carries the current fixed-service
 named-pipe/retained-process-witness behavior. The macOS and Linux rows are
@@ -189,7 +192,7 @@ Electron or Tauri host, and binds its retained process witness over the live
 `local_app_host` carrier peer PID to equal that bound host and derives
 `local_app_process` plus the Runtime-held development record before atomically
 creating common `local_app_session` state. Another principal's provenance,
-session, storage, grant, and operation authority remain non-convertible. PID,
+session, storage, permission, and operation authority remain non-convertible. PID,
 path, parent PID, argv, env, project
 manifest, localhost, and a caller-supplied digest are never sufficient
 authority.
@@ -203,14 +206,15 @@ epoch, shell, controlled outputs, and operation policy on every call.
 
 The verified Desktop `local_app_control` origin may read one exact bounded
 `GetLocalDevelopmentAuthoritySummary` projection for local development
-diagnostics. Runtime derives its three sections from the existing Developer
-Mode record, current-account development authorizations, and K-GRANT-014
-local-app grant store. The projection contains only closed state values,
-per-state counts, and reason codes. It never contains account, project,
-principal, record, authorization, grant, request, presence, operation,
-resource, path, token, secret, session, or boot-epoch identifiers. The read is
-side-effect free: it does not expire, revoke, reactivate, approve, deny, rotate,
-or otherwise advance any authorization, grant, presence, or session lifecycle.
+diagnostics. Runtime derives its two sections from the existing Developer Mode
+record and current-account development authorizations. There is no permission
+summary or local permission store before a public permission is admitted. The
+projection contains only closed state values, per-state counts, and reason
+codes. It never contains account, project, principal, record, authorization,
+permission decision, request, presence, operation, resource, path, token,
+secret, session, or boot-epoch identifiers. The read is side-effect free: it
+does not expire, revoke, reactivate, approve, deny, rotate, or otherwise advance
+any authorization, permission, presence, or session lifecycle.
 An unavailable source remains an explicit unavailable section and must not be
 reconstructed from Desktop-local state. Ordinary TCP and local-app-host
 transports deny the method before handler dispatch.
@@ -385,24 +389,24 @@ This consumer set admits no stream and no generic Runtime proxy. In particular,
 health-event subscriptions, connector-model enumeration, connector testing,
 asset warming, conversation streaming, and every method missing from the exact
 matrix remain typed unavailable before handler dispatch. The Desktop must not
-fall back to public TCP. This addition changes no account custody, grant,
+fall back to public TCP. This addition changes no account custody, permission decision,
 presence, Realm broker, storage, memory, media, local-app, development
 authorization, lifecycle, dormancy, epoch, or public-listener semantics.
 
 The third-party `local_app_host` matrix separately admits the three exact
 K-APP-032 RuntimeAppService JSON storage methods. They are not part of the
 Desktop consumer set, accept no method id or root selector, and require the
-current local-app session plus exact per-operation/resource grant before
-handler dispatch. Public TCP, `GetAppStorage`, generic file IPC, and Node
-filesystem fallback remain denied.
+current local-app session plus the Runtime-derived principal/account partition
+before handler dispatch. They are the `app.private_storage` base entitlement:
+no manifest declaration, prompt, selector, grant or permission row participates.
+Public TCP, `GetAppStorage`, generic file IPC, and Node filesystem fallback
+remain denied.
 
-The same matrix admits the two K-VOICE-021 selected local-app voice operations:
-bounded Runtime-selected transcription and exact Agent voice-stream
-subscription. Neither operation accepts provider/model/target/fallback truth or
-an arbitrary Runtime method. Transcription public TCP is denied; the stream
-reuses the existing protected native pipe and existing Runtime Agent voice
-broker. No public listener, portable session, raw credential, generic AI proxy,
-or renderer route authority is added.
+The third-party matrix admits no Artifact, Agent, conversation or voice method
+while the public permission catalog is fully reserved. Those operations remain
+typed unavailable until the complete P-PERM-017 product-permission slice lands;
+a session, app-owned command, internal operation id or ordinary Runtime route
+cannot substitute for that admission.
 
 ## K-PLOCAL-007 Lifecycle Transactions, Boot Epoch, and Recovery
 

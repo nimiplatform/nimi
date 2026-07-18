@@ -145,12 +145,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/resources/{resourceId}"
   },
   {
-    "operationId": "denyMyAppPermissionGrant",
-    "service": "Me / Permission Grants",
-    "method": "POST",
-    "path": "/api/human/me/permission-grants/by-id/{grantId}/deny"
-  },
-  {
     "operationId": "disable2Fa",
     "service": "Me2fa",
     "method": "POST",
@@ -343,12 +337,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/auth/me/2fa/enable"
   },
   {
-    "operationId": "expireMyAppPermissionGrant",
-    "service": "Me / Permission Grants",
-    "method": "POST",
-    "path": "/api/human/me/permission-grants/by-id/{grantId}/expire"
-  },
-  {
     "operationId": "ExploreController_checkStatus",
     "service": "Explore",
     "method": "GET",
@@ -419,24 +407,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "User",
     "method": "GET",
     "path": "/api/human/accounts/{id}/mutual-friends/count"
-  },
-  {
-    "operationId": "getMyAppPermissionGrant",
-    "service": "Me / Permission Grants",
-    "method": "GET",
-    "path": "/api/human/me/permission-grants/by-id/{grantId}"
-  },
-  {
-    "operationId": "getMyAppPermissionGrantStatus",
-    "service": "Me / Permission Grants",
-    "method": "GET",
-    "path": "/api/human/me/permission-grants/status"
-  },
-  {
-    "operationId": "getMyAppPermissionGrantView",
-    "service": "Me / Permission Grants",
-    "method": "GET",
-    "path": "/api/human/me/permission-grants/view"
   },
   {
     "operationId": "getMyBlockedUsers",
@@ -547,12 +517,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/world/by-id/{worldId}/posts"
   },
   {
-    "operationId": "grantMyAppPermissionGrant",
-    "service": "Me / Permission Grants",
-    "method": "POST",
-    "path": "/api/human/me/permission-grants/by-id/{grantId}/grant"
-  },
-  {
     "operationId": "introspectSession",
     "service": "Auth",
     "method": "POST",
@@ -575,12 +539,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Invitations",
     "method": "POST",
     "path": "/api/invitations/verify"
-  },
-  {
-    "operationId": "issueRuntimeRealmGrant",
-    "service": "Runtime Realm Grants",
-    "method": "POST",
-    "path": "/api/runtime/realm-grants/issue"
   },
   {
     "operationId": "likePost",
@@ -635,12 +593,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Human Chats",
     "method": "GET",
     "path": "/api/human/chats/{chatId}/messages"
-  },
-  {
-    "operationId": "listMyAppPermissionGrants",
-    "service": "Me / Permission Grants",
-    "method": "GET",
-    "path": "/api/human/me/permission-grants"
   },
   {
     "operationId": "listMyFriendIds",
@@ -835,12 +787,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/auth/email/otp/request"
   },
   {
-    "operationId": "requestMyAppPermissionGrant",
-    "service": "Me / Permission Grants",
-    "method": "POST",
-    "path": "/api/human/me/permission-grants"
-  },
-  {
     "operationId": "ReviewController_createReview",
     "service": "Reviews (Economy/Trust)",
     "method": "POST",
@@ -851,12 +797,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Reviews (Economy/Trust)",
     "method": "GET",
     "path": "/api/economy/reviews"
-  },
-  {
-    "operationId": "revokeMyAppPermissionGrant",
-    "service": "Me / Permission Grants",
-    "method": "POST",
-    "path": "/api/human/me/permission-grants/by-id/{grantId}/revoke"
   },
   {
     "operationId": "searchHumanUsers",
@@ -893,12 +833,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Human Chats",
     "method": "POST",
     "path": "/api/human/chats"
-  },
-  {
-    "operationId": "supersedeMyAppPermissionGrant",
-    "service": "Me / Permission Grants",
-    "method": "POST",
-    "path": "/api/human/me/permission-grants/by-id/{grantId}/supersede"
   },
   {
     "operationId": "syncChatEvents",

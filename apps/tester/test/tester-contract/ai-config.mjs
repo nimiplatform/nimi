@@ -358,7 +358,7 @@ test('tester capability model config drawer section follows the active left rail
 test('tester keeps AIConfig and AI execution fail-closed until separately admitted', () => {
   const runtime = read('src/tester/tester-runtime.ts');
 
-  assert.match(runtime, /Only the eight typed local-app carrier operations are admitted/);
+  assert.match(runtime, /session posture, public permission posture\/request, and app-private JSON storage/);
   assert.match(runtime, /'sdk-method-unavailable'/);
   assert.doesNotMatch(runtime, /invokeTesterCapability|projection\.client|new Runtime/);
 });

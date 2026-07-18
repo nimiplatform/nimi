@@ -35,7 +35,6 @@ const files = {
 const forbiddenLegacyTokens = [
   'realm.source-materialization-packet/v2',
   'BundleTransportManifestV1',
-  'SourceMaterializationPacket',
   'RealmPersona',
   'realmPersona',
   'sourceContentHash',
@@ -89,15 +88,15 @@ const exactLanes = [
   'current_user_turn',
 ];
 const exactDesktopStates = [
-  'grant_denied',
-  'grant_pending',
-  'grant_required',
   'local_agent_ambiguous',
   'local_agent_available',
   'materialization_available',
   'materialization_error',
   'materializing',
   'runtime_unavailable',
+  'sign_in_required',
+  'source_access_denied',
+  'source_not_ready',
 ].sort();
 
 function fail(message) {
@@ -153,22 +152,18 @@ function check(overrides = {}) {
   requireText(materialization, 'no raw packet/proof/challenge/nonce/TTL/audience', files.materialization);
   requireText(materialization, 'no automatic\nupgrade, interpretation, alias, dual read/write, or on-read migration', files.materialization);
   for (const token of [
-    '`scopeFamily=realm_source`',
-    '`scopeName=realm_source.snapshot.consume`',
-    '`qualifier=null` and `qualifierKey=""`',
-    '`POST /api/human/me/permission-grants`',
-    '`POST /api/human/me/permission-grants/by-id/{grantId}/grant`',
     '`POST /api/realm/core/source-materialization-packets`',
-    '`accessGrantId`',
-    'admitted state of `PENDING` or current `GRANTED`',
-    'MUST NOT call the grant decision\n   endpoint again',
-    'fresh Runtime challenge, nonce, TTL, Packet v3 proof',
-    'durable-grant reuse, not a\ndefault, seeded, inferred, automatically granted, or pseudo-success path',
-    '`realm_source.snapshot.bind` is non-authorizing',
+    'authenticated\nfirst-party product operation',
+    'enforces current\n   materialization visibility for the authenticated account',
+    '`accessGrantId`, `AppPermissionGrant`, a Runtime-local',
+    'MUST NOT call a Realm permission request or decision endpoint',
+    'fresh\n   Runtime challenge/audience/expiry',
+    '`realm_source.snapshot.consume` and',
+    '`realm_source.snapshot.bind` identifiers are non-authorizing',
     '`MaterializeRealmSource` does not establish, infer, request, or check a',
     '`agent.identity.project` and any Avatar local seed grant are not inputs,',
-    'it has no Agent or LocalAgent ontology',
-    'no LocalAgent\nexists before the verified atomic commit',
+    'it has no Agent or\nLocalAgent ontology',
+    'no LocalAgent exists before the verified atomic commit',
   ]) requireText(materialization, token, files.materialization);
   for (const token of forbiddenMaterializationLocalAuthorityAssertions) {
     forbidText(materialization, token, files.materialization);
@@ -177,53 +172,37 @@ function check(overrides = {}) {
   const platformPermission = read(files.platformPermission, overrides);
   for (const token of [
     'P-PERM-014',
-    '`permission_scope_ref` remains exclusively Platform/Runtime-local authority',
-    '`realm_permission_request_refs`',
-    'scopeFamily: realm_source',
-    'scopeName: realm_source.snapshot.consume',
-    'authorizingState: GRANTED',
-    'canonical current `GRANTED` record is durable scope authorization',
-    'fresh Runtime challenge, nonce, TTL, proof',
-    '`realm_source.snapshot.bind` is not current positive Realm\nauthority',
-    '`agent.identity.project` remains in the Runtime-local Platform taxonomy',
-    'does not use any Avatar local seed grant as a commit gate',
+    'Realm Source Materialization Is A First-Party Product Operation',
+    'authenticated\nfirst-party product operation',
+    'canonical source/world/dependency truth',
+    '`accessGrantId`',
+    'Runtime must never request and approve a Realm grant with the same account',
+    '`realm_source.snapshot.consume` and `realm_source.snapshot.bind` are',
+    'The public `agents.interact` permission applies only after a',
   ]) requireText(platformPermission, token, files.platformPermission);
 
   const appRegistry = parseYaml(read(files.platformAppRegistry, overrides));
   const registryFields = appRegistry?.app_schema?.fields ?? [];
-  if (!registryFields.includes('permission_scope_ref')
-    || !registryFields.includes('realm_permission_request_refs')) {
-    fail(`${files.platformAppRegistry} does not separate local and Realm permission fields`);
+  if (!registryFields.includes('permission_requirements')
+    || registryFields.includes('realm_permission_request_refs')) {
+    fail(`${files.platformAppRegistry} must use public permission requirements with no Realm materialization request field`);
   }
-  if (appRegistry?.field_owners?.permission_scope_ref?.owner !== 'platform_runtime_local_permission'
-    || appRegistry?.field_owners?.realm_permission_request_refs?.owner !== 'external_realm_permission_grant'
-    || appRegistry?.field_owners?.realm_permission_request_refs?.local_grant_projection !== 'forbidden') {
-    fail(`${files.platformAppRegistry} permission field ownership is not closed`);
+  if (appRegistry?.field_owners?.permission_requirements?.owner !== 'platform_public_permission_catalog'
+    || Object.hasOwn(appRegistry?.field_owners ?? {}, 'realm_permission_request_refs')) {
+    fail(`${files.platformAppRegistry} public permission requirement ownership is not closed`);
   }
   for (const app of appRegistry?.apps ?? []) {
-    const localScopes = Array.isArray(app.permission_scope_ref) ? app.permission_scope_ref : [];
-    if (localScopes.some((scope) => scope?.scopeFamily === 'realm' || scope?.scopeFamily === 'realm_source')) {
-      fail(`${files.platformAppRegistry} ${app.app_id} mixes Realm-owned scopes into permission_scope_ref`);
+    const requirements = Array.isArray(app.permission_requirements) ? app.permission_requirements : [];
+    if (requirements.some((requirement) => [
+      'realm.source_materialize',
+      'realm_source.snapshot.consume',
+      'realm_source.snapshot.bind',
+    ].includes(String(requirement?.id || '')))) {
+      fail(`${files.platformAppRegistry} ${app.app_id} treats Realm source materialization as a public permission`);
     }
-    const realmRequests = app.realm_permission_request_refs ?? [];
-    if (!Array.isArray(realmRequests)) {
-      fail(`${files.platformAppRegistry} ${app.app_id} Realm request projection is not an array`);
+    if (Object.hasOwn(app, 'realm_permission_request_refs')) {
+      fail(`${files.platformAppRegistry} ${app.app_id} retains a Realm permission-like request projection`);
     }
-    if (app.app_id !== 'nimi.avatar' && realmRequests.length !== 0) {
-      fail(`${files.platformAppRegistry} ${app.app_id} has a non-admitted Realm request projection`);
-    }
-  }
-  const avatar = (appRegistry?.apps ?? []).find((app) => app.app_id === 'nimi.avatar');
-  const exactRealmRequest = [{
-    appId: 'nimi.avatar',
-    scopeFamily: 'realm_source',
-    scopeName: 'realm_source.snapshot.consume',
-    qualifier: null,
-    qualifierKey: '',
-    authorizingState: 'GRANTED',
-  }];
-  if (JSON.stringify(avatar?.realm_permission_request_refs) !== JSON.stringify(exactRealmRequest)) {
-    fail(`${files.platformAppRegistry} Avatar Realm request selector is not exact`);
   }
   const permissionEvidence = parseYaml(read(files.platformPermissionEvidence, overrides));
   if (!(permissionEvidence?.entries ?? []).includes('P-PERM-014')
@@ -233,9 +212,9 @@ function check(overrides = {}) {
   }
   const realmPointer = read(files.realmPointer, overrides);
   for (const token of [
-    'Realm request projection is kept separate from Platform/Runtime-local',
-    '`agent.identity.project` scope cannot be\nsent to or interpreted by Realm',
-    'Runtime creates no LocalAgent until the Realm\nPacket has been strictly verified and atomically materialized',
+    'authenticated first-party product',
+    'Runtime sends no\napp id, permission scope or access grant',
+    '`agents.interact` permission begins only after Runtime has strictly verified',
   ]) requireText(realmPointer, token, files.realmPointer);
 
   const context = read(files.context, overrides);
@@ -380,6 +359,9 @@ function check(overrides = {}) {
     for (const token of [...forbiddenLegacyTokens, ...forbiddenPublicMethods]) {
       forbidText(source, token, relative);
     }
+    if (/\bSourceMaterializationPacket(?!V3\b)/u.test(source)) {
+      fail(`${relative} retains forbidden unversioned SourceMaterializationPacket`);
+    }
   }
 
   return {
@@ -397,9 +379,10 @@ function check(overrides = {}) {
     legacyAuthorityMatches: 0,
     publicLowLevelUploadMethods: 0,
     protectedAuthorityMigrations: 2,
-    realmGrantSelector: exactRealmRequest[0],
+    materializationAuthority: 'authenticated_first_party_product_operation',
+    appPermissionRequired: false,
     localIdentityAuthorization: 'not_participating',
-    permissionOwnerSplit: true,
+    publicPermissionSeparation: true,
   };
 }
 
@@ -449,18 +432,18 @@ try {
     try {
       check({
         [files.materialization]: materializationSource.replace(
-          '`scopeName=realm_source.snapshot.consume`',
-          '`scopeName=agent.identity.project`',
+          'authenticated\nfirst-party product operation',
+          'third-party App permission',
         ),
       });
     } catch (error) {
       rejectedReason = error instanceof Error ? error.message : String(error);
     }
-    if (!rejectedReason.includes('realm_source.snapshot.consume')) {
-      fail('negative Realm/local selector mutation was not rejected by the owner gate');
+    if (!rejectedReason.includes('authenticated\nfirst-party product operation')) {
+      fail('negative first-party authority mutation was not rejected by the owner gate');
     }
     mutations.push({
-      mutation: `replace Realm source scope with Runtime-local agent scope in ${files.materialization}`,
+      mutation: `replace first-party Realm source authority with third-party permission in ${files.materialization}`,
       rejected: true,
       rejectedReason,
     });
@@ -469,18 +452,18 @@ try {
     try {
       check({
         [files.materialization]: materializationSource.replace(
-          'MUST NOT call the grant decision\n   endpoint again',
-          'calls the grant decision endpoint again',
+          'MUST NOT call a Realm permission request or decision endpoint',
+          'calls a Realm permission request and decision endpoint',
         ),
       });
     } catch (error) {
       rejectedReason = error instanceof Error ? error.message : String(error);
     }
-    if (!rejectedReason.includes('MUST NOT call the grant decision')) {
-      fail('negative durable-GRANTED reuse mutation was not rejected by the owner gate');
+    if (!rejectedReason.includes('MUST NOT call a Realm permission request or decision endpoint')) {
+      fail('negative synthetic-grant prohibition mutation was not rejected by the owner gate');
     }
     mutations.push({
-      mutation: `remove durable-GRANTED decision-call prohibition from ${files.materialization}`,
+      mutation: `remove synthetic Realm grant-call prohibition from ${files.materialization}`,
       rejected: true,
       rejectedReason,
     });

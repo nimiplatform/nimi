@@ -36,11 +36,11 @@
 | `authz-ownership.md` | `K-AUTH-*` | JWT、owner、信息隐藏、访问门禁 |
 | `authn-token-validation.md` | `K-AUTHN-*` | JWT/JWKS 验签、缓存刷新、时钟偏差、会话失效 |
 | `auth-service.md` | `K-AUTHSVC-*` | RuntimeAuthService 契约与会话生命周期 |
-| `account-session-contract.md` | `K-ACCSVC-*` | Runtime account/token custody, Desktop account control, local-app grant owner methods, provenance-agnostic per-operation coordinator and presence; removed public token/credential-grant identities stay reserved |
+| `account-session-contract.md` | `K-ACCSVC-*` | Runtime account/token custody, Desktop account control, local-app permission posture/request, authority-class coordinator and user presence; removed public token/credential-grant identities stay reserved |
 | `protected-local-session-contract.md` | `K-PLOCAL-*` | Fixed isolated Runtime service, Desktop `local_app_control`, `local_app_bootstrap`/`local_app_host`, `PrepareLocalAppLaunch`, exact process bind, request-empty common local-app session and restart invalidation |
 | `scoped-app-binding-contract.md` | `K-BIND-*` | Runtime-issued scoped app binding：carrier 分类、生命周期、relation tuple、revocation、replay、Avatar/Desktop binding 规则 |
 | `workspace-binding-contract.md` | `K-BIND-*` | Runtime-issued workspace knowledge binding：Realm membership projection consumption、workspace-specific relation/attachment、issue/revoke lifecycle、internal resolver、decision/audit/fail-close matrix |
-| `grant-service.md` | `K-GRANT-*` | Physically removed public credential family, Runtime-private evaluation boundary, and separate account+principal exact local-app grant lifecycle |
+| `grant-service.md` | `K-GRANT-*` | Physically removed public credential/exact-operation grant families, five authority classes, absent pre-admission store and future canonical owner permission lifecycle |
 | `key-source-routing.md` | `K-KEYSRC-*` | `connector_id`/inline 与 metadata 契约 |
 | `scenario-job-lifecycle.md` | `K-JOB-*` | ScenarioJob 生命周期与 owner/credential 快照 |
 | `local-category-capability.md` | `K-LOCAL-*` | 本地模型基础 category、capability、install/catalog intake |

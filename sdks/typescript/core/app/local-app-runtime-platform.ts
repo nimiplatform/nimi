@@ -1,25 +1,6 @@
-import type { JsonObject, JsonValue } from '../../types';
-import {
-  decodeNimiRuntimeAgentConversationAnchorSnapshot,
-  projectNimiRuntimeAgentAppMessageEvent,
-  toNimiRuntimeProtoStruct,
-  type NimiRuntimeAgentConsumeEvent,
-  type NimiRuntimeAgentConversationAnchorSnapshot,
-  type NimiRuntimeAgentSessionSnapshot,
-} from '../../runtime';
-import { parseNimiRuntimeAgentSessionSnapshot } from '../../runtime/runtime-agent-consume-snapshot';
-import type {
-  AppMessageEvent,
-  ConversationAnchorSnapshot,
-  SendAppMessageResponse,
-} from '../../core-generated/runtime-typed-client';
+import type { JsonValue } from '../../types';
 import {
   createNimiAppRuntimeStorageClient,
-  createNimiAppRuntimeVoiceClient,
-  type NimiAppRuntimeAgentSubscribeVoiceStreamInput,
-  type NimiAppRuntimeAgentTranscribeVoiceInput,
-  type NimiAppRuntimeAgentVoiceStreamPage,
-  type NimiAppRuntimeAgentVoiceTranscription,
   type NimiAppRuntimeStorageDocument,
   type NimiAppRuntimeStorageRemoveResult,
 } from './local-app-runtime-platform-protected-operations';
@@ -28,39 +9,30 @@ import {
   assertExactKeys,
   assertExactMethodNamespace,
   assertExactProjectionKeys,
-  assertNoAuthorityMaterial,
-  assertSafeProjection,
-  canonicalString,
-  decimalCursor,
   localAppError,
   localAppProjectionError,
-  nonNegativeInteger,
   normalizeFieldName,
-  optionalCursor,
   projectionText,
-  projectTimestamp,
   requireText,
 } from './local-app-runtime-platform-validation';
+import {
+  isAdmittedPermissionID,
+  isKnownPermissionID,
+  isPermissionPosture,
+  type PermissionID,
+  type PermissionRequestInput,
+  type PermissionStatus,
+} from './permission-types.js';
 
 export type {
-  NimiAppRuntimeAgentSubscribeVoiceStreamInput,
-  NimiAppRuntimeAgentTranscribeVoiceInput,
-  NimiAppRuntimeAgentVoiceOutputMode,
-  NimiAppRuntimeAgentVoicePlaybackState,
-  NimiAppRuntimeAgentVoiceStreamEvent,
-  NimiAppRuntimeAgentVoiceStreamPage,
-  NimiAppRuntimeAgentVoiceTranscription,
   NimiAppRuntimeStorageDocument,
   NimiAppRuntimeStorageRemoveResult,
 } from './local-app-runtime-platform-protected-operations';
 
-const MAX_INLINE_ARTIFACT_BYTES = 32 * 1024 * 1024;
-
 export type NimiAppAuthMode = 'local-first-party-app' | 'local-app';
 
 export type NimiAppLocalSessionState =
-  | 'session-bound-zero-grant'
-  | 'session-bound-granted'
+  | 'session-bound'
   | 'action-required'
   | 'revoked'
   | 'project-changed'
@@ -72,7 +44,6 @@ export type NimiAppLocalSessionProjection = {
   readonly mode: NimiAppAuthMode;
   readonly state: NimiAppLocalSessionState;
   readonly sessionBound: boolean;
-  readonly operationAllowed: boolean;
   readonly reasonCode: string;
   readonly actionHint: string;
   readonly retryable: boolean;
@@ -82,7 +53,6 @@ export type NimiAppAuthUnavailable = {
   readonly mode: NimiAppAuthMode;
   readonly state: 'unavailable';
   readonly sessionBound: false;
-  readonly operationAllowed: false;
   readonly reasonCode: string;
   readonly actionHint: string;
   readonly retryable: boolean;
@@ -90,105 +60,27 @@ export type NimiAppAuthUnavailable = {
 
 export type NimiAppAuthProjection = NimiAppLocalSessionProjection | NimiAppAuthUnavailable;
 
-export type NimiAppPermissionPostureInput = {
-  readonly operationId: string;
-  readonly resourceRef: string;
-};
-
-export type NimiAppPermissionRequestInput = NimiAppPermissionPostureInput & {
-  readonly purpose: string;
-};
-
-export type NimiAppPermissionPosture = {
-  readonly state: 'zero-grant' | 'pending' | 'granted' | 'denied' | 'revoked' | 'superseded' | 'unavailable';
-  readonly operationId: string;
-  readonly resourceRef: string;
-  readonly reasonCode: string;
-  readonly actionHint: string;
-  readonly retryable: boolean;
-};
-
-export type NimiAppRuntimeArtifactBytes = {
-  readonly bytes: Uint8Array;
-  readonly mimeType: string;
-  readonly sizeBytes: number;
-  readonly mimeInferred: boolean;
-};
-
-export type NimiAppRuntimeAgentOpenConversationInput = {
-  readonly agentId: string;
-  readonly requestedAnchorDisposition: 'create-or-resume' | 'create-new';
-};
-
-export type NimiAppRuntimeAgentSendTurnInput = {
-  readonly agentId: string;
-  readonly conversationAnchorId: string;
-  readonly clientTurnId: string;
-  readonly userText: string;
-};
-
-export type NimiAppRuntimeAgentSubscribeTurnInput = {
-  readonly agentId: string;
-  readonly conversationAnchorId: string;
-  readonly cursor?: string;
-};
-
-export type NimiAppRuntimeAgentConversationSnapshotInput = {
-  readonly agentId: string;
-  readonly conversationAnchorId: string;
-};
-
-export type NimiAppRuntimeAgentTurnEventPage = {
-  /** Opaque decimal cursor returned by the protected carrier for the next pull. */
-  readonly cursor: string;
-  /** The current carrier returns exactly one correlated Runtime event per pull. */
-  readonly events: readonly [NimiRuntimeAgentConsumeEvent];
-};
-
-export type NimiAppRuntimeAgentInventoryItem = {
-  readonly localAgentRef: string;
-  readonly displayName: string;
-  readonly ownerUserId: string;
-  readonly runtimeSourceRef: string;
-  readonly sourceReady: boolean;
-};
-
-export type NimiAppRuntimeAgentInventory = {
-  readonly ownerUserId: string;
-  readonly count: number;
-  readonly localAgents: readonly NimiAppRuntimeAgentInventoryItem[];
-};
+export type NimiAppPermissionStatusInput = PermissionID;
+export type NimiAppPermissionRequestInput = PermissionRequestInput;
+export type NimiAppPermissionStatus = PermissionStatus;
 
 /**
- * Host-neutral structural contract implemented directly by Kit's
- * createNimiLocalAppStandardShellSurface. The nested namespaces and twelve
- * operations are the complete admitted local-app carrier; this is not a Runtime
- * client and contains no generic forwarding surface.
+ * Host-neutral structural contract implemented directly by Kit's local-app
+ * shell surface. It exposes session status, product permission status, and
+ * app-private JSON storage. It is not a generic Runtime forwarding client.
  */
 export type NimiAppRuntimePlatformStandardShell = {
   readonly session: {
     readonly status: () => Promise<unknown>;
   };
   readonly permission: {
-    readonly posture: (input: NimiAppPermissionPostureInput) => Promise<unknown>;
+    readonly status: (input: { readonly permissionId: PermissionID }) => Promise<unknown>;
     readonly request: (input: NimiAppPermissionRequestInput) => Promise<unknown>;
-  };
-  readonly artifacts: {
-    readonly readRuntimeBytes: (artifactId: string) => Promise<unknown>;
   };
   readonly storage: {
     readonly readJson: (relativePath: string) => Promise<unknown>;
     readonly writeJson: (relativePath: string, value: JsonValue) => Promise<unknown>;
     readonly removeJson: (relativePath: string) => Promise<unknown>;
-  };
-  readonly agent: {
-    readonly inventory: () => Promise<unknown>;
-    readonly openConversation: (input: NimiAppRuntimeAgentOpenConversationInput) => Promise<unknown>;
-    readonly sendTurn: (input: NimiAppRuntimeAgentSendTurnInput) => Promise<unknown>;
-    readonly subscribeTurn: (input: NimiAppRuntimeAgentSubscribeTurnInput) => Promise<unknown>;
-    readonly getConversationSnapshot: (input: NimiAppRuntimeAgentConversationSnapshotInput) => Promise<unknown>;
-    readonly transcribeVoice: (input: NimiAppRuntimeAgentTranscribeVoiceInput) => Promise<unknown>;
-    readonly subscribeVoiceStream: (input: NimiAppRuntimeAgentSubscribeVoiceStreamInput) => Promise<unknown>;
   };
 };
 
@@ -201,11 +93,8 @@ export type NimiAppRuntimePlatformClient = {
     readonly status: () => Promise<NimiAppAuthProjection>;
   };
   readonly permissions: {
-    readonly posture: (input: NimiAppPermissionPostureInput) => Promise<NimiAppPermissionPosture>;
-    readonly request: (input: NimiAppPermissionRequestInput) => Promise<NimiAppPermissionPosture>;
-  };
-  readonly artifacts: {
-    readonly readRuntimeBytes: (artifactId: string) => Promise<NimiAppRuntimeArtifactBytes>;
+    readonly status: (permissionId: NimiAppPermissionStatusInput) => Promise<NimiAppPermissionStatus>;
+    readonly request: (input: NimiAppPermissionRequestInput) => Promise<NimiAppPermissionStatus>;
   };
   readonly storage: {
     readonly readJson: (relativePath: string) => Promise<NimiAppRuntimeStorageDocument>;
@@ -215,25 +104,6 @@ export type NimiAppRuntimePlatformClient = {
     ) => Promise<NimiAppRuntimeStorageDocument>;
     readonly removeJson: (relativePath: string) => Promise<NimiAppRuntimeStorageRemoveResult>;
   };
-  readonly agent: {
-    readonly listInventory: () => Promise<NimiAppRuntimeAgentInventory>;
-    readonly openConversation: (
-      input: NimiAppRuntimeAgentOpenConversationInput,
-    ) => Promise<NimiRuntimeAgentConversationAnchorSnapshot>;
-    readonly sendTurn: (input: NimiAppRuntimeAgentSendTurnInput) => Promise<SendAppMessageResponse>;
-    readonly subscribeTurn: (
-      input: NimiAppRuntimeAgentSubscribeTurnInput,
-    ) => Promise<NimiAppRuntimeAgentTurnEventPage>;
-    readonly getConversationSnapshot: (
-      input: NimiAppRuntimeAgentConversationSnapshotInput,
-    ) => Promise<NimiRuntimeAgentSessionSnapshot>;
-    readonly transcribeVoice: (
-      input: NimiAppRuntimeAgentTranscribeVoiceInput,
-    ) => Promise<NimiAppRuntimeAgentVoiceTranscription>;
-    readonly subscribeVoiceStream: (
-      input: NimiAppRuntimeAgentSubscribeVoiceStreamInput,
-    ) => Promise<NimiAppRuntimeAgentVoiceStreamPage>;
-  };
 };
 
 export function createNimiAppRuntimePlatformClient(
@@ -241,169 +111,42 @@ export function createNimiAppRuntimePlatformClient(
 ): NimiAppRuntimePlatformClient {
   assertExactKeys(input, ['standardShell'], 'SDK local-app client input');
   const standardShell = input.standardShell;
-  assertExactKeys(
-    standardShell,
-    ['session', 'permission', 'artifacts', 'storage', 'agent'],
-    'local-app standardShell',
-  );
+  assertExactKeys(standardShell, ['session', 'permission', 'storage'], 'local-app standardShell');
   assertExactMethodNamespace(standardShell.session, ['status'], 'session');
-  assertExactMethodNamespace(standardShell.permission, ['posture', 'request'], 'permission');
-  assertExactMethodNamespace(standardShell.artifacts, ['readRuntimeBytes'], 'artifacts');
+  assertExactMethodNamespace(standardShell.permission, ['status', 'request'], 'permission');
   assertExactMethodNamespace(standardShell.storage, ['readJson', 'writeJson', 'removeJson'], 'storage');
-  assertExactMethodNamespace(
-    standardShell.agent,
-    [
-      'inventory', 'openConversation', 'sendTurn', 'subscribeTurn',
-      'getConversationSnapshot', 'transcribeVoice', 'subscribeVoiceStream',
-    ],
-    'agent',
-  );
 
   return Object.freeze({
     auth: Object.freeze({
       status: async () => projectAuth(await standardShell.session.status()),
     }),
     permissions: Object.freeze({
-      posture: async (postureInput: NimiAppPermissionPostureInput) => {
-        assertExactKeys(postureInput, ['operationId', 'resourceRef'], 'local-app permission posture input');
-        const operationId = requireText(postureInput.operationId, 'operationId');
-        const resourceRef = requireText(postureInput.resourceRef, 'resourceRef');
-        return projectPermissionPosture(
-          await standardShell.permission.posture({ operationId, resourceRef }),
-          operationId,
-          resourceRef,
+      status: async (permissionId: NimiAppPermissionStatusInput) => {
+        const normalized = requireKnownPermissionID(permissionId);
+        return projectPermissionStatus(
+          await standardShell.permission.status({ permissionId: normalized }),
+          normalized,
         );
       },
       request: async (requestInput: NimiAppPermissionRequestInput) => {
-        assertExactKeys(
-          requestInput,
-          ['operationId', 'resourceRef', 'purpose'],
-          'local-app permission request input',
-        );
-        const operationId = requireText(requestInput.operationId, 'operationId');
-        const resourceRef = requireText(requestInput.resourceRef, 'resourceRef');
-        const purpose = requireText(requestInput.purpose, 'purpose');
-        const posture = projectPermissionPosture(
-          await standardShell.permission.request({ operationId, resourceRef, purpose }),
-          operationId,
-          resourceRef,
-        );
-        if (posture.state !== 'pending') {
-          localAppProjectionError('permission request state');
+        assertExactKeys(requestInput, ['permissionId', 'reason'], 'local-app permission request input');
+        const permissionId = requireKnownPermissionID(requestInput.permissionId);
+        const reason = requirePermissionReason(requestInput.reason);
+        if (!isAdmittedPermissionID(permissionId)) {
+          return localAppError(
+            `Permission "${permissionId}" is reserved and cannot be requested.`,
+            'SDK_PERMISSION_NOT_ADMITTED',
+            'wait_for_permission_admission',
+          );
         }
-        return posture;
+        return projectPermissionStatus(
+          await standardShell.permission.request({ permissionId, reason }),
+          permissionId,
+        );
       },
-    }),
-    artifacts: Object.freeze({
-      readRuntimeBytes: async (artifactId: string) => projectArtifact(
-        await standardShell.artifacts.readRuntimeBytes(requireText(artifactId, 'artifactId')),
-      ),
     }),
     storage: createNimiAppRuntimeStorageClient(standardShell.storage),
-    agent: Object.freeze({
-      listInventory: async () => projectAgentInventory(await standardShell.agent.inventory()),
-      openConversation: async (agentInput: NimiAppRuntimeAgentOpenConversationInput) => {
-        assertNoAuthorityMaterial(agentInput);
-        assertExactKeys(
-          agentInput,
-          ['agentId', 'requestedAnchorDisposition'],
-          'local-app open conversation input',
-        );
-        const normalized = {
-          agentId: requireText(agentInput.agentId, 'agentId'),
-          requestedAnchorDisposition: requireAnchorDisposition(agentInput.requestedAnchorDisposition),
-        };
-        return projectConversationAnchor(
-          await standardShell.agent.openConversation(normalized),
-          normalized.agentId,
-        );
-      },
-      sendTurn: async (turnInput: NimiAppRuntimeAgentSendTurnInput) => {
-        assertNoAuthorityMaterial(turnInput);
-        assertExactKeys(
-          turnInput,
-          ['agentId', 'conversationAnchorId', 'clientTurnId', 'userText'],
-          'local-app send turn input',
-        );
-        const normalized = {
-          agentId: requireText(turnInput.agentId, 'agentId'),
-          conversationAnchorId: requireText(turnInput.conversationAnchorId, 'conversationAnchorId'),
-          clientTurnId: requireText(turnInput.clientTurnId, 'clientTurnId'),
-          userText: requireText(turnInput.userText, 'userText'),
-        };
-        return projectSendTurn(await standardShell.agent.sendTurn(normalized));
-      },
-      subscribeTurn: async (subscribeInput: NimiAppRuntimeAgentSubscribeTurnInput) => {
-        assertNoAuthorityMaterial(subscribeInput);
-        assertExactKeys(
-          subscribeInput,
-          ['agentId', 'conversationAnchorId', 'cursor'],
-          'local-app subscribe turn input',
-        );
-        const cursor = optionalCursor(subscribeInput.cursor);
-        const normalized = {
-          agentId: requireText(subscribeInput.agentId, 'agentId'),
-          conversationAnchorId: requireText(subscribeInput.conversationAnchorId, 'conversationAnchorId'),
-          ...(cursor ? { cursor } : {}),
-        };
-        return projectTurnEventPage(
-          await standardShell.agent.subscribeTurn(normalized),
-          normalized.agentId,
-          normalized.conversationAnchorId,
-          cursor,
-        );
-      },
-      getConversationSnapshot: async (snapshotInput: NimiAppRuntimeAgentConversationSnapshotInput) => {
-        assertNoAuthorityMaterial(snapshotInput);
-        assertExactKeys(
-          snapshotInput,
-          ['agentId', 'conversationAnchorId'],
-          'local-app conversation snapshot input',
-        );
-        const normalized = {
-          agentId: requireText(snapshotInput.agentId, 'agentId'),
-          conversationAnchorId: requireText(snapshotInput.conversationAnchorId, 'conversationAnchorId'),
-        };
-        return projectConversationSnapshot(
-          await standardShell.agent.getConversationSnapshot(normalized),
-          normalized.agentId,
-          normalized.conversationAnchorId,
-        );
-      },
-      ...createNimiAppRuntimeVoiceClient(standardShell.agent),
-    }),
   });
-}
-
-function projectAgentInventory(value: unknown): NimiAppRuntimeAgentInventory {
-  const record = asRecord(value);
-  assertSafeProjection(record);
-  assertExactProjectionKeys(record, ['ownerUserId', 'count', 'localAgents'], 'agent inventory');
-  const ownerUserId = projectionText(record.ownerUserId, 'ownerUserId');
-  const count = nonNegativeInteger(record.count, 'agent inventory count');
-  if (!Array.isArray(record.localAgents) || count !== record.localAgents.length || count > 200) {
-    localAppProjectionError('agent inventory count');
-  }
-  const localAgents = record.localAgents.map((entry, index): NimiAppRuntimeAgentInventoryItem => {
-    const item = asRecord(entry);
-    assertExactProjectionKeys(
-      item,
-      ['localAgentRef', 'displayName', 'ownerUserId', 'runtimeSourceRef', 'sourceReady'],
-      `agent inventory item ${index}`,
-    );
-    const itemOwnerUserId = projectionText(item.ownerUserId, 'ownerUserId');
-    if (itemOwnerUserId !== ownerUserId || typeof item.sourceReady !== 'boolean') {
-      localAppProjectionError(`agent inventory item ${index} correlation`);
-    }
-    return {
-      localAgentRef: projectionText(item.localAgentRef, 'localAgentRef'),
-      displayName: projectionText(item.displayName, 'displayName'),
-      ownerUserId: itemOwnerUserId,
-      runtimeSourceRef: projectionText(item.runtimeSourceRef, 'runtimeSourceRef'),
-      sourceReady: item.sourceReady,
-    };
-  });
-  return { ownerUserId, count, localAgents };
 }
 
 function projectAuth(value: unknown): NimiAppAuthProjection {
@@ -419,206 +162,47 @@ function projectAuth(value: unknown): NimiAppAuthProjection {
       mode: 'local-app',
       state,
       sessionBound: false,
-      operationAllowed: false,
       reasonCode,
       actionHint,
       retryable: record.retryable,
     };
   }
-  const sessionBound = state === 'session-bound-zero-grant' || state === 'session-bound-granted';
   return {
     mode: 'local-app',
     state,
-    sessionBound,
-    operationAllowed: state === 'session-bound-granted',
+    sessionBound: state === 'session-bound',
     reasonCode,
     actionHint,
     retryable: record.retryable,
   };
 }
 
-function projectPermissionPosture(
+function projectPermissionStatus(
   value: unknown,
-  requestedOperationId: string,
-  requestedResourceRef: string,
-): NimiAppPermissionPosture {
+  requestedPermissionId: PermissionID,
+): NimiAppPermissionStatus {
   const record = asRecord(value);
   assertExactProjectionKeys(
     record,
-    ['state', 'operationId', 'resourceRef', 'reasonCode', 'actionHint', 'retryable'],
+    ['state', 'permissionId', 'canRequest', 'reasonCode'],
     'permission',
   );
   const state = String(record.state || '');
-  if (!['zero-grant', 'pending', 'granted', 'denied', 'revoked', 'superseded', 'unavailable'].includes(state)) {
-    localAppProjectionError('permission state');
+  if (!isPermissionPosture(state)) localAppProjectionError('permission state');
+  const permissionId = projectionText(record.permissionId, 'permissionId');
+  if (permissionId !== requestedPermissionId || !isKnownPermissionID(permissionId)) {
+    localAppProjectionError('permission id binding');
   }
-  const operationId = projectionText(record.operationId, 'operationId');
-  const resourceRef = projectionText(record.resourceRef, 'resourceRef');
-  if (operationId !== requestedOperationId || resourceRef !== requestedResourceRef) {
-    localAppProjectionError('permission operation binding');
+  if (typeof record.canRequest !== 'boolean') localAppProjectionError('permission request posture');
+  if (!isAdmittedPermissionID(permissionId) && (state !== 'unavailable' || record.canRequest)) {
+    localAppProjectionError('reserved permission posture');
   }
-  if (typeof record.retryable !== 'boolean') localAppProjectionError('permission retryable');
   return {
-    state: state as NimiAppPermissionPosture['state'],
-    operationId,
-    resourceRef,
-    reasonCode: projectionText(record.reasonCode, 'reasonCode'),
-    actionHint: projectionText(record.actionHint, 'actionHint'),
-    retryable: record.retryable,
+    permissionId,
+    posture: state,
+    canRequest: record.canRequest,
+    detail: projectionText(record.reasonCode, 'reasonCode'),
   };
-}
-
-function projectConversationAnchor(
-  value: unknown,
-  expectedAgentId: string,
-): NimiRuntimeAgentConversationAnchorSnapshot {
-  const record = asRecord(value);
-  assertSafeProjection(record);
-  assertExactProjectionKeys(record, ['anchor', 'activeTurnId', 'activeStreamId'], 'conversation anchor');
-  const anchor = asRecord(record.anchor);
-  assertExactProjectionKeys(anchor, [
-    'conversationAnchorId', 'agentId', 'status', 'lastTurnId', 'lastMessageId',
-    'createdAt', 'updatedAt', 'metadata', 'localAgentRef',
-  ], 'conversation anchor body');
-  const conversationAnchorId = projectionText(anchor.conversationAnchorId, 'conversationAnchorId');
-  const agentId = projectionText(anchor.agentId, 'agentId');
-  const localAgentRef = projectionText(anchor.localAgentRef, 'localAgentRef');
-  if (agentId !== expectedAgentId || localAgentRef !== expectedAgentId) {
-    localAppProjectionError('conversation anchor correlation');
-  }
-  const status = nonNegativeInteger(anchor.status, 'conversation anchor status');
-  const metadata = asRecord(anchor.metadata);
-  if (!metadata) localAppProjectionError('conversation anchor metadata');
-  const createdAt = projectTimestamp(anchor.createdAt, 'createdAt');
-  const updatedAt = projectTimestamp(anchor.updatedAt, 'updatedAt');
-  const normalized: ConversationAnchorSnapshot = {
-    anchor: {
-      conversationAnchorId,
-      agentId,
-      subjectUserId: '',
-      status: status as NonNullable<ConversationAnchorSnapshot['anchor']>['status'],
-      lastTurnId: canonicalString(anchor.lastTurnId, 'lastTurnId'),
-      lastMessageId: canonicalString(anchor.lastMessageId, 'lastMessageId'),
-      ...(createdAt ? { createdAt } : {}),
-      ...(updatedAt ? { updatedAt } : {}),
-      metadata: toNimiRuntimeProtoStruct(metadata as JsonObject),
-      localAgentRef,
-      ownerUserId: '',
-      runtimeSourceRef: '',
-    },
-    activeTurnId: canonicalString(record.activeTurnId, 'activeTurnId'),
-    activeStreamId: canonicalString(record.activeStreamId, 'activeStreamId'),
-  };
-  try {
-    return decodeNimiRuntimeAgentConversationAnchorSnapshot(normalized, expectedAgentId);
-  } catch {
-    return localAppProjectionError('conversation anchor');
-  }
-}
-
-function projectSendTurn(value: unknown): SendAppMessageResponse {
-  const record = asRecord(value);
-  assertSafeProjection(record);
-  assertExactProjectionKeys(record, ['messageId', 'accepted', 'reasonCode'], 'send turn');
-  if (record.accepted !== true) localAppProjectionError('send turn acceptance');
-  return {
-    messageId: projectionText(record.messageId, 'messageId'),
-    accepted: true,
-    reasonCode: nonNegativeInteger(record.reasonCode, 'reasonCode') as SendAppMessageResponse['reasonCode'],
-  };
-}
-
-function projectTurnEventPage(
-  value: unknown,
-  expectedAgentId: string,
-  expectedConversationAnchorId: string,
-  previousCursor: string | undefined,
-): NimiAppRuntimeAgentTurnEventPage {
-  const record = asRecord(value);
-  assertSafeProjection(record);
-  assertExactProjectionKeys(record, ['cursor', 'events'], 'subscribe turn');
-  const cursor = decimalCursor(record.cursor, 'cursor');
-  if (previousCursor !== undefined && BigInt(cursor) <= BigInt(previousCursor)) {
-    localAppProjectionError('subscribe turn cursor progression');
-  }
-  if (!Array.isArray(record.events) || record.events.length !== 1) {
-    localAppProjectionError('subscribe turn event page');
-  }
-  const rawEvent = asRecord(record.events[0]);
-  assertExactProjectionKeys(rawEvent, [
-    'eventType', 'sequence', 'messageId', 'messageType', 'payload',
-    'reasonCode', 'traceId', 'timestamp',
-  ], 'subscribe turn event');
-  const sequence = decimalCursor(rawEvent.sequence, 'event sequence');
-  if (sequence !== cursor) localAppProjectionError('subscribe turn cursor correlation');
-  const payload = asRecord(rawEvent.payload);
-  if (!payload) localAppProjectionError('subscribe turn event payload');
-  const timestamp = projectTimestamp(rawEvent.timestamp, 'timestamp');
-  const event: AppMessageEvent = {
-    eventType: nonNegativeInteger(rawEvent.eventType, 'eventType') as AppMessageEvent['eventType'],
-    sequence,
-    messageId: projectionText(rawEvent.messageId, 'messageId'),
-    fromAppId: 'runtime.agent',
-    toAppId: '',
-    subjectUserId: '',
-    messageType: projectionText(rawEvent.messageType, 'messageType'),
-    payload: toNimiRuntimeProtoStruct(payload as JsonObject),
-    reasonCode: nonNegativeInteger(rawEvent.reasonCode, 'reasonCode') as AppMessageEvent['reasonCode'],
-    traceId: canonicalString(rawEvent.traceId, 'traceId'),
-    ...(timestamp ? { timestamp } : {}),
-  };
-  let projected: NimiRuntimeAgentConsumeEvent | null;
-  try {
-    projected = projectNimiRuntimeAgentAppMessageEvent(event);
-  } catch {
-    return localAppProjectionError('subscribe turn event');
-  }
-  if (
-    !projected
-    || projected.localAgentRef !== expectedAgentId
-    || projected.conversationAnchorId !== expectedConversationAnchorId
-  ) {
-    localAppProjectionError('subscribe turn event correlation');
-  }
-  return { cursor, events: [projected] };
-}
-
-function projectConversationSnapshot(
-  value: unknown,
-  expectedAgentId: string,
-  expectedConversationAnchorId: string,
-): NimiRuntimeAgentSessionSnapshot {
-  const record = asRecord(value);
-  if (!record) localAppProjectionError('conversation snapshot');
-  assertSafeProjection(record);
-  try {
-    return parseNimiRuntimeAgentSessionSnapshot(toNimiRuntimeProtoStruct(record as JsonObject), {
-      localAgentRef: expectedAgentId,
-      conversationAnchorId: expectedConversationAnchorId,
-    });
-  } catch {
-    return localAppProjectionError('conversation snapshot');
-  }
-}
-
-function projectArtifact(value: unknown): NimiAppRuntimeArtifactBytes {
-  const record = asRecord(value);
-  assertExactProjectionKeys(record, ['bytes', 'mimeType', 'sizeBytes', 'mimeInferred'], 'artifact');
-  const bytes = record.bytes;
-  const sizeBytes = Number(record.sizeBytes);
-  const mimeType = projectionText(record.mimeType, 'mimeType');
-  if (
-    !(bytes instanceof Uint8Array)
-    || !Number.isSafeInteger(sizeBytes)
-    || sizeBytes < 0
-    || sizeBytes > MAX_INLINE_ARTIFACT_BYTES
-    || bytes.byteLength !== sizeBytes
-    || !mimeType.includes('/')
-    || typeof record.mimeInferred !== 'boolean'
-  ) {
-    localAppProjectionError('artifact');
-  }
-  return { bytes: Uint8Array.from(bytes), mimeType, sizeBytes, mimeInferred: record.mimeInferred };
 }
 
 function localAppSessionState(
@@ -631,8 +215,7 @@ function localAppSessionState(
   if (normalizedReason.includes('runtimerestarted')) return 'runtime-restarted';
   switch (rawState) {
     case 'authorizing': return 'action-required';
-    case 'zero-grant': return 'session-bound-zero-grant';
-    case 'ready': return 'session-bound-granted';
+    case 'ready': return 'session-bound';
     case 'denied': return 'action-required';
     case 'runtime-unavailable': return 'unavailable';
     case 'revoked': return 'revoked';
@@ -643,10 +226,9 @@ function localAppSessionState(
 
 function localAppSessionActionHint(state: NimiAppLocalSessionState | 'unavailable'): string {
   switch (state) {
-    case 'session-bound-zero-grant': return 'request_local_app_operation_grant';
-    case 'session-bound-granted': return 'continue_local_app_operation';
+    case 'session-bound': return 'continue_local_app_session';
     case 'action-required': return 'complete_local_app_authorization';
-    case 'revoked': return 'request_local_app_operation_grant';
+    case 'revoked': return 'reopen_local_app_session';
     case 'project-changed': return 'readmit_local_development_project';
     case 'process-replaced': return 'restart_through_verified_desktop_supervisor';
     case 'account-changed': return 'reauthorize_for_current_account';
@@ -655,11 +237,25 @@ function localAppSessionActionHint(state: NimiAppLocalSessionState | 'unavailabl
   }
 }
 
-function requireAnchorDisposition(value: unknown): NimiAppRuntimeAgentOpenConversationInput['requestedAnchorDisposition'] {
-  if (value === 'create-or-resume' || value === 'create-new') return value;
-  return localAppError(
-    'Local-app conversation anchor disposition is invalid.',
-    'SDK_LOCAL_APP_INPUT_INVALID',
-    'use_declared_anchor_disposition',
-  );
+function requireKnownPermissionID(value: unknown): PermissionID {
+  if (!isKnownPermissionID(value)) {
+    return localAppError(
+      `Permission "${String(value)}" is not in the public catalog.`,
+      'SDK_PERMISSION_ID_UNKNOWN',
+      'use_known_permission_id',
+    );
+  }
+  return value;
+}
+
+function requirePermissionReason(value: unknown): string {
+  const reason = requireText(value, 'reason');
+  if (new TextEncoder().encode(reason).byteLength > 240) {
+    return localAppError(
+      'Permission reason exceeds 240 UTF-8 bytes.',
+      'SDK_PERMISSION_REQUEST_INVALID',
+      'shorten_permission_reason',
+    );
+  }
+  return reason;
 }

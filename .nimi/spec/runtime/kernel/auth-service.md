@@ -99,7 +99,8 @@ canonical owner 独立准入后，域 ceiling 违规才返回
 
 **评估顺序**：先判定 `BINDING_ONLY`（effective set 直接为空），再验证
 protected origin 与 independently admitted session，之后才应用 AppMode ceiling，
-最后应用 exact current grant and operation-owner policy。任一前置不成立均 fail
+最后按 authority class 应用 base-entitlement boundary，或 admitted public
+permission 的 current owner decision/selector 与 operation-owner policy。任一前置不成立均 fail
 closed，且不得借由后续 ceiling/grant 反向升级。
 
 ## K-AUTHSVC-010 Manifest 与 WorldRelation 组合规则

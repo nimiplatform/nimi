@@ -26,24 +26,23 @@ journeys:
       - {checkpoint_id: production-account-login, prerequisite_ids: [fixed-service-ready], covered_leaf_ids: []}
       - {checkpoint_id: developer-mode-enabled, prerequisite_ids: [production-account-login], covered_leaf_ids: []}
       - {checkpoint_id: run-once-project-admitted, prerequisite_ids: [developer-mode-enabled], covered_leaf_ids: []}
-      - {checkpoint_id: zero-grant-session, prerequisite_ids: [run-once-project-admitted], covered_leaf_ids: []}
-      - {checkpoint_id: operation-denied-before-grant, prerequisite_ids: [zero-grant-session], covered_leaf_ids: []}
-      - {checkpoint_id: selected-operation-granted, prerequisite_ids: [operation-denied-before-grant], covered_leaf_ids: []}
-      - {checkpoint_id: selected-runtime-agent-operation, prerequisite_ids: [selected-operation-granted], covered_leaf_ids: []}
-      - {checkpoint_id: process-mismatch-denied, prerequisite_ids: [selected-runtime-agent-operation], covered_leaf_ids: []}
-      - {checkpoint_id: grant-revoked-next-operation-denied, prerequisite_ids: [process-mismatch-denied], covered_leaf_ids: []}
-      - {checkpoint_id: remembered-project-admitted, prerequisite_ids: [grant-revoked-next-operation-denied], covered_leaf_ids: []}
-      - {checkpoint_id: runtime-agent-conversation, prerequisite_ids: [remembered-project-admitted], covered_leaf_ids: []}
-      - {checkpoint_id: edit-build-process-replaced, prerequisite_ids: [runtime-agent-conversation], covered_leaf_ids: []}
-      - {checkpoint_id: conversation-resumed-after-process-replacement, prerequisite_ids: [edit-build-process-replaced], covered_leaf_ids: []}
-      - {checkpoint_id: mode-off-dormant, prerequisite_ids: [conversation-resumed-after-process-replacement], covered_leaf_ids: []}
+      - {checkpoint_id: local-app-session-bound, prerequisite_ids: [run-once-project-admitted], covered_leaf_ids: []}
+      - {checkpoint_id: app-private-storage-base-entitlement, prerequisite_ids: [local-app-session-bound], covered_leaf_ids: []}
+      - {checkpoint_id: reserved-permission-unavailable, prerequisite_ids: [local-app-session-bound], covered_leaf_ids: []}
+      - {checkpoint_id: reserved-permission-request-denied, prerequisite_ids: [reserved-permission-unavailable], covered_leaf_ids: []}
+      - {checkpoint_id: process-mismatch-denied, prerequisite_ids: [app-private-storage-base-entitlement, reserved-permission-request-denied], covered_leaf_ids: []}
+      - {checkpoint_id: remembered-project-admitted, prerequisite_ids: [process-mismatch-denied], covered_leaf_ids: []}
+      - {checkpoint_id: remembered-authority-boundary, prerequisite_ids: [remembered-project-admitted], covered_leaf_ids: []}
+      - {checkpoint_id: edit-build-process-replaced, prerequisite_ids: [remembered-authority-boundary], covered_leaf_ids: []}
+      - {checkpoint_id: app-private-storage-after-process-replacement, prerequisite_ids: [edit-build-process-replaced], covered_leaf_ids: []}
+      - {checkpoint_id: mode-off-dormant, prerequisite_ids: [app-private-storage-after-process-replacement], covered_leaf_ids: []}
       - {checkpoint_id: remembered-project-reactivated, prerequisite_ids: [mode-off-dormant], covered_leaf_ids: []}
       - {checkpoint_id: fixed-service-restarted, prerequisite_ids: [remembered-project-reactivated], covered_leaf_ids: []}
-      - {checkpoint_id: conversation-resumed-after-runtime-restart, prerequisite_ids: [fixed-service-restarted], covered_leaf_ids: []}
-      - {checkpoint_id: account-switch-invalidated, prerequisite_ids: [conversation-resumed-after-runtime-restart], covered_leaf_ids: []}
-      - {checkpoint_id: project-revoked-next-operation-denied, prerequisite_ids: [account-switch-invalidated], covered_leaf_ids: []}
-      - {checkpoint_id: desktop-real-shell-acceptance, prerequisite_ids: [project-revoked-next-operation-denied], covered_leaf_ids: []}
-      - {checkpoint_id: zhiyu-real-shell-acceptance, prerequisite_ids: [project-revoked-next-operation-denied], covered_leaf_ids: []}
+      - {checkpoint_id: app-private-storage-after-runtime-restart, prerequisite_ids: [fixed-service-restarted], covered_leaf_ids: []}
+      - {checkpoint_id: account-switch-invalidated, prerequisite_ids: [app-private-storage-after-runtime-restart], covered_leaf_ids: []}
+      - {checkpoint_id: project-revoked-session-invalidated, prerequisite_ids: [account-switch-invalidated], covered_leaf_ids: []}
+      - {checkpoint_id: desktop-real-shell-acceptance, prerequisite_ids: [project-revoked-session-invalidated], covered_leaf_ids: []}
+      - {checkpoint_id: zhiyu-real-shell-acceptance, prerequisite_ids: [project-revoked-session-invalidated], covered_leaf_ids: []}
       - {checkpoint_id: protected-carrier-privacy-closeout, prerequisite_ids: [desktop-real-shell-acceptance, zhiyu-real-shell-acceptance], covered_leaf_ids: []}
 
   - journey_id: full-chain-core

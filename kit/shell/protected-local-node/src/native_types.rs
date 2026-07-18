@@ -11,22 +11,6 @@ pub struct NativeJsonOutcome {
 }
 
 #[napi(object)]
-pub struct NativeArtifactValue {
-    pub bytes: Buffer,
-    pub mime_type: String,
-    pub size_bytes: u32,
-    pub mime_inferred: bool,
-}
-
-#[napi(object)]
-pub struct NativeArtifactOutcome {
-    pub status: String,
-    pub value: Option<NativeArtifactValue>,
-    pub reason_code: Option<String>,
-    pub retryable: Option<bool>,
-}
-
-#[napi(object)]
 pub struct NativeBytesOutcome {
     pub status: String,
     pub value: Option<Buffer>,
@@ -85,18 +69,6 @@ pub struct NativeDeveloperModeSetInput {
 }
 
 #[napi(object)]
-pub struct NativeLocalAppGrantDecisionInput {
-    pub request_id: String,
-    pub presence_challenge_id: String,
-    pub approved: bool,
-}
-
-#[napi(object)]
-pub struct NativeLocalAppGrantRevokeInput {
-    pub grant_id: String,
-}
-
-#[napi(object)]
 pub struct NativeLocalDevelopmentEvaluateInput {
     pub expected_app_id: String,
     pub project_root: String,
@@ -145,21 +117,14 @@ pub struct NativeLocalDevelopmentEndRunInput {
 }
 
 #[napi(object)]
-pub struct NativePermissionPostureInput {
-    pub operation_id: String,
-    pub resource_ref: String,
+pub struct NativePermissionStatusInput {
+    pub permission_id: String,
 }
 
 #[napi(object)]
 pub struct NativePermissionRequestInput {
-    pub operation_id: String,
-    pub resource_ref: String,
-    pub purpose: String,
-}
-
-#[napi(object)]
-pub struct NativeArtifactReadInput {
-    pub artifact_id: String,
+    pub permission_id: String,
+    pub reason: String,
 }
 
 #[napi(object)]
@@ -176,48 +141,4 @@ pub struct NativeStorageWriteInput {
 #[napi(object)]
 pub struct NativeStorageRemoveInput {
     pub relative_path: String,
-}
-
-#[napi(object)]
-pub struct NativeAgentOpenConversationInput {
-    pub agent_id: String,
-    pub requested_anchor_disposition: String,
-}
-
-#[napi(object)]
-pub struct NativeAgentSendTurnInput {
-    pub agent_id: String,
-    pub conversation_anchor_id: String,
-    pub client_turn_id: String,
-    pub user_text: String,
-}
-
-#[napi(object)]
-pub struct NativeAgentSubscribeTurnInput {
-    pub agent_id: String,
-    pub conversation_anchor_id: String,
-    pub cursor: String,
-}
-
-#[napi(object)]
-pub struct NativeAgentConversationSnapshotInput {
-    pub agent_id: String,
-    pub conversation_anchor_id: String,
-}
-
-#[napi(object)]
-pub struct NativeAgentTranscribeVoiceInput {
-    pub agent_id: String,
-    pub client_request_id: String,
-    pub audio_base64: String,
-    pub mime_type: String,
-}
-
-#[napi(object)]
-pub struct NativeAgentSubscribeVoiceStreamInput {
-    pub agent_id: String,
-    pub conversation_anchor_id: String,
-    pub turn_id: String,
-    pub voice_stream_id: String,
-    pub cursor: String,
 }

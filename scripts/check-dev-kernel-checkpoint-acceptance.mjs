@@ -130,22 +130,21 @@ const DEV_KERNEL_CORE_CHECKPOINTS = [
   'production-account-login',
   'developer-mode-enabled',
   'run-once-project-admitted',
-  'zero-grant-session',
-  'operation-denied-before-grant',
-  'selected-operation-granted',
-  'selected-runtime-agent-operation',
+  'local-app-session-bound',
+  'app-private-storage-base-entitlement',
+  'reserved-permission-unavailable',
+  'reserved-permission-request-denied',
   'process-mismatch-denied',
-  'grant-revoked-next-operation-denied',
   'remembered-project-admitted',
-  'runtime-agent-conversation',
+  'remembered-authority-boundary',
   'edit-build-process-replaced',
-  'conversation-resumed-after-process-replacement',
+  'app-private-storage-after-process-replacement',
   'mode-off-dormant',
   'remembered-project-reactivated',
   'fixed-service-restarted',
-  'conversation-resumed-after-runtime-restart',
+  'app-private-storage-after-runtime-restart',
   'account-switch-invalidated',
-  'project-revoked-next-operation-denied',
+  'project-revoked-session-invalidated',
   'desktop-real-shell-acceptance',
   'zhiyu-real-shell-acceptance',
   'protected-carrier-privacy-closeout',
@@ -619,7 +618,7 @@ function validatePrincipals(principals, buildIds, issues) {
     const itemLocation = `${location}[${index}]`;
     if (!expectExactKeys(principal, [
       'principalId', 'localOsUserAnchorSha256', 'accountBindingSha256', 'provenance',
-      'recordRevision', 'grantRevision', 'leaseId', 'processId', 'sessionId', 'buildId',
+      'recordRevision', 'projectGeneration', 'leaseId', 'processId', 'sessionId', 'buildId',
       'executionProfileRef', 'hostExecutableSha256', 'payloadRootSha256',
     ], itemLocation, issues)) continue;
     if (expectNonEmptyString(principal.principalId, `${itemLocation}.principalId`, issues)) {
@@ -629,7 +628,7 @@ function validatePrincipals(principals, buildIds, issues) {
     expectSha256(principal.localOsUserAnchorSha256, `${itemLocation}.localOsUserAnchorSha256`, issues);
     expectSha256(principal.accountBindingSha256, `${itemLocation}.accountBindingSha256`, issues);
     expectEnum(principal.provenance, ['local_development'], `${itemLocation}.provenance`, 'LOCAL_DEVELOPMENT_PROVENANCE_REQUIRED', issues);
-    for (const field of ['recordRevision', 'grantRevision', 'processId']) {
+    for (const field of ['recordRevision', 'projectGeneration', 'processId']) {
       if (!Number.isInteger(principal[field]) || principal[field] < 1) {
         issues.push(issue('POSITIVE_INTEGER_REQUIRED', `${itemLocation}.${field}`, 'Expected a positive integer.'));
       }

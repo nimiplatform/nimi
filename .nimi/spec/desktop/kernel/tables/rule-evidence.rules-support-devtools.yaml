@@ -96,7 +96,7 @@ rules:
   - desktop_kernel_consistency
   - desktop_test_gate
   - desktop_e2e_journey_gate
-  note: Run-once and remembered/dormant/reactivate lifetimes preserve zero-grant separation and invalidate leases/sessions on process, Runtime, account, mode, or revoke transitions.
+  note: Run-once and remembered/dormant/reactivate lifetimes preserve zero-permission separation and invalidate leases/sessions on process, Runtime, account, mode, or revoke transitions.
   evidence_requirement: required
 - rule_id: D-DEV-006
   evidence_refs:

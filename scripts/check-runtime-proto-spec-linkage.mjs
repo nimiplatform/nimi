@@ -161,7 +161,7 @@ function checkConnectorUpdateMaskAndPagination() {
   }
 }
 
-function checkGrantServiceHardcutAndLocalAppGrantBinding() {
+function checkGrantServiceHardcutAndLocalAppPermissionProjection() {
   const protoRoot = path.join(cwd, 'proto/runtime/v1');
   const protoCorpus = walk(protoRoot)
     .filter((file) => file.endsWith('.proto'))
@@ -181,6 +181,12 @@ function checkGrantServiceHardcutAndLocalAppGrantBinding() {
     'ListTokenChainRequest',
     'TokenChainEntry',
     'ListTokenChainResponse',
+    'GetLocalAppGrantStatus',
+    'RequestLocalAppGrant',
+    'DecideLocalAppGrant',
+    'RevokeLocalAppGrant',
+    'LocalAppGrantProjection',
+    'LocalAppGrantState',
   ]) {
     if (new RegExp(`\\b${retiredSymbol}\\b`).test(protoCorpus)) {
       fail(`proto/runtime/v1 still publishes removed public Grant symbol: ${retiredSymbol}`);
@@ -189,29 +195,20 @@ function checkGrantServiceHardcutAndLocalAppGrantBinding() {
 
   const accountRel = 'proto/runtime/v1/account.proto';
   const account = read(accountRel);
-  const projection = getProtoMessageBlock(account, 'LocalAppGrantProjection', accountRel);
-  assertMessageHasFields(projection, 'LocalAppGrantProjection', accountRel, [
-    'state',
-    'operation_id',
-    'resource_ref',
-    'request_id',
-    'grant_id',
-    'grant_generation',
-    'grant_revision',
-    'expires_at',
+  const projection = getProtoMessageBlock(account, 'LocalAppPermissionProjection', accountRel);
+  assertMessageHasFields(projection, 'LocalAppPermissionProjection', accountRel, [
+    'permission_id',
+    'posture',
+    'can_request',
     'reason_code',
   ]);
-  const localAppGrantMessages = [
-    ['GetLocalAppGrantStatusRequest', ['operation_id', 'resource_ref']],
-    ['GetLocalAppGrantStatusResponse', ['projection']],
-    ['RequestLocalAppGrantRequest', ['operation_id', 'resource_ref', 'purpose']],
-    ['RequestLocalAppGrantResponse', ['projection']],
-    ['DecideLocalAppGrantRequest', ['request_id', 'approved', 'presence_challenge_id']],
-    ['DecideLocalAppGrantResponse', ['projection']],
-    ['RevokeLocalAppGrantRequest', ['grant_id']],
-    ['RevokeLocalAppGrantResponse', ['projection']],
+  const localAppPermissionMessages = [
+    ['GetLocalAppPermissionStatusRequest', ['permission_id']],
+    ['GetLocalAppPermissionStatusResponse', ['projection']],
+    ['RequestLocalAppPermissionRequest', ['permission_id', 'reason']],
+    ['RequestLocalAppPermissionResponse', ['projection']],
   ];
-  for (const [messageName, fields] of localAppGrantMessages) {
+  for (const [messageName, fields] of localAppPermissionMessages) {
     const block = getProtoMessageBlock(account, messageName, accountRel);
     assertMessageHasFields(block, messageName, accountRel, fields);
     if (/\b(?:bearer|secret|token|session_proof|principal_id|account_id|app_id)\b/i.test(block)) {
@@ -219,17 +216,15 @@ function checkGrantServiceHardcutAndLocalAppGrantBinding() {
     }
   }
   if (/\b(?:bearer|secret|token|session_proof)\b/i.test(projection)) {
-    fail(`${accountRel} LocalAppGrantProjection exposes portable credential material`);
+    fail(`${accountRel} LocalAppPermissionProjection exposes portable credential material`);
   }
 
   const accountService = getProtoServiceBlock(account, 'RuntimeAccountService', accountRel);
-  const grantMethods = [
-    'GetLocalAppGrantStatus',
-    'RequestLocalAppGrant',
-    'DecideLocalAppGrant',
-    'RevokeLocalAppGrant',
+  const permissionMethods = [
+    'GetLocalAppPermissionStatus',
+    'RequestLocalAppPermission',
   ];
-  for (const method of grantMethods) {
+  for (const method of permissionMethods) {
     expectRegex(accountService, new RegExp(`\\brpc\\s+${method}\\s*\\(`), `${accountRel} RuntimeAccountService.${method}`);
   }
 
@@ -245,27 +240,33 @@ function checkGrantServiceHardcutAndLocalAppGrantBinding() {
   if (String(schema?.source_rule || '') !== 'K-GRANT-014') {
     fail(`${schemaRel} source_rule must be K-GRANT-014`);
   }
-  const key = Array.isArray(schema?.grant?.key) ? schema.grant.key.map(String) : [];
-  for (const required of ['local_os_user_anchor', 'account_id', 'local_app_principal_id', 'capability_resource_fingerprint']) {
-    if (!key.includes(required)) fail(`${schemaRel} grant.key missing ${required}`);
+  if (String(schema?.current_admission?.store_identity || '') !== 'absent_pre_admission'
+    || String(schema?.current_admission?.positive_mutation_path || '') !== 'absent') {
+    fail(`${schemaRel} must keep permission persistence and positive mutation absent before admission`);
   }
-  const fields = Array.isArray(schema?.grant?.fields) ? schema.grant.fields.map(String) : [];
-  for (const required of ['grant_id', 'grant_generation', 'grant_revision', 'state', 'presence_evidence_ref']) {
-    if (!fields.includes(required)) fail(`${schemaRel} grant.fields missing ${required}`);
+  const key = Array.isArray(schema?.future_owner_lifecycle?.key) ? schema.future_owner_lifecycle.key.map(String) : [];
+  for (const required of ['local_os_user_anchor', 'account_id', 'local_app_principal_id', 'permission_id', 'owner_selector_digest']) {
+    if (!key.includes(required)) fail(`${schemaRel} future_owner_lifecycle.key missing ${required}`);
   }
-  const invariants = Array.isArray(schema?.grant?.invariants) ? schema.grant.invariants.map(String) : [];
+  const fields = Array.isArray(schema?.future_owner_lifecycle?.minimum_fields) ? schema.future_owner_lifecycle.minimum_fields.map(String) : [];
+  for (const required of ['permission_decision_id', 'permission_id', 'decision_generation', 'decision_revision', 'state', 'user_decision_evidence_ref']) {
+    if (!fields.includes(required)) fail(`${schemaRel} future_owner_lifecycle.minimum_fields missing ${required}`);
+  }
+  const invariants = Array.isArray(schema?.future_owner_lifecycle?.invariants) ? schema.future_owner_lifecycle.invariants.map(String) : [];
   for (const required of [
-    'local_app_record_contains_no_grant_boolean',
-    'account_switch_never_transfers_grant',
-    'grant_mutation_does_not_rotate_identity_session',
-    'next_protected_operation_reads_current_grant',
+    'catalog_row_alone_is_not_authority',
+    'account_switch_never_transfers_permission',
+    'lifecycle_mutation_does_not_rotate_identity_session',
+    'every_protected_operation_reads_current_owner_decision',
     'no_app_id_only_positive_lookup',
+    'no_base_entitlement_permission_row',
+    'no_app_owned_authority_permission_row',
   ]) {
-    if (!invariants.includes(required)) fail(`${schemaRel} grant.invariants missing ${required}`);
+    if (!invariants.includes(required)) fail(`${schemaRel} future_owner_lifecycle.invariants missing ${required}`);
   }
-  const forbiddenOutputs = Array.isArray(schema?.forbidden_outputs) ? schema.forbidden_outputs.map(String) : [];
-  for (const required of ['bearer', 'token', 'portable_grant_credential', 'session_proof']) {
-    if (!forbiddenOutputs.includes(required)) fail(`${schemaRel} forbidden_outputs missing ${required}`);
+  const forbiddenOutputs = Array.isArray(schema?.forbidden_public_fields) ? schema.forbidden_public_fields.map(String) : [];
+  for (const required of ['capability_scope', 'resource_scope', 'owner_selector_digest', 'permission_decision_id', 'bearer', 'token', 'session_proof']) {
+    if (!forbiddenOutputs.includes(required)) fail(`${schemaRel} forbidden_public_fields missing ${required}`);
   }
 
   const authorityTables = [
@@ -279,10 +280,10 @@ function checkGrantServiceHardcutAndLocalAppGrantBinding() {
   if (/\bRuntimeGrantService\b/.test(authorityCorpus)) {
     fail('active Runtime/SDK authority tables still publish removed RuntimeGrantService');
   }
-  for (const method of grantMethods) {
+  for (const method of permissionMethods) {
     const methodId = `/nimi.runtime.v1.RuntimeAccountService/${method}`;
     if (!authorityCorpus.includes(methodId) && !authorityCorpus.includes(`- ${method}`)) {
-      fail(`active Runtime/SDK authority tables missing final local-app grant method: ${method}`);
+      fail(`active Runtime/SDK authority tables missing local-app permission method: ${method}`);
     }
   }
 
@@ -290,7 +291,7 @@ function checkGrantServiceHardcutAndLocalAppGrantBinding() {
   const rpcAccount = (Array.isArray(rpcMethods?.services) ? rpcMethods.services : [])
     .find((item) => String(item?.name || '') === 'RuntimeAccountService');
   const rpcAccountMethods = Array.isArray(rpcAccount?.methods) ? rpcAccount.methods : [];
-  for (const method of grantMethods) {
+  for (const method of permissionMethods) {
     const row = rpcAccountMethods.find((item) => String(item?.name || '') === method);
     const methodId = `/nimi.runtime.v1.RuntimeAccountService/${method}`;
     if (!row || String(row?.type || '') !== 'unary' || String(row?.protected_transport_ref || '') !== methodId) {
@@ -300,12 +301,12 @@ function checkGrantServiceHardcutAndLocalAppGrantBinding() {
 
   const authPosture = readYaml('.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml');
   const authRows = Array.isArray(authPosture?.methods) ? authPosture.methods : [];
-  for (const method of grantMethods) {
+  for (const method of permissionMethods) {
     const methodId = `/nimi.runtime.v1.RuntimeAccountService/${method}`;
     const row = authRows.find((item) => String(item?.method_id || '') === methodId);
     const refs = Array.isArray(row?.kernel_refs) ? row.kernel_refs.map(String) : [];
-    if (!row || String(row?.posture || '') !== 'protected_origin_required' || !refs.includes('K-GRANT-014')) {
-      fail(`runtime-rpc-auth-posture/identity-access.yaml missing protected K-GRANT-014 row for ${methodId}`);
+    if (!row || String(row?.posture || '') !== 'protected_origin_required' || !refs.includes('P-PERM-007')) {
+      fail(`runtime-rpc-auth-posture/identity-access.yaml missing protected P-PERM-007 row for ${methodId}`);
     }
   }
 
@@ -313,7 +314,7 @@ function checkGrantServiceHardcutAndLocalAppGrantBinding() {
   const sdkAccount = (Array.isArray(sdkGroups?.groups) ? sdkGroups.groups : [])
     .find((item) => String(item?.service || '') === 'RuntimeAccountService');
   const sdkMethods = Array.isArray(sdkAccount?.methods) ? sdkAccount.methods.map(String) : [];
-  for (const method of grantMethods) {
+  for (const method of permissionMethods) {
     if (!sdkMethods.includes(method)) {
       fail(`runtime-method-groups.yaml RuntimeAccountService group missing ${method}`);
     }
@@ -321,7 +322,7 @@ function checkGrantServiceHardcutAndLocalAppGrantBinding() {
 
   const migration = readYaml('.nimi/spec/runtime/kernel/tables/rpc-migration-map/methods-identity-app.yaml');
   const mappings = Array.isArray(migration?.method_mappings) ? migration.method_mappings : [];
-  for (const method of grantMethods) {
+  for (const method of permissionMethods) {
     const row = mappings.find((item) => String(item?.design_service || '') === 'RuntimeAccountService' && String(item?.design_method || '') === method);
     if (!row || String(row?.proto_service || '') !== 'RuntimeAccountService' || String(row?.proto_method || '') !== method || String(row?.mapping_posture || '') !== 'aligned') {
       fail(`methods-identity-app.yaml missing aligned RuntimeAccountService.${method} mapping`);
@@ -330,11 +331,11 @@ function checkGrantServiceHardcutAndLocalAppGrantBinding() {
 
   const transport = readYaml('.nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml');
   const transportRows = Array.isArray(transport?.methods) ? transport.methods : [];
-  for (const method of grantMethods) {
+  for (const method of permissionMethods) {
     const methodId = `/nimi.runtime.v1.RuntimeAccountService/${method}`;
     const row = transportRows.find((item) => String(item?.method_id || '') === methodId);
-    if (!row || String(row?.source_rule || '') !== 'K-GRANT-014' || row?.portable_session_allowed !== false || String(row?.public_tcp_disposition || '') !== 'deny') {
-      fail(`protected-local-rpc-transport-matrix.yaml missing fail-closed K-GRANT-014 row for ${methodId}`);
+    if (!row || String(row?.source_rule || '') !== 'P-PERM-007' || row?.portable_session_allowed !== false || String(row?.public_tcp_disposition || '') !== 'deny') {
+      fail(`protected-local-rpc-transport-matrix.yaml missing fail-closed P-PERM-007 row for ${methodId}`);
     }
   }
 }
@@ -906,7 +907,7 @@ function main() {
   checkRequiredRuleDefinitions();
   checkAuthJWTOnlyAndReserved();
   checkConnectorUpdateMaskAndPagination();
-  checkGrantServiceHardcutAndLocalAppGrantBinding();
+  checkGrantServiceHardcutAndLocalAppPermissionProjection();
   checkDesktopProductControlProtectedAuthorityLinkage();
   checkLocalPaginationAndAuditFields();
   checkReasonCodes359To363Linkage();

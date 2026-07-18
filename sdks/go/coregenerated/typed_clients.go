@@ -850,17 +850,15 @@ const (
 	KNOWLEDGEINGESTTASKSTATUSFAILED KnowledgeIngestTaskStatus = "KNOWLEDGE_INGEST_TASK_STATUS_FAILED"
 )
 
-type LocalAppGrantState string
+type LocalAppPermissionPosture string
 
 const (
-	LOCALAPPGRANTSTATEUNSPECIFIED LocalAppGrantState = "LOCAL_APP_GRANT_STATE_UNSPECIFIED"
-	LOCALAPPGRANTSTATENOGRANT LocalAppGrantState = "LOCAL_APP_GRANT_STATE_NO_GRANT"
-	LOCALAPPGRANTSTATEPENDING LocalAppGrantState = "LOCAL_APP_GRANT_STATE_PENDING"
-	LOCALAPPGRANTSTATEGRANTED LocalAppGrantState = "LOCAL_APP_GRANT_STATE_GRANTED"
-	LOCALAPPGRANTSTATEDENIED LocalAppGrantState = "LOCAL_APP_GRANT_STATE_DENIED"
-	LOCALAPPGRANTSTATEEXPIRED LocalAppGrantState = "LOCAL_APP_GRANT_STATE_EXPIRED"
-	LOCALAPPGRANTSTATEREVOKED LocalAppGrantState = "LOCAL_APP_GRANT_STATE_REVOKED"
-	LOCALAPPGRANTSTATESUPERSEDED LocalAppGrantState = "LOCAL_APP_GRANT_STATE_SUPERSEDED"
+	LOCALAPPPERMISSIONPOSTUREUNSPECIFIED LocalAppPermissionPosture = "LOCAL_APP_PERMISSION_POSTURE_UNSPECIFIED"
+	LOCALAPPPERMISSIONPOSTUREPROMPT LocalAppPermissionPosture = "LOCAL_APP_PERMISSION_POSTURE_PROMPT"
+	LOCALAPPPERMISSIONPOSTUREPENDING LocalAppPermissionPosture = "LOCAL_APP_PERMISSION_POSTURE_PENDING"
+	LOCALAPPPERMISSIONPOSTUREGRANTED LocalAppPermissionPosture = "LOCAL_APP_PERMISSION_POSTURE_GRANTED"
+	LOCALAPPPERMISSIONPOSTUREDENIED LocalAppPermissionPosture = "LOCAL_APP_PERMISSION_POSTURE_DENIED"
+	LOCALAPPPERMISSIONPOSTUREUNAVAILABLE LocalAppPermissionPosture = "LOCAL_APP_PERMISSION_POSTURE_UNAVAILABLE"
 )
 
 type LocalAppSessionState string
@@ -1654,9 +1652,9 @@ const (
 	LOCALAPPLAUNCHLEASEREPLAY ReasonCode = "LOCAL_APP_LAUNCH_LEASE_REPLAY"
 	LOCALAPPPROCESSMISMATCH ReasonCode = "LOCAL_APP_PROCESS_MISMATCH"
 	LOCALAPPSESSIONREVOKED ReasonCode = "LOCAL_APP_SESSION_REVOKED"
-	LOCALAPPGRANTREQUIRED ReasonCode = "LOCAL_APP_GRANT_REQUIRED"
-	LOCALAPPGRANTREVOKED ReasonCode = "LOCAL_APP_GRANT_REVOKED"
-	LOCALAPPGRANTSUPERSEDED ReasonCode = "LOCAL_APP_GRANT_SUPERSEDED"
+	LOCALAPPPERMISSIONREQUIRED ReasonCode = "LOCAL_APP_PERMISSION_REQUIRED"
+	LOCALAPPPERMISSIONDENIED ReasonCode = "LOCAL_APP_PERMISSION_DENIED"
+	LOCALAPPPERMISSIONREVOKED ReasonCode = "LOCAL_APP_PERMISSION_REVOKED"
 	LOCALAPPACCOUNTCHANGED ReasonCode = "LOCAL_APP_ACCOUNT_CHANGED"
 	LOCALAPPOPERATIONUNAVAILABLE ReasonCode = "LOCAL_APP_OPERATION_UNAVAILABLE"
 	LOCALAPPPRESENCEREQUIRED ReasonCode = "LOCAL_APP_PRESENCE_REQUIRED"
@@ -3433,16 +3431,6 @@ type CreateRealmGroupMessageCandidateResponse struct {
 	Candidate *RealmGroupMessageCandidateCommitHandle `json:"candidate,omitempty"`
 }
 
-type DecideLocalAppGrantRequest struct {
-	RequestId []byte `json:"request_id,omitempty"`
-	Approved bool `json:"approved,omitempty"`
-	PresenceChallengeId []byte `json:"presence_challenge_id,omitempty"`
-}
-
-type DecideLocalAppGrantResponse struct {
-	Projection *LocalAppGrantProjection `json:"projection,omitempty"`
-}
-
 type DecideLocalDevelopmentProjectRequest struct {
 	EvaluationId []byte `json:"evaluation_id,omitempty"`
 	Decision LocalDevelopmentDecision `json:"decision,omitempty"`
@@ -4176,13 +4164,12 @@ type GetKnowledgeBankResponse struct {
 	Bank *KnowledgeBank `json:"bank,omitempty"`
 }
 
-type GetLocalAppGrantStatusRequest struct {
-	OperationId string `json:"operation_id,omitempty"`
-	ResourceRef string `json:"resource_ref,omitempty"`
+type GetLocalAppPermissionStatusRequest struct {
+	PermissionId string `json:"permission_id,omitempty"`
 }
 
-type GetLocalAppGrantStatusResponse struct {
-	Projection *LocalAppGrantProjection `json:"projection,omitempty"`
+type GetLocalAppPermissionStatusResponse struct {
+	Projection *LocalAppPermissionProjection `json:"projection,omitempty"`
 }
 
 type GetLocalDevelopmentAuthoritySummaryRequest struct {
@@ -4192,7 +4179,6 @@ type GetLocalDevelopmentAuthoritySummaryRequest struct {
 type GetLocalDevelopmentAuthoritySummaryResponse struct {
 	DeveloperMode *LocalDevelopmentDeveloperModeSummary `json:"developer_mode,omitempty"`
 	ProjectAuthorization *LocalDevelopmentProjectAuthorizationSummary `json:"project_authorization,omitempty"`
-	GrantSummary *LocalDevelopmentGrantSummary `json:"grant_summary,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
@@ -4957,16 +4943,6 @@ type ListLinksResponse struct {
 	NextPageToken string `json:"next_page_token,omitempty"`
 }
 
-type ListLocalAppAgentInventoryRequest struct {
-
-}
-
-type ListLocalAppAgentInventoryResponse struct {
-	OwnerUserId string `json:"owner_user_id,omitempty"`
-	Count uint32 `json:"count,omitempty"`
-	LocalAgents []LocalAppAgentInventoryItem `json:"local_agents,omitempty"`
-}
-
 type ListLocalAssetsRequest struct {
 	StatusFilter LocalAssetStatus `json:"status_filter,omitempty"`
 	KindFilter LocalAssetKind `json:"kind_filter,omitempty"`
@@ -5218,25 +5194,11 @@ type LocalAgentSourceCoverageSectionStatus struct {
 	OmittedCount uint32 `json:"omitted_count,omitempty"`
 }
 
-type LocalAppAgentInventoryItem struct {
-	LocalAgentRef string `json:"local_agent_ref,omitempty"`
-	DisplayName string `json:"display_name,omitempty"`
-	OwnerUserId string `json:"owner_user_id,omitempty"`
-	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
-	SourceReady bool `json:"source_ready,omitempty"`
-}
-
-type LocalAppGrantProjection struct {
-	State LocalAppGrantState `json:"state,omitempty"`
-	OperationId string `json:"operation_id,omitempty"`
-	ResourceRef string `json:"resource_ref,omitempty"`
-	RequestId []byte `json:"request_id,omitempty"`
-	GrantId []byte `json:"grant_id,omitempty"`
-	GrantGeneration uint64 `json:"grant_generation,omitempty"`
-	GrantRevision uint64 `json:"grant_revision,omitempty"`
-	ExpiresAt string `json:"expires_at,omitempty"`
+type LocalAppPermissionProjection struct {
+	PermissionId string `json:"permission_id,omitempty"`
+	Posture LocalAppPermissionPosture `json:"posture,omitempty"`
+	CanRequest bool `json:"can_request,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-	PresenceChallengeId []byte `json:"presence_challenge_id,omitempty"`
 }
 
 type LocalAssetHealth struct {
@@ -5376,15 +5338,9 @@ type LocalDevelopmentDeveloperModeSummary struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
-type LocalDevelopmentGrantSummary struct {
-	Availability LocalDevelopmentSummaryAvailability `json:"availability,omitempty"`
-	PendingCount uint64 `json:"pending_count,omitempty"`
-	GrantedCount uint64 `json:"granted_count,omitempty"`
-	DeniedCount uint64 `json:"denied_count,omitempty"`
-	ExpiredCount uint64 `json:"expired_count,omitempty"`
-	RevokedCount uint64 `json:"revoked_count,omitempty"`
-	SupersededCount uint64 `json:"superseded_count,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+type LocalDevelopmentPermissionRequirement struct {
+	PermissionId string `json:"permission_id,omitempty"`
+	Reason string `json:"reason,omitempty"`
 }
 
 type LocalDevelopmentProjectAuthorizationSummary struct {
@@ -5403,8 +5359,8 @@ type LocalDevelopmentProjectProjection struct {
 	CanonicalManifestPath string `json:"canonical_manifest_path,omitempty"`
 	ShellKind LocalDevelopmentShellKind `json:"shell_kind,omitempty"`
 	AccountId string `json:"account_id,omitempty"`
-	RequestedCapabilities []string `json:"requested_capabilities,omitempty"`
-	CapabilityFingerprint []byte `json:"capability_fingerprint,omitempty"`
+	PermissionRequirements []LocalDevelopmentPermissionRequirement `json:"permission_requirements,omitempty"`
+	PermissionRequirementFingerprint []byte `json:"permission_requirement_fingerprint,omitempty"`
 	TrustClass string `json:"trust_class,omitempty"`
 }
 
@@ -7062,14 +7018,13 @@ type RequestCompanionParticipationResponse struct {
 	Projection *CompanionParticipationProjection `json:"projection,omitempty"`
 }
 
-type RequestLocalAppGrantRequest struct {
-	OperationId string `json:"operation_id,omitempty"`
-	ResourceRef string `json:"resource_ref,omitempty"`
-	Purpose string `json:"purpose,omitempty"`
+type RequestLocalAppPermissionRequest struct {
+	PermissionId string `json:"permission_id,omitempty"`
+	Reason string `json:"reason,omitempty"`
 }
 
-type RequestLocalAppGrantResponse struct {
-	Projection *LocalAppGrantProjection `json:"projection,omitempty"`
+type RequestLocalAppPermissionResponse struct {
+	Projection *LocalAppPermissionProjection `json:"projection,omitempty"`
 }
 
 type RequestMemoryEmbeddingRuntimeBindRequest struct {
@@ -7296,14 +7251,6 @@ type RetryLocalEnvironmentDependencyJobResponse struct {
 
 type RevokeExternalPrincipalSessionRequest struct {
 	ExternalSessionId string `json:"external_session_id,omitempty"`
-}
-
-type RevokeLocalAppGrantRequest struct {
-	GrantId []byte `json:"grant_id,omitempty"`
-}
-
-type RevokeLocalAppGrantResponse struct {
-	Projection *LocalAppGrantProjection `json:"projection,omitempty"`
 }
 
 type RevokeLocalDevelopmentAuthorizationRequest struct {
@@ -8206,18 +8153,6 @@ type ToolSpec struct {
 	ProviderMetadata map[string]any `json:"provider_metadata,omitempty"`
 }
 
-type TranscribeLocalAppAgentAudioRequest struct {
-	AgentId string `json:"agent_id,omitempty"`
-	ClientRequestId string `json:"client_request_id,omitempty"`
-	Audio []byte `json:"audio,omitempty"`
-	MimeType string `json:"mime_type,omitempty"`
-}
-
-type TranscribeLocalAppAgentAudioResponse struct {
-	ClientRequestId string `json:"client_request_id,omitempty"`
-	Transcript string `json:"transcript,omitempty"`
-}
-
 type TraverseGraphRequest struct {
 	Context *KnowledgeRequestContext `json:"context,omitempty"`
 	BankId string `json:"bank_id,omitempty"`
@@ -8863,14 +8798,6 @@ func (c RuntimeTypedClient) CompleteLogin(ctx context.Context, request CompleteL
 	return decodeRuntimeTypedResponse[CompleteLoginResponse](raw, "CompleteLoginResponse")
 }
 
-func (c RuntimeTypedClient) DecideLocalAppGrant(ctx context.Context, request DecideLocalAppGrantRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DecideLocalAppGrantResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/DecideLocalAppGrant", request, metadata, timeoutMS)
-	if err != nil {
-		return DecideLocalAppGrantResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[DecideLocalAppGrantResponse](raw, "DecideLocalAppGrantResponse")
-}
-
 func (c RuntimeTypedClient) GetAccountSessionStatus(ctx context.Context, request GetAccountSessionStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAccountSessionStatusResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus", request, metadata, timeoutMS)
 	if err != nil {
@@ -8879,12 +8806,12 @@ func (c RuntimeTypedClient) GetAccountSessionStatus(ctx context.Context, request
 	return decodeRuntimeTypedResponse[GetAccountSessionStatusResponse](raw, "GetAccountSessionStatusResponse")
 }
 
-func (c RuntimeTypedClient) GetLocalAppGrantStatus(ctx context.Context, request GetLocalAppGrantStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalAppGrantStatusResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppGrantStatus", request, metadata, timeoutMS)
+func (c RuntimeTypedClient) GetLocalAppPermissionStatus(ctx context.Context, request GetLocalAppPermissionStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalAppPermissionStatusResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus", request, metadata, timeoutMS)
 	if err != nil {
-		return GetLocalAppGrantStatusResponse{}, err
+		return GetLocalAppPermissionStatusResponse{}, err
 	}
-	return decodeRuntimeTypedResponse[GetLocalAppGrantStatusResponse](raw, "GetLocalAppGrantStatusResponse")
+	return decodeRuntimeTypedResponse[GetLocalAppPermissionStatusResponse](raw, "GetLocalAppPermissionStatusResponse")
 }
 
 func (c RuntimeTypedClient) InvokeRealmUnary(ctx context.Context, request InvokeRealmUnaryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InvokeRealmUnaryResponse, error) {
@@ -8919,12 +8846,12 @@ func (c RuntimeTypedClient) Logout(ctx context.Context, request LogoutRequest, m
 	return decodeRuntimeTypedResponse[LogoutResponse](raw, "LogoutResponse")
 }
 
-func (c RuntimeTypedClient) RequestLocalAppGrant(ctx context.Context, request RequestLocalAppGrantRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestLocalAppGrantResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppGrant", request, metadata, timeoutMS)
+func (c RuntimeTypedClient) RequestLocalAppPermission(ctx context.Context, request RequestLocalAppPermissionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestLocalAppPermissionResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission", request, metadata, timeoutMS)
 	if err != nil {
-		return RequestLocalAppGrantResponse{}, err
+		return RequestLocalAppPermissionResponse{}, err
 	}
-	return decodeRuntimeTypedResponse[RequestLocalAppGrantResponse](raw, "RequestLocalAppGrantResponse")
+	return decodeRuntimeTypedResponse[RequestLocalAppPermissionResponse](raw, "RequestLocalAppPermissionResponse")
 }
 
 func (c RuntimeTypedClient) RequestPresenceVerification(ctx context.Context, request RequestPresenceVerificationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestPresenceVerificationResponse, error) {
@@ -8933,14 +8860,6 @@ func (c RuntimeTypedClient) RequestPresenceVerification(ctx context.Context, req
 		return RequestPresenceVerificationResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[RequestPresenceVerificationResponse](raw, "RequestPresenceVerificationResponse")
-}
-
-func (c RuntimeTypedClient) RevokeLocalAppGrant(ctx context.Context, request RevokeLocalAppGrantRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RevokeLocalAppGrantResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/RevokeLocalAppGrant", request, metadata, timeoutMS)
-	if err != nil {
-		return RevokeLocalAppGrantResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[RevokeLocalAppGrantResponse](raw, "RevokeLocalAppGrantResponse")
 }
 
 func (c RuntimeTypedClient) RevokeScopedAppBinding(ctx context.Context, request RevokeScopedAppBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RevokeScopedAppBindingResponse, error) {
@@ -9247,14 +9166,6 @@ func (c RuntimeTypedClient) ListDelegatedProviderProfiles(ctx context.Context, r
 	return decodeRuntimeTypedResponse[ListDelegatedProviderProfilesResponse](raw, "ListDelegatedProviderProfilesResponse")
 }
 
-func (c RuntimeTypedClient) ListLocalAppAgentInventory(ctx context.Context, request ListLocalAppAgentInventoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppAgentInventoryResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory", request, metadata, timeoutMS)
-	if err != nil {
-		return ListLocalAppAgentInventoryResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ListLocalAppAgentInventoryResponse](raw, "ListLocalAppAgentInventoryResponse")
-}
-
 func (c RuntimeTypedClient) ListParticipationAuditEvents(ctx context.Context, request ListParticipationAuditEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListParticipationAuditEventsResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents", request, metadata, timeoutMS)
 	if err != nil {
@@ -9421,14 +9332,6 @@ func (c RuntimeTypedClient) TerminateAgent(ctx context.Context, request Terminat
 		return TerminateAgentResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[TerminateAgentResponse](raw, "TerminateAgentResponse")
-}
-
-func (c RuntimeTypedClient) TranscribeLocalAppAgentAudio(ctx context.Context, request TranscribeLocalAppAgentAudioRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (TranscribeLocalAppAgentAudioResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppAgentAudio", request, metadata, timeoutMS)
-	if err != nil {
-		return TranscribeLocalAppAgentAudioResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[TranscribeLocalAppAgentAudioResponse](raw, "TranscribeLocalAppAgentAudioResponse")
 }
 
 func (c RuntimeTypedClient) UpdateAgentState(ctx context.Context, request UpdateAgentStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateAgentStateResponse, error) {
@@ -10979,27 +10882,6 @@ func (c RuntimeTypedClient) SubscribeWorkflowEvents(ctx context.Context, request
 	return &RuntimeTypedStream[WorkflowEvent]{reader: reader}, nil
 }
 
-type AccountGrantsViewDto struct {
-	AccountId string `json:"accountId,omitempty"`
-	Grants []AccountGrantViewRowDto `json:"grants,omitempty"`
-	SchemaVersion float64 `json:"schemaVersion,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-}
-
-type AccountGrantViewRowDto struct {
-	AppId string `json:"appId,omitempty"`
-	ExpiresAt string `json:"expiresAt,omitempty"`
-	GrantId string `json:"grantId,omitempty"`
-	Qualifier string `json:"qualifier,omitempty"`
-	ScopeFamily *AppPermissionScopeFamily `json:"scopeFamily,omitempty"`
-	ScopeName *AppPermissionScopeName `json:"scopeName,omitempty"`
-	State *AccountGrantViewState `json:"state,omitempty"`
-	SubjectAccountId string `json:"subjectAccountId,omitempty"`
-	Version float64 `json:"version,omitempty"`
-}
-
-type AccountGrantViewState string
-
 type AccountRelationType string
 
 type AccountStatus string
@@ -11015,71 +10897,6 @@ type AddGroupParticipantInputDto struct {
 type AddGroupSourceParticipantInputDto struct {
 	SourceRef *GroupSourceRefDto `json:"sourceRef,omitempty"`
 }
-
-type AppPermissionGrantDecisionDto struct {
-	ExpectedVersion float64 `json:"expectedVersion,omitempty"`
-	Reason string `json:"reason,omitempty"`
-}
-
-type AppPermissionGrantDto struct {
-	AppId string `json:"appId,omitempty"`
-	DeniedAt string `json:"deniedAt,omitempty"`
-	DeniedByAccountId string `json:"deniedByAccountId,omitempty"`
-	ExpiredAt string `json:"expiredAt,omitempty"`
-	ExpiresAt string `json:"expiresAt,omitempty"`
-	GrantId string `json:"grantId,omitempty"`
-	GrantedAt string `json:"grantedAt,omitempty"`
-	GrantedByAccountId string `json:"grantedByAccountId,omitempty"`
-	Qualifier string `json:"qualifier,omitempty"`
-	Reason string `json:"reason,omitempty"`
-	RequestedAt string `json:"requestedAt,omitempty"`
-	RequestedByAccountId string `json:"requestedByAccountId,omitempty"`
-	RevokedAt string `json:"revokedAt,omitempty"`
-	RevokedByAccountId string `json:"revokedByAccountId,omitempty"`
-	ScopeFamily *AppPermissionScopeFamily `json:"scopeFamily,omitempty"`
-	ScopeName *AppPermissionScopeName `json:"scopeName,omitempty"`
-	State *AppPermissionGrantState `json:"state,omitempty"`
-	SubjectAccountId string `json:"subjectAccountId,omitempty"`
-	SupersededAt string `json:"supersededAt,omitempty"`
-	SupersededByAccountId string `json:"supersededByAccountId,omitempty"`
-	SupersededByGrantId string `json:"supersededByGrantId,omitempty"`
-	Version float64 `json:"version,omitempty"`
-}
-
-type AppPermissionGrantGrantDto struct {
-	ExpectedVersion float64 `json:"expectedVersion,omitempty"`
-	ExpiresAt string `json:"expiresAt,omitempty"`
-	Reason string `json:"reason,omitempty"`
-}
-
-type AppPermissionGrantListDto struct {
-	Items []AppPermissionGrantDto `json:"items,omitempty"`
-}
-
-type AppPermissionGrantRequestDto struct {
-	AppId string `json:"appId,omitempty"`
-	Qualifier string `json:"qualifier,omitempty"`
-	Reason string `json:"reason,omitempty"`
-	ScopeFamily *AppPermissionScopeFamily `json:"scopeFamily,omitempty"`
-	ScopeName *AppPermissionScopeName `json:"scopeName,omitempty"`
-}
-
-type AppPermissionGrantState string
-
-type AppPermissionGrantStatusDto struct {
-	GeneratedAt string `json:"generatedAt,omitempty"`
-	Grants []AppPermissionGrantDto `json:"grants,omitempty"`
-}
-
-type AppPermissionGrantSupersedeDto struct {
-	ExpectedVersion float64 `json:"expectedVersion,omitempty"`
-	Reason string `json:"reason,omitempty"`
-	SupersededByGrantId string `json:"supersededByGrantId,omitempty"`
-}
-
-type AppPermissionScopeFamily string
-
-type AppPermissionScopeName string
 
 type AssetDetailDto struct {
 	AuthorId string `json:"authorId,omitempty"`
@@ -11668,7 +11485,6 @@ type CreateReviewDto struct {
 }
 
 type CreateSourceMaterializationPacketV3Dto struct {
-	AccessGrantId string `json:"accessGrantId,omitempty"`
 	ChallengeDigest string `json:"challengeDigest,omitempty"`
 	ChallengeExpiresAt string `json:"challengeExpiresAt,omitempty"`
 	ChallengeId string `json:"challengeId,omitempty"`
@@ -12802,18 +12618,6 @@ type ReviewRating string
 type ReviewStatsDto struct {
 	PositiveRate float64 `json:"positiveRate,omitempty"`
 	TotalCount float64 `json:"totalCount,omitempty"`
-}
-
-type RuntimeRealmGrantIssueRequestDto struct {
-	AppId string `json:"appId,omitempty"`
-	Scopes []string `json:"scopes,omitempty"`
-	SubjectUserId string `json:"subjectUserId,omitempty"`
-}
-
-type RuntimeRealmGrantIssueResponseDto struct {
-	ExpiresAt string `json:"expiresAt,omitempty"`
-	Token string `json:"token,omitempty"`
-	Version string `json:"version,omitempty"`
 }
 
 type SendGiftDto struct {
@@ -14425,25 +14229,6 @@ type RealmDeleteResourceOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
-type RealmDenyMyAppPermissionGrantOperationPath struct {
-	GrantId string `json:"grantId,omitempty"`
-}
-
-type RealmDenyMyAppPermissionGrantOperationQuery struct {
-
-}
-
-type RealmDenyMyAppPermissionGrantOperationHeaders struct {
-
-}
-
-type RealmDenyMyAppPermissionGrantOperationRequest struct {
-	Path    RealmDenyMyAppPermissionGrantOperationPath `json:"path,omitempty"`
-	Query   RealmDenyMyAppPermissionGrantOperationQuery `json:"query,omitempty"`
-	Headers RealmDenyMyAppPermissionGrantOperationHeaders `json:"headers,omitempty"`
-	Body    AppPermissionGrantDecisionDto `json:"body,omitempty"`
-}
-
 type RealmDisable2FaOperationPath struct {
 
 }
@@ -15059,25 +14844,6 @@ type RealmEnable2FaOperationRequest struct {
 	Body    Me2faVerifyDto `json:"body,omitempty"`
 }
 
-type RealmExpireMyAppPermissionGrantOperationPath struct {
-	GrantId string `json:"grantId,omitempty"`
-}
-
-type RealmExpireMyAppPermissionGrantOperationQuery struct {
-
-}
-
-type RealmExpireMyAppPermissionGrantOperationHeaders struct {
-
-}
-
-type RealmExpireMyAppPermissionGrantOperationRequest struct {
-	Path    RealmExpireMyAppPermissionGrantOperationPath `json:"path,omitempty"`
-	Query   RealmExpireMyAppPermissionGrantOperationQuery `json:"query,omitempty"`
-	Headers RealmExpireMyAppPermissionGrantOperationHeaders `json:"headers,omitempty"`
-	Body    AppPermissionGrantDecisionDto `json:"body,omitempty"`
-}
-
 type RealmExploreControllerCheckStatusOperationPath struct {
 
 }
@@ -15312,63 +15078,6 @@ type RealmGetMutualFriendsCountOperationRequest struct {
 	Path    RealmGetMutualFriendsCountOperationPath `json:"path,omitempty"`
 	Query   RealmGetMutualFriendsCountOperationQuery `json:"query,omitempty"`
 	Headers RealmGetMutualFriendsCountOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmGetMyAppPermissionGrantOperationPath struct {
-	GrantId string `json:"grantId,omitempty"`
-}
-
-type RealmGetMyAppPermissionGrantOperationQuery struct {
-
-}
-
-type RealmGetMyAppPermissionGrantOperationHeaders struct {
-
-}
-
-type RealmGetMyAppPermissionGrantOperationRequest struct {
-	Path    RealmGetMyAppPermissionGrantOperationPath `json:"path,omitempty"`
-	Query   RealmGetMyAppPermissionGrantOperationQuery `json:"query,omitempty"`
-	Headers RealmGetMyAppPermissionGrantOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmGetMyAppPermissionGrantStatusOperationPath struct {
-
-}
-
-type RealmGetMyAppPermissionGrantStatusOperationQuery struct {
-	AppId string `json:"appId,omitempty"`
-}
-
-type RealmGetMyAppPermissionGrantStatusOperationHeaders struct {
-
-}
-
-type RealmGetMyAppPermissionGrantStatusOperationRequest struct {
-	Path    RealmGetMyAppPermissionGrantStatusOperationPath `json:"path,omitempty"`
-	Query   RealmGetMyAppPermissionGrantStatusOperationQuery `json:"query,omitempty"`
-	Headers RealmGetMyAppPermissionGrantStatusOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmGetMyAppPermissionGrantViewOperationPath struct {
-
-}
-
-type RealmGetMyAppPermissionGrantViewOperationQuery struct {
-
-}
-
-type RealmGetMyAppPermissionGrantViewOperationHeaders struct {
-
-}
-
-type RealmGetMyAppPermissionGrantViewOperationRequest struct {
-	Path    RealmGetMyAppPermissionGrantViewOperationPath `json:"path,omitempty"`
-	Query   RealmGetMyAppPermissionGrantViewOperationQuery `json:"query,omitempty"`
-	Headers RealmGetMyAppPermissionGrantViewOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
@@ -15719,25 +15428,6 @@ type RealmGetWorldPostsOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
-type RealmGrantMyAppPermissionGrantOperationPath struct {
-	GrantId string `json:"grantId,omitempty"`
-}
-
-type RealmGrantMyAppPermissionGrantOperationQuery struct {
-
-}
-
-type RealmGrantMyAppPermissionGrantOperationHeaders struct {
-
-}
-
-type RealmGrantMyAppPermissionGrantOperationRequest struct {
-	Path    RealmGrantMyAppPermissionGrantOperationPath `json:"path,omitempty"`
-	Query   RealmGrantMyAppPermissionGrantOperationQuery `json:"query,omitempty"`
-	Headers RealmGrantMyAppPermissionGrantOperationHeaders `json:"headers,omitempty"`
-	Body    AppPermissionGrantGrantDto `json:"body,omitempty"`
-}
-
 type RealmIntrospectSessionOperationPath struct {
 
 }
@@ -15812,25 +15502,6 @@ type RealmInvitationControllerVerifyCodeOperationRequest struct {
 	Query   RealmInvitationControllerVerifyCodeOperationQuery `json:"query,omitempty"`
 	Headers RealmInvitationControllerVerifyCodeOperationHeaders `json:"headers,omitempty"`
 	Body    VerifyInvitationCodeDto `json:"body,omitempty"`
-}
-
-type RealmIssueRuntimeRealmGrantOperationPath struct {
-
-}
-
-type RealmIssueRuntimeRealmGrantOperationQuery struct {
-
-}
-
-type RealmIssueRuntimeRealmGrantOperationHeaders struct {
-
-}
-
-type RealmIssueRuntimeRealmGrantOperationRequest struct {
-	Path    RealmIssueRuntimeRealmGrantOperationPath `json:"path,omitempty"`
-	Query   RealmIssueRuntimeRealmGrantOperationQuery `json:"query,omitempty"`
-	Headers RealmIssueRuntimeRealmGrantOperationHeaders `json:"headers,omitempty"`
-	Body    RuntimeRealmGrantIssueRequestDto `json:"body,omitempty"`
 }
 
 type RealmLikePostOperationPath struct {
@@ -16012,25 +15683,6 @@ type RealmListMessagesOperationRequest struct {
 	Path    RealmListMessagesOperationPath `json:"path,omitempty"`
 	Query   RealmListMessagesOperationQuery `json:"query,omitempty"`
 	Headers RealmListMessagesOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmListMyAppPermissionGrantsOperationPath struct {
-
-}
-
-type RealmListMyAppPermissionGrantsOperationQuery struct {
-	AppId string `json:"appId,omitempty"`
-}
-
-type RealmListMyAppPermissionGrantsOperationHeaders struct {
-
-}
-
-type RealmListMyAppPermissionGrantsOperationRequest struct {
-	Path    RealmListMyAppPermissionGrantsOperationPath `json:"path,omitempty"`
-	Query   RealmListMyAppPermissionGrantsOperationQuery `json:"query,omitempty"`
-	Headers RealmListMyAppPermissionGrantsOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
@@ -16662,25 +16314,6 @@ type RealmRequestEmailOtpOperationRequest struct {
 	Body    EmailOtpRequestDto `json:"body,omitempty"`
 }
 
-type RealmRequestMyAppPermissionGrantOperationPath struct {
-
-}
-
-type RealmRequestMyAppPermissionGrantOperationQuery struct {
-
-}
-
-type RealmRequestMyAppPermissionGrantOperationHeaders struct {
-
-}
-
-type RealmRequestMyAppPermissionGrantOperationRequest struct {
-	Path    RealmRequestMyAppPermissionGrantOperationPath `json:"path,omitempty"`
-	Query   RealmRequestMyAppPermissionGrantOperationQuery `json:"query,omitempty"`
-	Headers RealmRequestMyAppPermissionGrantOperationHeaders `json:"headers,omitempty"`
-	Body    AppPermissionGrantRequestDto `json:"body,omitempty"`
-}
-
 type RealmReviewControllerCreateReviewOperationPath struct {
 
 }
@@ -16717,25 +16350,6 @@ type RealmReviewControllerGetReviewsOperationRequest struct {
 	Query   RealmReviewControllerGetReviewsOperationQuery `json:"query,omitempty"`
 	Headers RealmReviewControllerGetReviewsOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmRevokeMyAppPermissionGrantOperationPath struct {
-	GrantId string `json:"grantId,omitempty"`
-}
-
-type RealmRevokeMyAppPermissionGrantOperationQuery struct {
-
-}
-
-type RealmRevokeMyAppPermissionGrantOperationHeaders struct {
-
-}
-
-type RealmRevokeMyAppPermissionGrantOperationRequest struct {
-	Path    RealmRevokeMyAppPermissionGrantOperationPath `json:"path,omitempty"`
-	Query   RealmRevokeMyAppPermissionGrantOperationQuery `json:"query,omitempty"`
-	Headers RealmRevokeMyAppPermissionGrantOperationHeaders `json:"headers,omitempty"`
-	Body    AppPermissionGrantDecisionDto `json:"body,omitempty"`
 }
 
 type RealmSearchHumanUsersOperationPath struct {
@@ -16884,25 +16498,6 @@ type RealmStartChatOperationRequest struct {
 	Query   RealmStartChatOperationQuery `json:"query,omitempty"`
 	Headers RealmStartChatOperationHeaders `json:"headers,omitempty"`
 	Body    StartChatInputDto `json:"body,omitempty"`
-}
-
-type RealmSupersedeMyAppPermissionGrantOperationPath struct {
-	GrantId string `json:"grantId,omitempty"`
-}
-
-type RealmSupersedeMyAppPermissionGrantOperationQuery struct {
-
-}
-
-type RealmSupersedeMyAppPermissionGrantOperationHeaders struct {
-
-}
-
-type RealmSupersedeMyAppPermissionGrantOperationRequest struct {
-	Path    RealmSupersedeMyAppPermissionGrantOperationPath `json:"path,omitempty"`
-	Query   RealmSupersedeMyAppPermissionGrantOperationQuery `json:"query,omitempty"`
-	Headers RealmSupersedeMyAppPermissionGrantOperationHeaders `json:"headers,omitempty"`
-	Body    AppPermissionGrantSupersedeDto `json:"body,omitempty"`
 }
 
 type RealmSyncChatEventsOperationPath struct {
@@ -18260,14 +17855,6 @@ func (c RealmTypedClient) DeleteResource(ctx context.Context, request RealmDelet
 	return decodeTypedResponse[struct{}](raw)
 }
 
-func (c RealmTypedClient) DenyMyAppPermissionGrant(ctx context.Context, request RealmDenyMyAppPermissionGrantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppPermissionGrantDto, error) {
-	raw, err := c.operationTyped(ctx, "denyMyAppPermissionGrant", request, metadata, timeoutMS)
-	if err != nil {
-		return AppPermissionGrantDto{}, err
-	}
-	return decodeTypedResponse[AppPermissionGrantDto](raw)
-}
-
 func (c RealmTypedClient) Disable2Fa(ctx context.Context, request RealmDisable2FaOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Me2faOperationResultDto, error) {
 	raw, err := c.operationTyped(ctx, "disable2Fa", request, metadata, timeoutMS)
 	if err != nil {
@@ -18524,14 +18111,6 @@ func (c RealmTypedClient) Enable2Fa(ctx context.Context, request RealmEnable2FaO
 	return decodeTypedResponse[Me2faOperationResultDto](raw)
 }
 
-func (c RealmTypedClient) ExpireMyAppPermissionGrant(ctx context.Context, request RealmExpireMyAppPermissionGrantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppPermissionGrantDto, error) {
-	raw, err := c.operationTyped(ctx, "expireMyAppPermissionGrant", request, metadata, timeoutMS)
-	if err != nil {
-		return AppPermissionGrantDto{}, err
-	}
-	return decodeTypedResponse[AppPermissionGrantDto](raw)
-}
-
 func (c RealmTypedClient) ExploreControllerCheckStatus(ctx context.Context, request RealmExploreControllerCheckStatusOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
 	raw, err := c.operationTyped(ctx, "ExploreController_checkStatus", request, metadata, timeoutMS)
 	if err != nil {
@@ -18626,30 +18205,6 @@ func (c RealmTypedClient) GetMutualFriendsCount(ctx context.Context, request Rea
 		return map[string]any{}, err
 	}
 	return decodeTypedResponse[map[string]any](raw)
-}
-
-func (c RealmTypedClient) GetMyAppPermissionGrant(ctx context.Context, request RealmGetMyAppPermissionGrantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppPermissionGrantDto, error) {
-	raw, err := c.operationTyped(ctx, "getMyAppPermissionGrant", request, metadata, timeoutMS)
-	if err != nil {
-		return AppPermissionGrantDto{}, err
-	}
-	return decodeTypedResponse[AppPermissionGrantDto](raw)
-}
-
-func (c RealmTypedClient) GetMyAppPermissionGrantStatus(ctx context.Context, request RealmGetMyAppPermissionGrantStatusOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppPermissionGrantStatusDto, error) {
-	raw, err := c.operationTyped(ctx, "getMyAppPermissionGrantStatus", request, metadata, timeoutMS)
-	if err != nil {
-		return AppPermissionGrantStatusDto{}, err
-	}
-	return decodeTypedResponse[AppPermissionGrantStatusDto](raw)
-}
-
-func (c RealmTypedClient) GetMyAppPermissionGrantView(ctx context.Context, request RealmGetMyAppPermissionGrantViewOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AccountGrantsViewDto, error) {
-	raw, err := c.operationTyped(ctx, "getMyAppPermissionGrantView", request, metadata, timeoutMS)
-	if err != nil {
-		return AccountGrantsViewDto{}, err
-	}
-	return decodeTypedResponse[AccountGrantsViewDto](raw)
 }
 
 func (c RealmTypedClient) GetMyBlockedUsers(ctx context.Context, request RealmGetMyBlockedUsersOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (map[string]any, error) {
@@ -18796,14 +18351,6 @@ func (c RealmTypedClient) GetWorldPosts(ctx context.Context, request RealmGetWor
 	return decodeTypedResponse[FeedResponseDto](raw)
 }
 
-func (c RealmTypedClient) GrantMyAppPermissionGrant(ctx context.Context, request RealmGrantMyAppPermissionGrantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppPermissionGrantDto, error) {
-	raw, err := c.operationTyped(ctx, "grantMyAppPermissionGrant", request, metadata, timeoutMS)
-	if err != nil {
-		return AppPermissionGrantDto{}, err
-	}
-	return decodeTypedResponse[AppPermissionGrantDto](raw)
-}
-
 func (c RealmTypedClient) IntrospectSession(ctx context.Context, request RealmIntrospectSessionOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (IntrospectSessionResponseDto, error) {
 	raw, err := c.operationTyped(ctx, "introspectSession", request, metadata, timeoutMS)
 	if err != nil {
@@ -18834,14 +18381,6 @@ func (c RealmTypedClient) InvitationControllerVerifyCode(ctx context.Context, re
 		return false, err
 	}
 	return decodeTypedResponse[bool](raw)
-}
-
-func (c RealmTypedClient) IssueRuntimeRealmGrant(ctx context.Context, request RealmIssueRuntimeRealmGrantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RuntimeRealmGrantIssueResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "issueRuntimeRealmGrant", request, metadata, timeoutMS)
-	if err != nil {
-		return RuntimeRealmGrantIssueResponseDto{}, err
-	}
-	return decodeTypedResponse[RuntimeRealmGrantIssueResponseDto](raw)
 }
 
 func (c RealmTypedClient) LikePost(ctx context.Context, request RealmLikePostOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
@@ -18914,14 +18453,6 @@ func (c RealmTypedClient) ListMessages(ctx context.Context, request RealmListMes
 		return ListMessagesResultDto{}, err
 	}
 	return decodeTypedResponse[ListMessagesResultDto](raw)
-}
-
-func (c RealmTypedClient) ListMyAppPermissionGrants(ctx context.Context, request RealmListMyAppPermissionGrantsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppPermissionGrantListDto, error) {
-	raw, err := c.operationTyped(ctx, "listMyAppPermissionGrants", request, metadata, timeoutMS)
-	if err != nil {
-		return AppPermissionGrantListDto{}, err
-	}
-	return decodeTypedResponse[AppPermissionGrantListDto](raw)
 }
 
 func (c RealmTypedClient) ListMyFriendIds(ctx context.Context, request RealmListMyFriendIdsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
@@ -19180,14 +18711,6 @@ func (c RealmTypedClient) RequestEmailOtp(ctx context.Context, request RealmRequ
 	return decodeTypedResponse[EmailOtpResponseDto](raw)
 }
 
-func (c RealmTypedClient) RequestMyAppPermissionGrant(ctx context.Context, request RealmRequestMyAppPermissionGrantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppPermissionGrantDto, error) {
-	raw, err := c.operationTyped(ctx, "requestMyAppPermissionGrant", request, metadata, timeoutMS)
-	if err != nil {
-		return AppPermissionGrantDto{}, err
-	}
-	return decodeTypedResponse[AppPermissionGrantDto](raw)
-}
-
 func (c RealmTypedClient) ReviewControllerCreateReview(ctx context.Context, request RealmReviewControllerCreateReviewOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReviewDto, error) {
 	raw, err := c.operationTyped(ctx, "ReviewController_createReview", request, metadata, timeoutMS)
 	if err != nil {
@@ -19202,14 +18725,6 @@ func (c RealmTypedClient) ReviewControllerGetReviews(ctx context.Context, reques
 		return []ReviewDto{}, err
 	}
 	return decodeTypedResponse[[]ReviewDto](raw)
-}
-
-func (c RealmTypedClient) RevokeMyAppPermissionGrant(ctx context.Context, request RealmRevokeMyAppPermissionGrantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppPermissionGrantDto, error) {
-	raw, err := c.operationTyped(ctx, "revokeMyAppPermissionGrant", request, metadata, timeoutMS)
-	if err != nil {
-		return AppPermissionGrantDto{}, err
-	}
-	return decodeTypedResponse[AppPermissionGrantDto](raw)
 }
 
 func (c RealmTypedClient) SearchHumanUsers(ctx context.Context, request RealmSearchHumanUsersOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserSearchResponseDto, error) {
@@ -19258,14 +18773,6 @@ func (c RealmTypedClient) StartChat(ctx context.Context, request RealmStartChatO
 		return StartChatResultDto{}, err
 	}
 	return decodeTypedResponse[StartChatResultDto](raw)
-}
-
-func (c RealmTypedClient) SupersedeMyAppPermissionGrant(ctx context.Context, request RealmSupersedeMyAppPermissionGrantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppPermissionGrantDto, error) {
-	raw, err := c.operationTyped(ctx, "supersedeMyAppPermissionGrant", request, metadata, timeoutMS)
-	if err != nil {
-		return AppPermissionGrantDto{}, err
-	}
-	return decodeTypedResponse[AppPermissionGrantDto](raw)
 }
 
 func (c RealmTypedClient) SyncChatEvents(ctx context.Context, request RealmSyncChatEventsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ChatSyncResultDto, error) {

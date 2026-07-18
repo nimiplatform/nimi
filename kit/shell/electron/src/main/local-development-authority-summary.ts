@@ -18,31 +18,18 @@ export type NimiElectronLocalDevelopmentProjectAuthorizationSummary = {
   readonly unavailableReason: NimiElectronLocalDevelopmentSummaryUnavailableReason | null;
 };
 
-export type NimiElectronLocalDevelopmentGrantSummary = {
-  readonly availability: NimiElectronLocalDevelopmentSummaryAvailability;
-  readonly pendingCount: number;
-  readonly grantedCount: number;
-  readonly deniedCount: number;
-  readonly expiredCount: number;
-  readonly revokedCount: number;
-  readonly supersededCount: number;
-  readonly unavailableReason: NimiElectronLocalDevelopmentSummaryUnavailableReason | null;
-};
-
 export type NimiElectronLocalDevelopmentAuthoritySummary = {
   readonly developerMode: NimiElectronLocalDevelopmentDeveloperModeSummary;
   readonly projectAuthorization: NimiElectronLocalDevelopmentProjectAuthorizationSummary;
-  readonly grantSummary: NimiElectronLocalDevelopmentGrantSummary;
 };
 
 export function parseNimiElectronLocalDevelopmentAuthoritySummary(
   value: unknown,
 ): NimiElectronLocalDevelopmentAuthoritySummary {
-  const row = exact(value, ['developerMode', 'grantSummary', 'projectAuthorization']);
+  const row = exact(value, ['developerMode', 'projectAuthorization']);
   return {
     developerMode: parseDeveloperModeSummary(row.developerMode),
     projectAuthorization: parseProjectAuthorizationSummary(row.projectAuthorization),
-    grantSummary: parseGrantSummary(row.grantSummary),
   };
 }
 
@@ -76,25 +63,6 @@ function parseProjectAuthorizationSummary(
     dormantCount: summaryCount(row.dormantCount),
     deniedCount: summaryCount(row.deniedCount),
     revokedCount: summaryCount(row.revokedCount),
-  };
-  requireAvailabilityConsistency(availability, unavailableReason, Object.values(counts));
-  return { availability, ...counts, unavailableReason };
-}
-
-function parseGrantSummary(value: unknown): NimiElectronLocalDevelopmentGrantSummary {
-  const row = exact(value, [
-    'availability', 'deniedCount', 'expiredCount', 'grantedCount', 'pendingCount', 'revokedCount',
-    'supersededCount', 'unavailableReason',
-  ]);
-  const availability = summaryAvailability(row.availability);
-  const unavailableReason = summaryUnavailableReason(row.unavailableReason);
-  const counts = {
-    pendingCount: summaryCount(row.pendingCount),
-    grantedCount: summaryCount(row.grantedCount),
-    deniedCount: summaryCount(row.deniedCount),
-    expiredCount: summaryCount(row.expiredCount),
-    revokedCount: summaryCount(row.revokedCount),
-    supersededCount: summaryCount(row.supersededCount),
   };
   requireAvailabilityConsistency(availability, unavailableReason, Object.values(counts));
   return { availability, ...counts, unavailableReason };

@@ -9,7 +9,6 @@ logical_role:
   portable_credential: forbidden
   authority_source: runtime_derived_from_verified_desktop_control_connection
   owns:
-    - local_app_grant_ux_coordination
     - local_app_lifecycle_ux
     - local_development_confirmation_and_supervision
     - protected_launch_request_and_process_binding
@@ -17,7 +16,7 @@ logical_role:
     - local_app_principal
     - provenance
     - lifecycle_record
-    - grant
+    - permission_decision
     - launch_lease
     - local_app_session
     - account_or_token_custody
@@ -69,4 +68,5 @@ constraints:
   - mode_off_revoke_account_switch_and_runtime_restart_invalidate_live_carrier
   - native_windows_execution_risk_disclosure_is_required
   - no_persistent_local_development_autostart
+  - no_public_permission_decision_or_management_action_before_permission_admission
 rows: *desktop_local_app_control_surface_rows

@@ -351,7 +351,7 @@ rules:
       - desktop_boundary_test
       - protected_local_authority_gate
     evidence_requirement: required
-    note: Final LOCAL_APP posture requires the common process-bound session, separate exact grant and owner policy; a zero-grant session remains denied.
+    note: Final LOCAL_APP posture requires the common process-bound session plus the action's authority class. Base entitlements use their bounded principal-private policy; user-permission operations require a separate admitted owner decision/selector and remain unavailable with a zero-permission session.
     evidence_scope_note: Protected-local structure plus Runtime/SDK/Kit/Desktop and LocalAgent journey evidence are required for checkpoint closeout.
     test_files:
       - runtime/internal/services/account/service_test.go

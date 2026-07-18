@@ -179,17 +179,22 @@ export function LocalDevelopmentApprovalCenter() {
           <ApprovalRow label={t('LocalDevelopment.field.account')} value={accountLabel} secondary={approval.accountId} />
         </Surface>
         <div className="grid gap-2">
-          <NimiText role="label">{t('LocalDevelopment.field.capabilities')}</NimiText>
-          <ul className="grid gap-1.5" data-testid="local-development-capabilities">
-            {approval.requestedCapabilities.map((capability) => (
+          <NimiText role="label">{t('LocalDevelopment.field.permissions')}</NimiText>
+          {approval.permissionRequirements.length === 0 ? (
+            <NimiText role="helper">{t('LocalDevelopment.field.noExtraPermissions')}</NimiText>
+          ) : (
+          <ul className="grid gap-1.5" data-testid="local-development-permissions">
+            {approval.permissionRequirements.map((requirement) => (
               <li
-                key={capability}
-                className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 font-mono text-xs leading-5 text-[var(--nimi-text-secondary)] break-all"
+                key={requirement.permissionId}
+                className="grid gap-1 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-xs leading-5 text-[var(--nimi-text-secondary)]"
               >
-                {capability}
+                <code className="font-mono break-all">{requirement.permissionId}</code>
+                <span>{requirement.reason}</span>
               </li>
             ))}
           </ul>
+          )}
         </div>
         {error ? <InlineAlert tone="danger">{error}</InlineAlert> : null}
       </ScrollArea>

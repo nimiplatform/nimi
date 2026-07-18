@@ -1,8 +1,34 @@
 import { getSharedAudioPipelineController } from '@nimiplatform/kit/features/avatar';
-import type {
-  NimiAppRuntimeAgentSubscribeVoiceStreamInput,
-  NimiAppRuntimeAgentVoiceStreamPage,
-} from '@nimiplatform/sdk/app';
+
+export type ZhiyuVoiceStreamSubscribeInput = {
+  readonly agentId: string;
+  readonly conversationAnchorId: string;
+  readonly turnId: string;
+  readonly voiceStreamId: string;
+  readonly cursor?: string;
+};
+
+export type ZhiyuVoiceStreamEvent = {
+  readonly voiceStreamId: string;
+  readonly conversationAnchorId: string;
+  readonly turnId: string;
+  readonly streamId: string;
+  readonly messageId: string;
+  readonly chunkSequence: string;
+  readonly chunk: Uint8Array;
+  readonly mimeType: string;
+  readonly voiceOutputMode: unknown;
+  readonly playbackTarget: string;
+  readonly terminal: boolean;
+  readonly voicePlaybackState: unknown;
+  readonly terminalReason: string;
+  readonly replayTruncated: boolean;
+};
+
+export type ZhiyuVoiceStreamPage = {
+  readonly cursor: string;
+  readonly events: readonly ZhiyuVoiceStreamEvent[];
+};
 
 export type ZhiyuVoicePlaybackState =
   | 'idle'
@@ -47,8 +73,8 @@ export type ZhiyuVoicePlaybackProjection = {
 
 export type ZhiyuVoicePlaybackControllerDeps = {
   readonly subscribeStream: (
-    input: NimiAppRuntimeAgentSubscribeVoiceStreamInput,
-  ) => Promise<NimiAppRuntimeAgentVoiceStreamPage>;
+    input: ZhiyuVoiceStreamSubscribeInput,
+  ) => Promise<ZhiyuVoiceStreamPage | AsyncIterable<ZhiyuVoiceStreamEvent>>;
   readonly readArtifactBytes: (artifactId: string) => Promise<{
     readonly bytes?: Uint8Array;
     readonly mimeType?: string;
@@ -232,31 +258,29 @@ export function createZhiyuVoicePlaybackController(
           voiceStreamId: projection.voiceStreamId,
         });
       }
-      let cursor: string | undefined;
-      for (let eventCount = 0; eventCount < 4096; eventCount += 1) {
-        const page = await deps.subscribeStream({
-          agentId,
-          conversationAnchorId,
-          turnId,
-          voiceStreamId: projection.voiceStreamId,
-          ...(cursor ? { cursor } : {}),
-        });
-        const event = page.events[0];
-        if (event.voiceOutputMode !== projection.outputMode) {
-          throw voicePlaybackError(
-            'runtime-voice-stream-output-mode-mismatch',
-            'inspect_runtime_voice_stream_truth',
-          );
+      const subscribeInput = {
+        agentId,
+        conversationAnchorId,
+        turnId,
+        voiceStreamId: projection.voiceStreamId,
+      };
+      const subscription = await deps.subscribeStream(subscribeInput);
+      if (isAsyncVoiceStream(subscription)) {
+        let eventCount = 0;
+        for await (const event of subscription) {
+          eventCount += 1;
+          if (eventCount > 4096) break;
+          await consumeVoiceStreamEvent(deps, event, projection.outputMode);
+          if (event.terminal) return projection;
         }
-        if (event.chunk.byteLength > 0) {
-          await deps.playAudioBytes(
-            event.chunk,
-            requireAudioMimeType(event.mimeType),
-            `runtime-agent-voice-stream://${event.voiceStreamId}/chunks/${event.chunkSequence}`,
-          );
+      } else {
+        let page = subscription;
+        for (let eventCount = 0; eventCount < 4096; eventCount += 1) {
+          const event = page.events[0];
+          await consumeVoiceStreamEvent(deps, event, projection.outputMode);
+          if (event.terminal) return projection;
+          page = await deps.subscribeStream({ ...subscribeInput, cursor: page.cursor }) as ZhiyuVoiceStreamPage;
         }
-        if (event.terminal) return projection;
-        cursor = page.cursor;
       }
       throw voicePlaybackError(
         'runtime-voice-stream-event-bound-exceeded',
@@ -264,6 +288,43 @@ export function createZhiyuVoicePlaybackController(
       );
     },
   };
+}
+
+async function consumeVoiceStreamEvent(
+  deps: ZhiyuVoicePlaybackControllerDeps,
+  event: ZhiyuVoiceStreamEvent | undefined,
+  expectedOutputMode: string,
+): Promise<void> {
+  if (!event) {
+    throw voicePlaybackError('runtime-voice-stream-event-missing', 'inspect_runtime_voice_stream_truth');
+  }
+  if (normalizeVoiceOutputMode(event.voiceOutputMode) !== expectedOutputMode) {
+    throw voicePlaybackError(
+      'runtime-voice-stream-output-mode-mismatch',
+      'inspect_runtime_voice_stream_truth',
+    );
+  }
+  if (event.chunk.byteLength > 0) {
+    await deps.playAudioBytes(
+      event.chunk,
+      requireAudioMimeType(event.mimeType),
+      `runtime-agent-voice-stream://${event.voiceStreamId}/chunks/${event.chunkSequence}`,
+    );
+  }
+}
+
+function isAsyncVoiceStream(
+  value: ZhiyuVoiceStreamPage | AsyncIterable<ZhiyuVoiceStreamEvent>,
+): value is AsyncIterable<ZhiyuVoiceStreamEvent> {
+  return Symbol.asyncIterator in value && typeof value[Symbol.asyncIterator] === 'function';
+}
+
+function normalizeVoiceOutputMode(value: unknown): string {
+  if (value === 1) return 'native_stream';
+  if (value === 2) return 'simulated_stream';
+  if (value === 3) return 'batch_final_artifact';
+  if (value === 4) return 'text_only';
+  return normalizeVoiceText(value).toLowerCase();
 }
 
 function voicePlaybackError(reasonCode: string, actionHint: string): Error {

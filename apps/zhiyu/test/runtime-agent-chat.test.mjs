@@ -458,9 +458,11 @@ test('Zhiyu Runtime Agent chat source uses Desktop-parity shared Kit/SDK surface
   assert.match(source, /createNimiRuntimeAgentTurnsModule/);
   assert.match(source, /runNimiRuntimeAgentTurn/);
   assert.match(source, /scopedBindingForRuntimeAgentRequest/);
-  assert.match(source, /createNimiAppRuntimePlatformClient/);
-  assert.match(source, /createNimiLocalAppStandardShellSurface/);
-  assert.match(source, /platform\.agent\.sendTurn/);
+  assert.match(source, /agents-interact-not-admitted/);
+  assert.match(source, /wait_for_agents_interact_admission/);
+  assert.doesNotMatch(source, /createNimiAppRuntimePlatformClient/);
+  assert.doesNotMatch(source, /createNimiLocalAppStandardShellSurface/);
+  assert.doesNotMatch(source, /platform\.agent\.|platform\.artifacts\./);
   assert.doesNotMatch(source, /apps\/desktop|apps\/tester|runtime\/internal/);
   assert.doesNotMatch(source, /withZhiyuElectronRuntimeProtectedScopes|operation\s*\(\s*\{\s*\}\s*\)/);
   assert.doesNotMatch(source, /fetch\(|apiKey|providerId|modelId:\s*['"]/);

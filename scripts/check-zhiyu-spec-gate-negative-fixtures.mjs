@@ -28,11 +28,11 @@ const fixtures = [
     },
   },
   {
-    name: 'voice posture regresses to deferred',
-    expectedOutput: 'voice posture',
+    name: 'voice carrier is falsely admitted',
+    expectedOutput: 'voice must expose the product-contract/carrier-pending split',
     mutate(root) {
       const rel = path.join(root, 'kernel', 'tables', 'capability-posture.yaml');
-      replaceInFile(rel, '  voice:\n    posture: v1_full_support', '  voice:\n    posture: deferred_v1_out_of_scope');
+      replaceInFile(rel, '    current_local_development_carrier: fail_closed_not_admitted\n    owner: runtime_sdk_avatar', '    current_local_development_carrier: admitted_without_evidence\n    owner: runtime_sdk_avatar');
     },
   },
   {

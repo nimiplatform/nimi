@@ -150,13 +150,18 @@ export function LocalDevelopmentAuthorizations() {
                   <StatusBadge tone="info">{t(`LocalDevelopment.shell.${row.shell}`)}</StatusBadge>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-1.5">
-                {row.requestedCapabilities.map((capability) => (
-                  <code key={capability} className="rounded-md bg-[var(--nimi-surface-active)] px-2 py-1 text-[11px] text-[var(--nimi-text-secondary)]">
-                    {capability}
-                  </code>
-                ))}
-              </div>
+              {row.permissionRequirements.length === 0 ? (
+                <NimiText role="caption">{t('LocalDevelopment.field.noExtraPermissions')}</NimiText>
+              ) : (
+                <div className="grid gap-1.5">
+                  {row.permissionRequirements.map((requirement) => (
+                    <div key={requirement.permissionId} className="rounded-md bg-[var(--nimi-surface-active)] px-2 py-1 text-[11px] text-[var(--nimi-text-secondary)]">
+                      <code className="font-mono break-all">{requirement.permissionId}</code>
+                      <span className="ml-2">{requirement.reason}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
               {active ? (
                 <div className="flex flex-wrap items-center justify-end gap-2">
                   {confirming ? (

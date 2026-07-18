@@ -348,7 +348,7 @@ not substitute for generated default starter acceptance.
 `MUST`: scaffolded third-party paths consume the final Runtime/Desktop
 `PrepareLocalAppLaunch` and request-empty `OpenLocalAppSession` chain. Opaque
 principal, provenance, execution profile, launch lease, process proof, account/
-grant revisions, boot epoch, and session material remain inside Runtime and
+permission-decision revisions, boot epoch, and session material remain inside Runtime and
 the Kit native carrier; they are never SDK constructor or renderer inputs.
 
 `MUST`: generated source may detect whether the final host bridge exists and

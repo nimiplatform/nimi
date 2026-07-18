@@ -8,20 +8,13 @@ import (
 	"time"
 )
 
-func TestCoordinatorAllowsOnlySelectedOperationFamily(t *testing.T) {
+func TestCoordinatorAllowsBaseEntitlementOperationFamily(t *testing.T) {
 	t.Parallel()
 
 	operations := []Operation{
-		OperationArtifactRead,
-		OperationConversationOpen,
-		OperationConversationTurnSend,
-		OperationConversationSubscribe,
-		OperationConversationSnapshot,
 		OperationStorageJSONRead,
 		OperationStorageJSONWrite,
 		OperationStorageJSONRemove,
-		OperationVoiceTranscribe,
-		OperationVoiceStreamSubscribe,
 	}
 	for _, operation := range operations {
 		operation := operation
@@ -36,9 +29,32 @@ func TestCoordinatorAllowsOnlySelectedOperationFamily(t *testing.T) {
 			if decision.Authorization.Operation != operation || decision.Authorization.Selector != req.Selector {
 				t.Fatalf("authorization operation/selector = %q %+v", decision.Authorization.Operation, decision.Authorization.Selector)
 			}
-			if decision.Authorization.PrincipalID == "" || decision.Authorization.GrantRevision == 0 {
-				t.Fatalf("authorization lacks principal/grant revision: %+v", decision.Authorization)
+			if decision.Authorization.PrincipalID == "" || decision.Authorization.AuthorityClass != AuthorityClassBaseEntitlement {
+				t.Fatalf("authorization lacks principal/authority class: %+v", decision.Authorization)
 			}
+		})
+	}
+}
+
+func TestCoordinatorKeepsReservedUserPermissionOperationsUnavailable(t *testing.T) {
+	t.Parallel()
+
+	operations := []Operation{
+		OperationArtifactRead,
+		OperationConversationOpen,
+		OperationConversationTurnSend,
+		OperationConversationSubscribe,
+		OperationConversationSnapshot,
+		OperationVoiceTranscribe,
+		OperationVoiceStreamSubscribe,
+	}
+	for _, operation := range operations {
+		operation := operation
+		t.Run(string(operation), func(t *testing.T) {
+			t.Parallel()
+			req, snapshot := allowedFixture(operation)
+			decision := evaluateThroughCoordinator(t, req, snapshot)
+			assertDecision(t, decision, OutcomeUnavailable, ReasonLocalAppOperationUnavailable)
 		})
 	}
 }
@@ -79,7 +95,7 @@ func TestCoordinatorIsProvenanceAgnosticAfterStructuralValidation(t *testing.T) 
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			req, snapshot := allowedFixture(OperationConversationTurnSend)
+			req, snapshot := allowedFixture(OperationStorageJSONWrite)
 			snapshot.Principal.Kind = tc.kind
 			snapshot.Principal.Lineage = tc.lineage
 			snapshot.Record.TrustClass = tc.trustClass
@@ -89,32 +105,18 @@ func TestCoordinatorIsProvenanceAgnosticAfterStructuralValidation(t *testing.T) 
 	}
 }
 
-func TestCoordinatorRejectsZeroGrantAndRevocationWithoutRotatingSession(t *testing.T) {
+func TestCoordinatorBaseEntitlementNeedsNoUserPermissionState(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name   string
-		mutate func(*Snapshot)
-		reason Reason
-	}{
-		{name: "zero grant", mutate: func(snapshot *Snapshot) { snapshot.Grant = nil }, reason: ReasonLocalAppGrantRequired},
-		{name: "pending grant", mutate: func(snapshot *Snapshot) { snapshot.Grant.State = GrantStatePending }, reason: ReasonLocalAppGrantRequired},
-		{name: "revoked grant", mutate: func(snapshot *Snapshot) { snapshot.Grant.State = GrantStateRevoked }, reason: ReasonLocalAppGrantRevoked},
-		{name: "superseded grant", mutate: func(snapshot *Snapshot) { snapshot.Grant.State = GrantStateSuperseded }, reason: ReasonLocalAppGrantSuperseded},
-		{name: "expired grant", mutate: func(snapshot *Snapshot) { snapshot.Grant.State = GrantStateExpired }, reason: ReasonLocalAppPresenceExpired},
-	}
-
-	for _, tc := range tests {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
+	for _, operation := range []Operation{OperationStorageJSONRead, OperationStorageJSONWrite, OperationStorageJSONRemove} {
+		operation := operation
+		t.Run(string(operation), func(t *testing.T) {
 			t.Parallel()
-			req, snapshot := allowedFixture(OperationArtifactRead)
-			sessionID := snapshot.Session.ID
-			tc.mutate(&snapshot)
+			req, snapshot := allowedFixture(operation)
 			decision := evaluateThroughCoordinator(t, req, snapshot)
-			assertDecision(t, decision, OutcomeDenied, tc.reason)
-			if snapshot.Session.ID != sessionID || snapshot.Session.State != SessionStateActive {
-				t.Fatal("grant mutation fixture unexpectedly rotated the identity session")
+			assertDecision(t, decision, OutcomeAllowed, ReasonActionExecuted)
+			if decision.Authorization == nil || decision.Authorization.AuthorityClass != AuthorityClassBaseEntitlement {
+				t.Fatalf("base-entitlement authorization = %+v", decision.Authorization)
 			}
 		})
 	}
@@ -145,17 +147,13 @@ func TestCoordinatorRejectsMismatchedCurrentTruth(t *testing.T) {
 		{name: "host executable changed", mutate: func(snapshot *Snapshot) { snapshot.CurrentProcess.HostExecutableDigest = "sha256:other" }, reason: ReasonLocalAppProcessMismatch},
 		{name: "account switched", mutate: func(snapshot *Snapshot) { snapshot.Account.ID = "account:other" }, reason: ReasonLocalAppAccountChanged},
 		{name: "account generation changed", mutate: func(snapshot *Snapshot) { snapshot.Account.Generation++ }, reason: ReasonLocalAppAccountChanged},
-		{name: "grant user partition mismatch", mutate: func(snapshot *Snapshot) { snapshot.Grant.LocalOSUserAnchor = "sid:other" }, reason: ReasonLocalAppGrantRequired},
-		{name: "grant account mismatch", mutate: func(snapshot *Snapshot) { snapshot.Grant.AccountID = "account:other" }, reason: ReasonLocalAppGrantRequired},
-		{name: "grant principal mismatch", mutate: func(snapshot *Snapshot) { snapshot.Grant.PrincipalID = "principal:other" }, reason: ReasonLocalAppGrantRequired},
-		{name: "grant resource mismatch", mutate: func(snapshot *Snapshot) { snapshot.Grant.CapabilityResourceFingerprint = "fingerprint:other" }, reason: ReasonLocalAppGrantRequired},
 	}
 
 	for _, tc := range tests {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			req, snapshot := allowedFixture(OperationConversationTurnSend)
+			req, snapshot := allowedFixture(OperationStorageJSONWrite)
 			tc.mutate(&snapshot)
 			decision := evaluateThroughCoordinator(t, req, snapshot)
 			assertDecision(t, decision, OutcomeDenied, tc.reason)
@@ -163,14 +161,13 @@ func TestCoordinatorRejectsMismatchedCurrentTruth(t *testing.T) {
 	}
 }
 
-func TestCoordinatorNeverFallsBackToDisplayAppID(t *testing.T) {
+func TestCoordinatorTreatsDisplayAppIDAsNonAuthorityMetadata(t *testing.T) {
 	t.Parallel()
 
-	req, snapshot := allowedFixture(OperationArtifactRead)
+	req, snapshot := allowedFixture(OperationStorageJSONRead)
 	snapshot.Principal.AppID = "app.same-display-id"
-	snapshot.Grant.PrincipalID = "principal:other-admission"
 	decision := evaluateThroughCoordinator(t, req, snapshot)
-	assertDecision(t, decision, OutcomeDenied, ReasonLocalAppGrantRequired)
+	assertDecision(t, decision, OutcomeAllowed, ReasonActionExecuted)
 }
 
 func TestCoordinatorRequiresExactOwnerRelation(t *testing.T) {
@@ -221,63 +218,12 @@ func TestCoordinatorRequiresExactOwnerRelation(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			req, snapshot := allowedFixture(OperationConversationTurnSend)
+			req, snapshot := allowedFixture(OperationStorageJSONWrite)
 			tc.mutate(&snapshot)
 			decision := evaluateThroughCoordinator(t, req, snapshot)
 			assertDecision(t, decision, tc.outcome, tc.reason)
 		})
 	}
-}
-
-func TestCoordinatorOwnerRequiredPresenceIsExactAndFresh(t *testing.T) {
-	t.Parallel()
-
-	t.Run("missing", func(t *testing.T) {
-		req, snapshot := allowedFixture(OperationConversationTurnSend)
-		snapshot.OwnerPolicy.PresenceRequired = true
-		decision := evaluateThroughCoordinator(t, req, snapshot)
-		assertDecision(t, decision, OutcomeDenied, ReasonLocalAppPresenceRequired)
-	})
-
-	tests := []struct {
-		name   string
-		mutate func(*Presence, Snapshot)
-	}{
-		{name: "expired", mutate: func(presence *Presence, snapshot Snapshot) { presence.ExpiresAt = snapshot.ResolvedAt }},
-		{name: "consumed", mutate: func(presence *Presence, _ Snapshot) { presence.State = PresenceStateConsumed }},
-		{name: "account generation mismatch", mutate: func(presence *Presence, _ Snapshot) { presence.AccountGeneration++ }},
-		{name: "principal mismatch", mutate: func(presence *Presence, _ Snapshot) { presence.PrincipalID = "principal:other" }},
-		{name: "provenance mismatch", mutate: func(presence *Presence, _ Snapshot) { presence.ProvenanceRevision++ }},
-		{name: "operation mismatch", mutate: func(presence *Presence, _ Snapshot) { presence.Operation = OperationArtifactRead }},
-		{name: "resource mismatch", mutate: func(presence *Presence, _ Snapshot) { presence.ResourceImpactDigest = "impact:other" }},
-		{name: "policy revision mismatch", mutate: func(presence *Presence, _ Snapshot) { presence.PolicyRevision++ }},
-	}
-
-	for _, tc := range tests {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			req, snapshot := allowedFixture(OperationConversationTurnSend)
-			snapshot.OwnerPolicy.PresenceRequired = true
-			snapshot.OwnerPolicy.ResourceImpactDigest = "impact:turn"
-			presence := matchingPresence(req, snapshot)
-			tc.mutate(&presence, snapshot)
-			snapshot.Presence = &presence
-			decision := evaluateThroughCoordinator(t, req, snapshot)
-			assertDecision(t, decision, OutcomeDenied, ReasonLocalAppPresenceExpired)
-		})
-	}
-
-	t.Run("matching", func(t *testing.T) {
-		t.Parallel()
-		req, snapshot := allowedFixture(OperationConversationTurnSend)
-		snapshot.OwnerPolicy.PresenceRequired = true
-		snapshot.OwnerPolicy.ResourceImpactDigest = "impact:turn"
-		presence := matchingPresence(req, snapshot)
-		snapshot.Presence = &presence
-		decision := evaluateThroughCoordinator(t, req, snapshot)
-		assertDecision(t, decision, OutcomeAllowed, ReasonActionExecuted)
-	})
 }
 
 func TestCoordinatorRejectsUnsupportedOrMalformedRequestBeforeResolution(t *testing.T) {
@@ -438,22 +384,12 @@ func allowedFixture(operation Operation) (Request, Snapshot) {
 			Generation: 6,
 			State:      AccountStateAuthenticated,
 		},
-		Grant: &Grant{
-			ID:                            "grant:1",
-			State:                         GrantStateGranted,
-			LocalOSUserAnchor:             "sid:interactive-user",
-			AccountID:                     "account:1",
-			PrincipalID:                   "principal:random-opaque",
-			CapabilityResourceFingerprint: fingerprint,
-			Generation:                    2,
-			Revision:                      3,
-		},
 		OwnerPolicy: OwnerPolicyDecision{
-			Status:                        OwnerPolicyAllowed,
-			Operation:                     operation,
-			Selector:                      selector,
-			CapabilityResourceFingerprint: fingerprint,
-			PolicyRevision:                7,
+			Status:              OwnerPolicyAllowed,
+			Operation:           operation,
+			Selector:            selector,
+			OwnerSelectorDigest: fingerprint,
+			PolicyRevision:      7,
 		},
 	}
 	return req, snapshot
@@ -479,24 +415,6 @@ func selectorFor(operation Operation) Selector {
 		return Selector{AgentID: "agent:1", ConversationAnchorID: "anchor:1", TurnID: "turn:1", VoiceStreamID: "voice:1"}
 	default:
 		return Selector{}
-	}
-}
-
-func matchingPresence(req Request, snapshot Snapshot) Presence {
-	return Presence{
-		State:                         PresenceStateActive,
-		LocalOSUserAnchor:             snapshot.LocalOSUserAnchor,
-		AccountID:                     snapshot.Account.ID,
-		AccountGeneration:             snapshot.Account.Generation,
-		PrincipalID:                   snapshot.Principal.ID,
-		RecordID:                      snapshot.Record.ID,
-		ProvenanceRevision:            snapshot.Record.ProvenanceRevision,
-		InstallOrProjectGeneration:    snapshot.Record.InstallOrProjectGeneration,
-		Operation:                     req.Operation,
-		CapabilityResourceFingerprint: snapshot.OwnerPolicy.CapabilityResourceFingerprint,
-		ResourceImpactDigest:          snapshot.OwnerPolicy.ResourceImpactDigest,
-		PolicyRevision:                snapshot.OwnerPolicy.PolicyRevision,
-		ExpiresAt:                     snapshot.ResolvedAt.Add(time.Minute),
 	}
 }
 
