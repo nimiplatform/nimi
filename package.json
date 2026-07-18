@@ -187,6 +187,8 @@
     "check:realm-v3:generated-convergence": "node scripts/check-realm-v3-generated-convergence.mjs",
     "check:realm-v3:protected-sentinel": "node --test scripts/check-realm-v3-protected-sentinel.test.mjs && node scripts/check-realm-v3-protected-sentinel.mjs",
     "test:realm-v3:compact": "node scripts/test-realm-v3-compact.mjs",
+    "test:realm-v3:full": "node scripts/test-realm-v3-full-data.mjs",
+    "test:realm-v3:full:unit": "node --test scripts/test-realm-v3-full-data.test.mjs scripts/test-realm-v3-full-data-receipts.test.mjs scripts/realm-v3-full-data-live-environment.test.mjs scripts/realm-v3-full-data-live-environment-security.test.mjs",
     "runtime:realm-v3:reset": "go run ./runtime/cmd/realm-v3-reset",
     "check:local-agent-contract-propagation-hardcut": "node scripts/check-local-agent-contract-propagation-hardcut.mjs",
     "check:sdk-runtime-capability-vocabulary": "pnpm check:sdk-vnext-runtime-facade",

@@ -664,3 +664,59 @@ tests:
     spec_refs:
       - P-TEST-001
     sentinel_purpose: forbidden_api
+  - path: scripts/test-realm-v3-full-data.test.mjs
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+      - K-AGCORE-139
+      - K-AGCORE-153
+      - K-AGCORE-155
+  - path: scripts/test-realm-v3-full-data-receipts.test.mjs
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+      - K-AGCORE-139
+      - K-AGCORE-153
+      - K-AGCORE-155
+  - path: scripts/realm-v3-full-data-live-environment.test.mjs
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+      - K-AGCORE-139
+      - K-AGCORE-153
+      - K-AGCORE-155
+  - path: scripts/realm-v3-full-data-live-environment-security.test.mjs
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+      - K-AGCORE-139
+      - K-AGCORE-153
+      - K-AGCORE-155

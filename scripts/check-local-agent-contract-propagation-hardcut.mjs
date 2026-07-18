@@ -52,6 +52,47 @@ const HANDOFF_ACCEPTANCE_EVIDENCE = Object.freeze([
   'runtime-hermetic-fullchain-security',
   'security-zero-product-mutation',
 ]);
+const FULL_DATA_RETIRED_POSITIVE_AUTHORITY = Object.freeze([
+  'ACCESS_SELECTOR',
+  'LOCAL_IDENTITY_AUTHORIZATION',
+  'permissionSplit',
+  'PermissionSplit',
+  'realmV3FullDataAccessPolicyVersionV4',
+  'RequestGrantIDHash',
+  'DecisionGrantIDHash',
+  'PacketGrantIDHash',
+  'GrantDecisionPerformed',
+  'producer_evidence',
+]);
+const FULL_DATA_RUNNER_PATHS = Object.freeze([
+  'scripts/lib/realm-v3-full-data-contract.mjs',
+  'scripts/lib/realm-v3-full-data-preflight.mjs',
+  'scripts/lib/realm-v3-full-data-run-lock.mjs',
+  'scripts/lib/realm-v3-full-data-manifest.mjs',
+  'scripts/lib/realm-v3-full-data-execution.mjs',
+  'scripts/lib/realm-v3-full-data-close.mjs',
+  'scripts/lib/realm-v3-full-data-runner.mjs',
+]);
+const FULL_DATA_RUNTIME_PROOF_PATHS = Object.freeze([
+  'runtime/internal/services/runtimeagent/realm_source_materialization_full_data_worker_test.go',
+  'runtime/internal/services/runtimeagent/realm_source_materialization_full_data_security_test.go',
+  'runtime/internal/services/runtimeagent/realm_source_materialization_full_data_security_fixture_test.go',
+  'runtime/internal/services/runtimeagent/realm_source_materialization_full_data_request_test.go',
+  'runtime/internal/services/runtimeagent/realm_source_materialization_full_data_custody_test.go',
+  'runtime/internal/services/runtimeagent/realm_source_materialization_full_data_transport_test.go',
+  'runtime/internal/services/runtimeagent/realm_source_materialization_full_data_lifecycle_test.go',
+  'runtime/internal/services/runtimeagent/realm_source_materialization_full_data_attempt_ledger_test.go',
+  'runtime/internal/services/runtimeagent/realm_source_materialization_full_data_evidence_test.go',
+]);
+const FULL_DATA_LIVE_ENVIRONMENT_PATHS = Object.freeze([
+  'scripts/lib/realm-v3-full-data-live-contract.mjs',
+  'scripts/lib/realm-v3-full-data-live-attestation.mjs',
+  'scripts/lib/realm-v3-full-data-live-infrastructure.mjs',
+  'scripts/lib/realm-v3-full-data-live-services.mjs',
+  'scripts/lib/realm-v3-full-data-live-prepare.mjs',
+  'scripts/lib/realm-v3-full-data-live-cleanup.mjs',
+  'scripts/lib/realm-v3-full-data-live-environment.mjs',
+]);
 
 function read(relativePath) {
   const absolutePath = path.join(repoRoot, relativePath);
@@ -327,6 +368,65 @@ function assertRuntimeAcquisition() {
   assertNoTokens(`${issuer}\n${account}`, RETIRED_TOKENS, 'Runtime Packet v3 acquisition');
 }
 
+function assertFullDataProofChain(contractLock, runner, worker, liveEnvironment, censusWorker) {
+  invariant(contractLock?.schema_version === 'nimi.realm-contract-lock/v4', 'N7 full-data proof does not consume lock v4');
+  invariant(
+    contractLock?.access_policy?.version === 'realm.source-materialization-access-policy/v5' &&
+      contractLock?.access_policy?.authority_class === 'authenticated_first_party_product_operation' &&
+      contractLock?.access_policy?.third_party_app_permission_required === false &&
+      contractLock?.access_policy?.permission_catalog === 'empty',
+    'N7 full-data proof lock does not preserve first-party no-permission authority',
+  );
+  assertNoTokens(`${runner}\n${worker}`, FULL_DATA_RETIRED_POSITIVE_AUTHORITY, 'N7 full-data proof chain');
+  assertNoTokens(
+    `${liveEnvironment}\n${censusWorker}`,
+    [
+      'fixed_a30',
+      'fixed-a30',
+      'fixed a30',
+      'realm-a30',
+      'Realm a30',
+      '.nimi/spec/realm/contracts/openapi.yaml',
+    ],
+    'N7 current Realm live proof',
+  );
+  invariant(
+    runner.includes("lock.schema_version !== 'nimi.realm-contract-lock/v4'") &&
+      runner.includes("const ACCESS_POLICY_VERSION = 'realm.source-materialization-access-policy/v5'") &&
+      runner.includes("evidence?.schemaVersion !== 'nimi.realm-v3-compact-acceptance/v1'") &&
+      runner.includes("'config/realm-v3/current-producer-admission.json'") &&
+      runner.includes('authorizationBoundary: AUTHORIZATION_BOUNDARY'),
+    'N7 runner does not freeze current producer admission and first-party authorization',
+  );
+  invariant(
+    worker.includes('realmV3FullDataAccessPolicyVersionV5') &&
+      worker.includes('realmV3FullDataExpectedAuthorizationBoundaryV1') &&
+      worker.includes('AuthorizationStatePersisted: false'),
+    'N7 Runtime worker does not prove the current authorization boundary and offline non-persistence',
+  );
+  invariant(
+    liveEnvironment.includes('LIVE_ENVIRONMENT_MODULE_BASENAMES') &&
+      liveEnvironment.includes('modules: modules.map') &&
+      censusWorker.includes('wrapper.modules') &&
+      censusWorker.includes('LIVE_ENVIRONMENT_MODULE_BASENAMES.entries()'),
+    'N7 live wrapper trust does not bind the complete split-module closure',
+  );
+  const commit = contractLock?.realm?.commit;
+  const tree = contractLock?.realm?.tree;
+  const openapiDigest = contractLock?.openapi?.document_sha256;
+  const policyDigest = contractLock?.access_policy?.digest;
+  invariant(
+    typeof commit === 'string' && typeof tree === 'string' &&
+      typeof openapiDigest === 'string' && typeof policyDigest === 'string' &&
+      censusWorker.includes(`export const FIXED_REALM_COMMIT = '${commit}'`) &&
+      censusWorker.includes(`export const FIXED_REALM_TREE = '${tree}'`) &&
+      censusWorker.includes(`export const CURRENT_OPENAPI_DIGEST = '${openapiDigest}'`) &&
+      censusWorker.includes(`export const CURRENT_ACCESS_POLICY_DIGEST = '${policyDigest}'`) &&
+      liveEnvironment.includes('policyDigest: CURRENT_ACCESS_POLICY_DIGEST'),
+    'N7 live environment or census worker is not pinned to the admitted current Realm identity',
+  );
+}
+
 function assertActiveAuthorityAndReleaseEvidence(
   realmApiContract,
   realmCoreContract,
@@ -535,6 +635,7 @@ function runMutationTests(
   runtimeText,
   dispositions,
   activeAuthority,
+  fullData,
 ) {
   const mutations = [
     ['packet accessGrantId', () => {
@@ -622,6 +723,24 @@ function runMutationTests(
         `${activeAuthority.realmConsumerSmoke}\n// grant acquisition is Runtime-internal authority`,
       );
     }],
+    ['N7 worker restores grant lifecycle authority', () => {
+      assertFullDataProofChain(
+        fullData.contractLock,
+        fullData.runner,
+        `${fullData.worker}\ntype forged struct { PermissionSplit string }`,
+        fullData.liveEnvironment,
+        fullData.censusWorker,
+      );
+    }],
+    ['N7 live proof restores stale a30 producer semantics', () => {
+      assertFullDataProofChain(
+        fullData.contractLock,
+        fullData.runner,
+        fullData.worker,
+        `${fullData.liveEnvironment}\nconst method = 'fixed_a30_admitted_fullchain_fixture';`,
+        fullData.censusWorker,
+      );
+    }],
   ];
   for (const [label, operation] of mutations) expectRejected(label, operation);
   invariant(openApiText.includes(PACKET_SCHEMA), 'positive OpenAPI fixture does not contain Packet v3');
@@ -629,12 +748,20 @@ function runMutationTests(
 }
 
 function main() {
+  const contractLock = YAML.parse(read('config/realm-contract-lock.yaml'));
   const openApiText = read('config/realm-openapi/api-nimi.yaml');
   const openApi = YAML.parse(openApiText);
   const serviceText = read('proto/runtime/v1/agent_service.proto');
   const materializationText = read('proto/runtime/v1/agent_source_materialization.proto');
   const runtimeText = read('sdks/typescript/runtime/index.ts');
   const handoffDispositions = JSON.parse(read(HANDOFF_DISPOSITION_PATH));
+  const fullData = {
+    contractLock,
+    runner: FULL_DATA_RUNNER_PATHS.map(read).join('\n'),
+    worker: FULL_DATA_RUNTIME_PROOF_PATHS.map(read).join('\n'),
+    liveEnvironment: FULL_DATA_LIVE_ENVIRONMENT_PATHS.map(read).join('\n'),
+    censusWorker: read('scripts/realm-v3-full-data-census-worker.mjs'),
+  };
   const activeAuthority = {
     realmApiContract: read('.nimi/spec/sdks/kernel/realm-api-consumer-contract.md'),
     realmCoreContract: read('.nimi/spec/sdks/kernel/realm-core-contract.md'),
@@ -649,6 +776,13 @@ function main() {
   assertGeneratedSdk();
   assertTypescriptRuntimeFacade(runtimeText);
   assertRuntimeAcquisition();
+  assertFullDataProofChain(
+    fullData.contractLock,
+    fullData.runner,
+    fullData.worker,
+    fullData.liveEnvironment,
+    fullData.censusWorker,
+  );
   assertActiveAuthorityAndReleaseEvidence(
     activeAuthority.realmApiContract,
     activeAuthority.realmCoreContract,
@@ -667,6 +801,7 @@ function main() {
     runtimeText,
     handoffDispositions,
     activeAuthority,
+    fullData,
   );
 
   process.stdout.write(`${JSON.stringify({
