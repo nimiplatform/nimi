@@ -31,12 +31,12 @@ test('baseline registry declares two Runtime-owned LocalAgent streams and one li
     'the lifecycle timeline is not a third conversation stream');
   assert.deepEqual(
     baseline.streams.map((stream) => stream.source_provenance.source_kind).sort(),
-    ['realmPersona', 'worldCharacter'],
+    ['personaCharacter', 'worldCharacter'],
   );
   assert.equal(new Set(baseline.streams.map((stream) => stream.local_agent_alias)).size, 2);
   assert.equal(new Set(baseline.streams.map((stream) => stream.conversation_alias)).size, 2);
   assert.equal(baseline.environment.materializations.worldCharacter, 1);
-  assert.equal(baseline.environment.materializations.realmPersona, 1);
+  assert.equal(baseline.environment.materializations.personaCharacter, 1);
   assert.deepEqual(baseline.environment.start_limits, {
     provider: 1,
     realm: 1,
@@ -70,8 +70,8 @@ test('registry resolves every prompt from admitted fixture truth and explicit sc
   const resolved = await resolveConversationScenarioRegistry(readConversationScenarioRegistry());
   assert.deepEqual(validateConversationScenarioRegistry(resolved, { resolved: true }), []);
   for (const stream of resolved.scenarios[0].streams) {
-    assert.ok(stream.source_provenance.source_ref.sourceId);
-    assert.ok(stream.source_provenance.source_ref.sourceContentHash);
+    assert.ok(stream.source_provenance.source_ref.id);
+    assert.match(stream.source_provenance.source_ref.sourceHash, /^[a-f0-9]{64}$/u);
     assert.equal(stream.source_provenance.expected_snapshot.runtime_resolved, true);
     for (const turn of stream.turns) {
       assert.ok(turn.user_message.trim());

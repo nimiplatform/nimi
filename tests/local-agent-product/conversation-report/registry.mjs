@@ -149,7 +149,7 @@ export function validateConversationScenarioRegistry(registry, { resolved = fals
     || scenario.model_matrix?.retry !== 'none') failures.push('baseline model matrix must be Runtime-selected one model/one repeat/no retry');
   if (!Number.isInteger(scenario.time_budget_ms) || scenario.time_budget_ms <= 0) failures.push('baseline time budget must be positive');
   if (JSON.stringify(scenario.environment?.start_limits) !== JSON.stringify({ provider: 1, realm: 1, runtime: 2, desktop: 1, zhiyu: 1 })) failures.push('baseline start limits must describe one environment plus one Runtime restart');
-  if (scenario.environment?.materializations?.worldCharacter !== 1 || scenario.environment?.materializations?.realmPersona !== 1) failures.push('baseline must materialize each declared source exactly once');
+  if (scenario.environment?.materializations?.worldCharacter !== 1 || scenario.environment?.materializations?.personaCharacter !== 1) failures.push('baseline must materialize each declared source exactly once');
   if (array(scenario.streams).length !== 2) failures.push('baseline requires exactly two LocalAgent conversation streams');
   const streamIds = new Set();
   const localAliases = new Set();
@@ -162,10 +162,10 @@ export function validateConversationScenarioRegistry(registry, { resolved = fals
     if (!text(stream?.stream_id) || streamIds.has(stream.stream_id)) failures.push(`${label} stream_id is missing or duplicate`);
     streamIds.add(stream.stream_id);
     sourceKinds.add(stream?.source_provenance?.source_kind);
-    if (!['worldCharacter', 'realmPersona'].includes(stream?.source_provenance?.source_kind)) failures.push(`${label} source_kind is invalid`);
+    if (!['worldCharacter', 'personaCharacter'].includes(stream?.source_provenance?.source_kind)) failures.push(`${label} source_kind is invalid`);
     if (resolved) {
       const sourceRef = stream?.source_provenance?.source_ref;
-      if (!text(sourceRef?.sourceId) || !text(sourceRef?.sourceContentHash)) failures.push(`${label} resolved source_ref is incomplete`);
+      if (!text(sourceRef?.id) || !text(sourceRef?.sourceHash)) failures.push(`${label} resolved CharacterSourceRefV3 is incomplete`);
     } else if (stream?.source_provenance?.source_ref?.resolver !== 'fixture_export') failures.push(`${label} source_ref must resolve from admitted fixture truth`);
     if (stream?.source_provenance?.expected_snapshot?.runtime_resolved !== true) failures.push(`${label} snapshot identity must be Runtime-resolved`);
     if (stream?.runtime_resolved_identity?.local_agent_ref !== true || stream?.runtime_resolved_identity?.conversation_anchor_id !== true) failures.push(`${label} LocalAgent/anchor identity must be Runtime-resolved`);
@@ -196,7 +196,7 @@ export function validateConversationScenarioRegistry(registry, { resolved = fals
       if (streamTruth && !object(streamTruth)) failures.push(`${label} truth_path does not resolve to an object`);
     }
   }
-  if (JSON.stringify([...sourceKinds].sort()) !== JSON.stringify(['realmPersona', 'worldCharacter'])) failures.push('baseline streams must cover WorldCharacter and RealmPersona provenance once each');
+  if (JSON.stringify([...sourceKinds].sort()) !== JSON.stringify(['personaCharacter', 'worldCharacter'])) failures.push('baseline streams must cover WorldCharacter and PersonaCharacter provenance once each');
   const timeline = scenario.lifecycle_timeline;
   if (timeline?.kind !== 'cross_surface_cross_agent_lifecycle_timeline') failures.push('baseline requires one lifecycle/correlation timeline');
   if (Object.hasOwn(timeline || {}, 'turns')) failures.push('lifecycle timeline cannot become a third conversation stream');

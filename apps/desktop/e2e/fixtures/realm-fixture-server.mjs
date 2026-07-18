@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import http from 'node:http';
+import { createHash, randomUUID } from 'node:crypto';
 import { Server as SocketIOServer } from 'socket.io';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
@@ -10,7 +11,7 @@ import {
   configureFixtureRealmIssuer,
   createFixtureSourceMaterializationPacket,
   FIXTURE_SOURCE_MATERIALIZATION_JWKS,
-} from './source-materialization-packet-v2.mjs';
+} from './source-materialization-packet-v3.mjs';
 
 function readJsonFile(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -395,13 +396,22 @@ function projectPublicWorld(world) {
 function projectPublicSource(world, source, sourceKind) {
   const worldId = text(world?.id, 'world-e2e-1');
   const id = text(source?.id, `${sourceKind}-fixture`);
-  const sourceContentHash = explicitSourceContentHash(source, id);
-  const sourceRef = {
-    kind: sourceKind,
-    worldId,
-    sourceId: id,
-    sourceContentHash,
-  };
+  const sourceHash = explicitSourceHash(source, `${sourceKind}:${worldId}:${id}`);
+  const sourceRef = sourceKind === 'worldCharacter'
+    ? {
+        kind: sourceKind,
+        id,
+        worldId,
+        worldEntityRef: normalizeWorldEntityRef(source, worldId, id),
+        sourceHash,
+      }
+    : {
+        kind: 'personaCharacter',
+        id,
+        worldId,
+        ownerAccountId: text(source?.ownerAccountId || source?.ownerId || world?.ownerId, 'user-e2e-primary'),
+        sourceHash,
+      };
   return {
     id,
     sourceKind,
@@ -428,28 +438,38 @@ function asRecord(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : null;
 }
 
-function explicitSourceContentHash(source, id) {
+function explicitSourceHash(source, identity) {
   const sourceRef = asRecord(source?.sourceRef);
   const candidates = [
-    sourceRef && Object.prototype.hasOwnProperty.call(sourceRef, 'sourceContentHash')
-      ? sourceRef.sourceContentHash
+    sourceRef && Object.prototype.hasOwnProperty.call(sourceRef, 'sourceHash')
+      ? sourceRef.sourceHash
       : undefined,
-    source && Object.prototype.hasOwnProperty.call(source, 'sourceContentHash')
-      ? source.sourceContentHash
+    source && Object.prototype.hasOwnProperty.call(source, 'sourceHash')
+      ? source.sourceHash
       : undefined,
     source && Object.prototype.hasOwnProperty.call(source, 'contentHash')
       ? source.contentHash
       : undefined,
   ];
   for (const candidate of candidates) {
-    if (typeof candidate === 'string') {
+    if (typeof candidate === 'string' && /^[a-f0-9]{64}$/u.test(candidate.trim())) {
       return candidate.trim();
     }
   }
   if (source?.omitContentHash === true || source?.materializationUnavailable === true) {
     return '';
   }
-  return `hash-${id}`;
+  return createHash('sha256').update(`realm-v3-fixture-source\0${identity}`, 'utf8').digest('hex');
+}
+
+function normalizeWorldEntityRef(source, worldId, sourceId) {
+  const sourceRef = asRecord(source?.sourceRef);
+  const candidate = asRecord(sourceRef?.worldEntityRef) || asRecord(source?.worldEntityRef);
+  return {
+    kind: 'worldEntity',
+    worldId,
+    entityId: text(candidate?.entityId || source?.entityId || source?.entity?.id, `entity-${sourceId}`),
+  };
 }
 
 function realmCoreOrigin(value, id, contentHash) {
@@ -472,16 +492,18 @@ function realmCoreOrigin(value, id, contentHash) {
   };
 }
 
-function projectRealmPersonaCore(world, source) {
+function projectPersonaCharacterCore(world, source) {
   const worldId = text(world?.id, 'world-e2e-1');
   const id = text(source?.id, 'persona-fixture');
-  const contentHash = explicitSourceContentHash(source, id);
+  const contentHash = explicitSourceHash(source, `personaCharacter-content:${worldId}:${id}`);
+  const sourceHash = explicitSourceHash(source, `personaCharacter:${worldId}:${id}`);
   const displayName = text(source?.displayName || source?.name, id);
   const handle = text(source?.handle, displayName);
   const summary = text(source?.summary || source?.bio, 'Fixture Realm persona used for desktop Explore materialization coverage.');
   const tags = asArray(source?.tags).map(String).filter(Boolean);
   const media = normalizeSourceMedia(source);
-  const core = asRecord(source?.core) || {
+  const profile = asRecord(source?.profile) || asRecord(source?.core) || {
+    profileSchemaVersion: 'realm.character-profile-core/v1',
     identity: {
       name: displayName,
       handle,
@@ -493,23 +515,21 @@ function projectRealmPersonaCore(world, source) {
       shortBio: summary,
       avatarResourceRef: media.avatarUrl ?? media.portraitUrl ?? null,
     },
-    interactionProfile: {
-      homeWorldId: worldId,
-    },
-    contentProfile: {
-      topics: tags,
-    },
-    personaStyle: {
-      archetype: text(source?.archetype || source?.role, 'partner'),
-      voice: text(source?.voice || source?.archetype || source?.role, 'partner'),
-      pacing: text(source?.pacing, 'steady'),
-    },
+    narrative: { summary, archetype: text(source?.archetype || source?.role, 'partner'), traits: tags },
+    psychology: { drives: [], boundaries: [] },
+    knowledge: { topics: tags, constraints: [] },
+    relationships: [],
+    capabilities: { tools: [] },
+    interactionProfile: { interactionModes: ['dialogue'] },
     assets: {
+      resourceRefs: [],
       externalRefs: [
-        media.avatarUrl ? { kind: 'avatar', uri: media.avatarUrl } : null,
-        media.referenceImageUrl ? { kind: 'referenceImage', uri: media.referenceImageUrl } : null,
+        media.avatarUrl ? { refId: `fixture-avatar-${id}`, kind: 'avatar', uri: media.avatarUrl } : null,
+        media.referenceImageUrl ? { refId: `fixture-reference-${id}`, kind: 'referenceImage', uri: media.referenceImageUrl } : null,
       ].filter(Boolean),
+      intents: [],
     },
+    authoring: { source: 'desktop-realm-v3-fixture' },
   };
   const visibility = ['private', 'unlisted', 'public', 'system'].includes(source?.visibility)
     ? source.visibility
@@ -517,27 +537,31 @@ function projectRealmPersonaCore(world, source) {
   return {
     id,
     contentHash,
+    sourceHash,
     contentRevision: Number.isFinite(Number(source?.contentRevision)) ? Number(source.contentRevision) : 1,
-    core,
+    profile,
     createdAt: text(source?.createdAt || world?.createdAt, '2026-03-15T00:00:00.000Z'),
-    homeWorldId: worldId,
+    worldId,
     origin: realmCoreOrigin(source?.origin, id, contentHash),
-    ownerId: text(source?.ownerId || world?.ownerId, 'user-e2e-primary'),
-    schemaVersion: text(source?.schemaVersion, 'realm.persona/v1'),
+    ownerAccountId: text(source?.ownerAccountId || source?.ownerId || world?.ownerId, 'user-e2e-primary'),
+    schemaVersion: 'realm.persona-character-core/v1',
     updatedAt: text(source?.updatedAt || world?.updatedAt || source?.createdAt, '2026-03-15T00:00:00.000Z'),
     visibility,
+    validity: { status: 'valid', issues: [] },
+    materializationReadiness: { status: 'ready', blockers: [] },
   };
 }
 
-function listRealmPersonaCores(manifest) {
+function listPersonaCharacterCores(manifest) {
   const worlds = Array.isArray(manifest.realmFixture?.worlds) ? manifest.realmFixture.worlds : [];
-  return worlds.flatMap((world) => asArray(world?.personas).map((source) => projectRealmPersonaCore(world, source)));
+  return worlds.flatMap((world) => asArray(world?.personas).map((source) => projectPersonaCharacterCore(world, source)));
 }
 
 function projectWorldCharacterCore(world, source) {
   const worldId = text(world?.id, 'world-e2e-1');
   const id = text(source?.id, 'character-fixture');
-  const contentHash = explicitSourceContentHash(source, id);
+  const contentHash = explicitSourceHash(source, `worldCharacter-content:${worldId}:${id}`);
+  const sourceHash = explicitSourceHash(source, `worldCharacter:${worldId}:${id}`);
   const displayName = text(source?.displayName || source?.name, id);
   const handle = text(source?.handle, displayName);
   const summary = text(source?.summary || source?.bio, 'Fixture world character used for desktop materialization coverage.');
@@ -545,7 +569,8 @@ function projectWorldCharacterCore(world, source) {
   const media = normalizeSourceMedia(source);
   const entity = asRecord(source?.entity);
   const entityId = text(source?.entityId || entity?.id, `entity-${id}`);
-  const core = asRecord(source?.core) || {
+  const profile = asRecord(source?.profile) || asRecord(source?.core) || {
+    profileSchemaVersion: 'realm.character-profile-core/v1',
     identity: {
       name: displayName,
       handle,
@@ -557,39 +582,46 @@ function projectWorldCharacterCore(world, source) {
       shortBio: text(source?.bio, summary),
       avatarResourceRef: media.avatarUrl ?? media.portraitUrl ?? null,
     },
-    placement: {
-      worldId,
-      entityId,
-      role: text(source?.placement?.role || source?.role, ''),
-      faction: text(source?.placement?.faction || source?.faction, ''),
-      rank: text(source?.placement?.rank || source?.rank, ''),
-      sceneRefs: asArray(source?.placement?.sceneRefs ?? source?.sceneRefs),
+    narrative: {
+      summary,
+      milestones: asArray(source?.biography?.milestones),
+      traits: tags,
     },
-    biography: asRecord(source?.biography) || { milestones: [] },
+    psychology: { drives: [], boundaries: [] },
     relationships: asArray(source?.relationships),
     knowledge: asRecord(source?.knowledge) || {
       topics: tags,
       constraints: [],
     },
-    interactionProfile: asRecord(source?.interactionProfile) || {},
+    capabilities: { tools: [] },
+    interactionProfile: asRecord(source?.interactionProfile) || { interactionModes: ['dialogue'] },
     assets: {
+      resourceRefs: [],
       externalRefs: [
-        media.avatarUrl ? { kind: 'avatar', uri: media.avatarUrl } : null,
-        media.profileCoverUrl ? { kind: 'profileCover', uri: media.profileCoverUrl } : null,
-        media.referenceImageUrl ? { kind: 'referenceImage', uri: media.referenceImageUrl } : null,
+        media.avatarUrl ? { refId: `fixture-avatar-${id}`, kind: 'avatar', uri: media.avatarUrl } : null,
+        media.profileCoverUrl ? { refId: `fixture-cover-${id}`, kind: 'profileCover', uri: media.profileCoverUrl } : null,
+        media.referenceImageUrl ? { refId: `fixture-reference-${id}`, kind: 'referenceImage', uri: media.referenceImageUrl } : null,
       ].filter(Boolean),
+      intents: [],
     },
+    authoring: { source: 'desktop-realm-v3-fixture' },
   };
   return {
     id,
     contentHash,
+    sourceHash,
     contentRevision: Number.isFinite(Number(source?.contentRevision)) ? Number(source.contentRevision) : 1,
-    core,
+    profile,
     createdAt: text(source?.createdAt || world?.createdAt, '2026-03-15T00:00:00.000Z'),
-    entityId,
-    schemaVersion: text(source?.schemaVersion, 'realm.world-character-core/v1'),
+    creatorId: text(source?.creatorId || world?.ownerId, 'user-e2e-primary'),
+    origin: realmCoreOrigin(source?.origin, id, contentHash),
+    visibility: ['private', 'unlisted', 'public', 'system'].includes(source?.visibility) ? source.visibility : 'public',
+    worldEntityRef: normalizeWorldEntityRef(source, worldId, id),
+    schemaVersion: 'realm.world-character-core/v1',
     updatedAt: text(source?.updatedAt || world?.updatedAt || source?.createdAt, '2026-03-15T00:00:00.000Z'),
     worldId,
+    validity: { status: 'valid', issues: [] },
+    materializationReadiness: { status: 'ready', blockers: [] },
   };
 }
 
@@ -690,29 +722,61 @@ function listWorldRelationshipCores(manifest, worldIdInput, entityIdInput = '') 
 
 function resolveFixtureSourceHash(manifest, source) {
   const worldId = text(source?.worldId, 'world-e2e-1');
-  const sourceId = text(source?.sourceId, `${source?.kind || 'source'}-fixture`);
+  const sourceId = text(source?.id, `${source?.kind || 'source'}-fixture`);
   const world = lookupWorld(manifest, worldId);
-  const collection = source?.kind === 'realmPersona' ? world?.personas : world?.characters;
+  const collection = source?.kind === 'personaCharacter' ? world?.personas : world?.characters;
   const row = asArray(collection).find((item) => String(item?.id || '') === sourceId);
-  return text(row?.sourceRef?.sourceContentHash || row?.contentHash || row?.sourceContentHash, `hash-${sourceId}`);
+  return explicitSourceHash(row, `${source?.kind}:${worldId}:${sourceId}`);
 }
 
 function normalizeSourceRef(manifest, source) {
   const kind = text(source?.kind, '');
   const worldId = text(source?.worldId, '');
-  const sourceId = text(source?.sourceId, '');
-  if (!['worldCharacter', 'realmPersona'].includes(kind) || !worldId || !sourceId) {
+  const id = text(source?.id, '');
+  if (!['worldCharacter', 'personaCharacter'].includes(kind) || !worldId || !id) {
     return null;
   }
+  const sourceHash = /^[a-f0-9]{64}$/u.test(text(source?.sourceHash, ''))
+    ? text(source.sourceHash, '')
+    : resolveFixtureSourceHash(manifest, { kind, worldId, id });
+  if (kind === 'worldCharacter') {
+    const worldEntityRef = asRecord(source?.worldEntityRef);
+    if (worldEntityRef?.kind !== 'worldEntity'
+        || text(worldEntityRef.worldId, '') !== worldId
+        || !text(worldEntityRef.entityId, '')) {
+      return null;
+    }
+    return { kind, id, worldId, worldEntityRef, sourceHash };
+  }
+  const ownerAccountId = text(source?.ownerAccountId, '');
+  return ownerAccountId ? { kind, id, worldId, ownerAccountId, sourceHash } : null;
+}
+
+function sourceMaterializationGrant(accountId, grantId, state, version, now = new Date()) {
+  const granted = state === 'GRANTED';
   return {
-    kind,
-    worldId,
-    sourceId,
-    sourceContentHash: text(source?.sourceContentHash, '') || resolveFixtureSourceHash(manifest, {
-      kind,
-      worldId,
-      sourceId,
-    }),
+    grantId,
+    subjectAccountId: accountId,
+    appId: 'nimi.avatar',
+    scopeFamily: 'realm_source',
+    scopeName: 'realm_source.snapshot.consume',
+    qualifier: null,
+    state,
+    reason: 'Nimi Runtime Realm source materialization',
+    version,
+    requestedAt: new Date(now.getTime() - 60_000).toISOString(),
+    requestedByAccountId: accountId,
+    grantedAt: granted ? new Date(now.getTime() - 30_000).toISOString() : null,
+    grantedByAccountId: granted ? accountId : null,
+    deniedAt: null,
+    deniedByAccountId: null,
+    expiredAt: null,
+    expiresAt: null,
+    revokedAt: null,
+    revokedByAccountId: null,
+    supersededAt: null,
+    supersededByAccountId: null,
+    supersededByGrantId: null,
   };
 }
 
@@ -935,7 +999,57 @@ async function handleApi(request, response, manifestPath) {
   }
 
   if (request.method === 'GET' && pathname === '/api/auth/jwks/source-materialization') {
+    response.setHeader('cache-control', 'no-store, max-age=0');
+    response.setHeader('pragma', 'no-cache');
     json(response, 200, FIXTURE_SOURCE_MATERIALIZATION_JWKS);
+    return undefined;
+  }
+
+  if (request.method === 'POST' && pathname === '/api/human/me/permission-grants') {
+    const body = await parseBody(request);
+    if (!body
+        || Object.keys(body).length !== 4
+        || body.appId !== 'nimi.avatar'
+        || body.scopeFamily !== 'realm_source'
+        || body.scopeName !== 'realm_source.snapshot.consume'
+        || body.reason !== 'Nimi Runtime Realm source materialization') {
+      json(response, 400, { message: 'invalid Realm source grant selector' });
+      return undefined;
+    }
+    const accountId = text(manifest.realmFixture?.currentUser?.id, 'user-e2e-primary');
+    const grantId = `fixture-realm-source-grant-${randomUUID()}`;
+    const version = 1;
+    manifest.realmFixture = manifest.realmFixture || {};
+    manifest.realmFixture.sourceMaterializationGrants = [
+      ...(Array.isArray(manifest.realmFixture.sourceMaterializationGrants)
+        ? manifest.realmFixture.sourceMaterializationGrants
+        : []),
+      { grantId, accountId, state: 'PENDING', version },
+    ];
+    writeJsonFile(manifestPath, manifest);
+    json(response, 200, sourceMaterializationGrant(accountId, grantId, 'PENDING', version));
+    return undefined;
+  }
+
+  const sourceGrantDecisionMatch = pathname.match(/^\/api\/human\/me\/permission-grants\/by-id\/([^/]+)\/grant$/u);
+  if (request.method === 'POST' && sourceGrantDecisionMatch) {
+    const grantId = decodeURIComponent(sourceGrantDecisionMatch[1]);
+    const body = await parseBody(request);
+    const grants = Array.isArray(manifest.realmFixture?.sourceMaterializationGrants)
+      ? manifest.realmFixture.sourceMaterializationGrants
+      : [];
+    const grant = grants.find((candidate) => candidate.grantId === grantId);
+    if (!grant
+        || grant.state !== 'PENDING'
+        || Object.keys(body || {}).length !== 1
+        || body.expectedVersion !== grant.version) {
+      json(response, 409, { message: 'Realm source grant CAS mismatch' });
+      return undefined;
+    }
+    grant.state = 'GRANTED';
+    grant.version += 1;
+    writeJsonFile(manifestPath, manifest);
+    json(response, 200, sourceMaterializationGrant(grant.accountId, grant.grantId, grant.state, grant.version));
     return undefined;
   }
 
@@ -1060,7 +1174,15 @@ async function handleApi(request, response, manifestPath) {
     const body = await parseBody(request);
     const sourceRef = normalizeSourceRef(manifest, body?.sourceRef);
     if (!sourceRef) {
-      json(response, 400, { message: 'sourceRef must include kind, worldId, sourceId, and sourceContentHash' });
+      json(response, 400, { message: 'sourceRef must be an exact CharacterSourceRefV3' });
+      return undefined;
+    }
+    const grants = Array.isArray(manifest.realmFixture?.sourceMaterializationGrants)
+      ? manifest.realmFixture.sourceMaterializationGrants
+      : [];
+    const grant = grants.find((candidate) => candidate.grantId === body?.accessGrantId);
+    if (!grant || grant.state !== 'GRANTED' || grant.accountId !== body?.materializerAccountId) {
+      json(response, 403, { message: 'accessGrantId is not the current granted Realm source authority' });
       return undefined;
     }
     const requestOrigin = `http://${request.headers.host}`;
@@ -1075,11 +1197,12 @@ async function handleApi(request, response, manifestPath) {
         : []),
       {
         sourceRef,
+        accessGrantId: body.accessGrantId,
         challengeId: text(body?.challengeId, ''),
         challengeDigest: text(body?.challengeDigest, ''),
         intendedRuntimeAudience: text(body?.intendedRuntimeAudience, ''),
         packetId: packet.packetId,
-        runtimeSourceRef: `runtime-source:${sourceRef.kind}:${sourceRef.worldId}:${sourceRef.sourceId}:${sourceRef.sourceContentHash}`,
+        runtimeSourceRef: `runtime-source:${sourceRef.kind}:${sourceRef.worldId}:${sourceRef.id}:${sourceRef.sourceHash}`,
         issuedAt: packet.issuedAt,
       },
     ];
@@ -1088,20 +1211,20 @@ async function handleApi(request, response, manifestPath) {
     return undefined;
   }
 
-  if (request.method === 'GET' && pathname === '/api/realm/core/personas') {
+  if (request.method === 'GET' && pathname === '/api/realm/core/persona-characters') {
     const visibility = nullableString(requestUrl.searchParams.get('visibility'));
     const take = positiveInt(requestUrl.searchParams.get('take'), 100);
-    const rows = listRealmPersonaCores(manifest)
+    const rows = listPersonaCharacterCores(manifest)
       .filter((row) => !visibility || String(row.visibility || '').toLowerCase() === visibility.toLowerCase())
       .slice(0, take);
     json(response, 200, rows);
     return undefined;
   }
 
-  const realmPersonaMatch = pathname.match(/^\/api\/realm\/core\/personas\/([^/]+)$/u);
-  if (request.method === 'GET' && realmPersonaMatch) {
-    const personaId = decodeURIComponent(realmPersonaMatch[1]);
-    const row = listRealmPersonaCores(manifest).find((item) => String(item.id || '') === personaId);
+  const personaCharacterMatch = pathname.match(/^\/api\/realm\/core\/persona-characters\/by-id\/([^/]+)$/u);
+  if (request.method === 'GET' && personaCharacterMatch) {
+    const personaId = decodeURIComponent(personaCharacterMatch[1]);
+    const row = listPersonaCharacterCores(manifest).find((item) => String(item.id || '') === personaId);
     if (!row) {
       notFound(response, pathname);
       return undefined;
@@ -1110,7 +1233,7 @@ async function handleApi(request, response, manifestPath) {
     return undefined;
   }
 
-  const worldCharacterMatch = pathname.match(/^\/api\/realm\/core\/world-characters\/([^/]+)$/u);
+  const worldCharacterMatch = pathname.match(/^\/api\/realm\/core\/world-characters\/by-id\/([^/]+)$/u);
   if (request.method === 'GET' && worldCharacterMatch) {
     const characterId = decodeURIComponent(worldCharacterMatch[1]);
     const row = listWorldCharacterCores(manifest).find((item) => String(item.id || '') === characterId);
@@ -1203,7 +1326,7 @@ async function handleApi(request, response, manifestPath) {
       world: projectPublicWorld(world),
       sources: {
         characters: asArray(world.characters).map((source) => projectPublicSource(world, source, 'worldCharacter')),
-        personas: asArray(world.personas).map((source) => projectPublicSource(world, source, 'realmPersona')),
+        personaCharacters: asArray(world.personas).map((source) => projectPublicSource(world, source, 'personaCharacter')),
       },
     });
     return undefined;

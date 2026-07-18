@@ -11,7 +11,7 @@ import {
 } from './registry.mjs';
 
 const expectedProcessStarts = Object.freeze({ provider: 1, realm: 1, runtime: 2, desktop: 1, zhiyu: 1 });
-const expectedMaterializations = Object.freeze({ worldCharacter: 1, realmPersona: 1 });
+const expectedMaterializations = Object.freeze({ worldCharacter: 1, personaCharacter: 1 });
 const forbiddenReportKeys = new Set([
   'semanticVerdict',
   'semanticScore',
@@ -23,7 +23,14 @@ const forbiddenReportKeys = new Set([
   'personaConversationId',
   'characterThread',
   'personaThread',
+  'realmPersona',
+  'realm_persona',
+  'sourceId',
+  'source_id',
+  'sourceContentHash',
+  'source_content_hash',
 ]);
+const sha256Pattern = /^[a-f0-9]{64}$/u;
 
 function array(value) {
   return Array.isArray(value) ? value : [];
@@ -39,6 +46,48 @@ function object(value) {
 
 function same(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function hasExactKeys(value, expected) {
+  return object(value)
+    && same(Object.keys(value).sort(), [...expected].sort());
+}
+
+function validateCharacterSourceRefV3(value, expectedKind, failures, label) {
+  if (!object(value)) {
+    failures.push(`${label}: CharacterSourceRefV3 must be an object`);
+    return false;
+  }
+  const kind = value.kind;
+  if (kind !== expectedKind || !['worldCharacter', 'personaCharacter'].includes(kind)) {
+    failures.push(`${label}: CharacterSourceRefV3 kind must equal sourceKind`);
+    return false;
+  }
+  const commonValid = text(value.id)
+    && text(value.worldId)
+    && sha256Pattern.test(String(value.sourceHash || ''));
+  if (!commonValid) failures.push(`${label}: CharacterSourceRefV3 id/worldId/sourceHash is invalid`);
+
+  if (kind === 'worldCharacter') {
+    if (!hasExactKeys(value, ['kind', 'id', 'worldId', 'worldEntityRef', 'sourceHash'])) {
+      failures.push(`${label}: WorldCharacterSourceRefV3 has missing or additional fields`);
+    }
+    const entityRef = value.worldEntityRef;
+    if (!hasExactKeys(entityRef, ['kind', 'worldId', 'entityId'])
+      || entityRef?.kind !== 'worldEntity'
+      || !text(entityRef?.entityId)
+      || entityRef?.worldId !== value.worldId) {
+      failures.push(`${label}: WorldCharacterSourceRefV3 worldEntityRef/worldId binding is invalid`);
+    }
+  } else {
+    if (!hasExactKeys(value, ['kind', 'id', 'worldId', 'ownerAccountId', 'sourceHash'])) {
+      failures.push(`${label}: PersonaCharacterSourceRefV3 has missing or additional fields`);
+    }
+    if (!text(value.ownerAccountId)) {
+      failures.push(`${label}: PersonaCharacterSourceRefV3 ownerAccountId is missing`);
+    }
+  }
+  return Boolean(commonValid);
 }
 
 function sha256(file) {
@@ -193,10 +242,29 @@ function validateTurn(turn, stream, bundleRoot, failures) {
   if (!['desktop', 'zhiyu'].includes(turn?.surface)) failures.push(`${label}: surface must be Desktop or Zhiyu`);
   if (turn?.continuationRequired !== true) failures.push(`${label}: continuation requirement must be explicit`);
   const correlation = turn?.correlation;
+  if (!hasExactKeys(correlation, [
+    'accountId',
+    'sourceRef',
+    'snapshotRef',
+    'snapshotHash',
+    'localAgentRef',
+    'conversationAnchorId',
+    'threadId',
+    'turnId',
+    'requestId',
+    'providerId',
+    'modelId',
+    'modelRevisionOrFingerprint',
+  ])) failures.push(`${label}: turn correlation has missing or additional transport/source identity fields`);
   for (const field of ['accountId', 'snapshotRef', 'snapshotHash', 'localAgentRef', 'conversationAnchorId', 'threadId', 'providerId', 'modelId', 'modelRevisionOrFingerprint']) {
     if (!text(correlation?.[field])) failures.push(`${label}: correlation/model revision field ${field} is missing`);
   }
-  if (!object(correlation?.sourceRef) || !text(correlation.sourceRef.sourceId) || !text(correlation.sourceRef.sourceContentHash)) failures.push(`${label}: sourceRef correlation is incomplete`);
+  validateCharacterSourceRefV3(
+    correlation?.sourceRef,
+    stream.sourceProvenance?.sourceKind,
+    failures,
+    `${label} correlation`,
+  );
   if (correlation?.accountId !== stream.localAgentIdentity?.ownerAccountId
     || correlation?.localAgentRef !== stream.localAgentIdentity?.localAgentRef
     || correlation?.conversationAnchorId !== stream.conversationIdentity?.conversationAnchorId
@@ -341,7 +409,30 @@ export function validateConversationReportBundle({ bundleRoot }) {
     if (!text(stream?.streamId) || streamMap.has(stream.streamId)) failures.push(`stream ID is missing or duplicate: ${stream?.streamId || '<missing>'}`);
     streamMap.set(stream.streamId, stream);
     const source = stream?.sourceProvenance;
-    if (!['worldCharacter', 'realmPersona'].includes(source?.sourceKind) || !object(source?.sourceRef) || !text(source?.snapshotRef) || !text(source?.snapshotHash)) failures.push(`${stream?.streamId}: source provenance/frozen snapshot is incomplete`);
+    if (!hasExactKeys(source, [
+      'sourceKind',
+      'sourceRef',
+      'sourceRevision',
+      'sourceHash',
+      'snapshotRef',
+      'snapshotHash',
+      'frozenAt',
+    ])) failures.push(`${stream?.streamId}: source provenance has missing or additional fields`);
+    if (!['worldCharacter', 'personaCharacter'].includes(source?.sourceKind)
+      || !text(source?.snapshotRef)
+      || !sha256Pattern.test(String(source?.snapshotHash || ''))
+      || !sha256Pattern.test(String(source?.sourceHash || ''))) {
+      failures.push(`${stream?.streamId}: source provenance/frozen snapshot is incomplete`);
+    }
+    validateCharacterSourceRefV3(
+      source?.sourceRef,
+      source?.sourceKind,
+      failures,
+      `${stream?.streamId} source provenance`,
+    );
+    if (source?.sourceHash !== source?.sourceRef?.sourceHash) {
+      failures.push(`${stream?.streamId}: provenance sourceHash drifted from CharacterSourceRefV3`);
+    }
     sourceKinds.add(source?.sourceKind);
     const localAgentRef = text(stream?.localAgentIdentity?.localAgentRef);
     const anchorId = text(stream?.conversationIdentity?.conversationAnchorId);
@@ -359,7 +450,7 @@ export function validateConversationReportBundle({ bundleRoot }) {
   if (anchorIds.size !== 2) failures.push('the two streams require distinct conversationAnchorId identities; anchor collision detected');
   if (threadIds.size !== 2 || threadIds.has('')) failures.push('the two streams require distinct Runtime-owned conversation thread identities');
   if (memoryScopes.size !== 2 || memoryScopes.has('')) failures.push('the two streams require distinct non-empty agent/dyadic memory scopes');
-  if (!same([...sourceKinds].sort(), ['realmPersona', 'worldCharacter'])) failures.push('Character/Persona may appear only as the two source provenance kinds');
+  if (!same([...sourceKinds].sort(), ['personaCharacter', 'worldCharacter'])) failures.push('WorldCharacter/PersonaCharacter may appear only as the two source provenance kinds');
   if (new Set(streams.map((stream) => stream.localAgentIdentity?.ownerAccountId)).size !== 1) failures.push('both LocalAgents must share one baseline account');
 
   const turnMap = new Map();

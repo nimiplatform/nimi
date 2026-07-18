@@ -578,6 +578,22 @@ func buildRealmSourceMaterializationServiceTestPacket(
 	request RealmSourceMaterializationIssuanceRequest,
 	nonceOverride string,
 ) ([]byte, error) {
+	return buildRealmSourceMaterializationServiceTestPacketWithKeyID(
+		vectorPacket,
+		privateKey,
+		realmSourceMaterializationServiceTestKeyID,
+		request,
+		nonceOverride,
+	)
+}
+
+func buildRealmSourceMaterializationServiceTestPacketWithKeyID(
+	vectorPacket json.RawMessage,
+	privateKey *rsa.PrivateKey,
+	keyID string,
+	request RealmSourceMaterializationIssuanceRequest,
+	nonceOverride string,
+) ([]byte, error) {
 	value, err := decodeSourceMaterializationJSON(vectorPacket)
 	if err != nil {
 		return nil, err
@@ -591,7 +607,7 @@ func buildRealmSourceMaterializationServiceTestPacket(
 		return nil, err
 	}
 	issuedAt := request.Challenge.IssuedAt.UTC().Truncate(time.Millisecond)
-	packetObject["keyId"] = realmSourceMaterializationServiceTestKeyID
+	packetObject["keyId"] = keyID
 	packetObject["issuedAt"] = issuedAt.Format("2006-01-02T15:04:05.000Z")
 	packetObject["expiresAt"] = issuedAt.Add(5 * time.Minute).Format("2006-01-02T15:04:05.000Z")
 	packetObject["intendedRuntimeAudience"] = request.Challenge.IntendedRuntimeAudience
@@ -651,7 +667,7 @@ func buildRealmSourceMaterializationServiceTestPacket(
 	if err != nil {
 		return nil, err
 	}
-	proof, err := signRealmSourceMaterializationServiceTestPacket(privateKey, packetHash)
+	proof, err := signRealmSourceMaterializationServiceTestPacketWithKeyID(privateKey, keyID, packetHash)
 	if err != nil {
 		return nil, err
 	}
@@ -664,8 +680,16 @@ func buildRealmSourceMaterializationServiceTestPacket(
 }
 
 func signRealmSourceMaterializationServiceTestPacket(privateKey *rsa.PrivateKey, packetHash string) (sourceMaterializationPacketProofV3, error) {
+	return signRealmSourceMaterializationServiceTestPacketWithKeyID(
+		privateKey,
+		realmSourceMaterializationServiceTestKeyID,
+		packetHash,
+	)
+}
+
+func signRealmSourceMaterializationServiceTestPacketWithKeyID(privateKey *rsa.PrivateKey, keyID, packetHash string) (sourceMaterializationPacketProofV3, error) {
 	header, err := canonicalizeSourceMaterializationRealmV3(map[string]any{
-		"alg": "RS256", "kid": realmSourceMaterializationServiceTestKeyID, "typ": "realm-source-materialization",
+		"alg": "RS256", "kid": keyID, "typ": "realm-source-materialization",
 	})
 	if err != nil {
 		return sourceMaterializationPacketProofV3{}, err

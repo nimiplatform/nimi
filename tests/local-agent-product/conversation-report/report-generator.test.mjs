@@ -8,7 +8,7 @@ test('report HTML exposes both complete LocalAgent transcripts and one lifecycle
   const report = createValidConversationReport();
   const html = renderConversationReportHtml(report);
   assert.match(html, /WorldCharacter-source LocalAgent A 完整多轮对话/u);
-  assert.match(html, /RealmPersona-source LocalAgent B 完整多轮对话/u);
+  assert.match(html, /PersonaCharacter-source LocalAgent B 完整多轮对话/u);
   assert.match(html, /Cross-surface \/ cross-agent \/ restart \/ offline timeline/u);
   for (const turn of report.turns) {
     assert.match(html, new RegExp(turn.turnId, 'u'));

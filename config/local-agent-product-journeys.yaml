@@ -70,8 +70,8 @@ journeys:
       - {checkpoint_id: runtime-account-login, prerequisite_ids: [desktop-ready], covered_leaf_ids: []}
       - {checkpoint_id: character-source-selected, prerequisite_ids: [runtime-account-login], covered_leaf_ids: [R-01, O-01]}
       - {checkpoint_id: materialization-challenge, prerequisite_ids: [character-source-selected], covered_leaf_ids: [M-01]}
-      - {checkpoint_id: character-packet-v2, prerequisite_ids: [materialization-challenge], covered_leaf_ids: [M-01]}
-      - {checkpoint_id: character-snapshot, prerequisite_ids: [character-packet-v2], covered_leaf_ids: [M-01, M-06, O-01]}
+      - {checkpoint_id: character-packet-v3, prerequisite_ids: [materialization-challenge], covered_leaf_ids: [M-01]}
+      - {checkpoint_id: character-snapshot, prerequisite_ids: [character-packet-v3], covered_leaf_ids: [M-01, M-06, O-01]}
       - {checkpoint_id: agent-center-safe-status, prerequisite_ids: [character-snapshot], covered_leaf_ids: [K-02, K-03-01, L-03-02]}
       - {checkpoint_id: desktop-chat-turn-1, prerequisite_ids: [agent-center-safe-status], covered_leaf_ids: [C-05-01, E-03-01, O-03-01]}
       - {checkpoint_id: desktop-chat-turn-2, prerequisite_ids: [desktop-chat-turn-1], covered_leaf_ids: [C-05-02, E-03-02, O-03-02]}
@@ -271,7 +271,7 @@ journeys:
       requires_native_macos: false
       requires_live_provider: true
       start_limits: {provider: 1, realm: 1, runtime: 2, desktop: 1, zhiyu: 1}
-      materialization_limits: {worldCharacter: 1, realmPersona: 1}
+      materialization_limits: {worldCharacter: 1, personaCharacter: 1}
       runtime_restart_count: 1
       realm_offline_transition_count: 1
     prerequisites: [runtime_catalog_text_route_with_env_credential, desktop_renderer_build, desktop_electron_build, zhiyu_renderer_build, zhiyu_electron_build]

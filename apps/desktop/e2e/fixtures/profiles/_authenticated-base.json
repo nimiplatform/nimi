@@ -244,9 +244,14 @@
             "worldName": "Fixture World",
             "sourceRef": {
               "kind": "worldCharacter",
+              "id": "character-e2e-alpha",
               "worldId": "world-e2e-1",
-              "sourceId": "character-e2e-alpha",
-              "sourceContentHash": "character-e2e-alpha-hash"
+              "worldEntityRef": {
+                "kind": "worldEntity",
+                "worldId": "world-e2e-1",
+                "entityId": "entity-e2e-alpha"
+              },
+              "sourceHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             },
             "displayName": "Fixture Character",
             "handle": "~fixture-character",
@@ -269,15 +274,16 @@
         "personas": [
           {
             "id": "persona-e2e-beta",
-            "sourceKind": "realmPersona",
+            "sourceKind": "personaCharacter",
             "ownership": "userOwned",
             "worldId": "world-e2e-1",
             "worldName": "Fixture World",
             "sourceRef": {
-              "kind": "realmPersona",
+              "kind": "personaCharacter",
+              "id": "persona-e2e-beta",
               "worldId": "world-e2e-1",
-              "sourceId": "persona-e2e-beta",
-              "sourceContentHash": "persona-e2e-beta-hash"
+              "ownerAccountId": "user-e2e-primary",
+              "sourceHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
             },
             "displayName": "Fixture Persona",
             "handle": "~fixture-persona",

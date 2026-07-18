@@ -230,7 +230,7 @@ test('desktop E2E Realm fixture serves public world and source materialization p
 
 test('materialization support fixtures retain world-character and Runtime Agent inputs', () => {
   assert.match(exploreMaterializationAcceptanceConstantsSource, /VALID_SOURCE_REF = FIXTURE_SOURCE_REF/);
-  assert.match(exploreMaterializationAcceptanceConstantsSource, /source-materialization-packet-v2\.mjs/);
+  assert.match(exploreMaterializationAcceptanceConstantsSource, /source-materialization-packet-v3\.mjs/);
   assert.match(exploreMaterializationAcceptanceConstantsSource, /runtime\.agent\.ai_config\.read/);
   assert.match(exploreMaterializationAcceptanceConstantsSource, /runtime\.agent\.ai_config\.write/);
   assert.match(exploreMaterializationAcceptanceFixtureSource, /characters:\s*\[/);
@@ -238,7 +238,7 @@ test('materialization support fixtures retain world-character and Runtime Agent 
   assert.match(exploreMaterializationAcceptanceFixtureSource, /referenceImageUrl/);
   assert.match(exploreMaterializationAcceptanceFixtureSource, /voiceSampleUrl/);
   assert.match(exploreMaterializationAcceptanceFixtureSource, /interactionProfile/);
-  assert.match(exploreMaterializationAcceptanceFixtureSource, /character-acceptance-disabled-hash/);
+  assert.match(exploreMaterializationAcceptanceFixtureSource, /entity-acceptance-disabled/);
   assert.doesNotMatch(exploreMaterializationAcceptanceFixtureSource, /omitContentHash/);
   assert.match(exploreMaterializationRuntimeAgentConfigSource, /agentClient\.agentAIConfig\.get/);
 });

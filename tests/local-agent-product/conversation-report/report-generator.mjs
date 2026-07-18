@@ -39,7 +39,7 @@ function renderRunOverview(report) {
 <dt>Public inference parameters</dt><dd><code>${escapeHtml(JSON.stringify(report.modelIdentity?.parameters || {}))}</code></dd>
 <dt>Runtime / Desktop / Zhiyu</dt><dd>${escapeHtml(report.environmentIdentity?.runtimeVersion)} · ${escapeHtml(report.environmentIdentity?.desktopVersion)} · ${escapeHtml(report.environmentIdentity?.zhiyuVersion)}</dd>
 <dt>Environment starts</dt><dd>provider ${escapeHtml(processStarts.provider)} · Realm ${escapeHtml(processStarts.realm)} · Runtime ${escapeHtml(processStarts.runtime)} · Desktop ${escapeHtml(processStarts.desktop)} · Zhiyu ${escapeHtml(processStarts.zhiyu)}</dd>
-<dt>Materializations</dt><dd>WorldCharacter source ${escapeHtml(materializations.worldCharacter)} · RealmPersona source ${escapeHtml(materializations.realmPersona)}</dd>
+<dt>Materializations</dt><dd>WorldCharacter source ${escapeHtml(materializations.worldCharacter)} · PersonaCharacter source ${escapeHtml(materializations.personaCharacter)}</dd>
 <dt>Duration / execution</dt><dd>${escapeHtml(report.execution?.durationMs)} ms · ${escapeHtml(report.execution?.status)} · review ${escapeHtml(report.reviewStatus)}</dd>
 <dt>Mechanical findings</dt><dd>${escapeHtml(findingSummary)}<details><summary>Mechanical finding details</summary><pre>${pretty({ execution: findings, privacy })}</pre></details></dd>
 </dl></section>`;
@@ -66,7 +66,7 @@ function renderStream(stream, turns) {
   return `<section class="panel transcript" id="stream-${escapeHtml(stream.streamId)}">
     <h2>${escapeHtml(stream.title)}</h2>
     <dl class="identity">
-      <dt>source kind/ref</dt><dd>${escapeHtml(source.sourceKind)} · ${escapeHtml(source.sourceRef?.kind)}:${escapeHtml(source.sourceRef?.worldId)}:${escapeHtml(source.sourceRef?.sourceId)}</dd>
+      <dt>source kind/ref</dt><dd>${escapeHtml(source.sourceKind)} · ${escapeHtml(source.sourceRef?.kind)}:${escapeHtml(source.sourceRef?.worldId)}:${escapeHtml(source.sourceRef?.id)}</dd>
       <dt>snapshot ref/hash</dt><dd>${escapeHtml(source.snapshotRef)} · ${escapeHtml(source.snapshotHash)}</dd>
       <dt>localAgentRef</dt><dd>${escapeHtml(stream.localAgentIdentity?.localAgentRef)}</dd>
       <dt>conversationAnchorId</dt><dd>${escapeHtml(stream.conversationIdentity?.conversationAnchorId)}</dd>

@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from 'node:crypto';
-import { createFixtureRealmCoreSeed } from './source-materialization-packet-v2.mjs';
+import { createFixtureRealmCoreSeed } from './source-materialization-packet-v3.mjs';
 
 async function requestJson(url, init = {}) {
   const response = await fetch(url, init);
@@ -52,17 +52,22 @@ export async function prepareRealRealmProductSession({ realmBaseUrl, trialId }) 
     method: 'POST', headers: authorization, body: JSON.stringify(seed.entity),
   })).body;
   const character = (await requestJson(`${origin}/api/realm/core/worlds/${encodeURIComponent(world.id)}/characters`, {
-    method: 'POST', headers: authorization, body: JSON.stringify({ ...seed.character, entityId: entity.id }),
+    method: 'POST', headers: authorization, body: JSON.stringify({
+      ...seed.character,
+      worldEntityRef: { kind: 'worldEntity', worldId: world.id, entityId: entity.id },
+    }),
   })).body;
-  const persona = (await requestJson(`${origin}/api/realm/core/personas`, {
-    method: 'POST', headers: authorization, body: JSON.stringify({ ...seed.persona, homeWorldId: world.id }),
+  const persona = (await requestJson(`${origin}/api/realm/core/persona-characters`, {
+    method: 'POST', headers: authorization, body: JSON.stringify({ ...seed.persona, worldId: world.id }),
   })).body;
   for (const [label, value] of Object.entries({ world, character, persona })) {
-    if (!value?.id || !value?.contentHash) throw new Error(`real Realm ${label} seed response is incomplete`);
+    if (!value?.id || !value?.contentHash || (label !== 'world' && !value?.sourceHash)) {
+      throw new Error(`real Realm ${label} seed response is incomplete`);
+    }
   }
   const publicDetail = (await requestJson(`${origin}/api/world/by-id/${encodeURIComponent(world.id)}/detail-with-characters`)).body;
   const publicCharacterIds = (publicDetail?.sources?.characters || []).map((value) => value?.id);
-  const publicPersonaIds = (publicDetail?.sources?.personas || []).map((value) => value?.id);
+  const publicPersonaIds = (publicDetail?.sources?.personaCharacters || []).map((value) => value?.id);
   if (!publicCharacterIds.includes(character.id) || !publicPersonaIds.includes(persona.id)) {
     throw new Error('real Realm public source projection did not expose the canonical product seeds');
   }
@@ -73,8 +78,14 @@ export async function prepareRealRealmProductSession({ realmBaseUrl, trialId }) 
     cookie: cookieHeader(registration.response),
     displayName: seed.displayName,
     sourceRefs: {
-      worldCharacter: { kind: 'worldCharacter', worldId: world.id, sourceId: character.id, sourceContentHash: character.contentHash },
-      realmPersona: { kind: 'realmPersona', worldId: world.id, sourceId: persona.id, sourceContentHash: persona.contentHash },
+      worldCharacter: {
+        kind: 'worldCharacter', id: character.id, worldId: world.id,
+        worldEntityRef: character.worldEntityRef, sourceHash: character.sourceHash,
+      },
+      personaCharacter: {
+        kind: 'personaCharacter', id: persona.id, worldId: world.id,
+        ownerAccountId: persona.ownerAccountId, sourceHash: persona.sourceHash,
+      },
     },
   };
 }

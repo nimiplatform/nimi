@@ -146,18 +146,45 @@
     "materializations": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["worldCharacter", "realmPersona"],
-      "properties": {"worldCharacter": {"const": 1}, "realmPersona": {"const": 1}}
+      "required": ["worldCharacter", "personaCharacter"],
+      "properties": {"worldCharacter": {"const": 1}, "personaCharacter": {"const": 1}}
     },
     "sourceRef": {
-      "type": "object",
-      "required": ["kind", "worldId", "sourceId", "sourceContentHash"],
-      "properties": {
-        "kind": {"enum": ["worldCharacter", "realmPersona"]},
-        "worldId": {"type": "string", "minLength": 1},
-        "sourceId": {"type": "string", "minLength": 1},
-        "sourceContentHash": {"$ref": "#/$defs/sha256"}
-      }
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "id", "worldId", "worldEntityRef", "sourceHash"],
+          "properties": {
+            "kind": {"const": "worldCharacter"},
+            "id": {"type": "string", "minLength": 1},
+            "worldId": {"type": "string", "minLength": 1},
+            "worldEntityRef": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "worldId", "entityId"],
+              "properties": {
+                "kind": {"const": "worldEntity"},
+                "worldId": {"type": "string", "minLength": 1},
+                "entityId": {"type": "string", "minLength": 1}
+              }
+            },
+            "sourceHash": {"$ref": "#/$defs/sha256"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "id", "worldId", "ownerAccountId", "sourceHash"],
+          "properties": {
+            "kind": {"const": "personaCharacter"},
+            "id": {"type": "string", "minLength": 1},
+            "worldId": {"type": "string", "minLength": 1},
+            "ownerAccountId": {"type": "string", "minLength": 1},
+            "sourceHash": {"$ref": "#/$defs/sha256"}
+          }
+        }
+      ]
     },
     "stream": {
       "type": "object",
@@ -168,12 +195,12 @@
         "purpose": {"type": "string", "minLength": 1},
         "sourceProvenance": {
           "type": "object",
-          "required": ["sourceKind", "sourceRef", "sourceRevision", "sourceContentHash", "snapshotRef", "snapshotHash", "frozenAt"],
+          "required": ["sourceKind", "sourceRef", "sourceRevision", "sourceHash", "snapshotRef", "snapshotHash", "frozenAt"],
           "properties": {
-            "sourceKind": {"enum": ["worldCharacter", "realmPersona"]},
+            "sourceKind": {"enum": ["worldCharacter", "personaCharacter"]},
             "sourceRef": {"$ref": "#/$defs/sourceRef"},
             "sourceRevision": {"type": ["string", "integer"]},
-            "sourceContentHash": {"$ref": "#/$defs/sha256"},
+            "sourceHash": {"$ref": "#/$defs/sha256"},
             "snapshotRef": {"type": "string", "minLength": 1},
             "snapshotHash": {"$ref": "#/$defs/sha256"},
             "frozenAt": {"$ref": "#/$defs/timestamp"}

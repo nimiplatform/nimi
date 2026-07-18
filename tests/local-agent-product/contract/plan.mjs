@@ -16,7 +16,7 @@ function realmTest(file, name) {
   return step('realm', 'pnpm', ['--dir', path.join(realmRoot, 'nimi-backend'), 'exec', 'vitest', 'run', file, '-t', name, '--reporter=verbose'], realmRoot, name);
 }
 
-function sdkTest(name, file = 'runtime-agent-materialization.test.ts') {
+function sdkTest(name, file = 'runtime-facade.test.ts') {
   return step('sdk', process.execPath, ['--import', 'tsx', '--test', '--test-name-pattern', name, path.join(repoRoot, 'sdks/typescript/runtime', file)], repoRoot, name);
 }
 
@@ -39,7 +39,6 @@ function gate(name, args = []) {
 const producerService = 'libs/domains/world/src/source-materialization.service.spec.ts';
 const producerSchema = 'libs/domains/world/src/source-materialization.schema.spec.ts';
 const producerJcs = 'libs/domains/world/src/source-materialization-jcs.spec.ts';
-const worldCoreService = 'libs/domains/world/src/world-core.service.spec.ts';
 const rt = runtimeTest;
 
 // Historical PR-C repeated these 32 deterministic mutation/property leaves
@@ -59,20 +58,20 @@ export const exhaustiveRepeatByLeaf = new Map([
 
 export const contractPlanByLeaf = new Map([
   ['R-03', [realmTest(producerService, 'recomputes every hash layer and changes semantic hashes only for semantic changes')]],
-  ['R-04-04', [realmTest(worldCoreService, 'rejects RealmPersona creation when core home world diverges from default OASIS binding')]],
-  ['M-03-01', [rt('TestVerifyAndNormalizeSourceMaterializationV2CharacterAndPersona')]],
-  ['M-03-02', [rt('TestVerifyAndNormalizeSourceMaterializationV2RejectsClosedSchemaAndCoverageTampering')]],
+  ['R-04-04', [realmTest('libs/domains/world/src/character-core.service.spec.ts', 'keeps PersonaCharacterCore worldId fixed during replacement')]],
+  ['M-03-01', [rt('TestVerifySourceMaterializationPacketV3ReferenceVectors')]],
+  ['M-03-02', [rt('TestVerifySourceMaterializationPacketV3NegativeManifest')]],
   ['M-03-03', [realmTest(producerService, 'detects component, coverage, context, payload, manifest, packet, and proof tampering')]],
-  ['M-03-04', [rt('TestVerifyAndNormalizeSourceMaterializationV2RejectsClosedSchemaAndCoverageTampering')]],
+  ['M-03-04', [rt('TestVerifySourceMaterializationPacketV3NegativeManifest')]],
   ['M-03-05', [realmTest(producerService, 'detects component, coverage, context, payload, manifest, packet, and proof tampering')]],
   ['M-04-01', [realmTest(producerJcs, 'produces identical canonical bytes and hashes for equivalent object key order')]],
   ['M-04-02', [realmTest(producerJcs, 'preserves semantic array order and content changes in the digest')]],
   ['M-04-03', [realmTest(producerService, 'recomputes every hash layer and changes semantic hashes only for semantic changes')]],
-  ['M-05-01', [rt('TestVerifyAndNormalizeSourceMaterializationV2RejectsClosedSchemaAndCoverageTampering')]],
-  ['M-05-02', [rt('TestVerifyAndNormalizeSourceMaterializationV2RejectsClosedSchemaAndCoverageTampering')]],
-  ['M-05-03', [rt('TestVerifyAndNormalizeSourceMaterializationV2RejectsClosedSchemaAndCoverageTampering')]],
+  ['M-05-01', [rt('TestSourceMaterializationV3RejectsClosedSchemaAndNormalizedKeyViolations')]],
+  ['M-05-02', [rt('TestSourceMaterializationV3RejectsClosedSchemaAndNormalizedKeyViolations')]],
+  ['M-05-03', [rt('TestSourceMaterializationPacketStreamV3RejectsLexicalAndClosedSchemaMutations')]],
   ['M-05-04', [realmTest(producerSchema, 'rejects unknown source kind without coercion or stripping')]],
-  ['M-05-05', [rt('TestVerifyAndNormalizeSourceMaterializationV2RejectsClosedSchemaAndCoverageTampering')]],
+  ['M-05-05', [rt('TestVerifySourceMaterializationPacketV3ExpectationBindings')]],
   ['M-05-06', [realmTest(producerService, 'rejects v1, anonymous payloads, display metadata, and Character/Persona union mismatch')]],
 
   ['K-04', [
@@ -80,11 +79,11 @@ export const contractPlanByLeaf = new Map([
     zhiyuTest('source/context product path has no renderer fixture projection hook', 'local-agent-selection.test.mjs'),
     gate('check:local-agent-full-chain-hardcut', ['--', '--scope', 'all']),
   ]],
-  ['K-01-01', [sdkTest('uses Runtime challenge, Realm packet v2, ordered chunks, and Commit')]],
-  ['K-01-02', [sdkTest('uses the same challenge and upload path for RealmPersona')]],
+  ['K-01-01', [sdkTest('Runtime facade materializes a Realm source from sourceRef and requestId only')]],
+  ['K-01-02', [sdkTest('Runtime facade materialization fails closed without injected subject context')]],
   ['K-01-03', [sdkTest('rejects mismatched or partial READY source status')]],
   ['K-01-04', [sdkTest('rejects unknown Runtime enums')]],
-  ['K-01-05', [rt('TestVerifyAndNormalizeSourceMaterializationV2RejectsClosedSchemaAndCoverageTampering')]],
+  ['K-01-05', [sdkTest('Runtime facade rejects invalid source branch, world binding, and source hash before transport')]],
   ['K-03-02', [kitTest('maps capacity exhaustion to blocked'), zhiyuTest('projects SDK/Kit bounded ready', 'local-agent-selection.test.mjs')]],
   ['K-03-03', [kitTest('maps the five closed product states'), zhiyuTest('projects SDK/Kit bounded ready', 'local-agent-selection.test.mjs')]],
   ['K-03-04', [kitTest('maps the five closed product states'), kitTest('lets Zhiyu inject a Chinese copy namespace', 'agent-center-ui.test.tsx')]],

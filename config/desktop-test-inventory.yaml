@@ -12,3 +12,4 @@ shards:
   - config/test-inventories/desktop/shard-06.yaml
   - config/test-inventories/desktop/shard-07.yaml
   - config/test-inventories/desktop/shard-08.yaml
+  - config/test-inventories/desktop/shard-09.yaml

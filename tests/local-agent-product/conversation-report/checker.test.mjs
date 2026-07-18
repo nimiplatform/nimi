@@ -39,6 +39,24 @@ test('checker accepts a mechanically complete report without assigning semantic 
   });
 });
 
+test('checker fails closed on legacy source identity and CharacterSourceRefV3 branch drift', () => {
+  const mutations = [
+    ['legacy sourceId', (report) => { report.conversationStreams[0].sourceProvenance.sourceRef.sourceId = 'legacy-source'; }, /forbidden.*sourceId|additional fields/iu],
+    ['legacy sourceContentHash', (report) => { report.conversationStreams[0].sourceProvenance.sourceContentHash = 'a'.repeat(64); }, /forbidden.*sourceContentHash/iu],
+    ['legacy RealmPersona', (report) => { report.conversationStreams[1].sourceProvenance.realmPersona = {}; }, /forbidden.*realmPersona/iu],
+    ['source kind mismatch', (report) => { report.conversationStreams[0].sourceProvenance.sourceRef.kind = 'personaCharacter'; }, /kind must equal sourceKind/iu],
+    ['World world binding mismatch', (report) => { report.conversationStreams[0].sourceProvenance.sourceRef.worldEntityRef.worldId = 'other-world'; }, /worldEntityRef\/worldId binding/iu],
+    ['Persona owner missing', (report) => { delete report.conversationStreams[1].sourceProvenance.sourceRef.ownerAccountId; }, /PersonaCharacterSourceRefV3.*ownerAccountId|missing or additional fields/iu],
+    ['provenance hash mismatch', (report) => { report.conversationStreams[1].sourceProvenance.sourceHash = 'e'.repeat(64); }, /provenance sourceHash drifted/iu],
+    ['unexpected transport field', (report) => { report.conversationStreams[1].sourceProvenance.sourceRef.accessGrantId = 'forbidden-transport'; }, /missing or additional fields/iu],
+  ];
+  for (const [name, mutate, pattern] of mutations) {
+    withBundle(({ root }) => {
+      assert.match(validateConversationReportBundle({ bundleRoot: root }).failures.join('\n'), pattern, name);
+    }, mutate);
+  }
+});
+
 test('checker accepts an explicit transport failure and rejects finding correlation drift', () => {
   const applyTransportFailure = (report) => {
     const turn = report.turns[2];

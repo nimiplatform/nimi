@@ -229,7 +229,7 @@ export function validateArchitecture({ points: pointCatalog, journeys, policy, s
   if (observationIds.size !== 24) failures.push(`conversation-report-baseline must map 24 behavior observation points, got ${observationIds.size}`);
   if (reportJourney?.environment?.requires_live_provider !== true
     || !same(reportJourney?.environment?.start_limits, { provider: 1, realm: 1, runtime: 2, desktop: 1, zhiyu: 1 })
-    || !same(reportJourney?.environment?.materialization_limits, { worldCharacter: 1, realmPersona: 1 })) failures.push('conversation report Journey must declare one environment, two one-time materializations, and one Runtime restart');
+    || !same(reportJourney?.environment?.materialization_limits, { worldCharacter: 1, personaCharacter: 1 })) failures.push('conversation report Journey must declare one environment, two one-time materializations, and one Runtime restart');
   if (!array(coreJourney?.checkpoints).some((checkpoint) => array(checkpoint.covered_leaf_ids).length > 1)) failures.push('a Journey checkpoint must be able to cover multiple acceptance points');
   for (const historicalJourney of [
     coreJourney,

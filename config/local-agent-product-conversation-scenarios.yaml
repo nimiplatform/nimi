@@ -4,11 +4,11 @@ authority_class: non_authoritative_execution_manifest
 owner: platform-test-governance
 source_rules: [P-TEST-009, P-TEST-011, P-TEST-012, P-TEST-013, P-TEST-014, P-TEST-016, P-TEST-017, P-TEST-018, P-TEST-019]
 truth_projection:
-  module: apps/desktop/e2e/fixtures/source-materialization-packet-v2.mjs
+  module: apps/desktop/e2e/fixtures/source-materialization-packet-v3.mjs
   export: createFixtureSourceMaterializationTruthProjection
   source_ref_exports:
     worldCharacter: FIXTURE_SOURCE_REF
-    realmPersona: FIXTURE_PERSONA_SOURCE_REF
+    personaCharacter: FIXTURE_PERSONA_SOURCE_REF
 scenarios:
   - scenario_id: conversation-report-baseline
     title: LocalAgent conversation report baseline
@@ -26,7 +26,7 @@ scenarios:
     time_budget_ms: 2700000
     environment:
       clean_root_count: 1
-      materializations: {worldCharacter: 1, realmPersona: 1}
+      materializations: {worldCharacter: 1, personaCharacter: 1}
       start_limits: {provider: 1, realm: 1, runtime: 2, desktop: 1, zhiyu: 1}
       runtime_restart_count: 1
       realm_offline_transition_count: 1
@@ -61,7 +61,7 @@ scenarios:
             surface: desktop
             continuation_required: true
             state_transition_checkpoint: desktop_stream_started
-            source_input_refs: [truth.worldCharacter.core.identity, truth.worldCharacter.core.interactionProfile]
+            source_input_refs: [truth.worldCharacter.profile.identity, truth.worldCharacter.profile.interactionProfile]
             capture_requirements: [context_summary, memory_snapshot, relationship_snapshot, presentation_output, provider_capture, runtime_state]
             screenshot_checkpoint: local-agent-a-opening
             human_review_dimensions: [identity-consistency, tone-style, voice-emotion-apml]
@@ -72,7 +72,7 @@ scenarios:
             surface: desktop
             continuation_required: true
             state_transition_checkpoint: none
-            source_input_refs: [truth.world.core.identity.name, truth.worldCharacter.core.placement.role, truth.worldCharacter.core.biography.milestones]
+            source_input_refs: [truth.world.core.identity.name, truth.worldCharacter.profile.narrative.archetype, truth.worldCharacter.profile.narrative.milestones]
             capture_requirements: [context_summary, memory_snapshot, relationship_snapshot, presentation_output, provider_capture, runtime_state]
             screenshot_checkpoint: null
             human_review_dimensions: [world-understanding]
@@ -83,7 +83,7 @@ scenarios:
             surface: desktop
             continuation_required: true
             state_transition_checkpoint: none
-            source_input_refs: [prior_turn.assistant_response, truth.worldCharacter.core.biography, truth.worldCharacter.core.psychology.drives]
+            source_input_refs: [prior_turn.assistant_response, truth.worldCharacter.profile.narrative, truth.worldCharacter.profile.psychology.drives]
             capture_requirements: [context_summary, memory_snapshot, relationship_snapshot, presentation_output, provider_capture, runtime_state]
             screenshot_checkpoint: local-agent-a-desktop-context
             human_review_dimensions: [context-continuity, tone-style]
@@ -94,7 +94,7 @@ scenarios:
             surface: desktop
             continuation_required: true
             state_transition_checkpoint: before_cross_surface_handoff
-            source_input_refs: [absence:truth.worldCharacter.core.biography.childhoodPetName, truth.worldCharacter.core.psychology.boundaries, truth.worldCharacter.core.knowledge.constraints]
+            source_input_refs: [absence:truth.worldCharacter.profile.narrative.childhoodPetName, truth.worldCharacter.profile.psychology.boundaries, truth.worldCharacter.profile.knowledge.constraints]
             capture_requirements: [context_summary, memory_snapshot, relationship_snapshot, presentation_output, provider_capture, runtime_state]
             screenshot_checkpoint: local-agent-a-desktop-final
             human_review_dimensions: [unknown-handling, privacy-boundary]
@@ -105,7 +105,7 @@ scenarios:
             surface: zhiyu
             continuation_required: true
             state_transition_checkpoint: desktop_to_zhiyu_same_anchor
-            source_input_refs: [truth.worldCharacter.core.identity.name, truth.world.core.identity.name, input.decoy_identity, input.decoy_world]
+            source_input_refs: [truth.worldCharacter.profile.identity.name, truth.world.core.identity.name, input.decoy_identity, input.decoy_world]
             capture_requirements: [context_summary, memory_snapshot, relationship_snapshot, presentation_output, provider_capture, runtime_state]
             screenshot_checkpoint: local-agent-a-zhiyu-continuation
             human_review_dimensions: [identity-consistency, world-understanding, contradiction-resistance, context-continuity, voice-emotion-apml]
@@ -163,21 +163,21 @@ scenarios:
             surface: zhiyu
             continuation_required: true
             state_transition_checkpoint: realm_offline_completed
-            source_input_refs: [truth.worldCharacter.core.placement.role, runtime.frozen_source_snapshot, runtime.persisted_transcript]
+            source_input_refs: [truth.worldCharacter.profile.narrative.archetype, runtime.frozen_source_snapshot, runtime.persisted_transcript]
             capture_requirements: [context_summary, memory_snapshot, relationship_snapshot, presentation_output, provider_capture, runtime_state]
             screenshot_checkpoint: local-agent-a-realm-offline
             human_review_dimensions: [realm-offline-continuity, world-understanding, voice-emotion-apml]
             observation_point_ids: [P-06-CRS]
 
-      - stream_id: realmpersona-source-local-agent-b
-        title: RealmPersona-source LocalAgent B 完整多轮对话
-        purpose: Review one continuous Runtime-owned conversation backed by a frozen RealmPersona-source snapshot.
+      - stream_id: personacharacter-source-local-agent-b
+        title: PersonaCharacter-source LocalAgent B 完整多轮对话
+        purpose: Review one continuous Runtime-owned conversation backed by a frozen PersonaCharacter-source snapshot.
         source_provenance:
-          source_kind: realmPersona
+          source_kind: personaCharacter
           source_ref:
             resolver: fixture_export
             export: FIXTURE_PERSONA_SOURCE_REF
-          truth_path: realmPersona
+          truth_path: personaCharacter
           expected_snapshot:
             runtime_resolved: true
             required_fields: [runtimeSourceRef, snapshotHash]
@@ -198,7 +198,7 @@ scenarios:
             surface: zhiyu
             continuation_required: true
             state_transition_checkpoint: local_agent_b_stream_started
-            source_input_refs: [truth.realmPersona.core.identity, truth.realmPersona.core.interactionProfile.homeWorldId, truth.world.core.identity.name]
+            source_input_refs: [truth.personaCharacter.profile.identity, truth.personaCharacter.worldId, truth.world.core.identity.name]
             capture_requirements: [context_summary, memory_snapshot, relationship_snapshot, presentation_output, provider_capture, runtime_state]
             screenshot_checkpoint: local-agent-b-opening
             human_review_dimensions: [identity-consistency, world-understanding, voice-emotion-apml]
@@ -209,7 +209,7 @@ scenarios:
             surface: zhiyu
             continuation_required: true
             state_transition_checkpoint: none
-            source_input_refs: [truth.realmPersona.core.personaStyle, truth.realmPersona.core.contentProfile.guidelines]
+            source_input_refs: [truth.personaCharacter.profile.narrative, truth.personaCharacter.profile.interactionProfile]
             capture_requirements: [context_summary, memory_snapshot, relationship_snapshot, presentation_output, provider_capture, runtime_state]
             screenshot_checkpoint: null
             human_review_dimensions: [tone-style, voice-emotion-apml]
@@ -220,7 +220,7 @@ scenarios:
             surface: zhiyu
             continuation_required: true
             state_transition_checkpoint: none
-            source_input_refs: [prior_turn.assistant_response, truth.realmPersona.core.personaStyle.pacing]
+            source_input_refs: [prior_turn.assistant_response, truth.personaCharacter.profile.interactionProfile.cadence]
             capture_requirements: [context_summary, memory_snapshot, relationship_snapshot, presentation_output, provider_capture, runtime_state]
             screenshot_checkpoint: local-agent-b-context
             human_review_dimensions: [context-continuity, tone-style]
@@ -231,7 +231,7 @@ scenarios:
             surface: zhiyu
             continuation_required: true
             state_transition_checkpoint: none
-            source_input_refs: [absence:truth.realmPersona.core.contentProfile.creatorChildhoodAddress, truth.realmPersona.core.contentProfile.boundaries]
+            source_input_refs: [absence:truth.personaCharacter.profile.knowledge.creatorChildhoodAddress, truth.personaCharacter.profile.psychology.boundaries]
             capture_requirements: [context_summary, memory_snapshot, relationship_snapshot, presentation_output, provider_capture, runtime_state]
             screenshot_checkpoint: local-agent-b-unknown
             human_review_dimensions: [unknown-handling, privacy-boundary]
@@ -242,7 +242,7 @@ scenarios:
             surface: zhiyu
             continuation_required: true
             state_transition_checkpoint: none
-            source_input_refs: [truth.realmPersona.core.identity.name, truth.realmPersona.core.personaStyle.voice, input.decoy_identity, input.decoy_voice]
+            source_input_refs: [truth.personaCharacter.profile.identity.name, truth.personaCharacter.profile.interactionProfile.tone, input.decoy_identity, input.decoy_voice]
             capture_requirements: [context_summary, memory_snapshot, relationship_snapshot, presentation_output, provider_capture, runtime_state]
             screenshot_checkpoint: local-agent-b-contradiction
             human_review_dimensions: [identity-consistency, tone-style, contradiction-resistance, voice-emotion-apml]
@@ -300,7 +300,7 @@ scenarios:
             surface: zhiyu
             continuation_required: true
             state_transition_checkpoint: realm_offline_completed
-            source_input_refs: [truth.realmPersona.core.contentProfile.guidelines, runtime.frozen_source_snapshot, runtime.persisted_transcript]
+            source_input_refs: [truth.personaCharacter.profile.knowledge.constraints, runtime.frozen_source_snapshot, runtime.persisted_transcript]
             capture_requirements: [context_summary, memory_snapshot, relationship_snapshot, presentation_output, provider_capture, runtime_state]
             screenshot_checkpoint: local-agent-b-realm-offline
             human_review_dimensions: [realm-offline-continuity, tone-style, voice-emotion-apml]
@@ -309,21 +309,21 @@ scenarios:
     lifecycle_timeline:
       timeline_id: baseline-lifecycle
       kind: cross_surface_cross_agent_lifecycle_timeline
-      stream_refs: [worldcharacter-source-local-agent-a, realmpersona-source-local-agent-b]
+      stream_refs: [worldcharacter-source-local-agent-a, personacharacter-source-local-agent-b]
       events:
         - {event_id: materialize-local-agent-a, order: 1, kind: materialization, stream_ref: worldcharacter-source-local-agent-a, expected_count: 1, observation_point_ids: []}
         - {event_id: desktop-start-stream-a, order: 2, kind: desktop_conversation_started, stream_ref: worldcharacter-source-local-agent-a, expected_count: 1, observation_point_ids: []}
         - {event_id: continue-stream-a-in-zhiyu, order: 3, kind: desktop_to_zhiyu_continuation, stream_ref: worldcharacter-source-local-agent-a, expected_count: 1, observation_point_ids: []}
-        - {event_id: materialize-local-agent-b, order: 4, kind: materialization, stream_ref: realmpersona-source-local-agent-b, expected_count: 1, observation_point_ids: []}
-        - {event_id: switch-to-stream-b, order: 5, kind: agent_switch, stream_ref: realmpersona-source-local-agent-b, expected_count: 1, observation_point_ids: []}
+        - {event_id: materialize-local-agent-b, order: 4, kind: materialization, stream_ref: personacharacter-source-local-agent-b, expected_count: 1, observation_point_ids: []}
+        - {event_id: switch-to-stream-b, order: 5, kind: agent_switch, stream_ref: personacharacter-source-local-agent-b, expected_count: 1, observation_point_ids: []}
         - {event_id: switch-back-to-stream-a, order: 6, kind: agent_switch, stream_ref: worldcharacter-source-local-agent-a, expected_count: 1, observation_point_ids: []}
         - {event_id: cross-agent-isolation, order: 7, kind: cross_agent_isolation, stream_ref: null, expected_count: 1, observation_point_ids: [P-06-X]}
         - {event_id: runtime-restart, order: 8, kind: runtime_restart, stream_ref: null, expected_count: 1, observation_point_ids: []}
         - {event_id: post-restart-stream-a, order: 9, kind: post_restart_turn, stream_ref: worldcharacter-source-local-agent-a, expected_count: 1, observation_point_ids: [P-06-CRS]}
-        - {event_id: post-restart-stream-b, order: 10, kind: post_restart_turn, stream_ref: realmpersona-source-local-agent-b, expected_count: 1, observation_point_ids: [P-06-PRS]}
+        - {event_id: post-restart-stream-b, order: 10, kind: post_restart_turn, stream_ref: personacharacter-source-local-agent-b, expected_count: 1, observation_point_ids: [P-06-PRS]}
         - {event_id: realm-offline, order: 11, kind: realm_offline, stream_ref: null, expected_count: 1, observation_point_ids: []}
         - {event_id: post-offline-stream-a, order: 12, kind: post_offline_turn, stream_ref: worldcharacter-source-local-agent-a, expected_count: 1, observation_point_ids: [P-06-CRS]}
-        - {event_id: post-offline-stream-b, order: 13, kind: post_offline_turn, stream_ref: realmpersona-source-local-agent-b, expected_count: 1, observation_point_ids: [P-06-PRS]}
+        - {event_id: post-offline-stream-b, order: 13, kind: post_offline_turn, stream_ref: personacharacter-source-local-agent-b, expected_count: 1, observation_point_ids: [P-06-PRS]}
     review_dimensions:
       - {dimension_id: identity-consistency, title: Identity consistency, review_status: unreviewed, notes: ""}
       - {dimension_id: world-understanding, title: World understanding, review_status: unreviewed, notes: ""}

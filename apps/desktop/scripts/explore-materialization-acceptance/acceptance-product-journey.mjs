@@ -45,8 +45,8 @@ export function createProductJourneySettings({ appRoot }) {
     conversationReport: productJourneyId === 'conversation-report-baseline',
     preMaterializationOffline: productJourneyId === 'pre-materialization-offline',
     disabledActionOnly: process.env.NIMI_LOCAL_AGENT_PRODUCT_DISABLED_ACTION_ONLY === '1',
-    productSourceKind: process.env.NIMI_LOCAL_AGENT_PRODUCT_SOURCE_KIND?.trim() === 'realmPersona'
-      ? 'realmPersona'
+    productSourceKind: process.env.NIMI_LOCAL_AGENT_PRODUCT_SOURCE_KIND?.trim() === 'personaCharacter'
+      ? 'personaCharacter'
       : 'worldCharacter',
     realRealmBaseUrl: process.env.NIMI_LOCAL_AGENT_PRODUCT_REALM_BASE_URL?.trim() || '',
     standardDataRoot: optionalPath('NIMI_LOCAL_AGENT_PRODUCT_STANDARD_DATA_ROOT')
@@ -102,7 +102,7 @@ export async function materializePrimaryPersona(input) {
   } = input;
   await page.getByTestId('explore-section-tab-personas').click();
   await page.getByTestId('explore-personas-section').waitFor({ state: 'visible', timeout: 30_000 });
-  const personaCard = page.getByTestId(`explore-persona-source-card:${activeSourceRef.sourceId}`);
+  const personaCard = page.getByTestId(`explore-persona-source-card:${activeSourceRef.id}`);
   try {
     await personaCard.waitFor({ state: 'visible', timeout: 20_000 });
   } catch (error) {
@@ -125,25 +125,25 @@ export async function materializePrimaryPersona(input) {
   observations.narrowAccessibility = await inspectAccessibility(page);
   assert.equal(observations.narrowAccessibility.unnamedInteractiveControls.length, 0, 'persona narrow controls require accessible names');
   await setElectronWindowSize(electronApp, 1440, 940);
-  const personaAction = page.getByTestId(`explore-persona-source-primary-action:${activeSourceRef.sourceId}`);
+  const personaAction = page.getByTestId(`explore-persona-source-primary-action:${activeSourceRef.id}`);
   await personaAction.waitFor({ state: 'visible', timeout: 30_000 });
-  assert.equal(await personaAction.isEnabled(), true, 'RealmPersona materialization action must be enabled');
+  assert.equal(await personaAction.isEnabled(), true, 'PersonaCharacter materialization action must be enabled');
   await personaAction.click();
   const discovered = await waitForDiscoveredLocalAgent(agentClient);
   if (discovered.length !== 1) {
     observations.personaMaterializationFailure = { bodyText: normalizeWhitespace(await page.locator('body').innerText()).slice(0, 3000) };
     await captureScreenshot(page, materializationFailureScreenshotPath);
   }
-  assert.equal(discovered.length, 1, `expected one Runtime-owned RealmPersona local agent, got ${discovered.length}`);
+  assert.equal(discovered.length, 1, `expected one Runtime-owned PersonaCharacter local agent, got ${discovered.length}`);
   const agent = discovered[0];
   observations.localAgentRef = agent.localAgentRef;
   observations.runtimeSourceRef = agent.runtimeSourceRef;
   observations.materializedSourceSnapshotHash = agent.snapshotHash;
   observations.materializedSourceContextState = agent.sourceContextStatus?.state || null;
-  assert.equal(agent.sourceContextStatus?.ready, true, 'RealmPersona Runtime source snapshot must be ready');
-  assert.match(agent.snapshotHash || '', /^[a-f0-9]{64}$/u, 'RealmPersona Runtime source snapshot hash must be bounded');
+  assert.equal(agent.sourceContextStatus?.ready, true, 'PersonaCharacter Runtime source snapshot must be ready');
+  assert.match(agent.snapshotHash || '', /^[a-f0-9]{64}$/u, 'PersonaCharacter Runtime source snapshot hash must be bounded');
   journeyAgents.push({
-    sourceKind: 'realmPersona', sourceRef: activeSourceRef, localAgentRef: agent.localAgentRef,
+    sourceKind: 'personaCharacter', sourceRef: activeSourceRef, localAgentRef: agent.localAgentRef,
     runtimeSourceRef: agent.runtimeSourceRef, snapshotHash: agent.snapshotHash || null, displayName: 'Solace',
   });
   return { localAgentRef: agent.localAgentRef, agentIdentity: runtimeAgentIdentity(agent.localAgentRef, agent.runtimeSourceRef) };
@@ -565,19 +565,19 @@ export async function materializeJourneyPersona(input) {
     journeyAgents, observations, personaMaterializedScreenshotPath, conversationReportRoute, commitConversationReportRoute,
     waitForDiscoveredLocalAgent, runtimeAgentIdentity,
   } = input;
-  const personaSourceRef = realRealmSession?.sourceRefs.realmPersona || VALID_PERSONA_SOURCE_REF;
+  const personaSourceRef = realRealmSession?.sourceRefs.personaCharacter || VALID_PERSONA_SOURCE_REF;
   await openExploreWorlds(page);
   await page.getByTestId('explore-section-tab-personas').click();
   await page.getByTestId('explore-personas-section').waitFor({ state: 'visible', timeout: 30_000 });
-  const personaCard = page.getByTestId(`explore-persona-source-card:${personaSourceRef.sourceId}`);
+  const personaCard = page.getByTestId(`explore-persona-source-card:${personaSourceRef.id}`);
   await personaCard.waitFor({ state: 'visible', timeout: 30_000 });
-  const displayName = normalizeWhitespace(await personaCard.innerText()).split('\n').find(Boolean) || 'Realm Persona';
-  const personaAction = page.getByTestId(`explore-persona-source-primary-action:${personaSourceRef.sourceId}`);
+  const displayName = normalizeWhitespace(await personaCard.innerText()).split('\n').find(Boolean) || 'Persona Character';
+  const personaAction = page.getByTestId(`explore-persona-source-primary-action:${personaSourceRef.id}`);
   await personaAction.waitFor({ state: 'visible', timeout: 30_000 });
   assert.equal(await personaAction.isEnabled(), true, 'core Journey Persona materialization action must be enabled');
   await personaAction.click();
   const discovered = await waitForDiscoveredLocalAgent(agentClient, personaSourceRef);
-  assert.equal(discovered.length, 1, `core Journey expected one RealmPersona LocalAgent, got ${discovered.length}`);
+  assert.equal(discovered.length, 1, `core Journey expected one PersonaCharacter LocalAgent, got ${discovered.length}`);
   const persona = discovered[0];
   if (conversationReportRoute) {
     await commitConversationReportRoute({
@@ -594,7 +594,7 @@ export async function materializeJourneyPersona(input) {
     });
   }
   const record = {
-    sourceKind: 'realmPersona', sourceRef: personaSourceRef, localAgentRef: persona.localAgentRef,
+    sourceKind: 'personaCharacter', sourceRef: personaSourceRef, localAgentRef: persona.localAgentRef,
     runtimeSourceRef: persona.runtimeSourceRef, snapshotHash: persona.snapshotHash || null, displayName,
     materializedAt: new Date().toISOString(),
   };

@@ -38,16 +38,26 @@ const pointLocations = Object.freeze({
 
 function sourceProvenance(sourceKind) {
   const suffix = sourceKind === 'worldCharacter' ? 'a' : 'b';
+  const sourceRef = sourceKind === 'worldCharacter'
+    ? {
+        kind: sourceKind,
+        id: `source-${suffix}`,
+        worldId: `world-${suffix}`,
+        worldEntityRef: { kind: 'worldEntity', worldId: `world-${suffix}`, entityId: `entity-${suffix}` },
+        sourceHash: suffix.repeat(64),
+      }
+    : {
+        kind: 'personaCharacter',
+        id: `source-${suffix}`,
+        worldId: `world-${suffix}`,
+        ownerAccountId: 'account-baseline',
+        sourceHash: suffix.repeat(64),
+      };
   return {
     sourceKind,
-    sourceRef: {
-      kind: sourceKind,
-      worldId: `world-${suffix}`,
-      sourceId: `source-${suffix}`,
-      sourceContentHash: suffix.repeat(64),
-    },
+    sourceRef,
     sourceRevision: sourceKind === 'worldCharacter' ? 7 : 4,
-    sourceContentHash: suffix.repeat(64),
+    sourceHash: suffix.repeat(64),
     snapshotRef: `runtime-source-ref-${suffix}`,
     snapshotHash: (sourceKind === 'worldCharacter' ? 'c' : 'd').repeat(64),
     frozenAt: '2026-07-12T00:00:00.000Z',
@@ -57,13 +67,13 @@ function sourceProvenance(sourceKind) {
 function streamIdentity(alias) {
   const isA = alias === 'local-agent-a';
   const suffix = isA ? 'a' : 'b';
-  const sourceKind = isA ? 'worldCharacter' : 'realmPersona';
+  const sourceKind = isA ? 'worldCharacter' : 'personaCharacter';
   const localAgentRef = `opaque-local-agent-${suffix}`;
   return {
     streamId: `stream-${suffix}`,
     title: isA
       ? 'WorldCharacter-source LocalAgent A 完整多轮对话'
-      : 'RealmPersona-source LocalAgent B 完整多轮对话',
+      : 'PersonaCharacter-source LocalAgent B 完整多轮对话',
     sourceProvenance: sourceProvenance(sourceKind),
     localAgentIdentity: { localAgentRef, ownerAccountId: 'account-baseline' },
     conversationIdentity: { conversationAnchorId: `runtime-anchor-${suffix}`, threadId: `runtime-thread-${suffix}`, localAgentRef },
@@ -173,7 +183,7 @@ export function createValidConversationReport() {
       desktopVersion: 'test-desktop',
       zhiyuVersion: 'test-zhiyu',
       processStarts: { provider: 1, realm: 1, runtime: 2, desktop: 1, zhiyu: 1 },
-      materializations: { worldCharacter: 1, realmPersona: 1 },
+      materializations: { worldCharacter: 1, personaCharacter: 1 },
     },
     execution: {
       status: 'completed',

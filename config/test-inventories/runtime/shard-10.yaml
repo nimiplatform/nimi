@@ -1,0 +1,197 @@
+version: 1
+inventory_id: runtime_test_inventory
+owner: runtime
+authority_class: non_authoritative_inventory
+spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
+shard_id: runtime_test_inventory_shard_10
+tests:
+  - path: runtime/cmd/realm-v3-reset/main_test.go
+    owner: runtime
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-001, K-AGCORE-141]
+  - path: runtime/internal/grpcserver/contracttest/source_materialization_issuer_source_contract_test.go
+    owner: runtime
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-001, K-AGCORE-139, P-PERM-014]
+  - path: runtime/internal/grpcserver/source_materialization_issuer_test.go
+    owner: runtime
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-001, K-AGCORE-139, P-PERM-014]
+  - path: runtime/internal/runtimeinstance/lock_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: never
+    spec_refs: [P-TEST-001, K-AGCORE-141]
+  - path: runtime/internal/services/account/realm_source_materialization_test.go
+    owner: runtime
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-001, K-AGCORE-139, P-PERM-014]
+  - path: runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: never
+    spec_refs: [P-TEST-001, K-AGCORE-140, K-AGCORE-155]
+  - path: runtime/internal/services/runtimeagent/realm_source_materialization_compact_integration_test.go
+    owner: runtime
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-001, K-AGCORE-139, K-AGCORE-152, P-PERM-014]
+  - path: runtime/internal/services/runtimeagent/realm_source_materialization_desktop_fixture_v3_test.go
+    owner: runtime
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-001, K-AGCORE-139]
+  - path: runtime/internal/services/runtimeagent/realm_source_materialization_live_acceptance_test.go
+    owner: runtime
+    classification: live_provider_proof
+    tier: T7
+    authority_claim: false
+    deterministic: true
+    offline: false
+    may_enter_regression_gate: never
+    may_enter_release_gate: after_env_evidence
+    spec_refs: [P-TEST-001, P-TEST-006, K-AGCORE-139, K-AGCORE-152, P-PERM-014]
+  - path: runtime/internal/services/runtimeagent/realm_source_materialization_product_test.go
+    owner: runtime
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-001, K-AGCORE-139, K-AGCORE-152]
+  - path: runtime/internal/services/runtimeagent/realm_source_materialization_service_test.go
+    owner: runtime
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-001, K-AGCORE-139, P-PERM-014]
+  - path: runtime/internal/services/runtimeagent/realm_source_materialization_staging_test.go
+    owner: runtime
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-001, K-AGCORE-139]
+  - path: runtime/internal/services/runtimeagent/realm_source_materialization_test_helpers_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: never
+    spec_refs: [P-TEST-001, K-AGCORE-139]
+  - path: runtime/internal/services/runtimeagent/realm_source_snapshot_v2_store_test.go
+    owner: runtime
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-001, K-AGCORE-152]
+  - path: runtime/internal/services/runtimeagent/source_materialization_json_canonical_test.go
+    owner: runtime
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-001, K-AGCORE-139]
+  - path: runtime/internal/services/runtimeagent/source_materialization_v3_schema_strict_test.go
+    owner: runtime
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-001, K-AGCORE-139]
+  - path: runtime/internal/services/runtimeagent/source_materialization_v3_segmentation_test.go
+    owner: runtime
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-001, K-AGCORE-139]
+  - path: runtime/internal/services/runtimeagent/source_materialization_v3_stream_test.go
+    owner: runtime
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-001, K-AGCORE-139]
+  - path: runtime/internal/services/runtimeagent/source_materialization_v3_verifier_test.go
+    owner: runtime
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs: [P-TEST-001, K-AGCORE-139, P-PERM-014]
