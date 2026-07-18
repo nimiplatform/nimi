@@ -45,23 +45,34 @@ Realm grant selector is:
 
 The production lifecycle is exact and internal to Runtime acquisition:
 
-1. `POST /api/human/me/permission-grants` requests that Realm-owned tuple and
-   returns the canonical `PENDING AppPermissionGrant.id` and version; the
+1. `POST /api/human/me/permission-grants` requests that Realm-owned tuple. The
    request omits the optional qualifier field so Realm canonicalizes
-   `qualifier=null` and `qualifierKey=""`;
-2. `POST /api/human/me/permission-grants/by-id/{grantId}/grant` performs an
-   explicit decision on the same id using that returned version as
-   `expectedVersion`; and
-3. `POST /api/realm/core/source-materialization-packets` supplies that same id
-   as `accessGrantId` only after it is canonically `GRANTED`.
+   `qualifier=null` and `qualifierKey=""`. Runtime accepts only the canonical
+   response for the authenticated subject, exact selector, id, version, and an
+   admitted state of `PENDING` or current `GRANTED`;
+2. when the canonical response is `PENDING`,
+   `POST /api/human/me/permission-grants/by-id/{grantId}/grant` performs the
+   explicit decision on that same id using the returned version as
+   `expectedVersion`, and Runtime requires the result to be the same grant in
+   `GRANTED` with the version advanced exactly once;
+3. when the canonical response is already current `GRANTED`, Runtime reuses
+   that durable scope authorization and MUST NOT call the grant decision
+   endpoint again; and
+4. `POST /api/realm/core/source-materialization-packets` supplies the canonical
+   id from step 2 or step 3 as `accessGrantId`. Every materialization still
+   uses a fresh Runtime challenge, nonce, TTL, Packet v3 proof, and Realm-side
+   authorization evaluation.
 
-This is not a default, seeded, inferred, or automatically granted path. Zero,
-multiple, stale, expired, revoked, denied, pending, superseded, cross-subject,
-wrong-scope, or otherwise mismatched grants return a typed denial before
-product mutation. `realm_source.snapshot.bind` is non-authorizing for Packet
-issuance. The issuer is not a generic Realm proxy, does not accept
-caller-selected grant ids, headers, or URLs, and does not transfer
-credential/profile/custody authority into the materialization domain.
+Returning an existing exact `GRANTED` record is durable-grant reuse, not a
+default, seeded, inferred, automatically granted, or pseudo-success path. A
+new `PENDING` record never bypasses the explicit decision. A `PENDING` record
+that cannot complete its exact version-guarded transition, or any stale,
+expired, revoked, denied, superseded, cross-subject, wrong-scope,
+wrong-qualifier, otherwise mismatched, or ambiguous grant response returns a
+typed denial before product mutation. `realm_source.snapshot.bind` is non-authorizing
+for Packet issuance. The issuer is not a generic Realm proxy,
+does not accept caller-selected grant ids, headers, or URLs, and does not
+transfer credential/profile/custody authority into the materialization domain.
 
 `agent.identity.project` is a separate Runtime-local permission owned by the
 Nimi local grant lifecycle. Runtime checks it only after the complete Packet

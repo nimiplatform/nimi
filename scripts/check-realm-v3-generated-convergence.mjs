@@ -11,6 +11,8 @@ import {
   ACCESS_POLICY_SELECTOR,
   ACCESS_POLICY_VERSION,
   ADMISSION_SCHEMA_VERSION,
+  LOCK_SCHEMA_VERSION,
+  RUNTIME_GRANT_ACQUISITION,
   assertAccessPolicyAdmission,
   canonicalJson,
   compareUtf16CodeUnits,
@@ -307,13 +309,18 @@ function main() {
   const lock = YAML.parse(fs.readFileSync(lockPath, 'utf8'));
   assert(admission?.schemaVersion === ADMISSION_SCHEMA_VERSION, 'current producer admission schema drift');
   assertAccessPolicyAdmission(admission);
-  assert(lock?.schema_version === 'nimi.realm-contract-lock/v2', 'current lock schema is not v2');
+  assert(lock?.schema_version === LOCK_SCHEMA_VERSION, 'current lock schema is not v3');
   assert(lock?.openapi?.document_sha256 === admission.openapi.sha256, 'lock/OpenAPI admission digest drift');
   assertExactStrings(lock?.schema_versions, admission.schemaVersions, 'lock schema versions');
   assert(lock?.access_policy?.version === ACCESS_POLICY_VERSION, 'lock access-policy version drift');
   assert(lock?.access_policy?.digest === admission.accessPolicy.digest, 'lock access-policy digest drift');
   assertExactStrings(lock?.access_policy?.selector, admission.accessPolicy.selector, 'lock Realm grant selector');
   assertExactStrings(lock?.access_policy?.lifecycle, admission.accessPolicy.lifecycle, 'lock Realm grant lifecycle');
+  assertExactStrings(
+    lock?.access_policy?.runtime_acquisition,
+    RUNTIME_GRANT_ACQUISITION,
+    'lock Runtime grant acquisition',
+  );
   assertExactStrings(
     lock?.access_policy?.non_authorizing_scope_names,
     admission.accessPolicy.nonAuthorizingScopeNames,

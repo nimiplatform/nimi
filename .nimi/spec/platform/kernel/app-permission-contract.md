@@ -271,13 +271,19 @@ qualifierKey: ""
 authorizingState: GRANTED
 ```
 
-The exact Realm lifecycle is request -> canonical `PENDING` id -> explicit
-version-guarded grant of the same id -> Packet request with the same id as
-`accessGrantId`. `realm_source.snapshot.bind` is not current positive Realm
-authority. `agent.identity.project` remains a Runtime-local scope, is never a
-Realm request, and is checked only after strict Packet verification before
-local identity projection. Realm owns source-snapshot consumption authority
-and has no Agent or LocalAgent ontology; Runtime owns all LocalAgent identity
+The exact Realm lifecycle is request -> canonical active record. A canonical
+`PENDING` record requires an explicit version-guarded grant of the same id. A
+canonical current `GRANTED` record is durable scope authorization and is
+reused without calling the decision endpoint again. The Packet request uses
+that same canonical id as `accessGrantId`; each Packet acquisition still has a
+fresh Runtime challenge, nonce, TTL, proof, and Realm-side authorization
+evaluation. Every other state or selector/subject/version mismatch fails
+closed. `realm_source.snapshot.bind` is not current positive Realm
+authority.
+`agent.identity.project` remains a Runtime-local scope, is never a Realm
+request, and is checked only after strict Packet verification before local
+identity projection. Realm owns source-snapshot consumption authority and has
+no Agent or LocalAgent ontology; Runtime owns all LocalAgent identity
 and lifecycle truth.
 
 ## Fact Sources

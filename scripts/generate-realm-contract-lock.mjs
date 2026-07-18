@@ -14,7 +14,7 @@ export const MATERIALIZATION_OPERATION_ID = 'WorldCoreController_createSourceMat
 export const MATERIALIZATION_OPERATION_PATH = '/api/realm/core/source-materialization-packets';
 export const MATERIALIZATION_OPERATION_METHOD = 'post';
 export const FRAGMENT_SCHEMA_VERSION = 'nimi.realm-openapi-source-materialization-fragment/v1';
-export const LOCK_SCHEMA_VERSION = 'nimi.realm-contract-lock/v2';
+export const LOCK_SCHEMA_VERSION = 'nimi.realm-contract-lock/v3';
 export const ADMISSION_SCHEMA_VERSION = 'nimi.realm-current-producer-admission/v2';
 export const ACCESS_POLICY_VERSION = 'realm.source-materialization-access-policy/v4';
 export const ACCESS_POLICY_DIGEST = '34f338ae76cbd85de58054cd6fc4d0ee18500030a0bc12f091e88d46f2fc572f';
@@ -25,6 +25,14 @@ export const ACCESS_POLICY_SELECTOR = Object.freeze({
   qualifier: null,
   qualifierKey: '',
   state: 'GRANTED',
+});
+export const RUNTIME_GRANT_ACQUISITION = Object.freeze({
+  admitted_result_states: Object.freeze(['PENDING', 'GRANTED']),
+  pending_disposition: 'explicit_grant_same_id_expected_version',
+  granted_disposition: 'reuse_exact_current_same_id',
+  packet_grant_id_source: 'canonical_request_result_id',
+  fresh_packet_security: Object.freeze(['challenge', 'nonce', 'ttl', 'proof', 'realm_authorization']),
+  rejected_result_states: Object.freeze(['DENIED', 'EXPIRED', 'REVOKED', 'SUPERSEDED']),
 });
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -435,6 +443,7 @@ export function renderLock(input) {
       digest: admission.accessPolicy.digest,
       selector: admission.accessPolicy.selector,
       lifecycle: admission.accessPolicy.lifecycle,
+      runtime_acquisition: RUNTIME_GRANT_ACQUISITION,
       non_authorizing_scope_names: admission.accessPolicy.nonAuthorizingScopeNames,
     },
     compact_vectors: Object.fromEntries(

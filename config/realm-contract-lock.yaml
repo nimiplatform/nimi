@@ -1,4 +1,4 @@
-schema_version: nimi.realm-contract-lock/v2
+schema_version: nimi.realm-contract-lock/v3
 generated_by: scripts/generate-realm-contract-lock.mjs
 realm:
   repository: https://github.com/nimiplatform/nimi-realm.git
@@ -123,6 +123,24 @@ access_policy:
       method: post
       path: /api/realm/core/source-materialization-packets
       grantIdField: accessGrantId
+  runtime_acquisition:
+    admitted_result_states:
+      - PENDING
+      - GRANTED
+    pending_disposition: explicit_grant_same_id_expected_version
+    granted_disposition: reuse_exact_current_same_id
+    packet_grant_id_source: canonical_request_result_id
+    fresh_packet_security:
+      - challenge
+      - nonce
+      - ttl
+      - proof
+      - realm_authorization
+    rejected_result_states:
+      - DENIED
+      - EXPIRED
+      - REVOKED
+      - SUPERSEDED
   non_authorizing_scope_names:
     - realm_source.snapshot.bind
     - agent.identity.project

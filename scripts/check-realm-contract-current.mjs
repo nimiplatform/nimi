@@ -12,6 +12,8 @@ import {
   ACCESS_POLICY_SELECTOR,
   ACCESS_POLICY_VERSION,
   ADMISSION_SCHEMA_VERSION,
+  LOCK_SCHEMA_VERSION,
+  RUNTIME_GRANT_ACQUISITION,
   canonicalJson,
   compareUtf16CodeUnits,
   REALM_REPOSITORY,
@@ -282,8 +284,8 @@ function assertJsonEvidence(realmRoot, expected, extraChecks) {
 function assertCurrentLock(admission) {
   if (!fs.existsSync(lockPath)) fail('missing config/realm-contract-lock.yaml');
   const lock = YAML.parse(fs.readFileSync(lockPath, 'utf8'));
-  if (lock?.schema_version !== 'nimi.realm-contract-lock/v2') {
-    fail(`stale Realm lock schema ${lock?.schema_version || '<missing>'}; expected nimi.realm-contract-lock/v2`);
+  if (lock?.schema_version !== LOCK_SCHEMA_VERSION) {
+    fail(`stale Realm lock schema ${lock?.schema_version || '<missing>'}; expected ${LOCK_SCHEMA_VERSION}`);
   }
   const expected = {
     repository: admission.repository,
@@ -301,6 +303,7 @@ function assertCurrentLock(admission) {
       digest: ACCESS_POLICY_DIGEST,
       selector: ACCESS_POLICY_SELECTOR,
       lifecycle: admission.accessPolicy.lifecycle,
+      runtimeAcquisition: RUNTIME_GRANT_ACQUISITION,
       nonAuthorizingScopeNames: admission.accessPolicy.nonAuthorizingScopeNames,
     },
     focusedA1: {
@@ -330,6 +333,7 @@ function assertCurrentLock(admission) {
       digest: lock?.access_policy?.digest,
       selector: lock?.access_policy?.selector,
       lifecycle: lock?.access_policy?.lifecycle,
+      runtimeAcquisition: lock?.access_policy?.runtime_acquisition,
       nonAuthorizingScopeNames: lock?.access_policy?.non_authorizing_scope_names,
     },
     focusedA1: {

@@ -77,6 +77,7 @@ function runMutationSelfTests(validLock, expectedLock) {
     ['access policy digest', (value) => { value.access_policy.digest = '0'.repeat(64); }],
     ['Realm grant selector', (value) => { value.access_policy.selector.scopeName = 'agent.identity.project'; }],
     ['explicit grant lifecycle', (value) => { value.access_policy.lifecycle.grant.operationId = 'requestMyAppPermissionGrant'; }],
+    ['durable GRANTED reuse', (value) => { value.access_policy.runtime_acquisition.granted_disposition = 'explicit_grant_again'; }],
     ['closure evidence', (value) => { value.producer_evidence.closure_content_hash = '0'.repeat(64); }],
     ['handoff evidence', (value) => { value.producer_evidence.handoff_content_hash = '0'.repeat(64); }],
     ['focused A1 evidence', (value) => { value.producer_evidence.focused_a1.verdict = 'NEEDS_REVISION'; }],

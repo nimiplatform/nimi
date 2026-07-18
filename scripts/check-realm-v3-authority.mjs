@@ -153,6 +153,10 @@ function check(overrides = {}) {
     '`POST /api/human/me/permission-grants/by-id/{grantId}/grant`',
     '`POST /api/realm/core/source-materialization-packets`',
     '`accessGrantId`',
+    'admitted state of `PENDING` or current `GRANTED`',
+    'MUST NOT call the grant decision\n   endpoint again',
+    'fresh Runtime challenge, nonce, TTL, Packet v3 proof',
+    'durable-grant reuse, not a\ndefault, seeded, inferred, automatically granted, or pseudo-success path',
     '`realm_source.snapshot.bind` is non-authorizing',
     '`agent.identity.project` is a separate Runtime-local permission',
     'it has no Agent or\nLocalAgent ontology',
@@ -167,6 +171,8 @@ function check(overrides = {}) {
     'scopeFamily: realm_source',
     'scopeName: realm_source.snapshot.consume',
     'authorizingState: GRANTED',
+    'canonical current `GRANTED` record is durable scope authorization',
+    'fresh Runtime challenge, nonce, TTL, proof',
     '`realm_source.snapshot.bind` is not current positive Realm\nauthority',
     '`agent.identity.project` remains a Runtime-local scope',
   ]) requireText(platformPermission, token, files.platformPermission);
@@ -443,6 +449,26 @@ try {
     }
     mutations.push({
       mutation: `replace Realm source scope with Runtime-local agent scope in ${files.materialization}`,
+      rejected: true,
+      rejectedReason,
+    });
+
+    rejectedReason = '';
+    try {
+      check({
+        [files.materialization]: materializationSource.replace(
+          'MUST NOT call the grant decision\n   endpoint again',
+          'calls the grant decision endpoint again',
+        ),
+      });
+    } catch (error) {
+      rejectedReason = error instanceof Error ? error.message : String(error);
+    }
+    if (!rejectedReason.includes('MUST NOT call the grant decision')) {
+      fail('negative durable-GRANTED reuse mutation was not rejected by the owner gate');
+    }
+    mutations.push({
+      mutation: `remove durable-GRANTED decision-call prohibition from ${files.materialization}`,
       rejected: true,
       rejectedReason,
     });
