@@ -167,8 +167,6 @@ type TrustedMetadataFuture =
     Pin<Box<dyn Future<Output = Result<Option<RuntimeBridgeTrustedMetadata>, String>> + Send>>;
 type TrustedMetadataHook =
     Arc<dyn Fn(RuntimeBridgeTrustedMetadataRequest) -> TrustedMetadataFuture + Send + Sync>;
-type OptionalPathHook = Arc<dyn Fn() -> Option<PathBuf> + Send + Sync>;
-type OptionalStringHook = Arc<dyn Fn() -> Option<String> + Send + Sync>;
 type ResultPathHook = Arc<dyn Fn() -> Result<PathBuf, String> + Send + Sync>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -190,9 +188,6 @@ pub struct RuntimeBridgeHostHooks {
     pub trusted_metadata: Option<TrustedMetadataHook>,
     pub sync_daemon_status: Option<StatusSyncHook>,
     pub set_action_in_flight: Option<ActionInFlightHook>,
-    pub staged_runtime_binary_path: Option<OptionalPathHook>,
-    pub runtime_last_error: Option<OptionalStringHook>,
-    pub current_release_version: Option<OptionalStringHook>,
     pub resolve_nimi_dir: Option<ResultPathHook>,
     pub resolve_nimi_data_dir: Option<ResultPathHook>,
     pub desktop_account_status_request: Option<DesktopAccountSessionStatusRequest>,
@@ -345,27 +340,6 @@ fn set_action_in_flight_hook(app: &AppHandle, action: Option<&'static str>) {
     if let Some(hook) = host_hooks().and_then(|hooks| hooks.set_action_in_flight.clone()) {
         hook(app, action);
     }
-}
-
-#[cfg(test)]
-pub(crate) fn staged_runtime_binary_path_hook_result() -> Option<Option<PathBuf>> {
-    host_hooks()
-        .and_then(|hooks| hooks.staged_runtime_binary_path.clone())
-        .map(|hook| hook())
-}
-
-#[cfg(test)]
-pub(crate) fn runtime_last_error_hook() -> Option<String> {
-    host_hooks()
-        .and_then(|hooks| hooks.runtime_last_error.clone())
-        .and_then(|hook| hook())
-}
-
-#[cfg(test)]
-pub(crate) fn current_release_version_hook() -> Option<String> {
-    host_hooks()
-        .and_then(|hooks| hooks.current_release_version.clone())
-        .and_then(|hook| hook())
 }
 
 pub(crate) fn resolve_nimi_dir_hook() -> Option<Result<PathBuf, String>> {

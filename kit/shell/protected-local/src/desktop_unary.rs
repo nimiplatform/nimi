@@ -23,7 +23,7 @@ impl DesktopUnaryError {
     }
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "macos"))]
 pub(crate) async fn invoke(
     channel: tonic::transport::Channel,
     method_id: &'static str,

@@ -67,7 +67,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     });
   });
 
-  it('keeps auth session custody fail-closed under the external Runtime account service', async () => {
+  it('hard-cuts retired renderer auth-session commands', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
       appId: 'nimi.tester',
@@ -88,8 +88,8 @@ describe('registerNimiElectronRuntimeBridge', () => {
         command,
         payload: { accessToken: 'renderer-token' },
       })).rejects.toMatchObject({
-        code: 'external-daemon-required',
-        reasonCode: 'electron-runtime-account-custody-external',
+        code: 'invalid-payload',
+        reasonCode: 'unsupported-electron-shell-command',
         source: 'electron',
       });
     }

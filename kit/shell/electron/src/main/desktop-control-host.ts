@@ -1,6 +1,5 @@
-import { createRequire } from 'node:module';
-
 import { resolveNimiElectronProtectedLocalBindingPackage } from './local-app-host.js';
+import { loadNimiElectronProtectedLocalPackage } from './protected-local-binding-loader.js';
 
 const DESKTOP_PRODUCT_CONTROL_METHOD_IDS: ReadonlySet<string> = new Set([
   '/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile',
@@ -173,7 +172,7 @@ export function isElectronDesktopRuntimeConsumerMethod(methodId: string): boolea
 function loadPlatformBinding(): NimiElectronDesktopControlBinding {
   try {
     const packageName = resolveNimiElectronProtectedLocalBindingPackage(process.platform, process.arch);
-    return validateBinding(createRequire(import.meta.url)(packageName) as unknown);
+    return validateBinding(loadNimiElectronProtectedLocalPackage(packageName));
   } catch (error) {
     if (error instanceof NimiElectronDesktopControlHostError) throw error;
     throw new NimiElectronDesktopControlHostError('protected-carrier-required', false);

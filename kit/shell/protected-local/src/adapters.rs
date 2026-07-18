@@ -60,7 +60,6 @@ macro_rules! define_unbound_carrier {
 #[cfg(not(target_os = "windows"))]
 define_unbound_carrier!(WindowsNamedPipeCarrier);
 define_unbound_carrier!(LinuxUnixSocketCarrier);
-define_unbound_carrier!(MacOsPrivilegedXpcCarrier);
 
 macro_rules! define_unbound_local_app_carrier {
     ($name:ident) => {
@@ -92,6 +91,7 @@ macro_rules! define_unbound_local_app_carrier {
 #[cfg(not(target_os = "windows"))]
 define_unbound_local_app_carrier!(WindowsLocalAppCarrier);
 define_unbound_local_app_carrier!(LinuxLocalAppCarrier);
+#[cfg(not(target_os = "macos"))]
 define_unbound_local_app_carrier!(MacOsLocalAppCarrier);
 
 #[cfg(target_os = "windows")]

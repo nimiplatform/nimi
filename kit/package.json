@@ -378,6 +378,7 @@
     "zod": "4.4.3"
   },
   "optionalDependencies": {
+    "@nimiplatform/kit-protected-local-darwin-arm64": "workspace:*",
     "@nimiplatform/kit-protected-local-win32-x64": "workspace:*"
   },
   "peerDependencies": {

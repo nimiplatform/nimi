@@ -119,14 +119,14 @@ impl From<crate::desktop_unary::DesktopUnaryError> for DesktopProductControlErro
     }
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "macos"))]
 pub(crate) async fn invoke(
     channel: tonic::transport::Channel,
     request: DesktopProductControlRequest,
 ) -> Result<DesktopProductControlResponse, DesktopProductControlError> {
-    use prost::Message;
-
+    #[cfg(target_os = "windows")]
     if request.method == DesktopProductControlMethod::SelectProductControlDataRoot {
+        use prost::Message;
         let selection = crate::generated::SelectProductControlDataRootRequest::decode(
             request.request_bytes.as_slice(),
         )

@@ -1,7 +1,6 @@
-import { createRequire } from 'node:module';
-
 import { resolveNimiElectronProtectedLocalBindingPackage } from './local-app-host.js';
 import { asRecord } from './paths.js';
+import { loadNimiElectronProtectedLocalPackage } from './protected-local-binding-loader.js';
 import { NimiElectronShellHostError } from './types.js';
 
 const DESKTOP_ACCOUNT_COMMANDS = [
@@ -96,7 +95,7 @@ export function isElectronDesktopAccountCommand(command: string): command is Des
 function loadPlatformBinding(): NimiElectronDesktopAccountBinding {
   try {
     const packageName = resolveNimiElectronProtectedLocalBindingPackage(process.platform, process.arch);
-    return validateBinding(createRequire(import.meta.url)(packageName) as unknown);
+    return validateBinding(loadNimiElectronProtectedLocalPackage(packageName));
   } catch (error) {
     if (error instanceof NimiElectronShellHostError) throw error;
     throw desktopAccountError('protected-carrier-required', false, 'runtime_account_session_status');

@@ -17,14 +17,26 @@ use nimi_shell_protected_local::{
     LocalDevelopmentSummaryAvailability, NimiDesktopControl, NimiHostError,
     NimiHostErrorReasonCode, NimiLocalAppCarrier, NimiLocalAppSession,
     NimiProtectedLocalHostCarrier, ProtectedCarrierError, RuntimeServiceActionOutcome,
-    WindowsLocalAppCarrier, WindowsNamedPipeCarrier,
 };
+#[cfg(target_os = "macos")]
+use nimi_shell_protected_local::{MacOsLocalAppCarrier, MacOsUnixSocketCarrier};
+#[cfg(target_os = "windows")]
+use nimi_shell_protected_local::{WindowsLocalAppCarrier, WindowsNamedPipeCarrier};
 use serde_json::{json, Value as JsonValue};
 use std::{path::PathBuf, sync::Arc};
 use tokio::sync::Mutex;
 
 static LOCAL_APP_SESSION: Mutex<Option<Arc<dyn NimiLocalAppSession>>> = Mutex::const_new(None);
 static DESKTOP_CONTROL: Mutex<Option<Arc<dyn NimiDesktopControl>>> = Mutex::const_new(None);
+
+#[cfg(target_os = "macos")]
+type PlatformDesktopCarrier = MacOsUnixSocketCarrier;
+#[cfg(target_os = "windows")]
+type PlatformDesktopCarrier = WindowsNamedPipeCarrier;
+#[cfg(target_os = "macos")]
+type PlatformLocalAppCarrier = MacOsLocalAppCarrier;
+#[cfg(target_os = "windows")]
+type PlatformLocalAppCarrier = WindowsLocalAppCarrier;
 
 mod local_app;
 mod native_types;
@@ -268,7 +280,7 @@ pub async fn fixed_runtime_service_start() -> NativeJsonOutcome {
     if current_or_open_desktop_control().await.is_ok() {
         return NativeJsonOutcome::success(project_verified_runtime_service_running());
     }
-    match WindowsNamedPipeCarrier.request_runtime_service_start() {
+    match PlatformDesktopCarrier::default().request_runtime_service_start() {
         Ok(outcome) => NativeJsonOutcome::success(project_runtime_service_action(outcome)),
         Err(error) => NativeJsonOutcome::protected_error(error),
     }
@@ -284,7 +296,10 @@ pub async fn fixed_runtime_service_restart() -> NativeJsonOutcome {
     let control = match current.as_ref() {
         Some(control) => control.clone(),
         None => {
-            let opened = match WindowsNamedPipeCarrier.open_desktop_control().await {
+            let opened = match PlatformDesktopCarrier::default()
+                .open_desktop_control()
+                .await
+            {
                 Ok(opened) => opened,
                 Err(error) => return NativeJsonOutcome::host_error(NimiHostError::from(error)),
             };
@@ -567,7 +582,7 @@ async fn current_or_open_desktop_control() -> Result<Arc<dyn NimiDesktopControl>
     if let Some(control) = current.as_ref() {
         return Ok(control.clone());
     }
-    let opened = WindowsNamedPipeCarrier
+    let opened = PlatformDesktopCarrier::default()
         .open_desktop_control()
         .await
         .map_err(NimiHostError::from)?;

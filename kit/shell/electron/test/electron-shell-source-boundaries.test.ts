@@ -44,7 +44,6 @@ describe('Electron standard shell source boundaries', () => {
       'runtime.ts',
       'runtime-trusted-metadata.ts',
       'runtime-lifecycle.ts',
-      'auth.ts',
       'oauth.ts',
       'shell-ui.ts',
       'diagnostics.ts',

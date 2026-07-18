@@ -10,7 +10,13 @@ use tonic::transport::Channel;
 use crate::generated::runtime_auth_service_client::RuntimeAuthServiceClient;
 use crate::generated::OpenLocalAppSessionRequest;
 use crate::grpc_status::local_app_error_from_status;
+#[cfg(target_os = "macos")]
+use crate::macos_peer_trust::VerifiedMacOSRuntimePeer;
+#[cfg(target_os = "macos")]
+use crate::macos_service_control::open_verified_local_app_runtime_channel;
+#[cfg(target_os = "windows")]
 use crate::windows_peer_trust::VerifiedRuntimePeer;
+#[cfg(target_os = "windows")]
 use crate::windows_service_control::open_verified_runtime_channel;
 use crate::{
     LocalAppOperationError, LocalAppPermissionRequest, LocalAppPermissionStatus,
@@ -20,25 +26,35 @@ use crate::{
     NimiLocalAppCarrier, NimiLocalAppSession,
 };
 
-#[cfg(not(feature = "windows-e2e-fixture"))]
+#[cfg(all(target_os = "windows", not(feature = "windows-e2e-fixture")))]
 const RUNTIME_LOCAL_APP_PIPE_NAME: &str = r"\\.\pipe\nimi-runtime-local-app-v1";
-#[cfg(feature = "windows-e2e-fixture")]
+#[cfg(all(target_os = "windows", feature = "windows-e2e-fixture"))]
 const RUNTIME_LOCAL_APP_PIPE_NAME: &str = r"\\.\pipe\nimi-runtime-e2e-local-app-v1";
 
 const ACTION_EXECUTED: i32 = 1;
 const LOCAL_APP_SESSION_READY: i32 = 1;
 const LOCAL_APP_TRUST_LOCAL_DEVELOPMENT: i32 = 3;
 
+#[cfg(target_os = "windows")]
 #[derive(Clone, Copy, Debug, Default)]
 pub struct WindowsLocalAppCarrier;
 
-struct WindowsLocalAppSession {
+#[cfg(target_os = "macos")]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct MacOsLocalAppCarrier;
+
+#[cfg(target_os = "windows")]
+type PlatformRuntimePeer = VerifiedRuntimePeer;
+#[cfg(target_os = "macos")]
+type PlatformRuntimePeer = VerifiedMacOSRuntimePeer;
+
+struct PlatformLocalAppSession {
     channel: Channel,
-    _runtime_peer: VerifiedRuntimePeer,
+    _runtime_peer: PlatformRuntimePeer,
     _runtime_boot_epoch: [u8; 32],
 }
 
-impl NimiLocalAppSession for WindowsLocalAppSession {
+impl NimiLocalAppSession for PlatformLocalAppSession {
     fn session_status(
         &self,
     ) -> Pin<
@@ -134,7 +150,23 @@ impl NimiLocalAppSession for WindowsLocalAppSession {
     }
 }
 
+#[cfg(target_os = "windows")]
 impl NimiLocalAppCarrier for WindowsLocalAppCarrier {
+    fn open_local_app_session(
+        &self,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<Box<dyn NimiLocalAppSession>, LocalAppOperationError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(open_local_app_session())
+    }
+}
+
+#[cfg(target_os = "macos")]
+impl NimiLocalAppCarrier for MacOsLocalAppCarrier {
     fn open_local_app_session(
         &self,
     ) -> Pin<
@@ -171,17 +203,28 @@ async fn open_local_app_session() -> Result<Box<dyn NimiLocalAppSession>, LocalA
     if runtime_boot_epoch == [0u8; 32] {
         return Err(untrusted());
     }
-    Ok(Box::new(WindowsLocalAppSession {
+    Ok(Box::new(PlatformLocalAppSession {
         channel,
         _runtime_peer: runtime_peer,
         _runtime_boot_epoch: runtime_boot_epoch,
     }))
 }
 
+#[cfg(target_os = "windows")]
 async fn open_local_app_runtime_channel(
 ) -> Result<(Channel, VerifiedRuntimePeer), crate::ProtectedCarrierError> {
     with_one_unavailable_retry(
         || open_verified_runtime_channel(RUNTIME_LOCAL_APP_PIPE_NAME),
+        Duration::from_millis(100),
+    )
+    .await
+}
+
+#[cfg(target_os = "macos")]
+async fn open_local_app_runtime_channel(
+) -> Result<(Channel, VerifiedMacOSRuntimePeer), crate::ProtectedCarrierError> {
+    with_one_unavailable_retry(
+        open_verified_local_app_runtime_channel,
         Duration::from_millis(100),
     )
     .await

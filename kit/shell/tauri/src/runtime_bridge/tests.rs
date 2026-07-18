@@ -57,6 +57,7 @@ fn public_lifecycle_controls_fail_closed_without_a_verified_runtime() {
             error.contains("protected-carrier-required")
                 || error.contains("runtime-service-unavailable")
                 || error.contains("runtime-service-untrusted")
+                || error.contains("runtime-service-repair-required")
         );
     }
 
@@ -70,6 +71,7 @@ fn public_lifecycle_controls_fail_closed_without_a_verified_runtime() {
         last_error.contains("protected-carrier-required")
             || last_error.contains("runtime-service-unavailable")
             || last_error.contains("runtime-service-untrusted")
+            || last_error.contains("runtime-service-repair-required")
     );
 }
 

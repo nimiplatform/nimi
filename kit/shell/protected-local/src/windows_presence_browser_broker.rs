@@ -1,6 +1,9 @@
 use std::net::IpAddr;
+#[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
+#[cfg(target_os = "windows")]
 use std::path::PathBuf;
+#[cfg(target_os = "windows")]
 use std::process::Command;
 use std::sync::Arc;
 
@@ -9,10 +12,13 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::task::JoinHandle;
 use tonic::metadata::MetadataValue;
 use url::Url;
+#[cfg(target_os = "windows")]
 use windows_sys::Win32::Security::Cryptography::{
     BCryptGenRandom, BCRYPT_USE_SYSTEM_PREFERRED_RNG,
 };
+#[cfg(target_os = "windows")]
 use windows_sys::Win32::System::SystemInformation::GetSystemDirectoryW;
+#[cfg(target_os = "windows")]
 use windows_sys::Win32::System::Threading::CREATE_NO_WINDOW;
 
 use crate::{NimiHostError, NimiHostErrorReasonCode};
@@ -21,8 +27,10 @@ const METADATA_KEY: &str = "x-nimi-presence-browser-launcher";
 const ENDPOINT_PREFIX: &str = "/v1/presence-browser/";
 const MAX_REQUEST_BYTES: usize = 16 * 1024;
 const MAX_AUTHORIZATION_URL_BYTES: usize = 4096;
+#[cfg(target_os = "windows")]
 #[path = "windows_checkpoint_browser_capture.rs"]
 mod windows_checkpoint_browser_capture;
+#[cfg(target_os = "windows")]
 use windows_checkpoint_browser_capture::capture_configured_checkpoint_authorization_url;
 
 type BrowserOpener = Arc<dyn Fn(&str) -> Result<(), ()> + Send + Sync>;
@@ -93,6 +101,7 @@ fn presence_required() -> NimiHostError {
     NimiHostError::new(NimiHostErrorReasonCode::LocalAppPresenceRequired, false)
 }
 
+#[cfg(target_os = "windows")]
 fn random_nonce() -> Result<String, NimiHostError> {
     let mut bytes = [0u8; 32];
     let status = unsafe {
@@ -104,6 +113,22 @@ fn random_nonce() -> Result<String, NimiHostError> {
         )
     };
     if status != 0 {
+        return Err(presence_required());
+    }
+    let mut encoded = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        use std::fmt::Write as _;
+        write!(&mut encoded, "{byte:02x}").map_err(|_| presence_required())?;
+    }
+    Ok(encoded)
+}
+
+#[cfg(target_os = "macos")]
+fn random_nonce() -> Result<String, NimiHostError> {
+    let mut bytes = [0u8; 32];
+    // SAFETY: getentropy writes exactly the supplied fixed-size byte array and
+    // does not expose a descriptor, path, or process environment source.
+    if unsafe { libc::getentropy(bytes.as_mut_ptr().cast(), bytes.len()) } != 0 {
         return Err(presence_required());
     }
     let mut encoded = String::with_capacity(bytes.len() * 2);
@@ -225,6 +250,7 @@ fn validate_authorization_url(raw_url: &str) -> Result<(), ()> {
     Ok(())
 }
 
+#[cfg(target_os = "windows")]
 fn open_authorization_url(raw_url: &str) -> Result<(), ()> {
     if let Some(captured) = capture_configured_checkpoint_authorization_url(raw_url) {
         return captured;
@@ -239,6 +265,21 @@ fn open_authorization_url(raw_url: &str) -> Result<(), ()> {
     Ok(())
 }
 
+#[cfg(target_os = "macos")]
+fn open_authorization_url(raw_url: &str) -> Result<(), ()> {
+    use std::ffi::CString;
+    unsafe extern "C" {
+        fn nimi_macos_open_url(raw_url: *const libc::c_char) -> i32;
+    }
+    let value = CString::new(raw_url).map_err(|_| ())?;
+    // SAFETY: value is a valid NUL-terminated UTF-8 string retained through
+    // the synchronous NSWorkspace call; the URL never enters argv or env.
+    (unsafe { nimi_macos_open_url(value.as_ptr()) } == 0)
+        .then_some(())
+        .ok_or(())
+}
+
+#[cfg(target_os = "windows")]
 fn system_rundll32_path() -> Result<PathBuf, ()> {
     let mut buffer = vec![0u16; 32_768];
     let length = unsafe { GetSystemDirectoryW(buffer.as_mut_ptr(), buffer.len() as u32) } as usize;

@@ -17,7 +17,10 @@ use crate::generated::{
     SetDeveloperModeRequest,
 };
 use crate::grpc_status::host_error_from_status;
+#[cfg(target_os = "macos")]
+use crate::macos_supervised_process::SupervisedDevelopmentProcess;
 use crate::windows_presence_browser_broker::PresenceBrowserBroker;
+#[cfg(target_os = "windows")]
 use crate::windows_supervised_process::SupervisedDevelopmentProcess;
 use crate::{
     DeveloperModeState, DeveloperModeStatus, LocalDevelopmentAuthorization,

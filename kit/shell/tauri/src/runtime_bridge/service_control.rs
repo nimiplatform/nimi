@@ -1,22 +1,26 @@
 #[cfg(not(any(target_os = "windows", target_os = "macos")))]
 use nimi_shell_protected_local::LinuxUnixSocketCarrier;
 #[cfg(target_os = "macos")]
-use nimi_shell_protected_local::MacOsPrivilegedXpcCarrier;
+use nimi_shell_protected_local::{
+    invalidate_verified_desktop_runtime_channel, MacOsUnixSocketCarrier,
+};
 #[cfg(target_os = "windows")]
 use nimi_shell_protected_local::{
     invalidate_verified_desktop_runtime_channel, WindowsNamedPipeCarrier,
 };
 use nimi_shell_protected_local::{
-    DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, DeveloperModeStatus,
-    FixedRuntimeServiceControl, LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
-    LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
-    LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
+    DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, DesktopProductControlMethod,
+    DesktopProductControlRequest, DesktopRuntimeConsumerMethod, DesktopRuntimeConsumerRequest,
+    DeveloperModeStatus, FixedRuntimeServiceControl, LocalDevelopmentAuthoritySummary,
+    LocalDevelopmentAuthorization, LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest,
+    LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
     LocalDevelopmentLaunchRequest, LocalDevelopmentReactivationRequest, NimiDesktopControl,
     NimiHostError, NimiHostErrorReasonCode, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
     ProtectedCarrierReasonCode, RuntimeServiceAction, RuntimeServiceActionOutcome,
     RuntimeServiceState, RuntimeServiceStatus,
 };
 use std::sync::{Arc, Mutex, OnceLock};
+use std::time::Duration;
 
 use super::{error_map::bridge_error, RuntimeBridgeDaemonStatus};
 
@@ -39,7 +43,7 @@ fn report_windows_e2e_service_control(_: &str, _: Option<&str>) {}
 #[cfg(target_os = "windows")]
 type PlatformCarrier = WindowsNamedPipeCarrier;
 #[cfg(target_os = "macos")]
-type PlatformCarrier = MacOsPrivilegedXpcCarrier;
+type PlatformCarrier = MacOsUnixSocketCarrier;
 #[cfg(not(any(target_os = "windows", target_os = "macos")))]
 type PlatformCarrier = LinuxUnixSocketCarrier;
 
@@ -204,6 +208,104 @@ pub(super) async fn get_account_session_status(
         }
         Err(error) => Err(error),
     }
+}
+
+pub(super) async fn invoke_protected_desktop_unary(
+    method_id: &str,
+    request_bytes: Vec<u8>,
+    timeout: Option<Duration>,
+) -> Result<Vec<u8>, String> {
+    if let Some(method) = DesktopProductControlMethod::from_method_id(method_id) {
+        return invoke_product_control(method, request_bytes, timeout).await;
+    }
+    if let Some(method) = DesktopRuntimeConsumerMethod::from_method_id(method_id) {
+        return invoke_runtime_consumer(method, request_bytes, timeout).await;
+    }
+    Err(bridge_error(
+        "RUNTIME_BRIDGE_PROTECTED_METHOD_FORBIDDEN",
+        method_id,
+    ))
+}
+
+async fn invoke_product_control(
+    method: DesktopProductControlMethod,
+    request_bytes: Vec<u8>,
+    timeout: Option<Duration>,
+) -> Result<Vec<u8>, String> {
+    let control = control_for_call().await.map_err(host_call_error)?;
+    let request = DesktopProductControlRequest {
+        method,
+        request_bytes: request_bytes.clone(),
+        timeout,
+    };
+    match control.invoke_product_control(request).await {
+        Ok(response) => Ok(response.response_bytes),
+        Err(error) if should_reconnect_reason(error.reason_code()) => {
+            clear_desktop_control_if_same(control).await;
+            control_for_call()
+                .await
+                .map_err(host_call_error)?
+                .invoke_product_control(DesktopProductControlRequest {
+                    method,
+                    request_bytes,
+                    timeout,
+                })
+                .await
+                .map(|response| response.response_bytes)
+                .map_err(|error| protected_unary_error(error.reason_code()))
+        }
+        Err(error) => Err(protected_unary_error(error.reason_code())),
+    }
+}
+
+async fn invoke_runtime_consumer(
+    method: DesktopRuntimeConsumerMethod,
+    request_bytes: Vec<u8>,
+    timeout: Option<Duration>,
+) -> Result<Vec<u8>, String> {
+    let control = control_for_call().await.map_err(host_call_error)?;
+    let request = DesktopRuntimeConsumerRequest {
+        method,
+        request_bytes: request_bytes.clone(),
+        timeout,
+    };
+    match control.invoke_runtime_consumer(request).await {
+        Ok(response) => Ok(response.response_bytes),
+        Err(error) if should_reconnect_reason(error.reason_code()) => {
+            clear_desktop_control_if_same(control).await;
+            control_for_call()
+                .await
+                .map_err(host_call_error)?
+                .invoke_runtime_consumer(DesktopRuntimeConsumerRequest {
+                    method,
+                    request_bytes,
+                    timeout,
+                })
+                .await
+                .map(|response| response.response_bytes)
+                .map_err(|error| protected_unary_error(error.reason_code()))
+        }
+        Err(error) => Err(protected_unary_error(error.reason_code())),
+    }
+}
+
+fn host_call_error(error: NimiHostError) -> String {
+    protected_unary_error(error.reason_code().as_str())
+}
+
+fn protected_unary_error(reason_code: &str) -> String {
+    bridge_error("RUNTIME_BRIDGE_TRANSPORT_UNAVAILABLE", reason_code)
+}
+
+fn should_reconnect_reason(reason_code: &str) -> bool {
+    matches!(
+        reason_code,
+        "runtime-service-unavailable"
+            | "runtime-service-untrusted"
+            | "runtime-restarted"
+            | "process-replaced"
+            | "protected-carrier-required"
+    )
 }
 
 pub(super) async fn evaluate_local_development_project(
@@ -468,12 +570,12 @@ async fn clear_desktop_control() {
     drop(removed);
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "macos"))]
 async fn invalidate_platform_desktop_runtime_channel() {
     invalidate_verified_desktop_runtime_channel().await;
 }
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
 async fn invalidate_platform_desktop_runtime_channel() {}
 
 fn desktop_control() -> Result<Arc<dyn NimiDesktopControl>, NimiHostError> {

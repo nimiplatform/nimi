@@ -1,8 +1,10 @@
+#[cfg(target_os = "macos")]
+use nimi_shell_protected_local::MacOsUnixSocketCarrier;
 #[cfg(not(target_os = "windows"))]
 use nimi_shell_protected_local::WindowsLocalAppCarrier;
 use nimi_shell_protected_local::{
-    LinuxLocalAppCarrier, LinuxUnixSocketCarrier, LocalAppReasonCode, MacOsLocalAppCarrier,
-    MacOsPrivilegedXpcCarrier, NimiLocalAppCarrier, NimiProtectedLocalHostCarrier,
+    FixedRuntimeServiceControl, LinuxLocalAppCarrier, LinuxUnixSocketCarrier, LocalAppReasonCode,
+    MacOsLocalAppCarrier, NimiLocalAppCarrier, NimiProtectedLocalHostCarrier,
     ProtectedCarrierReasonCode, RuntimeServiceAction, RuntimeServiceActionOutcome,
     RuntimeServiceState, RuntimeServiceStatus, WindowsNamedPipeCarrier,
 };
@@ -41,14 +43,45 @@ async fn assert_local_app_unbound<C: NimiLocalAppCarrier>(carrier: C) {
 #[tokio::test]
 async fn compile_only_os_adapters_fail_closed_when_unbound() {
     assert_unbound(LinuxUnixSocketCarrier).await;
-    assert_unbound(MacOsPrivilegedXpcCarrier).await;
     #[cfg(not(target_os = "windows"))]
     assert_unbound(WindowsNamedPipeCarrier).await;
 
     assert_local_app_unbound(LinuxLocalAppCarrier).await;
+    #[cfg(not(target_os = "macos"))]
     assert_local_app_unbound(MacOsLocalAppCarrier).await;
     #[cfg(not(target_os = "windows"))]
     assert_local_app_unbound(WindowsLocalAppCarrier).await;
+}
+
+#[cfg(target_os = "macos")]
+#[tokio::test]
+async fn macos_carrier_fails_closed_without_the_installed_signed_service() {
+    let carrier = MacOsUnixSocketCarrier;
+    let status = carrier.runtime_service_status();
+    assert!(
+        status.is_err() || status.is_ok_and(|value| value.state != RuntimeServiceState::Running)
+    );
+    let error = match carrier.open_desktop_control().await {
+        Ok(_) => panic!("uninstalled macOS carrier must not open a Desktop session"),
+        Err(error) => error,
+    };
+    assert!(matches!(
+        error.reason_code(),
+        ProtectedCarrierReasonCode::RuntimeServiceUnavailable
+            | ProtectedCarrierReasonCode::RuntimeServiceUntrusted
+            | ProtectedCarrierReasonCode::RuntimeServiceRepairRequired
+    ));
+
+    let local_error = match MacOsLocalAppCarrier.open_local_app_session().await {
+        Ok(_) => panic!("uninstalled macOS local-app carrier must not open a session"),
+        Err(error) => error,
+    };
+    assert!(matches!(
+        local_error.reason_code(),
+        LocalAppReasonCode::RuntimeServiceUnavailable
+            | LocalAppReasonCode::RuntimeServiceUntrusted
+            | LocalAppReasonCode::RuntimeServiceRepairRequired
+    ));
 }
 
 #[cfg(target_os = "windows")]

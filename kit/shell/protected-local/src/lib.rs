@@ -8,6 +8,18 @@ mod desktop_runtime_consumer;
 mod desktop_unary;
 mod grpc_status;
 mod local_development;
+#[cfg(target_os = "macos")]
+#[allow(unsafe_code)]
+mod macos_peer_trust;
+#[cfg(target_os = "macos")]
+#[allow(unsafe_code)]
+mod macos_release_trust;
+#[cfg(target_os = "macos")]
+#[allow(unsafe_code)]
+mod macos_service_control;
+#[cfg(target_os = "macos")]
+#[allow(unsafe_code)]
+mod macos_supervised_process;
 mod reason;
 mod service;
 #[allow(dead_code)]
@@ -17,21 +29,20 @@ mod generated {
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
 mod windows_data_root;
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "macos"))]
 mod windows_desktop_account;
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "macos"))]
 #[allow(unsafe_code)]
 mod windows_local_app;
-#[cfg(target_os = "windows")]
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "macos"))]
 #[allow(unsafe_code)]
 mod windows_local_development;
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "macos"))]
 mod windows_local_development_authority_summary;
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
 mod windows_peer_trust;
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "macos"))]
 #[allow(unsafe_code)]
 mod windows_presence_browser_broker;
 #[cfg(target_os = "windows")]
@@ -41,9 +52,10 @@ mod windows_service_control;
 #[allow(unsafe_code)]
 mod windows_supervised_process;
 
+#[cfg(not(target_os = "macos"))]
+pub use adapters::MacOsLocalAppCarrier;
 pub use adapters::{
-    LinuxLocalAppCarrier, LinuxUnixSocketCarrier, MacOsLocalAppCarrier, MacOsPrivilegedXpcCarrier,
-    WindowsLocalAppCarrier, WindowsNamedPipeCarrier,
+    LinuxLocalAppCarrier, LinuxUnixSocketCarrier, WindowsLocalAppCarrier, WindowsNamedPipeCarrier,
 };
 pub use carrier::{
     LocalAppOperationError, LocalAppPermissionRequest, LocalAppPermissionState,
@@ -78,6 +90,10 @@ pub use local_development::{
     LocalDevelopmentShellKind, LocalDevelopmentSummaryAvailability, NimiHostError,
     NimiHostErrorReasonCode, LOCAL_DEVELOPMENT_TRUST_CLASS,
 };
+#[cfg(target_os = "macos")]
+pub use macos_service_control::{
+    invalidate_verified_desktop_runtime_channel, MacOsUnixSocketCarrier,
+};
 pub use reason::{ProtectedCarrierError, ProtectedCarrierReasonCode};
 pub use service::{
     FixedRuntimeServiceControl, RuntimeServiceAction, RuntimeServiceActionOutcome,
@@ -85,6 +101,8 @@ pub use service::{
 };
 #[cfg(target_os = "windows")]
 pub use windows_data_root::{prepare_fixed_runtime_data_root, FixedRuntimeDataRootError};
+#[cfg(target_os = "macos")]
+pub use windows_local_app::MacOsLocalAppCarrier;
 #[cfg(target_os = "windows")]
 pub use windows_service_control::{
     invalidate_verified_desktop_runtime_channel, open_verified_desktop_runtime_channel,

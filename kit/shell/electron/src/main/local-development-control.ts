@@ -1,6 +1,5 @@
-import { createRequire } from 'node:module';
-
 import { resolveNimiElectronProtectedLocalBindingPackage } from './local-app-host.js';
+import { loadNimiElectronProtectedLocalPackage } from './protected-local-binding-loader.js';
 import {
   parseNimiElectronLocalDevelopmentAuthoritySummary,
   type NimiElectronLocalDevelopmentAuthoritySummary,
@@ -10,6 +9,8 @@ import { NimiElectronShellHostError } from './types.js';
 type NativeJsonOutcome =
   | { readonly status: 'ok'; readonly value: unknown }
   | { readonly status: 'error'; readonly reasonCode: unknown; readonly retryable: unknown };
+
+const NATIVE_CONTROL_DEADLINE_MS = 20_000;
 
 export type NimiElectronLocalDevelopmentShell = 'electron' | 'tauri';
 export type NimiElectronLocalDevelopmentDecision = 'deny' | 'allow-run-once' | 'allow-remember-project';
@@ -246,10 +247,18 @@ export function createNimiElectronLocalDevelopmentControlForBinding(
 
 async function invokeNative(invoke: () => Promise<NativeJsonOutcome>, operation: string): Promise<unknown> {
   let outcome: NativeJsonOutcome;
+  let timer: NodeJS.Timeout | undefined;
   try {
-    outcome = await invoke();
+    outcome = await Promise.race([
+      invoke(),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('protected-native-control-timeout')), NATIVE_CONTROL_DEADLINE_MS);
+      }),
+    ]);
   } catch {
     throw controlError('runtime-service-untrusted', false, operation);
+  } finally {
+    if (timer) clearTimeout(timer);
   }
   if (outcome?.status === 'error') {
     if (typeof outcome.reasonCode !== 'string'
@@ -382,7 +391,7 @@ function validateBinding(value: unknown): NimiElectronLocalDevelopmentBinding {
 function loadPlatformBinding(): NimiElectronLocalDevelopmentBinding {
   try {
     const packageName = resolveNimiElectronProtectedLocalBindingPackage(process.platform, process.arch);
-    return validateBinding(createRequire(import.meta.url)(packageName) as unknown);
+    return validateBinding(loadNimiElectronProtectedLocalPackage(packageName));
   } catch (error) {
     if (error instanceof NimiElectronShellHostError) throw error;
     throw controlError('protected-carrier-required', false, 'load_local_development_control');

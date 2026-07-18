@@ -1,0 +1,27 @@
+{
+  "name": "@nimiplatform/kit-protected-local-darwin-arm64",
+  "version": "0.2.0",
+  "private": false,
+  "description": "Fixed macOS arm64 Node-API projection for Nimi protected-local carriers.",
+  "main": "index.cjs",
+  "type": "commonjs",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nimiplatform/nimi",
+    "directory": "kit/shell/protected-local-node"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "os": ["darwin"],
+  "cpu": ["arm64"],
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "index.cjs",
+    "nimi_shell_protected_local.node"
+  ]
+}

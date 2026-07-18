@@ -335,15 +335,6 @@ export function createElectronExternalDaemonRequiredError(command: string): Nimi
     details: { command },
   });
 }
-export function createElectronRuntimeAccountCustodyExternalError(command: string): NimiElectronShellHostError {
-  return new NimiElectronShellHostError({
-    code: 'external-daemon-required',
-    message: `Electron auth session command ${normalizeErrorToken(command, 'command')} is owned by the external Runtime account service`,
-    reasonCode: 'electron-runtime-account-custody-external',
-    actionHint: 'use_runtime_account_service_for_account_session_custody',
-    details: { command },
-  });
-}
 export function toElectronRuntimeBridgeError(error: unknown): Record<string, unknown> {
   if (error && typeof error === 'object') {
     const record = error as Record<string, unknown>;

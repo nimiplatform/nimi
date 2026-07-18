@@ -1,6 +1,7 @@
-import { createRequire } from 'node:module';
+import { loadNimiElectronProtectedLocalPackage } from './protected-local-binding-loader.js';
 
 const WINDOWS_X64_BINDING_PACKAGE = '@nimiplatform/kit-protected-local-win32-x64';
+const MACOS_ARM64_BINDING_PACKAGE = '@nimiplatform/kit-protected-local-darwin-arm64';
 
 const LOCAL_APP_BINDING_METHODS = [
   'localAppSessionStatus',
@@ -172,13 +173,14 @@ export function createNimiElectronLocalAppHostForBinding(
 /** @internal Platform-package resolver used by release and fail-closed tests. */
 export function resolveNimiElectronProtectedLocalBindingPackage(platform: string, architecture: string): string {
   if (platform === 'win32' && architecture === 'x64') return WINDOWS_X64_BINDING_PACKAGE;
+  if (platform === 'darwin' && architecture === 'arm64') return MACOS_ARM64_BINDING_PACKAGE;
   throw new NimiElectronLocalAppHostError('protected-carrier-required', false);
 }
 
 function loadPlatformBinding(): NimiElectronProtectedLocalBinding {
   const packageName = resolveNimiElectronProtectedLocalBindingPackage(process.platform, process.arch);
   try {
-    return validateBinding(createRequire(import.meta.url)(packageName) as unknown);
+    return validateBinding(loadNimiElectronProtectedLocalPackage(packageName));
   } catch (error) {
     if (error instanceof NimiElectronLocalAppHostError) throw error;
     throw new NimiElectronLocalAppHostError('protected-carrier-required', false);

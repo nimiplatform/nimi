@@ -1,6 +1,5 @@
-import { createRequire } from 'node:module';
-
 import { resolveNimiElectronProtectedLocalBindingPackage } from './local-app-host.js';
+import { loadNimiElectronProtectedLocalPackage } from './protected-local-binding-loader.js';
 import { NimiElectronShellHostError } from './types.js';
 import type { ElectronRuntimeBridgeCommandNames } from './types.js';
 
@@ -108,7 +107,7 @@ export function createNimiElectronFixedRuntimeLifecycleHostForBinding(
 function loadPlatformBinding(): NimiElectronFixedRuntimeBinding {
   try {
     const packageName = resolveNimiElectronProtectedLocalBindingPackage(process.platform, process.arch);
-    return validateBinding(createRequire(import.meta.url)(packageName) as unknown);
+    return validateBinding(loadNimiElectronProtectedLocalPackage(packageName));
   } catch (error) {
     if (error instanceof NimiElectronShellHostError) throw error;
     throw lifecycleError('protected-carrier-required', false, 'nimi.shell.runtimeLifecycle.status');

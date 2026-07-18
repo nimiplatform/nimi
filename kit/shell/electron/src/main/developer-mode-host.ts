@@ -1,7 +1,6 @@
-import { createRequire } from 'node:module';
-
 import { resolveNimiElectronProtectedLocalBindingPackage } from './local-app-host.js';
 import { asRecord } from './paths.js';
+import { loadNimiElectronProtectedLocalPackage } from './protected-local-binding-loader.js';
 import { NimiElectronShellHostError } from './types.js';
 
 type DeveloperModeCommand = 'developer_mode_status' | 'developer_mode_set';
@@ -78,7 +77,7 @@ export function isElectronDeveloperModeCommand(command: string): command is Deve
 function loadPlatformBinding(): NimiElectronDeveloperModeBinding {
   try {
     const packageName = resolveNimiElectronProtectedLocalBindingPackage(process.platform, process.arch);
-    return validateBinding(createRequire(import.meta.url)(packageName) as unknown);
+    return validateBinding(loadNimiElectronProtectedLocalPackage(packageName));
   } catch (error) {
     if (error instanceof NimiElectronShellHostError) throw error;
     throw developerModeError('protected-carrier-required', false, 'developer_mode_status');

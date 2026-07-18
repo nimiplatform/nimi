@@ -46,6 +46,10 @@ const PROTECTED_DESKTOP_PRODUCT_CONTROL_UNARY_METHODS: &[&str] = &[
     super::RUNTIME_LOCAL_RECONCILE_PRODUCT_CONTROL_FIRST_RUN_SETUP_STATE_METHOD_ID,
 ];
 
+fn protected_desktop_runtime_consumer_method(method_id: &str) -> bool {
+    nimi_shell_protected_local::DesktopRuntimeConsumerMethod::from_method_id(method_id).is_some()
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum UnaryTransport {
     PublicRuntime,
@@ -53,7 +57,9 @@ enum UnaryTransport {
 }
 
 fn transport_for_public_unary(method_id: &str) -> UnaryTransport {
-    if PROTECTED_DESKTOP_PRODUCT_CONTROL_UNARY_METHODS.contains(&method_id) {
+    if PROTECTED_DESKTOP_PRODUCT_CONTROL_UNARY_METHODS.contains(&method_id)
+        || protected_desktop_runtime_consumer_method(method_id)
+    {
         UnaryTransport::ProtectedDesktop
     } else {
         UnaryTransport::PublicRuntime
@@ -279,16 +285,28 @@ async fn invoke_validated_unary(
 ) -> Result<RuntimeBridgeUnaryResult, String> {
     let request_bytes = decode_request_bytes(payload)?;
     debug_log_execute_scenario_route_describe_request(payload.method_id.as_str(), &request_bytes);
+    if transport == UnaryTransport::ProtectedDesktop {
+        let timeout = payload
+            .timeout_ms
+            .filter(|value| *value > 0)
+            .map(std::time::Duration::from_millis);
+        let response_bytes = super::service_control::invoke_protected_desktop_unary(
+            payload.method_id.as_str(),
+            request_bytes,
+            timeout,
+        )
+        .await?;
+        return Ok(RuntimeBridgeUnaryResult {
+            response_bytes_base64: base64::engine::general_purpose::STANDARD.encode(response_bytes),
+            response_metadata: None,
+        });
+    }
     let path = tonic::codegen::http::uri::PathAndQuery::from_maybe_shared(
         payload.method_id.trim().to_string(),
     )
     .map_err(|_| bridge_error("RUNTIME_BRIDGE_METHOD_INVALID", payload.method_id.as_str()))?;
-    let channel = match transport {
-        UnaryTransport::PublicRuntime => {
-            channel_pool::shared_unary_channel(super::daemon_manager::grpc_addr().as_str()).await?
-        }
-        UnaryTransport::ProtectedDesktop => channel_pool::protected_desktop_unary_channel().await?,
-    };
+    let channel =
+        channel_pool::shared_unary_channel(super::daemon_manager::grpc_addr().as_str()).await?;
     let mut grpc = Grpc::new(channel)
         .max_decoding_message_size(RUNTIME_BRIDGE_UNARY_MAX_DECODING_MESSAGE_BYTES);
 
@@ -421,16 +439,28 @@ mod tests {
                 UnaryTransport::ProtectedDesktop
             );
         }
-        for public_method in [
+        for protected_method in [
             "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets",
-            "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset",
+            "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog",
+            "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
+            "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors",
+            "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
+            "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth",
+            "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents",
+            "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats",
+            "/nimi.runtime.v1.RuntimeAiService/PeekScheduling",
             "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
+            "/nimi.runtime.v1.RuntimeAgentService/ListAgents",
         ] {
             assert_eq!(
-                transport_for_public_unary(public_method),
-                UnaryTransport::PublicRuntime
+                transport_for_public_unary(protected_method),
+                UnaryTransport::ProtectedDesktop
             );
         }
+        assert_eq!(
+            transport_for_public_unary("/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset"),
+            UnaryTransport::PublicRuntime
+        );
     }
 
     #[test]

@@ -10,7 +10,6 @@ import {
   NIMI_STANDARD_SHELL_COMMANDS,
   NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
 } from '@nimiplatform/kit/shell/capabilities';
-import { isElectronRuntimeAccountCustodyCommand } from './auth.js';
 import { resolveElectronAvatarAssetUrl } from './avatar.js';
 import { getElectronAiConfig, setElectronAiConfig } from './ai-config.js';
 import { dispatchElectronAgentCenterCommand, isElectronAgentCenterCommand } from './agent-center.js';
@@ -35,7 +34,6 @@ import {
   createElectronCapabilitySetUnknownError,
   createElectronCapabilityUnavailableError,
   createElectronExternalDaemonRequiredError,
-  createElectronRuntimeAccountCustodyExternalError,
   createElectronRuntimeEndpointUnavailableError,
   isAllowedElectronRendererOrigin,
   isAllowedElectronRendererUrl,
@@ -314,7 +312,6 @@ export function registerNimiElectronRuntimeBridge(
     if (developerModeHost && isElectronDeveloperModeCommand(command)) {
       return developerModeHost.invoke(command, payload);
     }
-    if (isElectronRuntimeAccountCustodyCommand(command)) throw createElectronRuntimeAccountCustodyExternalError(command);
     if (commandHandler) return await commandHandler({ command, payload, event, appId, runtimeEndpoint });
     if (isStandardShellCommand(command)) throw createElectronCapabilityUnavailableError(command);
     if (

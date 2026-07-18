@@ -121,7 +121,9 @@ async fn current_or_open_session() -> Result<Arc<dyn NimiLocalAppSession>, Local
     if let Some(session) = current.as_ref() {
         return Ok(session.clone());
     }
-    let opened = WindowsLocalAppCarrier.open_local_app_session().await?;
+    let opened = PlatformLocalAppCarrier::default()
+        .open_local_app_session()
+        .await?;
     let session = Arc::<dyn NimiLocalAppSession>::from(opened);
     *current = Some(session.clone());
     Ok(session)

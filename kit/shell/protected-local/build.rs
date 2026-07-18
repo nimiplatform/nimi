@@ -1,6 +1,22 @@
 use std::path::PathBuf;
 
 fn main() {
+    let target = std::env::var("TARGET").expect("target triple");
+    if target.contains("apple-darwin") {
+        cc::Build::new()
+            .file("src/macos_native.m")
+            .flag("-fobjc-arc")
+            .flag("-mmacosx-version-min=13.0")
+            .warnings_into_errors(true)
+            .compile("nimi_protected_local_macos");
+        println!("cargo:rustc-link-lib=framework=CoreFoundation");
+        println!("cargo:rustc-link-lib=framework=AppKit");
+        println!("cargo:rustc-link-lib=framework=Foundation");
+        println!("cargo:rustc-link-lib=framework=Security");
+        println!("cargo:rustc-link-lib=framework=ServiceManagement");
+        println!("cargo:rustc-link-lib=bsm");
+        println!("cargo:rerun-if-changed=src/macos_native.m");
+    }
     let manifest = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").expect("manifest dir"));
     let proto_root = manifest.join("../../../proto");
     let auth_proto = proto_root.join("runtime/v1/auth.proto");

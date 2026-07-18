@@ -97,7 +97,7 @@ impl From<crate::desktop_unary::DesktopUnaryError> for DesktopRuntimeConsumerErr
     }
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "macos"))]
 pub(crate) async fn invoke(
     channel: tonic::transport::Channel,
     request: DesktopRuntimeConsumerRequest,

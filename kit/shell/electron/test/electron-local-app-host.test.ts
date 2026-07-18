@@ -65,11 +65,14 @@ describe('Electron protected local-app host', () => {
     });
   });
 
-  it('admits only the packaged Windows x64 native binding', () => {
+  it('resolves only independently admitted fixed native binding package identities', () => {
     expect(resolveNimiElectronProtectedLocalBindingPackage('win32', 'x64')).toBe(
       '@nimiplatform/kit-protected-local-win32-x64',
     );
-    for (const [platform, architecture] of [['win32', 'arm64'], ['darwin', 'arm64'], ['linux', 'x64']]) {
+    expect(resolveNimiElectronProtectedLocalBindingPackage('darwin', 'arm64')).toBe(
+      '@nimiplatform/kit-protected-local-darwin-arm64',
+    );
+    for (const [platform, architecture] of [['win32', 'arm64'], ['darwin', 'x64'], ['linux', 'x64']]) {
       expect(() => resolveNimiElectronProtectedLocalBindingPackage(platform, architecture)).toThrow(
         expect.objectContaining({ reasonCode: 'protected-carrier-required', retryable: false }),
       );
