@@ -190,12 +190,6 @@ func (*windowsVerifiedLocalAppListener) Addr() net.Addr {
 	return windowsDesktopPipeAddress(mustActiveWindowsRuntimeProfile().localAppPipeName)
 }
 
-type staticLocalAppPeerVerifier struct{ peer VerifiedLocalAppLaunchPeer }
-
-func (verifier staticLocalAppPeerVerifier) VerifyLocalAppLaunchPeer(context.Context) (VerifiedLocalAppLaunchPeer, error) {
-	return verifier.peer, nil
-}
-
 type windowsVerifiedLocalAppNetConn struct {
 	net.Conn
 	connection *LocalAppConnection

@@ -1,0 +1,462 @@
+//go:build darwin && cgo
+
+package protectedlocal
+
+import (
+	"context"
+	cryptorand "crypto/rand"
+	"errors"
+	"fmt"
+	"io"
+	"net"
+	"sync"
+)
+
+type MacOSVerifiedDesktopListener struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+	raw    *net.UnixListener
+	state  *MacOSRuntimeSecurityState
+	random io.Reader
+
+	mu         sync.Mutex
+	primed     net.Conn
+	active     *macOSVerifiedDesktopNetConn
+	activeDone chan struct{}
+	closed     bool
+	closeOnce  sync.Once
+	closeErr   error
+}
+
+func OpenMacOSVerifiedDesktopListener(ctx context.Context, state *MacOSRuntimeSecurityState) (*MacOSVerifiedDesktopListener, error) {
+	if ctx == nil || state == nil || state.runtimeProcess.validate() != nil || state.bootEpoch == (Identifier{}) {
+		return nil, fail(ReasonProtectedLocalTransportUnsupported, false, "repair_runtime_service", fmt.Errorf("verified macOS Runtime security state is required"))
+	}
+	raw, err := activateMacOSLaunchdSocket(MacOSDesktopSocketActivationName, MacOSDesktopSocketPath, state.serviceUID)
+	if err != nil {
+		return nil, err
+	}
+	listenerContext, cancel := context.WithCancel(ctx)
+	listener := &MacOSVerifiedDesktopListener{ctx: listenerContext, cancel: cancel, raw: raw, state: state, random: cryptorand.Reader}
+	state.transportMu.Lock()
+	defer state.transportMu.Unlock()
+	if state.closed || state.desktopTransport != nil {
+		cancel()
+		_ = raw.Close()
+		return nil, fail(ReasonProtectedLocalTransportUnsupported, false, "repair_runtime_service", fmt.Errorf("macOS Desktop listener is closed or already claimed"))
+	}
+	state.desktopTransport = listener
+	return listener, nil
+}
+
+// Prime verifies the first queued Desktop connection before protected service
+// construction, allowing the system daemon to derive one exact interactive
+// user/audit-session partition without consulting a user-controlled source.
+func (listener *MacOSVerifiedDesktopListener) Prime(ctx context.Context) error {
+	if listener == nil {
+		return net.ErrClosed
+	}
+	connection, err := listener.acceptVerified(ctx)
+	if err != nil {
+		return err
+	}
+	listener.mu.Lock()
+	defer listener.mu.Unlock()
+	if listener.closed || listener.primed != nil {
+		_ = connection.Close()
+		return fail(ReasonDesktopProcessVerificationUnavailable, false, "restart_runtime_service", fmt.Errorf("macOS Desktop listener cannot be primed twice"))
+	}
+	listener.primed = connection
+	return nil
+}
+
+func (listener *MacOSVerifiedDesktopListener) Accept() (net.Conn, error) {
+	if listener == nil {
+		return nil, net.ErrClosed
+	}
+	listener.mu.Lock()
+	if listener.primed != nil {
+		connection := listener.primed
+		listener.primed = nil
+		listener.mu.Unlock()
+		return connection, nil
+	}
+	listener.mu.Unlock()
+	return listener.acceptVerified(listener.ctx)
+}
+
+func (listener *MacOSVerifiedDesktopListener) acceptVerified(ctx context.Context) (net.Conn, error) {
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		listener.mu.Lock()
+		if listener.closed {
+			listener.mu.Unlock()
+			return nil, net.ErrClosed
+		}
+		if listener.active != nil {
+			done := listener.activeDone
+			listener.mu.Unlock()
+			select {
+			case <-done:
+				continue
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		}
+		listener.mu.Unlock()
+		raw, err := listener.raw.AcceptUnix()
+		if err != nil {
+			if listener.isClosed() {
+				return nil, net.ErrClosed
+			}
+			continue
+		}
+		audit, err := macOSPeerIdentityFromUnixConn(raw)
+		if err != nil {
+			_ = raw.Close()
+			continue
+		}
+		client, liveness, err := verifyConnectedMacOSDesktop(audit)
+		if err != nil {
+			_ = raw.Close()
+			continue
+		}
+		desktopPolicy, err := macOSDesktopCodePolicy()
+		if err != nil || desktopPolicy.artifactDigest != client.ExecutableDigest ||
+			listener.state.ledger.AdmitReleaseLineage(ctx, desktopPolicy.releaseLineage()) != nil {
+			_ = liveness.Close()
+			_ = raw.Close()
+			continue
+		}
+		if err := listener.state.BindInteractiveIdentity(audit); err != nil {
+			_ = liveness.Close()
+			_ = raw.Close()
+			_ = listener.Close()
+			return nil, err
+		}
+		endpointID, err := readIdentifier(listener.random)
+		if err != nil {
+			_ = liveness.Close()
+			_ = raw.Close()
+			return nil, err
+		}
+		transcriptNonce, err := readIdentifier(listener.random)
+		if err != nil {
+			_ = liveness.Close()
+			_ = raw.Close()
+			return nil, err
+		}
+		desktopConnection, err := EstablishDesktopConnection(ctx, staticMacOSDesktopPeerVerifier{peers: VerifiedDesktopPeers{
+			Client: client, Server: listener.state.runtimeProcess, ClientLiveness: liveness,
+			RuntimeBootEpoch: listener.state.bootEpoch, EndpointInstanceID: endpointID, TranscriptNonce: transcriptNonce,
+		}}, listener.random)
+		if err != nil {
+			_ = raw.Close()
+			continue
+		}
+		verified := &macOSVerifiedDesktopNetConn{Conn: raw, connection: desktopConnection, listener: listener}
+		if !listener.activate(verified) {
+			desktopConnection.Revoke()
+			_ = raw.Close()
+			return nil, net.ErrClosed
+		}
+		desktopConnection.onRevoke(func() {
+			_ = verified.closeTransport()
+			if err := revalidateMacOSGraphicSession(audit.euid, audit.auditSession); err != nil {
+				_ = listener.Close()
+			}
+		})
+		return verified, nil
+	}
+}
+
+func (listener *MacOSVerifiedDesktopListener) activate(connection *macOSVerifiedDesktopNetConn) bool {
+	listener.mu.Lock()
+	defer listener.mu.Unlock()
+	if listener.closed || listener.active != nil {
+		return false
+	}
+	listener.active = connection
+	listener.activeDone = make(chan struct{})
+	return true
+}
+
+func (listener *MacOSVerifiedDesktopListener) release(connection *macOSVerifiedDesktopNetConn) {
+	listener.mu.Lock()
+	if listener.active == connection {
+		listener.active = nil
+		close(listener.activeDone)
+		listener.activeDone = nil
+	}
+	listener.mu.Unlock()
+}
+
+func (listener *MacOSVerifiedDesktopListener) isClosed() bool {
+	listener.mu.Lock()
+	defer listener.mu.Unlock()
+	return listener.closed
+}
+
+func (listener *MacOSVerifiedDesktopListener) Close() error {
+	if listener == nil {
+		return nil
+	}
+	listener.closeOnce.Do(func() {
+		listener.cancel()
+		listener.mu.Lock()
+		listener.closed = true
+		primed := listener.primed
+		active := listener.active
+		listener.primed = nil
+		listener.mu.Unlock()
+		listener.closeErr = errors.Join(listener.raw.Close(), closeNetConn(primed), closeNetConn(active))
+	})
+	return listener.closeErr
+}
+
+func (listener *MacOSVerifiedDesktopListener) Addr() net.Addr {
+	if listener == nil || listener.raw == nil {
+		return &net.UnixAddr{Name: MacOSDesktopSocketPath, Net: "unix"}
+	}
+	return listener.raw.Addr()
+}
+
+type staticMacOSDesktopPeerVerifier struct{ peers VerifiedDesktopPeers }
+
+func (verifier staticMacOSDesktopPeerVerifier) VerifyDesktopPeers(context.Context) (VerifiedDesktopPeers, error) {
+	return verifier.peers, nil
+}
+
+type macOSVerifiedDesktopNetConn struct {
+	net.Conn
+	connection *Connection
+	listener   *MacOSVerifiedDesktopListener
+	closeOnce  sync.Once
+	closeErr   error
+}
+
+func (connection *macOSVerifiedDesktopNetConn) nativeDesktopConnection() *Connection {
+	if connection == nil {
+		return nil
+	}
+	return connection.connection
+}
+func (connection *macOSVerifiedDesktopNetConn) Close() error {
+	if connection != nil && connection.connection != nil {
+		connection.connection.Revoke()
+	}
+	return connection.closeTransport()
+}
+func (connection *macOSVerifiedDesktopNetConn) closeTransport() error {
+	if connection == nil {
+		return nil
+	}
+	connection.closeOnce.Do(func() {
+		if connection.Conn != nil {
+			connection.closeErr = connection.Conn.Close()
+		}
+		if connection.listener != nil {
+			connection.listener.release(connection)
+		}
+	})
+	return connection.closeErr
+}
+
+type MacOSVerifiedLocalAppListener struct {
+	ctx       context.Context
+	cancel    context.CancelFunc
+	raw       *net.UnixListener
+	state     *MacOSRuntimeSecurityState
+	mu        sync.Mutex
+	closed    bool
+	active    map[*macOSVerifiedLocalAppNetConn]struct{}
+	closeOnce sync.Once
+	closeErr  error
+}
+
+func OpenMacOSVerifiedLocalAppListener(ctx context.Context, state *MacOSRuntimeSecurityState) (*MacOSVerifiedLocalAppListener, error) {
+	if ctx == nil || state == nil || state.localAppLaunches == nil {
+		return nil, fail(ReasonProtectedLocalTransportUnsupported, false, "repair_runtime_service", fmt.Errorf("verified macOS local-app authority is required"))
+	}
+	raw, err := activateMacOSLaunchdSocket(MacOSLocalAppSocketActivationName, MacOSLocalAppSocketPath, state.serviceUID)
+	if err != nil {
+		return nil, err
+	}
+	listenerContext, cancel := context.WithCancel(ctx)
+	listener := &MacOSVerifiedLocalAppListener{ctx: listenerContext, cancel: cancel, raw: raw, state: state}
+	state.transportMu.Lock()
+	defer state.transportMu.Unlock()
+	if state.closed || state.localAppTransport != nil {
+		cancel()
+		_ = raw.Close()
+		return nil, fail(ReasonProtectedLocalTransportUnsupported, false, "repair_runtime_service", fmt.Errorf("macOS local-app listener is closed or already claimed"))
+	}
+	state.localAppTransport = listener
+	return listener, nil
+}
+
+func (listener *MacOSVerifiedLocalAppListener) Accept() (net.Conn, error) {
+	if listener == nil {
+		return nil, net.ErrClosed
+	}
+	for {
+		raw, err := listener.raw.AcceptUnix()
+		if err != nil {
+			if listener.isClosed() {
+				return nil, net.ErrClosed
+			}
+			continue
+		}
+		audit, err := macOSPeerIdentityFromUnixConn(raw)
+		if err != nil {
+			_ = raw.Close()
+			continue
+		}
+		euid, session, _, boundIdentity := listener.state.InteractiveIdentity()
+		if !boundIdentity || audit.euid != euid || audit.auditSession != session {
+			_ = raw.Close()
+			continue
+		}
+		expected, policy, bound := listener.state.localAppLaunches.BoundProcessPolicy(audit.pid)
+		if !bound || policy.SupervisorProcess.PID == 0 {
+			_ = raw.Close()
+			continue
+		}
+		peer, pipeLiveness, err := verifyConnectedMacOSLocalApp(audit, expected, policy.SupervisorProcess.PID)
+		if err != nil {
+			_ = raw.Close()
+			continue
+		}
+		promoted, err := listener.state.localAppLaunches.Promote(peer, pipeLiveness)
+		if err != nil {
+			_ = raw.Close()
+			continue
+		}
+		connection, err := EstablishLocalAppConnection(listener.ctx, staticLocalAppPeerVerifier{peer: promoted})
+		if err != nil {
+			_ = raw.Close()
+			continue
+		}
+		verified := &macOSVerifiedLocalAppNetConn{Conn: raw, connection: connection, listener: listener}
+		if !listener.track(verified) {
+			connection.Revoke()
+			_ = raw.Close()
+			return nil, net.ErrClosed
+		}
+		connection.OnRevoke(func() { _ = verified.closeTransport() })
+		return verified, nil
+	}
+}
+
+func (listener *MacOSVerifiedLocalAppListener) track(connection *macOSVerifiedLocalAppNetConn) bool {
+	listener.mu.Lock()
+	defer listener.mu.Unlock()
+	if listener.closed {
+		return false
+	}
+	if listener.active == nil {
+		listener.active = make(map[*macOSVerifiedLocalAppNetConn]struct{})
+	}
+	listener.active[connection] = struct{}{}
+	return true
+}
+func (listener *MacOSVerifiedLocalAppListener) release(connection *macOSVerifiedLocalAppNetConn) {
+	listener.mu.Lock()
+	delete(listener.active, connection)
+	listener.mu.Unlock()
+}
+func (listener *MacOSVerifiedLocalAppListener) isClosed() bool {
+	listener.mu.Lock()
+	defer listener.mu.Unlock()
+	return listener.closed
+}
+func (listener *MacOSVerifiedLocalAppListener) Close() error {
+	if listener == nil {
+		return nil
+	}
+	listener.closeOnce.Do(func() {
+		listener.cancel()
+		listener.mu.Lock()
+		listener.closed = true
+		active := make([]*macOSVerifiedLocalAppNetConn, 0, len(listener.active))
+		for connection := range listener.active {
+			active = append(active, connection)
+		}
+		listener.mu.Unlock()
+		failures := []error{listener.raw.Close()}
+		for _, connection := range active {
+			failures = append(failures, connection.Close())
+		}
+		listener.closeErr = errors.Join(failures...)
+	})
+	return listener.closeErr
+}
+func (listener *MacOSVerifiedLocalAppListener) Addr() net.Addr {
+	if listener == nil || listener.raw == nil {
+		return &net.UnixAddr{Name: MacOSLocalAppSocketPath, Net: "unix"}
+	}
+	return listener.raw.Addr()
+}
+
+type macOSVerifiedLocalAppNetConn struct {
+	net.Conn
+	connection *LocalAppConnection
+	listener   *MacOSVerifiedLocalAppListener
+	closeOnce  sync.Once
+	closeErr   error
+}
+
+func (connection *macOSVerifiedLocalAppNetConn) nativeLocalAppConnection() *LocalAppConnection {
+	if connection == nil {
+		return nil
+	}
+	return connection.connection
+}
+func (connection *macOSVerifiedLocalAppNetConn) Close() error {
+	if connection != nil && connection.connection != nil {
+		connection.connection.Revoke()
+	}
+	return connection.closeTransport()
+}
+func (connection *macOSVerifiedLocalAppNetConn) closeTransport() error {
+	if connection == nil {
+		return nil
+	}
+	connection.closeOnce.Do(func() {
+		if connection.Conn != nil {
+			connection.closeErr = connection.Conn.Close()
+		}
+		if connection.listener != nil {
+			connection.listener.release(connection)
+		}
+	})
+	return connection.closeErr
+}
+
+func macOSPeerIdentityFromUnixConn(connection *net.UnixConn) (macOSAuditIdentity, error) {
+	if connection == nil {
+		return macOSAuditIdentity{}, fmt.Errorf("connected Unix socket is required")
+	}
+	raw, err := connection.SyscallConn()
+	if err != nil {
+		return macOSAuditIdentity{}, err
+	}
+	var identity macOSAuditIdentity
+	var identityErr error
+	if err := raw.Control(func(fd uintptr) { identity, identityErr = macOSSocketPeerIdentity(fd) }); err != nil {
+		return macOSAuditIdentity{}, err
+	}
+	return identity, identityErr
+}
+
+func closeNetConn(connection net.Conn) error {
+	if connection == nil {
+		return nil
+	}
+	return connection.Close()
+}
+
+var _ net.Listener = (*MacOSVerifiedDesktopListener)(nil)
+var _ net.Listener = (*MacOSVerifiedLocalAppListener)(nil)

@@ -25,7 +25,6 @@ const (
 	windowsProductionRealmBaseURL     = "https://realm.nimi.ai"
 	windowsDevKernelAccountRealmURL   = "http://localhost:3002"
 	windowsDevKernelFixtureBaseURL    = "http://127.0.0.1:19443"
-	windowsProductionRuntimeAudience  = "nimi-runtime"
 	windowsProductionInstallStateFile = "installation.json"
 	windowsAcceptanceProfileFile      = "non-release-acceptance-profile.json"
 	windowsAcceptanceCheckpoint       = "dev_kernel_checkpoint"
@@ -129,45 +128,7 @@ func loadWindowsProtectedRuntimeConfig(stateRoot string) (config.Config, error) 
 		return config.Config{}, err
 	}
 
-	cfg := config.Config{
-		// Protected startup never opens these ordinary listeners, but Config
-		// retains valid loopback values for shared service construction.
-		GRPCAddr:        "127.0.0.1:46371",
-		HTTPAddr:        "127.0.0.1:46372",
-		ShutdownTimeout: 10 * time.Second,
-		LocalStatePath:  filepath.Join(runtimeRoot, "local-state.json"),
-		LocalModelsPath: "",
-		RuntimeID:       runtimeID,
-		DataRootRef:     "",
-		ManagedRoots:    config.ManagedRootsConfig{},
-		LocalService: config.LocalServiceConfig{
-			Enabled: true,
-			Mode:    config.LocalServiceModeDesktopLocal,
-		},
-		SessionTTLMinSeconds:                 60,
-		SessionTTLMaxSeconds:                 86_400,
-		AIHealthIntervalSeconds:              8,
-		AIHTTPTimeoutSeconds:                 30,
-		GlobalConcurrencyLimit:               8,
-		PerAppConcurrencyLimit:               2,
-		IdempotencyCapacity:                  10_000,
-		MaxDelegationDepth:                   3,
-		AuditRingBufferSize:                  20_000,
-		UsageStatsBufferSize:                 50_000,
-		LocalAuditCapacity:                   5_000,
-		LogLevel:                             "info",
-		AuthJWTIssuer:                        windowsProductionRealmBaseURL,
-		AuthJWTAudience:                      windowsProductionRuntimeAudience,
-		AuthJWTJWKSURL:                       windowsProductionRealmBaseURL + "/api/auth/jwks",
-		AuthJWTRevocationURL:                 windowsProductionRealmBaseURL + "/api/auth/sessions/introspect",
-		AccountRealmBaseURL:                  windowsProductionRealmBaseURL,
-		Providers:                            map[string]config.RuntimeFileTarget{},
-		SchedulingDiskDenialThresholdBytes:   500 * 1024 * 1024,
-		SchedulingSlowdownRAMThresholdBytes:  2 * 1024 * 1024 * 1024,
-		SchedulingSlowdownVRAMThresholdBytes: 1 * 1024 * 1024 * 1024,
-		SchedulingSlowdownDiskThresholdBytes: 2 * 1024 * 1024 * 1024,
-		SchedulingPreemptionOccupancyPercent: 75,
-	}
+	cfg := newProtectedRuntimeConfig(runtimeRoot, runtimeID, windowsProductionRealmBaseURL)
 	if profile != nil {
 		cfg.AuthJWTIssuer = profile.AccountRealmBaseURL
 		cfg.AuthJWTJWKSURL = profile.AccountRealmBaseURL + "/api/auth/jwks"

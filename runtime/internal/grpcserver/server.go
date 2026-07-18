@@ -140,7 +140,7 @@ type ProtectedServiceBindings struct {
 	PlatformBundledAppsRoot  string
 	AccountCustody           accountservice.Custody
 	AccountPartition         string
-	LocalOSUserSID           string
+	LocalOSUserIdentity      localappkernel.VerifiedLocalOSUserIdentity
 	AccountRealmBaseURL      string
 	AccountAuthorizationURL  string
 	AccountTokenURL          string
@@ -160,8 +160,11 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 	if !filepath.IsAbs(stateRoot) || stateRoot == filepath.VolumeName(stateRoot)+string(filepath.Separator) {
 		return nil, fmt.Errorf("protected service state root must be an absolute non-root path")
 	}
-	if bindings.AccountCustody == nil || strings.TrimSpace(bindings.AccountPartition) == "" || strings.TrimSpace(bindings.LocalOSUserSID) == "" || bindings.ConnectorSecrets == nil || bindings.DesktopSessions == nil || bindings.LocalAppLaunches == nil || bindings.LocalDevelopmentVerifier == nil || bindings.RuntimeRestartRequester == nil {
+	if bindings.AccountCustody == nil || strings.TrimSpace(bindings.AccountPartition) == "" || bindings.ConnectorSecrets == nil || bindings.DesktopSessions == nil || bindings.LocalAppLaunches == nil || bindings.LocalDevelopmentVerifier == nil || bindings.RuntimeRestartRequester == nil {
 		return nil, fmt.Errorf("protected service custody, verified account partition, Desktop sessions, local-app launches, and local-development verifier are required")
+	}
+	if _, err := bindings.LocalOSUserIdentity.LocalOSUserAnchor(); err != nil {
+		return nil, fmt.Errorf("verified local OS-user identity is required: %w", err)
 	}
 	registryPath, err := normalizeOptionalProtectedResourcePath("Platform app registry", bindings.PlatformAppRegistryPath)
 	if err != nil {
@@ -217,14 +220,10 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 			return nil, fmt.Errorf("open local-development store: %w", developmentErr)
 		}
 		localDevelopmentStore = developmentStore
-		verifiedSID, sidErr := localappkernel.ValidateVerifiedInteractiveUserSID(protected.LocalOSUserSID)
-		if sidErr != nil {
-			return nil, fmt.Errorf("validate protected interactive-user SID: %w", sidErr)
-		}
 		kernel, kernelErr := localappkernel.OpenSQLite(
 			context.Background(),
 			filepath.Join(protected.ServiceStateRoot, "local-app-kernel.db"),
-			verifiedSID,
+			protected.LocalOSUserIdentity,
 			localappkernel.Options{},
 		)
 		if kernelErr != nil {
@@ -391,7 +390,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 			return nil, fmt.Errorf("bind protected product-control root: %w", err)
 		}
 		if cfg.NonReleaseDevKernelCheckpoint != nil {
-			proposal, err := resolveProtectedProductControlDataRootProposal(protected.LocalOSUserSID, cfg.NonReleaseDevKernelCheckpoint)
+			proposal, err := resolveProtectedProductControlDataRootProposal(protected.LocalOSUserIdentity, cfg.NonReleaseDevKernelCheckpoint)
 			if err != nil {
 				return nil, fmt.Errorf("resolve non-release Product Control data-root proposal: %w", err)
 			}

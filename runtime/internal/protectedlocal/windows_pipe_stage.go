@@ -1,6 +1,9 @@
 package protectedlocal
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 // WindowsPipeFailureStage is a credential-free projection of the native
 // Desktop endpoint construction step that failed. It never exposes a SID,
@@ -83,4 +86,16 @@ func WindowsPipeStartupExitCode(err error) (uint32, bool) {
 		return 0, false
 	}
 	return WindowsPipeStartupExitCodeBase + uint32(stage), true
+}
+
+func windowsPipeFailure(operation string, cause error) error {
+	if cause == nil {
+		cause = fmt.Errorf("required Windows named-pipe primitive unavailable")
+	}
+	return fail(
+		ReasonDesktopProcessVerificationUnavailable,
+		true,
+		"restart_desktop",
+		fmt.Errorf("%s: %w", operation, cause),
+	)
 }

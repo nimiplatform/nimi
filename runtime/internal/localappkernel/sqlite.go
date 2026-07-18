@@ -10,7 +10,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -20,37 +19,18 @@ import (
 
 const identifierAllocationAttempts = 8
 
-// VerifiedInteractiveUserSID is deliberately constructible only through the
-// strict SID validator. Callers must source its input from the protected
-// transport's verified interactive-user process token, never request data.
-type VerifiedInteractiveUserSID struct {
+// VerifiedLocalOSUserIdentity is deliberately constructible only through a
+// strict platform validator. Callers must source its input from the protected
+// transport's kernel-verified peer identity, never request data.
+type VerifiedLocalOSUserIdentity struct {
 	canonical string
 }
 
-func ValidateVerifiedInteractiveUserSID(value string) (VerifiedInteractiveUserSID, error) {
-	if value == "" || value != strings.TrimSpace(value) {
-		return VerifiedInteractiveUserSID{}, fmt.Errorf("%w: verified interactive-user SID", ErrInvalidArgument)
+func (identity VerifiedLocalOSUserIdentity) LocalOSUserAnchor() (string, error) {
+	if identity.canonical == "" {
+		return "", fmt.Errorf("%w: empty verified local OS-user identity", ErrInvalidArgument)
 	}
-	parts := strings.Split(value, "-")
-	if len(parts) < 4 || parts[0] != "S" || parts[1] != "1" {
-		return VerifiedInteractiveUserSID{}, fmt.Errorf("%w: verified interactive-user SID", ErrInvalidArgument)
-	}
-	for _, component := range parts[2:] {
-		if component == "" || (len(component) > 1 && component[0] == '0') {
-			return VerifiedInteractiveUserSID{}, fmt.Errorf("%w: verified interactive-user SID", ErrInvalidArgument)
-		}
-		if _, err := strconv.ParseUint(component, 10, 64); err != nil {
-			return VerifiedInteractiveUserSID{}, fmt.Errorf("%w: verified interactive-user SID", ErrInvalidArgument)
-		}
-	}
-	return VerifiedInteractiveUserSID{canonical: value}, nil
-}
-
-func (sid VerifiedInteractiveUserSID) LocalOSUserAnchor() (string, error) {
-	if sid.canonical == "" {
-		return "", fmt.Errorf("%w: empty verified interactive-user SID", ErrInvalidArgument)
-	}
-	digest := sha256.Sum256([]byte("nimi.local-os-user-anchor.v1\x00" + sid.canonical))
+	digest := sha256.Sum256([]byte("nimi.local-os-user-anchor.v1\x00" + identity.canonical))
 	return "loua_v1_" + base64.RawURLEncoding.EncodeToString(digest[:]), nil
 }
 
@@ -73,7 +53,7 @@ type Kernel struct {
 	keys       *KeyDeriver
 }
 
-func OpenSQLite(ctx context.Context, databasePath string, sid VerifiedInteractiveUserSID, options Options) (*Kernel, error) {
+func OpenSQLite(ctx context.Context, databasePath string, identity VerifiedLocalOSUserIdentity, options Options) (*Kernel, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -88,7 +68,7 @@ func OpenSQLite(ctx context.Context, databasePath string, sid VerifiedInteractiv
 	if err := os.MkdirAll(filepath.Dir(absolutePath), 0o700); err != nil {
 		return nil, fmt.Errorf("create local-app sqlite directory: %w", err)
 	}
-	anchor, err := sid.LocalOSUserAnchor()
+	anchor, err := identity.LocalOSUserAnchor()
 	if err != nil {
 		return nil, err
 	}

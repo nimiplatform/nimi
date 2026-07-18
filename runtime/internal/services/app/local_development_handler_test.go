@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -161,7 +162,7 @@ func TestLocalDevelopmentStartupReconciliationRevokesIncompletePairsAndTombstone
 		t.Fatalf("make remembered project dormant: %v", err)
 	}
 
-	verifiedSID, err := localappkernel.ValidateVerifiedInteractiveUserSID("S-1-5-21-100-200-300-1001")
+	verifiedSID, err := localappkernel.ValidateVerifiedWindowsInteractiveUserSID("S-1-5-21-100-200-300-1001")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -204,6 +205,9 @@ func TestLocalDevelopmentStartupReconciliationRevokesIncompletePairsAndTombstone
 }
 
 func TestLocalDevelopmentHandlerCompletesBootstrapAndRevokesTechnicalSessionWithDesktopSupervisor(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("positive project-Electron host flow is the Windows carrier contract")
+	}
 	ctx := context.Background()
 	boot := localDevelopmentTestIdentifier(0x91)
 	store, err := openLocalDevelopmentStore(filepath.Join(t.TempDir(), "local-development.db"), boot)
@@ -245,7 +249,7 @@ permissions: []
 	}
 	processVerifier := &localDevelopmentHandlerProcessVerifier{process: process, liveness: newLocalDevelopmentHandlerLiveness()}
 	account := &localDevelopmentHandlerAccount{accountID: "account-development", generation: 12}
-	verifiedSID, err := localappkernel.ValidateVerifiedInteractiveUserSID("S-1-5-21-100-200-300-1001")
+	verifiedSID, err := localappkernel.ValidateVerifiedWindowsInteractiveUserSID("S-1-5-21-100-200-300-1001")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,7 +287,11 @@ permissions: []
 	if err != nil {
 		t.Fatalf("EvaluateLocalDevelopmentProject: %v", err)
 	}
-	if !evaluation.GetConfirmationRequired() || evaluation.GetProject().GetCanonicalProjectRoot() != filepath.Clean(projectRoot) || len(evaluation.GetEvaluationId()) != protectedlocal.IdentifierBytes {
+	canonicalProjectRoot, err := filepath.EvalSymlinks(projectRoot)
+	if err != nil {
+		t.Fatalf("canonicalize project root: %v", err)
+	}
+	if !evaluation.GetConfirmationRequired() || evaluation.GetProject().GetCanonicalProjectRoot() != canonicalProjectRoot || len(evaluation.GetEvaluationId()) != protectedlocal.IdentifierBytes {
 		t.Fatalf("unexpected development evaluation: %+v", evaluation)
 	}
 	decision, err := service.DecideLocalDevelopmentProject(desktopContext, &runtimev1.DecideLocalDevelopmentProjectRequest{

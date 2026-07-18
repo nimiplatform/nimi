@@ -11,7 +11,6 @@ package runtimeartifact
 import (
 	"context"
 	"log/slog"
-	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -158,8 +157,9 @@ func validLocalAppArtifactDecision(decision accountservice.LocalAppCallerDecisio
 		return false
 	}
 	return decision.TrustClass == accountservice.LocalAppTrustClassDevelopment && decision.AuthorizationID != (protectedlocal.Identifier{}) &&
-		decision.AuthorizationGeneration > 0 && filepath.IsAbs(decision.ProjectRoot) && decision.CapabilityFingerprint != (protectedlocal.Identifier{}) &&
-		decision.Process.ExecutableTrustSetID == protectedlocal.WindowsLocalDevelopmentTrustSetID && filepath.IsAbs(decision.Process.CanonicalExecutablePath)
+		decision.AuthorizationGeneration > 0 && protectedlocal.IsAbsolutePathForOperatingSystem(decision.Process.OS, decision.ProjectRoot) &&
+		decision.CapabilityFingerprint != (protectedlocal.Identifier{}) && protectedlocal.IsLocalDevelopmentProcessTrustSet(decision.Process) &&
+		protectedlocal.IsAbsolutePathForOperatingSystem(decision.Process.OS, decision.Process.CanonicalExecutablePath)
 }
 
 func artifactAudienceMatches(audience *ArtifactAudience, decision accountservice.LocalAppCallerDecision, now time.Time) bool {

@@ -551,18 +551,6 @@ func windowsPipeAccessEntry(sid *windows.SID, access uint32) windows.EXPLICIT_AC
 	}
 }
 
-func windowsPipeFailure(operation string, cause error) error {
-	if cause == nil {
-		cause = fmt.Errorf("required Windows named-pipe primitive unavailable")
-	}
-	return fail(
-		ReasonDesktopProcessVerificationUnavailable,
-		true,
-		"restart_desktop",
-		fmt.Errorf("%s: %w", operation, cause),
-	)
-}
-
 func windowsPipeOperationFailure(stage WindowsPipeFailureStage, operation string, cause error) error {
 	return windowsPipeStageFailure(stage, windowsPipeFailure(operation, cause))
 }

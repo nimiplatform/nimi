@@ -12,6 +12,9 @@ type LocalDevelopmentProcessPolicy struct {
 	ProjectRoot          string
 	HostExecutablePath   string
 	ProjectHostAliasPath string
+	// SupervisorProcess is injected from the verified Desktop connection by
+	// Runtime service code. It is never persisted or request-supplied.
+	SupervisorProcess ProcessTuple
 }
 
 type LocalDevelopmentProcessVerifier interface {

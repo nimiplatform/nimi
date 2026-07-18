@@ -30,9 +30,6 @@ const (
 
 	WindowsDesktopProductionTrustSetID = "nimi-desktop-production-v1"
 	WindowsRuntimeProductionTrustSetID = "nimi-runtime-production-v1"
-	// WindowsLocalDevelopmentTrustSetID denotes an exact Desktop-supervised mutable host
-	// whose project authorization and process path are revalidated separately.
-	WindowsLocalDevelopmentTrustSetID = "windows-local-development-supervised-v1"
 
 	windowsDesktopE2ETrustSetID = "nimi-desktop-e2e-fixture-v1"
 )

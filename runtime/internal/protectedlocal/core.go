@@ -166,6 +166,7 @@ func (origin OriginContext) HasRole(role OriginRole) bool {
 
 type Connection struct {
 	origin      OriginContext
+	client      ProcessTuple
 	live        atomic.Bool
 	done        chan struct{}
 	revokedDone chan struct{}
@@ -265,6 +266,7 @@ func EstablishDesktopConnection(ctx context.Context, verifier DesktopPeerVerifie
 			processHash:  peers.Client.digest(),
 			bootEpoch:    peers.RuntimeBootEpoch,
 		},
+		client:         peers.Client,
 		done:           make(chan struct{}),
 		revokedDone:    make(chan struct{}),
 		clientLiveness: peers.ClientLiveness,
@@ -274,6 +276,16 @@ func EstablishDesktopConnection(ctx context.Context, verifier DesktopPeerVerifie
 	acceptedLiveness = true
 	go connection.watchClientLiveness()
 	return connection, nil
+}
+
+// ClientProcess returns the immutable process tuple established from native
+// peer evidence. It exists so platform verifiers can bind a supervised child
+// to the exact Desktop parent; request fields cannot populate it.
+func (connection *Connection) ClientProcess() (ProcessTuple, bool) {
+	if connection == nil || !connection.live.Load() {
+		return ProcessTuple{}, false
+	}
+	return connection.client, connection.client.validate() == nil
 }
 
 func (connection *Connection) watchClientLiveness() {

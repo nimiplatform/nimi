@@ -31,8 +31,9 @@ func TestReadArtifactBytesAcceptsExactLocalDevelopmentAudience(t *testing.T) {
 	decision.AuthorizationGeneration = 4
 	decision.ProjectRoot = projectRoot
 	decision.CapabilityFingerprint = artifactTestIdentifier(0x82)
-	decision.Process.CanonicalExecutablePath = filepath.Join(projectRoot, "node_modules", "electron", "electron.exe")
-	decision.Process.ExecutableTrustSetID = protectedlocal.WindowsLocalDevelopmentTrustSetID
+	decision.Process.OS = protectedlocal.OSMacOS
+	decision.Process.CanonicalExecutablePath = filepath.Join(projectRoot, "Nimi Local App Host")
+	decision.Process.ExecutableTrustSetID = protectedlocal.MacOSLocalDevelopmentTrustSetID
 	audience := &ArtifactAudience{
 		ProducerJobID: "runtime.local-development.bootstrap", OwnerAccountID: decision.AccountID, AppID: decision.AppID,
 		ReleaseDigest: decision.HostExecutableDigest, SessionID: decision.SessionID, AccountGeneration: decision.AccountGeneration,
@@ -76,7 +77,7 @@ func newTestService(t *testing.T) (*Service, *MemoryStore) {
 
 func artifactTestDecision() accountservice.LocalAppCallerDecision {
 	release := artifactTestIdentifier(0x31)
-	projectRoot := filepath.Clean(filepath.Join("C:\\", "artifact-project"))
+	projectRoot := `C:\artifact-project`
 	return accountservice.LocalAppCallerDecision{
 		SessionID:               artifactTestIdentifier(0x21),
 		AppID:                   "world.nimi.app",
@@ -96,7 +97,7 @@ func artifactTestDecision() accountservice.LocalAppCallerDecision {
 		Process: protectedlocal.ProcessTuple{
 			OS: protectedlocal.OSWindows, PID: 4201, CreationMarker: "artifact-process-1",
 			OSLoginSession: "login-1", SecurityPrincipal: "user-1",
-			CanonicalExecutableIdentity: "artifact-file-1", CanonicalExecutablePath: filepath.Join(projectRoot, "electron.exe"), ExecutableDigest: release,
+			CanonicalExecutableIdentity: "artifact-file-1", CanonicalExecutablePath: projectRoot + `\electron.exe`, ExecutableDigest: release,
 			ExecutableTrustSetID: protectedlocal.WindowsLocalDevelopmentTrustSetID,
 		},
 		ExpiresAt: artifactTestNow.Add(time.Hour),

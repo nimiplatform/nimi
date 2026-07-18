@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/nimiplatform/nimi/runtime/internal/config"
+	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 )
@@ -64,7 +65,11 @@ func TestProtectedProductControlProposalReadsCurrentWindowsProfileMapping(t *tes
 	if !strings.HasPrefix(sid, "S-1-5-21-") {
 		t.Skipf("current token %s is not an interactive user account", sid)
 	}
-	got, err := resolveProtectedProductControlDataRootProposal(sid, validProductControlProposalAcceptance())
+	identity, identityErr := localappkernel.ValidateVerifiedWindowsInteractiveUserSID(sid)
+	if identityErr != nil {
+		t.Fatalf("validate current Windows user SID: %v", identityErr)
+	}
+	got, err := resolveProtectedProductControlDataRootProposal(identity, validProductControlProposalAcceptance())
 	if err != nil {
 		t.Fatalf("derive proposal from the current HKLM ProfileList mapping: %v", err)
 	}

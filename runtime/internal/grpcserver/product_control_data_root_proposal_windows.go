@@ -8,14 +8,19 @@ import (
 	"strings"
 
 	"github.com/nimiplatform/nimi/runtime/internal/config"
+	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 )
 
 const windowsProfileListRegistryPath = `SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList`
 
-func resolveProtectedProductControlDataRootProposal(localOSUserSID string, acceptance *config.DevKernelCheckpointAcceptance) (string, error) {
-	sid := strings.TrimSpace(localOSUserSID)
+func resolveProtectedProductControlDataRootProposal(identity localappkernel.VerifiedLocalOSUserIdentity, acceptance *config.DevKernelCheckpointAcceptance) (string, error) {
+	sid, ok := identity.WindowsInteractiveUserSID()
+	if !ok {
+		return "", fmt.Errorf("verified Windows interactive-user identity is required")
+	}
+	sid = strings.TrimSpace(sid)
 	if !strings.HasPrefix(sid, "S-1-") || strings.ContainsAny(sid, `\/`) {
 		return "", fmt.Errorf("verified interactive-user SID is invalid")
 	}

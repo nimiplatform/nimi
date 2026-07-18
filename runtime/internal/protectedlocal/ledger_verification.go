@@ -129,14 +129,18 @@ func (ledger *Ledger) ensureSchema(ctx context.Context) error {
 		return fail(ReasonProtectedLocalLedgerUnavailable, false, "reset_protected_state", fmt.Errorf("read protected-local schema version: %w", err))
 	}
 	if schemaVersion == 0 {
-		if _, err := tx.ExecContext(ctx, `PRAGMA user_version = 3`); err != nil {
+		if _, err := tx.ExecContext(ctx, `PRAGMA user_version = 4`); err != nil {
 			return fail(ReasonProtectedLocalLedgerUnavailable, false, "reset_protected_state", fmt.Errorf("write protected-local schema version: %w", err))
 		}
 	} else if schemaVersion == 2 {
 		if err := retireImmutablePackageLifecycleSchema(ctx, tx); err != nil {
 			return err
 		}
-		if _, err := tx.ExecContext(ctx, `PRAGMA user_version = 3`); err != nil {
+		if _, err := tx.ExecContext(ctx, `PRAGMA user_version = 4`); err != nil {
+			return fail(ReasonProtectedLocalLedgerUnavailable, false, "reset_protected_state", fmt.Errorf("write protected-local schema version: %w", err))
+		}
+	} else if schemaVersion == 3 {
+		if _, err := tx.ExecContext(ctx, `PRAGMA user_version = 4`); err != nil {
 			return fail(ReasonProtectedLocalLedgerUnavailable, false, "reset_protected_state", fmt.Errorf("write protected-local schema version: %w", err))
 		}
 	} else if schemaVersion != ledgerSchemaVersion {
@@ -445,6 +449,42 @@ func (ledger *Ledger) verifyLogicalRecords(ctx context.Context, commits []commit
 		return fail(ReasonProtectedLocalLedgerUnavailable, true, "restart_runtime_service", fmt.Errorf("close protected security audit rows: %w", err))
 	}
 
+	releaseRows, err := ledger.db.QueryContext(ctx, `SELECT executable_role, release_id, release_generation, artifact_sha256, created_commit_sequence, record_hmac FROM protected_release_lineage`)
+	if err != nil {
+		return fail(ReasonProtectedLocalLedgerUnavailable, true, "restart_runtime_service", fmt.Errorf("read protected release lineage: %w", err))
+	}
+	for releaseRows.Next() {
+		var row releaseLineageRow
+		var generation, created int64
+		var encodedDigest, encodedMAC []byte
+		if err := releaseRows.Scan(&row.ExecutableRole, &row.ReleaseID, &generation, &encodedDigest, &created, &encodedMAC); err != nil {
+			_ = releaseRows.Close()
+			return ledger.rollbackFailure(fmt.Errorf("decode protected release lineage: %w", err))
+		}
+		if generation <= 0 || created < 0 || !copyIdentifier(&row.ArtifactSHA256, encodedDigest) || !copyIdentifier(&row.recordMAC, encodedMAC) {
+			_ = releaseRows.Close()
+			return ledger.rollbackFailure(fmt.Errorf("decode protected release lineage: invalid field"))
+		}
+		row.Generation = uint64(generation)
+		row.created = uint64(created)
+		commit, ok := commitBySequence[row.created]
+		if !ok || commit.eventKind != releaseLineageEventKind || row.ReleaseLineageRecord.validate() != nil {
+			_ = releaseRows.Close()
+			return ledger.rollbackFailure(fmt.Errorf("verify protected release lineage: creation commit mismatch"))
+		}
+		expectedMAC := ledger.releaseLineageRecordMAC(row)
+		expectedPayload := sha256.Sum256(releaseLineagePayload(row.ReleaseLineageRecord))
+		if subtle.ConstantTimeCompare(expectedMAC[:], row.recordMAC[:]) != 1 ||
+			subtle.ConstantTimeCompare(expectedPayload[:], commit.payloadHash[:]) != 1 {
+			_ = releaseRows.Close()
+			return ledger.rollbackFailure(fmt.Errorf("verify protected release lineage: authentication mismatch"))
+		}
+		createdCounts[row.created]++
+	}
+	if err := releaseRows.Close(); err != nil {
+		return fail(ReasonProtectedLocalLedgerUnavailable, true, "restart_runtime_service", fmt.Errorf("close protected release lineage rows: %w", err))
+	}
+
 	for _, commit := range commits {
 		switch commit.eventKind {
 		case "genesis":
@@ -462,6 +502,10 @@ func (ledger *Ledger) verifyLogicalRecords(ctx context.Context, commits []commit
 		case "desktop_session_revoke":
 			if createdCounts[commit.sequence] != 0 || revokedCounts[commit.sequence] < 1 {
 				return ledger.rollbackFailure(fmt.Errorf("verify protected-local desktop session revoke: record mismatch"))
+			}
+		case releaseLineageEventKind:
+			if createdCounts[commit.sequence] != 1 || revokedCounts[commit.sequence] != 0 {
+				return ledger.rollbackFailure(fmt.Errorf("verify protected-local release lineage: record mismatch"))
 			}
 		default:
 			return ledger.rollbackFailure(fmt.Errorf("verify protected-local commit event: unsupported event kind"))

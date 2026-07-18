@@ -108,9 +108,7 @@ func (store *localDevelopmentStore) PendingLaunchPolicy(ctx context.Context, lau
 		return protectedlocal.LocalDevelopmentProcessPolicy{}, errLocalDevelopmentLaunchExpired
 	}
 	policy := protectedlocal.LocalDevelopmentProcessPolicy{ProjectRoot: row.ProjectRoot, HostExecutablePath: row.HostExecutable}
-	if row.ShellKind == runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON {
-		policy.ProjectHostAliasPath = filepath.Join(row.ProjectRoot, "node_modules", "electron", "dist", "electron.exe")
-	}
+	policy.ProjectHostAliasPath = localDevelopmentProjectHostAliasPath(row.ProjectRoot, row.ShellKind)
 	return policy, nil
 }
 
@@ -489,28 +487,6 @@ func (store *localDevelopmentStore) RevokeLaunch(ctx context.Context, launchID p
 	defer store.mu.Unlock()
 	_, err := store.db.ExecContext(ctx, `UPDATE local_development_launch SET status = 'revoked', revoked_unix_nano = ? WHERE launch_id = ? AND status IN ('pending','process_bound')`, store.now().UTC().UnixNano(), launchID[:])
 	return err
-}
-
-func validLocalDevelopmentHostPath(projectRoot string, hostExecutable string, shellKind runtimev1.LocalDevelopmentShellKind) bool {
-	root := filepath.Clean(strings.TrimSpace(projectRoot))
-	host := filepath.Clean(strings.TrimSpace(hostExecutable))
-	if !filepath.IsAbs(root) || !filepath.IsAbs(host) || root != strings.TrimSpace(projectRoot) || host != strings.TrimSpace(hostExecutable) {
-		return false
-	}
-	switch shellKind {
-	case runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON:
-		alias := filepath.Join(root, "node_modules", "electron", "dist", "electron.exe")
-		canonicalAlias, err := canonicalLocalDevelopmentFilePath(alias)
-		if err != nil {
-			return false
-		}
-		_, err = validateCanonicalLocalDevelopmentHostExecutable(root, host, canonicalAlias, shellKind)
-		return err == nil
-	case runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_TAURI:
-		return pathWithinLocalDevelopmentRoot(root, host)
-	default:
-		return false
-	}
 }
 
 func validLocalDevelopmentRendererOrigin(value string) bool {

@@ -33,6 +33,12 @@ type LocalAppLaunchPeerVerifier interface {
 	VerifyLocalAppLaunchPeer(context.Context) (VerifiedLocalAppLaunchPeer, error)
 }
 
+type staticLocalAppPeerVerifier struct{ peer VerifiedLocalAppLaunchPeer }
+
+func (verifier staticLocalAppPeerVerifier) VerifyLocalAppLaunchPeer(context.Context) (VerifiedLocalAppLaunchPeer, error) {
+	return verifier.peer, nil
+}
+
 type LocalAppConnection struct {
 	launchID   Identifier
 	process    ProcessTuple

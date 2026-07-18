@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -118,6 +119,9 @@ func TestLocalDevelopmentStoreReusesRememberedAuthorizationAndRequiresReapproval
 }
 
 func TestLocalDevelopmentStoreBindsExactControlledHostAndRevokesRun(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("positive project-Electron host fixture belongs to the Windows carrier")
+	}
 	ctx := context.Background()
 	now := time.Date(2026, time.July, 12, 10, 0, 0, 0, time.UTC)
 	store := openLocalDevelopmentStoreForTest(t, now)

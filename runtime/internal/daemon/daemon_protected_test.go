@@ -17,6 +17,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcserver"
+	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 )
@@ -41,7 +42,7 @@ func TestProtectedDaemonRunFailsClosedWithoutVerifiedNativeListener(t *testing.T
 			ServiceStateRoot:         serviceStateRoot,
 			AccountCustody:           daemonProtectedAccountCustody{},
 			AccountPartition:         "account=user-alpha;logon=42",
-			LocalOSUserSID:           "S-1-5-21-100-200-300-1001",
+			LocalOSUserIdentity:      verifiedDaemonTestIdentity(t),
 			ConnectorSecrets:         daemonProtectedConnectorSecrets{},
 			DesktopSessions:          authorities.desktop,
 			LocalAppLaunches:         authorities.localApps,
@@ -80,7 +81,7 @@ func TestProtectedDaemonRunProtectedUsesNativeCarrierWithoutPublicListeners(t *t
 			ServiceStateRoot:         serviceStateRoot,
 			AccountCustody:           daemonProtectedAccountCustody{},
 			AccountPartition:         "account=user-alpha;logon=42",
-			LocalOSUserSID:           "S-1-5-21-100-200-300-1001",
+			LocalOSUserIdentity:      verifiedDaemonTestIdentity(t),
 			ConnectorSecrets:         daemonProtectedConnectorSecrets{},
 			DesktopSessions:          authorities.desktop,
 			LocalAppLaunches:         authorities.localApps,
@@ -199,7 +200,7 @@ func TestNewProtectedUsesProtectedServerWithoutPublishingStatePathToEnvironment(
 			ServiceStateRoot:         serviceStateRoot,
 			AccountCustody:           daemonProtectedAccountCustody{},
 			AccountPartition:         "account=user-alpha;logon=42",
-			LocalOSUserSID:           "S-1-5-21-100-200-300-1001",
+			LocalOSUserIdentity:      verifiedDaemonTestIdentity(t),
 			ConnectorSecrets:         daemonProtectedConnectorSecrets{},
 			DesktopSessions:          authorities.desktop,
 			LocalAppLaunches:         authorities.localApps,
@@ -251,7 +252,7 @@ func TestNewProtectedWithResourcesClosesOwnedState(t *testing.T) {
 					ServiceStateRoot:         serviceStateRoot,
 					AccountCustody:           daemonProtectedAccountCustody{},
 					AccountPartition:         "account=user-alpha;logon=42",
-					LocalOSUserSID:           "S-1-5-21-100-200-300-1001",
+					LocalOSUserIdentity:      verifiedDaemonTestIdentity(t),
 					ConnectorSecrets:         daemonProtectedConnectorSecrets{},
 					DesktopSessions:          authorities.desktop,
 					LocalAppLaunches:         authorities.localApps,
@@ -344,6 +345,15 @@ func TestResolveProtectedServiceDataRootAdmitsOnlyDescendants(t *testing.T) {
 type daemonProtectedAuthorities struct {
 	desktop   *protectedlocal.DesktopSessionManager
 	localApps *protectedlocal.LocalAppLaunchRegistry
+}
+
+func verifiedDaemonTestIdentity(t *testing.T) localappkernel.VerifiedLocalOSUserIdentity {
+	t.Helper()
+	identity, err := localappkernel.ValidateVerifiedWindowsInteractiveUserSID("S-1-5-21-100-200-300-1001")
+	if err != nil {
+		t.Fatalf("validate daemon test OS-user identity: %v", err)
+	}
+	return identity
 }
 
 func newDaemonProtectedAuthorities(t *testing.T) daemonProtectedAuthorities {

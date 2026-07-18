@@ -5,7 +5,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -419,6 +418,12 @@ func (s *Service) BindLocalAppProcess(ctx context.Context, req *runtimev1.BindLo
 	if err != nil {
 		return nil, localDevelopmentStoreError(err)
 	}
+	desktopConnection, desktopOK := protectedlocal.DesktopConnectionFromContext(ctx)
+	desktopProcess, desktopProcessOK := desktopConnection.ClientProcess()
+	if !desktopOK || !desktopProcessOK {
+		return nil, localDevelopmentFailureAtStage(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH, "bind-supervisor")
+	}
+	policy.SupervisorProcess = desktopProcess
 	deadline, err := protectedlocal.BindLocalDevelopmentProcess(
 		s.localDevelopmentRegistry,
 		ctx,
@@ -438,14 +443,8 @@ func (s *Service) BindLocalAppProcess(ctx context.Context, req *runtimev1.BindLo
 }
 
 func localDevelopmentBindDiagnosticStage(err error) string {
-	if stage, ok := protectedlocal.WindowsProcessTrustStageFromError(err); ok {
-		return "bind-process-trust-" + strconv.FormatUint(uint64(stage), 10)
-	}
-	if stage, ok := protectedlocal.WindowsPipeStageFromError(err); ok {
-		return "bind-pipe-" + strconv.FormatUint(uint64(stage), 10)
-	}
-	if stage, ok := protectedlocal.WindowsLocalDevelopmentPolicyStageFromError(err); ok {
-		return "bind-policy-" + string(stage)
+	if stage, ok := protectedlocal.PlatformLocalDevelopmentDiagnosticStage(err); ok {
+		return stage
 	}
 	if stage, ok := protectedlocal.LocalDevelopmentBindStageFromError(err); ok {
 		return "bind-registry-" + string(stage)
@@ -458,7 +457,7 @@ func (s *Service) OpenLocalAppSessionProjection(ctx context.Context) (authservic
 		return authservice.LocalAppSessionProjection{}, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
 	connection, ok := protectedlocal.LocalAppConnectionFromContext(ctx)
-	if !ok || connection == nil || connection.Process().ExecutableTrustSetID != protectedlocal.WindowsLocalDevelopmentTrustSetID {
+	if !ok || connection == nil || !protectedlocal.IsLocalDevelopmentProcessTrustSet(connection.Process()) {
 		return authservice.LocalAppSessionProjection{}, localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH)
 	}
 	account, generation, authenticated := s.authenticatedLifecycleAccount(ctx)
@@ -508,7 +507,7 @@ func (s *Service) ResolveLocalAppSession(ctx context.Context, accountGeneration 
 		return accountservice.LocalAppCallerBinding{}, errLocalDevelopmentSessionRevoked
 	}
 	connection, ok := protectedlocal.LocalAppConnectionFromContext(ctx)
-	if !ok || connection.Process().ExecutableTrustSetID != protectedlocal.WindowsLocalDevelopmentTrustSetID {
+	if !ok || !protectedlocal.IsLocalDevelopmentProcessTrustSet(connection.Process()) {
 		return accountservice.LocalAppCallerBinding{}, accountservice.ErrLocalAppProcessMismatch
 	}
 	handle, ok := connection.Session()
@@ -662,82 +661,6 @@ func (s *Service) verifyLocalDevelopmentPresence(ctx context.Context, purpose st
 		return "", time.Time{}, accountservice.ErrPresenceVerificationUnavailable
 	}
 	return authority.VerifyRuntimePresence(ctx, purpose)
-}
-
-func canonicalLocalDevelopmentHostExecutable(projectRoot string, raw string, shellKind runtimev1.LocalDevelopmentShellKind) (string, error) {
-	path := filepath.Clean(strings.TrimSpace(raw))
-	if !filepath.IsAbs(path) {
-		return "", errLocalDevelopmentProjectChanged
-	}
-	canonical, err := canonicalLocalDevelopmentFilePath(path)
-	if err != nil {
-		return "", err
-	}
-	canonical = filepath.Clean(canonical)
-	info, err := os.Stat(canonical)
-	if err != nil || !info.Mode().IsRegular() {
-		return "", errLocalDevelopmentProjectChanged
-	}
-	electronAliasCanonical := ""
-	if shellKind == runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON {
-		electronAlias := filepath.Join(projectRoot, "node_modules", "electron", "dist", "electron.exe")
-		if !pathWithinLocalDevelopmentRoot(projectRoot, electronAlias) {
-			return "", errLocalDevelopmentProjectChanged
-		}
-		electronAliasCanonical, err = canonicalLocalDevelopmentFilePath(electronAlias)
-		if err != nil {
-			return "", errLocalDevelopmentProjectChanged
-		}
-		aliasInfo, err := os.Stat(electronAliasCanonical)
-		if err != nil || !aliasInfo.Mode().IsRegular() {
-			return "", errLocalDevelopmentProjectChanged
-		}
-	}
-	return validateCanonicalLocalDevelopmentHostExecutable(
-		projectRoot,
-		canonical,
-		electronAliasCanonical,
-		shellKind,
-	)
-}
-
-func localDevelopmentHostExecutable(project localDevelopmentProjectSnapshot) (string, error) {
-	switch project.ShellKind {
-	case runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON:
-		return canonicalLocalDevelopmentHostExecutable(
-			project.ProjectRoot,
-			filepath.Join(project.ProjectRoot, "node_modules", "electron", "dist", "electron.exe"),
-			project.ShellKind,
-		)
-	default:
-		// The final public request deliberately carries no caller-selected
-		// executable path. A future admitted execution profile may resolve other
-		// shells; 0K exposes no path fallback for them.
-		return "", errLocalDevelopmentProjectChanged
-	}
-}
-
-func validateCanonicalLocalDevelopmentHostExecutable(
-	projectRoot string,
-	candidate string,
-	electronAliasCanonical string,
-	shellKind runtimev1.LocalDevelopmentShellKind,
-) (string, error) {
-	candidate = filepath.Clean(candidate)
-	switch shellKind {
-	case runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON:
-		alias := filepath.Clean(electronAliasCanonical)
-		if alias == "." || !sameLocalDevelopmentFile(candidate, alias) {
-			return "", errLocalDevelopmentProjectChanged
-		}
-	case runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_TAURI:
-		if !pathWithinLocalDevelopmentRoot(projectRoot, candidate) {
-			return "", errLocalDevelopmentProjectChanged
-		}
-	default:
-		return "", errLocalDevelopmentProjectChanged
-	}
-	return candidate, nil
 }
 
 func sameLocalDevelopmentFile(left string, right string) bool {

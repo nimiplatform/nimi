@@ -1,3 +1,5 @@
+//go:build windows
+
 package app
 
 import (
@@ -45,7 +47,15 @@ func createLocalDevelopmentDirectoryLink(t *testing.T, target string, link strin
 	}
 }
 
+func requireWindowsLocalDevelopmentHostFixture(t *testing.T) {
+	t.Helper()
+	if runtime.GOOS != "windows" {
+		t.Skip("project Electron executable identity is the Windows carrier contract")
+	}
+}
+
 func TestLocalDevelopmentHostExecutableAllowsOnlyExactElectronAliasTarget(t *testing.T) {
+	requireWindowsLocalDevelopmentHostFixture(t)
 	root := filepath.Join(t.TempDir(), "project")
 	electronTarget := filepath.Join(t.TempDir(), "pnpm-store", "electron.exe")
 	rogueTarget := filepath.Join(t.TempDir(), "rogue", "electron.exe")
@@ -70,6 +80,7 @@ func TestLocalDevelopmentHostExecutableAllowsOnlyExactElectronAliasTarget(t *tes
 }
 
 func TestLocalDevelopmentHostExecutableAcceptsSameElectronFileIdentity(t *testing.T) {
+	requireWindowsLocalDevelopmentHostFixture(t)
 	root := filepath.Join(t.TempDir(), "project")
 	aliasExecutable := filepath.Join(t.TempDir(), "alias", "electron.exe")
 	candidateExecutable := filepath.Join(t.TempDir(), "canonical", "electron.exe")
@@ -97,6 +108,7 @@ func TestLocalDevelopmentHostExecutableAcceptsSameElectronFileIdentity(t *testin
 }
 
 func TestLocalDevelopmentHostExecutableKeepsTauriInsideProjectOutput(t *testing.T) {
+	requireWindowsLocalDevelopmentHostFixture(t)
 	root := filepath.Join(t.TempDir(), "project")
 	projectTarget := filepath.Join(root, "src-tauri", "target", "debug", "sample.exe")
 	externalTarget := filepath.Join(t.TempDir(), "outside", "sample.exe")
@@ -121,6 +133,7 @@ func TestLocalDevelopmentHostExecutableKeepsTauriInsideProjectOutput(t *testing.
 }
 
 func TestCanonicalLocalDevelopmentHostExecutableAllowsProjectElectronAliasIntoPackageStore(t *testing.T) {
+	requireWindowsLocalDevelopmentHostFixture(t)
 	root := filepath.Join(t.TempDir(), "project")
 	aliasParent := filepath.Join(root, "node_modules")
 	storePackage := filepath.Join(t.TempDir(), "pnpm-store", "electron")
@@ -196,6 +209,7 @@ func TestCanonicalLocalDevelopmentHostExecutableAcceptsWindowsNamespaceProjectRo
 }
 
 func TestLocalDevelopmentLaunchStoreRevalidatesExactElectronAliasTarget(t *testing.T) {
+	requireWindowsLocalDevelopmentHostFixture(t)
 	root := filepath.Join(t.TempDir(), "project")
 	aliasParent := filepath.Join(root, "node_modules")
 	storePackage := filepath.Join(t.TempDir(), "pnpm-store", "electron")

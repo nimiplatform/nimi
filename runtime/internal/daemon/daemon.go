@@ -11,6 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcserver"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/httpserver"
+	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
@@ -143,6 +144,10 @@ func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger
 	if accountPartition == "" {
 		return fail(fmt.Errorf("verified Windows Desktop account partition is required"))
 	}
+	localOSUserIdentity, err := localappkernel.ValidateVerifiedWindowsInteractiveUserSID(state.DesktopIdentity().UserSID())
+	if err != nil {
+		return fail(fmt.Errorf("validate Windows interactive-user identity: %w", err))
+	}
 	accountCustody, err := accountservice.NewProtectedBinaryCustody(secrets)
 	if err != nil {
 		return fail(fmt.Errorf("adapt Windows protected account custody: %w", err))
@@ -169,7 +174,7 @@ func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger
 			AccountRealmBaseURL:      cfg.AccountRealmBaseURL,
 			AccountAuthorizationURL:  cfg.AccountAuthorizationURL,
 			AccountTokenURL:          cfg.AccountTokenURL,
-			LocalOSUserSID:           state.DesktopIdentity().UserSID(),
+			LocalOSUserIdentity:      localOSUserIdentity,
 			ConnectorSecrets:         connectorSecrets,
 			DesktopSessions:          sessions,
 			LocalAppLaunches:         state.LocalAppLaunches(),

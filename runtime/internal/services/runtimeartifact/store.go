@@ -15,7 +15,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -266,7 +265,8 @@ func normalizeArtifactAudience(input ArtifactAudience, createdAt time.Time) (Art
 	}
 	switch input.TrustClass {
 	case "local_development":
-		if input.AuthorizationID == (protectedlocal.Identifier{}) || input.AuthorizationGeneration == 0 || input.ProjectRoot == "" || !filepath.IsAbs(input.ProjectRoot) || input.CapabilityFingerprint == (protectedlocal.Identifier{}) {
+		if input.AuthorizationID == (protectedlocal.Identifier{}) || input.AuthorizationGeneration == 0 ||
+			!protectedlocal.IsAbsolutePlatformPath(input.ProjectRoot) || input.CapabilityFingerprint == (protectedlocal.Identifier{}) {
 			return ArtifactAudience{}, ErrInvalidArtifactRecord
 		}
 	default:

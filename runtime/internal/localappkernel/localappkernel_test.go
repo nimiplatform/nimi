@@ -16,13 +16,13 @@ var testNow = time.Date(2026, 7, 13, 12, 30, 0, 123, time.UTC)
 
 func TestVerifiedSIDPartitionFailsClosedAcrossRestart(t *testing.T) {
 	ctx := context.Background()
-	valid, err := ValidateVerifiedInteractiveUserSID("S-1-5-21-100-200-300-1001")
+	valid, err := ValidateVerifiedWindowsInteractiveUserSID("S-1-5-21-100-200-300-1001")
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, invalid := range []string{"", " S-1-5-18", "S-2-5-18", "S-1-05-18", "S-1-5-admin"} {
-		if _, err := ValidateVerifiedInteractiveUserSID(invalid); !errors.Is(err, ErrInvalidArgument) {
-			t.Fatalf("ValidateVerifiedInteractiveUserSID(%q) error = %v", invalid, err)
+		if _, err := ValidateVerifiedWindowsInteractiveUserSID(invalid); !errors.Is(err, ErrInvalidArgument) {
+			t.Fatalf("ValidateVerifiedWindowsInteractiveUserSID(%q) error = %v", invalid, err)
 		}
 	}
 	path := filepath.Join(t.TempDir(), "local-app.db")
@@ -47,7 +47,7 @@ func TestVerifiedSIDPartitionFailsClosedAcrossRestart(t *testing.T) {
 	if err := reopened.Close(); err != nil {
 		t.Fatal(err)
 	}
-	other, err := ValidateVerifiedInteractiveUserSID("S-1-5-21-100-200-300-1002")
+	other, err := ValidateVerifiedWindowsInteractiveUserSID("S-1-5-21-100-200-300-1002")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -267,7 +267,7 @@ func TestSecurityKeysIsolateAccountAndEqualDisplayAppID(t *testing.T) {
 
 func openTestKernel(t *testing.T, options Options) *Kernel {
 	t.Helper()
-	sid, err := ValidateVerifiedInteractiveUserSID("S-1-5-21-100-200-300-1001")
+	sid, err := ValidateVerifiedWindowsInteractiveUserSID("S-1-5-21-100-200-300-1001")
 	if err != nil {
 		t.Fatal(err)
 	}

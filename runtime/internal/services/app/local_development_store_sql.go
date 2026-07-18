@@ -145,7 +145,7 @@ type localDevelopmentProcessRecord struct {
 }
 
 func marshalLocalDevelopmentProcess(process protectedlocal.ProcessTuple) (string, error) {
-	if err := protectedlocal.ValidateProcessTuple(process); err != nil || process.CanonicalExecutablePath == "" || process.ExecutableTrustSetID != protectedlocal.WindowsLocalDevelopmentTrustSetID {
+	if err := protectedlocal.ValidateProcessTuple(process); err != nil || process.CanonicalExecutablePath == "" || !protectedlocal.IsLocalDevelopmentProcessTrustSet(process) {
 		return "", errLocalDevelopmentLaunchMismatch
 	}
 	record := localDevelopmentProcessRecord{

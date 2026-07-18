@@ -19,7 +19,7 @@ type localAppAuthorityFixture struct {
 func newLocalAppAuthorityFixture(t *testing.T) *localAppAuthorityFixture {
 	t.Helper()
 	now := time.Now().UTC().Truncate(time.Second)
-	sid, err := localappkernel.ValidateVerifiedInteractiveUserSID("S-1-5-21-100-200-300-1001")
+	sid, err := localappkernel.ValidateVerifiedWindowsInteractiveUserSID("S-1-5-21-100-200-300-1001")
 	if err != nil {
 		t.Fatalf("validate test SID: %v", err)
 	}

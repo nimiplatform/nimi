@@ -16,6 +16,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
+	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 )
@@ -151,7 +152,7 @@ func TestProtectedServiceUsesOnlyVerifiedSecurityBindings(t *testing.T) {
 			ServiceStateRoot:         serviceStateRoot,
 			AccountCustody:           emptyProtectedAccountCustody{},
 			AccountPartition:         "verified-user-and-logon-session",
-			LocalOSUserSID:           "S-1-5-21-100-200-300-1001",
+			LocalOSUserIdentity:      verifiedServerTestIdentity(t),
 			ConnectorSecrets:         emptyProtectedConnectorSecrets{},
 			DesktopSessions:          authorities.desktop,
 			LocalAppLaunches:         authorities.localApps,
@@ -203,7 +204,7 @@ func TestProtectedServiceRejectsPortableProtectedResourceBindings(t *testing.T) 
 			PlatformAppRegistryPath:  "relative/nimi-app-registry.yaml",
 			AccountCustody:           emptyProtectedAccountCustody{},
 			AccountPartition:         "verified-user-and-logon-session",
-			LocalOSUserSID:           "S-1-5-21-100-200-300-1001",
+			LocalOSUserIdentity:      verifiedServerTestIdentity(t),
 			ConnectorSecrets:         emptyProtectedConnectorSecrets{},
 			DesktopSessions:          authorities.desktop,
 			LocalAppLaunches:         authorities.localApps,
@@ -242,7 +243,7 @@ func TestProtectedServiceRejectsMissingDesktopSessionAuthority(t *testing.T) {
 					ServiceStateRoot:         t.TempDir(),
 					AccountCustody:           emptyProtectedAccountCustody{},
 					AccountPartition:         "verified-user-and-logon-session",
-					LocalOSUserSID:           "S-1-5-21-100-200-300-1001",
+					LocalOSUserIdentity:      verifiedServerTestIdentity(t),
 					ConnectorSecrets:         emptyProtectedConnectorSecrets{},
 					DesktopSessions:          manager,
 					LocalAppLaunches:         authorities.localApps,
@@ -263,6 +264,15 @@ func TestProtectedServiceRejectsMissingDesktopSessionAuthority(t *testing.T) {
 type protectedAuthoritiesForServerTest struct {
 	desktop   *protectedlocal.DesktopSessionManager
 	localApps *protectedlocal.LocalAppLaunchRegistry
+}
+
+func verifiedServerTestIdentity(t *testing.T) localappkernel.VerifiedLocalOSUserIdentity {
+	t.Helper()
+	identity, err := localappkernel.ValidateVerifiedWindowsInteractiveUserSID("S-1-5-21-100-200-300-1001")
+	if err != nil {
+		t.Fatalf("validate server test OS-user identity: %v", err)
+	}
+	return identity
 }
 
 func newProtectedAuthoritiesForServerTest(t *testing.T) protectedAuthoritiesForServerTest {
