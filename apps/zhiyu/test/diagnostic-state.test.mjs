@@ -69,8 +69,8 @@ test('projects all ready evidence without a primary blocker', async () => {
       sourceRef: {
         kind: 'worldCharacter',
         worldId: 'world-1',
-        sourceId: 'source-1',
-        sourceContentHash: 'hash-1',
+        id: 'source-1',
+        sourceHash: 'a'.repeat(64),
       },
     },
     inventory: {

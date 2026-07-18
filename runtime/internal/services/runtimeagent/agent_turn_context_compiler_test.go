@@ -9,7 +9,7 @@ import (
 func agentTurnContextTestSnapshot(t *testing.T, kind string) localAgentSourceSnapshotV2 {
 	t.Helper()
 	vectorName := "world-character"
-	if kind == "realmPersona" || kind == "personaCharacter" {
+	if kind == "personaCharacter" {
 		vectorName = "persona-character"
 	}
 	vector := loadSourceMaterializationReferenceVectorV3(t, vectorName)

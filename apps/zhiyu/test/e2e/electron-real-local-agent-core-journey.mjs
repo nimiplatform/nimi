@@ -162,8 +162,8 @@ export async function runFullChainCoreContinuation({
   const personaAck = await waitForControlJson(handoff, 'persona-materialize-complete.json');
   assert.equal(personaAck.ok, true);
   const updatedHandoff = JSON.parse(await readFile(process.env.NIMI_LOCAL_AGENT_PRODUCT_HANDOFF_PATH, 'utf8'));
-  const persona = updatedHandoff.agents.find((agent) => agent.sourceKind === 'realmPersona');
-  assert.ok(persona, 'Desktop must materialize a RealmPersona in the same Journey environment');
+  const persona = updatedHandoff.agents.find((agent) => agent.sourceKind === 'personaCharacter');
+  assert.ok(persona, 'Desktop must materialize a PersonaCharacter in the same Journey environment');
   await page.reload({ waitUntil: 'domcontentloaded' });
   await waitForEvidence(page, () => globalThis.window.__nimiZhiyuEvidence?.inventory?.ready === true
     && globalThis.window.__nimiZhiyuEvidence?.inventory?.count === 2, 'two-agent Runtime inventory');

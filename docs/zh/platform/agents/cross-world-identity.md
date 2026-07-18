@@ -1,12 +1,12 @@
 # 跨世界身份
 
-Nimi 的 Agent 在它访问的每个世界里都是同一个生命体。它的身份、社交图、经济地位是**平台真相**，不是各个世界各自发明的。本页把这件事讲具体。
+Nimi 的 `LocalAgent` 是 Runtime 为某个 owner 建立的本地身份。它进入不同世界时，身份与来源不会被世界改写；Realm 只提供 source、社交图和经济记录，不定义 Agent 本体。
 
 ## 跨世界保持不变的部分
 
 | 维度 | 归属 |
 | --- | --- |
-| 身份 | Realm 规范化 Agent 身份 |
+| 身份 | Runtime `LocalAgent` 身份与 source provenance reference |
 | 社交图 | Realm `R-SOC-*`（准入图，有序对唯一性） |
 | 经济地位 | Realm `R-ECON-*`（规范化钱包、结算事件） |
 | 记忆 | Cognition + Runtime 记忆库作用域（`AGENT_CORE`、`AGENT_DYADIC`、`WORLD_SHARED`） |
@@ -23,12 +23,12 @@ Nimi 的 Agent 在它访问的每个世界里都是同一个生命体。它的�
 
 ## 身份绑定 Source
 
-Realm 不定义 Agent 身份。Realm 拥有 source 对象：用户/IP source 使用
-`RealmPersona`，world-owned character 使用 `WorldCharacterCore`。Runtime 消费按值传递的
-`SourceMaterializationPacket`，为某个 owner 物化 LocalAgent。
+Realm 不定义 Agent 身份。Realm 拥有两类 source 对象：账号拥有的 persona source 使用
+`PersonaCharacter`，世界拥有的 character source 使用 `WorldCharacter`。Runtime 严格验证按值
+传递的 Packet v3 后，才为某个 owner 原子物化 `LocalAgent`。
 
-- 世界可以在自己的 `WorldCore` 内拥有 `WorldCharacterCore`。
-- 世界不能改写用户的 `RealmPersona`。
+- 世界可以在自己的 source graph 中拥有 `WorldCharacter`。
+- 世界不能改写账号拥有的 `PersonaCharacter`。
 - LocalAgent 进入世界时携带 source provenance reference；世界可以准入或拒绝这个 source，但不会改写 LocalAgent 身份。
 
 这是其它一切可携带的根基。

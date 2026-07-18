@@ -12,7 +12,7 @@ const NON_ADMISSION_TRUTH = Object.freeze({
   registryAdmissionTruth: 'not-generated',
   releaseDescriptorTruth: 'not-generated',
   ordinaryVisibilityTruth: 'not-generated',
-  permissionGrantTruth: 'not-generated',
+  permissionDecisionTruth: 'not-generated',
   signingTruth: 'not-generated',
   notarizationTruth: 'not-generated',
   mirrorLicenseClearanceTruth: 'not-generated',
@@ -25,7 +25,7 @@ const NON_ADMISSION_TRUTH = Object.freeze({
 const MISSING_PLATFORM_ADMISSION_FIELDS = Object.freeze([
   'admitted registry row',
   'admitted release descriptor row',
-  'permission scope ref set',
+  'public permission requirements set',
   'storage policy ref',
   'capability refs',
   'artifact provenance and signing assurance',

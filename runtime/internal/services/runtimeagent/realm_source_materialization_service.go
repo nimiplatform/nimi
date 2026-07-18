@@ -9,8 +9,9 @@ import (
 )
 
 // MaterializeRealmSource is the sole public Realm source ingress. Every Realm
-// credential, grant, challenge, Packet, proof, JWKS document and closure byte
-// is acquired through the private issuer and never accepted from the caller.
+// credential, challenge, Packet, proof, JWKS document and closure byte is
+// acquired through the private issuer's authenticated first-party operation and
+// never accepted from the caller. No app permission or grant participates.
 func (s *Service) MaterializeRealmSource(ctx context.Context, req *runtimev1.MaterializeRealmSourceRequest) (*runtimev1.MaterializeRealmSourceResponse, error) {
 	request, err := validateRealmSourceMaterializationRequestV3(ctx, req)
 	if err != nil {

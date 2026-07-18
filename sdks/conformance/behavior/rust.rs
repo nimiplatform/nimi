@@ -174,7 +174,6 @@ fn generated_clients_use_fake_transport() {
                 RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest {
                     path: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationPath {},
                     body: CreateSourceMaterializationPacketV3Dto {
-                        access_grant_id: "grant-conformance".to_string(),
                         intended_runtime_audience: "sdk.conformance".to_string(),
                         materializer_account_id: "account-conformance".to_string(),
                         challenge_id: "challenge_conformance_0001".to_string(),

@@ -10,7 +10,7 @@ import (
 
 func TestAgentTurnContextSummaryIsBoundedAndPrivateContentFree(t *testing.T) {
 	t.Parallel()
-	input := agentTurnContextTestInput(t, "realmPersona")
+	input := agentTurnContextTestInput(t, "personaCharacter")
 	canaries := []string{
 		"PRIVATE-RUNTIME-POLICY-CANARY",
 		"PRIVATE-APML-CANARY",

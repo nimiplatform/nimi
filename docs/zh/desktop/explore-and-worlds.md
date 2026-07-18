@@ -68,7 +68,7 @@
 
 | 来源 | 提供什么 |
 | --- | --- |
-| Realm | 世界、RealmPersona、WorldCharacterCore、社交动态 |
+| Realm | 世界、PersonaCharacter、WorldCharacter、社交动态 |
 | Runtime | LocalAgent 呈现资料预览 |
 | Realm 聊天 / 社交 | 社交动态流 |
 

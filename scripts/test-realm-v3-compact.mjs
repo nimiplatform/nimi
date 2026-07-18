@@ -177,8 +177,8 @@ async function validateFixedProducer(realmRoot) {
   const admissionBytes = await readFile(admissionPath);
   const admission = JSON.parse(admissionBytes.toString('utf8'));
   const expected = {
-    commit: '796aa4566e32bf117d0ea5142e77496f33a91fbf',
-    tree: '7e5465764395d14737ba5bdd362af7a27b8356bb',
+    commit: '15d96300bf9c4b1305bb68818208682b10e0c7c0',
+    tree: '0b743e2b5190a470a5e8685eac09a0a3221b41ee',
     packetSchema: 'realm.source-materialization-packet/v3',
     accessPolicy: 'realm.source-materialization-access-policy/v5',
     accessPolicyDigest: '7649e8c7aa85f6667b1af5134686fc653f33ed5094e5d11483a5e60f39765faa',
@@ -291,7 +291,7 @@ const tests = [
     cwd: runtimeRoot,
   },
   {
-    id: 'account-grant-current-jwks',
+    id: 'account-current-jwks-first-party-materialization',
     command: 'go',
     args: [
       'test', './internal/services/account', '-count=1',
@@ -301,7 +301,7 @@ const tests = [
   },
   ...productionAdapterTests,
   {
-    id: 'desktop-current-grant-packet-v3-fixture',
+    id: 'desktop-current-first-party-packet-v3-fixture',
     command: 'pnpm',
     args: [
       '--filter', '@nimiplatform/desktop', 'exec', 'tsx', '--test',

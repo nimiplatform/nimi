@@ -8,38 +8,81 @@ import YAML from 'yaml';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
-const failures = [];
-let deferredLegacyInventorySummary = '';
+
+const PACKET_OPERATION_PATH = '/api/realm/core/source-materialization-packets';
+const PACKET_OPERATION_ID = 'WorldCoreController_createSourceMaterializationPacket';
+const PACKET_SCHEMA = 'realm.source-materialization-packet/v3';
+const MATERIALIZATION_RPC = 'MaterializeRealmSource';
+const RETIRED_RPCS = Object.freeze([
+  'CreateSourceMaterializationChallenge',
+  'BeginSourceMaterializationUpload',
+  'PutSourceMaterializationChunk',
+  'CommitSourceMaterialization',
+  'AbortSourceMaterializationUpload',
+]);
+const RETIRED_TOKENS = Object.freeze([
+  'SourceMaterializationPacketV2',
+  'realm.source-materialization-packet/v2',
+  'RealmPersona',
+  'accessGrantId',
+  '/api/human/me/permission-grants',
+  '/api/runtime/realm-grants/issue',
+  'realm_source.snapshot.consume',
+  'realm_source.snapshot.bind',
+  'agent.identity.project',
+]);
+const RAW_PUBLIC_INPUTS = Object.freeze([
+  'realmBase',
+  'bearer',
+  'grantId',
+  'packet',
+  'packetProof',
+  'challenge',
+  'challengeDigest',
+  'orderedSegments',
+  'jwks',
+  'localAgentRef',
+]);
+const HANDOFF_DISPOSITION_PATH = 'config/realm-v3/handoff-dispositions.json';
+const HANDOFF_ACCEPTANCE_EVIDENCE = Object.freeze([
+  'consumer-hardcut',
+  'five-lane-restart-offline',
+  'hard-delete-zero-residue',
+  'runtime-current-realm-live-world-persona',
+  'runtime-hermetic-fullchain-security',
+  'security-zero-product-mutation',
+]);
 
 function read(relativePath) {
   const absolutePath = path.join(repoRoot, relativePath);
-  if (!fs.existsSync(absolutePath)) {
-    failures.push(`${relativePath}: missing`);
-    return '';
+  if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) {
+    throw new Error(`required hard-cut input is missing: ${relativePath}`);
   }
   return fs.readFileSync(absolutePath, 'utf8');
 }
 
-function requireMatch(text, pattern, label) {
-  if (!pattern.test(text)) failures.push(`missing ${label}`);
+function invariant(condition, message) {
+  if (!condition) throw new Error(message);
 }
 
-function forbidMatch(text, pattern, label) {
-  if (pattern.test(text)) failures.push(`forbidden ${label}`);
+function sorted(values) {
+  return [...values].sort((left, right) =>
+    Buffer.compare(Buffer.from(left, 'utf8'), Buffer.from(right, 'utf8')),
+  );
 }
 
-function countMatches(text, pattern) {
-  const flags = pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`;
-  return [...text.matchAll(new RegExp(pattern.source, flags))].length;
+function assertExactSet(actual, expected, label) {
+  const normalizedActual = sorted(actual);
+  const normalizedExpected = sorted(expected);
+  invariant(
+    JSON.stringify(normalizedActual) === JSON.stringify(normalizedExpected),
+    `${label} mismatch: expected ${normalizedExpected.join(', ')}, got ${normalizedActual.join(', ')}`,
+  );
 }
 
 function block(text, keyword, name) {
-  const startPattern = new RegExp(`\\b${keyword}\\s+${name}\\s*\\{`, 'g');
-  const match = startPattern.exec(text);
-  if (!match) {
-    failures.push(`missing ${keyword} ${name}`);
-    return '';
-  }
+  const match = new RegExp(`\\b${keyword}\\s+${name}\\s*\\{`, 'u').exec(text);
+  invariant(match, `missing ${keyword} ${name}`);
   const open = text.indexOf('{', match.index);
   let depth = 0;
   for (let index = open; index < text.length; index += 1) {
@@ -49,288 +92,605 @@ function block(text, keyword, name) {
       if (depth === 0) return text.slice(open + 1, index);
     }
   }
-  failures.push(`unterminated ${keyword} ${name}`);
-  return '';
+  throw new Error(`unterminated ${keyword} ${name}`);
 }
 
-function trackedActiveFiles() {
-  const output = execFileSync(
-    'git',
-    ['ls-files', '-z', '--', 'apps', 'runtime', 'sdks', 'scripts'],
-    { cwd: repoRoot, encoding: 'utf8' },
+function protoFieldNames(messageBlock) {
+  return [...messageBlock.matchAll(
+    /^\s*(?:optional\s+|repeated\s+)?[A-Za-z0-9_.]+\s+([a-z][a-z0-9_]*)\s*=\s*\d+\s*;/gmu,
+  )].map((match) => match[1]);
+}
+
+function typescriptFieldNames(interfaceBlock) {
+  return [...interfaceBlock.matchAll(/^\s*readonly\s+([A-Za-z0-9_]+)\??\s*:/gmu)]
+    .map((match) => match[1]);
+}
+
+function assertNoTokens(text, tokens, label) {
+  for (const token of tokens) {
+    invariant(!text.includes(token), `${label} retains forbidden token ${token}`);
+  }
+}
+
+function assertOpenApi(document, text) {
+  const operation = document?.paths?.[PACKET_OPERATION_PATH]?.post;
+  invariant(operation?.operationId === PACKET_OPERATION_ID, 'current Realm Packet v3 operation is missing');
+  invariant(
+    operation?.requestBody?.content?.['application/json']?.schema?.$ref ===
+      '#/components/schemas/CreateSourceMaterializationPacketV3Dto',
+    'Realm Packet operation does not use CreateSourceMaterializationPacketV3Dto',
   );
-  return output
+  invariant(
+    operation?.responses?.['201']?.content?.['application/json']?.schema?.$ref ===
+      '#/components/schemas/SourceMaterializationPacketV3Dto',
+    'Realm Packet operation does not return SourceMaterializationPacketV3Dto',
+  );
+
+  const schemas = document?.components?.schemas ?? {};
+  const request = schemas.CreateSourceMaterializationPacketV3Dto;
+  invariant(request?.type === 'object' && request?.additionalProperties === false, 'Packet v3 request must be closed');
+  assertExactSet(Object.keys(request?.properties ?? {}), [
+    'sourceRef',
+    'materializerAccountId',
+    'challengeId',
+    'challengeDigest',
+    'intendedRuntimeAudience',
+    'challengeExpiresAt',
+    'publishedLimits',
+  ], 'Packet v3 request properties');
+  assertExactSet(request?.required ?? [], Object.keys(request?.properties ?? {}), 'Packet v3 request required fields');
+
+  const packet = schemas.SourceMaterializationPacketV3Dto;
+  invariant(packet?.type === 'object' && packet?.additionalProperties === false, 'Packet v3 response must be closed');
+  invariant(
+    JSON.stringify(packet?.properties?.packetSchemaVersion?.enum) === JSON.stringify([PACKET_SCHEMA]),
+    'Packet v3 response schema version is not exact',
+  );
+  assertExactSet(
+    (packet?.properties?.semanticPayload?.oneOf ?? []).map((entry) => entry?.$ref),
+    [
+      '#/components/schemas/WorldCharacterMaterializationPayloadV3Dto',
+      '#/components/schemas/PersonaCharacterMaterializationPayloadV3Dto',
+    ],
+    'Packet v3 semantic payload variants',
+  );
+
+  const sourceRef = schemas.CharacterSourceRefV3Dto;
+  invariant(sourceRef?.discriminator?.propertyName === 'kind', 'CharacterSourceRefV3 discriminator is not kind');
+  assertExactSet(
+    (sourceRef?.oneOf ?? []).map((entry) => entry?.$ref),
+    [
+      '#/components/schemas/WorldCharacterSourceRefV3Dto',
+      '#/components/schemas/PersonaCharacterSourceRefV3Dto',
+    ],
+    'CharacterSourceRefV3 variants',
+  );
+  assertExactSet(Object.keys(sourceRef?.discriminator?.mapping ?? {}), [
+    'worldCharacter',
+    'personaCharacter',
+  ], 'CharacterSourceRefV3 discriminator mapping');
+
+  for (const retiredPath of ['/api/human/me/permission-grants', '/api/runtime/realm-grants/issue']) {
+    invariant(
+      !Object.keys(document?.paths ?? {}).some(
+        (candidate) => candidate === retiredPath || candidate.startsWith(`${retiredPath}/`),
+      ),
+      `Realm OpenAPI retains retired permission endpoint ${retiredPath}`,
+    );
+  }
+  for (const schemaName of Object.keys(schemas)) {
+    invariant(!/^AppPermission(?:Grant|Scope)/u.test(schemaName), `Realm OpenAPI retains ${schemaName}`);
+    invariant(!/SourceMaterializationPacketV[12]|RealmPersona/u.test(schemaName), `Realm OpenAPI retains ${schemaName}`);
+  }
+  assertNoTokens(text, [
+    'realm.source-materialization-packet/v2',
+    'realm_source.snapshot.consume',
+    'realm_source.snapshot.bind',
+    'agent.identity.project',
+    'accessGrantId',
+  ], 'Realm OpenAPI');
+}
+
+function assertRuntimeProto(serviceText, materializationText) {
+  const service = block(serviceText, 'service', 'RuntimeAgentService');
+  const rpcNames = [...service.matchAll(/\brpc\s+([A-Za-z0-9_]+)\s*\(/gu)].map((match) => match[1]);
+  invariant(rpcNames.filter((name) => name === MATERIALIZATION_RPC).length === 1, 'Runtime must expose exactly one MaterializeRealmSource RPC');
+  for (const retired of RETIRED_RPCS) {
+    invariant(!rpcNames.includes(retired), `Runtime retains retired public RPC ${retired}`);
+  }
+
+  assertExactSet(
+    protoFieldNames(block(materializationText, 'message', 'MaterializeRealmSourceRequest')),
+    ['context', 'request_id', 'source_ref'],
+    'MaterializeRealmSourceRequest fields',
+  );
+  assertExactSet(
+    protoFieldNames(block(materializationText, 'message', 'MaterializeRealmSourceResponse')),
+    ['local_agent_ref', 'source_context_status', 'idempotent_replay', 'reason_code'],
+    'MaterializeRealmSourceResponse fields',
+  );
+  assertExactSet(
+    protoFieldNames(block(materializationText, 'message', 'CharacterSourceRefV3')),
+    ['world_character', 'persona_character'],
+    'CharacterSourceRefV3 oneof fields',
+  );
+  assertExactSet(
+    protoFieldNames(block(materializationText, 'message', 'LocalAgentSourceContextStatus')),
+    [
+      'schema_version',
+      'ready',
+      'state',
+      'reason_code',
+      'local_agent_ref',
+      'source_ref',
+      'source_schema_version',
+      'snapshot_schema_version',
+      'snapshot_hash',
+      'captured_at',
+      'world_content_hash',
+      'materialization_context_hash',
+      'coverage_sections',
+    ],
+    'LocalAgentSourceContextStatus fields',
+  );
+  assertNoTokens(materializationText, [
+    ...RETIRED_TOKENS,
+    ...RETIRED_RPCS,
+    'RealmBase',
+    'Bearer',
+    'PacketProof',
+    'OrderedSegments',
+  ], 'Runtime materialization public proto');
+}
+
+function assertGeneratedSdk() {
+  const typescriptRealm = read('sdks/typescript/core-generated/realm-typed-client.ts');
+  const packetBlock = block(typescriptRealm, 'interface', 'SourceMaterializationPacketV3Dto');
+  invariant(
+    /packetSchemaVersion:\s*"realm\.source-materialization-packet\/v3"/u.test(packetBlock),
+    'TypeScript generated Packet v3 literal is missing',
+  );
+  invariant(
+    /export type SourceMaterializationPacketV3DtoSemanticPayload\s*=\s*WorldCharacterMaterializationPayloadV3Dto\s*\|\s*PersonaCharacterMaterializationPayloadV3Dto\s*;/u.test(typescriptRealm),
+    'TypeScript generated World/Persona Packet v3 union is missing',
+  );
+
+  const pythonRealm = read('sdks/python/core_generated/realm_typed_client.py');
+  invariant(
+    /SourceMaterializationPacketV3DtoSemanticPayload\s*=\s*WorldCharacterMaterializationPayloadV3Dto\s*\|\s*PersonaCharacterMaterializationPayloadV3Dto/u.test(pythonRealm),
+    'Python generated World/Persona Packet v3 union is missing',
+  );
+
+  const goRealm = read('sdks/go/coregenerated/typed_clients.go');
+  invariant(
+    /type SourceMaterializationPacketV3DtoSemanticPayload struct \{[\s\S]*?WorldCharacter \*WorldCharacterMaterializationPayloadV3Dto[\s\S]*?PersonaCharacter \*PersonaCharacterMaterializationPayloadV3Dto[\s\S]*?\}/u.test(goRealm),
+    'Go generated World/Persona Packet v3 union is missing',
+  );
+  invariant(
+    /SourceMaterializationPacketV3DtoSemanticPayload[\s\S]*?unknown discriminator/u.test(goRealm),
+    'Go generated Packet v3 discriminator is not fail-closed',
+  );
+
+  const rustRealm = read('sdks/rust/core_generated/typed_clients.rs');
+  invariant(
+    /pub enum SourceMaterializationPacketV3DtoSemanticPayload \{[\s\S]*?WorldCharacterMaterializationPayloadV3\([\s\S]*?PersonaCharacterMaterializationPayloadV3\([\s\S]*?\}/u.test(rustRealm),
+    'Rust generated World/Persona Packet v3 union is missing',
+  );
+  invariant(
+    /SourceMaterializationPacketV3DtoSemanticPayload[\s\S]*?unknown SourceMaterializationPacketV3DtoSemanticPayload discriminator/u.test(rustRealm),
+    'Rust generated Packet v3 discriminator is not fail-closed',
+  );
+
+  for (const [label, text] of [
+    ['TypeScript generated Realm core', typescriptRealm],
+    ['Python generated Realm core', pythonRealm],
+    ['Go generated Realm core', goRealm],
+    ['Rust generated Realm core', rustRealm],
+  ]) {
+    assertNoTokens(text, ['SourceMaterializationPacketV2', 'realm.source-materialization-packet/v2', 'RealmPersona'], label);
+  }
+}
+
+function assertTypescriptRuntimeFacade(runtimeText) {
+  const input = block(runtimeText, 'interface', 'RuntimeMaterializeRealmSourceInput');
+  assertExactSet(
+    typescriptFieldNames(input),
+    ['sourceRef', 'requestId'],
+    'RuntimeMaterializeRealmSourceInput fields',
+  );
+  assertNoTokens(input, RAW_PUBLIC_INPUTS, 'RuntimeMaterializeRealmSourceInput');
+  invariant(
+    /strictMaterializationRecord\([\s\S]*?new Set\(\['sourceRef', 'requestId'\]\)/u.test(runtimeText),
+    'TypeScript Runtime facade does not strictly close materializeRealmSource input',
+  );
+  invariant(
+    /async materializeRealmSource\([\s\S]*?this\.#materializeRealmSource\(\{/u.test(runtimeText),
+    'TypeScript Runtime facade does not delegate MaterializeRealmSource',
+  );
+
+  const generatedRuntime = read('sdks/typescript/core-generated/runtime-typed-client.ts');
+  invariant(/async materializeRealmSource\s*\(/u.test(generatedRuntime), 'generated Runtime client is missing materializeRealmSource');
+  assertNoTokens(generatedRuntime, RETIRED_RPCS.map((value) => `${value[0].toLowerCase()}${value.slice(1)}`), 'generated Runtime client');
+}
+
+function assertRuntimeAcquisition() {
+  const issuer = read('runtime/internal/services/runtimeagent/source_materialization_v3_issuer.go');
+  const account = read('runtime/internal/services/account/realm_source_materialization.go');
+  invariant(
+    /AcquireRealmSourceMaterialization\(context\.Context, RealmSourceMaterializationIssuanceRequest\)/u.test(issuer),
+    'Runtime-private Realm materialization issuer seam is missing',
+  );
+  invariant(
+    /doRealmSourceMaterializationStream\(ctx, credential, http\.MethodPost, realmSourceMaterializationPacketPath/u.test(account),
+    'Runtime account owner does not call the fixed Packet v3 endpoint directly',
+  );
+  assertNoTokens(`${issuer}\n${account}`, RETIRED_TOKENS, 'Runtime Packet v3 acquisition');
+}
+
+function assertActiveAuthorityAndReleaseEvidence(
+  realmApiContract,
+  realmCoreContract,
+  runtimeAuthPosture,
+  zhiyuReleaseReadiness,
+  runtimeMaterializationService,
+  realmConsumerSmoke,
+) {
+  assertNoTokens(
+    `${realmApiContract}\n${realmCoreContract}\n${runtimeAuthPosture}\n${zhiyuReleaseReadiness}`,
+    [
+      'access-grant request',
+      'access-grant requests',
+      'grant internally',
+      'permission_scope_ref',
+      'permissionGrantTruth',
+      'agent.identity.project',
+      'bounded-r1-scope-set',
+    ],
+    'active Realm consumer authority and Zhiyu release evidence',
+  );
+  invariant(
+    realmApiContract.includes('there is no app grant') &&
+      realmCoreContract.includes('authenticated first-party challenges'),
+    'active SDK authority does not state the first-party no-grant boundary',
+  );
+  invariant(
+    runtimeAuthPosture.includes('without any app permission or grant'),
+    'Runtime RPC auth posture does not state the first-party no-grant boundary',
+  );
+  invariant(
+    zhiyuReleaseReadiness.includes('permission_requirements') &&
+      zhiyuReleaseReadiness.includes('permissionDecisionTruth') &&
+      zhiyuReleaseReadiness.includes('not-required-empty-public-permission-requirements'),
+    'Zhiyu release readiness does not use the current empty public permission model',
+  );
+  invariant(
+    runtimeMaterializationService.includes('No app permission or grant participates.') &&
+      !runtimeMaterializationService.includes('credential, grant, challenge'),
+    'Runtime materialization service comment restores an internal grant step',
+  );
+  invariant(
+    realmConsumerSmoke.includes('Retired Realm app-grant methods are absent from the first-party API.') &&
+      !realmConsumerSmoke.includes('grant acquisition is Runtime-internal authority'),
+    'Realm consumer smoke describes retired grant acquisition as current Runtime authority',
+  );
+}
+
+function expectedHandoffClassification(index) {
+  if (index <= 11) return 'realm_input_required';
+  if (index <= 16) return 'runtime_derived';
+  if (index <= 22) return 'runtime_owned';
+  if (index <= 26) return 'forbidden_in_realm_packet';
+  return 'not_applicable';
+}
+
+function expectedHandoffDisposition(classification) {
+  return {
+    realm_input_required: 'implemented_realm_input',
+    runtime_derived: 'implemented_runtime_derived',
+    runtime_owned: 'retained_runtime_owned',
+    forbidden_in_realm_packet: 'rejected_forbidden_input',
+    not_applicable: 'not_applicable_to_materialization',
+  }[classification];
+}
+
+function assertHandoffEvidence(candidate, label, requireTestPath) {
+  invariant(candidate && typeof candidate === 'object' && !Array.isArray(candidate), `${label} is missing`);
+  const relativePath = candidate.path;
+  const contains = candidate.contains;
+  invariant(
+    typeof relativePath === 'string' && relativePath !== '' && !path.isAbsolute(relativePath) &&
+      !relativePath.split('/').includes('..'),
+    `${label} path is invalid`,
+  );
+  invariant(typeof contains === 'string' && contains !== '', `${label} anchor is missing`);
+  const isTestPath = /(?:^|\/)(?:test|tests)(?:\/|$)|(?:\.test\.[^.]+|_test\.go)$/u.test(relativePath);
+  invariant(isTestPath === requireTestPath, `${label} path has the wrong evidence class: ${relativePath}`);
+  invariant(read(relativePath).includes(contains), `${label} anchor is absent: ${relativePath}:${contains}`);
+}
+
+function assertHandoffDispositions(dispositions) {
+  invariant(
+    dispositions?.schemaVersion === 'nimi.realm-v3-handoff-dispositions/v1',
+    'Realm handoff disposition schema is not current',
+  );
+  const admission = JSON.parse(read('config/realm-v3/current-producer-admission.json'));
+  const requirementSource = admission?.semanticFiles?.find(
+    (entry) => entry?.path === dispositions?.producerRequirementMap?.path,
+  );
+  invariant(requirementSource, 'admitted producer requirement map is missing');
+  invariant(
+    dispositions.producerRequirementMap.path === 'config/nimi-runtime-materialization-requirements.json' &&
+      dispositions.producerRequirementMap.sha256 === requirementSource.sha256 &&
+      dispositions.producerRequirementMap.rowCount === 28,
+    'Realm handoff producer source identity drifted',
+  );
+  invariant(
+    dispositions?.permissionModel?.authorityClass === admission?.accessPolicy?.authorityClass &&
+      dispositions?.permissionModel?.thirdPartyAppPermissionRequired === false &&
+      dispositions?.permissionModel?.permissionCatalog === 'empty',
+    'Realm handoff disposition permission model drifted',
+  );
+
+  invariant(Array.isArray(dispositions.rows), 'Realm handoff disposition rows are missing');
+  const expectedIds = Array.from(
+    { length: 28 },
+    (_, index) => `NIMI-MAT-${String(index + 1).padStart(3, '0')}`,
+  );
+  assertExactSet(dispositions.rows.map((row) => row?.requirementId), expectedIds, 'Realm handoff requirement ids');
+  invariant(new Set(dispositions.rows.map((row) => row?.requirementId)).size === 28, 'Realm handoff requirement ids are duplicated');
+
+  for (const row of dispositions.rows) {
+    const index = Number.parseInt(row.requirementId.slice(-3), 10);
+    const classification = expectedHandoffClassification(index);
+    invariant(row.classification === classification, `${row.requirementId} classification drifted`);
+    invariant(
+      row.disposition === expectedHandoffDisposition(classification),
+      `${row.requirementId} disposition drifted`,
+    );
+    assertHandoffEvidence(row.implementationEvidence, `${row.requirementId} implementation evidence`, false);
+    assertHandoffEvidence(row.testEvidence, `${row.requirementId} test evidence`, true);
+    invariant(
+      Array.isArray(row.acceptanceEvidence) && row.acceptanceEvidence.length > 0,
+      `${row.requirementId} acceptance evidence is missing`,
+    );
+    for (const evidence of row.acceptanceEvidence) {
+      invariant(
+        HANDOFF_ACCEPTANCE_EVIDENCE.includes(evidence),
+        `${row.requirementId} acceptance evidence is unknown: ${evidence}`,
+      );
+    }
+  }
+  invariant(
+    dispositions?.summary?.rowCount === 28 &&
+      dispositions?.summary?.mappedRequirements === 28 &&
+      dispositions?.summary?.unmappedRequirements === 0,
+    'Realm handoff disposition summary is not exact 28/28 with zero unmapped',
+  );
+  return dispositions.rows.length;
+}
+
+function trackedProductionFiles() {
+  const roots = [
+    'apps/zhiyu/src',
+    'apps/desktop/src',
+    'apps/web/src',
+    'kit/core/src',
+    'kit/features',
+    'kit/shell/renderer/src',
+    'sdks/typescript/runtime',
+    'runtime/internal/services/runtimeagent',
+    'runtime/internal/services/account',
+  ];
+  return execFileSync('git', ['ls-files', '-z', '--', ...roots], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+  })
     .split('\0')
     .filter(Boolean)
     .filter((relativePath) => fs.existsSync(path.join(repoRoot, relativePath)))
-    .filter(
-      (relativePath) =>
-        relativePath !== 'scripts/check-local-agent-contract-propagation-hardcut.mjs',
-    )
+    .filter((relativePath) => /\.(?:go|js|mjs|ts|tsx)$/u.test(relativePath))
+    .filter((relativePath) => !/(?:^|\/)(?:test|tests|fixtures)(?:\/|$)/u.test(relativePath))
+    .filter((relativePath) => !/(?:\.test\.|_test\.go$|\/generated\/|\/target\/)/u.test(relativePath))
     .sort();
 }
 
-function requireFields(messageBlock, messageName, fields) {
-  for (const field of fields) {
-    if (!new RegExp(`\\b${field}\\s*=\\s*\\d+\\s*;`).test(messageBlock)) {
-      failures.push(`${messageName}: missing field ${field}`);
+function assertConsumerAbsence() {
+  const files = trackedProductionFiles();
+  const forbidden = [...RETIRED_TOKENS, ...RETIRED_RPCS];
+  const violations = [];
+  for (const relativePath of files) {
+    const source = read(relativePath);
+    for (const token of forbidden) {
+      if (source.includes(token)) violations.push(`${relativePath}:${token}`);
+    }
+    // RealmCoreOrigin still has a canonical optional sourceContentHash field.
+    // The hard cut removes it only as a consumer-selected materialization
+    // identity/cache key; Runtime's strict Packet parser must keep validating
+    // the producer-owned origin field.
+    if (!relativePath.startsWith('runtime/internal/services/') && source.includes('sourceContentHash')) {
+      violations.push(`${relativePath}:sourceContentHash`);
     }
   }
+  invariant(
+    violations.length === 0,
+    `active consumer legacy authority remains: ${violations.join(', ')}`,
+  );
+  return files.length;
 }
 
-function checkOpenApi() {
-  const relativePath = 'config/realm-openapi/api-nimi.yaml';
-  const text = read(relativePath);
-  const document = YAML.parse(text);
-  const schemas = document?.components?.schemas || {};
-  const packet = schemas.SourceMaterializationPacketV2Dto;
-  requireMatch(text, /realm\.source-materialization-packet\/v2/u, `${relativePath} packet v2`);
-  forbidMatch(text, /realm\.source-materialization-packet\/v1|sourceDisplayMetadata|hmac-sha256/iu, `${relativePath} v1/HMAC/display metadata`);
-  if (packet?.additionalProperties !== false) failures.push('SourceMaterializationPacketV2Dto must be closed');
-  const semanticRefs = packet?.properties?.semanticPayload?.oneOf?.map((entry) => entry?.$ref) || [];
-  const expectedRefs = [
-    '#/components/schemas/WorldCharacterMaterializationPayloadV2Dto',
-    '#/components/schemas/RealmPersonaMaterializationPayloadV2Dto',
+function expectRejected(label, operation) {
+  try {
+    operation();
+  } catch {
+    return;
+  }
+  throw new Error(`hard-cut mutation was accepted: ${label}`);
+}
+
+function runMutationTests(
+  openApi,
+  openApiText,
+  serviceText,
+  materializationText,
+  runtimeText,
+  dispositions,
+  activeAuthority,
+) {
+  const mutations = [
+    ['packet accessGrantId', () => {
+      const candidate = structuredClone(openApi);
+      candidate.components.schemas.CreateSourceMaterializationPacketV3Dto.properties.accessGrantId = { type: 'string' };
+      candidate.components.schemas.CreateSourceMaterializationPacketV3Dto.required.push('accessGrantId');
+      assertOpenApi(candidate, YAML.stringify(candidate));
+    }],
+    ['permission endpoint', () => {
+      const candidate = structuredClone(openApi);
+      candidate.paths['/api/human/me/permission-grants'] = { post: { operationId: 'forged' } };
+      assertOpenApi(candidate, YAML.stringify(candidate));
+    }],
+    ['Packet v2 response', () => {
+      const candidate = structuredClone(openApi);
+      candidate.components.schemas.SourceMaterializationPacketV3Dto.properties.packetSchemaVersion.enum = ['realm.source-materialization-packet/v2'];
+      assertOpenApi(candidate, YAML.stringify(candidate));
+    }],
+    ['public upload RPC', () => {
+      const candidate = serviceText.replace(
+        /service RuntimeAgentService\s*\{/u,
+        'service RuntimeAgentService {\n  rpc BeginSourceMaterializationUpload(MaterializeRealmSourceRequest) returns (MaterializeRealmSourceResponse);',
+      );
+      assertRuntimeProto(candidate, materializationText);
+    }],
+    ['public bearer input', () => {
+      const candidate = runtimeText.replace(
+        /interface RuntimeMaterializeRealmSourceInput\s*\{/u,
+        'interface RuntimeMaterializeRealmSourceInput {\n  readonly bearer: string;',
+      );
+      assertTypescriptRuntimeFacade(candidate);
+    }],
+    ['missing handoff disposition', () => {
+      const candidate = structuredClone(dispositions);
+      candidate.rows.pop();
+      assertHandoffDispositions(candidate);
+    }],
+    ['misclassified handoff disposition', () => {
+      const candidate = structuredClone(dispositions);
+      candidate.rows[0].classification = 'runtime_owned';
+      assertHandoffDispositions(candidate);
+    }],
+    ['missing handoff implementation anchor', () => {
+      const candidate = structuredClone(dispositions);
+      candidate.rows[0].implementationEvidence.contains = 'missing-forged-anchor';
+      assertHandoffDispositions(candidate);
+    }],
+    ['active authority restores app grant', () => {
+      assertActiveAuthorityAndReleaseEvidence(
+        `${activeAuthority.realmApiContract}\naccess-grant request`,
+        activeAuthority.realmCoreContract,
+        activeAuthority.runtimeAuthPosture,
+        activeAuthority.zhiyuReleaseReadiness,
+        activeAuthority.runtimeMaterializationService,
+        activeAuthority.realmConsumerSmoke,
+      );
+    }],
+    ['Zhiyu release evidence restores scope grants', () => {
+      assertActiveAuthorityAndReleaseEvidence(
+        activeAuthority.realmApiContract,
+        activeAuthority.realmCoreContract,
+        activeAuthority.runtimeAuthPosture,
+        `${activeAuthority.zhiyuReleaseReadiness}\nbounded-r1-scope-set`,
+        activeAuthority.runtimeMaterializationService,
+        activeAuthority.realmConsumerSmoke,
+      );
+    }],
+    ['Runtime boundary comment restores an internal grant', () => {
+      assertActiveAuthorityAndReleaseEvidence(
+        activeAuthority.realmApiContract,
+        activeAuthority.realmCoreContract,
+        activeAuthority.runtimeAuthPosture,
+        activeAuthority.zhiyuReleaseReadiness,
+        `${activeAuthority.runtimeMaterializationService}\n// credential, grant, challenge`,
+        activeAuthority.realmConsumerSmoke,
+      );
+    }],
+    ['Realm smoke restores current internal grant authority', () => {
+      assertActiveAuthorityAndReleaseEvidence(
+        activeAuthority.realmApiContract,
+        activeAuthority.realmCoreContract,
+        activeAuthority.runtimeAuthPosture,
+        activeAuthority.zhiyuReleaseReadiness,
+        activeAuthority.runtimeMaterializationService,
+        `${activeAuthority.realmConsumerSmoke}\n// grant acquisition is Runtime-internal authority`,
+      );
+    }],
   ];
-  if (JSON.stringify(semanticRefs) !== JSON.stringify(expectedRefs)) {
-    failures.push('SourceMaterializationPacketV2Dto semanticPayload must be the Character/Persona discriminated union');
-  }
-  for (const schemaName of [
-    'CreateSourceMaterializationPacketDto',
-    'SourceMaterializationPacketV2Dto',
-    'WorldCharacterMaterializationPayloadV2Dto',
-    'RealmPersonaMaterializationPayloadV2Dto',
-    'BundleTransportManifestV1Dto',
-    'SourceMaterializationComponentV1Dto',
-  ]) {
-    if (!schemas[schemaName]) failures.push(`${relativePath}: missing schema ${schemaName}`);
-  }
+  for (const [label, operation] of mutations) expectRejected(label, operation);
+  invariant(openApiText.includes(PACKET_SCHEMA), 'positive OpenAPI fixture does not contain Packet v3');
+  return mutations.length;
 }
 
-function checkProto() {
-  const serviceRelativePath = 'proto/runtime/v1/agent_service.proto';
-  const relativePath = 'proto/runtime/v1/agent_source_materialization.proto';
-  const serviceText = read(serviceRelativePath);
-  const text = read(relativePath);
-  const service = block(serviceText, 'service', 'RuntimeAgentService');
-  for (const rpc of [
-    'CreateSourceMaterializationChallenge',
-    'BeginSourceMaterializationUpload',
-    'PutSourceMaterializationChunk',
-    'CommitSourceMaterialization',
-    'AbortSourceMaterializationUpload',
-  ]) {
-    requireMatch(service, new RegExp(`\\brpc\\s+${rpc}\\s*\\(`), `${serviceRelativePath} RPC ${rpc}`);
-  }
-  for (const [messageName, fields] of Object.entries({
-    CreateSourceMaterializationChallengeRequest: ['context', 'request_id', 'source_ref'],
-    CreateSourceMaterializationChallengeResponse: ['challenge_id', 'intended_runtime_audience', 'challenge_digest', 'expires_at', 'limits', 'state', 'reason_code'],
-    BeginSourceMaterializationUploadRequest: ['context', 'begin_request_id', 'control'],
-    SourceMaterializationBeginControl: ['packet_envelope', 'packet_proof', 'bundle_transport_manifest'],
-    PutSourceMaterializationChunkRequest: ['context', 'put_request_id', 'upload_id', 'packet_hash', 'bundle_manifest_hash', 'global_ordinal', 'component_id', 'component_offset', 'chunk_sha256', 'bytes'],
-    CommitSourceMaterializationRequest: ['context', 'commit_request_id', 'upload_id', 'packet_hash', 'bundle_manifest_hash'],
-    AbortSourceMaterializationUploadRequest: ['context', 'abort_request_id', 'upload_id', 'packet_hash', 'bundle_manifest_hash'],
-    LocalAgentSourceContextStatus: ['schema_version', 'ready', 'state', 'reason_code', 'source_ref', 'snapshot_schema_version', 'snapshot_hash', 'captured_at', 'world_content_hash', 'materialization_context_hash', 'coverage_sections'],
-    AgentTurnContextSummary: ['schema_version', 'ready', 'state', 'reason_code', 'manifest_schema_version', 'compiler_schema_version', 'manifest_instance_hash', 'context_content_hash', 'prompt_hash', 'source_snapshot_hash', 'lanes', 'budget', 'transcript_turn_count', 'memory_item_count', 'media_count', 'tool_count', 'route_digest', 'catalog_revision_digest'],
-  })) {
-    requireFields(block(text, 'message', messageName), messageName, fields);
-  }
+function main() {
+  const openApiText = read('config/realm-openapi/api-nimi.yaml');
+  const openApi = YAML.parse(openApiText);
+  const serviceText = read('proto/runtime/v1/agent_service.proto');
+  const materializationText = read('proto/runtime/v1/agent_source_materialization.proto');
+  const runtimeText = read('sdks/typescript/runtime/index.ts');
+  const handoffDispositions = JSON.parse(read(HANDOFF_DISPOSITION_PATH));
+  const activeAuthority = {
+    realmApiContract: read('.nimi/spec/sdks/kernel/realm-api-consumer-contract.md'),
+    realmCoreContract: read('.nimi/spec/sdks/kernel/realm-core-contract.md'),
+    runtimeAuthPosture: read('.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/agent-ai-cognition.yaml'),
+    zhiyuReleaseReadiness: read('scripts/zhiyu-release-readiness-report.mjs'),
+    runtimeMaterializationService: read('runtime/internal/services/runtimeagent/realm_source_materialization_service.go'),
+    realmConsumerSmoke: read('scripts/check-sdk-vnext-realm-consumer-smoke.mjs'),
+  };
 
-  for (const enumName of [
-    'AgentSourceMaterializationSourceKind',
-    'AgentSourceMaterializationChallengeState',
-    'AgentSourceMaterializationUploadState',
-    'AgentSourceMaterializationComponentKind',
-    'AgentSourceMaterializationProofAlgorithm',
-    'AgentSourceMaterializationKeyUse',
-    'AgentSourceMaterializationPacketSchemaVersion',
-    'AgentSourceMaterializationBundleManifestSchemaVersion',
-    'AgentSourceMaterializationPayloadAssemblyVersion',
-    'AgentSourceMaterializationReasonCode',
-    'AgentLocalSourceContextState',
-    'AgentLocalSourceCoverageSection',
-    'AgentLocalSourceCoverageState',
-    'AgentTurnContextState',
-    'AgentTurnContextLaneId',
-    'AgentTurnContextLaneState',
-    'AgentTurnContextTruncationReason',
-    'AgentContextProjectionReasonCode',
-    'AgentLocalSourceContextSchemaVersion',
-    'AgentLocalSourceSnapshotSchemaVersion',
-    'AgentTurnContextSummarySchemaVersion',
-    'AgentTurnContextManifestSchemaVersion',
-    'AgentTurnContextCompilerSchemaVersion',
-  ]) {
-    const enumBlock = block(text, 'enum', enumName);
-    requireMatch(enumBlock, /_UNSPECIFIED\s*=\s*0\s*;/u, `${enumName} UNSPECIFIED=0`);
-  }
-
-  const beginControl = block(text, 'message', 'SourceMaterializationBeginControl');
-  forbidMatch(beginControl, /google\.protobuf\.Struct|raw_(?:source|world|core|prompt|memory|packet)|system_prompt|lane_text|chunk_bytes/iu, 'SourceMaterializationBeginControl private/raw field');
-  requireMatch(beginControl, /string\s+packet_proof\s*=\s*2\s*;/u, 'SourceMaterializationBeginControl detached proof');
-  for (const messageName of [
-    'SourceMaterializationPacketEnvelopeV2',
-    'BundleTransportManifestV1',
-    'LocalAgentSourceContextStatus',
-    'AgentTurnContextSummary',
-  ]) {
-    const messageBlock = block(text, 'message', messageName);
-    forbidMatch(messageBlock, /google\.protobuf\.Struct|raw_(?:source|world|core|prompt|memory|packet)|system_prompt|lane_text|packet_proof|chunk_bytes/iu, `${messageName} private/raw field`);
-  }
-  forbidMatch(service, /MaterializeSource\s*\(|CreateLocalAgentFromPacket\s*\(/u, 'unary packet shortcut RPC');
-  requireMatch(
-    block(text, 'message', 'SourceMaterializationBundleComponentDescriptorV1'),
-    /AgentSourceMaterializationComponentKind\s+kind\s*=\s*2\s*;/u,
-    'closed bundle component kind',
+  assertOpenApi(openApi, openApiText);
+  assertRuntimeProto(serviceText, materializationText);
+  assertGeneratedSdk();
+  assertTypescriptRuntimeFacade(runtimeText);
+  assertRuntimeAcquisition();
+  assertActiveAuthorityAndReleaseEvidence(
+    activeAuthority.realmApiContract,
+    activeAuthority.realmCoreContract,
+    activeAuthority.runtimeAuthPosture,
+    activeAuthority.zhiyuReleaseReadiness,
+    activeAuthority.runtimeMaterializationService,
+    activeAuthority.realmConsumerSmoke,
   );
+  const handoffRequirements = assertHandoffDispositions(handoffDispositions);
+  const productionFilesScanned = assertConsumerAbsence();
+  const negativeMutations = runMutationTests(
+    openApi,
+    openApiText,
+    serviceText,
+    materializationText,
+    runtimeText,
+    handoffDispositions,
+    activeAuthority,
+  );
+
+  process.stdout.write(`${JSON.stringify({
+    schemaVersion: 'nimi.realm-v3-consumer-hardcut-result/v1',
+    verdict: 'PASS',
+    packetSchema: PACKET_SCHEMA,
+    publicMaterializationOperations: [MATERIALIZATION_RPC],
+    permissionModel: 'authenticated_first_party_product_operation',
+    appPermissionRequired: false,
+    productionFilesScanned,
+    legacyAuthorityMatches: 0,
+    publicRawTransportMethods: 0,
+    generatedLanguages: 4,
+    handoffRequirements,
+    unmappedHandoffRequirements: 0,
+    negativeMutations,
+  }, null, 2)}\n`);
 }
 
-function checkGeneratedAndFacade() {
-  const generated = read('sdks/typescript/core-generated/realm-typed-client.ts');
-  const packetBlock = block(generated, 'interface', 'SourceMaterializationPacketV2Dto');
-  requireMatch(packetBlock, /packetSchemaVersion:\s*"realm\.source-materialization-packet\/v2"/u, 'generated packet v2 literal');
-  requireMatch(packetBlock, /semanticPayload:\s*SourceMaterializationPacketV2DtoSemanticPayload/u, 'generated named semantic payload union binding');
-  requireMatch(
-    generated,
-    /export type SourceMaterializationPacketV2DtoSemanticPayload\s*=\s*WorldCharacterMaterializationPayloadV2Dto\s*\|\s*RealmPersonaMaterializationPayloadV2Dto\s*;/u,
-    'generated Character/Persona semantic payload union',
+try {
+  main();
+} catch (error) {
+  process.stderr.write(
+    `[check:local-agent-contract-propagation-hardcut] ${error instanceof Error ? error.message : String(error)}\n`,
   );
-  forbidMatch(packetBlock, /unknown|Record<string,\s*unknown>|sourceDisplayMetadata|hmac/iu, 'generated anonymous/v1 packet field');
-  for (const sourceName of ['WorldCharacterMaterializationSourceV2Dto', 'RealmPersonaMaterializationSourceV2Dto']) {
-    const sourceBlock = block(generated, 'interface', sourceName);
-    requireMatch(sourceBlock, /readonly\s+core:\s*\w+Core\s*;/u, `${sourceName} named strict core`);
-    forbidMatch(sourceBlock, /Record<string,\s*unknown>|\bunknown\b/u, `${sourceName} anonymous core`);
-  }
-
-  const facadeTypes = read('sdks/typescript/realm/social-types.ts');
-  const facade = read('sdks/typescript/realm/social.ts');
-  requireMatch(facadeTypes, /SourceMaterializationPacketV2Dto/u, 'Realm facade generated v2 packet alias');
-  forbidMatch(`${facadeTypes}\n${facade}`, /\bSourceMaterializationPacketDto\b|realm\.source-materialization-packet\/v1|sourceDisplayMetadata|hmac-sha256/iu, 'Realm facade v1 alias or content');
-  forbidMatch(facadeTypes, /interface\s+\w*SourceMaterializationPacket/u, 'handwritten duplicate packet interface');
-
-  const runtimeTypedClient = read('sdks/typescript/core-generated/runtime-typed-client.ts');
-  const runtimeGenerated = read('sdks/typescript/core-generated/runtime-protobuf/runtime/v1/agent_source_materialization.ts');
-  for (const typeName of [
-    'CreateSourceMaterializationChallengeRequest',
-    'BeginSourceMaterializationUploadRequest',
-    'PutSourceMaterializationChunkRequest',
-    'CommitSourceMaterializationRequest',
-    'AbortSourceMaterializationUploadRequest',
-    'LocalAgentSourceContextStatus',
-    'AgentTurnContextSummary',
-  ]) {
-    requireMatch(runtimeGenerated, new RegExp(`(?:interface|type)\\s+${typeName}\\b`), `generated Runtime type ${typeName}`);
-  }
-  for (const methodName of [
-    'createSourceMaterializationChallenge',
-    'beginSourceMaterializationUpload',
-    'putSourceMaterializationChunk',
-    'commitSourceMaterialization',
-    'abortSourceMaterializationUpload',
-  ]) {
-    requireMatch(runtimeTypedClient, new RegExp(`async\\s+${methodName}\\s*\\(`), `generated Runtime typed method ${methodName}`);
-  }
-  const agentEnums = read('sdks/typescript/runtime/wire-types/agent-participation-enums.ts');
-  for (const enumName of [
-    'AgentSourceMaterializationSourceKind',
-    'AgentSourceMaterializationChallengeState',
-    'AgentSourceMaterializationUploadState',
-    'AgentSourceMaterializationComponentKind',
-    'AgentSourceMaterializationReasonCode',
-    'AgentLocalSourceContextState',
-    'AgentTurnContextState',
-    'AgentTurnContextLaneId',
-  ]) {
-    requireMatch(agentEnums, new RegExp(`export function assertKnown${enumName}\\b`), `fail-closed numeric validator ${enumName}`);
-  }
-
-  const pythonGenerated = read('sdks/python/core_generated/realm_typed_client.py');
-  requireMatch(
-    pythonGenerated,
-    /SourceMaterializationPacketV2DtoSemanticPayload\s*=\s*WorldCharacterMaterializationPayloadV2Dto\s*\|\s*RealmPersonaMaterializationPayloadV2Dto/u,
-    'Python Character/Persona semantic payload union',
-  );
-
-  const goGenerated = read('sdks/go/coregenerated/typed_clients.go');
-  requireMatch(
-    goGenerated,
-    /type SourceMaterializationPacketV2DtoSemanticPayload struct \{[\s\S]*?WorldCharacter \*WorldCharacterMaterializationPayloadV2Dto[\s\S]*?RealmPersona \*RealmPersonaMaterializationPayloadV2Dto[\s\S]*?\}/u,
-    'Go Character/Persona semantic payload union',
-  );
-  requireMatch(
-    goGenerated,
-    /func \(value \*SourceMaterializationPacketV2DtoSemanticPayload\) UnmarshalJSON\([\s\S]*?unknown discriminator/u,
-    'Go fail-closed semantic payload discriminator',
-  );
-
-  const rustGenerated = read('sdks/rust/core_generated/typed_clients.rs');
-  requireMatch(
-    rustGenerated,
-    /pub enum SourceMaterializationPacketV2DtoSemanticPayload \{[\s\S]*?WorldCharacterMaterializationPayloadV2\([\s\S]*?RealmPersonaMaterializationPayloadV2\([\s\S]*?\}/u,
-    'Rust Character/Persona semantic payload union',
-  );
-  requireMatch(
-    rustGenerated,
-    /impl SourceMaterializationPacketV2DtoSemanticPayload \{[\s\S]*?try_from_discriminator[\s\S]*?unknown SourceMaterializationPacketV2DtoSemanticPayload discriminator/u,
-    'Rust fail-closed semantic payload discriminator',
-  );
-}
-
-function checkDeferredLegacyMaterializationInventory() {
-  // The Runtime/SDK/app admission chain is hard-cut. Every remaining match is
-  // rejection-only checker or negative-fixture vocabulary. Enumerate the exact
-  // active source locations so any new positive producer fails immediately.
-  const rejectionOnly = new Map([
-    ['scripts/check-local-agent-full-chain-hardcut.mjs', 1],
-    ['scripts/check-realm-contract-lock.mjs', 1],
-    ['scripts/lib/local-agent-full-chain-app-scan.mjs', 9],
-    ['scripts/lib/local-agent-runtime-materialization-hardcut.mjs', 7],
-    ['sdks/go/coregenerated/behavior_test.go', 1],
-  ]);
-  const expected = new Map(rejectionOnly);
-  deferredLegacyInventorySummary = [
-    `legacy rejection inventory: ${expected.size} tracked files`,
-    `(positive producers 0, rejection-only ${rejectionOnly.size})`,
-  ].join(' ');
-  const legacyPattern = new RegExp(
-    [
-      'realm\\.source-materialization-packet/v1',
-      'sourceDisplayMetadata',
-      'hmac-sha256',
-      'SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET',
-      'SOURCE_PACKET_HMAC_SECRET',
-      'SourceMaterializationPacketHMACSecret',
-      'sourceMaterializationPacketHmacSecret',
-      'sourceMaterializationHMACSecretEnv',
-      'sourceMaterializationPacketHMACSecret',
-      'sourcePacketSecret',
-      'nimi\\.desktop\\.local-agent\\.materialization',
-    ].join('|'),
-    'u',
-  );
-  const actualFiles = trackedActiveFiles().filter((relativePath) =>
-    legacyPattern.test(read(relativePath)),
-  );
-  if (JSON.stringify(actualFiles) !== JSON.stringify([...expected.keys()].sort())) {
-    failures.push(`deferred legacy materialization inventory drift: expected ${expected.size} exact tracked files, got ${actualFiles.join(', ') || '<none>'}`);
-  }
-  for (const [relativePath, expectedCount] of expected) {
-    const actualCount = countMatches(read(relativePath), legacyPattern);
-    if (actualCount !== expectedCount) {
-      failures.push(`deferred legacy materialization count drift: ${relativePath} expected ${expectedCount}, got ${actualCount}`);
-    }
-  }
-}
-
-checkOpenApi();
-checkProto();
-checkGeneratedAndFacade();
-checkDeferredLegacyMaterializationInventory();
-
-if (failures.length > 0) {
-  process.stderr.write('local-agent contract propagation hardcut failed:\n');
-  for (const failure of failures) process.stderr.write(`- ${failure}\n`);
   process.exitCode = 1;
-} else {
-  process.stdout.write(`local-agent contract propagation hardcut passed; ${deferredLegacyInventorySummary}\n`);
 }

@@ -197,7 +197,7 @@ export async function runConversationReportContinuation({
     .find((candidate) => candidate.scenario_id === 'conversation-report-baseline');
   assert.ok(scenario, 'conversation report baseline scenario is missing');
   const streamA = scenario.streams.find((stream) => stream.source_provenance.source_kind === 'worldCharacter');
-  const streamB = scenario.streams.find((stream) => stream.source_provenance.source_kind === 'realmPersona');
+  const streamB = scenario.streams.find((stream) => stream.source_provenance.source_kind === 'personaCharacter');
   const desktopTurns = handoff.desktopConversationReportTurns || [];
   assert.deepEqual(desktopTurns.map((turn) => turn.turnId), streamA.turns.slice(0, 4).map((turn) => turn.turn_id));
   const anchorA = String(desktopTurns[0]?.conversationAnchorId || '').trim();
@@ -230,8 +230,8 @@ export async function runConversationReportContinuation({
   const personaAck = await waitForControlJson(handoff, 'persona-materialize-complete.json');
   assert.equal(personaAck.ok, true);
   const updatedHandoff = JSON.parse(await readFile(process.env.NIMI_LOCAL_AGENT_PRODUCT_HANDOFF_PATH, 'utf8'));
-  const agentB = updatedHandoff.agents.find((agent) => agent.sourceKind === 'realmPersona');
-  assert.ok(agentB, 'conversation report requires the once-materialized RealmPersona-source LocalAgent B');
+  const agentB = updatedHandoff.agents.find((agent) => agent.sourceKind === 'personaCharacter');
+  assert.ok(agentB, 'conversation report requires the once-materialized PersonaCharacter-source LocalAgent B');
   assert.notEqual(agentB.localAgentRef, targetAgent.localAgentRef, 'LocalAgent A/B identities must be opaque and distinct');
   lifecycleEvents.push(timelineEvent('materialize-local-agent-b', 'materialization', streamB.stream_id, agentB, null, {
     materializationCount: 1,
@@ -318,7 +318,7 @@ export async function runConversationReportContinuation({
     ownerAccountId: handoff.ownerUserId,
     agents: [
       { ...targetAgent, sourceKind: 'worldCharacter', conversationAnchorId: anchorA },
-      { ...agentB, sourceKind: 'realmPersona', conversationAnchorId: anchorB },
+      { ...agentB, sourceKind: 'personaCharacter', conversationAnchorId: anchorB },
     ],
     turns,
     lifecycleEvents,

@@ -118,7 +118,7 @@ services:
 methods:
   - method_id: /nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource
     posture: authenticated_required
-    rationale: Runtime binds the authenticated materializer account to the exact CharacterSourceRefV3 and request id, resolves current Realm credentials and grant internally, verifies Packet v3 privately, and atomically creates the LocalAgent plus SnapshotV2 without caller packet ingress
+    rationale: Runtime binds the authenticated materializer account to the exact CharacterSourceRefV3 and request id, resolves current Realm credentials, acquires Packet v3 through the authenticated first-party product operation without any app permission or grant, verifies it privately, and atomically creates the LocalAgent plus SnapshotV2 without caller packet ingress
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006

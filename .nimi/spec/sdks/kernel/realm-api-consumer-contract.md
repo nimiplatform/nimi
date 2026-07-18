@@ -38,10 +38,11 @@ with typed fail-closed behavior and do not restore a second Realm contract.
 
 Source materialization uses only the generated current Realm Packet v3 and
 `CharacterSourceRefV3` transport shapes. The generated operation families own
-the access-grant request, challenge, packet, ordered closure-set segment,
-component, hash-graph, current-JWKS, and detached-proof shapes. SDK and apps
-must not introduce a handwritten materialization DTO, anonymous source payload,
-fixed audience, raw bundle DTO, or parallel packet decoder.
+the authenticated first-party challenge, packet, ordered closure-set segment,
+component, hash-graph, current-JWKS, and detached-proof shapes. Source
+materialization has no app permission or grant carrier. SDK and apps must not
+introduce a handwritten materialization DTO, anonymous source payload, fixed
+audience, raw bundle DTO, or parallel packet decoder.
 
 ## S-REALMAPI-003 SDK Owns Consumer Semantics Only
 

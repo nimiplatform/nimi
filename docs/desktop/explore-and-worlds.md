@@ -100,7 +100,7 @@ Explore reads from many places to compose its feed:
 
 | Source | What it provides |
 | --- | --- |
-| Realm | Worlds, RealmPersonas, WorldCharacterCore rows, social posts |
+| Realm | Worlds, PersonaCharacters, WorldCharacters, social posts |
 | Runtime | LocalAgent presentation profile previews |
 | Realm chat / social | Social post stream |
 

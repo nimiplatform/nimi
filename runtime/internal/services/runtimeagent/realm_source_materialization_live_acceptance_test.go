@@ -45,7 +45,7 @@ func TestRealmSourceMaterializationCurrentRealmLiveAcceptance(t *testing.T) {
 		t.Fatalf("mandatory current Realm live inputs are missing: %s", strings.Join(missing, ", "))
 	}
 	if digest := os.Getenv("NIMI_REALM_V3_LIVE_POLICY_DIGEST"); digest != compactRealmMaterializationPolicyDigest {
-		t.Fatalf("current Realm policy digest %q does not match admitted v4 digest", digest)
+		t.Fatalf("current Realm policy digest %q does not match admitted policy digest", digest)
 	}
 	expiresAt, err := time.Parse(time.RFC3339Nano, os.Getenv("NIMI_REALM_V3_LIVE_ACCESS_EXPIRES_AT"))
 	if err != nil || !expiresAt.After(time.Now().UTC().Add(30*time.Second)) {

@@ -34,6 +34,18 @@ func TestSourceMaterializationProfileSchemaV3RejectsNonCanonicalNestedValues(t *
 	}
 
 	cases := map[string]func(map[string]any){
+		"raw system prompt": func(candidate map[string]any) {
+			candidate["systemPrompt"] = "caller-controlled authority"
+		},
+		"provider credential": func(candidate map[string]any) {
+			candidate["providerCredentialRef"] = "secret://forbidden"
+		},
+		"legacy realm persona alias": func(candidate map[string]any) {
+			candidate["realmPersona"] = map[string]any{"id": "legacy"}
+		},
+		"app metadata fallback": func(candidate map[string]any) {
+			candidate["appMetadata"] = map[string]any{"source": "forbidden"}
+		},
 		"wrong nested type": func(candidate map[string]any) {
 			candidate["identity"].(map[string]any)["name"] = json.Number("7")
 		},

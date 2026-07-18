@@ -30,7 +30,7 @@ const PREPARATION_TRUTH_FIELDS = Object.freeze([
   'registryAdmissionTruth',
   'releaseDescriptorTruth',
   'ordinaryVisibilityTruth',
-  'permissionGrantTruth',
+  'permissionDecisionTruth',
   'signingTruth',
   'notarizationTruth',
   'mirrorLicenseClearanceTruth',
@@ -41,7 +41,7 @@ const PREPARATION_TRUTH_FIELDS = Object.freeze([
 const REQUIRED_MISSING_FIELDS = Object.freeze([
   'admitted registry row',
   'admitted release descriptor row',
-  'permission scope ref set',
+  'public permission requirements set',
   'storage policy ref',
   'capability refs',
   'artifact provenance and signing assurance',
@@ -52,7 +52,7 @@ const REQUIRED_MISSING_FIELDS = Object.freeze([
 
 const NEXT_REQUIRED_DECISIONS = Object.freeze([
   'first admission target',
-  'permission scope ref set',
+  'public permission requirements set',
   'storage policy ref',
   'canonical capability refs',
   'release descriptor and registry row admission',
@@ -69,53 +69,6 @@ const DEFERRED_ORDINARY_RELEASE_FIELDS = Object.freeze([
   'external immutable artifact release trust',
   'platform signing and notarization evidence for ordinary release',
   'ordinary support SLA and rollback posture',
-]);
-
-const R1_PERMISSION_SCOPE_REF = Object.freeze([
-  {
-    appId: DEFAULT_APP_ID,
-    scopeFamily: 'account',
-    scopeName: 'account.session.read',
-  },
-  {
-    appId: DEFAULT_APP_ID,
-    scopeFamily: 'agent',
-    scopeName: 'agent.identity.project',
-  },
-  {
-    appId: DEFAULT_APP_ID,
-    scopeFamily: 'ai_spend',
-    scopeName: 'ai.spend.meter',
-  },
-  {
-    appId: DEFAULT_APP_ID,
-    scopeFamily: 'ai_profile',
-    scopeName: 'ai_profile.selection.consume',
-  },
-  {
-    appId: DEFAULT_APP_ID,
-    scopeFamily: 'memory',
-    scopeName: 'memory.read.bounded',
-    qualifier: 'persona-scoped',
-  },
-  {
-    appId: DEFAULT_APP_ID,
-    scopeFamily: 'memory',
-    scopeName: 'memory.write.admitted',
-    qualifier: 'session-scoped-chat-derived-projection',
-  },
-  {
-    appId: DEFAULT_APP_ID,
-    scopeFamily: 'notification',
-    scopeName: 'notification.subscribe',
-    qualifier: 'proactive_interruptibility_v1.in_app_surface',
-  },
-  {
-    appId: DEFAULT_APP_ID,
-    scopeFamily: 'audit',
-    scopeName: 'audit.read.scoped',
-    qualifier: 'zhiyu-own-audit-projections',
-  },
 ]);
 
 const R1_HEALTH_REPAIR_PROJECTION = Object.freeze([
@@ -244,7 +197,7 @@ export function createZhiyuReleaseReadinessReport({
       releaseDescriptorClass: stringValue(primaryDescriptorRow?.descriptor_class) || 'not-generated',
       capabilitySetRefs: asArray(primaryRegistryRow?.capability_set_refs).map(stringValue).filter(Boolean),
       localComputePackRefs: asArray(primaryRegistryRow?.local_compute_pack_refs).map(stringValue).filter(Boolean),
-      permissionScopeCount: asArray(primaryRegistryRow?.permission_scope_ref).length,
+      permissionRequirementCount: asArray(primaryRegistryRow?.permission_requirements).length,
     },
     platformTruth: r1Admission.resolved
       ? createR1PlatformTruth()
@@ -286,8 +239,8 @@ function deriveMissingPlatformFields(evidence, context) {
   if (!context.releaseDescriptorPresent) {
     missing.add('admitted release descriptor row');
   }
-  if (!context.r1Admission?.checks?.permissionScope) {
-    missing.add('permission scope ref set');
+  if (!context.r1Admission?.checks?.permissionRequirements) {
+    missing.add('public permission requirements set');
   }
   if (!context.r1Admission?.checks?.storagePolicy) {
     missing.add('storage policy ref');
@@ -324,8 +277,9 @@ function evaluateR1Admission({ appId, registryRow, releaseDescriptorRow }) {
       && sameStringSet(registryRow?.local_compute_pack_refs, ['local-text']),
     capabilityRefs: sameStringSet(registryRow?.capability_set_refs, ['text.generate']),
     runtimeRegistration: stringValue(registryRow?.runtime_registration_mode) === 'app-managed',
-    permissionScope: permissionScopeMatchesR1(registryRow?.permission_scope_ref, appId)
-      && stringValue(releaseDescriptorRow?.permissions_ref) === `${appId}.permission_scope_ref`,
+    permissionRequirements: Array.isArray(registryRow?.permission_requirements)
+      && registryRow.permission_requirements.length === 0
+      && stringValue(releaseDescriptorRow?.permissions_ref) === `${appId}.permission_requirements`,
     healthRepairProjection: sameStringSet(registryRow?.health_repair_projection, R1_HEALTH_REPAIR_PROJECTION),
     developerVisibility: stringValue(registryRow?.ordinary_visibility) === 'developer-only',
     releaseDescriptorRef: stringValue(registryRow?.release_descriptor_ref) === expectedDescriptorId
@@ -368,36 +322,13 @@ function createR1PlatformTruth() {
     registryAdmissionTruth: 'admitted',
     releaseDescriptorTruth: 'admitted-first-party-bundled',
     ordinaryVisibilityTruth: 'developer-only',
-    permissionGrantTruth: 'bounded-r1-scope-set',
+    permissionDecisionTruth: 'not-required-empty-public-permission-requirements',
     signingTruth: 'inherited-from-atomic-bundle',
     notarizationTruth: 'ordinary-release-deferred',
     mirrorLicenseClearanceTruth: 'not-applicable-first-party-bundle',
     supportApprovalTruth: 'ordinary-release-deferred',
     reviewDecisionTruth: 'first-party-bundled-release',
   };
-}
-
-function permissionScopeMatchesR1(scopes, appId) {
-  const expectedScopes = R1_PERMISSION_SCOPE_REF.map((scope) => ({
-    ...scope,
-    appId,
-  }));
-  const actualKeys = new Set(asArray(scopes).map(scopeKey));
-  const expectedKeys = new Set(expectedScopes.map(scopeKey));
-  if (actualKeys.size !== expectedKeys.size) return false;
-  for (const key of expectedKeys) {
-    if (!actualKeys.has(key)) return false;
-  }
-  return true;
-}
-
-function scopeKey(scope) {
-  return [
-    stringValue(scope?.appId),
-    stringValue(scope?.scopeFamily),
-    stringValue(scope?.scopeName),
-    stringValue(scope?.qualifier),
-  ].join('|');
 }
 
 function sameStringSet(values, expected) {

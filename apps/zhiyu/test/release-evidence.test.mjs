@@ -69,7 +69,7 @@ test('release evidence packer writes non-admission artifact evidence from real b
   assert.equal(evidence.registryAdmissionTruth, 'not-generated');
   assert.equal(evidence.releaseDescriptorTruth, 'not-generated');
   assert.equal(evidence.ordinaryVisibilityTruth, 'not-generated');
-  assert.equal(evidence.permissionGrantTruth, 'not-generated');
+  assert.equal(evidence.permissionDecisionTruth, 'not-generated');
   assert.equal(evidence.signingTruth, 'not-generated');
   assert.equal(evidence.notarizationTruth, 'not-generated');
   assert.equal(evidence.mirrorLicenseClearanceTruth, 'not-generated');
@@ -84,7 +84,7 @@ test('release evidence packer writes non-admission artifact evidence from real b
   assert.ok(evidence.artifact.files.some((file) => file.path === 'dist-electron/main.js'));
   assert.ok(evidence.missingPlatformAdmissionFields.includes('admitted registry row'));
   assert.ok(evidence.missingPlatformAdmissionFields.includes('admitted release descriptor row'));
-  assert.ok(evidence.missingPlatformAdmissionFields.includes('permission scope ref set'));
+  assert.ok(evidence.missingPlatformAdmissionFields.includes('public permission requirements set'));
 });
 
 test('release evidence packer fails closed when renderer build output is missing', async () => {

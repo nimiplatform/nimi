@@ -2,8 +2,8 @@ schema_version: nimi.realm-contract-lock/v4
 generated_by: scripts/generate-realm-contract-lock.mjs
 realm:
   repository: https://github.com/nimiplatform/nimi-realm.git
-  commit: 796aa4566e32bf117d0ea5142e77496f33a91fbf
-  tree: 7e5465764395d14737ba5bdd362af7a27b8356bb
+  commit: 15d96300bf9c4b1305bb68818208682b10e0c7c0
+  tree: 0b743e2b5190a470a5e8685eac09a0a3221b41ee
 openapi:
   source_path: nimi-backend/api-nimi.yaml
   synced_path: config/realm-openapi/api-nimi.yaml
@@ -132,12 +132,12 @@ compact_vectors:
 producer_admission:
   tracked_only: true
   head_policy: identical_admitted_inputs
-  semantic_file_bundle_sha256: d406caef4d833fe4d19242cff6904e7d7a0fd0c5578fca0e9d49107bdf686d34
+  semantic_file_bundle_sha256: cf9bbff429678b88293e28867cd15942f5c3e922782ee610c36defcbe3fe2954
   semantic_files:
     - path: .nimi/spec/realm/kernel/core-contract.md
-      sha256: 9f4c8b1ff7e628615de3199cdafd6628720770c2ec59cd6409e6e6f98b1b9753
+      sha256: 3fd077fe3fc8dd7e1dc80ed752f2bd88fa660c7667991969c785c08b7daedc64
     - path: .nimi/spec/realm/kernel/tables/core-contract.yaml
-      sha256: e3c79368b15bde33edf8907c94d09d250b24d9f348ec570152a172cab2ea9496
+      sha256: e14343ef02fa4e6f47e76cfa813a9332becc108476c0c6ea4be3ee6df7bc8d79
     - path: .nimi/spec/realm/kernel/permission-grant-contract.md
       sha256: ceb6bf8d53cea0fb7f7893ffcf88c22b4c23ddd2a33a63b09fa8790dcd6839a3
     - path: .nimi/spec/realm/kernel/tables/permission-grant-contract.yaml
@@ -147,7 +147,7 @@ producer_admission:
     - path: nimi-backend/libs/domains/world/src/source-materialization.service.ts
       sha256: a8000f47420c24d9e730d9667889fa5bdfa85d808417a4db10fae902a58d1eae
     - path: scripts/check-realm-permission-scope-ownership.ts
-      sha256: 98a6cdb8eaffa1570005856791c3befd5ea31dc1c1aff8c958dbae9a6e15fcb9
+      sha256: 1e08c15552b7661cc8d08346ec374ff2aa4d1c7933eab94d4cb5ef071127a0ba
     - path: scripts/check-runtime-source-materialization-hardcut.mjs
       sha256: 3ad829f3560ce538d4bbb6b3343176ac5557f9c81297644a4c5bc92479e2e1ba
     - path: config/nimi-runtime-materialization-requirements.json

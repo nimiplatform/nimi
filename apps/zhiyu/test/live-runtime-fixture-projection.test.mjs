@@ -11,8 +11,8 @@ const fixture = {
   sourceRef: {
     kind: 'worldCharacter',
     worldId: 'world-live',
-    sourceId: 'source-live',
-    sourceContentHash: 'hash-live',
+    id: 'source-live',
+    sourceHash: 'a'.repeat(64),
   },
   route: {
     capability: 'text.generate',
@@ -32,7 +32,7 @@ test('live Runtime acceptance does not inject pre-materialized renderer source t
   Function(script)();
 
   assert.deepEqual(window, {});
-  assert.doesNotMatch(script, /ownerUserId|runtimeSourceRef|sourceRef|sourceContentHash/);
+  assert.doesNotMatch(script, /ownerUserId|runtimeSourceRef|sourceRef|sourceContentHash|sourceHash/);
   assert.doesNotMatch(script, /executionBinding|resolvedBindingRef|selectedTargetRefKind|modelId/);
   assert.doesNotMatch(script, /SourceMaterializationPacket|apps\/desktop|runtime\/internal|apiKey|providerId/);
 });

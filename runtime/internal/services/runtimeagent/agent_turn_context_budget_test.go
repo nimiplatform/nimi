@@ -178,7 +178,7 @@ func TestAgentTurnContextRelationalContinuitySurvivesOptionalTruncation(t *testi
 
 func TestAgentTurnContextMandatoryOverflowFailsClosedWithTypedSummary(t *testing.T) {
 	t.Parallel()
-	input := agentTurnContextTestInput(t, "realmPersona")
+	input := agentTurnContextTestInput(t, "personaCharacter")
 	full, err := compileAgentTurnContext(input)
 	if err != nil {
 		t.Fatal(err)

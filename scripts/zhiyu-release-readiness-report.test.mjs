@@ -56,7 +56,7 @@ function baseEvidence() {
     missingPlatformAdmissionFields: [
       'admitted registry row',
       'admitted release descriptor row',
-      'permission scope ref set',
+      'public permission requirements set',
       'storage policy ref',
       'capability refs',
       'artifact provenance and signing assurance',
@@ -67,7 +67,7 @@ function baseEvidence() {
     registryAdmissionTruth: 'not-generated',
     releaseDescriptorTruth: 'not-generated',
     ordinaryVisibilityTruth: 'not-generated',
-    permissionGrantTruth: 'not-generated',
+    permissionDecisionTruth: 'not-generated',
     signingTruth: 'not-generated',
     notarizationTruth: 'not-generated',
     mirrorLicenseClearanceTruth: 'not-generated',
@@ -76,55 +76,6 @@ function baseEvidence() {
     productReadinessClaimAllowed: false,
     ordinaryCatalogDiscovery: false,
   };
-}
-
-function r1PermissionScopeRef() {
-  return [
-    {
-      appId: 'nimi.zhiyu',
-      scopeFamily: 'account',
-      scopeName: 'account.session.read',
-    },
-    {
-      appId: 'nimi.zhiyu',
-      scopeFamily: 'agent',
-      scopeName: 'agent.identity.project',
-    },
-    {
-      appId: 'nimi.zhiyu',
-      scopeFamily: 'ai_spend',
-      scopeName: 'ai.spend.meter',
-    },
-    {
-      appId: 'nimi.zhiyu',
-      scopeFamily: 'ai_profile',
-      scopeName: 'ai_profile.selection.consume',
-    },
-    {
-      appId: 'nimi.zhiyu',
-      scopeFamily: 'memory',
-      scopeName: 'memory.read.bounded',
-      qualifier: 'persona-scoped',
-    },
-    {
-      appId: 'nimi.zhiyu',
-      scopeFamily: 'memory',
-      scopeName: 'memory.write.admitted',
-      qualifier: 'session-scoped-chat-derived-projection',
-    },
-    {
-      appId: 'nimi.zhiyu',
-      scopeFamily: 'notification',
-      scopeName: 'notification.subscribe',
-      qualifier: 'proactive_interruptibility_v1.in_app_surface',
-    },
-    {
-      appId: 'nimi.zhiyu',
-      scopeFamily: 'audit',
-      scopeName: 'audit.read.scoped',
-      qualifier: 'zhiyu-own-audit-projections',
-    },
-  ];
 }
 
 function r1RegistryDoc() {
@@ -142,7 +93,7 @@ function r1RegistryDoc() {
         capability_set_refs: ['text.generate'],
         local_compute_pack_refs: ['local-text'],
         runtime_registration_mode: 'app-managed',
-        permission_scope_ref: r1PermissionScopeRef(),
+        permission_requirements: [],
         health_repair_projection: [
           'unavailable',
           'setup-required',
@@ -188,7 +139,7 @@ function r1DescriptorDoc() {
           entry_ref: 'zhiyu-runtime-registration',
           sandbox_ref: 'first-party-bundled-app',
         },
-        permissions_ref: 'nimi.zhiyu.permission_scope_ref',
+        permissions_ref: 'nimi.zhiyu.permission_requirements',
         storage_policy_ref: 'nimi-data-app-roots',
         review: {
           admission_path: 'first-party-bundled-release',
@@ -226,7 +177,7 @@ test('Zhiyu readiness report blocks PP12 while preserving preparation-only artif
   assert.equal(report.artifact.size.download, evidence.artifact.size.download);
   assert.ok(report.missingPlatformAdmissionFields.includes('admitted registry row'));
   assert.ok(report.missingPlatformAdmissionFields.includes('admitted release descriptor row'));
-  assert.ok(report.missingPlatformAdmissionFields.includes('permission scope ref set'));
+  assert.ok(report.missingPlatformAdmissionFields.includes('public permission requirements set'));
   assert.ok(report.nextRequiredDecisions.includes('first admission target'));
 });
 
@@ -248,11 +199,55 @@ test('Zhiyu readiness report recognizes approved R1 developer-only bundled Platf
   assert.equal(report.platformTruth.registryAdmissionTruth, 'admitted');
   assert.equal(report.platformTruth.releaseDescriptorTruth, 'admitted-first-party-bundled');
   assert.equal(report.platformTruth.ordinaryVisibilityTruth, 'developer-only');
-  assert.equal(report.platformTruth.permissionGrantTruth, 'bounded-r1-scope-set');
+  assert.equal(report.platformRows.permissionRequirementCount, 0);
+  assert.equal(
+    report.platformTruth.permissionDecisionTruth,
+    'not-required-empty-public-permission-requirements',
+  );
   assert.equal(report.platformTruth.signingTruth, 'inherited-from-atomic-bundle');
   assert.equal(report.platformTruth.notarizationTruth, 'ordinary-release-deferred');
   assert.deepEqual(report.missingPlatformAdmissionFields, []);
   assert.ok(report.deferredOrdinaryReleaseFields.includes('ordinary-visible registry row'));
+});
+
+test('Zhiyu readiness report rejects a retired scope carrier as current permission admission', async () => {
+  const { createZhiyuReleaseReadinessReport } = await loadReporter();
+  const registryDoc = r1RegistryDoc();
+  delete registryDoc.apps[0].permission_requirements;
+  registryDoc.apps[0].permission_scope_ref = [];
+
+  const report = createZhiyuReleaseReadinessReport({
+    evidence: baseEvidence(),
+    registryDoc,
+    descriptorDoc: r1DescriptorDoc(),
+  });
+
+  assert.equal(report.readinessStatus, 'blocked');
+  assert.ok(report.r1Admission.violations.includes('permissionRequirements'));
+  assert.ok(report.missingPlatformAdmissionFields.includes('public permission requirements set'));
+});
+
+test('Zhiyu readiness report rejects non-empty requirements while the public catalog is empty', async () => {
+  const { createZhiyuReleaseReadinessReport } = await loadReporter();
+  const registryDoc = r1RegistryDoc();
+  registryDoc.apps[0].permission_requirements = [{ id: 'unadmitted.fixture', reason: 'fixture' }];
+
+  const report = createZhiyuReleaseReadinessReport({
+    evidence: baseEvidence(),
+    registryDoc,
+    descriptorDoc: r1DescriptorDoc(),
+  });
+
+  assert.equal(report.readinessStatus, 'blocked');
+  assert.ok(report.r1Admission.violations.includes('permissionRequirements'));
+});
+
+test('Zhiyu readiness generator contains no retired grant or scope authority', () => {
+  const source = fs.readFileSync(scriptPath, 'utf8');
+  assert.doesNotMatch(
+    source,
+    /permission_scope_ref|permissionGrantTruth|agent\.identity\.project|bounded-r1-scope-set/u,
+  );
 });
 
 test('Zhiyu readiness report rejects preparation evidence that claims admission truth', async () => {

@@ -284,8 +284,8 @@ test('projects ready stage only when Runtime Agent turn is ready', async () => {
       sourceRef: {
         kind: 'worldCharacter',
         worldId: 'world-1',
-        sourceId: 'source-1',
-        sourceContentHash: 'hash-1',
+        id: 'source-1',
+        sourceHash: 'a'.repeat(64),
       },
     },
     inventory: {
@@ -367,7 +367,7 @@ test('projects explicit Runtime inventory selection as current partner without s
         sourceWorldId: 'world-1',
         sourceWorldName: '唐代文人世界',
         sourceId: 'source-1',
-        sourceContentHash: 'hash-1',
+        sourceHash: 'a'.repeat(64),
       }],
     },
     localAgent: {

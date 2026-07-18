@@ -130,7 +130,7 @@ const realm: Realm = createRealm({ transport });
 const me: Promise<RealmGetMeOperationResponse> = realm.me();
 const world: Promise<RealmWorldCoreControllerGetOasisWorldOperationResponse> =
   realm.worldCore.worldCoreControllerGetOasisWorld({ path: {} });
-// @ts-expect-error Realm grant acquisition is Runtime-internal authority.
+// @ts-expect-error Retired Realm app-grant methods are absent from the first-party API.
 realm.generated.requestMyAppPermissionGrant({
   path: {},
   body: {

@@ -53,7 +53,7 @@ function inventoryAgent(overrides = {}) {
     sourceWorldId: null,
     sourceWorldName: null,
     sourceId: null,
-    sourceContentHash: null,
+    sourceHash: null,
     sourceReady: false,
     ...overrides,
   };

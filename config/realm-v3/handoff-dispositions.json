@@ -1,0 +1,244 @@
+{
+  "schemaVersion": "nimi.realm-v3-handoff-dispositions/v1",
+  "producerRequirementMap": {
+    "path": "config/nimi-runtime-materialization-requirements.json",
+    "sha256": "f261c4ba22ca2fd8950d8ff18ba5dc21eae1ac5e6c0a44f61c4ee77cbc2a0acd",
+    "rowCount": 28
+  },
+  "permissionModel": {
+    "authorityClass": "authenticated_first_party_product_operation",
+    "thirdPartyAppPermissionRequired": false,
+    "permissionCatalog": "empty"
+  },
+  "rows": [
+    {
+      "requirementId": "NIMI-MAT-001",
+      "classification": "realm_input_required",
+      "disposition": "implemented_realm_input",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/source_materialization_v3_types.go", "contains": "type sourceMaterializationCharacterSourceRefV3 struct" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/realm_source_materialization_service_test.go", "contains": "TestMaterializeRealmSourceReferenceWorldAndPersona" },
+      "acceptanceEvidence": ["runtime-current-realm-live-world-persona", "consumer-hardcut"]
+    },
+    {
+      "requirementId": "NIMI-MAT-002",
+      "classification": "realm_input_required",
+      "disposition": "implemented_realm_input",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/realm_source_materialization_product.go", "contains": "OwningWorld:" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3_test.go", "contains": "TestCompileAgentTurnSourceSnapshotV3OfficialVectorsProduceReferenceEquivalentFiveLanes" },
+      "acceptanceEvidence": ["runtime-current-realm-live-world-persona", "five-lane-restart-offline"]
+    },
+    {
+      "requirementId": "NIMI-MAT-003",
+      "classification": "realm_input_required",
+      "disposition": "implemented_realm_input",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/source_materialization_v3_types.go", "contains": "type sourceMaterializationDependencyClosureV3Value struct" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/source_materialization_v3_verifier_test.go", "contains": "TestVerifySourceMaterializationPacketV3ReferenceVectors" },
+      "acceptanceEvidence": ["runtime-hermetic-fullchain-security", "runtime-current-realm-live-world-persona"]
+    },
+    {
+      "requirementId": "NIMI-MAT-004",
+      "classification": "realm_input_required",
+      "disposition": "implemented_realm_input",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/source_materialization_v3_verifier.go", "contains": "component content hash is stale" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/source_materialization_v3_verifier_test.go", "contains": "TestVerifySourceMaterializationPacketV3NegativeManifest" },
+      "acceptanceEvidence": ["runtime-hermetic-fullchain-security", "security-zero-product-mutation"]
+    },
+    {
+      "requirementId": "NIMI-MAT-005",
+      "classification": "realm_input_required",
+      "disposition": "implemented_realm_input",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3.go", "contains": "resource_refs" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3_test.go", "contains": "TestCompileRealmSourceProfileV3ProjectsBothPresentationResourceRefs" },
+      "acceptanceEvidence": ["five-lane-restart-offline", "consumer-hardcut"]
+    },
+    {
+      "requirementId": "NIMI-MAT-006",
+      "classification": "realm_input_required",
+      "disposition": "implemented_realm_input",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3.go", "contains": "agentTurnContextLaneSourceIdentity" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3_test.go", "contains": "agentTurnContextLaneSourceIdentity: 3" },
+      "acceptanceEvidence": ["five-lane-restart-offline"]
+    },
+    {
+      "requirementId": "NIMI-MAT-007",
+      "classification": "realm_input_required",
+      "disposition": "implemented_realm_input",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3.go", "contains": "agentTurnContextLaneSourceBehavior" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3_test.go", "contains": "agentTurnContextLaneSourceBehavior: 5" },
+      "acceptanceEvidence": ["five-lane-restart-offline"]
+    },
+    {
+      "requirementId": "NIMI-MAT-008",
+      "classification": "realm_input_required",
+      "disposition": "implemented_realm_input",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3.go", "contains": "agentTurnContextLaneWorldContext" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3_test.go", "contains": "agentTurnContextLaneWorldContext: 8" },
+      "acceptanceEvidence": ["five-lane-restart-offline"]
+    },
+    {
+      "requirementId": "NIMI-MAT-009",
+      "classification": "realm_input_required",
+      "disposition": "implemented_realm_input",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3.go", "contains": "agentTurnContextLaneRelationshipContext" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3_test.go", "contains": "TestCompileRealmSourceClosureV3RecordsNoRelationshipsAsNonProviderOmission" },
+      "acceptanceEvidence": ["five-lane-restart-offline"]
+    },
+    {
+      "requirementId": "NIMI-MAT-010",
+      "classification": "realm_input_required",
+      "disposition": "implemented_realm_input",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3.go", "contains": "agentTurnContextLaneSourceKnowledge" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3_test.go", "contains": "agentTurnContextLaneSourceKnowledge: 3" },
+      "acceptanceEvidence": ["five-lane-restart-offline"]
+    },
+    {
+      "requirementId": "NIMI-MAT-011",
+      "classification": "realm_input_required",
+      "disposition": "implemented_realm_input",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/realm_source_materialization_product.go", "contains": "CompilerCompatibilityVersion" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/realm_source_materialization_product_test.go", "contains": "TestLocalAgentSourceSnapshotV2HashExcludesRuntimeAndSafePacketProvenance" },
+      "acceptanceEvidence": ["runtime-hermetic-fullchain-security", "five-lane-restart-offline"]
+    },
+    {
+      "requirementId": "NIMI-MAT-012",
+      "classification": "runtime_derived",
+      "disposition": "implemented_runtime_derived",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/realm_source_materialization_product.go", "contains": "type localAgentSourceSnapshotV2 struct" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/realm_source_materialization_product_test.go", "contains": "TestLocalAgentSourceSnapshotV2ReferenceVectorsAreStrictAndTransportFree" },
+      "acceptanceEvidence": ["runtime-current-realm-live-world-persona", "five-lane-restart-offline"]
+    },
+    {
+      "requirementId": "NIMI-MAT-013",
+      "classification": "runtime_derived",
+      "disposition": "implemented_runtime_derived",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/source_materialization_v3_types.go", "contains": "MaxSetSegments" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/realm_source_materialization_staging_test.go", "contains": "TestRealmSourceMaterializationStagingRejectsLimitPlusOneWithoutResidue" },
+      "acceptanceEvidence": ["runtime-hermetic-fullchain-security", "security-zero-product-mutation"]
+    },
+    {
+      "requirementId": "NIMI-MAT-014",
+      "classification": "runtime_derived",
+      "disposition": "implemented_runtime_derived",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3.go", "contains": "compileAgentTurnSourceSnapshotV3" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3_test.go", "contains": "SnapshotV2 compiler restart parity hash" },
+      "acceptanceEvidence": ["five-lane-restart-offline"]
+    },
+    {
+      "requirementId": "NIMI-MAT-015",
+      "classification": "runtime_derived",
+      "disposition": "implemented_runtime_derived",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3.go", "contains": "not transcript" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3_test.go", "contains": "assertRealmSourceCompilerExemplarV3" },
+      "acceptanceEvidence": ["five-lane-restart-offline"]
+    },
+    {
+      "requirementId": "NIMI-MAT-016",
+      "classification": "runtime_derived",
+      "disposition": "implemented_runtime_derived",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/realm_source_materialization_product.go", "contains": "localAgentRealmSourceDisplayNameV3" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3_test.go", "contains": "TestCompileRealmSourceProfileV3ProjectsBothPresentationResourceRefs" },
+      "acceptanceEvidence": ["runtime-current-realm-live-world-persona", "consumer-hardcut"]
+    },
+    {
+      "requirementId": "NIMI-MAT-017",
+      "classification": "runtime_owned",
+      "disposition": "retained_runtime_owned",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/realm_source_materialization_service.go", "contains": "MaterializeRealmSource" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/realm_source_materialization_service_test.go", "contains": "TestMaterializeRealmSourceDurableReplayAndConflictStopBeforeIssuer" },
+      "acceptanceEvidence": ["runtime-hermetic-fullchain-security", "security-zero-product-mutation"]
+    },
+    {
+      "requirementId": "NIMI-MAT-018",
+      "classification": "runtime_owned",
+      "disposition": "retained_runtime_owned",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3.go", "contains": "grant no Runtime tool" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3_test.go", "contains": "descriptive Realm source capabilities became Runtime capability/tool authority" },
+      "acceptanceEvidence": ["five-lane-restart-offline", "consumer-hardcut"]
+    },
+    {
+      "requirementId": "NIMI-MAT-019",
+      "classification": "runtime_owned",
+      "disposition": "retained_runtime_owned",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/realm_source_materialization_product.go", "contains": "func (p *preparedRealmSourceMaterializationProductV3) commitTx" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/realm_source_materialization_product_test.go", "contains": "TestPrepareRealmSourceMaterializationProductV3CommitsAtomicallyWithStrictReadback" },
+      "acceptanceEvidence": ["runtime-current-realm-live-world-persona", "security-zero-product-mutation"]
+    },
+    {
+      "requirementId": "NIMI-MAT-020",
+      "classification": "runtime_owned",
+      "disposition": "retained_runtime_owned",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_lanes.go", "contains": "agentTurnContextLaneCanonicalMemory" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_budget_test.go", "contains": "TestAgentTurnContextProviderSequenceUsesFixedLaneOrder" },
+      "acceptanceEvidence": ["five-lane-restart-offline"]
+    },
+    {
+      "requirementId": "NIMI-MAT-021",
+      "classification": "runtime_owned",
+      "disposition": "retained_runtime_owned",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3.go", "contains": "profile_cover_resource_ref" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/agent_turn_context_source_compiler_v3_test.go", "contains": "TestCompileRealmSourceProfileV3ProjectsBothPresentationResourceRefs" },
+      "acceptanceEvidence": ["five-lane-restart-offline", "consumer-hardcut"]
+    },
+    {
+      "requirementId": "NIMI-MAT-022",
+      "classification": "runtime_owned",
+      "disposition": "retained_runtime_owned",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/realm_source_materialization_staging.go", "contains": "cleanup" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/realm_source_materialization_compact_integration_test.go", "contains": "assertCompactRealmMaterializationNoOrphansOrRawResidue" },
+      "acceptanceEvidence": ["security-zero-product-mutation", "hard-delete-zero-residue"]
+    },
+    {
+      "requirementId": "NIMI-MAT-023",
+      "classification": "forbidden_in_realm_packet",
+      "disposition": "rejected_forbidden_input",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/source_materialization_v3_semantic.go", "contains": "validateSourceMaterializationProfileShapeV3" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/source_materialization_v3_schema_strict_test.go", "contains": "raw system prompt" },
+      "acceptanceEvidence": ["runtime-hermetic-fullchain-security", "consumer-hardcut"]
+    },
+    {
+      "requirementId": "NIMI-MAT-024",
+      "classification": "forbidden_in_realm_packet",
+      "disposition": "rejected_forbidden_input",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/realm_source_materialization_product.go", "contains": "It deliberately has no Raw field" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/realm_source_materialization_service_test.go", "contains": "TestMaterializeRealmSourceProductPersistenceContainsNoRawTransport" },
+      "acceptanceEvidence": ["security-zero-product-mutation", "hard-delete-zero-residue"]
+    },
+    {
+      "requirementId": "NIMI-MAT-025",
+      "classification": "forbidden_in_realm_packet",
+      "disposition": "rejected_forbidden_input",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/source_materialization_v3_semantic.go", "contains": "canonicalSource.profile.%s is not admitted" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/source_materialization_v3_schema_strict_test.go", "contains": "provider credential" },
+      "acceptanceEvidence": ["runtime-hermetic-fullchain-security", "consumer-hardcut"]
+    },
+    {
+      "requirementId": "NIMI-MAT-026",
+      "classification": "forbidden_in_realm_packet",
+      "disposition": "rejected_forbidden_input",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/source_materialization_v3_types.go", "contains": "sourceRef.kind is not admitted" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/source_materialization_v3_schema_strict_test.go", "contains": "legacy realm persona alias" },
+      "acceptanceEvidence": ["consumer-hardcut", "runtime-hermetic-fullchain-security"]
+    },
+    {
+      "requirementId": "NIMI-MAT-027",
+      "classification": "not_applicable",
+      "disposition": "not_applicable_to_materialization",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/proactive_interruptibility.go", "contains": "proactiveInterruptibility" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/proactive_interruptibility_test.go", "contains": "TestProactiveInterruptibilityDefaultsOffAndSuppressesBeforeDelivery" },
+      "acceptanceEvidence": ["consumer-hardcut"]
+    },
+    {
+      "requirementId": "NIMI-MAT-028",
+      "classification": "not_applicable",
+      "disposition": "not_applicable_to_materialization",
+      "implementationEvidence": { "path": "runtime/internal/services/runtimeagent/service_agents.go", "contains": "func (s *Service) TerminateAgent" },
+      "testEvidence": { "path": "runtime/internal/services/runtimeagent/agent_hard_deletion_test.go", "contains": "TestTerminateAgentHardDeletesProjectionAndAgentScopedMemory" },
+      "acceptanceEvidence": ["hard-delete-zero-residue"]
+    }
+  ],
+  "summary": {
+    "rowCount": 28,
+    "mappedRequirements": 28,
+    "unmappedRequirements": 0
+  }
+}

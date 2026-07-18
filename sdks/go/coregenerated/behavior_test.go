@@ -320,7 +320,6 @@ func TestGeneratedClientsWithFakeTransport(t *testing.T) {
 					ChallengeId:             "challenge_conformance_0001",
 					ChallengeDigest:         strings.Repeat("a", 64),
 					ChallengeExpiresAt:      "2026-01-01T00:05:00.000Z",
-					AccessGrantId:           "grant-conformance",
 					PublishedLimits: &SourceMaterializationPublishedLimitsDto{
 						MaxSegmentBytes: 8388608, MaxSegmentComponentCount: 256, MaxSegmentChunks: 4096,
 						MaxChunkBytes: 262144, MaxSetSegments: 64, MaxSetBytes: 134217728,

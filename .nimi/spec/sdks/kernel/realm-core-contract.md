@@ -11,9 +11,9 @@ facade contracts and `.nimi/spec/realm/**` mirrors must not be used as
 generated Realm authority.
 
 The generated core is the only Nimi wire-shape projection for the current Realm
-`CharacterSourceRefV3`, Packet v3 closure set, eight packet limits, access-grant
-requests, current JWKS, ordered segments, hash graph, and detached-proof
-carriers. Packet issuance is consumed only by Runtime's private
+`CharacterSourceRefV3`, Packet v3 closure set, eight packet limits,
+authenticated first-party challenges, current JWKS, ordered segments, hash
+graph, and detached-proof carriers. Packet issuance is consumed only by Runtime's private
 `RealmMaterializationIssuer`; no handwritten core, facade, app, or public
 Runtime adapter may own a parallel materialization DTO, decoder, or transport
 path.

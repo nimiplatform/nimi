@@ -142,7 +142,7 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       assert.equal(selectedEvidence.localAgent.runtimeSourceRef, targetAgentEvidence.runtimeSourceRef);
       assert.equal(selectedEvidence.conversation.localAgentRef, targetAgentEvidence.localAgentRef);
       assert.equal(selectedEvidence.source.sourceContextStatus.localAgentRef, targetAgentEvidence.localAgentRef);
-      assert.equal(selectedEvidence.source.sourceRef.kind === 'worldCharacter' || selectedEvidence.source.sourceRef.kind === 'realmPersona', true);
+      assert.equal(selectedEvidence.source.sourceRef.kind === 'worldCharacter' || selectedEvidence.source.sourceRef.kind === 'personaCharacter', true);
       assert.equal(await page.locator('[data-zhiyu-source-snapshot-correlated]').getAttribute('data-zhiyu-source-snapshot-correlated'), 'true');
       assert.equal(await page.locator('[data-zhiyu-product-stage]').getAttribute('data-zhiyu-product-stage'), 'ready');
       assert.equal(selectedEvidence.route.reasonCode, 'runtime-agent-ai-config-ready');
