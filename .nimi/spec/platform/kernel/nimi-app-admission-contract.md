@@ -750,6 +750,12 @@ selection, app id, caller metadata, copied lease, raw executable self-launch,
 and direct Runtime process launch are forbidden. `OpenDesktopSession` account
 control remains unchanged and Desktop-specific.
 
+## macOS Protected-local Admission Companion
+
+`P-NAPP-037` 的单一权威正文位于
+`macos-protected-local-admission-contract.md`。该拆分仅隔离独立平台 admission
+的高复杂度信任链；本契约仍拥有 `P-NAPP-*` domain，且 companion 不得创建
+第二套 catalog、permission、Runtime session 或 local-app authority。
 ## Fact Sources
 
 - `.nimi/spec/platform/kernel/architecture-contract.md` — `P-ARCH-001..P-ARCH-021`
@@ -775,5 +781,8 @@ control remains unchanged and Desktop-specific.
 - `.nimi/spec/runtime/kernel/app-messaging-contract.md` — `K-APP-*`
 - `.nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md` — `K-LENG-024..K-LENG-027`
 - `.nimi/spec/runtime/kernel/tables/protected-local-launch-session-profiles.yaml`
+- `.nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml`
+- `.nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml`
+- `.nimi/spec/runtime/kernel/tables/protected-local-custody-profiles.yaml`
 - `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` — `K-LENG-028`
 - `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` — `D-HOME-001..D-HOME-012`

@@ -58,6 +58,7 @@ entries:
 - P-NAPP-034
 - P-NAPP-035
 - P-NAPP-036
+- P-NAPP-037
 - P-MOEX-001
 - P-MOEX-002
 - P-MOEX-003
@@ -283,6 +284,17 @@ rules:
   test_files:
   - scripts/check-local-development-admission-authority.mjs
   - scripts/check-protected-local-authority.mjs
+- rule_id: P-NAPP-037
+  evidence_refs:
+  - platform_kernel_consistency
+  - protected_local_authority_gate
+  evidence_requirement: structural_required
+  evidence_scope_note: structural authority only while macOS remains requirements-only and fail closed; positive admission additionally requires independent Electron and Tauri native carrier evidence, launchd system-service ownership, audit-token and dynamic-SecCode peer proof, Runtime-only System Keychain custody, Developer ID signing, hardened runtime, Gatekeeper and notarization evidence, restart and revoke rotation, and Desktop-close orphan-process negative evidence.
+  test_files:
+  - scripts/check-protected-local-authority.mjs
+  - scripts/check-protected-local-authority.test.mjs
+  - scripts/check-local-development-admission-authority.mjs
+  - scripts/check-local-development-admission-authority.test.mjs
 - rule_id: P-MOEX-001
   evidence_refs:
   - platform_kernel_consistency

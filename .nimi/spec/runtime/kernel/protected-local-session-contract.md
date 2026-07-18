@@ -269,7 +269,10 @@ behavior. The Linux filesystem-UDS/SO_PEERCRED/pidfd/static-carrier row remains
 requirements-only. The macOS row requires a launchd-system-daemon-owned
 filesystem UDS, kernel-derived peer euid/pid/audit-session facts, running-code
 identity verification, audit-token `pidversion`, and exit/exec liveness; it is
-requirements-only. Neither unadmitted row can open a product protected
+requirements-only. Its complete conjunctive service, custody, mutual-trust,
+Electron/Tauri split and live-evidence gate is owned by `P-NAPP-037`; satisfying
+one implementation component cannot change this table's admission. Neither
+unadmitted row can open a product protected
 listener or fall back to localhost, same-user daemon, app-created listener,
 portable proof, or another platform's transport primitives.
 
@@ -324,8 +327,18 @@ row and cannot reinterpret signer or release truth.
 
 The Windows row is the admitted same-open-`hFile`/volume/file-ID/
 `WinVerifyTrust` behavior. The Linux opened-`/proc/<pid>/exe` package identity
-and macOS running dynamic-`SecCode`/designated-requirement/Team-ID/cdhash
-profiles are requirements-only and remain fail-closed. Pathname-only static
+and macOS running dynamic-`SecCode`/designated-requirement/Team-ID/cdhash plus
+Platform-release-root-signed fixed role-record profiles are requirements-only
+and remain fail-closed. macOS final peer CDHashes cannot be mutually compiled
+into the two signed executables, and the final Desktop CDHash record cannot be
+embedded in the same outer-app resource seal without a signing cycle. Their
+signed role records are emitted after final outer signing/notarization into the
+fixed root-owned installer trust directory, then carried with that exact app by
+the signed/notarized installer package. Platform release-root signature is
+record content authority; fixed root ownership and the installer package are
+installation authority; strict outer-app validation independently proves the
+running bundle seal.
+Pathname-only static
 code, app self-description, an unadmitted profile, or another environment's
 test signer cannot substitute for the selected product row. Service-manager
 identity and process ACLs remain solely in the service-principal profile;

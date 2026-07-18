@@ -111,7 +111,7 @@ gates:
   # owner: cargo (Rust / Tauri verification chain in apps/desktop/src-tauri)
   # =====================================================================
   - id: gate.cargo.check
-    description: Desktop Rust cargo check with generated bundled runtime release resources.
+    description: Desktop Rust cargo check with generated Desktop-only release metadata and no bundled Runtime resources.
     command: pnpm --filter @nimiplatform/desktop run check:cargo
     runner: pnpm
     cwd: .
@@ -131,7 +131,7 @@ gates:
     experimental: false
 
   - id: gate.cargo.test
-    description: Desktop Rust cargo test with generated bundled runtime release resources.
+    description: Desktop Rust cargo test with generated Desktop-only release metadata and no bundled Runtime resources.
     command: pnpm --filter @nimiplatform/desktop run check:cargo:test
     runner: pnpm
     tiers: [release, release-target:desktop]
@@ -147,7 +147,7 @@ gates:
     experimental: false
 
   - id: gate.cargo.test-runtime-bridge
-    description: Desktop Rust runtime_bridge focused tests with generated bundled runtime release resources.
+    description: Desktop Rust runtime_bridge focused tests with generated Desktop-only release metadata and no Runtime staging path.
     command: pnpm --filter @nimiplatform/desktop run check:cargo:runtime-bridge
     runner: pnpm
     tiers: [release, release-target:desktop]
@@ -163,7 +163,7 @@ gates:
     experimental: false
 
   - id: gate.cargo.clippy
-    description: Desktop Rust cargo clippy with generated bundled runtime release resources.
+    description: Desktop Rust cargo clippy with generated Desktop-only release metadata and no bundled Runtime resources.
     command: pnpm --filter @nimiplatform/desktop run check:cargo:clippy
     runner: pnpm
     tiers: [release, release-target:desktop]
@@ -495,7 +495,7 @@ gates:
     experimental: false
 
   - id: gate.desktop.release-sync
-    description: Desktop release manifest sync verification (post-prepare-runtime-bundle).
+    description: Desktop-only release manifest sync verification; fails if Runtime archive/path/digest fields or bundled Runtime resources reappear.
     command: pnpm --filter @nimiplatform/desktop run check:desktop-release-sync
     runner: pnpm
     tiers: [release, release-target:desktop]

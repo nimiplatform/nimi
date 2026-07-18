@@ -43,7 +43,7 @@ commands:
 
   - command: desktop_release_info_get
     module: desktop-release
-    description: Read validated desktop release metadata for the packaged shell + bundled runtime unit
+    description: Read validated Desktop-owned release metadata; installed Runtime release and compatibility are projected only by protected-local service status
     source_rule: D-IPC-015
 
   - command: desktop_update_state_get

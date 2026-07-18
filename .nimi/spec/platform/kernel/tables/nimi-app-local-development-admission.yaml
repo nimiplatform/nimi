@@ -81,6 +81,18 @@ technical_launch_and_session:
   new_process_requires_new_lease_and_session: true
   material_visibility: runtime_and_native_host_private_only
   renderer_cli_terminal_visibility: forbidden
+electron_user_data_partition:
+  owner: desktop_supervisor
+  data_class: app_owned_authority
+  nimi_permission_or_grant: forbidden
+  root: active_user_library_application_support_nimi_local_app_hosts_v1
+  leaf: domain_separated_sha256_of_runtime_authorization_id
+  raw_authorization_account_project_app_epoch_or_session_material_in_path_or_argv: forbidden
+  mode: "0700"
+  required_checks: [canonical_ancestors, no_symlink, active_user_owner, directory, no_group_or_world_access]
+  same_authorization_controlled_restart: reuse
+  new_authorization_reapproval_account_change_or_project_identity_change: new_partition
+  acceptance_cdp_override: isolated_temporary_root_non_authorizing
 continuity_matrix:
   no_reapproval_new_lease_and_session_required:
     - renderer_hmr_or_reload
@@ -138,7 +150,16 @@ owners: &nimi_app_local_development_admission_rows
   sdk_and_kit: typed_client_and_host_private_carrier
 platform_posture:
   windows: final_fixed_service_positive_required
-  macos: fail_closed_pending_independent_admission
+  macos:
+    aggregate: requirements_complete_fail_closed_pending_signed_native_and_live_admission
+    electron: fail_closed_pending_Developer_ID_hardened_notarized_Desktop_Runtime_and_independent_local_app_host_plus_real_DOM_CDP_process_acceptance
+    tauri: fail_closed_pending_independent_Rust_WKWebView_command_install_update_and_live_acceptance
+    service_profile_ref: .nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml#macos
+    transport_profile_ref: .nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml#macos
+    custody_profile_ref: .nimi/spec/runtime/kernel/tables/protected-local-custody-profiles.yaml#macos
+    launch_profile_ref: .nimi/spec/runtime/kernel/tables/protected-local-launch-session-profiles.yaml#macos
+    trust_profile_ref: protected-local-executable-trust-sets.yaml#macos
+    source_rule: P-NAPP-037
   linux: fail_closed_pending_independent_admission
   localhost_grpc_or_same_user_daemon_fallback: forbidden
 rows: *nimi_app_local_development_admission_rows

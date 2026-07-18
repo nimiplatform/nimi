@@ -138,29 +138,36 @@ profiles:
     source_rule: K-PLOCAL-007
   - os: macos
     admission: requirements_only_fail_closed_pending_native_admission
-    production_principal: dedicated_nimi_runtime_launchd_system_daemon_principal
+    production_principal: dedicated_non_login__nimiruntime_launchd_system_daemon_principal
     interactive_user_relation: distinct_os_security_principal
     service_manager: launchd_system_domain
-    service_installation: signed_installer_creates_hardened_launchd_system_daemon_with_no_interactive_login
-    protected_state_location: launchd_system_daemon_owned_protected_state_selected_by_signed_installer
+    service_installation: signed_Developer_ID_installer_provisions__nimiruntime_and_SMAppService_registers_notarized_Contents_Library_LaunchDaemons_ai.nimi.runtime.plist_subject_to_explicit_admin_approval
+    protected_state_location: installer_fixed_root_owned_nonwritable_/Library/Application_Support/Nimi/Runtime_boundary_with__nimiruntime_owned_mode_0700_state_child
     account_partition_derivation: verified_audit_token_euid_and_audit_session
     process_isolation: hardened_runtime_library_validation_and_task_for_pid_denial
     principal_constraints:
       launch_domain: system
-      protected_state_owner: launchd_runtime_principal
-      service_definition_authority: signed_installer_only
+      account_name: _nimiruntime
+      account_uid_gid_class: dedicated_equal_local_system_id_in_200_through_499
+      login_shell: /usr/bin/false
+      home_directory: /var/empty
+      password_authentication: disabled
+      directory_service_hidden: true
+      supplementary_groups: none_InitGroups_false
+      protected_state_owner: root_for_installation_boundary_and_dedicated__nimiruntime_uid_for_exact_state_child
+      service_definition_authority: signed_notarized_/Applications/Nimi.app_SMAppService_registration_only
       interactive_process_access: verification_only
     principal_selection:
       authority_status: requirements_only
-      selected_profile: hardened_launchd_system_daemon_principal
+      selected_profile: dedicated_non_login__nimiruntime_uid_with_launchd_system_job_ai.nimi.runtime
     service_control:
-      status_semantics: launchd_service_state_then_verified_runtime_health_when_running
-      start_semantics: fixed_signed_launchd_service_definition_without_program_or_argument_selection
+      status_semantics: SMAppService_registration_and_approval_status_then_launchd_system_job_pid_then_mutually_verified_runtime_health
+      start_semantics: fixed_SMAppService_registered_daemon_only_without_program_path_argument_or_environment_selection
       restart_semantics: runtime_self_exit_then_launchd_restart_and_new_boot_epoch_verification
       implementation_status: requirements_only
     acceptance_isolation:
-      service_principal: same_production_launchd_system_daemon_principal
-      candidate_root_acl: launchd_runtime_principal_only
+      service_principal: same_production_dedicated__nimiruntime_principal
+      candidate_root_acl: dedicated__nimiruntime_uid_only
       account_partition: verified_interactive_euid_and_audit_session
       runtime_lifecycle_and_restart: real_launchd_system_daemon
       parallel_isolation: candidate_namespace_for_state_audit_and_child_sockets

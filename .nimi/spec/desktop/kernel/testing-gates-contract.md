@@ -91,7 +91,9 @@ macOS supplemental automated smoke 必须满足：
 - 执行器必须是 packaged Desktop app 自驱 smoke；不得伪装成 WebDriver parity。
 - 必须复用 admitted fixture、stable `data-testid` 与 private bridge surface，不得直接绕开业务 contract 改 store。
 - 证据必须进入 local execution report route patterns（如 `.local/report/**`）。
-- macOS manual smoke 保留 menu-bar hide/quit、packaged shell、runtime staging 与 self-update supplemental checklist；manual evidence 不替代 Linux/Windows blocking E2E。
+- macOS manual smoke 保留 menu-bar hide/quit、packaged shell、independently
+  installed Runtime service trust/compatibility/repair 与 self-update
+  supplemental checklist；manual evidence 不替代 Linux/Windows blocking E2E。
 
 ## D-GATE-070 Release Parity Gate
 

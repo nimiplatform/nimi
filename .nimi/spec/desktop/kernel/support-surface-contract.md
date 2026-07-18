@@ -41,7 +41,8 @@ diagnostics / logs / recovery）均不得作为 primary ordinary 产品类别。
 `MUST`：`Support` 表面必须承载且仅承载以下五个子区，对应 manual §Support：
 
 1. `repair` — 配置 / 数据根 / 依赖修复入口。
-2. `updates` — 应用与 bundled runtime 更新。
+2. `updates` — Desktop 应用更新与 independently installed Runtime service
+   compatibility / repair 状态投影。
 3. `diagnostics` — 技术诊断聚合视图。
 4. `logs` — 日志查看与导出。
 5. `recovery` — 恢复帮助 / 引导。
@@ -68,14 +69,19 @@ developer surface 的入口——developer surface 归 `D-DEV-*`。
 
 `MUST`：`updates` 子区是 `self-update-contract.md` "更新器可用性投影" 假定的
 Application Update 宿主表面。它必须消费 `DesktopReleaseInfo` 投影并展示当前
-desktop version、bundled runtime version、target version 与 updater state，
-动作通过受管 Tauri update command（`desktop_update_*`）触发。
+desktop release、target desktop release 与 updater state；当前 verified Runtime
+service release、mutual compatibility 与 repair state 必须来自 protected-local
+service status 投影，不能来自 Desktop manifest。Desktop update 动作通过受管
+Tauri update command（`desktop_update_*`）触发，Runtime service update/repair
+保持独立的 signed service-updater authority。
 
 `MUST`：当 `updaterAvailable=false` 时，静默检查必须 no-op；手动更新动作必须
 直接展示 `updaterUnavailableReason`，不得调用已知会失败的 updater command。
 
 `MUST NOT`：`updates` 子区不得在 renderer 侧合成默认 version 信息、不得由
-fallback version info 掩盖 runtime staging 或 release metadata 错误。
+fallback version info 掩盖 release metadata、Runtime trust/compatibility 或
+service repair 错误；不得展示 bundled/staged Runtime path，因为该产品路径不
+存在。
 
 ## D-SUP-005 — Diagnostics Sub-Area
 

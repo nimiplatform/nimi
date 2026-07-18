@@ -67,13 +67,17 @@ ready 投影。
 ## P-SUPD-007 — Existing Desktop Self-Update Supersession
 
 `MUST`：现有 `.nimi/spec/desktop/kernel/self-update-contract.md` 继续保留
-为 desktop-host 实现细节（atomic Desktop release unit、bundled runtime
-staging、updater pubkey/endpoint 实现等）。它在本 Platform policy 之下作为
-desktop-hosted 实现层级；rename 产品文案为 `Nimi` 时按
+为 desktop-host 实现细节（atomic Desktop release unit、与 independently
+installed Runtime service 的 signed release compatibility、updater
+pubkey/endpoint 实现等）。它在本 Platform policy 之下作为 desktop-hosted
+实现层级；rename 产品文案为 `Nimi` 时按
 `naming-and-kernel-ontology.md` 与 desktop kernel supersession 规则执行。
 
 `MUST NOT`：不得把 Desktop 自更新合同当成 Platform 产品 self-update
-policy 平级 owner。
+policy 平级 owner；Desktop bundle、Tauri/Electron host、renderer 或 Kit
+不得携带、stage、执行、选择或探测 production Runtime binary。Runtime 的
+install/update/rollback/activation 只能由 signed service installer/updater 与
+OS service manager 持有。
 
 ## P-SUPD-008 — Web Self-Update Boundary
 

@@ -154,8 +154,16 @@ function checkLocalAppKernelTables() {
   const grantDoc = readYaml(grantRel) || {};
   const presenceDoc = readYaml(presenceRel) || {};
 
-  if (String(principalDoc?.local_os_user_anchor?.windows_source || '').trim() !== 'verified_interactive_user_sid') {
-    fail(`${principalRel}: Windows local_os_user_anchor must derive from verified_interactive_user_sid`);
+  const platformAnchorSources = principalDoc?.local_os_user_anchor?.platform_sources || {};
+  const requiredPlatformAnchorSources = {
+    windows: 'verified_interactive_user_sid',
+    linux: 'verified_peer_uid_and_login_session',
+    macos: 'verified_peer_euid_and_audit_session',
+  };
+  for (const [platform, expectedSource] of Object.entries(requiredPlatformAnchorSources)) {
+    if (String(platformAnchorSources?.[platform] || '').trim() !== expectedSource) {
+      fail(`${principalRel}: ${platform} local_os_user_anchor must derive from ${expectedSource}`);
+    }
   }
   if (String(principalDoc?.principal?.store_identity || '').trim() !== 'local_app_principals') {
     fail(`${principalRel}: principal.store_identity must be local_app_principals`);

@@ -91,14 +91,22 @@ profiles:
     admission: requirements_only_fail_closed_pending_native_admission
     service_principal_profile_ref: protected-local-runtime-principal-profiles.yaml#same-os
     primary_custody: >-
-      hardened launchd system-daemon Runtime principal; code-identity-ACL system Keychain
-      item bound to the Runtime designated requirement
-    protector_or_key_source: code_identity_acl_system_keychain_item_for_runtime_designated_requirement
-    cryptographic_scope: runtime_designated_requirement_and_launchd_system_daemon_principal
-    forbidden_protectors: [login_keychain, app_or_desktop_owned_keychain_item]
-    protected_state_binding: launchd_runtime_principal_and_runtime_designated_requirement_only
-    transaction_store_and_durable_anchor: launchd_system_daemon_transaction_db_plus_code_identity_keychain_anchor_only_for_admitted_nonrollbackable_generation
+      dedicated _nimiruntime launchd system-daemon principal; non-synchronizing
+      System Keychain items whose ACL contains only the exact Runtime trusted
+      application/code requirement
+    protector_or_key_source: system_keychain_generic_password_items_with_runtime_only_SecAccess_ACL_and_no_Desktop_access_group
+    cryptographic_scope: exact_runtime_designated_requirement_team_id_and_dedicated__nimiruntime_principal
+    forbidden_protectors: [login_keychain, synchronizable_keychain, shared_Desktop_access_group, app_or_desktop_owned_keychain_item, renderer_or_app_storage]
+    protected_state_binding: dedicated__nimiruntime_uid_plus_exact_runtime_designated_requirement_and_release_lineage
+    transaction_store_and_durable_anchor: >-
+      signed_installer_invokes_exact_installed_Runtime_binary_as_real_root_in_no_input_provision_mode_before_service_registration;
+      provisioner_and_daemon_share_exclusive__nimiruntime_owned_0600_regular_runtime.lock;
+      all_absent_is_the_only_fresh_state_and_all_present_plus_valid_is_the_only_existing_state;
+      partial_busy_replaced_or_unknown_state_fails_closed_without_implicit_reset;
+      dedicated__nimiruntime_transaction_db_plus_Runtime_only_System_Keychain_anchor_and_32_byte_record_MAC_key_include_append_only_per_executable_role_release_generation_high_water;
+      boot_epoch_is_ledger_committed_per_process_start_and_never_durable_session_authority
     unavailable_disposition: >-
-      code identity, Keychain ACL, or launchd system-daemon principal mismatch marks
-      custody unavailable
+      missing/locked/restored ACL-mismatched Keychain item, code identity,
+      dedicated principal, or release-lineage mismatch marks custody unavailable
+      before any protected listener opens
     source_rule: K-ACCSVC-007

@@ -429,6 +429,15 @@ chain on reject, revoke, invalid project change, or supervisor/dev-server/host
 exit. HMR and controlled rebuild/restart remain within the same run and do not
 repeat confirmation.
 
+For Electron, the supervisor creates and validates the fixed active-user Nimi
+profile-root ancestry and an authorization-scoped opaque mode-`0700` Chromium
+user-data directory before native launch. Only a domain-separated one-way
+digest enters `--user-data-dir`; the authorization id and all Runtime/account/
+project/session material remain native-host-private and absent from argv. This
+partition is app-owned browser data, not authorization persistence. A CDP
+acceptance build may replace it only with its explicitly isolated evidence
+directory.
+
 Desktop never returns a launch ticket, session proof, Runtime epoch, protected
 endpoint, credential, token, or native carrier handle to CLI or renderer. The
 CLI receives only stable request/status/failure projections. The renderer sees
