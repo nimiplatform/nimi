@@ -82,10 +82,10 @@ export enum AgentLifecycleStatus {
 
 export enum AgentLocalSourceContextSchemaVersion {
   UNSPECIFIED = 0,
-  V1 = 1,
+  V2 = 2,
 }
 
-const KNOWN_AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_VALUES: ReadonlySet<number> = new Set([0, 1]);
+const KNOWN_AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_VALUES: ReadonlySet<number> = new Set([0, 2]);
 
 export function isKnownAgentLocalSourceContextSchemaVersion(value: unknown): value is AgentLocalSourceContextSchemaVersion {
   return typeof value === 'number' && Number.isInteger(value) && KNOWN_AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_VALUES.has(value);
@@ -176,10 +176,10 @@ export function assertKnownAgentLocalSourceCoverageState(value: unknown): AgentL
 
 export enum AgentLocalSourceSnapshotSchemaVersion {
   UNSPECIFIED = 0,
-  V1 = 1,
+  V2 = 2,
 }
 
-const KNOWN_AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_VALUES: ReadonlySet<number> = new Set([0, 1]);
+const KNOWN_AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_VALUES: ReadonlySet<number> = new Set([0, 2]);
 
 export function isKnownAgentLocalSourceSnapshotSchemaVersion(value: unknown): value is AgentLocalSourceSnapshotSchemaVersion {
   return typeof value === 'number' && Number.isInteger(value) && KNOWN_AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_VALUES.has(value);
@@ -278,230 +278,6 @@ export enum AgentProactiveTriggerSource {
   UNSPECIFIED = 0,
   LIFE_TRACK_CADENCE = 1,
   HOOK_INTENT = 2,
-}
-
-export enum AgentSourceMaterializationBundleManifestSchemaVersion {
-  UNSPECIFIED = 0,
-  V1 = 1,
-}
-
-const KNOWN_AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_VALUES: ReadonlySet<number> = new Set([0, 1]);
-
-export function isKnownAgentSourceMaterializationBundleManifestSchemaVersion(value: unknown): value is AgentSourceMaterializationBundleManifestSchemaVersion {
-  return typeof value === 'number' && Number.isInteger(value) && KNOWN_AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_VALUES.has(value);
-}
-
-export function assertKnownAgentSourceMaterializationBundleManifestSchemaVersion(value: unknown): AgentSourceMaterializationBundleManifestSchemaVersion {
-  if (!isKnownAgentSourceMaterializationBundleManifestSchemaVersion(value)) {
-    throw new TypeError("Unknown AgentSourceMaterializationBundleManifestSchemaVersion numeric value" + ': ' + String(value));
-  }
-  return value;
-}
-
-export enum AgentSourceMaterializationChallengeState {
-  UNSPECIFIED = 0,
-  ISSUED = 1,
-  LEASED = 2,
-  CONSUMED = 3,
-  INVALIDATED = 4,
-  EXPIRED = 5,
-}
-
-const KNOWN_AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_VALUES: ReadonlySet<number> = new Set([0, 1, 2, 3, 4, 5]);
-
-export function isKnownAgentSourceMaterializationChallengeState(value: unknown): value is AgentSourceMaterializationChallengeState {
-  return typeof value === 'number' && Number.isInteger(value) && KNOWN_AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_VALUES.has(value);
-}
-
-export function assertKnownAgentSourceMaterializationChallengeState(value: unknown): AgentSourceMaterializationChallengeState {
-  if (!isKnownAgentSourceMaterializationChallengeState(value)) {
-    throw new TypeError("Unknown AgentSourceMaterializationChallengeState numeric value" + ': ' + String(value));
-  }
-  return value;
-}
-
-export enum AgentSourceMaterializationComponentKind {
-  UNSPECIFIED = 0,
-  WORLD_CHARACTER = 1,
-  REALM_PERSONA = 2,
-  WORLD_CORE = 3,
-  WORLD_ENTITY = 4,
-  WORLD_RELATIONSHIP = 5,
-  COVERAGE_MANIFEST = 6,
-}
-
-const KNOWN_AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_VALUES: ReadonlySet<number> = new Set([0, 1, 2, 3, 4, 5, 6]);
-
-export function isKnownAgentSourceMaterializationComponentKind(value: unknown): value is AgentSourceMaterializationComponentKind {
-  return typeof value === 'number' && Number.isInteger(value) && KNOWN_AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_VALUES.has(value);
-}
-
-export function assertKnownAgentSourceMaterializationComponentKind(value: unknown): AgentSourceMaterializationComponentKind {
-  if (!isKnownAgentSourceMaterializationComponentKind(value)) {
-    throw new TypeError("Unknown AgentSourceMaterializationComponentKind numeric value" + ': ' + String(value));
-  }
-  return value;
-}
-
-export enum AgentSourceMaterializationKeyUse {
-  UNSPECIFIED = 0,
-  SIG = 1,
-}
-
-const KNOWN_AGENT_SOURCE_MATERIALIZATION_KEY_USE_VALUES: ReadonlySet<number> = new Set([0, 1]);
-
-export function isKnownAgentSourceMaterializationKeyUse(value: unknown): value is AgentSourceMaterializationKeyUse {
-  return typeof value === 'number' && Number.isInteger(value) && KNOWN_AGENT_SOURCE_MATERIALIZATION_KEY_USE_VALUES.has(value);
-}
-
-export function assertKnownAgentSourceMaterializationKeyUse(value: unknown): AgentSourceMaterializationKeyUse {
-  if (!isKnownAgentSourceMaterializationKeyUse(value)) {
-    throw new TypeError("Unknown AgentSourceMaterializationKeyUse numeric value" + ': ' + String(value));
-  }
-  return value;
-}
-
-export enum AgentSourceMaterializationPacketSchemaVersion {
-  UNSPECIFIED = 0,
-  V2 = 1,
-}
-
-const KNOWN_AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_VALUES: ReadonlySet<number> = new Set([0, 1]);
-
-export function isKnownAgentSourceMaterializationPacketSchemaVersion(value: unknown): value is AgentSourceMaterializationPacketSchemaVersion {
-  return typeof value === 'number' && Number.isInteger(value) && KNOWN_AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_VALUES.has(value);
-}
-
-export function assertKnownAgentSourceMaterializationPacketSchemaVersion(value: unknown): AgentSourceMaterializationPacketSchemaVersion {
-  if (!isKnownAgentSourceMaterializationPacketSchemaVersion(value)) {
-    throw new TypeError("Unknown AgentSourceMaterializationPacketSchemaVersion numeric value" + ': ' + String(value));
-  }
-  return value;
-}
-
-export enum AgentSourceMaterializationPayloadAssemblyVersion {
-  UNSPECIFIED = 0,
-  V1 = 1,
-}
-
-const KNOWN_AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_VALUES: ReadonlySet<number> = new Set([0, 1]);
-
-export function isKnownAgentSourceMaterializationPayloadAssemblyVersion(value: unknown): value is AgentSourceMaterializationPayloadAssemblyVersion {
-  return typeof value === 'number' && Number.isInteger(value) && KNOWN_AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_VALUES.has(value);
-}
-
-export function assertKnownAgentSourceMaterializationPayloadAssemblyVersion(value: unknown): AgentSourceMaterializationPayloadAssemblyVersion {
-  if (!isKnownAgentSourceMaterializationPayloadAssemblyVersion(value)) {
-    throw new TypeError("Unknown AgentSourceMaterializationPayloadAssemblyVersion numeric value" + ': ' + String(value));
-  }
-  return value;
-}
-
-export enum AgentSourceMaterializationProofAlgorithm {
-  UNSPECIFIED = 0,
-  RS256 = 1,
-}
-
-const KNOWN_AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_VALUES: ReadonlySet<number> = new Set([0, 1]);
-
-export function isKnownAgentSourceMaterializationProofAlgorithm(value: unknown): value is AgentSourceMaterializationProofAlgorithm {
-  return typeof value === 'number' && Number.isInteger(value) && KNOWN_AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_VALUES.has(value);
-}
-
-export function assertKnownAgentSourceMaterializationProofAlgorithm(value: unknown): AgentSourceMaterializationProofAlgorithm {
-  if (!isKnownAgentSourceMaterializationProofAlgorithm(value)) {
-    throw new TypeError("Unknown AgentSourceMaterializationProofAlgorithm numeric value" + ': ' + String(value));
-  }
-  return value;
-}
-
-export enum AgentSourceMaterializationReasonCode {
-  UNSPECIFIED = 0,
-  NONE = 1,
-  INVALID_REQUEST = 2,
-  ACCOUNT_BINDING_MISMATCH = 3,
-  SOURCE_BINDING_MISMATCH = 4,
-  CHALLENGE_NOT_FOUND = 5,
-  CHALLENGE_EXPIRED = 6,
-  CHALLENGE_CONFLICT = 7,
-  CHALLENGE_ALREADY_LEASED = 8,
-  CHALLENGE_ALREADY_CONSUMED = 9,
-  AUDIENCE_MISMATCH = 10,
-  BUNDLE_CAPACITY_EXCEEDED = 11,
-  COMPONENT_CAPACITY_EXCEEDED = 12,
-  CHUNK_CAPACITY_EXCEEDED = 13,
-  CHUNK_COUNT_EXCEEDED = 14,
-  MANIFEST_INVALID = 15,
-  PACKET_INVALID = 16,
-  PROOF_INVALID = 17,
-  UPLOAD_NOT_FOUND = 18,
-  UPLOAD_STATE_CONFLICT = 19,
-  REQUEST_ID_CONFLICT = 20,
-  CHUNK_DESCRIPTOR_INVALID = 21,
-  CHUNK_DIGEST_MISMATCH = 22,
-  CHUNK_CONFLICT = 23,
-  COMMIT_IN_PROGRESS = 24,
-  ALREADY_COMMITTED = 25,
-  COMMIT_CONFLICT = 26,
-  ADMISSION_FAILED = 27,
-  ABORTED = 28,
-  EXPIRED = 29,
-  PERSISTENCE_FAILED = 30,
-}
-
-const KNOWN_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_VALUES: ReadonlySet<number> = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]);
-
-export function isKnownAgentSourceMaterializationReasonCode(value: unknown): value is AgentSourceMaterializationReasonCode {
-  return typeof value === 'number' && Number.isInteger(value) && KNOWN_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_VALUES.has(value);
-}
-
-export function assertKnownAgentSourceMaterializationReasonCode(value: unknown): AgentSourceMaterializationReasonCode {
-  if (!isKnownAgentSourceMaterializationReasonCode(value)) {
-    throw new TypeError("Unknown AgentSourceMaterializationReasonCode numeric value" + ': ' + String(value));
-  }
-  return value;
-}
-
-export enum AgentSourceMaterializationSourceKind {
-  UNSPECIFIED = 0,
-  WORLD_CHARACTER = 1,
-  REALM_PERSONA = 2,
-}
-
-const KNOWN_AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_VALUES: ReadonlySet<number> = new Set([0, 1, 2]);
-
-export function isKnownAgentSourceMaterializationSourceKind(value: unknown): value is AgentSourceMaterializationSourceKind {
-  return typeof value === 'number' && Number.isInteger(value) && KNOWN_AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_VALUES.has(value);
-}
-
-export function assertKnownAgentSourceMaterializationSourceKind(value: unknown): AgentSourceMaterializationSourceKind {
-  if (!isKnownAgentSourceMaterializationSourceKind(value)) {
-    throw new TypeError("Unknown AgentSourceMaterializationSourceKind numeric value" + ': ' + String(value));
-  }
-  return value;
-}
-
-export enum AgentSourceMaterializationUploadState {
-  UNSPECIFIED = 0,
-  OPEN = 1,
-  COMMITTING = 2,
-  COMMITTED = 3,
-  FAILED = 4,
-  ABORTED = 5,
-  EXPIRED = 6,
-}
-
-const KNOWN_AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_VALUES: ReadonlySet<number> = new Set([0, 1, 2, 3, 4, 5, 6]);
-
-export function isKnownAgentSourceMaterializationUploadState(value: unknown): value is AgentSourceMaterializationUploadState {
-  return typeof value === 'number' && Number.isInteger(value) && KNOWN_AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_VALUES.has(value);
-}
-
-export function assertKnownAgentSourceMaterializationUploadState(value: unknown): AgentSourceMaterializationUploadState {
-  if (!isKnownAgentSourceMaterializationUploadState(value)) {
-    throw new TypeError("Unknown AgentSourceMaterializationUploadState numeric value" + ': ' + String(value));
-  }
-  return value;
 }
 
 export enum AgentStateEventFamily {

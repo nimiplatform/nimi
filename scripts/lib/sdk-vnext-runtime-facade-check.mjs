@@ -30,8 +30,14 @@ export const GROUP_TO_FACADE_ARRAYS = Object.freeze([
   { groups: ['app_lifecycle_service_projection'], arrays: ['RUNTIME_APP_LIFECYCLE_METHODS'] },
   { groups: ['artifact_service_projection'], arrays: ['RUNTIME_ARTIFACT_METHODS'] },
   { groups: ['memory_service_projection'], arrays: ['RUNTIME_MEMORY_METHODS'] },
-  { groups: ['agent_service_projection', 'agent_participation_projection'], arrays: ['RUNTIME_AGENT_METHODS'] },
+  {
+    groups: ['agent_service_projection', 'agent_participation_projection'],
+    arrays: ['RUNTIME_AGENT_METHODS', 'RUNTIME_ROOT_AGENT_FACADE_METHODS'],
+  },
 ]);
+
+const ROOT_AGENT_FACADE_ARRAY = 'RUNTIME_ROOT_AGENT_FACADE_METHODS';
+const GENERATED_AGENT_ARRAY = 'RUNTIME_AGENT_METHODS';
 
 const DEFERRED_GROUPS = Object.freeze([
   'workflow_service_projection',
@@ -77,6 +83,17 @@ export function parseRuntimeFacadeArrays(source) {
     arrays.set(match[1], [...match[2].matchAll(/'([^']+)'/gu)].map((method) => method[1]));
   }
   return arrays;
+}
+
+function parseRuntimeRootFacadeMethods(source) {
+  const classStart = source.indexOf('export class Runtime {');
+  const classEnd = source.indexOf('\n}\n\nexport function createRuntime', classStart);
+  if (classStart < 0 || classEnd < 0) return new Set();
+  const classSource = source.slice(classStart, classEnd);
+  return new Set(
+    [...classSource.matchAll(/^ {2}(?:async\s+)?([a-z][A-Za-z0-9]*)\s*\(/gmu)]
+      .map((match) => match[1]),
+  );
 }
 
 function parseGroups(document) {
@@ -235,6 +252,28 @@ export function validateSdkVnextRuntimeFacadeCandidate(input) {
     }
   }
 
+  const rootAgentFacadeMethods = uniqueSorted(arrays.get(ROOT_AGENT_FACADE_ARRAY) ?? []);
+  const generatedAgentMethods = new Set(arrays.get(GENERATED_AGENT_ARRAY) ?? []);
+  const implementedRootMethods = parseRuntimeRootFacadeMethods(String(input.facade ?? ''));
+  const missingRootImplementations = rootAgentFacadeMethods.filter(
+    (method) => !implementedRootMethods.has(method),
+  );
+  if (missingRootImplementations.length > 0) {
+    issues.push(issue(
+      'RUNTIME_FACADE_ROOT_METHOD_IMPLEMENTATION_MISSING',
+      `${RUNTIME_FACADE_PATHS.facade}#Runtime`,
+      `Root facade registry methods are not implemented on Runtime: ${missingRootImplementations.join(', ')}.`,
+    ));
+  }
+  const rawAgentExposure = rootAgentFacadeMethods.filter((method) => generatedAgentMethods.has(method));
+  if (rawAgentExposure.length > 0) {
+    issues.push(issue(
+      'RUNTIME_FACADE_ROOT_METHOD_RAW_EXPOSED',
+      `${RUNTIME_FACADE_PATHS.modules}#${GENERATED_AGENT_ARRAY}`,
+      `Root-only high-level methods must not also expose generated request DTOs through runtime.agents: ${rawAgentExposure.join(', ')}.`,
+    ));
+  }
+
   for (const groupName of DEFERRED_GROUPS) {
     const group = groups.get(groupName);
     if (!group || group.status !== 'deferred') {
@@ -294,6 +333,42 @@ function replacePostureExact(candidate, relative, from, to) {
 }
 
 export const RUNTIME_FACADE_NEGATIVE_FIXTURES = Object.freeze([
+  {
+    fixtureId: 'root-agent-registry-omits-materialize',
+    expectedCode: 'RUNTIME_FACADE_PORTABLE_METHOD_MISSING',
+    mutate(candidate) {
+      replaceExact(
+        candidate,
+        'modules',
+        "export const RUNTIME_ROOT_AGENT_FACADE_METHODS = [\n  'materializeRealmSource',\n] as const;",
+        'export const RUNTIME_ROOT_AGENT_FACADE_METHODS = [\n] as const;',
+      );
+    },
+  },
+  {
+    fixtureId: 'root-agent-facade-omits-implementation',
+    expectedCode: 'RUNTIME_FACADE_ROOT_METHOD_IMPLEMENTATION_MISSING',
+    mutate(candidate) {
+      replaceExact(
+        candidate,
+        'facade',
+        '  async materializeRealmSource(\n',
+        '  async omittedMaterializeRealmSource(\n',
+      );
+    },
+  },
+  {
+    fixtureId: 'generated-agent-module-exposes-root-materialize',
+    expectedCode: 'RUNTIME_FACADE_ROOT_METHOD_RAW_EXPOSED',
+    mutate(candidate) {
+      replaceExact(
+        candidate,
+        'modules',
+        "export const RUNTIME_AGENT_METHODS = [\n  'initializeAgent',",
+        "export const RUNTIME_AGENT_METHODS = [\n  'materializeRealmSource',\n  'initializeAgent',",
+      );
+    },
+  },
   {
     fixtureId: 'public-facade-omits-readiness',
     expectedCode: 'RUNTIME_FACADE_PORTABLE_METHOD_MISSING',

@@ -52,7 +52,7 @@ func TestAuthorizedLocalAppTurnHydratesIdentityAndFreezesAliasTarget(t *testing.
 				CatalogRevision:     "local-app-turn-catalog-v1",
 				ModelRevision:       "local-app-turn-model-v1",
 				ProviderID:          "local",
-				RouteDigest:         sourceMaterializationBytesDigest([]byte("local-app-turn-route-v1")),
+				RouteDigest:         sha256HexBytes([]byte("local-app-turn-route-v1")),
 			}, nil
 		},
 	})

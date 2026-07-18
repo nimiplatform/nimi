@@ -5,10 +5,16 @@ import {
   runtimeRpcAuthPosture,
   type RuntimeRpcAuthPosture,
 } from '../core-generated/runtime-rpc-auth-posture';
-import { RuntimeTypedClient } from '../core-generated/runtime-typed-client';
+import {
+  CharacterSourceKindV3,
+  RuntimeTypedClient,
+  WorldEntityRefKindV3,
+} from '../core-generated/runtime-typed-client';
 import type {
+  CharacterSourceRefV3,
   GetRuntimeHealthRequest,
   GetRuntimeHealthResponse,
+  MaterializeRealmSourceResponse,
   RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 import { createNimiError, ReasonCode } from '../types';
@@ -37,6 +43,7 @@ import {
   RUNTIME_LOCAL_METHODS,
   RUNTIME_MEMORY_METHODS,
   RUNTIME_REALTIME_METHODS,
+  RUNTIME_ROOT_AGENT_FACADE_METHODS,
   RUNTIME_SCHEDULING_METHODS,
   type NimiRuntimeAppLifecycleGeneratedModule,
   type RuntimeAccountModule,
@@ -53,10 +60,13 @@ import {
   type RuntimeMemoryModule,
   type RuntimeMethodModule,
   type RuntimeRealtimeModule,
+  type RuntimeRootAgentFacadeMethodName,
   type RuntimeSchedulingModule,
   type RuntimeTypedMethodName,
 } from './runtime-method-modules';
 import type { RuntimeNodeGrpcTransportOptions } from './node-grpc';
+import type { NimiRuntimeAgentSourceRef } from './runtime-agent-context-projections';
+import { resolveNimiRuntimeAgentSubjectUserId } from './runtime-agent-protected';
 import { createRuntimeTauriIpcTransport, type RuntimeTauriIpcTransportOptions } from './tauri-ipc';
 
 export type { CoreTransport, CoreClientOptions };
@@ -75,6 +85,7 @@ export {
   RUNTIME_LOCAL_METHODS,
   RUNTIME_MEMORY_METHODS,
   RUNTIME_REALTIME_METHODS,
+  RUNTIME_ROOT_AGENT_FACADE_METHODS,
   RUNTIME_SCHEDULING_METHODS,
 } from './runtime-method-modules';
 export type {
@@ -93,6 +104,7 @@ export type {
   RuntimeMemoryModule,
   RuntimeMethodModule,
   RuntimeRealtimeModule,
+  RuntimeRootAgentFacadeMethodName,
   RuntimeSchedulingModule,
   RuntimeTypedMethodName,
 } from './runtime-method-modules';
@@ -189,11 +201,19 @@ export type RuntimeTransportConfig =
 
 export interface RuntimeOptions extends Omit<CoreClientOptions, 'transport'> {
   readonly appId?: string;
+  readonly getSubjectUserId?: () => string | Promise<string | undefined> | undefined;
   readonly hostOwnedIdentity?: boolean;
   readonly metadata?: CoreMetadata;
   readonly responseMetadataObserver?: CoreResponseMetadataObserver;
   readonly transport?: RuntimeTransportConfig;
 }
+
+export interface RuntimeMaterializeRealmSourceInput {
+  readonly sourceRef: NimiRuntimeAgentSourceRef;
+  readonly requestId: string;
+}
+
+export type RuntimeMaterializeRealmSourceResult = MaterializeRealmSourceResponse;
 
 type RuntimeNodeGrpcModule = typeof import('./node-grpc');
 
@@ -340,6 +360,9 @@ export class NimiRuntimeUnavailableError extends Error {
 
 export class Runtime {
   readonly #core: CoreClient;
+  readonly #appId: string;
+  readonly #getSubjectUserId: () => string | Promise<string | undefined> | undefined;
+  readonly #materializeRealmSource: RuntimeTypedClient['materializeRealmSource'];
   readonly generated: RuntimePublicGeneratedClient;
   readonly account: RuntimeAccountModule;
   readonly agents: RuntimeAgentModule;
@@ -360,11 +383,14 @@ export class Runtime {
   #versionCompatibility: RuntimeVersionCompatibilityStatus = UNKNOWN_RUNTIME_VERSION_COMPATIBILITY;
 
   constructor(options: RuntimeOptions = {}) {
+    this.#appId = resolveRuntimeAppId(options);
+    this.#getSubjectUserId = options.getSubjectUserId ?? (() => undefined);
     this.#core = new CoreClient(toCoreClientOptions(
       options,
       (metadata) => this.#observeResponseMetadata(metadata),
     ));
     const generated = new RuntimeTypedClient(this.#core);
+    this.#materializeRealmSource = generated.materializeRealmSource.bind(generated);
     this.generated = createPublicRuntimeGeneratedClient(generated);
     this.account = bindRuntimeModule(this.generated, RUNTIME_ACCOUNT_METHODS);
     this.agents = bindRuntimeModule(generated, RUNTIME_AGENT_METHODS);
@@ -383,6 +409,33 @@ export class Runtime {
       client: bindRuntimeModule(generated, RUNTIME_APP_LIFECYCLE_METHODS),
     });
     this.artifacts = bindRuntimeModule(this.generated, RUNTIME_ARTIFACT_METHODS);
+  }
+
+  async materializeRealmSource(
+    input: RuntimeMaterializeRealmSourceInput,
+  ): Promise<RuntimeMaterializeRealmSourceResult> {
+    const materializationInput = strictMaterializationRecord(
+      input,
+      'materializeRealmSource input',
+      new Set(['sourceRef', 'requestId']),
+    );
+    const requestId = strictMaterializationRequestId(materializationInput.requestId);
+    const sourceRef = toRuntimeCharacterSourceRefV3(materializationInput.sourceRef);
+    const subjectUserId = await resolveNimiRuntimeAgentSubjectUserId(
+      this.#getSubjectUserId,
+      'Realm source materialization requires authenticated subject user id.',
+    );
+    return this.#materializeRealmSource({
+      context: {
+        appId: this.#appId,
+        subjectUserId,
+        ownerUserId: subjectUserId,
+        runtimeSourceRef: '',
+        localAgentRef: '',
+      },
+      requestId,
+      sourceRef,
+    });
   }
 
   health(request: GetRuntimeHealthRequest = {}, options: RuntimeTypedCallOptions = {}): Promise<GetRuntimeHealthResponse> {
@@ -487,29 +540,17 @@ function bindRuntimeModule<const Keys extends readonly RuntimeTypedMethodName[]>
   return module as RuntimeMethodModule<Keys>;
 }
 
-const RUNTIME_PRIVATE_SOURCE_MATERIALIZATION_METHODS = [
-  'createSourceMaterializationChallenge',
-  'beginSourceMaterializationUpload',
-  'putSourceMaterializationChunk',
-  'commitSourceMaterialization',
-  'abortSourceMaterializationUpload',
-] as const satisfies readonly RuntimeTypedMethodName[];
-
-type RuntimePrivateSourceMaterializationMethod =
-  (typeof RUNTIME_PRIVATE_SOURCE_MATERIALIZATION_METHODS)[number];
-
-export type RuntimePublicGeneratedClient = Omit<
-  RuntimeTypedClient,
-  RuntimePrivateSourceMaterializationMethod
->;
+export type RuntimePublicGeneratedClient = Omit<RuntimeTypedClient, 'materializeRealmSource'>;
 
 function createPublicRuntimeGeneratedClient(
   client: RuntimeTypedClient,
 ): RuntimePublicGeneratedClient {
-  const privateMethods = new Set<string>(RUNTIME_PRIVATE_SOURCE_MATERIALIZATION_METHODS);
   const publicClient = Object.create(null) as Record<string, unknown>;
   for (const property of Object.getOwnPropertyNames(RuntimeTypedClient.prototype)) {
-    if (property === 'constructor' || privateMethods.has(property)) {
+    if (property === 'constructor') {
+      continue;
+    }
+    if (property === 'materializeRealmSource') {
       continue;
     }
     if (RUNTIME_APP_LIFECYCLE_METHOD_SET.has(property)) {
@@ -539,7 +580,7 @@ function createPublicRuntimeGeneratedClient(
       publicClient[property] = value.bind(client);
     }
   }
-  return Object.freeze(publicClient) as RuntimePublicGeneratedClient;
+  return Object.freeze(publicClient) as unknown as RuntimePublicGeneratedClient;
 }
 
 const RUNTIME_PUBLIC_GENERATED_BLOCKED_POSTURES = new Set<RuntimeRpcAuthPosture>([
@@ -634,6 +675,126 @@ function resolveRuntimeAppId(options: RuntimeOptions): string {
 
 function normalizeText(value: unknown): string {
   return String(value || '').trim();
+}
+
+function materializationInputError(message: string): never {
+  throw createNimiError({
+    message: `Runtime Realm source materialization ${message}.`,
+    reasonCode: 'SDK_RUNTIME_REALM_SOURCE_INPUT_INVALID',
+    actionHint: 'provide_character_source_ref_v3_and_request_id',
+    source: 'sdk',
+  });
+}
+
+function strictMaterializationRecord(
+  value: unknown,
+  label: string,
+  allowedFields: ReadonlySet<string>,
+): Readonly<Record<string, unknown>> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    materializationInputError(`${label} must be an object`);
+  }
+  const record = value as Readonly<Record<string, unknown>>;
+  const unknownField = Object.keys(record).find((field) => !allowedFields.has(field));
+  if (unknownField) {
+    materializationInputError(`${label}.${unknownField} is not admitted`);
+  }
+  return record;
+}
+
+function strictMaterializationText(value: unknown, label: string): string {
+  if (typeof value !== 'string' || !value || value !== value.trim()) {
+    materializationInputError(`${label} must be a non-empty canonical string`);
+  }
+  return value;
+}
+
+function strictMaterializationHash(value: unknown, label: string): string {
+  const hash = strictMaterializationText(value, label);
+  if (!/^[a-f0-9]{64}$/u.test(hash)) {
+    materializationInputError(`${label} must be a lowercase SHA-256 digest`);
+  }
+  return hash;
+}
+
+function strictMaterializationRequestId(value: unknown): string {
+  const requestId = strictMaterializationText(value, 'requestId');
+  if (new TextEncoder().encode(requestId).byteLength > 256 || /[\u0000-\u001f\u007f]/u.test(requestId)) {
+    materializationInputError('requestId is outside the admitted UTF-8/control-character bounds');
+  }
+  return requestId;
+}
+
+function toRuntimeCharacterSourceRefV3(value: unknown): CharacterSourceRefV3 {
+  const source = strictMaterializationRecord(
+    value,
+    'sourceRef',
+    new Set(['kind', 'id', 'worldId', 'worldEntityRef', 'ownerAccountId', 'sourceHash']),
+  );
+  const kind = strictMaterializationText(source.kind, 'sourceRef.kind');
+  const id = strictMaterializationText(source.id, 'sourceRef.id');
+  const worldId = strictMaterializationText(source.worldId, 'sourceRef.worldId');
+  const sourceHash = strictMaterializationHash(source.sourceHash, 'sourceRef.sourceHash');
+  if (kind === 'worldCharacter') {
+    if (source.ownerAccountId !== undefined) {
+      materializationInputError('worldCharacter sourceRef.ownerAccountId is not admitted');
+    }
+    const worldEntityRef = strictMaterializationRecord(
+      source.worldEntityRef,
+      'sourceRef.worldEntityRef',
+      new Set(['kind', 'worldId', 'entityId']),
+    );
+    if (strictMaterializationText(worldEntityRef.kind, 'sourceRef.worldEntityRef.kind') !== 'worldEntity') {
+      materializationInputError('sourceRef.worldEntityRef.kind must be worldEntity');
+    }
+    const entityWorldId = strictMaterializationText(
+      worldEntityRef.worldId,
+      'sourceRef.worldEntityRef.worldId',
+    );
+    if (entityWorldId !== worldId) {
+      materializationInputError('worldCharacter sourceRef world binding is inconsistent');
+    }
+    return {
+      source: {
+        oneofKind: 'worldCharacter',
+        worldCharacter: {
+          kind: CharacterSourceKindV3.WORLD_CHARACTER,
+          id,
+          worldId,
+          worldEntityRef: {
+            kind: WorldEntityRefKindV3.WORLD_ENTITY,
+            worldId: entityWorldId,
+            entityId: strictMaterializationText(
+              worldEntityRef.entityId,
+              'sourceRef.worldEntityRef.entityId',
+            ),
+          },
+          sourceHash,
+        },
+      },
+    };
+  }
+  if (kind === 'personaCharacter') {
+    if (source.worldEntityRef !== undefined) {
+      materializationInputError('personaCharacter sourceRef.worldEntityRef is not admitted');
+    }
+    return {
+      source: {
+        oneofKind: 'personaCharacter',
+        personaCharacter: {
+          kind: CharacterSourceKindV3.PERSONA_CHARACTER,
+          id,
+          worldId,
+          ownerAccountId: strictMaterializationText(
+            source.ownerAccountId,
+            'sourceRef.ownerAccountId',
+          ),
+          sourceHash,
+        },
+      },
+    };
+  }
+  materializationInputError('sourceRef.kind must be worldCharacter or personaCharacter');
 }
 
 function parseSemverMajor(version: string): number | null {

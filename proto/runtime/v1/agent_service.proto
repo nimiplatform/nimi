@@ -770,13 +770,10 @@ message GetRuntimeAgentAIConfigReadinessRequest { AgentRequestContext context = 
 message GetRuntimeAgentAIConfigReadinessResponse { RuntimeAgentAIConfigReadinessSnapshot snapshot = 1; }
 message SubscribeRuntimeAgentAIConfigReadinessRequest { AgentRequestContext context = 1; }
 service RuntimeAgentService {
-  // K-AGCORE-151 canonical source materialization sequence. There is no unary
-  // packet shortcut: even a one-chunk bundle uses Begin -> Put -> Commit.
-  rpc CreateSourceMaterializationChallenge(CreateSourceMaterializationChallengeRequest) returns (CreateSourceMaterializationChallengeResponse);
-  rpc BeginSourceMaterializationUpload(BeginSourceMaterializationUploadRequest) returns (BeginSourceMaterializationUploadResponse);
-  rpc PutSourceMaterializationChunk(PutSourceMaterializationChunkRequest) returns (PutSourceMaterializationChunkResponse);
-  rpc CommitSourceMaterialization(CommitSourceMaterializationRequest) returns (CommitSourceMaterializationResponse);
-  rpc AbortSourceMaterializationUpload(AbortSourceMaterializationUploadRequest) returns (AbortSourceMaterializationUploadResponse);
+  // K-AGCORE-139/K-AGCORE-151: the sole public Realm source ingress. Runtime
+  // privately acquires and verifies Packet v3; transport/auth material is not
+  // accepted from callers.
+  rpc MaterializeRealmSource(MaterializeRealmSourceRequest) returns (MaterializeRealmSourceResponse);
   rpc InitializeAgent(InitializeAgentRequest) returns (InitializeAgentResponse);
   rpc TerminateAgent(TerminateAgentRequest) returns (TerminateAgentResponse);
   rpc GetAgent(GetAgentRequest) returns (GetAgentResponse);

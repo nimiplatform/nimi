@@ -181,7 +181,7 @@ type AgentLocalSourceContextSchemaVersion string
 
 const (
 	AGENTLOCALSOURCECONTEXTSCHEMAVERSIONUNSPECIFIED AgentLocalSourceContextSchemaVersion = "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED"
-	AGENTLOCALSOURCECONTEXTSCHEMAVERSIONV1 AgentLocalSourceContextSchemaVersion = "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V1"
+	AGENTLOCALSOURCECONTEXTSCHEMAVERSIONV2 AgentLocalSourceContextSchemaVersion = "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2"
 )
 
 type AgentLocalSourceContextState string
@@ -231,7 +231,7 @@ type AgentLocalSourceSnapshotSchemaVersion string
 
 const (
 	AGENTLOCALSOURCESNAPSHOTSCHEMAVERSIONUNSPECIFIED AgentLocalSourceSnapshotSchemaVersion = "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED"
-	AGENTLOCALSOURCESNAPSHOTSCHEMAVERSIONV1 AgentLocalSourceSnapshotSchemaVersion = "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V1"
+	AGENTLOCALSOURCESNAPSHOTSCHEMAVERSIONV2 AgentLocalSourceSnapshotSchemaVersion = "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2"
 )
 
 type AgentPresentationBackendKind string
@@ -297,120 +297,6 @@ type AgentProactiveTriggerSource string
 
 const (
 	AGENTPROACTIVETRIGGERSOURCEUNSPECIFIED AgentProactiveTriggerSource = "AGENT_PROACTIVE_TRIGGER_SOURCE_UNSPECIFIED"
-)
-
-type AgentSourceMaterializationBundleManifestSchemaVersion string
-
-const (
-	AGENTSOURCEMATERIALIZATIONBUNDLEMANIFESTSCHEMAVERSIONUNSPECIFIED AgentSourceMaterializationBundleManifestSchemaVersion = "AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_UNSPECIFIED"
-	AGENTSOURCEMATERIALIZATIONBUNDLEMANIFESTSCHEMAVERSIONV1 AgentSourceMaterializationBundleManifestSchemaVersion = "AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_V1"
-)
-
-type AgentSourceMaterializationChallengeState string
-
-const (
-	AGENTSOURCEMATERIALIZATIONCHALLENGESTATEUNSPECIFIED AgentSourceMaterializationChallengeState = "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_UNSPECIFIED"
-	AGENTSOURCEMATERIALIZATIONCHALLENGESTATEISSUED AgentSourceMaterializationChallengeState = "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_ISSUED"
-	AGENTSOURCEMATERIALIZATIONCHALLENGESTATELEASED AgentSourceMaterializationChallengeState = "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_LEASED"
-	AGENTSOURCEMATERIALIZATIONCHALLENGESTATECONSUMED AgentSourceMaterializationChallengeState = "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_CONSUMED"
-	AGENTSOURCEMATERIALIZATIONCHALLENGESTATEINVALIDATED AgentSourceMaterializationChallengeState = "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_INVALIDATED"
-	AGENTSOURCEMATERIALIZATIONCHALLENGESTATEEXPIRED AgentSourceMaterializationChallengeState = "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_EXPIRED"
-)
-
-type AgentSourceMaterializationComponentKind string
-
-const (
-	AGENTSOURCEMATERIALIZATIONCOMPONENTKINDUNSPECIFIED AgentSourceMaterializationComponentKind = "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_UNSPECIFIED"
-	AGENTSOURCEMATERIALIZATIONCOMPONENTKINDWORLDCHARACTER AgentSourceMaterializationComponentKind = "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CHARACTER"
-	AGENTSOURCEMATERIALIZATIONCOMPONENTKINDREALMPERSONA AgentSourceMaterializationComponentKind = "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_REALM_PERSONA"
-	AGENTSOURCEMATERIALIZATIONCOMPONENTKINDWORLDCORE AgentSourceMaterializationComponentKind = "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CORE"
-	AGENTSOURCEMATERIALIZATIONCOMPONENTKINDWORLDENTITY AgentSourceMaterializationComponentKind = "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_ENTITY"
-	AGENTSOURCEMATERIALIZATIONCOMPONENTKINDWORLDRELATIONSHIP AgentSourceMaterializationComponentKind = "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_RELATIONSHIP"
-	AGENTSOURCEMATERIALIZATIONCOMPONENTKINDCOVERAGEMANIFEST AgentSourceMaterializationComponentKind = "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_COVERAGE_MANIFEST"
-)
-
-type AgentSourceMaterializationKeyUse string
-
-const (
-	AGENTSOURCEMATERIALIZATIONKEYUSEUNSPECIFIED AgentSourceMaterializationKeyUse = "AGENT_SOURCE_MATERIALIZATION_KEY_USE_UNSPECIFIED"
-	AGENTSOURCEMATERIALIZATIONKEYUSESIG AgentSourceMaterializationKeyUse = "AGENT_SOURCE_MATERIALIZATION_KEY_USE_SIG"
-)
-
-type AgentSourceMaterializationPacketSchemaVersion string
-
-const (
-	AGENTSOURCEMATERIALIZATIONPACKETSCHEMAVERSIONUNSPECIFIED AgentSourceMaterializationPacketSchemaVersion = "AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_UNSPECIFIED"
-	AGENTSOURCEMATERIALIZATIONPACKETSCHEMAVERSIONV2 AgentSourceMaterializationPacketSchemaVersion = "AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_V2"
-)
-
-type AgentSourceMaterializationPayloadAssemblyVersion string
-
-const (
-	AGENTSOURCEMATERIALIZATIONPAYLOADASSEMBLYVERSIONUNSPECIFIED AgentSourceMaterializationPayloadAssemblyVersion = "AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_UNSPECIFIED"
-	AGENTSOURCEMATERIALIZATIONPAYLOADASSEMBLYVERSIONV1 AgentSourceMaterializationPayloadAssemblyVersion = "AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_V1"
-)
-
-type AgentSourceMaterializationProofAlgorithm string
-
-const (
-	AGENTSOURCEMATERIALIZATIONPROOFALGORITHMUNSPECIFIED AgentSourceMaterializationProofAlgorithm = "AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_UNSPECIFIED"
-	AGENTSOURCEMATERIALIZATIONPROOFALGORITHMRS256 AgentSourceMaterializationProofAlgorithm = "AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_RS256"
-)
-
-type AgentSourceMaterializationReasonCode string
-
-const (
-	AGENTSOURCEMATERIALIZATIONREASONCODEUNSPECIFIED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED"
-	AGENTSOURCEMATERIALIZATIONREASONCODENONE AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_NONE"
-	AGENTSOURCEMATERIALIZATIONREASONCODEINVALIDREQUEST AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST"
-	AGENTSOURCEMATERIALIZATIONREASONCODEACCOUNTBINDINGMISMATCH AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ACCOUNT_BINDING_MISMATCH"
-	AGENTSOURCEMATERIALIZATIONREASONCODESOURCEBINDINGMISMATCH AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_SOURCE_BINDING_MISMATCH"
-	AGENTSOURCEMATERIALIZATIONREASONCODECHALLENGENOTFOUND AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_NOT_FOUND"
-	AGENTSOURCEMATERIALIZATIONREASONCODECHALLENGEEXPIRED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_EXPIRED"
-	AGENTSOURCEMATERIALIZATIONREASONCODECHALLENGECONFLICT AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_CONFLICT"
-	AGENTSOURCEMATERIALIZATIONREASONCODECHALLENGEALREADYLEASED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_LEASED"
-	AGENTSOURCEMATERIALIZATIONREASONCODECHALLENGEALREADYCONSUMED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_CONSUMED"
-	AGENTSOURCEMATERIALIZATIONREASONCODEAUDIENCEMISMATCH AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_AUDIENCE_MISMATCH"
-	AGENTSOURCEMATERIALIZATIONREASONCODEBUNDLECAPACITYEXCEEDED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_BUNDLE_CAPACITY_EXCEEDED"
-	AGENTSOURCEMATERIALIZATIONREASONCODECOMPONENTCAPACITYEXCEEDED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMPONENT_CAPACITY_EXCEEDED"
-	AGENTSOURCEMATERIALIZATIONREASONCODECHUNKCAPACITYEXCEEDED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CAPACITY_EXCEEDED"
-	AGENTSOURCEMATERIALIZATIONREASONCODECHUNKCOUNTEXCEEDED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_COUNT_EXCEEDED"
-	AGENTSOURCEMATERIALIZATIONREASONCODEMANIFESTINVALID AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_MANIFEST_INVALID"
-	AGENTSOURCEMATERIALIZATIONREASONCODEPACKETINVALID AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID"
-	AGENTSOURCEMATERIALIZATIONREASONCODEPROOFINVALID AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID"
-	AGENTSOURCEMATERIALIZATIONREASONCODEUPLOADNOTFOUND AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_NOT_FOUND"
-	AGENTSOURCEMATERIALIZATIONREASONCODEUPLOADSTATECONFLICT AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_STATE_CONFLICT"
-	AGENTSOURCEMATERIALIZATIONREASONCODEREQUESTIDCONFLICT AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_ID_CONFLICT"
-	AGENTSOURCEMATERIALIZATIONREASONCODECHUNKDESCRIPTORINVALID AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DESCRIPTOR_INVALID"
-	AGENTSOURCEMATERIALIZATIONREASONCODECHUNKDIGESTMISMATCH AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DIGEST_MISMATCH"
-	AGENTSOURCEMATERIALIZATIONREASONCODECHUNKCONFLICT AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CONFLICT"
-	AGENTSOURCEMATERIALIZATIONREASONCODECOMMITINPROGRESS AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_IN_PROGRESS"
-	AGENTSOURCEMATERIALIZATIONREASONCODEALREADYCOMMITTED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ALREADY_COMMITTED"
-	AGENTSOURCEMATERIALIZATIONREASONCODECOMMITCONFLICT AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_CONFLICT"
-	AGENTSOURCEMATERIALIZATIONREASONCODEADMISSIONFAILED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ADMISSION_FAILED"
-	AGENTSOURCEMATERIALIZATIONREASONCODEABORTED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ABORTED"
-	AGENTSOURCEMATERIALIZATIONREASONCODEEXPIRED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_EXPIRED"
-	AGENTSOURCEMATERIALIZATIONREASONCODEPERSISTENCEFAILED AgentSourceMaterializationReasonCode = "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED"
-)
-
-type AgentSourceMaterializationSourceKind string
-
-const (
-	AGENTSOURCEMATERIALIZATIONSOURCEKINDUNSPECIFIED AgentSourceMaterializationSourceKind = "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_UNSPECIFIED"
-	AGENTSOURCEMATERIALIZATIONSOURCEKINDWORLDCHARACTER AgentSourceMaterializationSourceKind = "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_WORLD_CHARACTER"
-	AGENTSOURCEMATERIALIZATIONSOURCEKINDREALMPERSONA AgentSourceMaterializationSourceKind = "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_REALM_PERSONA"
-)
-
-type AgentSourceMaterializationUploadState string
-
-const (
-	AGENTSOURCEMATERIALIZATIONUPLOADSTATEUNSPECIFIED AgentSourceMaterializationUploadState = "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_UNSPECIFIED"
-	AGENTSOURCEMATERIALIZATIONUPLOADSTATEOPEN AgentSourceMaterializationUploadState = "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_OPEN"
-	AGENTSOURCEMATERIALIZATIONUPLOADSTATECOMMITTING AgentSourceMaterializationUploadState = "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTING"
-	AGENTSOURCEMATERIALIZATIONUPLOADSTATECOMMITTED AgentSourceMaterializationUploadState = "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTED"
-	AGENTSOURCEMATERIALIZATIONUPLOADSTATEFAILED AgentSourceMaterializationUploadState = "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_FAILED"
-	AGENTSOURCEMATERIALIZATIONUPLOADSTATEABORTED AgentSourceMaterializationUploadState = "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_ABORTED"
-	AGENTSOURCEMATERIALIZATIONUPLOADSTATEEXPIRED AgentSourceMaterializationUploadState = "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_EXPIRED"
 )
 
 type AgentStateEventFamily string
@@ -669,6 +555,14 @@ const (
 	CATALOGMODELSOURCEBUILTIN CatalogModelSource = "CATALOG_MODEL_SOURCE_BUILTIN"
 	CATALOGMODELSOURCECUSTOM CatalogModelSource = "CATALOG_MODEL_SOURCE_CUSTOM"
 	CATALOGMODELSOURCEOVERRIDDEN CatalogModelSource = "CATALOG_MODEL_SOURCE_OVERRIDDEN"
+)
+
+type CharacterSourceKindV3 string
+
+const (
+	CHARACTERSOURCEKINDV3UNSPECIFIED CharacterSourceKindV3 = "CHARACTER_SOURCE_KIND_V3_UNSPECIFIED"
+	CHARACTERSOURCEKINDV3WORLDCHARACTER CharacterSourceKindV3 = "CHARACTER_SOURCE_KIND_V3_WORLD_CHARACTER"
+	CHARACTERSOURCEKINDV3PERSONACHARACTER CharacterSourceKindV3 = "CHARACTER_SOURCE_KIND_V3_PERSONA_CHARACTER"
 )
 
 type ChatContentPartType string
@@ -1508,6 +1402,27 @@ const (
 	REALMGROUPMESSAGECANDIDATECOMMITDISPOSITIONREFUSALCANDIDATE RealmGroupMessageCandidateCommitDisposition = "REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_REFUSAL_CANDIDATE"
 )
 
+type RealmSourceMaterializationReasonCode string
+
+const (
+	REALMSOURCEMATERIALIZATIONREASONCODEUNSPECIFIED RealmSourceMaterializationReasonCode = "REALM_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED"
+	REALMSOURCEMATERIALIZATIONREASONCODENONE RealmSourceMaterializationReasonCode = "REALM_SOURCE_MATERIALIZATION_REASON_CODE_NONE"
+	REALMSOURCEMATERIALIZATIONREASONCODEINVALIDREQUEST RealmSourceMaterializationReasonCode = "REALM_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST"
+	REALMSOURCEMATERIALIZATIONREASONCODEREQUESTCONFLICT RealmSourceMaterializationReasonCode = "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_CONFLICT"
+	REALMSOURCEMATERIALIZATIONREASONCODEACQUISITIONDENIED RealmSourceMaterializationReasonCode = "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_DENIED"
+	REALMSOURCEMATERIALIZATIONREASONCODEACQUISITIONFAILED RealmSourceMaterializationReasonCode = "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_FAILED"
+	REALMSOURCEMATERIALIZATIONREASONCODEPACKETINVALID RealmSourceMaterializationReasonCode = "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID"
+	REALMSOURCEMATERIALIZATIONREASONCODECAPACITYEXCEEDED RealmSourceMaterializationReasonCode = "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CAPACITY_EXCEEDED"
+	REALMSOURCEMATERIALIZATIONREASONCODEBINDINGMISMATCH RealmSourceMaterializationReasonCode = "REALM_SOURCE_MATERIALIZATION_REASON_CODE_BINDING_MISMATCH"
+	REALMSOURCEMATERIALIZATIONREASONCODEJWKSINVALID RealmSourceMaterializationReasonCode = "REALM_SOURCE_MATERIALIZATION_REASON_CODE_JWKS_INVALID"
+	REALMSOURCEMATERIALIZATIONREASONCODEPROOFINVALID RealmSourceMaterializationReasonCode = "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID"
+	REALMSOURCEMATERIALIZATIONREASONCODECLOSUREINVALID RealmSourceMaterializationReasonCode = "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CLOSURE_INVALID"
+	REALMSOURCEMATERIALIZATIONREASONCODEHASHINVALID RealmSourceMaterializationReasonCode = "REALM_SOURCE_MATERIALIZATION_REASON_CODE_HASH_INVALID"
+	REALMSOURCEMATERIALIZATIONREASONCODEREPLAYDETECTED RealmSourceMaterializationReasonCode = "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REPLAY_DETECTED"
+	REALMSOURCEMATERIALIZATIONREASONCODEPERSISTENCEFAILED RealmSourceMaterializationReasonCode = "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED"
+	REALMSOURCEMATERIALIZATIONREASONCODEDATARESETREQUIRED RealmSourceMaterializationReasonCode = "REALM_SOURCE_MATERIALIZATION_REASON_CODE_DATA_RESET_REQUIRED"
+)
+
 type RealtimeEventType string
 
 const (
@@ -2150,6 +2065,13 @@ const (
 	WORKSPACEMEMBERSHIPSTATEUNKNOWN WorkspaceMembershipState = "WORKSPACE_MEMBERSHIP_STATE_UNKNOWN"
 )
 
+type WorldEntityRefKindV3 string
+
+const (
+	WORLDENTITYREFKINDV3UNSPECIFIED WorldEntityRefKindV3 = "WORLD_ENTITY_REF_KIND_V3_UNSPECIFIED"
+	WORLDENTITYREFKINDV3WORLDENTITY WorldEntityRefKindV3 = "WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY"
+)
+
 type WorldRelation string
 
 const (
@@ -2187,22 +2109,6 @@ type AIProviderSubHealth struct {
 	ConsecutiveFailures int32 `json:"consecutive_failures,omitempty"`
 	LastChangedAt string `json:"last_changed_at,omitempty"`
 	LastCheckedAt string `json:"last_checked_at,omitempty"`
-}
-
-type AbortSourceMaterializationUploadRequest struct {
-	Context *AgentRequestContext `json:"context,omitempty"`
-	AbortRequestId string `json:"abort_request_id,omitempty"`
-	UploadId string `json:"upload_id,omitempty"`
-	PacketHash string `json:"packet_hash,omitempty"`
-	BundleManifestHash string `json:"bundle_manifest_hash,omitempty"`
-}
-
-type AbortSourceMaterializationUploadResponse struct {
-	UploadId string `json:"upload_id,omitempty"`
-	UploadState AgentSourceMaterializationUploadState `json:"upload_state,omitempty"`
-	ChallengeState AgentSourceMaterializationChallengeState `json:"challenge_state,omitempty"`
-	ReasonCode AgentSourceMaterializationReasonCode `json:"reason_code,omitempty"`
-	IdempotentReplay bool `json:"idempotent_replay,omitempty"`
 }
 
 type AccountAppInventoryRecord struct {
@@ -2633,7 +2539,7 @@ type AgentTurnContextSummary struct {
 	ContextContentHash string `json:"context_content_hash,omitempty"`
 	PromptHash string `json:"prompt_hash,omitempty"`
 	SourceSnapshotHash string `json:"source_snapshot_hash,omitempty"`
-	SourceRef *SourceMaterializationSourceRef `json:"source_ref,omitempty"`
+	SourceRef *CharacterSourceRefV3 `json:"source_ref,omitempty"`
 	WorldContentHash string `json:"world_content_hash,omitempty"`
 	MaterializationContextHash string `json:"materialization_context_hash,omitempty"`
 	Lanes []AgentTurnContextLaneSummary `json:"lanes,omitempty"`
@@ -3055,22 +2961,6 @@ type BeginLoginResponse struct {
 	ProductionInert bool `json:"production_inert,omitempty"`
 }
 
-type BeginSourceMaterializationUploadRequest struct {
-	Context *AgentRequestContext `json:"context,omitempty"`
-	BeginRequestId string `json:"begin_request_id,omitempty"`
-	Control *SourceMaterializationBeginControl `json:"control,omitempty"`
-}
-
-type BeginSourceMaterializationUploadResponse struct {
-	UploadId string `json:"upload_id,omitempty"`
-	PacketHash string `json:"packet_hash,omitempty"`
-	BundleManifestHash string `json:"bundle_manifest_hash,omitempty"`
-	UploadState AgentSourceMaterializationUploadState `json:"upload_state,omitempty"`
-	ChallengeState AgentSourceMaterializationChallengeState `json:"challenge_state,omitempty"`
-	ReasonCode AgentSourceMaterializationReasonCode `json:"reason_code,omitempty"`
-	ExpiresAt string `json:"expires_at,omitempty"`
-}
-
 type BindLocalAppProcessRequest struct {
 	LaunchId []byte `json:"launch_id,omitempty"`
 	ChildProcessId uint32 `json:"child_process_id,omitempty"`
@@ -3086,18 +2976,6 @@ type BranchNodeConfig struct {
 	Condition string `json:"condition,omitempty"`
 	TrueTarget string `json:"true_target,omitempty"`
 	FalseTarget string `json:"false_target,omitempty"`
-}
-
-type BundleTransportManifestV1 struct {
-	ManifestSchemaVersion AgentSourceMaterializationBundleManifestSchemaVersion `json:"manifest_schema_version,omitempty"`
-	PayloadAssemblyVersion AgentSourceMaterializationPayloadAssemblyVersion `json:"payload_assembly_version,omitempty"`
-	PacketId string `json:"packet_id,omitempty"`
-	ChallengeDigest string `json:"challenge_digest,omitempty"`
-	TotalCanonicalBytes uint64 `json:"total_canonical_bytes,omitempty"`
-	ComponentCount uint32 `json:"component_count,omitempty"`
-	ChunkCount uint32 `json:"chunk_count,omitempty"`
-	Components []SourceMaterializationBundleComponentDescriptorV1 `json:"components,omitempty"`
-	Chunks []SourceMaterializationBundleChunkDescriptorV1 `json:"chunks,omitempty"`
 }
 
 type CancelCompanionParticipationRequest struct {
@@ -3293,6 +3171,11 @@ type CatalogWorkflowModel struct {
 	SourceRef *CatalogSourceRef `json:"source_ref,omitempty"`
 }
 
+type CharacterSourceRefV3 struct {
+	WorldCharacter *WorldCharacterSourceRefV3 `json:"world_character,omitempty"`
+	PersonaCharacter *PersonaCharacterSourceRefV3 `json:"persona_character,omitempty"`
+}
+
 type ChatContentArtifactRef struct {
 	ArtifactId string `json:"artifact_id,omitempty"`
 	LocalArtifactId string `json:"local_artifact_id,omitempty"`
@@ -3388,23 +3271,6 @@ type CollectDeviceProfileRequest struct {
 
 type CollectDeviceProfileResponse struct {
 	Profile *LocalDeviceProfile `json:"profile,omitempty"`
-}
-
-type CommitSourceMaterializationRequest struct {
-	Context *AgentRequestContext `json:"context,omitempty"`
-	CommitRequestId string `json:"commit_request_id,omitempty"`
-	UploadId string `json:"upload_id,omitempty"`
-	PacketHash string `json:"packet_hash,omitempty"`
-	BundleManifestHash string `json:"bundle_manifest_hash,omitempty"`
-}
-
-type CommitSourceMaterializationResponse struct {
-	UploadId string `json:"upload_id,omitempty"`
-	LocalAgentRef string `json:"local_agent_ref,omitempty"`
-	UploadState AgentSourceMaterializationUploadState `json:"upload_state,omitempty"`
-	ChallengeState AgentSourceMaterializationChallengeState `json:"challenge_state,omitempty"`
-	ReasonCode AgentSourceMaterializationReasonCode `json:"reason_code,omitempty"`
-	SourceContextStatus *LocalAgentSourceContextStatus `json:"source_context_status,omitempty"`
 }
 
 type CompanionParticipationProjection struct {
@@ -3565,24 +3431,6 @@ type CreateRealmGroupMessageCandidateRequest struct {
 
 type CreateRealmGroupMessageCandidateResponse struct {
 	Candidate *RealmGroupMessageCandidateCommitHandle `json:"candidate,omitempty"`
-}
-
-type CreateSourceMaterializationChallengeRequest struct {
-	Context *AgentRequestContext `json:"context,omitempty"`
-	RequestId string `json:"request_id,omitempty"`
-	SourceRef *SourceMaterializationSourceRef `json:"source_ref,omitempty"`
-}
-
-type CreateSourceMaterializationChallengeResponse struct {
-	ChallengeId string `json:"challenge_id,omitempty"`
-	IntendedRuntimeAudience string `json:"intended_runtime_audience,omitempty"`
-	ChallengeDigest string `json:"challenge_digest,omitempty"`
-	ExpiresAt string `json:"expires_at,omitempty"`
-	Limits *SourceMaterializationChallengeLimits `json:"limits,omitempty"`
-	State AgentSourceMaterializationChallengeState `json:"state,omitempty"`
-	ReasonCode AgentSourceMaterializationReasonCode `json:"reason_code,omitempty"`
-	SourceRef *SourceMaterializationSourceRef `json:"source_ref,omitempty"`
-	MaterializerAccountId string `json:"materializer_account_id,omitempty"`
 }
 
 type DecideLocalAppGrantRequest struct {
@@ -5352,7 +5200,7 @@ type LocalAgentSourceContextStatus struct {
 	State AgentLocalSourceContextState `json:"state,omitempty"`
 	ReasonCode AgentContextProjectionReasonCode `json:"reason_code,omitempty"`
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
-	SourceRef *SourceMaterializationSourceRef `json:"source_ref,omitempty"`
+	SourceRef *CharacterSourceRefV3 `json:"source_ref,omitempty"`
 	SourceSchemaVersion string `json:"source_schema_version,omitempty"`
 	SnapshotSchemaVersion AgentLocalSourceSnapshotSchemaVersion `json:"snapshot_schema_version,omitempty"`
 	SnapshotHash string `json:"snapshot_hash,omitempty"`
@@ -6144,6 +5992,19 @@ type LogoutResponse struct {
 	ProductionInert bool `json:"production_inert,omitempty"`
 }
 
+type MaterializeRealmSourceRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+	RequestId string `json:"request_id,omitempty"`
+	SourceRef *CharacterSourceRefV3 `json:"source_ref,omitempty"`
+}
+
+type MaterializeRealmSourceResponse struct {
+	LocalAgentRef string `json:"local_agent_ref,omitempty"`
+	SourceContextStatus *LocalAgentSourceContextStatus `json:"source_context_status,omitempty"`
+	IdempotentReplay bool `json:"idempotent_replay,omitempty"`
+	ReasonCode RealmSourceMaterializationReasonCode `json:"reason_code,omitempty"`
+}
+
 type MemoryBank struct {
 	BankId string `json:"bank_id,omitempty"`
 	Locator *MemoryBankLocator `json:"locator,omitempty"`
@@ -6706,6 +6567,14 @@ type PendingHook struct {
 	AdmittedAt string `json:"admitted_at,omitempty"`
 }
 
+type PersonaCharacterSourceRefV3 struct {
+	Kind CharacterSourceKindV3 `json:"kind,omitempty"`
+	Id string `json:"id,omitempty"`
+	WorldId string `json:"world_id,omitempty"`
+	OwnerAccountId string `json:"owner_account_id,omitempty"`
+	SourceHash string `json:"source_hash,omitempty"`
+}
+
 type PrepareAppLifecycleIntentRequest struct {
 	Action AppLifecycleIntentAction `json:"action,omitempty"`
 	AppId string `json:"app_id,omitempty"`
@@ -6810,28 +6679,6 @@ type PutPageRequest struct {
 
 type PutPageResponse struct {
 	Page *KnowledgePage `json:"page,omitempty"`
-}
-
-type PutSourceMaterializationChunkRequest struct {
-	Context *AgentRequestContext `json:"context,omitempty"`
-	PutRequestId string `json:"put_request_id,omitempty"`
-	UploadId string `json:"upload_id,omitempty"`
-	PacketHash string `json:"packet_hash,omitempty"`
-	BundleManifestHash string `json:"bundle_manifest_hash,omitempty"`
-	GlobalOrdinal uint32 `json:"global_ordinal,omitempty"`
-	ComponentId string `json:"component_id,omitempty"`
-	ComponentOffset uint64 `json:"component_offset,omitempty"`
-	ChunkSha256 string `json:"chunk_sha256,omitempty"`
-	Bytes []byte `json:"bytes,omitempty"`
-}
-
-type PutSourceMaterializationChunkResponse struct {
-	UploadId string `json:"upload_id,omitempty"`
-	GlobalOrdinal uint32 `json:"global_ordinal,omitempty"`
-	ComponentId string `json:"component_id,omitempty"`
-	IdempotentReplay bool `json:"idempotent_replay,omitempty"`
-	UploadState AgentSourceMaterializationUploadState `json:"upload_state,omitempty"`
-	ReasonCode AgentSourceMaterializationReasonCode `json:"reason_code,omitempty"`
 }
 
 type QueryAgentMemoryRequest struct {
@@ -7979,64 +7826,6 @@ type SetProductControlFirstRunInstallLevelRequest struct {
 	AiProfileAlias string `json:"ai_profile_alias,omitempty"`
 }
 
-type SourceMaterializationBeginControl struct {
-	PacketEnvelope *SourceMaterializationPacketEnvelopeV2 `json:"packet_envelope,omitempty"`
-	PacketProof string `json:"packet_proof,omitempty"`
-	BundleTransportManifest *BundleTransportManifestV1 `json:"bundle_transport_manifest,omitempty"`
-}
-
-type SourceMaterializationBundleChunkDescriptorV1 struct {
-	GlobalOrdinal uint32 `json:"global_ordinal,omitempty"`
-	ComponentOffset uint64 `json:"component_offset,omitempty"`
-	Length uint64 `json:"length,omitempty"`
-	ChunkSha256 string `json:"chunk_sha256,omitempty"`
-}
-
-type SourceMaterializationBundleComponentDescriptorV1 struct {
-	ComponentId string `json:"component_id,omitempty"`
-	Kind AgentSourceMaterializationComponentKind `json:"kind,omitempty"`
-	SchemaVersion string `json:"schema_version,omitempty"`
-	Revision uint64 `json:"revision,omitempty"`
-	ContentHash string `json:"content_hash,omitempty"`
-	CanonicalBytesHash string `json:"canonical_bytes_hash,omitempty"`
-	CanonicalByteLength uint64 `json:"canonical_byte_length,omitempty"`
-}
-
-type SourceMaterializationChallengeLimits struct {
-	MaxBundleBytes uint64 `json:"max_bundle_bytes,omitempty"`
-	MaxComponentCount uint32 `json:"max_component_count,omitempty"`
-	MaxChunkBytes uint64 `json:"max_chunk_bytes,omitempty"`
-	MaxChunks uint32 `json:"max_chunks,omitempty"`
-}
-
-type SourceMaterializationPacketEnvelopeV2 struct {
-	PacketSchemaVersion AgentSourceMaterializationPacketSchemaVersion `json:"packet_schema_version,omitempty"`
-	PacketId string `json:"packet_id,omitempty"`
-	Issuer string `json:"issuer,omitempty"`
-	KeyId string `json:"key_id,omitempty"`
-	Algorithm AgentSourceMaterializationProofAlgorithm `json:"algorithm,omitempty"`
-	KeyUse AgentSourceMaterializationKeyUse `json:"key_use,omitempty"`
-	IssuedAt string `json:"issued_at,omitempty"`
-	ExpiresAt string `json:"expires_at,omitempty"`
-	Nonce string `json:"nonce,omitempty"`
-	IntendedRuntimeAudience string `json:"intended_runtime_audience,omitempty"`
-	ChallengeId string `json:"challenge_id,omitempty"`
-	ChallengeDigest string `json:"challenge_digest,omitempty"`
-	ChallengeLimits *SourceMaterializationChallengeLimits `json:"challenge_limits,omitempty"`
-	MaterializerAccountId string `json:"materializer_account_id,omitempty"`
-	SourceRef *SourceMaterializationSourceRef `json:"source_ref,omitempty"`
-	PayloadHash string `json:"payload_hash,omitempty"`
-	BundleManifestHash string `json:"bundle_manifest_hash,omitempty"`
-	PacketHash string `json:"packet_hash,omitempty"`
-}
-
-type SourceMaterializationSourceRef struct {
-	Kind AgentSourceMaterializationSourceKind `json:"kind,omitempty"`
-	WorldId string `json:"world_id,omitempty"`
-	SourceId string `json:"source_id,omitempty"`
-	SourceContentHash string `json:"source_content_hash,omitempty"`
-}
-
 type SpeechAlignment struct {
 	Unit SpeechAlignmentUnit `json:"unit,omitempty"`
 	Tokens []SpeechAlignmentToken `json:"tokens,omitempty"`
@@ -8851,8 +8640,22 @@ type WorkspacePrivateBankOwner struct {
 	WorkspaceId string `json:"workspace_id,omitempty"`
 }
 
+type WorldCharacterSourceRefV3 struct {
+	Kind CharacterSourceKindV3 `json:"kind,omitempty"`
+	Id string `json:"id,omitempty"`
+	WorldId string `json:"world_id,omitempty"`
+	WorldEntityRef *WorldEntityRefV3 `json:"world_entity_ref,omitempty"`
+	SourceHash string `json:"source_hash,omitempty"`
+}
+
 type WorldContextRefBlock struct {
 	WorldContextId string `json:"world_context_id,omitempty"`
+}
+
+type WorldEntityRefV3 struct {
+	Kind WorldEntityRefKindV3 `json:"kind,omitempty"`
+	WorldId string `json:"world_id,omitempty"`
+	EntityId string `json:"entity_id,omitempty"`
 }
 
 type WorldEventRefBlock struct {
@@ -9172,22 +8975,6 @@ func (c RuntimeTypedClient) SwitchAccount(ctx context.Context, request SwitchAcc
 	return decodeRuntimeTypedResponse[SwitchAccountResponse](raw, "SwitchAccountResponse")
 }
 
-func (c RuntimeTypedClient) AbortSourceMaterializationUpload(ctx context.Context, request AbortSourceMaterializationUploadRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AbortSourceMaterializationUploadResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload", request, metadata, timeoutMS)
-	if err != nil {
-		return AbortSourceMaterializationUploadResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[AbortSourceMaterializationUploadResponse](raw, "AbortSourceMaterializationUploadResponse")
-}
-
-func (c RuntimeTypedClient) BeginSourceMaterializationUpload(ctx context.Context, request BeginSourceMaterializationUploadRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (BeginSourceMaterializationUploadResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload", request, metadata, timeoutMS)
-	if err != nil {
-		return BeginSourceMaterializationUploadResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[BeginSourceMaterializationUploadResponse](raw, "BeginSourceMaterializationUploadResponse")
-}
-
 func (c RuntimeTypedClient) CancelCompanionParticipation(ctx context.Context, request CancelCompanionParticipationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelCompanionParticipationResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation", request, metadata, timeoutMS)
 	if err != nil {
@@ -9204,28 +8991,12 @@ func (c RuntimeTypedClient) CancelHook(ctx context.Context, request CancelHookRe
 	return decodeRuntimeTypedResponse[CancelHookResponse](raw, "CancelHookResponse")
 }
 
-func (c RuntimeTypedClient) CommitSourceMaterialization(ctx context.Context, request CommitSourceMaterializationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CommitSourceMaterializationResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization", request, metadata, timeoutMS)
-	if err != nil {
-		return CommitSourceMaterializationResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[CommitSourceMaterializationResponse](raw, "CommitSourceMaterializationResponse")
-}
-
 func (c RuntimeTypedClient) CreateRealmGroupMessageCandidate(ctx context.Context, request CreateRealmGroupMessageCandidateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreateRealmGroupMessageCandidateResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate", request, metadata, timeoutMS)
 	if err != nil {
 		return CreateRealmGroupMessageCandidateResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[CreateRealmGroupMessageCandidateResponse](raw, "CreateRealmGroupMessageCandidateResponse")
-}
-
-func (c RuntimeTypedClient) CreateSourceMaterializationChallenge(ctx context.Context, request CreateSourceMaterializationChallengeRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreateSourceMaterializationChallengeResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge", request, metadata, timeoutMS)
-	if err != nil {
-		return CreateSourceMaterializationChallengeResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[CreateSourceMaterializationChallengeResponse](raw, "CreateSourceMaterializationChallengeResponse")
 }
 
 func (c RuntimeTypedClient) DescribeParticipationContextBlocks(ctx context.Context, request DescribeParticipationContextBlocksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DescribeParticipationContextBlocksResponse, error) {
@@ -9500,6 +9271,14 @@ func (c RuntimeTypedClient) ListPendingHooks(ctx context.Context, request ListPe
 	return decodeRuntimeTypedResponse[ListPendingHooksResponse](raw, "ListPendingHooksResponse")
 }
 
+func (c RuntimeTypedClient) MaterializeRealmSource(ctx context.Context, request MaterializeRealmSourceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (MaterializeRealmSourceResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource", request, metadata, timeoutMS)
+	if err != nil {
+		return MaterializeRealmSourceResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[MaterializeRealmSourceResponse](raw, "MaterializeRealmSourceResponse")
+}
+
 func (c RuntimeTypedClient) OpenCompanionParticipationReplay(ctx context.Context, request OpenCompanionParticipationReplayRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenCompanionParticipationReplayResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay", request, metadata, timeoutMS)
 	if err != nil {
@@ -9514,14 +9293,6 @@ func (c RuntimeTypedClient) OpenConversationAnchor(ctx context.Context, request 
 		return OpenConversationAnchorResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[OpenConversationAnchorResponse](raw, "OpenConversationAnchorResponse")
-}
-
-func (c RuntimeTypedClient) PutSourceMaterializationChunk(ctx context.Context, request PutSourceMaterializationChunkRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PutSourceMaterializationChunkResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk", request, metadata, timeoutMS)
-	if err != nil {
-		return PutSourceMaterializationChunkResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[PutSourceMaterializationChunkResponse](raw, "PutSourceMaterializationChunkResponse")
 }
 
 func (c RuntimeTypedClient) QueryAgentMemory(ctx context.Context, request QueryAgentMemoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (QueryAgentMemoryResponse, error) {

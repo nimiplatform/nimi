@@ -8,7 +8,7 @@ import type { CancelCompanionParticipationRequest, CancelCompanionParticipationR
 import type { CreateRealmGroupMessageCandidateRequest, CreateRealmGroupMessageCandidateResponse, GetRealmGroupMessageCandidateEvidenceRequest, GetRealmGroupMessageCandidateEvidenceResponse } from "./runtime-protobuf/runtime/v1/agent_group_message_candidate";
 import type { DescribeParticipationContextBlocksRequest, DescribeParticipationContextBlocksResponse, DescribeParticipationProfilesRequest, DescribeParticipationProfilesResponse, ExecuteParticipationRequest, ExecuteParticipationResponse, GetParticipationCandidateRequest, GetParticipationCandidateResponse, GetParticipationReplayRequest, GetParticipationReplayResponse, GetParticipationVerdictsRequest, GetParticipationVerdictsResponse, ListParticipationAuditEventsRequest, ListParticipationAuditEventsResponse, ValidateParticipationRequest, ValidateParticipationResponse } from "./runtime-protobuf/runtime/v1/agent_participation";
 import type { AgentEvent, AgentVoiceStreamEvent, CancelHookRequest, CancelHookResponse, DisableAutonomyRequest, DisableAutonomyResponse, EnableAutonomyRequest, EnableAutonomyResponse, GetAgentCanonicalMemoryBankStatusRequest, GetAgentCanonicalMemoryBankStatusResponse, GetAgentCanonicalMemoryReviewStatusRequest, GetAgentCanonicalMemoryReviewStatusResponse, GetAgentRequest, GetAgentResponse, GetAgentStateRequest, GetAgentStateResponse, GetAvatarDebugReplayRequest, GetAvatarDebugReplayResponse, GetAvatarDebugSnapshotRequest, GetAvatarDebugSnapshotResponse, GetConversationAnchorSnapshotRequest, GetConversationAnchorSnapshotResponse, GetPublicChatSessionSnapshotRequest, GetPublicChatSessionSnapshotResponse, GetRuntimeAgentAIConfigReadinessRequest, GetRuntimeAgentAIConfigReadinessResponse, GetRuntimeAgentAIConfigRequest, GetRuntimeAgentAIConfigResponse, InitializeAgentRequest, InitializeAgentResponse, InterruptAgentVoicePlaybackRequest, InterruptAgentVoicePlaybackResponse, ListAgentConversationSummariesRequest, ListAgentConversationSummariesResponse, ListAgentsRequest, ListAgentsResponse, ListAvatarDebugProbeResultsRequest, ListAvatarDebugProbeResultsResponse, ListLocalAppAgentInventoryRequest, ListLocalAppAgentInventoryResponse, ListPendingHooksRequest, ListPendingHooksResponse, OpenConversationAnchorRequest, OpenConversationAnchorResponse, QueryAgentMemoryRequest, QueryAgentMemoryResponse, RegisterAvatarLiveInstanceBindingRequest, RegisterAvatarLiveInstanceBindingResponse, RequestAgentCanonicalMemoryBankBindRequest, RequestAgentCanonicalMemoryBankBindResponse, RequestAvatarDebugProbeRequest, RequestAvatarDebugProbeResponse, ResolveAvatarLiveInstanceBindingRequest, ResolveAvatarLiveInstanceBindingResponse, RuntimeAgentAIConfigReadinessSnapshot, SetAgentPresentationProfileRequest, SetAgentPresentationProfileResponse, SetAutonomyConfigRequest, SetAutonomyConfigResponse, SubmitAvatarDebugProbeResultRequest, SubmitAvatarDebugProbeResultResponse, SubscribeAgentEventsRequest, SubscribeAgentVoiceStreamRequest, SubscribeRuntimeAgentAIConfigReadinessRequest, TerminateAgentRequest, TerminateAgentResponse, TranscribeLocalAppAgentAudioRequest, TranscribeLocalAppAgentAudioResponse, UpdateAgentStateRequest, UpdateAgentStateResponse, UpsertRuntimeAgentAIConfigRequest, UpsertRuntimeAgentAIConfigResponse, WriteAgentMemoryRequest, WriteAgentMemoryResponse } from "./runtime-protobuf/runtime/v1/agent_service";
-import type { AbortSourceMaterializationUploadRequest, AbortSourceMaterializationUploadResponse, BeginSourceMaterializationUploadRequest, BeginSourceMaterializationUploadResponse, CommitSourceMaterializationRequest, CommitSourceMaterializationResponse, CreateSourceMaterializationChallengeRequest, CreateSourceMaterializationChallengeResponse, PutSourceMaterializationChunkRequest, PutSourceMaterializationChunkResponse } from "./runtime-protobuf/runtime/v1/agent_source_materialization";
+import type { MaterializeRealmSourceRequest, MaterializeRealmSourceResponse } from "./runtime-protobuf/runtime/v1/agent_source_materialization";
 import type { CancelScenarioJobRequest, CancelScenarioJobResponse, ExecuteScenarioRequest, ExecuteScenarioResponse, GetScenarioArtifactsRequest, GetScenarioArtifactsResponse, GetScenarioJobRequest, GetScenarioJobResponse, ListScenarioProfilesRequest, ListScenarioProfilesResponse, ScenarioJobEvent, StreamScenarioEvent, StreamScenarioRequest, SubmitScenarioJobRequest, SubmitScenarioJobResponse, SubscribeScenarioJobEventsRequest, UploadArtifactRequest, UploadArtifactResponse } from "./runtime-protobuf/runtime/v1/ai";
 import type { AppendRealtimeInputRequest, AppendRealtimeInputResponse, CloseRealtimeSessionRequest, CloseRealtimeSessionResponse, OpenRealtimeSessionRequest, OpenRealtimeSessionResponse, ReadRealtimeEventsRequest, RealtimeEvent } from "./runtime-protobuf/runtime/v1/ai_realtime";
 import type { PeekSchedulingRequest, PeekSchedulingResponse } from "./runtime-protobuf/runtime/v1/ai_scheduling";
@@ -44,7 +44,7 @@ export type { CreateRealmGroupMessageCandidateRequest, CreateRealmGroupMessageCa
 export type { AgentSlotProjectionBlock, DescribeParticipationContextBlocksRequest, DescribeParticipationContextBlocksResponse, DescribeParticipationProfilesRequest, DescribeParticipationProfilesResponse, DiagnosticProbeRefBlock, DomainContextRefBlock, ExecuteParticipationRequest, ExecuteParticipationResponse, ExternalParticipantIdentityRefBlock, ExternalPayloadRefBlock, GatewayVerdictRefBlock, GetParticipationCandidateRequest, GetParticipationCandidateResponse, GetParticipationReplayRequest, GetParticipationReplayResponse, GetParticipationVerdictsRequest, GetParticipationVerdictsResponse, ListParticipationAuditEventsRequest, ListParticipationAuditEventsResponse, ParticipantProjectionBlock, ParticipationAuditEvent, ParticipationCandidateRecord, ParticipationContextBlock, ParticipationContextBlockDescriptor, ParticipationProfileDescriptor, ParticipationReplay, ParticipationReplayStage, ParticipationRequestSpec, ParticipationVerdict, ParticipationVerdictSet, RealmGroupThreadRefBlock, RecentGroupTranscriptProjectionBlock, RecentSandboxTranscriptProjectionBlock, RecentWorldTranscriptOrEventProjectionBlock, RuntimeConversationAnchorRefBlock, ScenarioBranchRefBlock, ScenarioPackageRefBlock, ScenarioRunRefBlock, ToolOrCapabilityProjectionBlock, TriggerMessageRefBlock, ValidateParticipationRequest, ValidateParticipationResponse, VisibleSceneStateBlock, VisibleWorldStateProjectionBlock, WorldContextRefBlock, WorldEventRefBlock } from "./runtime-protobuf/runtime/v1/agent_participation";
 export type { AgentPresentationEventDetail, AgentPresentationProfile, AgentPresentationProfilePatch, ClearAgentPresentationProfile } from "./runtime-protobuf/runtime/v1/agent_presentation";
 export type { AgentAutonomyConfig, AgentAutonomyState, AgentAvatarDebugEventDetail, AgentBudgetEventDetail, AgentCanonicalMemoryBankStatus, AgentCanonicalMemoryReviewStatus, AgentConversationSummary, AgentEvent, AgentHookEventDetail, AgentLifecycleEventDetail, AgentMemoryEventDetail, AgentPostureProjection, AgentProactiveEventDetail, AgentProactiveInterruptibilityProjection, AgentRecord, AgentReplicationEventDetail, AgentStateClearDyadicContext, AgentStateClearWorldContext, AgentStateEventDetail, AgentStateMutation, AgentStateProjection, AgentStatePutAttribute, AgentStateRemoveAttribute, AgentStateSetDyadicContext, AgentStateSetStatusText, AgentStateSetWorldContext, AgentVoiceStreamEvent, AvatarDebugProbeRequestEnvelope, AvatarDebugProbeResultEnvelope, AvatarDebugReplayRef, AvatarLiveInstanceBinding, CancelHookRequest, CancelHookResponse, CanonicalMemoryCandidate, CanonicalMemoryRejection, CanonicalMemoryView, ConversationAnchor, ConversationAnchorSnapshot, DisableAutonomyRequest, DisableAutonomyResponse, EnableAutonomyRequest, EnableAutonomyResponse, GetAgentCanonicalMemoryBankStatusRequest, GetAgentCanonicalMemoryBankStatusResponse, GetAgentCanonicalMemoryReviewStatusRequest, GetAgentCanonicalMemoryReviewStatusResponse, GetAgentRequest, GetAgentResponse, GetAgentStateRequest, GetAgentStateResponse, GetAvatarDebugReplayRequest, GetAvatarDebugReplayResponse, GetAvatarDebugSnapshotRequest, GetAvatarDebugSnapshotResponse, GetConversationAnchorSnapshotRequest, GetConversationAnchorSnapshotResponse, GetPublicChatSessionSnapshotRequest, GetPublicChatSessionSnapshotResponse, GetRuntimeAgentAIConfigReadinessRequest, GetRuntimeAgentAIConfigReadinessResponse, GetRuntimeAgentAIConfigRequest, GetRuntimeAgentAIConfigResponse, HookExecutionOutcome, HookIntent, HookTriggerDetail, HookTriggerEventChatEndedDetail, HookTriggerEventUserIdleDetail, HookTriggerTimeDetail, InitializeAgentRequest, InitializeAgentResponse, InterruptAgentVoicePlaybackRequest, InterruptAgentVoicePlaybackResponse, ListAgentConversationSummariesRequest, ListAgentConversationSummariesResponse, ListAgentsRequest, ListAgentsResponse, ListAvatarDebugProbeResultsRequest, ListAvatarDebugProbeResultsResponse, ListLocalAppAgentInventoryRequest, ListLocalAppAgentInventoryResponse, ListPendingHooksRequest, ListPendingHooksResponse, LocalAppAgentInventoryItem, OpenConversationAnchorRequest, OpenConversationAnchorResponse, PendingHook, QueryAgentMemoryRequest, QueryAgentMemoryResponse, RegisterAvatarLiveInstanceBindingRequest, RegisterAvatarLiveInstanceBindingResponse, RequestAgentCanonicalMemoryBankBindRequest, RequestAgentCanonicalMemoryBankBindResponse, RequestAvatarDebugProbeRequest, RequestAvatarDebugProbeResponse, ResolveAvatarLiveInstanceBindingRequest, ResolveAvatarLiveInstanceBindingResponse, RuntimeAgentAIConfig, RuntimeAgentAIConfigCapabilityReadiness, RuntimeAgentAIConfigIntent, RuntimeAgentAIConfigReadinessSnapshot, SetAgentPresentationProfileRequest, SetAgentPresentationProfileResponse, SetAutonomyConfigRequest, SetAutonomyConfigResponse, SubmitAvatarDebugProbeResultRequest, SubmitAvatarDebugProbeResultResponse, SubscribeAgentEventsRequest, SubscribeAgentVoiceStreamRequest, SubscribeRuntimeAgentAIConfigReadinessRequest, TerminateAgentRequest, TerminateAgentResponse, TranscribeLocalAppAgentAudioRequest, TranscribeLocalAppAgentAudioResponse, UpdateAgentStateRequest, UpdateAgentStateResponse, UpsertRuntimeAgentAIConfigRequest, UpsertRuntimeAgentAIConfigResponse, WriteAgentMemoryRequest, WriteAgentMemoryResponse } from "./runtime-protobuf/runtime/v1/agent_service";
-export type { AbortSourceMaterializationUploadRequest, AbortSourceMaterializationUploadResponse, AgentTurnContextBudgetSummary, AgentTurnContextLaneSummary, AgentTurnContextSummary, AgentTurnContextTruncationSummary, BeginSourceMaterializationUploadRequest, BeginSourceMaterializationUploadResponse, BundleTransportManifestV1, CommitSourceMaterializationRequest, CommitSourceMaterializationResponse, CreateSourceMaterializationChallengeRequest, CreateSourceMaterializationChallengeResponse, LocalAgentSourceContextStatus, LocalAgentSourceCoverageSectionStatus, PutSourceMaterializationChunkRequest, PutSourceMaterializationChunkResponse, SourceMaterializationBeginControl, SourceMaterializationBundleChunkDescriptorV1, SourceMaterializationBundleComponentDescriptorV1, SourceMaterializationChallengeLimits, SourceMaterializationPacketEnvelopeV2, SourceMaterializationSourceRef } from "./runtime-protobuf/runtime/v1/agent_source_materialization";
+export type { AgentTurnContextBudgetSummary, AgentTurnContextLaneSummary, AgentTurnContextSummary, AgentTurnContextTruncationSummary, CharacterSourceRefV3, LocalAgentSourceContextStatus, LocalAgentSourceCoverageSectionStatus, MaterializeRealmSourceRequest, MaterializeRealmSourceResponse, PersonaCharacterSourceRefV3, WorldCharacterSourceRefV3, WorldEntityRefV3 } from "./runtime-protobuf/runtime/v1/agent_source_materialization";
 export type { ArtifactChunk, ArtifactStreamDelta, AudioChunks, CancelScenarioJobRequest, CancelScenarioJobResponse, ChatContentArtifactRef, ChatContentImageURL, ChatContentPart, ChatMessage, EmbeddingVector, ExecuteScenarioRequest, ExecuteScenarioResponse, GetScenarioArtifactsRequest, GetScenarioArtifactsResponse, GetScenarioJobRequest, GetScenarioJobResponse, IgnoredScenarioExtension, ImageGenerateResult, ImageGenerateScenarioSpec, ListScenarioProfilesRequest, ListScenarioProfilesResponse, MusicGenerateResult, MusicGenerateScenarioSpec, RawChunk, ReasoningConfig, ReasoningStreamDelta, ResponseFormat, ScenarioArtifact, ScenarioExtension, ScenarioJob, ScenarioJobEvent, ScenarioOutput, ScenarioProfile, ScenarioRequestHead, ScenarioSpec, ScenarioStreamCompleted, ScenarioStreamDelta, ScenarioStreamFailed, ScenarioStreamStarted, SpeechAlignment, SpeechAlignmentToken, SpeechSynthesizeResult, SpeechSynthesizeScenarioSpec, SpeechTranscribeResult, SpeechTranscribeScenarioSpec, SpeechTranscriptionAudioSource, StreamScenarioEvent, StreamScenarioRequest, SubmitScenarioJobRequest, SubmitScenarioJobResponse, SubscribeScenarioJobEventsRequest, TextEmbedOutput, TextEmbedScenarioSpec, TextGenerateOutput, TextGenerateScenarioSpec, TextSource, TextStreamDelta, ToolApprovalRequest, ToolApprovalResponse, ToolCall, ToolResult, ToolSpec, UploadArtifactChunk, UploadArtifactMetadata, UploadArtifactRequest, UploadArtifactResponse, VideoContentAudioURL, VideoContentImageURL, VideoContentItem, VideoContentVideoURL, VideoGenerateResult, VideoGenerateScenarioSpec, VideoGenerationOptions, VoiceCloneScenarioSpec, VoiceDesignScenarioSpec, VoiceRenderHints, WorldGenerateAssetSource, WorldGenerateImagePrompt, WorldGenerateMultiImagePrompt, WorldGenerateMultiImageReference, WorldGenerateResult, WorldGenerateScenarioSpec, WorldGenerateSemanticsMetadata, WorldGenerateVideoPrompt } from "./runtime-protobuf/runtime/v1/ai";
 export type { AppendRealtimeInputRequest, AppendRealtimeInputResponse, CloseRealtimeSessionRequest, CloseRealtimeSessionResponse, OpenRealtimeSessionRequest, OpenRealtimeSessionResponse, ReadRealtimeEventsRequest, RealtimeAudioChunk, RealtimeAudioInput, RealtimeCompleted, RealtimeEvent, RealtimeFailed, RealtimeInputItem, RealtimeSessionOpened, RealtimeTextDelta } from "./runtime-protobuf/runtime/v1/ai_realtime";
 export type { PeekSchedulingRequest, PeekSchedulingResponse, SchedulingEvaluationTarget, SchedulingJudgement, SchedulingOccupancySnapshot, SchedulingResourceHint, SchedulingTargetJudgement } from "./runtime-protobuf/runtime/v1/ai_scheduling";
@@ -77,7 +77,7 @@ export { RealmGroupMessageCandidateCommitDisposition } from "./runtime-protobuf/
 export { ParticipationCapabilityScope, ParticipationExecutionConcurrency, ParticipationExecutionOwner, ParticipationExternalProtocolKind, ParticipationIdentitySource, ParticipationInputTrust, ParticipationMemoryReadScope, ParticipationMemoryWriteDefault, ParticipationOutputDestination, ParticipationProfileKind, ParticipationPromotionPosture, ParticipationReplayOutcome, ParticipationStatus, ParticipationTranscriptOwner, ParticipationVerdictDecision } from "./runtime-protobuf/runtime/v1/agent_participation";
 export { AgentPresentationBackendKind, AgentPresentationEventFamily } from "./runtime-protobuf/runtime/v1/agent_presentation";
 export { AgentAutonomyMode, AgentCanonicalMemoryBankMode, AgentCanonicalMemoryReviewReadiness, AgentEventType, AgentExecutionState, AgentLifecycleStatus, AgentProactiveDeliveryChannel, AgentProactiveEffectClass, AgentProactiveEventFamily, AgentProactiveFrequencyCapState, AgentProactiveOptInState, AgentProactiveQuietHoursState, AgentProactiveSuppressionReason, AgentProactiveTriggerSource, AgentStateEventFamily, AgentTrackType, AvatarDebugEventFamily, AvatarDebugProbeKind, AvatarDebugProbeStatus, AvatarDebugReplayRedactionState, AvatarDebugReplayVisibility, AvatarDebugRequestedBy, ConversationAnchorStatus, HookAdmissionState, HookEffect, HookTriggerFamily, RuntimeAgentAIConfigReadinessState } from "./runtime-protobuf/runtime/v1/agent_service";
-export { AgentContextProjectionReasonCode, AgentLocalSourceContextSchemaVersion, AgentLocalSourceContextState, AgentLocalSourceCoverageSection, AgentLocalSourceCoverageState, AgentLocalSourceSnapshotSchemaVersion, AgentSourceMaterializationBundleManifestSchemaVersion, AgentSourceMaterializationChallengeState, AgentSourceMaterializationComponentKind, AgentSourceMaterializationKeyUse, AgentSourceMaterializationPacketSchemaVersion, AgentSourceMaterializationPayloadAssemblyVersion, AgentSourceMaterializationProofAlgorithm, AgentSourceMaterializationReasonCode, AgentSourceMaterializationSourceKind, AgentSourceMaterializationUploadState, AgentTurnContextCompilerSchemaVersion, AgentTurnContextLaneId, AgentTurnContextLaneState, AgentTurnContextManifestSchemaVersion, AgentTurnContextState, AgentTurnContextSummarySchemaVersion, AgentTurnContextTruncationReason } from "./runtime-protobuf/runtime/v1/agent_source_materialization";
+export { AgentContextProjectionReasonCode, AgentLocalSourceContextSchemaVersion, AgentLocalSourceContextState, AgentLocalSourceCoverageSection, AgentLocalSourceCoverageState, AgentLocalSourceSnapshotSchemaVersion, AgentTurnContextCompilerSchemaVersion, AgentTurnContextLaneId, AgentTurnContextLaneState, AgentTurnContextManifestSchemaVersion, AgentTurnContextState, AgentTurnContextSummarySchemaVersion, AgentTurnContextTruncationReason, CharacterSourceKindV3, RealmSourceMaterializationReasonCode, WorldEntityRefKindV3 } from "./runtime-protobuf/runtime/v1/agent_source_materialization";
 export { ChatContentPartType, ExecutionMode, FallbackPolicy, FinishReason, Modal, ReasoningMode, ReasoningTraceMode, ResponseFormatKind, RoutePolicy, ScenarioJobEventType, ScenarioJobStatus, ScenarioType, SpeechAlignmentUnit, SpeechTimingMode, StreamEventType, TextSourceType, TokenProviderHealthStatus, ToolChoiceMode, ToolSpecKind, VideoContentRole, VideoContentType, VideoMode } from "./runtime-protobuf/runtime/v1/ai";
 export { RealtimeEventType } from "./runtime-protobuf/runtime/v1/ai_realtime";
 export { SchedulingState } from "./runtime-protobuf/runtime/v1/ai_scheduling";
@@ -277,28 +277,6 @@ export class RuntimeTypedClient {
     });
   }
 
-  async abortSourceMaterializationUpload(request: AbortSourceMaterializationUploadRequest, options: RuntimeTypedCallOptions = {}): Promise<AbortSourceMaterializationUploadResponse> {
-    return this.core.unary<AbortSourceMaterializationUploadResponse, AbortSourceMaterializationUploadRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async beginSourceMaterializationUpload(request: BeginSourceMaterializationUploadRequest, options: RuntimeTypedCallOptions = {}): Promise<BeginSourceMaterializationUploadResponse> {
-    return this.core.unary<BeginSourceMaterializationUploadResponse, BeginSourceMaterializationUploadRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
   async cancelCompanionParticipation(request: CancelCompanionParticipationRequest, options: RuntimeTypedCallOptions = {}): Promise<CancelCompanionParticipationResponse> {
     return this.core.unary<CancelCompanionParticipationResponse, CancelCompanionParticipationRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
@@ -321,31 +299,9 @@ export class RuntimeTypedClient {
     });
   }
 
-  async commitSourceMaterialization(request: CommitSourceMaterializationRequest, options: RuntimeTypedCallOptions = {}): Promise<CommitSourceMaterializationResponse> {
-    return this.core.unary<CommitSourceMaterializationResponse, CommitSourceMaterializationRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
   async createRealmGroupMessageCandidate(request: CreateRealmGroupMessageCandidateRequest, options: RuntimeTypedCallOptions = {}): Promise<CreateRealmGroupMessageCandidateResponse> {
     return this.core.unary<CreateRealmGroupMessageCandidateResponse, CreateRealmGroupMessageCandidateRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async createSourceMaterializationChallenge(request: CreateSourceMaterializationChallengeRequest, options: RuntimeTypedCallOptions = {}): Promise<CreateSourceMaterializationChallengeResponse> {
-    return this.core.unary<CreateSourceMaterializationChallengeResponse, CreateSourceMaterializationChallengeRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -728,6 +684,17 @@ export class RuntimeTypedClient {
     });
   }
 
+  async materializeRealmSource(request: MaterializeRealmSourceRequest, options: RuntimeTypedCallOptions = {}): Promise<MaterializeRealmSourceResponse> {
+    return this.core.unary<MaterializeRealmSourceResponse, MaterializeRealmSourceRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async openCompanionParticipationReplay(request: OpenCompanionParticipationReplayRequest, options: RuntimeTypedCallOptions = {}): Promise<OpenCompanionParticipationReplayResponse> {
     return this.core.unary<OpenCompanionParticipationReplayResponse, OpenCompanionParticipationReplayRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay",
@@ -742,17 +709,6 @@ export class RuntimeTypedClient {
   async openConversationAnchor(request: OpenConversationAnchorRequest, options: RuntimeTypedCallOptions = {}): Promise<OpenConversationAnchorResponse> {
     return this.core.unary<OpenConversationAnchorResponse, OpenConversationAnchorRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async putSourceMaterializationChunk(request: PutSourceMaterializationChunkRequest, options: RuntimeTypedCallOptions = {}): Promise<PutSourceMaterializationChunkResponse> {
-    return this.core.unary<PutSourceMaterializationChunkResponse, PutSourceMaterializationChunkRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

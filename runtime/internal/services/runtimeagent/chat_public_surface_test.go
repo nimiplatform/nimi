@@ -1,6 +1,7 @@
 package runtimeagent
 
 import (
+	"bytes"
 	"context"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
@@ -360,12 +361,20 @@ func newRuntimeAgentServiceForPublicChatStatePathWithClose(t *testing.T, localSt
 			t.Fatalf("InitializeAgent: %v", err)
 		}
 	}
-	candidate := sourceMaterializationTransportTestCandidate(t, "worldCharacter", "packet-public-chat-fixture")
-	svc.publicChatSourceSnapshotResolve = func(_ context.Context, localAgentRef string) (localAgentSourceSnapshotV1, bool, error) {
+	vector := loadSourceMaterializationReferenceVectorV3(t, "world-character")
+	verified, err := verifySourceMaterializationPacketV3(
+		bytes.NewReader(vector.Packet),
+		bytes.NewReader(vector.CurrentJWKS),
+		sourceMaterializationExpectationFromVectorV3(t, vector),
+	)
+	if err != nil {
+		t.Fatalf("verify public chat Packet v3 fixture: %v", err)
+	}
+	svc.publicChatSourceSnapshotResolve = func(_ context.Context, localAgentRef string) (localAgentSourceSnapshotV2, bool, error) {
 		if strings.TrimSpace(localAgentRef) == "" {
-			return localAgentSourceSnapshotV1{}, false, nil
+			return localAgentSourceSnapshotV2{}, false, nil
 		}
-		snapshot, err := finalizeLocalAgentSourceSnapshotV1(candidate, localAgentRef, time.Date(2026, 7, 11, 0, 0, 0, 0, time.UTC))
+		snapshot, err := finalizeLocalAgentSourceSnapshotV2(verified, localAgentRef)
 		return snapshot, err == nil, err
 	}
 	svc.SetPublicChatBindingResolver(stubPublicChatBindingResolver{
@@ -403,7 +412,7 @@ func newRuntimeAgentServiceForPublicChatStatePathWithClose(t *testing.T, localSt
 				CatalogRevision:     "public-chat-test-catalog-v1",
 				ModelRevision:       "public-chat-test-model-v1",
 				ProviderID:          "public-chat-test-provider",
-				RouteDigest:         sourceMaterializationBytesDigest([]byte("public-chat-test-route:" + strings.TrimSpace(req.ModelID))),
+				RouteDigest:         sha256HexBytes([]byte("public-chat-test-route:" + strings.TrimSpace(req.ModelID))),
 			}, nil
 		},
 	})

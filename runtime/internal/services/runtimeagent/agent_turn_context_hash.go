@@ -92,27 +92,27 @@ func hashAgentTurnContextManifest(manifest agentTurnContextManifestV1) (string, 
 		return "", fmt.Errorf("agent turn context manifest instance hash input must omit itself")
 	}
 	input := struct {
-		ManifestSchemaVersion      string                               `json:"manifestSchemaVersion"`
-		CompilerSchemaVersion      string                               `json:"compilerSchemaVersion"`
-		LocalAgentRef              string                               `json:"localAgentRef"`
-		ConversationAnchorID       string                               `json:"conversationAnchorId"`
-		TurnID                     string                               `json:"turnId"`
-		RequestID                  string                               `json:"requestId"`
-		SourceSnapshotHash         string                               `json:"sourceSnapshotHash"`
-		SourceRef                  sourceMaterializationSourceRefV2     `json:"sourceRef"`
-		WorldContentHash           string                               `json:"worldContentHash"`
-		MaterializationContextHash string                               `json:"materializationContextHash"`
-		RouteDigest                string                               `json:"routeDigest"`
-		CatalogRevisionDigest      string                               `json:"catalogRevisionDigest"`
-		Budget                     agentTurnContextBudgetManifestV1     `json:"budget"`
-		Lanes                      []agentTurnContextLaneManifestV1     `json:"lanes"`
-		CapabilityDigest           string                               `json:"capabilityDigest"`
-		Transcript                 agentTurnContextTranscriptManifestV1 `json:"transcript"`
-		MemoryItemCount            uint32                               `json:"memoryItemCount"`
-		MediaCount                 uint32                               `json:"mediaCount"`
-		ToolCount                  uint32                               `json:"toolCount"`
-		ContextContentHash         string                               `json:"contextContentHash"`
-		PromptHash                 string                               `json:"promptHash"`
+		ManifestSchemaVersion      string                                    `json:"manifestSchemaVersion"`
+		CompilerSchemaVersion      string                                    `json:"compilerSchemaVersion"`
+		LocalAgentRef              string                                    `json:"localAgentRef"`
+		ConversationAnchorID       string                                    `json:"conversationAnchorId"`
+		TurnID                     string                                    `json:"turnId"`
+		RequestID                  string                                    `json:"requestId"`
+		SourceSnapshotHash         string                                    `json:"sourceSnapshotHash"`
+		SourceRef                  sourceMaterializationCharacterSourceRefV3 `json:"sourceRef"`
+		WorldContentHash           string                                    `json:"worldContentHash"`
+		MaterializationContextHash string                                    `json:"materializationContextHash"`
+		RouteDigest                string                                    `json:"routeDigest"`
+		CatalogRevisionDigest      string                                    `json:"catalogRevisionDigest"`
+		Budget                     agentTurnContextBudgetManifestV1          `json:"budget"`
+		Lanes                      []agentTurnContextLaneManifestV1          `json:"lanes"`
+		CapabilityDigest           string                                    `json:"capabilityDigest"`
+		Transcript                 agentTurnContextTranscriptManifestV1      `json:"transcript"`
+		MemoryItemCount            uint32                                    `json:"memoryItemCount"`
+		MediaCount                 uint32                                    `json:"mediaCount"`
+		ToolCount                  uint32                                    `json:"toolCount"`
+		ContextContentHash         string                                    `json:"contextContentHash"`
+		PromptHash                 string                                    `json:"promptHash"`
 	}{
 		ManifestSchemaVersion:      manifest.ManifestSchemaVersion,
 		CompilerSchemaVersion:      manifest.CompilerSchemaVersion,

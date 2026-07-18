@@ -101,11 +101,11 @@ AgentContextProjectionReasonCode = Literal["AGENT_CONTEXT_PROJECTION_REASON_CODE
 AgentEventType = Literal["AGENT_EVENT_TYPE_UNSPECIFIED"]
 AgentExecutionState = Literal["AGENT_EXECUTION_STATE_UNSPECIFIED"]
 AgentLifecycleStatus = Literal["AGENT_LIFECYCLE_STATUS_UNSPECIFIED"]
-AgentLocalSourceContextSchemaVersion = Literal["AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED", "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V1"]
+AgentLocalSourceContextSchemaVersion = Literal["AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED", "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2"]
 AgentLocalSourceContextState = Literal["AGENT_LOCAL_SOURCE_CONTEXT_STATE_UNSPECIFIED", "AGENT_LOCAL_SOURCE_CONTEXT_STATE_NOT_MATERIALIZED", "AGENT_LOCAL_SOURCE_CONTEXT_STATE_VALIDATING", "AGENT_LOCAL_SOURCE_CONTEXT_STATE_READY", "AGENT_LOCAL_SOURCE_CONTEXT_STATE_INVALID", "AGENT_LOCAL_SOURCE_CONTEXT_STATE_DELETED"]
 AgentLocalSourceCoverageSection = Literal["AGENT_LOCAL_SOURCE_COVERAGE_SECTION_UNSPECIFIED", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_IDENTITY", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PRESENTATION", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PLACEMENT", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BIOGRAPHY", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PSYCHOLOGY", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_KNOWLEDGE", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_RELATIONSHIPS", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CAPABILITIES", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_INTERACTION_PROFILE", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_ASSETS", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_AUTHORING", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PERSONA_STYLE", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CONTENT_PROFILE", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_WORLD_CORE", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BOUND_ENTITY", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_DEPENDENCY_CLOSURE"]
 AgentLocalSourceCoverageState = Literal["AGENT_LOCAL_SOURCE_COVERAGE_STATE_UNSPECIFIED", "AGENT_LOCAL_SOURCE_COVERAGE_STATE_COMPLETE", "AGENT_LOCAL_SOURCE_COVERAGE_STATE_NOT_APPLICABLE", "AGENT_LOCAL_SOURCE_COVERAGE_STATE_OPTIONAL_OMITTED", "AGENT_LOCAL_SOURCE_COVERAGE_STATE_INVALID"]
-AgentLocalSourceSnapshotSchemaVersion = Literal["AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED", "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V1"]
+AgentLocalSourceSnapshotSchemaVersion = Literal["AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED", "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2"]
 AgentPresentationBackendKind = Literal["AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED", "AGENT_PRESENTATION_BACKEND_KIND_VRM", "AGENT_PRESENTATION_BACKEND_KIND_LIVE2D", "AGENT_PRESENTATION_BACKEND_KIND_SPRITE2D", "AGENT_PRESENTATION_BACKEND_KIND_CANVAS2D", "AGENT_PRESENTATION_BACKEND_KIND_VIDEO"]
 AgentPresentationEventFamily = Literal["AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED"]
 AgentProactiveDeliveryChannel = Literal["AGENT_PROACTIVE_DELIVERY_CHANNEL_UNSPECIFIED"]
@@ -116,16 +116,6 @@ AgentProactiveOptInState = Literal["AGENT_PROACTIVE_OPT_IN_STATE_UNSPECIFIED"]
 AgentProactiveQuietHoursState = Literal["AGENT_PROACTIVE_QUIET_HOURS_STATE_UNSPECIFIED"]
 AgentProactiveSuppressionReason = Literal["AGENT_PROACTIVE_SUPPRESSION_REASON_UNSPECIFIED"]
 AgentProactiveTriggerSource = Literal["AGENT_PROACTIVE_TRIGGER_SOURCE_UNSPECIFIED"]
-AgentSourceMaterializationBundleManifestSchemaVersion = Literal["AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_UNSPECIFIED", "AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_V1"]
-AgentSourceMaterializationChallengeState = Literal["AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_UNSPECIFIED", "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_ISSUED", "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_LEASED", "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_CONSUMED", "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_INVALIDATED", "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_EXPIRED"]
-AgentSourceMaterializationComponentKind = Literal["AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_UNSPECIFIED", "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CHARACTER", "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_REALM_PERSONA", "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CORE", "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_ENTITY", "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_RELATIONSHIP", "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_COVERAGE_MANIFEST"]
-AgentSourceMaterializationKeyUse = Literal["AGENT_SOURCE_MATERIALIZATION_KEY_USE_UNSPECIFIED", "AGENT_SOURCE_MATERIALIZATION_KEY_USE_SIG"]
-AgentSourceMaterializationPacketSchemaVersion = Literal["AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_UNSPECIFIED", "AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_V2"]
-AgentSourceMaterializationPayloadAssemblyVersion = Literal["AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_UNSPECIFIED", "AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_V1"]
-AgentSourceMaterializationProofAlgorithm = Literal["AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_UNSPECIFIED", "AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_RS256"]
-AgentSourceMaterializationReasonCode = Literal["AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_NONE", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ACCOUNT_BINDING_MISMATCH", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_SOURCE_BINDING_MISMATCH", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_NOT_FOUND", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_EXPIRED", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_CONFLICT", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_LEASED", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_CONSUMED", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_AUDIENCE_MISMATCH", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_BUNDLE_CAPACITY_EXCEEDED", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMPONENT_CAPACITY_EXCEEDED", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CAPACITY_EXCEEDED", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_COUNT_EXCEEDED", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_MANIFEST_INVALID", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_NOT_FOUND", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_STATE_CONFLICT", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_ID_CONFLICT", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DESCRIPTOR_INVALID", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DIGEST_MISMATCH", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CONFLICT", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_IN_PROGRESS", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ALREADY_COMMITTED", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_CONFLICT", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ADMISSION_FAILED", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ABORTED", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_EXPIRED", "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED"]
-AgentSourceMaterializationSourceKind = Literal["AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_UNSPECIFIED", "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_WORLD_CHARACTER", "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_REALM_PERSONA"]
-AgentSourceMaterializationUploadState = Literal["AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_UNSPECIFIED", "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_OPEN", "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTING", "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTED", "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_FAILED", "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_ABORTED", "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_EXPIRED"]
 AgentStateEventFamily = Literal["AGENT_STATE_EVENT_FAMILY_UNSPECIFIED"]
 AgentTrackType = Literal["AGENT_TRACK_TYPE_UNSPECIFIED"]
 AgentTurnContextCompilerSchemaVersion = Literal["AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_UNSPECIFIED", "AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1"]
@@ -154,6 +144,7 @@ AvatarDebugReplayVisibility = Literal["AVATAR_DEBUG_REPLAY_VISIBILITY_UNSPECIFIE
 AvatarDebugRequestedBy = Literal["AVATAR_DEBUG_REQUESTED_BY_UNSPECIFIED"]
 CallerKind = Literal["CALLER_KIND_UNSPECIFIED", "CALLER_KIND_DESKTOP_CORE", "CALLER_KIND_THIRD_PARTY_APP", "CALLER_KIND_THIRD_PARTY_SERVICE"]
 CatalogModelSource = Literal["CATALOG_MODEL_SOURCE_UNSPECIFIED", "CATALOG_MODEL_SOURCE_BUILTIN", "CATALOG_MODEL_SOURCE_CUSTOM", "CATALOG_MODEL_SOURCE_OVERRIDDEN"]
+CharacterSourceKindV3 = Literal["CHARACTER_SOURCE_KIND_V3_UNSPECIFIED", "CHARACTER_SOURCE_KIND_V3_WORLD_CHARACTER", "CHARACTER_SOURCE_KIND_V3_PERSONA_CHARACTER"]
 ChatContentPartType = Literal["CHAT_CONTENT_PART_TYPE_UNSPECIFIED", "CHAT_CONTENT_PART_TYPE_TEXT", "CHAT_CONTENT_PART_TYPE_IMAGE_URL", "CHAT_CONTENT_PART_TYPE_VIDEO_URL", "CHAT_CONTENT_PART_TYPE_AUDIO_URL", "CHAT_CONTENT_PART_TYPE_ARTIFACT_REF"]
 CompanionParticipationStatus = Literal["COMPANION_PARTICIPATION_STATUS_UNSPECIFIED", "COMPANION_PARTICIPATION_STATUS_IDLE", "COMPANION_PARTICIPATION_STATUS_ADMISSION_PENDING", "COMPANION_PARTICIPATION_STATUS_BLOCKED", "COMPANION_PARTICIPATION_STATUS_RUNNING", "COMPANION_PARTICIPATION_STATUS_CANDIDATE_READY", "COMPANION_PARTICIPATION_STATUS_COMMITTED_BY_OWNER", "COMPANION_PARTICIPATION_STATUS_FAILED", "COMPANION_PARTICIPATION_STATUS_CANCELED"]
 CompanionParticipationSurfaceKind = Literal["COMPANION_PARTICIPATION_SURFACE_KIND_UNSPECIFIED", "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_COMPANION", "COMPANION_PARTICIPATION_SURFACE_KIND_DESKTOP_COMPANION_PANEL", "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_DEBUG_WORKBENCH"]
@@ -240,6 +231,7 @@ ParticipationVerdictDecision = Literal["PARTICIPATION_VERDICT_DECISION_UNSPECIFI
 PresenceVerificationMethod = Literal["PRESENCE_VERIFICATION_METHOD_UNSPECIFIED", "PRESENCE_VERIFICATION_METHOD_OS_CREDENTIAL", "PRESENCE_VERIFICATION_METHOD_NIMI_REAUTH", "PRESENCE_VERIFICATION_METHOD_TEST_HARNESS"]
 PresenceVerificationState = Literal["PRESENCE_VERIFICATION_STATE_UNSPECIFIED", "PRESENCE_VERIFICATION_STATE_REJECTED", "PRESENCE_VERIFICATION_STATE_VERIFIED", "PRESENCE_VERIFICATION_STATE_UNAVAILABLE"]
 RealmGroupMessageCandidateCommitDisposition = Literal["REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_UNSPECIFIED", "REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_MESSAGE_CANDIDATE", "REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_REFUSAL_CANDIDATE"]
+RealmSourceMaterializationReasonCode = Literal["REALM_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_NONE", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_CONFLICT", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_DENIED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_FAILED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CAPACITY_EXCEEDED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_BINDING_MISMATCH", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_JWKS_INVALID", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CLOSURE_INVALID", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_HASH_INVALID", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REPLAY_DETECTED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_DATA_RESET_REQUIRED"]
 RealtimeEventType = Literal["REALTIME_EVENT_TYPE_UNSPECIFIED", "REALTIME_EVENT_OPENED", "REALTIME_EVENT_TEXT_DELTA", "REALTIME_EVENT_AUDIO_CHUNK", "REALTIME_EVENT_COMPLETED", "REALTIME_EVENT_FAILED"]
 ReasonCode = Literal["REASON_CODE_UNSPECIFIED", "ACTION_EXECUTED", "PROTOCOL_ENVELOPE_INVALID", "PROTOCOL_DOMAIN_FIELD_CONFLICT", "CAPABILITY_CATALOG_MISMATCH", "APP_NOT_REGISTERED", "EXTERNAL_PRINCIPAL_NOT_REGISTERED", "SESSION_EXPIRED", "PRINCIPAL_UNAUTHORIZED", "APP_AUTHORIZATION_DENIED", "APP_GRANT_INVALID", "APP_TOKEN_EXPIRED", "APP_TOKEN_REVOKED", "APP_SCOPE_CATALOG_UNPUBLISHED", "APP_DELEGATION_FORBIDDEN", "APP_DELEGATION_DEPTH_EXCEEDED", "APP_RESOURCE_SELECTOR_INVALID", "APP_RESOURCE_OUT_OF_SCOPE", "APP_CONSENT_MISSING", "APP_CONSENT_INVALID", "EXTERNAL_PRINCIPAL_PROOF_MISSING", "EXTERNAL_PRINCIPAL_PROOF_INVALID", "APP_MODE_WORLD_RELATION_FORBIDDEN", "AI_MODEL_NOT_FOUND", "AI_MODEL_NOT_READY", "AI_PROVIDER_UNAVAILABLE", "AI_ROUTE_UNSUPPORTED", "AI_ROUTE_FALLBACK_DENIED", "AI_INPUT_INVALID", "AI_OUTPUT_INVALID", "AI_STREAM_BROKEN", "AI_CONTENT_FILTER_BLOCKED", "AI_REQUEST_CREDENTIAL_REQUIRED", "AI_REQUEST_CREDENTIAL_MISSING", "AI_REQUEST_CREDENTIAL_INVALID", "AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN", "AUTH_TOKEN_INVALID", "AUTH_TOKEN_EXPIRED", "AUTH_UNSUPPORTED_PROOF_TYPE", "AUTH_REVOCATION_UNAVAILABLE", "AI_CONNECTOR_NOT_FOUND", "AI_CONNECTOR_DISABLED", "AI_CONNECTOR_CREDENTIAL_MISSING", "AI_CONNECTOR_INVALID", "AI_CONNECTOR_IMMUTABLE", "AI_CONNECTOR_LIMIT_EXCEEDED", "AI_CONNECTOR_ID_REQUIRED", "AI_LOCAL_CONNECTOR_RETIRED", "AI_REQUEST_CREDENTIAL_CONFLICT", "AI_APP_ID_REQUIRED", "AI_APP_ID_CONFLICT", "AI_MODEL_ID_REQUIRED", "AI_MODALITY_NOT_SUPPORTED", "AI_LOCAL_MODEL_UNAVAILABLE", "AI_LOCAL_MODEL_PROFILE_MISSING", "AI_LOCAL_MODEL_ALREADY_INSTALLED", "AI_LOCAL_ENDPOINT_REQUIRED", "AI_LOCAL_TEMPLATE_NOT_FOUND", "AI_LOCAL_MANIFEST_INVALID", "AI_LOCAL_MODEL_INVALID_TRANSITION", "AI_LOCAL_DOWNLOAD_FAILED", "AI_LOCAL_DOWNLOAD_HASH_MISMATCH", "AI_LOCAL_HF_REPO_INVALID", "AI_LOCAL_HF_SEARCH_FAILED", "AI_LOCAL_MANIFEST_SCHEMA_INVALID", "AI_LOCAL_SERVICE_UNAVAILABLE", "AI_LOCAL_SERVICE_ALREADY_INSTALLED", "AI_LOCAL_SERVICE_INVALID_TRANSITION", "AI_LOCAL_ASSET_ALREADY_INSTALLED", "AI_LOCAL_ASSET_SLOT_MISSING", "AI_LOCAL_ASSET_SLOT_FORBIDDEN", "AI_FINISH_LENGTH", "AI_FINISH_CONTENT_FILTER", "AI_LOCAL_PROFILE_SLOT_CONFLICT", "AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN", "AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN", "AI_LOCAL_COMPONENT_INCOMPATIBLE", "AI_MODEL_PROVIDER_MISMATCH", "AI_REMOTE_MODEL_CATALOG_ID_REQUIRED", "AI_REMOTE_MODEL_CATALOG_STALE", "AI_PROVIDER_ENDPOINT_FORBIDDEN", "AI_PROVIDER_AUTH_FAILED", "AI_PROVIDER_INTERNAL", "AI_PROVIDER_RATE_LIMITED", "AI_PROVIDER_TIMEOUT", "AI_MEDIA_SPEC_INVALID", "AI_MEDIA_OPTION_UNSUPPORTED", "AI_MEDIA_JOB_NOT_FOUND", "AI_MEDIA_JOB_NOT_CANCELLABLE", "AI_MEDIA_IDEMPOTENCY_CONFLICT", "AI_ARTIFACT_UPLOAD_INVALID", "AI_ARTIFACT_UPLOAD_TOO_LARGE", "AI_REALTIME_SESSION_NOT_FOUND", "AI_REALTIME_SESSION_CLOSED", "AI_VOICE_INPUT_INVALID", "AI_VOICE_WORKFLOW_UNSUPPORTED", "AI_VOICE_ASSET_NOT_FOUND", "AI_VOICE_ASSET_EXPIRED", "AI_VOICE_ASSET_SCOPE_FORBIDDEN", "AI_VOICE_TARGET_MODEL_MISMATCH", "AI_VOICE_JOB_NOT_FOUND", "AI_VOICE_JOB_NOT_CANCELLABLE", "AI_MODULE_CONFIG_INVALID", "WF_DAG_INVALID", "WF_NODE_CONFIG_MISMATCH", "WF_TIMEOUT", "WF_TASK_NOT_FOUND", "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID", "APP_MODE_DOMAIN_FORBIDDEN", "APP_MODE_SCOPE_FORBIDDEN", "APP_MODE_MANIFEST_INVALID", "APP_SCOPE_FORBIDDEN", "APP_SCOPE_REVOKED", "APP_MESSAGE_PAYLOAD_TOO_LARGE", "APP_MESSAGE_RATE_LIMITED", "APP_MESSAGE_LOOP_DETECTED", "APP_INSTALL_DESCRIPTOR_NOT_FOUND", "APP_INSTALL_DIGEST_MISMATCH", "APP_INSTALL_MANIFEST_INVALID", "APP_INSTALL_STORAGE_VIOLATION", "APP_INSTALL_DOWNLOAD_FAILED", "APP_INSTALL_UNPACK_FAILED", "APP_INSTALL_INTERNAL", "APP_UPDATE_NOT_AVAILABLE", "APP_UPDATE_NOT_INSTALLED", "APP_UPDATE_CONFIRMATION_REQUIRED", "APP_UPDATE_SWAP_FAILED", "APP_REPAIR_ACTION_INVALID", "APP_REPAIR_NO_RECOVERABLE_JOB", "APP_REPAIR_NOT_REPAIRABLE", "APP_LIFECYCLE_JOB_CANCELLED", "AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED", "AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED", "AI_LOCAL_SPEECH_ENV_INIT_FAILED", "AI_LOCAL_SPEECH_HOST_INIT_FAILED", "AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED", "AI_LOCAL_SPEECH_BUNDLE_DEGRADED", "APP_STORAGE_PATH_INVALID", "APP_STORAGE_ENTRY_NOT_FOUND", "APP_STORAGE_QUOTA_EXCEEDED", "APP_STORAGE_UNAVAILABLE", "WORKSPACE_BINDING_MISSING", "WORKSPACE_BINDING_MALFORMED", "WORKSPACE_BINDING_NOT_FOUND", "WORKSPACE_BINDING_REVOKED", "WORKSPACE_BINDING_EXPIRED", "WORKSPACE_BINDING_REPLAY", "WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE", "WORKSPACE_BINDING_CALLER_MISMATCH", "WORKSPACE_BINDING_WORKSPACE_MISMATCH", "WORKSPACE_BINDING_ENV_DEVICE_MISMATCH", "WORKSPACE_BINDING_SCOPE_MISSING", "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND", "GRANT_TOKEN_CHAIN_ROOT_REQUIRED", "PAGE_TOKEN_INVALID", "KNOWLEDGE_BANK_ALREADY_EXISTS", "KNOWLEDGE_BANK_NOT_FOUND", "KNOWLEDGE_BANK_SCOPE_INVALID", "KNOWLEDGE_BANK_ACCESS_DENIED", "KNOWLEDGE_PAGE_NOT_FOUND", "KNOWLEDGE_PAGE_SLUG_CONFLICT", "KNOWLEDGE_PAGE_ACCESS_DENIED", "KNOWLEDGE_HYBRID_SEARCH_UNAVAILABLE", "KNOWLEDGE_EMBEDDING_PROFILE_UNAVAILABLE", "KNOWLEDGE_VECTOR_INDEX_NOT_READY", "KNOWLEDGE_INDEX_REFRESH_IN_PROGRESS", "KNOWLEDGE_LINK_NOT_FOUND", "KNOWLEDGE_LINK_ALREADY_EXISTS", "KNOWLEDGE_LINK_INVALID", "KNOWLEDGE_GRAPH_DEPTH_INVALID", "KNOWLEDGE_INGEST_TASK_NOT_FOUND", "ARTIFACT_INVALID_INPUT", "ARTIFACT_NOT_FOUND", "ARTIFACT_TOO_LARGE", "ARTIFACT_FORBIDDEN", "ARTIFACT_MIME_MISMATCH", "APP_OPEN_SCOPE_REF_REQUIRED", "APP_OPEN_SCOPE_REF_INVALID", "APP_OPEN_PACKAGE_NOT_VERIFIED", "APP_OPEN_LIBRARY_STATE_INVALID", "APP_OPEN_APP_DATA_INVALID", "APP_OPEN_PERMISSION_NOT_GRANTED", "APP_OPEN_AICONFIG_UNRESOLVED", "APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED", "APP_OPEN_LAUNCH_FAILED", "AGENT_PRESENTATION_REVISION_CONFLICT", "PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED", "PROTECTED_LOCAL_ENDPOINT_OWNERSHIP_FAILED", "PROTECTED_LOCAL_SERVER_VERIFICATION_FAILED", "DESKTOP_CONTROL_TRANSPORT_REQUIRED", "DESKTOP_PROCESS_VERIFICATION_UNAVAILABLE", "DESKTOP_EXECUTABLE_TRUST_FAILED", "DESKTOP_TEST_TRUST_FORBIDDEN", "PROTECTED_ORIGIN_ROLE_MISMATCH", "LIFECYCLE_CHALLENGE_REQUIRED", "LIFECYCLE_CHALLENGE_MISMATCH", "LIFECYCLE_CHALLENGE_REPLAY", "PROTECTED_LOCAL_LEDGER_UNAVAILABLE", "PROTECTED_LOCAL_LEDGER_ROLLBACK_DETECTED", "PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH", "PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED", "PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE", "PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN", "RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID", "LIFECYCLE_INTENT_REQUIRED", "LIFECYCLE_INTENT_MISMATCH", "LIFECYCLE_INTENT_REPLAY", "LIFECYCLE_INTENT_EXPIRED", "LOCAL_APP_PRINCIPAL_REQUIRED", "LOCAL_APP_RECORD_NOT_FOUND", "LOCAL_APP_RECORD_TOMBSTONED", "LOCAL_APP_PROVENANCE_UNAVAILABLE", "LOCAL_APP_LAUNCH_LEASE_REQUIRED", "LOCAL_APP_LAUNCH_LEASE_MISMATCH", "LOCAL_APP_LAUNCH_LEASE_REPLAY", "LOCAL_APP_PROCESS_MISMATCH", "LOCAL_APP_SESSION_REVOKED", "LOCAL_APP_GRANT_REQUIRED", "LOCAL_APP_GRANT_REVOKED", "LOCAL_APP_GRANT_SUPERSEDED", "LOCAL_APP_ACCOUNT_CHANGED", "LOCAL_APP_OPERATION_UNAVAILABLE", "LOCAL_APP_PRESENCE_REQUIRED", "LOCAL_APP_PRESENCE_EXPIRED", "LOCAL_APP_DEVELOPER_MODE_DISABLED", "LOCAL_APP_REMEMBERED_PROJECT_DORMANT", "LOCAL_APP_RISK_DISCLOSURE_REQUIRED"]
 ReasoningMode = Literal["REASONING_MODE_UNSPECIFIED", "REASONING_MODE_OFF", "REASONING_MODE_ON"]
@@ -280,6 +272,7 @@ WorkflowStatus = Literal["WORKFLOW_STATUS_UNSPECIFIED", "WORKFLOW_STATUS_ACCEPTE
 WorkspaceBindingPurpose = Literal["WORKSPACE_BINDING_PURPOSE_UNSPECIFIED", "WORKSPACE_BINDING_PURPOSE_KNOWLEDGE_CONSUME"]
 WorkspaceBindingState = Literal["WORKSPACE_BINDING_STATE_UNSPECIFIED", "WORKSPACE_BINDING_STATE_ISSUED", "WORKSPACE_BINDING_STATE_ACTIVE", "WORKSPACE_BINDING_STATE_REVOKED", "WORKSPACE_BINDING_STATE_EXPIRED"]
 WorkspaceMembershipState = Literal["WORKSPACE_MEMBERSHIP_STATE_UNSPECIFIED", "WORKSPACE_MEMBERSHIP_STATE_ACTIVE", "WORKSPACE_MEMBERSHIP_STATE_SUSPENDED", "WORKSPACE_MEMBERSHIP_STATE_REVOKED", "WORKSPACE_MEMBERSHIP_STATE_UNKNOWN"]
+WorldEntityRefKindV3 = Literal["WORLD_ENTITY_REF_KIND_V3_UNSPECIFIED", "WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY"]
 WorldRelation = Literal["WORLD_RELATION_UNSPECIFIED", "WORLD_RELATION_NONE", "WORLD_RELATION_RENDER", "WORLD_RELATION_EXTENSION"]
 
 @dataclass(frozen=True)
@@ -311,22 +304,6 @@ class AIProviderSubHealth:
     consecutive_failures: int | None = None
     last_changed_at: str | None = None
     last_checked_at: str | None = None
-
-@dataclass(frozen=True)
-class AbortSourceMaterializationUploadRequest:
-    context: AgentRequestContext | None = None
-    abort_request_id: str | None = None
-    upload_id: str | None = None
-    packet_hash: str | None = None
-    bundle_manifest_hash: str | None = None
-
-@dataclass(frozen=True)
-class AbortSourceMaterializationUploadResponse:
-    upload_id: str | None = None
-    upload_state: AgentSourceMaterializationUploadState | None = None
-    challenge_state: AgentSourceMaterializationChallengeState | None = None
-    reason_code: AgentSourceMaterializationReasonCode | None = None
-    idempotent_replay: bool | None = None
 
 @dataclass(frozen=True)
 class AccountAppInventoryRecord:
@@ -757,7 +734,7 @@ class AgentTurnContextSummary:
     context_content_hash: str | None = None
     prompt_hash: str | None = None
     source_snapshot_hash: str | None = None
-    source_ref: SourceMaterializationSourceRef | None = None
+    source_ref: CharacterSourceRefV3 | None = None
     world_content_hash: str | None = None
     materialization_context_hash: str | None = None
     lanes: tuple[AgentTurnContextLaneSummary, ...] = field(default_factory=tuple)
@@ -1179,22 +1156,6 @@ class BeginLoginResponse:
     production_inert: bool | None = None
 
 @dataclass(frozen=True)
-class BeginSourceMaterializationUploadRequest:
-    context: AgentRequestContext | None = None
-    begin_request_id: str | None = None
-    control: SourceMaterializationBeginControl | None = None
-
-@dataclass(frozen=True)
-class BeginSourceMaterializationUploadResponse:
-    upload_id: str | None = None
-    packet_hash: str | None = None
-    bundle_manifest_hash: str | None = None
-    upload_state: AgentSourceMaterializationUploadState | None = None
-    challenge_state: AgentSourceMaterializationChallengeState | None = None
-    reason_code: AgentSourceMaterializationReasonCode | None = None
-    expires_at: str | None = None
-
-@dataclass(frozen=True)
 class BindLocalAppProcessRequest:
     launch_id: bytes | None = None
     child_process_id: int | None = None
@@ -1210,18 +1171,6 @@ class BranchNodeConfig:
     condition: str | None = None
     true_target: str | None = None
     false_target: str | None = None
-
-@dataclass(frozen=True)
-class BundleTransportManifestV1:
-    manifest_schema_version: AgentSourceMaterializationBundleManifestSchemaVersion | None = None
-    payload_assembly_version: AgentSourceMaterializationPayloadAssemblyVersion | None = None
-    packet_id: str | None = None
-    challenge_digest: str | None = None
-    total_canonical_bytes: int | None = None
-    component_count: int | None = None
-    chunk_count: int | None = None
-    components: tuple[SourceMaterializationBundleComponentDescriptorV1, ...] = field(default_factory=tuple)
-    chunks: tuple[SourceMaterializationBundleChunkDescriptorV1, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class CancelCompanionParticipationRequest:
@@ -1417,6 +1366,11 @@ class CatalogWorkflowModel:
     source_ref: CatalogSourceRef | None = None
 
 @dataclass(frozen=True)
+class CharacterSourceRefV3:
+    world_character: WorldCharacterSourceRefV3 | None = None
+    persona_character: PersonaCharacterSourceRefV3 | None = None
+
+@dataclass(frozen=True)
 class ChatContentArtifactRef:
     artifact_id: str | None = None
     local_artifact_id: str | None = None
@@ -1512,23 +1466,6 @@ class CollectDeviceProfileRequest:
 @dataclass(frozen=True)
 class CollectDeviceProfileResponse:
     profile: LocalDeviceProfile | None = None
-
-@dataclass(frozen=True)
-class CommitSourceMaterializationRequest:
-    context: AgentRequestContext | None = None
-    commit_request_id: str | None = None
-    upload_id: str | None = None
-    packet_hash: str | None = None
-    bundle_manifest_hash: str | None = None
-
-@dataclass(frozen=True)
-class CommitSourceMaterializationResponse:
-    upload_id: str | None = None
-    local_agent_ref: str | None = None
-    upload_state: AgentSourceMaterializationUploadState | None = None
-    challenge_state: AgentSourceMaterializationChallengeState | None = None
-    reason_code: AgentSourceMaterializationReasonCode | None = None
-    source_context_status: LocalAgentSourceContextStatus | None = None
 
 @dataclass(frozen=True)
 class CompanionParticipationProjection:
@@ -1689,24 +1626,6 @@ class CreateRealmGroupMessageCandidateRequest:
 @dataclass(frozen=True)
 class CreateRealmGroupMessageCandidateResponse:
     candidate: RealmGroupMessageCandidateCommitHandle | None = None
-
-@dataclass(frozen=True)
-class CreateSourceMaterializationChallengeRequest:
-    context: AgentRequestContext | None = None
-    request_id: str | None = None
-    source_ref: SourceMaterializationSourceRef | None = None
-
-@dataclass(frozen=True)
-class CreateSourceMaterializationChallengeResponse:
-    challenge_id: str | None = None
-    intended_runtime_audience: str | None = None
-    challenge_digest: str | None = None
-    expires_at: str | None = None
-    limits: SourceMaterializationChallengeLimits | None = None
-    state: AgentSourceMaterializationChallengeState | None = None
-    reason_code: AgentSourceMaterializationReasonCode | None = None
-    source_ref: SourceMaterializationSourceRef | None = None
-    materializer_account_id: str | None = None
 
 @dataclass(frozen=True)
 class DecideLocalAppGrantRequest:
@@ -3476,7 +3395,7 @@ class LocalAgentSourceContextStatus:
     state: AgentLocalSourceContextState | None = None
     reason_code: AgentContextProjectionReasonCode | None = None
     local_agent_ref: str | None = None
-    source_ref: SourceMaterializationSourceRef | None = None
+    source_ref: CharacterSourceRefV3 | None = None
     source_schema_version: str | None = None
     snapshot_schema_version: AgentLocalSourceSnapshotSchemaVersion | None = None
     snapshot_hash: str | None = None
@@ -4268,6 +4187,19 @@ class LogoutResponse:
     production_inert: bool | None = None
 
 @dataclass(frozen=True)
+class MaterializeRealmSourceRequest:
+    context: AgentRequestContext | None = None
+    request_id: str | None = None
+    source_ref: CharacterSourceRefV3 | None = None
+
+@dataclass(frozen=True)
+class MaterializeRealmSourceResponse:
+    local_agent_ref: str | None = None
+    source_context_status: LocalAgentSourceContextStatus | None = None
+    idempotent_replay: bool | None = None
+    reason_code: RealmSourceMaterializationReasonCode | None = None
+
+@dataclass(frozen=True)
 class MemoryBank:
     bank_id: str | None = None
     locator: MemoryBankLocator | None = None
@@ -4830,6 +4762,14 @@ class PendingHook:
     admitted_at: str | None = None
 
 @dataclass(frozen=True)
+class PersonaCharacterSourceRefV3:
+    kind: CharacterSourceKindV3 | None = None
+    id: str | None = None
+    world_id: str | None = None
+    owner_account_id: str | None = None
+    source_hash: str | None = None
+
+@dataclass(frozen=True)
 class PrepareAppLifecycleIntentRequest:
     action: AppLifecycleIntentAction | None = None
     app_id: str | None = None
@@ -4934,28 +4874,6 @@ class PutPageRequest:
 @dataclass(frozen=True)
 class PutPageResponse:
     page: KnowledgePage | None = None
-
-@dataclass(frozen=True)
-class PutSourceMaterializationChunkRequest:
-    context: AgentRequestContext | None = None
-    put_request_id: str | None = None
-    upload_id: str | None = None
-    packet_hash: str | None = None
-    bundle_manifest_hash: str | None = None
-    global_ordinal: int | None = None
-    component_id: str | None = None
-    component_offset: int | None = None
-    chunk_sha256: str | None = None
-    bytes: bytes | None = None
-
-@dataclass(frozen=True)
-class PutSourceMaterializationChunkResponse:
-    upload_id: str | None = None
-    global_ordinal: int | None = None
-    component_id: str | None = None
-    idempotent_replay: bool | None = None
-    upload_state: AgentSourceMaterializationUploadState | None = None
-    reason_code: AgentSourceMaterializationReasonCode | None = None
 
 @dataclass(frozen=True)
 class QueryAgentMemoryRequest:
@@ -6103,64 +6021,6 @@ class SetProductControlFirstRunInstallLevelRequest:
     ai_profile_alias: str | None = None
 
 @dataclass(frozen=True)
-class SourceMaterializationBeginControl:
-    packet_envelope: SourceMaterializationPacketEnvelopeV2 | None = None
-    packet_proof: str | None = None
-    bundle_transport_manifest: BundleTransportManifestV1 | None = None
-
-@dataclass(frozen=True)
-class SourceMaterializationBundleChunkDescriptorV1:
-    global_ordinal: int | None = None
-    component_offset: int | None = None
-    length: int | None = None
-    chunk_sha256: str | None = None
-
-@dataclass(frozen=True)
-class SourceMaterializationBundleComponentDescriptorV1:
-    component_id: str | None = None
-    kind: AgentSourceMaterializationComponentKind | None = None
-    schema_version: str | None = None
-    revision: int | None = None
-    content_hash: str | None = None
-    canonical_bytes_hash: str | None = None
-    canonical_byte_length: int | None = None
-
-@dataclass(frozen=True)
-class SourceMaterializationChallengeLimits:
-    max_bundle_bytes: int | None = None
-    max_component_count: int | None = None
-    max_chunk_bytes: int | None = None
-    max_chunks: int | None = None
-
-@dataclass(frozen=True)
-class SourceMaterializationPacketEnvelopeV2:
-    packet_schema_version: AgentSourceMaterializationPacketSchemaVersion | None = None
-    packet_id: str | None = None
-    issuer: str | None = None
-    key_id: str | None = None
-    algorithm: AgentSourceMaterializationProofAlgorithm | None = None
-    key_use: AgentSourceMaterializationKeyUse | None = None
-    issued_at: str | None = None
-    expires_at: str | None = None
-    nonce: str | None = None
-    intended_runtime_audience: str | None = None
-    challenge_id: str | None = None
-    challenge_digest: str | None = None
-    challenge_limits: SourceMaterializationChallengeLimits | None = None
-    materializer_account_id: str | None = None
-    source_ref: SourceMaterializationSourceRef | None = None
-    payload_hash: str | None = None
-    bundle_manifest_hash: str | None = None
-    packet_hash: str | None = None
-
-@dataclass(frozen=True)
-class SourceMaterializationSourceRef:
-    kind: AgentSourceMaterializationSourceKind | None = None
-    world_id: str | None = None
-    source_id: str | None = None
-    source_content_hash: str | None = None
-
-@dataclass(frozen=True)
 class SpeechAlignment:
     unit: SpeechAlignmentUnit | None = None
     tokens: tuple[SpeechAlignmentToken, ...] = field(default_factory=tuple)
@@ -6975,8 +6835,22 @@ class WorkspacePrivateBankOwner:
     workspace_id: str | None = None
 
 @dataclass(frozen=True)
+class WorldCharacterSourceRefV3:
+    kind: CharacterSourceKindV3 | None = None
+    id: str | None = None
+    world_id: str | None = None
+    world_entity_ref: WorldEntityRefV3 | None = None
+    source_hash: str | None = None
+
+@dataclass(frozen=True)
 class WorldContextRefBlock:
     world_context_id: str | None = None
+
+@dataclass(frozen=True)
+class WorldEntityRefV3:
+    kind: WorldEntityRefKindV3 | None = None
+    world_id: str | None = None
+    entity_id: str | None = None
 
 @dataclass(frozen=True)
 class WorldEventRefBlock:
@@ -7131,14 +7005,6 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/SwitchAccount", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SwitchAccountResponse, raw)
 
-    async def abort_source_materialization_upload(self, request: AbortSourceMaterializationUploadRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AbortSourceMaterializationUploadResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AbortSourceMaterializationUploadResponse, raw)
-
-    async def begin_source_materialization_upload(self, request: BeginSourceMaterializationUploadRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> BeginSourceMaterializationUploadResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(BeginSourceMaterializationUploadResponse, raw)
-
     async def cancel_companion_participation(self, request: CancelCompanionParticipationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CancelCompanionParticipationResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CancelCompanionParticipationResponse, raw)
@@ -7147,17 +7013,9 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CancelHook", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CancelHookResponse, raw)
 
-    async def commit_source_materialization(self, request: CommitSourceMaterializationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CommitSourceMaterializationResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(CommitSourceMaterializationResponse, raw)
-
     async def create_realm_group_message_candidate(self, request: CreateRealmGroupMessageCandidateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CreateRealmGroupMessageCandidateResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CreateRealmGroupMessageCandidateResponse, raw)
-
-    async def create_source_materialization_challenge(self, request: CreateSourceMaterializationChallengeRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CreateSourceMaterializationChallengeResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(CreateSourceMaterializationChallengeResponse, raw)
 
     async def describe_participation_context_blocks(self, request: DescribeParticipationContextBlocksRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DescribeParticipationContextBlocksResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -7295,6 +7153,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListPendingHooksResponse, raw)
 
+    async def materialize_realm_source(self, request: MaterializeRealmSourceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> MaterializeRealmSourceResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(MaterializeRealmSourceResponse, raw)
+
     async def open_companion_participation_replay(self, request: OpenCompanionParticipationReplayRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OpenCompanionParticipationReplayResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OpenCompanionParticipationReplayResponse, raw)
@@ -7302,10 +7164,6 @@ class RuntimeTypedClient:
     async def open_conversation_anchor(self, request: OpenConversationAnchorRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OpenConversationAnchorResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OpenConversationAnchorResponse, raw)
-
-    async def put_source_materialization_chunk(self, request: PutSourceMaterializationChunkRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> PutSourceMaterializationChunkResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(PutSourceMaterializationChunkResponse, raw)
 
     async def query_agent_memory(self, request: QueryAgentMemoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> QueryAgentMemoryResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

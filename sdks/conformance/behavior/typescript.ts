@@ -6,20 +6,18 @@ import { RealmGeneratedClient } from '../../typescript/core-generated/realm-clie
 import {
   AccountCallerMode,
   AccountEventType,
+  CharacterSourceKindV3,
+  RealmSourceMaterializationReasonCode,
   RuntimeTypedClient,
   type BeginLoginRequest,
+  WorldEntityRefKindV3,
 } from '../../typescript/core-generated/runtime-typed-client';
 import { RealmTypedClient } from '../../typescript/core-generated/realm-typed-client';
+import { Runtime } from '../../typescript/runtime/index';
 import {
   AgentLocalSourceContextState,
-  AgentSourceMaterializationComponentKind,
-  AgentSourceMaterializationSourceKind,
-  AgentSourceMaterializationUploadState,
   AgentTurnContextLaneId,
   assertKnownAgentLocalSourceContextState,
-  assertKnownAgentSourceMaterializationComponentKind,
-  assertKnownAgentSourceMaterializationSourceKind,
-  assertKnownAgentSourceMaterializationUploadState,
   assertKnownAgentTurnContextLaneId,
 } from '../../typescript/runtime/wire-types';
 import type { CoreStreamRequest, CoreUnaryRequest } from '../../typescript/types';
@@ -48,6 +46,13 @@ class FakeTransport implements CoreTransport {
         } as Response;
       }
       return fixtures.cases.runtime_unary.response_body as Response;
+    }
+    if (request.methodId === '/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource') {
+      return {
+        localAgentRef: 'local-agent:conformance-materialized',
+        idempotentReplay: false,
+        reasonCode: RealmSourceMaterializationReasonCode.NONE,
+      } as Response;
     }
     if (request.methodId === 'WorldCoreController_createSourceMaterializationPacket') {
       if (process.env.SDKS_CONFORMANCE_PROFILE === 'typed-core') {
@@ -146,23 +151,10 @@ async function main() {
 
   if (profile === 'typed-core') {
     assert.equal(
-      assertKnownAgentSourceMaterializationSourceKind(
-        AgentSourceMaterializationSourceKind.WORLD_CHARACTER,
-      ),
-      AgentSourceMaterializationSourceKind.WORLD_CHARACTER,
+      CharacterSourceKindV3.WORLD_CHARACTER,
+      1,
     );
-    assert.equal(
-      assertKnownAgentSourceMaterializationComponentKind(
-        AgentSourceMaterializationComponentKind.WORLD_CORE,
-      ),
-      AgentSourceMaterializationComponentKind.WORLD_CORE,
-    );
-    assert.equal(
-      assertKnownAgentSourceMaterializationUploadState(
-        AgentSourceMaterializationUploadState.COMMITTED,
-      ),
-      AgentSourceMaterializationUploadState.COMMITTED,
-    );
+    assert.equal(CharacterSourceKindV3.PERSONA_CHARACTER, 2);
     assert.equal(
       assertKnownAgentLocalSourceContextState(AgentLocalSourceContextState.READY),
       AgentLocalSourceContextState.READY,
@@ -172,9 +164,6 @@ async function main() {
       AgentTurnContextLaneId.CURRENT_USER_TURN,
     );
     for (const validator of [
-      assertKnownAgentSourceMaterializationSourceKind,
-      assertKnownAgentSourceMaterializationComponentKind,
-      assertKnownAgentSourceMaterializationUploadState,
       assertKnownAgentLocalSourceContextState,
       assertKnownAgentTurnContextLaneId,
     ]) {
@@ -193,6 +182,29 @@ async function main() {
     );
     assert.equal(typedRuntimeResponse.accepted, true);
     assert.equal(typedRuntimeResponse.loginAttemptId, 'login-conformance');
+
+    const materializeInput = {
+      requestId: 'materialize-conformance-1',
+      sourceRef: {
+        kind: 'worldCharacter' as const,
+        id: 'character-conformance',
+        worldId: 'oasis',
+        worldEntityRef: {
+          kind: 'worldEntity' as const,
+          worldId: 'oasis',
+          entityId: 'entity-conformance',
+        },
+        sourceHash: '9'.repeat(64),
+      },
+    };
+    const runtime = new Runtime({
+      appId: 'app-conformance',
+      getSubjectUserId: () => 'account-conformance',
+      transport,
+    });
+    const materialized = await runtime.materializeRealmSource(materializeInput);
+    assert.equal(materialized.localAgentRef, 'local-agent:conformance-materialized');
+    assert.equal(materialized.reasonCode, RealmSourceMaterializationReasonCode.NONE);
 
     const typedEvents = [];
     for await (const event of typedRuntime.subscribeAccountSessionEvents({
@@ -238,8 +250,35 @@ async function main() {
 
     assert.equal(transport.unaryCalls[0].methodId, fixtures.cases.runtime_unary.method_id);
     assert.deepEqual(transport.unaryCalls[0].body, runtimeRequest);
-    assert.equal(transport.unaryCalls[1].methodId, 'WorldCoreController_createSourceMaterializationPacket');
+    assert.equal(transport.unaryCalls[1].methodId, '/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource');
     assert.deepEqual(transport.unaryCalls[1].body, {
+      context: {
+        appId: 'app-conformance',
+        subjectUserId: 'account-conformance',
+        ownerUserId: 'account-conformance',
+        runtimeSourceRef: '',
+        localAgentRef: '',
+      },
+      requestId: materializeInput.requestId,
+      sourceRef: {
+        source: {
+          oneofKind: 'worldCharacter',
+          worldCharacter: {
+            kind: CharacterSourceKindV3.WORLD_CHARACTER,
+            id: 'character-conformance',
+            worldId: 'oasis',
+            worldEntityRef: {
+              kind: WorldEntityRefKindV3.WORLD_ENTITY,
+              worldId: 'oasis',
+              entityId: 'entity-conformance',
+            },
+            sourceHash: '9'.repeat(64),
+          },
+        },
+      },
+    });
+    assert.equal(transport.unaryCalls[2].methodId, 'WorldCoreController_createSourceMaterializationPacket');
+    assert.deepEqual(transport.unaryCalls[2].body, {
       path: {},
       body: {
         intendedRuntimeAudience: 'sdk.conformance',

@@ -48,7 +48,7 @@ import {
 } from '../core-generated/runtime-typed-client';
 
 function sourceContextStatus(input: Parameters<typeof rawSourceContextStatus>[0]) {
-  const sourceSections = input.kind === 'realmPersona'
+  const sourceSections = input.kind === 'personaCharacter'
     ? [
         AgentLocalSourceCoverageSection.IDENTITY,
         AgentLocalSourceCoverageSection.PRESENTATION,
@@ -76,7 +76,7 @@ function sourceContextStatus(input: Parameters<typeof rawSourceContextStatus>[0]
     coverageSections: [
       ...sourceSections,
       AgentLocalSourceCoverageSection.WORLD_CORE,
-      ...(input.kind === 'realmPersona' ? [] : [AgentLocalSourceCoverageSection.BOUND_ENTITY]),
+      ...(input.kind === 'personaCharacter' ? [] : [AgentLocalSourceCoverageSection.BOUND_ENTITY]),
       AgentLocalSourceCoverageSection.DEPENDENCY_CLOSURE,
     ].map((section) => ({
       section,
@@ -88,7 +88,7 @@ function sourceContextStatus(input: Parameters<typeof rawSourceContextStatus>[0]
   };
 }
 
-const SOURCE_CONTENT_HASH = 'a'.repeat(64);
+const SOURCE_HASH = 'a'.repeat(64);
 
 test('Runtime Agent lifecycle surface initializes idempotently and terminates through scoped Runtime calls', async () => {
   const calls: Array<{ readonly method: string; readonly request: unknown; readonly options?: RuntimeTypedCallOptions }> = [];
@@ -301,14 +301,14 @@ test('Runtime Agent lifecycle discovers existing LocalAgents through Runtime inv
                   agentId: matchingLocalAgentRef,
                   localAgentRef: matchingLocalAgentRef,
                   ownerUserId: OWNER_USER_ID,
-                  runtimeSourceRef: `runtime-source:worldCharacter:world-1:source-1:${SOURCE_CONTENT_HASH}`,
+                  runtimeSourceRef: `runtime-source:worldCharacter:world-1:source-1:${SOURCE_HASH}`,
                   displayName: 'Existing Source Agent',
                   lifecycleStatus: AgentLifecycleStatus.ACTIVE,
                   sourceContextStatus: sourceContextStatus({
                     localAgentRef: matchingLocalAgentRef,
                     worldId: 'world-1',
                     sourceId: 'source-1',
-                    sourceContentHash: SOURCE_CONTENT_HASH,
+                    sourceHash: SOURCE_HASH,
                   }),
                 },
               ],
@@ -321,7 +321,7 @@ test('Runtime Agent lifecycle discovers existing LocalAgents through Runtime inv
                 agentId: 'local-agent:other-owner',
                 localAgentRef: 'local-agent:other-owner',
                 ownerUserId: 'other-user',
-                runtimeSourceRef: `runtime-source:worldCharacter:world-1:source-1:${SOURCE_CONTENT_HASH}`,
+                runtimeSourceRef: `runtime-source:worldCharacter:world-1:source-1:${SOURCE_HASH}`,
                 lifecycleStatus: AgentLifecycleStatus.ACTIVE,
               },
               {
@@ -346,12 +346,13 @@ test('Runtime Agent lifecycle discovers existing LocalAgents through Runtime inv
 
   const discovered = await surface.discoverLocalAgentsBySource({
     ownerUserId: OWNER_USER_ID,
-    runtimeSourceRef: `runtime-source:worldCharacter:world-1:source-1:${SOURCE_CONTENT_HASH}`,
+    runtimeSourceRef: `runtime-source:worldCharacter:world-1:source-1:${SOURCE_HASH}`,
     sourceRef: {
       kind: 'worldCharacter',
+      id: 'source-1',
       worldId: 'world-1',
-      sourceId: 'source-1',
-      sourceContentHash: SOURCE_CONTENT_HASH,
+      worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'entity-source-1' },
+      sourceHash: SOURCE_HASH,
     },
   });
 
@@ -364,7 +365,7 @@ test('Runtime Agent lifecycle discovers existing LocalAgents through Runtime inv
 test('Runtime Agent lifecycle discovers source provenance without caller runtimeSourceRef', async () => {
   const calls: Array<{ readonly method: string; readonly request: unknown; readonly options?: RuntimeTypedCallOptions }> = [];
   const matchingLocalAgentRef = 'local-agent:runtime-owned-source-only';
-  const runtimeSourceRef = `runtime-source:worldCharacter:world-1:source-1:${SOURCE_CONTENT_HASH}`;
+  const runtimeSourceRef = `runtime-source:worldCharacter:world-1:source-1:${SOURCE_HASH}`;
   const surface = createNimiHostRuntimeAgentLifecycleSurface({
     getRuntime: () => ({
       appId: 'desktop',
@@ -391,7 +392,7 @@ test('Runtime Agent lifecycle discovers source provenance without caller runtime
                   localAgentRef: matchingLocalAgentRef,
                   worldId: 'world-1',
                   sourceId: 'source-1',
-                  sourceContentHash: SOURCE_CONTENT_HASH,
+                  sourceHash: SOURCE_HASH,
                 }),
               },
             ],
@@ -411,9 +412,10 @@ test('Runtime Agent lifecycle discovers source provenance without caller runtime
     ownerUserId: OWNER_USER_ID,
     sourceRef: {
       kind: 'worldCharacter',
+      id: 'source-1',
       worldId: 'world-1',
-      sourceId: 'source-1',
-      sourceContentHash: SOURCE_CONTENT_HASH,
+      worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'entity-source-1' },
+      sourceHash: SOURCE_HASH,
     },
   });
 

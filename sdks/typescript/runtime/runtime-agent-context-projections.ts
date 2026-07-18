@@ -5,7 +5,6 @@ import {
   AgentLocalSourceCoverageSection,
   AgentLocalSourceCoverageState,
   AgentLocalSourceSnapshotSchemaVersion,
-  AgentSourceMaterializationSourceKind,
   AgentTurnContextCompilerSchemaVersion,
   AgentTurnContextLaneId,
   AgentTurnContextLaneState,
@@ -13,6 +12,8 @@ import {
   AgentTurnContextState,
   AgentTurnContextSummarySchemaVersion,
   AgentTurnContextTruncationReason,
+  CharacterSourceKindV3,
+  WorldEntityRefKindV3,
 } from '../core-generated/runtime-typed-client';
 import { isRuntimeLocalAgentRef } from './agent-local-identity';
 import {
@@ -33,14 +34,33 @@ import {
   type UnknownRecord,
 } from './runtime-agent-context-projection-validation';
 
-export type NimiRuntimeAgentSourceKind = 'worldCharacter' | 'realmPersona';
+export type NimiRuntimeAgentSourceKind = 'worldCharacter' | 'personaCharacter';
 
-export type NimiRuntimeAgentSourceRef<Kind extends NimiRuntimeAgentSourceKind = NimiRuntimeAgentSourceKind> = {
-  readonly kind: Kind;
+export type NimiRuntimeAgentWorldEntityRefV3 = {
+  readonly kind: 'worldEntity';
   readonly worldId: string;
-  readonly sourceId: string;
-  readonly sourceContentHash: string;
+  readonly entityId: string;
 };
+
+export type NimiRuntimeAgentWorldCharacterSourceRefV3 = {
+  readonly kind: 'worldCharacter';
+  readonly id: string;
+  readonly worldId: string;
+  readonly worldEntityRef: NimiRuntimeAgentWorldEntityRefV3;
+  readonly sourceHash: string;
+};
+
+export type NimiRuntimeAgentPersonaCharacterSourceRefV3 = {
+  readonly kind: 'personaCharacter';
+  readonly id: string;
+  readonly worldId: string;
+  readonly ownerAccountId: string;
+  readonly sourceHash: string;
+};
+
+export type NimiRuntimeAgentSourceRef =
+  | NimiRuntimeAgentWorldCharacterSourceRefV3
+  | NimiRuntimeAgentPersonaCharacterSourceRefV3;
 
 export type NimiRuntimeAgentSourceCoverageSection =
   | 'identity'
@@ -68,17 +88,17 @@ export type NimiRuntimeAgentSourceCoverageStatus = {
   readonly omittedCount: number;
 };
 
-type NimiRuntimeAgentReadySourceContextStatus<Kind extends NimiRuntimeAgentSourceKind> = {
-  readonly schemaVersion: 'v1';
+type NimiRuntimeAgentReadySourceContextStatus<SourceRef extends NimiRuntimeAgentSourceRef> = {
+  readonly schemaVersion: 'v2';
   readonly ready: true;
   readonly state: 'ready';
   readonly reasonCode: 'none';
   readonly localAgentRef: string;
-  readonly sourceRef: NimiRuntimeAgentSourceRef<Kind>;
-  readonly sourceSchemaVersion: Kind extends 'worldCharacter'
+  readonly sourceRef: SourceRef;
+  readonly sourceSchemaVersion: SourceRef extends NimiRuntimeAgentWorldCharacterSourceRefV3
     ? 'realm.world-character-core/v1'
-    : 'realm.persona/v1';
-  readonly snapshotSchemaVersion: 'v1';
+    : 'realm.persona-character-core/v1';
+  readonly snapshotSchemaVersion: 'v2';
   readonly snapshotHash: string;
   readonly capturedAt: string;
   readonly worldContentHash: string;
@@ -87,14 +107,14 @@ type NimiRuntimeAgentReadySourceContextStatus<Kind extends NimiRuntimeAgentSourc
 };
 
 type NimiRuntimeAgentUnavailableSourceContextStatus = {
-  readonly schemaVersion: 'v1';
+  readonly schemaVersion: 'v2';
   readonly ready: false;
   readonly state: 'not_materialized' | 'validating' | 'invalid' | 'deleted';
   readonly reasonCode: 'source_not_materialized' | 'source_validation_pending' | 'source_snapshot_invalid';
   readonly localAgentRef: string;
   readonly sourceRef: NimiRuntimeAgentSourceRef | null;
-  readonly sourceSchemaVersion: 'realm.world-character-core/v1' | 'realm.persona/v1' | null;
-  readonly snapshotSchemaVersion: 'v1' | null;
+  readonly sourceSchemaVersion: 'realm.world-character-core/v1' | 'realm.persona-character-core/v1' | null;
+  readonly snapshotSchemaVersion: 'v2' | null;
   readonly snapshotHash: string | null;
   readonly capturedAt: string | null;
   readonly worldContentHash: string | null;
@@ -104,8 +124,8 @@ type NimiRuntimeAgentUnavailableSourceContextStatus = {
 
 /** A closed Character/Persona readiness union with explicit non-ready discriminants. */
 export type NimiRuntimeAgentSourceContextStatus =
-  | NimiRuntimeAgentReadySourceContextStatus<'worldCharacter'>
-  | NimiRuntimeAgentReadySourceContextStatus<'realmPersona'>
+  | NimiRuntimeAgentReadySourceContextStatus<NimiRuntimeAgentWorldCharacterSourceRefV3>
+  | NimiRuntimeAgentReadySourceContextStatus<NimiRuntimeAgentPersonaCharacterSourceRefV3>
   | NimiRuntimeAgentUnavailableSourceContextStatus;
 
 export const NIMI_RUNTIME_AGENT_TURN_CONTEXT_LANE_ORDER = [
@@ -244,8 +264,16 @@ const SOURCE_STATUS_FIELDS = new Set([
   'coverageSections', 'coverage_sections',
 ]);
 const SOURCE_REF_FIELDS = new Set([
-  'kind', 'worldId', 'world_id', 'sourceId', 'source_id', 'sourceContentHash', 'source_content_hash',
+  'source', 'worldCharacter', 'world_character', 'personaCharacter', 'persona_character',
 ]);
+const SOURCE_ONEOF_FIELDS = new Set(['oneofKind', 'worldCharacter', 'personaCharacter']);
+const WORLD_CHARACTER_SOURCE_REF_FIELDS = new Set([
+  'kind', 'id', 'worldId', 'world_id', 'worldEntityRef', 'world_entity_ref', 'sourceHash', 'source_hash',
+]);
+const PERSONA_CHARACTER_SOURCE_REF_FIELDS = new Set([
+  'kind', 'id', 'worldId', 'world_id', 'ownerAccountId', 'owner_account_id', 'sourceHash', 'source_hash',
+]);
+const WORLD_ENTITY_REF_FIELDS = new Set(['kind', 'worldId', 'world_id', 'entityId', 'entity_id']);
 const COVERAGE_FIELDS = new Set([
   'section', 'state', 'requiredCount', 'required_count', 'resolvedCount', 'resolved_count',
   'omittedCount', 'omitted_count',
@@ -276,10 +304,10 @@ const TRUNCATION_FIELDS = new Set([
 ]);
 
 const SOURCE_KIND = new Map<unknown, NimiRuntimeAgentSourceKind>([
-  [AgentSourceMaterializationSourceKind.WORLD_CHARACTER, 'worldCharacter'],
-  ['AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_WORLD_CHARACTER', 'worldCharacter'],
-  [AgentSourceMaterializationSourceKind.REALM_PERSONA, 'realmPersona'],
-  ['AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_REALM_PERSONA', 'realmPersona'],
+  [CharacterSourceKindV3.WORLD_CHARACTER, 'worldCharacter'],
+  ['CHARACTER_SOURCE_KIND_V3_WORLD_CHARACTER', 'worldCharacter'],
+  [CharacterSourceKindV3.PERSONA_CHARACTER, 'personaCharacter'],
+  ['CHARACTER_SOURCE_KIND_V3_PERSONA_CHARACTER', 'personaCharacter'],
 ]);
 const COVERAGE_SECTION = new Map<unknown, NimiRuntimeAgentSourceCoverageSection>([
   [AgentLocalSourceCoverageSection.IDENTITY, 'identity'],
@@ -320,42 +348,85 @@ const COVERAGE_STATE = new Map<unknown, NimiRuntimeAgentSourceCoverageStatus['st
   ['AGENT_LOCAL_SOURCE_COVERAGE_STATE_INVALID', 'invalid'],
 ]);
 
-const WORLD_CHARACTER_READY_COVERAGE = new Set<NimiRuntimeAgentSourceCoverageSection>([
-  'identity',
-  'presentation',
-  'placement',
-  'biography',
-  'psychology',
-  'knowledge',
-  'relationships',
-  'capabilities',
-  'interaction_profile',
-  'assets',
-  'authoring',
-  'world_core',
-  'bound_entity',
-  'dependency_closure',
+const WORLD_CHARACTER_REQUIRED_COVERAGE = new Set<NimiRuntimeAgentSourceCoverageSection>([
+  'world_core', 'bound_entity', 'dependency_closure',
 ]);
-
-const REALM_PERSONA_READY_COVERAGE = new Set<NimiRuntimeAgentSourceCoverageSection>([
-  'identity',
-  'presentation',
-  'interaction_profile',
-  'assets',
-  'authoring',
-  'persona_style',
-  'content_profile',
-  'world_core',
-  'dependency_closure',
+const PERSONA_CHARACTER_REQUIRED_COVERAGE = new Set<NimiRuntimeAgentSourceCoverageSection>([
+  'world_core', 'dependency_closure',
 ]);
 
 function sourceRef(value: unknown, label: string): NimiRuntimeAgentSourceRef {
   const input = record(value, label, SOURCE_REF_FIELDS);
+  const wrapped = input.source === undefined ? null : record(input.source, `${label}.source`, SOURCE_ONEOF_FIELDS);
+  if (wrapped && (aliased(input, 'worldCharacter', 'world_character') !== undefined
+      || aliased(input, 'personaCharacter', 'persona_character') !== undefined)) {
+    projectionError(`${label} mixes protobuf and protojson CharacterSourceRefV3 branches`);
+  }
+  if (wrapped && (wrapped.oneofKind === 'worldCharacter') !== (wrapped.worldCharacter !== undefined)) {
+    projectionError(`${label}.source worldCharacter branch contradicts oneofKind`);
+  }
+  if (wrapped && (wrapped.oneofKind === 'personaCharacter') !== (wrapped.personaCharacter !== undefined)) {
+    projectionError(`${label}.source personaCharacter branch contradicts oneofKind`);
+  }
+  const world = wrapped
+    ? wrapped.oneofKind === 'worldCharacter' ? wrapped.worldCharacter : undefined
+    : aliased(input, 'worldCharacter', 'world_character');
+  const persona = wrapped
+    ? wrapped.oneofKind === 'personaCharacter' ? wrapped.personaCharacter : undefined
+    : aliased(input, 'personaCharacter', 'persona_character');
+  if (wrapped && wrapped.oneofKind !== 'worldCharacter' && wrapped.oneofKind !== 'personaCharacter') {
+    projectionError(`${label}.source.oneofKind is unknown or unspecified`);
+  }
+  if ((world === undefined) === (persona === undefined)) {
+    projectionError(`${label} must contain exactly one CharacterSourceRefV3 branch`);
+  }
+  if (world !== undefined) {
+    const branch = record(world, `${label}.worldCharacter`, WORLD_CHARACTER_SOURCE_REF_FIELDS);
+    if (enumValue(branch.kind, SOURCE_KIND, `${label}.worldCharacter.kind`) !== 'worldCharacter') {
+      projectionError(`${label}.worldCharacter.kind contradicts its oneof branch`);
+    }
+    const entity = record(
+      aliased(branch, 'worldEntityRef', 'world_entity_ref'),
+      `${label}.worldCharacter.worldEntityRef`,
+      WORLD_ENTITY_REF_FIELDS,
+    );
+    if (entity.kind !== WorldEntityRefKindV3.WORLD_ENTITY
+        && entity.kind !== 'WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY') {
+      projectionError(`${label}.worldCharacter.worldEntityRef.kind is unknown or unspecified`);
+    }
+    const worldId = exactText(aliased(branch, 'worldId', 'world_id'), `${label}.worldCharacter.worldId`);
+    const entityWorldId = exactText(
+      aliased(entity, 'worldId', 'world_id'),
+      `${label}.worldCharacter.worldEntityRef.worldId`,
+    );
+    if (worldId !== entityWorldId) {
+      projectionError(`${label}.worldCharacter world binding is inconsistent`);
+    }
+    return {
+      kind: 'worldCharacter',
+      id: exactText(branch.id, `${label}.worldCharacter.id`),
+      worldId,
+      worldEntityRef: {
+        kind: 'worldEntity',
+        worldId: entityWorldId,
+        entityId: exactText(aliased(entity, 'entityId', 'entity_id'), `${label}.worldCharacter.worldEntityRef.entityId`),
+      },
+      sourceHash: digest(aliased(branch, 'sourceHash', 'source_hash'), `${label}.worldCharacter.sourceHash`),
+    };
+  }
+  const branch = record(persona, `${label}.personaCharacter`, PERSONA_CHARACTER_SOURCE_REF_FIELDS);
+  if (enumValue(branch.kind, SOURCE_KIND, `${label}.personaCharacter.kind`) !== 'personaCharacter') {
+    projectionError(`${label}.personaCharacter.kind contradicts its oneof branch`);
+  }
   return {
-    kind: enumValue(input.kind, SOURCE_KIND, `${label}.kind`),
-    worldId: exactText(aliased(input, 'worldId', 'world_id'), `${label}.worldId`),
-    sourceId: exactText(aliased(input, 'sourceId', 'source_id'), `${label}.sourceId`),
-    sourceContentHash: digest(aliased(input, 'sourceContentHash', 'source_content_hash'), `${label}.sourceContentHash`),
+    kind: 'personaCharacter',
+    id: exactText(branch.id, `${label}.personaCharacter.id`),
+    worldId: exactText(aliased(branch, 'worldId', 'world_id'), `${label}.personaCharacter.worldId`),
+    ownerAccountId: exactText(
+      aliased(branch, 'ownerAccountId', 'owner_account_id'),
+      `${label}.personaCharacter.ownerAccountId`,
+    ),
+    sourceHash: digest(aliased(branch, 'sourceHash', 'source_hash'), `${label}.personaCharacter.sourceHash`),
   };
 }
 
@@ -376,9 +447,9 @@ function coverage(value: unknown, options: {
     const omittedCount = uint32Default(aliased(input, 'omittedCount', 'omitted_count'), `coverageSections[${index}].omittedCount`);
     if (seen.has(section)) projectionError(`coverageSections contains duplicate ${section}`);
     seen.add(section);
-    if ((state === 'complete' && resolvedCount !== requiredCount)
+    if ((state === 'complete' && resolvedCount < requiredCount)
       || (state === 'not_applicable' && (requiredCount !== 0 || resolvedCount !== 0 || omittedCount !== 0))
-      || (state === 'optional_omitted' && (requiredCount !== 0 || resolvedCount !== 0 || omittedCount === 0))
+      || (state === 'optional_omitted' && (requiredCount !== 0 || omittedCount === 0))
       || (state === 'invalid' && resolvedCount >= requiredCount)) {
       projectionError(`coverageSections[${index}] counts contradict state`);
     }
@@ -386,12 +457,11 @@ function coverage(value: unknown, options: {
   });
   if (options.readySourceKind !== undefined) {
     const expected = options.readySourceKind === 'worldCharacter'
-      ? WORLD_CHARACTER_READY_COVERAGE
-      : REALM_PERSONA_READY_COVERAGE;
-    if (result.length !== expected.size
-        || result.some((entry) => entry.state !== 'complete' || !expected.has(entry.section))
+      ? WORLD_CHARACTER_REQUIRED_COVERAGE
+      : PERSONA_CHARACTER_REQUIRED_COVERAGE;
+    if (result.some((entry) => entry.state === 'invalid')
         || [...expected].some((section) => !seen.has(section))) {
-      projectionError(`coverageSections does not exactly match complete ${options.readySourceKind} coverage`);
+      projectionError(`coverageSections is incomplete for ${options.readySourceKind}`);
     }
   }
   return result;
@@ -401,8 +471,8 @@ export function decodeNimiRuntimeAgentSourceContextStatus(value: unknown): NimiR
   const input = record(value, 'sourceContextStatus', SOURCE_STATUS_FIELDS);
   const sourceReady = input.ready === undefined ? false : input.ready;
   if (typeof sourceReady !== 'boolean') projectionError('sourceContextStatus.ready must be boolean');
-  version(aliased(input, 'schemaVersion', 'schema_version'), AgentLocalSourceContextSchemaVersion.V1,
-    'AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V1', 'sourceContextStatus.schemaVersion');
+  version(aliased(input, 'schemaVersion', 'schema_version'), AgentLocalSourceContextSchemaVersion.V2,
+    'AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2', 'sourceContextStatus.schemaVersion', 'v2');
   const sourceState = enumValue(aliased(input, 'state', 'state'), new Map<unknown,
     'not_materialized' | 'validating' | 'ready' | 'invalid' | 'deleted'>([
     [AgentLocalSourceContextState.NOT_MATERIALIZED, 'not_materialized' as const],
@@ -444,14 +514,14 @@ export function decodeNimiRuntimeAgentSourceContextStatus(value: unknown): NimiR
     );
     const expectedSourceSchema = projectedSourceRef?.kind === 'worldCharacter'
       ? 'realm.world-character-core/v1'
-      : projectedSourceRef?.kind === 'realmPersona' ? 'realm.persona/v1' : null;
+      : projectedSourceRef?.kind === 'personaCharacter' ? 'realm.persona-character-core/v1' : null;
     const rawSnapshotVersion = aliased(input, 'snapshotSchemaVersion', 'snapshot_schema_version');
     const snapshotSchemaVersion = rawSnapshotVersion === undefined
       || rawSnapshotVersion === AgentLocalSourceSnapshotSchemaVersion.UNSPECIFIED
       || rawSnapshotVersion === 'AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED'
       ? null
-      : version(rawSnapshotVersion, AgentLocalSourceSnapshotSchemaVersion.V1,
-        'AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V1', 'sourceContextStatus.snapshotSchemaVersion');
+      : version(rawSnapshotVersion, AgentLocalSourceSnapshotSchemaVersion.V2,
+        'AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2', 'sourceContextStatus.snapshotSchemaVersion', 'v2');
     const snapshotHash = optionalDigest(aliased(input, 'snapshotHash', 'snapshot_hash'), 'sourceContextStatus.snapshotHash');
     const rawCapturedAt = aliased(input, 'capturedAt', 'captured_at');
     const capturedAt = rawCapturedAt === undefined || rawCapturedAt === null ? null : timestamp(rawCapturedAt, 'sourceContextStatus.capturedAt');
@@ -470,7 +540,7 @@ export function decodeNimiRuntimeAgentSourceContextStatus(value: unknown): NimiR
       projectionError('sourceContextStatus non-ready state is partial or inconsistent');
     }
     return {
-      schemaVersion: 'v1', ready: false, state: sourceState, reasonCode: sourceReason,
+      schemaVersion: 'v2', ready: false, state: sourceState, reasonCode: sourceReason,
       localAgentRef, sourceRef: projectedSourceRef,
       sourceSchemaVersion: rawSourceSchema as NimiRuntimeAgentUnavailableSourceContextStatus['sourceSchemaVersion'],
       snapshotSchemaVersion, snapshotHash, capturedAt, worldContentHash, materializationContextHash,
@@ -487,13 +557,13 @@ export function decodeNimiRuntimeAgentSourceContextStatus(value: unknown): NimiR
   );
   const expectedSourceSchema = projectedSourceRef.kind === 'worldCharacter'
     ? 'realm.world-character-core/v1'
-    : 'realm.persona/v1';
+    : 'realm.persona-character-core/v1';
   if (sourceSchemaVersion !== expectedSourceSchema) projectionError('sourceContextStatus source kind/schema mismatch');
   const coverageSections = coverage(aliased(input, 'coverageSections', 'coverage_sections'), {
     readySourceKind: projectedSourceRef.kind,
   });
   return {
-    schemaVersion: 'v1',
+    schemaVersion: 'v2',
     ready: true,
     state: 'ready',
     reasonCode: 'none',
@@ -502,9 +572,10 @@ export function decodeNimiRuntimeAgentSourceContextStatus(value: unknown): NimiR
     sourceSchemaVersion: expectedSourceSchema,
     snapshotSchemaVersion: version(
       aliased(input, 'snapshotSchemaVersion', 'snapshot_schema_version'),
-      AgentLocalSourceSnapshotSchemaVersion.V1,
-      'AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V1',
+      AgentLocalSourceSnapshotSchemaVersion.V2,
+      'AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2',
       'sourceContextStatus.snapshotSchemaVersion',
+      'v2',
     ),
     snapshotHash: digest(aliased(input, 'snapshotHash', 'snapshot_hash'), 'sourceContextStatus.snapshotHash'),
     capturedAt: timestamp(aliased(input, 'capturedAt', 'captured_at'), 'sourceContextStatus.capturedAt'),
@@ -643,7 +714,7 @@ function isEmptyComposition(input: UnknownRecord): boolean {
 export function decodeNimiRuntimeAgentTurnContextSummary(value: unknown): NimiRuntimeAgentTurnContextSummary {
   const input = record(value, 'turnContextSummary', TURN_SUMMARY_FIELDS);
   version(aliased(input, 'schemaVersion', 'schema_version'), AgentTurnContextSummarySchemaVersion.V1,
-    'AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1', 'turnContextSummary.schemaVersion');
+    'AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1', 'turnContextSummary.schemaVersion', 'v1');
   const state = enumValue(input.state, TURN_STATE, 'turnContextSummary.state');
   const reasonCode = enumValue(aliased(input, 'reasonCode', 'reason_code'), REASON, 'turnContextSummary.reasonCode');
   const ready = input.ready === undefined ? false : input.ready;
@@ -693,9 +764,9 @@ export function decodeNimiRuntimeAgentTurnContextSummary(value: unknown): NimiRu
     };
   }
   version(aliased(input, 'manifestSchemaVersion', 'manifest_schema_version'), AgentTurnContextManifestSchemaVersion.V1,
-    'AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_V1', 'turnContextSummary.manifestSchemaVersion');
+    'AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_V1', 'turnContextSummary.manifestSchemaVersion', 'v1');
   version(aliased(input, 'compilerSchemaVersion', 'compiler_schema_version'), AgentTurnContextCompilerSchemaVersion.V1,
-    'AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1', 'turnContextSummary.compilerSchemaVersion');
+    'AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1', 'turnContextSummary.compilerSchemaVersion', 'v1');
   const projectedLanes = lanes(input.lanes);
   const projectedBudget = budget(input.budget, state);
   const projectedTruncation = truncation(input.truncation);
@@ -776,10 +847,24 @@ export function assertNimiRuntimeAgentContextProjectionCorrelation(input: {
       && (source.snapshotHash !== turn.sourceSnapshotHash
         || source.worldContentHash !== turn.worldContentHash
         || source.materializationContextHash !== turn.materializationContextHash
-        || source.sourceRef.kind !== turn.sourceRef.kind
-        || source.sourceRef.worldId !== turn.sourceRef.worldId
-        || source.sourceRef.sourceId !== turn.sourceRef.sourceId
-        || source.sourceRef.sourceContentHash !== turn.sourceRef.sourceContentHash)) {
+        || !sourceRefsEqual(source.sourceRef, turn.sourceRef))) {
     projectionError('source and turn provenance correlation failed');
   }
+}
+
+function sourceRefsEqual(left: NimiRuntimeAgentSourceRef, right: NimiRuntimeAgentSourceRef): boolean {
+  if (left.kind !== right.kind
+      || left.id !== right.id
+      || left.worldId !== right.worldId
+      || left.sourceHash !== right.sourceHash) {
+    return false;
+  }
+  if (left.kind === 'worldCharacter' && right.kind === 'worldCharacter') {
+    return left.worldEntityRef.kind === right.worldEntityRef.kind
+      && left.worldEntityRef.worldId === right.worldEntityRef.worldId
+      && left.worldEntityRef.entityId === right.worldEntityRef.entityId;
+  }
+  return left.kind === 'personaCharacter'
+    && right.kind === 'personaCharacter'
+    && left.ownerAccountId === right.ownerAccountId;
 }

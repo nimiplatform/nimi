@@ -174,7 +174,7 @@ type agentTurnContextRouteInput struct {
 }
 
 type agentTurnContextCompileInput struct {
-	Snapshot             localAgentSourceSnapshotV1
+	Snapshot             localAgentSourceSnapshotV2
 	LocalAgentRef        string
 	ConversationAnchorID string
 	TurnID               string
@@ -233,28 +233,28 @@ type agentTurnContextTranscriptManifestV1 struct {
 }
 
 type agentTurnContextManifestV1 struct {
-	ManifestSchemaVersion      string                               `json:"manifestSchemaVersion"`
-	CompilerSchemaVersion      string                               `json:"compilerSchemaVersion"`
-	LocalAgentRef              string                               `json:"localAgentRef"`
-	ConversationAnchorID       string                               `json:"conversationAnchorId"`
-	TurnID                     string                               `json:"turnId"`
-	RequestID                  string                               `json:"requestId"`
-	SourceSnapshotHash         string                               `json:"sourceSnapshotHash"`
-	SourceRef                  sourceMaterializationSourceRefV2     `json:"sourceRef"`
-	WorldContentHash           string                               `json:"worldContentHash"`
-	MaterializationContextHash string                               `json:"materializationContextHash"`
-	RouteDigest                string                               `json:"routeDigest"`
-	CatalogRevisionDigest      string                               `json:"catalogRevisionDigest"`
-	Budget                     agentTurnContextBudgetManifestV1     `json:"budget"`
-	Lanes                      []agentTurnContextLaneManifestV1     `json:"lanes"`
-	CapabilityDigest           string                               `json:"capabilityDigest"`
-	Transcript                 agentTurnContextTranscriptManifestV1 `json:"transcript"`
-	MemoryItemCount            uint32                               `json:"memoryItemCount"`
-	MediaCount                 uint32                               `json:"mediaCount"`
-	ToolCount                  uint32                               `json:"toolCount"`
-	ContextContentHash         string                               `json:"contextContentHash"`
-	PromptHash                 string                               `json:"promptHash"`
-	ManifestInstanceHash       string                               `json:"manifestInstanceHash"`
+	ManifestSchemaVersion      string                                    `json:"manifestSchemaVersion"`
+	CompilerSchemaVersion      string                                    `json:"compilerSchemaVersion"`
+	LocalAgentRef              string                                    `json:"localAgentRef"`
+	ConversationAnchorID       string                                    `json:"conversationAnchorId"`
+	TurnID                     string                                    `json:"turnId"`
+	RequestID                  string                                    `json:"requestId"`
+	SourceSnapshotHash         string                                    `json:"sourceSnapshotHash"`
+	SourceRef                  sourceMaterializationCharacterSourceRefV3 `json:"sourceRef"`
+	WorldContentHash           string                                    `json:"worldContentHash"`
+	MaterializationContextHash string                                    `json:"materializationContextHash"`
+	RouteDigest                string                                    `json:"routeDigest"`
+	CatalogRevisionDigest      string                                    `json:"catalogRevisionDigest"`
+	Budget                     agentTurnContextBudgetManifestV1          `json:"budget"`
+	Lanes                      []agentTurnContextLaneManifestV1          `json:"lanes"`
+	CapabilityDigest           string                                    `json:"capabilityDigest"`
+	Transcript                 agentTurnContextTranscriptManifestV1      `json:"transcript"`
+	MemoryItemCount            uint32                                    `json:"memoryItemCount"`
+	MediaCount                 uint32                                    `json:"mediaCount"`
+	ToolCount                  uint32                                    `json:"toolCount"`
+	ContextContentHash         string                                    `json:"contextContentHash"`
+	PromptHash                 string                                    `json:"promptHash"`
+	ManifestInstanceHash       string                                    `json:"manifestInstanceHash"`
 }
 
 type agentTurnContextCompilation struct {

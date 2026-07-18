@@ -82,16 +82,7 @@ func newUnaryAuthzInterceptor(authorizer protectedCapabilityAuthorizer) grpc.Una
 }
 
 func isSourceMaterializationMethod(methodID string) bool {
-	switch methodID {
-	case "/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge",
-		"/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload",
-		"/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk",
-		"/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization",
-		"/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload":
-		return true
-	default:
-		return false
-	}
+	return methodID == "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource"
 }
 
 func validateAgentPresentationRealmIdentity(ctx context.Context, req any) error {
@@ -259,11 +250,7 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.knowledge.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent":
 		return "runtime.agent.admin", true
-	case "/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge",
-		"/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload",
-		"/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk",
-		"/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization",
-		"/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload":
+	case "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource":
 		return "runtime.agent.admin", true
 	case "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent":
 		return "runtime.agent.admin", true

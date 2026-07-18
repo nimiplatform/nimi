@@ -23,10 +23,11 @@ import {
   AgentLocalSourceContextState,
   AgentLocalSourceSnapshotSchemaVersion,
   AgentPresentationEventFamily,
-  AgentSourceMaterializationSourceKind,
+  CharacterSourceKindV3,
   ReasonCode as RuntimeGeneratedReasonCode,
   VoiceOutputMode,
   VoicePlaybackState,
+  WorldEntityRefKindV3,
 } from '../core-generated/runtime-typed-client';
 import { createNimiError, ReasonCode as SdkReasonCode } from '../types';
 import {
@@ -65,7 +66,8 @@ export {
   AgentLocalSourceContextState,
   AgentLocalSourceSnapshotSchemaVersion,
   AgentPresentationEventFamily,
-  AgentSourceMaterializationSourceKind,
+  CharacterSourceKindV3,
+  WorldEntityRefKindV3,
   RuntimeGeneratedReasonCode,
   VoiceOutputMode,
   VoicePlaybackState,
@@ -86,29 +88,52 @@ export const LOCAL_AGENT_REF = 'local-agent:test-user-1-agent-1';
 
 export function sourceContextStatus(input: {
   readonly localAgentRef: string;
-  readonly kind?: 'worldCharacter' | 'realmPersona';
+  readonly kind?: 'worldCharacter' | 'personaCharacter';
   readonly worldId: string;
   readonly sourceId: string;
-  readonly sourceContentHash: string;
+  readonly sourceHash: string;
+  readonly ownerAccountId?: string;
 }) {
+  const sourceRef = input.kind === 'personaCharacter'
+    ? {
+        source: {
+          oneofKind: 'personaCharacter' as const,
+          personaCharacter: {
+            kind: CharacterSourceKindV3.PERSONA_CHARACTER,
+            id: input.sourceId,
+            worldId: input.worldId,
+            ownerAccountId: input.ownerAccountId ?? OWNER_USER_ID,
+            sourceHash: input.sourceHash,
+          },
+        },
+      }
+    : {
+        source: {
+          oneofKind: 'worldCharacter' as const,
+          worldCharacter: {
+            kind: CharacterSourceKindV3.WORLD_CHARACTER,
+            id: input.sourceId,
+            worldId: input.worldId,
+            worldEntityRef: {
+              kind: WorldEntityRefKindV3.WORLD_ENTITY,
+              worldId: input.worldId,
+              entityId: `entity-${input.sourceId}`,
+            },
+            sourceHash: input.sourceHash,
+          },
+        },
+      };
   return {
-    schemaVersion: AgentLocalSourceContextSchemaVersion.V1,
+    schemaVersion: AgentLocalSourceContextSchemaVersion.V2,
     ready: true,
     state: AgentLocalSourceContextState.READY,
     reasonCode: AgentContextProjectionReasonCode.NONE,
     localAgentRef: input.localAgentRef,
-    sourceRef: {
-      kind: input.kind === 'realmPersona'
-        ? AgentSourceMaterializationSourceKind.REALM_PERSONA
-        : AgentSourceMaterializationSourceKind.WORLD_CHARACTER,
-      worldId: input.worldId,
-      sourceId: input.sourceId,
-      sourceContentHash: input.sourceContentHash,
-    },
-    sourceSchemaVersion: input.kind === 'realmPersona'
-      ? 'realm.persona/v1'
+    sourceRef,
+    sourceSchemaVersion: input.kind === 'personaCharacter'
+      ? 'realm.persona-character-core/v1'
       : 'realm.world-character-core/v1',
-    snapshotSchemaVersion: AgentLocalSourceSnapshotSchemaVersion.V1,
+    snapshotSchemaVersion: AgentLocalSourceSnapshotSchemaVersion.V2,
     snapshotHash: 'b'.repeat(64),
     capturedAt: toNimiRuntimeTimestamp('2026-07-10T05:00:00.000Z'),
     worldContentHash: 'c'.repeat(64),

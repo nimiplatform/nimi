@@ -7,10 +7,13 @@ import type {
   StreamScenarioEvent,
 } from '../core-generated/runtime-typed-client';
 import {
+  CharacterSourceKindV3,
   FinishReason,
+  RealmSourceMaterializationReasonCode,
   RoutePolicy,
   RuntimeHealthStatus,
   StreamEventType,
+  WorldEntityRefKindV3,
 } from '../core-generated/runtime-typed-client';
 import { ReasonCode, type CoreStreamRequest, type CoreUnaryRequest } from '../types';
 import { Runtime, createRuntime } from './index';
@@ -53,6 +56,13 @@ class FakeRuntimeTransport implements CoreTransport {
       return {
         deletedCount: 1,
         deletedArtifactIds: ['voice-artifact-1'],
+      } as Response;
+    }
+    if (request.methodId === '/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource') {
+      return {
+        localAgentRef: 'local-agent:materialized-world-character',
+        idempotentReplay: false,
+        reasonCode: RealmSourceMaterializationReasonCode.NONE,
       } as Response;
     }
     throw Object.assign(new Error(`unexpected unary ${request.methodId}`), {
@@ -118,6 +128,134 @@ test('Runtime facade exposes active typed namespaces over generated Runtime core
   const cleanup = await runtime.artifacts.cleanupGeneratedVoiceArtifacts({ agentId: 'agent-1' });
   assert.deepEqual(cleanup.deletedArtifactIds, ['voice-artifact-1']);
   assert.equal(transport.unaryCalls[2]?.methodId, '/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts');
+});
+
+test('Runtime facade materializes a Realm source from sourceRef and requestId only', async () => {
+  const transport = new FakeRuntimeTransport();
+  const runtime = createRuntime({
+    appId: 'app.materialization-consumer',
+    getSubjectUserId: () => 'account-1',
+    transport,
+  });
+  const sourceRef = {
+    kind: 'worldCharacter' as const,
+    id: 'character-1',
+    worldId: 'world-1',
+    worldEntityRef: {
+      kind: 'worldEntity' as const,
+      worldId: 'world-1',
+      entityId: 'entity-1',
+    },
+    sourceHash: 'a'.repeat(64),
+  };
+
+  const response = await runtime.materializeRealmSource({
+    sourceRef,
+    requestId: 'materialize-request-1',
+  });
+
+  assert.equal(response.localAgentRef, 'local-agent:materialized-world-character');
+  assert.equal(response.reasonCode, RealmSourceMaterializationReasonCode.NONE);
+  assert.equal('materializeRealmSource' in runtime.generated, false);
+  assert.equal('materializeRealmSource' in runtime.agents, false);
+  assert.equal(transport.unaryCalls.length, 1);
+  assert.equal(
+    transport.unaryCalls[0]?.methodId,
+    '/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource',
+  );
+  assert.deepEqual(transport.unaryCalls[0]?.body, {
+    context: {
+      appId: 'app.materialization-consumer',
+      subjectUserId: 'account-1',
+      ownerUserId: 'account-1',
+      runtimeSourceRef: '',
+      localAgentRef: '',
+    },
+    requestId: 'materialize-request-1',
+    sourceRef: {
+      source: {
+        oneofKind: 'worldCharacter',
+        worldCharacter: {
+          kind: CharacterSourceKindV3.WORLD_CHARACTER,
+          id: 'character-1',
+          worldId: 'world-1',
+          worldEntityRef: {
+            kind: WorldEntityRefKindV3.WORLD_ENTITY,
+            worldId: 'world-1',
+            entityId: 'entity-1',
+          },
+          sourceHash: 'a'.repeat(64),
+        },
+      },
+    },
+  });
+});
+
+test('Runtime facade materialization fails closed without injected subject context', async () => {
+  const transport = new FakeRuntimeTransport();
+  const runtime = createRuntime({ transport });
+
+  await assert.rejects(
+    runtime.materializeRealmSource({
+      sourceRef: {
+        kind: 'personaCharacter',
+        id: 'persona-1',
+        worldId: 'world-1',
+        ownerAccountId: 'account-1',
+        sourceHash: 'b'.repeat(64),
+      },
+      requestId: 'materialize-request-2',
+    }),
+    (error: unknown) =>
+      (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_AGENT_SUBJECT_REQUIRED',
+  );
+  assert.equal(transport.unaryCalls.length, 0);
+});
+
+test('Runtime facade rejects invalid source branch, world binding, and source hash before transport', async () => {
+  const transport = new FakeRuntimeTransport();
+  const runtime = createRuntime({
+    getSubjectUserId: () => 'account-1',
+    transport,
+  });
+  const invalidSourceRefs: unknown[] = [
+    {
+      source: {
+        oneofKind: 'personaCharacter',
+        personaCharacter: {},
+      },
+    },
+    {
+      kind: 'worldCharacter',
+      id: 'character-1',
+      worldId: 'world-1',
+      worldEntityRef: {
+        kind: 'worldEntity',
+        worldId: 'world-2',
+        entityId: 'entity-1',
+      },
+      sourceHash: 'a'.repeat(64),
+    },
+    {
+      kind: 'personaCharacter',
+      id: 'persona-1',
+      worldId: 'world-1',
+      ownerAccountId: 'account-1',
+      sourceHash: 'A'.repeat(64),
+    },
+  ];
+
+  for (const sourceRef of invalidSourceRefs) {
+    await assert.rejects(
+      runtime.materializeRealmSource({
+        sourceRef,
+        requestId: 'invalid-source-ref',
+      } as never),
+      (error: unknown) =>
+        (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_REALM_SOURCE_INPUT_INVALID',
+    );
+  }
+  assert.equal(transport.unaryCalls.length, 0);
 });
 
 test('Runtime facade streams through generated server-stream methods without reconnect semantics', async () => {

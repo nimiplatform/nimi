@@ -11,7 +11,7 @@ func compileAgentTurnContext(input agentTurnContextCompileInput) (*agentTurnCont
 	if err := validateAgentTurnContextCompileInput(input); err != nil {
 		return nil, err
 	}
-	items, err := compileAgentTurnSourceSnapshot(input.Snapshot)
+	items, err := compileAgentTurnSourceSnapshotV3(input.Snapshot)
 	if err != nil {
 		return nil, err
 	}
@@ -54,9 +54,9 @@ func compileAgentTurnContext(input agentTurnContextCompileInput) (*agentTurnCont
 		TurnID:                     input.TurnID,
 		RequestID:                  input.RequestID,
 		SourceSnapshotHash:         input.Snapshot.SnapshotHash,
-		SourceRef:                  input.Snapshot.SourceRef,
-		WorldContentHash:           input.Snapshot.OwningWorld.ContentHash,
-		MaterializationContextHash: input.Snapshot.MaterializationContextHash,
+		SourceRef:                  input.Snapshot.Semantic.SourceRef,
+		WorldContentHash:           input.Snapshot.Semantic.WorldContentHash,
+		MaterializationContextHash: input.Snapshot.Semantic.MaterializationContextHash,
 		RouteDigest:                input.Route.RouteDigest,
 		CatalogRevisionDigest:      input.Route.CatalogRevisionDigest,
 		Budget:                     budget.Manifest,

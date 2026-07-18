@@ -36,17 +36,24 @@ func agentAtomicProjectionDeletionHook(
 				return err
 			}
 		}
-		if err := deleteLocalAgentSourceSnapshotTx(tx, ref); err != nil {
+		if err := deleteLocalAgentSourceSnapshotV2Tx(tx, ref); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(`DELETE FROM runtime_agent_ai_config WHERE agent_instance_id = ?`, ref); err != nil {
 			return fmt.Errorf("delete runtime agent AI config: %w", err)
 		}
-		// Retain the consumed challenge security ledger, but remove the bounded
-		// replay result that points at a deleted LocalAgent. A replay then returns
-		// UPLOAD_NOT_FOUND and can never resurrect or project the old identity.
-		if _, err := tx.Exec(`DELETE FROM runtime_source_materialization_upload WHERE committed_local_agent_ref = ?`, ref); err != nil {
-			return fmt.Errorf("delete source materialization replay result: %w", err)
+		if _, err := tx.Exec(`
+			DELETE FROM runtime_realm_source_materialization_replay_v3
+			WHERE (materializer_account_id, request_id) IN (
+				SELECT materializer_account_id, request_id
+				FROM runtime_realm_source_materialization_attempt_v3
+				WHERE local_agent_ref = ?
+			)
+		`, ref); err != nil {
+			return fmt.Errorf("delete Realm source materialization v3 replay ledger: %w", err)
+		}
+		if _, err := tx.Exec(`DELETE FROM runtime_realm_source_materialization_attempt_v3 WHERE local_agent_ref = ?`, ref); err != nil {
+			return fmt.Errorf("delete Realm source materialization v3 safe result: %w", err)
 		}
 		for _, anchorID := range anchorIDs {
 			if _, err := tx.Exec(`DELETE FROM runtime_local_agent_meta WHERE key = ?`, runtimeAgentConversationAnchorMetadataKey(anchorID)); err != nil {

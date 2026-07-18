@@ -83,6 +83,16 @@ export const RUNTIME_AGENT_METHODS = [
   'interruptAgentVoicePlayback',
 ] as const satisfies readonly RuntimeTypedMethodName[];
 
+// High-level Runtime root methods intentionally replace their raw generated
+// counterparts. They participate in the admitted Agent method group without
+// becoming members of runtime.agents or accepting generated request DTOs.
+export const RUNTIME_ROOT_AGENT_FACADE_METHODS = [
+  'materializeRealmSource',
+] as const;
+
+export type RuntimeRootAgentFacadeMethodName =
+  (typeof RUNTIME_ROOT_AGENT_FACADE_METHODS)[number];
+
 export const RUNTIME_AI_METHODS = [
   'executeScenario',
   'streamScenario',

@@ -22,6 +22,7 @@ import {
 import { normalizeNimiRuntimeAgentText } from './runtime-agent-values';
 import {
   decodeNimiRuntimeAgentSourceContextStatus,
+  type NimiRuntimeAgentSourceRef,
   type NimiRuntimeAgentSourceContextStatus,
 } from './runtime-agent-context-projections';
 
@@ -53,17 +54,10 @@ export interface NimiRuntimeAgentInitializedLocalAgent {
   readonly sourceContextStatus: NimiRuntimeAgentSourceContextStatus | null;
 }
 
-export interface NimiRuntimeAgentSourceRefInput {
-  readonly kind?: unknown;
-  readonly worldId?: unknown;
-  readonly sourceId?: unknown;
-  readonly sourceContentHash?: unknown;
-}
-
 export interface NimiRuntimeAgentDiscoverLocalAgentsBySourceInput {
   readonly ownerUserId: unknown;
   readonly runtimeSourceRef?: unknown;
-  readonly sourceRef?: NimiRuntimeAgentSourceRefInput | null;
+  readonly sourceRef?: NimiRuntimeAgentSourceRef | null;
 }
 
 export interface NimiRuntimeAgentDiscoveredLocalAgent {
@@ -75,7 +69,7 @@ export interface NimiRuntimeAgentDiscoveredLocalAgent {
   readonly sourceWorldId: string | null;
   readonly sourceWorldName: string | null;
   readonly sourceId: string | null;
-  readonly sourceContentHash: string | null;
+  readonly sourceHash: string | null;
   readonly sourceSchemaVersion: string | null;
   readonly snapshotHash: string | null;
   readonly worldContentHash: string | null;
@@ -153,27 +147,44 @@ function buildLifecycleRequest(
   };
 }
 
-function normalizeSourceRefInput(value: NimiRuntimeAgentSourceRefInput | null | undefined) {
+function normalizeSourceRefInput(value: NimiRuntimeAgentSourceRef | null | undefined): NimiRuntimeAgentSourceRef | null {
   if (!value) {
     return null;
   }
-  const sourceKind = normalizeNimiRuntimeAgentText(value.kind);
-  const sourceWorldId = normalizeNimiRuntimeAgentText(value.worldId);
-  const sourceId = normalizeNimiRuntimeAgentText(value.sourceId);
-  const sourceContentHash = normalizeNimiRuntimeAgentText(value.sourceContentHash);
-  if (!sourceKind || !sourceWorldId || !sourceId || !sourceContentHash) {
+  const id = normalizeNimiRuntimeAgentText(value.id);
+  const worldId = normalizeNimiRuntimeAgentText(value.worldId);
+  const sourceHash = normalizeNimiRuntimeAgentText(value.sourceHash);
+  if (!id || !worldId || !/^[a-f0-9]{64}$/u.test(sourceHash)) {
     lifecycleError(
-      'Runtime Agent lifecycle sourceRef must include kind, worldId, sourceId, and sourceContentHash.',
+      'Runtime Agent lifecycle sourceRef must be a canonical CharacterSourceRefV3.',
       'SDK_RUNTIME_AGENT_SOURCE_REF_INVALID',
-      'provide_hash_bearing_source_ref',
+      'provide_character_source_ref_v3',
     );
   }
-  return {
-    sourceKind,
-    sourceWorldId,
-    sourceId,
-    sourceContentHash,
-  };
+  if (value.kind === 'worldCharacter') {
+    const entityWorldId = normalizeNimiRuntimeAgentText(value.worldEntityRef?.worldId);
+    const entityId = normalizeNimiRuntimeAgentText(value.worldEntityRef?.entityId);
+    if (value.worldEntityRef?.kind !== 'worldEntity' || entityWorldId !== worldId || !entityId) {
+      lifecycleError(
+        'Runtime Agent lifecycle WorldCharacter sourceRef has an invalid world entity binding.',
+        'SDK_RUNTIME_AGENT_SOURCE_REF_INVALID',
+        'provide_character_source_ref_v3',
+      );
+    }
+    return {
+      kind: 'worldCharacter', id, worldId, sourceHash,
+      worldEntityRef: { kind: 'worldEntity', worldId: entityWorldId, entityId },
+    };
+  }
+  const ownerAccountId = normalizeNimiRuntimeAgentText(value.ownerAccountId);
+  if (value.kind !== 'personaCharacter' || !ownerAccountId) {
+    lifecycleError(
+      'Runtime Agent lifecycle PersonaCharacter sourceRef has an invalid owner binding.',
+      'SDK_RUNTIME_AGENT_SOURCE_REF_INVALID',
+      'provide_character_source_ref_v3',
+    );
+  }
+  return { kind: 'personaCharacter', id, worldId, ownerAccountId, sourceHash };
 }
 
 function buildInitializeAgentRequestContext(input: {
@@ -225,7 +236,7 @@ function readSourceMaterializationProvenance(agent: AgentRecord) {
       sourceWorldId: null,
       sourceWorldName: null,
       sourceId: null,
-      sourceContentHash: null,
+      sourceHash: null,
       sourceSchemaVersion: null,
       snapshotHash: null,
       worldContentHash: null,
@@ -249,8 +260,8 @@ function readSourceMaterializationProvenance(agent: AgentRecord) {
     sourceKind: sourceRef?.kind ?? null,
     sourceWorldId: sourceRef?.worldId ?? null,
     sourceWorldName: null,
-    sourceId: sourceRef?.sourceId ?? null,
-    sourceContentHash: sourceRef?.sourceContentHash ?? null,
+    sourceId: sourceRef?.id ?? null,
+    sourceHash: sourceRef?.sourceHash ?? null,
     sourceSchemaVersion: projection.sourceSchemaVersion,
     snapshotHash: projection.snapshotHash,
     worldContentHash: projection.worldContentHash,
@@ -268,10 +279,23 @@ function sourceProvenanceMatches(
     return true;
   }
   const provenance = readSourceMaterializationProvenance(agent);
-  return provenance.sourceKind === sourceRef.sourceKind
-    && provenance.sourceWorldId === sourceRef.sourceWorldId
-    && provenance.sourceId === sourceRef.sourceId
-    && provenance.sourceContentHash === sourceRef.sourceContentHash;
+  return provenance.sourceContextStatus?.sourceRef !== null
+    && provenance.sourceContextStatus?.sourceRef !== undefined
+    && sourceRefsMatch(provenance.sourceContextStatus.sourceRef, sourceRef);
+}
+
+function sourceRefsMatch(left: NimiRuntimeAgentSourceRef, right: NimiRuntimeAgentSourceRef): boolean {
+  if (left.kind !== right.kind || left.id !== right.id || left.worldId !== right.worldId || left.sourceHash !== right.sourceHash) {
+    return false;
+  }
+  if (left.kind === 'worldCharacter' && right.kind === 'worldCharacter') {
+    return left.worldEntityRef.kind === right.worldEntityRef.kind
+      && left.worldEntityRef.worldId === right.worldEntityRef.worldId
+      && left.worldEntityRef.entityId === right.worldEntityRef.entityId;
+  }
+  return left.kind === 'personaCharacter'
+    && right.kind === 'personaCharacter'
+    && left.ownerAccountId === right.ownerAccountId;
 }
 
 function toDiscoveredLocalAgent(agent: AgentRecord): NimiRuntimeAgentDiscoveredLocalAgent | null {

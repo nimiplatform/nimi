@@ -22,7 +22,7 @@ import {
 import { fromNimiRuntimeProtoStruct } from './runtime-agent-values';
 
 function sourceContextStatus(input: Parameters<typeof rawSourceContextStatus>[0]) {
-  const sourceSections = input.kind === 'realmPersona'
+  const sourceSections = input.kind === 'personaCharacter'
     ? [
         AgentLocalSourceCoverageSection.IDENTITY,
         AgentLocalSourceCoverageSection.PRESENTATION,
@@ -50,7 +50,7 @@ function sourceContextStatus(input: Parameters<typeof rawSourceContextStatus>[0]
     coverageSections: [
       ...sourceSections,
       AgentLocalSourceCoverageSection.WORLD_CORE,
-      ...(input.kind === 'realmPersona' ? [] : [AgentLocalSourceCoverageSection.BOUND_ENTITY]),
+      ...(input.kind === 'personaCharacter' ? [] : [AgentLocalSourceCoverageSection.BOUND_ENTITY]),
       AgentLocalSourceCoverageSection.DEPENDENCY_CLOSURE,
     ].map((section) => ({
       section,
@@ -62,7 +62,7 @@ function sourceContextStatus(input: Parameters<typeof rawSourceContextStatus>[0]
   };
 }
 
-const SOURCE_CONTENT_HASH = 'a'.repeat(64);
+const SOURCE_HASH = 'a'.repeat(64);
 
 test('runtime agent client composes RuntimeAgentService and reserved turn seam as the owner path', async () => {
   const calls: Array<{
@@ -230,7 +230,7 @@ test('runtime agent client discovers existing LocalAgents by Runtime inventory p
     readonly request?: unknown;
     readonly options?: RuntimeTypedCallOptions;
   }> = [];
-  const runtimeSourceRef = `runtime-source:worldCharacter:world-1:source-1:${SOURCE_CONTENT_HASH}`;
+  const runtimeSourceRef = `runtime-source:worldCharacter:world-1:source-1:${SOURCE_HASH}`;
   const client = createNimiRuntimeAgentClient({
     runtime: {
       auth: {
@@ -260,7 +260,7 @@ test('runtime agent client discovers existing LocalAgents by Runtime inventory p
                   localAgentRef: 'local-agent:runtime-owned-existing',
                   worldId: 'world-1',
                   sourceId: 'source-1',
-                  sourceContentHash: SOURCE_CONTENT_HASH,
+                  sourceHash: SOURCE_HASH,
                 }),
               },
             ],
@@ -311,9 +311,10 @@ test('runtime agent client discovers existing LocalAgents by Runtime inventory p
     runtimeSourceRef,
     sourceRef: {
       kind: 'worldCharacter',
+      id: 'source-1',
       worldId: 'world-1',
-      sourceId: 'source-1',
-      sourceContentHash: SOURCE_CONTENT_HASH,
+      worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'entity-source-1' },
+      sourceHash: SOURCE_HASH,
     },
   });
 
@@ -350,21 +351,21 @@ test('runtime agent client lists existing LocalAgents from Runtime inventory', a
                 agentId: 'local-agent:runtime-owned-existing',
                 localAgentRef: 'local-agent:runtime-owned-existing',
                 ownerUserId: 'user-1',
-                runtimeSourceRef: `runtime-source:worldCharacter:world-1:source-1:${SOURCE_CONTENT_HASH}`,
+                runtimeSourceRef: `runtime-source:worldCharacter:world-1:source-1:${SOURCE_HASH}`,
                 displayName: 'Existing Source Agent',
                 lifecycleStatus: AgentLifecycleStatus.ACTIVE,
                 sourceContextStatus: sourceContextStatus({
                   localAgentRef: 'local-agent:runtime-owned-existing',
                   worldId: 'world-1',
                   sourceId: 'source-1',
-                  sourceContentHash: SOURCE_CONTENT_HASH,
+                  sourceHash: SOURCE_HASH,
                 }),
               },
               {
                 agentId: 'local-agent:other-owner',
                 localAgentRef: 'local-agent:other-owner',
                 ownerUserId: 'other-user',
-                runtimeSourceRef: `runtime-source:worldCharacter:world-1:source-1:${SOURCE_CONTENT_HASH}`,
+                runtimeSourceRef: `runtime-source:worldCharacter:world-1:source-1:${SOURCE_HASH}`,
                 lifecycleStatus: AgentLifecycleStatus.ACTIVE,
               },
             ],

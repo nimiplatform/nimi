@@ -9,7 +9,7 @@ export interface NimiAppScopeRef {
 export type PermissionScopeFamily =
   | 'account'
   | 'data'
-  | 'realm_source'
+  | 'agent'
   | 'ai_spend'
   | 'memory'
   | 'knowledge'
@@ -23,8 +23,8 @@ export type PermissionScopeName =
   | 'account.session.read'
   | 'data.scope.read'
   | 'data.scope.write'
-  | 'realm_source.snapshot.consume'
-  | 'realm_source.snapshot.bind'
+  | 'agent.identity.project'
+  | 'agent.identity.bind'
   | 'ai.spend.meter'
   | 'ai.spend.delegate'
   | 'memory.read.bounded'
@@ -44,7 +44,7 @@ export type GrantState = 'pending' | 'granted' | 'denied' | 'expired' | 'revoked
 export const CANONICAL_PERMISSION_SCOPE_FAMILIES: readonly PermissionScopeFamily[] = [
   'account',
   'data',
-  'realm_source',
+  'agent',
   'ai_spend',
   'memory',
   'knowledge',
@@ -59,8 +59,8 @@ export const CANONICAL_PERMISSION_SCOPE_NAMES: readonly PermissionScopeName[] = 
   'account.session.read',
   'data.scope.read',
   'data.scope.write',
-  'realm_source.snapshot.consume',
-  'realm_source.snapshot.bind',
+  'agent.identity.project',
+  'agent.identity.bind',
   'ai.spend.meter',
   'ai.spend.delegate',
   'memory.read.bounded',

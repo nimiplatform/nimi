@@ -132,28 +132,8 @@ func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
 			capability: "runtime.agent.admin",
 		},
 		{
-			method:     "/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge",
-			request:    &runtimev1.CreateSourceMaterializationChallengeRequest{},
-			capability: "runtime.agent.admin",
-		},
-		{
-			method:     "/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload",
-			request:    &runtimev1.BeginSourceMaterializationUploadRequest{},
-			capability: "runtime.agent.admin",
-		},
-		{
-			method:     "/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk",
-			request:    &runtimev1.PutSourceMaterializationChunkRequest{},
-			capability: "runtime.agent.admin",
-		},
-		{
-			method:     "/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization",
-			request:    &runtimev1.CommitSourceMaterializationRequest{},
-			capability: "runtime.agent.admin",
-		},
-		{
-			method:     "/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload",
-			request:    &runtimev1.AbortSourceMaterializationUploadRequest{},
+			method:     "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource",
+			request:    &runtimev1.MaterializeRealmSourceRequest{},
 			capability: "runtime.agent.admin",
 		},
 		{
@@ -642,20 +622,20 @@ func TestUnaryAuthzProjectsValidatedProtectedTokenSubjectForSourceMaterializatio
 		"x-nimi-access-token-id", "tok-materializer-1",
 		"x-nimi-access-token-secret", "sec-materializer-1",
 	))
-	request := &runtimev1.CreateSourceMaterializationChallengeRequest{
+	request := &runtimev1.MaterializeRealmSourceRequest{
 		Context: &runtimev1.AgentRequestContext{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "account-materializer-1",
 			OwnerUserId:   "account-materializer-1",
 		},
 	}
-	info := &grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge"}
+	info := &grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource"}
 	_, err := interceptor(ctx, request, info, func(handlerCtx context.Context, _ any) (any, error) {
 		identity := authn.IdentityFromContext(handlerCtx)
 		if identity == nil || identity.SubjectUserID != "account-materializer-1" {
 			t.Fatalf("expected validated protected token subject, got %#v", identity)
 		}
-		return &runtimev1.CreateSourceMaterializationChallengeResponse{}, nil
+		return &runtimev1.MaterializeRealmSourceResponse{}, nil
 	})
 	if err != nil {
 		t.Fatalf("source materialization authz failed: %v", err)

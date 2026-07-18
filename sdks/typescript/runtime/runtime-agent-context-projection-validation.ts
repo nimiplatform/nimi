@@ -77,14 +77,15 @@ export function uint64Default(value: unknown, label: string): string {
   return value === undefined || value === null ? '0' : uint64(value, label);
 }
 
-export function version(
+export function version<const Version extends string>(
   value: unknown,
   numeric: number,
   jsonName: string,
   label: string,
-): 'v1' {
+  projected: Version,
+): Version {
   if (value !== numeric && value !== jsonName) projectionError(`${label} is unknown or unspecified`);
-  return 'v1';
+  return projected;
 }
 
 export function enumValue<T extends string>(

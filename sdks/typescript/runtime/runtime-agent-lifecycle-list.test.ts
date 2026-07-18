@@ -12,7 +12,8 @@ import {
   AgentLocalSourceCoverageSection,
   AgentLocalSourceCoverageState,
   AgentLocalSourceSnapshotSchemaVersion,
-  AgentSourceMaterializationSourceKind,
+  CharacterSourceKindV3,
+  WorldEntityRefKindV3,
 } from '../core-generated/runtime-typed-client';
 import {
   createNimiHostRuntimeAgentLifecycleSurface,
@@ -20,7 +21,7 @@ import {
 import { toNimiRuntimeProtoStruct, toNimiRuntimeTimestamp } from './runtime-agent-values';
 
 const OWNER_USER_ID = 'user-1';
-const SOURCE_CONTENT_HASH = 'a'.repeat(64);
+const SOURCE_HASH = 'a'.repeat(64);
 
 test('Runtime Agent lifecycle lists active LocalAgents without source selection', async () => {
   const calls: Array<{ readonly method: string; readonly request: unknown; readonly options?: RuntimeTypedCallOptions }> = [];
@@ -43,29 +44,39 @@ test('Runtime Agent lifecycle lists active LocalAgents without source selection'
                 agentId: 'local-agent:runtime-owned-existing',
                 localAgentRef: 'local-agent:runtime-owned-existing',
                 ownerUserId: OWNER_USER_ID,
-                runtimeSourceRef: `runtime-source:worldCharacter:world-1:source-1:${SOURCE_CONTENT_HASH}`,
+                runtimeSourceRef: `runtime-source:worldCharacter:world-1:source-1:${SOURCE_HASH}`,
                 displayName: 'Existing Source Agent',
                 lifecycleStatus: AgentLifecycleStatus.ACTIVE,
                 metadata: toNimiRuntimeProtoStruct({
                   legacySourceProjection: {
-                    sourceKind: 'realmPersona',
+                    sourceKind: 'personaCharacter',
                     sourceWorldId: 'metadata-must-not-author-provenance',
                   },
                 }),
                 sourceContextStatus: {
-                  schemaVersion: AgentLocalSourceContextSchemaVersion.V1,
+                  schemaVersion: AgentLocalSourceContextSchemaVersion.V2,
                   ready: true,
                   state: AgentLocalSourceContextState.READY,
                   reasonCode: AgentContextProjectionReasonCode.NONE,
                   localAgentRef: 'local-agent:runtime-owned-existing',
                   sourceRef: {
-                    kind: AgentSourceMaterializationSourceKind.WORLD_CHARACTER,
-                    worldId: 'world-1',
-                    sourceId: 'source-1',
-                    sourceContentHash: SOURCE_CONTENT_HASH,
+                    source: {
+                      oneofKind: 'worldCharacter' as const,
+                      worldCharacter: {
+                        kind: CharacterSourceKindV3.WORLD_CHARACTER,
+                        id: 'source-1',
+                        worldId: 'world-1',
+                        worldEntityRef: {
+                          kind: WorldEntityRefKindV3.WORLD_ENTITY,
+                          worldId: 'world-1',
+                          entityId: 'entity-source-1',
+                        },
+                        sourceHash: SOURCE_HASH,
+                      },
+                    },
                   },
                   sourceSchemaVersion: 'realm.world-character-core/v1',
-                  snapshotSchemaVersion: AgentLocalSourceSnapshotSchemaVersion.V1,
+                  snapshotSchemaVersion: AgentLocalSourceSnapshotSchemaVersion.V2,
                   snapshotHash: 'b'.repeat(64),
                   capturedAt: toNimiRuntimeTimestamp('2026-07-10T05:00:00.000Z'),
                   worldContentHash: 'c'.repeat(64),
@@ -98,14 +109,14 @@ test('Runtime Agent lifecycle lists active LocalAgents without source selection'
                 agentId: 'local-agent:inactive',
                 localAgentRef: 'local-agent:inactive',
                 ownerUserId: OWNER_USER_ID,
-                runtimeSourceRef: `runtime-source:worldCharacter:world-1:source-2:${SOURCE_CONTENT_HASH}`,
+                runtimeSourceRef: `runtime-source:worldCharacter:world-1:source-2:${SOURCE_HASH}`,
                 lifecycleStatus: AgentLifecycleStatus.TERMINATED,
               },
               {
                 agentId: 'local-agent:other-owner',
                 localAgentRef: 'local-agent:other-owner',
                 ownerUserId: 'other-user',
-                runtimeSourceRef: `runtime-source:worldCharacter:world-1:source-1:${SOURCE_CONTENT_HASH}`,
+                runtimeSourceRef: `runtime-source:worldCharacter:world-1:source-1:${SOURCE_HASH}`,
                 lifecycleStatus: AgentLifecycleStatus.ACTIVE,
               },
             ],
@@ -128,7 +139,7 @@ test('Runtime Agent lifecycle lists active LocalAgents without source selection'
   assert.equal(listed[0]?.sourceWorldId, 'world-1');
   assert.equal(listed[0]?.sourceWorldName, null);
   assert.equal(listed[0]?.sourceId, 'source-1');
-  assert.equal(listed[0]?.sourceContentHash, 'a'.repeat(64));
+  assert.equal(listed[0]?.sourceHash, 'a'.repeat(64));
   assert.equal(listed[0]?.snapshotHash, 'b'.repeat(64));
   assert.equal(listed[0]?.worldContentHash, 'c'.repeat(64));
   assert.equal(listed[0]?.materializationContextHash, 'd'.repeat(64));

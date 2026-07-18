@@ -107,27 +107,22 @@ func TestUnaryProtocolInterceptorMaterializationReplayAlwaysReachesDurableDomain
 		"x-nimi-caller-kind", "first-party-app",
 		"x-nimi-caller-id", "nimi.desktop",
 	))
-	req := &runtimev1.CommitSourceMaterializationRequest{
-		CommitRequestId:    "commit-domain-replay",
-		UploadId:           "smu_domain_replay",
-		PacketHash:         strings.Repeat("a", 64),
-		BundleManifestHash: strings.Repeat("b", 64),
+	req := &runtimev1.MaterializeRealmSourceRequest{
+		Context:   &runtimev1.AgentRequestContext{AppId: "nimi.desktop"},
+		RequestId: "materialize-domain-replay",
 	}
-	info := &grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization"}
+	info := &grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource"}
 	callCount := 0
 	handler := func(_ context.Context, _ any) (any, error) {
 		callCount++
 		if callCount == 1 {
-			return &runtimev1.CommitSourceMaterializationResponse{
-				UploadId:      req.GetUploadId(),
+			return &runtimev1.MaterializeRealmSourceResponse{
 				LocalAgentRef: "local-agent:deleted-after-first-response",
-				UploadState:   runtimev1.AgentSourceMaterializationUploadState_AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTED,
-				ReasonCode:    runtimev1.AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_NONE,
+				ReasonCode:    runtimev1.RealmSourceMaterializationReasonCode_REALM_SOURCE_MATERIALIZATION_REASON_CODE_NONE,
 			}, nil
 		}
-		return &runtimev1.CommitSourceMaterializationResponse{
-			UploadId:   req.GetUploadId(),
-			ReasonCode: runtimev1.AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_NOT_FOUND,
+		return &runtimev1.MaterializeRealmSourceResponse{
+			ReasonCode: runtimev1.RealmSourceMaterializationReasonCode_REALM_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED,
 		}, nil
 	}
 	first, err := interceptor(ctx, req, info, handler)
@@ -141,10 +136,10 @@ func TestUnaryProtocolInterceptorMaterializationReplayAlwaysReachesDurableDomain
 	if callCount != 2 {
 		t.Fatalf("materialization handler calls = %d, want 2", callCount)
 	}
-	if first.(*runtimev1.CommitSourceMaterializationResponse).GetLocalAgentRef() == "" {
+	if first.(*runtimev1.MaterializeRealmSourceResponse).GetLocalAgentRef() == "" {
 		t.Fatalf("first materialization response = %+v", first)
 	}
-	if got := second.(*runtimev1.CommitSourceMaterializationResponse); got.GetReasonCode() != runtimev1.AgentSourceMaterializationReasonCode_AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_NOT_FOUND || got.GetLocalAgentRef() != "" {
+	if got := second.(*runtimev1.MaterializeRealmSourceResponse); got.GetReasonCode() != runtimev1.RealmSourceMaterializationReasonCode_REALM_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED || got.GetLocalAgentRef() != "" {
 		t.Fatalf("second materialization response bypassed domain ledger: %+v", got)
 	}
 }
@@ -259,11 +254,7 @@ func TestIsWriteMethodScenarioSurface(t *testing.T) {
 		"/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession",
 		"/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
 		"/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
-		"/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge",
-		"/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload",
-		"/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk",
-		"/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization",
-		"/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload",
+		"/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource",
 		"/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
 		"/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset",
 		"/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
@@ -284,11 +275,7 @@ func TestIsWriteMethodScenarioSurface(t *testing.T) {
 		}
 	}
 	durableMaterializationMethods := []string{
-		"/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge",
-		"/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload",
-		"/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk",
-		"/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization",
-		"/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload",
+		"/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource",
 	}
 	for _, method := range durableMaterializationMethods {
 		if !usesDomainDurableIdempotency(method) {

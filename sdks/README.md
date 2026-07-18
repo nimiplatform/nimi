@@ -43,11 +43,11 @@ package tests and SDK matrix gates.
 
 ## Runtime LocalAgent boundary
 
-Realm-backed LocalAgents use one typed workflow: Runtime issues the source
-materialization challenge, Realm returns the generated packet-v2 DTO, and
-Runtime `CommitSourceMaterialization` atomically creates the immutable source
-snapshot and LocalAgent. `InitializeAgent` is not a second Realm materialization
-step.
+Realm-backed LocalAgents use one typed workflow: a consumer supplies only a
+`CharacterSourceRefV3` and request id to Runtime `MaterializeRealmSource`.
+Runtime privately owns the Realm grant lifecycle, Packet v3 acquisition,
+current-key verification, and atomic immutable SnapshotV2 plus LocalAgent
+commit. `InitializeAgent` is not a second Realm materialization step.
 
 Public consumers receive only the strict SDK projections
 `NimiRuntimeAgentSourceContextStatus` and

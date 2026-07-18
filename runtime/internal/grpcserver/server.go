@@ -425,7 +425,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		_ = memorySvc.Close()
 		return nil, fmt.Errorf("init agent core service: %w", err)
 	}
-	agentSvc.SetSourceMaterializationProductCommitter(agentSvc)
 	if cfg.RuntimeID == "" {
 		logger.Warn("source materialization disabled; Runtime identity is not configured")
 	} else if err := agentSvc.SetSourceMaterializationRuntimeIdentity(cfg.RuntimeID); err != nil {
@@ -435,17 +434,13 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	if materializationWiringErr != nil {
 		logger.Warn("source materialization disabled; Realm admission configuration is invalid", "error", materializationWiringErr)
 	} else if materializationWiring.disposition == sourceMaterializationWiringUnconfigured {
-		logger.Warn("source materialization disabled; Realm admission is not configured")
+		logger.Warn("source materialization disabled; Realm acquisition is not configured")
 	} else {
-		materializationAdmission, err := runtimeagentservice.NewSourceMaterializationV2Admission(
-			materializationWiring.issuer,
-			materializationWiring.jwksURL,
-			nil,
-		)
+		materializationIssuer, err := newAccountRealmSourceMaterializationIssuer(accountSvc, materializationWiring.issuer)
 		if err != nil {
-			logger.Warn("source materialization disabled; Realm admission initialization failed", "error", err)
+			logger.Warn("source materialization disabled; Realm acquisition initialization failed", "error", err)
 		} else {
-			agentSvc.SetSourceMaterializationAdmission(materializationAdmission)
+			agentSvc.SetRealmSourceMaterializationIssuer(materializationIssuer)
 		}
 	}
 	agentSvc.SetScopedBindingValidator(accountSvc)

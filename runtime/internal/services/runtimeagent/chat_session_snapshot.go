@@ -329,7 +329,7 @@ func publicChatCommittedTranscriptTurnID(turnID string, sequence uint64, origin 
 	if trimmed := strings.TrimSpace(turnID); trimmed != "" {
 		return trimmed
 	}
-	digest := sourceMaterializationBytesDigest([]byte(fmt.Sprintf("%d\x00%s\x00%s\x00%s", sequence, origin, inputText, assistantText)))
+	digest := sha256HexBytes([]byte(fmt.Sprintf("%d\x00%s\x00%s\x00%s", sequence, origin, inputText, assistantText)))
 	return "agent_turn_committed_" + digest[:24]
 }
 

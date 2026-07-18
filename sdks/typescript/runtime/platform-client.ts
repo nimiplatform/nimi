@@ -12,6 +12,7 @@ export interface NimiRuntimePlatformClientAuthMetadataInput {
 export interface NimiRuntimePlatformClientInput {
   readonly appId: string;
   readonly transport?: RuntimeTransportConfig;
+  readonly getSubjectUserId?: RuntimeOptions['getSubjectUserId'];
   readonly createRuntimeAuthMetadata?: (
     input: NimiRuntimePlatformClientAuthMetadataInput,
   ) => RuntimeOptions['authMetadata'];
@@ -32,6 +33,7 @@ export function createNimiRuntimePlatformClient(
 ): NimiRuntimePlatformClient {
   const accountRuntime = createRuntime({
     appId: input.appId,
+    getSubjectUserId: input.getSubjectUserId,
     transport: input.transport,
   });
   const runtimeAuthMetadata = input.createRuntimeAuthMetadata?.({ accountRuntime });
@@ -39,11 +41,13 @@ export function createNimiRuntimePlatformClient(
     runtimeAuthMetadata
       ? {
         appId: input.appId,
+        getSubjectUserId: input.getSubjectUserId,
         transport: input.transport,
         authMetadata: runtimeAuthMetadata,
       }
       : {
         appId: input.appId,
+        getSubjectUserId: input.getSubjectUserId,
         transport: input.transport,
       },
   );

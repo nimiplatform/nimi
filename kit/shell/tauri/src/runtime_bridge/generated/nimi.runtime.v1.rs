@@ -19717,281 +19717,74 @@ impl CompanionParticipationStatus {
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SourceMaterializationSourceRef {
-    #[prost(enumeration = "AgentSourceMaterializationSourceKind", tag = "1")]
+pub struct WorldEntityRefV3 {
+    #[prost(enumeration = "WorldEntityRefKindV3", tag = "1")]
     pub kind: i32,
     #[prost(string, tag = "2")]
     pub world_id: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
-    pub source_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub source_content_hash: ::prost::alloc::string::String,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SourceMaterializationChallengeLimits {
-    #[prost(uint64, tag = "1")]
-    pub max_bundle_bytes: u64,
-    #[prost(uint32, tag = "2")]
-    pub max_component_count: u32,
-    #[prost(uint64, tag = "3")]
-    pub max_chunk_bytes: u64,
-    #[prost(uint32, tag = "4")]
-    pub max_chunks: u32,
+    pub entity_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct CreateSourceMaterializationChallengeRequest {
+pub struct WorldCharacterSourceRefV3 {
+    #[prost(enumeration = "CharacterSourceKindV3", tag = "1")]
+    pub kind: i32,
+    #[prost(string, tag = "2")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub world_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub world_entity_ref: ::core::option::Option<WorldEntityRefV3>,
+    #[prost(string, tag = "5")]
+    pub source_hash: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PersonaCharacterSourceRefV3 {
+    #[prost(enumeration = "CharacterSourceKindV3", tag = "1")]
+    pub kind: i32,
+    #[prost(string, tag = "2")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub world_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub owner_account_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub source_hash: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CharacterSourceRefV3 {
+    #[prost(oneof = "character_source_ref_v3::Source", tags = "1, 2")]
+    pub source: ::core::option::Option<character_source_ref_v3::Source>,
+}
+/// Nested message and enum types in `CharacterSourceRefV3`.
+pub mod character_source_ref_v3 {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Source {
+        #[prost(message, tag = "1")]
+        WorldCharacter(super::WorldCharacterSourceRefV3),
+        #[prost(message, tag = "2")]
+        PersonaCharacter(super::PersonaCharacterSourceRefV3),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MaterializeRealmSourceRequest {
     #[prost(message, optional, tag = "1")]
     pub context: ::core::option::Option<AgentRequestContext>,
     #[prost(string, tag = "2")]
     pub request_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "3")]
-    pub source_ref: ::core::option::Option<SourceMaterializationSourceRef>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct CreateSourceMaterializationChallengeResponse {
-    #[prost(string, tag = "1")]
-    pub challenge_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub intended_runtime_audience: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub challenge_digest: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "4")]
-    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "5")]
-    pub limits: ::core::option::Option<SourceMaterializationChallengeLimits>,
-    #[prost(enumeration = "AgentSourceMaterializationChallengeState", tag = "6")]
-    pub state: i32,
-    #[prost(enumeration = "AgentSourceMaterializationReasonCode", tag = "7")]
-    pub reason_code: i32,
-    #[prost(message, optional, tag = "8")]
-    pub source_ref: ::core::option::Option<SourceMaterializationSourceRef>,
-    #[prost(string, tag = "9")]
-    pub materializer_account_id: ::prost::alloc::string::String,
-}
-/// Typed unsigned packet-v2 envelope. Semantic source/world/component bodies
-/// are deliberately absent and enter Runtime only through Put chunk bytes.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SourceMaterializationPacketEnvelopeV2 {
-    #[prost(enumeration = "AgentSourceMaterializationPacketSchemaVersion", tag = "1")]
-    pub packet_schema_version: i32,
-    #[prost(string, tag = "2")]
-    pub packet_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub issuer: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub key_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "AgentSourceMaterializationProofAlgorithm", tag = "5")]
-    pub algorithm: i32,
-    #[prost(enumeration = "AgentSourceMaterializationKeyUse", tag = "6")]
-    pub key_use: i32,
-    #[prost(message, optional, tag = "7")]
-    pub issued_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "8")]
-    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(string, tag = "9")]
-    pub nonce: ::prost::alloc::string::String,
-    #[prost(string, tag = "10")]
-    pub intended_runtime_audience: ::prost::alloc::string::String,
-    #[prost(string, tag = "11")]
-    pub challenge_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "12")]
-    pub challenge_digest: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "13")]
-    pub challenge_limits: ::core::option::Option<SourceMaterializationChallengeLimits>,
-    #[prost(string, tag = "14")]
-    pub materializer_account_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "15")]
-    pub source_ref: ::core::option::Option<SourceMaterializationSourceRef>,
-    #[prost(string, tag = "16")]
-    pub payload_hash: ::prost::alloc::string::String,
-    #[prost(string, tag = "17")]
-    pub bundle_manifest_hash: ::prost::alloc::string::String,
-    #[prost(string, tag = "18")]
-    pub packet_hash: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SourceMaterializationBundleComponentDescriptorV1 {
-    #[prost(string, tag = "1")]
-    pub component_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "AgentSourceMaterializationComponentKind", tag = "2")]
-    pub kind: i32,
-    #[prost(string, tag = "3")]
-    pub schema_version: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "4")]
-    pub revision: u64,
-    #[prost(string, tag = "5")]
-    pub content_hash: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub canonical_bytes_hash: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "7")]
-    pub canonical_byte_length: u64,
-}
-/// Realm packet-v2 chunk descriptors intentionally do not carry component_id;
-/// component binding is proved by the ordered component ranges and the Put
-/// request's explicit component identity.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SourceMaterializationBundleChunkDescriptorV1 {
-    #[prost(uint32, tag = "1")]
-    pub global_ordinal: u32,
-    #[prost(uint64, tag = "2")]
-    pub component_offset: u64,
-    #[prost(uint64, tag = "3")]
-    pub length: u64,
-    #[prost(string, tag = "4")]
-    pub chunk_sha256: ::prost::alloc::string::String,
+    pub source_ref: ::core::option::Option<CharacterSourceRefV3>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct BundleTransportManifestV1 {
-    #[prost(
-        enumeration = "AgentSourceMaterializationBundleManifestSchemaVersion",
-        tag = "1"
-    )]
-    pub manifest_schema_version: i32,
-    #[prost(enumeration = "AgentSourceMaterializationPayloadAssemblyVersion", tag = "2")]
-    pub payload_assembly_version: i32,
-    #[prost(string, tag = "3")]
-    pub packet_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub challenge_digest: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "5")]
-    pub total_canonical_bytes: u64,
-    #[prost(uint32, tag = "6")]
-    pub component_count: u32,
-    #[prost(uint32, tag = "7")]
-    pub chunk_count: u32,
-    #[prost(message, repeated, tag = "8")]
-    pub components: ::prost::alloc::vec::Vec<
-        SourceMaterializationBundleComponentDescriptorV1,
-    >,
-    #[prost(message, repeated, tag = "9")]
-    pub chunks: ::prost::alloc::vec::Vec<SourceMaterializationBundleChunkDescriptorV1>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SourceMaterializationBeginControl {
-    #[prost(message, optional, tag = "1")]
-    pub packet_envelope: ::core::option::Option<SourceMaterializationPacketEnvelopeV2>,
-    #[prost(string, tag = "2")]
-    pub packet_proof: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "3")]
-    pub bundle_transport_manifest: ::core::option::Option<BundleTransportManifestV1>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct BeginSourceMaterializationUploadRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub begin_request_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "3")]
-    pub control: ::core::option::Option<SourceMaterializationBeginControl>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct BeginSourceMaterializationUploadResponse {
+pub struct MaterializeRealmSourceResponse {
     #[prost(string, tag = "1")]
-    pub upload_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub packet_hash: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub bundle_manifest_hash: ::prost::alloc::string::String,
-    #[prost(enumeration = "AgentSourceMaterializationUploadState", tag = "4")]
-    pub upload_state: i32,
-    #[prost(enumeration = "AgentSourceMaterializationChallengeState", tag = "5")]
-    pub challenge_state: i32,
-    #[prost(enumeration = "AgentSourceMaterializationReasonCode", tag = "6")]
-    pub reason_code: i32,
-    #[prost(message, optional, tag = "7")]
-    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct PutSourceMaterializationChunkRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub put_request_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub upload_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub packet_hash: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub bundle_manifest_hash: ::prost::alloc::string::String,
-    #[prost(uint32, tag = "6")]
-    pub global_ordinal: u32,
-    #[prost(string, tag = "7")]
-    pub component_id: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "8")]
-    pub component_offset: u64,
-    #[prost(string, tag = "9")]
-    pub chunk_sha256: ::prost::alloc::string::String,
-    #[prost(bytes = "vec", tag = "10")]
-    pub bytes: ::prost::alloc::vec::Vec<u8>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct PutSourceMaterializationChunkResponse {
-    #[prost(string, tag = "1")]
-    pub upload_id: ::prost::alloc::string::String,
-    #[prost(uint32, tag = "2")]
-    pub global_ordinal: u32,
-    #[prost(string, tag = "3")]
-    pub component_id: ::prost::alloc::string::String,
-    #[prost(bool, tag = "4")]
-    pub idempotent_replay: bool,
-    #[prost(enumeration = "AgentSourceMaterializationUploadState", tag = "5")]
-    pub upload_state: i32,
-    #[prost(enumeration = "AgentSourceMaterializationReasonCode", tag = "6")]
-    pub reason_code: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct CommitSourceMaterializationRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub commit_request_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub upload_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub packet_hash: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub bundle_manifest_hash: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct CommitSourceMaterializationResponse {
-    #[prost(string, tag = "1")]
-    pub upload_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
     pub local_agent_ref: ::prost::alloc::string::String,
-    #[prost(enumeration = "AgentSourceMaterializationUploadState", tag = "3")]
-    pub upload_state: i32,
-    #[prost(enumeration = "AgentSourceMaterializationChallengeState", tag = "4")]
-    pub challenge_state: i32,
-    #[prost(enumeration = "AgentSourceMaterializationReasonCode", tag = "5")]
-    pub reason_code: i32,
-    #[prost(message, optional, tag = "6")]
+    #[prost(message, optional, tag = "2")]
     pub source_context_status: ::core::option::Option<LocalAgentSourceContextStatus>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AbortSourceMaterializationUploadRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub abort_request_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub upload_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub packet_hash: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub bundle_manifest_hash: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AbortSourceMaterializationUploadResponse {
-    #[prost(string, tag = "1")]
-    pub upload_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "AgentSourceMaterializationUploadState", tag = "2")]
-    pub upload_state: i32,
-    #[prost(enumeration = "AgentSourceMaterializationChallengeState", tag = "3")]
-    pub challenge_state: i32,
-    #[prost(enumeration = "AgentSourceMaterializationReasonCode", tag = "4")]
-    pub reason_code: i32,
-    #[prost(bool, tag = "5")]
+    #[prost(bool, tag = "3")]
     pub idempotent_replay: bool,
+    #[prost(enumeration = "RealmSourceMaterializationReasonCode", tag = "4")]
+    pub reason_code: i32,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAgentSourceCoverageSectionStatus {
@@ -20022,7 +19815,7 @@ pub struct LocalAgentSourceContextStatus {
     #[prost(string, tag = "5")]
     pub local_agent_ref: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "6")]
-    pub source_ref: ::core::option::Option<SourceMaterializationSourceRef>,
+    pub source_ref: ::core::option::Option<CharacterSourceRefV3>,
     #[prost(string, tag = "7")]
     pub source_schema_version: ::prost::alloc::string::String,
     #[prost(enumeration = "AgentLocalSourceSnapshotSchemaVersion", tag = "8")]
@@ -20106,7 +19899,7 @@ pub struct AgentTurnContextSummary {
     #[prost(string, tag = "10")]
     pub source_snapshot_hash: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "11")]
-    pub source_ref: ::core::option::Option<SourceMaterializationSourceRef>,
+    pub source_ref: ::core::option::Option<CharacterSourceRefV3>,
     #[prost(string, tag = "12")]
     pub world_content_hash: ::prost::alloc::string::String,
     #[prost(string, tag = "13")]
@@ -20136,576 +19929,180 @@ pub struct AgentTurnContextSummary {
     #[prost(string, tag = "25")]
     pub turn_id: ::prost::alloc::string::String,
 }
-/// K-AGCORE-151: closed source kinds accepted by the Runtime-owned challenge
-/// and canonical chunked materialization ingress. Unknown numeric values fail
-/// admission; they are never coerced to a source kind.
+/// Realm v3 public source identity. The oneof is the only discriminator;
+/// callers cannot mix WorldCharacter and PersonaCharacter fields.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
-pub enum AgentSourceMaterializationSourceKind {
+pub enum CharacterSourceKindV3 {
     Unspecified = 0,
     WorldCharacter = 1,
-    RealmPersona = 2,
+    PersonaCharacter = 2,
 }
-impl AgentSourceMaterializationSourceKind {
+impl CharacterSourceKindV3 {
     /// String value of the enum field names used in the ProtoBuf definition.
     ///
     /// The values are not transformed in any way and thus are considered stable
     /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
-            Self::Unspecified => "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_UNSPECIFIED",
-            Self::WorldCharacter => {
-                "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_WORLD_CHARACTER"
-            }
-            Self::RealmPersona => {
-                "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_REALM_PERSONA"
-            }
+            Self::Unspecified => "CHARACTER_SOURCE_KIND_V3_UNSPECIFIED",
+            Self::WorldCharacter => "CHARACTER_SOURCE_KIND_V3_WORLD_CHARACTER",
+            Self::PersonaCharacter => "CHARACTER_SOURCE_KIND_V3_PERSONA_CHARACTER",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
-            "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_WORLD_CHARACTER" => {
-                Some(Self::WorldCharacter)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_REALM_PERSONA" => {
-                Some(Self::RealmPersona)
-            }
+            "CHARACTER_SOURCE_KIND_V3_UNSPECIFIED" => Some(Self::Unspecified),
+            "CHARACTER_SOURCE_KIND_V3_WORLD_CHARACTER" => Some(Self::WorldCharacter),
+            "CHARACTER_SOURCE_KIND_V3_PERSONA_CHARACTER" => Some(Self::PersonaCharacter),
             _ => None,
         }
     }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
-pub enum AgentSourceMaterializationChallengeState {
+pub enum WorldEntityRefKindV3 {
     Unspecified = 0,
-    Issued = 1,
-    Leased = 2,
-    Consumed = 3,
-    Invalidated = 4,
-    Expired = 5,
+    WorldEntity = 1,
 }
-impl AgentSourceMaterializationChallengeState {
+impl WorldEntityRefKindV3 {
     /// String value of the enum field names used in the ProtoBuf definition.
     ///
     /// The values are not transformed in any way and thus are considered stable
     /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
-            Self::Unspecified => {
-                "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_UNSPECIFIED"
-            }
-            Self::Issued => "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_ISSUED",
-            Self::Leased => "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_LEASED",
-            Self::Consumed => "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_CONSUMED",
-            Self::Invalidated => {
-                "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_INVALIDATED"
-            }
-            Self::Expired => "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_EXPIRED",
+            Self::Unspecified => "WORLD_ENTITY_REF_KIND_V3_UNSPECIFIED",
+            Self::WorldEntity => "WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
-            "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_ISSUED" => Some(Self::Issued),
-            "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_LEASED" => Some(Self::Leased),
-            "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_CONSUMED" => {
-                Some(Self::Consumed)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_INVALIDATED" => {
-                Some(Self::Invalidated)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_EXPIRED" => Some(Self::Expired),
+            "WORLD_ENTITY_REF_KIND_V3_UNSPECIFIED" => Some(Self::Unspecified),
+            "WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY" => Some(Self::WorldEntity),
             _ => None,
         }
     }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
-pub enum AgentSourceMaterializationUploadState {
-    Unspecified = 0,
-    Open = 1,
-    Committing = 2,
-    Committed = 3,
-    Failed = 4,
-    Aborted = 5,
-    Expired = 6,
-}
-impl AgentSourceMaterializationUploadState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_UNSPECIFIED",
-            Self::Open => "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_OPEN",
-            Self::Committing => "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTING",
-            Self::Committed => "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTED",
-            Self::Failed => "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_FAILED",
-            Self::Aborted => "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_ABORTED",
-            Self::Expired => "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_EXPIRED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_OPEN" => Some(Self::Open),
-            "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTING" => {
-                Some(Self::Committing)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTED" => {
-                Some(Self::Committed)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_FAILED" => Some(Self::Failed),
-            "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_ABORTED" => Some(Self::Aborted),
-            "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_EXPIRED" => Some(Self::Expired),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentSourceMaterializationComponentKind {
-    Unspecified = 0,
-    WorldCharacter = 1,
-    RealmPersona = 2,
-    WorldCore = 3,
-    WorldEntity = 4,
-    WorldRelationship = 5,
-    CoverageManifest = 6,
-}
-impl AgentSourceMaterializationComponentKind {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => {
-                "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_UNSPECIFIED"
-            }
-            Self::WorldCharacter => {
-                "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CHARACTER"
-            }
-            Self::RealmPersona => {
-                "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_REALM_PERSONA"
-            }
-            Self::WorldCore => "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CORE",
-            Self::WorldEntity => {
-                "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_ENTITY"
-            }
-            Self::WorldRelationship => {
-                "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_RELATIONSHIP"
-            }
-            Self::CoverageManifest => {
-                "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_COVERAGE_MANIFEST"
-            }
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CHARACTER" => {
-                Some(Self::WorldCharacter)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_REALM_PERSONA" => {
-                Some(Self::RealmPersona)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CORE" => {
-                Some(Self::WorldCore)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_ENTITY" => {
-                Some(Self::WorldEntity)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_RELATIONSHIP" => {
-                Some(Self::WorldRelationship)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_COVERAGE_MANIFEST" => {
-                Some(Self::CoverageManifest)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentSourceMaterializationProofAlgorithm {
-    Unspecified = 0,
-    Rs256 = 1,
-}
-impl AgentSourceMaterializationProofAlgorithm {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => {
-                "AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_UNSPECIFIED"
-            }
-            Self::Rs256 => "AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_RS256",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_RS256" => Some(Self::Rs256),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentSourceMaterializationKeyUse {
-    Unspecified = 0,
-    Sig = 1,
-}
-impl AgentSourceMaterializationKeyUse {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_SOURCE_MATERIALIZATION_KEY_USE_UNSPECIFIED",
-            Self::Sig => "AGENT_SOURCE_MATERIALIZATION_KEY_USE_SIG",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_SOURCE_MATERIALIZATION_KEY_USE_UNSPECIFIED" => Some(Self::Unspecified),
-            "AGENT_SOURCE_MATERIALIZATION_KEY_USE_SIG" => Some(Self::Sig),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentSourceMaterializationPacketSchemaVersion {
-    Unspecified = 0,
-    V2 = 1,
-}
-impl AgentSourceMaterializationPacketSchemaVersion {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => {
-                "AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_UNSPECIFIED"
-            }
-            Self::V2 => "AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_V2",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_V2" => Some(Self::V2),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentSourceMaterializationBundleManifestSchemaVersion {
-    Unspecified = 0,
-    V1 = 1,
-}
-impl AgentSourceMaterializationBundleManifestSchemaVersion {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => {
-                "AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_UNSPECIFIED"
-            }
-            Self::V1 => "AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_V1",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_V1" => {
-                Some(Self::V1)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentSourceMaterializationPayloadAssemblyVersion {
-    Unspecified = 0,
-    V1 = 1,
-}
-impl AgentSourceMaterializationPayloadAssemblyVersion {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => {
-                "AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_UNSPECIFIED"
-            }
-            Self::V1 => "AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_V1",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_V1" => Some(Self::V1),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentSourceMaterializationReasonCode {
+pub enum RealmSourceMaterializationReasonCode {
     Unspecified = 0,
     None = 1,
     InvalidRequest = 2,
-    AccountBindingMismatch = 3,
-    SourceBindingMismatch = 4,
-    ChallengeNotFound = 5,
-    ChallengeExpired = 6,
-    ChallengeConflict = 7,
-    ChallengeAlreadyLeased = 8,
-    ChallengeAlreadyConsumed = 9,
-    AudienceMismatch = 10,
-    BundleCapacityExceeded = 11,
-    ComponentCapacityExceeded = 12,
-    ChunkCapacityExceeded = 13,
-    ChunkCountExceeded = 14,
-    ManifestInvalid = 15,
-    PacketInvalid = 16,
-    ProofInvalid = 17,
-    UploadNotFound = 18,
-    UploadStateConflict = 19,
-    RequestIdConflict = 20,
-    ChunkDescriptorInvalid = 21,
-    ChunkDigestMismatch = 22,
-    ChunkConflict = 23,
-    CommitInProgress = 24,
-    AlreadyCommitted = 25,
-    CommitConflict = 26,
-    AdmissionFailed = 27,
-    Aborted = 28,
-    Expired = 29,
-    PersistenceFailed = 30,
+    RequestConflict = 3,
+    AcquisitionDenied = 4,
+    AcquisitionFailed = 5,
+    PacketInvalid = 6,
+    CapacityExceeded = 7,
+    BindingMismatch = 8,
+    JwksInvalid = 9,
+    ProofInvalid = 10,
+    ClosureInvalid = 11,
+    HashInvalid = 12,
+    ReplayDetected = 13,
+    PersistenceFailed = 14,
+    DataResetRequired = 15,
 }
-impl AgentSourceMaterializationReasonCode {
+impl RealmSourceMaterializationReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
     ///
     /// The values are not transformed in any way and thus are considered stable
     /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
-            Self::Unspecified => "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED",
-            Self::None => "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_NONE",
+            Self::Unspecified => "REALM_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED",
+            Self::None => "REALM_SOURCE_MATERIALIZATION_REASON_CODE_NONE",
             Self::InvalidRequest => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST"
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST"
             }
-            Self::AccountBindingMismatch => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ACCOUNT_BINDING_MISMATCH"
+            Self::RequestConflict => {
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_CONFLICT"
             }
-            Self::SourceBindingMismatch => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_SOURCE_BINDING_MISMATCH"
+            Self::AcquisitionDenied => {
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_DENIED"
             }
-            Self::ChallengeNotFound => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_NOT_FOUND"
-            }
-            Self::ChallengeExpired => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_EXPIRED"
-            }
-            Self::ChallengeConflict => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_CONFLICT"
-            }
-            Self::ChallengeAlreadyLeased => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_LEASED"
-            }
-            Self::ChallengeAlreadyConsumed => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_CONSUMED"
-            }
-            Self::AudienceMismatch => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_AUDIENCE_MISMATCH"
-            }
-            Self::BundleCapacityExceeded => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_BUNDLE_CAPACITY_EXCEEDED"
-            }
-            Self::ComponentCapacityExceeded => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMPONENT_CAPACITY_EXCEEDED"
-            }
-            Self::ChunkCapacityExceeded => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CAPACITY_EXCEEDED"
-            }
-            Self::ChunkCountExceeded => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_COUNT_EXCEEDED"
-            }
-            Self::ManifestInvalid => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_MANIFEST_INVALID"
+            Self::AcquisitionFailed => {
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_FAILED"
             }
             Self::PacketInvalid => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID"
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID"
             }
+            Self::CapacityExceeded => {
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CAPACITY_EXCEEDED"
+            }
+            Self::BindingMismatch => {
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_BINDING_MISMATCH"
+            }
+            Self::JwksInvalid => "REALM_SOURCE_MATERIALIZATION_REASON_CODE_JWKS_INVALID",
             Self::ProofInvalid => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID"
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID"
             }
-            Self::UploadNotFound => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_NOT_FOUND"
+            Self::ClosureInvalid => {
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CLOSURE_INVALID"
             }
-            Self::UploadStateConflict => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_STATE_CONFLICT"
+            Self::HashInvalid => "REALM_SOURCE_MATERIALIZATION_REASON_CODE_HASH_INVALID",
+            Self::ReplayDetected => {
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REPLAY_DETECTED"
             }
-            Self::RequestIdConflict => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_ID_CONFLICT"
-            }
-            Self::ChunkDescriptorInvalid => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DESCRIPTOR_INVALID"
-            }
-            Self::ChunkDigestMismatch => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DIGEST_MISMATCH"
-            }
-            Self::ChunkConflict => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CONFLICT"
-            }
-            Self::CommitInProgress => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_IN_PROGRESS"
-            }
-            Self::AlreadyCommitted => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ALREADY_COMMITTED"
-            }
-            Self::CommitConflict => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_CONFLICT"
-            }
-            Self::AdmissionFailed => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ADMISSION_FAILED"
-            }
-            Self::Aborted => "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ABORTED",
-            Self::Expired => "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_EXPIRED",
             Self::PersistenceFailed => {
-                "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED"
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED"
+            }
+            Self::DataResetRequired => {
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_DATA_RESET_REQUIRED"
             }
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED" => {
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED" => {
                 Some(Self::Unspecified)
             }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_NONE" => Some(Self::None),
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST" => {
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_NONE" => Some(Self::None),
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST" => {
                 Some(Self::InvalidRequest)
             }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ACCOUNT_BINDING_MISMATCH" => {
-                Some(Self::AccountBindingMismatch)
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_CONFLICT" => {
+                Some(Self::RequestConflict)
             }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_SOURCE_BINDING_MISMATCH" => {
-                Some(Self::SourceBindingMismatch)
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_DENIED" => {
+                Some(Self::AcquisitionDenied)
             }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_NOT_FOUND" => {
-                Some(Self::ChallengeNotFound)
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_FAILED" => {
+                Some(Self::AcquisitionFailed)
             }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_EXPIRED" => {
-                Some(Self::ChallengeExpired)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_CONFLICT" => {
-                Some(Self::ChallengeConflict)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_LEASED" => {
-                Some(Self::ChallengeAlreadyLeased)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_CONSUMED" => {
-                Some(Self::ChallengeAlreadyConsumed)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_AUDIENCE_MISMATCH" => {
-                Some(Self::AudienceMismatch)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_BUNDLE_CAPACITY_EXCEEDED" => {
-                Some(Self::BundleCapacityExceeded)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMPONENT_CAPACITY_EXCEEDED" => {
-                Some(Self::ComponentCapacityExceeded)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CAPACITY_EXCEEDED" => {
-                Some(Self::ChunkCapacityExceeded)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_COUNT_EXCEEDED" => {
-                Some(Self::ChunkCountExceeded)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_MANIFEST_INVALID" => {
-                Some(Self::ManifestInvalid)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID" => {
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID" => {
                 Some(Self::PacketInvalid)
             }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID" => {
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CAPACITY_EXCEEDED" => {
+                Some(Self::CapacityExceeded)
+            }
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_BINDING_MISMATCH" => {
+                Some(Self::BindingMismatch)
+            }
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_JWKS_INVALID" => {
+                Some(Self::JwksInvalid)
+            }
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID" => {
                 Some(Self::ProofInvalid)
             }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_NOT_FOUND" => {
-                Some(Self::UploadNotFound)
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CLOSURE_INVALID" => {
+                Some(Self::ClosureInvalid)
             }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_STATE_CONFLICT" => {
-                Some(Self::UploadStateConflict)
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_HASH_INVALID" => {
+                Some(Self::HashInvalid)
             }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_ID_CONFLICT" => {
-                Some(Self::RequestIdConflict)
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REPLAY_DETECTED" => {
+                Some(Self::ReplayDetected)
             }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DESCRIPTOR_INVALID" => {
-                Some(Self::ChunkDescriptorInvalid)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DIGEST_MISMATCH" => {
-                Some(Self::ChunkDigestMismatch)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CONFLICT" => {
-                Some(Self::ChunkConflict)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_IN_PROGRESS" => {
-                Some(Self::CommitInProgress)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ALREADY_COMMITTED" => {
-                Some(Self::AlreadyCommitted)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_CONFLICT" => {
-                Some(Self::CommitConflict)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ADMISSION_FAILED" => {
-                Some(Self::AdmissionFailed)
-            }
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ABORTED" => Some(Self::Aborted),
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_EXPIRED" => Some(Self::Expired),
-            "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED" => {
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED" => {
                 Some(Self::PersistenceFailed)
+            }
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_DATA_RESET_REQUIRED" => {
+                Some(Self::DataResetRequired)
             }
             _ => None,
         }
@@ -21141,7 +20538,7 @@ impl AgentContextProjectionReasonCode {
 #[repr(i32)]
 pub enum AgentLocalSourceContextSchemaVersion {
     Unspecified = 0,
-    V1 = 1,
+    V2 = 2,
 }
 impl AgentLocalSourceContextSchemaVersion {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -21151,7 +20548,7 @@ impl AgentLocalSourceContextSchemaVersion {
     pub fn as_str_name(&self) -> &'static str {
         match self {
             Self::Unspecified => "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED",
-            Self::V1 => "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V1",
+            Self::V2 => "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -21160,7 +20557,7 @@ impl AgentLocalSourceContextSchemaVersion {
             "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED" => {
                 Some(Self::Unspecified)
             }
-            "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V1" => Some(Self::V1),
+            "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2" => Some(Self::V2),
             _ => None,
         }
     }
@@ -21169,7 +20566,7 @@ impl AgentLocalSourceContextSchemaVersion {
 #[repr(i32)]
 pub enum AgentLocalSourceSnapshotSchemaVersion {
     Unspecified = 0,
-    V1 = 1,
+    V2 = 2,
 }
 impl AgentLocalSourceSnapshotSchemaVersion {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -21179,7 +20576,7 @@ impl AgentLocalSourceSnapshotSchemaVersion {
     pub fn as_str_name(&self) -> &'static str {
         match self {
             Self::Unspecified => "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED",
-            Self::V1 => "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V1",
+            Self::V2 => "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -21188,7 +20585,7 @@ impl AgentLocalSourceSnapshotSchemaVersion {
             "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED" => {
                 Some(Self::Unspecified)
             }
-            "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V1" => Some(Self::V1),
+            "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2" => Some(Self::V2),
             _ => None,
         }
     }
@@ -23877,15 +23274,14 @@ pub mod runtime_agent_service_client {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
         }
-        /// K-AGCORE-151 canonical source materialization sequence. There is no unary
-        /// packet shortcut: even a one-chunk bundle uses Begin -> Put -> Commit.
-        pub async fn create_source_materialization_challenge(
+        /// K-AGCORE-139/K-AGCORE-151: the sole public Realm source ingress. Runtime
+        /// privately acquires and verifies Packet v3; transport/auth material is not
+        /// accepted from callers.
+        pub async fn materialize_realm_source(
             &mut self,
-            request: impl tonic::IntoRequest<
-                super::CreateSourceMaterializationChallengeRequest,
-            >,
+            request: impl tonic::IntoRequest<super::MaterializeRealmSourceRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::CreateSourceMaterializationChallengeResponse>,
+            tonic::Response<super::MaterializeRealmSourceResponse>,
             tonic::Status,
         > {
             self.inner
@@ -23898,134 +23294,14 @@ pub mod runtime_agent_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge",
+                "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
-                        "CreateSourceMaterializationChallenge",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn begin_source_materialization_upload(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::BeginSourceMaterializationUploadRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::BeginSourceMaterializationUploadResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "BeginSourceMaterializationUpload",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn put_source_materialization_chunk(
-            &mut self,
-            request: impl tonic::IntoRequest<super::PutSourceMaterializationChunkRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::PutSourceMaterializationChunkResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "PutSourceMaterializationChunk",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn commit_source_materialization(
-            &mut self,
-            request: impl tonic::IntoRequest<super::CommitSourceMaterializationRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::CommitSourceMaterializationResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "CommitSourceMaterialization",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn abort_source_materialization_upload(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::AbortSourceMaterializationUploadRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::AbortSourceMaterializationUploadResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "AbortSourceMaterializationUpload",
+                        "MaterializeRealmSource",
                     ),
                 );
             self.inner.unary(req, path, codec).await

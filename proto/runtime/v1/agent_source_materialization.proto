@@ -5,93 +5,74 @@ option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtime
 import "google/protobuf/timestamp.proto";
 import "runtime/v1/agent_common.proto";
 
-// K-AGCORE-151: closed source kinds accepted by the Runtime-owned challenge
-// and canonical chunked materialization ingress. Unknown numeric values fail
-// admission; they are never coerced to a source kind.
-enum AgentSourceMaterializationSourceKind {
-  AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_UNSPECIFIED = 0;
-  AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_WORLD_CHARACTER = 1;
-  AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_REALM_PERSONA = 2;
+// Realm v3 public source identity. The oneof is the only discriminator;
+// callers cannot mix WorldCharacter and PersonaCharacter fields.
+enum CharacterSourceKindV3 {
+  CHARACTER_SOURCE_KIND_V3_UNSPECIFIED = 0;
+  CHARACTER_SOURCE_KIND_V3_WORLD_CHARACTER = 1;
+  CHARACTER_SOURCE_KIND_V3_PERSONA_CHARACTER = 2;
 }
-enum AgentSourceMaterializationChallengeState {
-  AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_UNSPECIFIED = 0;
-  AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_ISSUED = 1;
-  AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_LEASED = 2;
-  AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_CONSUMED = 3;
-  AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_INVALIDATED = 4;
-  AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_EXPIRED = 5;
+enum WorldEntityRefKindV3 {
+  WORLD_ENTITY_REF_KIND_V3_UNSPECIFIED = 0;
+  WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY = 1;
 }
-enum AgentSourceMaterializationUploadState {
-  AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_UNSPECIFIED = 0;
-  AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_OPEN = 1;
-  AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTING = 2;
-  AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTED = 3;
-  AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_FAILED = 4;
-  AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_ABORTED = 5;
-  AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_EXPIRED = 6;
+message WorldEntityRefV3 {
+  WorldEntityRefKindV3 kind = 1;
+  string world_id = 2;
+  string entity_id = 3;
 }
-enum AgentSourceMaterializationComponentKind {
-  AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_UNSPECIFIED = 0;
-  AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CHARACTER = 1;
-  AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_REALM_PERSONA = 2;
-  AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CORE = 3;
-  AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_ENTITY = 4;
-  AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_RELATIONSHIP = 5;
-  AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_COVERAGE_MANIFEST = 6;
+message WorldCharacterSourceRefV3 {
+  CharacterSourceKindV3 kind = 1;
+  string id = 2;
+  string world_id = 3;
+  WorldEntityRefV3 world_entity_ref = 4;
+  string source_hash = 5;
 }
-enum AgentSourceMaterializationProofAlgorithm {
-  AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_UNSPECIFIED = 0;
-  AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_RS256 = 1;
+message PersonaCharacterSourceRefV3 {
+  CharacterSourceKindV3 kind = 1;
+  string id = 2;
+  string world_id = 3;
+  string owner_account_id = 4;
+  string source_hash = 5;
 }
-enum AgentSourceMaterializationKeyUse {
-  AGENT_SOURCE_MATERIALIZATION_KEY_USE_UNSPECIFIED = 0;
-  AGENT_SOURCE_MATERIALIZATION_KEY_USE_SIG = 1;
+message CharacterSourceRefV3 {
+  oneof source {
+    WorldCharacterSourceRefV3 world_character = 1;
+    PersonaCharacterSourceRefV3 persona_character = 2;
+  }
 }
-enum AgentSourceMaterializationPacketSchemaVersion {
-  AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_UNSPECIFIED = 0;
-  AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_V2 = 1;
+
+enum RealmSourceMaterializationReasonCode {
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED = 0;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_NONE = 1;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST = 2;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_CONFLICT = 3;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_DENIED = 4;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_FAILED = 5;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID = 6;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_CAPACITY_EXCEEDED = 7;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_BINDING_MISMATCH = 8;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_JWKS_INVALID = 9;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID = 10;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_CLOSURE_INVALID = 11;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_HASH_INVALID = 12;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_REPLAY_DETECTED = 13;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED = 14;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_DATA_RESET_REQUIRED = 15;
 }
-enum AgentSourceMaterializationBundleManifestSchemaVersion {
-  AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_UNSPECIFIED = 0;
-  AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_V1 = 1;
+
+message MaterializeRealmSourceRequest {
+  AgentRequestContext context = 1;
+  string request_id = 2;
+  CharacterSourceRefV3 source_ref = 3;
 }
-enum AgentSourceMaterializationPayloadAssemblyVersion {
-  AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_UNSPECIFIED = 0;
-  AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_V1 = 1;
+message MaterializeRealmSourceResponse {
+  string local_agent_ref = 1;
+  LocalAgentSourceContextStatus source_context_status = 2;
+  bool idempotent_replay = 3;
+  RealmSourceMaterializationReasonCode reason_code = 4;
 }
-enum AgentSourceMaterializationReasonCode {
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED = 0;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_NONE = 1;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST = 2;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ACCOUNT_BINDING_MISMATCH = 3;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_SOURCE_BINDING_MISMATCH = 4;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_NOT_FOUND = 5;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_EXPIRED = 6;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_CONFLICT = 7;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_LEASED = 8;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_CONSUMED = 9;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_AUDIENCE_MISMATCH = 10;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_BUNDLE_CAPACITY_EXCEEDED = 11;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMPONENT_CAPACITY_EXCEEDED = 12;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CAPACITY_EXCEEDED = 13;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_COUNT_EXCEEDED = 14;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_MANIFEST_INVALID = 15;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID = 16;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID = 17;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_NOT_FOUND = 18;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_STATE_CONFLICT = 19;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_ID_CONFLICT = 20;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DESCRIPTOR_INVALID = 21;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DIGEST_MISMATCH = 22;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CONFLICT = 23;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_IN_PROGRESS = 24;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ALREADY_COMMITTED = 25;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_CONFLICT = 26;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ADMISSION_FAILED = 27;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ABORTED = 28;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_EXPIRED = 29;
-  AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED = 30;
-}
+
 enum AgentLocalSourceContextState {
   AGENT_LOCAL_SOURCE_CONTEXT_STATE_UNSPECIFIED = 0;
   AGENT_LOCAL_SOURCE_CONTEXT_STATE_NOT_MATERIALIZED = 1;
@@ -174,11 +155,11 @@ enum AgentContextProjectionReasonCode {
 }
 enum AgentLocalSourceContextSchemaVersion {
   AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED = 0;
-  AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V1 = 1;
+  AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2 = 2;
 }
 enum AgentLocalSourceSnapshotSchemaVersion {
   AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED = 0;
-  AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V1 = 1;
+  AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2 = 2;
 }
 enum AgentTurnContextSummarySchemaVersion {
   AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED = 0;
@@ -193,153 +174,6 @@ enum AgentTurnContextCompilerSchemaVersion {
   AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1 = 1;
 }
 
-message SourceMaterializationSourceRef {
-  AgentSourceMaterializationSourceKind kind = 1;
-  string world_id = 2;
-  string source_id = 3;
-  string source_content_hash = 4;
-}
-message SourceMaterializationChallengeLimits {
-  uint64 max_bundle_bytes = 1;
-  uint32 max_component_count = 2;
-  uint64 max_chunk_bytes = 3;
-  uint32 max_chunks = 4;
-}
-message CreateSourceMaterializationChallengeRequest {
-  AgentRequestContext context = 1;
-  string request_id = 2;
-  SourceMaterializationSourceRef source_ref = 3;
-}
-message CreateSourceMaterializationChallengeResponse {
-  string challenge_id = 1;
-  string intended_runtime_audience = 2;
-  string challenge_digest = 3;
-  google.protobuf.Timestamp expires_at = 4;
-  SourceMaterializationChallengeLimits limits = 5;
-  AgentSourceMaterializationChallengeState state = 6;
-  AgentSourceMaterializationReasonCode reason_code = 7;
-  SourceMaterializationSourceRef source_ref = 8;
-  string materializer_account_id = 9;
-}
-// Typed unsigned packet-v2 envelope. Semantic source/world/component bodies
-// are deliberately absent and enter Runtime only through Put chunk bytes.
-message SourceMaterializationPacketEnvelopeV2 {
-  AgentSourceMaterializationPacketSchemaVersion packet_schema_version = 1;
-  string packet_id = 2;
-  string issuer = 3;
-  string key_id = 4;
-  AgentSourceMaterializationProofAlgorithm algorithm = 5;
-  AgentSourceMaterializationKeyUse key_use = 6;
-  google.protobuf.Timestamp issued_at = 7;
-  google.protobuf.Timestamp expires_at = 8;
-  string nonce = 9;
-  string intended_runtime_audience = 10;
-  string challenge_id = 11;
-  string challenge_digest = 12;
-  SourceMaterializationChallengeLimits challenge_limits = 13;
-  string materializer_account_id = 14;
-  SourceMaterializationSourceRef source_ref = 15;
-  string payload_hash = 16;
-  string bundle_manifest_hash = 17;
-  string packet_hash = 18;
-}
-message SourceMaterializationBundleComponentDescriptorV1 {
-  string component_id = 1;
-  AgentSourceMaterializationComponentKind kind = 2;
-  string schema_version = 3;
-  uint64 revision = 4;
-  string content_hash = 5;
-  string canonical_bytes_hash = 6;
-  uint64 canonical_byte_length = 7;
-}
-// Realm packet-v2 chunk descriptors intentionally do not carry component_id;
-// component binding is proved by the ordered component ranges and the Put
-// request's explicit component identity.
-message SourceMaterializationBundleChunkDescriptorV1 {
-  uint32 global_ordinal = 1;
-  uint64 component_offset = 2;
-  uint64 length = 3;
-  string chunk_sha256 = 4;
-}
-message BundleTransportManifestV1 {
-  AgentSourceMaterializationBundleManifestSchemaVersion manifest_schema_version = 1;
-  AgentSourceMaterializationPayloadAssemblyVersion payload_assembly_version = 2;
-  string packet_id = 3;
-  string challenge_digest = 4;
-  uint64 total_canonical_bytes = 5;
-  uint32 component_count = 6;
-  uint32 chunk_count = 7;
-  repeated SourceMaterializationBundleComponentDescriptorV1 components = 8;
-  repeated SourceMaterializationBundleChunkDescriptorV1 chunks = 9;
-}
-message SourceMaterializationBeginControl {
-  SourceMaterializationPacketEnvelopeV2 packet_envelope = 1;
-  string packet_proof = 2;
-  BundleTransportManifestV1 bundle_transport_manifest = 3;
-}
-message BeginSourceMaterializationUploadRequest {
-  AgentRequestContext context = 1;
-  string begin_request_id = 2;
-  SourceMaterializationBeginControl control = 3;
-}
-message BeginSourceMaterializationUploadResponse {
-  string upload_id = 1;
-  string packet_hash = 2;
-  string bundle_manifest_hash = 3;
-  AgentSourceMaterializationUploadState upload_state = 4;
-  AgentSourceMaterializationChallengeState challenge_state = 5;
-  AgentSourceMaterializationReasonCode reason_code = 6;
-  google.protobuf.Timestamp expires_at = 7;
-}
-message PutSourceMaterializationChunkRequest {
-  AgentRequestContext context = 1;
-  string put_request_id = 2;
-  string upload_id = 3;
-  string packet_hash = 4;
-  string bundle_manifest_hash = 5;
-  uint32 global_ordinal = 6;
-  string component_id = 7;
-  uint64 component_offset = 8;
-  string chunk_sha256 = 9;
-  bytes bytes = 10;
-}
-message PutSourceMaterializationChunkResponse {
-  string upload_id = 1;
-  uint32 global_ordinal = 2;
-  string component_id = 3;
-  bool idempotent_replay = 4;
-  AgentSourceMaterializationUploadState upload_state = 5;
-  AgentSourceMaterializationReasonCode reason_code = 6;
-}
-message CommitSourceMaterializationRequest {
-  AgentRequestContext context = 1;
-  string commit_request_id = 2;
-  string upload_id = 3;
-  string packet_hash = 4;
-  string bundle_manifest_hash = 5;
-}
-message CommitSourceMaterializationResponse {
-  string upload_id = 1;
-  string local_agent_ref = 2;
-  AgentSourceMaterializationUploadState upload_state = 3;
-  AgentSourceMaterializationChallengeState challenge_state = 4;
-  AgentSourceMaterializationReasonCode reason_code = 5;
-  LocalAgentSourceContextStatus source_context_status = 6;
-}
-message AbortSourceMaterializationUploadRequest {
-  AgentRequestContext context = 1;
-  string abort_request_id = 2;
-  string upload_id = 3;
-  string packet_hash = 4;
-  string bundle_manifest_hash = 5;
-}
-message AbortSourceMaterializationUploadResponse {
-  string upload_id = 1;
-  AgentSourceMaterializationUploadState upload_state = 2;
-  AgentSourceMaterializationChallengeState challenge_state = 3;
-  AgentSourceMaterializationReasonCode reason_code = 4;
-  bool idempotent_replay = 5;
-}
 message LocalAgentSourceCoverageSectionStatus {
   AgentLocalSourceCoverageSection section = 1;
   AgentLocalSourceCoverageState state = 2;
@@ -356,7 +190,7 @@ message LocalAgentSourceContextStatus {
   AgentLocalSourceContextState state = 3;
   AgentContextProjectionReasonCode reason_code = 4;
   string local_agent_ref = 5;
-  SourceMaterializationSourceRef source_ref = 6;
+  CharacterSourceRefV3 source_ref = 6;
   string source_schema_version = 7;
   AgentLocalSourceSnapshotSchemaVersion snapshot_schema_version = 8;
   string snapshot_hash = 9;
@@ -400,7 +234,7 @@ message AgentTurnContextSummary {
   string context_content_hash = 8;
   string prompt_hash = 9;
   string source_snapshot_hash = 10;
-  SourceMaterializationSourceRef source_ref = 11;
+  CharacterSourceRefV3 source_ref = 11;
   string world_content_hash = 12;
   string materialization_context_hash = 13;
   repeated AgentTurnContextLaneSummary lanes = 14;

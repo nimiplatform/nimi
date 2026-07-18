@@ -30,7 +30,7 @@ func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.Initia
 	}
 	localAgentRef := identity.LocalAgentRef
 	if realmSourceRefRequiresCommittedMaterialization(identity.RuntimeSourceRef) {
-		return nil, status.Error(codes.FailedPrecondition, "Realm source LocalAgents must be created by CommitSourceMaterialization")
+		return nil, status.Error(codes.FailedPrecondition, "Realm source LocalAgents must be created by MaterializeRealmSource")
 	}
 	agentMetadata, err := sanitizeOrdinaryInitializeAgentMetadata(req.GetMetadata())
 	if err != nil {

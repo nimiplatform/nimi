@@ -2,6 +2,13 @@
   "schemaVersion": "nimi.realm-v3-protected-sentinel/v1",
   "baselineCommit": "90270996b8213d699f754ece6060a10821ed7558",
   "baselineTree": "30f6fc6b14f86f266f9035aac6ce07fa550fa964",
+  "inheritedImplementationBaseline": {
+    "schemaVersion": "nimi.realm-v3-inherited-protected-baseline/v1",
+    "commit": "b3205d3bb6228539c78de61a89b64bdd1318106f",
+    "tree": "77eb01b2a8375599c96bda5df2e7579f805790bd",
+    "localParent": "c80d87da25108bae7c5246fc91e57def21c411b6",
+    "remoteParent": "f711467c6626881e8bdccce777a838b4efe1d3c6"
+  },
   "immutablePaths": [
     "kit/shell/protected-local",
     "kit/shell/protected-local-node",

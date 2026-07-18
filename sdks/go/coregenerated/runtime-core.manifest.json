@@ -201,47 +201,11 @@
       "source_file": "proto/runtime/v1/agent_service.proto",
       "methods": [
         {
-          "name": "CreateSourceMaterializationChallenge",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge",
+          "name": "MaterializeRealmSource",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource",
           "kind": "unary",
-          "request_type": "CreateSourceMaterializationChallengeRequest",
-          "response_type": "CreateSourceMaterializationChallengeResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "BeginSourceMaterializationUpload",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload",
-          "kind": "unary",
-          "request_type": "BeginSourceMaterializationUploadRequest",
-          "response_type": "BeginSourceMaterializationUploadResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "PutSourceMaterializationChunk",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk",
-          "kind": "unary",
-          "request_type": "PutSourceMaterializationChunkRequest",
-          "response_type": "PutSourceMaterializationChunkResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "CommitSourceMaterialization",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization",
-          "kind": "unary",
-          "request_type": "CommitSourceMaterializationRequest",
-          "response_type": "CommitSourceMaterializationResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "AbortSourceMaterializationUpload",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload",
-          "kind": "unary",
-          "request_type": "AbortSourceMaterializationUploadRequest",
-          "response_type": "AbortSourceMaterializationUploadResponse",
+          "request_type": "MaterializeRealmSourceRequest",
+          "response_type": "MaterializeRealmSourceResponse",
           "request_stream": false,
           "response_stream": false
         },
@@ -2599,13 +2563,9 @@
     "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
     "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
     "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
-    "/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload",
-    "/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload",
     "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
     "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
-    "/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization",
     "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate",
-    "/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge",
     "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks",
     "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles",
     "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
@@ -2640,9 +2600,9 @@
     "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory",
     "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents",
     "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
+    "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource",
     "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay",
     "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor",
-    "/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk",
     "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory",
     "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding",
     "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind",
@@ -2985,22 +2945,6 @@
       "response_type": "SwitchAccountResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload",
-      "service": "RuntimeAgentService",
-      "method": "AbortSourceMaterializationUpload",
-      "kind": "unary",
-      "request_type": "AbortSourceMaterializationUploadRequest",
-      "response_type": "AbortSourceMaterializationUploadResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload",
-      "service": "RuntimeAgentService",
-      "method": "BeginSourceMaterializationUpload",
-      "kind": "unary",
-      "request_type": "BeginSourceMaterializationUploadRequest",
-      "response_type": "BeginSourceMaterializationUploadResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
       "service": "RuntimeAgentService",
       "method": "CancelCompanionParticipation",
@@ -3017,28 +2961,12 @@
       "response_type": "CancelHookResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization",
-      "service": "RuntimeAgentService",
-      "method": "CommitSourceMaterialization",
-      "kind": "unary",
-      "request_type": "CommitSourceMaterializationRequest",
-      "response_type": "CommitSourceMaterializationResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate",
       "service": "RuntimeAgentService",
       "method": "CreateRealmGroupMessageCandidate",
       "kind": "unary",
       "request_type": "CreateRealmGroupMessageCandidateRequest",
       "response_type": "CreateRealmGroupMessageCandidateResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge",
-      "service": "RuntimeAgentService",
-      "method": "CreateSourceMaterializationChallenge",
-      "kind": "unary",
-      "request_type": "CreateSourceMaterializationChallengeRequest",
-      "response_type": "CreateSourceMaterializationChallengeResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks",
@@ -3313,6 +3241,14 @@
       "response_type": "ListPendingHooksResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource",
+      "service": "RuntimeAgentService",
+      "method": "MaterializeRealmSource",
+      "kind": "unary",
+      "request_type": "MaterializeRealmSourceRequest",
+      "response_type": "MaterializeRealmSourceResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay",
       "service": "RuntimeAgentService",
       "method": "OpenCompanionParticipationReplay",
@@ -3327,14 +3263,6 @@
       "kind": "unary",
       "request_type": "OpenConversationAnchorRequest",
       "response_type": "OpenConversationAnchorResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk",
-      "service": "RuntimeAgentService",
-      "method": "PutSourceMaterializationChunk",
-      "kind": "unary",
-      "request_type": "PutSourceMaterializationChunkRequest",
-      "response_type": "PutSourceMaterializationChunkResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory",
@@ -5155,22 +5083,6 @@
       "response_type": "SwitchAccountResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload",
-      "service": "RuntimeAgentService",
-      "method": "AbortSourceMaterializationUpload",
-      "kind": "unary",
-      "request_type": "AbortSourceMaterializationUploadRequest",
-      "response_type": "AbortSourceMaterializationUploadResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload",
-      "service": "RuntimeAgentService",
-      "method": "BeginSourceMaterializationUpload",
-      "kind": "unary",
-      "request_type": "BeginSourceMaterializationUploadRequest",
-      "response_type": "BeginSourceMaterializationUploadResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
       "service": "RuntimeAgentService",
       "method": "CancelCompanionParticipation",
@@ -5187,28 +5099,12 @@
       "response_type": "CancelHookResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization",
-      "service": "RuntimeAgentService",
-      "method": "CommitSourceMaterialization",
-      "kind": "unary",
-      "request_type": "CommitSourceMaterializationRequest",
-      "response_type": "CommitSourceMaterializationResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate",
       "service": "RuntimeAgentService",
       "method": "CreateRealmGroupMessageCandidate",
       "kind": "unary",
       "request_type": "CreateRealmGroupMessageCandidateRequest",
       "response_type": "CreateRealmGroupMessageCandidateResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge",
-      "service": "RuntimeAgentService",
-      "method": "CreateSourceMaterializationChallenge",
-      "kind": "unary",
-      "request_type": "CreateSourceMaterializationChallengeRequest",
-      "response_type": "CreateSourceMaterializationChallengeResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks",
@@ -5483,6 +5379,14 @@
       "response_type": "ListPendingHooksResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource",
+      "service": "RuntimeAgentService",
+      "method": "MaterializeRealmSource",
+      "kind": "unary",
+      "request_type": "MaterializeRealmSourceRequest",
+      "response_type": "MaterializeRealmSourceResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay",
       "service": "RuntimeAgentService",
       "method": "OpenCompanionParticipationReplay",
@@ -5497,14 +5401,6 @@
       "kind": "unary",
       "request_type": "OpenConversationAnchorRequest",
       "response_type": "OpenConversationAnchorResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk",
-      "service": "RuntimeAgentService",
-      "method": "PutSourceMaterializationChunk",
-      "kind": "unary",
-      "request_type": "PutSourceMaterializationChunkRequest",
-      "response_type": "PutSourceMaterializationChunkResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory",
@@ -7200,8 +7096,6 @@
       "AIProviderHealthEvent",
       "AIProviderHealthSnapshot",
       "AIProviderSubHealth",
-      "AbortSourceMaterializationUploadRequest",
-      "AbortSourceMaterializationUploadResponse",
       "AccountAppInventoryRecord",
       "AccountAppInventoryRow",
       "AccountCaller",
@@ -7286,12 +7180,9 @@
       "AvatarLiveInstanceBinding",
       "BeginLoginRequest",
       "BeginLoginResponse",
-      "BeginSourceMaterializationUploadRequest",
-      "BeginSourceMaterializationUploadResponse",
       "BindLocalAppProcessRequest",
       "BindLocalAppProcessResponse",
       "BranchNodeConfig",
-      "BundleTransportManifestV1",
       "CancelCompanionParticipationRequest",
       "CancelCompanionParticipationResponse",
       "CancelHookRequest",
@@ -7318,6 +7209,7 @@
       "CatalogVideoGenerationOutputs",
       "CatalogVoiceEntry",
       "CatalogWorkflowModel",
+      "CharacterSourceRefV3",
       "ChatContentArtifactRef",
       "ChatContentImageURL",
       "ChatContentPart",
@@ -7335,8 +7227,6 @@
       "CloseRealtimeSessionResponse",
       "CollectDeviceProfileRequest",
       "CollectDeviceProfileResponse",
-      "CommitSourceMaterializationRequest",
-      "CommitSourceMaterializationResponse",
       "CompanionParticipationProjection",
       "CompleteLoginRequest",
       "CompleteLoginResponse",
@@ -7354,8 +7244,6 @@
       "CreateKnowledgeBankResponse",
       "CreateRealmGroupMessageCandidateRequest",
       "CreateRealmGroupMessageCandidateResponse",
-      "CreateSourceMaterializationChallengeRequest",
-      "CreateSourceMaterializationChallengeResponse",
       "DecideLocalAppGrantRequest",
       "DecideLocalAppGrantResponse",
       "DecideLocalDevelopmentProjectRequest",
@@ -7706,6 +7594,8 @@
       "LocalVerifiedAssetDescriptor",
       "LogoutRequest",
       "LogoutResponse",
+      "MaterializeRealmSourceRequest",
+      "MaterializeRealmSourceResponse",
       "MemoryBank",
       "MemoryBankLocator",
       "MemoryBankOwnerFilter",
@@ -7773,6 +7663,7 @@
       "PeekSchedulingRequest",
       "PeekSchedulingResponse",
       "PendingHook",
+      "PersonaCharacterSourceRefV3",
       "PrepareAppLifecycleIntentRequest",
       "PrepareAppLifecycleIntentResponse",
       "PrepareLocalAppLaunchRequest",
@@ -7789,8 +7680,6 @@
       "PullModelResponse",
       "PutPageRequest",
       "PutPageResponse",
-      "PutSourceMaterializationChunkRequest",
-      "PutSourceMaterializationChunkResponse",
       "QueryAgentMemoryRequest",
       "QueryAgentMemoryResponse",
       "RawChunk",
@@ -7957,12 +7846,6 @@
       "SetDeveloperModeRequest",
       "SetDeveloperModeResponse",
       "SetProductControlFirstRunInstallLevelRequest",
-      "SourceMaterializationBeginControl",
-      "SourceMaterializationBundleChunkDescriptorV1",
-      "SourceMaterializationBundleComponentDescriptorV1",
-      "SourceMaterializationChallengeLimits",
-      "SourceMaterializationPacketEnvelopeV2",
-      "SourceMaterializationSourceRef",
       "SpeechAlignment",
       "SpeechAlignmentToken",
       "SpeechSynthesizeResult",
@@ -8082,7 +7965,9 @@
       "WorkspaceBindingRelation",
       "WorkspaceMembershipProjection",
       "WorkspacePrivateBankOwner",
+      "WorldCharacterSourceRefV3",
       "WorldContextRefBlock",
+      "WorldEntityRefV3",
       "WorldEventRefBlock",
       "WorldGenerateAssetSource",
       "WorldGenerateImagePrompt",
@@ -8127,16 +8012,6 @@
       "AgentProactiveQuietHoursState",
       "AgentProactiveSuppressionReason",
       "AgentProactiveTriggerSource",
-      "AgentSourceMaterializationBundleManifestSchemaVersion",
-      "AgentSourceMaterializationChallengeState",
-      "AgentSourceMaterializationComponentKind",
-      "AgentSourceMaterializationKeyUse",
-      "AgentSourceMaterializationPacketSchemaVersion",
-      "AgentSourceMaterializationPayloadAssemblyVersion",
-      "AgentSourceMaterializationProofAlgorithm",
-      "AgentSourceMaterializationReasonCode",
-      "AgentSourceMaterializationSourceKind",
-      "AgentSourceMaterializationUploadState",
       "AgentStateEventFamily",
       "AgentTrackType",
       "AgentTurnContextCompilerSchemaVersion",
@@ -8165,6 +8040,7 @@
       "AvatarDebugRequestedBy",
       "CallerKind",
       "CatalogModelSource",
+      "CharacterSourceKindV3",
       "ChatContentPartType",
       "CompanionParticipationStatus",
       "CompanionParticipationSurfaceKind",
@@ -8251,6 +8127,7 @@
       "PresenceVerificationMethod",
       "PresenceVerificationState",
       "RealmGroupMessageCandidateCommitDisposition",
+      "RealmSourceMaterializationReasonCode",
       "RealtimeEventType",
       "ReasonCode",
       "ReasoningMode",
@@ -8291,91 +8168,10 @@
       "WorkspaceBindingPurpose",
       "WorkspaceBindingState",
       "WorkspaceMembershipState",
+      "WorldEntityRefKindV3",
       "WorldRelation"
     ],
     "message_schemas": [
-      {
-        "name": "AbortSourceMaterializationUploadRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "abort_request_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "upload_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "packet_hash",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "bundle_manifest_hash",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
-        "name": "AbortSourceMaterializationUploadResponse",
-        "fields": [
-          {
-            "name": "upload_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "upload_state",
-            "type": "AgentSourceMaterializationUploadState",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "challenge_state",
-            "type": "AgentSourceMaterializationChallengeState",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "reason_code",
-            "type": "AgentSourceMaterializationReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "idempotent_replay",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
       {
         "name": "AccountAppInventoryRecord",
         "fields": [
@@ -10695,7 +10491,7 @@
           },
           {
             "name": "source_ref",
-            "type": "SourceMaterializationSourceRef",
+            "type": "CharacterSourceRefV3",
             "repeated": false,
             "optional": false,
             "number": 11
@@ -13217,88 +13013,6 @@
         "source_file": "proto/runtime/v1/account.proto"
       },
       {
-        "name": "BeginSourceMaterializationUploadRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "begin_request_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "control",
-            "type": "SourceMaterializationBeginControl",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
-        "name": "BeginSourceMaterializationUploadResponse",
-        "fields": [
-          {
-            "name": "upload_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "packet_hash",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "bundle_manifest_hash",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "upload_state",
-            "type": "AgentSourceMaterializationUploadState",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "challenge_state",
-            "type": "AgentSourceMaterializationChallengeState",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "reason_code",
-            "type": "AgentSourceMaterializationReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "expires_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
         "name": "BindLocalAppProcessRequest",
         "fields": [
           {
@@ -13371,75 +13085,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/workflow.proto"
-      },
-      {
-        "name": "BundleTransportManifestV1",
-        "fields": [
-          {
-            "name": "manifest_schema_version",
-            "type": "AgentSourceMaterializationBundleManifestSchemaVersion",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "payload_assembly_version",
-            "type": "AgentSourceMaterializationPayloadAssemblyVersion",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "packet_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "challenge_digest",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "total_canonical_bytes",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "component_count",
-            "type": "uint32",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "chunk_count",
-            "type": "uint32",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "components",
-            "type": "SourceMaterializationBundleComponentDescriptorV1",
-            "repeated": true,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "chunks",
-            "type": "SourceMaterializationBundleChunkDescriptorV1",
-            "repeated": true,
-            "optional": false,
-            "number": 9
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
       {
         "name": "CancelCompanionParticipationRequest",
@@ -14403,6 +14048,26 @@
         "source_file": "proto/runtime/v1/connector.proto"
       },
       {
+        "name": "CharacterSourceRefV3",
+        "fields": [
+          {
+            "name": "world_character",
+            "type": "WorldCharacterSourceRefV3",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "persona_character",
+            "type": "PersonaCharacterSourceRefV3",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
+      },
+      {
         "name": "ChatContentArtifactRef",
         "fields": [
           {
@@ -14817,95 +14482,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
-        "name": "CommitSourceMaterializationRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "commit_request_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "upload_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "packet_hash",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "bundle_manifest_hash",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
-        "name": "CommitSourceMaterializationResponse",
-        "fields": [
-          {
-            "name": "upload_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "local_agent_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "upload_state",
-            "type": "AgentSourceMaterializationUploadState",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "challenge_state",
-            "type": "AgentSourceMaterializationChallengeState",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "reason_code",
-            "type": "AgentSourceMaterializationReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "source_context_status",
-            "type": "LocalAgentSourceContextStatus",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
       {
         "name": "CompanionParticipationProjection",
@@ -15764,102 +15340,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_group_message_candidate.proto"
-      },
-      {
-        "name": "CreateSourceMaterializationChallengeRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "request_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "source_ref",
-            "type": "SourceMaterializationSourceRef",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
-        "name": "CreateSourceMaterializationChallengeResponse",
-        "fields": [
-          {
-            "name": "challenge_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "intended_runtime_audience",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "challenge_digest",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "expires_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "limits",
-            "type": "SourceMaterializationChallengeLimits",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "state",
-            "type": "AgentSourceMaterializationChallengeState",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "reason_code",
-            "type": "AgentSourceMaterializationReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "source_ref",
-            "type": "SourceMaterializationSourceRef",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "materializer_account_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
       {
         "name": "DecideLocalAppGrantRequest",
@@ -23824,7 +23304,7 @@
           },
           {
             "name": "source_ref",
-            "type": "SourceMaterializationSourceRef",
+            "type": "CharacterSourceRefV3",
             "repeated": false,
             "optional": false,
             "number": 6
@@ -28389,6 +27869,67 @@
         "source_file": "proto/runtime/v1/account.proto"
       },
       {
+        "name": "MaterializeRealmSourceRequest",
+        "fields": [
+          {
+            "name": "context",
+            "type": "AgentRequestContext",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "source_ref",
+            "type": "CharacterSourceRefV3",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
+      },
+      {
+        "name": "MaterializeRealmSourceResponse",
+        "fields": [
+          {
+            "name": "local_agent_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "source_context_status",
+            "type": "LocalAgentSourceContextStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "idempotent_replay",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "reason_code",
+            "type": "RealmSourceMaterializationReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
+      },
+      {
         "name": "MemoryBank",
         "fields": [
           {
@@ -31294,6 +30835,47 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "PersonaCharacterSourceRefV3",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "CharacterSourceKindV3",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "world_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "owner_account_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "source_hash",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
+      },
+      {
         "name": "PrepareAppLifecycleIntentRequest",
         "fields": [
           {
@@ -31794,130 +31376,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "PutSourceMaterializationChunkRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "put_request_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "upload_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "packet_hash",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "bundle_manifest_hash",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "global_ordinal",
-            "type": "uint32",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "component_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "component_offset",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "chunk_sha256",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "bytes",
-            "type": "bytes",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
-        "name": "PutSourceMaterializationChunkResponse",
-        "fields": [
-          {
-            "name": "upload_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "global_ordinal",
-            "type": "uint32",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "component_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "idempotent_replay",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "upload_state",
-            "type": "AgentSourceMaterializationUploadState",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "reason_code",
-            "type": "AgentSourceMaterializationReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
       {
         "name": "QueryAgentMemoryRequest",
@@ -37423,322 +36881,6 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
-        "name": "SourceMaterializationBeginControl",
-        "fields": [
-          {
-            "name": "packet_envelope",
-            "type": "SourceMaterializationPacketEnvelopeV2",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "packet_proof",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "bundle_transport_manifest",
-            "type": "BundleTransportManifestV1",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
-        "name": "SourceMaterializationBundleChunkDescriptorV1",
-        "fields": [
-          {
-            "name": "global_ordinal",
-            "type": "uint32",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "component_offset",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "length",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "chunk_sha256",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
-        "name": "SourceMaterializationBundleComponentDescriptorV1",
-        "fields": [
-          {
-            "name": "component_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "kind",
-            "type": "AgentSourceMaterializationComponentKind",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "schema_version",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "revision",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "content_hash",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "canonical_bytes_hash",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "canonical_byte_length",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
-        "name": "SourceMaterializationChallengeLimits",
-        "fields": [
-          {
-            "name": "max_bundle_bytes",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "max_component_count",
-            "type": "uint32",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "max_chunk_bytes",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "max_chunks",
-            "type": "uint32",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
-        "name": "SourceMaterializationPacketEnvelopeV2",
-        "fields": [
-          {
-            "name": "packet_schema_version",
-            "type": "AgentSourceMaterializationPacketSchemaVersion",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "packet_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "issuer",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "key_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "algorithm",
-            "type": "AgentSourceMaterializationProofAlgorithm",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "key_use",
-            "type": "AgentSourceMaterializationKeyUse",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "issued_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "expires_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "nonce",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "intended_runtime_audience",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "challenge_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          },
-          {
-            "name": "challenge_digest",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 12
-          },
-          {
-            "name": "challenge_limits",
-            "type": "SourceMaterializationChallengeLimits",
-            "repeated": false,
-            "optional": false,
-            "number": 13
-          },
-          {
-            "name": "materializer_account_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 14
-          },
-          {
-            "name": "source_ref",
-            "type": "SourceMaterializationSourceRef",
-            "repeated": false,
-            "optional": false,
-            "number": 15
-          },
-          {
-            "name": "payload_hash",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 16
-          },
-          {
-            "name": "bundle_manifest_hash",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 17
-          },
-          {
-            "name": "packet_hash",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 18
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
-        "name": "SourceMaterializationSourceRef",
-        "fields": [
-          {
-            "name": "kind",
-            "type": "AgentSourceMaterializationSourceKind",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "world_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "source_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "source_content_hash",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
         "name": "SpeechAlignment",
         "fields": [
           {
@@ -41631,6 +40773,47 @@
         "source_file": "proto/runtime/v1/memory.proto"
       },
       {
+        "name": "WorldCharacterSourceRefV3",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "CharacterSourceKindV3",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "world_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "world_entity_ref",
+            "type": "WorldEntityRefV3",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "source_hash",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
+      },
+      {
         "name": "WorldContextRefBlock",
         "fields": [
           {
@@ -41642,6 +40825,33 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "WorldEntityRefV3",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "WorldEntityRefKindV3",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "world_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "entity_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
       {
         "name": "WorldEventRefBlock",
@@ -42186,7 +41396,7 @@
         "name": "AgentLocalSourceContextSchemaVersion",
         "values": [
           "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED",
-          "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V1"
+          "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2"
         ],
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
@@ -42240,7 +41450,7 @@
         "name": "AgentLocalSourceSnapshotSchemaVersion",
         "values": [
           "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED",
-          "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V1"
+          "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2"
         ],
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
@@ -42318,130 +41528,6 @@
           "AGENT_PROACTIVE_TRIGGER_SOURCE_UNSPECIFIED"
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "AgentSourceMaterializationBundleManifestSchemaVersion",
-        "values": [
-          "AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_UNSPECIFIED",
-          "AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_V1"
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
-        "name": "AgentSourceMaterializationChallengeState",
-        "values": [
-          "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_UNSPECIFIED",
-          "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_ISSUED",
-          "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_LEASED",
-          "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_CONSUMED",
-          "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_INVALIDATED",
-          "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_EXPIRED"
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
-        "name": "AgentSourceMaterializationComponentKind",
-        "values": [
-          "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_UNSPECIFIED",
-          "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CHARACTER",
-          "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_REALM_PERSONA",
-          "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CORE",
-          "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_ENTITY",
-          "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_RELATIONSHIP",
-          "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_COVERAGE_MANIFEST"
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
-        "name": "AgentSourceMaterializationKeyUse",
-        "values": [
-          "AGENT_SOURCE_MATERIALIZATION_KEY_USE_UNSPECIFIED",
-          "AGENT_SOURCE_MATERIALIZATION_KEY_USE_SIG"
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
-        "name": "AgentSourceMaterializationPacketSchemaVersion",
-        "values": [
-          "AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_UNSPECIFIED",
-          "AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_V2"
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
-        "name": "AgentSourceMaterializationPayloadAssemblyVersion",
-        "values": [
-          "AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_UNSPECIFIED",
-          "AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_V1"
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
-        "name": "AgentSourceMaterializationProofAlgorithm",
-        "values": [
-          "AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_UNSPECIFIED",
-          "AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_RS256"
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
-        "name": "AgentSourceMaterializationReasonCode",
-        "values": [
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_NONE",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ACCOUNT_BINDING_MISMATCH",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_SOURCE_BINDING_MISMATCH",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_NOT_FOUND",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_EXPIRED",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_CONFLICT",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_LEASED",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_CONSUMED",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_AUDIENCE_MISMATCH",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_BUNDLE_CAPACITY_EXCEEDED",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMPONENT_CAPACITY_EXCEEDED",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CAPACITY_EXCEEDED",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_COUNT_EXCEEDED",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_MANIFEST_INVALID",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_NOT_FOUND",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_STATE_CONFLICT",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_ID_CONFLICT",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DESCRIPTOR_INVALID",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DIGEST_MISMATCH",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CONFLICT",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_IN_PROGRESS",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ALREADY_COMMITTED",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_CONFLICT",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ADMISSION_FAILED",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ABORTED",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_EXPIRED",
-          "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED"
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
-        "name": "AgentSourceMaterializationSourceKind",
-        "values": [
-          "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_UNSPECIFIED",
-          "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_WORLD_CHARACTER",
-          "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_REALM_PERSONA"
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
-        "name": "AgentSourceMaterializationUploadState",
-        "values": [
-          "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_UNSPECIFIED",
-          "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_OPEN",
-          "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTING",
-          "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTED",
-          "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_FAILED",
-          "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_ABORTED",
-          "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_EXPIRED"
-        ],
-        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
       {
         "name": "AgentStateEventFamily",
@@ -42728,6 +41814,15 @@
           "CATALOG_MODEL_SOURCE_OVERRIDDEN"
         ],
         "source_file": "proto/runtime/v1/connector.proto"
+      },
+      {
+        "name": "CharacterSourceKindV3",
+        "values": [
+          "CHARACTER_SOURCE_KIND_V3_UNSPECIFIED",
+          "CHARACTER_SOURCE_KIND_V3_WORLD_CHARACTER",
+          "CHARACTER_SOURCE_KIND_V3_PERSONA_CHARACTER"
+        ],
+        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
       {
         "name": "ChatContentPartType",
@@ -43653,6 +42748,28 @@
         "source_file": "proto/runtime/v1/agent_group_message_candidate.proto"
       },
       {
+        "name": "RealmSourceMaterializationReasonCode",
+        "values": [
+          "REALM_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED",
+          "REALM_SOURCE_MATERIALIZATION_REASON_CODE_NONE",
+          "REALM_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST",
+          "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_CONFLICT",
+          "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_DENIED",
+          "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_FAILED",
+          "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID",
+          "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CAPACITY_EXCEEDED",
+          "REALM_SOURCE_MATERIALIZATION_REASON_CODE_BINDING_MISMATCH",
+          "REALM_SOURCE_MATERIALIZATION_REASON_CODE_JWKS_INVALID",
+          "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID",
+          "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CLOSURE_INVALID",
+          "REALM_SOURCE_MATERIALIZATION_REASON_CODE_HASH_INVALID",
+          "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REPLAY_DETECTED",
+          "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED",
+          "REALM_SOURCE_MATERIALIZATION_REASON_CODE_DATA_RESET_REQUIRED"
+        ],
+        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
+      },
+      {
         "name": "RealtimeEventType",
         "values": [
           "REALTIME_EVENT_TYPE_UNSPECIFIED",
@@ -44333,6 +43450,14 @@
           "WORKSPACE_MEMBERSHIP_STATE_UNKNOWN"
         ],
         "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
+        "name": "WorldEntityRefKindV3",
+        "values": [
+          "WORLD_ENTITY_REF_KIND_V3_UNSPECIFIED",
+          "WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY"
+        ],
+        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
       {
         "name": "WorldRelation",

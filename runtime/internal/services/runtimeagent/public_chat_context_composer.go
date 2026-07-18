@@ -177,7 +177,7 @@ func (r publicChatRuntime) composePublicChatTurnContext(
 func newPublicChatContextCompositionError(
 	session publicChatAnchorState,
 	turn publicChatTurnState,
-	snapshot *localAgentSourceSnapshotV1,
+	snapshot *localAgentSourceSnapshotV2,
 	reason runtimev1.AgentContextProjectionReasonCode,
 	cause error,
 ) *publicChatContextCompositionError {
@@ -195,9 +195,9 @@ func newPublicChatContextCompositionError(
 	}
 	if snapshot != nil {
 		summary.SourceSnapshotHash = snapshot.SnapshotHash
-		summary.SourceRef = sourceMaterializationProtoRefFromSnapshot(snapshot.SourceRef)
-		summary.WorldContentHash = snapshot.OwningWorld.ContentHash
-		summary.MaterializationContextHash = snapshot.MaterializationContextHash
+		summary.SourceRef = sourceMaterializationProtoRefV3(snapshot.Semantic.SourceRef)
+		summary.WorldContentHash = snapshot.Semantic.WorldContentHash
+		summary.MaterializationContextHash = snapshot.Semantic.MaterializationContextHash
 	}
 	return &publicChatContextCompositionError{cause: cause, summary: summary}
 }

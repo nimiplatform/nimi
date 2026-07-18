@@ -33,7 +33,7 @@ func testRuntimeAgentLocalRef(runtimeSourceRef string) string {
 }
 
 func testOpaqueLocalAgentRef(ownerUserID string, runtimeSourceRef string) string {
-	digest := sourceMaterializationBytesDigest([]byte(strings.TrimSpace(ownerUserID) + "\x00" + strings.TrimSpace(runtimeSourceRef)))
+	digest := sha256HexBytes([]byte(strings.TrimSpace(ownerUserID) + "\x00" + strings.TrimSpace(runtimeSourceRef)))
 	return runtimeGeneratedLocalAgentRefPrefix + digest[:32]
 }
 

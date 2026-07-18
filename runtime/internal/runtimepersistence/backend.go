@@ -27,7 +27,57 @@ const (
 	defaultBusyTimeoutMS = 5000
 	defaultWALCheckpoint = 1000
 	integrityCheckPragma = "PRAGMA quick_check"
+
+	realmSourceMaterializationEpochMetaKey = "realm_source_materialization_contract_epoch"
+	realmSourceMaterializationEpochV3      = "v3"
+
+	retiredSourceSnapshotNoUpdateTrigger   = "runtime_local_agent_source_snapshot_no_update"
+	retiredSourceProvenanceNoUpdateTrigger = "runtime_local_agent_source_provenance_no_update"
+	retiredSourceChunkTable                = "runtime_source_materialization_chunk"
+	retiredSourceNonceReplayTable          = "runtime_source_materialization_nonce_replay"
+	retiredSourceUploadTable               = "runtime_source_materialization_upload"
+	retiredSourceChallengeTable            = "runtime_source_materialization_challenge"
+	retiredSourceNonceTable                = "runtime_source_materialization_nonce"
+	retiredSourceProvenanceTable           = "runtime_local_agent_source_provenance"
+	retiredSourceSnapshotTable             = "runtime_local_agent_source_snapshot"
 )
+
+func retiredRealmSourceMaterializationTriggers() []string {
+	return []string{
+		retiredSourceSnapshotNoUpdateTrigger,
+		retiredSourceProvenanceNoUpdateTrigger,
+	}
+}
+
+// Dependencies are ordered before the tables they reference so the scoped
+// hard cut remains valid with SQLite foreign-key enforcement enabled.
+func retiredRealmSourceMaterializationTables() []string {
+	return []string{
+		retiredSourceChunkTable,
+		retiredSourceNonceReplayTable,
+		retiredSourceUploadTable,
+		retiredSourceChallengeTable,
+		retiredSourceNonceTable,
+		retiredSourceProvenanceTable,
+		retiredSourceSnapshotTable,
+	}
+}
+
+type sqliteSchemaObject struct {
+	name string
+	kind string
+}
+
+func currentRealmSourceMaterializationObjects() []sqliteSchemaObject {
+	return []sqliteSchemaObject{
+		{name: "runtime_realm_source_materialization_attempt_v3", kind: "table"},
+		{name: "runtime_realm_source_materialization_replay_v3", kind: "table"},
+		{name: "runtime_local_agent_source_snapshot_v2", kind: "table"},
+		{name: "runtime_local_agent_source_provenance_v3", kind: "table"},
+		{name: "runtime_local_agent_source_snapshot_v2_no_update", kind: "trigger"},
+		{name: "runtime_local_agent_source_provenance_v3_no_update", kind: "trigger"},
+	}
+}
 
 type Backend struct {
 	logger    *slog.Logger
@@ -247,9 +297,6 @@ func (b *Backend) ensureSchema() error {
 	preflightStmts := []string{
 		"DROP TABLE IF EXISTS " + "memory_embedding_" + "intent",
 		"DROP TABLE IF EXISTS " + "runtime_agent_" + "execution_" + "config",
-		// K-AGCORE-139 hard cut: the v1 nonce/HMAC ledger cannot coexist with
-		// the packet-v2 Runtime challenge/upload authority.
-		"DROP TABLE IF EXISTS " + "runtime_source_materialization_" + "nonce",
 	}
 	for _, stmt := range preflightStmts {
 		if _, err := b.writeDB.Exec(stmt); err != nil {
@@ -452,110 +499,77 @@ func (b *Backend) ensureSchema() error {
 			checkpoint_basis TEXT,
 			completed_at TEXT NOT NULL
 		)`,
-		`CREATE TABLE IF NOT EXISTS runtime_source_materialization_challenge (
-			challenge_id TEXT PRIMARY KEY,
-			challenge_digest TEXT NOT NULL UNIQUE,
-			intended_runtime_audience TEXT NOT NULL UNIQUE,
-			runtime_instance_id TEXT NOT NULL,
+		`CREATE TABLE IF NOT EXISTS runtime_realm_source_materialization_attempt_v3 (
 			materializer_account_id TEXT NOT NULL,
 			request_id TEXT NOT NULL,
-			source_kind INTEGER NOT NULL,
-			world_id TEXT NOT NULL,
-			source_id TEXT NOT NULL,
-			source_content_hash TEXT NOT NULL,
-			max_bundle_bytes INTEGER NOT NULL,
-			max_component_count INTEGER NOT NULL,
-			max_chunk_bytes INTEGER NOT NULL,
-			max_chunks INTEGER NOT NULL,
-			state INTEGER NOT NULL,
-			leased_upload_id TEXT,
+			intent_digest TEXT NOT NULL,
+			source_ref_json TEXT NOT NULL,
+			runtime_instance_id TEXT NOT NULL,
+			challenge_id TEXT NOT NULL UNIQUE,
+			challenge_digest TEXT NOT NULL UNIQUE,
+			intended_runtime_audience TEXT NOT NULL,
+			challenge_issued_at TEXT NOT NULL,
+			challenge_expires_at TEXT NOT NULL,
+			state TEXT NOT NULL,
+			failure_code TEXT,
 			packet_hash TEXT,
-			bundle_manifest_hash TEXT,
-			issued_at TEXT NOT NULL,
-			expires_at TEXT NOT NULL,
+			local_agent_ref TEXT,
+			source_context_status BLOB,
+			created_at TEXT NOT NULL,
 			updated_at TEXT NOT NULL,
-			UNIQUE(runtime_instance_id, materializer_account_id, request_id),
-			CHECK(state BETWEEN 1 AND 5),
-			CHECK(max_bundle_bytes > 0 AND max_component_count > 0 AND max_chunk_bytes > 0 AND max_chunks > 0)
+			PRIMARY KEY(materializer_account_id, request_id),
+			CHECK(state IN ('requested','acquiring','verifying','committing','committed','failed','aborted','expired')),
+			CHECK((state = 'committed' AND local_agent_ref IS NOT NULL AND source_context_status IS NOT NULL AND failure_code IS NULL)
+			   OR (state <> 'committed' AND local_agent_ref IS NULL AND source_context_status IS NULL))
 		)`,
-		`CREATE TABLE IF NOT EXISTS runtime_source_materialization_nonce_replay (
+		`CREATE TABLE IF NOT EXISTS runtime_realm_source_materialization_replay_v3 (
 			runtime_instance_id TEXT NOT NULL,
 			issuer TEXT NOT NULL,
+			replay_binding_hash TEXT NOT NULL,
 			nonce_digest TEXT NOT NULL,
 			packet_hash TEXT NOT NULL,
-			challenge_id TEXT NOT NULL UNIQUE,
+			materializer_account_id TEXT NOT NULL,
+			request_id TEXT NOT NULL,
 			first_seen_at TEXT NOT NULL,
 			expires_at TEXT NOT NULL,
-			PRIMARY KEY(runtime_instance_id, issuer, nonce_digest),
-			FOREIGN KEY(challenge_id) REFERENCES runtime_source_materialization_challenge(challenge_id)
+			PRIMARY KEY(runtime_instance_id, issuer, replay_binding_hash),
+			UNIQUE(runtime_instance_id, issuer, nonce_digest),
+			UNIQUE(runtime_instance_id, issuer, packet_hash),
+			FOREIGN KEY(materializer_account_id, request_id)
+			  REFERENCES runtime_realm_source_materialization_attempt_v3(materializer_account_id, request_id)
 		)`,
-		`CREATE TABLE IF NOT EXISTS runtime_source_materialization_upload (
-			upload_id TEXT PRIMARY KEY,
-			challenge_id TEXT NOT NULL UNIQUE,
-			materializer_account_id TEXT NOT NULL,
-			begin_request_id TEXT NOT NULL,
-			begin_control_digest TEXT NOT NULL,
-			packet_hash TEXT NOT NULL,
-			bundle_manifest_hash TEXT NOT NULL,
-			state INTEGER NOT NULL,
-			control_bytes BLOB,
-			commit_request_id TEXT,
-			abort_request_id TEXT,
-			committed_local_agent_ref TEXT,
-			committed_source_context_status BLOB,
-			terminal_reason_code INTEGER NOT NULL DEFAULT 1,
-			created_at TEXT NOT NULL,
-			expires_at TEXT NOT NULL,
-			updated_at TEXT NOT NULL,
-			UNIQUE(materializer_account_id, begin_request_id),
-			CHECK(state BETWEEN 1 AND 6),
-			FOREIGN KEY(challenge_id) REFERENCES runtime_source_materialization_challenge(challenge_id)
-		)`,
-		`CREATE TABLE IF NOT EXISTS runtime_source_materialization_chunk (
-			upload_id TEXT NOT NULL,
-			global_ordinal INTEGER NOT NULL,
-			put_request_id TEXT NOT NULL,
-			component_id TEXT NOT NULL,
-			component_offset INTEGER NOT NULL,
-			chunk_sha256 TEXT NOT NULL,
-			chunk_bytes BLOB NOT NULL,
-			created_at TEXT NOT NULL,
-			PRIMARY KEY(upload_id, global_ordinal),
-			UNIQUE(upload_id, put_request_id),
-			FOREIGN KEY(upload_id) REFERENCES runtime_source_materialization_upload(upload_id) ON DELETE CASCADE
-		)`,
-		`CREATE TABLE IF NOT EXISTS runtime_local_agent_source_snapshot (
+		`CREATE TABLE IF NOT EXISTS runtime_local_agent_source_snapshot_v2 (
 			local_agent_ref TEXT PRIMARY KEY,
 			snapshot_schema_version INTEGER NOT NULL,
 			snapshot_hash TEXT NOT NULL,
 			captured_at TEXT NOT NULL,
 			packet_id TEXT NOT NULL,
 			packet_hash TEXT NOT NULL,
-			issuer TEXT NOT NULL,
-			key_fingerprint TEXT NOT NULL,
-			source_kind INTEGER NOT NULL,
-			world_id TEXT NOT NULL,
+			realm_issuer TEXT NOT NULL,
+			signing_key_fingerprint TEXT NOT NULL,
+			source_kind TEXT NOT NULL,
 			source_id TEXT NOT NULL,
-			source_content_hash TEXT NOT NULL,
+			world_id TEXT NOT NULL,
+			source_hash TEXT NOT NULL,
 			world_content_hash TEXT NOT NULL,
-			coverage_manifest_hash TEXT NOT NULL,
+			coverage_hash TEXT NOT NULL,
 			materialization_context_hash TEXT NOT NULL,
+			payload_hash TEXT NOT NULL,
+			ordered_component_set_hash TEXT NOT NULL,
+			closure_set_manifest_hash TEXT NOT NULL,
 			normalization_version TEXT NOT NULL,
 			compiler_compatibility_version TEXT NOT NULL,
 			typed_snapshot_json BLOB NOT NULL,
-			CHECK(snapshot_schema_version = 1),
+			CHECK(snapshot_schema_version = 2),
 			FOREIGN KEY(local_agent_ref) REFERENCES runtime_local_agent(local_agent_ref) DEFERRABLE INITIALLY DEFERRED
 		)`,
-		`CREATE TABLE IF NOT EXISTS runtime_local_agent_source_provenance (
-			source_kind INTEGER NOT NULL,
-			world_id TEXT NOT NULL,
-			source_id TEXT NOT NULL,
-			source_content_hash TEXT NOT NULL,
-			materialization_context_hash TEXT NOT NULL,
+		`CREATE TABLE IF NOT EXISTS runtime_local_agent_source_provenance_v3 (
+			provenance_key TEXT NOT NULL,
 			local_agent_ref TEXT NOT NULL UNIQUE,
 			snapshot_hash TEXT NOT NULL,
-			PRIMARY KEY(source_kind, world_id, source_id, source_content_hash, materialization_context_hash, local_agent_ref),
-			FOREIGN KEY(local_agent_ref) REFERENCES runtime_local_agent_source_snapshot(local_agent_ref) ON DELETE CASCADE
+			materialization_context_hash TEXT NOT NULL,
+			PRIMARY KEY(provenance_key, local_agent_ref),
+			FOREIGN KEY(local_agent_ref) REFERENCES runtime_local_agent_source_snapshot_v2(local_agent_ref) ON DELETE CASCADE
 		)`,
 		`CREATE TABLE IF NOT EXISTS runtime_agent_ai_config (
 			agent_instance_id TEXT PRIMARY KEY,
@@ -571,12 +585,12 @@ func (b *Backend) ensureSchema() error {
 		}
 	}
 	immutableStmts := []string{
-		`CREATE TRIGGER IF NOT EXISTS runtime_local_agent_source_snapshot_no_update
-		BEFORE UPDATE ON runtime_local_agent_source_snapshot
-		BEGIN SELECT RAISE(ABORT, 'source snapshot is immutable'); END`,
-		`CREATE TRIGGER IF NOT EXISTS runtime_local_agent_source_provenance_no_update
-		BEFORE UPDATE ON runtime_local_agent_source_provenance
-		BEGIN SELECT RAISE(ABORT, 'source provenance is immutable'); END`,
+		`CREATE TRIGGER IF NOT EXISTS runtime_local_agent_source_snapshot_v2_no_update
+		BEFORE UPDATE ON runtime_local_agent_source_snapshot_v2
+		BEGIN SELECT RAISE(ABORT, 'source snapshot v2 is immutable'); END`,
+		`CREATE TRIGGER IF NOT EXISTS runtime_local_agent_source_provenance_v3_no_update
+		BEFORE UPDATE ON runtime_local_agent_source_provenance_v3
+		BEGIN SELECT RAISE(ABORT, 'source provenance v3 is immutable'); END`,
 	}
 	for _, stmt := range immutableStmts {
 		if _, err := b.writeDB.Exec(stmt); err != nil {
@@ -588,6 +602,80 @@ func (b *Backend) ensureSchema() error {
 	}
 	if _, err := b.writeDB.Exec(`INSERT INTO runtime_local_agent_meta(key, value) VALUES ('schema_version','1') ON CONFLICT(key) DO NOTHING`); err != nil {
 		return err
+	}
+	return b.ensureRealmSourceMaterializationEpochV3()
+}
+
+func (b *Backend) ensureRealmSourceMaterializationEpochV3() error {
+	err := b.executeWrite(context.Background(), func(tx *sql.Tx) error {
+		var epoch string
+		err := tx.QueryRow(`SELECT value FROM runtime_local_agent_meta WHERE key = ?`, realmSourceMaterializationEpochMetaKey).Scan(&epoch)
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+		case err != nil:
+			return fmt.Errorf("read Realm source materialization epoch: %w", err)
+		case epoch != "v1" && epoch != "v2" && epoch != realmSourceMaterializationEpochV3:
+			return fmt.Errorf("unsupported Realm source materialization epoch %q", epoch)
+		}
+
+		for _, name := range retiredRealmSourceMaterializationTriggers() {
+			if _, err := tx.Exec("DROP TRIGGER IF EXISTS " + name); err != nil {
+				return fmt.Errorf("drop retired Realm source materialization trigger %s: %w", name, err)
+			}
+		}
+		for _, name := range retiredRealmSourceMaterializationTables() {
+			if _, err := tx.Exec("DROP TABLE IF EXISTS " + name); err != nil {
+				return fmt.Errorf("drop retired Realm source materialization table %s: %w", name, err)
+			}
+		}
+		if _, err := tx.Exec(`
+			INSERT INTO runtime_local_agent_meta(key, value) VALUES (?, ?)
+			ON CONFLICT(key) DO UPDATE SET value=excluded.value
+		`, realmSourceMaterializationEpochMetaKey, realmSourceMaterializationEpochV3); err != nil {
+			return fmt.Errorf("persist Realm source materialization epoch: %w", err)
+		}
+		return verifyRealmSourceMaterializationEpochV3(tx)
+	})
+	if err != nil {
+		return fmt.Errorf("ensure Realm source materialization v3 epoch: %w", err)
+	}
+	return nil
+}
+
+func verifyRealmSourceMaterializationEpochV3(tx *sql.Tx) error {
+	var epoch string
+	if err := tx.QueryRow(`SELECT value FROM runtime_local_agent_meta WHERE key = ?`, realmSourceMaterializationEpochMetaKey).Scan(&epoch); err != nil {
+		return fmt.Errorf("verify Realm source materialization epoch: %w", err)
+	}
+	if epoch != realmSourceMaterializationEpochV3 {
+		return fmt.Errorf("verify Realm source materialization epoch: got %q, want %q", epoch, realmSourceMaterializationEpochV3)
+	}
+
+	for _, object := range currentRealmSourceMaterializationObjects() {
+		var kind string
+		err := tx.QueryRow(`SELECT type FROM sqlite_schema WHERE name = ?`, object.name).Scan(&kind)
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("current Realm source materialization %s %s is absent", object.kind, object.name)
+		}
+		if err != nil {
+			return fmt.Errorf("verify current Realm source materialization object %s: %w", object.name, err)
+		}
+		if kind != object.kind {
+			return fmt.Errorf("current Realm source materialization object %s has type %q, want %q", object.name, kind, object.kind)
+		}
+	}
+
+	retiredObjects := append(retiredRealmSourceMaterializationTriggers(), retiredRealmSourceMaterializationTables()...)
+	for _, name := range retiredObjects {
+		var kind string
+		err := tx.QueryRow(`SELECT type FROM sqlite_schema WHERE name = ?`, name).Scan(&kind)
+		if errors.Is(err, sql.ErrNoRows) {
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("verify retired Realm source materialization object %s: %w", name, err)
+		}
+		return fmt.Errorf("retired Realm source materialization %s %s remains after v3 reset", kind, name)
 	}
 	return nil
 }

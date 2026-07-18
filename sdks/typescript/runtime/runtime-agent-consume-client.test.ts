@@ -60,7 +60,6 @@ import {
   AgentLocalSourceCoverageSection,
   AgentLocalSourceCoverageState,
   AgentLocalSourceSnapshotSchemaVersion,
-  AgentSourceMaterializationSourceKind,
   AgentTurnContextCompilerSchemaVersion,
   AgentTurnContextLaneId,
   AgentTurnContextLaneState,
@@ -68,6 +67,8 @@ import {
   AgentTurnContextState,
   AgentTurnContextSummarySchemaVersion,
   AgentTurnContextTruncationReason,
+  CharacterSourceKindV3,
+  WorldEntityRefKindV3,
 } from '../core-generated/runtime-typed-client';
 import {
   NIMI_RUNTIME_AGENT_TURN_CONTEXT_LANE_ORDER,
@@ -79,10 +80,20 @@ import { decodeNimiRuntimeAgentConversationAnchorSnapshot } from './runtime-agen
 
 const BOUNDED_LOCAL_AGENT_REF = 'local-agent:bounded-projection-1';
 const BOUNDED_SOURCE_REF = {
-  kind: AgentSourceMaterializationSourceKind.WORLD_CHARACTER,
-  worldId: 'world-1',
-  sourceId: 'character-1',
-  sourceContentHash: 'a'.repeat(64),
+  source: {
+    oneofKind: 'worldCharacter' as const,
+    worldCharacter: {
+      kind: CharacterSourceKindV3.WORLD_CHARACTER,
+      id: 'character-1',
+      worldId: 'world-1',
+      worldEntityRef: {
+        kind: WorldEntityRefKindV3.WORLD_ENTITY,
+        worldId: 'world-1',
+        entityId: 'entity-character-1',
+      },
+      sourceHash: 'a'.repeat(64),
+    },
+  },
 };
 
 const CHARACTER_READY_COVERAGE = [
@@ -126,14 +137,14 @@ function completeCoverage(sections: readonly AgentLocalSourceCoverageSection[]) 
 
 function boundedSourceStatus() {
   return {
-    schemaVersion: AgentLocalSourceContextSchemaVersion.V1,
+    schemaVersion: AgentLocalSourceContextSchemaVersion.V2,
     ready: true,
     state: AgentLocalSourceContextState.READY,
     reasonCode: AgentContextProjectionReasonCode.NONE,
     localAgentRef: BOUNDED_LOCAL_AGENT_REF,
     sourceRef: BOUNDED_SOURCE_REF,
     sourceSchemaVersion: 'realm.world-character-core/v1',
-    snapshotSchemaVersion: AgentLocalSourceSnapshotSchemaVersion.V1,
+    snapshotSchemaVersion: AgentLocalSourceSnapshotSchemaVersion.V2,
     snapshotHash: 'b'.repeat(64),
     capturedAt: { seconds: '1783659600', nanos: 123_000_000 },
     worldContentHash: 'c'.repeat(64),
@@ -194,19 +205,26 @@ function boundedTurnSummary() {
 test('bounded source projection decodes proto and strict protojson without field loss', () => {
   const proto = decodeNimiRuntimeAgentSourceContextStatus(boundedSourceStatus());
   const protojson = decodeNimiRuntimeAgentSourceContextStatus({
-    schema_version: 'AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V1',
+    schema_version: 'AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2',
     ready: true,
     state: 'AGENT_LOCAL_SOURCE_CONTEXT_STATE_READY',
     reason_code: 'AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE',
     local_agent_ref: BOUNDED_LOCAL_AGENT_REF,
     source_ref: {
-      kind: 'AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_WORLD_CHARACTER',
-      world_id: 'world-1',
-      source_id: 'character-1',
-      source_content_hash: 'a'.repeat(64),
+      world_character: {
+        kind: 'CHARACTER_SOURCE_KIND_V3_WORLD_CHARACTER',
+        id: 'character-1',
+        world_id: 'world-1',
+        world_entity_ref: {
+          kind: 'WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY',
+          world_id: 'world-1',
+          entity_id: 'entity-character-1',
+        },
+        source_hash: 'a'.repeat(64),
+      },
     },
     source_schema_version: 'realm.world-character-core/v1',
-    snapshot_schema_version: 'AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V1',
+    snapshot_schema_version: 'AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2',
     snapshot_hash: 'b'.repeat(64),
     captured_at: '2026-07-10T05:00:00.123Z',
     world_content_hash: 'c'.repeat(64),
@@ -238,16 +256,23 @@ test('bounded source projection decodes proto and strict protojson without field
   assert.equal(proto.coverageSections.length, CHARACTER_READY_COVERAGE.length);
 });
 
-test('bounded source projection requires the exact complete source-kind coverage set', () => {
+test('bounded source projection requires current source-kind baseline coverage', () => {
   const character = boundedSourceStatus();
   const persona = {
     ...character,
     sourceRef: {
-      ...character.sourceRef,
-      kind: AgentSourceMaterializationSourceKind.REALM_PERSONA,
-      sourceId: 'persona-1',
+      source: {
+        oneofKind: 'personaCharacter' as const,
+        personaCharacter: {
+          kind: CharacterSourceKindV3.PERSONA_CHARACTER,
+          id: 'persona-1',
+          worldId: 'world-1',
+          ownerAccountId: 'owner-1',
+          sourceHash: 'a'.repeat(64),
+        },
+      },
     },
-    sourceSchemaVersion: 'realm.persona/v1',
+    sourceSchemaVersion: 'realm.persona-character-core/v1',
     coverageSections: completeCoverage(PERSONA_READY_COVERAGE),
   };
   assert.equal(decodeNimiRuntimeAgentSourceContextStatus(character).coverageSections.length, 14);
@@ -255,17 +280,17 @@ test('bounded source projection requires the exact complete source-kind coverage
   assert.throws(() => decodeNimiRuntimeAgentSourceContextStatus({
     ...character,
     coverageSections: character.coverageSections.slice(0, -1),
-  }), /exactly match complete worldCharacter coverage/u);
+  }), /incomplete for worldCharacter/u);
   assert.throws(() => decodeNimiRuntimeAgentSourceContextStatus({
     ...persona,
     coverageSections: persona.coverageSections.slice(0, -1),
-  }), /exactly match complete realmPersona coverage/u);
-  assert.throws(() => decodeNimiRuntimeAgentSourceContextStatus({
+  }), /incomplete for personaCharacter/u);
+  assert.equal(decodeNimiRuntimeAgentSourceContextStatus({
     ...persona,
     coverageSections: persona.coverageSections.map((entry, index) => index === 0
       ? { ...entry, state: AgentLocalSourceCoverageState.OPTIONAL_OMITTED, requiredCount: 0, resolvedCount: 0, omittedCount: 1 }
       : entry),
-  }), /exactly match complete realmPersona coverage/u);
+  }).sourceRef.kind, 'personaCharacter');
 });
 
 test('bounded source projection preserves omitted optional dependencies in complete coverage', () => {
@@ -320,7 +345,7 @@ test('bounded source projection preserves legal non-ready discriminants and reje
   ] as const;
   for (const [state, reasonCode, expected] of cases) {
     const projection = decodeNimiRuntimeAgentSourceContextStatus({
-      schemaVersion: AgentLocalSourceContextSchemaVersion.V1,
+      schemaVersion: AgentLocalSourceContextSchemaVersion.V2,
       ready: false,
       state,
       reasonCode,
@@ -331,7 +356,7 @@ test('bounded source projection preserves legal non-ready discriminants and reje
     assert.equal(projection.sourceRef, null);
   }
   assert.equal(decodeNimiRuntimeAgentSourceContextStatus({
-    schema_version: 'AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V1',
+    schema_version: 'AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2',
     state: 'AGENT_LOCAL_SOURCE_CONTEXT_STATE_NOT_MATERIALIZED',
     reason_code: 'AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED',
     local_agent_ref: BOUNDED_LOCAL_AGENT_REF,
@@ -346,8 +371,10 @@ test('bounded source projection preserves legal non-ready discriminants and reje
   }), /snapshotHash/u);
   assert.throws(() => decodeNimiRuntimeAgentSourceContextStatus({
     ...boundedSourceStatus(),
-    coverageSections: boundedSourceStatus().coverageSections.slice(1),
-  }), /exactly match complete worldCharacter coverage/u);
+    coverageSections: boundedSourceStatus().coverageSections.filter(
+      (entry) => entry.section !== AgentLocalSourceCoverageSection.BOUND_ENTITY,
+    ),
+  }), /incomplete for worldCharacter/u);
 });
 
 test('bounded turn summary decodes proto and protojson and rejects lane, budget, enum, and raw drift', () => {
@@ -364,8 +391,13 @@ test('bounded turn summary decodes proto and protojson and rejects lane, budget,
     prompt_hash: '3'.repeat(64),
     source_snapshot_hash: 'b'.repeat(64),
     source_ref: {
-      kind: 'AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_WORLD_CHARACTER',
-      world_id: 'world-1', source_id: 'character-1', source_content_hash: 'a'.repeat(64),
+      world_character: {
+        kind: 'CHARACTER_SOURCE_KIND_V3_WORLD_CHARACTER', id: 'character-1', world_id: 'world-1',
+        world_entity_ref: {
+          kind: 'WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY', world_id: 'world-1', entity_id: 'entity-character-1',
+        },
+        source_hash: 'a'.repeat(64),
+      },
     },
     world_content_hash: 'c'.repeat(64),
     materialization_context_hash: 'd'.repeat(64),

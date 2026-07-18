@@ -57,7 +57,7 @@ func TestAgentTurnContextSummaryIsBoundedAndPrivateContentFree(t *testing.T) {
 	if !strings.Contains(string(summaryJSON), compiled.Manifest.ManifestInstanceHash) || !strings.Contains(string(summaryJSON), compiled.Manifest.ContextContentHash) || !strings.Contains(string(summaryJSON), compiled.Manifest.PromptHash) {
 		t.Fatalf("bounded summary omitted safe hashes: %s", summaryJSON)
 	}
-	if compiled.Summary.GetSourceRef().GetSourceId() != input.Snapshot.SourceRef.SourceID || compiled.Summary.GetBudget().GetUsedTokens() != compiled.Manifest.Budget.UsedTokens || compiled.Summary.GetTranscriptTurnCount() != uint32(len(input.Transcript)) || compiled.Summary.GetMemoryItemCount() != uint32(len(input.Memory)) {
+	if sourceMaterializationProtoRefV3ID(compiled.Summary.GetSourceRef()) != input.Snapshot.Semantic.SourceRef.ID || compiled.Summary.GetBudget().GetUsedTokens() != compiled.Manifest.Budget.UsedTokens || compiled.Summary.GetTranscriptTurnCount() != uint32(len(input.Transcript)) || compiled.Summary.GetMemoryItemCount() != uint32(len(input.Memory)) {
 		t.Fatalf("bounded summary safe fields mismatch: %+v", compiled.Summary)
 	}
 }

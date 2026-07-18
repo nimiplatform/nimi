@@ -111,8 +111,6 @@ surfaces:
   - methods_98
   - methods_99
   - methods_100
-  - methods_101
-  - methods_102
 description: Agent, AI, realtime, and cognition posture entries.
 services:
   - RuntimeAgentService

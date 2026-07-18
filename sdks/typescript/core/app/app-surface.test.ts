@@ -7,6 +7,8 @@ import {
   type NimiAICapabilityRequirementDeclaration,
 } from '../ai/index';
 import {
+  CANONICAL_PERMISSION_SCOPE_FAMILIES,
+  CANONICAL_PERMISSION_SCOPE_NAMES,
   NimiAppClient,
   PermissionClient,
   createAppScopeRef,
@@ -201,6 +203,14 @@ const grantSpec: GrantSpec = {
 };
 
 describe('vNext app surface', () => {
+  it('keeps Realm grant selectors out of Runtime-local permission authority', () => {
+    assert.equal(CANONICAL_PERMISSION_SCOPE_FAMILIES.includes('agent'), true);
+    assert.equal(CANONICAL_PERMISSION_SCOPE_NAMES.includes('agent.identity.project'), true);
+    assert.equal(CANONICAL_PERMISSION_SCOPE_FAMILIES.includes('realm_source' as never), false);
+    assert.equal(CANONICAL_PERMISSION_SCOPE_NAMES.includes('realm_source.snapshot.consume' as never), false);
+    assert.equal(CANONICAL_PERMISSION_SCOPE_NAMES.includes('realm_source.snapshot.bind' as never), false);
+  });
+
   it('exposes read projections without package lifecycle methods', async () => {
     const client = createNimiAppClient(new StubAppTransport());
     assert.equal(client instanceof NimiAppClient, true);

@@ -50,6 +50,31 @@ function worktreeObject(target) {
   return git('hash-object', '--', target);
 }
 
+function resolveImplementationBaseline(manifest, authorityBaseline) {
+  const inherited = manifest.inheritedImplementationBaseline;
+  if (inherited === undefined) return { commit: authorityBaseline, tree: manifest.baselineTree, inherited: false };
+  if (!inherited || inherited.schemaVersion !== 'nimi.realm-v3-inherited-protected-baseline/v1') {
+    fail('unsupported inherited protected implementation baseline');
+  }
+  const commit = git('rev-parse', `${inherited.commit}^{commit}`);
+  const tree = git('rev-parse', `${inherited.commit}^{tree}`);
+  if (commit !== inherited.commit || tree !== inherited.tree) {
+    fail(`inherited protected baseline commit/tree mismatch: commit=${commit} tree=${tree}`);
+  }
+  const parents = git('show', '-s', '--format=%P', commit).split(/\s+/u);
+  if (parents.length !== 2 || parents[0] !== inherited.localParent || parents[1] !== inherited.remoteParent) {
+    fail(`inherited protected baseline merge parents mismatch: ${parents.join(' ')}`);
+  }
+  for (const [ancestor, descendant, label] of [
+    [authorityBaseline, commit, 'authority baseline'],
+    [commit, 'HEAD', 'current HEAD'],
+  ]) {
+    const relation = spawnSync('git', ['merge-base', '--is-ancestor', ancestor, descendant], { cwd: repoRoot });
+    if (relation.status !== 0) fail(`inherited protected baseline does not descend into ${label}`);
+  }
+  return { commit, tree, inherited: true, localParent: inherited.localParent, remoteParent: inherited.remoteParent };
+}
+
 function assertAuthorizedAuthorityMigration(baseline, migration) {
   if (!migration || typeof migration !== 'object') fail('authorized authority migration must be an object');
   const target = String(migration.path || '').trim();
@@ -106,8 +131,9 @@ function check({ manifestPath }) {
   }
   const ancestor = spawnSync('git', ['merge-base', '--is-ancestor', baselineCommit, 'HEAD'], { cwd: repoRoot });
   if (ancestor.status !== 0) fail('current Nimi HEAD does not descend from protected baseline');
+	const implementationBaseline = resolveImplementationBaseline(manifest, baselineCommit);
 
-  const immutable = manifest.immutablePaths.map((target) => assertNoDiff(baselineCommit, target));
+  const immutable = manifest.immutablePaths.map((target) => assertNoDiff(implementationBaseline.commit, target));
   const authorityAndValidators = manifest.protectedAuthorityAndValidatorPaths
     .map((target) => assertNoDiff(baselineCommit, target));
   const migrationPaths = new Set();
@@ -141,6 +167,7 @@ function check({ manifestPath }) {
     verdict: 'PASS',
     baselineCommit,
     baselineTree,
+    implementationBaseline,
     currentCommit: git('rev-parse', 'HEAD'),
     currentTree: git('rev-parse', 'HEAD^{tree}'),
     immutable,

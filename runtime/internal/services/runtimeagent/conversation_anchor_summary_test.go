@@ -30,7 +30,7 @@ func TestListAgentConversationSummariesProjectsRuntimeOwnedAnchorsAcrossApps(t *
 	if err != nil || !found {
 		t.Fatalf("load test source snapshot: found=%v err=%v", found, err)
 	}
-	entry.Agent.SourceContextStatus = localAgentSourceContextStatus(sourceSnapshot)
+	entry.Agent.SourceContextStatus = localAgentSourceContextStatusV2(sourceSnapshot)
 	if err := svc.updateAgent(entry); err != nil {
 		t.Fatalf("persist test source status: %v", err)
 	}

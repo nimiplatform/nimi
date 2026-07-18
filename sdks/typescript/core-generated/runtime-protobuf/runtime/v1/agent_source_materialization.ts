@@ -14,51 +14,99 @@ import { MessageType } from "@protobuf-ts/runtime";
 import { Timestamp } from "../../google/protobuf/timestamp";
 import { AgentRequestContext } from "./agent_common";
 /**
- * @generated from protobuf message nimi.runtime.v1.SourceMaterializationSourceRef
+ * @generated from protobuf message nimi.runtime.v1.WorldEntityRefV3
  */
-export interface SourceMaterializationSourceRef {
+export interface WorldEntityRefV3 {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentSourceMaterializationSourceKind kind = 1
+     * @generated from protobuf field: nimi.runtime.v1.WorldEntityRefKindV3 kind = 1
      */
-    kind: AgentSourceMaterializationSourceKind;
+    kind: WorldEntityRefKindV3;
     /**
      * @generated from protobuf field: string world_id = 2
      */
     worldId: string;
     /**
-     * @generated from protobuf field: string source_id = 3
+     * @generated from protobuf field: string entity_id = 3
      */
-    sourceId: string;
-    /**
-     * @generated from protobuf field: string source_content_hash = 4
-     */
-    sourceContentHash: string;
+    entityId: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.SourceMaterializationChallengeLimits
+ * @generated from protobuf message nimi.runtime.v1.WorldCharacterSourceRefV3
  */
-export interface SourceMaterializationChallengeLimits {
+export interface WorldCharacterSourceRefV3 {
     /**
-     * @generated from protobuf field: uint64 max_bundle_bytes = 1
+     * @generated from protobuf field: nimi.runtime.v1.CharacterSourceKindV3 kind = 1
      */
-    maxBundleBytes: string;
+    kind: CharacterSourceKindV3;
     /**
-     * @generated from protobuf field: uint32 max_component_count = 2
+     * @generated from protobuf field: string id = 2
      */
-    maxComponentCount: number;
+    id: string;
     /**
-     * @generated from protobuf field: uint64 max_chunk_bytes = 3
+     * @generated from protobuf field: string world_id = 3
      */
-    maxChunkBytes: string;
+    worldId: string;
     /**
-     * @generated from protobuf field: uint32 max_chunks = 4
+     * @generated from protobuf field: nimi.runtime.v1.WorldEntityRefV3 world_entity_ref = 4
      */
-    maxChunks: number;
+    worldEntityRef?: WorldEntityRefV3;
+    /**
+     * @generated from protobuf field: string source_hash = 5
+     */
+    sourceHash: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.CreateSourceMaterializationChallengeRequest
+ * @generated from protobuf message nimi.runtime.v1.PersonaCharacterSourceRefV3
  */
-export interface CreateSourceMaterializationChallengeRequest {
+export interface PersonaCharacterSourceRefV3 {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.CharacterSourceKindV3 kind = 1
+     */
+    kind: CharacterSourceKindV3;
+    /**
+     * @generated from protobuf field: string id = 2
+     */
+    id: string;
+    /**
+     * @generated from protobuf field: string world_id = 3
+     */
+    worldId: string;
+    /**
+     * @generated from protobuf field: string owner_account_id = 4
+     */
+    ownerAccountId: string;
+    /**
+     * @generated from protobuf field: string source_hash = 5
+     */
+    sourceHash: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CharacterSourceRefV3
+ */
+export interface CharacterSourceRefV3 {
+    /**
+     * @generated from protobuf oneof: source
+     */
+    source: {
+        oneofKind: "worldCharacter";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.WorldCharacterSourceRefV3 world_character = 1
+         */
+        worldCharacter: WorldCharacterSourceRefV3;
+    } | {
+        oneofKind: "personaCharacter";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.PersonaCharacterSourceRefV3 persona_character = 2
+         */
+        personaCharacter: PersonaCharacterSourceRefV3;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.MaterializeRealmSourceRequest
+ */
+export interface MaterializeRealmSourceRequest {
     /**
      * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
      */
@@ -68,474 +116,30 @@ export interface CreateSourceMaterializationChallengeRequest {
      */
     requestId: string;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.SourceMaterializationSourceRef source_ref = 3
+     * @generated from protobuf field: nimi.runtime.v1.CharacterSourceRefV3 source_ref = 3
      */
-    sourceRef?: SourceMaterializationSourceRef;
+    sourceRef?: CharacterSourceRefV3;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.CreateSourceMaterializationChallengeResponse
+ * @generated from protobuf message nimi.runtime.v1.MaterializeRealmSourceResponse
  */
-export interface CreateSourceMaterializationChallengeResponse {
+export interface MaterializeRealmSourceResponse {
     /**
-     * @generated from protobuf field: string challenge_id = 1
-     */
-    challengeId: string;
-    /**
-     * @generated from protobuf field: string intended_runtime_audience = 2
-     */
-    intendedRuntimeAudience: string;
-    /**
-     * @generated from protobuf field: string challenge_digest = 3
-     */
-    challengeDigest: string;
-    /**
-     * @generated from protobuf field: google.protobuf.Timestamp expires_at = 4
-     */
-    expiresAt?: Timestamp;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.SourceMaterializationChallengeLimits limits = 5
-     */
-    limits?: SourceMaterializationChallengeLimits;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentSourceMaterializationChallengeState state = 6
-     */
-    state: AgentSourceMaterializationChallengeState;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentSourceMaterializationReasonCode reason_code = 7
-     */
-    reasonCode: AgentSourceMaterializationReasonCode;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.SourceMaterializationSourceRef source_ref = 8
-     */
-    sourceRef?: SourceMaterializationSourceRef;
-    /**
-     * @generated from protobuf field: string materializer_account_id = 9
-     */
-    materializerAccountId: string;
-}
-/**
- * Typed unsigned packet-v2 envelope. Semantic source/world/component bodies
- * are deliberately absent and enter Runtime only through Put chunk bytes.
- *
- * @generated from protobuf message nimi.runtime.v1.SourceMaterializationPacketEnvelopeV2
- */
-export interface SourceMaterializationPacketEnvelopeV2 {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentSourceMaterializationPacketSchemaVersion packet_schema_version = 1
-     */
-    packetSchemaVersion: AgentSourceMaterializationPacketSchemaVersion;
-    /**
-     * @generated from protobuf field: string packet_id = 2
-     */
-    packetId: string;
-    /**
-     * @generated from protobuf field: string issuer = 3
-     */
-    issuer: string;
-    /**
-     * @generated from protobuf field: string key_id = 4
-     */
-    keyId: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentSourceMaterializationProofAlgorithm algorithm = 5
-     */
-    algorithm: AgentSourceMaterializationProofAlgorithm;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentSourceMaterializationKeyUse key_use = 6
-     */
-    keyUse: AgentSourceMaterializationKeyUse;
-    /**
-     * @generated from protobuf field: google.protobuf.Timestamp issued_at = 7
-     */
-    issuedAt?: Timestamp;
-    /**
-     * @generated from protobuf field: google.protobuf.Timestamp expires_at = 8
-     */
-    expiresAt?: Timestamp;
-    /**
-     * @generated from protobuf field: string nonce = 9
-     */
-    nonce: string;
-    /**
-     * @generated from protobuf field: string intended_runtime_audience = 10
-     */
-    intendedRuntimeAudience: string;
-    /**
-     * @generated from protobuf field: string challenge_id = 11
-     */
-    challengeId: string;
-    /**
-     * @generated from protobuf field: string challenge_digest = 12
-     */
-    challengeDigest: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.SourceMaterializationChallengeLimits challenge_limits = 13
-     */
-    challengeLimits?: SourceMaterializationChallengeLimits;
-    /**
-     * @generated from protobuf field: string materializer_account_id = 14
-     */
-    materializerAccountId: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.SourceMaterializationSourceRef source_ref = 15
-     */
-    sourceRef?: SourceMaterializationSourceRef;
-    /**
-     * @generated from protobuf field: string payload_hash = 16
-     */
-    payloadHash: string;
-    /**
-     * @generated from protobuf field: string bundle_manifest_hash = 17
-     */
-    bundleManifestHash: string;
-    /**
-     * @generated from protobuf field: string packet_hash = 18
-     */
-    packetHash: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.SourceMaterializationBundleComponentDescriptorV1
- */
-export interface SourceMaterializationBundleComponentDescriptorV1 {
-    /**
-     * @generated from protobuf field: string component_id = 1
-     */
-    componentId: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentSourceMaterializationComponentKind kind = 2
-     */
-    kind: AgentSourceMaterializationComponentKind;
-    /**
-     * @generated from protobuf field: string schema_version = 3
-     */
-    schemaVersion: string;
-    /**
-     * @generated from protobuf field: uint64 revision = 4
-     */
-    revision: string;
-    /**
-     * @generated from protobuf field: string content_hash = 5
-     */
-    contentHash: string;
-    /**
-     * @generated from protobuf field: string canonical_bytes_hash = 6
-     */
-    canonicalBytesHash: string;
-    /**
-     * @generated from protobuf field: uint64 canonical_byte_length = 7
-     */
-    canonicalByteLength: string;
-}
-/**
- * Realm packet-v2 chunk descriptors intentionally do not carry component_id;
- * component binding is proved by the ordered component ranges and the Put
- * request's explicit component identity.
- *
- * @generated from protobuf message nimi.runtime.v1.SourceMaterializationBundleChunkDescriptorV1
- */
-export interface SourceMaterializationBundleChunkDescriptorV1 {
-    /**
-     * @generated from protobuf field: uint32 global_ordinal = 1
-     */
-    globalOrdinal: number;
-    /**
-     * @generated from protobuf field: uint64 component_offset = 2
-     */
-    componentOffset: string;
-    /**
-     * @generated from protobuf field: uint64 length = 3
-     */
-    length: string;
-    /**
-     * @generated from protobuf field: string chunk_sha256 = 4
-     */
-    chunkSha256: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.BundleTransportManifestV1
- */
-export interface BundleTransportManifestV1 {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentSourceMaterializationBundleManifestSchemaVersion manifest_schema_version = 1
-     */
-    manifestSchemaVersion: AgentSourceMaterializationBundleManifestSchemaVersion;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentSourceMaterializationPayloadAssemblyVersion payload_assembly_version = 2
-     */
-    payloadAssemblyVersion: AgentSourceMaterializationPayloadAssemblyVersion;
-    /**
-     * @generated from protobuf field: string packet_id = 3
-     */
-    packetId: string;
-    /**
-     * @generated from protobuf field: string challenge_digest = 4
-     */
-    challengeDigest: string;
-    /**
-     * @generated from protobuf field: uint64 total_canonical_bytes = 5
-     */
-    totalCanonicalBytes: string;
-    /**
-     * @generated from protobuf field: uint32 component_count = 6
-     */
-    componentCount: number;
-    /**
-     * @generated from protobuf field: uint32 chunk_count = 7
-     */
-    chunkCount: number;
-    /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.SourceMaterializationBundleComponentDescriptorV1 components = 8
-     */
-    components: SourceMaterializationBundleComponentDescriptorV1[];
-    /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.SourceMaterializationBundleChunkDescriptorV1 chunks = 9
-     */
-    chunks: SourceMaterializationBundleChunkDescriptorV1[];
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.SourceMaterializationBeginControl
- */
-export interface SourceMaterializationBeginControl {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.SourceMaterializationPacketEnvelopeV2 packet_envelope = 1
-     */
-    packetEnvelope?: SourceMaterializationPacketEnvelopeV2;
-    /**
-     * @generated from protobuf field: string packet_proof = 2
-     */
-    packetProof: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.BundleTransportManifestV1 bundle_transport_manifest = 3
-     */
-    bundleTransportManifest?: BundleTransportManifestV1;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.BeginSourceMaterializationUploadRequest
- */
-export interface BeginSourceMaterializationUploadRequest {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
-     */
-    context?: AgentRequestContext;
-    /**
-     * @generated from protobuf field: string begin_request_id = 2
-     */
-    beginRequestId: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.SourceMaterializationBeginControl control = 3
-     */
-    control?: SourceMaterializationBeginControl;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.BeginSourceMaterializationUploadResponse
- */
-export interface BeginSourceMaterializationUploadResponse {
-    /**
-     * @generated from protobuf field: string upload_id = 1
-     */
-    uploadId: string;
-    /**
-     * @generated from protobuf field: string packet_hash = 2
-     */
-    packetHash: string;
-    /**
-     * @generated from protobuf field: string bundle_manifest_hash = 3
-     */
-    bundleManifestHash: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentSourceMaterializationUploadState upload_state = 4
-     */
-    uploadState: AgentSourceMaterializationUploadState;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentSourceMaterializationChallengeState challenge_state = 5
-     */
-    challengeState: AgentSourceMaterializationChallengeState;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentSourceMaterializationReasonCode reason_code = 6
-     */
-    reasonCode: AgentSourceMaterializationReasonCode;
-    /**
-     * @generated from protobuf field: google.protobuf.Timestamp expires_at = 7
-     */
-    expiresAt?: Timestamp;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.PutSourceMaterializationChunkRequest
- */
-export interface PutSourceMaterializationChunkRequest {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
-     */
-    context?: AgentRequestContext;
-    /**
-     * @generated from protobuf field: string put_request_id = 2
-     */
-    putRequestId: string;
-    /**
-     * @generated from protobuf field: string upload_id = 3
-     */
-    uploadId: string;
-    /**
-     * @generated from protobuf field: string packet_hash = 4
-     */
-    packetHash: string;
-    /**
-     * @generated from protobuf field: string bundle_manifest_hash = 5
-     */
-    bundleManifestHash: string;
-    /**
-     * @generated from protobuf field: uint32 global_ordinal = 6
-     */
-    globalOrdinal: number;
-    /**
-     * @generated from protobuf field: string component_id = 7
-     */
-    componentId: string;
-    /**
-     * @generated from protobuf field: uint64 component_offset = 8
-     */
-    componentOffset: string;
-    /**
-     * @generated from protobuf field: string chunk_sha256 = 9
-     */
-    chunkSha256: string;
-    /**
-     * @generated from protobuf field: bytes bytes = 10
-     */
-    bytes: Uint8Array;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.PutSourceMaterializationChunkResponse
- */
-export interface PutSourceMaterializationChunkResponse {
-    /**
-     * @generated from protobuf field: string upload_id = 1
-     */
-    uploadId: string;
-    /**
-     * @generated from protobuf field: uint32 global_ordinal = 2
-     */
-    globalOrdinal: number;
-    /**
-     * @generated from protobuf field: string component_id = 3
-     */
-    componentId: string;
-    /**
-     * @generated from protobuf field: bool idempotent_replay = 4
-     */
-    idempotentReplay: boolean;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentSourceMaterializationUploadState upload_state = 5
-     */
-    uploadState: AgentSourceMaterializationUploadState;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentSourceMaterializationReasonCode reason_code = 6
-     */
-    reasonCode: AgentSourceMaterializationReasonCode;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.CommitSourceMaterializationRequest
- */
-export interface CommitSourceMaterializationRequest {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
-     */
-    context?: AgentRequestContext;
-    /**
-     * @generated from protobuf field: string commit_request_id = 2
-     */
-    commitRequestId: string;
-    /**
-     * @generated from protobuf field: string upload_id = 3
-     */
-    uploadId: string;
-    /**
-     * @generated from protobuf field: string packet_hash = 4
-     */
-    packetHash: string;
-    /**
-     * @generated from protobuf field: string bundle_manifest_hash = 5
-     */
-    bundleManifestHash: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.CommitSourceMaterializationResponse
- */
-export interface CommitSourceMaterializationResponse {
-    /**
-     * @generated from protobuf field: string upload_id = 1
-     */
-    uploadId: string;
-    /**
-     * @generated from protobuf field: string local_agent_ref = 2
+     * @generated from protobuf field: string local_agent_ref = 1
      */
     localAgentRef: string;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentSourceMaterializationUploadState upload_state = 3
-     */
-    uploadState: AgentSourceMaterializationUploadState;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentSourceMaterializationChallengeState challenge_state = 4
-     */
-    challengeState: AgentSourceMaterializationChallengeState;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentSourceMaterializationReasonCode reason_code = 5
-     */
-    reasonCode: AgentSourceMaterializationReasonCode;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAgentSourceContextStatus source_context_status = 6
+     * @generated from protobuf field: nimi.runtime.v1.LocalAgentSourceContextStatus source_context_status = 2
      */
     sourceContextStatus?: LocalAgentSourceContextStatus;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.AbortSourceMaterializationUploadRequest
- */
-export interface AbortSourceMaterializationUploadRequest {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
-     */
-    context?: AgentRequestContext;
-    /**
-     * @generated from protobuf field: string abort_request_id = 2
-     */
-    abortRequestId: string;
-    /**
-     * @generated from protobuf field: string upload_id = 3
-     */
-    uploadId: string;
-    /**
-     * @generated from protobuf field: string packet_hash = 4
-     */
-    packetHash: string;
-    /**
-     * @generated from protobuf field: string bundle_manifest_hash = 5
-     */
-    bundleManifestHash: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.AbortSourceMaterializationUploadResponse
- */
-export interface AbortSourceMaterializationUploadResponse {
-    /**
-     * @generated from protobuf field: string upload_id = 1
-     */
-    uploadId: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentSourceMaterializationUploadState upload_state = 2
-     */
-    uploadState: AgentSourceMaterializationUploadState;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentSourceMaterializationChallengeState challenge_state = 3
-     */
-    challengeState: AgentSourceMaterializationChallengeState;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentSourceMaterializationReasonCode reason_code = 4
-     */
-    reasonCode: AgentSourceMaterializationReasonCode;
-    /**
-     * @generated from protobuf field: bool idempotent_replay = 5
+     * @generated from protobuf field: bool idempotent_replay = 3
      */
     idempotentReplay: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RealmSourceMaterializationReasonCode reason_code = 4
+     */
+    reasonCode: RealmSourceMaterializationReasonCode;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAgentSourceCoverageSectionStatus
@@ -591,9 +195,9 @@ export interface LocalAgentSourceContextStatus {
      */
     localAgentRef: string;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.SourceMaterializationSourceRef source_ref = 6
+     * @generated from protobuf field: nimi.runtime.v1.CharacterSourceRefV3 source_ref = 6
      */
-    sourceRef?: SourceMaterializationSourceRef;
+    sourceRef?: CharacterSourceRefV3;
     /**
      * @generated from protobuf field: string source_schema_version = 7
      */
@@ -750,9 +354,9 @@ export interface AgentTurnContextSummary {
      */
     sourceSnapshotHash: string;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.SourceMaterializationSourceRef source_ref = 11
+     * @generated from protobuf field: nimi.runtime.v1.CharacterSourceRefV3 source_ref = 11
      */
-    sourceRef?: SourceMaterializationSourceRef;
+    sourceRef?: CharacterSourceRefV3;
     /**
      * @generated from protobuf field: string world_content_hash = 12
      */
@@ -811,314 +415,106 @@ export interface AgentTurnContextSummary {
     turnId: string;
 }
 /**
- * K-AGCORE-151: closed source kinds accepted by the Runtime-owned challenge
- * and canonical chunked materialization ingress. Unknown numeric values fail
- * admission; they are never coerced to a source kind.
+ * Realm v3 public source identity. The oneof is the only discriminator;
+ * callers cannot mix WorldCharacter and PersonaCharacter fields.
  *
- * @generated from protobuf enum nimi.runtime.v1.AgentSourceMaterializationSourceKind
+ * @generated from protobuf enum nimi.runtime.v1.CharacterSourceKindV3
  */
-export enum AgentSourceMaterializationSourceKind {
+export enum CharacterSourceKindV3 {
     /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: CHARACTER_SOURCE_KIND_V3_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_WORLD_CHARACTER = 1;
+     * @generated from protobuf enum value: CHARACTER_SOURCE_KIND_V3_WORLD_CHARACTER = 1;
      */
     WORLD_CHARACTER = 1,
     /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_REALM_PERSONA = 2;
+     * @generated from protobuf enum value: CHARACTER_SOURCE_KIND_V3_PERSONA_CHARACTER = 2;
      */
-    REALM_PERSONA = 2
+    PERSONA_CHARACTER = 2
 }
 /**
- * @generated from protobuf enum nimi.runtime.v1.AgentSourceMaterializationChallengeState
+ * @generated from protobuf enum nimi.runtime.v1.WorldEntityRefKindV3
  */
-export enum AgentSourceMaterializationChallengeState {
+export enum WorldEntityRefKindV3 {
     /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: WORLD_ENTITY_REF_KIND_V3_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_ISSUED = 1;
+     * @generated from protobuf enum value: WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY = 1;
      */
-    ISSUED = 1,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_LEASED = 2;
-     */
-    LEASED = 2,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_CONSUMED = 3;
-     */
-    CONSUMED = 3,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_INVALIDATED = 4;
-     */
-    INVALIDATED = 4,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_EXPIRED = 5;
-     */
-    EXPIRED = 5
+    WORLD_ENTITY = 1
 }
 /**
- * @generated from protobuf enum nimi.runtime.v1.AgentSourceMaterializationUploadState
+ * @generated from protobuf enum nimi.runtime.v1.RealmSourceMaterializationReasonCode
  */
-export enum AgentSourceMaterializationUploadState {
+export enum RealmSourceMaterializationReasonCode {
     /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: REALM_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_OPEN = 1;
-     */
-    OPEN = 1,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTING = 2;
-     */
-    COMMITTING = 2,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_COMMITTED = 3;
-     */
-    COMMITTED = 3,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_FAILED = 4;
-     */
-    FAILED = 4,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_ABORTED = 5;
-     */
-    ABORTED = 5,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_EXPIRED = 6;
-     */
-    EXPIRED = 6
-}
-/**
- * @generated from protobuf enum nimi.runtime.v1.AgentSourceMaterializationComponentKind
- */
-export enum AgentSourceMaterializationComponentKind {
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CHARACTER = 1;
-     */
-    WORLD_CHARACTER = 1,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_REALM_PERSONA = 2;
-     */
-    REALM_PERSONA = 2,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_CORE = 3;
-     */
-    WORLD_CORE = 3,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_ENTITY = 4;
-     */
-    WORLD_ENTITY = 4,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_WORLD_RELATIONSHIP = 5;
-     */
-    WORLD_RELATIONSHIP = 5,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_COVERAGE_MANIFEST = 6;
-     */
-    COVERAGE_MANIFEST = 6
-}
-/**
- * @generated from protobuf enum nimi.runtime.v1.AgentSourceMaterializationProofAlgorithm
- */
-export enum AgentSourceMaterializationProofAlgorithm {
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_RS256 = 1;
-     */
-    RS256 = 1
-}
-/**
- * @generated from protobuf enum nimi.runtime.v1.AgentSourceMaterializationKeyUse
- */
-export enum AgentSourceMaterializationKeyUse {
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_KEY_USE_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_KEY_USE_SIG = 1;
-     */
-    SIG = 1
-}
-/**
- * @generated from protobuf enum nimi.runtime.v1.AgentSourceMaterializationPacketSchemaVersion
- */
-export enum AgentSourceMaterializationPacketSchemaVersion {
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_V2 = 1;
-     */
-    V2 = 1
-}
-/**
- * @generated from protobuf enum nimi.runtime.v1.AgentSourceMaterializationBundleManifestSchemaVersion
- */
-export enum AgentSourceMaterializationBundleManifestSchemaVersion {
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_V1 = 1;
-     */
-    V1 = 1
-}
-/**
- * @generated from protobuf enum nimi.runtime.v1.AgentSourceMaterializationPayloadAssemblyVersion
- */
-export enum AgentSourceMaterializationPayloadAssemblyVersion {
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_V1 = 1;
-     */
-    V1 = 1
-}
-/**
- * @generated from protobuf enum nimi.runtime.v1.AgentSourceMaterializationReasonCode
- */
-export enum AgentSourceMaterializationReasonCode {
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_NONE = 1;
+     * @generated from protobuf enum value: REALM_SOURCE_MATERIALIZATION_REASON_CODE_NONE = 1;
      */
     NONE = 1,
     /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST = 2;
+     * @generated from protobuf enum value: REALM_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST = 2;
      */
     INVALID_REQUEST = 2,
     /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ACCOUNT_BINDING_MISMATCH = 3;
+     * @generated from protobuf enum value: REALM_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_CONFLICT = 3;
      */
-    ACCOUNT_BINDING_MISMATCH = 3,
+    REQUEST_CONFLICT = 3,
     /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_SOURCE_BINDING_MISMATCH = 4;
+     * @generated from protobuf enum value: REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_DENIED = 4;
      */
-    SOURCE_BINDING_MISMATCH = 4,
+    ACQUISITION_DENIED = 4,
     /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_NOT_FOUND = 5;
+     * @generated from protobuf enum value: REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_FAILED = 5;
      */
-    CHALLENGE_NOT_FOUND = 5,
+    ACQUISITION_FAILED = 5,
     /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_EXPIRED = 6;
+     * @generated from protobuf enum value: REALM_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID = 6;
      */
-    CHALLENGE_EXPIRED = 6,
+    PACKET_INVALID = 6,
     /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_CONFLICT = 7;
+     * @generated from protobuf enum value: REALM_SOURCE_MATERIALIZATION_REASON_CODE_CAPACITY_EXCEEDED = 7;
      */
-    CHALLENGE_CONFLICT = 7,
+    CAPACITY_EXCEEDED = 7,
     /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_LEASED = 8;
+     * @generated from protobuf enum value: REALM_SOURCE_MATERIALIZATION_REASON_CODE_BINDING_MISMATCH = 8;
      */
-    CHALLENGE_ALREADY_LEASED = 8,
+    BINDING_MISMATCH = 8,
     /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHALLENGE_ALREADY_CONSUMED = 9;
+     * @generated from protobuf enum value: REALM_SOURCE_MATERIALIZATION_REASON_CODE_JWKS_INVALID = 9;
      */
-    CHALLENGE_ALREADY_CONSUMED = 9,
+    JWKS_INVALID = 9,
     /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_AUDIENCE_MISMATCH = 10;
+     * @generated from protobuf enum value: REALM_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID = 10;
      */
-    AUDIENCE_MISMATCH = 10,
+    PROOF_INVALID = 10,
     /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_BUNDLE_CAPACITY_EXCEEDED = 11;
+     * @generated from protobuf enum value: REALM_SOURCE_MATERIALIZATION_REASON_CODE_CLOSURE_INVALID = 11;
      */
-    BUNDLE_CAPACITY_EXCEEDED = 11,
+    CLOSURE_INVALID = 11,
     /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMPONENT_CAPACITY_EXCEEDED = 12;
+     * @generated from protobuf enum value: REALM_SOURCE_MATERIALIZATION_REASON_CODE_HASH_INVALID = 12;
      */
-    COMPONENT_CAPACITY_EXCEEDED = 12,
+    HASH_INVALID = 12,
     /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CAPACITY_EXCEEDED = 13;
+     * @generated from protobuf enum value: REALM_SOURCE_MATERIALIZATION_REASON_CODE_REPLAY_DETECTED = 13;
      */
-    CHUNK_CAPACITY_EXCEEDED = 13,
+    REPLAY_DETECTED = 13,
     /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_COUNT_EXCEEDED = 14;
+     * @generated from protobuf enum value: REALM_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED = 14;
      */
-    CHUNK_COUNT_EXCEEDED = 14,
+    PERSISTENCE_FAILED = 14,
     /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_MANIFEST_INVALID = 15;
+     * @generated from protobuf enum value: REALM_SOURCE_MATERIALIZATION_REASON_CODE_DATA_RESET_REQUIRED = 15;
      */
-    MANIFEST_INVALID = 15,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID = 16;
-     */
-    PACKET_INVALID = 16,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID = 17;
-     */
-    PROOF_INVALID = 17,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_NOT_FOUND = 18;
-     */
-    UPLOAD_NOT_FOUND = 18,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_UPLOAD_STATE_CONFLICT = 19;
-     */
-    UPLOAD_STATE_CONFLICT = 19,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_ID_CONFLICT = 20;
-     */
-    REQUEST_ID_CONFLICT = 20,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DESCRIPTOR_INVALID = 21;
-     */
-    CHUNK_DESCRIPTOR_INVALID = 21,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_DIGEST_MISMATCH = 22;
-     */
-    CHUNK_DIGEST_MISMATCH = 22,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_CHUNK_CONFLICT = 23;
-     */
-    CHUNK_CONFLICT = 23,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_IN_PROGRESS = 24;
-     */
-    COMMIT_IN_PROGRESS = 24,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ALREADY_COMMITTED = 25;
-     */
-    ALREADY_COMMITTED = 25,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_COMMIT_CONFLICT = 26;
-     */
-    COMMIT_CONFLICT = 26,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ADMISSION_FAILED = 27;
-     */
-    ADMISSION_FAILED = 27,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_ABORTED = 28;
-     */
-    ABORTED = 28,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_EXPIRED = 29;
-     */
-    EXPIRED = 29,
-    /**
-     * @generated from protobuf enum value: AGENT_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED = 30;
-     */
-    PERSISTENCE_FAILED = 30
+    DATA_RESET_REQUIRED = 15
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AgentLocalSourceContextState
@@ -1425,9 +821,9 @@ export enum AgentLocalSourceContextSchemaVersion {
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V1 = 1;
+     * @generated from protobuf enum value: AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2 = 2;
      */
-    V1 = 1
+    V2 = 2
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AgentLocalSourceSnapshotSchemaVersion
@@ -1438,9 +834,9 @@ export enum AgentLocalSourceSnapshotSchemaVersion {
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V1 = 1;
+     * @generated from protobuf enum value: AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2 = 2;
      */
-    V1 = 1
+    V2 = 2
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AgentTurnContextSummarySchemaVersion
@@ -1482,41 +878,36 @@ export enum AgentTurnContextCompilerSchemaVersion {
     V1 = 1
 }
 // @generated message type with reflection information, may provide speed optimized methods
-class SourceMaterializationSourceRef$Type extends MessageType<SourceMaterializationSourceRef> {
+class WorldEntityRefV3$Type extends MessageType<WorldEntityRefV3> {
     constructor() {
-        super("nimi.runtime.v1.SourceMaterializationSourceRef", [
-            { no: 1, name: "kind", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceMaterializationSourceKind", AgentSourceMaterializationSourceKind, "AGENT_SOURCE_MATERIALIZATION_SOURCE_KIND_"] },
+        super("nimi.runtime.v1.WorldEntityRefV3", [
+            { no: 1, name: "kind", kind: "enum", T: () => ["nimi.runtime.v1.WorldEntityRefKindV3", WorldEntityRefKindV3, "WORLD_ENTITY_REF_KIND_V3_"] },
             { no: 2, name: "world_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "source_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "source_content_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "entity_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<SourceMaterializationSourceRef>): SourceMaterializationSourceRef {
+    create(value?: PartialMessage<WorldEntityRefV3>): WorldEntityRefV3 {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.kind = 0;
         message.worldId = "";
-        message.sourceId = "";
-        message.sourceContentHash = "";
+        message.entityId = "";
         if (value !== undefined)
-            reflectionMergePartial<SourceMaterializationSourceRef>(this, message, value);
+            reflectionMergePartial<WorldEntityRefV3>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SourceMaterializationSourceRef): SourceMaterializationSourceRef {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WorldEntityRefV3): WorldEntityRefV3 {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* nimi.runtime.v1.AgentSourceMaterializationSourceKind kind */ 1:
+                case /* nimi.runtime.v1.WorldEntityRefKindV3 kind */ 1:
                     message.kind = reader.int32();
                     break;
                 case /* string world_id */ 2:
                     message.worldId = reader.string();
                     break;
-                case /* string source_id */ 3:
-                    message.sourceId = reader.string();
-                    break;
-                case /* string source_content_hash */ 4:
-                    message.sourceContentHash = reader.string();
+                case /* string entity_id */ 3:
+                    message.entityId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1529,19 +920,16 @@ class SourceMaterializationSourceRef$Type extends MessageType<SourceMaterializat
         }
         return message;
     }
-    internalBinaryWrite(message: SourceMaterializationSourceRef, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.AgentSourceMaterializationSourceKind kind = 1; */
+    internalBinaryWrite(message: WorldEntityRefV3, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.WorldEntityRefKindV3 kind = 1; */
         if (message.kind !== 0)
             writer.tag(1, WireType.Varint).int32(message.kind);
         /* string world_id = 2; */
         if (message.worldId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.worldId);
-        /* string source_id = 3; */
-        if (message.sourceId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.sourceId);
-        /* string source_content_hash = 4; */
-        if (message.sourceContentHash !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.sourceContentHash);
+        /* string entity_id = 3; */
+        if (message.entityId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.entityId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1549,45 +937,49 @@ class SourceMaterializationSourceRef$Type extends MessageType<SourceMaterializat
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.SourceMaterializationSourceRef
+ * @generated MessageType for protobuf message nimi.runtime.v1.WorldEntityRefV3
  */
-export const SourceMaterializationSourceRef = new SourceMaterializationSourceRef$Type();
+export const WorldEntityRefV3 = new WorldEntityRefV3$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class SourceMaterializationChallengeLimits$Type extends MessageType<SourceMaterializationChallengeLimits> {
+class WorldCharacterSourceRefV3$Type extends MessageType<WorldCharacterSourceRefV3> {
     constructor() {
-        super("nimi.runtime.v1.SourceMaterializationChallengeLimits", [
-            { no: 1, name: "max_bundle_bytes", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 2, name: "max_component_count", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
-            { no: 3, name: "max_chunk_bytes", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 4, name: "max_chunks", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
+        super("nimi.runtime.v1.WorldCharacterSourceRefV3", [
+            { no: 1, name: "kind", kind: "enum", T: () => ["nimi.runtime.v1.CharacterSourceKindV3", CharacterSourceKindV3, "CHARACTER_SOURCE_KIND_V3_"] },
+            { no: 2, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "world_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "world_entity_ref", kind: "message", T: () => WorldEntityRefV3 },
+            { no: 5, name: "source_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<SourceMaterializationChallengeLimits>): SourceMaterializationChallengeLimits {
+    create(value?: PartialMessage<WorldCharacterSourceRefV3>): WorldCharacterSourceRefV3 {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.maxBundleBytes = "0";
-        message.maxComponentCount = 0;
-        message.maxChunkBytes = "0";
-        message.maxChunks = 0;
+        message.kind = 0;
+        message.id = "";
+        message.worldId = "";
+        message.sourceHash = "";
         if (value !== undefined)
-            reflectionMergePartial<SourceMaterializationChallengeLimits>(this, message, value);
+            reflectionMergePartial<WorldCharacterSourceRefV3>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SourceMaterializationChallengeLimits): SourceMaterializationChallengeLimits {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WorldCharacterSourceRefV3): WorldCharacterSourceRefV3 {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* uint64 max_bundle_bytes */ 1:
-                    message.maxBundleBytes = reader.uint64().toString();
+                case /* nimi.runtime.v1.CharacterSourceKindV3 kind */ 1:
+                    message.kind = reader.int32();
                     break;
-                case /* uint32 max_component_count */ 2:
-                    message.maxComponentCount = reader.uint32();
+                case /* string id */ 2:
+                    message.id = reader.string();
                     break;
-                case /* uint64 max_chunk_bytes */ 3:
-                    message.maxChunkBytes = reader.uint64().toString();
+                case /* string world_id */ 3:
+                    message.worldId = reader.string();
                     break;
-                case /* uint32 max_chunks */ 4:
-                    message.maxChunks = reader.uint32();
+                case /* nimi.runtime.v1.WorldEntityRefV3 world_entity_ref */ 4:
+                    message.worldEntityRef = WorldEntityRefV3.internalBinaryRead(reader, reader.uint32(), options, message.worldEntityRef);
+                    break;
+                case /* string source_hash */ 5:
+                    message.sourceHash = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1600,19 +992,22 @@ class SourceMaterializationChallengeLimits$Type extends MessageType<SourceMateri
         }
         return message;
     }
-    internalBinaryWrite(message: SourceMaterializationChallengeLimits, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* uint64 max_bundle_bytes = 1; */
-        if (message.maxBundleBytes !== "0")
-            writer.tag(1, WireType.Varint).uint64(message.maxBundleBytes);
-        /* uint32 max_component_count = 2; */
-        if (message.maxComponentCount !== 0)
-            writer.tag(2, WireType.Varint).uint32(message.maxComponentCount);
-        /* uint64 max_chunk_bytes = 3; */
-        if (message.maxChunkBytes !== "0")
-            writer.tag(3, WireType.Varint).uint64(message.maxChunkBytes);
-        /* uint32 max_chunks = 4; */
-        if (message.maxChunks !== 0)
-            writer.tag(4, WireType.Varint).uint32(message.maxChunks);
+    internalBinaryWrite(message: WorldCharacterSourceRefV3, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.CharacterSourceKindV3 kind = 1; */
+        if (message.kind !== 0)
+            writer.tag(1, WireType.Varint).int32(message.kind);
+        /* string id = 2; */
+        if (message.id !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.id);
+        /* string world_id = 3; */
+        if (message.worldId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.worldId);
+        /* nimi.runtime.v1.WorldEntityRefV3 world_entity_ref = 4; */
+        if (message.worldEntityRef)
+            WorldEntityRefV3.internalBinaryWrite(message.worldEntityRef, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* string source_hash = 5; */
+        if (message.sourceHash !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.sourceHash);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1620,26 +1015,165 @@ class SourceMaterializationChallengeLimits$Type extends MessageType<SourceMateri
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.SourceMaterializationChallengeLimits
+ * @generated MessageType for protobuf message nimi.runtime.v1.WorldCharacterSourceRefV3
  */
-export const SourceMaterializationChallengeLimits = new SourceMaterializationChallengeLimits$Type();
+export const WorldCharacterSourceRefV3 = new WorldCharacterSourceRefV3$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class CreateSourceMaterializationChallengeRequest$Type extends MessageType<CreateSourceMaterializationChallengeRequest> {
+class PersonaCharacterSourceRefV3$Type extends MessageType<PersonaCharacterSourceRefV3> {
     constructor() {
-        super("nimi.runtime.v1.CreateSourceMaterializationChallengeRequest", [
-            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
-            { no: 2, name: "request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "source_ref", kind: "message", T: () => SourceMaterializationSourceRef }
+        super("nimi.runtime.v1.PersonaCharacterSourceRefV3", [
+            { no: 1, name: "kind", kind: "enum", T: () => ["nimi.runtime.v1.CharacterSourceKindV3", CharacterSourceKindV3, "CHARACTER_SOURCE_KIND_V3_"] },
+            { no: 2, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "world_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "owner_account_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "source_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<CreateSourceMaterializationChallengeRequest>): CreateSourceMaterializationChallengeRequest {
+    create(value?: PartialMessage<PersonaCharacterSourceRefV3>): PersonaCharacterSourceRefV3 {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.kind = 0;
+        message.id = "";
+        message.worldId = "";
+        message.ownerAccountId = "";
+        message.sourceHash = "";
+        if (value !== undefined)
+            reflectionMergePartial<PersonaCharacterSourceRefV3>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PersonaCharacterSourceRefV3): PersonaCharacterSourceRefV3 {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.CharacterSourceKindV3 kind */ 1:
+                    message.kind = reader.int32();
+                    break;
+                case /* string id */ 2:
+                    message.id = reader.string();
+                    break;
+                case /* string world_id */ 3:
+                    message.worldId = reader.string();
+                    break;
+                case /* string owner_account_id */ 4:
+                    message.ownerAccountId = reader.string();
+                    break;
+                case /* string source_hash */ 5:
+                    message.sourceHash = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PersonaCharacterSourceRefV3, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.CharacterSourceKindV3 kind = 1; */
+        if (message.kind !== 0)
+            writer.tag(1, WireType.Varint).int32(message.kind);
+        /* string id = 2; */
+        if (message.id !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.id);
+        /* string world_id = 3; */
+        if (message.worldId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.worldId);
+        /* string owner_account_id = 4; */
+        if (message.ownerAccountId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.ownerAccountId);
+        /* string source_hash = 5; */
+        if (message.sourceHash !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.sourceHash);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.PersonaCharacterSourceRefV3
+ */
+export const PersonaCharacterSourceRefV3 = new PersonaCharacterSourceRefV3$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CharacterSourceRefV3$Type extends MessageType<CharacterSourceRefV3> {
+    constructor() {
+        super("nimi.runtime.v1.CharacterSourceRefV3", [
+            { no: 1, name: "world_character", kind: "message", oneof: "source", T: () => WorldCharacterSourceRefV3 },
+            { no: 2, name: "persona_character", kind: "message", oneof: "source", T: () => PersonaCharacterSourceRefV3 }
+        ]);
+    }
+    create(value?: PartialMessage<CharacterSourceRefV3>): CharacterSourceRefV3 {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.source = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<CharacterSourceRefV3>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CharacterSourceRefV3): CharacterSourceRefV3 {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.WorldCharacterSourceRefV3 world_character */ 1:
+                    message.source = {
+                        oneofKind: "worldCharacter",
+                        worldCharacter: WorldCharacterSourceRefV3.internalBinaryRead(reader, reader.uint32(), options, (message.source as any).worldCharacter)
+                    };
+                    break;
+                case /* nimi.runtime.v1.PersonaCharacterSourceRefV3 persona_character */ 2:
+                    message.source = {
+                        oneofKind: "personaCharacter",
+                        personaCharacter: PersonaCharacterSourceRefV3.internalBinaryRead(reader, reader.uint32(), options, (message.source as any).personaCharacter)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CharacterSourceRefV3, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.WorldCharacterSourceRefV3 world_character = 1; */
+        if (message.source.oneofKind === "worldCharacter")
+            WorldCharacterSourceRefV3.internalBinaryWrite(message.source.worldCharacter, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.PersonaCharacterSourceRefV3 persona_character = 2; */
+        if (message.source.oneofKind === "personaCharacter")
+            PersonaCharacterSourceRefV3.internalBinaryWrite(message.source.personaCharacter, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CharacterSourceRefV3
+ */
+export const CharacterSourceRefV3 = new CharacterSourceRefV3$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class MaterializeRealmSourceRequest$Type extends MessageType<MaterializeRealmSourceRequest> {
+    constructor() {
+        super("nimi.runtime.v1.MaterializeRealmSourceRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "source_ref", kind: "message", T: () => CharacterSourceRefV3 }
+        ]);
+    }
+    create(value?: PartialMessage<MaterializeRealmSourceRequest>): MaterializeRealmSourceRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.requestId = "";
         if (value !== undefined)
-            reflectionMergePartial<CreateSourceMaterializationChallengeRequest>(this, message, value);
+            reflectionMergePartial<MaterializeRealmSourceRequest>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CreateSourceMaterializationChallengeRequest): CreateSourceMaterializationChallengeRequest {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MaterializeRealmSourceRequest): MaterializeRealmSourceRequest {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -1650,8 +1184,8 @@ class CreateSourceMaterializationChallengeRequest$Type extends MessageType<Creat
                 case /* string request_id */ 2:
                     message.requestId = reader.string();
                     break;
-                case /* nimi.runtime.v1.SourceMaterializationSourceRef source_ref */ 3:
-                    message.sourceRef = SourceMaterializationSourceRef.internalBinaryRead(reader, reader.uint32(), options, message.sourceRef);
+                case /* nimi.runtime.v1.CharacterSourceRefV3 source_ref */ 3:
+                    message.sourceRef = CharacterSourceRefV3.internalBinaryRead(reader, reader.uint32(), options, message.sourceRef);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1664,16 +1198,16 @@ class CreateSourceMaterializationChallengeRequest$Type extends MessageType<Creat
         }
         return message;
     }
-    internalBinaryWrite(message: CreateSourceMaterializationChallengeRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: MaterializeRealmSourceRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* nimi.runtime.v1.AgentRequestContext context = 1; */
         if (message.context)
             AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         /* string request_id = 2; */
         if (message.requestId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.requestId);
-        /* nimi.runtime.v1.SourceMaterializationSourceRef source_ref = 3; */
+        /* nimi.runtime.v1.CharacterSourceRefV3 source_ref = 3; */
         if (message.sourceRef)
-            SourceMaterializationSourceRef.internalBinaryWrite(message.sourceRef, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+            CharacterSourceRefV3.internalBinaryWrite(message.sourceRef, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1681,1278 +1215,45 @@ class CreateSourceMaterializationChallengeRequest$Type extends MessageType<Creat
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.CreateSourceMaterializationChallengeRequest
+ * @generated MessageType for protobuf message nimi.runtime.v1.MaterializeRealmSourceRequest
  */
-export const CreateSourceMaterializationChallengeRequest = new CreateSourceMaterializationChallengeRequest$Type();
+export const MaterializeRealmSourceRequest = new MaterializeRealmSourceRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class CreateSourceMaterializationChallengeResponse$Type extends MessageType<CreateSourceMaterializationChallengeResponse> {
+class MaterializeRealmSourceResponse$Type extends MessageType<MaterializeRealmSourceResponse> {
     constructor() {
-        super("nimi.runtime.v1.CreateSourceMaterializationChallengeResponse", [
-            { no: 1, name: "challenge_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "intended_runtime_audience", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "challenge_digest", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "expires_at", kind: "message", T: () => Timestamp },
-            { no: 5, name: "limits", kind: "message", T: () => SourceMaterializationChallengeLimits },
-            { no: 6, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceMaterializationChallengeState", AgentSourceMaterializationChallengeState, "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_"] },
-            { no: 7, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceMaterializationReasonCode", AgentSourceMaterializationReasonCode, "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_"] },
-            { no: 8, name: "source_ref", kind: "message", T: () => SourceMaterializationSourceRef },
-            { no: 9, name: "materializer_account_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        super("nimi.runtime.v1.MaterializeRealmSourceResponse", [
+            { no: 1, name: "local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "source_context_status", kind: "message", T: () => LocalAgentSourceContextStatus },
+            { no: 3, name: "idempotent_replay", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 4, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.RealmSourceMaterializationReasonCode", RealmSourceMaterializationReasonCode, "REALM_SOURCE_MATERIALIZATION_REASON_CODE_"] }
         ]);
     }
-    create(value?: PartialMessage<CreateSourceMaterializationChallengeResponse>): CreateSourceMaterializationChallengeResponse {
+    create(value?: PartialMessage<MaterializeRealmSourceResponse>): MaterializeRealmSourceResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.challengeId = "";
-        message.intendedRuntimeAudience = "";
-        message.challengeDigest = "";
-        message.state = 0;
-        message.reasonCode = 0;
-        message.materializerAccountId = "";
-        if (value !== undefined)
-            reflectionMergePartial<CreateSourceMaterializationChallengeResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CreateSourceMaterializationChallengeResponse): CreateSourceMaterializationChallengeResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string challenge_id */ 1:
-                    message.challengeId = reader.string();
-                    break;
-                case /* string intended_runtime_audience */ 2:
-                    message.intendedRuntimeAudience = reader.string();
-                    break;
-                case /* string challenge_digest */ 3:
-                    message.challengeDigest = reader.string();
-                    break;
-                case /* google.protobuf.Timestamp expires_at */ 4:
-                    message.expiresAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.expiresAt);
-                    break;
-                case /* nimi.runtime.v1.SourceMaterializationChallengeLimits limits */ 5:
-                    message.limits = SourceMaterializationChallengeLimits.internalBinaryRead(reader, reader.uint32(), options, message.limits);
-                    break;
-                case /* nimi.runtime.v1.AgentSourceMaterializationChallengeState state */ 6:
-                    message.state = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.AgentSourceMaterializationReasonCode reason_code */ 7:
-                    message.reasonCode = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.SourceMaterializationSourceRef source_ref */ 8:
-                    message.sourceRef = SourceMaterializationSourceRef.internalBinaryRead(reader, reader.uint32(), options, message.sourceRef);
-                    break;
-                case /* string materializer_account_id */ 9:
-                    message.materializerAccountId = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: CreateSourceMaterializationChallengeResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string challenge_id = 1; */
-        if (message.challengeId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.challengeId);
-        /* string intended_runtime_audience = 2; */
-        if (message.intendedRuntimeAudience !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.intendedRuntimeAudience);
-        /* string challenge_digest = 3; */
-        if (message.challengeDigest !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.challengeDigest);
-        /* google.protobuf.Timestamp expires_at = 4; */
-        if (message.expiresAt)
-            Timestamp.internalBinaryWrite(message.expiresAt, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.SourceMaterializationChallengeLimits limits = 5; */
-        if (message.limits)
-            SourceMaterializationChallengeLimits.internalBinaryWrite(message.limits, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.AgentSourceMaterializationChallengeState state = 6; */
-        if (message.state !== 0)
-            writer.tag(6, WireType.Varint).int32(message.state);
-        /* nimi.runtime.v1.AgentSourceMaterializationReasonCode reason_code = 7; */
-        if (message.reasonCode !== 0)
-            writer.tag(7, WireType.Varint).int32(message.reasonCode);
-        /* nimi.runtime.v1.SourceMaterializationSourceRef source_ref = 8; */
-        if (message.sourceRef)
-            SourceMaterializationSourceRef.internalBinaryWrite(message.sourceRef, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
-        /* string materializer_account_id = 9; */
-        if (message.materializerAccountId !== "")
-            writer.tag(9, WireType.LengthDelimited).string(message.materializerAccountId);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.CreateSourceMaterializationChallengeResponse
- */
-export const CreateSourceMaterializationChallengeResponse = new CreateSourceMaterializationChallengeResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class SourceMaterializationPacketEnvelopeV2$Type extends MessageType<SourceMaterializationPacketEnvelopeV2> {
-    constructor() {
-        super("nimi.runtime.v1.SourceMaterializationPacketEnvelopeV2", [
-            { no: 1, name: "packet_schema_version", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceMaterializationPacketSchemaVersion", AgentSourceMaterializationPacketSchemaVersion, "AGENT_SOURCE_MATERIALIZATION_PACKET_SCHEMA_VERSION_"] },
-            { no: 2, name: "packet_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "issuer", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "key_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "algorithm", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceMaterializationProofAlgorithm", AgentSourceMaterializationProofAlgorithm, "AGENT_SOURCE_MATERIALIZATION_PROOF_ALGORITHM_"] },
-            { no: 6, name: "key_use", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceMaterializationKeyUse", AgentSourceMaterializationKeyUse, "AGENT_SOURCE_MATERIALIZATION_KEY_USE_"] },
-            { no: 7, name: "issued_at", kind: "message", T: () => Timestamp },
-            { no: 8, name: "expires_at", kind: "message", T: () => Timestamp },
-            { no: 9, name: "nonce", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 10, name: "intended_runtime_audience", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 11, name: "challenge_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 12, name: "challenge_digest", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 13, name: "challenge_limits", kind: "message", T: () => SourceMaterializationChallengeLimits },
-            { no: 14, name: "materializer_account_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 15, name: "source_ref", kind: "message", T: () => SourceMaterializationSourceRef },
-            { no: 16, name: "payload_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 17, name: "bundle_manifest_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 18, name: "packet_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<SourceMaterializationPacketEnvelopeV2>): SourceMaterializationPacketEnvelopeV2 {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.packetSchemaVersion = 0;
-        message.packetId = "";
-        message.issuer = "";
-        message.keyId = "";
-        message.algorithm = 0;
-        message.keyUse = 0;
-        message.nonce = "";
-        message.intendedRuntimeAudience = "";
-        message.challengeId = "";
-        message.challengeDigest = "";
-        message.materializerAccountId = "";
-        message.payloadHash = "";
-        message.bundleManifestHash = "";
-        message.packetHash = "";
-        if (value !== undefined)
-            reflectionMergePartial<SourceMaterializationPacketEnvelopeV2>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SourceMaterializationPacketEnvelopeV2): SourceMaterializationPacketEnvelopeV2 {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.AgentSourceMaterializationPacketSchemaVersion packet_schema_version */ 1:
-                    message.packetSchemaVersion = reader.int32();
-                    break;
-                case /* string packet_id */ 2:
-                    message.packetId = reader.string();
-                    break;
-                case /* string issuer */ 3:
-                    message.issuer = reader.string();
-                    break;
-                case /* string key_id */ 4:
-                    message.keyId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.AgentSourceMaterializationProofAlgorithm algorithm */ 5:
-                    message.algorithm = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.AgentSourceMaterializationKeyUse key_use */ 6:
-                    message.keyUse = reader.int32();
-                    break;
-                case /* google.protobuf.Timestamp issued_at */ 7:
-                    message.issuedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.issuedAt);
-                    break;
-                case /* google.protobuf.Timestamp expires_at */ 8:
-                    message.expiresAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.expiresAt);
-                    break;
-                case /* string nonce */ 9:
-                    message.nonce = reader.string();
-                    break;
-                case /* string intended_runtime_audience */ 10:
-                    message.intendedRuntimeAudience = reader.string();
-                    break;
-                case /* string challenge_id */ 11:
-                    message.challengeId = reader.string();
-                    break;
-                case /* string challenge_digest */ 12:
-                    message.challengeDigest = reader.string();
-                    break;
-                case /* nimi.runtime.v1.SourceMaterializationChallengeLimits challenge_limits */ 13:
-                    message.challengeLimits = SourceMaterializationChallengeLimits.internalBinaryRead(reader, reader.uint32(), options, message.challengeLimits);
-                    break;
-                case /* string materializer_account_id */ 14:
-                    message.materializerAccountId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.SourceMaterializationSourceRef source_ref */ 15:
-                    message.sourceRef = SourceMaterializationSourceRef.internalBinaryRead(reader, reader.uint32(), options, message.sourceRef);
-                    break;
-                case /* string payload_hash */ 16:
-                    message.payloadHash = reader.string();
-                    break;
-                case /* string bundle_manifest_hash */ 17:
-                    message.bundleManifestHash = reader.string();
-                    break;
-                case /* string packet_hash */ 18:
-                    message.packetHash = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: SourceMaterializationPacketEnvelopeV2, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.AgentSourceMaterializationPacketSchemaVersion packet_schema_version = 1; */
-        if (message.packetSchemaVersion !== 0)
-            writer.tag(1, WireType.Varint).int32(message.packetSchemaVersion);
-        /* string packet_id = 2; */
-        if (message.packetId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.packetId);
-        /* string issuer = 3; */
-        if (message.issuer !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.issuer);
-        /* string key_id = 4; */
-        if (message.keyId !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.keyId);
-        /* nimi.runtime.v1.AgentSourceMaterializationProofAlgorithm algorithm = 5; */
-        if (message.algorithm !== 0)
-            writer.tag(5, WireType.Varint).int32(message.algorithm);
-        /* nimi.runtime.v1.AgentSourceMaterializationKeyUse key_use = 6; */
-        if (message.keyUse !== 0)
-            writer.tag(6, WireType.Varint).int32(message.keyUse);
-        /* google.protobuf.Timestamp issued_at = 7; */
-        if (message.issuedAt)
-            Timestamp.internalBinaryWrite(message.issuedAt, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Timestamp expires_at = 8; */
-        if (message.expiresAt)
-            Timestamp.internalBinaryWrite(message.expiresAt, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
-        /* string nonce = 9; */
-        if (message.nonce !== "")
-            writer.tag(9, WireType.LengthDelimited).string(message.nonce);
-        /* string intended_runtime_audience = 10; */
-        if (message.intendedRuntimeAudience !== "")
-            writer.tag(10, WireType.LengthDelimited).string(message.intendedRuntimeAudience);
-        /* string challenge_id = 11; */
-        if (message.challengeId !== "")
-            writer.tag(11, WireType.LengthDelimited).string(message.challengeId);
-        /* string challenge_digest = 12; */
-        if (message.challengeDigest !== "")
-            writer.tag(12, WireType.LengthDelimited).string(message.challengeDigest);
-        /* nimi.runtime.v1.SourceMaterializationChallengeLimits challenge_limits = 13; */
-        if (message.challengeLimits)
-            SourceMaterializationChallengeLimits.internalBinaryWrite(message.challengeLimits, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
-        /* string materializer_account_id = 14; */
-        if (message.materializerAccountId !== "")
-            writer.tag(14, WireType.LengthDelimited).string(message.materializerAccountId);
-        /* nimi.runtime.v1.SourceMaterializationSourceRef source_ref = 15; */
-        if (message.sourceRef)
-            SourceMaterializationSourceRef.internalBinaryWrite(message.sourceRef, writer.tag(15, WireType.LengthDelimited).fork(), options).join();
-        /* string payload_hash = 16; */
-        if (message.payloadHash !== "")
-            writer.tag(16, WireType.LengthDelimited).string(message.payloadHash);
-        /* string bundle_manifest_hash = 17; */
-        if (message.bundleManifestHash !== "")
-            writer.tag(17, WireType.LengthDelimited).string(message.bundleManifestHash);
-        /* string packet_hash = 18; */
-        if (message.packetHash !== "")
-            writer.tag(18, WireType.LengthDelimited).string(message.packetHash);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.SourceMaterializationPacketEnvelopeV2
- */
-export const SourceMaterializationPacketEnvelopeV2 = new SourceMaterializationPacketEnvelopeV2$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class SourceMaterializationBundleComponentDescriptorV1$Type extends MessageType<SourceMaterializationBundleComponentDescriptorV1> {
-    constructor() {
-        super("nimi.runtime.v1.SourceMaterializationBundleComponentDescriptorV1", [
-            { no: 1, name: "component_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "kind", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceMaterializationComponentKind", AgentSourceMaterializationComponentKind, "AGENT_SOURCE_MATERIALIZATION_COMPONENT_KIND_"] },
-            { no: 3, name: "schema_version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 5, name: "content_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "canonical_bytes_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "canonical_byte_length", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
-        ]);
-    }
-    create(value?: PartialMessage<SourceMaterializationBundleComponentDescriptorV1>): SourceMaterializationBundleComponentDescriptorV1 {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.componentId = "";
-        message.kind = 0;
-        message.schemaVersion = "";
-        message.revision = "0";
-        message.contentHash = "";
-        message.canonicalBytesHash = "";
-        message.canonicalByteLength = "0";
-        if (value !== undefined)
-            reflectionMergePartial<SourceMaterializationBundleComponentDescriptorV1>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SourceMaterializationBundleComponentDescriptorV1): SourceMaterializationBundleComponentDescriptorV1 {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string component_id */ 1:
-                    message.componentId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.AgentSourceMaterializationComponentKind kind */ 2:
-                    message.kind = reader.int32();
-                    break;
-                case /* string schema_version */ 3:
-                    message.schemaVersion = reader.string();
-                    break;
-                case /* uint64 revision */ 4:
-                    message.revision = reader.uint64().toString();
-                    break;
-                case /* string content_hash */ 5:
-                    message.contentHash = reader.string();
-                    break;
-                case /* string canonical_bytes_hash */ 6:
-                    message.canonicalBytesHash = reader.string();
-                    break;
-                case /* uint64 canonical_byte_length */ 7:
-                    message.canonicalByteLength = reader.uint64().toString();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: SourceMaterializationBundleComponentDescriptorV1, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string component_id = 1; */
-        if (message.componentId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.componentId);
-        /* nimi.runtime.v1.AgentSourceMaterializationComponentKind kind = 2; */
-        if (message.kind !== 0)
-            writer.tag(2, WireType.Varint).int32(message.kind);
-        /* string schema_version = 3; */
-        if (message.schemaVersion !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.schemaVersion);
-        /* uint64 revision = 4; */
-        if (message.revision !== "0")
-            writer.tag(4, WireType.Varint).uint64(message.revision);
-        /* string content_hash = 5; */
-        if (message.contentHash !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.contentHash);
-        /* string canonical_bytes_hash = 6; */
-        if (message.canonicalBytesHash !== "")
-            writer.tag(6, WireType.LengthDelimited).string(message.canonicalBytesHash);
-        /* uint64 canonical_byte_length = 7; */
-        if (message.canonicalByteLength !== "0")
-            writer.tag(7, WireType.Varint).uint64(message.canonicalByteLength);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.SourceMaterializationBundleComponentDescriptorV1
- */
-export const SourceMaterializationBundleComponentDescriptorV1 = new SourceMaterializationBundleComponentDescriptorV1$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class SourceMaterializationBundleChunkDescriptorV1$Type extends MessageType<SourceMaterializationBundleChunkDescriptorV1> {
-    constructor() {
-        super("nimi.runtime.v1.SourceMaterializationBundleChunkDescriptorV1", [
-            { no: 1, name: "global_ordinal", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
-            { no: 2, name: "component_offset", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 3, name: "length", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 4, name: "chunk_sha256", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<SourceMaterializationBundleChunkDescriptorV1>): SourceMaterializationBundleChunkDescriptorV1 {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.globalOrdinal = 0;
-        message.componentOffset = "0";
-        message.length = "0";
-        message.chunkSha256 = "";
-        if (value !== undefined)
-            reflectionMergePartial<SourceMaterializationBundleChunkDescriptorV1>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SourceMaterializationBundleChunkDescriptorV1): SourceMaterializationBundleChunkDescriptorV1 {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* uint32 global_ordinal */ 1:
-                    message.globalOrdinal = reader.uint32();
-                    break;
-                case /* uint64 component_offset */ 2:
-                    message.componentOffset = reader.uint64().toString();
-                    break;
-                case /* uint64 length */ 3:
-                    message.length = reader.uint64().toString();
-                    break;
-                case /* string chunk_sha256 */ 4:
-                    message.chunkSha256 = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: SourceMaterializationBundleChunkDescriptorV1, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* uint32 global_ordinal = 1; */
-        if (message.globalOrdinal !== 0)
-            writer.tag(1, WireType.Varint).uint32(message.globalOrdinal);
-        /* uint64 component_offset = 2; */
-        if (message.componentOffset !== "0")
-            writer.tag(2, WireType.Varint).uint64(message.componentOffset);
-        /* uint64 length = 3; */
-        if (message.length !== "0")
-            writer.tag(3, WireType.Varint).uint64(message.length);
-        /* string chunk_sha256 = 4; */
-        if (message.chunkSha256 !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.chunkSha256);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.SourceMaterializationBundleChunkDescriptorV1
- */
-export const SourceMaterializationBundleChunkDescriptorV1 = new SourceMaterializationBundleChunkDescriptorV1$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class BundleTransportManifestV1$Type extends MessageType<BundleTransportManifestV1> {
-    constructor() {
-        super("nimi.runtime.v1.BundleTransportManifestV1", [
-            { no: 1, name: "manifest_schema_version", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceMaterializationBundleManifestSchemaVersion", AgentSourceMaterializationBundleManifestSchemaVersion, "AGENT_SOURCE_MATERIALIZATION_BUNDLE_MANIFEST_SCHEMA_VERSION_"] },
-            { no: 2, name: "payload_assembly_version", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceMaterializationPayloadAssemblyVersion", AgentSourceMaterializationPayloadAssemblyVersion, "AGENT_SOURCE_MATERIALIZATION_PAYLOAD_ASSEMBLY_VERSION_"] },
-            { no: 3, name: "packet_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "challenge_digest", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "total_canonical_bytes", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 6, name: "component_count", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
-            { no: 7, name: "chunk_count", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
-            { no: 8, name: "components", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => SourceMaterializationBundleComponentDescriptorV1 },
-            { no: 9, name: "chunks", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => SourceMaterializationBundleChunkDescriptorV1 }
-        ]);
-    }
-    create(value?: PartialMessage<BundleTransportManifestV1>): BundleTransportManifestV1 {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.manifestSchemaVersion = 0;
-        message.payloadAssemblyVersion = 0;
-        message.packetId = "";
-        message.challengeDigest = "";
-        message.totalCanonicalBytes = "0";
-        message.componentCount = 0;
-        message.chunkCount = 0;
-        message.components = [];
-        message.chunks = [];
-        if (value !== undefined)
-            reflectionMergePartial<BundleTransportManifestV1>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: BundleTransportManifestV1): BundleTransportManifestV1 {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.AgentSourceMaterializationBundleManifestSchemaVersion manifest_schema_version */ 1:
-                    message.manifestSchemaVersion = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.AgentSourceMaterializationPayloadAssemblyVersion payload_assembly_version */ 2:
-                    message.payloadAssemblyVersion = reader.int32();
-                    break;
-                case /* string packet_id */ 3:
-                    message.packetId = reader.string();
-                    break;
-                case /* string challenge_digest */ 4:
-                    message.challengeDigest = reader.string();
-                    break;
-                case /* uint64 total_canonical_bytes */ 5:
-                    message.totalCanonicalBytes = reader.uint64().toString();
-                    break;
-                case /* uint32 component_count */ 6:
-                    message.componentCount = reader.uint32();
-                    break;
-                case /* uint32 chunk_count */ 7:
-                    message.chunkCount = reader.uint32();
-                    break;
-                case /* repeated nimi.runtime.v1.SourceMaterializationBundleComponentDescriptorV1 components */ 8:
-                    message.components.push(SourceMaterializationBundleComponentDescriptorV1.internalBinaryRead(reader, reader.uint32(), options));
-                    break;
-                case /* repeated nimi.runtime.v1.SourceMaterializationBundleChunkDescriptorV1 chunks */ 9:
-                    message.chunks.push(SourceMaterializationBundleChunkDescriptorV1.internalBinaryRead(reader, reader.uint32(), options));
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: BundleTransportManifestV1, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.AgentSourceMaterializationBundleManifestSchemaVersion manifest_schema_version = 1; */
-        if (message.manifestSchemaVersion !== 0)
-            writer.tag(1, WireType.Varint).int32(message.manifestSchemaVersion);
-        /* nimi.runtime.v1.AgentSourceMaterializationPayloadAssemblyVersion payload_assembly_version = 2; */
-        if (message.payloadAssemblyVersion !== 0)
-            writer.tag(2, WireType.Varint).int32(message.payloadAssemblyVersion);
-        /* string packet_id = 3; */
-        if (message.packetId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.packetId);
-        /* string challenge_digest = 4; */
-        if (message.challengeDigest !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.challengeDigest);
-        /* uint64 total_canonical_bytes = 5; */
-        if (message.totalCanonicalBytes !== "0")
-            writer.tag(5, WireType.Varint).uint64(message.totalCanonicalBytes);
-        /* uint32 component_count = 6; */
-        if (message.componentCount !== 0)
-            writer.tag(6, WireType.Varint).uint32(message.componentCount);
-        /* uint32 chunk_count = 7; */
-        if (message.chunkCount !== 0)
-            writer.tag(7, WireType.Varint).uint32(message.chunkCount);
-        /* repeated nimi.runtime.v1.SourceMaterializationBundleComponentDescriptorV1 components = 8; */
-        for (let i = 0; i < message.components.length; i++)
-            SourceMaterializationBundleComponentDescriptorV1.internalBinaryWrite(message.components[i], writer.tag(8, WireType.LengthDelimited).fork(), options).join();
-        /* repeated nimi.runtime.v1.SourceMaterializationBundleChunkDescriptorV1 chunks = 9; */
-        for (let i = 0; i < message.chunks.length; i++)
-            SourceMaterializationBundleChunkDescriptorV1.internalBinaryWrite(message.chunks[i], writer.tag(9, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.BundleTransportManifestV1
- */
-export const BundleTransportManifestV1 = new BundleTransportManifestV1$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class SourceMaterializationBeginControl$Type extends MessageType<SourceMaterializationBeginControl> {
-    constructor() {
-        super("nimi.runtime.v1.SourceMaterializationBeginControl", [
-            { no: 1, name: "packet_envelope", kind: "message", T: () => SourceMaterializationPacketEnvelopeV2 },
-            { no: 2, name: "packet_proof", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "bundle_transport_manifest", kind: "message", T: () => BundleTransportManifestV1 }
-        ]);
-    }
-    create(value?: PartialMessage<SourceMaterializationBeginControl>): SourceMaterializationBeginControl {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.packetProof = "";
-        if (value !== undefined)
-            reflectionMergePartial<SourceMaterializationBeginControl>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SourceMaterializationBeginControl): SourceMaterializationBeginControl {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.SourceMaterializationPacketEnvelopeV2 packet_envelope */ 1:
-                    message.packetEnvelope = SourceMaterializationPacketEnvelopeV2.internalBinaryRead(reader, reader.uint32(), options, message.packetEnvelope);
-                    break;
-                case /* string packet_proof */ 2:
-                    message.packetProof = reader.string();
-                    break;
-                case /* nimi.runtime.v1.BundleTransportManifestV1 bundle_transport_manifest */ 3:
-                    message.bundleTransportManifest = BundleTransportManifestV1.internalBinaryRead(reader, reader.uint32(), options, message.bundleTransportManifest);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: SourceMaterializationBeginControl, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.SourceMaterializationPacketEnvelopeV2 packet_envelope = 1; */
-        if (message.packetEnvelope)
-            SourceMaterializationPacketEnvelopeV2.internalBinaryWrite(message.packetEnvelope, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* string packet_proof = 2; */
-        if (message.packetProof !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.packetProof);
-        /* nimi.runtime.v1.BundleTransportManifestV1 bundle_transport_manifest = 3; */
-        if (message.bundleTransportManifest)
-            BundleTransportManifestV1.internalBinaryWrite(message.bundleTransportManifest, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.SourceMaterializationBeginControl
- */
-export const SourceMaterializationBeginControl = new SourceMaterializationBeginControl$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class BeginSourceMaterializationUploadRequest$Type extends MessageType<BeginSourceMaterializationUploadRequest> {
-    constructor() {
-        super("nimi.runtime.v1.BeginSourceMaterializationUploadRequest", [
-            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
-            { no: 2, name: "begin_request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "control", kind: "message", T: () => SourceMaterializationBeginControl }
-        ]);
-    }
-    create(value?: PartialMessage<BeginSourceMaterializationUploadRequest>): BeginSourceMaterializationUploadRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.beginRequestId = "";
-        if (value !== undefined)
-            reflectionMergePartial<BeginSourceMaterializationUploadRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: BeginSourceMaterializationUploadRequest): BeginSourceMaterializationUploadRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
-                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
-                    break;
-                case /* string begin_request_id */ 2:
-                    message.beginRequestId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.SourceMaterializationBeginControl control */ 3:
-                    message.control = SourceMaterializationBeginControl.internalBinaryRead(reader, reader.uint32(), options, message.control);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: BeginSourceMaterializationUploadRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.AgentRequestContext context = 1; */
-        if (message.context)
-            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* string begin_request_id = 2; */
-        if (message.beginRequestId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.beginRequestId);
-        /* nimi.runtime.v1.SourceMaterializationBeginControl control = 3; */
-        if (message.control)
-            SourceMaterializationBeginControl.internalBinaryWrite(message.control, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.BeginSourceMaterializationUploadRequest
- */
-export const BeginSourceMaterializationUploadRequest = new BeginSourceMaterializationUploadRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class BeginSourceMaterializationUploadResponse$Type extends MessageType<BeginSourceMaterializationUploadResponse> {
-    constructor() {
-        super("nimi.runtime.v1.BeginSourceMaterializationUploadResponse", [
-            { no: 1, name: "upload_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "packet_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "bundle_manifest_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "upload_state", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceMaterializationUploadState", AgentSourceMaterializationUploadState, "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_"] },
-            { no: 5, name: "challenge_state", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceMaterializationChallengeState", AgentSourceMaterializationChallengeState, "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_"] },
-            { no: 6, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceMaterializationReasonCode", AgentSourceMaterializationReasonCode, "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_"] },
-            { no: 7, name: "expires_at", kind: "message", T: () => Timestamp }
-        ]);
-    }
-    create(value?: PartialMessage<BeginSourceMaterializationUploadResponse>): BeginSourceMaterializationUploadResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.uploadId = "";
-        message.packetHash = "";
-        message.bundleManifestHash = "";
-        message.uploadState = 0;
-        message.challengeState = 0;
-        message.reasonCode = 0;
-        if (value !== undefined)
-            reflectionMergePartial<BeginSourceMaterializationUploadResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: BeginSourceMaterializationUploadResponse): BeginSourceMaterializationUploadResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string upload_id */ 1:
-                    message.uploadId = reader.string();
-                    break;
-                case /* string packet_hash */ 2:
-                    message.packetHash = reader.string();
-                    break;
-                case /* string bundle_manifest_hash */ 3:
-                    message.bundleManifestHash = reader.string();
-                    break;
-                case /* nimi.runtime.v1.AgentSourceMaterializationUploadState upload_state */ 4:
-                    message.uploadState = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.AgentSourceMaterializationChallengeState challenge_state */ 5:
-                    message.challengeState = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.AgentSourceMaterializationReasonCode reason_code */ 6:
-                    message.reasonCode = reader.int32();
-                    break;
-                case /* google.protobuf.Timestamp expires_at */ 7:
-                    message.expiresAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.expiresAt);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: BeginSourceMaterializationUploadResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string upload_id = 1; */
-        if (message.uploadId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.uploadId);
-        /* string packet_hash = 2; */
-        if (message.packetHash !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.packetHash);
-        /* string bundle_manifest_hash = 3; */
-        if (message.bundleManifestHash !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.bundleManifestHash);
-        /* nimi.runtime.v1.AgentSourceMaterializationUploadState upload_state = 4; */
-        if (message.uploadState !== 0)
-            writer.tag(4, WireType.Varint).int32(message.uploadState);
-        /* nimi.runtime.v1.AgentSourceMaterializationChallengeState challenge_state = 5; */
-        if (message.challengeState !== 0)
-            writer.tag(5, WireType.Varint).int32(message.challengeState);
-        /* nimi.runtime.v1.AgentSourceMaterializationReasonCode reason_code = 6; */
-        if (message.reasonCode !== 0)
-            writer.tag(6, WireType.Varint).int32(message.reasonCode);
-        /* google.protobuf.Timestamp expires_at = 7; */
-        if (message.expiresAt)
-            Timestamp.internalBinaryWrite(message.expiresAt, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.BeginSourceMaterializationUploadResponse
- */
-export const BeginSourceMaterializationUploadResponse = new BeginSourceMaterializationUploadResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class PutSourceMaterializationChunkRequest$Type extends MessageType<PutSourceMaterializationChunkRequest> {
-    constructor() {
-        super("nimi.runtime.v1.PutSourceMaterializationChunkRequest", [
-            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
-            { no: 2, name: "put_request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "upload_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "packet_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "bundle_manifest_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "global_ordinal", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
-            { no: 7, name: "component_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "component_offset", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 9, name: "chunk_sha256", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 10, name: "bytes", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
-        ]);
-    }
-    create(value?: PartialMessage<PutSourceMaterializationChunkRequest>): PutSourceMaterializationChunkRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.putRequestId = "";
-        message.uploadId = "";
-        message.packetHash = "";
-        message.bundleManifestHash = "";
-        message.globalOrdinal = 0;
-        message.componentId = "";
-        message.componentOffset = "0";
-        message.chunkSha256 = "";
-        message.bytes = new Uint8Array(0);
-        if (value !== undefined)
-            reflectionMergePartial<PutSourceMaterializationChunkRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PutSourceMaterializationChunkRequest): PutSourceMaterializationChunkRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
-                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
-                    break;
-                case /* string put_request_id */ 2:
-                    message.putRequestId = reader.string();
-                    break;
-                case /* string upload_id */ 3:
-                    message.uploadId = reader.string();
-                    break;
-                case /* string packet_hash */ 4:
-                    message.packetHash = reader.string();
-                    break;
-                case /* string bundle_manifest_hash */ 5:
-                    message.bundleManifestHash = reader.string();
-                    break;
-                case /* uint32 global_ordinal */ 6:
-                    message.globalOrdinal = reader.uint32();
-                    break;
-                case /* string component_id */ 7:
-                    message.componentId = reader.string();
-                    break;
-                case /* uint64 component_offset */ 8:
-                    message.componentOffset = reader.uint64().toString();
-                    break;
-                case /* string chunk_sha256 */ 9:
-                    message.chunkSha256 = reader.string();
-                    break;
-                case /* bytes bytes */ 10:
-                    message.bytes = reader.bytes();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: PutSourceMaterializationChunkRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.AgentRequestContext context = 1; */
-        if (message.context)
-            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* string put_request_id = 2; */
-        if (message.putRequestId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.putRequestId);
-        /* string upload_id = 3; */
-        if (message.uploadId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.uploadId);
-        /* string packet_hash = 4; */
-        if (message.packetHash !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.packetHash);
-        /* string bundle_manifest_hash = 5; */
-        if (message.bundleManifestHash !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.bundleManifestHash);
-        /* uint32 global_ordinal = 6; */
-        if (message.globalOrdinal !== 0)
-            writer.tag(6, WireType.Varint).uint32(message.globalOrdinal);
-        /* string component_id = 7; */
-        if (message.componentId !== "")
-            writer.tag(7, WireType.LengthDelimited).string(message.componentId);
-        /* uint64 component_offset = 8; */
-        if (message.componentOffset !== "0")
-            writer.tag(8, WireType.Varint).uint64(message.componentOffset);
-        /* string chunk_sha256 = 9; */
-        if (message.chunkSha256 !== "")
-            writer.tag(9, WireType.LengthDelimited).string(message.chunkSha256);
-        /* bytes bytes = 10; */
-        if (message.bytes.length)
-            writer.tag(10, WireType.LengthDelimited).bytes(message.bytes);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.PutSourceMaterializationChunkRequest
- */
-export const PutSourceMaterializationChunkRequest = new PutSourceMaterializationChunkRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class PutSourceMaterializationChunkResponse$Type extends MessageType<PutSourceMaterializationChunkResponse> {
-    constructor() {
-        super("nimi.runtime.v1.PutSourceMaterializationChunkResponse", [
-            { no: 1, name: "upload_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "global_ordinal", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
-            { no: 3, name: "component_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "idempotent_replay", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 5, name: "upload_state", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceMaterializationUploadState", AgentSourceMaterializationUploadState, "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_"] },
-            { no: 6, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceMaterializationReasonCode", AgentSourceMaterializationReasonCode, "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_"] }
-        ]);
-    }
-    create(value?: PartialMessage<PutSourceMaterializationChunkResponse>): PutSourceMaterializationChunkResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.uploadId = "";
-        message.globalOrdinal = 0;
-        message.componentId = "";
-        message.idempotentReplay = false;
-        message.uploadState = 0;
-        message.reasonCode = 0;
-        if (value !== undefined)
-            reflectionMergePartial<PutSourceMaterializationChunkResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PutSourceMaterializationChunkResponse): PutSourceMaterializationChunkResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string upload_id */ 1:
-                    message.uploadId = reader.string();
-                    break;
-                case /* uint32 global_ordinal */ 2:
-                    message.globalOrdinal = reader.uint32();
-                    break;
-                case /* string component_id */ 3:
-                    message.componentId = reader.string();
-                    break;
-                case /* bool idempotent_replay */ 4:
-                    message.idempotentReplay = reader.bool();
-                    break;
-                case /* nimi.runtime.v1.AgentSourceMaterializationUploadState upload_state */ 5:
-                    message.uploadState = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.AgentSourceMaterializationReasonCode reason_code */ 6:
-                    message.reasonCode = reader.int32();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: PutSourceMaterializationChunkResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string upload_id = 1; */
-        if (message.uploadId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.uploadId);
-        /* uint32 global_ordinal = 2; */
-        if (message.globalOrdinal !== 0)
-            writer.tag(2, WireType.Varint).uint32(message.globalOrdinal);
-        /* string component_id = 3; */
-        if (message.componentId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.componentId);
-        /* bool idempotent_replay = 4; */
-        if (message.idempotentReplay !== false)
-            writer.tag(4, WireType.Varint).bool(message.idempotentReplay);
-        /* nimi.runtime.v1.AgentSourceMaterializationUploadState upload_state = 5; */
-        if (message.uploadState !== 0)
-            writer.tag(5, WireType.Varint).int32(message.uploadState);
-        /* nimi.runtime.v1.AgentSourceMaterializationReasonCode reason_code = 6; */
-        if (message.reasonCode !== 0)
-            writer.tag(6, WireType.Varint).int32(message.reasonCode);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.PutSourceMaterializationChunkResponse
- */
-export const PutSourceMaterializationChunkResponse = new PutSourceMaterializationChunkResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class CommitSourceMaterializationRequest$Type extends MessageType<CommitSourceMaterializationRequest> {
-    constructor() {
-        super("nimi.runtime.v1.CommitSourceMaterializationRequest", [
-            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
-            { no: 2, name: "commit_request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "upload_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "packet_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "bundle_manifest_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<CommitSourceMaterializationRequest>): CommitSourceMaterializationRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.commitRequestId = "";
-        message.uploadId = "";
-        message.packetHash = "";
-        message.bundleManifestHash = "";
-        if (value !== undefined)
-            reflectionMergePartial<CommitSourceMaterializationRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CommitSourceMaterializationRequest): CommitSourceMaterializationRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
-                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
-                    break;
-                case /* string commit_request_id */ 2:
-                    message.commitRequestId = reader.string();
-                    break;
-                case /* string upload_id */ 3:
-                    message.uploadId = reader.string();
-                    break;
-                case /* string packet_hash */ 4:
-                    message.packetHash = reader.string();
-                    break;
-                case /* string bundle_manifest_hash */ 5:
-                    message.bundleManifestHash = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: CommitSourceMaterializationRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.AgentRequestContext context = 1; */
-        if (message.context)
-            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* string commit_request_id = 2; */
-        if (message.commitRequestId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.commitRequestId);
-        /* string upload_id = 3; */
-        if (message.uploadId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.uploadId);
-        /* string packet_hash = 4; */
-        if (message.packetHash !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.packetHash);
-        /* string bundle_manifest_hash = 5; */
-        if (message.bundleManifestHash !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.bundleManifestHash);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.CommitSourceMaterializationRequest
- */
-export const CommitSourceMaterializationRequest = new CommitSourceMaterializationRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class CommitSourceMaterializationResponse$Type extends MessageType<CommitSourceMaterializationResponse> {
-    constructor() {
-        super("nimi.runtime.v1.CommitSourceMaterializationResponse", [
-            { no: 1, name: "upload_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "upload_state", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceMaterializationUploadState", AgentSourceMaterializationUploadState, "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_"] },
-            { no: 4, name: "challenge_state", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceMaterializationChallengeState", AgentSourceMaterializationChallengeState, "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_"] },
-            { no: 5, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceMaterializationReasonCode", AgentSourceMaterializationReasonCode, "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_"] },
-            { no: 6, name: "source_context_status", kind: "message", T: () => LocalAgentSourceContextStatus }
-        ]);
-    }
-    create(value?: PartialMessage<CommitSourceMaterializationResponse>): CommitSourceMaterializationResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.uploadId = "";
         message.localAgentRef = "";
-        message.uploadState = 0;
-        message.challengeState = 0;
+        message.idempotentReplay = false;
         message.reasonCode = 0;
         if (value !== undefined)
-            reflectionMergePartial<CommitSourceMaterializationResponse>(this, message, value);
+            reflectionMergePartial<MaterializeRealmSourceResponse>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CommitSourceMaterializationResponse): CommitSourceMaterializationResponse {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MaterializeRealmSourceResponse): MaterializeRealmSourceResponse {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string upload_id */ 1:
-                    message.uploadId = reader.string();
-                    break;
-                case /* string local_agent_ref */ 2:
+                case /* string local_agent_ref */ 1:
                     message.localAgentRef = reader.string();
                     break;
-                case /* nimi.runtime.v1.AgentSourceMaterializationUploadState upload_state */ 3:
-                    message.uploadState = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.AgentSourceMaterializationChallengeState challenge_state */ 4:
-                    message.challengeState = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.AgentSourceMaterializationReasonCode reason_code */ 5:
-                    message.reasonCode = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.LocalAgentSourceContextStatus source_context_status */ 6:
+                case /* nimi.runtime.v1.LocalAgentSourceContextStatus source_context_status */ 2:
                     message.sourceContextStatus = LocalAgentSourceContextStatus.internalBinaryRead(reader, reader.uint32(), options, message.sourceContextStatus);
                     break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: CommitSourceMaterializationResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string upload_id = 1; */
-        if (message.uploadId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.uploadId);
-        /* string local_agent_ref = 2; */
-        if (message.localAgentRef !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.localAgentRef);
-        /* nimi.runtime.v1.AgentSourceMaterializationUploadState upload_state = 3; */
-        if (message.uploadState !== 0)
-            writer.tag(3, WireType.Varint).int32(message.uploadState);
-        /* nimi.runtime.v1.AgentSourceMaterializationChallengeState challenge_state = 4; */
-        if (message.challengeState !== 0)
-            writer.tag(4, WireType.Varint).int32(message.challengeState);
-        /* nimi.runtime.v1.AgentSourceMaterializationReasonCode reason_code = 5; */
-        if (message.reasonCode !== 0)
-            writer.tag(5, WireType.Varint).int32(message.reasonCode);
-        /* nimi.runtime.v1.LocalAgentSourceContextStatus source_context_status = 6; */
-        if (message.sourceContextStatus)
-            LocalAgentSourceContextStatus.internalBinaryWrite(message.sourceContextStatus, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.CommitSourceMaterializationResponse
- */
-export const CommitSourceMaterializationResponse = new CommitSourceMaterializationResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class AbortSourceMaterializationUploadRequest$Type extends MessageType<AbortSourceMaterializationUploadRequest> {
-    constructor() {
-        super("nimi.runtime.v1.AbortSourceMaterializationUploadRequest", [
-            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
-            { no: 2, name: "abort_request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "upload_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "packet_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "bundle_manifest_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<AbortSourceMaterializationUploadRequest>): AbortSourceMaterializationUploadRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.abortRequestId = "";
-        message.uploadId = "";
-        message.packetHash = "";
-        message.bundleManifestHash = "";
-        if (value !== undefined)
-            reflectionMergePartial<AbortSourceMaterializationUploadRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AbortSourceMaterializationUploadRequest): AbortSourceMaterializationUploadRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
-                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
-                    break;
-                case /* string abort_request_id */ 2:
-                    message.abortRequestId = reader.string();
-                    break;
-                case /* string upload_id */ 3:
-                    message.uploadId = reader.string();
-                    break;
-                case /* string packet_hash */ 4:
-                    message.packetHash = reader.string();
-                    break;
-                case /* string bundle_manifest_hash */ 5:
-                    message.bundleManifestHash = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: AbortSourceMaterializationUploadRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.AgentRequestContext context = 1; */
-        if (message.context)
-            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* string abort_request_id = 2; */
-        if (message.abortRequestId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.abortRequestId);
-        /* string upload_id = 3; */
-        if (message.uploadId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.uploadId);
-        /* string packet_hash = 4; */
-        if (message.packetHash !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.packetHash);
-        /* string bundle_manifest_hash = 5; */
-        if (message.bundleManifestHash !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.bundleManifestHash);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.AbortSourceMaterializationUploadRequest
- */
-export const AbortSourceMaterializationUploadRequest = new AbortSourceMaterializationUploadRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class AbortSourceMaterializationUploadResponse$Type extends MessageType<AbortSourceMaterializationUploadResponse> {
-    constructor() {
-        super("nimi.runtime.v1.AbortSourceMaterializationUploadResponse", [
-            { no: 1, name: "upload_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "upload_state", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceMaterializationUploadState", AgentSourceMaterializationUploadState, "AGENT_SOURCE_MATERIALIZATION_UPLOAD_STATE_"] },
-            { no: 3, name: "challenge_state", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceMaterializationChallengeState", AgentSourceMaterializationChallengeState, "AGENT_SOURCE_MATERIALIZATION_CHALLENGE_STATE_"] },
-            { no: 4, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceMaterializationReasonCode", AgentSourceMaterializationReasonCode, "AGENT_SOURCE_MATERIALIZATION_REASON_CODE_"] },
-            { no: 5, name: "idempotent_replay", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
-        ]);
-    }
-    create(value?: PartialMessage<AbortSourceMaterializationUploadResponse>): AbortSourceMaterializationUploadResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.uploadId = "";
-        message.uploadState = 0;
-        message.challengeState = 0;
-        message.reasonCode = 0;
-        message.idempotentReplay = false;
-        if (value !== undefined)
-            reflectionMergePartial<AbortSourceMaterializationUploadResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AbortSourceMaterializationUploadResponse): AbortSourceMaterializationUploadResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string upload_id */ 1:
-                    message.uploadId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.AgentSourceMaterializationUploadState upload_state */ 2:
-                    message.uploadState = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.AgentSourceMaterializationChallengeState challenge_state */ 3:
-                    message.challengeState = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.AgentSourceMaterializationReasonCode reason_code */ 4:
-                    message.reasonCode = reader.int32();
-                    break;
-                case /* bool idempotent_replay */ 5:
+                case /* bool idempotent_replay */ 3:
                     message.idempotentReplay = reader.bool();
                     break;
+                case /* nimi.runtime.v1.RealmSourceMaterializationReasonCode reason_code */ 4:
+                    message.reasonCode = reader.int32();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2964,22 +1265,19 @@ class AbortSourceMaterializationUploadResponse$Type extends MessageType<AbortSou
         }
         return message;
     }
-    internalBinaryWrite(message: AbortSourceMaterializationUploadResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string upload_id = 1; */
-        if (message.uploadId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.uploadId);
-        /* nimi.runtime.v1.AgentSourceMaterializationUploadState upload_state = 2; */
-        if (message.uploadState !== 0)
-            writer.tag(2, WireType.Varint).int32(message.uploadState);
-        /* nimi.runtime.v1.AgentSourceMaterializationChallengeState challenge_state = 3; */
-        if (message.challengeState !== 0)
-            writer.tag(3, WireType.Varint).int32(message.challengeState);
-        /* nimi.runtime.v1.AgentSourceMaterializationReasonCode reason_code = 4; */
+    internalBinaryWrite(message: MaterializeRealmSourceResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string local_agent_ref = 1; */
+        if (message.localAgentRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.localAgentRef);
+        /* nimi.runtime.v1.LocalAgentSourceContextStatus source_context_status = 2; */
+        if (message.sourceContextStatus)
+            LocalAgentSourceContextStatus.internalBinaryWrite(message.sourceContextStatus, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* bool idempotent_replay = 3; */
+        if (message.idempotentReplay !== false)
+            writer.tag(3, WireType.Varint).bool(message.idempotentReplay);
+        /* nimi.runtime.v1.RealmSourceMaterializationReasonCode reason_code = 4; */
         if (message.reasonCode !== 0)
             writer.tag(4, WireType.Varint).int32(message.reasonCode);
-        /* bool idempotent_replay = 5; */
-        if (message.idempotentReplay !== false)
-            writer.tag(5, WireType.Varint).bool(message.idempotentReplay);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2987,9 +1285,9 @@ class AbortSourceMaterializationUploadResponse$Type extends MessageType<AbortSou
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.AbortSourceMaterializationUploadResponse
+ * @generated MessageType for protobuf message nimi.runtime.v1.MaterializeRealmSourceResponse
  */
-export const AbortSourceMaterializationUploadResponse = new AbortSourceMaterializationUploadResponse$Type();
+export const MaterializeRealmSourceResponse = new MaterializeRealmSourceResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class LocalAgentSourceCoverageSectionStatus$Type extends MessageType<LocalAgentSourceCoverageSectionStatus> {
     constructor() {
@@ -3078,7 +1376,7 @@ class LocalAgentSourceContextStatus$Type extends MessageType<LocalAgentSourceCon
             { no: 3, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.AgentLocalSourceContextState", AgentLocalSourceContextState, "AGENT_LOCAL_SOURCE_CONTEXT_STATE_"] },
             { no: 4, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.AgentContextProjectionReasonCode", AgentContextProjectionReasonCode, "AGENT_CONTEXT_PROJECTION_REASON_CODE_"] },
             { no: 5, name: "local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "source_ref", kind: "message", T: () => SourceMaterializationSourceRef },
+            { no: 6, name: "source_ref", kind: "message", T: () => CharacterSourceRefV3 },
             { no: 7, name: "source_schema_version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "snapshot_schema_version", kind: "enum", T: () => ["nimi.runtime.v1.AgentLocalSourceSnapshotSchemaVersion", AgentLocalSourceSnapshotSchemaVersion, "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_"] },
             { no: 9, name: "snapshot_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -3125,8 +1423,8 @@ class LocalAgentSourceContextStatus$Type extends MessageType<LocalAgentSourceCon
                 case /* string local_agent_ref */ 5:
                     message.localAgentRef = reader.string();
                     break;
-                case /* nimi.runtime.v1.SourceMaterializationSourceRef source_ref */ 6:
-                    message.sourceRef = SourceMaterializationSourceRef.internalBinaryRead(reader, reader.uint32(), options, message.sourceRef);
+                case /* nimi.runtime.v1.CharacterSourceRefV3 source_ref */ 6:
+                    message.sourceRef = CharacterSourceRefV3.internalBinaryRead(reader, reader.uint32(), options, message.sourceRef);
                     break;
                 case /* string source_schema_version */ 7:
                     message.sourceSchemaVersion = reader.string();
@@ -3176,9 +1474,9 @@ class LocalAgentSourceContextStatus$Type extends MessageType<LocalAgentSourceCon
         /* string local_agent_ref = 5; */
         if (message.localAgentRef !== "")
             writer.tag(5, WireType.LengthDelimited).string(message.localAgentRef);
-        /* nimi.runtime.v1.SourceMaterializationSourceRef source_ref = 6; */
+        /* nimi.runtime.v1.CharacterSourceRefV3 source_ref = 6; */
         if (message.sourceRef)
-            SourceMaterializationSourceRef.internalBinaryWrite(message.sourceRef, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+            CharacterSourceRefV3.internalBinaryWrite(message.sourceRef, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         /* string source_schema_version = 7; */
         if (message.sourceSchemaVersion !== "")
             writer.tag(7, WireType.LengthDelimited).string(message.sourceSchemaVersion);
@@ -3469,7 +1767,7 @@ class AgentTurnContextSummary$Type extends MessageType<AgentTurnContextSummary> 
             { no: 8, name: "context_content_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "prompt_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "source_snapshot_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 11, name: "source_ref", kind: "message", T: () => SourceMaterializationSourceRef },
+            { no: 11, name: "source_ref", kind: "message", T: () => CharacterSourceRefV3 },
             { no: 12, name: "world_content_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 13, name: "materialization_context_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 14, name: "lanes", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AgentTurnContextLaneSummary },
@@ -3550,8 +1848,8 @@ class AgentTurnContextSummary$Type extends MessageType<AgentTurnContextSummary> 
                 case /* string source_snapshot_hash */ 10:
                     message.sourceSnapshotHash = reader.string();
                     break;
-                case /* nimi.runtime.v1.SourceMaterializationSourceRef source_ref */ 11:
-                    message.sourceRef = SourceMaterializationSourceRef.internalBinaryRead(reader, reader.uint32(), options, message.sourceRef);
+                case /* nimi.runtime.v1.CharacterSourceRefV3 source_ref */ 11:
+                    message.sourceRef = CharacterSourceRefV3.internalBinaryRead(reader, reader.uint32(), options, message.sourceRef);
                     break;
                 case /* string world_content_hash */ 12:
                     message.worldContentHash = reader.string();
@@ -3637,9 +1935,9 @@ class AgentTurnContextSummary$Type extends MessageType<AgentTurnContextSummary> 
         /* string source_snapshot_hash = 10; */
         if (message.sourceSnapshotHash !== "")
             writer.tag(10, WireType.LengthDelimited).string(message.sourceSnapshotHash);
-        /* nimi.runtime.v1.SourceMaterializationSourceRef source_ref = 11; */
+        /* nimi.runtime.v1.CharacterSourceRefV3 source_ref = 11; */
         if (message.sourceRef)
-            SourceMaterializationSourceRef.internalBinaryWrite(message.sourceRef, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+            CharacterSourceRefV3.internalBinaryWrite(message.sourceRef, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
         /* string world_content_hash = 12; */
         if (message.worldContentHash !== "")
             writer.tag(12, WireType.LengthDelimited).string(message.worldContentHash);

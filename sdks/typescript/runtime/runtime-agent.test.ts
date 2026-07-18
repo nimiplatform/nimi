@@ -11,6 +11,7 @@ import {
   projectNimiRuntimeAgentStateSnapshot,
   readNimiRuntimeAgentPresentationProfile,
   RUNTIME_AGENT_METHODS,
+  RUNTIME_ROOT_AGENT_FACADE_METHODS,
   toNimiRuntimeProtoStruct,
   toNimiRuntimeTimestamp,
 } from './index';
@@ -59,6 +60,8 @@ test('Runtime Agent facade exposes canonical review status read projection', () 
   ]) {
     assert.equal(publicMethods.has(removedMethod), false);
   }
+  assert.deepEqual(RUNTIME_ROOT_AGENT_FACADE_METHODS, ['materializeRealmSource']);
+  assert.equal(publicMethods.has('materializeRealmSource'), false);
 });
 
 test('Runtime Agent projection reads typed presentation profile and state snapshots', () => {

@@ -81,7 +81,7 @@ func TestRegistryInstancesRetainIndependentCapabilities(t *testing.T) {
 		RealmRequired:   true,
 		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_RENDER,
 	}
-	if err := registry.UpsertInstance("nimi.desktop", "nimi.desktop.local-first-party", "desktop-shell", manifest, []string{"account.session.read", "realm_source.snapshot.bind"}); err != nil {
+	if err := registry.UpsertInstance("nimi.desktop", "nimi.desktop.local-first-party", "desktop-shell", manifest, []string{"account.session.read", "data.scope.read"}); err != nil {
 		t.Fatalf("register Desktop account instance: %v", err)
 	}
 	if err := registry.UpsertInstance("nimi.desktop", "nimi.desktop.runtime-agent", "runtime-agent", manifest, []string{"runtime.agent.read"}); err != nil {
@@ -94,7 +94,7 @@ func TestRegistryInstancesRetainIndependentCapabilities(t *testing.T) {
 	}
 	accountInstance := record.Instances["nimi.desktop.local-first-party"]
 	runtimeAgentInstance := record.Instances["nimi.desktop.runtime-agent"]
-	if len(accountInstance.Capabilities) != 2 || accountInstance.Capabilities[1] != "realm_source.snapshot.bind" {
+	if len(accountInstance.Capabilities) != 2 || accountInstance.Capabilities[1] != "data.scope.read" {
 		t.Fatalf("Desktop account instance capabilities were overwritten: %#v", accountInstance.Capabilities)
 	}
 	if len(runtimeAgentInstance.Capabilities) != 1 || runtimeAgentInstance.Capabilities[0] != "runtime.agent.read" {

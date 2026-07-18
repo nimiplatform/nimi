@@ -55,36 +55,36 @@ type scopedBindingRelationResolver interface {
 type Service struct {
 	runtimev1.UnimplementedRuntimeAgentServiceServer
 
-	logger                                *slog.Logger
-	memorySvc                             *memoryservice.Service
-	backend                               *runtimepersistence.Backend
-	stateRepo                             *runtimeAgentStateRepository
-	chatStateRepo                         *publicChatSurfaceStateRepository
-	reviews                               reviewPersistence
-	postures                              behavioralPosturePersistence
-	sourceMaterializationRepo             *sourceMaterializationRepository
-	sourceMaterializationMu               sync.RWMutex
-	sourceMaterializationRuntimeInstance  string
-	sourceMaterializationAdmission        sourceMaterializationAdmission
-	sourceMaterializationProductCommitter sourceMaterializationProductCommitter
-	publicChatSourceSnapshotResolve       func(context.Context, string) (localAgentSourceSnapshotV1, bool, error)
-	sourceMaterializationNow              func() time.Time
-	sourceMaterializationSweepCancel      context.CancelFunc
-	sourceMaterializationSweepDone        chan struct{}
-	chatAppEmit                           publicChatAppMessageEmitter
-	bindingValidator                      scopedBindingValidator
-	voiceAssetResolverMu                  sync.RWMutex
-	voiceAssetResolver                    VoiceAssetResolver
-	aiBridgeMu                            sync.RWMutex
-	aiBridge                              *RuntimePrivateAIBridge
-	auditStore                            *auditlog.Store
-	delegatedMu                           sync.RWMutex
-	delegatedGateway                      delegatedCapabilityGateway
-	delegatedFirewall                     delegatedOutputFirewall
-	delegatedTransportFactory             delegation.TransportFactory
-	delegatedProviderProfiles             map[string]*runtimev1.DelegatedProviderProfile
-	delegatedApprovalRequests             map[string]*runtimev1.DelegatedApprovalRequest
-	delegatedPausedRequests               map[string]*runtimeAgentPausedDelegatedCapabilityRequest
+	logger                                   *slog.Logger
+	memorySvc                                *memoryservice.Service
+	backend                                  *runtimepersistence.Backend
+	stateRepo                                *runtimeAgentStateRepository
+	chatStateRepo                            *publicChatSurfaceStateRepository
+	reviews                                  reviewPersistence
+	postures                                 behavioralPosturePersistence
+	realmSourceMaterializationRepoV3         *realmSourceMaterializationRepositoryV3
+	realmSourceSnapshotStoreV2               *realmSourceSnapshotV2Store
+	realmSourceMaterializationIssuerV3       RealmSourceMaterializationIssuer
+	realmSourceMaterializationRequestLocksV3 *realmSourceMaterializationRequestLocksV3
+	realmSourceMaterializationStagingV3      *realmSourceMaterializationStagingV3
+	sourceMaterializationMu                  sync.RWMutex
+	sourceMaterializationRuntimeInstance     string
+	publicChatSourceSnapshotResolve          func(context.Context, string) (localAgentSourceSnapshotV2, bool, error)
+	sourceMaterializationNow                 func() time.Time
+	chatAppEmit                              publicChatAppMessageEmitter
+	bindingValidator                         scopedBindingValidator
+	voiceAssetResolverMu                     sync.RWMutex
+	voiceAssetResolver                       VoiceAssetResolver
+	aiBridgeMu                               sync.RWMutex
+	aiBridge                                 *RuntimePrivateAIBridge
+	auditStore                               *auditlog.Store
+	delegatedMu                              sync.RWMutex
+	delegatedGateway                         delegatedCapabilityGateway
+	delegatedFirewall                        delegatedOutputFirewall
+	delegatedTransportFactory                delegation.TransportFactory
+	delegatedProviderProfiles                map[string]*runtimev1.DelegatedProviderProfile
+	delegatedApprovalRequests                map[string]*runtimev1.DelegatedApprovalRequest
+	delegatedPausedRequests                  map[string]*runtimeAgentPausedDelegatedCapabilityRequest
 	// voiceLipsync is the K-AGCORE-051/K-VOICE-018 synthesizer path. Default
 	// synthetic output is frame-only and cannot become a playable voice event.
 	voiceLipsync voiceLipsyncSynthesizer
@@ -180,60 +180,65 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 	}
 	backend := memorySvc.PersistenceBackend()
 	stateRepo := newRuntimeAgentStateRepository(backend)
-	sourceMaterializationRepo := newSourceMaterializationRepository(backend)
-	if err := sourceMaterializationRepo.recoverStartup(context.Background(), time.Now().UTC()); err != nil {
-		return nil, fmt.Errorf("recover source materialization state: %w", err)
+	realmSourceMaterializationRepoV3 := newRealmSourceMaterializationRepositoryV3(backend)
+	if err := realmSourceMaterializationRepoV3.recoverStartup(context.Background(), time.Now().UTC()); err != nil {
+		return nil, fmt.Errorf("recover Realm source materialization v3 state: %w", err)
+	}
+	realmSourceMaterializationStagingV3, err := newRealmSourceMaterializationStagingV3(backend.Path())
+	if err != nil {
+		return nil, err
+	}
+	if err := realmSourceMaterializationStagingV3.recoverStartup(); err != nil {
+		return nil, err
+	}
+	realmSourceSnapshotStoreV2, err := newRealmSourceSnapshotV2Store(backend.DB())
+	if err != nil {
+		return nil, err
 	}
 	svc := &Service{
-		logger:                    logger,
-		memorySvc:                 memorySvc,
-		backend:                   backend,
-		stateRepo:                 stateRepo,
-		chatStateRepo:             newPublicChatSurfaceStateRepository(backend, stateRepo),
-		agentAIConfigRepo:         newAgentAgentAIConfigRepository(backend),
-		agentAIConfigReadiness:    make(map[string]*runtimev1.RuntimeAgentAIConfigReadinessSnapshot),
-		execSubs:                  make(map[uint64]runtimeAgentAIConfigReadinessSubscriber),
-		reviews:                   newReviewPersistence(backend),
-		postures:                  newBehavioralPosturePersistence(backend),
-		sourceMaterializationRepo: sourceMaterializationRepo,
-		publicChatSourceSnapshotResolve: func(ctx context.Context, localAgentRef string) (localAgentSourceSnapshotV1, bool, error) {
-			snapshot, found, err := sourceMaterializationRepo.sourceSnapshot(ctx, localAgentRef)
-			if err != nil || !found {
-				return snapshot, found, err
-			}
-			if err := sourceMaterializationRepo.validateSourceSnapshotProvenance(ctx, snapshot); err != nil {
-				return localAgentSourceSnapshotV1{}, false, err
-			}
-			return snapshot, true, nil
-		},
-		sourceMaterializationNow:       func() time.Time { return time.Now().UTC() },
-		voiceAssetResolver:             rejectingVoiceAssetResolver{},
-		aiBridge:                       newRuntimePrivateAIBridge(),
-		delegatedGateway:               delegatedGateway,
-		delegatedFirewall:              delegatedFirewall,
-		agents:                         make(map[string]*agentEntry),
-		events:                         make([]*runtimev1.AgentEvent, 0, maxEventLogSize),
-		subscribers:                    make(map[uint64]*subscriber),
-		chatAnchors:                    make(map[string]*publicChatAnchorState),
-		chatTurns:                      make(map[string]*publicChatTurnState),
-		chatFollowUps:                  make(map[string]*publicChatFollowUpState),
-		avatarLiveInstanceBindings:     make(map[string]*avatarLiveInstanceBindingState),
-		chatActiveByAgent:              make(map[string]string),
-		realmGroupCandidates:           make(map[string]*realmGroupMessageCandidateEvidenceRecord),
-		realmGroupCandidateIdempotency: make(map[string]string),
-		memoryPromotionEvidence:        make(map[string]runtimeMemoryPromotionEvidence),
-		voiceLipsync:                   newSyntheticVoiceLipsyncSynthesizer(),
-		runtimeArtifacts:               runtimeartifact.NewMemoryStore(),
-		agentVoiceStreams:              newAgentVoiceStreamBroker(),
-		delegatedProviderProfiles:      make(map[string]*runtimev1.DelegatedProviderProfile),
-		delegatedApprovalRequests:      make(map[string]*runtimev1.DelegatedApprovalRequest),
-		delegatedPausedRequests:        make(map[string]*runtimeAgentPausedDelegatedCapabilityRequest),
+		logger:                                   logger,
+		memorySvc:                                memorySvc,
+		backend:                                  backend,
+		stateRepo:                                stateRepo,
+		chatStateRepo:                            newPublicChatSurfaceStateRepository(backend, stateRepo),
+		agentAIConfigRepo:                        newAgentAgentAIConfigRepository(backend),
+		agentAIConfigReadiness:                   make(map[string]*runtimev1.RuntimeAgentAIConfigReadinessSnapshot),
+		execSubs:                                 make(map[uint64]runtimeAgentAIConfigReadinessSubscriber),
+		reviews:                                  newReviewPersistence(backend),
+		postures:                                 newBehavioralPosturePersistence(backend),
+		realmSourceMaterializationRepoV3:         realmSourceMaterializationRepoV3,
+		realmSourceSnapshotStoreV2:               realmSourceSnapshotStoreV2,
+		realmSourceMaterializationRequestLocksV3: newRealmSourceMaterializationRequestLocksV3(),
+		realmSourceMaterializationStagingV3:      realmSourceMaterializationStagingV3,
+		publicChatSourceSnapshotResolve:          realmSourceSnapshotStoreV2.sourceSnapshot,
+		sourceMaterializationNow:                 func() time.Time { return time.Now().UTC() },
+		voiceAssetResolver:                       rejectingVoiceAssetResolver{},
+		aiBridge:                                 newRuntimePrivateAIBridge(),
+		delegatedGateway:                         delegatedGateway,
+		delegatedFirewall:                        delegatedFirewall,
+		agents:                                   make(map[string]*agentEntry),
+		events:                                   make([]*runtimev1.AgentEvent, 0, maxEventLogSize),
+		subscribers:                              make(map[uint64]*subscriber),
+		chatAnchors:                              make(map[string]*publicChatAnchorState),
+		chatTurns:                                make(map[string]*publicChatTurnState),
+		chatFollowUps:                            make(map[string]*publicChatFollowUpState),
+		avatarLiveInstanceBindings:               make(map[string]*avatarLiveInstanceBindingState),
+		chatActiveByAgent:                        make(map[string]string),
+		realmGroupCandidates:                     make(map[string]*realmGroupMessageCandidateEvidenceRecord),
+		realmGroupCandidateIdempotency:           make(map[string]string),
+		memoryPromotionEvidence:                  make(map[string]runtimeMemoryPromotionEvidence),
+		voiceLipsync:                             newSyntheticVoiceLipsyncSynthesizer(),
+		runtimeArtifacts:                         runtimeartifact.NewMemoryStore(),
+		agentVoiceStreams:                        newAgentVoiceStreamBroker(),
+		delegatedProviderProfiles:                make(map[string]*runtimev1.DelegatedProviderProfile),
+		delegatedApprovalRequests:                make(map[string]*runtimev1.DelegatedApprovalRequest),
+		delegatedPausedRequests:                  make(map[string]*runtimeAgentPausedDelegatedCapabilityRequest),
 	}
 	if err := svc.loadState(); err != nil {
 		return nil, err
 	}
-	if err := sourceMaterializationRepo.validatePersistedSnapshots(context.Background()); err != nil {
-		return nil, fmt.Errorf("validate persisted source snapshots: %w", err)
+	if err := realmSourceSnapshotStoreV2.validatePersistedSnapshots(context.Background()); err != nil {
+		return nil, fmt.Errorf("validate persisted Realm source SnapshotV2 state: %w", err)
 	}
 	if err := svc.validateLoadedSourceSnapshotBindings(context.Background()); err != nil {
 		return nil, fmt.Errorf("validate loaded source snapshot bindings: %w", err)
@@ -251,7 +256,6 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 	if err := svc.recoverReviewRuns(context.Background()); err != nil {
 		return nil, err
 	}
-	svc.startSourceMaterializationSweeper()
 	return svc, nil
 }
 
@@ -263,7 +267,6 @@ func (s *Service) Close() {
 		s.closed.Store(true)
 		s.StopLifeTrackLoop()
 		s.stopAgentAIConfigReadinessHealthSubscription()
-		s.stopSourceMaterializationSweeper()
 		s.shutdownPublicChatSurface()
 	})
 }
@@ -303,13 +306,13 @@ func (s *Service) SetRealmGroupMessageCandidateExecutor(executor RealmGroupMessa
 	s.realmGroupCandidateExecutor = executor
 }
 
-// SetSourceMaterializationRuntimeIdentity binds packet-v2 challenges to the
-// canonical configured Runtime identity. Materialization RPCs fail closed
-// until the manager wires Config.RuntimeID through this method. A changed
-// identity invalidates only unfinished transport state; committed snapshots
-// and agents remain immutable product truth.
+// SetSourceMaterializationRuntimeIdentity binds private Realm Packet requests
+// to the canonical configured Runtime identity. Materialization RPCs fail
+// closed until the manager wires Config.RuntimeID through this method. A
+// changed identity invalidates only unfinished acquisition state; committed
+// snapshots and agents remain immutable product truth.
 func (s *Service) SetSourceMaterializationRuntimeIdentity(runtimeInstanceID string) error {
-	if s == nil || s.sourceMaterializationRepo == nil {
+	if s == nil || s.realmSourceMaterializationRepoV3 == nil {
 		return fmt.Errorf("source materialization service is unavailable")
 	}
 	if runtimeInstanceID == "" || runtimeInstanceID != strings.TrimSpace(runtimeInstanceID) {
@@ -318,29 +321,36 @@ func (s *Service) SetSourceMaterializationRuntimeIdentity(runtimeInstanceID stri
 	now := s.sourceMaterializationClock()()
 	s.sourceMaterializationMu.Lock()
 	defer s.sourceMaterializationMu.Unlock()
-	if err := s.sourceMaterializationRepo.bindRuntimeInstance(context.Background(), runtimeInstanceID, now); err != nil {
+	if err := s.realmSourceMaterializationRepoV3.bindRuntimeInstance(context.Background(), runtimeInstanceID, now); err != nil {
 		return err
 	}
 	s.sourceMaterializationRuntimeInstance = runtimeInstanceID
 	return nil
 }
 
-func (s *Service) SetSourceMaterializationAdmission(admission sourceMaterializationAdmission) {
+// SetRealmSourceMaterializationIssuer installs the Runtime-private account /
+// Realm acquisition owner. Public callers never select this issuer or provide
+// any Realm transport, bearer, grant, Packet, proof or key material.
+func (s *Service) SetRealmSourceMaterializationIssuer(issuer RealmSourceMaterializationIssuer) {
 	if s == nil {
 		return
 	}
 	s.sourceMaterializationMu.Lock()
-	s.sourceMaterializationAdmission = admission
+	s.realmSourceMaterializationIssuerV3 = issuer
 	s.sourceMaterializationMu.Unlock()
 }
 
-func (s *Service) SetSourceMaterializationProductCommitter(committer sourceMaterializationProductCommitter) {
+func (s *Service) sourceMaterializationClock() func() time.Time {
 	if s == nil {
-		return
+		return func() time.Time { return time.Now().UTC() }
 	}
-	s.sourceMaterializationMu.Lock()
-	s.sourceMaterializationProductCommitter = committer
-	s.sourceMaterializationMu.Unlock()
+	s.sourceMaterializationMu.RLock()
+	nowFn := s.sourceMaterializationNow
+	s.sourceMaterializationMu.RUnlock()
+	if nowFn == nil {
+		return func() time.Time { return time.Now().UTC() }
+	}
+	return nowFn
 }
 
 func (s *Service) StartLifeTrackLoop(parent context.Context) error {
