@@ -57,6 +57,7 @@ async function zhiyuSources() {
 async function supervisorSources() {
   const files = {
     tsHost: '../apps/desktop/src-electron/local-development-host.ts',
+    tsProcess: '../apps/desktop/src-electron/local-development-host-process.ts',
     tsAuthoritySummary: '../apps/desktop/src-electron/local-development-authority-summary.ts',
     tsPlan: '../apps/desktop/src-electron/local-development-plan.ts',
     rustSupervisor: '../apps/desktop/src-tauri/src/desktop_local_development/supervisor.rs',

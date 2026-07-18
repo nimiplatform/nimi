@@ -81,11 +81,16 @@ test('SDK live acceptance command delegates to the real fixed-service product ca
     path.join(repoRoot, 'tests/local-agent-product/harness/dev-kernel-cross-app-driver.mjs'),
     'utf8',
   );
+  const hostDriver = fs.readFileSync(
+    path.join(repoRoot, 'tests/local-agent-product/harness/dev-kernel-host-driver.mjs'),
+    'utf8',
+  );
   const fixedServiceContract = fs.readFileSync(
     path.join(repoRoot, 'tests/local-agent-product/harness/dev-kernel-fixed-service-contract.mjs'),
     'utf8',
   );
-  assert.match(driver, /assertFixedServiceStatus\(status\)/u);
+  assert.match(driver, /readFixedServiceStatus\(\)/u);
+  assert.match(hostDriver, /assertFixedServiceStatus\(status\)/u);
   assert.match(fixedServiceContract, /status\?\.serviceName !== 'NimiRuntime'/u);
   assert.match(fixedServiceContract, /status\?\.serviceAccountMatches !== true/u);
   for (const field of ['serviceSidMatches', 'runtimeBinaryMatchesCandidate']) {

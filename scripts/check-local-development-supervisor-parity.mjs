@@ -10,7 +10,7 @@ export function collectLocalDevelopmentSupervisorParityViolations(sources) {
   const violations = [];
   requireBoth(sources.tsAuthoritySummary, /LOCAL_DEVELOPMENT_HEARTBEAT_INTERVAL_MS = 3_000/u, sources.rustAuthoritySummary, /PRESENCE_HEARTBEAT_INTERVAL: Duration = Duration::from_millis\(3_000\)/u, 'heartbeat must remain 3000ms', violations);
   requireBoth(sources.tsHost, /REBUILD_DEBOUNCE_MS = 450/u, sources.rustSupervisor, /SOURCE_REBUILD_DEBOUNCE: Duration = Duration::from_millis\(450\)/u, 'rebuild debounce must remain 450ms', violations);
-  requireBoth(sources.tsHost, /Date\.now\(\) \+ 60_000/u, sources.rustSupervisor, /RENDERER_READY_TIMEOUT: Duration = Duration::from_secs\(60\)/u, 'renderer readiness must remain 60s', violations);
+  requireBoth(sources.tsProcess, /Date\.now\(\) \+ 60_000/u, sources.rustSupervisor, /RENDERER_READY_TIMEOUT: Duration = Duration::from_secs\(60\)/u, 'renderer readiness must remain 60s', violations);
   for (const route of ['/v1/start', '/v1/status', '/v1/cancel']) {
     if (!sources.tsHost.includes(`'${route}'`) || !sources.rustHttp.includes(`"${route}"`)) {
       violations.push(`route parity missing for ${route}`);
@@ -101,6 +101,7 @@ export function collectLocalDevelopmentSupervisorParityViolations(sources) {
 async function readSources() {
   const files = {
     tsHost: 'apps/desktop/src-electron/local-development-host.ts',
+    tsProcess: 'apps/desktop/src-electron/local-development-host-process.ts',
     tsAuthoritySummary: 'apps/desktop/src-electron/local-development-authority-summary.ts',
     tsPlan: 'apps/desktop/src-electron/local-development-plan.ts',
     rustSupervisor: 'apps/desktop/src-tauri/src/desktop_local_development/supervisor.rs',
