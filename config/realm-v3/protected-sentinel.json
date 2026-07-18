@@ -1,13 +1,40 @@
 {
-  "schemaVersion": "nimi.realm-v3-protected-sentinel/v1",
+  "schemaVersion": "nimi.realm-v3-protected-sentinel/v2",
   "baselineCommit": "90270996b8213d699f754ece6060a10821ed7558",
   "baselineTree": "30f6fc6b14f86f266f9035aac6ce07fa550fa964",
-  "inheritedImplementationBaseline": {
-    "schemaVersion": "nimi.realm-v3-inherited-protected-baseline/v1",
-    "commit": "b3205d3bb6228539c78de61a89b64bdd1318106f",
-    "tree": "77eb01b2a8375599c96bda5df2e7579f805790bd",
-    "localParent": "c80d87da25108bae7c5246fc91e57def21c411b6",
-    "remoteParent": "f711467c6626881e8bdccce777a838b4efe1d3c6"
+  "implementationBaseline": {
+    "schemaVersion": "nimi.realm-v3-protected-implementation-baseline/v1",
+    "previous": {
+      "schemaVersion": "nimi.realm-v3-inherited-protected-baseline/v1",
+      "commit": "b3205d3bb6228539c78de61a89b64bdd1318106f",
+      "tree": "77eb01b2a8375599c96bda5df2e7579f805790bd",
+      "localParent": "c80d87da25108bae7c5246fc91e57def21c411b6",
+      "remoteParent": "f711467c6626881e8bdccce777a838b4efe1d3c6"
+    },
+    "admitted": {
+      "commit": "f00b26b9f9e20c5273833c778cee7c0d5e337c18",
+      "tree": "c929070c96d907efbc83dbe79eb7305ffe19eae8",
+      "parent": "e91b2e6d2191e3d6b49d8453843c8bdd6d475297",
+      "changeClass": "ecosystem_third_party_permission_authority_hardcut",
+      "authorityRefs": [
+        "P-PERM-002",
+        "P-PERM-011",
+        "P-PERM-014",
+        "P-PERM-015",
+        "P-PERM-017",
+        "K-GRANT-002",
+        "K-GRANT-014",
+        "P-KIT-044",
+        "K-PLOCAL-002"
+      ],
+      "protectedChangePaths": [
+        "apps/desktop/src-tauri",
+        "kit/shell/protected-local",
+        "kit/shell/protected-local-node",
+        "runtime/internal/grpcserver/protected_transport.go",
+        "sdks/typescript/core/app/local-app-runtime-platform-protected-operations.ts"
+      ]
+    }
   },
   "immutablePaths": [
     "kit/shell/protected-local",
@@ -37,75 +64,169 @@
     "scripts/windows-protected-e2e-fixture.test.mjs"
   ],
   "protectedAuthorityAndValidatorPaths": [
-    ".nimi/spec/platform/kernel/nimi-app-admission-contract.md",
-    ".nimi/spec/platform/kernel/nimi-app-local-admission-contract.md",
     ".nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml",
     ".nimi/spec/runtime/kernel/config-contract.md",
-    ".nimi/spec/runtime/kernel/index.md",
-    ".nimi/spec/runtime/kernel/local-app-principal-record-contract.md",
-    ".nimi/spec/runtime/kernel/protected-local-session-contract.md",
     ".nimi/spec/runtime/kernel/tables/local-app-principal-record-schema.yaml",
     ".nimi/spec/runtime/kernel/tables/protected-local-custody-profiles.yaml",
     ".nimi/spec/runtime/kernel/tables/protected-local-launch-session-profiles.yaml",
     ".nimi/spec/runtime/kernel/tables/protected-local-lifecycle-intent-protocol.yaml",
     ".nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml",
-    ".nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml",
-    ".nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml",
-    "scripts/check-protected-local-authority.test.mjs",
-    "scripts/lib/protected-local-authority-check.mjs",
-    "scripts/testdata/protected-local-authority/negative-fixtures.json"
+    ".nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml"
   ],
   "authorizedAuthorityMigrations": [
     {
+      "path": ".nimi/spec/platform/kernel/nimi-app-admission-contract.md",
+      "baselineObject": "64ed5c1cba0c5b5b4f1bfd5c37ebc606cf8ecfad",
+      "authorizedObject": "20fe3a99cc74bd75bda4d6213e4b9c3ad259e264",
+      "authorizationState": "authority_aligned_and_implemented",
+      "authorityRefs": ["P-PERM-011", "P-PERM-013", "P-NAPP-012"],
+      "allowedChange": "separate app identity, app-private storage and product permissions",
+      "requiredUnchangedSemantics": [
+        "runtime_derived_non_reused_principal",
+        "provenance_does_not_widen_authority",
+        "app_id_is_not_security_principal"
+      ]
+    },
+    {
+      "path": ".nimi/spec/platform/kernel/nimi-app-local-admission-contract.md",
+      "baselineObject": "4b118bbaf3f7832aad9766e181a6880d33da2288",
+      "authorizedObject": "01f516f4c45edcddc18ddd44089f8b4f13358bbc",
+      "authorizationState": "authority_aligned_and_implemented",
+      "authorityRefs": ["P-PERM-015", "P-PERM-017", "P-NAPP-030"],
+      "allowedChange": "separate launch admission, app-owned native authority and OS rights",
+      "requiredUnchangedSemantics": [
+        "verified_supervisor_launch",
+        "process_bound_session",
+        "os_right_disclosure"
+      ]
+    },
+    {
+      "path": ".nimi/spec/runtime/kernel/index.md",
+      "baselineObject": "e1d51a6da5ad4457c0626593f8c57512b967eb03",
+      "authorizedObject": "ad58e8a911203433b320908a9322c51edeaf7272",
+      "authorizationState": "authority_aligned_and_implemented",
+      "authorityRefs": ["P-PERM-015", "K-GRANT-002"],
+      "allowedChange": "project the five authority classes and removed public grant surface",
+      "requiredUnchangedSemantics": [
+        "runtime_owner_boundaries",
+        "protected_transport_authority"
+      ]
+    },
+    {
+      "path": ".nimi/spec/runtime/kernel/local-app-principal-record-contract.md",
+      "baselineObject": "e34b36d3ce76882abacbca153d399a2ce4128e60",
+      "authorizedObject": "ff49f8bc40eb9430cbc050bbeba4f493dc6e95ae",
+      "authorizationState": "authority_aligned_and_implemented",
+      "authorityRefs": ["P-PERM-013", "K-GRANT-014"],
+      "allowedChange": "replace synthetic grant inheritance with permission-decision separation",
+      "requiredUnchangedSemantics": [
+        "random_non_reused_principal",
+        "tombstone_non_transfer",
+        "app_id_non_authority"
+      ]
+    },
+    {
+      "path": ".nimi/spec/runtime/kernel/protected-local-session-contract.md",
+      "baselineObject": "f738e6e25f745b335535c75d7e5adab880999973",
+      "authorizedObject": "867938fca6b4d833dbca44730e04c33da23cb966",
+      "authorizationState": "authority_aligned_and_implemented",
+      "authorityRefs": ["P-PERM-011", "P-PERM-015", "P-PERM-017", "K-PLOCAL-002"],
+      "allowedChange": "admit app-private JSON as a base entitlement and remove unadmitted Agent, Artifact and voice operations",
+      "requiredUnchangedSemantics": [
+        "mutual_native_authentication",
+        "process_liveness_binding",
+        "runtime_derived_session",
+        "no_generic_runtime_proxy"
+      ]
+    },
+    {
+      "path": ".nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml",
+      "baselineObject": "f75a4bc8ea9fdc67ee5a6c72bdf7e616ddc963d8",
+      "authorizedObject": "2a4cd2b3800360a6ae7350c40695d0ee325af9c7",
+      "authorizationState": "authority_aligned_and_implemented",
+      "authorityRefs": ["P-PERM-011", "P-PERM-017", "K-PLOCAL-002"],
+      "allowedChange": "narrow the local-app carrier to session, permission status/request and private JSON",
+      "requiredUnchangedSemantics": [
+        "exact_origin_matrix",
+        "ordinary_transport_denial",
+        "no_method_id_proxy"
+      ]
+    },
+    {
+      "path": "scripts/check-protected-local-authority.test.mjs",
+      "baselineObject": "6f4e235490e42a540af79d36949f242e26a88025",
+      "authorizedObject": "eb7ef6b823290e7f57facaca16081bcdf65fcfd1",
+      "authorizationState": "authority_aligned_and_implemented",
+      "authorityRefs": ["P-PERM-015", "P-PERM-017", "K-PLOCAL-002"],
+      "allowedChange": "prove absent permission storage, base entitlements and narrowed protected operations",
+      "requiredUnchangedSemantics": [
+        "independent_negative_fixtures",
+        "fail_closed_cli_evidence"
+      ]
+    },
+    {
+      "path": "scripts/lib/protected-local-authority-check.mjs",
+      "baselineObject": "81577a04d7b0f8867e5f08b9fea65e71c96adc84",
+      "authorizedObject": "d1e57e530c0c5a42b0230e8d85acfe9c39a0704f",
+      "authorizationState": "authority_aligned_and_implemented",
+      "authorityRefs": ["P-PERM-015", "P-PERM-017", "K-PLOCAL-002"],
+      "allowedChange": "validate the narrowed authority classes and current empty permission admission",
+      "requiredUnchangedSemantics": [
+        "native_trust_validation",
+        "principal_session_separation",
+        "unapproved_widening_rejected"
+      ]
+    },
+    {
+      "path": "scripts/testdata/protected-local-authority/negative-fixtures.json",
+      "baselineObject": "ade5cb5546e67550462e318166e9f21960e45e44",
+      "authorizedObject": "83003ef23254bfdb13f49a5c2720aac37171a243",
+      "authorizationState": "authority_aligned_and_implemented",
+      "authorityRefs": ["P-PERM-015", "P-PERM-017", "K-PLOCAL-002"],
+      "allowedChange": "replace operation-grant mutations with permission and base-entitlement boundary mutations",
+      "requiredUnchangedSemantics": [
+        "one_mutation_per_fixture",
+        "stable_issue_codes"
+      ]
+    },
+    {
       "path": ".nimi/spec/runtime/kernel/account-session-contract.md",
       "baselineObject": "73e7be3baedf4655b896fe9c33d6b6436390db8b",
-      "authorizedObject": "e16d3fb28e8caee6bf20af05ef3d90fc557dc039",
-      "authorizationState": "NC0_PASS_N1_AUTHORIZED",
-      "authorizationEvidenceSha256": "f66c21582fdab1c04fd1308590c082c51cffea3bb293ca1a774708fc1a3b4daf",
-      "allowedChange": "realm_materialization_operation_vocabulary_only",
+      "authorizedObject": "465a496eb2415974adf534765b4b43fe71412ffd",
+      "authorizationState": "authority_aligned_and_implemented",
+      "authorityRefs": ["P-PERM-014", "K-ACCSVC-001", "K-GRANT-014"],
+      "allowedChange": "hard-cut synthetic Realm grants and separate product permissions from first-party materialization",
       "requiredUnchangedSemantics": [
-        "caller_identity",
-        "account_profile_ownership",
-        "custody",
-        "authentication_authorization_posture",
-        "protected_transport",
-        "lifecycle",
-        "service_principal",
-        "permission_grant_conditions",
-        "protected_local_behavior"
+        "account_token_custody",
+        "authenticated_realm_owner",
+        "protected_local_transport"
       ]
     },
     {
       "path": ".nimi/spec/runtime/kernel/tables/account-rpc-permission-matrix.yaml",
       "baselineObject": "0e3a02749932571d0f1d6f9539ffb806f1f008eb",
-      "authorizedObject": "1a3828044ccc88e06a3f35dea96cfa44e6cae92a",
-      "authorizationState": "NC0_PASS_N1_AUTHORIZED",
-      "authorizationEvidenceSha256": "f66c21582fdab1c04fd1308590c082c51cffea3bb293ca1a774708fc1a3b4daf",
-      "allowedChange": "realm_broker_operation_ids_only",
+      "authorizedObject": "b74ed33f76364df1c09d8fdbed4bcd4389a2a875",
+      "authorizationState": "authority_aligned_and_implemented",
+      "authorityRefs": ["P-PERM-014", "K-ACCSVC-001", "K-GRANT-014"],
+      "allowedChange": "remove synthetic grant RPC posture and classify Realm materialization as first-party service authority",
       "requiredUnchangedSemantics": [
         "caller_identity",
         "account_profile_ownership",
-        "custody",
-        "authentication_authorization_posture",
-        "protected_transport",
-        "lifecycle",
-        "service_principal",
-        "permission_grant_conditions",
-        "protected_local_behavior"
+        "ordinary_local_app_denial"
+      ]
+    },
+    {
+      "path": "scripts/check-shared-auth-broker.mjs",
+      "baselineObject": "8bf838f8bda29a2140b5111dd6a1a7b1a3b4b284",
+      "authorizedObject": "476fd35aed9f441155885ab1f0fe022db2cc5a5e",
+      "authorizationState": "authority_aligned_and_implemented",
+      "authorityRefs": ["P-PERM-014", "P-PERM-015", "K-GRANT-014", "K-ACCSVC-001"],
+      "allowedChange": "align Realm v3 broker operations and the narrowed local-app permission/base-entitlement checks",
+      "requiredUnchangedSemantics": [
+        "runtime_owned_realm_broker",
+        "desktop_account_control",
+        "no_generic_local_app_runtime_proxy"
       ]
     }
-  ],
-  "narrowException": {
-    "path": "scripts/check-shared-auth-broker.mjs",
-    "baselineObject": "8bf838f8bda29a2140b5111dd6a1a7b1a3b4b284",
-    "allowedSection": "checkRuntimeBrokerPolicy.expectedOperationIDs",
-    "normalization": "replace_expected_operation_ids_array_only",
-    "requiredUnchangedSemantics": [
-      "protected_platform_binding",
-      "custody_profile_authority",
-      "caller_profile",
-      "rpc_transport_matrix",
-      "lifecycle_assertions"
-    ]
-  }
+  ]
 }

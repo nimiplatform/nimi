@@ -12,7 +12,7 @@ registry_id: platform_release_gate_registry
 # file. Hand-edits in projection surfaces are a projection-drift fail.
 
 schema_version: release-gate-registry/v1
-registry_version: "1.6.0"
+registry_version: "1.7.0"
 profile_id: nimi
 # -----------------------------------------------------------------------
 # Tier definitions (P-RELG-012 tier membership constraint)
@@ -1119,6 +1119,62 @@ gates:
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
+    evidence:
+      shape: command_exit
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.realm.v3-authority
+    description: Verify Realm v3 producer authority, first-party materialization posture, and public-permission separation.
+    command: pnpm check:realm-v3:authority
+    runner: pnpm
+    tiers: [fast, release]
+    targets: [any]
+    timeout_seconds: 120
+    requires_binaries: [pnpm, node]
+    evidence:
+      shape: command_exit
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.realm.v3-consumer-inventory
+    description: Verify every Realm v3 producer and consumer is represented by the closed migration inventory.
+    command: pnpm check:realm-v3:consumer-inventory
+    runner: pnpm
+    tiers: [fast, release]
+    targets: [any]
+    timeout_seconds: 120
+    requires_binaries: [pnpm, node]
+    evidence:
+      shape: command_exit
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.realm.v3-generated-convergence
+    description: Verify generated Realm v3 clients, models, wire shapes, and negative fixtures converge on the admitted producer contract.
+    command: pnpm check:realm-v3:generated-convergence
+    runner: pnpm
+    tiers: [fast, release]
+    targets: [sdk, runtime]
+    timeout_seconds: 180
+    requires_binaries: [pnpm, node]
+    evidence:
+      shape: command_exit
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.realm.v3-protected-sentinel
+    description: Freeze Realm v3 protected transport and authority paths against the exact admitted implementation baseline.
+    command: pnpm check:realm-v3:protected-sentinel
+    runner: pnpm
+    tiers: [fast, release]
+    targets: [any]
+    timeout_seconds: 180
+    requires_binaries: [pnpm, node, git]
     evidence:
       shape: command_exit
     p_relg_anchors: [P-RELG-001]

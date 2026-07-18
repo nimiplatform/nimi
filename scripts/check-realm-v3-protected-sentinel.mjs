@@ -50,32 +50,94 @@ function worktreeObject(target) {
   return git('hash-object', '--', target);
 }
 
-function resolveImplementationBaseline(manifest, authorityBaseline) {
-  const inherited = manifest.inheritedImplementationBaseline;
-  if (inherited === undefined) return { commit: authorityBaseline, tree: manifest.baselineTree, inherited: false };
-  if (!inherited || inherited.schemaVersion !== 'nimi.realm-v3-inherited-protected-baseline/v1') {
-    fail('unsupported inherited protected implementation baseline');
-  }
-  const commit = git('rev-parse', `${inherited.commit}^{commit}`);
-  const tree = git('rev-parse', `${inherited.commit}^{tree}`);
-  if (commit !== inherited.commit || tree !== inherited.tree) {
-    fail(`inherited protected baseline commit/tree mismatch: commit=${commit} tree=${tree}`);
-  }
-  const parents = git('show', '-s', '--format=%P', commit).split(/\s+/u);
-  if (parents.length !== 2 || parents[0] !== inherited.localParent || parents[1] !== inherited.remoteParent) {
-    fail(`inherited protected baseline merge parents mismatch: ${parents.join(' ')}`);
-  }
-  for (const [ancestor, descendant, label] of [
-    [authorityBaseline, commit, 'authority baseline'],
-    [commit, 'HEAD', 'current HEAD'],
-  ]) {
-    const relation = spawnSync('git', ['merge-base', '--is-ancestor', ancestor, descendant], { cwd: repoRoot });
-    if (relation.status !== 0) fail(`inherited protected baseline does not descend into ${label}`);
-  }
-  return { commit, tree, inherited: true, localParent: inherited.localParent, remoteParent: inherited.remoteParent };
+function assertAncestor(ancestor, descendant, label) {
+  const relation = spawnSync('git', ['merge-base', '--is-ancestor', ancestor, descendant], { cwd: repoRoot });
+  if (relation.status !== 0) fail(`${label}: ${ancestor} is not an ancestor of ${descendant}`);
 }
 
-function assertAuthorizedAuthorityMigration(baseline, migration) {
+function assertCommitTree(record, label) {
+  const commit = git('rev-parse', `${record.commit}^{commit}`);
+  const tree = git('rev-parse', `${record.commit}^{tree}`);
+  if (commit !== record.commit || tree !== record.tree) {
+    fail(`${label} commit/tree mismatch: commit=${commit} tree=${tree}`);
+  }
+  return { commit, tree };
+}
+
+function resolveImplementationBaseline(manifest, authorityBaseline) {
+  const baseline = manifest.implementationBaseline;
+  if (!baseline || baseline.schemaVersion !== 'nimi.realm-v3-protected-implementation-baseline/v1') {
+    fail('unsupported protected implementation baseline');
+  }
+
+  const previous = baseline.previous;
+  if (!previous || previous.schemaVersion !== 'nimi.realm-v3-inherited-protected-baseline/v1') {
+    fail('missing previous inherited protected baseline');
+  }
+  const previousIdentity = assertCommitTree(previous, 'previous protected baseline');
+  const previousParents = git('show', '-s', '--format=%P', previousIdentity.commit).split(/\s+/u);
+  if (previousParents.length !== 2
+    || previousParents[0] !== previous.localParent
+    || previousParents[1] !== previous.remoteParent) {
+    fail(`previous protected baseline merge parents mismatch: ${previousParents.join(' ')}`);
+  }
+
+  const admitted = baseline.admitted;
+  if (!admitted || admitted.changeClass !== 'ecosystem_third_party_permission_authority_hardcut') {
+    fail('implementation baseline has no admitted permission-authority hardcut');
+  }
+  const admittedIdentity = assertCommitTree(admitted, 'admitted protected baseline');
+  const admittedParents = git('show', '-s', '--format=%P', admittedIdentity.commit).split(/\s+/u);
+  if (admittedParents.length !== 1 || admittedParents[0] !== admitted.parent) {
+    fail(`admitted protected baseline parent mismatch: ${admittedParents.join(' ')}`);
+  }
+  if (!Array.isArray(admitted.authorityRefs)
+    || admitted.authorityRefs.length === 0
+    || admitted.authorityRefs.some((value) => typeof value !== 'string' || value.trim() === '')) {
+    fail('admitted protected baseline has no authority references');
+  }
+  if (new Set(admitted.authorityRefs).size !== admitted.authorityRefs.length) {
+    fail('admitted protected baseline repeats authority references');
+  }
+
+  assertAncestor(authorityBaseline, previousIdentity.commit, 'authority-to-previous baseline lineage');
+  assertAncestor(previousIdentity.commit, admittedIdentity.commit, 'previous-to-admitted baseline lineage');
+  assertAncestor(admittedIdentity.commit, 'HEAD', 'admitted baseline-to-current lineage');
+
+  const changedPaths = manifest.immutablePaths
+    .filter((target) => spawnSync(
+      'git',
+      ['diff', '--quiet', previousIdentity.commit, admittedIdentity.commit, '--', target],
+      { cwd: repoRoot },
+    ).status !== 0)
+    .sort();
+  const declaredChangedPaths = Array.isArray(admitted.protectedChangePaths)
+    ? [...admitted.protectedChangePaths].sort()
+    : [];
+  if (new Set(declaredChangedPaths).size !== declaredChangedPaths.length
+    || JSON.stringify(changedPaths) !== JSON.stringify(declaredChangedPaths)) {
+    fail(`admitted protected path inventory mismatch: expected=${changedPaths.join(',')} declared=${declaredChangedPaths.join(',')}`);
+  }
+
+  return {
+    commit: admittedIdentity.commit,
+    tree: admittedIdentity.tree,
+    previous: {
+      commit: previousIdentity.commit,
+      tree: previousIdentity.tree,
+      localParent: previous.localParent,
+      remoteParent: previous.remoteParent,
+    },
+    admission: {
+      changeClass: admitted.changeClass,
+      parent: admitted.parent,
+      authorityRefs: admitted.authorityRefs,
+      protectedChangePaths: declaredChangedPaths,
+    },
+  };
+}
+
+function assertAuthorizedAuthorityMigration(baseline, implementationBaseline, migration) {
   if (!migration || typeof migration !== 'object') fail('authorized authority migration must be an object');
   const target = String(migration.path || '').trim();
   if (!target || path.isAbsolute(target) || target.split(/[\\/]/u).includes('..')) {
@@ -85,17 +147,23 @@ function assertAuthorizedAuthorityMigration(baseline, migration) {
   if (baselineObject !== migration.baselineObject) {
     fail(`authorized authority baseline object mismatch for ${target}: expected=${migration.baselineObject} actual=${baselineObject}`);
   }
+  const admittedObject = git('rev-parse', `${implementationBaseline}:${target}`);
+  if (admittedObject !== migration.authorizedObject) {
+    fail(`authorized authority object is not bound to the admitted implementation baseline for ${target}: expected=${migration.authorizedObject} actual=${admittedObject}`);
+  }
   const currentWorktreeObject = worktreeObject(target);
-  if (currentWorktreeObject !== migration.authorizedObject) {
+  if (currentWorktreeObject !== admittedObject) {
     fail(`protected authority changed outside its exact authorized migration: ${target}: expected=${migration.authorizedObject} actual=${currentWorktreeObject}`);
   }
   const untracked = git('ls-files', '--others', '--exclude-standard', '--', target);
   if (untracked) fail(`authorized authority path contains untracked files: ${target}: ${untracked}`);
-  if (migration.authorizationState !== 'NC0_PASS_N1_AUTHORIZED') {
+  if (migration.authorizationState !== 'authority_aligned_and_implemented') {
     fail(`authorized authority migration has invalid authorization state: ${target}`);
   }
-  if (!/^[a-f0-9]{64}$/u.test(String(migration.authorizationEvidenceSha256 || ''))) {
-    fail(`authorized authority migration has invalid authorization evidence digest: ${target}`);
+  if (!Array.isArray(migration.authorityRefs)
+    || migration.authorityRefs.length === 0
+    || migration.authorityRefs.some((value) => typeof value !== 'string' || value.trim() === '')) {
+    fail(`authorized authority migration has no authority references: ${target}`);
   }
   if (!Array.isArray(migration.requiredUnchangedSemantics) || migration.requiredUnchangedSemantics.length === 0) {
     fail(`authorized authority migration has no preserved semantic inventory: ${target}`);
@@ -106,7 +174,7 @@ function assertAuthorizedAuthorityMigration(baseline, migration) {
     authorizedObject: migration.authorizedObject,
     currentWorktreeObject,
     authorizationState: migration.authorizationState,
-    authorizationEvidenceSha256: migration.authorizationEvidenceSha256,
+    authorityRefs: migration.authorityRefs,
     allowedChange: migration.allowedChange,
     requiredUnchangedSemantics: migration.requiredUnchangedSemantics,
   };
@@ -121,7 +189,7 @@ function normalizeBrokerInventory(source) {
 
 function check({ manifestPath }) {
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-  if (manifest.schemaVersion !== 'nimi.realm-v3-protected-sentinel/v1') {
+  if (manifest.schemaVersion !== 'nimi.realm-v3-protected-sentinel/v2') {
     fail('unsupported manifest schema');
   }
   const baselineCommit = git('rev-parse', `${manifest.baselineCommit}^{commit}`);
@@ -143,23 +211,34 @@ function check({ manifestPath }) {
     if (manifest.immutablePaths.includes(migration.path) || manifest.protectedAuthorityAndValidatorPaths.includes(migration.path)) {
       fail(`authorized authority migration duplicates a zero-diff protected path: ${migration.path}`);
     }
-    return assertAuthorizedAuthorityMigration(baselineCommit, migration);
+    return assertAuthorizedAuthorityMigration(baselineCommit, implementationBaseline.commit, migration);
   });
 
   const exception = manifest.narrowException;
-  const baselineObject = git('rev-parse', `${baselineCommit}:${exception.path}`);
-  if (baselineObject !== exception.baselineObject) {
-    fail(`shared broker baseline object mismatch: expected=${exception.baselineObject} actual=${baselineObject}`);
-  }
-  const baselineSource = execFileSync('git', ['show', `${baselineCommit}:${exception.path}`], {
-    cwd: repoRoot,
-    encoding: 'utf8',
-  });
-  const currentSource = fs.readFileSync(path.join(repoRoot, exception.path), 'utf8');
-  const baselineProtectedHash = sha256(normalizeBrokerInventory(baselineSource));
-  const currentProtectedHash = sha256(normalizeBrokerInventory(currentSource));
-  if (currentProtectedHash !== baselineProtectedHash) {
-    fail(`${exception.path} changed outside ${exception.allowedSection}`);
+  let narrowException = null;
+  if (exception !== undefined) {
+    const baselineObject = git('rev-parse', `${baselineCommit}:${exception.path}`);
+    if (baselineObject !== exception.baselineObject) {
+      fail(`shared broker baseline object mismatch: expected=${exception.baselineObject} actual=${baselineObject}`);
+    }
+    const baselineSource = execFileSync('git', ['show', `${baselineCommit}:${exception.path}`], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+    });
+    const currentSource = fs.readFileSync(path.join(repoRoot, exception.path), 'utf8');
+    const baselineProtectedHash = sha256(normalizeBrokerInventory(baselineSource));
+    const currentProtectedHash = sha256(normalizeBrokerInventory(currentSource));
+    if (currentProtectedHash !== baselineProtectedHash) {
+      fail(`${exception.path} changed outside ${exception.allowedSection}`);
+    }
+    narrowException = {
+      path: exception.path,
+      allowedSection: exception.allowedSection,
+      baselineObject,
+      currentHeadObject: git('rev-parse', `HEAD:${exception.path}`),
+      protectedSemanticHash: currentProtectedHash,
+      requiredUnchangedSemantics: exception.requiredUnchangedSemantics,
+    };
   }
 
   return {
@@ -173,14 +252,7 @@ function check({ manifestPath }) {
     immutable,
     authorityAndValidators,
     authorizedAuthorityMigrations,
-    narrowException: {
-      path: exception.path,
-      allowedSection: exception.allowedSection,
-      baselineObject,
-      currentHeadObject: git('rev-parse', `HEAD:${exception.path}`),
-      protectedSemanticHash: currentProtectedHash,
-      requiredUnchangedSemantics: exception.requiredUnchangedSemantics,
-    },
+    narrowException,
     protectedDiffs: 0,
     authorizedAuthorityDiffs: authorizedAuthorityMigrations.length,
     unapprovedProtectedDiffs: 0,

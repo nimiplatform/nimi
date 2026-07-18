@@ -275,6 +275,14 @@ jobs:
         run: pnpm check:no-openapi-token-assignment
       - name: gate.realm.sdk-generator-smoke
         run: pnpm check:realm-sdk-generator-smoke
+      - name: gate.realm.v3-authority
+        run: pnpm check:realm-v3:authority
+      - name: gate.realm.v3-consumer-inventory
+        run: pnpm check:realm-v3:consumer-inventory
+      - name: gate.realm.v3-generated-convergence
+        run: pnpm check:realm-v3:generated-convergence
+      - name: gate.realm.v3-protected-sentinel
+        run: pnpm check:realm-v3:protected-sentinel
       - name: gate.release-gate.registry-coherence
         run: node scripts/check-release-gate-registry-coherence.mjs
       - name: gate.release-gate.projection-drift
