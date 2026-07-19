@@ -86,9 +86,9 @@ pub use local_development::{
     LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest,
     LocalDevelopmentLaunchOutcome, LocalDevelopmentLaunchRequest,
     LocalDevelopmentPermissionRequirement, LocalDevelopmentProject,
-    LocalDevelopmentProjectAuthorizationSummary, LocalDevelopmentReactivationRequest,
-    LocalDevelopmentShellKind, LocalDevelopmentSummaryAvailability, NimiHostError,
-    NimiHostErrorReasonCode, LOCAL_DEVELOPMENT_TRUST_CLASS,
+    LocalDevelopmentProjectAuthorizationSummary, LocalDevelopmentShellKind,
+    LocalDevelopmentSummaryAvailability, NimiHostError, NimiHostErrorReasonCode,
+    LOCAL_DEVELOPMENT_TRUST_CLASS,
 };
 #[cfg(target_os = "macos")]
 pub use macos_service_control::{

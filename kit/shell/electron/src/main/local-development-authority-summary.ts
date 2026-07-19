@@ -12,7 +12,6 @@ export type NimiElectronLocalDevelopmentDeveloperModeSummary = {
 export type NimiElectronLocalDevelopmentProjectAuthorizationSummary = {
   readonly availability: NimiElectronLocalDevelopmentSummaryAvailability;
   readonly activeCount: number;
-  readonly dormantCount: number;
   readonly deniedCount: number;
   readonly revokedCount: number;
   readonly unavailableReason: NimiElectronLocalDevelopmentSummaryUnavailableReason | null;
@@ -54,13 +53,12 @@ function parseProjectAuthorizationSummary(
   value: unknown,
 ): NimiElectronLocalDevelopmentProjectAuthorizationSummary {
   const row = exact(value, [
-    'activeCount', 'availability', 'deniedCount', 'dormantCount', 'revokedCount', 'unavailableReason',
+    'activeCount', 'availability', 'deniedCount', 'revokedCount', 'unavailableReason',
   ]);
   const availability = summaryAvailability(row.availability);
   const unavailableReason = summaryUnavailableReason(row.unavailableReason);
   const counts = {
     activeCount: summaryCount(row.activeCount),
-    dormantCount: summaryCount(row.dormantCount),
     deniedCount: summaryCount(row.deniedCount),
     revokedCount: summaryCount(row.revokedCount),
   };

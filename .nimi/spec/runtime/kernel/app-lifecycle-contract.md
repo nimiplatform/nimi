@@ -121,7 +121,7 @@ global mode grants nothing. `EvaluateLocalDevelopmentProject` resolves the
 canonical project-root file identity, declared app id, capability fingerprint,
 current account, and fixed shell/entry policy without creating authority.
 `DecideLocalDevelopmentProject` consumes fresh user decision presence and exactly
-`run_once | remember_project`, then creates a new isolated development
+`run_once | allow_project`, then creates a new isolated development
 principal/record with zero user permissions. A developer manifest may include closed,
 typed `local_development.runtime_scoped_binding_requests` in the capability
 fingerprint. Such a declaration is request eligibility only: it grants no
@@ -131,16 +131,17 @@ admitted public permission flow and a Runtime-issued scoped binding remain requi
 Every supervised host process uses `PrepareLocalAppLaunch`, a new process bind,
 and a new common local-app session. Controlled HMR/rebuild/restart and Runtime
 restart may preserve the durable authorization while rotating technical state.
-Mode off, account switch/logout, revoke, supervisor end, copied/changed project,
-capability expansion, shell/entry/origin mismatch, or uncontrolled output
-revokes or requires fresh approval. Remembered records become dormant on mode
-off and require fresh presence to reactivate; they never auto-run.
+Mode off, account switch/logout, supervisor end, and Runtime replacement revoke
+live leases, process bindings, and sessions without expiring an unchanged
+`allow_project` consent. Explicit revoke, copied/changed project, capability
+expansion, shell/entry/origin mismatch, or uncontrolled output invalidates that
+consent and requires fresh approval. Preserved consent never auto-runs a host.
 When a `run_once` supervisor run reaches any terminal condition, Runtime
 tombstones that principal and marks its record removed; another run requires a
-fresh decision and new non-reused principal/record. A remembered record does
+fresh decision and new non-reused principal/record. An `allow_project` consent does
 not transfer across account switch: its live carrier is revoked, it remains
-bound to the original account, and it needs fresh presence after that account
-becomes current again.
+bound to the original account; a fresh presence may reuse it after that account
+becomes current again while still creating new technical carriers.
 
 The development principal may use a controlled production account only through
 the common K-GRANT/K-ACCSVC/owner-operation envelope. It receives no credential,

@@ -38,7 +38,6 @@ struct DeveloperModeSummaryDescriptor {
 struct ProjectAuthorizationSummaryDescriptor {
     availability: String,
     active_count: u64,
-    dormant_count: u64,
     denied_count: u64,
     revoked_count: u64,
     reason_code: String,
@@ -94,7 +93,6 @@ fn authority_summary_descriptor(
 ) -> Result<AuthoritySummaryDescriptor, String> {
     for count in [
         summary.project_authorization.active_count,
-        summary.project_authorization.dormant_count,
         summary.project_authorization.denied_count,
         summary.project_authorization.revoked_count,
     ] {
@@ -115,7 +113,6 @@ fn authority_summary_descriptor(
     if summary.project_authorization.availability
         == LocalDevelopmentSummaryAvailability::Unavailable
         && (summary.project_authorization.active_count != 0
-            || summary.project_authorization.dormant_count != 0
             || summary.project_authorization.denied_count != 0
             || summary.project_authorization.revoked_count != 0)
     {
@@ -137,7 +134,6 @@ fn authority_summary_descriptor(
         project_authorization: ProjectAuthorizationSummaryDescriptor {
             availability: availability_text(summary.project_authorization.availability).to_string(),
             active_count: summary.project_authorization.active_count,
-            dormant_count: summary.project_authorization.dormant_count,
             denied_count: summary.project_authorization.denied_count,
             revoked_count: summary.project_authorization.revoked_count,
             reason_code: summary_reason(
@@ -196,7 +192,6 @@ mod tests {
             project_authorization: LocalDevelopmentProjectAuthorizationSummary {
                 availability: LocalDevelopmentSummaryAvailability::Available,
                 active_count: 2,
-                dormant_count: 3,
                 denied_count: 5,
                 revoked_count: 7,
                 unavailable_reason: None,
@@ -242,7 +237,6 @@ mod tests {
                 "activeCount",
                 "availability",
                 "deniedCount",
-                "dormantCount",
                 "reasonCode",
                 "revokedCount",
             ]
@@ -262,7 +256,6 @@ mod tests {
             project_authorization: LocalDevelopmentProjectAuthorizationSummary {
                 availability: LocalDevelopmentSummaryAvailability::Unavailable,
                 active_count: 0,
-                dormant_count: 0,
                 denied_count: 0,
                 revoked_count: 0,
                 unavailable_reason: Some(NimiHostErrorReasonCode::PrincipalUnauthorized),

@@ -135,20 +135,21 @@ func isSourceMaterializationLoopbackHost(host string) bool {
 // principal, state root, and secure store have been verified. No field is
 // sourced from argv, environment, renderer IPC, or user-writable config.
 type ProtectedServiceBindings struct {
-	ServiceStateRoot         string
-	PlatformAppRegistryPath  string
-	PlatformBundledAppsRoot  string
-	AccountCustody           accountservice.Custody
-	AccountPartition         string
-	LocalOSUserIdentity      localappkernel.VerifiedLocalOSUserIdentity
-	AccountRealmBaseURL      string
-	AccountAuthorizationURL  string
-	AccountTokenURL          string
-	ConnectorSecrets         connectorservice.SecretStore
-	DesktopSessions          *protectedlocal.DesktopSessionManager
-	LocalAppLaunches         *protectedlocal.LocalAppLaunchRegistry
-	LocalDevelopmentVerifier protectedlocal.LocalDevelopmentProcessVerifier
-	RuntimeRestartRequester  runtimecontrolservice.RestartRequester
+	ServiceStateRoot                 string
+	LocalDevelopmentConsentStorePath string
+	PlatformAppRegistryPath          string
+	PlatformBundledAppsRoot          string
+	AccountCustody                   accountservice.Custody
+	AccountPartition                 string
+	LocalOSUserIdentity              localappkernel.VerifiedLocalOSUserIdentity
+	AccountRealmBaseURL              string
+	AccountAuthorizationURL          string
+	AccountTokenURL                  string
+	ConnectorSecrets                 connectorservice.SecretStore
+	DesktopSessions                  *protectedlocal.DesktopSessionManager
+	LocalAppLaunches                 *protectedlocal.LocalAppLaunchRegistry
+	LocalDevelopmentVerifier         protectedlocal.LocalDevelopmentProcessVerifier
+	RuntimeRestartRequester          runtimecontrolservice.RestartRequester
 }
 
 func NewNonProduction(cfg config.Config, state *health.State, logger *slog.Logger, version string) (*Server, error) {
@@ -162,6 +163,10 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 	}
 	if bindings.AccountCustody == nil || strings.TrimSpace(bindings.AccountPartition) == "" || bindings.ConnectorSecrets == nil || bindings.DesktopSessions == nil || bindings.LocalAppLaunches == nil || bindings.LocalDevelopmentVerifier == nil || bindings.RuntimeRestartRequester == nil {
 		return nil, fmt.Errorf("protected service custody, verified account partition, Desktop sessions, local-app launches, and local-development verifier are required")
+	}
+	consentStorePath := filepath.Clean(strings.TrimSpace(bindings.LocalDevelopmentConsentStorePath))
+	if !filepath.IsAbs(consentStorePath) || filepath.Base(consentStorePath) != "local-development.db" {
+		return nil, fmt.Errorf("protected local-development consent store must be an absolute local-development.db path")
 	}
 	if _, err := bindings.LocalOSUserIdentity.LocalOSUserAnchor(); err != nil {
 		return nil, fmt.Errorf("verified local OS-user identity is required: %w", err)
@@ -178,6 +183,7 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 		return nil, fmt.Errorf("validate protected Desktop session authority: %w", err)
 	}
 	bindings.ServiceStateRoot = stateRoot
+	bindings.LocalDevelopmentConsentStorePath = consentStorePath
 	bindings.PlatformAppRegistryPath = registryPath
 	bindings.PlatformBundledAppsRoot = bundledAppsRoot
 	cfg.LocalStatePath = filepath.Join(stateRoot, "runtime", "local-state.json")
@@ -213,7 +219,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	var localAppKernel *localappkernel.Kernel
 	if protected != nil {
 		developmentStore, developmentErr := appservice.OpenLocalDevelopmentStore(
-			filepath.Join(protected.ServiceStateRoot, "local-development.db"),
+			protected.LocalDevelopmentConsentStorePath,
 			protected.DesktopSessions.BootEpoch(),
 		)
 		if developmentErr != nil {

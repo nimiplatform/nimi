@@ -30,7 +30,6 @@ pub(super) struct PendingApproval {
 #[derive(Clone, Copy)]
 pub(super) enum PendingApprovalTarget {
     Evaluation([u8; 32]),
-    Reactivation([u8; 32]),
 }
 
 #[derive(Clone, Debug, Serialize)]

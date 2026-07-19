@@ -50,13 +50,13 @@
     }
   },
   {
-    "fixture_id": "reactivation-without-risk-ack",
+    "fixture_id": "decision-without-risk-ack",
     "target": "proto/runtime/v1/development.proto",
-    "expected_issue": "PLINK_DEVELOPMENT_REACTIVATE_REQUEST_SHAPE",
+    "expected_issue": "PLINK_DEVELOPMENT_DECISION_RISK_ACK",
     "mutation": {
       "kind": "replace_exact",
-      "from": "  bool risk_disclosure_acknowledged = 2;",
-      "to": "  bool risk_disclosure_acknowledged_removed = 2;"
+      "from": "message DecideLocalDevelopmentProjectRequest {\n  bytes evaluation_id = 1;\n  LocalDevelopmentDecision decision = 2;\n  bool risk_disclosure_acknowledged = 3;\n}",
+      "to": "message DecideLocalDevelopmentProjectRequest {\n  bytes evaluation_id = 1;\n  LocalDevelopmentDecision decision = 2;\n}"
     }
   },
   {

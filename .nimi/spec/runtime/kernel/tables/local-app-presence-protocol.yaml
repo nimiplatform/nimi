@@ -34,8 +34,9 @@ challenge: &runtime_local_app_presence_challenge_surface
     - policy_revision_change
 assignments: &runtime_local_app_presence_assignment_surfaces
   developer_project_first_authorization: user_decision_presence
-  remembered_project_reactivation: user_decision_presence
   development_capability_expansion: user_decision_presence
+  development_account_shell_entry_or_risk_change: user_decision_presence
+  exact_allow_project_reuse: none
   base_entitlement_operation: none
   ordinary_admitted_user_permission_operation: none
   domain_high_impact_operation: owner_supplied_operation_presence_or_bounded_lease

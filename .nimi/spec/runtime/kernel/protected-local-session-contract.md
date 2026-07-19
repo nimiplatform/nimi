@@ -176,11 +176,19 @@ development authorization in protected service state. It binds the canonical
 project root, app id, manifest capability fingerprint, current account id, and
 the exact `local_development` provenance and an isolated Runtime-assigned
 principal. `run_once` persists only while its Desktop-owned supervisor run
-remains live, including a Runtime restart during that run. `remember_project`
-preserves the principal/record authorization posture but becomes `dormant`
-when the run ends and requires explicit current-account/presence/risk
-`reactivate` before another launch. It never autostarts. Neither record is an immutable release,
+remains live. `allow_project` preserves the principal/record authorization
+posture across supervisor, Desktop, and Runtime replacement without repeated
+presence while every durable binding remains exact. Each new run and Runtime
+boot epoch still receives new lease, process, and session authority. It never
+autostarts. Neither record is an immutable release,
 signature, listing, production grant, or app-owned configuration truth.
+
+Protected bootstrap supplies the local-development consent store as an absolute
+path under the stable OS-protected service authority root. It is not derived
+from the Runtime candidate payload root, acceptance round, selected product
+data root, argv, environment, renderer input, or app input. Candidate
+replacement may recreate candidate-local principal projections, but never the
+durable consent decision.
 
 Runtime separately owns every short-lived technical session. A session binds
 the development authorization, verified Desktop supervisor process, actual
@@ -213,7 +221,7 @@ projection contains only closed state values, per-state counts, and reason
 codes. It never contains account, project, principal, record, authorization,
 permission decision, request, presence, operation, resource, path, token,
 secret, session, or boot-epoch identifiers. The read is side-effect free: it
-does not expire, revoke, reactivate, approve, deny, rotate, or otherwise advance
+does not expire, revoke, approve, deny, rotate, or otherwise advance
 any authorization, permission, presence, or session lifecycle.
 An unavailable source remains an explicit unavailable section and must not be
 reconstructed from Desktop-local state. Ordinary TCP and local-app-host
@@ -222,12 +230,13 @@ transports deny the method before handler dispatch.
 Renderer HMR/reload may retain the host process, but a controlled Electron
 main/preload rebuild, Tauri Rust rebuild, host process replacement,
 technical-session rotation, or Runtime restart must obtain a new launch lease,
-process bind and session without another confirmation only while the user
-authorization and supervisor run remain valid. Host or supervisor exit,
+process bind and session without another confirmation while the exact
+`allow_project` authorization remains valid. Host or supervisor exit,
 revoke, mode off, logout, account switch,
 authorization mismatch, app/root/capability/shell change, uncontrolled output
 or remote dev-server origin revokes the applicable launch/session before the
-next operation. Account change requires a new confirmation.
+next operation. A different account requires its own confirmation; returning
+to the authorization's original account may reuse the unchanged consent.
 
 The authorization, session, supervisor, reapproval, operation-applicability, and
 non-conversion semantics in this rule are platform-neutral. Platform admission

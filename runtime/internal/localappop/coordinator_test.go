@@ -132,7 +132,7 @@ func TestCoordinatorRejectsMismatchedCurrentTruth(t *testing.T) {
 	}{
 		{name: "principal tombstoned", mutate: func(snapshot *Snapshot) { snapshot.Principal.State = PrincipalStateTombstoned }, reason: ReasonLocalAppRecordTombstoned},
 		{name: "record removed", mutate: func(snapshot *Snapshot) { snapshot.Record.State = RecordStateRemoved }, reason: ReasonLocalAppRecordTombstoned},
-		{name: "remembered project dormant", mutate: func(snapshot *Snapshot) { snapshot.Record.State = RecordStateDormant }, reason: ReasonLocalAppRememberedProjectDormant},
+		{name: "local record dormant", mutate: func(snapshot *Snapshot) { snapshot.Record.State = RecordStateDormant }, reason: ReasonLocalAppProvenanceUnavailable},
 		{name: "record principal mismatch", mutate: func(snapshot *Snapshot) { snapshot.Record.PrincipalID = "principal:other" }, reason: ReasonLocalAppProvenanceUnavailable},
 		{name: "principal lineage branch mismatch", mutate: func(snapshot *Snapshot) { snapshot.Principal.Lineage.ImmutableLineageID = "lineage:extra" }, reason: ReasonLocalAppProvenanceUnavailable},
 		{name: "trust class principal mismatch", mutate: func(snapshot *Snapshot) { snapshot.Record.TrustClass = TrustClassVerified }, reason: ReasonLocalAppProvenanceUnavailable},

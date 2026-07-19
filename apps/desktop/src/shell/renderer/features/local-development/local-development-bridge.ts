@@ -49,7 +49,7 @@ export type LocalDevelopmentRun = {
   readonly hostGeneration: number;
 };
 
-export type LocalDevelopmentDecision = 'deny' | 'allow-run-once' | 'allow-remember-project';
+export type LocalDevelopmentDecision = 'deny' | 'allow-run-once' | 'allow-project';
 
 export function localDevelopmentBridgeAvailable(): boolean {
   return hasShellHostInvoke();

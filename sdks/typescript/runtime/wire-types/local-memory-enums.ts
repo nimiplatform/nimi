@@ -71,14 +71,13 @@ export enum LocalDevelopmentAuthorizationState {
   REAPPROVAL_REQUIRED = 3,
   DENIED = 4,
   REVOKED = 5,
-  DORMANT = 6,
 }
 
 export enum LocalDevelopmentDecision {
   UNSPECIFIED = 0,
   DENY = 1,
   ALLOW_RUN_ONCE = 2,
-  ALLOW_REMEMBER_PROJECT = 3,
+  ALLOW_PROJECT = 3,
 }
 
 export enum LocalDevelopmentShellKind {

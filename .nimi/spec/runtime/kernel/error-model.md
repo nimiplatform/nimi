@@ -129,6 +129,6 @@ Fixed action classes:
   owner-approved launch/session and never reuse the old carrier;
 - grant required/revoked/superseded returns a denied permission posture while
   the identity session may remain valid;
-- Developer Mode disabled/dormant/risk disclosure failures require explicit
-  Desktop interaction and never background-reactivate or autostart;
+- Developer Mode disabled, approval-required, and risk-disclosure failures require
+  explicit Desktop interaction and never background-approve or autostart;
 - operation unavailable is not a generic proxy fallback signal.

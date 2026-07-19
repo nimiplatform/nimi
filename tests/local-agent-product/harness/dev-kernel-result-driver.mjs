@@ -221,9 +221,8 @@ export async function persistCoreResult(context) {
       mode: {
         off: observations.modeOff,
         on: observations.modeOn,
-        dormantAuthorization: observations.dormantAuthorization,
-        reactivationApproval: observations.reactivationApproval,
-        reactivatedAuthorization: observations.reactivatedAuthorization,
+        modeOffAuthorization: observations.modeOffAuthorization,
+        continuedAuthorization: observations.continuedAuthorization,
       },
       runtimeRestart: observations.runtimeRestart,
       accountSwitch: observations.accountSwitch,
@@ -319,25 +318,24 @@ export async function persistCoreResult(context) {
       && observations.sessionBound.permission?.canRequest === false);
     pass('reserved-permission-request-denied', observations.reservedPermission.permissionRequest?.state === 'rejected');
     pass('process-mismatch-denied', processMismatchDenied, { reasonCode: observations.processMismatch.lastError?.reasonCode || null });
-    pass('remembered-project-admitted', observations.rememberedApproval.decision === 'allow-remember-project'
+    pass('allow-project-admitted', observations.rememberedApproval.decision === 'allow-project'
       && observations.rememberedInitialAuthorityPosture.posture === 'session-bound-reserved-unavailable'
       && observations.rememberedAuthorization.state === 'active'
-      && observations.rememberedAuthorization.persistence === 'allow-remember-project', {
+      && observations.rememberedAuthorization.persistence === 'allow-project', {
       initialAuthorityPosture: observations.rememberedInitialAuthorityPosture.posture,
     });
-    pass('remembered-authority-boundary', observations.rememberedReservedPermission.permissionRequest?.state === 'rejected'
+    pass('allow-project-authority-boundary', observations.rememberedReservedPermission.permissionRequest?.state === 'rejected'
       && observations.rememberedAppPrivateStorage.appPrivateStorage?.state === 'succeeded');
     pass('edit-build-process-replaced', observations.editBuildRestart.preEditRuns[0]?.hostGeneration < observations.editBuildRestart.postEditRuns[0]?.hostGeneration, { buildMarker });
     pass('app-private-storage-after-process-replacement', observations.editBuildRestart.storageAfter?.state === 'succeeded'
       && observations.editBuildRestart.permissionAfter?.posture === 'unavailable');
-    pass('mode-off-dormant', observations.modeOff === 'off'
-      && observations.dormantAuthorization.state === 'dormant'
-      && observations.dormantAuthorization.selector === observations.rememberedAuthorization.selector);
-    pass('remembered-project-reactivated', observations.modeOn === 'on'
-      && observations.reactivationApproval.decision === 'allow-remember-project'
-      && observations.reactivatedAuthorization.state === 'active'
-      && observations.reactivatedAuthorization.selector === observations.rememberedAuthorization.selector
-      && observations.reactivatedAppPrivateStorage.appPrivateStorage?.state === 'succeeded');
+    pass('mode-off-live-authority-revoked', observations.modeOff === 'off'
+      && observations.modeOffAuthorization.state === 'active'
+      && observations.modeOffAuthorization.selector === observations.rememberedAuthorization.selector);
+    pass('allow-project-reused-after-mode-reenable', observations.modeOn === 'on'
+      && observations.continuedAuthorization.state === 'active'
+      && observations.continuedAuthorization.selector === observations.rememberedAuthorization.selector
+      && observations.continuedAppPrivateStorage.appPrivateStorage?.state === 'succeeded');
     pass('fixed-service-restarted', isRuntimeRestartUiTransition(observations.runtimeRestart), {
       beforeProcessId: observations.runtimeRestart.before.processId,
       afterProcessId: observations.runtimeRestart.after.processId,

@@ -197,12 +197,12 @@ repository_static_close_manifest:
           - reserved-permission-unavailable
           - reserved-permission-request-denied
           - process-mismatch-denied
-          - remembered-project-admitted
-          - remembered-authority-boundary
+          - allow-project-admitted
+          - allow-project-authority-boundary
           - edit-build-process-replaced
           - app-private-storage-after-process-replacement
-          - mode-off-dormant
-          - remembered-project-reactivated
+          - mode-off-live-authority-revoked
+          - allow-project-reused-after-mode-reenable
           - fixed-service-restarted
           - app-private-storage-after-runtime-restart
           - account-switch-invalidated
@@ -267,7 +267,7 @@ repository_static_close_manifest:
           - { claim_id: developer_mode.production_account_run_once_operation, allowed_evidence_kinds: [developer_mode_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
       D-03:
         required_claims:
-          - { claim_id: developer_mode.remembered_project_lifecycle, allowed_evidence_kinds: [developer_mode_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+          - { claim_id: developer_mode.allow_project_lifecycle, allowed_evidence_kinds: [developer_mode_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
       D-04:
         required_claims:
           - { claim_id: security.project_identity_and_capability_mutations_denied, allowed_evidence_kinds: [security_negative], execution_binding: required, runner_profile: null }
@@ -291,7 +291,7 @@ repository_static_close_manifest:
           - { claim_id: runtime.app_private_storage_repeated_without_permission, allowed_evidence_kinds: [runtime_trace], execution_binding: required, runner_profile: dev_kernel_core_v2 }
       E-04a:
         required_claims:
-          - { claim_id: developer_mode.reactivation_presence_lifecycle, allowed_evidence_kinds: [developer_mode_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
+          - { claim_id: developer_mode.allow_project_continuity, allowed_evidence_kinds: [developer_mode_journey], execution_binding: required, runner_profile: dev_kernel_core_v2 }
       E-05:
         required_claims:
           - { claim_id: runtime.presence_binding_atomic_consumption, allowed_evidence_kinds: [owner_gate, security_negative], execution_binding: required, runner_profile: null }

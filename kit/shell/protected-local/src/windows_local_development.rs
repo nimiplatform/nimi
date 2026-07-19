@@ -13,8 +13,7 @@ use crate::generated::{
     EvaluateLocalDevelopmentProjectResponse, GetDeveloperModeStatusRequest,
     ListLocalDevelopmentAuthorizationsRequest, LocalDevelopmentAuthorizationProjection,
     LocalDevelopmentProjectProjection, PrepareLocalAppLaunchRequest,
-    ReactivateLocalDevelopmentProjectRequest, RevokeLocalDevelopmentAuthorizationRequest,
-    SetDeveloperModeRequest,
+    RevokeLocalDevelopmentAuthorizationRequest, SetDeveloperModeRequest,
 };
 use crate::grpc_status::host_error_from_status;
 #[cfg(target_os = "macos")]
@@ -27,9 +26,8 @@ use crate::{
     LocalDevelopmentAuthorizationState, LocalDevelopmentDecision, LocalDevelopmentDecisionRequest,
     LocalDevelopmentEndRunRequest as NativeEndRunRequest, LocalDevelopmentEvaluation,
     LocalDevelopmentEvaluationRequest as NativeEvaluationRequest, LocalDevelopmentLaunchOutcome,
-    LocalDevelopmentLaunchRequest, LocalDevelopmentProject, LocalDevelopmentReactivationRequest,
-    LocalDevelopmentShellKind, NimiHostError, NimiHostErrorReasonCode,
-    LOCAL_DEVELOPMENT_TRUST_CLASS,
+    LocalDevelopmentLaunchRequest, LocalDevelopmentProject, LocalDevelopmentShellKind,
+    NimiHostError, NimiHostErrorReasonCode, LOCAL_DEVELOPMENT_TRUST_CLASS,
 };
 
 const ACTION_EXECUTED: i32 = 1;
@@ -204,16 +202,10 @@ pub(crate) async fn evaluate_project(
         .transpose()
         .map_err(|error| projection_error("evaluation-authorization", error))?;
     if response.confirmation_required {
-        let dormant_reactivation = state == LocalDevelopmentAuthorizationState::Dormant
-            && evaluation_id.is_none()
-            && evaluation_expires_at_unix_ms.is_none()
-            && authorization
-                .as_ref()
-                .is_some_and(|value| value.state == LocalDevelopmentAuthorizationState::Dormant);
         let fresh_decision = evaluation_id.is_some()
             && evaluation_expires_at_unix_ms.is_some()
             && authorization.is_none();
-        if !dormant_reactivation && !fresh_decision {
+        if !fresh_decision {
             return Err(projection_error(
                 "evaluation-confirmation-shape",
                 untrusted(),
@@ -267,7 +259,7 @@ pub(crate) async fn decide_project(
     let response = response.map_err(host_error_from_status)?.into_inner();
     let expected_reason = match request.decision {
         LocalDevelopmentDecision::Deny => 650,
-        LocalDevelopmentDecision::AllowRunOnce | LocalDevelopmentDecision::AllowRememberProject => {
+        LocalDevelopmentDecision::AllowRunOnce | LocalDevelopmentDecision::AllowProject => {
             ACTION_EXECUTED
         }
     };
@@ -275,42 +267,6 @@ pub(crate) async fn decide_project(
         return Err(untrusted());
     }
     authorization_projection(response.authorization.ok_or_else(untrusted)?)
-}
-
-pub(crate) async fn reactivate_project(
-    channel: Channel,
-    request: LocalDevelopmentReactivationRequest,
-) -> Result<LocalDevelopmentAuthorization, NimiHostError> {
-    validate_identifier(request.authorization_id)?;
-    if !request.risk_disclosure_acknowledged {
-        return Err(NimiHostError::new(
-            NimiHostErrorReasonCode::LocalDevelopmentAuthorizationRequired,
-            false,
-        ));
-    }
-    let broker = PresenceBrowserBroker::start().await?;
-    let mut rpc_request = tonic::Request::new(ReactivateLocalDevelopmentProjectRequest {
-        authorization_id: request.authorization_id.to_vec(),
-        risk_disclosure_acknowledged: request.risk_disclosure_acknowledged,
-    });
-    if let Err(error) = broker.bind(&mut rpc_request) {
-        broker.finish().await;
-        return Err(error);
-    }
-    let response = RuntimeDevelopmentServiceClient::new(channel)
-        .reactivate_local_development_project(rpc_request)
-        .await;
-    broker.finish().await;
-    let response = response.map_err(host_error_from_status)?.into_inner();
-    require_success_reason(response.reason_code)?;
-    let authorization = authorization_projection(response.authorization.ok_or_else(untrusted)?)?;
-    if authorization.authorization_id != request.authorization_id
-        || authorization.state != LocalDevelopmentAuthorizationState::Active
-        || authorization.persistence != LocalDevelopmentDecision::AllowRememberProject
-    {
-        return Err(untrusted());
-    }
-    Ok(authorization)
 }
 
 pub(crate) async fn list_authorizations(
@@ -555,7 +511,7 @@ fn decision(value: i32) -> Result<LocalDevelopmentDecision, NimiHostError> {
     match value {
         1 => Ok(LocalDevelopmentDecision::Deny),
         2 => Ok(LocalDevelopmentDecision::AllowRunOnce),
-        3 => Ok(LocalDevelopmentDecision::AllowRememberProject),
+        3 => Ok(LocalDevelopmentDecision::AllowProject),
         _ => Err(untrusted()),
     }
 }
@@ -567,7 +523,6 @@ fn authorization_state(value: i32) -> Result<LocalDevelopmentAuthorizationState,
         3 => Ok(LocalDevelopmentAuthorizationState::ReapprovalRequired),
         4 => Ok(LocalDevelopmentAuthorizationState::Denied),
         5 => Ok(LocalDevelopmentAuthorizationState::Revoked),
-        6 => Ok(LocalDevelopmentAuthorizationState::Dormant),
         _ => Err(untrusted()),
     }
 }

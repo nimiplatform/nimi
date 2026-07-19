@@ -20,7 +20,7 @@ enum LocalDevelopmentDecision {
   LOCAL_DEVELOPMENT_DECISION_UNSPECIFIED = 0;
   LOCAL_DEVELOPMENT_DECISION_DENY = 1;
   LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE = 2;
-  LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT = 3;
+  LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT = 3;
 }
 
 enum LocalDevelopmentAuthorizationState {
@@ -30,7 +30,8 @@ enum LocalDevelopmentAuthorizationState {
   LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REAPPROVAL_REQUIRED = 3;
   LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DENIED = 4;
   LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REVOKED = 5;
-  LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DORMANT = 6;
+  reserved 6;
+  reserved "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DORMANT";
 }
 
 enum DeveloperModeState {
@@ -64,7 +65,8 @@ message LocalDevelopmentDeveloperModeSummary {
 message LocalDevelopmentProjectAuthorizationSummary {
   LocalDevelopmentSummaryAvailability availability = 1;
   uint64 active_count = 2;
-  uint64 dormant_count = 3;
+  reserved 3;
+  reserved "dormant_count";
   uint64 denied_count = 4;
   uint64 revoked_count = 5;
   ReasonCode reason_code = 6;
@@ -160,16 +162,6 @@ message ListLocalDevelopmentAuthorizationsResponse {
   ReasonCode reason_code = 2;
 }
 
-message ReactivateLocalDevelopmentProjectRequest {
-  bytes authorization_id = 1;
-  bool risk_disclosure_acknowledged = 2;
-}
-
-message ReactivateLocalDevelopmentProjectResponse {
-  LocalDevelopmentAuthorizationProjection authorization = 1;
-  ReasonCode reason_code = 2;
-}
-
 message RevokeLocalDevelopmentAuthorizationRequest {
   bytes authorization_id = 1;
 }
@@ -198,7 +190,6 @@ service RuntimeDevelopmentService {
   rpc EvaluateLocalDevelopmentProject(EvaluateLocalDevelopmentProjectRequest) returns (EvaluateLocalDevelopmentProjectResponse);
   rpc DecideLocalDevelopmentProject(DecideLocalDevelopmentProjectRequest) returns (DecideLocalDevelopmentProjectResponse);
   rpc ListLocalDevelopmentAuthorizations(ListLocalDevelopmentAuthorizationsRequest) returns (ListLocalDevelopmentAuthorizationsResponse);
-  rpc ReactivateLocalDevelopmentProject(ReactivateLocalDevelopmentProjectRequest) returns (ReactivateLocalDevelopmentProjectResponse);
   rpc RevokeLocalDevelopmentAuthorization(RevokeLocalDevelopmentAuthorizationRequest) returns (RevokeLocalDevelopmentAuthorizationResponse);
   rpc EndLocalDevelopmentRun(EndLocalDevelopmentRunRequest) returns (EndLocalDevelopmentRunResponse);
 }

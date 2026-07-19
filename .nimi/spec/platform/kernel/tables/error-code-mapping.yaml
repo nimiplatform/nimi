@@ -303,7 +303,6 @@ mappings:
   - { platform_error: LOCAL_APP_PRESENCE_REQUIRED, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_PRESENCE_REQUIRED, runtime_code_number: 656, runtime_source: K-ERR-012, category: mapped }
   - { platform_error: LOCAL_APP_PRESENCE_EXPIRED, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_PRESENCE_EXPIRED, runtime_code_number: 657, runtime_source: K-ERR-012, category: mapped }
   - { platform_error: LOCAL_APP_DEVELOPER_MODE_DISABLED, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_DEVELOPER_MODE_DISABLED, runtime_code_number: 658, runtime_source: K-ERR-012, category: mapped }
-  - { platform_error: LOCAL_APP_REMEMBERED_PROJECT_DORMANT, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_REMEMBERED_PROJECT_DORMANT, runtime_code_number: 659, runtime_source: K-ERR-012, category: mapped }
   - { platform_error: LOCAL_APP_RISK_DISCLOSURE_REQUIRED, platform_source: P-PROTO-020, runtime_reason_code: LOCAL_APP_RISK_DISCLOSURE_REQUIRED, runtime_code_number: 660, runtime_source: K-ERR-012, category: mapped }
 
   # ── unmapped_v1: Permission errors ──

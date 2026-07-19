@@ -24,7 +24,7 @@
 |---|---|---|
 | `bootstrap-contract.md` | `D-BOOT-*` | 多阶段异步初始化、feature flag 门控 |
 | `bridge-ipc-contract.md` | `D-IPC-*` | Tauri IPC 命令与桥接类型 |
-| `bridge-ipc-contract.md#D-IPC-019` | `D-IPC-019` | Local-development confirmation UI, remembered-project management, and Desktop-owned dev supervisor boundary |
+| `bridge-ipc-contract.md#D-IPC-019` | `D-IPC-019` | Local-development confirmation UI, allow-project management, and Desktop-owned dev supervisor boundary |
 | `bridge-ipc-contract.md#D-IPC-020` | `D-IPC-020` | Runtime-derived local_app_control role, Developer Mode/grant UX, native launch/process binding and renderer leak boundary |
 | `self-update-contract.md` | cross-cutting (`D-BOOT-001`, `D-IPC-002`, `D-IPC-014`, `D-IPC-015`) | packaged Desktop self-update、signed Runtime service-updater handoff 与 mutual release-record compatibility |
 | `state-contract.md` | `D-STATE-*` | Zustand slices、持久化策略、pending action lifecycle projection boundary |
@@ -40,7 +40,7 @@
 | `companion-participation-control-surface-contract.md` | `D-LLM-*` | Desktop Avatar companion/persona participation control/projection hardcut：typed SDK/Runtime consumers only；不拥有 prompt/provider/model、memory、queue、scheduler、or commit truth |
 | `ui-shell-contract.md` | `D-SHELL-*` | 导航、布局、路由、分包 |
 | `support-surface-contract.md` | `D-SUP-*` | Desktop `Support` 独立 secondary 系统表面产品语义：repair / updates / diagnostics / logs-export / recovery-help 五子区、self-update 投影宿主、`P-MIG-*` 修复流程消费边界、degraded-state 可达性；不拥有 self-update 机制、`~/.nimi` 迁移执行、Runtime diagnostic/log/audit 真值、product-control first-run 状态机 |
-| `devtools-contract.md` | `D-DEV-*` | One production Developer Mode/Dev Trust Set, run_once/remember-dormant-reactivate, zero-permission session vs product permission posture, native risk disclosure, failure states and gated developer UI |
+| `devtools-contract.md` | `D-DEV-*` | One production Developer Mode/Dev Trust Set, run_once/allow_project consent lifetimes, zero-permission session vs product permission posture, native risk disclosure, failure states and gated developer UI |
 | `nimi-home-shell-contract.md` | `D-HOME-*` | Desktop-hosted Nimi Home shell IA、first-run / return-run state machine、surface registry placement、Agent Chat in-shell reference placement、`AIScopeRef` enforcement、no-private-path enforcement、self-update UI projection、first-screen rule、failure-projection as first-class surface |
 | `home-feed-contract.md` | `D-HOMEFEED-*` | Desktop `Home` primary-nav tab 作为 Realm feed 表面的产品语义：四个 feed scope（personal / friends / persona_activity / world_character_activity）呈现、Create Post affordance、SDK-typed Realm feed projection 消费边界、与 `D-HOME-*`（`Nimi Home` installed shell）的显式 non-overlap、`Home` 非 ready entry；不拥有 shell 导航布局、Realm Post / Feed canonical 真值 |
 | `ai-profile-config-contract.md` | `D-AIPC-*` | Desktop `AIProfile` / `AIConfig` / `AISnapshot` 三段式 AI 配置 canonical model 与 `D-LLM-015` ~ `D-LLM-021` 的 umbrella 关系 |

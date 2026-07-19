@@ -17,7 +17,7 @@
   },
   "artifactRefs": [
     {"role":"execution_observation","ref":"synthetic-execution-observation.json","sha256":"0623cf99333f8fbc0678438219fbeed30b4968cfeb89f08ce9a274ec1d1b1106"},
-    {"role":"runner_result","ref":"runner/result.json","sha256":"197b0b0055cfcdfedce02897f0d5dfa375bd4db8318dee5b23dcadd1cc6b4aa4"},
-    {"role":"runner_artifact_manifest","ref":"runner/artifact-manifest.json","sha256":"462162f78c78640a713900bc8e26187f9353b80846c52a7c064a8d3a0df64598"}
+    {"role":"runner_result","ref":"runner/result.json","sha256":"318a06b13433833d5dacc055a47097eeedde1f38fbabf386ad099d4799c9d180"},
+    {"role":"runner_artifact_manifest","ref":"runner/artifact-manifest.json","sha256":"969fcb9f23be310bae2e62ea1fa0f69aae46d929680f8e67275122a32b62775c"}
   ]
 }

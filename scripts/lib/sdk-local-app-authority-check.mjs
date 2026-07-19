@@ -35,7 +35,6 @@ const requiredMethodsByGroup = Object.freeze({
     'EvaluateLocalDevelopmentProject',
     'DecideLocalDevelopmentProject',
     'ListLocalDevelopmentAuthorizations',
-    'ReactivateLocalDevelopmentProject',
     'RevokeLocalDevelopmentAuthorization',
     'EndLocalDevelopmentRun',
   ],

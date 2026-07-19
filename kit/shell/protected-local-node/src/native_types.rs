@@ -84,12 +84,6 @@ pub struct NativeLocalDevelopmentDecisionInput {
 }
 
 #[napi(object)]
-pub struct NativeLocalDevelopmentReactivationInput {
-    pub authorization_id: String,
-    pub risk_disclosure_acknowledged: bool,
-}
-
-#[napi(object)]
 pub struct NativeLocalDevelopmentAuthorizationInput {
     pub authorization_id: String,
 }

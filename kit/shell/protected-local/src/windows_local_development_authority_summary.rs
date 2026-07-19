@@ -71,7 +71,6 @@ fn project_authorization_summary_projection(
 ) -> Result<LocalDevelopmentProjectAuthorizationSummary, NimiHostError> {
     let counts = [
         summary.active_count,
-        summary.dormant_count,
         summary.denied_count,
         summary.revoked_count,
     ];
@@ -83,7 +82,6 @@ fn project_authorization_summary_projection(
     Ok(LocalDevelopmentProjectAuthorizationSummary {
         availability,
         active_count: summary.active_count,
-        dormant_count: summary.dormant_count,
         denied_count: summary.denied_count,
         revoked_count: summary.revoked_count,
         unavailable_reason,
@@ -147,7 +145,6 @@ mod tests {
             project_authorization: Some(ProtoProjectAuthorizationSummary {
                 availability: 1,
                 active_count: 2,
-                dormant_count: 1,
                 denied_count: 0,
                 revoked_count: 3,
                 reason_code: ACTION_EXECUTED,

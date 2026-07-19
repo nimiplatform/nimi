@@ -41,8 +41,7 @@
   "action": {
     "deny": "拒绝",
     "allowOnce": "仅本次运行",
-    "remember": "记住此项目",
-    "reactivate": "重新启用项目",
+    "allowProject": "始终允许此项目",
     "refresh": "刷新",
     "revoke": "撤销授权",
     "confirmRevoke": "立即撤销",

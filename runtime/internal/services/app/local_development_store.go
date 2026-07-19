@@ -22,7 +22,6 @@ import (
 
 const (
 	localDevelopmentAuthorizationActive  = "active"
-	localDevelopmentAuthorizationDormant = "dormant"
 	localDevelopmentAuthorizationDenied  = "denied"
 	localDevelopmentAuthorizationRevoked = "revoked"
 	localDevelopmentEvaluationTTL        = 5 * time.Minute
@@ -139,10 +138,11 @@ func (store *localDevelopmentStore) initialize(ctx context.Context) error {
 			app_manifest_path TEXT NOT NULL, shell_kind INTEGER NOT NULL,
 			account_id TEXT NOT NULL, approved_account_generation INTEGER NOT NULL CHECK(approved_account_generation > 0),
 			capabilities_json TEXT NOT NULL, capability_fingerprint BLOB NOT NULL CHECK(length(capability_fingerprint) = 32),
-			decision INTEGER NOT NULL, state TEXT NOT NULL CHECK(state IN ('active','dormant','denied','revoked')),
+			decision INTEGER NOT NULL, state TEXT NOT NULL CHECK(state IN ('active','denied','revoked')),
 			authorization_generation INTEGER NOT NULL CHECK(authorization_generation > 0),
 			approved_unix_nano INTEGER NOT NULL, updated_unix_nano INTEGER NOT NULL
 		)`},
+		{query: `UPDATE local_development_authorization SET state = 'active' WHERE state = 'dormant' AND decision = ?`, args: []any{int32(runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT)}},
 		{query: `CREATE INDEX IF NOT EXISTS local_development_authorization_project ON local_development_authorization(project_root, app_id, updated_unix_nano DESC)`},
 		{query: `CREATE TABLE IF NOT EXISTS local_development_mode (
 			singleton INTEGER PRIMARY KEY CHECK(singleton = 1), enabled INTEGER NOT NULL CHECK(enabled IN (0,1)),
@@ -217,7 +217,7 @@ func (store *localDevelopmentStore) Evaluate(ctx context.Context, project localD
 	store.mu.Lock()
 	defer store.mu.Unlock()
 
-	active, found, err := store.latestProjectAuthorization(ctx, project.ProjectRoot, project.AppID)
+	active, found, err := store.latestProjectAuthorization(ctx, project.ProjectRoot, project.AppID, project.AccountID)
 	if err != nil {
 		return localDevelopmentEvaluation{}, err
 	}
@@ -225,13 +225,6 @@ func (store *localDevelopmentStore) Evaluate(ctx context.Context, project localD
 		active.Project.AccountGeneration = project.AccountGeneration
 		return localDevelopmentEvaluation{Project: project, RunID: runID, State: runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE, Authorization: active}, nil
 	}
-	if found && active.State == localDevelopmentAuthorizationDormant &&
-		active.Decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT &&
-		localDevelopmentProjectsMatch(active.Project, project) {
-		active.Project.AccountGeneration = project.AccountGeneration
-		return localDevelopmentEvaluation{Project: project, RunID: runID, State: runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DORMANT, Authorization: active}, nil
-	}
-
 	evaluationID, err := store.readIdentifier()
 	if err != nil {
 		return localDevelopmentEvaluation{}, err
@@ -259,7 +252,7 @@ func (store *localDevelopmentStore) Evaluate(ctx context.Context, project localD
 
 func (store *localDevelopmentStore) Decide(ctx context.Context, evaluationID protectedlocal.Identifier, decision runtimev1.LocalDevelopmentDecision, currentAccountID string, currentAccountGeneration uint64) (localDevelopmentAuthorization, error) {
 	allow := decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE ||
-		decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT
+		decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT
 	if store == nil || store.db == nil || evaluationID == (protectedlocal.Identifier{}) || !validLocalDevelopmentDecision(decision) ||
 		(allow && (strings.TrimSpace(currentAccountID) == "" || currentAccountID != strings.TrimSpace(currentAccountID) || currentAccountGeneration == 0)) {
 		return localDevelopmentAuthorization{}, errLocalDevelopmentInvalid
@@ -409,9 +402,6 @@ func (store *localDevelopmentStore) RevokeAccountAuthority(ctx context.Context, 
 	if _, err := tx.ExecContext(ctx, `UPDATE local_development_evaluation SET state = 'expired' WHERE account_id = ? AND state = 'pending'`, normalized); err != nil {
 		return err
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE local_development_authorization SET state = 'dormant', updated_unix_nano = ? WHERE account_id = ? AND state = 'active' AND decision = ?`, now, normalized, int32(runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT)); err != nil {
-		return err
-	}
 	if _, err := tx.ExecContext(ctx, `UPDATE local_development_authorization SET state = 'revoked', updated_unix_nano = ? WHERE account_id = ? AND state = 'active' AND decision = ?`, now, normalized, int32(runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE)); err != nil {
 		return err
 	}
@@ -464,7 +454,7 @@ func validLocalDevelopmentDecision(decision runtimev1.LocalDevelopmentDecision) 
 	switch decision {
 	case runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_DENY,
 		runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE,
-		runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT:
+		runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT:
 		return true
 	default:
 		return false
@@ -475,7 +465,7 @@ func localDevelopmentAuthorizationMatches(authorization localDevelopmentAuthoriz
 	if authorization.State != localDevelopmentAuthorizationActive || !localDevelopmentProjectsMatch(authorization.Project, project) {
 		return false
 	}
-	return authorization.Decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT ||
+	return authorization.Decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT ||
 		(authorization.Decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE && authorization.RunID == runID)
 }
 

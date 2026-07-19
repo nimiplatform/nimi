@@ -542,9 +542,6 @@ services:
       - name: ListLocalDevelopmentAuthorizations
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations
-      - name: ReactivateLocalDevelopmentProject
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject
       - name: RevokeLocalDevelopmentAuthorization
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization

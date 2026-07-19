@@ -1428,7 +1428,6 @@ pub enum LocalDevelopmentAuthorizationState {
     LOCALDEVELOPMENTAUTHORIZATIONSTATEREAPPROVALREQUIRED,
     LOCALDEVELOPMENTAUTHORIZATIONSTATEDENIED,
     LOCALDEVELOPMENTAUTHORIZATIONSTATEREVOKED,
-    LOCALDEVELOPMENTAUTHORIZATIONSTATEDORMANT,
 }
 
 impl Default for LocalDevelopmentAuthorizationState {
@@ -1442,7 +1441,7 @@ pub enum LocalDevelopmentDecision {
     LOCALDEVELOPMENTDECISIONUNSPECIFIED,
     LOCALDEVELOPMENTDECISIONDENY,
     LOCALDEVELOPMENTDECISIONALLOWRUNONCE,
-    LOCALDEVELOPMENTDECISIONALLOWREMEMBERPROJECT,
+    LOCALDEVELOPMENTDECISIONALLOWPROJECT,
 }
 
 impl Default for LocalDevelopmentDecision {
@@ -2415,7 +2414,6 @@ pub enum ReasonCode {
     LOCALAPPPRESENCEREQUIRED,
     LOCALAPPPRESENCEEXPIRED,
     LOCALAPPDEVELOPERMODEDISABLED,
-    LOCALAPPREMEMBEREDPROJECTDORMANT,
     LOCALAPPRISKDISCLOSUREREQUIRED,
 }
 
@@ -18235,7 +18233,6 @@ impl LocalDevelopmentPermissionRequirement {
 pub struct LocalDevelopmentProjectAuthorizationSummary {
     pub availability: Option<LocalDevelopmentSummaryAvailability>,
     pub active_count: Option<u64>,
-    pub dormant_count: Option<u64>,
     pub denied_count: Option<u64>,
     pub revoked_count: Option<u64>,
     pub reason_code: Option<ReasonCode>,
@@ -18246,7 +18243,6 @@ impl LocalDevelopmentProjectAuthorizationSummary {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.availability { pairs.push(format!("availability={:?}", value)); }
         if let Some(value) = &self.active_count { pairs.push(format!("active_count={}", value)); }
-        if let Some(value) = &self.dormant_count { pairs.push(format!("dormant_count={}", value)); }
         if let Some(value) = &self.denied_count { pairs.push(format!("denied_count={}", value)); }
         if let Some(value) = &self.revoked_count { pairs.push(format!("revoked_count={}", value)); }
         if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
@@ -18263,7 +18259,6 @@ impl LocalDevelopmentProjectAuthorizationSummary {
         }
 
         out.active_count = pairs.get("active_count").and_then(|value| value.parse().ok());
-        out.dormant_count = pairs.get("dormant_count").and_then(|value| value.parse().ok());
         out.denied_count = pairs.get("denied_count").and_then(|value| value.parse().ok());
         out.revoked_count = pairs.get("revoked_count").and_then(|value| value.parse().ok());
         out
@@ -23690,65 +23685,6 @@ impl RawChunk {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
         for key in ["value"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
-
-
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ReactivateLocalDevelopmentProjectRequest {
-    pub authorization_id: Option<Vec<u8>>,
-    pub risk_disclosure_acknowledged: Option<bool>,
-}
-
-impl ReactivateLocalDevelopmentProjectRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.authorization_id.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode authorization_id"); }
-        if let Some(value) = &self.risk_disclosure_acknowledged { pairs.push(format!("risk_disclosure_acknowledged={}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["authorization_id"] {
-            if pairs.contains_key(key) {
-                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
-            }
-        }
-
-        out.risk_disclosure_acknowledged = pairs.get("risk_disclosure_acknowledged").and_then(|value| value.parse().ok());
-        out
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ReactivateLocalDevelopmentProjectResponse {
-    pub authorization: Option<Box<LocalDevelopmentAuthorizationProjection>>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-impl ReactivateLocalDevelopmentProjectResponse {
-    pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if self.authorization.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode authorization"); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
-        let mut out = Self::default();
-        for key in ["authorization", "reason_code"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -36841,18 +36777,6 @@ impl From<Vec<u8>> for RawChunk {
     }
 }
 
-impl From<Vec<u8>> for ReactivateLocalDevelopmentProjectRequest {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
-impl From<Vec<u8>> for ReactivateLocalDevelopmentProjectResponse {
-    fn from(body: Vec<u8>) -> Self {
-        Self::from_transport(&body)
-    }
-}
-
 impl From<Vec<u8>> for ReadArtifactBytesRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -40459,16 +40383,6 @@ where
             timeout,
         })?;
         Ok(ListLocalDevelopmentAuthorizationsResponse::from_transport(&raw))
-    }
-
-    pub fn reactivate_local_development_project(&self, request: ReactivateLocalDevelopmentProjectRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ReactivateLocalDevelopmentProjectResponse, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(ReactivateLocalDevelopmentProjectResponse::from_transport(&raw))
     }
 
     pub fn revoke_local_development_authorization(&self, request: RevokeLocalDevelopmentAuthorizationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RevokeLocalDevelopmentAuthorizationResponse, T::Error> {

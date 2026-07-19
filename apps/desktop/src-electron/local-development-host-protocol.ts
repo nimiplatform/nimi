@@ -58,7 +58,7 @@ export function localDevelopmentSelector(value: unknown, prefix: string): string
 }
 
 export function localDevelopmentDecision(value: unknown): NimiElectronLocalDevelopmentDecision {
-  if (value !== 'deny' && value !== 'allow-run-once' && value !== 'allow-remember-project') {
+  if (value !== 'deny' && value !== 'allow-run-once' && value !== 'allow-project') {
     throw new Error('local-development-approval-decision-invalid');
   }
   return value;

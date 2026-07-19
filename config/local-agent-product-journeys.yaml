@@ -31,13 +31,13 @@ journeys:
       - {checkpoint_id: reserved-permission-unavailable, prerequisite_ids: [local-app-session-bound], covered_leaf_ids: []}
       - {checkpoint_id: reserved-permission-request-denied, prerequisite_ids: [reserved-permission-unavailable], covered_leaf_ids: []}
       - {checkpoint_id: process-mismatch-denied, prerequisite_ids: [app-private-storage-base-entitlement, reserved-permission-request-denied], covered_leaf_ids: []}
-      - {checkpoint_id: remembered-project-admitted, prerequisite_ids: [process-mismatch-denied], covered_leaf_ids: []}
-      - {checkpoint_id: remembered-authority-boundary, prerequisite_ids: [remembered-project-admitted], covered_leaf_ids: []}
-      - {checkpoint_id: edit-build-process-replaced, prerequisite_ids: [remembered-authority-boundary], covered_leaf_ids: []}
+      - {checkpoint_id: allow-project-admitted, prerequisite_ids: [process-mismatch-denied], covered_leaf_ids: []}
+      - {checkpoint_id: allow-project-authority-boundary, prerequisite_ids: [allow-project-admitted], covered_leaf_ids: []}
+      - {checkpoint_id: edit-build-process-replaced, prerequisite_ids: [allow-project-authority-boundary], covered_leaf_ids: []}
       - {checkpoint_id: app-private-storage-after-process-replacement, prerequisite_ids: [edit-build-process-replaced], covered_leaf_ids: []}
-      - {checkpoint_id: mode-off-dormant, prerequisite_ids: [app-private-storage-after-process-replacement], covered_leaf_ids: []}
-      - {checkpoint_id: remembered-project-reactivated, prerequisite_ids: [mode-off-dormant], covered_leaf_ids: []}
-      - {checkpoint_id: fixed-service-restarted, prerequisite_ids: [remembered-project-reactivated], covered_leaf_ids: []}
+      - {checkpoint_id: mode-off-live-authority-revoked, prerequisite_ids: [app-private-storage-after-process-replacement], covered_leaf_ids: []}
+      - {checkpoint_id: allow-project-reused-after-mode-reenable, prerequisite_ids: [mode-off-live-authority-revoked], covered_leaf_ids: []}
+      - {checkpoint_id: fixed-service-restarted, prerequisite_ids: [allow-project-reused-after-mode-reenable], covered_leaf_ids: []}
       - {checkpoint_id: app-private-storage-after-runtime-restart, prerequisite_ids: [fixed-service-restarted], covered_leaf_ids: []}
       - {checkpoint_id: account-switch-invalidated, prerequisite_ids: [app-private-storage-after-runtime-restart], covered_leaf_ids: []}
       - {checkpoint_id: project-revoked-session-invalidated, prerequisite_ids: [account-switch-invalidated], covered_leaf_ids: []}

@@ -71,27 +71,6 @@ const TEXT_BASENAMES = new Set([
 
 export const DEFAULT_ALLOWLIST = [
   {
-    path: 'apps/zhiyu/test/e2e/electron-acceptance.test.mjs',
-    ruleId: 'mojibake_utf8_as_gbk',
-    value: '\u7f01\u56e9\u7a98',
-    lineIncludes: 'assert.doesNotMatch',
-    reason: 'Negative acceptance assertion intentionally includes a mojibake token.',
-  },
-  {
-    path: 'apps/zhiyu/test/e2e/electron-acceptance.test.mjs',
-    ruleId: 'mojibake_utf8_as_gbk',
-    value: '\u7f02\u4f78\u6d28',
-    lineIncludes: 'assert.doesNotMatch',
-    reason: 'Negative acceptance assertion intentionally includes a mojibake token.',
-  },
-  {
-    path: 'apps/zhiyu/test/e2e/electron-acceptance.test.mjs',
-    ruleId: 'mojibake_utf8_as_gbk',
-    value: '\u7ed0',
-    lineIncludes: 'assert.doesNotMatch',
-    reason: 'Negative acceptance assertion intentionally includes a mojibake token.',
-  },
-  {
     path: 'apps/zhiyu/test/electron-live-runtime-agent-center-helpers.mjs',
     ruleId: 'mojibake_utf8_as_gbk',
     value: '\u7f01\u56e9\u7a98',

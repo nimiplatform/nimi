@@ -1,0 +1,7 @@
+target: policy
+expected_issue: LOCAL_DEVELOPMENT_USER_AUTHORIZATION_INVALID
+mutations:
+  - path: user_development_authorization.consent_storage.root_lifetime
+    value: candidate_specific
+  - path: user_development_authorization.consent_storage.candidate_payload_or_selected_product_data_root
+    value: allowed

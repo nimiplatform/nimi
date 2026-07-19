@@ -542,7 +542,7 @@ commands:
 
   - command: local_development_authorizations_list
     module: desktop-local-development
-    description: List renderer-safe Runtime-owned remembered development authorization projections for Desktop settings and revocation UX.
+    description: List renderer-safe Runtime-owned allow-project development authorization projections for Desktop settings and revocation UX.
     source_rule: D-IPC-019
 
   - command: local_development_runs_list
@@ -552,7 +552,7 @@ commands:
 
   - command: local_development_authorization_revoke
     module: desktop-local-development
-    description: Revoke one Runtime-owned remembered development authorization through the live protected Desktop control connection.
+    description: Revoke one Runtime-owned allow-project development authorization through the live protected Desktop control connection.
     source_rule: D-IPC-019
 
   # Local runtime (local_runtime::commands)

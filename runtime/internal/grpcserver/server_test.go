@@ -111,6 +111,7 @@ func TestProtectedServiceUsesOnlyVerifiedSecurityBindings(t *testing.T) {
 	t.Parallel()
 
 	serviceStateRoot := t.TempDir()
+	consentStorePath := filepath.Join(t.TempDir(), "local-development.db")
 	if _, err := NewProtectedService(config.Config{}, health.NewState(), slog.New(slog.NewTextHandler(io.Discard, nil)), "test", ProtectedServiceBindings{
 		ServiceStateRoot: serviceStateRoot,
 	}); err == nil {
@@ -149,19 +150,26 @@ func TestProtectedServiceUsesOnlyVerifiedSecurityBindings(t *testing.T) {
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		"test",
 		ProtectedServiceBindings{
-			ServiceStateRoot:         serviceStateRoot,
-			AccountCustody:           emptyProtectedAccountCustody{},
-			AccountPartition:         "verified-user-and-logon-session",
-			LocalOSUserIdentity:      verifiedServerTestIdentity(t),
-			ConnectorSecrets:         emptyProtectedConnectorSecrets{},
-			DesktopSessions:          authorities.desktop,
-			LocalAppLaunches:         authorities.localApps,
-			LocalDevelopmentVerifier: serverTestLocalDevelopmentVerifier{},
-			RuntimeRestartRequester:  func() bool { return true },
+			ServiceStateRoot:                 serviceStateRoot,
+			LocalDevelopmentConsentStorePath: consentStorePath,
+			AccountCustody:                   emptyProtectedAccountCustody{},
+			AccountPartition:                 "verified-user-and-logon-session",
+			LocalOSUserIdentity:              verifiedServerTestIdentity(t),
+			ConnectorSecrets:                 emptyProtectedConnectorSecrets{},
+			DesktopSessions:                  authorities.desktop,
+			LocalAppLaunches:                 authorities.localApps,
+			LocalDevelopmentVerifier:         serverTestLocalDevelopmentVerifier{},
+			RuntimeRestartRequester:          func() bool { return true },
 		},
 	)
 	if err != nil {
 		t.Fatalf("protected service must ignore user-config security roots: %v", err)
+	}
+	if _, err := os.Stat(consentStorePath); err != nil {
+		t.Fatalf("protected service did not create the stable consent store: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(serviceStateRoot, "local-development.db")); !os.IsNotExist(err) {
+		t.Fatalf("candidate-local service root must not own project consent: %v", err)
 	}
 	t.Cleanup(func() {
 		_ = server.Stop(context.Background())
@@ -200,16 +208,17 @@ func TestProtectedServiceRejectsPortableProtectedResourceBindings(t *testing.T) 
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		"test",
 		ProtectedServiceBindings{
-			ServiceStateRoot:         t.TempDir(),
-			PlatformAppRegistryPath:  "relative/nimi-app-registry.yaml",
-			AccountCustody:           emptyProtectedAccountCustody{},
-			AccountPartition:         "verified-user-and-logon-session",
-			LocalOSUserIdentity:      verifiedServerTestIdentity(t),
-			ConnectorSecrets:         emptyProtectedConnectorSecrets{},
-			DesktopSessions:          authorities.desktop,
-			LocalAppLaunches:         authorities.localApps,
-			LocalDevelopmentVerifier: serverTestLocalDevelopmentVerifier{},
-			RuntimeRestartRequester:  func() bool { return true },
+			ServiceStateRoot:                 t.TempDir(),
+			LocalDevelopmentConsentStorePath: filepath.Join(t.TempDir(), "local-development.db"),
+			PlatformAppRegistryPath:          "relative/nimi-app-registry.yaml",
+			AccountCustody:                   emptyProtectedAccountCustody{},
+			AccountPartition:                 "verified-user-and-logon-session",
+			LocalOSUserIdentity:              verifiedServerTestIdentity(t),
+			ConnectorSecrets:                 emptyProtectedConnectorSecrets{},
+			DesktopSessions:                  authorities.desktop,
+			LocalAppLaunches:                 authorities.localApps,
+			LocalDevelopmentVerifier:         serverTestLocalDevelopmentVerifier{},
+			RuntimeRestartRequester:          func() bool { return true },
 		},
 	)
 	if err == nil || !strings.Contains(err.Error(), "Platform app registry must be an absolute non-root path") {
@@ -240,15 +249,16 @@ func TestProtectedServiceRejectsMissingDesktopSessionAuthority(t *testing.T) {
 				slog.New(slog.NewTextHandler(io.Discard, nil)),
 				"test",
 				ProtectedServiceBindings{
-					ServiceStateRoot:         t.TempDir(),
-					AccountCustody:           emptyProtectedAccountCustody{},
-					AccountPartition:         "verified-user-and-logon-session",
-					LocalOSUserIdentity:      verifiedServerTestIdentity(t),
-					ConnectorSecrets:         emptyProtectedConnectorSecrets{},
-					DesktopSessions:          manager,
-					LocalAppLaunches:         authorities.localApps,
-					LocalDevelopmentVerifier: serverTestLocalDevelopmentVerifier{},
-					RuntimeRestartRequester:  func() bool { return true },
+					ServiceStateRoot:                 t.TempDir(),
+					LocalDevelopmentConsentStorePath: filepath.Join(t.TempDir(), "local-development.db"),
+					AccountCustody:                   emptyProtectedAccountCustody{},
+					AccountPartition:                 "verified-user-and-logon-session",
+					LocalOSUserIdentity:              verifiedServerTestIdentity(t),
+					ConnectorSecrets:                 emptyProtectedConnectorSecrets{},
+					DesktopSessions:                  manager,
+					LocalAppLaunches:                 authorities.localApps,
+					LocalDevelopmentVerifier:         serverTestLocalDevelopmentVerifier{},
+					RuntimeRestartRequester:          func() bool { return true },
 				},
 			)
 			if server != nil {

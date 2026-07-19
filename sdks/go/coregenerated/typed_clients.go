@@ -928,7 +928,6 @@ const (
 	LOCALDEVELOPMENTAUTHORIZATIONSTATEREAPPROVALREQUIRED LocalDevelopmentAuthorizationState = "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REAPPROVAL_REQUIRED"
 	LOCALDEVELOPMENTAUTHORIZATIONSTATEDENIED LocalDevelopmentAuthorizationState = "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DENIED"
 	LOCALDEVELOPMENTAUTHORIZATIONSTATEREVOKED LocalDevelopmentAuthorizationState = "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REVOKED"
-	LOCALDEVELOPMENTAUTHORIZATIONSTATEDORMANT LocalDevelopmentAuthorizationState = "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DORMANT"
 )
 
 type LocalDevelopmentDecision string
@@ -937,7 +936,7 @@ const (
 	LOCALDEVELOPMENTDECISIONUNSPECIFIED LocalDevelopmentDecision = "LOCAL_DEVELOPMENT_DECISION_UNSPECIFIED"
 	LOCALDEVELOPMENTDECISIONDENY LocalDevelopmentDecision = "LOCAL_DEVELOPMENT_DECISION_DENY"
 	LOCALDEVELOPMENTDECISIONALLOWRUNONCE LocalDevelopmentDecision = "LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE"
-	LOCALDEVELOPMENTDECISIONALLOWREMEMBERPROJECT LocalDevelopmentDecision = "LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT"
+	LOCALDEVELOPMENTDECISIONALLOWPROJECT LocalDevelopmentDecision = "LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT"
 )
 
 type LocalDevelopmentShellKind string
@@ -1660,7 +1659,6 @@ const (
 	LOCALAPPPRESENCEREQUIRED ReasonCode = "LOCAL_APP_PRESENCE_REQUIRED"
 	LOCALAPPPRESENCEEXPIRED ReasonCode = "LOCAL_APP_PRESENCE_EXPIRED"
 	LOCALAPPDEVELOPERMODEDISABLED ReasonCode = "LOCAL_APP_DEVELOPER_MODE_DISABLED"
-	LOCALAPPREMEMBEREDPROJECTDORMANT ReasonCode = "LOCAL_APP_REMEMBERED_PROJECT_DORMANT"
 	LOCALAPPRISKDISCLOSUREREQUIRED ReasonCode = "LOCAL_APP_RISK_DISCLOSURE_REQUIRED"
 )
 
@@ -5346,7 +5344,6 @@ type LocalDevelopmentPermissionRequirement struct {
 type LocalDevelopmentProjectAuthorizationSummary struct {
 	Availability LocalDevelopmentSummaryAvailability `json:"availability,omitempty"`
 	ActiveCount uint64 `json:"active_count,omitempty"`
-	DormantCount uint64 `json:"dormant_count,omitempty"`
 	DeniedCount uint64 `json:"denied_count,omitempty"`
 	RevokedCount uint64 `json:"revoked_count,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
@@ -6654,16 +6651,6 @@ type QueryAgentMemoryResponse struct {
 
 type RawChunk struct {
 	Value map[string]any `json:"value,omitempty"`
-}
-
-type ReactivateLocalDevelopmentProjectRequest struct {
-	AuthorizationId []byte `json:"authorization_id,omitempty"`
-	RiskDisclosureAcknowledged bool `json:"risk_disclosure_acknowledged,omitempty"`
-}
-
-type ReactivateLocalDevelopmentProjectResponse struct {
-	Authorization *LocalDevelopmentAuthorizationProjection `json:"authorization,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type ReadArtifactBytesRequest struct {
@@ -10216,14 +10203,6 @@ func (c RuntimeTypedClient) ListLocalDevelopmentAuthorizations(ctx context.Conte
 		return ListLocalDevelopmentAuthorizationsResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ListLocalDevelopmentAuthorizationsResponse](raw, "ListLocalDevelopmentAuthorizationsResponse")
-}
-
-func (c RuntimeTypedClient) ReactivateLocalDevelopmentProject(ctx context.Context, request ReactivateLocalDevelopmentProjectRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReactivateLocalDevelopmentProjectResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject", request, metadata, timeoutMS)
-	if err != nil {
-		return ReactivateLocalDevelopmentProjectResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ReactivateLocalDevelopmentProjectResponse](raw, "ReactivateLocalDevelopmentProjectResponse")
 }
 
 func (c RuntimeTypedClient) RevokeLocalDevelopmentAuthorization(ctx context.Context, request RevokeLocalDevelopmentAuthorizationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RevokeLocalDevelopmentAuthorizationResponse, error) {

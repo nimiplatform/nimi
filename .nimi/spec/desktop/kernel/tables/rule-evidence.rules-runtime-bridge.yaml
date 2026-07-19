@@ -288,7 +288,7 @@ rules:
   - desktop_test_gate
   - desktop_e2e_journey_gate
   evidence_requirement: required
-  note: Production Developer Mode confirmation, run-once/remembered-project lifetimes, fixed-service supervisor ownership, non-leak, and edit/build/restart invalidation authority.
+  note: Production Developer Mode confirmation, run-once/allow-project lifetimes, fixed-service supervisor ownership, non-leak, and edit/build/restart invalidation authority.
   test_files:
   - scripts/check-local-development-admission-authority.mjs
   - scripts/check-local-development-admission-authority.test.mjs

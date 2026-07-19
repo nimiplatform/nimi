@@ -100,7 +100,7 @@ export function validateLocalDevelopmentAuthoritySummary(
   const developerMode = validateDeveloperModeSummary(value.developerMode);
   const projectAuthorization = validateCountSummary(
     value.projectAuthorization,
-    ['activeCount', 'dormantCount', 'deniedCount', 'revokedCount'],
+    ['activeCount', 'deniedCount', 'revokedCount'],
   );
   if (!developerMode || !projectAuthorization) {
     return { state: 'error', reason: 'desktop-authority-summary-shape-invalid' };

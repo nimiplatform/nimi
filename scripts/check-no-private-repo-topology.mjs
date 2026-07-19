@@ -68,6 +68,7 @@ const tracked = runGit(['ls-files', '-z'])
   .toString('utf8')
   .split('\0')
   .filter(Boolean)
+  .filter((filePath) => fs.existsSync(filePath))
   .filter((filePath) => !ignoredPrefixes.some((prefix) => filePath.startsWith(prefix)));
 
 const findings = [];

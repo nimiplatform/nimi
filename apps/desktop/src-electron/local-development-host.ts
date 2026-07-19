@@ -86,8 +86,7 @@ type RunContext = {
 };
 
 type PendingApproval = {
-  readonly target: { readonly kind: 'evaluation'; readonly id: string }
-    | { readonly kind: 'reactivation'; readonly id: string };
+  readonly evaluationId: string;
   readonly run: RunContext;
   readonly projection: RendererApproval;
 };
@@ -323,18 +322,13 @@ class ElectronLocalDevelopmentHost {
   }
 
   private async queueApproval(run: RunContext, evaluation: NimiElectronLocalDevelopmentEvaluation): Promise<void> {
-    const target = evaluation.evaluationId
-      ? { kind: 'evaluation' as const, id: evaluation.evaluationId }
-      : evaluation.authorization?.state === 'dormant'
-        ? { kind: 'reactivation' as const, id: evaluation.authorization.authorizationId }
-        : undefined;
-    if (!target) throw new Error('runtime-service-untrusted');
+    if (!evaluation.evaluationId) throw new Error('runtime-service-untrusted');
     for (const [requestId, row] of this.pending) {
       if (row.run === run) this.pending.delete(requestId);
     }
     const requestId = randomSelector('dev-approval');
     this.pending.set(requestId, {
-      target,
+      evaluationId: evaluation.evaluationId,
       run,
       projection: {
         requestId,
@@ -363,16 +357,11 @@ class ElectronLocalDevelopmentHost {
     this.pending.delete(requestId);
     let authorization: NimiElectronLocalDevelopmentAuthorization;
     try {
-      authorization = selected.target.kind === 'evaluation'
-        ? await this.control.decide({
-          evaluationId: selected.target.id,
-          decision,
-          riskDisclosureAcknowledged: payload.riskDisclosureAcknowledged,
-        })
-        : await this.control.reactivate({
-          authorizationId: selected.target.id,
-          riskDisclosureAcknowledged: payload.riskDisclosureAcknowledged,
-        });
+      authorization = await this.control.decide({
+        evaluationId: selected.evaluationId,
+        decision,
+        riskDisclosureAcknowledged: payload.riskDisclosureAcknowledged,
+      });
     } catch (error) {
       setRunState(selected.run, 'failed', reason(error), reason(error), false);
       return selected.run.status;

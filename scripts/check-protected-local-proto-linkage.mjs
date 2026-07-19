@@ -47,7 +47,6 @@ const FINAL_METHOD_MAPPINGS = Object.freeze([
   ['RuntimeAppService', 'BindLocalAppProcess'],
   ['RuntimeDevelopmentService', 'GetDeveloperModeStatus'],
   ['RuntimeDevelopmentService', 'SetDeveloperMode'],
-  ['RuntimeDevelopmentService', 'ReactivateLocalDevelopmentProject'],
 ]);
 
 const LOCAL_APP_REASONS = Object.freeze([
@@ -68,7 +67,6 @@ const LOCAL_APP_REASONS = Object.freeze([
   'LOCAL_APP_PRESENCE_REQUIRED',
   'LOCAL_APP_PRESENCE_EXPIRED',
   'LOCAL_APP_DEVELOPER_MODE_DISABLED',
-  'LOCAL_APP_REMEMBERED_PROJECT_DORMANT',
   'LOCAL_APP_RISK_DISCLOSURE_REQUIRED',
 ]);
 
@@ -233,21 +231,12 @@ export function validateProtectedLocalProtoLinkage(bundle) {
     ['bool', 'risk_disclosure_acknowledged', 3],
   ]), 'PLINK_DEVELOPMENT_DECISION_RISK_ACK');
   expectMessage(bundle.developmentProto, 'ListLocalDevelopmentAuthorizationsRequest', [], 'PLINK_DEVELOPMENT_LIST_REQUEST_EMPTY');
-  expectMessage(bundle.developmentProto, 'ReactivateLocalDevelopmentProjectRequest', expectedFields([
-    ['bytes', 'authorization_id', 1],
-    ['bool', 'risk_disclosure_acknowledged', 2],
-  ]), 'PLINK_DEVELOPMENT_REACTIVATE_REQUEST_SHAPE');
-  expectMessage(bundle.developmentProto, 'ReactivateLocalDevelopmentProjectResponse', expectedFields([
-    ['LocalDevelopmentAuthorizationProjection', 'authorization', 1],
-    ['ReasonCode', 'reason_code', 2],
-  ]), 'PLINK_DEVELOPMENT_REACTIVATE_RESPONSE_SHAPE');
   for (const [method, request, response] of [
     ['GetDeveloperModeStatus', 'GetDeveloperModeStatusRequest', 'GetDeveloperModeStatusResponse'],
     ['SetDeveloperMode', 'SetDeveloperModeRequest', 'SetDeveloperModeResponse'],
     ['EvaluateLocalDevelopmentProject', 'EvaluateLocalDevelopmentProjectRequest', 'EvaluateLocalDevelopmentProjectResponse'],
     ['DecideLocalDevelopmentProject', 'DecideLocalDevelopmentProjectRequest', 'DecideLocalDevelopmentProjectResponse'],
     ['ListLocalDevelopmentAuthorizations', 'ListLocalDevelopmentAuthorizationsRequest', 'ListLocalDevelopmentAuthorizationsResponse'],
-    ['ReactivateLocalDevelopmentProject', 'ReactivateLocalDevelopmentProjectRequest', 'ReactivateLocalDevelopmentProjectResponse'],
     ['RevokeLocalDevelopmentAuthorization', 'RevokeLocalDevelopmentAuthorizationRequest', 'RevokeLocalDevelopmentAuthorizationResponse'],
     ['EndLocalDevelopmentRun', 'EndLocalDevelopmentRunRequest', 'EndLocalDevelopmentRunResponse'],
   ]) {
@@ -297,12 +286,16 @@ export function validateProtectedLocalProtoLinkage(bundle) {
       .map(({ name, value }) => [String(name), Number(value)]),
   );
   const protoReasons = new Map(enumEntries(bundle.commonProto, 'ReasonCode')?.map(({ name, value }) => [name, value]) ?? []);
-  const expectedReasonPairs = LOCAL_APP_REASONS.map((name, index) => [name, 642 + index]);
+  const expectedReasonPairs = LOCAL_APP_REASONS.map((name, index) => [name, 642 + index + (index >= 17 ? 1 : 0)]);
   if (stable([...authorityReasons]) !== stable(expectedReasonPairs)) {
     add('PLINK_REASON_AUTHORITY_RANGE', `authority LOCAL_APP reasons are ${stable([...authorityReasons])}`);
   }
   if (stable(expectedReasonPairs.map(([name, value]) => [name, protoReasons.get(name)])) !== stable(expectedReasonPairs)) {
-    add('PLINK_REASON_PROTO_RANGE', 'Proto LOCAL_APP reason names or values diverge from 642..660');
+    add('PLINK_REASON_PROTO_RANGE', 'Proto LOCAL_APP reason names or values diverge from 642..660 with retired value 659 reserved');
+  }
+  if (!/reserved\s+659\s*;/u.test(bundle.commonProto)
+    || !/reserved\s+"LOCAL_APP_REMEMBERED_PROJECT_DORMANT"\s*;/u.test(bundle.commonProto)) {
+    add('PLINK_REASON_PROTO_RANGE', 'retired LOCAL_APP reason value 659 and name must remain reserved');
   }
 
   const identityMap = parseYaml(bundle.identityMap);

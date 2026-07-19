@@ -175,7 +175,6 @@ const RUNTIME_RPC_AUTH_POSTURES: Readonly<Record<string, RuntimeRpcAuthPosture>>
   "/nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentAuthoritySummary": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations": "protected_origin_required",
-  "/nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus": "anonymous_read",

@@ -231,22 +231,21 @@ const (
 type Reason string
 
 const (
-	ReasonActionExecuted                   Reason = "ACTION_EXECUTED"
-	ReasonProtocolEnvelopeInvalid          Reason = "PROTOCOL_ENVELOPE_INVALID"
-	ReasonLocalAppPrincipalRequired        Reason = "LOCAL_APP_PRINCIPAL_REQUIRED"
-	ReasonLocalAppRecordNotFound           Reason = "LOCAL_APP_RECORD_NOT_FOUND"
-	ReasonLocalAppRecordTombstoned         Reason = "LOCAL_APP_RECORD_TOMBSTONED"
-	ReasonLocalAppProvenanceUnavailable    Reason = "LOCAL_APP_PROVENANCE_UNAVAILABLE"
-	ReasonLocalAppProcessMismatch          Reason = "LOCAL_APP_PROCESS_MISMATCH"
-	ReasonLocalAppSessionRevoked           Reason = "LOCAL_APP_SESSION_REVOKED"
-	ReasonLocalAppPermissionRequired       Reason = "LOCAL_APP_PERMISSION_REQUIRED"
-	ReasonLocalAppPermissionDenied         Reason = "LOCAL_APP_PERMISSION_DENIED"
-	ReasonLocalAppPermissionRevoked        Reason = "LOCAL_APP_PERMISSION_REVOKED"
-	ReasonLocalAppAccountChanged           Reason = "LOCAL_APP_ACCOUNT_CHANGED"
-	ReasonLocalAppOperationUnavailable     Reason = "LOCAL_APP_OPERATION_UNAVAILABLE"
-	ReasonLocalAppPresenceRequired         Reason = "LOCAL_APP_PRESENCE_REQUIRED"
-	ReasonLocalAppPresenceExpired          Reason = "LOCAL_APP_PRESENCE_EXPIRED"
-	ReasonLocalAppRememberedProjectDormant Reason = "LOCAL_APP_REMEMBERED_PROJECT_DORMANT"
+	ReasonActionExecuted                Reason = "ACTION_EXECUTED"
+	ReasonProtocolEnvelopeInvalid       Reason = "PROTOCOL_ENVELOPE_INVALID"
+	ReasonLocalAppPrincipalRequired     Reason = "LOCAL_APP_PRINCIPAL_REQUIRED"
+	ReasonLocalAppRecordNotFound        Reason = "LOCAL_APP_RECORD_NOT_FOUND"
+	ReasonLocalAppRecordTombstoned      Reason = "LOCAL_APP_RECORD_TOMBSTONED"
+	ReasonLocalAppProvenanceUnavailable Reason = "LOCAL_APP_PROVENANCE_UNAVAILABLE"
+	ReasonLocalAppProcessMismatch       Reason = "LOCAL_APP_PROCESS_MISMATCH"
+	ReasonLocalAppSessionRevoked        Reason = "LOCAL_APP_SESSION_REVOKED"
+	ReasonLocalAppPermissionRequired    Reason = "LOCAL_APP_PERMISSION_REQUIRED"
+	ReasonLocalAppPermissionDenied      Reason = "LOCAL_APP_PERMISSION_DENIED"
+	ReasonLocalAppPermissionRevoked     Reason = "LOCAL_APP_PERMISSION_REVOKED"
+	ReasonLocalAppAccountChanged        Reason = "LOCAL_APP_ACCOUNT_CHANGED"
+	ReasonLocalAppOperationUnavailable  Reason = "LOCAL_APP_OPERATION_UNAVAILABLE"
+	ReasonLocalAppPresenceRequired      Reason = "LOCAL_APP_PRESENCE_REQUIRED"
+	ReasonLocalAppPresenceExpired       Reason = "LOCAL_APP_PRESENCE_EXPIRED"
 )
 
 // AuthorizationContext is emitted only on a fully allowed private decision.

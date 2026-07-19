@@ -28,7 +28,6 @@ export function LocalDevelopmentApprovalCenter() {
   const [error, setError] = useState('');
   const [riskAcknowledgedRequestId, setRiskAcknowledgedRequestId] = useState('');
   const approval = approvals[0] ?? null;
-  const reactivation = approval?.approvalState === 'dormant';
   const riskAcknowledged = isRiskAcknowledgedForApproval(
     riskAcknowledgedRequestId,
     approval?.requestId,
@@ -126,26 +125,24 @@ export function LocalDevelopmentApprovalCenter() {
           >
             {t('LocalDevelopment.action.deny')}
           </Button>
-          {!reactivation ? (
-            <Button
-              tone="secondary"
-              size="sm"
-              disabled={busy || !riskAcknowledged}
-              data-testid="local-development-allow-once"
-              onClick={() => { void submit('allow-run-once'); }}
-            >
-              {t('LocalDevelopment.action.allowOnce')}
-            </Button>
-          ) : null}
+          <Button
+            tone="secondary"
+            size="sm"
+            disabled={busy || !riskAcknowledged}
+            data-testid="local-development-allow-once"
+            onClick={() => { void submit('allow-run-once'); }}
+          >
+            {t('LocalDevelopment.action.allowOnce')}
+          </Button>
           <Button
             tone="primary"
             size="sm"
             loading={busy}
             disabled={busy || !riskAcknowledged}
             data-testid="local-development-remember"
-            onClick={() => { void submit('allow-remember-project'); }}
+            onClick={() => { void submit('allow-project'); }}
           >
-            {t(reactivation ? 'LocalDevelopment.action.reactivate' : 'LocalDevelopment.action.remember')}
+            {t('LocalDevelopment.action.allowProject')}
           </Button>
         </div>
       )}

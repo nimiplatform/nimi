@@ -17,7 +17,7 @@ function positiveFixture() {
         },
         {
           group: 'local_development_service_projection',
-          methods: ['GetDeveloperModeStatus', 'SetDeveloperMode', 'EvaluateLocalDevelopmentProject', 'DecideLocalDevelopmentProject', 'ListLocalDevelopmentAuthorizations', 'ReactivateLocalDevelopmentProject', 'RevokeLocalDevelopmentAuthorization', 'EndLocalDevelopmentRun'],
+          methods: ['GetDeveloperModeStatus', 'SetDeveloperMode', 'EvaluateLocalDevelopmentProject', 'DecideLocalDevelopmentProject', 'ListLocalDevelopmentAuthorizations', 'RevokeLocalDevelopmentAuthorization', 'EndLocalDevelopmentRun'],
         },
         { group: 'app_lifecycle_service_projection', methods: ['PrepareLocalAppLaunch', 'BindLocalAppProcess'] },
       ],

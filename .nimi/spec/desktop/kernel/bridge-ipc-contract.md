@@ -404,19 +404,21 @@ same-user intent containing only developer-visible project inputs. Desktop
 canonicalizes and validates those inputs, reads the current Runtime account
 projection over protected control, and displays app name/app id, canonical
 project root, shell kind, current account, declared public permissions and host posture,
-`run once`, `remember this project`, and cancel/deny before requesting Runtime
+`run once`, `always allow this project`, and cancel/deny before requesting Runtime
 authorization.
 
 Developer Mode is available with a production account, is off by default and
 grants nothing. There is exactly one Dev Trust Set. `run_once` ends with the
-supervisor run; `remember_project` persists a Runtime-owned local record and
-authorization posture, becomes `dormant` after the run, and requires explicit
-`reactivate` before another launch. Mode-off, revoke, account switch, principal
-tombstone or project identity change terminates current runs and invalidates
-leases/sessions according to Runtime owner rules.
+supervisor run; `allow_project` persists a Runtime-owned local record and
+authorization posture across supervisor, Desktop, and Runtime replacement.
+Mode-off, account switch/logout, supervisor end, and boot-epoch replacement
+terminate current runs and invalidate leases/sessions without invalidating exact
+durable project consent. Revoke, principal tombstone, project/account/permission-
+requirement/shell/entry/risk mismatch invalidates consent according to Runtime
+owner rules.
 
 Approval UI state is Desktop product state, but authorization persistence,
-generation, and revocation remain Runtime-owned. The UI lists remembered
+generation, and revocation remain Runtime-owned. The UI lists always-allowed
 projects and can revoke them through the protected typed Runtime operation.
 Renderer state, Desktop preferences, app-owned config, browser storage, and a
 generic keyring cannot persist or reconstruct the authorization.
@@ -447,7 +449,7 @@ not traverse this supervisor and remain denied.
 
 Each edit/build/process replacement produces a fresh host/payload digest
 observation, launch lease, verified process bind and local-app session. The
-remembered principal/record may remain only when Runtime proves the same
+durably allowed principal/record may remain only when Runtime proves the same
 canonical project identity; the old process/session is never inherited. Native
 Windows execution risk disclosure must be shown before first approval and when
 the risk text/revision changes. Local-development runs never create persistent

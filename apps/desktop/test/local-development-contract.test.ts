@@ -25,7 +25,7 @@ test('Desktop approval UI exposes the complete user decision and project identit
     'approval.permissionRequirements',
     "submit('deny')",
     "submit('allow-run-once')",
-    "submit('allow-remember-project')",
+    "submit('allow-project')",
   ]) {
     assert.match(source, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
@@ -131,10 +131,10 @@ test('local-development copy is complete and readable in English and Chinese', (
     assert.equal(typeof document.approval.title, 'string');
     assert.equal(typeof document.approval.warning, 'string');
     assert.equal(typeof document.action.allowOnce, 'string');
-    assert.equal(typeof document.action.remember, 'string');
+    assert.equal(typeof document.action.allowProject, 'string');
     assert.equal(typeof document.action.deny, 'string');
     assert.equal(typeof document.management.revokeConfirm, 'string');
   }
   assert.match(chinese.approval.title, /[\u4e00-\u9fff]/u);
-  assert.match(chinese.action.remember, /[\u4e00-\u9fff]/u);
+  assert.match(chinese.action.allowProject, /[\u4e00-\u9fff]/u);
 });

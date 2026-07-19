@@ -461,10 +461,6 @@ func (store *localDevelopmentStore) EndRun(ctx context.Context, authorizationID 
 		if _, err := tx.ExecContext(ctx, `UPDATE local_development_authorization SET state = 'revoked', updated_unix_nano = ? WHERE authorization_id = ? AND state = 'active'`, now.UnixNano(), authorizationID[:]); err != nil {
 			return err
 		}
-	} else if authorization.Decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT {
-		if _, err := tx.ExecContext(ctx, `UPDATE local_development_authorization SET state = 'dormant', updated_unix_nano = ? WHERE authorization_id = ? AND state = 'active'`, now.UnixNano(), authorizationID[:]); err != nil {
-			return err
-		}
 	}
 	return tx.Commit()
 }

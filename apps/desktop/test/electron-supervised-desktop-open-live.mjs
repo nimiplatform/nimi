@@ -146,7 +146,9 @@ async function waitForCdp(port, child, output, timeoutMs, desktopPage) {
     try {
       const response = await fetch(`http://127.0.0.1:${port}/json/list`);
       if (response.ok && (await response.json()).length > 0) return;
-    } catch {}
+    } catch {
+      // The CDP endpoint is expected to reject connections until Electron has bound the port.
+    }
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   const authority = await desktopPage.evaluate(async () => ({

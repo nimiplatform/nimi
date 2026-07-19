@@ -1,4 +1,4 @@
-version: 6
+version: 7
 table_family: owner_matrix
 owner: platform
 matrix_id: nimi_app_local_development_admission
@@ -18,7 +18,7 @@ developer_mode:
   disable_effect:
     active_sessions: revoke
     run_once_authorizations: revoke
-    remembered_authorizations: dormant
+    allow_project_authorizations: preserve_without_autostart
     immutable_records: unaffected
 user_development_authorization:
   owner: runtime_k_app
@@ -30,9 +30,9 @@ user_development_authorization:
     - manifest_permission_requirement_fingerprint
     - account_id
     - fixed_shell_entry_policy
-  choices: [run_once, remember_project]
+  choices: [run_once, allow_project]
   initial_permission_decision_state: none
-  remembered_reactivation_requires_fresh_presence: true
+  allow_project_reuse_requires_fresh_presence: false
   account_switch_transfers_authorization: false
   permission_requirements_may_be_empty: true
   app_owned_native_host_storage: allowed
@@ -41,6 +41,12 @@ user_development_authorization:
   renderer_storage_or_account_partition_projection: forbidden
   app_owned_host_commands: exact_app_registered_typed_allowlist
   app_owned_host_commands_create_nimi_grant: false
+  consent_storage:
+    owner: runtime_protected_service_authority
+    root_lifetime: stable_across_runtime_candidate_and_acceptance_round_replacement
+    candidate_payload_or_selected_product_data_root: forbidden
+    app_renderer_environment_or_argv_selection: forbidden
+    candidate_local_principal_projection_rebuild: allowed_from_exact_consent_only
 permission_requirements:
   manifest_field: permissions
   owner: platform_permission_catalog
@@ -103,16 +109,21 @@ continuity_matrix:
     - tauri_host_controlled_rebuild_and_restart
     - controlled_host_replacement_same_authorization
     - runtime_restart_during_live_supervisor_run
+    - supervisor_run_replacement
+    - desktop_restart
+    - runtime_restart_upgrade_or_reinstall
+    - developer_mode_reenable
+    - original_account_return
   invalidate_or_require_fresh_approval:
     - permission_requirement_change
     - declared_app_id_change
     - canonical_project_file_identity_change
     - copied_project
     - shell_or_entry_policy_change
-    - account_switch_or_logout
-    - mode_off
+    - account_id_change
+    - native_execution_risk_or_disclosure_revision_change
     - authorization_revoke
-    - supervisor_run_termination
+    - authority_integrity_or_provenance_failure
     - host_outside_verified_supervisor
     - executable_or_renderer_origin_outside_controlled_outputs
     - remote_or_uncontrolled_dev_server
@@ -120,10 +131,11 @@ lifetimes:
   run_once_ends_on: [supervisor_run_termination, mode_off, logout_or_account_switch, revoke, identity_permission_requirement_or_shell_mismatch]
   run_once_terminal_transition: tombstone_principal_and_mark_record_removed
   subsequent_run_once: fresh_approval_new_principal_and_record
-  remember_project_on_mode_off: dormant
-  remember_project_on_supervisor_run_termination: dormant
-  remember_project_auto_runs_after_reenable: false
-  remembered_account_switch: live_session_revoked_record_remains_bound_to_original_account_and_requires_fresh_presence_after_return
+  allow_project_on_mode_off: durable_consent_preserved_live_authority_revoked
+  allow_project_on_supervisor_run_termination: durable_consent_preserved_live_authority_revoked
+  allow_project_on_runtime_boot_epoch_change: durable_consent_preserved_live_authority_revoked
+  allow_project_auto_runs_after_reenable: false
+  allow_project_account_switch: live_authority_revoked_consent_remains_bound_to_original_account_and_reuses_without_presence_after_return
 risk_and_background:
   production_account_allowed_through_runtime_mediation: true
   runtime_credential_custody_required: true

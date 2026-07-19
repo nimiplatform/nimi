@@ -17,8 +17,8 @@ type localDevelopmentRowScanner interface {
 	Scan(...any) error
 }
 
-func (store *localDevelopmentStore) latestProjectAuthorization(ctx context.Context, projectRoot string, appID string) (localDevelopmentAuthorization, bool, error) {
-	authorization, err := scanLocalDevelopmentAuthorization(store.db.QueryRowContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, app_manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization WHERE project_root = ? OR app_id = ? ORDER BY updated_unix_nano DESC LIMIT 1`, projectRoot, appID))
+func (store *localDevelopmentStore) latestProjectAuthorization(ctx context.Context, projectRoot string, appID string, accountID string) (localDevelopmentAuthorization, bool, error) {
+	authorization, err := scanLocalDevelopmentAuthorization(store.db.QueryRowContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, app_manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization WHERE account_id = ? AND (project_root = ? OR app_id = ?) ORDER BY updated_unix_nano DESC LIMIT 1`, accountID, projectRoot, appID))
 	if errors.Is(err, sql.ErrNoRows) {
 		return localDevelopmentAuthorization{}, false, nil
 	}

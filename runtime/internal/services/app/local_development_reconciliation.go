@@ -35,22 +35,6 @@ func (s *Service) ReconcileLocalDevelopmentKernel(ctx context.Context) error {
 					return transitionErr
 				}
 			}
-		case localDevelopmentAuthorizationDormant:
-			principal, principalErr := s.localAppKernel.Principals().GetByDevelopmentAuthorizationID(ctx, ref)
-			if principalErr != nil || principal.State != localappkernel.PrincipalStateActive {
-				if _, revokeErr := s.localDevelopment.RevokeAuthorization(ctx, authorization.ID); revokeErr != nil {
-					return revokeErr
-				}
-				continue
-			}
-			if transitionErr := s.transitionLocalDevelopmentRecord(ctx, authorization, localappkernel.LifecycleStateDormant, false); transitionErr != nil {
-				if !errors.Is(transitionErr, localappkernel.ErrNotFound) {
-					return transitionErr
-				}
-				if _, revokeErr := s.localDevelopment.RevokeAuthorization(ctx, authorization.ID); revokeErr != nil {
-					return revokeErr
-				}
-			}
 		case localDevelopmentAuthorizationDenied, localDevelopmentAuthorizationRevoked:
 			if transitionErr := s.transitionLocalDevelopmentRecord(ctx, authorization, localappkernel.LifecycleStateRemoved, true); transitionErr != nil {
 				return transitionErr

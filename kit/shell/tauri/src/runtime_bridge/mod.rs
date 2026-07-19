@@ -41,9 +41,8 @@ pub use nimi_shell_protected_local::{
     LocalDevelopmentDeveloperModeSummary, LocalDevelopmentEndRunRequest,
     LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
     LocalDevelopmentLaunchRequest, LocalDevelopmentProject,
-    LocalDevelopmentProjectAuthorizationSummary, LocalDevelopmentReactivationRequest,
-    LocalDevelopmentShellKind, LocalDevelopmentSummaryAvailability, NimiHostError,
-    NimiHostErrorReasonCode,
+    LocalDevelopmentProjectAuthorizationSummary, LocalDevelopmentShellKind,
+    LocalDevelopmentSummaryAvailability, NimiHostError, NimiHostErrorReasonCode,
 };
 pub use stream::RuntimeBridgeStreamOpenResult;
 pub use unary::{
@@ -598,12 +597,6 @@ pub async fn decide_local_development_project(
     request: LocalDevelopmentDecisionRequest,
 ) -> Result<LocalDevelopmentAuthorization, NimiHostError> {
     service_control::decide_local_development_project(request).await
-}
-
-pub async fn reactivate_local_development_project(
-    request: LocalDevelopmentReactivationRequest,
-) -> Result<LocalDevelopmentAuthorization, NimiHostError> {
-    service_control::reactivate_local_development_project(request).await
 }
 
 pub async fn list_local_development_authorizations(

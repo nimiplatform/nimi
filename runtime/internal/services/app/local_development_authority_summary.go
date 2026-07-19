@@ -51,8 +51,6 @@ func (s *Service) GetLocalDevelopmentAuthoritySummary(ctx context.Context, _ *ru
 				switch authorization.State {
 				case localDevelopmentAuthorizationActive:
 					summary.ActiveCount++
-				case localDevelopmentAuthorizationDormant:
-					summary.DormantCount++
 				case localDevelopmentAuthorizationDenied:
 					summary.DeniedCount++
 				case localDevelopmentAuthorizationRevoked:

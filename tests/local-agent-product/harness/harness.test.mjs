@@ -424,12 +424,12 @@ test('remembered initial authority posture requires a bound session and unavaila
   }
 });
 
-test('remembered authorization selection uses the public Electron decision literal', () => {
+test('project authorization selection uses the public Electron decision literal', () => {
   const target = {
     selector: 'remembered-new',
     appId: 'nimi.zhiyu',
     accountId: 'account-primary',
-    persistence: 'allow-remember-project',
+    persistence: 'allow-project',
     state: 'active',
     updatedAtUnixMs: 200,
   };

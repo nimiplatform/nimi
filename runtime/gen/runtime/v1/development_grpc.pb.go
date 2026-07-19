@@ -25,7 +25,6 @@ const (
 	RuntimeDevelopmentService_EvaluateLocalDevelopmentProject_FullMethodName     = "/nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject"
 	RuntimeDevelopmentService_DecideLocalDevelopmentProject_FullMethodName       = "/nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject"
 	RuntimeDevelopmentService_ListLocalDevelopmentAuthorizations_FullMethodName  = "/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations"
-	RuntimeDevelopmentService_ReactivateLocalDevelopmentProject_FullMethodName   = "/nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject"
 	RuntimeDevelopmentService_RevokeLocalDevelopmentAuthorization_FullMethodName = "/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization"
 	RuntimeDevelopmentService_EndLocalDevelopmentRun_FullMethodName              = "/nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun"
 )
@@ -44,7 +43,6 @@ type RuntimeDevelopmentServiceClient interface {
 	EvaluateLocalDevelopmentProject(ctx context.Context, in *EvaluateLocalDevelopmentProjectRequest, opts ...grpc.CallOption) (*EvaluateLocalDevelopmentProjectResponse, error)
 	DecideLocalDevelopmentProject(ctx context.Context, in *DecideLocalDevelopmentProjectRequest, opts ...grpc.CallOption) (*DecideLocalDevelopmentProjectResponse, error)
 	ListLocalDevelopmentAuthorizations(ctx context.Context, in *ListLocalDevelopmentAuthorizationsRequest, opts ...grpc.CallOption) (*ListLocalDevelopmentAuthorizationsResponse, error)
-	ReactivateLocalDevelopmentProject(ctx context.Context, in *ReactivateLocalDevelopmentProjectRequest, opts ...grpc.CallOption) (*ReactivateLocalDevelopmentProjectResponse, error)
 	RevokeLocalDevelopmentAuthorization(ctx context.Context, in *RevokeLocalDevelopmentAuthorizationRequest, opts ...grpc.CallOption) (*RevokeLocalDevelopmentAuthorizationResponse, error)
 	EndLocalDevelopmentRun(ctx context.Context, in *EndLocalDevelopmentRunRequest, opts ...grpc.CallOption) (*EndLocalDevelopmentRunResponse, error)
 }
@@ -117,16 +115,6 @@ func (c *runtimeDevelopmentServiceClient) ListLocalDevelopmentAuthorizations(ctx
 	return out, nil
 }
 
-func (c *runtimeDevelopmentServiceClient) ReactivateLocalDevelopmentProject(ctx context.Context, in *ReactivateLocalDevelopmentProjectRequest, opts ...grpc.CallOption) (*ReactivateLocalDevelopmentProjectResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ReactivateLocalDevelopmentProjectResponse)
-	err := c.cc.Invoke(ctx, RuntimeDevelopmentService_ReactivateLocalDevelopmentProject_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *runtimeDevelopmentServiceClient) RevokeLocalDevelopmentAuthorization(ctx context.Context, in *RevokeLocalDevelopmentAuthorizationRequest, opts ...grpc.CallOption) (*RevokeLocalDevelopmentAuthorizationResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RevokeLocalDevelopmentAuthorizationResponse)
@@ -161,7 +149,6 @@ type RuntimeDevelopmentServiceServer interface {
 	EvaluateLocalDevelopmentProject(context.Context, *EvaluateLocalDevelopmentProjectRequest) (*EvaluateLocalDevelopmentProjectResponse, error)
 	DecideLocalDevelopmentProject(context.Context, *DecideLocalDevelopmentProjectRequest) (*DecideLocalDevelopmentProjectResponse, error)
 	ListLocalDevelopmentAuthorizations(context.Context, *ListLocalDevelopmentAuthorizationsRequest) (*ListLocalDevelopmentAuthorizationsResponse, error)
-	ReactivateLocalDevelopmentProject(context.Context, *ReactivateLocalDevelopmentProjectRequest) (*ReactivateLocalDevelopmentProjectResponse, error)
 	RevokeLocalDevelopmentAuthorization(context.Context, *RevokeLocalDevelopmentAuthorizationRequest) (*RevokeLocalDevelopmentAuthorizationResponse, error)
 	EndLocalDevelopmentRun(context.Context, *EndLocalDevelopmentRunRequest) (*EndLocalDevelopmentRunResponse, error)
 }
@@ -190,9 +177,6 @@ func (UnimplementedRuntimeDevelopmentServiceServer) DecideLocalDevelopmentProjec
 }
 func (UnimplementedRuntimeDevelopmentServiceServer) ListLocalDevelopmentAuthorizations(context.Context, *ListLocalDevelopmentAuthorizationsRequest) (*ListLocalDevelopmentAuthorizationsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListLocalDevelopmentAuthorizations not implemented")
-}
-func (UnimplementedRuntimeDevelopmentServiceServer) ReactivateLocalDevelopmentProject(context.Context, *ReactivateLocalDevelopmentProjectRequest) (*ReactivateLocalDevelopmentProjectResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ReactivateLocalDevelopmentProject not implemented")
 }
 func (UnimplementedRuntimeDevelopmentServiceServer) RevokeLocalDevelopmentAuthorization(context.Context, *RevokeLocalDevelopmentAuthorizationRequest) (*RevokeLocalDevelopmentAuthorizationResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RevokeLocalDevelopmentAuthorization not implemented")
@@ -328,24 +312,6 @@ func _RuntimeDevelopmentService_ListLocalDevelopmentAuthorizations_Handler(srv i
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeDevelopmentService_ReactivateLocalDevelopmentProject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ReactivateLocalDevelopmentProjectRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeDevelopmentServiceServer).ReactivateLocalDevelopmentProject(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeDevelopmentService_ReactivateLocalDevelopmentProject_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeDevelopmentServiceServer).ReactivateLocalDevelopmentProject(ctx, req.(*ReactivateLocalDevelopmentProjectRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _RuntimeDevelopmentService_RevokeLocalDevelopmentAuthorization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RevokeLocalDevelopmentAuthorizationRequest)
 	if err := dec(in); err != nil {
@@ -412,10 +378,6 @@ var RuntimeDevelopmentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListLocalDevelopmentAuthorizations",
 			Handler:    _RuntimeDevelopmentService_ListLocalDevelopmentAuthorizations_Handler,
-		},
-		{
-			MethodName: "ReactivateLocalDevelopmentProject",
-			Handler:    _RuntimeDevelopmentService_ReactivateLocalDevelopmentProject_Handler,
 		},
 		{
 			MethodName: "RevokeLocalDevelopmentAuthorization",

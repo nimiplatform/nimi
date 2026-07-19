@@ -219,7 +219,6 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject",
-		"/nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun",
 		"/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset",

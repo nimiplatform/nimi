@@ -1456,14 +1456,6 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListLocalDevelopmentAuthorizationsResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject",
-        service: "RuntimeDevelopmentService",
-        method: "ReactivateLocalDevelopmentProject",
-        kind: "unary",
-        request_type: "ReactivateLocalDevelopmentProjectRequest",
-        response_type: "ReactivateLocalDevelopmentProjectResponse",
-    },
-    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization",
         service: "RuntimeDevelopmentService",
         method: "RevokeLocalDevelopmentAuthorization",

@@ -14,10 +14,9 @@ use nimi_shell_protected_local::{
     DeveloperModeStatus, FixedRuntimeServiceControl, LocalDevelopmentAuthoritySummary,
     LocalDevelopmentAuthorization, LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest,
     LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
-    LocalDevelopmentLaunchRequest, LocalDevelopmentReactivationRequest, NimiDesktopControl,
-    NimiHostError, NimiHostErrorReasonCode, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
-    ProtectedCarrierReasonCode, RuntimeServiceAction, RuntimeServiceActionOutcome,
-    RuntimeServiceState, RuntimeServiceStatus,
+    LocalDevelopmentLaunchRequest, NimiDesktopControl, NimiHostError, NimiHostErrorReasonCode,
+    NimiProtectedLocalHostCarrier, ProtectedCarrierError, ProtectedCarrierReasonCode,
+    RuntimeServiceAction, RuntimeServiceActionOutcome, RuntimeServiceState, RuntimeServiceStatus,
 };
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
@@ -427,13 +426,6 @@ pub(super) async fn decide_local_development_project(
         }
         Err(error) => Err(error),
     }
-}
-
-pub(super) async fn reactivate_local_development_project(
-    request: LocalDevelopmentReactivationRequest,
-) -> Result<LocalDevelopmentAuthorization, NimiHostError> {
-    let control = control_for_call().await?;
-    control.reactivate_local_development_project(request).await
 }
 
 pub(super) async fn list_local_development_authorizations(

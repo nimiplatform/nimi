@@ -1448,14 +1448,6 @@ RUNTIME_METHODS = [
     "response_type": "ListLocalDevelopmentAuthorizationsResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject",
-    "service": "RuntimeDevelopmentService",
-    "method": "ReactivateLocalDevelopmentProject",
-    "kind": "unary",
-    "request_type": "ReactivateLocalDevelopmentProjectRequest",
-    "response_type": "ReactivateLocalDevelopmentProjectResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization",
     "service": "RuntimeDevelopmentService",
     "method": "RevokeLocalDevelopmentAuthorization",

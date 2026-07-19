@@ -46,7 +46,6 @@ pub struct LocalDevelopmentDeveloperModeSummary {
 pub struct LocalDevelopmentProjectAuthorizationSummary {
     pub availability: LocalDevelopmentSummaryAvailability,
     pub active_count: u64,
-    pub dormant_count: u64,
     pub denied_count: u64,
     pub revoked_count: u64,
     pub unavailable_reason: Option<NimiHostErrorReasonCode>,
@@ -84,7 +83,7 @@ impl LocalDevelopmentShellKind {
 pub enum LocalDevelopmentDecision {
     Deny,
     AllowRunOnce,
-    AllowRememberProject,
+    AllowProject,
 }
 
 impl LocalDevelopmentDecision {
@@ -92,7 +91,7 @@ impl LocalDevelopmentDecision {
         match self {
             Self::Deny => "deny",
             Self::AllowRunOnce => "allow-run-once",
-            Self::AllowRememberProject => "allow-remember-project",
+            Self::AllowProject => "allow-project",
         }
     }
 
@@ -100,7 +99,7 @@ impl LocalDevelopmentDecision {
         match self {
             Self::Deny => 1,
             Self::AllowRunOnce => 2,
-            Self::AllowRememberProject => 3,
+            Self::AllowProject => 3,
         }
     }
 }
@@ -112,7 +111,6 @@ pub enum LocalDevelopmentAuthorizationState {
     ReapprovalRequired,
     Denied,
     Revoked,
-    Dormant,
 }
 
 impl LocalDevelopmentAuthorizationState {
@@ -123,7 +121,6 @@ impl LocalDevelopmentAuthorizationState {
             Self::ReapprovalRequired => "reapproval-required",
             Self::Denied => "denied",
             Self::Revoked => "revoked",
-            Self::Dormant => "dormant",
         }
     }
 }
@@ -179,12 +176,6 @@ pub struct LocalDevelopmentEvaluation {
 pub struct LocalDevelopmentDecisionRequest {
     pub evaluation_id: [u8; 32],
     pub decision: LocalDevelopmentDecision,
-    pub risk_disclosure_acknowledged: bool,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct LocalDevelopmentReactivationRequest {
-    pub authorization_id: [u8; 32],
     pub risk_disclosure_acknowledged: bool,
 }
 

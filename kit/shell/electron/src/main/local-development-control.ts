@@ -13,7 +13,7 @@ type NativeJsonOutcome =
 const NATIVE_CONTROL_DEADLINE_MS = 20_000;
 
 export type NimiElectronLocalDevelopmentShell = 'electron' | 'tauri';
-export type NimiElectronLocalDevelopmentDecision = 'deny' | 'allow-run-once' | 'allow-remember-project';
+export type NimiElectronLocalDevelopmentDecision = 'deny' | 'allow-run-once' | 'allow-project';
 
 export type NimiElectronLocalDevelopmentPermissionRequirement = {
   readonly permissionId: string;
@@ -36,7 +36,7 @@ export type NimiElectronLocalDevelopmentAuthorization = {
   /** Main-process private Runtime identifier. Never project to a renderer. */
   readonly authorizationId: string;
   readonly project: NimiElectronLocalDevelopmentProject;
-  readonly state: 'confirmation-required' | 'active' | 'reapproval-required' | 'denied' | 'revoked' | 'dormant';
+  readonly state: 'confirmation-required' | 'active' | 'reapproval-required' | 'denied' | 'revoked';
   readonly persistence: NimiElectronLocalDevelopmentDecision;
   readonly authorizationGeneration: number;
   readonly approvedAtUnixMs: number;
@@ -57,7 +57,6 @@ export type NimiElectronLocalDevelopmentBinding = {
   readonly desktopGetLocalDevelopmentAuthoritySummary: () => Promise<NativeJsonOutcome>;
   readonly desktopEvaluateLocalDevelopmentProject: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
   readonly desktopDecideLocalDevelopmentProject: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
-  readonly desktopReactivateLocalDevelopmentProject: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
   readonly desktopListLocalDevelopmentAuthorizations: () => Promise<NativeJsonOutcome>;
   readonly desktopRevokeLocalDevelopmentAuthorization: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
   readonly desktopLaunchLocalDevelopmentHost: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
@@ -77,10 +76,6 @@ export type NimiElectronLocalDevelopmentControl = {
   readonly decide: (input: {
     readonly evaluationId: string;
     readonly decision: NimiElectronLocalDevelopmentDecision;
-    readonly riskDisclosureAcknowledged: boolean;
-  }) => Promise<NimiElectronLocalDevelopmentAuthorization>;
-  readonly reactivate: (input: {
-    readonly authorizationId: string;
     readonly riskDisclosureAcknowledged: boolean;
   }) => Promise<NimiElectronLocalDevelopmentAuthorization>;
   readonly listAuthorizations: () => Promise<readonly NimiElectronLocalDevelopmentAuthorization[]>;
@@ -138,16 +133,6 @@ class ElectronLocalDevelopmentControl implements NimiElectronLocalDevelopmentCon
         riskDisclosureAcknowledged: Boolean(input.riskDisclosureAcknowledged),
       }),
       'decide_local_development_project',
-    ));
-  }
-
-  async reactivate(input: Parameters<NimiElectronLocalDevelopmentControl['reactivate']>[0]) {
-    return parseAuthorization(await invokeNative(
-      () => this.binding.desktopReactivateLocalDevelopmentProject({
-        authorizationId: identifier(input.authorizationId),
-        riskDisclosureAcknowledged: Boolean(input.riskDisclosureAcknowledged),
-      }),
-      'reactivate_local_development_project',
     ));
   }
 
@@ -225,7 +210,6 @@ class LazyElectronLocalDevelopmentControl implements NimiElectronLocalDevelopmen
   getAuthoritySummary: NimiElectronLocalDevelopmentControl['getAuthoritySummary'] = () => this.resolve().getAuthoritySummary();
   evaluate: NimiElectronLocalDevelopmentControl['evaluate'] = (input) => this.resolve().evaluate(input);
   decide: NimiElectronLocalDevelopmentControl['decide'] = (input) => this.resolve().decide(input);
-  reactivate: NimiElectronLocalDevelopmentControl['reactivate'] = (input) => this.resolve().reactivate(input);
   listAuthorizations: NimiElectronLocalDevelopmentControl['listAuthorizations'] = () => this.resolve().listAuthorizations();
   revokeAuthorization: NimiElectronLocalDevelopmentControl['revokeAuthorization'] = (id) => this.resolve().revokeAuthorization(id);
   launch: NimiElectronLocalDevelopmentControl['launch'] = (input) => this.resolve().launch(input);
@@ -360,12 +344,12 @@ function shell(value: unknown): NimiElectronLocalDevelopmentShell {
 }
 
 function decision(value: unknown): NimiElectronLocalDevelopmentDecision {
-  if (value !== 'deny' && value !== 'allow-run-once' && value !== 'allow-remember-project') invalid();
+  if (value !== 'deny' && value !== 'allow-run-once' && value !== 'allow-project') invalid();
   return value;
 }
 
 function authorizationState(value: unknown): NimiElectronLocalDevelopmentAuthorization['state'] {
-  if (!['confirmation-required', 'active', 'reapproval-required', 'denied', 'revoked', 'dormant'].includes(String(value))) invalid();
+  if (!['confirmation-required', 'active', 'reapproval-required', 'denied', 'revoked'].includes(String(value))) invalid();
   return value as NimiElectronLocalDevelopmentAuthorization['state'];
 }
 
@@ -374,7 +358,6 @@ function validateBinding(value: unknown): NimiElectronLocalDevelopmentBinding {
     'desktopGetLocalDevelopmentAuthoritySummary',
     'desktopEvaluateLocalDevelopmentProject',
     'desktopDecideLocalDevelopmentProject',
-    'desktopReactivateLocalDevelopmentProject',
     'desktopListLocalDevelopmentAuthorizations',
     'desktopRevokeLocalDevelopmentAuthorization',
     'desktopLaunchLocalDevelopmentHost',

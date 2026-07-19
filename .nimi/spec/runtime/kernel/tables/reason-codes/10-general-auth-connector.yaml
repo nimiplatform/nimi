@@ -185,7 +185,6 @@ codes:
   - { name: LOCAL_APP_PRESENCE_REQUIRED, value: 656, family: LOCAL_APP, source_rule: K-ERR-012 }
   - { name: LOCAL_APP_PRESENCE_EXPIRED, value: 657, family: LOCAL_APP, source_rule: K-ERR-012 }
   - { name: LOCAL_APP_DEVELOPER_MODE_DISABLED, value: 658, family: LOCAL_APP, source_rule: K-ERR-012 }
-  - { name: LOCAL_APP_REMEMBERED_PROJECT_DORMANT, value: 659, family: LOCAL_APP, source_rule: K-ERR-012 }
   - { name: LOCAL_APP_RISK_DISCLOSURE_REQUIRED, value: 660, family: LOCAL_APP, source_rule: K-ERR-012 }
   - name: AI_CONNECTOR_NOT_FOUND
     value: 310

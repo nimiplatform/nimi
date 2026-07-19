@@ -24,7 +24,7 @@ func TestLocalDevelopmentStoreConsumesAllowDecisionWhenAccountChangesAfterEvalua
 	if _, err := store.Decide(
 		ctx,
 		evaluation.EvaluationID,
-		runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT,
+		runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT,
 		"account-b",
 		project.AccountGeneration+1,
 	); !errors.Is(err, errLocalDevelopmentReapproval) {
@@ -33,7 +33,7 @@ func TestLocalDevelopmentStoreConsumesAllowDecisionWhenAccountChangesAfterEvalua
 	if _, err := store.Decide(
 		ctx,
 		evaluation.EvaluationID,
-		runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT,
+		runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT,
 		project.AccountID,
 		project.AccountGeneration,
 	); !errors.Is(err, errLocalDevelopmentEvaluationExpired) {
@@ -41,7 +41,7 @@ func TestLocalDevelopmentStoreConsumesAllowDecisionWhenAccountChangesAfterEvalua
 	}
 }
 
-func TestLocalDevelopmentStoreReusesRememberedAuthorizationAndRequiresReapprovalOnAuthorityChange(t *testing.T) {
+func TestLocalDevelopmentStoreReusesAllowedProjectAndRequiresReapprovalOnAuthorityChange(t *testing.T) {
 	ctx := context.Background()
 	now := time.Date(2026, time.July, 12, 10, 0, 0, 0, time.UTC)
 	store := openLocalDevelopmentStoreForTest(t, now)
@@ -55,20 +55,20 @@ func TestLocalDevelopmentStoreReusesRememberedAuthorizationAndRequiresReapproval
 	if first.State != runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_CONFIRMATION_REQUIRED || first.EvaluationID == (protectedlocal.Identifier{}) {
 		t.Fatalf("first evaluation must require confirmation, got %#v", first)
 	}
-	authorization, err := store.Decide(ctx, first.EvaluationID, runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT, project.AccountID, project.AccountGeneration)
+	authorization, err := store.Decide(ctx, first.EvaluationID, runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT, project.AccountID, project.AccountGeneration)
 	if err != nil {
-		t.Fatalf("Decide remembered project: %v", err)
+		t.Fatalf("Decide allowed project: %v", err)
 	}
 	if authorization.State != localDevelopmentAuthorizationActive || authorization.ID == (protectedlocal.Identifier{}) || authorization.Generation != 1 {
-		t.Fatalf("remembered authorization not active: %#v", authorization)
+		t.Fatalf("allowed-project authorization not active: %#v", authorization)
 	}
 
 	second, err := store.Evaluate(ctx, project, localDevelopmentTestIdentifier(0x12))
 	if err != nil {
-		t.Fatalf("Evaluate remembered project: %v", err)
+		t.Fatalf("Evaluate allowed project: %v", err)
 	}
 	if second.State != runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE || second.Authorization.ID != authorization.ID || second.EvaluationID != (protectedlocal.Identifier{}) {
-		t.Fatalf("remembered project should reuse the authorization without confirmation: %#v", second)
+		t.Fatalf("allowed project should reuse the authorization without confirmation: %#v", second)
 	}
 
 	permissionExpanded := project
@@ -94,8 +94,8 @@ func TestLocalDevelopmentStoreReusesRememberedAuthorizationAndRequiresReapproval
 	if err != nil {
 		t.Fatalf("Evaluate switched account: %v", err)
 	}
-	if switched.State != runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REAPPROVAL_REQUIRED {
-		t.Fatalf("account switch must require reapproval: %#v", switched)
+	if switched.State != runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_CONFIRMATION_REQUIRED {
+		t.Fatalf("a different account must require its own first approval: %#v", switched)
 	}
 	if err := store.RevokeAccountAuthority(ctx, project.AccountID); err != nil {
 		t.Fatalf("RevokeAccountAuthority: %v", err)
@@ -113,8 +113,8 @@ func TestLocalDevelopmentStoreReusesRememberedAuthorizationAndRequiresReapproval
 	if err != nil {
 		t.Fatalf("Evaluate after account authority revocation: %v", err)
 	}
-	if afterLogout.State != runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DORMANT || afterLogout.Authorization.ID != authorization.ID {
-		t.Fatalf("logout/switch must preserve remembered authorization only as dormant: %#v", afterLogout)
+	if afterLogout.State != runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE || afterLogout.Authorization.ID != authorization.ID {
+		t.Fatalf("logout/switch must preserve exact account-bound project consent: %#v", afterLogout)
 	}
 }
 
@@ -131,7 +131,7 @@ func TestLocalDevelopmentStoreBindsExactControlledHostAndRevokesRun(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	authorization, err := store.Decide(ctx, evaluation.EvaluationID, runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE, project.AccountID, project.AccountGeneration)
+	authorization, err := store.Decide(ctx, evaluation.EvaluationID, runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT, project.AccountID, project.AccountGeneration)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -217,6 +217,47 @@ func TestLocalDevelopmentStoreBindsExactControlledHostAndRevokesRun(t *testing.T
 	}
 	if _, err := store.ValidateSession(ctx, binding); err != errLocalDevelopmentSessionRevoked {
 		t.Fatalf("session must revoke immediately when the supervised run ends, got %v", err)
+	}
+	next, err := store.Evaluate(ctx, project, localDevelopmentTestIdentifier(0x22))
+	if err != nil {
+		t.Fatalf("Evaluate after EndRun: %v", err)
+	}
+	if next.State != runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE || next.Authorization.ID != authorization.ID || next.EvaluationID != (protectedlocal.Identifier{}) {
+		t.Fatalf("EndRun must preserve allow-project consent while revoking technical state: %#v", next)
+	}
+}
+
+func TestLocalDevelopmentStorePreservesAllowedProjectAcrossBootEpochReplacement(t *testing.T) {
+	ctx := context.Background()
+	databasePath := filepath.Join(t.TempDir(), "local-development.db")
+	first, err := openLocalDevelopmentStore(databasePath, localDevelopmentTestIdentifier(0x61))
+	if err != nil {
+		t.Fatal(err)
+	}
+	project := localDevelopmentTestProject(t)
+	evaluation, err := first.Evaluate(ctx, project, localDevelopmentTestIdentifier(0x62))
+	if err != nil {
+		t.Fatal(err)
+	}
+	authorization, err := first.Decide(ctx, evaluation.EvaluationID, runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT, project.AccountID, project.AccountGeneration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := first.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	second, err := openLocalDevelopmentStore(databasePath, localDevelopmentTestIdentifier(0x63))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = second.Close() })
+	reused, err := second.Evaluate(ctx, project, localDevelopmentTestIdentifier(0x64))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reused.State != runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE || reused.Authorization.ID != authorization.ID || reused.EvaluationID != (protectedlocal.Identifier{}) {
+		t.Fatalf("boot epoch replacement must preserve exact allow-project consent: %#v", reused)
 	}
 }
 

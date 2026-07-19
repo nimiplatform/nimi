@@ -56,7 +56,6 @@ func protectedDesktopMethodRole(method string) (protectedlocal.OriginRole, bool)
 		"/nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations",
-		"/nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun":
 		return protectedlocal.RoleLocalAppControl, true

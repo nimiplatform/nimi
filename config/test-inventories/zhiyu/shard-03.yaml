@@ -5,6 +5,19 @@ authority_class: non_authoritative_inventory
 spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
 shard_id: zhiyu_test_inventory_shard_03
 tests:
+  - path: apps/zhiyu/test/app-owned-sqlite.test.mjs
+    owner: zhiyu
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - P-PERM-002
+      - Z-AUTH-003
   - path: apps/zhiyu/test/electron-real-local-agent-fixture-hardcut.test.mjs
     owner: zhiyu
     classification: contract_conformance

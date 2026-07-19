@@ -70,9 +70,9 @@ inventory-only record may provide another positive path.
 
 `local_development` is the sole mutable third-party provenance class and uses
 the same principal, launch/session, permission, and owner-operation coordinator
-as immutable classes. The global Developer Mode toggle grants nothing. Each
-project requires fresh presence and an explicit `run_once` or
-`remember_project` decision.
+as immutable classes. The global Developer Mode toggle grants nothing. A
+project's first authorization requires fresh presence and an explicit
+`run_once` or `allow_project` decision.
 
 Authorization binds canonical project-root file identity, declared app id,
 permission-requirement fingerprint, current account, fixed shell/entry policy,
@@ -81,11 +81,22 @@ closed public `{ id, reason }` requirements admitted by `P-PERM-002`; it is
 request eligibility only and never substitutes for an owner-issued selector or
 permission decision. The current admitted list is empty, so a non-empty local
 manifest fails before project approval. Every build/host replacement receives a
-new lease, process binding, and local-app session. Controlled HMR/rebuild/restart
-and Runtime restart may rebind without repeated consent only while those durable
-bindings and the supervisor run remain exact. Account switch, mode-off, revoke,
-supervisor end, root/app/permission-requirement/shell/origin mismatch, or copied
-project invalidates the applicable authority.
+new lease, process binding, and local-app session. Controlled HMR/rebuild/restart,
+supervisor replacement, Desktop restart, and Runtime restart/upgrade/reinstall
+may reuse `allow_project` without repeated consent while the canonical project,
+account, permission-requirement fingerprint, shell/entry policy, and risk
+disclosure revision remain exact. Runtime boot epoch and supervisor-run identity
+are technical-session inputs and never durable consent inputs. Account switch,
+mode-off, supervisor end, and Runtime replacement revoke live carriers but do
+not revoke exact `allow_project` consent. Revoke, root/app/account/permission-
+requirement/shell/entry mismatch, risk expansion, copied project, or integrity
+failure invalidates or requires fresh approval for the applicable authority.
+
+The Runtime-owned `allow_project` consent row lives under the stable protected
+service authority root, outside candidate-, acceptance-round-, and selected
+product-data roots. Candidate installation may rebuild candidate-local
+principal/record projections from that row, but must not replace, copy, or
+reinterpret the consent store.
 
 The public permission-requirement list may be empty. An application that uses only
 its own native host, app-owned OS storage, or the bounded app-private storage
@@ -97,9 +108,10 @@ generation bindings. After a public permission is atomically admitted, any
 change to the manifest permission-requirement list changes the fingerprint and
 requires the existing reapproval flow.
 
-`remember_project` becomes dormant when mode is off and requires fresh
-presence to reactivate; it never auto-runs. `run_once` ends with the supervisor
-run or any invalidation trigger. Development may use a controlled production
+`allow_project` remains Runtime-owned when mode is off, the account is absent,
+or no supervisor is running; it never auto-runs. A later explicit dev launch
+reuses it without presence only after exact binding verification. `run_once`
+ends with the supervisor run or any invalidation trigger. Development may use a controlled production
 account through Runtime-mediated APIs but receives no token, bearer, stronger
 permission, or persistent Nimi-managed logon/boot autostart. UI must disclose
 that Nimi permissions constrain Nimi APIs, not all ordinary OS rights of native

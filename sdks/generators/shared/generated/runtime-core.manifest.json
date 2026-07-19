@@ -1731,15 +1731,6 @@
           "response_stream": false
         },
         {
-          "name": "ReactivateLocalDevelopmentProject",
-          "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject",
-          "kind": "unary",
-          "request_type": "ReactivateLocalDevelopmentProjectRequest",
-          "response_type": "ReactivateLocalDevelopmentProjectResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
           "name": "RevokeLocalDevelopmentAuthorization",
           "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization",
           "kind": "unary",
@@ -2691,7 +2682,6 @@
     "/nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus",
     "/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentAuthoritySummary",
     "/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations",
-    "/nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject",
     "/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization",
     "/nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode",
     "/nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus",
@@ -4215,14 +4205,6 @@
       "kind": "unary",
       "request_type": "ListLocalDevelopmentAuthorizationsRequest",
       "response_type": "ListLocalDevelopmentAuthorizationsResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject",
-      "service": "RuntimeDevelopmentService",
-      "method": "ReactivateLocalDevelopmentProject",
-      "kind": "unary",
-      "request_type": "ReactivateLocalDevelopmentProjectRequest",
-      "response_type": "ReactivateLocalDevelopmentProjectResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization",
@@ -6323,14 +6305,6 @@
       "response_type": "ListLocalDevelopmentAuthorizationsResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject",
-      "service": "RuntimeDevelopmentService",
-      "method": "ReactivateLocalDevelopmentProject",
-      "kind": "unary",
-      "request_type": "ReactivateLocalDevelopmentProjectRequest",
-      "response_type": "ReactivateLocalDevelopmentProjectResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization",
       "service": "RuntimeDevelopmentService",
       "method": "RevokeLocalDevelopmentAuthorization",
@@ -7574,8 +7548,6 @@
       "QueryAgentMemoryRequest",
       "QueryAgentMemoryResponse",
       "RawChunk",
-      "ReactivateLocalDevelopmentProjectRequest",
-      "ReactivateLocalDevelopmentProjectResponse",
       "ReadArtifactBytesRequest",
       "ReadArtifactBytesResponse",
       "ReadLocalAppStorageJsonRequest",
@@ -24086,13 +24058,6 @@
             "number": 2
           },
           {
-            "name": "dormant_count",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
             "name": "denied_count",
             "type": "uint64",
             "repeated": false,
@@ -31140,46 +31105,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
-      },
-      {
-        "name": "ReactivateLocalDevelopmentProjectRequest",
-        "fields": [
-          {
-            "name": "authorization_id",
-            "type": "bytes",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "risk_disclosure_acknowledged",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/development.proto"
-      },
-      {
-        "name": "ReactivateLocalDevelopmentProjectResponse",
-        "fields": [
-          {
-            "name": "authorization",
-            "type": "LocalDevelopmentAuthorizationProjection",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/development.proto"
       },
       {
         "name": "ReadArtifactBytesRequest",
@@ -41812,8 +41737,7 @@
           "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE",
           "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REAPPROVAL_REQUIRED",
           "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DENIED",
-          "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REVOKED",
-          "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DORMANT"
+          "LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REVOKED"
         ],
         "source_file": "proto/runtime/v1/development.proto"
       },
@@ -41823,7 +41747,7 @@
           "LOCAL_DEVELOPMENT_DECISION_UNSPECIFIED",
           "LOCAL_DEVELOPMENT_DECISION_DENY",
           "LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE",
-          "LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT"
+          "LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT"
         ],
         "source_file": "proto/runtime/v1/development.proto"
       },
@@ -42596,7 +42520,6 @@
           "LOCAL_APP_PRESENCE_REQUIRED",
           "LOCAL_APP_PRESENCE_EXPIRED",
           "LOCAL_APP_DEVELOPER_MODE_DISABLED",
-          "LOCAL_APP_REMEMBERED_PROJECT_DORMANT",
           "LOCAL_APP_RISK_DISCLOSURE_REQUIRED"
         ],
         "source_file": "proto/runtime/v1/common.proto"

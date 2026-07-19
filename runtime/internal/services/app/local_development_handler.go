@@ -44,10 +44,6 @@ func (s *Service) RevokeAccountAuthority(ctx context.Context, accountID string) 
 			if err := s.transitionLocalDevelopmentRecord(ctx, authorization, localappkernel.LifecycleStateRemoved, true); err != nil {
 				return err
 			}
-		} else if authorization.State == localDevelopmentAuthorizationDormant {
-			if err := s.transitionLocalDevelopmentRecord(ctx, authorization, localappkernel.LifecycleStateDormant, false); err != nil {
-				return err
-			}
 		}
 	}
 	return nil
@@ -97,10 +93,6 @@ func (s *Service) SetDeveloperMode(ctx context.Context, req *runtimev1.SetDevelo
 		}
 		for _, authorization := range authorizations {
 			switch authorization.State {
-			case localDevelopmentAuthorizationDormant:
-				if transitionErr := s.transitionLocalDevelopmentRecord(ctx, authorization, localappkernel.LifecycleStateDormant, false); transitionErr != nil {
-					return nil, localDevelopmentStoreError(transitionErr)
-				}
 			case localDevelopmentAuthorizationRevoked:
 				if transitionErr := s.transitionLocalDevelopmentRecord(ctx, authorization, localappkernel.LifecycleStateRemoved, true); transitionErr != nil {
 					return nil, localDevelopmentStoreError(transitionErr)
@@ -219,48 +211,6 @@ func (s *Service) DecideLocalDevelopmentProject(ctx context.Context, req *runtim
 		reason = runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND
 	}
 	return &runtimev1.DecideLocalDevelopmentProjectResponse{Authorization: localDevelopmentAuthorizationToProto(authorization), ReasonCode: reason}, nil
-}
-
-func (s *Service) ReactivateLocalDevelopmentProject(ctx context.Context, req *runtimev1.ReactivateLocalDevelopmentProjectRequest) (*runtimev1.ReactivateLocalDevelopmentProjectResponse, error) {
-	if err := requireProtectedLocalDevelopmentDesktop(ctx); err != nil {
-		return nil, err
-	}
-	if s == nil || s.localDevelopment == nil || req == nil {
-		return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
-	}
-	authorizationID, ok := localDevelopmentIdentifierFromBytes(req.GetAuthorizationId())
-	if !ok {
-		return nil, localDevelopmentFailure(codes.InvalidArgument, runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND)
-	}
-	if !req.GetRiskDisclosureAcknowledged() {
-		return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_RISK_DISCLOSURE_REQUIRED)
-	}
-	account, generation, authenticated := s.authenticatedLifecycleAccount(ctx)
-	if !authenticated {
-		return nil, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
-	}
-	presenceContext, presenceContextErr := withLocalDevelopmentPresenceBrowser(ctx)
-	if presenceContextErr != nil {
-		return nil, localDevelopmentFailure(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
-	if _, _, err := s.verifyLocalDevelopmentPresence(presenceContext, "local-app.developer-project.reactivate"); err != nil {
-		return nil, localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PRESENCE_REQUIRED)
-	}
-	authorization, err := s.localDevelopment.Reactivate(ctx, authorizationID, account.GetAccountId(), generation)
-	if err != nil {
-		return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_REMEMBERED_PROJECT_DORMANT)
-	}
-	if err := s.transitionLocalDevelopmentRecord(ctx, authorization, localappkernel.LifecycleStateActive, false); err != nil {
-		_, _ = s.localDevelopment.RevokeAuthorization(context.Background(), authorizationID)
-		return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE)
-	}
-	project, err := resolveLocalDevelopmentProject(authorization.Project.ProjectRoot, authorization.Project.AppID, authorization.Project.ShellKind, account.GetAccountId(), generation)
-	if err != nil || !localDevelopmentProjectsMatch(authorization.Project, project) {
-		_, _ = s.localDevelopment.RevokeAuthorization(ctx, authorizationID)
-		_ = s.transitionLocalDevelopmentRecord(context.Background(), authorization, localappkernel.LifecycleStateRemoved, true)
-		return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE)
-	}
-	return &runtimev1.ReactivateLocalDevelopmentProjectResponse{Authorization: localDevelopmentAuthorizationToProto(authorization), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
 func (s *Service) ListLocalDevelopmentAuthorizations(ctx context.Context, _ *runtimev1.ListLocalDevelopmentAuthorizationsRequest) (*runtimev1.ListLocalDevelopmentAuthorizationsResponse, error) {
@@ -392,8 +342,6 @@ func (s *Service) PrepareLocalAppLaunch(ctx context.Context, req *runtimev1.Prep
 		if endErr := s.localDevelopment.EndRun(context.Background(), authorizationID, runID); endErr == nil {
 			if authorization.Decision == runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE {
 				_ = s.transitionLocalDevelopmentRecord(context.Background(), authorization, localappkernel.LifecycleStateRemoved, true)
-			} else {
-				_ = s.transitionLocalDevelopmentRecord(context.Background(), authorization, localappkernel.LifecycleStateDormant, false)
 			}
 		}
 	}); err != nil {
@@ -577,8 +525,6 @@ func (s *Service) EndLocalDevelopmentRun(ctx context.Context, req *runtimev1.End
 		if err := s.transitionLocalDevelopmentRecord(ctx, authorization, localappkernel.LifecycleStateRemoved, true); err != nil {
 			return nil, localDevelopmentStoreError(err)
 		}
-	} else if err := s.transitionLocalDevelopmentRecord(ctx, authorization, localappkernel.LifecycleStateDormant, false); err != nil {
-		return nil, localDevelopmentStoreError(err)
 	}
 	if connection, ok := protectedlocal.DesktopConnectionFromContext(ctx); ok {
 		connection.UnbindRevocationHook(runID)
@@ -636,8 +582,6 @@ func localDevelopmentAuthorizationToProto(authorization localDevelopmentAuthoriz
 	switch authorization.State {
 	case localDevelopmentAuthorizationActive:
 		state = runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE
-	case localDevelopmentAuthorizationDormant:
-		state = runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DORMANT
 	case localDevelopmentAuthorizationDenied:
 		state = runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DENIED
 	case localDevelopmentAuthorizationRevoked:

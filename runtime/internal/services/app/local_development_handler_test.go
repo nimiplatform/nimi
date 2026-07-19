@@ -32,7 +32,7 @@ func TestLocalDevelopmentAuthoritySummaryIsProtectedBoundedAndSideEffectFree(t *
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.Decide(ctx, evaluation.EvaluationID, runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT, project.AccountID, project.AccountGeneration); err != nil {
+	if _, err := store.Decide(ctx, evaluation.EvaluationID, runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT, project.AccountID, project.AccountGeneration); err != nil {
 		t.Fatal(err)
 	}
 	account := &localDevelopmentHandlerAccount{accountID: project.AccountID, generation: project.AccountGeneration}
@@ -125,7 +125,7 @@ permissions: []
 	}
 	_, err = service.DecideLocalDevelopmentProject(desktopContext, &runtimev1.DecideLocalDevelopmentProjectRequest{
 		EvaluationId:               evaluation.GetEvaluationId(),
-		Decision:                   runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT,
+		Decision:                   runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT,
 		RiskDisclosureAcknowledged: true,
 	})
 	if status.Code(err) != codes.FailedPrecondition || status.Convert(err).Message() != runtimev1.ReasonCode_LOCAL_APP_DEVELOPER_MODE_DISABLED.String() {
@@ -138,7 +138,7 @@ permissions: []
 	}
 	_, err = service.DecideLocalDevelopmentProject(desktopContext, &runtimev1.DecideLocalDevelopmentProjectRequest{
 		EvaluationId:               evaluation.GetEvaluationId(),
-		Decision:                   runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT,
+		Decision:                   runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT,
 		RiskDisclosureAcknowledged: true,
 	})
 	if status.Code(err) != codes.PermissionDenied || status.Convert(err).Message() != runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND.String() {
@@ -154,14 +154,10 @@ func TestLocalDevelopmentStartupReconciliationRevokesIncompletePairsAndTombstone
 	if err != nil {
 		t.Fatalf("evaluate project: %v", err)
 	}
-	authorization, err := store.Decide(ctx, evaluation.EvaluationID, runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT, project.AccountID, project.AccountGeneration)
+	authorization, err := store.Decide(ctx, evaluation.EvaluationID, runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT, project.AccountID, project.AccountGeneration)
 	if err != nil {
 		t.Fatalf("decide project: %v", err)
 	}
-	if err := store.RevokeAccountAuthority(ctx, project.AccountID); err != nil {
-		t.Fatalf("make remembered project dormant: %v", err)
-	}
-
 	verifiedSID, err := localappkernel.ValidateVerifiedWindowsInteractiveUserSID("S-1-5-21-100-200-300-1001")
 	if err != nil {
 		t.Fatal(err)
@@ -193,7 +189,7 @@ func TestLocalDevelopmentStartupReconciliationRevokesIncompletePairsAndTombstone
 		t.Fatalf("read reconciled authorization: %v", err)
 	}
 	if current.State != localDevelopmentAuthorizationRevoked {
-		t.Fatalf("incomplete dormant pair state = %s, want revoked", current.State)
+		t.Fatalf("incomplete durable pair state = %s, want revoked", current.State)
 	}
 	currentOrphan, err := kernel.Principals().Get(ctx, orphan.LocalAppPrincipalID)
 	if err != nil {
@@ -295,7 +291,7 @@ permissions: []
 		t.Fatalf("unexpected development evaluation: %+v", evaluation)
 	}
 	decision, err := service.DecideLocalDevelopmentProject(desktopContext, &runtimev1.DecideLocalDevelopmentProjectRequest{
-		EvaluationId: evaluation.GetEvaluationId(), Decision: runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT,
+		EvaluationId: evaluation.GetEvaluationId(), Decision: runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT,
 		RiskDisclosureAcknowledged: true,
 	})
 	if err != nil {
@@ -344,16 +340,6 @@ permissions: []
 	nextDesktopConnection := newLocalDevelopmentHandlerDesktopConnection(t, boot)
 	t.Cleanup(nextDesktopConnection.Revoke)
 	nextDesktopContext := protectedlocal.ContextWithDesktopConnection(ctx, nextDesktopConnection)
-	reactivated, err := service.ReactivateLocalDevelopmentProject(nextDesktopContext, &runtimev1.ReactivateLocalDevelopmentProjectRequest{
-		AuthorizationId:            authorizationID,
-		RiskDisclosureAcknowledged: true,
-	})
-	if err != nil {
-		t.Fatalf("reactivate remembered project after supervisor exit: %v", err)
-	}
-	if reactivated.GetAuthorization().GetState() != runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE {
-		t.Fatalf("reactivated remembered authorization must be active: %+v", reactivated)
-	}
 	nextRunID := localDevelopmentTestIdentifier(0x94)
 	nextEvaluation, err := service.EvaluateLocalDevelopmentProject(nextDesktopContext, &runtimev1.EvaluateLocalDevelopmentProjectRequest{
 		ExpectedAppId: "sample.nimi.app", ProjectRoot: projectRoot,
@@ -364,7 +350,7 @@ permissions: []
 		t.Fatalf("EvaluateLocalDevelopmentProject after supervisor restart: %v", err)
 	}
 	if nextEvaluation.GetConfirmationRequired() || nextEvaluation.GetAuthorization().GetState() != runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE {
-		t.Fatalf("remember-project authorization must survive supervisor exit while technical state is replaced: %+v", nextEvaluation)
+		t.Fatalf("allow-project authorization must survive supervisor exit while technical state is replaced: %+v", nextEvaluation)
 	}
 	hostConnection.Revoke()
 	if _, err := service.OpenLocalAppSessionProjection(hostContext); err == nil {

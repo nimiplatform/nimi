@@ -8,8 +8,8 @@ use crate::{
     LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
     LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
     LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
-    LocalDevelopmentLaunchRequest, LocalDevelopmentReactivationRequest, NimiHostError,
-    ProtectedCarrierError, RuntimeServiceActionOutcome,
+    LocalDevelopmentLaunchRequest, NimiHostError, ProtectedCarrierError,
+    RuntimeServiceActionOutcome,
 };
 use serde_json::Value as JsonValue;
 use std::error::Error;
@@ -297,13 +297,6 @@ pub trait NimiDesktopControl: Send + Sync {
     fn decide_local_development_project(
         &self,
         request: LocalDevelopmentDecisionRequest,
-    ) -> Pin<
-        Box<dyn Future<Output = Result<LocalDevelopmentAuthorization, NimiHostError>> + Send + '_>,
-    >;
-
-    fn reactivate_local_development_project(
-        &self,
-        request: LocalDevelopmentReactivationRequest,
     ) -> Pin<
         Box<dyn Future<Output = Result<LocalDevelopmentAuthorization, NimiHostError>> + Send + '_>,
     >;

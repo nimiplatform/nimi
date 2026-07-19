@@ -163,4 +163,5 @@ test('UAC launcher keeps stream redirection inside the elevated command', () => 
   assert.doesNotMatch(source, /\$parsed = \$raw \| ConvertFrom-Json/u);
   assert.match(source, /WriteAllText.*\$raw.*UTF8Encoding/u);
   assert.match(source, /process\.stderr\.write\(`\$\{diagnostics\}\\n`\)/u);
+  assert.match(source, /\$ErrorActionPreference = 'Stop'[\s\S]*\[Console\]::Error\.WriteLine\(\$_\.Exception\.Message\)[\s\S]*'exit 1'/u);
 });

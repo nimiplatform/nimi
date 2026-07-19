@@ -111,7 +111,6 @@ pub(super) fn project_local_development_authority_summary(
         "projectAuthorization": {
             "availability": project_summary_availability(summary.project_authorization.availability),
             "activeCount": summary.project_authorization.active_count,
-            "dormantCount": summary.project_authorization.dormant_count,
             "deniedCount": summary.project_authorization.denied_count,
             "revokedCount": summary.project_authorization.revoked_count,
             "unavailableReason": project_summary_unavailable_reason(summary.project_authorization.unavailable_reason),
@@ -189,7 +188,7 @@ pub(super) fn local_development_decision(value: &str) -> Option<LocalDevelopment
     match value {
         "deny" => Some(LocalDevelopmentDecision::Deny),
         "allow-run-once" => Some(LocalDevelopmentDecision::AllowRunOnce),
-        "allow-remember-project" => Some(LocalDevelopmentDecision::AllowRememberProject),
+        "allow-project" => Some(LocalDevelopmentDecision::AllowProject),
         _ => None,
     }
 }
@@ -391,7 +390,6 @@ mod tests {
             project_authorization: LocalDevelopmentProjectAuthorizationSummary {
                 availability: LocalDevelopmentSummaryAvailability::Available,
                 active_count: 2,
-                dormant_count: 3,
                 denied_count: 5,
                 revoked_count: 7,
                 unavailable_reason: None,

@@ -13,9 +13,8 @@ use nimi_shell_protected_local::{
     LocalAppStorageWriteRequest, LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
     LocalDevelopmentDecision, LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest,
     LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchRequest,
-    LocalDevelopmentReactivationRequest, LocalDevelopmentShellKind,
-    LocalDevelopmentSummaryAvailability, NimiDesktopControl, NimiHostError,
-    NimiHostErrorReasonCode, NimiLocalAppCarrier, NimiLocalAppSession,
+    LocalDevelopmentShellKind, LocalDevelopmentSummaryAvailability, NimiDesktopControl,
+    NimiHostError, NimiHostErrorReasonCode, NimiLocalAppCarrier, NimiLocalAppSession,
     NimiProtectedLocalHostCarrier, ProtectedCarrierError, RuntimeServiceActionOutcome,
 };
 #[cfg(target_os = "macos")]
@@ -399,26 +398,6 @@ pub async fn desktop_decide_local_development_project(
             .decide_local_development_project(LocalDevelopmentDecisionRequest {
                 evaluation_id,
                 decision,
-                risk_disclosure_acknowledged: input.risk_disclosure_acknowledged,
-            })
-            .await
-            .map(project_local_development_authorization)
-    })
-    .await
-}
-
-#[napi(js_name = "desktopReactivateLocalDevelopmentProject")]
-pub async fn desktop_reactivate_local_development_project(
-    input: NativeLocalDevelopmentReactivationInput,
-) -> NativeJsonOutcome {
-    let authorization_id = match decode_identifier(&input.authorization_id) {
-        Some(value) => value,
-        None => return NativeJsonOutcome::host_reason("runtime-service-untrusted", false),
-    };
-    invoke_desktop_json(|control| async move {
-        control
-            .reactivate_local_development_project(LocalDevelopmentReactivationRequest {
-                authorization_id,
                 risk_disclosure_acknowledged: input.risk_disclosure_acknowledged,
             })
             .await

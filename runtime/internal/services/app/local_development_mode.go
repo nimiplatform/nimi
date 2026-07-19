@@ -6,7 +6,6 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 )
 
 type localDevelopmentModeProjection struct {
@@ -74,47 +73,7 @@ func (store *localDevelopmentStore) RequireDeveloperMode(ctx context.Context, ac
 	return nil
 }
 
-func (store *localDevelopmentStore) Reactivate(ctx context.Context, authorizationID protectedlocal.Identifier, accountID string, accountGeneration uint64) (localDevelopmentAuthorization, error) {
-	if store == nil || store.db == nil || authorizationID == (protectedlocal.Identifier{}) || accountID == "" || accountGeneration == 0 {
-		return localDevelopmentAuthorization{}, errLocalDevelopmentInvalid
-	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
-	tx, err := store.db.BeginTx(ctx, nil)
-	if err != nil {
-		return localDevelopmentAuthorization{}, err
-	}
-	defer func() { _ = tx.Rollback() }()
-	mode, err := scanLocalDevelopmentMode(tx.QueryRowContext(ctx, `SELECT enabled, revision, account_id, account_generation FROM local_development_mode WHERE singleton = 1`))
-	if err != nil || !mode.Enabled || mode.AccountID != accountID || mode.AccountGeneration != accountGeneration {
-		return localDevelopmentAuthorization{}, errLocalDevelopmentAuthorization
-	}
-	authorization, err := scanLocalDevelopmentAuthorization(tx.QueryRowContext(ctx, `SELECT authorization_id, supervisor_run_id, app_id, display_name, project_root, app_manifest_path, shell_kind, account_id, approved_account_generation, capabilities_json, capability_fingerprint, decision, state, authorization_generation, approved_unix_nano, updated_unix_nano FROM local_development_authorization WHERE authorization_id = ?`, authorizationID[:]))
-	if err != nil || authorization.State != localDevelopmentAuthorizationDormant || authorization.Decision != runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT || authorization.Project.AccountID != accountID {
-		return localDevelopmentAuthorization{}, errLocalDevelopmentAuthorization
-	}
-	now := store.now().UTC()
-	result, err := tx.ExecContext(ctx, `UPDATE local_development_authorization SET state = 'active', approved_account_generation = ?, authorization_generation = authorization_generation + 1, updated_unix_nano = ? WHERE authorization_id = ? AND state = 'dormant'`, accountGeneration, now.UnixNano(), authorizationID[:])
-	if err != nil {
-		return localDevelopmentAuthorization{}, err
-	}
-	if err := requireLocalDevelopmentRowsAffected(result); err != nil {
-		return localDevelopmentAuthorization{}, err
-	}
-	if err := tx.Commit(); err != nil {
-		return localDevelopmentAuthorization{}, err
-	}
-	authorization.State = localDevelopmentAuthorizationActive
-	authorization.Project.AccountGeneration = accountGeneration
-	authorization.Generation++
-	authorization.UpdatedAt = now
-	return authorization, nil
-}
-
 func transitionDevelopmentAuthorizationsForModeOff(ctx context.Context, tx *sql.Tx, now time.Time) error {
-	if _, err := tx.ExecContext(ctx, `UPDATE local_development_authorization SET state = 'dormant', updated_unix_nano = ? WHERE state = 'active' AND decision = ?`, now.UnixNano(), int32(runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT)); err != nil {
-		return err
-	}
 	if _, err := tx.ExecContext(ctx, `UPDATE local_development_authorization SET state = 'revoked', updated_unix_nano = ? WHERE state = 'active' AND decision = ?`, now.UnixNano(), int32(runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE)); err != nil {
 		return err
 	}

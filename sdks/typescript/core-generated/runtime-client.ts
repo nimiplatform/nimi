@@ -1455,14 +1455,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListLocalDevelopmentAuthorizationsResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject",
-    "service": "RuntimeDevelopmentService",
-    "method": "ReactivateLocalDevelopmentProject",
-    "kind": "unary",
-    "requestType": "ReactivateLocalDevelopmentProjectRequest",
-    "responseType": "ReactivateLocalDevelopmentProjectResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization",
     "service": "RuntimeDevelopmentService",
     "method": "RevokeLocalDevelopmentAuthorization",

@@ -32,7 +32,6 @@ rows:
   - LOCAL_APP_PRESENCE_REQUIRED
   - LOCAL_APP_PRESENCE_EXPIRED
   - LOCAL_APP_DEVELOPER_MODE_DISABLED
-  - LOCAL_APP_REMEMBERED_PROJECT_DORMANT
   - LOCAL_APP_RISK_DISCLOSURE_REQUIRED
   - APP_STORAGE_PATH_INVALID
   - APP_STORAGE_ENTRY_NOT_FOUND
@@ -211,7 +210,6 @@ mappings:
   - { reason_code: LOCAL_APP_PRESENCE_REQUIRED, grpc_code: FAILED_PRECONDITION, surface: local_app_presence, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
   - { reason_code: LOCAL_APP_PRESENCE_EXPIRED, grpc_code: PERMISSION_DENIED, surface: local_app_presence, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
   - { reason_code: LOCAL_APP_DEVELOPER_MODE_DISABLED, grpc_code: FAILED_PRECONDITION, surface: local_app_developer_mode, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
-  - { reason_code: LOCAL_APP_REMEMBERED_PROJECT_DORMANT, grpc_code: FAILED_PRECONDITION, surface: local_app_development_record, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
   - { reason_code: LOCAL_APP_RISK_DISCLOSURE_REQUIRED, grpc_code: FAILED_PRECONDITION, surface: local_app_development_approval, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-ERR-012 }
   - { reason_code: APP_STORAGE_PATH_INVALID, grpc_code: INVALID_ARGUMENT, surface: local_app_json_storage, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-APP-032 }
   - { reason_code: APP_STORAGE_ENTRY_NOT_FOUND, grpc_code: NOT_FOUND, surface: local_app_json_storage, exit_shape: grpc_status_with_sanitized_detail, source_rule: K-APP-032 }

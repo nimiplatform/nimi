@@ -24,7 +24,7 @@ use axum::Router;
 use nimi_shell_tauri::capabilities::runtime::{
     self as runtime_bridge, LocalDevelopmentAuthorizationState, LocalDevelopmentDecision,
     LocalDevelopmentDecisionRequest, LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest,
-    LocalDevelopmentReactivationRequest, NimiHostError,
+    NimiHostError,
 };
 use std::{
     collections::HashMap,
@@ -407,19 +407,11 @@ impl DesktopLocalDevelopmentRuntime {
         run: Arc<RunContext>,
         evaluation: LocalDevelopmentEvaluation,
     ) -> Result<(), String> {
-        let target = match (
-            evaluation.evaluation_id,
-            evaluation.authorization.as_ref(),
-            evaluation.state,
-        ) {
-            (Some(evaluation_id), None, _) => PendingApprovalTarget::Evaluation(evaluation_id),
-            (None, Some(authorization), LocalDevelopmentAuthorizationState::Dormant)
-                if authorization.state == LocalDevelopmentAuthorizationState::Dormant =>
-            {
-                PendingApprovalTarget::Reactivation(authorization.authorization_id)
-            }
-            _ => return Err("runtime-service-untrusted".to_string()),
-        };
+        let target = PendingApprovalTarget::Evaluation(
+            evaluation
+                .evaluation_id
+                .ok_or_else(|| "runtime-service-untrusted".to_string())?,
+        );
         let request_id = random_selector("dev-approval", 18)?;
         let projection = LocalDevelopmentApprovalProjection {
             request_id: request_id.clone(),
@@ -517,7 +509,7 @@ impl DesktopLocalDevelopmentRuntime {
         let decision = match payload.decision.as_str() {
             "deny" => LocalDevelopmentDecision::Deny,
             "allow-run-once" => LocalDevelopmentDecision::AllowRunOnce,
-            "allow-remember-project" => LocalDevelopmentDecision::AllowRememberProject,
+            "allow-project" => LocalDevelopmentDecision::AllowProject,
             _ => return Err("local-development-approval-decision-invalid".to_string()),
         };
         let pending = self
@@ -527,48 +519,14 @@ impl DesktopLocalDevelopmentRuntime {
             .await
             .remove(request_id)
             .ok_or_else(|| "local-development-approval-request-not-found".to_string())?;
-        let authorization = match pending.target {
-            PendingApprovalTarget::Evaluation(evaluation_id) => {
-                runtime_bridge::decide_local_development_project(LocalDevelopmentDecisionRequest {
-                    evaluation_id,
-                    decision,
-                    risk_disclosure_acknowledged: payload.risk_disclosure_acknowledged,
-                })
-                .await
-            }
-            PendingApprovalTarget::Reactivation(authorization_id) => {
-                if decision == LocalDevelopmentDecision::Deny {
-                    pending
-                        .run
-                        .set_state(
-                            "dormant",
-                            "Remembered project remains dormant",
-                            Some("local-development-approval-denied"),
-                            false,
-                        )
-                        .await;
-                    return Ok(pending.run.status().await);
-                }
-                if decision != LocalDevelopmentDecision::AllowRememberProject {
-                    pending
-                        .run
-                        .fail(
-                            "authorization-required",
-                            "local-development-reactivation-requires-remembered-lifetime",
-                            false,
-                        )
-                        .await;
-                    return Ok(pending.run.status().await);
-                }
-                runtime_bridge::reactivate_local_development_project(
-                    LocalDevelopmentReactivationRequest {
-                        authorization_id,
-                        risk_disclosure_acknowledged: payload.risk_disclosure_acknowledged,
-                    },
-                )
-                .await
-            }
-        };
+        let PendingApprovalTarget::Evaluation(evaluation_id) = pending.target;
+        let authorization =
+            runtime_bridge::decide_local_development_project(LocalDevelopmentDecisionRequest {
+                evaluation_id,
+                decision,
+                risk_disclosure_acknowledged: payload.risk_disclosure_acknowledged,
+            })
+            .await;
         let authorization = match authorization {
             Ok(value) => value,
             Err(error) => {

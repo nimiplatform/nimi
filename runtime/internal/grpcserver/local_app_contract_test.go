@@ -53,7 +53,6 @@ func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 		"/nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations",
-		"/nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun",
 	}

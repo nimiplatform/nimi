@@ -69,10 +69,6 @@ export interface LocalDevelopmentProjectAuthorizationSummary {
      */
     activeCount: string;
     /**
-     * @generated from protobuf field: uint64 dormant_count = 3
-     */
-    dormantCount: string;
-    /**
      * @generated from protobuf field: uint64 denied_count = 4
      */
     deniedCount: string;
@@ -342,32 +338,6 @@ export interface ListLocalDevelopmentAuthorizationsResponse {
     reasonCode: ReasonCode;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.ReactivateLocalDevelopmentProjectRequest
- */
-export interface ReactivateLocalDevelopmentProjectRequest {
-    /**
-     * @generated from protobuf field: bytes authorization_id = 1
-     */
-    authorizationId: Uint8Array;
-    /**
-     * @generated from protobuf field: bool risk_disclosure_acknowledged = 2
-     */
-    riskDisclosureAcknowledged: boolean;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.ReactivateLocalDevelopmentProjectResponse
- */
-export interface ReactivateLocalDevelopmentProjectResponse {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalDevelopmentAuthorizationProjection authorization = 1
-     */
-    authorization?: LocalDevelopmentAuthorizationProjection;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
-     */
-    reasonCode: ReasonCode;
-}
-/**
  * @generated from protobuf message nimi.runtime.v1.RevokeLocalDevelopmentAuthorizationRequest
  */
 export interface RevokeLocalDevelopmentAuthorizationRequest {
@@ -449,9 +419,9 @@ export enum LocalDevelopmentDecision {
      */
     ALLOW_RUN_ONCE = 2,
     /**
-     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT = 3;
+     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_DECISION_ALLOW_PROJECT = 3;
      */
-    ALLOW_REMEMBER_PROJECT = 3
+    ALLOW_PROJECT = 3
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.LocalDevelopmentAuthorizationState
@@ -480,11 +450,7 @@ export enum LocalDevelopmentAuthorizationState {
     /**
      * @generated from protobuf enum value: LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REVOKED = 5;
      */
-    REVOKED = 5,
-    /**
-     * @generated from protobuf enum value: LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DORMANT = 6;
-     */
-    DORMANT = 6
+    REVOKED = 5
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.DeveloperModeState
@@ -702,7 +668,6 @@ class LocalDevelopmentProjectAuthorizationSummary$Type extends MessageType<Local
         super("nimi.runtime.v1.LocalDevelopmentProjectAuthorizationSummary", [
             { no: 1, name: "availability", kind: "enum", T: () => ["nimi.runtime.v1.LocalDevelopmentSummaryAvailability", LocalDevelopmentSummaryAvailability, "LOCAL_DEVELOPMENT_SUMMARY_AVAILABILITY_"] },
             { no: 2, name: "active_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 3, name: "dormant_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
             { no: 4, name: "denied_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
             { no: 5, name: "revoked_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
             { no: 6, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
@@ -712,7 +677,6 @@ class LocalDevelopmentProjectAuthorizationSummary$Type extends MessageType<Local
         const message = globalThis.Object.create((this.messagePrototype!));
         message.availability = 0;
         message.activeCount = "0";
-        message.dormantCount = "0";
         message.deniedCount = "0";
         message.revokedCount = "0";
         message.reasonCode = 0;
@@ -730,9 +694,6 @@ class LocalDevelopmentProjectAuthorizationSummary$Type extends MessageType<Local
                     break;
                 case /* uint64 active_count */ 2:
                     message.activeCount = reader.uint64().toString();
-                    break;
-                case /* uint64 dormant_count */ 3:
-                    message.dormantCount = reader.uint64().toString();
                     break;
                 case /* uint64 denied_count */ 4:
                     message.deniedCount = reader.uint64().toString();
@@ -761,9 +722,6 @@ class LocalDevelopmentProjectAuthorizationSummary$Type extends MessageType<Local
         /* uint64 active_count = 2; */
         if (message.activeCount !== "0")
             writer.tag(2, WireType.Varint).uint64(message.activeCount);
-        /* uint64 dormant_count = 3; */
-        if (message.dormantCount !== "0")
-            writer.tag(3, WireType.Varint).uint64(message.dormantCount);
         /* uint64 denied_count = 4; */
         if (message.deniedCount !== "0")
             writer.tag(4, WireType.Varint).uint64(message.deniedCount);
@@ -1639,115 +1597,6 @@ class ListLocalDevelopmentAuthorizationsResponse$Type extends MessageType<ListLo
  * @generated MessageType for protobuf message nimi.runtime.v1.ListLocalDevelopmentAuthorizationsResponse
  */
 export const ListLocalDevelopmentAuthorizationsResponse = new ListLocalDevelopmentAuthorizationsResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ReactivateLocalDevelopmentProjectRequest$Type extends MessageType<ReactivateLocalDevelopmentProjectRequest> {
-    constructor() {
-        super("nimi.runtime.v1.ReactivateLocalDevelopmentProjectRequest", [
-            { no: 1, name: "authorization_id", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
-            { no: 2, name: "risk_disclosure_acknowledged", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
-        ]);
-    }
-    create(value?: PartialMessage<ReactivateLocalDevelopmentProjectRequest>): ReactivateLocalDevelopmentProjectRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.authorizationId = new Uint8Array(0);
-        message.riskDisclosureAcknowledged = false;
-        if (value !== undefined)
-            reflectionMergePartial<ReactivateLocalDevelopmentProjectRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReactivateLocalDevelopmentProjectRequest): ReactivateLocalDevelopmentProjectRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* bytes authorization_id */ 1:
-                    message.authorizationId = reader.bytes();
-                    break;
-                case /* bool risk_disclosure_acknowledged */ 2:
-                    message.riskDisclosureAcknowledged = reader.bool();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: ReactivateLocalDevelopmentProjectRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* bytes authorization_id = 1; */
-        if (message.authorizationId.length)
-            writer.tag(1, WireType.LengthDelimited).bytes(message.authorizationId);
-        /* bool risk_disclosure_acknowledged = 2; */
-        if (message.riskDisclosureAcknowledged !== false)
-            writer.tag(2, WireType.Varint).bool(message.riskDisclosureAcknowledged);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.ReactivateLocalDevelopmentProjectRequest
- */
-export const ReactivateLocalDevelopmentProjectRequest = new ReactivateLocalDevelopmentProjectRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ReactivateLocalDevelopmentProjectResponse$Type extends MessageType<ReactivateLocalDevelopmentProjectResponse> {
-    constructor() {
-        super("nimi.runtime.v1.ReactivateLocalDevelopmentProjectResponse", [
-            { no: 1, name: "authorization", kind: "message", T: () => LocalDevelopmentAuthorizationProjection },
-            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
-        ]);
-    }
-    create(value?: PartialMessage<ReactivateLocalDevelopmentProjectResponse>): ReactivateLocalDevelopmentProjectResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.reasonCode = 0;
-        if (value !== undefined)
-            reflectionMergePartial<ReactivateLocalDevelopmentProjectResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReactivateLocalDevelopmentProjectResponse): ReactivateLocalDevelopmentProjectResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.LocalDevelopmentAuthorizationProjection authorization */ 1:
-                    message.authorization = LocalDevelopmentAuthorizationProjection.internalBinaryRead(reader, reader.uint32(), options, message.authorization);
-                    break;
-                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
-                    message.reasonCode = reader.int32();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: ReactivateLocalDevelopmentProjectResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.LocalDevelopmentAuthorizationProjection authorization = 1; */
-        if (message.authorization)
-            LocalDevelopmentAuthorizationProjection.internalBinaryWrite(message.authorization, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
-        if (message.reasonCode !== 0)
-            writer.tag(2, WireType.Varint).int32(message.reasonCode);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.ReactivateLocalDevelopmentProjectResponse
- */
-export const ReactivateLocalDevelopmentProjectResponse = new ReactivateLocalDevelopmentProjectResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class RevokeLocalDevelopmentAuthorizationRequest$Type extends MessageType<RevokeLocalDevelopmentAuthorizationRequest> {
     constructor() {

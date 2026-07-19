@@ -277,25 +277,24 @@ const (
 	ReasonCode_LIFECYCLE_INTENT_EXPIRED                             ReasonCode = 641
 	// LOCAL_APP family (642+). The third-party principal/record/session and
 	// product-permission evaluator uses one provenance-agnostic reason vocabulary.
-	ReasonCode_LOCAL_APP_PRINCIPAL_REQUIRED         ReasonCode = 642
-	ReasonCode_LOCAL_APP_RECORD_NOT_FOUND           ReasonCode = 643
-	ReasonCode_LOCAL_APP_RECORD_TOMBSTONED          ReasonCode = 644
-	ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE     ReasonCode = 645
-	ReasonCode_LOCAL_APP_LAUNCH_LEASE_REQUIRED      ReasonCode = 646
-	ReasonCode_LOCAL_APP_LAUNCH_LEASE_MISMATCH      ReasonCode = 647
-	ReasonCode_LOCAL_APP_LAUNCH_LEASE_REPLAY        ReasonCode = 648
-	ReasonCode_LOCAL_APP_PROCESS_MISMATCH           ReasonCode = 649
-	ReasonCode_LOCAL_APP_SESSION_REVOKED            ReasonCode = 650
-	ReasonCode_LOCAL_APP_PERMISSION_REQUIRED        ReasonCode = 651
-	ReasonCode_LOCAL_APP_PERMISSION_DENIED          ReasonCode = 652
-	ReasonCode_LOCAL_APP_PERMISSION_REVOKED         ReasonCode = 653
-	ReasonCode_LOCAL_APP_ACCOUNT_CHANGED            ReasonCode = 654
-	ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE      ReasonCode = 655
-	ReasonCode_LOCAL_APP_PRESENCE_REQUIRED          ReasonCode = 656
-	ReasonCode_LOCAL_APP_PRESENCE_EXPIRED           ReasonCode = 657
-	ReasonCode_LOCAL_APP_DEVELOPER_MODE_DISABLED    ReasonCode = 658
-	ReasonCode_LOCAL_APP_REMEMBERED_PROJECT_DORMANT ReasonCode = 659
-	ReasonCode_LOCAL_APP_RISK_DISCLOSURE_REQUIRED   ReasonCode = 660
+	ReasonCode_LOCAL_APP_PRINCIPAL_REQUIRED       ReasonCode = 642
+	ReasonCode_LOCAL_APP_RECORD_NOT_FOUND         ReasonCode = 643
+	ReasonCode_LOCAL_APP_RECORD_TOMBSTONED        ReasonCode = 644
+	ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE   ReasonCode = 645
+	ReasonCode_LOCAL_APP_LAUNCH_LEASE_REQUIRED    ReasonCode = 646
+	ReasonCode_LOCAL_APP_LAUNCH_LEASE_MISMATCH    ReasonCode = 647
+	ReasonCode_LOCAL_APP_LAUNCH_LEASE_REPLAY      ReasonCode = 648
+	ReasonCode_LOCAL_APP_PROCESS_MISMATCH         ReasonCode = 649
+	ReasonCode_LOCAL_APP_SESSION_REVOKED          ReasonCode = 650
+	ReasonCode_LOCAL_APP_PERMISSION_REQUIRED      ReasonCode = 651
+	ReasonCode_LOCAL_APP_PERMISSION_DENIED        ReasonCode = 652
+	ReasonCode_LOCAL_APP_PERMISSION_REVOKED       ReasonCode = 653
+	ReasonCode_LOCAL_APP_ACCOUNT_CHANGED          ReasonCode = 654
+	ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE    ReasonCode = 655
+	ReasonCode_LOCAL_APP_PRESENCE_REQUIRED        ReasonCode = 656
+	ReasonCode_LOCAL_APP_PRESENCE_EXPIRED         ReasonCode = 657
+	ReasonCode_LOCAL_APP_DEVELOPER_MODE_DISABLED  ReasonCode = 658
+	ReasonCode_LOCAL_APP_RISK_DISCLOSURE_REQUIRED ReasonCode = 660
 )
 
 // Enum value maps for ReasonCode.
@@ -526,7 +525,6 @@ var (
 		656: "LOCAL_APP_PRESENCE_REQUIRED",
 		657: "LOCAL_APP_PRESENCE_EXPIRED",
 		658: "LOCAL_APP_DEVELOPER_MODE_DISABLED",
-		659: "LOCAL_APP_REMEMBERED_PROJECT_DORMANT",
 		660: "LOCAL_APP_RISK_DISCLOSURE_REQUIRED",
 	}
 	ReasonCode_value = map[string]int32{
@@ -755,7 +753,6 @@ var (
 		"LOCAL_APP_PRESENCE_REQUIRED":                          656,
 		"LOCAL_APP_PRESENCE_EXPIRED":                           657,
 		"LOCAL_APP_DEVELOPER_MODE_DISABLED":                    658,
-		"LOCAL_APP_REMEMBERED_PROJECT_DORMANT":                 659,
 		"LOCAL_APP_RISK_DISCLOSURE_REQUIRED":                   660,
 	}
 )
@@ -1466,7 +1463,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\x89=\n" +
+	"actionHint*\x8c=\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1694,9 +1691,8 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x1fLOCAL_APP_OPERATION_UNAVAILABLE\x10\x8f\x05\x12 \n" +
 	"\x1bLOCAL_APP_PRESENCE_REQUIRED\x10\x90\x05\x12\x1f\n" +
 	"\x1aLOCAL_APP_PRESENCE_EXPIRED\x10\x91\x05\x12&\n" +
-	"!LOCAL_APP_DEVELOPER_MODE_DISABLED\x10\x92\x05\x12)\n" +
-	"$LOCAL_APP_REMEMBERED_PROJECT_DORMANT\x10\x93\x05\x12'\n" +
-	"\"LOCAL_APP_RISK_DISCLOSURE_REQUIRED\x10\x94\x05\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*\xa9\x01\n" +
+	"!LOCAL_APP_DEVELOPER_MODE_DISABLED\x10\x92\x05\x12'\n" +
+	"\"LOCAL_APP_RISK_DISCLOSURE_REQUIRED\x10\x94\x05\"\x06\b\x93\x05\x10\x93\x05\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*$LOCAL_APP_REMEMBERED_PROJECT_DORMANT*\xa9\x01\n" +
 	"\x15ExternalPrincipalType\x12'\n" +
 	"#EXTERNAL_PRINCIPAL_TYPE_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dEXTERNAL_PRINCIPAL_TYPE_AGENT\x10\x01\x12\x1f\n" +

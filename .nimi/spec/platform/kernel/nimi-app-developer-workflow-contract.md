@@ -384,23 +384,25 @@ scope for this rule.
 
 Nimi exposes one Developer Mode and one Dev Trust Set for platform integration
 and third-party app development. The global toggle is discoverable in
-production Desktop, defaults off, and grants nothing. Each project approval
-uses Runtime-owned fresh presence and chooses exactly `run_once` or
-`remember_project`.
+production Desktop, defaults off, and grants nothing. A project's first
+authorization uses Runtime-owned fresh presence and chooses exactly `run_once`
+or `allow_project`.
 
 The authorization binds Runtime-derived OS-user anchor, isolated local
 principal, canonical project-root file identity, declared app id, exact
 capability fingerprint, current account, and fixed shell/entry policy. Native
-host/process/build identity is short-lived launch/session proof and rotates on
-every controlled replacement. HMR, rebuild, host restart, and Runtime restart
-do not repeat consent only while the durable authorization and live supervisor
-run remain exact.
+host/process/build identity, supervisor-run identity, and Runtime boot epoch are
+short-lived launch/session proof and rotate on controlled replacement. HMR,
+rebuild, host restart, supervisor replacement, Desktop restart, and Runtime
+restart/upgrade/reinstall do not repeat consent while the durable project,
+account, permission-requirement, shell/entry, and risk bindings remain exact.
 
-Mode off revokes sessions and run-once authority; remembered projects become
-dormant and require fresh presence to reactivate. Account switch/logout,
-revoke, supervisor termination, copied/changed project, capability expansion,
-or shell/origin mismatch invalidates or reapproves as specified by
-`tables/nimi-app-local-development-admission.yaml`.
+Mode off, account switch/logout, supervisor termination, and Runtime replacement
+revoke live technical sessions and run-once authority. They preserve exact
+`allow_project` consent, which remains bound to its original account and never
+auto-runs. Revoke, copied/changed project, account mismatch, permission-
+requirement expansion, risk revision, or shell/entry/origin mismatch invalidates
+or reapproves as specified by `tables/nimi-app-local-development-admission.yaml`.
 
 An approved project may use a controlled production account solely through
 Runtime-mediated operations and the same admitted permission-decision/owner

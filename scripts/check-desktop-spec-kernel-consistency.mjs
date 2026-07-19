@@ -167,7 +167,6 @@ function checkLocalAppControlSurfaces() {
     'set_developer_mode',
     'evaluate_local_development_project',
     'decide_local_development_project',
-    'reactivate_local_development_project',
     'prepare_local_app_launch',
     'bind_local_app_process',
     'revoke_local_development_project',
@@ -188,7 +187,8 @@ function checkLocalAppControlSurfaces() {
   const constraints = new Set((Array.isArray(doc?.constraints) ? doc.constraints : []).map(String));
   for (const required of [
     'developer_mode_grants_nothing',
-    'remembered_project_is_dormant_between_runs',
+    'allow_project_consent_survives_supervisor_desktop_and_runtime_replacement',
+    'technical_launch_process_and_session_authority_never_survives_replacement',
     'no_persistent_local_development_autostart',
     'no_direct_runtime_process_launch',
   ]) {

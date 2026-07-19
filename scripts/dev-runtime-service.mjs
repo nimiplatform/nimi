@@ -252,8 +252,14 @@ function installGeneratedCandidateElevated({ developmentDataRoot = '' } = {}) {
   ].join('; ');
   const encodedCommand = Buffer.from(innerCommand, 'utf16le').toString('base64');
   const outerCommand = [
+    `$ErrorActionPreference = 'Stop'`,
+    'try {',
     `$process = Start-Process -FilePath 'powershell.exe' -Verb RunAs -WindowStyle Hidden -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-EncodedCommand','${encodedCommand}') -Wait -PassThru`,
     'exit $process.ExitCode',
+    '} catch {',
+    '[Console]::Error.WriteLine($_.Exception.Message)',
+    'exit 1',
+    '}',
   ].join('; ');
   try {
     const elevated = spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', outerCommand], {

@@ -21,7 +21,7 @@ services:
   - RuntimeAccountService
   - RuntimeAppService
   - RuntimeDevelopmentService
-method_count: 56
+method_count: 55
 method_mappings:
   - design_service: RuntimeServiceControlService
     design_method: RequestRuntimeRestart
@@ -287,11 +287,6 @@ method_mappings:
     design_method: ListLocalDevelopmentAuthorizations
     proto_service: RuntimeDevelopmentService
     proto_method: ListLocalDevelopmentAuthorizations
-    mapping_posture: aligned
-  - design_service: RuntimeDevelopmentService
-    design_method: ReactivateLocalDevelopmentProject
-    proto_service: RuntimeDevelopmentService
-    proto_method: ReactivateLocalDevelopmentProject
     mapping_posture: aligned
   - design_service: RuntimeDevelopmentService
     design_method: RevokeLocalDevelopmentAuthorization

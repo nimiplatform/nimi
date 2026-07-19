@@ -14,7 +14,7 @@ function ownerDriverSource() {
   return [
     'dev-kernel-first-run-driver.mjs',
     'dev-kernel-cross-app-driver.mjs',
-    'dev-kernel-core-reactivation-driver.mjs',
+    'dev-kernel-core-allow-project-continuity-driver.mjs',
     'dev-kernel-local-development-driver.mjs',
   ].map((file) => fs.readFileSync(path.join(import.meta.dirname, file), 'utf8')).join('\n');
 }
@@ -194,10 +194,9 @@ test('core browser-auth plan fits only the verified formal test-Realm budget', (
   const driver = fs.readFileSync(path.join(import.meta.dirname, 'dev-kernel-cross-app-driver.mjs'), 'utf8');
   const plan = driver.match(/const CORE_BROWSER_AUTH_PLAN = Object\.freeze\(\[([\s\S]*?)\]\);/u)?.[1] || '';
   assert.match(plan, /remembered-local-development/u);
-  assert.match(plan, /remembered-reactivation/u);
   assert.match(plan, /secondary-login/u);
   assert.match(plan, /primary-login-restored/u);
-  assert.match(plan, /final-local-development/u);
+  assert.doesNotMatch(plan, /allow-project-continuity|final-local-development/u);
   assert.match(driver, /realmAuthPolicy\.passwordLoginLimit < browserAuthPlan\.length/u);
   assert.match(driver, /browserAuthDriver\.audit\(\)/u);
   assert.doesNotMatch(driver, /(?:15\s*\*\s*60|900_?000).*setTimeout|restart.*Realm.*rate/iu);

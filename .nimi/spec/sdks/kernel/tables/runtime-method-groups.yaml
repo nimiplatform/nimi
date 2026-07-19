@@ -239,7 +239,7 @@ groups:
     carrier_scope: verified_desktop_local_app_control_only
     note: >
       One production Developer Mode and Dev Trust Set, explicit run_once or
-      remember/dormant/reactivate lifecycle, and Runtime-owned revocation. The
+      run_once/allow_project consent lifetimes, and Runtime-owned revocation. The
       app child does not consume this control group; it receives only the common
       local-app carrier.
     source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
@@ -249,7 +249,6 @@ groups:
       - EvaluateLocalDevelopmentProject
       - DecideLocalDevelopmentProject
       - ListLocalDevelopmentAuthorizations
-      - ReactivateLocalDevelopmentProject
       - RevokeLocalDevelopmentAuthorization
       - EndLocalDevelopmentRun
     source_rule: S-RUNTIME-109

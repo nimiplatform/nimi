@@ -63,7 +63,7 @@ import {
 } from './dev-kernel-local-development-driver.mjs';
 import { persistOwnerMinimalResult } from './dev-kernel-result-driver.mjs';
 import { persistDevKernelFailureBundle } from './dev-kernel-failure-bundle.mjs';
-import { runCoreReactivationJourney } from './dev-kernel-core-reactivation-driver.mjs';
+import { runCoreAllowProjectContinuityJourney } from './dev-kernel-core-allow-project-continuity-driver.mjs';
 
 const FIXTURE_ORIGIN = 'http://127.0.0.1:19443';
 const ACCOUNT_REALM_ORIGIN = 'http://localhost:3002';
@@ -75,10 +75,8 @@ const OWNER_MINIMAL_BROWSER_AUTH_PLAN = Object.freeze([
 const CORE_BROWSER_AUTH_PLAN = Object.freeze([
   ...OWNER_MINIMAL_BROWSER_AUTH_PLAN,
   'remembered-local-development',
-  'remembered-reactivation',
   'secondary-login',
   'primary-login-restored',
-  'final-local-development',
 ]);
 
 export {
@@ -161,7 +159,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
   let desktopHandle;
   let runOnceHandle;
   let rememberedHandle;
-  let reactivatedHandle;
+  let continuityHandle;
   let finalHandle;
   let rawHandle;
   let desktopConnection;
@@ -537,7 +535,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     phase = 'remembered-local-development-approval';
     observations.rememberedApproval = await approveLocalDevelopment(
       desktop,
-      'allow-remember-project',
+      'allow-project',
       screenshotsRoot,
       false,
       browserAuth('primary', fixtureConfig.primaryAccountId, 'remembered-local-development'),
@@ -561,11 +559,11 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       }),
       { timeoutMs: 30_000, label: 'active remembered authorization' },
     );
-    phase = 'remembered-authority-boundary';
+    phase = 'allow-project-authority-boundary';
     observations.rememberedReservedPermission = await verifyReservedPermissionBoundary(zhiyu.page);
     const firstStorage = await verifyAppPrivateStorage(zhiyu.page);
     observations.rememberedAppPrivateStorage = firstStorage;
-    await zhiyu.page.screenshot({ path: path.join(screenshotsRoot, 'zhiyu-remembered-authority-boundary.png') });
+    await zhiyu.page.screenshot({ path: path.join(screenshotsRoot, 'zhiyu-allow-project-authority-boundary.png') });
     const sendButton = zhiyu.page.getByTestId('zhiyu-dev-kernel-send');
     observations.agentInteractionDisabled = await sendButton.isDisabled();
 
@@ -615,13 +613,13 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       timeoutMs: 60_000,
       label: 'mode-off supervised host termination',
     });
-    observations.dormantAuthorization = await waitUntil(
+    observations.modeOffAuthorization = await waitUntil(
       () => readRememberedAuthorization(desktop.page, {
         accountId: fixtureConfig.primaryAccountId,
         selector: observations.rememberedAuthorization.selector,
-        state: 'dormant',
+        state: 'active',
       }),
-      { timeoutMs: 30_000, label: 'mode-off dormant authorization' },
+      { timeoutMs: 30_000, label: 'mode-off preserved project authorization' },
     );
     if (rememberedHandle.child.exitCode === null) await terminateProcessTree(rememberedHandle);
     rememberedHandle = null;
@@ -629,14 +627,14 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
     fs.writeFileSync(probePath, originalProbe);
     probeRestored = true;
     observations.modeOn = await setDeveloperMode(desktop.page, true);
-    return await runCoreReactivationJourney({
+    return await runCoreAllowProjectContinuityJourney({
       architecture, journey, trial, sourceState, outputDir, fixture, fixtureConfig,
       providerRawPath, observations, artifactsRoot, screenshotsRoot, desktop, observer,
       observedPages, processLedger, processLogOptions, observeRegisteredProcess, browserAuth,
       baseEnv, zhiyuCdpPort, firstStorage, secondStorage, serviceBefore, startedAt,
       started, buildMarker,
       setPhase: (value) => { phase = value; },
-      setReactivatedHandle: (value) => { reactivatedHandle = value; },
+      setContinuityHandle: (value) => { continuityHandle = value; },
       setFinalHandle: (value) => { finalHandle = value; },
       setActiveZhiyuConnection: (value) => { activeZhiyuConnection = value; },
       auditBrowserAuth: () => browserAuthDriver.audit(),
@@ -682,7 +680,7 @@ async function runDevKernelTrial({ architecture, journey, trial, sourceState, ou
       rawHandle ? terminateProcessTree(rawHandle) : undefined,
       runOnceHandle ? terminateProcessTree(runOnceHandle) : undefined,
       rememberedHandle ? terminateProcessTree(rememberedHandle) : undefined,
-      reactivatedHandle ? terminateProcessTree(reactivatedHandle) : undefined,
+      continuityHandle ? terminateProcessTree(continuityHandle) : undefined,
       finalHandle ? terminateProcessTree(finalHandle) : undefined,
       desktopHandle ? terminateProcessTree(desktopHandle) : undefined,
     ]);

@@ -69,6 +69,11 @@ const continuityWithoutReapproval = Object.freeze([
   'tauri_host_controlled_rebuild_and_restart',
   'controlled_host_replacement_same_authorization',
   'runtime_restart_during_live_supervisor_run',
+  'supervisor_run_replacement',
+  'desktop_restart',
+  'runtime_restart_upgrade_or_reinstall',
+  'developer_mode_reenable',
+  'original_account_return',
 ]);
 
 const continuityInvalidators = Object.freeze([
@@ -77,10 +82,10 @@ const continuityInvalidators = Object.freeze([
   'canonical_project_file_identity_change',
   'copied_project',
   'shell_or_entry_policy_change',
-  'account_switch_or_logout',
-  'mode_off',
+  'account_id_change',
+  'native_execution_risk_or_disclosure_revision_change',
   'authorization_revoke',
-  'supervisor_run_termination',
+  'authority_integrity_or_provenance_failure',
   'host_outside_verified_supervisor',
   'executable_or_renderer_origin_outside_controlled_outputs',
   'remote_or_uncontrolled_dev_server',
@@ -100,7 +105,6 @@ const developerMethods = Object.freeze([
   'EvaluateLocalDevelopmentProject',
   'DecideLocalDevelopmentProject',
   'ListLocalDevelopmentAuthorizations',
-  'ReactivateLocalDevelopmentProject',
   'RevokeLocalDevelopmentAuthorization',
   'EndLocalDevelopmentRun',
   'GetLocalDevelopmentAuthoritySummary',
@@ -126,11 +130,11 @@ const protectedMethodsExcludedFromLocalApp = Object.freeze([
 ]);
 
 const requiredRuleClauses = Object.freeze([
-  ['platform', ['P-NAPP-035', /sole mutable third-party provenance/iu, /global Developer Mode toggle grants nothing/iu, /run_once.*remember_project/isu, /top-level `permissions` list/iu, /request eligibility only/iu, /current admitted list is empty/iu, /Every build\/host replacement receives\s+a\s+new lease/iu, /account switch, mode-off,\s*revoke/isu, /no token, bearer/iu, /persistent Nimi-managed logon\/boot autostart/iu, /ordinary Windows rights/iu]],
-  ['runtimeSession', ['K-PLOCAL-009', /durable user\s+development authorization/iu, /run_once/iu, /remember_project.*dormant/isu, /actual\s+host PID and creation marker/isu, /new launch lease,\s*process bind and session/isu, /Runtime restart/iu, /never returned through renderer IPC, CLI output/isu, /It never autostarts/iu]],
+  ['platform', ['P-NAPP-035', /sole mutable third-party provenance/iu, /global Developer Mode toggle grants nothing/iu, /run_once.*allow_project/isu, /top-level `permissions` list/iu, /request eligibility only/iu, /current admitted list is empty/iu, /Every build\/host replacement receives\s+a\s+new lease/iu, /boot epoch.*never durable consent/isu, /no token, bearer/iu, /persistent Nimi-managed logon\/boot autostart/iu, /ordinary Windows rights/iu]],
+  ['runtimeSession', ['K-PLOCAL-009', /durable user\s+development authorization/iu, /run_once/iu, /allow_project.*across supervisor, Desktop, and Runtime replacement/isu, /actual\s+host PID and creation marker/isu, /new launch lease,\s*process bind and session/isu, /Runtime restart/iu, /never returned through renderer IPC, CLI output/isu, /never\s+autostarts/iu]],
   ['account', ['K-ACCSVC-026', /exact\s+principal.*local record.*process-bound session/isu, /current owner lifecycle/iu, /owner.*resource policy/iu, /creates no synthetic permission/iu]],
   ['grant', ['K-GRANT-014', /admitted third-party public-permission set is empty/iu, /no positive local permission mutation path/iu, /owner_selector_digest/iu, /every\s+protected endpoint/isu]],
-  ['desktop', ['D-IPC-019', /production account.*off by default.*grants nothing/isu, /exactly one Dev Trust Set/iu, /remember_project.*dormant.*reactivate/isu, /fresh host\/payload digest.*launch lease.*process bind.*local-app session/isu, /Native\s+Windows execution risk disclosure/isu, /never create persistent/iu]],
+  ['desktop', ['D-IPC-019', /production account.*off by default.*grants nothing/isu, /exactly one Dev Trust Set/iu, /allow_project.*across supervisor, Desktop, and Runtime replacement/isu, /fresh host\/payload digest.*launch lease.*process bind.*local-app session/isu, /Native\s+Windows execution risk disclosure/isu, /never create persistent/iu]],
   ['desktop', ['D-IPC-020', /local_app_control.*verified\s+Desktop control connection/isu, /PrepareLocalAppLaunch.*process binding.*native supervisor/isu, /must not enter renderer state,\s*storage, network, logs or errors/isu]],
   ['kit', ['P-KIT-046', /common local-app host\/client/iu, /controlled process replacement or Runtime restart/iu, /session posture, public permission posture\/request,\s*and app-private JSON storage/isu, /App-native commands remain separate\s*typed host commands/isu, /missing\/untrusted carrier fails closed/iu, /ordinary gRPC/iu]],
   ['sdk', ['S-TRANSPORT-014', /host-injected by Kit.*never\s*renderer-constructed/isu, /request-empty `OpenLocalAppSession`/iu, /controlled host\/Runtime restart/iu, /public permission posture\/request and app-private\s*JSON read\/write\/remove/isu, /Artifact, Agent, conversation, voice/iu, /Missing operation families remain typed unavailable/iu, /localhost gRPC cannot claim/iu]],
@@ -224,12 +228,12 @@ export function validateLocalDevelopmentAuthority(bundle) {
   const policy = parsed.policy;
   if (policy) {
     if (
-      policy.version !== 6
+      policy.version !== 7
       || policy.table_family !== 'owner_matrix'
       || policy.owner !== 'platform'
       || policy.matrix_id !== 'nimi_app_local_development_admission'
     ) {
-      issues.push(issue('LOCAL_DEVELOPMENT_POLICY_IDENTITY_INVALID', authorityPaths.policy, 'Policy must be the Platform-owned v6 local-development owner matrix.'));
+      issues.push(issue('LOCAL_DEVELOPMENT_POLICY_IDENTITY_INVALID', authorityPaths.policy, 'Policy must be the Platform-owned v7 local-development owner matrix.'));
     }
 
     if (
@@ -250,7 +254,7 @@ export function validateLocalDevelopmentAuthority(bundle) {
       || mode?.hidden_flag_env_or_argv_enablement !== 'forbidden'
       || mode?.disable_effect?.active_sessions !== 'revoke'
       || mode?.disable_effect?.run_once_authorizations !== 'revoke'
-      || mode?.disable_effect?.remembered_authorizations !== 'dormant'
+      || mode?.disable_effect?.allow_project_authorizations !== 'preserve_without_autostart'
       || mode?.disable_effect?.immutable_records !== 'unaffected'
     ) {
       issues.push(issue('LOCAL_DEVELOPMENT_DEVELOPER_MODE_INVALID', authorityPaths.policy, 'Production Developer Mode must default off, grant nothing, reject hidden enablement, and apply the exact mode-off invalidations.'));
@@ -260,9 +264,9 @@ export function validateLocalDevelopmentAuthority(bundle) {
     if (
       authorization?.owner !== 'runtime_k_app'
       || !exactArray(authorization?.bindings, authorizationBindings)
-      || !exactArray(authorization?.choices, ['run_once', 'remember_project'])
+      || !exactArray(authorization?.choices, ['run_once', 'allow_project'])
       || authorization?.initial_permission_decision_state !== 'none'
-      || authorization?.remembered_reactivation_requires_fresh_presence !== true
+      || authorization?.allow_project_reuse_requires_fresh_presence !== false
       || authorization?.account_switch_transfers_authorization !== false
       || authorization?.permission_requirements_may_be_empty !== true
       || authorization?.app_owned_native_host_storage !== 'allowed'
@@ -271,8 +275,13 @@ export function validateLocalDevelopmentAuthority(bundle) {
       || authorization?.renderer_storage_or_account_partition_projection !== 'forbidden'
       || authorization?.app_owned_host_commands !== 'exact_app_registered_typed_allowlist'
       || authorization?.app_owned_host_commands_create_nimi_grant !== false
+      || authorization?.consent_storage?.owner !== 'runtime_protected_service_authority'
+      || authorization?.consent_storage?.root_lifetime !== 'stable_across_runtime_candidate_and_acceptance_round_replacement'
+      || authorization?.consent_storage?.candidate_payload_or_selected_product_data_root !== 'forbidden'
+      || authorization?.consent_storage?.app_renderer_environment_or_argv_selection !== 'forbidden'
+      || authorization?.consent_storage?.candidate_local_principal_projection_rebuild !== 'allowed_from_exact_consent_only'
     ) {
-      issues.push(issue('LOCAL_DEVELOPMENT_USER_AUTHORIZATION_INVALID', authorityPaths.policy, 'Project authorization must use the exact principal/project/account/shell bindings, no permission decision, app-owned host authority, and run-once/remember lifetimes.'));
+      issues.push(issue('LOCAL_DEVELOPMENT_USER_AUTHORIZATION_INVALID', authorityPaths.policy, 'Project authorization must use the exact principal/project/account/shell bindings, no permission decision, app-owned host authority, and run-once/durable-project lifetimes.'));
     }
 
     const permissionRequirements = policy.permission_requirements;
@@ -339,12 +348,13 @@ export function validateLocalDevelopmentAuthority(bundle) {
       !exactArray(lifetimes?.run_once_ends_on, runOnceEnds)
       || lifetimes?.run_once_terminal_transition !== 'tombstone_principal_and_mark_record_removed'
       || lifetimes?.subsequent_run_once !== 'fresh_approval_new_principal_and_record'
-      || lifetimes?.remember_project_on_mode_off !== 'dormant'
-      || lifetimes?.remember_project_on_supervisor_run_termination !== 'dormant'
-      || lifetimes?.remember_project_auto_runs_after_reenable !== false
-      || lifetimes?.remembered_account_switch !== 'live_session_revoked_record_remains_bound_to_original_account_and_requires_fresh_presence_after_return'
+      || lifetimes?.allow_project_on_mode_off !== 'durable_consent_preserved_live_authority_revoked'
+      || lifetimes?.allow_project_on_supervisor_run_termination !== 'durable_consent_preserved_live_authority_revoked'
+      || lifetimes?.allow_project_on_runtime_boot_epoch_change !== 'durable_consent_preserved_live_authority_revoked'
+      || lifetimes?.allow_project_auto_runs_after_reenable !== false
+      || lifetimes?.allow_project_account_switch !== 'live_authority_revoked_consent_remains_bound_to_original_account_and_reuses_without_presence_after_return'
     ) {
-      issues.push(issue('LOCAL_DEVELOPMENT_LIFETIME_INVALID', authorityPaths.policy, 'Run-once must terminate/tombstone while remembered projects remain dormant, account-bound, presence-gated, and never auto-run.'));
+      issues.push(issue('LOCAL_DEVELOPMENT_LIFETIME_INVALID', authorityPaths.policy, 'Run-once must terminate/tombstone while allow-project consent remains exact, account-bound, reusable without presence, and never auto-runs.'));
     }
 
     const risk = policy.risk_and_background;
@@ -428,11 +438,13 @@ export function validateLocalDevelopmentAuthority(bundle) {
       || presence.challenge?.consume !== 'atomic_with_state_change'
       || presence.challenge?.replay !== 'denied'
       || presence.assignments?.developer_project_first_authorization !== 'user_decision_presence'
-      || presence.assignments?.remembered_project_reactivation !== 'user_decision_presence'
+      || presence.assignments?.development_capability_expansion !== 'user_decision_presence'
+      || presence.assignments?.development_account_shell_entry_or_risk_change !== 'user_decision_presence'
+      || presence.assignments?.exact_allow_project_reuse !== 'none'
       || presence.assignments?.base_entitlement_operation !== 'none'
       || presence.assignments?.ordinary_admitted_user_permission_operation !== 'none'
     ) {
-      issues.push(issue('LOCAL_DEVELOPMENT_PRESENCE_PROTOCOL_INVALID', authorityPaths.presenceProtocol, 'Project approval and remembered reactivation require an exact Runtime-owned, atomic, non-replayable presence challenge.'));
+      issues.push(issue('LOCAL_DEVELOPMENT_PRESENCE_PROTOCOL_INVALID', authorityPaths.presenceProtocol, 'First approval and authority-bearing expansion require exact Runtime-owned atomic presence; exact allow-project reuse requires none.'));
     }
   }
 
@@ -529,7 +541,6 @@ export function validateLocalDevelopmentAuthority(bundle) {
     const prepare = actions.get('prepare_local_app_launch');
     const bind = actions.get('bind_local_app_process');
     const decide = actions.get('decide_local_development_project');
-    const reactivate = actions.get('reactivate_local_development_project');
     if (
       controls.logical_role?.id !== 'local_app_control'
       || controls.logical_role?.current_implementation !== 'protected_desktop_process'
@@ -539,8 +550,9 @@ export function validateLocalDevelopmentAuthority(bundle) {
       || bind?.renderer_access !== 'forbidden'
       || bind?.native_host_only !== true
       || !sameSet(decide?.native_host_attaches, ['current_presence_proof', 'authoritative_risk_disclosure_revision'])
-      || !sameSet(reactivate?.native_host_attaches, ['current_presence_proof', 'authoritative_risk_disclosure_revision'])
       || !controls.constraints?.includes('developer_mode_grants_nothing')
+      || !controls.constraints?.includes('allow_project_consent_survives_supervisor_desktop_and_runtime_replacement')
+      || !controls.constraints?.includes('technical_launch_process_and_session_authority_never_survives_replacement')
       || !controls.constraints?.includes('mode_off_revoke_account_switch_and_runtime_restart_invalidate_live_carrier')
       || !controls.constraints?.includes('native_windows_execution_risk_disclosure_is_required')
       || !controls.constraints?.includes('no_persistent_local_development_autostart')

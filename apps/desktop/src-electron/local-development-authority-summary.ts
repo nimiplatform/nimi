@@ -34,7 +34,6 @@ type AuthoritySummaryDescriptor = {
   readonly projectAuthorization: {
     readonly availability: NimiElectronLocalDevelopmentSummaryAvailability;
     readonly activeCount: number;
-    readonly dormantCount: number;
     readonly deniedCount: number;
     readonly revokedCount: number;
     readonly reasonCode: 'action-executed' | NimiElectronLocalDevelopmentSummaryUnavailableReason;
@@ -169,7 +168,6 @@ export function authoritySummaryDescriptor(
 ): AuthoritySummaryDescriptor {
   const projectCounts = [
     summary.projectAuthorization.activeCount,
-    summary.projectAuthorization.dormantCount,
     summary.projectAuthorization.deniedCount,
     summary.projectAuthorization.revokedCount,
   ];
@@ -209,7 +207,6 @@ export function authoritySummaryDescriptor(
     projectAuthorization: {
       availability: summary.projectAuthorization.availability,
       activeCount: summary.projectAuthorization.activeCount,
-      dormantCount: summary.projectAuthorization.dormantCount,
       deniedCount: summary.projectAuthorization.deniedCount,
       revokedCount: summary.projectAuthorization.revokedCount,
       reasonCode: summaryReason(

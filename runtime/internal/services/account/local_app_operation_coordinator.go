@@ -199,8 +199,6 @@ func localAppOperationRuntimeReason(reason localappop.Reason) runtimev1.ReasonCo
 		return runtimev1.ReasonCode_LOCAL_APP_PRESENCE_REQUIRED
 	case localappop.ReasonLocalAppPresenceExpired:
 		return runtimev1.ReasonCode_LOCAL_APP_PRESENCE_EXPIRED
-	case localappop.ReasonLocalAppRememberedProjectDormant:
-		return runtimev1.ReasonCode_LOCAL_APP_REMEMBERED_PROJECT_DORMANT
 	case localappop.ReasonLocalAppOperationUnavailable:
 		return runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE
 	default:

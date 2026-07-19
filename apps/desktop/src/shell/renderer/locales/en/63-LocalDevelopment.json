@@ -41,8 +41,7 @@
   "action": {
     "deny": "Deny",
     "allowOnce": "Only this run",
-    "remember": "Remember this project",
-    "reactivate": "Reactivate project",
+    "allowProject": "Always allow this project",
     "refresh": "Refresh",
     "revoke": "Revoke",
     "confirmRevoke": "Revoke now",
@@ -57,7 +56,7 @@
   },
   "management": {
     "title": "Authorized development projects",
-    "description": "Remembered projects are bound to the exact project root, app ID, shell, permission requirements, and Nimi account. Project approval does not create a Nimi permission decision. Revocation immediately closes active development access.",
+    "description": "Always-allowed projects are bound to the exact project root, app ID, shell, permission requirements, and Nimi account. Project approval does not create a Nimi permission decision. Revocation immediately closes active development access.",
     "empty": "No development projects are authorized for this account.",
     "revokeConfirm": "The running development host will lose access immediately."
   }

@@ -68,7 +68,6 @@ export function collectLocalDevelopmentSupervisorParityViolations(sources) {
     ['developerMode', 'developer_mode'],
     ['projectAuthorization', 'project_authorization'],
     ['activeCount', 'active_count'],
-    ['dormantCount', 'dormant_count'],
     ['reasonCode', 'reason_code'],
   ]) {
     if (!sources.tsAuthoritySummary.includes(tsField)

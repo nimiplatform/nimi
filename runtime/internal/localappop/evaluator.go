@@ -23,7 +23,7 @@ func evaluate(req Request, snapshot Snapshot) Decision {
 	}
 	switch snapshot.Record.State {
 	case RecordStateDormant:
-		return deny(ReasonLocalAppRememberedProjectDormant)
+		return deny(ReasonLocalAppProvenanceUnavailable)
 	case RecordStateActive:
 		// Continue.
 	default:

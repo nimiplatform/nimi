@@ -33,7 +33,6 @@ const validAuthoritySummary = {
   projectAuthorization: {
     availability: 'available',
     activeCount: 2,
-    dormantCount: 3,
     deniedCount: 5,
     revokedCount: 7,
     reasonCode: 'action-executed',
@@ -69,7 +68,6 @@ test('authority summary validation accepts only fresh, PID-bound, bounded fields
       state: 'ok',
       reason: 'bounded-project-authorization-summary-available',
       activeCount: 2,
-      dormantCount: 3,
       deniedCount: 5,
       revokedCount: 7,
     },
@@ -152,9 +150,9 @@ test('doctor consumes the admitted bounded Tier-2 projection', async () => {
   });
   assert.equal(report.ok, false);
   assert.equal(report.tier1.find((row) => row.id === 'fixed-runtime-service')?.state, 'error');
-  assert.deepEqual(report.tier2.map((row) => row.state), ['ok', 'ok', 'ok']);
+  assert.deepEqual(report.tier2.map((row) => row.state), ['ok', 'ok']);
   assert.equal(report.tier2.find((row) => row.id === 'project-authorization')?.activeCount, 2);
-  assert.equal(report.tier2.find((row) => row.id === 'grant-summary')?.grantedCount, 13);
+  assert.equal(report.tier2.find((row) => row.id === 'grant-summary'), undefined);
 });
 
 test('doctor keeps Tier-2 explicitly unavailable when the projection cannot be read', async () => {

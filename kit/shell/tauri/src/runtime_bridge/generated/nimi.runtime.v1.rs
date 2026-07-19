@@ -362,7 +362,6 @@ pub enum ReasonCode {
     LocalAppPresenceRequired = 656,
     LocalAppPresenceExpired = 657,
     LocalAppDeveloperModeDisabled = 658,
-    LocalAppRememberedProjectDormant = 659,
     LocalAppRiskDisclosureRequired = 660,
 }
 impl ReasonCode {
@@ -647,9 +646,6 @@ impl ReasonCode {
             Self::LocalAppPresenceRequired => "LOCAL_APP_PRESENCE_REQUIRED",
             Self::LocalAppPresenceExpired => "LOCAL_APP_PRESENCE_EXPIRED",
             Self::LocalAppDeveloperModeDisabled => "LOCAL_APP_DEVELOPER_MODE_DISABLED",
-            Self::LocalAppRememberedProjectDormant => {
-                "LOCAL_APP_REMEMBERED_PROJECT_DORMANT"
-            }
             Self::LocalAppRiskDisclosureRequired => "LOCAL_APP_RISK_DISCLOSURE_REQUIRED",
         }
     }
@@ -968,9 +964,6 @@ impl ReasonCode {
             "LOCAL_APP_PRESENCE_EXPIRED" => Some(Self::LocalAppPresenceExpired),
             "LOCAL_APP_DEVELOPER_MODE_DISABLED" => {
                 Some(Self::LocalAppDeveloperModeDisabled)
-            }
-            "LOCAL_APP_REMEMBERED_PROJECT_DORMANT" => {
-                Some(Self::LocalAppRememberedProjectDormant)
             }
             "LOCAL_APP_RISK_DISCLOSURE_REQUIRED" => {
                 Some(Self::LocalAppRiskDisclosureRequired)

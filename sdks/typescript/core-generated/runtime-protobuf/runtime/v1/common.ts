@@ -1164,10 +1164,6 @@ export enum ReasonCode {
      */
     LOCAL_APP_DEVELOPER_MODE_DISABLED = 658,
     /**
-     * @generated from protobuf enum value: LOCAL_APP_REMEMBERED_PROJECT_DORMANT = 659;
-     */
-    LOCAL_APP_REMEMBERED_PROJECT_DORMANT = 659,
-    /**
      * @generated from protobuf enum value: LOCAL_APP_RISK_DISCLOSURE_REQUIRED = 660;
      */
     LOCAL_APP_RISK_DISCLOSURE_REQUIRED = 660

@@ -60,8 +60,9 @@ func NewProtectedFromMacOSSecurityState(cfg config.Config, logger *slog.Logger, 
 	return NewProtectedWithResources(cfg, logger, version, ProtectedRuntimeResources{
 		Bindings: grpcserver.ProtectedServiceBindings{
 			ServiceStateRoot: serviceDataRoot, PlatformAppRegistryPath: platformAppRegistryPath,
-			PlatformBundledAppsRoot: platformBundledAppsRoot,
-			AccountCustody:          accountCustody, AccountPartition: accountPartition,
+			LocalDevelopmentConsentStorePath: filepath.Join(stateRoot, "local-development.db"),
+			PlatformBundledAppsRoot:          platformBundledAppsRoot,
+			AccountCustody:                   accountCustody, AccountPartition: accountPartition,
 			AccountRealmBaseURL: cfg.AccountRealmBaseURL, AccountAuthorizationURL: cfg.AccountAuthorizationURL,
 			AccountTokenURL: cfg.AccountTokenURL, LocalOSUserIdentity: localOSUserIdentity,
 			ConnectorSecrets: connectorSecrets, DesktopSessions: sessions,

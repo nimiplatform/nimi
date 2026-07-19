@@ -104,7 +104,7 @@ evidence:
   - evidenceId: synthetic-runtime-trace
     kind: runtime_trace
     ref: synthetic-runtime-trace.json
-    sha256: 21e19cbc0471b12a022453d0ccdd98c1905f991b3d70f3e9bcbb0c263ce78216
+    sha256: 28a918511902286f88335487cd52d6270dbcda54fc0c6a0ac0aa612aac9e93de
     candidateBindingSha256: b564cd59273dedd59c8d7575d9b11dc7a805ad94ecd0df5c854e15386b608c5e
   - evidenceId: synthetic-security-negative
     kind: security_negative
@@ -114,22 +114,22 @@ evidence:
   - evidenceId: synthetic-developer-mode-journey
     kind: developer_mode_journey
     ref: synthetic-developer-mode-journey.json
-    sha256: 8c3a30e8f67ea117c12d8a69636238ca7b03a6d8e54cd46d3762dcec56215a58
+    sha256: 7c1994e650746f1715784983a1bb7a483d9725e07ae7a2748f6d700bde31fb99
     candidateBindingSha256: b564cd59273dedd59c8d7575d9b11dc7a805ad94ecd0df5c854e15386b608c5e
   - evidenceId: synthetic-local-agent-journey
     kind: local_agent_journey
     ref: synthetic-local-agent-journey.json
-    sha256: ef963a5510c007c35bbf5bbfb9bf3f09fff63df4f1c06cd458620a7f9a653361
+    sha256: ffeff95c9811fad4ac4b5446083b5f5a02b1006761e23d72ce8233e4f3c20cee
     candidateBindingSha256: b564cd59273dedd59c8d7575d9b11dc7a805ad94ecd0df5c854e15386b608c5e
   - evidenceId: synthetic-real-shell-audit
     kind: real_shell_audit
     ref: synthetic-real-shell-audit.json
-    sha256: 9020e4627a578872f9c3cf7ca7c5275945434eda81f722a34d70927e0854bb10
+    sha256: 4ff5ee2c2189bf68e6b7cad0bba793268b11bb059467078ea8ad2894d749ed5d
     candidateBindingSha256: b564cd59273dedd59c8d7575d9b11dc7a805ad94ecd0df5c854e15386b608c5e
   - evidenceId: synthetic-execution-privacy-audit
     kind: privacy_audit
     ref: synthetic-execution-privacy-audit.json
-    sha256: e73b032e2f87e28eac3c6bffb3083d8250e24f27996a8c3550fc0882265e32a6
+    sha256: a4223abb0efe470ed77c0173fb68f1ab28efc95a3dbc36fec6ef6d0c6faa4d85
     candidateBindingSha256: b564cd59273dedd59c8d7575d9b11dc7a805ad94ecd0df5c854e15386b608c5e
   - evidenceId: synthetic-static-privacy-audit
     kind: privacy_audit
@@ -149,7 +149,7 @@ evidence:
   - evidenceId: synthetic-execution-close-reconciliation
     kind: close_reconciliation
     ref: synthetic-execution-close-reconciliation.json
-    sha256: 7e86d860ce3b0426c5fe53bb425daebb63be6c06e2f31c8633add990f327eb66
+    sha256: 60d9503a13b8f0c2f439a9172d422a00910b93c55650cec99b09f820b044a8ef
     candidateBindingSha256: b564cd59273dedd59c8d7575d9b11dc7a805ad94ecd0df5c854e15386b608c5e
 acceptanceRows:
   - { rowId: A-01, result: pass, evidenceRefs: [synthetic-authority-convergence, synthetic-static-owner-gates] }

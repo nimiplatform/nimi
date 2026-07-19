@@ -88,13 +88,7 @@ methods:
     posture: protected_origin_required
     protected_transport_class: desktop_control
     required_origin_role: local_app_control
-    rationale: remembered mutable-project authorizations are Runtime-owned account truth exposed only to Desktop management UI
-    kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
-  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/ReactivateLocalDevelopmentProject
-    posture: protected_origin_required
-    protected_transport_class: desktop_control
-    required_origin_role: local_app_control
-    rationale: remembered project is dormant between runs and requires explicit reactivation with current account, presence and risk disclosure
+    rationale: allow-project authorizations are Runtime-owned account truth exposed only to Desktop management UI
     kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
   - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization
     posture: protected_origin_required

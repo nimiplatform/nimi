@@ -28,10 +28,9 @@ use crate::{
     DesktopRuntimeConsumerResponse, DeveloperModeStatus, LocalDevelopmentAuthoritySummary,
     LocalDevelopmentAuthorization, LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest,
     LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
-    LocalDevelopmentLaunchRequest, LocalDevelopmentReactivationRequest, NimiDesktopControl,
-    NimiHostError, NimiHostErrorReasonCode, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
-    ProtectedCarrierReasonCode, RuntimeServiceActionOutcome, RuntimeServiceState,
-    RuntimeServiceStatus,
+    LocalDevelopmentLaunchRequest, NimiDesktopControl, NimiHostError, NimiHostErrorReasonCode,
+    NimiProtectedLocalHostCarrier, ProtectedCarrierError, ProtectedCarrierReasonCode,
+    RuntimeServiceActionOutcome, RuntimeServiceState, RuntimeServiceStatus,
 };
 
 #[path = "windows_service_projection.rs"]
@@ -260,18 +259,6 @@ impl NimiDesktopControl for WindowsDesktopControl {
         Box<dyn Future<Output = Result<LocalDevelopmentAuthorization, NimiHostError>> + Send + '_>,
     > {
         Box::pin(crate::windows_local_development::decide_project(
-            self.channel(),
-            request,
-        ))
-    }
-
-    fn reactivate_local_development_project(
-        &self,
-        request: LocalDevelopmentReactivationRequest,
-    ) -> Pin<
-        Box<dyn Future<Output = Result<LocalDevelopmentAuthorization, NimiHostError>> + Send + '_>,
-    > {
-        Box::pin(crate::windows_local_development::reactivate_project(
             self.channel(),
             request,
         ))

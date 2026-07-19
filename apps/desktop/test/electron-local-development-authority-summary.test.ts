@@ -23,7 +23,6 @@ function availableSummary(): NimiElectronLocalDevelopmentAuthoritySummary {
     projectAuthorization: {
       availability: 'available',
       activeCount: 2,
-      dormantCount: 3,
       deniedCount: 5,
       revokedCount: 7,
       unavailableReason: null,
@@ -39,7 +38,6 @@ function control(
     getAuthoritySummary,
     evaluate: unavailable,
     decide: unavailable,
-    reactivate: unavailable,
     listAuthorizations: async () => [],
     revokeAuthorization: unavailable,
     launch: unavailable,

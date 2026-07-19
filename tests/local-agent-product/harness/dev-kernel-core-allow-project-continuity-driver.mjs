@@ -16,7 +16,6 @@ import {
 } from './dev-kernel-host-driver.mjs';
 import { loginDesktop, setFixtureAccount } from './dev-kernel-first-run-driver.mjs';
 import {
-  approveLocalDevelopment,
   pageAudit,
   projectRuntimeUiEvidence,
   readRememberedAuthorization,
@@ -28,7 +27,7 @@ import {
 } from './dev-kernel-local-development-driver.mjs';
 import { persistCoreResult } from './dev-kernel-result-driver.mjs';
 
-export async function runCoreReactivationJourney({
+export async function runCoreAllowProjectContinuityJourney({
   architecture,
   journey,
   trial,
@@ -56,30 +55,23 @@ export async function runCoreReactivationJourney({
   started,
   buildMarker,
   setPhase,
-  setReactivatedHandle,
+  setContinuityHandle,
   setFinalHandle,
   setActiveZhiyuConnection,
   auditBrowserAuth,
 }) {
-  setPhase('remembered-reactivation');
-  const reactivatedLaunch = beginObservedProcess({
-    connect: () => connectCdp(zhiyuCdpPort, 'reactivated Zhiyu', 180_000, observer),
-    start: () => startZhiyuDev(baseEnv, processLogOptions('zhiyu-reactivated-launcher')),
+  setPhase('allow-project-continuity');
+  const continuityLaunch = beginObservedProcess({
+    connect: () => connectCdp(zhiyuCdpPort, 'allow-project continuity Zhiyu', 180_000, observer),
+    start: () => startZhiyuDev(baseEnv, processLogOptions('zhiyu-allow-project-continuity-launcher')),
   });
-  let reactivatedHandle = reactivatedLaunch.handle;
-  setReactivatedHandle(reactivatedHandle);
-  observeRegisteredProcess('zhiyu', reactivatedHandle, 'zhiyu-reactivated-launcher');
-  observations.reactivationApproval = await approveLocalDevelopment(
-    desktop,
-    'allow-remember-project',
-    screenshotsRoot,
-    false,
-    browserAuth('primary', fixtureConfig.primaryAccountId, 'reactivated-local-development'),
-  );
+  let continuityHandle = continuityLaunch.handle;
+  setContinuityHandle(continuityHandle);
+  observeRegisteredProcess('zhiyu', continuityHandle, 'zhiyu-allow-project-continuity-launcher');
   const zhiyu = await waitForObservedProcessConnection({
-    connectionPromise: reactivatedLaunch.connectionPromise,
-    handle: reactivatedHandle,
-    label: 'reactivated Zhiyu Electron launcher',
+    connectionPromise: continuityLaunch.connectionPromise,
+    handle: continuityHandle,
+    label: 'allow-project continuity Zhiyu Electron launcher',
   });
   setActiveZhiyuConnection(zhiyu);
   await waitForTestId(zhiyu.page, 'zhiyu-dev-kernel-root');
@@ -87,17 +79,17 @@ export async function runCoreReactivationJourney({
   await waitZhiyuEvidence(
     zhiyu.page,
     { sessionBound: true, permissionPosture: 'unavailable', buildMarker: 'baseline' },
-    'reactivated authority boundary',
+    'allow-project continuity authority boundary',
   );
-  const reactivatedStorage = await verifyAppPrivateStorage(zhiyu.page);
-  observations.reactivatedAppPrivateStorage = reactivatedStorage;
-  observations.reactivatedAuthorization = await waitUntil(
+  const continuityStorage = await verifyAppPrivateStorage(zhiyu.page);
+  observations.continuedAppPrivateStorage = continuityStorage;
+  observations.continuedAuthorization = await waitUntil(
     () => readRememberedAuthorization(desktop.page, {
       accountId: fixtureConfig.primaryAccountId,
       selector: observations.rememberedAuthorization.selector,
       state: 'active',
     }),
-    { timeoutMs: 30_000, label: 'reactivated remembered authorization' },
+    { timeoutMs: 30_000, label: 'reused allow-project authorization' },
   );
 
   setPhase('fixed-service-restart');
@@ -137,7 +129,7 @@ export async function runCoreReactivationJourney({
     after: runtimeAfterRestart,
     unavailableUi: projectRuntimeUiEvidence(runtimeUnavailableEvidence),
     recoveredUi: projectRuntimeUiEvidence(runtimeRecoveredEvidence),
-    storageBefore: reactivatedStorage.appPrivateStorage,
+    storageBefore: continuityStorage.appPrivateStorage,
     storageAfter: postRuntimeStorage.appPrivateStorage,
   };
 
@@ -167,9 +159,9 @@ export async function runCoreReactivationJourney({
     runs: accountSwitchRuns,
     auditLabels: [desktopAuditAfterSwitch.label, zhiyuAuditAfterSwitch.label],
   };
-  if (reactivatedHandle.child.exitCode === null) await terminateProcessTree(reactivatedHandle);
-  reactivatedHandle = null;
-  setReactivatedHandle(null);
+  if (continuityHandle.child.exitCode === null) await terminateProcessTree(continuityHandle);
+  continuityHandle = null;
+  setContinuityHandle(null);
   await waitForCdpEndpointRelease(zhiyuCdpPort, 'secondary-account Zhiyu');
 
   setPhase('primary-account-restore');
@@ -181,7 +173,7 @@ export async function runCoreReactivationJourney({
   await setFixtureAccount(fixture.origin, fixtureConfig.primaryAccountId, '开发内核主账号');
   observations.primaryAccountRestored = restoredPrimaryLogin;
   await setDeveloperMode(desktop.page, true);
-  setPhase('final-primary-reactivation');
+  setPhase('final-primary-allow-project-continuity');
   const finalLaunch = beginObservedProcess({
     connect: () => connectCdp(zhiyuCdpPort, 'final primary Zhiyu', 180_000, observer),
     start: () => startZhiyuDev(baseEnv, processLogOptions('zhiyu-final-primary-launcher')),
@@ -189,13 +181,6 @@ export async function runCoreReactivationJourney({
   const finalHandle = finalLaunch.handle;
   setFinalHandle(finalHandle);
   observeRegisteredProcess('zhiyu', finalHandle, 'zhiyu-final-primary-launcher');
-  observations.finalReactivationApproval = await approveLocalDevelopment(
-    desktop,
-    'allow-remember-project',
-    screenshotsRoot,
-    false,
-    browserAuth('primary', fixtureConfig.primaryAccountId, 'final-local-development'),
-  );
   const finalZhiyu = await waitForObservedProcessConnection({
     connectionPromise: finalLaunch.connectionPromise,
     handle: finalHandle,

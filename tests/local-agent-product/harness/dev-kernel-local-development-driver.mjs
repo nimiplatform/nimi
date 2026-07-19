@@ -304,7 +304,7 @@ export async function revokeProjectAuthorization(desktopPage) {
 
 export function selectRememberedProjectAuthorizations(rows, { accountId, selector, state } = {}) {
   const matches = (Array.isArray(rows) ? rows : []).filter((row) => row?.appId === 'nimi.zhiyu'
-    && row?.persistence === 'allow-remember-project'
+    && row?.persistence === 'allow-project'
     && (!accountId || row.accountId === accountId)
     && (!selector || row.selector === selector)
     && (!state || row.state === state));
@@ -317,7 +317,7 @@ export async function readRememberedAuthorization(desktopPage, { accountId, sele
   if (!Array.isArray(rows)) throw new Error('local-development authorizations projection is not an array');
   const matches = selectRememberedProjectAuthorizations(rows, { accountId, selector, state });
   if (matches.length === 0) {
-    throw new Error(`remembered local-development authorization is missing${state ? ` in ${state}` : ''}`);
+    throw new Error(`allow-project local-development authorization is missing${state ? ` in ${state}` : ''}`);
   }
   return matches[0];
 }

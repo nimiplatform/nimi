@@ -62,11 +62,13 @@ toggle、hidden mode、direct `go run ... serve`、renderer auth、localhost tru
 
 ## D-DEV-005 — Local Development Lifetimes And Invalidation
 
-`MUST`：项目 decision lifetime 只有 `run_once` 与 `remember_project`。
-Remembered project 在 run 结束后进入 `dormant`，下一次必须显式
-`reactivate`；不得自动启动。edit/build/process replacement、Runtime restart、
-mode off、revoke、account switch 与 project identity change 必须按 Runtime
-规则产生新 lease/session 或立即 deny，旧 process/session 不得继承。
+`MUST`：项目 decision lifetime 只有 `run_once` 与 `allow_project`。
+`allow_project` 是 Runtime-owned 持久项目 consent；run 结束、Desktop 重启、
+Runtime restart/upgrade/reinstall、mode off 与 account 暂时离开不得要求重复
+presence，也不得自动启动。每次显式 dev launch、edit/build/process replacement
+和 Runtime boot epoch 变化都必须按 Runtime 规则产生新 lease/session，旧
+process/session 不得继承。revoke、project/account/permission/shell/entry/risk
+binding 变化必须重新批准或立即 deny。
 
 `MUST`：Desktop 必须把 zero-permission session 与独立的 product permission
 posture 分开呈现；不得把 project admitted、process running 或 session open
