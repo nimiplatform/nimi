@@ -4,7 +4,7 @@ import type { NimiAppInventoryEntry } from '@nimiplatform/sdk/app';
 
 export interface AppCardRequirementSummary {
   readonly ai: boolean;
-  readonly permissions: boolean;
+  readonly platformFeatures: boolean;
   readonly data: boolean;
   readonly runtime: boolean;
 }
@@ -12,7 +12,7 @@ export interface AppCardRequirementSummary {
 export function deriveRequirementSummary(entry: NimiAppInventoryEntry): AppCardRequirementSummary {
   return {
     ai: Boolean(entry.aiProfileSelectionRef?.trim()),
-    permissions: entry.capabilitySet.length > 0,
+    platformFeatures: entry.capabilitySet.length > 0,
     data: Boolean(entry.installStoragePolicyRef?.trim()),
     runtime: Boolean(entry.releaseDescriptorRef?.trim()),
   };

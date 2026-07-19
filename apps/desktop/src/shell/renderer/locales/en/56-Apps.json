@@ -99,11 +99,11 @@
   },
   "requirement": {
     "ai": "AI",
-    "permissions": "Permissions",
+    "platformFeatures": "Platform features",
     "data": "Data",
     "runtime": "Runtime",
     "aiDetail": "Uses an app AIConfig initialized from your recommended or default AI profile.",
-    "permissionsDetail": "Requests account permission grants before launch.",
+    "platformFeaturesDetail": "Uses Nimi platform features declared by the app. Protected access is evaluated separately when used.",
     "dataDetail": "Stores durable app data under a managed nimi_data app root.",
     "runtimeDetail": "Requires a verified runtime package release."
   },

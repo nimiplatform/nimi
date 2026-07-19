@@ -99,11 +99,11 @@
   },
   "requirement": {
     "ai": "AI",
-    "permissions": "权限",
+    "platformFeatures": "平台功能",
     "data": "数据",
     "runtime": "运行时",
     "aiDetail": "使用从推荐或默认 AI 配置初始化的应用 AIConfig。",
-    "permissionsDetail": "启动前需要账户授予权限。",
+    "platformFeaturesDetail": "使用应用声明的 Nimi 平台功能；受保护访问只在实际使用时单独判断。",
     "dataDetail": "在受管的 nimi_data 应用根目录下存储持久应用数据。",
     "runtimeDetail": "需要经过校验的运行时包发布。"
   },

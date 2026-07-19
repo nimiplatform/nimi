@@ -71,6 +71,8 @@ admission 只在 Developer Mode/Developer Tools 通过 `D-DEV-*` 与 `D-IPC-019`
 进入；Desktop 不得扫描本地 app、不得写 local record truth、不得从
 renderer-local in-flight state 推断接入成功。
 
+`MUST`：Apps 只能把 `capabilitySet` 投影为 App 声明使用的 Nimi 平台功能，不得据此推导用户权限、账户授权、启动前 prompt 或 grant。Permissions 只能来自 SDK 明确公开的 permission requirement/posture projection；当 unified inventory 没有该字段时，Apps 卡片和详情不得显示 permission requirement。
+
 ## D-HOME-006 — Agent Chat Placement
 
 `MUST`：Agent Chat 是 Home 内 in-shell reference surface（`P-HOME-006`）。

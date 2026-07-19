@@ -52,7 +52,7 @@ const INSTALL_STATE_LABEL_KEYS: Record<NimiAppInventoryInstallState, string> = {
 
 const REQUIREMENT_LABEL_KEYS: Record<keyof AppCardRequirementSummary, string> = {
   ai: 'Apps.requirement.ai',
-  permissions: 'Apps.requirement.permissions',
+  platformFeatures: 'Apps.requirement.platformFeatures',
   data: 'Apps.requirement.data',
   runtime: 'Apps.requirement.runtime',
 };

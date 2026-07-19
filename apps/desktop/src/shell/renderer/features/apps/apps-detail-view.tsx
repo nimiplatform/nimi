@@ -143,7 +143,7 @@ export function AppsDetailView({
           </span>
           <ul className="flex flex-col gap-0.5 text-[color:var(--nimi-text-secondary)]">
             {requirements.ai ? <li data-requirement="ai">{t('Apps.requirement.aiDetail')}</li> : null}
-            {requirements.permissions ? <li data-requirement="permissions">{t('Apps.requirement.permissionsDetail')}</li> : null}
+            {requirements.platformFeatures ? <li data-requirement="platformFeatures">{t('Apps.requirement.platformFeaturesDetail')}</li> : null}
             {requirements.data ? <li data-requirement="data">{t('Apps.requirement.dataDetail')}</li> : null}
             {requirements.runtime ? <li data-requirement="runtime">{t('Apps.requirement.runtimeDetail')}</li> : null}
           </ul>
