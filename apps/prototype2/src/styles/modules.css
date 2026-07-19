@@ -1,0 +1,328 @@
+/* Module (mock app) surfaces — smoked-glass field idiom. Each module
+ * renders under its own root class `nimi-ui-module--<id>`. */
+
+.mod {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+}
+
+.mod-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mod-empty {
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+  color: var(--fld-text-2);
+  font-size: 0.8125rem;
+}
+
+.mod-empty.inline {
+  padding: 24px;
+  color: var(--fld-text-3);
+}
+
+/* — module tabs (Desktop) — */
+.mod-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border-right: 1px solid var(--fld-border);
+  width: 76px;
+  flex: none;
+}
+
+.mod-tabs button {
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  color: var(--fld-text-3);
+  text-align: center;
+}
+
+.mod-tabs button:hover {
+  color: var(--fld-text);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mod-tabs button[data-active='true'] {
+  color: var(--mod-desktop);
+  background: rgba(69, 224, 230, 0.12);
+}
+
+.mod-tabs .tab-disabled {
+  color: rgba(238, 247, 255, 0.24);
+}
+
+/* — Desktop chat — */
+.chat-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.msg {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.msg-user {
+  justify-content: flex-end;
+}
+
+.msg-bubble {
+  max-width: 82%;
+  padding: 9px 13px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid var(--fld-border);
+}
+
+.msg-user .msg-bubble {
+  background: linear-gradient(135deg, rgba(109, 159, 232, 0.32), rgba(157, 124, 246, 0.3));
+  border-color: rgba(157, 124, 246, 0.35);
+}
+
+.msg-bubble p {
+  margin: 0 0 3px;
+  font-size: 0.8125rem;
+}
+
+.msg-bubble[data-agent='true'] {
+  background:
+    linear-gradient(rgba(157, 124, 246, 0.1), rgba(157, 124, 246, 0.1)) padding-box,
+    var(--fld-aurora) border-box;
+  border: 1px solid transparent;
+}
+
+.chat-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--fld-border);
+}
+
+/* — Desktop explore — */
+.desk-explore {
+  padding: 14px;
+  overflow-y: auto;
+}
+
+.world-panel {
+  border: 1px solid var(--fld-border);
+  border-top: 2px solid var(--world-hue, var(--nimi-primary));
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.world-panel h3 {
+  margin: 0;
+}
+
+.world-panel h3 em {
+  font-style: normal;
+  color: var(--fld-text-3);
+  font-weight: 500;
+  font-size: 0.875rem;
+  margin-left: 8px;
+}
+
+.world-panel p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--fld-text-2);
+}
+
+.world-foot,
+.world-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cradle-note {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--fld-text-2);
+}
+
+.cradle-note.dim {
+  color: var(--fld-text-3);
+  font-size: 0.75rem;
+}
+
+/* — Zhiyu — */
+.mod-zhiyu {
+  flex-direction: column;
+}
+
+.appai-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--fld-border);
+  background: rgba(74, 222, 128, 0.07);
+}
+
+.appai-banner b {
+  font-size: 0.8125rem;
+}
+
+.appai-banner p {
+  margin: 0;
+}
+
+.appai-dot {
+  color: #4ade80;
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.7);
+}
+
+.zh-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.zh-card {
+  border: 1px solid var(--fld-border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.07);
+  padding: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.zh-card h4 {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.zh-card p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--fld-text-2);
+}
+
+.zh-card[data-kind='agent-carry'] {
+  background:
+    linear-gradient(rgba(157, 124, 246, 0.1), rgba(157, 124, 246, 0.1)) padding-box,
+    var(--fld-aurora) border-box;
+  border: 1px solid transparent;
+  box-shadow: var(--fld-aurora-glow);
+}
+
+.zh-card[data-kind='app-ai'] {
+  border-left: 2px solid var(--mod-zhiyu);
+}
+
+.zh-composer {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--fld-border);
+}
+
+.zh-composer input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--fld-border);
+  border-radius: 10px;
+  padding: 7px 11px;
+  color: var(--fld-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  outline: none;
+}
+
+.zh-composer input:focus {
+  border-color: rgba(69, 224, 230, 0.5);
+}
+
+.zh-composer input::placeholder {
+  color: var(--fld-text-3);
+}
+
+/* — Tester — */
+.lab-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.lab-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lab-section > .t-caption {
+  margin: 0;
+}
+
+.lab-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lab-fp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lab-fp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 1px solid var(--fld-border);
+  border-left: 2px solid var(--world-hue, var(--nimi-primary));
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.8125rem;
+}
+
+.lab-fp .dot {
+  color: var(--world-hue, var(--nimi-primary));
+}
+
+.lab-fp b {
+  white-space: nowrap;
+}
+
+.lab-fp span:nth-child(3) {
+  color: var(--fld-text-2);
+  flex: 1;
+}

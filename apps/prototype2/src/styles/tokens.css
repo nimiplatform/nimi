@@ -1,0 +1,85 @@
+@import "@nimiplatform/kit/ui/styles.css";
+@import "@nimiplatform/kit/ui/themes/dark.css";
+@import "@nimiplatform/kit/ui/themes/nimi-accent.css";
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+ * Nimi OS "Field" tokens (prototype 2)
+ *
+ * Aesthetic study after the Aurora spatial-OS concept: a luminous gradient
+ * field, smoked-glass panes, wide-tracked light typography. Layer 1 keeps
+ * Nimi semantic colors (primary/success/warning/danger) so it still reads
+ * as Nimi; the field itself is prototype-local (`--fld-*`).
+ * ------------------------------------------------------------------------- */
+
+:root {
+  /* — Nimi semantic anchors — */
+  --nimi-primary: #45b8d6;
+  --nimi-primary-hover: #35a7c4;
+  --nimi-on-primary: #0b1220;
+  --nimi-success: #16a34a;
+  --nimi-warning: #d97706;
+  --nimi-danger: #dc2626;
+  --nimi-info: #2563eb;
+
+  /* — Field palette (smoked glass on a luminous sky) — */
+  --fld-text: #eef7ff;
+  --fld-text-2: rgba(238, 247, 255, 0.68);
+  --fld-text-3: rgba(238, 247, 255, 0.44);
+  --fld-border: var(--nimi-border-subtle);
+  --fld-border-hi: var(--nimi-border-strong);
+  --fld-shadow: var(--nimi-elevation-modal);
+  --fld-shadow-sm: var(--nimi-elevation-floating);
+
+  /* — Agent aurora (base agent only) — */
+  --fld-aurora: linear-gradient(120deg, #45e0e6 0%, #6d9fe8 48%, #9d7cf6 100%);
+  --fld-aurora-glow:
+    0 0 0 1px rgba(157, 124, 246, 0.4),
+    0 8px 32px rgba(69, 224, 230, 0.18),
+    0 0 64px rgba(157, 124, 246, 0.2);
+
+  --fld-radius: var(--nimi-radius-lg);
+  --fld-radius-sm: var(--nimi-radius-md);
+
+  --fld-font: "Inter", "Noto Sans SC", "Source Han Sans SC", "PingFang SC",
+    "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
+  --fld-mono: "JetBrains Mono", "SF Mono", "Fira Code", ui-monospace, monospace;
+
+  --fld-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --fld-spring: cubic-bezier(0.22, 1.2, 0.36, 1);
+
+  /* module accents on glass */
+  --mod-desktop: #45e0e6;
+  --mod-zhiyu: #4ade80;
+  --mod-tester: #fbbf24;
+}
+
+/* — Sky phases (the field itself changes with the atmosphere) — */
+:root,
+[data-phase='day'] {
+  --sky: linear-gradient(180deg, #2c44c2 0%, #2f6ed6 34%, #35a8dd 66%, #4fd2e8 100%);
+  --sky-speck: rgba(255, 255, 255, 0.5);
+  --sky-wisp-1: rgba(120, 220, 255, 0.28);
+  --sky-wisp-2: rgba(157, 124, 246, 0.22);
+}
+
+[data-phase='dawn'] {
+  --sky: linear-gradient(180deg, #27389a 0%, #5a63c8 38%, #a58fd8 72%, #f2c9d6 100%);
+  --sky-speck: rgba(255, 255, 255, 0.45);
+  --sky-wisp-1: rgba(255, 214, 231, 0.3);
+  --sky-wisp-2: rgba(157, 124, 246, 0.24);
+}
+
+[data-phase='dusk'] {
+  --sky: linear-gradient(180deg, #3a2a8c 0%, #7a3fa0 40%, #d0608e 74%, #f0a070 100%);
+  --sky-speck: rgba(255, 255, 255, 0.5);
+  --sky-wisp-1: rgba(255, 176, 120, 0.26);
+  --sky-wisp-2: rgba(208, 96, 142, 0.24);
+}
+
+[data-phase='night'] {
+  --sky: linear-gradient(180deg, #150c30 0%, #241448 44%, #321d5c 76%, #452a6e 100%);
+  --sky-speck: rgba(255, 255, 255, 0.8);
+  --sky-wisp-1: rgba(109, 159, 232, 0.2);
+  --sky-wisp-2: rgba(157, 124, 246, 0.22);
+}
