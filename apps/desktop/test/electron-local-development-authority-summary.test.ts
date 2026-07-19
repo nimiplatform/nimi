@@ -120,6 +120,35 @@ test('Electron publisher deletes the previous authority summary when the protect
   }
 });
 
+test('Electron publisher suppresses only the startup authority race and reports a persistent failure', async () => {
+  const home = await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-authority-startup-race-'));
+  const reports: string[] = [];
+  const publisher = createDesktopElectronLocalDevelopmentProjectionPublisher({
+    homeDirectory: home,
+    control: control(async () => {
+      throw Object.assign(new Error('bounded startup race'), {
+        reasonCode: 'runtime-service-unavailable',
+      });
+    }),
+    processId: 4_244,
+    report: (message) => reports.push(message),
+  });
+  const summaryPath = path.join(
+    home, '.nimi', 'run', 'desktop', 'local-development', 'authority-summary.v1.json',
+  );
+  try {
+    await publisher.start('http://127.0.0.1:42426');
+    await assert.rejects(access(summaryPath), { code: 'ENOENT' });
+    assert.deepEqual(reports, []);
+
+    await publisher.heartbeat();
+    assert.deepEqual(reports, ['authority summary unavailable: runtime-service-unavailable']);
+  } finally {
+    await publisher.shutdown();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
 test('Electron authority descriptor rejects unsafe counts and inconsistent unavailable sections', () => {
   assert.throws(() => authoritySummaryDescriptor({
     ...availableSummary(),

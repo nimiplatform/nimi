@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"log/slog"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -25,14 +24,14 @@ type staticLocalAppCallerAuthorizer struct {
 
 func TestReadArtifactBytesAcceptsExactLocalDevelopmentAudience(t *testing.T) {
 	store := NewMemoryStore()
-	projectRoot := filepath.Clean(t.TempDir())
+	projectRoot := "/Users/nimi/Projects/artifact-app"
 	decision := artifactTestDecision()
 	decision.AuthorizationID = artifactTestIdentifier(0x81)
 	decision.AuthorizationGeneration = 4
 	decision.ProjectRoot = projectRoot
 	decision.CapabilityFingerprint = artifactTestIdentifier(0x82)
 	decision.Process.OS = protectedlocal.OSMacOS
-	decision.Process.CanonicalExecutablePath = filepath.Join(projectRoot, "Nimi Local App Host")
+	decision.Process.CanonicalExecutablePath = "/Applications/Nimi.app/Contents/Frameworks/Nimi Local App Host.app/Contents/MacOS/Nimi Local App Host"
 	decision.Process.ExecutableTrustSetID = protectedlocal.MacOSLocalDevelopmentTrustSetID
 	audience := &ArtifactAudience{
 		ProducerJobID: "runtime.local-development.bootstrap", OwnerAccountID: decision.AccountID, AppID: decision.AppID,

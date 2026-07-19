@@ -112,7 +112,11 @@ test('SID anchor and principal/record stores are separate while permission stora
   const grant = parseAuthority(AUTHORITY_PATHS.grant);
   assert.equal(identity.local_os_user_anchor.platform_profile_ref, 'protected-local-os-profiles.yaml#same-os');
   assert.equal(identity.local_os_user_anchor.profile_field, 'local_os_user_anchor_derivation');
-  assert.equal(identity.local_os_user_anchor.windows_source, 'verified_interactive_user_sid');
+  assert.deepEqual(identity.local_os_user_anchor.platform_sources, {
+    windows: 'verified_interactive_user_sid',
+    linux: 'verified_peer_uid_and_login_session',
+    macos: 'verified_peer_euid_and_audit_session',
+  });
   assert.equal(identity.local_os_user_anchor.request_supplied, 'forbidden');
   assert.equal(identity.principal.store_identity, 'local_app_principals');
   assert.equal(identity.record.store_identity, 'local_app_records');
@@ -147,7 +151,7 @@ test('platform profiles preserve the Windows chain and macOS UDS requirement', (
   assert.equal(windowsTransport.endpoint_kind, 'named_pipe');
   assert.equal(macosTransport.admission, 'requirements_only_fail_closed_pending_native_admission');
   assert.equal(macosTransport.endpoint_kind, 'filesystem_unix_domain_socket');
-  assert.match(macosTransport.client_peer_verification, /kernel_peer_credentials/u);
+  assert.match(macosTransport.client_peer_verification, /LOCAL_PEERTOKEN.*audit_session/u);
 });
 
 test('launch session profiles preserve the admitted Windows chain and macOS atomic requirement', () => {
@@ -161,8 +165,8 @@ test('launch session profiles preserve the admitted Windows chain and macOS atom
   assert.match(windows.local_app_bootstrap_carrier, /named_pipe/u);
   assert.match(windows.launch_session_equivalent, /atomically_consumes_bootstrap/u);
   assert.equal(macos.admission, 'requirements_only_fail_closed_pending_native_admission');
-  assert.match(macos.desktop_control_carrier, /launchd_system_daemon_owned_filesystem_uds/u);
-  assert.match(macos.child_process_witness, /audit_token_pidversion_dynamic_SecCode/u);
+  assert.match(macos.desktop_control_carrier, /launchd_socket_activated_DesktopControl_filesystem_uds/u);
+  assert.match(macos.child_process_witness, /LOCAL_PEERTOKEN_pidversion_dynamic_SecCode/u);
   assert.match(macos.launch_session_equivalent, /atomically_consumes_bootstrap/u);
 });
 

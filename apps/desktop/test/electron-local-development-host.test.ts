@@ -12,6 +12,7 @@ import type {
 } from '@nimiplatform/kit/shell/electron/main';
 import {
   createDesktopElectronLocalDevelopmentHost,
+  resolveLocalDevelopmentAuthorityFailureState,
   sameLocalDevelopmentProject,
 } from '../src-electron/local-development-host';
 import {
@@ -220,7 +221,22 @@ test('Electron local-development package scripts use a fixed Windows shell allow
   );
 });
 
-test('ordinary Electron builds cannot enable observation from environment input', () => {
+test('Electron local-development treats unavailable and untrusted Runtime sessions as recoverable', () => {
+  assert.equal(
+    resolveLocalDevelopmentAuthorityFailureState('runtime-service-unavailable'),
+    'runtime-unavailable',
+  );
+  assert.equal(
+    resolveLocalDevelopmentAuthorityFailureState('runtime-service-untrusted'),
+    'runtime-unavailable',
+  );
+  assert.equal(
+    resolveLocalDevelopmentAuthorityFailureState('local-development-authorization-required'),
+    'authorization-required',
+  );
+});
+
+test('ordinary Electron builds cannot enable observation from environment input', async () => {
   const observation = {
     NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_CDP_PORT: '19472',
     NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT: path.join(repoRoot, '.nimi', 'local', 'zhiyu-observation'),
@@ -231,9 +247,12 @@ test('ordinary Electron builds cannot enable observation from environment input'
     ...observation,
     NIMI_DEV_KERNEL_CHECKPOINT: '1',
   }), []);
+  assert.deepEqual(await awaitableMacOSUserDataOnWindows(), []);
 });
 
-test('macOS local-app Chromium data is opaque, private, and authorization-partitioned', async () => {
+test('macOS local-app Chromium data is opaque, private, and authorization-partitioned', {
+  skip: process.platform !== 'darwin',
+}, async () => {
   const home = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-local-app-user-data-')));
   try {
     const first = await resolveMacOSLocalAppUserDataArguments({
@@ -261,17 +280,14 @@ test('macOS local-app Chromium data is opaque, private, and authorization-partit
     const metadata = await lstat(profileRoot);
     assert.equal(metadata.isDirectory(), true);
     assert.equal(metadata.mode & 0o777, 0o700);
-    assert.deepEqual(await resolveMacOSLocalAppUserDataArguments({
-      authorizationId,
-      homeDirectory: home,
-      platform: 'win32',
-    }), []);
   } finally {
     await rm(home, { recursive: true, force: true });
   }
 });
 
-test('macOS local-app Chromium data rejects a symlinked profile ancestor', async () => {
+test('macOS local-app Chromium data rejects a symlinked profile ancestor', {
+  skip: process.platform !== 'darwin',
+}, async () => {
   const home = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-local-app-user-data-link-')));
   const target = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-local-app-user-data-target-')));
   try {
@@ -291,6 +307,14 @@ test('macOS local-app Chromium data rejects a symlinked profile ancestor', async
     await rm(target, { recursive: true, force: true });
   }
 });
+
+function awaitableMacOSUserDataOnWindows(): Promise<string[]> {
+  return resolveMacOSLocalAppUserDataArguments({
+    authorizationId,
+    homeDirectory: os.homedir(),
+    platform: 'win32',
+  });
+}
 
 test('Electron local-development project equality accepts the Windows extended-length canonical path', {
   skip: process.platform !== 'win32',

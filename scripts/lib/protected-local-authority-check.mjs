@@ -156,7 +156,9 @@ function validateStores(bundle, issues) {
     schema?.local_os_user_anchor?.owner !== 'runtime_protected_local'
     || schema?.local_os_user_anchor?.platform_profile_ref !== 'protected-local-os-profiles.yaml#same-os'
     || schema?.local_os_user_anchor?.profile_field !== 'local_os_user_anchor_derivation'
-    || schema?.local_os_user_anchor?.windows_source !== 'verified_interactive_user_sid'
+    || schema?.local_os_user_anchor?.platform_sources?.windows !== 'verified_interactive_user_sid'
+    || schema?.local_os_user_anchor?.platform_sources?.linux !== 'verified_peer_uid_and_login_session'
+    || schema?.local_os_user_anchor?.platform_sources?.macos !== 'verified_peer_euid_and_audit_session'
     || schema?.local_os_user_anchor?.request_supplied !== 'forbidden'
     || schema?.local_os_user_anchor?.active_anchors_per_data_root !== 1
   ) {
@@ -622,6 +624,8 @@ function validateTrustIsolation(bundle, issues) {
     ['nimi-desktop-production-v1', 'production', 'production_only', true],
     ['nimi-desktop-e2e-fixture-v1', 'non_product_test', 'test_only', false],
     ['nimi-runtime-production-v1', 'production', 'production_only', true],
+    ['nimi-local-development-host-macos-production-v1', 'production', 'production_only', true],
+    ['nimi-local-development-host-macos-e2e-fixture-v1', 'non_product_test', 'test_only', false],
     ['nimi-desktop-control-carrier-production-v1', 'production', 'production_only', true],
     ['nimi-desktop-control-carrier-e2e-fixture-v1', 'non_product_test', 'test_only', false],
   ];
@@ -658,7 +662,7 @@ function validateTrustIsolation(bundle, issues) {
     || windowsProfile?.client_executable_verification !== 'same_open_hfile_volume_serial_file_id_win_verify_trust_installer_signer_policy'
     || windowsProfile?.server_executable_verification !== 'same_open_hfile_volume_serial_file_id_win_verify_trust_installer_signer_policy_and_service_sid'
     || macosProfile?.admission !== 'requirements_only_fail_closed_pending_native_admission'
-    || !String(macosProfile?.native_release_verification ?? '').includes('dynamic_SecCode_designated_requirement_team_id_cdhash')
+    || !String(macosProfile?.native_release_verification ?? '').includes('designated_requirement_team_id_identifier_cdhash')
   ) {
     issues.push(issue(
       'TRUST_SET_ISOLATION_REQUIRED',

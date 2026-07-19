@@ -101,7 +101,7 @@ implements DesktopElectronLocalDevelopmentProjectionPublisher {
     this.endpoint = endpoint;
     this.startedAt = this.now().toISOString();
     await this.writePresence();
-    await this.refreshAuthoritySummary();
+    await this.refreshAuthoritySummary(false);
     this.heartbeatTimer = setInterval(() => void this.heartbeat(), LOCAL_DEVELOPMENT_HEARTBEAT_INTERVAL_MS);
   }
 
@@ -111,7 +111,7 @@ implements DesktopElectronLocalDevelopmentProjectionPublisher {
     } catch {
       this.report('presence heartbeat failed');
     }
-    await this.refreshAuthoritySummary();
+    await this.refreshAuthoritySummary(true);
   }
 
   async shutdown(): Promise<void> {
@@ -133,7 +133,7 @@ implements DesktopElectronLocalDevelopmentProjectionPublisher {
     await writeOwnerPrivateAtomicJson(this.presencePath, descriptor);
   }
 
-  private async refreshAuthoritySummary(): Promise<void> {
+  private async refreshAuthoritySummary(reportFailure: boolean): Promise<void> {
     try {
       const summary = await this.control.getAuthoritySummary();
       const descriptor = authoritySummaryDescriptor(
@@ -144,7 +144,9 @@ implements DesktopElectronLocalDevelopmentProjectionPublisher {
       await writeOwnerPrivateAtomicJson(this.authoritySummaryPath, descriptor);
     } catch (error) {
       await this.removeAuthoritySummary();
-      this.report(`authority summary unavailable: ${authoritySummaryFailureReason(error)}`);
+      if (reportFailure) {
+        this.report(`authority summary unavailable: ${authoritySummaryFailureReason(error)}`);
+      }
     }
   }
 

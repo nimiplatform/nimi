@@ -9,7 +9,9 @@ import {
   resolveMacOSLocalAppHostLaunch,
 } from '../macos/local-app-host/contract.mjs';
 
-test('macOS local-app host accepts only the exact supervised production launch shape', async () => {
+test('macOS local-app host accepts only the exact supervised production launch shape', {
+  skip: process.platform !== 'darwin',
+}, async () => {
   const root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-local-app-host-contract-')));
   try {
     const project = path.join(root, 'project');
@@ -43,7 +45,24 @@ test('macOS local-app host accepts only the exact supervised production launch s
   }
 });
 
-test('macOS local-app host rejects CDP, copied main, and replaced profile ancestry', async () => {
+test('macOS local-app host rejects forbidden Chromium launch arguments on every platform', () => {
+  assert.throws(() => resolveMacOSLocalAppHostLaunch({
+    argv: [
+      MACOS_LOCAL_APP_HOST_EXECUTABLE,
+      '--user-data-dir=/tmp/nimi-profile',
+      '--nimi-local-app-main=/tmp/main.js',
+      '--nimi-dev-renderer-url=http://127.0.0.1:1472',
+      '--remote-debugging-port=9222',
+    ],
+    executable: MACOS_LOCAL_APP_HOST_EXECUTABLE,
+    homeDirectory: '/tmp',
+    workingDirectory: '/tmp',
+  }), /local-app-host-launch-untrusted/u);
+});
+
+test('macOS local-app host rejects copied main and replaced profile ancestry', {
+  skip: process.platform !== 'darwin',
+}, async () => {
   const root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-local-app-host-link-')));
   try {
     const project = path.join(root, 'project');
@@ -70,10 +89,6 @@ test('macOS local-app host rejects CDP, copied main, and replaced profile ancest
       uid: process.getuid?.() ?? 0,
       workingDirectory: project,
     };
-    assert.throws(() => resolveMacOSLocalAppHostLaunch({
-      ...fixture,
-      argv: [...fixture.argv, '--remote-debugging-port=9222'],
-    }), /local-app-host-launch-untrusted/u);
     assert.throws(() => resolveMacOSLocalAppHostLaunch({
       ...fixture,
       argv: fixture.argv.map((value) => value.startsWith('--nimi-local-app-main=')

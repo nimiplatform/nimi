@@ -300,7 +300,7 @@ class ElectronLocalDevelopmentHost {
       });
     } catch (error) {
       const code = reason(error);
-      setRunState(run, code === 'runtime-service-unavailable' ? 'runtime-unavailable' : 'authorization-required', code, code, true);
+      setRunState(run, resolveLocalDevelopmentAuthorityFailureState(code), code, code, true);
       this.ensureHealthTimer(run);
       return;
     }
@@ -534,7 +534,7 @@ class ElectronLocalDevelopmentHost {
       if (!run.supervising && !run.renderer) this.startSupervisor(run);
     } catch (error) {
       const code = reason(error);
-      setRunState(run, code === 'runtime-service-unavailable' ? 'runtime-unavailable' : 'authorization-required', code, code, true);
+      setRunState(run, resolveLocalDevelopmentAuthorityFailureState(code), code, code, true);
     }
   }
 
@@ -738,4 +738,11 @@ function reason(error: unknown): string {
   if (error && typeof error === 'object' && 'reasonCode' in error && typeof error.reasonCode === 'string') return error.reasonCode;
   if (error instanceof Error && /^[A-Za-z][A-Za-z0-9_-]{0,127}$/u.test(error.message)) return error.message;
   return 'local-development-supervisor-required';
+}
+export function resolveLocalDevelopmentAuthorityFailureState(
+  reasonCode: string,
+): 'runtime-unavailable' | 'authorization-required' {
+  return reasonCode === 'runtime-service-unavailable' || reasonCode === 'runtime-service-untrusted'
+    ? 'runtime-unavailable'
+    : 'authorization-required';
 }
