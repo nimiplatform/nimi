@@ -274,6 +274,7 @@ ai_governance:
         - sdks/**/core-generated/**
         - spec/**/kernel/generated/**
       structured_data:
+        - .secrets.baseline
         - apps/desktop/src/shell/renderer/locales/**/*.json
         - apps/avatar/assets/lip-sync/**/*.json
     exclude:
