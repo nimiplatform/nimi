@@ -1,9 +1,28 @@
 version: 1
 provider: minimax
-catalog_version: 2026-04-18-minimax-v2
+catalog_version: 2026-07-20-minimax-v3
 inventory_mode: static_source
-default_text_model: MiniMax-M2.7
+default_text_model: MiniMax-M3
 models:
+  - model_id: MiniMax-M3
+    provider: minimax
+    model_type: chat
+    updated_at: 2026-07-20
+    capabilities:
+      - text.generate
+      - text.generate.vision
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-07-20
+      notes: Current frontier coding and agent model with native image and video inputs and a documented 1M context window.
+    source_ref:
+      url: https://platform.minimaxi.com/docs/api-reference/api-overview
+      retrieved_at: 2026-07-20
+      note: MiniMax API overview with text, image, and video model tables.
+    context_window_tokens: 8192
   - model_id: MiniMax-M2.7
     provider: minimax
     model_type: chat
@@ -18,8 +37,8 @@ models:
       as_of: 2026-04-18
       notes: Official MiniMax pay-as-you-go pricing for the MiniMax-M2.7 text model.
     source_ref:
-      url: https://platform.minimax.io/docs/api-reference/api-overview
-      retrieved_at: 2026-04-18
+      url: https://platform.minimaxi.com/docs/api-reference/api-overview
+      retrieved_at: 2026-07-20
       note: MiniMax API overview with text, image, and video model tables.
     context_window_tokens: 8192
   - model_id: MiniMax-Hailuo-2.3
@@ -36,8 +55,8 @@ models:
       as_of: 2026-04-18
       notes: Official pricing page exposes MiniMax-Hailuo-2.3-Fast prices clearly, but the non-fast MiniMax-Hailuo-2.3 row is not machine-readable enough to admit a precise stable price here.
     source_ref:
-      url: https://platform.minimax.io/docs/api-reference/api-overview
-      retrieved_at: 2026-04-18
+      url: https://platform.minimaxi.com/docs/api-reference/api-overview
+      retrieved_at: 2026-07-20
       note: MiniMax API overview with text, image, and video model tables.
     video_generation:
       modes:
@@ -87,8 +106,8 @@ models:
       as_of: 2026-04-18
       notes: Official MiniMax pay-as-you-go pricing for image-01.
     source_ref:
-      url: https://platform.minimax.io/docs/api-reference/api-overview
-      retrieved_at: 2026-04-18
+      url: https://platform.minimaxi.com/docs/api-reference/api-overview
+      retrieved_at: 2026-07-20
       note: MiniMax API overview with text, image, and video model tables.
     image_request_options:
       response_formats:
@@ -108,7 +127,7 @@ selection_profiles:
   - provider: minimax
     profile_id: text.general
     capability: text.generate
-    model_id: MiniMax-M2.7
-    reviewed_at: 2026-06-27
+    model_id: MiniMax-M3
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: MiniMax M2.7 is the current flagship text model in the official API docs.
+    rationale: Current MiniMax frontier text and multimodal Agent model exposed by the production SDK and API docs.

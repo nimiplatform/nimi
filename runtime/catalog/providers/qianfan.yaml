@@ -1,6 +1,6 @@
 version: 1
 provider: qianfan
-catalog_version: 2026-04-18-qianfan-ernie-v2
+catalog_version: 2026-07-20-qianfan-ernie-v3
 inventory_mode: static_source
 default_text_model: ernie-5.1
 models:
@@ -18,8 +18,8 @@ models:
       as_of: 2026-06-03
       notes: Current flagship ERNIE 5.1 first-party route. Exact public pricing is intentionally not inferred when not machine-verifiable in this refresh.
     source_ref:
-      url: https://cloud.baidu.com/doc/qianfan-docs/s/7m95lyy43
-      retrieved_at: 2026-04-18
+      url: https://cloud.baidu.com/doc/qianfan/s/rmh4stp0j
+      retrieved_at: 2026-07-20
       note: Official Qianfan model list covering current ERNIE text, reasoning, vision, and embedding rows.
     context_window_tokens: 8192
   - model_id: ernie-5.0
@@ -36,10 +36,28 @@ models:
       as_of: 2026-04-18
       notes: Official pricing is tiered by input length. This row records the <=32k rate at 0.006 / 0.024 CNY per 1K tokens.
     source_ref:
-      url: https://cloud.baidu.com/doc/qianfan-docs/s/7m95lyy43
-      retrieved_at: 2026-04-18
+      url: https://cloud.baidu.com/doc/qianfan/s/rmh4stp0j
+      retrieved_at: 2026-07-20
       note: Official Qianfan model list covering current ERNIE text, reasoning, vision, and embedding rows.
     context_window_tokens: 8192
+  - model_id: ernie-x1.1
+    provider: qianfan
+    model_type: chat
+    updated_at: 2025-09-26
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "1.00"
+      output: "4.00"
+      currency: CNY
+      as_of: 2026-07-20
+      notes: Stable ERNIE X1.1 reasoning route priced at 0.001 / 0.004 CNY per 1K tokens, with up to 55K input tokens and 65,536 completion tokens.
+    source_ref:
+      url: https://cloud.baidu.com/doc/qianfan/s/rmh4stp0j
+      retrieved_at: 2026-07-20
+      note: Official Qianfan model list covering current ERNIE text, reasoning, vision, and embedding rows.
+    context_window_tokens: 121856
   - model_id: ernie-x1.1-preview
     provider: qianfan
     model_type: chat
@@ -54,8 +72,8 @@ models:
       as_of: 2026-06-03
       notes: Current ERNIE X1.1 preview reasoning route priced at 0.001 / 0.004 CNY per 1K tokens when the current pricing table keeps that family rate.
     source_ref:
-      url: https://cloud.baidu.com/doc/qianfan-docs/s/7m95lyy43
-      retrieved_at: 2026-04-18
+      url: https://cloud.baidu.com/doc/qianfan/s/rmh4stp0j
+      retrieved_at: 2026-07-20
       note: Official Qianfan model list covering current ERNIE text, reasoning, vision, and embedding rows.
     context_window_tokens: 8192
   - model_id: ernie-4.5-turbo-128k
@@ -72,8 +90,8 @@ models:
       as_of: 2026-04-18
       notes: Stable ERNIE 4.5 Turbo long-context route priced at 0.0008 / 0.0032 CNY per 1K tokens. Cache-hit input is 0.0002 CNY per 1K tokens.
     source_ref:
-      url: https://cloud.baidu.com/doc/qianfan-docs/s/7m95lyy43
-      retrieved_at: 2026-04-18
+      url: https://cloud.baidu.com/doc/qianfan/s/rmh4stp0j
+      retrieved_at: 2026-07-20
       note: Official Qianfan model list covering current ERNIE text, reasoning, vision, and embedding rows.
     context_window_tokens: 131072
   - model_id: ernie-4.5-turbo-32k
@@ -90,8 +108,8 @@ models:
       as_of: 2026-04-18
       notes: Stable ERNIE 4.5 Turbo 32K route priced at 0.0008 / 0.0032 CNY per 1K tokens. Cache-hit input is 0.0002 CNY per 1K tokens.
     source_ref:
-      url: https://cloud.baidu.com/doc/qianfan-docs/s/7m95lyy43
-      retrieved_at: 2026-04-18
+      url: https://cloud.baidu.com/doc/qianfan/s/rmh4stp0j
+      retrieved_at: 2026-07-20
       note: Official Qianfan model list covering current ERNIE text, reasoning, vision, and embedding rows.
     context_window_tokens: 32768
   - model_id: ernie-4.5-turbo-vl
@@ -108,8 +126,8 @@ models:
       as_of: 2026-04-18
       notes: Current stable ERNIE 4.5 Turbo VL route. Public pricing page groups VL family pricing and explicitly publishes the 32K variant; this row remains unknown-priced until a non-preview 128K line is separately itemized.
     source_ref:
-      url: https://cloud.baidu.com/doc/qianfan-docs/s/7m95lyy43
-      retrieved_at: 2026-04-18
+      url: https://cloud.baidu.com/doc/qianfan/s/rmh4stp0j
+      retrieved_at: 2026-07-20
       note: Official Qianfan model list covering current ERNIE text, reasoning, vision, and embedding rows.
   - model_id: ernie-4.5-turbo-vl-32k
     provider: qianfan
@@ -125,8 +143,8 @@ models:
       as_of: 2026-04-18
       notes: Stable ERNIE 4.5 Turbo VL 32K route priced at 0.003 / 0.009 CNY per 1K tokens.
     source_ref:
-      url: https://cloud.baidu.com/doc/qianfan-docs/s/7m95lyy43
-      retrieved_at: 2026-04-18
+      url: https://cloud.baidu.com/doc/qianfan/s/rmh4stp0j
+      retrieved_at: 2026-07-20
       note: Official Qianfan model list covering current ERNIE text, reasoning, vision, and embedding rows.
   - model_id: embedding-v1
     provider: qianfan
@@ -142,8 +160,8 @@ models:
       as_of: 2026-04-18
       notes: Official Embedding-V1 pricing is 0.0005 CNY per 1K tokens with 384-dimensional output.
     source_ref:
-      url: https://cloud.baidu.com/doc/qianfan-docs/s/7m95lyy43
-      retrieved_at: 2026-04-18
+      url: https://cloud.baidu.com/doc/qianfan/s/rmh4stp0j
+      retrieved_at: 2026-07-20
       note: Official Qianfan model list covering current ERNIE text, reasoning, vision, and embedding rows.
     embedding:
       dimension: 384
@@ -153,20 +171,20 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: ernie-5.1
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
     rationale: Current flagship ERNIE first-party route in the admitted Qianfan subset.
   - provider: qianfan
     profile_id: text.fast
     capability: text.generate
     model_id: ernie-4.5-turbo-128k
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
     rationale: Current lower-cost high-throughput ERNIE route in the admitted Qianfan subset.
   - provider: qianfan
     profile_id: text.reasoning
     capability: text.generate
-    model_id: ernie-x1.1-preview
-    reviewed_at: 2026-06-27
+    model_id: ernie-x1.1
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: Current stable ERNIE first-party reasoning route for logic, math, and agent workflows.
+    rationale: Current stable ERNIE X1.1 reasoning route with higher published throughput than the retained preview.

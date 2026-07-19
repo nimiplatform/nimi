@@ -1,6 +1,6 @@
 schema_version: 3
 provider: glm
-catalog_version: 2026-04-18-glm-provider-v2
+catalog_version: 2026-07-20-glm-provider-v3
 generated_target: runtime/catalog/providers/glm.yaml
 runtime:
   inventory_mode: static_source
@@ -11,7 +11,7 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: glm
-  default_text_model: glm-5.1
+  default_text_model: glm-5.2
   model_type: chat
   capabilities: []
   context_window_tokens: 8192
@@ -26,8 +26,12 @@ defaults:
 sources:
   - source_id: glm_model_overview_doc
     url: https://docs.bigmodel.cn/cn/guide/start/model-overview
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-07-20
     note: Current BigModel model overview across text, vision, image, audio, and embedding families.
+  - source_id: glm_glm_5_2_doc
+    url: https://docs.bigmodel.cn/cn/guide/models/text/glm-5.2
+    retrieved_at: 2026-07-20
+    note: GLM-5.2 model card with exact API id, 1M context, 128K output, and supported tools.
   - source_id: glm_chat_api_doc
     url: https://docs.bigmodel.cn/api-reference/%E6%A8%A1%E5%9E%8B-api/%E5%AF%B9%E8%AF%9D%E8%A1%A5%E5%85%A8%E5%BC%82%E6%AD%A5
     retrieved_at: 2026-04-18
@@ -56,24 +60,37 @@ sources:
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: glm-5.1
-    reviewed_at: 2026-06-27
+    model_id: glm-5.2
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: Current latest flagship GLM text route.
+    rationale: Current flagship GLM route for long-horizon coding and general text workloads.
   - profile_id: text.fast
     capability: text.generate
     model_id: glm-5-turbo
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
     rationale: Current turbo GLM base route for lower-latency long-task execution.
   - profile_id: text.reasoning
     capability: text.generate
-    model_id: glm-5.1
-    reviewed_at: 2026-06-27
+    model_id: glm-5.2
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: Current highest-confidence GLM reasoning and coding route.
+    rationale: Current highest-capability GLM reasoning and coding route with a documented 1M context window.
 
 models:
+  - model_id: glm-5.2
+    model_type: chat
+    updated_at: 2026-06-16
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-07-20
+      notes: Current flagship text model with 1M context, up to 128K output, reasoning modes, function calling, caching, and structured outputs.
+    source_ids: [glm_model_overview_doc, glm_chat_api_doc, glm_glm_5_2_doc]
+
   - model_id: glm-5.1
     model_type: chat
     updated_at: 2026-04-18

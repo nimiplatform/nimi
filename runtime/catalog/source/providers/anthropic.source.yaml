@@ -1,6 +1,6 @@
 schema_version: 3
 provider: anthropic
-catalog_version: 2026-04-18-anthropic-v4
+catalog_version: 2026-07-20-anthropic-v5
 generated_target: runtime/catalog/providers/anthropic.yaml
 runtime:
   inventory_mode: static_source
@@ -11,7 +11,7 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: anthropic
-  default_text_model: claude-sonnet-4-6
+  default_text_model: claude-sonnet-5
   model_type: chat
   capabilities: []
   context_window_tokens: 8192
@@ -26,8 +26,20 @@ defaults:
 sources:
   - source_id: anthropic_models_overview
     url: https://platform.claude.com/docs/en/about-claude/models/overview
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-07-20
     note: Claude model overview with API model IDs and aliases.
+  - source_id: anthropic_sonnet_5
+    url: https://platform.claude.com/docs/en/about-claude/models/whats-new-sonnet-5
+    retrieved_at: 2026-07-20
+    note: Claude Sonnet 5 model identifier, launch behavior, current pricing, and availability.
+  - source_id: anthropic_fable_5
+    url: https://platform.claude.com/docs/en/about-claude/models/introducing-claude-fable-5-and-claude-mythos-5
+    retrieved_at: 2026-07-20
+    note: Claude Fable 5 model identifier, capabilities, pricing, refusal semantics, and availability.
+  - source_id: anthropic_data_retention
+    url: https://platform.claude.com/docs/en/manage-claude/api-and-data-retention
+    retrieved_at: 2026-07-20
+    note: Model-specific retention requirements for Claude Fable 5.
   - source_id: anthropic_whats_new_4_6
     url: https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-6
     retrieved_at: 2026-04-18
@@ -46,7 +58,7 @@ sources:
     note: Anthropic API models list endpoint reference.
   - source_id: anthropic_pricing
     url: https://platform.claude.com/docs/en/about-claude/pricing
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-07-20
     note: Anthropic pricing reference for current Claude model token rates.
   - source_id: anthropic_migration_guide
     url: https://platform.claude.com/docs/en/about-claude/models/migration-guide
@@ -60,24 +72,50 @@ sources:
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: claude-sonnet-4-6
-    reviewed_at: 2026-06-27
+    model_id: claude-sonnet-5
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: Balanced default for general chat and multimodal text use.
+    rationale: Current generally available Sonnet route with the best balance of speed and intelligence.
   - profile_id: text.fast
     capability: text.generate
     model_id: claude-haiku-4-5
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
     rationale: Lowest-latency Claude track.
   - profile_id: text.reasoning
     capability: text.generate
-    model_id: claude-opus-4-8
-    reviewed_at: 2026-06-27
+    model_id: claude-fable-5
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: Highest reasoning-quality Claude track after Opus 4.8 became the current top-tier model.
+    rationale: Anthropic's most capable widely released route for demanding reasoning and long-horizon agentic work.
 
 models:
+  - model_id: claude-fable-5
+    model_type: chat
+    updated_at: 2026-06-30
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: "10.00"
+      output: "50.00"
+      currency: USD
+      as_of: 2026-07-20
+      notes: Per 1M tokens. The model can return successful HTTP 200 refusals and requires 30-day data retention; callers must treat both as primary contract behavior.
+    source_ids: [anthropic_fable_5, anthropic_models_overview, anthropic_pricing, anthropic_models_api, anthropic_data_retention]
+
+  - model_id: claude-sonnet-5
+    model_type: chat
+    updated_at: 2026-06-30
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: "2.00"
+      output: "10.00"
+      currency: USD
+      as_of: 2026-07-20
+      notes: Introductory price per 1M tokens through 2026-08-31; standard pricing is $3 input and $15 output afterward.
+    source_ids: [anthropic_sonnet_5, anthropic_models_overview, anthropic_pricing, anthropic_models_api]
+
   - model_id: claude-opus-4-8
     model_type: chat
     updated_at: 2026-06-03

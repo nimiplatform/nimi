@@ -1,6 +1,6 @@
 schema_version: 3
 provider: stepfun
-catalog_version: 2026-04-18-stepfun-multifamily-v4
+catalog_version: 2026-07-20-stepfun-multifamily-v5
 generated_target: runtime/catalog/providers/stepfun.yaml
 runtime:
   inventory_mode: static_source
@@ -12,7 +12,7 @@ runtime:
 resolution_mode: model_anchor_v2
 defaults:
   provider: stepfun
-  default_text_model: step-3.5-flash
+  default_text_model: step-3.7-flash
   model_type: chat
   capabilities: []
   context_window_tokens: 8192
@@ -25,6 +25,14 @@ defaults:
     notes: StepFun pricing is published per family; current public rates are explicit for reasoning and speech, while other admitted rows remain usage-described without row-level public pricing.
 
 sources:
+  - source_id: stepfun_3_7_product_doc
+    url: https://platform.stepfun.com/
+    retrieved_at: 2026-07-20
+    note: Official StepFun product page for Step 3.7 Flash and its production Agent, multimodal, search, and tool-orchestration capabilities.
+  - source_id: stepfun_3_7_console_doc
+    url: https://platform.stepfun.com/console-tools
+    retrieved_at: 2026-07-20
+    note: Official StepFun model console exposing the exact `step-3.7-flash` API model id.
   - source_id: stepfun_basic_concepts_doc
     url: https://platform.stepfun.ai/docs/en/guides/basic-concepts
     retrieved_at: 2026-04-18
@@ -84,22 +92,22 @@ language_profiles:
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: step-3.5-flash
-    reviewed_at: 2026-06-27
+    model_id: step-3.7-flash
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: Current flagship StepFun reasoning route for broad complex text workloads.
+    rationale: Current flagship StepFun production Agent route with native multimodal understanding and tool orchestration.
   - profile_id: text.fast
     capability: text.generate
     model_id: step-2-mini
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
     rationale: Current lowest-latency admitted StepFun text route for general and coding-heavy workloads.
   - profile_id: text.reasoning
     capability: text.generate
-    model_id: step-3.5-flash
-    reviewed_at: 2026-06-27
+    model_id: step-3.7-flash
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: StepFun's current flagship general-purpose reasoning model, while step-3.5-flash-2603 stays admitted as the optimized agentic variant.
+    rationale: StepFun's current flagship route for reasoning, long-running Agent workflows, and multimodal task execution.
 
 voice_sets:
   - voice_set_id: tts_2_voice_set
@@ -161,6 +169,19 @@ voice_sets:
 
 models:
   # --- Chat / Text Models ---
+  - model_id: step-3.7-flash
+    model_type: chat
+    updated_at: 2026-07-20
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-07-20
+      notes: Current production Agent model with native image and video understanding, web and visual search, and tool orchestration.
+    source_ids: [stepfun_3_7_product_doc, stepfun_3_7_console_doc]
+
   - model_id: step-3.5-flash-2603
     model_type: chat
     updated_at: 2026-04-18

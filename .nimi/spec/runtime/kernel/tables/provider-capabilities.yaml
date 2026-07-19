@@ -90,6 +90,7 @@ providers:
       - image.generate
       - text.embed
       - text.generate
+      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008
@@ -434,6 +435,7 @@ providers:
     capabilities:
       - image.generate
       - text.generate
+      - text.generate.vision
       - video.generate
     sources:
       - K-MCAT-027

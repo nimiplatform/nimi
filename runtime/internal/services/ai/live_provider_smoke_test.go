@@ -108,7 +108,7 @@ func TestLiveSmokeGeminiGenerateText(t *testing.T) {
 }
 
 func TestLiveSmokeMiniMaxGenerateText(t *testing.T) {
-	runLiveSmokeCloudGenerateText(t, "minimax", "MINIMAX", "https://api.minimax.chat/v1")
+	runLiveSmokeCloudGenerateText(t, "minimax", "MINIMAX", "https://api.minimaxi.com/v1")
 }
 
 func TestLiveSmokeKimiGenerateText(t *testing.T) {

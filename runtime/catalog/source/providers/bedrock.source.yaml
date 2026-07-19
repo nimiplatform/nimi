@@ -1,6 +1,6 @@
 schema_version: 3
 provider: bedrock
-catalog_version: 2026-04-18-bedrock-canonical-v3
+catalog_version: 2026-07-20-bedrock-canonical-v4
 generated_target: runtime/catalog/providers/bedrock.yaml
 runtime:
   inventory_mode: static_source
@@ -11,7 +11,7 @@ runtime:
   requires_explicit_endpoint: true
 defaults:
   provider: bedrock
-  default_text_model: anthropic.claude-sonnet-4-6
+  default_text_model: anthropic.claude-sonnet-5
   model_type: chat
   capabilities: []
   context_window_tokens: 8192
@@ -30,8 +30,16 @@ sources:
     note: Amazon Bedrock supported foundation models overview across providers and families.
   - source_id: bedrock_anthropic_cards_doc
     url: https://docs.aws.amazon.com/bedrock/latest/userguide/model-cards-anthropic.html
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-07-20
     note: Anthropic model cards index for current Bedrock Claude family availability.
+  - source_id: bedrock_claude_sonnet_5_card
+    url: https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-sonnet-5.html
+    retrieved_at: 2026-07-20
+    note: Claude Sonnet 5 model card with canonical programmatic id and active lifecycle.
+  - source_id: bedrock_claude_fable_5_card
+    url: https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-fable-5.html
+    retrieved_at: 2026-07-20
+    note: Claude Fable 5 model card with canonical programmatic id, refusal behavior, and provider data-sharing requirement.
   - source_id: bedrock_amazon_cards_doc
     url: https://docs.aws.amazon.com/bedrock/latest/userguide/model-cards-amazon.html
     retrieved_at: 2026-04-18
@@ -76,24 +84,54 @@ sources:
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: anthropic.claude-sonnet-4-6
-    reviewed_at: 2026-06-27
+    model_id: anthropic.claude-sonnet-5
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: Best current balanced Bedrock text route in the admitted set.
+    rationale: Best current balanced generally available Bedrock text route in the admitted set.
   - profile_id: text.fast
     capability: text.generate
     model_id: amazon.nova-micro-v1:0
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
     rationale: Fastest admitted Bedrock text-only route in the reviewed Amazon Nova subset.
   - profile_id: text.reasoning
     capability: text.generate
-    model_id: anthropic.claude-opus-4-8
-    reviewed_at: 2026-06-27
+    model_id: anthropic.claude-fable-5
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: Highest-quality admitted Bedrock reasoning route.
+    rationale: Highest-capability widely available Bedrock reasoning route; callers must handle its documented refusal and retention contract.
 
 models:
+  - model_id: anthropic.claude-fable-5
+    model_type: chat
+    updated_at: 2026-06-09
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-07-20
+      notes: Current canonical Fable 5 id on Bedrock. The model requires provider data sharing and can return HTTP 200 refusals as a primary response path.
+    source_ids: [bedrock_models_doc, bedrock_anthropic_cards_doc, bedrock_claude_fable_5_card]
+    aliases:
+      - claude-fable-5
+
+  - model_id: anthropic.claude-sonnet-5
+    model_type: chat
+    updated_at: 2026-06-30
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-07-20
+      notes: Current canonical Sonnet 5 id on Bedrock. Geo and global inference ids are intentionally not split into separate source rows.
+    source_ids: [bedrock_models_doc, bedrock_anthropic_cards_doc, bedrock_claude_sonnet_5_card]
+    aliases:
+      - claude-sonnet-5
+
   - model_id: anthropic.claude-opus-4-8
     model_type: chat
     updated_at: 2026-06-03

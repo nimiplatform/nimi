@@ -1,8 +1,8 @@
 version: 1
 provider: dashscope
-catalog_version: 2026-06-06-dashscope-v6
+catalog_version: 2026-07-20-dashscope-v7
 inventory_mode: static_source
-default_text_model: qwen3.7-max
+default_text_model: qwen3.7-plus
 models:
   - model_id: cosyvoice-v3.5-plus
     provider: dashscope
@@ -3477,22 +3477,22 @@ selection_profiles:
   - provider: dashscope
     profile_id: text.general
     capability: text.generate
-    model_id: qwen3.7-max
-    reviewed_at: 2026-06-27
+    model_id: qwen3.7-plus
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: Current provider-native Qwen Max flagship line on DashScope.
+    rationale: Official balanced recommendation for general production workloads with multimodal input, tools, and a 1M context window.
   - provider: dashscope
     profile_id: text.fast
     capability: text.generate
     model_id: qwen3.6-flash
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
     rationale: Current admitted flash-tier provider-native DashScope text route for latency-sensitive tasks.
   - provider: dashscope
     profile_id: text.reasoning
     capability: text.generate
     model_id: qwen3.7-max
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
     rationale: Current Qwen Max line is documented as text-only with thinking mode enabled by default.
 voice_workflow_models:

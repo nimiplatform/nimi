@@ -1,62 +1,43 @@
 version: 1
 provider: deepseek
-catalog_version: 2026-04-18-deepseek-v3
+catalog_version: 2026-07-20-deepseek-v4
 inventory_mode: static_source
-default_text_model: deepseek-chat
+default_text_model: deepseek-v4-flash
 models:
-  - model_id: deepseek-chat
+  - model_id: deepseek-v4-flash
     provider: deepseek
     model_type: chat
-    updated_at: 2025-12-01
+    updated_at: 2026-04-24
     capabilities:
       - text.generate
     pricing:
       unit: token
-      input: "0.27"
-      output: "1.10"
+      input: "0.14"
+      output: "0.28"
       currency: USD
-      as_of: 2026-04-18
-      notes: Public model id currently mapped to DeepSeek-V3.2 non-thinking mode. USD pricing retained from the detailed public pricing table. Per 1M tokens.
+      as_of: 2026-07-20
+      notes: Per 1M tokens at cache-miss input rate; cache-hit input is $0.0028. Supports both non-thinking and thinking modes with 1M context and up to 384K output.
     source_ref:
       url: https://api-docs.deepseek.com/
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-07-20
       note: DeepSeek API documentation home and model matrix.
     context_window_tokens: 8192
-  - model_id: deepseek-coder
+  - model_id: deepseek-v4-pro
     provider: deepseek
     model_type: chat
-    updated_at: 2025-12-01
+    updated_at: 2026-04-24
     capabilities:
       - text.generate
     pricing:
       unit: token
-      input: "0.27"
-      output: "1.10"
+      input: "0.435"
+      output: "0.87"
       currency: USD
-      as_of: 2026-04-18
-      notes: Public model id currently mapped to DeepSeek-V3.2 non-thinking mode. USD pricing retained from the detailed public pricing table. Per 1M tokens.
+      as_of: 2026-07-20
+      notes: Per 1M tokens at cache-miss input rate; cache-hit input is $0.003625. Supports both non-thinking and thinking modes with 1M context and up to 384K output.
     source_ref:
       url: https://api-docs.deepseek.com/
-      retrieved_at: 2026-04-18
-      note: DeepSeek API documentation home and model matrix.
-    api_model_id: deepseek-chat
-    context_window_tokens: 8192
-  - model_id: deepseek-reasoner
-    provider: deepseek
-    model_type: chat
-    updated_at: 2025-12-01
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: "0.55"
-      output: "2.19"
-      currency: USD
-      as_of: 2026-04-18
-      notes: Public model id currently mapped to DeepSeek-V3.2 thinking mode. USD pricing retained from the detailed public pricing table. Per 1M tokens.
-    source_ref:
-      url: https://api-docs.deepseek.com/
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-07-20
       note: DeepSeek API documentation home and model matrix.
     context_window_tokens: 8192
 voices: []
@@ -64,14 +45,14 @@ selection_profiles:
   - provider: deepseek
     profile_id: text.general
     capability: text.generate
-    model_id: deepseek-chat
-    reviewed_at: 2026-06-27
+    model_id: deepseek-v4-flash
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: Best default tradeoff for broad DeepSeek chat use.
+    rationale: Current lower-latency and cost-efficient V4 route supporting both non-thinking and thinking modes.
   - provider: deepseek
     profile_id: text.reasoning
     capability: text.generate
-    model_id: deepseek-reasoner
-    reviewed_at: 2026-06-27
+    model_id: deepseek-v4-pro
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: Preferred reasoning-heavy DeepSeek route.
+    rationale: Current highest-capability V4 route for reasoning-heavy workloads.

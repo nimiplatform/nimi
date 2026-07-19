@@ -1,6 +1,6 @@
 schema_version: 3
 provider: dashscope
-catalog_version: 2026-06-06-dashscope-v6
+catalog_version: 2026-07-20-dashscope-v7
 generated_target: runtime/catalog/providers/dashscope.yaml
 runtime:
   inventory_mode: static_source
@@ -12,7 +12,7 @@ runtime:
 resolution_mode: model_anchor_v2
 defaults:
   provider: dashscope
-  default_text_model: qwen3.7-max
+  default_text_model: qwen3.7-plus
   model_type: tts
   capabilities: []
   context_window_tokens: 8192
@@ -39,8 +39,12 @@ sources:
     note: Official DashScope model release and snapshot update feed.
   - source_id: dashscope_models_catalog_doc
     url: https://help.aliyun.com/zh/model-studio/models
-    retrieved_at: 2026-06-06
+    retrieved_at: 2026-07-20
     note: Official DashScope stable and snapshot model catalog.
+  - source_id: dashscope_text_generation_doc
+    url: https://help.aliyun.com/zh/model-studio/text-generation-model
+    retrieved_at: 2026-07-20
+    note: Official DashScope text model recommendations distinguishing balanced Plus, strongest-reasoning Max, and Flash routes.
   - source_id: dashscope_qwen_api_doc
     url: https://help.aliyun.com/zh/model-studio/qwen-api-via-dashscope
     retrieved_at: 2026-06-06
@@ -128,20 +132,20 @@ language_profiles:
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: qwen3.7-max
-    reviewed_at: 2026-06-27
+    model_id: qwen3.7-plus
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: Current provider-native Qwen Max flagship line on DashScope.
+    rationale: Official balanced recommendation for general production workloads with multimodal input, tools, and a 1M context window.
   - profile_id: text.fast
     capability: text.generate
     model_id: qwen3.6-flash
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
     rationale: Current admitted flash-tier provider-native DashScope text route for latency-sensitive tasks.
   - profile_id: text.reasoning
     capability: text.generate
     model_id: qwen3.7-max
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
     rationale: Current Qwen Max line is documented as text-only with thinking mode enabled by default.
 
@@ -486,7 +490,7 @@ models:
       currency: CNY
       as_of: 2026-06-06
       notes: Current Qwen Max flagship route on DashScope. Pricing varies by context size, thinking mode, cache use, and account plan.
-    source_ids: [dashscope_model_updates_doc, dashscope_models_catalog_doc, dashscope_qwen_api_doc, dashscope_models_pricing_doc]
+    source_ids: [dashscope_model_updates_doc, dashscope_models_catalog_doc, dashscope_text_generation_doc, dashscope_qwen_api_doc, dashscope_models_pricing_doc]
     aliases:
       - qwen3.7-max-2026-05-20
 
@@ -501,7 +505,7 @@ models:
       currency: CNY
       as_of: 2026-06-06
       notes: Current Qwen Plus route on DashScope with upgraded vision-language and agent workflow capabilities. Pricing varies by context size, thinking mode, cache use, and account plan.
-    source_ids: [dashscope_model_updates_doc, dashscope_models_catalog_doc, dashscope_qwen_api_doc, dashscope_qwen_vl_doc, dashscope_models_pricing_doc]
+    source_ids: [dashscope_model_updates_doc, dashscope_models_catalog_doc, dashscope_text_generation_doc, dashscope_qwen_api_doc, dashscope_qwen_vl_doc, dashscope_models_pricing_doc]
     aliases:
       - qwen3.7-plus-2026-05-26
 
@@ -544,7 +548,7 @@ models:
       currency: CNY
       as_of: 2026-04-18
       notes: Current Plus-generation Qwen 3.6 route on DashScope. Pricing varies by account plan and request mode.
-    source_ids: [dashscope_model_updates_doc, dashscope_models_catalog_doc, dashscope_qwen_api_doc, dashscope_qwen_vl_doc, dashscope_models_pricing_doc]
+    source_ids: [dashscope_model_updates_doc, dashscope_models_catalog_doc, dashscope_text_generation_doc, dashscope_qwen_api_doc, dashscope_qwen_vl_doc, dashscope_models_pricing_doc]
     aliases:
       - qwen3.6-plus-2026-04-02
 
@@ -572,7 +576,7 @@ models:
       currency: CNY
       as_of: 2026-04-18
       notes: Current Flash-generation Qwen 3.6 route on DashScope. Pricing varies by account plan and request mode.
-    source_ids: [dashscope_model_updates_doc, dashscope_models_catalog_doc, dashscope_qwen_api_doc, dashscope_qwen_vl_doc, dashscope_models_pricing_doc]
+    source_ids: [dashscope_model_updates_doc, dashscope_models_catalog_doc, dashscope_text_generation_doc, dashscope_qwen_api_doc, dashscope_qwen_vl_doc, dashscope_models_pricing_doc]
     aliases:
       - qwen3.6-flash-2026-04-16
 

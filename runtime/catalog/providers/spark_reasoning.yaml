@@ -1,13 +1,13 @@
 version: 1
 provider: spark_reasoning
-catalog_version: 2026-04-18-spark-reasoning-v1
+catalog_version: 2026-07-20-spark-reasoning-v2
 inventory_mode: static_source
 default_text_model: spark-x
 models:
   - model_id: spark-x
     provider: spark_reasoning
     model_type: chat
-    updated_at: 2026-04-18
+    updated_at: 2026-07-20
     capabilities:
       - text.generate
     pricing:
@@ -15,11 +15,11 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-04-18
+      as_of: 2026-07-20
       notes: Curated to the current X2 reasoning surface. Official docs keep the request model id stable as `spark-x` while endpoint selection chooses X2 or X1.5.
     source_ref:
       url: https://www.xfyun.cn/doc/spark/X1http.html
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-07-20
       note: Official Spark reasoning HTTP documentation for the current `spark-x` public contract and endpoint-scoped X1.5/X2 routing.
     context_window_tokens: 8192
 voices: []
@@ -28,6 +28,6 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: spark-x
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: Default reasoning model for the Spark Reasoning surface.
+    rationale: Current X2 endpoint-scoped reasoning route; the provider retains `spark-x` as the request model id.

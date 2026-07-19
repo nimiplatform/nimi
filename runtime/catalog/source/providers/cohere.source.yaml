@@ -1,6 +1,6 @@
 schema_version: 3
 provider: cohere
-catalog_version: 2026-04-18-cohere-v3
+catalog_version: 2026-07-20-cohere-v4
 generated_target: runtime/catalog/providers/cohere.yaml
 runtime:
   inventory_mode: static_source
@@ -26,12 +26,20 @@ defaults:
 sources:
   - source_id: cohere_models_doc
     url: https://docs.cohere.com/docs/models
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-07-20
     note: Cohere official model catalog.
   - source_id: cohere_command_a_doc
-    url: https://docs.cohere.com/docs/models/command
-    retrieved_at: 2026-04-18
-    note: Command A model documentation.
+    url: https://docs.cohere.com/docs/command-a-plus
+    retrieved_at: 2026-07-20
+    note: Command A+ model documentation with the exact current API model id.
+  - source_id: cohere_north_mini_code_doc
+    url: https://docs.cohere.com/docs/north-mini-code-1.0
+    retrieved_at: 2026-07-20
+    note: North Mini Code model card and exact Chat API model id.
+  - source_id: cohere_north_mini_code_changelog
+    url: https://docs.cohere.com/changelog/north-mini-code-1-0
+    retrieved_at: 2026-07-20
+    note: North Mini Code release and availability announcement.
   - source_id: cohere_command_r_doc
     url: https://docs.cohere.com/docs/command-r
     retrieved_at: 2026-04-18
@@ -53,17 +61,30 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: command-a-plus-05-2026
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
     rationale: Best current Cohere text default in the admitted set.
   - profile_id: text.fast
     capability: text.generate
     model_id: command-r7b-12-2024
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
     rationale: Lowest-cost current Cohere text route for faster general tasks.
 
 models:
+  - model_id: north-mini-code-1-0
+    model_type: chat
+    updated_at: 2026-06-09
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-07-20
+      notes: Current North-family agentic coding model available through Chat V2; production deployment is provided through Model Vault.
+    source_ids: [cohere_north_mini_code_doc, cohere_north_mini_code_changelog, cohere_models_doc]
+
   - model_id: command-a-plus-05-2026
     model_type: chat
     updated_at: 2026-06-03

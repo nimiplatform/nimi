@@ -1,9 +1,27 @@
 version: 1
 provider: glm
-catalog_version: 2026-04-18-glm-provider-v2
+catalog_version: 2026-07-20-glm-provider-v3
 inventory_mode: static_source
-default_text_model: glm-5.1
+default_text_model: glm-5.2
 models:
+  - model_id: glm-5.2
+    provider: glm
+    model_type: chat
+    updated_at: 2026-06-16
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-07-20
+      notes: Current flagship text model with 1M context, up to 128K output, reasoning modes, function calling, caching, and structured outputs.
+    source_ref:
+      url: https://docs.bigmodel.cn/cn/guide/start/model-overview
+      retrieved_at: 2026-07-20
+      note: Current BigModel model overview across text, vision, image, audio, and embedding families.
+    context_window_tokens: 8192
   - model_id: glm-5.1
     provider: glm
     model_type: chat
@@ -19,7 +37,7 @@ models:
       notes: Current flagship GLM text model. Public docs confirm the model line and context window, but row-level API pricing was not directly exposed in the reviewed docs set.
     source_ref:
       url: https://docs.bigmodel.cn/cn/guide/start/model-overview
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-07-20
       note: Current BigModel model overview across text, vision, image, audio, and embedding families.
     context_window_tokens: 8192
   - model_id: glm-5
@@ -37,7 +55,7 @@ models:
       notes: Current high-intelligence GLM base model with 200K context.
     source_ref:
       url: https://docs.bigmodel.cn/cn/guide/start/model-overview
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-07-20
       note: Current BigModel model overview across text, vision, image, audio, and embedding families.
     context_window_tokens: 8192
   - model_id: glm-5-turbo
@@ -55,7 +73,7 @@ models:
       notes: Current turbo GLM long-task execution model with 200K context.
     source_ref:
       url: https://docs.bigmodel.cn/cn/guide/start/model-overview
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-07-20
       note: Current BigModel model overview across text, vision, image, audio, and embedding families.
     context_window_tokens: 8192
   - model_id: glm-4.7
@@ -73,7 +91,7 @@ models:
       notes: Prior strong-generation GLM text model still listed in current text model overview.
     source_ref:
       url: https://docs.bigmodel.cn/cn/guide/start/model-overview
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-07-20
       note: Current BigModel model overview across text, vision, image, audio, and embedding families.
     context_window_tokens: 8192
   - model_id: glm-5v-turbo
@@ -91,7 +109,7 @@ models:
       notes: Current recommended GLM multimodal coding and visual reasoning model.
     source_ref:
       url: https://docs.bigmodel.cn/cn/guide/start/model-overview
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-07-20
       note: Current BigModel model overview across text, vision, image, audio, and embedding families.
   - model_id: glm-4.6v
     provider: glm
@@ -108,7 +126,7 @@ models:
       notes: Prior stable GLM visual reasoning model with tool support and longer context.
     source_ref:
       url: https://docs.bigmodel.cn/cn/guide/start/model-overview
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-07-20
       note: Current BigModel model overview across text, vision, image, audio, and embedding families.
   - model_id: embedding-3
     provider: glm
@@ -144,7 +162,7 @@ models:
       notes: Current GLM speech-to-text model. Public model card confirms capabilities and limits but not a request-normalized price in the reviewed docs set.
     source_ref:
       url: https://docs.bigmodel.cn/cn/guide/start/model-overview
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-07-20
       note: Current BigModel model overview across text, vision, image, audio, and embedding families.
   - model_id: glm-image
     provider: glm
@@ -181,21 +199,21 @@ selection_profiles:
   - provider: glm
     profile_id: text.general
     capability: text.generate
-    model_id: glm-5.1
-    reviewed_at: 2026-06-27
+    model_id: glm-5.2
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: Current latest flagship GLM text route.
+    rationale: Current flagship GLM route for long-horizon coding and general text workloads.
   - provider: glm
     profile_id: text.fast
     capability: text.generate
     model_id: glm-5-turbo
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
     rationale: Current turbo GLM base route for lower-latency long-task execution.
   - provider: glm
     profile_id: text.reasoning
     capability: text.generate
-    model_id: glm-5.1
-    reviewed_at: 2026-06-27
+    model_id: glm-5.2
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: Current highest-confidence GLM reasoning and coding route.
+    rationale: Current highest-capability GLM reasoning and coding route with a documented 1M context window.

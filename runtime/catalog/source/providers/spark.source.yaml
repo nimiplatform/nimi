@@ -37,13 +37,13 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: 4.0Ultra
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
     rationale: Best current non-reasoning Spark `/v1` route in the admitted general-chat set.
   - profile_id: text.fast
     capability: text.generate
     model_id: lite
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
     rationale: Current lightweight `/v1` Spark chat route for latency-sensitive text tasks.
 

@@ -1,6 +1,6 @@
 schema_version: 3
 provider: qianfan
-catalog_version: 2026-04-18-qianfan-ernie-v2
+catalog_version: 2026-07-20-qianfan-ernie-v3
 generated_target: runtime/catalog/providers/qianfan.yaml
 runtime:
   inventory_mode: static_source
@@ -25,13 +25,17 @@ defaults:
 
 sources:
   - source_id: qianfan_model_list_doc
-    url: https://cloud.baidu.com/doc/qianfan-docs/s/7m95lyy43
-    retrieved_at: 2026-04-18
+    url: https://cloud.baidu.com/doc/qianfan/s/rmh4stp0j
+    retrieved_at: 2026-07-20
     note: Official Qianfan model list covering current ERNIE text, reasoning, vision, and embedding rows.
   - source_id: qianfan_pricing_doc
     url: https://cloud.baidu.com/doc/qianfan-docs/s/Jm8r1826a
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-07-20
     note: Official Qianfan pricing page for current ERNIE and Embedding-V1 rates.
+  - source_id: qianfan_models_api_doc
+    url: https://cloud.baidu.com/doc/qianfan-api/s/Dmba8k71y
+    retrieved_at: 2026-07-20
+    note: Official Qianfan Models API inventory with exact context, input, and completion token limits.
   - source_id: qianfan_text_api_doc
     url: https://cloud.baidu.com/doc/qianfan-api/s/3m7of64lb
     retrieved_at: 2026-04-18
@@ -46,28 +50,28 @@ sources:
     note: Official Qianfan embeddings API reference for /v2/embeddings.
   - source_id: qianfan_model_updates_doc
     url: https://cloud.baidu.com/doc/qianfan/s/Kmh4stnjp
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-07-20
     note: Official Qianfan model update log documenting recent first-party ERNIE releases.
 
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: ernie-5.1
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
     rationale: Current flagship ERNIE first-party route in the admitted Qianfan subset.
   - profile_id: text.fast
     capability: text.generate
     model_id: ernie-4.5-turbo-128k
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
     rationale: Current lower-cost high-throughput ERNIE route in the admitted Qianfan subset.
   - profile_id: text.reasoning
     capability: text.generate
-    model_id: ernie-x1.1-preview
-    reviewed_at: 2026-06-27
+    model_id: ernie-x1.1
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: Current stable ERNIE first-party reasoning route for logic, math, and agent workflows.
+    rationale: Current stable ERNIE X1.1 reasoning route with higher published throughput than the retained preview.
 
 models:
   - model_id: ernie-5.1
@@ -95,6 +99,20 @@ models:
       as_of: 2026-04-18
       notes: Official pricing is tiered by input length. This row records the <=32k rate at 0.006 / 0.024 CNY per 1K tokens.
     source_ids: [qianfan_model_list_doc, qianfan_pricing_doc, qianfan_text_api_doc]
+
+  - model_id: ernie-x1.1
+    context_window_tokens: 121856
+    model_type: chat
+    updated_at: 2025-09-26
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: "1.00"
+      output: "4.00"
+      currency: CNY
+      as_of: 2026-07-20
+      notes: Stable ERNIE X1.1 reasoning route priced at 0.001 / 0.004 CNY per 1K tokens, with up to 55K input tokens and 65,536 completion tokens.
+    source_ids: [qianfan_model_list_doc, qianfan_models_api_doc, qianfan_pricing_doc, qianfan_text_api_doc, qianfan_model_updates_doc]
 
   - model_id: ernie-x1.1-preview
     model_type: chat

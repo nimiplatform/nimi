@@ -1,6 +1,6 @@
 schema_version: 3
 provider: gemini
-catalog_version: 2026-04-18-gemini-text-embedding-v3
+catalog_version: 2026-07-20-gemini-text-embedding-v4
 generated_target: runtime/catalog/providers/gemini.yaml
 runtime:
   inventory_mode: static_source
@@ -11,7 +11,7 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: gemini
-  default_text_model: gemini-3-flash-preview
+  default_text_model: gemini-3.5-flash
   model_type: chat
   capabilities: []
   context_window_tokens: 8192
@@ -26,16 +26,24 @@ defaults:
 sources:
   - source_id: gemini_models_doc
     url: https://ai.google.dev/gemini-api/docs/models
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-07-20
     note: Gemini API model index and capability overview.
   - source_id: gemini_pricing_doc
     url: https://ai.google.dev/gemini-api/docs/pricing
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-07-20
     note: Gemini Developer API pricing page covering current text, embedding, image, live, and media pricing.
   - source_id: gemini_changelog_doc
     url: https://ai.google.dev/gemini-api/docs/changelog
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-07-20
     note: Gemini API release notes and deprecation announcements.
+  - source_id: gemini_3_5_flash_doc
+    url: https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash
+    retrieved_at: 2026-07-20
+    note: Stable Gemini 3.5 Flash model card with exact model id, modalities, and token limits.
+  - source_id: gemini_3_1_flash_lite_doc
+    url: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite
+    retrieved_at: 2026-07-20
+    note: Stable Gemini 3.1 Flash-Lite model card.
   - source_id: gemini_audio_understanding_doc
     url: https://ai.google.dev/gemini-api/docs/audio
     retrieved_at: 2026-03-05
@@ -72,10 +80,6 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-pro-preview
     retrieved_at: 2026-04-18
     note: Gemini 3.1 Pro preview model card.
-  - source_id: gemini_3_1_flash_lite_preview_doc
-    url: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite-preview
-    retrieved_at: 2026-04-18
-    note: Gemini 3.1 Flash-Lite preview model card.
   - source_id: gemini_3_1_flash_image_preview_doc
     url: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image-preview
     retrieved_at: 2026-03-05
@@ -84,24 +88,50 @@ sources:
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: gemini-3-flash-preview
-    reviewed_at: 2026-06-27
+    model_id: gemini-3.5-flash
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: Balanced Gemini default for general multimodal chat.
+    rationale: Current stable Gemini Flash route recommended for scaled production and sustained agentic workloads.
   - profile_id: text.fast
     capability: text.generate
-    model_id: gemini-2.5-flash-lite
-    reviewed_at: 2026-06-27
+    model_id: gemini-3.1-flash-lite
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: Current lowest-cost stable Gemini multimodal text route in the admitted set.
+    rationale: Current stable Gemini Flash-Lite route optimized for speed, scale, and cost efficiency.
   - profile_id: text.reasoning
     capability: text.generate
     model_id: gemini-3.1-pro-preview
-    reviewed_at: 2026-06-27
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
     rationale: Strongest current Gemini reasoning track.
 
 models:
+  - model_id: gemini-3.5-flash
+    model_type: chat
+    updated_at: 2026-05-19
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-07-20
+      notes: Stable production model with text, image, video, audio, and PDF inputs, a 1,048,576-token input limit, and a 65,536-token output limit.
+    source_ids: [gemini_3_5_flash_doc, gemini_models_doc, gemini_pricing_doc, gemini_changelog_doc]
+
+  - model_id: gemini-3.1-flash-lite
+    model_type: chat
+    updated_at: 2026-05-07
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-07-20
+      notes: Stable Flash-Lite route for high-volume and cost-sensitive production workloads.
+    source_ids: [gemini_3_1_flash_lite_doc, gemini_models_doc, gemini_pricing_doc, gemini_changelog_doc]
+
   - model_id: gemini-2.5-pro
     model_type: chat
     updated_at: 2026-04-18
@@ -225,19 +255,6 @@ models:
       as_of: 2026-04-18
       notes: Standard paid-tier pricing. Audio input and alternate inference tiers have separate pricing. Preview pricing may change. Per 1M tokens.
     source_ids: [gemini_3_flash_preview_doc, gemini_models_doc, gemini_pricing_doc]
-
-  - model_id: gemini-3.1-flash-lite-preview
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities: [text.generate, text.generate.vision]
-    pricing:
-      unit: token
-      input: "0.25"
-      output: "1.50"
-      currency: USD
-      as_of: 2026-04-18
-      notes: Standard paid-tier pricing. Audio input and alternate inference tiers have separate pricing. Preview pricing may change. Per 1M tokens.
-    source_ids: [gemini_3_1_flash_lite_preview_doc, gemini_models_doc, gemini_pricing_doc]
 
   - model_id: gemini-3.1-flash-image-preview
     model_type: image

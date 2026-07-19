@@ -1,6 +1,6 @@
 schema_version: 3
 provider: deepseek
-catalog_version: 2026-04-18-deepseek-v3
+catalog_version: 2026-07-20-deepseek-v4
 generated_target: runtime/catalog/providers/deepseek.yaml
 runtime:
   inventory_mode: static_source
@@ -11,7 +11,7 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: deepseek
-  default_text_model: deepseek-chat
+  default_text_model: deepseek-v4-flash
   model_type: chat
   capabilities: []
   context_window_tokens: 8192
@@ -26,60 +26,58 @@ defaults:
 sources:
   - source_id: deepseek_home_doc
     url: https://api-docs.deepseek.com/
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-07-20
     note: DeepSeek API documentation home and model matrix.
   - source_id: deepseek_pricing_doc
     url: https://api-docs.deepseek.com/quick_start/pricing
-    retrieved_at: 2026-04-18
-    note: DeepSeek pricing and model billing page.
-  - source_id: deepseek_pricing_details_usd_doc
-    url: https://api-docs.deepseek.com/quick_start/pricing-details-usd
-    retrieved_at: 2026-04-18
-    note: DeepSeek detailed USD pricing table for stable public model ids.
+    retrieved_at: 2026-07-20
+    note: DeepSeek V4 model IDs, limits, prices, and legacy-alias retirement notice.
+  - source_id: deepseek_v4_release_doc
+    url: https://api-docs.deepseek.com/news/news260424/
+    retrieved_at: 2026-07-20
+    note: Official DeepSeek V4 release announcement covering V4 Flash and V4 Pro model roles.
   - source_id: deepseek_updates_doc
     url: https://api-docs.deepseek.com/updates/
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-07-20
     note: DeepSeek release notes and compatibility updates.
 
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: deepseek-chat
-    reviewed_at: 2026-06-27
+    model_id: deepseek-v4-flash
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: Best default tradeoff for broad DeepSeek chat use.
+    rationale: Current lower-latency and cost-efficient V4 route supporting both non-thinking and thinking modes.
   - profile_id: text.reasoning
     capability: text.generate
-    model_id: deepseek-reasoner
-    reviewed_at: 2026-06-27
+    model_id: deepseek-v4-pro
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: Preferred reasoning-heavy DeepSeek route.
+    rationale: Current highest-capability V4 route for reasoning-heavy workloads.
 
 models:
-  - model_id: deepseek-chat
+  - model_id: deepseek-v4-flash
     model_type: chat
-    updated_at: 2025-12-01
+    updated_at: 2026-04-24
     capabilities: [text.generate]
     pricing:
       unit: token
-      input: "0.27"
-      output: "1.10"
+      input: "0.14"
+      output: "0.28"
       currency: USD
-      as_of: 2026-04-18
-      notes: Public model id currently mapped to DeepSeek-V3.2 non-thinking mode. USD pricing retained from the detailed public pricing table. Per 1M tokens.
-    source_ids: [deepseek_home_doc, deepseek_pricing_doc, deepseek_pricing_details_usd_doc, deepseek_updates_doc]
-    aliases:
-      - deepseek-coder
+      as_of: 2026-07-20
+      notes: Per 1M tokens at cache-miss input rate; cache-hit input is $0.0028. Supports both non-thinking and thinking modes with 1M context and up to 384K output.
+    source_ids: [deepseek_home_doc, deepseek_pricing_doc, deepseek_v4_release_doc, deepseek_updates_doc]
 
-  - model_id: deepseek-reasoner
+  - model_id: deepseek-v4-pro
     model_type: chat
-    updated_at: 2025-12-01
+    updated_at: 2026-04-24
     capabilities: [text.generate]
     pricing:
       unit: token
-      input: "0.55"
-      output: "2.19"
+      input: "0.435"
+      output: "0.87"
       currency: USD
-      as_of: 2026-04-18
-      notes: Public model id currently mapped to DeepSeek-V3.2 thinking mode. USD pricing retained from the detailed public pricing table. Per 1M tokens.
-    source_ids: [deepseek_home_doc, deepseek_pricing_doc, deepseek_pricing_details_usd_doc, deepseek_updates_doc]
+      as_of: 2026-07-20
+      notes: Per 1M tokens at cache-miss input rate; cache-hit input is $0.003625. Supports both non-thinking and thinking modes with 1M context and up to 384K output.
+    source_ids: [deepseek_home_doc, deepseek_pricing_doc, deepseek_v4_release_doc, deepseek_updates_doc]

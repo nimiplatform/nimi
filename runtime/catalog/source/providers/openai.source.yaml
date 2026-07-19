@@ -1,6 +1,6 @@
 schema_version: 3
 provider: openai
-catalog_version: 2026-04-18-openai-text-embedding-v4
+catalog_version: 2026-07-20-openai-text-embedding-v5
 generated_target: runtime/catalog/providers/openai.yaml
 runtime:
   inventory_mode: static_source
@@ -12,7 +12,7 @@ runtime:
 resolution_mode: model_anchor_v2
 defaults:
   provider: openai
-  default_text_model: gpt-5.5
+  default_text_model: gpt-5.6-sol
   model_type: tts
   capabilities: []
   context_window_tokens: 8192
@@ -35,7 +35,7 @@ sources:
     note: OpenAI speech-to-text documentation.
   - source_id: openai_models_doc
     url: https://developers.openai.com/api/docs/models
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-07-20
     note: OpenAI official models index.
   - source_id: openai_pricing_doc
     url: https://developers.openai.com/api/docs/pricing
@@ -53,6 +53,18 @@ sources:
     url: https://developers.openai.com/api/docs/models/gpt-5.5
     retrieved_at: 2026-06-03
     note: OpenAI GPT-5.5 model card.
+  - source_id: openai_gpt_5_6_sol_doc
+    url: https://developers.openai.com/api/docs/models/gpt-5.6-sol
+    retrieved_at: 2026-07-20
+    note: OpenAI GPT-5.6 Sol model card with exact model id and supported modalities.
+  - source_id: openai_gpt_5_6_terra_doc
+    url: https://developers.openai.com/api/docs/models/gpt-5.6-terra
+    retrieved_at: 2026-07-20
+    note: OpenAI GPT-5.6 Terra model card with exact model id and supported modalities.
+  - source_id: openai_gpt_5_6_luna_doc
+    url: https://developers.openai.com/api/docs/models/gpt-5.6-luna
+    retrieved_at: 2026-07-20
+    note: OpenAI GPT-5.6 Luna model card with exact model id and supported modalities.
   - source_id: openai_gpt_5_4_mini_doc
     url: https://developers.openai.com/api/docs/models/gpt-5.4-mini
     retrieved_at: 2026-04-18
@@ -100,22 +112,22 @@ language_profiles:
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: gpt-5.5
-    reviewed_at: 2026-06-27
+    model_id: gpt-5.6-sol
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: OpenAI's current start-here frontier model for complex reasoning and coding.
+    rationale: OpenAI's current exact frontier model id for complex reasoning, coding, and agentic workloads.
   - profile_id: text.fast
     capability: text.generate
-    model_id: gpt-5.4-mini
-    reviewed_at: 2026-06-27
+    model_id: gpt-5.6-terra
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: OpenAI's current recommended lower-latency GPT-5.4 variant for high-volume workloads.
+    rationale: Current balanced GPT-5.6 route for conversational and high-volume workloads.
   - profile_id: text.reasoning
     capability: text.generate
-    model_id: gpt-5.5
-    reviewed_at: 2026-06-27
+    model_id: gpt-5.6-sol
+    reviewed_at: 2026-07-20
     freshness_sla_days: 21
-    rationale: Highest-confidence admitted GPT reasoning route while GPT-5.5-pro endpoint semantics remain under review.
+    rationale: Highest-capability current exact GPT reasoning route in the admitted set.
 
 voice_sets:
   - voice_set_id: default-tts-v1
@@ -243,6 +255,45 @@ models:
       response_formats: [text, json]
       supports_language: true
       supports_prompt: true
+
+  - model_id: gpt-5.6-sol
+    model_type: chat
+    updated_at: 2026-07-09
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-07-20
+      notes: Current frontier GPT-5.6 route with a 1,050,000-token context window and up to 128K output. The exact model id is selected instead of the moving gpt-5.6 alias.
+    source_ids: [openai_gpt_5_6_sol_doc, openai_models_doc, openai_pricing_doc]
+
+  - model_id: gpt-5.6-terra
+    model_type: chat
+    updated_at: 2026-07-09
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-07-20
+      notes: Current balanced GPT-5.6 route with a 1,050,000-token context window and up to 128K output.
+    source_ids: [openai_gpt_5_6_terra_doc, openai_models_doc, openai_pricing_doc]
+
+  - model_id: gpt-5.6-luna
+    model_type: chat
+    updated_at: 2026-07-09
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-07-20
+      notes: Current cost-sensitive GPT-5.6 route with a 1,050,000-token context window and up to 128K output.
+    source_ids: [openai_gpt_5_6_luna_doc, openai_models_doc, openai_pricing_doc]
 
   - model_id: gpt-5.2
     model_type: chat
