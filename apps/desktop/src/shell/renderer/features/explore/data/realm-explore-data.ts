@@ -93,10 +93,15 @@ export async function loadExplorePersonas(
   return callApi(
     async (realm) => {
       void emitRealmExploreError;
-      const rows = await realm.worldCore.worldCoreControllerListPersonaCharacters({
-        path: {},
-        query: { take: limit, visibility: 'public' },
-      });
+      const rows = query || tag
+        ? await realm.worldCore.worldCoreControllerListPersonaCharacters({
+            path: {},
+            query: { take: limit, visibility: 'public' },
+          })
+        : await realm.worldCore.worldCoreControllerDiscoverPersonaCharacters({
+            path: {},
+            query: { take: limit },
+          });
       if (!Array.isArray(rows)) {
         failPersonaCharacterContract(
           'SDK_REALM_PERSONA_CHARACTER_CORE_LIST_CONTRACT_INVALID',

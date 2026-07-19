@@ -10,6 +10,7 @@ function callerFor(rows: unknown[]): RealmExploreApiCaller {
   return async (task) => task({
     worldCore: {
       worldCoreControllerListPersonaCharacters: async () => rows,
+      worldCoreControllerDiscoverPersonaCharacters: async () => rows,
     },
   } as never);
 }
@@ -46,4 +47,24 @@ test('Explore Persona projection accepts only an explicit public avatar URI', as
     ],
   })]), () => undefined);
   assert.equal(result.items[0]?.avatarUrl, avatarUrl);
+});
+
+test('Explore Persona projection uses discovery by default and the public list for local filters', async () => {
+  const calls: string[] = [];
+  const callApi: RealmExploreApiCaller = async (task) => task({
+    worldCore: {
+      worldCoreControllerDiscoverPersonaCharacters: async () => {
+        calls.push('discover');
+        return [personaProfile()];
+      },
+      worldCoreControllerListPersonaCharacters: async () => {
+        calls.push('list');
+        return [personaProfile()];
+      },
+    },
+  } as never);
+
+  await loadExplorePersonas(callApi, () => undefined);
+  await loadExplorePersonas(callApi, () => undefined, { query: 'resource' });
+  assert.deepEqual(calls, ['discover', 'list']);
 });
