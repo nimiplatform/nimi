@@ -128,7 +128,7 @@ function WorldDetailErrorState({ onBack }: { onBack?: () => void }) {
         <button
           type="button"
           onClick={onBack}
-          className="absolute left-6 top-6 flex h-10 w-10 items-center justify-center rounded-full border border-[#4ECCA3]/20 bg-white/70 text-[#1f8f69] transition-all hover:border-[#4ECCA3]/40 hover:bg-white/90"
+          className="absolute left-6 top-6 flex h-10 w-10 items-center justify-center rounded-full border border-[var(--nimi-action-primary-bg)]/20 bg-white/70 text-[var(--nimi-action-primary-bg-hover)] transition-[background-color,border-color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:border-[var(--nimi-action-primary-bg)]/40 hover:bg-white/90 active:scale-[var(--nimi-motion-pressed-scale)]"
           aria-label={t('WorldDetail.glass.backToAtlas')}
         >
           <IconArrowLeft />
@@ -373,13 +373,15 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
       <div style={{ position: 'relative', minHeight: '100%', fontFamily: 'var(--nimi-font-sans)' }} data-testid="world-detail-paper-layout">
         <div style={worldDetailPaperContentFrameStyle()}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minWidth: 0 }}>
-            <DetailHero
-              world={world}
-              characters={props.characters}
-              onBack={props.onBack}
-              onFollowWorld={props.onFollowWorld}
-              worldFollowed={props.worldFollowed}
-            />
+            <div data-nimi-density="expressive">
+              <DetailHero
+                world={world}
+                characters={props.characters}
+                onBack={props.onBack}
+                onFollowWorld={props.onFollowWorld}
+                worldFollowed={props.worldFollowed}
+              />
+            </div>
             <PaperMetricStrip metrics={metrics} />
             <PaperLoreOverviewSection
               semantic={props.semantic}

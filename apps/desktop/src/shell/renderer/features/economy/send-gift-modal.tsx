@@ -49,9 +49,9 @@ export function SendGiftModal(props: SendGiftModalProps) {
           name={props.receiverName}
           kind={props.receiverIsSource === true ? 'source' : 'human'}
           sizeClassName="h-20 w-20"
-          className={props.receiverIsSource === true ? undefined : 'ring-4 ring-[#E0F7F4]'}
+          className={props.receiverIsSource === true ? undefined : 'ring-4 ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,white)]'}
           textClassName="text-2xl font-bold"
-          fallbackClassName={props.receiverIsSource === true ? undefined : 'bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] text-[#4ECCA3]'}
+          fallbackClassName={props.receiverIsSource === true ? undefined : 'bg-gradient-to-br from-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,white)] to-[color-mix(in_srgb,var(--nimi-action-primary-bg)_22%,white)] text-[var(--nimi-action-primary-bg)]'}
         />
       )}
       title={t('GiftSend.sendGift', { defaultValue: 'Send Gift' })}

@@ -6,9 +6,9 @@ export const WORLD_EXPLORER_COLORS = {
   background: '#F6F8FB',
   surface: '#FFFFFF',
   weakSurface: '#F8FAFC',
-  brand: '#4ECCA3',
-  brandHover: '#3DBB96',
-  brandSoft: 'rgba(78, 204, 163, 0.12)',
+  brand: 'var(--nimi-action-primary-bg)',
+  brandHover: 'var(--nimi-action-primary-bg-hover)',
+  brandSoft: 'color-mix(in srgb, var(--nimi-action-primary-bg) 12%, transparent)',
   text: '#17202A',
   textSecondary: '#6B7280',
   textMuted: '#9AA4B2',
@@ -20,24 +20,24 @@ export const WORLD_EXPLORER_SHADOWS = {
   shell: '0 26px 70px rgba(20, 35, 50, 0.08)',
   card: '0 12px 28px rgba(20, 35, 50, 0.05)',
   cardHover: '0 16px 34px rgba(20, 35, 50, 0.08)',
-  selected: '0 16px 36px rgba(78, 204, 163, 0.16)',
+  selected: '0 16px 36px color-mix(in srgb, var(--nimi-action-primary-bg) 16%, transparent)',
   panel: '0 22px 52px rgba(20, 35, 50, 0.09)',
   nav: '0 10px 28px rgba(20, 35, 50, 0.045)',
-  button: '0 12px 24px rgba(78, 204, 163, 0.22)',
+  button: '0 12px 24px color-mix(in srgb, var(--nimi-action-primary-bg) 22%, transparent)',
   icon: '0 6px 16px rgba(20, 35, 50, 0.06)',
 } as const;
 
 export const WORLD_ABSTRACT_COVER_BACKGROUNDS = {
   history:
-    'radial-gradient(circle at 20% 18%, rgba(93, 120, 113, 0.22), transparent 28%), linear-gradient(135deg, #E9EEE9 0%, #F6F2E8 48%, #DDE7E4 100%)',
+    'radial-gradient(circle at 20% 18%, rgba(93, 120, 113, 0.22), transparent 28%), linear-gradient(135deg, #E9EDEF 0%, #F6F2E8 48%, #DDE4E7 100%)',
   sciFi:
-    'radial-gradient(circle at 70% 28%, rgba(78, 204, 163, 0.28), transparent 27%), radial-gradient(circle at 26% 74%, rgba(80, 104, 132, 0.22), transparent 28%), linear-gradient(135deg, #EEF4F8 0%, #F8FAFC 58%, #E8F5F2 100%)',
+    'radial-gradient(circle at 70% 28%, color-mix(in srgb, var(--nimi-action-primary-bg) 28%, transparent), transparent 27%), radial-gradient(circle at 26% 74%, rgba(80, 104, 132, 0.22), transparent 28%), linear-gradient(135deg, #EEF4F8 0%, #F8FAFC 58%, #E8F2F5 100%)',
   sandbox:
-    'linear-gradient(135deg, rgba(78, 204, 163, 0.16), transparent 38%), linear-gradient(45deg, #F8FAFC 0 24%, #EEF3F0 24% 48%, #F6F8FB 48% 72%, #EAFBF6 72% 100%)',
+    'linear-gradient(135deg, color-mix(in srgb, var(--nimi-action-primary-bg) 16%, transparent), transparent 38%), linear-gradient(45deg, #F8FAFC 0 24%, #EEF2F5 24% 48%, #F6F8FB 48% 72%, #EAF6FB 72% 100%)',
   nature:
-    'radial-gradient(circle at 28% 70%, rgba(78, 204, 163, 0.24), transparent 30%), linear-gradient(135deg, #EEF6EF 0%, #F8FAF7 50%, #DDEBE4 100%)',
+    'radial-gradient(circle at 28% 70%, color-mix(in srgb, var(--nimi-action-primary-bg) 24%, transparent), transparent 30%), linear-gradient(135deg, #EEF4F6 0%, #F8FAF7 50%, #DDE7EB 100%)',
   fantasy:
-    'radial-gradient(circle at 72% 20%, rgba(78, 204, 163, 0.22), transparent 30%), linear-gradient(135deg, #F3F6F2 0%, #F8FAFC 50%, #E8EFEA 100%)',
+    'radial-gradient(circle at 72% 20%, color-mix(in srgb, var(--nimi-action-primary-bg) 22%, transparent), transparent 30%), linear-gradient(135deg, #F3F6F8 0%, #F8FAFC 50%, #E8EEF0 100%)',
 } as const;
 
 export const WORLD_EXPLORER_THEME = {
@@ -57,7 +57,7 @@ export const WORLD_EXPLORER_THEME = {
   } satisfies ExplorerStyle,
   page: {
     background:
-      'radial-gradient(circle at 4% 92%, rgba(167, 243, 208, 0.22), transparent 34%), radial-gradient(circle at 98% 5%, rgba(221, 214, 254, 0.22), transparent 31%), linear-gradient(135deg, #F7FAF8 0%, #F6F8FB 58%, #FBF9FD 100%)',
+      'radial-gradient(circle at 4% 92%, color-mix(in srgb, var(--nimi-action-primary-bg) 20%, transparent), transparent 34%), radial-gradient(circle at 98% 5%, rgba(221, 214, 254, 0.22), transparent 31%), linear-gradient(135deg, #F7F9FB 0%, #F6F8FB 58%, #FBF9FD 100%)',
   } satisfies CSSProperties,
   discoveryPanel: {
     boxShadow: WORLD_EXPLORER_SHADOWS.shell,

@@ -23,7 +23,7 @@ const desktopKitAdoptionSpec = readRepoFile('.nimi/spec/desktop/kernel/tables/ni
 
 test('W1 shared profile branded decision: hero shell is the only admitted controlled exception cohort', () => {
   assert.match(desktopUiShellSpec, /## D-SHELL-032 — Shared Profile Detail Hero Exception Freeze/);
-  assert.match(contactsDetailSource, /rounded-\[30px\]|backdrop-blur-\[18px\]|#4ECCA3/);
+  assert.match(contactsDetailSource, /rounded-\[30px\]|backdrop-blur-\[18px\]|var\(--nimi-action-primary-bg\)/);
   assert.match(contactsDetailShellSource, /rounded-\[34px\]|rounded-\[30px\]|backdrop-blur-\[18px\]/);
   assert.match(desktopSurfacesSpec, /id: relationship\.profile_detail\.hero_exception[\s\S]*surface_profile: exception[\s\S]*exception_policy: controlled[\s\S]*source_rule: D-SHELL-032/);
   assert.match(desktopSurfacesSpec, /id: relationship\.profile_detail\.shell_exception[\s\S]*surface_profile: exception[\s\S]*exception_policy: controlled[\s\S]*source_rule: D-SHELL-032/);
@@ -34,7 +34,7 @@ test('W1 shared profile branded decision: feed cards are frozen as converging co
   assert.match(profilePostsSource, /AppCardSurface|rounded-\[24px\]/);
   assert.match(profileLikesSource, /AppCardSurface|rounded-\[24px\]/);
   assert.match(profileCollectionsSource, /AppCardSurface|rounded-\[24px\]/);
-  assert.match(profileGiftsSource, /AppCardSurface|rounded-\[24px\]|#4ECCA3/);
+  assert.match(profileGiftsSource, /AppCardSurface|rounded-\[24px\]|var\(--nimi-action-primary-bg\)/);
   assert.doesNotMatch(desktopSurfacesSpec, /id: contacts\.friend_requests\.cards/);
   assert.match(desktopSurfacesSpec, /id: profile\.posts\.cards[\s\S]*surface_profile: secondary[\s\S]*exception_policy: none[\s\S]*source_rule: D-SHELL-032/);
   assert.match(desktopSurfacesSpec, /id: profile\.likes\.cards[\s\S]*surface_profile: secondary[\s\S]*exception_policy: none[\s\S]*source_rule: D-SHELL-032/);

@@ -3,10 +3,10 @@
 
 @theme {
   /* Mint */
-  --color-mint-200: #99dfc8;
-  --color-mint-300: #66cfab;
-  --color-mint-400: #4ecca3;
-  --color-mint-500: #2bb88e;
+  --color-mint-200: #A8DFF0;
+  --color-mint-300: #6FCDE5;
+  --color-mint-400: #45B8D6;
+  --color-mint-500: #35A7C4;
   
   /* Brand (Cyan/Teal) */
   --color-brand-300: #67e1f5;
@@ -98,7 +98,7 @@ body {
   left: 1rem;
   top: 1rem;
   z-index: 90;
-  background: #4ecca3;
+  background: var(--color-mint-400);
   color: #041015;
   padding: 0.6rem 0.9rem;
   border-radius: 0.6rem;

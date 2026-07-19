@@ -197,7 +197,7 @@ export function ProfileDetailActionButtons(input: {
               ref={input.menuButtonRef}
               type="button"
               onClick={input.onToggleMenu}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-700 shadow-[0_8px_20px_rgba(15,23,42,0.05)] transition hover:border-[#4ECCA3]/45 hover:bg-[#4ECCA3]/12 hover:text-[#1f8f69]"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-700 shadow-[0_8px_20px_rgba(15,23,42,0.05)] transition-[background-color,border-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:border-[var(--nimi-action-primary-bg)]/45 hover:bg-[var(--nimi-action-primary-bg)]/12 hover:text-[var(--nimi-action-primary-bg-hover)] active:scale-[var(--nimi-motion-pressed-scale)]"
               aria-label={i18n.t('Common.moreOptions', { defaultValue: 'More options' })}
             >
               <DotsIcon className="h-4 w-4" />
@@ -249,7 +249,7 @@ export function ProfileDetailSaveActions(input: {
         type="button"
         onClick={input.onSave}
         disabled={input.isSaving || input.isUploadingAvatar || !input.draftDisplayName.trim()}
-        className={`inline-flex ${buttonClassName} items-center justify-center gap-2 rounded-full bg-[#4ECCA3] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#41b992] disabled:cursor-not-allowed disabled:opacity-50`}
+        className={`inline-flex ${buttonClassName} items-center justify-center gap-2 rounded-full bg-[var(--nimi-action-primary-bg)] px-4 py-3 text-sm font-semibold text-[var(--nimi-action-primary-text)] transition-[background-color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:bg-[var(--nimi-action-primary-bg-hover)] active:scale-[var(--nimi-motion-pressed-scale)] disabled:cursor-not-allowed disabled:opacity-50`}
       >
         {input.isSaving ? <SpinnerIcon className="h-4 w-4" /> : <CheckIcon className="h-4 w-4" />}
         {input.isSaving ? 'Saving...' : 'Save profile'}

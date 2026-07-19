@@ -39,7 +39,7 @@ export function EditableField(input: {
         value={input.value}
         onChange={(event) => input.onChange(event.target.value)}
         placeholder={input.placeholder}
-        className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[#4ECCA3] focus:ring-4 focus:ring-[#4ECCA3]/10"
+        className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[var(--nimi-action-primary-bg)] focus:ring-4 focus:ring-[var(--nimi-action-primary-bg)]/10"
       />
     </label>
   );
@@ -60,12 +60,12 @@ export function WorldMetaLink(input: {
       onClick={input.onClick}
       className="group flex items-center gap-2.5 text-left transition-colors"
     >
-      <span className="shrink-0 text-[#94A3B8] transition-colors group-hover:text-[#4ECCA3]">
+      <span className="shrink-0 text-[#94A3B8] transition-colors group-hover:text-[var(--nimi-action-primary-bg)]">
         <WorldIcon className="h-3.5 w-3.5" />
       </span>
-      <span className="inline-flex min-w-0 items-center gap-1.5 text-[13px] leading-6 text-[#7C8AA5] transition-all group-hover:font-semibold group-hover:text-[#4ECCA3]">
+      <span className="inline-flex min-w-0 items-center gap-1.5 text-[13px] leading-6 text-[#7C8AA5] transition-colors duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] group-hover:text-[var(--nimi-action-primary-bg)]">
         <span className="truncate">{input.value}</span>
-        <ExternalLinkIcon className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:-translate-y-[1px]" />
+        <ExternalLinkIcon className="h-3.5 w-3.5 shrink-0" />
       </span>
     </button>
   );
@@ -194,7 +194,7 @@ export function IconButton({
       className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 shadow-[0_8px_20px_rgba(15,23,42,0.05)] transition ${
         disabled
           ? 'cursor-not-allowed text-slate-300 opacity-70'
-          : 'text-slate-700 hover:border-[#4ECCA3]/45 hover:bg-[#4ECCA3]/12 hover:text-[#1f8f69]'
+          : 'text-slate-700 hover:border-[var(--nimi-action-primary-bg)]/45 hover:bg-[var(--nimi-action-primary-bg)]/12 hover:text-[var(--nimi-action-primary-bg-hover)] active:scale-[var(--nimi-motion-pressed-scale)]'
       }`}
     >
       {icon}
@@ -213,7 +213,7 @@ export function SideInfoRow({ label, value }: { label: string; value: string }) 
 
 export function StatusBadge({ children, active = false }: { children: ReactNode; active?: boolean }) {
   return (
-    <span className={`rounded-full px-3 py-1.5 text-xs font-semibold ${active ? 'bg-[#e8fbf3] text-[#1f8f69]' : 'bg-slate-100 text-slate-600'}`}>
+    <span className={`rounded-full px-3 py-1.5 text-xs font-semibold ${active ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg-hover)]' : 'bg-slate-100 text-slate-600'}`}>
       {children}
     </span>
   );

@@ -97,9 +97,9 @@ test('world atlas declares one restrained World Explorer theme instead of inline
   assert.match(worldExplorerThemeSource, /background:\s*'#F6F8FB'/);
   assert.match(worldExplorerThemeSource, /surface:\s*'#FFFFFF'/);
   assert.match(worldExplorerThemeSource, /weakSurface:\s*'#F8FAFC'/);
-  assert.match(worldExplorerThemeSource, /brand:\s*'#4ECCA3'/);
-  assert.match(worldExplorerThemeSource, /brandHover:\s*'#3DBB96'/);
-  assert.match(worldExplorerThemeSource, /brandSoft:\s*'rgba\(78, 204, 163, 0\.12\)'/);
+  assert.match(worldExplorerThemeSource, /brand:\s*'var\(--nimi-action-primary-bg\)'/);
+  assert.match(worldExplorerThemeSource, /brandHover:\s*'var\(--nimi-action-primary-bg-hover\)'/);
+  assert.match(worldExplorerThemeSource, /brandSoft:\s*'color-mix\(in srgb, var\(--nimi-action-primary-bg\) 12%, transparent\)'/);
   assert.doesNotMatch(worldExplorerThemeSource, /#24C6A4|#1DB393|rgba\(36, 198, 164/);
   assert.match(worldExplorerThemeSource, /text:\s*'#17202A'/);
   assert.match(worldExplorerThemeSource, /textSecondary:\s*'#6B7280'/);

@@ -122,7 +122,7 @@ export function LocationPickerPanel(input: {
             placeholder={i18n.t('Profile.CreatePost.searchLocationPlaceholder', { defaultValue: 'Search location...' })}
             value={input.locationSearch}
             onChange={(event) => input.setLocationSearch(event.target.value)}
-            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-[#4ECCA3] focus:outline-none focus:ring-1 focus:ring-[#4ECCA3]"
+            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-[var(--nimi-action-primary-bg)] focus:outline-none focus:ring-1 focus:ring-[var(--nimi-action-primary-bg)]"
           />
         </div>
       </div>
@@ -139,7 +139,7 @@ export function LocationPickerPanel(input: {
               onClick={() => input.selectLocation(location)}
               className="flex w-full items-start gap-3 px-3 py-2.5 transition hover:bg-gray-50"
             >
-              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#4ECCA3]">
+              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)]/10 text-[var(--nimi-action-primary-bg)]">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                   <circle cx="12" cy="10" r="3" />
@@ -150,7 +150,7 @@ export function LocationPickerPanel(input: {
                 <p className="truncate text-xs text-gray-500">{location.address}</p>
               </div>
               {input.selectedLocation?.id === location.id ? (
-                <svg className="mt-1 h-4 w-4 text-[#4ECCA3]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg className="mt-1 h-4 w-4 text-[var(--nimi-action-primary-bg)]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               ) : null}
@@ -208,7 +208,7 @@ export function TagPickerPanel(input: {
                 input.insertTag(input.tagSearch.trim());
               }
             }}
-            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-[#4ECCA3] focus:outline-none focus:ring-1 focus:ring-[#4ECCA3]"
+            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-[var(--nimi-action-primary-bg)] focus:outline-none focus:ring-1 focus:ring-[var(--nimi-action-primary-bg)]"
           />
         </div>
       </div>
@@ -222,7 +222,7 @@ export function TagPickerPanel(input: {
                 onClick={() => input.insertTag(tag)}
                 className="flex w-full items-center gap-3 px-3 py-2.5 transition hover:bg-gray-50"
               >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#4ECCA3]">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)]/10 text-[var(--nimi-action-primary-bg)]">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
                     <line x1="7" y1="7" x2="7.01" y2="7" />
@@ -232,7 +232,7 @@ export function TagPickerPanel(input: {
                   <p className="truncate text-sm font-medium text-gray-900">#{tag}</p>
                 </div>
                 {input.tags.includes(tag) ? (
-                  <svg className="h-4 w-4 text-[#4ECCA3]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="h-4 w-4 text-[var(--nimi-action-primary-bg)]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 ) : null}
@@ -245,16 +245,16 @@ export function TagPickerPanel(input: {
           <button
             type="button"
             onClick={() => input.insertTag(input.tagSearch.trim())}
-            className="flex w-full items-center gap-3 border-t border-gray-100 px-3 py-2.5 transition hover:bg-[#4ECCA3]/10"
+            className="flex w-full items-center gap-3 border-t border-gray-100 px-3 py-2.5 transition hover:bg-[var(--nimi-action-primary-bg)]/10"
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#4ECCA3]">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)]/10 text-[var(--nimi-action-primary-bg)]">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
             </div>
             <div className="min-w-0 flex-1 text-left">
-              <p className="truncate text-sm font-medium text-[#4ECCA3]">
+              <p className="truncate text-sm font-medium text-[var(--nimi-action-primary-bg)]">
                 {i18n.t('Profile.CreatePost.createTag', {
                   tag: input.tagSearch.trim(),
                   defaultValue: 'Create tag "{{tag}}"',

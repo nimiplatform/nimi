@@ -570,7 +570,7 @@ export function WorldCharacterSourceDetailPage(props: WorldCharacterSourceDetail
         contentClassName="mx-auto max-w-[1180px] px-5 py-6"
       >
         <div className="grid gap-5">
-          <section className="overflow-hidden rounded-[24px] border border-[#e8eae7] bg-white shadow-[0_10px_30px_rgba(30,41,38,.10)]">
+          <section data-nimi-density="expressive" className="overflow-hidden rounded-[24px] border border-[#e8eae7] bg-white shadow-[0_10px_30px_rgba(30,41,38,.10)]">
             <div
               data-testid="world-character-hero-banner"
               className="relative h-[280px] max-[720px]:h-[190px]"

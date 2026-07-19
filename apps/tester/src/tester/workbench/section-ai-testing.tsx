@@ -1,5 +1,12 @@
 import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Button, IconButton, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
+import { IconButton, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
+import {
+  AnimatePresence,
+  motion,
+  nimiOverlayBackdropMotion,
+  nimiOverlayPanelMotion,
+  useNimiReducedMotion,
+} from '@nimiplatform/kit/ui/motion';
 import { PanelRight } from 'lucide-react';
 import { createBrowserDataUrlAttachmentAdapter, useChatComposer, type BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import { type TesterCapability } from '../tester-capabilities.js';
@@ -332,6 +339,9 @@ export function SectionAITesting({
     open: configOpen,
     capabilityId: capability.id,
   });
+  const reducedMotion = useNimiReducedMotion();
+  const drawerMotion = nimiOverlayPanelMotion({ kind: 'drawer', reducedMotion });
+  const backdropMotion = nimiOverlayBackdropMotion({ reducedMotion });
 
   return (
     <div
@@ -355,16 +365,24 @@ export function SectionAITesting({
         />
       </div>
 
-      {configSection ? (
-        <>
-          <Button
+      <AnimatePresence>
+        {configSection ? (
+          <motion.button
+            key="model-config-backdrop"
             type="button"
-            tone="ghost"
             className="section-ai-testing__drawer-backdrop"
             aria-label="Close model configuration"
             onClick={() => setConfigOpen(false)}
+            {...backdropMotion}
           />
-          <aside className="section-ai-testing__drawer" aria-label="Configure model">
+        ) : null}
+        {configSection ? (
+          <motion.aside
+            key="model-config-drawer"
+            className="section-ai-testing__drawer"
+            aria-label="Configure model"
+            {...drawerMotion}
+          >
             <DrawerErrorBoundary onClose={() => setConfigOpen(false)}>
               <Suspense fallback={<div className="section-ai-testing__drawer-loading">Loading model config...</div>}>
                 <TesterAiConfigSettingsPanel
@@ -374,9 +392,9 @@ export function SectionAITesting({
                 />
               </Suspense>
             </DrawerErrorBoundary>
-          </aside>
-        </>
-      ) : null}
+          </motion.aside>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

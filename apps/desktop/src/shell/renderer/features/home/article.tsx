@@ -85,8 +85,8 @@ export function PostCardArticle(props: PostCardArticleProps) {
               {/* Live Pulse Indicator */}
               {SHOW_AVATAR_STATUS_INDICATOR && isRecent && (
                 <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#4ECCA3] opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-[#4ECCA3]"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--nimi-action-primary-bg)] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-[var(--nimi-action-primary-bg)]"></span>
                 </span>
               )}
             </button>
@@ -97,7 +97,7 @@ export function PostCardArticle(props: PostCardArticleProps) {
                   event.stopPropagation();
                   props.onOpenAddFriendModal();
                 }}
-                className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#4ECCA3] text-white shadow-md border-2 border-white transition-transform hover:scale-110"
+                className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-md border-2 border-white transition-transform hover:scale-110"
                 title={i18n.t('Relationship.addContact', { defaultValue: 'Add Friend' })}
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -119,7 +119,7 @@ export function PostCardArticle(props: PostCardArticleProps) {
               className="block text-left m-0 cursor-pointer border-0 bg-transparent p-0 disabled:cursor-default"
             >
               <div className="flex min-w-0 items-center gap-2">
-                <span className="truncate text-[15px] font-semibold text-slate-950 transition-colors group-hover:text-[#229E7B]">{authorName}</span>
+                <span className="truncate text-[15px] font-semibold text-slate-950 transition-colors group-hover:text-[var(--nimi-action-primary-bg)]">{authorName}</span>
               </div>
               {authorHandle ? (
                 <div className="mt-0.5 truncate text-[12px] font-medium text-slate-400">
@@ -239,7 +239,7 @@ export function PostCardArticle(props: PostCardArticleProps) {
                     event.stopPropagation();
                     props.onChat();
                   }}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#229E7B] shadow-sm transition-all hover:bg-[#4ECCA3] hover:text-white hover:shadow-md active:scale-95"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)]/10 text-[var(--nimi-action-primary-bg)] shadow-sm transition-[background-color,color,box-shadow,transform] hover:bg-[var(--nimi-action-primary-bg)] hover:text-[var(--nimi-action-primary-text)] hover:shadow-md active:scale-95"
                   aria-label={i18n.t('Home.openChat', { defaultValue: 'Open chat' })}
                 >
                   <ChatIcon size={18} />
@@ -252,7 +252,7 @@ export function PostCardArticle(props: PostCardArticleProps) {
                     event.stopPropagation();
                     props.onOpenGift();
                   }}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#229E7B] shadow-sm transition-all hover:bg-[#4ECCA3] hover:text-white hover:shadow-md active:scale-95"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)]/10 text-[var(--nimi-action-primary-bg)] shadow-sm transition-[background-color,color,box-shadow,transform] hover:bg-[var(--nimi-action-primary-bg)] hover:text-[var(--nimi-action-primary-text)] hover:shadow-md active:scale-95"
                   aria-label={i18n.t('Home.sendGift', { defaultValue: 'Send gift' })}
                 >
                   <GiftIcon size={18} />
@@ -268,7 +268,7 @@ export function PostCardArticle(props: PostCardArticleProps) {
           {props.post.tags.map((tag) => (
             <span
               key={tag}
-              className="cursor-pointer rounded-full bg-[#4ECCA3]/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#229E7B] transition-opacity hover:opacity-80"
+              className="cursor-pointer rounded-full bg-[var(--nimi-action-primary-bg)]/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--nimi-action-primary-bg)] transition-opacity hover:opacity-80"
             >
               #{tag}
             </span>

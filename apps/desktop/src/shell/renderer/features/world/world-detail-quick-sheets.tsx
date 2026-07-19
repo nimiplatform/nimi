@@ -39,8 +39,8 @@ export function WorldCharacterQuickSheet({
         onClick={onClose}
       />
       <div className="relative flex items-center justify-center">
-        <section className="relative z-10 w-full max-w-[620px] max-h-[calc(100vh-3rem)] overflow-hidden rounded-[28px] border border-[#4ECCA3]/20 bg-[#0d1511]/96 shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/50 to-transparent" />
+        <section className="relative z-10 w-full max-w-[620px] max-h-[calc(100vh-3rem)] overflow-hidden rounded-[28px] border border-[var(--nimi-action-primary-bg)]/20 bg-[#0d1511]/96 shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--nimi-action-primary-bg)]/50 to-transparent" />
           <ScrollArea className="max-h-[calc(100vh-3rem-2px)]" viewportClassName="px-6 pb-6 pt-5">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
@@ -53,14 +53,14 @@ export function WorldCharacterQuickSheet({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-full border border-[#4ECCA3]/18 bg-black/18 px-3 py-1.5 text-xs text-[#d8efe4]/72 transition-colors hover:border-[#4ECCA3]/28 hover:text-[#effff8]"
+                className="rounded-full border border-[var(--nimi-action-primary-bg)]/18 bg-black/18 px-3 py-1.5 text-xs text-[color-mix(in_srgb,var(--nimi-action-primary-bg)_72%,white)]/72 transition-colors hover:border-[var(--nimi-action-primary-bg)]/28 hover:text-[#effff8]"
               >
                 {t('WorldDetail.xianxia.v2.characters.quickSheetClose')}
               </button>
             </div>
 
             {profileCoverUrl ? (
-              <div data-testid="world-character-profile-cover" className="mb-5 overflow-hidden rounded-[20px] border border-[#4ECCA3]/14 bg-black/22">
+              <div data-testid="world-character-profile-cover" className="mb-5 overflow-hidden rounded-[20px] border border-[var(--nimi-action-primary-bg)]/14 bg-black/22">
                 <img
                   src={profileCoverUrl}
                   alt=""
@@ -84,7 +84,7 @@ export function WorldCharacterQuickSheet({
 
               <div className="grid gap-3">
                 {joinParts([character.role, character.faction, character.rank]) ? (
-                  <div className="rounded-2xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/56 p-4">
+                  <div className="rounded-2xl border border-[var(--nimi-action-primary-bg)]/10 bg-[black]/56 p-4">
                     <div className="text-[11px] uppercase tracking-[0.14em] text-[#86f0ca]/74">
                       {t('WorldDetail.xianxia.v2.characters.quickSheetIdentity')}
                     </div>
@@ -95,7 +95,7 @@ export function WorldCharacterQuickSheet({
                 ) : null}
 
                 {joinParts([character.sceneName, character.location]) ? (
-                  <div className="rounded-2xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/56 p-4">
+                  <div className="rounded-2xl border border-[var(--nimi-action-primary-bg)]/10 bg-[black]/56 p-4">
                     <div className="text-[11px] uppercase tracking-[0.14em] text-[#86f0ca]/74">
                       {t('WorldDetail.xianxia.v2.characters.quickSheetLocation')}
                     </div>
@@ -105,23 +105,23 @@ export function WorldCharacterQuickSheet({
                   </div>
                 ) : null}
 
-                <div className="rounded-2xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/56 p-4">
+                <div className="rounded-2xl border border-[var(--nimi-action-primary-bg)]/10 bg-[black]/56 p-4">
                   <div className="text-[11px] uppercase tracking-[0.14em] text-[#86f0ca]/74">
                     {t('WorldDetail.xianxia.v2.characters.quickSheetBio')}
                   </div>
-                  <div className="mt-2 text-sm leading-relaxed text-[#d8efe4]/72">
+                  <div className="mt-2 text-sm leading-relaxed text-[color-mix(in_srgb,var(--nimi-action-primary-bg)_72%,white)]/72">
                     {character.bio || t('WorldDetail.noDescription')}
                   </div>
                 </div>
 
                 {character.stats?.vitalityScore != null ? (
-                  <div className="rounded-2xl border border-[#4ECCA3]/10 bg-black/16 px-4 py-3 text-sm text-[#d8efe4]/72">
+                  <div className="rounded-2xl border border-[var(--nimi-action-primary-bg)]/10 bg-black/16 px-4 py-3 text-sm text-[color-mix(in_srgb,var(--nimi-action-primary-bg)_72%,white)]/72">
                     {t('WorldDetail.xianxia.v2.characters.vitality')} {character.stats.vitalityScore}
                   </div>
                 ) : null}
 
                 {referenceImageUrl ? (
-                  <div data-testid="world-character-reference-image" className="overflow-hidden rounded-2xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/56">
+                  <div data-testid="world-character-reference-image" className="overflow-hidden rounded-2xl border border-[var(--nimi-action-primary-bg)]/10 bg-[black]/56">
                     <img
                       src={referenceImageUrl}
                       alt=""
@@ -131,11 +131,11 @@ export function WorldCharacterQuickSheet({
                 ) : null}
 
                 {voiceSampleUrl ? (
-                  <div data-testid="world-character-voice-sample" className="rounded-2xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/56 p-4">
+                  <div data-testid="world-character-voice-sample" className="rounded-2xl border border-[var(--nimi-action-primary-bg)]/10 bg-[black]/56 p-4">
                     <div className="text-[11px] uppercase tracking-[0.14em] text-[#86f0ca]/74">
                       {t('WorldDetail.xianxia.v2.characters.voiceSample', { defaultValue: 'Voice sample' })}
                     </div>
-                    <div className="mt-2 text-xs text-[#d8efe4]/72">
+                    <div className="mt-2 text-xs text-[color-mix(in_srgb,var(--nimi-action-primary-bg)_72%,white)]/72">
                       {voiceSample?.mimeType ?? t('WorldDetail.xianxia.v2.characters.voiceReady', { defaultValue: 'Ready audio resource' })}
                       {voiceDuration ? ` · ${voiceDuration}s` : ''}
                     </div>
@@ -158,7 +158,7 @@ export function WorldCharacterQuickSheet({
                     type="button"
                     onClick={() => void onMaterializeSource(character)}
                     disabled={connectDisabled}
-                    className="rounded-full border border-[#4ECCA3]/22 bg-[#4ECCA3]/12 px-4 py-2 text-sm font-semibold text-[#dffdf2] transition-colors hover:bg-[#4ECCA3]/18 disabled:cursor-default disabled:opacity-55"
+                    className="rounded-full border border-[var(--nimi-action-primary-bg)]/22 bg-[var(--nimi-action-primary-bg)]/12 px-4 py-2 text-sm font-semibold text-[var(--nimi-text-inverse)] transition-colors hover:bg-[var(--nimi-action-primary-bg)]/18 disabled:cursor-default disabled:opacity-55"
                   >
                     {connectLabel}
                   </button>
@@ -166,7 +166,7 @@ export function WorldCharacterQuickSheet({
                 <button
                   type="button"
                   onClick={() => onViewCharacter(character)}
-                  className="rounded-full border border-[#4ECCA3]/18 bg-black/18 px-4 py-2 text-sm text-[#d8efe4]/72 transition-colors hover:border-[#4ECCA3]/28 hover:text-[#effff8]"
+                  className="rounded-full border border-[var(--nimi-action-primary-bg)]/18 bg-black/18 px-4 py-2 text-sm text-[color-mix(in_srgb,var(--nimi-action-primary-bg)_72%,white)]/72 transition-colors hover:border-[var(--nimi-action-primary-bg)]/28 hover:text-[#effff8]"
                 >
                   {t('WorldDetail.xianxia.v2.characters.quickSheetViewProfile')}
                 </button>

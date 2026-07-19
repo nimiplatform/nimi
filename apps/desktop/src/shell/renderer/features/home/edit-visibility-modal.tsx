@@ -82,7 +82,7 @@ export function EditVisibilityModal(props: {
               void props.onSubmit(selectedVisibility);
             }}
             disabled={props.pending || selectedVisibility === props.currentVisibility}
-            className="flex-1 rounded-xl bg-[#4ECCA3] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#3dbb92] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex-1 rounded-xl bg-[var(--nimi-action-primary-bg)] px-4 py-2.5 text-sm font-semibold text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {props.pending
               ? t('runtimeConfig.cloud.saving', { defaultValue: 'Saving...' })

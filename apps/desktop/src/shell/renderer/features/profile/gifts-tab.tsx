@@ -88,7 +88,7 @@ function TopSupportersModal({
           </p>
           <div className="space-y-3">
             {DATA_REQUIREMENTS.map((key) => (
-              <div key={key} className="rounded-xl border border-[#D8EFE6] bg-[#F8FCFA] px-4 py-3 text-sm text-gray-700">
+              <div key={key} className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_72%,white)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_4%,white)] px-4 py-3 text-sm text-gray-700">
                 {i18n.t(key)}
               </div>
             ))}

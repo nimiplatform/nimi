@@ -329,7 +329,7 @@ test('tester AI config remains visibly fail-closed until the local-app carrier a
   assert.doesNotMatch(runTarget, /gpt-4|claude|gemini|openai|anthropic|model:\s*['"]auto['"]/i);
   assert.doesNotMatch(styles, /\.studio-run-target/);
   assert.doesNotMatch(styles, /\.studio-run-target__params/);
-  assert.match(styles, /\.studio-generate-action--configure\s*\{[^}]*background:\s*#35c99d/s);
+  assert.match(styles, /\.studio-generate-action--configure\s*\{[^}]*background:\s*var\(--nimi-action-primary-bg-hover\)/s);
   assert.match(styles, /\.workbench\s*\{[^}]*--studio-side-panel-width:\s*min\(360px,\s*calc\(100vw - 48px\)\)/s);
   assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*position:\s*absolute/s);
   assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*box-sizing:\s*border-box/s);
@@ -337,8 +337,10 @@ test('tester AI config remains visibly fail-closed until the local-app carrier a
   assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*max-width:\s*100%/s);
   assert.match(styles, /\.section-ai-testing__drawer-viewport\s*>\s*div\s*\{[^}]*display:\s*block\s*!important/s);
   assert.match(styles, /\.section-ai-testing__drawer-viewport\s*>\s*div\s*\{[^}]*width:\s*100%\s*!important/s);
-  assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*animation:\s*section-ai-testing-drawer-slide-in/s);
-  assert.match(styles, /@keyframes section-ai-testing-drawer-slide-in[\s\S]*translate3d\(100%,\s*0,\s*0\)/);
+  assert.match(capabilities, /from '@nimiplatform\/kit\/ui\/motion'/);
+  assert.match(capabilities, /nimiOverlayPanelMotion\(\{ kind: 'drawer', reducedMotion \}\)/);
+  assert.match(capabilities, /<motion\.aside[\s\S]*\{\.\.\.drawerMotion\}/);
+  assert.doesNotMatch(styles, /section-ai-testing-drawer-slide-in/);
   assert.match(styles, /@media \(max-width:\s*720px\)[\s\S]*\.section-ai-testing__drawer[\s\S]*width:\s*100%/);
 });
 

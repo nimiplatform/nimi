@@ -66,7 +66,7 @@ export function ChatProfileCard({
       <button
         type="button"
         onClick={onClose}
-        className="absolute left-0 top-0 flex h-9 w-9 items-center justify-center rounded-full text-[#7e8a9f] transition hover:bg-[#f2f6f5] hover:text-[#4ECCA3]"
+        className="absolute left-0 top-0 flex h-9 w-9 items-center justify-center rounded-full text-[#7e8a9f] transition hover:bg-[#f2f6f5] hover:text-[var(--nimi-action-primary-bg)]"
         aria-label={t('ChatTimeline.closeProfileSidebar')}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -81,11 +81,11 @@ export function ChatProfileCard({
             kind={profileData.isSource ? 'source' : 'human'}
             sizeClassName="h-20 w-20"
             className={profileData.isSource ? undefined : 'ring-2 ring-white/70'}
-            fallbackClassName={profileData.isSource ? undefined : 'bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] text-[#4ECCA3]'}
+            fallbackClassName={profileData.isSource ? undefined : 'bg-gradient-to-br from-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,white)] to-[color-mix(in_srgb,var(--nimi-action-primary-bg)_22%,white)] text-[var(--nimi-action-primary-bg)]'}
             textClassName="text-2xl font-bold"
           />
           {profileData.isOnline ? (
-            <span className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-[#4ECCA3] shadow-sm" />
+            <span className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-[var(--nimi-action-primary-bg)] shadow-sm" />
           ) : null}
         </div>
 
@@ -94,7 +94,7 @@ export function ChatProfileCard({
         </h2>
         <p className="text-xs text-gray-500">{profileData.handle}</p>
 
-        <span className="mt-2 inline-flex items-center rounded-full bg-[#4ECCA3]/10 px-2.5 py-0.5 text-xs font-medium text-[#2A9D8F]">
+        <span className="mt-2 inline-flex items-center rounded-full bg-[var(--nimi-action-primary-bg)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--nimi-action-primary-bg)]">
           {profileData.isSource
             ? t('ChatTimeline.source', { defaultValue: 'Source' })
             : t('ChatTimeline.human')}
@@ -150,8 +150,8 @@ function ProfileActionButton(input: {
   variant?: 'solid' | 'outline';
 }) {
   const buttonClassName = input.variant === 'outline'
-    ? 'border-2 border-[#4ECCA3] bg-white text-[#4ECCA3] hover:-translate-y-0.5 hover:border-[#3DBA92] hover:text-[#3DBA92]'
-    : 'bg-[#4ECCA3] text-white hover:-translate-y-0.5 hover:bg-[#3DBA92]';
+    ? 'border-2 border-[var(--nimi-action-primary-bg)] bg-white text-[var(--nimi-action-primary-bg)] hover:border-[var(--nimi-action-primary-bg-hover)] hover:text-[var(--nimi-action-primary-bg-hover)]'
+    : 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] hover:bg-[var(--nimi-action-primary-bg-hover)]';
 
   return (
     <Tooltip content={input.label} placement="top">
@@ -159,7 +159,7 @@ function ProfileActionButton(input: {
         type="button"
         onClick={input.onClick}
         data-testid={input.variant === 'outline' ? E2E_IDS.chatOpenUserProfile : undefined}
-        className={`flex h-10 w-10 items-center justify-center rounded-full transition-all active:translate-y-0 ${buttonClassName}`}
+        className={`flex h-10 w-10 items-center justify-center rounded-full transition-[background-color,border-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)] ${buttonClassName}`}
         aria-label={input.label}
       >
         {input.icon}
@@ -171,7 +171,7 @@ function ProfileActionButton(input: {
 function AboutRow({ icon, label }: { icon: ReactNode; label: string }) {
   return (
     <div className="flex items-center gap-2 text-xs">
-      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#4ECCA3]/10 text-[#4ECCA3]">
+      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--nimi-action-primary-bg)]/10 text-[var(--nimi-action-primary-bg)]">
         {icon}
       </span>
       <span className="truncate text-gray-600">{label}</span>

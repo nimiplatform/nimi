@@ -183,7 +183,7 @@ function ChatComposerAvatarHoverPreview(props: {
             type="button"
             data-chat-shared-composer-leading-avatar="true"
             data-testid={props.triggerTestId}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-transparent p-0 transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4ECCA3]/60"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-transparent p-0 transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
             onMouseEnter={scheduleOpen}
             onMouseLeave={scheduleClose}
             onFocus={scheduleOpen}
@@ -252,7 +252,7 @@ function ChatComposerAvatarPreviewCard(props: {
       type="button"
       onClick={props.onOpenProfile}
       data-testid={props.openProfileTestId}
-      className="flex w-full flex-col gap-3 p-4 text-left transition hover:bg-[color-mix(in_srgb,var(--nimi-surface-overlay)_92%,#4ECCA3_8%)] focus:outline-none"
+      className="flex w-full flex-col gap-3 p-4 text-left transition hover:bg-[color-mix(in_srgb,var(--nimi-surface-overlay)_92%,var(--nimi-action-primary-bg)_8%)] focus:outline-none"
     >
       <div className="flex items-start gap-3">
         <EntityAvatar
@@ -271,7 +271,7 @@ function ChatComposerAvatarPreviewCard(props: {
               {handleLabel}
             </div>
           ) : null}
-          <span className="mt-1 inline-flex items-center rounded-full bg-[#4ECCA3]/10 px-2 py-0.5 text-[10px] font-medium text-[#2A9D8F]">
+          <span className="mt-1 inline-flex items-center rounded-full bg-[var(--nimi-action-primary-bg)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--nimi-action-primary-bg)]">
             {props.kind === 'agent'
               ? t('ChatTimeline.agent', { defaultValue: 'Agent' })
               : t('ChatTimeline.human', { defaultValue: 'Human' })}
@@ -292,7 +292,7 @@ function ChatComposerAvatarPreviewCard(props: {
           {t('Common.loading', { defaultValue: 'Loading…' })}
         </div>
       ) : null}
-      <span className="mt-1 inline-flex h-7 w-full items-center justify-center rounded-full bg-[#4ECCA3] px-3 text-[11px] font-semibold text-white">
+      <span className="mt-1 inline-flex h-7 w-full items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] px-3 text-[11px] font-semibold text-[var(--nimi-action-primary-text)]">
         {openLabel}
       </span>
     </button>
@@ -302,7 +302,7 @@ function ChatComposerAvatarPreviewCard(props: {
 function PreviewMetaRow(props: { icon: ReactNode; label: string }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-[#4ECCA3]/10 text-[#4ECCA3]">
+      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-[var(--nimi-action-primary-bg)]/10 text-[var(--nimi-action-primary-bg)]">
         {props.icon}
       </span>
       <span className="truncate">{props.label}</span>

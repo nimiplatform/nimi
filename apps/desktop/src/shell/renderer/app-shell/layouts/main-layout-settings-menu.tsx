@@ -114,6 +114,7 @@ export function MainLayoutSettingsMenu(props: MainLayoutSettingsMenuProps) {
                 <motion.button
                   key={item.id}
                   type="button"
+                  data-testid={`desktop-account-menu-item:${item.id}`}
                   onClick={() => props.onOpenItem(item.id)}
                   whileHover={interactiveMotion.whileHover}
                   whileTap={interactiveMotion.whileTap}

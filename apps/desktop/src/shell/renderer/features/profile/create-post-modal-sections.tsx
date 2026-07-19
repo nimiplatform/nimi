@@ -75,7 +75,7 @@ export function CreatePostAttachmentSection({
       {!selectedFile && !selectedAttachmentRef ? (
         <div
           className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-12 transition ${
-            dragOver ? 'border-[#4ECCA3] bg-[#4ECCA3]/10' : 'border-gray-300 bg-gray-50 hover:border-[#4ECCA3]'
+            dragOver ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)]/10' : 'border-gray-300 bg-gray-50 hover:border-[var(--nimi-action-primary-bg)]'
           }`}
           onDragOver={(event) => {
             event.preventDefault();
@@ -122,7 +122,7 @@ export function CreatePostAttachmentSection({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="group absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-medium text-white shadow-lg ring-1 ring-white/10 transition-all duration-200 hover:bg-[#4ECCA3] hover:ring-[#4ECCA3]/50 disabled:opacity-50"
+            className="group absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-medium text-white shadow-lg ring-1 ring-white/10 transition-[background-color,box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:bg-[var(--nimi-action-primary-bg)] hover:ring-[var(--nimi-action-primary-bg)]/50 active:scale-[var(--nimi-motion-pressed-scale)] disabled:opacity-50"
             title={t('Profile.CreatePost.replaceMedia', { defaultValue: 'Replace media' })}
           >
             <svg
@@ -201,13 +201,13 @@ export function CreatePostCaptionSection({
         placeholder={t('Profile.CreatePost.writeCaptionPlaceholder', { defaultValue: 'Write a caption...' })}
         disabled={uploading}
         rows={3}
-        className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#4ECCA3] focus:ring-1 focus:ring-[#4ECCA3] focus:outline-none disabled:opacity-50"
+        className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[var(--nimi-action-primary-bg)] focus:ring-1 focus:ring-[var(--nimi-action-primary-bg)] focus:outline-none disabled:opacity-50"
       />
 
       {(selectedLocation || tags.length > 0) && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {selectedLocation && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#4ECCA3]/10 px-3 py-1 text-sm text-[#4ECCA3]">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--nimi-action-primary-bg)]/10 px-3 py-1 text-sm text-[var(--nimi-action-primary-bg)]">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                 <circle cx="12" cy="10" r="3" />
@@ -216,7 +216,7 @@ export function CreatePostCaptionSection({
               <button
                 type="button"
                 onClick={removeLocation}
-                className="ml-1 rounded-full hover:bg-[#4ECCA3]/20"
+                className="ml-1 rounded-full hover:bg-[var(--nimi-action-primary-bg)]/20"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18" />
@@ -230,7 +230,7 @@ export function CreatePostCaptionSection({
               key={tag}
               type="button"
               onClick={() => removeTag(tag)}
-              className="inline-flex items-center gap-1 rounded-full bg-[#4ECCA3]/10 px-2 py-1 text-xs font-medium text-[#4ECCA3] transition-colors hover:bg-[#4ECCA3]/20"
+              className="inline-flex items-center gap-1 rounded-full bg-[var(--nimi-action-primary-bg)]/10 px-2 py-1 text-xs font-medium text-[var(--nimi-action-primary-bg)] transition-colors hover:bg-[var(--nimi-action-primary-bg)]/20"
             >
               #{tag}
               {selectedTags.includes(tag) && (
@@ -338,7 +338,7 @@ export function CreatePostModalFooter({
         type="button"
         onClick={onSubmit}
         disabled={(!selectedFile && !selectedAttachmentRef) || uploading}
-        className="flex items-center gap-2 rounded-[10px] bg-[#4ECCA3] px-5 py-2 text-sm font-medium text-white transition hover:bg-[#3dbb92] disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex items-center gap-2 rounded-[10px] bg-[var(--nimi-action-primary-bg)] px-5 py-2 text-sm font-medium text-[var(--nimi-action-primary-text)] transition-colors duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:bg-[var(--nimi-action-primary-bg-hover)] active:scale-[var(--nimi-motion-pressed-scale)] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {uploading ? (
           <>

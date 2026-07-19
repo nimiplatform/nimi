@@ -92,7 +92,7 @@ export function ReportModal({
               onClick={() => setSelectedReason(reason.value)}
               className={`w-full rounded-xl border-2 px-4 py-3 text-left text-sm transition-colors ${
                 selectedReason === reason.value
-                  ? 'border-[#4ECCA3] bg-[#4ECCA3]/10 text-[#4ECCA3]'
+                  ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)]/10 text-[var(--nimi-action-primary-bg)]'
                   : 'border-transparent bg-gray-50 text-gray-700 hover:bg-gray-100'
               }`}
             >
@@ -112,7 +112,7 @@ export function ReportModal({
               defaultValue: 'Please provide more details about your report...',
             })}
             rows={3}
-            className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-[#4ECCA3] focus:outline-none focus:ring-1 focus:ring-[#4ECCA3]"
+            className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-[var(--nimi-field-focus)] focus:outline-none focus:ring-1 focus:ring-[var(--nimi-focus-ring-color)]"
           />
         </div>
 
@@ -136,7 +136,7 @@ export function ReportModal({
               void handleSubmit();
             }}
             disabled={!selectedReason || isSubmitting}
-            className="flex-1 rounded-xl bg-[#4ECCA3] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#3dbb92] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex-1 rounded-xl bg-[var(--nimi-action-primary-bg)] px-4 py-2.5 text-sm font-semibold text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSubmitting
               ? t('Home.submitting', { defaultValue: 'Submitting...' })

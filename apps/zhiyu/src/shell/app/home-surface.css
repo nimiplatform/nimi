@@ -35,8 +35,8 @@
 }
 
 :where(.zhiyu-agent-chat) :where(button:not(:disabled):hover):not(:where([data-chat-agent-center="true"], [data-chat-agent-center="true"] *)) {
-  border-color: color-mix(in srgb, var(--nimi-action-primary-bg, #4ecca3) 46%, var(--nimi-border-subtle, rgba(15, 23, 42, 0.12)));
-  background: color-mix(in srgb, var(--nimi-surface-card, #fff) 86%, var(--nimi-action-primary-bg, #4ecca3) 14%);
+  border-color: color-mix(in srgb, var(--nimi-action-primary-bg, #45B8D6) 46%, var(--nimi-border-subtle, rgba(15, 23, 42, 0.12)));
+  background: color-mix(in srgb, var(--nimi-surface-card, #fff) 86%, var(--nimi-action-primary-bg, #45B8D6) 14%);
 }
 
 :where(.zhiyu-agent-chat) :where(button:disabled):not(:where([data-chat-agent-center="true"], [data-chat-agent-center="true"] *)) {
@@ -153,7 +153,7 @@
   height: 0;
   transform: translateY(-50%);
   border-radius: 0 999px 999px 0;
-  background: #4ecca3;
+  background: var(--nimi-action-primary-bg, #45B8D6);
   opacity: 0;
   transition: height 160ms ease, opacity 160ms ease;
 }

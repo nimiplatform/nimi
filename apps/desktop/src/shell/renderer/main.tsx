@@ -268,7 +268,7 @@ window.addEventListener('unhandledrejection', (event) => {
 // never collapse into an unobservable blank webview.
 createRoot(rootElement).render(
   <EntryErrorBoundary>
-    <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light">
+    <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light" defaultDensity="compact">
       <Suspense
         fallback={<EntryRuntimeBootSurface
           title={entryBootCopy.initializingRuntime}

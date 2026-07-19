@@ -13,7 +13,7 @@
   padding: 8px 13px;
   border: 1px solid color-mix(in srgb, var(--nimi-action-primary-bg, #2f9f8d) 38%, var(--nimi-border-subtle));
   border-radius: 8px;
-  background: color-mix(in srgb, var(--nimi-surface-card) 82%, var(--nimi-action-primary-bg, #4ecca3) 18%);
+  background: color-mix(in srgb, var(--nimi-surface-card) 82%, var(--nimi-action-primary-bg, #45B8D6) 18%);
   color: var(--nimi-text-primary);
   cursor: pointer;
   font: inherit;
@@ -22,7 +22,7 @@
 }
 
 .runtime-unavailable-screen :where(button:hover) {
-  background: color-mix(in srgb, var(--nimi-surface-card) 70%, var(--nimi-action-primary-bg, #4ecca3) 30%);
+  background: color-mix(in srgb, var(--nimi-surface-card) 70%, var(--nimi-action-primary-bg, #45B8D6) 30%);
 }
 
 .runtime-check-screen,

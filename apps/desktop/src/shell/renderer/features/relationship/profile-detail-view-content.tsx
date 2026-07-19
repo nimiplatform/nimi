@@ -206,7 +206,7 @@ export function ProfileDetailViewContent(input: {
                                 kind={profile.isSource ? 'source' : 'human'}
                                 sizeClassName="h-24 w-24"
                                 textClassName="text-3xl font-bold"
-                                fallbackClassName={profile.isSource ? undefined : 'bg-gradient-to-br from-[#4ECCA3]/20 to-[#4ECCA3]/5 text-[#1f8f69]'}
+                                fallbackClassName={profile.isSource ? undefined : 'bg-gradient-to-br from-[var(--nimi-action-primary-bg)]/20 to-[var(--nimi-action-primary-bg)]/5 text-[var(--nimi-action-primary-bg-hover)]'}
                                 className={profile.isSource ? '' : 'rounded-full border border-white/85 shadow-[0_14px_34px_rgba(15,23,42,0.12)]'}
                               />
 
@@ -278,7 +278,7 @@ export function ProfileDetailViewContent(input: {
                                     type="text"
                                     value={draft.displayName}
                                     onChange={(event) => setDraft((current) => ({ ...current, displayName: event.target.value }))}
-                                    className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[28px] font-semibold leading-[1.05] tracking-[0.02em] text-[#1A1A1B] outline-none transition focus:border-[#4ECCA3] focus:ring-4 focus:ring-[#4ECCA3]/10"
+                                    className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[28px] font-semibold leading-[1.05] tracking-[0.02em] text-[#1A1A1B] outline-none transition focus:border-[var(--nimi-action-primary-bg)] focus:ring-4 focus:ring-[var(--nimi-action-primary-bg)]/10"
                                   />
                                 </label>
                                 <label className="block">
@@ -300,7 +300,7 @@ export function ProfileDetailViewContent(input: {
                                     value={draft.bio}
                                     onChange={(event) => setDraft((current) => ({ ...current, bio: event.target.value }))}
                                     rows={4}
-                                    className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[14px] leading-[1.7] text-[#424245] outline-none transition focus:border-[#4ECCA3] focus:ring-4 focus:ring-[#4ECCA3]/10"
+                                    className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[14px] leading-[1.7] text-[#424245] outline-none transition focus:border-[var(--nimi-action-primary-bg)] focus:ring-4 focus:ring-[var(--nimi-action-primary-bg)]/10"
                                   />
                                 </label>
                               </div>
@@ -341,7 +341,7 @@ export function ProfileDetailViewContent(input: {
                                           <span
                                             key={tag}
                                             className="rounded-full bg-[rgba(15,23,42,0.05)] px-3 py-1.5 text-[12px] font-medium transition hover:bg-[rgba(15,23,42,0.08)] hover:shadow-[0_8px_22px_rgba(15,23,42,0.07)]"
-                                            style={{ color: '#1f8f69' }}
+                                            style={{ color: 'var(--nimi-action-primary-bg-hover)' }}
                                           >
                                             {tag}
                                           </span>
@@ -355,7 +355,7 @@ export function ProfileDetailViewContent(input: {
                                           <p className="mt-1 leading-relaxed">{profile.entity.summary}</p>
                                         ) : null}
                                         {profile.entity.tags.length > 0 ? (
-                                          <p className="mt-2 text-[11px] font-medium text-[#1f8f69]">
+                                          <p className="mt-2 text-[11px] font-medium text-[var(--nimi-action-primary-bg-hover)]">
                                             {profile.entity.tags.slice(0, 4).join(' / ')}
                                           </p>
                                         ) : null}
@@ -400,9 +400,9 @@ export function ProfileDetailViewContent(input: {
                               </div>
                             )}
                             {isEditing ? (
-                              <div className="mt-7 rounded-[24px] border border-[#dbe7e3] bg-[linear-gradient(180deg,rgba(78,204,163,0.08)_0%,rgba(255,255,255,0.95)_100%)] p-5 shadow-[0_14px_34px_rgba(78,204,163,0.08)]">
+                              <div className="mt-7 rounded-[24px] border border-[var(--nimi-border-subtle)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)_0%,rgba(255,255,255,0.95)_100%)] p-5 shadow-[0_14px_34px_color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)]">
                                 <div className="mb-4 flex items-center gap-2">
-                                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#4ECCA3]/12 text-[#1f8f69]">
+                                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)]/12 text-[var(--nimi-action-primary-bg-hover)]">
                                     <PencilIcon className="h-4 w-4" />
                                   </span>
                                   <div>
@@ -558,7 +558,7 @@ export function ProfileDetailViewContent(input: {
           type="button"
           onClick={scrollToTop}
           aria-label={t('Common.backToTop', { defaultValue: 'Back to top' })}
-          className="fixed bottom-8 right-8 z-20 flex h-12 w-12 items-center justify-center rounded-full border border-[#4ECCA3]/35 bg-white/92 text-[#1f8f69] shadow-[0_18px_40px_rgba(31,143,105,0.18)] transition hover:-translate-y-0.5 hover:border-[#4ECCA3]/60 hover:shadow-[0_22px_46px_rgba(31,143,105,0.24)]"
+          className="fixed bottom-8 right-8 z-20 flex h-12 w-12 items-center justify-center rounded-full border border-[var(--nimi-action-primary-bg)]/35 bg-white/92 text-[var(--nimi-action-primary-bg-hover)] shadow-[0_18px_40px_color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] transition-[border-color,box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:border-[var(--nimi-action-primary-bg)]/60 hover:shadow-[0_22px_46px_color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] active:scale-[var(--nimi-motion-pressed-scale)]"
         >
           <ArrowUpIcon className="h-5 w-5" />
         </button>
