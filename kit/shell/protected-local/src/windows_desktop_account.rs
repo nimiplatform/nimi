@@ -373,14 +373,13 @@ fn project_mutation(
     validate_reason_codes(reason_code, account_reason_code)?;
     let state = validate_account_session_state(state)?;
     let account_projection = projection.map(project_account).transpose()?;
-    if accepted {
-        if reason_code != ACTION_EXECUTED
+    if accepted
+        && (reason_code != ACTION_EXECUTED
             || account_reason_code != ACTION_EXECUTED
             || production_inert
-            || (state == AccountSessionState::Authenticated && account_projection.is_none())
-        {
-            return Err(untrusted());
-        }
+            || (state == AccountSessionState::Authenticated && account_projection.is_none()))
+    {
+        return Err(untrusted());
     }
     Ok(DesktopAccountMutationResponse {
         accepted,

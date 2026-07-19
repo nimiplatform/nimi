@@ -250,7 +250,6 @@ fn rejects_inert_or_incomplete_account_responses() {
                 account_reason_code: ACTION_EXECUTED,
                 account_projection: None,
             }),
-            ..Default::default()
         },
     ] {
         assert!(project_response(response).is_err());
