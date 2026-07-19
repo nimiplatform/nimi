@@ -27,7 +27,7 @@ test('macOS release records are canonical, externally signed, and role exact', (
       cdhash: 'b'.repeat(40),
       designatedRequirement: 'identifier "ai.nimi.runtime" and anchor apple generic',
       signingIdentifier: role.signingIdentifier,
-      teamId: 'ABCDE12345',
+      teamId: 'ABCDE12345', // pragma: allowlist secret -- public synthetic Apple Team ID fixture
     },
     expiresAt: '2026-07-20T00:00:00Z',
     generation: 7,

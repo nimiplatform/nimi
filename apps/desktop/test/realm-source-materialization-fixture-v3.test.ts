@@ -86,7 +86,7 @@ test('Desktop Realm fixture implements authenticated first-party Packet v3 lifec
     assert.equal(packet.challengeId, packetRequest.challengeId);
     assert.equal(packet.challengeDigest, packetRequest.challengeDigest);
     assert.equal(packet.materializerAccountId, OWNER_USER_ID);
-    assert.equal(packet.accessPolicyVersionDigest, '7649e8c7aa85f6667b1af5134686fc653f33ed5094e5d11483a5e60f39765faa');
+    assert.equal(packet.accessPolicyVersionDigest, '7649e8c7aa85f6667b1af5134686fc653f33ed5094e5d11483a5e60f39765faa'); // pragma: allowlist secret -- public fixture policy digest
     assert.ok(Array.isArray(packet.orderedSegments) && packet.orderedSegments.length > 0);
     assert.equal(Object.hasOwn(packet, 'accessGrantId'), false);
 
