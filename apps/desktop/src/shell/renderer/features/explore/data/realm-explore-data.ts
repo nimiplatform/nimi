@@ -39,6 +39,11 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
+function normalizePublicMediaUrl(value: unknown): string | undefined {
+  const normalized = normalizeText(value);
+  return normalized && /^https?:\/\//iu.test(normalized) ? normalized : undefined;
+}
+
 function readExternalAssetUri(core: Record<string, unknown>, kinds: readonly string[]): string | undefined {
   const assets = asRecord(core.assets);
   const refs = Array.isArray(assets.externalRefs) ? assets.externalRefs : [];
@@ -46,7 +51,7 @@ function readExternalAssetUri(core: Record<string, unknown>, kinds: readonly str
     const record = asRecord(ref);
     const kind = normalizeText(record.kind);
     if (kind && kinds.includes(kind)) {
-      const uri = normalizeText(record.uri);
+      const uri = normalizePublicMediaUrl(record.uri);
       if (uri) return uri;
     }
   }
@@ -135,8 +140,7 @@ export async function loadExplorePersonas(
           displayName,
           name: displayName,
           handle,
-          avatarUrl: normalizeText(presentation.avatarResourceRef)
-            ?? readExternalAssetUri(profile, ['avatar', 'referenceImage'])
+          avatarUrl: readExternalAssetUri(profile, ['avatar', 'referenceImage'])
             ?? null,
           bio: normalizeText(identity.summary)
             ?? normalizeText(presentation.profileLine)
