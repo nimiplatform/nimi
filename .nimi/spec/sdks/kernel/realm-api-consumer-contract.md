@@ -32,8 +32,15 @@ from the generated Realm SDK core. Runtime must not import `sdks/**`; its
 constructor-injected private `RealmMaterializationIssuer` therefore starts from
 the sibling generated Runtime-private carrier under `runtime/gen/realm/v1`.
 Both projections are emitted by the same SDK generator invocation from the same
-OpenAPI input. The closed private-operation inventory is owned by
-`tables/realm-private-operation-carriers.yaml`.
+OpenAPI input. The closed Runtime-operation inventory is owned by
+`tables/realm-private-operation-carriers.yaml`. Each row independently declares
+`runtime_projection` and `public_sdk_disposition`: Runtime generation never
+implies removal from the Public SDK. Account-auth and authn operations are
+generated for Runtime and retained in the Public Web SDK; source-materialization
+packet/JWKS operations are generated for Runtime and forbidden in the Public
+SDK. Runtime output is split into account-auth, authn, and
+source-materialization files so no generated carrier becomes a mixed-domain
+context sink.
 
 `MUST NOT`: Consumers must not bypass generated Realm clients with app-local
 REST helpers, hand-authored endpoint strings, global OpenAPI singleton
@@ -50,14 +57,17 @@ materialization has no app permission or grant carrier. SDK and apps must not
 introduce a handwritten materialization DTO, anonymous source payload, fixed
 audience, raw bundle DTO, or parallel packet decoder.
 
-Runtime's bounded streaming verifier may own Runtime-private semantic
+Runtime's account/auth clients and bounded streaming verifier may own
+Runtime-private semantic
 validation state, canonical hashing, cryptographic verification, capacity
 accounting, and atomic-commit projections. Those are enforcement semantics,
 not a second Realm transport contract. It must consume generated operation and
-request carriers, and generated OpenAPI closure metadata must gate every
-accepted packet field family. Runtime must not hand-author a Realm path,
-request DTO, alternate response field, compatibility decoder, or public packet
-adapter.
+request/response carriers, and generated OpenAPI closure metadata must gate
+every accepted response field family. Runtime must not hand-author a Realm
+path, request DTO, alternate response field, compatibility decoder, or public
+packet adapter. OAuth form requests and JSON requests retain their generated
+content type; a generator that silently treats a declared request as unknown
+fails closed.
 
 ## S-REALMAPI-003 SDK Owns Consumer Semantics Only
 

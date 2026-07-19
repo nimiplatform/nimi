@@ -1,20 +1,57 @@
-version: 1
+version: 2
 table_family: protocol_surface
 protocol_id: sdk_realm_private_operation_carriers
 surfaces:
+  - oauthAuthorize
+  - oauthToken
+  - refreshToken
+  - getAuthJwks
+  - introspectSession
   - WorldCoreController_createSourceMaterializationPacket
   - getSourceMaterializationJwks
 owner: .nimi/spec/sdks
-source_rule: S-REALMCORE-001
+source_rule: S-REALMAPI-002
 status: active
 operations:
+  - operation_id: oauthAuthorize
+    family: account_auth
+    method: GET
+    path: /api/auth/oauth/authorize
+    runtime_projection: generated_carrier
+    public_sdk_disposition: retained
+  - operation_id: oauthToken
+    family: account_auth
+    method: POST
+    path: /api/auth/oauth/token
+    runtime_projection: generated_carrier
+    public_sdk_disposition: retained
+  - operation_id: refreshToken
+    family: account_auth
+    method: POST
+    path: /api/auth/refresh
+    runtime_projection: generated_carrier
+    public_sdk_disposition: retained
+  - operation_id: getAuthJwks
+    family: authn
+    method: GET
+    path: /api/auth/jwks
+    runtime_projection: generated_carrier
+    public_sdk_disposition: retained
+  - operation_id: introspectSession
+    family: authn
+    method: POST
+    path: /api/auth/sessions/introspect
+    runtime_projection: generated_carrier
+    public_sdk_disposition: retained
   - operation_id: WorldCoreController_createSourceMaterializationPacket
+    family: source_materialization
     method: POST
     path: /api/realm/core/source-materialization-packets
-    projection: runtime_private_generated_carrier
-    public_sdk_method: forbidden
+    runtime_projection: generated_carrier
+    public_sdk_disposition: forbidden
   - operation_id: getSourceMaterializationJwks
+    family: source_materialization
     method: GET
     path: /api/auth/jwks/source-materialization
-    projection: runtime_private_generated_carrier
-    public_sdk_method: forbidden
+    runtime_projection: generated_carrier
+    public_sdk_disposition: forbidden

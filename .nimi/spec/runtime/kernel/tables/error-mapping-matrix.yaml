@@ -27,6 +27,13 @@ rows:
   - AUTH_TOKEN_EXPIRED
   - AUTH_UNSUPPORTED_PROOF_TYPE
   - AUTH_REVOCATION_UNAVAILABLE
+  - REALM_UNAVAILABLE
+  - REALM_NOT_FOUND
+  - REALM_CONFLICT
+  - REALM_RATE_LIMITED
+  - REALM_REQUEST_REJECTED
+  - REALM_CONTRACT_INVALID
+  - REALM_OPERATION_FAILED
   - PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED
   - PROTECTED_LOCAL_ENDPOINT_OWNERSHIP_FAILED
   - PROTECTED_LOCAL_SERVER_VERIFICATION_FAILED
@@ -195,6 +202,7 @@ rows:
 fragments:
   mappings:
     - error-mapping-matrix/10-core-protocol-auth.yaml
+    - error-mapping-matrix/15-realm-broker.yaml
     - error-mapping-matrix/20-ai-route-provider.yaml
     - error-mapping-matrix/30-ai-media-voice.yaml
     - error-mapping-matrix/40-ai-local-models.yaml

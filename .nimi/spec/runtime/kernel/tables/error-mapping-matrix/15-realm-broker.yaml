@@ -1,0 +1,19 @@
+table_family: owner_matrix
+owner: runtime
+matrix_id: runtime_error_mapping_matrix
+rows:
+  - REALM_UNAVAILABLE
+  - REALM_NOT_FOUND
+  - REALM_CONFLICT
+  - REALM_RATE_LIMITED
+  - REALM_REQUEST_REJECTED
+  - REALM_CONTRACT_INVALID
+  - REALM_OPERATION_FAILED
+mappings:
+  - { reason_code: REALM_UNAVAILABLE, grpc_code: UNAVAILABLE, surface: realm_transport, exit_shape: grpc_status, source_rule: K-ACCSVC-005 }
+  - { reason_code: REALM_NOT_FOUND, grpc_code: NOT_FOUND, surface: realm_broker, exit_shape: grpc_status, source_rule: K-ACCSVC-005 }
+  - { reason_code: REALM_CONFLICT, grpc_code: ABORTED, surface: realm_broker, exit_shape: grpc_status, source_rule: K-ACCSVC-005 }
+  - { reason_code: REALM_RATE_LIMITED, grpc_code: RESOURCE_EXHAUSTED, surface: realm_broker, exit_shape: grpc_status, source_rule: K-ACCSVC-005 }
+  - { reason_code: REALM_REQUEST_REJECTED, grpc_code: INVALID_ARGUMENT, surface: realm_broker, exit_shape: grpc_status, source_rule: K-ACCSVC-005 }
+  - { reason_code: REALM_CONTRACT_INVALID, grpc_code: FAILED_PRECONDITION, surface: realm_broker, exit_shape: grpc_status, source_rule: K-ACCSVC-005 }
+  - { reason_code: REALM_OPERATION_FAILED, grpc_code: INTERNAL, surface: realm_broker, exit_shape: grpc_status, source_rule: K-ACCSVC-005 }

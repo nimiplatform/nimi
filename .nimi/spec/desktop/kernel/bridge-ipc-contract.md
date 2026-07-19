@@ -46,6 +46,19 @@ validation. Desktop may render Runtime account projection and route user
 intent, but it must not reintroduce app-local shared-session coherence or raw
 token transport as a Desktop bridge surface.
 
+The protected account carrier exposes exactly
+`runtime_account_session_status`, `runtime_account_session_events_open`, and
+`runtime_account_session_events_close`. Renderer may provide only
+`afterSequence` as a canonical unsigned decimal string. Caller, app instance,
+account, device, process and origin are injected by the verified native host.
+Electron and Tauri must return the same redacted snapshot/event shape and must
+serialize every uint64 sequence as a decimal string. Generic
+`runtime_bridge_stream_open` continues to reject protected account streams.
+For `runtime_account_invoke_realm_unary`, renderer `timeoutMs` is the Runtime
+operation budget. The native carrier deadline must add a fixed completion
+margin so Runtime can return the typed Realm timeout result; the carrier must
+not race that budget and misclassify Realm unavailability as Runtime L2.
+
 ## D-IPC-002 — Daemon 生命周期命令
 
 The product daemon lifecycle surface controls only the fixed Runtime service.

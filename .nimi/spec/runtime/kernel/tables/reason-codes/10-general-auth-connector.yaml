@@ -15,6 +15,13 @@ values:
   - AUTH_TOKEN_EXPIRED
   - AUTH_UNSUPPORTED_PROOF_TYPE
   - AUTH_REVOCATION_UNAVAILABLE
+  - REALM_UNAVAILABLE
+  - REALM_NOT_FOUND
+  - REALM_CONFLICT
+  - REALM_RATE_LIMITED
+  - REALM_REQUEST_REJECTED
+  - REALM_CONTRACT_INVALID
+  - REALM_OPERATION_FAILED
   - AI_CONNECTOR_NOT_FOUND
   - AI_CONNECTOR_DISABLED
   - AI_CONNECTOR_CREDENTIAL_MISSING
@@ -80,6 +87,13 @@ codes:
     value: 303
     family: AUTH
     source_rule: K-AUTHN-006
+  - { name: REALM_UNAVAILABLE, value: 661, family: REALM, source_rule: K-ACCSVC-005 }
+  - { name: REALM_NOT_FOUND, value: 662, family: REALM, source_rule: K-ACCSVC-005 }
+  - { name: REALM_CONFLICT, value: 663, family: REALM, source_rule: K-ACCSVC-005 }
+  - { name: REALM_RATE_LIMITED, value: 664, family: REALM, source_rule: K-ACCSVC-005 }
+  - { name: REALM_REQUEST_REJECTED, value: 665, family: REALM, source_rule: K-ACCSVC-005 }
+  - { name: REALM_CONTRACT_INVALID, value: 666, family: REALM, source_rule: K-ACCSVC-005 }
+  - { name: REALM_OPERATION_FAILED, value: 667, family: REALM, source_rule: K-ACCSVC-005 }
   - name: PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED
     value: 620
     family: PROTECTED_LOCAL

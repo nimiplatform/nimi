@@ -95,7 +95,9 @@ under aliases.
 | `login_pending` | timeout / cancel / failure | `anonymous` 或 `reauth_required` | `login.failed` 或 `login.timed_out` | 过期 proof 必须 fail-close |
 | `authenticated` | proactive / reactive refresh 启动 | `refresh_pending` | `refresh.started` | 同一 account 同时只允许一次 refresh 在飞 |
 | `refresh_pending` | refresh 成功 | `authenticated` | `refresh.completed`、`account.status` | 新 token 必须原子替换旧 token |
-| `refresh_pending` | refresh 可恢复失败 | `reauth_required` | `refresh.failed` | binding 按原因 suspend / revoke |
+| `refresh_pending` | 明确未离开进程的 transport failure | `refresh_pending` | `refresh.deferred` | 恢复 refresh custody；单飞退避重试，不得消费 rotation |
+| `refresh_pending` | 请求可能已发出但结果不确定 | `reauth_required` | `refresh.failed`、`account.status` | 清除 custody；不得冒险复用单次 refresh token |
+| `refresh_pending` | Realm 明确拒绝 token 或响应合同无效 | `reauth_required` | `refresh.failed`、`account.status` | 清除 custody 并要求真实登录 |
 | `refresh_pending` | token 在恢复前过期 | `expired` | `refresh.failed`、`account.status` | authenticated 调用必须 fail-close |
 | `authenticated` | `Logout` | `logging_out` | `logout.started` | 重复 logout 观察到相同转换 |
 | `logging_out` | local / remote revoke 完成 | `anonymous` | `binding.revoked`、`logout.completed`、`account.status` | binding 必须在最终 anonymous 之前被 revoke |
@@ -108,8 +110,18 @@ under aliases.
 
 每个方法的最小契约：
 
-- `GetAccountSessionStatus`: 返回当前 account state 与投影。投影最多包含 `account_id`、显示信息、`realm_environment_id`（admit 时）、和 `K-ACCSVC-018` admitted workspace membership projection， 不得返回 raw token、refresh token、JWT、或 `subject_user_id` 字段。
-- `SubscribeAccountSessionEvents`: server-stream，必须先返回 `account.status` snapshot，再按单调 sequence 顺序投递事件。重连时若 replay 不可用，必须发出 `replay_truncated` 标志。
+- `GetAccountSessionStatus`: RPC 调用结果与账户当前状态必须分离。成功 RPC
+  返回 `AccountSessionSnapshot`，其字段固定为 `sequence`、`state`、
+  `reason_code`、`account_reason_code`、`account_projection`。投影最多包含
+  `account_id`、显示信息、`realm_environment_id`（admit 时）、和
+  `K-ACCSVC-018` admitted workspace membership projection，不得返回 raw
+  token、refresh token、JWT、或 `subject_user_id` 字段。
+- `SubscribeAccountSessionEvents`: server-stream 事件必须带
+  `delivery_kind=snapshot|replay|live`。首次订阅（`after_sequence=0`）立即给
+  当前 snapshot，随后只投递更高 sequence 的 live event；重连先按 sequence
+  升序 replay，再给当前 snapshot，随后只投递更高 sequence 的 live event。
+  `replay_truncated` 或 sequence gap 要求调用方重新调用 status，禁止猜测或
+  合成状态。跨 JS 边界的 uint64 sequence 固定使用十进制字符串。
 - `BeginLogin`: 创建 login attempt，返回 UX instruction envelope（如 `oauth_authorization_url`、`callback_origin`、`pkce_challenge`、`state`、`expires_at`）。kit / Desktop 不得获得 PKCE verifier。
 - `CompleteLogin`: 接受 typed proof envelope（见 K-ACCSVC-008）。Runtime 验证后写入 custody 并转换状态。
 - `InvokeRealmUnary`: Runtime 根据 `tables/realm-broker-operations.yaml`、
@@ -118,6 +130,21 @@ under aliases.
   校验 canonical Realm base、operation/path/query/body 与 response size，并只返回
   bounded application JSON。响应 headers、bearer/access/refresh token、JWT、
   credential-like JSON keys/value 均不得返回 app；命中扫描器必须 fail-close。
+  `timeout_ms` 是 Runtime-owned 整体 operation budget；Runtime 必须在该 budget
+  到期时完成 typed broker 映射。native protected carrier 的 gRPC deadline 必须
+  在该 budget 之外保留固定的 completion/serialization margin，不得抢先把 Realm
+  timeout 折叠成 `runtime-service-unavailable`。
+  只有 DNS/连接/TLS/timeout/响应读取失败和 HTTP 408/502/503/504 映射为
+  `BROKER_REALM_UNAVAILABLE` / `REALM_UNAVAILABLE`。401 在强制刷新并精确
+  重试一次后仍失败映射 `BROKER_AUTH_INVALID` / `AUTH_TOKEN_INVALID`；403
+  映射 `BROKER_FORBIDDEN` / `PRINCIPAL_UNAUTHORIZED`；404、409、429、
+  400/422 分别映射 `BROKER_NOT_FOUND` / `REALM_NOT_FOUND`、
+  `BROKER_CONFLICT` / `REALM_CONFLICT`、`BROKER_RATE_LIMITED` /
+  `REALM_RATE_LIMITED`、`BROKER_REQUEST_REJECTED` /
+  `REALM_REQUEST_REJECTED`。3xx、405/415 与畸形成功响应映射
+  `BROKER_CONTRACT_FAILED` / `REALM_CONTRACT_INVALID`；其他 5xx 映射
+  `BROKER_OPERATION_FAILED` / `REALM_OPERATION_FAILED`。这些分支不得借用
+  `AI_PROVIDER_*`。
 - `Logout`: Runtime 撤销 local session 与所有 binding；幂等。Caller-facing
   logout success may be projected only after Runtime has accepted/completed the
   Runtime-owned logout transition or has emitted a corresponding account status
@@ -201,7 +228,9 @@ Redaction 规则：
 - account projection 仅包含 `account_id` 与显示信息。
 - binding 事件仅包含 `binding_id` 与 relation tuple，不包含 carrier 内部材料。
 
-Reconnect 行为：先 snapshot，再按 sequence 投递。replay 不可用时发出 `replay_truncated`，调用方必须假设状态需要重新拉取。
+Reconnect 行为由 K-ACCSVC-005 的 `delivery_kind` 顺序唯一规定。snapshot
+反映订阅点的当前 sequence；replay 与 live 均必须严格递增且不得重复。replay
+不可用时发出 `replay_truncated`，调用方必须重新拉取 status。
 
 ## K-ACCSVC-007 Custody 模型
 
@@ -224,6 +253,12 @@ profile 只有 requirements，不能据此产生 positive custody chain。
   app、Desktop、SDK、Kit、renderer 或 host，也不得用于 app 直连 Realm。
 - refresh token rotation 必须原子：新 token 提交后再丢弃旧 token。
 - Reuse detection：在 rotation 之后再次观察到旧 refresh token，必须 revoke 本地 chain，发出 `refresh.failed` reason `replay`，并进入 `reauth_required` 或 `unavailable`。
+- Runtime 必须在登录、成功刷新和服务重启恢复后按 access-token expiry
+  重建单飞 proactive refresh timer；Realm unary 的首次 401 触发一次强制
+  reactive refresh并精确重试一次，再次 401 才进入 reauth。
+- transport 明确证明 request body 未离开进程时，Runtime 恢复未标记 custody，
+  保持 `refresh_pending` 并重试；一旦 request 可能已发出但结果未知，Runtime
+  必须清除 custody并进入 `reauth_required`，不得复用 rotation token。
 - audit 永远不记录 token 值、auth code、PKCE verifier、refresh material。
 - Interactive-user generic keyring, Credential Manager/vault, login Keychain,
   secret-service/libsecret session store, Desktop secure store, and app-owned

@@ -23,7 +23,9 @@ Realm JWT 最小必校验集合：
 
 ## K-AUTHN-003 算法与 Header 约束
 
-- 仅允许配置白名单算法（Phase 1 默认 `RS256`/`ES256`）。
+- 仅允许 generated Realm JWKS contract 当前声明的 `RS256`；未在该
+  contract 中出现的算法或 key shape 一律 fail-close，Runtime 不维护平行
+  transport DTO。
 - `alg=none` 必须拒绝。
 - `kid` 缺失必须拒绝。
 

@@ -479,6 +479,16 @@ commands:
     description: Project exact Runtime account state over the verified Desktop control carrier with no renderer input and no token, session, credential, endpoint, or native authority material.
     source_rule: D-IPC-001
 
+  - command: runtime_account_session_events_open
+    module: protected-local-host
+    description: Open the protected Runtime account event stream with only a canonical decimal afterSequence supplied by the renderer; native host injects all caller and account authority.
+    source_rule: D-IPC-001
+
+  - command: runtime_account_session_events_close
+    module: protected-local-host
+    description: Close one native-host-issued protected Runtime account event stream without exposing caller authority or generic Runtime stream access.
+    source_rule: D-IPC-001
+
   - command: runtime_account_begin_login
     module: protected-local-host
     description: Begin Runtime-owned Desktop login through the verified account-host carrier; native code supplies the exact caller envelope and returns no token or technical session material.

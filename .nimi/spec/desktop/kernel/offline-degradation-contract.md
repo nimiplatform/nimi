@@ -18,6 +18,16 @@ Desktop 按照以下三级降级模型运行：
 
 Bootstrap 阶段检测到 Runtime 不可达时执行 D-BOOT-008 错误/降级路径。此合约覆盖**运行时**（非启动阶段）的降级。
 
+Realm connectivity is a tri-state projection: `unknown | reachable |
+unreachable`. Only explicit Realm transport failure (DNS, connect, TLS,
+timeout, response-read failure, or HTTP 408/502/503/504) may set
+`unreachable` and enter L1. Authentication/reauth, permission, validation,
+rate-limit, conflict, not-found, contract, and ordinary operation errors do
+not mutate connectivity. A successful refresh or admitted Realm operation
+sets `reachable`; account `anonymous`, `expired`, `reauth_required`, or
+`unavailable` clears stale L1 without claiming Realm reachability. L2 remains
+the distinct Runtime-unavailable projection.
+
 ## D-OFFLINE-002 — Realm 离线行为（L1）
 
 Realm 不可达时的行为规则：

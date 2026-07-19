@@ -85,8 +85,15 @@ Desktop local first-party auth state is a redacted projection of
 | Desktop projection | Required Runtime / SDK condition | Desktop allowance |
 |---|---|---|
 | `bootstrapping` | Runtime account status has not been resolved or the Runtime-backed Platform client is not assembled | Render startup / login-gate pending state only |
+| `anonymous` | Runtime projects `anonymous` | Render explicit login state and disable account feature wiring |
+| `login-pending` | Runtime projects `login_pending` | Keep the login UX active; do not enable account features |
 | `authenticated` | `GetAccountSessionStatus` projects `authenticated` and the SDK Desktop composition can use an admitted Runtime-mediated Realm operation | Store redacted user/account display projection and enable authenticated feature wiring |
-| `anonymous` | Runtime projects `anonymous`, `expired`, `reauth_required`, `unavailable`, or broker admission is unavailable/fail-closed | Render login / reauth / unavailable product state and disable authenticated feature wiring |
+| `refresh-pending` | Runtime projects `refresh_pending` | Preserve the shell and projection; pause new Realm operations |
+| `expired` | Runtime projects `expired` | Clear account memory/subscriptions and render an explicit expired login state |
+| `reauth-required` | Runtime projects `reauth_required` | Clear account memory/subscriptions and render explicit reauthentication |
+| `switching` | Runtime projects `switching` | Suspend account operations until the atomic switch completes |
+| `logging-out` | Runtime projects `logging_out` | Stop account work while Runtime completes custody/binding revocation |
+| `unavailable` | Runtime status/carrier/custody cannot safely project account truth | Render account/Runtime repair state; never synthesize anonymous or Cloud offline |
 
 Fixed rules:
 
@@ -112,13 +119,23 @@ Fixed rules:
 
 ## D-AUTH-005 — Auth 事件联动
 
-Desktop auth watcher listens to Runtime account-session projection events:
+Desktop auth watcher consumes the exact protected Runtime account stream, not
+local Zustand mutations. Electron and Tauri expose only
+`runtime_account_session_events_open` and
+`runtime_account_session_events_close`; renderer supplies only decimal-string
+`afterSequence`, while native host injects caller/app/account/device/origin.
 
-- `isAuthenticated = true`：配置或 revalidate SDK Platform Client 的
-  Runtime-mediated Realm transport and redacted account projection.
-- `isAuthenticated = false`：清空 renderer redacted auth projection，停止
-  feature-local subscriptions / polling。
-- Desktop must not reintroduce a DataSync listener, token hot-state, or refresh timer as an auth owner.
+- `authenticated`: configure/revalidate the Runtime-mediated Realm transport
+  and redacted projection, then enable feature subscriptions.
+- `refresh_pending`: retain the shell/projection and pause new Realm work.
+- `expired` / `reauth_required` / `anonymous`: clear account memory and feature
+  subscriptions, clear stale L1, and route to the explicit login state.
+- `unavailable`: expose account/Runtime repair state; do not project anonymous
+  or Cloud offline.
+- replay truncation, sequence gap, malformed decimal sequence, or delivery-order
+  violation requires a fresh status query before later events are accepted.
+- Desktop must not reintroduce a DataSync listener, token hot-state, refresh
+  timer, or renderer-local auth truth as an auth owner.
 
 ## D-AUTH-006 — Token 刷新: Reactive
 
