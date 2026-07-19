@@ -2,9 +2,9 @@
  * @generated
  * Sources:
  *   .nimi/spec/runtime/kernel/tables/provider-capabilities.yaml
- *     sha256: 35b551438417aaa00b46862be04bcdc869abef0a1a6c3487342526f9fb7e78c3
+ *     sha256: e5504c6d071e8d73ca76094b39f2fd1b2eeef78cd6c7467130919122ef90cfd3
  *   .nimi/spec/runtime/kernel/tables/provider-catalog.yaml
- *     sha256: ad725e794a4ec8d3c047631361bed64479bdc92c99debf3f5d0aa94451408745
+ *     sha256: 7bf7e60462e2f30be43889c407392fc82e2d9f98a412835d8f99a4f075cf94af
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -98,7 +98,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "explicit_required",
     inventoryMode: "static_source",
-    capabilities: ["image.generate", "text.embed", "text.generate"],
+    capabilities: ["image.generate", "text.embed", "text.generate", "text.generate.vision"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -351,7 +351,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["image.generate", "text.generate", "video.generate"],
+    capabilities: ["image.generate", "text.generate", "text.generate.vision", "video.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {

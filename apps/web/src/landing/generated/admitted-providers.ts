@@ -1,7 +1,7 @@
 /**
  * @generated
  * Source: .nimi/spec/runtime/kernel/tables/provider-catalog.yaml
- *   sha256: ad725e794a4ec8d3c047631361bed64479bdc92c99debf3f5d0aa94451408745
+ *   sha256: 7bf7e60462e2f30be43889c407392fc82e2d9f98a412835d8f99a4f075cf94af
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -22,7 +22,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "anthropic",
     defaultEndpoint: "https://api.anthropic.com",
-    defaultTextModel: "claude-sonnet-4-6",
+    defaultTextModel: "claude-sonnet-5",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -38,7 +38,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "azure",
     defaultEndpoint: null,
-    defaultTextModel: "gpt-5.5",
+    defaultTextModel: "gpt-5.6-sol",
     requiresExplicitEndpoint: true,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -54,7 +54,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "bedrock",
     defaultEndpoint: null,
-    defaultTextModel: "anthropic.claude-sonnet-4-6",
+    defaultTextModel: "anthropic.claude-sonnet-5",
     requiresExplicitEndpoint: true,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -70,7 +70,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "dashscope",
     defaultEndpoint: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    defaultTextModel: "qwen3.7-max",
+    defaultTextModel: "qwen3.7-plus",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -78,7 +78,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "deepseek",
     defaultEndpoint: "https://api.deepseek.com/v1",
-    defaultTextModel: "deepseek-chat",
+    defaultTextModel: "deepseek-v4-flash",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -118,7 +118,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "gemini",
     defaultEndpoint: "https://generativelanguage.googleapis.com/v1beta/openai",
-    defaultTextModel: "gemini-3-flash-preview",
+    defaultTextModel: "gemini-3.5-flash",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -126,7 +126,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "glm",
     defaultEndpoint: "https://open.bigmodel.cn/api/paas/v4",
-    defaultTextModel: "glm-5.1",
+    defaultTextModel: "glm-5.2",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -213,8 +213,8 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   },
   {
     provider: "minimax",
-    defaultEndpoint: "https://api.minimax.chat/v1",
-    defaultTextModel: "MiniMax-M2.7",
+    defaultEndpoint: "https://api.minimaxi.com/v1",
+    defaultTextModel: "MiniMax-M3",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -246,7 +246,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "openai",
     defaultEndpoint: "https://api.openai.com/v1",
-    defaultTextModel: "gpt-5.5",
+    defaultTextModel: "gpt-5.6-sol",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -350,7 +350,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "stepfun",
     defaultEndpoint: "https://api.stepfun.ai/v1",
-    defaultTextModel: "step-3.5-flash",
+    defaultTextModel: "step-3.7-flash",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
