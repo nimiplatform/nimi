@@ -30,7 +30,9 @@ readiness. Missing service-principal isolation fails closed before custody load
 or any listener. Same-user fixtures may exercise isolated unit logic only and
 cannot open a product protected listener or serve as checkpoint evidence.
 Service acceptance uses the same fixed production service principal with a
-service-owned candidate root defined by the principal-profile table.
+service-owned development-state lineage root defined by the principal-profile
+table. The signed binary candidate is verified independently and does not
+silently rotate that durable state identity.
 
 Service-principal semantics are platform-neutral: production Runtime is a
 non-interactive OS service principal distinct from the interactive user; only

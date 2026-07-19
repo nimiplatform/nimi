@@ -25,8 +25,12 @@ interactive-user projection. 本契约只拥有：
 Production Runtime configuration is service-principal-owned protected state,
 not a `~/.nimi` user-local config file and not a member of this registry.
 `K-CFG-014..016` govern only future transitions of already service-owned state;
-they import no retired `~/.nimi/runtime/config.json`. Desktop and this framework
-must not inspect, repair, migrate, recreate, or point at that retired file.
+they do not import `~/.nimi/runtime/config.json` as Runtime service state.
+Desktop and this framework must not inspect, repair, migrate, recreate, or point
+at that file. K-CFG-001 separately admits the non-release development updater
+to read only its exact `dataRootRef` and promote it to an explicit signed
+installer selection; that bounded read does not register the file here or admit
+any other field.
 
 不拥有：
 
@@ -96,6 +100,11 @@ fail-closed-to-repair。
 `MUST NOT`：本框架不得把 retired `~/.nimi/runtime/config.json` 注册为成员、
 修复输入或 migration source。Runtime service-owned state is outside the
 interactive-user file family and follows `K-CFG-014..016` only.
+
+That prohibition governs this migration framework and production Runtime
+configuration. It does not forbid the exact K-CFG-001 development-updater
+`dataRootRef` read, which cannot register, repair, or import the file and cannot
+consume any other field.
 
 `MUST NOT`: the framework must not register, repair, recreate, dual-read, or
 dual-write retired `~/.nimi/apps/{registry,packages}.json` or

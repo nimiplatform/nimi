@@ -33,8 +33,10 @@ desktop_service_control:
   common_response_fields: [state, release_id, reason_code, retryable]
   state_values: [stopped, start_pending, running, restart_pending, unavailable]
 service_acceptance_contract:
-  service_owned_candidate_root: required
-  candidate_binding_source: signed_installer_or_service_owned_acceptance_manifest
+  service_owned_development_state_lineage_root: required
+  binary_candidate_binding_source: signed_installer_and_build_record
+  state_lineage_binding_source: first_signed_install_then_exact_preceding_protected_profile_on_update
+  ordinary_candidate_update_preserves_state_lineage: true
   environment_or_argv_root_selection: forbidden
   candidate_id_in_app_or_renderer: forbidden
   cleanup: service_owned_candidate_cleanup_after_all_leases_sessions_and_jobs_end
@@ -103,10 +105,10 @@ profiles:
     acceptance_isolation:
       service_name: NimiRuntime
       service_principal: same_production_local_system_and_restricted_service_sid
-      candidate_root_acl: restricted_service_sid_only
+      development_state_lineage_root_acl: restricted_service_sid_only
       account_partition: verified_interactive_sid
       runtime_lifecycle_and_restart: real_scm_service
-      parallel_isolation: candidate_namespace_for_state_audit_and_child_pipes
+      parallel_isolation: development_state_lineage_namespace_for_state_audit_and_child_pipes
     source_rule: K-PLOCAL-007
   - os: linux
     admission: requirements_only_fail_closed_pending_native_admission
@@ -131,10 +133,10 @@ profiles:
       implementation_status: requirements_only
     acceptance_isolation:
       service_principal: same_production_dedicated_system_uid
-      candidate_root_acl: dedicated_runtime_uid_only
+      development_state_lineage_root_acl: dedicated_runtime_uid_only
       account_partition: verified_interactive_uid_and_login_session
       runtime_lifecycle_and_restart: real_systemd_system_service
-      parallel_isolation: candidate_namespace_for_state_audit_and_child_sockets
+      parallel_isolation: development_state_lineage_namespace_for_state_audit_and_child_sockets
     source_rule: K-PLOCAL-007
   - os: macos
     admission: requirements_only_fail_closed_pending_native_admission
@@ -167,8 +169,8 @@ profiles:
       implementation_status: requirements_only
     acceptance_isolation:
       service_principal: same_production_dedicated__nimiruntime_principal
-      candidate_root_acl: dedicated__nimiruntime_uid_only
+      development_state_lineage_root_acl: dedicated__nimiruntime_uid_only
       account_partition: verified_interactive_euid_and_audit_session
       runtime_lifecycle_and_restart: real_launchd_system_daemon
-      parallel_isolation: candidate_namespace_for_state_audit_and_child_sockets
+      parallel_isolation: development_state_lineage_namespace_for_state_audit_and_child_sockets
     source_rule: K-PLOCAL-007

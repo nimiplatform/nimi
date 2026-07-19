@@ -206,27 +206,27 @@ completion, import success, endpoint probe, script exit, or renderer-local
 state may satisfy product readiness without the `ready_for_use` product-control
 record and required evidence fields.
 
-For the signed `dev_kernel_checkpoint` non-release profile only, each real-app
-acceptance round uses a Product Control record below a service-owned checkpoint
-partition derived from the signed Runtime candidate profile. Every successful
-installer `Install` writes a new cryptographically random `acceptanceRoundId`
-into that protected profile, and the partition identity is the exact signed
-trial id, build-record-verified Runtime candidate id, and acceptance round id.
-The new partition starts with a fresh `installId` and isolated Product Control,
-Runtime local state, account, audit, model-registry, and generated identity
-state. Runtime restart with the same protected profile must reuse the same
-partition and preserve completed First Run state. Starting a new round never
-deletes, resets, or mutates the selected data-plane root. Existing or damaged
-records inside a round and every production-profile record follow the normal
-repair/fail-closed state machine and must not be reset in place.
+For the signed `dev_kernel_checkpoint` non-release profile only, the first real
+installation creates a Product Control record below a service-owned development
+state lineage. The lineage identity is the exact signed trial id, the
+first-install `developmentStateCandidateId`, and a cryptographically random
+`acceptanceRoundId`. Later signed Runtime candidate updates preserve those two
+state-lineage fields while independently replacing and verifying the current
+`runtimeCandidateId`. Product Control, Runtime local state, audit,
+model-registry, generated identity, and durable grants therefore remain bound
+to the same lineage. Runtime restart and binary update must preserve completed
+First Run state. A fresh lineage requires an explicit destructive repair/reset
+operation and never follows merely from installer `Install`. Existing or
+damaged records follow the normal repair/fail-closed state machine and must not
+be silently reset in place.
 
-The checkpoint partition and round identity must not be selected by HOME,
+The protected lineage and round identity must not be selected by HOME,
 TEMP, renderer state, endpoint, environment, argv, or a request field. The
 signed checkpoint profile may affect only the visible directory proposal, the
-candidate's Runtime data-plane roots, and the user's explicit selection through
+lineage's Runtime data-plane roots, and the user's explicit selection through
 the normal typed Product Control operation. When the signed installer records
 an explicit absolute development data-root binding, Runtime uses that protected,
-candidate-bound field as its proposal and data-plane root. Otherwise Runtime
+lineage-bound field as its proposal and data-plane root. Otherwise Runtime
 derives the proposal from the verified interactive Windows SID's OS profile
 mapping plus the signed trial id and build-record-verified Runtime candidate id.
 Desktop must prefer the Runtime projection and must not reconstruct a checkpoint

@@ -135,32 +135,43 @@ production_authority:
   non_release_checkpoint_profile:
     profile: dev_kernel_checkpoint
     activation_source: signed_runtime_candidate_projection_only
-    schema_version: 4
-    product_control_root: service_owned_trial_runtime_candidate_and_acceptance_round_partition
-    partition_identity: exact_trial_id_plus_build_record_verified_runtime_candidate_id_plus_installer_generated_acceptance_round_id
+    schema_version: 5
+    product_control_root: service_owned_trial_development_state_lineage_partition
+    partition_identity: exact_trial_id_plus_preserved_development_state_candidate_id_plus_preserved_acceptance_round_id
+    binary_candidate_binding:
+      field: runtimeCandidateId
+      source: exact_current_build_record_verified_runtime_candidate_id
+      state_identity_effect: none
+    development_state_lineage_binding:
+      fields: [developmentStateCandidateId, acceptanceRoundId]
+      first_install_source: current_build_record_verified_runtime_candidate_id_plus_cryptographically_random_acceptance_round_id
+      signed_update_source: exact_preceding_protected_profile_lineage
+      update_semantics: preserve_product_control_runtime_identity_local_app_kernel_grants_model_registry_audit_and_service_owned_config
+      forbidden_reset_sources: [runtime_candidate_change, boot_epoch_change, desktop_restart, renderer_state, environment_variable, argv, home, temp, endpoint, request_field]
+      reset_semantics: explicit_destructive_repair_operation_only
     acceptance_round_binding:
       field: acceptanceRoundId
-      source: cryptographically_random_value_generated_by_each_successful_signed_installer_install
+      source: cryptographically_random_value_generated_by_first_signed_install_then_exactly_preserved_by_signed_updates
       restart_semantics: same_protected_profile_preserves_same_round_and_completed_first_run_state
-      next_round_semantics: subsequent_signed_installer_install_creates_new_isolated_control_partition
+      next_round_semantics: ordinary_signed_runtime_update_preserves_round
       shared_payload_effect: none
       forbidden_sources: [environment_variable, argv, home, userprofile, temp, renderer_metadata, endpoint, request_field]
     explicit_development_data_root_binding:
       field: developmentDataRootRef
-      source: signed_installer_explicit_operator_selection_or_exact_preceding_protected_profile_binding
+      source: signed_installer_explicit_operator_selection_or_exact_preceding_protected_profile_binding_or_canonical_development_updater_data_root_selection
+      development_updater_source: exact_dataRootRef_only_from_current_~/.nimi/runtime/config.json_promoted_to_explicit_signed_installer_input_before_service_mutation
       validation: existing_absolute_non_volume_root_non_reparse_directory_accessible_to_fixed_service
       runtime_effect: dataRootRef_and_managed_payload_roots_resolve_below_binding
-      product_control_effect: visible_confirmable_proposal_only_until_typed_user_confirmation
-      update_semantics: preserve_non_empty_validated_binding_across_candidate_and_round_rotation_unless_operator_explicitly_replaces_it
-      preserved_scope: payload_root_selector_only
-      forbidden_preserved_state: [product_control_state, registry_rows, readiness, accounts, runtime_identity, databases, grants, audit_state]
+      product_control_effect: fresh_lineage_visible_confirmable_proposal_existing_lineage_preserves_existing_selection
+      update_semantics: preserve_non_empty_validated_binding_across_binary_candidate_rotation_unless_operator_explicitly_replaces_it
+      preserved_scope: payload_root_selector_plus_same_lineage_service_owned_selection
       invalid_preserved_binding: fail_update_closed_without_candidate_fallback
     first_run_data_root_proposal: signed_explicit_development_data_root_binding_or_verified_interactive_windows_sid_profile_mapping_plus_trial_id_plus_runtime_candidate_id
     first_run_data_root_proposal_disposition: non_record_visible_confirmable_proposal_only
     first_run_data_root_proposal_forbidden_sources: [environment_variable, argv, home, userprofile, temp, renderer_metadata, endpoint, request_field]
-    cross_candidate_state_inheritance: forbidden
-    cross_candidate_payload_reuse: independently_verify_current_candidate_catalog_hash_manifest_compatibility_and_activation_then_write_fresh_isolated_evidence
-    fresh_round_condition: new_installer_generated_acceptance_round_id
+    cross_candidate_state_inheritance: exact_same_signed_development_state_lineage_only
+    cross_candidate_payload_reuse: independently_verify_current_candidate_catalog_hash_manifest_compatibility_and_activation_without_redownload_when_payload_is_unchanged
+    fresh_round_condition: first_install_or_explicit_destructive_repair_reset_only
     fresh_round_effect: new_isolated_control_partition_with_new_install_id_and_no_shared_payload_mutation
     forbidden_activation_sources: [environment_variable, argv, home, temp, renderer_metadata, endpoint, request_field]
     existing_or_partially_damaged_record: normal_repair_fail_closed_within_same_round

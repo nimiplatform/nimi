@@ -12,6 +12,15 @@ app callers. `~/.nimi/runtime/config.json`, `~/.nimi/config.json`, and any other
 user-writable file are forbidden production inputs. This pre-release hardcut
 imports no retired config or credential material.
 
+The non-release development updater has one narrower, non-Runtime exception:
+before invoking the signed installer it may read only the exact `dataRootRef`
+field from the current `~/.nimi/runtime/config.json` and promote that value to
+an explicit installer selection. The Runtime service never reads that file,
+none of its other fields enter protected configuration, and a missing,
+malformed, relative, volume-root, or inaccessible value fails before build or
+installation. This is updater input selection, not production Runtime config
+authority or a compatibility fallback.
+
 ## K-CFG-002 Source Priority
 
 Production source authority is the closed partition in
@@ -154,37 +163,41 @@ before protected listeners open. It is deterministic, idempotent, atomic, and
 anti-rollback anchored. Failure leaves no partially admitted state and keeps
 the service unavailable. Desktop/CLI/SDK never execute or select transitions.
 
-The signed `dev_kernel_checkpoint` profile is a closed non-release exception
-for acceptance-round isolation, not a production schema transition. Each
-successful signed-installer `Install` generates a cryptographically random
-`acceptanceRoundId`. The service-owned checkpoint partition is derived from the
-bounded trial id, the exact Runtime candidate id verified against the signed
-build record, and that protected round id. Different rounds or candidates
-cannot read, inherit, migrate, or write each other's checkpoint databases,
-product-control state, model registry, account state, audit state, or generated
-Runtime identity. Restarting Runtime under the same protected profile preserves
-the same partition and completed First Run state; only a subsequent signed
-installer `Install` can create a new round identity. This state isolation does
-not require duplicating large data-plane payloads. A signed checkpoint profile
-may bind an explicit operator-selected development `nimi_data` root; each round
-must reconstruct its own registry and readiness evidence by verifying the bound
-root against its own admitted catalog hashes and activation checks. File
-presence, an older registry, or prior-round readiness is never inherited as
-truth. A new round never deletes or mutates the shared payload root. Existing
-or partially damaged records retain the normal Product Control
+The signed `dev_kernel_checkpoint` profile is a closed non-release exception,
+not a production schema transition. Its binary identity and durable development
+state identity are separate. `runtimeCandidateId` binds the exact current
+signed build record but never selects the state partition. On first installation
+the installer creates a cryptographically random `acceptanceRoundId` and records
+the then-current candidate as `developmentStateCandidateId`; together with the
+bounded trial id these fields form the durable development state lineage.
+
+An ordinary signed Runtime update must preserve that exact lineage. Product
+Control, Runtime identity, local-app kernel state, durable grants, model
+registry, audit state, and service-owned mutable config therefore survive a
+binary candidate rotation instead of being silently replaced by an empty
+candidate directory. Account token custody and durable local-project consent
+remain in their independently stable protected stores. A new lineage may be
+created only by an explicit destructive repair/reset operation, never merely by
+installing a new candidate, restarting Desktop, or rotating the Runtime boot
+epoch. Malformed or unavailable lineage state fails the update closed; the
+installer does not guess a new directory.
+
+Payload reuse still does not imply readiness by file presence. The updated
+candidate must verify its current catalog hashes, manifests, and activation
+requirements, but unchanged verified payloads are not downloaded again.
+Existing or partially damaged records retain the normal Product Control
 repair/fail-closed path. Production configuration, HOME/TEMP, renderer state,
-environment, argv, endpoint selection, and request payloads cannot activate
-this behavior, choose a round, or choose its root.
+environment, argv, endpoint selection, and request payloads cannot activate or
+reset the development lineage.
 
 The signed installer preserves an existing non-empty explicit development
-`nimi_data` binding when it rotates the checkpoint candidate or acceptance
-round, unless the operator supplies a different explicit binding to that
-installer invocation. Preservation carries only the validated payload-root
-selector into the new signed profile. It never carries Product Control state,
-registry rows, readiness, accounts, Runtime identity, databases, grants, or
-audit state across candidates. A missing, malformed, inaccessible, or
-reparse-point preserved binding fails the update closed instead of silently
-falling back to a new candidate-specific payload root.
+`nimi_data` binding when it rotates the binary candidate, unless the operator
+supplies a different explicit binding to that installer invocation. The
+development updater may obtain that explicit value only from the bounded
+`dataRootRef` read described by K-CFG-001. The installer validates and records
+the exact path; the Runtime service does not read the user file. A missing,
+malformed, inaccessible, or reparse-point binding fails the update closed
+instead of silently falling back to a candidate-specific payload root.
 
 The same profile binds account OAuth, token exchange, JWT issuer, JWKS, and
 revocation to one exact real Realm development deployment so the checkpoint
@@ -203,13 +216,15 @@ proposal is derived from the verified interactive Windows SID's OS profile
 mapping, the signed trial id, and the build-record-verified Runtime candidate
 id. The proposal is not a Product Control record field and cannot select the
 data root or create readiness; explicit confirmation through the normal typed
-Product Control operation is still required. The binding cannot originate from
-HOME, USERPROFILE, TEMP, renderer state, environment, argv, endpoint, or a
-Runtime request payload. The signed installer must reject a missing,
+Product Control operation is still required. The protected service cannot
+derive the binding from HOME, USERPROFILE, TEMP, renderer state, environment,
+argv, endpoint, or a Runtime request payload. The signed installer must reject a missing,
 non-absolute, volume-root, reparse-point, or inaccessible explicit binding.
 The installer may source that exact field from the preceding protected profile
-when rotating a candidate or round, subject to the same validation. It must not
-source it from the interactive user's portable config file.
+when rotating a candidate, subject to the same validation. The development
+updater may instead pass the canonical user-config `dataRootRef` as an explicit
+selection, but the installer and Runtime never consume any other user-config
+field.
 
 ## K-CFG-016 Transition Backup & Drift Boundary
 

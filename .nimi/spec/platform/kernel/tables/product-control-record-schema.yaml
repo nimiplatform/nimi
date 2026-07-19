@@ -46,7 +46,7 @@ invariants:
   - id: repair-fail-closed
     requirement: repair.required or invalid product-control shape routes to repair_required or blocked, never ordinary ready.
   - id: non-release-checkpoint-round-partition
-    requirement: Only a successful signed-installer dev_kernel_checkpoint Install may create a fresh acceptance round by writing a cryptographically random acceptanceRoundId into the protected candidate profile. Product Control state is partitioned by exact trial id, build-record-verified Runtime candidate id, and acceptance round id; Runtime restart with the same profile preserves the same record, while a new round starts with a new installId without deleting or mutating the shared data-plane root. Existing or damaged records and every production profile retain normal repair/fail-closed semantics; HOME, TEMP, renderer state, endpoint, environment, argv, and request fields cannot select a round or enable reset.
+    requirement: The first signed-installer dev_kernel_checkpoint installation creates a durable development state lineage from exact trial id, first-install developmentStateCandidateId, and a cryptographically random acceptanceRoundId. Ordinary signed Runtime candidate updates preserve that exact lineage and Product Control record; candidate rotation never creates a fresh installId, resets grants, or abandons selected payloads. A new lineage requires an explicit destructive repair/reset operation. Existing or damaged records and every production profile retain normal repair/fail-closed semantics; HOME, TEMP, renderer state, endpoint, environment, argv, and request fields cannot select a lineage or enable reset.
 projection_fields:
   dataRootProposal:
     record_field: false
