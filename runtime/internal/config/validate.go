@@ -99,6 +99,7 @@ func ValidateDevKernelCheckpointAcceptance(acceptance *DevKernelCheckpointAccept
 	}{
 		{"trial id", acceptance.TrialID},
 		{"Runtime candidate id", acceptance.RuntimeCandidateID},
+		{"development state candidate id", acceptance.DevelopmentStateCandidateID},
 		{"acceptance round id", acceptance.AcceptanceRoundID},
 		{"primary account id", acceptance.PrimaryAccountID},
 		{"secondary account id", acceptance.SecondaryAccountID},
@@ -132,12 +133,17 @@ func ValidateDevKernelCheckpointAcceptance(acceptance *DevKernelCheckpointAccept
 			return fmt.Errorf("dev-kernel checkpoint development data root ref must be an absolute non-root path")
 		}
 	}
-	const candidatePrefix = "dev-kernel-runtime-"
-	candidateSuffix := strings.TrimPrefix(acceptance.RuntimeCandidateID, candidatePrefix)
-	if len(candidateSuffix) != 32 || candidatePrefix+candidateSuffix != acceptance.RuntimeCandidateID || strings.IndexFunc(candidateSuffix, func(value rune) bool {
-		return !((value >= '0' && value <= '9') || (value >= 'a' && value <= 'f'))
-	}) >= 0 {
-		return fmt.Errorf("dev-kernel checkpoint Runtime candidate id is invalid")
+	for label, candidateID := range map[string]string{
+		"Runtime candidate id":           acceptance.RuntimeCandidateID,
+		"development state candidate id": acceptance.DevelopmentStateCandidateID,
+	} {
+		const candidatePrefix = "dev-kernel-runtime-"
+		candidateSuffix := strings.TrimPrefix(candidateID, candidatePrefix)
+		if len(candidateSuffix) != 32 || candidatePrefix+candidateSuffix != candidateID || strings.IndexFunc(candidateSuffix, func(value rune) bool {
+			return !((value >= '0' && value <= '9') || (value >= 'a' && value <= 'f'))
+		}) >= 0 {
+			return fmt.Errorf("dev-kernel checkpoint %s is invalid", label)
+		}
 	}
 	localRefSuffix := strings.TrimPrefix(acceptance.LocalAgentRef, "local-agent:runtime-")
 	if len(localRefSuffix) != 32 || strings.IndexFunc(localRefSuffix, func(value rune) bool {

@@ -8,6 +8,27 @@ import (
 
 const ServiceOwnedConfigFilename = "config.json"
 
+// ApplyProtectedDataRootBinding applies a data-plane root that has already
+// been authenticated by the platform-specific signed service profile. It does
+// not read a user file or choose a path; callers own that trust decision.
+func ApplyProtectedDataRootBinding(cfg *Config, dataRootRef string) error {
+	if cfg == nil {
+		return fmt.Errorf("Runtime config is required")
+	}
+	root := filepath.Clean(strings.TrimSpace(dataRootRef))
+	if root == "." || !filepath.IsAbs(root) || root == filepath.VolumeName(root)+string(filepath.Separator) {
+		return fmt.Errorf("protected dataRootRef must be an absolute non-root path")
+	}
+	managedRoots := resolveManagedRoots(FileConfig{
+		SchemaVersion: DefaultSchemaVersion,
+		DataRootRef:   root,
+	})
+	cfg.DataRootRef = root
+	cfg.LocalModelsPath = managedRoots.Models
+	cfg.ManagedRoots = managedRoots
+	return nil
+}
+
 // ServiceOwnedConfigPath resolves the mutable Runtime configuration beside the
 // service-owned local state. Callers must supply the already-verified
 // service-owned local-state path; request and renderer paths are not accepted.

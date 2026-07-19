@@ -15,14 +15,15 @@ func TestCheckpointProductControlDataRootProposalPreservesWindowsManagedPythonPa
 	}
 	profileRoot := filepath.Join(`C:\Users`, strings.Repeat("u", 32))
 	acceptance := &config.DevKernelCheckpointAcceptance{
-		TrialID:            "dev-kernel-checkpoint",
-		RuntimeCandidateID: "dev-kernel-runtime-0123456789abcdef0123456789abcdef",
-		AcceptanceRoundID:  "dev-kernel-round-0123456789abcdef0123456789abcdef",
-		PrimaryAccountID:   "account-primary",
-		SecondaryAccountID: "account-secondary",
-		LocalAgentRef:      "local-agent:runtime-0123456789abcdef0123456789abcdef",
-		RuntimeSourceRef:   "runtime-source",
-		AgentDisplayName:   "Zhiyu acceptance agent",
+		TrialID:                     "dev-kernel-checkpoint",
+		RuntimeCandidateID:          "dev-kernel-runtime-0123456789abcdef0123456789abcdef",
+		DevelopmentStateCandidateID: "dev-kernel-runtime-0123456789abcdef0123456789abcdef",
+		AcceptanceRoundID:           "dev-kernel-round-0123456789abcdef0123456789abcdef",
+		PrimaryAccountID:            "account-primary",
+		SecondaryAccountID:          "account-secondary",
+		LocalAgentRef:               "local-agent:runtime-0123456789abcdef0123456789abcdef",
+		RuntimeSourceRef:            "runtime-source",
+		AgentDisplayName:            "Zhiyu acceptance agent",
 	}
 	proposal, err := checkpointProductControlDataRootProposal(profileRoot, acceptance)
 	if err != nil {
@@ -39,23 +40,24 @@ func TestCheckpointProductControlDataRootProposalPreservesWindowsManagedPythonPa
 	}
 }
 
-func TestCheckpointProductControlDataRootProposalIsCandidateBound(t *testing.T) {
+func TestCheckpointProductControlDataRootProposalIsDevelopmentStateLineageBound(t *testing.T) {
 	profileRoot := filepath.Join(t.TempDir(), "verified-user")
 	acceptance := &config.DevKernelCheckpointAcceptance{
-		TrialID:            "dev-kernel-checkpoint",
-		RuntimeCandidateID: "dev-kernel-runtime-0123456789abcdef0123456789abcdef",
-		AcceptanceRoundID:  "dev-kernel-round-0123456789abcdef0123456789abcdef",
-		PrimaryAccountID:   "account-primary",
-		SecondaryAccountID: "account-secondary",
-		LocalAgentRef:      "local-agent:runtime-0123456789abcdef0123456789abcdef",
-		RuntimeSourceRef:   "runtime-source",
-		AgentDisplayName:   "Zhiyu acceptance agent",
+		TrialID:                     "dev-kernel-checkpoint",
+		RuntimeCandidateID:          "dev-kernel-runtime-0123456789abcdef0123456789abcdef",
+		DevelopmentStateCandidateID: "dev-kernel-runtime-0123456789abcdef0123456789abcdef",
+		AcceptanceRoundID:           "dev-kernel-round-0123456789abcdef0123456789abcdef",
+		PrimaryAccountID:            "account-primary",
+		SecondaryAccountID:          "account-secondary",
+		LocalAgentRef:               "local-agent:runtime-0123456789abcdef0123456789abcdef",
+		RuntimeSourceRef:            "runtime-source",
+		AgentDisplayName:            "Zhiyu acceptance agent",
 	}
 	proposal, err := checkpointProductControlDataRootProposal(profileRoot, acceptance)
 	if err != nil {
 		t.Fatalf("checkpoint proposal: %v", err)
 	}
-	want := filepath.Join(profileRoot, "AppData", "Local", "Nimi", acceptance.TrialID, acceptance.RuntimeCandidateID, "Nimi")
+	want := filepath.Join(profileRoot, "AppData", "Local", "Nimi", acceptance.TrialID, acceptance.DevelopmentStateCandidateID, "Nimi")
 	if proposal != want {
 		t.Fatalf("proposal = %q, want %q", proposal, want)
 	}
@@ -68,15 +70,16 @@ func TestCheckpointProductControlDataRootProposalIsCandidateBound(t *testing.T) 
 
 func TestCheckpointProductControlDataRootProposalPrefersSignedDevelopmentBinding(t *testing.T) {
 	acceptance := &config.DevKernelCheckpointAcceptance{
-		TrialID:                "dev-kernel-checkpoint",
-		RuntimeCandidateID:     "dev-kernel-runtime-0123456789abcdef0123456789abcdef",
-		AcceptanceRoundID:      "dev-kernel-round-0123456789abcdef0123456789abcdef",
-		DevelopmentDataRootRef: filepath.Join(t.TempDir(), "existing-development-data"),
-		PrimaryAccountID:       "account-primary",
-		SecondaryAccountID:     "account-secondary",
-		LocalAgentRef:          "local-agent:runtime-0123456789abcdef0123456789abcdef",
-		RuntimeSourceRef:       "runtime-source",
-		AgentDisplayName:       "Zhiyu acceptance agent",
+		TrialID:                     "dev-kernel-checkpoint",
+		RuntimeCandidateID:          "dev-kernel-runtime-0123456789abcdef0123456789abcdef",
+		DevelopmentStateCandidateID: "dev-kernel-runtime-0123456789abcdef0123456789abcdef",
+		AcceptanceRoundID:           "dev-kernel-round-0123456789abcdef0123456789abcdef",
+		DevelopmentDataRootRef:      filepath.Join(t.TempDir(), "existing-development-data"),
+		PrimaryAccountID:            "account-primary",
+		SecondaryAccountID:          "account-secondary",
+		LocalAgentRef:               "local-agent:runtime-0123456789abcdef0123456789abcdef",
+		RuntimeSourceRef:            "runtime-source",
+		AgentDisplayName:            "Zhiyu acceptance agent",
 	}
 	proposal, err := checkpointProductControlDataRootProposal("not-an-authority", acceptance)
 	if err != nil {

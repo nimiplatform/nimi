@@ -223,15 +223,16 @@ type Config struct {
 }
 
 type DevKernelCheckpointAcceptance struct {
-	TrialID                string
-	RuntimeCandidateID     string
-	AcceptanceRoundID      string
-	DevelopmentDataRootRef string
-	PrimaryAccountID       string
-	SecondaryAccountID     string
-	LocalAgentRef          string
-	RuntimeSourceRef       string
-	AgentDisplayName       string
+	TrialID                     string
+	RuntimeCandidateID          string
+	DevelopmentStateCandidateID string
+	AcceptanceRoundID           string
+	DevelopmentDataRootRef      string
+	PrimaryAccountID            string
+	SecondaryAccountID          string
+	LocalAgentRef               string
+	RuntimeSourceRef            string
+	AgentDisplayName            string
 }
 
 // FileConfig is the on-disk JSON schema for runtime configuration.

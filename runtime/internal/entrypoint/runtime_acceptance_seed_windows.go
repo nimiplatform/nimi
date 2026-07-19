@@ -37,6 +37,7 @@ func ensureWindowsAcceptanceRuntimeSeed(securityStateRoot string, cfg config.Con
 		"nonRelease":                  true,
 		"trialId":                     profile.TrialID,
 		"runtimeCandidateId":          profile.RuntimeCandidateID,
+		"developmentStateCandidateId": profile.DevelopmentStateCandidateID,
 		"acceptanceRoundId":           profile.AcceptanceRoundID,
 		"serviceOwned":                true,
 		"runtimeId":                   cfg.RuntimeID,

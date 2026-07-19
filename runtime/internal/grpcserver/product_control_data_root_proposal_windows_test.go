@@ -49,7 +49,7 @@ func TestProtectedProductControlProposalDoesNotRequireProfileDirectoryAccess(t *
 	if err != nil {
 		t.Fatalf("derive proposal from OS profile mapping without filesystem access: %v", err)
 	}
-	for _, component := range []string{profileRoot, "dev-kernel-checkpoint", acceptance.TrialID, acceptance.RuntimeCandidateID, "Nimi"} {
+	for _, component := range []string{profileRoot, "dev-kernel-checkpoint", acceptance.TrialID, acceptance.DevelopmentStateCandidateID, "Nimi"} {
 		if !strings.Contains(strings.ToLower(got), strings.ToLower(component)) {
 			t.Fatalf("proposal %q does not contain %q", got, component)
 		}
@@ -80,13 +80,14 @@ func TestProtectedProductControlProposalReadsCurrentWindowsProfileMapping(t *tes
 
 func validProductControlProposalAcceptance() *config.DevKernelCheckpointAcceptance {
 	return &config.DevKernelCheckpointAcceptance{
-		TrialID:            "dev-kernel-checkpoint",
-		RuntimeCandidateID: "dev-kernel-runtime-0123456789abcdef0123456789abcdef",
-		AcceptanceRoundID:  "dev-kernel-round-0123456789abcdef0123456789abcdef",
-		PrimaryAccountID:   "account-primary",
-		SecondaryAccountID: "account-secondary",
-		LocalAgentRef:      "local-agent:runtime-0123456789abcdef0123456789abcdef",
-		RuntimeSourceRef:   "runtime-source",
-		AgentDisplayName:   "Zhiyu acceptance agent",
+		TrialID:                     "dev-kernel-checkpoint",
+		RuntimeCandidateID:          "dev-kernel-runtime-0123456789abcdef0123456789abcdef",
+		DevelopmentStateCandidateID: "dev-kernel-runtime-0123456789abcdef0123456789abcdef",
+		AcceptanceRoundID:           "dev-kernel-round-0123456789abcdef0123456789abcdef",
+		PrimaryAccountID:            "account-primary",
+		SecondaryAccountID:          "account-secondary",
+		LocalAgentRef:               "local-agent:runtime-0123456789abcdef0123456789abcdef",
+		RuntimeSourceRef:            "runtime-source",
+		AgentDisplayName:            "Zhiyu acceptance agent",
 	}
 }

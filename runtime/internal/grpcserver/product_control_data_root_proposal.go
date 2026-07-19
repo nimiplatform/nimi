@@ -28,7 +28,7 @@ func checkpointProductControlDataRootProposal(profileRoot string, acceptance *co
 		"Local",
 		"Nimi",
 		acceptance.TrialID,
-		acceptance.RuntimeCandidateID,
+		acceptance.DevelopmentStateCandidateID,
 		"Nimi",
 	), nil
 }

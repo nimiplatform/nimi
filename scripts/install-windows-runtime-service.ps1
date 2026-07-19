@@ -429,6 +429,15 @@ function New-DevKernelAcceptanceRoundId {
 function Resolve-ValidatedDevelopmentDataRoot {
   param([Parameter(Mandatory = $true)] [AllowEmptyString()] [string] $Value)
   if ([string]::IsNullOrWhiteSpace($Value)) { return '' }
+  if ($Value -ne $Value.Trim()) {
+    throw 'DevelopmentDataRoot must be an absolute non-volume-root directory.'
+  }
+  $inputRoot = [IO.Path]::GetPathRoot($Value)
+  if ([string]::IsNullOrWhiteSpace($inputRoot) -or
+      $inputRoot -eq '\' -or
+      $inputRoot -match '^[A-Za-z]:$') {
+    throw 'DevelopmentDataRoot must be an absolute non-volume-root directory.'
+  }
   $item = Get-Item -LiteralPath $Value -Force -ErrorAction Stop
   if (-not $item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
     throw 'DevelopmentDataRoot must be an existing non-reparse directory.'
@@ -437,36 +446,90 @@ function Resolve-ValidatedDevelopmentDataRoot {
   if ([string]::IsNullOrWhiteSpace($resolved) -or $resolved -eq [IO.Path]::GetPathRoot($resolved)) {
     throw 'DevelopmentDataRoot must be an absolute non-volume-root directory.'
   }
+  $volumeRoot = [IO.Path]::GetPathRoot($resolved)
+  $current = $volumeRoot
+  foreach ($segment in $resolved.Substring($volumeRoot.Length).Split(@('\'), [StringSplitOptions]::RemoveEmptyEntries)) {
+    $current = Join-Path -Path $current -ChildPath $segment
+    $component = Get-Item -LiteralPath $current -Force -ErrorAction Stop
+    if (-not $component.PSIsContainer -or ($component.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+      throw 'DevelopmentDataRoot path components must be existing non-reparse directories.'
+    }
+  }
   return $resolved
 }
 
-function Resolve-DevKernelCheckpointDataRootBinding {
-  if (-not [string]::IsNullOrWhiteSpace($DevelopmentDataRoot)) {
-    return [ordered]@{
-      path = Resolve-ValidatedDevelopmentDataRoot -Value $DevelopmentDataRoot
-      authority = 'signed_installer_explicit_operator_selection'
-    }
-  }
+function Read-ExistingDevKernelCheckpointProfile {
   if (-not (Test-Path -LiteralPath $AcceptanceProfilePath -PathType Leaf)) {
-    return [ordered]@{
-      path = ''
-      authority = 'runtime_candidate_isolated_fallback'
-    }
+    return $null
   }
   try {
     $previous = Get-Content -LiteralPath $AcceptanceProfilePath -Raw | ConvertFrom-Json
   } catch {
     throw "Existing protected acceptance profile cannot be decoded: $($_.Exception.Message)"
   }
-  if ($previous.schemaVersion -ne 4 -or $previous.checkpoint -ne 'dev_kernel_checkpoint' -or $previous.nonRelease -ne $true) {
+  $schemaVersion = [int] $previous.schemaVersion
+  if (($schemaVersion -ne 4 -and $schemaVersion -ne 5) -or $previous.checkpoint -ne 'dev_kernel_checkpoint' -or $previous.nonRelease -ne $true) {
     throw 'Existing protected acceptance profile identity is invalid.'
   }
-  $preserved = Resolve-ValidatedDevelopmentDataRoot -Value ([string] $previous.developmentDataRootRef)
-  if ([string]::IsNullOrWhiteSpace($preserved)) {
+  return $previous
+}
+
+function Assert-DevKernelStateLineageIdentifier {
+  param(
+    [Parameter(Mandatory = $true)] [string] $Value,
+    [Parameter(Mandatory = $true)] [string] $Prefix,
+    [Parameter(Mandatory = $true)] [string] $Label
+  )
+  if ($Value -notmatch ('^' + [regex]::Escape($Prefix) + '[0-9a-f]{32}$')) {
+    throw "Existing protected acceptance profile $Label is invalid."
+  }
+}
+
+function Resolve-DevKernelCheckpointStateLineage {
+  param(
+    [AllowNull()] [object] $PreviousProfile,
+    [Parameter(Mandatory = $true)] [string] $CurrentCandidateId,
+    [Parameter(Mandatory = $true)] [string] $TrialId
+  )
+  if ($null -eq $PreviousProfile) {
     return [ordered]@{
-      path = ''
-      authority = 'runtime_candidate_isolated_fallback'
+      developmentStateCandidateId = $CurrentCandidateId
+      acceptanceRoundId = New-DevKernelAcceptanceRoundId
+      authority = 'signed_installer_new_development_state_lineage'
     }
+  }
+  if ([string] $PreviousProfile.trialId -ne $TrialId) {
+    throw 'Existing protected acceptance profile trial identity changed.'
+  }
+  $stateCandidateId = if ([int] $PreviousProfile.schemaVersion -eq 5) {
+    [string] $PreviousProfile.developmentStateCandidateId
+  } else {
+    [string] $PreviousProfile.runtimeCandidateId
+  }
+  $acceptanceRoundId = [string] $PreviousProfile.acceptanceRoundId
+  Assert-DevKernelStateLineageIdentifier -Value $stateCandidateId -Prefix 'dev-kernel-runtime-' -Label 'developmentStateCandidateId'
+  Assert-DevKernelStateLineageIdentifier -Value $acceptanceRoundId -Prefix 'dev-kernel-round-' -Label 'acceptanceRoundId'
+  return [ordered]@{
+    developmentStateCandidateId = $stateCandidateId
+    acceptanceRoundId = $acceptanceRoundId
+    authority = 'signed_installer_preserved_development_state_lineage'
+  }
+}
+
+function Resolve-DevKernelCheckpointDataRootBinding {
+  param([AllowNull()] [object] $PreviousProfile)
+  if (-not [string]::IsNullOrWhiteSpace($DevelopmentDataRoot)) {
+    return [ordered]@{
+      path = Resolve-ValidatedDevelopmentDataRoot -Value $DevelopmentDataRoot
+      authority = 'signed_installer_explicit_operator_selection'
+    }
+  }
+  if ($null -eq $PreviousProfile) {
+    throw 'An explicit validated development data-root selection is required for the first dev-kernel service installation.'
+  }
+  $preserved = Resolve-ValidatedDevelopmentDataRoot -Value ([string] $PreviousProfile.developmentDataRootRef)
+  if ([string]::IsNullOrWhiteSpace($preserved)) {
+    throw 'Existing protected acceptance profile has no validated development data-root selection.'
   }
   return [ordered]@{
     path = $preserved
@@ -484,17 +547,20 @@ function Write-DevKernelCheckpointProfile {
   }
   $fixture = Read-DevKernelCheckpointFixture
   $buildRecord = Read-RuntimeBuildRecord
-  $developmentDataRootBinding = Resolve-DevKernelCheckpointDataRootBinding
+  $previousProfile = Read-ExistingDevKernelCheckpointProfile
+  $stateLineage = Resolve-DevKernelCheckpointStateLineage -PreviousProfile $previousProfile -CurrentCandidateId $buildRecord.candidateId -TrialId $fixture.trialId
+  $developmentDataRootBinding = Resolve-DevKernelCheckpointDataRootBinding -PreviousProfile $previousProfile
   $resolvedDevelopmentDataRoot = [string] $developmentDataRootBinding.path
   $runtimeRoot = Split-Path $AcceptanceProfilePath -Parent
   New-Item -ItemType Directory -Path $runtimeRoot -Force | Out-Null
   $profile = [ordered]@{
-    schemaVersion = 4
+    schemaVersion = 5
     checkpoint = 'dev_kernel_checkpoint'
     nonRelease = $true
     trialId = $fixture.trialId
     runtimeCandidateId = $buildRecord.candidateId
-    acceptanceRoundId = New-DevKernelAcceptanceRoundId
+    developmentStateCandidateId = [string] $stateLineage.developmentStateCandidateId
+    acceptanceRoundId = [string] $stateLineage.acceptanceRoundId
     developmentDataRootRef = $resolvedDevelopmentDataRoot
     accountRealmBaseUrl = $fixture.accountRealmBaseUrl
     fixtureBaseUrl = $fixture.fixtureBaseUrl
@@ -514,7 +580,57 @@ function Write-DevKernelCheckpointProfile {
   $temporary = "$AcceptanceProfilePath.tmp"
   [IO.File]::WriteAllText($temporary, (($profile | ConvertTo-Json -Depth 4) + "`n"), [Text.UTF8Encoding]::new($false))
   Move-Item -LiteralPath $temporary -Destination $AcceptanceProfilePath -Force
+  $developmentDataRootBinding['developmentStateCandidateId'] = [string] $stateLineage.developmentStateCandidateId
+  $developmentDataRootBinding['acceptanceRoundId'] = [string] $stateLineage.acceptanceRoundId
+  $developmentDataRootBinding['stateLineageAuthority'] = [string] $stateLineage.authority
+  $developmentDataRootBinding['trialId'] = [string] $fixture.trialId
   return $developmentDataRootBinding
+}
+
+function Get-DevKernelServiceConfigPath {
+  param([Parameter(Mandatory = $true)] [Collections.IDictionary] $DevelopmentBinding)
+  return Join-Path $StateRoot (Join-Path 'acceptance-runs' (Join-Path ([string] $DevelopmentBinding.trialId) (Join-Path ([string] $DevelopmentBinding.developmentStateCandidateId) (Join-Path ([string] $DevelopmentBinding.acceptanceRoundId) 'runtime\config.json'))))
+}
+
+function Sync-DevKernelServiceDataRootConfig {
+  param(
+    [Parameter(Mandatory = $true)] [string] $ConfigPath,
+    [Parameter(Mandatory = $true)] [string] $DevelopmentDataRoot
+  )
+  if (-not (Test-Path -LiteralPath $ConfigPath -PathType Leaf)) { return $false }
+  $configItem = Get-Item -LiteralPath $ConfigPath -Force -ErrorAction Stop
+  if (($configItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -or $configItem.PSIsContainer) {
+    throw 'Existing service-owned Runtime config must be a direct regular file.'
+  }
+  try {
+    $config = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
+  } catch {
+    throw "Existing service-owned Runtime config cannot be decoded: $($_.Exception.Message)"
+  }
+  if ($null -eq $config -or $config -is [Array] -or [int] $config.schemaVersion -ne 1) {
+    throw 'Existing service-owned Runtime config identity is invalid.'
+  }
+  $managedRoots = [ordered]@{
+    models = Join-Path $DevelopmentDataRoot 'models'
+    dependencies = Join-Path $DevelopmentDataRoot 'dependencies'
+    environments = Join-Path $DevelopmentDataRoot 'environments'
+    logs = Join-Path $DevelopmentDataRoot 'logs'
+    audit = Join-Path $DevelopmentDataRoot 'audit'
+  }
+  $unchanged = [string] $config.dataRootRef -eq $DevelopmentDataRoot -and
+    $null -ne $config.managedRoots -and
+    [string] $config.managedRoots.models -eq $managedRoots.models -and
+    [string] $config.managedRoots.dependencies -eq $managedRoots.dependencies -and
+    [string] $config.managedRoots.environments -eq $managedRoots.environments -and
+    [string] $config.managedRoots.logs -eq $managedRoots.logs -and
+    [string] $config.managedRoots.audit -eq $managedRoots.audit
+  if ($unchanged) { return $false }
+  $config | Add-Member -NotePropertyName dataRootRef -NotePropertyValue $DevelopmentDataRoot -Force
+  $config | Add-Member -NotePropertyName managedRoots -NotePropertyValue ([pscustomobject] $managedRoots) -Force
+  $temporary = "$ConfigPath.installer-$PID.tmp"
+  [IO.File]::WriteAllText($temporary, (($config | ConvertTo-Json -Depth 20) + "`n"), [Text.UTF8Encoding]::new($false))
+  Move-Item -LiteralPath $temporary -Destination $ConfigPath -Force
+  return $true
 }
 
 function Get-Status {
@@ -572,6 +688,16 @@ function Get-Status {
     checkpointReleasePosture = if ($checkpointCandidateVerified) { 'non_release' } else { 'unverified' }
     checkpointProductClosePromotion = if ($checkpointCandidateVerified) { 'non_promotable_to_product_close' } else { 'unverified' }
     developmentDataRootRef = if ($null -eq $acceptanceProfile) { $null } else { [string] $acceptanceProfile.developmentDataRootRef }
+    developmentStateCandidateId = if ($null -eq $acceptanceProfile) {
+      $null
+    } elseif ([int] $acceptanceProfile.schemaVersion -eq 5) {
+      [string] $acceptanceProfile.developmentStateCandidateId
+    } elseif ([int] $acceptanceProfile.schemaVersion -eq 4) {
+      [string] $acceptanceProfile.runtimeCandidateId
+    } else {
+      $null
+    }
+    acceptanceRoundId = if ($null -eq $acceptanceProfile) { $null } else { [string] $acceptanceProfile.acceptanceRoundId }
   }
 }
 
@@ -599,6 +725,10 @@ function Install-Service {
   $installerStateAccess = $false
   $previousProfilePresent = $false
   [byte[]] $previousProfileBytes = $null
+  $developmentConfigPath = $null
+  $previousDevelopmentConfigPresent = $false
+  [byte[]] $previousDevelopmentConfigBytes = $null
+  $developmentConfigMutated = $false
 
   try {
     if ($previousWasRunning) {
@@ -629,6 +759,14 @@ function Install-Service {
       $previousProfilePresent = $true
     }
     $developmentDataRootBinding = Write-DevKernelCheckpointProfile -SignerCertificateSha256 $installerSigner
+    if ($DevKernelCheckpoint) {
+      $developmentConfigPath = Get-DevKernelServiceConfigPath -DevelopmentBinding $developmentDataRootBinding
+      if (Test-Path -LiteralPath $developmentConfigPath -PathType Leaf) {
+        $previousDevelopmentConfigBytes = [IO.File]::ReadAllBytes($developmentConfigPath)
+        $previousDevelopmentConfigPresent = $true
+      }
+      $developmentConfigMutated = Sync-DevKernelServiceDataRootConfig -ConfigPath $developmentConfigPath -DevelopmentDataRoot ([string] $developmentDataRootBinding.path)
+    }
     Set-StateRootAcl
     try {
       Start-Service -Name $ServiceName -ErrorAction Stop
@@ -657,11 +795,11 @@ function Install-Service {
       $boundDevelopmentDataRoot = [string] $developmentDataRootBinding.path
       $status['developmentDataRootRef'] = if ([string]::IsNullOrWhiteSpace($boundDevelopmentDataRoot)) { $null } else { $boundDevelopmentDataRoot }
       $status['developmentDataRootAuthority'] = [string] $developmentDataRootBinding.authority
-      $status['developmentDataRootDisposition'] = if ([string]::IsNullOrWhiteSpace($boundDevelopmentDataRoot)) {
-        'candidate_specific_payload_root'
-      } else {
-        'runtime_validated_candidate_payload_root'
-      }
+      $status['developmentDataRootDisposition'] = 'runtime_validated_development_payload_root'
+      $status['developmentStateCandidateId'] = [string] $developmentDataRootBinding.developmentStateCandidateId
+      $status['acceptanceRoundId'] = [string] $developmentDataRootBinding.acceptanceRoundId
+      $status['developmentStateLineageAuthority'] = [string] $developmentDataRootBinding.stateLineageAuthority
+      $status['developmentServiceConfigSynchronized'] = [bool] $developmentConfigMutated
     }
     return $status
   } catch {
@@ -705,6 +843,15 @@ function Install-Service {
         } elseif (Test-Path -LiteralPath $AcceptanceProfilePath -PathType Leaf) {
           Remove-Item -LiteralPath $AcceptanceProfilePath -Force
         }
+        if (-not [string]::IsNullOrWhiteSpace($developmentConfigPath)) {
+          if ($previousDevelopmentConfigPresent) {
+            $configRestoreTemporary = "$developmentConfigPath.rollback"
+            [IO.File]::WriteAllBytes($configRestoreTemporary, $previousDevelopmentConfigBytes)
+            Move-Item -LiteralPath $configRestoreTemporary -Destination $developmentConfigPath -Force
+          } elseif ($developmentConfigMutated -and (Test-Path -LiteralPath $developmentConfigPath -PathType Leaf)) {
+            Remove-Item -LiteralPath $developmentConfigPath -Force
+          }
+        }
         Set-StateRootAcl
       } catch {
         $rollbackFailures.Add("restore protected acceptance profile: $($_.Exception.Message)")
@@ -721,6 +868,10 @@ function Install-Service {
     $rollbackDetail = if ($rollbackFailures.Count -eq 0) { 'rollback completed' } else { 'rollback failures: ' + ($rollbackFailures -join '; ') }
     throw "NimiRuntime install failed: $($installFailure.Exception.Message) ($rollbackDetail)"
   }
+}
+
+if ($MyInvocation.InvocationName -eq '.') {
+  return
 }
 
 try {

@@ -41,6 +41,28 @@ func TestWindowsProductionRuntimeConfigUsesOnlyServiceOwnedRootAndFixedAuthority
 	}
 }
 
+func TestValidateWindowsAcceptanceDataRootRejectsReparseAncestor(t *testing.T) {
+	directRoot := filepath.Join(t.TempDir(), "direct", "nimi-data")
+	if err := os.MkdirAll(directRoot, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateWindowsAcceptanceDataRoot(directRoot); err != nil {
+		t.Fatalf("direct development data root rejected: %v", err)
+	}
+
+	targetRoot := filepath.Join(t.TempDir(), "target")
+	if err := os.MkdirAll(filepath.Join(targetRoot, "nested"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	linkRoot := filepath.Join(t.TempDir(), "linked")
+	if err := os.Symlink(targetRoot, linkRoot); err != nil {
+		t.Skipf("Windows symlink privilege unavailable: %v", err)
+	}
+	if err := validateWindowsAcceptanceDataRoot(filepath.Join(linkRoot, "nested")); err == nil {
+		t.Fatal("development data root with a reparse-point ancestor was accepted")
+	}
+}
+
 func TestWindowsNonReleaseAcceptanceProfileIsExplicitBoundedAndServiceOwned(t *testing.T) {
 	previousFlag := windowsNonReleaseAcceptanceProfileEnabled
 	previousSigner := protectedlocal.WindowsProductionSignerCertSHA256
@@ -56,22 +78,23 @@ func TestWindowsNonReleaseAcceptanceProfileIsExplicitBoundedAndServiceOwned(t *t
 		t.Fatal(err)
 	}
 	profile := windowsAcceptanceProfile{
-		SchemaVersion:           4,
-		Checkpoint:              windowsAcceptanceCheckpoint,
-		NonRelease:              true,
-		TrialID:                 "dev-kernel-checkpoint",
-		RuntimeCandidateID:      "dev-kernel-runtime-0123456789abcdef0123456789abcdef",
-		AcceptanceRoundID:       "dev-kernel-round-0123456789abcdef0123456789abcdef",
-		AccountRealmBaseURL:     windowsDevKernelAccountRealmURL,
-		FixtureBaseURL:          "http://127.0.0.1:19443",
-		ProviderBaseURL:         "http://127.0.0.1:19443/v1",
-		PrimaryAccountID:        "01J00000000000000000000000",
-		SecondaryAccountID:      "01J00000000000000000000001",
-		LocalAgentRef:           "local-agent:runtime-1f2e3d4c5b6a79800123456789abcdef",
-		RuntimeSourceRef:        "dev-kernel-source-primary",
-		AgentDisplayName:        "知语开发内核验收伙伴",
-		ExpiresAt:               time.Now().UTC().Add(time.Hour).Format(time.RFC3339),
-		SignerCertificateSHA256: protectedlocal.WindowsProductionSignerCertSHA256,
+		SchemaVersion:               5,
+		Checkpoint:                  windowsAcceptanceCheckpoint,
+		NonRelease:                  true,
+		TrialID:                     "dev-kernel-checkpoint",
+		RuntimeCandidateID:          "dev-kernel-runtime-0123456789abcdef0123456789abcdef",
+		DevelopmentStateCandidateID: "dev-kernel-runtime-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		AcceptanceRoundID:           "dev-kernel-round-0123456789abcdef0123456789abcdef",
+		AccountRealmBaseURL:         windowsDevKernelAccountRealmURL,
+		FixtureBaseURL:              "http://127.0.0.1:19443",
+		ProviderBaseURL:             "http://127.0.0.1:19443/v1",
+		PrimaryAccountID:            "01J00000000000000000000000",
+		SecondaryAccountID:          "01J00000000000000000000001",
+		LocalAgentRef:               "local-agent:runtime-1f2e3d4c5b6a79800123456789abcdef",
+		RuntimeSourceRef:            "dev-kernel-source-primary",
+		AgentDisplayName:            "知语开发内核验收伙伴",
+		ExpiresAt:                   time.Now().UTC().Add(time.Hour).Format(time.RFC3339),
+		SignerCertificateSHA256:     protectedlocal.WindowsProductionSignerCertSHA256,
 	}
 	developmentDataRoot := t.TempDir()
 	profile.DevelopmentDataRootRef = developmentDataRoot
@@ -134,8 +157,8 @@ func TestWindowsNonReleaseAcceptanceProfileIsExplicitBoundedAndServiceOwned(t *t
 	if err != nil {
 		t.Fatalf("load non-release checkpoint config: %v", err)
 	}
-	wantRoot := filepath.Join(root, "acceptance-runs", profile.TrialID, profile.RuntimeCandidateID, profile.AcceptanceRoundID, "runtime")
-	if filepath.Dir(cfg.LocalStatePath) != wantRoot || cfg.DataRootRef != "" || cfg.LocalModelsPath != "" || cfg.ManagedRoots != (config.ManagedRootsConfig{}) || cfg.AccountRealmBaseURL != windowsDevKernelAccountRealmURL || cfg.AuthJWTIssuer != windowsDevKernelAccountRealmURL || cfg.AccountAuthorizationURL != windowsDevKernelAccountRealmURL+"/api/auth/oauth/authorize" || cfg.AccountTokenURL != windowsDevKernelAccountRealmURL+"/api/auth/oauth/token" || !cfg.AllowLoopbackProviderEndpoint || cfg.NonReleaseDevKernelCheckpoint == nil || cfg.NonReleaseDevKernelCheckpoint.LocalAgentRef != profile.LocalAgentRef || cfg.NonReleaseDevKernelCheckpoint.AcceptanceRoundID != profile.AcceptanceRoundID || cfg.NonReleaseDevKernelCheckpoint.DevelopmentDataRootRef != developmentDataRoot {
+	wantRoot := filepath.Join(root, "acceptance-runs", profile.TrialID, profile.DevelopmentStateCandidateID, profile.AcceptanceRoundID, "runtime")
+	if filepath.Dir(cfg.LocalStatePath) != wantRoot || cfg.DataRootRef != developmentDataRoot || cfg.LocalModelsPath != filepath.Join(developmentDataRoot, "models") || cfg.ManagedRoots.Dependencies != filepath.Join(developmentDataRoot, "dependencies") || cfg.AccountRealmBaseURL != windowsDevKernelAccountRealmURL || cfg.AuthJWTIssuer != windowsDevKernelAccountRealmURL || cfg.AccountAuthorizationURL != windowsDevKernelAccountRealmURL+"/api/auth/oauth/authorize" || cfg.AccountTokenURL != windowsDevKernelAccountRealmURL+"/api/auth/oauth/token" || !cfg.AllowLoopbackProviderEndpoint || cfg.NonReleaseDevKernelCheckpoint == nil || cfg.NonReleaseDevKernelCheckpoint.LocalAgentRef != profile.LocalAgentRef || cfg.NonReleaseDevKernelCheckpoint.AcceptanceRoundID != profile.AcceptanceRoundID || cfg.NonReleaseDevKernelCheckpoint.DevelopmentStateCandidateID != profile.DevelopmentStateCandidateID || cfg.NonReleaseDevKernelCheckpoint.DevelopmentDataRootRef != developmentDataRoot {
 		t.Fatalf("checkpoint config did not retain its bounded service root: %+v", cfg)
 	}
 	serviceConfigPath := filepath.Join(wantRoot, config.ServiceOwnedConfigFilename)

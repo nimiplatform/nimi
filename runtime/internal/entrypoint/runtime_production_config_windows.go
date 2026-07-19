@@ -19,6 +19,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/oklog/ulid/v2"
+	"golang.org/x/sys/windows"
 )
 
 const (
@@ -52,6 +53,7 @@ type windowsAcceptanceProfile struct {
 	NonRelease                  bool   `json:"nonRelease"`
 	TrialID                     string `json:"trialId"`
 	RuntimeCandidateID          string `json:"runtimeCandidateId"`
+	DevelopmentStateCandidateID string `json:"developmentStateCandidateId"`
 	AcceptanceRoundID           string `json:"acceptanceRoundId"`
 	DevelopmentDataRootRef      string `json:"developmentDataRootRef,omitempty"`
 	AccountRealmBaseURL         string `json:"accountRealmBaseUrl"`
@@ -117,7 +119,7 @@ func loadWindowsProtectedRuntimeConfig(stateRoot string) (config.Config, error) 
 	}
 	serviceDataRoot := root
 	if profile != nil {
-		serviceDataRoot = filepath.Join(root, "acceptance-runs", profile.TrialID, profile.RuntimeCandidateID, profile.AcceptanceRoundID)
+		serviceDataRoot = filepath.Join(root, "acceptance-runs", profile.TrialID, profile.DevelopmentStateCandidateID, profile.AcceptanceRoundID)
 	}
 	runtimeRoot := filepath.Join(serviceDataRoot, "runtime")
 	if err := os.MkdirAll(runtimeRoot, 0o700); err != nil {
@@ -140,20 +142,30 @@ func loadWindowsProtectedRuntimeConfig(stateRoot string) (config.Config, error) 
 		cfg.AllowLoopbackProviderEndpoint = true
 		cfg.ModelCatalogCustomDir = filepath.Join(runtimeRoot, "model-catalog-custom")
 		cfg.NonReleaseDevKernelCheckpoint = &config.DevKernelCheckpointAcceptance{
-			TrialID:                profile.TrialID,
-			RuntimeCandidateID:     profile.RuntimeCandidateID,
-			AcceptanceRoundID:      profile.AcceptanceRoundID,
-			DevelopmentDataRootRef: profile.DevelopmentDataRootRef,
-			PrimaryAccountID:       profile.PrimaryAccountID,
-			SecondaryAccountID:     profile.SecondaryAccountID,
-			LocalAgentRef:          profile.LocalAgentRef,
-			RuntimeSourceRef:       profile.RuntimeSourceRef,
-			AgentDisplayName:       profile.AgentDisplayName,
+			TrialID:                     profile.TrialID,
+			RuntimeCandidateID:          profile.RuntimeCandidateID,
+			DevelopmentStateCandidateID: profile.DevelopmentStateCandidateID,
+			AcceptanceRoundID:           profile.AcceptanceRoundID,
+			DevelopmentDataRootRef:      profile.DevelopmentDataRootRef,
+			PrimaryAccountID:            profile.PrimaryAccountID,
+			SecondaryAccountID:          profile.SecondaryAccountID,
+			LocalAgentRef:               profile.LocalAgentRef,
+			RuntimeSourceRef:            profile.RuntimeSourceRef,
+			AgentDisplayName:            profile.AgentDisplayName,
 		}
 	}
 	serviceConfigPath := filepath.Join(runtimeRoot, config.ServiceOwnedConfigFilename)
 	if err := config.ApplyServiceOwnedDataRoot(&cfg, serviceConfigPath); err != nil {
 		return config.Config{}, fmt.Errorf("apply fixed Windows Runtime mutable config: %w", err)
+	}
+	if profile != nil && strings.TrimSpace(profile.DevelopmentDataRootRef) != "" {
+		profileRoot := filepath.Clean(profile.DevelopmentDataRootRef)
+		if cfg.DataRootRef != "" && filepath.Clean(cfg.DataRootRef) != profileRoot {
+			return config.Config{}, fmt.Errorf("service-owned dataRootRef conflicts with signed development binding")
+		}
+		if err := config.ApplyProtectedDataRootBinding(&cfg, profileRoot); err != nil {
+			return config.Config{}, fmt.Errorf("apply signed development data-root binding: %w", err)
+		}
 	}
 	if err := cfg.Validate(); err != nil {
 		return config.Config{}, fmt.Errorf("validate fixed Windows Runtime config: %w", err)
@@ -183,7 +195,7 @@ func loadWindowsAcceptanceProfile(root string, now time.Time) (*windowsAcceptanc
 	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
 		return nil, fmt.Errorf("decode Windows Runtime acceptance profile: unexpected trailing content")
 	}
-	if profile.SchemaVersion != 4 || profile.Checkpoint != windowsAcceptanceCheckpoint || !profile.NonRelease {
+	if profile.SchemaVersion != 5 || profile.Checkpoint != windowsAcceptanceCheckpoint || !profile.NonRelease {
 		return nil, fmt.Errorf("Windows Runtime acceptance profile identity is invalid")
 	}
 	if !windowsAcceptanceTrialIDPattern.MatchString(profile.TrialID) {
@@ -191,6 +203,9 @@ func loadWindowsAcceptanceProfile(root string, now time.Time) (*windowsAcceptanc
 	}
 	if !windowsAcceptanceRoundIDPattern.MatchString(profile.AcceptanceRoundID) {
 		return nil, fmt.Errorf("Windows Runtime acceptance profile acceptanceRoundId is invalid")
+	}
+	if !windowsRuntimeCandidateIDPattern.MatchString(profile.DevelopmentStateCandidateID) {
+		return nil, fmt.Errorf("Windows Runtime acceptance profile developmentStateCandidateId is invalid")
 	}
 	expiresAt, err := time.Parse(time.RFC3339, profile.ExpiresAt)
 	if err != nil || !expiresAt.After(now) || expiresAt.After(now.Add(48*time.Hour)) {
@@ -245,16 +260,16 @@ func loadWindowsAcceptanceProfile(root string, now time.Time) (*windowsAcceptanc
 		if root != profile.DevelopmentDataRootRef || !filepath.IsAbs(root) || root == filepath.VolumeName(root)+string(filepath.Separator) {
 			return nil, fmt.Errorf("Windows Runtime acceptance development data root is invalid")
 		}
-		info, statErr := os.Lstat(root)
-		if statErr != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		if err := validateWindowsAcceptanceDataRoot(root); err != nil {
 			return nil, fmt.Errorf("Windows Runtime acceptance development data root is unavailable or unsafe")
 		}
 	}
 	acceptance := &config.DevKernelCheckpointAcceptance{
 		TrialID: profile.TrialID, RuntimeCandidateID: profile.RuntimeCandidateID,
-		AcceptanceRoundID:      profile.AcceptanceRoundID,
-		DevelopmentDataRootRef: profile.DevelopmentDataRootRef,
-		PrimaryAccountID:       profile.PrimaryAccountID, SecondaryAccountID: profile.SecondaryAccountID,
+		DevelopmentStateCandidateID: profile.DevelopmentStateCandidateID,
+		AcceptanceRoundID:           profile.AcceptanceRoundID,
+		DevelopmentDataRootRef:      profile.DevelopmentDataRootRef,
+		PrimaryAccountID:            profile.PrimaryAccountID, SecondaryAccountID: profile.SecondaryAccountID,
 		LocalAgentRef: profile.LocalAgentRef, RuntimeSourceRef: profile.RuntimeSourceRef,
 		AgentDisplayName: profile.AgentDisplayName,
 	}
@@ -262,6 +277,37 @@ func loadWindowsAcceptanceProfile(root string, now time.Time) (*windowsAcceptanc
 		return nil, fmt.Errorf("validate Windows Runtime acceptance identity: %w", err)
 	}
 	return &profile, nil
+}
+
+func validateWindowsAcceptanceDataRoot(root string) error {
+	volumeRoot := filepath.VolumeName(root) + string(filepath.Separator)
+	if volumeRoot == string(filepath.Separator) || !strings.HasPrefix(root, volumeRoot) {
+		return fmt.Errorf("development data root volume is invalid")
+	}
+	components := []string{volumeRoot}
+	current := volumeRoot
+	for _, component := range strings.Split(strings.TrimPrefix(root, volumeRoot), string(filepath.Separator)) {
+		if component == "" {
+			continue
+		}
+		current = filepath.Join(current, component)
+		components = append(components, current)
+	}
+	for _, component := range components {
+		encoded, err := windows.UTF16PtrFromString(component)
+		if err != nil {
+			return err
+		}
+		attributes, err := windows.GetFileAttributes(encoded)
+		if err != nil {
+			return err
+		}
+		if attributes&windows.FILE_ATTRIBUTE_DIRECTORY == 0 ||
+			attributes&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0 {
+			return fmt.Errorf("development data root component is not a direct directory")
+		}
+	}
+	return nil
 }
 
 func windowsRuntimeExecutableSHA256() (string, error) {

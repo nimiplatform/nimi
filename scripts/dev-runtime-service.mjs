@@ -1,6 +1,16 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import {
+  accessSync,
+  closeSync,
+  constants as fsConstants,
+  lstatSync,
+  mkdtempSync,
+  openSync,
+  readFileSync,
+  readSync,
+  rmSync,
+} from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,6 +18,7 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const installerPath = path.join(repoRoot, 'dist', 'windows-runtime-service-installer', 'install-nimi-runtime.ps1');
+const MAX_RUNTIME_USER_CONFIG_BYTES = 64 * 1024;
 
 export function assertRuntimeServiceInstalled(status) {
   if (status?.status !== 'present') {
@@ -134,6 +145,146 @@ export function parseFirstJsonDocument(output, reasonCode) {
   );
 }
 
+export function resolveConfiguredDevelopmentDataRoot({
+  platform = process.platform,
+  configPath = path.join(os.homedir(), '.nimi', 'runtime', 'config.json'),
+  readConfig = readBoundedRuntimeUserConfig,
+} = {}) {
+  let source;
+  try {
+    source = String(readConfig(configPath, 'utf8')).replace(/^\ufeff/u, '');
+  } catch {
+    throw workflowError(
+      'Runtime user config is required to resolve the existing nimi_data root before a service update.',
+      'dev-runtime-data-root-config-unavailable',
+      'repair_runtime_user_config_data_root',
+      { configPath },
+    );
+  }
+  let config;
+  try {
+    if (Buffer.byteLength(source, 'utf8') > MAX_RUNTIME_USER_CONFIG_BYTES
+      || countTopLevelJsonKey(source, 'dataRootRef') > 1) {
+      throw new Error('Runtime user config dataRootRef must not be duplicated in a bounded document');
+    }
+    config = JSON.parse(source);
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+      throw new Error('Runtime user config must be an object');
+    }
+  } catch {
+    throw workflowError(
+      'Runtime user config is required to resolve the existing nimi_data root before a service update.',
+      'dev-runtime-data-root-config-unavailable',
+      'repair_runtime_user_config_data_root',
+      { configPath },
+    );
+  }
+  const developmentDataRoot = normalizeDevelopmentDataRoot(config?.dataRootRef ?? '', platform);
+  if (!developmentDataRoot) {
+    throw workflowError(
+      'Runtime user config does not contain an absolute non-volume-root dataRootRef.',
+      'dev-runtime-data-root-config-invalid',
+      'repair_runtime_user_config_data_root',
+      { configPath },
+    );
+  }
+  return developmentDataRoot;
+}
+
+function readBoundedRuntimeUserConfig(configPath) {
+  const metadata = lstatSync(configPath);
+  if (!metadata.isFile() || metadata.isSymbolicLink()) {
+    throw new Error('Runtime user config must be a direct regular file');
+  }
+  const handle = openSync(configPath, 'r');
+  try {
+    const buffer = Buffer.allocUnsafe(MAX_RUNTIME_USER_CONFIG_BYTES + 1);
+    let length = 0;
+    while (length < buffer.length) {
+      const bytesRead = readSync(handle, buffer, length, buffer.length - length, null);
+      if (bytesRead === 0) break;
+      length += bytesRead;
+    }
+    if (length > MAX_RUNTIME_USER_CONFIG_BYTES) {
+      throw new Error('Runtime user config exceeds the admitted size bound');
+    }
+    return new TextDecoder('utf-8', { fatal: true }).decode(buffer.subarray(0, length));
+  } finally {
+    closeSync(handle);
+  }
+}
+
+function countTopLevelJsonKey(source, targetKey) {
+  let depth = 0;
+  let escaped = false;
+  let inString = false;
+  let previousSignificant = '';
+  let stringStart = -1;
+  let count = 0;
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (character === '\\') {
+        escaped = true;
+      } else if (character === '"') {
+        inString = false;
+        if (depth === 1 && (previousSignificant === '{' || previousSignificant === ',')) {
+          let cursor = index + 1;
+          while (/\s/u.test(source[cursor] ?? '')) cursor += 1;
+          if (source[cursor] === ':'
+            && JSON.parse(source.slice(stringStart, index + 1)) === targetKey) {
+            count += 1;
+          }
+        }
+        previousSignificant = '"';
+      }
+      continue;
+    }
+    if (character === '"') {
+      inString = true;
+      escaped = false;
+      stringStart = index;
+      continue;
+    }
+    if (/\s/u.test(character)) continue;
+    if (character === '{' || character === '[') depth += 1;
+    if (character === '}' || character === ']') depth -= 1;
+    previousSignificant = character;
+  }
+  return count;
+}
+
+export function assertAccessibleDevelopmentDataRoot(value, platform = process.platform) {
+  const normalized = normalizeDevelopmentDataRoot(value, platform);
+  const pathApi = platform === 'win32' ? path.win32 : path.posix;
+  const volumeRoot = pathApi.parse(normalized).root;
+  let current = volumeRoot;
+  try {
+    const volumeMetadata = lstatSync(volumeRoot);
+    if (!volumeMetadata.isDirectory() || volumeMetadata.isSymbolicLink()) {
+      throw new Error('volume root is not a direct directory');
+    }
+    for (const segment of normalized.slice(volumeRoot.length).split(/[\\/]/u).filter(Boolean)) {
+      current = pathApi.join(current, segment);
+      const metadata = lstatSync(current);
+      if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
+        throw new Error('path component is not a direct directory');
+      }
+    }
+    accessSync(normalized, fsConstants.R_OK | fsConstants.W_OK);
+  } catch (error) {
+    throw workflowError(
+      'Development data root must already exist as an accessible direct directory tree before the Runtime build starts.',
+      'dev-runtime-development-data-root-unavailable',
+      'repair_or_select_accessible_nimi_data_root',
+      { path: normalized, cause: error instanceof Error ? error.message : String(error) },
+    );
+  }
+  return normalized;
+}
+
 export async function runDevRuntimeService(input = {}) {
   const platform = input.platform ?? process.platform;
   if (platform !== 'win32') {
@@ -143,10 +294,14 @@ export async function runDevRuntimeService(input = {}) {
       'use_windows_fixed_runtime_service_host',
     );
   }
-  const developmentDataRoot = normalizeDevelopmentDataRoot(
+  const requestedDevelopmentDataRoot = normalizeDevelopmentDataRoot(
     input.developmentDataRoot ?? '',
     platform,
   );
+  const resolveConfiguredDataRoot = input.resolveConfiguredDevelopmentDataRoot
+    ?? (() => resolveConfiguredDevelopmentDataRoot({ platform }));
+  const validateDevelopmentDataRoot = input.validateDevelopmentDataRoot
+    ?? ((value) => assertAccessibleDevelopmentDataRoot(value, platform));
   const now = input.now ?? (() => performance.now());
   const queryInstalled = input.queryInstalled ?? queryInstalledService;
   const buildRuntime = input.buildRuntime ?? (() => runChecked(process.execPath, ['scripts/build-runtime.mjs', '--dev-kernel-checkpoint']));
@@ -156,6 +311,12 @@ export async function runDevRuntimeService(input = {}) {
 
   const initial = await queryInstalled();
   assertRuntimeServiceInstalled(initial);
+  const selectedDevelopmentDataRoot = requestedDevelopmentDataRoot
+    || normalizeDevelopmentDataRoot(await resolveConfiguredDataRoot(), platform);
+  const developmentDataRoot = validateDevelopmentDataRoot(selectedDevelopmentDataRoot);
+  const developmentDataRootSource = requestedDevelopmentDataRoot
+    ? 'command_line'
+    : 'runtime_user_config';
 
   const timings = {};
   let started = now();
@@ -176,23 +337,31 @@ export async function runDevRuntimeService(input = {}) {
   started = now();
   const finalStatus = await queryCandidate();
   timings.statusMs = elapsed(now, started);
-  const effectiveStatus = finalStatus?.status === 'present' ? finalStatus : installStatus;
-  assertRuntimeServiceHealthy(effectiveStatus);
+  assertRuntimeServiceHealthy(finalStatus);
   const developmentDataRootBinding = validateInstalledDevelopmentDataRootBinding({
     requestedDevelopmentDataRoot: developmentDataRoot,
     installStatus,
     finalStatus,
     platform,
   });
+  const developmentStateLineage = validatePreservedDevelopmentStateLineage({
+    candidateStatus,
+    installStatus,
+    finalStatus,
+  });
 
   return {
     status: 'updated',
-    serviceName: effectiveStatus.serviceName,
-    state: effectiveStatus.state,
-    runtimeCandidateId: effectiveStatus.runtimeCandidateId,
-    runtimeBinarySha256: effectiveStatus.runtimeBinarySha256,
-    signatureStatus: effectiveStatus.signatureStatus,
-    developmentDataRootBinding,
+    serviceName: finalStatus.serviceName,
+    state: finalStatus.state,
+    runtimeCandidateId: finalStatus.runtimeCandidateId,
+    runtimeBinarySha256: finalStatus.runtimeBinarySha256,
+    signatureStatus: finalStatus.signatureStatus,
+    developmentStateLineage,
+    developmentDataRootBinding: {
+      ...developmentDataRootBinding,
+      source: developmentDataRootSource,
+    },
     timings,
     totalMs: Object.values(timings).reduce((sum, value) => sum + value, 0),
     consequence: 'Runtime boot epoch rotated; Desktop/local-app sessions and bindings must reopen through their existing supervisors. Login and durable grants remain Runtime-owned.',
@@ -208,31 +377,18 @@ function validateInstalledDevelopmentDataRootBinding({
   const installedPath = normalizeDevelopmentDataRoot(installStatus?.developmentDataRootRef ?? '', platform);
   const authority = String(installStatus?.developmentDataRootAuthority ?? '');
   const disposition = String(installStatus?.developmentDataRootDisposition ?? '');
-  const validatedDisposition = 'runtime_validated_candidate_payload_root';
-  const fallbackDisposition = 'candidate_specific_payload_root';
-
-  if (requestedDevelopmentDataRoot) {
-    if (
-      authority !== 'signed_installer_explicit_operator_selection'
-      || disposition !== validatedDisposition
-      || !sameDataRoot(installedPath, requestedDevelopmentDataRoot, platform)
-    ) {
-      throw developmentDataRootReceiptError(requestedDevelopmentDataRoot, installStatus);
-    }
-  } else if (authority === 'signed_installer_preserved_operator_selection') {
-    if (!installedPath || disposition !== validatedDisposition) {
-      throw developmentDataRootReceiptError(requestedDevelopmentDataRoot, installStatus);
-    }
-  } else if (authority === 'runtime_candidate_isolated_fallback') {
-    if (installedPath || disposition !== fallbackDisposition) {
-      throw developmentDataRootReceiptError(requestedDevelopmentDataRoot, installStatus);
-    }
-  } else {
+  const validatedDisposition = 'runtime_validated_development_payload_root';
+  if (
+    !requestedDevelopmentDataRoot
+    || authority !== 'signed_installer_explicit_operator_selection'
+    || disposition !== validatedDisposition
+    || !sameDataRoot(installedPath, requestedDevelopmentDataRoot, platform)
+  ) {
     throw developmentDataRootReceiptError(requestedDevelopmentDataRoot, installStatus);
   }
 
   const statusPath = normalizeDevelopmentDataRoot(finalStatus?.developmentDataRootRef ?? '', platform);
-  if (statusPath && !sameDataRoot(statusPath, installedPath, platform)) {
+  if (!statusPath || !sameDataRoot(statusPath, installedPath, platform)) {
     throw developmentDataRootReceiptError(requestedDevelopmentDataRoot, { installStatus, finalStatus });
   }
   return {
@@ -240,6 +396,37 @@ function validateInstalledDevelopmentDataRootBinding({
     authority,
     disposition,
   };
+}
+
+function validatePreservedDevelopmentStateLineage({ candidateStatus, installStatus, finalStatus }) {
+  const before = parseDevelopmentStateLineage(candidateStatus, 'pre-install status');
+  const installed = parseDevelopmentStateLineage(installStatus, 'signed installer receipt');
+  const observed = parseDevelopmentStateLineage(finalStatus, 'post-install status');
+  if (installStatus?.developmentStateLineageAuthority !== 'signed_installer_preserved_development_state_lineage'
+    || installed.developmentStateCandidateId !== before.developmentStateCandidateId
+    || installed.acceptanceRoundId !== before.acceptanceRoundId
+    || observed.developmentStateCandidateId !== before.developmentStateCandidateId
+    || observed.acceptanceRoundId !== before.acceptanceRoundId) {
+    throw developmentStateLineageReceiptError({ before, installStatus, finalStatus });
+  }
+  return {
+    ...before,
+    authority: 'signed_installer_preserved_development_state_lineage',
+  };
+}
+
+function parseDevelopmentStateLineage(status, label) {
+  const developmentStateCandidateId = typeof status?.developmentStateCandidateId === 'string'
+    ? status.developmentStateCandidateId
+    : '';
+  const acceptanceRoundId = typeof status?.acceptanceRoundId === 'string'
+    ? status.acceptanceRoundId
+    : '';
+  if (!/^dev-kernel-runtime-[0-9a-f]{32}$/u.test(developmentStateCandidateId)
+    || !/^dev-kernel-round-[0-9a-f]{32}$/u.test(acceptanceRoundId)) {
+    throw developmentStateLineageReceiptError({ label, status });
+  }
+  return { developmentStateCandidateId, acceptanceRoundId };
 }
 
 function sameDataRoot(left, right, platform) {
@@ -253,6 +440,15 @@ function developmentDataRootReceiptError(requestedDevelopmentDataRoot, receipt) 
     'dev-runtime-data-root-binding-unverified',
     'inspect_signed_installer_data_root_receipt',
     { requestedDevelopmentDataRoot: requestedDevelopmentDataRoot || null, receipt },
+  );
+}
+
+function developmentStateLineageReceiptError(receipt) {
+  return workflowError(
+    'The signed Runtime update did not prove preservation of the existing development state lineage.',
+    'dev-runtime-state-lineage-unverified',
+    'inspect_signed_installer_state_lineage_receipt',
+    { receipt },
   );
 }
 
