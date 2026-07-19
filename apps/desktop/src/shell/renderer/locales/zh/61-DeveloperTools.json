@@ -4,7 +4,7 @@
   "sectionDiagnostics": "诊断",
   "navLabel": "开发者工具",
   "developerModeTitle": "开发者模式",
-  "developerModeDescription": "开发者模式允许当前生产账号审批隔离的本地开发项目。它本身不会授予任何 Nimi API 权限；每项操作仍需单独授权。",
+  "developerModeDescription": "开发者模式允许当前生产账号审批隔离的本地开发项目，本身不会授予任何 Nimi 权限。应用自有数据无需 Nimi 权限；受保护访问只在实际使用时单独判断。",
   "developerModeStatusOn": "开发者模式已开启",
   "developerModeStatusOff": "开发者模式已关闭",
   "developerModeStatusLoading": "正在检查 Nimi Runtime…",

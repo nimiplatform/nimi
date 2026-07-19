@@ -4,7 +4,7 @@
   "sectionDiagnostics": "Diagnostics",
   "navLabel": "Developer Tools",
   "developerModeTitle": "Developer Mode",
-  "developerModeDescription": "Developer Mode lets this production account approve isolated local-development projects. It grants no Nimi API permission by itself; every operation still needs a separate grant.",
+  "developerModeDescription": "Developer Mode lets this production account approve isolated local-development projects. It grants no Nimi permission by itself. App-owned data needs no Nimi permission; protected access is evaluated separately when used.",
   "developerModeStatusOn": "Developer Mode is on",
   "developerModeStatusOff": "Developer Mode is off",
   "developerModeStatusLoading": "Checking Nimi Runtime…",
