@@ -9,10 +9,36 @@ async function source(relative) {
   return readFile(path.join(repoRoot, relative), 'utf8');
 }
 
+async function sourceBundle(...relatives) {
+  return (await Promise.all(relatives.map(source))).join('\n');
+}
+
+function certificateAuthoritySource() {
+  return sourceBundle(
+    'apps/desktop/macos/dev-security/CertificateAuthority.swift',
+    'apps/desktop/macos/dev-security/CertificateAuthorityKeychain.swift',
+    'apps/desktop/macos/dev-security/CertificateAuthorityValidation.swift',
+  );
+}
+
+function openDirectoryAccountSource() {
+  return sourceBundle(
+    'apps/desktop/macos/dev-security/OpenDirectoryAccountStore.swift',
+    'apps/desktop/macos/dev-security/OpenDirectoryAccountRepair.swift',
+  );
+}
+
+function partialInstallationRepairSource() {
+  return sourceBundle(
+    'apps/desktop/macos/dev-security/PartialInstallationRepair.swift',
+    'apps/desktop/macos/dev-security/PartialInstallationRepairStorage.swift',
+  );
+}
+
 test('local-development CA key is non-durable and persistent signing identities use fixed custody', async () => {
   const [profile, authority, support] = await Promise.all([
     source('apps/desktop/scripts/generated/macos-local-development-profile.mjs'),
-    source('apps/desktop/macos/dev-security/CertificateAuthority.swift'),
+    certificateAuthoritySource(),
     source('apps/desktop/macos/dev-security/DevSecuritySupport.swift'),
   ]);
 
@@ -39,7 +65,7 @@ test('local-development CA key is non-durable and persistent signing identities 
 
 test('only the root helper can unlock signing custody and every transaction relocks it', async () => {
   const [authority, signing, certificateProfile, cleanupRecord, trustSettings, signedCode, searchList, keychainAccess, support, main, build, nativeIntegration] = await Promise.all([
-    source('apps/desktop/macos/dev-security/CertificateAuthority.swift'),
+    certificateAuthoritySource(),
     source('apps/desktop/macos/dev-security/SigningTransaction.swift'),
     source('apps/desktop/macos/dev-security/DevelopmentCertificateProfile.swift'),
     source('apps/desktop/macos/dev-security/SigningProfileCleanupRecord.swift'),
@@ -57,10 +83,11 @@ test('only the root helper can unlock signing custody and every transaction relo
   assert.match(authority, /validateInstalledProfile\(requirePrivateCustody: Bool\)/u);
   assert.match(authority, /guard requirePrivateCustody else \{ return \}/u);
   assert.match(authority, /try requireSigningKeychainLocked\(signingKeychain\)/u);
-  assert.match(authority, /private var helperApplication: SecTrustedApplication/u);
+  assert.match(authority, /private\(set\) var helperApplication: SecTrustedApplication/u);
   assert.match(authority, /let transitionalOwners = \[helperApplication, signedHelperApplication\]/u);
   assert.match(authority, /ownerApplications: transitionalOwners/u);
-  assert.match(authority, /private func generateEphemeralRootKeyPair\(\) throws -> KeyPair \{[\s\S]*kSecAttrIsPermanent: false[\s\S]*SecKeyCreateRandomKey/u);
+  assert.match(authority, /func generateEphemeralRootKeyPair\(\) throws -> KeyPair \{[\s\S]*kSecAttrIsPermanent: false[\s\S]*SecKeyCreateRandomKey/u);
+  assert.doesNotMatch(authority, /public func generateEphemeralRootKeyPair/u);
   assert.match(authority, /schemaVersion: "nimi\.macos-local-development-signing-profile\/v4"/u);
   assert.match(authority, /aclIdentityDigestAlgorithm: "sha256_opaque_sectrustedapplication_data"/u);
   assert.match(authority, /rootPrivateKeyPersistence: "non_durable_destroyed_after_leaf_issuance"/u);
@@ -149,8 +176,8 @@ test('only the root helper can unlock signing custody and every transaction relo
   assert.match(authority, /if trustSettingsCopyCertificatesReportsEmptyDomain\(status\) \{ return nil \}/u);
   assert.doesNotMatch(
     authority.slice(
-      authority.indexOf('private func adminTrustCertificateIfPresent'),
-      authority.indexOf('private func certificateMatchingPublicKeyIfPresent'),
+      authority.indexOf('func adminTrustCertificateIfPresent'),
+      authority.indexOf('func certificateMatchingPublicKeyIfPresent'),
     ),
     /status == errSecItemNotFound/u,
   );
@@ -162,10 +189,11 @@ test('only the root helper can unlock signing custody and every transaction relo
   assert.match(support, /var errorDescription: String\? \{ message \}/u);
   assert.match(support, /func diagnosticMessage\(_ error: Error\) -> String/u);
   assert.match(authority, /Provisioning failed \(\\\(diagnosticMessage\(provisioningError\)\)\)/u);
-  assert.match(authority, /private func loadCertificate\(sha256 expectedSHA256: String, keychain: SecKeychain\)/u);
+  assert.match(authority, /func loadCertificate\(sha256 expectedSHA256: String, keychain: SecKeychain\)/u);
   assert.match(authority, /kSecMatchLimit: kSecMatchLimitAll/u);
   assert.match(authority, /sha256\(SecCertificateCopyData\(certificate\) as Data\) == expectedSHA256/u);
-  assert.match(authority, /private func deleteCertificate/u);
+  assert.match(authority, /func deleteCertificate/u);
+  assert.doesNotMatch(authority, /public func (?:loadCertificate|deleteCertificate)/u);
   assert.match(authority, /SecTrustSettingsCopyTrustSettings\(certificate, \.admin, &settings\)/u);
   assert.match(authority, /exactAppleCodeSigningTrustSettingsMismatch\(settings\)/u);
   assert.match(trustSettings, /SecPolicyCopyProperties\(policy\)/u);
@@ -321,7 +349,7 @@ test('Runtime service account is born atomically through OpenDirectory behind a 
     source('apps/desktop/scripts/generated/macos-local-development-profile.mjs'),
     source('apps/desktop/macos/generated/macos_local_development_profile.swift'),
     source('apps/desktop/macos/dev-security/DirectoryServiceAccountPlan.swift'),
-    source('apps/desktop/macos/dev-security/OpenDirectoryAccountStore.swift'),
+    openDirectoryAccountSource(),
     source('apps/desktop/macos/dev-security/RuntimePrincipalTransaction.swift'),
     source('apps/desktop/macos/dev-security/InstallerState.swift'),
     source('scripts/build-macos-dev-security-helper.mjs'),
@@ -365,6 +393,7 @@ test('Runtime service account is born atomically through OpenDirectory behind a 
   assert.match(transaction, /syncDirectory\(runtimeDevRoot\)/u);
   assert.match(build, /'DirectoryServiceAccountPlan\.swift'/u);
   assert.match(build, /'OpenDirectoryAccountStore\.swift'/u);
+  assert.match(build, /'OpenDirectoryAccountRepair\.swift'/u);
   assert.match(build, /'RuntimePrincipalTransaction\.swift'/u);
   assert.match(build, /'-framework', 'OpenDirectory'/u);
 });
@@ -403,8 +432,8 @@ test('partial first-install repair v2 owns direct deletion, effect-ahead recover
   const [packageJSON, wrapper, repair, account, main, signing, lifecycle] = await Promise.all([
     source('package.json'),
     source('scripts/repair-macos-dev-runtime-install.mjs'),
-    source('apps/desktop/macos/dev-security/PartialInstallationRepair.swift'),
-    source('apps/desktop/macos/dev-security/OpenDirectoryAccountStore.swift'),
+    partialInstallationRepairSource(),
+    openDirectoryAccountSource(),
     source('apps/desktop/macos/dev-security/main.swift'),
     source('apps/desktop/macos/dev-security/SigningTransaction.swift'),
     source('apps/desktop/macos/dev-security/ServiceLifecycle.swift'),
@@ -620,7 +649,7 @@ test('trust provisioning refuses partial residue and rolls back the root helper 
   const [provision, unprovision, authority, cleanup, lifecycle, profile, generated, nativeIntegration, nativeBuild, helperBuild] = await Promise.all([
     source('scripts/provision-macos-dev-trust.mjs'),
     source('scripts/unprovision-macos-dev-trust.mjs'),
-    source('apps/desktop/macos/dev-security/CertificateAuthority.swift'),
+    certificateAuthoritySource(),
     source('apps/desktop/macos/dev-security/ProfileKeyCleanup.swift'),
     source('apps/desktop/macos/dev-security/ServiceLifecycle.swift'),
     source('apps/desktop/scripts/generated/macos-local-development-profile.mjs'),
@@ -671,6 +700,9 @@ test('trust provisioning refuses partial residue and rolls back the root helper 
   assert.match(nativeIntegration, /"profileKeyCleanupValidations": 1/u);
   assert.match(nativeBuild, /'ProfileKeyCleanup\.swift'/u);
   assert.match(helperBuild, /'ProfileKeyCleanup\.swift'/u);
+  assert.match(helperBuild, /'CertificateAuthorityKeychain\.swift'/u);
+  assert.match(helperBuild, /'CertificateAuthorityValidation\.swift'/u);
+  assert.match(helperBuild, /'PartialInstallationRepairStorage\.swift'/u);
 
   const cleanupTransaction = authority.slice(
     authority.indexOf('func removeProfileItems()'),
