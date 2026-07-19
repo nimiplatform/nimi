@@ -1,15 +1,11 @@
 /**
- * Motion timing primitive (wave-b fork F1 lift-the-bar).
+ * Motion timing primitive (P-DESIGN-027 / nimi-ui-motion-contract.md §2).
  *
- * Centralizes timing curves + duration tokens consumed by kit
- * components. Mirrors the CSS-variable tokens emitted by the
- * generated token chain (`--nimi-motion-fast` etc.) so headless
- * code (transition controllers, choreography orchestrators) can
- * reference the same source without re-reading `getComputedStyle`.
- *
- * The CSS variables are the canonical render-time source; this
- * TypeScript surface is a logical mirror keyed for prefers-reduced-
- * motion downgrade decisions.
+ * TS mirror of the spec-owned `motion.*` token values
+ * (`--nimi-motion-fast` etc.). One scale serves CSS transitions and
+ * TypeScript animation code; the CSS variables emitted by the generated
+ * token chain are the canonical render-time source, and this module
+ * must never diverge from them (divergence is design drift).
  */
 
 export const NIMI_MOTION_DURATIONS_MS = {

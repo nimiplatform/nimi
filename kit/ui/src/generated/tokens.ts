@@ -4,7 +4,8 @@
 export const DESIGN_PACK_IDS = [
   "nimi-light",
   "nimi-dark",
-  "nimi-accent"
+  "nimi-accent",
+  "nimi-density-compact"
 ] as const;
 export const FOUNDATION_SCHEME_IDS = [
   "nimi-light",
@@ -13,7 +14,11 @@ export const FOUNDATION_SCHEME_IDS = [
 export const ACCENT_PACK_IDS = [
   "nimi-accent"
 ] as const;
+export const DENSITY_PACK_IDS = [
+  "nimi-density-compact"
+] as const;
 export const TYPOGRAPHY_ROLE_IDS = [
+  "hero_title",
   "page_title",
   "section_title",
   "body",
@@ -28,4 +33,5 @@ export const TYPOGRAPHY_ROLE_IDS = [
 export type GeneratedNimiDesignPackId = (typeof DESIGN_PACK_IDS)[number];
 export type GeneratedNimiFoundationSchemeId = (typeof FOUNDATION_SCHEME_IDS)[number];
 export type GeneratedNimiAccentPackId = (typeof ACCENT_PACK_IDS)[number];
+export type GeneratedNimiDensityPackId = (typeof DENSITY_PACK_IDS)[number];
 export type GeneratedNimiTypographyRoleId = (typeof TYPOGRAPHY_ROLE_IDS)[number];

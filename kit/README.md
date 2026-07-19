@@ -85,12 +85,13 @@ platform spec tables first and regenerate the projection.
 
 ## Current Public Surface
 
-The current package publishes 67 public subpath exports through
+The current package publishes 68 public subpath exports through
 `kit/package.json`:
 
-- 8 UI entries (`./ui`, `./ui/glass`, `./ui/motion`, `./ui/a11y`,
+- 9 UI entries (`./ui`, `./ui/glass`, `./ui/motion`, `./ui/a11y`,
   `./ui/styles.css`, `./ui/themes/light.css`, `./ui/themes/dark.css`,
-  and `./ui/themes/nimi-accent.css`)
+  `./ui/themes/nimi-accent.css`, and
+  `./ui/themes/nimi-density-compact.css`)
 - 4 auth entries (`./auth`, `./auth/shell`, `./auth/styles.css`, `./auth/native-oauth-result-page`)
 - 9 core entries (`./core/shell-mode`, `./core/oauth`,
   `./core/storage-json`, `./core/offline-coordinator`,
@@ -117,7 +118,7 @@ The complete npm subpath inventory is the `exports` object in
 ```ts
 import { Button, DataTable, Pagination, Statistic, IconButton, cn } from '@nimiplatform/kit/ui';
 import { GlassSurface, glassMaterial } from '@nimiplatform/kit/ui/glass';
-import { usePrefersReducedMotion, MOTION_TIMING } from '@nimiplatform/kit/ui/motion';
+import { NimiMotionProvider, nimiSpring, nimiOverlayPanelMotion, projectMomentum, usePrefersReducedMotion } from '@nimiplatform/kit/ui/motion';
 import { FOCUS_RING_CLASS_NAME, VISUALLY_HIDDEN_CLASS_NAME, VISUALLY_HIDDEN_STYLE } from '@nimiplatform/kit/ui/a11y';
 ```
 
@@ -130,7 +131,8 @@ import { FOCUS_RING_CLASS_NAME, VISUALLY_HIDDEN_CLASS_NAME, VISUALLY_HIDDEN_STYL
 @import '@nimiplatform/kit/ui/themes/nimi-accent.css';
 ```
 
-Available themes: `light`, `dark`, and `nimi-accent`. Theme tokens are
+Available themes: `light`, `dark`, `nimi-accent`, and the
+`nimi-density-compact` density overlay (P-DESIGN-028). Theme tokens are
 projected from `.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml`.
 
 ### Auth
@@ -250,14 +252,27 @@ documents the admitted dynamic-import escape hatch used by
   from sighted users while keeping it available to assistive tech.
 - `useFocusTrap` enforces modal focus containment.
 
-`@nimiplatform/kit/ui/motion` ships:
+`@nimiplatform/kit/ui/motion` ships the admitted animation substrate
+(P-DESIGN-027 / `nimi-ui-motion-contract.md`):
 
+- `motion`, `AnimatePresence`, `useReducedMotion` — re-exported from the
+  `motion` package so governed surfaces never adopt a parallel
+  animation library.
+- `NimiMotionProvider` — wires OS reduced-motion into the substrate.
+- `nimiSpring()` / `NIMI_SPRING_DEFAULT` / `NIMI_SPRING_MOMENTUM` —
+  spring presets mirrored from the `motion.spring_*` tokens.
+- `nimiOverlayPanelMotion()` / `nimiOverlayBackdropMotion()` —
+  symmetric, spring-based overlay enter/exit grammar.
+- `projectMomentum()` / `nearestSnapTarget()` /
+  `normalizeReleaseVelocity()` / `shouldCommitGesture()` — gesture
+  velocity handoff and momentum projection math.
 - `usePrefersReducedMotion()` — SSR-safe hook that respects
   `prefers-reduced-motion: reduce`.
-- `MOTION_TIMING` — canonical duration/easing tokens.
+- `NIMI_MOTION_DURATIONS_MS` / `NIMI_MOTION_EASINGS` — TS mirror of the
+  spec `motion.*` duration/easing tokens; divergence is design drift.
 
 Authors building new animations MUST gate non-essential motion behind
-`usePrefersReducedMotion()`.
+reduced-motion handling and use the admitted spring presets.
 
 ## Theming Integration
 

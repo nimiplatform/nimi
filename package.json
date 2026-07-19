@@ -384,7 +384,9 @@
     "check:nimi-nimicoding-split-readiness": "node scripts/check-nimi-nimicoding-split-readiness.mjs",
     "check:no-public-mod-extension-admission": "node scripts/check-no-public-mod-extension-admission.mjs",
     "check:p-moex-anti-targets": "node scripts/check-p-moex-anti-targets.mjs",
-    "check:generated-doc-hardcuts": "node scripts/check-generated-doc-hardcuts.mjs"
+    "check:generated-doc-hardcuts": "node scripts/check-generated-doc-hardcuts.mjs",
+    "kit:preview": "pnpm --filter @nimiplatform/kit preview",
+    "check:kit-visual-audit": "pnpm --filter @nimiplatform/kit audit:ui"
   },
   "dependencies": {
     "yaml": "^2.9.0"

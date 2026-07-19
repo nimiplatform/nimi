@@ -3,14 +3,14 @@
 
 @layer nimi-theme.accent {
 :root[data-nimi-accent="nimi-accent"] {
-  --nimi-surface-active: rgba(78,204,163,0.16);
-  --nimi-action-primary-bg: #4ECCA3;
-  --nimi-action-primary-bg-hover: #3DBB96;
+  --nimi-surface-active: rgba(69,184,214,0.16);
+  --nimi-action-primary-bg: #45B8D6;
+  --nimi-action-primary-bg-hover: #35A7C4;
   --nimi-action-primary-text: #111827;
-  --nimi-action-ghost-hover: rgba(78,204,163,0.10);
-  --nimi-sidebar-item-active: rgba(78,204,163,0.16);
-  --nimi-sidebar-item-hover: rgba(78,204,163,0.08);
-  --nimi-field-focus: #4ECCA3;
-  --nimi-focus-ring-color: rgba(78,204,163,0.28);
+  --nimi-action-ghost-hover: rgba(69,184,214,0.10);
+  --nimi-sidebar-item-active: rgba(69,184,214,0.16);
+  --nimi-sidebar-item-hover: rgba(69,184,214,0.08);
+  --nimi-field-focus: #45B8D6;
+  --nimi-focus-ring-color: rgba(69,184,214,0.28);
 }
 }

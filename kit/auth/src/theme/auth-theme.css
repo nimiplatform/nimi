@@ -26,11 +26,11 @@
   --nimi-type-section-title-letter-spacing: var(--nimi-type-section-title-letter-spacing, -0.01em);
   --nimi-type-body-sm-size: var(--nimi-type-body-sm-size, 0.8125rem);
 
-  --nimi-action-primary-bg: var(--nimi-action-primary-bg, #4ECCA3);
-  --nimi-action-primary-bg-hover: var(--nimi-action-primary-bg-hover, #3DBB96);
+  --nimi-action-primary-bg: var(--nimi-action-primary-bg, #45B8D6);
+  --nimi-action-primary-bg-hover: var(--nimi-action-primary-bg-hover, #35A7C4);
   --nimi-action-primary-text: var(--nimi-action-primary-text, #ffffff);
-  --nimi-action-ghost-hover: var(--nimi-action-ghost-hover, rgba(78,204,163,0.10));
-  --nimi-focus-ring-color: var(--nimi-focus-ring-color, rgba(78,204,163,0.28));
+  --nimi-action-ghost-hover: var(--nimi-action-ghost-hover, rgba(69,184,214,0.10));
+  --nimi-focus-ring-color: var(--nimi-focus-ring-color, rgba(69,184,214,0.28));
 
   /* ---- layout ---- */
   position: relative;
@@ -68,14 +68,14 @@
   --nimi-field-border: #ddd4c6;
   --nimi-border-subtle: #e4dccf;
   --nimi-elevation-base: 0 12px 34px rgba(157, 145, 123, 0.09);
-  --nimi-elevation-raised: 0 18px 40px rgba(78, 204, 163, 0.28);
+  --nimi-elevation-raised: 0 18px 40px rgba(69, 184, 214, 0.28);
   --nimi-elevation-floating: 0 18px 40px rgba(157, 145, 123, 0.12);
   --nimi-status-danger: #ef4444;
-  --nimi-action-primary-bg: #4ecca3;
-  --nimi-action-primary-bg-hover: #3dbb8f;
+  --nimi-action-primary-bg: #45b8d6;
+  --nimi-action-primary-bg-hover: #35a7c4;
   --nimi-action-primary-text: #ffffff;
   --nimi-action-ghost-hover: #f0ece6;
-  --nimi-focus-ring-color: rgba(78, 204, 163, 0.28);
+  --nimi-focus-ring-color: rgba(69, 184, 214, 0.28);
 }
 
 .nimi-shell-auth-root .nimi-shell-auth-background {

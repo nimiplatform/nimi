@@ -21,7 +21,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Che
           disabled={disabled}
           {...rest}
         />
-        <span className="nimi-checkbox__box pointer-events-none inline-flex h-4 w-4 items-center justify-center rounded-[var(--nimi-radius-sm)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] text-[var(--nimi-action-primary-text)] transition-all duration-[var(--nimi-motion-fast)] peer-checked:border-[var(--nimi-action-primary-bg)] peer-checked:bg-[var(--nimi-action-primary-bg)] peer-focus-visible:ring-[length:var(--nimi-focus-ring-width)] peer-focus-visible:ring-[var(--nimi-focus-ring-color)]">
+        <span className="nimi-checkbox__box pointer-events-none inline-flex h-4 w-4 items-center justify-center rounded-[var(--nimi-radius-sm)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] text-[var(--nimi-action-primary-text)] transition-[background-color,border-color,color] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] peer-checked:border-[var(--nimi-action-primary-bg)] peer-checked:bg-[var(--nimi-action-primary-bg)] peer-focus-visible:ring-[length:var(--nimi-focus-ring-width)] peer-focus-visible:ring-[var(--nimi-focus-ring-color)]">
           <span className="nimi-checkbox__indicator opacity-0 transition-opacity duration-[var(--nimi-motion-fast)] peer-checked:opacity-100">✓</span>
         </span>
       </span>

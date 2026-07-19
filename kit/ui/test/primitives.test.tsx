@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, expect, test } from 'vitest';
+import { afterEach, expect, test, vi } from 'vitest';
 import {
   Button,
   Checkbox,
@@ -81,6 +81,13 @@ import {
     IS_REACT_ACT_ENVIRONMENT?: boolean;
   }
 ).IS_REACT_ACT_ENVIRONMENT = true;
+
+if (!window.HTMLElement.prototype.scrollIntoView) {
+  Object.defineProperty(window.HTMLElement.prototype, 'scrollIntoView', {
+    configurable: true,
+    value: vi.fn(),
+  });
+}
 
 const hasClass = (html: string, name: string) =>
   new RegExp(`class="[^"]*\\b${name}\\b[^"]*"`, 'u').test(html);
@@ -277,7 +284,7 @@ test('dialog source keeps data-testid passthrough and panel style support', () =
   expect(source).toMatch(/data-testid=\{dataTestId\}/);
   expect(source).toMatch(/panelStyle\?: CSSProperties/);
   expect(source).toMatch(/\.\.\.panelStyle/);
-  expect(source).toMatch(/style=\{mergedPanelStyle\}/);
+  expect(source).toMatch(/style=\{\{ \.\.\.panelMotion\.style, \.\.\.mergedPanelStyle \}\}/);
 });
 
 test('shared control and feedback primitives render canonical slots', () => {
@@ -666,9 +673,14 @@ test('overlay shell moves, traps, and restores focus for modal dialogs', async (
     await flush();
   });
 
-  expect(document.querySelector('[data-testid="focus-dialog"]')).toBeNull();
+  // AnimatePresence runs the spring exit before unmount; wait for it.
+  await vi.waitFor(() => {
+    expect(document.querySelector('[data-testid="focus-dialog"]')).toBeNull();
+  });
   expect(document.querySelector('[data-testid="escape-close-count"]')?.textContent).toBe('1');
-  expect(document.activeElement).toBe(trigger);
+  await vi.waitFor(() => {
+    expect(document.activeElement).toBe(trigger);
+  });
   expect(container.hasAttribute('aria-hidden')).toBe(false);
 });
 
@@ -728,7 +740,10 @@ test('overlay shell closes once from the backdrop and can keep the backdrop iner
     await flush();
     await flush();
   });
-  expect(document.querySelector('[data-testid="backdrop-dialog"]')).toBeNull();
+  // AnimatePresence runs the spring exit before unmount; wait for it.
+  await vi.waitFor(() => {
+    expect(document.querySelector('[data-testid="backdrop-dialog"]')).toBeNull();
+  });
   expect(document.querySelector('[data-testid="close-count"]')?.textContent).toBe('1');
 });
 
@@ -852,6 +867,39 @@ test('select field ignores empty option values reserved by Radix', () => {
     );
   }).not.toThrow();
   expect(html).toContain('enabled:hover:border-[var(--nimi-field-focus)]');
+});
+
+test('select field retains content until its symmetric exit completes', async () => {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+
+  const renderSelect = (open: boolean) => (
+    <SelectField
+      open={open}
+      value="connector.openai"
+      aria-label="Connector"
+      options={[{ value: 'connector.openai', label: 'OpenAI' }]}
+    />
+  );
+
+  await act(async () => {
+    root?.render(renderSelect(true));
+    await flush();
+  });
+  expect(document.querySelector('[role="listbox"]')).toBeTruthy();
+  expect(document.querySelector('.nimi-overlay-panel--popover')).toBeTruthy();
+
+  await act(async () => {
+    root?.render(renderSelect(false));
+    await flush();
+  });
+  expect(document.querySelector('[role="listbox"]')).toBeTruthy();
+  expect(document.querySelector('.nimi-overlay-panel--popover')).toBeTruthy();
+
+  await vi.waitFor(() => {
+    expect(document.querySelector('[role="listbox"]')).toBeNull();
+  });
 });
 
 test('toggle primitive renders canonical switch slots and states', () => {

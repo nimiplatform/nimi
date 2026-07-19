@@ -15,7 +15,7 @@ packs:
       surface.canvas: "#f5f7fa"
       surface.panel: "#f8f9fb"
       surface.card: "#ffffff"
-      surface.hero: linear-gradient(160deg, rgba(255,255,255,0.96), rgba(236,247,242,0.9))
+      surface.hero: linear-gradient(160deg, rgba(255,255,255,0.96), rgba(229,244,250,0.9))
       surface.overlay: rgba(255,255,255,0.98)
       text.primary: "#111827"
       text.secondary: "#4b5563"
@@ -63,7 +63,7 @@ packs:
       radius.lg: 16px
       radius.xl: 24px
       radius.full: 999px
-      radius.action: 999px
+      radius.action: 12px
       radius.field: 12px
       radius.sidebar_item: 12px
       spacing.0: 0px
@@ -118,14 +118,31 @@ packs:
       typography.sidebar_label.line_height: "1.2"
       typography.sidebar_label.weight: "700"
       typography.sidebar_label.letter_spacing: 0.08em
+      typography.hero_title.size: 2.25rem
+      typography.hero_title.line_height: 2.5rem
+      typography.hero_title.weight: "700"
+      typography.hero_title.letter_spacing: -0.02em
+      typography.hero_title.cjk_letter_spacing: -0.01em
+      typography.hero_title.cjk_line_height: "1.2"
       stroke.subtle: rgba(226,232,240,0.9)
       stroke.strong: rgba(148,163,184,0.34)
       elevation.base: 0 6px 18px rgba(15,23,42,0.08)
       elevation.raised: 0 12px 28px rgba(15,23,42,0.12)
       elevation.floating: 0 18px 44px rgba(15,23,42,0.16)
       elevation.modal: 0 28px 72px rgba(15,23,42,0.2)
-      motion.fast: 160ms
-      motion.slow: 240ms
+      motion.fast: 120ms
+      motion.slow: 320ms
+      motion.base: 200ms
+      motion.ambient: 600ms
+      motion.ease_standard: cubic-bezier(0.2, 0, 0, 1)
+      motion.ease_emphasized: cubic-bezier(0.05, 0.7, 0.1, 1)
+      motion.ease_decelerated: cubic-bezier(0, 0, 0, 1)
+      motion.ease_accelerated: cubic-bezier(0.3, 0, 1, 1)
+      motion.pressed_scale: "0.97"
+      motion.spring_default_response: 0.4s
+      motion.spring_default_damping: "1"
+      motion.spring_momentum_response: 0.35s
+      motion.spring_momentum_damping: "0.8"
       z.tooltip: "70"
       z.popover: "80"
       z.dialog: "90"
@@ -168,12 +185,13 @@ packs:
       backdrop.blur_strong: 24px
       backdrop.blur_thin: 10px
       backdrop.blur_chrome: 28px
+      backdrop.saturate: 180%
       surface.card_promoted_glass_elevated: rgba(255,255,255,0.48)
       surface.card_operational_solid_elevated: "#ffffff"
       ambient.mesh.color_1: rgba(191,219,254,0.45)
       ambient.mesh.color_2: rgba(221,214,254,0.30)
       ambient.mesh.color_3: rgba(252,231,243,0.35)
-      ambient.mesh.color_4: rgba(167,243,208,0.20)
+      ambient.mesh.color_4: rgba(153,221,243,0.22)
       ambient.mesh.base_start: "#f8fafc"
       ambient.mesh.base_end: "#f1f5f9"
       typography.body.cjk_line_height: "1.7"
@@ -240,7 +258,7 @@ packs:
       radius.lg: 16px
       radius.xl: 24px
       radius.full: 999px
-      radius.action: 999px
+      radius.action: 12px
       radius.field: 12px
       radius.sidebar_item: 12px
       spacing.0: 0px
@@ -295,14 +313,31 @@ packs:
       typography.sidebar_label.line_height: "1.2"
       typography.sidebar_label.weight: "700"
       typography.sidebar_label.letter_spacing: 0.08em
+      typography.hero_title.size: 2.25rem
+      typography.hero_title.line_height: 2.5rem
+      typography.hero_title.weight: "700"
+      typography.hero_title.letter_spacing: -0.02em
+      typography.hero_title.cjk_letter_spacing: -0.01em
+      typography.hero_title.cjk_line_height: "1.2"
       stroke.subtle: rgba(148,163,184,0.18)
       stroke.strong: rgba(148,163,184,0.36)
       elevation.base: 0 8px 20px rgba(2,6,23,0.28)
       elevation.raised: 0 14px 36px rgba(2,6,23,0.34)
       elevation.floating: 0 18px 48px rgba(2,6,23,0.42)
       elevation.modal: 0 28px 72px rgba(2,6,23,0.56)
-      motion.fast: 160ms
-      motion.slow: 240ms
+      motion.fast: 120ms
+      motion.slow: 320ms
+      motion.base: 200ms
+      motion.ambient: 600ms
+      motion.ease_standard: cubic-bezier(0.2, 0, 0, 1)
+      motion.ease_emphasized: cubic-bezier(0.05, 0.7, 0.1, 1)
+      motion.ease_decelerated: cubic-bezier(0, 0, 0, 1)
+      motion.ease_accelerated: cubic-bezier(0.3, 0, 1, 1)
+      motion.pressed_scale: "0.97"
+      motion.spring_default_response: 0.4s
+      motion.spring_default_damping: "1"
+      motion.spring_momentum_response: 0.35s
+      motion.spring_momentum_damping: "0.8"
       z.tooltip: "70"
       z.popover: "80"
       z.dialog: "90"
@@ -345,12 +380,13 @@ packs:
       backdrop.blur_strong: 24px
       backdrop.blur_thin: 10px
       backdrop.blur_chrome: 28px
+      backdrop.saturate: 180%
       surface.card_promoted_glass_elevated: rgba(45,52,68,0.48)
       surface.card_operational_solid_elevated: "#1F293B"
       ambient.mesh.color_1: rgba(30,64,124,0.35)
       ambient.mesh.color_2: rgba(76,29,149,0.28)
       ambient.mesh.color_3: rgba(131,24,67,0.28)
-      ambient.mesh.color_4: rgba(6,78,59,0.24)
+      ambient.mesh.color_4: rgba(8,74,92,0.24)
       ambient.mesh.base_start: "#0f172a"
       ambient.mesh.base_end: "#020617"
       typography.body.cjk_line_height: "1.7"
@@ -365,12 +401,30 @@ packs:
     pack_kind: accent
     source_rule: P-DESIGN-002
     values:
-      surface.active: rgba(78,204,163,0.16)
-      action.primary_bg: "#4ECCA3"
-      action.primary_bg_hover: "#3DBB96"
+      surface.active: rgba(69,184,214,0.16)
+      action.primary_bg: "#45B8D6"
+      action.primary_bg_hover: "#35A7C4"
       action.primary_text: "#111827"
-      action.ghost_hover: rgba(78,204,163,0.10)
-      sidebar.item_active: rgba(78,204,163,0.16)
-      sidebar.item_hover: rgba(78,204,163,0.08)
-      field.focus: "#4ECCA3"
-      focus.ring_color: rgba(78,204,163,0.28)
+      action.ghost_hover: rgba(69,184,214,0.10)
+      sidebar.item_active: rgba(69,184,214,0.16)
+      sidebar.item_hover: rgba(69,184,214,0.08)
+      field.focus: "#45B8D6"
+      focus.ring_color: rgba(69,184,214,0.28)
+  - theme_id: nimi-density-compact
+    pack_kind: density
+    source_rule: P-DESIGN-028
+    values:
+      sizing.action_sm_height: 28px
+      sizing.action_md_height: 34px
+      sizing.action_lg_height: 40px
+      sizing.field_md_height: 36px
+      sizing.field_lg_height: 40px
+      sizing.textarea_min_height: 72px
+      sizing.sidebar_item_height: 38px
+      typography.body.size: 0.8125rem
+      typography.body_sm.size: 0.75rem
+      typography.caption.size: 0.6875rem
+      typography.label.size: 0.8125rem
+      typography.section_title.size: 0.9375rem
+      typography.page_title.size: 1.25rem
+      typography.page_title.line_height: 1.75rem

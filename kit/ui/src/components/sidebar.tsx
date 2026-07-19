@@ -203,7 +203,7 @@ export function SidebarItem({
     <button
       type={type}
       className={cn(
-        'nimi-sidebar-item flex w-full items-center gap-2 rounded-[var(--nimi-radius-sidebar-item)] px-2 min-h-[var(--nimi-sizing-sidebar-item-height)] text-left text-sm transition-colors duration-[var(--nimi-motion-fast)] cursor-pointer',
+        'nimi-sidebar-item flex w-full items-center gap-2 rounded-[var(--nimi-radius-sidebar-item)] px-2 min-h-[var(--nimi-sizing-sidebar-item-height)] text-left text-sm transition-[background-color,color] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:bg-[var(--nimi-sidebar-item-active)] cursor-pointer',
         `nimi-sidebar-item--${kind}`,
         active
           ? 'nimi-sidebar-item--active bg-[var(--nimi-sidebar-item-active)] text-[var(--nimi-text-primary)] font-medium'

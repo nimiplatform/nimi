@@ -45,7 +45,7 @@ export function checkNimiDesignTables({
     'backdrop',
     'ambient',
   ]);
-  const allowedThemeLayers = new Set(['foundation', 'accent']);
+  const allowedThemeLayers = new Set(['foundation', 'accent', 'density']);
   const tokenIds = new Set();
   const accentTokenIds = new Set();
   for (const token of tokens) {
@@ -128,6 +128,20 @@ export function checkNimiDesignTables({
       for (const tokenId of tokenIds) {
         if (accentTokenIds.has(tokenId)) continue;
         if (!coverage.has(tokenId)) fail(`${themesRel}: foundation pack ${themeId} missing token ${tokenId}`);
+      }
+      continue;
+    }
+    if (packKind === 'density') {
+      // P-DESIGN-028: density packs carry sizing/typography overrides only
+      // and must not touch accent-layer tokens.
+      for (const tokenId of coverage) {
+        if (accentTokenIds.has(tokenId)) {
+          fail(`${themesRel}: density pack ${themeId} must not redefine accent-layer token ${tokenId}`);
+          continue;
+        }
+        if (!tokenId.startsWith('sizing.') && !tokenId.startsWith('typography.')) {
+          fail(`${themesRel}: density pack ${themeId} token ${tokenId} is outside the admitted sizing.*/typography.* override scope`);
+        }
       }
       continue;
     }

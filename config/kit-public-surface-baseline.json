@@ -68,7 +68,8 @@
     "./ui/styles.css",
     "./ui/themes/dark.css",
     "./ui/themes/light.css",
-    "./ui/themes/nimi-accent.css"
+    "./ui/themes/nimi-accent.css",
+    "./ui/themes/nimi-density-compact.css"
   ],
   "entryPointShards": [
     "config/public-surface-baselines/kit/shard-01.json",

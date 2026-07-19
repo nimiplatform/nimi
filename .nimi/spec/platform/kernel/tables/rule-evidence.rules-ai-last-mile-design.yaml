@@ -58,6 +58,8 @@ entries:
   - P-DESIGN-024
   - P-DESIGN-025
   - P-DESIGN-026
+  - P-DESIGN-027
+  - P-DESIGN-028
   - P-DESIGN-090
 rules:
   - rule_id: P-ALMI-001
@@ -246,6 +248,20 @@ rules:
       - nimi_ui_pattern
     evidence_requirement: structural_required
     evidence_scope_note: negative anti-drift categories are admitted; executable visual fixtures and hard gate coverage require downstream consumer validation
+  - rule_id: P-DESIGN-027
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_lib_drift
+      - kit_preview_audit
+    evidence_requirement: required
+    test_files:
+      - kit/ui/test/motion.test.ts
+  - rule_id: P-DESIGN-028
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_ui_pattern
+      - kit_preview_audit
+    evidence_requirement: required
   - rule_id: P-DESIGN-090
     evidence_refs:
       - platform_kernel_consistency

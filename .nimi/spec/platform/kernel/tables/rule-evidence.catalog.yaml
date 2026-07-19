@@ -36,6 +36,7 @@ entries:
   - canonical_capability_catalog_gate
   - public_raw_token_authority_hardcut_gate
   - protected_local_authority_gate
+  - kit_preview_audit
 platform_kernel_consistency:
   type: static_gate
   evidence_type: structural
@@ -114,3 +115,9 @@ protected_local_authority_gate:
   command: pnpm check:protected-local-authority
   path: scripts/check-protected-local-authority.mjs
   description: Cross-layer gate enforcing the protected local carrier, principal, session, permission, and base-entitlement authority boundary.
+kit_preview_audit:
+  type: static_gate
+  evidence_type: behavioral
+  command: pnpm check:kit-visual-audit
+  path: kit/preview/audit/run-audit.mjs
+  description: Rendered kit preview audit (screenshot matrix, pressed feedback, spring overlay travel, density axis, typography execution, glass vibrancy, dead-class elimination, rendered contrast) producing a machine-readable report under .nimi/local/design-audit/.

@@ -11,6 +11,67 @@ Discipline.
 
 ### Changed
 
+- Design authority redesign (P-DESIGN-027 / P-DESIGN-028, spec-owned in
+  `.nimi/spec/platform/kernel/**`):
+  - Motion: one unified duration/easing scale (`motion.fast` 120ms,
+    `motion.base` 200ms, `motion.slow` 320ms, `motion.ambient` 600ms plus
+    four easing tokens) shared by CSS and the TypeScript mirrors;
+    `motion.fast`/`motion.slow` values changed (160ms/240ms are retired).
+  - Motion: new kit motion layer (`@nimiplatform/kit/ui/motion`) built on
+    the `motion` package — spring presets, symmetric spring overlay
+    grammar, gesture momentum helpers, `NimiMotionProvider`. Overlay
+    enter/exit motion moved from (previously dead) CSS keyframe classes
+    to spring-driven motion.
+  - Interaction: `Button`/`IconButton`/`Toggle`/`SegmentedControl`/
+    interactive `Surface` now give immediate pressed feedback
+    (`motion.pressed_scale`, 0.97) on pointer-down; hover translate
+    lifts are removed; `transition: all` is banned from governed
+    components.
+  - Shape: standard actions resolve `radius.action` = 12px (capsule
+    `radius.full` 999px is reserved for chip/filter/status/pill
+    primitives). This is a breaking pre-1.0 visual change.
+  - Density: new runtime axis via `NimiThemeProvider density` +
+    `data-nimi-density` and the generated `nimi-density-compact.css`
+    pack (`sizing.*`/`typography.*` overrides); consumers must import
+    `@nimiplatform/kit/ui/themes/nimi-density-compact.css`.
+  - Material: glass tiers now compose `backdrop.saturate` (180%)
+    vibrancy; material role matrix (canvas / structural chrome /
+    content / floating) is contractual.
+  - Typography: `NimiText` applies token letter-spacing, CJK profiles
+    via `:lang(zh)`, and `font-optical-sizing: auto`; new `hero-title`
+    role for expressive boundaries.
+  - A11y: focus ring now consumes the real `focus.ring_*` tokens
+    (previously it silently fell back to a hardcoded blue).
+- Added `kit/preview` — a source-linked workbench for governed UI
+  surfaces plus the automated audit runner (`pnpm audit:ui`) that
+  captures the scheme × density screenshot matrix and enforces rendered
+  assertions (pressed feedback, spring travel, density axis, typography
+  execution, glass vibrancy, dead-class elimination, rendered contrast,
+  hardcoded-value scan).
+- Motion coverage follow-through: `SelectField` and `Tooltip`/`TooltipContent`
+  moved onto the popover spring grammar with the positioning/animation
+  split pattern (Radix popper owns positioning on the outer element,
+  motion owns visual enter on the inner element). `ActionMenu` items
+  gained pressed feedback. Radix Select Content has no `forceMount`,
+  so dismissal unmounts immediately — matching platform menu behavior.
+- Density axis: generated density pack selectors now cover both
+  `:root[data-nimi-density=...]` (out-specifies scheme selectors) and
+  subtree boundaries, and ship the `expressive` escape-hatch reset that
+  restores foundation sizing/typography inside compact regions. Desktop
+  renderer root defaults to `compact` density.
+- Accent migration (brand decision): the `nimi-accent` pack moved from
+  mint green `#4ECCA3` to cyan blue `#45B8D6` (hover `#35A7C4`),
+  separating the brand accent from `status.success` green. The light
+  hero gradient and ambient mesh slot 4 moved to the same hue family,
+  `--nimi-accent-onAccent` alias updated, and every app/test hardcoded
+  copy of the legacy mint hex was replaced with token references
+  (zhiyu fallback vars, desktop home/relationship/world/profile
+  surfaces, tester studio chrome, landing mint scale). The desktop
+  design-contract gate now forbids both the current and legacy raw
+  brand hexes.
+
+### Changed (pre-existing entries)
+
 - Removed the bearer-bearing `authToken` prop from `RealmChatTimeline`.
   Protected image/video material must now enter through the optional
   `resolveMediaSource` owner adapter, which returns a renderer-safe URL and an

@@ -264,7 +264,7 @@ export function CanonicalTranscriptView({
                 type="button"
                 onClick={onSeedFirstTurn}
                 className={cn(
-                  'mt-5 inline-flex h-11 items-center rounded-full bg-gradient-to-br from-emerald-400 via-teal-400 to-emerald-500 px-5 text-sm font-semibold text-white shadow-[0_18px_36px_rgba(78,204,163,0.3)] transition-all duration-150 hover:-translate-y-px hover:shadow-[0_22px_44px_rgba(78,204,163,0.4)]',
+                  'mt-5 inline-flex h-11 items-center rounded-full bg-gradient-to-br from-sky-400 via-cyan-400 to-sky-500 px-5 text-sm font-semibold text-white shadow-[0_18px_36px_color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)] transition-[box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)] hover:shadow-[0_22px_44px_color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,transparent)]',
                   compactEmptyState ? 'self-start' : '',
                 )}
               >

@@ -84,6 +84,12 @@ entries:
   - spacing.stack
   - typography.font_sans
   - typography.font_mono
+  - typography.hero_title.size
+  - typography.hero_title.line_height
+  - typography.hero_title.weight
+  - typography.hero_title.letter_spacing
+  - typography.hero_title.cjk_letter_spacing
+  - typography.hero_title.cjk_line_height
   - typography.page_title.size
   - typography.page_title.line_height
   - typography.page_title.weight
@@ -128,6 +134,17 @@ entries:
   - elevation.modal
   - motion.fast
   - motion.slow
+  - motion.base
+  - motion.ambient
+  - motion.ease_standard
+  - motion.ease_emphasized
+  - motion.ease_decelerated
+  - motion.ease_accelerated
+  - motion.pressed_scale
+  - motion.spring_default_response
+  - motion.spring_default_damping
+  - motion.spring_momentum_response
+  - motion.spring_momentum_damping
   - z.tooltip
   - z.popover
   - z.dialog
@@ -834,6 +851,54 @@ tokens:
     primitive_family: surface
     source_rule: P-DESIGN-016
     theme_layer: foundation
+  - id: typography.hero_title.size
+    category: typography
+    semantic_name: Hero title size
+    css_var: --nimi-type-hero-title-size
+    ts_token: heroTitleSize
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.hero_title.line_height
+    category: typography
+    semantic_name: Hero title line height
+    css_var: --nimi-type-hero-title-line-height
+    ts_token: heroTitleLineHeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.hero_title.weight
+    category: typography
+    semantic_name: Hero title weight
+    css_var: --nimi-type-hero-title-weight
+    ts_token: heroTitleWeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.hero_title.letter_spacing
+    category: typography
+    semantic_name: Hero title letter spacing
+    css_var: --nimi-type-hero-title-letter-spacing
+    ts_token: heroTitleLetterSpacing
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.hero_title.cjk_letter_spacing
+    category: typography
+    semantic_name: Hero title CJK letter spacing
+    css_var: --nimi-type-hero-title-cjk-letter-spacing
+    ts_token: heroTitleCjkLetterSpacing
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.hero_title.cjk_line_height
+    category: typography
+    semantic_name: Hero title CJK line height
+    css_var: --nimi-type-hero-title-cjk-line-height
+    ts_token: heroTitleCjkLineHeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
   - id: typography.page_title.size
     category: typography
     semantic_name: Page title size
@@ -1186,6 +1251,94 @@ tokens:
     primitive_family: overlay
     source_rule: P-DESIGN-003
     theme_layer: foundation
+  - id: motion.base
+    category: motion
+    semantic_name: Motion base duration
+    css_var: --nimi-motion-base
+    ts_token: base
+    primitive_family: surface
+    source_rule: P-DESIGN-027
+    theme_layer: foundation
+  - id: motion.ambient
+    category: motion
+    semantic_name: Motion ambient duration
+    css_var: --nimi-motion-ambient
+    ts_token: ambient
+    primitive_family: surface
+    source_rule: P-DESIGN-027
+    theme_layer: foundation
+  - id: motion.ease_standard
+    category: motion
+    semantic_name: Motion easing standard
+    css_var: --nimi-motion-ease-standard
+    ts_token: easeStandard
+    primitive_family: surface
+    source_rule: P-DESIGN-027
+    theme_layer: foundation
+  - id: motion.ease_emphasized
+    category: motion
+    semantic_name: Motion easing emphasized reversible
+    css_var: --nimi-motion-ease-emphasized
+    ts_token: easeEmphasized
+    primitive_family: overlay
+    source_rule: P-DESIGN-027
+    theme_layer: foundation
+  - id: motion.ease_decelerated
+    category: motion
+    semantic_name: Motion easing decelerated
+    css_var: --nimi-motion-ease-decelerated
+    ts_token: easeDecelerated
+    primitive_family: overlay
+    source_rule: P-DESIGN-027
+    theme_layer: foundation
+  - id: motion.ease_accelerated
+    category: motion
+    semantic_name: Motion easing accelerated
+    css_var: --nimi-motion-ease-accelerated
+    ts_token: easeAccelerated
+    primitive_family: overlay
+    source_rule: P-DESIGN-027
+    theme_layer: foundation
+  - id: motion.pressed_scale
+    category: motion
+    semantic_name: Pressed feedback scale
+    css_var: --nimi-motion-pressed-scale
+    ts_token: pressedScale
+    primitive_family: action
+    source_rule: P-DESIGN-027
+    theme_layer: foundation
+  - id: motion.spring_default_response
+    category: motion
+    semantic_name: Spring default response seconds
+    css_var: --nimi-motion-spring-default-response
+    ts_token: springDefaultResponse
+    primitive_family: overlay
+    source_rule: P-DESIGN-027
+    theme_layer: foundation
+  - id: motion.spring_default_damping
+    category: motion
+    semantic_name: Spring default damping ratio
+    css_var: --nimi-motion-spring-default-damping
+    ts_token: springDefaultDamping
+    primitive_family: overlay
+    source_rule: P-DESIGN-027
+    theme_layer: foundation
+  - id: motion.spring_momentum_response
+    category: motion
+    semantic_name: Spring momentum response seconds
+    css_var: --nimi-motion-spring-momentum-response
+    ts_token: springMomentumResponse
+    primitive_family: overlay
+    source_rule: P-DESIGN-027
+    theme_layer: foundation
+  - id: motion.spring_momentum_damping
+    category: motion
+    semantic_name: Spring momentum damping ratio
+    css_var: --nimi-motion-spring-momentum-damping
+    ts_token: springMomentumDamping
+    primitive_family: overlay
+    source_rule: P-DESIGN-027
+    theme_layer: foundation
   - id: z.tooltip
     category: z
     semantic_name: Z tooltip
@@ -1527,6 +1680,14 @@ tokens:
     semantic_name: Backdrop blur chrome
     css_var: --nimi-backdrop-blur-chrome
     ts_token: blurChrome
+    primitive_family: surface
+    source_rule: P-DESIGN-022
+    theme_layer: foundation
+  - id: backdrop.saturate
+    category: backdrop
+    semantic_name: Backdrop saturate vibrancy
+    css_var: --nimi-backdrop-saturate
+    ts_token: saturate
     primitive_family: surface
     source_rule: P-DESIGN-022
     theme_layer: foundation

@@ -9,15 +9,31 @@ function pnpmPackageRoot(packageName: string): string {
   const packageDirectoryName = packageName.startsWith('@')
     ? packageName.replace('/', '+')
     : packageName;
-  const match = fs.readdirSync(pnpmRoot)
+  const matches = fs.readdirSync(pnpmRoot)
     .filter((entry) => (
       entry.startsWith(`${packageDirectoryName}@`)
       || entry.startsWith(`${packageDirectoryName}_`)
     ))
-    .sort()[0];
-  if (!match) {
+    .sort();
+  if (matches.length === 0) {
     throw new Error(`Missing pnpm package for ${packageName}`);
   }
+  // Multiple peer-resolved instances may coexist (e.g. radix peered with
+  // different react versions). Pin to the instance whose resolved react
+  // matches the kit test environment's react, so hooks share one React.
+  const kitReactVersion = JSON.parse(
+    fs.readFileSync(path.resolve(__dirname, '../node_modules/react/package.json'), 'utf8'),
+  ).version as string;
+  const match = matches.find((entry) => {
+    try {
+      const instanceReact = JSON.parse(
+        fs.readFileSync(path.join(pnpmRoot, entry, 'node_modules', 'react', 'package.json'), 'utf8'),
+      ).version as string;
+      return instanceReact === kitReactVersion;
+    } catch {
+      return false;
+    }
+  }) ?? matches[0];
   return path.join(pnpmRoot, match, 'node_modules', packageName);
 }
 

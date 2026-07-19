@@ -110,6 +110,21 @@ for (const [themeId, coverage] of themeCoverage) {
     }
     continue;
   }
+  if (kind === 'density') {
+    // Density packs (P-DESIGN-028) carry sizing/typography overrides only;
+    // they must not redefine color/material/backdrop/radius/stroke/elevation/
+    // motion values or any accent-layer token.
+    for (const tokenId of coverage) {
+      if (accentTokenIds.has(tokenId)) {
+        hardFailures.push(`density pack ${themeId}: must not override accent-layer token ${tokenId}`);
+        continue;
+      }
+      if (!tokenId.startsWith('sizing.') && !tokenId.startsWith('typography.')) {
+        hardFailures.push(`density pack ${themeId}: token ${tokenId} is outside the admitted sizing.*/typography.* override scope`);
+      }
+    }
+    continue;
+  }
   for (const tokenId of accentTokenIds) {
     if (!coverage.has(tokenId)) {
       hardFailures.push(`accent pack ${themeId}: missing token value for ${tokenId}`);

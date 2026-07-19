@@ -85,6 +85,12 @@
   --nimi-space-stack: initial;
   --nimi-font-sans: initial;
   --nimi-font-mono: initial;
+  --nimi-type-hero-title-size: initial;
+  --nimi-type-hero-title-line-height: initial;
+  --nimi-type-hero-title-weight: initial;
+  --nimi-type-hero-title-letter-spacing: initial;
+  --nimi-type-hero-title-cjk-letter-spacing: initial;
+  --nimi-type-hero-title-cjk-line-height: initial;
   --nimi-type-page-title-size: initial;
   --nimi-type-page-title-line-height: initial;
   --nimi-type-page-title-weight: initial;
@@ -129,6 +135,17 @@
   --nimi-elevation-modal: initial;
   --nimi-motion-fast: initial;
   --nimi-motion-slow: initial;
+  --nimi-motion-base: initial;
+  --nimi-motion-ambient: initial;
+  --nimi-motion-ease-standard: initial;
+  --nimi-motion-ease-emphasized: initial;
+  --nimi-motion-ease-decelerated: initial;
+  --nimi-motion-ease-accelerated: initial;
+  --nimi-motion-pressed-scale: initial;
+  --nimi-motion-spring-default-response: initial;
+  --nimi-motion-spring-default-damping: initial;
+  --nimi-motion-spring-momentum-response: initial;
+  --nimi-motion-spring-momentum-damping: initial;
   --nimi-z-tooltip: initial;
   --nimi-z-popover: initial;
   --nimi-z-dialog: initial;
@@ -172,6 +189,7 @@
   --nimi-backdrop-blur-regular: initial;
   --nimi-backdrop-blur-strong: initial;
   --nimi-backdrop-blur-chrome: initial;
+  --nimi-backdrop-saturate: initial;
   --nimi-ambient-mesh-color-1: initial;
   --nimi-ambient-mesh-color-2: initial;
   --nimi-ambient-mesh-color-3: initial;
@@ -207,6 +225,13 @@
   line-height: var(--nimi-type-caption-line-height);
   font-weight: var(--nimi-type-caption-weight);
   letter-spacing: var(--nimi-type-caption-letter-spacing);
+}
+
+@utility nimi-type-hero-title {
+  font-size: var(--nimi-type-hero-title-size);
+  line-height: var(--nimi-type-hero-title-line-height);
+  font-weight: var(--nimi-type-hero-title-weight);
+  letter-spacing: var(--nimi-type-hero-title-letter-spacing);
 }
 
 @utility nimi-type-label {

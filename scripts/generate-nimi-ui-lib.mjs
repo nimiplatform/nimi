@@ -101,6 +101,7 @@ function renderTokensFile(tokensDoc, themesDoc) {
 
   const foundationSchemeIds = packs.filter((p) => String(p?.pack_kind) === 'foundation').map((p) => String(p.theme_id));
   const accentPackIds = packs.filter((p) => String(p?.pack_kind) === 'accent').map((p) => String(p.theme_id));
+  const densityPackIds = packs.filter((p) => String(p?.pack_kind) === 'density').map((p) => String(p.theme_id));
   const packIds = packs.map((p) => String(p.theme_id));
 
   return [
@@ -110,11 +111,13 @@ function renderTokensFile(tokensDoc, themesDoc) {
     `export const DESIGN_PACK_IDS = ${toJs(packIds)} as const;`,
     `export const FOUNDATION_SCHEME_IDS = ${toJs(foundationSchemeIds)} as const;`,
     `export const ACCENT_PACK_IDS = ${toJs(accentPackIds)} as const;`,
+    `export const DENSITY_PACK_IDS = ${toJs(densityPackIds)} as const;`,
     `export const TYPOGRAPHY_ROLE_IDS = ${toJs(typographyRoles)} as const;`,
     '',
     'export type GeneratedNimiDesignPackId = (typeof DESIGN_PACK_IDS)[number];',
     'export type GeneratedNimiFoundationSchemeId = (typeof FOUNDATION_SCHEME_IDS)[number];',
     'export type GeneratedNimiAccentPackId = (typeof ACCENT_PACK_IDS)[number];',
+    'export type GeneratedNimiDensityPackId = (typeof DENSITY_PACK_IDS)[number];',
     'export type GeneratedNimiTypographyRoleId = (typeof TYPOGRAPHY_ROLE_IDS)[number];',
     '',
   ].join('\n');
@@ -219,6 +222,51 @@ function renderAccentTheme(tokensDoc, themesDoc, themeId) {
 }
 
 // ---------------------------------------------------------------------------
+// Density theme CSS (compact etc.)
+// ---------------------------------------------------------------------------
+
+function renderDensityTheme(tokensDoc, themesDoc, themeId) {
+  const pack = normalizePacks(themesDoc).find((item) => String(item?.theme_id) === themeId);
+  if (!pack) throw new Error(`missing pack ${themeId}`);
+  const densityName = themeId.replace(/^nimi-density-/u, '');
+  // Two-branch selector: the :root branch must out-specify the foundation
+  // scheme selectors (`:root[data-nimi-scheme=...]` = 0,2,0) when density is
+  // declared on <html>; the bare attribute branch covers subtree boundaries
+  // (a direct rule always beats inherited values there).
+  const selector = `:root[data-nimi-density="${densityName}"], [data-nimi-density="${densityName}"]`;
+  // Density packs are value-driven overrides (sizing/typography only per
+  // P-DESIGN-028); they live in the foundation cascade layer so import order
+  // (foundation scheme -> density -> accent) resolves the override.
+  const blocks = [renderPackSelector(tokensDoc, pack, selector, null, 'nimi-theme.foundation')];
+
+  // Expressive escape hatch: an expressive boundary nested inside a compact
+  // region restores the foundation values for every token the density pack
+  // overrides. Sizing/typography values are scheme-independent, so the light
+  // foundation pack is a safe source for the reset.
+  const lightPack = normalizePacks(themesDoc).find((item) => String(item?.theme_id) === 'nimi-light');
+  if (lightPack) {
+    const densityValues = packValueMap(pack);
+    const foundationValues = packValueMap(lightPack);
+    const resetLines = [];
+    for (const tokenId of densityValues.keys()) {
+      const token = tokenRows(tokensDoc).find((row) => String(row?.id) === tokenId);
+      const foundationValue = foundationValues.get(tokenId);
+      if (!token || !foundationValue) continue;
+      resetLines.push(`  ${String(token.css_var)}: ${foundationValue};`);
+    }
+    if (resetLines.length > 0) {
+      blocks.push('@layer nimi-theme.foundation {');
+      blocks.push(':root[data-nimi-density="expressive"], [data-nimi-density="expressive"] {');
+      blocks.push(...resetLines);
+      blocks.push('}');
+      blocks.push('}');
+      blocks.push('');
+    }
+  }
+  return blocks.join('\n');
+}
+
+// ---------------------------------------------------------------------------
 // main
 // ---------------------------------------------------------------------------
 
@@ -237,6 +285,9 @@ async function main() {
   const mergedAccentPackIds = normalizePacks(mergedThemesDoc)
     .filter((pack) => String(pack?.pack_kind) === 'accent')
     .map((pack) => String(pack.theme_id));
+  const mergedDensityPackIds = normalizePacks(mergedThemesDoc)
+    .filter((pack) => String(pack?.pack_kind) === 'density')
+    .map((pack) => String(pack.theme_id));
 
   const renderedEntries = [
     [path.join(outDir, 'tokens.ts'), renderTokensFile(tokensDoc, mergedThemesDoc)],
@@ -246,6 +297,10 @@ async function main() {
     ...mergedAccentPackIds.map((themeId) => [
       path.join(themesDir, `${themeId}.css`),
       renderAccentTheme(tokensDoc, mergedThemesDoc, themeId),
+    ]),
+    ...mergedDensityPackIds.map((themeId) => [
+      path.join(themesDir, `${themeId}.css`),
+      renderDensityTheme(tokensDoc, mergedThemesDoc, themeId),
     ]),
   ];
   const rendered = new Map(renderedEntries);

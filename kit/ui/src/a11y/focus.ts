@@ -58,4 +58,4 @@ export function collectFocusableElements(root: HTMLElement): HTMLElement[] {
  * `--nimi-focus-ring-offset` defined in the generated theme bundle.
  */
 export const FOCUS_RING_CLASS_NAME =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring,#3b82f6)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nimi-focus-ring-offset,transparent)]';
+  'focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[color:var(--nimi-focus-ring-color)] focus-visible:ring-offset-[length:var(--nimi-focus-ring-offset)] focus-visible:ring-offset-[color:transparent]';

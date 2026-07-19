@@ -314,7 +314,7 @@ export function ProgressHero(props: {
             cy="42"
             fill="none"
             r={radius}
-            stroke="#4ECCA3"
+            stroke="var(--nimi-action-primary-bg)"
             strokeDasharray={circumference}
             strokeDashoffset={dashOffset}
             strokeLinecap="round"

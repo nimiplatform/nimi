@@ -27,8 +27,8 @@
     "info": "#2563eb",
     "neutral": "#f5f7fa",
     "on-primary": "#111827",
-    "primary": "#4ECCA3",
-    "primary-hover": "#3DBB96",
+    "primary": "#45B8D6",
+    "primary-hover": "#35A7C4",
     "secondary": "#4b5563",
     "success": "#16a34a",
     "surface": "#ffffff",
@@ -56,6 +56,13 @@
       "lineHeight": 1.3,
       "fontWeight": 500,
       "letterSpacing": "0.01em"
+    },
+    "hero-title": {
+      "fontFamily": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif",
+      "fontSize": "2.25rem",
+      "lineHeight": "2.5rem",
+      "fontWeight": 700,
+      "letterSpacing": "-0.02em"
     },
     "label": {
       "fontFamily": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif",
@@ -101,7 +108,7 @@
     }
   },
   "rounded": {
-    "action": "999px",
+    "action": "12px",
     "field": "12px",
     "full": "999px",
     "lg": "16px",
@@ -258,8 +265,8 @@
       "info": "#2563eb",
       "neutral": "#f5f7fa",
       "on-primary": "#111827",
-      "primary": "#4ECCA3",
-      "primary-hover": "#3DBB96",
+      "primary": "#45B8D6",
+      "primary-hover": "#35A7C4",
       "secondary": "#4b5563",
       "success": "#16a34a",
       "surface": "#ffffff",
@@ -287,6 +294,13 @@
         "lineHeight": 1.3,
         "fontWeight": 500,
         "letterSpacing": "0.01em"
+      },
+      "hero-title": {
+        "fontFamily": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif",
+        "fontSize": "2.25rem",
+        "lineHeight": "2.5rem",
+        "fontWeight": 700,
+        "letterSpacing": "-0.02em"
       },
       "label": {
         "fontFamily": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif",
@@ -332,7 +346,7 @@
       }
     },
     "rounded": {
-      "action": "999px",
+      "action": "12px",
       "field": "12px",
       "full": "999px",
       "lg": "16px",
@@ -365,7 +379,7 @@
           "themeLayer": "accent",
           "sourceRule": "P-DESIGN-003",
           "values": {
-            "nimi-accent": "rgba(78,204,163,0.10)"
+            "nimi-accent": "rgba(69,184,214,0.10)"
           }
         },
         "action.primary_bg": {
@@ -374,7 +388,7 @@
           "themeLayer": "accent",
           "sourceRule": "P-DESIGN-003",
           "values": {
-            "nimi-accent": "#4ECCA3"
+            "nimi-accent": "#45B8D6"
           }
         },
         "action.primary_bg_hover": {
@@ -383,7 +397,7 @@
           "themeLayer": "accent",
           "sourceRule": "P-DESIGN-003",
           "values": {
-            "nimi-accent": "#3DBB96"
+            "nimi-accent": "#35A7C4"
           }
         },
         "action.primary_text": {
@@ -493,8 +507,8 @@
           "themeLayer": "foundation",
           "sourceRule": "P-DESIGN-023",
           "values": {
-            "nimi-dark": "rgba(6,78,59,0.24)",
-            "nimi-light": "rgba(167,243,208,0.20)"
+            "nimi-dark": "rgba(8,74,92,0.24)",
+            "nimi-light": "rgba(153,221,243,0.22)"
           }
         }
       },
@@ -537,6 +551,16 @@
           "values": {
             "nimi-dark": "10px",
             "nimi-light": "10px"
+          }
+        },
+        "backdrop.saturate": {
+          "cssVar": "--nimi-backdrop-saturate",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-022",
+          "values": {
+            "nimi-dark": "180%",
+            "nimi-light": "180%"
           }
         }
       },
@@ -631,7 +655,7 @@
           "themeLayer": "accent",
           "sourceRule": "P-DESIGN-003",
           "values": {
-            "nimi-accent": "#4ECCA3"
+            "nimi-accent": "#45B8D6"
           }
         },
         "field.placeholder": {
@@ -662,7 +686,7 @@
           "themeLayer": "accent",
           "sourceRule": "P-DESIGN-018",
           "values": {
-            "nimi-accent": "rgba(78,204,163,0.28)"
+            "nimi-accent": "rgba(69,184,214,0.28)"
           }
         },
         "focus.ring_offset": {
@@ -769,14 +793,84 @@
         }
       },
       "motion": {
+        "motion.ambient": {
+          "cssVar": "--nimi-motion-ambient",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-027",
+          "values": {
+            "nimi-dark": "600ms",
+            "nimi-light": "600ms"
+          }
+        },
+        "motion.base": {
+          "cssVar": "--nimi-motion-base",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-027",
+          "values": {
+            "nimi-dark": "200ms",
+            "nimi-light": "200ms"
+          }
+        },
+        "motion.ease_accelerated": {
+          "cssVar": "--nimi-motion-ease-accelerated",
+          "primitiveFamily": "overlay",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-027",
+          "values": {
+            "nimi-dark": "cubic-bezier(0.3, 0, 1, 1)",
+            "nimi-light": "cubic-bezier(0.3, 0, 1, 1)"
+          }
+        },
+        "motion.ease_decelerated": {
+          "cssVar": "--nimi-motion-ease-decelerated",
+          "primitiveFamily": "overlay",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-027",
+          "values": {
+            "nimi-dark": "cubic-bezier(0, 0, 0, 1)",
+            "nimi-light": "cubic-bezier(0, 0, 0, 1)"
+          }
+        },
+        "motion.ease_emphasized": {
+          "cssVar": "--nimi-motion-ease-emphasized",
+          "primitiveFamily": "overlay",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-027",
+          "values": {
+            "nimi-dark": "cubic-bezier(0.05, 0.7, 0.1, 1)",
+            "nimi-light": "cubic-bezier(0.05, 0.7, 0.1, 1)"
+          }
+        },
+        "motion.ease_standard": {
+          "cssVar": "--nimi-motion-ease-standard",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-027",
+          "values": {
+            "nimi-dark": "cubic-bezier(0.2, 0, 0, 1)",
+            "nimi-light": "cubic-bezier(0.2, 0, 0, 1)"
+          }
+        },
         "motion.fast": {
           "cssVar": "--nimi-motion-fast",
           "primitiveFamily": "surface",
           "themeLayer": "foundation",
           "sourceRule": "P-DESIGN-003",
           "values": {
-            "nimi-dark": "160ms",
-            "nimi-light": "160ms"
+            "nimi-dark": "120ms",
+            "nimi-light": "120ms"
+          }
+        },
+        "motion.pressed_scale": {
+          "cssVar": "--nimi-motion-pressed-scale",
+          "primitiveFamily": "action",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-027",
+          "values": {
+            "nimi-dark": 0.97,
+            "nimi-light": 0.97
           }
         },
         "motion.slow": {
@@ -785,8 +879,48 @@
           "themeLayer": "foundation",
           "sourceRule": "P-DESIGN-003",
           "values": {
-            "nimi-dark": "240ms",
-            "nimi-light": "240ms"
+            "nimi-dark": "320ms",
+            "nimi-light": "320ms"
+          }
+        },
+        "motion.spring_default_damping": {
+          "cssVar": "--nimi-motion-spring-default-damping",
+          "primitiveFamily": "overlay",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-027",
+          "values": {
+            "nimi-dark": 1,
+            "nimi-light": 1
+          }
+        },
+        "motion.spring_default_response": {
+          "cssVar": "--nimi-motion-spring-default-response",
+          "primitiveFamily": "overlay",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-027",
+          "values": {
+            "nimi-dark": "0.4s",
+            "nimi-light": "0.4s"
+          }
+        },
+        "motion.spring_momentum_damping": {
+          "cssVar": "--nimi-motion-spring-momentum-damping",
+          "primitiveFamily": "overlay",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-027",
+          "values": {
+            "nimi-dark": 0.8,
+            "nimi-light": 0.8
+          }
+        },
+        "motion.spring_momentum_response": {
+          "cssVar": "--nimi-motion-spring-momentum-response",
+          "primitiveFamily": "overlay",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-027",
+          "values": {
+            "nimi-dark": "0.35s",
+            "nimi-light": "0.35s"
           }
         }
       },
@@ -861,8 +995,8 @@
           "themeLayer": "foundation",
           "sourceRule": "P-DESIGN-017",
           "values": {
-            "nimi-dark": "999px",
-            "nimi-light": "999px"
+            "nimi-dark": "12px",
+            "nimi-light": "12px"
           }
         },
         "radius.field": {
@@ -1025,7 +1159,7 @@
           "themeLayer": "accent",
           "sourceRule": "P-DESIGN-003",
           "values": {
-            "nimi-accent": "rgba(78,204,163,0.16)"
+            "nimi-accent": "rgba(69,184,214,0.16)"
           }
         },
         "sidebar.item_default": {
@@ -1044,7 +1178,7 @@
           "themeLayer": "accent",
           "sourceRule": "P-DESIGN-003",
           "values": {
-            "nimi-accent": "rgba(78,204,163,0.08)"
+            "nimi-accent": "rgba(69,184,214,0.08)"
           }
         },
         "sidebar.resize_handle": {
@@ -1086,6 +1220,7 @@
           "sourceRule": "P-DESIGN-017",
           "values": {
             "nimi-dark": "48px",
+            "nimi-density-compact": "40px",
             "nimi-light": "48px"
           }
         },
@@ -1096,6 +1231,7 @@
           "sourceRule": "P-DESIGN-017",
           "values": {
             "nimi-dark": "40px",
+            "nimi-density-compact": "34px",
             "nimi-light": "40px"
           }
         },
@@ -1106,6 +1242,7 @@
           "sourceRule": "P-DESIGN-017",
           "values": {
             "nimi-dark": "32px",
+            "nimi-density-compact": "28px",
             "nimi-light": "32px"
           }
         },
@@ -1146,6 +1283,7 @@
           "sourceRule": "P-DESIGN-017",
           "values": {
             "nimi-dark": "48px",
+            "nimi-density-compact": "40px",
             "nimi-light": "48px"
           }
         },
@@ -1156,6 +1294,7 @@
           "sourceRule": "P-DESIGN-017",
           "values": {
             "nimi-dark": "42px",
+            "nimi-density-compact": "36px",
             "nimi-light": "42px"
           }
         },
@@ -1196,6 +1335,7 @@
           "sourceRule": "P-DESIGN-017",
           "values": {
             "nimi-dark": "46px",
+            "nimi-density-compact": "38px",
             "nimi-light": "46px"
           }
         },
@@ -1206,6 +1346,7 @@
           "sourceRule": "P-DESIGN-017",
           "values": {
             "nimi-dark": "80px",
+            "nimi-density-compact": "72px",
             "nimi-light": "80px"
           }
         }
@@ -1583,7 +1724,7 @@
           "themeLayer": "accent",
           "sourceRule": "P-DESIGN-003",
           "values": {
-            "nimi-accent": "rgba(78,204,163,0.16)"
+            "nimi-accent": "rgba(69,184,214,0.16)"
           }
         },
         "surface.app_background": {
@@ -1643,7 +1784,7 @@
           "sourceRule": "P-DESIGN-003",
           "values": {
             "nimi-dark": "linear-gradient(160deg, rgba(17,24,39,0.96), rgba(15,23,42,0.9))",
-            "nimi-light": "linear-gradient(160deg, rgba(255,255,255,0.96), rgba(236,247,242,0.9))"
+            "nimi-light": "linear-gradient(160deg, rgba(255,255,255,0.96), rgba(229,244,250,0.9))"
           }
         },
         "surface.overlay": {
@@ -1769,6 +1910,7 @@
           "sourceRule": "P-DESIGN-016",
           "values": {
             "nimi-dark": "0.8125rem",
+            "nimi-density-compact": "0.75rem",
             "nimi-light": "0.8125rem"
           }
         },
@@ -1829,6 +1971,7 @@
           "sourceRule": "P-DESIGN-016",
           "values": {
             "nimi-dark": "0.875rem",
+            "nimi-density-compact": "0.8125rem",
             "nimi-light": "0.875rem"
           }
         },
@@ -1879,6 +2022,7 @@
           "sourceRule": "P-DESIGN-016",
           "values": {
             "nimi-dark": "0.75rem",
+            "nimi-density-compact": "0.6875rem",
             "nimi-light": "0.75rem"
           }
         },
@@ -1910,6 +2054,66 @@
           "values": {
             "nimi-dark": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif",
             "nimi-light": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif"
+          }
+        },
+        "typography.hero_title.cjk_letter_spacing": {
+          "cssVar": "--nimi-type-hero-title-cjk-letter-spacing",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "-0.01em",
+            "nimi-light": "-0.01em"
+          }
+        },
+        "typography.hero_title.cjk_line_height": {
+          "cssVar": "--nimi-type-hero-title-cjk-line-height",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 1.2,
+            "nimi-light": 1.2
+          }
+        },
+        "typography.hero_title.letter_spacing": {
+          "cssVar": "--nimi-type-hero-title-letter-spacing",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "-0.02em",
+            "nimi-light": "-0.02em"
+          }
+        },
+        "typography.hero_title.line_height": {
+          "cssVar": "--nimi-type-hero-title-line-height",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "2.5rem",
+            "nimi-light": "2.5rem"
+          }
+        },
+        "typography.hero_title.size": {
+          "cssVar": "--nimi-type-hero-title-size",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "2.25rem",
+            "nimi-light": "2.25rem"
+          }
+        },
+        "typography.hero_title.weight": {
+          "cssVar": "--nimi-type-hero-title-weight",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 700,
+            "nimi-light": 700
           }
         },
         "typography.label.cjk_line_height": {
@@ -1949,6 +2153,7 @@
           "sourceRule": "P-DESIGN-016",
           "values": {
             "nimi-dark": "0.9375rem",
+            "nimi-density-compact": "0.8125rem",
             "nimi-light": "0.9375rem"
           }
         },
@@ -2069,6 +2274,7 @@
           "sourceRule": "P-DESIGN-016",
           "values": {
             "nimi-dark": "2rem",
+            "nimi-density-compact": "1.75rem",
             "nimi-light": "2rem"
           }
         },
@@ -2079,6 +2285,7 @@
           "sourceRule": "P-DESIGN-016",
           "values": {
             "nimi-dark": "1.5rem",
+            "nimi-density-compact": "1.25rem",
             "nimi-light": "1.5rem"
           }
         },
@@ -2129,6 +2336,7 @@
           "sourceRule": "P-DESIGN-016",
           "values": {
             "nimi-dark": "1rem",
+            "nimi-density-compact": "0.9375rem",
             "nimi-light": "1rem"
           }
         },
@@ -3693,7 +3901,8 @@
         "./ui/styles.css",
         "./ui/themes/light.css",
         "./ui/themes/dark.css",
-        "./ui/themes/nimi-accent.css"
+        "./ui/themes/nimi-accent.css",
+        "./ui/themes/nimi-density-compact.css"
       ]
     },
     "compositions": [],

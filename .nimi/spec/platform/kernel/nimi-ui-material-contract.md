@@ -120,7 +120,31 @@ The enforcement script (`check:ui-contrast-matrix`) is **not** authored
 by this contract. It requires a separate admitted implementation authority.
 This contract fixes the threshold; that authority implements the CI gate.
 
-## 4. Admitted Exceptions
+## 4. Material Role Matrix
+
+Material tiers map to fixed spatial roles. Material strength encodes
+hierarchy; it is not decorative. This section supersedes free-choice
+material usage on governed surfaces.
+
+| Role | Admitted tiers | Rule |
+|---|---|---|
+| `canvas` | `solid` (app background, optional ambient `mesh` per P-DESIGN-023) | Operational surfaces default to a neutral solid canvas; ambient motion is off by default outside expressive boundaries. |
+| `structural chrome` | `glass-chrome`, `glass-thick` | Sidebars, top bars, nav rails. At most one structural material layer per region. |
+| `content` | `solid`, `glass-thin`, `glass-regular` | Cards and panels carrying content. A glass content surface must not nest another glass surface of equal or stronger tier. |
+| `floating / modal` | `glass-regular` … `glass-chrome` per overlay kind | Popovers, menus, dialogs, drawers. At most one floating layer per region; stacked sheets progressively dim/push back instead of stacking equal-strength glass. |
+
+Stacking rule: within one region, at most one structural-chrome layer,
+one content material layer, and one floating layer may overlap. Equal
+or stronger-tier glass must never sit directly on glass of the same
+role chain — legibility collapses and hierarchy flattens.
+
+Vibrancy rule: glass materials combine their blur token with the shared
+`backdrop.saturate` token (`--nimi-backdrop-saturate`, `180%`) so
+materials stay vivid over changing content instead of washing to gray.
+Consumers use the kit-emitted material classes; hand-authored
+`backdrop-filter` saturation remains forbidden per §1.
+
+## 5. Admitted Exceptions
 
 _None._
 

@@ -52,6 +52,7 @@ modules:
       - ./ui/themes/light.css
       - ./ui/themes/dark.css
       - ./ui/themes/nimi-accent.css
+      - ./ui/themes/nimi-density-compact.css
     headless_exports: []
     ui_exports:
       - ./ui
@@ -62,6 +63,7 @@ modules:
       - ./ui/themes/light.css
       - ./ui/themes/dark.css
       - ./ui/themes/nimi-accent.css
+      - ./ui/themes/nimi-density-compact.css
     reuse_entrypoints:
       - ./ui
       - ./ui/glass
@@ -193,7 +195,7 @@ modules:
     admission_status: authority_admitted_implementation_pending
     owner: platform
     source_rule: P-KIT-041
-    notes: Non-npm Rust crate/native transport with no renderer import or generic npm API. Fixed platform Node-API packages are ABI projections for Electron main only. Windows x64 is currently admitted; macOS arm64 must use the filesystem-UDS audit-token/dynamic-SecCode carrier named MacOsUnixSocketCarrier and remains fail-closed until P-NAPP-037 closes. Fixed production AppHost and native development consume distinct execution profiles through the same client contract. Unadmitted OS/architecture adapters remain fail-closed. Product stop, binary/service/path selection, generic config JSON, bearer privilege, method-id/bytes proxy, provider/model/target selectors, and portable local-app session material are absent.
+    notes: Non-npm Rust crate/native transport with no renderer import or generic npm API. Fixed platform Node-API packages are ABI projections for Electron main only. Windows x64 is admitted. Production macOS arm64 remains fail-closed until the complete P-NAPP-037 production conjunction closes; the compile-time `macos-local-development` feature may resolve only the independently admitted non-product local-CA profile, fixed RuntimeDev paths and signed Nimi Dev bundle, and cannot be present in a production carrier. Fixed production AppHost and native development consume distinct execution profiles through the same client contract. Unadmitted OS/architecture adapters remain fail-closed. Product stop, binary/service/path selection, generic config JSON, bearer privilege, method-id/bytes proxy, provider/model/target selectors, and portable local-app session material are absent.
   - id: kit.shell.protected-local-node
     subpath: /shell/protected-local-node
     kind: infra
@@ -210,7 +212,7 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-KIT-041E
-    notes: Non-npm Rust crate with fixed platform npm binary packages consumed only by kit.shell.electron. @nimiplatform/kit-protected-local-win32-x64 is admitted. @nimiplatform/kit-protected-local-darwin-arm64 is the reserved package identity for the P-NAPP-037 candidate and must not resolve as positive until its signed native carrier, packaging, and live gates close. A packaged macOS Electron main resolves only the outer-bundle-sealed, same-Team-signed native package at Contents/Resources/nimi-native/protected-local; project node_modules, NODE_PATH, argv, environment and app manifests cannot select the carrier. The same fixed host resource supplies an externally loaded supervised local-app main. Neither package has renderer/preload import or direct public Kit export and neither can add methods beyond the underlying typed carrier contract. Desktop product-control is one closed operation family with an exact Runtime-owned method enum; arbitrary method-id/bytes proxying, endpoint selection, portable session material, and renderer-provided authority are forbidden. Windows arm64, unadmitted macOS candidates, and Linux fail closed.
+    notes: Non-npm Rust crate with fixed platform npm binary packages consumed only by kit.shell.electron. @nimiplatform/kit-protected-local-win32-x64 is admitted. The production @nimiplatform/kit-protected-local-darwin-arm64 posture remains fail-closed until signed native packaging and live production gates close. A distinct compile-time `macos-local-development` build of that ABI may be sealed only inside `/Applications/Nimi Dev.app`, embed only the machine-local development release-root public key, and resolve only RuntimeDev records/sockets; it is non-product and cannot load into Nimi.app. A packaged macOS Electron main resolves only its outer-bundle-sealed native package at Contents/Resources/nimi-native/protected-local; project node_modules, NODE_PATH, argv, environment and app manifests cannot select the carrier. The same fixed host resource supplies the externally loaded supervised local-app main. Neither package has renderer/preload import or direct public Kit export and neither can add methods beyond the underlying typed carrier contract. Desktop product-control is one closed operation family with an exact Runtime-owned method enum; arbitrary method-id/bytes proxying, endpoint selection, portable session material, and renderer-provided authority are forbidden. Windows arm64, unadmitted production macOS candidates, and Linux fail closed.
   - id: kit.shell.tauri
     subpath: /shell/tauri
     kind: infra
@@ -289,7 +291,7 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-KIT-041E
-    notes: Node/Electron-host only. Renderer code must not import this module directly. Product service control is exactly typed status/start/restart through kit.shell.protected-local; stop, binary selection, generic config mutation, raw bearer injection, and external-daemon fallback are forbidden. Generic @grpc/grpc-js proxying cannot carry protected methods. Local-app registration accepts only renderer origins and Electron IPC registration; Runtime derives principal/provenance/session from the native carrier. Runtime restart invalidates protected sessions; callers reopen only through the native carrier. Platform adapters load only their fixed protected-local Node-API package and expose the exact P-KIT-044 allowlist. macOS Electron and Tauri are separate P-NAPP-037 gates; a macOS Electron package cannot enable the Tauri carrier. Session/proof/account/principal/record/permission-decision fields and arbitrary method forwarding remain absent. Windows arm64, unadmitted macOS candidates, and Linux remain fail-closed.
+    notes: Node/Electron-host only. Renderer code must not import this module directly. Product service control is exactly typed status/start/restart through kit.shell.protected-local; stop, binary selection, generic config mutation, raw bearer injection, and external-daemon fallback are forbidden. Generic @grpc/grpc-js proxying cannot carry protected methods. Local-app registration accepts only renderer origins and Electron IPC registration; Runtime derives principal/provenance/session from the native carrier. Runtime restart invalidates protected sessions; callers reopen only through the native carrier. Platform adapters load only their fixed protected-local Node-API package and expose the exact P-KIT-044 allowlist. The signed Nimi Dev Electron bundle may consume the compile-time non-product macOS profile; production Nimi.app cannot. macOS Electron and Tauri remain separate P-NAPP-037 gates, and Electron development admission cannot enable Tauri. Session/proof/account/principal/record/permission-decision fields and arbitrary method forwarding remain absent. Windows arm64, unadmitted production macOS candidates, and Linux remain fail-closed.
   - id: kit.core.runtime-capabilities
     subpath: /core/runtime-capabilities
     kind: logic

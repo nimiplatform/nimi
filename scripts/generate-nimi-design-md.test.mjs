@@ -121,7 +121,7 @@ packs:
   - theme_id: nimi-accent
     pack_kind: accent
     values:
-      action.primary_bg: '#4ECCA3'
+      action.primary_bg: '#45B8D6'
       status.info: '#3B82F6'
 `);
   write(root, '.nimi/spec/platform/kernel/tables/nimi-ui-primitives.yaml', `version: 2
@@ -227,12 +227,12 @@ test('renders Google DESIGN.md-shaped Nimi design projection from spec authority
     const designTokens = readJson(root, 'kit/design_tokens.json');
     assert.equal(designTokens.colors.info.$value, '#3B82F6');
     assert.equal(designTokens.colors.primary.$type, 'color');
-    assert.equal(designTokens.colors.primary.$value, '#4ECCA3');
+    assert.equal(designTokens.colors.primary.$value, '#45B8D6');
     assert.equal(designTokens.typography.body.$value.fontSize, '0.875rem');
 
     const tailwindTheme = read(root, 'kit/tailwind-theme.css');
     assert.match(tailwindTheme, /@theme \{/);
-    assert.match(tailwindTheme, /--color-primary: #4ECCA3;/);
+    assert.match(tailwindTheme, /--color-primary: #45B8D6;/);
     assert.match(tailwindTheme, /--font-body: "Inter", "Noto Sans SC"/);
     assert.match(tailwindTheme, /--text-body: 0\.875rem;/);
     assert.match(tailwindTheme, /--radius-sm: 8px;/);

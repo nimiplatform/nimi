@@ -22,8 +22,8 @@ sources:
   - .nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml
 colors:
   on-primary: "#111827"
-  primary: "#4ECCA3"
-  primary-hover: "#3DBB96"
+  primary: "#45B8D6"
+  primary-hover: "#35A7C4"
   secondary: "#4b5563"
   surface: "#ffffff"
   surface-panel: "#f8f9fb"
@@ -46,6 +46,12 @@ typography:
     lineHeight: 1.3
     fontWeight: 500
     letterSpacing: 0.01em
+  hero-title:
+    fontFamily: '"Inter", "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif'
+    fontSize: 2.25rem
+    lineHeight: 2.5rem
+    fontWeight: 700
+    letterSpacing: -0.02em
   label:
     fontFamily: '"Inter", "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif'
     fontSize: 0.9375rem
@@ -83,7 +89,7 @@ typography:
     fontWeight: 700
     letterSpacing: 0.08em
 rounded:
-  action: 999px
+  action: 12px
   field: 12px
   full: 999px
   lg: 16px
@@ -249,8 +255,8 @@ Colors come from `nimi-ui-tokens.yaml` and `nimi-ui-themes.yaml`. The front matt
 - **info** (#2563eb): projected from Nimi semantic UI tokens.
 - **neutral** (#f5f7fa): projected from Nimi semantic UI tokens.
 - **on-primary** (#111827): projected from Nimi semantic UI tokens.
-- **primary** (#4ECCA3): projected from Nimi semantic UI tokens.
-- **primary-hover** (#3DBB96): projected from Nimi semantic UI tokens.
+- **primary** (#45B8D6): projected from Nimi semantic UI tokens.
+- **primary-hover** (#35A7C4): projected from Nimi semantic UI tokens.
 - **secondary** (#4b5563): projected from Nimi semantic UI tokens.
 - **success** (#16a34a): projected from Nimi semantic UI tokens.
 - **surface** (#ffffff): projected from Nimi semantic UI tokens.
@@ -264,6 +270,7 @@ Typography roles use semantic Nimi token ids and preserve CJK-specific line-heig
 - **body:** family `"Inter", "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif`, size `0.875rem`, weight `400`, line height `1.5`, tracking `0`.
 - **body-sm:** family `"Inter", "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif`, size `0.8125rem`, weight `400`, line height `1.45`, tracking `0`.
 - **caption:** family `"Inter", "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif`, size `0.75rem`, weight `500`, line height `1.3`, tracking `0.01em`.
+- **hero-title:** family `"Inter", "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif`, size `2.25rem`, weight `700`, line height `2.5rem`, tracking `-0.02em`.
 - **label:** family `"Inter", "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif`, size `0.9375rem`, weight `600`, line height `1.25`, tracking `0`.
 - **mono:** family `"JetBrains Mono", "SF Mono", "Fira Code", ui-monospace, monospace`, size `0.8125rem`, weight `500`, line height `1.4`, tracking `0`.
 - **overline:** family `"Inter", "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif`, size `0.6875rem`, weight `700`, line height `1.2`, tracking `0.08em`.
@@ -303,7 +310,7 @@ Depth is conveyed through explicit semantic elevation and material tokens. Glass
 
 Shape language is tokenized through `radius.*`. Components must use the rounded scale from front matter rather than local radius literals.
 
-- `action`: `999px`
+- `action`: `12px`
 - `field`: `12px`
 - `full`: `999px`
 - `lg`: `16px`

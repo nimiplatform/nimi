@@ -5,18 +5,20 @@ import { cn, type ActionSize, type ActionTone } from '../design-tokens.js';
 import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
 
 export const buttonVariants = cva(
-  'nimi-action inline-flex max-w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap border font-semibold tracking-[var(--nimi-type-label-letter-spacing)] rounded-[var(--nimi-radius-action)] transition-all duration-[var(--nimi-motion-fast)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
+  // P-DESIGN-012/027: token-driven color transitions only, instant pressed
+  // feedback on pointer-down; no hover elevation lifts, no transition-all.
+  'nimi-action inline-flex max-w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap border font-semibold tracking-[var(--nimi-type-label-letter-spacing)] rounded-[var(--nimi-radius-action)] transition-[background-color,border-color,color,box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
   {
     variants: {
       tone: {
         primary:
-          'nimi-action--primary bg-[var(--nimi-action-primary-bg)] border-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] hover:bg-[var(--nimi-action-primary-bg-hover)] hover:-translate-y-px',
+          'nimi-action--primary bg-[var(--nimi-action-primary-bg)] border-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] hover:bg-[var(--nimi-action-primary-bg-hover)]',
         secondary:
-          'nimi-action--secondary bg-[var(--nimi-action-secondary-bg)] border-[var(--nimi-action-secondary-border)] text-[var(--nimi-action-secondary-text)] hover:border-[var(--nimi-border-strong)] hover:shadow-[var(--nimi-elevation-base)] hover:-translate-y-px',
+          'nimi-action--secondary bg-[var(--nimi-action-secondary-bg)] border-[var(--nimi-action-secondary-border)] text-[var(--nimi-action-secondary-text)] hover:border-[var(--nimi-border-strong)] hover:shadow-[var(--nimi-elevation-base)]',
         ghost:
-          'nimi-action--ghost bg-transparent border-transparent text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] hover:-translate-y-px',
+          'nimi-action--ghost bg-transparent border-transparent text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]',
         danger:
-          'nimi-action--danger bg-[var(--nimi-status-danger-soft-bg)] border-transparent text-[var(--nimi-status-danger-soft-text)] hover:-translate-y-px',
+          'nimi-action--danger bg-[var(--nimi-status-danger-soft-bg)] border-transparent text-[var(--nimi-status-danger-soft-text)]',
       },
       size: {
         sm: 'nimi-action--size-sm min-h-[var(--nimi-sizing-action-sm-height)] px-3 text-[length:var(--nimi-type-body-sm-size)]',

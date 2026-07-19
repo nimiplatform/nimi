@@ -86,6 +86,8 @@
 
 - `Button` and `IconButton` are the shared action primitives for shell-level and form-level interactions.
 - Shared actions must resolve `primary`, `secondary`, `ghost`, and `danger` tone behavior through semantic tokens.
+- Shape carries semantics. Standard actions (`Button`, `IconButton`) resolve corner radius through `radius.action`, which is a continuous small radius (`12px`), never a capsule. The capsule radius (`radius.full`, `999px`) is reserved for chip, filter, status badge, segmented/pill selection, search field, and toggle-shaped primitives. Tone (`primary`/`secondary`/`ghost`/`danger`) must not change an action's shape.
+- Shared actions must give immediate pressed feedback on pointer-down via `motion.pressed_scale` per P-DESIGN-027; hover treatment alone is not an admitted feedback model, and hover elevation shifts (`translateY` lifts) are not admitted on standard actions.
 
 ## P-DESIGN-013 — Overlay Contract
 
@@ -243,6 +245,24 @@
   a named owner, and a reason they do not redefine shared primitive or token
   authority.
 
+## P-DESIGN-027 — Interaction & Motion Contract
+
+- Motion behavior is a governed contract, not per-component taste. The prose companion is `nimi-ui-motion-contract.md`; token values live in `tables/nimi-ui-tokens.yaml` (`motion.*`) and `tables/nimi-ui-themes.yaml`.
+- One motion scale exists for both CSS and TypeScript: `motion.fast` / `motion.base` / `motion.slow` / `motion.ambient` durations plus `motion.ease_standard` / `motion.ease_emphasized` / `motion.ease_decelerated` / `motion.ease_accelerated`. Any TypeScript motion mirror must resolve to the same values as the CSS tokens; a divergent hardcoded duration or easing in kit or app code is drift.
+- Pressed feedback is mandatory on interactive primitives: pointer-down must produce visible feedback within one frame via `motion.pressed_scale` (or an admitted token-driven equivalent), independent of hover styling.
+- Overlay enter/exit motion is spring-based and symmetric: a surface exits along the same path it entered, anchored to its spatial source where one exists (popover/menu from trigger, drawer from its edge). CSS keyframe enter/exit animations on governed overlays are not admitted. The admitted implementation substrate is the kit motion layer (`@nimiplatform/kit/ui/motion`) built on the `motion` package; app code must not hand-roll overlay animation or adopt a parallel animation library for governed surfaces.
+- Gesture-driven motion must start from the current presentation value and carry pointer velocity into the spring target; momentum projection uses the decay model declared in `nimi-ui-motion-contract.md`. Fixed-duration target animations are only admitted for non-gesture state changes.
+- Functional transitions animate compositor-friendly properties (`transform`, `opacity`, plus color/box-shadow for state changes). `transition: all` is not admitted on governed components.
+- `prefers-reduced-motion` must keep spatial causality while removing travel: overlays cross-fade in place instead of sliding/scaling, pressed feedback stays instantaneous, and ambient/looping motion stops. The global duration guard in the generated theme base is the floor, not the whole contract.
+
+## P-DESIGN-028 — Density Runtime Axis
+
+- Density is a runtime axis owned by the theme layer, not guidance prose. The admitted values are `compact`, `regular`, and `expressive`; `regular` is the default and needs no attribute.
+- Density is applied at a page or composition boundary through the shared scheme runtime (`data-nimi-density`). `NimiThemeProvider` sets the root default; any element may declare the attribute for its subtree. An `expressive` boundary inside a compact region restores foundation sizing/typography via the generated escape-hatch rules in the density theme pack. Per-control ad hoc height/radius overrides to simulate density are not admitted.
+- `density` packs (`pack_kind: density` in `tables/nimi-ui-themes.yaml`) carry only `sizing.*` and `typography.*` overrides for the `compact` boundary. They must not redefine `color`, `material`, `backdrop`, `radius`, `stroke`, `elevation`, `motion`, or accent-layer tokens.
+- Desktop operational surfaces default to `compact`; identity/hero surfaces opt into `expressive` at the composition boundary per `tables/nimi-ui-compositions.yaml`. The composition taxonomy remains the admission authority for which surfaces may leave `regular`.
+- Consumers that render governed surfaces must import the density theme pack (`kit/ui/src/generated/themes/nimi-density-compact.css` or its dist equivalent) alongside the foundation scheme packs.
+
 ## P-DESIGN-090 — Nimi Design Hard Gate
 
 - `pnpm check:nimi-ui-pattern` is the hard gate for cross-app design compliance.
@@ -270,3 +290,4 @@
 - consuming app `spec/**/tables/nimi-kit-compositions.yaml` manifests
 - `tables/nimi-ui-allowlists.yaml`
 - `tables/rule-evidence.yaml`
+- `nimi-ui-motion-contract.md`

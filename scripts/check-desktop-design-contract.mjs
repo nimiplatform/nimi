@@ -181,9 +181,9 @@ for (const filePath of filesToCheck) {
   const content = fs.readFileSync(filePath, 'utf8');
   const fileRel = rel(filePath);
 
-  const rawBrandMatches = collectMatches(content, /#4ECCA3/gu);
+  const rawBrandMatches = collectMatches(content, /#45B8D6|#4ECCA3/giu);
   if (rawBrandMatches.length > 0 && !isAllowlisted(filePath, 'raw_color', content)) {
-    hardFailures.push(`${fileRel}: raw brand color #4ECCA3 is forbidden on baseline/shared surfaces`);
+    hardFailures.push(`${fileRel}: raw brand color (#45B8D6 current / #4ECCA3 legacy) is forbidden on baseline/shared surfaces`);
   }
 
   const emeraldMatches = collectMatches(content, /\bemerald-[A-Za-z0-9/-]+\b/gu);

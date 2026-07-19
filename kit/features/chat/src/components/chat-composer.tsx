@@ -205,7 +205,7 @@ export function ChatComposer<TAttachment = never>({
         'flex shrink-0 items-center justify-center text-white transition-all duration-150',
         isStacked
           ? 'h-9 w-9 rounded-full bg-slate-500 shadow-[0_8px_20px_rgba(100,116,139,0.22)] hover:bg-slate-600 hover:shadow-[0_12px_24px_rgba(100,116,139,0.28)]'
-          : 'h-12 w-12 rounded-[20px] bg-gradient-to-br from-emerald-400 via-teal-400 to-emerald-500 shadow-[0_18px_36px_rgba(78,204,163,0.3)] hover:-translate-y-px hover:shadow-[0_22px_44px_rgba(78,204,163,0.4)]',
+          : 'h-12 w-12 rounded-[20px] bg-gradient-to-br from-sky-400 via-cyan-400 to-sky-500 shadow-[0_18px_36px_color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)] transition-[box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)] hover:shadow-[0_22px_44px_color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,transparent)]',
         'active:scale-[0.92]',
         'disabled:opacity-40 disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:bg-inherit',
       )}

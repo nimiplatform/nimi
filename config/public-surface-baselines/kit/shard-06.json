@@ -24,8 +24,16 @@
       "source": "kit/ui/src/motion/index.ts",
       "exports": [
         "export type { NimiMotionDurationKey, NimiMotionEasingKey, } from './timing.js';",
+        "export type { NimiOverlayMotionKind, NimiPopoverSide, NimiOverlayMotionProps, } from './overlay.js';",
+        "export type { NimiSpringPreset} from './springs.js';",
         "export { NIMI_MOTION_DURATIONS_MS, NIMI_MOTION_EASINGS, resolveMotionDurationMs, } from './timing.js';",
-        "export { usePrefersReducedMotion} from './use-prefers-reduced-motion.js';"
+        "export { NIMI_SPRING_DEFAULT, NIMI_SPRING_MOMENTUM, NIMI_PRESSED_SCALE, nimiSpring, nimiReducedFade, } from './springs.js';",
+        "export { NimiMotionProvider} from './provider.js';",
+        "export { animate, motion, AnimatePresence, useReducedMotion} from 'motion/react';",
+        "export { nimiOverlayPanelMotion, nimiOverlayBackdropMotion, } from './overlay.js';",
+        "export { projectMomentum, nearestSnapTarget, normalizeReleaseVelocity, shouldCommitGesture, } from './gestures.js';",
+        "export { usePrefersReducedMotion} from './use-prefers-reduced-motion.js';",
+        "function useNimiReducedMotion"
       ]
     },
     {
@@ -66,6 +74,12 @@
     {
       "exportKey": "./ui/themes/nimi-accent.css",
       "source": "kit/ui/src/themes/nimi-accent.css",
+      "exports": [],
+      "cssCustomProperties": []
+    },
+    {
+      "exportKey": "./ui/themes/nimi-density-compact.css",
+      "source": "kit/ui/src/themes/nimi-density-compact.css",
       "exports": [],
       "cssCustomProperties": []
     }

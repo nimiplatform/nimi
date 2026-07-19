@@ -1,6 +1,13 @@
-import React, { type CSSProperties, type ReactNode } from 'react';
+import React, { createContext, useContext, type CSSProperties, type ReactNode } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { cn } from '../design-tokens.js';
+import {
+  AnimatePresence,
+  motion,
+  nimiOverlayBackdropMotion,
+  nimiOverlayPanelMotion,
+  useNimiReducedMotion,
+} from '../motion/index.js';
 
 type DialogProps = {
   open: boolean;
@@ -8,10 +15,19 @@ type DialogProps = {
   children: ReactNode;
 };
 
+/**
+ * Presence context: Radix roots own the open state; panel parts read it
+ * here so AnimatePresence can run spring exit motion before unmount
+ * (P-DESIGN-027 — overlay motion is spring-based and symmetric).
+ */
+const DialogPresenceContext = createContext(false);
+
 export function Dialog({ open, onOpenChange, children }: DialogProps) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
-      {children}
+      <DialogPresenceContext.Provider value={open}>
+        {children}
+      </DialogPresenceContext.Provider>
     </DialogPrimitive.Root>
   );
 }
@@ -35,28 +51,43 @@ export function DialogContent({
   style,
   dataTestId,
 }: DialogContentProps) {
+  const open = useContext(DialogPresenceContext);
+  const reducedMotion = useNimiReducedMotion();
+  const panelMotion = nimiOverlayPanelMotion({ kind: 'dialog', reducedMotion });
+  const backdropMotion = nimiOverlayBackdropMotion({ reducedMotion });
+
   return (
-    <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay
-        className={cn(
-          'nimi-overlay-backdrop nimi-overlay-backdrop--dialog fixed inset-0 z-[var(--nimi-z-dialog)] bg-[var(--nimi-overlay-backdrop)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
-          overlayClassName,
-        )}
-      />
-      <DialogPrimitive.Content
-        data-testid={dataTestId}
-        onOpenAutoFocus={(e) => e.preventDefault()}
-        onEscapeKeyDown={() => onClose?.()}
-        className={cn(
-          'nimi-overlay-panel nimi-overlay-panel--dialog fixed top-1/2 left-1/2 z-[var(--nimi-z-dialog)] -translate-x-1/2 -translate-y-1/2 rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-modal)] w-full max-w-md',
-          'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
-          className,
-        )}
-        style={style}
-      >
-        {children}
-      </DialogPrimitive.Content>
-    </DialogPrimitive.Portal>
+    <AnimatePresence>
+      {open ? (
+        <DialogPrimitive.Portal forceMount>
+          <DialogPrimitive.Overlay asChild forceMount>
+            <motion.div
+              className={cn(
+                'nimi-overlay-backdrop nimi-overlay-backdrop--dialog fixed inset-0 z-[var(--nimi-z-dialog)] bg-[var(--nimi-overlay-backdrop)]',
+                overlayClassName,
+              )}
+              {...backdropMotion}
+            />
+          </DialogPrimitive.Overlay>
+          <DialogPrimitive.Content asChild forceMount
+            onOpenAutoFocus={(e) => e.preventDefault()}
+            onEscapeKeyDown={() => onClose?.()}
+          >
+            <motion.div
+              data-testid={dataTestId}
+              className={cn(
+                'nimi-overlay-panel nimi-overlay-panel--dialog fixed top-1/2 left-1/2 z-[var(--nimi-z-dialog)] -translate-x-1/2 -translate-y-1/2 rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-modal)] w-full max-w-md',
+                className,
+              )}
+              {...panelMotion}
+              style={{ ...panelMotion.style, ...style }}
+            >
+              {children}
+            </motion.div>
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      ) : null}
+    </AnimatePresence>
   );
 }
 
@@ -144,6 +175,12 @@ export function OverlayShell({
   dataTestId,
 }: OverlayShellProps) {
   const focusReturnTargetRef = React.useRef<HTMLElement | null>(null);
+  const reducedMotion = useNimiReducedMotion();
+  const panelMotion = nimiOverlayPanelMotion({
+    kind: kind === 'drawer' ? 'drawer' : kind === 'popover' ? 'popover' : 'dialog',
+    reducedMotion,
+  });
+  const backdropMotion = nimiOverlayBackdropMotion({ reducedMotion });
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && onClose) onClose();
@@ -232,35 +269,46 @@ export function OverlayShell({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay
-          className={cn(
-            'nimi-overlay-backdrop fixed inset-0 z-[var(--nimi-z-dialog)] bg-[var(--nimi-overlay-backdrop)]',
-            backdropKindClass,
-            className,
-          )}
-        />
-        <DialogPrimitive.Content
-          data-testid={dataTestId}
-          aria-modal="true"
-          {...(description ? {} : { 'aria-describedby': undefined })}
-          onOpenAutoFocus={handleOpenAutoFocus}
-          onCloseAutoFocus={handleCloseAutoFocus}
-          onPointerDownOutside={closeOnBackdrop ? undefined : (e) => e.preventDefault()}
-          onInteractOutside={closeOnBackdrop ? undefined : (e) => e.preventDefault()}
-          className={cn(
-            'nimi-overlay-panel fixed top-1/2 left-1/2 z-[var(--nimi-z-dialog)] -translate-x-1/2 -translate-y-1/2 rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-modal)] w-full',
-            defaultWidthClass,
-            panelKindClass,
-            drawerClasses,
-            sizeClass,
-            panelClassName,
-          )}
-          style={mergedPanelStyle}
-        >
-          {panelInner}
-        </DialogPrimitive.Content>
-      </DialogPrimitive.Portal>
+      <AnimatePresence>
+        {open ? (
+          <DialogPrimitive.Portal forceMount>
+            <DialogPrimitive.Overlay asChild forceMount>
+              <motion.div
+                className={cn(
+                  'nimi-overlay-backdrop fixed inset-0 z-[var(--nimi-z-dialog)] bg-[var(--nimi-overlay-backdrop)]',
+                  backdropKindClass,
+                  className,
+                )}
+                {...backdropMotion}
+              />
+            </DialogPrimitive.Overlay>
+            <DialogPrimitive.Content asChild forceMount
+              aria-modal="true"
+              {...(description ? {} : { 'aria-describedby': undefined })}
+              onOpenAutoFocus={handleOpenAutoFocus}
+              onCloseAutoFocus={handleCloseAutoFocus}
+              onPointerDownOutside={closeOnBackdrop ? undefined : (e) => e.preventDefault()}
+              onInteractOutside={closeOnBackdrop ? undefined : (e) => e.preventDefault()}
+            >
+              <motion.div
+                data-testid={dataTestId}
+                className={cn(
+                  'nimi-overlay-panel fixed top-1/2 left-1/2 z-[var(--nimi-z-dialog)] -translate-x-1/2 -translate-y-1/2 rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-modal)] w-full',
+                  defaultWidthClass,
+                  panelKindClass,
+                  drawerClasses,
+                  sizeClass,
+                  panelClassName,
+                )}
+                {...panelMotion}
+                style={{ ...panelMotion.style, ...mergedPanelStyle }}
+              >
+                {panelInner}
+              </motion.div>
+            </DialogPrimitive.Content>
+          </DialogPrimitive.Portal>
+        ) : null}
+      </AnimatePresence>
     </Dialog>
   );
 }

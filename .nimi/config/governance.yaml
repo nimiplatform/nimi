@@ -207,6 +207,7 @@ ai_governance:
       temporary_large_generated:
         - config/*-public-surface-baseline.json
         - sdks/typescript/runtime/wire-types/index.ts
+        - kit/design-projection.json
       temporary_large_production:
         - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md
         - apps/desktop/scripts/run-e2e.mjs
@@ -265,7 +266,6 @@ ai_governance:
         - apps/**/spec/**/*.yml
       generated:
         - .nimi/spec/**/kernel/generated/**
-        - kit/design-projection.json
         - kit/auth/src/logic/native-oauth-result-logo.ts
         - runtime/internal/providerregistry/generated.go
         - runtime/catalog/providers/**

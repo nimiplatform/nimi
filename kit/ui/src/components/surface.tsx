@@ -6,7 +6,7 @@ import { downgradeSurfaceMaterial } from '../glass/material.js';
 type SurfacePadding = 'none' | 'sm' | 'md' | 'lg';
 
 export const surfaceVariants = cva(
-  'nimi-surface rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] transition-colors duration-[var(--nimi-motion-fast)]',
+  'nimi-surface rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] transition-[background-color,border-color,color,box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)]',
   {
     variants: {
       tone: {
@@ -30,10 +30,10 @@ export const surfaceVariants = cva(
       },
       material: {
         solid: 'nimi-material-solid',
-        'glass-thin': 'nimi-material-glass-thin bg-[var(--nimi-material-glass-thin-bg)] border-[var(--nimi-material-glass-thin-border)] backdrop-blur-[var(--nimi-backdrop-blur-thin)]',
-        'glass-regular': 'nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]',
-        'glass-thick': 'nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)]',
-        'glass-chrome': 'nimi-material-glass-chrome bg-[var(--nimi-material-glass-chrome-bg)] border-[var(--nimi-material-glass-chrome-border)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)]',
+        'glass-thin': 'nimi-material-glass-thin bg-[var(--nimi-material-glass-thin-bg)] border-[var(--nimi-material-glass-thin-border)] backdrop-blur-[var(--nimi-backdrop-blur-thin)] backdrop-saturate-[var(--nimi-backdrop-saturate)]',
+        'glass-regular': 'nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] backdrop-saturate-[var(--nimi-backdrop-saturate)]',
+        'glass-thick': 'nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] backdrop-saturate-[var(--nimi-backdrop-saturate)]',
+        'glass-chrome': 'nimi-material-glass-chrome bg-[var(--nimi-material-glass-chrome-bg)] border-[var(--nimi-material-glass-chrome-border)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)] backdrop-saturate-[var(--nimi-backdrop-saturate)]',
       },
       transparency: {
         default: '',
@@ -96,7 +96,7 @@ export function Surface<T extends ElementType = 'div'>(props: SurfaceProps<T>) {
       'data-nimi-tone': tone,
       className: cn(
         surfaceVariants({ tone, elevation, padding, material: resolvedMaterial, transparency }),
-        interactive && 'nimi-surface--interactive cursor-pointer hover:border-[var(--nimi-border-strong)] hover:shadow-[var(--nimi-elevation-raised)]',
+        interactive && 'nimi-surface--interactive cursor-pointer hover:border-[var(--nimi-border-strong)] hover:shadow-[var(--nimi-elevation-raised)] active:scale-[var(--nimi-motion-pressed-scale)]',
         active && 'nimi-surface--active border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-surface-active)]',
         className,
       ),

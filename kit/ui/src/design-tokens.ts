@@ -36,10 +36,12 @@ export type TypographyRole =
   | 'page-title'
   | 'section-title'
   | 'card-title'
+  | 'hero-title'
   | 'body'
   | 'helper'
   | 'label'
   | 'caption';
+export type NimiDensity = 'compact' | 'regular' | 'expressive';
 export type FeedbackTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
 
 export const NIMI_DESIGN_PACK_IDS = DESIGN_PACK_IDS;
