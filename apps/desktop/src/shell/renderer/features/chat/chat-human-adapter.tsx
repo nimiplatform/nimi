@@ -23,6 +23,7 @@ import {
   useHumanCanonicalConversationSurface,
 } from './chat-human-canonical-components';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
+import type { AuthStatus } from '@renderer/app-shell/providers/app-store';
 
 import {
   ChatRuntimeInspectContent,
@@ -36,7 +37,7 @@ const ChatSettingsPanel = lazy(async () => {
 });
 
 type UseHumanConversationModeHostInput = {
-  authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
+  authStatus: AuthStatus;
   selectedChatId: string | null;
   setSelectedChatId: (chatId: string | null) => void;
   setChatProfilePanelTarget: (target: 'self' | 'other' | null) => void;

@@ -200,7 +200,10 @@ test('built-in AIConfig renderer init waits for Runtime account projection and p
   );
   assert.match(rendererRuntimeBootstrapSource, /if \(projection\.state !== 'ready_for_use'\) \{[\s\S]*return;/);
   assert.match(rendererRuntimeBootstrapSource, /message: 'phase:built-in-ai-config:init-skipped-product-not-ready'/);
-  assert.match(rendererRuntimeBootstrapSource, /if \(accountProjection\?\.accountId\) \{[\s\S]*initializeBuiltInChatScopesAfterReadyAdmission\(flowId\)/);
+  assert.match(
+    rendererRuntimeBootstrapSource,
+    /if \(accountStatus\?\.state === 'authenticated' && accountProjection\?\.accountId\) \{[\s\S]*initializeBuiltInChatScopesAfterReadyAdmission\(flowId\)/,
+  );
   assert.match(rendererRuntimeBootstrapSource, /message: 'phase:built-in-ai-config:init-deferred'/);
 });
 

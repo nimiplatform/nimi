@@ -8,21 +8,22 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/oklog/ulid/v2"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func (s *Service) GetAccountSessionStatus(ctx context.Context, req *runtimev1.GetAccountSessionStatusRequest) (*runtimev1.GetAccountSessionStatusResponse, error) {
 	if !s.isActivated() {
 		return &runtimev1.GetAccountSessionStatusResponse{
-			State:             runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
+			Accepted:          false,
 			ReasonCode:        runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED,
 			AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED,
-			ProductionInert:   true,
 		}, nil
 	}
 	if reason, ok := s.validateProtectedDesktopAccountStatusCaller(ctx, req.GetCaller()); !ok {
 		return &runtimev1.GetAccountSessionStatusResponse{
-			State:             s.currentState(),
+			Accepted:          false,
 			ReasonCode:        runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED,
 			AccountReasonCode: reason,
 		}, nil
@@ -30,10 +31,10 @@ func (s *Service) GetAccountSessionStatus(ctx context.Context, req *runtimev1.Ge
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return &runtimev1.GetAccountSessionStatusResponse{
-		State:             s.state,
-		AccountProjection: cloneProjection(s.projection),
+		Accepted:          true,
 		ReasonCode:        runtimev1.ReasonCode_ACTION_EXECUTED,
 		AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED,
+		Snapshot:          s.currentSnapshotLocked(),
 	}, nil
 }
 
@@ -44,23 +45,26 @@ func (s *Service) SubscribeAccountSessionEvents(req *runtimev1.SubscribeAccountS
 	if reason, ok := s.validateRuntimeAdmittedCaller(stream.Context(), req.GetCaller(), false); !ok {
 		return stream.Send(s.rejectedAccountSessionEvent(reason))
 	}
-	snapshot, replay, sub := s.subscribe(req)
-	if err := stream.Send(snapshot); err != nil {
-		s.removeSubscriber(sub.id)
-		return err
-	}
+	replay, snapshot, sub := s.subscribe(req)
 	for _, event := range replay {
 		if err := stream.Send(event); err != nil {
 			s.removeSubscriber(sub.id)
 			return err
 		}
 	}
+	if err := stream.Send(snapshot); err != nil {
+		s.removeSubscriber(sub.id)
+		return err
+	}
 	defer s.removeSubscriber(sub.id)
 	for {
 		select {
 		case <-stream.Context().Done():
 			return stream.Context().Err()
-		case event := <-sub.ch:
+		case event, ok := <-sub.ch:
+			if !ok {
+				return status.Error(codes.ResourceExhausted, "account event stream delivery gap")
+			}
 			if err := stream.Send(event); err != nil {
 				return err
 			}
@@ -158,11 +162,9 @@ func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginReque
 	}
 	s.loginAttempts[attempt.LoginAttemptID] = loginAttemptRecord{attempt: attempt}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGIN_PENDING
-	event := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
-	statusEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
 	s.mu.Unlock()
-	s.publish(event)
-	s.publish(statusEvent)
 
 	return &runtimev1.BeginLoginResponse{
 		Accepted:              true,
@@ -240,11 +242,9 @@ func (s *Service) CompleteLogin(ctx context.Context, req *runtimev1.CompleteLogi
 	if !record.attempt.ExpiresAt.After(s.now().UTC()) {
 		delete(s.loginAttempts, attemptID)
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS
-		event := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_TIMED_OUT, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_EXPIRED, "")
-		statusEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_EXPIRED, "")
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_TIMED_OUT, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_EXPIRED, "")
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_EXPIRED, "")
 		s.mu.Unlock()
-		s.publish(event)
-		s.publish(statusEvent)
 		return &runtimev1.CompleteLoginResponse{State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_AUTH_TOKEN_EXPIRED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_EXPIRED}, nil
 	}
 	if record.attempt.State != strings.TrimSpace(req.GetState()) || record.attempt.Nonce != strings.TrimSpace(req.GetNonce()) {
@@ -287,19 +287,16 @@ func (s *Service) CompleteLogin(ctx context.Context, req *runtimev1.CompleteLogi
 	s.mu.Lock()
 	if !s.installAuthenticatedRuntimeIdentityLocked(normalized) {
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
-		statusEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, "")
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, "")
 		s.mu.Unlock()
 		_ = s.custody.Clear(ctx, s.partition)
-		s.publish(statusEvent)
 		return &runtimev1.CompleteLoginResponse{Accepted: false, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE}, nil
 	}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED
-	loginEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
-	statusEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
 	projection := cloneProjection(s.projection)
 	s.mu.Unlock()
-	s.publish(loginEvent)
-	s.publish(statusEvent)
 
 	return &runtimev1.CompleteLoginResponse{
 		Accepted:          true,
@@ -337,25 +334,27 @@ func (s *Service) SwitchAccount(ctx context.Context, req *runtimev1.SwitchAccoun
 	}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_SWITCHING
 	accountID := strings.TrimSpace(s.projection.GetAccountId())
-	switchStart := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
-	revoked := s.revokeBindingsLocked(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
-	s.clearAuthenticatedRuntimeIdentityLocked()
-	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS
-	switchDone := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_COMPLETED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
-	statusEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
-	state := s.state
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
+	s.revokeBindingsLocked(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 	s.mu.Unlock()
-	if s.accountAuthorityRevoker != nil && accountID != "" {
-		_ = s.accountAuthorityRevoker.RevokeAccountAuthority(ctx, accountID)
+	failureReason := s.revokeAccountAuthorityAndClearCustody(ctx, accountID)
+	s.mu.Lock()
+	s.clearAuthenticatedRuntimeIdentityLocked()
+	if failureReason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED {
+		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_FAILED, failureReason, "")
+		if failureReason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE {
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE, failureReason, "")
+		}
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, failureReason, "")
+		s.mu.Unlock()
+		return &runtimev1.SwitchAccountResponse{Accepted: false, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE, ReasonCode: commonReason(failureReason), AccountReasonCode: failureReason}, nil
 	}
-	_ = s.custody.Clear(ctx, s.partition)
-	s.publish(switchStart)
-	for _, event := range revoked {
-		s.publish(event)
-	}
-	s.publish(switchDone)
-	s.publish(statusEvent)
-	return &runtimev1.SwitchAccountResponse{Accepted: true, State: state, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED}, nil
+	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_COMPLETED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
+	s.mu.Unlock()
+	return &runtimev1.SwitchAccountResponse{Accepted: true, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED}, nil
 }
 
 func (s *Service) IssueScopedAppBinding(ctx context.Context, req *runtimev1.IssueScopedAppBindingRequest) (*runtimev1.IssueScopedAppBindingResponse, error) {
@@ -374,9 +373,8 @@ func (s *Service) IssueScopedAppBinding(ctx context.Context, req *runtimev1.Issu
 	}
 	s.mu.Lock()
 	if s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED {
-		stateEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, "")
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, "")
 		s.mu.Unlock()
-		s.publish(stateEvent)
 		return &runtimev1.IssueScopedAppBindingResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE}, nil
 	}
 	now := s.now().UTC()
@@ -390,14 +388,12 @@ func (s *Service) IssueScopedAppBinding(ctx context.Context, req *runtimev1.Issu
 	relation.ExpiresAt = timestamppb.New(now.Add(ttl))
 	relation.State = runtimev1.ScopedAppBindingState_SCOPED_APP_BINDING_STATE_ISSUED
 	relation.ReasonCode = runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED
-	issued := s.appendBindingEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_ISSUED, relation)
+	s.appendBindingEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_ISSUED, relation)
 	relation.State = runtimev1.ScopedAppBindingState_SCOPED_APP_BINDING_STATE_ACTIVE
-	activated := s.appendBindingEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_ACTIVATED, relation)
+	s.appendBindingEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_ACTIVATED, relation)
 	carrier := "binding:" + bindingID
 	s.bindings[bindingID] = bindingRecord{relation: cloneRelation(relation), carrier: carrier}
 	s.mu.Unlock()
-	s.publish(issued)
-	s.publish(activated)
 
 	return &runtimev1.IssueScopedAppBindingResponse{
 		Accepted:          true,
@@ -434,9 +430,8 @@ func (s *Service) RevokeScopedAppBinding(ctx context.Context, req *runtimev1.Rev
 	record.relation.State = runtimev1.ScopedAppBindingState_SCOPED_APP_BINDING_STATE_REVOKED
 	record.relation.ReasonCode = reason
 	s.bindings[bindingID] = record
-	event := s.appendBindingEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_REVOKED, record.relation)
+	s.appendBindingEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_REVOKED, record.relation)
 	s.mu.Unlock()
-	s.publish(event)
 	return &runtimev1.RevokeScopedAppBindingResponse{Accepted: true, Relation: cloneRelation(record.relation), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: reason}, nil
 }
 
@@ -454,21 +449,16 @@ func (s *Service) IssueWorkspaceBinding(ctx context.Context, req *runtimev1.Issu
 	}
 	s.mu.Lock()
 	if s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED {
-		stateEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, "")
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, "")
 		s.mu.Unlock()
-		s.publish(stateEvent)
 		return &runtimev1.IssueWorkspaceBindingResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE}, nil
 	}
 	if s.accountMaterialExpiredLocked() {
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED
 		s.invalidateAuthenticatedRuntimeIdentityLocked()
-		revoked := s.revokeBindingsLocked(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
-		stateEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, "")
+		s.revokeBindingsLocked(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, "")
 		s.mu.Unlock()
-		for _, event := range revoked {
-			s.publish(event)
-		}
-		s.publish(stateEvent)
 		return &runtimev1.IssueWorkspaceBindingResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE}, nil
 	}
 	if !s.hasActiveWorkspaceMembershipLocked(workspaceID, s.material.RealmEnvironmentID) {
@@ -504,13 +494,11 @@ func (s *Service) IssueWorkspaceBinding(ctx context.Context, req *runtimev1.Issu
 		State:              runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_ISSUED,
 		ReasonCode:         runtimev1.ReasonCode_ACTION_EXECUTED,
 	}
-	issued := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_ISSUED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, bindingID)
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_ISSUED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, bindingID)
 	relation.State = runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_ACTIVE
-	activated := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_ACTIVATED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, bindingID)
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_ACTIVATED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, bindingID)
 	s.workspaceBindings[bindingID] = workspaceBindingRecord{relation: cloneWorkspaceRelation(relation), attachment: cloneWorkspaceAttachment(attachment)}
 	s.mu.Unlock()
-	s.publish(issued)
-	s.publish(activated)
 	return &runtimev1.IssueWorkspaceBindingResponse{
 		Accepted:          true,
 		BindingId:         bindingID,
@@ -549,9 +537,8 @@ func (s *Service) RevokeWorkspaceBinding(ctx context.Context, req *runtimev1.Rev
 		record.relation.State = runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_REVOKED
 		record.relation.ReasonCode = reason
 		s.workspaceBindings[bindingID] = record
-		event := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_REVOKED, workspaceBindingAccountReason(reason), bindingID)
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_REVOKED, workspaceBindingAccountReason(reason), bindingID)
 		s.mu.Unlock()
-		s.publish(event)
 		return &runtimev1.RevokeWorkspaceBindingResponse{Accepted: true, Relation: cloneWorkspaceRelation(record.relation), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: workspaceBindingAccountReason(reason)}, nil
 	}
 	s.mu.Unlock()
@@ -573,8 +560,7 @@ func (s *Service) ValidateScopedBinding(bindingID string, actual *runtimev1.Scop
 		record.relation.State = runtimev1.ScopedAppBindingState_SCOPED_APP_BINDING_STATE_REVOKED
 		record.relation.ReasonCode = bindingRevocationReasonForAccountState(s.state)
 		s.bindings[trimmed] = record
-		event := s.appendBindingEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_REVOKED, record.relation)
-		go s.publish(event)
+		s.appendBindingEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_REVOKED, record.relation)
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, false
 	}
 	now := s.now().UTC()
@@ -582,16 +568,14 @@ func (s *Service) ValidateScopedBinding(bindingID string, actual *runtimev1.Scop
 		record.relation.State = runtimev1.ScopedAppBindingState_SCOPED_APP_BINDING_STATE_EXPIRED
 		record.relation.ReasonCode = runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_STALE
 		s.bindings[trimmed] = record
-		event := s.appendBindingEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_EXPIRED, record.relation)
-		go s.publish(event)
+		s.appendBindingEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_EXPIRED, record.relation)
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_STALE, false
 	}
 	if relationReplay(record.relation, actual) {
 		record.relation.State = runtimev1.ScopedAppBindingState_SCOPED_APP_BINDING_STATE_REVOKED
 		record.relation.ReasonCode = runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_REPLAY
 		s.bindings[trimmed] = record
-		event := s.appendBindingEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_REPLAY_DETECTED, record.relation)
-		go s.publish(event)
+		s.appendBindingEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_REPLAY_DETECTED, record.relation)
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_REPLAY, false
 	}
 	if requiredScope != "" && !scopeIncluded(record.relation.GetScopes(), requiredScope) {
@@ -625,16 +609,11 @@ func (s *Service) ObserveRefreshToken(ctx context.Context, token string) (runtim
 	s.mu.Lock()
 	if s.material.RefreshTokenHashes[hash] {
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED
-		revoked := s.revokeBindingsLocked(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED)
+		s.revokeBindingsLocked(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED)
 		s.clearAuthenticatedRuntimeIdentityLocked()
-		event := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED, "")
-		statusEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED, "")
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED, "")
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED, "")
 		s.mu.Unlock()
-		for _, revokeEvent := range revoked {
-			go s.publish(revokeEvent)
-		}
-		go s.publish(event)
-		go s.publish(statusEvent)
 		_ = s.custody.Clear(ctx, s.partition)
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED, false
 	}
@@ -707,24 +686,41 @@ func (s *Service) logout(ctx context.Context, reason runtimev1.AccountReasonCode
 	}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGGING_OUT
 	accountID := strings.TrimSpace(s.projection.GetAccountId())
-	start := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_STARTED, reason, "")
-	revoked := s.revokeBindingsLocked(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
-	s.clearAuthenticatedRuntimeIdentityLocked()
-	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS
-	done := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_COMPLETED, reason, "")
-	statusEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, reason, "")
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_STARTED, reason, "")
+	s.revokeBindingsLocked(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 	s.mu.Unlock()
-	if s.accountAuthorityRevoker != nil && accountID != "" {
-		_ = s.accountAuthorityRevoker.RevokeAccountAuthority(ctx, accountID)
+	failureReason := s.revokeAccountAuthorityAndClearCustody(ctx, accountID)
+	s.mu.Lock()
+	s.clearAuthenticatedRuntimeIdentityLocked()
+	if failureReason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED {
+		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_FAILED, failureReason, "")
+		if failureReason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE {
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE, failureReason, "")
+		}
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, failureReason, "")
+		s.mu.Unlock()
+		return &runtimev1.LogoutResponse{Accepted: false, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE, ReasonCode: commonReason(failureReason), AccountReasonCode: failureReason}, nil
 	}
-	_ = s.custody.Clear(ctx, s.partition)
-	s.publish(start)
-	for _, event := range revoked {
-		s.publish(event)
-	}
-	s.publish(done)
-	s.publish(statusEvent)
+	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_COMPLETED, reason, "")
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, reason, "")
+	s.mu.Unlock()
 	return &runtimev1.LogoutResponse{Accepted: true, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: reason}, nil
+}
+
+func (s *Service) revokeAccountAuthorityAndClearCustody(ctx context.Context, accountID string) runtimev1.AccountReasonCode {
+	revocationFailed := false
+	if s.accountAuthorityRevoker != nil && accountID != "" {
+		revocationFailed = s.accountAuthorityRevoker.RevokeAccountAuthority(ctx, accountID) != nil
+	}
+	if err := s.custody.Clear(ctx, s.partition); err != nil {
+		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE
+	}
+	if revocationFailed {
+		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE
+	}
+	return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED
 }
 
 func (s *Service) mustEmbedUnimplementedRuntimeAccountServiceServer() {}

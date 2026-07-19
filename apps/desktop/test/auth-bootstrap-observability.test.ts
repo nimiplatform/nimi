@@ -39,7 +39,7 @@ test('desktop bootstrap projects authenticated state from Runtime account truth 
   );
   assert.match(
     runtimeBootstrapSource,
-    /if \(accountProjection\?\.accountId\) \{\s*await withBootstrapStepTimeout\(\s*'account profile hydrate'/s,
+    /if \(accountStatus\?\.state === 'authenticated' && accountProjection\?\.accountId\) \{\s*await withBootstrapStepTimeout\(\s*'account profile hydrate'/s,
   );
   assert.doesNotMatch(runtimeBootstrapSource, /accountTokenAvailable|tokenStatus/);
 });
@@ -63,7 +63,7 @@ test('desktop Realm transport is Runtime-mediated and never calls public token r
   assert.doesNotMatch(sdkRuntimeAccountRealmSource, /refreshAccountSession/);
 });
 
-test('desktop bootstrap keeps exact protected account truth independent from generic Runtime readiness', () => {
+test('desktop bootstrap projects protected account unavailability independently from generic Runtime readiness', () => {
   assert.doesNotMatch(runtimeBootstrapSource, /configureDesktopRealmOnlySession/);
   const firstRuntimeUnavailableBranch = runtimeBootstrapSource.indexOf('if (runtimeUnavailable) {');
   const runtimeAccountStatusIndex = runtimeBootstrapSource.indexOf(
@@ -76,10 +76,8 @@ test('desktop bootstrap keeps exact protected account truth independent from gen
     runtimeAccountStatusIndex < firstRuntimeUnavailableBranch,
     'exact native account status must be read before generic Runtime unavailable handling',
   );
-  assert.ok(
-    runtimeBootstrapSource.includes('if (!runtimeUnavailable) {\n        throw error;'),
-    'a protected account read failure remains fatal when generic Runtime is otherwise available',
-  );
+  assert.match(runtimeBootstrapSource, /applyRuntimeAccountUnavailableProjection\(\);/);
+  assert.doesNotMatch(runtimeBootstrapSource, /if \(!runtimeUnavailable\) \{\s*throw error;/);
   assert.match(runtimeBootstrapSource, /phase:protected-account-status:unavailable/);
   assert.doesNotMatch(runtimeBootstrapSource, /getAccessToken|refreshAccountSession|accessTokenProvider:/);
 });

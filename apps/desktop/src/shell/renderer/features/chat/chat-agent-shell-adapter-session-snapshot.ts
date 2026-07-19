@@ -12,8 +12,7 @@ import {
 } from './chat-agent-shell-core';
 import { hydrateAgentThreadBundleFromRuntimeSessionSnapshot } from './chat-agent-session-hydration';
 import { setAgentVisibleProjection } from './chat-agent-visible-projection-store';
-
-type AuthStatus = 'bootstrapping' | 'anonymous' | 'authenticated';
+import type { AuthStatus } from '@renderer/app-shell/providers/app-store';
 
 type RuntimeHostErrorDetailsBuilder = (
   error: unknown,

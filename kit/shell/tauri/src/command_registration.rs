@@ -107,6 +107,16 @@ pub const PROTECTED_DESKTOP_ACCOUNT_COMMANDS: &[ShellCommandDescriptor] = &[
         boundary: ShellCommandBoundary::DesktopAccount,
     },
     ShellCommandDescriptor {
+        command_name: "runtime_account_session_events_open",
+        rust_path: "nimi_shell_tauri::capabilities::runtime::runtime_account_session_events_open",
+        boundary: ShellCommandBoundary::DesktopAccount,
+    },
+    ShellCommandDescriptor {
+        command_name: "runtime_account_session_events_close",
+        rust_path: "nimi_shell_tauri::capabilities::runtime::runtime_account_session_events_close",
+        boundary: ShellCommandBoundary::DesktopAccount,
+    },
+    ShellCommandDescriptor {
         command_name: "runtime_account_begin_login",
         rust_path: "nimi_shell_tauri::capabilities::runtime::runtime_account_begin_login",
         boundary: ShellCommandBoundary::DesktopAccount,
@@ -485,6 +495,8 @@ macro_rules! nimi_shell_tauri_oauth_runtime_bridge_handler {
             $crate::capabilities::runtime::runtime_bridge_start,
             $crate::capabilities::runtime::runtime_bridge_restart,
             $crate::capabilities::runtime::runtime_account_session_status,
+            $crate::capabilities::runtime::runtime_account_session_events_open,
+            $crate::capabilities::runtime::runtime_account_session_events_close,
             $crate::capabilities::runtime::runtime_account_begin_login,
             $crate::capabilities::runtime::runtime_account_complete_login,
             $crate::capabilities::runtime::runtime_account_invoke_realm_unary,

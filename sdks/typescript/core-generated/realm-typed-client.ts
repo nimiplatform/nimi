@@ -4533,7 +4533,7 @@ export interface RealmOauthTokenOperationRequest {
   readonly headers?: {
 
   };
-  readonly body?: Record<string, never>;
+  readonly body: OAuthTokenRequestDto;
 }
 export type RealmOauthTokenOperationResponse = OAuthTokenResponseDto;
 export interface RealmPasswordLoginOperationRequest {

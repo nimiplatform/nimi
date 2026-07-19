@@ -39,13 +39,13 @@ export function MainLayoutTitlebarContent(props: MainLayoutTitlebarContentProps)
       ? t('World.searchPlaceholder', { defaultValue: 'Search worlds, themes, personas...' })
       : t('Explore.searchPlaceholder', { defaultValue: 'Search personas by name/handle...' });
     return (
-      <div className="flex h-full min-w-0 items-center">
+      <div className="flex h-full min-w-0 items-center overflow-hidden">
         <ExploreSectionNav
           active={props.exploreActiveSection}
           onSelect={props.onExploreSectionChange}
           variant="topbar"
         />
-        <div className="flex min-w-0 flex-1 items-center justify-center px-4">
+        <div className="hidden min-w-0 flex-1 items-center justify-center px-4 lg:flex">
           <div className="w-full min-w-[260px] max-w-[500px]">
             <ExploreSearchField
               value={props.exploreSearchText}

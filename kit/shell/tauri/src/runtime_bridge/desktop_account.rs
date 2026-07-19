@@ -1,23 +1,11 @@
-use prost::Message;
+use nimi_shell_protected_local::{
+    DesktopAccountActionRequest, DesktopAccountBeginLoginRequest,
+    DesktopAccountCompleteLoginRequest, DesktopAccountProjection, DesktopAccountRealmUnaryRequest,
+};
 use serde::{Deserialize, Serialize};
 
-use super::generated::{
-    AccountCaller, AccountCallerMode, AccountProjection, BeginLoginRequest, BeginLoginResponse,
-    CompleteLoginRequest, CompleteLoginResponse, InvokeRealmUnaryRequest, InvokeRealmUnaryResponse,
-    LogoutRequest, LogoutResponse, SwitchAccountRequest, SwitchAccountResponse,
-};
-use super::{
-    build_unary_payload, decode_unary_result, desktop_account_status_request,
-    runtime_bridge_desktop_account_unary, RuntimeBridgeMetadata,
-};
+use super::{error_map::bridge_error, service_control};
 
-const BEGIN_LOGIN_METHOD_ID: &str = "/nimi.runtime.v1.RuntimeAccountService/BeginLogin";
-const COMPLETE_LOGIN_METHOD_ID: &str = "/nimi.runtime.v1.RuntimeAccountService/CompleteLogin";
-const INVOKE_REALM_UNARY_METHOD_ID: &str =
-    "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary";
-const LOGOUT_METHOD_ID: &str = "/nimi.runtime.v1.RuntimeAccountService/Logout";
-const SWITCH_ACCOUNT_METHOD_ID: &str = "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount";
-const DEFAULT_ACCOUNT_CALL_TIMEOUT_MS: u64 = 30_000;
 const MAX_ACCOUNT_CALL_TIMEOUT_MS: u64 = 300_000;
 const MAX_REALM_REQUEST_JSON_BYTES: usize = 2 * 1024 * 1024;
 
@@ -125,41 +113,8 @@ fn normalized_scopes(values: Vec<String>) -> Result<Vec<String>, String> {
     Ok(values)
 }
 
-fn desktop_account_caller() -> Result<AccountCaller, String> {
-    let identity = desktop_account_status_request()?;
-    Ok(AccountCaller {
-        app_id: required_text(identity.app_id, "appId", 256)?,
-        app_instance_id: required_text(identity.app_instance_id, "appInstanceId", 256)?,
-        device_id: required_text(identity.device_id, "deviceId", 256)?,
-        mode: AccountCallerMode::DesktopShell as i32,
-        scopes: Vec::new(),
-        launch_host_id: String::new(),
-        launch_nonce: String::new(),
-        release_descriptor_ref: String::new(),
-    })
-}
-
-async fn invoke_account_unary<Request, Response>(
-    method_id: &str,
-    request: Request,
-    timeout_ms: u64,
-    idempotency_key: Option<String>,
-) -> Result<Response, String>
-where
-    Request: Message,
-    Response: Message + Default,
-{
-    let mut payload = build_unary_payload(method_id, request, Some(timeout_ms));
-    payload.metadata = Some(RuntimeBridgeMetadata {
-        idempotency_key,
-        ..RuntimeBridgeMetadata::default()
-    });
-    let response = runtime_bridge_desktop_account_unary(payload).await?;
-    decode_unary_result(method_id, &response)
-}
-
 fn project_account(
-    projection: Option<AccountProjection>,
+    projection: Option<DesktopAccountProjection>,
 ) -> Option<super::RuntimeBridgeDesktopAccountProjection> {
     projection.map(|projection| super::RuntimeBridgeDesktopAccountProjection {
         account_id: projection.account_id,
@@ -168,25 +123,27 @@ fn project_account(
     })
 }
 
+fn account_transport_error(error: nimi_shell_protected_local::NimiHostError) -> String {
+    bridge_error(
+        "RUNTIME_ACCOUNT_PROTECTED_CARRIER_UNAVAILABLE",
+        error.reason_code().as_str(),
+    )
+}
+
 pub async fn begin_login(
     input: RuntimeBridgeDesktopAccountBeginLoginRequest,
 ) -> Result<RuntimeBridgeDesktopAccountBeginLoginResponse, String> {
     if !(10..=600).contains(&input.ttl_seconds) {
         return Err("protected Desktop account ttlSeconds must be between 10 and 600".to_string());
     }
-    let response: BeginLoginResponse = invoke_account_unary(
-        BEGIN_LOGIN_METHOD_ID,
-        BeginLoginRequest {
-            caller: Some(desktop_account_caller()?),
-            redirect_uri: required_text(input.redirect_uri, "redirectUri", 2048)?,
-            callback_origin: required_text(input.callback_origin, "callbackOrigin", 2048)?,
-            requested_scopes: normalized_scopes(input.requested_scopes)?,
-            ttl_seconds: input.ttl_seconds,
-        },
-        DEFAULT_ACCOUNT_CALL_TIMEOUT_MS,
-        None,
-    )
-    .await?;
+    let response = service_control::begin_account_login(DesktopAccountBeginLoginRequest {
+        redirect_uri: required_text(input.redirect_uri, "redirectUri", 2048)?,
+        callback_origin: required_text(input.callback_origin, "callbackOrigin", 2048)?,
+        requested_scopes: normalized_scopes(input.requested_scopes)?,
+        ttl_seconds: input.ttl_seconds,
+    })
+    .await
+    .map_err(account_transport_error)?;
     Ok(RuntimeBridgeDesktopAccountBeginLoginResponse {
         accepted: response.accepted,
         login_attempt_id: response.login_attempt_id,
@@ -203,24 +160,16 @@ pub async fn begin_login(
 pub async fn complete_login(
     input: RuntimeBridgeDesktopAccountCompleteLoginRequest,
 ) -> Result<RuntimeBridgeDesktopAccountMutationResponse, String> {
-    let response: CompleteLoginResponse = invoke_account_unary(
-        COMPLETE_LOGIN_METHOD_ID,
-        CompleteLoginRequest {
-            caller: Some(desktop_account_caller()?),
-            login_attempt_id: required_text(input.login_attempt_id, "loginAttemptId", 256)?,
-            code: required_text(input.code, "code", 4096)?,
-            state: required_text(input.state, "state", 512)?,
-            nonce: required_text(input.nonce, "nonce", 512)?,
-            redirect_uri: required_text(input.redirect_uri, "redirectUri", 2048)?,
-            callback_origin: required_text(input.callback_origin, "callbackOrigin", 2048)?,
-            ux_trace_id: String::new(),
-            sealed_completion_ticket: String::new(),
-            refresh_token: String::new(),
-        },
-        DEFAULT_ACCOUNT_CALL_TIMEOUT_MS,
-        None,
-    )
-    .await?;
+    let response = service_control::complete_account_login(DesktopAccountCompleteLoginRequest {
+        login_attempt_id: required_text(input.login_attempt_id, "loginAttemptId", 256)?,
+        code: required_text(input.code, "code", 4096)?,
+        state: required_text(input.state, "state", 512)?,
+        nonce: required_text(input.nonce, "nonce", 512)?,
+        redirect_uri: required_text(input.redirect_uri, "redirectUri", 2048)?,
+        callback_origin: required_text(input.callback_origin, "callbackOrigin", 2048)?,
+    })
+    .await
+    .map_err(account_transport_error)?;
     Ok(RuntimeBridgeDesktopAccountMutationResponse {
         accepted: response.accepted,
         state: response.state,
@@ -246,19 +195,15 @@ pub async fn invoke_realm_unary(
             "protected Desktop account timeoutMs must be between 1 and 300000".to_string()
         })?;
     let idempotency_key = optional_text(input.idempotency_key, "idempotencyKey", 256)?;
-    let response: InvokeRealmUnaryResponse = invoke_account_unary(
-        INVOKE_REALM_UNARY_METHOD_ID,
-        InvokeRealmUnaryRequest {
-            caller: Some(desktop_account_caller()?),
-            method_id: required_text(input.method_id, "methodId", 512)?,
-            realm_base_url: String::new(),
-            request_json,
-            timeout_ms: input.timeout_ms,
-        },
-        timeout_ms,
+    let response = service_control::invoke_account_realm_unary(DesktopAccountRealmUnaryRequest {
+        method_id: required_text(input.method_id, "methodId", 512)?,
+        request_json,
+        timeout_ms: i32::try_from(timeout_ms)
+            .map_err(|_| "protected Desktop account timeoutMs exceeds int32".to_string())?,
         idempotency_key,
-    )
-    .await?;
+    })
+    .await
+    .map_err(account_transport_error)?;
     Ok(RuntimeBridgeDesktopAccountRealmUnaryResponse {
         accepted: response.accepted,
         response_json: response.response_json,
@@ -273,16 +218,11 @@ pub async fn invoke_realm_unary(
 pub async fn logout(
     input: RuntimeBridgeDesktopAccountActionRequest,
 ) -> Result<RuntimeBridgeDesktopAccountMutationResponse, String> {
-    let response: LogoutResponse = invoke_account_unary(
-        LOGOUT_METHOD_ID,
-        LogoutRequest {
-            caller: Some(desktop_account_caller()?),
-            reason: required_text(input.reason, "reason", 256)?,
-        },
-        DEFAULT_ACCOUNT_CALL_TIMEOUT_MS,
-        None,
-    )
-    .await?;
+    let response = service_control::logout_account(DesktopAccountActionRequest {
+        reason: required_text(input.reason, "reason", 256)?,
+    })
+    .await
+    .map_err(account_transport_error)?;
     Ok(RuntimeBridgeDesktopAccountMutationResponse {
         accepted: response.accepted,
         state: response.state,
@@ -296,16 +236,11 @@ pub async fn logout(
 pub async fn switch_account(
     input: RuntimeBridgeDesktopAccountActionRequest,
 ) -> Result<RuntimeBridgeDesktopAccountMutationResponse, String> {
-    let response: SwitchAccountResponse = invoke_account_unary(
-        SWITCH_ACCOUNT_METHOD_ID,
-        SwitchAccountRequest {
-            caller: Some(desktop_account_caller()?),
-            reason: required_text(input.reason, "reason", 256)?,
-        },
-        DEFAULT_ACCOUNT_CALL_TIMEOUT_MS,
-        None,
-    )
-    .await?;
+    let response = service_control::switch_account(DesktopAccountActionRequest {
+        reason: required_text(input.reason, "reason", 256)?,
+    })
+    .await
+    .map_err(account_transport_error)?;
     Ok(RuntimeBridgeDesktopAccountMutationResponse {
         accepted: response.accepted,
         state: response.state,
@@ -336,11 +271,10 @@ mod tests {
 
     #[test]
     fn account_projection_drops_workspace_and_credential_adjacent_fields() {
-        let projection = project_account(Some(AccountProjection {
+        let projection = project_account(Some(DesktopAccountProjection {
             account_id: "account-1".to_string(),
             display_name: "Nimi User".to_string(),
             realm_environment_id: "realm-1".to_string(),
-            workspace_memberships: Vec::new(),
         }))
         .expect("safe account projection");
         assert_eq!(projection.account_id, "account-1");

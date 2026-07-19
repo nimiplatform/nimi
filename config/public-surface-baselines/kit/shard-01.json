@@ -117,6 +117,7 @@
         "class OfflineStateManager",
         "const OFFLINE_RECONNECT_INITIAL_DELAY_MS",
         "const OFFLINE_RECONNECT_MAX_DELAY_MS",
+        "type ConnectivityReachability",
         "type ConnectivityStatus",
         "type OfflineCoordinatorReconnectHandlers",
         "type OfflineCoordinatorTimer",

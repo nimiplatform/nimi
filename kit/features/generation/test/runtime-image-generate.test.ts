@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   runRuntimeImageGenerate,
+  type RuntimeImageGenerateRuntime,
 } from '../src/runtime.js';
 import {
   ExecutionMode,
@@ -11,6 +12,12 @@ import {
   fromNimiRuntimeProtoStruct,
   type NimiAIConfig,
 } from '@nimiplatform/kit/core/sdk-contract';
+import { createRuntimeScopeRunnerFixture } from './runtime-scope-runner-fixture.js';
+import { createScenarioJobFixture } from './runtime-scenario-job-fixture.js';
+import {
+  createLocalAssetRecordFixture,
+  createRuntimeLocalRpcFixture,
+} from './runtime-local-rpc-fixture.js';
 
 describe('runtime image generation helper', () => {
   it('fails closed before dispatch when the AIConfig image binding is missing', async () => {
@@ -40,19 +47,19 @@ describe('runtime image generation helper', () => {
     const jobUpdates: string[] = [];
     runtime.scheduling.peekScheduling.mockResolvedValue(runnableSchedulingResponse());
     runtime.ai.submitScenarioJob.mockResolvedValue({
-      job: {
+      job: createScenarioJobFixture({
         jobId: 'job-image-1',
         status: ScenarioJobStatus.SUBMITTED,
         scenarioType: ScenarioType.IMAGE_GENERATE,
         artifacts: [],
-      },
+      }),
     });
     runtime.ai.subscribeScenarioJobEvents.mockImplementation(async function* () {
       yield {
         eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_COMPLETED,
         sequence: '1',
         traceId: 'trace-image-event',
-        job: {
+        job: createScenarioJobFixture({
           jobId: 'job-image-1',
           status: ScenarioJobStatus.COMPLETED,
           scenarioType: ScenarioType.IMAGE_GENERATE,
@@ -68,10 +75,11 @@ describe('runtime image generation helper', () => {
               mimeType: 'image/png',
             }),
           ],
-        },
+        }),
       };
     });
     runtime.ai.getScenarioArtifacts.mockResolvedValue({
+      jobId: 'job-image-1',
       traceId: 'trace-artifacts',
       artifacts: [
         imageArtifact({
@@ -126,10 +134,10 @@ describe('runtime image generation helper', () => {
         mimeInferred: false,
       };
     });
-    const withScopes = vi.fn(<T,>(
-      _scopes: readonly string[],
-      operation: (options: { readonly metadata?: Record<string, string> }) => Promise<T>,
-    ) => operation({ metadata: { 'x-nimi-access-token-id': 'token-1', 'x-nimi-access-token-secret': 'secret-1' } }));
+    const { runner: withScopes, callSpy: withScopesCalls } = createRuntimeScopeRunnerFixture({
+      'x-nimi-access-token-id': 'token-1',
+      'x-nimi-access-token-secret': 'secret-1',
+    });
 
     const result = await runRuntimeImageGenerate({
       runtime,
@@ -218,8 +226,8 @@ describe('runtime image generation helper', () => {
       String(ScenarioJobStatus.SUBMITTED),
       String(ScenarioJobStatus.COMPLETED),
     ]);
-    expect(withScopes).toHaveBeenCalledOnce();
-    expect(withScopes.mock.calls[0]?.[0]).toEqual(['ai.spend.meter']);
+    expect(withScopesCalls).toHaveBeenCalledOnce();
+    expect(withScopesCalls.mock.calls[0]?.[0]).toEqual(['ai.spend.meter']);
     expect(runtime.scheduling.peekScheduling).toHaveBeenCalledOnce();
     const [schedulingInput] = runtime.scheduling.peekScheduling.mock.calls[0];
     expect(schedulingInput.targets[0]).toMatchObject({
@@ -313,12 +321,12 @@ describe('runtime image generation helper', () => {
     const runtime = createRuntimeHarness();
     runtime.scheduling.peekScheduling.mockResolvedValue(runnableSchedulingResponse());
     runtime.ai.submitScenarioJob.mockResolvedValue({
-      job: {
+      job: createScenarioJobFixture({
         jobId: 'job-image-pre-resolved',
         status: ScenarioJobStatus.SUBMITTED,
         scenarioType: ScenarioType.IMAGE_GENERATE,
         artifacts: [],
-      },
+      }),
     });
 
     const result = await runRuntimeImageGenerate({
@@ -491,33 +499,41 @@ describe('runtime image generation helper', () => {
     const runtime = createRuntimeHarness();
     runtime.scheduling.peekScheduling.mockResolvedValue(runnableSchedulingResponse());
     runtime.ai.submitScenarioJob.mockResolvedValue({
-      job: {
+      job: createScenarioJobFixture({
         jobId: 'job-image-malformed',
         status: ScenarioJobStatus.SUBMITTED,
         scenarioType: ScenarioType.IMAGE_GENERATE,
         artifacts: [],
-      },
+      }),
     });
     runtime.ai.subscribeScenarioJobEvents.mockImplementation(async function* () {
       yield {
         eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_COMPLETED,
         sequence: '1',
         traceId: 'trace-image-malformed',
-        job: {
+        job: createScenarioJobFixture({
           jobId: 'job-image-malformed',
           status: ScenarioJobStatus.COMPLETED,
           scenarioType: ScenarioType.IMAGE_GENERATE,
           artifacts: [],
-        },
+        }),
       };
     });
     runtime.ai.getScenarioArtifacts.mockResolvedValue({
+      jobId: 'job-image-malformed',
       traceId: 'trace-image-malformed',
       artifacts: [],
       output: {
         output: {
           oneofKind: 'textGenerate',
-          textGenerate: { text: 'not image output' },
+          textGenerate: {
+            text: 'not image output',
+            toolCalls: [],
+            toolResults: [],
+            toolApprovalRequests: [],
+            sources: [],
+            rawChunks: [],
+          },
         },
       },
     });
@@ -619,17 +635,18 @@ function createRuntimeHarness() {
           eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_COMPLETED,
           sequence: '1',
           traceId: 'trace-image-default',
-          job: {
+          job: createScenarioJobFixture({
             jobId: 'job-image-default',
             status: ScenarioJobStatus.COMPLETED,
             scenarioType: ScenarioType.IMAGE_GENERATE,
             artifacts: [imageArtifact({ artifactId: 'artifact-default', bytes: new Uint8Array([1]) })],
-          },
+          }),
         };
       }),
       getScenarioJob: vi.fn(),
       cancelScenarioJob: vi.fn(),
-      getScenarioArtifacts: vi.fn(async () => ({
+      getScenarioArtifacts: vi.fn(async (): Promise<Awaited<ReturnType<RuntimeImageGenerateRuntime['ai']['getScenarioArtifacts']>>> => ({
+        jobId: 'job-image-default',
         traceId: 'trace-image-default',
         artifacts: [imageArtifact({ artifactId: 'artifact-default', bytes: new Uint8Array([1]) })],
         output: {
@@ -645,7 +662,7 @@ function createRuntimeHarness() {
     artifacts: {
       readArtifactBytes: vi.fn(),
     },
-    local: {
+    local: createRuntimeLocalRpcFixture({
       listLocalAssets: vi.fn(async () => ({
         nextPageToken: '',
         assets: [
@@ -674,7 +691,7 @@ function createRuntimeHarness() {
       })),
       listLocalEnvironmentDependencyJobs: vi.fn(async () => ({ jobs: [] })),
       startLocalEnvironmentDependencyJob: vi.fn(),
-    },
+    }),
   };
 }
 
@@ -704,9 +721,14 @@ function imageArtifact(input: {
     mimeType: input.mimeType ?? 'image/png',
     bytes: input.bytes ?? new Uint8Array(),
     uri: input.uri ?? '',
+    sha256: '',
     sizeBytes: input.bytes ? String(input.bytes.byteLength) : '0',
+    durationMs: '0',
+    fps: 0,
     width: input.width ?? 0,
     height: input.height ?? 0,
+    sampleRateHz: 0,
+    channels: 0,
     metadata: undefined,
   };
 }
@@ -714,16 +736,15 @@ function imageArtifact(input: {
 function localAsset(input: {
   localAssetId: string;
   assetId: string;
-  kind: string;
+  kind: 'image' | 'chat' | 'vae';
   engine: string;
 }) {
-  return {
+  return createLocalAssetRecordFixture({
     localAssetId: input.localAssetId,
     assetId: input.assetId,
     kind: input.kind,
     engine: input.engine,
-    status: 'active',
-  };
+  });
 }
 
 function readyLocalImageEnvironmentPlan() {

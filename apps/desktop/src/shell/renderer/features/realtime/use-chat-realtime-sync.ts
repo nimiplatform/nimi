@@ -19,7 +19,7 @@ export function useChatRealtimeSync(): void {
   const offlineCoordinator = getOfflineCoordinator();
 
   useEffect(() => {
-    offlineCoordinator.markRealmSocketReachable(false);
+    offlineCoordinator.markRealmSocketReachability('unknown');
     if (authStatus !== 'authenticated') {
       return undefined;
     }

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   runRuntimeSpeechSynthesize,
+  type RuntimeSpeechSynthesizeRuntime,
 } from '../src/runtime.js';
 import {
   ExecutionMode,
@@ -10,6 +11,12 @@ import {
   ScenarioType,
   type NimiAIConfig,
 } from '@nimiplatform/kit/core/sdk-contract';
+import { createRuntimeScopeRunnerFixture } from './runtime-scope-runner-fixture.js';
+import { createScenarioJobFixture } from './runtime-scenario-job-fixture.js';
+import {
+  createLocalAssetRecordFixture,
+  createRuntimeLocalRpcFixture,
+} from './runtime-local-rpc-fixture.js';
 
 describe('runtime speech synthesis helper', () => {
   it('fails closed before dispatch when the AIConfig audio binding is missing', async () => {
@@ -68,25 +75,25 @@ describe('runtime speech synthesis helper', () => {
   it('submits audio.synthesize through the configured Runtime job route and summarizes audio artifacts', async () => {
     const runtime = createRuntimeHarness();
     const jobUpdates: string[] = [];
-    const withScopes = vi.fn(<T,>(
-      _scopes: readonly string[],
-      operation: (options: { readonly metadata?: Record<string, string> }) => Promise<T>,
-    ) => operation({ metadata: { 'x-nimi-access-token-id': 'token-1', 'x-nimi-access-token-secret': 'secret-1' } }));
+    const { runner: withScopes, callSpy: withScopesCalls } = createRuntimeScopeRunnerFixture({
+      'x-nimi-access-token-id': 'token-1',
+      'x-nimi-access-token-secret': 'secret-1',
+    });
     runtime.scheduling.peekScheduling.mockResolvedValue(runnableSchedulingResponse());
     runtime.ai.submitScenarioJob.mockResolvedValue({
-      job: {
+      job: createScenarioJobFixture({
         jobId: 'job-audio-1',
         status: ScenarioJobStatus.SUBMITTED,
         scenarioType: ScenarioType.SPEECH_SYNTHESIZE,
         artifacts: [],
-      },
+      }),
     });
     runtime.ai.subscribeScenarioJobEvents.mockImplementation(async function* () {
       yield {
         eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_COMPLETED,
         sequence: '1',
         traceId: 'trace-audio-event',
-        job: {
+        job: createScenarioJobFixture({
           jobId: 'job-audio-1',
           status: ScenarioJobStatus.COMPLETED,
           scenarioType: ScenarioType.SPEECH_SYNTHESIZE,
@@ -98,10 +105,11 @@ describe('runtime speech synthesis helper', () => {
               bytes: new Uint8Array([1, 2, 3]),
             }),
           ],
-        },
+        }),
       };
     });
     runtime.ai.getScenarioArtifacts.mockResolvedValue({
+      jobId: 'job-audio-1',
       traceId: 'trace-audio-artifacts',
       artifacts: [
         audioArtifact({
@@ -193,8 +201,8 @@ describe('runtime speech synthesis helper', () => {
       String(ScenarioJobStatus.SUBMITTED),
       String(ScenarioJobStatus.COMPLETED),
     ]);
-    expect(withScopes).toHaveBeenCalledOnce();
-    expect(withScopes.mock.calls[0]?.[0]).toEqual(['ai.spend.meter']);
+    expect(withScopesCalls).toHaveBeenCalledOnce();
+    expect(withScopesCalls.mock.calls[0]?.[0]).toEqual(['ai.spend.meter']);
     expect(runtime.scheduling.peekScheduling).toHaveBeenCalledOnce();
     const [schedulingInput] = runtime.scheduling.peekScheduling.mock.calls[0];
     expect(schedulingInput.targets[0]).toMatchObject({
@@ -387,17 +395,18 @@ function createRuntimeHarness() {
           eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_COMPLETED,
           sequence: '1',
           traceId: 'trace-audio-default',
-          job: {
+          job: createScenarioJobFixture({
             jobId: 'job-audio-default',
             status: ScenarioJobStatus.COMPLETED,
             scenarioType: ScenarioType.SPEECH_SYNTHESIZE,
             artifacts: [audioArtifact({ artifactId: 'artifact-default', bytes: new Uint8Array([1]) })],
-          },
+          }),
         };
       }),
       getScenarioJob: vi.fn(),
       cancelScenarioJob: vi.fn(),
-      getScenarioArtifacts: vi.fn(async () => ({
+      getScenarioArtifacts: vi.fn(async (): Promise<Awaited<ReturnType<RuntimeSpeechSynthesizeRuntime['ai']['getScenarioArtifacts']>>> => ({
+        jobId: 'job-audio-default',
         traceId: 'trace-audio-default',
         artifacts: [audioArtifact({ artifactId: 'artifact-default', bytes: new Uint8Array([1]) })],
         output: {
@@ -410,18 +419,17 @@ function createRuntimeHarness() {
         },
       })),
     },
-    local: {
+    local: createRuntimeLocalRpcFixture({
       listLocalAssets: vi.fn(async () => ({
         nextPageToken: '',
-        assets: [{
+        assets: [createLocalAssetRecordFixture({
           localAssetId: 'local-tts-main',
           assetId: 'speech/qwen3-tts-local',
           kind: 'tts',
           engine: 'speech',
-          status: 'active',
-        }],
+        })],
       })),
-    },
+    }),
   };
 }
 
@@ -449,8 +457,12 @@ function audioArtifact(input: {
     mimeType: input.mimeType ?? 'audio/mpeg',
     bytes: input.bytes ?? new Uint8Array(),
     uri: input.uri ?? '',
+    sha256: '',
     sizeBytes: input.bytes ? String(input.bytes.byteLength) : '0',
     durationMs: '0',
+    fps: 0,
+    width: 0,
+    height: 0,
     sampleRateHz: 0,
     channels: 0,
     metadata: undefined,

@@ -154,7 +154,7 @@ export async function requestOrAcceptFriend(input: {
     await input.reloadContacts();
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      getOfflineCoordinator().markRealmRestReachable(false);
+      getOfflineCoordinator().markRealmRestReachability('unreachable');
     }
     throw error;
   }
@@ -171,7 +171,7 @@ export async function removeFriend(input: {
     await input.reloadContacts();
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      getOfflineCoordinator().markRealmRestReachable(false);
+      getOfflineCoordinator().markRealmRestReachability('unreachable');
     }
     throw error;
   }
@@ -187,7 +187,7 @@ export async function rejectOrRemoveFriend(input: {
     await input.reloadContacts();
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      getOfflineCoordinator().markRealmRestReachable(false);
+      getOfflineCoordinator().markRealmRestReachability('unreachable');
     }
     throw error;
   }

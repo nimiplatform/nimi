@@ -148,7 +148,7 @@ export async function likePost(
         kind: 'post-like',
         payload: { postId },
       });
-      getOfflineCoordinator().markRealmRestReachable(false);
+      getOfflineCoordinator().markRealmRestReachability('unreachable');
       return;
     }
     throw error;
@@ -171,7 +171,7 @@ export async function unlikePost(
         kind: 'post-unlike',
         payload: { postId },
       });
-      getOfflineCoordinator().markRealmRestReachable(false);
+      getOfflineCoordinator().markRealmRestReachability('unreachable');
       return;
     }
     throw error;

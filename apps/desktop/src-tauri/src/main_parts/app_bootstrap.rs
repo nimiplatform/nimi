@@ -1,9 +1,7 @@
 use super::*;
 use crate::{chat_ai_store, desktop_release, desktop_updates, local_runtime, menu_bar_shell};
 use nimi_shell_tauri::{
-    capabilities::data::{
-        resolve_standard_app_storage_roots, StandardAppStorageRootSlot, StandardDataRootBinding,
-    },
+    capabilities::data::StandardAppStorageRootSlot,
     capabilities::desktop_product_local_agent::desktop_shell_runtime_account_caller,
     capabilities::diagnostics::{
         build_renderer_entry_probe_script, RendererEntryProbeScriptConfig,
@@ -15,7 +13,6 @@ use nimi_shell_tauri::{
     capabilities::runtime::{
         DesktopAccountSessionStatusRequest, RuntimeBridgeHostHooks, RuntimeBridgeMetadata,
         RuntimeBridgeTrustedMetadata, RuntimeBridgeTrustedMetadataRequest,
-        RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
     },
     capabilities::shell_ui::{StandardConfirmDialogPayload, StandardShellUiHostHooks},
 };
@@ -30,18 +27,6 @@ pub(super) async fn resolve_desktop_runtime_trusted_metadata(
         .starts_with("/nimi.runtime.v1.RuntimeAccountService/")
     {
         return Err("DESKTOP_CONTROL_TRANSPORT_REQUIRED".to_string());
-    }
-    if request.method_id == RUNTIME_APP_GET_APP_STORAGE_METHOD_ID {
-        return Ok(Some(RuntimeBridgeTrustedMetadata {
-            metadata: Some(RuntimeBridgeMetadata {
-                app_id: Some("nimi.desktop".to_string()),
-                participant_id: Some("nimi.desktop".to_string()),
-                caller_kind: Some("desktop-shell".to_string()),
-                caller_id: Some("nimi.desktop.shell".to_string()),
-                ..RuntimeBridgeMetadata::default()
-            }),
-            ..RuntimeBridgeTrustedMetadata::default()
-        }));
     }
     Ok(Some(RuntimeBridgeTrustedMetadata {
         metadata: Some(RuntimeBridgeMetadata {
@@ -160,38 +145,12 @@ pub(super) fn install_standard_local_agent_host_hooks() {
     let _ = set_standard_local_agent_host_hooks(hooks);
 }
 
-/// Resolve and manage the standard app storage slot. Desktop's renderer does
-/// not yet consume the standard storage commands, but the kit macro registers
-/// them with `State<StandardAppStorageRootSlot>`, so the slot must be managed
-/// for those commands to remain fail-closed instead of panicking on a missing
-/// binding. Roots come from Runtime `GetAppStorage` for the desktop app id; if
-/// resolution fails (e.g. Runtime not ready) the slot stays unbound and the
-/// storage commands fail closed with `tauri-standard-storage-binding-missing`.
+/// Manage an intentionally unbound standard app storage slot. Desktop does not
+/// consume the local-app JSON storage surface; registering an empty slot keeps
+/// accidental calls fail-closed without opening the forbidden GetAppStorage or
+/// public-TCP fallback during native boot.
 fn install_standard_app_storage_slot(app: &tauri::App<tauri::Wry>) {
-    let slot = StandardAppStorageRootSlot::empty();
-    match tauri::async_runtime::block_on(resolve_standard_app_storage_roots(
-        StandardDataRootBinding::RuntimeGetAppStorage {
-            app_id: "nimi.desktop".to_string(),
-        },
-    )) {
-        Ok(roots) => {
-            if let Err(error) = slot.bind(roots) {
-                eprintln!(
-                    "[boot:{:}] standard app storage slot bind failed: {}",
-                    now_ms(),
-                    error
-                );
-            }
-        }
-        Err(error) => {
-            eprintln!(
-                "[boot:{:}] standard app storage slot left unbound (fail-closed): {}",
-                now_ms(),
-                error
-            );
-        }
-    }
-    app.manage(slot);
+    app.manage(StandardAppStorageRootSlot::empty());
 }
 
 fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {

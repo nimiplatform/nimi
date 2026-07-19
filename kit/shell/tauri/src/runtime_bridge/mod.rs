@@ -1,3 +1,4 @@
+mod account_events;
 mod channel_pool;
 mod codec;
 mod daemon_manager;
@@ -18,6 +19,10 @@ use std::pin::Pin;
 use std::sync::{Arc, Mutex, OnceLock};
 use tauri::AppHandle;
 
+pub use account_events::{
+    RuntimeBridgeAccountEventsClosePayload, RuntimeBridgeAccountEventsCloseResult,
+    RuntimeBridgeAccountEventsOpenPayload, RuntimeBridgeAccountEventsOpenResult,
+};
 pub use daemon_manager::http_addr;
 pub use desktop_account::{
     begin_login as begin_desktop_account_login, complete_login as complete_desktop_account_login,
@@ -74,7 +79,10 @@ pub struct RuntimeBridgeDesktopAccountProjection {
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeBridgeDesktopAccountSessionStatus {
+    pub sequence: String,
     pub state: String,
+    pub reason_code: i32,
+    pub account_reason_code: i32,
     pub account_projection: Option<RuntimeBridgeDesktopAccountProjection>,
 }
 
@@ -458,22 +466,6 @@ async fn runtime_bridge_unary_host_trusted(
     unary::invoke_unary(&payload).await
 }
 
-async fn runtime_bridge_desktop_account_unary(
-    mut payload: RuntimeBridgeUnaryPayload,
-) -> Result<RuntimeBridgeUnaryResult, String> {
-    let method_id = payload.method_id.clone();
-    apply_trusted_metadata_hook(
-        method_id.as_str(),
-        RuntimeBridgeTrustedMetadataBridgeKind::Unary,
-        &mut payload.metadata,
-        &mut payload.authorization,
-        &mut payload.protected_access_token,
-        &mut payload.app_session,
-    )
-    .await?;
-    unary::invoke_desktop_account_unary(&payload).await
-}
-
 pub async fn runtime_bridge_unary(
     mut payload: RuntimeBridgeUnaryPayload,
 ) -> Result<RuntimeBridgeUnaryResult, String> {
@@ -536,7 +528,10 @@ pub async fn runtime_account_session_status(
             )
         })?;
     Ok(RuntimeBridgeDesktopAccountSessionStatus {
+        sequence: status.sequence.to_string(),
         state: status.state.as_str().to_string(),
+        reason_code: status.reason_code,
+        account_reason_code: status.account_reason_code,
         account_projection: status.account_projection.map(|projection| {
             RuntimeBridgeDesktopAccountProjection {
                 account_id: projection.account_id,
@@ -545,6 +540,19 @@ pub async fn runtime_account_session_status(
             }
         }),
     })
+}
+
+pub async fn runtime_account_session_events_open(
+    app: AppHandle,
+    payload: RuntimeBridgeAccountEventsOpenPayload,
+) -> Result<RuntimeBridgeAccountEventsOpenResult, String> {
+    account_events::open(app, payload).await
+}
+
+pub fn runtime_account_session_events_close(
+    payload: RuntimeBridgeAccountEventsClosePayload,
+) -> Result<RuntimeBridgeAccountEventsCloseResult, String> {
+    account_events::close(payload)
 }
 
 pub async fn runtime_bridge_start(app: AppHandle) -> Result<RuntimeBridgeDaemonStatus, String> {

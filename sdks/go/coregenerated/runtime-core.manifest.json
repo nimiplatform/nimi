@@ -6971,6 +6971,7 @@
       "AccountCaller",
       "AccountProjection",
       "AccountSessionEvent",
+      "AccountSessionSnapshot",
       "Ack",
       "AddLinkRequest",
       "AddLinkResponse",
@@ -7848,6 +7849,7 @@
       "AccountCallerMode",
       "AccountEventType",
       "AccountReasonCode",
+      "AccountSessionDeliveryKind",
       "AccountSessionState",
       "AgentAutonomyMode",
       "AgentCanonicalMemoryBankMode",
@@ -8255,34 +8257,6 @@
             "number": 4
           },
           {
-            "name": "state",
-            "type": "AccountSessionState",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "account_reason_code",
-            "type": "AccountReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "account_projection",
-            "type": "AccountProjection",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
             "name": "binding_id",
             "type": "string",
             "repeated": false,
@@ -8302,6 +8276,61 @@
             "repeated": false,
             "optional": false,
             "number": 11
+          },
+          {
+            "name": "delivery_kind",
+            "type": "AccountSessionDeliveryKind",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "snapshot",
+            "type": "AccountSessionSnapshot",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
+        "name": "AccountSessionSnapshot",
+        "fields": [
+          {
+            "name": "sequence",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "state",
+            "type": "AccountSessionState",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "account_reason_code",
+            "type": "AccountReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "account_projection",
+            "type": "AccountProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/account.proto"
@@ -17646,20 +17675,6 @@
         "name": "GetAccountSessionStatusResponse",
         "fields": [
           {
-            "name": "state",
-            "type": "AccountSessionState",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "account_projection",
-            "type": "AccountProjection",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
             "name": "reason_code",
             "type": "ReasonCode",
             "repeated": false,
@@ -17674,11 +17689,18 @@
             "number": 4
           },
           {
-            "name": "production_inert",
+            "name": "accepted",
             "type": "bool",
             "repeated": false,
             "optional": false,
-            "number": 5
+            "number": 6
+          },
+          {
+            "name": "snapshot",
+            "type": "AccountSessionSnapshot",
+            "repeated": false,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/account.proto"
@@ -40786,7 +40808,10 @@
           "ACCOUNT_EVENT_TYPE_BINDING_REVOKED",
           "ACCOUNT_EVENT_TYPE_BINDING_EXPIRED",
           "ACCOUNT_EVENT_TYPE_BINDING_SUPERSEDED",
-          "ACCOUNT_EVENT_TYPE_BINDING_REPLAY_DETECTED"
+          "ACCOUNT_EVENT_TYPE_BINDING_REPLAY_DETECTED",
+          "ACCOUNT_EVENT_TYPE_REFRESH_DEFERRED",
+          "ACCOUNT_EVENT_TYPE_LOGOUT_FAILED",
+          "ACCOUNT_EVENT_TYPE_SWITCH_FAILED"
         ],
         "source_file": "proto/runtime/v1/account.proto"
       },
@@ -40814,11 +40839,33 @@
           "ACCOUNT_REASON_CODE_BROKER_CAPABILITY_MISSING",
           "ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED",
           "ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID",
-          "ACCOUNT_REASON_CODE_BROKER_UPSTREAM_FAILED",
           "ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE",
           "ACCOUNT_REASON_CODE_BROKER_CREDENTIAL_RESPONSE_FORBIDDEN",
           "ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH",
-          "ACCOUNT_REASON_CODE_LAUNCH_NONCE_REPLAY"
+          "ACCOUNT_REASON_CODE_LAUNCH_NONCE_REPLAY",
+          "ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE",
+          "ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID",
+          "ACCOUNT_REASON_CODE_BROKER_FORBIDDEN",
+          "ACCOUNT_REASON_CODE_BROKER_NOT_FOUND",
+          "ACCOUNT_REASON_CODE_BROKER_CONFLICT",
+          "ACCOUNT_REASON_CODE_BROKER_RATE_LIMITED",
+          "ACCOUNT_REASON_CODE_BROKER_REQUEST_REJECTED",
+          "ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED",
+          "ACCOUNT_REASON_CODE_BROKER_OPERATION_FAILED",
+          "ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED",
+          "ACCOUNT_REASON_CODE_REFRESH_TOKEN_INVALID",
+          "ACCOUNT_REASON_CODE_REFRESH_CONTRACT_INVALID",
+          "ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS"
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
+        "name": "AccountSessionDeliveryKind",
+        "values": [
+          "ACCOUNT_SESSION_DELIVERY_KIND_UNSPECIFIED",
+          "ACCOUNT_SESSION_DELIVERY_KIND_SNAPSHOT",
+          "ACCOUNT_SESSION_DELIVERY_KIND_REPLAY",
+          "ACCOUNT_SESSION_DELIVERY_KIND_LIVE"
         ],
         "source_file": "proto/runtime/v1/account.proto"
       },
@@ -42520,7 +42567,14 @@
           "LOCAL_APP_PRESENCE_REQUIRED",
           "LOCAL_APP_PRESENCE_EXPIRED",
           "LOCAL_APP_DEVELOPER_MODE_DISABLED",
-          "LOCAL_APP_RISK_DISCLOSURE_REQUIRED"
+          "LOCAL_APP_RISK_DISCLOSURE_REQUIRED",
+          "REALM_UNAVAILABLE",
+          "REALM_NOT_FOUND",
+          "REALM_CONFLICT",
+          "REALM_RATE_LIMITED",
+          "REALM_REQUEST_REJECTED",
+          "REALM_CONTRACT_INVALID",
+          "REALM_OPERATION_FAILED"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },

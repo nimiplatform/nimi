@@ -113,6 +113,9 @@ pub enum AccountEventType {
     ACCOUNTEVENTTYPEBINDINGEXPIRED,
     ACCOUNTEVENTTYPEBINDINGSUPERSEDED,
     ACCOUNTEVENTTYPEBINDINGREPLAYDETECTED,
+    ACCOUNTEVENTTYPEREFRESHDEFERRED,
+    ACCOUNTEVENTTYPELOGOUTFAILED,
+    ACCOUNTEVENTTYPESWITCHFAILED,
 }
 
 impl Default for AccountEventType {
@@ -144,16 +147,42 @@ pub enum AccountReasonCode {
     ACCOUNTREASONCODEBROKERCAPABILITYMISSING,
     ACCOUNTREASONCODEBROKERREALMBASEDENIED,
     ACCOUNTREASONCODEBROKERREQUESTINVALID,
-    ACCOUNTREASONCODEBROKERUPSTREAMFAILED,
     ACCOUNTREASONCODEBROKERRESPONSETOOLARGE,
     ACCOUNTREASONCODEBROKERCREDENTIALRESPONSEFORBIDDEN,
     ACCOUNTREASONCODECALLERENVELOPEMISMATCH,
     ACCOUNTREASONCODELAUNCHNONCEREPLAY,
+    ACCOUNTREASONCODEBROKERREALMUNAVAILABLE,
+    ACCOUNTREASONCODEBROKERAUTHINVALID,
+    ACCOUNTREASONCODEBROKERFORBIDDEN,
+    ACCOUNTREASONCODEBROKERNOTFOUND,
+    ACCOUNTREASONCODEBROKERCONFLICT,
+    ACCOUNTREASONCODEBROKERRATELIMITED,
+    ACCOUNTREASONCODEBROKERREQUESTREJECTED,
+    ACCOUNTREASONCODEBROKERCONTRACTFAILED,
+    ACCOUNTREASONCODEBROKEROPERATIONFAILED,
+    ACCOUNTREASONCODEREFRESHRETRYDEFERRED,
+    ACCOUNTREASONCODEREFRESHTOKENINVALID,
+    ACCOUNTREASONCODEREFRESHCONTRACTINVALID,
+    ACCOUNTREASONCODEREFRESHOUTCOMEAMBIGUOUS,
 }
 
 impl Default for AccountReasonCode {
     fn default() -> Self {
         Self::ACCOUNTREASONCODEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AccountSessionDeliveryKind {
+    ACCOUNTSESSIONDELIVERYKINDUNSPECIFIED,
+    ACCOUNTSESSIONDELIVERYKINDSNAPSHOT,
+    ACCOUNTSESSIONDELIVERYKINDREPLAY,
+    ACCOUNTSESSIONDELIVERYKINDLIVE,
+}
+
+impl Default for AccountSessionDeliveryKind {
+    fn default() -> Self {
+        Self::ACCOUNTSESSIONDELIVERYKINDUNSPECIFIED
     }
 }
 
@@ -2415,6 +2444,13 @@ pub enum ReasonCode {
     LOCALAPPPRESENCEEXPIRED,
     LOCALAPPDEVELOPERMODEDISABLED,
     LOCALAPPRISKDISCLOSUREREQUIRED,
+    REALMUNAVAILABLE,
+    REALMNOTFOUND,
+    REALMCONFLICT,
+    REALMRATELIMITED,
+    REALMREQUESTREJECTED,
+    REALMCONTRACTINVALID,
+    REALMOPERATIONFAILED,
 }
 
 impl Default for ReasonCode {
@@ -3328,13 +3364,11 @@ pub struct AccountSessionEvent {
     pub sequence: Option<u64>,
     pub emitted_at: Option<String>,
     pub event_type: Option<AccountEventType>,
-    pub state: Option<AccountSessionState>,
-    pub reason_code: Option<ReasonCode>,
-    pub account_reason_code: Option<AccountReasonCode>,
-    pub account_projection: Option<Box<AccountProjection>>,
     pub binding_id: Option<String>,
     pub binding_relation: Option<Box<ScopedAppBindingRelation>>,
     pub replay_truncated: Option<bool>,
+    pub delivery_kind: Option<AccountSessionDeliveryKind>,
+    pub snapshot: Option<Box<AccountSessionSnapshot>>,
 }
 
 impl AccountSessionEvent {
@@ -3344,20 +3378,18 @@ impl AccountSessionEvent {
         if let Some(value) = &self.sequence { pairs.push(format!("sequence={}", value)); }
         if let Some(value) = &self.emitted_at { pairs.push(format!("emitted_at={}", value)); }
         if let Some(value) = &self.event_type { pairs.push(format!("event_type={:?}", value)); }
-        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        if let Some(value) = &self.account_reason_code { pairs.push(format!("account_reason_code={:?}", value)); }
-        if self.account_projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode account_projection"); }
         if let Some(value) = &self.binding_id { pairs.push(format!("binding_id={}", value)); }
         if self.binding_relation.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode binding_relation"); }
         if let Some(value) = &self.replay_truncated { pairs.push(format!("replay_truncated={}", value)); }
+        if let Some(value) = &self.delivery_kind { pairs.push(format!("delivery_kind={:?}", value)); }
+        if self.snapshot.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode snapshot"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["event_type", "state", "reason_code", "account_reason_code", "account_projection", "binding_relation"] {
+        for key in ["event_type", "binding_relation", "delivery_kind", "snapshot"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -3368,6 +3400,40 @@ impl AccountSessionEvent {
         out.emitted_at = pairs.get("emitted_at").cloned();
         out.binding_id = pairs.get("binding_id").cloned();
         out.replay_truncated = pairs.get("replay_truncated").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AccountSessionSnapshot {
+    pub sequence: Option<u64>,
+    pub state: Option<AccountSessionState>,
+    pub reason_code: Option<ReasonCode>,
+    pub account_reason_code: Option<AccountReasonCode>,
+    pub account_projection: Option<Box<AccountProjection>>,
+}
+
+impl AccountSessionSnapshot {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.sequence { pairs.push(format!("sequence={}", value)); }
+        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if let Some(value) = &self.account_reason_code { pairs.push(format!("account_reason_code={:?}", value)); }
+        if self.account_projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode account_projection"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["state", "reason_code", "account_reason_code", "account_projection"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.sequence = pairs.get("sequence").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -11266,34 +11332,32 @@ impl GetAccountSessionStatusRequest {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetAccountSessionStatusResponse {
-    pub state: Option<AccountSessionState>,
-    pub account_projection: Option<Box<AccountProjection>>,
     pub reason_code: Option<ReasonCode>,
     pub account_reason_code: Option<AccountReasonCode>,
-    pub production_inert: Option<bool>,
+    pub accepted: Option<bool>,
+    pub snapshot: Option<Box<AccountSessionSnapshot>>,
 }
 
 impl GetAccountSessionStatusResponse {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
-        if self.account_projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode account_projection"); }
         if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
         if let Some(value) = &self.account_reason_code { pairs.push(format!("account_reason_code={:?}", value)); }
-        if let Some(value) = &self.production_inert { pairs.push(format!("production_inert={}", value)); }
+        if let Some(value) = &self.accepted { pairs.push(format!("accepted={}", value)); }
+        if self.snapshot.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode snapshot"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["state", "account_projection", "reason_code", "account_reason_code"] {
+        for key in ["reason_code", "account_reason_code", "snapshot"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
         }
 
-        out.production_inert = pairs.get("production_inert").and_then(|value| value.parse().ok());
+        out.accepted = pairs.get("accepted").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -33315,6 +33379,12 @@ impl From<Vec<u8>> for AccountSessionEvent {
     }
 }
 
+impl From<Vec<u8>> for AccountSessionSnapshot {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for Ack {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -46940,7 +47010,7 @@ pub struct RealmOauthTokenOperationRequest {
     pub path: RealmOauthTokenOperationPath,
     pub query: RealmOauthTokenOperationQuery,
     pub headers: RealmOauthTokenOperationHeaders,
-    pub body: (),
+    pub body: OAuthTokenRequestDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

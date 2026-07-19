@@ -321,7 +321,10 @@ function parseOpenApiOperations(spec) {
         required: Boolean(parameter.required),
         schema: parseOpenApiSchema(parameter.schema),
       }));
-      const requestSchema = operation.requestBody?.content?.['application/json']?.schema || null;
+      const requestContent = operation.requestBody?.content || {};
+      const requestContentType = ['application/json', 'application/x-www-form-urlencoded']
+        .find((contentType) => requestContent?.[contentType]?.schema) || null;
+      const requestSchema = requestContentType ? requestContent[requestContentType].schema : null;
       const responseSchemas = Object.entries(operation.responses || {})
         .map(([status, response]) => ({
           status,
@@ -340,7 +343,8 @@ function parseOpenApiOperations(spec) {
         query_parameters: parameters.filter((parameter) => parameter.in === 'query'),
         header_parameters: parameters.filter((parameter) => parameter.in === 'header'),
         request_schema: parseOpenApiSchema(requestSchema),
-        request_schema_ref: operation.requestBody?.content?.['application/json']?.schema?.$ref || null,
+        request_schema_ref: requestSchema?.$ref || null,
+        request_content_type: requestContentType,
         response_schemas: responseSchemas,
         response_schema_refs: responseSchemas.filter((entry) => entry.schema_ref).map(({ status, schema_ref }) => ({ status, schema_ref })),
       });

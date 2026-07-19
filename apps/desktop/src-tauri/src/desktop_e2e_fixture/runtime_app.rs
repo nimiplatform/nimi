@@ -65,21 +65,22 @@ pub(super) fn account_projection_from_fixture(
 pub(super) fn runtime_account_status_response(
     projection: Option<runtime_bridge_generated::AccountProjection>,
 ) -> runtime_bridge_generated::GetAccountSessionStatusResponse {
-    if let Some(account_projection) = projection {
-        return runtime_bridge_generated::GetAccountSessionStatusResponse {
-            state: runtime_bridge_generated::AccountSessionState::Authenticated as i32,
-            account_projection: Some(account_projection),
-            reason_code: runtime_bridge_generated::ReasonCode::ActionExecuted as i32,
-            account_reason_code: runtime_bridge_generated::AccountReasonCode::ActionExecuted as i32,
-            production_inert: false,
-        };
-    }
+    let state = if projection.is_some() {
+        runtime_bridge_generated::AccountSessionState::Authenticated
+    } else {
+        runtime_bridge_generated::AccountSessionState::Anonymous
+    };
     runtime_bridge_generated::GetAccountSessionStatusResponse {
-        state: runtime_bridge_generated::AccountSessionState::Anonymous as i32,
-        account_projection: None,
         reason_code: runtime_bridge_generated::ReasonCode::ActionExecuted as i32,
         account_reason_code: runtime_bridge_generated::AccountReasonCode::ActionExecuted as i32,
-        production_inert: false,
+        accepted: true,
+        snapshot: Some(runtime_bridge_generated::AccountSessionSnapshot {
+            sequence: 1,
+            state: state as i32,
+            reason_code: runtime_bridge_generated::ReasonCode::ActionExecuted as i32,
+            account_reason_code: runtime_bridge_generated::AccountReasonCode::ActionExecuted as i32,
+            account_projection: projection,
+        }),
     }
 }
 

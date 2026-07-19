@@ -237,13 +237,17 @@ export async function completeRuntimeAccountLogin(runtime, observationsLog, real
     { caller },
     accountOptions(`account-status:${caller.appInstanceId}:${attemptNonce}`),
   );
+  if (!status.accepted || !status.snapshot) {
+    throw new Error(`Runtime account status was rejected or omitted its snapshot: ${JSON.stringify(status)}`);
+  }
+  const snapshot = status.snapshot;
   const expectedAccountId = realRealmSession?.accountId || OWNER_USER_ID;
-  if (status.state !== AccountSessionState.AUTHENTICATED || status.accountProjection?.accountId !== expectedAccountId) {
+  if (snapshot.state !== AccountSessionState.AUTHENTICATED || snapshot.accountProjection?.accountId !== expectedAccountId) {
     throw new Error(`Runtime account is not authenticated as the product trial account: ${JSON.stringify(status)}`);
   }
   observationsLog.runtimeAccount = {
     stage: 'authenticated',
-    accountId: status.accountProjection?.accountId || '',
+    accountId: snapshot.accountProjection?.accountId || '',
     authCustody: 'runtime-account-service',
     tokenProjected: false,
   };

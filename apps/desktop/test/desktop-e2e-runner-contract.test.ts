@@ -89,6 +89,10 @@ const electronLiveRuntimeAcceptanceSource = fs.readFileSync(
   path.join(root, 'scripts/run-electron-live-runtime-acceptance.mjs'),
   'utf8',
 );
+const electronLiveRuntimeAcceptanceUiSource = fs.readFileSync(
+  path.join(root, 'scripts/lib/electron-live-acceptance-ui.mjs'),
+  'utf8',
+);
 
 test('desktop E2E runner resolves native WebDriver command names to executable paths', () => {
   assert.match(runnerSource, /function resolveNativeDriverPath\(nativeDriver\)/);
@@ -251,6 +255,13 @@ test('Desktop Electron acceptance has no environment-activated direct-daemon run
   }
 });
 
+test('Desktop live Runtime acceptance resizes the native shell and audits its CDP accessibility tree', () => {
+  assert.match(electronLiveRuntimeAcceptanceUiSource, /setElectronWindowSize\(app, viewport\.width, viewport\.height\)/);
+  assert.match(electronLiveRuntimeAcceptanceUiSource, /inspectAccessibility\(page\)/);
+  assert.match(electronLiveRuntimeAcceptanceUiSource, /unnamedInteractiveControls\.length/);
+  assert.doesNotMatch(electronLiveRuntimeAcceptanceUiSource, /page\.setViewportSize/);
+});
+
 test('authenticated desktop E2E chat messages use canonical Realm message DTOs', () => {
   const chats = authenticatedBaseProfile.realmFixture?.chats?.items;
   assert.ok(Array.isArray(chats), 'authenticated fixture must include chat rows');
@@ -298,6 +309,7 @@ test('desktop E2E fixture Runtime overrides are test-feature gated and productio
   assert.match(desktopE2eFixtureSource, /#\[cfg\(not\(any\(test, feature = "desktop-e2e-fixture"\)\)\)\][\s\S]*(?:#\[allow\(dead_code\)\][\s\S]*)?#\[path = "desktop_e2e_fixture\/disabled\.rs"\][\s\S]*mod disabled/);
   assert.match(desktopE2eFixtureEnabledSource, /RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID/);
   assert.doesNotMatch(desktopE2eFixtureEnabledSource, /RUNTIME_ACCOUNT_GET_ACCESS_TOKEN_METHOD_ID/);
-  assert.match(desktopE2eFixtureRuntimeAppSource, /AccountSessionState::Authenticated as i32/);
+  assert.match(desktopE2eFixtureRuntimeAppSource, /AccountSessionState::Authenticated/);
+  assert.match(desktopE2eFixtureRuntimeAppSource, /AccountSessionSnapshot \{/);
   assert.match(desktopE2eFixtureDisabledSource, /pub fn runtime_bridge_unary_override\([\s\S]*?Ok\(None\)/);
 });

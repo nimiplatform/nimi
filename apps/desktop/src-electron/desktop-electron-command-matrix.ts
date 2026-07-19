@@ -82,6 +82,8 @@ const DESKTOP_ELECTRON_STANDARD_SHELL_COMMANDS = [
   'runtime_bridge_start',
   'runtime_bridge_restart',
   'runtime_account_session_status',
+  'runtime_account_session_events_open',
+  'runtime_account_session_events_close',
   'runtime_account_begin_login',
   'runtime_account_complete_login',
   'runtime_account_invoke_realm_unary',

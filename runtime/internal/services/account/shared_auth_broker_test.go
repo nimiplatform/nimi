@@ -52,7 +52,7 @@ func TestInvokeRealmUnaryTypedNegativeMatrix(t *testing.T) {
 	}{
 		{name: "request_shape", methodID: "WorldPublicController_listWorlds", requestJSON: `{"query":{"notAdmitted":"value"}}`, status: http.StatusOK, body: `{"ok":true}`, want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID},
 		{name: "credential_request", methodID: "WorldPublicController_listWorlds", requestJSON: `{"body":{"accessToken":"caller-secret"}}`, status: http.StatusOK, body: `{"ok":true}`, want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID},
-		{name: "upstream_non_2xx", methodID: "WorldPublicController_listWorlds", requestJSON: `{}`, status: http.StatusServiceUnavailable, body: `{"error":"down"}`, want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_UPSTREAM_FAILED},
+		{name: "upstream_non_2xx", methodID: "WorldPublicController_listWorlds", requestJSON: `{}`, status: http.StatusServiceUnavailable, body: `{"error":"down"}`, want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE},
 		{name: "response_too_large", methodID: "WorldPublicController_listWorlds", requestJSON: `{}`, status: http.StatusOK, body: `{"value":"` + strings.Repeat("x", (1<<20)+1) + `"}`, want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -185,7 +185,7 @@ func TestProductionLocalCallerRequiresRuntimeAppSessionProof(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetAccountSessionStatus with proof: %v", err)
 	}
-	if withProof.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED || withProof.GetAccountProjection().GetAccountId() != "acct-1" {
+	if withProof.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED || accountStatusProjection(withProof).GetAccountId() != "acct-1" {
 		t.Fatalf("bound Runtime app-session proof must admit local caller: %+v", withProof)
 	}
 }

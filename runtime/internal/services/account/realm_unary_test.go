@@ -204,7 +204,7 @@ func TestInvokeRealmUnaryRejectsUnadmittedRealmBase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("foreign InvokeRealmUnary: %v", err)
 	}
-	if foreign.GetAccepted() || foreign.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN || foreign.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED {
+	if foreign.GetAccepted() || foreign.GetReasonCode() != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID || foreign.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED {
 		t.Fatalf("foreign Realm base URL must fail closed: %+v", foreign)
 	}
 }

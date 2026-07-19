@@ -12,10 +12,15 @@ type RuntimeAccountClient = Pick<NimiClient, 'runtime'> & {
   runtime: NimiClient['runtime'] & {
     account: NimiClient['runtime']['account'] & {
       getAccountSessionStatus(input: { caller: NimiRuntimeAccountCaller }): Promise<{
-        state: AccountSessionState;
-        accountProjection?: {
-          accountId?: string | null;
-          displayName?: string | null;
+        accepted: boolean;
+        reasonCode?: unknown;
+        accountReasonCode?: unknown;
+        snapshot?: {
+          state: AccountSessionState;
+          accountProjection?: {
+            accountId?: string | null;
+            displayName?: string | null;
+          } | null;
         } | null;
       }>;
     };
@@ -29,11 +34,19 @@ export async function loadRuntimeAccountUser(client: RuntimeAccountClient | Nimi
   const response = await client.runtime.account.getAccountSessionStatus({
     caller: getRuntimeAccountCaller(),
   });
-  if (response.state !== AccountSessionState.AUTHENTICATED || !response.accountProjection?.accountId) {
+  if (!response.accepted || !response.snapshot) {
+    throw new Error(
+      `Runtime account status rejected: ${String(response.accountReasonCode || response.reasonCode || 'missing_snapshot')}`,
+    );
+  }
+  if (
+    response.snapshot.state !== AccountSessionState.AUTHENTICATED
+    || !response.snapshot.accountProjection?.accountId
+  ) {
     return null;
   }
   return {
-    id: response.accountProjection.accountId,
-    displayName: response.accountProjection.displayName || 'Runtime account',
+    id: response.snapshot.accountProjection.accountId,
+    displayName: response.snapshot.accountProjection.displayName || 'Runtime account',
   };
 }

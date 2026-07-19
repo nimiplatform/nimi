@@ -18,10 +18,13 @@ function createFakeClient() {
         getAccountSessionStatus: vi.fn(async (input) => {
           calls.push({ method: 'getAccountSessionStatus', input });
           return {
-            state: 'authenticated',
-            accountProjection: {
-              accountId: 'acct-1',
-              displayName: 'Runtime User',
+            accepted: true,
+            snapshot: {
+              state: 'authenticated',
+              accountProjection: {
+                accountId: 'acct-1',
+                displayName: 'Runtime User',
+              },
             },
           };
         }),

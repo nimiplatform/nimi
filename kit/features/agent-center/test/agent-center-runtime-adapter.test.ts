@@ -4,6 +4,10 @@ import path from 'node:path';
 
 import { createRuntimeAgentCenterAdapter } from '../src/runtime.js';
 import type { AgentCenterRuntimeAdapter } from '../src/types.js';
+import type {
+  NimiRuntimeAgentAutonomyConfigInput,
+  RuntimeLocalAgentIdentityInput,
+} from '@nimiplatform/kit/core/sdk-contract';
 
 function collectSourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
@@ -164,7 +168,7 @@ describe('Agent Center Runtime adapter', () => {
         },
       },
       inspect: {
-        async setAutonomyConfig(input) {
+        async setAutonomyConfig(input: NimiRuntimeAgentAutonomyConfigInput) {
           calls.push(`set.${input.mode}.${input.dailyTokenBudget}.${input.maxTokensPerHook}`);
           return {
             enabled: false,
@@ -173,7 +177,7 @@ describe('Agent Center Runtime adapter', () => {
             maxTokensPerHook: Number(input.maxTokensPerHook),
           } as never;
         },
-        async enableAutonomy(input) {
+        async enableAutonomy(input: RuntimeLocalAgentIdentityInput) {
           calls.push(`enable.${input.localAgentRef}`);
           return {
             enabled: true,

@@ -98,9 +98,9 @@ func TestWorkspaceMembershipProjectionAndIssueResolveAllow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetAccountSessionStatus: %v", err)
 	}
-	memberships := status.GetAccountProjection().GetWorkspaceMemberships()
+	memberships := accountStatusProjection(status).GetWorkspaceMemberships()
 	if len(memberships) != 1 || memberships[0].GetWorkspaceId() != testWorkspaceID || memberships[0].GetMembershipState() != runtimev1.WorkspaceMembershipState_WORKSPACE_MEMBERSHIP_STATE_ACTIVE {
-		t.Fatalf("workspace membership projection missing: %+v", status.GetAccountProjection())
+		t.Fatalf("workspace membership projection missing: %+v", accountStatusProjection(status))
 	}
 
 	issued := issueWorkspaceBinding(t, svc, "runtime.knowledge.admin")
@@ -296,7 +296,7 @@ func TestDaemonRestartWithStaleMembershipProjectionCannotIssueWorkspaceBinding(t
 	if err != nil {
 		t.Fatalf("GetAccountSessionStatus: %v", err)
 	}
-	if status.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED {
+	if accountStatusState(status) != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED {
 		t.Fatalf("account recovery should remain account-scoped: %+v", status)
 	}
 	resp, err := svc.IssueWorkspaceBinding(context.Background(), &runtimev1.IssueWorkspaceBindingRequest{
@@ -548,7 +548,7 @@ func TestWorkspaceMembershipDisplayMetadataIsRedacted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetAccountSessionStatus: %v", err)
 	}
-	metadata := status.GetAccountProjection().GetWorkspaceMemberships()[0].GetDisplayMetadata()
+	metadata := accountStatusProjection(status).GetWorkspaceMemberships()[0].GetDisplayMetadata()
 	if metadata["name"] != "Workspace One" {
 		t.Fatalf("redacted display metadata should keep display name: %+v", metadata)
 	}
@@ -570,8 +570,8 @@ func TestDaemonRestartRecoversAccountButInvalidatesWorkspaceBindings(t *testing.
 	if err != nil {
 		t.Fatalf("GetAccountSessionStatus: %v", err)
 	}
-	if status.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
-		len(status.GetAccountProjection().GetWorkspaceMemberships()) != 1 {
+	if accountStatusState(status) != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
+		len(accountStatusProjection(status).GetWorkspaceMemberships()) != 1 {
 		t.Fatalf("restart should recover account and membership projection, got %+v", status)
 	}
 	result := resolveWorkspace(t, afterRestart, issued.GetAttachment(), firstPartyCaller(), testWorkspaceID, "runtime.knowledge.read")

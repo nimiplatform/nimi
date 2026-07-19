@@ -229,8 +229,8 @@ func TestNewProtectedUsesProtectedServerWithoutPublishingStatePathToEnvironment(
 	if err != nil {
 		t.Fatalf("protected account status: %v", err)
 	}
-	if status.GetProductionInert() {
-		t.Fatal("NewProtected must activate the production account service")
+	if status.GetAccepted() || status.GetSnapshot() != nil || status.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
+		t.Fatalf("NewProtected account service must reach caller validation without exposing a snapshot: %+v", status)
 	}
 }
 

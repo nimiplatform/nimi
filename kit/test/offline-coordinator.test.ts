@@ -65,13 +65,13 @@ describe('Kit offline coordinator', () => {
   it('projects L0/L1/L2 from Realm and Runtime connectivity', () => {
     manager.start();
     expect(manager.getCurrentTier()).toBe('L0');
-    monitor.setRealmRestReachable(false);
+    monitor.setRealmRestReachability('unreachable');
     expect(manager.getCurrentTier()).toBe('L1');
-    monitor.setRuntimeReachable(false);
+    monitor.setRuntimeReachability('unreachable');
     expect(manager.getCurrentTier()).toBe('L2');
-    monitor.setRuntimeReachable(true);
+    monitor.setRuntimeReachability('reachable');
     expect(manager.getCurrentTier()).toBe('L1');
-    monitor.setRealmRestReachable(true);
+    monitor.setRealmRestReachability('reachable');
     expect(manager.getCurrentTier()).toBe('L0');
   });
 
@@ -79,10 +79,10 @@ describe('Kit offline coordinator', () => {
     const changes: OfflineTierChange[] = [];
     manager.onChange((change) => changes.push(change));
     manager.start();
-    monitor.setRealmRestReachable(false);
-    monitor.setRuntimeReachable(false);
-    monitor.setRuntimeReachable(true);
-    monitor.setRealmRestReachable(true);
+    monitor.setRealmRestReachability('unreachable');
+    monitor.setRuntimeReachability('unreachable');
+    monitor.setRuntimeReachability('reachable');
+    monitor.setRealmRestReachability('reachable');
 
     expect(changes.map((change) => change.reason)).toEqual([
       'realm_offline',
@@ -90,6 +90,39 @@ describe('Kit offline coordinator', () => {
       'runtime_reconnect',
       'realm_reconnect',
     ]);
+  });
+
+  it('clears stale L1 to unknown without claiming a Realm reconnect', async () => {
+    const changes: OfflineTierChange[] = [];
+    manager.onChange((change) => changes.push(change));
+    manager.start();
+    monitor.setRealmRestReachability('unreachable');
+    monitor.setRealmRestReachability('unknown');
+    expect(manager.getCurrentTier()).toBe('L0');
+    expect(changes.map((change) => change.reason)).toEqual([
+      'realm_offline',
+      'realm_unknown',
+    ]);
+
+    const timer = new FakeTimer();
+    const coordinator = new OfflineCoordinator({ timer });
+    const reconnects: string[] = [];
+    coordinator.configureReconnectHandlers({
+      probeRealmReachability: async () => true,
+    });
+    coordinator.subscribeRealmReconnect(() => {
+      reconnects.push('realm');
+    });
+    coordinator.markRealmRestReachability('unreachable');
+    await flushAsyncWork();
+    expect(timer.pendingCount()).toBe(1);
+
+    coordinator.markRealmRestReachability('unknown');
+    await flushAsyncWork();
+    expect(coordinator.getTier()).toBe('L0');
+    expect(coordinator.getStatus().realm.rest).toBe('unknown');
+    expect(timer.pendingCount()).toBe(0);
+    expect(reconnects).toEqual([]);
   });
 
   it('coordinates injected reconnect probes with exponential retry', async () => {
@@ -103,7 +136,7 @@ describe('Kit offline coordinator', () => {
       },
     });
 
-    coordinator.markRuntimeReachable(false);
+    coordinator.markRuntimeReachability('unreachable');
     expect(coordinator.getTier()).toBe('L2');
     expect(timer.tasks[0]?.delayMs).toBe(1000);
 
@@ -117,22 +150,22 @@ describe('Kit offline coordinator', () => {
 
   it('tracks socket reachability without projecting Realm REST offline', () => {
     manager.start();
-    monitor.setRealmSocketConnected(false);
+    monitor.setRealmSocketReachability('unreachable');
     expect(manager.getCurrentTier()).toBe('L0');
-    expect(monitor.getStatus().realm.socketReachable).toBe(false);
+    expect(monitor.getStatus().realm.socket).toBe('unreachable');
 
-    monitor.setRealmSocketConnected(true);
+    monitor.setRealmSocketReachability('reachable');
     expect(manager.getCurrentTier()).toBe('L0');
-    expect(monitor.getStatus().realm.socketReachable).toBe(true);
+    expect(monitor.getStatus().realm.socket).toBe('reachable');
   });
 
   it('keeps L2 when runtime is unreachable regardless of Realm state', () => {
     manager.start();
-    monitor.setRuntimeReachable(false);
+    monitor.setRuntimeReachability('unreachable');
 
     expect(manager.getCurrentTier()).toBe('L2');
 
-    monitor.setRealmRestReachable(true);
+    monitor.setRealmRestReachability('reachable');
     expect(manager.getCurrentTier()).toBe('L2');
   });
 
@@ -141,8 +174,8 @@ describe('Kit offline coordinator', () => {
     expect(manager.getCurrentTier()).toBe('L0');
 
     manager.stop();
-    monitor.setRealmRestReachable(false);
-    monitor.setRuntimeReachable(false);
+    monitor.setRealmRestReachability('unreachable');
+    monitor.setRuntimeReachability('unreachable');
 
     expect(manager.getCurrentTier()).toBe('L0');
   });
@@ -163,7 +196,7 @@ describe('Kit offline coordinator', () => {
       reconnects.push('realm');
     });
 
-    coordinator.markRealmRestReachable(false);
+    coordinator.markRealmRestReachability('unreachable');
     await flushAsyncWork();
     expect(timer.nextDelay()).toBe(1000);
 
@@ -176,7 +209,7 @@ describe('Kit offline coordinator', () => {
     expect(await timer.runNext()).toBe(4000);
     expect(reconnects.length).toBe(1);
 
-    coordinator.markRealmRestReachable(false);
+    coordinator.markRealmRestReachability('unreachable');
     await flushAsyncWork();
     expect(timer.nextDelay()).toBe(1000);
   });
@@ -187,23 +220,48 @@ describe('Kit offline coordinator', () => {
     const reconnects: string[] = [];
     coordinator.configureReconnectHandlers({
       hasPendingRealmRecoveryWork: async () => true,
-      probeRealmReachability: async () => true,
+      probeRealmSocketReachability: async () => true,
     });
     coordinator.subscribeRealmReconnect(() => {
       reconnects.push('realm');
     });
 
-    coordinator.markRealmSocketReachable(false);
+    coordinator.markRealmSocketReachability('unreachable');
     await flushAsyncWork();
     expect(coordinator.getTier()).toBe('L0');
-    expect(timer.nextDelay()).toBeNull();
+    expect(timer.nextDelay()).toBe(1000);
     expect(reconnects.length).toBe(0);
 
-    coordinator.markRealmSocketReachable(true);
+    await timer.runNext();
     await flushAsyncWork();
-    expect(reconnects.length).toBe(0);
+    expect(reconnects.length).toBe(1);
     expect(coordinator.getTier()).toBe('L0');
     expect(timer.pendingCount()).toBe(0);
+  });
+
+  it('keeps socket recovery scheduled when Realm REST becomes reachable or unknown', async () => {
+    for (const restRecovery of ['reachable', 'unknown'] as const) {
+      const timer = new FakeTimer();
+      const coordinator = new OfflineCoordinator({ timer });
+      coordinator.configureReconnectHandlers({
+        probeRealmSocketReachability: async () => true,
+      });
+
+      coordinator.markRealmSocketReachability('unreachable');
+      coordinator.markRealmRestReachability('unreachable');
+      await flushAsyncWork();
+      expect(timer.pendingCount()).toBe(1);
+
+      coordinator.markRealmRestReachability(restRecovery);
+      await flushAsyncWork();
+      expect(coordinator.getStatus().realm.socket).toBe('unreachable');
+      expect(timer.pendingCount()).toBe(1);
+
+      await timer.runNext();
+      await flushAsyncWork();
+      expect(coordinator.getStatus().realm.socket).toBe('reachable');
+      expect(timer.pendingCount()).toBe(0);
+    }
   });
 
   it('rest outage schedules realm reconnect even without pending recovery work', async () => {
@@ -214,7 +272,7 @@ describe('Kit offline coordinator', () => {
       probeRealmReachability: async () => false,
     });
 
-    coordinator.markRealmRestReachable(false);
+    coordinator.markRealmRestReachability('unreachable');
     await flushAsyncWork();
     expect(timer.nextDelay()).toBe(1000);
   });
@@ -260,7 +318,7 @@ describe('Kit offline coordinator', () => {
       reconnects.push('runtime');
     });
 
-    coordinator.markRuntimeReachable(false);
+    coordinator.markRuntimeReachability('unreachable');
     await flushAsyncWork();
     expect(timer.nextDelay()).toBe(1000);
 
@@ -273,7 +331,7 @@ describe('Kit offline coordinator', () => {
     expect(await timer.runNext()).toBe(4000);
     expect(reconnects.length).toBe(1);
 
-    coordinator.markRuntimeReachable(false);
+    coordinator.markRuntimeReachability('unreachable');
     await flushAsyncWork();
     expect(timer.nextDelay()).toBe(1000);
   });

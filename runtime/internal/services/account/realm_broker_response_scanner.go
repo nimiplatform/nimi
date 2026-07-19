@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
-
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
 var realmBrokerJWTValuePattern = regexp.MustCompile(`(?i)(?:^|[^A-Za-z0-9_-])[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{3,}(?:$|[^A-Za-z0-9_-])`)
@@ -40,12 +38,29 @@ func scanRealmBrokerResponseForCredentials(headers http.Header, body []byte) err
 	}
 	var decoded any
 	if err := json.Unmarshal(body, &decoded); err != nil {
-		return fmt.Errorf("credential scan requires a valid JSON response")
+		if scanMalformedRealmBrokerBodyForCredentials(body) {
+			return fmt.Errorf("credential-like malformed Realm broker response is forbidden")
+		}
+		return nil
 	}
 	if scanRealmBrokerJSONValue(decoded) {
 		return fmt.Errorf("credential-like Realm broker response is forbidden")
 	}
 	return nil
+}
+
+func scanMalformedRealmBrokerBodyForCredentials(body []byte) bool {
+	raw := strings.ToLower(strings.TrimSpace(string(body)))
+	if realmBrokerCredentialValue(raw) {
+		return true
+	}
+	normalized := strings.NewReplacer("-", "", "_", "", ".", "", " ", "").Replace(raw)
+	for key := range realmBrokerCredentialKeys {
+		if strings.Contains(normalized, `"`+key+`"`) {
+			return true
+		}
+	}
+	return false
 }
 
 func scanRealmBrokerJSONValue(value any) bool {
@@ -79,8 +94,4 @@ func normalizeRealmBrokerCredentialKey(value string) string {
 func realmBrokerCredentialValue(value string) bool {
 	trimmed := strings.TrimSpace(value)
 	return strings.HasPrefix(strings.ToLower(trimmed), "bearer ") || realmBrokerJWTValuePattern.MatchString(trimmed)
-}
-
-func realmUnaryCredentialRejected(message string) *runtimev1.InvokeRealmUnaryResponse {
-	return realmUnaryFailure(runtimev1.ReasonCode_AI_OUTPUT_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_CREDENTIAL_RESPONSE_FORBIDDEN, message, 0)
 }

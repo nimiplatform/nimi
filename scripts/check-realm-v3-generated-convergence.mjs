@@ -285,10 +285,14 @@ function assertPrivateOperationProjection(sourceRealm) {
       typed: fs.readFileSync(path.join(repoRoot, 'sdks', 'rust', 'core_generated', 'typed_clients.rs'), 'utf8'),
     },
   };
-  const runtimeCarrier = fs.readFileSync(
-    path.join(repoRoot, 'runtime', 'gen', 'realm', 'v1', 'source_materialization_openapi.go'),
+  const runtimeCarrier = [
+    'account_auth_openapi.go',
+    'authn_openapi.go',
+    'source_materialization_openapi.go',
+  ].map((name) => fs.readFileSync(
+    path.join(repoRoot, 'runtime', 'gen', 'realm', 'v1', name),
     'utf8',
-  );
+  )).join('\n');
   const runtimeAccountConsumer = fs.readFileSync(
     path.join(repoRoot, 'runtime', 'internal', 'services', 'account', 'realm_source_materialization.go'),
     'utf8',
@@ -301,12 +305,18 @@ function assertPrivateOperationProjection(sourceRealm) {
     path.join(repoRoot, 'runtime', 'internal', 'services', 'runtimeagent', 'source_materialization_v3_verifier.go'),
     'utf8',
   );
+  const runtimeAccountAuthConsumer = fs.readFileSync(
+    path.join(repoRoot, 'runtime', 'internal', 'services', 'account', 'production.go'),
+    'utf8',
+  );
+  let forbiddenCount = 0;
   for (const row of rows) {
     const operation = operationById.get(row.operation_id);
     assert(operation?.method === row.method && operation?.path === row.path,
       `private operation method/path drift: ${row.operation_id}`);
-    assert(row.projection === 'runtime_private_generated_carrier' && row.public_sdk_method === 'forbidden',
-      `private operation exposure drift: ${row.operation_id}`);
+    assert(row.runtime_projection === 'generated_carrier'
+      && ['retained', 'forbidden'].includes(row.public_sdk_disposition),
+    `operation exposure drift: ${row.operation_id}`);
     assert(runtimeCarrier.includes(JSON.stringify(row.operation_id))
       && runtimeCarrier.includes(JSON.stringify(row.method))
       && runtimeCarrier.includes(JSON.stringify(row.path)),
@@ -318,11 +328,13 @@ function assertPrivateOperationProjection(sourceRealm) {
       rust: `pub fn ${snakeCase(row.operation_id)}(`,
     };
     for (const [language, surfaces] of Object.entries(generatedSdkSurfaces)) {
-      assert(!surfaces.descriptor.includes(JSON.stringify(row.operation_id)),
-        `${language} descriptor publicly projects private operation ${row.operation_id}`);
-      assert(!surfaces.typed.includes(methodPatterns[language]),
-        `${language} typed client publicly projects private operation ${row.operation_id}`);
+      const shouldRetain = row.public_sdk_disposition === 'retained';
+      assert(surfaces.descriptor.includes(JSON.stringify(row.operation_id)) === shouldRetain,
+        `${language} descriptor public disposition drift for ${row.operation_id}`);
+      assert(surfaces.typed.includes(methodPatterns[language]) === shouldRetain,
+        `${language} typed client public disposition drift for ${row.operation_id}`);
     }
+    if (row.public_sdk_disposition === 'forbidden') forbiddenCount += 1;
   }
   assert(/MaterializationSchemaClosureSHA256\s+=\s+"[a-f0-9]{64}"/.test(runtimeCarrier),
     'Runtime private carrier omits generated materialization closure digest');
@@ -342,12 +354,23 @@ function assertPrivateOperationProjection(sourceRealm) {
   assert(runtimeJwksConsumer.includes('ValidateMaterializationResponseObjectFields')
     && runtimeJwksConsumer.includes('GetSourceMaterializationJwksOperationID'),
   'Runtime JWKS decoder does not consume generated response closure metadata');
+  assert(runtimeAccountAuthConsumer.includes('OauthAuthorizeOperation')
+    && runtimeAccountAuthConsumer.includes('OauthTokenOperation')
+    && runtimeAccountAuthConsumer.includes('RefreshTokenOperation')
+    && runtimeAccountAuthConsumer.includes('OAuthTokenRequestDto')
+    && runtimeAccountAuthConsumer.includes('OAuthTokenResponseDto')
+    && runtimeAccountAuthConsumer.includes('RefreshTokenDto')
+    && runtimeAccountAuthConsumer.includes('AuthTokensDto')
+    && !runtimeAccountAuthConsumer.includes('"/api/auth/oauth/authorize"')
+    && !runtimeAccountAuthConsumer.includes('"/api/auth/oauth/token"')
+    && !runtimeAccountAuthConsumer.includes('"/api/auth/refresh"'),
+  'Runtime account auth consumer must use generated operation and DTO carriers');
   for (const [language, surfaces] of Object.entries(generatedSdkSurfaces)) {
     assert(surfaces.typed.includes('CreateSourceMaterializationPacketV3Dto')
       && surfaces.typed.includes('SourceMaterializationPacketV3Dto'),
     `${language} generated DTO shape projection is incomplete`);
   }
-  return rows.length;
+  return { runtimeCount: rows.length, forbiddenCount };
 }
 
 function assertMutationRejected(sourceRealm, admission, label, mutate) {
@@ -461,13 +484,13 @@ function main() {
   const sourceRealm = extractRealmCore();
   assertSourceRealm(sourceRealm, admission);
   const negativeMutationCount = runNegativeMutations(sourceRealm, admission);
-  let privateOperationCount = 0;
+  let operationProjection = { runtimeCount: 0, forbiddenCount: 0 };
   if (!sourceOnly) {
     assertGeneratedParity(sourceRealm);
-    privateOperationCount = assertPrivateOperationProjection(sourceRealm);
+    operationProjection = assertPrivateOperationProjection(sourceRealm);
   }
   process.stdout.write(
-    `Realm v3 generated convergence passed: mode=${sourceOnly ? 'source-only' : 'full'} operations=${sourceRealm.operations.length} models=${sourceRealm.model_schemas.length} shape_languages=${sourceOnly ? 'deferred' : '4/4'} runtime_private_carriers=${sourceOnly ? 'deferred' : `${privateOperationCount}/${privateOperationCount}`} public_sdk_private_operations=${sourceOnly ? 'deferred' : `0/${privateOperationCount}`} public_sdk_languages=${sourceOnly ? 'deferred' : '4/4'} negative_mutations=${negativeMutationCount}/${negativeMutationCount}\n`,
+    `Realm v3 generated convergence passed: mode=${sourceOnly ? 'source-only' : 'full'} operations=${sourceRealm.operations.length} models=${sourceRealm.model_schemas.length} shape_languages=${sourceOnly ? 'deferred' : '4/4'} runtime_generated_carriers=${sourceOnly ? 'deferred' : `${operationProjection.runtimeCount}/${operationProjection.runtimeCount}`} public_sdk_forbidden_operations=${sourceOnly ? 'deferred' : `0/${operationProjection.forbiddenCount}`} public_sdk_languages=${sourceOnly ? 'deferred' : '4/4'} negative_mutations=${negativeMutationCount}/${negativeMutationCount}\n`,
   );
 }
 

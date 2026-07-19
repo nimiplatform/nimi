@@ -70,8 +70,7 @@ func TestRealmOAuthPresenceProviderCompletesFreshReauth(t *testing.T) {
 				"expires_in":            300,
 				"account_id":            "acct-1",
 				"display_name":          "Alice",
-				"realm_environment_id":  "realm-local",
-				"workspace_memberships": []any{},
+				"realm_environment_id": "realm-local",
 			})
 		default:
 			http.NotFound(w, r)

@@ -64,6 +64,16 @@ pub struct NativeDesktopAccountActionInput {
 }
 
 #[napi(object)]
+pub struct NativeDesktopAccountSessionEventsOpenInput {
+    pub after_sequence: String,
+}
+
+#[napi(object)]
+pub struct NativeDesktopAccountSessionEventsStreamInput {
+    pub stream_id: String,
+}
+
+#[napi(object)]
 pub struct NativeDeveloperModeSetInput {
     pub enabled: bool,
 }

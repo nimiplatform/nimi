@@ -227,7 +227,7 @@ func (s *Service) captureRealmSourceMaterializationCredential(ctx context.Contex
 	return credential, nil
 }
 
-func (s *Service) doRealmSourceMaterializationStream(ctx context.Context, credential realmSourceMaterializationCredentialLease, operation realmv1.PrivateOperation, body any, maxBytes int64, authenticated, noCache bool) (RealmSourceMaterializationHTTPResponse, error) {
+func (s *Service) doRealmSourceMaterializationStream(ctx context.Context, credential realmSourceMaterializationCredentialLease, operation realmv1.OperationDescriptor, body any, maxBytes int64, authenticated, noCache bool) (RealmSourceMaterializationHTTPResponse, error) {
 	if err := s.RevalidateRealmSourceMaterializationAccount(ctx, credential.lease); err != nil {
 		return RealmSourceMaterializationHTTPResponse{}, err
 	}

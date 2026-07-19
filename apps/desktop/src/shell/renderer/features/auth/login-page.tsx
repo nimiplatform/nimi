@@ -1,4 +1,5 @@
 import { Suspense, lazy } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import {
@@ -14,6 +15,7 @@ const WebAuthMenu = lazy(async () => {
 
 export function LoginPage() {
   const flags = getShellFeatureFlags();
+  const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
   const clearAuthSession = useAppStore((state) => state.clearAuthSession);
 
@@ -65,9 +67,27 @@ export function LoginPage() {
   const authMode = flags.mode === 'web'
     ? 'embedded'
     : 'desktop-browser';
+  const accountNotice = authStatus === 'expired' || authStatus === 'reauth-required'
+    ? t('Auth.reauthenticationRequired', {
+        defaultValue: 'Your Runtime account session can no longer be refreshed. Sign in again to continue.',
+      })
+    : authStatus === 'login-pending'
+      ? t('Auth.loginPending', {
+          defaultValue: 'Complete sign-in in your browser. This window will continue automatically.',
+        })
+      : null;
 
   return (
     <div className="relative min-h-screen">
+      {accountNotice ? (
+        <div
+          role="status"
+          data-testid="desktop-account-state-notice"
+          className="absolute inset-x-4 top-10 z-30 mx-auto max-w-xl rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-3 text-center text-sm leading-6 text-[var(--nimi-text-secondary)] shadow-[var(--nimi-elevation-raised)]"
+        >
+          {accountNotice}
+        </div>
+      ) : null}
       <Suspense fallback={null}>
         <WebAuthMenu mode={authMode} />
       </Suspense>

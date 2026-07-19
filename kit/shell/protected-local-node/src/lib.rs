@@ -4,7 +4,7 @@ use napi_derive::napi;
 use nimi_shell_protected_local::{
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
     DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse, DesktopAccountProjection,
-    DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse,
+    DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse, DesktopAccountSessionEvent,
     DesktopAccountSessionStatusRequest, DesktopProductControlError, DesktopProductControlMethod,
     DesktopProductControlRequest, DesktopRuntimeConsumerMethod, DesktopRuntimeConsumerRequest,
     FixedRuntimeServiceControl, LocalAppOperationError, LocalAppPermissionRequest,
@@ -37,9 +37,11 @@ type PlatformLocalAppCarrier = MacOsLocalAppCarrier;
 #[cfg(target_os = "windows")]
 type PlatformLocalAppCarrier = WindowsLocalAppCarrier;
 
+mod account_events;
 mod local_app;
 mod native_types;
 mod projection;
+pub use account_events::*;
 pub use local_app::*;
 pub use native_types::*;
 use projection::*;
@@ -172,7 +174,10 @@ pub async fn desktop_account_session_status() -> NativeJsonOutcome {
         .await
     {
         Ok(status) => NativeJsonOutcome::success(json!({
+            "sequence": status.sequence.to_string(),
             "state": status.state.as_str(),
+            "reasonCode": status.reason_code,
+            "accountReasonCode": status.account_reason_code,
             "accountProjection": status.account_projection.map(project_account_projection),
         })),
         Err(error) => {
@@ -574,14 +579,7 @@ async fn clear_desktop_control_on_transport_reason(
     control: &Arc<dyn NimiDesktopControl>,
     reason_code: &str,
 ) {
-    if !matches!(
-        reason_code,
-        "runtime-service-unavailable"
-            | "runtime-service-untrusted"
-            | "runtime-service-repair-required"
-            | "PRINCIPAL_UNAUTHORIZED"
-            | "PROTECTED_ORIGIN_ROLE_MISMATCH"
-    ) {
+    if !invalidates_desktop_transport(reason_code) {
         return;
     }
     clear_desktop_control(control).await;
@@ -591,16 +589,20 @@ async fn clear_desktop_control_on_host_failure(
     control: &Arc<dyn NimiDesktopControl>,
     error: &NimiHostError,
 ) {
-    if !matches!(
-        error.reason_code().as_str(),
-        "runtime-service-unavailable"
-            | "runtime-service-untrusted"
-            | "runtime-service-repair-required"
-            | "principal-unauthorized"
-    ) {
+    if !invalidates_desktop_transport(error.reason_code().as_str()) {
         return;
     }
     clear_desktop_control(control).await;
+}
+
+fn invalidates_desktop_transport(reason_code: &str) -> bool {
+    matches!(
+        reason_code,
+        "runtime-service-unavailable"
+            | "runtime-service-untrusted"
+            | "runtime-service-repair-required"
+            | "PROTECTED_ORIGIN_ROLE_MISMATCH"
+    )
 }
 
 async fn clear_desktop_control(control: &Arc<dyn NimiDesktopControl>) {
@@ -620,5 +622,35 @@ async fn clear_desktop_control(control: &Arc<dyn NimiDesktopControl>) {
     // newer verified session already installed by another caller.
     if removed {
         nimi_shell_protected_local::invalidate_verified_desktop_runtime_channel().await;
+    }
+}
+
+#[cfg(test)]
+mod desktop_transport_invalidation_tests {
+    use super::invalidates_desktop_transport;
+
+    #[test]
+    fn invalidates_only_transport_or_verified_origin_failures() {
+        for reason in [
+            "runtime-service-unavailable",
+            "runtime-service-untrusted",
+            "runtime-service-repair-required",
+            "PROTECTED_ORIGIN_ROLE_MISMATCH",
+        ] {
+            assert!(invalidates_desktop_transport(reason), "{reason}");
+        }
+    }
+
+    #[test]
+    fn account_and_permission_results_never_poison_the_verified_channel() {
+        for reason in [
+            "principal-unauthorized",
+            "PRINCIPAL_UNAUTHORIZED",
+            "AUTH_TOKEN_INVALID",
+            "BROKER_FORBIDDEN",
+            "REALM_UNAVAILABLE",
+        ] {
+            assert!(!invalidates_desktop_transport(reason), "{reason}");
+        }
     }
 }

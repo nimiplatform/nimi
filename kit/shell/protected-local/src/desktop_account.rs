@@ -6,6 +6,11 @@ pub struct DesktopAccountSessionStatusRequest {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DesktopAccountSessionEventsRequest {
+    pub after_sequence: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DesktopAccountBeginLoginRequest {
     pub redirect_uri: String,
     pub callback_origin: String,
@@ -83,6 +88,23 @@ pub enum DesktopAccountSessionState {
     Unavailable,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DesktopAccountSessionDeliveryKind {
+    Snapshot,
+    Replay,
+    Live,
+}
+
+impl DesktopAccountSessionDeliveryKind {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Snapshot => "snapshot",
+            Self::Replay => "replay",
+            Self::Live => "live",
+        }
+    }
+}
+
 impl DesktopAccountSessionState {
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -108,6 +130,23 @@ pub struct DesktopAccountProjection {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DesktopAccountSessionStatus {
+    pub sequence: u64,
     pub state: DesktopAccountSessionState,
+    pub reason_code: i32,
+    pub account_reason_code: i32,
     pub account_projection: Option<DesktopAccountProjection>,
 }
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DesktopAccountSessionEvent {
+    pub sequence: u64,
+    pub delivery_kind: DesktopAccountSessionDeliveryKind,
+    pub state: DesktopAccountSessionState,
+    pub reason_code: i32,
+    pub account_reason_code: i32,
+    pub account_projection: Option<DesktopAccountProjection>,
+    pub replay_truncated: bool,
+}
+
+pub type DesktopAccountSessionEventReceiver =
+    tokio::sync::mpsc::Receiver<Result<DesktopAccountSessionEvent, crate::NimiHostError>>;

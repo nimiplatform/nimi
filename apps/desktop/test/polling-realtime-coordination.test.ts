@@ -28,7 +28,7 @@ describe('shared-auth interim broker projection refresh', () => {
   });
 
   test('unauthenticated state disables broker refresh and the socket signal remains false', () => {
-    assert.match(source, /offlineCoordinator\.markRealmSocketReachable\(false\)/);
+    assert.match(source, /offlineCoordinator\.markRealmSocketReachability\('unknown'\)/);
     assert.match(source, /if \(authStatus !== 'authenticated'\) \{\s*return undefined;/s);
   });
 
@@ -43,6 +43,6 @@ describe('shared-auth interim broker projection refresh', () => {
   test('renderer does not open a direct Realm socket or resolve raw authorization', () => {
     assert.doesNotMatch(source, /useRealmChatRealtimeController|socket\.io|WebSocket|resolveRealtimeUrl/);
     assert.doesNotMatch(source, /Authorization|Bearer|resolveAuthToken|getAccessToken/);
-    assert.doesNotMatch(source, /markRealmRestReachable\(false\)/);
+    assert.doesNotMatch(source, /markRealmRestReachability\('unreachable'\)/);
   });
 });

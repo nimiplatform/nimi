@@ -278,7 +278,7 @@ func TestProductionSubstrateIsInertForFirstPartyDesktopSDKAvatar(t *testing.T) {
 			if err != nil {
 				t.Fatalf("GetAccountSessionStatus: %v", err)
 			}
-			if !statusResp.GetProductionInert() || statusResp.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE {
+			if statusResp.GetAccepted() || statusResp.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED || statusResp.GetSnapshot() != nil {
 				t.Fatalf("status must be inert unavailable: %+v", statusResp)
 			}
 			bindingResp, err := svc.IssueScopedAppBinding(context.Background(), &runtimev1.IssueScopedAppBindingRequest{Caller: caller, Relation: bindingRelation()})
@@ -325,7 +325,7 @@ func TestProductionActivationCodeStateExchangeCustodyAndPrivateCredential(t *tes
 	exchanger := newRealmOAuthExchanger(resolveProductionConfig(ProductionConfig{
 		RealmBaseURL:     authServer.URL,
 		AuthorizationURL: authServer.URL + "/api/auth/oauth/authorize",
-		TokenURL:         authServer.URL + "/token",
+		TokenURL:         authServer.URL + "/api/auth/oauth/token",
 		ClientID:         "desktop-test",
 		RedirectURI:      "http://localhost:46373/oauth/callback",
 		HTTPClient:       authServer.Client(),
@@ -672,12 +672,8 @@ func TestProductionAuthorizationURLEmitsPKCEOauthShape(t *testing.T) {
 			authorizationURL: "https://realm.nimi.test/api/auth/oauth/authorize",
 		},
 		{
-			name:             "config carries pre-existing query params",
-			authorizationURL: "https://realm.nimi.test/api/auth/oauth/authorize?audience=desktop",
-		},
-		{
 			name:             "explicit staging override",
-			authorizationURL: "https://override.nimi.test/oauth/authorize",
+			authorizationURL: "https://override.nimi.test/api/auth/oauth/authorize",
 		},
 	}
 	for _, tc := range cases {
@@ -728,13 +724,8 @@ func TestProductionAuthorizationURLEmitsPKCEOauthShape(t *testing.T) {
 					t.Fatalf("authorize query %q = %q, want %q (full URL %q)", k, got, want, raw)
 				}
 			}
-			// Pre-existing query params must be preserved.
-			if strings.Contains(tc.authorizationURL, "audience=desktop") && q.Get("audience") != "desktop" {
-				t.Fatalf("pre-existing query param must be preserved, got %q", raw)
-			}
-			// Path segment from config must be preserved.
-			if parsed.Path != "/api/auth/oauth/authorize" && parsed.Path != "/oauth/authorize" {
-				t.Fatalf("authorize URL must preserve configured path, got %q", raw)
+			if parsed.Path != "/api/auth/oauth/authorize" {
+				t.Fatalf("authorize URL must use the generated operation path, got %q", raw)
 			}
 		})
 	}
@@ -746,6 +737,7 @@ func TestProductionAuthorizationURLRejectsLegacyOverrideShape(t *testing.T) {
 		"https://realm.nimi.test/login?desktop_callback=http%3A%2F%2Flocalhost",
 		"https://realm.nimi.test/api/auth/oauth/authorize?desktop_state=state",
 		"https://auth.nimi.invalid/oauth/authorize",
+		"https://realm.nimi.test/api/auth/oauth/authorize?audience=desktop",
 	} {
 		t.Run(raw, func(t *testing.T) {
 			resolved := resolveProductionConfig(ProductionConfig{
@@ -812,13 +804,13 @@ func TestProductionAuthorizationURLHonoursExplicitOverride(t *testing.T) {
 	t.Setenv("NIMI_REALM_URL", "")
 	resolved := resolveProductionConfig(ProductionConfig{
 		RealmBaseURL:     "https://realm.nimi.test",
-		AuthorizationURL: "https://override.nimi.test/oauth/authorize",
+		AuthorizationURL: "https://override.nimi.test/api/auth/oauth/authorize",
 		ClientID:         "nimi-desktop",
 		RedirectURI:      "http://127.0.0.1:34939/oauth/callback",
 		HTTPClient:       http.DefaultClient,
 	})
-	if resolved.AuthorizationURL != "https://override.nimi.test/oauth/authorize" {
-		t.Fatalf("override AuthorizationURL = %q, want https://override.nimi.test/oauth/authorize", resolved.AuthorizationURL)
+	if resolved.AuthorizationURL != "https://override.nimi.test/api/auth/oauth/authorize" {
+		t.Fatalf("override AuthorizationURL = %q, want generated authorize path", resolved.AuthorizationURL)
 	}
 	// Token URL is NOT covered by the authorize override — it stays bound to
 	// the realm base URL so the runtime always exchanges the code at the

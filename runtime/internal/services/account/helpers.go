@@ -349,17 +349,28 @@ func cloneEvent(in *runtimev1.AccountSessionEvent) *runtimev1.AccountSessionEven
 		return nil
 	}
 	return &runtimev1.AccountSessionEvent{
-		EventId:           in.GetEventId(),
+		EventId:         in.GetEventId(),
+		Sequence:        in.GetSequence(),
+		EmittedAt:       in.GetEmittedAt(),
+		EventType:       in.GetEventType(),
+		BindingId:       in.GetBindingId(),
+		BindingRelation: cloneRelation(in.GetBindingRelation()),
+		ReplayTruncated: in.GetReplayTruncated(),
+		DeliveryKind:    in.GetDeliveryKind(),
+		Snapshot:        cloneAccountSessionSnapshot(in.GetSnapshot()),
+	}
+}
+
+func cloneAccountSessionSnapshot(in *runtimev1.AccountSessionSnapshot) *runtimev1.AccountSessionSnapshot {
+	if in == nil {
+		return nil
+	}
+	return &runtimev1.AccountSessionSnapshot{
 		Sequence:          in.GetSequence(),
-		EmittedAt:         in.GetEmittedAt(),
-		EventType:         in.GetEventType(),
 		State:             in.GetState(),
 		ReasonCode:        in.GetReasonCode(),
 		AccountReasonCode: in.GetAccountReasonCode(),
 		AccountProjection: cloneProjection(in.GetAccountProjection()),
-		BindingId:         in.GetBindingId(),
-		BindingRelation:   cloneRelation(in.GetBindingRelation()),
-		ReplayTruncated:   in.GetReplayTruncated(),
 	}
 }
 
@@ -397,8 +408,29 @@ func commonReason(reason runtimev1.AccountReasonCode) runtimev1.ReasonCode {
 		return runtimev1.ReasonCode_AUTH_TOKEN_EXPIRED
 	case runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_MISMATCHED,
 		runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_CONSUMED,
-		runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE:
+		runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE,
+		runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID,
+		runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_TOKEN_INVALID,
+		runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS:
 		return runtimev1.ReasonCode_AUTH_TOKEN_INVALID
+	case runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE,
+		runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED:
+		return runtimev1.ReasonCode_REALM_UNAVAILABLE
+	case runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_NOT_FOUND:
+		return runtimev1.ReasonCode_REALM_NOT_FOUND
+	case runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_CONFLICT:
+		return runtimev1.ReasonCode_REALM_CONFLICT
+	case runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_RATE_LIMITED:
+		return runtimev1.ReasonCode_REALM_RATE_LIMITED
+	case runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_REJECTED:
+		return runtimev1.ReasonCode_REALM_REQUEST_REJECTED
+	case runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED,
+		runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_CONTRACT_INVALID:
+		return runtimev1.ReasonCode_REALM_CONTRACT_INVALID
+	case runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_OPERATION_FAILED:
+		return runtimev1.ReasonCode_REALM_OPERATION_FAILED
+	case runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_FORBIDDEN:
+		return runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED
 	case runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND,
 		runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_STALE,
 		runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_REPLAY:

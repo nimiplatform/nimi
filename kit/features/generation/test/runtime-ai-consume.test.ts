@@ -4,6 +4,7 @@ import {
   type RuntimeAIConsumeCapabilityId,
 } from '../src/runtime.js';
 import { ExecutionMode, ReasonCode, ScenarioType, type NimiAIConfig } from '@nimiplatform/kit/core/sdk-contract';
+import { createRuntimeScopeRunnerFixture } from './runtime-scope-runner-fixture.js';
 
 describe('runtime AI consume helper', () => {
   it('fails closed before dispatch when the AIConfig target binding is missing', async () => {
@@ -33,10 +34,10 @@ describe('runtime AI consume helper', () => {
 
   it('runs text.generate through the configured Runtime route and forwards params and metadata', async () => {
     const runtime = createRuntimeHarness();
-    const withScopes = vi.fn(<T,>(
-      _scopes: readonly string[],
-      operation: (options: { readonly metadata?: Record<string, string> }) => Promise<T>,
-    ) => operation({ metadata: { 'x-nimi-access-token-id': 'token-1', 'x-nimi-access-token-secret': 'secret-1' } }));
+    const { runner: withScopes, callSpy: withScopesCalls } = createRuntimeScopeRunnerFixture({
+      'x-nimi-access-token-id': 'token-1',
+      'x-nimi-access-token-secret': 'secret-1',
+    });
     runtime.scheduling.peekScheduling.mockResolvedValue(runnableSchedulingResponse());
     runtime.ai.executeScenario.mockResolvedValue(textGenerateScenarioResponse('shared helper ok'));
 
@@ -103,8 +104,8 @@ describe('runtime AI consume helper', () => {
     });
 
     expect(runtime.ai.executeScenario).toHaveBeenCalledOnce();
-    expect(withScopes).toHaveBeenCalledOnce();
-    expect(withScopes.mock.calls[0]?.[0]).toEqual(['ai.spend.meter']);
+    expect(withScopesCalls).toHaveBeenCalledOnce();
+    expect(withScopesCalls.mock.calls[0]?.[0]).toEqual(['ai.spend.meter']);
     const [request, options] = runtime.ai.executeScenario.mock.calls[0];
     expect(request.scenarioType).toBe(ScenarioType.TEXT_GENERATE);
     expect(request.executionMode).toBe(ExecutionMode.SYNC);

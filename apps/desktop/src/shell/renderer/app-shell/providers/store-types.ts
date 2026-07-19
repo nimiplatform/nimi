@@ -30,7 +30,25 @@ import type { NimiAIConfig } from '@nimiplatform/sdk/ai';
 import type { CharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 
-export type AuthStatus = 'bootstrapping' | 'anonymous' | 'authenticated';
+export type AuthStatus =
+  | 'bootstrapping'
+  | 'anonymous'
+  | 'login-pending'
+  | 'authenticated'
+  | 'refresh-pending'
+  | 'expired'
+  | 'reauth-required'
+  | 'switching'
+  | 'logging-out'
+  | 'unavailable';
+
+export type RuntimeAccountAuthProjection = {
+  status: Exclude<AuthStatus, 'bootstrapping'>;
+  sequence: string;
+  reasonCode: number;
+  accountReasonCode: number;
+  user: Record<string, unknown> | null;
+};
 export type AppTab =
   | 'home'
   | 'chat'
@@ -82,6 +100,9 @@ export type AppStoreState = {
   auth: {
     status: AuthStatus;
     user: Record<string, unknown> | null;
+    sequence: string;
+    reasonCode: number;
+    accountReasonCode: number;
   };
   runtimeFields: RuntimeFieldMap;
   aiConfig: NimiAIConfig;
@@ -123,6 +144,7 @@ export type AppStoreState = {
   setDesktopUpdateState: (state: DesktopUpdateState | null) => void;
   setRuntimeDefaults: (defaults: RuntimeDefaults) => void;
   setAuthBootstrapping: () => void;
+  applyRuntimeAccountProjection: (projection: RuntimeAccountAuthProjection) => void;
   setAuthSession: (user: Record<string, unknown> | null) => void;
   clearAuthSession: () => void;
   setRuntimeField: (key: keyof RuntimeFieldMap, value: string | number | boolean) => void;

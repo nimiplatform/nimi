@@ -3,6 +3,7 @@ package account
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"sync"
@@ -21,6 +22,50 @@ var (
 	ErrLoginExchangeFailure            = errors.New("account login exchange unavailable")
 	ErrPresenceVerificationUnavailable = errors.New("account presence verification unavailable")
 )
+
+type refreshFailureDisposition uint8
+
+const (
+	refreshFailureUnknown refreshFailureDisposition = iota
+	refreshFailurePreDispatch
+	refreshFailureTokenInvalid
+	refreshFailureContractInvalid
+	refreshFailureOutcomeAmbiguous
+)
+
+type refreshFailure struct {
+	disposition refreshFailureDisposition
+	err         error
+}
+
+func (failure *refreshFailure) Error() string {
+	if failure == nil || failure.err == nil {
+		return "account refresh failed"
+	}
+	return failure.err.Error()
+}
+
+func (failure *refreshFailure) Unwrap() error {
+	if failure == nil {
+		return nil
+	}
+	return failure.err
+}
+
+func newRefreshFailure(disposition refreshFailureDisposition, err error) error {
+	if err == nil {
+		err = ErrLoginExchangeFailure
+	}
+	return &refreshFailure{disposition: disposition, err: fmt.Errorf("%w: %v", ErrLoginExchangeFailure, err)}
+}
+
+func refreshFailureDispositionOf(err error) refreshFailureDisposition {
+	var failure *refreshFailure
+	if errors.As(err, &failure) {
+		return failure.disposition
+	}
+	return refreshFailureUnknown
+}
 
 type AccountMaterial struct {
 	AccountID            string
@@ -172,6 +217,7 @@ type Service struct {
 	identityMutationMu           sync.Mutex
 	mu                           sync.RWMutex
 	state                        runtimev1.AccountSessionState
+	stateReason                  runtimev1.AccountReasonCode
 	projection                   *runtimev1.AccountProjection
 	material                     AccountMaterial
 	accountGeneration            uint64
@@ -183,4 +229,6 @@ type Service struct {
 	events                       []*runtimev1.AccountSessionEvent
 	nextSubscriberID             uint64
 	subscribers                  map[uint64]subscriber
+	refreshTimer                 *time.Timer
+	refreshRetryAttempt          uint8
 }

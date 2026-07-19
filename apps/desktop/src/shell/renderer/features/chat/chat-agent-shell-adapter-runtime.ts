@@ -12,7 +12,7 @@ import {
   createNimiRuntimeAgentConsumeClient,
 } from '@nimiplatform/sdk/runtime';
 import type { TFunction } from 'i18next';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { useAppStore, type AuthStatus } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
   createRuntimeAgentCenterAdapter,
@@ -50,8 +50,6 @@ import {
   type AutonomyConfigInput,
   type RuntimeStateInput,
 } from './chat-agent-shell-adapter-runtime-mutations';
-
-type AuthStatus = 'bootstrapping' | 'anonymous' | 'authenticated';
 
 type RuntimeHostErrorDetailsBuilder = (
   error: unknown,

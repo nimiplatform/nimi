@@ -25,6 +25,18 @@ pub(super) fn project_account_projection(projection: DesktopAccountProjection) -
     })
 }
 
+pub(super) fn project_account_session_event(event: DesktopAccountSessionEvent) -> JsonValue {
+    json!({
+        "sequence": event.sequence.to_string(),
+        "deliveryKind": event.delivery_kind.as_str(),
+        "state": event.state.as_str(),
+        "reasonCode": event.reason_code,
+        "accountReasonCode": event.account_reason_code,
+        "accountProjection": event.account_projection.map(project_account_projection),
+        "replayTruncated": event.replay_truncated,
+    })
+}
+
 pub(super) fn project_account_begin_login(response: DesktopAccountBeginLoginResponse) -> JsonValue {
     json!({
         "accepted": response.accepted,

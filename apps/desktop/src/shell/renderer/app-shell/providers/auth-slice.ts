@@ -9,6 +9,7 @@ import type { AppStoreSet, AppStoreState } from './store-types';
 type AuthSlice = Pick<AppStoreState,
   'auth'
   | 'setAuthBootstrapping'
+  | 'applyRuntimeAccountProjection'
   | 'setAuthSession'
   | 'clearAuthSession'
 >;
@@ -18,6 +19,9 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
     auth: {
       status: 'bootstrapping',
       user: null,
+      sequence: '0',
+      reasonCode: 0,
+      accountReasonCode: 0,
     },
     setAuthBootstrapping: () =>
       set((state) => ({
@@ -26,18 +30,34 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
           status: 'bootstrapping',
         },
       })),
-    setAuthSession: (user) =>
+    applyRuntimeAccountProjection: (projection) =>
       set(() => ({
         auth: {
-          status: 'authenticated',
-          user,
+          status: projection.status,
+          user: projection.user,
+          sequence: projection.sequence,
+          reasonCode: projection.reasonCode,
+          accountReasonCode: projection.accountReasonCode,
         },
+      })),
+    setAuthSession: (user) =>
+      set((state) => ({
+        auth: state.auth.status === 'authenticated'
+          ? { ...state.auth, user }
+          : {
+              ...state.auth,
+              status: 'authenticated',
+              user,
+            },
       })),
     clearAuthSession: () =>
       set((state) => ({
         auth: {
           status: 'anonymous',
           user: null,
+          sequence: state.auth.sequence,
+          reasonCode: state.auth.reasonCode,
+          accountReasonCode: state.auth.accountReasonCode,
         },
         selectedChatId: null,
         chatMode: 'ai',

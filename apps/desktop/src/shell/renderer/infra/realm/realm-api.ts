@@ -25,12 +25,12 @@ export async function callRealmApi<T>(
 ): Promise<T> {
   try {
     const result = await task(getDesktopRealm());
-    getOfflineCoordinator().markRealmRestReachable(true);
+    getOfflineCoordinator().markRealmRestReachability('reachable');
     return tryParseJsonLike(result);
   } catch (error) {
     const normalized = normalizeApiError(error, fallbackMessage);
     if (isRealmOfflineError(normalized)) {
-      getOfflineCoordinator().markRealmRestReachable(false);
+      getOfflineCoordinator().markRealmRestReachability('unreachable');
     }
     throw normalized;
   }
@@ -45,7 +45,7 @@ export function emitRealmDataError(
   const realmOffline = errorFields.reasonCode === ReasonCode.REALM_UNAVAILABLE || isRealmOfflineError(error);
   const runtimeOffline = errorFields.reasonCode === ReasonCode.RUNTIME_UNAVAILABLE || isRuntimeOfflineError(error);
   if (realmOffline) {
-    getOfflineCoordinator().markRealmRestReachable(false);
+    getOfflineCoordinator().markRealmRestReachability('unreachable');
   }
   emitRuntimeLog({
     level: resolveRealmDataErrorLogLevel({

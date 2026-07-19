@@ -4,30 +4,46 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/jsonstrict"
 )
 
-const realmUnaryDefaultTimeout = 30 * time.Second
+const (
+	realmUnaryDefaultTimeout     = 30 * time.Second
+	realmUnaryMaxTimeout         = 5 * time.Minute
+	realmUnaryRequestJSONMaxSize = 2 * 1024 * 1024
+)
 
 type realmUnaryOperation struct {
 	method                 string
 	path                   string
 	allowedCallerModes     map[runtimev1.AccountCallerMode]struct{}
 	authorizationProfile   string
-	allowedPathParameters  map[string]struct{}
+	pathParameterKinds     map[string]realmUnaryParameterKind
 	requiredPathParameters map[string]struct{}
-	allowedQueryParameters map[string]struct{}
+	queryParameterKinds    map[string]realmUnaryParameterKind
 	requestBodyAllowed     bool
 	requestBodyRequired    bool
 	responseMaxBytes       int64
 }
+
+type realmUnaryParameterKind uint8
+
+const (
+	realmUnaryParameterString realmUnaryParameterKind = iota + 1
+	realmUnaryParameterNumber
+	realmUnaryParameterInteger
+	realmUnaryParameterBoolean
+)
 
 type realmUnaryRequestJSON struct {
 	Path  map[string]any  `json:"path"`
@@ -36,11 +52,22 @@ type realmUnaryRequestJSON struct {
 }
 
 func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRealmUnaryRequest) (*runtimev1.InvokeRealmUnaryResponse, error) {
+	timeout := realmUnaryDefaultTimeout
+	invalidTimeout := req.GetTimeoutMs() < 0 || int64(req.GetTimeoutMs()) > int64(realmUnaryMaxTimeout/time.Millisecond)
+	if req.GetTimeoutMs() > 0 && !invalidTimeout {
+		timeout = time.Duration(req.GetTimeoutMs()) * time.Millisecond
+	}
+	operationCtx, operationCancel := context.WithTimeout(ctx, timeout)
+	defer operationCancel()
+
 	if !s.isActivated() {
 		return &runtimev1.InvokeRealmUnaryResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED, ProductionInert: true}, nil
 	}
 	if reason, ok := s.validateRuntimeAdmittedCaller(ctx, req.GetCaller(), false); !ok {
 		return &runtimev1.InvokeRealmUnaryResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
+	}
+	if invalidTimeout {
+		return realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, "realm operation timeout is outside the admitted bound", 0), nil
 	}
 	operation, ok := realmBrokerOperations[strings.TrimSpace(req.GetMethodId())]
 	if !ok {
@@ -51,9 +78,9 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 	}
 	realmBaseURL, err := s.resolveRealmUnaryBaseURL(req.GetRealmBaseUrl())
 	if err != nil {
-		return realmUnaryFailure(runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED, err.Error(), 0), nil
+		return realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED, err.Error(), 0), nil
 	}
-	accessToken, reason, ok, err := s.realmUnaryAccessToken(ctx, req.GetCaller())
+	accessToken, reason, ok, err := s.realmUnaryAccessToken(operationCtx, req.GetCaller())
 	if err != nil {
 		return nil, err
 	}
@@ -73,49 +100,150 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 		return realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, err.Error(), 0), nil
 	}
 
-	httpReq, err := buildRealmUnaryHTTPRequest(ctx, targetURL, operation, parsedRequest, accessToken)
-	if err != nil {
-		return realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, err.Error(), 0), nil
-	}
 	client := s.realmHTTP
 	if client == nil {
 		client = &http.Client{Timeout: realmUnaryDefaultTimeout}
 	}
-	if req.GetTimeoutMs() > 0 {
-		copy := *client
-		copy.Timeout = time.Duration(req.GetTimeoutMs()) * time.Millisecond
-		client = &copy
+	clientCopy := *client
+	clientCopy.CheckRedirect = func(*http.Request, []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	clientCopy.Timeout = timeout
+	client = &clientCopy
+	result := s.doRealmUnaryHTTP(operationCtx, client, targetURL, operation, parsedRequest, accessToken)
+	if result.err != nil {
+		if callerErr := ctx.Err(); callerErr != nil {
+			return nil, callerErr
+		}
+		return realmUnaryFailure(runtimev1.ReasonCode_REALM_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE, fmt.Sprintf("Realm request failed: %v", result.err), 0), nil
+	}
+	if result.failure != nil {
+		return result.failure, nil
+	}
+	if result.status == http.StatusUnauthorized {
+		refresh, refreshErr := s.refreshAccountSessionAfterUnauthorized(operationCtx, accessToken)
+		if refreshErr != nil {
+			return nil, refreshErr
+		}
+		if !refresh.accepted {
+			return realmUnaryFailure(refresh.reasonCode, refresh.accountReasonCode, "Realm credential refresh did not complete", http.StatusUnauthorized), nil
+		}
+		s.mu.RLock()
+		refreshedToken := s.material.AccessToken
+		s.mu.RUnlock()
+		result = s.doRealmUnaryHTTP(operationCtx, client, targetURL, operation, parsedRequest, refreshedToken)
+		if result.err != nil {
+			if callerErr := ctx.Err(); callerErr != nil {
+				return nil, callerErr
+			}
+			return realmUnaryFailure(runtimev1.ReasonCode_REALM_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE, fmt.Sprintf("Realm request failed: %v", result.err), 0), nil
+		}
+		if result.failure != nil {
+			return result.failure, nil
+		}
+		if result.status == http.StatusUnauthorized {
+			s.invalidateAccountAfterRealmUnauthorized(operationCtx)
+			return realmUnaryFailure(runtimev1.ReasonCode_AUTH_TOKEN_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID, "Realm rejected the refreshed account session", result.status), nil
+		}
+	}
+	return projectRealmUnaryHTTPResult(result), nil
+}
+
+type realmUnaryHTTPResult struct {
+	status  int
+	header  http.Header
+	body    []byte
+	failure *runtimev1.InvokeRealmUnaryResponse
+	err     error
+}
+
+func (s *Service) doRealmUnaryHTTP(
+	ctx context.Context,
+	client *http.Client,
+	targetURL string,
+	operation realmUnaryOperation,
+	request realmUnaryRequestJSON,
+	accessToken string,
+) realmUnaryHTTPResult {
+	httpReq, err := buildRealmUnaryHTTPRequest(ctx, targetURL, operation, request, accessToken)
+	if err != nil {
+		return realmUnaryHTTPResult{failure: realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, err.Error(), 0)}
 	}
 	response, err := client.Do(httpReq)
 	if err != nil {
-		return realmUnaryFailure(runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_UPSTREAM_FAILED, fmt.Sprintf("realm request failed: %v", err), 0), nil
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return realmUnaryHTTPResult{err: err}
+		}
+		return realmUnaryHTTPResult{failure: realmUnaryFailure(runtimev1.ReasonCode_REALM_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE, fmt.Sprintf("Realm request failed: %v", err), 0)}
 	}
-	defer func() {
-		_ = response.Body.Close()
-	}()
+	defer func() { _ = response.Body.Close() }()
 	responseBody, readErr := io.ReadAll(io.LimitReader(response.Body, operation.responseMaxBytes+1))
 	if readErr != nil {
-		return realmUnaryFailure(runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_UPSTREAM_FAILED, fmt.Sprintf("realm response read failed: %v", readErr), response.StatusCode), nil
+		if errors.Is(readErr, context.Canceled) || errors.Is(readErr, context.DeadlineExceeded) {
+			return realmUnaryHTTPResult{err: readErr}
+		}
+		return realmUnaryHTTPResult{failure: realmUnaryFailure(runtimev1.ReasonCode_REALM_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE, fmt.Sprintf("Realm response read failed: %v", readErr), response.StatusCode)}
 	}
 	if int64(len(responseBody)) > operation.responseMaxBytes {
-		return realmUnaryFailure(runtimev1.ReasonCode_AI_OUTPUT_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE, "realm broker response exceeds the admitted response limit", response.StatusCode), nil
+		return realmUnaryHTTPResult{failure: realmUnaryFailure(runtimev1.ReasonCode_REALM_CONTRACT_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE, "Realm broker response exceeds the admitted response limit", response.StatusCode)}
 	}
-	responseJSON := strings.TrimSpace(string(responseBody))
-	if responseJSON == "" {
-		responseJSON = "{}"
+	return realmUnaryHTTPResult{status: response.StatusCode, header: response.Header.Clone(), body: responseBody}
+}
+
+func projectRealmUnaryHTTPResult(result realmUnaryHTTPResult) *runtimev1.InvokeRealmUnaryResponse {
+	if err := scanRealmBrokerResponseForCredentials(result.header, result.body); err != nil {
+		return realmUnaryFailure(runtimev1.ReasonCode_REALM_CONTRACT_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_CREDENTIAL_RESPONSE_FORBIDDEN, err.Error(), result.status)
 	}
-	if err := scanRealmBrokerResponseForCredentials(response.Header, []byte(responseJSON)); err != nil {
-		return realmUnaryCredentialRejected(err.Error()), nil
+	if json.Valid(result.body) && jsonstrict.RejectDuplicateKeys(result.body) != nil {
+		return realmUnaryFailure(runtimev1.ReasonCode_REALM_CONTRACT_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED, "Realm response violates the JSON contract", result.status)
 	}
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return realmUnaryFailure(runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_UPSTREAM_FAILED, trimRealmUnaryErrorBody(string(responseBody)), response.StatusCode), nil
+	message := trimRealmUnaryErrorBody(string(result.body))
+	switch result.status {
+	case http.StatusRequestTimeout, http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+		return realmUnaryFailure(runtimev1.ReasonCode_REALM_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE, message, result.status)
+	case http.StatusUnauthorized:
+		return realmUnaryFailure(runtimev1.ReasonCode_AUTH_TOKEN_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID, message, result.status)
+	case http.StatusForbidden:
+		return realmUnaryFailure(runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_FORBIDDEN, message, result.status)
+	case http.StatusNotFound:
+		return realmUnaryFailure(runtimev1.ReasonCode_REALM_NOT_FOUND, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_NOT_FOUND, message, result.status)
+	case http.StatusConflict:
+		return realmUnaryFailure(runtimev1.ReasonCode_REALM_CONFLICT, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_CONFLICT, message, result.status)
+	case http.StatusTooManyRequests:
+		return realmUnaryFailure(runtimev1.ReasonCode_REALM_RATE_LIMITED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_RATE_LIMITED, message, result.status)
+	case http.StatusBadRequest, http.StatusUnprocessableEntity:
+		return realmUnaryFailure(runtimev1.ReasonCode_REALM_REQUEST_REJECTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_REJECTED, message, result.status)
+	case http.StatusMethodNotAllowed, http.StatusUnsupportedMediaType:
+		return realmUnaryFailure(runtimev1.ReasonCode_REALM_CONTRACT_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED, message, result.status)
+	}
+	if result.status >= 300 && result.status < 400 {
+		return realmUnaryFailure(runtimev1.ReasonCode_REALM_CONTRACT_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED, message, result.status)
+	}
+	if result.status >= 500 {
+		return realmUnaryFailure(runtimev1.ReasonCode_REALM_OPERATION_FAILED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_OPERATION_FAILED, message, result.status)
+	}
+	if result.status < 200 || result.status >= 300 {
+		return realmUnaryFailure(runtimev1.ReasonCode_REALM_CONTRACT_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED, message, result.status)
+	}
+	mediaType, _, err := mime.ParseMediaType(result.header.Get("Content-Type"))
+	if err != nil || mediaType != "application/json" || len(bytes.TrimSpace(result.body)) == 0 || !json.Valid(result.body) || jsonstrict.RejectDuplicateKeys(result.body) != nil {
+		return realmUnaryFailure(runtimev1.ReasonCode_REALM_CONTRACT_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED, "Realm success response violates the JSON contract", result.status)
 	}
 	return &runtimev1.InvokeRealmUnaryResponse{
 		Accepted:          true,
-		ResponseJson:      responseJSON,
+		ResponseJson:      strings.TrimSpace(string(result.body)),
 		ReasonCode:        runtimev1.ReasonCode_ACTION_EXECUTED,
 		AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED,
-	}, nil
+		HttpStatus:        int32(result.status),
+	}
+}
+
+func (s *Service) invalidateAccountAfterRealmUnauthorized(ctx context.Context) {
+	if err := s.custody.Clear(ctx, s.partition); err != nil {
+		s.markCustodyUnavailable()
+		return
+	}
+	s.transitionToReauthRequired(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID)
 }
 
 func (s *Service) realmUnaryAccessToken(ctx context.Context, _ *runtimev1.AccountCaller) (string, runtimev1.AccountReasonCode, bool, error) {
@@ -187,18 +315,20 @@ func canonicalRealmUnaryBaseURL(value string) (string, error) {
 	if parsed.Scheme != "http" && parsed.Scheme != "https" {
 		return "", fmt.Errorf("realm base URL scheme is not admitted")
 	}
-	parsed.Path = strings.TrimRight(parsed.EscapedPath(), "/")
-	parsed.RawQuery = ""
-	parsed.Fragment = ""
+	if parsed.User != nil || parsed.Opaque != "" || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return "", fmt.Errorf("realm base URL authority is invalid")
+	}
+	parsed.Path = strings.TrimRight(parsed.Path, "/")
+	parsed.RawPath = strings.TrimRight(parsed.RawPath, "/")
 	return parsed.String(), nil
 }
 
 func parseRealmUnaryRequest(raw string) (realmUnaryRequestJSON, error) {
-	if strings.TrimSpace(raw) == "" {
-		return realmUnaryRequestJSON{}, nil
+	if strings.TrimSpace(raw) == "" || len(raw) > realmUnaryRequestJSONMaxSize {
+		return realmUnaryRequestJSON{}, fmt.Errorf("realm request JSON is missing or exceeds the admitted bound")
 	}
 	var parsed realmUnaryRequestJSON
-	if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
+	if err := jsonstrict.Decode([]byte(raw), &parsed); err != nil {
 		return realmUnaryRequestJSON{}, fmt.Errorf("realm request JSON is invalid")
 	}
 	if parsed.Path == nil {
@@ -280,9 +410,9 @@ func buildRealmUnaryHTTPRequest(ctx context.Context, targetURL string, operation
 }
 
 func trimRealmUnaryErrorBody(value string) string {
-	trimmed := strings.TrimSpace(value)
+	trimmed := strings.TrimSpace(strings.ToValidUTF8(value, "\uFFFD"))
 	if len(trimmed) > 512 {
-		return trimmed[:512]
+		return strings.ToValidUTF8(trimmed[:512], "\uFFFD")
 	}
 	return trimmed
 }

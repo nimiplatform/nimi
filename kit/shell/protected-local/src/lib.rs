@@ -65,8 +65,10 @@ pub use carrier::{
 pub use desktop_account::{
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
     DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse, DesktopAccountProjection,
-    DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse, DesktopAccountSessionState,
-    DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest,
+    DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse,
+    DesktopAccountSessionDeliveryKind, DesktopAccountSessionEvent,
+    DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
+    DesktopAccountSessionState, DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest,
 };
 pub use desktop_product_control::{
     DesktopProductControlError, DesktopProductControlMethod, DesktopProductControlRequest,

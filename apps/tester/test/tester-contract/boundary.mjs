@@ -212,8 +212,8 @@ test('tester runtime unavailable flow consumes Kit offline coordinator', () => {
 
   assert.match(authGate, /from '@nimiplatform\/kit\/core\/offline-coordinator'/);
   assert.match(authGate, /new OfflineCoordinator\(\)/);
-  assert.match(authGate, /markRuntimeReachable\(false\)/);
-  assert.match(authGate, /markRuntimeReachable\(true\)/);
+  assert.match(authGate, /markRuntimeReachability\('unreachable'\)/);
+  assert.match(authGate, /markRuntimeReachability\('reachable'\)/);
   assert.match(unavailablePage, /Protection state: offline tier \{offlineTier\}/);
   assert.match(unavailablePage, /Open Nimi Desktop, confirm Runtime is available, then retry\./);
   assert.doesNotMatch(unavailablePage, />\{projection\?\.actionHint\}</);

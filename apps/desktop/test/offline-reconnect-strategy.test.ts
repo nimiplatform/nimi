@@ -86,7 +86,13 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
     const runtimeSessionSource = DESKTOP_SESSION_SOURCE.slice(runtimeSessionStart, runtimeSessionEnd);
 
     assert.match(RUNTIME_BOOTSTRAP_SOURCE, /probeRealmReachability:\s*async \(\) => \{/);
-    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /await realmSocialData\.loadCurrentUser\(\)/);
+    assert.match(
+      RUNTIME_BOOTSTRAP_SOURCE,
+      /worldPublic\.worldPublicControllerListWorlds\(\{/,
+      'Realm reconnect must probe an admitted generated operation',
+    );
+    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /return !isRealmOfflineError\(error\)/);
+    assert.doesNotMatch(RUNTIME_BOOTSTRAP_SOURCE, /await realmSocialData\.loadCurrentUser\(\)/);
     assert.match(RUNTIME_BOOTSTRAP_SOURCE, /configureDesktopRuntimeRealmSession\(\{/);
     assert.match(
       runtimeSessionSource,
@@ -116,7 +122,7 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
       rebootstrapRuntime: async () => { effects.push('rebootstrapRuntime'); },
     });
 
-    coordinator.markRealmRestReachable(false);
+    coordinator.markRealmRestReachability('unreachable');
     await flushAsyncWork();
     assert.equal(timer.nextDelay(), 1000);
 
@@ -145,7 +151,7 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
       rebootstrapRuntime: async () => { effects.push('rebootstrapRuntime'); },
     });
 
-    coordinator.markRuntimeReachable(false);
+    coordinator.markRuntimeReachability('unreachable');
     await flushAsyncWork();
     assert.equal(timer.nextDelay(), 1000);
 
@@ -171,7 +177,7 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
       rebootstrapRuntime: async () => { effects.push('rebootstrapRuntime'); },
     });
 
-    coordinator.markRuntimeReachable(false);
+    coordinator.markRuntimeReachability('unreachable');
     await flushAsyncWork();
     assert.equal(timer.nextDelay(), 1000);
 
@@ -209,7 +215,7 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
       },
     });
 
-    coordinator.markRuntimeReachable(false);
+    coordinator.markRuntimeReachability('unreachable');
     await flushAsyncWork();
     assert.equal(timer.nextDelay(), 1000);
 

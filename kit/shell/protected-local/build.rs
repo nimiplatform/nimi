@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 fn main() {
+    println!("cargo:rerun-if-env-changed=NIMI_WINDOWS_PRODUCTION_SIGNER_CERT_SHA256");
     let target = std::env::var("TARGET").expect("target triple");
     if target.contains("apple-darwin") {
         cc::Build::new()

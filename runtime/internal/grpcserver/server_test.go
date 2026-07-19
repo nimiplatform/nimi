@@ -75,8 +75,8 @@ func TestNewConfiguresRuntimeAgentDefaultExecutors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("account status: %v", err)
 	}
-	if !status.GetProductionInert() {
-		t.Fatal("non-production server must not activate production account custody")
+	if status.GetAccepted() || status.GetSnapshot() != nil || status.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED {
+		t.Fatalf("non-production account status must reject without a snapshot: %+v", status)
 	}
 	if !agentSvc.HasLifeTrackExecutor() {
 		t.Fatal("expected life-track executor to be configured")
@@ -190,8 +190,8 @@ func TestProtectedServiceUsesOnlyVerifiedSecurityBindings(t *testing.T) {
 	if err != nil {
 		t.Fatalf("protected account status: %v", err)
 	}
-	if status.GetProductionInert() {
-		t.Fatal("verified protected bindings must activate the production account service")
+	if status.GetAccepted() || status.GetSnapshot() != nil || status.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
+		t.Fatalf("active protected account service must reach caller validation without exposing a snapshot: %+v", status)
 	}
 	if _, err := server.authService.OpenDesktopSession(context.Background(), &runtimev1.OpenDesktopSessionRequest{}); err == nil {
 		t.Fatal("plain context unexpectedly opened a protected Desktop session")

@@ -14,7 +14,7 @@ import {
   ConversationOrchestrationRegistry,
 } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { useAppStore, type AuthStatus } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import {
@@ -62,7 +62,7 @@ import { useAgentConversationPendingAttachments } from './chat-agent-shell-adapt
 import { AgentManualVoicePlaybackButton } from './chat-agent-manual-voice-playback-button';
 
 type UseAgentConversationModeHostInput = {
-  authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
+  authStatus: AuthStatus;
   diagnosticsVisible: boolean;
   onDiagnosticsVisibilityChange?: (visible: boolean) => void;
   onOpenAgentCenter?: () => void;

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { AmbientBackground, Surface } from '@nimiplatform/kit/ui';
 import { projectNimiProductControlAdmission, type NimiProductControlState } from '@nimiplatform/sdk/runtime';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { useAppStore, type AuthStatus } from '@renderer/app-shell/providers/app-store';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { desktopBridge } from '@renderer/bridge';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
@@ -146,13 +146,31 @@ type DesktopOrdinaryShellAdmissionHandle = {
   readonly retry: () => void;
 };
 
+function accountRetainsOrdinaryShell(status: AuthStatus): boolean {
+  return status === 'authenticated' || status === 'refresh-pending';
+}
+
+function accountRequiresLogin(status: AuthStatus): boolean {
+  return status === 'anonymous'
+    || status === 'login-pending'
+    || status === 'expired'
+    || status === 'reauth-required';
+}
+
 function useDesktopOrdinaryShellAdmission(
-  authStatus: 'bootstrapping' | 'anonymous' | 'authenticated',
+  authStatus: AuthStatus,
 ): DesktopOrdinaryShellAdmissionHandle {
   const [admission, setAdmission] = useState<DesktopOrdinaryShellAdmission>('checking');
   const [retryToken, setRetryToken] = useState(0);
 
   useEffect(() => {
+    if (authStatus === 'refresh-pending') {
+      // Refresh is an in-place account transition. Preserve the last admitted
+      // product shell instead of re-reading product control while Runtime is
+      // deliberately pausing new Realm work. Reconciliation resumes from a
+      // fresh authenticated projection after rotation completes.
+      return;
+    }
     if (authStatus !== 'authenticated') {
       setAdmission('checking');
       return;
@@ -168,6 +186,10 @@ function useDesktopOrdinaryShellAdmission(
         return;
       }
       if (decision.kind === 'login') {
+        if (authStatus !== 'authenticated') {
+          setAdmission('checking');
+          return;
+        }
         // Only happens when the persisted record's last write was a failed
         // admission. The renderer cannot rescue this by reading harder; it
         // must request a fresh backend admission once. If the admission
@@ -209,7 +231,10 @@ function useDesktopOrdinaryShellAdmission(
       setAdmission('first-run');
     };
 
-    setAdmission('checking');
+    // Keep the current verdict visible while an authenticated projection is
+    // rechecked (notably after refresh-pending -> authenticated). Initial boot
+    // already starts at `checking`; a completed shell must not be torn down
+    // merely because token rotation advanced the account sequence.
     void desktopBridge.getProductControlRecord()
       .then(projectVerdict)
       .catch(() => {
@@ -259,7 +284,7 @@ function DesktopOrdinaryShellGate() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (authStatus !== 'authenticated') {
+    if (!accountRetainsOrdinaryShell(authStatus)) {
       setFirstRunReady(false);
     }
   }, [authStatus]);
@@ -270,14 +295,14 @@ function DesktopOrdinaryShellGate() {
   // <Navigate> uses a no-deps effect), which is precisely what tripped the
   // pre-Wave-1 throttle when paired with LoginPage's reverse-Navigate.
   useEffect(() => {
-    if (authStatus === 'anonymous') {
+    if (accountRequiresLogin(authStatus)) {
       navigate('/login', { replace: true });
     }
   }, [authStatus, navigate]);
 
   const admission: DesktopOrdinaryShellAdmission = firstRunReady ? 'ready' : observedAdmission;
 
-  if (authStatus === 'bootstrapping' || authStatus === 'anonymous') {
+  if (!accountRetainsOrdinaryShell(authStatus)) {
     return <RuntimeLoadingScreen />;
   }
   if (admission === 'checking' || admission === 'requesting-admission') {
@@ -348,6 +373,31 @@ function DesktopAdmissionFailedScreen(props: {
   );
 }
 
+function DesktopAccountUnavailableScreen() {
+  const { t } = useTranslation();
+  return (
+    <SharedStatusShell
+      eyebrow="Nimi Runtime"
+      title={t('Auth.runtimeAccountUnavailableTitle', {
+        defaultValue: 'Account service is unavailable',
+      })}
+      description={t('Auth.runtimeAccountUnavailableDescription', {
+        defaultValue:
+          'Nimi Runtime is not providing a trusted account session. Repair or restart Runtime, then retry. Your account has not been treated as signed out.',
+      })}
+    >
+      <button
+        type="button"
+        data-testid="desktop-account-unavailable-retry"
+        onClick={() => window.location.reload()}
+        className="mt-8 inline-flex h-10 min-w-36 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] px-5 text-sm font-semibold text-[var(--nimi-action-primary-fg)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)]"
+      >
+        {t('Common.retry', { defaultValue: 'Retry' })}
+      </button>
+    </SharedStatusShell>
+  );
+}
+
 export function AppRoutes() {
   const flags = getShellFeatureFlags();
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
@@ -375,6 +425,10 @@ export function AppRoutes() {
 
   if (bootstrapError) {
     return <BootstrapErrorScreen message={bootstrapError} />;
+  }
+
+  if (isDesktopShell && authStatus === 'unavailable') {
+    return <DesktopAccountUnavailableScreen />;
   }
 
   return (

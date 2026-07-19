@@ -6,7 +6,12 @@ export { completeMenuBarQuit, syncMenuBarRuntimeHealth } from '../shell/renderer
 export { proxyHttp } from '../shell/renderer/bridge/runtime-bridge/http';
 export { getSystemResourceSnapshot } from '../shell/renderer/bridge/runtime-bridge/system-resources';
 export { startWindowDrag } from '@nimiplatform/kit/shell/renderer/bridge';
-export type { DesktopAccountSessionStatus } from '@nimiplatform/kit/shell/renderer/bridge';
+export type {
+  DesktopAccountSessionEvent,
+  DesktopAccountSessionState,
+  DesktopAccountSessionStatus,
+  DesktopAccountSessionSubscriptionHandlers,
+} from '@nimiplatform/kit/shell/renderer/bridge';
 
 export type { AppsBridgeProjection } from '../shell/renderer/bridge/runtime-bridge/apps-projection';
 

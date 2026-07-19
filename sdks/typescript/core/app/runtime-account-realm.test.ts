@@ -87,8 +87,8 @@ test('Desktop source-readiness Realm transport maps upstream failure to typed Re
         invokeRealmUnary: async () => ({
           accepted: false,
           responseJson: '',
-          reasonCode: RuntimeWireReasonCode.AI_PROVIDER_UNAVAILABLE,
-          accountReasonCode: AccountReasonCode.BROKER_UPSTREAM_FAILED,
+          reasonCode: RuntimeWireReasonCode.REALM_UNAVAILABLE,
+          accountReasonCode: AccountReasonCode.BROKER_REALM_UNAVAILABLE,
           productionInert: false,
           httpStatus: 503,
           errorMessage: 'Realm is offline.',

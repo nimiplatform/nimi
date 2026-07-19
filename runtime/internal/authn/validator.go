@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto"
-	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
@@ -22,6 +20,8 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	realmv1 "github.com/nimiplatform/nimi/runtime/gen/realm/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/jsonstrict"
 )
 
 // clockSkew is the maximum allowed clock skew for JWT validation (K-AUTHN-005).
@@ -86,28 +86,15 @@ func IsRevocationUnavailable(err error) bool {
 
 // allowedAlgorithms lists the signing algorithms accepted by the validator.
 // alg=none is explicitly rejected (K-AUTHN-002).
-var allowedAlgorithms = []string{"RS256", "ES256"}
+var allowedAlgorithms = []string{"RS256"}
 
 type cachedSigningKey struct {
 	alg       string
 	publicKey crypto.PublicKey
 }
 
-type jwksDocument struct {
-	Keys []jwkEntry `json:"keys"`
-}
-
-type jwkEntry struct {
-	Kid string `json:"kid"`
-	Kty string `json:"kty"`
-	Use string `json:"use"`
-	Alg string `json:"alg"`
-	N   string `json:"n"`
-	E   string `json:"e"`
-	Crv string `json:"crv"`
-	X   string `json:"x"`
-	Y   string `json:"y"`
-}
+type jwksDocument = realmv1.GetAuthJwksResponse
+type jwkEntry = realmv1.GetAuthJwksResponseKeysItem
 
 // Validator verifies JWT tokens using a configured JWKS endpoint.
 type Validator struct {
@@ -140,20 +127,7 @@ type revocationFlight struct {
 	err  error
 }
 
-type revocationRequest struct {
-	SessionID     string `json:"session_id"`
-	SubjectUserID string `json:"subject_user_id"`
-	Issuer        string `json:"issuer"`
-	Audience      string `json:"audience"`
-	IssuedAt      string `json:"issued_at"`
-	ExpiresAt     string `json:"expires_at"`
-}
-
-type revocationResponse struct {
-	Active    *bool  `json:"active"`
-	Revoked   *bool  `json:"revoked"`
-	ExpiresAt string `json:"expires_at,omitempty"`
-}
+type revocationRequest = realmv1.IntrospectSessionRequestDto
 
 // NewValidator creates a JWT validator from configuration.
 // If jwksURL is empty, returns a validator that rejects all tokens.
@@ -299,8 +273,8 @@ func (v *Validator) checkRevocation(ctx context.Context, identity *Identity) err
 		return fmt.Errorf("token missing sid claim required for revocation")
 	}
 	payload := revocationRequest{
-		SessionID:     identity.SessionID,
-		SubjectUserID: identity.SubjectUserID,
+		SessionId:     identity.SessionID,
+		SubjectUserId: identity.SubjectUserID,
 		Issuer:        identity.Issuer,
 		Audience:      identity.Audience,
 		IssuedAt:      identity.IssuedAt.UTC().Format(time.RFC3339),
@@ -372,36 +346,40 @@ func (v *Validator) finishRevocationCheck(cacheKey string, flight *revocationFli
 }
 
 func (v *Validator) requestRevocation(ctx context.Context, revocationURL string, body []byte) (time.Time, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, revocationURL, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, realmv1.IntrospectSessionOperation.Method(), revocationURL, bytes.NewReader(body))
 	if err != nil {
 		return time.Time{}, fmt.Errorf("build revocation request: %w", err)
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", realmv1.IntrospectSessionOperation.RequestContentType())
 
-	client := v.httpClient
-	if client == nil {
-		client = &http.Client{Timeout: defaultRevocationTimeout}
-	}
+	client := redirectRejectingHTTPClient(v.httpClient, defaultRevocationTimeout)
 	resp, err := client.Do(req)
 	if err != nil {
 		return time.Time{}, newRevocationUnavailableError("request revocation endpoint", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != realmv1.IntrospectSessionOperation.SuccessStatus() {
 		return time.Time{}, newRevocationUnavailableError(fmt.Sprintf("revocation endpoint returned status %d", resp.StatusCode), nil)
 	}
 	if !isJSONContentType(resp.Header.Get("Content-Type")) {
 		return time.Time{}, newRevocationUnavailableError("revocation endpoint returned non-json content type", nil)
 	}
-	limited := io.LimitReader(resp.Body, maxRevocationBodyBytes)
-	var result revocationResponse
-	if err := json.NewDecoder(limited).Decode(&result); err != nil {
+	payload, err := io.ReadAll(io.LimitReader(resp.Body, maxRevocationBodyBytes+1))
+	if err != nil {
+		return time.Time{}, newRevocationUnavailableError("read revocation response", err)
+	}
+	if len(payload) > maxRevocationBodyBytes {
+		return time.Time{}, newRevocationUnavailableError("revocation response exceeds fixed bound", nil)
+	}
+	var result realmv1.IntrospectSessionResponseDto
+	if err := jsonstrict.Decode(payload, &result); err != nil {
 		return time.Time{}, newRevocationUnavailableError("decode revocation response", err)
 	}
-	if result.Active == nil || result.Revoked == nil {
+	var required map[string]json.RawMessage
+	if err := json.Unmarshal(payload, &required); err != nil || required["active"] == nil || required["revoked"] == nil {
 		return time.Time{}, newRevocationUnavailableError("revocation response missing active or revoked", nil)
 	}
-	if *result.Revoked || !*result.Active {
+	if result.Revoked || !result.Active {
 		return time.Time{}, errSessionRevoked
 	}
 	var responseExpiry time.Time
@@ -503,11 +481,11 @@ func (v *Validator) refreshJWKS(ctx context.Context, requiredKid string) error {
 		return nil
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, v.jwksURL, nil)
+	req, err := http.NewRequestWithContext(ctx, realmv1.GetAuthJwksOperation.Method(), v.jwksURL, nil)
 	if err != nil {
 		return fmt.Errorf("build jwks request: %w", err)
 	}
-	resp, err := v.httpClient.Do(req)
+	resp, err := redirectRejectingHTTPClient(v.httpClient, defaultJWKSRequestTimeout).Do(req)
 	if err != nil {
 		return fmt.Errorf("request jwks endpoint: %w", err)
 	}
@@ -516,12 +494,22 @@ func (v *Validator) refreshJWKS(ctx context.Context, requiredKid string) error {
 		_ = resp.Body.Close()
 	}()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != realmv1.GetAuthJwksOperation.SuccessStatus() {
 		return fmt.Errorf("jwks endpoint returned status %d", resp.StatusCode)
 	}
+	if !isJSONContentType(resp.Header.Get("Content-Type")) {
+		return fmt.Errorf("jwks endpoint returned non-json content type")
+	}
 
+	payload, err := io.ReadAll(io.LimitReader(resp.Body, maxJWKSBodyBytes+1))
+	if err != nil {
+		return fmt.Errorf("read jwks response: %w", err)
+	}
+	if len(payload) > maxJWKSBodyBytes {
+		return fmt.Errorf("jwks response exceeds fixed bound")
+	}
 	var document jwksDocument
-	if err := json.NewDecoder(io.LimitReader(resp.Body, maxJWKSBodyBytes)).Decode(&document); err != nil {
+	if err := jsonstrict.Decode(payload, &document); err != nil {
 		return fmt.Errorf("decode jwks response: %w", err)
 	}
 	parsedKeys, err := parseJWKSDocument(document)
@@ -540,6 +528,17 @@ func (v *Validator) refreshJWKS(ctx context.Context, requiredKid string) error {
 	v.fetchedAt = time.Now()
 	v.mu.Unlock()
 	return nil
+}
+
+func redirectRejectingHTTPClient(client *http.Client, fallbackTimeout time.Duration) *http.Client {
+	if client == nil {
+		client = &http.Client{Timeout: fallbackTimeout}
+	}
+	copy := *client
+	copy.CheckRedirect = func(*http.Request, []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	return &copy
 }
 
 func parseJWKSDocument(document jwksDocument) (map[string]cachedSigningKey, error) {
@@ -569,8 +568,6 @@ func parseJWKPublicKey(entry jwkEntry) (crypto.PublicKey, error) {
 	switch strings.TrimSpace(entry.Kty) {
 	case "RSA":
 		return parseRSAJWK(entry)
-	case "EC":
-		return parseECJWK(entry)
 	default:
 		return nil, fmt.Errorf("unsupported jwk kty=%q", entry.Kty)
 	}
@@ -609,31 +606,6 @@ func parseRSAJWK(entry jwkEntry) (crypto.PublicKey, error) {
 	}, nil
 }
 
-func parseECJWK(entry jwkEntry) (crypto.PublicKey, error) {
-	if strings.TrimSpace(entry.Crv) != "P-256" {
-		return nil, fmt.Errorf("unsupported ec curve %q", entry.Crv)
-	}
-	xBytes, err := base64.RawURLEncoding.DecodeString(strings.TrimSpace(entry.X))
-	if err != nil {
-		return nil, fmt.Errorf("decode ec x: %w", err)
-	}
-	yBytes, err := base64.RawURLEncoding.DecodeString(strings.TrimSpace(entry.Y))
-	if err != nil {
-		return nil, fmt.Errorf("decode ec y: %w", err)
-	}
-	curve := elliptic.P256()
-	x := new(big.Int).SetBytes(xBytes)
-	y := new(big.Int).SetBytes(yBytes)
-	if !curve.IsOnCurve(x, y) {
-		return nil, fmt.Errorf("ec point not on curve")
-	}
-	return &ecdsa.PublicKey{
-		Curve: curve,
-		X:     x,
-		Y:     y,
-	}, nil
-}
-
 func ensureAlgorithmCompatibility(tokenAlg string, key cachedSigningKey) error {
 	if strings.TrimSpace(key.alg) != "" && strings.TrimSpace(key.alg) != tokenAlg {
 		return fmt.Errorf("jwk alg mismatch: token=%s jwk=%s", tokenAlg, key.alg)
@@ -642,11 +614,6 @@ func ensureAlgorithmCompatibility(tokenAlg string, key cachedSigningKey) error {
 	case "RS256":
 		if _, ok := key.publicKey.(*rsa.PublicKey); !ok {
 			return fmt.Errorf("key type mismatch: token uses RSA but key is not RSA")
-		}
-		return nil
-	case "ES256":
-		if _, ok := key.publicKey.(*ecdsa.PublicKey); !ok {
-			return fmt.Errorf("key type mismatch: token uses ECDSA but key is not ECDSA")
 		}
 		return nil
 	default:

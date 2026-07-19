@@ -39,9 +39,11 @@ export {
   getRuntimeAccountSessionStatusResponse,
   invokeRuntimeAccountRealmUnary,
   logoutRuntimeAccount,
+  parseDesktopAccountSessionEvent,
   parseDesktopAccountBeginLoginResponse,
   parseDesktopAccountRealmUnaryResponse,
   parseDesktopAccountSessionStatus,
+  subscribeRuntimeAccountSessionEvents,
   switchRuntimeAccount,
 } from './runtime-account.js';
 export type {
@@ -49,6 +51,9 @@ export type {
   DesktopAccountCompleteLoginInput,
   DesktopAccountProjection,
   DesktopAccountRealmUnaryInput,
+  DesktopAccountSessionDeliveryKind,
+  DesktopAccountSessionEvent,
+  DesktopAccountSessionSubscriptionHandlers,
   DesktopAccountSessionState,
   DesktopAccountSessionStatus,
 } from './runtime-account.js';

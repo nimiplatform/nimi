@@ -198,7 +198,7 @@ async function getDesktopRealmChatOutboxStore(): Promise<RealmChatOutboxStore> {
 
 function markRealmOffline(error: unknown): void {
   if (isRealmOfflineError(error)) {
-    getOfflineCoordinator().markRealmRestReachable(false);
+    getOfflineCoordinator().markRealmRestReachability('unreachable');
   }
 }
 

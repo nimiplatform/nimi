@@ -43,6 +43,16 @@ enum AccountEventType {
   ACCOUNT_EVENT_TYPE_BINDING_EXPIRED = 19;
   ACCOUNT_EVENT_TYPE_BINDING_SUPERSEDED = 20;
   ACCOUNT_EVENT_TYPE_BINDING_REPLAY_DETECTED = 21;
+  ACCOUNT_EVENT_TYPE_REFRESH_DEFERRED = 22;
+  ACCOUNT_EVENT_TYPE_LOGOUT_FAILED = 23;
+  ACCOUNT_EVENT_TYPE_SWITCH_FAILED = 24;
+}
+
+enum AccountSessionDeliveryKind {
+  ACCOUNT_SESSION_DELIVERY_KIND_UNSPECIFIED = 0;
+  ACCOUNT_SESSION_DELIVERY_KIND_SNAPSHOT = 1;
+  ACCOUNT_SESSION_DELIVERY_KIND_REPLAY = 2;
+  ACCOUNT_SESSION_DELIVERY_KIND_LIVE = 3;
 }
 
 enum AccountReasonCode {
@@ -69,11 +79,25 @@ enum AccountReasonCode {
   ACCOUNT_REASON_CODE_BROKER_CAPABILITY_MISSING = 19;
   ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED = 20;
   ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID = 21;
-  ACCOUNT_REASON_CODE_BROKER_UPSTREAM_FAILED = 22;
+  reserved 22;
+  reserved "ACCOUNT_REASON_CODE_BROKER_UPSTREAM_FAILED";
   ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE = 23;
   ACCOUNT_REASON_CODE_BROKER_CREDENTIAL_RESPONSE_FORBIDDEN = 24;
   ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH = 25;
   ACCOUNT_REASON_CODE_LAUNCH_NONCE_REPLAY = 26;
+  ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE = 27;
+  ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID = 28;
+  ACCOUNT_REASON_CODE_BROKER_FORBIDDEN = 29;
+  ACCOUNT_REASON_CODE_BROKER_NOT_FOUND = 30;
+  ACCOUNT_REASON_CODE_BROKER_CONFLICT = 31;
+  ACCOUNT_REASON_CODE_BROKER_RATE_LIMITED = 32;
+  ACCOUNT_REASON_CODE_BROKER_REQUEST_REJECTED = 33;
+  ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED = 34;
+  ACCOUNT_REASON_CODE_BROKER_OPERATION_FAILED = 35;
+  ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED = 36;
+  ACCOUNT_REASON_CODE_REFRESH_TOKEN_INVALID = 37;
+  ACCOUNT_REASON_CODE_REFRESH_CONTRACT_INVALID = 38;
+  ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS = 39;
 }
 
 enum PresenceVerificationState {
@@ -157,6 +181,14 @@ message AccountProjection {
   repeated WorkspaceMembershipProjection workspace_memberships = 4;
 }
 
+message AccountSessionSnapshot {
+  uint64 sequence = 1;
+  AccountSessionState state = 2;
+  ReasonCode reason_code = 3;
+  AccountReasonCode account_reason_code = 4;
+  AccountProjection account_projection = 5;
+}
+
 message AccountCaller {
   string app_id = 1;
   string app_instance_id = 2;
@@ -206,13 +238,13 @@ message AccountSessionEvent {
   uint64 sequence = 2;
   google.protobuf.Timestamp emitted_at = 3;
   AccountEventType event_type = 4;
-  AccountSessionState state = 5;
-  ReasonCode reason_code = 6;
-  AccountReasonCode account_reason_code = 7;
-  AccountProjection account_projection = 8;
+  reserved 5, 6, 7, 8;
+  reserved "state", "reason_code", "account_reason_code", "account_projection";
   string binding_id = 9;
   ScopedAppBindingRelation binding_relation = 10;
   bool replay_truncated = 11;
+  AccountSessionDeliveryKind delivery_kind = 12;
+  AccountSessionSnapshot snapshot = 13;
 }
 
 message GetAccountSessionStatusRequest {
@@ -220,11 +252,12 @@ message GetAccountSessionStatusRequest {
 }
 
 message GetAccountSessionStatusResponse {
-  AccountSessionState state = 1;
-  AccountProjection account_projection = 2;
+  reserved 1, 2, 5;
+  reserved "state", "account_projection", "production_inert";
   ReasonCode reason_code = 3;
   AccountReasonCode account_reason_code = 4;
-  bool production_inert = 5;
+  bool accepted = 6;
+  AccountSessionSnapshot snapshot = 7;
 }
 
 message SubscribeAccountSessionEventsRequest {

@@ -8,7 +8,7 @@ import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model
 import {
   findNimiRuntimeRouteModelProfile,
 } from '@nimiplatform/sdk/runtime';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { useAppStore, type AuthStatus } from '@renderer/app-shell/providers/app-store';
 import type {
   AgentLocalMessageRecord,
   AgentLocalTargetSnapshot,
@@ -74,7 +74,7 @@ function synthesizeAgentThreadSummaryFromTarget(
 
 type UseAgentConversationShellStateInput = {
   aiConfig: NimiAIConfig;
-  authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
+  authStatus: AuthStatus;
   bootstrapReady: boolean;
   selection: AgentConversationSelection;
 };

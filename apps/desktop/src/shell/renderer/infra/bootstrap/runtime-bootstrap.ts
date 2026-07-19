@@ -1,4 +1,5 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
+import { isRealmOfflineErrorLike as isRealmOfflineError } from '@nimiplatform/sdk/types';
 import { setRuntimeLogger } from '@nimiplatform/kit/telemetry';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { desktopBridge, toRendererLogMessage } from '@renderer/bridge';
@@ -16,7 +17,12 @@ import {
 } from '@nimiplatform/kit/shell/renderer/bootstrap';
 import { reconcileLocalRuntimeBootstrapState } from './runtime-bootstrap-local-ai';
 import { attachOfflineCoordinatorBindings } from './runtime-bootstrap-offline';
-import { startAuthStateWatcher, stopAuthStateWatcher } from './auth-state-watcher';
+import {
+  applyRuntimeAccountStatusProjection,
+  applyRuntimeAccountUnavailableProjection,
+  startAuthStateWatcher,
+  stopAuthStateWatcher,
+} from './auth-state-watcher';
 import { registerExitHandler } from './exit-handler';
 import { getDesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/macos-smoke';
 import { pingDesktopMacosSmoke } from '@renderer/bridge/runtime-bridge/macos-smoke';
@@ -37,6 +43,8 @@ import {
 import {
   clearDesktopNimiClientSession,
   configureDesktopRuntimeRealmSession,
+  getDesktopRealm,
+  isDesktopNimiClientSessionReady,
   type DesktopRuntimeTransport,
 } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
@@ -64,11 +72,21 @@ function bindOfflineCoordinator(): void {
     suspendRuntimeCallbacksForL2,
     probeRealmReachability: async () => {
       const authStatus = useAppStore.getState().auth.status;
-      if (authStatus !== 'authenticated') {
+      if (authStatus !== 'authenticated' || !isDesktopNimiClientSessionReady()) {
         return false;
       }
-      await realmSocialData.loadCurrentUser();
-      return true;
+      try {
+        await getDesktopRealm().worldPublic.worldPublicControllerListWorlds({
+          path: {},
+          query: {},
+        });
+        return true;
+      } catch (error) {
+        // A permission, validation, rate-limit, or contract response proves the
+        // Realm transport is reachable. Only the typed Realm transport failure
+        // keeps L1 active.
+        return !isRealmOfflineError(error);
+      }
     },
     probeRuntimeReachability: async () => {
       const daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
@@ -130,7 +148,7 @@ export function rebootstrapRuntime(): Promise<void> {
       }
       await teardownBootstrapState();
       bootstrapPromise = null;
-      await bootstrapRuntime();
+      await startBootstrapRuntime();
     }
   })().finally(() => {
     rebootstrapPromise = null;
@@ -168,6 +186,10 @@ export function bootstrapRuntime(): Promise<void> {
   if (rebootstrapPromise) {
     return rebootstrapPromise;
   }
+  return startBootstrapRuntime();
+}
+
+function startBootstrapRuntime(): Promise<void> {
   if (bootstrapPromise) {
     return bootstrapPromise;
   }
@@ -335,9 +357,6 @@ export function bootstrapRuntime(): Promise<void> {
     try {
       accountStatus = await desktopBridge.getRuntimeAccountSessionStatus();
     } catch (error) {
-      if (!runtimeUnavailable) {
-        throw error;
-      }
       logRendererEvent({
         level: 'warn',
         area: 'renderer-bootstrap',
@@ -349,17 +368,10 @@ export function bootstrapRuntime(): Promise<void> {
       });
     }
     const accountProjection = accountStatus?.accountProjection;
-    if (
-      accountStatus?.state === 'authenticated'
-      && accountProjection?.accountId
-    ) {
-      useAppStore.getState().setAuthSession({
-        id: accountProjection.accountId,
-        displayName: accountProjection.displayName,
-        realmEnvironmentId: accountProjection.realmEnvironmentId,
-      });
+    if (accountStatus) {
+      applyRuntimeAccountStatusProjection(accountStatus);
     } else {
-      useAppStore.getState().clearAuthSession();
+      applyRuntimeAccountUnavailableProjection();
     }
 
     if (runtimeUnavailable) {
@@ -389,7 +401,7 @@ export function bootstrapRuntime(): Promise<void> {
           adopted: [],
         };
       });
-      if (accountProjection?.accountId) {
+      if (accountStatus?.state === 'authenticated' && accountProjection?.accountId) {
         await withBootstrapStepTimeout(
           'account profile hydrate',
           hydrateDesktopAccountProfile({
@@ -447,7 +459,9 @@ export function bootstrapRuntime(): Promise<void> {
       }
     }
 
-    getOfflineCoordinator().markRuntimeReachable(daemonStatus.running);
+    getOfflineCoordinator().markRuntimeReachability(
+      !runtimeUnavailable && accountStatus ? 'reachable' : 'unreachable',
+    );
 
     if (runtimeUnavailable) {
       logRendererEvent({
@@ -485,7 +499,7 @@ export function bootstrapRuntime(): Promise<void> {
     });
   })().catch(async (error) => {
     // D-BOOT-008 + D-OFFLINE-001: Bootstrap failure → L2 degradation
-    getOfflineCoordinator().markRuntimeReachable(false);
+    getOfflineCoordinator().markRuntimeReachability('unreachable');
     bootstrapPromise = null;
     let failure: unknown = error;
     try {
@@ -498,7 +512,7 @@ export function bootstrapRuntime(): Promise<void> {
     const message = safeBootstrapErrorMessage(failure);
     useAppStore.getState().setBootstrapError(message);
     useAppStore.getState().setBootstrapReady(false);
-    useAppStore.getState().clearAuthSession();
+    applyRuntimeAccountUnavailableProjection();
     logRendererEvent({
       level: 'error',
       area: 'renderer-bootstrap',

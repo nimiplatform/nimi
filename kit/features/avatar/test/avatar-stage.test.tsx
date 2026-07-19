@@ -36,6 +36,7 @@ describe('avatar stage product markup', () => {
         snapshot={{
           presentation: {
             backendKind: 'sprite2d',
+            avatarAssetRef: 'desktop-avatar://resource-2/avatar.png',
           },
           interaction: {
             phase: 'idle',

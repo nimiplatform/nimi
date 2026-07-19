@@ -85,7 +85,10 @@ test('Electron Product Control host maps every renderer command to an exact prot
   };
   const host = createDesktopElectronProductControlHost({
     control,
-    account: { invoke: async () => { throw new Error('not-called'); } },
+    account: {
+      invoke: async () => { throw new Error('not-called'); },
+      close: () => {},
+    },
     evidence: {
       ensureAccountDefaultProfile: () => { throw new Error('not-called'); },
       readAccountDefaultProfile: () => { throw new Error('not-called'); },
@@ -144,7 +147,10 @@ test('Electron Product Control host rejects extra renderer fields before protect
       runtimeConsumerUnary: async () => { throw new Error('not-called'); },
       productControlUnary: async () => { calls += 1; throw new Error('not-called'); },
     },
-    account: { invoke: async () => { throw new Error('not-called'); } },
+    account: {
+      invoke: async () => { throw new Error('not-called'); },
+      close: () => {},
+    },
     evidence: {
       ensureAccountDefaultProfile: () => { throw new Error('not-called'); },
       readAccountDefaultProfile: () => { throw new Error('not-called'); },
@@ -193,6 +199,7 @@ test('Electron first-run host records Desktop evidence through the exact protect
         realmEnvironmentId: 'production',
       },
     }),
+    close: () => {},
   };
   const evidenceCalls: unknown[] = [];
   const evidence: DesktopProductControlEvidence = {
@@ -231,7 +238,10 @@ test('Electron first-run host rejects renderer-supplied evidence fields', async 
       runtimeConsumerUnary: async () => { throw new Error('not-called'); },
       productControlUnary: async () => { throw new Error('not-called'); },
     },
-    account: { invoke: async () => { throw new Error('not-called'); } },
+    account: {
+      invoke: async () => { throw new Error('not-called'); },
+      close: () => {},
+    },
     evidence: {
       ensureAccountDefaultProfile: () => { throw new Error('not-called'); },
       readAccountDefaultProfile: () => { throw new Error('not-called'); },

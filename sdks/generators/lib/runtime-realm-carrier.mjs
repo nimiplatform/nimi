@@ -4,8 +4,13 @@ import { spawnSync } from 'node:child_process';
 import { generatedBy, readYaml, writeText } from './context.mjs';
 import { pascalCase, quote } from './types.mjs';
 
-const carrierPath = 'runtime/gen/realm/v1/source_materialization_openapi.go';
-const carrierProjection = 'runtime_private_generated_carrier';
+const carrierPaths = {
+  account_auth: 'runtime/gen/realm/v1/account_auth_openapi.go',
+  authn: 'runtime/gen/realm/v1/authn_openapi.go',
+  source_materialization: 'runtime/gen/realm/v1/source_materialization_openapi.go',
+};
+const carrierProjection = 'generated_carrier';
+const publicSdkDispositions = new Set(['retained', 'forbidden']);
 
 function fail(message) {
   throw new Error(`Runtime Realm carrier generation failed: ${message}`);
@@ -39,8 +44,10 @@ function operationPolicy(realm) {
   for (const row of rows) {
     const operation = openApiOperations.get(row.operation_id);
     if (!operation) fail(`OpenAPI operation is missing: ${row.operation_id}`);
-    if (row.projection !== carrierProjection || row.public_sdk_method !== 'forbidden') {
-      fail(`private operation exposure drift: ${row.operation_id}`);
+    if (row.runtime_projection !== carrierProjection
+      || !publicSdkDispositions.has(row.public_sdk_disposition)
+      || !Object.hasOwn(carrierPaths, row.family)) {
+      fail(`operation projection drift: ${row.operation_id}`);
     }
     if (operation.method !== row.method || operation.path !== row.path) {
       fail(`private operation method/path drift: ${row.operation_id}`);
@@ -86,13 +93,15 @@ function modelClosure(realm, roots) {
   return [...selected].sort().map((name) => ({ name, schema: modelByName.get(name) }));
 }
 
-function goType(schema, unionNames) {
+function goType(schema, unionNames, valueNames = new Set()) {
   if (!schema || schema.kind === 'unknown') return 'any';
   if (schema.kind === 'ref') {
-    return unionNames.has(schema.ref_name) ? schema.ref_name : `*${schema.ref_name}`;
+    return unionNames.has(schema.ref_name) || valueNames.has(schema.ref_name)
+      ? schema.ref_name
+      : `*${schema.ref_name}`;
   }
   if (schema.kind === 'enum' || schema.type === 'string' || schema.format === 'date-time') return 'string';
-  if (schema.kind === 'array') return `[]${goType(schema.items, unionNames).replace(/^\*/, '')}`;
+  if (schema.kind === 'array') return `[]${goType(schema.items, unionNames, valueNames).replace(/^\*/, '')}`;
   if (schema.kind === 'object') return 'map[string]any';
   if (schema.type === 'boolean') return 'bool';
   if (schema.type === 'integer') return 'int64';
@@ -100,13 +109,21 @@ function goType(schema, unionNames) {
   return 'any';
 }
 
-function renderObjectModel(model, unionNames) {
+function renderObjectModel(model, unionNames, valueNames = new Set()) {
   if (model.schema.kind !== 'object') fail(`request carrier model ${model.name} is not an object`);
   const fields = model.schema.properties.map((property) => {
     const suffix = property.required ? '' : ',omitempty';
-    return `\t${pascalCase(property.name)}\t${goType(property.schema, unionNames)}\t\`json:"${property.name}${suffix}"\``;
+    return `\t${pascalCase(property.name)}\t${goType(property.schema, unionNames, valueNames)}\t\`json:"${property.name}${suffix}"\``;
   });
   return `type ${model.name} struct {\n${fields.join('\n')}\n}`;
+}
+
+function renderEnumModel(model) {
+  if (model.schema.kind !== 'enum') fail(`carrier enum ${model.name} is not an enum`);
+  const constants = (model.schema.values || []).map((value) =>
+    `\t${model.name}${pascalCase(value)} ${model.name} = ${quote(value)}`,
+  ).join('\n');
+  return `type ${model.name} string\n\nconst (\n${constants}\n)`;
 }
 
 function renderUnionModel(model) {
@@ -300,7 +317,9 @@ func materializationResponsePathMatches(pattern, actual string) bool {
 }
 
 export function runtimePrivateRealmOperationIds(realm) {
-  return new Set(operationPolicy(realm).map((row) => row.operation_id));
+  return new Set(operationPolicy(realm)
+    .filter((row) => row.public_sdk_disposition === 'forbidden')
+    .map((row) => row.operation_id));
 }
 
 export function projectRealmForPublicSdks(realm) {
@@ -319,35 +338,17 @@ export function projectRealmForPublicSdks(realm) {
   };
 }
 
-export function writeRuntimeRealmCarrier(realm) {
-  const policy = operationPolicy(realm);
-  const packet = policy.find((row) => row.operation_id === 'WorldCoreController_createSourceMaterializationPacket');
-  const jwks = policy.find((row) => row.operation_id === 'getSourceMaterializationJwks');
-  if (!packet || packet.openapi.request_schema?.ref_name !== 'CreateSourceMaterializationPacketV3Dto') {
-    fail('packet request operation/schema is not admitted');
+function successfulResponse(row, required = true) {
+  const successful = row.openapi.response_schemas.filter((response) => String(response.status).startsWith('2'));
+  if (successful.length === 0 && !required) return null;
+  if (successful.length !== 1 || !/^2[0-9]{2}$/.test(String(successful[0].status))) {
+    fail(`operation must have one exact success status: ${row.operation_id}`);
   }
-  if (!jwks || jwks.openapi.request_schema?.kind !== 'unknown') {
-    fail('current-JWKS operation is not admitted as a bodyless request');
-  }
+  return successful[0];
+}
 
-  const requestModels = modelClosure(realm, [packet.openapi.request_schema.ref_name]);
-  const unionNames = new Set(requestModels.filter((model) => model.schema.kind === 'union').map((model) => model.name));
-  const renderedModels = requestModels
-    .map((model) => model.schema.kind === 'union'
-      ? renderUnionModel(model)
-      : renderObjectModel(model, unionNames))
-    .join('\n\n');
-
-  const closureModels = modelClosure(realm, [
-    packet.openapi.request_schema.ref_name,
-    packet.openapi.response_schemas.find((response) => String(response.status).startsWith('2'))?.schema?.ref_name,
-  ]);
-  const fieldProjection = closedSchemaFieldProjection(closureModels);
-  const closureDigest = crypto.createHash('sha256')
-    .update(JSON.stringify(fieldProjection))
-    .digest('hex');
-
-  const operationConstants = policy.map((row) => {
+function renderOperationConstants(rows) {
+  return rows.map((row) => {
     const base = pascalCase(row.operation_id);
     return [
       `\t${base}OperationID\t= ${quote(row.operation_id)}`,
@@ -355,18 +356,191 @@ export function writeRuntimeRealmCarrier(realm) {
       `\t${base}Path\t= ${quote(row.path)}`,
     ].join('\n');
   }).join('\n');
+}
 
-  const operationDescriptors = policy.map((row) => {
+function renderOperationDescriptors(rows) {
+  return rows.map((row) => {
     const base = pascalCase(row.operation_id);
-    const successful = row.openapi.response_schemas.filter((response) => String(response.status).startsWith('2'));
-    if (successful.length !== 1 || !/^2[0-9]{2}$/.test(String(successful[0].status))) {
-      fail(`private operation must have one exact success status: ${row.operation_id}`);
-    }
-    return `var ${base}Operation = PrivateOperation{\n\toperationID: ${base}OperationID,\n\tmethod: ${base}Method,\n\tpath: ${base}Path,\n\tsuccessStatus: ${Number(successful[0].status)},\n}`;
+    const success = successfulResponse(row, row.operation_id !== 'oauthAuthorize');
+    return `var ${base}Operation = OperationDescriptor{\n\toperationID: ${base}OperationID,\n\tmethod: ${base}Method,\n\tpath: ${base}Path,\n\trequestContentType: ${quote(row.openapi.request_content_type || '')},\n\tsuccessStatus: ${success ? Number(success.status) : 0},\n}`;
   }).join('\n\n');
-  const responseObjectProjection = responseClosedObjectProjection(realm, policy);
+}
 
-  writeText(carrierPath, formatGo(`// Code generated by ${generatedBy}; DO NOT EDIT.
+function operationModelRoots(rows) {
+  const roots = new Set();
+  for (const row of rows) {
+    if (row.openapi.request_schema?.kind === 'ref') roots.add(row.openapi.request_schema.ref_name);
+    for (const response of row.openapi.response_schemas || []) {
+      if (response.schema?.kind === 'ref') roots.add(response.schema.ref_name);
+    }
+  }
+  return [...roots];
+}
+
+function renderModelSet(models) {
+  const unionNames = new Set(models.filter((model) => model.schema.kind === 'union').map((model) => model.name));
+  const valueNames = new Set(models.filter((model) => model.schema.kind === 'enum').map((model) => model.name));
+  return models.map((model) => {
+    if (model.schema.kind === 'union') return renderUnionModel(model);
+    if (model.schema.kind === 'enum') return renderEnumModel(model);
+    return renderObjectModel(model, unionNames, valueNames);
+  })
+    .join('\n\n');
+}
+
+function renderValuesCarrier(name, properties, methodName) {
+  const fields = properties.map((property) => {
+    const suffix = property.required ? '' : ',omitempty';
+    return `\t${pascalCase(property.name)}\tstring\t\`url:"${property.name}${suffix}"\``;
+  }).join('\n');
+  const setters = properties.map((property) => {
+    const field = `carrier.${pascalCase(property.name)}`;
+    return property.required
+      ? `\tvalues.Set(${quote(property.name)}, ${field})`
+      : `\tif ${field} != "" {\n\t\tvalues.Set(${quote(property.name)}, ${field})\n\t}`;
+  }).join('\n');
+  return `type ${name} struct {\n${fields}\n}\n\nfunc (carrier ${name}) ${methodName}() url.Values {\n\tvalues := url.Values{}\n${setters}\n\treturn values\n}`;
+}
+
+function promoteInlineObject(schema, name, models) {
+  if (!schema || schema.kind !== 'object') return schema;
+  const promoted = {
+    ...schema,
+    properties: (schema.properties || []).map((property) => {
+      let propertySchema = property.schema;
+      const childName = `${name}${pascalCase(property.name)}`;
+      if (propertySchema?.kind === 'object') {
+        promoteInlineObject(propertySchema, childName, models);
+        propertySchema = { kind: 'ref', ref_name: childName };
+      } else if (propertySchema?.kind === 'array' && propertySchema.items?.kind === 'object') {
+        const itemName = `${childName}Item`;
+        promoteInlineObject(propertySchema.items, itemName, models);
+        propertySchema = { ...propertySchema, items: { kind: 'ref', ref_name: itemName } };
+      }
+      return { ...property, schema: propertySchema };
+    }),
+  };
+  models.set(name, promoted);
+  return { kind: 'ref', ref_name: name };
+}
+
+function writeAccountAuthCarrier(realm, rows) {
+  const oauthAuthorize = rows.find((row) => row.operation_id === 'oauthAuthorize');
+  const oauthToken = rows.find((row) => row.operation_id === 'oauthToken');
+  const refreshToken = rows.find((row) => row.operation_id === 'refreshToken');
+  if (!oauthAuthorize || !oauthToken || !refreshToken
+    || oauthToken.openapi.request_content_type !== 'application/x-www-form-urlencoded'
+    || oauthToken.openapi.request_schema?.ref_name !== 'OAuthTokenRequestDto'
+    || refreshToken.openapi.request_content_type !== 'application/json'
+    || refreshToken.openapi.request_schema?.ref_name !== 'RefreshTokenDto') {
+    fail('account-auth request operation/schema/content-type is not admitted');
+  }
+  const models = modelClosure(realm, operationModelRoots(rows));
+  const oauthTokenRequest = models.find((model) => model.name === 'OAuthTokenRequestDto');
+  if (!oauthTokenRequest || oauthTokenRequest.schema.kind !== 'object') {
+    fail('OAuthTokenRequestDto is unavailable');
+  }
+  const queryCarrier = renderValuesCarrier(
+    'OauthAuthorizeQuery',
+    oauthAuthorize.openapi.query_parameters,
+    'Values',
+  );
+  const formCarrier = `func (request OAuthTokenRequestDto) FormValues() url.Values {\n\tvalues := url.Values{}\n${oauthTokenRequest.schema.properties.map((property) => `\tvalues.Set(${quote(property.name)}, request.${pascalCase(property.name)})`).join('\n')}\n\treturn values\n}`;
+  writeText(carrierPaths.account_auth, formatGo(`// Code generated by ${generatedBy}; DO NOT EDIT.
+// Source: config/realm-openapi/api-nimi.yaml and realm-private-operation-carriers.yaml.
+
+package realmv1
+
+import (
+	"net/url"
+	"strings"
+)
+
+const (
+${renderOperationConstants(rows)}
+)
+
+type OperationDescriptor struct {
+\toperationID string
+\tmethod string
+\tpath string
+\trequestContentType string
+\tsuccessStatus int
+}
+
+func (operation OperationDescriptor) OperationID() string { return operation.operationID }
+func (operation OperationDescriptor) Method() string { return operation.method }
+func (operation OperationDescriptor) Path() string { return operation.path }
+func (operation OperationDescriptor) RequestContentType() string { return operation.requestContentType }
+func (operation OperationDescriptor) SuccessStatus() int { return operation.successStatus }
+func (operation OperationDescriptor) ResolveBaseURL(baseURL string) string {
+	base, err := url.Parse(strings.TrimSpace(baseURL))
+	if err != nil || (base.Scheme != "http" && base.Scheme != "https") || strings.TrimSpace(base.Hostname()) == "" || base.User != nil || base.Opaque != "" || base.RawQuery != "" || base.Fragment != "" {
+		return ""
+	}
+	return base.ResolveReference(&url.URL{Path: operation.path}).String()
+}
+
+${renderOperationDescriptors(rows)}
+
+${queryCarrier}
+
+${renderModelSet(models)}
+
+${formCarrier}
+`));
+}
+
+function writeAuthnCarrier(realm, rows) {
+  const jwks = rows.find((row) => row.operation_id === 'getAuthJwks');
+  const introspection = rows.find((row) => row.operation_id === 'introspectSession');
+  const jwksSuccess = jwks ? successfulResponse(jwks) : null;
+  if (!jwks || !introspection || jwks.openapi.request_schema?.kind !== 'unknown'
+    || jwksSuccess?.schema?.kind !== 'object') {
+    fail('authn operation/schema is not admitted');
+  }
+  const models = modelClosure(realm, operationModelRoots(rows));
+  const inlineModels = new Map();
+  promoteInlineObject(jwksSuccess.schema, 'GetAuthJwksResponse', inlineModels);
+  const rendered = renderModelSet([
+    ...models,
+    ...[...inlineModels.entries()].map(([name, schema]) => ({ name, schema })),
+  ].sort((left, right) => left.name.localeCompare(right.name)));
+  writeText(carrierPaths.authn, formatGo(`// Code generated by ${generatedBy}; DO NOT EDIT.
+// Source: config/realm-openapi/api-nimi.yaml and realm-private-operation-carriers.yaml.
+
+package realmv1
+
+const (
+${renderOperationConstants(rows)}
+)
+
+${renderOperationDescriptors(rows)}
+
+${rendered}
+`));
+}
+
+function writeSourceMaterializationCarrier(realm, rows) {
+  const packet = rows.find((row) => row.operation_id === 'WorldCoreController_createSourceMaterializationPacket');
+  const jwks = rows.find((row) => row.operation_id === 'getSourceMaterializationJwks');
+  if (!packet || packet.openapi.request_schema?.ref_name !== 'CreateSourceMaterializationPacketV3Dto') {
+    fail('packet request operation/schema is not admitted');
+  }
+  if (!jwks || jwks.openapi.request_schema?.kind !== 'unknown') {
+    fail('current-JWKS operation is not admitted as a bodyless request');
+  }
+  const requestModels = modelClosure(realm, [packet.openapi.request_schema.ref_name]);
+  const closureModels = modelClosure(realm, [
+    packet.openapi.request_schema.ref_name,
+    successfulResponse(packet)?.schema?.ref_name,
+  ]);
+  const fieldProjection = closedSchemaFieldProjection(closureModels);
+  const closureDigest = crypto.createHash('sha256')
+    .update(JSON.stringify(fieldProjection))
+    .digest('hex');
+  const responseObjectProjection = responseClosedObjectProjection(realm, rows);
+  writeText(carrierPaths.source_materialization, formatGo(`// Code generated by ${generatedBy}; DO NOT EDIT.
 // Source: config/realm-openapi/api-nimi.yaml and realm-private-operation-carriers.yaml.
 
 package realmv1
@@ -374,28 +548,30 @@ package realmv1
 import "strings"
 
 const (
-${operationConstants}
+${renderOperationConstants(rows)}
 \tMaterializationSchemaClosureSHA256\t= ${quote(closureDigest)}
 )
 
-type PrivateOperation struct {
-\toperationID string
-\tmethod string
-\tpath string
-\tsuccessStatus int
-}
+${renderOperationDescriptors(rows)}
 
-func (operation PrivateOperation) OperationID() string { return operation.operationID }
-func (operation PrivateOperation) Method() string { return operation.method }
-func (operation PrivateOperation) Path() string { return operation.path }
-func (operation PrivateOperation) SuccessStatus() int { return operation.successStatus }
-
-${operationDescriptors}
-
-${renderedModels}
+${renderModelSet(requestModels)}
 
 ${renderClosedSchemaFields(fieldProjection)}
 
 ${renderResponseClosedObjectProjection(responseObjectProjection)}
 `));
+}
+
+export function writeRuntimeRealmCarrier(realm) {
+  const policy = operationPolicy(realm);
+  const byFamily = Object.fromEntries(Object.keys(carrierPaths).map((family) => [
+    family,
+    policy.filter((row) => row.family === family),
+  ]));
+  for (const [family, rows] of Object.entries(byFamily)) {
+    if (rows.length === 0) fail(`operation family is empty: ${family}`);
+  }
+  writeAccountAuthCarrier(realm, byFamily.account_auth);
+  writeAuthnCarrier(realm, byFamily.authn);
+  writeSourceMaterializationCarrier(realm, byFamily.source_materialization);
 }

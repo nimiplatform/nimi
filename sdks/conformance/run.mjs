@@ -15,7 +15,9 @@ const privateRealmOperationTable = YAML.parse(readFileSync(
   'utf8',
 ));
 const privateRealmOperationIds = new Set(
-  (privateRealmOperationTable.operations || []).map((operation) => String(operation.operation_id || '').trim()),
+  (privateRealmOperationTable.operations || [])
+    .filter((operation) => operation.public_sdk_disposition === 'forbidden')
+    .map((operation) => String(operation.operation_id || '').trim()),
 );
 
 function readJson(rel) {

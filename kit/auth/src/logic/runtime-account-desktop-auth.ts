@@ -26,8 +26,13 @@ export type RuntimeAccountDesktopBrowserAuthClient = RuntimeAccountBrowserBroker
       readonly getAccountSessionStatus: (input: {
         readonly caller: RuntimeAccountDesktopBrowserAuthCaller;
       }) => Promise<{
-        readonly state: unknown;
-        readonly accountProjection?: RuntimeAccountDesktopBrowserAuthProjection | null;
+        readonly accepted: boolean;
+        readonly reasonCode?: unknown;
+        readonly accountReasonCode?: unknown;
+        readonly snapshot?: {
+          readonly state: unknown;
+          readonly accountProjection?: RuntimeAccountDesktopBrowserAuthProjection | null;
+        } | null;
       }>;
       readonly logout: (input: {
         readonly caller: RuntimeAccountDesktopBrowserAuthCaller;
@@ -105,10 +110,15 @@ export function createRuntimeAccountDesktopBrowserAuth<Client extends RuntimeAcc
     const response = await input.getClient().runtime.account.getAccountSessionStatus({
       caller: input.caller,
     });
-    if (!input.isAuthenticatedState(response.state)) {
+    if (!response.accepted || !response.snapshot) {
+      throw new Error(
+        `Runtime account status rejected: ${String(response.accountReasonCode || response.reasonCode || 'missing_snapshot')}`,
+      );
+    }
+    if (!input.isAuthenticatedState(response.snapshot.state)) {
       return null;
     }
-    return projectUser(response.accountProjection);
+    return projectUser(response.snapshot.accountProjection);
   }
 
   async function logout(): Promise<void> {

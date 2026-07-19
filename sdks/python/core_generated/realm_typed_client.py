@@ -5271,7 +5271,7 @@ class RealmOauthTokenOperationRequest:
     path: RealmOauthTokenOperationPath
     query: RealmOauthTokenOperationQuery | None = None
     headers: RealmOauthTokenOperationHeaders | None = None
-    body: None | None = None
+    body: OAuthTokenRequestDto | None = None
 
 @dataclass(frozen=True)
 class RealmPasswordLoginOperationPath:

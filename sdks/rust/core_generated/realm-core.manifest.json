@@ -69,6 +69,7 @@
         "ref_name": "AddFriendBodyDto"
       },
       "request_schema_ref": "#/components/schemas/AddFriendBodyDto",
+      "request_content_type": "application/json",
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -122,6 +123,7 @@
         "ref_name": "AddGroupParticipantInputDto"
       },
       "request_schema_ref": "#/components/schemas/AddGroupParticipantInputDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -190,6 +192,7 @@
         "ref_name": "AddGroupSourceParticipantInputDto"
       },
       "request_schema_ref": "#/components/schemas/AddGroupSourceParticipantInputDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -256,6 +259,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -292,6 +296,7 @@
         "ref_name": "BindEmailDto"
       },
       "request_schema_ref": "#/components/schemas/BindEmailDto",
+      "request_content_type": "application/json",
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -313,6 +318,7 @@
         "ref_name": "WalletBindDto"
       },
       "request_schema_ref": "#/components/schemas/WalletBindDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -381,6 +387,7 @@
         "ref_name": "BlockUserBodyDto"
       },
       "request_schema_ref": "#/components/schemas/BlockUserBodyDto",
+      "request_content_type": "application/json",
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -402,6 +409,7 @@
         "ref_name": "ChangeEmailDto"
       },
       "request_schema_ref": "#/components/schemas/ChangeEmailDto",
+      "request_content_type": "application/json",
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -423,6 +431,7 @@
         "ref_name": "CheckEmailDto"
       },
       "request_schema_ref": "#/components/schemas/CheckEmailDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -489,6 +498,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -557,6 +567,7 @@
         "ref_name": "CloneAssetDto"
       },
       "request_schema_ref": "#/components/schemas/CloneAssetDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -625,6 +636,7 @@
         "ref_name": "CommitRealmGroupSourceMessageCandidateInputDto"
       },
       "request_schema_ref": "#/components/schemas/CommitRealmGroupSourceMessageCandidateInputDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -661,6 +673,7 @@
         "ref_name": "CreateAssetDto"
       },
       "request_schema_ref": "#/components/schemas/CreateAssetDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -697,6 +710,7 @@
         "ref_name": "CreateAudioDirectUploadDto"
       },
       "request_schema_ref": "#/components/schemas/CreateAudioDirectUploadDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -733,6 +747,7 @@
         "ref_name": "CreateBundleDto"
       },
       "request_schema_ref": "#/components/schemas/CreateBundleDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -769,6 +784,7 @@
         "ref_name": "CreateGroupInputDto"
       },
       "request_schema_ref": "#/components/schemas/CreateGroupInputDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -835,6 +851,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "201",
@@ -871,6 +888,7 @@
         "ref_name": "CreatePostDto"
       },
       "request_schema_ref": "#/components/schemas/CreatePostDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -907,6 +925,7 @@
         "ref_name": "CreateTextResourceDto"
       },
       "request_schema_ref": "#/components/schemas/CreateTextResourceDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -973,6 +992,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "201",
@@ -1039,6 +1059,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -1090,6 +1111,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -1111,6 +1133,7 @@
         "ref_name": "Me2faVerifyDto"
       },
       "request_schema_ref": "#/components/schemas/Me2faVerifyDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -1177,6 +1200,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "201",
@@ -1243,6 +1267,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -1277,6 +1302,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -1296,6 +1322,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -1330,6 +1357,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "201",
@@ -1366,6 +1394,7 @@
         "ref_name": "CreateConnectOnboardingDto"
       },
       "request_schema_ref": "#/components/schemas/CreateConnectOnboardingDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -1402,6 +1431,7 @@
         "ref_name": "CreatePortalSessionDto"
       },
       "request_schema_ref": "#/components/schemas/CreatePortalSessionDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -1438,6 +1468,7 @@
         "ref_name": "CreateSparkCheckoutDto"
       },
       "request_schema_ref": "#/components/schemas/CreateSparkCheckoutDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -1474,6 +1505,7 @@
         "ref_name": "CreateSubscriptionCheckoutDto"
       },
       "request_schema_ref": "#/components/schemas/CreateSubscriptionCheckoutDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -1510,6 +1542,7 @@
         "ref_name": "CreateWithdrawalDto"
       },
       "request_schema_ref": "#/components/schemas/CreateWithdrawalDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -1544,6 +1577,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -1578,6 +1612,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -1674,6 +1709,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -1708,6 +1744,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -1804,6 +1841,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -1838,6 +1876,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -1934,6 +1973,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -1970,6 +2010,7 @@
         "ref_name": "RevenueSourceOriginRequestDto"
       },
       "request_schema_ref": "#/components/schemas/RevenueSourceOriginRequestDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -2066,6 +2107,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -2100,6 +2142,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -2134,6 +2177,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -2168,6 +2212,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -2234,6 +2279,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -2268,6 +2314,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -2364,6 +2411,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -2400,6 +2448,7 @@
         "ref_name": "RevenueDistributionPreviewRequestDto"
       },
       "request_schema_ref": "#/components/schemas/RevenueDistributionPreviewRequestDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -2468,6 +2517,7 @@
         "ref_name": "RejectGiftDto"
       },
       "request_schema_ref": "#/components/schemas/RejectGiftDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -2504,6 +2554,7 @@
         "ref_name": "SendGiftDto"
       },
       "request_schema_ref": "#/components/schemas/SendGiftDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -2602,6 +2653,7 @@
         "ref_name": "EditMessageInputDto"
       },
       "request_schema_ref": "#/components/schemas/EditMessageInputDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -2700,6 +2752,7 @@
         "ref_name": "EditMessageInputDto"
       },
       "request_schema_ref": "#/components/schemas/EditMessageInputDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -2736,6 +2789,7 @@
         "ref_name": "Me2faVerifyDto"
       },
       "request_schema_ref": "#/components/schemas/Me2faVerifyDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -2770,6 +2824,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -2823,6 +2878,7 @@
         "ref_name": "FinalizeResourceDto"
       },
       "request_schema_ref": "#/components/schemas/FinalizeResourceDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -2889,6 +2945,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -2923,6 +2980,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -3088,6 +3146,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -3154,6 +3213,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -3310,6 +3370,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -3376,6 +3437,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -3590,6 +3652,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -3624,6 +3687,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -3751,6 +3815,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -3935,6 +4000,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -4043,6 +4109,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -4224,6 +4291,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -4258,6 +4326,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -4292,6 +4361,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -4326,6 +4396,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -4478,6 +4549,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -4512,6 +4584,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -4546,6 +4619,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -4580,6 +4654,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -4677,6 +4752,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -4743,6 +4819,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -4809,6 +4886,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -4843,6 +4921,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -4909,6 +4988,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -4975,6 +5055,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -5041,6 +5122,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -5261,6 +5343,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -5297,6 +5380,7 @@
         "ref_name": "IntrospectSessionRequestDto"
       },
       "request_schema_ref": "#/components/schemas/IntrospectSessionRequestDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -5344,6 +5428,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "201",
@@ -5378,6 +5463,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -5414,6 +5500,7 @@
         "ref_name": "VerifyInvitationCodeDto"
       },
       "request_schema_ref": "#/components/schemas/VerifyInvitationCodeDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -5480,6 +5567,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -5501,6 +5589,7 @@
         "ref_name": "OAuthLoginDto"
       },
       "request_schema_ref": "#/components/schemas/OAuthLoginDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -5535,6 +5624,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -5569,6 +5659,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -5665,6 +5756,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -5852,6 +5944,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -5948,6 +6041,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -6104,6 +6198,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -6291,6 +6386,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -6325,6 +6421,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -6406,6 +6503,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -6570,6 +6668,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -6604,6 +6703,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -6643,6 +6743,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -6679,6 +6780,7 @@
         "ref_name": "RefreshTokenDto"
       },
       "request_schema_ref": "#/components/schemas/RefreshTokenDto",
+      "request_content_type": "application/json",
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -6730,6 +6832,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -6781,6 +6884,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -6832,6 +6936,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -6853,6 +6958,7 @@
         "ref_name": "MarkNotificationsReadInputDto"
       },
       "request_schema_ref": "#/components/schemas/MarkNotificationsReadInputDto",
+      "request_content_type": "application/json",
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -7246,6 +7352,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -7267,6 +7374,7 @@
         "ref_name": "OAuthLoginDto"
       },
       "request_schema_ref": "#/components/schemas/OAuthLoginDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -7298,9 +7406,12 @@
       "query_parameters": [],
       "header_parameters": [],
       "request_schema": {
-        "kind": "unknown"
+        "kind": "ref",
+        "ref": "#/components/schemas/OAuthTokenRequestDto",
+        "ref_name": "OAuthTokenRequestDto"
       },
-      "request_schema_ref": null,
+      "request_schema_ref": "#/components/schemas/OAuthTokenRequestDto",
+      "request_content_type": "application/x-www-form-urlencoded",
       "response_schemas": [
         {
           "status": "200",
@@ -7337,6 +7448,7 @@
         "ref_name": "PasswordLoginDto"
       },
       "request_schema_ref": "#/components/schemas/PasswordLoginDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -7373,6 +7485,7 @@
         "ref_name": "PasswordRegisterDto"
       },
       "request_schema_ref": "#/components/schemas/PasswordRegisterDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -7407,6 +7520,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -7443,6 +7557,7 @@
         "ref_name": "WalletPrepareBindDto"
       },
       "request_schema_ref": "#/components/schemas/WalletPrepareBindDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -7509,6 +7624,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -7605,6 +7721,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -7686,6 +7803,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -7707,6 +7825,7 @@
         "ref_name": "RefreshTokenDto"
       },
       "request_schema_ref": "#/components/schemas/RefreshTokenDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -7743,6 +7862,7 @@
         "ref_name": "CreateRelationshipDto"
       },
       "request_schema_ref": "#/components/schemas/CreateRelationshipDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -7809,6 +7929,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -7871,6 +7992,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -7939,6 +8061,7 @@
         "ref_name": "UpdateRelationshipDto"
       },
       "request_schema_ref": "#/components/schemas/UpdateRelationshipDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -8005,6 +8128,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -8086,6 +8210,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -8167,6 +8292,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -8188,6 +8314,7 @@
         "ref_name": "CreateReportDto"
       },
       "request_schema_ref": "#/components/schemas/CreateReportDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -8224,6 +8351,7 @@
         "ref_name": "RequestAccountDeletionDto"
       },
       "request_schema_ref": "#/components/schemas/RequestAccountDeletionDto",
+      "request_content_type": "application/json",
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -8245,6 +8373,7 @@
         "ref_name": "RequestDataExportDto"
       },
       "request_schema_ref": "#/components/schemas/RequestDataExportDto",
+      "request_content_type": "application/json",
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -8266,6 +8395,7 @@
         "ref_name": "EmailOtpRequestDto"
       },
       "request_schema_ref": "#/components/schemas/EmailOtpRequestDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -8302,6 +8432,7 @@
         "ref_name": "CreateReviewDto"
       },
       "request_schema_ref": "#/components/schemas/CreateReviewDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -8368,6 +8499,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -8794,6 +8926,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -9220,6 +9353,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -9586,6 +9720,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -9654,6 +9789,7 @@
         "ref_name": "SendMessageInputDto"
       },
       "request_schema_ref": "#/components/schemas/SendMessageInputDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -9722,6 +9858,7 @@
         "ref_name": "SendMessageInputDto"
       },
       "request_schema_ref": "#/components/schemas/SendMessageInputDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -9758,6 +9895,7 @@
         "ref_name": "StartChatInputDto"
       },
       "request_schema_ref": "#/components/schemas/StartChatInputDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -9885,6 +10023,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -10012,6 +10151,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -10078,6 +10218,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -10144,6 +10285,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -10180,6 +10322,7 @@
         "ref_name": "CreateTransitDto"
       },
       "request_schema_ref": "#/components/schemas/CreateTransitDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -10246,6 +10389,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -10312,6 +10456,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -10438,6 +10583,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -10474,6 +10620,7 @@
         "ref_name": "TranslateRequestDto"
       },
       "request_schema_ref": "#/components/schemas/TranslateRequestDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -10540,6 +10687,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -10591,6 +10739,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -10642,6 +10791,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -10693,6 +10843,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -10746,6 +10897,7 @@
         "ref_name": "UpdateAssetDto"
       },
       "request_schema_ref": "#/components/schemas/UpdateAssetDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -10814,6 +10966,7 @@
         "ref_name": "UpdateBundleDto"
       },
       "request_schema_ref": "#/components/schemas/UpdateBundleDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -10882,6 +11035,7 @@
         "ref_name": "UpdateGroupInputDto"
       },
       "request_schema_ref": "#/components/schemas/UpdateGroupInputDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -10980,6 +11134,7 @@
         "ref_name": "UpdateParticipantRoleInputDto"
       },
       "request_schema_ref": "#/components/schemas/UpdateParticipantRoleInputDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -11016,6 +11171,7 @@
         "ref_name": "UpdateUserDto"
       },
       "request_schema_ref": "#/components/schemas/UpdateUserDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -11052,6 +11208,7 @@
         "ref_name": "UpdateMyHandleDto"
       },
       "request_schema_ref": "#/components/schemas/UpdateMyHandleDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -11088,6 +11245,7 @@
         "ref_name": "UpdateUserNotificationSettingsDto"
       },
       "request_schema_ref": "#/components/schemas/UpdateUserNotificationSettingsDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -11124,6 +11282,7 @@
         "ref_name": "UpdatePPSlotConfigDto"
       },
       "request_schema_ref": "#/components/schemas/UpdatePPSlotConfigDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -11160,6 +11319,7 @@
         "ref_name": "UpdateUserSettingsDto"
       },
       "request_schema_ref": "#/components/schemas/UpdateUserSettingsDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -11196,6 +11356,7 @@
         "ref_name": "UpdatePasswordRequestDto"
       },
       "request_schema_ref": "#/components/schemas/UpdatePasswordRequestDto",
+      "request_content_type": "application/json",
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -11249,6 +11410,7 @@
         "ref_name": "UpdatePostDto"
       },
       "request_schema_ref": "#/components/schemas/UpdatePostDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -11317,6 +11479,7 @@
         "ref_name": "UpdateResourceDto"
       },
       "request_schema_ref": "#/components/schemas/UpdateResourceDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -11353,6 +11516,7 @@
         "ref_name": "Auth2faVerifyDto"
       },
       "request_schema_ref": "#/components/schemas/Auth2faVerifyDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -11389,6 +11553,7 @@
         "ref_name": "EmailOtpVerifyDto"
       },
       "request_schema_ref": "#/components/schemas/EmailOtpVerifyDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -11425,6 +11590,7 @@
         "ref_name": "WalletChallengeDto"
       },
       "request_schema_ref": "#/components/schemas/WalletChallengeDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -11461,6 +11627,7 @@
         "ref_name": "WalletLoginDto"
       },
       "request_schema_ref": "#/components/schemas/WalletLoginDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -11497,6 +11664,7 @@
         "ref_name": "BootstrapOasisWorldDto"
       },
       "request_schema_ref": "#/components/schemas/BootstrapOasisWorldDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -11533,6 +11701,7 @@
         "ref_name": "CreatePersonaCharacterCoreDto"
       },
       "request_schema_ref": "#/components/schemas/CreatePersonaCharacterCoreDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -11601,6 +11770,7 @@
         "ref_name": "CreateWorldCharacterCoreDto"
       },
       "request_schema_ref": "#/components/schemas/CreateWorldCharacterCoreDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -11637,6 +11807,7 @@
         "ref_name": "CreateWorldCoreDto"
       },
       "request_schema_ref": "#/components/schemas/CreateWorldCoreDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -11705,6 +11876,7 @@
         "ref_name": "CreateWorldEntityCoreDto"
       },
       "request_schema_ref": "#/components/schemas/CreateWorldEntityCoreDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -11773,6 +11945,7 @@
         "ref_name": "CreateWorldRelationshipCoreDto"
       },
       "request_schema_ref": "#/components/schemas/CreateWorldRelationshipCoreDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "201",
@@ -11839,6 +12012,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -11905,6 +12079,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -12031,6 +12206,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -12157,6 +12333,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -12191,6 +12368,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -12257,6 +12435,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -12323,6 +12502,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -12389,6 +12569,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -12455,6 +12636,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -12521,6 +12703,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -12703,6 +12886,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -12860,6 +13044,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -12956,6 +13141,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -13113,6 +13299,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -13360,6 +13547,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -13428,6 +13616,7 @@
         "ref_name": "ReplacePersonaCharacterCoreDto"
       },
       "request_schema_ref": "#/components/schemas/ReplacePersonaCharacterCoreDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -13496,6 +13685,7 @@
         "ref_name": "ReplaceWorldCharacterCoreDto"
       },
       "request_schema_ref": "#/components/schemas/ReplaceWorldCharacterCoreDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -13564,6 +13754,7 @@
         "ref_name": "ReplaceWorldCoreDto"
       },
       "request_schema_ref": "#/components/schemas/ReplaceWorldCoreDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -13632,6 +13823,7 @@
         "ref_name": "ReplaceWorldEntityCoreDto"
       },
       "request_schema_ref": "#/components/schemas/ReplaceWorldEntityCoreDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -13700,6 +13892,7 @@
         "ref_name": "ReplaceWorldRelationshipCoreDto"
       },
       "request_schema_ref": "#/components/schemas/ReplaceWorldRelationshipCoreDto",
+      "request_content_type": "application/json",
       "response_schemas": [
         {
           "status": "200",
@@ -13766,6 +13959,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -13832,6 +14026,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -13898,6 +14093,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",
@@ -13932,6 +14128,7 @@
         "kind": "unknown"
       },
       "request_schema_ref": null,
+      "request_content_type": null,
       "response_schemas": [
         {
           "status": "200",

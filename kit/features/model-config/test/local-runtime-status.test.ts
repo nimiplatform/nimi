@@ -5,7 +5,12 @@ import {
   resolveModelConfigLocalRuntimeStatus,
 } from '../src/headless.js';
 import type { LocalAssetEntry } from '../src/types.js';
-import type { NimiAIConfig, NimiAIConfigTargetRef, NimiAIScopeRef } from '@nimiplatform/kit/core/sdk-contract';
+import type {
+  NimiAIConfig,
+  NimiAIConfigTargetRef,
+  NimiAIScopeRef,
+  NimiJsonObject,
+} from '@nimiplatform/kit/core/sdk-contract';
 
 const scopeRef: NimiAIScopeRef = { kind: 'app', ownerId: 'tester', surfaceId: 'app-lab' };
 
@@ -19,7 +24,7 @@ function localRuntimeTargetRef(value: string): NimiAIConfigTargetRef {
 
 function configWithImageTarget(
   targetRef: NimiAIConfigTargetRef,
-  selectedParams: Readonly<Record<string, unknown>> = {},
+  selectedParams: NimiJsonObject = {},
 ): NimiAIConfig {
   return {
     scopeRef,

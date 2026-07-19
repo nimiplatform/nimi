@@ -1166,7 +1166,37 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: LOCAL_APP_RISK_DISCLOSURE_REQUIRED = 660;
      */
-    LOCAL_APP_RISK_DISCLOSURE_REQUIRED = 660
+    LOCAL_APP_RISK_DISCLOSURE_REQUIRED = 660,
+    /**
+     * Realm broker (661-667): account-owned Realm transport/application results.
+     *
+     * @generated from protobuf enum value: REALM_UNAVAILABLE = 661;
+     */
+    REALM_UNAVAILABLE = 661,
+    /**
+     * @generated from protobuf enum value: REALM_NOT_FOUND = 662;
+     */
+    REALM_NOT_FOUND = 662,
+    /**
+     * @generated from protobuf enum value: REALM_CONFLICT = 663;
+     */
+    REALM_CONFLICT = 663,
+    /**
+     * @generated from protobuf enum value: REALM_RATE_LIMITED = 664;
+     */
+    REALM_RATE_LIMITED = 664,
+    /**
+     * @generated from protobuf enum value: REALM_REQUEST_REJECTED = 665;
+     */
+    REALM_REQUEST_REJECTED = 665,
+    /**
+     * @generated from protobuf enum value: REALM_CONTRACT_INVALID = 666;
+     */
+    REALM_CONTRACT_INVALID = 666,
+    /**
+     * @generated from protobuf enum value: REALM_OPERATION_FAILED = 667;
+     */
+    REALM_OPERATION_FAILED = 667
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

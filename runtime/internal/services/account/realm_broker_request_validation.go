@@ -1,9 +1,11 @@
 package account
 
 import (
-	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
+
+	"github.com/nimiplatform/nimi/runtime/internal/jsonstrict"
 )
 
 func validateRealmUnaryRequestShape(operation realmUnaryOperation, request realmUnaryRequestJSON) error {
@@ -14,13 +16,21 @@ func validateRealmUnaryRequestShape(operation realmUnaryOperation, request realm
 		}
 	}
 	for name := range request.Path {
-		if _, allowed := operation.allowedPathParameters[name]; !allowed {
+		kind, allowed := operation.pathParameterKinds[name]
+		if !allowed {
 			return fmt.Errorf("realm operation path parameter is not admitted: %s", name)
+		}
+		if !realmUnaryParameterValueMatches(kind, request.Path[name], true) {
+			return fmt.Errorf("realm operation path parameter has invalid type or value: %s", name)
 		}
 	}
 	for name := range request.Query {
-		if _, allowed := operation.allowedQueryParameters[name]; !allowed {
+		kind, allowed := operation.queryParameterKinds[name]
+		if !allowed {
 			return fmt.Errorf("realm operation query parameter is not admitted: %s", name)
+		}
+		if !realmUnaryParameterValueMatches(kind, request.Query[name], false) {
+			return fmt.Errorf("realm operation query parameter has invalid type or value: %s", name)
 		}
 	}
 	bodyPresent := len(request.Body) > 0 && strings.TrimSpace(string(request.Body)) != "" && strings.TrimSpace(string(request.Body)) != "null"
@@ -35,7 +45,7 @@ func validateRealmUnaryRequestShape(operation realmUnaryOperation, request realm
 	}
 	if bodyPresent {
 		var body any
-		if err := json.Unmarshal(request.Body, &body); err != nil {
+		if err := jsonstrict.Decode(request.Body, &body); err != nil {
 			return fmt.Errorf("realm operation request body JSON is invalid")
 		}
 		if scanRealmBrokerJSONValue(body) {
@@ -43,4 +53,23 @@ func validateRealmUnaryRequestShape(operation realmUnaryOperation, request realm
 		}
 	}
 	return nil
+}
+
+func realmUnaryParameterValueMatches(kind realmUnaryParameterKind, value any, path bool) bool {
+	switch kind {
+	case realmUnaryParameterString:
+		text, ok := value.(string)
+		return ok && (!path || strings.TrimSpace(text) != "") && text == strings.TrimSpace(text)
+	case realmUnaryParameterNumber:
+		number, ok := value.(float64)
+		return ok && !math.IsInf(number, 0) && !math.IsNaN(number)
+	case realmUnaryParameterInteger:
+		number, ok := value.(float64)
+		return ok && !math.IsInf(number, 0) && !math.IsNaN(number) && math.Trunc(number) == number
+	case realmUnaryParameterBoolean:
+		_, ok := value.(bool)
+		return ok
+	default:
+		return false
+	}
 }

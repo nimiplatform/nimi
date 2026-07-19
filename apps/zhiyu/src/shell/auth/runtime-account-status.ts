@@ -45,21 +45,27 @@ export async function probeZhiyuRuntimeAccountStatus(): Promise<ZhiyuAuthStatus>
     const response = await runtime.account.getAccountSessionStatus({
       caller: getRuntimeAccountCaller(),
     });
-    const stateLabel = accountSessionStateLabel(response.state);
+    if (!response.accepted || !response.snapshot) {
+      throw new Error(
+        `Runtime account status rejected: ${accountReasonCodeLabel(response.accountReasonCode)} / ${reasonCodeLabel(response.reasonCode)}`,
+      );
+    }
+    const snapshot = response.snapshot;
+    const stateLabel = accountSessionStateLabel(snapshot.state);
     return {
       transport: 'electron-ipc',
-      ready: response.state === AccountSessionState.AUTHENTICATED,
+      ready: snapshot.state === AccountSessionState.AUTHENTICATED,
       state: stateLabel,
-      reasonCode: reasonCodeLabel(response.reasonCode),
-      accountReasonCode: accountReasonCodeLabel(response.accountReasonCode),
-      actionHint: response.state === AccountSessionState.AUTHENTICATED
+      reasonCode: reasonCodeLabel(snapshot.reasonCode),
+      accountReasonCode: accountReasonCodeLabel(snapshot.accountReasonCode),
+      actionHint: snapshot.state === AccountSessionState.AUTHENTICATED
         ? 'none'
         : 'open_runtime_account_login',
       source: 'runtime',
       message: `Runtime account session state: ${stateLabel}.`,
-      accountId: stringOr(response.accountProjection?.accountId, null),
-      displayName: stringOr(response.accountProjection?.displayName, null),
-      productionInert: response.productionInert === true,
+      accountId: stringOr(snapshot.accountProjection?.accountId, null),
+      displayName: stringOr(snapshot.accountProjection?.displayName, null),
+      productionInert: false,
     };
   } catch (error) {
     return normalizeAccountStatusError(error);

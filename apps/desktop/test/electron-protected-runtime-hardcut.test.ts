@@ -11,12 +11,19 @@ function readDesktopFile(relativePath: string): string {
 
 test('Desktop Runtime bridge has no public TCP endpoint or storage fallback', () => {
   const mainSource = readDesktopFile('src-electron/main.ts');
+  const liveAcceptanceSource = readDesktopFile('scripts/run-electron-live-runtime-acceptance.mjs');
 
   assert.match(mainSource, /PROTECTED_DESKTOP_RUNTIME_TRANSPORT_REF\s*=\s*'protected-desktop-control'/);
   assert.doesNotMatch(mainSource, /NIMI_RUNTIME_GRPC_ADDR/);
   assert.doesNotMatch(mainSource, /NIMI_DESKTOP_ELECTRON_RUNTIME_ENDPOINT/);
   assert.doesNotMatch(mainSource, /127\.0\.0\.1:46371/);
   assert.doesNotMatch(mainSource, /runtime-get-app-storage/);
+  assert.match(liveAcceptanceSource, /protectedRuntimeTransportRef\s*=\s*'protected-desktop-control'/);
+  assert.doesNotMatch(liveAcceptanceSource, /NIMI_RUNTIME_GRPC_ADDR/);
+  assert.doesNotMatch(liveAcceptanceSource, /NIMI_DESKTOP_ELECTRON_RUNTIME_ENDPOINT/);
+  assert.doesNotMatch(liveAcceptanceSource, /127\.0\.0\.1:46371/);
+  assert.match(liveAcceptanceSource, /assert\.deepEqual\(\s*consoleErrors,\s*\[\]/);
+  assert.match(liveAcceptanceSource, /assert\.deepEqual\(\s*pageErrors,\s*\[\]/);
 });
 
 test('creator eligibility keeps unavailable distinct from not eligible', () => {

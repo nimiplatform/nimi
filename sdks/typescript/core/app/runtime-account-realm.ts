@@ -115,20 +115,15 @@ function runtimeMediatedRealmFailure(response: {
   readonly retryable: boolean;
   readonly source: 'realm' | 'runtime';
 } {
-  if (response.accountReasonCode === AccountReasonCode.BROKER_UPSTREAM_FAILED) {
-    const reasonCode = response.httpStatus === 404
-      ? ReasonCode.REALM_NOT_FOUND
-      : response.httpStatus === 409
-        ? ReasonCode.REALM_CONFLICT
-        : response.httpStatus === 429
-          ? ReasonCode.REALM_RATE_LIMITED
-          : ReasonCode.REALM_UNAVAILABLE;
+  const brokerReasonCode = BROKER_REASON_CODE_BY_ACCOUNT_REASON[response.accountReasonCode];
+  if (brokerReasonCode) {
     return {
-      reasonCode,
-      actionHint: reasonCode === ReasonCode.REALM_UNAVAILABLE
+      reasonCode: brokerReasonCode,
+      actionHint: brokerReasonCode === ReasonCode.REALM_UNAVAILABLE
         ? 'retry_realm_operation_when_available'
         : 'inspect_realm_operation_failure',
-      retryable: reasonCode === ReasonCode.REALM_UNAVAILABLE || reasonCode === ReasonCode.REALM_RATE_LIMITED,
+      retryable: brokerReasonCode === ReasonCode.REALM_UNAVAILABLE
+        || brokerReasonCode === ReasonCode.REALM_RATE_LIMITED,
       source: 'realm',
     };
   }
@@ -139,6 +134,18 @@ function runtimeMediatedRealmFailure(response: {
     source: 'runtime',
   };
 }
+
+const BROKER_REASON_CODE_BY_ACCOUNT_REASON: Readonly<Partial<Record<AccountReasonCode, string>>> = {
+  [AccountReasonCode.BROKER_REALM_UNAVAILABLE]: ReasonCode.REALM_UNAVAILABLE,
+  [AccountReasonCode.BROKER_AUTH_INVALID]: ReasonCode.AUTH_TOKEN_INVALID,
+  [AccountReasonCode.BROKER_FORBIDDEN]: ReasonCode.PRINCIPAL_UNAUTHORIZED,
+  [AccountReasonCode.BROKER_NOT_FOUND]: ReasonCode.REALM_NOT_FOUND,
+  [AccountReasonCode.BROKER_CONFLICT]: ReasonCode.REALM_CONFLICT,
+  [AccountReasonCode.BROKER_RATE_LIMITED]: ReasonCode.REALM_RATE_LIMITED,
+  [AccountReasonCode.BROKER_REQUEST_REJECTED]: ReasonCode.REALM_REQUEST_REJECTED,
+  [AccountReasonCode.BROKER_CONTRACT_FAILED]: ReasonCode.REALM_CONTRACT_INVALID,
+  [AccountReasonCode.BROKER_OPERATION_FAILED]: ReasonCode.REALM_OPERATION_FAILED,
+};
 
 function runtimeEnumName(enumType: Record<number, string>, value: number): string {
   return normalizeText(enumType[value]);

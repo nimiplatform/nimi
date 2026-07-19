@@ -23,6 +23,9 @@ function accountBinding(
   const ok = async () => ({ status: 'ok' as const, value: { accepted: true } });
   return {
     desktopAccountSessionStatus: ok,
+    desktopAccountSessionEventsOpen: ok,
+    desktopAccountSessionEventsNext: ok,
+    desktopAccountSessionEventsClose: ok,
     desktopAccountBeginLogin: ok,
     desktopAccountCompleteLogin: ok,
     desktopAccountInvokeRealmUnary: ok,
@@ -33,7 +36,7 @@ function accountBinding(
 }
 
 describe('Electron protected Desktop account host', () => {
-  it('pins the six renderer-safe account commands and forwards only nested DTOs', async () => {
+  it('pins the exact renderer-safe account commands and forwards only nested DTOs', async () => {
     const begin = vi.fn(async (input: unknown) => ({
       status: 'ok' as const,
       value: { accepted: true, input },
@@ -52,9 +55,15 @@ describe('Electron protected Desktop account host', () => {
       input: payload,
     });
     expect(begin).toHaveBeenCalledWith(payload);
+    await expect(host.invoke('runtime_account_begin_login', {
+      payload,
+      caller: { appId: 'forged' },
+    })).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
 
     for (const command of [
       'runtime_account_session_status',
+      'runtime_account_session_events_open',
+      'runtime_account_session_events_close',
       'runtime_account_begin_login',
       'runtime_account_complete_login',
       'runtime_account_invoke_realm_unary',
@@ -65,6 +74,160 @@ describe('Electron protected Desktop account host', () => {
     }
     expect(isElectronDesktopAccountCommand('runtime_bridge_unary')).toBe(false);
     expect(isElectronDesktopAccountCommand('runtime_account_issue_binding')).toBe(false);
+  });
+
+  it('cancels a native stream that finishes opening after host shutdown', async () => {
+    let releaseOpen: ((outcome: { status: 'ok'; value: { streamId: string } }) => void) | undefined;
+    const open = vi.fn(() => new Promise<{ status: 'ok'; value: { streamId: string } }>((resolve) => {
+      releaseOpen = resolve;
+    }));
+    const close = vi.fn(async () => ({ status: 'ok' as const, value: { closed: true } }));
+    const host = createNimiElectronDesktopAccountHostForBinding(accountBinding({
+      desktopAccountSessionEventsOpen: open,
+      desktopAccountSessionEventsClose: close,
+    }));
+    const pending = host.invoke(
+      'runtime_account_session_events_open',
+      { afterSequence: '0' },
+      {
+        eventChannelPrefix: 'nimi:runtime:event:',
+        sender: { send: () => undefined },
+      },
+    );
+    await vi.waitFor(() => expect(open).toHaveBeenCalledOnce());
+    host.close();
+    releaseOpen?.({ status: 'ok', value: { streamId: 'account-session-late' } });
+
+    await expect(pending).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+    expect(close).toHaveBeenCalledWith({ streamId: 'account-session-late' });
+  });
+
+  it('pumps only the redacted account event stream and closes the native receiver', async () => {
+    const event = {
+      sequence: '11',
+      deliveryKind: 'live',
+      state: 'refresh-pending',
+      reasonCode: 1,
+      accountReasonCode: 1,
+      accountProjection: {
+        accountId: 'account-1',
+        displayName: 'Nimi User',
+        realmEnvironmentId: 'realm-1',
+      },
+      replayTruncated: false,
+    };
+    const next = vi.fn()
+      .mockResolvedValueOnce({ status: 'ok' as const, value: { completed: false, event } })
+      .mockResolvedValueOnce({ status: 'ok' as const, value: { completed: true } });
+    const close = vi.fn(async () => ({ status: 'ok' as const, value: { closed: true } }));
+    const sent: Array<{ channel: string; payload: unknown }> = [];
+    const host = createNimiElectronDesktopAccountHostForBinding(accountBinding({
+      desktopAccountSessionEventsOpen: async (input) => ({
+        status: 'ok' as const,
+        value: { streamId: `account-session-${input.afterSequence}` },
+      }),
+      desktopAccountSessionEventsNext: next,
+      desktopAccountSessionEventsClose: close,
+    }));
+
+    await expect(host.invoke(
+      'runtime_account_session_events_open',
+      { afterSequence: '10' },
+      {
+        eventChannelPrefix: 'nimi:runtime:event:',
+        sender: { send: (channel, payload) => sent.push({ channel, payload }) },
+      },
+    )).resolves.toEqual({ streamId: 'account-session-10' });
+    await vi.waitFor(() => {
+      expect(sent).toHaveLength(2);
+    });
+    expect(sent).toEqual([
+      {
+        channel: 'nimi:runtime:event:runtime_account_session_events',
+        payload: { streamId: 'account-session-10', eventType: 'next', event },
+      },
+      {
+        channel: 'nimi:runtime:event:runtime_account_session_events',
+        payload: { streamId: 'account-session-10', eventType: 'completed' },
+      },
+    ]);
+    await expect(host.invoke(
+      'runtime_account_session_events_close',
+      { streamId: 'account-session-10' },
+    )).resolves.toEqual({});
+    expect(close).toHaveBeenCalledWith({ streamId: 'account-session-10' });
+  });
+
+  it('closes the native receiver when a streamed outcome is malformed', async () => {
+    const close = vi.fn(async () => ({ status: 'ok' as const, value: { closed: true } }));
+    const sent: unknown[] = [];
+    const host = createNimiElectronDesktopAccountHostForBinding(accountBinding({
+      desktopAccountSessionEventsOpen: async () => ({
+        status: 'ok' as const,
+        value: { streamId: 'account-session-malformed' },
+      }),
+      desktopAccountSessionEventsNext: async () => ({
+        status: 'ok' as const,
+        value: { completed: 'not-a-boolean' },
+      }),
+      desktopAccountSessionEventsClose: close,
+    }));
+
+    await host.invoke(
+      'runtime_account_session_events_open',
+      { afterSequence: '0' },
+      {
+        eventChannelPrefix: 'nimi:runtime:event:',
+        sender: { send: (_channel, payload) => sent.push(payload) },
+      },
+    );
+    await vi.waitFor(() => {
+      expect(close).toHaveBeenCalledWith({ streamId: 'account-session-malformed' });
+    });
+    expect(sent).toEqual([{
+      streamId: 'account-session-malformed',
+      eventType: 'error',
+      error: expect.objectContaining({ reasonCode: 'runtime-service-untrusted' }),
+    }]);
+  });
+
+  it('projects a native stream denial as the exact renderer-safe error envelope', async () => {
+    const close = vi.fn(async () => ({ status: 'ok' as const, value: { closed: false } }));
+    const sent: unknown[] = [];
+    const host = createNimiElectronDesktopAccountHostForBinding(accountBinding({
+      desktopAccountSessionEventsOpen: async () => ({
+        status: 'ok' as const,
+        value: { streamId: 'account-session-denied' },
+      }),
+      desktopAccountSessionEventsNext: async () => ({
+        status: 'error' as const,
+        reasonCode: 'runtime-service-unavailable',
+        retryable: true,
+      }),
+      desktopAccountSessionEventsClose: close,
+    }));
+
+    await host.invoke(
+      'runtime_account_session_events_open',
+      { afterSequence: '0' },
+      {
+        eventChannelPrefix: 'nimi:runtime:event:',
+        sender: { send: (_channel, payload) => sent.push(payload) },
+      },
+    );
+    await vi.waitFor(() => {
+      expect(close).toHaveBeenCalledWith({ streamId: 'account-session-denied' });
+    });
+    expect(sent).toEqual([{
+      streamId: 'account-session-denied',
+      eventType: 'error',
+      error: expect.objectContaining({
+        code: 'runtime-service-unavailable',
+        reasonCode: 'runtime-service-unavailable',
+        actionHint: 'retry_protected_desktop_account_operation',
+        source: 'runtime',
+      }),
+    }]);
   });
 
   it('preserves bounded Runtime denial reasons and rejects malformed native outcomes', async () => {

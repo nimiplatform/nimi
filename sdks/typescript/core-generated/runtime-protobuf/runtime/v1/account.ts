@@ -63,6 +63,31 @@ export interface AccountProjection {
     workspaceMemberships: WorkspaceMembershipProjection[];
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.AccountSessionSnapshot
+ */
+export interface AccountSessionSnapshot {
+    /**
+     * @generated from protobuf field: uint64 sequence = 1
+     */
+    sequence: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AccountSessionState state = 2
+     */
+    state: AccountSessionState;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 3
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AccountReasonCode account_reason_code = 4
+     */
+    accountReasonCode: AccountReasonCode;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AccountProjection account_projection = 5
+     */
+    accountProjection?: AccountProjection;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.AccountCaller
  */
 export interface AccountCaller {
@@ -238,22 +263,6 @@ export interface AccountSessionEvent {
      */
     eventType: AccountEventType;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.AccountSessionState state = 5
-     */
-    state: AccountSessionState;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 6
-     */
-    reasonCode: ReasonCode;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AccountReasonCode account_reason_code = 7
-     */
-    accountReasonCode: AccountReasonCode;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AccountProjection account_projection = 8
-     */
-    accountProjection?: AccountProjection;
-    /**
      * @generated from protobuf field: string binding_id = 9
      */
     bindingId: string;
@@ -265,6 +274,14 @@ export interface AccountSessionEvent {
      * @generated from protobuf field: bool replay_truncated = 11
      */
     replayTruncated: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AccountSessionDeliveryKind delivery_kind = 12
+     */
+    deliveryKind: AccountSessionDeliveryKind;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AccountSessionSnapshot snapshot = 13
+     */
+    snapshot?: AccountSessionSnapshot;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetAccountSessionStatusRequest
@@ -280,14 +297,6 @@ export interface GetAccountSessionStatusRequest {
  */
 export interface GetAccountSessionStatusResponse {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.AccountSessionState state = 1
-     */
-    state: AccountSessionState;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AccountProjection account_projection = 2
-     */
-    accountProjection?: AccountProjection;
-    /**
      * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 3
      */
     reasonCode: ReasonCode;
@@ -296,9 +305,13 @@ export interface GetAccountSessionStatusResponse {
      */
     accountReasonCode: AccountReasonCode;
     /**
-     * @generated from protobuf field: bool production_inert = 5
+     * @generated from protobuf field: bool accepted = 6
      */
-    productionInert: boolean;
+    accepted: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AccountSessionSnapshot snapshot = 7
+     */
+    snapshot?: AccountSessionSnapshot;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SubscribeAccountSessionEventsRequest
@@ -1042,7 +1055,40 @@ export enum AccountEventType {
     /**
      * @generated from protobuf enum value: ACCOUNT_EVENT_TYPE_BINDING_REPLAY_DETECTED = 21;
      */
-    BINDING_REPLAY_DETECTED = 21
+    BINDING_REPLAY_DETECTED = 21,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_EVENT_TYPE_REFRESH_DEFERRED = 22;
+     */
+    REFRESH_DEFERRED = 22,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_EVENT_TYPE_LOGOUT_FAILED = 23;
+     */
+    LOGOUT_FAILED = 23,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_EVENT_TYPE_SWITCH_FAILED = 24;
+     */
+    SWITCH_FAILED = 24
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AccountSessionDeliveryKind
+ */
+export enum AccountSessionDeliveryKind {
+    /**
+     * @generated from protobuf enum value: ACCOUNT_SESSION_DELIVERY_KIND_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_SESSION_DELIVERY_KIND_SNAPSHOT = 1;
+     */
+    SNAPSHOT = 1,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_SESSION_DELIVERY_KIND_REPLAY = 2;
+     */
+    REPLAY = 2,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_SESSION_DELIVERY_KIND_LIVE = 3;
+     */
+    LIVE = 3
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AccountReasonCode
@@ -1133,10 +1179,6 @@ export enum AccountReasonCode {
      */
     BROKER_REQUEST_INVALID = 21,
     /**
-     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_BROKER_UPSTREAM_FAILED = 22;
-     */
-    BROKER_UPSTREAM_FAILED = 22,
-    /**
      * @generated from protobuf enum value: ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE = 23;
      */
     BROKER_RESPONSE_TOO_LARGE = 23,
@@ -1151,7 +1193,59 @@ export enum AccountReasonCode {
     /**
      * @generated from protobuf enum value: ACCOUNT_REASON_CODE_LAUNCH_NONCE_REPLAY = 26;
      */
-    LAUNCH_NONCE_REPLAY = 26
+    LAUNCH_NONCE_REPLAY = 26,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE = 27;
+     */
+    BROKER_REALM_UNAVAILABLE = 27,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID = 28;
+     */
+    BROKER_AUTH_INVALID = 28,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_BROKER_FORBIDDEN = 29;
+     */
+    BROKER_FORBIDDEN = 29,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_BROKER_NOT_FOUND = 30;
+     */
+    BROKER_NOT_FOUND = 30,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_BROKER_CONFLICT = 31;
+     */
+    BROKER_CONFLICT = 31,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_BROKER_RATE_LIMITED = 32;
+     */
+    BROKER_RATE_LIMITED = 32,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_BROKER_REQUEST_REJECTED = 33;
+     */
+    BROKER_REQUEST_REJECTED = 33,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED = 34;
+     */
+    BROKER_CONTRACT_FAILED = 34,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_BROKER_OPERATION_FAILED = 35;
+     */
+    BROKER_OPERATION_FAILED = 35,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED = 36;
+     */
+    REFRESH_RETRY_DEFERRED = 36,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_REFRESH_TOKEN_INVALID = 37;
+     */
+    REFRESH_TOKEN_INVALID = 37,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_REFRESH_CONTRACT_INVALID = 38;
+     */
+    REFRESH_CONTRACT_INVALID = 38,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS = 39;
+     */
+    REFRESH_OUTCOME_AMBIGUOUS = 39
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.PresenceVerificationState
@@ -1539,6 +1633,84 @@ class AccountProjection$Type extends MessageType<AccountProjection> {
  * @generated MessageType for protobuf message nimi.runtime.v1.AccountProjection
  */
 export const AccountProjection = new AccountProjection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AccountSessionSnapshot$Type extends MessageType<AccountSessionSnapshot> {
+    constructor() {
+        super("nimi.runtime.v1.AccountSessionSnapshot", [
+            { no: 1, name: "sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 2, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.AccountSessionState", AccountSessionState, "ACCOUNT_SESSION_STATE_"] },
+            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 4, name: "account_reason_code", kind: "enum", T: () => ["nimi.runtime.v1.AccountReasonCode", AccountReasonCode, "ACCOUNT_REASON_CODE_"] },
+            { no: 5, name: "account_projection", kind: "message", T: () => AccountProjection }
+        ]);
+    }
+    create(value?: PartialMessage<AccountSessionSnapshot>): AccountSessionSnapshot {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.sequence = "0";
+        message.state = 0;
+        message.reasonCode = 0;
+        message.accountReasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<AccountSessionSnapshot>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AccountSessionSnapshot): AccountSessionSnapshot {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* uint64 sequence */ 1:
+                    message.sequence = reader.uint64().toString();
+                    break;
+                case /* nimi.runtime.v1.AccountSessionState state */ 2:
+                    message.state = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 3:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AccountReasonCode account_reason_code */ 4:
+                    message.accountReasonCode = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AccountProjection account_projection */ 5:
+                    message.accountProjection = AccountProjection.internalBinaryRead(reader, reader.uint32(), options, message.accountProjection);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AccountSessionSnapshot, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* uint64 sequence = 1; */
+        if (message.sequence !== "0")
+            writer.tag(1, WireType.Varint).uint64(message.sequence);
+        /* nimi.runtime.v1.AccountSessionState state = 2; */
+        if (message.state !== 0)
+            writer.tag(2, WireType.Varint).int32(message.state);
+        /* nimi.runtime.v1.ReasonCode reason_code = 3; */
+        if (message.reasonCode !== 0)
+            writer.tag(3, WireType.Varint).int32(message.reasonCode);
+        /* nimi.runtime.v1.AccountReasonCode account_reason_code = 4; */
+        if (message.accountReasonCode !== 0)
+            writer.tag(4, WireType.Varint).int32(message.accountReasonCode);
+        /* nimi.runtime.v1.AccountProjection account_projection = 5; */
+        if (message.accountProjection)
+            AccountProjection.internalBinaryWrite(message.accountProjection, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AccountSessionSnapshot
+ */
+export const AccountSessionSnapshot = new AccountSessionSnapshot$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AccountCaller$Type extends MessageType<AccountCaller> {
     constructor() {
@@ -1940,13 +2112,11 @@ class AccountSessionEvent$Type extends MessageType<AccountSessionEvent> {
             { no: 2, name: "sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
             { no: 3, name: "emitted_at", kind: "message", T: () => Timestamp },
             { no: 4, name: "event_type", kind: "enum", T: () => ["nimi.runtime.v1.AccountEventType", AccountEventType, "ACCOUNT_EVENT_TYPE_"] },
-            { no: 5, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.AccountSessionState", AccountSessionState, "ACCOUNT_SESSION_STATE_"] },
-            { no: 6, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
-            { no: 7, name: "account_reason_code", kind: "enum", T: () => ["nimi.runtime.v1.AccountReasonCode", AccountReasonCode, "ACCOUNT_REASON_CODE_"] },
-            { no: 8, name: "account_projection", kind: "message", T: () => AccountProjection },
             { no: 9, name: "binding_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "binding_relation", kind: "message", T: () => ScopedAppBindingRelation },
-            { no: 11, name: "replay_truncated", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 11, name: "replay_truncated", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 12, name: "delivery_kind", kind: "enum", T: () => ["nimi.runtime.v1.AccountSessionDeliveryKind", AccountSessionDeliveryKind, "ACCOUNT_SESSION_DELIVERY_KIND_"] },
+            { no: 13, name: "snapshot", kind: "message", T: () => AccountSessionSnapshot }
         ]);
     }
     create(value?: PartialMessage<AccountSessionEvent>): AccountSessionEvent {
@@ -1954,11 +2124,9 @@ class AccountSessionEvent$Type extends MessageType<AccountSessionEvent> {
         message.eventId = "";
         message.sequence = "0";
         message.eventType = 0;
-        message.state = 0;
-        message.reasonCode = 0;
-        message.accountReasonCode = 0;
         message.bindingId = "";
         message.replayTruncated = false;
+        message.deliveryKind = 0;
         if (value !== undefined)
             reflectionMergePartial<AccountSessionEvent>(this, message, value);
         return message;
@@ -1980,18 +2148,6 @@ class AccountSessionEvent$Type extends MessageType<AccountSessionEvent> {
                 case /* nimi.runtime.v1.AccountEventType event_type */ 4:
                     message.eventType = reader.int32();
                     break;
-                case /* nimi.runtime.v1.AccountSessionState state */ 5:
-                    message.state = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.ReasonCode reason_code */ 6:
-                    message.reasonCode = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.AccountReasonCode account_reason_code */ 7:
-                    message.accountReasonCode = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.AccountProjection account_projection */ 8:
-                    message.accountProjection = AccountProjection.internalBinaryRead(reader, reader.uint32(), options, message.accountProjection);
-                    break;
                 case /* string binding_id */ 9:
                     message.bindingId = reader.string();
                     break;
@@ -2000,6 +2156,12 @@ class AccountSessionEvent$Type extends MessageType<AccountSessionEvent> {
                     break;
                 case /* bool replay_truncated */ 11:
                     message.replayTruncated = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.AccountSessionDeliveryKind delivery_kind */ 12:
+                    message.deliveryKind = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AccountSessionSnapshot snapshot */ 13:
+                    message.snapshot = AccountSessionSnapshot.internalBinaryRead(reader, reader.uint32(), options, message.snapshot);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2025,18 +2187,6 @@ class AccountSessionEvent$Type extends MessageType<AccountSessionEvent> {
         /* nimi.runtime.v1.AccountEventType event_type = 4; */
         if (message.eventType !== 0)
             writer.tag(4, WireType.Varint).int32(message.eventType);
-        /* nimi.runtime.v1.AccountSessionState state = 5; */
-        if (message.state !== 0)
-            writer.tag(5, WireType.Varint).int32(message.state);
-        /* nimi.runtime.v1.ReasonCode reason_code = 6; */
-        if (message.reasonCode !== 0)
-            writer.tag(6, WireType.Varint).int32(message.reasonCode);
-        /* nimi.runtime.v1.AccountReasonCode account_reason_code = 7; */
-        if (message.accountReasonCode !== 0)
-            writer.tag(7, WireType.Varint).int32(message.accountReasonCode);
-        /* nimi.runtime.v1.AccountProjection account_projection = 8; */
-        if (message.accountProjection)
-            AccountProjection.internalBinaryWrite(message.accountProjection, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         /* string binding_id = 9; */
         if (message.bindingId !== "")
             writer.tag(9, WireType.LengthDelimited).string(message.bindingId);
@@ -2046,6 +2196,12 @@ class AccountSessionEvent$Type extends MessageType<AccountSessionEvent> {
         /* bool replay_truncated = 11; */
         if (message.replayTruncated !== false)
             writer.tag(11, WireType.Varint).bool(message.replayTruncated);
+        /* nimi.runtime.v1.AccountSessionDeliveryKind delivery_kind = 12; */
+        if (message.deliveryKind !== 0)
+            writer.tag(12, WireType.Varint).int32(message.deliveryKind);
+        /* nimi.runtime.v1.AccountSessionSnapshot snapshot = 13; */
+        if (message.snapshot)
+            AccountSessionSnapshot.internalBinaryWrite(message.snapshot, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2106,19 +2262,17 @@ export const GetAccountSessionStatusRequest = new GetAccountSessionStatusRequest
 class GetAccountSessionStatusResponse$Type extends MessageType<GetAccountSessionStatusResponse> {
     constructor() {
         super("nimi.runtime.v1.GetAccountSessionStatusResponse", [
-            { no: 1, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.AccountSessionState", AccountSessionState, "ACCOUNT_SESSION_STATE_"] },
-            { no: 2, name: "account_projection", kind: "message", T: () => AccountProjection },
             { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
             { no: 4, name: "account_reason_code", kind: "enum", T: () => ["nimi.runtime.v1.AccountReasonCode", AccountReasonCode, "ACCOUNT_REASON_CODE_"] },
-            { no: 5, name: "production_inert", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 6, name: "accepted", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "snapshot", kind: "message", T: () => AccountSessionSnapshot }
         ]);
     }
     create(value?: PartialMessage<GetAccountSessionStatusResponse>): GetAccountSessionStatusResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.state = 0;
         message.reasonCode = 0;
         message.accountReasonCode = 0;
-        message.productionInert = false;
+        message.accepted = false;
         if (value !== undefined)
             reflectionMergePartial<GetAccountSessionStatusResponse>(this, message, value);
         return message;
@@ -2128,20 +2282,17 @@ class GetAccountSessionStatusResponse$Type extends MessageType<GetAccountSession
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* nimi.runtime.v1.AccountSessionState state */ 1:
-                    message.state = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.AccountProjection account_projection */ 2:
-                    message.accountProjection = AccountProjection.internalBinaryRead(reader, reader.uint32(), options, message.accountProjection);
-                    break;
                 case /* nimi.runtime.v1.ReasonCode reason_code */ 3:
                     message.reasonCode = reader.int32();
                     break;
                 case /* nimi.runtime.v1.AccountReasonCode account_reason_code */ 4:
                     message.accountReasonCode = reader.int32();
                     break;
-                case /* bool production_inert */ 5:
-                    message.productionInert = reader.bool();
+                case /* bool accepted */ 6:
+                    message.accepted = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.AccountSessionSnapshot snapshot */ 7:
+                    message.snapshot = AccountSessionSnapshot.internalBinaryRead(reader, reader.uint32(), options, message.snapshot);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2155,21 +2306,18 @@ class GetAccountSessionStatusResponse$Type extends MessageType<GetAccountSession
         return message;
     }
     internalBinaryWrite(message: GetAccountSessionStatusResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.AccountSessionState state = 1; */
-        if (message.state !== 0)
-            writer.tag(1, WireType.Varint).int32(message.state);
-        /* nimi.runtime.v1.AccountProjection account_projection = 2; */
-        if (message.accountProjection)
-            AccountProjection.internalBinaryWrite(message.accountProjection, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         /* nimi.runtime.v1.ReasonCode reason_code = 3; */
         if (message.reasonCode !== 0)
             writer.tag(3, WireType.Varint).int32(message.reasonCode);
         /* nimi.runtime.v1.AccountReasonCode account_reason_code = 4; */
         if (message.accountReasonCode !== 0)
             writer.tag(4, WireType.Varint).int32(message.accountReasonCode);
-        /* bool production_inert = 5; */
-        if (message.productionInert !== false)
-            writer.tag(5, WireType.Varint).bool(message.productionInert);
+        /* bool accepted = 6; */
+        if (message.accepted !== false)
+            writer.tag(6, WireType.Varint).bool(message.accepted);
+        /* nimi.runtime.v1.AccountSessionSnapshot snapshot = 7; */
+        if (message.snapshot)
+            AccountSessionSnapshot.internalBinaryWrite(message.snapshot, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

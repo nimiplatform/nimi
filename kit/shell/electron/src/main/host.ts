@@ -307,7 +307,10 @@ export function registerNimiElectronRuntimeBridge(
     if (command === NIMI_STANDARD_SHELL_COMMANDS['ai-config.get']) return getElectronAiConfig(input.standardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['ai-config.set']) return setElectronAiConfig(input.standardShellHost, standardPayload, command);
     if (desktopAccountHost && isElectronDesktopAccountCommand(command)) {
-      return desktopAccountHost.invoke(command, payload);
+      return desktopAccountHost.invoke(command, payload, {
+        eventChannelPrefix,
+        sender: event.sender,
+      });
     }
     if (developerModeHost && isElectronDeveloperModeCommand(command)) {
       return developerModeHost.invoke(command, payload);
@@ -348,6 +351,7 @@ export function registerNimiElectronRuntimeBridge(
         stream.cancel();
       }
       streams.clear();
+      desktopAccountHost?.close();
       void clientPromise?.then((client) => client.close()).catch(() => undefined);
     },
   };

@@ -495,11 +495,8 @@ mod tests {
                 &result,
             )
             .expect("decode response");
-        assert_eq!(
-            decoded_response.state,
-            nimi_shell_tauri::capabilities::runtime::generated::AccountSessionState::Unspecified
-                as i32
-        );
+        assert!(!decoded_response.accepted);
+        assert!(decoded_response.snapshot.is_none());
     }
 
     #[test]

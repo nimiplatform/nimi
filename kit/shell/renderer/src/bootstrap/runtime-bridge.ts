@@ -4,6 +4,7 @@ import { convertFileSrc as tauriConvertFileSrc, invoke as tauriCoreInvoke, isTau
 import { listen as tauriEventListen } from '@tauri-apps/api/event';
 import {
   hasElectronRuntime,
+  resolveTauriInvokePayload,
   resolveTauriStandardCommand,
   type NimiShellRuntimeBridgeResult,
   type NimiShellRuntimeHook,
@@ -38,9 +39,13 @@ function hasNativeTauriInvoke(candidate: unknown): boolean {
 
 function createNimiShellRuntimeHook(): NimiShellRuntimeHook {
   return {
-    invoke: async (command, payload) => (
-      await tauriCoreInvoke(resolveTauriStandardCommand(command), payload as InvokeArgs | undefined)
-    ),
+    invoke: async (command, payload) => {
+      const tauriCommand = resolveTauriStandardCommand(command);
+      return await tauriCoreInvoke(
+        tauriCommand,
+        resolveTauriInvokePayload(tauriCommand, payload) as InvokeArgs | undefined,
+      );
+    },
     listen: async (eventName, handler): Promise<ShellEventUnsubscribe> => {
       const unsubscribe = await tauriEventListen(eventName, (event) => handler(event));
       return unsubscribe;

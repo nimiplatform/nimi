@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import { isRuntimeLocalAgentRef } from '@nimiplatform/sdk/runtime';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { useAppStore, type AuthStatus } from '@renderer/app-shell/providers/app-store';
 import {
   fetchLocalAgentList,
   localAgentListQueryKey,
@@ -270,7 +270,7 @@ export function toAgentTargetSnapshotFromSummary(
 }
 
 export function useChatTargetsForSidebar(
-  authStatus: 'bootstrapping' | 'anonymous' | 'authenticated',
+  authStatus: AuthStatus,
 ): readonly ConversationTargetSummary[] {
   const { t } = useTranslation();
   const ownerUserId = useAppStore((state) => normalizeText(state.auth.user?.id));

@@ -142,6 +142,7 @@ function toRuntimeScenarioStreamEvent(event: NimiRunEvent, sequence: number): Ru
           started: {
             modelResolved: event.model?.modelId ?? '',
             routeDecision: ROUTE_POLICY.CLOUD,
+            voiceOutputMode: 0,
           },
         },
       };

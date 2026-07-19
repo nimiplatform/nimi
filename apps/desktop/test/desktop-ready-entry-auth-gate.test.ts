@@ -77,13 +77,13 @@ const productControlRecordStoreSource = readFileSync(
 
 test('Gate 7: Desktop root route is guarded by auth and product ready_for_use', () => {
   assert.match(appRoutesSource, /function DesktopOrdinaryShellGate/);
-  // Wave 1 route-admission single-point: the gate hands the anonymous
-  // renderer to /login via an imperative navigate inside an effect. The
+  // Wave 1 route-admission single-point: the gate hands every Runtime state
+  // requiring login to /login via an imperative navigate inside an effect. The
   // wildcard fallback `<Route path="*" element={<Navigate to="/login" .../>}>`
   // for web mode still uses render-time Navigate (one-shot on unmatched
   // path; no loop), so a plain literal scan is no longer sufficient — pin
   // the actual root admission code path instead.
-  assert.match(appRoutesSource, /if \(authStatus === 'anonymous'\) \{\s*navigate\('\/login', \{ replace: true \}\);/);
+  assert.match(appRoutesSource, /if \(accountRequiresLogin\(authStatus\)\) \{\s*navigate\('\/login', \{ replace: true \}\);/);
   assert.match(appRoutesSource, /desktopBridge\.getProductControlRecord\(\)/);
   assert.match(appRoutesSource, /projectNimiProductControlAdmission\(projection\.state\)/);
   assert.ok(appRoutesSource.includes('<Route path="/" element={<DesktopOrdinaryShellGate />} />'));
@@ -137,6 +137,21 @@ test('Gate 7: ordinary shell admission stays gated strictly on backend ready_for
     hookMatch[0],
     /clearAuthSession\b/,
     'admission hook must not auto-clear renderer auth on divergence',
+  );
+  assert.match(
+    hookMatch[0],
+    /if \(authStatus === 'refresh-pending'\) \{[\s\S]*?return;\s*\}/,
+    'refresh-pending must preserve the already-admitted ordinary shell',
+  );
+  assert.match(
+    hookMatch[0],
+    /if \(authStatus !== 'authenticated'\) \{\s*setAdmission\('checking'\);/,
+    'only a fresh authenticated projection may reconcile product admission',
+  );
+  assert.doesNotMatch(
+    hookMatch[0],
+    /setAdmission\('checking'\);\s*void desktopBridge\.getProductControlRecord\(\)/,
+    'authenticated rechecks must not tear down an already-admitted shell',
   );
 });
 

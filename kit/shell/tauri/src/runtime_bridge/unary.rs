@@ -15,13 +15,6 @@ const EXECUTE_SCENARIO_METHOD_ID: &str = "/nimi.runtime.v1.RuntimeAiService/Exec
 const TEXT_GENERATE_ROUTE_DESCRIBE_EXTENSION_NAMESPACE: &str =
     "nimi.scenario.text_generate.route_describe";
 const RUNTIME_BRIDGE_UNARY_MAX_DECODING_MESSAGE_BYTES: usize = 32 * 1024 * 1024;
-const PROTECTED_DESKTOP_ACCOUNT_UNARY_METHODS: &[&str] = &[
-    "/nimi.runtime.v1.RuntimeAccountService/BeginLogin",
-    "/nimi.runtime.v1.RuntimeAccountService/CompleteLogin",
-    "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
-    "/nimi.runtime.v1.RuntimeAccountService/Logout",
-    "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
-];
 const PROTECTED_DESKTOP_PRODUCT_CONTROL_UNARY_METHODS: &[&str] = &[
     super::RUNTIME_LOCAL_COLLECT_DEVICE_PROFILE_METHOD_ID,
     super::RUNTIME_LOCAL_RESOLVE_LOCAL_ENVIRONMENT_PLAN_METHOD_ID,
@@ -260,21 +253,14 @@ fn route_describe_response_header_key() -> &'static str {
 }
 
 fn validate_unary_method(method_id: &str) -> Result<(), String> {
-    if !super::is_allowlisted_method(method_id) {
-        return Err(bridge_error("RUNTIME_BRIDGE_METHOD_FORBIDDEN", method_id));
-    }
     if super::is_stream_method(method_id) {
         return Err(bridge_error("RUNTIME_BRIDGE_METHOD_STREAM_ONLY", method_id));
     }
-    Ok(())
-}
-
-fn validate_desktop_account_unary_method(method_id: &str) -> Result<(), String> {
-    if !PROTECTED_DESKTOP_ACCOUNT_UNARY_METHODS.contains(&method_id) {
-        return Err(bridge_error(
-            "RUNTIME_BRIDGE_DESKTOP_ACCOUNT_METHOD_FORBIDDEN",
-            method_id,
-        ));
+    if transport_for_public_unary(method_id) == UnaryTransport::ProtectedDesktop {
+        return Ok(());
+    }
+    if !super::is_allowlisted_method(method_id) {
+        return Err(bridge_error("RUNTIME_BRIDGE_METHOD_FORBIDDEN", method_id));
     }
     Ok(())
 }
@@ -357,13 +343,6 @@ pub async fn invoke_unary(
     .await
 }
 
-pub(super) async fn invoke_desktop_account_unary(
-    payload: &RuntimeBridgeUnaryPayload,
-) -> Result<RuntimeBridgeUnaryResult, String> {
-    validate_desktop_account_unary_method(payload.method_id.as_str())?;
-    invoke_validated_unary(payload, UnaryTransport::ProtectedDesktop).await
-}
-
 #[cfg(test)]
 mod tests {
     use base64::Engine;
@@ -371,9 +350,8 @@ mod tests {
 
     use super::{
         build_unary_payload, build_unary_payload_with_metadata, decode_request_bytes,
-        decode_unary_result, invoke_unary, transport_for_public_unary,
-        validate_desktop_account_unary_method, validate_unary_method, RuntimeBridgeUnaryResult,
-        UnaryTransport,
+        decode_unary_result, invoke_unary, transport_for_public_unary, validate_unary_method,
+        RuntimeBridgeUnaryResult, UnaryTransport,
     };
     use crate::runtime_bridge::{generated, RuntimeBridgeMetadata, RuntimeBridgeUnaryPayload};
 
@@ -410,7 +388,7 @@ mod tests {
     }
 
     #[test]
-    fn protected_desktop_account_allowlist_is_private_and_exact() {
+    fn protected_desktop_account_methods_stay_outside_generic_unary() {
         for method_id in [
             "/nimi.runtime.v1.RuntimeAccountService/BeginLogin",
             "/nimi.runtime.v1.RuntimeAccountService/CompleteLogin",
@@ -418,22 +396,14 @@ mod tests {
             "/nimi.runtime.v1.RuntimeAccountService/Logout",
             "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
         ] {
-            assert!(validate_desktop_account_unary_method(method_id).is_ok());
             assert!(validate_unary_method(method_id).is_err());
-        }
-        for forbidden in [
-            "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
-            "/nimi.runtime.v1.RuntimeAccountService/GetTokens",
-            "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
-            "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
-        ] {
-            assert!(validate_desktop_account_unary_method(forbidden).is_err());
         }
     }
 
     #[test]
     fn desktop_product_control_methods_use_protected_transport_without_widening_local_service() {
         for method_id in super::PROTECTED_DESKTOP_PRODUCT_CONTROL_UNARY_METHODS {
+            assert!(validate_unary_method(method_id).is_ok());
             assert_eq!(
                 transport_for_public_unary(method_id),
                 UnaryTransport::ProtectedDesktop
@@ -452,6 +422,7 @@ mod tests {
             "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
             "/nimi.runtime.v1.RuntimeAgentService/ListAgents",
         ] {
+            assert!(validate_unary_method(protected_method).is_ok());
             assert_eq!(
                 transport_for_public_unary(protected_method),
                 UnaryTransport::ProtectedDesktop
@@ -536,8 +507,15 @@ mod tests {
         );
 
         let response = generated::GetAccountSessionStatusResponse {
-            state: generated::AccountSessionState::Authenticated as i32,
             reason_code: generated::ReasonCode::ActionExecuted as i32,
+            accepted: true,
+            snapshot: Some(generated::AccountSessionSnapshot {
+                sequence: 7,
+                state: generated::AccountSessionState::Authenticated as i32,
+                reason_code: generated::ReasonCode::ActionExecuted as i32,
+                account_reason_code: generated::AccountReasonCode::ActionExecuted as i32,
+                account_projection: None,
+            }),
             ..Default::default()
         };
         let result = RuntimeBridgeUnaryResult {
@@ -551,7 +529,7 @@ mod tests {
         )
         .expect("decode response");
         assert_eq!(
-            decoded.state,
+            decoded.snapshot.expect("snapshot").state,
             generated::AccountSessionState::Authenticated as i32
         );
     }

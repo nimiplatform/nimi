@@ -1,11 +1,12 @@
 use crate::{
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
     DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse,
-    DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse, DesktopAccountSessionStatus,
-    DesktopAccountSessionStatusRequest, DesktopProductControlError, DesktopProductControlRequest,
-    DesktopProductControlResponse, DesktopRuntimeConsumerError, DesktopRuntimeConsumerRequest,
-    DesktopRuntimeConsumerResponse, DeveloperModeStatus, FixedRuntimeServiceControl,
-    LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
+    DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse,
+    DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
+    DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, DesktopProductControlError,
+    DesktopProductControlRequest, DesktopProductControlResponse, DesktopRuntimeConsumerError,
+    DesktopRuntimeConsumerRequest, DesktopRuntimeConsumerResponse, DeveloperModeStatus,
+    FixedRuntimeServiceControl, LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
     LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
     LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
     LocalDevelopmentLaunchRequest, NimiHostError, ProtectedCarrierError,
@@ -226,6 +227,17 @@ pub trait NimiDesktopControl: Send + Sync {
         &self,
         request: DesktopAccountSessionStatusRequest,
     ) -> Pin<Box<dyn Future<Output = Result<DesktopAccountSessionStatus, NimiHostError>> + Send + '_>>;
+
+    fn open_account_session_events(
+        &self,
+        request: DesktopAccountSessionEventsRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<DesktopAccountSessionEventReceiver, NimiHostError>>
+                + Send
+                + '_,
+        >,
+    >;
 
     fn begin_account_login(
         &self,

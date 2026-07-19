@@ -82,10 +82,10 @@ export function ExploreSectionNav({
 }) {
   const { t } = useTranslation();
   const nav = (
-    <div className={variant === 'topbar' ? 'flex min-w-0 items-center gap-8' : 'flex flex-wrap items-center gap-2'}>
+    <div className={variant === 'topbar' ? 'flex min-w-0 shrink-0 items-center gap-4 sm:gap-8' : 'flex flex-wrap items-center gap-2'}>
       <nav
         aria-label={t('Explore.sectionNavLabel', { defaultValue: 'Explore sections' })}
-        className={variant === 'topbar' ? 'flex min-w-0 items-center gap-8' : 'flex min-w-0 flex-wrap gap-1.5'}
+        className={variant === 'topbar' ? 'flex min-w-0 items-center gap-4 sm:gap-8' : 'flex min-w-0 flex-wrap gap-1.5'}
         data-testid="explore-section-nav"
       >
         {EXPLORE_SECTION_IDS.map((id) => {
@@ -101,7 +101,7 @@ export function ExploreSectionNav({
               data-titlebar-interactive="true"
               onClick={() => onSelect(id)}
               className={variant === 'topbar'
-                ? `inline-flex h-10 items-center text-[15px] transition-colors duration-200 ease-out hover:text-[color:var(--nimi-fg-1)] ${isActive ? 'font-semibold text-[color:var(--nimi-accent)]' : 'font-medium text-[color:var(--nimi-fg-2)]'}`
+                ? `inline-flex h-10 shrink-0 items-center text-[15px] transition-colors duration-200 ease-out hover:text-[color:var(--nimi-fg-1)] ${isActive ? 'font-semibold text-[color:var(--nimi-accent)]' : 'font-medium text-[color:var(--nimi-fg-2)]'}`
                 : 'inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition-colors'}
               style={{
                 fontFamily: 'var(--nimi-font-sans)',

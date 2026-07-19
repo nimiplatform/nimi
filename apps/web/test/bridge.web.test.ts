@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   desktopBridge,
+  getRuntimeAccountSessionStatus,
   getRuntimeDefaults,
   getRuntimeBridgeConfig,
   setRuntimeBridgeConfig,
+  subscribeRuntimeAccountSessionEvents,
 } from '../src/desktop-adapter/bridge.web.js';
 
 test('bridge.web rejects desktop-only runtime bridge config access', async () => {
@@ -26,6 +28,20 @@ test('bridge.web rejects desktop-only runtime bridge config access', async () =>
   await assert.rejects(
     async () => desktopBridge.setRuntimeBridgeConfig('{}'),
     /Runtime bridge config updates are only available in desktop runtime/,
+  );
+});
+
+test('bridge.web rejects the protected Runtime account status and event stream', async () => {
+  await assert.rejects(
+    async () => getRuntimeAccountSessionStatus(),
+    /Runtime account projection is only available in desktop runtime/,
+  );
+  await assert.rejects(
+    async () => subscribeRuntimeAccountSessionEvents('0', {
+      onEvent: () => {},
+      onError: () => {},
+    }),
+    /Runtime account event stream is only available in desktop runtime/,
   );
 });
 

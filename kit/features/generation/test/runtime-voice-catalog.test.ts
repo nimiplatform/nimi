@@ -6,6 +6,7 @@ import {
   ReasonCode,
   type NimiAIConfig,
 } from '@nimiplatform/kit/core/sdk-contract';
+import { createRuntimeScopeRunnerFixture } from './runtime-scope-runner-fixture.js';
 
 describe('runtime voice catalog helper', () => {
   it('lists preset voices through the configured audio.synthesize binding', async () => {
@@ -99,12 +100,8 @@ describe('runtime voice catalog helper', () => {
     const runtime = createRuntimeHarness();
     const signal = new AbortController().signal;
     const diagnostics: unknown[] = [];
-    const withScopes = vi.fn(<T,>(
-      scopes: readonly string[],
-      operation: (options: { readonly metadata?: Record<string, string> }) => Promise<T>,
-    ) => {
-      expect(scopes).toEqual(['ai.spend.meter']);
-      return operation({ metadata: { 'x-nimi-access-token-id': 'voice-token' } });
+    const { runner: withScopes, callSpy: withScopesCalls } = createRuntimeScopeRunnerFixture({
+      'x-nimi-access-token-id': 'voice-token',
     });
     runtime.scheduling.peekScheduling.mockResolvedValue(runnableSchedulingResponse());
     runtime.ai.listPresetVoices.mockResolvedValue({
@@ -140,7 +137,8 @@ describe('runtime voice catalog helper', () => {
       ok: true,
       output: { voiceCount: 0 },
     });
-    expect(withScopes).toHaveBeenCalledOnce();
+    expect(withScopesCalls).toHaveBeenCalledOnce();
+    expect(withScopesCalls).toHaveBeenCalledWith(['ai.spend.meter']);
     expect(diagnostics).toHaveLength(1);
     const [, options] = runtime.ai.listPresetVoices.mock.calls[0];
     expect(options.signal).toBe(signal);

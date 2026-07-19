@@ -23,11 +23,12 @@ use crate::macos_supervised_process::SupervisedDevelopmentProcess;
 use crate::{
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
     DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse,
-    DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse, DesktopAccountSessionStatus,
-    DesktopAccountSessionStatusRequest, DesktopProductControlError, DesktopProductControlRequest,
-    DesktopProductControlResponse, DesktopRuntimeConsumerError, DesktopRuntimeConsumerRequest,
-    DesktopRuntimeConsumerResponse, DeveloperModeStatus, FixedRuntimeServiceControl,
-    LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
+    DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse,
+    DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
+    DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, DesktopProductControlError,
+    DesktopProductControlRequest, DesktopProductControlResponse, DesktopRuntimeConsumerError,
+    DesktopRuntimeConsumerRequest, DesktopRuntimeConsumerResponse, DeveloperModeStatus,
+    FixedRuntimeServiceControl, LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
     LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
     LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
     LocalDevelopmentLaunchRequest, NimiDesktopControl, NimiHostError, NimiHostErrorReasonCode,
@@ -131,6 +132,22 @@ impl NimiDesktopControl for MacOSDesktopControl {
     ) -> Pin<Box<dyn Future<Output = Result<DesktopAccountSessionStatus, NimiHostError>> + Send + '_>>
     {
         Box::pin(crate::windows_desktop_account::get_account_session_status(
+            self.channel(),
+            request,
+        ))
+    }
+
+    fn open_account_session_events(
+        &self,
+        request: DesktopAccountSessionEventsRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<DesktopAccountSessionEventReceiver, NimiHostError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(crate::windows_desktop_account::open_account_session_events(
             self.channel(),
             request,
         ))

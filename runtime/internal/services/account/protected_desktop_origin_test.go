@@ -160,7 +160,7 @@ func TestProtectedDesktopAccountStatusDoesNotDependOnGenericAppRegistry(t *testi
 	}
 	if status.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED ||
 		status.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED ||
-		status.GetAccountProjection().GetAccountId() != "acct-protected-desktop" {
+		accountStatusProjection(status).GetAccountId() != "acct-protected-desktop" {
 		t.Fatalf("protected Desktop account status rejected without generic registry: %+v", status)
 	}
 
@@ -172,7 +172,7 @@ func TestProtectedDesktopAccountStatusDoesNotDependOnGenericAppRegistry(t *testi
 		t.Fatalf("GetAccountSessionStatus without protected origin: %v", err)
 	}
 	if rejected.GetReasonCode() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED ||
-		rejected.GetAccountProjection() != nil {
+		rejected.GetSnapshot() != nil {
 		t.Fatalf("unprotected Desktop account status must remain rejected: %+v", rejected)
 	}
 }

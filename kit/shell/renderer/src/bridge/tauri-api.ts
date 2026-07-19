@@ -102,6 +102,21 @@ export function resolveTauriStandardCommand(command: string): string {
   return TAURI_STANDARD_COMMAND_ALIASES[command] ?? command;
 }
 
+const TAURI_STRUCT_PAYLOAD_COMMANDS = new Set([
+  'runtime_account_session_events_open',
+  'runtime_account_session_events_close',
+]);
+
+/**
+ * Preserve one renderer command contract across Electron and Tauri while
+ * adapting the two account-stream commands to Tauri's named `payload` ABI.
+ * The complete renderer object is nested so Rust's deny-unknown-fields
+ * decoder still rejects caller or authority injection.
+ */
+export function resolveTauriInvokePayload(command: string, payload: unknown): unknown {
+  return TAURI_STRUCT_PAYLOAD_COMMANDS.has(command) ? { payload } : payload;
+}
+
 function shellGlobal(): TauriRuntimeGlobal {
   return globalThis as TauriRuntimeGlobal;
 }

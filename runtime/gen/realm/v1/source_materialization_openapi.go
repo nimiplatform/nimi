@@ -15,30 +15,20 @@ const (
 	MaterializationSchemaClosureSHA256                              = "eef9352b470ba0d14c8176fecb9c02c417ae73fa3b1ed9b2eaabc01e57262018"
 )
 
-type PrivateOperation struct {
-	operationID   string
-	method        string
-	path          string
-	successStatus int
+var WorldCoreControllerCreateSourceMaterializationPacketOperation = OperationDescriptor{
+	operationID:        WorldCoreControllerCreateSourceMaterializationPacketOperationID,
+	method:             WorldCoreControllerCreateSourceMaterializationPacketMethod,
+	path:               WorldCoreControllerCreateSourceMaterializationPacketPath,
+	requestContentType: "application/json",
+	successStatus:      201,
 }
 
-func (operation PrivateOperation) OperationID() string { return operation.operationID }
-func (operation PrivateOperation) Method() string      { return operation.method }
-func (operation PrivateOperation) Path() string        { return operation.path }
-func (operation PrivateOperation) SuccessStatus() int  { return operation.successStatus }
-
-var WorldCoreControllerCreateSourceMaterializationPacketOperation = PrivateOperation{
-	operationID:   WorldCoreControllerCreateSourceMaterializationPacketOperationID,
-	method:        WorldCoreControllerCreateSourceMaterializationPacketMethod,
-	path:          WorldCoreControllerCreateSourceMaterializationPacketPath,
-	successStatus: 201,
-}
-
-var GetSourceMaterializationJwksOperation = PrivateOperation{
-	operationID:   GetSourceMaterializationJwksOperationID,
-	method:        GetSourceMaterializationJwksMethod,
-	path:          GetSourceMaterializationJwksPath,
-	successStatus: 200,
+var GetSourceMaterializationJwksOperation = OperationDescriptor{
+	operationID:        GetSourceMaterializationJwksOperationID,
+	method:             GetSourceMaterializationJwksMethod,
+	path:               GetSourceMaterializationJwksPath,
+	requestContentType: "",
+	successStatus:      200,
 }
 
 type CharacterSourceRefV3Dto interface {

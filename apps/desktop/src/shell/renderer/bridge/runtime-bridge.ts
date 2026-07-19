@@ -1,6 +1,7 @@
 import { logRendererEvent, toRendererLogMessage } from '@nimiplatform/kit/telemetry';
 import {
   getRuntimeAccountSessionStatus,
+  subscribeRuntimeAccountSessionEvents,
   getRuntimeDefaults,
   hasShellHostInvoke,
   hasTauriInvoke,
@@ -105,6 +106,7 @@ export type {
 
 export type {
   DesktopAccountProjection,
+  DesktopAccountSessionEvent,
   DesktopAccountSessionState,
   DesktopAccountSessionStatus,
 } from '@nimiplatform/kit/shell/renderer/bridge';
@@ -123,6 +125,7 @@ export {
   toRendererLogMessage,
   getRuntimeBridgeStatus,
   getRuntimeAccountSessionStatus,
+  subscribeRuntimeAccountSessionEvents,
   getSystemResourceSnapshot,
   startRuntimeBridge,
   restartRuntimeBridge,

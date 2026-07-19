@@ -452,7 +452,13 @@ func (service *protectedDesktopAccountTestService) GetAccountSessionStatus(ctx c
 
 func (service *protectedDesktopAccountTestService) SubscribeAccountSessionEvents(_ *runtimev1.SubscribeAccountSessionEventsRequest, stream runtimev1.RuntimeAccountService_SubscribeAccountSessionEventsServer) error {
 	_, service.subscriptionBound = protectedlocal.DesktopConnectionFromContext(stream.Context())
-	return stream.Send(&runtimev1.AccountSessionEvent{ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED})
+	return stream.Send(&runtimev1.AccountSessionEvent{
+		DeliveryKind: runtimev1.AccountSessionDeliveryKind_ACCOUNT_SESSION_DELIVERY_KIND_SNAPSHOT,
+		Snapshot: &runtimev1.AccountSessionSnapshot{
+			ReasonCode:        runtimev1.ReasonCode_ACTION_EXECUTED,
+			AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED,
+		},
+	})
 }
 
 func (service *protectedDesktopAccountTestService) IssueWorkspaceBinding(context.Context, *runtimev1.IssueWorkspaceBindingRequest) (*runtimev1.IssueWorkspaceBindingResponse, error) {

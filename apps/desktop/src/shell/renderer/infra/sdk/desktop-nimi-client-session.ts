@@ -77,7 +77,7 @@ export async function configureDesktopRuntimeRealmSession(
     transport,
     getSubjectUserId: async () => {
       const status = await getRuntimeAccountSessionStatusResponse();
-      return status.accountProjection?.accountId;
+      return status.snapshot?.accountProjection?.accountId;
     },
   });
   const { runtime, accountRuntime: publicAccountRuntime } = platformClient;

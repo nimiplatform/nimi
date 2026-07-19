@@ -14,6 +14,7 @@ import {
   refreshConversationCapabilityProjections,
 } from '@renderer/features/chat/conversation-capability-projection';
 import { bootstrapRuntime } from '@renderer/infra/bootstrap/runtime-bootstrap';
+import { applyRuntimeAccountStatusProjection } from '@renderer/infra/bootstrap/auth-state-watcher';
 import { getDesktopAccountRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 
@@ -31,6 +32,7 @@ const desktopRuntimeAccountCaller = createNimiDesktopShellRuntimeAccountCaller({
 
 async function loadDesktopRuntimeAccountUser(): Promise<Record<string, unknown> | null> {
   const response = await desktopBridge.getRuntimeAccountSessionStatus();
+  applyRuntimeAccountStatusProjection(response);
   const projection = response.accountProjection;
   if (response.state !== 'authenticated' || !projection?.accountId) {
     return null;

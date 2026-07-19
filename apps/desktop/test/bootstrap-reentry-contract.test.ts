@@ -25,8 +25,25 @@ test('bootstrap re-entry is queued instead of resetting bootstrapPromise inline'
     'rebootstrap must drain queued restart requests serially',
   );
   assert.ok(
-    bootstrapSource.includes('if (rebootstrapPromise) {\n    return rebootstrapPromise;\n  }\n  if (bootstrapPromise) {'),
-    'bootstrap must wait on queued rebootstrap before returning an existing bootstrap promise',
+    bootstrapSource.includes(
+      'if (rebootstrapPromise) {\n    return rebootstrapPromise;\n  }\n  return startBootstrapRuntime();',
+    ),
+    'public bootstrap must wait on queued rebootstrap before starting another bootstrap',
+  );
+  assert.ok(
+    bootstrapSource.includes('await startBootstrapRuntime();'),
+    'rebootstrap must call the internal bootstrap executor instead of awaiting its own public promise',
+  );
+  const internalBootstrapStart = bootstrapSource.indexOf('function startBootstrapRuntime(): Promise<void>');
+  const internalBootstrapBody = bootstrapSource.slice(
+    internalBootstrapStart,
+    bootstrapSource.indexOf('bootstrapPromise = (async () => {', internalBootstrapStart),
+  );
+  assert.notEqual(internalBootstrapStart, -1, 'internal bootstrap executor must exist');
+  assert.doesNotMatch(
+    internalBootstrapBody,
+    /rebootstrapPromise/,
+    'internal bootstrap executor must not return the in-flight rebootstrap promise',
   );
   assert.ok(
     !bootstrapSource.includes('bootstrapPromise = null;\n  return bootstrapRuntime();'),
@@ -34,18 +51,19 @@ test('bootstrap re-entry is queued instead of resetting bootstrapPromise inline'
   );
 });
 
-test('bootstrap failure performs teardown before auth reset and surfaces cleanup in source', () => {
+test('bootstrap failure performs teardown before projecting Runtime account unavailable', () => {
   const catchIndex = bootstrapSource.indexOf('})().catch(async (error) => {');
   assert.notEqual(catchIndex, -1, 'bootstrap catch block must exist');
   const catchBlock = bootstrapSource.slice(catchIndex);
   const teardownIndex = catchBlock.indexOf('await teardownBootstrapState();');
-  const clearAuthIndex = catchBlock.indexOf('useAppStore.getState().clearAuthSession();');
+  const unavailableProjectionIndex = catchBlock.indexOf('applyRuntimeAccountUnavailableProjection();');
   assert.notEqual(teardownIndex, -1, 'bootstrap catch must teardown runtime state');
-  assert.notEqual(clearAuthIndex, -1, 'bootstrap catch must clear auth state');
+  assert.notEqual(unavailableProjectionIndex, -1, 'bootstrap catch must project unavailable account state');
   assert.ok(
-    teardownIndex < clearAuthIndex,
-    'bootstrap catch must teardown runtime state before clearing auth to avoid duplicate auth-reset effects',
+    teardownIndex < unavailableProjectionIndex,
+    'bootstrap catch must teardown runtime state before projecting unavailable to avoid duplicate watcher effects',
   );
+  assert.doesNotMatch(catchBlock, /clearAuthSession\(\)/);
   assert.ok(
     bootstrapSource.includes('stopAuthStateWatcher();'),
     'teardown helper must stop auth state watcher',

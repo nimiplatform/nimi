@@ -38,12 +38,11 @@ fn product_control_account_registration_uses_same_admitted_desktop_caller() {
 fn account_status_rejection_reports_runtime_reason_codes() {
     let caller = super::product_control_runtime_account_caller();
     let response = crate::runtime_bridge::generated::GetAccountSessionStatusResponse {
-        state: crate::runtime_bridge::generated::AccountSessionState::Authenticated as i32,
-        account_projection: None,
         reason_code: crate::runtime_bridge::generated::ReasonCode::PrincipalUnauthorized as i32,
         account_reason_code: crate::runtime_bridge::generated::AccountReasonCode::CallerUnauthorized
             as i32,
-        production_inert: false,
+        accepted: false,
+        snapshot: None,
     };
 
     let message =
@@ -59,12 +58,18 @@ fn account_status_rejection_reports_runtime_reason_codes() {
 fn account_status_action_executed_is_not_rejection() {
     let caller = super::product_control_runtime_account_caller();
     let response = crate::runtime_bridge::generated::GetAccountSessionStatusResponse {
-        state: crate::runtime_bridge::generated::AccountSessionState::Anonymous as i32,
-        account_projection: None,
         reason_code: crate::runtime_bridge::generated::ReasonCode::ActionExecuted as i32,
         account_reason_code: crate::runtime_bridge::generated::AccountReasonCode::ActionExecuted
             as i32,
-        production_inert: false,
+        accepted: true,
+        snapshot: Some(crate::runtime_bridge::generated::AccountSessionSnapshot {
+            sequence: 1,
+            state: crate::runtime_bridge::generated::AccountSessionState::Anonymous as i32,
+            reason_code: crate::runtime_bridge::generated::ReasonCode::ActionExecuted as i32,
+            account_reason_code: crate::runtime_bridge::generated::AccountReasonCode::ActionExecuted
+                as i32,
+            account_projection: None,
+        }),
     };
 
     assert!(super::runtime_account_status_rejection_error(&response, &caller).is_none());

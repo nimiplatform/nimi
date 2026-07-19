@@ -55,7 +55,11 @@ function readOpenAPIOperations(document) {
         if (!name || !['path', 'query'].includes(location)) {
           fail(`${operationID} has unsupported or incomplete parameter metadata`);
         }
-        return { name, location, required: parameter.required === true };
+        const schemaKind = String(parameter?.schema?.type ?? '').trim();
+        if (!['string', 'number', 'integer', 'boolean'].includes(schemaKind)) {
+          fail(`${operationID} parameter ${name} has unsupported schema type ${schemaKind || '<missing>'}`);
+        }
+        return { name, location, required: parameter.required === true, schemaKind };
       });
       operations.set(operationID, {
         method: method.toUpperCase(),
@@ -109,9 +113,9 @@ function renderPolicy(operations) {
       callerModes.map((mode) => `\t\t\truntimev1.AccountCallerMode_${mode}: {},`).join('\n') + '\n' +
       `\t\t},\n` +
       `\t\tauthorizationProfile: ${quoted(operation.authorization_profile)},\n` +
-      `\t\tallowedPathParameters: map[string]struct{}{${pathParameters.map((parameter) => `${quoted(parameter.name)}: {}`).join(', ')}},\n` +
+      `\t\tpathParameterKinds: map[string]realmUnaryParameterKind{${pathParameters.map((parameter) => `${quoted(parameter.name)}: realmUnaryParameter${parameter.schemaKind[0].toUpperCase()}${parameter.schemaKind.slice(1)}`).join(', ')}},\n` +
       `\t\trequiredPathParameters: map[string]struct{}{${pathParameters.filter((parameter) => parameter.required).map((parameter) => `${quoted(parameter.name)}: {}`).join(', ')}},\n` +
-      `\t\tallowedQueryParameters: map[string]struct{}{${queryParameters.map((parameter) => `${quoted(parameter.name)}: {}`).join(', ')}},\n` +
+      `\t\tqueryParameterKinds: map[string]realmUnaryParameterKind{${queryParameters.map((parameter) => `${quoted(parameter.name)}: realmUnaryParameter${parameter.schemaKind[0].toUpperCase()}${parameter.schemaKind.slice(1)}`).join(', ')}},\n` +
       `\t\trequestBodyAllowed: ${projected.requestBodyAllowed},\n` +
       `\t\trequestBodyRequired: ${projected.requestBodyRequired},\n` +
       `\t\tresponseMaxBytes: ${operation.response_max_bytes},\n` +

@@ -19,7 +19,7 @@ describe('D-OFFLINE-001: SDK-owned offline error classification boundary', () =>
     );
     assert.match(realmApiSource, /isRealmOfflineErrorLike as isRealmOfflineError/);
     assert.match(realmApiSource, /import \{ getOfflineCoordinator \} from '@renderer\/infra\/offline\/coordinator'/);
-    assert.match(realmApiSource, /getOfflineCoordinator\(\)\.markRealmRestReachable\(false\)/);
+    assert.match(realmApiSource, /getOfflineCoordinator\(\)\.markRealmRestReachability\('unreachable'\)/);
     assert.doesNotMatch(
       realmApiSource,
       /import\s*\{[^}]*isRealmOfflineError[^}]*\}\s*from '@renderer\/infra\/offline'/s,

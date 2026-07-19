@@ -9,6 +9,10 @@ use nimi_shell_protected_local::{
     invalidate_verified_desktop_runtime_channel, WindowsNamedPipeCarrier,
 };
 use nimi_shell_protected_local::{
+    DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
+    DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse,
+    DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse,
+    DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
     DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, DesktopProductControlMethod,
     DesktopProductControlRequest, DesktopRuntimeConsumerMethod, DesktopRuntimeConsumerRequest,
     DeveloperModeStatus, FixedRuntimeServiceControl, LocalDevelopmentAuthoritySummary,
@@ -20,12 +24,15 @@ use nimi_shell_protected_local::{
 };
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
+use tokio::sync::Mutex as AsyncMutex;
 
 use super::{error_map::bridge_error, RuntimeBridgeDaemonStatus};
 
 const PROTECTED_LOCAL_TRANSPORT_LABEL: &str = "protected-local";
 const PROTECTED_LOCAL_LAUNCH_MODE: &str = "PROTECTED_LOCAL";
 const UNAVAILABLE_LAUNCH_MODE: &str = "INVALID";
+const INITIAL_CONTROL_OPEN_RETRY_DELAYS: [Duration; 2] =
+    [Duration::from_millis(50), Duration::from_millis(150)];
 
 #[cfg(feature = "windows-e2e-fixture")]
 fn report_windows_e2e_service_control(stage: &str, reason_code: Option<&str>) {
@@ -47,6 +54,7 @@ type PlatformCarrier = MacOsUnixSocketCarrier;
 type PlatformCarrier = LinuxUnixSocketCarrier;
 
 static DESKTOP_CONTROL: OnceLock<Mutex<Option<Arc<dyn NimiDesktopControl>>>> = OnceLock::new();
+static DESKTOP_CONTROL_OPEN: OnceLock<AsyncMutex<()>> = OnceLock::new();
 
 pub(super) fn status() -> RuntimeBridgeDaemonStatus {
     let carrier = PlatformCarrier::default();
@@ -57,16 +65,9 @@ pub(super) fn status() -> RuntimeBridgeDaemonStatus {
 }
 
 pub(super) async fn status_async() -> RuntimeBridgeDaemonStatus {
-    if desktop_control_is_open() {
-        return service_projection(RuntimeServiceState::Running, None, None, false);
-    }
-    let carrier = PlatformCarrier::default();
-    match carrier.open_desktop_control().await {
-        Ok(control) => match retain_desktop_control(control) {
-            Ok(()) => service_projection(RuntimeServiceState::Running, None, None, false),
-            Err(error) => unavailable_status(error),
-        },
-        Err(error) => unavailable_status(error),
+    match control_for_call().await {
+        Ok(_) => service_projection(RuntimeServiceState::Running, None, None, false),
+        Err(error) => unavailable_status(host_service_control_error(error)),
     }
 }
 
@@ -172,13 +173,6 @@ fn host_service_control_error(error: NimiHostError) -> ProtectedCarrierError {
     ProtectedCarrierError::new(reason, error.retryable())
 }
 
-fn desktop_control_is_open() -> bool {
-    DESKTOP_CONTROL
-        .get()
-        .and_then(|control| control.lock().ok())
-        .is_some_and(|control| control.is_some())
-}
-
 fn retain_desktop_control(
     control: Box<dyn NimiDesktopControl>,
 ) -> Result<(), ProtectedCarrierError> {
@@ -204,6 +198,99 @@ pub(super) async fn get_account_session_status(
                 .await?
                 .get_account_session_status(request)
                 .await
+        }
+        Err(error) => Err(error),
+    }
+}
+
+pub(super) async fn open_account_session_events(
+    request: DesktopAccountSessionEventsRequest,
+) -> Result<DesktopAccountSessionEventReceiver, NimiHostError> {
+    let control = control_for_call().await?;
+    match control.open_account_session_events(request.clone()).await {
+        Ok(value) => Ok(value),
+        Err(error) if should_reconnect(error) => {
+            clear_desktop_control_if_same(control).await;
+            control_for_call()
+                .await?
+                .open_account_session_events(request)
+                .await
+        }
+        Err(error) => Err(error),
+    }
+}
+
+pub(super) async fn begin_account_login(
+    request: DesktopAccountBeginLoginRequest,
+) -> Result<DesktopAccountBeginLoginResponse, NimiHostError> {
+    let control = control_for_call().await?;
+    match control.begin_account_login(request.clone()).await {
+        Ok(value) => Ok(value),
+        Err(error) if should_reconnect(error) => {
+            clear_desktop_control_if_same(control).await;
+            control_for_call().await?.begin_account_login(request).await
+        }
+        Err(error) => Err(error),
+    }
+}
+
+pub(super) async fn complete_account_login(
+    request: DesktopAccountCompleteLoginRequest,
+) -> Result<DesktopAccountMutationResponse, NimiHostError> {
+    let control = control_for_call().await?;
+    match control.complete_account_login(request.clone()).await {
+        Ok(value) => Ok(value),
+        Err(error) if should_reconnect(error) => {
+            clear_desktop_control_if_same(control).await;
+            control_for_call()
+                .await?
+                .complete_account_login(request)
+                .await
+        }
+        Err(error) => Err(error),
+    }
+}
+
+pub(super) async fn invoke_account_realm_unary(
+    request: DesktopAccountRealmUnaryRequest,
+) -> Result<DesktopAccountRealmUnaryResponse, NimiHostError> {
+    let control = control_for_call().await?;
+    match control.invoke_account_realm_unary(request.clone()).await {
+        Ok(value) => Ok(value),
+        Err(error) if should_reconnect(error) => {
+            clear_desktop_control_if_same(control).await;
+            control_for_call()
+                .await?
+                .invoke_account_realm_unary(request)
+                .await
+        }
+        Err(error) => Err(error),
+    }
+}
+
+pub(super) async fn logout_account(
+    request: DesktopAccountActionRequest,
+) -> Result<DesktopAccountMutationResponse, NimiHostError> {
+    let control = control_for_call().await?;
+    match control.logout_account(request.clone()).await {
+        Ok(value) => Ok(value),
+        Err(error) if should_reconnect(error) => {
+            clear_desktop_control_if_same(control).await;
+            control_for_call().await?.logout_account(request).await
+        }
+        Err(error) => Err(error),
+    }
+}
+
+pub(super) async fn switch_account(
+    request: DesktopAccountActionRequest,
+) -> Result<DesktopAccountMutationResponse, NimiHostError> {
+    let control = control_for_call().await?;
+    match control.switch_account(request.clone()).await {
+        Ok(value) => Ok(value),
+        Err(error) if should_reconnect(error) => {
+            clear_desktop_control_if_same(control).await;
+            control_for_call().await?.switch_account(request).await
         }
         Err(error) => Err(error),
     }
@@ -514,12 +601,38 @@ async fn control_for_call() -> Result<Arc<dyn NimiDesktopControl>, NimiHostError
     if let Ok(control) = desktop_control() {
         return Ok(control);
     }
-    let control = PlatformCarrier::default()
-        .open_desktop_control()
-        .await
-        .map_err(NimiHostError::from)?;
-    retain_desktop_control(control).map_err(NimiHostError::from)?;
-    desktop_control()
+    let _open_guard = DESKTOP_CONTROL_OPEN
+        .get_or_init(|| AsyncMutex::new(()))
+        .lock()
+        .await;
+    if let Ok(control) = desktop_control() {
+        return Ok(control);
+    }
+    for attempt in 0..=INITIAL_CONTROL_OPEN_RETRY_DELAYS.len() {
+        match PlatformCarrier::default().open_desktop_control().await {
+            Ok(control) => {
+                retain_desktop_control(control).map_err(NimiHostError::from)?;
+                return desktop_control();
+            }
+            Err(error) => {
+                let error = NimiHostError::from(error);
+                let Some(delay) = INITIAL_CONTROL_OPEN_RETRY_DELAYS.get(attempt) else {
+                    return Err(error);
+                };
+                if !should_retry_initial_control_open(error) {
+                    return Err(error);
+                }
+                tokio::time::sleep(*delay).await;
+            }
+        }
+    }
+    unreachable!("initial control open retry loop always returns")
+}
+
+fn should_retry_initial_control_open(error: NimiHostError) -> bool {
+    error.retryable()
+        && error.reason_code()
+            == nimi_shell_protected_local::NimiHostErrorReasonCode::RuntimeServiceUnavailable
 }
 
 fn should_reconnect(error: NimiHostError) -> bool {
@@ -581,4 +694,29 @@ fn desktop_control() -> Result<Arc<dyn NimiDesktopControl>, NimiHostError> {
                 false,
             )
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn initial_control_open_retries_only_retryable_service_unavailable() {
+        assert!(should_retry_initial_control_open(NimiHostError::new(
+            NimiHostErrorReasonCode::RuntimeServiceUnavailable,
+            true,
+        )));
+        assert!(!should_retry_initial_control_open(NimiHostError::new(
+            NimiHostErrorReasonCode::RuntimeServiceUnavailable,
+            false,
+        )));
+        assert!(!should_retry_initial_control_open(NimiHostError::new(
+            NimiHostErrorReasonCode::RuntimeServiceUntrusted,
+            true,
+        )));
+        assert!(!should_retry_initial_control_open(NimiHostError::new(
+            NimiHostErrorReasonCode::ProtectedCarrierRequired,
+            true,
+        )));
+    }
 }

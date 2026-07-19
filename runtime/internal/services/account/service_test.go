@@ -16,6 +16,30 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 )
 
+func accountStatusState(response *runtimev1.GetAccountSessionStatusResponse) runtimev1.AccountSessionState {
+	return response.GetSnapshot().GetState()
+}
+
+func accountStatusProjection(response *runtimev1.GetAccountSessionStatusResponse) *runtimev1.AccountProjection {
+	return response.GetSnapshot().GetAccountProjection()
+}
+
+func accountEventState(event *runtimev1.AccountSessionEvent) runtimev1.AccountSessionState {
+	return event.GetSnapshot().GetState()
+}
+
+func accountEventReason(event *runtimev1.AccountSessionEvent) runtimev1.ReasonCode {
+	return event.GetSnapshot().GetReasonCode()
+}
+
+func accountEventAccountReason(event *runtimev1.AccountSessionEvent) runtimev1.AccountReasonCode {
+	return event.GetSnapshot().GetAccountReasonCode()
+}
+
+func accountEventProjection(event *runtimev1.AccountSessionEvent) *runtimev1.AccountProjection {
+	return event.GetSnapshot().GetAccountProjection()
+}
+
 type memoryCustody struct {
 	material AccountMaterial
 	has      bool
@@ -344,8 +368,8 @@ func TestRegisteredLocalFirstPartyAppReadsSingleActiveAccountProjection(t *testi
 		t.Fatalf("tester GetAccountSessionStatus: %v", err)
 	}
 	if status.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED ||
-		status.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
-		status.GetAccountProjection().GetAccountId() != "acct-1" {
+		accountStatusState(status) != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
+		accountStatusProjection(status).GetAccountId() != "acct-1" {
 		t.Fatalf("registered tester caller should read the Runtime single active account projection: %+v", status)
 	}
 
@@ -401,17 +425,17 @@ func TestNoDesktopSharedAuthReadMirrorPath(t *testing.T) {
 func TestEventStreamSnapshotReplayOrderAndTruncation(t *testing.T) {
 	svc := newHarnessService(t, nil, WithEventRetention(2))
 	completeLogin(t, svc)
-	snapshot, replay, _ := svc.subscribe(&runtimev1.SubscribeAccountSessionEventsRequest{AfterSequence: 0})
+	replay, snapshot, _ := svc.subscribe(&runtimev1.SubscribeAccountSessionEventsRequest{AfterSequence: 0})
 	if snapshot.GetEventType() != runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS {
 		t.Fatalf("expected status snapshot, got %v", snapshot.GetEventType())
 	}
-	if len(replay) != 2 {
-		t.Fatalf("expected retained replay of 2 events, got %d", len(replay))
+	if len(replay) != 0 {
+		t.Fatalf("first subscription must start with snapshot only, got %d replay events", len(replay))
 	}
-	if replay[0].GetSequence() >= replay[1].GetSequence() {
-		t.Fatalf("replay must be ordered by sequence: %v then %v", replay[0].GetSequence(), replay[1].GetSequence())
+	if snapshot.GetDeliveryKind() != runtimev1.AccountSessionDeliveryKind_ACCOUNT_SESSION_DELIVERY_KIND_SNAPSHOT || snapshot.GetSnapshot().GetSequence() != snapshot.GetSequence() {
+		t.Fatalf("first delivery must be a coherent snapshot: %+v", snapshot)
 	}
-	truncated, replay, _ := svc.subscribe(&runtimev1.SubscribeAccountSessionEventsRequest{AfterSequence: 1})
+	replay, truncated, _ := svc.subscribe(&runtimev1.SubscribeAccountSessionEventsRequest{AfterSequence: 1})
 	if !truncated.GetReplayTruncated() {
 		t.Fatalf("expected replay_truncated when after_sequence predates retention")
 	}
@@ -456,12 +480,72 @@ func TestLogoutRevokesBindingsBeforeFinalAccountStatus(t *testing.T) {
 			bindingRevokedSeq = event.GetSequence()
 		}
 		if event.GetEventType() == runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS &&
-			event.GetState() == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS {
+			accountEventState(event) == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS {
 			finalStatusSeq = event.GetSequence()
 		}
 	}
 	if bindingRevokedSeq == 0 || finalStatusSeq == 0 || bindingRevokedSeq > finalStatusSeq {
 		t.Fatalf("binding revoke must precede final anonymous status, binding=%d status=%d", bindingRevokedSeq, finalStatusSeq)
+	}
+}
+
+func TestLogoutAndSwitchFailClosedWhenCustodyCannotBeCleared(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		failureType runtimev1.AccountEventType
+		invoke      func(*Service) (bool, runtimev1.AccountSessionState, runtimev1.AccountReasonCode, error)
+	}{
+		{
+			name:        "logout",
+			failureType: runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_FAILED,
+			invoke: func(service *Service) (bool, runtimev1.AccountSessionState, runtimev1.AccountReasonCode, error) {
+				response, err := service.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: desktopAccountControlCaller()})
+				return response.GetAccepted(), response.GetState(), response.GetAccountReasonCode(), err
+			},
+		},
+		{
+			name:        "switch",
+			failureType: runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_FAILED,
+			invoke: func(service *Service) (bool, runtimev1.AccountSessionState, runtimev1.AccountReasonCode, error) {
+				response, err := service.SwitchAccount(context.Background(), &runtimev1.SwitchAccountRequest{Caller: desktopAccountControlCaller()})
+				return response.GetAccepted(), response.GetState(), response.GetAccountReasonCode(), err
+			},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			custody := &memoryCustody{}
+			service := newHarnessService(t, custody)
+			completeLogin(t, service)
+			custody.err = ErrCustodyUnavailable
+
+			accepted, state, reason, err := test.invoke(service)
+			if err != nil || accepted || state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE ||
+				reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE {
+				t.Fatalf("failure response = (%t, %v, %v, %v)", accepted, state, reason, err)
+			}
+			service.mu.RLock()
+			defer service.mu.RUnlock()
+			if service.material.AccessToken != "" || service.projection != nil || !custody.has {
+				t.Fatalf("failed clear state material=%+v projection=%+v custody=%+v", service.material, service.projection, custody)
+			}
+			var failureSequence, statusSequence uint64
+			for _, event := range service.events {
+				if event.GetEventType() == test.failureType {
+					failureSequence = event.GetSequence()
+				}
+				if event.GetEventType() == runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS &&
+					event.GetSnapshot().GetState() == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE {
+					statusSequence = event.GetSequence()
+				}
+				if event.GetEventType() == runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS &&
+					event.GetSnapshot().GetState() == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS {
+					t.Fatal("custody clear failure published anonymous account truth")
+				}
+			}
+			if failureSequence == 0 || statusSequence <= failureSequence {
+				t.Fatalf("failure/status sequence = %d/%d", failureSequence, statusSequence)
+			}
+		})
 	}
 }
 
@@ -536,7 +620,7 @@ func TestLogoutAndUserSwitchRevokeMultiConsumerProjections(t *testing.T) {
 			if err != nil {
 				t.Fatalf("GetAccountSessionStatus after revoke: %v", err)
 			}
-			if status.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS || status.GetAccountProjection() != nil {
+			if accountStatusState(status) != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS || accountStatusProjection(status) != nil {
 				t.Fatalf("Runtime account projection must be revoked: %+v", status)
 			}
 			for _, binding := range []*runtimev1.IssueScopedAppBindingResponse{avatarBinding, secondaryHostBinding} {
@@ -555,7 +639,7 @@ func TestDaemonRestartRecoveryAndNoCustodyRestartBehavior(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetAccountSessionStatus: %v", err)
 	}
-	if statusResp.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED {
+	if accountStatusState(statusResp) != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED {
 		t.Fatalf("restart with custody should recover authenticated state: %+v", statusResp)
 	}
 
@@ -564,7 +648,7 @@ func TestDaemonRestartRecoveryAndNoCustodyRestartBehavior(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetAccountSessionStatus unavailable: %v", err)
 	}
-	if statusResp.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE {
+	if accountStatusState(statusResp) != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE {
 		t.Fatalf("restart without custody must be unavailable: %+v", statusResp)
 	}
 }
@@ -583,7 +667,7 @@ func TestDaemonRestartRecoversAccountButInvalidatesScopedBindings(t *testing.T) 
 	if err != nil {
 		t.Fatalf("GetAccountSessionStatus after restart: %v", err)
 	}
-	if status.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED || status.GetAccountProjection().GetAccountId() != "acct-1" {
+	if accountStatusState(status) != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED || accountStatusProjection(status).GetAccountId() != "acct-1" {
 		t.Fatalf("restart should recover account projection from custody: %+v", status)
 	}
 	token, reason, ok, err := afterRestart.realmUnaryAccessToken(context.Background(), nil)
@@ -602,7 +686,7 @@ func TestDaemonRestartRecoversAccountButInvalidatesScopedBindings(t *testing.T) 
 	if err != nil {
 		t.Fatalf("GetAccountSessionStatus unavailable restart: %v", err)
 	}
-	if status.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE {
+	if accountStatusState(status) != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE {
 		t.Fatalf("unrecoverable restart must fail closed: %+v", status)
 	}
 }
@@ -619,7 +703,7 @@ func TestAccountStatusRejectsUnregisteredLocalFirstPartyCaller(t *testing.T) {
 		}
 		if resp.GetReasonCode() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED ||
 			resp.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED ||
-			resp.GetAccountProjection() != nil {
+			resp.GetSnapshot() != nil {
 			t.Fatalf("unregistered caller must not receive account status projection: %+v", resp)
 		}
 	})
@@ -631,7 +715,7 @@ func TestAccountStatusRejectsUnregisteredLocalFirstPartyCaller(t *testing.T) {
 			t.Fatalf("admitted anonymous GetAccountSessionStatus: %v", err)
 		}
 		if allowed.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED ||
-			allowed.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS {
+			accountStatusState(allowed) != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS {
 			t.Fatalf("admitted caller should receive anonymous status: %+v", allowed)
 		}
 
@@ -658,9 +742,9 @@ func TestSubscribeAccountSessionEventsRequiresAdmittedCallerAndRedactsAvatar(t *
 		t.Fatalf("unregistered SubscribeAccountSessionEvents: %v", err)
 	}
 	if len(unregistered.sent) != 1 ||
-		unregistered.sent[0].GetReasonCode() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED ||
-		unregistered.sent[0].GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED ||
-		unregistered.sent[0].GetAccountProjection() != nil {
+		accountEventReason(unregistered.sent[0]) != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED ||
+		accountEventAccountReason(unregistered.sent[0]) != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED ||
+		accountEventProjection(unregistered.sent[0]) != nil {
 		t.Fatalf("unregistered subscription must receive only redacted rejection: %+v", unregistered.sent)
 	}
 	if len(svc.subscribers) != 0 || len(svc.events) != eventCount {
@@ -676,8 +760,8 @@ func TestSubscribeAccountSessionEventsRequiresAdmittedCallerAndRedactsAvatar(t *
 		t.Fatalf("avatar SubscribeAccountSessionEvents: %v", err)
 	}
 	if len(avatarStream.sent) != 1 ||
-		avatarStream.sent[0].GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY ||
-		avatarStream.sent[0].GetAccountProjection() != nil {
+		accountEventAccountReason(avatarStream.sent[0]) != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY ||
+		accountEventProjection(avatarStream.sent[0]) != nil {
 		t.Fatalf("Desktop-launched Avatar subscription must be binding-only/redacted: %+v", avatarStream.sent)
 	}
 
@@ -687,7 +771,7 @@ func TestSubscribeAccountSessionEventsRequiresAdmittedCallerAndRedactsAvatar(t *
 	if err := svc.SubscribeAccountSessionEvents(&runtimev1.SubscribeAccountSessionEventsRequest{Caller: firstPartyCaller()}, admitted); err != context.Canceled {
 		t.Fatalf("admitted SubscribeAccountSessionEvents should exit on cancellation, got %v", err)
 	}
-	if len(admitted.sent) == 0 || admitted.sent[0].GetAccountProjection().GetAccountId() != "acct-1" {
+	if len(admitted.sent) == 0 || accountEventProjection(admitted.sent[0]).GetAccountId() != "acct-1" {
 		t.Fatalf("admitted caller should receive account projection snapshot: %+v", admitted.sent)
 	}
 }

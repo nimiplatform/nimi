@@ -78,9 +78,18 @@ test('SDK types classify offline errors and create NimiError values', () => {
   });
   assert.equal(isRuntimeOfflineErrorLike(runtimeError), true);
   assert.equal(isRuntimeOfflineErrorLike({
-    reasonCode: 'electron-runtime-endpoint-unavailable',
+    reasonCode: ReasonCode.RUNTIME_BRIDGE_DAEMON_UNAVAILABLE,
     message: 'Electron Runtime endpoint is unavailable.',
   }), true);
+  assert.equal(isRealmOfflineErrorLike({ message: 'Realm unavailable' }), false);
+  assert.equal(isRealmOfflineErrorLike(
+    new TypeError('fetch failed'),
+    { transportOwner: 'realm' },
+  ), true);
+  assert.equal(isRealmOfflineErrorLike(
+    new TypeError('fetch failed'),
+    { transportOwner: 'runtime' },
+  ), false);
 });
 
 test('SDK types create cryptographic Nimi client ids', () => {

@@ -1,10 +1,13 @@
 export type OfflineTier = 'L0' | 'L1' | 'L2';
+export type ConnectivityReachability = 'unknown' | 'reachable' | 'unreachable';
 
 export type OfflineTierChangeReason =
   | 'realm_offline'
   | 'realm_reconnect'
+  | 'realm_unknown'
   | 'runtime_offline'
-  | 'runtime_reconnect';
+  | 'runtime_reconnect'
+  | 'runtime_unknown';
 
 export type OfflineTierChange = {
   from: OfflineTier;
@@ -15,12 +18,12 @@ export type OfflineTierChange = {
 
 export type ConnectivityStatus = {
   realm: {
-    restReachable: boolean;
-    socketReachable: boolean;
+    rest: ConnectivityReachability;
+    socket: ConnectivityReachability;
     lastRestCheckedAt: number;
     lastSocketCheckedAt: number;
   };
-  runtime: { reachable: boolean; lastCheckedAt: number };
+  runtime: { reachability: ConnectivityReachability; lastCheckedAt: number };
 };
 
 export const OFFLINE_RECONNECT_INITIAL_DELAY_MS = 1000;
@@ -46,33 +49,40 @@ export type OfflineCoordinatorTimer = {
 };
 
 const defaultOfflineCoordinatorTimer: OfflineCoordinatorTimer = {
-  setTimeout: (callback, delayMs) => globalThis.setTimeout(callback, delayMs),
+  setTimeout: (callback, delayMs) => {
+    const handle = globalThis.setTimeout(callback, delayMs);
+    // Reconnect probes are background recovery work. In Node-based shell tests
+    // and native-host tooling they must not retain an otherwise completed
+    // process; browser timer handles intentionally have no unref surface.
+    (handle as { unref?: () => void }).unref?.();
+    return handle;
+  },
   clearTimeout: (handle) => globalThis.clearTimeout(handle as ReturnType<typeof setTimeout>),
 };
 
 export class ConnectivityMonitor {
-  private realmRestReachable = true;
-  private realmSocketReachable = true;
-  private runtimeReachable = true;
+  private realmRestReachability: ConnectivityReachability = 'unknown';
+  private realmSocketReachability: ConnectivityReachability = 'unknown';
+  private runtimeReachability: ConnectivityReachability = 'unknown';
   private realmRestLastCheckedAt = Date.now();
   private realmSocketLastCheckedAt = Date.now();
   private runtimeLastCheckedAt = Date.now();
   private readonly listeners = new Set<ConnectivityListener>();
 
-  setRealmSocketConnected(connected: boolean): void {
-    this.realmSocketReachable = connected;
+  setRealmSocketReachability(reachability: ConnectivityReachability): void {
+    this.realmSocketReachability = reachability;
     this.realmSocketLastCheckedAt = Date.now();
     this.emit();
   }
 
-  setRealmRestReachable(reachable: boolean): void {
-    this.realmRestReachable = reachable;
+  setRealmRestReachability(reachability: ConnectivityReachability): void {
+    this.realmRestReachability = reachability;
     this.realmRestLastCheckedAt = Date.now();
     this.emit();
   }
 
-  setRuntimeReachable(reachable: boolean): void {
-    this.runtimeReachable = reachable;
+  setRuntimeReachability(reachability: ConnectivityReachability): void {
+    this.runtimeReachability = reachability;
     this.runtimeLastCheckedAt = Date.now();
     this.emit();
   }
@@ -80,12 +90,12 @@ export class ConnectivityMonitor {
   getStatus(): ConnectivityStatus {
     return {
       realm: {
-        restReachable: this.realmRestReachable,
-        socketReachable: this.realmSocketReachable,
+        rest: this.realmRestReachability,
+        socket: this.realmSocketReachability,
         lastRestCheckedAt: this.realmRestLastCheckedAt,
         lastSocketCheckedAt: this.realmSocketLastCheckedAt,
       },
-      runtime: { reachable: this.runtimeReachable, lastCheckedAt: this.runtimeLastCheckedAt },
+      runtime: { reachability: this.runtimeReachability, lastCheckedAt: this.runtimeLastCheckedAt },
     };
   }
 
@@ -136,9 +146,9 @@ export class OfflineStateManager {
 
   private recalculateTier(): void {
     const { realm, runtime } = this.monitor.getStatus();
-    const nextTier: OfflineTier = !runtime.reachable
+    const nextTier: OfflineTier = runtime.reachability === 'unreachable'
       ? 'L2'
-      : !realm.restReachable
+      : realm.rest === 'unreachable'
         ? 'L1'
         : 'L0';
 
@@ -151,7 +161,7 @@ export class OfflineStateManager {
       from: previousTier,
       to: nextTier,
       timestamp: Date.now(),
-      reason: this.inferReason(previousTier, nextTier),
+      reason: this.inferReason(previousTier, nextTier, realm.rest, runtime.reachability),
     };
 
     for (const listener of this.listeners) {
@@ -163,11 +173,18 @@ export class OfflineStateManager {
     }
   }
 
-  private inferReason(from: OfflineTier, to: OfflineTier): OfflineTierChangeReason {
+  private inferReason(
+    from: OfflineTier,
+    to: OfflineTier,
+    realmReachability: ConnectivityReachability,
+    runtimeReachability: ConnectivityReachability,
+  ): OfflineTierChangeReason {
     if (to === 'L2') return 'runtime_offline';
-    if (from === 'L2') return 'runtime_reconnect';
+    if (from === 'L2') {
+      return runtimeReachability === 'reachable' ? 'runtime_reconnect' : 'runtime_unknown';
+    }
     if (to === 'L1') return 'realm_offline';
-    return 'realm_reconnect';
+    return realmReachability === 'reachable' ? 'realm_reconnect' : 'realm_unknown';
   }
 }
 
@@ -181,6 +198,9 @@ export class OfflineCoordinator {
   private readonly statusListeners = new Set<ConnectivityListener>();
   private started = false;
   private realmReconnectTimer: OfflineTimerHandle | null = null;
+  private realmReconnectScheduleEpoch = 0;
+  private realmReconnectSchedulePending = false;
+  private realmReconnectScheduleRequested = false;
   private runtimeReconnectTimer: OfflineTimerHandle | null = null;
   private realmReconnectDelayMs = OFFLINE_RECONNECT_INITIAL_DELAY_MS;
   private runtimeReconnectDelayMs = OFFLINE_RECONNECT_INITIAL_DELAY_MS;
@@ -218,9 +238,22 @@ export class OfflineCoordinator {
       }
       if (change.reason === 'realm_reconnect') {
         this.cacheFallbackActive = false;
-        this.clearRealmReconnectTimer();
-        this.realmReconnectDelayMs = OFFLINE_RECONNECT_INITIAL_DELAY_MS;
+        if (this.getStatus().realm.socket !== 'unreachable') {
+          this.clearRealmReconnectTimer();
+          this.realmReconnectDelayMs = OFFLINE_RECONNECT_INITIAL_DELAY_MS;
+        } else {
+          void this.scheduleRealmReconnect();
+        }
         void this.emitRealmReconnect();
+      }
+      if (change.reason === 'realm_unknown') {
+        this.cacheFallbackActive = false;
+        if (this.getStatus().realm.socket !== 'unreachable') {
+          this.clearRealmReconnectTimer();
+          this.realmReconnectDelayMs = OFFLINE_RECONNECT_INITIAL_DELAY_MS;
+        } else {
+          void this.scheduleRealmReconnect();
+        }
       }
       if (change.reason === 'runtime_offline') {
         void this.scheduleRuntimeReconnect();
@@ -229,6 +262,10 @@ export class OfflineCoordinator {
         this.clearRuntimeReconnectTimer();
         this.runtimeReconnectDelayMs = OFFLINE_RECONNECT_INITIAL_DELAY_MS;
         void this.emitRuntimeReconnect();
+      }
+      if (change.reason === 'runtime_unknown') {
+        this.clearRuntimeReconnectTimer();
+        this.runtimeReconnectDelayMs = OFFLINE_RECONNECT_INITIAL_DELAY_MS;
       }
     });
     this.stateManager.start();
@@ -240,34 +277,44 @@ export class OfflineCoordinator {
 
   markCacheFallbackUsed(): void {
     this.cacheFallbackActive = true;
-    this.markRealmRestReachable(false);
+    this.markRealmRestReachability('unreachable');
   }
 
-  markRuntimeReachable(reachable: boolean): void {
+  markRuntimeReachability(reachability: ConnectivityReachability): void {
     this.start();
-    this.monitor.setRuntimeReachable(reachable);
-  }
-
-  markRealmSocketReachable(reachable: boolean): void {
-    this.start();
-    const wasReachable = this.monitor.getStatus().realm.socketReachable;
-    this.monitor.setRealmSocketConnected(reachable);
-    if (!reachable && !wasReachable) {
-      void this.scheduleRealmReconnect();
+    this.monitor.setRuntimeReachability(reachability);
+    if (reachability === 'unknown') {
+      this.clearRuntimeReconnectTimer();
+      this.runtimeReconnectDelayMs = OFFLINE_RECONNECT_INITIAL_DELAY_MS;
     }
   }
 
-  markRealmRestReachable(reachable: boolean): void {
+  markRealmSocketReachability(reachability: ConnectivityReachability): void {
     this.start();
-    const wasReachable = this.monitor.getStatus().realm.restReachable;
-    this.monitor.setRealmRestReachable(reachable);
-    if (!reachable && !wasReachable) {
+    const previous = this.monitor.getStatus().realm.socket;
+    this.monitor.setRealmSocketReachability(reachability);
+    if (reachability === 'unreachable') {
       void this.scheduleRealmReconnect();
+      return;
     }
-    if (reachable) {
-      this.cacheFallbackActive = false;
+    if (this.monitor.getStatus().realm.rest !== 'unreachable') {
       this.clearRealmReconnectTimer();
       this.realmReconnectDelayMs = OFFLINE_RECONNECT_INITIAL_DELAY_MS;
+      if (previous === 'unreachable' && reachability === 'reachable') {
+        void this.emitRealmReconnect();
+      }
+    }
+  }
+
+  markRealmRestReachability(reachability: ConnectivityReachability): void {
+    this.start();
+    this.monitor.setRealmRestReachability(reachability);
+    if (reachability !== 'unreachable') {
+      this.cacheFallbackActive = false;
+      if (this.monitor.getStatus().realm.socket !== 'unreachable') {
+        this.clearRealmReconnectTimer();
+        this.realmReconnectDelayMs = OFFLINE_RECONNECT_INITIAL_DELAY_MS;
+      }
     }
   }
 
@@ -306,17 +353,18 @@ export class OfflineCoordinator {
   }
 
   private async shouldReconnectRealm(): Promise<boolean> {
-    if (this.getTier() !== 'L1') {
-      return false;
-    }
-    if (!this.getStatus().realm.restReachable) {
+    const status = this.getStatus();
+    if (status.realm.rest === 'unreachable') {
       return true;
     }
     if (this.cacheFallbackActive) {
       return true;
     }
-    if (!this.getStatus().realm.socketReachable) {
+    if (status.realm.socket === 'unreachable') {
       return true;
+    }
+    if (this.getTier() !== 'L1') {
+      return false;
     }
     const probe = this.reconnectHandlers.hasPendingRealmRecoveryWork;
     if (!probe) {
@@ -333,36 +381,53 @@ export class OfflineCoordinator {
     if (this.realmReconnectTimer) {
       return;
     }
-    if (!await this.shouldReconnectRealm()) {
+    if (this.realmReconnectSchedulePending) {
+      this.realmReconnectScheduleRequested = true;
       return;
     }
-    this.realmReconnectTimer = this.timer.setTimeout(() => {
-      this.realmReconnectTimer = null;
-      void this.tryRealmReconnect();
-    }, this.realmReconnectDelayMs);
+    this.realmReconnectSchedulePending = true;
+    const scheduleEpoch = this.realmReconnectScheduleEpoch;
+    try {
+      if (!await this.shouldReconnectRealm()
+        || scheduleEpoch !== this.realmReconnectScheduleEpoch
+        || this.realmReconnectTimer) {
+        return;
+      }
+      this.realmReconnectTimer = this.timer.setTimeout(() => {
+        this.realmReconnectTimer = null;
+        void this.tryRealmReconnect();
+      }, this.realmReconnectDelayMs);
+    } finally {
+      this.realmReconnectSchedulePending = false;
+      if (this.realmReconnectScheduleRequested) {
+        this.realmReconnectScheduleRequested = false;
+        void this.scheduleRealmReconnect();
+      }
+    }
   }
 
   private async tryRealmReconnect(): Promise<void> {
     const status = this.getStatus();
     const restProbe = this.reconnectHandlers.probeRealmReachability;
     const socketProbe = this.reconnectHandlers.probeRealmSocketReachability;
-    if (!restProbe && !socketProbe) {
+    const restRecoveryRequired = status.realm.rest === 'unreachable' || this.cacheFallbackActive;
+    const socketRecoveryRequired = status.realm.socket === 'unreachable';
+    if (!restRecoveryRequired && !socketRecoveryRequired) {
       return;
     }
     try {
-      const restReachable = status.realm.restReachable || (restProbe ? await restProbe() : false);
-      if (restReachable && !status.realm.restReachable) {
-        this.markRealmRestReachable(true);
+      const restReachable = !restRecoveryRequired || (restProbe ? await restProbe() : false);
+      if (restRecoveryRequired && restReachable && status.realm.rest !== 'reachable') {
+        this.markRealmRestReachability('reachable');
       }
 
       const nextStatus = this.getStatus();
-      const socketReachable = nextStatus.realm.socketReachable || (socketProbe ? await socketProbe() : false);
-      if (socketReachable && !nextStatus.realm.socketReachable) {
-        this.markRealmSocketReachable(true);
+      const socketReachable = !socketRecoveryRequired || (socketProbe ? await socketProbe() : false);
+      if (socketRecoveryRequired && socketReachable && nextStatus.realm.socket !== 'reachable') {
+        this.markRealmSocketReachability('reachable');
       }
 
-      const finalStatus = this.getStatus();
-      if (finalStatus.realm.restReachable && finalStatus.realm.socketReachable) {
+      if (restReachable && socketReachable) {
         return;
       }
     } catch {
@@ -376,7 +441,7 @@ export class OfflineCoordinator {
   }
 
   private async scheduleRuntimeReconnect(): Promise<void> {
-    if (this.runtimeReconnectTimer || this.getStatus().runtime.reachable) {
+    if (this.runtimeReconnectTimer || this.getStatus().runtime.reachability !== 'unreachable') {
       return;
     }
     this.runtimeReconnectTimer = this.timer.setTimeout(() => {
@@ -397,7 +462,7 @@ export class OfflineCoordinator {
         if (recover) {
           await recover();
         }
-        this.markRuntimeReachable(true);
+        this.markRuntimeReachability('reachable');
         return;
       }
     } catch {
@@ -411,6 +476,7 @@ export class OfflineCoordinator {
   }
 
   private clearRealmReconnectTimer(): void {
+    this.realmReconnectScheduleEpoch += 1;
     if (this.realmReconnectTimer) {
       this.timer.clearTimeout(this.realmReconnectTimer);
       this.realmReconnectTimer = null;

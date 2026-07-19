@@ -1,4 +1,5 @@
 import { writeDesktopMacosSmokeReport } from '@renderer/bridge/runtime-bridge/macos-smoke';
+import { desktopBridge } from '@renderer/bridge';
 import type { DesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
@@ -18,6 +19,7 @@ import {
   type DesktopMacosSmokeDriverDeps,
   SMOKE_STEP_TIMEOUT_MS,
 } from './desktop-macos-smoke-shared';
+import { applyRuntimeAccountStatusProjection } from './auth-state-watcher';
 
 export type DesktopMacosSmokeDriverDepsOptions = {
   context?: DesktopMacosSmokeContext | null;
@@ -207,8 +209,8 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
           accountRuntime.account.getAccountSessionStatus({ caller: accountCaller }),
           5_000,
         );
-        resetState = resetStatus.state;
-        if (resetStatus.state === AccountSessionState.ANONYMOUS) {
+        resetState = resetStatus.snapshot?.state ?? AccountSessionState.UNSPECIFIED;
+        if (resetState === AccountSessionState.ANONYMOUS) {
           break;
         }
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -255,17 +257,13 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
         try {
           const account = await withSmokeTimeout(
             'Runtime account projection readback',
-            accountRuntime.account.getAccountSessionStatus({ caller: accountCaller }),
+            desktopBridge.getRuntimeAccountSessionStatus(),
             2_000,
           );
           const accountId = String(account.accountProjection?.accountId || '').trim();
-          const isAuthenticated = Number(account.state) === 3 || String(account.state) === 'authenticated';
+          const isAuthenticated = account.state === 'authenticated';
           if (isAuthenticated && accountId) {
-            useAppStore.getState().setAuthSession({
-              id: accountId,
-              displayName: String(account.accountProjection?.displayName || accountId),
-              realmEnvironmentId: String(account.accountProjection?.realmEnvironmentId || ''),
-            });
+            applyRuntimeAccountStatusProjection(account);
             return;
           }
           lastError = `Runtime account state=${String(account.state || 'unknown')} account_present=${Boolean(accountId)}`;

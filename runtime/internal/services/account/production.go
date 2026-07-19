@@ -8,16 +8,19 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math"
 	"mime"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
+	realmv1 "github.com/nimiplatform/nimi/runtime/gen/realm/v1"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/jsonstrict"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -69,36 +72,7 @@ type realmTokenRefresher struct {
 	tokenURL   string
 }
 
-type realmTokenResponse struct {
-	AccessToken          string                          `json:"access_token"`
-	RefreshToken         string                          `json:"refresh_token"`
-	TokenType            string                          `json:"token_type"`
-	ExpiresIn            *int64                          `json:"expires_in"`
-	AccountID            string                          `json:"account_id"`
-	DisplayName          string                          `json:"display_name"`
-	RealmEnvironmentID   string                          `json:"realm_environment_id"`
-	WorkspaceMemberships []realmWorkspaceMembershipShape `json:"workspace_memberships,omitempty"`
-}
-
-// realmRefreshTokenResponse is deliberately separate from the OAuth login
-// response. Realm's current /api/auth/refresh contract rotates only the token
-// quartet; authenticated account identity remains owned by Runtime custody.
-type realmRefreshTokenResponse struct {
-	AccessToken  string       `json:"accessToken"`
-	RefreshToken string       `json:"refreshToken"`
-	TokenType    string       `json:"tokenType"`
-	ExpiresIn    *json.Number `json:"expiresIn"`
-}
-
 const realmRefreshTokenResponseMaxBytes int64 = 1 << 20
-
-type realmWorkspaceMembershipShape struct {
-	WorkspaceID        string            `json:"workspace_id"`
-	MembershipState    string            `json:"membership_state"`
-	RealmEnvironmentID string            `json:"realm_environment_id"`
-	ObservedAt         string            `json:"observed_at"`
-	DisplayMetadata    map[string]string `json:"display_metadata,omitempty"`
-}
 
 func NewProduction(logger *slog.Logger, cfg ProductionConfig) *Service {
 	resolved := resolveProductionConfig(cfg)
@@ -146,11 +120,11 @@ func resolveProductionConfig(cfg ProductionConfig) ProductionConfig {
 	// the realm 302-redirects to the loopback redirect_uri.
 	authorizationURL := firstNonEmpty(
 		cfg.AuthorizationURL,
-		joinURL(realmBaseURL, "/api/auth/oauth/authorize"),
+		realmv1.OauthAuthorizeOperation.ResolveBaseURL(realmBaseURL),
 	)
 	tokenURL := firstNonEmpty(
 		cfg.TokenURL,
-		joinURL(realmBaseURL, "/api/auth/oauth/token"),
+		realmv1.OauthTokenOperation.ResolveBaseURL(realmBaseURL),
 	)
 	clientID := firstNonEmpty(
 		cfg.ClientID,
@@ -168,7 +142,7 @@ func resolveProductionConfig(cfg ProductionConfig) ProductionConfig {
 	return ProductionConfig{
 		RealmBaseURL:        realmBaseURL,
 		AuthorizationURL:    normalizeOAuthAuthorizeEndpoint(authorizationURL),
-		TokenURL:            strings.TrimSpace(tokenURL),
+		TokenURL:            normalizeRealmOperationEndpoint(tokenURL, realmv1.OauthTokenOperation),
 		ClientID:            strings.TrimSpace(clientID),
 		RedirectURI:         strings.TrimSpace(redirectURI),
 		CustodyPartition:    strings.TrimSpace(custodyPartition),
@@ -194,30 +168,35 @@ func newRealmOAuthExchanger(cfg ProductionConfig) realmOAuthExchanger {
 func newRealmTokenRefresher(cfg ProductionConfig) realmTokenRefresher {
 	return realmTokenRefresher{
 		httpClient: cfg.HTTPClient,
-		tokenURL:   strings.TrimSuffix(cfg.TokenURL, "/oauth/token") + "/refresh",
+		tokenURL:   realmv1.RefreshTokenOperation.ResolveBaseURL(cfg.RealmBaseURL),
 	}
 }
 
 func (r realmOAuthExchanger) Exchange(ctx context.Context, attempt LoginAttempt, code string) (AccountMaterial, error) {
-	if strings.TrimSpace(r.tokenURL) == "" || strings.TrimSpace(r.clientID) == "" {
+	if strings.TrimSpace(r.tokenURL) == "" || strings.TrimSpace(r.clientID) == "" || r.httpClient == nil {
 		return AccountMaterial{}, ErrLoginExchangeFailure
 	}
-	form := url.Values{}
-	form.Set("grant_type", "authorization_code")
-	form.Set("client_id", r.clientID)
-	form.Set("code", strings.TrimSpace(code))
-	form.Set("code_verifier", attempt.PKCEVerifier)
-	form.Set("redirect_uri", firstNonEmpty(attempt.RedirectURI, r.redirectURI))
-	return r.exchangeForm(ctx, form)
+	request := realmv1.OAuthTokenRequestDto{
+		GrantType:    "authorization_code",
+		ClientId:     r.clientID,
+		Code:         strings.TrimSpace(code),
+		CodeVerifier: attempt.PKCEVerifier,
+		RedirectUri:  firstNonEmpty(attempt.RedirectURI, r.redirectURI),
+	}
+	return r.exchangeForm(ctx, request)
 }
 
-func (r realmOAuthExchanger) exchangeForm(ctx context.Context, form url.Values) (AccountMaterial, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, r.tokenURL, strings.NewReader(form.Encode()))
+func (r realmOAuthExchanger) exchangeForm(ctx context.Context, carrier realmv1.OAuthTokenRequestDto) (AccountMaterial, error) {
+	req, err := http.NewRequestWithContext(ctx, realmv1.OauthTokenOperation.Method(), r.tokenURL, strings.NewReader(carrier.FormValues().Encode()))
 	if err != nil {
 		return AccountMaterial{}, ErrLoginExchangeFailure
 	}
-	req.Header.Set("content-type", "application/x-www-form-urlencoded")
-	resp, err := r.httpClient.Do(req)
+	req.Header.Set("content-type", realmv1.OauthTokenOperation.RequestContentType())
+	client := *r.httpClient
+	client.CheckRedirect = func(*http.Request, []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return AccountMaterial{}, fmt.Errorf("%w: %v", ErrLoginExchangeFailure, err)
 	}
@@ -229,19 +208,29 @@ func (r realmTokenRefresher) Refresh(ctx context.Context, material AccountMateri
 	if strings.TrimSpace(r.tokenURL) == "" || strings.TrimSpace(material.RefreshToken) == "" || r.httpClient == nil {
 		return AccountMaterial{}, ErrLoginExchangeFailure
 	}
-	body, _ := json.Marshal(map[string]string{"refreshToken": material.RefreshToken})
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, r.tokenURL, bytes.NewReader(body))
+	body, err := json.Marshal(realmv1.RefreshTokenDto{RefreshToken: material.RefreshToken})
 	if err != nil {
-		return AccountMaterial{}, ErrLoginExchangeFailure
+		return AccountMaterial{}, newRefreshFailure(refreshFailurePreDispatch, err)
 	}
-	req.Header.Set("content-type", "application/json")
+	req, err := http.NewRequestWithContext(ctx, realmv1.RefreshTokenOperation.Method(), r.tokenURL, bytes.NewReader(body))
+	if err != nil {
+		return AccountMaterial{}, newRefreshFailure(refreshFailurePreDispatch, err)
+	}
+	req.Header.Set("content-type", realmv1.RefreshTokenOperation.RequestContentType())
+	wroteRequest := false
+	req = req.WithContext(httptrace.WithClientTrace(req.Context(), &httptrace.ClientTrace{
+		WroteRequest: func(httptrace.WroteRequestInfo) { wroteRequest = true },
+	}))
 	client := *r.httpClient
 	client.CheckRedirect = func(*http.Request, []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return AccountMaterial{}, fmt.Errorf("%w: %v", ErrLoginExchangeFailure, err)
+		if wroteRequest {
+			return AccountMaterial{}, newRefreshFailure(refreshFailureOutcomeAmbiguous, err)
+		}
+		return AccountMaterial{}, newRefreshFailure(refreshFailurePreDispatch, err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 	return materialFromRefreshTokenResponse(resp, material)
@@ -249,52 +238,53 @@ func (r realmTokenRefresher) Refresh(ctx context.Context, material AccountMateri
 
 func materialFromRefreshTokenResponse(resp *http.Response, current AccountMaterial) (AccountMaterial, error) {
 	if resp == nil || resp.Body == nil {
-		return AccountMaterial{}, fmt.Errorf("%w: refresh response is unavailable", ErrLoginExchangeFailure)
+		return AccountMaterial{}, newRefreshFailure(refreshFailureOutcomeAmbiguous, errors.New("refresh response is unavailable"))
 	}
-	if resp.StatusCode != http.StatusOK {
-		return AccountMaterial{}, fmt.Errorf("%w: http %d", ErrLoginExchangeFailure, resp.StatusCode)
+	if resp.StatusCode != realmv1.RefreshTokenOperation.SuccessStatus() {
+		disposition := refreshFailureContractInvalid
+		switch resp.StatusCode {
+		case http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden, http.StatusUnprocessableEntity:
+			disposition = refreshFailureTokenInvalid
+		case http.StatusRequestTimeout, http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+			disposition = refreshFailureOutcomeAmbiguous
+		default:
+			if resp.StatusCode >= 500 {
+				disposition = refreshFailureOutcomeAmbiguous
+			}
+		}
+		return AccountMaterial{}, newRefreshFailure(disposition, fmt.Errorf("refresh endpoint returned http %d", resp.StatusCode))
 	}
 	mediaType, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
 	if err != nil || mediaType != "application/json" {
-		return AccountMaterial{}, fmt.Errorf("%w: refresh response content type is invalid", ErrLoginExchangeFailure)
+		return AccountMaterial{}, newRefreshFailure(refreshFailureContractInvalid, errors.New("refresh response content type is invalid"))
 	}
 	limited := &io.LimitedReader{R: resp.Body, N: realmRefreshTokenResponseMaxBytes + 1}
 	payload, err := io.ReadAll(limited)
 	if err != nil {
-		return AccountMaterial{}, fmt.Errorf("%w: read refresh response", ErrLoginExchangeFailure)
+		return AccountMaterial{}, newRefreshFailure(refreshFailureOutcomeAmbiguous, fmt.Errorf("read refresh response: %w", err))
 	}
 	if int64(len(payload)) > realmRefreshTokenResponseMaxBytes {
-		return AccountMaterial{}, fmt.Errorf("%w: refresh response exceeds fixed bound", ErrLoginExchangeFailure)
+		return AccountMaterial{}, newRefreshFailure(refreshFailureContractInvalid, errors.New("refresh response exceeds fixed bound"))
 	}
-	if err := rejectRealmRefreshDuplicateJSONKeys(payload); err != nil {
-		return AccountMaterial{}, fmt.Errorf("%w: refresh response JSON is invalid", ErrLoginExchangeFailure)
-	}
-	decoder := json.NewDecoder(bytes.NewReader(payload))
-	decoder.DisallowUnknownFields()
-	decoder.UseNumber()
-	var parsed realmRefreshTokenResponse
-	if err := decoder.Decode(&parsed); err != nil {
-		return AccountMaterial{}, fmt.Errorf("%w: decode refresh response", ErrLoginExchangeFailure)
-	}
-	var trailing any
-	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
-		return AccountMaterial{}, fmt.Errorf("%w: refresh response has trailing JSON", ErrLoginExchangeFailure)
+	var parsed realmv1.AuthTokensDto
+	if err := jsonstrict.Decode(payload, &parsed); err != nil {
+		return AccountMaterial{}, newRefreshFailure(refreshFailureContractInvalid, fmt.Errorf("decode refresh response: %w", err))
 	}
 
 	accessToken := strings.TrimSpace(parsed.AccessToken)
 	refreshToken := strings.TrimSpace(parsed.RefreshToken)
 	if accessToken == "" || accessToken != parsed.AccessToken ||
 		refreshToken == "" || refreshToken != parsed.RefreshToken ||
-		parsed.TokenType != "Bearer" || parsed.ExpiresIn == nil ||
+		parsed.TokenType != "Bearer" || parsed.ExpiresIn <= 0 || math.Trunc(parsed.ExpiresIn) != parsed.ExpiresIn || parsed.User != nil ||
 		refreshToken == strings.TrimSpace(current.RefreshToken) ||
 		current.RefreshTokenHashes[refreshHash(refreshToken)] {
-		return AccountMaterial{}, fmt.Errorf("%w: invalid refresh response", ErrLoginExchangeFailure)
+		return AccountMaterial{}, newRefreshFailure(refreshFailureContractInvalid, errors.New("invalid refresh response"))
 	}
-	expiresIn, err := strconv.ParseInt(parsed.ExpiresIn.String(), 10, 64)
 	maxExpiresInSeconds := int64((time.Duration(1<<63 - 1)) / time.Second)
-	if err != nil || expiresIn <= 0 || expiresIn > maxExpiresInSeconds {
-		return AccountMaterial{}, fmt.Errorf("%w: invalid refresh response", ErrLoginExchangeFailure)
+	if parsed.ExpiresIn > float64(maxExpiresInSeconds) {
+		return AccountMaterial{}, newRefreshFailure(refreshFailureContractInvalid, errors.New("invalid refresh response"))
 	}
+	expiresIn := int64(parsed.ExpiresIn)
 
 	// Preserve every Runtime-custodied identity projection. Only the rotated
 	// token pair and its expiry may change here; refresh_internal commits the
@@ -308,137 +298,53 @@ func materialFromRefreshTokenResponse(resp *http.Response, current AccountMateri
 	return next, nil
 }
 
-func rejectRealmRefreshDuplicateJSONKeys(raw []byte) error {
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.UseNumber()
-	if err := scanRealmRefreshJSONValue(decoder); err != nil {
-		return err
-	}
-	if token, err := decoder.Token(); !errors.Is(err, io.EOF) || token != nil {
-		return fmt.Errorf("trailing JSON")
-	}
-	return nil
-}
-
-func scanRealmRefreshJSONValue(decoder *json.Decoder) error {
-	token, err := decoder.Token()
-	if err != nil {
-		return err
-	}
-	delimiter, ok := token.(json.Delim)
-	if !ok {
-		return nil
-	}
-	switch delimiter {
-	case '{':
-		seen := make(map[string]struct{})
-		for decoder.More() {
-			keyToken, keyErr := decoder.Token()
-			if keyErr != nil {
-				return keyErr
-			}
-			key, ok := keyToken.(string)
-			if !ok {
-				return fmt.Errorf("object key is not a string")
-			}
-			if _, duplicate := seen[key]; duplicate {
-				return fmt.Errorf("duplicate object key")
-			}
-			seen[key] = struct{}{}
-			if err := scanRealmRefreshJSONValue(decoder); err != nil {
-				return err
-			}
-		}
-		end, err := decoder.Token()
-		if err != nil || end != json.Delim('}') {
-			return fmt.Errorf("object is not closed")
-		}
-	case '[':
-		for decoder.More() {
-			if err := scanRealmRefreshJSONValue(decoder); err != nil {
-				return err
-			}
-		}
-		end, err := decoder.Token()
-		if err != nil || end != json.Delim(']') {
-			return fmt.Errorf("array is not closed")
-		}
-	default:
-		return fmt.Errorf("invalid JSON delimiter")
-	}
-	return nil
-}
-
 func materialFromTokenResponse(resp *http.Response) (AccountMaterial, error) {
-	payload, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if resp == nil || resp.Body == nil {
+		return AccountMaterial{}, fmt.Errorf("%w: token response is unavailable", ErrLoginExchangeFailure)
+	}
+	if resp.StatusCode != realmv1.OauthTokenOperation.SuccessStatus() {
+		return AccountMaterial{}, fmt.Errorf("%w: http %d", ErrLoginExchangeFailure, resp.StatusCode)
+	}
+	mediaType, _, mediaErr := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+	if mediaErr != nil || mediaType != "application/json" {
+		return AccountMaterial{}, fmt.Errorf("%w: token response content type is invalid", ErrLoginExchangeFailure)
+	}
+	payload, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20+1))
 	if err != nil {
 		return AccountMaterial{}, fmt.Errorf("%w: read response", ErrLoginExchangeFailure)
 	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return AccountMaterial{}, fmt.Errorf("%w: http %d", ErrLoginExchangeFailure, resp.StatusCode)
+	if len(payload) > 1<<20 {
+		return AccountMaterial{}, fmt.Errorf("%w: invalid token response JSON", ErrLoginExchangeFailure)
 	}
-	var parsed realmTokenResponse
-	if err := json.Unmarshal(payload, &parsed); err != nil {
+	var parsed realmv1.OAuthTokenResponseDto
+	if err := jsonstrict.Decode(payload, &parsed); err != nil {
 		return AccountMaterial{}, fmt.Errorf("%w: decode response", ErrLoginExchangeFailure)
 	}
 	accessToken := strings.TrimSpace(parsed.AccessToken)
 	refreshToken := strings.TrimSpace(parsed.RefreshToken)
-	accountID := strings.TrimSpace(parsed.AccountID)
+	accountID := strings.TrimSpace(parsed.AccountId)
 	displayName := strings.TrimSpace(parsed.DisplayName)
-	realmEnvironmentID := strings.TrimSpace(parsed.RealmEnvironmentID)
+	realmEnvironmentID := strings.TrimSpace(parsed.RealmEnvironmentId)
 	if accessToken == "" ||
 		refreshToken == "" ||
 		parsed.TokenType != "Bearer" ||
-		parsed.ExpiresIn == nil ||
-		*parsed.ExpiresIn < 0 ||
+		parsed.ExpiresIn <= 0 ||
+		math.Trunc(parsed.ExpiresIn) != parsed.ExpiresIn ||
+		parsed.ExpiresIn > float64((time.Duration(1<<63-1))/time.Second) ||
 		accountID == "" ||
 		displayName == "" ||
 		realmEnvironmentID == "" {
 		return AccountMaterial{}, fmt.Errorf("%w: invalid token response", ErrLoginExchangeFailure)
 	}
-	expiresAt := time.Now().UTC().Add(time.Duration(*parsed.ExpiresIn) * time.Second)
-	memberships, err := workspaceMembershipsFromTokenPayload(parsed.WorkspaceMemberships, realmEnvironmentID)
-	if err != nil {
-		return AccountMaterial{}, err
-	}
+	expiresAt := time.Now().UTC().Add(time.Duration(int64(parsed.ExpiresIn)) * time.Second)
 	return AccountMaterial{
-		AccountID:            accountID,
-		DisplayName:          displayName,
-		RealmEnvironmentID:   realmEnvironmentID,
-		WorkspaceMemberships: memberships,
-		AccessToken:          accessToken,
-		AccessTokenExpires:   expiresAt,
-		RefreshToken:         refreshToken,
+		AccountID:          accountID,
+		DisplayName:        displayName,
+		RealmEnvironmentID: realmEnvironmentID,
+		AccessToken:        accessToken,
+		AccessTokenExpires: expiresAt,
+		RefreshToken:       refreshToken,
 	}, nil
-}
-
-func workspaceMembershipsFromTokenPayload(items []realmWorkspaceMembershipShape, defaultRealmEnvironmentID string) ([]*runtimev1.WorkspaceMembershipProjection, error) {
-	if len(items) == 0 {
-		return nil, nil
-	}
-	out := make([]*runtimev1.WorkspaceMembershipProjection, 0, len(items))
-	for _, item := range items {
-		workspaceID := strings.TrimSpace(item.WorkspaceID)
-		if workspaceID == "" {
-			return nil, fmt.Errorf("%w: invalid workspace membership response", ErrLoginExchangeFailure)
-		}
-		var observedAt *timestamppb.Timestamp
-		if text := strings.TrimSpace(item.ObservedAt); text != "" {
-			parsedTime, err := time.Parse(time.RFC3339Nano, text)
-			if err != nil {
-				return nil, fmt.Errorf("%w: invalid workspace membership response", ErrLoginExchangeFailure)
-			}
-			observedAt = timestamppb.New(parsedTime)
-		}
-		out = append(out, &runtimev1.WorkspaceMembershipProjection{
-			WorkspaceId:        workspaceID,
-			MembershipState:    workspaceMembershipStateFromString(item.MembershipState),
-			RealmEnvironmentId: firstNonEmpty(item.RealmEnvironmentID, defaultRealmEnvironmentID),
-			ObservedAt:         observedAt,
-			DisplayMetadata:    item.DisplayMetadata,
-		})
-	}
-	return out, nil
 }
 
 func workspaceMembershipsFromSnapshots(in []workspaceMembershipSnapshot) []*runtimev1.WorkspaceMembershipProjection {
@@ -497,14 +403,15 @@ func (r realmOAuthExchanger) AuthorizationURL(attempt LoginAttempt) string {
 		return ""
 	}
 	callbackURL := firstNonEmpty(attempt.RedirectURI, r.redirectURI)
-	q := u.Query()
-	q.Set("response_type", "code")
-	q.Set("client_id", r.clientID)
-	q.Set("redirect_uri", callbackURL)
-	q.Set("code_challenge", attempt.PKCEChallenge)
-	q.Set("code_challenge_method", "S256")
-	q.Set("state", attempt.State)
-	u.RawQuery = q.Encode()
+	query := realmv1.OauthAuthorizeQuery{
+		ResponseType:        "code",
+		ClientId:            r.clientID,
+		RedirectUri:         callbackURL,
+		CodeChallenge:       attempt.PKCEChallenge,
+		CodeChallengeMethod: "S256",
+		State:               attempt.State,
+	}
+	u.RawQuery = query.Values().Encode()
 	u.Fragment = ""
 	return u.String()
 }
@@ -526,16 +433,16 @@ func normalizeOAuthAuthorizeEndpoint(raw string) string {
 	if u.Scheme != "https" && u.Scheme != "http" {
 		return ""
 	}
-	if strings.TrimSpace(u.Host) == "" {
+	if strings.TrimSpace(u.Hostname()) == "" || u.User != nil || u.Opaque != "" {
 		return ""
 	}
 	if strings.EqualFold(u.Hostname(), "auth.nimi.invalid") {
 		return ""
 	}
-	if u.Fragment != "" {
+	if u.Fragment != "" || u.RawQuery != "" {
 		return ""
 	}
-	if !strings.HasSuffix(strings.TrimRight(u.EscapedPath(), "/"), "/oauth/authorize") {
+	if strings.TrimRight(u.EscapedPath(), "/") != realmv1.OauthAuthorizeOperation.Path() {
 		return ""
 	}
 	q := u.Query()
@@ -545,12 +452,19 @@ func normalizeOAuthAuthorizeEndpoint(raw string) string {
 	return u.String()
 }
 
-func joinURL(base string, path string) string {
-	trimmed := strings.TrimRight(strings.TrimSpace(base), "/")
-	if trimmed == "" {
+func normalizeRealmOperationEndpoint(raw string, operation realmv1.OperationDescriptor) string {
+	value := strings.TrimSpace(raw)
+	if value == "" {
 		return ""
 	}
-	return trimmed + path
+	u, err := url.Parse(value)
+	if err != nil || (u.Scheme != "https" && u.Scheme != "http") || strings.TrimSpace(u.Hostname()) == "" || u.User != nil || u.Opaque != "" || u.Fragment != "" || u.RawQuery != "" {
+		return ""
+	}
+	if strings.TrimRight(u.EscapedPath(), "/") != operation.Path() {
+		return ""
+	}
+	return u.String()
 }
 
 func trimURL(value string) string {

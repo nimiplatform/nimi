@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { loadNimiRealmNotificationUnreadCount } from '@nimiplatform/sdk/realm';
 import { AnimatePresence, motion } from 'motion/react';
-import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
+import { useAppStore, type AppTab, type AuthStatus } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { AmbientBackground, ScrollArea, Tooltip } from '@nimiplatform/kit/ui';
 import { StatusBanner } from '@renderer/ui/feedback/status-banner';
@@ -74,7 +74,7 @@ function useWindowFocused(): boolean {
 
 type MainLayoutViewProps = {
   activeTab: AppTab;
-  authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
+  authStatus: AuthStatus;
   displayName: string;
   userAvatarUrl: string | null;
   userEmail?: string | null;

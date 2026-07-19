@@ -12,9 +12,49 @@ import (
 	"testing"
 	"time"
 
+	realmv1 "github.com/nimiplatform/nimi/runtime/gen/realm/v1"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/protobuf/proto"
 )
+
+func TestRealmAccountEndpointsRejectAmbientURLAuthority(t *testing.T) {
+	if got := realmv1.OauthTokenOperation.ResolveBaseURL("https://user:secret@realm.test"); got != "" {
+		t.Fatalf("generated operation accepted userinfo authority: %q", got)
+	}
+	if got := normalizeOAuthAuthorizeEndpoint("https://user:secret@realm.test/api/auth/oauth/authorize"); got != "" {
+		t.Fatalf("OAuth authorize endpoint accepted userinfo authority: %q", got)
+	}
+	if got := normalizeRealmOperationEndpoint("https://user:secret@realm.test/api/auth/oauth/token", realmv1.OauthTokenOperation); got != "" {
+		t.Fatalf("OAuth token endpoint accepted userinfo authority: %q", got)
+	}
+}
+
+func TestRealmOAuthExchangeRejectsRedirectWithoutForwardingLoginProof(t *testing.T) {
+	var forwarded atomic.Int32
+	target := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		forwarded.Add(1)
+	}))
+	defer target.Close()
+	issuer := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
+		response.Header().Set("location", target.URL+"/capture")
+		response.WriteHeader(http.StatusTemporaryRedirect)
+	}))
+	defer issuer.Close()
+
+	exchanger := realmOAuthExchanger{
+		httpClient:  issuer.Client(),
+		tokenURL:    issuer.URL + "/api/auth/oauth/token",
+		clientID:    "nimi-desktop",
+		redirectURI: "http://127.0.0.1:12345/oauth/callback",
+	}
+	_, err := exchanger.Exchange(context.Background(), LoginAttempt{
+		PKCEVerifier: "pkce-verifier",
+		RedirectURI:  "http://127.0.0.1:12345/oauth/callback",
+	}, "authorization-code")
+	if err == nil || forwarded.Load() != 0 {
+		t.Fatalf("redirect exchange error=%v forwarded=%d", err, forwarded.Load())
+	}
+}
 
 func TestRealmTokenRefresherConsumesCurrentQuartetAndPreservesCustodiedIdentity(t *testing.T) {
 	current := testMaterial("acct-refresh", "access-old", "refresh-old")

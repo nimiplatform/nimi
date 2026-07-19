@@ -17,6 +17,7 @@ import {
   sourceDisplayDetailQueryKey,
 } from '@renderer/features/source-detail/source-detail-queries';
 import type { LocalAgentListItem } from './local-agent-list-model';
+import type { AuthStatus } from '@renderer/app-shell/providers/app-store';
 
 const ICON_AGENT_EMPTY = <Bot size={20} aria-hidden="true" />;
 
@@ -80,7 +81,7 @@ function LocalAgentCard({
 }
 
 export type AgentsPanelViewProps = {
-  authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
+  authStatus: AuthStatus;
   agents: LocalAgentListItem[];
   agentsPending: boolean;
   agentsErrorMessage: string | null;

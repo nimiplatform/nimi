@@ -50,7 +50,10 @@ import type {
   NimiProductControlState,
   NimiProductControlRecord,
   NimiProductControlRecordProjection,
+  DesktopAccountSessionEvent,
+  DesktopAccountSessionState,
   DesktopAccountSessionStatus,
+  DesktopAccountSessionSubscriptionHandlers,
 } from '@desktop-public/bridge';
 
 export type {
@@ -75,7 +78,10 @@ export type {
   NimiProductControlState,
   NimiProductControlRecord,
   NimiProductControlRecordProjection,
+  DesktopAccountSessionEvent,
+  DesktopAccountSessionState,
   DesktopAccountSessionStatus,
+  DesktopAccountSessionSubscriptionHandlers,
 };
 
 export {
@@ -142,6 +148,13 @@ export async function getRuntimeDefaults(): Promise<RuntimeDefaults> {
 
 export async function getRuntimeAccountSessionStatus(): Promise<DesktopAccountSessionStatus> {
   unsupportedDesktopRuntime('Runtime account projection is only available in desktop runtime');
+}
+
+export async function subscribeRuntimeAccountSessionEvents(
+  _afterSequence: string,
+  _handlers: DesktopAccountSessionSubscriptionHandlers,
+): Promise<() => void> {
+  unsupportedDesktopRuntime('Runtime account event stream is only available in desktop runtime');
 }
 
 export async function getDesktopReleaseInfo(): Promise<DesktopReleaseInfo> {
@@ -302,6 +315,7 @@ export const desktopBridge = {
   getRuntimeBridgeConfig,
   setRuntimeBridgeConfig,
   getRuntimeAccountSessionStatus,
+  subscribeRuntimeAccountSessionEvents,
   getSystemResourceSnapshot,
   startRuntimeBridge,
   restartRuntimeBridge,

@@ -54,23 +54,9 @@ export function classifyOfflineError(
   if (reasonOwner) {
     return reasonOwner;
   }
-  if (/realm(?:[_-]|\s|.)*unavailable/i.test(reasonCode)) {
-    return 'realm';
-  }
-  if (/runtime(?:[_-]|\s|.)*unavailable|electron-runtime-endpoint-unavailable/i.test(reasonCode)) {
-    return 'runtime';
-  }
-
   const message = offlineErrorMessage(error);
   if (!message) {
     return null;
-  }
-
-  if (/\bREALM_UNAVAILABLE\b|realm unavailable/i.test(message)) {
-    return 'realm';
-  }
-  if (/\bRUNTIME_UNAVAILABLE\b|runtime unavailable|runtime (?:endpoint|bridge|daemon) is unavailable|daemon unavailable|bridge unavailable/i.test(message)) {
-    return 'runtime';
   }
   if (/network|fetch failed|failed to fetch|load failed|timeout/i.test(message)) {
     return options.transportOwner ?? null;

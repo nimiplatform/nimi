@@ -33,8 +33,14 @@ func revocationBool(value bool) *bool {
 	return &value
 }
 
-func testRevocationResponse(active bool, revoked bool) revocationResponse {
-	return revocationResponse{Active: revocationBool(active), Revoked: revocationBool(revoked)}
+type revocationTestResponse struct {
+	Active    *bool  `json:"active,omitempty"`
+	Revoked   *bool  `json:"revoked,omitempty"`
+	ExpiresAt string `json:"expires_at,omitempty"`
+}
+
+func testRevocationResponse(active bool, revoked bool) revocationTestResponse {
+	return revocationTestResponse{Active: revocationBool(active), Revoked: revocationBool(revoked)}
 }
 
 type jwksTestServer struct {
@@ -139,19 +145,6 @@ func rsaJWKFromPrivateKey(t *testing.T, key *rsa.PrivateKey, kid string) jwkEntr
 		Alg: "RS256",
 		N:   base64.RawURLEncoding.EncodeToString(key.PublicKey.N.Bytes()),
 		E:   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(key.PublicKey.E)).Bytes()),
-	}
-}
-
-func ecJWKFromPrivateKey(t *testing.T, key *ecdsa.PrivateKey, kid string) jwkEntry {
-	t.Helper()
-	return jwkEntry{
-		Kid: kid,
-		Kty: "EC",
-		Use: "sig",
-		Alg: "ES256",
-		Crv: "P-256",
-		X:   base64.RawURLEncoding.EncodeToString(key.PublicKey.X.Bytes()),
-		Y:   base64.RawURLEncoding.EncodeToString(key.PublicKey.Y.Bytes()),
 	}
 }
 
@@ -293,17 +286,65 @@ func TestValidateCallsRevocationEndpointAfterSuccessfulJWTValidation(t *testing.
 	if identity == nil {
 		t.Fatal("expected identity")
 	}
-	if captured.SessionID != "session-abc" {
-		t.Fatalf("expected session_id=session-abc, got %q", captured.SessionID)
+	if captured.SessionId != "session-abc" {
+		t.Fatalf("expected session_id=session-abc, got %q", captured.SessionId)
 	}
-	if captured.SubjectUserID != "user-123" {
-		t.Fatalf("expected subject_user_id=user-123, got %q", captured.SubjectUserID)
+	if captured.SubjectUserId != "user-123" {
+		t.Fatalf("expected subject_user_id=user-123, got %q", captured.SubjectUserId)
 	}
 	if captured.Issuer != "test-issuer" || captured.Audience != "test-audience" {
 		t.Fatalf("unexpected revocation payload issuer/audience: %+v", captured)
 	}
 	if strings.TrimSpace(captured.IssuedAt) == "" || strings.TrimSpace(captured.ExpiresAt) == "" {
 		t.Fatalf("expected issued_at and expires_at in revocation payload: %+v", captured)
+	}
+}
+
+func TestValidatorRejectsJWKSAndRevocationRedirectsWithoutForwarding(t *testing.T) {
+	key := generateRSAKey(t)
+	token := signRS256(t, key, "kid-1", validClaims())
+
+	var jwksTargetHits atomic.Int64
+	jwksTarget := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		jwksTargetHits.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	}))
+	defer jwksTarget.Close()
+	jwksRedirect := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Location", jwksTarget.URL+"/keys")
+		w.WriteHeader(http.StatusTemporaryRedirect)
+	}))
+	defer jwksRedirect.Close()
+	jwksValidator, err := NewValidator(jwksRedirect.URL, "test-issuer", "test-audience")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+	if _, err := jwksValidator.Validate(token); err == nil || jwksTargetHits.Load() != 0 {
+		t.Fatalf("redirected JWKS validation error=%v targetHits=%d", err, jwksTargetHits.Load())
+	}
+
+	jwksServer := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer jwksServer.Close()
+	var revocationTargetHits atomic.Int64
+	revocationTarget := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		revocationTargetHits.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(testRevocationResponse(true, false))
+	}))
+	defer revocationTarget.Close()
+	revocationRedirect := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Location", revocationTarget.URL+"/session-capture")
+		w.WriteHeader(http.StatusTemporaryRedirect)
+	}))
+	defer revocationRedirect.Close()
+	revocationValidator, err := NewValidator(jwksServer.URL(), "test-issuer", "test-audience")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+	revocationValidator.SetRevocationURL(revocationRedirect.URL)
+	if _, err := revocationValidator.Validate(token); err == nil || revocationTargetHits.Load() != 0 {
+		t.Fatalf("redirected revocation validation error=%v targetHits=%d", err, revocationTargetHits.Load())
 	}
 }
 
@@ -551,9 +592,10 @@ func TestRefreshJWKSCoalescesConcurrentRefreshesForSameKid(t *testing.T) {
 	}
 }
 
-func TestValidateES256ValidTokenWithJWKS(t *testing.T) {
+func TestValidateRejectsES256OutsideGeneratedRealmContract(t *testing.T) {
 	key := generateECKey(t)
-	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{ecJWKFromPrivateKey(t, key, "ec-kid")}})
+	rsaKey := generateRSAKey(t)
+	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, rsaKey, "rsa-kid")}})
 	defer func() { server.Close() }()
 
 	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
@@ -563,12 +605,8 @@ func TestValidateES256ValidTokenWithJWKS(t *testing.T) {
 	validator.SetRevocationURL(newActiveRevocationServer(t).URL)
 
 	token := signES256(t, key, "ec-kid", validClaims())
-	identity, err := validator.Validate(token)
-	if err != nil {
-		t.Fatalf("Validate: %v", err)
-	}
-	if identity == nil || identity.SubjectUserID != "user-123" {
-		t.Fatalf("identity mismatch: %#v", identity)
+	if _, err := validator.Validate(token); err == nil {
+		t.Fatal("expected ES256 token outside the generated Realm JWKS contract to fail closed")
 	}
 }
 
@@ -1014,7 +1052,7 @@ func TestValidateRejectsExpiredRowDecisionMatrixRow3(t *testing.T) {
 	pastExpiry := time.Now().Add(-1 * time.Hour).UTC().Format(time.RFC3339)
 	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(revocationResponse{
+		_ = json.NewEncoder(w).Encode(revocationTestResponse{
 			Active:    revocationBool(false),
 			Revoked:   revocationBool(false),
 			ExpiresAt: pastExpiry,
@@ -1053,7 +1091,7 @@ func TestValidateRejectsSubjectMismatchDecisionMatrixRow5(t *testing.T) {
 	futureExpiry := time.Now().Add(1 * time.Hour).UTC().Format(time.RFC3339)
 	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(revocationResponse{
+		_ = json.NewEncoder(w).Encode(revocationTestResponse{
 			Active:    revocationBool(false),
 			Revoked:   revocationBool(true),
 			ExpiresAt: futureExpiry,
@@ -1075,7 +1113,7 @@ func TestValidateRejectsIssuerMismatchDecisionMatrixRow6(t *testing.T) {
 	futureExpiry := time.Now().Add(1 * time.Hour).UTC().Format(time.RFC3339)
 	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(revocationResponse{
+		_ = json.NewEncoder(w).Encode(revocationTestResponse{
 			Active:    revocationBool(false),
 			Revoked:   revocationBool(true),
 			ExpiresAt: futureExpiry,
@@ -1096,7 +1134,7 @@ func TestValidateRejectsAudienceMismatchDecisionMatrixRow7(t *testing.T) {
 	futureExpiry := time.Now().Add(1 * time.Hour).UTC().Format(time.RFC3339)
 	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(revocationResponse{
+		_ = json.NewEncoder(w).Encode(revocationTestResponse{
 			Active:    revocationBool(false),
 			Revoked:   revocationBool(true),
 			ExpiresAt: futureExpiry,
@@ -1117,7 +1155,7 @@ func TestValidateRejectsIssuedAtMismatchDecisionMatrixRow8(t *testing.T) {
 	futureExpiry := time.Now().Add(1 * time.Hour).UTC().Format(time.RFC3339)
 	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(revocationResponse{
+		_ = json.NewEncoder(w).Encode(revocationTestResponse{
 			Active:    revocationBool(false),
 			Revoked:   revocationBool(true),
 			ExpiresAt: futureExpiry,

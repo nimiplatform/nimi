@@ -1,62 +1,163 @@
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import type { AppStoreState } from '@renderer/app-shell/providers/app-store';
+import { desktopBridge, type DesktopAccountSessionEvent, type DesktopAccountSessionStatus } from '@renderer/bridge';
+import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
+import { queryClient } from '@renderer/infra/query-client/query-client';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-
-type AuthSnapshot = { status: string };
-
-function selectAuth(state: AppStoreState): AuthSnapshot {
-  return { status: state.auth.status };
-}
-
-function authEqual(a: AuthSnapshot, b: AuthSnapshot): boolean {
-  return a.status === b.status;
-}
+import {
+  advanceRuntimeAccountStreamCursor,
+  createRuntimeAccountStreamCursor,
+  projectRuntimeAccountAuthState,
+  runtimeAccountClearsAccountMemory,
+  runtimeAccountConnectivityDisposition,
+} from './runtime-account-state-machine';
 
 let unsubscribe: (() => void) | null = null;
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+let generation = 0;
+let retryAttempt = 0;
+let watcherRunning = false;
 
-export function startAuthStateWatcher() {
-  if (unsubscribe) {
-    return;
+export function applyRuntimeAccountStatusProjection(
+  status: DesktopAccountSessionStatus | DesktopAccountSessionEvent,
+): void {
+  const current = useAppStore.getState().auth;
+  useAppStore.getState().applyRuntimeAccountProjection(
+    projectRuntimeAccountAuthState(status, current.user),
+  );
+
+  const coordinator = getOfflineCoordinator();
+  const connectivity = runtimeAccountConnectivityDisposition(status.state, current.status);
+  if (connectivity !== 'unchanged') {
+    coordinator.markRealmRestReachability(connectivity);
   }
 
-  let prevAuth = selectAuth(useAppStore.getState());
+  if (runtimeAccountClearsAccountMemory(status.state)) {
+    void queryClient.cancelQueries();
+    queryClient.clear();
+  }
+}
 
-  unsubscribe = useAppStore.subscribe((state: AppStoreState) => {
-    const auth = selectAuth(state);
-    if (authEqual(auth, prevAuth)) {
-      return;
-    }
-    const prev = prevAuth;
-    prevAuth = auth;
+export function startAuthStateWatcher(): void {
+  if (watcherRunning) return;
+  watcherRunning = true;
+  const runGeneration = ++generation;
+  void resyncAndSubscribe(runGeneration);
+}
 
-    if (auth.status === 'authenticated') {
-      logRendererEvent({
-        level: 'info',
-        area: 'auth-state-watcher',
-        message: 'phase:auth-projection-observed',
-        details: {
-          hasUser: Boolean(state.auth.user),
-        },
-      });
-    } else if (auth.status === 'anonymous' && prev.status !== 'anonymous') {
-      logRendererEvent({
-        level: 'info',
-        area: 'auth-state-watcher',
-        message: 'phase:auth-cleared',
-      });
+export function stopAuthStateWatcher(): void {
+  watcherRunning = false;
+  generation += 1;
+  unsubscribe?.();
+  unsubscribe = null;
+  if (retryTimer) {
+    clearTimeout(retryTimer);
+    retryTimer = null;
+  }
+  retryAttempt = 0;
+}
+
+async function resyncAndSubscribe(runGeneration: number): Promise<void> {
+  unsubscribe?.();
+  unsubscribe = null;
+  try {
+    const status = await desktopBridge.getRuntimeAccountSessionStatus();
+    if (runGeneration !== generation) return;
+    getOfflineCoordinator().markRuntimeReachability('reachable');
+    applyRuntimeAccountStatusProjection(status);
+    await openSubscription(runGeneration, status.sequence);
+    if (runGeneration === generation && unsubscribe) {
+      retryAttempt = 0;
     }
+  } catch (error) {
+    if (runGeneration !== generation) return;
+    applyRuntimeAccountUnavailableProjection();
+    getOfflineCoordinator().markRuntimeReachability('unreachable');
+    logRendererEvent({
+      level: 'warn',
+      area: 'auth-state-watcher',
+      message: 'phase:runtime-account-status:unavailable',
+      details: { error: error instanceof Error ? error.message : String(error) },
+    });
+    scheduleRetry(runGeneration);
+  }
+}
+
+async function openSubscription(runGeneration: number, afterSequence: string): Promise<void> {
+  let cursor = createRuntimeAccountStreamCursor(afterSequence);
+  let resyncRequested = false;
+  const requestResync = (reason: string) => {
+    if (resyncRequested || runGeneration !== generation) return;
+    resyncRequested = true;
+    logRendererEvent({
+      level: 'warn',
+      area: 'auth-state-watcher',
+      message: 'phase:runtime-account-stream:resync-required',
+      details: { reason, afterSequence: cursor.sequence.toString() },
+    });
+    unsubscribe?.();
+    unsubscribe = null;
+    // A missing or malformed stream segment means the renderer can no longer
+    // prove which account owns cached product data. Hide the last projection
+    // and clear account-scoped queries before asking Runtime for fresh truth.
+    applyRuntimeAccountUnavailableProjection();
+    scheduleRetry(runGeneration);
+  };
+
+  const nextUnsubscribe = await desktopBridge.subscribeRuntimeAccountSessionEvents(afterSequence, {
+    onEvent: (event) => {
+      if (runGeneration !== generation || resyncRequested) return;
+      const advance = advanceRuntimeAccountStreamCursor(cursor, event);
+      if (advance.kind === 'resync') {
+        requestResync(advance.reason);
+        return;
+      }
+      cursor = advance.cursor;
+      applyRuntimeAccountStatusProjection(event);
+    },
+    onError: (error) => {
+      logRendererEvent({
+        level: 'warn',
+        area: 'auth-state-watcher',
+        message: 'phase:runtime-account-stream:error',
+        details: { error: error instanceof Error ? error.message : String(error) },
+      });
+      requestResync('stream-error');
+    },
+    onCompleted: () => requestResync('stream-completed'),
   });
-
+  if (runGeneration !== generation || resyncRequested) {
+    nextUnsubscribe();
+    return;
+  }
+  unsubscribe = nextUnsubscribe;
   logRendererEvent({
     level: 'info',
     area: 'auth-state-watcher',
-    message: 'phase:auth-state-watcher:started',
+    message: 'phase:runtime-account-stream:subscribed',
+    details: { afterSequence },
   });
 }
 
-export function stopAuthStateWatcher() {
-  if (unsubscribe) {
-    unsubscribe();
-    unsubscribe = null;
-  }
+export function applyRuntimeAccountUnavailableProjection(): void {
+  const current = useAppStore.getState().auth;
+  useAppStore.getState().applyRuntimeAccountProjection({
+    status: 'unavailable',
+    sequence: current.sequence,
+    reasonCode: current.reasonCode,
+    accountReasonCode: current.accountReasonCode,
+    user: null,
+  });
+  void queryClient.cancelQueries();
+  queryClient.clear();
+  getOfflineCoordinator().markRealmRestReachability('unknown');
+}
+
+function scheduleRetry(runGeneration: number): void {
+  if (retryTimer || runGeneration !== generation) return;
+  const delayMs = Math.min(1_000 * (2 ** retryAttempt), 30_000);
+  retryAttempt += 1;
+  retryTimer = setTimeout(() => {
+    retryTimer = null;
+    void resyncAndSubscribe(runGeneration);
+  }, delayMs);
 }

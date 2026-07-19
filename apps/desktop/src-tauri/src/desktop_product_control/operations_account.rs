@@ -20,11 +20,15 @@ pub(crate) async fn authenticated_runtime_account_id() -> Result<String, String>
     if let Some(error) = runtime_account_status_rejection_error(&response, &caller) {
         return Err(error);
     }
-    if response.state != crate::runtime_bridge::generated::AccountSessionState::Authenticated as i32
+    let snapshot = response
+        .snapshot
+        .as_ref()
+        .ok_or_else(|| "Runtime account session status did not include a snapshot".to_string())?;
+    if snapshot.state != crate::runtime_bridge::generated::AccountSessionState::Authenticated as i32
     {
         return Err("authenticated Runtime account session is required".to_string());
     }
-    let account_id = response
+    let account_id = snapshot
         .account_projection
         .as_ref()
         .map(|projection| projection.account_id.trim().to_string())
@@ -95,16 +99,18 @@ pub(crate) fn runtime_account_status_rejection_error(
     let account_reason =
         crate::runtime_bridge::generated::AccountReasonCode::try_from(response.account_reason_code)
             .unwrap_or(crate::runtime_bridge::generated::AccountReasonCode::Unspecified);
-    if reason == crate::runtime_bridge::generated::ReasonCode::ActionExecuted
+    if response.accepted
+        && reason == crate::runtime_bridge::generated::ReasonCode::ActionExecuted
         && account_reason == crate::runtime_bridge::generated::AccountReasonCode::ActionExecuted
     {
         return None;
     }
     Some(format!(
-        "Runtime account session status rejected for desktop product-control caller app_id={} app_instance_id={} device_id={}: reason_code={} account_reason_code={}",
+        "Runtime account session status rejected for desktop product-control caller app_id={} app_instance_id={} device_id={}: accepted={} reason_code={} account_reason_code={}",
         caller.app_id.trim(),
         caller.app_instance_id.trim(),
         caller.device_id.trim(),
+        response.accepted,
         reason.as_str_name(),
         account_reason.as_str_name()
     ))

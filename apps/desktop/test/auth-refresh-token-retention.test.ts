@@ -66,7 +66,9 @@ test('login page no longer preserves authenticated web shell for desktop callbac
 test('auth state watcher observes Runtime projection without shared desktop session persistence', () => {
   assert.doesNotMatch(authStateWatcherSource, /persistSharedDesktopSession/);
   assert.doesNotMatch(authStateWatcherSource, /auth_session_save|auth_session_load|auth_session_clear/);
-  assert.match(authStateWatcherSource, /message: 'phase:auth-projection-observed'/);
+  assert.match(authStateWatcherSource, /desktopBridge\.getRuntimeAccountSessionStatus\(\)/);
+  assert.match(authStateWatcherSource, /desktopBridge\.subscribeRuntimeAccountSessionEvents\(afterSequence/);
+  assert.match(authStateWatcherSource, /message: 'phase:runtime-account-stream:subscribed'/);
   assert.doesNotMatch(authStateWatcherSource, /dataSync/);
 });
 

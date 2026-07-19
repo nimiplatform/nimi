@@ -27,10 +27,16 @@ const tauriCommandRegistrationSource = source(
 const desktopBootstrapHostSource = source(
   '../src-tauri/src/main_parts/app_bootstrap.rs',
 );
+const authStateWatcherSource = source(
+  '../src/shell/renderer/infra/bootstrap/auth-state-watcher.ts',
+);
 
 test('Desktop account status uses one exact native carrier operation', () => {
   assert.match(protectedCarrierSource, /fn get_account_session_status\(/);
+  assert.match(protectedCarrierSource, /fn open_account_session_events\(/);
   assert.match(tauriCapabilitiesSource, /fn runtime_account_session_status\(\s*\)/s);
+  assert.match(tauriCapabilitiesSource, /fn runtime_account_session_events_open\(/);
+  assert.match(tauriCapabilitiesSource, /fn runtime_account_session_events_close\(/);
   assert.match(
     tauriCommandRegistrationSource,
     /nimi_shell_tauri_oauth_runtime_bridge_handler[\s\S]*runtime_account_session_status/,
@@ -44,6 +50,8 @@ test('Desktop account status uses one exact native carrier operation', () => {
     /capabilities::runtime::runtime_account_session_status/,
   );
   assert.match(desktopBridgeSource, /getRuntimeAccountSessionStatus/);
+  assert.match(desktopBridgeSource, /subscribeRuntimeAccountSessionEvents/);
+  assert.match(authStateWatcherSource, /subscribeRuntimeAccountSessionEvents\(afterSequence/);
 });
 
 test('renderer account status cannot select caller or generic Runtime method', () => {
@@ -71,4 +79,19 @@ test('renderer-safe account projection contains no protected material', () => {
     combined,
     /DesktopAccount(?:SessionStatus|Projection)[\s\S]{0,500}\b(?:access_token|refresh_token|session_id|session_token|ticket|credential)\b/i,
   );
+});
+
+test('generic Runtime stream remains forbidden for protected account events', () => {
+  const genericTauriBridge = source(
+    '../../../kit/shell/tauri/src/runtime_bridge/mod.rs',
+  );
+  const genericElectronBridge = source(
+    '../../../kit/shell/electron/src/main/runtime.ts',
+  );
+  for (const genericBridge of [genericTauriBridge, genericElectronBridge]) {
+    assert.doesNotMatch(
+      genericBridge,
+      /RuntimeAccountService\/SubscribeAccountSessionEvents/,
+    );
+  }
 });

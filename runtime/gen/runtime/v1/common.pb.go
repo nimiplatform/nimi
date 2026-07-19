@@ -295,6 +295,14 @@ const (
 	ReasonCode_LOCAL_APP_PRESENCE_EXPIRED         ReasonCode = 657
 	ReasonCode_LOCAL_APP_DEVELOPER_MODE_DISABLED  ReasonCode = 658
 	ReasonCode_LOCAL_APP_RISK_DISCLOSURE_REQUIRED ReasonCode = 660
+	// Realm broker (661-667): account-owned Realm transport/application results.
+	ReasonCode_REALM_UNAVAILABLE      ReasonCode = 661
+	ReasonCode_REALM_NOT_FOUND        ReasonCode = 662
+	ReasonCode_REALM_CONFLICT         ReasonCode = 663
+	ReasonCode_REALM_RATE_LIMITED     ReasonCode = 664
+	ReasonCode_REALM_REQUEST_REJECTED ReasonCode = 665
+	ReasonCode_REALM_CONTRACT_INVALID ReasonCode = 666
+	ReasonCode_REALM_OPERATION_FAILED ReasonCode = 667
 )
 
 // Enum value maps for ReasonCode.
@@ -526,6 +534,13 @@ var (
 		657: "LOCAL_APP_PRESENCE_EXPIRED",
 		658: "LOCAL_APP_DEVELOPER_MODE_DISABLED",
 		660: "LOCAL_APP_RISK_DISCLOSURE_REQUIRED",
+		661: "REALM_UNAVAILABLE",
+		662: "REALM_NOT_FOUND",
+		663: "REALM_CONFLICT",
+		664: "REALM_RATE_LIMITED",
+		665: "REALM_REQUEST_REJECTED",
+		666: "REALM_CONTRACT_INVALID",
+		667: "REALM_OPERATION_FAILED",
 	}
 	ReasonCode_value = map[string]int32{
 		"REASON_CODE_UNSPECIFIED":                              0,
@@ -754,6 +769,13 @@ var (
 		"LOCAL_APP_PRESENCE_EXPIRED":                           657,
 		"LOCAL_APP_DEVELOPER_MODE_DISABLED":                    658,
 		"LOCAL_APP_RISK_DISCLOSURE_REQUIRED":                   660,
+		"REALM_UNAVAILABLE":                                    661,
+		"REALM_NOT_FOUND":                                      662,
+		"REALM_CONFLICT":                                       663,
+		"REALM_RATE_LIMITED":                                   664,
+		"REALM_REQUEST_REJECTED":                               665,
+		"REALM_CONTRACT_INVALID":                               666,
+		"REALM_OPERATION_FAILED":                               667,
 	}
 )
 
@@ -1463,7 +1485,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\x8c=\n" +
+	"actionHint*\xbf>\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1692,7 +1714,14 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x1bLOCAL_APP_PRESENCE_REQUIRED\x10\x90\x05\x12\x1f\n" +
 	"\x1aLOCAL_APP_PRESENCE_EXPIRED\x10\x91\x05\x12&\n" +
 	"!LOCAL_APP_DEVELOPER_MODE_DISABLED\x10\x92\x05\x12'\n" +
-	"\"LOCAL_APP_RISK_DISCLOSURE_REQUIRED\x10\x94\x05\"\x06\b\x93\x05\x10\x93\x05\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*$LOCAL_APP_REMEMBERED_PROJECT_DORMANT*\xa9\x01\n" +
+	"\"LOCAL_APP_RISK_DISCLOSURE_REQUIRED\x10\x94\x05\x12\x16\n" +
+	"\x11REALM_UNAVAILABLE\x10\x95\x05\x12\x14\n" +
+	"\x0fREALM_NOT_FOUND\x10\x96\x05\x12\x13\n" +
+	"\x0eREALM_CONFLICT\x10\x97\x05\x12\x17\n" +
+	"\x12REALM_RATE_LIMITED\x10\x98\x05\x12\x1b\n" +
+	"\x16REALM_REQUEST_REJECTED\x10\x99\x05\x12\x1b\n" +
+	"\x16REALM_CONTRACT_INVALID\x10\x9a\x05\x12\x1b\n" +
+	"\x16REALM_OPERATION_FAILED\x10\x9b\x05\"\x06\b\x93\x05\x10\x93\x05\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*$LOCAL_APP_REMEMBERED_PROJECT_DORMANT*\xa9\x01\n" +
 	"\x15ExternalPrincipalType\x12'\n" +
 	"#EXTERNAL_PRINCIPAL_TYPE_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dEXTERNAL_PRINCIPAL_TYPE_AGENT\x10\x01\x12\x1f\n" +

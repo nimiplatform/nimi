@@ -10,14 +10,14 @@ import {
   ScenarioType,
   type NimiAIConfig,
 } from '@nimiplatform/kit/core/sdk-contract';
+import { createRuntimeScopeRunnerFixture } from './runtime-scope-runner-fixture.js';
 
 describe('runtime speech transcription helper', () => {
   it('submits audio.transcribe through the configured Runtime job route and returns transcript text', async () => {
     const runtime = createRuntimeHarness();
-    const withScopes = vi.fn(<T,>(
-      _scopes: readonly string[],
-      operation: (options: { readonly metadata?: Record<string, string> }) => Promise<T>,
-    ) => operation({ metadata: { 'x-nimi-access-token-id': 'token-1' } }));
+    const { runner: withScopes, callSpy: withScopesCalls } = createRuntimeScopeRunnerFixture({
+      'x-nimi-access-token-id': 'token-1',
+    });
     runtime.scheduling.peekScheduling.mockResolvedValue(runnableSchedulingResponse());
     runtime.ai.submitScenarioJob.mockResolvedValue({
       job: {
@@ -106,8 +106,8 @@ describe('runtime speech transcription helper', () => {
         routeDecision: 'local',
       },
     });
-    expect(withScopes).toHaveBeenCalledOnce();
-    expect(withScopes.mock.calls[0]?.[0]).toEqual(['ai.spend.meter']);
+    expect(withScopesCalls).toHaveBeenCalledOnce();
+    expect(withScopesCalls.mock.calls[0]?.[0]).toEqual(['ai.spend.meter']);
     expect(runtime.ai.submitScenarioJob).toHaveBeenCalledOnce();
     const [request, options] = runtime.ai.submitScenarioJob.mock.calls[0];
     expect(request.scenarioType).toBe(ScenarioType.SPEECH_TRANSCRIBE);

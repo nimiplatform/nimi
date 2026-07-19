@@ -8,12 +8,13 @@ import {
   SHELL_CHROME_ACTION_CELL_CLASS,
 } from './shell-chrome-classes';
 import { useDesktopInteractiveMotion } from '@renderer/ui/motion/desktop-motion';
+import type { AuthStatus } from '@renderer/app-shell/providers/app-store';
 
 const SHELL_TOPBAR_GHOST_ICON_CLASS =
   'relative flex h-9 w-9 items-center justify-center rounded-full text-[color:var(--nimi-fg-2)] transition-colors hover:text-[color:var(--nimi-fg-1)]';
 
 type MainLayoutTopBarProps = {
-  authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
+  authStatus: AuthStatus;
   titlebarTopInsetClass: string;
   titlebarLeftInsetClass: string;
   titlebarContent?: ReactNode;
@@ -39,16 +40,17 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
 
   return (
     <div
-      className={`absolute inset-x-0 ${props.titlebarTopInsetClass} z-[11000] flex h-14 items-center nimi-material-glass-regular bg-[color-mix(in_srgb,var(--nimi-surface-canvas)_12%,transparent)] px-3 backdrop-blur-[var(--nimi-backdrop-blur-regular)] ${props.titlebarLeftInsetClass}`}
+      className={`absolute inset-x-0 ${props.titlebarTopInsetClass} z-[11000] flex h-14 items-center nimi-material-glass-regular bg-[color-mix(in_srgb,var(--nimi-surface-canvas)_12%,transparent)] px-2 backdrop-blur-[var(--nimi-backdrop-blur-regular)] sm:px-3 ${props.titlebarLeftInsetClass}`}
+      data-shell-titlebar="true"
       onMouseDown={props.onMouseDown}
     >
-      <div className="flex h-full w-full items-center border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_78%,white)] px-1">
+      <div className="flex h-full w-full min-w-0 items-center overflow-hidden border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_78%,white)] px-1">
         {props.titlebarContent ? (
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 overflow-hidden" data-titlebar-region="content">
             {props.titlebarContent}
           </div>
         ) : null}
-        <div className="ml-auto flex items-center gap-7">
+        <div className="ml-2 flex shrink-0 items-center gap-2 sm:ml-auto sm:gap-7" data-titlebar-region="actions">
           {anonymousMode ? (
             <div className="flex items-center gap-2">
               {props.activeTab !== 'chat' ? (

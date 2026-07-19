@@ -6,27 +6,35 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func (s *Service) subscribe(req *runtimev1.SubscribeAccountSessionEventsRequest) (*runtimev1.AccountSessionEvent, []*runtimev1.AccountSessionEvent, subscriber) {
+func (s *Service) subscribe(req *runtimev1.SubscribeAccountSessionEventsRequest) ([]*runtimev1.AccountSessionEvent, *runtimev1.AccountSessionEvent, subscriber) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	after := req.GetAfterSequence()
 	replayTruncated := false
 	var replay []*runtimev1.AccountSessionEvent
-	if after > 0 && len(s.events) > 0 && s.events[0].GetSequence() > after+1 {
-		replayTruncated = true
-	} else {
-		for _, event := range s.events {
-			if event.GetSequence() > after {
-				replay = append(replay, cloneEvent(event))
+	if after == 0 {
+		replay = nil
+	} else if len(s.events) > 0 {
+		oldest := s.events[0].GetSequence()
+		replayTruncated = oldest > after && oldest-after > 1
+		if !replayTruncated {
+			for _, event := range s.events {
+				if event.GetSequence() > after {
+					cloned := cloneEvent(event)
+					cloned.DeliveryKind = runtimev1.AccountSessionDeliveryKind_ACCOUNT_SESSION_DELIVERY_KIND_REPLAY
+					replay = append(replay, cloned)
+				}
 			}
 		}
+	} else {
+		replay = nil
 	}
-	snapshot := s.newEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "", nil)
+	snapshot := s.snapshotEventLocked(replayTruncated)
 	snapshot.ReplayTruncated = replayTruncated
 	s.nextSubscriberID++
 	sub := subscriber{id: s.nextSubscriberID, ch: make(chan *runtimev1.AccountSessionEvent, 16)}
 	s.subscribers[sub.id] = sub
-	return snapshot, replay, sub
+	return replay, snapshot, sub
 }
 
 func (s *Service) removeSubscriber(id uint64) {
@@ -48,39 +56,68 @@ func (s *Service) appendStoredEventLocked(event *runtimev1.AccountSessionEvent) 
 	if len(s.events) > s.eventRetention {
 		s.events = append([]*runtimev1.AccountSessionEvent(nil), s.events[len(s.events)-s.eventRetention:]...)
 	}
+	// Delivery happens under the same lock that allocates the sequence and
+	// appends the replay record. Publishing after unlocking allows concurrent
+	// mutations to deliver n+1 before n, while resolver-only events can be
+	// retained without ever reaching a live subscriber. The bounded channel
+	// send is non-blocking; a subscriber that cannot keep up is closed so the
+	// caller must resynchronize instead of observing a silent gap.
+	for id, sub := range s.subscribers {
+		select {
+		case sub.ch <- cloneEvent(event):
+		default:
+			close(sub.ch)
+			delete(s.subscribers, id)
+		}
+	}
 	return cloneEvent(event)
 }
 
 func (s *Service) newEventLocked(eventType runtimev1.AccountEventType, reason runtimev1.AccountReasonCode, bindingID string, relation *runtimev1.ScopedAppBindingRelation) *runtimev1.AccountSessionEvent {
 	s.nextSequence++
+	if eventType == runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS {
+		s.stateReason = reason
+		s.rebuildRefreshTimerLocked()
+	}
 	return &runtimev1.AccountSessionEvent{
-		EventId:           ulid.Make().String(),
-		Sequence:          s.nextSequence,
-		EmittedAt:         timestamppb.New(s.now().UTC()),
-		EventType:         eventType,
+		EventId:         ulid.Make().String(),
+		Sequence:        s.nextSequence,
+		EmittedAt:       timestamppb.New(s.now().UTC()),
+		EventType:       eventType,
+		BindingId:       bindingID,
+		BindingRelation: cloneRelation(relation),
+		DeliveryKind:    runtimev1.AccountSessionDeliveryKind_ACCOUNT_SESSION_DELIVERY_KIND_LIVE,
+		Snapshot:        s.snapshotLocked(s.nextSequence, reason),
+	}
+}
+
+func (s *Service) snapshotLocked(sequence uint64, reason runtimev1.AccountReasonCode) *runtimev1.AccountSessionSnapshot {
+	return &runtimev1.AccountSessionSnapshot{
+		Sequence:          sequence,
 		State:             s.state,
 		ReasonCode:        commonReason(reason),
 		AccountReasonCode: reason,
 		AccountProjection: cloneProjection(s.projection),
-		BindingId:         bindingID,
-		BindingRelation:   cloneRelation(relation),
-		ReplayTruncated:   false,
 	}
 }
 
-func (s *Service) publish(event *runtimev1.AccountSessionEvent) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	for _, sub := range s.subscribers {
-		select {
-		case sub.ch <- cloneEvent(event):
-		default:
-		}
+func (s *Service) currentSnapshotLocked() *runtimev1.AccountSessionSnapshot {
+	return s.snapshotLocked(s.nextSequence, s.stateReason)
+}
+
+func (s *Service) snapshotEventLocked(replayTruncated bool) *runtimev1.AccountSessionEvent {
+	return &runtimev1.AccountSessionEvent{
+		EventId:         ulid.Make().String(),
+		Sequence:        s.nextSequence,
+		EmittedAt:       timestamppb.New(s.now().UTC()),
+		EventType:       runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS,
+		ReplayTruncated: replayTruncated,
+		DeliveryKind:    runtimev1.AccountSessionDeliveryKind_ACCOUNT_SESSION_DELIVERY_KIND_SNAPSHOT,
+		Snapshot:        s.currentSnapshotLocked(),
 	}
 }
 
-func (s *Service) revokeBindingsLocked(reason runtimev1.AccountReasonCode) []*runtimev1.AccountSessionEvent {
-	var events []*runtimev1.AccountSessionEvent
+func (s *Service) revokeBindingsLocked(reason runtimev1.AccountReasonCode) {
 	for id, record := range s.bindings {
 		if record.relation.GetState() != runtimev1.ScopedAppBindingState_SCOPED_APP_BINDING_STATE_ACTIVE &&
 			record.relation.GetState() != runtimev1.ScopedAppBindingState_SCOPED_APP_BINDING_STATE_ISSUED {
@@ -89,7 +126,7 @@ func (s *Service) revokeBindingsLocked(reason runtimev1.AccountReasonCode) []*ru
 		record.relation.State = runtimev1.ScopedAppBindingState_SCOPED_APP_BINDING_STATE_REVOKED
 		record.relation.ReasonCode = reason
 		s.bindings[id] = record
-		events = append(events, s.appendBindingEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_REVOKED, record.relation))
+		s.appendBindingEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_REVOKED, record.relation)
 	}
 	for id, record := range s.workspaceBindings {
 		if record.relation.GetState() != runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_ACTIVE &&
@@ -99,9 +136,8 @@ func (s *Service) revokeBindingsLocked(reason runtimev1.AccountReasonCode) []*ru
 		record.relation.State = runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_REVOKED
 		record.relation.ReasonCode = workspaceBindingReasonForAccountRevocation(reason)
 		s.workspaceBindings[id] = record
-		events = append(events, s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_REVOKED, reason, id))
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_REVOKED, reason, id)
 	}
-	return events
 }
 
 func workspaceBindingReasonForAccountRevocation(reason runtimev1.AccountReasonCode) runtimev1.ReasonCode {
@@ -113,8 +149,7 @@ func workspaceBindingReasonForAccountRevocation(reason runtimev1.AccountReasonCo
 	}
 }
 
-func (s *Service) revokeWorkspaceBindingsWithoutActiveMembershipLocked() []*runtimev1.AccountSessionEvent {
-	var events []*runtimev1.AccountSessionEvent
+func (s *Service) revokeWorkspaceBindingsWithoutActiveMembershipLocked() {
 	for id, record := range s.workspaceBindings {
 		if record.relation.GetState() != runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_ACTIVE &&
 			record.relation.GetState() != runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_ISSUED {
@@ -126,39 +161,28 @@ func (s *Service) revokeWorkspaceBindingsWithoutActiveMembershipLocked() []*runt
 		record.relation.State = runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_REVOKED
 		record.relation.ReasonCode = runtimev1.ReasonCode_WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE
 		s.workspaceBindings[id] = record
-		events = append(events, s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_REVOKED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, id))
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_REVOKED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, id)
 	}
-	return events
 }
 
 func (s *Service) markCustodyUnavailable() {
 	s.mu.Lock()
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
-	revoked := s.revokeBindingsLocked(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE)
+	s.revokeBindingsLocked(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE)
 	s.clearAuthenticatedRuntimeIdentityLocked()
-	custodyEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE, "")
-	statusEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE, "")
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE, "")
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE, "")
 	s.mu.Unlock()
-	for _, event := range revoked {
-		s.publish(event)
-	}
-	s.publish(custodyEvent)
-	s.publish(statusEvent)
 }
 
 func (s *Service) transitionToReauthRequired(reason runtimev1.AccountReasonCode) {
 	s.mu.Lock()
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED
-	revoked := s.revokeBindingsLocked(reason)
+	s.revokeBindingsLocked(reason)
 	s.clearAuthenticatedRuntimeIdentityLocked()
-	refreshEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, reason, "")
-	statusEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, reason, "")
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, reason, "")
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, reason, "")
 	s.mu.Unlock()
-	for _, event := range revoked {
-		s.publish(event)
-	}
-	s.publish(refreshEvent)
-	s.publish(statusEvent)
 }
 
 func (s *Service) currentState() runtimev1.AccountSessionState {
@@ -168,12 +192,19 @@ func (s *Service) currentState() runtimev1.AccountSessionState {
 }
 
 func (s *Service) rejectedAccountSessionEvent(reason runtimev1.AccountReasonCode) *runtimev1.AccountSessionEvent {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return &runtimev1.AccountSessionEvent{
-		EventId:           ulid.Make().String(),
-		EmittedAt:         timestamppb.New(s.now().UTC()),
-		EventType:         runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS,
-		State:             s.currentState(),
-		ReasonCode:        commonReason(reason),
-		AccountReasonCode: reason,
+		EventId:      ulid.Make().String(),
+		Sequence:     s.nextSequence,
+		EmittedAt:    timestamppb.New(s.now().UTC()),
+		EventType:    runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS,
+		DeliveryKind: runtimev1.AccountSessionDeliveryKind_ACCOUNT_SESSION_DELIVERY_KIND_SNAPSHOT,
+		Snapshot: &runtimev1.AccountSessionSnapshot{
+			Sequence:          s.nextSequence,
+			State:             s.state,
+			ReasonCode:        commonReason(reason),
+			AccountReasonCode: reason,
+		},
 	}
 }

@@ -52,20 +52,19 @@ describe('avatar launch arbitration', () => {
   });
 
   it('fails closed on each individual start_with_chat gate condition', () => {
-    const mutators: Array<{ id: StartWithChatGateConditionId; mutate: (input: StartWithChatGateInput) => void }> = [
-      { id: 'user_logged_in', mutate: (input) => { input.userLoggedIn = false; } },
-      { id: 'local_agent_target', mutate: (input) => { input.localAgentRef = 'runtime-source:agent-1'; input.runtimeSourceRef = 'runtime-source:agent-1'; } },
-      { id: 'conversation_anchor_present', mutate: (input) => { input.conversationAnchorId = null; } },
-      { id: 'local_avatar_asset_valid', mutate: (input) => { input.avatarAssetRef = null; } },
-      { id: 'backend_capability_posture_valid', mutate: (input) => { input.backendCapabilityProfileRef = null; } },
-      { id: 'runtime_projection_authorized', mutate: (input) => { input.runtimeProjectionAuthorization = 'unknown'; } },
-      { id: 'launch_mode_start_with_chat', mutate: (input) => { input.launchMode = 'manual'; } },
-      { id: 'instance_policy_resolvable', mutate: (input) => { input.avatarInstancePolicy = 'invalid_policy'; } },
+    const cases: Array<{ id: StartWithChatGateConditionId; patch: Partial<StartWithChatGateInput> }> = [
+      { id: 'user_logged_in', patch: { userLoggedIn: false } },
+      { id: 'local_agent_target', patch: { localAgentRef: 'runtime-source:agent-1', runtimeSourceRef: 'runtime-source:agent-1' } },
+      { id: 'conversation_anchor_present', patch: { conversationAnchorId: null } },
+      { id: 'local_avatar_asset_valid', patch: { avatarAssetRef: null } },
+      { id: 'backend_capability_posture_valid', patch: { backendCapabilityProfileRef: null } },
+      { id: 'runtime_projection_authorized', patch: { runtimeProjectionAuthorization: 'unknown' } },
+      { id: 'launch_mode_start_with_chat', patch: { launchMode: 'manual' } },
+      { id: 'instance_policy_resolvable', patch: { avatarInstancePolicy: 'invalid_policy' } },
     ];
 
-    for (const { id, mutate } of mutators) {
-      const input = passingGateInput();
-      mutate(input);
+    for (const { id, patch } of cases) {
+      const input = { ...passingGateInput(), ...patch };
       const result = evaluateStartWithChatGate(input);
       expect(result.decision).toBe('no_launch');
       if (result.decision === 'no_launch') {

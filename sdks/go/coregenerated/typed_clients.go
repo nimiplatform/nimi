@@ -68,6 +68,9 @@ const (
 	ACCOUNTEVENTTYPEBINDINGEXPIRED AccountEventType = "ACCOUNT_EVENT_TYPE_BINDING_EXPIRED"
 	ACCOUNTEVENTTYPEBINDINGSUPERSEDED AccountEventType = "ACCOUNT_EVENT_TYPE_BINDING_SUPERSEDED"
 	ACCOUNTEVENTTYPEBINDINGREPLAYDETECTED AccountEventType = "ACCOUNT_EVENT_TYPE_BINDING_REPLAY_DETECTED"
+	ACCOUNTEVENTTYPEREFRESHDEFERRED AccountEventType = "ACCOUNT_EVENT_TYPE_REFRESH_DEFERRED"
+	ACCOUNTEVENTTYPELOGOUTFAILED AccountEventType = "ACCOUNT_EVENT_TYPE_LOGOUT_FAILED"
+	ACCOUNTEVENTTYPESWITCHFAILED AccountEventType = "ACCOUNT_EVENT_TYPE_SWITCH_FAILED"
 )
 
 type AccountReasonCode string
@@ -94,11 +97,32 @@ const (
 	ACCOUNTREASONCODEBROKERCAPABILITYMISSING AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_CAPABILITY_MISSING"
 	ACCOUNTREASONCODEBROKERREALMBASEDENIED AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED"
 	ACCOUNTREASONCODEBROKERREQUESTINVALID AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID"
-	ACCOUNTREASONCODEBROKERUPSTREAMFAILED AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_UPSTREAM_FAILED"
 	ACCOUNTREASONCODEBROKERRESPONSETOOLARGE AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE"
 	ACCOUNTREASONCODEBROKERCREDENTIALRESPONSEFORBIDDEN AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_CREDENTIAL_RESPONSE_FORBIDDEN"
 	ACCOUNTREASONCODECALLERENVELOPEMISMATCH AccountReasonCode = "ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH"
 	ACCOUNTREASONCODELAUNCHNONCEREPLAY AccountReasonCode = "ACCOUNT_REASON_CODE_LAUNCH_NONCE_REPLAY"
+	ACCOUNTREASONCODEBROKERREALMUNAVAILABLE AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE"
+	ACCOUNTREASONCODEBROKERAUTHINVALID AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID"
+	ACCOUNTREASONCODEBROKERFORBIDDEN AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_FORBIDDEN"
+	ACCOUNTREASONCODEBROKERNOTFOUND AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_NOT_FOUND"
+	ACCOUNTREASONCODEBROKERCONFLICT AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_CONFLICT"
+	ACCOUNTREASONCODEBROKERRATELIMITED AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_RATE_LIMITED"
+	ACCOUNTREASONCODEBROKERREQUESTREJECTED AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_REQUEST_REJECTED"
+	ACCOUNTREASONCODEBROKERCONTRACTFAILED AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED"
+	ACCOUNTREASONCODEBROKEROPERATIONFAILED AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_OPERATION_FAILED"
+	ACCOUNTREASONCODEREFRESHRETRYDEFERRED AccountReasonCode = "ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED"
+	ACCOUNTREASONCODEREFRESHTOKENINVALID AccountReasonCode = "ACCOUNT_REASON_CODE_REFRESH_TOKEN_INVALID"
+	ACCOUNTREASONCODEREFRESHCONTRACTINVALID AccountReasonCode = "ACCOUNT_REASON_CODE_REFRESH_CONTRACT_INVALID"
+	ACCOUNTREASONCODEREFRESHOUTCOMEAMBIGUOUS AccountReasonCode = "ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS"
+)
+
+type AccountSessionDeliveryKind string
+
+const (
+	ACCOUNTSESSIONDELIVERYKINDUNSPECIFIED AccountSessionDeliveryKind = "ACCOUNT_SESSION_DELIVERY_KIND_UNSPECIFIED"
+	ACCOUNTSESSIONDELIVERYKINDSNAPSHOT AccountSessionDeliveryKind = "ACCOUNT_SESSION_DELIVERY_KIND_SNAPSHOT"
+	ACCOUNTSESSIONDELIVERYKINDREPLAY AccountSessionDeliveryKind = "ACCOUNT_SESSION_DELIVERY_KIND_REPLAY"
+	ACCOUNTSESSIONDELIVERYKINDLIVE AccountSessionDeliveryKind = "ACCOUNT_SESSION_DELIVERY_KIND_LIVE"
 )
 
 type AccountSessionState string
@@ -1660,6 +1684,13 @@ const (
 	LOCALAPPPRESENCEEXPIRED ReasonCode = "LOCAL_APP_PRESENCE_EXPIRED"
 	LOCALAPPDEVELOPERMODEDISABLED ReasonCode = "LOCAL_APP_DEVELOPER_MODE_DISABLED"
 	LOCALAPPRISKDISCLOSUREREQUIRED ReasonCode = "LOCAL_APP_RISK_DISCLOSURE_REQUIRED"
+	REALMUNAVAILABLE ReasonCode = "REALM_UNAVAILABLE"
+	REALMNOTFOUND ReasonCode = "REALM_NOT_FOUND"
+	REALMCONFLICT ReasonCode = "REALM_CONFLICT"
+	REALMRATELIMITED ReasonCode = "REALM_RATE_LIMITED"
+	REALMREQUESTREJECTED ReasonCode = "REALM_REQUEST_REJECTED"
+	REALMCONTRACTINVALID ReasonCode = "REALM_CONTRACT_INVALID"
+	REALMOPERATIONFAILED ReasonCode = "REALM_OPERATION_FAILED"
 )
 
 type ReasoningMode string
@@ -2148,13 +2179,19 @@ type AccountSessionEvent struct {
 	Sequence uint64 `json:"sequence,omitempty"`
 	EmittedAt string `json:"emitted_at,omitempty"`
 	EventType AccountEventType `json:"event_type,omitempty"`
+	BindingId string `json:"binding_id,omitempty"`
+	BindingRelation *ScopedAppBindingRelation `json:"binding_relation,omitempty"`
+	ReplayTruncated bool `json:"replay_truncated,omitempty"`
+	DeliveryKind AccountSessionDeliveryKind `json:"delivery_kind,omitempty"`
+	Snapshot *AccountSessionSnapshot `json:"snapshot,omitempty"`
+}
+
+type AccountSessionSnapshot struct {
+	Sequence uint64 `json:"sequence,omitempty"`
 	State AccountSessionState `json:"state,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 	AccountReasonCode AccountReasonCode `json:"account_reason_code,omitempty"`
 	AccountProjection *AccountProjection `json:"account_projection,omitempty"`
-	BindingId string `json:"binding_id,omitempty"`
-	BindingRelation *ScopedAppBindingRelation `json:"binding_relation,omitempty"`
-	ReplayTruncated bool `json:"replay_truncated,omitempty"`
 }
 
 type Ack struct {
@@ -3942,11 +3979,10 @@ type GetAccountSessionStatusRequest struct {
 }
 
 type GetAccountSessionStatusResponse struct {
-	State AccountSessionState `json:"state,omitempty"`
-	AccountProjection *AccountProjection `json:"account_projection,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 	AccountReasonCode AccountReasonCode `json:"account_reason_code,omitempty"`
-	ProductionInert bool `json:"production_inert,omitempty"`
+	Accepted bool `json:"accepted,omitempty"`
+	Snapshot *AccountSessionSnapshot `json:"snapshot,omitempty"`
 }
 
 type GetAgentCanonicalMemoryBankStatusRequest struct {
@@ -15906,7 +15942,7 @@ type RealmOauthTokenOperationRequest struct {
 	Path    RealmOauthTokenOperationPath `json:"path,omitempty"`
 	Query   RealmOauthTokenOperationQuery `json:"query,omitempty"`
 	Headers RealmOauthTokenOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
+	Body    OAuthTokenRequestDto `json:"body,omitempty"`
 }
 
 type RealmPasswordLoginOperationPath struct {

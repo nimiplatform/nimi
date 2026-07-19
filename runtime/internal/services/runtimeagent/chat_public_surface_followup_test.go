@@ -6,7 +6,6 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -18,6 +17,7 @@ import (
 func TestPublicChatTurnFailureProjectsRuntimeActionHintAndBindingContext(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	installPublicChatFollowUpGate(t, svc)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
@@ -331,7 +331,7 @@ func TestPublicChatFollowUpCancelsOnNewUserTurn(t *testing.T) {
 	if got := publicChatLastTurnSnapshot(t, secondSnapshot)["turn_origin"]; got != publicChatTurnOriginUser {
 		t.Fatalf("expected second snapshot last_turn.turn_origin=user, got=%v", publicChatLastTurnSnapshot(t, secondSnapshot))
 	}
-	time.Sleep(250 * time.Millisecond)
+	waitForPublicChatAsyncDrain(t, svc)
 	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
 	mu.Lock()
 	if callCount != 2 {
@@ -753,24 +753,9 @@ func TestPublicChatFollowUpCanceledProjectsRuntimeActionHint(t *testing.T) {
 	}
 	requirePublicChatPostTurnHookIntent(t, firstPostTurn, "action-follow-up-1", "pending", 20)
 	followUpGate.release(t)
-	// Poll the committed session snapshot until follow-up cancellation lands.
-	// Public chat does not admit a runtime.agent.follow_up.* event family;
-	// cancellation is observed through the unary public chat session
-	// snapshot only (`last_turn.follow_up.status`).
-	deadline := time.Now().Add(2 * time.Second)
-	var lastSnapshotPayload map[string]any
-	for time.Now().Before(deadline) {
-		snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-follow-up-launch-failed")
-		lastSnapshotPayload = publicChatSessionSnapshotDetail(t, snapshot)
-		if lastTurn, ok := lastSnapshotPayload["last_turn"].(map[string]any); ok {
-			if fu, ok := lastTurn["follow_up"].(map[string]any); ok && fu["status"] == "canceled" {
-				break
-			}
-		}
-		time.Sleep(20 * time.Millisecond)
-	}
-	// Emit one more snapshot request so the assertion block below consumes
-	// a fresh snapshot (mirrors original test shape).
+	// The injected due gate and Runtime-owned async-work barrier make the
+	// cancellation commit deterministic without wall-clock polling.
+	waitForPublicChatAsyncDrain(t, svc)
 	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-follow-up-launch-failed")
 	lastTurn := publicChatLastTurnSnapshot(t, snapshot)
 	lastTurnFollowUp := lastTurn["follow_up"].(map[string]any)
@@ -786,7 +771,6 @@ func TestPublicChatFollowUpCanceledProjectsRuntimeActionHint(t *testing.T) {
 	if got := lastTurnFollowUp["message"]; got != "local model unavailable before follow-up turn dispatch" {
 		t.Fatalf("expected snapshot follow_up message, got=%v", lastTurnFollowUp)
 	}
-	waitForPublicChatAsyncDrain(t, svc)
 	mu.Lock()
 	defer mu.Unlock()
 	if callCount != 1 {

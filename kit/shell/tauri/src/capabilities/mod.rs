@@ -29,6 +29,8 @@ pub mod runtime {
         LocalDevelopmentLaunchRequest, LocalDevelopmentProject,
         LocalDevelopmentProjectAuthorizationSummary, LocalDevelopmentShellKind,
         LocalDevelopmentSummaryAvailability, NimiHostError, NimiHostErrorReasonCode,
+        RuntimeBridgeAccountEventsClosePayload, RuntimeBridgeAccountEventsCloseResult,
+        RuntimeBridgeAccountEventsOpenPayload, RuntimeBridgeAccountEventsOpenResult,
         RuntimeBridgeAppSession, RuntimeBridgeDaemonStatus,
         RuntimeBridgeDesktopAccountActionRequest, RuntimeBridgeDesktopAccountBeginLoginRequest,
         RuntimeBridgeDesktopAccountBeginLoginResponse,
@@ -74,6 +76,21 @@ pub mod runtime {
     pub async fn runtime_account_session_status(
     ) -> Result<RuntimeBridgeDesktopAccountSessionStatus, String> {
         crate::runtime_bridge::runtime_account_session_status().await
+    }
+
+    #[tauri::command]
+    pub async fn runtime_account_session_events_open(
+        app: tauri::AppHandle,
+        payload: RuntimeBridgeAccountEventsOpenPayload,
+    ) -> Result<RuntimeBridgeAccountEventsOpenResult, String> {
+        crate::runtime_bridge::runtime_account_session_events_open(app, payload).await
+    }
+
+    #[tauri::command]
+    pub fn runtime_account_session_events_close(
+        payload: RuntimeBridgeAccountEventsClosePayload,
+    ) -> Result<RuntimeBridgeAccountEventsCloseResult, String> {
+        crate::runtime_bridge::runtime_account_session_events_close(payload)
     }
 
     #[tauri::command]

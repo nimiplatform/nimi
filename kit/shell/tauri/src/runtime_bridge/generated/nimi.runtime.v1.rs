@@ -363,6 +363,14 @@ pub enum ReasonCode {
     LocalAppPresenceExpired = 657,
     LocalAppDeveloperModeDisabled = 658,
     LocalAppRiskDisclosureRequired = 660,
+    /// Realm broker (661-667): account-owned Realm transport/application results.
+    RealmUnavailable = 661,
+    RealmNotFound = 662,
+    RealmConflict = 663,
+    RealmRateLimited = 664,
+    RealmRequestRejected = 665,
+    RealmContractInvalid = 666,
+    RealmOperationFailed = 667,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -647,6 +655,13 @@ impl ReasonCode {
             Self::LocalAppPresenceExpired => "LOCAL_APP_PRESENCE_EXPIRED",
             Self::LocalAppDeveloperModeDisabled => "LOCAL_APP_DEVELOPER_MODE_DISABLED",
             Self::LocalAppRiskDisclosureRequired => "LOCAL_APP_RISK_DISCLOSURE_REQUIRED",
+            Self::RealmUnavailable => "REALM_UNAVAILABLE",
+            Self::RealmNotFound => "REALM_NOT_FOUND",
+            Self::RealmConflict => "REALM_CONFLICT",
+            Self::RealmRateLimited => "REALM_RATE_LIMITED",
+            Self::RealmRequestRejected => "REALM_REQUEST_REJECTED",
+            Self::RealmContractInvalid => "REALM_CONTRACT_INVALID",
+            Self::RealmOperationFailed => "REALM_OPERATION_FAILED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -968,6 +983,13 @@ impl ReasonCode {
             "LOCAL_APP_RISK_DISCLOSURE_REQUIRED" => {
                 Some(Self::LocalAppRiskDisclosureRequired)
             }
+            "REALM_UNAVAILABLE" => Some(Self::RealmUnavailable),
+            "REALM_NOT_FOUND" => Some(Self::RealmNotFound),
+            "REALM_CONFLICT" => Some(Self::RealmConflict),
+            "REALM_RATE_LIMITED" => Some(Self::RealmRateLimited),
+            "REALM_REQUEST_REJECTED" => Some(Self::RealmRequestRejected),
+            "REALM_CONTRACT_INVALID" => Some(Self::RealmContractInvalid),
+            "REALM_OPERATION_FAILED" => Some(Self::RealmOperationFailed),
             _ => None,
         }
     }
@@ -1879,6 +1901,19 @@ pub struct AccountProjection {
     #[prost(message, repeated, tag = "4")]
     pub workspace_memberships: ::prost::alloc::vec::Vec<WorkspaceMembershipProjection>,
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AccountSessionSnapshot {
+    #[prost(uint64, tag = "1")]
+    pub sequence: u64,
+    #[prost(enumeration = "AccountSessionState", tag = "2")]
+    pub state: i32,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+    #[prost(enumeration = "AccountReasonCode", tag = "4")]
+    pub account_reason_code: i32,
+    #[prost(message, optional, tag = "5")]
+    pub account_projection: ::core::option::Option<AccountProjection>,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AccountCaller {
     #[prost(string, tag = "1")]
@@ -1968,20 +2003,16 @@ pub struct AccountSessionEvent {
     pub emitted_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(enumeration = "AccountEventType", tag = "4")]
     pub event_type: i32,
-    #[prost(enumeration = "AccountSessionState", tag = "5")]
-    pub state: i32,
-    #[prost(enumeration = "ReasonCode", tag = "6")]
-    pub reason_code: i32,
-    #[prost(enumeration = "AccountReasonCode", tag = "7")]
-    pub account_reason_code: i32,
-    #[prost(message, optional, tag = "8")]
-    pub account_projection: ::core::option::Option<AccountProjection>,
     #[prost(string, tag = "9")]
     pub binding_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "10")]
     pub binding_relation: ::core::option::Option<ScopedAppBindingRelation>,
     #[prost(bool, tag = "11")]
     pub replay_truncated: bool,
+    #[prost(enumeration = "AccountSessionDeliveryKind", tag = "12")]
+    pub delivery_kind: i32,
+    #[prost(message, optional, tag = "13")]
+    pub snapshot: ::core::option::Option<AccountSessionSnapshot>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetAccountSessionStatusRequest {
@@ -1990,16 +2021,14 @@ pub struct GetAccountSessionStatusRequest {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetAccountSessionStatusResponse {
-    #[prost(enumeration = "AccountSessionState", tag = "1")]
-    pub state: i32,
-    #[prost(message, optional, tag = "2")]
-    pub account_projection: ::core::option::Option<AccountProjection>,
     #[prost(enumeration = "ReasonCode", tag = "3")]
     pub reason_code: i32,
     #[prost(enumeration = "AccountReasonCode", tag = "4")]
     pub account_reason_code: i32,
-    #[prost(bool, tag = "5")]
-    pub production_inert: bool,
+    #[prost(bool, tag = "6")]
+    pub accepted: bool,
+    #[prost(message, optional, tag = "7")]
+    pub snapshot: ::core::option::Option<AccountSessionSnapshot>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SubscribeAccountSessionEventsRequest {
@@ -2392,6 +2421,9 @@ pub enum AccountEventType {
     BindingExpired = 19,
     BindingSuperseded = 20,
     BindingReplayDetected = 21,
+    RefreshDeferred = 22,
+    LogoutFailed = 23,
+    SwitchFailed = 24,
 }
 impl AccountEventType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -2422,6 +2454,9 @@ impl AccountEventType {
             Self::BindingExpired => "ACCOUNT_EVENT_TYPE_BINDING_EXPIRED",
             Self::BindingSuperseded => "ACCOUNT_EVENT_TYPE_BINDING_SUPERSEDED",
             Self::BindingReplayDetected => "ACCOUNT_EVENT_TYPE_BINDING_REPLAY_DETECTED",
+            Self::RefreshDeferred => "ACCOUNT_EVENT_TYPE_REFRESH_DEFERRED",
+            Self::LogoutFailed => "ACCOUNT_EVENT_TYPE_LOGOUT_FAILED",
+            Self::SwitchFailed => "ACCOUNT_EVENT_TYPE_SWITCH_FAILED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -2451,6 +2486,41 @@ impl AccountEventType {
             "ACCOUNT_EVENT_TYPE_BINDING_REPLAY_DETECTED" => {
                 Some(Self::BindingReplayDetected)
             }
+            "ACCOUNT_EVENT_TYPE_REFRESH_DEFERRED" => Some(Self::RefreshDeferred),
+            "ACCOUNT_EVENT_TYPE_LOGOUT_FAILED" => Some(Self::LogoutFailed),
+            "ACCOUNT_EVENT_TYPE_SWITCH_FAILED" => Some(Self::SwitchFailed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AccountSessionDeliveryKind {
+    Unspecified = 0,
+    Snapshot = 1,
+    Replay = 2,
+    Live = 3,
+}
+impl AccountSessionDeliveryKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "ACCOUNT_SESSION_DELIVERY_KIND_UNSPECIFIED",
+            Self::Snapshot => "ACCOUNT_SESSION_DELIVERY_KIND_SNAPSHOT",
+            Self::Replay => "ACCOUNT_SESSION_DELIVERY_KIND_REPLAY",
+            Self::Live => "ACCOUNT_SESSION_DELIVERY_KIND_LIVE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "ACCOUNT_SESSION_DELIVERY_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "ACCOUNT_SESSION_DELIVERY_KIND_SNAPSHOT" => Some(Self::Snapshot),
+            "ACCOUNT_SESSION_DELIVERY_KIND_REPLAY" => Some(Self::Replay),
+            "ACCOUNT_SESSION_DELIVERY_KIND_LIVE" => Some(Self::Live),
             _ => None,
         }
     }
@@ -2479,11 +2549,23 @@ pub enum AccountReasonCode {
     BrokerCapabilityMissing = 19,
     BrokerRealmBaseDenied = 20,
     BrokerRequestInvalid = 21,
-    BrokerUpstreamFailed = 22,
     BrokerResponseTooLarge = 23,
     BrokerCredentialResponseForbidden = 24,
     CallerEnvelopeMismatch = 25,
     LaunchNonceReplay = 26,
+    BrokerRealmUnavailable = 27,
+    BrokerAuthInvalid = 28,
+    BrokerForbidden = 29,
+    BrokerNotFound = 30,
+    BrokerConflict = 31,
+    BrokerRateLimited = 32,
+    BrokerRequestRejected = 33,
+    BrokerContractFailed = 34,
+    BrokerOperationFailed = 35,
+    RefreshRetryDeferred = 36,
+    RefreshTokenInvalid = 37,
+    RefreshContractInvalid = 38,
+    RefreshOutcomeAmbiguous = 39,
 }
 impl AccountReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -2521,7 +2603,6 @@ impl AccountReasonCode {
             }
             Self::BrokerRealmBaseDenied => "ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED",
             Self::BrokerRequestInvalid => "ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID",
-            Self::BrokerUpstreamFailed => "ACCOUNT_REASON_CODE_BROKER_UPSTREAM_FAILED",
             Self::BrokerResponseTooLarge => {
                 "ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE"
             }
@@ -2532,6 +2613,25 @@ impl AccountReasonCode {
                 "ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH"
             }
             Self::LaunchNonceReplay => "ACCOUNT_REASON_CODE_LAUNCH_NONCE_REPLAY",
+            Self::BrokerRealmUnavailable => {
+                "ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE"
+            }
+            Self::BrokerAuthInvalid => "ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID",
+            Self::BrokerForbidden => "ACCOUNT_REASON_CODE_BROKER_FORBIDDEN",
+            Self::BrokerNotFound => "ACCOUNT_REASON_CODE_BROKER_NOT_FOUND",
+            Self::BrokerConflict => "ACCOUNT_REASON_CODE_BROKER_CONFLICT",
+            Self::BrokerRateLimited => "ACCOUNT_REASON_CODE_BROKER_RATE_LIMITED",
+            Self::BrokerRequestRejected => "ACCOUNT_REASON_CODE_BROKER_REQUEST_REJECTED",
+            Self::BrokerContractFailed => "ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED",
+            Self::BrokerOperationFailed => "ACCOUNT_REASON_CODE_BROKER_OPERATION_FAILED",
+            Self::RefreshRetryDeferred => "ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED",
+            Self::RefreshTokenInvalid => "ACCOUNT_REASON_CODE_REFRESH_TOKEN_INVALID",
+            Self::RefreshContractInvalid => {
+                "ACCOUNT_REASON_CODE_REFRESH_CONTRACT_INVALID"
+            }
+            Self::RefreshOutcomeAmbiguous => {
+                "ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS"
+            }
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -2572,9 +2672,6 @@ impl AccountReasonCode {
             "ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID" => {
                 Some(Self::BrokerRequestInvalid)
             }
-            "ACCOUNT_REASON_CODE_BROKER_UPSTREAM_FAILED" => {
-                Some(Self::BrokerUpstreamFailed)
-            }
             "ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE" => {
                 Some(Self::BrokerResponseTooLarge)
             }
@@ -2585,6 +2682,35 @@ impl AccountReasonCode {
                 Some(Self::CallerEnvelopeMismatch)
             }
             "ACCOUNT_REASON_CODE_LAUNCH_NONCE_REPLAY" => Some(Self::LaunchNonceReplay),
+            "ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE" => {
+                Some(Self::BrokerRealmUnavailable)
+            }
+            "ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID" => Some(Self::BrokerAuthInvalid),
+            "ACCOUNT_REASON_CODE_BROKER_FORBIDDEN" => Some(Self::BrokerForbidden),
+            "ACCOUNT_REASON_CODE_BROKER_NOT_FOUND" => Some(Self::BrokerNotFound),
+            "ACCOUNT_REASON_CODE_BROKER_CONFLICT" => Some(Self::BrokerConflict),
+            "ACCOUNT_REASON_CODE_BROKER_RATE_LIMITED" => Some(Self::BrokerRateLimited),
+            "ACCOUNT_REASON_CODE_BROKER_REQUEST_REJECTED" => {
+                Some(Self::BrokerRequestRejected)
+            }
+            "ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED" => {
+                Some(Self::BrokerContractFailed)
+            }
+            "ACCOUNT_REASON_CODE_BROKER_OPERATION_FAILED" => {
+                Some(Self::BrokerOperationFailed)
+            }
+            "ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED" => {
+                Some(Self::RefreshRetryDeferred)
+            }
+            "ACCOUNT_REASON_CODE_REFRESH_TOKEN_INVALID" => {
+                Some(Self::RefreshTokenInvalid)
+            }
+            "ACCOUNT_REASON_CODE_REFRESH_CONTRACT_INVALID" => {
+                Some(Self::RefreshContractInvalid)
+            }
+            "ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS" => {
+                Some(Self::RefreshOutcomeAmbiguous)
+            }
             _ => None,
         }
     }
