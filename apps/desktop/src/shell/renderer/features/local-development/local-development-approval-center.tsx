@@ -98,8 +98,8 @@ export function LocalDevelopmentApprovalCenter() {
       closeOnBackdrop={false}
       onClose={busy ? undefined : () => { void submit('deny'); }}
       dataTestId="local-development-approval-dialog"
-      panelClassName="max-h-[calc(100vh-32px)] overflow-hidden"
-      contentClassName="min-h-0"
+      panelClassName="max-h-[calc(100vh-32px)] overflow-hidden flex flex-col"
+      contentClassName="min-h-0 flex flex-1 overflow-hidden"
       title={(
         <div className="flex min-w-0 items-start justify-between gap-3">
           <NimiText as="h2" role="section-title" className="min-w-0">
@@ -150,7 +150,7 @@ export function LocalDevelopmentApprovalCenter() {
         </div>
       )}
     >
-      <ScrollArea className="max-h-[min(520px,calc(100vh-210px))]" contentClassName="grid gap-3 pb-2">
+      <ScrollArea className="min-h-0 flex-1" contentClassName="grid gap-3 pb-2">
         <InlineAlert tone="warning">
           {t('LocalDevelopment.approval.warning')}
         </InlineAlert>

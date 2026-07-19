@@ -21,6 +21,7 @@ import {
   type ElectronLocalDevelopmentPlan,
 } from './local-development-plan.js';
 import {
+  resolveLocalDevelopmentElectronHostArguments,
   resolveLocalDevelopmentObservationArguments,
   resolveLocalAppUserDataArguments,
 } from './local-development-host-arguments.js';
@@ -491,12 +492,12 @@ class ElectronLocalDevelopmentHost {
       shell: 'electron',
       hostExecutablePath: run.plan.electronExecutable,
       rendererOrigin: run.plan.rendererOrigin,
-      hostArguments: [
-        ...observationArguments,
-        ...userDataArguments,
-        `--nimi-local-app-main=${mainEntry}`,
-        `--nimi-dev-renderer-url=${run.plan.rendererOrigin}`,
-      ],
+      hostArguments: resolveLocalDevelopmentElectronHostArguments({
+        mainEntry,
+        rendererOrigin: run.plan.rendererOrigin,
+        observationArguments,
+        userDataArguments,
+      }),
       workingDirectory: run.plan.projectRoot,
     });
     run.status.hostGeneration += 1;

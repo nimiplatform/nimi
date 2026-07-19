@@ -27,7 +27,7 @@ export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function S
     >
       <ScrollAreaPrimitive.Viewport
         ref={viewportRef}
-        className={cn('h-full w-full rounded-[inherit]', viewportClassName)}
+        className={cn('h-full max-h-[inherit] w-full rounded-[inherit]', viewportClassName)}
       >
         {contentClassName ? <div className={contentClassName}>{children}</div> : children}
       </ScrollAreaPrimitive.Viewport>

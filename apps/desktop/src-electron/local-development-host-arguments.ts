@@ -25,6 +25,28 @@ export function resolveLocalDevelopmentObservationArguments(
   ];
 }
 
+export function resolveLocalDevelopmentElectronHostArguments(input: {
+  readonly mainEntry: string;
+  readonly rendererOrigin: string;
+  readonly observationArguments: readonly string[];
+  readonly userDataArguments: readonly string[];
+  readonly platform?: NodeJS.Platform;
+}): string[] {
+  const platform = input.platform ?? process.platform;
+  if (platform !== 'darwin' && platform !== 'win32') {
+    throw new Error('local-development-platform-unsupported');
+  }
+  const applicationArgument = platform === 'darwin'
+    ? `--nimi-local-app-main=${input.mainEntry}`
+    : input.mainEntry;
+  return [
+    ...input.observationArguments,
+    ...input.userDataArguments,
+    applicationArgument,
+    `--nimi-dev-renderer-url=${input.rendererOrigin}`,
+  ];
+}
+
 export async function resolveLocalAppUserDataArguments(input: {
   readonly homeDirectory: string;
   readonly authorizationId: string;

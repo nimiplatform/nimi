@@ -37,6 +37,7 @@ export type InstallNimiElectronRuntimeBridgeResult = {
 const DEFAULT_API_KEY = '__NIMI_ELECTRON_RUNTIME__';
 const DEFAULT_INVOKE_CHANNEL = 'nimi:runtime:invoke';
 const DEFAULT_LISTEN_CHANNEL_PREFIX = 'nimi:runtime:event:';
+const DESKTOP_OPEN_INTENT_EVENT = 'desktop-open://open-intent';
 
 export function installNimiElectronRuntimeBridge(
   input: InstallNimiElectronRuntimeBridgeInput,
@@ -50,7 +51,7 @@ export function installNimiElectronRuntimeBridge(
       payload,
     })),
     listen: (event, handler) => {
-      const eventName = normalizeCommand(event);
+      const eventName = normalizeEvent(event);
       const channel = `${listenChannelPrefix}${eventName}`;
       const listener = (_electronEvent: unknown, payload: unknown) => {
         handler({ payload });
@@ -112,6 +113,13 @@ function normalizeCommand(value: unknown): string {
     throw new Error(`Nimi Electron bridge command/event contains unsupported characters: ${normalized}`);
   }
   return normalized;
+}
+
+function normalizeEvent(value: unknown): string {
+  const normalized = String(value ?? '').trim();
+  return normalized === DESKTOP_OPEN_INTENT_EVENT
+    ? normalized
+    : normalizeCommand(normalized);
 }
 
 function normalizeToken(value: unknown, fallback: string): string {

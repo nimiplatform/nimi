@@ -62,6 +62,10 @@ export const DESKTOP_ELECTRON_LOCAL_DEVELOPMENT_COMMANDS = [
   'local_development_authorization_revoke',
 ] as const;
 
+export const DESKTOP_ELECTRON_DESKTOP_OPEN_COMMANDS = [
+  'desktop_open_intent_set_ready',
+] as const;
+
 const DESKTOP_ELECTRON_PROTECTED_CONTROL_COMMANDS = [
   'developer_mode_status',
   'developer_mode_set',
@@ -131,7 +135,6 @@ const DESKTOP_ELECTRON_NA_COMMANDS = [
 ] as const;
 
 const DESKTOP_ELECTRON_DEFERRED_COMMANDS = [
-  'desktop_open_intent_set_ready',
   'account_profile_library_list',
   'account_profile_library_create',
   'account_profile_library_edit',
@@ -186,6 +189,11 @@ export const DESKTOP_ELECTRON_COMMAND_MATRIX = [
     DESKTOP_ELECTRON_LOCAL_DEVELOPMENT_COMMANDS,
     'electron-covered',
     'Covered by the Electron main-process supervisor and exact Kit protected native carrier; private Runtime identifiers never reach the renderer.',
+  ),
+  ...entries(
+    DESKTOP_ELECTRON_DESKTOP_OPEN_COMMANDS,
+    'electron-covered',
+    'Covered by the Electron loopback Desktop Open host, renderer readiness heartbeat, and exact Kit protected native carrier.',
   ),
   ...entries(
     DESKTOP_ELECTRON_FIRST_RUN_EVIDENCE_COMMANDS,

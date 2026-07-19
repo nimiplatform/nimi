@@ -63,6 +63,7 @@ import {
   FieldTrigger,
   IconToggleAction,
   Pagination,
+  ScrollArea,
   ScrollShell,
   STATE_TONE_CLASS,
   Statistic,
@@ -210,6 +211,17 @@ test('surface, button, field, and status primitives render', () => {
   expect(hasClass(html, 'nimi-status-badge--success')).toBe(true);
   expect(hasClass(html, 'nimi-status-badge--dot')).toBe(true);
   expect(hasClass(html, 'nimi-status-badge__dot')).toBe(true);
+});
+
+test('scroll area viewport inherits a bounded root max height', () => {
+  const html = renderToStaticMarkup(
+    <ScrollArea className="max-h-[10rem]">
+      <div>bounded content</div>
+    </ScrollArea>,
+  );
+
+  expect(html).toMatch(/data-radix-scroll-area-viewport/);
+  expect(html).toMatch(/max-h-\[inherit\]/);
 });
 
 test('app surface primitives render canonical shared classes', () => {

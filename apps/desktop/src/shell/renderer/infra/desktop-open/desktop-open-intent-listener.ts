@@ -4,8 +4,8 @@ import {
 } from '@nimiplatform/kit/core/desktop-open';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import {
-  hasTauriRuntime,
-  listenTauri,
+  hasNimiShellRuntime,
+  listenShell,
 } from '@nimiplatform/kit/shell/renderer/bridge';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { setDesktopOpenIntentReady } from '@renderer/bridge/runtime-bridge';
@@ -18,7 +18,7 @@ export function useDesktopOpenIntentListener(): void {
   const flags = getShellFeatureFlags();
 
   useEffect(() => {
-    if (flags.mode !== 'desktop' || !hasTauriRuntime()) {
+    if (flags.mode !== 'desktop' || !hasNimiShellRuntime()) {
       return;
     }
     let mounted = true;
@@ -35,7 +35,7 @@ export function useDesktopOpenIntentListener(): void {
         });
       });
     };
-    const unsubscribePromise = Promise.resolve(listenTauri(DESKTOP_OPEN_INTENT_EVENT, (event) => {
+    const unsubscribePromise = Promise.resolve(listenShell(DESKTOP_OPEN_INTENT_EVENT, (event) => {
       if (!mounted) {
         return;
       }

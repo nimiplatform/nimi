@@ -12,14 +12,21 @@ import {
   type NimiElectronFileDialogOpenResult,
   type NimiElectronShellFileProtocolHost,
 } from '@nimiplatform/kit/shell/electron/main';
+import type { NimiDesktopOpenIntentEnvelope } from '@nimiplatform/kit/core/desktop-open';
 import {
   createDesktopElectronLocalDevelopmentHost,
   type DesktopElectronLocalDevelopmentHost,
 } from './local-development-host.js';
 import { createDesktopElectronProductControlHost } from './product-control-host.js';
 import { createDevKernelExternalUrlCapture } from './dev-kernel-external-url-capture.js';
+import {
+  createDesktopElectronOpenIntentHost,
+  DESKTOP_OPEN_INTENT_EVENT,
+  type DesktopElectronOpenIntentHost,
+} from './desktop-open-intent-host.js';
 
 const APP_ID = 'nimi.desktop';
+const ELECTRON_RUNTIME_EVENT_CHANNEL_PREFIX = 'nimi:runtime:event:';
 
 const currentFilePath = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFilePath);
@@ -55,6 +62,7 @@ const localAssetProtocolHost: NimiElectronShellFileProtocolHost = createElectron
 });
 let mainWindow: BrowserWindow | undefined;
 let localDevelopmentHost: DesktopElectronLocalDevelopmentHost | undefined;
+let desktopOpenIntentHost: DesktopElectronOpenIntentHost | undefined;
 let quitCleanup: Promise<void> | undefined;
 let quitCleanupComplete = false;
 const devKernelExternalUrlCapture = createDevKernelExternalUrlCapture();
@@ -77,6 +85,11 @@ void app.whenReady().then(async () => {
     homeDirectory: app.getPath('home'),
     focusMainWindow: focusDesktopMainWindow,
   });
+  desktopOpenIntentHost = await createDesktopElectronOpenIntentHost({
+    homeDirectory: app.getPath('home'),
+    focusMainWindow: focusDesktopMainWindow,
+    emitIntent: emitDesktopOpenIntent,
+  });
   const productControlHost = createDesktopElectronProductControlHost();
   registerNimiElectronRuntimeBridge({
     appId: APP_ID,
@@ -86,6 +99,7 @@ void app.whenReady().then(async () => {
     ipcMain,
     commandHandlers: {
       ...localDevelopmentHost.commandHandlers,
+      ...desktopOpenIntentHost.commandHandlers,
       ...productControlHost.commandHandlers,
       product_control_default_data_root_directory: () => path.resolve(app.getPath('home'), 'Nimi'),
     },
@@ -114,7 +128,8 @@ void app.whenReady().then(async () => {
       void createMainWindow();
     }
   });
-}).catch((error: unknown) => {
+}).catch(async (error: unknown) => {
+  await shutdownBeforeQuit().catch(() => undefined);
   process.stderr.write(`[desktop-bootstrap] ${desktopBootstrapFailureCode(error)}\n`);
   dialog.showErrorBox(
     'Nimi could not start safely',
@@ -158,10 +173,14 @@ app.on('before-quit', (event) => {
 });
 
 async function shutdownBeforeQuit(): Promise<void> {
-  const host = localDevelopmentHost;
-  if (!host) return;
-  await host.shutdown();
-  if (localDevelopmentHost === host) localDevelopmentHost = undefined;
+  const localHost = localDevelopmentHost;
+  const openIntentHost = desktopOpenIntentHost;
+  await Promise.all([
+    localHost?.shutdown(),
+    openIntentHost?.shutdown(),
+  ]);
+  if (localDevelopmentHost === localHost) localDevelopmentHost = undefined;
+  if (desktopOpenIntentHost === openIntentHost) desktopOpenIntentHost = undefined;
 }
 
 async function createMainWindow(): Promise<BrowserWindow> {
@@ -333,7 +352,19 @@ async function focusDesktopMainWindow(): Promise<void> {
     window.restore();
   }
   window.show();
+  window.moveTop();
   window.focus();
+}
+
+function emitDesktopOpenIntent(envelope: NimiDesktopOpenIntentEnvelope): void {
+  const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+  if (!window || window.webContents.isDestroyed()) {
+    throw new Error('desktop-open-desktop-not-ready');
+  }
+  window.webContents.send(
+    `${ELECTRON_RUNTIME_EVENT_CHANNEL_PREFIX}${DESKTOP_OPEN_INTENT_EVENT}`,
+    envelope,
+  );
 }
 
 function normalizeText(value: unknown): string {

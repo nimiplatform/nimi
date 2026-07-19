@@ -11,3 +11,9 @@ test('Desktop Electron main keeps account authority on the protected Desktop hos
   assert.match(mainSource, /createDesktopElectronProductControlHost/);
   assert.match(mainSource, /productControlHost\.commandHandlers/);
 });
+
+test('Desktop Open raises and focuses the real Desktop window before intent delivery', () => {
+  assert.match(mainSource, /window\.show\(\);\s*window\.moveTop\(\);\s*window\.focus\(\);/u);
+  assert.match(mainSource, /focusMainWindow: focusDesktopMainWindow/u);
+  assert.match(mainSource, /emitIntent: emitDesktopOpenIntent/u);
+});

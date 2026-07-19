@@ -33,6 +33,10 @@ test('Desktop approval UI exposes the complete user decision and project identit
   assert.match(source, /dataTestId="local-development-approval-dialog"/);
   assert.match(source, /description=\{\([\s\S]*LocalDevelopment\.approval\.subtitle/);
   assert.match(source, /StatusBadge aria-hidden="true"/);
+  assert.match(source, /panelClassName="[^"]*flex flex-col"/);
+  assert.match(source, /contentClassName="[^"]*min-h-0 flex flex-1 overflow-hidden"/);
+  assert.match(source, /<ScrollArea className="min-h-0 flex-1"/);
+  assert.doesNotMatch(source, /calc\(100vh-210px\)/);
   assert.match(source, /riskAcknowledgedRequestId[\s\S]*isRiskAcknowledgedForApproval/);
   assert.match(source, /event\.currentTarget\.checked \? approval\.requestId : ''/);
 });

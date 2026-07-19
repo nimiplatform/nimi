@@ -16,6 +16,7 @@ import {
   sameLocalDevelopmentProject,
 } from '../src-electron/local-development-host';
 import {
+  resolveLocalDevelopmentElectronHostArguments,
   resolveLocalDevelopmentObservationArguments,
   resolveLocalAppUserDataArguments,
 } from '../src-electron/local-development-host-arguments';
@@ -247,6 +248,39 @@ test('ordinary Electron builds cannot enable observation from environment input'
     ...observation,
     NIMI_DEV_KERNEL_CHECKPOINT: '1',
   }), []);
+});
+
+test('Windows Electron launch uses the canonical app entry as the positional application argument', () => {
+  const mainEntry = 'D:\\nimi-apps\\parentos\\dist-electron\\main.js';
+  const arguments_ = resolveLocalDevelopmentElectronHostArguments({
+    mainEntry,
+    rendererOrigin: 'http://127.0.0.1:1426',
+    observationArguments: ['--remote-debugging-port=19472'],
+    userDataArguments: ['--user-data-dir=D:\\profiles\\parentos'],
+    platform: 'win32',
+  });
+  assert.deepEqual(arguments_, [
+    '--remote-debugging-port=19472',
+    '--user-data-dir=D:\\profiles\\parentos',
+    mainEntry,
+    '--nimi-dev-renderer-url=http://127.0.0.1:1426',
+  ]);
+  assert.equal(arguments_.some((value) => value.startsWith('--nimi-local-app-main=')), false);
+});
+
+test('macOS protected local-app carrier retains its exact main-entry switch contract', () => {
+  const mainEntry = '/Applications/project/dist-electron/main.js';
+  assert.deepEqual(resolveLocalDevelopmentElectronHostArguments({
+    mainEntry,
+    rendererOrigin: 'http://127.0.0.1:1472',
+    observationArguments: [],
+    userDataArguments: ['--user-data-dir=/Users/test/Library/Application Support/Nimi/Local App Hosts/v1/profile'],
+    platform: 'darwin',
+  }), [
+    '--user-data-dir=/Users/test/Library/Application Support/Nimi/Local App Hosts/v1/profile',
+    `--nimi-local-app-main=${mainEntry}`,
+    '--nimi-dev-renderer-url=http://127.0.0.1:1472',
+  ]);
 });
 
 test('Windows local-app Chromium data is opaque and authorization-partitioned', {

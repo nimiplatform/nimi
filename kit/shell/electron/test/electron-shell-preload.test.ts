@@ -85,6 +85,25 @@ describe('installNimiElectronRuntimeBridge', () => {
     expect(received).toEqual([{ eventType: 'completed' }]);
     unsubscribe();
     expect(ipcEvents.has('nimi:runtime:event:runtime_bridge:stream:abc')).toBe(false);
+
+    const openIntentEvents: unknown[] = [];
+    const unsubscribeOpenIntent = hook.listen('desktop-open://open-intent', (event) => {
+      openIntentEvents.push(event.payload);
+    });
+    ipcEvents.get('nimi:runtime:event:desktop-open://open-intent')?.({}, { requestId: 'request-a' });
+    expect(openIntentEvents).toEqual([{ requestId: 'request-a' }]);
+    unsubscribeOpenIntent();
+    expect(() => hook.listen('desktop-open:\\unsafe', () => undefined)).toThrow(/unsupported characters/u);
+  });
+
+  it('keeps the CJS preload event policy aligned with the ESM preload', async () => {
+    const source = await readFile(path.resolve(
+      process.cwd(),
+      'shell/electron/src/preload/cjs.cts',
+    ), 'utf8');
+    expect(source).toContain("const DESKTOP_OPEN_INTENT_EVENT = 'desktop-open://open-intent'");
+    expect(source).toMatch(/const eventName = normalizeEvent\(event\)/u);
+    expect(source).toMatch(/normalized === DESKTOP_OPEN_INTENT_EVENT/u);
   });
 
   it('rethrows serialized standard errors with the admitted envelope shape', async () => {

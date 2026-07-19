@@ -40,6 +40,7 @@
     "test:e2e:electron": "corepack pnpm run build:renderer && corepack pnpm run build:electron && node --test test/electron-acceptance.mjs",
     "test:macos:electron:negative-acceptance": "pnpm run build:renderer && pnpm run build:electron && node scripts/run-macos-negative-electron-acceptance.mjs",
     "test:e2e:electron:live-runtime": "corepack pnpm run build:renderer && corepack pnpm run build:electron && node scripts/run-electron-live-runtime-acceptance.mjs",
+    "test:e2e:electron:supervised-desktop-open": "corepack pnpm run build:renderer && corepack pnpm run build:electron && node test/electron-supervised-desktop-open-live.mjs",
     "test:e2e:desktop-open": "node scripts/run-e2e.mjs --suite desktop-open",
     "test:e2e:smoke": "node scripts/run-e2e.mjs --suite smoke",
     "test:e2e:journeys": "node scripts/run-e2e.mjs --suite journeys",
