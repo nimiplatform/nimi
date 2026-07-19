@@ -202,8 +202,11 @@ inside the owner while the product surface stays human-comprehensible.
 A public permission is admitted only when all of these land atomically:
 catalog row, one decision owner, manifest validation, owner selector, durable
 decision or one-shot proof, closed internal mapping, enforcement at every
-endpoint, SDK/Kit surface, just-in-time approval UI, settings/revoke UI, audit,
-negative tests and real positive evidence.
+endpoint, SDK/Kit surface, just-in-time approval UI, audit, negative tests and
+real positive evidence. Durable permissions additionally require settings and
+revoke UI. One-shot consent instead requires exact preview/selection display,
+expiry, single consumption, cancellation and replay rejection; it must not
+create a durable settings row.
 
 The product UX budget is one decision per recognizable intent and selected
 resource set. Install-time permission walls, method-level prompts, hidden

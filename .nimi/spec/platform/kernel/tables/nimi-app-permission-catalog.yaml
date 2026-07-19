@@ -240,14 +240,19 @@ public_permissions:
     admission_blocker: public selector, canonical permission record shape and endpoint enforcement matrix are not admitted
   - permission_id: realm.publish
     admission: reserved
-    authority_class: user_permission
+    authority_class: one_shot_consent
     decision_owner: realm
     manifest_allowed: false
-    decision_mode: operation_presence_or_bounded_lease
+    decision_mode: one_shot
     selector_owner: realm_publish_preview
     selector_shape: selected_destination_and_preview_digest
     user_semantics: publish explicitly previewed content to a selected Realm destination
-    admission_blocker: publish preview, presence and endpoint enforcement are not admitted
+    invariants:
+      - preview_digest_must_match_exact_published_content
+      - selected_destination_cannot_expand_after_consent
+      - handle_is_single_use_and_expires_before_replay
+      - no_durable_publish_grant_or_settings_row
+    admission_blocker: owner-controlled publish preview, non-forgeable single-use handle, exact digest/destination enforcement, expiry, audit and replay rejection are not admitted
   - permission_id: ai.background
     admission: reserved
     authority_class: user_permission

@@ -132,7 +132,9 @@ const authorityRules = [
     contract: '.nimi/spec/platform/kernel/app-permission-contract.md',
     evidence: '.nimi/spec/platform/kernel/tables/rule-evidence.rules-app-permission.yaml',
     clauses: [
-      ['ATOMIC_PERMISSION_ADMISSION_MISSING', /permission is admitted only when all of these land atomically:[\s\S]*catalog row[\s\S]*decision owner[\s\S]*endpoint[\s\S]*SDK\/Kit[\s\S]*approval UI[\s\S]*settings\/revoke UI[\s\S]*audit/iu],
+      ['ATOMIC_PERMISSION_ADMISSION_MISSING', /permission is admitted only when all of these land atomically:[\s\S]*catalog row[\s\S]*decision owner[\s\S]*endpoint[\s\S]*SDK\/Kit[\s\S]*approval UI[\s\S]*audit/iu],
+      ['DURABLE_PERMISSION_CONTROL_MISSING', /Durable permissions additionally require settings and[\s\S]*revoke UI/iu],
+      ['ONE_SHOT_LIFECYCLE_MISSING', /One-shot consent instead requires exact preview\/selection display,[\s\S]*expiry,[\s\S]*single consumption,[\s\S]*cancellation and replay rejection; it must not[\s\S]*create a durable settings row/iu],
       ['HUMAN_INTENT_UX_BUDGET_MISSING', /one decision per recognizable intent and selected[\s\S]*resource set/iu],
       ['INSTALL_METHOD_PERMISSION_WALL_DENIAL_MISSING', /Install-time permission walls, method-level prompts[\s\S]*are forbidden/iu],
       ['ZERO_PROMPT_APP_OWNED_PATH_MISSING', /normal app using only its own data must launch with zero Nimi[\s\S]*permission prompts/iu],
