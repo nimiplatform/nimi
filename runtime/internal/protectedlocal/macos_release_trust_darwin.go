@@ -4,8 +4,10 @@ package protectedlocal
 
 import (
 	"bytes"
+	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -24,11 +26,9 @@ import (
 
 const (
 	macOSReleaseRecordMaxBytes = 64 * 1024
-	macOSReleaseRecordSchema   = 1
+	macOSReleaseRecordSchema   = 2
 	macOSReleaseOSProfile      = "macos"
 	macOSReleaseProtocol       = "1"
-	macOSReleaseEnvironment    = "production"
-	macOSReleaseSignerPolicy   = "nimi-production-release-signing-policy"
 
 	macOSRuntimeExecutableRole   = "nimi_runtime_service"
 	macOSDesktopExecutableRole   = "nimi_desktop"
@@ -39,17 +39,11 @@ const (
 	macOSLocalHostRecordFile = "nimi_local_app_host.release-trust-record.json"
 )
 
-// These are stable release-root verification inputs injected by the guarded
-// production build. They do not vary per candidate and therefore do not create
-// a code-signing cycle. Empty/default values fail closed.
-var (
-	MacOSPlatformReleaseRootKeyID        string
-	MacOSPlatformReleaseRootPublicKeyB64 string
-)
-
 type macOSReleaseTrustRecord struct {
 	SchemaVersion                 uint64   `json:"schema_version"`
 	Environment                   string   `json:"environment"`
+	IdentityClass                 string   `json:"identity_class"`
+	SignatureAlgorithm            string   `json:"signature_algorithm"`
 	ExecutableRole                string   `json:"executable_role"`
 	TrustSetID                    string   `json:"trust_set_id"`
 	OSProfile                     string   `json:"os_profile"`
@@ -63,7 +57,10 @@ type macOSReleaseTrustRecord struct {
 	WindowsChainPolicyRef         string   `json:"windows_chain_policy_ref"`
 	MacOSDesignatedRequirement    string   `json:"macos_designated_requirement"`
 	MacOSTeamID                   string   `json:"macos_team_id"`
+	MacOSLeafSPKISHA256           string   `json:"macos_leaf_spki_sha256"`
 	MacOSCDHash                   string   `json:"macos_cdhash"`
+	MacOSHardenedRuntimeRequired  bool     `json:"macos_hardened_runtime_required"`
+	MacOSNotarizationRequired     bool     `json:"macos_notarization_required"`
 	LinuxManifestKeyID            string   `json:"linux_manifest_key_id"`
 	OSServicePrincipal            string   `json:"os_service_principal"`
 	ValidFrom                     string   `json:"valid_from"`
@@ -85,19 +82,19 @@ func macOSRoleRequirements(role string) (macOSRoleTrustRequirements, error) {
 	switch role {
 	case macOSRuntimeExecutableRole:
 		return macOSRoleTrustRequirements{
-			role: role, trustSetID: MacOSRuntimeProductionTrustSetID,
+			role: role, trustSetID: MacOSRuntimeTrustSetID,
 			signingIdentifier: MacOSRuntimeSigningIdentifier,
 			servicePrincipal:  MacOSRuntimeAccountName, recordFile: macOSRuntimeRecordFile,
 		}, nil
 	case macOSDesktopExecutableRole:
 		return macOSRoleTrustRequirements{
-			role: role, trustSetID: MacOSDesktopProductionTrustSetID,
+			role: role, trustSetID: MacOSDesktopTrustSetID,
 			signingIdentifier: MacOSDesktopSigningIdentifier,
 			servicePrincipal:  "active_console_user", recordFile: macOSDesktopRecordFile,
 		}, nil
 	case macOSLocalHostExecutableRole:
 		return macOSRoleTrustRequirements{
-			role: role, trustSetID: MacOSLocalDevelopmentTrustSetID,
+			role: role, trustSetID: MacOSLocalAppHostTrustSet,
 			signingIdentifier: MacOSLocalAppHostIdentifier,
 			servicePrincipal:  "verified_desktop_supervised_active_console_user",
 			recordFile:        macOSLocalHostRecordFile,
@@ -128,9 +125,13 @@ func loadMacOSCodePolicy(role string) (macOSCodePolicy, error) {
 		}
 	}
 	if err := verifyMacOSOuterBundleSeal(
+		MacOSDesktopApplicationPath,
 		desktopRecord.MacOSDesignatedRequirement,
 		desktopRecord.MacOSTeamID,
+		desktopRecord.MacOSLeafSPKISHA256,
 		MacOSDesktopSigningIdentifier,
+		macOSProfileRequiresTrustedAnchor,
+		macOSProfileRequiresNotarization,
 	); err != nil {
 		return macOSCodePolicy{}, err
 	}
@@ -143,6 +144,7 @@ func loadMacOSCodePolicy(role string) (macOSCodePolicy, error) {
 	return macOSCodePolicy{
 		executableRole:           requirements.role,
 		teamID:                   record.MacOSTeamID,
+		leafSPKISHA256:           record.MacOSLeafSPKISHA256,
 		signingIdentifier:        requirements.signingIdentifier,
 		designatedRequirement:    record.MacOSDesignatedRequirement,
 		releaseCDHash:            record.MacOSCDHash,
@@ -168,65 +170,122 @@ func readFixedMacOSReleaseRecord(path string) ([]byte, error) {
 	if cleaned != path || !strings.HasPrefix(cleaned, MacOSReleaseTrustRecordRoot+string(filepath.Separator)) {
 		return nil, fmt.Errorf("macOS release trust record path is not fixed")
 	}
-	current := "/Library"
-	relative, err := filepath.Rel(current, cleaned)
-	if err != nil || strings.HasPrefix(relative, "..") {
+	relative, err := filepath.Rel("/", cleaned)
+	if err != nil || relative == "." || strings.HasPrefix(relative, "..") {
 		return nil, fmt.Errorf("macOS release trust record escapes the installer trust root")
 	}
 	components := strings.Split(relative, string(filepath.Separator))
-	for index, component := range components {
-		current = filepath.Join(current, component)
-		info, err := os.Lstat(current)
-		if err != nil || info.Mode()&os.ModeSymlink != 0 {
-			return nil, fmt.Errorf("macOS release trust record path contains a missing or symlinked component")
-		}
-		stat, ok := info.Sys().(*unix.Stat_t)
-		last := index == len(components)-1
-		if !ok || stat.Uid != 0 || stat.Gid != 0 ||
-			(!last && (!info.IsDir() || info.Mode().Perm() != 0o755 || stat.Nlink < 2)) ||
-			(last && (!info.Mode().IsRegular() || info.Mode().Perm() != 0o644 || stat.Nlink != 1)) {
-			return nil, fmt.Errorf("macOS release trust record path owner, mode, kind, or link count is invalid")
-		}
-	}
-	fd, err := unix.Open(cleaned, unix.O_RDONLY|unix.O_CLOEXEC|unix.O_NOFOLLOW, 0)
+	parentFD, err := unix.Open("/", unix.O_RDONLY|unix.O_CLOEXEC|unix.O_DIRECTORY, 0)
 	if err != nil {
-		return nil, fmt.Errorf("open macOS release trust record: %w", err)
+		return nil, fmt.Errorf("open macOS release trust filesystem root: %w", err)
 	}
-	file := os.NewFile(uintptr(fd), cleaned)
+	defer func() {
+		if parentFD >= 0 {
+			_ = unix.Close(parentFD)
+		}
+	}()
+	var rootMetadata unix.Stat_t
+	if err := unix.Fstat(parentFD, &rootMetadata); err != nil ||
+		rootMetadata.Mode&unix.S_IFMT != unix.S_IFDIR || rootMetadata.Uid != 0 ||
+		rootMetadata.Mode&0o022 != 0 || rootMetadata.Nlink == 0 {
+		return nil, fmt.Errorf("macOS release trust filesystem root is not a stable root-owned nonwritable directory")
+	}
+	current := ""
+	var recordStat unix.Stat_t
+	for index, component := range components {
+		last := index == len(components)-1
+		flags := macOSReleaseRecordOpenFlags(last)
+		openedFD, openErr := unix.Openat(parentFD, component, flags, 0)
+		if openErr != nil {
+			return nil, fmt.Errorf("open macOS release trust record component %s: %w", filepath.Join("/", current, component), openErr)
+		}
+		var metadata unix.Stat_t
+		if statErr := unix.Fstat(openedFD, &metadata); statErr != nil {
+			_ = unix.Close(openedFD)
+			return nil, fmt.Errorf("inspect macOS release trust record component %s: %w", filepath.Join("/", current, component), statErr)
+		}
+		current = filepath.Join(current, component)
+		componentPath := filepath.Join("/", current)
+		if validationErr := validateMacOSReleaseRecordPathComponent(componentPath, metadata, last); validationErr != nil {
+			_ = unix.Close(openedFD)
+			return nil, validationErr
+		}
+		_ = unix.Close(parentFD)
+		parentFD = openedFD
+		if last {
+			recordStat = metadata
+		}
+	}
+	file := os.NewFile(uintptr(parentFD), cleaned)
 	if file == nil {
-		_ = unix.Close(fd)
+		_ = unix.Close(parentFD)
+		parentFD = -1
 		return nil, fmt.Errorf("adopt macOS release trust record descriptor")
 	}
+	parentFD = -1
 	defer func() { _ = file.Close() }()
-	info, err := file.Stat()
-	stat, ok := infoSys(info)
-	if err != nil || info == nil || !info.Mode().IsRegular() || !ok || stat.Uid != 0 || stat.Gid != 0 ||
-		info.Mode().Perm() != 0o644 || stat.Nlink != 1 || info.Size() <= 0 || info.Size() > macOSReleaseRecordMaxBytes {
+	if recordStat.Size <= 0 || recordStat.Size > macOSReleaseRecordMaxBytes {
 		return nil, fmt.Errorf("macOS release trust record vnode is invalid")
 	}
 	encoded, err := io.ReadAll(io.LimitReader(file, macOSReleaseRecordMaxBytes+1))
 	if err != nil || len(encoded) == 0 || len(encoded) > macOSReleaseRecordMaxBytes {
 		return nil, fmt.Errorf("read bounded macOS release trust record")
 	}
+	var after unix.Stat_t
+	if err := unix.Fstat(int(file.Fd()), &after); err != nil ||
+		after.Dev != recordStat.Dev || after.Ino != recordStat.Ino ||
+		after.Mode != recordStat.Mode || after.Uid != recordStat.Uid ||
+		after.Gid != recordStat.Gid || after.Nlink != recordStat.Nlink ||
+		after.Size != recordStat.Size || after.Mtim != recordStat.Mtim ||
+		after.Ctim != recordStat.Ctim || int64(len(encoded)) != recordStat.Size {
+		return nil, fmt.Errorf("macOS release trust record vnode changed while being read")
+	}
 	return encoded, nil
 }
 
-func infoSys(info os.FileInfo) (*unix.Stat_t, bool) {
-	if info == nil {
-		return nil, false
+func macOSReleaseRecordOpenFlags(finalRecord bool) int {
+	flags := unix.O_RDONLY | unix.O_CLOEXEC | unix.O_NOFOLLOW
+	if finalRecord {
+		return flags | unix.O_NONBLOCK
 	}
-	stat, ok := info.Sys().(*unix.Stat_t)
-	return stat, ok
+	return flags | unix.O_DIRECTORY
+}
+
+func validateMacOSReleaseRecordPathComponent(path string, metadata unix.Stat_t, finalRecord bool) error {
+	if finalRecord {
+		if metadata.Uid != 0 || metadata.Gid != 0 || metadata.Mode&unix.S_IFMT != unix.S_IFREG ||
+			metadata.Mode&0o777 != 0o644 || metadata.Nlink != 1 {
+			return fmt.Errorf("macOS release trust record path component %s violates the exact root:wheel 0644 single-link record policy", path)
+		}
+		return nil
+	}
+	if metadata.Mode&unix.S_IFMT != unix.S_IFDIR || metadata.Uid != 0 || metadata.Nlink == 0 {
+		return fmt.Errorf("macOS release trust record path component %s is not a root-owned stable directory", path)
+	}
+	if path == "/Library" || path == "/Library/Application Support" {
+		if metadata.Mode&0o022 != 0 {
+			return fmt.Errorf("macOS release trust record OS-owned ancestor %s is group- or world-writable", path)
+		}
+		return nil
+	}
+	if path == "/Library/Application Support/Nimi" || strings.HasPrefix(path, "/Library/Application Support/Nimi/") {
+		if metadata.Gid != 0 || metadata.Mode&0o777 != 0o755 {
+			return fmt.Errorf("macOS release trust record Nimi-owned directory %s is not exact root:wheel 0755", path)
+		}
+		return nil
+	}
+	return fmt.Errorf("macOS release trust record path component %s is outside the admitted ancestor classes", path)
 }
 
 func verifyMacOSReleaseTrustRecord(encoded []byte, requirements macOSRoleTrustRequirements, now time.Time) (macOSReleaseTrustRecord, error) {
-	rootKeyID := strings.TrimSpace(MacOSPlatformReleaseRootKeyID)
-	rootKeyEncoded := strings.TrimSpace(MacOSPlatformReleaseRootPublicKeyB64)
+	embeddedRootKeyID, embeddedRootKey := macOSReleaseRootInputs()
+	rootKeyID := strings.TrimSpace(embeddedRootKeyID)
+	rootKeyEncoded := strings.TrimSpace(embeddedRootKey)
 	if !validMacOSReleaseText(rootKeyID, 128) || rootKeyEncoded == "" {
 		return macOSReleaseTrustRecord{}, fmt.Errorf("macOS Platform release root is not embedded")
 	}
 	rootKey, err := base64.RawURLEncoding.DecodeString(rootKeyEncoded)
-	if err != nil || len(rootKey) != ed25519.PublicKeySize {
+	if err != nil || len(rootKey) == 0 {
 		return macOSReleaseTrustRecord{}, fmt.Errorf("macOS Platform release root is invalid")
 	}
 
@@ -259,13 +318,34 @@ func verifyMacOSReleaseTrustRecord(encoded []byte, requirements macOSRoleTrustRe
 		return macOSReleaseTrustRecord{}, fmt.Errorf("canonicalize macOS release trust payload: %w", err)
 	}
 	signature, err := base64.RawURLEncoding.DecodeString(record.Signature)
-	if err != nil || len(signature) != ed25519.SignatureSize || !ed25519.Verify(ed25519.PublicKey(rootKey), payload, signature) {
+	if err != nil || !verifyMacOSReleaseRecordSignature(rootKey, payload, signature) {
 		return macOSReleaseTrustRecord{}, fmt.Errorf("macOS release trust record signature is invalid")
 	}
 	if err := validateMacOSReleaseTrustRecord(record, requirements, rootKeyID, now); err != nil {
 		return macOSReleaseTrustRecord{}, err
 	}
 	return record, nil
+}
+
+func verifyMacOSReleaseRecordSignature(rootKey, payload, signature []byte) bool {
+	switch macOSReleaseSignatureAlgorithm {
+	case "ed25519":
+		return len(rootKey) == ed25519.PublicKeySize && len(signature) == ed25519.SignatureSize &&
+			ed25519.Verify(ed25519.PublicKey(rootKey), payload, signature)
+	case "ecdsa_p256_sha256":
+		public, err := x509.ParsePKIXPublicKey(rootKey)
+		if err != nil {
+			return false
+		}
+		ecdsaPublic, ok := public.(*ecdsa.PublicKey)
+		if !ok || ecdsaPublic.Curve.Params().Name != "P-256" {
+			return false
+		}
+		digest := sha256.Sum256(payload)
+		return ecdsa.VerifyASN1(ecdsaPublic, digest[:], signature)
+	default:
+		return false
+	}
 }
 
 func marshalMacOSCanonicalJSON(value any) ([]byte, error) {
@@ -285,13 +365,18 @@ func marshalMacOSCanonicalJSON(value any) ([]byte, error) {
 func validateMacOSReleaseTrustRecord(record macOSReleaseTrustRecord, requirements macOSRoleTrustRequirements, rootKeyID string, now time.Time) error {
 	if record.SchemaVersion != macOSReleaseRecordSchema ||
 		record.Environment != macOSReleaseEnvironment || record.ExecutableRole != requirements.role ||
+		record.IdentityClass != macOSReleaseIdentityClass ||
+		record.SignatureAlgorithm != macOSReleaseSignatureAlgorithm ||
 		record.TrustSetID != requirements.trustSetID || record.OSProfile != macOSReleaseOSProfile ||
 		record.ProtectedLocalProtocolVersion != macOSReleaseProtocol ||
 		record.SignerPolicyID != macOSReleaseSignerPolicy || record.RootKeyID != rootKeyID ||
 		record.OSServicePrincipal != requirements.servicePrincipal || record.Generation == 0 ||
 		record.WindowsLeafSPKISHA256 != "" || record.WindowsChainPolicyRef != "" ||
 		record.LinuxManifestKeyID != "" || !validMacOSReleaseText(record.ReleaseID, 128) ||
-		!validMacOSReleaseText(record.BuildID, 128) || !validMacOSTeamID(record.MacOSTeamID) ||
+		!validMacOSReleaseText(record.BuildID, 128) || !validMacOSProfileTeamID(record.MacOSTeamID) ||
+		!validMacOSProfileLeafSPKI(record.MacOSLeafSPKISHA256) ||
+		record.MacOSHardenedRuntimeRequired != true ||
+		record.MacOSNotarizationRequired != macOSProfileRequiresNotarization ||
 		!validMacOSRequirement(record.MacOSDesignatedRequirement) || !validMacOSCDHash(record.MacOSCDHash) ||
 		!validLowerHex(record.ArtifactSHA256, sha256.Size*2) {
 		return fmt.Errorf("macOS release trust record fields do not match the fixed role policy")

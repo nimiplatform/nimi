@@ -10,6 +10,7 @@ import {
 } from '../../../scripts/lib/windows-dev-signing.mjs';
 import {
   resolveDesktopDevObservationArguments,
+  resolveMacOSDesktopAcceptanceEnvironment,
   resolvePersistentDesktopDevProfile,
   resolveSignedDesktopDevCarrier,
 } from './lib/electron-dev-carrier.mjs';
@@ -62,33 +63,92 @@ for (const signal of SIGNAL_EXIT_CODES.keys()) {
   });
 }
 
-try {
-  ensureSdkDistForDesktopDev();
-  const signingIdentity = requireWindowsDevSigningIdentity({ cwd: workspaceRoot });
-  requireWindowsDevSignedFiles([electronBin], signingIdentity.certificateSha256, { cwd: workspaceRoot });
-  mkdirSync(standardDataRoot, { recursive: true });
-  spawnRenderer();
-  await waitForUrl(rendererUrl, 45_000);
-  const electron = spawnTracked(electronBin, [
-    ...resolveDesktopDevObservationArguments(),
-    `--user-data-dir=${profileRoot}`,
-    'dist-electron/main.js',
-  ], {
-    stdio: 'inherit',
-    env: {
-      ...process.env,
-      NIMI_DESKTOP_ELECTRON_RENDERER_URL: rendererUrl,
-      NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT: standardDataRoot,
-      NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: standardDataRoot,
-    },
-  });
-  const exitCode = await waitForExit(electron);
-  await requestAllChildrenShutdown('SIGTERM');
-  process.exit(exitCode ?? 0);
-} catch (error) {
-  await requestAllChildrenShutdown('SIGTERM');
-  console.error(error instanceof Error ? error.message : String(error || 'Desktop Electron dev failed'));
-  process.exit(1);
+if (process.platform === 'darwin') {
+  await runMacOSDesktopDev();
+} else {
+  await runWindowsDesktopDev();
+}
+
+async function runWindowsDesktopDev() {
+  try {
+    ensureSdkDistForDesktopDev();
+    const signingIdentity = requireWindowsDevSigningIdentity({ cwd: workspaceRoot });
+    requireWindowsDevSignedFiles([electronBin], signingIdentity.certificateSha256, { cwd: workspaceRoot });
+    mkdirSync(standardDataRoot, { recursive: true });
+    spawnRenderer();
+    await waitForUrl(rendererUrl, 45_000);
+    const electron = spawnTracked(electronBin, [
+      ...resolveDesktopDevObservationArguments(),
+      `--user-data-dir=${profileRoot}`,
+      'dist-electron/main.js',
+    ], {
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        NIMI_DESKTOP_ELECTRON_RENDERER_URL: rendererUrl,
+        NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT: standardDataRoot,
+        NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: standardDataRoot,
+      },
+    });
+    const exitCode = await waitForExit(electron);
+    await requestAllChildrenShutdown('SIGTERM');
+    process.exit(exitCode ?? 0);
+  } catch (error) {
+    await requestAllChildrenShutdown('SIGTERM');
+    console.error(error instanceof Error ? error.message : String(error || 'Desktop Electron dev failed'));
+    process.exit(1);
+  }
+}
+
+async function runMacOSDesktopDev() {
+  try {
+    ensureSdkDistForDesktopDev();
+    const electronBin = resolveSignedDesktopDevCarrier({
+      platform: process.platform,
+      architecture: process.arch,
+      electronVersion,
+      workspaceRoot,
+      existsSync,
+    });
+    const macOSProfileRoot = path.join(workspaceRoot, '.nimi', 'local', 'dev-profiles', 'macos-desktop');
+    mkdirSync(macOSProfileRoot, { recursive: true });
+    const acceptanceEnvironment = resolveMacOSDesktopAcceptanceEnvironment({
+      env: process.env,
+      workspaceRoot,
+    });
+    const desktopUserDataRoot = acceptanceEnvironment.NIMI_MACOS_DEV_ACCEPTANCE_DESKTOP_USER_DATA_ROOT
+      || macOSProfileRoot;
+    spawnRenderer();
+    await waitForUrl('http://127.0.0.1:1420', 45_000);
+    const electron = spawnTracked(electronBin, [
+      ...resolveDesktopDevObservationArguments(),
+      `--user-data-dir=${desktopUserDataRoot}`,
+    ], {
+      stdio: 'inherit',
+      env: {
+        HOME: process.env.HOME,
+        LANG: process.env.LANG || 'en_US.UTF-8',
+        PATH: '/usr/bin:/bin:/usr/sbin:/sbin',
+        TMPDIR: process.env.TMPDIR || '/private/tmp',
+        ...acceptanceEnvironment,
+      },
+    });
+    const exitCode = await waitForExit(electron);
+    await requestAllChildrenShutdown('SIGTERM');
+    process.exit(exitCode ?? 0);
+  } catch (error) {
+    await requestAllChildrenShutdown('SIGTERM');
+    const reasonCode = error && typeof error === 'object' && 'reasonCode' in error
+      ? String(error.reasonCode)
+      : 'desktop-dev-launch-failed';
+    process.stderr.write(`${JSON.stringify({
+      status: 'failed',
+      reasonCode,
+      actionHint: error && typeof error === 'object' && 'actionHint' in error ? String(error.actionHint) : 'inspect_desktop_dev_launch',
+      message: error instanceof Error ? error.message : String(error || 'Desktop Electron dev failed'),
+    })}\n`);
+    process.exit(1);
+  }
 }
 
 function quoteCmdArg(value) {

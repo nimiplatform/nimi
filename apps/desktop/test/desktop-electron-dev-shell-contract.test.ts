@@ -17,7 +17,7 @@ function readIfExists(filePath: string): string {
 test('desktop package exposes an Electron dev shell entrypoint', () => {
   assert.equal(
     packageJson.scripts?.['dev:electron'],
-    'corepack pnpm run build:electron && node scripts/run-electron-dev.mjs',
+    'node scripts/run-electron-dev.mjs',
   );
   assert.equal(
     packageJson.scripts?.['build:electron'],

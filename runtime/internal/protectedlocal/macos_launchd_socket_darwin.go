@@ -140,7 +140,8 @@ func parentInfoSys(info os.FileInfo) (*syscall.Stat_t, bool) {
 
 func validateMacOSSocketPathAncestors(parent string) error {
 	cleaned := filepath.Clean(strings.TrimSpace(parent))
-	if cleaned != "/private/var/run/nimi" || !filepath.IsAbs(cleaned) {
+	expected := filepath.Dir(MacOSDesktopSocketPath)
+	if filepath.Dir(MacOSLocalAppSocketPath) != expected || cleaned != expected || !filepath.IsAbs(cleaned) {
 		return fail(ReasonProtectedLocalTransportUnsupported, false, "repair_runtime_service", fmt.Errorf("launchd socket directory is not the fixed canonical path"))
 	}
 	current := string(filepath.Separator)

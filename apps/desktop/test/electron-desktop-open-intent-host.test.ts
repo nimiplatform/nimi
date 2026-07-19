@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rm, symlink } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -23,7 +23,7 @@ const envelope: NimiDesktopOpenIntentEnvelope = {
 };
 
 test('Electron Desktop Open host enforces auth/readiness and emits an exact admitted envelope', async () => {
-  const home = await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-desktop-open-'));
+  const home = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-desktop-open-')));
   const descriptorPath = path.join(
     home,
     '.nimi',
@@ -120,6 +120,28 @@ test('Electron Desktop Open host enforces auth/readiness and emits an exact admi
     await host.shutdown();
     await assert.rejects(readFile(descriptorPath, 'utf8'), { code: 'ENOENT' });
     await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('Electron Desktop Open host rejects a non-canonical symlinked home ancestry', {
+  skip: process.platform !== 'darwin',
+}, async () => {
+  const root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-desktop-open-symlink-')));
+  const canonicalHome = path.join(root, 'canonical-home');
+  const linkedHome = path.join(root, 'linked-home');
+  try {
+    await mkdir(canonicalHome, { mode: 0o700 });
+    await symlink(canonicalHome, linkedHome, 'dir');
+    await assert.rejects(
+      createDesktopElectronOpenIntentHost({
+        homeDirectory: linkedHome,
+        focusMainWindow: async () => undefined,
+        emitIntent: () => undefined,
+      }),
+      /desktop-open-presence-parent-must-not-be-symlink/u,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
   }
 });
 

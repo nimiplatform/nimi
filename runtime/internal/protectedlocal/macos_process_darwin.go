@@ -319,7 +319,7 @@ func (verifier macOSLocalDevelopmentProcessVerifier) VerifyLocalDevelopmentProce
 		return ProcessTuple{}, nil, fmt.Errorf("verified Desktop connection is required")
 	}
 	desktop, ok := connection.ClientProcess()
-	if !ok || desktop.OS != OSMacOS || desktop.ExecutableTrustSetID != MacOSDesktopProductionTrustSetID {
+	if !ok || desktop.OS != OSMacOS || desktop.ExecutableTrustSetID != MacOSDesktopTrustSetID {
 		return ProcessTuple{}, nil, fmt.Errorf("verified macOS Desktop parent is required")
 	}
 	if policy.SupervisorProcess != desktop {
@@ -371,7 +371,7 @@ func verifyConnectedMacOSDesktop(audit macOSAuditIdentity) (ProcessTuple, Deskto
 }
 
 func verifyConnectedMacOSLocalApp(audit macOSAuditIdentity, expected ProcessTuple, desktopPID uint32) (ProcessTuple, DesktopProcessLiveness, error) {
-	if expected.OS != OSMacOS || expected.PID != audit.pid || expected.ExecutableTrustSetID != MacOSLocalDevelopmentTrustSetID {
+	if expected.OS != OSMacOS || expected.PID != audit.pid || expected.ExecutableTrustSetID != MacOSLocalAppHostTrustSet {
 		return ProcessTuple{}, nil, fmt.Errorf("bound macOS local-app process is required")
 	}
 	snapshot, err := inspectMacOSProcess(audit.pid)

@@ -1,4 +1,4 @@
-version: 2
+version: 3
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_protected_local_os_profiles
@@ -20,6 +20,7 @@ platform_admission:
   windows: admitted_named_pipe_and_process_verification
   linux: requirements_only_fail_closed_pending_native_admission
   macos: requirements_only_fail_closed_pending_native_admission
+  macos_local_development: local_development_non_product_admitted
   unadmitted_platform_disposition: fail_closed
   forbidden_fallbacks: [localhost_grpc, same_user_daemon, compile_only_carrier_success]
 profile_schema:
@@ -102,6 +103,34 @@ profiles:
     executable_trust_profile_ref: .nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml#same-os
     service_principal_profile_ref: protected-local-runtime-principal-profiles.yaml#same-os
     local_os_user_anchor_derivation: verified_kernel_peer_euid_and_audit_session
+    source_rule: K-PLOCAL-003
+non_product_local_development_profiles:
+  - os: macos
+    profile_id: macos_local_development_v1
+    admission: local_development_non_product_admitted
+    product_admission_promotion: forbidden
+    compile_time_profile_only: true
+    production_verifier_contains_profile_root: false
+    service_bootstrap:
+      active_identity_source: kernel_peer_credential_euid_and_audit_session
+      user_token_preopen: forbidden
+      endpoint_acl_subject: root_owned_launchd_socket_connect_eligibility_plus_runtime_exact_active_euid_and_audit_session_admission
+      mismatch_disposition: reject_close_and_reopen
+    endpoint_kind: filesystem_unix_domain_socket
+    endpoint_ownership: explicit_admin_installed_root_owned_nonwritable_/private/var/run/nimi-dev_directory_plus_launchd_socket_activation_names_DesktopControlDev_and_LocalAppHostDev_each_yielding_exactly_one_stream_descriptor_at_fixed_root_staff_0660_socket_vnode_no_symlink_preexisting_non_socket_app_created_listener_or_/var_alias
+    desktop_socket_path: /private/var/run/nimi-dev/runtime-desktop.sock
+    local_app_socket_path: /private/var/run/nimi-dev/runtime-local-app.sock
+    desktop_socket_activation_name: DesktopControlDev
+    local_app_socket_activation_name: LocalAppHostDev
+    client_peer_verification: LOCAL_PEERTOKEN_and_LOCAL_PEERPID_euid_ruid_auid_audit_session_pid_pidversion_dynamic_SecCode_exact_local_CA_designated_requirement_identifier_leaf_SPKI_cdhash_hardened_runtime_canonical_same_open_vnode_digest_strict_outer_bundle_seal_and_active_console_session
+    server_peer_verification: LOCAL_PEERTOKEN_and_LOCAL_PEERPID_stable_ai.nimi.runtime.dev_launchd_system_job_pid_dedicated__nimiruntimedev_principal_dynamic_SecCode_exact_local_CA_designated_requirement_identifier_leaf_SPKI_cdhash_hardened_runtime_installed_same_open_vnode_digest_and_release_lineage
+    process_marker: prebind_proc_start_identity_then_connected_audit_token_pidversion_correlation
+    liveness_monitor: EVFILT_PROC_NOTE_EXIT_NOTE_EXEC_plus_EVFILT_VNODE_NOTE_DELETE_NOTE_RENAME_NOTE_WRITE_NOTE_REVOKE_and_active_console_session_revalidation
+    post_bind_exec_control: EVFILT_PROC_NOTE_EXEC_or_executable_vnode_mutation_immediate_connection_and_session_revocation
+    executable_trust_profile_ref: .nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml#macos-local-development
+    service_principal_profile_ref: protected-local-runtime-principal-profiles.yaml#macos-local-development
+    local_os_user_anchor_derivation: verified_kernel_peer_euid_and_audit_session
+    forbidden_fallbacks: [production_socket, localhost_grpc, same_user_daemon, foreground_runtime, environment_profile_selection, argv_profile_selection]
     source_rule: K-PLOCAL-003
 handshake_binding:
   fields:

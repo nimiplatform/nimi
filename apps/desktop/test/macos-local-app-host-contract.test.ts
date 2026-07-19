@@ -60,6 +60,67 @@ test('macOS local-app host rejects forbidden Chromium launch arguments on every 
   }), /local-app-host-launch-untrusted/u);
 });
 
+test('macOS local-development Host admits only the complete private loopback acceptance shape', {
+  skip: process.platform !== 'darwin',
+}, async () => {
+  const root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-local-app-host-acceptance-')));
+  try {
+    const project = path.join(root, 'project');
+    const mainEntry = path.join(project, 'dist-electron', 'main.js');
+    const executable = path.join(root, 'Nimi Local App Host Dev');
+    const home = path.join(root, 'home');
+    const acceptanceRoot = path.join(root, 'evidence');
+    const profile = path.join(acceptanceRoot, 'zhiyu-user-data');
+    await mkdir(path.dirname(mainEntry), { recursive: true, mode: 0o700 });
+    await mkdir(home, { recursive: true, mode: 0o700 });
+    await mkdir(profile, { recursive: true, mode: 0o700 });
+    await writeFile(mainEntry, 'export {};\n');
+    await writeFile(executable, 'fixture');
+    const argv = [
+      executable,
+      '--remote-debugging-address=127.0.0.1',
+      '--remote-debugging-port=19471',
+      `--user-data-dir=${profile}`,
+      `--nimi-acceptance-root=${acceptanceRoot}`,
+      `--nimi-local-app-main=${mainEntry}`,
+      '--nimi-dev-renderer-url=http://127.0.0.1:1472',
+    ];
+    const resolved = resolveMacOSLocalAppHostLaunch({
+      acceptanceBuild: true,
+      argv,
+      contractTestExpectedExecutable: executable,
+      executable,
+      homeDirectory: home,
+      uid: process.getuid?.() ?? 0,
+      workingDirectory: project,
+    });
+    assert.equal(resolved.observationPort, 19471);
+    assert.equal(resolved.userDataDirectory, profile);
+    assert.throws(() => resolveMacOSLocalAppHostLaunch({
+      acceptanceBuild: false,
+      argv,
+      contractTestExpectedExecutable: executable,
+      executable,
+      homeDirectory: home,
+      uid: process.getuid?.() ?? 0,
+      workingDirectory: project,
+    }), /local-app-host-launch-untrusted/u);
+    assert.throws(() => resolveMacOSLocalAppHostLaunch({
+      acceptanceBuild: true,
+      argv: argv.map((value) => value === '--remote-debugging-address=127.0.0.1'
+        ? '--remote-debugging-address=0.0.0.0'
+        : value),
+      contractTestExpectedExecutable: executable,
+      executable,
+      homeDirectory: home,
+      uid: process.getuid?.() ?? 0,
+      workingDirectory: project,
+    }), /local-app-host-launch-untrusted/u);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('macOS local-app host rejects copied main and replaced profile ancestry', {
   skip: process.platform !== 'darwin',
 }, async () => {

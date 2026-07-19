@@ -11,7 +11,7 @@ use crate::generated::runtime_auth_service_client::RuntimeAuthServiceClient;
 use crate::generated::OpenLocalAppSessionRequest;
 use crate::grpc_status::local_app_error_from_status;
 #[cfg(target_os = "macos")]
-use crate::macos_peer_trust::VerifiedMacOSRuntimePeer;
+use crate::macos_peer_trust::{MacOSRuntimePeerState, VerifiedMacOSRuntimePeer};
 #[cfg(target_os = "macos")]
 use crate::macos_service_control::open_verified_local_app_runtime_channel;
 #[cfg(target_os = "windows")]
@@ -50,8 +50,33 @@ type PlatformRuntimePeer = VerifiedMacOSRuntimePeer;
 
 struct PlatformLocalAppSession {
     channel: Channel,
-    _runtime_peer: PlatformRuntimePeer,
+    runtime_peer: PlatformRuntimePeer,
     _runtime_boot_epoch: [u8; 32],
+}
+
+impl PlatformLocalAppSession {
+    fn checked_channel(&self) -> Result<Channel, LocalAppOperationError> {
+        #[cfg(target_os = "macos")]
+        match self.runtime_peer.state() {
+            MacOSRuntimePeerState::Intact => {}
+            MacOSRuntimePeerState::Exited => {
+                return Err(LocalAppOperationError::new(
+                    LocalAppReasonCode::RuntimeRestarted,
+                    true,
+                ));
+            }
+            MacOSRuntimePeerState::Replaced => {
+                return Err(LocalAppOperationError::new(
+                    LocalAppReasonCode::ProcessReplaced,
+                    false,
+                ));
+            }
+            MacOSRuntimePeerState::Untrusted => return Err(untrusted()),
+        }
+        #[cfg(target_os = "windows")]
+        let _ = &self.runtime_peer;
+        Ok(self.channel.clone())
+    }
 }
 
 impl NimiLocalAppSession for PlatformLocalAppSession {
@@ -60,7 +85,8 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
     ) -> Pin<
         Box<dyn Future<Output = Result<LocalAppSessionStatus, LocalAppOperationError>> + Send + '_>,
     > {
-        Box::pin(async {
+        Box::pin(async move {
+            self.checked_channel()?;
             Ok(LocalAppSessionStatus {
                 state: LocalAppSessionState::Ready,
                 reason_code: LocalAppReasonCode::ActionExecuted,
@@ -79,10 +105,9 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
                 + '_,
         >,
     > {
-        Box::pin(permission::local_app_permission_status(
-            self.channel.clone(),
-            request,
-        ))
+        Box::pin(async move {
+            permission::local_app_permission_status(self.checked_channel()?, request).await
+        })
     }
 
     fn permission_request(
@@ -95,10 +120,9 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
                 + '_,
         >,
     > {
-        Box::pin(permission::request_local_app_permission(
-            self.channel.clone(),
-            request,
-        ))
+        Box::pin(async move {
+            permission::request_local_app_permission(self.checked_channel()?, request).await
+        })
     }
 
     fn storage_read_json(
@@ -111,10 +135,9 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
                 + '_,
         >,
     > {
-        Box::pin(storage::read_local_app_storage_json(
-            self.channel.clone(),
-            request,
-        ))
+        Box::pin(async move {
+            storage::read_local_app_storage_json(self.checked_channel()?, request).await
+        })
     }
 
     fn storage_write_json(
@@ -127,10 +150,9 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
                 + '_,
         >,
     > {
-        Box::pin(storage::write_local_app_storage_json(
-            self.channel.clone(),
-            request,
-        ))
+        Box::pin(async move {
+            storage::write_local_app_storage_json(self.checked_channel()?, request).await
+        })
     }
 
     fn storage_remove_json(
@@ -143,10 +165,9 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
                 + '_,
         >,
     > {
-        Box::pin(storage::remove_local_app_storage_json(
-            self.channel.clone(),
-            request,
-        ))
+        Box::pin(async move {
+            storage::remove_local_app_storage_json(self.checked_channel()?, request).await
+        })
     }
 }
 
@@ -205,7 +226,7 @@ async fn open_local_app_session() -> Result<Box<dyn NimiLocalAppSession>, LocalA
     }
     Ok(Box::new(PlatformLocalAppSession {
         channel,
-        _runtime_peer: runtime_peer,
+        runtime_peer,
         _runtime_boot_epoch: runtime_boot_epoch,
     }))
 }

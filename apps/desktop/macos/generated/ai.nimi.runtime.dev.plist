@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>ai.nimi.runtime.dev</string>
+  <key>ProgramArguments</key>
+  <array><string>/Library/Application Support/Nimi/RuntimeDev/active/bin/nimi-runtime</string><string>serve</string></array>
+  <key>UserName</key><string>_nimiruntimedev</string>
+  <key>GroupName</key><string>_nimiruntimedev</string>
+  <key>InitGroups</key><false/>
+  <key>Umask</key><integer>63</integer>
+  <key>ProcessType</key><string>Standard</string>
+  <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
+  <key>ThrottleInterval</key><integer>10</integer>
+  <key>ExitTimeOut</key><integer>20</integer>
+  <key>AbandonProcessGroup</key><false/>
+  <key>Sockets</key>
+  <dict>
+    <key>DesktopControlDev</key>
+    <dict><key>SockPathName</key><string>/private/var/run/nimi-dev/runtime-desktop.sock</string><key>SockPathOwner</key><integer>0</integer><key>SockPathGroup</key><integer>20</integer><key>SockPathMode</key><integer>432</integer><key>SockType</key><string>stream</string></dict>
+    <key>LocalAppHostDev</key>
+    <dict><key>SockPathName</key><string>/private/var/run/nimi-dev/runtime-local-app.sock</string><key>SockPathOwner</key><integer>0</integer><key>SockPathGroup</key><integer>20</integer><key>SockPathMode</key><integer>432</integer><key>SockType</key><string>stream</string></dict>
+  </dict>
+</dict>
+</plist>

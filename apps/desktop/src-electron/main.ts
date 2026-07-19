@@ -24,9 +24,14 @@ import {
   DESKTOP_OPEN_INTENT_EVENT,
   type DesktopElectronOpenIntentHost,
 } from './desktop-open-intent-host.js';
+import { assertMacOSDesktopAcceptanceProfile } from './macos-desktop-acceptance.js';
 
 const APP_ID = 'nimi.desktop';
 const ELECTRON_RUNTIME_EVENT_CHANNEL_PREFIX = 'nimi:runtime:event:';
+declare const __NIMI_MACOS_LOCAL_DEVELOPMENT_BUILD__: boolean;
+const MACOS_LOCAL_DEVELOPMENT_BUILD = typeof __NIMI_MACOS_LOCAL_DEVELOPMENT_BUILD__ !== 'undefined'
+  && __NIMI_MACOS_LOCAL_DEVELOPMENT_BUILD__;
+const MACOS_LOCAL_DEVELOPMENT_RENDERER_URL = 'http://127.0.0.1:1420';
 
 const currentFilePath = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFilePath);
@@ -35,9 +40,11 @@ const preloadPath = path.join(currentDir, 'preload.cjs');
 const rendererDistIndex = path.join(appRoot, 'dist', 'index.html');
 const rendererDistUrl = pathToFileURL(rendererDistIndex).toString();
 const nonReleaseShell = !app.isPackaged;
-const rendererUrl = nonReleaseShell
-  ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_RENDERER_URL)
-  : '';
+const rendererUrl = MACOS_LOCAL_DEVELOPMENT_BUILD
+  ? MACOS_LOCAL_DEVELOPMENT_RENDERER_URL
+  : nonReleaseShell
+    ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_RENDERER_URL)
+    : '';
 // Nimi Desktop has no public Runtime TCP endpoint. Kit uses this non-endpoint
 // label only in lifecycle/error projections; every admitted unary is carried
 // by the native protected Desktop control session.
@@ -74,7 +81,7 @@ protocol.registerSchemesAsPrivileged([
   },
 ]);
 
-app.setName('Nimi');
+app.setName(MACOS_LOCAL_DEVELOPMENT_BUILD ? 'Nimi Dev' : 'Nimi');
 configureDesktopElectronChromiumRuntime();
 
 void app.whenReady().then(async () => {
@@ -149,6 +156,13 @@ function desktopBootstrapFailureCode(error: unknown): string {
 
 function configureDesktopElectronChromiumRuntime(): void {
   app.commandLine.appendSwitch('disable-background-networking');
+  assertMacOSDesktopAcceptanceProfile({
+    platform: process.platform,
+    macOSLocalDevelopmentBuild: MACOS_LOCAL_DEVELOPMENT_BUILD,
+    commandLine: app.commandLine,
+    argv: process.argv,
+    env: process.env,
+  });
 }
 
 app.on('window-all-closed', () => {

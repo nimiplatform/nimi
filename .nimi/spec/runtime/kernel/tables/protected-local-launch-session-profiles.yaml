@@ -1,4 +1,4 @@
-version: 1
+version: 2
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_protected_local_launch_session_profiles
@@ -27,6 +27,7 @@ platform_admission:
   windows: admitted_fixed_service_child_carrier
   linux: requirements_only_fail_closed_pending_native_admission
   macos: requirements_only_fail_closed_pending_native_admission
+  macos_local_development: local_development_non_product_admitted
   unadmitted_platform_disposition: protected_carrier_required
 profile_schema:
   fields:
@@ -76,10 +77,32 @@ profiles:
     desktop_control_carrier: launchd_socket_activated_DesktopControl_filesystem_uds_at_/private/var/run/nimi/runtime-desktop.sock_with_kernel_peer_credentials
     local_app_bootstrap_carrier: launchd_socket_activated_LocalAppHost_uds_at_/private/var/run/nimi/runtime-local-app.sock_bound_to_pending_launch_audit_token_process
     local_app_host_carrier: same_verified_uds_connection_after_atomic_bootstrap_consumption
-    child_process_witness: Desktop_posix_spawn_START_SUSPENDED_retained_child_plus_Runtime_prebind_pid_start_identity_dynamic_SecCode_and_open_vnode_then_connected_LOCAL_PEERTOKEN_pidversion_dynamic_SecCode_and_vnode_recorrelation
+    child_process_witness: Desktop_posix_spawn_START_SUSPENDED_retained_child_plus_Runtime_prebind_pid_start_identity_dynamic_SecCode_and_open_vnode_then_connected_LOCAL_PEERTOKEN_pidversion_dynamic_SecCode_and_vnode_recorrelation # pragma: allowlist secret -- process-witness policy identifier, not credential material
     launch_session_equivalent: PrepareLocalAppLaunch_then_verified_launcher_start_then_BindLocalAppProcess_then_empty_OpenLocalAppSession_atomically_consumes_bootstrap_promotes_same_connection_and_inserts_private_session
     local_development_supervision: desktop_retains_exact_child_process_and_process_group_witness_uses_independently_signed_Nimi_Local_App_Host_and_rebinds_only_inside_current_authorized_supervisor_run
     verified_transport_profile_ref: protected-local-os-profiles.yaml#same-os
     service_principal_profile_ref: protected-local-runtime-principal-profiles.yaml#same-os
     executable_trust_profile_ref: .nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml#same-os
+    source_rule: K-PLOCAL-008
+non_product_local_development_profiles:
+  - os: macos
+    profile_id: macos_local_development_v1
+    admission: local_development_non_product_admitted
+    product_admission_promotion: forbidden
+    launcher_authority: verified_local_CA_signed_Nimi_Dev_Desktop_local_app_control_on_boot_scoped_desktop_session
+    desktop_control_carrier: launchd_socket_activated_DesktopControlDev_filesystem_uds_at_/private/var/run/nimi-dev/runtime-desktop.sock_with_kernel_peer_credentials
+    local_app_bootstrap_carrier: launchd_socket_activated_LocalAppHostDev_uds_at_/private/var/run/nimi-dev/runtime-local-app.sock_bound_to_pending_launch_audit_token_process
+    local_app_host_carrier: same_verified_uds_connection_after_atomic_bootstrap_consumption
+    child_process_witness: Desktop_posix_spawn_START_SUSPENDED_retained_child_plus_Runtime_prebind_pid_start_identity_dynamic_SecCode_exact_local_CA_leaf_SPKI_and_open_vnode_then_connected_LOCAL_PEERTOKEN_pidversion_dynamic_SecCode_and_vnode_recorrelation # pragma: allowlist secret -- public process-witness policy identifier, not credential material
+    launch_session_equivalent: PrepareLocalAppLaunch_then_verified_launcher_start_then_BindLocalAppProcess_then_empty_OpenLocalAppSession_atomically_consumes_bootstrap_promotes_same_connection_and_inserts_private_session
+    local_development_supervision: Desktop_retains_exact_child_process_and_process_group_witness_uses_independently_local_CA_signed_Nimi_Local_App_Host_Dev_and_rebinds_only_inside_current_authorized_supervisor_run
+    desktop_application_path: /Applications/Nimi Dev.app
+    desktop_executable_path: /Applications/Nimi Dev.app/Contents/MacOS/Nimi Dev
+    fixed_host_path: /Applications/Nimi Dev.app/Contents/Frameworks/Nimi Local App Host Dev.app/Contents/MacOS/Nimi Local App Host Dev
+    verified_transport_profile_ref: protected-local-os-profiles.yaml#macos-local-development
+    service_principal_profile_ref: protected-local-runtime-principal-profiles.yaml#macos-local-development
+    executable_trust_profile_ref: .nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml#macos-local-development
+    renderer_hmr: same_host_process_and_session_allowed
+    main_preload_or_native_change: signed_host_replacement_new_process_lease_and_session_required
+    runtime_restart: old_session_revoked_new_boot_epoch_and_lease_required_inside_same_live_supervisor_run
     source_rule: K-PLOCAL-008

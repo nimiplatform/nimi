@@ -13,10 +13,12 @@ path = "src/lib.rs"
 [features]
 default = []
 windows-e2e-fixture = []
+macos-local-development = []
 
 [dependencies]
 base64 = "0.22"
 ed25519-dalek = "2"
+p256 = { version = "0.13", features = ["ecdsa", "pkcs8"] }
 hyper-util = { version = "0.1", features = ["tokio"] }
 prost = "0.14"
 prost-types = "0.14"

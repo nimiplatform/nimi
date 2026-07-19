@@ -1,4 +1,4 @@
-version: 4
+version: 5
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_protected_local_lifecycle_operation_protocol
@@ -25,6 +25,7 @@ platform_admission:
   windows: admitted_fixed_service_child_carrier
   linux: requirements_only_fail_closed_pending_native_admission
   macos: requirements_only_fail_closed_pending_native_admission
+  macos_local_development: local_development_non_product_admitted
   immutable_package_positive: typed_unavailable_until_0p_or_p
   unadmitted_platform_disposition: fail_closed
   localhost_or_same_user_fallback: forbidden
@@ -91,6 +92,22 @@ replay_and_revocation:
   runtime_boot_epoch_change: invalidate
   desktop_supervisor_exit: invalidate_for_local_development
   process_replacement: new_lease_bind_and_session
+non_product_local_development:
+  profile_id: macos_local_development_v1
+  platform_profile_ref: protected-local-launch-session-profiles.yaml#macos-local-development
+  admission: local_development_non_product_admitted
+  product_admission_promotion: forbidden
+  exact_service_label: ai.nimi.runtime.dev
+  exact_runtime_path: /Library/Application Support/Nimi/RuntimeDev/active/bin/nimi-runtime
+  exact_desktop_path: /Applications/Nimi Dev.app/Contents/MacOS/Nimi Dev
+  exact_local_host_path: /Applications/Nimi Dev.app/Contents/Frameworks/Nimi Local App Host Dev.app/Contents/MacOS/Nimi Local App Host Dev
+  install_update_owner: explicit_root_owned_development_installer_transaction
+  candidate_activation: only_after_complete_role_record_signature_code_identity_vnode_digest_and_launchd_profile_verification
+  rollback: one_last_known_good_generation_without_release_generation_rebinding
+  persistent_state_survives_update: true
+  reset_requires_explicit_confirmation: true
+  uninstall_requires_explicit_confirmation_and_preserves_local_CA: true
+  production_paths_endpoints_custody_or_Realm: forbidden
 forbidden_surfaces:
   - workspace_scan_as_local_record
   - app_id_as_positive_local_identity

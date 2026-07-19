@@ -13,6 +13,7 @@ export const AUTHORITY_PATHS = Object.freeze({
   contract: '.nimi/spec/runtime/kernel/protected-local-session-contract.md',
   osProfiles: '.nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml',
   runtimePrincipals: '.nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml',
+  custodyProfiles: '.nimi/spec/runtime/kernel/tables/protected-local-custody-profiles.yaml',
   transport: '.nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml',
   launchSession: '.nimi/spec/runtime/kernel/tables/protected-local-launch-session-profiles.yaml',
   lifecycle: '.nimi/spec/runtime/kernel/tables/protected-local-lifecycle-intent-protocol.yaml',
@@ -101,6 +102,66 @@ function equalArray(actual, expected) {
   return Array.isArray(actual)
     && actual.length === expected.length
     && actual.every((value, index) => value === expected[index]);
+}
+
+function exactLegacyDeleteOnlyRepair(repair) {
+  if (!repair || typeof repair !== 'object' || Array.isArray(repair)) return false;
+  const classes = Array.isArray(repair.admitted_residue_classes) ? repair.admitted_residue_classes : [];
+  if (classes.length !== 2) return false;
+  const rows = rowsBy(classes, 'residue_class');
+  const normal = rows.get('macos_local_development_v4_failed_first_install_exact_principal');
+  const legacy = rows.get('macos_local_development_v2_failed_first_install_disabled_user');
+  const exactPositive = 'exact_current_name_uid_gid_password_hidden_home_shell_and_distinct_valid_user_group_GeneratedUID_required';
+  const exactGroup = 'exact_current_name_gid_GeneratedUID_and_no_explicit_membership_required';
+  const exactPOSIX = 'exact_current_name_uid_gid_home_shell_and_nonlogin_projection_required';
+  const exactMembership = 'exact_absence_of_service_name_user_GeneratedUID_and_dedicated_group_GeneratedUID_required';
+  const exactWriters = 'exact_absence_of_every_dsAttrTypeNative:_writers_prefix_attribute_required';
+  const deleteDisposition = 'delete_exact_whole_user_then_exact_group_prove_both_records_and_POSIX_projection_absent_then_current_carrier_creation_requires_fresh_distinct_user_and_group_GeneratedUIDs';
+  const otherAuthentication = [
+    'dsAttrTypeNative:ShadowHashData',
+    'dsAttrTypeStandard:PasswordPlus',
+    'dsAttrTypeStandard:AltSecurityIdentities',
+    'dsAttrTypeStandard:AuthCredential',
+    'dsAttrTypeStandard:AuthMethod',
+    'dsAttrTypeStandard:AuthenticationHint',
+    'dsAttrTypeStandard:KDCAuthKey',
+    'dsAttrTypeStandard:KerberosServices',
+    'dsAttrTypeStandard:KerberosRealm',
+    'dsAttrTypeNative:KerberosKeys',
+    'dsAttrTypeNative:HeimdalSRPKey',
+    'dsAttrTypeNative:SecureTokenVerifierHistory',
+    'dsAttrTypeNative:AutoGrantSecureToken',
+    'dsAttrTypeNative:LinkedIdentity',
+  ];
+  const exactCommon = (row) => row?.other_authentication_material_posture === 'absent_required'
+    && row?.positive_principal_fields === exactPositive
+    && row?.dedicated_group_projection === exactGroup
+    && row?.posix_projection === exactPOSIX
+    && row?.full_local_group_membership_projection === exactMembership
+    && row?.delegated_writer_projection === exactWriters
+    && row?.repair_disposition === deleteDisposition;
+  return normal?.disposition === 'delete_only_exact_current_principal_never_reuse_existing_GeneratedUIDs'
+    && normal?.source_principal_carrier_contract_version === 4
+    && normal?.source_helper_status === 'installed_signed_helper_reports_principal_carrier_contract_version_4'
+    && normal?.authentication_authority_posture === 'absent_required'
+    && exactCommon(normal)
+    && legacy?.disposition === 'delete_only_never_admit_or_normalize_as_current_principal'
+    && legacy?.source_principal_carrier_contract_version === 2
+    && legacy?.source_helper_status === 'installed_signed_helper_reports_principal_carrier_contract_version_2'
+    && legacy?.authentication_authority?.attribute === 'dsAttrTypeStandard:AuthenticationAuthority'
+    && legacy?.authentication_authority?.value_type === 'String'
+    && legacy?.authentication_authority?.exact_value_count === 1
+    && legacy?.authentication_authority?.exact_value === ';DisabledUser;'
+    && equalArray(legacy?.other_authentication_material_attributes, otherAuthentication)
+    && exactCommon(legacy)
+    && repair.normal_current_profile_disposition === 'carrier_4_requires_AuthenticationAuthority_absent_and_never_accepts_or_normalizes_any_legacy_residue_class'
+    && repair.source_helper_identity_stability === 'exact_source_helper_SHA256_and_CDHash_recorded_before_journal_creation_and_reverified_unchanged_before_each_phase_and_after_final_absence_proof'
+    && repair.journal_schema_version === 'nimi.macos-local-development-partial-install-repair/v2'
+    && equalArray(repair.journal_phases, ['prepared', 'artifacts-removed', 'user-removed', 'group-removed', 'principal-removed'])
+    && repair.journal_ownership === 'parent_repair_journal_directly_owns_artifact_user_group_deletion_and_must_not_delegate_to_or_recover_a_principal_transaction_journal'
+    && repair.journal_staging_recovery === 'fixed_single-use_staging_path_is_removed_only_inside_the_final-helper-mutation-lock_after_open-fd_regular_root-root_mode-0600-nlink-1-size-at-most-65536_and_same-device-inode-path_revalidation;_recovery_precedes_every_unknown-entry_or_phase-evaluation_gate_and_the_staging_path_is_never_semantic_authority'
+    && equalArray(repair.journal_authority_binding_required_fields, ['source_helper_sha256', 'source_helper_cdhash', 'source_principal_carrier_contract_version', 'residue_class', 'authentication_evidence_sha256', 'plan_digest', 'user_generated_uid', 'group_generated_uid', 'root_key_id', 'policy_digest'])
+    && repair.fresh_bootstrap_absence_receipt === 'fresh_exact_bootstrap_process_with_new_ODSession_must_prove_both_Directory_Services_records_and_POSIX_projection_absent_and_bind_the_parent_repair_transaction_source-helper_identity_residue-class_plan-and-policy';
 }
 
 function hasEvery(actual, required) {
@@ -308,18 +369,18 @@ function validateFixedService(bundle, issues) {
   if (
     acceptance?.service_name !== 'NimiRuntime'
     || acceptance?.service_principal !== 'same_production_local_system_and_restricted_service_sid'
-    || acceptance?.candidate_root_acl !== 'restricted_service_sid_only'
+    || acceptance?.development_state_lineage_root_acl !== 'restricted_service_sid_only'
     || acceptance?.account_partition !== 'verified_interactive_sid'
     || acceptance?.runtime_lifecycle_and_restart !== 'real_scm_service'
-    || acceptance?.parallel_isolation !== 'candidate_namespace_for_state_audit_and_child_pipes'
-    || acceptanceContract?.service_owned_candidate_root !== 'required'
+    || acceptance?.parallel_isolation !== 'development_state_lineage_namespace_for_state_audit_and_child_pipes'
+    || acceptanceContract?.service_owned_development_state_lineage_root !== 'required'
     || acceptanceContract?.environment_or_argv_root_selection !== 'forbidden'
     || acceptanceContract?.test_only_service_principal !== 'forbidden'
   ) {
     issues.push(issue(
       'SERVICE_ACCEPTANCE_ISOLATION_REQUIRED',
       AUTHORITY_PATHS.runtimePrincipals,
-      'Acceptance must exercise the real fixed service with a service-owned candidate root, SID partition, real restart, cleanup, and parallel namespace isolation.',
+      'Acceptance must exercise the real fixed service with a service-owned development state lineage root, SID partition, real restart, cleanup, and parallel namespace isolation.',
     ));
   }
 }
@@ -420,6 +481,7 @@ function validateTransport(bundle, issues) {
       || classBindings[transportClass]?.profile_bundle_ref !== 'verified_platform_transport'
     ))
     || methodBinding?.coverage !== 'every_methods_row'
+    || methodBinding?.declared_method_count !== matrix?.methods?.length
     || methodBinding?.selector_field !== 'allowed_transport_classes'
     || methodBinding?.resolver !== 'transport_class_bindings'
     || methodBinding?.protected_binding_description !== 'verified_platform_transport'
@@ -613,6 +675,191 @@ function validatePortableBoundary(bundle, issues) {
   }
 }
 
+function validateMacOSLocalDevelopmentProfile(bundle, issues) {
+  const osProfiles = parseYaml(bundle, AUTHORITY_PATHS.osProfiles, issues);
+  const principals = parseYaml(bundle, AUTHORITY_PATHS.runtimePrincipals, issues);
+  const custody = parseYaml(bundle, AUTHORITY_PATHS.custodyProfiles, issues);
+  const launch = parseYaml(bundle, AUTHORITY_PATHS.launchSession, issues);
+  const lifecycle = parseYaml(bundle, AUTHORITY_PATHS.lifecycle, issues);
+  const transport = parseYaml(bundle, AUTHORITY_PATHS.transport, issues);
+  const trust = parseYaml(bundle, AUTHORITY_PATHS.trust, issues);
+  const osDevelopment = rowsBy(osProfiles?.non_product_local_development_profiles, 'profile_id')
+    .get('macos_local_development_v1');
+  const principalDevelopment = rowsBy(principals?.non_product_local_development_profiles, 'profile_id')
+    .get('macos_local_development_v1');
+  const custodyDevelopment = rowsBy(custody?.non_product_local_development_profiles, 'profile_id')
+    .get('macos_local_development_v1');
+  const launchDevelopment = rowsBy(launch?.non_product_local_development_profiles, 'profile_id')
+    .get('macos_local_development_v1');
+  const signer = rowsBy(trust?.signer_policies, 'signer_policy_id')
+    .get('nimi-macos-local-development-signing-policy');
+  const trustSets = rowsBy(trust?.trust_sets, 'trust_set_id');
+  const developmentTrustRows = [
+    ['nimi-runtime-macos-local-development-v1', 'nimi_runtime_service'],
+    ['nimi-desktop-macos-local-development-v1', 'nimi_desktop'],
+    ['nimi-local-development-host-macos-local-development-v1', 'nimi_local_app_host'],
+  ];
+  const releaseSchema = trust?.release_trust_record_schema;
+  const releaseFields = releaseSchema?.fields;
+  const profileBundle = transport?.verified_platform_transport?.non_product_local_development_profile_bundle;
+  const supervisor = transport?.non_product_local_development_supervisor_consistency;
+  const invalid = (
+    osProfiles?.version !== 3
+    || osProfiles?.platform_admission?.macos !== 'requirements_only_fail_closed_pending_native_admission'
+    || osProfiles?.platform_admission?.macos_local_development !== 'local_development_non_product_admitted'
+    || osDevelopment?.admission !== 'local_development_non_product_admitted'
+    || osDevelopment?.product_admission_promotion !== 'forbidden'
+    || osDevelopment?.compile_time_profile_only !== true
+    || osDevelopment?.production_verifier_contains_profile_root !== false
+    || osDevelopment?.desktop_socket_path !== '/private/var/run/nimi-dev/runtime-desktop.sock'
+    || osDevelopment?.local_app_socket_path !== '/private/var/run/nimi-dev/runtime-local-app.sock'
+    || !String(osDevelopment?.client_peer_verification ?? '').includes('LOCAL_PEERTOKEN')
+    || !String(osDevelopment?.client_peer_verification ?? '').includes('leaf_SPKI')
+    || !hasEvery(osDevelopment?.forbidden_fallbacks, ['production_socket', 'localhost_grpc', 'same_user_daemon', 'foreground_runtime', 'environment_profile_selection', 'argv_profile_selection'])
+    || principals?.version !== 11
+    || principals?.platform_admission?.macos !== 'requirements_only_fail_closed_pending_native_admission'
+    || principals?.platform_admission?.macos_local_development !== 'local_development_non_product_admitted'
+    || principalDevelopment?.production_principal !== 'dedicated_non_login__nimiruntimedev_launchd_system_daemon_principal'
+    || principalDevelopment?.service_manager !== 'launchd_system_domain'
+    || principalDevelopment?.principal_carrier_contract_version !== 4
+    || principalDevelopment?.principal_constraints?.account_name !== '_nimiruntimedev'
+    || principalDevelopment?.principal_constraints?.account_uid_gid_minimum !== 450
+    || principalDevelopment?.principal_constraints?.account_uid_gid_maximum !== 499
+    || principalDevelopment?.principal_constraints?.login_shell !== '/usr/bin/false'
+    || principalDevelopment?.principal_constraints?.home_directory !== '/var/empty'
+    || principalDevelopment?.principal_constraints?.password_authentication !== 'disabled'
+    || principalDevelopment?.principal_constraints?.password_record_value !== '*'
+    || principalDevelopment?.principal_constraints?.authentication_authority_posture !== 'absent_required'
+    || !equalArray(principalDevelopment?.principal_constraints?.forbidden_authentication_material_attributes, [
+      'dsAttrTypeStandard:AuthenticationAuthority',
+      'dsAttrTypeNative:ShadowHashData',
+      'dsAttrTypeStandard:PasswordPlus',
+      'dsAttrTypeStandard:AltSecurityIdentities',
+      'dsAttrTypeStandard:AuthCredential',
+      'dsAttrTypeStandard:AuthMethod',
+      'dsAttrTypeStandard:AuthenticationHint',
+      'dsAttrTypeStandard:KDCAuthKey',
+      'dsAttrTypeStandard:KerberosServices',
+      'dsAttrTypeStandard:KerberosRealm',
+      'dsAttrTypeNative:KerberosKeys',
+      'dsAttrTypeNative:HeimdalSRPKey',
+      'dsAttrTypeNative:SecureTokenVerifierHistory',
+      'dsAttrTypeNative:AutoGrantSecureToken',
+      'dsAttrTypeNative:LinkedIdentity',
+    ])
+    || principalDevelopment?.principal_constraints?.forbidden_delegated_writer_attribute_prefix !== 'dsAttrTypeNative:_writers'
+    || !equalArray(principalDevelopment?.principal_constraints?.forbidden_explicit_group_membership_attributes, ['dsAttrTypeStandard:GroupMembership', 'dsAttrTypeStandard:GroupMembers', 'dsAttrTypeStandard:NestedGroups'])
+    || principalDevelopment?.principal_constraints?.negative_attribute_value_policy !== 'raw_Any_value_count_nonzero_is_present_and_rejected;_binary_or_malformed_values_must_never_be_coerced_to_empty'
+    || principalDevelopment?.principal_constraints?.directory_service_hidden !== true
+    || principalDevelopment?.principal_constraints?.directory_service_hidden_record_value !== 'YES'
+    || principalDevelopment?.principal_constraints?.generated_uid !== 'distinct_valid_UUID_required_for_user_and_group'
+    || principalDevelopment?.principal_constraints?.directory_service_api !== 'public_OpenDirectory_framework_ODNode_createRecord_only'
+    || principalDevelopment?.principal_constraints?.directory_service_commit_policy !== 'fsynced_root_owned_principal_journal_precedes_any_record_mutation_then_ODNode_createRecord_atomically_creates_group_then_user_with_complete_birth_attributes_including_distinct_GeneratedUID_password_star_hidden_state_false_shell_and_empty_home_but_no_AuthenticationAuthority_authentication_material_delegated-writer_or_explicit-group-membership_then_synchronizes_and_a_fresh_exact-signed_real-root_helper_process_reads_raw_OpenDirectory_and_POSIX_identity_and_returns_a_transaction-and-plan-bound_receipt'
+    || principalDevelopment?.principal_constraints?.directory_service_recovery_policy !== 'recovery_reads_the_fsynced_transaction_name_UID_GID_user_GeneratedUID_and_group_GeneratedUID_then_deletes_user_before_group_only_when_every_observed_field_matches_and_proves_both_records_absent;_any_query_delete_mismatch_or_ambiguous_result_preserves_the_journal_and_fails_repair-required'
+    || principalDevelopment?.principal_constraints?.directory_service_existing_identity_policy !== 'both_records_must_exist_and_match_the_complete_admitted_profile_or_both_must_be_absent;_an_existing_exact_identity_is_never_owned_or_deleted_by_a_failed_candidate_update'
+    || !equalArray(principalDevelopment?.principal_constraints?.directory_service_mutation_fallbacks, ['dscl_forbidden', 'sysadminctl_forbidden', 'dsimport_forbidden', 'direct_dslocal_write_forbidden'])
+    || principalDevelopment?.principal_constraints?.principal_transaction_journal_path !== '/Library/Application Support/Nimi/RuntimeDev/principal-transaction.json'
+    || principalDevelopment?.principal_constraints?.installation_transaction_journal_path !== '/Library/Application Support/Nimi/RuntimeDev/installation-transaction.json'
+    || principalDevelopment?.principal_constraints?.installation_transaction_scope !== 'one_fsynced_fresh_install_top_level_journal_precedes_service_stop_or_first_mutation_requires_all_service_principal_directory_plist_payload_socket_and_Runtime_custody_baselines_absent_and_owns_every_created_principal_directory_plist_active_Desktop_installer_ledger_custody_and_socket_effect'
+    || principalDevelopment?.principal_constraints?.installation_rollback_order !== 'bootout_and_prove_process_stopped_then_remove_and_prove_sockets_then_reset_transaction-created_Runtime_custody_while_candidate_Runtime_remains_verified_then_remove_plist_active_Desktop_and_ledger_then_remove_staging_then_remove_only_transaction-created_empty_fixed_directories_then_remove_exact_transaction-created_user_before_group_then_prove_full_baseline_absent_then_remove_journal'
+    || !String(principalDevelopment?.principal_constraints?.installation_commit_boundary ?? '').startsWith('final_mutually_verified_Runtime_health')
+    || principalDevelopment?.principal_constraints?.update_admission !== 'fail_closed_pending_nonmutating_release_lineage_validation_and_installer-bound_pending_commit_protocol;_current_AdmitReleaseLineage_mutates_anchored_high-water_before_final_health_so_old-candidate_restore_is_forbidden'
+    || principalDevelopment?.principal_constraints?.partial_install_repair_journal_path !== '/Library/Application Support/Nimi/RuntimeDev/partial-install-repair-transaction.json'
+    || principalDevelopment?.principal_constraints?.partial_install_repair_journal_staging_path !== '/Library/Application Support/Nimi/RuntimeDev/partial-install-repair-transaction.staging'
+    || principalDevelopment?.principal_constraints?.partial_install_repair_policy !== 'explicit_confirmed_current_bootstrap_delete-only_repair_accepts_only_macos_local_development_v4_failed_first_install_exact_principal_from_source_carrier_4_or_macos_local_development_v2_failed_first_install_disabled_user_from_source_carrier_2;_carrier_2_requires_source-helper-status_carrier_2_one_String_AuthenticationAuthority_value_exactly_;DisabledUser;_all_other_authentication_material_absent_and_all_positive_principal_group_POSIX_membership_writer_evidence_exact;_carrier_4_requires_exact_current_absent-authentication_principal_and_never_accepts_the_legacy_class;_both_classes_delete_the_whole_exact_user_then_group_prove_absence_and_require_fresh_distinct_GeneratedUIDs_before_current_carrier_4_creation;_journal_schema_v2_directly_owns_prepared_artifacts-removed_user-removed_group-removed_principal-removed_and_is_bound_to_stable-before-and-after_source-helper_SHA256/CDHash_source-carrier_residue-class_auth-evidence-SHA256_plan/GUID_rootKey/policy;_fixed_single-use_journal_staging_is_recovered_before_unknown-entry_or_phase_evaluation_only_after_same-open-vnode_root-owned_regular-mode-0600-nlink-1-bounded-size_proof;_fresh-bootstrap_absence_receipt_and_final-helper-private-custody-proof_required;_signing_profile_Keychain_CA_and_final_helper_are_preserved'
+    || !exactLegacyDeleteOnlyRepair(principalDevelopment?.principal_constraints?.legacy_delete_only_repair)
+    || principalDevelopment?.principal_constraints?.installer_serialization_policy !== 'nonblocking_exclusive_flock_on_the_exact_open_root_owned_final_helper_vnode_spans_install_restart_reset_uninstall_release-record-signing_and_unprovision;_lock_contention_fails_before_mutation'
+    || principalDevelopment?.acceptance_isolation?.development_state_lineage_root_acl !== 'root_installation_boundary_and_dedicated__nimiruntimedev_state_only'
+    || principalDevelopment?.acceptance_isolation?.account_partition !== 'verified_interactive_euid_and_audit_session'
+    || principalDevelopment?.acceptance_isolation?.runtime_lifecycle_and_restart !== 'real_launchd_system_daemon'
+    || principalDevelopment?.acceptance_isolation?.parallel_isolation !== 'RuntimeDev_state_trust_Keychain_socket_bundle_and_label_namespaces'
+    || principalDevelopment?.service_control?.service_label !== 'ai.nimi.runtime.dev'
+    || principalDevelopment?.service_control?.production_SMAppService_equivalence_claim !== 'forbidden'
+    || custody?.version !== 11
+    || custody?.platform_admission?.macos !== 'requirements_only_fail_closed_pending_native_admission'
+    || custody?.platform_admission?.macos_local_development !== 'local_development_non_product_admitted'
+    || custodyDevelopment?.admission !== 'local_development_non_product_admitted'
+    || !String(custodyDevelopment?.protector_or_key_source ?? '').includes('ai.nimi.runtime.protected-local.dev.v1')
+    || !equalArray(custodyDevelopment?.keychain_accounts, ['ledger-anchor-v1', 'ledger-record-hmac-v1'])
+    || custodyDevelopment?.signing_certificate_lookup !== 'public_root_certificate_requires_unique_exact_System_Keychain_DER_SHA256_from_public_profile_or_root_owned_cleanup_record_while_all_role_certificates_require_unique_exact_DER_SHA256_inside_the_explicitly_unlocked_fixed_signing_Keychain_labels_non_authorizing_public_key_SPKI_optional_witness'
+    || custodyDevelopment?.signing_root_admin_trust_settings !== 'one_usage_constraint_exact_Apple_code_signing_policy_OID_derived_policy_name_CodeSigning_result_trustRoot_and_no_other_keys'
+    || custodyDevelopment?.signing_profile_cleanup_record_path !== '/Library/Application Support/Nimi/RuntimeDev/dev-signing-cleanup-record.json'
+    || custodyDevelopment?.signing_profile_cleanup_record_policy !== 'root_wheel_0600_written_before_the_single_System_Keychain_root_certificate_insert_and_removed_only_after_exact_idempotent_cleanup'
+    || custodyDevelopment?.signing_keychain_password_commit_policy !== 'bootstrap_signing_keychain_password_exists_in_memory_only_and_is_zeroized_after_transaction;_the_final_helper_must_be_locally_CA_signed_and_its_exact_cdhash_known_before_one_System_Keychain_generic_password_insert;_the_item_is_born_with_exact_final-helper-only_decrypt_delete_changeACL_and_partition_ACLs;_bootstrap_helper_never_reads_owns_or_deletes_the_durable_item;_a_fresh_final_signed_helper_process_must_reopen_and_validate_custody_without_interaction;_rollback_and_unprovision_first_verify_the_exact_final-helper_and_item_ACLs_then_delete_the_signing-Keychain_then_delete_the_exact_item_reference_and_prove_absence_before_removing_public_trust_or_unlinking_the_final-helper;_failure_preserves_the_final-helper_cleanup-record_and_public-trust-until_unlock-secret_deletion_is_proven'
+    || custodyDevelopment?.signing_unprovision_repair_policy !== 'repair-only_for_the_exact_stranded_shape_public_profile_signing-Keychain_Runtime_Desktop_LaunchDaemon_service-account_and_related-processes_absent_plus_cleanup-record_v2_and_final-helper_and_unlock-secret_present;_the_immutable_bootstrap_may_extract_only_the_public_root_certificate_from_the_stranded_final-helper_embedded_chain_require_its_DER_SHA256_to_equal_the_cleanup-record_fingerprint_and_temporarily_restore_that_certificate_with_one_exact_Apple-CodeSigning_admin-trust_constraint;_the_bootstrap_must_verify_final-helper_fixed-path_strict-signature_empty-Team-ID_hardened-runtime_and_exact_unlock-secret_decrypt-changeACL-partition_binding_but_must_not_read_or_delete_the_secret;_the_stranded_final-helper_then_deletes_its_secret_and_all_repaired_public_trust_material;_any_mismatch_fails_closed_and_this_repair_is_forbidden_as_the_normal_unprovision_path'
+    || custodyDevelopment?.signing_bootstrap_helper_path !== '/usr/local/libexec/nimi-macos-dev-security-bootstrap'
+    || custodyDevelopment?.signing_acl_identity_digest_policy !== 'bootstrap_SHA-256_records_exact_opaque_SecTrustedApplication_data_for_final_helper_and_/usr/bin/codesign_in_root_owned_public_profile_v4;_fresh_processes_compare_persisted_ACL_entry_digests_to_profile_and_must_not_recreate_or_interpret_opaque_data;_finalizer_removes_only_the_exact_bootstrap_entry_from_the_helper-role_key_in_the_unlocked_signing_Keychain_and_preserves_the_final_entry_bytes;_all_five_role_private_keys_remain_inside_the_fixed_signing_Keychain;_System_Keychain_profile_private_keys_and_any_post-insert_SecKeychainItemSetAccess_on_System_items_are_forbidden'
+    || custodyDevelopment?.signing_helper_identity_transition_policy !== 'immutable_root_owned_linker_signed_bootstrap_at_/usr/local/libexec/nimi-macos-dev-security-bootstrap_runs_the_creation_transaction_while_an_equal-byte_nonexecuted_candidate_at_/usr/local/libexec/nimi-macos-dev-security_is_signed;_bootstrap_vnode_and_code_identity_must_remain_unchanged;_one_non-durable_P256_CA_private_key_exists_only_in_bootstrap_process_memory_and_never_enters_any_Keychain_or_projection;_bootstrap_uses_that_key_to_issue_the_local_CA_certificate_and_all_role_leaves;_the_helper-role_private_key_is_created_in_the_explicitly-unlocked_root-owned_signing_Keychain_with_bootstrap_owner_then_signs_the_distinct_final_helper;_after_final-helper_identity_is_verified_only_that_helper-role_key_may_hold_an_exact_bootstrap-plus-final_changeACL_transition_inside_the_password-unlocked_signing_Keychain;_the_record-signer_Runtime_Desktop_and_local-host_role_keys_are_created_once_inside_that_same_unlocked_signing_Keychain_with_final-helper-only_owner_restricted-and-partition_ACLs_and_are_never_mutated_after_insertion;_zero_profile_private_keys_are_admitted_in_System_Keychain;_the_System_Keychain_unlock-secret_item_is_born-final_and_never_mutated_after_insertion;_one_fresh_final_helper_closes_only_the_helper-role_transition_then_a_second_fresh_final_helper_proves_final-only_custody_absent_System_profile_private_keys_and_absent_durable_CA_private_key;_only_then_may_bootstrap_be_unlinked;_failure_before_unlock-secret_commit_uses_the_still-immutable_bootstrap_for_exact_rollback_while_failure_after_commit_must_preserve_and_execute_the_verified_final_helper_until_that_helper_deletes_its_unlock-secret;_success_requires_bootstrap_absent_zero_transitional_ACLs_zero_System_profile_private_keys_and_no_durable_CA_private_key'
+    || custodyDevelopment?.unprovision_residual_identity_closure !== 'explicit_confirmed_unprovision_may_run_with_public_profile_or_cleanup_record_absent_but_a_present_signing-Keychain_unlock-secret_requires_the_exact_verified_final_helper_as_its_noninteractive_cleanup_anchor_and_that_helper_is_unlinked_last;_bootstrap_may_remove_only_public_or_fixed-path_residue_after_the_unlock-secret_is_proven_absent;_unlock-secret_present_with_missing_or_untrusted_final_helper_is_repair-required_and_requires_explicit_OS-authorized_break-glass_instead_of_root_or_API_bypass;_the_single_admitted_System_Keychain_profile_certificate_requires_public_profile_or_cleanup_record_exact_DER_SHA256;_zero_System_Keychain_profile_private_keys_are_admitted_and_any_root_CA_or_role_key_is_invalid_residue_removed_by_exact_label_application-tag_EC-P256_matching;_all_five_role_identities_are_removed_only_by_deleting_the_fixed_root-owned_signing_Keychain_as_one_custody_boundary;_success_requires_zero_fixed_profile_key_certificate_password_trust_bootstrap_helper_final_helper_profile_cleanup_record_or_signing_keychain_residue'
+    || custodyDevelopment?.update_persistence !== 'RuntimeDev_state_and_Keychain_custody_survive_signed_development_candidate_updates'
+    || custodyDevelopment?.uninstall_authority !== 'explicit_confirmed_dev_runtime_uninstall_does_not_remove_local_CA'
+    || launch?.version !== 2
+    || launch?.platform_admission?.macos !== 'requirements_only_fail_closed_pending_native_admission'
+    || launch?.platform_admission?.macos_local_development !== 'local_development_non_product_admitted'
+    || launchDevelopment?.admission !== 'local_development_non_product_admitted'
+    || launchDevelopment?.fixed_host_path !== '/Applications/Nimi Dev.app/Contents/Frameworks/Nimi Local App Host Dev.app/Contents/MacOS/Nimi Local App Host Dev'
+    || !String(launchDevelopment?.child_process_witness ?? '').includes('START_SUSPENDED')
+    || launchDevelopment?.runtime_restart !== 'old_session_revoked_new_boot_epoch_and_lease_required_inside_same_live_supervisor_run'
+    || lifecycle?.version !== 5
+    || lifecycle?.platform_admission?.macos !== 'requirements_only_fail_closed_pending_native_admission'
+    || lifecycle?.platform_admission?.macos_local_development !== 'local_development_non_product_admitted'
+    || lifecycle?.non_product_local_development?.exact_service_label !== 'ai.nimi.runtime.dev'
+    || lifecycle?.non_product_local_development?.exact_runtime_path !== '/Library/Application Support/Nimi/RuntimeDev/active/bin/nimi-runtime'
+    || lifecycle?.non_product_local_development?.persistent_state_survives_update !== true
+    || lifecycle?.non_product_local_development?.uninstall_requires_explicit_confirmation_and_preserves_local_CA !== true
+    || transport?.version !== 11
+    || transport?.platform_admission?.macos !== 'fail_closed_pending_native_admission'
+    || transport?.platform_admission?.macos_local_development !== 'local_development_non_product_admitted'
+    || profileBundle?.profile_id !== 'macos_local_development_v1'
+    || profileBundle?.compile_time_selection_only !== true
+    || profileBundle?.product_admission_promotion !== 'forbidden'
+    || supervisor?.implementation_bindings?.length !== 1
+    || supervisor?.implementation_bindings?.[0] !== 'desktop_electron_supervisor'
+    || supervisor?.electron_positive_does_not_enable_tauri !== true
+    || !String(supervisor?.tauri_binding ?? '').startsWith('fail_closed_pending_independent_Rust_WKWebView')
+    || trust?.version !== 6
+    || trust?.platform_admission?.macos !== 'requirements_only_fail_closed_pending_native_admission'
+    || trust?.platform_admission?.macos_local_development !== 'local_development_non_product_admitted'
+    || releaseSchema?.schema_version !== 2
+    || releaseSchema?.production_signature !== 'Ed25519_over_canonical_record_without_signature'
+    || releaseSchema?.local_development_signature !== 'ECDSA_P256_SHA256_DER_over_canonical_record_without_signature'
+    || !hasEvery(releaseFields, ['identity_class', 'signature_algorithm', 'macos_leaf_spki_sha256', 'macos_hardened_runtime_required', 'macos_notarization_required'])
+    || releaseSchema?.macos_local_development_record_root !== '/Library/Application Support/Nimi/RuntimeDev/active/trust/protected-local/v1'
+    || !equalArray(releaseSchema?.macos_fixed_record_path_authority?.system_owned_ancestors, ['/Library', '/Library/Application Support'])
+    || releaseSchema?.macos_fixed_record_path_authority?.nimi_owned_subtree_root !== '/Library/Application Support/Nimi'
+    || !String(releaseSchema?.macos_fixed_record_path_authority?.system_owned_ancestor_policy ?? '').includes('native_OS_group_and_nonwritable_mode_are_preserved')
+    || !String(releaseSchema?.macos_fixed_record_path_authority?.nimi_owned_subtree_policy ?? '').includes('exact_root_wheel_mode_0755')
+    || releaseSchema?.macos_fixed_record_path_authority?.system_directory_reownership_or_chmod !== 'forbidden'
+    || signer?.environment !== 'local_development'
+    || signer?.identity_class !== 'local_ca'
+    || signer?.release_record_signature_algorithm !== 'ecdsa_p256_sha256'
+    || signer?.team_id_posture !== 'exact_empty_required'
+    || signer?.notarization_posture !== 'absent_and_must_not_be_claimed'
+    || developmentTrustRows.some(([id, role]) => {
+      const row = trustSets.get(id);
+      return row?.executable_role !== role
+        || row?.environment !== 'local_development'
+        || !equalArray(row?.allowed_os_profiles, ['macos_local_development'])
+        || row?.platform_code_signing_policy_ref !== 'nimi-macos-local-development-signing-policy'
+        || row?.runtime_build_allowance !== 'compile_time_macos_local_development_only'
+        || row?.product_readiness_claim_allowed !== false
+        || row?.runtime_configuration_mutable !== false;
+    })
+    || trust?.production_runtime_accepts_local_development_trust_set !== false
+    || trust?.local_development_runtime_accepts_production_trust_set !== false
+    || trust?.local_development_runtime_accepts_external_e2e_fixture_trust_set !== false
+    || trust?.local_development_runtime_accepts_production_realm_endpoints !== false
+    || trust?.local_development_runtime_accepts_production_account_custody !== false
+  );
+  if (invalid) {
+    issues.push(issue(
+      'MACOS_LOCAL_DEVELOPMENT_PROFILE_REQUIRED',
+      AUTHORITY_PATHS.trust,
+      'The non-product macOS profile must remain compile-time isolated across service principal, RuntimeDev paths, UDS, System Keychain custody, local-CA release records, Electron-only supervision, production trust and Tauri admission.',
+    ));
+  }
+}
+
 function validateTrustIsolation(bundle, issues) {
   const trust = parseYaml(bundle, AUTHORITY_PATHS.trust, issues);
   const rows = rowsBy(trust?.trust_sets, 'trust_set_id');
@@ -628,6 +875,9 @@ function validateTrustIsolation(bundle, issues) {
     ['nimi-local-development-host-macos-e2e-fixture-v1', 'non_product_test', 'test_only', false],
     ['nimi-desktop-control-carrier-production-v1', 'production', 'production_only', true],
     ['nimi-desktop-control-carrier-e2e-fixture-v1', 'non_product_test', 'test_only', false],
+    ['nimi-runtime-macos-local-development-v1', 'local_development', 'compile_time_macos_local_development_only', false],
+    ['nimi-desktop-macos-local-development-v1', 'local_development', 'compile_time_macos_local_development_only', false],
+    ['nimi-local-development-host-macos-local-development-v1', 'local_development', 'compile_time_macos_local_development_only', false],
   ];
   const rowsInvalid = required.some(([id, environment, allowance, productClaim]) => {
     const row = rows.get(id);
@@ -639,12 +889,18 @@ function validateTrustIsolation(bundle, issues) {
   });
   const productionRows = (trust?.trust_sets ?? []).filter((row) => row.environment === 'production');
   const testRows = (trust?.trust_sets ?? []).filter((row) => row.environment === 'non_product_test');
+  const localDevelopmentRows = (trust?.trust_sets ?? []).filter((row) => row.environment === 'local_development');
   if (
     rowsInvalid
     || rows.has('nimi-runtime-e2e-fixture-v1')
     || productionRows.some((row) => row.runtime_build_allowance !== 'production_only' || row.product_readiness_claim_allowed !== true)
     || testRows.some((row) => row.runtime_build_allowance !== 'test_only' || row.product_readiness_claim_allowed !== false)
+    || localDevelopmentRows.length !== 3
+    || localDevelopmentRows.some((row) => row.runtime_build_allowance !== 'compile_time_macos_local_development_only' || row.product_readiness_claim_allowed !== false)
     || trust?.production_runtime_accepts_test_trust_set !== false
+    || trust?.production_runtime_accepts_local_development_trust_set !== false
+    || trust?.local_development_runtime_accepts_production_trust_set !== false
+    || trust?.local_development_runtime_accepts_external_e2e_fixture_trust_set !== false
     || trust?.test_runtime_accepts_production_realm_endpoints !== false
     || trust?.test_runtime_accepts_production_account_custody !== false
     || trust?.production_runtime_trusts_user_selected_executable !== false
@@ -679,14 +935,19 @@ export function validateAuthorityBundle(bundle, mode) {
     validateStores(bundle, issues);
     validateFixedService(bundle, issues);
     validatePackageSeam(bundle, issues);
+    validateMacOSLocalDevelopmentProfile(bundle, issues);
   }
   if (mode === 'protected-rpc-posture') {
     validateRetiredVocabulary(bundle, issues);
     validateTransport(bundle, issues);
     validatePackageSeam(bundle, issues);
+    validateMacOSLocalDevelopmentProfile(bundle, issues);
   }
   if (mode === 'no-portable-privileged-session') validatePortableBoundary(bundle, issues);
-  if (mode === 'protected-local-trust-set-isolation') validateTrustIsolation(bundle, issues);
+  if (mode === 'protected-local-trust-set-isolation') {
+    validateTrustIsolation(bundle, issues);
+    validateMacOSLocalDevelopmentProfile(bundle, issues);
+  }
   return issues;
 }
 

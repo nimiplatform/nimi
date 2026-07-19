@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { cp, chmod, mkdir, mkdtemp, readFile, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { createHash, createPublicKey } from 'node:crypto';
+import { cp, chmod, lstat, mkdir, mkdtemp, readFile, readdir, readlink, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -22,14 +23,20 @@ import {
   verifySignedMacOSApplication,
   verifySignedMacOSInstaller,
 } from './lib/macos-release-process.mjs';
+import { MACOS_LOCAL_DEVELOPMENT_PROFILE } from './generated/macos-local-development-profile.mjs';
 
 const scriptRoot = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(scriptRoot, '..');
 const repoRoot = path.resolve(desktopRoot, '../..');
 const localRoot = path.join(repoRoot, '.nimi', 'local');
+const localDevelopmentSigningProfilePath = '/Library/Application Support/Nimi/RuntimeDev/dev-signing-profile.json';
 const layoutOnly = process.argv.includes('--layout-only');
-if (process.argv.slice(2).some((value) => value !== '--layout-only')) {
-  throw new Error('macOS Electron release accepts only the explicit --layout-only non-admission mode');
+const localDevelopment = process.argv.includes('--local-development-candidate');
+if (layoutOnly && localDevelopment) {
+  throw new Error('macOS production layout and local-development candidate modes are mutually exclusive');
+}
+if (process.argv.slice(2).some((value) => value !== '--layout-only' && value !== '--local-development-candidate')) {
+  throw new Error('macOS Electron release accepts only --layout-only or --local-development-candidate');
 }
 if (process.platform !== 'darwin' || process.arch !== 'arm64') {
   throw new Error('macOS Electron release must be built natively on Apple Silicon');
@@ -42,8 +49,9 @@ const desktopPackage = JSON.parse(await readFile(path.join(desktopRoot, 'package
 const electronPackage = JSON.parse(await readFile(path.join(desktopRoot, 'node_modules', 'electron', 'package.json'), 'utf8'));
 const version = exactVersion(desktopPackage.version);
 const electronVersion = exactVersion(electronPackage.version);
-const release = layoutOnly ? undefined : readMacOSProductionReleaseInputs();
-const outputName = layoutOnly ? `layout-${Date.now()}` : release.releaseId;
+const release = layoutOnly || localDevelopment ? undefined : readMacOSProductionReleaseInputs();
+const localDevelopmentTrust = localDevelopment ? await readMacOSLocalDevelopmentPublicProfile() : undefined;
+const outputName = layoutOnly ? `layout-${Date.now()}` : localDevelopment ? `local-development-${Date.now()}` : release.releaseId;
 const outputRoot = resolveOutputRoot(process.env.NIMI_MACOS_RELEASE_OUTPUT, outputName);
 await assertAbsent(outputRoot);
 await mkdir(localRoot, { recursive: true, mode: 0o700 });
@@ -59,12 +67,12 @@ try {
     mkdir(sourceRoot, { recursive: true }),
     mkdir(packageRoot, { recursive: true }),
     mkdir(electronZipRoot, { recursive: true }),
-    mkdir(candidateRoot, { recursive: true }),
+    mkdir(candidateRoot, { recursive: true, mode: 0o700 }),
   ]);
 
-  await buildReleaseInputs({ release, sourceRoot });
+  await buildReleaseInputs({ localDevelopment, localDevelopmentTrust, release, sourceRoot });
   await prepareElectronZip(electronVersion, electronZipRoot);
-  const localHostApp = await packageLocalAppHost({ electronVersion, electronZipRoot, packageRoot, sourceRoot, version });
+  const localHostApp = await packageLocalAppHost({ electronVersion, electronZipRoot, localDevelopment, packageRoot, sourceRoot, version });
   await stageNativeCarrier(localHostApp);
   if (release) {
     requireMacOSSigningIdentity(release.applicationIdentity);
@@ -74,25 +82,54 @@ try {
     verifySignedMacOSApplication(localHostApp, [localHostExecutable(localHostApp)]);
   }
 
-  const desktopApp = await packageDesktop({ electronVersion, electronZipRoot, packageRoot, sourceRoot, version });
-  const embeddedLocalHost = path.join(desktopApp, 'Contents', 'Frameworks', 'Nimi Local App Host.app');
+  const desktopApp = await packageDesktop({ electronVersion, electronZipRoot, localDevelopment, packageRoot, sourceRoot, version });
+  const embeddedLocalHost = path.join(desktopApp, 'Contents', 'Frameworks', localDevelopment ? 'Nimi Local App Host Dev.app' : 'Nimi Local App Host.app');
   await runDittoCopy(localHostApp, embeddedLocalHost);
-  await stageDesktopNativeAssets(desktopApp, sourceRoot);
+  await stageDesktopNativeAssets(desktopApp, sourceRoot, localDevelopment);
 
   if (!release) {
-    await runDittoCopy(desktopApp, path.join(candidateRoot, 'Nimi.app'));
+    const applicationName = localDevelopment ? 'Nimi Dev.app' : 'Nimi.app';
+    await runDittoCopy(desktopApp, path.join(candidateRoot, applicationName));
+    if (localDevelopment) {
+      const runtimeTarget = path.join(candidateRoot, 'RuntimeDev', 'bin', 'nimi-runtime');
+      await mkdir(path.dirname(runtimeTarget), { recursive: true });
+      await cp(path.join(sourceRoot, 'nimi-runtime'), runtimeTarget, { force: false });
+      await chmod(runtimeTarget, 0o755);
+      await cp(
+        path.join(desktopRoot, 'macos', 'generated', 'ai.nimi.runtime.dev.plist'),
+        path.join(candidateRoot, 'ai.nimi.runtime.dev.plist'),
+        { force: false },
+      );
+    }
     await writeManifest(path.join(candidateRoot, 'layout-manifest.json'), {
       acceptanceEligible: false,
       architecture: 'arm64',
+      compileTimeProfile: localDevelopment ? 'macos_local_development_v1' : 'production_fail_closed_layout',
+      desktopApplicationTreeSha256: localDevelopment
+        ? await applicationTreeSha256(path.join(candidateRoot, 'Nimi Dev.app'))
+        : undefined,
       electronVersion,
-      posture: 'requirements_only_fail_closed_unsigned_unnotarized_layout',
+      launchDaemonSha256: localDevelopment
+        ? await sha256File(path.join(candidateRoot, 'ai.nimi.runtime.dev.plist'))
+        : undefined,
+      posture: localDevelopment
+        ? 'unsigned_local_development_candidate_requires_privileged_sign_install_transaction'
+        : 'requirements_only_fail_closed_unsigned_unnotarized_layout',
       productionRoleRecords: false,
-      schemaVersion: 'nimi.macos-electron-layout/v1',
+      releaseRootKeyId: localDevelopmentTrust?.rootKeyId,
+      runtimeSha256: localDevelopment ? await sha256File(path.join(sourceRoot, 'nimi-runtime')) : undefined,
+      schemaVersion: localDevelopment ? 'nimi.macos-local-development-candidate/v1' : 'nimi.macos-electron-layout/v1',
       version,
     });
+    await chmod(candidateRoot, 0o700);
     await rename(candidateRoot, outputRoot);
     completed = true;
-    process.stdout.write(`${JSON.stringify({ outputRoot, posture: 'requirements_only_fail_closed_unsigned_unnotarized_layout' })}\n`);
+    process.stdout.write(`${JSON.stringify({
+      outputRoot,
+      posture: localDevelopment
+        ? 'unsigned_local_development_candidate_requires_privileged_sign_install_transaction'
+        : 'requirements_only_fail_closed_unsigned_unnotarized_layout',
+    })}\n`);
   } else {
     await signMacOSApplication(desktopApp, release, {
       ignore: (candidate) => candidate === embeddedLocalHost || candidate.startsWith(`${embeddedLocalHost}${path.sep}`),
@@ -142,27 +179,38 @@ try {
   if (!completed) await rm(outputRoot, { recursive: true, force: true });
 }
 
-async function buildReleaseInputs({ release, sourceRoot }) {
+async function buildReleaseInputs({ localDevelopment: localDevelopmentBuild, localDevelopmentTrust: developmentTrust, release: releaseInput, sourceRoot }) {
   runReleaseCommand('corepack', ['pnpm', '--filter', '@nimiplatform/sdk', 'build'], { cwd: repoRoot, inherit: true });
   runReleaseCommand('corepack', ['pnpm', '--filter', '@nimiplatform/kit', 'build'], { cwd: repoRoot, inherit: true });
   runReleaseCommand('corepack', ['pnpm', '--dir', desktopRoot, 'run', 'build:renderer'], { cwd: repoRoot, inherit: true });
   runReleaseCommand('corepack', ['pnpm', '--dir', desktopRoot, 'exec', 'tsc', '-p', 'tsconfig.electron.json', '--noEmit'], { cwd: repoRoot, inherit: true });
-  runReleaseCommand(process.execPath, [path.join(scriptRoot, 'bundle-electron-main.mjs'), '--release'], { cwd: repoRoot, inherit: true });
+  runReleaseCommand(process.execPath, [
+    path.join(scriptRoot, 'bundle-electron-main.mjs'),
+    '--release',
+    ...(localDevelopmentBuild ? ['--macos-local-development'] : []),
+  ], { cwd: repoRoot, inherit: true });
   runReleaseCommand(process.execPath, [path.join(scriptRoot, 'bundle-electron-preload.mjs')], { cwd: repoRoot, inherit: true });
 
-  const nativeBuildEnvironment = releaseCompileEnvironment(release);
+  const nativeBuildEnvironment = releaseCompileEnvironment({ localDevelopmentTrust: developmentTrust, release: releaseInput });
   runReleaseCommand(process.execPath, [
     path.join(repoRoot, 'kit', 'shell', 'protected-local-node', 'scripts', 'build-darwin-arm64-package.mjs'),
-    ...(release ? [] : ['--fail-closed-candidate']),
+    ...(localDevelopmentBuild ? ['--local-development'] : releaseInput ? [] : ['--fail-closed-candidate']),
   ], { cwd: repoRoot, env: nativeBuildEnvironment, inherit: true });
 
   const runtimeOutput = path.join(sourceRoot, 'nimi-runtime');
   const goArguments = ['build', '-trimpath', '-buildvcs=true', '-o', runtimeOutput];
-  if (release) {
+  if (localDevelopmentBuild) {
+    goArguments.push('-tags', 'nimi_macos_local_development');
     goArguments.push('-ldflags', [
       `-X github.com/nimiplatform/nimi/runtime/cmd/nimi.Version=${version}`,
-      `-X github.com/nimiplatform/nimi/runtime/internal/protectedlocal.MacOSPlatformReleaseRootKeyID=${release.rootKeyId}`,
-      `-X github.com/nimiplatform/nimi/runtime/internal/protectedlocal.MacOSPlatformReleaseRootPublicKeyB64=${release.rootPublicKeyB64URL}`,
+      `-X github.com/nimiplatform/nimi/runtime/internal/protectedlocal.MacOSLocalDevelopmentReleaseRootKeyID=${developmentTrust.rootKeyId}`,
+      `-X github.com/nimiplatform/nimi/runtime/internal/protectedlocal.MacOSLocalDevelopmentReleaseRootPublicKeyB64=${developmentTrust.rootPublicKeyB64URL}`,
+    ].join(' '));
+  } else if (releaseInput) {
+    goArguments.push('-ldflags', [
+      `-X github.com/nimiplatform/nimi/runtime/cmd/nimi.Version=${version}`,
+      `-X github.com/nimiplatform/nimi/runtime/internal/protectedlocal.MacOSPlatformReleaseRootKeyID=${releaseInput.rootKeyId}`,
+      `-X github.com/nimiplatform/nimi/runtime/internal/protectedlocal.MacOSPlatformReleaseRootPublicKeyB64=${releaseInput.rootPublicKeyB64URL}`,
     ].join(' '));
   }
   goArguments.push('./cmd/nimi');
@@ -197,14 +245,14 @@ async function packageDesktop(input) {
     version: input.version,
   });
   return packageElectronApplication({
-    appBundleId: 'ai.nimi.apps.nimi.desktop',
+    appBundleId: input.localDevelopment ? MACOS_LOCAL_DEVELOPMENT_PROFILE.desktopSigningIdentifier : 'ai.nimi.apps.nimi.desktop',
     appCategoryType: 'public.app-category.social-networking',
     dir: source,
     electronVersion: input.electronVersion,
     electronZipDir: input.electronZipRoot,
-    executableName: 'Nimi',
+    executableName: input.localDevelopment ? 'Nimi Dev' : 'Nimi',
     icon: path.join(desktopRoot, 'src-tauri', 'icons', 'icon.icns'),
-    name: 'Nimi',
+    name: input.localDevelopment ? 'Nimi Dev' : 'Nimi',
     out: path.join(input.packageRoot, 'desktop'),
     version: input.version,
   });
@@ -213,10 +261,28 @@ async function packageDesktop(input) {
 async function packageLocalAppHost(input) {
   const source = path.join(input.sourceRoot, 'local-app-host');
   await mkdir(source, { recursive: true });
-  await Promise.all([
-    cp(path.join(desktopRoot, 'macos', 'local-app-host', 'main.mjs'), path.join(source, 'main.mjs')),
-    cp(path.join(desktopRoot, 'macos', 'local-app-host', 'contract.mjs'), path.join(source, 'contract.mjs')),
-  ]);
+  const mainSource = await readFile(path.join(desktopRoot, 'macos', 'local-app-host', 'main.mjs'), 'utf8');
+  const acceptanceBuildLiteral = 'const MACOS_LOCAL_DEVELOPMENT_ACCEPTANCE_BUILD = false;';
+  if (mainSource.split(acceptanceBuildLiteral).length - 1 !== 1) {
+    throw new Error('macOS local-app host acceptance build contract is ambiguous');
+  }
+  await writeFile(
+    path.join(source, 'main.mjs'),
+    input.localDevelopment
+      ? mainSource.replace(acceptanceBuildLiteral, 'const MACOS_LOCAL_DEVELOPMENT_ACCEPTANCE_BUILD = true;')
+      : mainSource,
+    { encoding: 'utf8', flag: 'wx', mode: 0o644 },
+  );
+  const contractSource = await readFile(path.join(desktopRoot, 'macos', 'local-app-host', 'contract.mjs'), 'utf8');
+  const productionPathLiteral = "'/Applications/Nimi.app/Contents/Frameworks/Nimi Local App Host.app/Contents/MacOS/Nimi Local App Host'";
+  const expectedOccurrenceCount = contractSource.split(productionPathLiteral).length - 1;
+  if (expectedOccurrenceCount !== 1) {
+    throw new Error('macOS local-app host executable contract is ambiguous');
+  }
+  const packagedContract = input.localDevelopment
+    ? contractSource.replace(productionPathLiteral, JSON.stringify(MACOS_LOCAL_DEVELOPMENT_PROFILE.localAppHostPath))
+    : contractSource;
+  await writeFile(path.join(source, 'contract.mjs'), packagedContract, { encoding: 'utf8', flag: 'wx', mode: 0o644 });
   await writeManifest(path.join(source, 'package.json'), {
     main: 'main.mjs',
     name: 'nimi-local-app-host',
@@ -224,14 +290,14 @@ async function packageLocalAppHost(input) {
     version: input.version,
   });
   return packageElectronApplication({
-    appBundleId: 'ai.nimi.apps.nimi.local-app-host',
+    appBundleId: input.localDevelopment ? MACOS_LOCAL_DEVELOPMENT_PROFILE.localAppHostSigningIdentifier : 'ai.nimi.apps.nimi.local-app-host',
     appCategoryType: 'public.app-category.developer-tools',
     dir: source,
     electronVersion: input.electronVersion,
     electronZipDir: input.electronZipRoot,
-    executableName: 'Nimi Local App Host',
+    executableName: input.localDevelopment ? 'Nimi Local App Host Dev' : 'Nimi Local App Host',
     icon: path.join(desktopRoot, 'src-tauri', 'icons', 'icon.icns'),
-    name: 'Nimi Local App Host',
+    name: input.localDevelopment ? 'Nimi Local App Host Dev' : 'Nimi Local App Host',
     out: path.join(input.packageRoot, 'local-host'),
     version: input.version,
   });
@@ -312,8 +378,9 @@ async function stageNativeCarrier(appPath) {
   }
 }
 
-async function stageDesktopNativeAssets(desktopApp, sourceRoot) {
+async function stageDesktopNativeAssets(desktopApp, sourceRoot, localDevelopmentBuild) {
   await stageNativeCarrier(desktopApp);
+  if (localDevelopmentBuild) return;
   const launchServices = path.join(desktopApp, 'Contents', 'Library', 'LaunchServices');
   const launchDaemons = path.join(desktopApp, 'Contents', 'Library', 'LaunchDaemons');
   await Promise.all([
@@ -454,16 +521,98 @@ async function runDittoCopy(source, destination) {
   runReleaseCommand('/usr/bin/ditto', [source, destination]);
 }
 
-function releaseCompileEnvironment(releaseInput) {
+function releaseCompileEnvironment({ localDevelopmentTrust: developmentTrust, release: releaseInput }) {
   const env = { ...process.env };
-  if (releaseInput) {
+  delete env.NIMI_PLATFORM_RELEASE_ROOT_KEY_ID;
+  delete env.NIMI_PLATFORM_RELEASE_ROOT_PUBLIC_KEY_B64URL;
+  delete env.NIMI_MACOS_LOCAL_DEVELOPMENT_RELEASE_ROOT_KEY_ID;
+  delete env.NIMI_MACOS_LOCAL_DEVELOPMENT_RELEASE_ROOT_PUBLIC_KEY_B64URL;
+  if (developmentTrust) {
+    env.NIMI_MACOS_LOCAL_DEVELOPMENT_RELEASE_ROOT_KEY_ID = developmentTrust.rootKeyId;
+    env.NIMI_MACOS_LOCAL_DEVELOPMENT_RELEASE_ROOT_PUBLIC_KEY_B64URL = developmentTrust.rootPublicKeyB64URL;
+  } else if (releaseInput) {
     env.NIMI_PLATFORM_RELEASE_ROOT_KEY_ID = releaseInput.rootKeyId;
     env.NIMI_PLATFORM_RELEASE_ROOT_PUBLIC_KEY_B64URL = releaseInput.rootPublicKeyB64URL;
-  } else {
-    delete env.NIMI_PLATFORM_RELEASE_ROOT_KEY_ID;
-    delete env.NIMI_PLATFORM_RELEASE_ROOT_PUBLIC_KEY_B64URL;
   }
   return env;
+}
+
+async function readMacOSLocalDevelopmentPublicProfile() {
+  const metadata = await lstat(localDevelopmentSigningProfilePath).catch((error) => {
+    if (error?.code === 'ENOENT') {
+      throw structuredFailure(
+        'dev-signing-profile-unprovisioned',
+        'run pnpm provision:macos-dev-trust after reviewing and confirming the privileged machine changes',
+        'The macOS local-development signing profile has not been provisioned.',
+      );
+    }
+    throw error;
+  });
+  const canonicalPath = await realpath(localDevelopmentSigningProfilePath);
+  if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.nlink !== 1
+    || metadata.uid !== 0 || metadata.gid !== 0 || (metadata.mode & 0o777) !== 0o644
+    || canonicalPath !== localDevelopmentSigningProfilePath || metadata.size < 2 || metadata.size > 64 * 1024) {
+    throw structuredFailure(
+      'runtime-service-repair-required',
+      'reprovision the macOS local-development signing profile from the root-owned helper',
+      'The installed macOS local-development signing profile has unsafe ownership, mode, link, path, or size metadata.',
+    );
+  }
+  const value = JSON.parse(await readFile(localDevelopmentSigningProfilePath, 'utf8'));
+  if (value?.schemaVersion !== 'nimi.macos-local-development-signing-profile/v4'
+    || value.profileId !== 'macos_local_development_v1'
+    || value.environment !== MACOS_LOCAL_DEVELOPMENT_PROFILE.environment
+    || value.identityClass !== MACOS_LOCAL_DEVELOPMENT_PROFILE.identityClass
+    || value.signatureAlgorithm !== MACOS_LOCAL_DEVELOPMENT_PROFILE.signatureAlgorithm
+    || value.aclIdentityDigestAlgorithm !== 'sha256_opaque_sectrustedapplication_data'
+    || typeof value.helperACLIdentitySHA256 !== 'string'
+    || !/^[a-f0-9]{64}$/u.test(value.helperACLIdentitySHA256)
+    || typeof value.codesignACLIdentitySHA256 !== 'string'
+    || !/^[a-f0-9]{64}$/u.test(value.codesignACLIdentitySHA256)
+    || value.helperACLIdentitySHA256 === value.codesignACLIdentitySHA256
+    || value.rootPrivateKeyPersistence !== 'non_durable_destroyed_after_leaf_issuance'
+    || value.rolePrivateKeyCustody !== 'all_five_roles_root_owned_locked_system_domain_signing_keychain'
+    || value.systemKeychainPrivateKeyPolicy !== 'forbidden_zero_profile_private_keys'
+    || value.systemUnlockSecretMutationPolicy !== 'born_final_exact_final_helper_decrypt_delete_changeACL_partition_no_post_insert_mutation'
+    || typeof value.rootKeyId !== 'string' || !/^[a-z0-9][a-z0-9._-]{7,127}$/u.test(value.rootKeyId)
+    || typeof value.rootPublicKeyB64URL !== 'string' || !/^[A-Za-z0-9_-]{100,180}$/u.test(value.rootPublicKeyB64URL)) {
+    throw structuredFailure(
+      'runtime-service-repair-required',
+      'reprovision the macOS local-development signing profile from the root-owned helper',
+      'The installed macOS local-development signing profile does not match the admitted schema and compile-time profile.',
+    );
+  }
+  let rootPublicKey;
+  try {
+    const encoded = Buffer.from(value.rootPublicKeyB64URL, 'base64url');
+    if (encoded.toString('base64url') !== value.rootPublicKeyB64URL) throw new Error('non-canonical base64url');
+    rootPublicKey = createPublicKey({ key: encoded, format: 'der', type: 'spki' });
+  } catch (error) {
+    throw structuredFailure(
+      'runtime-service-repair-required',
+      'reprovision the macOS local-development signing profile from the root-owned helper',
+      `The installed macOS local-development release root is invalid: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  if (rootPublicKey.asymmetricKeyType !== 'ec'
+    || rootPublicKey.asymmetricKeyDetails?.namedCurve !== 'prime256v1') {
+    throw structuredFailure(
+      'runtime-service-repair-required',
+      'reprovision the macOS local-development signing profile from the root-owned helper',
+      'The installed macOS local-development release root is not an ECDSA P-256 public key.',
+    );
+  }
+  return Object.freeze({
+    rootKeyId: value.rootKeyId,
+    rootPublicKeyB64URL: value.rootPublicKeyB64URL,
+  });
+}
+
+function structuredFailure(reasonCode, actionHint, message) {
+  const error = new Error(message);
+  error.reasonCode = reasonCode;
+  error.actionHint = actionHint;
+  return error;
 }
 
 function resolveOutputRoot(value, fallbackName) {
@@ -487,6 +636,42 @@ async function assertAbsent(candidate) {
 async function requireDirectory(candidate) {
   const metadata = await stat(candidate);
   if (!metadata.isDirectory()) throw new Error(`required release directory is missing: ${candidate}`);
+}
+
+async function applicationTreeSha256(root) {
+  const rows = [];
+  async function visit(directory, prefix = '') {
+    const names = await readdir(directory);
+    names.sort((left, right) => Buffer.from(left).compare(Buffer.from(right)));
+    for (const name of names) {
+      if (!name || name.includes('\0') || name.includes('/')) throw new Error('macOS application tree contains an invalid entry name');
+      const relative = prefix ? `${prefix}/${name}` : name;
+      const absolute = path.join(directory, name);
+      const metadata = await lstat(absolute);
+      if (metadata.isDirectory()) {
+        rows.push({ kind: 'directory', relative, value: '' });
+        await visit(absolute, relative);
+      } else if (metadata.isFile()) {
+        rows.push({ kind: 'file', relative, value: await sha256File(absolute) });
+      } else if (metadata.isSymbolicLink()) {
+        rows.push({ kind: 'symlink', relative, value: await readlink(absolute, 'utf8') });
+      } else {
+        throw new Error(`macOS application tree contains a forbidden filesystem node: ${relative}`);
+      }
+    }
+  }
+  await visit(root);
+  rows.sort((left, right) => Buffer.from(left.relative).compare(Buffer.from(right.relative)));
+  const digest = createHash('sha256');
+  for (const row of rows) {
+    digest.update(row.kind, 'utf8');
+    digest.update(Buffer.from([0]));
+    digest.update(row.relative, 'utf8');
+    digest.update(Buffer.from([0]));
+    digest.update(row.value, 'utf8');
+    digest.update(Buffer.from([0]));
+  }
+  return digest.digest('hex');
 }
 
 async function writeManifest(file, value) {

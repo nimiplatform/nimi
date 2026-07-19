@@ -2,11 +2,20 @@ import { build } from 'esbuild';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { MACOS_LOCAL_DEVELOPMENT_PROFILE } from './generated/macos-local-development-profile.mjs';
+
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const acceptanceBuild = process.argv.includes('--acceptance');
 const releaseBuild = process.argv.includes('--release');
+const macOSLocalDevelopmentBuild = process.argv.includes('--macos-local-development');
+const supportedArguments = new Set(['--acceptance', '--release', '--macos-local-development']);
+const unknownArgument = process.argv.slice(2).find((value) => !supportedArguments.has(value));
+if (unknownArgument) throw new Error(`unsupported Electron main build argument: ${unknownArgument}`);
 if (acceptanceBuild && releaseBuild) {
   throw new Error('Electron acceptance and production release build modes are mutually exclusive');
+}
+if (macOSLocalDevelopmentBuild && (!releaseBuild || acceptanceBuild)) {
+  throw new Error('macOS local-development Electron main requires the release packaging surface and excludes fixture acceptance mode');
 }
 
 await build({
@@ -21,6 +30,10 @@ await build({
     : ['electron', '@nimiplatform/*', 'yaml'],
   define: {
     __NIMI_ELECTRON_ACCEPTANCE_BUILD__: JSON.stringify(acceptanceBuild),
+    __NIMI_MACOS_LOCAL_APP_HOST_PATH__: JSON.stringify(
+      macOSLocalDevelopmentBuild ? MACOS_LOCAL_DEVELOPMENT_PROFILE.localAppHostPath : '',
+    ),
+    __NIMI_MACOS_LOCAL_DEVELOPMENT_BUILD__: JSON.stringify(macOSLocalDevelopmentBuild),
   },
   banner: releaseBuild ? {
     js: "import { createRequire as __nimiCreateRequire } from 'node:module'; const require = __nimiCreateRequire(import.meta.url);",

@@ -1,4 +1,4 @@
-version: 3
+version: 6
 table_family: product_catalog
 owner: platform
 catalog_id: platform_protected_local_executable_trust_sets
@@ -12,14 +12,19 @@ entries:
   - nimi-desktop-control-carrier-e2e-fixture-v1
   - nimi-production-release-signing-policy
   - external-non-product-e2e-signing-policy
+  - nimi-runtime-macos-local-development-v1
+  - nimi-desktop-macos-local-development-v1
+  - nimi-local-development-host-macos-local-development-v1
+  - nimi-macos-local-development-signing-policy
 description: Platform-neutral bidirectional executable-trust semantics plus closed OS code-signing profiles and trust rows.
-authority_refs: [P-NAPP-034, K-PLOCAL-003, K-PLOCAL-005]
+authority_refs: [P-NAPP-034, P-NAPP-037, K-PLOCAL-003, K-PLOCAL-005]
 platform_admission:
   closeout_unit: os_platform
   independent_admission_allowed: true
   windows: admitted_same_open_object_authenticode
   linux: requirements_only_fail_closed_pending_native_admission
   macos: requirements_only_fail_closed_pending_native_admission
+  macos_local_development: local_development_non_product_admitted
   unadmitted_platform_disposition: fail_closed
   cross_platform_parity_required_before_first_platform_positive_chain: false
 trust_set_schema:
@@ -43,6 +48,10 @@ signer_policy_schema:
     - identity_authority
     - platform_verification_profile_ref
     - key_material_boundary
+    - identity_class
+    - release_record_signature_algorithm
+    - team_id_posture
+    - notarization_posture
     - runtime_build_allowance
     - source_rule
 neutral_contract:
@@ -60,13 +69,18 @@ neutral_contract:
   unavailable_disposition: fail_closed_before_protocol_or_credential_bytes
 release_trust_record_schema:
   encoding: RFC_8785_JSON_Canonicalization_Scheme_UTF_8
-  signature: Ed25519_over_canonical_record_without_signature
-  root: stable_Platform_release_root_public_key_and_key_id_embedded_in_each_production_verifier
+  schema_version: 2
+  signature: signer_policy_selected_algorithm_over_canonical_record_without_signature
+  production_signature: Ed25519_over_canonical_record_without_signature
+  local_development_signature: ECDSA_P256_SHA256_DER_over_canonical_record_without_signature # pragma: allowlist secret -- public signature algorithm identifier, not credential material
+  root: stable_profile_specific_release_root_public_key_and_key_id_embedded_only_in_matching_compile_time_verifier
   release_private_key_custody: fixed_root_owned_same_team_signed_/usr/local/libexec/nimi-release-record-signer_HSM_or_Keychain_service_stdin_payload_only_no_private_key_in_argv_environment_repo_or_artifact
   maximum_bytes: 65536
   fields:
     - schema_version
     - environment
+    - identity_class
+    - signature_algorithm
     - executable_role
     - trust_set_id
     - os_profile
@@ -80,7 +94,10 @@ release_trust_record_schema:
     - windows_chain_policy_ref
     - macos_designated_requirement
     - macos_team_id
+    - macos_leaf_spki_sha256
     - macos_cdhash
+    - macos_hardened_runtime_required
+    - macos_notarization_required
     - linux_manifest_key_id
     - os_service_principal
     - valid_from
@@ -113,10 +130,51 @@ release_trust_record_schema:
       signing_identifier: ai.nimi.apps.nimi.local-app-host
       os_service_principal: verified_desktop_supervised_active_console_user
       fixed_filename: nimi_local_app_host.release-trust-record.json
+  macos_local_development_record_root: /Library/Application Support/Nimi/RuntimeDev/active/trust/protected-local/v1
+  macos_fixed_record_path_authority:
+    system_owned_ancestors:
+      - /Library
+      - /Library/Application Support
+    system_owned_ancestor_policy: exact_absolute_component_open_with_O_NOFOLLOW_then_root_UID_directory_nonzero_link_count_and_group_world_nonwritable;_native_OS_group_and_nonwritable_mode_are_preserved
+    nimi_owned_subtree_root: /Library/Application Support/Nimi
+    nimi_owned_subtree_policy: every_component_from_Nimi_through_the_record_parent_is_exact_root_wheel_mode_0755_directory_nonzero_link_count_and_opened_without_symlink_following
+    record_policy: exact_root_wheel_mode_0644_regular_single_link_file_opened_with_O_NOFOLLOW_and_same_open_vnode_read_stability
+    system_directory_reownership_or_chmod: forbidden
+  macos_local_development_role_records:
+    - executable_role: nimi_runtime_service
+      trust_set_id: nimi-runtime-macos-local-development-v1
+      signing_identifier: ai.nimi.runtime.dev
+      os_service_principal: _nimiruntimedev
+      fixed_filename: nimi_runtime_service.release-trust-record.json
+    - executable_role: nimi_desktop
+      trust_set_id: nimi-desktop-macos-local-development-v1
+      signing_identifier: ai.nimi.apps.nimi.desktop.dev
+      os_service_principal: active_console_user
+      fixed_filename: nimi_desktop.release-trust-record.json
+    - executable_role: nimi_local_app_host
+      trust_set_id: nimi-local-development-host-macos-local-development-v1
+      signing_identifier: ai.nimi.apps.nimi.local-app-host.dev
+      os_service_principal: verified_desktop_supervised_active_console_user
+      fixed_filename: nimi_local_app_host.release-trust-record.json
+  macos_identity_class_rules:
+    production:
+      identity_class: developer_id_application
+      signature_algorithm: ed25519
+      macos_team_id: exact_nonempty_required
+      macos_leaf_spki_sha256: optional_empty
+      macos_hardened_runtime_required: true
+      macos_notarization_required: true
+    local_development:
+      identity_class: local_ca
+      signature_algorithm: ecdsa_p256_sha256
+      macos_team_id: exact_empty_required
+      macos_leaf_spki_sha256: exact_lower_hex_sha256_required
+      macos_hardened_runtime_required: true
+      macos_notarization_required: false
   macos_forbidden_cycle: final_peer_cdhash_compiled_into_mutually_verifying_executables_or_Desktop_cdhash_record_embedded_inside_the_same_outer_bundle_resource_seal
   validation:
     - fixed_role_record_path_only
-    - root_owned_group_and_world_nonwritable_ancestors_plus_root_owned_0644_regular_single_link_record
+    - OS_owned_/Library_and_/Library/Application_Support_ancestors_require_root_UID_directory_and_group_world_nonwritable_without_requiring_wheel;_Nimi_owned_subtree_requires_exact_root_wheel_0755_directories;_record_requires_exact_root_wheel_0644_regular_single_link_same_open_vnode
     - canonical_bytes_equal_input
     - exact_root_key_id_and_valid_signature
     - exact_environment_role_trust_set_os_protocol_signer_policy_and_service_principal
@@ -126,6 +184,7 @@ release_trust_record_schema:
     - same_open_vnode_artifact_sha256
     - dynamic_SecCode_designated_requirement_team_id_cdhash_and_identifier
     - final_outer_bundle_strict_static_validity_and_resource_seal_independent_of_external_record_content_authority
+    - identity_class_signature_algorithm_team_id_leaf_SPKI_hardened_runtime_and_notarization_posture_match_exact_compile_time_profile
 platform_verification_profile_schema:
   fields:
     - os
@@ -168,7 +227,7 @@ platform_verification_profiles:
     client_executable_verification: running_process_audit_token_dynamic_SecCode_exact_role_requirement_team_id_identifier_cdhash_from_signed_role_record_hardened_runtime_same_open_vnode_digest_and_liveness
     server_executable_verification: running_runtime_audit_token_dynamic_SecCode_exact_Runtime_requirement_team_id_identifier_cdhash_from_signed_role_record_hardened_runtime_installed_same_open_vnode_digest_stable_launchd_job_and_boot_epoch
     production_signer_constraint: Developer_ID_Application_exact_designated_requirement_team_id_identifier_release_record_cdhash_notarization_hardened_runtime_and_executable_role
-    non_product_test_signer_constraint: explicit_external_non_product_certificate_exact_designated_requirement_team_id_identifier_cdhash_and_executable_role_never_product_ready
+    non_product_test_signer_constraint: explicit_external_non_product_certificate_exact_designated_requirement_identifier_leaf_SPKI_cdhash_hardened_runtime_Team_ID_absent_and_executable_role_never_product_ready
     service_or_launch_authority: signed_notarized_SMAppService_registered_launchd_system_daemon_or_signed_Desktop_supervised_posix_spawn_child
     pathname_only_verification: forbidden
     verified_transport_profile_ref: .nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml#same-os
@@ -179,6 +238,10 @@ signer_policies:
     identity_authority: nimi_production_release_signing_identity
     platform_verification_profile_ref: platform_verification_profiles#same-os
     key_material_boundary: production_release_signing_service_only
+    identity_class: developer_id_application
+    release_record_signature_algorithm: ed25519
+    team_id_posture: exact_nonempty_required_on_macos
+    notarization_posture: required_on_macos
     runtime_build_allowance: production_only
     source_rule: P-NAPP-034
   - signer_policy_id: external-non-product-e2e-signing-policy
@@ -186,11 +249,31 @@ signer_policies:
     identity_authority: external_ephemeral_e2e_fixture_identity
     platform_verification_profile_ref: platform_verification_profiles#same-os
     key_material_boundary: external_test_secret_store_only
+    identity_class: external_test_fixture
+    release_record_signature_algorithm: ed25519
+    team_id_posture: platform_fixture_specific
+    notarization_posture: never_product_ready
     runtime_build_allowance: test_only
     source_rule: P-NAPP-034
+  - signer_policy_id: nimi-macos-local-development-signing-policy
+    environment: local_development
+    identity_authority: machine_local_non_product_CA_with_distinct_P256_role_leaves
+    platform_verification_profile_ref: platform_verification_profiles#macos
+    key_material_boundary: System_Keychain_root_CA_record_signer_and_helper_bound_unlock_secret_plus_root_wheel_0600_locked_system_domain_role_identity_keychain_opened_only_inside_the_real_uid_0_helper_transaction;_direct_System_Keychain_role_key_ACL_to_/usr/bin/codesign_is_forbidden
+    identity_class: local_ca
+    release_record_signature_algorithm: ecdsa_p256_sha256
+    team_id_posture: exact_empty_required
+    notarization_posture: absent_and_must_not_be_claimed
+    runtime_build_allowance: compile_time_macos_local_development_only
+    source_rule: P-NAPP-037
 production_runtime_accepts_test_trust_set: false
+production_runtime_accepts_local_development_trust_set: false
+local_development_runtime_accepts_production_trust_set: false
+local_development_runtime_accepts_external_e2e_fixture_trust_set: false
 test_runtime_accepts_production_realm_endpoints: false
 test_runtime_accepts_production_account_custody: false
+local_development_runtime_accepts_production_realm_endpoints: false
+local_development_runtime_accepts_production_account_custody: false
 production_runtime_trusts_user_selected_executable: false
 production_configuration_override_sources_forbidden: [environment_variable, argv, renderer_url, app_manifest, user_writable_config]
 trust_direction_requirements:
@@ -292,3 +375,39 @@ trust_sets:
     product_readiness_claim_allowed: false
     runtime_configuration_mutable: false
     source_rule: P-NAPP-034
+  - trust_set_id: nimi-runtime-macos-local-development-v1
+    executable_role: nimi_runtime_service
+    environment: local_development
+    allowed_os_profiles: [macos_local_development]
+    platform_code_signing_policy_ref: nimi-macos-local-development-signing-policy
+    installer_release_authority: explicit_root_owned_fresh_development_install_transaction;_update_fail_closed_pending_release-lineage_pending-commit_admission
+    launch_authority: fixed_launchd_system_job_ai.nimi.runtime.dev_only
+    configuration_authority: compile_time_profile_and_signed_role_record_no_environment_argv_renderer_manifest_or_user_writable_override
+    runtime_build_allowance: compile_time_macos_local_development_only
+    product_readiness_claim_allowed: false
+    runtime_configuration_mutable: false
+    source_rule: P-NAPP-037
+  - trust_set_id: nimi-desktop-macos-local-development-v1
+    executable_role: nimi_desktop
+    environment: local_development
+    allowed_os_profiles: [macos_local_development]
+    platform_code_signing_policy_ref: nimi-macos-local-development-signing-policy
+    installer_release_authority: explicit_root_owned_fresh_development_install_transaction;_update_fail_closed_pending_release-lineage_pending-commit_admission
+    launch_authority: interactive_start_fixed_/Applications/Nimi_Dev.app_only
+    configuration_authority: compile_time_profile_and_signed_bundle_resources_no_environment_argv_renderer_manifest_or_user_writable_trust_override
+    runtime_build_allowance: compile_time_macos_local_development_only
+    product_readiness_claim_allowed: false
+    runtime_configuration_mutable: false
+    source_rule: P-NAPP-037
+  - trust_set_id: nimi-local-development-host-macos-local-development-v1
+    executable_role: nimi_local_app_host
+    environment: local_development
+    allowed_os_profiles: [macos_local_development]
+    platform_code_signing_policy_ref: nimi-macos-local-development-signing-policy
+    installer_release_authority: explicit_root_owned_development_transaction_embedded_in_fixed_Nimi_Dev_bundle
+    launch_authority: verified_Nimi_Dev_Desktop_supervisor_posix_spawn_START_SUSPENDED_only
+    configuration_authority: Runtime_approved_project_shell_renderer_origin_and_controlled_output_binding_only
+    runtime_build_allowance: compile_time_macos_local_development_only
+    product_readiness_claim_allowed: false
+    runtime_configuration_mutable: false
+    source_rule: P-NAPP-037

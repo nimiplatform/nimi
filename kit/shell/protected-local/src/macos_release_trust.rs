@@ -9,25 +9,25 @@ use std::path::{Path, PathBuf};
 
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
-use ed25519_dalek::{Signature, VerifyingKey};
+#[cfg(not(feature = "macos-local-development"))]
+use ed25519_dalek::{Signature as Ed25519Signature, VerifyingKey as Ed25519VerifyingKey};
 use serde::Deserialize;
 use serde_json::Value;
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 
+use crate::macos_profile::{
+    DESKTOP_APPLICATION_PATH, DESKTOP_SIGNING_IDENTIFIER, DESKTOP_TRUST_SET_ID, ENVIRONMENT,
+    IDENTITY_CLASS, RECORD_ROOT, REQUIRE_NOTARIZATION, REQUIRE_TRUSTED_ANCHOR, ROOT_KEY_ID,
+    ROOT_PUBLIC_KEY_B64URL, RUNTIME_SERVICE_PRINCIPAL, RUNTIME_SIGNING_IDENTIFIER,
+    RUNTIME_TRUST_SET_ID, SIGNATURE_ALGORITHM, SIGNER_POLICY_ID,
+};
 use crate::{ProtectedCarrierError, ProtectedCarrierReasonCode};
 
-const RECORD_SCHEMA_VERSION: u64 = 1;
+const RECORD_SCHEMA_VERSION: u64 = 2;
 const RECORD_MAX_BYTES: u64 = 64 * 1024;
-const RECORD_ROOT: &str = "/Library/Application Support/Nimi/Runtime/trust/protected-local/v1";
-const ENVIRONMENT: &str = "production";
 const OS_PROFILE: &str = "macos";
 const PROTOCOL_VERSION: &str = "1";
-const SIGNER_POLICY_ID: &str = "nimi-production-release-signing-policy";
-
-const ROOT_KEY_ID: Option<&str> = option_env!("NIMI_PLATFORM_RELEASE_ROOT_KEY_ID");
-const ROOT_PUBLIC_KEY_B64URL: Option<&str> =
-    option_env!("NIMI_PLATFORM_RELEASE_ROOT_PUBLIC_KEY_B64URL");
 
 #[derive(Clone, Copy)]
 pub(super) struct MacOSRoleRequirements {
@@ -40,16 +40,16 @@ pub(super) struct MacOSRoleRequirements {
 
 pub(super) const RUNTIME_ROLE: MacOSRoleRequirements = MacOSRoleRequirements {
     role: "nimi_runtime_service",
-    trust_set_id: "nimi-runtime-production-v1",
-    signing_identifier: "ai.nimi.runtime",
-    service_principal: "_nimiruntime",
+    trust_set_id: RUNTIME_TRUST_SET_ID,
+    signing_identifier: RUNTIME_SIGNING_IDENTIFIER,
+    service_principal: RUNTIME_SERVICE_PRINCIPAL,
     record_filename: "nimi_runtime_service.release-trust-record.json",
 };
 
 pub(super) const DESKTOP_ROLE: MacOSRoleRequirements = MacOSRoleRequirements {
     role: "nimi_desktop",
-    trust_set_id: "nimi-desktop-production-v1",
-    signing_identifier: "ai.nimi.apps.nimi.desktop",
+    trust_set_id: DESKTOP_TRUST_SET_ID,
+    signing_identifier: DESKTOP_SIGNING_IDENTIFIER,
     service_principal: "active_console_user",
     record_filename: "nimi_desktop.release-trust-record.json",
 };
@@ -62,6 +62,7 @@ pub(super) struct VerifiedMacOSReleaseTrust {
     pub artifact_sha256: String,
     pub designated_requirement: String,
     pub team_id: String,
+    pub leaf_spki_sha256: String,
     pub cdhash: String,
     pub signing_identifier: &'static str,
 }
@@ -71,6 +72,8 @@ pub(super) struct VerifiedMacOSReleaseTrust {
 struct ReleaseTrustRecord {
     schema_version: u64,
     environment: String,
+    identity_class: String,
+    signature_algorithm: String,
     executable_role: String,
     trust_set_id: String,
     os_profile: String,
@@ -84,7 +87,10 @@ struct ReleaseTrustRecord {
     windows_chain_policy_ref: String,
     macos_designated_requirement: String,
     macos_team_id: String,
+    macos_leaf_spki_sha256: String,
     macos_cdhash: String,
+    macos_hardened_runtime_required: bool,
+    macos_notarization_required: bool,
     linux_manifest_key_id: String,
     os_service_principal: String,
     valid_from: String,
@@ -96,9 +102,13 @@ struct ReleaseTrustRecord {
 
 unsafe extern "C" {
     fn nimi_macos_verify_outer_bundle(
+        expected_path: *const std::ffi::c_char,
         expected_requirement: *const std::ffi::c_char,
         expected_team: *const std::ffi::c_char,
+        expected_leaf_spki_sha256: *const std::ffi::c_char,
         expected_identifier: *const std::ffi::c_char,
+        require_trusted_anchor: i32,
+        require_notarization: i32,
     ) -> i32;
 }
 
@@ -118,6 +128,7 @@ pub(super) fn load_release_trust(
     verify_outer_bundle_seal(
         &desktop_record.designated_requirement,
         &desktop_record.team_id,
+        &desktop_record.leaf_spki_sha256,
         desktop_record.signing_identifier,
     )?;
     Ok(record)
@@ -126,7 +137,7 @@ pub(super) fn load_release_trust(
 fn load_verified_role_record(
     requirements: MacOSRoleRequirements,
     root_key_id: &str,
-    root_key: &[u8; 32],
+    root_key: &[u8],
 ) -> Result<VerifiedMacOSReleaseTrust, ProtectedCarrierError> {
     let path = Path::new(RECORD_ROOT).join(requirements.record_filename);
     let encoded = read_fixed_record(&path, requirements.record_filename)?;
@@ -162,16 +173,27 @@ pub(super) fn require_mutual_compatibility(
 fn verify_outer_bundle_seal(
     designated_requirement: &str,
     team_id: &str,
+    leaf_spki_sha256: &str,
     signing_identifier: &str,
 ) -> Result<(), ProtectedCarrierError> {
+    let path = CString::new(DESKTOP_APPLICATION_PATH).map_err(|_| untrusted())?;
     let requirement = CString::new(designated_requirement).map_err(|_| untrusted())?;
     let team = CString::new(team_id).map_err(|_| untrusted())?;
+    let leaf_spki = CString::new(leaf_spki_sha256).map_err(|_| untrusted())?;
     let identifier = CString::new(signing_identifier).map_err(|_| untrusted())?;
     // SAFETY: all pointers are valid NUL-terminated strings for this call. The
     // native function performs a read-only Security.framework validation of
     // the installer-fixed application path and does not retain them.
     if unsafe {
-        nimi_macos_verify_outer_bundle(requirement.as_ptr(), team.as_ptr(), identifier.as_ptr())
+        nimi_macos_verify_outer_bundle(
+            path.as_ptr(),
+            requirement.as_ptr(),
+            team.as_ptr(),
+            leaf_spki.as_ptr(),
+            identifier.as_ptr(),
+            i32::from(REQUIRE_TRUSTED_ANCHOR),
+            i32::from(REQUIRE_NOTARIZATION),
+        )
     } != 0
     {
         return Err(untrusted());
@@ -245,7 +267,7 @@ fn verify_release_trust_record(
     encoded: &[u8],
     requirements: MacOSRoleRequirements,
     root_key_id: &str,
-    root_key: &[u8; 32],
+    root_key: &[u8],
     now: OffsetDateTime,
 ) -> Result<VerifiedMacOSReleaseTrust, ProtectedCarrierError> {
     let mut value: Value = serde_json::from_slice(encoded).map_err(|_| untrusted())?;
@@ -264,10 +286,7 @@ fn verify_release_trust_record(
     let signature_bytes = URL_SAFE_NO_PAD
         .decode(record.signature.as_bytes())
         .map_err(|_| untrusted())?;
-    let signature = Signature::from_slice(&signature_bytes).map_err(|_| untrusted())?;
-    let key = VerifyingKey::from_bytes(root_key).map_err(|_| untrusted())?;
-    key.verify_strict(&payload, &signature)
-        .map_err(|_| untrusted())?;
+    verify_record_signature(root_key, &payload, &signature_bytes)?;
     validate_record(&record, requirements, root_key_id, now)?;
     Ok(VerifiedMacOSReleaseTrust {
         release_id: record.release_id,
@@ -276,6 +295,7 @@ fn verify_release_trust_record(
         artifact_sha256: record.artifact_sha256,
         designated_requirement: record.macos_designated_requirement,
         team_id: record.macos_team_id,
+        leaf_spki_sha256: record.macos_leaf_spki_sha256,
         cdhash: record.macos_cdhash,
         signing_identifier: requirements.signing_identifier,
     })
@@ -289,6 +309,8 @@ fn validate_record(
 ) -> Result<(), ProtectedCarrierError> {
     if record.schema_version != RECORD_SCHEMA_VERSION
         || record.environment != ENVIRONMENT
+        || record.identity_class != IDENTITY_CLASS
+        || record.signature_algorithm != SIGNATURE_ALGORITHM
         || record.executable_role != requirements.role
         || record.trust_set_id != requirements.trust_set_id
         || record.os_profile != OS_PROFILE
@@ -303,7 +325,10 @@ fn validate_record(
         || !valid_release_text(&record.release_id, 128)
         || !valid_release_text(&record.build_id, 128)
         || !valid_sha256(&record.artifact_sha256)
-        || !valid_team_id(&record.macos_team_id)
+        || !valid_profile_team_id(&record.macos_team_id)
+        || !valid_profile_leaf_spki(&record.macos_leaf_spki_sha256)
+        || !record.macos_hardened_runtime_required
+        || record.macos_notarization_required != REQUIRE_NOTARIZATION
         || !valid_requirement(&record.macos_designated_requirement)
         || !valid_cdhash(&record.macos_cdhash)
     {
@@ -341,11 +366,42 @@ fn validate_record(
     Ok(())
 }
 
-fn decode_root_key(encoded: &str) -> Result<[u8; 32], ProtectedCarrierError> {
+fn decode_root_key(encoded: &str) -> Result<Vec<u8>, ProtectedCarrierError> {
     let bytes = URL_SAFE_NO_PAD
         .decode(encoded.as_bytes())
         .map_err(|_| untrusted())?;
-    bytes.try_into().map_err(|_| untrusted())
+    if bytes.is_empty() {
+        return Err(untrusted());
+    }
+    Ok(bytes)
+}
+
+#[cfg(not(feature = "macos-local-development"))]
+fn verify_record_signature(
+    root_key: &[u8],
+    payload: &[u8],
+    signature: &[u8],
+) -> Result<(), ProtectedCarrierError> {
+    let key_bytes: &[u8; 32] = root_key.try_into().map_err(|_| untrusted())?;
+    let signature = Ed25519Signature::from_slice(signature).map_err(|_| untrusted())?;
+    let key = Ed25519VerifyingKey::from_bytes(key_bytes).map_err(|_| untrusted())?;
+    key.verify_strict(payload, &signature)
+        .map_err(|_| untrusted())
+}
+
+#[cfg(feature = "macos-local-development")]
+fn verify_record_signature(
+    root_key: &[u8],
+    payload: &[u8],
+    signature: &[u8],
+) -> Result<(), ProtectedCarrierError> {
+    use p256::ecdsa::signature::Verifier;
+    use p256::ecdsa::{Signature, VerifyingKey};
+    use p256::pkcs8::DecodePublicKey;
+
+    let key = VerifyingKey::from_public_key_der(root_key).map_err(|_| untrusted())?;
+    let signature = Signature::from_der(signature).map_err(|_| untrusted())?;
+    key.verify(payload, &signature).map_err(|_| untrusted())
 }
 
 fn valid_release_text(value: &str, maximum: usize) -> bool {
@@ -357,11 +413,27 @@ fn valid_release_text(value: &str, maximum: usize) -> bool {
             .all(|byte| (0x21..=0x7e).contains(&byte) && byte != b'/' && byte != b'\\')
 }
 
-fn valid_team_id(value: &str) -> bool {
+#[cfg(not(feature = "macos-local-development"))]
+fn valid_profile_team_id(value: &str) -> bool {
     value.len() == 10
         && value
             .bytes()
             .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit())
+}
+
+#[cfg(feature = "macos-local-development")]
+fn valid_profile_team_id(value: &str) -> bool {
+    value.is_empty()
+}
+
+#[cfg(not(feature = "macos-local-development"))]
+fn valid_profile_leaf_spki(value: &str) -> bool {
+    value.is_empty()
+}
+
+#[cfg(feature = "macos-local-development")]
+fn valid_profile_leaf_spki(value: &str) -> bool {
+    valid_sha256(value)
 }
 
 fn valid_requirement(value: &str) -> bool {
@@ -391,7 +463,7 @@ fn untrusted() -> ProtectedCarrierError {
     ProtectedCarrierError::new(ProtectedCarrierReasonCode::RuntimeServiceUntrusted, false)
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "macos-local-development")))]
 mod tests {
     use super::*;
     use ed25519_dalek::{Signer, SigningKey};
@@ -399,8 +471,10 @@ mod tests {
 
     fn signed_record(signing: &SigningKey) -> Vec<u8> {
         let mut value = json!({
-            "schema_version": 1,
+            "schema_version": 2,
             "environment": "production",
+            "identity_class": "developer_id_application",
+            "signature_algorithm": "ed25519",
             "executable_role": "nimi_runtime_service",
             "trust_set_id": "nimi-runtime-production-v1",
             "os_profile": "macos",
@@ -414,7 +488,10 @@ mod tests {
             "windows_chain_policy_ref": "",
             "macos_designated_requirement": r#"identifier "ai.nimi.runtime" and anchor apple generic and certificate leaf[subject.OU] = "ABCDE12345""#,
             "macos_team_id": "ABCDE12345",
+            "macos_leaf_spki_sha256": "",
             "macos_cdhash": "22".repeat(20),
+            "macos_hardened_runtime_required": true,
+            "macos_notarization_required": true,
             "linux_manifest_key_id": "",
             "os_service_principal": "_nimiruntime",
             "valid_from": "2026-07-01T00:00:00Z",

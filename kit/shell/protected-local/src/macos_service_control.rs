@@ -16,8 +16,8 @@ use crate::generated::runtime_auth_service_client::RuntimeAuthServiceClient;
 use crate::generated::runtime_service_control_service_client::RuntimeServiceControlServiceClient;
 use crate::generated::{OpenDesktopSessionRequest, RequestRuntimeRestartRequest};
 use crate::macos_peer_trust::{
-    verify_runtime_peer, MacOSRuntimeProcessIdentity, VerifiedMacOSRuntimePeer,
-    MACOS_RUNTIME_LOCAL_APP_SOCKET_PATH, MACOS_RUNTIME_SOCKET_PATH,
+    verify_runtime_peer, MacOSRuntimePeerState, MacOSRuntimeProcessIdentity,
+    VerifiedMacOSRuntimePeer, MACOS_RUNTIME_LOCAL_APP_SOCKET_PATH, MACOS_RUNTIME_SOCKET_PATH,
 };
 use crate::macos_supervised_process::SupervisedDevelopmentProcess;
 use crate::{
@@ -72,8 +72,31 @@ fn desktop_runtime_session_cache() -> &'static AsyncMutex<Option<Arc<VerifiedDes
 }
 
 impl MacOSDesktopControl {
-    fn channel(&self) -> Channel {
-        self.session.channel.clone()
+    fn host_channel(&self) -> Result<Channel, NimiHostError> {
+        match self.session.runtime_peer.state() {
+            MacOSRuntimePeerState::Intact => Ok(self.session.channel.clone()),
+            MacOSRuntimePeerState::Exited => Err(NimiHostError::new(
+                NimiHostErrorReasonCode::RuntimeRestarted,
+                true,
+            )),
+            MacOSRuntimePeerState::Replaced => Err(NimiHostError::new(
+                NimiHostErrorReasonCode::ProcessReplaced,
+                false,
+            )),
+            MacOSRuntimePeerState::Untrusted => Err(untrusted_host()),
+        }
+    }
+
+    fn product_channel(&self) -> Result<Channel, DesktopProductControlError> {
+        self.host_channel().map_err(|error| {
+            DesktopProductControlError::new(error.reason_code().as_str(), error.retryable())
+        })
+    }
+
+    fn consumer_channel(&self) -> Result<Channel, DesktopRuntimeConsumerError> {
+        self.host_channel().map_err(|error| {
+            DesktopRuntimeConsumerError::new(error.reason_code().as_str(), error.retryable())
+        })
     }
 }
 
@@ -88,10 +111,9 @@ impl NimiDesktopControl for MacOSDesktopControl {
                 + '_,
         >,
     > {
-        Box::pin(crate::desktop_product_control::invoke(
-            self.channel(),
-            request,
-        ))
+        Box::pin(async move {
+            crate::desktop_product_control::invoke(self.product_channel()?, request).await
+        })
     }
 
     fn invoke_runtime_consumer(
@@ -104,10 +126,9 @@ impl NimiDesktopControl for MacOSDesktopControl {
                 + '_,
         >,
     > {
-        Box::pin(crate::desktop_runtime_consumer::invoke(
-            self.channel(),
-            request,
-        ))
+        Box::pin(async move {
+            crate::desktop_runtime_consumer::invoke(self.consumer_channel()?, request).await
+        })
     }
 
     fn request_runtime_service_restart(
@@ -119,11 +140,21 @@ impl NimiDesktopControl for MacOSDesktopControl {
                 + '_,
         >,
     > {
-        Box::pin(request_verified_runtime_restart_on_channel(
-            self.channel(),
-            self.session.runtime_boot_epoch,
-            self.session.runtime_peer.identity(),
-        ))
+        Box::pin(async move {
+            let channel = match self.session.runtime_peer.state() {
+                MacOSRuntimePeerState::Intact => self.session.channel.clone(),
+                MacOSRuntimePeerState::Exited => return Err(unavailable()),
+                MacOSRuntimePeerState::Replaced | MacOSRuntimePeerState::Untrusted => {
+                    return Err(untrusted());
+                }
+            };
+            request_verified_runtime_restart_on_channel(
+                channel,
+                self.session.runtime_boot_epoch,
+                self.session.runtime_peer.identity(),
+            )
+            .await
+        })
     }
 
     fn get_account_session_status(
@@ -131,10 +162,13 @@ impl NimiDesktopControl for MacOSDesktopControl {
         request: DesktopAccountSessionStatusRequest,
     ) -> Pin<Box<dyn Future<Output = Result<DesktopAccountSessionStatus, NimiHostError>> + Send + '_>>
     {
-        Box::pin(crate::windows_desktop_account::get_account_session_status(
-            self.channel(),
-            request,
-        ))
+        Box::pin(async move {
+            crate::windows_desktop_account::get_account_session_status(
+                self.host_channel()?,
+                request,
+            )
+            .await
+        })
     }
 
     fn open_account_session_events(
@@ -147,10 +181,13 @@ impl NimiDesktopControl for MacOSDesktopControl {
                 + '_,
         >,
     > {
-        Box::pin(crate::windows_desktop_account::open_account_session_events(
-            self.channel(),
-            request,
-        ))
+        Box::pin(async move {
+            crate::windows_desktop_account::open_account_session_events(
+                self.host_channel()?,
+                request,
+            )
+            .await
+        })
     }
 
     fn begin_account_login(
@@ -163,10 +200,9 @@ impl NimiDesktopControl for MacOSDesktopControl {
                 + '_,
         >,
     > {
-        Box::pin(crate::windows_desktop_account::begin_login(
-            self.channel(),
-            request,
-        ))
+        Box::pin(async move {
+            crate::windows_desktop_account::begin_login(self.host_channel()?, request).await
+        })
     }
 
     fn complete_account_login(
@@ -175,10 +211,9 @@ impl NimiDesktopControl for MacOSDesktopControl {
     ) -> Pin<
         Box<dyn Future<Output = Result<DesktopAccountMutationResponse, NimiHostError>> + Send + '_>,
     > {
-        Box::pin(crate::windows_desktop_account::complete_login(
-            self.channel(),
-            request,
-        ))
+        Box::pin(async move {
+            crate::windows_desktop_account::complete_login(self.host_channel()?, request).await
+        })
     }
 
     fn invoke_account_realm_unary(
@@ -191,10 +226,9 @@ impl NimiDesktopControl for MacOSDesktopControl {
                 + '_,
         >,
     > {
-        Box::pin(crate::windows_desktop_account::invoke_realm_unary(
-            self.channel(),
-            request,
-        ))
+        Box::pin(async move {
+            crate::windows_desktop_account::invoke_realm_unary(self.host_channel()?, request).await
+        })
     }
 
     fn logout_account(
@@ -203,10 +237,9 @@ impl NimiDesktopControl for MacOSDesktopControl {
     ) -> Pin<
         Box<dyn Future<Output = Result<DesktopAccountMutationResponse, NimiHostError>> + Send + '_>,
     > {
-        Box::pin(crate::windows_desktop_account::logout(
-            self.channel(),
-            request,
-        ))
+        Box::pin(async move {
+            crate::windows_desktop_account::logout(self.host_channel()?, request).await
+        })
     }
 
     fn switch_account(
@@ -215,18 +248,17 @@ impl NimiDesktopControl for MacOSDesktopControl {
     ) -> Pin<
         Box<dyn Future<Output = Result<DesktopAccountMutationResponse, NimiHostError>> + Send + '_>,
     > {
-        Box::pin(crate::windows_desktop_account::switch_account(
-            self.channel(),
-            request,
-        ))
+        Box::pin(async move {
+            crate::windows_desktop_account::switch_account(self.host_channel()?, request).await
+        })
     }
 
     fn get_developer_mode_status(
         &self,
     ) -> Pin<Box<dyn Future<Output = Result<DeveloperModeStatus, NimiHostError>> + Send + '_>> {
-        Box::pin(crate::windows_local_development::get_developer_mode_status(
-            self.channel(),
-        ))
+        Box::pin(async move {
+            crate::windows_local_development::get_developer_mode_status(self.host_channel()?).await
+        })
     }
 
     fn get_local_development_authority_summary(
@@ -238,21 +270,22 @@ impl NimiDesktopControl for MacOSDesktopControl {
                 + '_,
         >,
     > {
-        Box::pin(
+        Box::pin(async move {
             crate::windows_local_development_authority_summary::get_authority_summary(
-                self.channel(),
-            ),
-        )
+                self.host_channel()?,
+            )
+            .await
+        })
     }
 
     fn set_developer_mode(
         &self,
         enabled: bool,
     ) -> Pin<Box<dyn Future<Output = Result<DeveloperModeStatus, NimiHostError>> + Send + '_>> {
-        Box::pin(crate::windows_local_development::set_developer_mode(
-            self.channel(),
-            enabled,
-        ))
+        Box::pin(async move {
+            crate::windows_local_development::set_developer_mode(self.host_channel()?, enabled)
+                .await
+        })
     }
 
     fn evaluate_local_development_project(
@@ -260,10 +293,9 @@ impl NimiDesktopControl for MacOSDesktopControl {
         request: LocalDevelopmentEvaluationRequest,
     ) -> Pin<Box<dyn Future<Output = Result<LocalDevelopmentEvaluation, NimiHostError>> + Send + '_>>
     {
-        Box::pin(crate::windows_local_development::evaluate_project(
-            self.channel(),
-            request,
-        ))
+        Box::pin(async move {
+            crate::windows_local_development::evaluate_project(self.host_channel()?, request).await
+        })
     }
 
     fn decide_local_development_project(
@@ -272,10 +304,9 @@ impl NimiDesktopControl for MacOSDesktopControl {
     ) -> Pin<
         Box<dyn Future<Output = Result<LocalDevelopmentAuthorization, NimiHostError>> + Send + '_>,
     > {
-        Box::pin(crate::windows_local_development::decide_project(
-            self.channel(),
-            request,
-        ))
+        Box::pin(async move {
+            crate::windows_local_development::decide_project(self.host_channel()?, request).await
+        })
     }
 
     fn list_local_development_authorizations(
@@ -287,9 +318,9 @@ impl NimiDesktopControl for MacOSDesktopControl {
                 + '_,
         >,
     > {
-        Box::pin(crate::windows_local_development::list_authorizations(
-            self.channel(),
-        ))
+        Box::pin(async move {
+            crate::windows_local_development::list_authorizations(self.host_channel()?).await
+        })
     }
 
     fn revoke_local_development_authorization(
@@ -298,10 +329,13 @@ impl NimiDesktopControl for MacOSDesktopControl {
     ) -> Pin<
         Box<dyn Future<Output = Result<LocalDevelopmentAuthorization, NimiHostError>> + Send + '_>,
     > {
-        Box::pin(crate::windows_local_development::revoke_authorization(
-            self.channel(),
-            authorization_id,
-        ))
+        Box::pin(async move {
+            crate::windows_local_development::revoke_authorization(
+                self.host_channel()?,
+                authorization_id,
+            )
+            .await
+        })
     }
 
     fn launch_local_development_host(
@@ -313,7 +347,8 @@ impl NimiDesktopControl for MacOSDesktopControl {
         Box::pin(async move {
             let run_id = request.supervisor_run_id;
             let (outcome, process) =
-                crate::windows_local_development::launch_host(self.channel(), request).await?;
+                crate::windows_local_development::launch_host(self.host_channel()?, request)
+                    .await?;
             let mut processes = self
                 .development_processes
                 .lock()
@@ -332,7 +367,10 @@ impl NimiDesktopControl for MacOSDesktopControl {
     ) -> Pin<Box<dyn Future<Output = Result<(), NimiHostError>> + Send + '_>> {
         Box::pin(async move {
             let run_id = request.supervisor_run_id;
-            let result = crate::windows_local_development::end_run(self.channel(), request).await;
+            let result = match self.host_channel() {
+                Ok(channel) => crate::windows_local_development::end_run(channel, request).await,
+                Err(error) => Err(error),
+            };
             let process = self
                 .development_processes
                 .lock()
@@ -350,6 +388,7 @@ impl NimiDesktopControl for MacOSDesktopControl {
         if supervisor_run_id == [0u8; 32] {
             return Err(untrusted_host());
         }
+        self.host_channel()?;
         let processes = self
             .development_processes
             .lock()

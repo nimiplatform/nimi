@@ -173,6 +173,19 @@ platform_posture:
     aggregate: requirements_complete_fail_closed_pending_signed_native_and_live_admission
     electron: fail_closed_pending_Developer_ID_hardened_notarized_Desktop_Runtime_and_independent_local_app_host_plus_real_DOM_CDP_process_acceptance
     tauri: fail_closed_pending_independent_Rust_WKWebView_command_install_update_and_live_acceptance
+    non_product_local_development:
+      profile_id: macos_local_development_v1
+      admission: local_development_non_product_admitted
+      product_admission_promotion: forbidden
+      electron: admitted_only_after_local_CA_signed_hardened_Runtime_Desktop_independent_local_app_host_and_same_candidate_real_DOM_CDP_process_lifecycle_negative_acceptance
+      tauri: fail_closed_pending_independent_Rust_WKWebView_command_install_update_and_live_acceptance
+      service_lifecycle: root_owned_launchd_system_job_ai.nimi.runtime.dev_with_dedicated__nimiruntimedev_principal
+      transport: launchd_socket_activated_UDS_with_mutual_audit_token_dynamic_SecCode_exact_local_CA_leaf_SPKI_vnode_and_liveness_verification
+      custody: Runtime_only_System_Keychain_namespace_ai.nimi.runtime.protected-local.dev.v1
+      signing: local_CA_distinct_role_leaves_Team_ID_absent_no_notarization_or_Gatekeeper_claim
+      realm: compile_time_fixed_local_Realm_broker_http_127.0.0.1_3002_production_endpoints_forbidden
+      app_owned_sqlite_requires_nimi_permission: false
+      acceptance_evidence_root: .nimi/local/acceptance/date-macos-runtime-desktop-zhiyu
     service_profile_ref: .nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml#macos
     transport_profile_ref: .nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml#macos
     custody_profile_ref: .nimi/spec/runtime/kernel/tables/protected-local-custody-profiles.yaml#macos

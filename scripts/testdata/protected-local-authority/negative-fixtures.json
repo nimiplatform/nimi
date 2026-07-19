@@ -158,5 +158,15 @@
       "from": "production_runtime_accepts_test_trust_set: false",
       "to": "production_runtime_accepts_test_trust_set: true"
     }
+  },
+  {
+    "fixture_id": "production-verifier-embeds-local-development-root",
+    "code": "MACOS_LOCAL_DEVELOPMENT_PROFILE_REQUIRED",
+    "target": ".nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "    production_verifier_contains_profile_root: false",
+      "to": "    production_verifier_contains_profile_root: true"
+    }
   }
 ]

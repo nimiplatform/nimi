@@ -14,6 +14,7 @@ path = "src/lib.rs"
 [features]
 default = []
 windows-e2e-fixture = ["nimi-shell-protected-local/windows-e2e-fixture"]
+macos-local-development = ["nimi-shell-protected-local/macos-local-development"]
 
 [dependencies]
 base64 = "0.22"

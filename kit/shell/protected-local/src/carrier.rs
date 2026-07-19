@@ -418,29 +418,27 @@ pub trait NimiLocalAppSession: Send + Sync {
     >;
 }
 
+pub type LocalAppSessionFuture<'a> = Pin<
+    Box<
+        dyn Future<Output = Result<Box<dyn NimiLocalAppSession>, LocalAppOperationError>>
+            + Send
+            + 'a,
+    >,
+>;
+
 pub trait NimiLocalAppCarrier: Send + Sync {
-    fn open_local_app_session(
-        &self,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<Box<dyn NimiLocalAppSession>, LocalAppOperationError>>
-                + Send
-                + '_,
-        >,
-    >;
+    fn open_local_app_session(&self) -> LocalAppSessionFuture<'_>;
 }
+
+pub type DesktopControlFuture<'a> = Pin<
+    Box<
+        dyn Future<Output = Result<Box<dyn NimiDesktopControl>, ProtectedCarrierError>> + Send + 'a,
+    >,
+>;
 
 pub trait NimiProtectedLocalHostCarrier: FixedRuntimeServiceControl {
     /// Opens a mutually verified native connection and performs the empty
     /// OpenDesktopSession bootstrap internally. Session and boot-epoch bytes
     /// remain connection-bound and are never returned by this host API.
-    fn open_desktop_control(
-        &self,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<Box<dyn NimiDesktopControl>, ProtectedCarrierError>>
-                + Send
-                + '_,
-        >,
-    >;
+    fn open_desktop_control(&self) -> DesktopControlFuture<'_>;
 }

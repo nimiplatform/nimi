@@ -1,4 +1,4 @@
-//go:build darwin && cgo
+//go:build darwin && cgo && !nimi_macos_local_development
 
 package protectedlocal
 
@@ -14,8 +14,10 @@ import (
 func macOSFixtureReleaseRecord(t *testing.T, private ed25519.PrivateKey, overrides map[string]any) []byte {
 	t.Helper()
 	value := map[string]any{
-		"schema_version":                   1,
+		"schema_version":                   2,
 		"environment":                      "production",
+		"identity_class":                   "developer_id_application",
+		"signature_algorithm":              "ed25519",
 		"executable_role":                  "nimi_desktop",
 		"trust_set_id":                     "nimi-desktop-production-v1",
 		"os_profile":                       "macos",
@@ -29,7 +31,10 @@ func macOSFixtureReleaseRecord(t *testing.T, private ed25519.PrivateKey, overrid
 		"windows_chain_policy_ref":         "",
 		"macos_designated_requirement":     `identifier "ai.nimi.apps.nimi.desktop" and anchor apple generic and certificate leaf[subject.OU] = "ABCDE12345"`,
 		"macos_team_id":                    "ABCDE12345",
+		"macos_leaf_spki_sha256":           "",
 		"macos_cdhash":                     strings.Repeat("22", 20),
+		"macos_hardened_runtime_required":  true,
+		"macos_notarization_required":      true,
 		"linux_manifest_key_id":            "",
 		"os_service_principal":             "active_console_user",
 		"valid_from":                       "2026-07-01T00:00:00Z",

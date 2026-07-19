@@ -4,12 +4,16 @@ fn main() {
     println!("cargo:rerun-if-env-changed=NIMI_WINDOWS_PRODUCTION_SIGNER_CERT_SHA256");
     let target = std::env::var("TARGET").expect("target triple");
     if target.contains("apple-darwin") {
-        cc::Build::new()
+        let mut native = cc::Build::new();
+        native
             .file("src/macos_native.m")
             .flag("-fobjc-arc")
             .flag("-mmacosx-version-min=13.0")
-            .warnings_into_errors(true)
-            .compile("nimi_protected_local_macos");
+            .warnings_into_errors(true);
+        if std::env::var_os("CARGO_FEATURE_MACOS_LOCAL_DEVELOPMENT").is_some() {
+            native.define("NIMI_MACOS_LOCAL_DEVELOPMENT", "1");
+        }
+        native.compile("nimi_protected_local_macos");
         println!("cargo:rustc-link-lib=framework=CoreFoundation");
         println!("cargo:rustc-link-lib=framework=AppKit");
         println!("cargo:rustc-link-lib=framework=Foundation");
@@ -17,6 +21,7 @@ fn main() {
         println!("cargo:rustc-link-lib=framework=ServiceManagement");
         println!("cargo:rustc-link-lib=bsm");
         println!("cargo:rerun-if-changed=src/macos_native.m");
+        println!("cargo:rerun-if-changed=src/macos_profile.h");
     }
     let manifest = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").expect("manifest dir"));
     let proto_root = manifest.join("../../../proto");

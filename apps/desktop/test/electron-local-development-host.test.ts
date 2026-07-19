@@ -219,15 +219,19 @@ test('Electron local-development package scripts use a fixed Windows shell allow
   );
 });
 
-test('Electron local-development treats unavailable and untrusted Runtime sessions as recoverable', () => {
-  assert.equal(
-    resolveLocalDevelopmentAuthorityFailureState('runtime-service-unavailable'),
-    'runtime-unavailable',
-  );
-  assert.equal(
-    resolveLocalDevelopmentAuthorityFailureState('runtime-service-untrusted'),
-    'runtime-unavailable',
-  );
+test('Electron local-development keeps exact Runtime transport failures recoverable', () => {
+  for (const reasonCode of [
+    'process-replaced',
+    'runtime-restarted',
+    'runtime-service-repair-required',
+    'runtime-service-unavailable',
+    'runtime-service-untrusted',
+  ]) {
+    assert.equal(
+      resolveLocalDevelopmentAuthorityFailureState(reasonCode),
+      'runtime-unavailable',
+    );
+  }
   assert.equal(
     resolveLocalDevelopmentAuthorityFailureState('local-development-authorization-required'),
     'authorization-required',

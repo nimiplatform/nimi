@@ -5,16 +5,15 @@ use std::os::fd::{AsRawFd, FromRawFd, RawFd};
 
 use sha2::{Digest, Sha256};
 
+use crate::macos_profile::{LOCAL_APP_SOCKET_PATH, RUNTIME_EXECUTABLE_PATH, RUNTIME_SOCKET_PATH};
 use crate::macos_release_trust::{
     load_release_trust, require_mutual_compatibility, DESKTOP_ROLE, RUNTIME_ROLE,
 };
 use crate::{ProtectedCarrierError, ProtectedCarrierReasonCode};
 
-pub(crate) const MACOS_RUNTIME_SOCKET_PATH: &str = "/private/var/run/nimi/runtime-desktop.sock";
-pub(crate) const MACOS_RUNTIME_LOCAL_APP_SOCKET_PATH: &str =
-    "/private/var/run/nimi/runtime-local-app.sock";
-pub(crate) const MACOS_RUNTIME_EXECUTABLE_PATH: &str =
-    "/Applications/Nimi.app/Contents/Library/LaunchServices/nimi-runtime";
+pub(crate) const MACOS_RUNTIME_SOCKET_PATH: &str = RUNTIME_SOCKET_PATH;
+pub(crate) const MACOS_RUNTIME_LOCAL_APP_SOCKET_PATH: &str = LOCAL_APP_SOCKET_PATH;
+pub(crate) const MACOS_RUNTIME_EXECUTABLE_PATH: &str = RUNTIME_EXECUTABLE_PATH;
 #[repr(C)]
 #[derive(Clone, Copy)]
 struct NativeVerifiedRuntimePeer {
@@ -36,6 +35,7 @@ unsafe extern "C" {
         expected_executable: *const libc::c_char,
         expected_requirement: *const libc::c_char,
         expected_team: *const libc::c_char,
+        expected_leaf_spki_sha256: *const libc::c_char,
         expected_identifier: *const libc::c_char,
         expected_cdhash: *const libc::c_char,
         output: *mut NativeVerifiedRuntimePeer,
@@ -46,6 +46,7 @@ unsafe extern "C" {
         expected_euid: u32,
         start_sec: u64,
         start_usec: u64,
+        executable_fd: i32,
         kqueue_fd: i32,
         expected_executable: *const libc::c_char,
     ) -> i32;
@@ -69,30 +70,53 @@ pub(crate) struct VerifiedMacOSRuntimePeer {
     _release_generation: u64,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum MacOSRuntimePeerState {
+    Intact,
+    Exited,
+    Replaced,
+    Untrusted,
+}
+
+fn decode_runtime_peer_state(value: i32) -> MacOSRuntimePeerState {
+    match value {
+        1 => MacOSRuntimePeerState::Intact,
+        0 => MacOSRuntimePeerState::Exited,
+        2 => MacOSRuntimePeerState::Replaced,
+        _ => MacOSRuntimePeerState::Untrusted,
+    }
+}
+
 impl VerifiedMacOSRuntimePeer {
     pub(crate) fn identity(&self) -> MacOSRuntimeProcessIdentity {
         self.identity
     }
 
     pub(crate) fn intact(&self) -> bool {
+        self.state() == MacOSRuntimePeerState::Intact
+    }
+
+    pub(crate) fn state(&self) -> MacOSRuntimePeerState {
         let executable = match CString::new(MACOS_RUNTIME_EXECUTABLE_PATH) {
             Ok(value) => value,
-            Err(_) => return false,
+            Err(_) => return MacOSRuntimePeerState::Untrusted,
         };
         // SAFETY: every scalar was returned by the successful native verifier,
         // the kqueue descriptor remains owned by this value, and the C string
         // remains alive for the duration of the read-only liveness check.
-        unsafe {
+        let state = unsafe {
             nimi_macos_runtime_peer_alive(
                 self.identity.pid,
                 self.ppid,
                 self.euid,
                 self.identity.start_sec,
                 self.identity.start_usec,
+                self._executable.as_raw_fd(),
                 self.process_events.as_raw_fd(),
                 executable.as_ptr(),
-            ) == 1
-        }
+            )
+        };
+        decode_runtime_peer_state(state)
     }
 }
 
@@ -115,6 +139,8 @@ pub(crate) fn verify_runtime_peer(
     let executable = CString::new(MACOS_RUNTIME_EXECUTABLE_PATH).map_err(|_| untrusted())?;
     let identifier = CString::new(runtime_release.signing_identifier).map_err(|_| untrusted())?;
     let team = CString::new(runtime_release.team_id.as_str()).map_err(|_| untrusted())?;
+    let leaf_spki =
+        CString::new(runtime_release.leaf_spki_sha256.as_str()).map_err(|_| untrusted())?;
     let requirement =
         CString::new(runtime_release.designated_requirement.as_str()).map_err(|_| untrusted())?;
     let cdhash = CString::new(runtime_release.cdhash.as_str()).map_err(|_| untrusted())?;
@@ -139,6 +165,7 @@ pub(crate) fn verify_runtime_peer(
             executable.as_ptr(),
             requirement.as_ptr(),
             team.as_ptr(),
+            leaf_spki.as_ptr(),
             identifier.as_ptr(),
             cdhash.as_ptr(),
             &mut native,
@@ -219,4 +246,27 @@ fn close_native_descriptors(executable_fd: i32, kqueue_fd: i32) {
 
 fn untrusted() -> ProtectedCarrierError {
     ProtectedCarrierError::new(ProtectedCarrierReasonCode::RuntimeServiceUntrusted, false)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn native_runtime_witness_states_remain_distinct() {
+        assert_eq!(decode_runtime_peer_state(1), MacOSRuntimePeerState::Intact);
+        assert_eq!(decode_runtime_peer_state(0), MacOSRuntimePeerState::Exited);
+        assert_eq!(
+            decode_runtime_peer_state(2),
+            MacOSRuntimePeerState::Replaced
+        );
+        assert_eq!(
+            decode_runtime_peer_state(-1),
+            MacOSRuntimePeerState::Untrusted
+        );
+        assert_eq!(
+            decode_runtime_peer_state(99),
+            MacOSRuntimePeerState::Untrusted
+        );
+    }
 }

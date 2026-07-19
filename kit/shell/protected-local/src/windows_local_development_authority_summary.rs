@@ -171,8 +171,7 @@ mod tests {
             reason_code: ReasonCode::PrincipalUnauthorized as i32,
             ..Default::default()
         });
-        let projection =
-            authority_summary_projection(response.clone()).expect("unavailable section");
+        let projection = authority_summary_projection(response).expect("unavailable section");
         assert_eq!(
             projection.project_authorization.unavailable_reason,
             Some(NimiHostErrorReasonCode::PrincipalUnauthorized)

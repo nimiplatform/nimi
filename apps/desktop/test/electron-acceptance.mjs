@@ -14,7 +14,12 @@ const electronExecutablePath = require('electron');
 const mainEntry = path.join(root, 'dist-electron', 'main.js');
 const rendererAcceptanceUrl = `${pathToFileURL(path.join(root, 'dist', 'index.html')).toString()}?nimiDesktopElectronAcceptance=1`;
 
-test('unsigned Desktop Electron fails closed without the protected carrier while non-authorizing app-owned surfaces remain available', { timeout: 90_000 }, async () => {
+test('unsigned Desktop Electron fails closed without the protected carrier while non-authorizing app-owned surfaces remain available', {
+  timeout: 90_000,
+  skip: process.platform === 'darwin'
+    ? 'macOS CDP is admitted only on the installed signed acceptance carrier'
+    : false,
+}, async () => {
   await withTempDir('acceptance', async (tmpRoot) => {
     const dataRoot = path.join(tmpRoot, 'data');
     const assetRoot = path.join(tmpRoot, 'assets');
@@ -234,7 +239,12 @@ test('unsigned Desktop Electron fails closed without the protected carrier while
   });
 });
 
-test('Desktop Electron config.get cannot fall back to an app-owned runtime config file', { timeout: 90_000 }, async () => {
+test('Desktop Electron config.get cannot fall back to an app-owned runtime config file', {
+  timeout: 90_000,
+  skip: process.platform === 'darwin'
+    ? 'macOS CDP is admitted only on the installed signed acceptance carrier'
+    : false,
+}, async () => {
   await withTempDir('missing-config', async (tmpRoot) => {
     const dataRoot = path.join(tmpRoot, 'data');
     const app = await electron.launch({

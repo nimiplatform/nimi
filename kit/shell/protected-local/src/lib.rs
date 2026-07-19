@@ -12,6 +12,10 @@ mod local_development;
 #[allow(unsafe_code)]
 mod macos_peer_trust;
 #[cfg(target_os = "macos")]
+mod macos_profile;
+#[cfg(all(target_os = "macos", feature = "macos-local-development"))]
+mod macos_profile_local_development;
+#[cfg(target_os = "macos")]
 #[allow(unsafe_code)]
 mod macos_release_trust;
 #[cfg(target_os = "macos")]
@@ -22,7 +26,12 @@ mod macos_service_control;
 mod macos_supervised_process;
 mod reason;
 mod service;
-#[allow(dead_code)]
+#[allow(
+    dead_code,
+    clippy::doc_lazy_continuation,
+    clippy::enum_variant_names,
+    clippy::large_enum_variant
+)]
 mod generated {
     tonic::include_proto!("nimi.runtime.v1");
 }
@@ -55,12 +64,12 @@ pub use adapters::{
     LinuxLocalAppCarrier, LinuxUnixSocketCarrier, WindowsLocalAppCarrier, WindowsNamedPipeCarrier,
 };
 pub use carrier::{
-    LocalAppOperationError, LocalAppPermissionRequest, LocalAppPermissionState,
-    LocalAppPermissionStatus, LocalAppPermissionStatusRequest, LocalAppReasonCode,
-    LocalAppSessionState, LocalAppSessionStatus, LocalAppStorageDocument,
-    LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult,
-    LocalAppStorageWriteRequest, NimiDesktopControl, NimiLocalAppCarrier, NimiLocalAppSession,
-    NimiProtectedLocalHostCarrier,
+    DesktopControlFuture, LocalAppOperationError, LocalAppPermissionRequest,
+    LocalAppPermissionState, LocalAppPermissionStatus, LocalAppPermissionStatusRequest,
+    LocalAppReasonCode, LocalAppSessionFuture, LocalAppSessionState, LocalAppSessionStatus,
+    LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
+    LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, NimiDesktopControl,
+    NimiLocalAppCarrier, NimiLocalAppSession, NimiProtectedLocalHostCarrier,
 };
 pub use desktop_account::{
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,

@@ -228,12 +228,12 @@ export function validateLocalDevelopmentAuthority(bundle) {
   const policy = parsed.policy;
   if (policy) {
     if (
-      policy.version !== 7
+      policy.version !== 8
       || policy.table_family !== 'owner_matrix'
       || policy.owner !== 'platform'
       || policy.matrix_id !== 'nimi_app_local_development_admission'
     ) {
-      issues.push(issue('LOCAL_DEVELOPMENT_POLICY_IDENTITY_INVALID', authorityPaths.policy, 'Policy must be the Platform-owned v7 local-development owner matrix.'));
+      issues.push(issue('LOCAL_DEVELOPMENT_POLICY_IDENTITY_INVALID', authorityPaths.policy, 'Policy must be the Platform-owned v8 local-development owner matrix.'));
     }
 
     if (
@@ -382,13 +382,27 @@ export function validateLocalDevelopmentAuthority(bundle) {
       issues.push(issue('LOCAL_DEVELOPMENT_OPERATION_POSTURE_INVALID', authorityPaths.policy, 'App-private and app-owned operations remain non-permission authority; protected artifact and Runtime Agent families stay unavailable pending atomic permission or attested first-party carrier admission.'));
     }
 
+    const macosDevelopment = policy.platform_posture?.macos?.non_product_local_development;
     if (
       policy.platform_posture?.windows !== 'final_fixed_service_positive_required'
       || policy.platform_posture?.macos?.aggregate !== 'requirements_complete_fail_closed_pending_signed_native_and_live_admission'
+      || policy.platform_posture?.macos?.electron !== 'fail_closed_pending_Developer_ID_hardened_notarized_Desktop_Runtime_and_independent_local_app_host_plus_real_DOM_CDP_process_acceptance'
+      || policy.platform_posture?.macos?.tauri !== 'fail_closed_pending_independent_Rust_WKWebView_command_install_update_and_live_acceptance'
+      || macosDevelopment?.profile_id !== 'macos_local_development_v1'
+      || macosDevelopment?.admission !== 'local_development_non_product_admitted'
+      || macosDevelopment?.product_admission_promotion !== 'forbidden'
+      || !String(macosDevelopment?.electron ?? '').includes('local_CA_signed_hardened_Runtime_Desktop_independent_local_app_host')
+      || macosDevelopment?.tauri !== 'fail_closed_pending_independent_Rust_WKWebView_command_install_update_and_live_acceptance'
+      || macosDevelopment?.service_lifecycle !== 'root_owned_launchd_system_job_ai.nimi.runtime.dev_with_dedicated__nimiruntimedev_principal'
+      || !String(macosDevelopment?.transport ?? '').includes('mutual_audit_token_dynamic_SecCode_exact_local_CA_leaf_SPKI_vnode_and_liveness_verification')
+      || macosDevelopment?.custody !== 'Runtime_only_System_Keychain_namespace_ai.nimi.runtime.protected-local.dev.v1'
+      || !String(macosDevelopment?.signing ?? '').includes('Team_ID_absent_no_notarization_or_Gatekeeper_claim')
+      || macosDevelopment?.realm !== 'compile_time_fixed_local_Realm_broker_http_127.0.0.1_3002_production_endpoints_forbidden'
+      || macosDevelopment?.app_owned_sqlite_requires_nimi_permission !== false
       || policy.platform_posture?.linux !== 'fail_closed_pending_independent_admission'
       || policy.platform_posture?.localhost_grpc_or_same_user_daemon_fallback !== 'forbidden'
     ) {
-      issues.push(issue('LOCAL_DEVELOPMENT_PLATFORM_POSTURE_INVALID', authorityPaths.policy, 'Windows requires the final fixed service; macOS/Linux and localhost/same-user-daemon fallbacks remain fail closed.'));
+      issues.push(issue('LOCAL_DEVELOPMENT_PLATFORM_POSTURE_INVALID', authorityPaths.policy, 'Production macOS/Linux and all fallback carriers remain fail closed; only the isolated non-product macOS Electron profile may be positive and it cannot enable Tauri or Nimi permissions for app-owned SQLite.'));
     }
   }
 

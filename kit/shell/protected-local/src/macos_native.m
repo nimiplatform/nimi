@@ -1,10 +1,15 @@
 #import <CoreFoundation/CoreFoundation.h>
 #import <AppKit/AppKit.h>
 #import <Foundation/Foundation.h>
+#import <Security/SecCertificate.h>
 #import <Security/SecCode.h>
+#import <Security/SecKey.h>
 #import <Security/SecRequirement.h>
 #import <ServiceManagement/ServiceManagement.h>
 
+#include "macos_profile.h"
+
+#include <CommonCrypto/CommonDigest.h>
 #include <bsm/libbsm.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -59,9 +64,9 @@ static int nimi_decode_hex(const char *value, unsigned char *output, size_t capa
 
 static int nimi_fixed_runtime_service_uid(uid_t *output) {
     if (output == NULL) return EINVAL;
-    struct passwd *account = getpwnam("_nimiruntime");
+    struct passwd *account = getpwnam(NIMI_MACOS_RUNTIME_ACCOUNT);
     if (account == NULL || account->pw_uid == 0 || account->pw_name == NULL ||
-        strcmp(account->pw_name, "_nimiruntime") != 0) return ENOENT;
+        strcmp(account->pw_name, NIMI_MACOS_RUNTIME_ACCOUNT) != 0) return ENOENT;
     *output = account->pw_uid;
     return 0;
 }
@@ -86,14 +91,54 @@ static int nimi_same_process(const struct proc_bsdinfo *left, const struct proc_
         left->pbi_start_tvusec == right->pbi_start_tvusec;
 }
 
+static int nimi_macos_leaf_spki_sha256(CFDictionaryRef signing, char output[65]) {
+    if (signing == NULL || output == NULL) return EINVAL;
+    CFArrayRef certificates = (CFArrayRef)CFDictionaryGetValue(signing, kSecCodeInfoCertificates);
+    if (certificates == NULL || CFGetTypeID(certificates) != CFArrayGetTypeID() ||
+        CFArrayGetCount(certificates) < 1) return EACCES;
+    SecCertificateRef leaf = (SecCertificateRef)CFArrayGetValueAtIndex(certificates, 0);
+    if (leaf == NULL || CFGetTypeID(leaf) != SecCertificateGetTypeID()) return EACCES;
+    SecKeyRef public_key = SecCertificateCopyKey(leaf);
+    if (public_key == NULL) return EACCES;
+    CFErrorRef error = NULL;
+    CFDataRef external = SecKeyCopyExternalRepresentation(public_key, &error);
+    CFRelease(public_key);
+    if (error != NULL) CFRelease(error);
+    if (external == NULL || CFDataGetLength(external) != 65 ||
+        CFDataGetBytePtr(external)[0] != 0x04) {
+        if (external != NULL) CFRelease(external);
+        return EACCES;
+    }
+    static const unsigned char p256_spki_prefix[] = {
+        0x30, 0x59, 0x30, 0x13, 0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d,
+        0x02, 0x01, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01,
+        0x07, 0x03, 0x42, 0x00,
+    };
+    unsigned char spki[sizeof(p256_spki_prefix) + 65];
+    memcpy(spki, p256_spki_prefix, sizeof(p256_spki_prefix));
+    memcpy(spki + sizeof(p256_spki_prefix), CFDataGetBytePtr(external), 65);
+    CFRelease(external);
+    unsigned char digest[CC_SHA256_DIGEST_LENGTH];
+    CC_SHA256(spki, (CC_LONG)sizeof(spki), digest);
+    static const char hex[] = "0123456789abcdef";
+    for (size_t index = 0; index < sizeof(digest); index++) {
+        output[index * 2] = hex[digest[index] >> 4];
+        output[index * 2 + 1] = hex[digest[index] & 0x0f];
+    }
+    output[64] = '\0';
+    return 0;
+}
+
 static int nimi_verify_runtime_code(pid_t pid, const audit_token_t *token,
                                     const char *expected_requirement,
                                     const char *expected_team,
+                                    const char *expected_leaf_spki_sha256,
                                     const char *expected_identifier,
                                     const char *expected_cdhash) {
     if (pid <= 0 || token == NULL || expected_requirement == NULL || expected_team == NULL ||
-        expected_identifier == NULL || expected_cdhash == NULL || expected_requirement[0] == '\0' ||
-        expected_team[0] == '\0' || expected_identifier[0] == '\0') return EINVAL;
+        expected_leaf_spki_sha256 == NULL || expected_identifier == NULL || expected_cdhash == NULL ||
+        expected_requirement[0] == '\0' || expected_identifier[0] == '\0' ||
+        ((expected_team[0] == '\0') == (expected_leaf_spki_sha256[0] == '\0'))) return EINVAL;
 
     CFDataRef audit_data = CFDataCreate(kCFAllocatorDefault, (const UInt8 *)token, sizeof(*token));
     if (audit_data == NULL) return ENOMEM;
@@ -111,11 +156,12 @@ static int nimi_verify_runtime_code(pid_t pid, const audit_token_t *token,
     int result = 0;
     CFStringRef requirement_string = CFStringCreateWithCString(kCFAllocatorDefault,
         expected_requirement, kCFStringEncodingUTF8);
-    CFStringRef team_string = CFStringCreateWithCString(kCFAllocatorDefault,
-        expected_team, kCFStringEncodingUTF8);
+    CFStringRef team_string = expected_team[0] == '\0' ? NULL : CFStringCreateWithCString(
+        kCFAllocatorDefault, expected_team, kCFStringEncodingUTF8);
     CFStringRef identifier_string = CFStringCreateWithCString(kCFAllocatorDefault,
         expected_identifier, kCFStringEncodingUTF8);
-    if (requirement_string == NULL || team_string == NULL || identifier_string == NULL) {
+    if (requirement_string == NULL || (expected_team[0] != '\0' && team_string == NULL) ||
+        identifier_string == NULL) {
         result = ENOMEM;
         goto cleanup_strings;
     }
@@ -145,12 +191,18 @@ static int nimi_verify_runtime_code(pid_t pid, const audit_token_t *token,
     int32_t code_flags = 0;
     unsigned char expected_hash[32];
     size_t expected_hash_length = 0;
-    if (team == NULL || identifier == NULL || cdhash == NULL || flags == NULL ||
-        CFGetTypeID(team) != CFStringGetTypeID() ||
+    char leaf_spki_sha256[65] = {0};
+    int leaf_status = expected_leaf_spki_sha256[0] == '\0' ? 0 :
+        nimi_macos_leaf_spki_sha256(signing, leaf_spki_sha256);
+    if (identifier == NULL || cdhash == NULL || flags == NULL ||
         CFGetTypeID(identifier) != CFStringGetTypeID() ||
         CFGetTypeID(cdhash) != CFDataGetTypeID() ||
         CFGetTypeID(flags) != CFNumberGetTypeID() ||
-        !CFEqual(team, team_string) || !CFEqual(identifier, identifier_string) ||
+        (team_string != NULL && (team == NULL || CFGetTypeID(team) != CFStringGetTypeID() ||
+            !CFEqual(team, team_string))) || (team_string == NULL && team != NULL) ||
+        leaf_status != 0 || (expected_leaf_spki_sha256[0] != '\0' &&
+            strcmp(leaf_spki_sha256, expected_leaf_spki_sha256) != 0) ||
+        !CFEqual(identifier, identifier_string) ||
         !CFNumberGetValue(flags, kCFNumberSInt32Type, &code_flags) ||
         (((uint32_t)code_flags) & kSecCodeSignatureRuntime) == 0 ||
         nimi_decode_hex(expected_cdhash, expected_hash, sizeof(expected_hash), &expected_hash_length) != 0 ||
@@ -200,10 +252,10 @@ cleanup_strings:
 
 static int nimi_validate_runtime_socket_path(const char *expected_path) {
     if (expected_path == NULL ||
-        (strcmp(expected_path, "/private/var/run/nimi/runtime-desktop.sock") != 0 &&
-         strcmp(expected_path, "/private/var/run/nimi/runtime-local-app.sock") != 0)) return EINVAL;
+        (strcmp(expected_path, NIMI_MACOS_RUNTIME_SOCKET) != 0 &&
+         strcmp(expected_path, NIMI_MACOS_LOCAL_APP_SOCKET) != 0)) return EINVAL;
     const char *ancestors[] = { "/private", "/private/var", "/private/var/run",
-        "/private/var/run/nimi" };
+        NIMI_MACOS_RUNTIME_SOCKET_DIRECTORY };
     for (size_t index = 0; index < sizeof(ancestors) / sizeof(ancestors[0]); index++) {
         struct stat info;
         if (lstat(ancestors[index], &info) != 0 || !S_ISDIR(info.st_mode) || S_ISLNK(info.st_mode)) {
@@ -223,12 +275,12 @@ int nimi_macos_verify_runtime_peer(int socket_fd, const char *expected_path,
                                    const char *expected_executable,
                                    const char *expected_requirement,
                                    const char *expected_team,
+                                   const char *expected_leaf_spki_sha256,
                                    const char *expected_identifier,
                                    const char *expected_cdhash,
                                    nimi_macos_verified_runtime_peer *output) {
     if (socket_fd < 0 || output == NULL || expected_executable == NULL ||
-        strcmp(expected_executable,
-        "/Applications/Nimi.app/Contents/Library/LaunchServices/nimi-runtime") != 0) return EINVAL;
+        strcmp(expected_executable, NIMI_MACOS_RUNTIME_EXECUTABLE) != 0) return EINVAL;
     memset(output, 0, sizeof(*output));
     output->executable_fd = -1;
     output->kqueue_fd = -1;
@@ -277,7 +329,7 @@ int nimi_macos_verify_runtime_peer(int socket_fd, const char *expected_path,
         return EACCES;
     }
     result = nimi_verify_runtime_code(peer_pid, &token, expected_requirement, expected_team,
-        expected_identifier, expected_cdhash);
+        expected_leaf_spki_sha256, expected_identifier, expected_cdhash);
     if (result != 0) {
         close(executable_fd);
         return result;
@@ -319,14 +371,24 @@ int nimi_macos_verify_runtime_peer(int socket_fd, const char *expected_path,
 
 int nimi_macos_runtime_service_status(void) {
     @autoreleasepool {
-        if (![NSBundle.mainBundle.bundlePath isEqualToString:@"/Applications/Nimi.app"]) {
+        if (![NSBundle.mainBundle.bundlePath isEqualToString:@NIMI_MACOS_DESKTOP_APPLICATION]) {
             return -2;
         }
+#ifdef NIMI_MACOS_LOCAL_DEVELOPMENT
+        struct stat definition;
+        if (lstat(NIMI_MACOS_LAUNCHD_PLIST, &definition) != 0) return 0;
+        if (!S_ISREG(definition.st_mode) || S_ISLNK(definition.st_mode) ||
+            definition.st_uid != 0 || definition.st_gid != 0 ||
+            (definition.st_mode & 0777) != 0644 || definition.st_nlink != 1) return -2;
+        return 1;
+#else
         SMAppService *service = [SMAppService daemonServiceWithPlistName:@"ai.nimi.runtime.plist"];
         return (int)service.status;
+#endif
     }
 }
 
+#ifndef NIMI_MACOS_LOCAL_DEVELOPMENT
 static int nimi_macos_register_service(SMAppService *service) {
     NSError *error = nil;
     if ([service registerAndReturnError:&error]) return (int)service.status;
@@ -335,16 +397,23 @@ static int nimi_macos_register_service(SMAppService *service) {
     }
     return -3;
 }
+#endif
 
-int nimi_macos_verify_outer_bundle(const char *expected_requirement,
+int nimi_macos_verify_outer_bundle(const char *expected_path,
+                                   const char *expected_requirement,
                                    const char *expected_team,
-                                   const char *expected_identifier) {
-    if (expected_requirement == NULL || expected_team == NULL || expected_identifier == NULL ||
-        expected_requirement[0] == '\0' || expected_team[0] == '\0' ||
-        expected_identifier[0] == '\0') return EINVAL;
-    const char *path = "/Applications/Nimi.app";
+                                   const char *expected_leaf_spki_sha256,
+                                   const char *expected_identifier,
+                                   int require_trusted_anchor,
+                                   int require_notarization) {
+    if (expected_path == NULL || expected_requirement == NULL || expected_team == NULL ||
+        expected_leaf_spki_sha256 == NULL || expected_identifier == NULL ||
+        strcmp(expected_path, NIMI_MACOS_DESKTOP_APPLICATION) != 0 ||
+        expected_requirement[0] == '\0' || expected_identifier[0] == '\0' ||
+        ((expected_team[0] == '\0') == (expected_leaf_spki_sha256[0] == '\0')) ||
+        (require_notarization && !require_trusted_anchor)) return EINVAL;
     CFURLRef url = CFURLCreateFromFileSystemRepresentation(
-        kCFAllocatorDefault, (const UInt8 *)path, (CFIndex)strlen(path), true);
+        kCFAllocatorDefault, (const UInt8 *)expected_path, (CFIndex)strlen(expected_path), true);
     if (url == NULL) return ENOMEM;
     SecStaticCodeRef code = NULL;
     OSStatus status = SecStaticCodeCreateWithPath(url, kSecCSDefaultFlags, &code);
@@ -354,11 +423,12 @@ int nimi_macos_verify_outer_bundle(const char *expected_requirement,
     }
     CFStringRef requirement_string = CFStringCreateWithCString(
         kCFAllocatorDefault, expected_requirement, kCFStringEncodingUTF8);
-    CFStringRef team_string = CFStringCreateWithCString(
+    CFStringRef team_string = expected_team[0] == '\0' ? NULL : CFStringCreateWithCString(
         kCFAllocatorDefault, expected_team, kCFStringEncodingUTF8);
     CFStringRef identifier_string = CFStringCreateWithCString(
         kCFAllocatorDefault, expected_identifier, kCFStringEncodingUTF8);
-    if (requirement_string == NULL || team_string == NULL || identifier_string == NULL) {
+    if (requirement_string == NULL || (expected_team[0] != '\0' && team_string == NULL) ||
+        identifier_string == NULL) {
         if (identifier_string != NULL) CFRelease(identifier_string);
         if (team_string != NULL) CFRelease(team_string);
         if (requirement_string != NULL) CFRelease(requirement_string);
@@ -370,20 +440,17 @@ int nimi_macos_verify_outer_bundle(const char *expected_requirement,
         requirement_string, kSecCSDefaultFlags, &requirement);
     if (status != errSecSuccess || requirement == NULL) {
         CFRelease(identifier_string);
-        CFRelease(team_string);
+        if (team_string != NULL) CFRelease(team_string);
         CFRelease(requirement_string);
         CFRelease(code);
         return status == errSecSuccess ? EACCES : (int)status;
     }
     CFErrorRef error = NULL;
-    status = SecStaticCodeCheckValidityWithErrors(
-        code,
-        kSecCSStrictValidate | kSecCSCheckGatekeeperArchitectures |
-            kSecCSCheckNestedCode | kSecCSRestrictSymlinks |
-            kSecCSRestrictToAppLike | kSecCSConsiderExpiration |
-            kSecCSCheckTrustedAnchors,
-        requirement,
-        &error);
+    SecCSFlags validation_flags = kSecCSStrictValidate | kSecCSCheckGatekeeperArchitectures |
+        kSecCSCheckNestedCode | kSecCSRestrictSymlinks | kSecCSRestrictToAppLike |
+        kSecCSConsiderExpiration;
+    if (require_trusted_anchor) validation_flags |= kSecCSCheckTrustedAnchors;
+    status = SecStaticCodeCheckValidityWithErrors(code, validation_flags, requirement, &error);
     if (error != NULL) CFRelease(error);
     if (status == errSecSuccess) {
         CFDictionaryRef signing = NULL;
@@ -395,15 +462,21 @@ int nimi_macos_verify_outer_bundle(const char *expected_requirement,
             CFDataRef ticket = (CFDataRef)CFDictionaryGetValue(signing, kSecCodeInfoStapledNotarizationTicket);
             CFNumberRef flags = (CFNumberRef)CFDictionaryGetValue(signing, kSecCodeInfoFlags);
             int32_t code_flags = 0;
-            if (team == NULL || identifier == NULL || ticket == NULL || flags == NULL ||
-                CFGetTypeID(team) != CFStringGetTypeID() ||
+            char leaf_spki_sha256[65] = {0};
+            int leaf_status = expected_leaf_spki_sha256[0] == '\0' ? 0 :
+                nimi_macos_leaf_spki_sha256(signing, leaf_spki_sha256);
+            if (identifier == NULL || flags == NULL ||
                 CFGetTypeID(identifier) != CFStringGetTypeID() ||
-                CFGetTypeID(ticket) != CFDataGetTypeID() ||
                 CFGetTypeID(flags) != CFNumberGetTypeID() ||
-                CFDataGetLength(ticket) <= 0 ||
+                (require_notarization && (ticket == NULL || CFGetTypeID(ticket) != CFDataGetTypeID() ||
+                    CFDataGetLength(ticket) <= 0)) ||
                 !CFNumberGetValue(flags, kCFNumberSInt32Type, &code_flags) ||
                 (((uint32_t)code_flags) & kSecCodeSignatureRuntime) == 0 ||
-                !CFEqual(team, team_string) || !CFEqual(identifier, identifier_string)) {
+                (team_string != NULL && (team == NULL || CFGetTypeID(team) != CFStringGetTypeID() ||
+                    !CFEqual(team, team_string))) || (team_string == NULL && team != NULL) ||
+                leaf_status != 0 || (expected_leaf_spki_sha256[0] != '\0' &&
+                    strcmp(leaf_spki_sha256, expected_leaf_spki_sha256) != 0) ||
+                !CFEqual(identifier, identifier_string)) {
                 status = errSecCSReqFailed;
             }
             CFRelease(signing);
@@ -428,7 +501,7 @@ int nimi_macos_verify_outer_bundle(const char *expected_requirement,
     }
     CFRelease(requirement);
     CFRelease(identifier_string);
-    CFRelease(team_string);
+    if (team_string != NULL) CFRelease(team_string);
     CFRelease(requirement_string);
     CFRelease(code);
     return status == errSecSuccess ? 0 : (int)status;
@@ -436,19 +509,26 @@ int nimi_macos_verify_outer_bundle(const char *expected_requirement,
 
 int nimi_macos_register_runtime_service(void) {
     @autoreleasepool {
-        if (![NSBundle.mainBundle.bundlePath isEqualToString:@"/Applications/Nimi.app"]) {
+        if (![NSBundle.mainBundle.bundlePath isEqualToString:@NIMI_MACOS_DESKTOP_APPLICATION]) {
             return -2;
         }
+#ifdef NIMI_MACOS_LOCAL_DEVELOPMENT
+        return -3;
+#else
         SMAppService *service = [SMAppService daemonServiceWithPlistName:@"ai.nimi.runtime.plist"];
         return nimi_macos_register_service(service);
+#endif
     }
 }
 
 int nimi_macos_reregister_runtime_service(void) {
     @autoreleasepool {
-        if (![NSBundle.mainBundle.bundlePath isEqualToString:@"/Applications/Nimi.app"]) {
+        if (![NSBundle.mainBundle.bundlePath isEqualToString:@NIMI_MACOS_DESKTOP_APPLICATION]) {
             return -2;
         }
+#ifdef NIMI_MACOS_LOCAL_DEVELOPMENT
+        return -3;
+#else
         SMAppService *service = [SMAppService daemonServiceWithPlistName:@"ai.nimi.runtime.plist"];
         if (service.status != SMAppServiceStatusEnabled) return -3;
         dispatch_semaphore_t completion = dispatch_semaphore_create(0);
@@ -463,6 +543,7 @@ int nimi_macos_reregister_runtime_service(void) {
             return -3;
         }
         return nimi_macos_register_service(service);
+#endif
     }
 }
 
@@ -480,19 +561,34 @@ int nimi_macos_open_url(const char *raw_url) {
 
 int nimi_macos_runtime_peer_alive(uint32_t pid, uint32_t expected_ppid,
                                   uint32_t expected_euid, uint64_t start_sec,
-                                  uint64_t start_usec, int kqueue_fd,
+                                  uint64_t start_usec, int executable_fd, int kqueue_fd,
                                   const char *expected_executable) {
-    if (pid == 0 || kqueue_fd < 0 || expected_executable == NULL) return 0;
+    if (pid == 0 || executable_fd < 0 || kqueue_fd < 0 || expected_executable == NULL) return -1;
     struct kevent event;
     struct timespec timeout = {0, 0};
     int count = kevent(kqueue_fd, NULL, 0, &event, 1, &timeout);
-    if (count != 0) return 0;
+    if (count < 0) return -1;
+    if (count > 0) {
+        if (event.filter == EVFILT_VNODE ||
+            (event.filter == EVFILT_PROC && (event.fflags & NOTE_EXEC) != 0)) return 2;
+        if (event.filter == EVFILT_PROC && (event.fflags & NOTE_EXIT) != 0) return 0;
+        return -1;
+    }
     struct proc_bsdinfo process;
     char path[PROC_PIDPATHINFO_MAXSIZE];
-    if (nimi_process_snapshot((pid_t)pid, &process, path, sizeof(path)) != 0 ||
-        process.pbi_ppid != expected_ppid || process.pbi_uid != expected_euid ||
+    int snapshot = nimi_process_snapshot((pid_t)pid, &process, path, sizeof(path));
+    if (snapshot == ESRCH) return 0;
+    if (snapshot != 0) return -1;
+    if (process.pbi_ppid != expected_ppid || process.pbi_uid != expected_euid ||
         process.pbi_ruid != expected_euid || process.pbi_start_tvsec != start_sec ||
-        process.pbi_start_tvusec != start_usec || strcmp(path, expected_executable) != 0) return 0;
+        process.pbi_start_tvusec != start_usec || strcmp(path, expected_executable) != 0) return 2;
+    struct stat opened;
+    struct stat current;
+    if (fstat(executable_fd, &opened) != 0) return -1;
+    if (lstat(expected_executable, &current) != 0) return errno == ENOENT ? 2 : -1;
+    if (!S_ISREG(current.st_mode) || S_ISLNK(current.st_mode) || current.st_uid != 0 ||
+        (current.st_mode & 0022) != 0 || opened.st_dev != current.st_dev ||
+        opened.st_ino != current.st_ino || opened.st_size != current.st_size) return 2;
     return 1;
 }
 
@@ -500,8 +596,7 @@ int nimi_macos_spawn_suspended(const char *executable, char *const argv[], char 
                                const char *working_directory, uint32_t *pid_output) {
     if (executable == NULL || argv == NULL || argv[0] == NULL || envp == NULL ||
         working_directory == NULL || pid_output == NULL ||
-        strcmp(executable,
-        "/Applications/Nimi.app/Contents/Frameworks/Nimi Local App Host.app/Contents/MacOS/Nimi Local App Host") != 0 ||
+        strcmp(executable, NIMI_MACOS_LOCAL_APP_HOST) != 0 ||
         executable[0] != '/' || working_directory[0] != '/') return EINVAL;
     posix_spawnattr_t attributes;
     posix_spawn_file_actions_t actions;

@@ -38,6 +38,7 @@ const expectedCodes = [
   'DESKTOP_PRODUCT_CONTROL_ROUTE_CONVERGENCE_REQUIRED',
   'PORTABLE_AUTHORITY_FORBIDDEN',
   'TRUST_SET_ISOLATION_REQUIRED',
+  'MACOS_LOCAL_DEVELOPMENT_PROFILE_REQUIRED',
 ];
 
 function runGate(args) {
@@ -83,7 +84,7 @@ test('the final transport, role, and request-empty local session shapes are exac
 
 test('every method resolves through one platform-neutral transport binding and G5 keeps current behavior', () => {
   const matrix = parseAuthority(AUTHORITY_PATHS.transport);
-  assert.equal(matrix.methods.length, 63);
+  assert.equal(matrix.methods.length, matrix.method_platform_binding.declared_method_count);
   assert.equal(matrix.method_platform_binding.coverage, 'every_methods_row');
   assert.equal(matrix.method_platform_binding.resolver, 'transport_class_bindings');
   assert.equal(matrix.method_platform_binding.missing_or_ambiguous_binding, 'fail_generation');
@@ -138,7 +139,12 @@ test('SID anchor and principal/record stores are separate while permission stora
 test('platform profiles preserve the Windows chain and macOS UDS requirement', () => {
   const principals = parseAuthority(AUTHORITY_PATHS.runtimePrincipals);
   const transports = parseAuthority(AUTHORITY_PATHS.osProfiles);
+  const custody = parseAuthority(AUTHORITY_PATHS.custodyProfiles);
   const windows = principals.profiles.find((row) => row.os === 'windows');
+  const macosPrincipalDevelopment = principals.non_product_local_development_profiles
+    .find((row) => row.profile_id === 'macos_local_development_v1');
+  const macosCustodyDevelopment = custody.non_product_local_development_profiles
+    .find((row) => row.profile_id === 'macos_local_development_v1');
   const windowsTransport = transports.profiles.find((row) => row.os === 'windows');
   const macosTransport = transports.profiles.find((row) => row.os === 'macos');
   assert.equal(principals.neutral_contract.production_runtime_execution_mode, 'isolated_os_service_principal');
@@ -147,11 +153,62 @@ test('platform profiles preserve the Windows chain and macOS UDS requirement', (
   assert.equal(windows.principal_constraints.scm_account, 'LocalSystem');
   assert.equal(windows.principal_constraints.token_user_sid, 'S-1-5-18');
   assert.equal(windows.acceptance_isolation.runtime_lifecycle_and_restart, 'real_scm_service');
+  assert.equal(macosPrincipalDevelopment.principal_constraints.account_uid_gid_minimum, 450);
+  assert.equal(macosPrincipalDevelopment.principal_constraints.account_uid_gid_maximum, 499);
+  assert.equal(macosPrincipalDevelopment.principal_constraints.password_record_value, '*');
+  assert.equal(macosPrincipalDevelopment.principal_carrier_contract_version, 4);
+  assert.equal(macosPrincipalDevelopment.principal_constraints.authentication_authority_posture, 'absent_required');
+  assert.deepEqual(macosPrincipalDevelopment.principal_constraints.forbidden_authentication_material_attributes, [
+    'dsAttrTypeStandard:AuthenticationAuthority',
+    'dsAttrTypeNative:ShadowHashData',
+    'dsAttrTypeStandard:PasswordPlus',
+    'dsAttrTypeStandard:AltSecurityIdentities',
+    'dsAttrTypeStandard:AuthCredential',
+    'dsAttrTypeStandard:AuthMethod',
+    'dsAttrTypeStandard:AuthenticationHint',
+    'dsAttrTypeStandard:KDCAuthKey',
+    'dsAttrTypeStandard:KerberosServices',
+    'dsAttrTypeStandard:KerberosRealm',
+    'dsAttrTypeNative:KerberosKeys',
+    'dsAttrTypeNative:HeimdalSRPKey',
+    'dsAttrTypeNative:SecureTokenVerifierHistory',
+    'dsAttrTypeNative:AutoGrantSecureToken',
+    'dsAttrTypeNative:LinkedIdentity',
+  ]);
+  assert.equal(macosPrincipalDevelopment.principal_constraints.generated_uid, 'distinct_valid_UUID_required_for_user_and_group');
+  assert.equal(macosPrincipalDevelopment.principal_constraints.directory_service_api, 'public_OpenDirectory_framework_ODNode_createRecord_only');
+  assert.match(macosPrincipalDevelopment.principal_constraints.directory_service_commit_policy, /journal.*ODNode_createRecord.*GeneratedUID.*no_AuthenticationAuthority.*fresh_exact-signed_real-root_helper_process.*OpenDirectory_and_POSIX/u);
+  assert.match(macosPrincipalDevelopment.principal_constraints.directory_service_recovery_policy, /deletes_user_before_group.*proves_both_records_absent/u);
+  assert.deepEqual(macosPrincipalDevelopment.principal_constraints.directory_service_mutation_fallbacks, [
+    'dscl_forbidden', 'sysadminctl_forbidden', 'dsimport_forbidden', 'direct_dslocal_write_forbidden',
+  ]);
+  assert.equal(
+    macosPrincipalDevelopment.acceptance_isolation.development_state_lineage_root_acl,
+    'root_installation_boundary_and_dedicated__nimiruntimedev_state_only',
+  );
+  assert.equal(
+    macosCustodyDevelopment.signing_keychain_password_commit_policy,
+    'bootstrap_signing_keychain_password_exists_in_memory_only_and_is_zeroized_after_transaction;_the_final_helper_must_be_locally_CA_signed_and_its_exact_cdhash_known_before_one_System_Keychain_generic_password_insert;_the_item_is_born_with_exact_final-helper-only_decrypt_delete_changeACL_and_partition_ACLs;_bootstrap_helper_never_reads_owns_or_deletes_the_durable_item;_a_fresh_final_signed_helper_process_must_reopen_and_validate_custody_without_interaction;_rollback_and_unprovision_first_verify_the_exact_final-helper_and_item_ACLs_then_delete_the_signing-Keychain_then_delete_the_exact_item_reference_and_prove_absence_before_removing_public_trust_or_unlinking_the_final-helper;_failure_preserves_the_final-helper_cleanup-record_and_public-trust-until_unlock-secret_deletion_is_proven',
+  );
+  assert.match(macosCustodyDevelopment.signing_unprovision_repair_policy, /repair-only.*embedded_chain.*cleanup-record_fingerprint.*must_not_read_or_delete_the_secret/u);
+  assert.equal(macosCustodyDevelopment.signing_bootstrap_helper_path, '/usr/local/libexec/nimi-macos-dev-security-bootstrap');
+  assert.match(macosCustodyDevelopment.signing_acl_identity_digest_policy, /opaque_SecTrustedApplication.*public_profile_v4.*must_not_recreate_or_interpret.*all_five_role_private_keys.*System_Keychain_profile_private_keys/u);
+  assert.match(macosCustodyDevelopment.signing_helper_identity_transition_policy, /immutable_root_owned_linker_signed_bootstrap.*non-durable_P256_CA_private_key.*never_enters_any_Keychain.*helper-role_private_key.*password-unlocked_signing_Keychain/u);
+  assert.match(macosCustodyDevelopment.signing_helper_identity_transition_policy, /record-signer_Runtime_Desktop_and_local-host_role_keys.*same_unlocked_signing_Keychain.*zero_profile_private_keys_are_admitted_in_System_Keychain/u);
+  assert.match(macosCustodyDevelopment.signing_helper_identity_transition_policy, /success_requires_bootstrap_absent_zero_transitional_ACLs_zero_System_profile_private_keys_and_no_durable_CA_private_key/u);
+  assert.match(macosCustodyDevelopment.unprovision_residual_identity_closure, /present_signing-Keychain_unlock-secret_requires_the_exact_verified_final_helper.*zero_System_Keychain_profile_private_keys_are_admitted.*zero_fixed_profile_key_certificate_password_trust/u);
   assert.equal(principals.service_acceptance_contract.test_only_service_principal, 'forbidden');
   assert.equal(windowsTransport.endpoint_kind, 'named_pipe');
   assert.equal(macosTransport.admission, 'requirements_only_fail_closed_pending_native_admission');
   assert.equal(macosTransport.endpoint_kind, 'filesystem_unix_domain_socket');
   assert.match(macosTransport.client_peer_verification, /LOCAL_PEERTOKEN.*audit_session/u);
+  const macosDevelopment = transports.non_product_local_development_profiles
+    .find((row) => row.profile_id === 'macos_local_development_v1');
+  assert.equal(transports.platform_admission.macos, 'requirements_only_fail_closed_pending_native_admission');
+  assert.equal(transports.platform_admission.macos_local_development, 'local_development_non_product_admitted');
+  assert.equal(macosDevelopment.production_verifier_contains_profile_root, false);
+  assert.equal(macosDevelopment.desktop_socket_path, '/private/var/run/nimi-dev/runtime-desktop.sock');
+  assert.match(macosDevelopment.client_peer_verification, /leaf_SPKI/u);
 });
 
 test('launch session profiles preserve the admitted Windows chain and macOS atomic requirement', () => {
@@ -206,6 +263,8 @@ test('portable material and production/test trust conversion remain forbidden', 
     assert.equal(grant.forbidden_public_fields.includes(field), true, `${field} must remain private`);
   }
   assert.equal(trust.production_runtime_accepts_test_trust_set, false);
+  assert.equal(trust.production_runtime_accepts_local_development_trust_set, false);
+  assert.equal(trust.local_development_runtime_accepts_production_trust_set, false);
   assert.equal(trust.test_runtime_accepts_production_account_custody, false);
   assert.equal(trust.production_runtime_trusts_user_selected_executable, false);
   assert.equal(trust.trust_sets.some((row) => row.trust_set_id === 'nimi-runtime-e2e-fixture-v1'), false);
@@ -215,6 +274,12 @@ test('portable material and production/test trust conversion remain forbidden', 
   assert.match(windowsTrust.native_release_verification, /WinVerifyTrust/u);
   assert.equal(macosTrust.admission, 'requirements_only_fail_closed_pending_native_admission');
   assert.match(macosTrust.native_release_verification, /dynamic_SecCode/u);
+  assert.equal(trust.release_trust_record_schema.schema_version, 2);
+  assert.equal(trust.release_trust_record_schema.local_development_signature, 'ECDSA_P256_SHA256_DER_over_canonical_record_without_signature');
+  const localSigner = trust.signer_policies.find((row) => row.signer_policy_id === 'nimi-macos-local-development-signing-policy');
+  assert.equal(localSigner.identity_class, 'local_ca');
+  assert.equal(localSigner.team_id_posture, 'exact_empty_required');
+  assert.equal(localSigner.notarization_posture, 'absent_and_must_not_be_claimed');
 });
 
 test('negative fixtures are independent and cover every stable issue code', () => {

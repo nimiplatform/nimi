@@ -30,7 +30,7 @@ test('macOS production builder is Developer-ID-only and carries no release priva
   assert.doesNotMatch(builder, /identity:\s*['"]-['"]|ad[-_ ]hoc/iu);
 });
 
-test('macOS installer leaves activation to verified SMAppService control', () => {
+test('macOS production installer remains fail-closed pending native admission', () => {
   const preinstall = source('apps/desktop/macos/installer/preinstall');
   const postinstall = source('apps/desktop/macos/installer/postinstall');
   const nativeCarrier = source('kit/shell/protected-local/src/macos_native.m');
@@ -43,8 +43,9 @@ test('macOS installer leaves activation to verified SMAppService control', () =>
   }
   assert.match(preinstall, /launchctl bootout/u);
   assert.match(preinstall, /Runtime service did not stop before update/u);
-  assert.match(postinstall, /macos-protected-state-provision/u);
-  assert.match(postinstall, /SMAppService registration remains an explicit Desktop administrator action/u);
+  assert.match(postinstall, /requirements-only and fail-closed/u);
+  assert.match(postinstall, /exit 78/u);
+  assert.doesNotMatch(postinstall, /macos-protected-state-provision|dscl|runtime-account/u);
   assert.match(nativeCarrier, /unregisterWithCompletionHandler/u);
   assert.match(nativeCarrier, /dispatch_semaphore_wait/u);
   assert.match(nativeCarrier, /service\.status != SMAppServiceStatusNotRegistered/u);
@@ -81,4 +82,20 @@ test('layout-only output is structurally useful but cannot claim admission', () 
   assert.match(mainBundler, /\['electron', 'sharp', '@nimiplatform\/kit-protected-local-darwin-arm64'\]/u);
   assert.match(mainBundler, /const require = __nimiCreateRequire\(import\.meta\.url\)/u);
   assert.doesNotMatch(builder, /acceptanceEligible:\s*true/u);
+});
+
+test('macOS non-product build injects the one generated development Host path into both verifiers', () => {
+  const builder = source('apps/desktop/scripts/build-macos-electron-release.mjs');
+  const bundler = source('apps/desktop/scripts/bundle-electron-main.mjs');
+  const plan = source('apps/desktop/src-electron/local-development-plan.ts');
+  const generated = source('apps/desktop/scripts/generated/macos-local-development-profile.mjs');
+  const hostContract = source('apps/desktop/macos/local-app-host/contract.mjs');
+
+  assert.match(generated, /"localAppHostPath": "\/Applications\/Nimi Dev\.app\/Contents\/Frameworks\/Nimi Local App Host Dev\.app\/Contents\/MacOS\/Nimi Local App Host Dev"/u);
+  assert.match(bundler, /MACOS_LOCAL_DEVELOPMENT_PROFILE\.localAppHostPath/u);
+  assert.match(bundler, /__NIMI_MACOS_LOCAL_APP_HOST_PATH__/u);
+  assert.match(plan, /canonicalFile\(macOSLocalAppHostPath\(\)\)/u);
+  assert.match(builder, /contractSource\.replace\(productionPathLiteral, JSON\.stringify\(MACOS_LOCAL_DEVELOPMENT_PROFILE\.localAppHostPath\)\)/u);
+  assert.match(hostContract, /MACOS_LOCAL_APP_HOST_EXECUTABLE/u);
+  assert.doesNotMatch(builder, /NIMI_MACOS_LOCAL_APP_HOST|process\.env.*localAppHost/iu);
 });

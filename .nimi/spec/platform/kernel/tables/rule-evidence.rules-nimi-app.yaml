@@ -289,7 +289,7 @@ rules:
   - platform_kernel_consistency
   - protected_local_authority_gate
   evidence_requirement: structural_required
-  evidence_scope_note: structural authority only while macOS remains requirements-only and fail closed; positive admission additionally requires independent Electron and Tauri native carrier evidence, launchd system-service ownership, audit-token and dynamic-SecCode peer proof, Runtime-only System Keychain custody, Developer ID signing, hardened runtime, Gatekeeper and notarization evidence, restart and revoke rotation, and Desktop-close orphan-process negative evidence.
+  evidence_scope_note: production macOS remains requirements-only and requires independent Electron and Tauri carrier evidence, SMAppService/launchd ownership, Developer ID, Gatekeeper and notarization. The separately named non-product local-development profile requires a real root-owned launchd system service, isolated System Keychain custody, local-CA exact-role signatures with Team ID absent, audit-token/dynamic-SecCode/vnode/liveness mutual proof, signed Electron DOM/CDP evidence, restart/revoke rotation, and Desktop-close orphan-process negatives; that evidence is explicitly non-promotable to production or Tauri admission.
   test_files:
   - scripts/check-protected-local-authority.mjs
   - scripts/check-protected-local-authority.test.mjs

@@ -298,20 +298,17 @@ pub(crate) async fn launch_host(
     validate_identifier(request.authorization_id)?;
     validate_identifier(request.supervisor_run_id)?;
     report_windows_e2e_projection_stage("launch-identifiers-validated");
-    let host_executable_path = canonical_file(&request.host_executable_path).map_err(|error| {
+    let host_executable_path = canonical_file(&request.host_executable_path).inspect_err(|_| {
         report_windows_e2e_projection_stage("launch-host-canonical-rejected");
-        error
     })?;
     report_windows_e2e_projection_stage("launch-host-canonical-validated");
-    let working_directory = canonical_directory(&request.working_directory).map_err(|error| {
+    let working_directory = canonical_directory(&request.working_directory).inspect_err(|_| {
         report_windows_e2e_projection_stage("launch-working-directory-rejected");
-        error
     })?;
     report_windows_e2e_projection_stage("launch-working-directory-validated");
     let _renderer_origin =
-        controlled_renderer_origin(&request.renderer_origin).map_err(|error| {
+        controlled_renderer_origin(&request.renderer_origin).inspect_err(|_| {
             report_windows_e2e_projection_stage("launch-renderer-origin-rejected");
-            error
         })?;
     report_windows_e2e_projection_stage("launch-prepare-request");
     let response = RuntimeAppServiceClient::new(channel.clone())
@@ -356,9 +353,8 @@ pub(crate) async fn launch_host(
         return Err(untrusted());
     }
     report_windows_e2e_projection_stage("launch-bind-deadline-validated");
-    process.resume().map_err(|error| {
+    process.resume().inspect_err(|_| {
         report_windows_e2e_projection_stage("launch-process-resume-rejected");
-        error
     })?;
     report_windows_e2e_projection_stage("launch-process-resumed");
     Ok((

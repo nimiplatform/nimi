@@ -257,8 +257,6 @@ import (
 	"unsafe"
 )
 
-const macOSKeychainService = "ai.nimi.runtime.protected-local.v1"
-
 var macOSSecretNamePattern = regexp.MustCompile(`^[a-z][a-z0-9.-]{0,62}[a-z0-9]$|^[a-z]$`)
 
 type macOSSystemKeychainSecretStore struct {
@@ -311,7 +309,7 @@ func (store *macOSSystemKeychainSecretStore) Load(ctx context.Context, name stri
 		return nil, err
 	}
 	defer C.free(unsafe.Pointer(account))
-	service := C.CString(macOSKeychainService)
+	service := C.CString(MacOSKeychainService)
 	defer C.free(unsafe.Pointer(service))
 	var value []byte
 	err = store.withNative("load Runtime System Keychain item", func(native *C.nimi_macos_keychain_store) error {
@@ -343,7 +341,7 @@ func (store *macOSSystemKeychainSecretStore) Store(ctx context.Context, name str
 		return err
 	}
 	defer C.free(unsafe.Pointer(account))
-	service := C.CString(macOSKeychainService)
+	service := C.CString(MacOSKeychainService)
 	defer C.free(unsafe.Pointer(service))
 	copyValue := append([]byte(nil), value...)
 	defer zeroBytes(copyValue)
@@ -365,7 +363,7 @@ func (store *macOSSystemKeychainSecretStore) Delete(ctx context.Context, name st
 		return err
 	}
 	defer C.free(unsafe.Pointer(account))
-	service := C.CString(macOSKeychainService)
+	service := C.CString(MacOSKeychainService)
 	defer C.free(unsafe.Pointer(service))
 	return store.withNative("delete Runtime System Keychain item", func(native *C.nimi_macos_keychain_store) error {
 		result := C.nimi_macos_keychain_delete(native, service, account)

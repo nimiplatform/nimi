@@ -37,6 +37,386 @@ signed/notarized Nimi.app
   -> Runtime authenticated Realm broker -> Realm API
 ```
 
+### Non-product local-development admission
+
+`P-NAPP-037` also owns one independently named
+`local_development_non_product_admitted` profile. This profile exists only so a
+real macOS machine without an Apple Developer ID can exercise the complete
+Runtime -> Desktop -> supervised Electron host chain. Its evidence is
+non-promotable: it cannot satisfy, weaken, or substitute for any production
+Developer ID, Team ID, SMAppService, notarization, Gatekeeper, installer, or
+Tauri row in the aggregate production gate above or below.
+
+The non-product graph is fixed and isolated from production:
+
+```text
+machine-local non-product CA and root-owned Keychain signing custody
+  -> explicit administrator-owned install/update transaction
+  -> launchd system-domain ai.nimi.runtime.dev LaunchDaemon
+     -> dedicated non-login _nimiruntimedev principal
+     -> Runtime-only System Keychain custody
+     -> launchd socket-activated filesystem UDS listeners under /private/var/run/nimi-dev
+        -> /Applications/Nimi Dev.app verified Desktop main
+           -> fixed Kit protected carrier -> typed SDK consumers
+           -> verified Desktop local-development supervisor
+              -> independently signed Nimi Local App Host Dev.app
+                 -> Zhiyu/local-app main + sandboxed renderer
+  -> Runtime fixed local-development Realm broker -> http://127.0.0.1:3002
+```
+
+The development Runtime executable is installer-fixed at
+`/Library/Application Support/Nimi/RuntimeDev/active/bin/nimi-runtime`; its
+durable state is the sibling `RuntimeDev/state`, and its external role records
+are rooted at `RuntimeDev/active/trust/protected-local/v1`. The service label,
+principal, bundle identifiers, Keychain service, state, role-record root,
+sockets, Desktop bundle and local-host bundle are distinct from production.
+Neither profile reads the other's state or trust root. Profile selection is a
+compile-time build decision; environment, argv, renderer, app manifest and
+user-writable configuration cannot select it, and a production verifier does
+not contain the local-development release-root public key.
+
+The machine-local CA uses distinct P-256 leaf identities for Runtime, Desktop,
+local-app host, the privileged helper and release-record signing. The CA
+private key is non-durable: it exists only in bootstrap process memory while
+issuing this closed leaf set, is never inserted into any Keychain, file,
+projection or evidence artifact, and becomes unreachable before bootstrap
+retirement. Only the public root certificate and the final-helper-only signing-
+Keychain unlock secret remain in the System Keychain. All five persistent role
+private keys, including the release-record signer, remain in the fixed locked
+signing Keychain. Zero profile private keys are admitted in System Keychain;
+absence of both a durable root private key and every System profile private key
+is positive custody evidence, not an unavailable state.
+Apple Silicon's linker emits an ad-hoc, linker-signed CodeDirectory for the
+initial helper executable. That object is a non-authorizing bootstrap input,
+not a development carrier and not evidence for any admission row. Before the
+explicit administrator transaction, the unprivileged orchestrator hashes one
+canonical single-link build vnode and installs those exact bytes as two
+root-owned, single-link regular files: the executing immutable bootstrap at
+`/usr/local/libexec/nimi-macos-dev-security-bootstrap` and the never-yet-executed
+final candidate at `/usr/local/libexec/nimi-macos-dev-security`. It verifies
+that the source vnode and digest did not change and that both installed digests
+equal the source. The root bootstrap accepts the transaction only when dynamic
+inspection binds its current executable to the bootstrap path and
+Security.framework proves the fixed build identifier, empty Team ID, absent
+certificate chain, `adhoc` plus `linker-signed` flags, absent hardened-runtime
+flag, and a designated requirement equal to its exact CDHash. Static inspection
+must prove the final candidate is the same bootstrap identity before signing.
+That CDHash may authorize only the bounded creation transaction or an
+explicitly confirmed teardown/repair transaction that can only remove this
+non-product profile. Bootstrap creates the non-durable CA key and public root
+certificate, then creates the helper role key in the fixed, explicitly unlocked
+root-owned signing Keychain. That one key initially names bootstrap as its ACL
+owner and `/usr/bin/codesign` as its restricted signing subject, allowing it to
+sign only the distinct final candidate with the new local-CA helper leaf.
+Bootstrap's own vnode and code identity remain unchanged throughout.
+
+Once static and dynamic inspection proves the final helper's exact local-CA
+identity, bootstrap creates the record-signer, Runtime, Desktop and local-host
+role keys in the already unlocked fixed signing Keychain with complete final
+ACLs attached at insertion. It separately creates the unlock-secret generic-
+password item in System Keychain with its complete final-helper-only ACL
+attached at insertion. None of those items is modified after insertion.
+System Keychain is forbidden from holding any profile private key: real macOS
+insertion may add another partition ACL to a cryptographic key even when the
+submitted `SecAccess` was complete, making the result ambiguous. Accepting the
+extra ACL would widen authority, while normalizing it after insertion would
+require interactive Keychain authentication. `SecKeychainItemSetAccess` is
+therefore forbidden for every System profile item; neither sudo nor process
+identity substitutes for that credential. Interactive fallback is disabled
+and cannot become an admission path.
+
+Only the helper role key may carry a temporary `{bootstrap, final helper}`
+`changeACL` owner set, and only inside the explicitly password-unlocked fixed
+signing Keychain. Its restricted signer and partition already name
+`/usr/bin/codesign` and the final-helper CDHash. After the born-final unlock
+secret is committed, one fresh final helper reads it, unlocks that Keychain,
+removes the exact bootstrap owner from that one helper-role key, validates
+final-only custody and relocks the Keychain. A second fresh final helper then
+independently validates the complete certificate set, leaf SPKIs, designated
+requirements, hardened runtime, fixed paths, final-only ACLs, release-record
+signing, absence of every System profile private key and absence of any durable
+CA private key. Only then may bootstrap be unlinked. Success requires bootstrap
+absence, zero transitional ACLs, zero System profile private keys and zero
+durable CA private keys.
+
+Failure uses the still-immutable bootstrap, or the already verified final
+helper after bootstrap retirement, to remove the root certificate, role keys,
+trust setting, signing Keychain, public profile and both helper paths as one
+privileged rollback. No ad-hoc Runtime, Desktop, local-app host, Kit carrier or
+post-provision helper is admitted by this bootstrap exception. A running helper
+may never authorize an ACL handoff after changing its own on-disk code identity.
+
+`SecTrustedApplication` data is opaque and is not reconstructed or interpreted
+as an executable identity by a later process. Before persistence, bootstrap
+records SHA-256 for the exact final-helper and `/usr/bin/codesign` opaque ACL
+entries in the root-owned public signing-profile v4. Every persistent item
+and every role key born after final signing is validated against those exact
+entries without an ACL update. The fresh finalizer identifies and removes only
+the exact bootstrap entry from the helper-role key in the unlocked signing
+Keychain, preserves the final opaque entry byte-for-byte, and compares all
+persisted restricted/owner entries to the profile digests. SecCode, CDHash,
+designated requirement, leaf SPKI, fixed path and process-parent/liveness checks
+remain independent executable-identity proof; an opaque ACL digest never
+substitutes for them. Any bootstrap-process `SecKey` or `SecAccess` view cached
+before the final child closes the helper-role ownership is non-authorizing and
+cannot serve as post-handoff evidence.
+All five role identities live in the fixed root-owned, mode-`0600`,
+normally locked system-domain Keychain at
+`/Library/Application Support/Nimi/RuntimeDev/custody/local-development-signing.keychain-db`.
+Its random unlock secret is a non-synchronizing System Keychain item whose
+decrypt, delete, change-ACL and partition ACLs contain only the exact signed
+helper. Bootstrap holds the not-yet-durable
+secret in memory while creating and signing the distinct final candidate, then
+creates the unlock-secret item once with its final signed-helper ACL already
+attached. The fresh final helper reads that item, unlocks the fixed Keychain in
+memory for the single helper-role ownership closure and validation transaction,
+passes only the fixed Keychain pathname (never its password) to
+`/usr/bin/codesign`, locks it in `defer` before returning, and wipes the
+in-memory secret. Relocking before the final-only handoff completes, any
+remaining bootstrap ACL subject, any durable CA private key, or any
+authentication prompt is a fail-closed transaction error.
+The bootstrap is not a durable deletion authority. Once the unlock-secret item
+exists, provisioning rollback and explicit unprovision must retain and execute
+the exact verified final helper until that helper targets the single item by
+reference, deletes it without interaction, and proves it absent. Cleanup first
+verifies this final-helper/item binding, then destroys the signing Keychain and
+its five private identities, then deletes the now-useless unlock secret while
+the final helper and public trust remain intact. Only after absence proof may
+public trust and the final helper be removed. If the item remains while the
+exact final helper is absent or untrusted, automatic cleanup fails closed as
+`runtime-service-repair-required`; uid 0, a replacement bootstrap, a copied
+helper, a broader query, or a deprecated deletion API cannot substitute for the
+item's executable ACL. The bootstrap may complete public and fixed-path cleanup
+only after the unlock secret is proven absent.
+Keychain certificate labels are display/search hints and are never identity
+authority. Public validation enumerates only the fixed Keychain named by the
+profile and requires one unique certificate whose DER SHA-256 equals the
+authority record. The root certificate additionally requires one exact admin
+trust-settings usage constraint. The write request contains only
+`kSecTrustSettingsPolicy` and `kSecTrustSettingsResult`; Security.framework's
+read projection must contain exactly those keys plus its derived
+`kSecTrustSettingsPolicyName` value `CodeSigning`. The result must be
+`trustRoot`, and the policy's `SecPolicyCopyProperties` projection must contain
+only the Apple code-signing OID. The derived policy name is an exact
+serialization witness, not policy identity or caller-controlled authority. A
+missing/wrong name or any fourth usage-constraint key fails closed. Pointer
+identity or object-level equality of a policy reconstructed by
+Security.framework is not authority; merely finding the certificate in System
+Keychain is also insufficient.
+
+Before the single System Keychain root certificate is inserted, the root helper
+atomically records its exact DER SHA-256 in a root-owned mode-`0600` cleanup
+record at
+`/Library/Application Support/Nimi/RuntimeDev/dev-signing-cleanup-record.json`.
+That operational record is not semantic or signing truth. It remains alongside
+the public profile solely so interrupted provisioning and explicit
+unprovisioning can identify exact transaction-created bytes after any subset of
+the matching public/private keys has disappeared. Cleanup enumerates only the
+fixed Keychain and accepts certificate identity only from a non-conflicting
+public-profile or cleanup-record fingerprint. A surviving public key may add an
+SPKI witness, but its absence cannot block deletion of a certificate already
+identified by an exact recorded fingerprint. Common name, certificate label,
+issuer text and partial key presence never authorize deletion. The cleanup
+record is deleted only after the trust setting, exact certificates, labeled
+keys, locked signing Keychain and unlock secret have all been removed or proven
+absent.
+
+One repair-only state machine exists for a stranded older final helper whose
+unlock secret and cleanup record remain after the public profile, signing
+Keychain, Runtime, Desktop, LaunchDaemon, service account and related processes
+are all proven absent. The immutable current bootstrap must validate the fixed
+final-helper vnode, strict signature, empty Team ID, hardened runtime, embedded
+certificate chain and final-helper-only decrypt/change-ACL/partition binding.
+It may recover only the embedded public root certificate whose DER SHA-256 is
+identical to the cleanup-record fingerprint, and may temporarily install only
+that certificate with the exact Apple CodeSigning admin trust constraint. The
+bootstrap never reads or deletes the unlock secret. The stranded final helper
+must then delete its own secret and the temporarily recovered public trust
+material, after which the bootstrap proves zero fixed residue. Any broader
+state, fingerprint mismatch, private signing custody, live carrier, or failed
+zero-residue proof fails closed. This compatibility repair is not a normal
+unprovision path and does not restore a CA private key.
+An ordinary read-only status invocation must not unlock the mode-`0600`
+root-owned signing Keychain. It verifies only the root-owned public profile,
+signed helper identity and public root material, and reports
+`signingCustodyVerification=privileged_transaction_required`. Provision,
+fresh install and every admitted signing transaction run as the exact root helper;
+the post-provision helper handoff uses a separate root-only private-custody
+verification command rather than treating the public status projection as
+evidence. Those transactions
+unlock in memory, verify every private-key ACL/partition and record-signing
+self-test, then relock before returning; no candidate can advance from the
+public status projection alone. Storing role private keys in the globally
+searchable System Keychain or granting them directly to the
+globally callable `/usr/bin/codesign` trusted application in
+`/Library/Keychains/System.keychain` is forbidden because that loses the
+root-owned parent-transaction identity. No private key or unlock secret is
+exported to the repository, build artifacts, argv, environment, renderer, app
+storage, logs or evidence. The
+local-development release record is schema v2 canonical JSON with
+`environment=local_development`, `identity_class=local_ca`,
+`signature_algorithm=ecdsa_p256_sha256`, an empty `macos_team_id`, the exact
+leaf SPKI SHA-256, designated requirement, signing identifier, CDHash,
+same-open-vnode artifact SHA-256, hardened-runtime posture, role, generation,
+validity interval and compatible peer releases. Any non-empty Team ID in this
+profile is rejected; the profile never claims notarization or Gatekeeper
+acceptance. Production schema-v2 records continue to require
+`identity_class=developer_id_application`,
+`signature_algorithm=ed25519`, the exact Team ID and notarization posture.
+
+The privileged development fresh-install helper validates the complete
+candidate before elevation and writes one fsynced root-owned top-level
+transaction journal before stopping the service or making the first install
+mutation. Fresh admission requires the launchd job, service principal, fixed
+service directories, LaunchDaemon plist, active Runtime, Desktop application,
+installer ledger, Runtime custody and sockets all to be absent. The journal binds
+the exact planned principal and owns every effect created after that proof. The
+helper installs the fixed app/runtime/role-record set without symlink
+authority, fsyncs the result, verifies it again, and only then bootstraps the
+fixed system job. The journal and rollback generation are retained until final
+mutually verified Runtime health succeeds; candidate commit alone is not the
+installation commit boundary.
+A mixed, interrupted, rollback-rebound or partially installed candidate remains
+stopped and `runtime-service-repair-required`; it is never silently reset.
+Rollback first boots out launchd and proves the Runtime process stopped, removes
+and proves the sockets absent, and resets only custody created by this
+transaction while the verified candidate Runtime remains at its fixed path. It
+then removes the plist, active Runtime, Desktop, ledger and staging nodes,
+deletes only transaction-created empty directories whose witnesses still
+match, and finally deletes only the exact
+transaction-created user before group. Any rollback failure retains the journal
+and the candidate required for custody cleanup and reports both the original and
+rollback errors. Initial trust provisioning, reset, uninstall and CA removal are separate,
+explicit administrator operations. Runtime uninstall does not remove the
+machine-local CA.
+
+Local-development candidate update remains explicitly fail-closed. Existing
+custody validation and Runtime startup currently call `AdmitReleaseLineage`,
+which advances the Keychain-anchored release high-water before final installer
+health. Restoring the prior candidate after a later failure would therefore be
+an authority rollback. `pnpm dev:runtime` without `--install` returns
+`dev-runtime-update-not-admitted` until a non-mutating lineage validation plus
+installer-bound pending/commit protocol is separately specified, implemented
+and admitted. This boundary does not weaken or block a fresh development-chain
+installation.
+
+One explicit delete-only repair bootstrap transaction may clean exactly two
+first-install residue classes that predate the top-level journal. The normal
+class `macos_local_development_v4_failed_first_install_exact_principal` requires
+source principal carrier contract version `4` and the complete current
+absent-authentication principal. The unique legacy class
+`macos_local_development_v2_failed_first_install_disabled_user` requires an
+installed signed source helper that reports principal carrier contract version
+`2`. Its user must contain one raw OpenDirectory value for
+`AuthenticationAuthority`; that value must be one `String` exactly equal to
+`;DisabledUser;`. Every other authentication-material attribute must be absent.
+Both classes require the positive user fields, dedicated group, POSIX
+projection, full local-group membership projection and `_writers*` absence to
+match the current authority exactly. Source carrier `4` can select only the
+normal matcher and source carrier `2` can select only the legacy matcher. No
+other carrier, residue class or authentication shape is repairable.
+
+No loaded job, related process, socket, Runtime custody, active candidate,
+Desktop or installer ledger may exist; the generated plist and exact empty
+fixed directories must be the only filesystem install residue.
+
+This legacy shape is evidence for deletion only. It is never admitted,
+normalized or upgraded in place as a current principal. Repair deletes the
+whole exact user before the exact group, proves Directory Services and POSIX
+absence, and a later carrier-`4` creation must use fresh, distinct user and
+group GeneratedUID values. Before deletion, the fsynced root-owned repair
+journal schema is `nimi.macos-local-development-partial-install-repair/v2` and
+its phases are exactly `prepared`, `artifacts-removed`, `user-removed`,
+`group-removed` and `principal-removed`. The parent repair journal directly owns
+all artifact and principal deletion; it cannot delegate to or recover a
+principal-transaction journal. It binds the source helper SHA-256 and CDHash,
+source carrier version,
+residue-class identifier, authentication-evidence SHA-256, account-plan digest,
+both observed GeneratedUID values, signing-profile root key id and authority
+policy digest. The source helper SHA-256 and CDHash are captured before journal
+creation and must remain stable before every phase and after final absence
+proof. A fresh exact bootstrap process with a new ODSession must return a
+parent-transaction-bound absence receipt for both Directory Services records
+and the POSIX projection. Any absent, stale or mismatching binding fails closed.
+The journal uses one fixed single-use staging path. Before any unknown-entry or
+phase-state evaluation, an interrupted staging write may be removed only while
+the final-helper mutation lock is held and only after an open descriptor proves
+one root-owned, root-group, mode-`0600`, single-link regular file of at most
+`65536` bytes and a no-follow path revalidation proves the same device and
+inode. The staging node is never semantic authority. Repair also requires a
+fresh final-helper private-custody proof before deletion. It preserves the
+signing profile, signing Keychain, local CA and final helper and cannot become a
+generic account or file deletion surface.
+
+The development service principal is created only through the public
+OpenDirectory framework. The installer selects one collision-free equal UID/GID
+in the macOS role-account range `450..499`, generates distinct canonical user
+and group UUIDs, and fsyncs a root-owned mode-`0600`
+`RuntimeDev/principal-transaction.json` before the first Directory Services
+mutation. `ODNode.createRecord` creates the group and then the user from complete
+initial attribute dictionaries. GeneratedUID is a birth attribute and is never
+modified after record creation; the user is born with password `*`, hidden
+state, `/var/empty` home and `/usr/bin/false` shell. It is born without
+`AuthenticationAuthority`, ShadowHashData, PasswordPlus,
+AltSecurityIdentities, AuthCredential, AuthMethod, AuthenticationHint,
+KDCAuthKey, KerberosServices, KerberosRealm, KerberosKeys, HeimdalSRPKey,
+SecureTokenVerifierHistory, AutoGrantSecureToken or LinkedIdentity. Any native
+`_writers*` delegation is also forbidden. Negative attributes are inspected as
+raw OpenDirectory values; a binary or malformed value is present and rejected,
+never coerced into an empty string list. The dedicated group has no explicit
+GroupMembership, GroupMembers or NestedGroups values, and a complete local
+group projection must prove that neither the service name, user GeneratedUID
+nor dedicated-group GeneratedUID is explicitly attached to any other group.
+Computed OS baseline group projection is evidence only and is not hard-coded as
+machine-independent authority. Carrier `4` requires `AuthenticationAuthority`
+to be absent and never accepts or normalizes `;DisabledUser;`. That exact value
+is recognized only as the delete-only carrier-`2` legacy residue defined above;
+it is not an admitted standalone non-login identity. The
+installer then synchronizes and uses a fresh exact-signed real-root helper
+process with a new ODSession to prove the exact raw OpenDirectory and POSIX
+projections, including absence of every forbidden authentication, writer and
+explicit-membership attribute. The child receipt is bound to the journal
+transaction and account-plan digest; the parent deletes the journal only after
+that receipt succeeds. Non-root status cannot promote unreadable protected
+attributes to `runtimeAccountTrusted`; it reports privileged verification
+required instead. Apple
+documents that a failed initial attribute write deletes that record; the Nimi
+transaction nevertheless retains its own cross-record journal because group and
+user creation are two separate records.
+
+Recovery and rollback delete user before group and only when name, UID/GID and
+both GeneratedUID values exactly match the fsynced transaction witness. They
+must then prove both records absent. Query failure, ambiguity, a mismatching
+record or deletion without absence proof preserves the journal and reports
+`runtime-service-repair-required`; it is never collapsed into record absence.
+An already present exact admitted principal is durable installation
+infrastructure and is never owned or removed by a failed candidate update.
+`dscl`, `sysadminctl`, `dsimport` and direct dslocal database writes are forbidden
+mutation fallbacks; `dscl` may appear only in non-authorizing human diagnostics.
+Every install, restart, reset, uninstall, release-record signing and trust
+unprovision mutation holds one non-blocking exclusive `flock` on the same exact
+open root-owned final-helper vnode for the full transaction. Contention fails
+before mutation; no pathname-only lock file or removable inode creates a second
+serialization truth.
+
+The development profile retains every native process and transport invariant
+of production: `LOCAL_PEERTOKEN`, `LOCAL_PEERPID`, audit session, euid/ruid,
+pidversion/start identity, dynamic `SecCode`, exact designated requirement,
+identifier, leaf SPKI, CDHash, hardened runtime, canonical vnode/digest,
+process/vnode liveness, active-console binding, boot epoch and Desktop session
+generation. It omits only the production-exclusive Developer ID Team ID,
+notarization/Gatekeeper and SMAppService assertions. Direct `launchctl`
+bootstrap is admitted solely for this explicitly non-product, root-owned
+LaunchDaemon profile; it is not a production lifecycle fallback.
+
+Electron is positive only when the same signed development candidate passes
+real DOM/CDP/console/network/accessibility, Runtime restart, revoke and
+Desktop-quit/no-orphan evidence. CDP exists only in an explicitly signed
+acceptance variant, is loopback-only and uses an isolated non-authorizing user
+data root. Tauri remains independently fail-closed. App-owned SQLite and exact
+app-native commands remain `app_owned_authority`, require no Nimi permission,
+and must still remain inside the opaque supervisor partition.
+
 `SMAppService.daemon(plistName:)` is the registration/control surface and
 launchd is the lifecycle owner. The containing notarized application lives at
 the installer-fixed `/Applications/Nimi.app` path; the daemon plist lives at

@@ -18,7 +18,7 @@ func LocalDevelopmentTrustSetID(os OperatingSystem) (string, bool) {
 	case OSWindows:
 		return WindowsLocalDevelopmentTrustSetID, true
 	case OSMacOS:
-		return MacOSLocalDevelopmentTrustSetID, true
+		return activeMacOSLocalDevelopmentTrustSetID(), true
 	default:
 		return "", false
 	}

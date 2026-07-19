@@ -1,4 +1,4 @@
-version: 10
+version: 11
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_protected_local_rpc_transport_matrix
@@ -44,6 +44,15 @@ verified_platform_transport:
   executable_trust_profile_ref: .nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml#same-os
   launch_session_profile_ref: protected-local-launch-session-profiles.yaml#same-os
   cross_platform_profile_mix: forbidden
+  non_product_local_development_profile_bundle:
+    profile_id: macos_local_development_v1
+    custody_profile_ref: protected-local-custody-profiles.yaml#macos-local-development
+    service_principal_profile_ref: protected-local-runtime-principal-profiles.yaml#macos-local-development
+    transport_profile_ref: protected-local-os-profiles.yaml#macos-local-development
+    executable_trust_profile_ref: .nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml#macos-local-development
+    launch_session_profile_ref: protected-local-launch-session-profiles.yaml#macos-local-development
+    compile_time_selection_only: true
+    product_admission_promotion: forbidden
 transport_class_bindings:
   public_tcp:
     binding: public_tcp_binding_only
@@ -62,6 +71,7 @@ transport_class_bindings:
     profile_bundle_ref: verified_platform_transport
 method_platform_binding:
   coverage: every_methods_row
+  declared_method_count: 62
   selector_field: allowed_transport_classes
   resolver: transport_class_bindings
   protected_binding_description: verified_platform_transport
@@ -70,6 +80,7 @@ method_platform_binding:
 platform_admission:
   windows: admitted_fixed_service_and_process_verification
   macos: fail_closed_pending_native_admission
+  macos_local_development: local_development_non_product_admitted
   linux: fail_closed_pending_native_admission
   forbidden_fallbacks:
     - localhost_grpc
@@ -114,6 +125,14 @@ g5_supervisor_profile_consistency:
     single_sided_implementation: reject
     cross_platform_profile_substitution: forbidden
     missing_profile_component: reject
+non_product_local_development_supervisor_consistency:
+  profile_id: macos_local_development_v1
+  admission: local_development_non_product_admitted
+  implementation_bindings: [desktop_electron_supervisor]
+  electron_profile_bundle: verified_platform_transport.non_product_local_development_profile_bundle
+  tauri_binding: fail_closed_pending_independent_Rust_WKWebView_command_install_update_and_live_acceptance
+  electron_positive_does_not_enable_tauri: true
+  generic_proxy: forbidden
 trust_classes:
   admitted_positive: [local_development]
   opaque_typed_unavailable: [verified, user_imported]

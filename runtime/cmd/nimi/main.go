@@ -72,6 +72,8 @@ func main() {
 		exitIfCommandError("managed-image-backend", runManagedImageBackend(args[2:]))
 	case "macos-protected-state-provision":
 		exitIfCommandError("macos-protected-state-provision", runMacOSProtectedStateProvision(args[2:]))
+	case "macos-protected-state-reset":
+		exitIfCommandError("macos-protected-state-reset", runMacOSProtectedStateReset(args[2:]))
 	default:
 		printUsage()
 		os.Exit(2)

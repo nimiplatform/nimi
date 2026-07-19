@@ -3,9 +3,10 @@ use std::os::fd::{FromRawFd, OwnedFd};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use crate::macos_profile::LOCAL_APP_HOST_PATH;
 use crate::{NimiHostError, NimiHostErrorReasonCode};
 
-pub(crate) const MACOS_LOCAL_APP_HOST_PATH: &str = "/Applications/Nimi.app/Contents/Frameworks/Nimi Local App Host.app/Contents/MacOS/Nimi Local App Host";
+pub(crate) const MACOS_LOCAL_APP_HOST_PATH: &str = LOCAL_APP_HOST_PATH;
 const MAX_HOST_ARGUMENTS: usize = 64;
 const MAX_HOST_ARGUMENT_BYTES: usize = 64 * 1024;
 
@@ -199,7 +200,7 @@ mod tests {
 
     #[test]
     fn fixed_host_path_is_not_project_selectable() {
-        assert_eq!(MACOS_LOCAL_APP_HOST_PATH, "/Applications/Nimi.app/Contents/Frameworks/Nimi Local App Host.app/Contents/MacOS/Nimi Local App Host");
+        assert_eq!(MACOS_LOCAL_APP_HOST_PATH, LOCAL_APP_HOST_PATH);
         assert!(canonical_fixed_host(Path::new("/tmp/electron")).is_err());
     }
 

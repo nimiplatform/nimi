@@ -1,0 +1,11 @@
+/* Code generated from .nimi/spec protected-local macOS local-development
+ * authority tables; DO NOT EDIT. */
+#define NIMI_MACOS_RUNTIME_ACCOUNT "_nimiruntimedev"
+#define NIMI_MACOS_RUNTIME_SOCKET_DIRECTORY "/private/var/run/nimi-dev"
+#define NIMI_MACOS_RUNTIME_SOCKET "/private/var/run/nimi-dev/runtime-desktop.sock"
+#define NIMI_MACOS_LOCAL_APP_SOCKET "/private/var/run/nimi-dev/runtime-local-app.sock"
+#define NIMI_MACOS_RUNTIME_EXECUTABLE "/Library/Application Support/Nimi/RuntimeDev/active/bin/nimi-runtime"
+#define NIMI_MACOS_DESKTOP_APPLICATION "/Applications/Nimi Dev.app"
+#define NIMI_MACOS_LOCAL_APP_HOST "/Applications/Nimi Dev.app/Contents/Frameworks/Nimi Local App Host Dev.app/Contents/MacOS/Nimi Local App Host Dev"
+#define NIMI_MACOS_LAUNCHD_PLIST "/Library/LaunchDaemons/ai.nimi.runtime.dev.plist"
+#define NIMI_MACOS_SMAPP_PLIST ""

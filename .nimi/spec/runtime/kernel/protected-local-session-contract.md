@@ -44,6 +44,17 @@ and acceptance isolation. The Windows row is the admitted current behavior.
 The macOS launchd system-daemon row and Linux system-service row are
 requirements-only and remain fail-closed pending independent native admission.
 
+The macOS tables additionally define one
+`local_development_non_product_admitted` service profile. It uses the distinct
+`_nimiruntimedev` system principal, `ai.nimi.runtime.dev` launchd label,
+`RuntimeDev` state/trust roots, `nimi-dev` sockets, System Keychain namespace
+and compile-time local-CA trust root owned by `P-NAPP-037`. It may establish a
+real protected listener and account-bound local-development session only in a
+binary built for that exact non-product profile. It cannot connect to
+production endpoints or custody, cannot be selected at runtime, cannot advance
+the production macOS row, and cannot serve as Developer ID, SMAppService,
+notarization, Gatekeeper or Tauri evidence.
+
 The signed installer and service updater own Runtime release staging,
 installation, and atomic replacement. Desktop may read verified service status
 and request start/restart only through the typed OS service-control gateway; it

@@ -18,7 +18,6 @@ import (
 )
 
 const (
-	macOSProductionRealmBaseURL     = "https://realm.nimi.ai"
 	macOSProductionInstallStateFile = "installation.json"
 )
 
@@ -45,7 +44,7 @@ func loadMacOSProtectedRuntimeConfig(stateRoot string) (config.Config, error) {
 		return config.Config{}, err
 	}
 
-	cfg := newProtectedRuntimeConfig(runtimeRoot, runtimeID, macOSProductionRealmBaseURL)
+	cfg := newProtectedRuntimeConfig(runtimeRoot, runtimeID, macOSProtectedRealmBaseURL)
 	serviceConfigPath := filepath.Join(runtimeRoot, config.ServiceOwnedConfigFilename)
 	if err := validateOptionalMacOSServiceFile(serviceConfigPath); err != nil {
 		return config.Config{}, err

@@ -119,7 +119,7 @@ test('Electron publisher deletes the previous authority summary when the protect
 });
 
 test('Electron publisher suppresses only the startup authority race and reports a persistent failure', async () => {
-  const home = await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-authority-startup-race-'));
+  const home = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-authority-startup-race-')));
   const reports: string[] = [];
   const publisher = createDesktopElectronLocalDevelopmentProjectionPublisher({
     homeDirectory: home,

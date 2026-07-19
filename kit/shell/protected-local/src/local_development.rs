@@ -208,6 +208,10 @@ pub enum NimiHostErrorReasonCode {
     RuntimeServiceUnavailable,
     RuntimeServiceUntrusted,
     RuntimeServiceRepairRequired,
+    RuntimeRestarted,
+    ProcessReplaced,
+    AccountChanged,
+    SessionRevoked,
     PrincipalUnauthorized,
     LocalDevelopmentAuthorizationRequired,
     LocalDevelopmentReapprovalRequired,
@@ -234,6 +238,10 @@ impl NimiHostErrorReasonCode {
             Self::RuntimeServiceUnavailable => "runtime-service-unavailable",
             Self::RuntimeServiceUntrusted => "runtime-service-untrusted",
             Self::RuntimeServiceRepairRequired => "runtime-service-repair-required",
+            Self::RuntimeRestarted => "runtime-restarted",
+            Self::ProcessReplaced => "process-replaced",
+            Self::AccountChanged => "account-changed",
+            Self::SessionRevoked => "session-revoked",
             Self::PrincipalUnauthorized => "principal-unauthorized",
             Self::LocalDevelopmentAuthorizationRequired => {
                 "local-development-authorization-required"

@@ -2,6 +2,16 @@ import { readFile, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { parse as parseYaml } from 'yaml';
 
+declare const __NIMI_MACOS_LOCAL_APP_HOST_PATH__: string;
+declare const __NIMI_MACOS_LOCAL_DEVELOPMENT_BUILD__: boolean;
+
+const MACOS_LOCAL_DEVELOPMENT_BUILD = typeof __NIMI_MACOS_LOCAL_DEVELOPMENT_BUILD__ !== 'undefined'
+  && __NIMI_MACOS_LOCAL_DEVELOPMENT_BUILD__;
+const MACOS_LOCAL_DEVELOPMENT_HOST_PATH = typeof __NIMI_MACOS_LOCAL_APP_HOST_PATH__ === 'string'
+  ? __NIMI_MACOS_LOCAL_APP_HOST_PATH__
+  : '';
+const MACOS_PRODUCTION_LOCAL_APP_HOST_PATH = '/Applications/Nimi.app/Contents/Frameworks/Nimi Local App Host.app/Contents/MacOS/Nimi Local App Host';
+
 export type ElectronLocalDevelopmentPlan = {
   readonly appId: string;
   readonly displayName: string;
@@ -42,12 +52,21 @@ export async function resolveElectronLocalDevelopmentPlan(
   }
 
   const electronExecutable = process.platform === 'darwin'
-    ? await canonicalFile('/Applications/Nimi.app/Contents/Frameworks/Nimi Local App Host.app/Contents/MacOS/Nimi Local App Host')
+    ? await canonicalFile(macOSLocalAppHostPath())
     : await canonicalFile(within(projectRoot, path.join(
       projectRoot, 'node_modules', 'electron', 'dist', 'electron.exe',
     )));
   const mainEntry = within(projectRoot, path.join(projectRoot, 'dist-electron', 'main.js'));
   return { appId, displayName, projectRoot, rendererOrigin, electronExecutable, mainEntry };
+}
+
+function macOSLocalAppHostPath(): string {
+  if (!MACOS_LOCAL_DEVELOPMENT_BUILD) return MACOS_PRODUCTION_LOCAL_APP_HOST_PATH;
+  if (!path.isAbsolute(MACOS_LOCAL_DEVELOPMENT_HOST_PATH)
+    || path.normalize(MACOS_LOCAL_DEVELOPMENT_HOST_PATH) !== MACOS_LOCAL_DEVELOPMENT_HOST_PATH) {
+    fail('local-development-platform-unsupported');
+  }
+  return MACOS_LOCAL_DEVELOPMENT_HOST_PATH;
 }
 
 export async function canonicalElectronMain(plan: ElectronLocalDevelopmentPlan): Promise<string> {

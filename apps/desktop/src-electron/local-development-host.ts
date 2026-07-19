@@ -732,7 +732,13 @@ function reason(error: unknown): string {
 export function resolveLocalDevelopmentAuthorityFailureState(
   reasonCode: string,
 ): 'runtime-unavailable' | 'authorization-required' {
-  return reasonCode === 'runtime-service-unavailable' || reasonCode === 'runtime-service-untrusted'
+  return [
+    'process-replaced',
+    'runtime-restarted',
+    'runtime-service-repair-required',
+    'runtime-service-unavailable',
+    'runtime-service-untrusted',
+  ].includes(reasonCode)
     ? 'runtime-unavailable'
     : 'authorization-required';
 }

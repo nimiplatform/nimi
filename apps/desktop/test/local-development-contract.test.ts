@@ -86,6 +86,9 @@ test('Desktop Electron owns presence, rebuild, protected launch, health refresh,
   );
   assert.match(plan, /nimi-app dev --shell electron/);
   assert.match(plan, /vite --host 127\.0\.0\.1 --port/);
+  assert.match(plan, /__NIMI_MACOS_LOCAL_APP_HOST_PATH__/);
+  assert.match(plan, /__NIMI_MACOS_LOCAL_DEVELOPMENT_BUILD__/);
+  assert.match(plan, /canonicalFile\(macOSLocalAppHostPath\(\)\)/);
 });
 
 test('Desktop cancellation preempts builds and renderer readiness before host launch', () => {

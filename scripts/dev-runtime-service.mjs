@@ -15,6 +15,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { parseMacOSDevRuntimeArguments, runMacOSDevRuntimeService } from './macos-dev-runtime-service.mjs';
+
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const installerPath = path.join(repoRoot, 'dist', 'windows-runtime-service-installer', 'install-nimi-runtime.ps1');
@@ -58,6 +60,8 @@ export function rejectBinaryOnlyRequest(args) {
 }
 
 export function parseDevRuntimeArguments(args, platform = process.platform) {
+  args = args.slice();
+  while (args[0] === '--') args.shift();
   if (args.includes('--binary-only')) {
     throw workflowError(
       'Binary-only Runtime replacement is not admitted because installer resource/layout equivalence is not proven.',
@@ -287,6 +291,9 @@ export function assertAccessibleDevelopmentDataRoot(value, platform = process.pl
 
 export async function runDevRuntimeService(input = {}) {
   const platform = input.platform ?? process.platform;
+  if (platform === 'darwin') {
+    return runMacOSDevRuntimeService(input);
+  }
   if (platform !== 'win32') {
     throw workflowError(
       `dev:runtime fixed-service update is available only on Windows, received ${platform}.`,
@@ -660,7 +667,9 @@ function isMainModule() {
 
 if (isMainModule()) {
   try {
-    const options = parseDevRuntimeArguments(process.argv.slice(2));
+    const options = process.platform === 'darwin'
+      ? parseMacOSDevRuntimeArguments(process.argv.slice(2))
+      : parseDevRuntimeArguments(process.argv.slice(2));
     const result = await runDevRuntimeService(options);
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   } catch (error) {

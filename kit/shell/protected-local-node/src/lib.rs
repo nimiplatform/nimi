@@ -497,7 +497,10 @@ pub async fn desktop_local_development_host_running(
     };
     match control.local_development_host_running(supervisor_run_id) {
         Ok(running) => NativeJsonOutcome::success(json!({ "running": running })),
-        Err(error) => NativeJsonOutcome::host_error(error),
+        Err(error) => {
+            clear_desktop_control_on_host_failure(&control, &error).await;
+            NativeJsonOutcome::host_error(error)
+        }
     }
 }
 
@@ -601,6 +604,8 @@ fn invalidates_desktop_transport(reason_code: &str) -> bool {
         "runtime-service-unavailable"
             | "runtime-service-untrusted"
             | "runtime-service-repair-required"
+            | "runtime-restarted"
+            | "process-replaced"
             | "PROTECTED_ORIGIN_ROLE_MISMATCH"
     )
 }
@@ -635,6 +640,8 @@ mod desktop_transport_invalidation_tests {
             "runtime-service-unavailable",
             "runtime-service-untrusted",
             "runtime-service-repair-required",
+            "runtime-restarted",
+            "process-replaced",
             "PROTECTED_ORIGIN_ROLE_MISMATCH",
         ] {
             assert!(invalidates_desktop_transport(reason), "{reason}");

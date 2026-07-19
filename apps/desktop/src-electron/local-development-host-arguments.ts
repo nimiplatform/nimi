@@ -3,17 +3,26 @@ import { lstat, mkdir, realpath } from 'node:fs/promises';
 import path from 'node:path';
 
 declare const __NIMI_ELECTRON_ACCEPTANCE_BUILD__: boolean;
+declare const __NIMI_MACOS_LOCAL_DEVELOPMENT_BUILD__: boolean;
 const ACCEPTANCE_BUILD = typeof __NIMI_ELECTRON_ACCEPTANCE_BUILD__ !== 'undefined'
   && __NIMI_ELECTRON_ACCEPTANCE_BUILD__;
+const MACOS_LOCAL_DEVELOPMENT_BUILD = typeof __NIMI_MACOS_LOCAL_DEVELOPMENT_BUILD__ !== 'undefined'
+  && __NIMI_MACOS_LOCAL_DEVELOPMENT_BUILD__;
 
 export function resolveLocalDevelopmentObservationArguments(
   env: NodeJS.ProcessEnv = process.env,
 ): string[] {
-  if (!ACCEPTANCE_BUILD || String(env.NIMI_DEV_KERNEL_CHECKPOINT || '').trim() !== '1') return [];
+  const explicitMacOSAcceptance = MACOS_LOCAL_DEVELOPMENT_BUILD
+    && String(env.NIMI_MACOS_DEV_ACCEPTANCE || '').trim() === '1';
+  if ((!ACCEPTANCE_BUILD && !explicitMacOSAcceptance)
+    || String(env.NIMI_DEV_KERNEL_CHECKPOINT || '').trim() !== '1') return [];
   const port = Number(env.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_CDP_PORT || 0);
   const root = String(env.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT || '').trim();
   const agent = String(env.NIMI_LOCAL_AGENT_PRODUCT_AGENT_ID || '').trim();
+  const acceptanceRoot = String(env.NIMI_MACOS_DEV_ACCEPTANCE_ROOT || '').trim();
   if (!Number.isInteger(port) || port < 1024 || port > 65535 || !path.isAbsolute(root)
+    || (explicitMacOSAcceptance && (!path.isAbsolute(acceptanceRoot)
+      || path.resolve(root) !== path.join(path.resolve(acceptanceRoot), 'zhiyu-user-data')))
     || (agent && !/^local-agent:runtime-[0-9a-f]{32}$/u.test(agent))) {
     throw new Error('local-development-observation-config-invalid');
   }
@@ -21,6 +30,7 @@ export function resolveLocalDevelopmentObservationArguments(
     '--remote-debugging-address=127.0.0.1',
     `--remote-debugging-port=${port}`,
     `--user-data-dir=${path.resolve(root)}`,
+    ...(explicitMacOSAcceptance ? [`--nimi-acceptance-root=${path.resolve(acceptanceRoot)}`] : []),
     ...(agent ? [`--nimi-dev-agent-id=${agent}`] : []),
   ];
 }

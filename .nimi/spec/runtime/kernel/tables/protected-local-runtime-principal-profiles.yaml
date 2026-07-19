@@ -1,4 +1,4 @@
-version: 3
+version: 11
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_protected_local_principal_profiles
@@ -46,6 +46,7 @@ platform_admission:
   windows: admitted_fixed_service_principal
   linux: requirements_only_fail_closed_pending_native_admission
   macos: requirements_only_fail_closed_pending_native_admission
+  macos_local_development: local_development_non_product_admitted
   unadmitted_platform_disposition: fail_closed
   cross_platform_parity_required_before_first_platform_positive_chain: false
 account_partition_source: verified_interactive_os_principal_and_login_session
@@ -173,4 +174,155 @@ profiles:
       account_partition: verified_interactive_euid_and_audit_session
       runtime_lifecycle_and_restart: real_launchd_system_daemon
       parallel_isolation: development_state_lineage_namespace_for_state_audit_and_child_sockets
+    source_rule: K-PLOCAL-007
+non_product_local_development_profiles:
+  - os: macos
+    profile_id: macos_local_development_v1
+    admission: local_development_non_product_admitted
+    product_admission_promotion: forbidden
+    compile_time_profile_only: true
+    principal_carrier_contract_version: 4
+    production_principal: dedicated_non_login__nimiruntimedev_launchd_system_daemon_principal
+    interactive_user_relation: distinct_os_security_principal
+    service_manager: launchd_system_domain
+    service_installation: explicit_administrator_transaction_installs_local_CA_signed_fixed_runtime_and_root_owned_ai.nimi.runtime.dev_LaunchDaemon_then_launchctl_bootstrap_system
+    runtime_executable_path: /Library/Application Support/Nimi/RuntimeDev/active/bin/nimi-runtime
+    runtime_state_root: /Library/Application Support/Nimi/RuntimeDev/state
+    launchd_definition_path: /Library/LaunchDaemons/ai.nimi.runtime.dev.plist
+    protected_state_location: root_owned_nonwritable_/Library/Application_Support/Nimi/RuntimeDev_boundary_with__nimiruntimedev_owned_mode_0700_state_child
+    account_partition_derivation: verified_audit_token_euid_and_audit_session
+    process_isolation: hardened_runtime_library_validation_and_task_for_pid_denial
+    principal_constraints:
+      launch_domain: system
+      account_name: _nimiruntimedev
+      account_uid_gid_class: dedicated_equal_local_role_account_id_in_450_through_499
+      account_uid_gid_minimum: 450
+      account_uid_gid_maximum: 499
+      login_shell: /usr/bin/false
+      home_directory: /var/empty
+      password_authentication: disabled
+      password_record_value: "*"
+      authentication_authority_posture: absent_required
+      forbidden_authentication_material_attributes:
+        - dsAttrTypeStandard:AuthenticationAuthority
+        - dsAttrTypeNative:ShadowHashData
+        - dsAttrTypeStandard:PasswordPlus
+        - dsAttrTypeStandard:AltSecurityIdentities
+        - dsAttrTypeStandard:AuthCredential
+        - dsAttrTypeStandard:AuthMethod
+        - dsAttrTypeStandard:AuthenticationHint
+        - dsAttrTypeStandard:KDCAuthKey
+        - dsAttrTypeStandard:KerberosServices
+        - dsAttrTypeStandard:KerberosRealm
+        - dsAttrTypeNative:KerberosKeys
+        - dsAttrTypeNative:HeimdalSRPKey
+        - dsAttrTypeNative:SecureTokenVerifierHistory
+        - dsAttrTypeNative:AutoGrantSecureToken
+        - dsAttrTypeNative:LinkedIdentity
+      forbidden_delegated_writer_attribute_prefix: dsAttrTypeNative:_writers
+      forbidden_explicit_group_membership_attributes: [dsAttrTypeStandard:GroupMembership, dsAttrTypeStandard:GroupMembers, dsAttrTypeStandard:NestedGroups]
+      forbidden_explicit_group_membership_policy: dedicated_group_membership_fields_absent_and_full_local_group_projection_contains_no_explicit_service_account_name_user_GeneratedUID_or_dedicated_group_GeneratedUID_membership
+      negative_attribute_value_policy: raw_Any_value_count_nonzero_is_present_and_rejected;_binary_or_malformed_values_must_never_be_coerced_to_empty
+      directory_service_hidden: true
+      directory_service_hidden_record_value: "YES"
+      generated_uid: distinct_valid_UUID_required_for_user_and_group
+      directory_service_api: public_OpenDirectory_framework_ODNode_createRecord_only
+      directory_service_commit_policy: fsynced_root_owned_principal_journal_precedes_any_record_mutation_then_ODNode_createRecord_atomically_creates_group_then_user_with_complete_birth_attributes_including_distinct_GeneratedUID_password_star_hidden_state_false_shell_and_empty_home_but_no_AuthenticationAuthority_authentication_material_delegated-writer_or_explicit-group-membership_then_synchronizes_and_a_fresh_exact-signed_real-root_helper_process_reads_raw_OpenDirectory_and_POSIX_identity_and_returns_a_transaction-and-plan-bound_receipt
+      directory_service_recovery_policy: recovery_reads_the_fsynced_transaction_name_UID_GID_user_GeneratedUID_and_group_GeneratedUID_then_deletes_user_before_group_only_when_every_observed_field_matches_and_proves_both_records_absent;_any_query_delete_mismatch_or_ambiguous_result_preserves_the_journal_and_fails_repair-required
+      directory_service_existing_identity_policy: both_records_must_exist_and_match_the_complete_admitted_profile_or_both_must_be_absent;_an_existing_exact_identity_is_never_owned_or_deleted_by_a_failed_candidate_update
+      directory_service_mutation_fallbacks: [dscl_forbidden, sysadminctl_forbidden, dsimport_forbidden, direct_dslocal_write_forbidden]
+      principal_transaction_journal_path: /Library/Application Support/Nimi/RuntimeDev/principal-transaction.json
+      installation_transaction_journal_path: /Library/Application Support/Nimi/RuntimeDev/installation-transaction.json
+      installation_transaction_scope: one_fsynced_fresh_install_top_level_journal_precedes_service_stop_or_first_mutation_requires_all_service_principal_directory_plist_payload_socket_and_Runtime_custody_baselines_absent_and_owns_every_created_principal_directory_plist_active_Desktop_installer_ledger_custody_and_socket_effect
+      installation_rollback_order: bootout_and_prove_process_stopped_then_remove_and_prove_sockets_then_reset_transaction-created_Runtime_custody_while_candidate_Runtime_remains_verified_then_remove_plist_active_Desktop_and_ledger_then_remove_staging_then_remove_only_transaction-created_empty_fixed_directories_then_remove_exact_transaction-created_user_before_group_then_prove_full_baseline_absent_then_remove_journal
+      installation_commit_boundary: final_mutually_verified_Runtime_health_after_launchd_bootstrap_and_all_fixed_artifact_checks;_journal_and_rollback_generation_are_retained_until_this_boundary
+      update_admission: fail_closed_pending_nonmutating_release_lineage_validation_and_installer-bound_pending_commit_protocol;_current_AdmitReleaseLineage_mutates_anchored_high-water_before_final_health_so_old-candidate_restore_is_forbidden
+      partial_install_repair_journal_path: /Library/Application Support/Nimi/RuntimeDev/partial-install-repair-transaction.json
+      partial_install_repair_journal_staging_path: /Library/Application Support/Nimi/RuntimeDev/partial-install-repair-transaction.staging
+      partial_install_repair_policy: explicit_confirmed_current_bootstrap_delete-only_repair_accepts_only_macos_local_development_v4_failed_first_install_exact_principal_from_source_carrier_4_or_macos_local_development_v2_failed_first_install_disabled_user_from_source_carrier_2;_carrier_2_requires_source-helper-status_carrier_2_one_String_AuthenticationAuthority_value_exactly_;DisabledUser;_all_other_authentication_material_absent_and_all_positive_principal_group_POSIX_membership_writer_evidence_exact;_carrier_4_requires_exact_current_absent-authentication_principal_and_never_accepts_the_legacy_class;_both_classes_delete_the_whole_exact_user_then_group_prove_absence_and_require_fresh_distinct_GeneratedUIDs_before_current_carrier_4_creation;_journal_schema_v2_directly_owns_prepared_artifacts-removed_user-removed_group-removed_principal-removed_and_is_bound_to_stable-before-and-after_source-helper_SHA256/CDHash_source-carrier_residue-class_auth-evidence-SHA256_plan/GUID_rootKey/policy;_fixed_single-use_journal_staging_is_recovered_before_unknown-entry_or_phase_evaluation_only_after_same-open-vnode_root-owned_regular-mode-0600-nlink-1-bounded-size_proof;_fresh-bootstrap_absence_receipt_and_final-helper-private-custody-proof_required;_signing_profile_Keychain_CA_and_final_helper_are_preserved
+      legacy_delete_only_repair:
+        admitted_residue_classes:
+          - residue_class: macos_local_development_v4_failed_first_install_exact_principal
+            disposition: delete_only_exact_current_principal_never_reuse_existing_GeneratedUIDs
+            source_principal_carrier_contract_version: 4
+            source_helper_status: installed_signed_helper_reports_principal_carrier_contract_version_4
+            authentication_authority_posture: absent_required
+            other_authentication_material_posture: absent_required
+            positive_principal_fields: exact_current_name_uid_gid_password_hidden_home_shell_and_distinct_valid_user_group_GeneratedUID_required
+            dedicated_group_projection: exact_current_name_gid_GeneratedUID_and_no_explicit_membership_required
+            posix_projection: exact_current_name_uid_gid_home_shell_and_nonlogin_projection_required
+            full_local_group_membership_projection: exact_absence_of_service_name_user_GeneratedUID_and_dedicated_group_GeneratedUID_required
+            delegated_writer_projection: exact_absence_of_every_dsAttrTypeNative:_writers_prefix_attribute_required
+            repair_disposition: delete_exact_whole_user_then_exact_group_prove_both_records_and_POSIX_projection_absent_then_current_carrier_creation_requires_fresh_distinct_user_and_group_GeneratedUIDs
+          - residue_class: macos_local_development_v2_failed_first_install_disabled_user
+            disposition: delete_only_never_admit_or_normalize_as_current_principal
+            source_principal_carrier_contract_version: 2
+            source_helper_status: installed_signed_helper_reports_principal_carrier_contract_version_2
+            authentication_authority:
+              attribute: dsAttrTypeStandard:AuthenticationAuthority
+              value_type: String
+              exact_value_count: 1
+              exact_value: ";DisabledUser;"
+            other_authentication_material_posture: absent_required
+            other_authentication_material_attributes:
+              - dsAttrTypeNative:ShadowHashData
+              - dsAttrTypeStandard:PasswordPlus
+              - dsAttrTypeStandard:AltSecurityIdentities
+              - dsAttrTypeStandard:AuthCredential
+              - dsAttrTypeStandard:AuthMethod
+              - dsAttrTypeStandard:AuthenticationHint
+              - dsAttrTypeStandard:KDCAuthKey
+              - dsAttrTypeStandard:KerberosServices
+              - dsAttrTypeStandard:KerberosRealm
+              - dsAttrTypeNative:KerberosKeys
+              - dsAttrTypeNative:HeimdalSRPKey
+              - dsAttrTypeNative:SecureTokenVerifierHistory
+              - dsAttrTypeNative:AutoGrantSecureToken
+              - dsAttrTypeNative:LinkedIdentity
+            positive_principal_fields: exact_current_name_uid_gid_password_hidden_home_shell_and_distinct_valid_user_group_GeneratedUID_required
+            dedicated_group_projection: exact_current_name_gid_GeneratedUID_and_no_explicit_membership_required
+            posix_projection: exact_current_name_uid_gid_home_shell_and_nonlogin_projection_required
+            full_local_group_membership_projection: exact_absence_of_service_name_user_GeneratedUID_and_dedicated_group_GeneratedUID_required
+            delegated_writer_projection: exact_absence_of_every_dsAttrTypeNative:_writers_prefix_attribute_required
+            repair_disposition: delete_exact_whole_user_then_exact_group_prove_both_records_and_POSIX_projection_absent_then_current_carrier_creation_requires_fresh_distinct_user_and_group_GeneratedUIDs
+        normal_current_profile_disposition: carrier_4_requires_AuthenticationAuthority_absent_and_never_accepts_or_normalizes_any_legacy_residue_class
+        source_helper_identity_stability: exact_source_helper_SHA256_and_CDHash_recorded_before_journal_creation_and_reverified_unchanged_before_each_phase_and_after_final_absence_proof
+        journal_schema_version: nimi.macos-local-development-partial-install-repair/v2
+        journal_phases: [prepared, artifacts-removed, user-removed, group-removed, principal-removed]
+        journal_ownership: parent_repair_journal_directly_owns_artifact_user_group_deletion_and_must_not_delegate_to_or_recover_a_principal_transaction_journal
+        journal_staging_recovery: fixed_single-use_staging_path_is_removed_only_inside_the_final-helper-mutation-lock_after_open-fd_regular_root-root_mode-0600-nlink-1-size-at-most-65536_and_same-device-inode-path_revalidation;_recovery_precedes_every_unknown-entry_or_phase-evaluation_gate_and_the_staging_path_is_never_semantic_authority
+        journal_authority_binding_required_fields:
+          - source_helper_sha256
+          - source_helper_cdhash
+          - source_principal_carrier_contract_version
+          - residue_class
+          - authentication_evidence_sha256
+          - plan_digest
+          - user_generated_uid
+          - group_generated_uid
+          - root_key_id
+          - policy_digest
+        fresh_bootstrap_absence_receipt: fresh_exact_bootstrap_process_with_new_ODSession_must_prove_both_Directory_Services_records_and_POSIX_projection_absent_and_bind_the_parent_repair_transaction_source-helper_identity_residue-class_plan-and-policy
+      installer_serialization_policy: nonblocking_exclusive_flock_on_the_exact_open_root_owned_final_helper_vnode_spans_install_restart_reset_uninstall_release-record-signing_and_unprovision;_lock_contention_fails_before_mutation
+      supplementary_groups: none_InitGroups_false
+      protected_state_owner: root_for_installation_boundary_and_dedicated__nimiruntimedev_uid_for_exact_state_child
+      service_definition_authority: root_owned_mode_0644_/Library/LaunchDaemons/ai.nimi.runtime.dev.plist_installed_only_by_verified_privileged_development_installer
+      interactive_process_access: verification_only
+    principal_selection:
+      authority_status: local_development_non_product_admitted
+      selected_profile: dedicated_non_login__nimiruntimedev_uid_with_launchd_system_job_ai.nimi.runtime.dev
+    service_control:
+      service_label: ai.nimi.runtime.dev
+      status_semantics: launchctl_print_system_job_pid_then_mutually_verified_runtime_health
+      start_semantics: fixed_root_owned_launchd_system_job_without_program_path_argument_environment_or_profile_selection
+      restart_semantics: runtime_self_exit_then_launchd_keepalive_restart_and_new_boot_epoch_verification
+      update_semantics: typed_fail_close_dev-runtime-update-not-admitted_until_nonmutating_release-lineage_pending-commit_is_admitted
+      implementation_status: local_development_non_product_admitted
+      production_SMAppService_equivalence_claim: forbidden
+    acceptance_isolation:
+      service_principal: same_development_dedicated__nimiruntimedev_principal
+      development_state_lineage_root_acl: root_installation_boundary_and_dedicated__nimiruntimedev_state_only
+      account_partition: verified_interactive_euid_and_audit_session
+      runtime_lifecycle_and_restart: real_launchd_system_daemon
+      parallel_isolation: RuntimeDev_state_trust_Keychain_socket_bundle_and_label_namespaces
     source_rule: K-PLOCAL-007

@@ -79,6 +79,13 @@ pub struct DesktopRuntimeConsumerError {
 }
 
 impl DesktopRuntimeConsumerError {
+    pub fn new(reason_code: impl Into<String>, retryable: bool) -> Self {
+        Self {
+            reason_code: reason_code.into(),
+            retryable,
+        }
+    }
+
     pub fn reason_code(&self) -> &str {
         self.reason_code.as_str()
     }
@@ -90,10 +97,7 @@ impl DesktopRuntimeConsumerError {
 
 impl From<crate::desktop_unary::DesktopUnaryError> for DesktopRuntimeConsumerError {
     fn from(error: crate::desktop_unary::DesktopUnaryError) -> Self {
-        Self {
-            reason_code: error.reason_code().to_string(),
-            retryable: error.retryable(),
-        }
+        Self::new(error.reason_code(), error.retryable())
     }
 }
 

@@ -8,57 +8,5 @@ if [[ "$(/usr/bin/id -u)" != "0" || "$(/usr/bin/id -ru)" != "0" ]]; then
   exit 70
 fi
 
-readonly script_root="${0:A:h}"
-source "${script_root}/runtime-account.zsh"
-nimi_ensure_runtime_account
-
-readonly service_uid="$(/usr/bin/id -u _nimiruntime)"
-readonly service_gid="$(/usr/bin/id -g _nimiruntime)"
-readonly installation_root="/Library/Application Support/Nimi/Runtime"
-readonly state_root="${installation_root}/state"
-readonly trust_root="${installation_root}/trust/protected-local/v1"
-readonly runtime_executable="/Applications/Nimi.app/Contents/Library/LaunchServices/nimi-runtime"
-readonly expected_records=(
-  nimi_runtime_service.release-trust-record.json
-  nimi_desktop.release-trust-record.json
-  nimi_local_app_host.release-trust-record.json
-)
-
-/usr/bin/install -d -o root -g wheel -m 0755 \
-  "/Library/Application Support/Nimi" \
-  "${installation_root}" \
-  "${installation_root}/trust" \
-  "${installation_root}/trust/protected-local" \
-  "${trust_root}"
-
-if [[ -L "${state_root}" || ( -e "${state_root}" && ! -d "${state_root}" ) ]]; then
-  print -u2 -- "Nimi Runtime state root is not a directory"
-  exit 72
-fi
-/usr/bin/install -d -o "${service_uid}" -g "${service_gid}" -m 0700 "${state_root}"
-
-typeset record candidate
-typeset -a entries=()
-for record in "${expected_records[@]}"; do
-  candidate="${trust_root}/${record}"
-  [[ -f "${candidate}" && ! -L "${candidate}" ]] || {
-    print -u2 -- "Nimi protected-local trust record set is incomplete"
-    exit 73
-  }
-  /usr/sbin/chown root:wheel "${candidate}"
-  /bin/chmod 0644 "${candidate}"
-done
-entries=("${trust_root}"/*(N))
-if (( ${#entries[@]} != ${#expected_records[@]} )); then
-  print -u2 -- "Nimi protected-local trust root contains an unexpected entry"
-  exit 74
-fi
-
-[[ -f "${runtime_executable}" && ! -L "${runtime_executable}" && -x "${runtime_executable}" ]] || {
-  print -u2 -- "Nimi Runtime executable is missing from the fixed installed bundle"
-  exit 75
-}
-"${runtime_executable}" macos-protected-state-provision
-
-print -- "Nimi Runtime custody provisioned; SMAppService registration remains an explicit Desktop administrator action"
-exit 0
+print -u2 -- "Nimi macOS production Runtime installation remains requirements-only and fail-closed pending native principal, SMAppService, Developer ID, notarization, and Gatekeeper admission"
+exit 78

@@ -103,10 +103,11 @@ pub(crate) fn local_app_error_from_status(status: Status) -> LocalAppOperationEr
 pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCode> {
     Some(match value {
         1 => LocalAppReasonCode::ActionExecuted,
+        633 => LocalAppReasonCode::RuntimeRestarted,
         642 | 643 | 644 | 645 | 655 | 656 | 658 | 659 | 660 => {
             LocalAppReasonCode::RuntimePermissionDenied
         }
-        646 | 647 | 648 => LocalAppReasonCode::RuntimeUnauthenticated,
+        646..=648 => LocalAppReasonCode::RuntimeUnauthenticated,
         649 => LocalAppReasonCode::ProcessReplaced,
         650 => LocalAppReasonCode::Revoked,
         651 => LocalAppReasonCode::PermissionRequired,
@@ -125,6 +126,7 @@ pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCo
 fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCode> {
     Some(match value {
         "ACTION_EXECUTED" => LocalAppReasonCode::ActionExecuted,
+        "PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH" => LocalAppReasonCode::RuntimeRestarted,
         "PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED"
         | "PROTECTED_ORIGIN_ROLE_MISMATCH"
         | "LOCAL_APP_LAUNCH_LEASE_REQUIRED"
@@ -165,6 +167,7 @@ fn host_reason_from_runtime_reason(value: &str) -> Option<NimiHostErrorReasonCod
         "PRINCIPAL_UNAUTHORIZED" | "AUTH_TOKEN_INVALID" => {
             NimiHostErrorReasonCode::PrincipalUnauthorized
         }
+        "PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH" => NimiHostErrorReasonCode::RuntimeRestarted,
         "LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED" => {
             NimiHostErrorReasonCode::LocalDevelopmentAuthorizationRequired
         }
@@ -253,6 +256,22 @@ mod tests {
         assert_eq!(
             host_reason_from_runtime_reason("LOCAL_APP_PROVENANCE_UNAVAILABLE"),
             Some(NimiHostErrorReasonCode::LocalDevelopmentProjectChanged)
+        );
+    }
+
+    #[test]
+    fn boot_epoch_mismatch_is_never_collapsed_into_unavailable() {
+        assert_eq!(
+            host_reason_from_runtime_reason("PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH"),
+            Some(NimiHostErrorReasonCode::RuntimeRestarted)
+        );
+        assert_eq!(
+            local_app_reason_from_runtime_reason("PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH"),
+            Some(LocalAppReasonCode::RuntimeRestarted)
+        );
+        assert_eq!(
+            local_app_reason_from_proto(633),
+            Some(LocalAppReasonCode::RuntimeRestarted)
         );
     }
 
