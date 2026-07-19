@@ -6,7 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"strings"
 	"unicode/utf8"
+
+	realmv1 "github.com/nimiplatform/nimi/runtime/gen/realm/v1"
 )
 
 const (
@@ -238,6 +241,7 @@ func scanSourceMaterializationPacketStructureV3(reader io.Reader, maxBytes int64
 	frames := make([]sourceMaterializationJSONFrameV3, 0, 16)
 	rootValues := uint64(0)
 	tokenCount := uint64(0)
+	generatedClosureViolationPath := ""
 
 	acceptValue := func() (string, error) {
 		if len(frames) == 0 {
@@ -258,7 +262,7 @@ func scanSourceMaterializationPacketStructureV3(reader io.Reader, maxBytes int64
 		if frame.expectingKey {
 			return "", sourceMaterializationV3Error(sourceMaterializationFailurePacketContractV3, "Packet v3 object value has no key")
 		}
-		path := frame.path + "." + frame.currentKey
+		path := frame.path + "." + sourceMaterializationGeneratedPathSegmentV3(frame.currentKey)
 		frame.expectingKey = true
 		frame.currentKey = ""
 		return path, nil
@@ -326,6 +330,18 @@ func scanSourceMaterializationPacketStructureV3(reader io.Reader, maxBytes int64
 				if len(frames) == 0 || frames[len(frames)-1].kind != '{' || !frames[len(frames)-1].expectingKey {
 					return sourceMaterializationV3Error(sourceMaterializationFailurePacketContractV3, "Packet v3 object is structurally incomplete")
 				}
+				frame := frames[len(frames)-1]
+				fields := make([]string, 0, len(frame.keys))
+				for field := range frame.keys {
+					fields = append(fields, field)
+				}
+				if known, valid := realmv1.ValidateMaterializationResponseObjectFields(
+					realmv1.WorldCoreControllerCreateSourceMaterializationPacketOperationID,
+					frame.path,
+					fields,
+				); known && !valid && generatedClosureViolationPath == "" {
+					generatedClosureViolationPath = frame.path
+				}
 				frames = frames[:len(frames)-1]
 			case ']':
 				if len(frames) == 0 || frames[len(frames)-1].kind != '[' {
@@ -348,7 +364,15 @@ func scanSourceMaterializationPacketStructureV3(reader io.Reader, maxBytes int64
 	if len(frames) != 0 || rootValues != 1 {
 		return sourceMaterializationV3Error(sourceMaterializationFailurePacketContractV3, "Packet v3 JSON structure is incomplete")
 	}
+	if generatedClosureViolationPath != "" {
+		return sourceMaterializationV3Error(sourceMaterializationFailurePacketContractV3, "Packet v3 object %s violates the generated Realm OpenAPI field closure", generatedClosureViolationPath)
+	}
 	return nil
+}
+
+func sourceMaterializationGeneratedPathSegmentV3(value string) string {
+	replacer := strings.NewReplacer("~", "~0", ".", "~1", "[", "~2", "]", "~3")
+	return replacer.Replace(value)
 }
 
 func sourceMaterializationPacketArrayLimitV3(path string, limits sourceMaterializationPublishedLimitsV3) uint64 {

@@ -161,6 +161,144 @@ func MaterializationClosedSchemaFields(name string) (ClosedSchemaFields, bool) {
 }`;
 }
 
+function responseClosedObjectProjection(realm, policy) {
+  const modelByName = new Map(realm.model_schemas.map((model) => [model.name, model.schema]));
+  const entries = new Map();
+
+  const addCandidate = (operationId, path, schema) => {
+    if (schema.kind !== 'object' || schema.closed !== true) return;
+    const required = [...(schema.required_properties || [])].sort();
+    const optional = (schema.properties || [])
+      .filter((property) => property.required !== true)
+      .map((property) => property.name)
+      .sort();
+    const key = `${operationId}\0${path}`;
+    const candidates = entries.get(key) || new Map();
+    const signature = JSON.stringify([required, optional]);
+    candidates.set(signature, { required, optional });
+    entries.set(key, candidates);
+  };
+
+  const visit = (operationId, schema, path, activeRefs) => {
+    if (!schema || schema.kind === 'unknown') return;
+    if (schema.kind === 'ref') {
+      if (activeRefs.has(schema.ref_name)) return;
+      const target = modelByName.get(schema.ref_name);
+      if (!target) fail(`response closure is missing ${schema.ref_name}`);
+      const nextRefs = new Set(activeRefs);
+      nextRefs.add(schema.ref_name);
+      visit(operationId, target, path, nextRefs);
+      return;
+    }
+    if (schema.kind === 'union') {
+      for (const variant of schema.variants || []) visit(operationId, variant, path, activeRefs);
+      return;
+    }
+    if (schema.kind === 'array') {
+      visit(operationId, schema.items, `${path}[]`, activeRefs);
+      return;
+    }
+    if (schema.kind !== 'object') return;
+    addCandidate(operationId, path, schema);
+    for (const property of schema.properties || []) {
+      visit(operationId, property.schema, `${path}.${property.name}`, activeRefs);
+    }
+    if (schema.additional_properties) {
+      visit(operationId, schema.additional_properties, `${path}.*`, activeRefs);
+    }
+  };
+
+  for (const row of policy) {
+    for (const response of row.openapi.response_schemas || []) {
+      if (String(response.status).startsWith('2')) {
+        visit(row.operation_id, response.schema, '$', new Set());
+      }
+    }
+  }
+  return [...entries.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, candidates]) => ({ key, candidates: [...candidates.values()] }));
+}
+
+function renderResponseClosedObjectProjection(entries) {
+  const rows = entries.map((entry) => {
+    const candidates = entry.candidates.map((candidate) =>
+      `{Required: []string{${candidate.required.map(quote).join(', ')}}, Optional: []string{${candidate.optional.map(quote).join(', ')}}}`,
+    ).join(', ');
+    return `\t${quote(entry.key)}: {${candidates}},`;
+  }).join('\n');
+  return `var materializationResponseClosedObjectFields = map[string][]ClosedSchemaFields{
+${rows}
+}
+
+// ValidateMaterializationResponseObjectFields verifies one closed response
+// object against the exact field closure generated from Realm OpenAPI.
+// known=false denotes an intentionally open or scalar response path.
+func ValidateMaterializationResponseObjectFields(operationID, path string, fields []string) (known, valid bool) {
+\tcandidates, known := materializationResponseClosedObjectFields[operationID+"\\x00"+path]
+\tif !known {
+\t\tprefix := operationID + "\\x00"
+\t\tfor key, projected := range materializationResponseClosedObjectFields {
+\t\t\tif strings.HasPrefix(key, prefix) && materializationResponsePathMatches(key[len(prefix):], path) {
+\t\t\t\tcandidates = projected
+\t\t\t\tknown = true
+\t\t\t\tbreak
+\t\t\t}
+\t\t}
+\t\tif !known {
+\t\t\treturn false, false
+\t\t}
+\t}
+\tactual := make(map[string]struct{}, len(fields))
+\tfor _, field := range fields {
+\t\tif _, duplicate := actual[field]; duplicate {
+\t\t\treturn true, false
+\t\t}
+\t\tactual[field] = struct{}{}
+\t}
+\tfor _, candidate := range candidates {
+\t\tallowed := make(map[string]struct{}, len(candidate.Required)+len(candidate.Optional))
+\t\tmatch := true
+\t\tfor _, field := range candidate.Required {
+\t\t\tallowed[field] = struct{}{}
+\t\t\tif _, present := actual[field]; !present {
+\t\t\t\tmatch = false
+\t\t\t}
+\t\t}
+\t\tfor _, field := range candidate.Optional {
+\t\t\tallowed[field] = struct{}{}
+\t\t}
+\t\tif !match {
+\t\t\tcontinue
+\t\t}
+\t\tfor field := range actual {
+\t\t\tif _, admitted := allowed[field]; !admitted {
+\t\t\t\tmatch = false
+\t\t\t\tbreak
+\t\t\t}
+\t\t}
+\t\tif match {
+\t\t\treturn true, true
+\t\t}
+\t}
+\treturn true, false
+}
+
+func materializationResponsePathMatches(pattern, actual string) bool {
+\tpatternSegments := strings.Split(pattern, ".")
+\tactualSegments := strings.Split(actual, ".")
+\tif len(patternSegments) != len(actualSegments) {
+\t\treturn false
+\t}
+\tfor index, segment := range patternSegments {
+\t\tif segment != "*" && segment != actualSegments[index] {
+\t\t\treturn false
+\t\t}
+\t}
+\treturn true
+}`;
+}
+
 export function runtimePrivateRealmOperationIds(realm) {
   return new Set(operationPolicy(realm).map((row) => row.operation_id));
 }
@@ -218,18 +356,46 @@ export function writeRuntimeRealmCarrier(realm) {
     ].join('\n');
   }).join('\n');
 
+  const operationDescriptors = policy.map((row) => {
+    const base = pascalCase(row.operation_id);
+    const successful = row.openapi.response_schemas.filter((response) => String(response.status).startsWith('2'));
+    if (successful.length !== 1 || !/^2[0-9]{2}$/.test(String(successful[0].status))) {
+      fail(`private operation must have one exact success status: ${row.operation_id}`);
+    }
+    return `var ${base}Operation = PrivateOperation{\n\toperationID: ${base}OperationID,\n\tmethod: ${base}Method,\n\tpath: ${base}Path,\n\tsuccessStatus: ${Number(successful[0].status)},\n}`;
+  }).join('\n\n');
+  const responseObjectProjection = responseClosedObjectProjection(realm, policy);
+
   writeText(carrierPath, formatGo(`// Code generated by ${generatedBy}; DO NOT EDIT.
 // Source: config/realm-openapi/api-nimi.yaml and realm-private-operation-carriers.yaml.
 
 package realmv1
+
+import "strings"
 
 const (
 ${operationConstants}
 \tMaterializationSchemaClosureSHA256\t= ${quote(closureDigest)}
 )
 
+type PrivateOperation struct {
+\toperationID string
+\tmethod string
+\tpath string
+\tsuccessStatus int
+}
+
+func (operation PrivateOperation) OperationID() string { return operation.operationID }
+func (operation PrivateOperation) Method() string { return operation.method }
+func (operation PrivateOperation) Path() string { return operation.path }
+func (operation PrivateOperation) SuccessStatus() int { return operation.successStatus }
+
+${operationDescriptors}
+
 ${renderedModels}
 
 ${renderClosedSchemaFields(fieldProjection)}
+
+${renderResponseClosedObjectProjection(responseObjectProjection)}
 `));
 }

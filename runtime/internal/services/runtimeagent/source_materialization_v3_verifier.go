@@ -12,6 +12,8 @@ import (
 	"math/big"
 	"strings"
 	"time"
+
+	realmv1 "github.com/nimiplatform/nimi/runtime/gen/realm/v1"
 )
 
 type sourceMaterializationVerificationExpectationV3 struct {
@@ -82,6 +84,13 @@ func verifySourceMaterializationPacketV3(
 	if err := validateSourceMaterializationJWKSShapeV3(jwksValue); err != nil {
 		return verifiedSourceMaterializationV3{}, err
 	}
+	if err := validateGeneratedRealmResponseFieldsV3(
+		realmv1.GetSourceMaterializationJwksOperationID,
+		"$",
+		jwksValue,
+	); err != nil {
+		return verifiedSourceMaterializationV3{}, err
+	}
 	var jwks sourceMaterializationJWKSV3
 	if err := strictDecodeSourceMaterializationV3(jwksBytes, &jwks); err != nil {
 		return verifiedSourceMaterializationV3{}, err
@@ -108,6 +117,31 @@ func verifySourceMaterializationPacketV3(
 		SigningKeyFingerprint: keyFingerprint, ReplayBindingHash: replayBinding, NonceReplayDigest: nonceDigest,
 		VerifiedAt: expected.Now.UTC(),
 	}, nil
+}
+
+func validateGeneratedRealmResponseFieldsV3(operationID, path string, value any) error {
+	switch typed := value.(type) {
+	case map[string]any:
+		fields := make([]string, 0, len(typed))
+		for field := range typed {
+			fields = append(fields, field)
+		}
+		if known, valid := realmv1.ValidateMaterializationResponseObjectFields(operationID, path, fields); known && !valid {
+			return sourceMaterializationV3Error(sourceMaterializationFailurePacketContractV3, "Realm response object %s violates the generated OpenAPI field closure", path)
+		}
+		for field, child := range typed {
+			if err := validateGeneratedRealmResponseFieldsV3(operationID, path+"."+field, child); err != nil {
+				return err
+			}
+		}
+	case []any:
+		for _, child := range typed {
+			if err := validateGeneratedRealmResponseFieldsV3(operationID, path+"[]", child); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func readSourceMaterializationBoundedBodyV3(reader io.Reader, maxBytes int64) ([]byte, error) {

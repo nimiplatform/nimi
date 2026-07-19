@@ -289,6 +289,18 @@ function assertPrivateOperationProjection(sourceRealm) {
     path.join(repoRoot, 'runtime', 'gen', 'realm', 'v1', 'source_materialization_openapi.go'),
     'utf8',
   );
+  const runtimeAccountConsumer = fs.readFileSync(
+    path.join(repoRoot, 'runtime', 'internal', 'services', 'account', 'realm_source_materialization.go'),
+    'utf8',
+  );
+  const runtimePacketConsumer = fs.readFileSync(
+    path.join(repoRoot, 'runtime', 'internal', 'services', 'runtimeagent', 'source_materialization_v3_stream.go'),
+    'utf8',
+  );
+  const runtimeJwksConsumer = fs.readFileSync(
+    path.join(repoRoot, 'runtime', 'internal', 'services', 'runtimeagent', 'source_materialization_v3_verifier.go'),
+    'utf8',
+  );
   for (const row of rows) {
     const operation = operationById.get(row.operation_id);
     assert(operation?.method === row.method && operation?.path === row.path,
@@ -314,6 +326,22 @@ function assertPrivateOperationProjection(sourceRealm) {
   }
   assert(/MaterializationSchemaClosureSHA256\s+=\s+"[a-f0-9]{64}"/.test(runtimeCarrier),
     'Runtime private carrier omits generated materialization closure digest');
+  assert(runtimeCarrier.includes('ValidateMaterializationResponseObjectFields')
+    && runtimeCarrier.includes('materializationResponseClosedObjectFields'),
+  'Runtime private carrier omits generated response field-closure enforcement');
+  assert(runtimeAccountConsumer.includes('WorldCoreControllerCreateSourceMaterializationPacketOperation')
+    && runtimeAccountConsumer.includes('GetSourceMaterializationJwksOperation')
+    && !runtimeAccountConsumer.includes('WorldCoreControllerCreateSourceMaterializationPacketPath')
+    && !runtimeAccountConsumer.includes('GetSourceMaterializationJwksPath')
+    && !runtimeAccountConsumer.includes('WorldCoreControllerCreateSourceMaterializationPacketMethod')
+    && !runtimeAccountConsumer.includes('GetSourceMaterializationJwksMethod'),
+  'Runtime account consumer must use generated opaque operation descriptors instead of path/method constants');
+  assert(runtimePacketConsumer.includes('ValidateMaterializationResponseObjectFields')
+    && runtimePacketConsumer.includes('WorldCoreControllerCreateSourceMaterializationPacketOperationID'),
+  'Runtime Packet stream decoder does not consume generated response closure metadata');
+  assert(runtimeJwksConsumer.includes('ValidateMaterializationResponseObjectFields')
+    && runtimeJwksConsumer.includes('GetSourceMaterializationJwksOperationID'),
+  'Runtime JWKS decoder does not consume generated response closure metadata');
   for (const [language, surfaces] of Object.entries(generatedSdkSurfaces)) {
     assert(surfaces.typed.includes('CreateSourceMaterializationPacketV3Dto')
       && surfaces.typed.includes('SourceMaterializationPacketV3Dto'),

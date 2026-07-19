@@ -121,7 +121,7 @@ func (s *Service) AcquireRealmSourceMaterialization(ctx context.Context, request
 	if err != nil {
 		return RealmSourceMaterializationAcquisition{}, err
 	}
-	packetResponse, err := s.doRealmSourceMaterializationStream(ctx, credential, realmv1.WorldCoreControllerCreateSourceMaterializationPacketMethod, realmv1.WorldCoreControllerCreateSourceMaterializationPacketPath, packetBody, http.StatusCreated, realmSourceMaterializationPacketBodyBytes, true, false)
+	packetResponse, err := s.doRealmSourceMaterializationStream(ctx, credential, realmv1.WorldCoreControllerCreateSourceMaterializationPacketOperation, packetBody, realmSourceMaterializationPacketBodyBytes, true, false)
 	if err != nil {
 		return RealmSourceMaterializationAcquisition{}, err
 	}
@@ -141,7 +141,7 @@ func (s *Service) FetchCurrentRealmSourceMaterializationJWKS(ctx context.Context
 	if credential.lease != lease {
 		return RealmSourceMaterializationHTTPResponse{}, ErrRealmSourceMaterializationAccountLease
 	}
-	return s.doRealmSourceMaterializationStream(ctx, credential, realmv1.GetSourceMaterializationJwksMethod, realmv1.GetSourceMaterializationJwksPath, nil, http.StatusOK, realmSourceMaterializationJWKSBodyBytes, false, true)
+	return s.doRealmSourceMaterializationStream(ctx, credential, realmv1.GetSourceMaterializationJwksOperation, nil, realmSourceMaterializationJWKSBodyBytes, false, true)
 }
 
 func (s *Service) RevalidateRealmSourceMaterializationAccount(_ context.Context, lease RealmSourceMaterializationAccountLease) error {
@@ -227,11 +227,11 @@ func (s *Service) captureRealmSourceMaterializationCredential(ctx context.Contex
 	return credential, nil
 }
 
-func (s *Service) doRealmSourceMaterializationStream(ctx context.Context, credential realmSourceMaterializationCredentialLease, method, path string, body any, expectedStatus int, maxBytes int64, authenticated, noCache bool) (RealmSourceMaterializationHTTPResponse, error) {
+func (s *Service) doRealmSourceMaterializationStream(ctx context.Context, credential realmSourceMaterializationCredentialLease, operation realmv1.PrivateOperation, body any, maxBytes int64, authenticated, noCache bool) (RealmSourceMaterializationHTTPResponse, error) {
 	if err := s.RevalidateRealmSourceMaterializationAccount(ctx, credential.lease); err != nil {
 		return RealmSourceMaterializationHTTPResponse{}, err
 	}
-	target, err := realmSourceMaterializationEndpoint(credential.baseURL, path)
+	target, err := realmSourceMaterializationEndpoint(credential.baseURL, operation.Path())
 	if err != nil {
 		return RealmSourceMaterializationHTTPResponse{}, err
 	}
@@ -243,7 +243,7 @@ func (s *Service) doRealmSourceMaterializationStream(ctx context.Context, creden
 		}
 		requestBody = bytes.NewReader(encoded)
 	}
-	httpRequest, err := http.NewRequestWithContext(ctx, method, target, requestBody)
+	httpRequest, err := http.NewRequestWithContext(ctx, operation.Method(), target, requestBody)
 	if err != nil {
 		return RealmSourceMaterializationHTTPResponse{}, fmt.Errorf("%w: construct Realm request", ErrRealmSourceMaterializationUnavailable)
 	}
@@ -281,8 +281,8 @@ func (s *Service) doRealmSourceMaterializationStream(ctx context.Context, creden
 	if err := s.RevalidateRealmSourceMaterializationAccount(ctx, credential.lease); err != nil {
 		return RealmSourceMaterializationHTTPResponse{}, err
 	}
-	if response.StatusCode != expectedStatus {
-		return RealmSourceMaterializationHTTPResponse{}, realmSourceMaterializationHTTPStatusError(path, response.StatusCode)
+	if response.StatusCode != operation.SuccessStatus() {
+		return RealmSourceMaterializationHTTPResponse{}, realmSourceMaterializationHTTPStatusError(operation.OperationID(), response.StatusCode)
 	}
 	contentType, _, err := mime.ParseMediaType(response.Header.Get("Content-Type"))
 	if err != nil || strings.ToLower(contentType) != "application/json" {
@@ -312,8 +312,8 @@ func (s *Service) doRealmSourceMaterializationStream(ctx context.Context, creden
 // by the fixed Packet v3 endpoint. The response body is deliberately not an
 // input: Realm denial details may contain private policy or source data and are
 // never parsed, logged, or projected by Runtime.
-func realmSourceMaterializationHTTPStatusError(path string, statusCode int) error {
-	if path == realmv1.WorldCoreControllerCreateSourceMaterializationPacketPath {
+func realmSourceMaterializationHTTPStatusError(operationID string, statusCode int) error {
+	if operationID == realmv1.WorldCoreControllerCreateSourceMaterializationPacketOperationID {
 		switch statusCode {
 		case http.StatusBadRequest:
 			return fmt.Errorf("%w: Realm Packet request is invalid", ErrRealmSourceMaterializationInvalidRequest)

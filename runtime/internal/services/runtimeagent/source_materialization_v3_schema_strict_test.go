@@ -10,7 +10,44 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+
+	realmv1 "github.com/nimiplatform/nimi/runtime/gen/realm/v1"
 )
+
+func TestGeneratedRealmResponseClosureOwnsPacketAndJWKSFields(t *testing.T) {
+	known, valid := realmv1.ValidateMaterializationResponseObjectFields(
+		realmv1.GetSourceMaterializationJwksOperationID,
+		"$",
+		[]string{"keys"},
+	)
+	if !known || !valid {
+		t.Fatal("generated current-JWKS root closure rejected its exact OpenAPI field set")
+	}
+	known, valid = realmv1.ValidateMaterializationResponseObjectFields(
+		realmv1.GetSourceMaterializationJwksOperationID,
+		"$.keys[]",
+		[]string{"alg", "e", "key_ops", "kid", "kty", "n", "purpose", "use", "runtimeOwnedField"},
+	)
+	if !known || valid {
+		t.Fatal("generated current-JWKS key closure accepted a Runtime-authored response field")
+	}
+	known, valid = realmv1.ValidateMaterializationResponseObjectFields(
+		realmv1.WorldCoreControllerCreateSourceMaterializationPacketOperationID,
+		"$.semanticPayload.canonicalSource.profile.authoring.extensions.owner~1example",
+		[]string{"extensionSchemaVersion", "fields", "namespace", "productSemantic"},
+	)
+	if !known || !valid {
+		t.Fatal("generated wildcard response closure did not resolve an OpenAPI additional-property path")
+	}
+	known, _ = realmv1.ValidateMaterializationResponseObjectFields(
+		realmv1.WorldCoreControllerCreateSourceMaterializationPacketOperationID,
+		"$.semanticPayload.canonicalSource.profile.authoring.extensions.owner~1example.fields",
+		[]string{"appDefinedField"},
+	)
+	if known {
+		t.Fatal("generated wildcard response closure widened into an OpenAPI-open extension fields object")
+	}
+}
 
 func TestSourceMaterializationProfileSchemaV3RejectsNonCanonicalNestedValues(t *testing.T) {
 	vector := loadSourceMaterializationReferenceVectorV3(t, "world-character")
