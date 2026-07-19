@@ -224,12 +224,12 @@ export function validateLocalDevelopmentAuthority(bundle) {
   const policy = parsed.policy;
   if (policy) {
     if (
-      policy.version !== 5
+      policy.version !== 6
       || policy.table_family !== 'owner_matrix'
       || policy.owner !== 'platform'
       || policy.matrix_id !== 'nimi_app_local_development_admission'
     ) {
-      issues.push(issue('LOCAL_DEVELOPMENT_POLICY_IDENTITY_INVALID', authorityPaths.policy, 'Policy must be the Platform-owned v5 local-development owner matrix.'));
+      issues.push(issue('LOCAL_DEVELOPMENT_POLICY_IDENTITY_INVALID', authorityPaths.policy, 'Policy must be the Platform-owned v6 local-development owner matrix.'));
     }
 
     if (
@@ -309,6 +309,24 @@ export function validateLocalDevelopmentAuthority(bundle) {
       issues.push(issue('LOCAL_DEVELOPMENT_TECHNICAL_SESSION_INVALID', authorityPaths.policy, 'Each exact supervised process requires a new private lease/session with all principal, record, digest, account, and epoch bindings.'));
     }
 
+    const userDataPartition = policy.electron_user_data_partition;
+    if (
+      userDataPartition?.owner !== 'desktop_supervisor'
+      || userDataPartition?.data_class !== 'app_owned_authority'
+      || userDataPartition?.nimi_permission_or_grant !== 'forbidden'
+      || userDataPartition?.platform_roots?.windows !== 'active_user_home_app_data_local_nimi_local_app_hosts_v1'
+      || userDataPartition?.platform_roots?.macos !== 'active_user_library_application_support_nimi_local_app_hosts_v1'
+      || userDataPartition?.leaf !== 'domain_separated_sha256_of_runtime_authorization_id'
+      || userDataPartition?.raw_authorization_account_project_app_epoch_or_session_material_in_path_or_argv !== 'forbidden'
+      || !exactArray(userDataPartition?.platform_required_checks?.windows, ['canonical_ancestors', 'no_reparse_point_or_symlink', 'directory'])
+      || !exactArray(userDataPartition?.platform_required_checks?.macos, ['canonical_ancestors', 'no_symlink', 'active_user_owner', 'directory', 'no_group_or_world_access', 'mode_0700'])
+      || userDataPartition?.same_authorization_controlled_restart !== 'reuse'
+      || userDataPartition?.new_authorization_reapproval_account_change_or_project_identity_change !== 'new_partition'
+      || userDataPartition?.acceptance_cdp_override !== 'isolated_temporary_root_non_authorizing'
+    ) {
+      issues.push(issue('LOCAL_DEVELOPMENT_USER_DATA_PARTITION_INVALID', authorityPaths.policy, 'Electron app-owned data must use an opaque per-authorization Windows/macOS partition without creating a Nimi permission.'));
+    }
+
     if (!exactArray(policy.continuity_matrix?.no_reapproval_new_lease_and_session_required, continuityWithoutReapproval)) {
       issues.push(issue('LOCAL_DEVELOPMENT_CONTINUITY_INVALID', authorityPaths.policy, 'Controlled edit/build/restart and Runtime restart must rotate lease/session without widening durable authorization.'));
     }
@@ -356,7 +374,7 @@ export function validateLocalDevelopmentAuthority(bundle) {
 
     if (
       policy.platform_posture?.windows !== 'final_fixed_service_positive_required'
-      || policy.platform_posture?.macos !== 'fail_closed_pending_independent_admission'
+      || policy.platform_posture?.macos?.aggregate !== 'requirements_complete_fail_closed_pending_signed_native_and_live_admission'
       || policy.platform_posture?.linux !== 'fail_closed_pending_independent_admission'
       || policy.platform_posture?.localhost_grpc_or_same_user_daemon_fallback !== 'forbidden'
     ) {
@@ -367,7 +385,9 @@ export function validateLocalDevelopmentAuthority(bundle) {
   const principal = parsed.principalSchema;
   if (principal) {
     if (
-      principal.local_os_user_anchor?.windows_source !== 'verified_interactive_user_sid'
+      principal.local_os_user_anchor?.platform_sources?.windows !== 'verified_interactive_user_sid'
+      || principal.local_os_user_anchor?.platform_sources?.linux !== 'verified_peer_uid_and_login_session'
+      || principal.local_os_user_anchor?.platform_sources?.macos !== 'verified_peer_euid_and_audit_session'
       || principal.local_os_user_anchor?.request_supplied !== 'forbidden'
       || principal.local_os_user_anchor?.active_anchors_per_data_root !== 1
       || !includesAll(principal.principal?.fields, ['local_os_user_anchor', 'local_app_principal_id', 'app_id', 'development_authorization_id', 'canonical_project_file_id', 'state'])

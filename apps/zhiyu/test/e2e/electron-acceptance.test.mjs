@@ -153,8 +153,10 @@ function assertAppOwnedDatabase(databasePath, expectedBootCount) {
   assert.equal(metadata.isFile(), true);
   assert.equal(metadata.isSymbolicLink(), false);
   assert.equal(metadata.nlink, 1);
-  assert.equal(metadata.uid, process.getuid());
-  assert.equal(metadata.mode & 0o077, 0);
+  if (process.platform !== 'win32') {
+    assert.equal(metadata.uid, process.getuid());
+    assert.equal(metadata.mode & 0o077, 0);
+  }
 
   const database = new DatabaseSync(databasePath, { readOnly: true, allowExtension: false });
   try {

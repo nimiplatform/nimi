@@ -15,23 +15,26 @@ export type ZhiyuAppOwnedStore = {
 export async function openZhiyuAppOwnedStore(input: {
   readonly userDataRoot: string;
   readonly nowUnixMs?: number;
+  readonly platform?: NodeJS.Platform;
   readonly uid?: number;
 }): Promise<ZhiyuAppOwnedStore> {
-  const uid = input.uid ?? process.getuid?.();
-  if (!Number.isSafeInteger(uid) || Number(uid) < 0) fail();
+  const platform = input.platform ?? process.platform;
+  if (platform !== 'darwin' && platform !== 'win32') fail();
+  const uid = platform === 'darwin' ? input.uid ?? process.getuid?.() : undefined;
+  if (platform === 'darwin' && (!Number.isSafeInteger(uid) || Number(uid) < 0)) fail();
   const requestedRoot = exactAbsolute(input.userDataRoot);
   const canonicalUserDataRoot = await realpath(requestedRoot).catch(() => fail());
   if (canonicalUserDataRoot !== requestedRoot) fail();
-  await requireOwnedDirectory(canonicalUserDataRoot, Number(uid), false);
+  await requireOwnedDirectory(canonicalUserDataRoot, platform, uid, false);
 
   const storageRoot = path.join(canonicalUserDataRoot, 'app-owned', 'v1');
   await mkdir(storageRoot, { recursive: true, mode: 0o700 });
-  await chmod(storageRoot, 0o700);
-  await requireOwnedDirectory(path.join(canonicalUserDataRoot, 'app-owned'), Number(uid), true);
-  await requireOwnedDirectory(storageRoot, Number(uid), true);
+  if (platform === 'darwin') await chmod(storageRoot, 0o700);
+  await requireOwnedDirectory(path.join(canonicalUserDataRoot, 'app-owned'), platform, uid, true);
+  await requireOwnedDirectory(storageRoot, platform, uid, true);
 
   const databasePath = path.join(storageRoot, 'zhiyu.sqlite3');
-  await ensurePrivateDatabaseFile(databasePath, Number(uid));
+  await ensurePrivateDatabaseFile(databasePath, platform, uid);
   const database = new DatabaseSync(databasePath, {
     allowExtension: false,
     readOnly: false,
@@ -46,8 +49,8 @@ export async function openZhiyuAppOwnedStore(input: {
     ].join(';'));
     initializeOrValidateSchema(database);
     recordBoot(database, exactUnixMs(input.nowUnixMs ?? Date.now()));
-    await chmod(databasePath, 0o600);
-    await requireOwnedFile(databasePath, Number(uid));
+    if (platform === 'darwin') await chmod(databasePath, 0o600);
+    await requireOwnedFile(databasePath, platform, uid);
   } catch (error) {
     database.close();
     throw error;
@@ -123,12 +126,17 @@ function transaction(database: DatabaseSync, operation: () => void): void {
   }
 }
 
-async function ensurePrivateDatabaseFile(databasePath: string, uid: number): Promise<void> {
+async function ensurePrivateDatabaseFile(
+  databasePath: string,
+  platform: 'darwin' | 'win32',
+  uid: number | undefined,
+): Promise<void> {
   let handle;
   try {
     handle = await open(
       databasePath,
-      constants.O_RDWR | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,
+      constants.O_RDWR | constants.O_CREAT | constants.O_EXCL
+        | (platform === 'darwin' ? constants.O_NOFOLLOW : 0),
       0o600,
     );
     await handle.sync();
@@ -137,21 +145,31 @@ async function ensurePrivateDatabaseFile(databasePath: string, uid: number): Pro
   } finally {
     await handle?.close();
   }
-  await chmod(databasePath, 0o600);
-  await requireOwnedFile(databasePath, uid);
+  if (platform === 'darwin') await chmod(databasePath, 0o600);
+  await requireOwnedFile(databasePath, platform, uid);
 }
 
-async function requireOwnedDirectory(candidate: string, uid: number, privateDirectory: boolean): Promise<void> {
+async function requireOwnedDirectory(
+  candidate: string,
+  platform: 'darwin' | 'win32',
+  uid: number | undefined,
+  privateDirectory: boolean,
+): Promise<void> {
   const metadata = await lstat(candidate);
-  if (!metadata.isDirectory() || metadata.isSymbolicLink() || metadata.uid !== uid
-    || (privateDirectory && (metadata.mode & 0o077) !== 0)
+  if (!metadata.isDirectory() || metadata.isSymbolicLink()
+    || (platform === 'darwin' && (metadata.uid !== uid
+      || (privateDirectory && (metadata.mode & 0o077) !== 0)))
     || await realpath(candidate) !== candidate) fail();
 }
 
-async function requireOwnedFile(candidate: string, uid: number): Promise<void> {
+async function requireOwnedFile(
+  candidate: string,
+  platform: 'darwin' | 'win32',
+  uid: number | undefined,
+): Promise<void> {
   const metadata = await lstat(candidate);
   if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.nlink !== 1
-    || metadata.uid !== uid || (metadata.mode & 0o077) !== 0
+    || (platform === 'darwin' && (metadata.uid !== uid || (metadata.mode & 0o077) !== 0))
     || await realpath(candidate) !== candidate) fail();
 }
 

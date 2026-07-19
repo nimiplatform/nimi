@@ -58,6 +58,14 @@ test('gate rejects manifest permission requirements that claim positive authorit
   assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_PERMISSION_REQUIREMENTS_INVALID'));
 });
 
+test('gate rejects a shared Windows app-owned Electron data directory', () => {
+  const bundle = loadAuthorityBundle();
+  const policy = YAML.parse(bundle.policy);
+  policy.electron_user_data_partition.platform_roots.windows = 'shared_electron_default_user_data';
+  const issues = validateLocalDevelopmentAuthority({ ...bundle, policy: YAML.stringify(policy) });
+  assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_USER_DATA_PARTITION_INVALID'));
+});
+
 test('gate rejects a missing app-private storage carrier row', () => {
   const bundle = loadAuthorityBundle();
   const matrix = YAML.parse(bundle.transportMatrix);

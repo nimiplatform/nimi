@@ -1,4 +1,4 @@
-version: 5
+version: 6
 table_family: owner_matrix
 owner: platform
 matrix_id: nimi_app_local_development_admission
@@ -85,11 +85,14 @@ electron_user_data_partition:
   owner: desktop_supervisor
   data_class: app_owned_authority
   nimi_permission_or_grant: forbidden
-  root: active_user_library_application_support_nimi_local_app_hosts_v1
+  platform_roots:
+    windows: active_user_home_app_data_local_nimi_local_app_hosts_v1
+    macos: active_user_library_application_support_nimi_local_app_hosts_v1
   leaf: domain_separated_sha256_of_runtime_authorization_id
   raw_authorization_account_project_app_epoch_or_session_material_in_path_or_argv: forbidden
-  mode: "0700"
-  required_checks: [canonical_ancestors, no_symlink, active_user_owner, directory, no_group_or_world_access]
+  platform_required_checks:
+    windows: [canonical_ancestors, no_reparse_point_or_symlink, directory]
+    macos: [canonical_ancestors, no_symlink, active_user_owner, directory, no_group_or_world_access, mode_0700]
   same_authorization_controlled_restart: reuse
   new_authorization_reapproval_account_change_or_project_identity_change: new_partition
   acceptance_cdp_override: isolated_temporary_root_non_authorizing

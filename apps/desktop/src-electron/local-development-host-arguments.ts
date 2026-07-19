@@ -25,33 +25,36 @@ export function resolveLocalDevelopmentObservationArguments(
   ];
 }
 
-export async function resolveMacOSLocalAppUserDataArguments(input: {
+export async function resolveLocalAppUserDataArguments(input: {
   readonly homeDirectory: string;
   readonly authorizationId: string;
   readonly platform?: NodeJS.Platform;
   readonly uid?: number;
 }): Promise<string[]> {
-  if ((input.platform ?? process.platform) !== 'darwin') return [];
+  const platform = input.platform ?? process.platform;
+  if (platform !== 'darwin' && platform !== 'win32') failPartition();
   const authorizationId = requiredPartitionText(input.authorizationId);
-  const uid = input.uid ?? process.getuid?.();
-  if (!Number.isSafeInteger(uid) || Number(uid) < 0) failPartition();
+  const uid = platform === 'darwin' ? input.uid ?? process.getuid?.() : undefined;
+  if (platform === 'darwin' && (!Number.isSafeInteger(uid) || Number(uid) < 0)) failPartition();
   const requestedHome = path.resolve(requiredPartitionText(input.homeDirectory));
   const canonicalHome = await realpath(requestedHome).catch(failPartition);
-  if (canonicalHome !== requestedHome) failPartition();
+  if (!sameCanonicalPath(canonicalHome, requestedHome, platform)) failPartition();
 
   const leaf = createHash('sha256')
     .update('nimi-local-app-user-data-v1\0', 'utf8')
     .update(authorizationId, 'utf8')
     .digest('hex');
-  const segments = ['Library', 'Application Support', 'Nimi', 'Local App Hosts', 'v1', leaf];
+  const segments = platform === 'darwin'
+    ? ['Library', 'Application Support', 'Nimi', 'Local App Hosts', 'v1', leaf]
+    : ['AppData', 'Local', 'Nimi', 'Local App Hosts', 'v1', leaf];
   let current = canonicalHome;
-  await requirePrivateUserDataDirectory(current, Number(uid));
+  await requirePrivateUserDataDirectory(current, platform, uid);
   for (const segment of segments) {
     current = path.join(current, segment);
     await mkdir(current, { mode: 0o700 }).catch((error: NodeJS.ErrnoException) => {
       if (error.code !== 'EEXIST') throw error;
     });
-    await requirePrivateUserDataDirectory(current, Number(uid));
+    await requirePrivateUserDataDirectory(current, platform, uid);
   }
   if (!current.startsWith(`${canonicalHome}${path.sep}`) || current.includes(authorizationId)) {
     failPartition();
@@ -59,12 +62,24 @@ export async function resolveMacOSLocalAppUserDataArguments(input: {
   return [`--user-data-dir=${current}`];
 }
 
-async function requirePrivateUserDataDirectory(candidate: string, uid: number): Promise<void> {
+async function requirePrivateUserDataDirectory(
+  candidate: string,
+  platform: 'darwin' | 'win32',
+  uid: number | undefined,
+): Promise<void> {
   const metadata = await lstat(candidate).catch(failPartition);
-  if (!metadata.isDirectory() || metadata.isSymbolicLink() || metadata.uid !== uid
-    || (metadata.mode & 0o077) !== 0) {
+  const canonical = await realpath(candidate).catch(failPartition);
+  if (!metadata.isDirectory() || metadata.isSymbolicLink()
+    || !sameCanonicalPath(canonical, candidate, platform)
+    || (platform === 'darwin' && (metadata.uid !== uid || (metadata.mode & 0o077) !== 0))) {
     failPartition();
   }
+}
+
+function sameCanonicalPath(left: string, right: string, platform: 'darwin' | 'win32'): boolean {
+  return platform === 'win32'
+    ? left.toLowerCase() === right.toLowerCase()
+    : left === right;
 }
 
 function requiredPartitionText(value: unknown): string {

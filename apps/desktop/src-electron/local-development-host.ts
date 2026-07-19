@@ -22,7 +22,7 @@ import {
 } from './local-development-plan.js';
 import {
   resolveLocalDevelopmentObservationArguments,
-  resolveMacOSLocalAppUserDataArguments,
+  resolveLocalAppUserDataArguments,
 } from './local-development-host-arguments.js';
 import {
   localDevelopmentToolEnvironment,
@@ -480,7 +480,7 @@ class ElectronLocalDevelopmentHost {
     const observationArguments = resolveLocalDevelopmentObservationArguments();
     const userDataArguments = observationArguments.some((value) => value.startsWith('--user-data-dir='))
       ? []
-      : await resolveMacOSLocalAppUserDataArguments({
+      : await resolveLocalAppUserDataArguments({
         authorizationId: run.authorizationId,
         homeDirectory: this.homeDirectory,
       });
