@@ -176,6 +176,16 @@ repair/fail-closed path. Production configuration, HOME/TEMP, renderer state,
 environment, argv, endpoint selection, and request payloads cannot activate
 this behavior, choose a round, or choose its root.
 
+The signed installer preserves an existing non-empty explicit development
+`nimi_data` binding when it rotates the checkpoint candidate or acceptance
+round, unless the operator supplies a different explicit binding to that
+installer invocation. Preservation carries only the validated payload-root
+selector into the new signed profile. It never carries Product Control state,
+registry rows, readiness, accounts, Runtime identity, databases, grants, or
+audit state across candidates. A missing, malformed, inaccessible, or
+reparse-point preserved binding fails the update closed instead of silently
+falling back to a new candidate-specific payload root.
+
 The same profile binds account OAuth, token exchange, JWT issuer, JWKS, and
 revocation to one exact real Realm development deployment so the checkpoint
 exercises a controlled production account through Runtime custody. The binding
@@ -197,6 +207,9 @@ Product Control operation is still required. The binding cannot originate from
 HOME, USERPROFILE, TEMP, renderer state, environment, argv, endpoint, or a
 Runtime request payload. The signed installer must reject a missing,
 non-absolute, volume-root, reparse-point, or inaccessible explicit binding.
+The installer may source that exact field from the preceding protected profile
+when rotating a candidate or round, subject to the same validation. It must not
+source it from the interactive user's portable config file.
 
 ## K-CFG-016 Transition Backup & Drift Boundary
 

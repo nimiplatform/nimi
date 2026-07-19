@@ -1,4 +1,4 @@
-version: 7
+version: 8
 table_family: owner_matrix
 owner: platform
 matrix_id: nimi_app_local_development_admission
@@ -31,6 +31,8 @@ user_development_authorization:
     - account_id
     - fixed_shell_entry_policy
   choices: [run_once, allow_project]
+  initial_approval_authority: foreground_verified_desktop_confirmation_with_native_code_risk_acknowledgement
+  separate_os_credential_or_realm_reauthentication_for_zero_permission_project_consent: forbidden
   initial_permission_decision_state: none
   allow_project_reuse_requires_fresh_presence: false
   account_switch_transfers_authorization: false
@@ -140,6 +142,8 @@ risk_and_background:
   production_account_allowed_through_runtime_mediation: true
   runtime_credential_custody_required: true
   native_os_risk_disclosure_required: true
+  native_os_or_realm_presence_required_for_project_run_consent: false
+  nimi_owned_permission_or_sensitive_operation_presence: owned_by_the_requested_operation_not_project_launch
   nimi_permissions_cover_all_windows_rights: false
   nimi_managed_logon_or_boot_autostart: forbidden
 operation_posture:

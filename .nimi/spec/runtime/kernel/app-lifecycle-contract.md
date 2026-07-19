@@ -104,8 +104,11 @@ move, mode, or arbitrary delete, and therefore do not weaken this prohibition.
 
 Lifecycle and development mutations consume the live protected Desktop
 connection, `local_app_control`, current OS-user anchor/account/boot epoch,
-exact target generation, and applicable Runtime-issued presence challenge in
-one service-owned transaction. Returned evaluation/job/bootstrap ids are
+exact target generation, and any presence challenge required by the Nimi-owned
+operation being requested in one service-owned transaction. The zero-permission
+local-project run decision is completed by the foreground verified Desktop
+confirmation UX itself; it MUST NOT add a second Windows Hello, OS credential,
+or Realm reauthentication challenge. Returned evaluation/job/bootstrap ids are
 correlation only.
 
 The logical role covers local-app lifecycle UX coordination, future permission UX,
@@ -120,8 +123,9 @@ Production Developer Mode is the sole positive 0K lifecycle. Enabling the
 global mode grants nothing. `EvaluateLocalDevelopmentProject` resolves the
 canonical project-root file identity, declared app id, capability fingerprint,
 current account, and fixed shell/entry policy without creating authority.
-`DecideLocalDevelopmentProject` consumes fresh user decision presence and exactly
-`run_once | allow_project`, then creates a new isolated development
+`DecideLocalDevelopmentProject` consumes exactly `run_once | allow_project`
+through the foreground verified Desktop approval UX, including the native-code
+risk acknowledgement, then creates a new isolated development
 principal/record with zero user permissions. A developer manifest may include closed,
 typed `local_development.runtime_scoped_binding_requests` in the capability
 fingerprint. Such a declaration is request eligibility only: it grants no
@@ -140,8 +144,9 @@ When a `run_once` supervisor run reaches any terminal condition, Runtime
 tombstones that principal and marks its record removed; another run requires a
 fresh decision and new non-reused principal/record. An `allow_project` consent does
 not transfer across account switch: its live carrier is revoked, it remains
-bound to the original account; a fresh presence may reuse it after that account
-becomes current again while still creating new technical carriers.
+bound to the original account; returning to that account may reuse the unchanged
+consent without a new project decision or credential challenge while still
+creating new technical carriers.
 
 The development principal may use a controlled production account only through
 the common K-GRANT/K-ACCSVC/owner-operation envelope. It receives no credential,

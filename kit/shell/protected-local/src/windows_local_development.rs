@@ -18,7 +18,6 @@ use crate::generated::{
 use crate::grpc_status::host_error_from_status;
 #[cfg(target_os = "macos")]
 use crate::macos_supervised_process::SupervisedDevelopmentProcess;
-use crate::windows_presence_browser_broker::PresenceBrowserBroker;
 #[cfg(target_os = "windows")]
 use crate::windows_supervised_process::SupervisedDevelopmentProcess;
 use crate::{
@@ -232,30 +231,14 @@ pub(crate) async fn decide_project(
     request: LocalDevelopmentDecisionRequest,
 ) -> Result<LocalDevelopmentAuthorization, NimiHostError> {
     validate_identifier(request.evaluation_id)?;
-    let broker = if request.decision == LocalDevelopmentDecision::Deny {
-        None
-    } else {
-        Some(PresenceBrowserBroker::start().await?)
-    };
-    let mut rpc_request = tonic::Request::new(DecideLocalDevelopmentProjectRequest {
+    let rpc_request = tonic::Request::new(DecideLocalDevelopmentProjectRequest {
         evaluation_id: request.evaluation_id.to_vec(),
         decision: request.decision.proto_value(),
         risk_disclosure_acknowledged: request.risk_disclosure_acknowledged,
     });
-    if let Some(value) = broker.as_ref() {
-        if let Err(error) = value.bind(&mut rpc_request) {
-            if let Some(value) = broker {
-                value.finish().await;
-            }
-            return Err(error);
-        }
-    }
     let response = RuntimeDevelopmentServiceClient::new(channel)
         .decide_local_development_project(rpc_request)
         .await;
-    if let Some(value) = broker {
-        value.finish().await;
-    }
     let response = response.map_err(host_error_from_status)?.into_inner();
     let expected_reason = match request.decision {
         LocalDevelopmentDecision::Deny => 650,

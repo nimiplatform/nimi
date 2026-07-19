@@ -20,10 +20,6 @@ import (
 
 const localDevelopmentTrustClass = "local_development"
 
-type runtimePresenceAuthority interface {
-	VerifyRuntimePresence(context.Context, string) (string, time.Time, error)
-}
-
 func (s *Service) RevokeAccountAuthority(ctx context.Context, accountID string) error {
 	if s == nil || s.localDevelopment == nil {
 		return errLocalDevelopmentInvalid
@@ -172,7 +168,6 @@ func (s *Service) DecideLocalDevelopmentProject(ctx context.Context, req *runtim
 	}
 	currentAccountID := ""
 	var currentAccountGeneration uint64
-	presenceEvidenceRef := ""
 	if req.GetDecision() != runtimev1.LocalDevelopmentDecision_LOCAL_DEVELOPMENT_DECISION_DENY {
 		if !req.GetRiskDisclosureAcknowledged() {
 			return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_RISK_DISCLOSURE_REQUIRED)
@@ -186,22 +181,13 @@ func (s *Service) DecideLocalDevelopmentProject(ctx context.Context, req *runtim
 		if err := s.localDevelopment.RequireDeveloperMode(ctx, currentAccountID, currentAccountGeneration); err != nil {
 			return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_DEVELOPER_MODE_DISABLED)
 		}
-		presenceContext, presenceContextErr := withLocalDevelopmentPresenceBrowser(ctx)
-		if presenceContextErr != nil {
-			return nil, localDevelopmentFailure(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-		}
-		var presenceErr error
-		presenceEvidenceRef, _, presenceErr = s.verifyLocalDevelopmentPresence(presenceContext, "local-app.developer-project.approve")
-		if presenceErr != nil {
-			return nil, localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PRESENCE_REQUIRED)
-		}
 	}
 	authorization, err := s.localDevelopment.Decide(ctx, evaluationID, req.GetDecision(), currentAccountID, currentAccountGeneration)
 	if err != nil {
 		return nil, localDevelopmentStoreError(err)
 	}
 	if authorization.State == localDevelopmentAuthorizationActive {
-		if err := s.createLocalDevelopmentPrincipalRecord(ctx, authorization, presenceEvidenceRef); err != nil {
+		if err := s.createLocalDevelopmentPrincipalRecord(ctx, authorization); err != nil {
 			_, _ = s.localDevelopment.RevokeAuthorization(context.Background(), authorization.ID)
 			return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE)
 		}
@@ -597,14 +583,6 @@ func localDevelopmentAuthorizationToProto(authorization localDevelopmentAuthoriz
 		UpdatedAt:               timestamppb.New(authorization.UpdatedAt),
 		ReasonCode:              runtimev1.ReasonCode_ACTION_EXECUTED,
 	}
-}
-
-func (s *Service) verifyLocalDevelopmentPresence(ctx context.Context, purpose string) (string, time.Time, error) {
-	authority, ok := s.accountProjection.(runtimePresenceAuthority)
-	if !ok || authority == nil {
-		return "", time.Time{}, accountservice.ErrPresenceVerificationUnavailable
-	}
-	return authority.VerifyRuntimePresence(ctx, purpose)
 }
 
 func sameLocalDevelopmentFile(left string, right string) bool {

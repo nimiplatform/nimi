@@ -236,7 +236,8 @@ revoke, mode off, logout, account switch,
 authorization mismatch, app/root/capability/shell change, uncontrolled output
 or remote dev-server origin revokes the applicable launch/session before the
 next operation. A different account requires its own confirmation; returning
-to the authorization's original account may reuse the unchanged consent.
+to the authorization's original account may reuse the unchanged consent without
+a separate credential or Realm-presence challenge.
 
 The authorization, session, supervisor, reapproval, operation-applicability, and
 non-conversion semantics in this rule are platform-neutral. Platform admission

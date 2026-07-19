@@ -14,6 +14,10 @@ const runner = readFileSync(
   new URL('../tests/local-agent-product/harness/dev-kernel-cross-app-driver.mjs', import.meta.url),
   'utf8',
 );
+const hostDriver = readFileSync(
+  new URL('../tests/local-agent-product/harness/dev-kernel-host-driver.mjs', import.meta.url),
+  'utf8',
+);
 const fixedServiceContract = readFileSync(
   new URL('../tests/local-agent-product/harness/dev-kernel-fixed-service-contract.mjs', import.meta.url),
   'utf8',
@@ -51,6 +55,13 @@ test('checkpoint profile separates real Realm account authority from the provide
   assert.match(installer, /acceptanceRoundId\s*=\s*New-DevKernelAcceptanceRoundId/u);
   assert.match(installer, /RandomNumberGenerator/u);
   assert.match(installer, /developmentDataRootRef\s*=\s*\$resolvedDevelopmentDataRoot/u);
+  assert.match(installer, /Resolve-DevKernelCheckpointDataRootBinding/u);
+  assert.match(installer, /signed_installer_explicit_operator_selection/u);
+  assert.match(installer, /signed_installer_preserved_operator_selection/u);
+  assert.match(installer, /developmentDataRootAuthority/u);
+  assert.match(installer, /developmentDataRootDisposition/u);
+  assert.match(installer, /Existing protected acceptance profile identity is invalid/u);
+  assert.match(installer, /\$previous\.developmentDataRootRef/u);
   assert.match(installer, /DevelopmentDataRoot must be an existing non-reparse directory/u);
   assert.match(installer, /accountRealmBaseUrl\s*=\s*\$fixture\.accountRealmBaseUrl/u);
   assert.match(installer, /fixtureBaseUrl\s*=\s*\$fixture\.fixtureBaseUrl/u);
@@ -83,9 +94,9 @@ test('status and runner derive checkpoint posture from immutable candidate mater
   assert.match(fixedServiceContract, /'runtimeBuildRecordMatchesCandidate'/u);
   assert.match(fixedServiceContract, /'checkpointCandidatePostureVerified'/u);
   assert.match(fixedServiceContract, /status\?\.\[field\] !== true/u);
-  assert.match(runner, /assertFixedServiceStatus\(status\)/u);
+  assert.match(hostDriver, /assertFixedServiceStatus\(status\)/u);
   assert.doesNotMatch(
-    runner.slice(runner.indexOf('function readFixedServiceStatus'), runner.indexOf('async function reservePort')),
+    hostDriver.slice(hostDriver.indexOf('function readFixedServiceStatus'), hostDriver.indexOf('async function reservePort')),
     /-DevKernelCheckpoint/u,
   );
 });

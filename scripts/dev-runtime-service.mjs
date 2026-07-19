@@ -178,6 +178,12 @@ export async function runDevRuntimeService(input = {}) {
   timings.statusMs = elapsed(now, started);
   const effectiveStatus = finalStatus?.status === 'present' ? finalStatus : installStatus;
   assertRuntimeServiceHealthy(effectiveStatus);
+  const developmentDataRootBinding = validateInstalledDevelopmentDataRootBinding({
+    requestedDevelopmentDataRoot: developmentDataRoot,
+    installStatus,
+    finalStatus,
+    platform,
+  });
 
   return {
     status: 'updated',
@@ -186,21 +192,68 @@ export async function runDevRuntimeService(input = {}) {
     runtimeCandidateId: effectiveStatus.runtimeCandidateId,
     runtimeBinarySha256: effectiveStatus.runtimeBinarySha256,
     signatureStatus: effectiveStatus.signatureStatus,
-    developmentDataRootBinding: developmentDataRoot
-      ? {
-          path: developmentDataRoot,
-          authority: 'signed_installer_explicit_operator_selection',
-          disposition: 'runtime_validated_candidate_payload_root',
-        }
-      : {
-          path: null,
-          authority: 'runtime_candidate_isolated_fallback',
-          disposition: 'candidate_specific_payload_root',
-        },
+    developmentDataRootBinding,
     timings,
     totalMs: Object.values(timings).reduce((sum, value) => sum + value, 0),
     consequence: 'Runtime boot epoch rotated; Desktop/local-app sessions and bindings must reopen through their existing supervisors. Login and durable grants remain Runtime-owned.',
   };
+}
+
+function validateInstalledDevelopmentDataRootBinding({
+  requestedDevelopmentDataRoot,
+  installStatus,
+  finalStatus,
+  platform,
+}) {
+  const installedPath = normalizeDevelopmentDataRoot(installStatus?.developmentDataRootRef ?? '', platform);
+  const authority = String(installStatus?.developmentDataRootAuthority ?? '');
+  const disposition = String(installStatus?.developmentDataRootDisposition ?? '');
+  const validatedDisposition = 'runtime_validated_candidate_payload_root';
+  const fallbackDisposition = 'candidate_specific_payload_root';
+
+  if (requestedDevelopmentDataRoot) {
+    if (
+      authority !== 'signed_installer_explicit_operator_selection'
+      || disposition !== validatedDisposition
+      || !sameDataRoot(installedPath, requestedDevelopmentDataRoot, platform)
+    ) {
+      throw developmentDataRootReceiptError(requestedDevelopmentDataRoot, installStatus);
+    }
+  } else if (authority === 'signed_installer_preserved_operator_selection') {
+    if (!installedPath || disposition !== validatedDisposition) {
+      throw developmentDataRootReceiptError(requestedDevelopmentDataRoot, installStatus);
+    }
+  } else if (authority === 'runtime_candidate_isolated_fallback') {
+    if (installedPath || disposition !== fallbackDisposition) {
+      throw developmentDataRootReceiptError(requestedDevelopmentDataRoot, installStatus);
+    }
+  } else {
+    throw developmentDataRootReceiptError(requestedDevelopmentDataRoot, installStatus);
+  }
+
+  const statusPath = normalizeDevelopmentDataRoot(finalStatus?.developmentDataRootRef ?? '', platform);
+  if (statusPath && !sameDataRoot(statusPath, installedPath, platform)) {
+    throw developmentDataRootReceiptError(requestedDevelopmentDataRoot, { installStatus, finalStatus });
+  }
+  return {
+    path: installedPath || null,
+    authority,
+    disposition,
+  };
+}
+
+function sameDataRoot(left, right, platform) {
+  if (platform === 'win32') return left.toLowerCase() === right.toLowerCase();
+  return left === right;
+}
+
+function developmentDataRootReceiptError(requestedDevelopmentDataRoot, receipt) {
+  return workflowError(
+    'The signed installer did not return an exact authoritative development data-root binding receipt.',
+    'dev-runtime-data-root-binding-unverified',
+    'inspect_signed_installer_data_root_receipt',
+    { requestedDevelopmentDataRoot: requestedDevelopmentDataRoot || null, receipt },
+  );
 }
 
 async function queryInstalledService() {

@@ -59,7 +59,7 @@ func (s *Service) observeLocalDevelopmentExecution(project localDevelopmentProje
 	}, nil
 }
 
-func (s *Service) createLocalDevelopmentPrincipalRecord(ctx context.Context, authorization localDevelopmentAuthorization, presenceEvidenceRef string) error {
+func (s *Service) createLocalDevelopmentPrincipalRecord(ctx context.Context, authorization localDevelopmentAuthorization) error {
 	observation, err := s.observeLocalDevelopmentExecution(authorization.Project)
 	if err != nil {
 		return err
@@ -83,7 +83,7 @@ func (s *Service) createLocalDevelopmentPrincipalRecord(ctx context.Context, aut
 	_, err = s.localAppKernel.Records().Create(ctx, localappkernel.CreateRecordInput{
 		LocalAppPrincipalID:               principal.LocalAppPrincipalID,
 		TrustClass:                        localappkernel.TrustClassLocalDevelopment,
-		ProvenanceAttestationRefs:         []string{localDevelopmentPresenceAttestationRef(authorization.ID, presenceEvidenceRef)},
+		ProvenanceAttestationRefs:         []string{localDevelopmentConsentAttestationRef(authorization.ID)},
 		ProvenanceRevision:                1,
 		ActiveReleaseOrProjectIdentityRef: localDevelopmentProjectIdentityRef(observation.CanonicalProjectFileID),
 		InstallOrProjectGeneration:        1,
@@ -199,12 +199,10 @@ func localDevelopmentProjectIdentityRef(fileID string) string {
 	return "lapi_v1_" + base64.RawURLEncoding.EncodeToString(digest[:])
 }
 
-func localDevelopmentPresenceAttestationRef(identifier protectedlocal.Identifier, evidence string) string {
+func localDevelopmentConsentAttestationRef(identifier protectedlocal.Identifier) string {
 	digest := sha256.New()
-	_, _ = digest.Write([]byte("nimi.local-development-presence-attestation.v1\x00"))
+	_, _ = digest.Write([]byte("nimi.local-development-consent-attestation.v1\x00"))
 	_, _ = digest.Write(identifier[:])
-	_, _ = digest.Write([]byte{0})
-	_, _ = digest.Write([]byte(evidence))
 	return "lapa_v1_" + base64.RawURLEncoding.EncodeToString(digest.Sum(nil))
 }
 

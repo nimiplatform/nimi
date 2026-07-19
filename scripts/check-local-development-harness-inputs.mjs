@@ -15,7 +15,6 @@ const EXACT_PRODUCT_ALLOWLIST = new Set([
   'apps/desktop/src-tauri/src/desktop_local_development/supervisor.rs',
   'apps/zhiyu/src-electron/main.ts',
   'apps/zhiyu/src-electron/preload.cts',
-  'kit/shell/protected-local/src/windows_checkpoint_browser_capture.rs',
 ]);
 const SOURCE_EXTENSIONS = new Set(['.cjs', '.cts', '.go', '.js', '.jsx', '.mjs', '.rs', '.ts', '.tsx']);
 const SKIP_DIRECTORIES = new Set(['.cache', '.git', 'dist', 'generated', 'node_modules', 'target']);

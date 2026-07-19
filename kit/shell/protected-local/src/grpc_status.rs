@@ -192,6 +192,13 @@ fn host_reason_from_runtime_reason(value: &str) -> Option<NimiHostErrorReasonCod
         "LOCAL_DEVELOPMENT_APPROVAL_DENIED" => {
             NimiHostErrorReasonCode::LocalDevelopmentApprovalDenied
         }
+        "LOCAL_APP_DEVELOPER_MODE_DISABLED" => {
+            NimiHostErrorReasonCode::LocalAppDeveloperModeDisabled
+        }
+        "LOCAL_APP_OPERATION_UNAVAILABLE" => NimiHostErrorReasonCode::LocalAppOperationUnavailable,
+        "LOCAL_APP_PROVENANCE_UNAVAILABLE" => {
+            NimiHostErrorReasonCode::LocalDevelopmentProjectChanged
+        }
         "PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED" | "PROTECTED_LOCAL_LEDGER_UNAVAILABLE" => {
             NimiHostErrorReasonCode::RuntimeServiceUnavailable
         }
@@ -230,6 +237,22 @@ mod tests {
         assert_ne!(
             local_app_reason_from_runtime_reason("PROTECTED_ORIGIN_ROLE_MISMATCH"),
             Some(LocalAppReasonCode::ProcessReplaced)
+        );
+    }
+
+    #[test]
+    fn local_development_runtime_failures_keep_actionable_host_reasons() {
+        assert_eq!(
+            host_reason_from_runtime_reason("LOCAL_APP_DEVELOPER_MODE_DISABLED"),
+            Some(NimiHostErrorReasonCode::LocalAppDeveloperModeDisabled)
+        );
+        assert_eq!(
+            host_reason_from_runtime_reason("LOCAL_APP_OPERATION_UNAVAILABLE"),
+            Some(NimiHostErrorReasonCode::LocalAppOperationUnavailable)
+        );
+        assert_eq!(
+            host_reason_from_runtime_reason("LOCAL_APP_PROVENANCE_UNAVAILABLE"),
+            Some(NimiHostErrorReasonCode::LocalDevelopmentProjectChanged)
         );
     }
 

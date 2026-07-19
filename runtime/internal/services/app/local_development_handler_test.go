@@ -372,10 +372,6 @@ func (account *localDevelopmentHandlerAccount) AuthenticatedRuntimeSecurityConte
 	return projection, account.generation, ok
 }
 
-func (account *localDevelopmentHandlerAccount) VerifyRuntimePresence(context.Context, string) (string, time.Time, error) {
-	return "presence:v1:test", time.Now().UTC().Add(time.Minute), nil
-}
-
 type localDevelopmentHandlerProcessVerifier struct {
 	process  protectedlocal.ProcessTuple
 	liveness *localDevelopmentHandlerLiveness

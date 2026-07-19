@@ -86,6 +86,12 @@ test('full update reports segmented timings and validates signed fixed-service s
   const calls = [];
   const developmentDataRoot = path.win32.join('D:\\', 'DataNimi');
   const ticks = [0, 11, 11, 24, 24, 55, 55, 60];
+  const installStatus = {
+    ...healthyStatus,
+    developmentDataRootRef: developmentDataRoot,
+    developmentDataRootAuthority: 'signed_installer_explicit_operator_selection',
+    developmentDataRootDisposition: 'runtime_validated_candidate_payload_root',
+  };
   const result = await runDevRuntimeService({
     platform: 'win32',
     developmentDataRoot,
@@ -96,7 +102,7 @@ test('full update reports segmented timings and validates signed fixed-service s
     queryCandidate: async () => healthyStatus,
     install: async (input) => {
       calls.push(['install', input]);
-      return healthyStatus;
+      return installStatus;
     },
   });
   assert.deepEqual(calls, [
@@ -117,6 +123,68 @@ test('full update reports segmented timings and validates signed fixed-service s
     disposition: 'runtime_validated_candidate_payload_root',
   });
   assert.match(result.consequence, /boot epoch rotated/u);
+});
+
+test('full update reports the installer-preserved development data root when no replacement is supplied', async () => {
+  const developmentDataRoot = path.win32.join('D:\\', 'DataNimi');
+  const installStatus = {
+    ...healthyStatus,
+    developmentDataRootRef: developmentDataRoot,
+    developmentDataRootAuthority: 'signed_installer_preserved_operator_selection',
+    developmentDataRootDisposition: 'runtime_validated_candidate_payload_root',
+  };
+  const result = await runDevRuntimeService({
+    platform: 'win32',
+    queryInstalled: async () => ({ status: 'present' }),
+    buildRuntime: async () => undefined,
+    buildInstaller: async () => undefined,
+    queryCandidate: async () => healthyStatus,
+    install: async () => installStatus,
+  });
+  assert.deepEqual(result.developmentDataRootBinding, {
+    path: developmentDataRoot,
+    authority: 'signed_installer_preserved_operator_selection',
+    disposition: 'runtime_validated_candidate_payload_root',
+  });
+});
+
+test('data-root reporting rejects command-input fallback and requires the signed installer receipt', async () => {
+  const developmentDataRoot = path.win32.join('D:\\', 'DataNimi');
+  await assert.rejects(
+    runDevRuntimeService({
+      platform: 'win32',
+      developmentDataRoot,
+      queryInstalled: async () => ({ status: 'present' }),
+      buildRuntime: async () => undefined,
+      buildInstaller: async () => undefined,
+      queryCandidate: async () => healthyStatus,
+      install: async () => healthyStatus,
+    }),
+    (error) => error.reasonCode === 'dev-runtime-data-root-binding-unverified'
+      && error.actionHint === 'inspect_signed_installer_data_root_receipt',
+  );
+});
+
+test('isolated fallback is reported only from an exact signed installer receipt', async () => {
+  const installStatus = {
+    ...healthyStatus,
+    developmentDataRootRef: null,
+    developmentDataRootAuthority: 'runtime_candidate_isolated_fallback',
+    developmentDataRootDisposition: 'candidate_specific_payload_root',
+  };
+  const result = await runDevRuntimeService({
+    platform: 'win32',
+    queryInstalled: async () => ({ status: 'present' }),
+    buildRuntime: async () => undefined,
+    buildInstaller: async () => undefined,
+    queryCandidate: async () => healthyStatus,
+    install: async () => installStatus,
+  });
+  assert.deepEqual(result.developmentDataRootBinding, {
+    path: null,
+    authority: 'runtime_candidate_isolated_fallback',
+    disposition: 'candidate_specific_payload_root',
+  });
 });
 
 test('post-update status fails closed on signature or candidate mismatch', () => {

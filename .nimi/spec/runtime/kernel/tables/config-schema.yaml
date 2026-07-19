@@ -147,10 +147,14 @@ production_authority:
       forbidden_sources: [environment_variable, argv, home, userprofile, temp, renderer_metadata, endpoint, request_field]
     explicit_development_data_root_binding:
       field: developmentDataRootRef
-      source: signed_installer_explicit_operator_selection
+      source: signed_installer_explicit_operator_selection_or_exact_preceding_protected_profile_binding
       validation: existing_absolute_non_volume_root_non_reparse_directory_accessible_to_fixed_service
       runtime_effect: dataRootRef_and_managed_payload_roots_resolve_below_binding
       product_control_effect: visible_confirmable_proposal_only_until_typed_user_confirmation
+      update_semantics: preserve_non_empty_validated_binding_across_candidate_and_round_rotation_unless_operator_explicitly_replaces_it
+      preserved_scope: payload_root_selector_only
+      forbidden_preserved_state: [product_control_state, registry_rows, readiness, accounts, runtime_identity, databases, grants, audit_state]
+      invalid_preserved_binding: fail_update_closed_without_candidate_fallback
     first_run_data_root_proposal: signed_explicit_development_data_root_binding_or_verified_interactive_windows_sid_profile_mapping_plus_trial_id_plus_runtime_candidate_id
     first_run_data_root_proposal_disposition: non_record_visible_confirmable_proposal_only
     first_run_data_root_proposal_forbidden_sources: [environment_variable, argv, home, userprofile, temp, renderer_metadata, endpoint, request_field]

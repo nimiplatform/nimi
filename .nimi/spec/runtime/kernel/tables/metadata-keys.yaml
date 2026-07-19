@@ -15,7 +15,6 @@ values:
   - x-nimi-app-instance-id
   - x-nimi-client-id
   - x-nimi-idempotency-key
-  - x-nimi-presence-browser-launcher
   - authorization
   - x-nimi-runtime-version
   - x-nimi-caller-kind
@@ -64,9 +63,6 @@ keys:
   - key: x-nimi-idempotency-key
     required_when: optional dedup context
     source_rule: K-DAEMON-006
-  - key: x-nimi-presence-browser-launcher
-    required_when: request-scoped protected Desktop control fallback on fixed-service Windows
-    source_rule: K-ACCSVC-021
   - key: authorization
     required_when: authenticated runtime call (optional for anonymous)
     source_rule: K-AUTHN-001

@@ -42,9 +42,6 @@ mod windows_local_development_authority_summary;
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
 mod windows_peer_trust;
-#[cfg(any(target_os = "windows", target_os = "macos"))]
-#[allow(unsafe_code)]
-mod windows_presence_browser_broker;
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
 mod windows_service_control;

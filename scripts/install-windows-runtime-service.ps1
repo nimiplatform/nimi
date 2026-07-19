@@ -426,27 +426,66 @@ function New-DevKernelAcceptanceRoundId {
   return "dev-kernel-round-$hex"
 }
 
+function Resolve-ValidatedDevelopmentDataRoot {
+  param([Parameter(Mandatory = $true)] [AllowEmptyString()] [string] $Value)
+  if ([string]::IsNullOrWhiteSpace($Value)) { return '' }
+  $item = Get-Item -LiteralPath $Value -Force -ErrorAction Stop
+  if (-not $item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+    throw 'DevelopmentDataRoot must be an existing non-reparse directory.'
+  }
+  $resolved = $item.FullName.TrimEnd('\')
+  if ([string]::IsNullOrWhiteSpace($resolved) -or $resolved -eq [IO.Path]::GetPathRoot($resolved)) {
+    throw 'DevelopmentDataRoot must be an absolute non-volume-root directory.'
+  }
+  return $resolved
+}
+
+function Resolve-DevKernelCheckpointDataRootBinding {
+  if (-not [string]::IsNullOrWhiteSpace($DevelopmentDataRoot)) {
+    return [ordered]@{
+      path = Resolve-ValidatedDevelopmentDataRoot -Value $DevelopmentDataRoot
+      authority = 'signed_installer_explicit_operator_selection'
+    }
+  }
+  if (-not (Test-Path -LiteralPath $AcceptanceProfilePath -PathType Leaf)) {
+    return [ordered]@{
+      path = ''
+      authority = 'runtime_candidate_isolated_fallback'
+    }
+  }
+  try {
+    $previous = Get-Content -LiteralPath $AcceptanceProfilePath -Raw | ConvertFrom-Json
+  } catch {
+    throw "Existing protected acceptance profile cannot be decoded: $($_.Exception.Message)"
+  }
+  if ($previous.schemaVersion -ne 4 -or $previous.checkpoint -ne 'dev_kernel_checkpoint' -or $previous.nonRelease -ne $true) {
+    throw 'Existing protected acceptance profile identity is invalid.'
+  }
+  $preserved = Resolve-ValidatedDevelopmentDataRoot -Value ([string] $previous.developmentDataRootRef)
+  if ([string]::IsNullOrWhiteSpace($preserved)) {
+    return [ordered]@{
+      path = ''
+      authority = 'runtime_candidate_isolated_fallback'
+    }
+  }
+  return [ordered]@{
+    path = $preserved
+    authority = 'signed_installer_preserved_operator_selection'
+  }
+}
+
 function Write-DevKernelCheckpointProfile {
   param([Parameter(Mandatory = $true)] [string] $SignerCertificateSha256)
   if (-not $DevKernelCheckpoint) {
     if (Test-Path -LiteralPath $AcceptanceProfilePath -PathType Leaf) {
       Remove-Item -LiteralPath $AcceptanceProfilePath -Force
     }
-    return
+    return $null
   }
   $fixture = Read-DevKernelCheckpointFixture
   $buildRecord = Read-RuntimeBuildRecord
-  $resolvedDevelopmentDataRoot = ''
-  if (-not [string]::IsNullOrWhiteSpace($DevelopmentDataRoot)) {
-    $item = Get-Item -LiteralPath $DevelopmentDataRoot -Force -ErrorAction Stop
-    if (-not $item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
-      throw 'DevelopmentDataRoot must be an existing non-reparse directory.'
-    }
-    $resolvedDevelopmentDataRoot = $item.FullName.TrimEnd('\')
-    if ([string]::IsNullOrWhiteSpace($resolvedDevelopmentDataRoot) -or $resolvedDevelopmentDataRoot -eq [IO.Path]::GetPathRoot($resolvedDevelopmentDataRoot)) {
-      throw 'DevelopmentDataRoot must be an absolute non-volume-root directory.'
-    }
-  }
+  $developmentDataRootBinding = Resolve-DevKernelCheckpointDataRootBinding
+  $resolvedDevelopmentDataRoot = [string] $developmentDataRootBinding.path
   $runtimeRoot = Split-Path $AcceptanceProfilePath -Parent
   New-Item -ItemType Directory -Path $runtimeRoot -Force | Out-Null
   $profile = [ordered]@{
@@ -475,6 +514,7 @@ function Write-DevKernelCheckpointProfile {
   $temporary = "$AcceptanceProfilePath.tmp"
   [IO.File]::WriteAllText($temporary, (($profile | ConvertTo-Json -Depth 4) + "`n"), [Text.UTF8Encoding]::new($false))
   Move-Item -LiteralPath $temporary -Destination $AcceptanceProfilePath -Force
+  return $developmentDataRootBinding
 }
 
 function Get-Status {
@@ -493,6 +533,11 @@ function Get-Status {
     $runtimeBuildRecord.nonRelease -eq $true -and
     $runtimeBuildRecord.checkpoint -eq 'dev_kernel_checkpoint' -and
     $runtimeBuildRecord.runtime.binarySha256 -eq $runtimeSha256
+  $acceptanceProfile = try {
+    if (Test-Path -LiteralPath $AcceptanceProfilePath -PathType Leaf) {
+      Get-Content -LiteralPath $AcceptanceProfilePath -Raw | ConvertFrom-Json
+    } else { $null }
+  } catch { $null }
   $expectedPath = "`"$InstalledBinary`" serve"
   return [ordered]@{
     status = if ($null -eq $record) { 'absent' } else { 'present' }
@@ -526,6 +571,7 @@ function Get-Status {
     checkpointCandidatePostureVerified = $checkpointCandidateVerified
     checkpointReleasePosture = if ($checkpointCandidateVerified) { 'non_release' } else { 'unverified' }
     checkpointProductClosePromotion = if ($checkpointCandidateVerified) { 'non_promotable_to_product_close' } else { 'unverified' }
+    developmentDataRootRef = if ($null -eq $acceptanceProfile) { $null } else { [string] $acceptanceProfile.developmentDataRootRef }
   }
 }
 
@@ -582,7 +628,7 @@ function Install-Service {
       $previousProfileBytes = [IO.File]::ReadAllBytes($AcceptanceProfilePath)
       $previousProfilePresent = $true
     }
-    Write-DevKernelCheckpointProfile -SignerCertificateSha256 $installerSigner
+    $developmentDataRootBinding = Write-DevKernelCheckpointProfile -SignerCertificateSha256 $installerSigner
     Set-StateRootAcl
     try {
       Start-Service -Name $ServiceName -ErrorAction Stop
@@ -607,6 +653,16 @@ function Install-Service {
     $status['stateAclConfiguredBySignedInstaller'] = $true
     $status['atomicVersionRoot'] = $InstalledVersionRoot
     $status['checkpointProfileRuntimeValidated'] = [bool] $DevKernelCheckpoint
+    if ($DevKernelCheckpoint) {
+      $boundDevelopmentDataRoot = [string] $developmentDataRootBinding.path
+      $status['developmentDataRootRef'] = if ([string]::IsNullOrWhiteSpace($boundDevelopmentDataRoot)) { $null } else { $boundDevelopmentDataRoot }
+      $status['developmentDataRootAuthority'] = [string] $developmentDataRootBinding.authority
+      $status['developmentDataRootDisposition'] = if ([string]::IsNullOrWhiteSpace($boundDevelopmentDataRoot)) {
+        'candidate_specific_payload_root'
+      } else {
+        'runtime_validated_candidate_payload_root'
+      }
+    }
     return $status
   } catch {
     $installFailure = $_

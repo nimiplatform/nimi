@@ -218,6 +218,7 @@ pub enum NimiHostErrorReasonCode {
     LocalDevelopmentOperationForbidden,
     LocalDevelopmentDevServerUncontrolled,
     LocalDevelopmentApprovalDenied,
+    LocalAppDeveloperModeDisabled,
     LocalAppPermissionRequired,
     LocalAppPermissionDenied,
     LocalAppPermissionRevoked,
@@ -247,6 +248,7 @@ impl NimiHostErrorReasonCode {
                 "local-development-dev-server-uncontrolled"
             }
             Self::LocalDevelopmentApprovalDenied => "local-development-approval-denied",
+            Self::LocalAppDeveloperModeDisabled => "local-app-developer-mode-disabled",
             Self::LocalAppPermissionRequired => "local-app-permission-required",
             Self::LocalAppPermissionDenied => "local-app-permission-denied",
             Self::LocalAppPermissionRevoked => "local-app-permission-revoked",
