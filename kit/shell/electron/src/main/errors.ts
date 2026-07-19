@@ -286,7 +286,18 @@ export function isAllowedElectronRendererUrl(
   if (!normalizedUrl) {
     return false;
   }
-  return allowedUrls.some((allowedUrl) => normalizeRendererUrlForComparison(allowedUrl) === normalizedUrl);
+  const candidate = new URL(normalizedUrl);
+  return allowedUrls.some((allowedUrl) => {
+    const normalizedAllowed = normalizeRendererUrlForComparison(allowedUrl);
+    if (!normalizedAllowed) {
+      return false;
+    }
+    const allowed = new URL(normalizedAllowed);
+    if (allowed.protocol === 'http:' || allowed.protocol === 'https:') {
+      return candidate.protocol === allowed.protocol && candidate.origin === allowed.origin;
+    }
+    return normalizedAllowed === normalizedUrl;
+  });
 }
 export function assertAllowedElectronRendererOrigin(input: {
   readonly origin: string | undefined;

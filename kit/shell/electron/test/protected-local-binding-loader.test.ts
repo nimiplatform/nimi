@@ -36,7 +36,9 @@ test('packaged macOS Electron resolves only its sealed native carrier resource',
   }
 });
 
-test('packaged macOS Electron rejects a replaced native carrier image', async () => {
+const macOSTest = process.platform === 'darwin' ? test : test.skip;
+
+macOSTest('packaged macOS Electron rejects a replaced native carrier image', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-native-carrier-link-'));
   try {
     let resources = path.join(root, 'Nimi.app', 'Contents', 'Resources');

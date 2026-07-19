@@ -50,6 +50,27 @@ describe('Electron local-app carrier behavior', () => {
       command: 'fixture.sqlite.read',
       payload: { rowId: 'row-1' },
     })).resolves.toEqual({ owner: 'fixture', payload: { rowId: 'row-1' } });
+
+    const sameOriginRouteEvent = {
+      ...event,
+      senderFrame: { ...event.senderFrame, url: 'http://localhost:1430/timeline?child=local#today' },
+    };
+    await expect(invokeBridge(ipcMain, sameOriginRouteEvent, {
+      command: 'fixture.sqlite.read',
+      payload: { rowId: 'row-2' },
+    })).resolves.toEqual({ owner: 'fixture', payload: { rowId: 'row-2' } });
+
+    const foreignOriginEvent = {
+      ...event,
+      senderFrame: { ...event.senderFrame, url: 'http://localhost:1431/timeline' },
+    };
+    await expect(invokeBridge(ipcMain, foreignOriginEvent, {
+      command: 'fixture.sqlite.read',
+      payload: { rowId: 'row-3' },
+    })).rejects.toMatchObject({
+      code: 'forbidden-renderer-access',
+      reasonCode: 'electron-renderer-url-not-allowed',
+    });
   });
 
   it('keeps the Nimi shell namespace unavailable to app-owned handlers', () => {
