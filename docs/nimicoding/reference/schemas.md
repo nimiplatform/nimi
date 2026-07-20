@@ -1,95 +1,85 @@
-# Schemas
+# Nimi Coding Contract Reference
 
-Nimi consumes Nimi Coding contracts for truth reconstruction,
-authority review, deterministic evidence, and spec structure. These
-contracts describe what a host must produce and what a gate must verify;
-they do not model host task progress.
+Nimi Coding 0.3.x contracts define spec construction, authority placement,
+managed projections, and deterministic validation. They do not define AI-host
+task or execution records.
 
-## Spec Reconstruction Result
+## Surface Taxonomy
 
-Path: `.nimi/contracts/spec-reconstruction-result.yaml`
+Path: `.nimi/contracts/surface-taxonomy.schema.yaml`
 
-| Field group | Requirement |
-| --- | --- |
-| Required summary | generated paths, audit reference, placement report, coverage, unresolved and inferred counts, status, summary, verification time |
-| Status | `reconstructed`, `partial`, or `blocked` |
-| Completion | canonical tree ready, required files valid, placement valid, audit entries complete, unresolved gaps explicit |
-| Locality | local-only result; never product authority |
+Every candidate file receives one class, owner kind, authority rank, tracking
+policy, mutability rule, and fail-closed cases. Product authority, thin
+guidance, generated views, local evidence, package methodology, and managed
+projections remain distinct classes.
 
-## Documentation Audit Result
+## Placement Contract
 
-Path: `.nimi/contracts/doc-spec-audit-result.yaml`
+Path: `.nimi/contracts/placement-contract.schema.yaml`
 
-| Field | Requirement |
-| --- | --- |
-| `compared_paths` | Paths actually compared |
-| `finding_count` | Number of findings produced |
-| `status` | `aligned`, `drift_detected`, or `blocked` |
-| `summary` | Evidence-based result summary |
-| `verified_at` | Verification timestamp |
+Placement binds each governed root to allowed classes, owners, tracking
+policies, admissions, and validator scopes. Unknown roots and non-product
+state under `.nimi/spec/**` fail closed.
 
-## High-Risk Admission Evidence
+## Domain Admission
 
-Path: `.nimi/contracts/high-risk-admission.schema.yaml`
+Path: `.nimi/contracts/domain-admission.schema.yaml`
 
-Every admission names a change, disposition, timestamp, authority
-review owner, summary, and source decision contract. Admission records
-are local evidence: they cannot create host progress, advance host
-state, or become product authority.
+Every product domain names its root, authority class, owner, allowed and
+forbidden classes, validation commands, and unadmitted migration disposition.
+Directory presence alone does not admit a product domain.
 
-## Prompt Contract
+## Table Families
 
-Path: `.nimi/contracts/prompt.schema.yaml`
+Path: `.nimi/contracts/table-family.schema.yaml`
 
-A governed handoff declares the task goal, authority reads, confirmed
-state, hard constraints, required outcome, non-goals, checks, final
-output format, and blocker escalation rule. The external host decides
-how to execute that bounded request.
+Every kernel table declares a supported semantic family. Product authority
+tables and support registries have separate shapes, and operational status or
+audit coverage fields are forbidden in both.
 
-## Host Result Contract
+## Projection Edges
 
-Path: `.nimi/contracts/worker-output.schema.yaml`
+Path: `.nimi/contracts/projection-edge.schema.yaml`
 
-The result reports findings, implementation summary, changed files,
-checks that actually ran, and remaining gaps or risks. Optional blocks
-carry authority impact, selected decisions, guard behavior, and
-remaining blockers.
+One-way projection edges declare source and target classes, owners, allowed
+and forbidden fields, and deterministic drift checks. A projection target
+never gains more authority than its source.
 
-## Acceptance Contract
+## Host Spec Layout
 
-Path: `.nimi/contracts/acceptance.schema.yaml`
+Path: `.nimi/contracts/spec-layout.schema.yaml`
 
-Acceptance is ordered as authority alignment, evidence sufficiency,
-then disposition. Disposition is one of `complete`, `partial`, or
-`deferred`; a missing required result cannot be converted into success.
+The host may admit instruction paths, tracked derived projections, and
+table-family extensions as validation data. Layout admission does not grant
+product authority.
 
-## Spec Structure Contracts
+## Spec Generation Inputs And Audit
 
-| Contract | Purpose |
-| --- | --- |
-| `table-family.schema.yaml` | Defines admitted semantic families and forbidden workflow fields in authority tables |
-| `placement-contract.schema.yaml` | Validates canonical placement |
-| `projection-edge.schema.yaml` | Validates authority-to-projection edges |
-| `domain-admission.schema.yaml` | Validates domain admission records |
-| `tracked-output-admission.schema.yaml` | Validates tracked generated outputs |
-| `surface-taxonomy.schema.yaml` | Classifies canonical and support surfaces |
+Paths:
 
-## Forbidden Shortcuts
+- `.nimi/contracts/spec-generation-inputs.schema.yaml`
+- `.nimi/contracts/spec-generation-audit.schema.yaml`
 
-Path: `.nimi/contracts/forbidden-shortcuts.catalog.yaml`
+Inputs are class-filtered before construction. The local generation audit maps
+each canonical file to source references, source basis, coverage status, and
+unresolved items. It belongs under
+`.nimi/local/state/spec-generation/**`, never under `.nimi/spec/**`.
 
-The catalog rejects minimum-subset truth, legacy aliases, compatibility
-shims, dual reads and writes, placeholder success, happy-path-only
-closure, time-phased layering, app-local shadow truth, and silent owner
-reopening.
+## Migration Inventory
+
+Path: `.nimi/contracts/migration-inventory.schema.yaml`
+
+Migration groups are descriptive and non-mutating. Semantic forks, owner
+ambiguity, package-boundary ambiguity, and destructive deletion remain
+explicit confirmations rather than executable work state.
 
 ## Source Basis
 
-- [`.nimi/contracts/spec-reconstruction-result.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-reconstruction-result.yaml)
-- [`.nimi/contracts/doc-spec-audit-result.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/doc-spec-audit-result.yaml)
-- [`.nimi/contracts/high-risk-admission.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/high-risk-admission.schema.yaml)
-- [`.nimi/contracts/prompt.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/prompt.schema.yaml)
-- [`.nimi/contracts/worker-output.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/worker-output.schema.yaml)
-- [`.nimi/contracts/acceptance.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/acceptance.schema.yaml)
+- [`.nimi/contracts/surface-taxonomy.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/surface-taxonomy.schema.yaml)
+- [`.nimi/contracts/placement-contract.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/placement-contract.schema.yaml)
+- [`.nimi/contracts/domain-admission.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/domain-admission.schema.yaml)
 - [`.nimi/contracts/table-family.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/table-family.schema.yaml)
-- [`.nimi/contracts/forbidden-shortcuts.catalog.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/forbidden-shortcuts.catalog.yaml)
+- [`.nimi/contracts/projection-edge.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/projection-edge.schema.yaml)
+- [`.nimi/contracts/spec-layout.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-layout.schema.yaml)
+- [`.nimi/contracts/spec-generation-inputs.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-inputs.schema.yaml)
+- [`.nimi/contracts/spec-generation-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-audit.schema.yaml)

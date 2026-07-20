@@ -152,12 +152,12 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
       - package_authority_admission_gate
-      - nimicoding_host_workflow_hardcut
+      - nimicoding_host_boundary_hardcut
     evidence_requirement: required
   - rule_id: P-PKG-011
     evidence_refs:
       - platform_kernel_consistency
       - package_authority_admission_gate
       - audit_evidence_root_gate
-      - nimicoding_host_workflow_hardcut
+      - nimicoding_host_boundary_hardcut
     evidence_requirement: required

@@ -1,8 +1,8 @@
 # Nimi Host 集成
 
 Nimi 仓库把 `@nimiplatform/nimi-coding` 固定为 development dependency，并通过
-host compatibility 边界消费它。正常 workspace install 提供软件包；项目 wrappers
-验证 Nimi 自有投影保持完整。
+受保护的宿主边界使用它。正常安装会带入软件包；项目命令负责核验已审计版本和
+受管文件。
 
 ## 前置要求
 
@@ -19,8 +19,8 @@ host compatibility 边界消费它。正常 workspace install 提供软件包；
 pnpm install
 ```
 
-不要用通用 package 命令 bootstrap 或改写 `.nimi/**`。Nimi 已持有自己的 host
-projections；forbidden package projection 一旦出现，门禁会 fail closed。
+不要在本仓库直接运行通用 bootstrap 或 clear 命令。需要刷新受管文件时，只使用
+package.json 中声明的项目命令，让宿主边界先完成检查。
 
 ## 验证集成
 
@@ -30,8 +30,8 @@ pnpm check:nimi-coding-seed-sync
 pnpm nimicoding:doctor
 ```
 
-三项检查都必须通过。Compatibility wrapper 强制 declared absent projection 集合
-与精确 Nimi-owned overrides；其他 drift 仍然失败。
+三项检查都必须通过。Hardcut 会拒绝已经移除的执行面；`sync --check` 随后核验
+package-canonical 文件和必备的 host-owned seed，宿主自有内容不会被误判为包漂移。
 
 ## 验证产品权威
 
@@ -39,18 +39,22 @@ pnpm nimicoding:doctor
 pnpm exec nimicoding validate-spec-tree .nimi/spec
 ```
 
-该 validator 检查 canonical tree。当前任务确实执行 `spec_reconstruction` 时，还要对
-声明的本地 audit artifact 运行 `pnpm exec nimicoding validate-spec-audit`；必备 audit
-缺失必须 fail closed。两条命令都不创建或更新宿主任务状态。
+该 validator 检查 canonical tree。规范构建修改了权威文件时，还要对
+`.nimi/local/state/spec-generation/spec-generation-audit.yaml` 运行
+`pnpm exec nimicoding validate-spec-audit`；缺失或不完整的 audit 必须 fail closed。
+两条命令都不创建或更新宿主任务状态。
 
-## Skill 可用性
+## 文件所有权
 
-`.nimi/config/skill-manifest.yaml` 声明三个外部 skills：`spec_reconstruction`、
-`doc_spec_audit` 与 `audit_sweep`。当前宿主直接读取 inputs 与 result contracts。
+多数 `.nimi/{config,contracts,methodology}/**` 文件以软件包为准。Nimi 只持有三处
+宿主专用内容：`.nimi/config/spec-generation-inputs.yaml`、
+`.nimi/contracts/domain-admission.schema.yaml` 与
+`.nimi/methodology/spec-reconstruction.yaml`。同步时会保留这些已声明差异。
 
 ## 来源依据
 
 - [`package.json`](https://github.com/nimiplatform/nimi/blob/main/package.json)
 - [`config/nimicoding-host-hardcut.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/nimicoding-host-hardcut.yaml)
-- [`.nimi/config/skill-manifest.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/skill-manifest.yaml)
+- [`.nimi/config/bootstrap.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/bootstrap.yaml)
+- [`.nimi/config/spec-generation-inputs.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/spec-generation-inputs.yaml)
 - [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)

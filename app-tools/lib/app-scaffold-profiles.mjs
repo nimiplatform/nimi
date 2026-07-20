@@ -223,7 +223,7 @@ function renderDefaultTauriMain() {
     '        .setup(|app| {',
     '            use tauri::Manager;',
     '            app.manage(',
-    '                nimi_shell_tauri::capabilities::runtime::RuntimeBridgeAppHost::platform_default(),',
+    '                nimi_shell_tauri::capabilities::runtime::RuntimeBridgeLocalAppHost::platform_default(),',
     '            );',
     '            Ok(())',
     '        })',

@@ -13,7 +13,7 @@
 | Realm | 外部 Realm authority；本仓库只保留 `.nimi/spec/realm/{README.md,external-realm.md}` 指针，并通过 `.nimi/spec/sdks/**` 的 consumer contracts 接入 |
 | Avatar | `.nimi/spec/avatar/**` |
 | Cognition | `.nimi/spec/cognition/**` |
-| Nimi Coding | `nimi-coding/spec/product-scope.yaml`、`nimi-coding/spec/bootstrap-state.yaml`、`nimi-coding/methodology/**`、`nimi-coding/contracts/**` |
+| Nimi Coding | `nimi-coding/spec/product-scope.yaml`、`nimi-coding/spec/_meta/spec-tree-model.yaml`、`nimi-coding/methodology/**`、`nimi-coding/contracts/**`、`nimi-coding/config/**` |
 
 规范按 kernel + domain 排布。kernel 目录是单一真相源；domain 文件只是辅助阅读，不能重定义 kernel 规则。
 

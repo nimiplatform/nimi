@@ -1,4 +1,4 @@
-version: 2
+version: 3
 contract_ref: .nimi/contracts/spec-generation-inputs.schema.yaml
 spec_generation_inputs:
   mode: class_filtered
@@ -7,19 +7,20 @@ spec_generation_inputs:
   docs_inputs:
     - root: .nimi/spec
       class_filter: product_authority_only
-      allowed_surface_classes: [product_authority, product_authority_table, product_admission_registry, thin_guidance, host_projection_anchor, support_registry]
-      forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, operational_local_artifact, nimicoding_managed_projection, methodology_authority]
+      allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, host_projection_anchor, support_registry]
+      forbidden_surface_classes: [derived_view, tracked_derived_projection, spec_generation_state, audit_evidence_state, operational_local_artifact, nimicoding_managed_projection, methodology_authority]
       owner: nimi_host
       use_as_authority: true
       projection_edge_ref: null
   structure_inputs: []
   local_inputs:
     - root: .nimi/local
-      owner: local_execution
+      owner: external_tooling
       allowed_surface_classes: [spec_generation_state, audit_evidence_state, operational_local_artifact]
       use_as_authority: false
   forbidden_source_classes:
     - derived_view
+    - tracked_derived_projection
     - spec_generation_state
     - audit_evidence_state
     - operational_local_artifact

@@ -20,20 +20,11 @@
 - UI/UX projection: `pnpm check:nimi-design-artifacts`; for Kit-wide UI work also run `pnpm check:nimi-kit` and treat `designmd lint kit/DESIGN.md` warnings as audit signals that should trace back to spec tokens/primitives rather than generator suppression.
 <!-- nimicoding:managed:agents:start -->
 # Nimi Coding Managed Block
-- Read .nimi/methodology, .nimi/spec, and .nimi/contracts before high-risk changes.
-- Treat .nimi as the primary AI truth surface for this project.
-- Treat `/.nimi/spec/**` as the current repo-wide product authority for this project, and use Git history for retired pre-cutover authority evidence.
-- If .nimi/spec remains bootstrap-only, use .nimi/methodology/spec-reconstruction.yaml and .nimi/config/skills.yaml to drive AI-side truth reconstruction.
-- Treat .nimi/methodology/spec-target-truth-profile.yaml as repo-local support guidance for future governance slices, not as the canonical reconstruction completion target or a guaranteed fresh-bootstrap seed.
-- Treat .nimi/contracts/spec-reconstruction-result.yaml, .nimi/contracts/doc-spec-audit-result.yaml, and .nimi/contracts/high-risk-admission.schema.yaml as machine contracts for reconstruction, audit, and static high-risk preflight evidence.
-- Treat .nimi/config/skill-manifest.yaml, .nimi/config/host-profile.yaml, .nimi/config/host-adapter.yaml, .nimi/config/skill-installer.yaml, .nimi/methodology/skill-runtime.yaml, .nimi/methodology/skill-installer-result.yaml, and .nimi/methodology/skill-handoff.yaml as the canonical bridge to delegated AI/skill capabilities; they must not own host workflow state.
-- Treat standalone nimicoding as boundary-complete for handoff, validation, deterministic projection checks, and explicit admission only; do not assume packaged workflow, run-kernel, provider, scheduler, notification, or automation ownership.
-- Treat .nimi/config/installer-evidence.yaml and .nimi/methodology/skill-installer-summary-projection.yaml as the operational-to-semantic installer projection boundary; do not promote concrete evidence artifacts into semantic truth.
-- Treat high-risk preflight and review evidence under .nimi/local/** as local-only operational projections; it does not promote semantic truth automatically.
-- Keep task decomposition, dispatch, continuation, resumption, and completion entirely in the external AI host; methodology may constrain acceptance but must not materialize a parallel workflow.
-- Keep authority owner, external AI host, and auditor responsibilities distinct; do not project manager-worker workflow state into the repository.
-- Keep code changes AI-context-efficient: favor bounded, cohesive files and split by responsibility during implementation instead of first concentrating unrelated logic into one file.
-- Keep the methodology continuity-agnostic; do not assume daemon, heartbeat, or persistent manager ownership.
-- Treat cutover readiness as preflight evidence only; the authority flip must come from an admitted cutover batch, not from readiness green by itself.
-- Do not treat this managed block as a replacement for project-specific rules outside .nimi.
+
+- Product and repository authority lives under `/.nimi/spec/**`.
+- Read `/.nimi/spec/INDEX.md` first, then the affected kernel contracts and tables.
+- Read `/.nimi/methodology/**` for reasoning principles and `/.nimi/contracts/**` for spec construction and validation contracts.
+- Treat `/.nimi/{config,contracts,methodology}/**` as package-managed governance support, never as product authority.
+- Keep generation evidence under `/.nimi/local/state/spec-generation/**`; it must not become product truth.
+- Do not treat this managed block as a replacement for project-specific rules.
 <!-- nimicoding:managed:agents:end -->

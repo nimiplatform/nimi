@@ -33,14 +33,15 @@ pnpm check:nimi-coding-seed-sync
 pnpm nimicoding:doctor
 ```
 
-这些检查验证 package projections、host-owned overrides 与执行所有权上限，
-但不会创建产品权威。
+这些检查验证已审计的软件包版本、package-canonical 文件、宿主专用内容与执行
+所有权上限，但不会创建产品权威。
 
 ## 2. 重建产品权威
 
-需要重建时，当前 Codex 任务从 `.nimi/config/skill-manifest.yaml` 选择
-`spec_reconstruction`，读取声明的 inputs 与 result contract，把权威重建到
-`.nimi/spec/**`，并明确记录无法解决的缺口，不会自行编造规则。随后运行：
+需要重建时，当前 Codex 任务读取 `.nimi/config/spec-generation-inputs.yaml` 与
+`.nimi/methodology/spec-reconstruction.yaml`，把权威重建到 `.nimi/spec/**`，并在
+`.nimi/local/state/spec-generation/**` 中逐文件记录来源和未解决缺口，不会自行编造
+规则。随后运行：
 
 ```bash
 pnpm exec nimicoding validate-spec-tree .nimi/spec
@@ -112,8 +113,6 @@ scripts 为准：先跑最窄的受影响范围，跨权威边界时再补全局
 
 ## 来源依据
 
-- [`.nimi/config/skill-manifest.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/skill-manifest.yaml)
+- [`.nimi/config/spec-generation-inputs.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/spec-generation-inputs.yaml)
 - [`.nimi/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/spec-reconstruction.yaml)
-- [`.nimi/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-convergence-policy.yaml)
-- [`.nimi/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/skill-handoff.yaml)
-- [`.nimi/contracts/spec-reconstruction-result.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-reconstruction-result.yaml)
+- [`.nimi/contracts/spec-generation-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-audit.schema.yaml)

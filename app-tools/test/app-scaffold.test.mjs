@@ -64,7 +64,7 @@ function fakeNimicodingRunners() {
       mkdirSync(path.join(targetDir, '.nimi', 'contracts'), { recursive: true });
       mkdirSync(path.join(targetDir, '.nimi', 'methodology'), { recursive: true });
       writeFileSync(path.join(targetDir, '.nimi', 'config', 'bootstrap.yaml'), 'source: fake-nimicoding-sync\n');
-      writeFileSync(path.join(targetDir, '.nimi', 'contracts', 'spec-reconstruction-result.yaml'), 'source: fake-nimicoding-sync\n');
+      writeFileSync(path.join(targetDir, '.nimi', 'contracts', 'spec-layout.schema.yaml'), 'source: fake-nimicoding-sync\n');
       writeFileSync(path.join(targetDir, '.nimi', 'methodology', 'core.yaml'), 'source: fake-nimicoding-sync\n');
       return {
         ok: true,
@@ -133,7 +133,7 @@ function fakePnpmEnv(tempRoot) {
       'if [ "$1" = "exec" ] && [ "$2" = "nimicoding" ] && [ "$3" = "sync" ]; then',
       '  mkdir -p .nimi/config .nimi/contracts .nimi/methodology',
       '  printf "source: fake-nimicoding-sync\\n" > .nimi/config/bootstrap.yaml',
-      '  printf "source: fake-nimicoding-sync\\n" > .nimi/contracts/spec-reconstruction-result.yaml',
+      '  printf "source: fake-nimicoding-sync\\n" > .nimi/contracts/spec-layout.schema.yaml',
       '  printf "source: fake-nimicoding-sync\\n" > .nimi/methodology/core.yaml',
       '  printf "{\\"ok\\":true,\\"summary\\":{\\"total\\":3,\\"created\\":3}}\\n"',
       '  exit 0',
@@ -153,7 +153,7 @@ function fakePnpmEnv(tempRoot) {
       '  MKDIR .nimi\\contracts 2>NUL',
       '  MKDIR .nimi\\methodology 2>NUL',
       '  > .nimi\\config\\bootstrap.yaml ECHO source: fake-nimicoding-sync',
-      '  > .nimi\\contracts\\spec-reconstruction-result.yaml ECHO source: fake-nimicoding-sync',
+      '  > .nimi\\contracts\\spec-layout.schema.yaml ECHO source: fake-nimicoding-sync',
       '  > .nimi\\methodology\\core.yaml ECHO source: fake-nimicoding-sync',
       '  ECHO {"ok":true,"summary":{"total":3,"created":3}}',
       '  EXIT /B 0',
@@ -335,7 +335,7 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assert.equal(appOwned.some((file) => file.startsWith('src-electron/')), false);
     assert.match(generated.read('src-electron/main.ts'), /registerNimiElectronAppBridge/);
     assert.doesNotMatch(generated.read('src-electron/main.ts'), /runtimeEndpoint|sessionProof|launchTicket/);
-    assert.match(generated.read('src-tauri/src/main.rs'), /RuntimeBridgeAppHost::platform_default\(\)/);
+    assert.match(generated.read('src-tauri/src/main.rs'), /RuntimeBridgeLocalAppHost::platform_default\(\)/);
     assert.equal(appOwned.some((file) => file.startsWith('test/tester-') || file === 'test/electron-acceptance.mjs'), false);
     assert.equal(lock.managedFileHashes['src/shell/auth/auth-gate.tsx'].class, 'scaffold-managed glue');
     assert.equal(lock.managedFileHashes['package.json'].class, 'scaffold-managed glue');

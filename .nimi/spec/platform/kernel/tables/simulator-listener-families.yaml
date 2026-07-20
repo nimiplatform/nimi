@@ -1,8 +1,13 @@
 version: 1
 table_family: protocol_surface
 owner: platform
-catalog_id: platform_simulator_listener_families
+protocol_id: platform_simulator_listener_families
 source_rule: P-SIM-017
+
+surfaces:
+  - global_listener_family_ownership
+  - subscriber_coordination
+  - lifecycle_cleanup_verification
 
 coordination_contract:
   direct_selected_source_global_listener: forbidden

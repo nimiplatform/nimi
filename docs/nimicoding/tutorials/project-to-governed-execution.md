@@ -36,16 +36,18 @@ pnpm check:nimi-coding-seed-sync
 pnpm nimicoding:doctor
 ```
 
-The checks verify package projections, host-owned overrides, and the
-execution ownership ceiling. They do not create product authority.
+The checks verify the audited package release, package-managed projections,
+declared host overrides, and the execution ownership ceiling. They do not
+create product authority.
 
 ## 2. Reconstruct Product Authority
 
-When reconstruction is required, the active Codex task selects
-`spec_reconstruction` from `.nimi/config/skill-manifest.yaml`, reads its
-declared inputs and result contract, reconstructs authority into
-`.nimi/spec/**`, and records unresolved gaps instead of inventing rules.
-Then validate the result:
+When reconstruction is required, the active Codex task reads
+`.nimi/config/spec-generation-inputs.yaml` and
+`.nimi/methodology/spec-reconstruction.yaml`, reconstructs authority into
+`.nimi/spec/**`, and records file-level source basis and unresolved gaps under
+`.nimi/local/state/spec-generation/**` instead of inventing rules. Then
+validate the result:
 
 ```bash
 pnpm exec nimicoding validate-spec-tree .nimi/spec
@@ -130,8 +132,6 @@ scripts and contracts; task completion belongs to Codex.
 
 ## Source Basis
 
-- [`.nimi/config/skill-manifest.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/skill-manifest.yaml)
+- [`.nimi/config/spec-generation-inputs.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/spec-generation-inputs.yaml)
 - [`.nimi/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/spec-reconstruction.yaml)
-- [`.nimi/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-convergence-policy.yaml)
-- [`.nimi/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/skill-handoff.yaml)
-- [`.nimi/contracts/spec-reconstruction-result.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-reconstruction-result.yaml)
+- [`.nimi/contracts/spec-generation-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-audit.schema.yaml)

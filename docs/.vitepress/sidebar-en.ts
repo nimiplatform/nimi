@@ -316,14 +316,12 @@ const nimicodingGroups: DefaultTheme.SidebarItem[] = [
       { text: 'The Paradigm', link: '/nimicoding/the-paradigm' },
       { text: 'Four Closures', link: '/nimicoding/four-closures' },
       { text: 'False Closure Typology', link: '/nimicoding/false-closure-typology' },
-      { text: 'Forbidden Shortcuts', link: '/nimicoding/forbidden-shortcuts' },
     ],
   },
   {
-    text: 'Roles And Convergence',
+    text: 'Roles',
     items: [
       { text: 'Role Separation', link: '/nimicoding/role-separation' },
-      { text: 'Authority Convergence', link: '/nimicoding/authority-convergence' },
     ],
   },
   {
@@ -337,7 +335,6 @@ const nimicodingGroups: DefaultTheme.SidebarItem[] = [
     items: [
       { text: 'The Package', link: '/nimicoding/the-package' },
       { text: 'Host-Agnostic Boundary', link: '/nimicoding/host-agnostic' },
-      { text: 'Skills', link: '/nimicoding/skills' },
       { text: 'CLI Surface', link: '/nimicoding/cli' },
       { text: 'CLI Reference', link: '/nimicoding/cli-reference' },
       { text: 'Installation', link: '/nimicoding/installation' },
@@ -366,7 +363,6 @@ const nimicodingGroups: DefaultTheme.SidebarItem[] = [
       { text: 'Reference Overview', link: '/nimicoding/reference/' },
       { text: 'CLI Commands', link: '/nimicoding/reference/cli-commands' },
       { text: 'Schemas', link: '/nimicoding/reference/schemas' },
-      { text: 'Forbidden Shortcuts Catalog', link: '/nimicoding/reference/forbidden-shortcuts-catalog' },
     ],
   },
 ]

@@ -1,8 +1,13 @@
 version: 1
 table_family: protocol_surface
 owner: platform
-catalog_id: platform_simulator_browser_effects
+protocol_id: platform_simulator_browser_effects
 source_rule: P-SIM-018
+
+surfaces:
+  - effect_classification
+  - owner_and_phase_admission
+  - enforcement_and_proof
 
 classification:
   pure_read:

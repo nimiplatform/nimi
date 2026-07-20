@@ -1,26 +1,20 @@
-version: 1
+version: 2
 four_closure_policy:
+  purpose: Require independent proof that a material change is complete.
   closures:
-    - authority
-    - semantic
-    - consumer
-    - drift_resistance
-  rule:
-    all_four_must_be_explicit_for_acceptance: true
-  acceptance_evidence:
-    require_authority_refs: true
-    require_validation_evidence: true
-    require_consumer_evidence_when_affected: true
-    require_drift_resistance_checks: true
-  authority_examples:
-    - canonical_owner_is_unique
-    - no_parallel_truth_remains
-  semantic_examples:
-    - required_fields_and_failure_modes_are_pinned
-    - complex_cases_are_not_deferred_as_assumptions
-  consumer_examples:
-    - normal_consumers_use_the_correct_seam
-    - shortcuts_cannot_silently_become_mainline_truth
-  drift_resistance_examples:
-    - forbidden_shortcuts_are_explicit
-    - future_implementers_cannot_easily_thin_the_design
+    functional:
+      question: Does the implemented behavior satisfy the admitted product rules?
+      required_evidence: executable_tests_or_equivalent_deterministic_proof
+    negative:
+      question: Are forbidden and failure paths explicitly exercised?
+      required_evidence: negative_tests_or_contract_refusals
+    structural:
+      question: Does the result preserve module, dependency, and authority boundaries?
+      required_evidence: build_lint_static_checks_and_boundary_validators
+    drift_resistance:
+      question: Will deterministic checks reject a future divergence?
+      required_evidence: committed_validator_or_reproducible_check
+  acceptance:
+    all_four_must_be_explicit_for_material_change: true
+    missing_closure_is_not_success: true
+    evidence_format_and_review_process_are_host_owned: true

@@ -1,101 +1,26 @@
-version: 1
+version: 2
 contract:
-  id: nimicoding.spec-surface-negative-fixtures.v1
+  id: nimicoding.spec-surface-negative-fixtures.v2
   owner: nimi-coding
-fixture_required_fields:
-  - fixture_id
-  - contract_ref
-  - setup
-  - expected_failure
-  - validator_scope
 fixtures:
-  - fixture_id: generated_view_under_product_authority
-    contract_ref: placement-contract.schema.yaml
-    setup: .nimi/spec/runtime/kernel/generated/example.md
+  - id: generated-view-under-authority
+    setup: .nimi/spec/project/kernel/generated/overview.md
     expected_failure: derived_view_under_product_authority_root
-    validator_scope: placement
-  - fixture_id: spec_generation_state_under_meta
-    contract_ref: placement-contract.schema.yaml
+  - id: generation-state-under-authority
     setup: .nimi/spec/_meta/spec-generation-audit.yaml
     expected_failure: spec_generation_state_under_spec
-    validator_scope: placement
-  - fixture_id: rule_evidence_with_coverage_status_under_kernel_tables
-    contract_ref: table-family.schema.yaml
-    setup: .nimi/spec/runtime/kernel/tables/rule-evidence.yaml with coverage_status
-    expected_failure: table_contains_forbidden_state_or_audit_field
-    validator_scope: table_family
-  - fixture_id: future_backlog_under_spec
-    contract_ref: domain-admission.schema.yaml
-    setup: .nimi/spec/future/kernel/tables/backlog-items.yaml
-    expected_failure: excluded_domain_retained_under_spec
-    validator_scope: domain_admission
-  - fixture_id: thin_guidance_with_normative_body
-    contract_ref: surface-taxonomy.schema.yaml
-    setup: .nimi/spec/desktop/local-ai.md containing MUST or 必须
-    expected_failure: guidance_defines_rule_body
-    validator_scope: guidance
-  - fixture_id: package_methodology_copied_to_spec
-    contract_ref: projection-edge.schema.yaml
-    setup: .nimi/spec/product-scope.yaml containing package methodology body
-    expected_failure: package_body_promoted_to_product_authority
-    validator_scope: projection
-  - fixture_id: nimicoding_managed_projection_passes
-    contract_ref: placement-contract.schema.yaml
-    setup: .nimi/contracts/acceptance.schema.yaml as host-managed projection
-    expected_failure: none
-    validator_scope: placement
-  - fixture_id: nimicoding_config_projection_passes
-    contract_ref: placement-contract.schema.yaml
-    setup: .nimi/config/spec-generation-inputs.yaml as init-managed projection
-    expected_failure: none
-    validator_scope: placement
-  - fixture_id: nimicoding_methodology_projection_passes
-    contract_ref: placement-contract.schema.yaml
-    setup: .nimi/methodology/spec-reconstruction.yaml as init-managed projection
-    expected_failure: none
-    validator_scope: placement
-  - fixture_id: blanket_v2_docs_input_root
-    contract_ref: spec-generation-inputs.schema.yaml
-    setup: .nimi/config/spec-generation-inputs.yaml docs_inputs root "."
-    expected_failure: invalid_spec_generation_inputs_config
-    validator_scope: doctor
-  - fixture_id: generated_file_referenced_as_authority
-    contract_ref: projection-edge.schema.yaml
-    setup: product authority markdown links to .nimi/spec/runtime/kernel/generated/rule-evidence.md as authority
-    expected_failure: derived_view_referenced_as_authority
-    validator_scope: projection
-  - fixture_id: kernel_table_without_family
-    contract_ref: table-family.schema.yaml
-    setup: .nimi/spec/runtime/kernel/tables/example.yaml without table_family
+  - id: package-contract-promoted-to-spec
+    setup: .nimi/contracts/surface-taxonomy.schema.yaml copied under .nimi/spec/project/kernel
+    expected_failure: package_methodology_under_host_spec
+  - id: unknown-domain
+    setup: .nimi/spec/unadmitted/kernel/index.md
+    expected_failure: missing_domain_admission
+  - id: table-without-family
+    setup: .nimi/spec/project/kernel/tables/rules.yaml without table_family
     expected_failure: missing_table_family
-    validator_scope: table_family
-  - fixture_id: kernel_table_with_unknown_family
-    contract_ref: table-family.schema.yaml
-    setup: .nimi/spec/platform/kernel/tables/unknown-family.yaml with unadmitted table_family
-    expected_failure: unknown_table_family
-    validator_scope: table_family
-  - fixture_id: tracked_non_product_without_admission
-    contract_ref: tracked-output-admission.schema.yaml
-    setup: .nimi/audit/example.yaml
-    expected_failure: tracked_non_product_without_admission
-    validator_scope: tracked_output
-  - fixture_id: valid_state_machine_table_passes
-    contract_ref: table-family.schema.yaml
-    setup: .nimi/spec/runtime/kernel/tables/job-states.yaml with table_family state_machine
-    expected_failure: none
-    validator_scope: table_family
-  - fixture_id: valid_product_state_machine_table_passes
-    contract_ref: table-family.schema.yaml
-    setup: .nimi/spec/platform/kernel/tables/first-run-state-machine.yaml with table_family product_state_machine and state entry/exit conditions
-    expected_failure: none
-    validator_scope: table_family
-  - fixture_id: valid_product_record_schema_table_passes
-    contract_ref: table-family.schema.yaml
-    setup: .nimi/spec/platform/kernel/tables/product-control-record-schema.yaml with table_family product_record_schema
-    expected_failure: none
-    validator_scope: table_family
-  - fixture_id: valid_minimal_package_anchor_passes
-    contract_ref: projection-edge.schema.yaml
-    setup: .nimi/spec/_meta/nimi-coding-admission-anchor.yaml with package id/version/root/edge refs only
-    expected_failure: none
-    validator_scope: projection
+  - id: guidance-with-rule-body
+    setup: .nimi/spec/project.md containing normative rule body
+    expected_failure: guidance_defines_rule_body
+semantic_constraints:
+  - every_fail_closed_rule_requires_a_negative_fixture
+  - fixtures_must_name_the_exact_refusal_code

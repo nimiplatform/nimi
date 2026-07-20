@@ -80,7 +80,7 @@ project of your own.
 3. [Nimi Coding → Governed Codex Project](/nimicoding/tutorials/project-to-governed-execution) —
    the boundary between host execution and project truth, gates, and evidence.
 4. [Reference → Forbidden Claims](/reference/forbidden-claims) — the
-   forbidden-shortcuts mindset applied to docs.
+   evidence-gated public-claim policy applied to docs.
 5. [Reference → Schemas](/nimicoding/reference/schemas) — the contracts
    for reconstruction, evidence, and acceptance.
 
@@ -101,5 +101,5 @@ public claims back to source.
 
 - [`.nimi/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/INDEX.md)
 - [`.nimi/spec/platform/vision.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/vision.md)
-- [`nimi-coding/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/product-scope.yaml)
-- [`.nimi/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-convergence-policy.yaml)
+- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
+- [`.nimi/methodology/core.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/core.yaml)

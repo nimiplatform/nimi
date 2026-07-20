@@ -10,7 +10,7 @@ function readSource(relativePath: string): string {
 const chatSettingsStorageSource = readSource('../src/shell/renderer/features/chat/chat-settings-storage.ts');
 const chatAgentShellAdapterSource = readSource('../src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx');
 const hardcutTestSource = readSource('chat-agent-behavior-storage-hardcut.test.ts');
-const highRiskAdmissionContractSource = readSource('../../../.nimi/contracts/high-risk-admission.schema.yaml');
+const packageAuthoritySource = readSource('../../../.nimi/spec/platform/kernel/package-authority-admission-contract.md');
 
 test('agent chat behavior settings no longer have a durable renderer storage key', () => {
   assert.doesNotMatch(chatSettingsStorageSource, /AGENT_CHAT_BEHAVIOR_SETTINGS_STORAGE_KEY/);
@@ -28,19 +28,24 @@ test('agent shell keeps behavior settings in process state instead of localStora
   assert.doesNotMatch(chatAgentShellAdapterSource, /sessionStorage/);
 });
 
-test('agent behavior storage hardcut keeps local admission evidence non-authoritative', () => {
+test('agent behavior storage hardcut does not depend on retired nimicoding admission state', () => {
   const retiredSpecAdmissionPattern = new RegExp(
     `${String.raw`\.nimi`}\\/spec\\/high-risk-admissions${String.raw`\.yaml`}`,
   );
+  const retiredPackageAdmissionPattern = new RegExp(
+    `${String.raw`\.nimi`}\\/contracts\\/high-risk-admission${String.raw`\.schema\.yaml`}`,
+  );
 
   assert.match(
-    highRiskAdmissionContractSource,
-    /local_high_risk_admission_evidence/,
+    packageAuthoritySource,
+    /P-PKG-010 — External AI Host Workflow Ownership/,
   );
   assert.match(
-    highRiskAdmissionContractSource,
-    /local_admission_records_must_not_be_used_as_product_authority/,
+    packageAuthoritySource,
+    /must not persist or interpret a parallel task state as authority/,
   );
   assert.doesNotMatch(hardcutTestSource, /\.nimi\\?\/local\\?\/high-risk-admissions\.yaml/);
   assert.doesNotMatch(hardcutTestSource, retiredSpecAdmissionPattern);
+  assert.doesNotMatch(chatSettingsStorageSource, retiredPackageAdmissionPattern);
+  assert.doesNotMatch(chatAgentShellAdapterSource, retiredPackageAdmissionPattern);
 });

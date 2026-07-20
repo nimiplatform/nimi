@@ -1,84 +1,76 @@
-# Schemas
+# Nimi Coding 契约参考
 
-Nimi 使用 Nimi Coding 契约完成真相重建、权威复核、确定性证据检查与规范结构
-验证。这些契约描述宿主必须产出什么、门禁必须检查什么，不记录宿主任务进度。
+Nimi Coding 0.3.x 的契约只描述规范构建、权威放置、受管文件和确定性校验，不定义
+AI 宿主的任务或执行记录。
 
-## 规范重建结果
+## 表面分类
 
-路径：`.nimi/contracts/spec-reconstruction-result.yaml`
+路径：`.nimi/contracts/surface-taxonomy.schema.yaml`
 
-| 字段组 | 要求 |
-| --- | --- |
-| 必备摘要 | 生成路径、审计引用、placement report、覆盖摘要、未解决与推断数量、状态、摘要、验证时间 |
-| 状态 | `reconstructed`、`partial` 或 `blocked` |
-| 完成条件 | 规范树就绪、必备文件有效、placement 有效、审计条目完整、未解决缺口明确 |
-| 本地性 | 结果仅供本地复核，不能成为产品权威 |
+每个候选文件必须得到唯一分类，并明确 owner、权威级别、跟踪规则、可变性和
+fail-closed 条件。产品权威、薄引导、生成视图、本地证据、包方法论和受管文件不能
+混成同一类。
 
-## 文档规范审计结果
+## 放置契约
 
-路径：`.nimi/contracts/doc-spec-audit-result.yaml`
+路径：`.nimi/contracts/placement-contract.schema.yaml`
 
-| 字段 | 要求 |
-| --- | --- |
-| `compared_paths` | 实际比较的路径 |
-| `finding_count` | 发现数量 |
-| `status` | `aligned`、`drift_detected` 或 `blocked` |
-| `summary` | 基于证据的结果摘要 |
-| `verified_at` | 验证时间 |
+每个受治理目录都要绑定允许的分类、owner、跟踪规则、准入条件和校验范围。未知
+目录，以及放进 `.nimi/spec/**` 的非产品状态，都会被拒绝。
 
-## 高风险准入证据
+## Domain 准入
 
-路径：`.nimi/contracts/high-risk-admission.schema.yaml`
+路径：`.nimi/contracts/domain-admission.schema.yaml`
 
-每条准入都要包含变更、disposition、时间、权威复核 owner、摘要和来源决策契约。
-准入记录只是本地证据，不能创建或推进宿主状态，也不能成为产品权威。
+每个产品 domain 都要声明根目录、权威类别、owner、允许和禁止的分类、校验命令，
+以及未准入时的迁移处置。只有目录存在，不代表已经获得产品权威。
 
-## Prompt 契约
+## Table Family
 
-路径：`.nimi/contracts/prompt.schema.yaml`
+路径：`.nimi/contracts/table-family.schema.yaml`
 
-受治理 handoff 要声明任务目标、权威读取、已确认状态、硬约束、必达结果、非目标、
-所需检查、最终输出格式和阻塞升级规则。外部宿主自行决定如何执行这个有边界的请求。
+每张 kernel table 都要声明受支持的语义家族。产品权威表和 support registry 使用
+不同结构，两者都不能携带运行进度或审计覆盖状态。
 
-## 宿主结果契约
+## 单向映射
 
-路径：`.nimi/contracts/worker-output.schema.yaml`
+路径：`.nimi/contracts/projection-edge.schema.yaml`
 
-结果要报告 findings、实现摘要、变更文件、实际运行的检查，以及剩余缺口或风险。
-可选区块承载权威影响、已选决策、guard 行为与剩余阻塞。
+每条单向映射都要声明来源与目标分类、双方 owner、允许和禁止的字段，以及确定性
+漂移检查。目标文件不会因为映射关系获得高于来源的权威。
 
-## 验收契约
+## 宿主规范布局
 
-路径：`.nimi/contracts/acceptance.schema.yaml`
+路径：`.nimi/contracts/spec-layout.schema.yaml`
 
-验收顺序是权威对齐、证据充分性、disposition。Disposition 只能是 `complete`、
-`partial` 或 `deferred`；缺失的必备结果不能被包装成成功。
+宿主可以声明指令文件、受管生成目录和 table family 扩展，但这些布局数据本身不
+具备产品权威。
 
-## 规范结构契约
+## 规范生成输入与审计
 
-| 契约 | 用途 |
-| --- | --- |
-| `table-family.schema.yaml` | 定义允许的语义表族，以及权威表中禁用的执行状态字段 |
-| `placement-contract.schema.yaml` | 验证规范的权威放置位置 |
-| `projection-edge.schema.yaml` | 验证权威到投影的边 |
-| `domain-admission.schema.yaml` | 验证域准入记录 |
-| `tracked-output-admission.schema.yaml` | 验证 tracked generated outputs |
-| `surface-taxonomy.schema.yaml` | 分类 canonical 与 support 表面 |
+路径：
 
-## 禁用反模式
+- `.nimi/contracts/spec-generation-inputs.schema.yaml`
+- `.nimi/contracts/spec-generation-audit.schema.yaml`
 
-路径：`.nimi/contracts/forbidden-shortcuts.catalog.yaml`
+输入必须先完成分类，再进入规范构建。本地生成审计逐文件记录来源、依据强度、覆盖
+状态和未解决事项；它只能放在 `.nimi/local/state/spec-generation/**`，不能进入
+`.nimi/spec/**`。
 
-目录拒绝最小子集真相、legacy alias、compatibility shim、双读双写、伪成功、
-仅 happy path 闭合、按时间分层、应用局部影子真相，以及静默重开 owner 边界。
+## 迁移清单
+
+路径：`.nimi/contracts/migration-inventory.schema.yaml`
+
+迁移分组只描述现状和处置，不修改源文件，也不调度工作。语义分叉、owner 歧义、
+包边界歧义和破坏性删除都必须保留为显式确认项。
 
 ## 来源依据
 
-- [`.nimi/contracts/spec-reconstruction-result.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-reconstruction-result.yaml)
-- [`.nimi/contracts/doc-spec-audit-result.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/doc-spec-audit-result.yaml)
-- [`.nimi/contracts/high-risk-admission.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/high-risk-admission.schema.yaml)
-- [`.nimi/contracts/prompt.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/prompt.schema.yaml)
-- [`.nimi/contracts/worker-output.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/worker-output.schema.yaml)
-- [`.nimi/contracts/acceptance.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/acceptance.schema.yaml)
+- [`.nimi/contracts/surface-taxonomy.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/surface-taxonomy.schema.yaml)
+- [`.nimi/contracts/placement-contract.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/placement-contract.schema.yaml)
+- [`.nimi/contracts/domain-admission.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/domain-admission.schema.yaml)
 - [`.nimi/contracts/table-family.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/table-family.schema.yaml)
-- [`.nimi/contracts/forbidden-shortcuts.catalog.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/forbidden-shortcuts.catalog.yaml)
+- [`.nimi/contracts/projection-edge.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/projection-edge.schema.yaml)
+- [`.nimi/contracts/spec-layout.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-layout.schema.yaml)
+- [`.nimi/contracts/spec-generation-inputs.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-inputs.schema.yaml)
+- [`.nimi/contracts/spec-generation-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-audit.schema.yaml)

@@ -78,9 +78,9 @@ const tableSpecs = [
   ['simulator-state-engine-policy.yaml', 'protocol_surface', 'protocol_id', 'platform_simulator_state_engine', 'P-SIM-010'],
   ['simulator-error-codes.yaml', 'closed_enum', 'enum_id', 'platform_simulator_error_codes', 'P-SIM-019'],
   ['simulator-mandatory-singletons.yaml', 'product_catalog', 'catalog_id', 'platform_simulator_mandatory_singletons', 'P-SIM-008'],
-  ['simulator-browser-effects.yaml', 'protocol_surface', 'catalog_id', 'platform_simulator_browser_effects', 'P-SIM-018'],
-  ['simulator-listener-families.yaml', 'protocol_surface', 'catalog_id', 'platform_simulator_listener_families', 'P-SIM-017'],
-  ['simulator-performance-policy.yaml', 'product_catalog', 'catalog_id', 'platform_simulator_performance_policy', 'P-SIM-022'],
+  ['simulator-browser-effects.yaml', 'protocol_surface', 'protocol_id', 'platform_simulator_browser_effects', 'P-SIM-018'],
+  ['simulator-listener-families.yaml', 'protocol_surface', 'protocol_id', 'platform_simulator_listener_families', 'P-SIM-017'],
+  ['simulator-performance-policy.yaml', 'simulator_performance_policy', 'catalog_id', 'platform_simulator_performance_policy', 'P-SIM-022'],
 ];
 const tables = new Map();
 for (const [fileName, family, identityField, identity, sourceRule] of tableSpecs) {
@@ -181,6 +181,11 @@ exactSet(singletonCatalog.packages?.map((entry) => entry.name), singletonCatalog
 exactValue(singletonCatalog.identity_contract?.app_lockfile, 'forbidden', 'selected App lockfile posture');
 
 const effectCatalog = tables.get('simulator-browser-effects.yaml');
+exactSet(effectCatalog.surfaces, [
+  'effect_classification',
+  'owner_and_phase_admission',
+  'enforcement_and_proof',
+], 'Simulator browser-effect protocol surfaces');
 exactSet(effectCatalog.entries?.map((entry) => entry.id), [
   'network_fetch',
   'network_xhr',
@@ -217,6 +222,11 @@ for (const requiredForbidden of ['network_fetch', 'persistent_web_storage', 'wor
 }
 
 const listenerCatalog = tables.get('simulator-listener-families.yaml');
+exactSet(listenerCatalog.surfaces, [
+  'global_listener_family_ownership',
+  'subscriber_coordination',
+  'lifecycle_cleanup_verification',
+], 'Simulator listener protocol surfaces');
 exactSet(listenerCatalog.families?.map((entry) => entry.id), [
   'keyboard',
   'pointer_dismissal',

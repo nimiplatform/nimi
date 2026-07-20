@@ -71,24 +71,6 @@ admitted under the runtime model-catalog contract:
 | "X is stable" | "X is a defined surface" |
 | "Use X for production today" | "X is admitted; production posture is gated on evidence" |
 
-## Methodology-Side Forbidden Shortcuts
-
-The Nimi Coding methodology refuses these named anti-patterns. Public
-docs that describe Nimi Coding must not claim any of these are used:
-
-| Key | Refused pattern |
-| --- | --- |
-| `mvp_subset_contract` | Cutting canonical contract truth into a temporary minimum subset |
-| `legacy_alias` | Keeping obsolete semantics alive via soft alias |
-| `compat_shim` | Hiding owner-cut gaps behind temporary compatibility code |
-| `dual_read` | Two parallel truth read paths without explicit admission |
-| `dual_write` | Two parallel truth write paths without explicit admission |
-| `placeholder_success` | Faking success or closure when required truth is missing |
-| `happy_path_only_closure` | Claiming closure when only the happy path is closed |
-| `time_phased_layering` | Replacing semantic layering with time-sliced (v1/v2/v3) layering |
-| `app_local_shadow_truth` | App-local convenience state becoming hidden canonical truth |
-| `silent_owner_cut_reopen` | Reopening owner-domain truth inside downstream implementation work |
-
 ## Detection
 
 Repository-level grep used to verify public docs:
@@ -114,6 +96,3 @@ introduced.
 - [`.nimi/spec/runtime/kernel/model-catalog-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/model-catalog-contract.md)
 - [`.nimi/spec/runtime/kernel/provider-health-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/provider-health-contract.md)
 - [`.nimi/spec/platform/kernel/web-release-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/web-release-contract.md)
-- [`nimi-coding/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/product-scope.yaml)
-- [`nimi-coding/spec/bootstrap-state.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/bootstrap-state.yaml)
-- [`.nimi/contracts/forbidden-shortcuts.catalog.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/forbidden-shortcuts.catalog.yaml)

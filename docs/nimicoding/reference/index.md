@@ -11,8 +11,7 @@ For narrative, see the paradigm pages and the
 | Page | Use when you need... |
 | --- | --- |
 | [CLI Commands](/nimicoding/reference/cli-commands) | Field-level CLI command reference |
-| [Schemas](/nimicoding/reference/schemas) | Spec reconstruction, high-risk evidence, acceptance, and spec-structure contracts |
-| [Forbidden Shortcuts Catalog](/nimicoding/reference/forbidden-shortcuts-catalog) | The 10 named anti-patterns with detail |
+| [Schemas](/nimicoding/reference/schemas) | Spec taxonomy, placement, construction, projection, audit, and migration contracts |
 
 ## How To Read
 

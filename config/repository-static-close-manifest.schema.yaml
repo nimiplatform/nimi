@@ -1,23 +1,8 @@
-id: nimi-coding.acceptance.v1
-kind: acceptance
-required_order:
-  - authority alignment
-  - evidence sufficiency
-  - disposition
-disposition_enum:
-  - complete
-  - partial
-  - deferred
-required_blocks:
-  - Findings
-  - Authority Alignment
-  - Evidence Sufficiency
-  - Disposition
-
-# Repository-owned static close evidence contract. This extends, and does not
-# replace, the retained nimicoding acceptance projection above. It validates
-# immutable candidate/evidence facts only; the external AI host remains the
-# exclusive owner of workflow, continuation, and completion decisions.
+version: 1
+contract:
+  id: nimi.repository.static-close-policy.v1
+  owner: platform
+  purpose: Validate immutable candidate and evidence facts without owning host workflow state.
 repository_static_close_manifest:
   id: nimi.repository.static-close-manifest.v1
   kind: static-close-manifest

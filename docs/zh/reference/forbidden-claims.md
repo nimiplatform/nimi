@@ -64,23 +64,6 @@
 | 宣称 "X is stable" | "X 目前处于已定义的架构面阶段" |
 | 宣称 "今天您就可以将 X 安全地用于生产环境" | "X 已获得准入；是否适用于生产环境需视后续证据落地情况而定" |
 
-## Nimi Coding 规范层面的反模式
-
-Nimi Coding 规范拒绝以下工程反模式。描述 Nimi Coding 的公开文档不得暗示系统设计采用了以下任何手段：
-
-| 反模式标识 | 拒绝的工程实践 |
-| --- | --- |
-| `mvp_subset_contract` | 将完整的规范契约削减为临时的子集。 |
-| `legacy_alias` | 滥用软别名（Soft Alias）以延续应被淘汰的过时语义。 |
-| `compat_shim` | 依赖临时兼容垫片（Shim）以掩盖架构权责划分不清的问题。 |
-| `dual_read` | 在系统中保留未获显式规范准入的并行读取路径。 |
-| `dual_write` | 在系统中保留未获显式规范准入的并行写入路径。 |
-| `placeholder_success` | 在核心数据尚未就位时，使用虚假逻辑冒充任务成功或闭合。 |
-| `happy_path_only_closure` | 仅验证顺畅路径（Happy Path）便宣告议题闭合。 |
-| `time_phased_layering` | 采用时间版本切片（如 v1/v2）替代合理的架构语义分层。 |
-| `app_local_shadow_truth` | 允许应用层因本地便利性而维护未经约束的“影子规范真相”。 |
-| `silent_owner_cut_reopen` | 在下游实现工作中，越权修改应归属于上游数据所有者的事实真相。 |
-
 ## 自动化检测机制
 
 平台将在集成流水线中使用仓库级 `grep` 命令对所有公开文档进行核验：
@@ -104,6 +87,3 @@ grep -rEni '\b(OpenAI|Anthropic|Claude|Gemini|GPT-[0-9]|Llama|DeepSeek|Mistral|Q
 - [`.nimi/spec/runtime/kernel/model-catalog-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/model-catalog-contract.md)
 - [`.nimi/spec/runtime/kernel/provider-health-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/provider-health-contract.md)
 - [`.nimi/spec/platform/kernel/web-release-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/web-release-contract.md)
-- [`nimi-coding/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/product-scope.yaml)
-- [`nimi-coding/spec/bootstrap-state.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/bootstrap-state.yaml)
-- [`.nimi/contracts/forbidden-shortcuts.catalog.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/forbidden-shortcuts.catalog.yaml)

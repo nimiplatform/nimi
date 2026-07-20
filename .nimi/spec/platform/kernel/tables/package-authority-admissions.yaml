@@ -37,6 +37,8 @@ admissions:
           package_ref: package://@nimiplatform/nimi-coding/contracts/domain-admission.schema.yaml
         - host_ref: .nimi/contracts/table-family.schema.yaml
           package_ref: package://@nimiplatform/nimi-coding/contracts/table-family.schema.yaml
+        - host_ref: .nimi/contracts/spec-layout.schema.yaml
+          package_ref: package://@nimiplatform/nimi-coding/contracts/spec-layout.schema.yaml
         - host_ref: .nimi/methodology/spec-reconstruction.yaml
           package_ref: package://@nimiplatform/nimi-coding/methodology/spec-reconstruction.yaml
     source_rule: P-PKG-001

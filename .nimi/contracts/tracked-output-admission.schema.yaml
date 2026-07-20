@@ -1,66 +1,17 @@
-version: 1
+version: 2
 contract:
-  id: nimicoding.tracked-output-admission.v1
+  id: nimicoding.tracked-output-admission.v2
   owner: nimi-coding
-  purpose: Define the only allowed path for tracked non-product artifacts.
-required_top_level_fields:
-  - version
-  - admissions
-  - allowed_roots
-  - privacy_posture_enum
-  - semantic_constraints
-admission_required_fields:
-  - artifact_class
-  - root
-  - owner
-  - schema_ref
-  - privacy_posture
-  - retention
-  - regeneration_or_review_command
-  - drift_check_command
-  - forbidden_fields
-  - max_size_policy
-  - non_parallel_truth_basis
-shared_enum_ref: shared-enums.yaml
-artifact_class_enum:
-  - derived_manifest
-  - derived_summary
-  - state_manifest
-  - audit_index
-  - audit_summary
+  purpose: Make every tracked non-product output explicit and narrow.
+required_top_level_fields: [version, admissions, semantic_constraints]
+admission_required_fields: [root, allowed_artifact_classes, owner, rationale, validation_commands]
 admissions: []
-allowed_roots:
-  - .nimi/derived/**
-  - .nimi/state/**
-  - .nimi/audit/**
-privacy_posture_enum:
-  - non_private
-  - redacted
-retention_enum:
-  - compact_manifest
-  - compact_summary
-  - compact_index
-max_size_policy_required_fields:
-  - max_files
-  - max_bytes_per_file
-  - max_rows_per_file
-non_parallel_truth_basis_enum:
-  - indexes_authority_refs_without_rule_body
-  - summarizes_redacted_evidence_without_raw_payload
-  - records_regeneration_metadata_without_generated_body
-forbidden_fields:
-  - raw_audit_transcript
-  - private_prompt
-  - private_finding_detail
-  - product_rule_body
-  - package_methodology_body
-  - host_workflow_state
-  - raw_evidence_payload
-  - personal_or_secret_data
+default_policy:
+  tracked_non_product_outputs: forbidden_without_explicit_admission
+  local_operational_outputs_root: .nimi/local
+  generated_views: stdout_only
 semantic_constraints:
-  - tracked_non_product_roots_are_disabled_without_admission
-  - empty_admissions_means_all_tracked_non_product_roots_fail_closed
-  - admission_must_prove_artifact_is_compact_non_private_and_non_parallel_truth
-  - audit_raw_materials_are_never_tracked_by_this_contract
-  - generated_views_must_be_reproducible_if_tracked
-  - tracked_outputs_must_not_authorize_or_schedule_implementation
+  - empty_admission_list_is_valid_and_means_no_tracked_non_product_outputs
+  - admission_does_not_promote_output_to_product_authority
+  - output_root_must_not_overlap_.nimi/spec
+  - validation_commands_must_be_deterministic

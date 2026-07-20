@@ -8,11 +8,11 @@ Package-local spec roots outside `.nimi/spec/**` become spec-first audit authori
 
 ## P-PKG-002 — Package Authority Scope
 
-An admitted package authority root owns only the reusable package methodology, contracts, configuration, adapters, tests, and implementation surfaces named by its evidence roots. It must not override repo-wide product authority under `.nimi/spec/**`, and it must not promote host-local projections into package truth.
+An admitted package authority root owns only the reusable methodology, spec-construction contracts and configuration, deterministic validators, package tests, and implementation surfaces named by its evidence roots. It must not override repo-wide product authority under `.nimi/spec/**`, and it must not promote host-local projections into package truth.
 
 ## P-PKG-003 — Host-Local Projection Boundary
 
-Host-local `.nimi/contracts/**` and `.nimi/methodology/**` files are Nimi host truth or projections only when a `.nimi/spec/**` authority contract admits those roots as audit evidence. They must not be silently treated as package-owned truth, and package-owned source files must not be silently treated as host-local projections.
+Host-local `.nimi/config/**` support inputs and `.nimi/contracts/**` or `.nimi/methodology/**` projections are Nimi host surfaces only when a `.nimi/spec/**` authority contract admits those roots as audit evidence. Support configuration has no independent semantic authority. Host-local files must not be silently treated as package-owned truth, and package-owned source files must not be silently treated as host-local projections.
 
 ## P-PKG-004 — No Parallel Truth
 
@@ -24,11 +24,11 @@ Spec-first audit planning may expand admitted package-local specs into authority
 
 ## P-PKG-006 — Host-Local Evidence Admission
 
-Audit evidence roots for host-local `.nimi/contracts/**` and `.nimi/methodology/**` must be admitted through `.nimi/spec/**/kernel/tables/audit-evidence-roots.yaml` and anchored to an explicit `.nimi/spec/**` authority file. Unadmitted host-local truth must remain unmapped evidence and block full-audit closeout.
+Audit evidence roots for managed host-local `.nimi/{config,contracts,methodology}/**` surfaces must be admitted through `.nimi/spec/**/kernel/tables/audit-evidence-roots.yaml` and anchored to an explicit `.nimi/spec/**` authority file. Unadmitted host-local truth must remain unmapped evidence and block full-audit closeout.
 
 ## P-PKG-007 — Host Authority Projection Merge
 
-When a host `.nimi/spec/**` authority file is a projected copy or host admission of a package-local authority file, the package authority admission table must declare an explicit `host_authority_projection_refs` mapping from the host authority ref to the package authority ref. Spec-first audit planning must merge those refs into one package-owned audit chunk, retain both refs in `authority_refs`, and audit implementation evidence only once under the package evidence roots. Tools must not infer this relationship from matching content hashes or file names.
+When a managed host-local file projects a package-local authority file, or a host `.nimi/spec/**` authority file explicitly admits one, the package authority admission table must declare an explicit `host_authority_projection_refs` mapping from the host ref to the package authority ref. Spec-first audit planning must merge those refs into one package-owned audit chunk, retain both refs in `authority_refs`, and audit implementation evidence only once under the package evidence roots. Tools must not infer this relationship from matching content hashes or file names.
 
 ## P-PKG-008 — Authority-Specific Package Evidence Admission
 
@@ -46,7 +46,7 @@ The active external AI host is the sole owner of repository task and execution-w
 
 External-host workflow ownership does not weaken `.nimi/spec/**` authority or deterministic gate verdicts. The host must consume those authority and gate results when deciding completion; it must not override them or ask nimi-coding to choose the next execution step.
 
-## P-PKG-011 — Nimi-Coding Admission Ceiling And Workflow Hardcut
+## P-PKG-011 — Nimi-Coding Admission Ceiling And Host Boundary Hardcut
 
 Nimi admits `@nimiplatform/nimi-coding` only for structured spec and methodology semantics, deterministic validation / generation / gate commands, and evidence contracts or projections. Support configuration has no independent semantic authority and may exist only as an input to those admitted roles. Package files reachable through a broad audit evidence root are evidence inventory, not automatic semantic admission.
 

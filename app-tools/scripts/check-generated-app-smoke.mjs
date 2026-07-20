@@ -5,6 +5,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  realpathSync,
   readdirSync,
   readFileSync,
   rmSync,
@@ -12,6 +13,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { createAppScaffold } from '../lib/app-scaffold.mjs';
@@ -40,7 +42,7 @@ function fakeNimicodingRunners() {
       mkdirSync(path.join(targetDir, '.nimi', 'contracts'), { recursive: true });
       mkdirSync(path.join(targetDir, '.nimi', 'methodology'), { recursive: true });
       writeFileSync(path.join(targetDir, '.nimi', 'config', 'bootstrap.yaml'), 'source: generated-app-smoke\n');
-      writeFileSync(path.join(targetDir, '.nimi', 'contracts', 'spec-reconstruction-result.yaml'), 'source: generated-app-smoke\n');
+      writeFileSync(path.join(targetDir, '.nimi', 'contracts', 'spec-layout.schema.yaml'), 'source: generated-app-smoke\n');
       writeFileSync(path.join(targetDir, '.nimi', 'methodology', 'core.yaml'), 'source: generated-app-smoke\n');
       return {
         ok: true,
@@ -339,7 +341,7 @@ function assertTesterReference(target) {
 }
 
 function main() {
-  const tempRoot = mkdtempSync(path.join(path.parse(repoRoot).root, '.nimi-generated-app-smoke-'));
+  const tempRoot = realpathSync(mkdtempSync(path.join(tmpdir(), 'nimi-generated-app-smoke-')));
   const versions = appScaffoldVersions();
   const runners = fakeNimicodingRunners();
   try {

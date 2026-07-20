@@ -316,14 +316,12 @@ const nimicodingGroups: DefaultTheme.SidebarItem[] = [
       { text: '范式', link: '/zh/nimicoding/the-paradigm' },
       { text: '四个闭合', link: '/zh/nimicoding/four-closures' },
       { text: '伪闭合分类', link: '/zh/nimicoding/false-closure-typology' },
-      { text: '禁用捷径', link: '/zh/nimicoding/forbidden-shortcuts' },
     ],
   },
   {
-    text: '角色与汇聚',
+    text: '角色',
     items: [
       { text: '角色分离', link: '/zh/nimicoding/role-separation' },
-      { text: '权威汇聚', link: '/zh/nimicoding/authority-convergence' },
     ],
   },
   {
@@ -337,7 +335,6 @@ const nimicodingGroups: DefaultTheme.SidebarItem[] = [
     items: [
       { text: '包', link: '/zh/nimicoding/the-package' },
       { text: '宿主无关边界', link: '/zh/nimicoding/host-agnostic' },
-      { text: '技能', link: '/zh/nimicoding/skills' },
       { text: 'CLI 界面', link: '/zh/nimicoding/cli' },
       { text: 'CLI 参考', link: '/zh/nimicoding/cli-reference' },
       { text: '安装', link: '/zh/nimicoding/installation' },
@@ -366,7 +363,6 @@ const nimicodingGroups: DefaultTheme.SidebarItem[] = [
       { text: '参考总览', link: '/zh/nimicoding/reference/' },
       { text: 'CLI 命令', link: '/zh/nimicoding/reference/cli-commands' },
       { text: 'Schema', link: '/zh/nimicoding/reference/schemas' },
-      { text: '禁用捷径目录', link: '/zh/nimicoding/reference/forbidden-shortcuts-catalog' },
     ],
   },
 ]

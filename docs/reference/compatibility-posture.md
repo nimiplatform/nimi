@@ -26,21 +26,11 @@ Reference for the Nimi public docs' compatibility and migration posture.
 
 ## Forbidden Compatibility Shapes
 
-The methodology's `forbidden_shortcuts` catalog enumerates the patterns
-public docs and implementation refuse:
-
-| Key | Refused pattern |
-| --- | --- |
-| `legacy_alias` | Keeping obsolete semantics alive via soft alias |
-| `compat_shim` | Hiding owner-cut gaps behind temporary compatibility code |
-| `dual_read` | Two parallel truth read paths without explicit admission |
-| `dual_write` | Two parallel truth write paths without explicit admission |
-| `mvp_subset_contract` | Cutting canonical contract truth into a temporary minimum subset |
-| `time_phased_layering` | Replacing semantic layering with time-sliced (v1/v2/v3) layering |
-| `placeholder_success` | Faking success or closure when required truth is missing |
-| `happy_path_only_closure` | Claiming closure when only the happy path is closed |
-| `app_local_shadow_truth` | App-local convenience state becoming hidden canonical truth |
-| `silent_owner_cut_reopen` | Reopening owner-domain truth inside downstream implementation work |
+Repository authority rejects three broad shapes: retaining superseded product
+semantics after a hard cut, creating an unadmitted parallel truth, and
+returning pseudo-success when an admitted contract cannot be fulfilled.
+Individual owner-domain contracts add narrower prohibitions where required;
+there is no separate Nimi Coding anti-pattern catalog.
 
 ## Public Claim Constraints
 
@@ -75,8 +65,10 @@ has not reached.
 - [`.nimi/spec/platform/protocol.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/protocol.md)
 - [`.nimi/spec/platform/vision.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/vision.md)
 - [`.nimi/spec/platform/kernel/protocol-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/protocol-contract.md)
+- [`.nimi/spec/platform/kernel/architecture-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/architecture-contract.md)
+- [`.nimi/spec/platform/kernel/release-gate-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/release-gate-contract.md)
 - [`.nimi/spec/platform/kernel/web-release-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/web-release-contract.md)
 - [`.nimi/spec/runtime/kernel/cli-onboarding-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/cli-onboarding-contract.md)
 - [`.nimi/spec/runtime/kernel/model-catalog-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/model-catalog-contract.md)
 - [`.nimi/spec/runtime/kernel/provider-health-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/provider-health-contract.md)
-- [`.nimi/contracts/forbidden-shortcuts.catalog.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/forbidden-shortcuts.catalog.yaml)
+- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)

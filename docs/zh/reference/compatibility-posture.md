@@ -26,20 +26,9 @@ Nimi 公开文档对兼容性与迁移的姿态参考。
 
 ## 禁止的兼容形态
 
-方法论 `forbidden_shortcuts` 目录列出公开文档与实现拒绝的模式：
-
-| 键 | 拒绝的模式 |
-| --- | --- |
-| `legacy_alias` | 用软别名延续过时语义 |
-| `compat_shim` | 用临时兼容代码遮盖归属切割 |
-| `dual_read` | 两条未显式准入的并行真相读路径 |
-| `dual_write` | 两条未显式准入的并行真相写路径 |
-| `mvp_subset_contract` | 把规范契约削减为临时最小子集 |
-| `time_phased_layering` | 用时间切片（v1/v2/v3）替代语义分层 |
-| `placeholder_success` | 在缺失真相时假装成功或闭合 |
-| `happy_path_only_closure` | 仅完成 happy path 就宣告闭合 |
-| `app_local_shadow_truth` | App 本地便利状态变成隐式规范真相 |
-| `silent_owner_cut_reopen` | 在下游实现工作中重开归属域真相 |
+仓库权威拒绝三类通用形态：hard cut 后继续保留已取代的产品语义、创建未经准入的
+并行真相，以及在已准入契约无法兑现时返回伪成功。各 owner domain 可以在自己的
+契约中增加更窄的禁止项；Nimi Coding 不再维护独立的反模式目录。
 
 ## 发布前公开声明的约束
 
@@ -73,8 +62,10 @@ Nimi 公开文档对兼容性与迁移的姿态参考。
 - [`.nimi/spec/platform/protocol.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/protocol.md)
 - [`.nimi/spec/platform/vision.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/vision.md)
 - [`.nimi/spec/platform/kernel/protocol-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/protocol-contract.md)
+- [`.nimi/spec/platform/kernel/architecture-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/architecture-contract.md)
+- [`.nimi/spec/platform/kernel/release-gate-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/release-gate-contract.md)
 - [`.nimi/spec/platform/kernel/web-release-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/web-release-contract.md)
 - [`.nimi/spec/runtime/kernel/cli-onboarding-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/cli-onboarding-contract.md)
 - [`.nimi/spec/runtime/kernel/model-catalog-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/model-catalog-contract.md)
 - [`.nimi/spec/runtime/kernel/provider-health-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/provider-health-contract.md)
-- [`.nimi/contracts/forbidden-shortcuts.catalog.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/forbidden-shortcuts.catalog.yaml)
+- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)

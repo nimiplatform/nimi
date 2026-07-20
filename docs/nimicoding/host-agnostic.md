@@ -11,15 +11,16 @@ authority, constraints, and gates.
 | --- | --- |
 | `.nimi/spec/**` | Canonical product and architecture truth |
 | `.nimi/methodology/**` | Change classification and governance rules |
-| `.nimi/contracts/**` | Handoff, evidence, and acceptance shapes |
+| `.nimi/contracts/**` | Spec taxonomy, placement, generation evidence, and validation shapes |
 | Project scripts | Deterministic validation |
 | `.nimi/local/**` | Non-semantic local evidence |
 
 ## Host-Owned
 
 Each host owns task creation, planning, subagents, context management,
-retry, resume, and completion. An adapter translates handoff inputs and
-typed outputs; it does not move execution ownership into Nimi Coding.
+retry, resume, review, and completion. Nimi Coding 0.3.x has no host-adapter
+registry or typed handoff runtime. It only exposes repository context and
+deterministic commands that a host may consume.
 
 ## Admitting A Host
 
@@ -27,17 +28,16 @@ A host is suitable when it can:
 
 - read required repository authority in the declared order;
 - preserve fail-closed errors and blockers;
-- return contract-shaped results without fabricated evidence;
+- preserve the distinction between authority, generated views, and evidence;
 - run project checks and real runtime/app acceptance where required;
 - keep secrets and provider credentials within their admitted custody;
 - avoid writing task progress into semantic project truth.
 
-Switching hosts therefore requires validating the adapter and starting
-the task in the new host. No repository-side execution state needs to be
-transferred.
+Switching hosts therefore means starting the task in the new host and
+re-running the required repository checks. No Nimi Coding execution state or
+adapter configuration needs to be transferred.
 
 ## Source Basis
 
-- [`.nimi/contracts/external-host-compatibility.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/external-host-compatibility.yaml)
-- [`.nimi/config/host-adapter.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/host-adapter.yaml)
+- [`.nimi/methodology/core.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/core.yaml)
 - [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)

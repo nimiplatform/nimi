@@ -1,11 +1,13 @@
-version: 1
+version: 2
 contract:
-  id: nimicoding.spec-surface-shared-enums.v1
+  id: nimicoding.spec-surface-shared-enums.v2
   owner: nimi-coding
 surface_class_enum:
   - product_authority
   - product_authority_table
   - thin_guidance
+  - host_instruction
+  - tracked_derived_projection
   - derived_view
   - spec_generation_state
   - audit_evidence_state

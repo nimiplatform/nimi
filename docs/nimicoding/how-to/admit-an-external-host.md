@@ -1,19 +1,21 @@
 # Admit An External Host
 
-An external host is admitted when it can consume Nimi's truth and
-contracts without taking ownership of project authority or weakening
-fail-closed behavior.
+An external host is suitable when it can consume Nimi's authority and run its
+checks without taking ownership of product truth or weakening fail-closed
+behavior. Nimi Coding 0.3.x does not maintain an adapter registry or host
+runtime.
 
 ## Recipe
 
-1. Define the adapter identity in `.nimi/config/host-adapter.yaml`.
-2. Verify required context order and repository read access.
-3. Verify typed handoff input and result output.
-4. Exercise a blocked result; the host must preserve the blocker.
-5. Exercise deterministic project checks and capture actual results.
-6. For app work, prove the host can drive the real app/runtime
+1. Load the repository's `AGENTS.md` and affected `.nimi/spec/**` authority.
+2. Verify repository read/write scope and command access.
+3. Exercise a blocked result; the host must preserve the blocker.
+4. Run deterministic project checks and capture actual results.
+5. For app work, prove the host can drive the real app/runtime
    acceptance path.
-7. Review secret, token, and provider custody.
+6. Review secret, token, and provider custody.
+7. Confirm that task planning, progress, review, and completion remain native
+   host state rather than repository artifacts.
 
 ## Required Boundary
 
@@ -25,13 +27,13 @@ fail-closed behavior.
 
 ## Rejection Conditions
 
-Reject the adapter when it fabricates evidence, turns blocked results
+Reject the host when it fabricates evidence, turns blocked results
 into success, bypasses canonical SDK/runtime surfaces, requires secrets
 outside admitted custody, or writes task progress into semantic project
 truth.
 
 ## Source Basis
 
-- [`.nimi/contracts/external-host-compatibility.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/external-host-compatibility.yaml)
-- [`.nimi/config/host-adapter.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/host-adapter.yaml)
-- [`.nimi/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/skill-handoff.yaml)
+- [`.nimi/methodology/core.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/core.yaml)
+- [`.nimi/methodology/role-separation-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/role-separation-policy.yaml)
+- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)

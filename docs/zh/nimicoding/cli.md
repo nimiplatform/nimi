@@ -1,7 +1,7 @@
 # Nimi Coding 命令表面
 
-Nimi 通过 host hardcut 消费 `@nimiplatform/nimi-coding`。项目 wrappers 暴露健康度
-与投影检查，已准入 package validators 检查规范和治理；任务执行归 Codex。
+Nimi 通过宿主边界使用 `@nimiplatform/nimi-coding` 0.3.1。项目命令负责核验软件包
+和受管文件，包内命令负责规范构建与治理检查；规划和执行始终归 AI 宿主。
 
 准确语法见[参考 → CLI Commands](/zh/nimicoding/reference/cli-commands)。
 
@@ -10,9 +10,9 @@ Nimi 通过 host hardcut 消费 `@nimiplatform/nimi-coding`。项目 wrappers �
 | 类别 | Nimi 表面 |
 | --- | --- |
 | Host hardcut | `pnpm check:nimicoding-host-hardcut` |
-| Package projection 检查 | `pnpm check:nimi-coding-seed-sync` |
-| Compatibility doctor | `pnpm nimicoding:doctor` |
-| Skill 声明 | `.nimi/config/skill-manifest.yaml` |
+| 受管文件一致性 | `pnpm check:nimi-coding-seed-sync` |
+| Package doctor | `pnpm nimicoding:doctor` |
+| 受管文件刷新 | `pnpm nimicoding:sync:apply` |
 | 规范验证 | `validate-spec-tree`、`validate-spec-audit`、`validate-spec-governance` |
 | 派生文档验证 | `generate-spec-derived-docs --check` |
 | AI 治理验证 | `validate-ai-governance` |
@@ -26,8 +26,8 @@ pnpm check:nimi-coding-seed-sync
 pnpm nimicoding:doctor
 ```
 
-Wrappers 强制执行 forbidden projection 集合与已准入 host-owned override 集合。
-通用 package mutation 无法作出这项判断。
+Hardcut 会拒绝已经退出软件包的执行面，并确认当前安装包没有 topic、sweep、adapter
+或 host-control runtime。随后，sync 与 doctor 再按 0.3.1 的规则核验受管文件。
 
 ## 验证产品真相
 
@@ -41,17 +41,17 @@ pnpm exec nimicoding validate-ai-governance --profile nimi --scope <scope>
 
 使用仓库声明的受影响范围。变更跨越权威边界时，必须补充广范围验证。
 
-## Skills
+## 构建与审计规范树
 
-当前宿主直接读取 `.nimi/config/skill-manifest.yaml` 和其中引用的 context。保留的
-skills 是 `spec_reconstruction`、`doc_spec_audit` 与 `audit_sweep`。Result contracts
-留在项目中；宿主自行规划并执行工作。
+`.nimi/methodology/spec-reconstruction.yaml` 定义构建规则，
+`.nimi/config/spec-generation-inputs.yaml` 声明 Nimi 的输入，
+`.nimi/contracts/spec-generation-audit.schema.yaml` 约束本地生成证据。
+这些文件只约束产物，不创建任务、不选择执行者，也不运行审计流程。
 
 ## 高风险工作
 
-高风险工作使用 authority preflight、`.nimi/contracts/high-risk-admission.schema.yaml`
-中的静态/本地证据契约、受影响 validators 与真实 runtime 验收。Nimi 不提供对应的
-执行命令族。
+高风险工作遵循仓库的 authority preflight、受影响的确定性门禁与真实 runtime
+验收。Nimi Coding 不持有高风险任务状态，也不提供任务执行命令族。
 
 ## 边界汇总
 
@@ -66,6 +66,6 @@ skills 是 `spec_reconstruction`、`doc_spec_audit` 与 `audit_sweep`。Result c
 ## 来源依据
 
 - [`config/nimicoding-host-hardcut.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/nimicoding-host-hardcut.yaml)
-- [`.nimi/config/skill-manifest.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/skill-manifest.yaml)
-- [`.nimi/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/skill-handoff.yaml)
+- [`.nimi/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/spec-reconstruction.yaml)
+- [`.nimi/contracts/spec-generation-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-audit.schema.yaml)
 - [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)

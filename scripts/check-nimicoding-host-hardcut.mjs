@@ -18,16 +18,16 @@ try {
     process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
   } else if (report.ok) {
     process.stdout.write(
-      `nimicoding host workflow hardcut: PASS (${report.forbiddenProjectionCount} retired projections absent, ${report.hostOverrideCount} host overrides present, ${report.semanticAssertionCount} semantic assertions)\n`,
+      `nimicoding host boundary hardcut: PASS (package ${report.packageVersion}; ${report.workspaceConsumerCount} workspace consumers aligned; ${report.retiredProjectionCount} retired projections absent; ${report.forbiddenInstalledSurfaceCount} retired package surfaces absent)\n`,
     );
   } else {
-    process.stderr.write('nimicoding host workflow hardcut: FAIL\n');
+    process.stderr.write('nimicoding host boundary hardcut: FAIL\n');
     for (const failure of report.failures) {
       process.stderr.write(`- ${failure}\n`);
     }
   }
   process.exitCode = report.ok ? 0 : 1;
 } catch (error) {
-  process.stderr.write(`nimicoding host workflow hardcut: FAIL\n- ${error.message}\n`);
+  process.stderr.write(`nimicoding host boundary hardcut: FAIL\n- ${error.message}\n`);
   process.exitCode = 1;
 }

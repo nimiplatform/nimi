@@ -2,7 +2,7 @@
 
 This tutorial verifies the Nimi repository's Codex + Nimi Coding
 boundary. By the end, you will know that host execution ownership,
-project truth, package projections, and retained skills are aligned.
+project truth, and package projections are aligned.
 
 ## Prerequisites
 
@@ -28,29 +28,29 @@ pnpm check:nimicoding-host-hardcut
 This confirms that Codex owns execution and that forbidden project-side
 execution projections remain absent.
 
-## 3. Verify Projection Compatibility
+## 3. Verify Managed Projections
 
 ```bash
 pnpm check:nimi-coding-seed-sync
 pnpm nimicoding:doctor
 ```
 
-Both commands run through the Nimi compatibility policy. They fail on
-unexpected drift instead of restoring package-owned execution state.
+Both commands run after the Nimi boundary check. They fail on missing or
+drifted package-canonical projections without restoring any execution state.
 
-## 4. Inspect Retained Skills
+## 4. Inspect Spec Construction Contracts
 
-Open `.nimi/config/skill-manifest.yaml`. It declares:
+Open the following files:
 
-| Skill | Result contract |
+| Surface | Responsibility |
 | --- | --- |
-| `spec_reconstruction` | `.nimi/contracts/spec-reconstruction-result.yaml` |
-| `doc_spec_audit` | `.nimi/contracts/doc-spec-audit-result.yaml` |
-| `audit_sweep` | `.nimi/contracts/audit-sweep-result.yaml` |
+| `.nimi/config/spec-generation-inputs.yaml` | Host-specific classified inputs |
+| `.nimi/methodology/spec-reconstruction.yaml` | Construction goals and gates |
+| `.nimi/contracts/spec-generation-audit.schema.yaml` | File-level source basis and unresolved gaps |
+| `.nimi/contracts/spec-layout.schema.yaml` | Host instruction and tracked projection layout |
 
-The active Codex task reads the selected skill inputs and result
-contract directly. Its plan, subagents, progress, and completion state
-remain in Codex.
+The active Codex task reads these constraints directly. Its plan, subagents,
+progress, and completion state remain in Codex.
 
 ## 5. Verify Canonical Authority
 
@@ -58,11 +58,10 @@ remain in Codex.
 pnpm exec nimicoding validate-spec-tree .nimi/spec
 ```
 
-A passing result confirms the declared structural contract. If the
-active task executed `spec_reconstruction`, also run
-`pnpm exec nimicoding validate-spec-audit`; its declared audit artifact
-is then required. Product judgement still follows the canonical owner
-in `.nimi/spec/**`.
+A passing result confirms the declared structural contract. If canonical spec
+construction changed files, also run `pnpm exec nimicoding
+validate-spec-audit`; its local generation audit is then required. Product
+judgement still follows the canonical owner in `.nimi/spec/**`.
 
 ## Final State
 
@@ -72,7 +71,7 @@ in `.nimi/spec/**`.
 | `.nimi/spec/**` | Canonical project truth |
 | `.nimi/methodology/**` | Retained governance rules |
 | `.nimi/contracts/**` | Retained validators and evidence shapes |
-| Project wrappers | Compatibility and drift checks |
+| Project wrappers | Boundary and projection drift checks |
 
 Continue with
 [Run A Governed Codex Project](/nimicoding/tutorials/project-to-governed-execution)
@@ -81,6 +80,6 @@ to apply the boundary to a real change.
 ## Source Basis
 
 - [`config/nimicoding-host-hardcut.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/nimicoding-host-hardcut.yaml)
-- [`.nimi/config/skill-manifest.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/skill-manifest.yaml)
-- [`.nimi/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/skill-handoff.yaml)
+- [`.nimi/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/spec-reconstruction.yaml)
+- [`.nimi/contracts/spec-generation-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-audit.schema.yaml)
 - [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)

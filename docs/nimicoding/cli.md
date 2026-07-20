@@ -1,8 +1,9 @@
 # Nimi Coding Command Surface
 
-Nimi consumes `@nimiplatform/nimi-coding` through a host hardcut. The
-project wrappers expose health and projection checks; admitted package
-validators inspect spec and governance. Codex owns task execution.
+Nimi consumes `@nimiplatform/nimi-coding` 0.3.1 through a host boundary.
+Project wrappers guard the installed package and its managed projections;
+package commands inspect spec construction and governance. The AI host owns
+planning and execution.
 
 For exact syntax, see
 [Reference → CLI Commands](/nimicoding/reference/cli-commands).
@@ -13,8 +14,8 @@ For exact syntax, see
 | --- | --- |
 | Host hardcut | `pnpm check:nimicoding-host-hardcut` |
 | Package projection check | `pnpm check:nimi-coding-seed-sync` |
-| Compatibility doctor | `pnpm nimicoding:doctor` |
-| Skill declarations | `.nimi/config/skill-manifest.yaml` |
+| Package doctor | `pnpm nimicoding:doctor` |
+| Managed projection refresh | `pnpm nimicoding:sync:apply` |
 | Spec validation | `validate-spec-tree`, `validate-spec-audit`, `validate-spec-governance` |
 | Derived-doc validation | `generate-spec-derived-docs --check` |
 | AI governance validation | `validate-ai-governance` |
@@ -28,9 +29,10 @@ pnpm check:nimi-coding-seed-sync
 pnpm nimicoding:doctor
 ```
 
-The wrappers enforce the forbidden projection set and the admitted
-host-owned override set. A generic package mutation cannot make that
-judgement.
+The hardcut rejects retired execution projections and verifies that the
+installed package itself contains no topic, sweep, adapter, or host-control
+runtime. The sync and doctor wrappers then apply the package's current
+projection policy.
 
 ## Validate Product Truth
 
@@ -45,20 +47,19 @@ pnpm exec nimicoding validate-ai-governance --profile nimi --scope <scope>
 Use the affected scope declared by the repository. Broad validation is
 required when a change crosses authority boundaries.
 
-## Skills
+## Construct And Audit A Spec Tree
 
-The active host reads `.nimi/config/skill-manifest.yaml` and the
-referenced context directly. The retained skills are
-`spec_reconstruction`, `doc_spec_audit`, and `audit_sweep`. Their result
-contracts remain project-local; the host decides how to plan and execute
-the work.
+`.nimi/methodology/spec-reconstruction.yaml` defines the construction model.
+`.nimi/config/spec-generation-inputs.yaml` declares host inputs, while
+`.nimi/contracts/spec-generation-audit.schema.yaml` defines the local evidence
+validated by `validate-spec-audit`. These contracts constrain outputs; they do
+not create a task, choose an executor, or run an audit process.
 
 ## High-Risk Work
 
-High-risk work uses authority preflight, the static/local evidence
-contract at `.nimi/contracts/high-risk-admission.schema.yaml`, affected
-validators, and real runtime acceptance. There is no Nimi-side execution
-command family.
+High-risk work follows repository authority preflight, affected validators,
+and real runtime acceptance. Nimi Coding does not own a high-risk task state or
+an execution command family.
 
 ## Boundary Summary
 
@@ -73,6 +74,6 @@ command family.
 ## Source Basis
 
 - [`config/nimicoding-host-hardcut.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/nimicoding-host-hardcut.yaml)
-- [`.nimi/config/skill-manifest.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/skill-manifest.yaml)
-- [`.nimi/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/skill-handoff.yaml)
+- [`.nimi/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/spec-reconstruction.yaml)
+- [`.nimi/contracts/spec-generation-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-audit.schema.yaml)
 - [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)

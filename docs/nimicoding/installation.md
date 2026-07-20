@@ -1,9 +1,9 @@
 # Nimi Host Integration
 
 The Nimi repository pins `@nimiplatform/nimi-coding` as a development
-dependency and consumes it through a host compatibility boundary. A
-normal workspace install provides the package; project wrappers verify
-that the Nimi-owned projection remains intact.
+dependency and consumes it through a guarded host boundary. A normal
+workspace install provides the package; project wrappers verify the audited
+package release and its managed projections.
 
 ## Prerequisites
 
@@ -20,9 +20,9 @@ that the Nimi-owned projection remains intact.
 pnpm install
 ```
 
-Do not bootstrap or mutate `.nimi/**` with generic package commands.
-Nimi owns its host projections and fails closed when a forbidden package
-projection appears.
+Do not run generic bootstrap or clear commands in this repository. Use the
+declared project wrappers so the host boundary is checked before a managed
+projection is refreshed.
 
 ## Verify The Integration
 
@@ -32,9 +32,9 @@ pnpm check:nimi-coding-seed-sync
 pnpm nimicoding:doctor
 ```
 
-All three checks must pass. The compatibility wrapper enforces the
-declared absent projection set and exact Nimi-owned overrides;
-unexpected drift still fails.
+All three checks must pass. The hardcut rejects removed execution surfaces;
+`sync --check` then verifies package-canonical files and required host-owned
+seed files without treating host-specific content as package drift.
 
 ## Verify Product Authority
 
@@ -42,21 +42,25 @@ unexpected drift still fails.
 pnpm exec nimicoding validate-spec-tree .nimi/spec
 ```
 
-This validator inspects the canonical tree. When the active task
-actually runs `spec_reconstruction`, also run
-`pnpm exec nimicoding validate-spec-audit` against its declared local
-audit artifact; a missing required audit fails closed. Neither command
-creates or updates host task state.
+This validator inspects the canonical tree. When spec construction changes
+canonical files, also run `pnpm exec nimicoding validate-spec-audit` against
+`.nimi/local/state/spec-generation/spec-generation-audit.yaml`; a missing or
+incomplete audit fails closed. Neither command creates or updates host task
+state.
 
-## Skill Availability
+## Projection Ownership
 
-`.nimi/config/skill-manifest.yaml` declares three external skills:
-`spec_reconstruction`, `doc_spec_audit`, and `audit_sweep`. The active
-host reads their inputs and result contracts directly.
+Most `.nimi/{config,contracts,methodology}/**` files are package-canonical.
+Nimi owns the host-specific content of
+`.nimi/config/spec-generation-inputs.yaml`,
+`.nimi/contracts/domain-admission.schema.yaml`, and
+`.nimi/methodology/spec-reconstruction.yaml`; sync preserves those admitted
+overrides.
 
 ## Source Basis
 
 - [`package.json`](https://github.com/nimiplatform/nimi/blob/main/package.json)
 - [`config/nimicoding-host-hardcut.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/nimicoding-host-hardcut.yaml)
-- [`.nimi/config/skill-manifest.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/skill-manifest.yaml)
+- [`.nimi/config/bootstrap.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/bootstrap.yaml)
+- [`.nimi/config/spec-generation-inputs.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/spec-generation-inputs.yaml)
 - [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)

@@ -35,11 +35,14 @@ function trackedTextFiles() {
 
 function isRawPackagePathAllowed(file) {
   return file.startsWith('docs/')
-    || file === 'scripts/check-nimi-nimicoding-split-readiness.mjs';
+    || file === 'scripts/check-nimi-nimicoding-split-readiness.mjs'
+    || file === 'scripts/nimicoding-host-hardcut.test.mjs';
 }
 
 function isRetiredHistory(file) {
-  return file.startsWith('archive/');
+  return file.startsWith('archive/')
+    || file.startsWith('.nimi/topics/')
+    || file.startsWith('.nimi/local/');
 }
 
 const trackedNimicodingSource = gitLsFiles(['nimi-coding']);

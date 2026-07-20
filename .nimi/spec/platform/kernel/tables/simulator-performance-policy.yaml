@@ -1,5 +1,5 @@
 version: 1
-table_family: product_catalog
+table_family: simulator_performance_policy
 owner: platform
 catalog_id: platform_simulator_performance_policy
 source_rule: P-SIM-022

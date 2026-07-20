@@ -27,11 +27,14 @@ AI 平台对悄无声息的权威漂移特别敏感。一个本地小工具可�
 
 每一步都对应一次准入的契约更新，而不是 PR 评论里随手一句。
 
-## 场景：一次失败的收尾
+## 场景：一次失败的闭合
 
-假设 Nimi Coding 下的某轮工作收尾了一次公开文档重写。构建通过，source basis 正确，页面看起来也没问题。用户却说"这看着还不像公开文档"。这是治理系统抓到一次失败收尾——这一轮通过了权威收尾与语义收尾，但消费者收尾没过。修复方式是把议题继续保持在 pending，准入下一轮工作，而不是宣称已完工。
+假设外部 AI 宿主完成了一次公开文档重写。构建通过，source basis 正确，页面对复核者也
+没有明显错误，但用户认为它仍不具备公开文档的可读性。此时只有权威与语义证据，消费者
+闭合仍未成立。任务生命周期继续由外部 AI 宿主负责；Nimi Coding 只提供方法论约束与
+确定性门禁，不创建 pending 状态、工作轮次或完成记录。
 
-治理回路就是让这种事可见的机制。否则单靠构建结果，议题已经被关掉。
+独立闭合维度让这类缺口可见；单一构建结果不能证明任务完成。
 
 ## 这对读者意味着什么
 
@@ -44,5 +47,4 @@ AI 平台对悄无声息的权威漂移特别敏感。一个本地小工具可�
 - [`.nimi/spec/platform/kernel/governance-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/governance-contract.md)
 - [`.nimi/spec/platform/kernel/app-slice-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/app-slice-admission-contract.md)
 - [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)
-- [`.nimi/spec/high-risk-admissions.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/high-risk-admissions.yaml)
 - [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)

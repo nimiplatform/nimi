@@ -10,7 +10,7 @@ import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import {
   computeCandidateBindingSha256,
   computeExecutionSetId,
-  loadAcceptanceSchema,
+  loadStaticCloseSchema,
   validateLiveDevKernelCandidateBindings,
   validateDevKernelCheckpointManifest,
 } from './check-dev-kernel-checkpoint-acceptance.mjs';
@@ -32,7 +32,7 @@ const exactRequiredRows = [
   'H-01', 'H-02', 'H-03', 'H-04', 'H-05',
 ];
 
-const schema = await loadAcceptanceSchema();
+const schema = await loadStaticCloseSchema();
 const mutationPacket = parseYaml(await fs.readFile(negativeSource, 'utf8'));
 
 function digest(content) {
@@ -344,10 +344,10 @@ test('package-facing checker cannot pass without an explicit manifest', () => {
   assert.match(result.stderr, /CLI_USAGE_INVALID/u);
 });
 
-test('acceptance contract preserves close posture and defines exact row evidence semantics', async () => {
-  assert.equal(schema.id, 'nimi-coding.acceptance.v1');
-  assert.equal(schema.kind, 'acceptance');
-  assert.deepEqual(schema.required_blocks, ['Findings', 'Authority Alignment', 'Evidence Sufficiency', 'Disposition']);
+test('repository static-close policy defines exact row evidence semantics', async () => {
+  assert.equal(schema.version, 1);
+  assert.equal(schema.contract.id, 'nimi.repository.static-close-policy.v1');
+  assert.equal(schema.contract.owner, 'platform');
   const contract = schema.repository_static_close_manifest;
   assert.deepEqual(
     Object.fromEntries(Object.entries(contract.close_level_profiles).map(([level, value]) => [level, value.category])),

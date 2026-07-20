@@ -1,17 +1,17 @@
 # 准入外部宿主
 
-外部宿主只有在能够消费 Nimi 真相与契约，同时不取得项目权威、不弱化 fail-closed
-行为时，才能获得准入。
+外部宿主需要能够读取 Nimi 的权威并执行门禁，同时不取得产品权威、不弱化
+fail-closed 行为。Nimi Coding 0.3.x 不维护 adapter registry，也不提供宿主 runtime。
 
 ## 做法
 
-1. 在 `.nimi/config/host-adapter.yaml` 定义 adapter identity。
-2. 验证必备 context 顺序与仓库读取能力。
-3. 验证强类型 handoff 输入与结果输出。
-4. 运行一次 blocked 结果，宿主必须保留 blocker。
-5. 运行确定性项目检查并捕获实际结果。
-6. 涉及 app 时，证明宿主能驱动真实 app/runtime 验收路径。
-7. 复核 secret、token 与 provider custody。
+1. 读取仓库 `AGENTS.md` 与受影响的 `.nimi/spec/**` 权威。
+2. 验证仓库读写范围和命令执行能力。
+3. 制造一次 blocked 结果，确认宿主会保留 blocker。
+4. 运行确定性项目检查并记录真实结果。
+5. 涉及 app 时，确认宿主能驱动真实 app/runtime 验收路径。
+6. 复核 secret、token 与 provider custody。
+7. 确认计划、进度、复核与完成状态只存在于宿主，不写入仓库语义层。
 
 ## 必备边界
 
@@ -23,11 +23,11 @@
 
 ## 拒绝条件
 
-Adapter 制造证据、把 blocked 结果改成成功、绕过 canonical SDK/runtime 表面、要求
+宿主制造证据、把 blocked 结果改成成功、绕过 canonical SDK/runtime 表面、要求
 secret 离开准入 custody，或把任务进度写入项目语义真相时，必须拒绝准入。
 
 ## 来源依据
 
-- [`.nimi/contracts/external-host-compatibility.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/external-host-compatibility.yaml)
-- [`.nimi/config/host-adapter.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/host-adapter.yaml)
-- [`.nimi/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/skill-handoff.yaml)
+- [`.nimi/methodology/core.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/core.yaml)
+- [`.nimi/methodology/role-separation-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/role-separation-policy.yaml)
+- [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)

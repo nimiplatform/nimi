@@ -37,9 +37,11 @@ The first successful Nimi Coding path is intentionally bounded:
 
 1. **Install the Nimi workspace.** See
    [Host Integration](/nimicoding/installation).
-2. **Verify the host hardcut** with the project compatibility wrappers.
-3. **Select a retained skill** from `.nimi/config/skill-manifest.yaml`.
-4. **Let the admitted AI host reconstruct authority when required** into
+2. **Verify the package boundary** with the project hardcut and projection
+   checks.
+3. **Inspect the spec-construction inputs and contracts** under
+   `.nimi/{config,contracts,methodology}/**`.
+4. **Let the AI host reconstruct authority when required** into
    `.nimi/spec/**`, recording source basis and unresolved gaps instead
    of inventing clean rules.
 5. **Validate the tree** with `pnpm exec nimicoding validate-spec-tree
@@ -49,9 +51,9 @@ The first successful Nimi Coding path is intentionally bounded:
 That path verifies the project truth surface and mechanical validators.
 The admitted AI host remains the sole owner of task
 planning, execution, delegation, retries, resume behavior, and completion.
-For high-risk work, Nimi Coding strengthens the host with explicit
-preflight, authority convergence, scoped gates, and typed evidence; it
-does not introduce another execution lifecycle.
+For material work, Nimi Coding strengthens the host with explicit authority,
+four independent closure dimensions, scoped gates, and reproducible evidence;
+it does not introduce another execution lifecycle.
 
 ## What's In This Section
 
@@ -65,16 +67,11 @@ does not introduce another execution lifecycle.
   framework.
 - [False Closure Typology](/nimicoding/false-closure-typology) —
   the named failure shapes the methodology catches.
-- [Forbidden Shortcuts](/nimicoding/forbidden-shortcuts) — the
-  catalog of refused anti-patterns.
 
-### Roles And Convergence
+### Roles
 
 - [Role Separation](/nimicoding/role-separation) — host executor,
   authority owner, independent reviewer, and human decision owner.
-- [Authority Convergence](/nimicoding/authority-convergence) —
-  why an independent audit has to come before implementation
-  when spec changes.
 
 ### Methodology And Evidence
 
@@ -90,8 +87,6 @@ does not introduce another execution lifecycle.
   `@nimiplatform/nimi-coding` ships, what it does not ship.
 - [Host-Agnostic Boundary](/nimicoding/host-agnostic) — why
   switching AI hosts does not change the methodology.
-- [Skills](/nimicoding/skills) — the three declared skills
-  (`spec_reconstruction`, `doc_spec_audit`, `audit_sweep`).
 - [CLI Surface](/nimicoding/cli) — concept-level overview of the
   command surface.
 - [Installation](/nimicoding/installation) — current installation
@@ -109,8 +104,6 @@ does not introduce another execution lifecycle.
 
 - [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi-coding/blob/main/package.json)
 - [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)
-- [`.nimi/config/skill-manifest.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/skill-manifest.yaml)
-- [`.nimi/config/host-adapter.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/host-adapter.yaml)
+- [`.nimi/methodology/core.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/core.yaml)
 - [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)
-- [`.nimi/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-convergence-policy.yaml)
-- [`.nimi/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/skill-handoff.yaml)
+- [`.nimi/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/spec-reconstruction.yaml)

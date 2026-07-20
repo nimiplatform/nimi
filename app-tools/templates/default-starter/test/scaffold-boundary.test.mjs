@@ -14,7 +14,7 @@ const manifest = readFileSync(new URL('../nimi.app.yaml', import.meta.url), 'utf
 test('generated app uses one typed local-app carrier for Electron and Tauri development', () => {
   assert.match(authSource, /getNimiLocalAppClient/);
   assert.match(authSource, /\.auth\.status\(\)/);
-  assert.match(authSource, /status\.state !== 'session-bound'/);
+  assert.match(authSource, /!status\.sessionBound/);
   assert.match(authSource, /'local-app'/);
   assert.doesNotMatch(authSource, /DeveloperRegistered|developerRegistration|AppSessionMetadataProvider/);
   assert.match(localAppClientSource, /createNimiClient/);
@@ -41,7 +41,7 @@ test('generated app removes app-owned credential and generic Runtime transport g
 test('both shell hosts use Kit-owned narrowed app-host registration', () => {
   assert.match(electronMainSource, /registerNimiElectronAppBridge/);
   assert.match(electronMainSource, /--nimi-dev-renderer-url=/);
-  assert.match(tauriMainSource, /RuntimeBridgeAppHost::platform_default\(\)/);
+  assert.match(tauriMainSource, /RuntimeBridgeLocalAppHost::platform_default\(\)/);
   assert.match(tauriMainSource, /app\.manage\(/);
   assert.match(tauriMainSource, /nimi_shell_tauri_local_app_standard_shell_handler!\[/);
   assert.doesNotMatch(tauriMainSource, /nimi_shell_tauri_runtime_bridge_handler!\[/);

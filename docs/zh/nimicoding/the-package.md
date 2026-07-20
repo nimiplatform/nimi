@@ -7,12 +7,11 @@
 
 在 Nimi 仓库中，这个包被准入用于：
 
-- Retained host-owned `.nimi/config/**`、`.nimi/contracts/**` 与 `.nimi/methodology/**` 投影集合；
-- 经过 compatibility wrapper 的 projection 与 doctor 检查；
-- 外部宿主 skill 声明与 result contracts；
-- 规范重建与治理验证；
-- Authority preflight 与静态/本地高风险证据；
-- prompt、结果与 acceptance 的确定性验证。
+- 软件包管理的 `.nimi/config/**`、`.nimi/contracts/**` 与 `.nimi/methodology/**` 治理文件；
+- 经过宿主边界保护的一致性检查与 doctor；
+- canonical spec 构建契约和生成审计验证；
+- taxonomy、placement、table family、projection edge 与 tracked output 校验；
+- 确定性的规范治理和 AI 治理门禁。
 
 项目持有 `.nimi/spec/**`。`.nimi/local/**` 下的本地证据用于复核，不能自行提升为
 语义真相。
@@ -27,7 +26,8 @@
 | 表面 | Owner |
 | --- | --- |
 | 软件包源码与发布 | `@nimiplatform/nimi-coding` 仓库 |
-| Retained 项目投影 | Nimi host，受准入契约约束 |
+| Package-canonical 文件 | Nimi Coding 软件包 |
+| 已声明的宿主专用内容 | Nimi host，受软件包同步规则约束 |
 | 产品权威 | Nimi `.nimi/spec/**` |
 | 项目检查 | Nimi scripts 与已准入 package validators |
 | 任务执行 | 当前外部宿主 |
@@ -38,4 +38,5 @@
 - [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi-coding/blob/main/package.json)
 - [`config/nimicoding-host-hardcut.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/nimicoding-host-hardcut.yaml)
 - [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)
-- [`.nimi/config/host-adapter.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/host-adapter.yaml)
+- [`.nimi/methodology/core.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/core.yaml)
+- [`.nimi/contracts/surface-taxonomy.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/surface-taxonomy.schema.yaml)

@@ -23,8 +23,8 @@ importers:
         version: 2.9.0
     devDependencies:
       '@nimiplatform/nimi-coding':
-        specifier: ^0.2.7
-        version: 0.2.7
+        specifier: ^0.3.1
+        version: 0.3.1
       '@protobuf-ts/plugin':
         specifier: 2.11.1
         version: 2.11.1
@@ -407,8 +407,8 @@ importers:
         specifier: workspace:*
         version: link:../../app-tools
       '@nimiplatform/nimi-coding':
-        specifier: 0.2.7
-        version: 0.2.7
+        specifier: 0.3.1
+        version: 0.3.1
       '@tailwindcss/vite':
         specifier: ^4.3.0
         version: 4.3.0(vite@7.3.1(@types/node@24.12.4)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0))
@@ -2133,58 +2133,13 @@ packages:
     peerDependencies:
       three: '>= 0.159.0'
 
-  '@nimiplatform/nimi-coding@0.2.7':
-    resolution: {integrity: sha512-rmW7w5uLSL3d+Q3NA7dyKiquXD53ovE95kaW1GKR5p+/Wzr0LkQ0g+VWfj3FX0xv+KQiQaQDPHdz4QEZlJwo4g==}
+  '@nimiplatform/nimi-coding@0.3.1':
+    resolution: {integrity: sha512-P+Nm1W500Em2DEe34cawysQMeQFyXW8AEAR3Jq5pcYC0JZgfwNmVI8Yzk/ZO5dSupgbPFi2ZETwu/g5HPWTbCw==}
     engines: {node: '>=24.0.0', pnpm: '>=10.0.0'}
     hasBin: true
 
   '@nodable/entities@2.1.0':
     resolution: {integrity: sha512-nyT7T3nbMyBI/lvr6L5TyWbFJAI9FTgVRakNoBqCD+PmID8DzFrrNdLLtHMwMszOtqZa8PAOV24ZqDnQrhQINA==}
-
-  '@openai/codex-sdk@0.124.0':
-    resolution: {integrity: sha512-CfL0JRBbjXdR6BdmCtEEWA0Z+7O2+4ZP4rEf+TggyX2kQAWaDDAXPZbgH4iQuGR7hjV/oyr++d7vmheNc2U1Tg==}
-    engines: {node: '>=18'}
-
-  '@openai/codex@0.124.0':
-    resolution: {integrity: sha512-1EVAuPyAQZ8zIVMw3bPJ6a4R8ifLAZ7LGsOyknj5c2he9AFXVRCmWx12WrdZJ25wcBvOEKt1n1Zx+QAj0EVGbQ==}
-    engines: {node: '>=16'}
-    hasBin: true
-
-  '@openai/codex@0.124.0-darwin-arm64':
-    resolution: {integrity: sha512-lnuqeAdl+RjPWsqVZ8rrPskRIOZmzlyr8e5q/wFVEnMPsm9dWgjRW1PKa84UmDSQVOuz9GObF28DEHFyC4A8NA==}
-    engines: {node: '>=16'}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@openai/codex@0.124.0-darwin-x64':
-    resolution: {integrity: sha512-Br+VlL83IOu96Urw+mkZ1PQXLsQXGAYEH6kXNt4ULuVt7qAdQY2FKYwIgLLVLl0vpMk8qWxdfdVMqhiu2uCHlg==}
-    engines: {node: '>=16'}
-    cpu: [x64]
-    os: [darwin]
-
-  '@openai/codex@0.124.0-linux-arm64':
-    resolution: {integrity: sha512-QXafFVQJxPfU1LSCI5afuHsF5evKAcbQpFuKou0Kl241/HG/zYHdwoWj546zH844gJgegIPAxPf36+RSkUsbbA==}
-    engines: {node: '>=16'}
-    cpu: [arm64]
-    os: [linux]
-
-  '@openai/codex@0.124.0-linux-x64':
-    resolution: {integrity: sha512-cJ4QfQIrz2gkXVWephiGo9JDyD3qLKhvkTTLk7gI8rKd7MZpVXn9/1e7pZCQnJVA7Dk6ocA5G+sxnR78SoIejw==}
-    engines: {node: '>=16'}
-    cpu: [x64]
-    os: [linux]
-
-  '@openai/codex@0.124.0-win32-arm64':
-    resolution: {integrity: sha512-oDSI/CQh0kagBwWVPG9EiUBfHiY27ju3LPrjTVZg4VMpVJVNA31JTK8rHMZ6G/2gfNmOl6DMBA6+0ICxSkkshg==}
-    engines: {node: '>=16'}
-    cpu: [arm64]
-    os: [win32]
-
-  '@openai/codex@0.124.0-win32-x64':
-    resolution: {integrity: sha512-t+lAwmCWwIWQKk6dKaYetRhQsmA+uDmQy1NLka1xAAv3PlNOH8iNz9Lsisr3qYkBR8Tf7tbQlt+pl9tw/A5mfA==}
-    engines: {node: '>=16'}
-    cpu: [x64]
-    os: [win32]
 
   '@opentelemetry/api@1.9.1':
     resolution: {integrity: sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q==}
@@ -8115,43 +8070,11 @@ snapshots:
       promise-worker-transferable: 1.0.4
       three: 0.184.0
 
-  '@nimiplatform/nimi-coding@0.2.7':
+  '@nimiplatform/nimi-coding@0.3.1':
     dependencies:
-      '@openai/codex-sdk': 0.124.0
       yaml: 2.9.0
 
   '@nodable/entities@2.1.0': {}
-
-  '@openai/codex-sdk@0.124.0':
-    dependencies:
-      '@openai/codex': 0.124.0
-
-  '@openai/codex@0.124.0':
-    optionalDependencies:
-      '@openai/codex-darwin-arm64': '@openai/codex@0.124.0-darwin-arm64'
-      '@openai/codex-darwin-x64': '@openai/codex@0.124.0-darwin-x64'
-      '@openai/codex-linux-arm64': '@openai/codex@0.124.0-linux-arm64'
-      '@openai/codex-linux-x64': '@openai/codex@0.124.0-linux-x64'
-      '@openai/codex-win32-arm64': '@openai/codex@0.124.0-win32-arm64'
-      '@openai/codex-win32-x64': '@openai/codex@0.124.0-win32-x64'
-
-  '@openai/codex@0.124.0-darwin-arm64':
-    optional: true
-
-  '@openai/codex@0.124.0-darwin-x64':
-    optional: true
-
-  '@openai/codex@0.124.0-linux-arm64':
-    optional: true
-
-  '@openai/codex@0.124.0-linux-x64':
-    optional: true
-
-  '@openai/codex@0.124.0-win32-arm64':
-    optional: true
-
-  '@openai/codex@0.124.0-win32-x64':
-    optional: true
 
   '@opentelemetry/api@1.9.1': {}
 

@@ -181,7 +181,7 @@ rules:
   - rule_id: S-PKG-004
     evidence_refs:
       - sdk_kernel_consistency
-    note: Spec-first audit evidence admission is validated by audit-sweep plan validation and platform audit evidence root gate.
+    note: Spec-first evidence admission is validated by deterministic spec-governance checks and the platform audit evidence root gate.
     evidence_requirement: required
   - rule_id: S-PKG-005
     evidence_refs:

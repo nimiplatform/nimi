@@ -17,12 +17,14 @@ Nimi Coding 与平台的其他部分互为压力测试。Nimi Coding 让 Nimi �
 第一条成功路径有意做得很短：
 
 1. **安装 Nimi workspace**。见 [Host 集成](/zh/nimicoding/installation)。
-2. **用项目 compatibility wrappers 验证 host hardcut**。
-3. **从 `.nimi/config/skill-manifest.yaml` 选择 retained skill**。
+2. **用项目命令验证软件包边界和受管文件一致性**。
+3. **检查 `.nimi/{config,contracts,methodology}/**` 中的规范构建输入与契约**。
 4. **需要重建时，让已准入 AI 宿主重建权威**到 `.nimi/spec/**`，记录来源依据和未解决缺口，而不是凭空写一套漂亮规则。
 5. **校验规范树**：执行 `pnpm exec nimicoding validate-spec-tree .nimi/spec`；本次执行过重建时，再用 `pnpm exec nimicoding validate-spec-audit` 验证声明的 audit。
 
-这条路径会验证项目真相层和机械校验器。已准入的 AI 宿主始终独立负责任务规划、执行、委派、重试、恢复与完成。进入高风险范围时，Nimi Coding 通过明确预检、权威收敛、范围化门禁和强类型证据增强宿主，不会再引入另一套执行生命周期。
+这条路径会验证项目真相层和确定性校验器。AI 宿主始终独立负责任务规划、执行、
+委派、重试、恢复与完成。面对实质性变更，Nimi Coding 用明确权威、四个独立闭合
+维度、范围化门禁和可复现证据约束结果，不会引入另一套执行生命周期。
 
 ## 本节目录
 
@@ -31,12 +33,10 @@ Nimi Coding 与平台的其他部分互为压力测试。Nimi Coding 让 Nimi �
 - [The Paradigm](/zh/nimicoding/the-paradigm) —— AI 编码治理新增了什么、为什么是范式而不是检查清单。
 - [四个闭合维度](/zh/nimicoding/four-closures) —— 权威、语义、消费方、抗漂移四种闭合作为思考框架。
 - [伪闭合形态](/zh/nimicoding/false-closure-typology) —— 方法论要识别的命名失败形态。
-- [禁用反模式](/zh/nimicoding/forbidden-shortcuts) —— 显式拒绝的反模式清单。
 
-### 角色与权威收敛
+### 角色
 
 - [角色分离](/zh/nimicoding/role-separation) —— 宿主执行者、权威 owner、独立评审者与人类决策 owner。
-- [权威收敛](/zh/nimicoding/authority-convergence) —— 规范变更时为何独立审计必须先于实现。
 
 ### 方法论与证据
 
@@ -47,7 +47,6 @@ Nimi Coding 与平台的其他部分互为压力测试。Nimi Coding 让 Nimi �
 
 - [The Package](/zh/nimicoding/the-package) —— `@nimiplatform/nimi-coding` 包含什么、不包含什么。
 - [宿主无关边界](/zh/nimicoding/host-agnostic) —— 为什么换 AI 宿主不会改变方法论。
-- [技能](/zh/nimicoding/skills) —— 三个声明的技能：`spec_reconstruction`、`doc_spec_audit`、`audit_sweep`。
 - [CLI Surface](/zh/nimicoding/cli) —— 命令面板的概念层概览。
 - [安装](/zh/nimicoding/installation) —— 当前安装姿态。
 
@@ -61,8 +60,6 @@ Nimi Coding 与平台的其他部分互为压力测试。Nimi Coding 让 Nimi �
 
 - [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi-coding/blob/main/package.json)
 - [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)
-- [`.nimi/config/skill-manifest.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/skill-manifest.yaml)
-- [`.nimi/config/host-adapter.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/host-adapter.yaml)
+- [`.nimi/methodology/core.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/core.yaml)
 - [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)
-- [`.nimi/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-convergence-policy.yaml)
-- [`.nimi/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/skill-handoff.yaml)
+- [`.nimi/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/spec-reconstruction.yaml)

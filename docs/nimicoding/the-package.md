@@ -8,13 +8,13 @@ deterministic CLI checks.
 
 Within the Nimi repository, the package is admitted for:
 
-- the retained host-owned `.nimi/config/**`, `.nimi/contracts/**`, and
-  `.nimi/methodology/**` projection set;
-- compatibility-wrapped projection and doctor checks;
-- external-host skill declarations and result contracts;
-- spec reconstruction and governance validation;
-- authority preflight and static/local high-risk evidence;
-- deterministic prompt, result, and acceptance validation.
+- package-managed `.nimi/config/**`, `.nimi/contracts/**`, and
+  `.nimi/methodology/**` governance projections;
+- guarded projection and doctor checks;
+- canonical spec construction contracts and generation-audit validation;
+- spec taxonomy, placement, table-family, projection-edge, and tracked-output
+  validation;
+- deterministic spec and AI-governance gates.
 
 The project owns `.nimi/spec/**`. Local evidence under
 `.nimi/local/**` supports review and cannot promote itself to semantic
@@ -32,7 +32,8 @@ host owns those capabilities end to end.
 | Surface | Owner |
 | --- | --- |
 | Package source and release | `@nimiplatform/nimi-coding` repository |
-| Retained project projections | Nimi host, bounded by the admission contract |
+| Package-canonical projections | Nimi Coding package |
+| Declared host profile overrides | Nimi host, bounded by package projection policy |
 | Product authority | Nimi `.nimi/spec/**` |
 | Project checks | Nimi scripts plus admitted package validators |
 | Task execution | Active external host |
@@ -43,4 +44,5 @@ host owns those capabilities end to end.
 - [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi-coding/blob/main/package.json)
 - [`config/nimicoding-host-hardcut.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/nimicoding-host-hardcut.yaml)
 - [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)
-- [`.nimi/config/host-adapter.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/host-adapter.yaml)
+- [`.nimi/methodology/core.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/core.yaml)
+- [`.nimi/contracts/surface-taxonomy.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/surface-taxonomy.schema.yaml)

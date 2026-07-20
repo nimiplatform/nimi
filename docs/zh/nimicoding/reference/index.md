@@ -9,8 +9,7 @@
 | 参考文档 | 适用查阅场景 |
 | --- | --- |
 | [CLI 命令参考](/zh/nimicoding/reference/cli-commands) | 查阅命令行界面具体指令及字段定义 |
-| [数据 Schema 定义](/zh/nimicoding/reference/schemas) | 查阅规范重建、高风险证据、验收与规范结构契约 |
-| [禁用反模式目录](/zh/nimicoding/reference/forbidden-shortcuts-catalog) | 查阅系统中预定义的 10 个具名反模式技术规范 |
+| [数据 Schema 定义](/zh/nimicoding/reference/schemas) | 查阅规范分类、放置、构建、投影、审计与迁移契约 |
 
 ## 查阅使用建议
 

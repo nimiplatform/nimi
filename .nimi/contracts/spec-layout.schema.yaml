@@ -1,0 +1,32 @@
+version: 1
+contract:
+  id: nimicoding.host-spec-layout.v1
+  owner: nimi-coding
+  purpose: Admit host-specific Spec paths without weakening package authority invariants.
+host_config_ref: .nimi/config/spec-layout.yaml
+required_top_level_fields: [version, contract_ref, spec_layout]
+layout_required_fields: [canonical_root, host_instruction_paths, tracked_derived_projections, table_family_extensions]
+tracked_derived_projection_required_fields:
+  - projection_id
+  - root
+  - source_roots
+  - generate_command
+  - drift_check_command
+  - required_marker
+table_family_extension_required_fields:
+  - table_family
+  - authority_class
+  - required_fields
+  - forbidden_fields
+semantic_constraints:
+  - host_layout_is_validation_data_not_product_authority
+  - host_layout_must_define_only_spec_surface_shape
+  - host_instruction_paths_must_not_overlap_product_authority_patterns
+  - tracked_derived_projection_is_never_product_authority
+  - tracked_derived_projection_requires_a_deterministic_generator_and_drift_check
+  - tracked_derived_projection_root_must_stay_inside_the_canonical_spec_tree
+  - tracked_derived_projection_roots_must_match_generated_paths
+  - tracked_derived_projection_root_must_not_overlap_direct_product_authority_files
+  - host_instruction_paths_may_carry_repository_instructions_but_not_product_rules
+  - table_family_extensions_define_shape_only_and_must_not_carry_product_rows
+  - table_family_extensions_must_not_shadow_package_families

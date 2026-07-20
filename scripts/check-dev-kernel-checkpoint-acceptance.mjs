@@ -15,7 +15,8 @@ import {
 const scriptPath = fileURLToPath(import.meta.url);
 const scriptDir = path.dirname(scriptPath);
 const repoRoot = path.resolve(scriptDir, '..');
-const schemaPath = path.join(repoRoot, '.nimi/contracts/acceptance.schema.yaml');
+const STATIC_CLOSE_SCHEMA_REF = 'config/repository-static-close-manifest.schema.yaml';
+const staticCloseSchemaPath = path.join(repoRoot, STATIC_CLOSE_SCHEMA_REF);
 
 const SHA256_RE = /^[0-9a-f]{64}$/u;
 const GIT_HEAD_RE = /^[0-9a-f]{40}$/u;
@@ -344,7 +345,7 @@ function sameStringSet(actual, expected) {
 }
 
 function validateEvidencePolicySchema(checkpoint, issues) {
-  const location = '.nimi/contracts/acceptance.schema.yaml#dev_kernel_checkpoint';
+  const location = `${STATIC_CLOSE_SCHEMA_REF}#dev_kernel_checkpoint`;
   const evidenceRecord = checkpoint?.evidence_record;
   if (!isPlainObject(evidenceRecord)) {
     issues.push(issue('EVIDENCE_POLICY_SCHEMA_MISSING', location, 'Candidate-evidence v2 policy is required.'));
@@ -446,42 +447,43 @@ function validateEvidencePolicySchema(checkpoint, issues) {
 
 function validateSchema(schema, issues) {
   if (!isPlainObject(schema)) {
-    issues.push(issue('ACCEPTANCE_SCHEMA_INVALID', '.nimi/contracts/acceptance.schema.yaml', 'Acceptance schema must be an object.'));
+    issues.push(issue('STATIC_CLOSE_POLICY_SCHEMA_INVALID', STATIC_CLOSE_SCHEMA_REF, 'Static close policy schema must be an object.'));
     return null;
   }
-  if (schema.id !== 'nimi-coding.acceptance.v1' || schema.kind !== 'acceptance') {
-    issues.push(issue('NIMICODING_ACCEPTANCE_PROJECTION_CHANGED', '.nimi/contracts/acceptance.schema.yaml', 'Retained nimicoding acceptance identity was not preserved.'));
-  }
-  const requiredBlocks = schema.required_blocks;
-  if (!Array.isArray(requiredBlocks)
-      || ['Findings', 'Authority Alignment', 'Evidence Sufficiency', 'Disposition'].some((item) => !requiredBlocks.includes(item))) {
-    issues.push(issue('NIMICODING_ACCEPTANCE_BLOCKS_CHANGED', '.nimi/contracts/acceptance.schema.yaml', 'Retained nimicoding acceptance blocks were not preserved.'));
+  expectExactKeys(schema, ['version', 'contract', 'repository_static_close_manifest'], STATIC_CLOSE_SCHEMA_REF, issues);
+  if (schema.version !== 1
+      || !isPlainObject(schema.contract)
+      || schema.contract.id !== 'nimi.repository.static-close-policy.v1'
+      || schema.contract.owner !== 'platform') {
+    issues.push(issue('STATIC_CLOSE_POLICY_IDENTITY_INVALID', STATIC_CLOSE_SCHEMA_REF, 'Repository static close policy identity was not preserved.'));
+  } else {
+    expectExactKeys(schema.contract, ['id', 'owner', 'purpose'], `${STATIC_CLOSE_SCHEMA_REF}.contract`, issues);
   }
   const contract = schema.repository_static_close_manifest;
   if (!isPlainObject(contract) || contract.id !== 'nimi.repository.static-close-manifest.v1') {
-    issues.push(issue('STATIC_CLOSE_CONTRACT_MISSING', '.nimi/contracts/acceptance.schema.yaml', 'Repository static close-manifest contract is missing.'));
+    issues.push(issue('STATIC_CLOSE_CONTRACT_MISSING', STATIC_CLOSE_SCHEMA_REF, 'Repository static close-manifest contract is missing.'));
     return null;
   }
   if (contract.repository_role !== 'static_candidate_and_evidence_validation_only'
       || contract.host_control_boundary !== 'external_ai_host_exclusive') {
-    issues.push(issue('STATIC_CLOSE_WORKFLOW_BOUNDARY_INVALID', '.nimi/contracts/acceptance.schema.yaml', 'Static validation must not own workflow state.'));
+    issues.push(issue('STATIC_CLOSE_WORKFLOW_BOUNDARY_INVALID', STATIC_CLOSE_SCHEMA_REF, 'Static validation must not own workflow state.'));
   }
   const profiles = contract.close_level_profiles;
   for (const [level, category] of EXPECTED_CLOSE_LEVELS) {
     if (!isPlainObject(profiles?.[level]) || profiles[level].category !== category) {
-      issues.push(issue('CLOSE_LEVEL_PROFILE_MISSING', `.nimi/contracts/acceptance.schema.yaml#${level}`, `Missing ${category} close-level profile.`));
+      issues.push(issue('CLOSE_LEVEL_PROFILE_MISSING', `${STATIC_CLOSE_SCHEMA_REF}#${level}`, `Missing ${category} close-level profile.`));
     }
   }
   const schemaRows = contract.dev_kernel_checkpoint?.exact_required_rows;
   if (!Array.isArray(schemaRows) || JSON.stringify(schemaRows) !== JSON.stringify(EXPECTED_REQUIRED_ROWS)) {
-    issues.push(issue('DEV_KERNEL_REQUIRED_ROWS_SCHEMA_DRIFT', '.nimi/contracts/acceptance.schema.yaml#dev_kernel_checkpoint', 'Required checkpoint row set/order drifted.'));
+    issues.push(issue('DEV_KERNEL_REQUIRED_ROWS_SCHEMA_DRIFT', `${STATIC_CLOSE_SCHEMA_REF}#dev_kernel_checkpoint`, 'Required checkpoint row set/order drifted.'));
   }
   if (JSON.stringify(contract.top_level_required_keys) !== JSON.stringify(TOP_LEVEL_KEYS)) {
-    issues.push(issue('STATIC_CLOSE_TOP_LEVEL_SCHEMA_DRIFT', '.nimi/contracts/acceptance.schema.yaml', 'Top-level manifest field set drifted.'));
+    issues.push(issue('STATIC_CLOSE_TOP_LEVEL_SCHEMA_DRIFT', STATIC_CLOSE_SCHEMA_REF, 'Top-level manifest field set drifted.'));
   }
   if (JSON.stringify(contract.dev_kernel_checkpoint?.required_build_components) !== JSON.stringify(REQUIRED_BUILD_COMPONENTS)
       || JSON.stringify(contract.dev_kernel_checkpoint?.required_artifact_ids) !== JSON.stringify(REQUIRED_ARTIFACT_IDS)) {
-    issues.push(issue('DEV_KERNEL_CANDIDATE_COMPONENT_SCHEMA_DRIFT', '.nimi/contracts/acceptance.schema.yaml#dev_kernel_checkpoint', 'Required build/artifact binding set drifted.'));
+    issues.push(issue('DEV_KERNEL_CANDIDATE_COMPONENT_SCHEMA_DRIFT', `${STATIC_CLOSE_SCHEMA_REF}#dev_kernel_checkpoint`, 'Required build/artifact binding set drifted.'));
   }
   contract.validatedEvidencePolicy = validateEvidencePolicySchema(contract.dev_kernel_checkpoint, issues);
   return contract;
@@ -1175,8 +1177,8 @@ function validateRows(rows, evidenceById, policies, issues) {
   if (!sharedExecutionBinding) issues.push(issue('CHECKPOINT_EXECUTION_BINDING_REQUIRED', location, 'The checkpoint requires one shared execution evidence tuple.'));
 }
 
-export async function loadAcceptanceSchema() {
-  return parseYaml(await fs.readFile(schemaPath, 'utf8'));
+export async function loadStaticCloseSchema() {
+  return parseYaml(await fs.readFile(staticCloseSchemaPath, 'utf8'));
 }
 
 export async function loadManifest(manifestPath) {
@@ -1197,7 +1199,7 @@ function isSyntheticContractFixture(manifest, manifestPath) {
 
 export async function validateDevKernelCheckpointManifest(manifest, manifestPath, schema = null, options = {}) {
   const issues = [];
-  const resolvedSchema = schema ?? await loadAcceptanceSchema();
+  const resolvedSchema = schema ?? await loadStaticCloseSchema();
   const contract = validateSchema(resolvedSchema, issues);
   if (!isPlainObject(manifest)) {
     issues.push(issue('MANIFEST_OBJECT_REQUIRED', 'manifest', 'Manifest must be a YAML/JSON object.'));

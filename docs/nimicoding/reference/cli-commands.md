@@ -3,13 +3,14 @@
 Field-level reference for the Nimi repository's admitted Nimi Coding
 surface. For ownership concepts, see [Command Surface](/nimicoding/cli).
 
-## Host Compatibility Wrappers
+## Host Boundary Wrappers
 
 | Command | Purpose |
 | --- | --- |
-| `pnpm check:nimicoding-host-hardcut` | Verify forbidden workflow projections are absent and host-owned projections are admitted |
-| `pnpm check:nimi-coding-seed-sync` | Check package projection drift through the compatibility policy |
-| `pnpm nimicoding:doctor` | Run doctor through the strict host compatibility wrapper |
+| `pnpm check:nimicoding-host-hardcut` | Verify the audited package release and absence of retired execution surfaces |
+| `pnpm check:nimi-coding-seed-sync` | Check managed projection presence and package-canonical drift |
+| `pnpm nimicoding:sync:apply` | Refresh managed projections after the host boundary passes |
+| `pnpm nimicoding:doctor` | Inspect bootstrap, projection, and host spec configuration health |
 
 ## Spec And Governance Validators
 
@@ -19,6 +20,7 @@ surface. For ownership concepts, see [Command Surface](/nimicoding/cli).
 | `pnpm exec nimicoding validate-spec-audit [audit-path]` | Validate source evidence, inference, and unresolved gaps |
 | `pnpm exec nimicoding validate-spec-governance --profile nimi --scope {scope}` | Validate a configured governance scope |
 | `pnpm exec nimicoding classify-spec-tree --profile nimi --root .nimi/spec [--json]` | Classify spec entries |
+| `pnpm exec nimicoding generate-spec-migration-plan --profile nimi --root .nimi/spec [--emit {path}] [--json]` | Produce a non-mutating descriptive migration plan |
 | `pnpm exec nimicoding validate-placement --profile nimi --root .nimi/spec [--json]` | Validate placement contracts |
 | `pnpm exec nimicoding validate-table-family --profile nimi --root .nimi/spec [--json]` | Validate table-family contracts |
 | `pnpm exec nimicoding validate-projection-edges --profile nimi --root .nimi/spec [--json]` | Validate projection edges |
@@ -29,25 +31,30 @@ surface. For ownership concepts, see [Command Surface](/nimicoding/cli).
 | `pnpm exec nimicoding validate-ai-governance --profile nimi --scope {scope}` | Validate AI governance constraints |
 | `pnpm exec nimicoding blueprint-audit [--blueprint-root {path}] [--canonical-root {path}] [--json] [--write-local]` | Compare blueprint and canonical spec roots |
 
-## Skill Contracts
+## Spec Construction Contracts
 
-The host reads these declarations directly:
+The host reads these inputs and contracts directly:
 
-| Skill | Result contract |
+| Surface | Purpose |
 | --- | --- |
-| `spec_reconstruction` | `.nimi/contracts/spec-reconstruction-result.yaml` |
-| `doc_spec_audit` | `.nimi/contracts/doc-spec-audit-result.yaml` |
-| `audit_sweep` | `.nimi/contracts/audit-sweep-result.yaml` |
+| `.nimi/config/spec-generation-inputs.yaml` | Host-specific classified construction inputs |
+| `.nimi/methodology/spec-reconstruction.yaml` | Construction goals, tree shape, and completion gates |
+| `.nimi/contracts/spec-generation-audit.schema.yaml` | Local file-level source and gap evidence |
+| `.nimi/contracts/spec-layout.schema.yaml` | Host-specific instruction and derived-output layout admission |
 
-## High-Risk Evidence
+`classify-spec-tree` and `generate-spec-migration-plan` analyze the tree. Their
+output is evidence, not a work queue, schedule, or task state.
 
-`.nimi/contracts/high-risk-admission.schema.yaml` defines local static
-admission evidence. High-risk task execution and completion remain host
-state and have no Nimi command family.
+## Execution Boundary
+
+Planning, implementation, review, and completion remain host state. Nimi
+Coding 0.3.x has no topic, sweep, handoff, closeout, or provider-runtime
+command family.
 
 ## Source Basis
 
 - [`config/nimicoding-host-hardcut.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/nimicoding-host-hardcut.yaml)
-- [`.nimi/config/skill-manifest.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/config/skill-manifest.yaml)
-- [`.nimi/contracts/high-risk-admission.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/high-risk-admission.schema.yaml)
+- [`.nimi/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/spec-reconstruction.yaml)
+- [`.nimi/contracts/spec-generation-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-generation-audit.schema.yaml)
+- [`.nimi/contracts/spec-layout.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/spec-layout.schema.yaml)
 - [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)

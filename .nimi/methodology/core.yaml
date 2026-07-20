@@ -1,31 +1,33 @@
-version: 1
-product:
-  package_name: "@nimiplatform/nimi-coding"
-  repository_stage: prelaunch
-truth_model:
-  root: ".nimi"
-  methodology_in_project: true
-  ai_native_first: true
-  human_projection: derived_only
-execution_bootstrap:
-  self_hosting: false
-  current_governance_mode: external_host_owned
-  host_execution_owner: external_ai_host
-methodology_posture:
-  risk_shape: authority_bearing_or_high_risk_only
-  execution_mode: host_owned
-  continuity_model: continuity_agnostic
-entry_policy:
-  high_risk_work_requires_methodology: true
-  host_workflow_state_must_not_be_mirrored: true
-deferred_surfaces:
-  - skill_runtime
-  - skill_installation_runtime
-  - self_hosting_execution
-forbidden_surfaces:
-  - topic_lifecycle
-  - wave_dag
-  - packet_orchestration
-  - run_ledger
-  - goal_bridge
-  - nested_ai_host
+version: 3
+methodology:
+  id: nimi-coding
+  mission: Preserve explicit product authority while AI-assisted changes are designed, implemented, and verified by the host environment.
+  package_boundary:
+    owns:
+      - methodology_principles
+      - spec_construction_contracts
+      - managed_methodology_and_contract_projections
+      - deterministic_spec_and_governance_validation
+    does_not_own:
+      - task_planning
+      - task_state
+      - agent_delegation
+      - implementation_execution
+      - review_or_approval_state
+      - provider_runtime
+  principles:
+    - authority_before_convenience
+    - explicit_complexity_over_ambiguous_simplicity
+    - root_cause_over_local_patch
+    - no_pseudo_success
+    - evidence_must_not_override_authority
+    - generated_views_are_never_canonical
+    - unresolved_semantic_forks_fail_closed
+  authority_order:
+    - host_product_spec
+    - package_methodology_and_contracts
+    - local_non_authority_evidence
+    - implementation
+  host_integration:
+    execution_owner: host_native_capabilities
+    constraint: nimi-coding_outputs_may_inform_but_must_not_orchestrate_host_execution

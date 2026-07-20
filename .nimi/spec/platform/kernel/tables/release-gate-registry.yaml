@@ -736,6 +736,20 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
+  - id: gate.nimicoding.host-boundary-hardcut
+    description: Reject retired nimi-coding host-control projections and entrypoints while preserving historical evidence roots.
+    command: pnpm check:nimicoding-host-hardcut
+    runner: pnpm
+    tiers: [release]
+    targets: [any]
+    timeout_seconds: 60
+    requires_binaries: [pnpm]
+    evidence:
+      shape: command_exit
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
   - id: gate.nimicoding.seed-sync-check
     description: Verify nimi-coding seed sync state.
     command: pnpm check:nimi-coding-seed-sync
