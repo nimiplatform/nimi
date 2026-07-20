@@ -189,14 +189,17 @@ test('tester preference plumbing stays wired and fail-closed', () => {
   const workbench = read('src/tester/tester-workbench.tsx');
   const aiTesting = readTesterAiTestingSurface(root);
   const preferences = read('src/tester/tester-preferences.ts');
+  const productionBindings = read('src/renderer/production-bindings.ts');
 
   // Prompt-draft preferences remain wired from the app-owned localStorage store
   // into the workbench and capability test panel. Manual evidence capture is no
   // longer a Lab function; evidence stays folded into per-capability history.
   assert.doesNotMatch(workbench, /Capture evidence|handleCaptureEvidence|window\.print|Camera/);
   assert.match(workbench, /draftPersistence=\{preferences\.draftPersistence\}/);
-  assert.match(aiTesting, /loadTesterPromptDraft/);
-  assert.match(aiTesting, /saveTesterPromptDraft/);
+  assert.match(aiTesting, /rendererHost\.app\.projection\.promptDraft/);
+  assert.match(aiTesting, /rendererHost\.app\.commands\.savePromptDraft/);
+  assert.match(productionBindings, /promptDraft:\s*loadTesterPromptDraft/);
+  assert.match(productionBindings, /return saveTesterPromptDraft\(key, prompt, enabled\)/);
   assert.match(aiTesting, /surfaceId: 'ai-capabilities'/);
   assert.match(preferences, /@nimiplatform\/kit\/core\/storage-json/);
   assert.doesNotMatch(preferences, /TesterEvidenceCaptureMode|evidenceCaptureMode/);

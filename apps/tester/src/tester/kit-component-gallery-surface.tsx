@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useRef, useState, type RefObject } from 'react';
 import { AppCardSurface, Button, IconButton, NimiText, ScrollShell, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 import {
   Check,
@@ -14,6 +14,7 @@ import {
   type CategoryId,
   type Recipe,
 } from './kit-component-gallery-recipes.js';
+import { useTesterRendererHost } from '../renderer/context.js';
 
 export function countFor(category: CategoryId): number {
   if (category === 'foundations') return COLOR_TOKENS.length + TYPE_ROLES.length + SCALE_TOKENS.length;
@@ -51,11 +52,6 @@ function recipeImportBlock(recipe: Recipe): string {
 
 function recipeCopyText(recipe: Recipe): string {
   return `${recipeImportBlock(recipe)}\n\n${recipe.snippet}`;
-}
-
-function copyTextToClipboard(text: string) {
-  if (typeof navigator === 'undefined') return;
-  void navigator.clipboard?.writeText(text);
 }
 
 function RecipePreview({ recipe, compact = false }: { recipe: Recipe; compact?: boolean }) {
@@ -122,6 +118,7 @@ function RecipeInspector({
   onClose: () => void;
   panelRef: RefObject<HTMLDivElement | null>;
 }) {
+  const rendererHost = useTesterRendererHost();
   const importBlock = recipeImportBlock(recipe);
   const checks = recipeAccessChecks(recipe);
   const tokenFootprint = recipeTokenFootprint(recipe);
@@ -160,7 +157,7 @@ function RecipeInspector({
               size="sm"
               aria-label="Copy recipe imports"
               icon={<Copy size={14} aria-hidden="true" />}
-              onClick={() => copyTextToClipboard(importBlock)}
+              onClick={() => void rendererHost.app.commands.copyText(importBlock)}
             />
           </div>
           <ScrollShell className="max-h-44 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] p-3">
@@ -211,7 +208,7 @@ function RecipeInspector({
           </div>
         </section>
 
-        <Button tone="primary" fullWidth leadingIcon={<Copy size={15} aria-hidden="true" />} onClick={() => copyTextToClipboard(recipeCopyText(recipe))}>
+        <Button tone="primary" fullWidth leadingIcon={<Copy size={15} aria-hidden="true" />} onClick={() => void rendererHost.app.commands.copyText(recipeCopyText(recipe))}>
           Copy selected recipe
         </Button>
       </Surface>
@@ -225,18 +222,6 @@ export function RecipeWorkspace({ recipes }: { recipes: Recipe[] }) {
   const inspectorPanelRef = useRef<HTMLDivElement | null>(null);
   const selectedRecipe = recipes.find((recipe) => recipe.id === selectedRecipeId) ?? recipes[0];
 
-  useEffect(() => {
-    if (!inspectorOpen || typeof document === 'undefined') return;
-    function closeInspectorOnOutsideMouseDown(event: MouseEvent) {
-      const target = event.target as Node | null;
-      if (!target) return;
-      if (inspectorPanelRef.current?.contains(target)) return;
-      setInspectorOpen(false);
-    }
-    document.addEventListener('mousedown', closeInspectorOnOutsideMouseDown);
-    return () => document.removeEventListener('mousedown', closeInspectorOnOutsideMouseDown);
-  }, [inspectorOpen]);
-
   if (!selectedRecipe) return null;
 
   function closeInspector() {
@@ -249,7 +234,13 @@ export function RecipeWorkspace({ recipes }: { recipes: Recipe[] }) {
   }
 
   return (
-    <div className={inspectorOpen ? 'kit-recipe-workspace grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_340px]' : 'kit-recipe-workspace grid min-w-0 gap-5'}>
+    <div
+      className={inspectorOpen ? 'kit-recipe-workspace grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_340px]' : 'kit-recipe-workspace grid min-w-0 gap-5'}
+      onBlur={(event) => {
+        if (!inspectorOpen || event.currentTarget.contains(event.relatedTarget)) return;
+        closeInspector();
+      }}
+    >
       <div className="grid min-w-0 content-start gap-4">
         <div className={inspectorOpen ? 'grid min-w-0 items-stretch gap-4 2xl:grid-cols-2' : 'grid min-w-0 items-stretch gap-4 lg:grid-cols-2'}>
           {recipes.map((recipe) => (

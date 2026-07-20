@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { InlineAlert, Surface } from '@nimiplatform/kit/ui';
 import { testerTestIds } from '../tester-test-ids.js';
-import { claimWorldTourViewerLaunch, type ResolvedWorldTourFixture } from './world-tour-shared.js';
+import type { ResolvedWorldTourFixture } from './world-tour-shared.js';
 import { WorldTourViewerCanvas } from './world-tour-viewer-canvas.js';
+import { useTesterRendererHost } from '../../renderer/context.js';
 
-function readQuery() {
-  const hash = typeof window === 'undefined' ? '' : window.location.hash;
-  const queryStart = hash.indexOf('?');
-  return new URLSearchParams(queryStart >= 0 ? hash.slice(queryStart + 1) : '');
+function readQuery(search: readonly { readonly key: string; readonly value: string }[]) {
+  return new Map(search.map(({ key, value }) => [key, value]));
 }
 
 export function WorldTourViewerRoute() {
-  const query = useMemo(readQuery, []);
+  const rendererHost = useTesterRendererHost();
+  const query = useMemo(() => readQuery(rendererHost.route.get().search), [rendererHost]);
   const [fixture, setFixture] = useState<ResolvedWorldTourFixture | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,10 +22,10 @@ export function WorldTourViewerRoute() {
       setError('World-tour viewer requires a standalone app launch token.');
       return;
     }
-    void claimWorldTourViewerLaunch({ manifestPath, launchToken })
+    void rendererHost.app.commands.claimWorldTourViewerLaunch({ manifestPath, launchToken })
       .then(setFixture)
       .catch((claimError) => setError(claimError instanceof Error ? claimError.message : String(claimError || 'Failed to claim viewer launch.')));
-  }, [query]);
+  }, [query, rendererHost]);
 
   return (
     <section className="product-area" data-testid={testerTestIds.worldTourViewerRoot}>

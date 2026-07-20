@@ -4,7 +4,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { AccountPanel, IconButton, Tooltip } from '@nimiplatform/kit/ui';
-import { getRuntimePlatformProjection } from '../auth/runtime-platform.js';
+import { useTesterRendererHost } from '../../renderer/context.js';
 
 type NimiLabAccountMenuProps = {
   onOpenSettings: () => void;
@@ -19,6 +19,7 @@ function toAccountStatusMessage(error: unknown, fallback: string): string {
 }
 
 export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) {
+  const rendererHost = useTesterRendererHost();
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [localAppSessionReady, setLocalAppSessionReady] = useState(false);
@@ -26,14 +27,14 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const refreshAccountUser = useCallback(async () => {
-    const projection = await getRuntimePlatformProjection();
+    const projection = await rendererHost.app.projection.runtimePlatform();
     if (projection.status !== 'ready') {
       throw new Error(projection.message || 'Protected local-app session unavailable.');
     }
     setLocalAppSessionReady(true);
     setStatusMessage('The protected identity session is bound. App-private storage is available as a base entitlement; protected Nimi resources remain unavailable without an admitted public permission. This app receives no account token or subject identifier.');
     return projection.localAppSession;
-  }, []);
+  }, [rendererHost]);
 
   useEffect(() => {
     let active = true;
@@ -48,22 +49,6 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
       active = false;
     };
   }, [refreshAccountUser]);
-
-  useEffect(() => {
-    if (!open) return;
-    const closeOnOutside = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('mousedown', closeOnOutside);
-    document.addEventListener('keydown', closeOnEscape);
-    return () => {
-      document.removeEventListener('mousedown', closeOnOutside);
-      document.removeEventListener('keydown', closeOnEscape);
-    };
-  }, [open]);
 
   const displayName = localAppSessionReady ? 'Nimi protected local app' : (loadingUser ? 'Checking local-app session' : 'Local-app session unavailable');
   const fallback = 'N';
@@ -86,7 +71,17 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
   ];
 
   return (
-    <div ref={rootRef} className="lab-account-menu" data-workbench-account-root="">
+    <div
+      ref={rootRef}
+      className="lab-account-menu"
+      data-workbench-account-root=""
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') setOpen(false);
+      }}
+    >
       <Tooltip content={displayName} placement="right" className="w-full">
         <IconButton
           type="button"

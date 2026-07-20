@@ -46,6 +46,7 @@ export function WorkbenchSideNav({
                         type="button"
                         tone="ghost"
                         size="sm"
+                        data-nimi-semantic-id={id === 'text.generate' ? 'tester-primary-action' : undefined}
                         data-workbench-rail-item=""
                         className={active ? 'workbench-side-nav__item workbench-side-nav__item--active' : 'workbench-side-nav__item'}
                         onClick={() => onSelectCapability(id)}

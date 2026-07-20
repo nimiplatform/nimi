@@ -1,26 +1,28 @@
 import { useState } from 'react';
 import { Button, Surface } from '@nimiplatform/kit/ui';
-import { saveWorldTourRenderAcceptance, saveWorldTourViewerPreset, type ResolvedWorldTourFixture } from './world-tour-shared.js';
+import type { ResolvedWorldTourFixture } from './world-tour-shared.js';
+import { useTesterRendererHost } from '../../renderer/context.js';
 
 type WorldTourViewerCanvasProps = {
   fixture: ResolvedWorldTourFixture;
 };
 
 export function WorldTourViewerCanvas({ fixture }: WorldTourViewerCanvasProps) {
+  const rendererHost = useTesterRendererHost();
   const [message, setMessage] = useState<string | null>(null);
 
   async function savePreset() {
-    const presetJson = JSON.stringify({ camera: 'inspection-default', savedAt: new Date().toISOString() });
-    const response = await saveWorldTourViewerPreset({ manifestPath: fixture.manifestPath, presetJson });
+    const presetJson = JSON.stringify({ camera: 'inspection-default', savedAt: new Date(rendererHost.clock.now()).toISOString() });
+    const response = await rendererHost.app.commands.saveWorldTourViewerPreset({ manifestPath: fixture.manifestPath, presetJson });
     setMessage(`Preset saved: ${response.presetPath}`);
   }
 
   async function acceptRender(status: 'passed' | 'failed') {
-    await saveWorldTourRenderAcceptance({
+    await rendererHost.app.commands.saveWorldTourRenderAcceptance({
       manifestPath: fixture.manifestPath,
       renderer: 'spark-2.0',
       status,
-      acceptedAt: new Date().toISOString(),
+      acceptedAt: new Date(rendererHost.clock.now()).toISOString(),
       note: 'Manual standalone viewer acceptance.',
     });
     setMessage(`Render acceptance recorded: ${status}`);

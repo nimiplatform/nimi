@@ -6,6 +6,7 @@ import { formatTesterRunTimestamp, getTesterRunConfigParamRows, getTesterRunMode
 import { unavailableReasonUserAction, unavailableReasonUserMessage } from '../tester-unavailable.js';
 import { ArtifactMediaPreview, RuntimeDiagnosticsActions, StudioResult, TextStudioOutputBody, artifactExtension, downloadArtifactUrl, downloadTextFile, formatRuntimeRequestDiagnostics, hasPreviewableArtifact, statusForCapability } from './section-ai-testing-surface.js';
 import type { TextStudioActiveRun } from './section-ai-testing-run.js';
+import { useTesterRendererHost } from '../../renderer/context.js';
 
 function TextStudioPromptControlFacts({ facts }: { facts: readonly TesterRunPromptControlFact[] }) {
   if (facts.length === 0) return null;
@@ -138,6 +139,7 @@ function TextStudioHistoryRecordResult({
   record: TesterRunHistoryRecord;
   onRegenerate: () => void;
 }) {
+  const rendererHost = useTesterRendererHost();
   const snapshot = record.result;
   const tags = getTesterRunResultTags(record);
   const modelLabel = getTesterRunModelLabel(record);
@@ -150,7 +152,7 @@ function TextStudioHistoryRecordResult({
   function handleCopy() {
     if (!exportText.trim()) return;
     try {
-      void navigator.clipboard?.writeText(exportText);
+      void rendererHost.app.commands.copyText(exportText);
     } catch {
       // Clipboard remains best-effort; download is the durable path.
     }
@@ -160,13 +162,14 @@ function TextStudioHistoryRecordResult({
     const stamp = record.createdAt.replace(/[:.]/g, '-');
     if (artifact) {
       void downloadArtifactUrl(
+        rendererHost.app.commands,
         `${record.capabilityId}-${stamp}.${artifactExtension(artifact.mimeType)}`,
         artifact.url,
       );
       return;
     }
     if (!exportText.trim()) return;
-    void downloadTextFile(`${record.capabilityId}-${stamp}.txt`, exportText);
+    void downloadTextFile(rendererHost.app.commands, `${record.capabilityId}-${stamp}.txt`, exportText);
   }
   let body: ReactNode;
   if (!snapshot) {
@@ -205,7 +208,7 @@ function TextStudioHistoryRecordResult({
           <span className={`studio-history-result__status-mark studio-history-result__status-mark--${toneClass}`} aria-hidden="true" />
           <span className="studio-history-result__title-stack">
             <strong>{getTesterRunStatusLabel(record.status)}</strong>
-            <time dateTime={record.createdAt}>Run / {formatTesterRunTimestamp(record.createdAt)}</time>
+            <time dateTime={record.createdAt}>Run / {formatTesterRunTimestamp(record.createdAt, new Date(rendererHost.clock.now()))}</time>
           </span>
         </div>
         <div className="studio-result__actions studio-history-result__actions">

@@ -31,7 +31,7 @@ export type TesterAiConfigProfileImportResult = {
   profileId?: string;
 };
 
-export type TesterAiConfigRuntimeStatus = 'checking' | 'ready' | 'connected' | 'unavailable';
+export type TesterAiConfigRuntimeStatus = 'checking' | 'ready' | 'simulated' | 'connected' | 'unavailable';
 
 export type TesterAiConfigSettingsProps = {
   scopeRef: NimiAIScopeRef;
@@ -121,8 +121,8 @@ function bindingStatus(
   return {
     supported: true,
     tone: 'ready',
-    badgeLabel: 'Bound',
-    detail: null,
+    badgeLabel: runtimeStatus === 'simulated' ? 'Simulated' : 'Bound',
+    detail: runtimeStatus === 'simulated' ? runtimeDetail : null,
   };
 }
 
@@ -180,10 +180,14 @@ export function TesterAiConfigSettings({
     scopeRef,
     aiConfigService: service,
     requirementDeclaration,
-    providerResolver: (capabilityId: string) => (runtimeStatus === 'ready' ? providerResolver(capabilityId) : null),
+    providerResolver: (capabilityId: string) => (
+      runtimeStatus === 'ready' || runtimeStatus === 'simulated' ? providerResolver(capabilityId) : null
+    ),
     projectionResolver: (capabilityId: string) => bindingStatus(config, capabilityId, runtimeStatus, runtimeDetail, localAssetSource),
     localAssetSource,
-    runtimeNotReadyLabel: runtimeStatus === 'connected'
+    runtimeNotReadyLabel: runtimeStatus === 'simulated'
+      ? runtimeDetail || 'Simulator model fixture'
+      : runtimeStatus === 'connected'
       ? 'Capability not admitted'
       : runtimeDetail || (runtimeStatus === 'checking' ? 'Checking Runtime' : 'Runtime unavailable'),
     i18n: { t },
@@ -266,8 +270,10 @@ export function TesterAiConfigSettings({
             </span>
           </div>
           {runtimeStatus !== 'ready' ? (
-            <StatusBadge tone={runtimeStatus === 'connected' ? 'neutral' : 'warning'} shape="dot">
-              {runtimeStatus === 'connected'
+            <StatusBadge tone={runtimeStatus === 'connected' || runtimeStatus === 'simulated' ? 'neutral' : 'warning'} shape="dot">
+              {runtimeStatus === 'simulated'
+                ? 'Simulated'
+                : runtimeStatus === 'connected'
                 ? 'Capability not admitted'
                 : runtimeStatus === 'checking'
                   ? 'Checking Runtime'

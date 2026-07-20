@@ -8,6 +8,7 @@ import { unavailableReasonUserAction, unavailableReasonUserMessage } from '../te
 import { countStudioWords, getCapabilityStudioProfile, runtimeMethodFor } from './capability-studio-profiles.js';
 import type { CapabilityStatus } from './section-ai-testing-admission.js';
 import { ArtifactMediaPreview, RuntimeDiagnosticsActions, formatTypedOutput, formatUnavailableOutput, hasPreviewableArtifact, resultPlainText, TextStudioOutputBody } from './section-ai-testing-output.js';
+import { useTesterRendererHost } from '../../renderer/context.js';
 
 function ArtifactPreview({ result }: { result: TesterCapabilityRunResult & { ok: true } }) {
   if (result.output.kind !== 'artifacts') return null;
@@ -223,6 +224,7 @@ export function StudioResult({
   onDownload: () => void;
   onRegenerate: () => void;
 }) {
+  const rendererHost = useTesterRendererHost();
   const profile = getCapabilityStudioProfile(capability.id);
   const ready = result?.ok ? result : null;
   const blocked = result && !result.ok ? result : null;
@@ -231,8 +233,13 @@ export function StudioResult({
   const displayModelLabel = studioResultModelLabel(result, capability, modelLabel);
   const [modelSettingsOpen, setModelSettingsOpen] = useState(false);
   const hasModelSettings = Boolean(modelSettings);
-  const runTimeLabel = createdAt ? formatTesterRunTimestamp(createdAt) : running ? 'Running' : 'Not recorded';
-  const statusTitle = running ? 'Runtime running' : blocked ? 'Runtime blocked' : ready ? 'Runtime ready' : 'Runtime waiting';
+  const simulated = admission.label === 'simulated';
+  const runTimeLabel = createdAt
+    ? formatTesterRunTimestamp(createdAt, new Date(rendererHost.clock.now()))
+    : running ? 'Running' : 'Not recorded';
+  const statusTitle = simulated
+    ? running ? 'Simulator running' : blocked ? 'Simulator blocked' : ready ? 'Simulator result' : 'Simulator waiting'
+    : running ? 'Runtime running' : blocked ? 'Runtime blocked' : ready ? 'Runtime ready' : 'Runtime waiting';
   const statusTone = blocked ? 'warning' : ready ? 'success' : running ? 'info' : 'neutral';
   useEffect(() => {
     if (!hasModelSettings) setModelSettingsOpen(false);
@@ -255,7 +262,11 @@ export function StudioResult({
       <div className="studio-result__pending">
         <div className="studio-result__pending-line">
           <Loader2 size={15} aria-hidden="true" className="studio-spin" />
-          <span>{capability.execution === 'standalone-tauri' ? 'Opening viewer fixture...' : hasStream ? 'Streaming from runtime...' : 'Calling runtime SDK...'}</span>
+          <span>{capability.execution === 'standalone-tauri'
+            ? 'Opening viewer fixture...'
+            : simulated
+              ? 'Running the SDK testing facade against Simulator State Engine data...'
+              : hasStream ? 'Streaming from runtime...' : 'Calling runtime SDK...'}</span>
         </div>
         {hasStream ? <div className="studio-result__text studio-result__text--stream" aria-live="polite">{streamingText || '...'}</div> : null}
       </div>
@@ -318,7 +329,7 @@ export function StudioResult({
       <div className="studio-result__meta">
         <div className={`studio-result__runtime-chip studio-result__runtime-chip--${statusTone}`}>
           <Sparkles size={14} aria-hidden="true" />
-          <span>Runtime SDK</span>
+          <span>{simulated ? 'SDK testing facade · Simulated' : 'Runtime SDK'}</span>
         </div>
         <div className="studio-result__stats studio-result__stats--top" aria-label="Generation metrics">
           {stats.map((stat) => (

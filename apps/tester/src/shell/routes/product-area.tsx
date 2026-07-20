@@ -1,12 +1,17 @@
+import { useSyncExternalStore } from 'react';
+
+import { useTesterRendererHost } from '../../renderer/context.js';
 import { WorldTourViewerRoute } from '../../tester/world-tour/world-tour-viewer-route.js';
 import { TesterWorkbench } from '../../tester/tester-workbench.js';
 
-function isWorldTourViewerRoute() {
-  return typeof window !== 'undefined' && window.location.hash.startsWith('#/world-tour-viewer');
-}
-
 export function ProductArea() {
-  if (isWorldTourViewerRoute()) {
+  const host = useTesterRendererHost();
+  const route = useSyncExternalStore(
+    host.route.subscribe,
+    host.route.get,
+    host.route.get,
+  );
+  if (route.pathname.startsWith('/world-tour-viewer')) {
     return <WorldTourViewerRoute />;
   }
   return <TesterWorkbench title="Nimi Lab" />;

@@ -1,17 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CanonicalCapabilitySectionId } from '@nimiplatform/kit/core/runtime-capabilities';
-import type { AppModelConfigSurface, LocalAssetEntry } from '@nimiplatform/kit/features/model-config';
+import type { AppModelConfigSurface } from '@nimiplatform/kit/features/model-config';
 import type { TesterRuntimeInspection } from '../tester-runtime.js';
-import {
-  createTesterAIConfigService,
-  createTesterAppLabAIScopeRef,
-  requireTesterAIConfigAdmission,
-  importTesterAIProfileJson,
-} from '../tester-ai-config-store.js';
-import { createTesterRuntimeModelPickerProviderCache } from '../tester-runtime-model-provider.js';
 import { TesterAiConfigSettings } from '../../shell/ai/tester-ai-config-settings.js';
 import { testerModelConfigCopy } from '../../shell/ai/model-config-copy.js';
-import { getRuntimePlatformProjection } from '../../shell/auth/runtime-platform.js';
+import { useTesterRendererHost } from '../../renderer/context.js';
 
 // App-owned wrapper: injects the tester's app-scoped NimiAIConfig service, scope
 // ref, runtime model-picker provider, and copy into the scaffold-managed
@@ -52,57 +45,17 @@ const copy: Record<string, string> = {
 };
 
 function useTesterRuntimeLocalAssetSource(runtimeReady: boolean): AppModelConfigSurface['localAssetSource'] {
-  const [assets, setAssets] = useState<LocalAssetEntry[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!runtimeReady) {
-      setAssets([]);
-      setLoading(false);
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    setLoading(true);
-    void getRuntimePlatformProjection()
-      .then(async (projection) => {
-        if (projection.status !== 'ready') {
-          return [] as LocalAssetEntry[];
-        }
-        return [] as LocalAssetEntry[];
-      })
-      .then((next) => {
-        if (cancelled) return;
-        setAssets(next);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setAssets([]);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [runtimeReady]);
-
   return useMemo(() => ({
-    list: () => assets,
-    loading,
-  }), [assets, loading]);
+    list: () => [],
+    loading: false,
+  }), [runtimeReady]);
 }
 
 export function TesterAiConfigSettingsPanel({ runtime, initialSection = null, onClose }: TesterAiConfigSettingsPanelProps) {
-  const scopeRef = useMemo(() => createTesterAppLabAIScopeRef(), []);
-  const service = useMemo(() => createTesterAIConfigService(), []);
-  const resolveRuntimeModelPickerProvider = useMemo(() => createTesterRuntimeModelPickerProviderCache(), []);
+  const rendererHost = useTesterRendererHost();
+  const scopeRef = rendererHost.sdk.aiConfig.scopeRef;
+  const service = rendererHost.sdk.aiConfig.service;
+  const resolveRuntimeModelPickerProvider = rendererHost.sdk.aiConfig.modelPickerProviderCache;
   const localAssetSource = useTesterRuntimeLocalAssetSource(runtime?.status === 'ready');
   const [hydration, setHydration] = useState<{ status: 'loading' | 'ready' | 'failed'; message: string | null }>({
     status: 'loading',
@@ -112,7 +65,7 @@ export function TesterAiConfigSettingsPanel({ runtime, initialSection = null, on
   useEffect(() => {
     let cancelled = false;
     setHydration({ status: 'loading', message: null });
-    void requireTesterAIConfigAdmission(scopeRef)
+    void rendererHost.sdk.aiConfig.requireAdmission()
       .then(() => {
         if (!cancelled) {
           setHydration({ status: 'ready', message: null });
@@ -129,7 +82,7 @@ export function TesterAiConfigSettingsPanel({ runtime, initialSection = null, on
     return () => {
       cancelled = true;
     };
-  }, [scopeRef]);
+  }, [rendererHost]);
 
   if (hydration.status !== 'ready') {
     return (
@@ -153,7 +106,7 @@ export function TesterAiConfigSettingsPanel({ runtime, initialSection = null, on
       variant="capability-drawer"
       onClose={onClose}
       onImportProfileJson={(json) => {
-        const result = importTesterAIProfileJson(json);
+        const result = rendererHost.sdk.aiConfig.importProfileJson(json);
         return result.ok
           ? { ok: true, message: result.message, profileId: result.profile.profileId }
           : { ok: false, message: result.message, errors: result.errors };

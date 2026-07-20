@@ -2,11 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { NimiAIConfig } from '@nimiplatform/sdk/ai';
 import type { TesterCapability } from '../tester-capabilities.js';
 import { getTesterRunModelLabel, type TesterRunConfigSnapshot, type TesterRunHistoryRecord } from '../tester-history.js';
-import {
-  createTesterAIConfigService,
-  createTesterAppLabAIScopeRef,
-  requireTesterAIConfigAdmission,
-} from '../tester-ai-config-store.js';
+import { useTesterRendererHost } from '../../renderer/context.js';
 import { createTesterRunTargetSummary, type TesterRunTargetLocalModel, type TesterRunTargetSummary } from '../tester-run-target.js';
 import type { TesterCapabilityRunResult, TesterRuntimeInspection } from '../tester-runtime.js';
 import { composeStudioDirective, DEFAULT_LENGTH_VALUE, DEFAULT_TONE_VALUE, getCapabilityStudioProfile, LENGTH_OPTIONS, TONE_OPTIONS } from './capability-studio-profiles.js';
@@ -73,14 +69,15 @@ export function useTesterRunTargetSummary(
   capability: TesterCapability,
   runtime: TesterRuntimeInspection | null,
 ): TesterRunTargetSummary {
-  const scopeRef = useMemo(() => createTesterAppLabAIScopeRef(), []);
-  const service = useMemo(() => createTesterAIConfigService(), []);
+  const rendererHost = useTesterRendererHost();
+  const scopeRef = rendererHost.sdk.aiConfig.scopeRef;
+  const service = rendererHost.sdk.aiConfig.service;
   const [config, setConfig] = useState<NimiAIConfig | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     let unsubscribe = () => {};
-    void requireTesterAIConfigAdmission(scopeRef)
+    void rendererHost.sdk.aiConfig.requireAdmission()
       .then((next) => {
         if (!cancelled) {
           setConfig(next);
@@ -98,7 +95,7 @@ export function useTesterRunTargetSummary(
       cancelled = true;
       unsubscribe();
     };
-  }, [scopeRef, service]);
+  }, [rendererHost, scopeRef, service]);
 
   const [localModels, setLocalModels] = useState<TesterRunTargetLocalModel[]>([]);
   const target = useMemo(
@@ -119,8 +116,7 @@ export function useTesterRunTargetSummary(
       };
     }
     const bindingCapabilityId = target.bindingCapabilityId;
-    void import('../tester-runtime-model-provider.js')
-      .then((module) => module.createTesterRuntimeModelPickerProvider(bindingCapabilityId).listLocalModels())
+    void rendererHost.sdk.aiConfig.modelPickerProvider(bindingCapabilityId).listLocalModels()
       .then((models) => {
         if (!cancelled) {
           setLocalModels([...models]);
@@ -134,7 +130,7 @@ export function useTesterRunTargetSummary(
     return () => {
       cancelled = true;
     };
-  }, [hydrationKey, runtime?.status, target.bindingCapabilityId, target.source]);
+  }, [hydrationKey, rendererHost, runtime?.status, target.bindingCapabilityId, target.source]);
 
   return target;
 }

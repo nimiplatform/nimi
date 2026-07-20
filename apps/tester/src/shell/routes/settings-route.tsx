@@ -1,16 +1,5 @@
 import { useState } from 'react';
-import type { Realm } from '@nimiplatform/sdk/realm';
-import {
-  listNimiRealmGroupChats,
-  loadNimiRealmCreatorEligibility,
-  loadNimiRealmNotificationUnreadCount,
-  loadNimiRealmNotifications,
-  requestNimiRealmDataExport,
-  toNimiRealmNotificationListView,
-} from '@nimiplatform/sdk/realm';
-import { getNimiNotificationServerFilter } from '@nimiplatform/kit/core/notifications';
-import { createRealmChatService, listRealmChats } from '@nimiplatform/kit/features/chat/realm';
-import { getRuntimePlatformProjection } from '../auth/runtime-platform.js';
+import { useTesterRendererHost } from '../../renderer/context.js';
 import type {
   AccountDataProjectionState,
   AccountSettingsProjectionState,
@@ -21,19 +10,12 @@ import type {
 } from './settings/types.js';
 import { SettingsRouteView } from './settings/view.js';
 
-async function requireTesterRealm(): Promise<Realm> {
-  const projection = await getRuntimePlatformProjection();
-  if (projection.status !== 'ready') {
-    throw new Error(projection.message);
-  }
-  throw new Error('Realm is not admitted by the local-app carrier.');
-}
-
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || 'Settings projection unavailable');
 }
 
 export function SettingsRoute() {
+  const rendererHost = useTesterRendererHost();
   const [localDrafts, setLocalDrafts] = useState(true);
   const [notificationProjection, setNotificationProjection] = useState<NotificationProjectionState>({ status: 'idle', unread: null, error: null });
   const [notificationListProjection, setNotificationListProjection] = useState<NotificationListProjectionState>({ status: 'idle', list: null, error: null });
@@ -45,7 +27,7 @@ export function SettingsRoute() {
   const refreshNotificationProjection = async () => {
     setNotificationProjection((current) => ({ status: 'loading', unread: current.unread, error: null }));
     try {
-      const unread = await loadNimiRealmNotificationUnreadCount(await requireTesterRealm());
+      const unread = await rendererHost.sdk.settings.notificationUnread();
       setNotificationProjection({ status: 'ready', unread, error: null });
     } catch (error) {
       setNotificationProjection({ status: 'error', unread: null, error: errorMessage(error) });
@@ -55,14 +37,10 @@ export function SettingsRoute() {
   const refreshNotificationListProjection = async () => {
     setNotificationListProjection((current) => ({ status: 'loading', list: current.list, error: null }));
     try {
-      const list = await loadNimiRealmNotifications(await requireTesterRealm(), {
-        limit: 5,
-        unreadOnly: false,
-        type: getNimiNotificationServerFilter('system') ?? undefined,
-      });
+      const list = await rendererHost.sdk.settings.notifications();
       setNotificationListProjection({
         status: 'ready',
-        list: toNimiRealmNotificationListView(list, 'Tester notification', 'Unknown actor'),
+        list,
         error: null,
       });
     } catch (error) {
@@ -73,12 +51,7 @@ export function SettingsRoute() {
   const requestAccountDataExportProjection = async () => {
     setAccountDataProjection((current) => ({ status: 'loading', exportRequest: current.exportRequest, error: null }));
     try {
-      const exportRequest = await requestNimiRealmDataExport(await requireTesterRealm(), {
-        format: 'JSON',
-        includeMedia: false,
-        includeMessages: false,
-        locale: 'en-US',
-      });
+      const exportRequest = await rendererHost.sdk.settings.requestDataExport();
       setAccountDataProjection({ status: 'ready', exportRequest, error: null });
     } catch (error) {
       setAccountDataProjection({ status: 'error', exportRequest: null, error: errorMessage(error) });
@@ -88,7 +61,7 @@ export function SettingsRoute() {
   const refreshAccountSettingsProjection = async () => {
     setAccountSettingsProjection((current) => ({ status: 'loading', eligibility: current.eligibility, error: null }));
     try {
-      const eligibility = await loadNimiRealmCreatorEligibility(await requireTesterRealm());
+      const eligibility = await rendererHost.sdk.settings.creatorEligibility();
       setAccountSettingsProjection({ status: 'ready', eligibility, error: null });
     } catch (error) {
       setAccountSettingsProjection({ status: 'error', eligibility: null, error: errorMessage(error) });
@@ -98,8 +71,7 @@ export function SettingsRoute() {
   const refreshHumanChatProjection = async () => {
     setHumanChatProjection((current) => ({ status: 'loading', chats: current.chats, error: null }));
     try {
-      const realm = await requireTesterRealm();
-      const chats = await listRealmChats(20, undefined, createRealmChatService(realm.humanChats));
+      const chats = await rendererHost.sdk.settings.humanChats();
       setHumanChatProjection({ status: 'ready', chats, error: null });
     } catch (error) {
       setHumanChatProjection({ status: 'error', chats: null, error: errorMessage(error) });
@@ -109,7 +81,7 @@ export function SettingsRoute() {
   const refreshGroupChatProjection = async () => {
     setGroupChatProjection((current) => ({ status: 'loading', groups: current.groups, error: null }));
     try {
-      const groups = await listNimiRealmGroupChats(await requireTesterRealm(), 20);
+      const groups = await rendererHost.sdk.settings.groupChats();
       setGroupChatProjection({ status: 'ready', groups, error: null });
     } catch (error) {
       setGroupChatProjection({ status: 'error', groups: null, error: errorMessage(error) });

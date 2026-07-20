@@ -1,0 +1,34 @@
+schema: nimi.simulator.module/v1
+module_id: tester
+composition:
+  factory_entry: src/renderer/factory.tsx
+  factory_export: testerCanonicalRendererFactory
+  style_entry: src/renderer/styles.css
+  app_production_entries:
+    - src/main.tsx
+renderer:
+  entry: src/simulator/renderer.ts
+  export: testerSimulatorRenderer
+  adapter_entry: src/simulator/adapter.ts
+  adapter_export: testerSimulatorAdapterFactory
+  surfaces:
+    - id: main
+      factory_surface: main
+      label: Nimi Lab
+      initial_route: /
+      readiness_contract: tester.main.usable
+requires:
+  kit_capabilities: []
+  sdk_methods:
+    - nimi.ai.generateText
+  simulator_commands:
+    - tester.action.record
+    - tester.ai-config.update
+    - tester.capability.execute
+    - tester.history.append
+    - tester.image-history.append
+    - tester.prompt.save
+    - tester.run.allocate
+  simulator_events: []
+fixtures:
+  conformance: src/simulator/fixture.ts

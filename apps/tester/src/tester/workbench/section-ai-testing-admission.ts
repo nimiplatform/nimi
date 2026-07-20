@@ -11,7 +11,7 @@ export type ScenarioPreset = {
 };
 
 export type CapabilityStatus = {
-  label: 'ready' | 'blocked' | 'not admitted' | 'SDK gap' | 'tauri-only' | 'checking';
+  label: 'ready' | 'simulated' | 'blocked' | 'not admitted' | 'SDK gap' | 'tauri-only' | 'checking';
   tone: 'success' | 'warning' | 'info' | 'neutral';
   detail: string;
 };
@@ -115,6 +115,13 @@ export function statusForCapability(
       detail: 'Runtime inspection has not completed yet.',
     };
   }
+  if (runtime.status === 'simulated') {
+    return {
+      label: 'simulated',
+      tone: 'info',
+      detail: runtime.detail,
+    };
+  }
   if (runtime.status === 'connected') {
     return {
       label: 'not admitted',
@@ -150,6 +157,7 @@ export function statusForCapability(
 
 export const STATUS_PILL_LABEL: Record<CapabilityStatus['label'], string> = {
   ready: 'Ready',
+  simulated: 'Simulated',
   blocked: 'Blocked',
   'not admitted': 'Not admitted',
   'SDK gap': 'SDK gap',

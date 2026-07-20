@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button, IconButton, Tooltip } from '@nimiplatform/kit/ui';
 import { Check, ChevronRight, Funnel, RefreshCw, Sparkles } from 'lucide-react';
 import { testerCapabilities, type TesterCapabilityId } from '../tester-capabilities.js';
@@ -16,6 +16,7 @@ import {
   type TesterRunHistoryRecord,
 } from '../tester-history.js';
 import { capabilityIcons } from './capability-icons.js';
+import { useTesterRendererHost } from '../../renderer/context.js';
 
 type HistoryStatusFilter = 'all' | 'active' | 'blocked' | 'local-fixture';
 type HistoryEnvironmentFilter = 'all' | 'local' | 'cloud' | 'remote-control';
@@ -24,8 +25,10 @@ type HistoryGroupBy = 'none' | 'date' | 'capability';
 type HistorySortBy = 'recency' | 'oldest';
 type HistoryFilterMenuId = 'status' | 'capability' | 'environment' | 'activity' | 'group' | 'sort';
 
-const runtimeHistoryCapabilities = testerCapabilities.filter((item) => item.execution === 'runtime-sdk' || item.execution === 'standalone-tauri');
-const runtimeHistoryCapabilityIds = new Set(runtimeHistoryCapabilities.map((capability) => capability.id));
+const runtimeHistoryCapabilities = Object.freeze(
+  testerCapabilities.filter((item) => item.execution === 'runtime-sdk' || item.execution === 'standalone-tauri'),
+);
+const runtimeHistoryCapabilityIds = Object.freeze(runtimeHistoryCapabilities.map((capability) => capability.id));
 const historyDateGroupFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 const historyDateGroupWithYearFormatter = new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
@@ -103,12 +106,12 @@ function historySubtitleForRun(record: TesterRunHistoryRecord): string {
   return source;
 }
 
-function historyLabelForRun(record: TesterFlatRunRecord): string {
+function historyLabelForRun(record: TesterFlatRunRecord, now: Date): string {
   const prompt = historyTitleForRun(record);
   const model = getTesterRunModelLabel(record);
   const source = getTesterRunModelSource(record);
   const metrics = getTesterRunMetricSummary(record);
-  return [source === 'unknown' ? model : `${source} model: ${model}`, record.capabilityLabel, formatTesterRunHistoryTimestamp(record.createdAt), metrics, prompt ? `Prompt: ${prompt}` : ''].filter(Boolean).join(' / ');
+  return [source === 'unknown' ? model : `${source} model: ${model}`, record.capabilityLabel, formatTesterRunHistoryTimestamp(record.createdAt, now), metrics, prompt ? `Prompt: ${prompt}` : ''].filter(Boolean).join(' / ');
 }
 
 function optionLabel<T extends string>(options: ReadonlyArray<{ id: T; label: string }>, id: T): string {
@@ -124,7 +127,7 @@ function isSameHistoryDate(left: Date, right: Date): boolean {
   return left.getFullYear() === right.getFullYear() && left.getMonth() === right.getMonth() && left.getDate() === right.getDate();
 }
 
-function historyDateGroupLabel(value: string, now = new Date()): string {
+function historyDateGroupLabel(value: string, now: Date): string {
   const date = new Date(value);
   if (Number.isNaN(date.valueOf())) return 'Unknown date';
   if (isSameHistoryDate(date, now)) return 'Today';
@@ -151,7 +154,7 @@ function matchesHistoryEnvironment(record: TesterRunHistoryRecord, environment: 
   return targetSource.includes('remote') || routeDecision.includes('remote');
 }
 
-function matchesHistoryActivity(record: TesterRunHistoryRecord, activity: HistoryActivityFilter, now = new Date()): boolean {
+function matchesHistoryActivity(record: TesterRunHistoryRecord, activity: HistoryActivityFilter, now: Date): boolean {
   if (activity === 'all') return true;
   const createdAt = new Date(record.createdAt);
   if (Number.isNaN(createdAt.valueOf())) return false;
@@ -160,11 +163,11 @@ function matchesHistoryActivity(record: TesterRunHistoryRecord, activity: Histor
   return now.valueOf() - createdAt.valueOf() <= days * 24 * 60 * 60 * 1000;
 }
 
-function groupedHistoryRecords(records: TesterFlatRunRecord[], groupBy: HistoryGroupBy): Array<{ id: string; label: string; records: TesterFlatRunRecord[] }> {
+function groupedHistoryRecords(records: TesterFlatRunRecord[], groupBy: HistoryGroupBy, now: Date): Array<{ id: string; label: string; records: TesterFlatRunRecord[] }> {
   if (groupBy === 'none') return [{ id: 'all', label: '', records }];
   const groups = new Map<string, { id: string; label: string; records: TesterFlatRunRecord[] }>();
   for (const record of records) {
-    const label = groupBy === 'date' ? historyDateGroupLabel(record.createdAt) : record.capabilityLabel;
+    const label = groupBy === 'date' ? historyDateGroupLabel(record.createdAt, now) : record.capabilityLabel;
     const id = groupBy === 'date' ? `date:${label}` : `capability:${record.capabilityId}`;
     const existing = groups.get(id);
     if (existing) {
@@ -212,8 +215,7 @@ export function CapabilityRunHistory({
   collapsed: boolean;
   filterResetNonce: number;
 }) {
-  const filterButtonRef = useRef<HTMLButtonElement | null>(null);
-  const filterPanelRef = useRef<HTMLDivElement | null>(null);
+  const rendererHost = useTesterRendererHost();
   const [filterOpen, setFilterOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState<HistoryFilterMenuId | null>(null);
   const [statusFilter, setStatusFilter] = useState<HistoryStatusFilter>('all');
@@ -222,9 +224,9 @@ export function CapabilityRunHistory({
   const [activityFilter, setActivityFilter] = useState<HistoryActivityFilter>('all');
   const [groupBy, setGroupBy] = useState<HistoryGroupBy>('none');
   const [sortBy, setSortBy] = useState<HistorySortBy>('recency');
-  const now = useMemo(() => new Date(), [history]);
+  const now = useMemo(() => new Date(rendererHost.clock.now()), [history, rendererHost]);
   const records = useMemo(() => flattenTesterRunHistory(history)
-    .filter((record) => runtimeHistoryCapabilityIds.has(record.capabilityId as TesterCapabilityId))
+    .filter((record) => runtimeHistoryCapabilityIds.includes(record.capabilityId as TesterCapabilityId))
     .filter((record) => capabilityFilter === 'all' || record.capabilityId === capabilityFilter)
     .filter((record) => matchesHistoryStatus(record, statusFilter))
     .filter((record) => matchesHistoryEnvironment(record, environmentFilter))
@@ -232,7 +234,7 @@ export function CapabilityRunHistory({
     .sort((left, right) => sortBy === 'recency'
       ? right.createdAt.localeCompare(left.createdAt)
       : left.createdAt.localeCompare(right.createdAt)), [activityFilter, capabilityFilter, environmentFilter, history, now, sortBy, statusFilter]);
-  const groups = useMemo(() => groupedHistoryRecords(records, groupBy), [groupBy, records]);
+  const groups = useMemo(() => groupedHistoryRecords(records, groupBy, now), [groupBy, now, records]);
   const activeMenuLabel = {
     status: optionLabel(HISTORY_STATUS_OPTIONS, statusFilter),
     capability: historyCapabilityLabel(capabilityFilter),
@@ -248,21 +250,6 @@ export function CapabilityRunHistory({
     || groupBy !== 'none'
     || sortBy !== 'recency';
   const hasRecords = records.length > 0;
-
-  useEffect(() => {
-    if (!filterOpen) return;
-    function handleOutsidePointerDown(event: PointerEvent) {
-      const target = event.target;
-      if (!(target instanceof Node)) return;
-      if (filterButtonRef.current?.contains(target) || filterPanelRef.current?.contains(target)) {
-        return;
-      }
-      setFilterOpen(false);
-      setActiveMenu(null);
-    }
-    document.addEventListener('pointerdown', handleOutsidePointerDown, true);
-    return () => document.removeEventListener('pointerdown', handleOutsidePointerDown, true);
-  }, [filterOpen]);
 
   useEffect(() => {
     setFilterOpen(false);
@@ -326,7 +313,14 @@ export function CapabilityRunHistory({
   }
 
   return (
-    <div className={collapsed ? 'studio-history-shell studio-history-shell--collapsed' : 'studio-history-shell'}>
+    <div
+      className={collapsed ? 'studio-history-shell studio-history-shell--collapsed' : 'studio-history-shell'}
+      onBlur={(event) => {
+        if (!filterOpen || event.currentTarget.contains(event.relatedTarget)) return;
+        setFilterOpen(false);
+        setActiveMenu(null);
+      }}
+    >
       <aside className={collapsed ? 'studio-history studio-history--collapsed' : 'studio-history'} aria-label="Runtime test History">
         <div className="studio-recent__head">
           <div className="studio-history__title">
@@ -334,7 +328,6 @@ export function CapabilityRunHistory({
           </div>
           <div className="studio-history__actions">
             <IconButton
-              ref={filterButtonRef}
               type="button"
               tone="ghost"
               size="sm"
@@ -347,7 +340,7 @@ export function CapabilityRunHistory({
           </div>
         </div>
         {!collapsed && filterOpen ? (
-          <div ref={filterPanelRef} className="studio-history-filter" role="dialog" aria-label="History filters">
+          <div className="studio-history-filter" role="dialog" aria-label="History filters">
             <div
               className="studio-history-filter__menu nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
               data-nimi-material="glass-regular"
@@ -418,7 +411,7 @@ export function CapabilityRunHistory({
                           className={record.id === activeRunId ? 'studio-recent__row studio-recent__row--active' : 'studio-recent__row'}
                           onClick={() => onSelectRun(record)}
                           aria-current={record.id === activeRunId ? 'true' : undefined}
-                          aria-label={historyLabelForRun(record)}
+                          aria-label={historyLabelForRun(record, now)}
                         >
                           <span className={`studio-recent__dot studio-recent__dot--${historyToneForRun(record)}`} aria-hidden="true" />
                           <span className="studio-recent__icon" aria-hidden="true">
@@ -430,7 +423,7 @@ export function CapabilityRunHistory({
                                 <Tooltip content={historyModelTitleForRun(record)} placement="top" className="studio-recent__model-tooltip">
                                   <span className="studio-recent__model-name">{historyModelTitleForRun(record)}</span>
                                 </Tooltip>
-                                <time dateTime={record.createdAt}>{formatTesterRunHistoryTimestamp(record.createdAt)}</time>
+                                <time dateTime={record.createdAt}>{formatTesterRunHistoryTimestamp(record.createdAt, now)}</time>
                               </span>
                             </span>
                             <Tooltip content={historySubtitleForRun(record)} placement="top" className="studio-recent__detail-tooltip">

@@ -376,11 +376,14 @@ test('tester-reference scaffold keeps the full proof app explicit', () => {
     const runtimePlatform = generated.read('src/shell/auth/runtime-platform.ts');
     const localAppPlatform = generated.read('src/shell/local-app-runtime-platform.ts');
     const permissionLab = generated.read('src/tester/local-app-permission-lab.tsx');
+    const productionBindings = generated.read('src/renderer/production-bindings.ts');
     assert.match(runtimePlatform, /testerLocalAppClient\.auth\.status\(\)/);
     assert.match(runtimePlatform, /!status\.sessionBound/);
     assert.match(localAppPlatform, /createNimiClient/);
     assert.match(localAppPlatform, /createNimiLocalAppStandardShellSurface/);
-    assert.match(permissionLab, /testerLocalAppClient\.storage\.writeJson/);
+    assert.match(permissionLab, /rendererHost\.app\.commands\.localAppStorageRoundTrip/);
+    assert.doesNotMatch(permissionLab, /testerLocalAppClient/);
+    assert.match(productionBindings, /testerLocalAppClient\.storage\.writeJson/);
     assert.doesNotMatch(runtimePlatform, /testerInstalledAppBootstrap|bootstrapArtifactId/);
     assert.match(generated.read('src/shell/ai/tester-ai-config-settings.tsx'), /TesterAiConfigSettings/);
     assert.match(generated.read('src-tauri/src/main.rs'), /world_tour/);

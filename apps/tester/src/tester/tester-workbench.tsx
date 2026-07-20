@@ -1,32 +1,19 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
-import './tester-workbench.css';
 import { Button, OverlayShell, Tooltip } from '@nimiplatform/kit/ui';
-import { createRendererFlowId, emitRuntimeLog, logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { createNimiClientId } from '@nimiplatform/sdk';
-import { requestWithRetry } from '@nimiplatform/sdk/types';
 import { NimiLabAccountMenu } from '../shell/account/account-panel.js';
-import {
-  getRuntimePlatformProjection,
-  type RuntimePlatformReadyProjection,
-} from '../shell/auth/runtime-platform.js';
+import type { RuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
+import { useTesterRendererHost } from '../renderer/context.js';
 import { getTesterCapability, testerCapabilities, type TesterCapabilityId } from './tester-capabilities.js';
-import { saveTesterArtifact } from './tester-artifact-storage.js';
 import { shouldPersistTesterArtifactRecord } from './tester-artifact-persistence.js';
 import {
-  appendTesterRunHistory,
   createTesterRunHistoryResultSnapshot,
-  loadTesterRunHistory,
   type TesterRunConfigSnapshot,
   type TesterRunHistory,
   type TesterRunHistoryRecord,
 } from './tester-history.js';
-import { appendTesterImageHistoryRecord } from './tester-image-history.js';
-import { loadTesterAIConfigSummary, type TesterAIConfigSummary } from './tester-ai-config.js';
+import type { TesterAIConfigSummary } from './tester-ai-config.js';
 import type { TesterCapabilityRunResult } from './tester-runtime.js';
-import {
-  loadTesterPreferences,
-  type TesterPreferences,
-} from './tester-preferences.js';
+import type { TesterPreferences } from './tester-preferences.js';
 import { testerTestIds } from './tester-test-ids.js';
 import { TesterLocalAppPermissionLab } from './local-app-permission-lab.js';
 import { WorkbenchSideNav } from './workbench/workbench-side-nav.js';
@@ -49,10 +36,6 @@ type TesterHistorySelectionRequest = {
   requestId: number;
   record: TesterRunHistoryRecord;
 };
-
-function makeRecordId() {
-  return createNimiClientId('run');
-}
 
 function hasTraceMetadata(result: TesterCapabilityRunResult): boolean {
   if (!result.ok || !result.trace) return false;
@@ -80,6 +63,11 @@ async function materializeTesterArtifactResult(
   result: TesterCapabilityRunResult,
   runId: string,
   createdAt: string,
+  saveArtifact: (input: { readonly filename: string; readonly mimeType?: string; readonly dataUrl: string }) => Promise<{
+    readonly previewUrl: string;
+    readonly filename: string;
+    readonly mimeType?: string;
+  }>,
 ): Promise<TesterCapabilityRunResult> {
   if (!shouldPersistTesterArtifactRecord(result)) return result;
   const firstArtifact = result.output.firstArtifact;
@@ -87,7 +75,7 @@ async function materializeTesterArtifactResult(
   if (!url?.startsWith('data:')) return result;
   const stamp = createdAt.replace(/[:.]/g, '-');
   const filename = `${result.capabilityId}-${stamp}-${runId}.${artifactExtension(firstArtifact?.mimeType)}`;
-  const saved = await saveTesterArtifact({
+  const saved = await saveArtifact({
     filename,
     mimeType: firstArtifact?.mimeType,
     dataUrl: url,
@@ -108,6 +96,7 @@ async function materializeTesterArtifactResult(
 
 function runtimeBadge(summary: TesterAIConfigSummary | null): { label: string; tone: 'success' | 'warning' | 'neutral' } {
   if (!summary) return { label: 'Checking', tone: 'neutral' };
+  if (summary.runtime.status === 'simulated') return { label: 'Simulated', tone: 'neutral' };
   if (summary.runtime.status === 'ready') return { label: 'Ready', tone: 'success' };
   if (summary.runtime.status === 'connected') return { label: 'Connected', tone: 'success' };
   return { label: 'Unavailable', tone: 'warning' };
@@ -115,6 +104,7 @@ function runtimeBadge(summary: TesterAIConfigSummary | null): { label: string; t
 
 function runtimeUserMessage(summary: TesterAIConfigSummary | null): string {
   if (!summary) return 'Checking the Runtime connection.';
+  if (summary.runtime.status === 'simulated') return summary.runtime.detail;
   if (summary.runtime.status === 'ready') return 'Runtime is connected. You can generate text and stream responses.';
   if (summary.runtime.status === 'connected') return summary.runtime.detail;
   return 'Runtime is unavailable. Open App Lab in the desktop runtime, or start and repair Runtime before generating.';
@@ -141,14 +131,15 @@ function TopbarStatusTooltip({
 }
 
 export function TesterWorkbench(_props: TesterWorkbenchProps) {
+  const rendererHost = useTesterRendererHost();
   const [view, setView] = useState<WorkbenchView>({ kind: 'capability', capabilityId: initialCapabilityId });
   const activeCapabilityId: TesterCapabilityId = view.kind === 'capability' ? view.capabilityId : initialCapabilityId;
   const [summary, setSummary] = useState<TesterAIConfigSummary | null>(null);
   const [history, setHistory] = useState<TesterRunHistory | null>(null);
   const [lastResult, setLastResult] = useState<TesterCapabilityRunResult | null>(null);
   const [historySelectionRequest, setHistorySelectionRequest] = useState<TesterHistorySelectionRequest | null>(null);
-  const [preferences] = useState<TesterPreferences>(() => loadTesterPreferences().preferences);
-  const [localAppProjection, setLocalAppProjection] = useState<RuntimePlatformReadyProjection | null>(null);
+  const [preferences] = useState<TesterPreferences>(() => rendererHost.app.projection.preferences());
+  const [localAppProjection, setLocalAppProjection] = useState<RuntimePlatformProjection | null>(null);
   const [permissionLabOpen, setPermissionLabOpen] = useState(false);
 
   const capability = useMemo(() => getTesterCapability(activeCapabilityId), [activeCapabilityId]);
@@ -163,25 +154,22 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
 
   const refreshHistory = useCallback(async () => {
     try {
-      const next = await requestWithRetry({
-        executor: loadTesterRunHistory,
-        options: { maxAttempts: 2, initialDelayMs: 25, maxDelayMs: 50 },
-      });
+      const next = await rendererHost.app.projection.runHistory();
       setHistory(next);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error || 'History load failed.');
-      emitRuntimeLog({
+      rendererHost.app.commands.runtimeLog({
         level: 'warn',
         area: 'tester-history',
         message: 'history-load-failed',
         details: { error: message },
       });
     }
-  }, []);
+  }, [rendererHost]);
 
   const refreshSummary = useCallback(async () => {
     try {
-      const next = await loadTesterAIConfigSummary();
+      const next = await rendererHost.app.projection.aiConfigSummary();
       setSummary(next);
     } catch (error) {
       setSummary({
@@ -195,24 +183,33 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
         appLocalProviderDefaults: false,
       });
     }
-  }, []);
+  }, [rendererHost]);
 
   useEffect(() => {
     void refreshSummary();
     void refreshHistory();
-    void getRuntimePlatformProjection().then((projection) => {
-      if (projection.status === 'ready') setLocalAppProjection(projection);
+    void rendererHost.app.projection.runtimePlatform().then((projection) => {
+      setLocalAppProjection(projection);
     });
-  }, [refreshSummary, refreshHistory]);
+  }, [refreshSummary, refreshHistory, rendererHost]);
 
   const localAppTooltipRows = useMemo(() => {
-    const session = localAppProjection?.localAppSession;
+    const ready = localAppProjection?.status === 'ready' ? localAppProjection : null;
+    const session = ready?.localAppSession;
     return [
-      { label: 'Session', value: session?.state || 'Checking' },
-      { label: 'Identity', value: session?.sessionBound ? 'Bound' : 'Pending' },
+      { label: 'Session', value: session?.state || (localAppProjection ? 'Unavailable' : 'Checking') },
+      { label: 'Identity', value: session?.sessionBound ? 'Bound' : (localAppProjection ? 'Unavailable' : 'Pending') },
       { label: 'Base entitlement', value: session?.sessionBound ? 'App-private storage' : 'Unavailable' },
+      ...(localAppProjection && localAppProjection.status !== 'ready'
+        ? [{ label: 'Reason', value: localAppProjection.message }]
+        : []),
     ];
   }, [localAppProjection]);
+  const localAppState = localAppProjection?.status === 'ready'
+    ? { label: 'Ready', tone: 'success' as const }
+    : localAppProjection
+      ? { label: 'Unavailable', tone: 'warning' as const }
+      : { label: 'Checking', tone: 'neutral' as const };
 
   const handleSelectHistoryRun = useCallback((record: TesterRunHistoryRecord) => {
     const capabilityId = record.capabilityId as TesterCapabilityId;
@@ -232,15 +229,21 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
       runConfig?: TesterRunConfigSnapshot,
     ): Promise<TesterRunHistoryRecord> => {
       setLastResult(result);
-      const runId = makeRecordId();
-      const flowId = createRendererFlowId('tester-capability-run');
+      const identity = await rendererHost.app.commands.nextRunIdentity();
+      const runId = identity.runId;
+      const flowId = rendererHost.scope.globalName(`tester-capability-run-${runId}`);
       const traceId = getResultTraceId(result);
-      const createdAt = new Date().toISOString();
+      const createdAt = identity.createdAt;
       let historyResult = result;
       try {
-        historyResult = await materializeTesterArtifactResult(result, runId, createdAt);
+        historyResult = await materializeTesterArtifactResult(
+          result,
+          runId,
+          createdAt,
+          rendererHost.app.commands.saveArtifact,
+        );
       } catch (error) {
-        emitRuntimeLog({
+        rendererHost.app.commands.runtimeLog({
           level: 'warn',
           area: 'tester-artifact-history',
           message: 'artifact-materialize-failed',
@@ -255,18 +258,22 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
         id: runId,
         capabilityId: historyResult.capabilityId,
         prompt,
-        status: historyResult.capabilityId === 'world.generate' && historyResult.ok ? 'local-fixture' : historyResult.ok ? 'ready' : 'unavailable',
+        status: historyResult.capabilityId === 'world.generate' && historyResult.ok
+          ? 'local-fixture'
+          : historyResult.ok && historyResult.trace?.routeDecision === 'simulated-scenario'
+            ? 'simulated'
+            : historyResult.ok ? 'ready' : 'unavailable',
         message: historyResult.message,
         createdAt,
         result: createTesterRunHistoryResultSnapshot(historyResult),
         runConfig: runConfig ? { ...runConfig, traceId } : undefined,
       };
       try {
-        const next = await appendTesterRunHistory(record);
+        const next = await rendererHost.app.commands.appendRunHistory(record);
         setHistory(next);
         if (shouldPersistTesterArtifactRecord(historyResult)) {
           const firstArtifact = historyResult.output.firstArtifact;
-          await appendTesterImageHistoryRecord({
+          await rendererHost.app.commands.appendImageHistory({
             id: runId,
             runId,
             kind: 'runtime-media',
@@ -286,7 +293,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
             traceId,
           });
         }
-        logRendererEvent({
+        rendererHost.app.commands.rendererLog({
           level: result.ok ? 'info' : 'warn',
           area: 'tester.capability-run',
           message: result.ok ? 'action:tester-capability-run:recorded' : 'action:tester-capability-run:unavailable',
@@ -301,7 +308,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
           },
         });
       } catch (error) {
-        logRendererEvent({
+        rendererHost.app.commands.rendererLog({
           level: 'error',
           area: 'tester.capability-run',
           message: 'action:tester-capability-run:persistence-failed',
@@ -316,7 +323,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
       }
       return record;
     },
-    [],
+    [rendererHost],
   );
 
   return (
@@ -359,20 +366,20 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
                 headerActions={(
                   <>
                     <Tooltip
-                      content={<TopbarStatusTooltip title="Protected local app" rows={localAppTooltipRows} />}
+                      content={<TopbarStatusTooltip title="Local app" rows={localAppTooltipRows} />}
                       placement="bottom"
                     >
                       <Button
                         type="button"
                         tone="ghost"
                         size="sm"
-                        className={`workbench-topbar__attachment workbench-topbar__attachment--interactive workbench-topbar__attachment--${localAppProjection ? 'success' : 'neutral'}`}
+                        className={`workbench-topbar__attachment workbench-topbar__attachment--interactive workbench-topbar__attachment--${localAppState.tone}`}
                         data-testid="tester-local-app-status"
                         aria-label="打开 Local App 权限测试"
                         onClick={() => setPermissionLabOpen(true)}
                       >
                         <span className="workbench-topbar__dot" aria-hidden="true" />
-                        <span>Local app</span>
+                        <span>Local app · {localAppState.label}</span>
                       </Button>
                     </Tooltip>
                     <Tooltip

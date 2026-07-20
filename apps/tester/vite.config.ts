@@ -1,11 +1,14 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { validateSimulatorAppSource } from '@nimiplatform/app-tools/simulator-conformance';
+import { createSimulatorCssProfileVitePlugin } from '@nimiplatform/app-tools/simulator-css-profile';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
+const testerCssReport = validateSimulatorAppSource(__dirname).report;
 
 function manualChunks(id: string) {
   const normalized = id.replaceAll('\\', '/');
@@ -58,56 +61,17 @@ function manualChunks(id: string) {
 
 export default defineConfig({
   base: './',
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    createSimulatorCssProfileVitePlugin({
+      compilerRoot: __dirname,
+      foundationEntry: path.join(__dirname, 'src/styles.css'),
+      apps: [{ rootDir: __dirname, report: testerCssReport }],
+    }),
+    react(),
+    tailwindcss(),
+  ],
   resolve: {
     dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
-    alias: [
-      { find: '@nimiplatform/kit/ui', replacement: path.join(repoRoot, 'kit/ui/src') },
-      { find: '@nimiplatform/kit/auth', replacement: path.join(repoRoot, 'kit/auth/src') },
-      { find: '@nimiplatform/kit/core', replacement: path.join(repoRoot, 'kit/core/src') },
-      { find: '@nimiplatform/kit/shell/capabilities', replacement: path.join(repoRoot, 'kit/shell/capabilities/src') },
-      { find: '@nimiplatform/kit/shell/renderer/bridge', replacement: path.join(repoRoot, 'kit/shell/renderer/src/bridge') },
-      { find: '@nimiplatform/kit/shell/renderer/bootstrap', replacement: path.join(repoRoot, 'kit/shell/renderer/src/bootstrap') },
-      { find: '@nimiplatform/kit/telemetry', replacement: path.join(repoRoot, 'kit/telemetry/src/telemetry') },
-      { find: '@nimiplatform/kit/features/avatar', replacement: path.join(repoRoot, 'kit/features/avatar/src') },
-      { find: '@nimiplatform/kit/features/chat', replacement: path.join(repoRoot, 'kit/features/chat/src') },
-      { find: '@nimiplatform/kit/features/commerce', replacement: path.join(repoRoot, 'kit/features/commerce/src') },
-      { find: '@nimiplatform/kit/features/generation', replacement: path.join(repoRoot, 'kit/features/generation/src') },
-      { find: '@nimiplatform/kit/features/model-picker', replacement: path.join(repoRoot, 'kit/features/model-picker/src') },
-      { find: '@nimiplatform/kit/features/model-config', replacement: path.join(repoRoot, 'kit/features/model-config/src') },
-    ],
-  },
-  optimizeDeps: {
-    exclude: [
-      '@nimiplatform/kit/ui',
-      '@nimiplatform/kit/auth',
-      '@nimiplatform/kit/core',
-      '@nimiplatform/kit/core/model-config',
-      '@nimiplatform/kit/core/notifications',
-      '@nimiplatform/kit/core/offline-coordinator',
-      '@nimiplatform/kit/core/runtime-capabilities',
-      '@nimiplatform/kit/core/sdk-contract',
-      '@nimiplatform/kit/core/storage-json',
-      '@nimiplatform/kit/shell/capabilities',
-      '@nimiplatform/kit/shell/renderer/bridge',
-      '@nimiplatform/kit/shell/renderer/bootstrap',
-      '@nimiplatform/kit/telemetry',
-      '@nimiplatform/kit/features/avatar',
-      '@nimiplatform/kit/features/avatar/headless',
-      '@nimiplatform/kit/features/avatar/live2d',
-      '@nimiplatform/kit/features/avatar/vrm',
-      '@nimiplatform/kit/features/chat',
-      '@nimiplatform/kit/features/chat/headless',
-      '@nimiplatform/kit/features/chat/realm',
-      '@nimiplatform/kit/features/chat/runtime',
-      '@nimiplatform/kit/features/commerce',
-      '@nimiplatform/kit/features/commerce/realm',
-      '@nimiplatform/kit/features/generation',
-      '@nimiplatform/kit/features/model-picker',
-      '@nimiplatform/kit/features/model-picker/runtime',
-      '@nimiplatform/kit/features/model-config',
-      '@nimiplatform/kit/features/model-config/headless',
-    ],
   },
   server: {
     fs: {

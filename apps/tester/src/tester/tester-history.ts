@@ -1,7 +1,5 @@
 import { getTesterCapability, type TesterCapabilityId } from './tester-capabilities.js';
-import { readTesterStandardStorageJson, writeTesterStandardStorageJson } from './tester-standard-storage.js';
 import { isJsonObject } from '@nimiplatform/sdk/types';
-import type { JsonValue } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { TesterCapabilityRunResult } from './tester-runtime.js';
 import type { TesterRunTargetSummary } from './tester-run-target.js';
 
@@ -117,7 +115,7 @@ export type TesterRunHistoryRecord = {
   id: string;
   capabilityId: string;
   prompt: string;
-  status: 'unavailable' | 'ready' | 'failed' | 'local-fixture';
+  status: 'unavailable' | 'ready' | 'simulated' | 'failed' | 'local-fixture';
   message: string;
   createdAt: string;
   result?: TesterRunHistoryResultSnapshot;
@@ -167,6 +165,7 @@ export function flattenTesterRunHistory(history: TesterRunHistory | null): Teste
 
 export function getTesterRunStatusLabel(status: TesterRunHistoryRecord['status']): string {
   if (status === 'ready') return 'runtime ready';
+  if (status === 'simulated') return 'simulated result';
   if (status === 'unavailable') return 'sdk unavailable';
   if (status === 'failed') return 'failed';
   return 'local fixture';
@@ -174,6 +173,7 @@ export function getTesterRunStatusLabel(status: TesterRunHistoryRecord['status']
 
 export function getTesterRunStatusTone(status: TesterRunHistoryRecord['status']): TesterRunStatusTone {
   if (status === 'ready') return 'success';
+  if (status === 'simulated') return 'info';
   if (status === 'local-fixture') return 'info';
   if (status === 'failed') return 'danger';
   return 'warning';
@@ -206,7 +206,7 @@ function isSameLocalCalendarDate(left: Date, right: Date): boolean {
   return left.getFullYear() === right.getFullYear() && left.getMonth() === right.getMonth() && left.getDate() === right.getDate();
 }
 
-export function formatTesterRunTimestamp(value: string, now = new Date()): string {
+export function formatTesterRunTimestamp(value: string, now: Date): string {
   try {
     const date = new Date(value);
     if (Number.isNaN(date.valueOf())) return value;
@@ -218,7 +218,7 @@ export function formatTesterRunTimestamp(value: string, now = new Date()): strin
   }
 }
 
-export function formatTesterRunHistoryTimestamp(value: string, now = new Date()): string {
+export function formatTesterRunHistoryTimestamp(value: string, now: Date): string {
   try {
     if (!value.trim()) return 'Unknown date';
     const date = new Date(value);
@@ -443,13 +443,13 @@ const TEXT_MODEL_PARAM_ORDER: ReadonlyArray<{ key: string; label: string; group:
   { key: 'frequencyPenalty', label: 'Frequency Penalty', group: PARAM_GROUP_LABELS.advanced },
 ];
 
-const HIDDEN_MODEL_PARAM_KEYS = new Set([
+const HIDDEN_MODEL_PARAM_KEYS = Object.freeze([
   'companionSlots',
   'profileEntries',
   'profile_entries',
   'entryOverrides',
   'entry_overrides',
-]);
+] as const);
 
 function hasRunConfigParam(value: unknown): boolean {
   if (typeof value === 'string') return value.trim().length > 0;
@@ -464,7 +464,7 @@ function runConfigParamDefinitions(runConfig: TesterRunConfigSnapshot): Readonly
     return TEXT_MODEL_PARAM_ORDER;
   }
   return Object.keys(runConfig.target.params)
-    .filter((key) => !HIDDEN_MODEL_PARAM_KEYS.has(key))
+    .filter((key) => !HIDDEN_MODEL_PARAM_KEYS.includes(key as (typeof HIDDEN_MODEL_PARAM_KEYS)[number]))
     .map((key) => ({ key, label: key, group: 'Model parameters' }));
 }
 
@@ -563,7 +563,7 @@ export function getTesterRunResultTags(record: TesterRunHistoryRecord): string[]
   if (isTesterUnavailableHistorySnapshot(result)) return [result.reason];
   if (result.kind === 'text') {
     return [
-      result.streamed ? 'Stream' : 'Runtime',
+      record.status === 'simulated' ? 'Simulator' : result.streamed ? 'Stream' : 'Runtime',
       `${result.charCount} chars`,
       result.totalTokens === undefined ? '' : `${result.totalTokens} tokens`,
     ].filter(Boolean);
@@ -572,35 +572,4 @@ export function getTesterRunResultTags(record: TesterRunHistoryRecord): string[]
   if (result.kind === 'artifacts') return ['Ready'];
   if (result.kind === 'transcript') return ['Ready'];
   return [`${result.voiceCount} voices`, result.modelResolved].filter(Boolean);
-}
-
-const TESTER_RUN_HISTORY_STORAGE_PATH = 'tester-run-history.json';
-
-function parseHistory(value: JsonValue | undefined): TesterRunHistory {
-  if (value === undefined) {
-    return {};
-  }
-  if (!isJsonObject(value)) {
-    throw new Error('Tester run history payload must be an object.');
-  }
-  return value as TesterRunHistory;
-}
-
-export async function loadTesterRunHistory(): Promise<TesterRunHistory> {
-  return parseHistory(await readTesterStandardStorageJson(TESTER_RUN_HISTORY_STORAGE_PATH));
-}
-
-export async function saveTesterRunHistory(history: TesterRunHistory): Promise<void> {
-  await writeTesterStandardStorageJson(TESTER_RUN_HISTORY_STORAGE_PATH, history as JsonValue);
-}
-
-export async function appendTesterRunHistory(record: TesterRunHistoryRecord): Promise<TesterRunHistory> {
-  const history = await loadTesterRunHistory();
-  const existing = history[record.capabilityId] || [];
-  const next = {
-    ...history,
-    [record.capabilityId]: [record, ...existing].slice(0, 40),
-  };
-  await saveTesterRunHistory(next);
-  return next;
 }

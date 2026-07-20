@@ -10,7 +10,7 @@ function read(relativePath) {
 }
 
 test('run history append propagates storage read failures instead of overwriting with empty history', () => {
-  const source = read('src/tester/tester-history.ts');
+  const source = read('src/tester/tester-history-storage.ts');
 
   assert.match(source, /export async function appendTesterRunHistory/);
   assert.doesNotMatch(source, /loadTesterRunHistory\(\)\.catch\(\(\) => \(\{\} as TesterRunHistory\)\)/);

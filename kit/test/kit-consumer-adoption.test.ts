@@ -115,13 +115,21 @@ test('Desktop consumes Kit shared UI, telemetry, and feature primitives for audi
 
 test('Tester is the second consumer for Kit shared primitives and shell bootstrap', () => {
   const main = read('apps/tester/src/main.tsx');
-  assert.match(main, /from '@nimiplatform\/kit\/ui'/);
-  assert.match(main, /\bNimiThemeProvider\b/);
-  assert.match(main, /\bTooltipProvider\b/);
+  const app = read('apps/tester/src/shell/App.tsx');
+  const canonicalFactory = read('apps/tester/src/renderer/factory.tsx');
+  assert.match(main, /from '@nimiplatform\/kit\/shell\/renderer\/host'/);
+  assert.match(main, /\bcreateNimiRendererHostBinding\b/);
   assert.match(main, /from '@nimiplatform\/kit\/shell\/renderer\/bridge'/);
   assert.match(main, /\binstallNimiShellRuntimeBridge\b/);
   assert.match(main, /from '@nimiplatform\/kit\/shell\/renderer\/bootstrap'/);
   assert.match(main, /\bcreateRendererEntryModuleLoader\b/);
+  assert.match(app, /\bNimiRendererHostProvider\b/);
+  assert.match(app, /\btesterCanonicalRendererFactory\.createInstance\b/);
+  assert.doesNotMatch(app, /useState\(\(\)\s*=>\s*testerCanonicalRendererFactory\.createInstance/);
+  assert.match(app, /useEffect\(\(\)\s*=>\s*\{[\s\S]*testerCanonicalRendererFactory\.createInstance/);
+  assert.match(app, /return \(\)\s*=>\s*\{ void instance\.dispose\(\); \}/);
+  assert.match(canonicalFactory, /from '@nimiplatform\/kit\/ui'/);
+  assert.match(canonicalFactory, /\bTooltipProvider\b/);
 
   const gallery = readTesterKitGallerySurface();
   assert.match(gallery, /from '@nimiplatform\/kit\/ui'/);
@@ -152,6 +160,7 @@ test('Tester is the second consumer for Kit shared primitives and shell bootstra
   const testerRuntimePlatform = read('apps/tester/src/shell/auth/runtime-platform.ts');
   const testerLocalAppPlatform = read('apps/tester/src/shell/local-app-runtime-platform.ts');
   const testerWorkbench = read('apps/tester/src/tester/tester-workbench.tsx');
+  const testerProductionBindings = read('apps/tester/src/renderer/production-bindings.ts');
   assert.match(testerContract, /tester kit gallery showcases real kit components/);
   assert.match(testerContract, /tester auth and runtime bootstrap consume Kit shell bridge primitives/);
   assert.match(testerSettingsSurfaceTest, /tester settings keeps real Realm live rows through SDK and Kit helpers/);
@@ -169,8 +178,9 @@ test('Tester is the second consumer for Kit shared primitives and shell bootstra
   assert.doesNotMatch(testerRuntimePlatform, /createRuntimeAccountBrowserBroker|createNimiRuntimeFullAppRegistration|getAccountSessionStatus|beginLogin|completeLogin|logout|switchAccount|refreshAccountSession|getAccessToken/);
   assert.doesNotMatch(testerRuntimePlatform, /desktop-runtime-oauth-url|#\/login|desktop_callback|runtimeEndpoint/);
 
-  assert.match(testerWorkbench, /emitRuntimeLog/);
-  assert.match(testerWorkbench, /from '@nimiplatform\/kit\/telemetry'/);
+  assert.match(testerWorkbench, /commands\.runtimeLog/);
+  assert.match(testerProductionBindings, /emitRuntimeLog/);
+  assert.match(testerProductionBindings, /from '@nimiplatform\/kit\/telemetry'/);
   assert.match(testerWorkbench, /area:\s*'tester-history'/);
   assert.match(testerWorkbench, /message:\s*'history-load-failed'/);
   assert.match(testerContract, /emitRuntimeLog/);

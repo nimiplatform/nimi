@@ -29,6 +29,7 @@ test('tester run history is a global runtime test timeline (no standalone Eviden
   const capabilities = readTesterAiTestingSurface(root);
   const surface = readTesterAiTestingSurface(root);
   const historyStore = read('src/tester/tester-history.ts');
+  const historyStorage = read('src/tester/tester-history-storage.ts');
   const standardStorage = read('src/tester/tester-standard-storage.ts');
   const workbench = read('src/tester/tester-workbench.tsx');
 
@@ -37,7 +38,7 @@ test('tester run history is a global runtime test timeline (no standalone Eviden
   assert.match(surface, /function CapabilityRunHistory/);
   assert.match(surface, /Runtime test History/);
   assert.match(surface, /flattenTesterRunHistory\(history\)/);
-  assert.match(surface, /runtimeHistoryCapabilityIds\.has\(record\.capabilityId as TesterCapabilityId\)/);
+  assert.match(surface, /runtimeHistoryCapabilityIds\.includes\(record\.capabilityId as TesterCapabilityId\)/);
   assert.match(surface, /className="studio-history__runs"/);
   assert.match(surface, /studio-history__filter-trigger/);
   assert.match(surface, /aria-label="History filters"/);
@@ -69,10 +70,10 @@ test('tester run history is a global runtime test timeline (no standalone Eviden
   assert.match(standardStorage, /TESTER_LOCAL_APP_STORAGE_UNAVAILABLE/);
   assert.match(standardStorage, /await_local_app_storage_operation_admission/);
   assert.doesNotMatch(standardStorage, /localStorage|sessionStorage|invokeShell|invokeTauri/);
-  assert.match(historyStore, /TESTER_RUN_HISTORY_STORAGE_PATH = 'tester-run-history\.json'/);
-  assert.match(historyStore, /readTesterStandardStorageJson\(TESTER_RUN_HISTORY_STORAGE_PATH\)/);
-  assert.match(historyStore, /writeTesterStandardStorageJson\(TESTER_RUN_HISTORY_STORAGE_PATH/);
-  assert.doesNotMatch(historyStore, /storageRoot|withTesterDataStorageRoot|tester_run_history_load/);
+  assert.match(historyStorage, /TESTER_RUN_HISTORY_STORAGE_PATH = 'tester-run-history\.json'/);
+  assert.match(historyStorage, /readTesterStandardStorageJson\(TESTER_RUN_HISTORY_STORAGE_PATH\)/);
+  assert.match(historyStorage, /writeTesterStandardStorageJson\(TESTER_RUN_HISTORY_STORAGE_PATH/);
+  assert.doesNotMatch(historyStorage, /storageRoot|withTesterDataStorageRoot|tester_run_history_load/);
   assert.doesNotMatch(standardStorage, /resolveNimiRuntimeAppStorageRoots|storageRoot|dataRoot/);
 
   // Single-level capability workspace: no app-lab / evidence / settings routes.
@@ -85,9 +86,10 @@ test('tester run history timestamps use English labels and preserve visible row 
 
   assert.match(historyStore, /new Intl\.DateTimeFormat\('en-US'/);
   assert.match(historyStore, /hourCycle:\s*'h23'/);
-  assert.match(historyStore, /formatTesterRunTimestamp\(value: string, now = new Date\(\)\)/);
+  assert.match(historyStore, /formatTesterRunTimestamp\(value: string, now: Date\)/);
   assert.match(historyStore, /if \(isSameLocalCalendarDate\(date, now\)\) return testerRunTimeFormatter\.format\(date\);/);
-  assert.match(historyStore, /formatTesterRunHistoryTimestamp\(value: string, now = new Date\(\)\)/);
+  assert.match(historyStore, /formatTesterRunHistoryTimestamp\(value: string, now: Date\)/);
+  assert.doesNotMatch(historyStore, /now = new Date\(\)/);
   assert.match(historyStore, /if \(!value\.trim\(\)\) return 'Unknown date';/);
   assert.match(historyStore, /if \(Number\.isNaN\(date\.valueOf\(\)\)\) return 'Unknown date';/);
   assert.match(historyStore, /return testerRunDateTimeFormatter\.format\(date\);/);
@@ -100,8 +102,8 @@ test('right-side history timeline renders a visible timestamp slot', () => {
   const styles = read('src/tester/tester-workbench.css');
 
   assert.match(capabilities, /formatTesterRunHistoryTimestamp/);
-  assert.match(capabilities, /<time dateTime=\{record\.createdAt\}>\{formatTesterRunHistoryTimestamp\(record\.createdAt\)\}<\/time>/);
-  assert.match(capabilities, /formatTesterRunHistoryTimestamp\(record\.createdAt\), metrics/);
+  assert.match(capabilities, /<time dateTime=\{record\.createdAt\}>\{formatTesterRunHistoryTimestamp\(record\.createdAt, now\)\}<\/time>/);
+  assert.match(capabilities, /formatTesterRunHistoryTimestamp\(record\.createdAt, now\), metrics/);
   assert.match(styles, /\.studio-recent__model-tooltip\s*\{[^}]*min-width:\s*0/s);
   assert.match(styles, /\.studio-recent__model-tooltip\s*\{[^}]*overflow:\s*hidden/s);
   assert.match(styles, /\.studio-recent__title time\s*\{[^}]*min-width:\s*max-content/s);
@@ -167,11 +169,11 @@ test('runtime history panel toggle lives beside Runtime and reflects collapsed s
   assert.match(styles, /\.studio-history-toggle--expanded:hover\s*\{[^}]*background:\s*var\(--nimi-surface-active\)[^}]*color:\s*color-mix\(in srgb,\s*var\(--nimi-text-primary\) 90%,\s*transparent\)/s);
   assert.match(styles, /\.studio-history-toggle\s+svg\s*\{[^}]*width:\s*17px[^}]*height:\s*17px/s);
   assert.match(styles, /\.studio__workspace--with-history\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto/s);
-  assert.match(styles, /\.workbench\s*\{[^}]*--studio-side-panel-width:\s*min\(360px,\s*calc\(100vw - 48px\)\)/s);
+  assert.match(styles, /\.workbench\s*\{[^}]*--nimi-ui-module-tester-studio-side-panel-width:\s*min\(360px,\s*calc\(100vw - 48px\)\)/s);
   assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*box-sizing:\s*border-box/s);
-  assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*width:\s*var\(--studio-side-panel-width\)/s);
+  assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*width:\s*var\(--nimi-ui-module-tester-studio-side-panel-width\)/s);
   assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*max-width:\s*100%/s);
-  assert.match(styles, /\.studio-history-shell\s*\{[^}]*position:\s*relative[^}]*width:\s*var\(--studio-side-panel-width\)[^}]*transition:\s*width\s+260ms\s+cubic-bezier\(0\.22,\s*1,\s*0\.36,\s*1\)/s);
+  assert.match(styles, /\.studio-history-shell\s*\{[^}]*position:\s*relative[^}]*width:\s*var\(--nimi-ui-module-tester-studio-side-panel-width\)[^}]*transition:\s*width\s+260ms\s+cubic-bezier\(0\.22,\s*1,\s*0\.36,\s*1\)/s);
   assert.match(styles, /\.studio-history-shell::before\s*\{[^}]*left:\s*0[^}]*width:\s*1px[^}]*background:\s*var\(--nimi-border-subtle\)/s);
   assert.match(styles, /\.studio-history\s*\{[^}]*border-left:\s*1px\s+solid\s+var\(--nimi-border-subtle\)[^}]*padding:\s*36px\s+14px\s+28px/s);
   assert.match(styles, /\.studio-recent__head\s*\{[^}]*min-height:\s*41px/s);
@@ -198,6 +200,7 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   const historyPanel = read('src/tester/workbench/section-ai-testing-history.tsx');
   const surface = readTesterAiTestingSurface(root);
   const styles = read('src/tester/tester-workbench.css');
+  const productionBindings = read('src/renderer/production-bindings.ts');
 
   assert.match(historyStore, /function formatTesterTokenUsage/);
   assert.match(historyStore, /export function getTesterRunModelLabel/);
@@ -250,7 +253,7 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   assert.match(surface, /matchesHistoryStatus\(record, statusFilter\)/);
   assert.match(surface, /matchesHistoryEnvironment\(record, environmentFilter\)/);
   assert.match(surface, /matchesHistoryActivity\(record, activityFilter, now\)/);
-  assert.match(surface, /groupedHistoryRecords\(records, groupBy\)/);
+  assert.match(surface, /groupedHistoryRecords\(records, groupBy, now\)/);
   assert.match(surface, /const hasActiveHistoryFilters = statusFilter !== 'all'/);
   assert.match(surface, /capabilityFilter !== 'all'/);
   assert.match(surface, /environmentFilter !== 'all'/);
@@ -298,10 +301,10 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   assert.match(surface, /useState<HistoryFilterMenuId \| null>\(null\)/);
   assert.match(surface, /if \(!activeMenu\) \{\s*return null;\s*\}/s);
   assert.match(surface, /\{activeMenu \? \(\s*<div\s+className="studio-history-filter__submenu nimi-material-glass-regular backdrop-blur-\[var\(--nimi-backdrop-blur-regular\)\]"/s);
-  assert.match(surface, /filterButtonRef/);
-  assert.match(surface, /filterPanelRef/);
-  assert.match(surface, /document\.addEventListener\('pointerdown', handleOutsidePointerDown, true\)/);
-  assert.match(surface, /document\.removeEventListener\('pointerdown', handleOutsidePointerDown, true\)/);
+  assert.match(surface, /onBlur=\{\(event\) =>/);
+  assert.match(surface, /event\.currentTarget\.contains\(event\.relatedTarget\)/);
+  assert.doesNotMatch(surface, /filterButtonRef|filterPanelRef/);
+  assert.doesNotMatch(surface, /document\.(?:addEventListener|removeEventListener)/);
   assert.match(surface, /setFilterOpen\(false\);\s*setActiveMenu\(null\);/s);
   assert.match(surface, /studio-recent__icon/);
   assert.match(surface, /studio-recent__copy/);
@@ -387,9 +390,10 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   assert.match(capabilities, /exportShellSaveFile\(\{/s);
   assert.match(capabilities, /reveal:\s*true/);
   assert.match(capabilities, /export async function saveTesterExport/);
-  assert.match(surface, /await saveTesterExport\(\{ filename, mimeType: blob\.type, body: blob \}\)/);
-  assert.match(surface, /await saveTesterExport\(\{ filename, mimeType: blob\.type \|\| undefined, body: blob \}\)/);
-  assert.match(surface, /if \(!response\.ok\)/);
+  assert.match(surface, /commands\.exportArtifact\(\{ filename, url \}\)/);
+  assert.match(productionBindings, /const response = await fetch\(url\)/);
+  assert.match(productionBindings, /await saveTesterExport\(\{ filename, mimeType: blob\.type \|\| undefined, body: blob \}\)/);
+  assert.match(productionBindings, /if \(!response\.ok\)/);
   assert.doesNotMatch(surface, /function anchorDownload/);
   assert.doesNotMatch(surface, /document\.createElement\('a'\)/);
   assert.match(surface, /function studioResultModelLabel\(result: TesterCapabilityRunResult \| null, capability: TesterCapability, preferredLabel\?: string\)/);
@@ -402,8 +406,8 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   assert.match(surface, /className="studio-recent__title"/);
   assert.match(surface, /className="studio-recent__model-tooltip"/);
   assert.match(surface, /className="studio-recent__model-name"/);
-  assert.match(surface, /<time dateTime=\{record\.createdAt\}>\{formatTesterRunHistoryTimestamp\(record\.createdAt\)\}<\/time>/);
-  assert.doesNotMatch(surface, /<Tooltip content=\{`\$\{historyModelTitleForRun\(record\)\} \/ \$\{formatTesterRunHistoryTimestamp\(record\.createdAt\)\}`\} placement="top" className="min-w-0">/);
+  assert.match(surface, /<time dateTime=\{record\.createdAt\}>\{formatTesterRunHistoryTimestamp\(record\.createdAt, now\)\}<\/time>/);
+  assert.doesNotMatch(surface, /<Tooltip content=\{`\$\{historyModelTitleForRun\(record\)\} \/ \$\{formatTesterRunHistoryTimestamp\(record\.createdAt, now\)\}`\} placement="top" className="min-w-0">/);
   assert.match(surface, /<Tooltip content=\{historySubtitleForRun\(record\)\} placement="top" className="studio-recent__detail-tooltip">/);
   assert.doesNotMatch(capabilities, /className="studio-result__action"[^>]*\btitle=/);
   assert.doesNotMatch(surface, /className="studio-result__action"[^>]*\btitle=/);
@@ -440,7 +444,7 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   assert.doesNotMatch(capabilities, /function TextStudioRunSettings/);
   assert.doesNotMatch(capabilities, /Run settings/);
   assert.doesNotMatch(capabilities, /Model target|Target detail/);
-  assert.match(capabilities, /aria-label=\{historyLabelForRun\(record\)\}/);
+  assert.match(capabilities, /aria-label=\{historyLabelForRun\(record, now\)\}/);
   assert.match(styles, /grid-template-rows:\s*auto minmax\(0,\s*1fr\)/);
   assert.match(styles, /\.studio__workspace\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s);
   assert.match(
@@ -449,14 +453,14 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   );
   assert.match(styles, /\.studio__title\s*\{[^}]*overflow:\s*visible/s);
   assert.doesNotMatch(styles, /\.studio__title\s+h1/);
-  assert.match(styles, /--studio-work-width:\s*760px/);
-  assert.match(styles, /\.studio-turn\s*\{[^}]*max-width:\s*var\(--studio-work-width\)/s);
+  assert.match(styles, /--nimi-ui-module-tester-studio-work-width:\s*760px/);
+  assert.match(styles, /\.studio-turn\s*\{[^}]*max-width:\s*var\(--nimi-ui-module-tester-studio-work-width\)/s);
   assert.match(styles, /\.studio-turn--user p\s*\{[^}]*border-radius:\s*var\(--nimi-radius-lg\)/s);
   assert.match(styles, /\.studio-turn--user p\s*\{[^}]*font-size:\s*15px/s);
   assert.match(styles, /\.studio-turn__label\s*\{[^}]*letter-spacing:\s*0\.12em/s);
-  assert.match(styles, /\.studio-thread\s*\{[^}]*--studio-scrollbar-gutter:\s*17px/s);
-  assert.match(styles, /\.studio-thread__composer\s*\{[^}]*padding:\s*12px calc\(18px \+ var\(--studio-scrollbar-gutter\)\) 16px 18px/s);
-  assert.match(styles, /\.studio-composer\s*\{[^}]*max-width:\s*var\(--studio-work-width\);[^}]*margin:\s*0 auto/s);
+  assert.match(styles, /\.studio-thread\s*\{[^}]*--nimi-ui-module-tester-studio-scrollbar-gutter:\s*17px/s);
+  assert.match(styles, /\.studio-thread__composer\s*\{[^}]*padding:\s*12px calc\(18px \+ var\(--nimi-ui-module-tester-studio-scrollbar-gutter\)\) 16px 18px/s);
+  assert.match(styles, /\.studio-composer\s*\{[^}]*max-width:\s*var\(--nimi-ui-module-tester-studio-work-width\);[^}]*margin:\s*0 auto/s);
   assert.match(capabilities, /Generation could not be completed/);
   assert.match(capabilities, /unavailableReasonUserMessage\(snapshot\.reason\)/);
   assert.match(capabilities, /unavailableReasonUserAction\(snapshot\.reason\)/);
@@ -556,13 +560,14 @@ test('tester model settings hide runtime profile injection internals', () => {
   for (const key of ['companionSlots', 'profileEntries', 'profile_entries', 'entryOverrides', 'entry_overrides']) {
     assert.match(historyStore, new RegExp(`'${key}'`));
   }
-  assert.match(historyStore, /const HIDDEN_MODEL_PARAM_KEYS = new Set/);
-  assert.match(historyStore, /Object\.keys\(runConfig\.target\.params\)[\s\S]*\.filter\(\(key\) => !HIDDEN_MODEL_PARAM_KEYS\.has\(key\)\)[\s\S]*\.map\(\(key\) => \(\{ key, label: key, group: 'Model parameters' \}\)\)/);
+  assert.match(historyStore, /const HIDDEN_MODEL_PARAM_KEYS = Object\.freeze/);
+  assert.match(historyStore, /Object\.keys\(runConfig\.target\.params\)[\s\S]*\.filter\(\(key\) => !HIDDEN_MODEL_PARAM_KEYS\.includes\(key as \(typeof HIDDEN_MODEL_PARAM_KEYS\)\[number\]\)\)[\s\S]*\.map\(\(key\) => \(\{ key, label: key, group: 'Model parameters' \}\)\)/);
 });
 
 test('tester artifact history persistence is real and fail-closed', () => {
   const imageHistory = read('src/tester/tester-image-history.ts');
   const workbench = read('src/tester/tester-workbench.tsx');
+  const productionBindings = read('src/renderer/production-bindings.ts');
   const artifactStorage = read('src/tester/tester-artifact-storage.ts');
   const capabilities = readTesterAiTestingSurface(root);
   const tauri = read('src/tester/tester-tauri.ts');
@@ -582,9 +587,11 @@ test('tester artifact history persistence is real and fail-closed', () => {
   assert.doesNotMatch(imageHistory, /storageRoot|withTesterDataStorageRoot|tester_image_history_load/);
   assert.match(workbench, /shouldPersistTesterArtifactRecord\(result\)/);
   assert.match(workbench, /materializeTesterArtifactResult/);
-  assert.match(workbench, /saveTesterArtifact/);
+  assert.match(workbench, /rendererHost\.app\.commands\.saveArtifact/);
   assert.match(workbench, /createTesterRunHistoryResultSnapshot\(historyResult\)/);
-  assert.match(workbench, /appendTesterImageHistoryRecord/);
+  assert.match(workbench, /rendererHost\.app\.commands\.appendImageHistory/);
+  assert.match(productionBindings, /saveArtifact:\s*saveTesterArtifact/);
+  assert.match(productionBindings, /appendImageHistory:\s*appendTesterImageHistoryRecord/);
   // Artifact writes are outside the final carrier and fail closed; protected
   // Nimi-owned artifact readback remains unavailable on the third-party local-app carrier.
   assert.match(artifactStorage, /createNimiError/);
@@ -615,8 +622,10 @@ test('tester attachment input uses the kit chat composer, not an app-local multi
 test('tester run history labels local fixtures distinctly from runtime results', () => {
   const history = read('src/tester/tester-history.ts');
   assert.match(history, /if \(status === 'ready'\) return 'runtime ready'/);
+  assert.match(history, /if \(status === 'simulated'\) return 'simulated result'/);
   assert.match(history, /if \(status === 'unavailable'\) return 'sdk unavailable'/);
   assert.match(history, /return 'local fixture'/);
+  assert.match(history, /record\.status === 'simulated' \? 'Simulator'/);
   assert.match(history, /status === 'local-fixture'\) return 'info'/);
   assert.match(history, /isJsonObject/);
   assert.match(history, /from '@nimiplatform\/sdk\/types'/);

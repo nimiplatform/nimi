@@ -21,6 +21,7 @@ import {
   RecipeWorkspace,
   countFor,
 } from './kit-component-gallery-surface.js';
+import { useTesterRendererHost } from '../renderer/context.js';
 
 const foundationCode = `@import "@nimiplatform/kit/ui/styles.css";
 @import "@nimiplatform/kit/ui/themes/light.css";
@@ -43,6 +44,7 @@ const categoryIcons: Record<CategoryId, LucideIcon> = {
 };
 
 export function KitComponentGallery(_props: { onOpenSection?: (target: string) => void }) {
+  const rendererHost = useTesterRendererHost();
   const [category, setCategory] = useState<CategoryId>('foundations');
 
   const recipesInCategory = useMemo(() => RECIPES.filter((recipe) => recipe.category === category), [category]);
@@ -59,8 +61,7 @@ export function KitComponentGallery(_props: { onOpenSection?: (target: string) =
   }
 
   function copyImport() {
-    if (typeof navigator === 'undefined') return;
-    void navigator.clipboard?.writeText(categoryCopyText);
+    void rendererHost.app.commands.copyText(categoryCopyText);
   }
 
   return (

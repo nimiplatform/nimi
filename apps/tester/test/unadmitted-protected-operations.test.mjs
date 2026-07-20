@@ -26,14 +26,18 @@ test('Tester consumes only the final typed local-app operation set', () => {
 
 test('Tester exposes the reserved-permission denial and app-private storage success boundary', () => {
   const permissionLab = read('src/tester/local-app-permission-lab.tsx');
+  const productionBindings = read('src/renderer/production-bindings.ts');
 
   assert.match(permissionLab, /'agents\.interact'/);
   assert.match(permissionLab, /'authority-lab\/app-private-storage\.json'/);
-  assert.match(permissionLab, /testerLocalAppClient\.permissions\.status/);
-  assert.match(permissionLab, /testerLocalAppClient\.permissions\.request/);
-  assert.match(permissionLab, /testerLocalAppClient\.storage\.writeJson/);
-  assert.match(permissionLab, /testerLocalAppClient\.storage\.readJson/);
-  assert.match(permissionLab, /testerLocalAppClient\.storage\.removeJson/);
+  assert.match(permissionLab, /rendererHost\.app\.commands\.localAppPermissionStatus/);
+  assert.match(permissionLab, /rendererHost\.app\.commands\.localAppPermissionRequest/);
+  assert.match(permissionLab, /rendererHost\.app\.commands\.localAppStorageRoundTrip/);
+  assert.match(productionBindings, /testerLocalAppClient\.permissions\.status/);
+  assert.match(productionBindings, /testerLocalAppClient\.permissions\.request/);
+  assert.match(productionBindings, /testerLocalAppClient\.storage\.writeJson/);
+  assert.match(productionBindings, /testerLocalAppClient\.storage\.readJson/);
+  assert.match(productionBindings, /testerLocalAppClient\.storage\.removeJson/);
   assert.match(permissionLab, /reasonCode/);
   assert.match(permissionLab, /canRequest/);
   assert.doesNotMatch(permissionLab, /localhost|127\.0\.0\.1|access[_-]?token|refresh[_-]?token|launch[_-]?ticket|session[_-]?token|new Runtime|createNimiClient/i);
@@ -41,12 +45,14 @@ test('Tester exposes the reserved-permission denial and app-private storage succ
 
 test('Tester default Realm, model catalog, and local asset paths fail closed', () => {
   const settingsRoute = read('src/shell/routes/settings-route.tsx');
+  const productionBindings = read('src/renderer/production-bindings.ts');
   const modelProvider = read('src/tester/tester-runtime-model-provider.ts');
   const aiConfigPanel = read('src/tester/workbench/tester-ai-config-settings-panel.tsx');
 
-  assert.match(settingsRoute, /throw new Error\('Realm is not admitted by the local-app carrier\.'\)/);
+  assert.match(settingsRoute, /rendererHost\.sdk\.settings\./);
+  assert.match(productionBindings, /throw new Error\('Realm is not admitted by the local-app carrier\.'\)/);
   assert.match(modelProvider, /throw new Error\('Runtime model catalog is not admitted by the local-app carrier\.'\)/);
-  assert.match(aiConfigPanel, /return \[\] as LocalAssetEntry\[\]/);
+  assert.match(aiConfigPanel, /list:\s*\(\) => \[\]/);
   assert.doesNotMatch(aiConfigPanel, /listNimiRuntimeLocalAssetEntries|artifactRoles:\s*asset\.artifactRoles/);
 });
 

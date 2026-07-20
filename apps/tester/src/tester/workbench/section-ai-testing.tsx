@@ -9,11 +9,10 @@ import {
 } from '@nimiplatform/kit/ui/motion';
 import { PanelRight } from 'lucide-react';
 import { createBrowserDataUrlAttachmentAdapter, useChatComposer, type BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
+import { useTesterRendererHost } from '../../renderer/context.js';
 import { type TesterCapability } from '../tester-capabilities.js';
 import { getTesterRunModelLabel, type TesterRunConfigSnapshot, type TesterRunHistory, type TesterRunHistoryRecord } from '../tester-history.js';
-import { runTesterCapability, type TesterCapabilityRunResult, type TesterRuntimeInspection } from '../tester-runtime.js';
-import { loadTesterPromptDraft, saveTesterPromptDraft } from '../tester-preferences.js';
-import { openWorldTourWindow, resolveWorldTourFixture } from '../world-tour/world-tour-shared.js';
+import type { TesterCapabilityRunResult, TesterRuntimeInspection } from '../tester-runtime.js';
 import { getCapabilityStudioProfile } from './capability-studio-profiles.js';
 import { CapabilityRunHistory, DrawerErrorBoundary, STATUS_PILL_LABEL, TesterAiConfigSettingsPanel, artifactExtension, downloadArtifactUrl, downloadTextFile, presetFor, resultPlainText, statusForCapability, type SectionAITestingProps } from './section-ai-testing-surface.js';
 import { TextStudioComposer, TextStudioStartState } from './section-ai-testing-composer.js';
@@ -46,10 +45,11 @@ function TextStudioShell({
   onSelectHistoryRun: (record: TesterRunHistoryRecord) => void;
   headerActions?: ReactNode;
 }) {
+  const rendererHost = useTesterRendererHost();
   const profile = getCapabilityStudioProfile(capability.id);
   const preset = useMemo(() => presetFor(capability), [capability]);
   const [prompt, setPrompt] = useState(() => (
-    loadTesterPromptDraft({
+    rendererHost.app.projection.promptDraft({
       surfaceId: 'ai-capabilities',
       capabilityId: capability.id,
       scenarioId: preset.id,
@@ -84,7 +84,7 @@ function TextStudioShell({
 
   function updatePrompt(nextPrompt: string) {
     setPrompt(nextPrompt);
-    saveTesterPromptDraft({
+    void rendererHost.app.commands.savePromptDraft({
       surfaceId: 'ai-capabilities',
       capabilityId: capability.id,
       scenarioId: preset.id,
@@ -92,7 +92,7 @@ function TextStudioShell({
   }
 
   useEffect(() => {
-    const draft = loadTesterPromptDraft({
+    const draft = rendererHost.app.projection.promptDraft({
       surfaceId: 'ai-capabilities',
       capabilityId: capability.id,
       scenarioId: preset.id,
@@ -101,17 +101,18 @@ function TextStudioShell({
     setContext('');
     setActiveRun(null);
     setSessionRuns({});
-  }, [capability.id, draftPersistence, preset]);
+  }, [capability.id, draftPersistence, preset, rendererHost]);
 
   async function run(nextPrompt = prompt, nextContext = context) {
     const displayPrompt = nextPrompt.trim();
     if (requiresPrompt && !displayPrompt) return;
     if (!runTarget.canDispatch) return;
+    const startedAt = rendererHost.clock.now();
     const pendingRun: TextStudioActiveRun = {
-      id: `pending-${Date.now()}`,
+      id: `pending-${startedAt}`,
       prompt: displayPrompt || preset.prompt,
       context: nextContext.trim(),
-      createdAt: new Date().toISOString(),
+      createdAt: new Date(startedAt).toISOString(),
       result: null,
       record: null,
       error: null,
@@ -121,8 +122,8 @@ function TextStudioShell({
     try {
       let result: TesterCapabilityRunResult;
       if (isWorldTour) {
-        const fixture = await resolveWorldTourFixture({});
-        const opened = await openWorldTourWindow({ manifestPath: fixture.manifestPath });
+        const fixture = await rendererHost.app.commands.resolveWorldTourFixture({});
+        const opened = await rendererHost.app.commands.openWorldTourWindow({ manifestPath: fixture.manifestPath });
         result = {
           ok: true,
           capabilityId: capability.id,
@@ -139,7 +140,7 @@ function TextStudioShell({
         const isStreaming = capability.id === 'chat.stream';
         if (isStreaming) setStreamingText('');
         const directive = textStudioDirectiveForTarget(runTarget, profile);
-        result = await runTesterCapability({
+        result = await rendererHost.sdk.runCapability({
           capabilityId: capability.id,
           prompt: textStudioRuntimePrompt(displayPrompt, nextContext, directive),
           scenarioId: preset.id,
@@ -179,7 +180,7 @@ function TextStudioShell({
     const text = resultPlainText(currentResult);
     if (!text) return;
     try {
-      void navigator.clipboard?.writeText(text);
+      void rendererHost.app.commands.copyText(text);
     } catch {
       // Clipboard is best-effort; Download remains the durable export path.
     }
@@ -187,12 +188,13 @@ function TextStudioShell({
 
   function handleDownload() {
     if (!currentResult) return;
-    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const stamp = new Date(rendererHost.clock.now()).toISOString().replace(/[:.]/g, '-');
     if (currentResult.ok && currentResult.output.kind === 'artifacts') {
       const output = currentResult.output;
       const firstArtifact = output.firstArtifact;
       if (!firstArtifact?.url) return;
       void downloadArtifactUrl(
+        rendererHost.app.commands,
         `${capability.id}-${stamp}.${artifactExtension(firstArtifact.mimeType)}`,
         firstArtifact.url,
       );
@@ -200,7 +202,7 @@ function TextStudioShell({
     }
     const text = resultPlainText(currentResult);
     if (!text) return;
-    void downloadTextFile(`${capability.id}-${stamp}.txt`, text);
+    void downloadTextFile(rendererHost.app.commands, `${capability.id}-${stamp}.txt`, text);
   }
 
   function selectHistoryRun(record: TesterRunHistoryRecord) {

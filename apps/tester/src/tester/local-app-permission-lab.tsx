@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, KeyRound, RefreshCw, ShieldCheck } from 'lucide-react';
 import { Button, InlineAlert, StatusBadge, Surface } from '@nimiplatform/kit/ui';
-import { testerLocalAppClient } from '../shell/local-app-runtime-platform.js';
-import { jsonValuesEqual } from '@nimiplatform/kit/core/json-value';
+import { useTesterRendererHost } from '../renderer/context.js';
 
 const RESERVED_PERMISSION_ID = 'agents.interact' as const;
 const STORAGE_RELATIVE_PATH = 'authority-lab/app-private-storage.json';
@@ -32,6 +31,7 @@ const INITIAL_STORAGE: BoundaryEvidence = {
 };
 
 export function TesterLocalAppPermissionLab() {
+  const rendererHost = useTesterRendererHost();
   const [sessionState, setSessionState] = useState('checking');
   const [sessionBound, setSessionBound] = useState(false);
   const [permission, setPermission] = useState<PermissionEvidence | null>(null);
@@ -43,8 +43,8 @@ export function TesterLocalAppPermissionLab() {
     setBusyAction('refresh');
     try {
       const [session, posture] = await Promise.all([
-        testerLocalAppClient.auth.status(),
-        testerLocalAppClient.permissions.status(RESERVED_PERMISSION_ID),
+        rendererHost.app.commands.localAppSessionStatus(),
+        rendererHost.app.commands.localAppPermissionStatus(RESERVED_PERMISSION_ID),
       ]);
       setSessionState(session.state);
       setSessionBound(session.sessionBound);
@@ -61,7 +61,7 @@ export function TesterLocalAppPermissionLab() {
     } finally {
       setBusyAction(null);
     }
-  }, []);
+  }, [rendererHost]);
 
   useEffect(() => {
     void refresh();
@@ -70,7 +70,7 @@ export function TesterLocalAppPermissionLab() {
   const requestReservedPermission = useCallback(async () => {
     setBusyAction('request');
     try {
-      const posture = await testerLocalAppClient.permissions.request({
+      const posture = await rendererHost.app.commands.localAppPermissionRequest({
         permissionId: RESERVED_PERMISSION_ID,
         reason: 'Tester verifies that reserved permissions cannot be requested before atomic admission.',
       });
@@ -89,7 +89,7 @@ export function TesterLocalAppPermissionLab() {
     } finally {
       setBusyAction(null);
     }
-  }, []);
+  }, [rendererHost]);
 
   const runStorageRoundTrip = useCallback(async () => {
     setBusyAction('storage');
@@ -99,17 +99,15 @@ export function TesterLocalAppPermissionLab() {
         source: 'nimi.tester',
         purpose: 'app-private-base-entitlement-proof',
       } as const;
-      const written = await testerLocalAppClient.storage.writeJson(STORAGE_RELATIVE_PATH, value);
-      const read = await testerLocalAppClient.storage.readJson(STORAGE_RELATIVE_PATH);
-      if (!jsonValuesEqual(read.value, value)) {
-        throw new Error('App-private storage readback did not match the written value.');
-      }
-      const removed = await testerLocalAppClient.storage.removeJson(STORAGE_RELATIVE_PATH);
-      if (!removed.removed) throw new Error('App-private storage cleanup did not remove the written document.');
+      const result = await rendererHost.app.commands.localAppStorageRoundTrip({
+        relativePath: STORAGE_RELATIVE_PATH,
+        value,
+      });
+      if (!result.removed) throw new Error('App-private storage cleanup did not remove the written document.');
       setStorage({
         kind: 'success',
         reasonCode: 'app-private-base-entitlement-round-trip-succeeded',
-        message: `写入、读取和清理成功（${written.sizeBytes} bytes）；全程没有权限请求。`,
+        message: `写入、读取和清理成功（${result.sizeBytes} bytes）；全程没有权限请求。`,
       });
     } catch (error) {
       setStorage({ kind: 'failure', ...normalizeBoundaryError(error) });
@@ -117,7 +115,7 @@ export function TesterLocalAppPermissionLab() {
       setBusyAction(null);
       void refresh();
     }
-  }, [refresh]);
+  }, [refresh, rendererHost]);
 
   const status = useMemo(() => permissionPresentation(permission?.posture), [permission?.posture]);
 
@@ -132,7 +130,7 @@ export function TesterLocalAppPermissionLab() {
           <div className="min-w-0">
             <div className="flex items-center gap-2 font-semibold">
               <ShieldCheck size={18} aria-hidden="true" />
-              <span>受保护 local-app session</span>
+              <span>Local-app session posture</span>
             </div>
             <p className="mt-2 break-words text-sm text-[var(--nimi-text-secondary)]">
               Session：{sessionState} · Identity：{sessionBound ? 'bound' : 'not-bound'}
@@ -159,7 +157,7 @@ export function TesterLocalAppPermissionLab() {
             onClick={() => void refresh()}
             className="w-full sm:w-auto"
           >
-            刷新真实状态
+            刷新状态
           </Button>
           <Button
             type="button"

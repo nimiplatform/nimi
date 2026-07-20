@@ -1,9 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Dialog, DialogContent, DialogTitle, IconButton, Tooltip } from '@nimiplatform/kit/ui';
 import { Copy as CopyIcon, Download as DownloadIcon, Maximize2, X } from 'lucide-react';
+import { useTesterRendererHost } from '../../renderer/context.js';
+import type { TesterRendererCommandPort } from '../../renderer/contract.js';
 import type { TesterCapabilityRunResult } from '../tester-runtime.js';
 import { unavailableReasonTitle } from '../tester-unavailable.js';
-import { saveTesterExport } from '../tester-export.js';
 
 export function formatRuntimeRequestDiagnostics(value: unknown): string {
   const seen = new WeakSet<object>();
@@ -97,19 +98,20 @@ export function RuntimeDiagnosticsActions({
   text: string;
   filenameBase: string;
 }) {
+  const rendererHost = useTesterRendererHost();
   const canExport = text.trim().length > 0;
   function handleCopyDiagnostics() {
     if (!canExport) return;
     try {
-      void navigator.clipboard?.writeText(text);
+      void rendererHost.app.commands.copyText(text);
     } catch {
       // Clipboard remains best-effort; download is the durable path.
     }
   }
   function handleDownloadDiagnostics() {
     if (!canExport) return;
-    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-    void downloadTextFile(`${filenameBase}-runtime-details-${stamp}.txt`, text);
+    const stamp = new Date(rendererHost.clock.now()).toISOString().replace(/[:.]/g, '-');
+    void downloadTextFile(rendererHost.app.commands, `${filenameBase}-runtime-details-${stamp}.txt`, text);
   }
   return (
     <div className="studio-diag__actions">
@@ -235,9 +237,12 @@ export function TextStudioOutputBody({ text }: { text: string }) {
   );
 }
 
-export async function downloadTextFile(filename: string, body: string) {
-  const blob = new Blob([body], { type: 'text/plain;charset=utf-8' });
-  await saveTesterExport({ filename, mimeType: blob.type, body: blob });
+export async function downloadTextFile(
+  commands: TesterRendererCommandPort,
+  filename: string,
+  body: string,
+) {
+  await commands.exportText({ filename, body });
 }
 
 // File extension for a saved media artifact, derived from its MIME subtype.
@@ -252,11 +257,10 @@ export function artifactExtension(mimeType?: string): string {
 
 // Save a runtime media artifact (image / audio / video) to disk. Works for both
 // inline data URLs and hosted URLs by streaming the resource through a Blob.
-export async function downloadArtifactUrl(filename: string, url: string) {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Runtime artifact download failed (${response.status} ${response.statusText || 'HTTP error'})`);
-  }
-  const blob = await response.blob();
-  await saveTesterExport({ filename, mimeType: blob.type || undefined, body: blob });
+export async function downloadArtifactUrl(
+  commands: TesterRendererCommandPort,
+  filename: string,
+  url: string,
+) {
+  await commands.exportArtifact({ filename, url });
 }

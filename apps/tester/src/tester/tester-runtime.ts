@@ -25,12 +25,19 @@ export type TesterTypedSuccess = {
   trace?: TesterTrace;
 };
 
-export type TesterRuntimeInspection = {
-  status: 'ready' | 'connected' | 'unavailable';
-  mode: string;
-  detail: string;
-  healthJson?: string;
-};
+export type TesterRuntimeInspection =
+  | {
+      status: 'simulated';
+      mode: 'simulated';
+      detail: string;
+      healthJson?: string;
+    }
+  | {
+      status: 'ready' | 'connected' | 'unavailable';
+      mode: string;
+      detail: string;
+      healthJson?: string;
+    };
 
 export type TesterCapabilityRunInput = {
   capabilityId: TesterCapabilityId;

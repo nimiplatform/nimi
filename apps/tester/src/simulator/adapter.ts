@@ -1,0 +1,31 @@
+import { testerSimulatorBehavior } from './behavior.js';
+import { createTesterSimulatorBindings } from './bindings.js';
+import type { TesterSimulatorPrepareContext } from './protocol.js';
+
+export const testerSimulatorAdapterFactory = {
+  protocol: 'nimi.simulator.module/v1',
+  moduleId: 'tester',
+  behavior: testerSimulatorBehavior,
+  create() {
+    let phase: 'created' | 'prepared' | 'active' | 'inactive' | 'disposed' = 'created';
+    return {
+      prepare(context: TesterSimulatorPrepareContext) {
+        if (phase !== 'created') throw new Error('TESTER_SIMULATOR_ADAPTER_PREPARE_ORDER');
+        phase = 'prepared';
+        return createTesterSimulatorBindings(context);
+      },
+      activate() {
+        if (phase !== 'prepared' && phase !== 'inactive') throw new Error('TESTER_SIMULATOR_ADAPTER_ACTIVATE_ORDER');
+        phase = 'active';
+      },
+      deactivate() {
+        if (phase !== 'active') throw new Error('TESTER_SIMULATOR_ADAPTER_DEACTIVATE_ORDER');
+        phase = 'inactive';
+      },
+      dispose() {
+        if (phase === 'disposed') return;
+        phase = 'disposed';
+      },
+    };
+  },
+} as const;

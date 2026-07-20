@@ -55,6 +55,8 @@ test('tester auth and runtime bootstrap consume Kit shell bridge primitives', ()
 
   assert.match(main, /installNimiShellRuntimeBridge/);
   assert.match(main, /from '@nimiplatform\/kit\/shell\/renderer\/bridge'/);
+  assert.match(main, /rendererRoot\.classList\.add\('nimi-ui-module--tester'\)/);
+  assert.match(main, /overlayRoot\.classList\.add\('nimi-ui-module--tester'\)/);
   assert.match(localAppClient, /createNimiClient/);
   assert.match(localAppClient, /createNimiLocalAppStandardShellSurface/);
   assert.match(runtimePlatform, /runtimeAccountLoginEnabled = false/);
@@ -150,12 +152,12 @@ test('tester left rail anchors UI Recipes above the framed account avatar', () =
   assert.match(sideNav, /workbenchLibraryCapabilityId[\s\S]*data-nav-placement="bottom"/);
   assert.doesNotMatch(bottomGroup, /workbenchLibraryCapabilityId|<Compass/);
   assert.match(bottomGroup, /aria-label="UI Recipes"[\s\S]*\{accountSlot/);
-  assert.match(styles, /\.workbench\{[^}]*--workbench-account-avatar-size: 28px;/);
+  assert.match(styles, /\.workbench\{[^}]*--nimi-ui-module-tester-account-avatar-size: 28px;/);
   assert.match(styles, /\[data-workbench-account-root\]\{[^}]*align-self: end;[^}]*border-radius: 999px;/);
   assert.match(styles, /\[data-workbench-account-trigger\]\{[^}]*border-radius: 999px;[^}]*background: transparent;[^}]*box-shadow: none;/);
   assert.match(accountPanel, /className="lab-account-menu__avatar-glyph"/);
-  assert.match(styles, /\[data-workbench-account-trigger\] \.nimi-action__icon\{[^}]*width: var\(--workbench-account-avatar-size\);[^}]*height: var\(--workbench-account-avatar-size\);/);
-  assert.match(styles, /\.lab-account-menu__avatar-glyph\{[^}]*width: var\(--workbench-account-avatar-size\);[^}]*height: var\(--workbench-account-avatar-size\);[^}]*box-shadow: inset 0 0 0 1px/);
+  assert.match(styles, /\[data-workbench-account-trigger\] \.nimi-action__icon\{[^}]*width: var\(--nimi-ui-module-tester-account-avatar-size\);[^}]*height: var\(--nimi-ui-module-tester-account-avatar-size\);/);
+  assert.match(styles, /\.lab-account-menu__avatar-glyph\{[^}]*width: var\(--nimi-ui-module-tester-account-avatar-size\);[^}]*height: var\(--nimi-ui-module-tester-account-avatar-size\);[^}]*box-shadow: inset 0 0 0 1px/);
 });
 
 test('tester account menu consumes the shared Kit AccountPanel without owning Runtime logout truth', () => {
@@ -346,9 +348,9 @@ test('tester UI Recipes use an inspect-driven recipe inspector workspace', () =>
   assert.match(gallery, /setInspectorOpen\(true\)/);
   assert.match(gallery, /aria-label="Close recipe inspector"/);
   assert.match(gallery, /inspectorPanelRef/);
-  assert.match(gallery, /document\.addEventListener\('mousedown'/);
-  assert.match(gallery, /inspectorPanelRef\.current\?\.contains\(target\)/);
-  assert.match(gallery, /document\.removeEventListener\('mousedown'/);
+  assert.match(gallery, /onBlur=\{\(event\) =>/);
+  assert.match(gallery, /event\.currentTarget\.contains\(event\.relatedTarget\)/);
+  assert.doesNotMatch(gallery, /document\.(?:addEventListener|removeEventListener)/);
   assert.doesNotMatch(gallery, /OverlayRecipeMetrics|OverlayStatPill/);
   assert.doesNotMatch(gallery, /OverlayRecipeHero|kit-overlay-hero/);
   assert.doesNotMatch(gallery, /overlayRecipeDescription|overlayRecipeIcon|line-clamp-3/);
@@ -452,26 +454,49 @@ test('tester UI Recipes foundations keep raw token evidence out of the startup c
 
 test('tester capability runs consume Kit renderer telemetry', () => {
   const workbench = read('src/tester/tester-workbench.tsx');
+  const productionBindings = read('src/renderer/production-bindings.ts');
   const testerAiConfig = read('src/tester/tester-ai-config.ts');
   const testerRuntime = read('src/tester/tester-runtime.ts');
 
-  assert.match(workbench, /from '@nimiplatform\/kit\/telemetry'/);
-  assert.match(workbench, /from '@nimiplatform\/sdk'/);
-  assert.match(workbench, /from '@nimiplatform\/sdk\/types'/);
-  assert.match(workbench, /loadTesterAIConfigSummary/);
+  assert.match(workbench, /useTesterRendererHost/);
+  assert.match(workbench, /rendererHost\.app\.projection\.aiConfigSummary\(\)/);
+  assert.match(workbench, /rendererHost\.app\.projection\.runHistory\(\)/);
+  assert.match(workbench, /rendererHost\.app\.commands\.runtimeLog\(/);
+  assert.match(workbench, /rendererHost\.app\.commands\.rendererLog\(/);
+  assert.match(workbench, /rendererHost\.app\.commands\.nextRunIdentity\(\)/);
+  assert.match(productionBindings, /from '@nimiplatform\/kit\/telemetry'/);
+  assert.match(productionBindings, /from '@nimiplatform\/sdk'/);
+  assert.match(productionBindings, /from '@nimiplatform\/sdk\/types'/);
+  assert.match(productionBindings, /loadTesterAIConfigSummary/);
   assert.match(testerAiConfig, /inspectRuntimeReadiness/);
   assert.match(testerRuntime, /from '\.\.\/shell\/auth\/runtime-platform\.js'/);
   assert.doesNotMatch(workbench, /from '@nimiplatform\/sdk\/runtime'/);
-  assert.match(workbench, /createNimiClientId\('run'\)/);
-  assert.match(workbench, /requestWithRetry/);
-  assert.match(workbench, /executor:\s*loadTesterRunHistory/);
-  assert.match(workbench, /createRendererFlowId\('tester-capability-run'\)/);
-  assert.match(workbench, /logRendererEvent\(/);
-  assert.match(workbench, /emitRuntimeLog/);
+  assert.doesNotMatch(workbench, /from '@nimiplatform\/(?:kit\/telemetry|sdk(?:\/types)?)'/);
+  assert.match(productionBindings, /createNimiClientId\('run'\)/);
+  assert.match(productionBindings, /requestWithRetry/);
+  assert.match(productionBindings, /executor:\s*loadTesterRunHistory/);
+  assert.match(productionBindings, /logRendererEvent\(/);
+  assert.match(productionBindings, /emitRuntimeLog/);
   assert.match(workbench, /action:tester-capability-run:recorded/);
   assert.match(workbench, /history-load-failed/);
   assert.doesNotMatch(workbench, /runtime-bridge\/logging|@renderer\/.*telemetry/);
   assert.doesNotMatch(workbench, /Math\.random\(\)/);
+});
+
+test('tester derives production and Simulator truth from their host projections without a renderer host discriminator', () => {
+  const productionBindings = read('src/renderer/production-bindings.ts');
+  const simulatorFixture = read('src/simulator/fixture.ts');
+  const simulatorBindings = read('src/simulator/bindings.ts');
+  const workbench = read('src/tester/tester-workbench.tsx');
+
+  assert.match(productionBindings, /runtimePlatform:\s*getRuntimePlatformProjection/);
+  assert.match(productionBindings, /aiConfigSummary:\s*loadTesterAIConfigSummary/);
+  assert.match(simulatorFixture, /runtimePlatform:\s*\{[\s\S]*status:\s*'unavailable'/);
+  assert.match(simulatorFixture, /runtime:\s*\{[\s\S]*status:\s*'simulated'/);
+  assert.match(simulatorBindings, /return \{ state: 'unavailable', sessionBound: false \}/);
+  assert.match(workbench, /summary\.runtime\.status === 'simulated'/);
+  assert.match(workbench, /localAppProjection\?\.status === 'ready'/);
+  assert.doesNotMatch(workbench, /isSimulator|simulatorHost|hostKind/);
 });
 
 test('tester product-local preferences stay app-owned while platform AIConfig and storage fail closed', () => {

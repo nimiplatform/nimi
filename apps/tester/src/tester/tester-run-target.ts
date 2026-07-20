@@ -36,7 +36,7 @@ export type TesterRunTargetLocalModel = ModelConfigRuntimeTargetLocalModel;
 
 function runtimeStatus(runtime: TesterRuntimeInspection | null): 'checking' | 'ready' | 'blocked' {
   if (!runtime) return 'checking';
-  return runtime.status === 'ready' ? 'ready' : 'blocked';
+  return runtime.status === 'ready' || runtime.status === 'simulated' ? 'ready' : 'blocked';
 }
 
 export function createTesterRunTargetSummary(input: {
