@@ -17,6 +17,7 @@
   "exclude": [
     "dist",
     "**/*.test.ts",
+    "**/*.typecheck.ts",
     "**/*.test-helper.ts",
     "**/*.example.ts",
     "adapters/**",

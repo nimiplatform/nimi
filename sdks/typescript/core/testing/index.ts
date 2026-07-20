@@ -1,5 +1,3 @@
-import assert from 'node:assert/strict';
-
 import { collectNimiTextStream, type NimiAiModel, type NimiGenerateTextRequest, type NimiGenerateTextResult } from '../ai';
 import {
   assertNimiCapability,
@@ -14,6 +12,41 @@ import {
   type NimiToolCall,
   type NimiUsage,
 } from '../contracts';
+
+export { createNimiTestingAiModel } from './ai-model.js';
+export {
+  NIMI_TESTING_AI_GENERATE_TEXT_METHOD,
+  NIMI_TESTING_AI_METHODS,
+  NIMI_TESTING_AI_STREAM_TEXT_METHOD,
+  NIMI_TESTING_STREAM_MAX_BUFFERED_ITEMS,
+} from './ai-model.js';
+export type {
+  CreateNimiTestingAiModelInput,
+  NimiTestingAiMethodMap,
+} from './ai-model.js';
+export { createNimiTestingHarness } from './host-harness.js';
+export { createNimiTestingHostError } from './host-errors.js';
+export { NIMI_TESTING_HOST_FAILURE_DISPOSITIONS } from './host-types.js';
+export type {
+  CreateNimiTestingHarnessInput,
+  NimiTestingCallControl,
+  NimiTestingHarness,
+  NimiTestingHostFailure,
+  NimiTestingHostFailureDisposition,
+  NimiTestingHostPort,
+  NimiTestingHostResult,
+  NimiTestingHostStream,
+  NimiTestingHostStreamTerminal,
+  NimiTestingMethodDeclaration,
+  NimiTestingMethodItem,
+  NimiTestingMethodRequest,
+  NimiTestingMethodResult,
+  NimiTestingStreamCancelReason,
+  NimiTestingStreamMethod,
+  NimiTestingStreamMethodId,
+  NimiTestingUnaryMethod,
+  NimiTestingUnaryMethodId,
+} from './host-types.js';
 
 export interface NimiMockModelOptions {
   readonly model?: NimiModelRef;
@@ -107,10 +140,11 @@ export async function collectMockModelStream(model: NimiAiModel, request: NimiGe
 }
 
 export function assertNimiEventOrder(events: readonly NimiRunEvent[], expectedTypes: readonly NimiRunEvent['type'][]): void {
-  assert.deepEqual(
-    events.map((event) => event.type),
-    expectedTypes,
-  );
+  const actual = events.map((event) => event.type);
+  if (actual.length !== expectedTypes.length
+    || actual.some((type, index) => type !== expectedTypes[index])) {
+    throw new Error(`Nimi event order mismatch: expected ${JSON.stringify(expectedTypes)}, got ${JSON.stringify(actual)}`);
+  }
 }
 
 export function assertNimiCapabilitySupported(
@@ -129,10 +163,10 @@ export function assertNimiOutputSchema(value: NimiJsonValue, schema: NimiJsonObj
 
   const required = schema.required;
   if (Array.isArray(required)) {
-    assert.equal(isJsonObject(value), true, 'required fields need an object output');
+    assertCondition(isJsonObject(value), 'required fields need an object output');
     for (const field of required) {
-      assert.equal(typeof field, 'string', 'required field names must be strings');
-      assert.equal(Object.hasOwn(value as Record<string, unknown>, field), true, `missing required output field ${field}`);
+      assertCondition(typeof field === 'string', 'required field names must be strings');
+      assertCondition(Object.hasOwn(value as Record<string, unknown>, field), `missing required output field ${field}`);
     }
   }
 }
@@ -146,14 +180,18 @@ export function userTextMessage(text: string) {
 
 function assertJsonType(value: NimiJsonValue, expectedType: string): void {
   if (expectedType === 'array') {
-    assert.equal(Array.isArray(value), true, 'expected array output');
+    assertCondition(Array.isArray(value), 'expected array output');
     return;
   }
   if (expectedType === 'object') {
-    assert.equal(isJsonObject(value), true, 'expected object output');
+    assertCondition(isJsonObject(value), 'expected object output');
     return;
   }
-  assert.equal(typeof value, expectedType, `expected ${expectedType} output`);
+  assertCondition(typeof value === expectedType, `expected ${expectedType} output`);
+}
+
+function assertCondition(condition: boolean, message: string): asserts condition {
+  if (!condition) throw new Error(message);
 }
 
 function isJsonObject(value: NimiJsonValue): value is NimiJsonObject {

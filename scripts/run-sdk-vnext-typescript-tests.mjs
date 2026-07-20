@@ -37,6 +37,19 @@ function main() {
     return;
   }
 
+  const typeContractResult = runPnpm([
+    '--dir',
+    vnextRoot,
+    'exec',
+    'tsc',
+    '--project',
+    'tsconfig.testing-contract.json',
+  ]);
+  if (typeContractResult.status !== 0) {
+    process.exitCode = typeContractResult.status ?? 1;
+    return;
+  }
+
   const result = runPnpm([
     '--dir',
     vnextRoot,
