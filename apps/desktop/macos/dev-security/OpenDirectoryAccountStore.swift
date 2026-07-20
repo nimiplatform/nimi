@@ -64,6 +64,7 @@ struct RuntimeDirectoryRecord {
 }
 
 final class OpenDirectoryRuntimeAccountStore {
+    private let session: ODSession
     private let node: ODNode
 
     init() throws {
@@ -71,47 +72,136 @@ final class OpenDirectoryRuntimeAccountStore {
             throw accountFailure("Protected Runtime service account inspection requires a real-root helper process.")
         }
         do {
-            node = try ODNode(session: ODSession.default(), name: runtimeDirectoryNodeName)
+            let openedSession = try ODSession(options: nil)
+            session = openedSession
+            node = try ODNode(session: openedSession, name: runtimeDirectoryNodeName)
         } catch {
-            throw openDirectoryFailure("open the fixed local Directory Services node", error)
+            let value = error as NSError
+            throw principalDiagnosticFailure(
+                "runtime-principal-directory-query-failed",
+                "inspect the fixed local OpenDirectory node failure",
+                "The fixed local OpenDirectory node could not be opened.",
+                details: [
+                    "phase": "directory-node-open",
+                    "probe": "local-default-node",
+                    "state": "open-error",
+                    "return_code": value.code,
+                    "verifier_pid": getpid(),
+                ]
+            )
         }
     }
 
     func observe(_ kind: RuntimeDirectoryRecordKind) throws -> RuntimeDirectoryRecord? {
+        try observe(kind, attribute: kODAttributeTypeRecordName, value: runtimeAccountName)
+    }
+
+    func observeByIdentifier(
+        _ kind: RuntimeDirectoryRecordKind,
+        identifier: UInt32
+    ) throws -> RuntimeDirectoryRecord? {
+        let attribute = kind == .user ? kODAttributeTypeUniqueID : kODAttributeTypePrimaryGroupID
+        return try observe(kind, attribute: attribute, value: String(identifier))
+    }
+
+    func proveRawAbsent(_ plan: RuntimeAccountCreationPlan, phase: String) throws {
+        for kind in [RuntimeDirectoryRecordKind.user, .group] {
+            let byName = try observe(kind)
+            let byIdentifier = try observeByIdentifier(kind, identifier: plan.identifier)
+            guard byName == nil, byIdentifier == nil else {
+                throw principalDirectoryStateFailure(
+                    phase: phase,
+                    probe: "raw-od-\(kind.rawValue)-name-and-identifier",
+                    state: "present-or-conflicting",
+                    expectedIdentifier: plan.identifier,
+                    observed: byName ?? byIdentifier
+                )
+            }
+        }
+    }
+
+    func proveRawUserAbsentGroupExact(
+        _ witness: RuntimeAccountRepairWitness,
+        phase: String
+    ) throws {
+        let plan = witness.plan
+        let userByName = try observe(.user)
+        let userByIdentifier = try observeByIdentifier(.user, identifier: plan.identifier)
+        guard userByName == nil, userByIdentifier == nil else {
+            throw principalDirectoryStateFailure(
+                phase: phase,
+                probe: "raw-od-user-name-and-identifier",
+                state: "present-or-conflicting",
+                expectedIdentifier: plan.identifier,
+                observed: userByName ?? userByIdentifier
+            )
+        }
+        let groupByName = try observe(.group)
+        let groupByIdentifier = try observeByIdentifier(.group, identifier: plan.identifier)
+        guard let groupByName, let groupByIdentifier,
+              runtimeDirectoryRecord(groupByName, matches: witness),
+              runtimeDirectoryRecord(groupByIdentifier, matches: witness),
+              groupByName.one(kODAttributeTypeGUID) == groupByIdentifier.one(kODAttributeTypeGUID) else {
+            throw principalDirectoryStateFailure(
+                phase: phase,
+                probe: "raw-od-group-name-and-identifier",
+                state: "absent-or-conflicting",
+                expectedIdentifier: plan.identifier,
+                observed: groupByName ?? groupByIdentifier
+            )
+        }
+    }
+
+    private func observe(
+        _ kind: RuntimeDirectoryRecordKind,
+        attribute: String,
+        value: String
+    ) throws -> RuntimeDirectoryRecord? {
         let records: [ODRecord]
         do {
             let query = try ODQuery(
                 node: node,
                 forRecordTypes: kind.recordType,
-                attribute: kODAttributeTypeRecordName,
+                attribute: attribute,
                 matchType: ODMatchType(kODMatchEqualTo),
-                queryValues: runtimeAccountName,
+                queryValues: value,
                 returnAttributes: [kODAttributeTypeAllAttributes],
                 maximumResults: 2
             )
             guard let result = try query.resultsAllowingPartial(false) as? [ODRecord] else {
-                throw accountFailure("OpenDirectory returned an invalid \(kind.rawValue) query projection.")
+                throw openDirectoryQueryFailure(
+                    kind: kind,
+                    attribute: attribute,
+                    state: "invalid-query-projection"
+                )
             }
             records = result
         } catch let failure as DevSecurityFailure {
             throw failure
         } catch {
-            throw openDirectoryFailure("query the exact Runtime service \(kind.rawValue)", error)
+            throw openDirectoryQueryFailure(kind: kind, attribute: attribute, error: error)
         }
         guard records.count <= 1 else {
-            throw accountFailure("The Runtime service \(kind.rawValue) name resolved ambiguously.")
+            throw principalDirectoryStateFailure(
+                phase: "directory-query",
+                probe: "raw-od-\(kind.rawValue)-\(attribute)",
+                state: "ambiguous",
+                expectedIdentifier: UInt32(value),
+                observed: nil
+            )
         }
         guard let record = records.first else { return nil }
-        guard record.recordName == runtimeAccountName else {
-            throw accountFailure("A case-folded or aliased Runtime service \(kind.rawValue) conflicts with the fixed account name.")
-        }
         do {
             let details = try record.recordDetails(forAttributes: [kODAttributeTypeAllAttributes])
             var values = [String: [Any]]()
             for (rawKey, rawValue) in details {
                 guard let attribute = rawKey as? String,
                       let observed = rawValue as? [Any] else {
-                    throw accountFailure("OpenDirectory returned a malformed raw \(kind.rawValue) attribute projection.")
+                    throw openDirectoryQueryFailure(
+                        kind: kind,
+                        attribute: attribute,
+                        state: "malformed-record-projection"
+                    )
                 }
                 values[attribute] = observed
             }
@@ -124,8 +214,15 @@ final class OpenDirectoryRuntimeAccountStore {
                 canonicalName: record.recordName,
                 values: values
             )
+        } catch let failure as DevSecurityFailure {
+            throw failure
         } catch {
-            throw openDirectoryFailure("read the exact Runtime service \(kind.rawValue)", error)
+            throw openDirectoryQueryFailure(
+                kind: kind,
+                attribute: attribute,
+                state: "record-details-error",
+                error: error
+            )
         }
     }
 
@@ -169,65 +266,152 @@ final class OpenDirectoryRuntimeAccountStore {
     func deleteExact(_ kind: RuntimeDirectoryRecordKind, plan: RuntimeAccountCreationPlan) throws {
         guard let observed = try observe(kind) else { return }
         guard runtimeDirectoryRecord(observed, matches: plan) else {
-            throw accountFailure("Refusing to delete a Runtime service \(kind.rawValue) that does not match the transaction witness.")
+            throw principalDirectoryStateFailure(
+                phase: "principal-delete",
+                probe: "raw-od-\(kind.rawValue)",
+                state: "transaction-witness-conflict",
+                expectedIdentifier: plan.identifier,
+                observed: observed
+            )
         }
+        let deletionError: Error?
         do {
             try observed.record.delete()
+            deletionError = nil
         } catch {
-            throw openDirectoryFailure("delete the exact Runtime service \(kind.rawValue)", error)
+            deletionError = error
         }
-        guard try observe(kind) == nil else {
-            throw accountFailure("The Runtime service \(kind.rawValue) remained after exact deletion.")
-        }
+        try proveRecordAbsentAfterDelete(
+            kind,
+            identifier: plan.identifier,
+            phase: "principal-delete",
+            deletionError: deletionError
+        )
     }
 
     @discardableResult
     func validateExactRepairUser(_ witness: RuntimeAccountRepairWitness) throws -> RuntimeDirectoryRecord {
-        guard let observed = try observe(.user),
+        let candidate = try observe(.user)
+        guard let observed = candidate,
               runtimeDirectoryRecord(observed, matches: witness) else {
-            throw accountFailure("The Runtime service user does not match its class-bound repair witness.")
+            throw principalDirectoryStateFailure(
+                phase: "partial-install-repair-user-validation",
+                probe: "raw-od-user",
+                state: "class-witness-conflict",
+                expectedIdentifier: witness.plan.identifier,
+                observed: candidate
+            )
         }
         return observed
     }
 
     @discardableResult
     func validateExactRepairGroup(_ witness: RuntimeAccountRepairWitness) throws -> RuntimeDirectoryRecord {
-        guard let observed = try observe(.group),
+        let candidate = try observe(.group)
+        guard let observed = candidate,
               runtimeDirectoryRecord(observed, matches: witness) else {
-            throw accountFailure("The Runtime service group does not match its class-bound repair witness.")
+            throw principalDirectoryStateFailure(
+                phase: "partial-install-repair-group-validation",
+                probe: "raw-od-group",
+                state: "class-witness-conflict",
+                expectedIdentifier: witness.plan.identifier,
+                observed: candidate
+            )
         }
         return observed
     }
 
     func deleteExactRepairUser(_ witness: RuntimeAccountRepairWitness) throws {
         let observed = try validateExactRepairUser(witness)
+        let deletionError: Error?
         do {
             try observed.record.delete()
+            deletionError = nil
         } catch {
-            throw openDirectoryFailure("delete the class-bound Runtime service user", error)
+            deletionError = error
         }
-        guard try observe(.user) == nil else {
-            throw accountFailure("The class-bound Runtime service user remained after exact deletion.")
-        }
+        try proveRecordAbsentAfterDelete(
+            .user,
+            identifier: witness.plan.identifier,
+            phase: "partial-install-repair-user-delete",
+            deletionError: deletionError
+        )
     }
 
     func deleteExactRepairGroup(_ witness: RuntimeAccountRepairWitness) throws {
         let observed = try validateExactRepairGroup(witness)
+        let deletionError: Error?
         do {
             try observed.record.delete()
+            deletionError = nil
         } catch {
-            throw openDirectoryFailure("delete the exact Runtime service repair group", error)
+            deletionError = error
         }
-        guard try observe(.group) == nil else {
-            throw accountFailure("The exact Runtime service repair group remained after deletion.")
+        try proveRecordAbsentAfterDelete(
+            .group,
+            identifier: witness.plan.identifier,
+            phase: "partial-install-repair-group-delete",
+            deletionError: deletionError
+        )
+    }
+
+    private func proveRecordAbsentAfterDelete(
+        _ kind: RuntimeDirectoryRecordKind,
+        identifier: UInt32,
+        phase: String,
+        deletionError: Error?
+    ) throws {
+        // A new ODSession is mandatory here. If delete() committed its effect
+        // before surfacing an error, the same privileged invocation must
+        // recognize that effect-ahead boundary instead of demanding a retry.
+        let verificationStore = try OpenDirectoryRuntimeAccountStore()
+        let byName = try verificationStore.observe(kind)
+        let byIdentifier = try verificationStore.observeByIdentifier(kind, identifier: identifier)
+        switch openDirectoryDeletePostconditionDecision(
+            deletionReportedError: deletionError != nil,
+            byNamePresent: byName != nil,
+            byIdentifierPresent: byIdentifier != nil
+        ) {
+        case .acceptCommittedAbsence:
+            return
+        case .failDeleteErrorRecordRemains:
+            guard let deletionError else {
+                throw principalDirectoryStateFailure(
+                    phase: phase,
+                    probe: "raw-od-\(kind.rawValue)-delete-decision",
+                    state: "delete-error-decision-without-error",
+                    expectedIdentifier: identifier,
+                    observed: byName ?? byIdentifier
+                )
+            }
+            throw openDirectoryMutationFailure(
+                phase: phase,
+                probe: "raw-od-\(kind.rawValue)-delete",
+                state: "delete-error-record-remains",
+                error: deletionError
+            )
+        case .failRecordRemainedAfterDelete:
+            throw principalDirectoryStateFailure(
+                phase: phase,
+                probe: "raw-od-\(kind.rawValue)-name-and-identifier",
+                state: "remained-after-delete",
+                expectedIdentifier: identifier,
+                observed: byName ?? byIdentifier
+            )
         }
     }
 
     func proveAbsent() throws {
-        let user = try observe(.user)
-        let group = try observe(.group)
-        guard user == nil, group == nil else {
-            throw accountFailure("The Runtime service user/group absence proof failed.")
+        for kind in [RuntimeDirectoryRecordKind.user, .group] {
+            if let observed = try observe(kind) {
+                throw principalDirectoryStateFailure(
+                    phase: "principal-name-absence",
+                    probe: "raw-od-\(kind.rawValue)-name",
+                    state: "present",
+                    expectedIdentifier: nil,
+                    observed: observed
+                )
+            }
         }
     }
 
@@ -244,13 +428,22 @@ final class OpenDirectoryRuntimeAccountStore {
                 maximumResults: 0
             )
             guard let result = try query.resultsAllowingPartial(false) as? [ODRecord] else {
-                throw accountFailure("OpenDirectory returned an invalid full group-membership projection.")
+                throw openDirectoryQueryFailure(
+                    kind: .group,
+                    attribute: "explicit-membership",
+                    state: "invalid-query-projection"
+                )
             }
             records = result
         } catch let failure as DevSecurityFailure {
             throw failure
         } catch {
-            throw openDirectoryFailure("query explicit local group memberships", error)
+            throw openDirectoryQueryFailure(
+                kind: .group,
+                attribute: "explicit-membership",
+                state: "query-error",
+                error: error
+            )
         }
         let forbiddenValues: [String: String] = [
             "dsAttrTypeStandard:GroupMembership": runtimeAccountName,
@@ -263,15 +456,36 @@ final class OpenDirectoryRuntimeAccountStore {
             do {
                 details = try record.recordDetails(forAttributes: runtimeForbiddenExplicitGroupMembershipAttributes)
             } catch {
-                throw openDirectoryFailure("read explicit membership fields for local group \(localGroupName)", error)
+                throw openDirectoryQueryFailure(
+                    kind: .group,
+                    attribute: "explicit-membership-details",
+                    state: "record-details-error",
+                    error: error
+                )
             }
             for attribute in runtimeForbiddenExplicitGroupMembershipAttributes {
                 guard let raw = details[attribute] else { continue }
                 guard let values = raw as? [Any], values.allSatisfy({ $0 is String }) else {
-                    throw accountFailure("OpenDirectory returned a malformed explicit group-membership value.")
+                    throw openDirectoryQueryFailure(
+                        kind: .group,
+                        attribute: attribute,
+                        state: "malformed-membership-projection"
+                    )
                 }
                 if values.compactMap({ $0 as? String }).contains(forbiddenValues[attribute]) {
-                    throw accountFailure("The Runtime service identity is explicitly attached to local group \(localGroupName).")
+                    throw principalDiagnosticFailure(
+                        "runtime-principal-directory-state-mismatch",
+                        "remove the forbidden explicit Runtime principal group attachment before retrying repair",
+                        "The Runtime service identity has a forbidden explicit local-group attachment.",
+                        details: [
+                            "phase": "explicit-group-membership",
+                            "probe": attribute,
+                            "state": "forbidden-membership-present",
+                            "expected_identifier": plan.identifier,
+                            "observed_name_sha256": sha256(Data(localGroupName.utf8)),
+                            "verifier_pid": getpid(),
+                        ]
+                    )
                 }
             }
         }
@@ -281,18 +495,39 @@ final class OpenDirectoryRuntimeAccountStore {
         _ kind: RuntimeDirectoryRecordKind,
         attributes: [AnyHashable: Any]
     ) throws -> RuntimeDirectoryRecord {
+        let record: ODRecord
         do {
-            let record = try node.createRecord(
+            record = try node.createRecord(
                 withRecordType: kind.recordType,
                 name: runtimeAccountName,
                 attributes: attributes
             )
+        } catch {
+            throw openDirectoryMutationFailure(
+                phase: "principal-create",
+                probe: "raw-od-\(kind.rawValue)-create",
+                state: "create-error",
+                error: error
+            )
+        }
+        do {
             try record.synchronize()
         } catch {
-            throw openDirectoryFailure("atomically create the Runtime service \(kind.rawValue)", error)
+            throw openDirectoryMutationFailure(
+                phase: "principal-create",
+                probe: "raw-od-\(kind.rawValue)-synchronize",
+                state: "synchronize-error",
+                error: error
+            )
         }
         guard let observed = try observe(kind) else {
-            throw accountFailure("The atomically created Runtime service \(kind.rawValue) was not observable.")
+            throw principalDirectoryStateFailure(
+                phase: "principal-create",
+                probe: "raw-od-\(kind.rawValue)",
+                state: "not-observable-after-create",
+                expectedIdentifier: nil,
+                observed: nil
+            )
         }
         return observed
     }
@@ -313,7 +548,11 @@ final class OpenDirectoryRuntimeAccountStore {
                 maximumResults: 0
             )
             guard let records = try query.resultsAllowingPartial(false) as? [ODRecord] else {
-                throw accountFailure("OpenDirectory returned an invalid UID/GID collision projection.")
+                throw openDirectoryQueryFailure(
+                    kind: recordType == kODRecordTypeUsers ? .user : .group,
+                    attribute: attribute,
+                    state: "invalid-collision-projection"
+                )
             }
             for record in records {
                 let details = try record.recordDetails(forAttributes: [attribute])
@@ -322,14 +561,23 @@ final class OpenDirectoryRuntimeAccountStore {
                       let value = values[0] as? String,
                       !value.isEmpty, value.allSatisfy({ $0.isASCII && $0.isNumber }),
                       let identifier = UInt32(value), String(identifier) == value else {
-                    throw accountFailure("OpenDirectory returned a malformed canonical UID/GID collision value.")
+                    throw openDirectoryQueryFailure(
+                        kind: recordType == kODRecordTypeUsers ? .user : .group,
+                        attribute: attribute,
+                        state: "malformed-collision-identifier"
+                    )
                 }
                 used.insert(identifier)
             }
         } catch let failure as DevSecurityFailure {
             throw failure
         } catch {
-            throw openDirectoryFailure("enumerate local Directory Services identifiers", error)
+            throw openDirectoryQueryFailure(
+                kind: recordType == kODRecordTypeUsers ? .user : .group,
+                attribute: attribute,
+                state: "identifier-enumeration-error",
+                error: error
+            )
         }
     }
 }
@@ -338,7 +586,84 @@ func accountFailure(_ message: String) -> DevSecurityFailure {
     fail("runtime-service-repair-required", "repair the dedicated _nimiruntimedev OpenDirectory identity", message)
 }
 
-private func openDirectoryFailure(_ operation: String, _ error: Error) -> DevSecurityFailure {
+private func openDirectoryMutationFailure(
+    phase: String,
+    probe: String,
+    state: String,
+    error: Error
+) -> DevSecurityFailure {
     let value = error as NSError
-    return accountFailure("\(operation) failed [domain=\(value.domain), code=\(value.code)]: \(value.localizedDescription)")
+    return principalDiagnosticFailure(
+        "runtime-principal-directory-mutation-failed",
+        "inspect the exact local OpenDirectory mutation failure and retained journal",
+        "The exact Runtime service OpenDirectory mutation failed; the transaction remains recoverable.",
+        details: [
+            "phase": phase,
+            "probe": probe,
+            "state": state,
+            "return_code": value.code,
+            "observed_name_sha256": sha256(Data(runtimeAccountName.utf8)),
+            "verifier_pid": getpid(),
+        ]
+    )
+}
+
+private func openDirectoryQueryFailure(
+    kind: RuntimeDirectoryRecordKind,
+    attribute: String,
+    state: String = "query-error",
+    error: Error? = nil
+) -> DevSecurityFailure {
+    let value = error as NSError?
+    return principalDiagnosticFailure(
+        "runtime-principal-directory-query-failed",
+        "inspect the exact local OpenDirectory query failure",
+        "The exact Runtime service \(kind.rawValue) OpenDirectory query failed.",
+        details: [
+            "phase": "directory-query",
+            "probe": "\(kind.rawValue):\(attribute)",
+            "state": state,
+            "return_code": value?.code ?? 0,
+            "observed_name_sha256": sha256(Data(runtimeAccountName.utf8)),
+            "verifier_pid": getpid(),
+        ]
+    )
+}
+
+func principalDirectoryStateFailure(
+    phase: String,
+    probe: String,
+    state: String,
+    expectedIdentifier: UInt32?,
+    observed: RuntimeDirectoryRecord?
+) -> DevSecurityFailure {
+    var details: [String: Any] = [
+        "phase": phase,
+        "probe": probe,
+        "state": state,
+        "verifier_pid": getpid(),
+    ]
+    if let expectedIdentifier { details["expected_identifier"] = expectedIdentifier }
+    if let observed {
+        details["observed_name_sha256"] = sha256(Data(observed.canonicalName.utf8))
+        if let identifier = observed.one(
+            observed.kind == .user ? kODAttributeTypeUniqueID : kODAttributeTypePrimaryGroupID
+        ), let parsed = UInt32(identifier) {
+            details["observed_identifier"] = parsed
+        }
+        if observed.kind == .user,
+           let groupIdentifier = observed.one(kODAttributeTypePrimaryGroupID),
+           let parsed = UInt32(groupIdentifier) {
+            details["observed_primary_group_identifier"] = parsed
+        }
+    }
+    details["projection_sha256"] = sha256(Data(
+        [phase, probe, state, expectedIdentifier.map(String.init) ?? "-"].joined(separator: "\u{0}").utf8
+    ))
+    return principalDiagnosticFailure(
+        "runtime-principal-directory-state-mismatch",
+        "inspect the exact fixed OpenDirectory record before retrying repair",
+        "The raw OpenDirectory principal state does not match the journal boundary.",
+        details: details
+    )
 }

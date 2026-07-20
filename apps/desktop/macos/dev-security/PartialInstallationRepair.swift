@@ -1,32 +1,4 @@
-import Darwin
 import Foundation
-import Security
-
-struct PartialInstallRepairJournal: Codable {
-    let schemaVersion: String
-    let transactionID: String
-    let phase: String
-    let accountName: String
-    let identifier: UInt32
-    let groupGeneratedUID: String
-    let userGeneratedUID: String
-    let sourceHelperSHA256: String
-    let sourceHelperCDHash: String
-    let sourcePrincipalCarrierContractVersion: Int
-    let residueClass: String
-    let authenticationEvidenceSHA256: String
-    let planDigest: String
-    let rootKeyId: String
-    let policyDigest: String
-
-    var plan: RuntimeAccountCreationPlan {
-        RuntimeAccountCreationPlan(
-            identifier: identifier,
-            groupGeneratedUID: groupGeneratedUID,
-            userGeneratedUID: userGeneratedUID
-        )
-    }
-}
 
 struct PartialInstallRepairAuthority {
     let rootKeyId: String
@@ -42,449 +14,191 @@ func requireNoPartialInstallRepairInProgress() throws {
     }
 }
 
-func repairExactPartialRuntimeInstallation() throws -> [String: Any] {
+func repairExactPartialRuntimeInstallation(
+    lockWitness: RuntimeServiceMutationLockWitness
+) throws -> PartialInstallRepairPreparedCompletion<PartialInstallRepairJournal, [String: Any]> {
     guard runtimeLegacyRepairJournalSchemaVersion == "nimi.macos-local-development-partial-install-repair/v2",
           runtimeLegacyRepairJournalPhases == [
               "prepared", "artifacts-removed", "user-removed", "group-removed", "principal-removed",
           ],
           runtimeLegacyRepairJournalOwnership == "parent_repair_journal_directly_owns_artifact_user_group_deletion_and_must_not_delegate_to_or_recover_a_principal_transaction_journal",
+          runtimeLegacyRepairTerminalCommitPolicy == "executor-prepares-the-exact-success-receipt-while-the-principal-removed-journal-remains-durable;_outer-final-helper-vnode-and-static-code-proof_then-bootstrap-self-retirement-must-complete-while-that-journal-still-exists;_a-second-final-helper-proof-immediately-precedes-one-exact-journal-unlink-as-the-last-semantic-effect;_any-proof-retirement-or-unlink-failure-preserves-a-journal-or-reaches-the-independent-clean-no-journal-boundary_and-never-emits-repair-success;_no-post-unlink-authority-check-may-turn-a-committed-repair-into-an-unrecoverable-failure",
           runtimeLegacyRepairJournalStagingRecovery == "fixed_single-use_staging_path_is_removed_only_inside_the_final-helper-mutation-lock_after_open-fd_regular_root-root_mode-0600-nlink-1-size-at-most-65536_and_same-device-inode-path_revalidation;_recovery_precedes_every_unknown-entry_or_phase-evaluation_gate_and_the_staging_path_is_never_semantic_authority",
           runtimeLegacyRepairJournalAuthorityBindingRequiredFields == [
               "source_helper_sha256", "source_helper_cdhash", "source_principal_carrier_contract_version",
               "residue_class", "authentication_evidence_sha256", "plan_digest", "user_generated_uid",
               "group_generated_uid", "root_key_id", "policy_digest",
-          ] else {
+          ],
+          runtimeLegacyRepairSourceHelperIdentityStability == "source_status_is_read_once_only_for_one_complete_unjournaled_principal_baseline_before_initial_journal_creation;_clean_partial_or-conflicting_unjournaled-state_never-invokes-status;_an-active-journal_revalidates_the_exact-final-helper_open-vnode-that-matches-the-transaction-lock-device/inode/size/mtime/ctime/flags/SHA256_CDHash_identifier_empty-Team-ID_exact-certificate-requirement_leaf-and-root-certificate-digests_hardened-runtime_signing-profile-root-and-policy_in-process_without-invoking-status_codesign-or-any-final-helper-command;_the-lock-opened-vnode-and-named-path_are-revalidated-before-terminal-commit;_DELETE/WRITE/EXTEND/LINK/RENAME/REVOKE_or_EV_ERROR/EV_EOF_are-hard-rejected-with-exact-event-flags;_NOTE_ATTRIB_is-not-path-replacement-by-itself_and-is-accepted-only-when_device/inode/mode/uid/gid/nlink/size/mtime/ctime/flags_and-opened-vnode-SHA256_remain-exact_and-the-full-static-code-identity-is-revalidated;_atime-is-observer-mutable-and-never-authority;_the-same-static-identity-is-reverified-before-each-phase_after-final-absence-proof_and-at-the-terminal-commit-boundary",
+          runtimeLegacyRepairInvocationDeadline == "root_repair_helper_owns_one_hard_600-second_deadline;_every_child_has_a_shorter_bounded_timeout_and_must_fit_inside_the_remaining_outer_budget;_direct-child_commands_atomically_reserve_one_launch-slot_before_Process.run_and_bind_the_child_PID_before_input_or-wait;_bootstrap-owned_process-group_commands_use_posix_spawn_with_POSIX_SPAWN_SETPGROUP_and_POSIX_SPAWN_CLOEXEC_DEFAULT_while_the_deadline-lock-is-held_so_a-successful-spawn-and-PID/PGID-binding-are-one-atomic-transition;_an-expired-repair-invocation_fails-before-the-next-spawn;_timeout-or-output-overflow_signals-the-whole-owned-PGID_TERM-then-KILL_reaps-the-direct-child_drains-both-pipes-to-EOF_and-requires-kill-minus-PGID-zero-to-return-ESRCH_before-child_reaped-true;_any-unbound-or-unreaped-state_is-quiescence-unproven_and-forbids-wrapper-cleanup;_the_Node-launcher_never-times-out-sudo_or-cleans-up-before-sudo-has-observed-the-root-helper-exit;_deadline-termination_preserves-the-exact-journal-for-effect-ahead-recovery",
+          runtimeLegacyRepairFailureEvidence == "one_sanitized_non-authoritative_local_JSON_record_under_.nimi/local/acceptance_is_written_after-the_privileged_helper_has_exited;_it-preserves-every-authority-admitted_non-sensitive_diagnostic-field_plus-bounded-subprocess-status_and-never-persists-stderr_Keychain-material_tokens_or-private-keys;_vnode-diagnostics-preserve-exact-event-flags-and-names_lock-device/inode/SHA256_before/after-ctime_journal-phase/presence_completion/bootstrap-state_and-primary-failure-identity;_missing-structured-JSON_or-missing-explicit-child_reaped-true_preserves-the-exact-bootstrap;_only-explicit-child_reaped-true-permits-exact-bootstrap-cleanup;_one-failure-stops-automatic-retry",
+          runtimeLegacyRepairPostRepairCarrierDisposition == "repair_preserves_the_source_final_helper;_when_its_source_carrier_is_not_current_carrier_4_Runtime_install_remains_fail-closed_until_a_separately_confirmed_trust-helper_rotation_reprovisions_and_proves_one_current_signed_helper;_delete-only_repair_success_is_not_install-readiness",
+          runtimeLegacyRepairParentPrivateCustodyProof == "fixed_non-semantic_staging-vnode_recovery_runs_under_the_locked_in-process_static-helper-authority_before_journal-presence_or-OD-classification_and_does-not-authorize-any-platform-mutation;_exact-clean_no-journal_returns_before_private-custody;_an_active-or-newly-committed_prepared-journal_then_obtains_one_fresh_exact_final-helper_private-custody-receipt_before_the_first_artifact-or-principal-effect_in_each-invocation;_the_receipt_is_invocation-local_and_bound-in-memory_to_the_exact-journal-terminal-proof-binding_helper-SHA256_CDHash_root-key_policy_mutation-lock-vnode_and-parent-PID/start-identity;_a_crash_restart_authority-change_parent-change_or-binding-change_invalidates-it_and_requires-a-new-parent-proof",
+          runtimeLegacyRepairParentFinalHelperProcessTreePolicy == "the_parent_uses_posix_spawn-with-POSIX_SPAWN_SETPGROUP_to-establish-a-new-process-group-atomically-before-any-current-bootstrap-instruction-can-run;_the-bootstrap-requires-getpgrp-equals-getpid_and-never-execs-on-mismatch;_the-parent-deadline_owns-that-PGID_signals-the-entire-group-on-timeout-or-output-overflow_reaps-the-direct-child_drains-both-pipes-to-EOF_and-proves-the-PGID-empty-before-child-reaped-true;_this-contains-descendants-of-the-immutable-legacy-helper_without-trusting-their-implementation",
+          runtimeLegacyRepairFreshBootstrapNestedProcessPolicy == "after_exact_bootstrap_context_entry_the_fresh_absence_verifier_spawns_zero_descendants;_the_parent_brackets_it_with_bounded_quiescence_proofs_before_launch_and_after_the_parent-bound_receipt_before_any_phase-commit_or-success",
+          runtimeLegacyRepairCleanNoJournalDisposition == "exact_clean_state_without_a_v2_repair-journal_is_not_a_repair-success-and_returns_macos-dev-runtime-repair-not-required_before_cache-reset_principal_or-artifact_mutation;_it_never_invokes_source-helper-status_never_invents_source-carrier-or-install-readiness_and_requires_separate_trust-helper-verification-or-rotation_before-install" else {
         throw repairFailure("The authority-derived partial-install repair policy is invalid.")
     }
+    let invocationStaticAuthority = try currentPartialInstallRepairStaticAuthority(
+        lockWitness: lockWitness
+    )
+    // The fixed staging vnode is non-semantic crash residue. Recover it under
+    // the locked static helper authority before any journal/OD classification.
     try recoverInterruptedPartialInstallRepairJournalWrite()
-    let authority = try currentPartialInstallRepairAuthority()
     try requireRuntimeKeychainCustodyAbsent()
 
-    let journal: PartialInstallRepairJournal
-    if try repairPathPresent(runtimePartialInstallRepairJournalPath) {
-        journal = try readPartialInstallRepairJournal()
+    let journalPresent = try repairPathPresent(runtimePartialInstallRepairJournalPath)
+    let entryObservation: PartialInstallRepairEntryObservation
+    if journalPresent {
+        entryObservation = .activeJournal
+    } else if try exactRepairTerminalStateIsClean() {
+        entryObservation = .cleanNoJournal
     } else {
-        if try exactRepairTerminalStateIsClean() {
-            try requireRepairQuiescence(plan: nil)
-            return [
-                "status": "repaired",
-                "disposition": "already-clean",
-                "serviceName": launchDaemonLabel,
-                "removed": [],
-                "preserved": ["local_CA", "signing_Keychain", "signing_profile", "final_helper"],
-            ]
-        }
-        let witness = try requireExactRepairResidue(authority: authority)
-        try requireRepairQuiescence(plan: witness.plan)
-        journal = PartialInstallRepairJournal(
-            schemaVersion: runtimeLegacyRepairJournalSchemaVersion,
-            transactionID: UUID().uuidString.lowercased(),
-            phase: "prepared",
-            accountName: runtimeAccountName,
-            identifier: witness.plan.identifier,
-            groupGeneratedUID: witness.plan.groupGeneratedUID,
-            userGeneratedUID: witness.plan.userGeneratedUID,
-            sourceHelperSHA256: authority.sourceHelperSHA256,
-            sourceHelperCDHash: authority.sourceHelperCDHash,
-            sourcePrincipalCarrierContractVersion: authority.sourcePrincipalCarrierContractVersion,
-            residueClass: witness.residueClass.rawValue,
-            authenticationEvidenceSHA256: witness.authenticationEvidenceSHA256,
-            planDigest: partialInstallRepairPlanDigest(witness.plan),
-            rootKeyId: authority.rootKeyId,
-            policyDigest: authority.policyDigest
-        )
-        try writePartialInstallRepairJournal(journal)
+        entryObservation = .unjournaledResidue
     }
-
-    for _ in 0..<12 {
-        let current = try readPartialInstallRepairJournal()
-        try requireCurrentPartialInstallRepairAuthority(current)
-        try requireRuntimeKeychainCustodyAbsent()
-        try requireRepairQuiescence(plan: current.plan)
-        try validatePartialInstallRepairGlobalEnvelope(current)
-        if try reconcilePartialInstallRepairEffectAheadOfJournal(current) { continue }
-        try validatePartialInstallRepairPhaseState(current)
-
-        switch current.phase {
-        case "prepared":
-            try removeRepairLaunchDaemonIfPresent()
-            try removeEmptyRepairDirectoryIfPresent(runtimeStateRoot, owner: current.plan.identifier, group: current.plan.identifier, mode: 0o700)
-            try removeEmptyRepairDirectoryIfPresent(runtimeTransactionRoot, owner: 0, group: 0, mode: 0o700)
-            try removeEmptyRepairDirectoryIfPresent(runtimeRollbackRoot, owner: 0, group: 0, mode: 0o700)
-            try removeEmptyRepairDirectoryIfPresent(repairSocketRoot(), owner: 0, group: 0, mode: 0o755)
-            try updatePartialInstallRepairJournal(current, phase: "artifacts-removed")
-        case "artifacts-removed":
-            try removePartialInstallRepairUser(current)
-            try updatePartialInstallRepairJournal(current, phase: "user-removed")
-        case "user-removed":
-            try removePartialInstallRepairGroup(current)
-            try updatePartialInstallRepairJournal(current, phase: "group-removed")
-        case "group-removed":
-            let result = try runFixedCommand(
-                bootstrapHelperInstallPath,
-                ["verify-partial-install-repair-principal-removal"]
+    var parentCustodyProof: PartialInstallRepairParentCustodyProof?
+    try preparePartialInstallRepairEntry(
+        observation: entryObservation,
+        resumeActiveJournal: {
+            let existingJournal = try readPartialInstallRepairJournal()
+            let currentStatic = try requireCurrentPartialInstallRepairAuthority(
+                existingJournal,
+                lockWitness: lockWitness
             )
-            try validateFreshPartialInstallRepairAbsenceReceipt(result, journal: current)
-            try updatePartialInstallRepairJournal(current, phase: "principal-removed")
-        case "principal-removed":
-            try proveRepairTargetsAbsent()
-            try requireCurrentPartialInstallRepairAuthority(current)
-            try removePartialInstallRepairJournal()
-            return [
-                "status": "repaired",
-                "disposition": "residue-removed",
-                "serviceName": launchDaemonLabel,
-                "removed": ["partial_launchd_definition", "empty_install_directories", "exact_runtime_principal"],
-                "preserved": ["local_CA", "signing_Keychain", "signing_profile", "final_helper"],
+            try requireRepairQuiescence(plan: existingJournal.plan)
+            let proof = try establishPartialInstallRepairParentCustodyProof(
+                staticAuthority: currentStatic,
+                journal: existingJournal,
+                lockWitness: lockWitness
+            )
+            try requirePartialInstallRepairParentCustodyProof(
+                proof,
+                journal: existingJournal,
+                staticAuthority: currentStatic,
+                lockWitness: lockWitness
+            )
+            parentCustodyProof = proof
+        },
+        requireCompleteUnjournaledBaseline: {
+            let witness = try requireSourceStatusEligibleExactRepairResidue()
+            try requireRepairQuiescence(plan: witness.plan)
+            return witness
+        },
+        requestSourceStatus: {
+            try currentPartialInstallRepairAuthorityFromSourceStatus(
+                lockWitness: lockWitness
+            )
+        },
+        establishJournal: { witness, authority in
+            guard witness.residueClass.sourcePrincipalCarrierContractVersion
+                      == authority.sourcePrincipalCarrierContractVersion,
+                  authority.rootKeyId == invocationStaticAuthority.rootKeyId,
+                  authority.sourceHelperSHA256 == invocationStaticAuthority.sourceHelperSHA256,
+                  authority.sourceHelperCDHash == invocationStaticAuthority.sourceHelperCDHash,
+                  authority.policyDigest == invocationStaticAuthority.policyDigest else {
+                throw principalDiagnosticFailure(
+                    "runtime-principal-journal-invalid",
+                    "inspect the exact pre-journal source authority binding",
+                    "The source status, raw residue class, and parent static authority diverged.",
+                    details: [
+                        "phase": "repair-authority",
+                        "probe": "pre-journal-authority-binding",
+                        "state": "mismatch",
+                        "verifier_pid": getpid(),
+                    ]
+                )
+            }
+            let newJournal = PartialInstallRepairJournal(
+                schemaVersion: runtimeLegacyRepairJournalSchemaVersion,
+                transactionID: UUID().uuidString.lowercased(),
+                phase: "prepared",
+                accountName: runtimeAccountName,
+                identifier: witness.plan.identifier,
+                groupGeneratedUID: witness.plan.groupGeneratedUID,
+                userGeneratedUID: witness.plan.userGeneratedUID,
+                sourceHelperSHA256: authority.sourceHelperSHA256,
+                sourceHelperCDHash: authority.sourceHelperCDHash,
+                sourcePrincipalCarrierContractVersion:
+                    authority.sourcePrincipalCarrierContractVersion,
+                residueClass: witness.residueClass.rawValue,
+                authenticationEvidenceSHA256: witness.authenticationEvidenceSHA256,
+                planDigest: partialInstallRepairPlanDigest(witness.plan),
+                rootKeyId: authority.rootKeyId,
+                policyDigest: authority.policyDigest
+            )
+            try writePartialInstallRepairJournal(newJournal)
+            let committedJournal = try readPartialInstallRepairJournal()
+            guard committedJournal == newJournal else {
+                throw principalDiagnosticFailure(
+                    "runtime-principal-journal-invalid",
+                    "inspect the exact committed prepared repair journal",
+                    "The committed prepared journal differs from its complete in-memory authority witness.",
+                    details: [
+                        "phase": "prepared",
+                        "probe": "initial-journal-readback",
+                        "state": "mismatch",
+                        "projection_sha256": partialInstallRepairTerminalProofBinding(committedJournal),
+                        "verifier_pid": getpid(),
+                    ]
+                )
+            }
+            let committedStatic = try requireCurrentPartialInstallRepairAuthority(
+                committedJournal,
+                lockWitness: lockWitness
+            )
+            let proof = try establishPartialInstallRepairParentCustodyProof(
+                staticAuthority: committedStatic,
+                journal: committedJournal,
+                lockWitness: lockWitness
+            )
+            try requirePartialInstallRepairParentCustodyProof(
+                proof,
+                journal: committedJournal,
+                staticAuthority: committedStatic,
+                lockWitness: lockWitness
+            )
+            parentCustodyProof = proof
+        },
+        cleanNoJournalFailure: {
+            partialInstallRepairNotRequiredFailure()
+        }
+    )
+
+    guard let parentCustodyProof else {
+        throw principalDiagnosticFailure(
+            "runtime-principal-journal-invalid",
+            "restart the exact journal-bound repair bootstrap",
+            "The repair entry did not establish one invocation-local journal-bound custody proof.",
+            details: [
+                "phase": "repair-authority",
+                "probe": "parent-private-custody-binding",
+                "state": "absent",
+                "verifier_pid": getpid(),
+                "child_reaped": true,
             ]
-        default:
-            throw repairFailure("The partial-install repair journal phase is not admitted.")
-        }
+        )
     }
-    throw repairFailure("The partial-install repair state machine exceeded its bounded monotonic transition budget.")
-}
-
-private func requireExactRepairResidue(
-    authority: PartialInstallRepairAuthority
-) throws -> RuntimeAccountRepairWitness {
-    try requireNoUnknownRuntimeDevEntries()
-    let forbidden = try [
-        runtimeActiveRoot,
-        runtimeExecutablePath,
-        desktopApplicationPath,
-        "\(runtimeDevRoot)/installer-ledger.json",
-        installationJournalPath,
-        runtimePrincipalJournalPath,
-        generatedDesktopSocketPath,
-        generatedLocalAppSocketPath,
-    ].filter { try repairPathPresent($0) }
-    guard forbidden.isEmpty else {
-        throw repairFailure("The machine contains payload, socket, custody, or transaction state outside the exact repair-only shape: \(forbidden.joined(separator: ", ")).")
-    }
-    try verifyInstalledLaunchDaemonDefinition()
-    let store = try OpenDirectoryRuntimeAccountStore()
-    guard let user = try store.observe(.user), let group = try store.observe(.group) else {
-        throw repairFailure("The exact repair baseline requires one complete Runtime service user and group.")
-    }
-    let witness = try requireRuntimeAccountRepairWitness(
-        user: user,
-        group: group,
-        sourcePrincipalCarrierContractVersion: authority.sourcePrincipalCarrierContractVersion
-    )
-    try store.proveNoExplicitGroupMembership(witness.plan)
-    _ = try validateRuntimeAccountPOSIXProjection(witness.plan)
-    try requireEmptyRepairDirectory(runtimeStateRoot, owner: witness.plan.identifier, group: witness.plan.identifier, mode: 0o700)
-    try requireEmptyRepairDirectory(runtimeTransactionRoot, owner: 0, group: 0, mode: 0o700)
-    try requireEmptyRepairDirectory(runtimeRollbackRoot, owner: 0, group: 0, mode: 0o700)
-    try requireEmptyRepairDirectory(repairSocketRoot(), owner: 0, group: 0, mode: 0o755)
-    return witness
-}
-
-private func requireRepairQuiescence(plan: RuntimeAccountCreationPlan?) throws {
-    let launchd = try inspectLaunchdRuntimeState()
-    guard !launchd.loaded, !launchd.running, launchd.pid == nil,
-          try !developmentProcessesRunning(),
-          try !repairBoundProcessesRunning(plan: plan) else {
-        throw repairFailure("The repair-only transaction requires the launchd job and all Nimi development processes to be absent.")
-    }
-}
-
-private func repairBoundProcessesRunning(plan: RuntimeAccountCreationPlan?) throws -> Bool {
-    let result = try runFixedCommand("/bin/ps", ["-axo", "pid=,ruid=,uid=,svuid=,comm="], captureLimit: 8 * 1024 * 1024)
-    guard let output = String(data: result.stdout, encoding: .utf8) else {
-        throw repairFailure("The process table is not valid UTF-8.")
-    }
-    let fixedExecutables = Set([
-        runtimeExecutablePath,
-        "\(desktopApplicationPath)/Contents/MacOS/Nimi Dev",
-        "\(desktopApplicationPath)/Contents/Frameworks/Nimi Local App Host Dev.app/Contents/MacOS/Nimi Local App Host Dev",
-    ])
-    for line in output.split(separator: "\n", omittingEmptySubsequences: true) {
-        let fields = line.split(maxSplits: 4, omittingEmptySubsequences: true, whereSeparator: { $0.isWhitespace })
-        guard fields.count == 5,
-              let pid = Int32(fields[0]),
-              let realUID = UInt32(fields[1]),
-              let effectiveUID = UInt32(fields[2]),
-              let savedUID = UInt32(fields[3]),
-              pid > 0 else {
-            throw repairFailure("The process table contains an unrecognized row; quiescence cannot be proven.")
-        }
-        let executable = String(fields[4])
-        if fixedExecutables.contains(executable) { return true }
-        if let plan, [realUID, effectiveUID, savedUID].contains(plan.identifier) { return true }
-    }
-    return false
-}
-
-private func currentPartialInstallRepairAuthority() throws -> PartialInstallRepairAuthority {
-    try requireSecureInstalledHelper()
-    let profile = try DevelopmentCertificateAuthority().validateInstalledProfile(requirePrivateCustody: false)
-    try verifyInstalledSigningProfileWithSignedHelper()
-    let sourceHelperSHA256 = try sha256File(helperInstallPath)
-    let sourceHelper = try inspectSignedCode(helperInstallPath)
-    guard let helperIdentity = profile.identities["helper"],
-          sourceHelper.identifier == helperIdentity.signingIdentifier,
-          sourceHelper.teamId.isEmpty,
-          sourceHelper.leafSPKISHA256 == helperIdentity.leafSPKISHA256,
-          sourceHelper.hardenedRuntime else {
-        throw repairFailure("The installed final helper does not match the current local-development signing profile.")
-    }
-    let status = try runFixedCommand(helperInstallPath, ["status"], captureLimit: 256 * 1024)
-    guard status.pid > 1, status.pid != getpid(),
-          let value = try JSONSerialization.jsonObject(with: status.stdout) as? [String: Any],
-          value["rootKeyId"] as? String == profile.rootKeyId,
-          value["identityClass"] as? String == "local_ca",
-          (value["productAdmission"] as? NSNumber)?.boolValue == false,
-          (value["signingProfileTrusted"] as? NSNumber)?.boolValue == true,
-          value["serviceName"] as? String == launchDaemonLabel,
-          let sourceCarrier = (value["runtimePrincipalCarrierContractVersion"] as? NSNumber)?.intValue,
-          [
-              runtimeNormalRepairSourcePrincipalCarrierContractVersion,
-              runtimeLegacyRepairSourcePrincipalCarrierContractVersion,
-          ].contains(sourceCarrier) else {
-        throw repairFailure("The exact installed source helper did not return a repair-admitted carrier status receipt.")
-    }
-    try requireSecureInstalledHelper()
-    let stableSourceHelper = try inspectSignedCode(helperInstallPath)
-    let stableSourceHelperSHA256 = try sha256File(helperInstallPath)
-    guard sourceHelperSHA256 == stableSourceHelperSHA256,
-          sourceHelper.identifier == stableSourceHelper.identifier,
-          sourceHelper.teamId == stableSourceHelper.teamId,
-          sourceHelper.cdhash == stableSourceHelper.cdhash,
-          sourceHelper.designatedRequirement == stableSourceHelper.designatedRequirement,
-          sourceHelper.leafSPKISHA256 == stableSourceHelper.leafSPKISHA256,
-          sourceHelper.hardenedRuntime == stableSourceHelper.hardenedRuntime else {
-        throw repairFailure("The installed source helper changed while its repair authority was inspected.")
-    }
-    return PartialInstallRepairAuthority(
-        rootKeyId: profile.rootKeyId,
-        sourceHelperSHA256: sourceHelperSHA256,
-        sourceHelperCDHash: sourceHelper.cdhash,
-        sourcePrincipalCarrierContractVersion: sourceCarrier,
-        policyDigest: sha256(Data(runtimePartialInstallRepairPolicy.utf8))
+    return try executePartialInstallRepair(
+        operations: makeLivePartialInstallRepairOperations(
+            parentCustodyProof: parentCustodyProof,
+            lockWitness: lockWitness
+        )
     )
 }
 
-private func requireCurrentPartialInstallRepairAuthority(_ journal: PartialInstallRepairJournal) throws {
-    let current = try currentPartialInstallRepairAuthority()
-    guard journal.sourceHelperSHA256 == current.sourceHelperSHA256,
-          journal.sourceHelperCDHash == current.sourceHelperCDHash,
-          journal.sourcePrincipalCarrierContractVersion == current.sourcePrincipalCarrierContractVersion,
-          journal.residueClass == repairResidueClass(for: current.sourcePrincipalCarrierContractVersion)?.rawValue,
-          journal.planDigest == partialInstallRepairPlanDigest(journal.plan),
-          journal.groupGeneratedUID == journal.plan.groupGeneratedUID,
-          journal.userGeneratedUID == journal.plan.userGeneratedUID,
-          journal.rootKeyId == current.rootKeyId,
-          journal.policyDigest == current.policyDigest else {
-        throw repairFailure("The partial-install repair journal belongs to a different trust generation, helper, or authority policy.")
-    }
-}
-
-private func validatePartialInstallRepairPhaseState(_ journal: PartialInstallRepairJournal) throws {
-    try validatePartialInstallRepairGlobalEnvelope(journal)
-    switch journal.phase {
-    case "prepared", "artifacts-removed":
-        try validateCompletePartialInstallRepairPrincipal(journal)
-    case "user-removed":
-        try validatePartialInstallRepairUserAbsentGroupPresent(journal)
-    case "group-removed", "principal-removed":
-        try proveRuntimeAccountFullyAbsent(journal.plan)
-    default:
-        throw repairFailure("The partial-install repair journal phase is not admitted.")
-    }
-}
-
-private func validatePartialInstallRepairGlobalEnvelope(_ journal: PartialInstallRepairJournal) throws {
-    try requireNoUnknownRuntimeDevEntries()
-    guard try !repairPathPresent(runtimePrincipalJournalPath) else {
-        throw repairFailure("The normal Runtime principal transaction journal must remain absent throughout partial-install repair.")
-    }
-    let forbiddenPayloads = [
-        runtimeActiveRoot,
-        runtimeExecutablePath,
-        desktopApplicationPath,
-        "\(runtimeDevRoot)/installer-ledger.json",
-        installationJournalPath,
-        runtimePrincipalJournalPath,
-        generatedDesktopSocketPath,
-        generatedLocalAppSocketPath,
-    ]
-    let presentPayloads = try forbiddenPayloads.filter { try repairPathPresent($0) }
-    guard presentPayloads.isEmpty else {
-        throw repairFailure("A payload, socket, or normal installation transaction appeared during partial-install repair: \(presentPayloads.joined(separator: ", ")).")
-    }
-    switch journal.phase {
-    case "prepared":
-        try verifyOptionalRepairLaunchDaemon()
-        try verifyOptionalEmptyRepairDirectory(runtimeStateRoot, owner: journal.identifier, group: journal.identifier, mode: 0o700)
-        try verifyOptionalEmptyRepairDirectory(runtimeTransactionRoot, owner: 0, group: 0, mode: 0o700)
-        try verifyOptionalEmptyRepairDirectory(runtimeRollbackRoot, owner: 0, group: 0, mode: 0o700)
-        try verifyOptionalEmptyRepairDirectory(repairSocketRoot(), owner: 0, group: 0, mode: 0o755)
-    case "artifacts-removed", "user-removed", "group-removed", "principal-removed":
-        try requireRepairOwnedArtifactsAbsent()
-    default:
-        throw repairFailure("The partial-install repair journal phase is not admitted.")
-    }
-}
-
-private func reconcilePartialInstallRepairEffectAheadOfJournal(
-    _ journal: PartialInstallRepairJournal
-) throws -> Bool {
-    let store = try OpenDirectoryRuntimeAccountStore()
-    let user = try store.observe(.user)
-    let group = try store.observe(.group)
-    switch journal.phase {
-    case "artifacts-removed" where user == nil && group != nil:
-        try validatePartialInstallRepairUserAbsentGroupPresent(journal)
-        try updatePartialInstallRepairJournal(journal, phase: "user-removed")
-        return true
-    case "user-removed" where user == nil && group == nil:
-        try proveRuntimeAccountFullyAbsent(journal.plan)
-        try updatePartialInstallRepairJournal(journal, phase: "group-removed")
-        return true
-    default:
-        return false
-    }
-}
-
-private func validateCompletePartialInstallRepairPrincipal(
-    _ journal: PartialInstallRepairJournal
-) throws {
-    let store = try OpenDirectoryRuntimeAccountStore()
-    guard let user = try store.observe(.user), let group = try store.observe(.group) else {
-        throw repairFailure("The repair phase requires one complete class-bound Runtime principal.")
-    }
-    let observed = try requireRuntimeAccountRepairWitness(
-        user: user,
-        group: group,
-        sourcePrincipalCarrierContractVersion: journal.sourcePrincipalCarrierContractVersion
+private func partialInstallRepairNotRequiredFailure() -> DevSecurityFailure {
+    fail(
+        "macos-dev-runtime-repair-not-required",
+        "verify_or_rotate_the_preserved_trust_helper_before_install",
+        "The machine is already at an exact clean no-journal boundary; delete-only repair is not applicable and no source carrier was inferred.",
+        details: [
+            "phase": "no-journal-clean",
+            "probe": "repair-applicability",
+            "state": "not-required",
+            "verifier_pid": getpid(),
+            "child_reaped": true,
+        ]
     )
-    let journalWitness = try partialInstallRepairWitness(journal)
-    guard journal.authenticationEvidenceSHA256 == observed.authenticationEvidenceSHA256,
-          observed == journalWitness else {
-        throw repairFailure("The Runtime principal changed after the delete-only repair journal was committed.")
-    }
-    try store.proveNoExplicitGroupMembership(journal.plan)
-    _ = try validateRuntimeAccountPOSIXProjection(journal.plan)
-}
-
-private func validatePartialInstallRepairUserAbsentGroupPresent(
-    _ journal: PartialInstallRepairJournal
-) throws {
-    let store = try OpenDirectoryRuntimeAccountStore()
-    guard try store.observe(.user) == nil else {
-        throw repairFailure("The user-removed repair boundary still contains the Runtime service user.")
-    }
-    _ = try store.validateExactRepairGroup(try partialInstallRepairWitness(journal))
-    try store.proveNoExplicitGroupMembership(journal.plan)
-    try provePartialInstallRepairUserPOSIXAbsentGroupPresent(journal.plan)
-}
-
-private func removePartialInstallRepairUser(_ journal: PartialInstallRepairJournal) throws {
-    let store = try OpenDirectoryRuntimeAccountStore()
-    let witness = try partialInstallRepairWitness(journal)
-    _ = try store.validateExactRepairGroup(witness)
-    try store.proveNoExplicitGroupMembership(journal.plan)
-    try store.deleteExactRepairUser(witness)
-    try validatePartialInstallRepairUserAbsentGroupPresent(journal)
-}
-
-private func removePartialInstallRepairGroup(_ journal: PartialInstallRepairJournal) throws {
-    let store = try OpenDirectoryRuntimeAccountStore()
-    guard try store.observe(.user) == nil else {
-        throw repairFailure("The Runtime service user must be absent before its exact repair group is deleted.")
-    }
-    let witness = try partialInstallRepairWitness(journal)
-    try store.proveNoExplicitGroupMembership(journal.plan)
-    try provePartialInstallRepairUserPOSIXAbsentGroupPresent(journal.plan)
-    try store.deleteExactRepairGroup(witness)
-    try proveRuntimeAccountFullyAbsent(journal.plan)
-}
-
-private func provePartialInstallRepairUserPOSIXAbsentGroupPresent(
-    _ plan: RuntimeAccountCreationPlan
-) throws {
-    for attempt in 0..<25 {
-        let userAbsent = getpwnam(runtimeAccountName) == nil && getpwuid(uid_t(plan.identifier)) == nil
-        let namedGroupMatches: Bool
-        if let group = getgrnam(runtimeAccountName) {
-            namedGroupMatches = group.pointee.gr_gid == plan.identifier
-                && String(cString: group.pointee.gr_name) == runtimeAccountName
-        } else {
-            namedGroupMatches = false
-        }
-        let identifierGroupMatches: Bool
-        if let group = getgrgid(gid_t(plan.identifier)) {
-            identifierGroupMatches = group.pointee.gr_gid == plan.identifier
-                && String(cString: group.pointee.gr_name) == runtimeAccountName
-        } else {
-            identifierGroupMatches = false
-        }
-        if userAbsent && namedGroupMatches && identifierGroupMatches { return }
-        if attempt < 24 { usleep(100_000) }
-    }
-    throw repairFailure("The effect-ahead user deletion did not reach the exact user-absent/group-present POSIX boundary.")
-}
-
-func verifyPartialInstallRepairPrincipalRemovalInFreshProcess() throws -> [String: Any] {
-    let journal = try readPartialInstallRepairJournal()
-    guard journal.phase == "group-removed" else {
-        throw repairFailure("Fresh-process partial-install absence verification requires the group-removed boundary.")
-    }
-    try requireCurrentPartialInstallRepairAuthority(journal)
-    try requireRuntimeKeychainCustodyAbsent()
-    try requireRepairQuiescence(plan: journal.plan)
-    try validatePartialInstallRepairPhaseState(journal)
-    return [
-        "status": "absence-verified",
-        "accountName": runtimeAccountName,
-        "transactionID": journal.transactionID,
-        "phase": journal.phase,
-        "sourceHelperSHA256": journal.sourceHelperSHA256,
-        "sourceHelperCDHash": journal.sourceHelperCDHash,
-        "sourcePrincipalCarrierContractVersion": journal.sourcePrincipalCarrierContractVersion,
-        "residueClass": journal.residueClass,
-        "authenticationEvidenceSHA256": journal.authenticationEvidenceSHA256,
-        "planDigest": journal.planDigest,
-        "groupGeneratedUID": journal.groupGeneratedUID,
-        "userGeneratedUID": journal.userGeneratedUID,
-        "rootKeyId": journal.rootKeyId,
-        "policyDigest": journal.policyDigest,
-        "verifierPID": getpid(),
-    ]
-}
-
-private func validateFreshPartialInstallRepairAbsenceReceipt(
-    _ result: CommandResult,
-    journal: PartialInstallRepairJournal
-) throws {
-    guard result.pid > 1, result.pid != getpid(),
-          result.stdout.count > 0, result.stdout.count <= 64 * 1024,
-          let value = try JSONSerialization.jsonObject(with: result.stdout) as? [String: Any],
-          Set(value.keys) == Set([
-              "status", "accountName", "transactionID", "phase",
-              "sourceHelperSHA256", "sourceHelperCDHash", "sourcePrincipalCarrierContractVersion",
-              "residueClass", "authenticationEvidenceSHA256", "planDigest",
-              "groupGeneratedUID", "userGeneratedUID", "rootKeyId", "policyDigest", "verifierPID",
-          ]),
-          value["status"] as? String == "absence-verified",
-          value["accountName"] as? String == runtimeAccountName,
-          value["transactionID"] as? String == journal.transactionID,
-          value["phase"] as? String == "group-removed",
-          value["sourceHelperSHA256"] as? String == journal.sourceHelperSHA256,
-          value["sourceHelperCDHash"] as? String == journal.sourceHelperCDHash,
-          (value["sourcePrincipalCarrierContractVersion"] as? NSNumber)?.intValue
-              == journal.sourcePrincipalCarrierContractVersion,
-          value["residueClass"] as? String == journal.residueClass,
-          value["authenticationEvidenceSHA256"] as? String == journal.authenticationEvidenceSHA256,
-          value["planDigest"] as? String == journal.planDigest,
-          value["groupGeneratedUID"] as? String == journal.groupGeneratedUID,
-          value["userGeneratedUID"] as? String == journal.userGeneratedUID,
-          value["rootKeyId"] as? String == journal.rootKeyId,
-          value["policyDigest"] as? String == journal.policyDigest,
-          (value["verifierPID"] as? NSNumber)?.int32Value == result.pid else {
-        throw repairFailure("The fresh bootstrap returned an invalid or unbound partial-install absence receipt.")
-    }
 }
 
 func partialInstallRepairWitness(
@@ -523,63 +237,4 @@ func partialInstallRepairPlanDigest(_ plan: RuntimeAccountCreationPlan) -> Strin
         plan.groupGeneratedUID,
         plan.userGeneratedUID,
     ].joined(separator: "\u{0}").utf8))
-}
-
-private func exactRepairTerminalStateIsClean() throws -> Bool {
-    try requireNoUnknownRuntimeDevEntries()
-    let targets = [
-        launchDaemonPath,
-        runtimeStateRoot,
-        runtimeTransactionRoot,
-        runtimeRollbackRoot,
-        try repairSocketRoot(),
-        runtimeActiveRoot,
-        desktopApplicationPath,
-        "\(runtimeDevRoot)/installer-ledger.json",
-        installationJournalPath,
-        runtimePrincipalJournalPath,
-        generatedDesktopSocketPath,
-        generatedLocalAppSocketPath,
-    ]
-    if try targets.contains(where: { try repairPathPresent($0) }) { return false }
-    return try !runtimeAccountRecordsPresent()
-}
-
-private func requireRepairOwnedArtifactsAbsent() throws {
-    let targets = [launchDaemonPath, runtimeStateRoot, runtimeTransactionRoot, runtimeRollbackRoot, try repairSocketRoot()]
-    let present = try targets.filter { try repairPathPresent($0) }
-    guard present.isEmpty else {
-        throw repairFailure("An owned partial-install artifact remains after the artifacts-removed boundary: \(present.joined(separator: ", ")).")
-    }
-}
-
-private func verifyOptionalRepairLaunchDaemon() throws {
-    if try repairPathPresent(launchDaemonPath) { try verifyInstalledLaunchDaemonDefinition() }
-}
-
-private func verifyOptionalEmptyRepairDirectory(_ path: String, owner: UInt32, group: UInt32, mode: mode_t) throws {
-    if try repairPathPresent(path) {
-        try requireEmptyRepairDirectory(path, owner: owner, group: group, mode: mode)
-    }
-}
-
-private func requireNoUnknownRuntimeDevEntries() throws {
-    let allowed = Set([
-        (signingProfilePath as NSString).lastPathComponent,
-        (signingCleanupRecordPath as NSString).lastPathComponent,
-        (signingCustodyRoot as NSString).lastPathComponent,
-        (runtimeActiveRoot as NSString).lastPathComponent,
-        (runtimeStateRoot as NSString).lastPathComponent,
-        (runtimeTransactionRoot as NSString).lastPathComponent,
-        (runtimeRollbackRoot as NSString).lastPathComponent,
-        (installationJournalPath as NSString).lastPathComponent,
-        (runtimePrincipalJournalPath as NSString).lastPathComponent,
-        (runtimePartialInstallRepairJournalPath as NSString).lastPathComponent,
-        "installer-ledger.json",
-    ])
-    let entries = try FileManager.default.contentsOfDirectory(atPath: runtimeDevRoot)
-    let unknown = entries.filter { !allowed.contains($0) }
-    guard unknown.isEmpty else {
-        throw repairFailure("The RuntimeDev root contains unknown entries that repair does not own: \(unknown.sorted().joined(separator: ", ")).")
-    }
 }

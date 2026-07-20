@@ -222,40 +222,23 @@ private func removeFixedTargetIfPresent(_ path: String) throws {
 
 func developmentProcessesRunning() throws -> Bool {
     for processName in ["Nimi Dev", "Nimi Local App Host Dev", "nimi-runtime"] {
-        let status = try processExitStatusForLifecycle("/usr/bin/pgrep", ["-x", processName])
-        if status == 0 { return true }
-        guard status == 1 else {
+        let result = try runFixedCommand(
+            "/usr/bin/pgrep",
+            ["-x", processName],
+            captureLimit: 64 * 1024,
+            timeoutSeconds: 10,
+            acceptedExitStatuses: [0, 1]
+        )
+        if result.status == 0 { return true }
+        guard result.status == 1 else {
             throw fail(
                 "runtime-service-repair-required",
                 "restore process inspection before service mutation",
-                "pgrep could not prove \(processName) absent (status \(status))."
+                "pgrep could not prove \(processName) absent (status \(result.status))."
             )
         }
     }
     return false
-}
-
-private func processExitStatusForLifecycle(_ executable: String, _ arguments: [String]) throws -> Int32 {
-    let process = Process()
-    process.executableURL = URL(fileURLWithPath: executable)
-    process.arguments = arguments
-    process.standardInput = FileHandle.nullDevice
-    process.standardOutput = FileHandle.nullDevice
-    process.standardError = FileHandle.nullDevice
-    process.environment = ["PATH": "/usr/bin:/bin:/usr/sbin:/sbin"]
-    do { try process.run() }
-    catch {
-        throw fail(
-            "runtime-service-repair-required",
-            "restore process inspection before service mutation",
-            "Cannot execute the fixed process inspection command: \(diagnosticMessage(error))"
-        )
-    }
-    process.waitUntilExit()
-    guard process.terminationReason == .exit else {
-        throw fail("runtime-service-repair-required", "restore process inspection before service mutation", "The fixed process inspection command terminated abnormally.")
-    }
-    return process.terminationStatus
 }
 
 private func parseJSONObject(_ data: Data, label: String) throws -> [String: Any] {

@@ -333,11 +333,64 @@ principal-transaction journal. It binds the source helper SHA-256 and CDHash,
 source carrier version,
 residue-class identifier, authentication-evidence SHA-256, account-plan digest,
 both observed GeneratedUID values, signing-profile root key id and authority
-policy digest. The source helper SHA-256 and CDHash are captured before journal
-creation and must remain stable before every phase and after final absence
-proof. A fresh exact bootstrap process with a new ODSession must return a
-parent-transaction-bound absence receipt for both Directory Services records
-and the POSIX projection. Any absent, stale or mismatching binding fails closed.
+policy digest. The source-helper `status` receipt may be read exactly once only
+after raw OpenDirectory classification has proved one complete unjournaled
+principal baseline and before initial journal creation. A clean, partial or
+conflicting unjournaled state never invokes `status`. Once a journal exists,
+each phase revalidates the exact open-vnode final-helper SHA-256, CDHash,
+signing identifier, empty Team ID, certificate-bound requirement, leaf and root
+certificate digests, hardened runtime, signing-profile root and policy directly
+against the journal. That opened vnode must match the device, inode, size,
+modification time, change time, file flags and SHA-256 witness held by the
+transaction's flock descriptor. The descriptor and named path are revalidated
+again before the terminal commit. Delete, write, extend, link, rename, revoke,
+`EV_ERROR` and `EV_EOF` observations are hard failures even when the original
+name or bytes are restored. `NOTE_ATTRIB` is not path-replacement evidence by
+itself: execution of the exact helper may advance observer-owned access time.
+It is accepted only when device, inode, mode, ownership, link count, size,
+modification time, change time, file flags and opened-vnode SHA-256 remain exact
+and the complete static code identity is revalidated. Access time is never
+authority. Every event diagnostic retains the exact numeric `kevent.flags`,
+vnode `fflags` and decoded names
+instead of collapsing them into an unqualified replacement claim. Static
+revalidation is entirely in-process and must not invoke `status`, `codesign` or
+any final-helper command. Recovery of the fixed non-semantic staging vnode runs
+first under the locked in-process static helper authority and cannot authorize
+a platform mutation. An exact clean
+no-journal state returns before private custody is invoked. An active or newly
+committed `prepared` journal then causes the root repair parent to obtain one
+fresh private-custody receipt from the exact final helper before the first
+artifact or principal effect. The invocation-local receipt binds the exact
+journal terminal-proof digest, helper SHA-256/CDHash, root key, policy, parent
+PID, parent process-start identity and the exact mutation-lock vnode witness. It
+is not persisted; crash, restart, parent replacement or any binding change
+invalidates it. Because the preserved source helper may predate bounded child
+ownership, the parent uses `posix_spawn` with `POSIX_SPAWN_SETPGROUP` to create
+and bind a new process group atomically before any current-bootstrap instruction
+can run. The bootstrap validates `getpgrp() == getpid()` and forbids `exec` on
+mismatch. The parent deadline owns that PGID, signals the whole group on timeout
+or output overflow, reaps the direct child, drains both pipes to EOF, and proves
+the PGID empty before emitting `child_reaped=true`; it never assumes that the
+preserved helper has no descendants. Those static identity witnesses remain
+stable before every phase, after final absence proof and at the terminal commit
+boundary.
+
+A fresh exact bootstrap process with a new ODSession returns a
+live-parent-bound absence receipt for both Directory Services records and the
+POSIX projection. It validates and returns the parent PID and process-start
+identity, while the parent revalidates its own identity before accepting the
+receipt. After bootstrap context validation the fresh verifier may execute only
+in-process Security.framework, fixed-vnode, public-profile/root-trust,
+OpenDirectory and reentrant-libc checks: it launches no descendant process and
+never unlocks private custody. The parent brackets the child with bounded
+quiescence proofs before launch and again after receipt acceptance, before any
+phase commit or success. An exact clean state without a v2 repair journal is
+not a repair success: it returns typed
+`macos-dev-runtime-repair-not-required` before cache reset, principal or artifact
+mutation, never invokes source-helper `status`, and never invents source-carrier
+or install-readiness evidence. Trust-helper verification or rotation remains a
+separate confirmed transaction. Any absent, stale or mismatching binding fails
+closed.
 The journal uses one fixed single-use staging path. Before any unknown-entry or
 phase-state evaluation, an interrupted staging write may be removed only while
 the final-helper mutation lock is held and only after an open descriptor proves
@@ -347,6 +400,79 @@ inode. The staging node is never semantic authority. Repair also requires a
 fresh final-helper private-custody proof before deletion. It preserves the
 signing profile, signing Keychain, local CA and final helper and cannot become a
 generic account or file deletion surface.
+
+One repair invocation has a hard `600`-second deadline owned by the root repair
+helper. Every child command has a shorter timeout and may start only when its
+complete timeout/escalation budget fits inside the remaining outer deadline.
+Direct-child commands atomically reserve the one launch slot before
+`Process.run` and bind the PID before input or wait. Commands that can execute
+the preserved helper instead use `posix_spawn` with
+`POSIX_SPAWN_SETPGROUP | POSIX_SPAWN_CLOEXEC_DEFAULT` while the deadline lock is
+held, so successful spawn and PID/PGID binding form one indivisible transition.
+An expired invocation fails before its next spawn. Timeout or output overflow
+signals the whole owned PGID with `TERM` then `KILL`, reaps the direct child,
+drains stdout and stderr to EOF, and requires `kill(-PGID, 0)` to report
+`ESRCH` before `child_reaped=true`. Any unbound or unreaped state is
+quiescence-unproven and forbids wrapper cleanup. The Node launcher does
+not timeout or signal the `sudo` repair call and never starts cleanup before
+`sudo` has observed the root helper exit. A hard-deadline termination therefore
+leaves only a journal-owned effect-ahead state. After the privileged process is
+quiescent, one bounded, sanitized, non-authoritative local JSON diagnostic is
+written under `.nimi/local/acceptance/**`; it retains every admitted non-sensitive
+principal diagnostic field and bounded subprocess status, excludes stderr and
+custody or token material, and stops automatic retry after the first failure.
+Vnode diagnostics also retain the lock device, inode, SHA-256, before/after
+change-time witnesses, journal phase/presence, completion/bootstrap state and
+any primary failure identity. Missing structured JSON or missing explicit
+`child_reaped=true` evidence must preserve the exact bootstrap; absence of
+evidence never authorizes cleanup.
+
+The transition executor prepares the exact success receipt while the durable
+`principal-removed` journal still exists. The outer final-helper vnode and
+static-code proof runs next; bootstrap self-retirement must also finish while
+that journal remains recoverable. A second final-helper proof immediately
+precedes exact journal unlink, which is the last semantic effect. Any proof,
+retirement or unlink failure therefore either preserves the journal or reaches
+the independently provable clean no-journal boundary, and never emits repair
+success. No authority check after journal unlink may retroactively turn a
+committed repair into an unrecoverable failure.
+
+Delete-only repair success is not equivalent to installation readiness. Repair
+preserves the source final helper. If its bound source carrier is older than the
+current carrier `4`, normal Runtime installation remains fail-closed until a
+separately confirmed trust/helper rotation removes the old custody profile,
+reprovisions one current signed helper, and independently proves its custody and
+carrier. This compatibility boundary must be disclosed before repair and may
+not be hidden by accepting carrier `2` in the normal carrier-`4` matcher. The
+success receipt has one exact generated schema and records the preserved source
+carrier, required install carrier, preserved-helper disposition, boolean rotation
+requirement and the separate next privileged action; unknown or inconsistent
+fields fail closed in the Node launcher.
+
+Raw `/Local/Default` OpenDirectory name and numeric-identifier absence is the
+deletion mutation truth. POSIX/libinfo is an eventually consistent acceptance
+projection, not an intermediate mutation authority: the `user-removed` boundary
+must not perform a positive group lookup that warms the cache immediately before
+group deletion. All POSIX queries use `getpwnam_r`, `getpwuid_r`, `getgrnam_r`
+and `getgrgid_r`; only return-code `0` plus a nil result means not found,
+`ERANGE` has bounded buffer growth, and every other return code is a typed query
+failure rather than absence.
+
+For this non-product development profile only, after journaled user-then-group
+deletion has proved exact raw OpenDirectory absence, the serialized root helper
+runs exactly `/usr/bin/odutil reset cache` before final absence acceptance. This
+transiently resets
+all `opendirectoryd` identity, membership and kernel caches; it does not reset
+DNS or mutate persistent OpenDirectory configuration. Cache reset is never a
+substitute for the bound raw-record witness. For a journal-bound deletion, a
+fresh bootstrap process must then prove both raw name/identifier absence and
+four reentrant POSIX not-found results before the final journal is removed or
+the UID/GID may be reused. An already-clean no-journal boundary has no authority
+to invent a historical UID/GID or source carrier and therefore exits through
+the typed no-repair-required boundary without running the repair state machine.
+Lookup failure, OpenDirectory mutation failure, stale exact cache, identifier
+reuse and record mismatch have distinct reason codes and bounded non-sensitive
+field diagnostics; none may be collapsed into successful absence.
 
 The development service principal is created only through the public
 OpenDirectory framework. The installer selects one collision-free equal UID/GID

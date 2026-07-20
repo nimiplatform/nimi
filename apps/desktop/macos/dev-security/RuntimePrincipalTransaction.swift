@@ -24,8 +24,16 @@ private struct RuntimePrincipalJournal: Codable {
 func planFreshRuntimeAccountCreation() throws -> RuntimeAccountCreationPlan {
     try recoverInterruptedRuntimePrincipalTransactionIfNeeded()
     let store = try OpenDirectoryRuntimeAccountStore()
-    guard try store.observe(.user) == nil, try store.observe(.group) == nil else {
-        throw accountFailure("Fresh installation requires the Runtime service principal baseline to be absent.")
+    let user = try store.observe(.user)
+    let group = try store.observe(.group)
+    guard user == nil, group == nil else {
+        throw principalDirectoryStateFailure(
+            phase: "fresh-install-baseline",
+            probe: "raw-od-user-and-group",
+            state: user != nil && group != nil ? "principal-present" : "partial-principal",
+            expectedIdentifier: nil,
+            observed: user ?? group
+        )
     }
     return try makeRuntimeAccountCreationPlan(
         identifier: store.selectUnusedIdentifier(),
@@ -41,11 +49,23 @@ func ensureRuntimeAccount(plannedPlan: RuntimeAccountCreationPlan? = nil) throws
     let group = try store.observe(.group)
     if user != nil || group != nil {
         guard let user, let group else {
-            throw accountFailure("A partial _nimiruntimedev account exists without a transaction journal.")
+            throw principalDirectoryStateFailure(
+                phase: "ensure-runtime-principal",
+                probe: "raw-od-user-and-group",
+                state: "partial-principal-without-journal",
+                expectedIdentifier: plannedPlan?.identifier,
+                observed: user ?? group
+            )
         }
         let plan = try runtimeAccountPlan(user: user, group: group)
         if let plannedPlan, plan != plannedPlan {
-            throw accountFailure("The existing Runtime service principal differs from the installation transaction witness.")
+            throw principalDirectoryStateFailure(
+                phase: "ensure-runtime-principal",
+                probe: "raw-od-user-and-group",
+                state: "installation-witness-conflict",
+                expectedIdentifier: plannedPlan.identifier,
+                observed: user
+            )
         }
         try store.proveNoExplicitGroupMembership(plan)
         return try validateRuntimeAccountPOSIXProjection(plan)
@@ -71,13 +91,25 @@ func ensureRuntimeAccount(plannedPlan: RuntimeAccountCreationPlan? = nil) throws
     do {
         let group = try store.createGroup(plan)
         guard runtimeDirectoryRecord(group, matches: plan) else {
-            throw accountFailure("The Runtime service group birth attributes did not match the transaction witness.")
+            throw principalDirectoryStateFailure(
+                phase: "group-created",
+                probe: "raw-od-group",
+                state: "birth-attributes-conflict",
+                expectedIdentifier: plan.identifier,
+                observed: group
+            )
         }
         try updateRuntimePrincipalJournal(journal, phase: "group-created")
 
         let user = try store.createUser(plan)
         guard runtimeDirectoryRecord(user, matches: plan) else {
-            throw accountFailure("The Runtime service user birth attributes did not match the transaction witness.")
+            throw principalDirectoryStateFailure(
+                phase: "user-created",
+                probe: "raw-od-user",
+                state: "birth-attributes-conflict",
+                expectedIdentifier: plan.identifier,
+                observed: user
+            )
         }
         try updateRuntimePrincipalJournal(journal, phase: "user-created")
 
@@ -91,6 +123,8 @@ func ensureRuntimeAccount(plannedPlan: RuntimeAccountCreationPlan? = nil) throws
         let original = error
         do {
             try recoverInterruptedRuntimePrincipalTransactionIfNeeded()
+        } catch let rollbackFailure as DevSecurityFailure {
+            throw rollbackFailure
         } catch {
             throw fail(
                 "runtime-service-repair-required",
@@ -109,11 +143,19 @@ func verifyRuntimePrincipalTransactionInFreshProcess() throws -> [String: Any] {
         throw accountFailure("Fresh-process verification requires one exact user-created principal transaction.")
     }
     let store = try OpenDirectoryRuntimeAccountStore()
-    guard let user = try store.observe(.user),
-          let group = try store.observe(.group),
+    let candidateUser = try store.observe(.user)
+    let candidateGroup = try store.observe(.group)
+    guard let user = candidateUser,
+          let group = candidateGroup,
           runtimeDirectoryRecord(user, matches: journal.plan),
           runtimeDirectoryRecord(group, matches: journal.plan) else {
-        throw accountFailure("The freshly reopened Runtime service identity does not match its transaction witness.")
+        throw principalDirectoryStateFailure(
+            phase: journal.phase,
+            probe: "fresh-raw-od-user-and-group",
+            state: "transaction-witness-conflict",
+            expectedIdentifier: journal.identifier,
+            observed: candidateUser ?? candidateGroup
+        )
     }
     try store.proveNoExplicitGroupMembership(journal.plan)
     _ = try validateRuntimeAccountPOSIXProjection(journal.plan)
@@ -137,15 +179,21 @@ func verifyRuntimePrincipalRemovalTransactionInFreshProcess() throws -> [String:
         throw accountFailure("Fresh-process absence verification requires one exact completed principal deletion transaction.")
     }
     let store = try OpenDirectoryRuntimeAccountStore()
-    try store.proveAbsent()
+    try store.proveRawAbsent(journal.plan, phase: "fresh-principal-removal")
     try store.proveNoExplicitGroupMembership(journal.plan)
-    try proveRuntimeAccountPOSIXAbsent(journal.plan)
+    let posix = try settleRuntimePOSIXProjectionAbsent(
+        journal.plan,
+        phase: "fresh-principal-removal"
+    )
     return [
         "status": "absence-verified",
         "accountName": runtimeAccountName,
         "operation": journal.operation,
         "transactionID": journal.transactionID,
         "planDigest": runtimePrincipalPlanDigest(journal),
+        "posixLookupAPI": runtimePOSIXIdentityLookupAPI,
+        "posixProjectionSHA256": posix.projectionDigestSHA256,
+        "posixProbeStates": posix.probes.map { $0.state.rawValue },
         "verifierPID": getpid(),
     ]
 }
@@ -154,21 +202,29 @@ private func validateFreshRuntimePrincipalReceipt(
     _ result: CommandResult,
     journal: RuntimePrincipalJournal
 ) throws {
-    guard result.pid > 1, result.pid != getpid(),
-          result.stdout.count > 0, result.stdout.count <= 64 * 1024,
-          let value = try JSONSerialization.jsonObject(with: result.stdout) as? [String: Any],
-          Set(value.keys) == Set([
-              "status", "accountName", "authenticationAuthority",
-              "forbiddenAuthenticationMaterialCount", "transactionID", "planDigest", "verifierPID",
-          ]),
-          value["status"] as? String == "verified",
+    let value = try parseFreshRuntimePrincipalReceipt(
+        result,
+        phase: journal.phase,
+        probe: "fresh-principal-creation-receipt",
+        expectedKeys: [
+            "status", "accountName", "authenticationAuthority",
+            "forbiddenAuthenticationMaterialCount", "transactionID", "planDigest", "verifierPID",
+        ]
+    )
+    guard value["status"] as? String == "verified",
           value["accountName"] as? String == runtimeAccountName,
           value["authenticationAuthority"] as? String == "absent_required",
           (value["forbiddenAuthenticationMaterialCount"] as? NSNumber)?.intValue == runtimeForbiddenAuthenticationMaterialAttributes.count,
           value["transactionID"] as? String == journal.transactionID,
           value["planDigest"] as? String == runtimePrincipalPlanDigest(journal),
           (value["verifierPID"] as? NSNumber)?.int32Value == result.pid else {
-        throw accountFailure("The fresh helper process returned an invalid or unbound Runtime principal receipt.")
+        throw freshRuntimePrincipalProofFailure(
+            phase: journal.phase,
+            probe: "fresh-principal-creation-receipt",
+            state: "authority-binding-mismatch",
+            verifierPID: result.pid,
+            expectedIdentifier: journal.identifier
+        )
     }
 }
 
@@ -196,9 +252,16 @@ func installedRuntimeAccountPlan() throws -> RuntimeAccountCreationPlan {
         throw accountFailure("An interrupted Runtime principal transaction requires privileged recovery.")
     }
     let store = try OpenDirectoryRuntimeAccountStore()
-    guard let user = try store.observe(.user),
-          let group = try store.observe(.group) else {
-        throw accountFailure("The dedicated _nimiruntimedev account is absent or partial.")
+    let user = try store.observe(.user)
+    let group = try store.observe(.group)
+    guard let user, let group else {
+        throw principalDirectoryStateFailure(
+            phase: "installed-runtime-principal",
+            probe: "raw-od-user-and-group",
+            state: user == nil && group == nil ? "principal-absent" : "partial-principal",
+            expectedIdentifier: nil,
+            observed: user ?? group
+        )
     }
     let plan = try runtimeAccountPlan(user: user, group: group)
     try store.proveNoExplicitGroupMembership(plan)
@@ -215,13 +278,40 @@ func removeRuntimeAccount(expectedPlan: RuntimeAccountCreationPlan?) throws {
     let store = try OpenDirectoryRuntimeAccountStore()
     let user = try store.observe(.user)
     let group = try store.observe(.group)
-    if user == nil, group == nil { return }
+    if user == nil, group == nil {
+        if let expectedPlan {
+            try store.proveRawAbsent(expectedPlan, phase: "principal-remove-zero-residue")
+            try resetRuntimeDirectoryIdentityCaches(phase: "principal-remove-zero-residue")
+            _ = try settleRuntimePOSIXProjectionAbsent(
+                expectedPlan,
+                phase: "principal-remove-zero-residue"
+            )
+        } else {
+            try resetRuntimeDirectoryIdentityCaches(phase: "principal-remove-zero-residue")
+            _ = try settleRuntimePOSIXNameProjectionAbsent(
+                phase: "principal-remove-zero-residue"
+            )
+        }
+        return
+    }
     guard let user, let group else {
-        throw accountFailure("Refusing to remove a partial Runtime service identity without an exact transaction witness.")
+        throw principalDirectoryStateFailure(
+            phase: "principal-remove-baseline",
+            probe: "raw-od-user-and-group",
+            state: "partial-principal-without-witness",
+            expectedIdentifier: expectedPlan?.identifier,
+            observed: user ?? group
+        )
     }
     let plan = try runtimeAccountPlan(user: user, group: group)
     if let expectedPlan, plan != expectedPlan {
-        throw accountFailure("Refusing to remove a Runtime service identity that differs from the parent transaction witness.")
+        throw principalDirectoryStateFailure(
+            phase: "principal-remove-baseline",
+            probe: "raw-od-user-and-group",
+            state: "parent-witness-conflict",
+            expectedIdentifier: expectedPlan.identifier,
+            observed: user
+        )
     }
     try store.proveNoExplicitGroupMembership(plan)
     _ = try validateRuntimeAccountPOSIXProjection(plan)
@@ -242,6 +332,7 @@ func removeRuntimeAccount(expectedPlan: RuntimeAccountCreationPlan?) throws {
         try updateRuntimePrincipalJournal(journal, phase: "user-removed")
         try store.deleteExact(.group, plan: plan)
         try updateRuntimePrincipalJournal(journal, phase: "group-removed")
+        try resetRuntimeDirectoryIdentityCaches(phase: "normal-principal-group-removed")
         let verification = try runFixedCommand(
             try currentRuntimePrincipalRemovalVerifierPath(),
             ["verify-runtime-principal-removal-transaction"]
@@ -249,6 +340,8 @@ func removeRuntimeAccount(expectedPlan: RuntimeAccountCreationPlan?) throws {
         try validateFreshRuntimePrincipalRemovalReceipt(verification, journal: journal)
         try updateRuntimePrincipalJournal(journal, phase: "fresh-process-verified")
         try removeRuntimePrincipalJournal()
+    } catch let failure as DevSecurityFailure {
+        throw failure
     } catch {
         throw fail(
             "runtime-service-repair-required",
@@ -278,10 +371,22 @@ func validateRuntimeAccountRemovalState(
     let user = try store.observe(.user)
     let group = try store.observe(.group)
     if let user, !runtimeDirectoryRecord(user, matches: expectedPlan) {
-        throw accountFailure("The remaining Runtime service user differs from the parent removal witness.")
+        throw principalDirectoryStateFailure(
+            phase: "principal-removal-state-validation",
+            probe: "raw-od-user",
+            state: "parent-witness-conflict",
+            expectedIdentifier: expectedPlan.identifier,
+            observed: user
+        )
     }
     if let group, !runtimeDirectoryRecord(group, matches: expectedPlan) {
-        throw accountFailure("The remaining Runtime service group differs from the parent removal witness.")
+        throw principalDirectoryStateFailure(
+            phase: "principal-removal-state-validation",
+            probe: "raw-od-group",
+            state: "parent-witness-conflict",
+            expectedIdentifier: expectedPlan.identifier,
+            observed: group
+        )
     }
     if requireCompleteIdentity {
         guard !journalPresent, user != nil, group != nil else {
@@ -292,12 +397,24 @@ func validateRuntimeAccountRemovalState(
         return
     }
     if (user == nil) != (group == nil), !journalPresent {
-        throw accountFailure("A partial Runtime principal exists without its exact removal journal.")
+        throw principalDirectoryStateFailure(
+            phase: "principal-removal-state-validation",
+            probe: "raw-od-user-and-group",
+            state: "partial-principal-without-journal",
+            expectedIdentifier: expectedPlan.identifier,
+            observed: user ?? group
+        )
     }
     try store.proveNoExplicitGroupMembership(expectedPlan)
     if user != nil, group != nil {
         _ = try validateRuntimeAccountPOSIXProjection(expectedPlan)
     } else if user == nil, group == nil {
+        if journalPresent {
+            let journal = try readRuntimePrincipalJournal()
+            if ["group-removed", "rollback-group-removed", "fresh-process-verified"].contains(journal.phase) {
+                try resetRuntimeDirectoryIdentityCaches(phase: "principal-removal-state-validation")
+            }
+        }
         try proveRuntimeAccountPOSIXAbsent(expectedPlan)
     }
 }
@@ -307,7 +424,7 @@ func proveRuntimeAccountFullyAbsent(_ plan: RuntimeAccountCreationPlan) throws {
         throw accountFailure("A Runtime principal transaction remains after deletion.")
     }
     let store = try OpenDirectoryRuntimeAccountStore()
-    try store.proveAbsent()
+    try store.proveRawAbsent(plan, phase: "principal-fully-absent")
     try store.proveNoExplicitGroupMembership(plan)
     try proveRuntimeAccountPOSIXAbsent(plan)
 }
@@ -330,10 +447,22 @@ func recoverInterruptedRuntimePrincipalTransactionIfNeeded(
     let store = try OpenDirectoryRuntimeAccountStore()
     let plan = journal.plan
     if let user = try store.observe(.user), !runtimeDirectoryRecord(user, matches: plan) {
-        throw accountFailure("The Runtime service user no longer matches the recovery journal; automatic deletion is forbidden.")
+        throw principalDirectoryStateFailure(
+            phase: journal.phase,
+            probe: "raw-od-user",
+            state: "journal-witness-conflict",
+            expectedIdentifier: plan.identifier,
+            observed: user
+        )
     }
     if let group = try store.observe(.group), !runtimeDirectoryRecord(group, matches: plan) {
-        throw accountFailure("The Runtime service group no longer matches the recovery journal; automatic deletion is forbidden.")
+        throw principalDirectoryStateFailure(
+            phase: journal.phase,
+            probe: "raw-od-group",
+            state: "journal-witness-conflict",
+            expectedIdentifier: plan.identifier,
+            observed: group
+        )
     }
     try store.proveNoExplicitGroupMembership(plan)
     try store.deleteExact(.user, plan: plan)
@@ -345,6 +474,7 @@ func recoverInterruptedRuntimePrincipalTransactionIfNeeded(
     try store.deleteExact(.group, plan: plan)
     let removalPhase = journal.operation == "create" ? "rollback-group-removed" : "group-removed"
     try updateRuntimePrincipalJournal(journal, phase: removalPhase)
+    try resetRuntimeDirectoryIdentityCaches(phase: removalPhase)
     let verification = try runFixedCommand(
         try currentRuntimePrincipalRemovalVerifierPath(),
         ["verify-runtime-principal-removal-transaction"]
@@ -355,15 +485,7 @@ func recoverInterruptedRuntimePrincipalTransactionIfNeeded(
 }
 
 func proveRuntimeAccountPOSIXAbsent(_ plan: RuntimeAccountCreationPlan) throws {
-    for attempt in 0..<25 {
-        let absent = getpwnam(runtimeAccountName) == nil
-            && getgrnam(runtimeAccountName) == nil
-            && getpwuid(uid_t(plan.identifier)) == nil
-            && getgrgid(gid_t(plan.identifier)) == nil
-        if absent { return }
-        if attempt < 24 { usleep(100_000) }
-    }
-    throw accountFailure("The Runtime service POSIX identity remained after exact OpenDirectory deletion.")
+    _ = try settleRuntimePOSIXProjectionAbsent(plan, phase: "principal-absence")
 }
 
 private func writeRuntimePrincipalJournal(_ journal: RuntimePrincipalJournal) throws {
@@ -438,20 +560,106 @@ private func validateFreshRuntimePrincipalRemovalReceipt(
     _ result: CommandResult,
     journal: RuntimePrincipalJournal
 ) throws {
-    guard result.pid > 1, result.pid != getpid(),
-          result.stdout.count > 0, result.stdout.count <= 64 * 1024,
-          let value = try JSONSerialization.jsonObject(with: result.stdout) as? [String: Any],
-          Set(value.keys) == Set([
-              "status", "accountName", "operation", "transactionID", "planDigest", "verifierPID",
-          ]),
-          value["status"] as? String == "absence-verified",
+    let value = try parseFreshRuntimePrincipalReceipt(
+        result,
+        phase: journal.phase,
+        probe: "fresh-principal-removal-receipt",
+        expectedKeys: [
+            "status", "accountName", "operation", "transactionID", "planDigest",
+            "posixLookupAPI", "posixProjectionSHA256", "posixProbeStates", "verifierPID",
+        ]
+    )
+    guard value["status"] as? String == "absence-verified",
           value["accountName"] as? String == runtimeAccountName,
           value["operation"] as? String == journal.operation,
           value["transactionID"] as? String == journal.transactionID,
           value["planDigest"] as? String == runtimePrincipalPlanDigest(journal),
+          value["posixLookupAPI"] as? String == runtimePOSIXIdentityLookupAPI,
+          (value["posixProjectionSHA256"] as? String)?.range(
+              of: #"^[a-f0-9]{64}$"#,
+              options: .regularExpression
+          ) != nil,
+          value["posixProbeStates"] as? [String] == [
+              "not-found", "not-found", "not-found", "not-found",
+          ],
           (value["verifierPID"] as? NSNumber)?.int32Value == result.pid else {
-        throw accountFailure("The fresh helper process returned an invalid or unbound Runtime principal absence receipt.")
+        throw freshRuntimePrincipalProofFailure(
+            phase: journal.phase,
+            probe: "fresh-principal-removal-receipt",
+            state: "authority-binding-mismatch",
+            verifierPID: result.pid,
+            expectedIdentifier: journal.identifier,
+            projectionSHA256: value["posixProjectionSHA256"] as? String
+        )
     }
+}
+
+private func parseFreshRuntimePrincipalReceipt(
+    _ result: CommandResult,
+    phase: String,
+    probe: String,
+    expectedKeys: Set<String>
+) throws -> [String: Any] {
+    guard result.pid > 1, result.pid != getpid() else {
+        throw freshRuntimePrincipalProofFailure(
+            phase: phase,
+            probe: probe,
+            state: "invalid-verifier-process",
+            verifierPID: result.pid
+        )
+    }
+    guard !result.stdout.isEmpty, result.stdout.count <= 64 * 1024 else {
+        throw freshRuntimePrincipalProofFailure(
+            phase: phase,
+            probe: probe,
+            state: result.stdout.isEmpty ? "empty-receipt" : "oversized-receipt",
+            verifierPID: result.pid
+        )
+    }
+    guard let value = try? JSONSerialization.jsonObject(with: result.stdout) as? [String: Any] else {
+        throw freshRuntimePrincipalProofFailure(
+            phase: phase,
+            probe: probe,
+            state: "invalid-json-receipt",
+            verifierPID: result.pid
+        )
+    }
+    guard Set(value.keys) == expectedKeys else {
+        throw freshRuntimePrincipalProofFailure(
+            phase: phase,
+            probe: probe,
+            state: "field-set-mismatch",
+            verifierPID: result.pid
+        )
+    }
+    return value
+}
+
+private func freshRuntimePrincipalProofFailure(
+    phase: String,
+    probe: String,
+    state: String,
+    verifierPID: pid_t,
+    expectedIdentifier: UInt32? = nil,
+    projectionSHA256: String? = nil
+) -> DevSecurityFailure {
+    var details: [String: Any] = [
+        "phase": phase,
+        "probe": probe,
+        "state": state,
+        "verifier_pid": verifierPID,
+    ]
+    if let expectedIdentifier { details["expected_identifier"] = expectedIdentifier }
+    if let projectionSHA256,
+       projectionSHA256.range(of: #"^[a-f0-9]{64}$"#, options: .regularExpression) != nil {
+        details["projection_sha256"] = projectionSHA256
+    }
+    return principalDiagnosticFailure(
+        "runtime-principal-fresh-proof-invalid",
+        "inspect the exact fresh Runtime principal receipt",
+        "The fresh helper process returned an invalid or authority-unbound Runtime principal receipt.",
+        details: details
+    )
 }
 
 private func ensureRuntimePrincipalJournalParent() throws {

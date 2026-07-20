@@ -26,7 +26,7 @@ private struct RuntimeProcessSnapshot: Equatable {
 func developmentStatus() throws -> [String: Any] {
     let profilePresent = fixedPathExists(signingProfilePath)
     let bootstrapHelperResiduePresent = fixedPathExists(bootstrapHelperInstallPath)
-    let installationPresent = developmentInstallationArtifactsPresent()
+    let installationPresent = try developmentInstallationArtifactsPresent()
     var errors = [[String: String]]()
     if bootstrapHelperResiduePresent {
         errors.append([
@@ -191,14 +191,13 @@ func verifyInstalledLaunchDaemonDefinition() throws {
 }
 
 func inspectLaunchdRuntimeState() throws -> LaunchdRuntimeState {
-    let result = runStatusCommand("/bin/launchctl", ["print", "system/\(launchDaemonLabel)"])
-    if let launchError = result.launchError {
-        throw fail(
-            "runtime-service-repair-required",
-            "restore launchctl availability before service mutation",
-            "Cannot execute launchctl: \(diagnosticMessage(launchError))"
-        )
-    }
+    let result = try runFixedCommand(
+        "/bin/launchctl",
+        ["print", "system/\(launchDaemonLabel)"],
+        captureLimit: 1024 * 1024,
+        timeoutSeconds: 30,
+        acceptedExitStatuses: [0, 113]
+    )
     if result.status != 0 {
         let diagnostic = String(data: result.stderr + result.stdout, encoding: .utf8) ?? ""
         let exactAbsent = result.status == 113
@@ -312,12 +311,14 @@ private func sameInstalledIdentity(_ left: SignedCodeIdentity, _ right: SignedCo
         && left.leafSPKISHA256 == right.leafSPKISHA256 && left.hardenedRuntime && right.hardenedRuntime
 }
 
-private func developmentInstallationArtifactsPresent() -> Bool {
-    [
+private func developmentInstallationArtifactsPresent() throws -> Bool {
+    let fixedArtifactsPresent = [
         runtimeActiveRoot, runtimeStateRoot, runtimeExecutablePath, desktopApplicationPath,
         launchDaemonPath, generatedDesktopSocketPath, generatedLocalAppSocketPath,
         "\(runtimeDevRoot)/installer-ledger.json", installationJournalPath, runtimePrincipalJournalPath,
-    ].contains(where: fixedPathExists) || getpwnam(runtimeAccountName) != nil
+    ].contains(where: fixedPathExists)
+    if fixedArtifactsPresent { return true }
+    return try runtimePOSIXAccountNamePresent(phase: "development-status")
 }
 
 private func fixedPathExists(_ path: String) -> Bool {
@@ -337,37 +338,4 @@ private func probe<T>(
         errors.append(["field": field, "reasonCode": "runtime-service-repair-required", "message": diagnosticMessage(error)])
     }
     return nil
-}
-
-private struct StatusCommandResult {
-    let status: Int32
-    let stdout: Data
-    let stderr: Data
-    let launchError: Error?
-}
-
-private func runStatusCommand(_ executable: String, _ arguments: [String]) -> StatusCommandResult {
-    let process = Process()
-    process.executableURL = URL(fileURLWithPath: executable)
-    process.arguments = arguments
-    process.standardInput = FileHandle.nullDevice
-    let output = Pipe()
-    let errors = Pipe()
-    process.standardOutput = output
-    process.standardError = errors
-    process.environment = ["PATH": "/usr/bin:/bin:/usr/sbin:/sbin"]
-    do {
-        try process.run()
-        let data = output.fileHandleForReading.readDataToEndOfFile()
-        let errorData = errors.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-        return StatusCommandResult(
-            status: process.terminationStatus,
-            stdout: data,
-            stderr: errorData,
-            launchError: nil
-        )
-    } catch {
-        return StatusCommandResult(status: -1, stdout: Data(), stderr: Data(), launchError: error)
-    }
 }

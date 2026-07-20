@@ -6,11 +6,14 @@ import Security
 struct NimiMacOSDevelopmentSecurity {
     static func main() {
         do {
+            let arguments = Array(CommandLine.arguments.dropFirst())
+            if repairBootstrapCommandOwnsProcessGroup(arguments) {
+                try establishRepairBootstrapProcessGroup()
+            }
             let interactionStatus = SecKeychainSetUserInteractionAllowed(false)
             guard interactionStatus == errSecSuccess else {
                 throw securityFailure("disable interactive Keychain fallback", interactionStatus)
             }
-            let arguments = Array(CommandLine.arguments.dropFirst())
             guard let command = arguments.first else {
                 throw fail("macos-dev-helper-argument-invalid", "select one documented helper command", "A helper command is required.")
             }
@@ -107,25 +110,52 @@ struct NimiMacOSDevelopmentSecurity {
                 guard arguments.count == 1 else { throw argumentFailure(command) }
                 try requireProvisioningBootstrapMutationContext(unsignedFinalCandidateRequired: false)
                 try emitJSON(try verifyPartialInstallRepairPrincipalRemovalInFreshProcess())
-            case "repair-partial-runtime-install":
+            case "run-repair-final-helper-private-custody":
                 guard arguments.count == 1 else { throw argumentFailure(command) }
                 try requireProvisioningBootstrapMutationContext(unsignedFinalCandidateRequired: false)
-                let result = try withRuntimeServiceMutationLock {
-                    let result = try repairExactPartialRuntimeInstallation()
-                    try retireProvisioningBootstrapHelper()
-                    return result
+                try requireSecureInstalledHelper()
+                _ = try inspectSignedCode(helperInstallPath)
+                try execPreservedFinalHelperForRepair("verify-signing-profile")
+            case "run-repair-source-helper-status":
+                guard arguments.count == 1 else { throw argumentFailure(command) }
+                try requireProvisioningBootstrapMutationContext(unsignedFinalCandidateRequired: false)
+                try requireSecureInstalledHelper()
+                _ = try inspectSignedCode(helperInstallPath)
+                try execPreservedFinalHelperForRepair("status")
+            case "repair-partial-runtime-install":
+                guard arguments.count == 1 else { throw argumentFailure(command) }
+                let deadline = try PartialInstallationRepairDeadline.start()
+                defer { deadline.finish() }
+                try requireProvisioningBootstrapMutationContext(unsignedFinalCandidateRequired: false)
+                let result = try withStableRuntimeServiceRepairTransaction { lockWitness in
+                    try repairExactPartialRuntimeInstallation(
+                        lockWitness: lockWitness
+                    )
                 }
                 try emitJSON(result)
+            case "retire-repair-bootstrap-after-failure":
+                guard arguments.count == 1 else { throw argumentFailure(command) }
+                let deadline = try PartialInstallationRepairDeadline.start()
+                defer { deadline.finish() }
+                try withRuntimeServiceMutationLock {
+                    try retireRepairBootstrapHelperAfterFailure()
+                }
+                try emitJSON([
+                    "status": "bootstrap-retired",
+                    "path": bootstrapHelperInstallPath,
+                ])
             default:
                 throw fail("macos-dev-helper-argument-invalid", "select one documented helper command", "Unsupported helper command: \(command)")
             }
         } catch let failure as DevSecurityFailure {
-            try? emitJSON([
+            var response: [String: Any] = [
                 "status": "failed",
                 "reasonCode": failure.reasonCode,
                 "actionHint": failure.actionHint,
                 "message": failure.message,
-            ], to: .standardError)
+            ]
+            if let details = failure.details { response["details"] = details }
+            try? emitJSON(response, to: .standardError)
             exit(1)
         } catch {
             try? emitJSON([

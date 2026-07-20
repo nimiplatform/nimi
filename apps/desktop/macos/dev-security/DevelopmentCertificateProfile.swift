@@ -127,7 +127,10 @@ func certificateAuthorityPathExists(_ path: String) -> Bool {
 }
 
 func verifyInstalledHelper(expectedLeafSPKI: String) throws {
-    _ = try runFixedCommand("/usr/bin/codesign", ["--verify", "--strict", "--verbose=4", helperInstallPath])
+    // Security.framework is the in-process trust root for repair and profile
+    // validation. `inspectSignedCode` performs strict, all-architecture static
+    // validation before projecting the code identity. Independent codesign and
+    // spctl evidence remains an install/acceptance gate, not a nested trust path.
     let identity = try inspectSignedCode(helperInstallPath)
     guard identity.identifier == "ai.nimi.dev-security-helper",
           identity.teamId.isEmpty,

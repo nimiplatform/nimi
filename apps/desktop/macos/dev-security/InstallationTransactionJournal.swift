@@ -137,22 +137,17 @@ func prepareRuntimeDirectories(principal: (uid: uid_t, gid: gid_t)) throws {
 func requireDesktopStopped() throws {
     var running = [String]()
     for name in ["Nimi Dev", "Nimi Local App Host Dev"] {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
-        process.arguments = ["-x", name]
-        process.standardInput = FileHandle.nullDevice
-        let output = Pipe()
-        process.standardOutput = output
-        process.standardError = FileHandle.nullDevice
-        process.environment = ["PATH": "/usr/bin:/bin:/usr/sbin:/sbin"]
-        try process.run()
-        let bytes = output.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-        guard process.terminationReason == .exit,
-              process.terminationStatus == 0 || process.terminationStatus == 1 else {
-            throw installationFailure("Cannot prove whether \(name) is running.")
+        let result = try runFixedCommand(
+            "/usr/bin/pgrep",
+            ["-x", name],
+            captureLimit: 64 * 1024,
+            timeoutSeconds: 10,
+            acceptedExitStatuses: [0, 1]
+        )
+        guard result.status == 1 ? result.stdout.isEmpty : !result.stdout.isEmpty else {
+            throw installationFailure("The bounded process probe returned an inconsistent result for \(name).")
         }
-        if process.terminationStatus == 0 || !bytes.isEmpty { running.append(name) }
+        if result.status == 0 { running.append(name) }
     }
     guard running.isEmpty else {
         throw fail(

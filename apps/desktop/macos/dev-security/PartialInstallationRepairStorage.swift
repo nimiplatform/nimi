@@ -2,60 +2,62 @@ import Darwin
 import Foundation
 import Security
 
-func recoverInterruptedPartialInstallRepairJournalWrite() throws {
-    guard runtimePartialInstallRepairJournalStagingPath
-            == "\(runtimeDevRoot)/partial-install-repair-transaction.staging",
+private let partialInstallRepairJournalName = "partial-install-repair-transaction.json"
+private let partialInstallRepairJournalStagingName = "partial-install-repair-transaction.staging"
+private let partialInstallRepairJournalMaximumSize = 64 * 1024
+
+private func partialInstallRepairJournalPersistence(
+    phase: String = "storage"
+) throws -> PartialInstallRepairJournalPersistence {
+    guard runtimePartialInstallRepairJournalPath
+            == "\(runtimeDevRoot)/\(partialInstallRepairJournalName)",
+          runtimePartialInstallRepairJournalStagingPath
+            == "\(runtimeDevRoot)/\(partialInstallRepairJournalStagingName)",
+          (runtimePartialInstallRepairJournalPath as NSString).deletingLastPathComponent
+            == runtimeDevRoot,
           (runtimePartialInstallRepairJournalStagingPath as NSString).deletingLastPathComponent
             == runtimeDevRoot else {
-        throw repairFailure("The authority-derived partial-install repair staging path is invalid.")
+        throw partialInstallRepairJournalFailure(
+            phase: "configuration", probe: "journal-paths", state: "authority-mismatch",
+            message: "The authority-derived partial-install repair journal paths are invalid."
+        )
     }
-    var pathMetadata = stat()
-    if lstat(runtimePartialInstallRepairJournalStagingPath, &pathMetadata) != 0 {
-        if errno == ENOENT { return }
-        throw posixFailure("inspect partial-install repair journal staging", runtimePartialInstallRepairJournalStagingPath)
-    }
-    let descriptor = open(runtimePartialInstallRepairJournalStagingPath, O_RDONLY | O_CLOEXEC | O_NOFOLLOW)
-    guard descriptor >= 0 else {
-        throw posixFailure("open partial-install repair journal staging", runtimePartialInstallRepairJournalStagingPath)
-    }
-    defer { close(descriptor) }
-    var descriptorMetadata = stat()
-    var stablePathMetadata = stat()
-    guard fstat(descriptor, &descriptorMetadata) == 0,
-          lstat(runtimePartialInstallRepairJournalStagingPath, &stablePathMetadata) == 0,
-          descriptorMetadata.st_mode & S_IFMT == S_IFREG,
-          descriptorMetadata.st_uid == 0,
-          descriptorMetadata.st_gid == 0,
-          descriptorMetadata.st_mode & 0o777 == 0o600,
-          descriptorMetadata.st_nlink == 1,
-          descriptorMetadata.st_size >= 0,
-          descriptorMetadata.st_size <= 64 * 1024,
-          descriptorMetadata.st_dev == stablePathMetadata.st_dev,
-          descriptorMetadata.st_ino == stablePathMetadata.st_ino else {
-        throw repairFailure("The interrupted partial-install repair journal staging node is not the exact transaction-owned vnode.")
-    }
-    let parentDescriptor = open(runtimeDevRoot, O_RDONLY | O_CLOEXEC | O_DIRECTORY | O_NOFOLLOW)
-    guard parentDescriptor >= 0 else {
-        throw posixFailure("open RuntimeDev root for journal staging recovery", runtimeDevRoot)
-    }
-    defer { close(parentDescriptor) }
-    var parentMetadata = stat()
-    guard fstat(parentDescriptor, &parentMetadata) == 0,
-          parentMetadata.st_mode & S_IFMT == S_IFDIR,
-          parentMetadata.st_uid == 0,
-          parentMetadata.st_gid == 0,
-          parentMetadata.st_mode & 0o777 == 0o755 else {
-        throw repairFailure("The RuntimeDev root is not the fixed root-owned journal parent.")
-    }
-    let stagingName = (runtimePartialInstallRepairJournalStagingPath as NSString).lastPathComponent
-    let unlinkStatus = stagingName.withCString { unlinkat(parentDescriptor, $0, 0) }
-    guard unlinkStatus == 0 else {
-        throw posixFailure("remove exact interrupted partial-install repair journal staging", runtimePartialInstallRepairJournalStagingPath)
-    }
-    try syncDirectory(runtimeDevRoot)
+    return PartialInstallRepairJournalPersistence(
+        parentPath: runtimeDevRoot,
+        journalName: partialInstallRepairJournalName,
+        stagingName: partialInstallRepairJournalStagingName,
+        owner: 0,
+        group: 0,
+        parentMode: 0o755,
+        fileMode: 0o600,
+        maximumSize: partialInstallRepairJournalMaximumSize,
+        failure: { probe, state, message in
+            partialInstallRepairJournalFailure(phase: phase, probe: probe, state: state, message: message)
+        },
+        posixFailure: { operation, path, errorCode in
+            partialInstallRepairJournalFailure(
+                phase: phase,
+                probe: operation,
+                state: "syscall-failed",
+                message: "\(operation) failed for \(path): \(String(cString: strerror(errorCode)))",
+                returnCode: errorCode
+            )
+        }
+    )
+}
+
+func recoverInterruptedPartialInstallRepairJournalWrite() throws {
+    try partialInstallRepairJournalPersistence(phase: "staging-recovery").recoverInterruptedWrite()
 }
 
 func repairPathPresent(_ path: String) throws -> Bool {
+    if path == runtimePartialInstallRepairJournalPath
+        || path == runtimePartialInstallRepairJournalStagingPath {
+        let name = path == runtimePartialInstallRepairJournalPath
+            ? partialInstallRepairJournalName
+            : partialInstallRepairJournalStagingName
+        return try partialInstallRepairJournalPersistence().contains(name)
+    }
     var metadata = stat()
     if lstat(path, &metadata) == 0 { return true }
     if errno == ENOENT { return false }
@@ -85,45 +87,14 @@ func requireRuntimeKeychainCustodyAbsent() throws {
     throw repairFailure("Runtime Keychain custody namespace is not empty; repair will not delete known or unknown items implicitly.")
 }
 
-func repairSocketRoot() throws -> String {
-    let desktopRoot = (generatedDesktopSocketPath as NSString).deletingLastPathComponent
-    let hostRoot = (generatedLocalAppSocketPath as NSString).deletingLastPathComponent
-    guard desktopRoot == hostRoot, desktopRoot == "/private/var/run/nimi-dev" else {
-        throw repairFailure("The generated protected socket roots diverge from the fixed repair target.")
-    }
-    return desktopRoot
-}
-
-func requireEmptyRepairDirectory(_ path: String, owner: UInt32, group: UInt32, mode: mode_t) throws {
-    _ = try secureMetadata(path, type: S_IFDIR, uid: uid_t(owner), gid: gid_t(group), mode: mode)
-    guard try FileManager.default.contentsOfDirectory(atPath: path).isEmpty else {
-        throw repairFailure("Repair target directory is not empty: \(path)")
-    }
-}
-
-func removeEmptyRepairDirectoryIfPresent(_ path: String, owner: UInt32, group: UInt32, mode: mode_t) throws {
-    var metadata = stat()
-    if lstat(path, &metadata) != 0 {
-        if errno == ENOENT { return }
-        throw posixFailure("inspect partial-install repair directory", path)
-    }
-    try requireEmptyRepairDirectory(path, owner: owner, group: group, mode: mode)
-    guard rmdir(path) == 0 else { throw posixFailure("remove empty partial-install repair directory", path) }
-    try syncDirectory((path as NSString).deletingLastPathComponent)
-}
-
-func removeRepairLaunchDaemonIfPresent() throws {
-    var metadata = stat()
-    if lstat(launchDaemonPath, &metadata) != 0 {
-        if errno == ENOENT { return }
-        throw posixFailure("inspect partial LaunchDaemon definition", launchDaemonPath)
-    }
-    try verifyInstalledLaunchDaemonDefinition()
-    guard unlink(launchDaemonPath) == 0 else { throw posixFailure("remove partial LaunchDaemon definition", launchDaemonPath) }
-    try syncDirectory((launchDaemonPath as NSString).deletingLastPathComponent)
-}
-
 func proveRepairTargetsAbsent() throws {
+    let journal = try readPartialInstallRepairJournal()
+    guard journal.phase == "principal-removed" else {
+        throw partialInstallRepairJournalFailure(
+            phase: journal.phase, probe: "final-target-proof", state: "premature",
+            message: "Final repair target absence requires the principal-removed journal boundary."
+        )
+    }
     let targets = [
         launchDaemonPath,
         runtimeStateRoot,
@@ -144,89 +115,42 @@ func proveRepairTargetsAbsent() throws {
             throw repairFailure("A fixed partial-install target remains after repair: \(target)")
         }
     }
-    guard try !runtimeAccountRecordsPresent() else {
-        throw repairFailure("The Runtime service principal remains after repair.")
-    }
+    let store = try OpenDirectoryRuntimeAccountStore()
+    try store.proveRawAbsent(journal.plan, phase: "final-repair-target-proof")
+    try store.proveNoExplicitGroupMembership(journal.plan)
+    _ = try settleRuntimePOSIXProjectionAbsent(
+        journal.plan,
+        phase: "final-repair-target-proof"
+    )
 }
 
 func writePartialInstallRepairJournal(_ journal: PartialInstallRepairJournal) throws {
     try validatePartialInstallRepairJournal(journal)
-    let encoder = JSONEncoder()
-    encoder.outputFormatting = [.sortedKeys, .prettyPrinted, .withoutEscapingSlashes]
-    var data = try encoder.encode(journal)
-    data.append(0x0a)
-    try writePartialInstallRepairJournalAtomically(data)
-}
-
-func writePartialInstallRepairJournalAtomically(_ data: Data) throws {
-    guard !data.isEmpty, data.count <= 64 * 1024 else {
-        throw repairFailure("The partial-install repair journal exceeds its admitted write budget.")
-    }
-    var stagingMetadata = stat()
-    guard lstat(runtimePartialInstallRepairJournalStagingPath, &stagingMetadata) != 0, errno == ENOENT else {
-        throw repairFailure("The fixed partial-install repair journal staging path is not clean before a write.")
-    }
-    let descriptor = open(
-        runtimePartialInstallRepairJournalStagingPath,
-        O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC | O_NOFOLLOW,
-        0o600
-    )
-    guard descriptor >= 0 else {
-        throw posixFailure("create partial-install repair journal staging", runtimePartialInstallRepairJournalStagingPath)
-    }
-    var descriptorOpen = true
-    defer { if descriptorOpen { close(descriptor) } }
-    do {
-        try data.withUnsafeBytes { buffer in
-            var offset = 0
-            while offset < buffer.count {
-                let count = Darwin.write(descriptor, buffer.baseAddress!.advanced(by: offset), buffer.count - offset)
-                guard count > 0 else {
-                    throw posixFailure("write partial-install repair journal staging", runtimePartialInstallRepairJournalStagingPath)
-                }
-                offset += count
-            }
-        }
-        guard fchown(descriptor, 0, 0) == 0,
-              fchmod(descriptor, 0o600) == 0,
-              fsync(descriptor) == 0 else {
-            throw posixFailure("secure and sync partial-install repair journal staging", runtimePartialInstallRepairJournalStagingPath)
-        }
-        var descriptorMetadata = stat()
-        var pathMetadata = stat()
-        guard fstat(descriptor, &descriptorMetadata) == 0,
-              lstat(runtimePartialInstallRepairJournalStagingPath, &pathMetadata) == 0,
-              descriptorMetadata.st_mode & S_IFMT == S_IFREG,
-              descriptorMetadata.st_uid == 0,
-              descriptorMetadata.st_gid == 0,
-              descriptorMetadata.st_mode & 0o777 == 0o600,
-              descriptorMetadata.st_nlink == 1,
-              descriptorMetadata.st_size == data.count,
-              descriptorMetadata.st_dev == pathMetadata.st_dev,
-              descriptorMetadata.st_ino == pathMetadata.st_ino else {
-            throw repairFailure("The partial-install repair journal staging vnode changed before commit.")
-        }
-        guard rename(runtimePartialInstallRepairJournalStagingPath, runtimePartialInstallRepairJournalPath) == 0 else {
-            throw posixFailure("commit partial-install repair journal", runtimePartialInstallRepairJournalPath)
-        }
-        guard close(descriptor) == 0 else {
-            descriptorOpen = false
-            throw posixFailure("close committed partial-install repair journal", runtimePartialInstallRepairJournalPath)
-        }
-        descriptorOpen = false
-        try syncDirectory(runtimeDevRoot)
-    } catch {
-        if descriptorOpen {
-            close(descriptor)
-            descriptorOpen = false
-        }
-        try? recoverInterruptedPartialInstallRepairJournalWrite()
-        throw error
+    let data = try canonicalPartialInstallRepairJournalData(journal)
+    try partialInstallRepairJournalPersistence().writeAtomically(data) { existingData in
+        let existing = try decodeCanonicalPartialInstallRepairJournal(existingData)
+        throw partialInstallRepairJournalFailure(
+            phase: existing.phase,
+            probe: "journal-create",
+            state: "destination-exists",
+            message: "Initial partial-install repair journal creation requires an absent destination.",
+            projectionSHA256: sha256(existingData)
+        )
     }
 }
 
 func updatePartialInstallRepairJournal(_ journal: PartialInstallRepairJournal, phase: String) throws {
-    try writePartialInstallRepairJournal(PartialInstallRepairJournal(
+    guard let currentPhase = PartialInstallRepairPhase(rawValue: journal.phase),
+          let nextPhase = PartialInstallRepairPhase(rawValue: phase),
+          currentPhase.permitsJournalTransition(to: nextPhase) else {
+        throw partialInstallRepairJournalFailure(
+            phase: journal.phase,
+            probe: "journal-phase-transition",
+            state: "non-monotonic",
+            message: "The partial-install repair journal phase transition is not the one admitted next edge."
+        )
+    }
+    let next = PartialInstallRepairJournal(
         schemaVersion: journal.schemaVersion,
         transactionID: journal.transactionID,
         phase: phase,
@@ -242,28 +166,85 @@ func updatePartialInstallRepairJournal(_ journal: PartialInstallRepairJournal, p
         planDigest: journal.planDigest,
         rootKeyId: journal.rootKeyId,
         policyDigest: journal.policyDigest
-    ))
+    )
+    try validatePartialInstallRepairJournal(next)
+    let data = try canonicalPartialInstallRepairJournalData(next)
+    try partialInstallRepairJournalPersistence(phase: journal.phase).writeAtomically(data) { existingData in
+        let existing = try decodeCanonicalPartialInstallRepairJournal(existingData)
+        guard partialInstallRepairOpenedWitnessMatches(opened: existing, expected: journal) else {
+            throw partialInstallRepairJournalFailure(
+                phase: existing.phase,
+                probe: "journal-opened-projection",
+                state: "caller-witness-mismatch",
+                message: "The opened journal does not equal the caller's complete phase witness.",
+                projectionSHA256: sha256(existingData)
+            )
+        }
+    }
 }
 
 func readPartialInstallRepairJournal() throws -> PartialInstallRepairJournal {
-    _ = try secureMetadata(runtimePartialInstallRepairJournalPath, type: S_IFREG, uid: 0, gid: 0, mode: 0o600, links: 1)
-    let data = try Data(contentsOf: URL(fileURLWithPath: runtimePartialInstallRepairJournalPath))
-    guard !data.isEmpty, data.count <= 64 * 1024 else {
-        throw repairFailure("The partial-install repair journal has an invalid size.")
+    let data = try partialInstallRepairJournalPersistence().read()
+    return try decodeCanonicalPartialInstallRepairJournal(data)
+}
+
+private func decodeCanonicalPartialInstallRepairJournal(
+    _ data: Data
+) throws -> PartialInstallRepairJournal {
+    let projection = sha256(data)
+    let journal: PartialInstallRepairJournal
+    do {
+        journal = try decodeCanonicalPartialInstallRepairJournalStructure(data)
+    } catch let failure as PartialInstallRepairJournalCodecFailure {
+        let state: String
+        let message: String
+        switch failure {
+        case .nonExactFieldSet:
+            state = "non-exact"
+            message = "The partial-install repair journal field set is not exact."
+        case .decodeFailed:
+            state = "decode-failed"
+            message = "The partial-install repair journal is not valid JSON."
+        case .nonCanonicalTransactionID:
+            state = "non-canonical"
+            message = "The partial-install repair journal transaction identifier is not canonical."
+        case .nonCanonicalBytes:
+            state = "mismatch"
+            message = "The partial-install repair journal bytes are not the exact canonical projection."
+        }
+        throw partialInstallRepairJournalFailure(
+            phase: "decode",
+            probe: failure.probe,
+            state: state,
+            message: message,
+            projectionSHA256: projection
+        )
     }
-    let journal = try JSONDecoder().decode(PartialInstallRepairJournal.self, from: data)
-    try validatePartialInstallRepairJournal(journal)
+    try validatePartialInstallRepairJournal(journal, projectionSHA256: projection)
     return journal
 }
 
-func validatePartialInstallRepairJournal(_ journal: PartialInstallRepairJournal) throws {
-    guard journal.schemaVersion == runtimeLegacyRepairJournalSchemaVersion,
-          journal.transactionID.range(of: #"^[a-f0-9-]{36}$"#, options: .regularExpression) != nil,
-          [
-              "prepared", "artifacts-removed", "user-removed", "group-removed", "principal-removed",
-          ].contains(journal.phase),
-          runtimeLegacyRepairJournalPhases.contains(journal.phase),
-          journal.accountName == runtimeAccountName,
+func validatePartialInstallRepairJournal(
+    _ journal: PartialInstallRepairJournal,
+    projectionSHA256: String? = nil
+) throws {
+    let admittedPhases = PartialInstallRepairPhase.allCases.map(\.rawValue)
+    let safePhase = admittedPhases.contains(journal.phase) ? journal.phase : "unrecognized"
+    guard journal.schemaVersion == runtimeLegacyRepairJournalSchemaVersion else {
+        throw partialInstallRepairJournalFailure(
+            phase: safePhase, probe: "schema-version", state: "mismatch",
+            message: "The partial-install repair journal schema version is not admitted.",
+            projectionSHA256: projectionSHA256
+        )
+    }
+    guard admittedPhases.contains(journal.phase), runtimeLegacyRepairJournalPhases.contains(journal.phase) else {
+        throw partialInstallRepairJournalFailure(
+            phase: "unrecognized", probe: "phase", state: "unadmitted",
+            message: "The partial-install repair journal phase is not admitted.",
+            projectionSHA256: projectionSHA256
+        )
+    }
+    guard journal.accountName == runtimeAccountName,
           journal.sourceHelperSHA256.range(of: #"^[a-f0-9]{64}$"#, options: .regularExpression) != nil,
           journal.sourceHelperCDHash.range(of: #"^[a-f0-9]{40}$"#, options: .regularExpression) != nil,
           repairResidueClass(for: journal.sourcePrincipalCarrierContractVersion)?.rawValue == journal.residueClass,
@@ -271,25 +252,87 @@ func validatePartialInstallRepairJournal(_ journal: PartialInstallRepairJournal)
           journal.planDigest.range(of: #"^[a-f0-9]{64}$"#, options: .regularExpression) != nil,
           journal.rootKeyId.range(of: #"^[a-z0-9][a-z0-9._-]{7,127}$"#, options: .regularExpression) != nil,
           journal.policyDigest.range(of: #"^[a-f0-9]{64}$"#, options: .regularExpression) != nil else {
-        throw repairFailure("The partial-install repair journal contains an unrecognized authority or phase.")
+        throw partialInstallRepairJournalFailure(
+            phase: safePhase, probe: "authority-fields", state: "invalid",
+            message: "The partial-install repair journal authority fields are invalid.",
+            projectionSHA256: projectionSHA256
+        )
     }
-    let plan = try makeRuntimeAccountCreationPlan(
-        identifier: journal.identifier,
-        groupGeneratedUID: journal.groupGeneratedUID,
-        userGeneratedUID: journal.userGeneratedUID
-    )
+    let plan: RuntimeAccountCreationPlan
+    do {
+        plan = try makeRuntimeAccountCreationPlan(
+            identifier: journal.identifier,
+            groupGeneratedUID: journal.groupGeneratedUID,
+            userGeneratedUID: journal.userGeneratedUID
+        )
+    } catch {
+        throw partialInstallRepairJournalFailure(
+            phase: safePhase, probe: "principal-plan", state: "invalid",
+            message: "The partial-install repair journal principal plan is invalid.",
+            projectionSHA256: projectionSHA256
+        )
+    }
     guard journal.planDigest == partialInstallRepairPlanDigest(plan) else {
-        throw repairFailure("The partial-install repair journal plan digest is invalid.")
+        throw partialInstallRepairJournalFailure(
+            phase: safePhase, probe: "plan-digest", state: "mismatch",
+            message: "The partial-install repair journal plan digest is invalid.",
+            projectionSHA256: projectionSHA256
+        )
     }
-    _ = try partialInstallRepairWitness(journal)
+    do {
+        _ = try partialInstallRepairWitness(journal)
+    } catch {
+        throw partialInstallRepairJournalFailure(
+            phase: safePhase, probe: "authority-witness", state: "invalid",
+            message: "The partial-install repair journal authority witness is invalid.",
+            projectionSHA256: projectionSHA256
+        )
+    }
 }
 
-func removePartialInstallRepairJournal() throws {
-    _ = try secureMetadata(runtimePartialInstallRepairJournalPath, type: S_IFREG, uid: 0, gid: 0, mode: 0o600, links: 1)
-    guard unlink(runtimePartialInstallRepairJournalPath) == 0 else {
-        throw posixFailure("remove partial-install repair journal", runtimePartialInstallRepairJournalPath)
+func removePartialInstallRepairJournal(expected: PartialInstallRepairJournal) throws {
+    try partialInstallRepairJournalPersistence().remove { data in
+        let projection = sha256(data)
+        let journal = try decodeCanonicalPartialInstallRepairJournal(data)
+        guard journal == expected else {
+            throw partialInstallRepairJournalFailure(
+                phase: journal.phase, probe: "final-unlink-witness", state: "mismatch",
+                message: "The journal selected for terminal unlink differs from the prepared completion witness.",
+                projectionSHA256: projection
+            )
+        }
+        guard journal.phase == "principal-removed" else {
+            throw partialInstallRepairJournalFailure(
+                phase: journal.phase, probe: "final-unlink-phase", state: "premature",
+                message: "The partial-install repair journal cannot be removed before principal-removed.",
+                projectionSHA256: projection
+            )
+        }
     }
-    try syncDirectory(runtimeDevRoot)
+}
+
+private func partialInstallRepairJournalFailure(
+    phase: String,
+    probe: String,
+    state: String,
+    message: String,
+    projectionSHA256: String? = nil,
+    returnCode: Int32? = nil
+) -> DevSecurityFailure {
+    var details: [String: Any] = [
+        "phase": phase,
+        "probe": probe,
+        "state": state,
+        "verifier_pid": Int(getpid()),
+    ]
+    if let projectionSHA256 { details["projection_sha256"] = projectionSHA256 }
+    if let returnCode { details["return_code"] = Int(returnCode) }
+    return principalDiagnosticFailure(
+        "runtime-principal-journal-invalid",
+        "inspect and repair the exact partial-install repair journal evidence",
+        message,
+        details: details
+    )
 }
 
 func repairFailure(_ message: String) -> DevSecurityFailure {

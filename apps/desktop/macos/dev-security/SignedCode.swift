@@ -28,6 +28,48 @@ func inspectSignedCode(_ path: String, checkNested: Bool = false) throws -> Sign
     try signedCodeIdentity(validatedStaticCode(path, checkNested: checkNested))
 }
 
+func requireSignedCodeCertificateRequirement(
+    _ path: String,
+    identifier: String,
+    leafCertificateSHA1: String
+) throws {
+    guard identifier.range(of: #"^[A-Za-z0-9][A-Za-z0-9._-]{2,127}$"#, options: .regularExpression) != nil,
+          leafCertificateSHA1.range(of: #"^[a-f0-9]{40}$"#, options: .regularExpression) != nil else {
+        throw fail(
+            "runtime-service-untrusted",
+            "reprovision the exact local development signing profile",
+            "The expected helper certificate requirement is malformed."
+        )
+    }
+    let requirementText = "identifier \"\(identifier)\" and certificate leaf = H\"\(leafCertificateSHA1)\""
+    var requirement: SecRequirement?
+    let requirementStatus = SecRequirementCreateWithString(
+        requirementText as CFString,
+        [],
+        &requirement
+    )
+    guard requirementStatus == errSecSuccess, let requirement else {
+        throw codeFailure("construct exact helper certificate requirement", requirementStatus)
+    }
+    let code = try validatedStaticCode(path, checkNested: false)
+    var validationErrors: Unmanaged<CFError>?
+    let validationStatus = SecStaticCodeCheckValidityWithErrors(
+        code,
+        SecCSFlags(rawValue: UInt32(kSecCSStrictValidate | kSecCSCheckAllArchitectures)),
+        requirement,
+        &validationErrors
+    )
+    guard validationStatus == errSecSuccess else {
+        let diagnostic = validationErrors?.takeRetainedValue().localizedDescription
+            ?? "OSStatus \(validationStatus)"
+        throw fail(
+            "runtime-service-untrusted",
+            "restore the exact certificate-bound development security helper",
+            "The final helper does not satisfy its exact certificate requirement: \(diagnostic)"
+        )
+    }
+}
+
 func signedCodeCertificateChainDER(_ path: String) throws -> [Data] {
     let code = try validatedStaticCode(path, checkNested: false)
     var information: CFDictionary?

@@ -495,20 +495,6 @@ func runtimeAccountPlan(
 }
 
 func validateRuntimeAccountPOSIXProjection(_ plan: RuntimeAccountCreationPlan) throws -> (uid: uid_t, gid: gid_t) {
-    guard let password = getpwnam(runtimeAccountName),
-          password.pointee.pw_uid == plan.identifier,
-          password.pointee.pw_gid == plan.identifier,
-          String(cString: password.pointee.pw_name) == runtimeAccountName,
-          String(cString: password.pointee.pw_dir) == runtimeHomeDirectory,
-          String(cString: password.pointee.pw_shell) == runtimeLoginShell,
-          let group = getgrnam(runtimeAccountName),
-          group.pointee.gr_gid == plan.identifier,
-          String(cString: group.pointee.gr_name) == runtimeAccountName,
-          let uidRecord = getpwuid(uid_t(plan.identifier)),
-          String(cString: uidRecord.pointee.pw_name) == runtimeAccountName,
-          let gidRecord = getgrgid(gid_t(plan.identifier)),
-          String(cString: gidRecord.pointee.gr_name) == runtimeAccountName else {
-        throw accountFailure("The Runtime service POSIX identity projection does not match OpenDirectory.")
-    }
+    _ = try requireRuntimePOSIXProjectionPresent(plan, phase: "principal-present")
     return (uid_t(plan.identifier), gid_t(plan.identifier))
 }

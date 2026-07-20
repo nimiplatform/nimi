@@ -1,5 +1,6 @@
 import CryptoKit
 import Darwin
+import Dispatch
 import Foundation
 
 let helperInstallPath = "/usr/local/libexec/nimi-macos-dev-security"
@@ -42,11 +43,18 @@ let runtimeForbiddenDelegatedWriterAttributePrefix = generatedRuntimeForbiddenDe
 let runtimeForbiddenExplicitGroupMembershipAttributes = generatedRuntimeForbiddenExplicitGroupMembershipAttributes
 let runtimeForbiddenExplicitGroupMembershipPolicy = generatedRuntimeForbiddenExplicitGroupMembershipPolicy
 let runtimeNegativeAttributeValuePolicy = generatedRuntimeNegativeAttributeValuePolicy
+let runtimePOSIXIdentityLookupAPI = generatedRuntimePOSIXIdentityLookupAPI
+let runtimePOSIXIdentityLookupResultPolicy = generatedRuntimePOSIXIdentityLookupResultPolicy
+let runtimePrincipalDeletionProjectionPolicy = generatedRuntimePrincipalDeletionProjectionPolicy
+let runtimePrincipalDiagnosticFields = generatedRuntimePrincipalDiagnosticFields
+let runtimePrincipalDiagnosticReasonCodes = generatedRuntimePrincipalDiagnosticReasonCodes
 let runtimeGeneratedUIDPolicy = generatedRuntimeGeneratedUIDPolicy
 let runtimeDirectoryServiceAPI = generatedRuntimeDirectoryServiceAPI
 let runtimeDirectoryServiceCommitPolicy = generatedRuntimeDirectoryServiceCommitPolicy
 let runtimeDirectoryServiceRecoveryPolicy = generatedRuntimeDirectoryServiceRecoveryPolicy
 let runtimeDirectoryServiceExistingIdentityPolicy = generatedRuntimeDirectoryServiceExistingIdentityPolicy
+let runtimeDirectoryCacheResetExecutable = generatedRuntimeDirectoryCacheResetExecutable
+let runtimeDirectoryCacheResetPolicy = generatedRuntimeDirectoryCacheResetPolicy
 let runtimeKeychainAccounts = generatedRuntimeKeychainAccounts
 let runtimeInstallationTransactionScope = generatedRuntimeInstallationTransactionScope
 let runtimeInstallationRollbackOrder = generatedRuntimeInstallationRollbackOrder
@@ -69,26 +77,185 @@ let runtimeLegacyRepairOtherAuthenticationMaterialPosture = generatedRuntimeLega
 let runtimeLegacyRepairNormalCurrentProfileDisposition = generatedRuntimeLegacyRepairNormalCurrentProfileDisposition
 let runtimeLegacyRepairJournalAuthorityBindingRequiredFields = generatedRuntimeLegacyRepairJournalAuthorityBindingRequiredFields
 let runtimeLegacyRepairSourceHelperIdentityStability = generatedRuntimeLegacyRepairSourceHelperIdentityStability
+let runtimeLegacyRepairParentPrivateCustodyProof = generatedRuntimeLegacyRepairParentPrivateCustodyProof
+let runtimeLegacyRepairParentFinalHelperProcessTreePolicy = generatedRuntimeLegacyRepairParentFinalHelperProcessTreePolicy
+let runtimeLegacyRepairFreshBootstrapAuthorityProof = generatedRuntimeLegacyRepairFreshBootstrapAuthorityProof
+let runtimeLegacyRepairFreshBootstrapNestedProcessPolicy = generatedRuntimeLegacyRepairFreshBootstrapNestedProcessPolicy
+let runtimeLegacyRepairCustodyProofInvalidation = generatedRuntimeLegacyRepairCustodyProofInvalidation
+let runtimeLegacyRepairCleanNoJournalDisposition = generatedRuntimeLegacyRepairCleanNoJournalDisposition
 let runtimeLegacyRepairJournalSchemaVersion = generatedRuntimeLegacyRepairJournalSchemaVersion
 let runtimeLegacyRepairJournalPhases = generatedRuntimeLegacyRepairJournalPhases
 let runtimeLegacyRepairJournalOwnership = generatedRuntimeLegacyRepairJournalOwnership
+let runtimeLegacyRepairTerminalCommitPolicy = generatedRuntimeLegacyRepairTerminalCommitPolicy
 let runtimeLegacyRepairJournalStagingRecovery = generatedRuntimeLegacyRepairJournalStagingRecovery
 let runtimeLegacyRepairFreshBootstrapAbsenceReceipt = generatedRuntimeLegacyRepairFreshBootstrapAbsenceReceipt
+let runtimeLegacyRepairInvocationDeadline = generatedRuntimeLegacyRepairInvocationDeadline
+let runtimeLegacyRepairFailureEvidence = generatedRuntimeLegacyRepairFailureEvidence
+let runtimeLegacyRepairPostRepairCarrierDisposition = generatedRuntimeLegacyRepairPostRepairCarrierDisposition
 
 struct DevSecurityFailure: LocalizedError, CustomStringConvertible {
     let reasonCode: String
     let actionHint: String
     let message: String
+    let details: [String: Any]?
 
     var errorDescription: String? { message }
     var description: String { message }
 }
 
-func fail(_ reasonCode: String, _ actionHint: String, _ message: String) -> DevSecurityFailure {
-    DevSecurityFailure(reasonCode: reasonCode, actionHint: actionHint, message: message)
+func fail(
+    _ reasonCode: String,
+    _ actionHint: String,
+    _ message: String,
+    details: [String: Any]? = nil
+) -> DevSecurityFailure {
+    DevSecurityFailure(
+        reasonCode: reasonCode,
+        actionHint: actionHint,
+        message: message,
+        details: details
+    )
+}
+
+func principalDiagnosticFailure(
+    _ reasonCode: String,
+    _ actionHint: String,
+    _ message: String,
+    details: [String: Any]
+) -> DevSecurityFailure {
+    let admittedFields = Set(runtimePrincipalDiagnosticFields)
+    guard runtimePrincipalDiagnosticReasonCodes.contains(reasonCode),
+          !details.isEmpty,
+          Set(details.keys).isSubset(of: admittedFields),
+          JSONSerialization.isValidJSONObject(details) else {
+        return fail(
+            "runtime-principal-journal-invalid",
+            "repair the generated macOS Runtime principal diagnostic contract",
+            "A Runtime principal diagnostic did not match the authority-derived field contract."
+        )
+    }
+    return fail(reasonCode, actionHint, message, details: details)
 }
 
 func withRuntimeServiceMutationLock<T>(_ operation: () throws -> T) throws -> T {
+    try withRuntimeServiceMutationLockWitness(requireStableNamedVnodeAtExit: false) { _ in
+        try operation()
+    }
+}
+
+func withStableRuntimeServiceMutationLock<T>(
+    _ operation: (RuntimeServiceMutationLockWitness) throws -> T
+) throws -> T {
+    try withRuntimeServiceMutationLockWitness(
+        requireStableNamedVnodeAtExit: true,
+        operation
+    )
+}
+
+private final class RuntimeRepairMutationDiagnosticState {
+    var journalPhase = "unobserved"
+    var completionPrepared = false
+    var bootstrapRetired = false
+
+    func details() -> [String: Any] {
+        let journalPresent = (try? repairPathPresent(runtimePartialInstallRepairJournalPath)) == true
+        return [
+            "journal_phase": journalPhase,
+            "journal_present": journalPresent,
+            "completion_prepared": completionPrepared,
+            "bootstrap_retired": bootstrapRetired,
+        ]
+    }
+}
+
+func withStableRuntimeServiceRepairTransaction(
+    _ prepare: (RuntimeServiceMutationLockWitness) throws
+        -> PartialInstallRepairPreparedCompletion<PartialInstallRepairJournal, [String: Any]>
+) throws -> [String: Any] {
+    let diagnostic = RuntimeRepairMutationDiagnosticState()
+    return try withStableMutationLockVnodeTransaction(
+        path: helperInstallPath,
+        owner: 0,
+        group: 0,
+        requireExecutable: true,
+        requireStableNamedVnodeAtExit: true,
+        attributeEventRevalidator: { witness in
+            if try repairPathPresent(runtimePartialInstallRepairJournalPath) {
+                let journal = try readPartialInstallRepairJournal()
+                _ = try requireCurrentPartialInstallRepairAuthority(
+                    journal,
+                    lockWitness: witness
+                )
+            } else {
+                _ = try currentPartialInstallRepairStaticAuthority(
+                    lockWitness: witness
+                )
+            }
+        },
+        diagnosticDetails: { diagnostic.details() }
+    ) { witness in
+        let prepared = try prepare(witness)
+        diagnostic.journalPhase = prepared.context.phase
+        diagnostic.completionPrepared = true
+        return StableMutationLockTerminalCommit(
+            beforeFinalProof: {
+                try retireProvisioningBootstrapHelper()
+                diagnostic.bootstrapRetired = true
+                _ = try requireCurrentPartialInstallRepairAuthority(
+                    prepared.context,
+                    lockWitness: witness
+                )
+            },
+            commit: {
+                do {
+                    try removePartialInstallRepairJournal(expected: prepared.context)
+                    return prepared.receipt
+                } catch {
+                    throw partialInstallRepairTerminalCommitFailure(
+                        error,
+                        prepared: prepared,
+                        diagnostic: diagnostic
+                    )
+                }
+            }
+        )
+    }
+}
+
+private func partialInstallRepairTerminalCommitFailure(
+    _ error: Error,
+    prepared: PartialInstallRepairPreparedCompletion<PartialInstallRepairJournal, [String: Any]>,
+    diagnostic: RuntimeRepairMutationDiagnosticState
+) -> DevSecurityFailure {
+    let source = error as? DevSecurityFailure
+    var details = source?.details ?? [:]
+    for (key, value) in diagnostic.details() where details[key] == nil {
+        details[key] = value
+    }
+    details["journal_phase"] = prepared.context.phase
+    details["completion_prepared"] = true
+    details["bootstrap_retired"] = diagnostic.bootstrapRetired
+    details["child_reaped"] = true
+    let reasonCode = source?.reasonCode ?? "runtime-principal-journal-invalid"
+    let actionHint = source?.actionHint
+        ?? "inspect the exact terminal repair journal commit"
+    let message = source?.message
+        ?? "The terminal repair journal unlink did not reach a provable boundary."
+    if runtimePrincipalDiagnosticReasonCodes.contains(reasonCode) {
+        return principalDiagnosticFailure(
+            reasonCode,
+            actionHint,
+            message,
+            details: details
+        )
+    }
+    return fail(reasonCode, actionHint, message, details: details)
+}
+
+private func withRuntimeServiceMutationLockWitness<T>(
+    requireStableNamedVnodeAtExit: Bool,
+    _ operation: (RuntimeServiceMutationLockWitness) throws -> T
+) throws -> T {
     guard runtimeServiceMutationSerializationPolicy == "nonblocking_exclusive_flock_on_the_exact_open_root_owned_final_helper_vnode_spans_install_restart_reset_uninstall_release-record-signing_and_unprovision;_lock_contention_fails_before_mutation" else {
         throw fail(
             "runtime-service-repair-required",
@@ -96,34 +263,14 @@ func withRuntimeServiceMutationLock<T>(_ operation: () throws -> T) throws -> T 
             "The Runtime service mutation serialization policy is not admitted."
         )
     }
-    let descriptor = open(helperInstallPath, O_RDONLY | O_CLOEXEC | O_NOFOLLOW)
-    guard descriptor >= 0 else { throw posixFailure("open the fixed mutation-lock helper vnode", helperInstallPath) }
-    defer { close(descriptor) }
-    var metadata = stat()
-    guard fstat(descriptor, &metadata) == 0,
-          metadata.st_mode & S_IFMT == S_IFREG,
-          metadata.st_uid == 0,
-          metadata.st_gid == 0,
-          metadata.st_nlink == 1,
-          metadata.st_mode & 0o022 == 0 else {
-        throw fail(
-            "runtime-service-repair-required",
-            "reinstall the exact root-owned development security helper",
-            "The Runtime mutation-lock vnode has unsafe metadata."
-        )
-    }
-    guard flock(descriptor, LOCK_EX | LOCK_NB) == 0 else {
-        if errno == EWOULDBLOCK {
-            throw fail(
-                "runtime-service-repair-required",
-                "wait for the existing macOS development security transaction to finish",
-                "Another exact development security helper transaction already owns the mutation lock."
-            )
-        }
-        throw posixFailure("lock the fixed development security helper vnode", helperInstallPath)
-    }
-    defer { flock(descriptor, LOCK_UN) }
-    return try operation()
+    return try withStableMutationLockVnode(
+        path: helperInstallPath,
+        owner: 0,
+        group: 0,
+        requireExecutable: true,
+        requireStableNamedVnodeAtExit: requireStableNamedVnodeAtExit,
+        operation: operation
+    )
 }
 
 func diagnosticMessage(_ error: Error) -> String {
@@ -233,13 +380,90 @@ func retireProvisioningBootstrapHelper() throws {
             "The immutable bootstrap cannot retire before the signed profile is committed."
         )
     }
-    guard unlink(bootstrapHelperInstallPath) == 0 else {
-        throw posixFailure("retire immutable provisioning bootstrap helper", bootstrapHelperInstallPath)
+    try unlinkRunningBootstrapHelperSameVnode()
+}
+
+func retireRepairBootstrapHelperAfterFailure() throws {
+    _ = try requireProvisioningBootstrapMutationContext(unsignedFinalCandidateRequired: false)
+    try unlinkRunningBootstrapHelperSameVnode()
+}
+
+private func unlinkRunningBootstrapHelperSameVnode() throws {
+    let parentPath = (bootstrapHelperInstallPath as NSString).deletingLastPathComponent
+    let name = (bootstrapHelperInstallPath as NSString).lastPathComponent
+    guard parentPath == "/usr/local/libexec", name == "nimi-macos-dev-security-bootstrap" else {
+        throw fail(
+            "runtime-service-repair-required",
+            "repair the authority-derived bootstrap helper path",
+            "The immutable bootstrap helper path is not admitted."
+        )
     }
-    try syncDirectory((bootstrapHelperInstallPath as NSString).deletingLastPathComponent)
-    var metadata = stat()
-    guard lstat(bootstrapHelperInstallPath, &metadata) != 0, errno == ENOENT else {
-        throw fail("runtime-service-repair-required", "remove the bootstrap helper residue", "The bootstrap helper remains after retirement.")
+    let parentDescriptor = open(parentPath, O_RDONLY | O_CLOEXEC | O_DIRECTORY | O_NOFOLLOW)
+    guard parentDescriptor >= 0 else {
+        throw posixFailure("open immutable bootstrap parent", parentPath)
+    }
+    defer { close(parentDescriptor) }
+    var parentMetadata = stat()
+    guard fstat(parentDescriptor, &parentMetadata) == 0,
+          parentMetadata.st_mode & S_IFMT == S_IFDIR,
+          parentMetadata.st_uid == 0,
+          parentMetadata.st_gid == 0,
+          parentMetadata.st_mode & 0o022 == 0 else {
+        throw fail(
+            "runtime-service-repair-required",
+            "repair the immutable bootstrap parent directory",
+            "The immutable bootstrap parent directory has unsafe metadata."
+        )
+    }
+    let descriptor = name.withCString {
+        openat(parentDescriptor, $0, O_RDONLY | O_CLOEXEC | O_NOFOLLOW)
+    }
+    guard descriptor >= 0 else {
+        throw posixFailure("open immutable bootstrap vnode", bootstrapHelperInstallPath)
+    }
+    defer { close(descriptor) }
+    var opened = stat()
+    var named = stat()
+    let namedStatus = name.withCString {
+        fstatat(parentDescriptor, $0, &named, AT_SYMLINK_NOFOLLOW)
+    }
+    guard fstat(descriptor, &opened) == 0,
+          namedStatus == 0,
+          opened.st_mode & S_IFMT == S_IFREG,
+          opened.st_uid == 0,
+          opened.st_gid == 0,
+          opened.st_nlink == 1,
+          opened.st_mode & 0o022 == 0,
+          opened.st_dev == named.st_dev,
+          opened.st_ino == named.st_ino else {
+        throw fail(
+            "runtime-service-repair-required",
+            "inspect the immutable bootstrap vnode before retirement",
+            "The immutable bootstrap directory entry no longer names the running helper vnode."
+        )
+    }
+    let unlinkStatus = name.withCString { unlinkat(parentDescriptor, $0, 0) }
+    guard unlinkStatus == 0 else {
+        throw posixFailure("retire immutable bootstrap vnode", bootstrapHelperInstallPath)
+    }
+    var removed = stat()
+    var absent = stat()
+    let absentStatus = name.withCString {
+        fstatat(parentDescriptor, $0, &absent, AT_SYMLINK_NOFOLLOW)
+    }
+    let absentError = errno
+    guard fstat(descriptor, &removed) == 0,
+          removed.st_dev == opened.st_dev,
+          removed.st_ino == opened.st_ino,
+          removed.st_nlink == 0,
+          absentStatus != 0,
+          absentError == ENOENT,
+          fsync(parentDescriptor) == 0 else {
+        throw fail(
+            "runtime-service-repair-required",
+            "inspect immutable bootstrap retirement",
+            "The exact running bootstrap vnode retirement was not durably proven."
+        )
     }
 }
 
@@ -325,7 +549,7 @@ private func processExecutablePath(_ pid: pid_t) throws -> String {
     return path
 }
 
-private func sameBootstrapIdentity(_ left: BootstrapCodeIdentity, _ right: BootstrapCodeIdentity) -> Bool {
+func sameBootstrapIdentity(_ left: BootstrapCodeIdentity, _ right: BootstrapCodeIdentity) -> Bool {
     left.identifier == right.identifier
         && left.teamId == right.teamId
         && left.cdhash == right.cdhash
@@ -440,96 +664,6 @@ func sha256File(_ path: String) throws -> String {
         digest.update(data: data)
     }
     return digest.finalize().map { String(format: "%02x", $0) }.joined()
-}
-
-struct CommandResult {
-    let stdout: Data
-    let stderr: Data
-    let pid: pid_t
-}
-
-@discardableResult
-func runFixedCommand(
-    _ executable: String,
-    _ arguments: [String],
-    input: Data? = nil,
-    captureLimit: Int = 4 * 1024 * 1024,
-    homeDirectory: String = "/var/empty"
-) throws -> CommandResult {
-    guard executable.hasPrefix("/"), arguments.allSatisfy({ !$0.contains("\0") }) else {
-        throw fail("runtime-service-repair-required", "inspect the fixed helper command", "A non-canonical helper subprocess was requested.")
-    }
-    try requireTrustedCommandHome(homeDirectory)
-    let process = Process()
-    process.executableURL = URL(fileURLWithPath: executable)
-    process.arguments = arguments
-    process.environment = [
-        "HOME": homeDirectory,
-        "LANG": "en_US.UTF-8",
-        "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
-        "TMPDIR": "/private/tmp",
-    ]
-    let output = try unlinkedCaptureFile()
-    let errors = try unlinkedCaptureFile()
-    process.standardOutput = output
-    process.standardError = errors
-    if let input {
-        let source = Pipe()
-        process.standardInput = source
-        try process.run()
-        try source.fileHandleForWriting.write(contentsOf: input)
-        try source.fileHandleForWriting.close()
-    } else {
-        process.standardInput = FileHandle.nullDevice
-        try process.run()
-    }
-    process.waitUntilExit()
-    let stdout = try boundedCaptureData(output, limit: captureLimit)
-    let stderr = try boundedCaptureData(errors, limit: captureLimit)
-    try output.close()
-    try errors.close()
-    guard stdout.count <= captureLimit, stderr.count <= captureLimit else {
-        throw fail("runtime-service-repair-required", "inspect the bounded helper subprocess", "A helper subprocess exceeded its output budget.")
-    }
-    guard process.terminationReason == .exit, process.terminationStatus == 0 else {
-        let diagnostic = String(data: stderr, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        throw fail(
-            "runtime-service-repair-required",
-            "inspect the macOS development helper subprocess failure",
-            "\((executable as NSString).lastPathComponent) failed with status \(process.terminationStatus)\(diagnostic.isEmpty ? "" : ": \(diagnostic.prefix(500))")"
-        )
-    }
-    return CommandResult(stdout: stdout, stderr: stderr, pid: process.processIdentifier)
-}
-
-private func unlinkedCaptureFile() throws -> FileHandle {
-    var template = Array("/private/tmp/nimi-dev-security-capture.XXXXXX".utf8CString)
-    let descriptor = template.withUnsafeMutableBufferPointer { pointer in
-        mkstemp(pointer.baseAddress!)
-    }
-    guard descriptor >= 0 else {
-        throw posixFailure("create bounded helper capture", "/private/tmp")
-    }
-    let path = String(cString: template)
-    guard fchmod(descriptor, 0o600) == 0, unlink(path) == 0 else {
-        let failure = posixFailure("secure bounded helper capture", path)
-        close(descriptor)
-        throw failure
-    }
-    return FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
-}
-
-private func boundedCaptureData(_ handle: FileHandle, limit: Int) throws -> Data {
-    let size = try handle.seekToEnd()
-    guard size <= UInt64(limit) else {
-        throw fail(
-            "runtime-service-repair-required",
-            "inspect the bounded helper subprocess",
-            "A helper subprocess exceeded its output budget."
-        )
-    }
-    try handle.seek(toOffset: 0)
-    return try handle.readToEnd() ?? Data()
 }
 
 func posixFailure(_ operation: String, _ path: String) -> DevSecurityFailure {

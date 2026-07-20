@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
+
+import { MACOS_LOCAL_DEVELOPMENT_PROFILE } from '../apps/desktop/scripts/generated/macos-local-development-profile.mjs';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 
@@ -23,6 +25,9 @@ function certificateAuthoritySource() {
 
 function openDirectoryAccountSource() {
   return sourceBundle(
+    'apps/desktop/macos/dev-security/POSIXIdentityLookup.swift',
+    'apps/desktop/macos/dev-security/POSIXIdentityProjection.swift',
+    'apps/desktop/macos/dev-security/OpenDirectoryDeleteRecovery.swift',
     'apps/desktop/macos/dev-security/OpenDirectoryAccountStore.swift',
     'apps/desktop/macos/dev-security/OpenDirectoryAccountRepair.swift',
   );
@@ -30,16 +35,51 @@ function openDirectoryAccountSource() {
 
 function partialInstallationRepairSource() {
   return sourceBundle(
+    'apps/desktop/macos/dev-security/BoundedProcessWait.swift',
+    'apps/desktop/macos/dev-security/FixedCommandRunner.swift',
+    'apps/desktop/macos/dev-security/PartialInstallationRepairTransition.swift',
+    'apps/desktop/macos/dev-security/PartialInstallationRepairExecutor.swift',
+    'apps/desktop/macos/dev-security/PartialInstallationRepairPersistence.swift',
+    'apps/desktop/macos/dev-security/PartialInstallationRepairJournalCodec.swift',
+    'apps/desktop/macos/dev-security/PartialInstallationRepairReceipt.swift',
+    'apps/desktop/macos/dev-security/PartialInstallationRepairDeadline.swift',
+    'apps/desktop/macos/dev-security/SubprocessFailureDiagnostics.swift',
     'apps/desktop/macos/dev-security/PartialInstallationRepair.swift',
+    'apps/desktop/macos/dev-security/PartialInstallationRepairExecution.swift',
+    'apps/desktop/macos/dev-security/PartialInstallationRepairLiveAdapter.swift',
+    'apps/desktop/macos/dev-security/PartialInstallationRepairProof.swift',
+    'apps/desktop/macos/dev-security/PartialInstallationRepairAuthority.swift',
+    'apps/desktop/macos/dev-security/StableExecutableVnode.swift',
+    'apps/desktop/macos/dev-security/StableMutationLock.swift',
+    'apps/desktop/macos/dev-security/PartialInstallationRepairArtifactsStorage.swift',
     'apps/desktop/macos/dev-security/PartialInstallationRepairStorage.swift',
   );
 }
 
-test('local-development CA key is non-durable and persistent signing identities use fixed custody', async () => {
+test('Runtime principal diagnostic reason codes have no generated-to-native drift', async () => {
+  const sourceRoot = path.join(repoRoot, 'apps', 'desktop', 'macos', 'dev-security');
+  const names = (await readdir(sourceRoot)).filter((name) => name.endsWith('.swift')).sort();
+  const contents = await Promise.all(names.map((name) => readFile(path.join(sourceRoot, name), 'utf8')));
+  const nativeCodes = new Set();
+  for (const content of contents) {
+    for (const match of content.matchAll(/"(runtime-principal-[a-z0-9-]+)"/gu)) {
+      nativeCodes.add(match[1]);
+    }
+  }
+  assert.deepEqual(
+    [...nativeCodes].sort(),
+    [...MACOS_LOCAL_DEVELOPMENT_PROFILE.runtimePrincipalDiagnosticReasonCodes].sort(),
+  );
+});
+
+test('source boundary declares non-durable CA custody and fixed persistent signing identities', async () => {
   const [profile, authority, support] = await Promise.all([
     source('apps/desktop/scripts/generated/macos-local-development-profile.mjs'),
     certificateAuthoritySource(),
-    source('apps/desktop/macos/dev-security/DevSecuritySupport.swift'),
+    sourceBundle(
+      'apps/desktop/macos/dev-security/DevSecuritySupport.swift',
+      'apps/desktop/macos/dev-security/FixedCommandRunner.swift',
+    ),
   ]);
 
   assert.match(profile, /"signingKeychainPath": "\/Library\/Application Support\/Nimi\/RuntimeDev\/custody\/local-development-signing\.keychain-db"/u);
@@ -63,7 +103,7 @@ test('local-development CA key is non-durable and persistent signing identities 
   assert.doesNotMatch(profile, /Team ID|Developer ID/u);
 });
 
-test('only the root helper can unlock signing custody and every transaction relocks it', async () => {
+test('source boundary routes signing custody unlock and relock through the root helper', async () => {
   const [authority, signing, certificateProfile, cleanupRecord, trustSettings, signedCode, searchList, keychainAccess, support, main, build, nativeIntegration] = await Promise.all([
     certificateAuthoritySource(),
     source('apps/desktop/macos/dev-security/SigningTransaction.swift'),
@@ -73,7 +113,10 @@ test('only the root helper can unlock signing custody and every transaction relo
     source('apps/desktop/macos/dev-security/SignedCode.swift'),
     source('apps/desktop/macos/dev-security/CodeSigningSearchList.swift'),
     source('apps/desktop/macos/dev-security/KeychainAccessControl.swift'),
-    source('apps/desktop/macos/dev-security/DevSecuritySupport.swift'),
+    sourceBundle(
+      'apps/desktop/macos/dev-security/DevSecuritySupport.swift',
+      'apps/desktop/macos/dev-security/FixedCommandRunner.swift',
+    ),
     source('apps/desktop/macos/dev-security/main.swift'),
     source('scripts/build-macos-dev-security-helper.mjs'),
     source('scripts/macos-dev-keychain-access-integration.swift'),
@@ -159,7 +202,8 @@ test('only the root helper can unlock signing custody and every transaction relo
   assert.match(support, /inspectRunningBootstrapCode\(parent\)/u);
   assert.match(support, /kill\(parent, 0\) == 0/u);
   assert.match(support, /sha256File\(bootstrapHelperInstallPath\) == sha256File\(helperInstallPath\)/u);
-  assert.match(support, /unlink\(bootstrapHelperInstallPath\)/u);
+  assert.match(support, /unlinkat\(parentDescriptor/u);
+  assert.match(support, /removed\.st_nlink == 0/u);
   assert.doesNotMatch(certificateProfile, /codesign[\s\S]*bootstrapHelperInstallPath/u);
   assert.match(searchList, /"\/private\/tmp\/nimi-dev-codesign-home\.XXXXXX"/u);
   assert.match(searchList, /\["list-keychains", "-d", "user", "-s", signingKeychain, systemKeychainPath\]/u);
@@ -311,28 +355,53 @@ test('only the root helper can unlock signing custody and every transaction relo
     && integrationFinalization < integrationFreshVerification);
 });
 
-test('helper subprocess capture cannot deadlock on sequential stdout and stderr pipes', async () => {
-  const support = await source('apps/desktop/macos/dev-security/DevSecuritySupport.swift');
-  assert.match(support, /let output = try unlinkedCaptureFile\(\)/u);
-  assert.match(support, /let errors = try unlinkedCaptureFile\(\)/u);
-  assert.match(support, /mkstemp/u);
-  assert.match(support, /fchmod\(descriptor, 0o600\)/u);
-  assert.match(support, /unlink\(path\)/u);
-  assert.match(support, /boundedCaptureData\(output, limit: captureLimit\)/u);
-  assert.doesNotMatch(support, /let output = Pipe\(\)\s+process\.standardOutput = output/u);
-  assert.doesNotMatch(support, /let errors = Pipe\(\)\s+process\.standardError = errors/u);
+test('source boundary uses unlinked seekable files for bounded child capture', async () => {
+  const runner = await source('apps/desktop/macos/dev-security/FixedCommandRunner.swift');
+  assert.match(runner, /let output = try unlinkedCaptureFile\(\)/u);
+  assert.match(runner, /let errors = try unlinkedCaptureFile\(\)/u);
+  assert.match(runner, /mkstemp/u);
+  assert.match(runner, /fchmod\(descriptor, 0o600\)/u);
+  assert.match(runner, /unlink\(path\)/u);
+  assert.match(runner, /boundedCaptureData\(output, limit: captureLimit\)/u);
+  assert.doesNotMatch(runner, /let output = Pipe\(\)\s+process\.standardOutput = output/u);
+  assert.doesNotMatch(runner, /let errors = Pipe\(\)\s+process\.standardError = errors/u);
 });
 
-test('all final-helper service mutations serialize on the exact open helper vnode', async () => {
-  const [support, main] = await Promise.all([
+test('repair-reachable service probes use the bounded production runner', async () => {
+  const [health, lifecycle, runner] = await Promise.all([
+    source('apps/desktop/macos/dev-security/InstalledHealth.swift'),
+    source('apps/desktop/macos/dev-security/ServiceLifecycle.swift'),
+    source('apps/desktop/macos/dev-security/FixedCommandRunner.swift'),
+  ]);
+  for (const probeSource of [health, lifecycle]) {
+    assert.doesNotMatch(probeSource, /\bProcess\(\)/u);
+    assert.doesNotMatch(probeSource, /waitUntilExit\(\)/u);
+    assert.doesNotMatch(probeSource, /readDataToEndOfFile\(\)/u);
+  }
+  assert.match(
+    health,
+    /runFixedCommand\([\s\S]{0,240}"\/bin\/launchctl"[\s\S]{0,240}acceptedExitStatuses: \[0, 113\]/u,
+  );
+  assert.match(
+    lifecycle,
+    /runFixedCommand\([\s\S]{0,240}"\/usr\/bin\/pgrep"[\s\S]{0,240}acceptedExitStatuses: \[0, 1\]/u,
+  );
+  assert.match(runner, /let acceptedStatuses = Set\(acceptedExitStatuses\)/u);
+  assert.match(runner, /acceptedStatuses\.contains\(process\.terminationStatus\)/u);
+});
+
+test('source boundary routes final-helper service mutations through the exact vnode lock', async () => {
+  const [support, stableLock, main] = await Promise.all([
     source('apps/desktop/macos/dev-security/DevSecuritySupport.swift'),
+    source('apps/desktop/macos/dev-security/StableMutationLock.swift'),
     source('apps/desktop/macos/dev-security/main.swift'),
   ]);
-  assert.match(support, /open\(helperInstallPath, O_RDONLY \| O_CLOEXEC \| O_NOFOLLOW\)/u);
-  assert.match(support, /fstat\(descriptor, &metadata\)/u);
-  assert.match(support, /flock\(descriptor, LOCK_EX \| LOCK_NB\)/u);
-  assert.match(support, /metadata\.st_uid == 0/u);
-  assert.match(support, /metadata\.st_nlink == 1/u);
+  assert.match(support, /withStableMutationLockVnode\(/u);
+  assert.match(stableLock, /open\(path, O_RDONLY \| O_CLOEXEC \| O_NOFOLLOW\)/u);
+  assert.match(stableLock, /flock\(descriptor, LOCK_EX \| LOCK_NB\)/u);
+  assert.match(stableLock, /metadata\.st_uid == owner/u);
+  assert.match(stableLock, /metadata\.st_nlink == 1/u);
+  assert.match(stableLock, /NOTE_DELETE \| NOTE_WRITE \| NOTE_EXTEND \| NOTE_ATTRIB \| NOTE_LINK \| NOTE_RENAME \| NOTE_REVOKE/u);
   for (const operation of [
     'installDevelopmentCandidate',
     'restartDevelopmentService',
@@ -344,7 +413,7 @@ test('all final-helper service mutations serialize on the exact open helper vnod
   }
 });
 
-test('Runtime service account is born atomically through OpenDirectory behind a durable exact-recovery journal', async () => {
+test('source boundary declares OpenDirectory principal creation behind the durable recovery journal', async () => {
   const [profile, generated, plan, store, transaction, installer, build] = await Promise.all([
     source('apps/desktop/scripts/generated/macos-local-development-profile.mjs'),
     source('apps/desktop/macos/generated/macos_local_development_profile.swift'),
@@ -371,6 +440,13 @@ test('Runtime service account is born atomically through OpenDirectory behind a 
   assert.match(plan, /canonicalUUID\(groupGeneratedUID\)/u);
   assert.match(plan, /canonicalUUID\(userGeneratedUID\)/u);
   assert.match(store, /import OpenDirectory/u);
+  assert.match(store, /ODSession\(options: nil\)/u);
+  assert.match(store, /func observeByIdentifier/u);
+  assert.match(store, /getpwnam_r/u);
+  assert.match(store, /getpwuid_r/u);
+  assert.match(store, /getgrnam_r/u);
+  assert.match(store, /getgrgid_r/u);
+  assert.doesNotMatch(store, /\b(?:getpwnam|getpwuid|getgrnam|getgrgid)\s*\(/u);
   assert.match(store, /node\.createRecord\(/u);
   assert.match(store, /kODAttributeTypeGUID: \[plan\.userGeneratedUID\]/u);
   assert.doesNotMatch(store, /kODAttributeTypeAuthenticationAuthority: \[/u);
@@ -378,6 +454,16 @@ test('Runtime service account is born atomically through OpenDirectory behind a 
   assert.match(store, /runtimeHiddenAttribute: \[runtimeDirectoryServiceHiddenRecordValue\]/u);
   assert.match(store, /try observed\.record\.delete\(\)/u);
   assert.match(store, /validateRuntimeAccountPOSIXProjection/u);
+  assert.match(store, /runtime-principal-directory-query-failed/u);
+  assert.match(store, /invalid-query-projection/u);
+  assert.match(store, /malformed-record-projection/u);
+  assert.match(store, /runtime-principal-directory-mutation-failed/u);
+  assert.match(store, /state: "create-error"/u);
+  assert.match(store, /state: "synchronize-error"/u);
+  assert.match(store, /state: "delete-error-record-remains"/u);
+  assert.doesNotMatch(store, /openDirectoryFailure/u);
+  assert.match(store, /runtime-principal-directory-state-mismatch/u);
+  assert.match(store, /state: "ambiguous"/u);
   assert.doesNotMatch(store, /\/usr\/bin\/dscl|sysadminctl|dsimport/u);
   assert.doesNotMatch(installer, /\/usr\/bin\/dscl|writeDirectoryServiceAttribute|directoryServiceRecordExists/u);
 
@@ -386,11 +472,16 @@ test('Runtime service account is born atomically through OpenDirectory behind a 
   const userCreate = transaction.indexOf('store.createUser(plan)', groupCreate);
   const userRollback = transaction.indexOf('store.deleteExact(.user', userCreate);
   const groupRollback = transaction.indexOf('store.deleteExact(.group', userRollback);
-  const absenceProof = transaction.indexOf('store.proveAbsent()', groupRollback);
+  const cacheReset = transaction.indexOf('resetRuntimeDirectoryIdentityCaches', groupRollback);
+  const absenceProof = transaction.indexOf('verify-runtime-principal-removal-transaction', cacheReset);
   assert.ok(journalWrite >= 0 && journalWrite < groupCreate && groupCreate < userCreate);
-  assert.ok(userRollback > userCreate && userRollback < groupRollback && groupRollback < absenceProof);
+  assert.ok(userRollback > userCreate && userRollback < groupRollback
+    && groupRollback < cacheReset && cacheReset < absenceProof);
   assert.match(transaction, /secureMetadata\(runtimePrincipalJournalPath, type: S_IFREG, uid: 0, gid: 0, mode: 0o600, links: 1\)/u);
   assert.match(transaction, /syncDirectory\(runtimeDevRoot\)/u);
+  assert.match(transaction, /runtime-principal-fresh-proof-invalid/u);
+  assert.match(transaction, /state: "authority-binding-mismatch"/u);
+  assert.match(transaction, /catch let failure as DevSecurityFailure \{\s*throw failure\s*\}/u);
   assert.match(build, /'DirectoryServiceAccountPlan\.swift'/u);
   assert.match(build, /'OpenDirectoryAccountStore\.swift'/u);
   assert.match(build, /'OpenDirectoryAccountRepair\.swift'/u);
@@ -398,7 +489,7 @@ test('Runtime service account is born atomically through OpenDirectory behind a 
   assert.match(build, /'-framework', 'OpenDirectory'/u);
 });
 
-test('service health distinguishes activation-ready journal recovery from healthy steady state', async () => {
+test('source boundary declares distinct activation-ready and healthy service projections', async () => {
   const [health, service, build, journal, lifecycle] = await Promise.all([
     source('apps/desktop/macos/dev-security/InstalledHealth.swift'),
     source('scripts/macos-dev-runtime-service.mjs'),
@@ -428,43 +519,31 @@ test('service health distinguishes activation-ready journal recovery from health
   assert.match(lifecycle, /runtimeStateRoot/u);
 });
 
-test('partial first-install repair v2 owns direct deletion, effect-ahead recovery, and fresh-bootstrap proof', async () => {
-  const [packageJSON, wrapper, repair, account, main, signing, lifecycle] = await Promise.all([
+test('partial-install repair source boundary wires the governed native transaction without a fallback', async () => {
+  const [packageJSON, wrapper, repair, account, main, support, signing, lifecycle, build, fixedCommandRunner, evidence] = await Promise.all([
     source('package.json'),
     source('scripts/repair-macos-dev-runtime-install.mjs'),
     partialInstallationRepairSource(),
     openDirectoryAccountSource(),
     source('apps/desktop/macos/dev-security/main.swift'),
+    source('apps/desktop/macos/dev-security/DevSecuritySupport.swift'),
     source('apps/desktop/macos/dev-security/SigningTransaction.swift'),
     source('apps/desktop/macos/dev-security/ServiceLifecycle.swift'),
+    source('scripts/build-macos-dev-security-helper.mjs'),
+    source('apps/desktop/macos/dev-security/FixedCommandRunner.swift'),
+    source('scripts/lib/macos-dev-repair-evidence.mjs'),
   ]);
 
   assert.match(packageJSON, /"repair:macos-dev-runtime-install": "node scripts\/repair-macos-dev-runtime-install\.mjs"/u);
   assert.match(wrapper, /const confirmation = 'REPAIR NIMI MACOS DEV RUNTIME INSTALL'/u);
   assert.match(wrapper, /process\.argv\.length !== 2/u);
-  assert.match(wrapper, /lstatSync\(bootstrapHelperPath, \{ throwIfNoEntry: false \}\) !== undefined/u);
-  assert.match(wrapper, /runInherited\(process\.execPath, \[path\.join\(scriptRoot, 'build-macos-dev-security-helper\.mjs'\)\]\)/u);
-  assert.match(wrapper, /sourceBefore\.device !== sourceAfter\.device/u);
-  assert.match(wrapper, /installed\.sha256 !== sourceBefore\.sha256/u);
-  assert.match(wrapper, /execute\('\/usr\/bin\/sudo', \[bootstrapHelperPath, 'repair-partial-runtime-install'\]\)/u);
-  assert.match(wrapper, /receipt\?\.status !== 'repaired'/u);
-  assert.match(wrapper, /\['residue-removed', 'already-clean'\]/u);
-  assert.match(wrapper, /digest !== expectedSHA256/u);
-  assert.match(wrapper, /Repair completed but the temporary bootstrap helper was not retired/u);
+  assert.match(wrapper, /\[bootstrapHelperPath, 'repair-partial-runtime-install'\]/u);
+  assert.match(wrapper, /timeoutMilliseconds: null/u);
+  assert.match(wrapper, /validateMacOSDevRepairSuccessReceipt\(receipt\)/u);
   assert.match(wrapper, /does not retry installation, provision Runtime custody, or alter TCC\/Gatekeeper settings/u);
+  assert.match(evidence, /details\?\.child_reaped === true/u);
 
-  assert.match(repair, /nimi\.macos-local-development-partial-install-repair\/v2/u);
-  assert.match(repair, /let sourceHelperSHA256: String/u);
-  assert.match(repair, /let sourceHelperCDHash: String/u);
-  assert.match(repair, /let sourcePrincipalCarrierContractVersion: Int/u);
-  assert.match(repair, /let residueClass: String/u);
-  assert.match(repair, /let authenticationEvidenceSHA256: String/u);
-  assert.match(repair, /let planDigest: String/u);
-  assert.match(repair, /let rootKeyId: String/u);
-  assert.match(repair, /let policyDigest: String/u);
-  assert.match(repair, /let groupGeneratedUID: String/u);
-  assert.match(repair, /let userGeneratedUID: String/u);
-  const requiredRepairBindings = [
+  for (const field of [
     'sourceHelperSHA256',
     'sourceHelperCDHash',
     'sourcePrincipalCarrierContractVersion',
@@ -475,102 +554,80 @@ test('partial first-install repair v2 owns direct deletion, effect-ahead recover
     'policyDigest',
     'groupGeneratedUID',
     'userGeneratedUID',
-  ];
-  assert.equal(requiredRepairBindings.length, 10);
-  assert.match(repair, /journal\.sourceHelperSHA256 ==/u);
-  assert.match(repair, /journal\.sourceHelperCDHash ==/u);
-  assert.match(repair, /journal\.sourcePrincipalCarrierContractVersion ==/u);
-  assert.match(repair, /journal\.residueClass ==/u);
-  assert.match(repair, /journal\.authenticationEvidenceSHA256 ==/u);
-  assert.match(repair, /journal\.planDigest ==/u);
-  assert.match(repair, /journal\.rootKeyId ==/u);
-  assert.match(repair, /journal\.policyDigest ==/u);
-  assert.match(repair, /journal\.groupGeneratedUID ==/u);
-  assert.match(repair, /journal\.userGeneratedUID ==/u);
-  assert.match(repair, /sourceHelperSHA256\.range\(of: #"\^\[a-f0-9\]\{64\}\$"#/u);
-  assert.match(repair, /sourceHelperCDHash\.range\(of: #"\^\[a-f0-9\]\{40\}\$"#/u);
+  ]) {
+    assert.match(repair, new RegExp(`let ${field}: `, 'u'));
+  }
+  assert.match(repair, /nimi\.macos-local-development-partial-install-repair\/v2/u);
+  assert.match(repair, /partialInstallRepairNextTransition\(snapshot\)/u);
+  assert.equal(repair.match(/switch partialInstallRepairNextTransition\(snapshot\)/gu)?.length, 1);
+  assert.doesNotMatch(repair, /zeroResidue|completeZeroResidue/u);
+  assert.match(repair, /preparePartialInstallRepairEntry/u);
+  assert.match(repair, /partialInstallRepairOpenedWitnessMatches/u);
+  assert.match(repair, /decodeCanonicalPartialInstallRepairJournalStructure/u);
+  assert.match(repair, /waitForBoundedProcess/u);
+  assert.match(account, /openDirectoryDeletePostconditionDecision/u);
+  assert.match(account, /let verificationStore = try OpenDirectoryRuntimeAccountStore\(\)/u);
   assert.match(repair, /try requireRuntimeKeychainCustodyAbsent\(\)/u);
-  assert.match(repair, /kSecAttrService: generatedKeychainService/u);
-  assert.match(repair, /kSecMatchLimit: kSecMatchLimitAll/u);
-  assert.match(repair, /Runtime Keychain custody namespace is not empty/u);
-  assert.match(repair, /try requireCurrentPartialInstallRepairAuthority\(journal\)/u);
-  assert.match(repair, /try validatePartialInstallRepairPhaseState\(journal\)/u);
   assert.match(
     repair,
-    /"prepared",\s*"artifacts-removed",\s*"user-removed",\s*"group-removed",\s*"principal-removed"/u,
+    /try requireCurrentPartialInstallRepairAuthority\(\s*current,\s*lockWitness: lockWitness\s*\)/u,
   );
-
-  const artifactsRemoved = repair.search(/updatePartialInstallRepairJournal\([^\n]*phase: "artifacts-removed"/u);
-  const userDelete = repair.search(/try removePartialInstallRepairUser\(current\)/u);
-  const userRemoved = repair.search(/updatePartialInstallRepairJournal\([^\n]*phase: "user-removed"/u);
-  const groupDelete = repair.search(/try removePartialInstallRepairGroup\(current\)/u);
-  const groupRemoved = repair.search(/updatePartialInstallRepairJournal\([^\n]*phase: "group-removed"/u);
-  const freshBootstrapProof = repair.search(/verify-partial-install-repair-principal-removal/u);
-  const principalRemoved = repair.search(/updatePartialInstallRepairJournal\([^\n]*phase: "principal-removed"/u);
-  const finalAbsenceProof = repair.search(/try proveRepairTargetsAbsent\(\)/u);
-  const journalRemoval = repair.search(/try removePartialInstallRepairJournal\(\)/u);
-  for (const boundary of [
-    artifactsRemoved,
-    userDelete,
-    userRemoved,
-    groupDelete,
-    groupRemoved,
-    freshBootstrapProof,
-    principalRemoved,
-    finalAbsenceProof,
-    journalRemoval,
-  ]) {
-    assert.notEqual(boundary, -1);
-  }
-  assert.ok(artifactsRemoved < userDelete);
-  assert.ok(userDelete < userRemoved);
-  assert.ok(userRemoved < groupDelete);
-  assert.ok(groupDelete < groupRemoved);
-  assert.ok(groupRemoved < freshBootstrapProof);
-  assert.ok(freshBootstrapProof < principalRemoved);
-  assert.ok(principalRemoved < finalAbsenceProof);
-  assert.ok(finalAbsenceProof < journalRemoval);
-  assert.match(repair, /func removePartialInstallRepairUser[\s\S]{0,1800}store\.deleteExactRepairUser/u);
-  assert.match(repair, /func removePartialInstallRepairGroup[\s\S]{0,1800}store\.deleteExactRepairGroup/u);
+  assert.match(repair, /currentPartialInstallRepairAuthorityFromSourceStatus/u);
+  assert.match(
+    repair,
+    /runFixedCommand\(\s*bootstrapHelperInstallPath,\s*\["run-repair-source-helper-status"\][\s\S]{0,240}processTreePolicy: \.bootstrapOwnedProcessGroup/u,
+  );
+  assert.match(
+    main,
+    /case "run-repair-source-helper-status":[\s\S]{0,480}execPreservedFinalHelperForRepair\("status"\)/u,
+  );
+  assert.match(repair, /PartialInstallationRepairDeadline/u);
+  assert.match(repair, /let journalTerminalProofBindingSHA256: String/u);
+  assert.match(repair, /journalTerminalProofBindingSHA256:\s*journalBinding/u);
+  assert.match(
+    repair,
+    /proof\.journalTerminalProofBindingSHA256\s*== partialInstallRepairTerminalProofBinding\(journal\)/u,
+  );
+  const repairEntryStart = repair.indexOf('func repairExactPartialRuntimeInstallation(');
+  const repairEntryEnd = repair.indexOf('private func partialInstallRepairNotRequiredFailure()', repairEntryStart);
+  const repairEntry = repair.slice(repairEntryStart, repairEntryEnd);
+  const staticAuthorityIndex = repairEntry.indexOf('currentPartialInstallRepairStaticAuthority(');
+  const stagingRecoveryIndex = repairEntry.indexOf('recoverInterruptedPartialInstallRepairJournalWrite()');
+  const cleanClassificationIndex = repairEntry.indexOf('exactRepairTerminalStateIsClean()');
+  const custodyProofIndex = repairEntry.indexOf('establishPartialInstallRepairParentCustodyProof(');
+  assert.ok(
+    staticAuthorityIndex >= 0
+      && stagingRecoveryIndex > staticAuthorityIndex
+      && cleanClassificationIndex > stagingRecoveryIndex
+      && custodyProofIndex > cleanClassificationIndex,
+    'static authority and non-semantic staging recovery must precede clean classification, which must precede journal-bound private custody',
+  );
+  assert.match(repair, /NOTE_DELETE \| NOTE_WRITE \| NOTE_EXTEND \| NOTE_ATTRIB \| NOTE_LINK \| NOTE_RENAME \| NOTE_REVOKE/u);
+  const fixedCommandStart = fixedCommandRunner.indexOf('func runFixedCommand(');
+  const fixedCommandEnd = fixedCommandRunner.length;
+  assert.ok(fixedCommandStart >= 0 && fixedCommandEnd > fixedCommandStart);
+  const fixedCommand = fixedCommandRunner.slice(fixedCommandStart, fixedCommandEnd);
+  const launchReservationIndex = fixedCommand.indexOf('beginSubprocessLaunch(');
+  const processRunIndex = fixedCommand.indexOf('process.run()');
+  const launchedProcessBindIndex = fixedCommand.indexOf('bindLaunchedSubprocess(');
+  assert.ok(
+    launchReservationIndex >= 0
+      && processRunIndex > launchReservationIndex
+      && launchedProcessBindIndex > processRunIndex,
+    'runFixedCommand must reserve its deadline before launch and bind the child immediately after launch',
+  );
+  assert.doesNotMatch(fixedCommand, /requireSubprocessBudget/u);
+  assert.match(repair, /principalSubprocessFailureDetails/u);
+  assert.match(repair, /makePartialInstallRepairSuccessReceipt/u);
+  assert.match(repair, /recoverInterruptedPartialInstallRepairJournalWrite\(\)/u);
+  assert.match(repair, /O_WRONLY \| O_CREAT \| O_EXCL \| O_CLOEXEC \| O_NOFOLLOW/u);
+  assert.match(repair, /renameat\(/u);
+  assert.match(repair, /unlinkat\(/u);
 
   assert.doesNotMatch(repair, /\bremoveRuntimeAccount\s*\(/u);
   assert.doesNotMatch(repair, /\brecoverInterruptedRuntimePrincipalTransactionIfNeeded\s*\(/u);
   assert.doesNotMatch(repair, /\b(?:write|update|read|remove)RuntimePrincipalJournal\s*\(/u);
-  assert.match(repair, /runtimePrincipalJournalPath/u);
-  assert.match(repair, /normal Runtime principal (?:transaction|journal)[^\n]*(?:absent|forbidden)/iu);
-
-  const reconcileStart = repair.indexOf('private func reconcilePartialInstallRepairEffectAheadOfJournal');
-  const reconcileEnd = repair.indexOf('private func validateCompletePartialInstallRepairPrincipal', reconcileStart);
-  assert.notEqual(reconcileStart, -1);
-  assert.notEqual(reconcileEnd, -1);
-  const reconcile = repair.slice(reconcileStart, reconcileEnd);
-  assert.match(reconcile, /case "artifacts-removed" where user == nil && group != nil:[\s\S]*phase: "user-removed"/u);
-  assert.match(reconcile, /case "user-removed" where user == nil && group == nil:[\s\S]*phase: "group-removed"/u);
-  assert.match(repair, /The partial-install repair effect is ahead of its journal phase|effect-ahead/iu);
-
-  const globalEnvelope = repair.indexOf('try validatePartialInstallRepairGlobalEnvelope(current)');
-  const reconcileCall = repair.indexOf('reconcilePartialInstallRepairEffectAheadOfJournal(current)');
-  const phaseValidation = repair.indexOf('try validatePartialInstallRepairPhaseState(current)');
-  assert.ok(globalEnvelope >= 0 && globalEnvelope < reconcileCall && reconcileCall < phaseValidation);
-
-  assert.match(repair, /recoverInterruptedPartialInstallRepairJournalWrite\(\)/u);
-  assert.match(repair, /runtimePartialInstallRepairJournalStagingPath/u);
-  assert.match(repair, /O_WRONLY \| O_CREAT \| O_EXCL \| O_CLOEXEC \| O_NOFOLLOW/u);
-  assert.match(repair, /descriptorMetadata\.st_nlink == 1/u);
-  assert.match(repair, /descriptorMetadata\.st_size <= 64 \* 1024/u);
-  assert.match(repair, /descriptorMetadata\.st_dev == stablePathMetadata\.st_dev/u);
-  assert.match(repair, /descriptorMetadata\.st_ino == stablePathMetadata\.st_ino/u);
-  assert.match(repair, /unlinkat\(parentDescriptor/u);
-  assert.match(repair, /try verifyInstalledSigningProfileWithSignedHelper\(\)/u);
-
-  assert.match(repair, /runFixedCommand\(\s*bootstrapHelperInstallPath,\s*\["verify-partial-install-repair-principal-removal"\]\s*\)/u);
-  assert.match(repair, /result\.pid > 1, result\.pid != getpid\(\)/u);
-  assert.match(repair, /Set\(value\.keys\) == Set\(\[[\s\S]{0,1200}"sourceHelperSHA256"[\s\S]{0,1200}"sourceHelperCDHash"[\s\S]{0,1200}"sourcePrincipalCarrierContractVersion"[\s\S]{0,1200}"residueClass"[\s\S]{0,1200}"authenticationEvidenceSHA256"[\s\S]{0,1200}"planDigest"[\s\S]{0,1200}"rootKeyId"[\s\S]{0,1200}"policyDigest"/u);
-  assert.match(repair, /value\["transactionID"\] as\? String == journal\.transactionID/u);
-  assert.match(repair, /\(value\["verifierPID"\] as\? NSNumber\)\?\.int32Value == result\.pid/u);
-  assert.match(repair, /try proveRepairTargetsAbsent\(\)/u);
-  assert.match(repair, /lstat\(path, &metadata\)/u);
-  assert.match(repair, /"preserved": \["local_CA", "signing_Keychain", "signing_profile", "final_helper"\]/u);
+  assert.doesNotMatch(account, /\/usr\/bin\/dscl|sysadminctl|dsimport/u);
 
   const normalV4MatcherStart = account.indexOf('func runtimeDirectoryRecord(\n    _ record: RuntimeDirectoryRecord,\n    matches plan: RuntimeAccountCreationPlan');
   const repairDiagnosisStart = account.indexOf('struct RuntimeDirectoryFieldMismatch', normalV4MatcherStart);
@@ -580,23 +637,80 @@ test('partial first-install repair v2 owns direct deletion, effect-ahead recover
   assert.match(normalV4Matcher, /runtimeForbiddenAuthenticationMaterialAttributes\.allSatisfy\(record\.absent\)/u);
   assert.doesNotMatch(normalV4Matcher, /DisabledUser|legacyV2|residueClass/u);
   assert.match(account, /case generatedRuntimeLegacyRepairResidueClass: self = \.legacyV2DisabledUser/u);
-  assert.match(account, /case \.legacyV2DisabledUser:[\s\S]{0,3000}legacyV2RuntimeDirectoryUserRecord/u);
   assert.match(account, /disabledAuthority\.count == generatedRuntimeLegacyRepairAuthenticationAuthorityExactValueCount/u);
-  assert.match(account, /disabledAuthority\.first\.map\(runtimeDirectoryValueType\)[\s\S]{0,180}generatedRuntimeLegacyRepairAuthenticationAuthorityValueType/u);
   assert.match(account, /\(disabledAuthority\.first as\? String\) == generatedRuntimeLegacyRepairAuthenticationAuthorityExactValue/u);
-  assert.match(account, /deleteExactRepairUser|deleteExactLegacyRepairUser|deleteExact\(\.user,\s*(?:witness|repairWitness):/u);
-  assert.match(account, /delete-only shape emitted by the retired v2[\s\S]{0,180}first-install principal carrier/u);
 
   assert.match(main, /case "repair-partial-runtime-install":/u);
   assert.match(main, /case "verify-partial-install-repair-principal-removal":/u);
-  assert.match(main, /requireProvisioningBootstrapMutationContext\(unsignedFinalCandidateRequired: false\)/u);
-  assert.match(main, /withRuntimeServiceMutationLock[\s\S]{0,180}repairExactPartialRuntimeInstallation[\s\S]{0,180}retireProvisioningBootstrapHelper/u);
+  assert.doesNotMatch(main, /verify-partial-install-repair-terminal-absence/u);
+  assert.match(main, /withStableRuntimeServiceRepairTransaction[\s\S]{0,220}repairExactPartialRuntimeInstallation/u);
+  assert.match(support, /attributeEventRevalidator:[\s\S]{0,720}requireCurrentPartialInstallRepairAuthority/u);
+  const repairTransactionStart = support.indexOf('func withStableRuntimeServiceRepairTransaction(');
+  const repairTransactionEnd = support.indexOf('private func partialInstallRepairTerminalCommitFailure(', repairTransactionStart);
+  const repairTransaction = support.slice(repairTransactionStart, repairTransactionEnd);
+  const retireBootstrapIndex = repairTransaction.indexOf('retireProvisioningBootstrapHelper()');
+  const finalAuthorityIndex = repairTransaction.indexOf('requireCurrentPartialInstallRepairAuthority(', retireBootstrapIndex);
+  const terminalUnlinkIndex = repairTransaction.indexOf('removePartialInstallRepairJournal(expected:', finalAuthorityIndex);
+  assert.ok(
+    retireBootstrapIndex >= 0
+      && finalAuthorityIndex > retireBootstrapIndex
+      && terminalUnlinkIndex > finalAuthorityIndex,
+    'bootstrap retirement and a second exact static authority proof must precede the terminal exact journal unlink',
+  );
+  const mutationTransactionStart = repair.indexOf('func withStableMutationLockVnodeTransaction');
+  const mutationTransactionEnd = repair.indexOf('func mutationLockWitnessMatchesExecutableVnode', mutationTransactionStart);
+  const mutationTransaction = repair.slice(mutationTransactionStart, mutationTransactionEnd);
+  const preparedIndex = mutationTransaction.indexOf('terminal = try prepare(witness)');
+  const preRetirementCheckpointIndex = mutationTransaction.indexOf('validateMutationLockCheckpoint(', preparedIndex);
+  const retirementIndex = mutationTransaction.indexOf('terminal.beforeFinalProof()', preRetirementCheckpointIndex);
+  const finalCheckpointIndex = mutationTransaction.indexOf('validateMutationLockCheckpoint(', retirementIndex);
+  const commitIndex = mutationTransaction.indexOf('return try terminal.commit()', finalCheckpointIndex);
+  assert.ok(
+    preparedIndex >= 0
+      && preRetirementCheckpointIndex > preparedIndex
+      && retirementIndex > preRetirementCheckpointIndex
+      && finalCheckpointIndex > retirementIndex
+      && commitIndex > finalCheckpointIndex,
+    'the lock must prove the helper before retirement, prove it again after retirement, and make journal unlink the final fallible commit',
+  );
+  assert.match(repair, /stableVnodeEventIsAttributeOnly\(event\), let attributeEventRevalidator/u);
+  assert.match(repair, /sameMutationLockVnode\(locked, observed\), observedHash == lockedHash/u);
+  assert.match(repair, /details\["kevent_event_flags"\] = Int\(event\.eventFlags\)/u);
+  assert.match(repair, /details\["vnode_event_flags"\] = Int\(event\.vnodeFlags\)/u);
+  assert.match(repair, /details\["vnode_event_names"\] = event\.names/u);
+  const terminalCommitStart = repair.indexOf('func commitPreparedPartialInstallRepair');
+  const terminalCommit = repair.slice(terminalCommitStart, repair.indexOf('\n}', terminalCommitStart) + 2);
+  assert.match(terminalCommit, /try operations\.removeJournal\(prepared\.context\)[\s\S]*return prepared\.receipt/u);
+  assert.doesNotMatch(terminalCommit, /eventSink|revalidate|prove/u);
+  assert.match(repair, /source-helper-mutation-lock-vnode/u);
+  assert.match(repair, /mutationLockVnodeBindingSHA256/u);
   for (const mutationSource of [signing, lifecycle]) {
     assert.match(mutationSource, /requireNoPartialInstallRepairInProgress\(\)/u);
   }
+  for (const sourceFile of [
+    'BoundedProcessWait.swift',
+    'FixedCommandRunner.swift',
+    'RepairProcessGroupPolicy.swift',
+    'RepairProcessWitness.swift',
+    'StableMutationLock.swift',
+    'StableExecutableVnode.swift',
+    'OpenDirectoryDeleteRecovery.swift',
+    'PartialInstallationRepairTransition.swift',
+    'PartialInstallationRepairExecutor.swift',
+    'PartialInstallationRepairJournalCodec.swift',
+    'PartialInstallationRepairReceipt.swift',
+    'PartialInstallationRepairDeadline.swift',
+    'SubprocessFailureDiagnostics.swift',
+    'PartialInstallationRepairExecution.swift',
+    'PartialInstallationRepairLiveAdapter.swift',
+    'PartialInstallationRepairProof.swift',
+    'PartialInstallationRepairAuthority.swift',
+    'PartialInstallationRepairStorage.swift',
+  ]) {
+    assert.match(build, new RegExp(`'${sourceFile.replace('.', '\\.')}\'`, 'u'));
+  }
 });
-
-test('fresh installation owns all machine effects and rollback removes the journal last', async () => {
+test('source boundary orders fresh-install ownership and journal-last rollback declarations', async () => {
   const [journal, signing, service] = await Promise.all([
     source('apps/desktop/macos/dev-security/InstallationTransactionJournal.swift'),
     source('apps/desktop/macos/dev-security/SigningTransaction.swift'),
@@ -634,18 +748,23 @@ test('fresh installation owns all machine effects and rollback removes the journ
   assert.match(service, /'dev-runtime-update-not-admitted'/u);
 });
 
-test('helper build uses the CLT frontend and linker without depending on swift-driver', async () => {
-  const build = await source('scripts/build-macos-dev-security-helper.mjs');
-  assert.match(build, /'--find', 'swift-frontend'/u);
-  assert.match(build, /'swift-frontend'/u);
-  assert.match(build, /'clang'/u);
-  assert.match(build, /'-target', 'arm64-apple-macos13\.0'/u);
-  assert.match(build, /'-Wl,-rpath,\/usr\/lib\/swift'/u);
+test('build source selects the CLT frontend and linker without swift-driver', async () => {
+  const [build, nativeRunner] = await Promise.all([
+    source('scripts/build-macos-dev-security-helper.mjs'),
+    source('scripts/run-macos-dev-security-native-tests.mjs'),
+  ]);
+  for (const compiler of [build, nativeRunner]) {
+    assert.match(compiler, /'--find', 'swift-frontend'/u);
+    assert.match(compiler, /'swift-frontend'/u);
+    assert.match(compiler, /'clang'/u);
+    assert.match(compiler, /'-target', 'arm64-apple-macos13\.0'/u);
+    assert.match(compiler, /'-Wl,-rpath,\/usr\/lib\/swift'/u);
+    assert.doesNotMatch(compiler, /'swiftc'/u);
+  }
   assert.match(build, /linker_signed_adhoc_bootstrap_is_non-authorizing|linker_signed_adhoc_bootstrap_is_non_authorizing/u);
-  assert.doesNotMatch(build, /'swiftc'/u);
 });
 
-test('trust provisioning refuses partial residue and rolls back the root helper transaction on failure', async () => {
+test('source boundary declares partial-residue refusal and root-helper rollback routing', async () => {
   const [provision, unprovision, authority, cleanup, lifecycle, profile, generated, nativeIntegration, nativeBuild, helperBuild] = await Promise.all([
     source('scripts/provision-macos-dev-trust.mjs'),
     source('scripts/unprovision-macos-dev-trust.mjs'),
