@@ -20,7 +20,7 @@ platform_admission:
   windows: admitted_named_pipe_and_process_verification
   linux: requirements_only_fail_closed_pending_native_admission
   macos: requirements_only_fail_closed_pending_native_admission
-  macos_local_development: local_development_non_product_admitted
+  macos_local_development: local_development_candidate_fail_closed_pending_real_acceptance
   unadmitted_platform_disposition: fail_closed
   forbidden_fallbacks: [localhost_grpc, same_user_daemon, compile_only_carrier_success]
 profile_schema:
@@ -107,7 +107,7 @@ profiles:
 non_product_local_development_profiles:
   - os: macos
     profile_id: macos_local_development_v1
-    admission: local_development_non_product_admitted
+    admission: local_development_candidate_fail_closed_pending_real_acceptance
     product_admission_promotion: forbidden
     compile_time_profile_only: true
     production_verifier_contains_profile_root: false

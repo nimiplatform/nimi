@@ -1,4 +1,4 @@
-version: 5
+version: 10
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_protected_local_lifecycle_operation_protocol
@@ -25,7 +25,7 @@ platform_admission:
   windows: admitted_fixed_service_child_carrier
   linux: requirements_only_fail_closed_pending_native_admission
   macos: requirements_only_fail_closed_pending_native_admission
-  macos_local_development: local_development_non_product_admitted
+  macos_local_development: local_development_candidate_fail_closed_pending_real_acceptance
   immutable_package_positive: typed_unavailable_until_0p_or_p
   unadmitted_platform_disposition: fail_closed
   localhost_or_same_user_fallback: forbidden
@@ -95,18 +95,19 @@ replay_and_revocation:
 non_product_local_development:
   profile_id: macos_local_development_v1
   platform_profile_ref: protected-local-launch-session-profiles.yaml#macos-local-development
-  admission: local_development_non_product_admitted
+  admission: local_development_candidate_fail_closed_pending_real_acceptance
   product_admission_promotion: forbidden
   exact_service_label: ai.nimi.runtime.dev
   exact_runtime_path: /Library/Application Support/Nimi/RuntimeDev/active/bin/nimi-runtime
   exact_desktop_path: /Applications/Nimi Dev.app/Contents/MacOS/Nimi Dev
   exact_local_host_path: /Applications/Nimi Dev.app/Contents/Frameworks/Nimi Local App Host Dev.app/Contents/MacOS/Nimi Local App Host Dev
-  install_update_owner: explicit_root_owned_development_installer_transaction
-  candidate_activation: only_after_complete_role_record_signature_code_identity_vnode_digest_and_launchd_profile_verification
-  rollback: one_last_known_good_generation_without_release_generation_rebinding
-  persistent_state_survives_update: true
+  install_owner: explicit_root_owned_fresh-development-installer-transaction
+  update_admission: dev-runtime-update-not-admitted
+  candidate_activation: root-owned-transaction-scoped-staging-is-completely-reverified-for-release-record-signature_code-identity_leaf-SPKI_empty-Team-ID_hardened-runtime_architecture_entitlements_same-vnode-SHA256-CDHash-and-fixed-path-before-atomic-per-target-activation;_the-journal-remains-until-principal-launchd-Runtime-custody-and-final-mutual-health-postconditions-pass
+  rollback: probe-and-reverse-only-actual-observed-fresh-install-effects_stop-at-first-failed-cleanup_and-retain-ledger-or-journal-witness-plus-recovery-helper;_remove-witnesses-and-recovery-helper-only-after-the-complete-external-effect-absence-postcondition;_otherwise-exact-reset-required
   reset_requires_explicit_confirmation: true
   uninstall_requires_explicit_confirmation_and_preserves_local_CA: true
+  legacy_carrier_disposition: carrier-2_carrier-3_unknown-or-partial-profile-fails-legacy-local-dev-profile-not-supported-before-mutation;_tracked-migration-and-helper-self-rotation-are-forbidden
   production_paths_endpoints_custody_or_Realm: forbidden
 forbidden_surfaces:
   - workspace_scan_as_local_record

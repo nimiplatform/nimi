@@ -1,5 +1,4 @@
-/* Code generated from .nimi/spec protected-local macOS local-development
- * authority tables; DO NOT EDIT. */
+/* Code generated from .nimi/spec fresh-carrier-4 authority; DO NOT EDIT. */
 #define NIMI_MACOS_RUNTIME_ACCOUNT "_nimiruntimedev"
 #define NIMI_MACOS_RUNTIME_SOCKET_DIRECTORY "/private/var/run/nimi-dev"
 #define NIMI_MACOS_RUNTIME_SOCKET "/private/var/run/nimi-dev/runtime-desktop.sock"

@@ -87,7 +87,7 @@ method_platform_binding:
 platform_admission:
   windows: admitted_fixed_service_and_process_verification
   macos: fail_closed_pending_native_admission
-  macos_local_development: local_development_non_product_admitted
+  macos_local_development: local_development_candidate_fail_closed_pending_real_acceptance
   linux: fail_closed_pending_native_admission
   forbidden_fallbacks:
     - localhost_grpc
@@ -134,7 +134,7 @@ g5_supervisor_profile_consistency:
     missing_profile_component: reject
 non_product_local_development_supervisor_consistency:
   profile_id: macos_local_development_v1
-  admission: local_development_non_product_admitted
+  admission: local_development_candidate_fail_closed_pending_real_acceptance
   implementation_bindings: [desktop_electron_supervisor]
   electron_profile_bundle: verified_platform_transport.non_product_local_development_profile_bundle
   tauri_binding: fail_closed_pending_independent_Rust_WKWebView_command_install_update_and_live_acceptance

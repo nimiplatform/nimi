@@ -27,7 +27,7 @@ platform_admission:
   windows: admitted_fixed_service_child_carrier
   linux: requirements_only_fail_closed_pending_native_admission
   macos: requirements_only_fail_closed_pending_native_admission
-  macos_local_development: local_development_non_product_admitted
+  macos_local_development: local_development_candidate_fail_closed_pending_real_acceptance
   unadmitted_platform_disposition: protected_carrier_required
 profile_schema:
   fields:
@@ -87,7 +87,7 @@ profiles:
 non_product_local_development_profiles:
   - os: macos
     profile_id: macos_local_development_v1
-    admission: local_development_non_product_admitted
+    admission: local_development_candidate_fail_closed_pending_real_acceptance
     product_admission_promotion: forbidden
     launcher_authority: verified_local_CA_signed_Nimi_Dev_Desktop_local_app_control_on_boot_scoped_desktop_session
     desktop_control_carrier: launchd_socket_activated_DesktopControlDev_filesystem_uds_at_/private/var/run/nimi-dev/runtime-desktop.sock_with_kernel_peer_credentials

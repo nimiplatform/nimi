@@ -1,4 +1,4 @@
-version: 6
+version: 13
 table_family: product_catalog
 owner: platform
 catalog_id: platform_protected_local_executable_trust_sets
@@ -24,7 +24,7 @@ platform_admission:
   windows: admitted_same_open_object_authenticode
   linux: requirements_only_fail_closed_pending_native_admission
   macos: requirements_only_fail_closed_pending_native_admission
-  macos_local_development: local_development_non_product_admitted
+  macos_local_development: local_development_candidate_fail_closed_pending_real_acceptance
   unadmitted_platform_disposition: fail_closed
   cross_platform_parity_required_before_first_platform_positive_chain: false
 trust_set_schema:
@@ -54,6 +54,13 @@ signer_policy_schema:
     - notarization_posture
     - runtime_build_allowance
     - source_rule
+local_development_support_executable_role_schema:
+  fields:
+    - executable_role
+    - signing_identifier
+    - fixed_path
+    - identity_class
+    - authority_scope
 neutral_contract:
   verification_direction: bidirectional_runtime_and_client_carrier
   process_and_executable_binding: same_running_process_and_same_open_executable_object
@@ -69,7 +76,7 @@ neutral_contract:
   unavailable_disposition: fail_closed_before_protocol_or_credential_bytes
 release_trust_record_schema:
   encoding: RFC_8785_JSON_Canonicalization_Scheme_UTF_8
-  schema_version: 2
+  schema_version: 3
   signature: signer_policy_selected_algorithm_over_canonical_record_without_signature
   production_signature: Ed25519_over_canonical_record_without_signature
   local_development_signature: ECDSA_P256_SHA256_DER_over_canonical_record_without_signature # pragma: allowlist secret -- public signature algorithm identifier, not credential material
@@ -98,6 +105,8 @@ release_trust_record_schema:
     - macos_cdhash
     - macos_hardened_runtime_required
     - macos_notarization_required
+    - macos_architecture
+    - macos_entitlements_sha256
     - linux_manifest_key_id
     - os_service_principal
     - valid_from
@@ -156,6 +165,12 @@ release_trust_record_schema:
       signing_identifier: ai.nimi.apps.nimi.local-app-host.dev
       os_service_principal: verified_desktop_supervised_active_console_user
       fixed_filename: nimi_local_app_host.release-trust-record.json
+  macos_local_development_support_executable_roles:
+    - executable_role: nimi_dev_installer
+      signing_identifier: ai.nimi.dev-installer
+      fixed_path: /usr/local/libexec/nimi-macos-dev-security
+      identity_class: local_ca
+      authority_scope: exact-root-owned-verify-install-reset-uninstall-operations-only_no-signing-private-key_CA-issuance_self-rotation_Runtime-Desktop-local-host-or-product-admission
   macos_identity_class_rules:
     production:
       identity_class: developer_id_application
@@ -184,7 +199,7 @@ release_trust_record_schema:
     - same_open_vnode_artifact_sha256
     - dynamic_SecCode_designated_requirement_team_id_cdhash_and_identifier
     - final_outer_bundle_strict_static_validity_and_resource_seal_independent_of_external_record_content_authority
-    - identity_class_signature_algorithm_team_id_leaf_SPKI_hardened_runtime_and_notarization_posture_match_exact_compile_time_profile
+    - identity_class_signature_algorithm_team_id_leaf_SPKI_hardened_runtime_notarization_architecture_and_entitlements_match_exact_compile_time_profile
 platform_verification_profile_schema:
   fields:
     - os
@@ -259,13 +274,14 @@ signer_policies:
     environment: local_development
     identity_authority: machine_local_non_product_CA_with_distinct_P256_role_leaves
     platform_verification_profile_ref: platform_verification_profiles#macos
-    key_material_boundary: System_Keychain_root_CA_record_signer_and_helper_bound_unlock_secret_plus_root_wheel_0600_locked_system_domain_role_identity_keychain_opened_only_inside_the_real_uid_0_helper_transaction;_direct_System_Keychain_role_key_ACL_to_/usr/bin/codesign_is_forbidden
+    key_material_boundary: dedicated_user-domain_development_signing_Keychain_used-only-by-confirmed-unprivileged-build-sign-release-record-generation;_root-installer_Runtime_Desktop_renderer-and-local-app-have-zero-private-key-access
     identity_class: local_ca
     release_record_signature_algorithm: ecdsa_p256_sha256
     team_id_posture: exact_empty_required
     notarization_posture: absent_and_must_not_be_claimed
     runtime_build_allowance: compile_time_macos_local_development_only
     source_rule: P-NAPP-037
+trust_profile_transitions: []
 production_runtime_accepts_test_trust_set: false
 production_runtime_accepts_local_development_trust_set: false
 local_development_runtime_accepts_production_trust_set: false

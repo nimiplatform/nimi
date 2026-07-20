@@ -2,6 +2,10 @@
 // profile. Production and local-development roots are mutually exclusive.
 
 #[cfg(not(feature = "macos-local-development"))]
+pub(crate) const RECORD_SCHEMA_VERSION: u64 = 3;
+#[cfg(not(feature = "macos-local-development"))]
+pub(crate) const REQUIRED_ARCHITECTURE: &str = "arm64";
+#[cfg(not(feature = "macos-local-development"))]
 pub(crate) const RECORD_ROOT: &str =
     "/Library/Application Support/Nimi/Runtime/trust/protected-local/v1";
 #[cfg(feature = "macos-local-development")]

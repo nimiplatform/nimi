@@ -5,6 +5,8 @@ package protectedlocal
 import "regexp"
 
 const (
+	MacOSReleaseRecordSchemaVersion = 3
+	MacOSRequiredArchitecture       = "arm64"
 	MacOSRuntimeServiceLabel = "ai.nimi.runtime"
 	MacOSRuntimeAccountName  = "_nimiruntime"
 
