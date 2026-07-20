@@ -36,6 +36,7 @@ var (
 	errLocalDevelopmentAuthorization     = errors.New("local-development authorization is not active")
 	errLocalDevelopmentReapproval        = errors.New("local-development account changed after evaluation")
 	errLocalDevelopmentProjectChanged    = errors.New("local-development project authority changed")
+	errLocalDevelopmentProjectUnstable   = errors.New("local-development project changed during observation")
 	errLocalDevelopmentLaunchMismatch    = errors.New("local-development launch binding mismatch")
 	errLocalDevelopmentLaunchExpired     = errors.New("local-development launch expired")
 	errLocalDevelopmentSessionRevoked    = errors.New("local-development session expired or revoked")

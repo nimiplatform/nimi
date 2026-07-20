@@ -172,6 +172,24 @@ func TestWindowsNonReleaseAcceptanceProfileIsExplicitBoundedAndServiceOwned(t *t
 	if cfg.DataRootRef != developmentDataRoot || cfg.LocalModelsPath != filepath.Join(developmentDataRoot, "models") || cfg.ManagedRoots.Dependencies != filepath.Join(developmentDataRoot, "dependencies") || cfg.ManagedRoots.Environments != filepath.Join(developmentDataRoot, "environments") || cfg.ManagedRoots.Logs != filepath.Join(developmentDataRoot, "logs") || cfg.ManagedRoots.Audit != filepath.Join(developmentDataRoot, "audit") {
 		t.Fatalf("checkpoint config did not consume selected service-owned data root: %+v", cfg)
 	}
+	lowerAuthorityRoot := t.TempDir()
+	if changed, err := config.WriteServiceOwnedDataRoot(serviceConfigPath, lowerAuthorityRoot); err != nil || !changed {
+		t.Fatalf("write conflicting lower-authority service config changed=%v err=%v", changed, err)
+	}
+	cfg, err = loadWindowsProtectedRuntimeConfig(root)
+	if err != nil {
+		t.Fatalf("signed checkpoint binding did not override lower-authority service config: %v", err)
+	}
+	if cfg.DataRootRef != developmentDataRoot || cfg.LocalModelsPath != filepath.Join(developmentDataRoot, "models") {
+		t.Fatalf("lower-authority service config overrode signed checkpoint binding: %+v", cfg)
+	}
+	persisted, err := config.LoadFileConfig(serviceConfigPath)
+	if err != nil {
+		t.Fatalf("reload lower-authority service config: %v", err)
+	}
+	if persisted.DataRootRef != lowerAuthorityRoot {
+		t.Fatalf("checkpoint load mutated Runtime-owned config: got=%q want=%q", persisted.DataRootRef, lowerAuthorityRoot)
+	}
 	profile.DevelopmentDataRootRef = filepath.Join(root, "missing-development-data")
 	missingRootRaw, err := json.Marshal(profile)
 	if err != nil {

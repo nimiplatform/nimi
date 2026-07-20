@@ -157,15 +157,15 @@ func TestNoTestFilesPackageHasExplicitAllowedSkipState(t *testing.T) {
 
 func TestPackageTimingPreservesObservedWallDuration(t *testing.T) {
 	raw := strings.Join([]string{
-		`{"Action":"start","Package":"github.com/nimiplatform/nimi/runtime/internal/streamutil"}`,
-		`{"Action":"pass","Package":"github.com/nimiplatform/nimi/runtime/internal/streamutil","Elapsed":0}`,
+		`{"Time":"2026-07-20T04:00:00Z","Action":"start","Package":"github.com/nimiplatform/nimi/runtime/internal/streamutil"}`,
+		`{"Time":"2026-07-20T04:00:01.25Z","Action":"pass","Package":"github.com/nimiplatform/nimi/runtime/internal/streamutil","Elapsed":0}`,
 	}, "\n")
 	result := scanGoTestJSON(strings.NewReader(raw), time.Now().Add(-time.Second), nil)
 	if len(result.Packages) != 1 {
 		t.Fatalf("unexpected package count: %#v", result.Packages)
 	}
-	if result.Packages[0].ElapsedSeconds <= 0 {
-		t.Fatalf("package wall duration was discarded: %#v", result.Packages[0])
+	if result.Packages[0].ElapsedSeconds != 1.25 {
+		t.Fatalf("package event wall duration was discarded: %#v", result.Packages[0])
 	}
 }
 

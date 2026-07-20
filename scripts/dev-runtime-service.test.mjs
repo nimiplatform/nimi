@@ -7,11 +7,14 @@ import {
   assertRuntimeServiceInstalled,
   assertAccessibleDevelopmentDataRoot,
   parseDevRuntimeArguments,
-  parseFirstJsonDocument,
   rejectBinaryOnlyRequest,
   resolveConfiguredDevelopmentDataRoot,
   runDevRuntimeService,
 } from './dev-runtime-service.mjs';
+import {
+  parseFirstJsonDocument,
+  parsePowerShellJsonResult,
+} from './lib/windows-powershell.mjs';
 import {
   mkdirSync,
   mkdtempSync,
@@ -275,6 +278,65 @@ test('full update passes the Runtime user-config data root as an exact signed-in
   });
 });
 
+test('full update accepts ACL-redacted protected fields only after an exact elevated installer receipt', async () => {
+  const developmentDataRoot = defaultDevelopmentDataRoot;
+  const publicStatus = {
+    ...healthyStatus,
+    developmentDataRootRef: undefined,
+    developmentStateCandidateId: undefined,
+    acceptanceRoundId: undefined,
+  };
+  const installStatus = {
+    ...healthyStatus,
+    developmentDataRootRef: developmentDataRoot,
+    developmentDataRootAuthority: 'signed_installer_explicit_operator_selection',
+    developmentDataRootDisposition: 'runtime_validated_development_payload_root',
+    developmentStateLineageAuthority: 'signed_installer_preserved_development_state_lineage',
+  };
+  const result = await runDevRuntimeService({
+    platform: 'win32',
+    developmentDataRoot,
+    validateDevelopmentDataRoot: acceptSyntheticDataRoot,
+    queryInstalled: async () => ({ status: 'present' }),
+    buildRuntime: async () => undefined,
+    buildInstaller: async () => undefined,
+    queryCandidate: async () => publicStatus,
+    install: async () => installStatus,
+  });
+  assert.equal(result.developmentDataRootBinding.path, developmentDataRoot);
+  assert.equal(result.developmentStateLineage.developmentStateCandidateId, durableStateCandidateId);
+  assert.equal(result.developmentStateLineage.acceptanceRoundId, acceptanceRoundId);
+});
+
+test('full update rejects a visible post-install protected binding that differs from the signed receipt', async () => {
+  const developmentDataRoot = defaultDevelopmentDataRoot;
+  let statusCalls = 0;
+  await assert.rejects(
+    runDevRuntimeService({
+      platform: 'win32',
+      developmentDataRoot,
+      validateDevelopmentDataRoot: acceptSyntheticDataRoot,
+      queryInstalled: async () => ({ status: 'present' }),
+      buildRuntime: async () => undefined,
+      buildInstaller: async () => undefined,
+      queryCandidate: async () => {
+        statusCalls += 1;
+        return statusCalls === 1
+          ? healthyStatus
+          : { ...healthyStatus, developmentDataRootRef: path.win32.join('E:\\', 'OtherData') };
+      },
+      install: async () => ({
+        ...healthyStatus,
+        developmentDataRootRef: developmentDataRoot,
+        developmentDataRootAuthority: 'signed_installer_explicit_operator_selection',
+        developmentDataRootDisposition: 'runtime_validated_development_payload_root',
+        developmentStateLineageAuthority: 'signed_installer_preserved_development_state_lineage',
+      }),
+    }),
+    (error) => error.reasonCode === 'dev-runtime-data-root-binding-unverified',
+  );
+});
+
 test('full update fails closed when the signed installer rotates durable development state lineage', async () => {
   const developmentDataRoot = defaultDevelopmentDataRoot;
   await assert.rejects(
@@ -374,7 +436,7 @@ test('post-update status fails closed on signature or candidate mismatch', () =>
   );
 });
 
-test('elevated installer separates a localized warning from the first complete JSON receipt', () => {
+test('PowerShell service commands separate diagnostics from the first complete JSON receipt', () => {
   const output = [
     '\ufeff警告: 无法加载某个可选的 PowerShell 格式化数据。',
     '{',
@@ -396,8 +458,19 @@ test('elevated installer separates a localized warning from the first complete J
   assert.throws(
     () => parseFirstJsonDocument('警告: no receipt', 'dev-runtime-install-result-invalid'),
     (error) => error.reasonCode === 'dev-runtime-install-result-invalid'
-      && error.actionHint === 'inspect_dev_runtime_command_output',
+      && error.actionHint === 'inspect_powershell_command_output',
   );
+
+  const diagnostics = [];
+  assert.deepEqual(parsePowerShellJsonResult({
+    stdout: output,
+    stderr: 'native warning from stderr',
+  }, 'dev-runtime-install-result-invalid', {
+    writeDiagnostics: (value) => diagnostics.push(value),
+  }), receipt.value);
+  assert.deepEqual(diagnostics, [
+    'native warning from stderr\n警告: 无法加载某个可选的 PowerShell 格式化数据。\nVERBOSE: installer cleanup completed\n',
+  ]);
 });
 
 test('UAC launcher keeps stream redirection inside the elevated command', () => {
@@ -405,9 +478,15 @@ test('UAC launcher keeps stream redirection inside the elevated command', () => 
   const outerLauncher = source.slice(source.indexOf('const outerCommand'), source.indexOf('try {', source.indexOf('const outerCommand')));
   assert.doesNotMatch(outerLauncher, /RedirectStandard(?:Output|Error)/u);
   assert.match(source, /-DevelopmentDataRoot '\$\{powerShellLiteral\(developmentDataRoot\)\}'/u);
-  assert.match(source, /\$output = & powershell\.exe .* -DevKernelCheckpoint\$\{developmentDataRootArgument\} -Json 2> /u);
+  assert.match(source, /\$output = & '\$\{powerShellLiteral\(powershellPath\)\}' .* -DevKernelCheckpoint\$\{developmentDataRootArgument\} -Json 2> /u);
+  assert.match(source, /Start-Process -FilePath '\$\{powerShellLiteral\(powershellPath\)\}' -Verb RunAs/u);
   assert.doesNotMatch(source, /\$parsed = \$raw \| ConvertFrom-Json/u);
   assert.match(source, /WriteAllText.*\$raw.*UTF8Encoding/u);
-  assert.match(source, /process\.stderr\.write\(`\$\{diagnostics\}\\n`\)/u);
+  assert.match(source, /return parsePowerShellJsonResult\(\{/u);
+  assert.ok(
+    [...source.matchAll(/\bparsePowerShellJsonResult\(/gu)].length >= 4,
+    'service query, candidate status, admin install, and UAC install must share the receipt parser',
+  );
+  assert.doesNotMatch(source, /parseJsonOutput/u);
   assert.match(source, /\$ErrorActionPreference = 'Stop'[\s\S]*\[Console\]::Error\.WriteLine\(\$_\.Exception\.Message\)[\s\S]*'exit 1'/u);
 });

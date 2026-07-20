@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { lstatSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -11,6 +11,8 @@ import {
   writeMacOSDevRepairFailureEvidence,
 } from './lib/macos-dev-repair-evidence.mjs';
 import { MACOS_LOCAL_DEVELOPMENT_PROFILE } from '../apps/desktop/scripts/generated/macos-local-development-profile.mjs';
+
+const fixtureUID = 501;
 
 test('repair failure evidence is bounded, private, and excludes undeclared diagnostic fields', () => {
   const repoRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-repair-evidence-'));
@@ -39,13 +41,15 @@ test('repair failure evidence is bounded, private, and excludes undeclared diagn
       bootstrapPresentAfterCleanup: false,
       now: new Date('2026-07-20T12:34:56.000Z'),
       pid: 42,
+      currentUID: fixtureUID,
+      lstat: privateMacOSMetadata,
     });
     assert.equal(
       relative,
       '.nimi/local/acceptance/2026-07-20-macos-runtime-desktop-zhiyu/privileged-repair-failure-2026-07-20T123456-000Z-42.json',
     );
     const absolute = path.join(repoRoot, relative);
-    const metadata = statSync(absolute);
+    const metadata = privateMacOSMetadata(absolute);
     assert.equal(metadata.mode & 0o777, 0o600);
     const evidence = JSON.parse(readFileSync(absolute, 'utf8'));
     assert.equal(evidence.retryPolicy, 'stop_after_single_privileged_failure');
@@ -103,6 +107,8 @@ test('repair failure evidence never persists raw subprocess output', () => {
       },
       cleanupDisposition: 'bootstrap preserved',
       bootstrapPresentAfterCleanup: true,
+      currentUID: fixtureUID,
+      lstat: privateMacOSMetadata,
     });
     const evidence = JSON.parse(readFileSync(path.join(repoRoot, relative), 'utf8'));
     assert.equal(evidence.details.child_reaped, false);
@@ -148,3 +154,16 @@ test('repair success receipt binds the preserved source carrier to the required 
     trustHelperRotationRequired: false,
   }), false);
 });
+
+function privateMacOSMetadata(file) {
+  const metadata = lstatSync(file);
+  const privateMode = metadata.isDirectory() ? 0o700 : 0o600;
+  return Object.freeze({
+    isDirectory: () => metadata.isDirectory(),
+    isFile: () => metadata.isFile(),
+    isSymbolicLink: () => metadata.isSymbolicLink(),
+    uid: fixtureUID,
+    mode: (metadata.mode & ~0o777) | privateMode,
+    nlink: metadata.nlink,
+  });
+}

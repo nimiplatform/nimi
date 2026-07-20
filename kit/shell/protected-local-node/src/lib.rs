@@ -626,6 +626,7 @@ async fn clear_desktop_control(control: &Arc<dyn NimiDesktopControl>) {
     // A delayed failure from a stale pre-restart control must not invalidate a
     // newer verified session already installed by another caller.
     if removed {
+        account_events::close_all_account_event_streams().await;
         nimi_shell_protected_local::invalidate_verified_desktop_runtime_channel().await;
     }
 }

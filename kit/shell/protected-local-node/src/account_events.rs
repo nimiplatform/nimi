@@ -7,7 +7,7 @@ use std::{
     collections::HashMap,
     sync::{
         atomic::{AtomicU64, Ordering},
-        Arc, OnceLock,
+        Arc, OnceLock, Weak,
     },
 };
 use tokio::sync::{watch, Mutex};
@@ -19,8 +19,9 @@ use super::{
 };
 
 struct AccountEventStream {
-    receiver: Mutex<DesktopAccountSessionEventReceiver>,
+    receiver: Mutex<Option<DesktopAccountSessionEventReceiver>>,
     close_tx: watch::Sender<bool>,
+    control: Option<Weak<dyn nimi_shell_protected_local::NimiDesktopControl>>,
 }
 
 type SharedAccountEventStream = Arc<AccountEventStream>;
@@ -39,6 +40,30 @@ fn reserve_stream_slot(registry: &mut AccountEventStreamRegistry, stream_id: Str
     }
     registry.insert(stream_id, None);
     true
+}
+
+async fn close_account_event_stream(stream: SharedAccountEventStream) {
+    stream.close_tx.send_replace(true);
+    // A pending `next` owns the receiver mutex while it awaits the mpsc item.
+    // The close signal releases that guard; taking the receiver then closes the
+    // sender and makes the tonic stream task drop its verified channel now.
+    stream.receiver.lock().await.take();
+}
+
+pub(super) async fn close_all_account_event_streams() -> usize {
+    let (registered, streams) = {
+        let mut registry = account_event_streams().lock().await;
+        let registered = registry.len();
+        let streams = registry
+            .drain()
+            .filter_map(|(_, stream)| stream)
+            .collect::<Vec<_>>();
+        (registered, streams)
+    };
+    for stream in streams {
+        close_account_event_stream(stream).await;
+    }
+    registered
 }
 
 #[napi(js_name = "desktopAccountSessionEventsOpen")]
@@ -84,8 +109,9 @@ pub async fn desktop_account_session_events_open(
     };
     let (close_tx, _) = watch::channel(false);
     let stream = Arc::new(AccountEventStream {
-        receiver: Mutex::new(receiver),
+        receiver: Mutex::new(Some(receiver)),
         close_tx,
+        control: Some(Arc::downgrade(&control)),
     });
     let mut registry = account_event_streams().lock().await;
     let Some(slot) = registry.get_mut(stream_id.as_str()) else {
@@ -116,8 +142,11 @@ pub async fn desktop_account_session_events_next(
     if *close_rx.borrow() {
         return NativeJsonOutcome::success(json!({ "completed": true }));
     }
-    let Ok(mut receiver) = stream.receiver.try_lock() else {
+    let Ok(mut receiver_slot) = stream.receiver.try_lock() else {
         return NativeJsonOutcome::host_reason("runtime-service-untrusted", false);
+    };
+    let Some(receiver) = receiver_slot.as_mut() else {
+        return NativeJsonOutcome::success(json!({ "completed": true }));
     };
     let next = tokio::select! {
         biased;
@@ -134,6 +163,9 @@ pub async fn desktop_account_session_events_next(
         })),
         Some(Err(error)) => {
             account_event_streams().lock().await.remove(stream_id);
+            if let Some(control) = stream.control.as_ref().and_then(Weak::upgrade) {
+                clear_desktop_control_on_host_failure(&control, &error).await;
+            }
             NativeJsonOutcome::host_error(error)
         }
         None => {
@@ -158,7 +190,7 @@ pub async fn desktop_account_session_events_close(
         .flatten();
     let closed = stream.is_some();
     if let Some(stream) = stream {
-        stream.close_tx.send_replace(true);
+        close_account_event_stream(stream).await;
     }
     NativeJsonOutcome::success(json!({ "closed": closed }))
 }
@@ -187,16 +219,20 @@ fn valid_stream_id(value: &str) -> bool {
 mod tests {
     use super::*;
 
+    static ACCOUNT_EVENT_STREAM_TEST_LOCK: Mutex<()> = Mutex::const_new(());
+
     #[tokio::test]
     async fn close_unblocks_a_pending_next_call() {
+        let _test_guard = ACCOUNT_EVENT_STREAM_TEST_LOCK.lock().await;
         let stream_id = "account-session-close-test".to_string();
         let (_sender, receiver) = tokio::sync::mpsc::channel(1);
         let (close_tx, _) = watch::channel(false);
         account_event_streams().lock().await.insert(
             stream_id.clone(),
             Some(Arc::new(AccountEventStream {
-                receiver: Mutex::new(receiver),
+                receiver: Mutex::new(Some(receiver)),
                 close_tx,
+                control: None,
             })),
         );
 
@@ -227,6 +263,30 @@ mod tests {
             .lock()
             .await
             .contains_key(&stream_id));
+    }
+
+    #[tokio::test]
+    async fn close_all_drops_receivers_and_reserved_slots() {
+        let _test_guard = ACCOUNT_EVENT_STREAM_TEST_LOCK.lock().await;
+        let stream_id = "account-session-close-all-test".to_string();
+        let (sender, receiver) = tokio::sync::mpsc::channel(1);
+        let (close_tx, _) = watch::channel(false);
+        let mut registry = account_event_streams().lock().await;
+        registry.clear();
+        registry.insert(
+            stream_id,
+            Some(Arc::new(AccountEventStream {
+                receiver: Mutex::new(Some(receiver)),
+                close_tx,
+                control: None,
+            })),
+        );
+        registry.insert("account-session-reserved".to_string(), None);
+        drop(registry);
+
+        assert_eq!(close_all_account_event_streams().await, 2);
+        assert!(account_event_streams().lock().await.is_empty());
+        assert!(sender.is_closed());
     }
 
     #[test]

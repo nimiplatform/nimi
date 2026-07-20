@@ -16,6 +16,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { parseMacOSDevRuntimeArguments, runMacOSDevRuntimeService } from './macos-dev-runtime-service.mjs';
+import {
+  parsePowerShellJsonResult,
+  resolveWindowsPowerShell7,
+} from './lib/windows-powershell.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -82,71 +86,6 @@ export function parseDevRuntimeArguments(args, platform = process.platform) {
   return {
     developmentDataRoot: normalizeDevelopmentDataRoot(args[1], platform),
   };
-}
-
-export function parseFirstJsonDocument(output, reasonCode) {
-  const raw = String(output ?? '').replace(/^\ufeff/u, '').trim();
-  for (let start = 0; start < raw.length; start += 1) {
-    const opening = raw[start];
-    if (opening !== '{' && opening !== '[') {
-      continue;
-    }
-
-    const stack = [];
-    let inString = false;
-    let escaped = false;
-    for (let cursor = start; cursor < raw.length; cursor += 1) {
-      const character = raw[cursor];
-      if (inString) {
-        if (escaped) {
-          escaped = false;
-        } else if (character === '\\') {
-          escaped = true;
-        } else if (character === '"') {
-          inString = false;
-        }
-        continue;
-      }
-
-      if (character === '"') {
-        inString = true;
-        continue;
-      }
-      if (character === '{' || character === '[') {
-        stack.push(character);
-        continue;
-      }
-      if (character !== '}' && character !== ']') {
-        continue;
-      }
-
-      const expectedOpening = character === '}' ? '{' : '[';
-      if (stack.pop() !== expectedOpening) {
-        break;
-      }
-      if (stack.length !== 0) {
-        continue;
-      }
-
-      const candidate = raw.slice(start, cursor + 1);
-      try {
-        return {
-          value: JSON.parse(candidate),
-          diagnostics: [raw.slice(0, start).trim(), raw.slice(cursor + 1).trim()]
-            .filter(Boolean)
-            .join('\n'),
-        };
-      } catch {
-        break;
-      }
-    }
-  }
-
-  throw workflowError(
-    'NimiRuntime service command did not return a complete valid JSON document.',
-    reasonCode,
-    'inspect_dev_runtime_command_output',
-  );
 }
 
 export function resolveConfiguredDevelopmentDataRoot({
@@ -395,7 +334,11 @@ function validateInstalledDevelopmentDataRootBinding({
   }
 
   const statusPath = normalizeDevelopmentDataRoot(finalStatus?.developmentDataRootRef ?? '', platform);
-  if (!statusPath || !sameDataRoot(statusPath, installedPath, platform)) {
+  // The independent post-install status query runs as the unelevated caller.
+  // Protected profile fields are therefore intentionally absent after the
+  // signed installer restores the service-only ACL. When the field is visible,
+  // it must still match the elevated receipt exactly.
+  if (statusPath && !sameDataRoot(statusPath, installedPath, platform)) {
     throw developmentDataRootReceiptError(requestedDevelopmentDataRoot, { installStatus, finalStatus });
   }
   return {
@@ -406,20 +349,30 @@ function validateInstalledDevelopmentDataRootBinding({
 }
 
 function validatePreservedDevelopmentStateLineage({ candidateStatus, installStatus, finalStatus }) {
-  const before = parseDevelopmentStateLineage(candidateStatus, 'pre-install status');
   const installed = parseDevelopmentStateLineage(installStatus, 'signed installer receipt');
-  const observed = parseDevelopmentStateLineage(finalStatus, 'post-install status');
+  const before = parseOptionalDevelopmentStateLineage(candidateStatus, 'pre-install status');
+  const observed = parseOptionalDevelopmentStateLineage(finalStatus, 'post-install status');
   if (installStatus?.developmentStateLineageAuthority !== 'signed_installer_preserved_development_state_lineage'
-    || installed.developmentStateCandidateId !== before.developmentStateCandidateId
-    || installed.acceptanceRoundId !== before.acceptanceRoundId
-    || observed.developmentStateCandidateId !== before.developmentStateCandidateId
-    || observed.acceptanceRoundId !== before.acceptanceRoundId) {
+    || (before && !sameDevelopmentStateLineage(installed, before))
+    || (observed && !sameDevelopmentStateLineage(installed, observed))) {
     throw developmentStateLineageReceiptError({ before, installStatus, finalStatus });
   }
   return {
-    ...before,
+    ...installed,
     authority: 'signed_installer_preserved_development_state_lineage',
   };
+}
+
+function parseOptionalDevelopmentStateLineage(status, label) {
+  const developmentStateCandidateId = String(status?.developmentStateCandidateId ?? '');
+  const acceptanceRoundId = String(status?.acceptanceRoundId ?? '');
+  if (!developmentStateCandidateId && !acceptanceRoundId) return undefined;
+  return parseDevelopmentStateLineage(status, label);
+}
+
+function sameDevelopmentStateLineage(left, right) {
+  return left.developmentStateCandidateId === right.developmentStateCandidateId
+    && left.acceptanceRoundId === right.acceptanceRoundId;
 }
 
 function parseDevelopmentStateLineage(status, label) {
@@ -465,27 +418,28 @@ async function queryInstalledService() {
     "$status = if ($null -eq $record) { @{ status = 'absent' } } else { @{ status = 'present'; state = ([string]$record.State).ToLowerInvariant() } }",
     '$status | ConvertTo-Json -Compress',
   ].join('; ');
-  const result = runCaptured('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command]);
-  return parseJsonOutput(result.stdout, 'dev-runtime-service-query-invalid');
+  const result = runCaptured(resolveWindowsPowerShell7(), ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command]);
+  return parsePowerShellJsonResult(result, 'dev-runtime-service-query-invalid');
 }
 
 async function queryGeneratedInstallerStatus() {
-  const result = runCaptured('powershell.exe', installerArguments('Status'));
-  return parseJsonOutput(result.stdout, 'dev-runtime-status-invalid');
+  const result = runCaptured(resolveWindowsPowerShell7(), installerArguments('Status'));
+  return parsePowerShellJsonResult(result, 'dev-runtime-status-invalid');
 }
 
 async function installGeneratedCandidate({ developmentDataRoot = '' } = {}) {
-  if (isAdministrator()) {
+  const powershellPath = resolveWindowsPowerShell7();
+  if (isAdministrator(powershellPath)) {
     const result = runCaptured(
-      'powershell.exe',
+      powershellPath,
       installerArguments('Install', { developmentDataRoot }),
     );
-    return parseJsonOutput(result.stdout, 'dev-runtime-install-result-invalid');
+    return parsePowerShellJsonResult(result, 'dev-runtime-install-result-invalid');
   }
-  return installGeneratedCandidateElevated({ developmentDataRoot });
+  return installGeneratedCandidateElevated({ developmentDataRoot, powershellPath });
 }
 
-function installGeneratedCandidateElevated({ developmentDataRoot = '' } = {}) {
+function installGeneratedCandidateElevated({ developmentDataRoot = '', powershellPath } = {}) {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-dev-runtime-service-'));
   const stdoutPath = path.join(tempRoot, 'stdout.txt');
   const stderrPath = path.join(tempRoot, 'stderr.txt');
@@ -495,7 +449,7 @@ function installGeneratedCandidateElevated({ developmentDataRoot = '' } = {}) {
   const innerCommand = [
     `$ErrorActionPreference = 'Stop'`,
     'try {',
-    `$output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File '${powerShellLiteral(installerPath)}' -Mode Install -DevKernelCheckpoint${developmentDataRootArgument} -Json 2> '${powerShellLiteral(stderrPath)}'`,
+    `$output = & '${powerShellLiteral(powershellPath)}' -NoProfile -ExecutionPolicy Bypass -File '${powerShellLiteral(installerPath)}' -Mode Install -DevKernelCheckpoint${developmentDataRootArgument} -Json 2> '${powerShellLiteral(stderrPath)}'`,
     '$exitCode = $LASTEXITCODE',
     "if ($exitCode -ne 0) { exit $exitCode }",
     '$raw = ($output | Out-String).Trim()',
@@ -510,7 +464,7 @@ function installGeneratedCandidateElevated({ developmentDataRoot = '' } = {}) {
   const outerCommand = [
     `$ErrorActionPreference = 'Stop'`,
     'try {',
-    `$process = Start-Process -FilePath 'powershell.exe' -Verb RunAs -WindowStyle Hidden -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-EncodedCommand','${encodedCommand}') -Wait -PassThru`,
+    `$process = Start-Process -FilePath '${powerShellLiteral(powershellPath)}' -Verb RunAs -WindowStyle Hidden -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-EncodedCommand','${encodedCommand}') -Wait -PassThru`,
     'exit $process.ExitCode',
     '} catch {',
     '[Console]::Error.WriteLine($_.Exception.Message)',
@@ -518,7 +472,7 @@ function installGeneratedCandidateElevated({ developmentDataRoot = '' } = {}) {
     '}',
   ].join('; ');
   try {
-    const elevated = spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', outerCommand], {
+    const elevated = spawnSync(powershellPath, ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', outerCommand], {
       cwd: repoRoot,
       env: process.env,
       encoding: 'utf8',
@@ -535,14 +489,10 @@ function installGeneratedCandidateElevated({ developmentDataRoot = '' } = {}) {
         'approve_uac_and_inspect_installer_error',
       );
     }
-    const receipt = parseFirstJsonDocument(stdout, 'dev-runtime-install-result-invalid');
-    const diagnostics = [installerStderr, receipt.diagnostics, launcherStderr]
-      .filter(Boolean)
-      .join('\n');
-    if (diagnostics) {
-      process.stderr.write(`${diagnostics}\n`);
-    }
-    return receipt.value;
+    return parsePowerShellJsonResult({
+      stdout,
+      stderr: [installerStderr, launcherStderr].filter(Boolean).join('\n'),
+    }, 'dev-runtime-install-result-invalid');
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }
@@ -585,8 +535,8 @@ function normalizeDevelopmentDataRoot(value, platform) {
   return normalized.replace(/[\\/]+$/u, '');
 }
 
-function isAdministrator() {
-  const result = spawnSync('powershell.exe', [
+function isAdministrator(powershellPath) {
+  const result = spawnSync(powershellPath, [
     '-NoProfile', '-Command',
     'exit -not ([Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))',
   ], { cwd: repoRoot, stdio: 'ignore', windowsHide: true });
@@ -620,18 +570,6 @@ function runCaptured(command, args) {
     );
   }
   return result;
-}
-
-function parseJsonOutput(output, reasonCode) {
-  try {
-    return JSON.parse(String(output || '').trim());
-  } catch {
-    throw workflowError(
-      'NimiRuntime service command did not return valid JSON.',
-      reasonCode,
-      'inspect_dev_runtime_command_output',
-    );
-  }
 }
 
 function workflowError(message, reasonCode, actionHint, details = undefined) {

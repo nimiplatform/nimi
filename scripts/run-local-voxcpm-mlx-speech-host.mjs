@@ -7,6 +7,8 @@ import process from 'node:process';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+import { resolvePythonVenvExecutable } from './lib/python-venv.mjs';
+
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const defaultVenvRoot = path.join(os.homedir(), '.nimi', 'engines', 'speech', 'voxcpm-mlx', 'python');
 const defaultModelsRoot = path.join(os.homedir(), '.nimi', 'data', 'models');
@@ -63,7 +65,7 @@ function parseArgs(argv) {
 }
 
 function pythonExecutable(venvRoot) {
-  return path.join(venvRoot, 'bin', 'python3');
+  return resolvePythonVenvExecutable(venvRoot);
 }
 
 export function buildHostLaunchSpec(options) {

@@ -7,6 +7,8 @@ import process from 'node:process';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+import { resolvePythonVenvExecutable } from './lib/python-venv.mjs';
+
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const defaultEngineRoot = path.join(os.homedir(), '.nimi', 'engines', 'speech', 'qwen3');
 const defaultTTSVenvRoot = path.join(defaultEngineRoot, 'tts-python');
@@ -79,7 +81,7 @@ function parseArgs(argv) {
 }
 
 function pythonExecutable(venvRoot) {
-  return path.join(venvRoot, 'bin', 'python3');
+  return resolvePythonVenvExecutable(venvRoot);
 }
 
 function huggingFaceCachePaths(cacheRoot) {

@@ -6,6 +6,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const moduleRoot = path.dirname(fileURLToPath(import.meta.url));
+const REALM_WORKSPACE_PROFILE = 'nimi-realm';
+const REALM_BACKEND_DIRECTORY = 'nimi-backend';
+const REALM_PROFILE_PATTERN = new RegExp(`^profile_id:\\s*${REALM_WORKSPACE_PROFILE}\\s*$`, 'mu');
 export const REPO_ROOT = path.resolve(moduleRoot, '../..');
 export const ACCEPTANCE_AUTHORITY_ROOT = path.join(REPO_ROOT, '.nimi', 'local', 'acceptance');
 export const REQUIRED_EVIDENCE_FILES = Object.freeze([
@@ -44,7 +47,8 @@ export function parseAcceptanceArguments(argv) {
       failArgument();
     }
   }
-  if (realmRoot !== undefined && (!path.isAbsolute(realmRoot) || path.normalize(realmRoot) !== realmRoot)) {
+  if (realmRoot !== undefined
+    && (!path.posix.isAbsolute(realmRoot) || path.posix.normalize(realmRoot) !== realmRoot)) {
     failArgument();
   }
   return Object.freeze({ realmRoot });
@@ -204,8 +208,8 @@ async function requireRealmRoot(candidate) {
   const packageDocument = JSON.parse(await readFile(path.join(canonical, 'package.json'), 'utf8'));
   const governance = await readFile(path.join(canonical, '.nimi', 'config', 'governance.yaml'), 'utf8');
   const nestedNimi = await realpath(path.join(canonical, 'nimi'));
-  const backend = await stat(path.join(canonical, 'nimi-backend'));
-  if (packageDocument?.name !== 'nimi-monorepo' || !/^profile_id:\s*nimi-realm\s*$/mu.test(governance)
+  const backend = await stat(path.join(canonical, REALM_BACKEND_DIRECTORY));
+  if (packageDocument?.name !== 'nimi-monorepo' || !REALM_PROFILE_PATTERN.test(governance)
     || nestedNimi !== REPO_ROOT || !backend.isDirectory()) throw new Error('marker-mismatch');
   return canonical;
 }
@@ -259,6 +263,6 @@ function failArgument() {
   throw acceptanceError(
     'macos-dev-acceptance-argument-invalid',
     'use_only_an_optional_exact_realm_root',
-    'Usage: pnpm test:acceptance:macos-dev-chain -- --realm-root /absolute/nimi-realm',
+    `Usage: pnpm test:acceptance:macos-dev-chain -- --realm-root /absolute/${REALM_WORKSPACE_PROFILE}`,
   );
 }

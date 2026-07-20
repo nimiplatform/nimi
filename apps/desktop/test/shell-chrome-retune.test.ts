@@ -18,6 +18,8 @@ test('shell chrome retune: rail and topbar shells stay transparent chrome withou
   assert.doesNotMatch(mainLayoutViewSource, /<Surface[\s\S]*data-testid=\{E2E_IDS\.shellSidebarRail\}[\s\S]*material="glass-regular"/u);
   assert.doesNotMatch(mainLayoutViewSource, /data-testid=\{E2E_IDS\.shellSidebarRail\}[\s\S]*border-r/u);
   assert.match(mainLayoutTopbarSource, /<div className="flex h-full w-full min-w-0 items-center overflow-hidden border-b border-\[color-mix\(in_srgb,var\(--nimi-border-subtle\)_78%,white\)\] px-1">/);
+  assert.match(mainLayoutTopbarSource, /className="min-w-0 flex-1 overflow-hidden" data-titlebar-region="content"/u);
+  assert.match(mainLayoutTopbarSource, /className="ml-2 flex shrink-0 items-center gap-2 sm:ml-auto sm:gap-7" data-titlebar-region="actions"/u);
   assert.doesNotMatch(mainLayoutTopbarSource, /import logoImage from '\.\.\/\.\.\/assets\/logo\.svg';/u);
   assert.doesNotMatch(mainLayoutTopbarSource, /<img\s+src=\{logoImage\}\s+alt="Nimi"[\s\S]*\/>/u);
   assert.doesNotMatch(mainLayoutTopbarSource, /<Surface[\s\S]*material="glass-thick"/u);

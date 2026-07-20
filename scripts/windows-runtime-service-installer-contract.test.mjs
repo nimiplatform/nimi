@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import os from 'node:os';
-import path from 'node:path';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
+
+import { resolveWindowsPowerShell7 } from './lib/windows-powershell.mjs';
 
 const installer = readFileSync(
   new URL('./install-windows-runtime-service.ps1', import.meta.url),
@@ -68,8 +68,10 @@ test('checkpoint profile separates real Realm account authority from the provide
   assert.match(installer, /signed_installer_preserved_operator_selection/u);
   assert.match(installer, /developmentDataRootAuthority/u);
   assert.match(installer, /developmentDataRootDisposition/u);
-  assert.match(installer, /Sync-DevKernelServiceDataRootConfig/u);
-  assert.match(installer, /developmentServiceConfigSynchronized/u);
+  assert.doesNotMatch(
+    installer,
+    /Get-DevKernelServiceConfigPath|Sync-DevKernelServiceDataRootConfig|developmentServiceConfigSynchronized/u,
+  );
   assert.match(installer, /Existing protected acceptance profile identity is invalid/u);
   assert.match(installer, /\$PreviousProfile\.developmentDataRootRef/u);
   assert.doesNotMatch(installer, /RuntimeUserConfigPath|\$runtimeConfig\.dataRootRef/u);
@@ -93,54 +95,45 @@ test('service mutation propagates native failures and restores the prior SCM/pro
   assert.match(installer, /if \(\$ownershipChanged\) \{[\s\S]*Set-StateRootAcl/u);
   assert.match(installer, /restore previous service definition/u);
   assert.match(installer, /restore protected acceptance profile/u);
-  assert.match(installer, /previousDevelopmentConfigBytes/u);
-  assert.match(installer, /configRestoreTemporary/u);
+  assert.doesNotMatch(
+    installer,
+    /previousDevelopmentConfigBytes|Grant-InstallerFileAccess|Set-ServiceOnlyFileAcl/u,
+  );
+  assert.doesNotMatch(installer, /takeown\.exe[^\r\n]*(?:\/R|\/r)|icacls\.exe[^\r\n]*(?:\/T|\/t)/u);
   assert.match(installer, /restart previous service/u);
   assert.match(installer, /rollback failures:/u);
 });
 
-test('PowerShell updater synchronizes an existing service config without replacing unrelated admitted fields', {
+test('an installed service cannot silently create a replacement development lineage', () => {
+  const continuityCheck = installer.indexOf('Existing NimiRuntime service has no protected development state lineage');
+  const serviceStop = installer.indexOf('if ($previousWasRunning)');
+  assert.ok(continuityCheck >= 0 && continuityCheck < serviceStop);
+  assert.match(installer, /\$DevKernelCheckpoint -and \$null -ne \$existing -and -not \$previousProfilePresent/u);
+  assert.match(installer, /explicit destructive repair is required/u);
+});
+
+test('protected existing state root is taken over before any create attempt', {
   skip: process.platform !== 'win32',
 }, () => {
   const installerPath = fileURLToPath(new URL('./install-windows-runtime-service.ps1', import.meta.url));
-  const temporaryRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-installer-config-'));
-  try {
-    const configPath = path.join(temporaryRoot, 'config.json');
-    const developmentDataRoot = path.join(temporaryRoot, 'nimi-data');
-    mkdirSync(developmentDataRoot, { recursive: true });
-    writeFileSync(configPath, `${JSON.stringify({
-      schemaVersion: 1,
-      dataRootRef: path.join(temporaryRoot, 'old-data'),
-      managedRoots: {},
-      logLevel: 'debug',
-    })}\n`, 'utf8');
-    const quote = (value) => value.replaceAll("'", "''");
-    const command = [
-      `. '${quote(installerPath)}'`,
-      `$first = Sync-DevKernelServiceDataRootConfig -ConfigPath '${quote(configPath)}' -DevelopmentDataRoot '${quote(developmentDataRoot)}'`,
-      `$second = Sync-DevKernelServiceDataRootConfig -ConfigPath '${quote(configPath)}' -DevelopmentDataRoot '${quote(developmentDataRoot)}'`,
-      `$config = Get-Content -LiteralPath '${quote(configPath)}' -Raw | ConvertFrom-Json`,
-      `@{ first = $first; second = $second; config = $config } | ConvertTo-Json -Depth 10 -Compress`,
-    ].join('; ');
-    const result = spawnSync('powershell.exe', [
-      '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command,
-    ], { encoding: 'utf8', windowsHide: true });
-    assert.equal(result.status, 0, result.stderr || result.stdout);
-    const parsed = JSON.parse(result.stdout.trim());
-    assert.equal(parsed.first, true);
-    assert.equal(parsed.second, false);
-    assert.equal(parsed.config.dataRootRef, developmentDataRoot);
-    assert.equal(parsed.config.logLevel, 'debug');
-    assert.deepEqual(parsed.config.managedRoots, {
-      models: path.join(developmentDataRoot, 'models'),
-      dependencies: path.join(developmentDataRoot, 'dependencies'),
-      environments: path.join(developmentDataRoot, 'environments'),
-      logs: path.join(developmentDataRoot, 'logs'),
-      audit: path.join(developmentDataRoot, 'audit'),
-    });
-  } finally {
-    rmSync(temporaryRoot, { recursive: true, force: true });
-  }
+  const escapedInstallerPath = installerPath.replaceAll("'", "''");
+  const command = [
+    `. '${escapedInstallerPath}'`,
+    `$StateRoot = 'C:\\protected-existing'`,
+    `$calls = [System.Collections.Generic.List[string]]::new()`,
+    `function Invoke-NativeCommand { param([string] $FilePath, [string[]] $Arguments); $calls.Add($FilePath + ' ' + ($Arguments -join ' ')); [pscustomobject]@{ ExitCode = 0; StdOut = ''; StdErr = '' } }`,
+    `function New-Item { throw 'create must not run for an existing protected root' }`,
+    `Grant-InstallerStateAccess`,
+    `$calls | ConvertTo-Json -Compress`,
+  ].join('; ');
+  const result = spawnSync(resolveWindowsPowerShell7(), [
+    '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command,
+  ], { encoding: 'utf8', windowsHide: true });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.deepEqual(JSON.parse(result.stdout.trim()), [
+    'takeown.exe /F C:\\protected-existing /A',
+    'icacls.exe C:\\protected-existing /grant:r *S-1-5-32-544:(OI)(CI)F',
+  ]);
 });
 
 test('status and runner derive checkpoint posture from immutable candidate material', () => {

@@ -393,12 +393,20 @@ function Set-StateRootAcl {
 }
 
 function Grant-InstallerStateAccess {
-  New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
   $ownershipChanged = $false
   try {
     $takeOwnership = Invoke-NativeCommand -FilePath 'takeown.exe' -Arguments @('/F', $StateRoot, '/A')
     if ($takeOwnership.ExitCode -ne 0) {
-      throw "Unable to take temporary installer ownership of the Runtime state root.`n$($takeOwnership.StdOut)`n$($takeOwnership.StdErr)"
+      $initialTakeOwnership = $takeOwnership
+      try {
+        New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
+      } catch {
+        throw "Unable to locate or create the Runtime state root before temporary installer ownership.`ninitial takeown:`n$($initialTakeOwnership.StdOut)`n$($initialTakeOwnership.StdErr)`ncreate: $($_.Exception.Message)"
+      }
+      $takeOwnership = Invoke-NativeCommand -FilePath 'takeown.exe' -Arguments @('/F', $StateRoot, '/A')
+      if ($takeOwnership.ExitCode -ne 0) {
+        throw "Unable to take temporary installer ownership of the Runtime state root after creation.`n$($takeOwnership.StdOut)`n$($takeOwnership.StdErr)"
+      }
     }
     $ownershipChanged = $true
     $grant = Invoke-NativeCommand -FilePath 'icacls.exe' -Arguments @($StateRoot, '/grant:r', '*S-1-5-32-544:(OI)(CI)F')
@@ -587,52 +595,6 @@ function Write-DevKernelCheckpointProfile {
   return $developmentDataRootBinding
 }
 
-function Get-DevKernelServiceConfigPath {
-  param([Parameter(Mandatory = $true)] [Collections.IDictionary] $DevelopmentBinding)
-  return Join-Path $StateRoot (Join-Path 'acceptance-runs' (Join-Path ([string] $DevelopmentBinding.trialId) (Join-Path ([string] $DevelopmentBinding.developmentStateCandidateId) (Join-Path ([string] $DevelopmentBinding.acceptanceRoundId) 'runtime\config.json'))))
-}
-
-function Sync-DevKernelServiceDataRootConfig {
-  param(
-    [Parameter(Mandatory = $true)] [string] $ConfigPath,
-    [Parameter(Mandatory = $true)] [string] $DevelopmentDataRoot
-  )
-  if (-not (Test-Path -LiteralPath $ConfigPath -PathType Leaf)) { return $false }
-  $configItem = Get-Item -LiteralPath $ConfigPath -Force -ErrorAction Stop
-  if (($configItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -or $configItem.PSIsContainer) {
-    throw 'Existing service-owned Runtime config must be a direct regular file.'
-  }
-  try {
-    $config = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
-  } catch {
-    throw "Existing service-owned Runtime config cannot be decoded: $($_.Exception.Message)"
-  }
-  if ($null -eq $config -or $config -is [Array] -or [int] $config.schemaVersion -ne 1) {
-    throw 'Existing service-owned Runtime config identity is invalid.'
-  }
-  $managedRoots = [ordered]@{
-    models = Join-Path $DevelopmentDataRoot 'models'
-    dependencies = Join-Path $DevelopmentDataRoot 'dependencies'
-    environments = Join-Path $DevelopmentDataRoot 'environments'
-    logs = Join-Path $DevelopmentDataRoot 'logs'
-    audit = Join-Path $DevelopmentDataRoot 'audit'
-  }
-  $unchanged = [string] $config.dataRootRef -eq $DevelopmentDataRoot -and
-    $null -ne $config.managedRoots -and
-    [string] $config.managedRoots.models -eq $managedRoots.models -and
-    [string] $config.managedRoots.dependencies -eq $managedRoots.dependencies -and
-    [string] $config.managedRoots.environments -eq $managedRoots.environments -and
-    [string] $config.managedRoots.logs -eq $managedRoots.logs -and
-    [string] $config.managedRoots.audit -eq $managedRoots.audit
-  if ($unchanged) { return $false }
-  $config | Add-Member -NotePropertyName dataRootRef -NotePropertyValue $DevelopmentDataRoot -Force
-  $config | Add-Member -NotePropertyName managedRoots -NotePropertyValue ([pscustomobject] $managedRoots) -Force
-  $temporary = "$ConfigPath.installer-$PID.tmp"
-  [IO.File]::WriteAllText($temporary, (($config | ConvertTo-Json -Depth 20) + "`n"), [Text.UTF8Encoding]::new($false))
-  Move-Item -LiteralPath $temporary -Destination $ConfigPath -Force
-  return $true
-}
-
 function Get-Status {
   $record = Get-CimInstance Win32_Service -Filter "Name='$ServiceName'" -ErrorAction SilentlyContinue
   $sid = if ($null -eq $record) { $null } else { Resolve-ServiceSid }
@@ -725,12 +687,18 @@ function Install-Service {
   $installerStateAccess = $false
   $previousProfilePresent = $false
   [byte[]] $previousProfileBytes = $null
-  $developmentConfigPath = $null
-  $previousDevelopmentConfigPresent = $false
-  [byte[]] $previousDevelopmentConfigBytes = $null
-  $developmentConfigMutated = $false
 
   try {
+    Grant-InstallerStateAccess
+    $installerStateAccess = $true
+    if (Test-Path -LiteralPath $AcceptanceProfilePath -PathType Leaf) {
+      $previousProfileBytes = [IO.File]::ReadAllBytes($AcceptanceProfilePath)
+      $previousProfilePresent = $true
+    }
+    if ($DevKernelCheckpoint -and $null -ne $existing -and -not $previousProfilePresent) {
+      throw 'Existing NimiRuntime service has no protected development state lineage; explicit destructive repair is required.'
+    }
+
     if ($previousWasRunning) {
       Stop-Service -Name $ServiceName -ErrorAction Stop
       Wait-ServiceState -Expected 'Stopped'
@@ -752,21 +720,7 @@ function Install-Service {
     if ($resolvedSid -ne $ExpectedServiceSid) {
       throw "SCM resolved unexpected service SID: $resolvedSid"
     }
-    Grant-InstallerStateAccess
-    $installerStateAccess = $true
-    if (Test-Path -LiteralPath $AcceptanceProfilePath -PathType Leaf) {
-      $previousProfileBytes = [IO.File]::ReadAllBytes($AcceptanceProfilePath)
-      $previousProfilePresent = $true
-    }
     $developmentDataRootBinding = Write-DevKernelCheckpointProfile -SignerCertificateSha256 $installerSigner
-    if ($DevKernelCheckpoint) {
-      $developmentConfigPath = Get-DevKernelServiceConfigPath -DevelopmentBinding $developmentDataRootBinding
-      if (Test-Path -LiteralPath $developmentConfigPath -PathType Leaf) {
-        $previousDevelopmentConfigBytes = [IO.File]::ReadAllBytes($developmentConfigPath)
-        $previousDevelopmentConfigPresent = $true
-      }
-      $developmentConfigMutated = Sync-DevKernelServiceDataRootConfig -ConfigPath $developmentConfigPath -DevelopmentDataRoot ([string] $developmentDataRootBinding.path)
-    }
     Set-StateRootAcl
     try {
       Start-Service -Name $ServiceName -ErrorAction Stop
@@ -799,7 +753,6 @@ function Install-Service {
       $status['developmentStateCandidateId'] = [string] $developmentDataRootBinding.developmentStateCandidateId
       $status['acceptanceRoundId'] = [string] $developmentDataRootBinding.acceptanceRoundId
       $status['developmentStateLineageAuthority'] = [string] $developmentDataRootBinding.stateLineageAuthority
-      $status['developmentServiceConfigSynchronized'] = [bool] $developmentConfigMutated
     }
     return $status
   } catch {
@@ -842,15 +795,6 @@ function Install-Service {
           Move-Item -LiteralPath $restoreTemporary -Destination $AcceptanceProfilePath -Force
         } elseif (Test-Path -LiteralPath $AcceptanceProfilePath -PathType Leaf) {
           Remove-Item -LiteralPath $AcceptanceProfilePath -Force
-        }
-        if (-not [string]::IsNullOrWhiteSpace($developmentConfigPath)) {
-          if ($previousDevelopmentConfigPresent) {
-            $configRestoreTemporary = "$developmentConfigPath.rollback"
-            [IO.File]::WriteAllBytes($configRestoreTemporary, $previousDevelopmentConfigBytes)
-            Move-Item -LiteralPath $configRestoreTemporary -Destination $developmentConfigPath -Force
-          } elseif ($developmentConfigMutated -and (Test-Path -LiteralPath $developmentConfigPath -PathType Leaf)) {
-            Remove-Item -LiteralPath $developmentConfigPath -Force
-          }
         }
         Set-StateRootAcl
       } catch {

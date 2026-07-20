@@ -39,6 +39,17 @@ test('G1 requires an allowlisted trial-root read to retain its same-file checkpo
   assert.deepEqual(guarded, []);
 });
 
+test('G1 admits the checkpoint-gated macOS Desktop acceptance profile', async () => {
+  const source = await readFile(
+    new URL('../apps/desktop/src-electron/macos-desktop-acceptance.ts', import.meta.url),
+    'utf8',
+  );
+  assert.deepEqual(collectHarnessInputViolations([{
+    relativePath: 'apps/desktop/src-electron/macos-desktop-acceptance.ts',
+    source,
+  }]), []);
+});
+
 async function zhiyuSources() {
   const files = {
     contract: '../apps/zhiyu/src-electron/local-development-contract.ts',

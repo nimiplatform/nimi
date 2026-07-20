@@ -160,9 +160,9 @@ func loadWindowsProtectedRuntimeConfig(stateRoot string) (config.Config, error) 
 	}
 	if profile != nil && strings.TrimSpace(profile.DevelopmentDataRootRef) != "" {
 		profileRoot := filepath.Clean(profile.DevelopmentDataRootRef)
-		if cfg.DataRootRef != "" && filepath.Clean(cfg.DataRootRef) != profileRoot {
-			return config.Config{}, fmt.Errorf("service-owned dataRootRef conflicts with signed development binding")
-		}
+		// The verified non-release profile is signed boot authority. Mutable
+		// service config remains Runtime-owned and untouched; it cannot override
+		// the candidate-bound development binding selected by the installer.
 		if err := config.ApplyProtectedDataRootBinding(&cfg, profileRoot); err != nil {
 			return config.Config{}, fmt.Errorf("apply signed development data-root binding: %w", err)
 		}

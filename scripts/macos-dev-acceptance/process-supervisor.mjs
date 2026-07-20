@@ -5,6 +5,18 @@ import net from 'node:net';
 import path from 'node:path';
 
 const MAX_MEMORY_LOG_BYTES = 512 * 1024;
+const RELEVANT_PROCESS_PATTERN = new RegExp([
+  'Nimi Dev',
+  'Local App Host',
+  'Zhiyu',
+  'Electron',
+  'vite',
+  'esbuild',
+  'nimi-runtime',
+  'nest',
+  'realtime',
+  'nimi-realm',
+].join('|'), 'iu');
 
 export class AcceptanceProcessSupervisor {
   constructor(logRoot) {
@@ -162,7 +174,7 @@ export function processRows() {
 }
 
 export function relevantProcessRows() {
-  return processRows().filter((row) => /(?:Nimi Dev|Local App Host|Zhiyu|Electron|vite|esbuild|nimi-runtime|nest|realtime|nimi-realm)/iu.test(row.command));
+  return processRows().filter((row) => RELEVANT_PROCESS_PATTERN.test(row.command));
 }
 
 export function processTree(rootPid) {

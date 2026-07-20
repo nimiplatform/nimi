@@ -37,8 +37,13 @@ function Get-NimiDevCodeSigningCert {
   )
 
   $minimumNotAfter = (Get-Date).AddDays($MinimumValidDays)
-  $certs = Get-ChildItem -Path $CurrentUserMy -CodeSigningCert -ErrorAction SilentlyContinue |
-    Where-Object { $_.Subject -eq $Subject -and $_.NotAfter -gt $minimumNotAfter } |
+  $codeSigningOid = '1.3.6.1.5.5.7.3.3'
+  $certs = Get-ChildItem -Path $CurrentUserMy -ErrorAction SilentlyContinue |
+    Where-Object {
+      $_.Subject -eq $Subject -and
+      $_.NotAfter -gt $minimumNotAfter -and
+      ($_.EnhancedKeyUsageList | Where-Object { [string] $_.ObjectId -eq $codeSigningOid })
+    } |
     Sort-Object -Property NotAfter -Descending
 
   if ($RequirePrivateKey) {

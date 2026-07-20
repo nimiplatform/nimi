@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -89,51 +89,60 @@ test('Desktop dev CDP observation is explicit, loopback-only, and fail-closed', 
   );
 });
 
-test('macOS Desktop CDP is coupled to one fresh private acceptance evidence root', async () => {
+test('macOS Desktop CDP is coupled to one fresh private acceptance evidence root', () => {
   const authorityRoot = path.join(workspaceRoot, '.nimi', 'local', 'acceptance');
-  await mkdir(authorityRoot, { recursive: true });
-  const evidenceRoot = await mkdtemp(path.join(authorityRoot, 'carrier-contract-'));
-  await chmod(evidenceRoot, 0o700);
+  const evidenceRoot = path.join(authorityRoot, 'carrier-contract-fixture');
   const desktopUserDataRoot = path.join(evidenceRoot, 'desktop-user-data');
   const zhiyuUserDataRoot = path.join(evidenceRoot, 'zhiyu-user-data');
-  await mkdir(desktopUserDataRoot, { mode: 0o700 });
-  await mkdir(zhiyuUserDataRoot, { mode: 0o700 });
-  try {
-    const value = resolveMacOSDesktopAcceptanceEnvironment({
-      env: {
-        NIMI_MACOS_DEV_ACCEPTANCE: '1',
-        NIMI_MACOS_DEV_ACCEPTANCE_ROOT: evidenceRoot,
-        NIMI_DESKTOP_DEV_CDP_PORT: '19470',
-        NIMI_MACOS_DEV_ACCEPTANCE_ZHIYU_CDP_PORT: '19471',
-      },
-      workspaceRoot,
-    });
-    assert.equal(value.NIMI_MACOS_DEV_ACCEPTANCE_ROOT, evidenceRoot);
-    assert.equal(value.NIMI_DEV_KERNEL_CHECKPOINT, '1');
-    assert.equal(value.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_CDP_PORT, '19471');
-    assert.equal(value.NIMI_MACOS_DEV_ACCEPTANCE_DESKTOP_USER_DATA_ROOT, desktopUserDataRoot);
-    assert.equal(value.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT, zhiyuUserDataRoot);
-    assert.equal(
-      value.NIMI_DESKTOP_ELECTRON_OPEN_EXTERNAL_CAPTURE_FILE,
-      path.join(evidenceRoot, 'oauth-authorization-url.txt'),
-    );
-    assert.throws(() => resolveMacOSDesktopAcceptanceEnvironment({
-      env: { NIMI_DESKTOP_DEV_CDP_PORT: '19470' },
-      workspaceRoot,
-    }), (error) => error.reasonCode === 'desktop-dev-acceptance-profile-invalid');
-    await writeFile(path.join(evidenceRoot, 'oauth-authorization-url.txt'), 'occupied\n');
-    assert.throws(() => resolveMacOSDesktopAcceptanceEnvironment({
-      env: {
-        NIMI_MACOS_DEV_ACCEPTANCE: '1',
-        NIMI_MACOS_DEV_ACCEPTANCE_ROOT: evidenceRoot,
-        NIMI_DESKTOP_DEV_CDP_PORT: '19470',
-        NIMI_MACOS_DEV_ACCEPTANCE_ZHIYU_CDP_PORT: '19471',
-      },
-      workspaceRoot,
-    }), (error) => error.reasonCode === 'desktop-dev-acceptance-capture-not-fresh');
-  } finally {
-    await rm(evidenceRoot, { recursive: true, force: true });
-  }
+  const captureFile = path.join(evidenceRoot, 'oauth-authorization-url.txt');
+  const existing = new Set([
+    authorityRoot,
+    evidenceRoot,
+    desktopUserDataRoot,
+    zhiyuUserDataRoot,
+  ]);
+  const hostUID = typeof process.getuid === 'function' ? process.getuid() : 501;
+  const filesystem = {
+    existsSync: (candidate) => existing.has(candidate),
+    lstatSync: () => ({
+      isDirectory: () => true,
+      isSymbolicLink: () => false,
+      mode: 0o40700,
+      uid: hostUID,
+    }),
+    realpathSync: (candidate) => candidate,
+  };
+  const completeEnvironment = {
+    NIMI_MACOS_DEV_ACCEPTANCE: '1',
+    NIMI_MACOS_DEV_ACCEPTANCE_ROOT: evidenceRoot,
+    NIMI_DESKTOP_DEV_CDP_PORT: '19470',
+    NIMI_MACOS_DEV_ACCEPTANCE_ZHIYU_CDP_PORT: '19471',
+  };
+
+  const value = resolveMacOSDesktopAcceptanceEnvironment({
+    env: completeEnvironment,
+    workspaceRoot,
+    ...filesystem,
+  });
+  assert.equal(value.NIMI_MACOS_DEV_ACCEPTANCE_ROOT, evidenceRoot);
+  assert.equal(value.NIMI_DEV_KERNEL_CHECKPOINT, '1');
+  assert.equal(value.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_CDP_PORT, '19471');
+  assert.equal(value.NIMI_MACOS_DEV_ACCEPTANCE_DESKTOP_USER_DATA_ROOT, desktopUserDataRoot);
+  assert.equal(value.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT, zhiyuUserDataRoot);
+  assert.equal(
+    value.NIMI_DESKTOP_ELECTRON_OPEN_EXTERNAL_CAPTURE_FILE,
+    captureFile,
+  );
+  assert.throws(() => resolveMacOSDesktopAcceptanceEnvironment({
+    env: { NIMI_DESKTOP_DEV_CDP_PORT: '19470' },
+    workspaceRoot,
+  }), (error) => error.reasonCode === 'desktop-dev-acceptance-profile-invalid');
+  existing.add(captureFile);
+  assert.throws(() => resolveMacOSDesktopAcceptanceEnvironment({
+    env: completeEnvironment,
+    workspaceRoot,
+    ...filesystem,
+  }), (error) => error.reasonCode === 'desktop-dev-acceptance-capture-not-fresh');
 });
 
 test('Desktop signed Electron host exposes the Kit standard file dialog surface', async () => {

@@ -4,6 +4,7 @@ import { globSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSyncCommand } from './lib/command-runner.mjs';
+import { resolveSystemPythonCommand } from './lib/python-venv.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -29,7 +30,7 @@ export function buildScriptTestCommands({ nodeTests, pythonTests }) {
   if (pythonTests.length === 0) throw new Error('no scripts Python test files discovered');
   return [
     [process.execPath, ['--test', '--test-concurrency=1', ...nodeTests]],
-    ['python3', ['-m', 'unittest', ...pythonTests]],
+    [resolveSystemPythonCommand(), ['-m', 'unittest', ...pythonTests]],
   ];
 }
 

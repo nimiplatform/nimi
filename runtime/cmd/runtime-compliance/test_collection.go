@@ -85,6 +85,11 @@ type goTestFailureOutput struct {
 	Tail    string `json:"tail,omitempty"`
 }
 
+type packageStartObservation struct {
+	SampledAt time.Time
+	EventAt   time.Time
+}
+
 func collectPassingTests(
 	ctx context.Context,
 	request testCollectionRequest,
@@ -162,7 +167,7 @@ func collectPassingTests(
 
 func scanGoTestJSON(reader io.Reader, startedAt time.Time, progress *progressReporter) goTestScanResult {
 	result := goTestScanResult{PassedTests: make(map[string]bool)}
-	packageStarts := make(map[string]time.Time)
+	packageStarts := make(map[string]packageStartObservation)
 	packageByName := make(map[string]*packageTiming)
 	packageOutput := make(map[string]*boundedTailBuffer)
 	testOutput := make(map[string]*boundedTailBuffer)
@@ -192,7 +197,10 @@ func scanGoTestJSON(reader io.Reader, startedAt time.Time, progress *progressRep
 			}
 		}
 		if event.Action == "start" && packagePath != "" && strings.TrimSpace(event.Test) == "" {
-			packageStarts[packagePath] = now
+			packageStarts[packagePath] = packageStartObservation{
+				SampledAt: now,
+				EventAt:   event.Time,
+			}
 			if progress != nil {
 				progress.Item("package", packagePath)
 			}
@@ -239,7 +247,13 @@ func scanGoTestJSON(reader io.Reader, startedAt time.Time, progress *progressRep
 		delete(failedTestByPackage, packagePath)
 		elapsed := time.Duration(event.Elapsed * float64(time.Second))
 		if start, ok := packageStarts[packagePath]; ok {
-			wall := now.Sub(start)
+			wall := now.Sub(start.SampledAt)
+			if !start.EventAt.IsZero() && !event.Time.IsZero() {
+				eventWall := event.Time.Sub(start.EventAt)
+				if eventWall >= 0 && eventWall > wall {
+					wall = eventWall
+				}
+			}
 			if wall > elapsed {
 				elapsed = wall
 				pkg.ElapsedSeconds = wall.Seconds()

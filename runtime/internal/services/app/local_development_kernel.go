@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	localDevelopmentPayloadMaxFiles = 20_000
-	localDevelopmentPayloadMaxBytes = int64(1 << 30)
+	localDevelopmentPayloadMaxFiles      = 20_000
+	localDevelopmentPayloadMaxBytes      = int64(1 << 30)
+	localDevelopmentRecordUpdateAttempts = 3
 )
 
 var localDevelopmentPayloadExcludedDirectories = map[string]struct{}{
@@ -59,11 +60,7 @@ func (s *Service) observeLocalDevelopmentExecution(project localDevelopmentProje
 	}, nil
 }
 
-func (s *Service) createLocalDevelopmentPrincipalRecord(ctx context.Context, authorization localDevelopmentAuthorization) error {
-	observation, err := s.observeLocalDevelopmentExecution(authorization.Project)
-	if err != nil {
-		return err
-	}
+func (s *Service) createLocalDevelopmentProjection(ctx context.Context, authorization localDevelopmentAuthorization, observation localDevelopmentExecutionObservation) (localappkernel.Principal, localappkernel.Record, error) {
 	authorizationRef := localDevelopmentAuthorizationRef(authorization.ID)
 	principal, err := s.localAppKernel.Principals().Create(ctx, localappkernel.CreatePrincipalInput{
 		Kind:                       localappkernel.PrincipalKindDevelopment,
@@ -72,7 +69,7 @@ func (s *Service) createLocalDevelopmentPrincipalRecord(ctx context.Context, aut
 		CanonicalProjectFileID:     observation.CanonicalProjectFileID,
 	})
 	if err != nil {
-		return err
+		return localappkernel.Principal{}, localappkernel.Record{}, err
 	}
 	created := false
 	defer func() {
@@ -80,7 +77,16 @@ func (s *Service) createLocalDevelopmentPrincipalRecord(ctx context.Context, aut
 			_, _ = s.localAppKernel.Principals().Tombstone(context.Background(), principal.LocalAppPrincipalID)
 		}
 	}()
-	_, err = s.localAppKernel.Records().Create(ctx, localappkernel.CreateRecordInput{
+	record, err := s.createLocalDevelopmentRecord(ctx, authorization, principal, observation)
+	if err != nil {
+		return localappkernel.Principal{}, localappkernel.Record{}, err
+	}
+	created = true
+	return principal, record, nil
+}
+
+func (s *Service) createLocalDevelopmentRecord(ctx context.Context, authorization localDevelopmentAuthorization, principal localappkernel.Principal, observation localDevelopmentExecutionObservation) (localappkernel.Record, error) {
+	return s.localAppKernel.Records().Create(ctx, localappkernel.CreateRecordInput{
 		LocalAppPrincipalID:               principal.LocalAppPrincipalID,
 		TrustClass:                        localappkernel.TrustClassLocalDevelopment,
 		ProvenanceAttestationRefs:         []string{localDevelopmentConsentAttestationRef(authorization.ID)},
@@ -93,44 +99,106 @@ func (s *Service) createLocalDevelopmentPrincipalRecord(ctx context.Context, aut
 		PayloadRootDigest:                 observation.PayloadRootDigest,
 		LifecycleState:                    localappkernel.LifecycleStateActive,
 	})
-	if err != nil {
-		return err
-	}
-	created = true
-	return nil
 }
 
 func (s *Service) prepareLocalDevelopmentRecord(ctx context.Context, authorization localDevelopmentAuthorization) (localappkernel.Principal, localappkernel.Record, error) {
 	if s == nil || s.localAppKernel == nil {
 		return localappkernel.Principal{}, localappkernel.Record{}, localappkernel.ErrNotFound
 	}
-	principal, err := s.localAppKernel.Principals().GetByDevelopmentAuthorizationID(ctx, localDevelopmentAuthorizationRef(authorization.ID))
-	if err != nil || principal.State != localappkernel.PrincipalStateActive || principal.AppID != authorization.Project.AppID {
-		return localappkernel.Principal{}, localappkernel.Record{}, localappkernel.ErrNotFound
-	}
 	observation, err := s.observeLocalDevelopmentExecution(authorization.Project)
-	if err != nil || principal.CanonicalProjectFileID != observation.CanonicalProjectFileID {
-		return localappkernel.Principal{}, localappkernel.Record{}, errLocalDevelopmentProjectChanged
-	}
-	record, err := s.localAppKernel.Records().GetByPrincipalID(ctx, principal.LocalAppPrincipalID)
-	if err != nil || record.TrustClass != localappkernel.TrustClassLocalDevelopment || record.LifecycleState != localappkernel.LifecycleStateActive ||
-		record.ActiveReleaseOrProjectIdentityRef != localDevelopmentProjectIdentityRef(observation.CanonicalProjectFileID) ||
-		record.ActiveCapabilityFingerprint != localDevelopmentCapabilityRef(authorization.Project.PermissionRequirementFingerprint) ||
-		record.ExecutionProfileRef != localDevelopmentExecutionProfileRef(authorization.Project.ShellKind) {
-		return localappkernel.Principal{}, localappkernel.Record{}, errLocalDevelopmentProjectChanged
-	}
-	record, err = s.localAppKernel.Records().UpdateDevelopment(ctx, localappkernel.UpdateDevelopmentRecordInput{
-		LocalAppPrincipalID:       principal.LocalAppPrincipalID,
-		LocalAppRecordID:          record.LocalAppRecordID,
-		ExpectedProjectGeneration: record.InstallOrProjectGeneration,
-		HostExecutableDigest:      observation.HostExecutableDigest,
-		PayloadRootDigest:         observation.PayloadRootDigest,
-		LifecycleState:            localappkernel.LifecycleStateActive,
-	})
 	if err != nil {
 		return localappkernel.Principal{}, localappkernel.Record{}, err
 	}
-	return principal, record, nil
+	authorizationRef := localDevelopmentAuthorizationRef(authorization.ID)
+	for attempt := 0; attempt < localDevelopmentRecordUpdateAttempts; attempt++ {
+		principal, lookupErr := s.localAppKernel.Principals().GetByDevelopmentAuthorizationID(ctx, authorizationRef)
+		if errors.Is(lookupErr, localappkernel.ErrNotFound) || (lookupErr == nil && principal.State == localappkernel.PrincipalStateTombstoned) {
+			principal, record, createErr := s.createLocalDevelopmentProjection(ctx, authorization, observation)
+			if errors.Is(createErr, localappkernel.ErrStateConflict) {
+				continue
+			}
+			return principal, record, createErr
+		}
+		if lookupErr != nil {
+			return localappkernel.Principal{}, localappkernel.Record{}, lookupErr
+		}
+		if !localDevelopmentPrincipalMatchesAuthorization(principal, authorization, observation) {
+			return localappkernel.Principal{}, localappkernel.Record{}, errLocalDevelopmentProjectChanged
+		}
+
+		record, recordErr := s.localAppKernel.Records().GetByPrincipalID(ctx, principal.LocalAppPrincipalID)
+		if errors.Is(recordErr, localappkernel.ErrNotFound) {
+			record, recordErr = s.createLocalDevelopmentRecord(ctx, authorization, principal, observation)
+			if recordErr == nil {
+				return principal, record, nil
+			}
+			// A concurrent exact-consent repair may have won the record create.
+			// Re-read owner truth before surfacing the create error.
+			if current, currentErr := s.localAppKernel.Records().GetByPrincipalID(ctx, principal.LocalAppPrincipalID); currentErr == nil {
+				record = current
+				recordErr = nil
+			}
+		}
+		if recordErr != nil {
+			return localappkernel.Principal{}, localappkernel.Record{}, recordErr
+		}
+		if !localDevelopmentRecordMatchesAuthorization(record, authorization, observation) {
+			return localappkernel.Principal{}, localappkernel.Record{}, errLocalDevelopmentProjectChanged
+		}
+		record, recordErr = s.updateLocalDevelopmentRecord(ctx, principal, record, observation)
+		if errors.Is(recordErr, localappkernel.ErrRevisionConflict) {
+			continue
+		}
+		return principal, record, recordErr
+	}
+	return localappkernel.Principal{}, localappkernel.Record{}, localappkernel.ErrRevisionConflict
+}
+
+func (s *Service) updateLocalDevelopmentRecord(ctx context.Context, principal localappkernel.Principal, record localappkernel.Record, observation localDevelopmentExecutionObservation) (localappkernel.Record, error) {
+	for attempt := 0; attempt < localDevelopmentRecordUpdateAttempts; attempt++ {
+		updated, err := s.localAppKernel.Records().UpdateDevelopment(ctx, localappkernel.UpdateDevelopmentRecordInput{
+			LocalAppPrincipalID:       principal.LocalAppPrincipalID,
+			LocalAppRecordID:          record.LocalAppRecordID,
+			ExpectedProjectGeneration: record.InstallOrProjectGeneration,
+			HostExecutableDigest:      observation.HostExecutableDigest,
+			PayloadRootDigest:         observation.PayloadRootDigest,
+			LifecycleState:            localappkernel.LifecycleStateActive,
+		})
+		if err == nil {
+			return updated, nil
+		}
+		if !errors.Is(err, localappkernel.ErrRevisionConflict) {
+			return localappkernel.Record{}, err
+		}
+		current, currentErr := s.localAppKernel.Records().GetByPrincipalID(ctx, principal.LocalAppPrincipalID)
+		if currentErr != nil {
+			return localappkernel.Record{}, currentErr
+		}
+		record = current
+	}
+	return localappkernel.Record{}, localappkernel.ErrRevisionConflict
+}
+
+func localDevelopmentPrincipalMatchesAuthorization(principal localappkernel.Principal, authorization localDevelopmentAuthorization, observation localDevelopmentExecutionObservation) bool {
+	return principal.State == localappkernel.PrincipalStateActive &&
+		principal.Kind == localappkernel.PrincipalKindDevelopment &&
+		principal.AppID == authorization.Project.AppID &&
+		principal.DevelopmentAuthorizationID == localDevelopmentAuthorizationRef(authorization.ID) &&
+		principal.CanonicalProjectFileID == observation.CanonicalProjectFileID
+}
+
+func localDevelopmentRecordMatchesAuthorization(record localappkernel.Record, authorization localDevelopmentAuthorization, observation localDevelopmentExecutionObservation) bool {
+	return record.TrustClass == localappkernel.TrustClassLocalDevelopment &&
+		record.LifecycleState == localappkernel.LifecycleStateActive &&
+		len(record.ProvenanceAttestationRefs) == 1 &&
+		record.ProvenanceAttestationRefs[0] == localDevelopmentConsentAttestationRef(authorization.ID) &&
+		record.ActiveReleaseOrProjectIdentityRef == localDevelopmentProjectIdentityRef(observation.CanonicalProjectFileID) &&
+		record.ActiveCapabilityFingerprint == localDevelopmentCapabilityRef(authorization.Project.PermissionRequirementFingerprint) &&
+		record.ExecutionProfileRef == localDevelopmentExecutionProfileRef(authorization.Project.ShellKind)
+}
+
+func localDevelopmentPreparationInvalidatesAuthorization(err error) bool {
+	return errors.Is(err, errLocalDevelopmentProjectChanged)
 }
 
 func (s *Service) resolveLocalDevelopmentRecord(ctx context.Context, session localDevelopmentSessionProjection) (localappkernel.Principal, localappkernel.Record, error) {
@@ -270,7 +338,10 @@ func localDevelopmentProjectPayloadDigest(root string) (protectedlocal.Identifie
 			return errLocalDevelopmentProjectChanged
 		}
 		info, err := entry.Info()
-		if err != nil || !info.Mode().IsRegular() {
+		if err != nil {
+			return err
+		}
+		if !info.Mode().IsRegular() {
 			return errLocalDevelopmentProjectChanged
 		}
 		files++
@@ -300,12 +371,21 @@ func localDevelopmentProjectPayloadDigest(root string) (protectedlocal.Identifie
 			return closeErr
 		}
 		after, err := os.Lstat(path)
-		if err != nil || after.Mode()&os.ModeSymlink != 0 || after.Size() != info.Size() || !after.ModTime().Equal(info.ModTime()) {
+		if err != nil {
+			return err
+		}
+		if after.Mode()&os.ModeSymlink != 0 {
 			return errLocalDevelopmentProjectChanged
+		}
+		if after.Size() != info.Size() || !after.ModTime().Equal(info.ModTime()) {
+			return errLocalDevelopmentProjectUnstable
 		}
 		return nil
 	})
-	if err != nil || files == 0 {
+	if err != nil {
+		return protectedlocal.Identifier{}, err
+	}
+	if files == 0 {
 		return protectedlocal.Identifier{}, errLocalDevelopmentProjectChanged
 	}
 	var result protectedlocal.Identifier

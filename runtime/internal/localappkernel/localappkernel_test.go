@@ -60,7 +60,8 @@ func TestPrincipalLineageAndRandomNonReuse(t *testing.T) {
 	ctx := context.Background()
 	entropyA := bytes.Repeat([]byte{0x11}, 32)
 	entropyB := bytes.Repeat([]byte{0x22}, 32)
-	random := bytes.NewReader(append(append(entropyA, entropyA...), entropyB...))
+	entropyC := bytes.Repeat([]byte{0x33}, 32)
+	random := bytes.NewReader(append(append(append(entropyA, entropyA...), entropyB...), entropyC...))
 	kernel := openTestKernel(t, Options{Random: random, Now: func() time.Time { return testNow }})
 	defer func() { _ = kernel.Close() }()
 
@@ -104,6 +105,34 @@ func TestPrincipalLineageAndRandomNonReuse(t *testing.T) {
 	resolved, err = kernel.Principals().GetByDevelopmentAuthorizationID(ctx, "dev-auth:one")
 	if err != nil || !reflect.DeepEqual(resolved, tombstoned) {
 		t.Fatalf("tombstoned development authorization lookup = (%+v, %v), want %+v", resolved, err, tombstoned)
+	}
+	replacement, err := kernel.Principals().Create(ctx, CreatePrincipalInput{
+		Kind: PrincipalKindDevelopment, AppID: "com.example.app",
+		DevelopmentAuthorizationID: "dev-auth:one", CanonicalProjectFileID: "file-id:one",
+	})
+	if err != nil {
+		t.Fatalf("rebuild exact-consent principal: %v", err)
+	}
+	if replacement.LocalAppPrincipalID == tombstoned.LocalAppPrincipalID {
+		t.Fatal("exact-consent projection rebuild reused a tombstoned principal")
+	}
+	resolved, err = kernel.Principals().GetByDevelopmentAuthorizationID(ctx, "dev-auth:one")
+	if err != nil || !reflect.DeepEqual(resolved, replacement) {
+		t.Fatalf("active rebuilt development authorization lookup = (%+v, %v), want %+v", resolved, err, replacement)
+	}
+	if _, err := kernel.Principals().Create(ctx, CreatePrincipalInput{
+		Kind: PrincipalKindDevelopment, AppID: "com.example.app",
+		DevelopmentAuthorizationID: "dev-auth:one", CanonicalProjectFileID: "file-id:one",
+	}); !errors.Is(err, ErrStateConflict) {
+		t.Fatalf("second active exact-consent projection error = %v, want ErrStateConflict", err)
+	}
+	newestTombstone, err := kernel.Principals().Tombstone(ctx, replacement.LocalAppPrincipalID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolved, err = kernel.Principals().GetByDevelopmentAuthorizationID(ctx, "dev-auth:one")
+	if err != nil || !reflect.DeepEqual(resolved, newestTombstone) {
+		t.Fatalf("newest tombstoned development authorization lookup = (%+v, %v), want %+v", resolved, err, newestTombstone)
 	}
 }
 

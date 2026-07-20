@@ -43,10 +43,12 @@ test('bootstrapLocalQwen3Speech reuses existing install state when unchanged', a
   const modelsRoot = path.join(root, 'models');
   const ttsVenvRoot = path.join(root, 'tts-venv');
   const asrVenvRoot = path.join(root, 'asr-venv');
-  await fs.mkdir(path.join(ttsVenvRoot, 'bin'), { recursive: true });
-  await fs.mkdir(path.join(asrVenvRoot, 'bin'), { recursive: true });
-  await fs.writeFile(path.join(ttsVenvRoot, 'bin', 'python3'), '', 'utf8');
-  await fs.writeFile(path.join(asrVenvRoot, 'bin', 'python3'), '', 'utf8');
+  const ttsPythonPath = fixturePythonExecutable(ttsVenvRoot);
+  const asrPythonPath = fixturePythonExecutable(asrVenvRoot);
+  await fs.mkdir(path.dirname(ttsPythonPath), { recursive: true });
+  await fs.mkdir(path.dirname(asrPythonPath), { recursive: true });
+  await fs.writeFile(ttsPythonPath, '', 'utf8');
+  await fs.writeFile(asrPythonPath, '', 'utf8');
   await fs.writeFile(path.join(ttsVenvRoot, '.qwen3-speech-bootstrap.json'), `${JSON.stringify({
     schemaVersion: 1,
     pythonVersion: '3.12',
@@ -86,20 +88,25 @@ test('bootstrapLocalQwen3Speech reuses existing install state when unchanged', a
 });
 
 test('recommendedEnvLines points runtime to repo-local qwen3 driver wrappers', () => {
+  const fixtureRoot = path.join(os.tmpdir(), 'nimi-qwen3-env-fixture');
+  const modelsRoot = path.join(fixtureRoot, 'models');
+  const ttsVenvRoot = path.join(fixtureRoot, 'tts-venv');
+  const asrVenvRoot = path.join(fixtureRoot, 'asr-venv');
+  const cacheRoot = path.join(fixtureRoot, 'hf');
   const lines = recommendedEnvLines({
-    modelsRoot: '/tmp/models',
-    ttsVenvRoot: '/tmp/tts-venv',
-    asrVenvRoot: '/tmp/asr-venv',
-    cacheRoot: '/tmp/hf',
+    modelsRoot,
+    ttsVenvRoot,
+    asrVenvRoot,
+    cacheRoot,
     speechBaseURL: 'http://127.0.0.1:43111/v1',
   });
 
-  assert.equal(lines[0], "export NIMI_RUNTIME_LOCAL_MODELS_PATH='/tmp/models'");
-  assert.equal(lines[1], "export HF_HOME='/tmp/hf'");
-  assert.equal(lines[2], "export HUGGINGFACE_HUB_CACHE='/tmp/hf/hub'");
-  assert.equal(lines[3], "export TRANSFORMERS_CACHE='/tmp/hf/transformers'");
-  assert.equal(lines[4], `export NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD='/tmp/tts-venv/bin/python3 ${path.join(process.cwd(), 'scripts', 'qwen3-tts-driver.py')}'`);
-  assert.equal(lines[5], `export NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD='/tmp/asr-venv/bin/python3 ${path.join(process.cwd(), 'scripts', 'qwen3-asr-driver.py')}'`);
+  assert.equal(lines[0], `export NIMI_RUNTIME_LOCAL_MODELS_PATH='${modelsRoot}'`);
+  assert.equal(lines[1], `export HF_HOME='${cacheRoot}'`);
+  assert.equal(lines[2], `export HUGGINGFACE_HUB_CACHE='${path.join(cacheRoot, 'hub')}'`);
+  assert.equal(lines[3], `export TRANSFORMERS_CACHE='${path.join(cacheRoot, 'transformers')}'`);
+  assert.equal(lines[4], `export NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD='${fixturePythonExecutable(ttsVenvRoot)} ${path.join(process.cwd(), 'scripts', 'qwen3-tts-driver.py')}'`);
+  assert.equal(lines[5], `export NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD='${fixturePythonExecutable(asrVenvRoot)} ${path.join(process.cwd(), 'scripts', 'qwen3-asr-driver.py')}'`);
   assert.equal(lines[6], "export NIMI_LIVE_LOCAL_QWEN3_TTS_MODEL_ID='speech/qwen3tts'");
   assert.equal(lines[7], "export NIMI_LIVE_LOCAL_QWEN3_TTS_BASE_MODEL_ID='speech/qwen3tts-base'");
   assert.equal(lines[8], "export NIMI_LIVE_LOCAL_QWEN3_TTS_VOICEDESIGN_MODEL_ID='speech/qwen3tts-design'");
@@ -107,3 +114,9 @@ test('recommendedEnvLines points runtime to repo-local qwen3 driver wrappers', (
   assert.equal(lines[10], "export NIMI_LIVE_LOCAL_TTS_MODEL_ID='speech/qwen3tts'");
   assert.equal(lines[11], "export NIMI_LIVE_LOCAL_SPEECH_BASE_URL='http://127.0.0.1:43111/v1'");
 });
+
+function fixturePythonExecutable(venvRoot) {
+  return process.platform === 'win32'
+    ? path.join(venvRoot, 'Scripts', 'python.exe')
+    : path.join(venvRoot, 'bin', 'python3');
+}

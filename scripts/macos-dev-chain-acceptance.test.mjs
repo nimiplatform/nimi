@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -33,17 +33,19 @@ const expectedEvidence = Object.freeze([
   'negative-tests.json',
   'acceptance-summary.json',
 ]);
+const exampleRealmRoot = '/Users/example/nimi-realm';
+const fixtureUID = 501;
 
 test('acceptance arguments admit only one exact canonical absolute Realm root', () => {
   assert.deepEqual(parseAcceptanceArguments([]), { realmRoot: undefined });
-  assert.deepEqual(parseAcceptanceArguments(['--realm-root', '/Users/example/nimi-realm']), {
-    realmRoot: '/Users/example/nimi-realm',
+  assert.deepEqual(parseAcceptanceArguments(['--realm-root', exampleRealmRoot]), {
+    realmRoot: exampleRealmRoot,
   });
-  assert.deepEqual(parseAcceptanceArguments(['--realm-root=/Users/example/nimi-realm']), {
-    realmRoot: '/Users/example/nimi-realm',
+  assert.deepEqual(parseAcceptanceArguments([`--realm-root=${exampleRealmRoot}`]), {
+    realmRoot: exampleRealmRoot,
   });
-  assert.deepEqual(parseAcceptanceArguments(['--', '--realm-root', '/Users/example/nimi-realm']), {
-    realmRoot: '/Users/example/nimi-realm',
+  assert.deepEqual(parseAcceptanceArguments(['--', '--realm-root', exampleRealmRoot]), {
+    realmRoot: exampleRealmRoot,
   });
   for (const invalid of [
     ['--realm-root', 'relative/path'],
@@ -51,7 +53,7 @@ test('acceptance arguments admit only one exact canonical absolute Realm root', 
     ['--realm-root', '/one', '--realm-root=/two'],
     ['--unknown'],
     ['--realm-root'],
-    ['--', '--', '--realm-root', '/Users/example/nimi-realm'],
+    ['--', '--', '--realm-root', exampleRealmRoot],
   ]) {
     assert.throws(
       () => parseAcceptanceArguments(invalid),
@@ -152,7 +154,12 @@ test('Desktop projection evidence validates all live projections without persist
       startedAt: capturedAt,
       lastHeartbeatAt: capturedAt,
     });
-    const evidence = await captureDesktopProjectionSet({ homeDirectory, expectedDesktopPid: process.pid });
+    const evidence = await captureDesktopProjectionSet({
+      homeDirectory,
+      expectedDesktopPid: process.pid,
+      expectedUID: fixtureUID,
+      lstat: privateProjectionMetadata,
+    });
     assert.equal(evidence.passed, true);
     assert.equal(evidence.rows.desktopOpenIntentPresence.token.length, 43);
     assert.equal(JSON.stringify(evidence).includes(secret), false);
@@ -165,4 +172,15 @@ test('Desktop projection evidence validates all live projections without persist
 
 async function privateJson(file, value) {
   await writeFile(file, `${JSON.stringify(value)}\n`, { mode: 0o600 });
+}
+
+async function privateProjectionMetadata(file) {
+  const metadata = await lstat(file);
+  return Object.freeze({
+    isFile: () => metadata.isFile(),
+    isSymbolicLink: () => metadata.isSymbolicLink(),
+    uid: fixtureUID,
+    gid: 20,
+    mode: (metadata.mode & ~0o777) | 0o600,
+  });
 }

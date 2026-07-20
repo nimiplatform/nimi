@@ -48,9 +48,18 @@ const PROJECTIONS = Object.freeze({
 
 export async function captureDesktopProjectionSet(input = {}) {
   const homeDirectory = requireHomeDirectory(input.homeDirectory);
+  const expectedUID = input.expectedUID ?? process.getuid?.();
+  if (!Number.isSafeInteger(expectedUID) || expectedUID < 0) {
+    throw new Error('desktop-projection-expected-uid-invalid');
+  }
+  const inspectDependencies = Object.freeze({
+    expectedUID,
+    lstat: input.lstat ?? lstat,
+    readFile: input.readFile ?? readFile,
+  });
   const rows = Object.fromEntries(await Promise.all(Object.entries(PROJECTIONS).map(async ([name, contract]) => [
     name,
-    await inspectProjection(path.join(homeDirectory, contract.relativePath), contract),
+    await inspectProjection(path.join(homeDirectory, contract.relativePath), contract, inspectDependencies),
   ])));
   const pids = Object.values(rows).map((row) => row.desktopPid);
   const expectedDesktopPid = input.expectedDesktopPid;
@@ -83,9 +92,9 @@ export async function captureDesktopProjectionAbsence(input = {}) {
   });
 }
 
-async function inspectProjection(projectionPath, contract) {
-  const metadata = await lstat(projectionPath);
-  const value = requireRecord(JSON.parse(await readFile(projectionPath, 'utf8')));
+async function inspectProjection(projectionPath, contract, dependencies) {
+  const metadata = await dependencies.lstat(projectionPath);
+  const value = requireRecord(JSON.parse(await dependencies.readFile(projectionPath, 'utf8')));
   const exactKeys = Object.keys(value).sort().join('|') === [...contract.exactKeys].sort().join('|');
   const desktopPid = Number(value[contract.pidKey]);
   const base = {
@@ -113,7 +122,7 @@ async function inspectProjection(projectionPath, contract) {
   const authorityShapeValid = contract.endpoint ? true : validAuthoritySummary(value);
   const passed = base.regularFile
     && !base.symbolicLink
-    && base.owner === process.getuid?.()
+    && base.owner === dependencies.expectedUID
     && base.mode === 0o600
     && exactKeys
     && value.schemaVersion === 1

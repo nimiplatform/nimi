@@ -2,6 +2,11 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import {
+  parsePowerShellJsonResult,
+  resolveWindowsPowerShell7,
+} from './windows-powershell.mjs';
+
 const scriptPath = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
   'windows-dev-signing.ps1',
@@ -23,17 +28,17 @@ function runSigningHelper(mode, paths = [], options = {}) {
     ...paths.flatMap((filePath) => ['-Path', path.resolve(filePath)]),
     '-Json',
   ];
-  const result = spawnSync('powershell.exe', args, {
+  const powershellPath = resolveWindowsPowerShell7(options);
+  const result = spawnSync(powershellPath, args, {
     cwd: options.cwd,
     env: options.env ?? process.env,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   if (result.error) {
-    throw new Error(`failed to start Windows signing helper: ${result.error.message}`);
+    throw new Error(`failed to start Windows signing helper with PowerShell 7: ${result.error.message}`);
   }
-  const output = String(result.stdout || '').trim();
-  const detail = [result.stderr, output]
+  const detail = [result.stderr, result.stdout]
     .map((value) => String(value || '').trim())
     .filter(Boolean)
     .join('\n');
@@ -41,7 +46,7 @@ function runSigningHelper(mode, paths = [], options = {}) {
     throw new Error(`Windows signing helper ${mode} failed${detail ? `:\n${detail}` : ''}`);
   }
   try {
-    return JSON.parse(output || '{}');
+    return parsePowerShellJsonResult(result, 'windows-dev-signing-json-invalid');
   } catch (error) {
     throw new Error(`Windows signing helper returned invalid JSON: ${error.message}`);
   }

@@ -131,6 +131,9 @@ func (s *Service) EvaluateLocalDevelopmentProject(ctx context.Context, req *runt
 	}
 	if evaluation.State == runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE {
 		if _, _, kernelErr := s.prepareLocalDevelopmentRecord(ctx, evaluation.Authorization); kernelErr != nil {
+			if !localDevelopmentPreparationInvalidatesAuthorization(kernelErr) {
+				return nil, localDevelopmentFailureAtStage(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "local-app-record")
+			}
 			_, _ = s.localDevelopment.RevokeAuthorization(ctx, evaluation.Authorization.ID)
 			_ = s.transitionLocalDevelopmentRecord(context.Background(), evaluation.Authorization, localappkernel.LifecycleStateRemoved, true)
 			evaluation, err = s.localDevelopment.Evaluate(ctx, project, runID)
@@ -187,8 +190,11 @@ func (s *Service) DecideLocalDevelopmentProject(ctx context.Context, req *runtim
 		return nil, localDevelopmentStoreError(err)
 	}
 	if authorization.State == localDevelopmentAuthorizationActive {
-		if err := s.createLocalDevelopmentPrincipalRecord(ctx, authorization); err != nil {
-			_, _ = s.localDevelopment.RevokeAuthorization(context.Background(), authorization.ID)
+		if _, _, prepareErr := s.prepareLocalDevelopmentRecord(ctx, authorization); prepareErr != nil {
+			if localDevelopmentPreparationInvalidatesAuthorization(prepareErr) {
+				_, _ = s.localDevelopment.RevokeAuthorization(context.Background(), authorization.ID)
+				_ = s.transitionLocalDevelopmentRecord(context.Background(), authorization, localappkernel.LifecycleStateRemoved, true)
+			}
 			return nil, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE)
 		}
 	}
@@ -605,7 +611,7 @@ func sameLocalDevelopmentPath(left string, right string) bool {
 
 func localDevelopmentStoreError(err error) error {
 	switch {
-	case errors.Is(err, errLocalDevelopmentProjectChanged):
+	case errors.Is(err, errLocalDevelopmentProjectChanged), errors.Is(err, errLocalDevelopmentProjectUnstable):
 		return localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE)
 	case errors.Is(err, errLocalDevelopmentReapproval):
 		return localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)

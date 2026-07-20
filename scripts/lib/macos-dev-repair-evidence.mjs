@@ -90,7 +90,12 @@ export function writeMacOSDevRepairFailureEvidence({
   bootstrapPresentAfterCleanup,
   now = new Date(),
   pid = process.pid,
+  currentUID = process.getuid?.(),
+  lstat = lstatSync,
 }) {
+  if (!Number.isSafeInteger(currentUID) || currentUID < 0) {
+    throw new Error('macOS repair evidence requires a POSIX user identifier');
+  }
   const date = isoDate(now);
   const timestamp = now.toISOString().replaceAll(':', '').replaceAll('.', '-');
   const evidenceRoot = path.join(
@@ -101,13 +106,13 @@ export function writeMacOSDevRepairFailureEvidence({
     `${date}-macos-runtime-desktop-zhiyu`,
   );
   mkdirSync(evidenceRoot, { recursive: true, mode: 0o700 });
-  const rootMetadata = lstatSync(evidenceRoot);
+  const rootMetadata = lstat(evidenceRoot);
   if (!rootMetadata.isDirectory() || rootMetadata.isSymbolicLink()
-    || rootMetadata.uid !== process.getuid()) {
+    || rootMetadata.uid !== currentUID) {
     throw new Error('unsafe macOS repair evidence directory metadata');
   }
   chmodSync(evidenceRoot, 0o700);
-  if ((lstatSync(evidenceRoot).mode & 0o077) !== 0) {
+  if ((lstat(evidenceRoot).mode & 0o077) !== 0) {
     throw new Error('macOS repair evidence directory is not private');
   }
 
@@ -140,8 +145,8 @@ export function writeMacOSDevRepairFailureEvidence({
   if (data.length > 64 * 1024) throw new Error('macOS repair evidence exceeded its fixed budget');
   try {
     writeFileSync(stagingPath, data, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
-    const staging = lstatSync(stagingPath);
-    if (!staging.isFile() || staging.isSymbolicLink() || staging.uid !== process.getuid()
+    const staging = lstat(stagingPath);
+    if (!staging.isFile() || staging.isSymbolicLink() || staging.uid !== currentUID
       || staging.nlink !== 1 || (staging.mode & 0o077) !== 0) {
       throw new Error('unsafe macOS repair evidence staging metadata');
     }

@@ -289,7 +289,7 @@ export function loadAvailableScripts(rootDir) {
         continue; // skip unparseable package.json (not our problem here)
       }
       const scripts = new Set(Object.keys(pkg.scripts ?? {}));
-      const relDir = path.relative(rootDir, dir);
+      const relDir = normalizeWorkspaceRelativePath(path.relative(rootDir, dir));
       byPkgDir.set(relDir, scripts);
       if (typeof pkg.name === 'string') {
         byPkgName.set(pkg.name, scripts);
@@ -380,7 +380,7 @@ function checkReference(ref, available, rootDir) {
   if (ref.dirPath) {
     // Dynamic expansions cannot be resolved statically; skip.
     if (hasDynamicExpansion(ref.dirPath)) return null;
-    const normalized = path.normalize(ref.dirPath).replace(/^\.\//, '');
+    const normalized = normalizeWorkspaceRelativePath(path.normalize(ref.dirPath));
     const scripts = available.byPkgDir.get(normalized);
     if (!scripts) {
       // Fall back: maybe the dir is a non-workspace package; if a
@@ -409,6 +409,10 @@ function checkReference(ref, available, rootDir) {
     return 'WORKFLOW_PNPM_REFERENCE_UNRESOLVED';
   }
   return null;
+}
+
+function normalizeWorkspaceRelativePath(value) {
+  return String(value).replaceAll('\\', '/').replace(/^\.\//u, '').replace(/\/$/u, '');
 }
 
 /**

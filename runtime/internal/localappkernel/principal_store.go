@@ -21,6 +21,19 @@ func (store *PrincipalStore) Create(ctx context.Context, input CreatePrincipalIn
 	}
 	store.kernel.mu.Lock()
 	defer store.kernel.mu.Unlock()
+	if input.Kind == PrincipalKindDevelopment {
+		var found int
+		err := store.kernel.db.QueryRowContext(ctx, `SELECT 1 FROM local_app_principals
+			WHERE local_os_user_anchor = ? AND principal_kind = 'development'
+			AND development_authorization_id = ? AND state = 'active' LIMIT 1`,
+			store.kernel.anchor, input.DevelopmentAuthorizationID).Scan(&found)
+		switch {
+		case err == nil:
+			return Principal{}, fmt.Errorf("%w: active development authorization id", ErrStateConflict)
+		case !errors.Is(err, sql.ErrNoRows):
+			return Principal{}, fmt.Errorf("check active local-app development principal: %w", err)
+		}
+	}
 	identifier, err := store.kernel.nextIdentifier("lap_v1_", func(candidate string) (bool, error) {
 		var found int
 		err := store.kernel.db.QueryRowContext(ctx, `SELECT 1 FROM local_app_principals WHERE local_app_principal_id = ?`, candidate).Scan(&found)
@@ -70,8 +83,10 @@ func (store *PrincipalStore) Get(ctx context.Context, principalID string) (Princ
 }
 
 // GetByDevelopmentAuthorizationID resolves only the Runtime-owned development
-// lineage identifier. It deliberately has no app-id fallback and returns the
-// retained tombstone when the exact admission instance has been retired.
+// lineage identifier. It deliberately has no app-id fallback. An active
+// projection is preferred over retained historical tombstones; when no active
+// projection exists, the newest tombstone is returned so the caller can decide
+// whether exact durable consent permits a fresh projection.
 func (store *PrincipalStore) GetByDevelopmentAuthorizationID(ctx context.Context, authorizationID string) (Principal, error) {
 	if store == nil || store.kernel == nil {
 		return Principal{}, fmt.Errorf("%w: principal store", ErrInvalidArgument)
@@ -83,28 +98,44 @@ func (store *PrincipalStore) GetByDevelopmentAuthorizationID(ctx context.Context
 		local_os_user_anchor, local_app_principal_id, principal_kind, app_id,
 		immutable_lineage_id, development_authorization_id, canonical_project_file_id,
 		state, created_unix_nano, tombstoned_unix_nano
-		FROM local_app_principals WHERE local_os_user_anchor = ? AND development_authorization_id = ?`, store.kernel.anchor, authorizationID)
+		FROM local_app_principals WHERE local_os_user_anchor = ? AND development_authorization_id = ?
+		ORDER BY created_unix_nano DESC, local_app_principal_id DESC`, store.kernel.anchor, authorizationID)
 	if err != nil {
 		return Principal{}, fmt.Errorf("query local-app development principal: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
-	if !rows.Next() {
-		if err := rows.Err(); err != nil {
-			return Principal{}, fmt.Errorf("read local-app development principal: %w", err)
+	var active Principal
+	var newestTombstone Principal
+	foundActive := false
+	foundTombstone := false
+	for rows.Next() {
+		principal, scanErr := scanPrincipal(rows)
+		if scanErr != nil {
+			return Principal{}, scanErr
 		}
-		return Principal{}, ErrNotFound
-	}
-	principal, err := scanPrincipal(rows)
-	if err != nil {
-		return Principal{}, err
-	}
-	if rows.Next() {
-		return Principal{}, fmt.Errorf("%w: duplicate development authorization id", ErrStateConflict)
+		if principal.State == PrincipalStateActive {
+			if foundActive {
+				return Principal{}, fmt.Errorf("%w: duplicate active development authorization id", ErrStateConflict)
+			}
+			active = principal
+			foundActive = true
+			continue
+		}
+		if !foundTombstone {
+			newestTombstone = principal
+			foundTombstone = true
+		}
 	}
 	if err := rows.Err(); err != nil {
 		return Principal{}, fmt.Errorf("read local-app development principal: %w", err)
 	}
-	return principal, nil
+	if foundActive {
+		return active, nil
+	}
+	if foundTombstone {
+		return newestTombstone, nil
+	}
+	return Principal{}, ErrNotFound
 }
 
 // ListDevelopment returns the partition-local development principals used by

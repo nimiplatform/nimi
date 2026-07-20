@@ -12,6 +12,7 @@ const EXACT_PRODUCT_ALLOWLIST = new Set([
   'apps/desktop/src-electron/dev-kernel-external-url-capture.ts',
   'apps/desktop/src-electron/local-development-host.ts',
   'apps/desktop/src-electron/local-development-host-arguments.ts',
+  'apps/desktop/src-electron/macos-desktop-acceptance.ts',
   'apps/desktop/src-tauri/src/desktop_local_development/supervisor.rs',
   'apps/zhiyu/src-electron/main.ts',
   'apps/zhiyu/src-electron/preload.cts',

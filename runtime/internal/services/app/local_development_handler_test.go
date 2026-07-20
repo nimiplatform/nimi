@@ -146,10 +146,14 @@ permissions: []
 	}
 }
 
-func TestLocalDevelopmentStartupReconciliationRevokesIncompletePairsAndTombstonesOrphans(t *testing.T) {
+func TestLocalDevelopmentStartupReconciliationRebuildsExactConsentAndTombstonesOrphans(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("positive project-Electron projection repair belongs to the Windows carrier")
+	}
 	ctx := context.Background()
 	store := openLocalDevelopmentStoreForTest(t, time.Date(2026, time.July, 13, 8, 0, 0, 0, time.UTC))
 	project := localDevelopmentTestProject(t)
+	materializeLocalDevelopmentHandlerProject(t, project)
 	evaluation, err := store.Evaluate(ctx, project, localDevelopmentTestIdentifier(0x41))
 	if err != nil {
 		t.Fatalf("evaluate project: %v", err)
@@ -188,8 +192,55 @@ func TestLocalDevelopmentStartupReconciliationRevokesIncompletePairsAndTombstone
 	if err != nil {
 		t.Fatalf("read reconciled authorization: %v", err)
 	}
-	if current.State != localDevelopmentAuthorizationRevoked {
-		t.Fatalf("incomplete durable pair state = %s, want revoked", current.State)
+	if current.State != localDevelopmentAuthorizationActive {
+		t.Fatalf("exact durable consent state = %s, want active", current.State)
+	}
+	authorizationRef := localDevelopmentAuthorizationRef(authorization.ID)
+	firstProjection, err := kernel.Principals().GetByDevelopmentAuthorizationID(ctx, authorizationRef)
+	if err != nil || firstProjection.State != localappkernel.PrincipalStateActive {
+		t.Fatalf("rebuilt exact-consent principal = (%+v, %v)", firstProjection, err)
+	}
+	firstRecord, err := kernel.Records().GetByPrincipalID(ctx, firstProjection.LocalAppPrincipalID)
+	if err != nil {
+		t.Fatalf("rebuilt exact-consent record: %v", err)
+	}
+	observation, err := service.observeLocalDevelopmentExecution(project)
+	if err != nil {
+		t.Fatalf("observe exact-consent project: %v", err)
+	}
+	if _, err := kernel.Records().UpdateDevelopment(ctx, localappkernel.UpdateDevelopmentRecordInput{
+		LocalAppPrincipalID:       firstProjection.LocalAppPrincipalID,
+		LocalAppRecordID:          firstRecord.LocalAppRecordID,
+		ExpectedProjectGeneration: firstRecord.InstallOrProjectGeneration,
+		HostExecutableDigest:      firstRecord.HostExecutableDigest,
+		PayloadRootDigest:         firstRecord.PayloadRootDigest + "-concurrent",
+		LifecycleState:            localappkernel.LifecycleStateActive,
+	}); err != nil {
+		t.Fatalf("advance concurrent project generation: %v", err)
+	}
+	retriedRecord, err := service.updateLocalDevelopmentRecord(ctx, firstProjection, firstRecord, observation)
+	if err != nil {
+		t.Fatalf("retry stale project generation: %v", err)
+	}
+	if retriedRecord.InstallOrProjectGeneration != firstRecord.InstallOrProjectGeneration+2 || retriedRecord.PayloadRootDigest != observation.PayloadRootDigest {
+		t.Fatalf("revision-conflict retry record = %+v", retriedRecord)
+	}
+	if _, err := kernel.Principals().Tombstone(ctx, firstProjection.LocalAppPrincipalID); err != nil {
+		t.Fatalf("tombstone candidate projection: %v", err)
+	}
+	if err := service.ReconcileLocalDevelopmentKernel(ctx); err != nil {
+		t.Fatalf("reconcile retained consent after candidate replacement: %v", err)
+	}
+	rebuiltProjection, err := kernel.Principals().GetByDevelopmentAuthorizationID(ctx, authorizationRef)
+	if err != nil || rebuiltProjection.State != localappkernel.PrincipalStateActive {
+		t.Fatalf("replacement exact-consent principal = (%+v, %v)", rebuiltProjection, err)
+	}
+	if rebuiltProjection.LocalAppPrincipalID == firstProjection.LocalAppPrincipalID {
+		t.Fatal("candidate projection rebuild reused a tombstoned principal")
+	}
+	current, err = store.GetAuthorization(ctx, authorization.ID)
+	if err != nil || current.State != localDevelopmentAuthorizationActive {
+		t.Fatalf("candidate projection replacement changed durable consent = (%+v, %v)", current, err)
 	}
 	currentOrphan, err := kernel.Principals().Get(ctx, orphan.LocalAppPrincipalID)
 	if err != nil {
@@ -197,6 +248,21 @@ func TestLocalDevelopmentStartupReconciliationRevokesIncompletePairsAndTombstone
 	}
 	if currentOrphan.State != localappkernel.PrincipalStateTombstoned {
 		t.Fatalf("orphan state = %s, want tombstoned", currentOrphan.State)
+	}
+}
+
+func TestLocalDevelopmentPreparationInvalidationPreservesTransientOwnerState(t *testing.T) {
+	if !localDevelopmentPreparationInvalidatesAuthorization(errLocalDevelopmentProjectChanged) {
+		t.Fatal("project authority mismatch must invalidate durable authorization")
+	}
+	for name, err := range map[string]error{
+		"controlled rebuild": errLocalDevelopmentProjectUnstable,
+		"revision conflict":  localappkernel.ErrRevisionConflict,
+		"temporary I/O":      os.ErrNotExist,
+	} {
+		if localDevelopmentPreparationInvalidatesAuthorization(err) {
+			t.Fatalf("%s must preserve exact durable authorization", name)
+		}
 	}
 }
 
@@ -355,6 +421,24 @@ permissions: []
 	hostConnection.Revoke()
 	if _, err := service.OpenLocalAppSessionProjection(hostContext); err == nil {
 		t.Fatal("revoked host connection must invalidate local-development status")
+	}
+}
+
+func materializeLocalDevelopmentHandlerProject(t *testing.T, project localDevelopmentProjectSnapshot) {
+	t.Helper()
+	if err := os.MkdirAll(project.ProjectRoot, 0o700); err != nil {
+		t.Fatalf("create local-development project root: %v", err)
+	}
+	manifest := "app_id: " + project.AppID + "\ndisplay_name: " + project.DisplayName + "\npermissions: []\n"
+	if err := os.WriteFile(project.ManifestPath, []byte(manifest), 0o600); err != nil {
+		t.Fatalf("write local-development manifest: %v", err)
+	}
+	hostPath := filepath.Join(project.ProjectRoot, "node_modules", "electron", "dist", "electron.exe")
+	if err := os.MkdirAll(filepath.Dir(hostPath), 0o700); err != nil {
+		t.Fatalf("create local-development host directory: %v", err)
+	}
+	if err := os.WriteFile(hostPath, []byte("controlled-electron-host"), 0o600); err != nil {
+		t.Fatalf("write local-development host: %v", err)
 	}
 }
 
