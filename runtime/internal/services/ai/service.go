@@ -62,11 +62,16 @@ type Service struct {
 	connStore                              *connector.ConnectorStore
 	localModel                             localModelLister
 	localImageProfile                      localImageProfileResolver
+	runtimeAccountProjection               runtimeAccountProjectionProvider
 	speechCatalog                          *catalog.Resolver
 	allowLoopback                          bool
 	streamFirstPacketTimeout               time.Duration
 	streamIdleTimeout                      time.Duration
 	voiceAssetDeleteReconciliationInterval time.Duration
+}
+
+type runtimeAccountProjectionProvider interface {
+	AuthenticatedRuntimeProjection(context.Context) (*runtimev1.AccountProjection, bool)
 }
 
 // New creates a Service with all dependencies.
@@ -204,6 +209,13 @@ func (s *Service) SetLocalModelLister(localSvc localModelLister) {
 // RuntimeArtifactService. Producers write before emitting ids to consumers.
 func (s *Service) SetRuntimeArtifactStore(store runtimeartifact.Store) {
 	s.runtimeArtifacts = store
+}
+
+// SetRuntimeAccountProjectionProvider binds protected bundled consumers to
+// Runtime-owned account truth. Renderer-provided subject ids are never used as
+// scenario-job authority.
+func (s *Service) SetRuntimeAccountProjectionProvider(provider runtimeAccountProjectionProvider) {
+	s.runtimeAccountProjection = provider
 }
 
 // RegisterSchedulerDenialCheck adds a K-SCHED-004 denial check to the scheduler.

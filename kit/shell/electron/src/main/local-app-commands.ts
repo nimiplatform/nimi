@@ -14,7 +14,9 @@ const FORBIDDEN_RENDERER_FIELDS = new Set([
   'sessionId', 'sessionProof', 'accountId', 'grantId', 'runtimeBootEpoch',
 ]);
 
-const COMMAND_METHODS = new Map<string, keyof NimiElectronLocalAppHost>([
+type RendererLocalAppHostMethod = Exclude<keyof NimiElectronLocalAppHost, 'renewTechnicalSession'>;
+
+const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sessionStatus'], 'sessionStatus'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionStatus'], 'permissionStatus'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.permissionRequest'], 'permissionRequest'],
@@ -56,7 +58,7 @@ export async function dispatchElectronLocalAppCommand(input: {
 }
 
 function validatePayload(
-  method: keyof NimiElectronLocalAppHost,
+  method: RendererLocalAppHostMethod,
   payload: Readonly<Record<string, unknown>>,
   command: string,
 ): NimiElectronLocalAppRecord {

@@ -325,6 +325,15 @@ carrier opened through Desktop's verified supervisor. They rotate and reopen a
 new lease/session for controlled process replacement or Runtime restart; app
 code cannot provide endpoint, bootstrap, session, proof, epoch, PID, principal,
 record, root, capability fingerprint, account, or trust class.
+While the same verified host connection remains live, Kit main/native code
+renews the short-lived technical session through the request-empty,
+host-only `RenewLocalAppSession` operation before expiry. Renewal is serialized
+against business calls and is never projected as renderer authority.
+If bootstrap or renewal fails, the Electron bridge unregisters renderer
+commands before invoking one no-argument host-lifecycle close callback. The
+Desktop supervisor may then reopen a new lease/session under an unchanged
+durable authorization; app code receives no reason detail, recovery selector,
+session material, or authority and cannot keep the failed bridge live.
 
 Renderer-safe bootstrap state is the closed set `authorizing`, `ready`,
 `denied`, `runtime-unavailable`, `revoked`, and `project-changed`, with typed
@@ -339,6 +348,33 @@ material, permission lifecycle mutation, generic Runtime forwarding, or
 unadmitted protected operation families. App-native commands remain separate
 typed host commands. A missing/untrusted carrier fails closed and cannot fall
 back to ordinary gRPC or inherit another principal's state.
+
+## P-KIT-047 - Desktop-Supervised Bundled Avatar Electron Carrier
+
+Kit owns the shared Electron main/native adapter for Runtime's exact
+`bundled_avatar_v1` profile. Desktop supplies a main-process authorization
+registry that recognizes only the exact `WebContents` object of an Avatar
+`BrowserWindow` created by Desktop's supervised launch path. Kit binds every
+unary, stream-open, stream-close, and app-private command to `event.sender` and
+the current main frame in that registry before applying the exact registered
+Avatar URL as an additional navigation-integrity condition. URL or origin alone
+never selects this profile. Kit then routes only the canonical methods generated
+from `.nimi/spec/runtime/kernel/tables/bundled-avatar-runtime-profile.yaml`
+through the existing verified Desktop connection. The adapter fixes the native
+profile and app id after renderer parsing. It accepts no endpoint, app id,
+metadata, capability, role, token, session, account, Agent owner, arbitrary
+method profile, or host-equivalence marker from renderer or app code.
+
+Unary and server-stream calls use generated SDK request/response bytes. Kit may
+carry those bytes only after exact generated method selection; it does not own
+the Runtime DTOs or business policy. Stream registries are bounded per exact
+sender. Navigation, destruction, sender replacement, window closure, or host
+shutdown removes the binding and closes that sender's streams. They never
+silently reconnect after account, process, connection, or Runtime epoch change.
+The normal Desktop renderer and local-development hosts cannot access this
+profile. Missing native support, unbound or non-main-frame sender, wrong
+renderer URL/navigation state, unsupported platform, or any unlisted method
+fails closed without public gRPC or direct-Electron fallback.
 
 ## P-KIT-043 — Runtime Capabilities Module
 

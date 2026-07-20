@@ -5,6 +5,7 @@ const MACOS_ARM64_BINDING_PACKAGE = '@nimiplatform/kit-protected-local-darwin-ar
 
 const LOCAL_APP_BINDING_METHODS = [
   'localAppSessionStatus',
+  'localAppSessionRenew',
   'localAppPermissionStatus',
   'localAppPermissionRequest',
   'localAppStorageReadJson',
@@ -68,6 +69,7 @@ type NativeLocalAppOutcome =
 
 export type NimiElectronProtectedLocalBinding = {
   readonly localAppSessionStatus: () => Promise<NativeLocalAppOutcome>;
+  readonly localAppSessionRenew: () => Promise<NativeLocalAppOutcome>;
   readonly localAppPermissionStatus: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppPermissionRequest: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppStorageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -77,12 +79,20 @@ export type NimiElectronProtectedLocalBinding = {
 
 export type NimiElectronLocalAppHost = {
   readonly sessionStatus: () => Promise<NimiElectronLocalAppRecord>;
+  readonly renewTechnicalSession: () => Promise<NimiElectronLocalAppRecord>;
   readonly permissionStatus: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly permissionRequest: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly storageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly storageWriteJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly storageRemoveJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
 };
+
+export type NimiElectronLocalAppMaintenanceFailure = {
+  readonly reasonCode: string;
+  readonly retryable: boolean;
+};
+
+const LOCAL_APP_SESSION_ROTATION_INTERVAL_MS = 5 * 60 * 1_000;
 
 export class NimiElectronLocalAppHostError extends Error {
   readonly reasonCode: string;
@@ -101,6 +111,10 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   sessionStatus(): Promise<NimiElectronLocalAppRecord> {
     return invokeRecord(() => this.binding.localAppSessionStatus());
+  }
+
+  renewTechnicalSession(): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppSessionRenew());
   }
 
   permissionStatus(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -137,6 +151,10 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
     return this.resolve().sessionStatus();
   }
 
+  renewTechnicalSession(): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().renewTechnicalSession();
+  }
+
   permissionStatus(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().permissionStatus(input);
   }
@@ -161,6 +179,71 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
 export function createNimiElectronLocalAppHost(): NimiElectronLocalAppHost {
   return new LazyElectronLocalAppHost();
+}
+
+/**
+ * Starts the request-empty native session bootstrap from Electron main.
+ * The renderer still receives only the sanitized status projection, while a
+ * cold renderer build cannot consume the Runtime's exact process-bind window.
+ */
+export async function primeNimiElectronLocalAppHost(
+  host: NimiElectronLocalAppHost,
+): Promise<void> {
+  await host.sessionStatus();
+}
+
+/** @internal Keeps Runtime-owned technical session rotation outside renderer state. */
+export function startNimiElectronLocalAppHostMaintenance(
+  host: NimiElectronLocalAppHost,
+  intervalMs = LOCAL_APP_SESSION_ROTATION_INTERVAL_MS,
+  onFailure: (failure: NimiElectronLocalAppMaintenanceFailure) => void = () => undefined,
+): { readonly ready: Promise<void>; readonly close: () => void } {
+  if (!Number.isSafeInteger(intervalMs) || intervalMs <= 0) {
+    throw new Error('Electron local-app session rotation interval is invalid');
+  }
+  let closed = false;
+  let failed = false;
+  let rotating = false;
+  let timer: ReturnType<typeof setInterval> | undefined;
+  const close = () => {
+    closed = true;
+    if (timer !== undefined) clearInterval(timer);
+    timer = undefined;
+  };
+  const fail = (error: unknown) => {
+    if (failed) return;
+    failed = true;
+    close();
+    const failure = error instanceof NimiElectronLocalAppHostError
+      ? { reasonCode: error.reasonCode, retryable: error.retryable }
+      : { reasonCode: 'runtime-service-untrusted', retryable: false };
+    try {
+      onFailure(Object.freeze(failure));
+    } catch {
+      // The protected bridge is already closed by the owner callback. A shell
+      // lifecycle callback cannot turn failed renewal back into a live session.
+    }
+  };
+  const rotate = async () => {
+    if (closed || rotating) return;
+    rotating = true;
+    try {
+      await host.renewTechnicalSession();
+    } catch (error) {
+      fail(error);
+    } finally {
+      rotating = false;
+    }
+  };
+  const ready = primeNimiElectronLocalAppHost(host).then(() => {
+    if (closed) return;
+    timer = setInterval(() => void rotate(), intervalMs);
+    timer.unref?.();
+  }, (error: unknown) => {
+    fail(error);
+    throw error;
+  });
+  return { ready, close };
 }
 
 /** @internal Focused contract-test seam; not re-exported from the public main entrypoint. */

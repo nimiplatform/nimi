@@ -42,6 +42,7 @@ const EXPECTED_ROLES = Object.freeze([
   'local_app_control',
   'local_app_process',
   'local_app_session',
+  'bundled_avatar_host',
 ]);
 
 const PACKAGE_METHODS = Object.freeze([
@@ -528,8 +529,10 @@ function validateTransport(bundle, issues) {
   ) invalidRoute = true;
 
   const openWire = matrix?.open_local_app_session_wire;
+  const renewWire = matrix?.renew_local_app_session_wire;
   const routeByMethod = rowsBy(matrix?.methods, 'method_id');
   const openRoute = routeByMethod.get('/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession');
+  const renewRoute = routeByMethod.get('/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession');
   if (
     !equalArray(openWire?.request?.fields, [])
     || !equalArray(openWire?.request?.request_metadata_authority_inputs, [])
@@ -560,9 +563,43 @@ function validateTransport(bundle, issues) {
     ));
   }
 
+  if (
+    !equalArray(renewWire?.request?.fields, [])
+    || !equalArray(renewWire?.request?.request_metadata_authority_inputs, [])
+    || renewWire?.request?.unknown_field_disposition !== 'reject'
+    || renewWire?.connection_binding !== 'exact_current_local_app_host_connection_and_private_session'
+    || renewWire?.atomic_transition !== 'revoke_previous_private_session_and_insert_replacement_on_same_connection'
+    || renewWire?.renderer_projection !== 'forbidden'
+    || renewWire?.app_projection !== 'forbidden'
+    || renewWire?.ordinary_grpc_disposition !== 'deny'
+    || !hasEvery(renewWire?.response?.forbidden_fields, [
+      'local_app_principal_id',
+      'local_record_id',
+      'permission_id',
+      'permission_state',
+      'permission_decision_id',
+      'session_id',
+      'session_proof',
+      'launch_lease',
+      'endpoint',
+      'token',
+      'credential',
+    ])
+    || renewRoute?.operation_class !== 'local_app_session_renewal'
+    || !equalArray(renewRoute?.allowed_transport_classes, ['local_app_host'])
+    || !equalArray(renewRoute?.required_origin_roles, ['local_app_session'])
+  ) {
+    issues.push(issue(
+      'LOCAL_APP_SESSION_RENEWAL_WIRE_REQUIRED',
+      AUTHORITY_PATHS.transport,
+      'RenewLocalAppSession must be request-empty, same-host/session bound, non-portable, renderer-inaccessible, and atomically replace only the current private technical session.',
+    ));
+  }
+
   const postureByMethod = rowsBy([...(identity?.methods ?? []), ...(artifact?.methods ?? [])], 'method_id');
   const requiredRoutes = new Map([
     ['/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession', [['local_app_bootstrap'], ['local_app_process']]],
+    ['/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession', [['local_app_host'], ['local_app_session']]],
     ['/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch', [['desktop_control'], ['local_app_control']]],
     ['/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess', [['desktop_control'], ['local_app_control']]],
     ['/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus', [['local_app_host'], ['local_app_session']]],
@@ -830,7 +867,7 @@ function validateMacOSLocalDevelopmentProfile(bundle, issues) {
     || lifecycle?.non_product_local_development?.exact_runtime_path !== '/Library/Application Support/Nimi/RuntimeDev/active/bin/nimi-runtime'
     || lifecycle?.non_product_local_development?.persistent_state_survives_update !== true
     || lifecycle?.non_product_local_development?.uninstall_requires_explicit_confirmation_and_preserves_local_CA !== true
-    || transport?.version !== 11
+    || transport?.version !== 12
     || transport?.platform_admission?.macos !== 'fail_closed_pending_native_admission'
     || transport?.platform_admission?.macos_local_development !== 'local_development_non_product_admitted'
     || profileBundle?.profile_id !== 'macos_local_development_v1'

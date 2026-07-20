@@ -24,7 +24,7 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	var ownerErr error
-	req, ownerErr = normalizeSubmitScenarioJobOwner(ctx, req)
+	req, ownerErr = s.normalizeSubmitScenarioJobOwner(ctx, req)
 	if ownerErr != nil {
 		return nil, ownerErr
 	}

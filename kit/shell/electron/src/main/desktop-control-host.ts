@@ -1,5 +1,10 @@
 import { resolveNimiElectronProtectedLocalBindingPackage } from './local-app-host.js';
 import { loadNimiElectronProtectedLocalPackage } from './protected-local-binding-loader.js';
+import type { RuntimeGrpcBridgeStream, RuntimeGrpcBridgeStreamHandlers } from './types.js';
+import {
+  isNimiElectronBundledAvatarServerStreamMethod,
+  isNimiElectronBundledAvatarUnaryMethod,
+} from './bundled-avatar-profile.generated.js';
 
 const DESKTOP_PRODUCT_CONTROL_METHOD_IDS: ReadonlySet<string> = new Set([
   '/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile',
@@ -43,6 +48,18 @@ type NativeBytesOutcome =
   | { readonly status: 'ok'; readonly value: unknown }
   | { readonly status: 'error'; readonly reasonCode: unknown; readonly retryable: unknown };
 
+type NativeJsonOutcome =
+  | { readonly status: 'ok'; readonly value: unknown }
+  | { readonly status: 'error'; readonly reasonCode: unknown; readonly retryable: unknown };
+
+type NativeStreamNextOutcome = {
+  readonly status: 'ok' | 'error';
+  readonly value?: unknown;
+  readonly completed?: unknown;
+  readonly reasonCode?: unknown;
+  readonly retryable?: unknown;
+};
+
 export type NimiElectronDesktopControlBinding = {
   readonly desktopProductControlUnary: (input: {
     readonly methodId: string;
@@ -54,6 +71,18 @@ export type NimiElectronDesktopControlBinding = {
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
   }) => Promise<NativeBytesOutcome>;
+  readonly desktopBundledAvatarUnary: (input: {
+    readonly methodId: string;
+    readonly requestBytes: Uint8Array;
+    readonly timeoutMs?: number;
+  }) => Promise<NativeBytesOutcome>;
+  readonly desktopBundledAvatarStreamOpen: (input: {
+    readonly methodId: string;
+    readonly requestBytes: Uint8Array;
+    readonly timeoutMs?: number;
+  }) => Promise<NativeJsonOutcome>;
+  readonly desktopBundledAvatarStreamNext: (input: { readonly streamId: string }) => Promise<NativeStreamNextOutcome>;
+  readonly desktopBundledAvatarStreamClose: (input: { readonly streamId: string }) => Promise<NativeJsonOutcome>;
 };
 
 export type NimiElectronDesktopControlHost = {
@@ -67,6 +96,16 @@ export type NimiElectronDesktopControlHost = {
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
   }) => Promise<Uint8Array>;
+  readonly bundledAvatarUnary: (input: {
+    readonly methodId: string;
+    readonly requestBytes: Uint8Array;
+    readonly timeoutMs?: number;
+  }) => Promise<Uint8Array>;
+  readonly bundledAvatarServerStream: (input: {
+    readonly methodId: string;
+    readonly requestBytes: Uint8Array;
+    readonly timeoutMs?: number;
+  }) => RuntimeGrpcBridgeStream;
 };
 
 export class NimiElectronDesktopControlHostError extends Error {
@@ -104,6 +143,24 @@ class ElectronDesktopControlHost implements NimiElectronDesktopControlHost {
       throw untrusted();
     }
     return this.invokeNative(() => this.binding.desktopRuntimeConsumerUnary(input));
+  }
+
+  async bundledAvatarUnary(input: {
+    readonly methodId: string;
+    readonly requestBytes: Uint8Array;
+    readonly timeoutMs?: number;
+  }): Promise<Uint8Array> {
+    if (!isNimiElectronBundledAvatarUnaryMethod(input.methodId)) throw untrusted();
+    return this.invokeNative(() => this.binding.desktopBundledAvatarUnary(input));
+  }
+
+  bundledAvatarServerStream(input: {
+    readonly methodId: string;
+    readonly requestBytes: Uint8Array;
+    readonly timeoutMs?: number;
+  }): RuntimeGrpcBridgeStream {
+    if (!isNimiElectronBundledAvatarServerStreamMethod(input.methodId)) throw untrusted();
+    return new ElectronBundledAvatarStream(this.binding, input);
   }
 
   private async invokeNative(invoke: () => Promise<NativeBytesOutcome>): Promise<Uint8Array> {
@@ -148,6 +205,73 @@ class LazyElectronDesktopControlHost implements NimiElectronDesktopControlHost {
     this.host ??= new ElectronDesktopControlHost(loadPlatformBinding());
     return this.host.runtimeConsumerUnary(input);
   }
+
+  bundledAvatarUnary(input: {
+    readonly methodId: string;
+    readonly requestBytes: Uint8Array;
+    readonly timeoutMs?: number;
+  }): Promise<Uint8Array> {
+    this.host ??= new ElectronDesktopControlHost(loadPlatformBinding());
+    return this.host.bundledAvatarUnary(input);
+  }
+
+  bundledAvatarServerStream(input: {
+    readonly methodId: string;
+    readonly requestBytes: Uint8Array;
+    readonly timeoutMs?: number;
+  }): RuntimeGrpcBridgeStream {
+    this.host ??= new ElectronDesktopControlHost(loadPlatformBinding());
+    return this.host.bundledAvatarServerStream(input);
+  }
+}
+
+class ElectronBundledAvatarStream implements RuntimeGrpcBridgeStream {
+  private cancelled = false;
+  private started = false;
+  private streamId = '';
+
+  constructor(
+    private readonly binding: NimiElectronDesktopControlBinding,
+    private readonly input: { readonly methodId: string; readonly requestBytes: Uint8Array; readonly timeoutMs?: number },
+  ) {}
+
+  start(handlers: RuntimeGrpcBridgeStreamHandlers): void {
+    if (this.started) throw untrusted();
+    this.started = true;
+    void this.pump(handlers);
+  }
+
+  cancel(): void {
+    this.cancelled = true;
+    if (this.streamId) {
+      void this.binding.desktopBundledAvatarStreamClose({ streamId: this.streamId }).catch(() => undefined);
+    }
+  }
+
+  private async pump(handlers: RuntimeGrpcBridgeStreamHandlers): Promise<void> {
+    try {
+      const opened = await this.binding.desktopBundledAvatarStreamOpen(this.input);
+      if (opened.status === 'error') throw nativeError(opened);
+      const streamId = readStreamId(opened.value);
+      this.streamId = streamId;
+      if (this.cancelled) {
+        await this.binding.desktopBundledAvatarStreamClose({ streamId }).catch(() => undefined);
+        return;
+      }
+      while (!this.cancelled) {
+        const next = await this.binding.desktopBundledAvatarStreamNext({ streamId });
+        if (next.status === 'error') throw nativeError(next);
+        if (next.completed === true) {
+          handlers.onEnd();
+          return;
+        }
+        if (!isUint8Array(next.value)) throw untrusted();
+        handlers.onData(Uint8Array.from(next.value));
+      }
+    } catch (error) {
+      if (!this.cancelled) handlers.onError(error);
+    }
+  }
 }
 
 export function createNimiElectronDesktopControlHost(): NimiElectronDesktopControlHost {
@@ -182,10 +306,27 @@ function loadPlatformBinding(): NimiElectronDesktopControlBinding {
 function validateBinding(value: unknown): NimiElectronDesktopControlBinding {
   if (!value || typeof value !== 'object' || Array.isArray(value)
     || typeof (value as Record<string, unknown>).desktopProductControlUnary !== 'function'
-    || typeof (value as Record<string, unknown>).desktopRuntimeConsumerUnary !== 'function') {
+    || typeof (value as Record<string, unknown>).desktopRuntimeConsumerUnary !== 'function'
+    || typeof (value as Record<string, unknown>).desktopBundledAvatarUnary !== 'function'
+    || typeof (value as Record<string, unknown>).desktopBundledAvatarStreamOpen !== 'function'
+    || typeof (value as Record<string, unknown>).desktopBundledAvatarStreamNext !== 'function'
+    || typeof (value as Record<string, unknown>).desktopBundledAvatarStreamClose !== 'function') {
     throw untrusted();
   }
   return value as NimiElectronDesktopControlBinding;
+}
+
+function nativeError(value: { readonly reasonCode?: unknown; readonly retryable?: unknown }): NimiElectronDesktopControlHostError {
+  if (typeof value.reasonCode !== 'string' || !isBoundedReasonCode(value.reasonCode)
+    || typeof value.retryable !== 'boolean') throw untrusted();
+  return new NimiElectronDesktopControlHostError(value.reasonCode, value.retryable);
+}
+
+function readStreamId(value: unknown): string {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw untrusted();
+  const streamId = (value as Record<string, unknown>).streamId;
+  if (typeof streamId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/u.test(streamId)) throw untrusted();
+  return streamId;
 }
 
 function isBoundedReasonCode(value: string): boolean {

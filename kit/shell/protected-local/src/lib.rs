@@ -1,10 +1,13 @@
 #![deny(unsafe_code)]
 
 mod adapters;
+mod bundled_avatar;
+mod bundled_avatar_profile_generated;
 mod carrier;
 mod desktop_account;
 mod desktop_product_control;
 mod desktop_runtime_consumer;
+mod desktop_stream;
 mod desktop_unary;
 mod grpc_status;
 mod local_development;
@@ -70,6 +73,10 @@ pub use carrier::{
     LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
     LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, NimiDesktopControl,
     NimiLocalAppCarrier, NimiLocalAppSession, NimiProtectedLocalHostCarrier,
+};
+pub use bundled_avatar::{
+    BundledAvatarRuntimeError, BundledAvatarRuntimeRequest,
+    BundledAvatarRuntimeResponse, BundledAvatarRuntimeStreamReceiver,
 };
 pub use desktop_account::{
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,

@@ -1,6 +1,7 @@
 package runtimeagent
 
 import (
+	"context"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -8,12 +9,15 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (s *Service) validateAvatarDebugControlRequest(ctx *runtimev1.AgentRequestContext, agentID string, anchorID string, requiredScope string) (string, string, error) {
+func (s *Service) validateAvatarDebugControlRequest(callContext context.Context, requestContext *runtimev1.AgentRequestContext, agentID string, anchorID string, requiredScope string) (string, string, error) {
 	if s == nil || s.isClosed() {
 		return "", "", status.Error(codes.FailedPrecondition, "runtime agent service unavailable")
 	}
-	identity, entry, err := s.agentEntryForIdentityContext(ctx)
+	identity, entry, err := s.agentEntryForIdentityContext(requestContext)
 	if err != nil {
+		return "", "", err
+	}
+	if err := s.authorizeBundledAvatarIdentity(callContext, requestContext, identity, requiredScope); err != nil {
 		return "", "", err
 	}
 	trimmedAgentID := strings.TrimSpace(agentID)
@@ -23,20 +27,22 @@ func (s *Service) validateAvatarDebugControlRequest(ctx *runtimev1.AgentRequestC
 	if trimmedAgentID != identity.LocalAgentRef {
 		return "", "", status.Error(codes.FailedPrecondition, "agent_id must match local_agent_ref")
 	}
-	callerAppID := strings.TrimSpace(ctx.GetAppId())
+	callerAppID := strings.TrimSpace(requestContext.GetAppId())
 	if callerAppID == "" {
 		return "", "", status.Error(codes.InvalidArgument, "context.app_id is required")
 	}
-	scopedBinding := ctx.GetScopedBinding()
-	if scopedBinding == nil {
+	scopedBinding := requestContext.GetScopedBinding()
+	if scopedBinding == nil && !isBundledAvatarCapability(callContext, requiredScope) {
 		return "", "", runtimeAgentBindingError(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND)
 	}
 	trimmedAnchorID := strings.TrimSpace(anchorID)
 	if trimmedAnchorID == "" {
 		return "", "", status.Error(codes.InvalidArgument, "conversation_anchor_id is required")
 	}
-	if err := s.validateScopedBindingAttachment(scopedBinding, callerAppID, trimmedAgentID, requiredScope); err != nil {
-		return "", "", err
+	if scopedBinding != nil {
+		if err := s.validateScopedBindingAttachment(scopedBinding, callerAppID, trimmedAgentID, requiredScope); err != nil {
+			return "", "", err
+		}
 	}
 	if err := s.validateAvatarDebugAnchor(identity, entry, trimmedAnchorID); err != nil {
 		return "", "", err

@@ -1,4 +1,7 @@
 use std::time::Duration;
+use crate::bundled_avatar_profile_generated::{
+    BUNDLED_AVATAR_APP_ID, BUNDLED_AVATAR_NATIVE_PROFILE_MARKER,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct DesktopUnaryError {
@@ -29,6 +32,27 @@ pub(crate) async fn invoke(
     method_id: &'static str,
     request_bytes: Vec<u8>,
     timeout: Option<Duration>,
+) -> Result<Vec<u8>, DesktopUnaryError> {
+    invoke_inner(channel, method_id, request_bytes, timeout, false).await
+}
+
+#[cfg(any(target_os = "windows", target_os = "macos"))]
+pub(crate) async fn invoke_bundled_avatar(
+    channel: tonic::transport::Channel,
+    method_id: &'static str,
+    request_bytes: Vec<u8>,
+    timeout: Option<Duration>,
+) -> Result<Vec<u8>, DesktopUnaryError> {
+    invoke_inner(channel, method_id, request_bytes, timeout, true).await
+}
+
+#[cfg(any(target_os = "windows", target_os = "macos"))]
+async fn invoke_inner(
+    channel: tonic::transport::Channel,
+    method_id: &'static str,
+    request_bytes: Vec<u8>,
+    timeout: Option<Duration>,
+    bundled_avatar: bool,
 ) -> Result<Vec<u8>, DesktopUnaryError> {
     use prost::bytes::{Buf, BufMut};
     use tonic::client::Grpc;
@@ -90,6 +114,16 @@ pub(crate) async fn invoke(
         .await
         .map_err(|_| DesktopUnaryError::new("runtime-service-unavailable", true))?;
     let mut tonic_request = tonic::Request::new(request_bytes);
+    if bundled_avatar {
+        tonic_request.metadata_mut().insert(
+            "x-nimi-protected-bundled-profile",
+            tonic::metadata::MetadataValue::from_static(BUNDLED_AVATAR_NATIVE_PROFILE_MARKER),
+        );
+        tonic_request.metadata_mut().insert(
+            "x-nimi-app-id",
+            tonic::metadata::MetadataValue::from_static(BUNDLED_AVATAR_APP_ID),
+        );
+    }
     if let Some(timeout) = timeout {
         tonic_request.set_timeout(timeout);
     }

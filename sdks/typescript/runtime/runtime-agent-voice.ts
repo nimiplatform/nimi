@@ -23,7 +23,7 @@ import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
 
 export interface NimiRuntimeAgentVoiceRuntime {
   readonly appId: string;
-  readonly auth: NimiRuntimeAgentAuthClient;
+  readonly auth?: NimiRuntimeAgentAuthClient;
   readonly agents: {
     subscribeAgentVoiceStream(
       request: SubscribeAgentVoiceStreamRequest,
@@ -271,10 +271,7 @@ async function withNimiRuntimeAgentVoiceScopes<T>(
 
 function hasRuntimeAgentAuthBinding(options: RuntimeTypedCallOptions | undefined): boolean {
   const metadata = options?.metadata ?? {};
-  return Boolean(
-    normalizeNimiRuntimeAgentText(metadata['x-nimi-runtime-scoped-binding-id'])
-      || normalizeNimiRuntimeAgentText(metadata['x-nimi-runtime-host-equivalence']),
-  );
+  return Boolean(normalizeNimiRuntimeAgentText(metadata['x-nimi-runtime-scoped-binding-id']));
 }
 
 function scopedBindingFromVoiceCallOptions(

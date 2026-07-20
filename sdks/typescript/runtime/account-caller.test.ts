@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   createNimiBindingOnlyAvatarRuntimeAccountCaller,
+  createNimiDesktopLaunchedAvatarRuntimeAccountCaller,
   createNimiDesktopShellRuntimeAccountCaller,
   createNimiLocalFirstPartyRuntimeAccountCaller,
   resolveNimiSDKRuntimeAccountCallerMode,
@@ -34,6 +35,9 @@ test('Runtime account caller projection builds explicit local first-party identi
       deviceId: 'developer-machine',
       mode: AccountCallerMode.LOCAL_FIRST_PARTY_APP,
       scopes: ['runtime.account'],
+      launchHostId: '',
+      launchNonce: '',
+      releaseDescriptorRef: '',
     },
   );
 });
@@ -51,8 +55,24 @@ test('Runtime account caller projection builds an explicit binding-only Avatar i
       deviceId: 'desktop-avatar-host',
       mode: AccountCallerMode.DESKTOP_LAUNCHED_AVATAR,
       scopes: [],
+      launchHostId: '',
+      launchNonce: '',
+      releaseDescriptorRef: '',
     },
   );
+});
+
+test('Runtime account caller projection fixes the Desktop-supervised Avatar identity', () => {
+  assert.deepEqual(createNimiDesktopLaunchedAvatarRuntimeAccountCaller(), {
+    appId: 'nimi.avatar',
+    appInstanceId: 'nimi.avatar.desktop-supervised',
+    deviceId: 'desktop-avatar-host',
+    mode: AccountCallerMode.DESKTOP_LAUNCHED_AVATAR,
+    scopes: [],
+    launchHostId: '',
+    launchNonce: '',
+    releaseDescriptorRef: '',
+  });
 });
 
 test('Runtime account caller projection supports desktop shell caller identity', () => {
@@ -68,6 +88,9 @@ test('Runtime account caller projection supports desktop shell caller identity',
       deviceId: 'desktop.device',
       mode: AccountCallerMode.DESKTOP_SHELL,
       scopes: [],
+      launchHostId: '',
+      launchNonce: '',
+      releaseDescriptorRef: '',
     },
   );
 });
@@ -96,6 +119,7 @@ test('SDK Runtime account app modes map exactly to Runtime caller modes', () => 
   assert.equal(resolveNimiSDKRuntimeAccountCallerMode('local-app'), null);
   assert.equal(resolveNimiSDKRuntimeAccountCallerMode('third-party-nimi-app'), null);
   assert.equal(resolveNimiSDKRuntimeAccountCallerMode('desktop-account-ux'), AccountCallerMode.DESKTOP_SHELL);
+  assert.equal(resolveNimiSDKRuntimeAccountCallerMode('desktop-supervised-avatar'), AccountCallerMode.DESKTOP_LAUNCHED_AVATAR);
   assert.equal(resolveNimiSDKRuntimeAccountCallerMode('binding-only-avatar'), AccountCallerMode.DESKTOP_LAUNCHED_AVATAR);
   assert.equal(resolveNimiSDKRuntimeAccountCallerMode('dev-standalone'), null);
 });

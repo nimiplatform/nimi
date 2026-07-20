@@ -113,6 +113,12 @@ message OpenLocalAppSessionResponse {
   ReasonCode reason_code = 5;
 }
 
+// Request-empty by design. Runtime accepts renewal only on the same verified
+// local_app_host connection that already owns the current private session.
+// No request data or metadata may select session, process, account, or trust.
+message RenewLocalAppSessionRequest {
+}
+
 message RefreshSessionRequest {
   string session_id = 1;
   int32 ttl_seconds = 2;
@@ -167,6 +173,7 @@ service RuntimeAuthService {
   rpc OpenSession(OpenSessionRequest) returns (OpenSessionResponse);
   rpc OpenDesktopSession(OpenDesktopSessionRequest) returns (OpenDesktopSessionResponse);
   rpc OpenLocalAppSession(OpenLocalAppSessionRequest) returns (OpenLocalAppSessionResponse);
+  rpc RenewLocalAppSession(RenewLocalAppSessionRequest) returns (OpenLocalAppSessionResponse);
   rpc RefreshSession(RefreshSessionRequest) returns (RefreshSessionResponse);
   rpc RevokeSession(RevokeSessionRequest) returns (Ack);
   rpc RegisterExternalPrincipal(RegisterExternalPrincipalRequest) returns (RegisterExternalPrincipalResponse);

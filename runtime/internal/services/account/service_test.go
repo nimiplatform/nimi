@@ -14,6 +14,8 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
+	"github.com/nimiplatform/nimi/runtime/internal/bundledavatar"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 )
 
 func accountStatusState(response *runtimev1.GetAccountSessionStatusResponse) runtimev1.AccountSessionState {
@@ -731,7 +733,7 @@ func TestAccountStatusRejectsUnregisteredLocalFirstPartyCaller(t *testing.T) {
 	})
 }
 
-func TestSubscribeAccountSessionEventsRequiresAdmittedCallerAndRedactsAvatar(t *testing.T) {
+func TestSubscribeAccountSessionEventsRequiresAdmittedCallerAndProtectsBundledAvatar(t *testing.T) {
 	svc := newHarnessService(t, nil)
 	completeLogin(t, svc)
 	eventCount := len(svc.events)
@@ -752,17 +754,18 @@ func TestSubscribeAccountSessionEventsRequiresAdmittedCallerAndRedactsAvatar(t *
 	}
 
 	avatar := *firstPartyCaller()
-	avatar.AppId = "nimi.avatar"
-	avatar.AppInstanceId = "avatar-1"
+	avatar.AppId = bundledavatar.AppID
+	avatar.AppInstanceId = bundledavatar.AppInstanceID
+	avatar.DeviceId = bundledavatar.DeviceID
 	avatar.Mode = runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR
-	avatarStream := &accountSessionEventStream{ctx: context.Background()}
-	if err := svc.SubscribeAccountSessionEvents(&runtimev1.SubscribeAccountSessionEventsRequest{Caller: &avatar}, avatarStream); err != nil {
-		t.Fatalf("avatar SubscribeAccountSessionEvents: %v", err)
+	avatarCtx := envelope.WithValidatedProtectedCapability(context.Background(), bundledavatar.AppID, "account.session.read")
+	avatarCtx, avatarCancel := context.WithCancel(avatarCtx)
+	avatarStream := &accountSessionEventStream{ctx: avatarCtx, afterSend: avatarCancel}
+	if err := svc.SubscribeAccountSessionEvents(&runtimev1.SubscribeAccountSessionEventsRequest{Caller: &avatar}, avatarStream); err != context.Canceled {
+		t.Fatalf("protected Avatar SubscribeAccountSessionEvents should exit on cancellation, got %v", err)
 	}
-	if len(avatarStream.sent) != 1 ||
-		accountEventAccountReason(avatarStream.sent[0]) != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY ||
-		accountEventProjection(avatarStream.sent[0]) != nil {
-		t.Fatalf("Desktop-launched Avatar subscription must be binding-only/redacted: %+v", avatarStream.sent)
+	if len(avatarStream.sent) == 0 || accountEventProjection(avatarStream.sent[0]).GetAccountId() != "acct-1" {
+		t.Fatalf("protected bundled Avatar must receive the Runtime-owned account projection: %+v", avatarStream.sent)
 	}
 
 	svc.registry = testAppRegistry(t, firstPartyCaller())

@@ -10,11 +10,33 @@ import type { RuntimeGrpcBridgeClient } from '../src/main/types.js';
 
 const PRODUCT_CONTROL_METHOD = '/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord';
 const RUNTIME_CONSUMER_METHOD = '/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets';
+const BUNDLED_AVATAR_BINDING_STUBS = {
+  desktopBundledAvatarUnary: async () => ({
+    status: 'error' as const,
+    reasonCode: 'runtime-service-untrusted',
+    retryable: false,
+  }),
+  desktopBundledAvatarStreamOpen: async () => ({
+    status: 'error' as const,
+    reasonCode: 'runtime-service-untrusted',
+    retryable: false,
+  }),
+  desktopBundledAvatarStreamNext: async () => ({
+    status: 'error' as const,
+    reasonCode: 'runtime-service-untrusted',
+    retryable: false,
+  }),
+  desktopBundledAvatarStreamClose: async () => ({
+    status: 'ok' as const,
+    value: {},
+  }),
+};
 
 describe('Electron verified Desktop control host', () => {
   it('forwards only the exact native product-control family', async () => {
     const calls: unknown[] = [];
     const host = createNimiElectronDesktopControlHostForBinding({
+      ...BUNDLED_AVATAR_BINDING_STUBS,
       desktopProductControlUnary: async (input) => {
         calls.push(input);
         return { status: 'ok' as const, value: Uint8Array.from([7, 8, 9]) };
@@ -60,6 +82,7 @@ describe('Electron verified Desktop control host', () => {
       close: () => undefined,
     };
     const desktopControlHost = createNimiElectronDesktopControlHostForBinding({
+      ...BUNDLED_AVATAR_BINDING_STUBS,
       desktopProductControlUnary: async () => ({
         status: 'ok' as const,
         value: Uint8Array.from([4, 5, 6]),
@@ -109,6 +132,7 @@ describe('Electron verified Desktop control host', () => {
     });
 
     const deniedHost = createNimiElectronDesktopControlHostForBinding({
+      ...BUNDLED_AVATAR_BINDING_STUBS,
       desktopProductControlUnary: async () => ({
         status: 'error' as const,
         reasonCode: 'PRODUCT_CONTROL_TRANSITION_INVALID',
@@ -130,6 +154,7 @@ describe('Electron verified Desktop control host', () => {
 
   it('routes the exact Desktop runtime-consumer family without creating a public gRPC client', async () => {
     const desktopControlHost = createNimiElectronDesktopControlHostForBinding({
+      ...BUNDLED_AVATAR_BINDING_STUBS,
       desktopProductControlUnary: async () => ({
         status: 'error' as const,
         reasonCode: 'runtime-service-untrusted',
@@ -167,6 +192,7 @@ describe('Electron verified Desktop control host', () => {
       close: () => undefined,
     };
     const desktopControlHost = createNimiElectronDesktopControlHostForBinding({
+      ...BUNDLED_AVATAR_BINDING_STUBS,
       desktopProductControlUnary: async () => ({
         status: 'error' as const,
         reasonCode: 'runtime-service-untrusted',

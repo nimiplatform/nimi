@@ -12,9 +12,17 @@ import (
 // generation for Runtime-private security decisions. The projection and
 // generation are captured under the same lock; neither is a renderer or app
 // credential surface.
-func (s *Service) AuthenticatedRuntimeSecurityContext(context.Context) (*runtimev1.AccountProjection, uint64, bool) {
+func (s *Service) AuthenticatedRuntimeSecurityContext(ctx context.Context) (*runtimev1.AccountProjection, uint64, bool) {
+	projection, generation, _, ok := s.BindAuthenticatedRuntimeGeneration(ctx)
+	return projection, generation, ok
+}
+
+// BindAuthenticatedRuntimeGeneration atomically captures the Runtime-owned
+// account identity, generation, and its central invalidation signal. Protected
+// streams bind to the signal instead of polling account state.
+func (s *Service) BindAuthenticatedRuntimeGeneration(context.Context) (*runtimev1.AccountProjection, uint64, <-chan struct{}, bool) {
 	if s == nil || !s.isActivated() {
-		return nil, 0, false
+		return nil, 0, nil, false
 	}
 
 	s.mu.Lock()
@@ -24,9 +32,10 @@ func (s *Service) AuthenticatedRuntimeSecurityContext(context.Context) (*runtime
 		s.invalidateAuthenticatedRuntimeIdentityLocked()
 	}
 	generation := s.accountGeneration
+	invalidated := s.accountGenerationInvalidated
 	if s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
-		!s.authenticatedRuntimeIdentity || generation == 0 {
-		return nil, generation, false
+		!s.authenticatedRuntimeIdentity || generation == 0 || invalidated == nil {
+		return nil, generation, invalidated, false
 	}
 	projection := cloneProjection(s.projection)
 	if projection == nil ||
@@ -34,9 +43,9 @@ func (s *Service) AuthenticatedRuntimeSecurityContext(context.Context) (*runtime
 		strings.TrimSpace(projection.GetRealmEnvironmentId()) == "" {
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED
 		s.clearAuthenticatedRuntimeIdentityLocked()
-		return nil, s.accountGeneration, false
+		return nil, s.accountGeneration, s.accountGenerationInvalidated, false
 	}
-	return projection, generation, true
+	return projection, generation, invalidated, true
 }
 
 func (s *Service) installAuthenticatedRuntimeIdentityLocked(material AccountMaterial) bool {
@@ -88,6 +97,10 @@ func (s *Service) advanceAccountGenerationLocked() bool {
 	if s.accountGeneration == math.MaxUint64 {
 		return false
 	}
+	if s.accountGenerationInvalidated != nil {
+		close(s.accountGenerationInvalidated)
+	}
 	s.accountGeneration++
+	s.accountGenerationInvalidated = make(chan struct{})
 	return s.accountGeneration != 0
 }

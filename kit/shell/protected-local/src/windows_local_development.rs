@@ -30,6 +30,7 @@ use crate::{
 };
 
 const ACTION_EXECUTED: i32 = 1;
+const LOCAL_APP_RECORD_NOT_FOUND: i32 = 643;
 
 pub(crate) async fn get_developer_mode_status(
     channel: Channel,
@@ -240,16 +241,20 @@ pub(crate) async fn decide_project(
         .decide_local_development_project(rpc_request)
         .await;
     let response = response.map_err(host_error_from_status)?.into_inner();
-    let expected_reason = match request.decision {
-        LocalDevelopmentDecision::Deny => 650,
-        LocalDevelopmentDecision::AllowRunOnce | LocalDevelopmentDecision::AllowProject => {
-            ACTION_EXECUTED
-        }
-    };
+    let expected_reason = expected_decision_reason(request.decision);
     if response.reason_code != expected_reason {
         return Err(untrusted());
     }
     authorization_projection(response.authorization.ok_or_else(untrusted)?)
+}
+
+fn expected_decision_reason(decision: LocalDevelopmentDecision) -> i32 {
+    match decision {
+        LocalDevelopmentDecision::Deny => LOCAL_APP_RECORD_NOT_FOUND,
+        LocalDevelopmentDecision::AllowRunOnce | LocalDevelopmentDecision::AllowProject => {
+            ACTION_EXECUTED
+        }
+    }
 }
 
 pub(crate) async fn list_authorizations(
@@ -665,5 +670,21 @@ mod tests {
         assert!(!valid_local_development_bind_deadline(1_000, 1_000, 3_000));
         assert!(!valid_local_development_bind_deadline(1_000, 3_001, 3_000));
         assert!(!valid_local_development_bind_deadline(0, 2_000, 3_000));
+    }
+
+    #[test]
+    fn decision_response_reason_matches_the_hard_cut_runtime_vocabulary() {
+        assert_eq!(
+            expected_decision_reason(LocalDevelopmentDecision::Deny),
+            LOCAL_APP_RECORD_NOT_FOUND
+        );
+        assert_eq!(
+            expected_decision_reason(LocalDevelopmentDecision::AllowRunOnce),
+            ACTION_EXECUTED
+        );
+        assert_eq!(
+            expected_decision_reason(LocalDevelopmentDecision::AllowProject),
+            ACTION_EXECUTED
+        );
     }
 }

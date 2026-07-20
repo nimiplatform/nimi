@@ -1153,6 +1153,11 @@ pub struct OpenLocalAppSessionResponse {
     #[prost(enumeration = "ReasonCode", tag = "5")]
     pub reason_code: i32,
 }
+/// Request-empty by design. Runtime accepts renewal only on the same verified
+/// local_app_host connection that already owns the current private session.
+/// No request data or metadata may select session, process, account, or trust.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RenewLocalAppSessionRequest {}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RefreshSessionRequest {
     #[prost(string, tag = "1")]
@@ -1586,6 +1591,35 @@ pub mod runtime_auth_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAuthService",
                         "OpenLocalAppSession",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn renew_local_app_session(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RenewLocalAppSessionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::OpenLocalAppSessionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAuthService",
+                        "RenewLocalAppSession",
                     ),
                 );
             self.inner.unary(req, path, codec).await

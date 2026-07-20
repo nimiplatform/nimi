@@ -1,6 +1,7 @@
 package runtimeagent
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -27,6 +28,10 @@ func (r eventStreamRuntime) subscribe(req *runtimev1.SubscribeAgentEventsRequest
 	if err != nil {
 		return err
 	}
+	bundledAvatar := isBundledAvatarCapability(stream.Context(), "runtime.agent.read")
+	if err := r.svc.authorizeBundledAvatarIdentity(stream.Context(), req.GetContext(), identity, "runtime.agent.read"); err != nil {
+		return err
+	}
 	localAgentRef := identity.LocalAgentRef
 	requestContext := req.GetContext()
 	scopedBinding := requestContext.GetScopedBinding()
@@ -49,10 +54,15 @@ func (r eventStreamRuntime) subscribe(req *runtimev1.SubscribeAgentEventsRequest
 		return err
 	}
 	sub := &subscriber{
-		agentID:       localAgentRef,
-		eventFilters:  filterMap,
-		scopedBinding: cloneScopedBindingAttachment(scopedBinding),
-		ch:            make(chan *runtimev1.AgentEvent, subscriberBuffer),
+		agentID:               localAgentRef,
+		eventFilters:          filterMap,
+		scopedBinding:         cloneScopedBindingAttachment(scopedBinding),
+		bundledAvatarIdentity: nil,
+		ch:                    make(chan *runtimev1.AgentEvent, subscriberBuffer),
+	}
+	if bundledAvatar {
+		identityCopy := identity
+		sub.bundledAvatarIdentity = &identityCopy
 	}
 	r.svc.mu.Lock()
 	r.svc.nextSubscriberID++
@@ -74,28 +84,33 @@ func (r eventStreamRuntime) subscribe(req *runtimev1.SubscribeAgentEventsRequest
 		return err
 	}
 	for _, event := range backlog {
-		if err := r.validateSubscriberBinding(sub, requestContext.GetAppId()); err != nil {
+		if err := r.validateSubscriberBinding(stream.Context(), sub, requestContext.GetAppId()); err != nil {
 			return r.sendBindingRevokedAndClose(stream, sub, err)
 		}
 		if err := stream.Send(event); err != nil {
 			return err
 		}
 	}
-	bindingTick := time.NewTicker(time.Second)
-	defer bindingTick.Stop()
+	var bindingTick <-chan time.Time
+	var bindingTicker *time.Ticker
+	if sub.scopedBinding != nil {
+		bindingTicker = time.NewTicker(time.Second)
+		bindingTick = bindingTicker.C
+		defer bindingTicker.Stop()
+	}
 	for {
 		select {
 		case <-stream.Context().Done():
 			return stream.Context().Err()
-		case <-bindingTick.C:
-			if err := r.validateSubscriberBinding(sub, requestContext.GetAppId()); err != nil {
+		case <-bindingTick:
+			if err := r.validateSubscriberBinding(stream.Context(), sub, requestContext.GetAppId()); err != nil {
 				return r.sendBindingRevokedAndClose(stream, sub, err)
 			}
 		case event, ok := <-sub.ch:
 			if !ok {
 				return nil
 			}
-			if err := r.validateSubscriberBinding(sub, requestContext.GetAppId()); err != nil {
+			if err := r.validateSubscriberBinding(stream.Context(), sub, requestContext.GetAppId()); err != nil {
 				return r.sendBindingRevokedAndClose(stream, sub, err)
 			}
 			if err := stream.Send(cloneAgentEvent(event)); err != nil {
@@ -105,8 +120,14 @@ func (r eventStreamRuntime) subscribe(req *runtimev1.SubscribeAgentEventsRequest
 	}
 }
 
-func (r eventStreamRuntime) validateSubscriberBinding(sub *subscriber, fallbackRuntimeAppID string) error {
-	if sub == nil || sub.scopedBinding == nil {
+func (r eventStreamRuntime) validateSubscriberBinding(ctx context.Context, sub *subscriber, fallbackRuntimeAppID string) error {
+	if sub == nil {
+		return nil
+	}
+	if sub.bundledAvatarIdentity != nil {
+		return r.svc.revalidateBundledAvatarIdentity(ctx, *sub.bundledAvatarIdentity)
+	}
+	if sub.scopedBinding == nil {
 		return nil
 	}
 	return r.svc.validateScopedBindingAttachment(sub.scopedBinding, fallbackRuntimeAppID, sub.agentID, runtimeAgentEventReadScope)

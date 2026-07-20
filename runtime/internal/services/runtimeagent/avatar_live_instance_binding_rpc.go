@@ -18,7 +18,7 @@ const defaultAvatarRuntimeAppID = "nimi.avatar"
 // to an existing Runtime-owned ConversationAnchor. It never opens anchors and
 // never consumes launch payload identity beyond the already-validated runtime
 // AgentRequestContext.
-func (s *Service) RegisterAvatarLiveInstanceBinding(_ context.Context, req *runtimev1.RegisterAvatarLiveInstanceBindingRequest) (*runtimev1.RegisterAvatarLiveInstanceBindingResponse, error) {
+func (s *Service) RegisterAvatarLiveInstanceBinding(ctx context.Context, req *runtimev1.RegisterAvatarLiveInstanceBindingRequest) (*runtimev1.RegisterAvatarLiveInstanceBindingResponse, error) {
 	if s == nil || s.isClosed() {
 		return nil, status.Error(codes.FailedPrecondition, "runtime agent service unavailable")
 	}
@@ -27,6 +27,9 @@ func (s *Service) RegisterAvatarLiveInstanceBinding(_ context.Context, req *runt
 	}
 	identity, entry, err := s.agentEntryForIdentityContext(req.GetContext())
 	if err != nil {
+		return nil, err
+	}
+	if err := s.authorizeBundledAvatarIdentity(ctx, req.GetContext(), identity, "runtime.agent.write"); err != nil {
 		return nil, err
 	}
 	if entry.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
@@ -105,7 +108,7 @@ func (s *Service) RegisterAvatarLiveInstanceBinding(_ context.Context, req *runt
 // ResolveAvatarLiveInstanceBinding recovers the Runtime-owned anchor that
 // Desktop explicitly registered for this Avatar instance. Missing bindings
 // fail closed so Avatar cannot infer continuity from same-agent identity.
-func (s *Service) ResolveAvatarLiveInstanceBinding(_ context.Context, req *runtimev1.ResolveAvatarLiveInstanceBindingRequest) (*runtimev1.ResolveAvatarLiveInstanceBindingResponse, error) {
+func (s *Service) ResolveAvatarLiveInstanceBinding(ctx context.Context, req *runtimev1.ResolveAvatarLiveInstanceBindingRequest) (*runtimev1.ResolveAvatarLiveInstanceBindingResponse, error) {
 	if s == nil || s.isClosed() {
 		return nil, status.Error(codes.FailedPrecondition, "runtime agent service unavailable")
 	}
@@ -114,6 +117,9 @@ func (s *Service) ResolveAvatarLiveInstanceBinding(_ context.Context, req *runti
 	}
 	identity, _, err := s.agentEntryForIdentityContext(req.GetContext())
 	if err != nil {
+		return nil, err
+	}
+	if err := s.authorizeBundledAvatarIdentity(ctx, req.GetContext(), identity, "runtime.agent.read"); err != nil {
 		return nil, err
 	}
 	avatarInstanceID := strings.TrimSpace(req.GetAvatarInstanceId())

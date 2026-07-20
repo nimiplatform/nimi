@@ -203,6 +203,7 @@ import type {
   RegisterAppResponse,
   RegisterExternalPrincipalRequest,
   RegisterExternalPrincipalResponse,
+  RenewLocalAppSessionRequest,
   RevokeExternalPrincipalSessionRequest,
   RevokeSessionRequest,
 } from "../../core-generated/runtime-protobuf/runtime/v1/auth";
@@ -223,6 +224,7 @@ export type {
   RegisterAppResponse,
   RegisterExternalPrincipalRequest,
   RegisterExternalPrincipalResponse,
+  RenewLocalAppSessionRequest,
   RevokeExternalPrincipalSessionRequest,
   RevokeSessionRequest,
 };

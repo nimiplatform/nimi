@@ -51,9 +51,10 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		method: "GET",
 		path:   "/api/realm/core/persona-characters",
 		allowedCallerModes: map[runtimev1.AccountCallerMode]struct{}{
-			runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL: {},
+			runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL:           {},
+			runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR: {},
 		},
-		authorizationProfile:   "protected_desktop_source_readiness",
+		authorizationProfile:   "protected_bundled_avatar_source_readiness",
 		pathParameterKinds:     map[string]realmUnaryParameterKind{},
 		requiredPathParameters: map[string]struct{}{},
 		queryParameterKinds:    map[string]realmUnaryParameterKind{"take": realmUnaryParameterNumber, "afterId": realmUnaryParameterString, "visibility": realmUnaryParameterString, "worldId": realmUnaryParameterString, "scope": realmUnaryParameterString},

@@ -454,6 +454,15 @@ partition is app-owned browser data, not authorization persistence. A CDP
 acceptance build may replace it only with its explicitly isolated evidence
 directory.
 
+A non-release Electron acceptance build may additionally attach one exact
+loopback CDP observation port to one explicitly named local-app id while the
+dev-kernel checkpoint is active. The Desktop supervisor, not the app or
+renderer, validates this observation profile and preserves the normal
+authorization-scoped Chromium partition. App mismatch, partial input,
+non-loopback posture, invalid ports, and ordinary builds produce no observation
+arguments. CDP observation conveys no protected authority and cannot replace
+the verified process/session carrier.
+
 Desktop never returns a launch ticket, session proof, Runtime epoch, protected
 endpoint, credential, token, or native carrier handle to CLI or renderer. The
 CLI receives only stable request/status/failure projections. The renderer sees

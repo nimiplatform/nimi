@@ -108,8 +108,8 @@ in-process helper call and is never a transport class or an invocation of a
 public refresh RPC.
 
 The admitted origin roles are `binding_only`, `verified_desktop_process`,
-`desktop_account_host`, `local_app_control`, `local_app_process`, and
-`local_app_session`. Runtime derives immutable/development provenance and
+`desktop_account_host`, `bundled_avatar_host`, `local_app_control`,
+`local_app_process`, and `local_app_session`. Runtime derives immutable/development provenance and
 execution profile from K-APP record plus launch lease; requests cannot select a
 separate role or convert one principal into another. A transport role is derived
 by Runtime from the verified connection and written to immutable origin
@@ -160,6 +160,18 @@ user permissions for redacted permission posture and admitted base entitlements
 only. It receives no protected Agent/account/resource inventory. A future
 `user_permission` operation must separately resolve its admitted public
 permission, owner-issued selector, current owner decision and domain policy.
+
+`RenewLocalAppSession` also has an empty request, but exists only on the exact
+verified `local_app_host` connection that already owns the current
+`local_app_session`. Before the short-lived technical session expires, the
+native host may use it to atomically revoke the previous Runtime-private row
+and replace it with a new row on that same live connection. Runtime revalidates
+the process, supervisor, authorization, record/provenance, project generation,
+account generation, capability fingerprint, execution profile and boot epoch
+before replacement. Renewal never consumes another launch lease, changes the
+origin role, repeats durable consent, or exposes session id/proof. Public TCP,
+ordinary gRPC, bootstrap connections without a session, and renderer/app code
+cannot call or select this operation.
 
 The lease TTL is 30 seconds and process-bind deadline is 10 seconds. Duplicate,
 expired, revoked, wrong process/principal/record/generation/account/epoch and
@@ -224,6 +236,10 @@ files, preload APIs, or app code. Kit may expose only typed status and admitted
 business operations. Runtime revalidates authorization, capability
 fingerprint, process liveness, supervisor liveness, account generation, boot
 epoch, shell, controlled outputs, and operation policy on every call.
+The native Kit host renews an otherwise unchanged live technical session only
+through request-empty `RenewLocalAppSession`; expiry or any failed revalidation
+revokes the session and fails closed instead of reopening, falling back, or
+requesting durable project approval again.
 
 The verified Desktop `local_app_control` origin may read one exact bounded
 `GetLocalDevelopmentAuthoritySummary` projection for local development
@@ -251,6 +267,51 @@ or remote dev-server origin revokes the applicable launch/session before the
 next operation. A different account requires its own confirmation; returning
 to the authorization's original account may reuse the unchanged consent without
 a separate credential or Realm-presence challenge.
+
+## K-PLOCAL-010 Desktop-Supervised Bundled Avatar Profile
+
+The default `nimi.avatar` Electron shell is a bundled first-party surface
+hosted by the already verified Desktop process. It does not open a portable
+app session and is not a local-development principal. The physical carrier is
+the current `desktop_control` connection; Runtime derives the immutable
+`bundled_avatar_host` role from that verified connection and admits only the
+fixed `bundled_avatar_v1` profile in
+`tables/bundled-avatar-runtime-profile.yaml`.
+
+Desktop main registers the exact `BrowserWindow`/`WebContents` object it
+created through the supervised Avatar launch path. Kit main/native code selects
+this profile only after binding the invoking Electron sender and main frame to
+that non-portable registry entry; the exact registered URL and current
+navigation state are secondary integrity checks, never identity. It injects the
+fixed app id `nimi.avatar` and native profile after renderer request parsing.
+Renderer code cannot provide or override a host-equivalence marker, profile,
+app id, endpoint, metadata, origin role, account identity, method allowlist, or
+capability. A normal Desktop renderer call, an unbound/replaced Avatar sender,
+ordinary gRPC, and every method absent from the profile fail before handler
+dispatch. The profile is therefore an exact typed carrier, not a generic
+protected method-id proxy.
+
+For each admitted call, the protected interceptor constructs one immutable,
+non-serializable principal from the verified native connection, fixed profile,
+Runtime boot epoch, and the current Runtime-custodied account id and generation.
+Business services consume that principal and generic audience/owner checks;
+AI, App, and Artifact services do not reconstruct bundled-Avatar authority or
+query account state to rediscover caller class. Runtime Agent may retain one
+domain policy adapter that validates a selected local Agent against the
+principal account.
+
+The profile may project Runtime health, current account snapshot/events, one
+admitted Realm readiness operation, current-account Runtime Agent state,
+Avatar conversation/voice/lipsync/debug streams, Runtime-generated voice
+artifact bytes, and bounded scenario-job operations. Every protected stream is
+bound to that account generation and boot epoch. Account transition invalidates
+the old generation before a later event can be sent, centrally cancels idle
+streams without polling, and requires a new call context. Desktop process
+replacement, protected connection loss, sender unbinding, or Runtime boot-epoch
+rotation likewise closes active Avatar streams and calls. No durable grant,
+project approval, bearer, refresh material, account session secret, scoped
+binding, renderer host-equivalence metadata, or local auth truth is created or
+exposed.
 
 The authorization, session, supervisor, reapproval, operation-applicability, and
 non-conversion semantics in this rule are platform-neutral. Platform admission

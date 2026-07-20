@@ -29,7 +29,10 @@ const requiredFields = [
 
 const invokeRealmUnaryMethodID = '/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary';
 const desktopCallerMode = 'ACCOUNT_CALLER_MODE_DESKTOP_SHELL';
+const bundledAvatarCallerMode = 'ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR';
 const desktopSourceReadinessAuthorizationProfile = 'protected_desktop_source_readiness';
+const bundledAvatarSourceReadinessAuthorizationProfile = 'protected_bundled_avatar_source_readiness';
+const bundledAvatarRealmOperationID = 'WorldCoreController_listPersonaCharacters';
 
 function fail(message) {
   throw new Error(`realm broker policy generation failed: ${message}`);
@@ -86,7 +89,11 @@ function renderPolicy(operations) {
     if (operation.credential_response_policy !== 'forbidden') {
       fail(`${operation.operation_id} must forbid credential responses`);
     }
-    if (operation.authorization_profile !== desktopSourceReadinessAuthorizationProfile) {
+    const bundledAvatarOperation = operation.operation_id === bundledAvatarRealmOperationID;
+    const expectedAuthorizationProfile = bundledAvatarOperation
+      ? bundledAvatarSourceReadinessAuthorizationProfile
+      : desktopSourceReadinessAuthorizationProfile;
+    if (operation.authorization_profile !== expectedAuthorizationProfile) {
       fail(`${operation.operation_id} has unsupported authorization_profile ${operation.authorization_profile}`);
     }
     if (operation.protected_transport_ref !== invokeRealmUnaryMethodID) {
@@ -96,8 +103,12 @@ function renderPolicy(operations) {
       fail(`${operation.operation_id} response_max_bytes must be a positive integer`);
     }
     const callerModes = operation.allowed_runtime_caller_modes;
-    if (!Array.isArray(callerModes) || callerModes.length !== 1 || callerModes[0] !== desktopCallerMode) {
-      fail(`${operation.operation_id} must admit only ${desktopCallerMode}`);
+    const expectedCallerModes = bundledAvatarOperation
+      ? [desktopCallerMode, bundledAvatarCallerMode]
+      : [desktopCallerMode];
+    if (!Array.isArray(callerModes) || callerModes.length !== expectedCallerModes.length
+      || expectedCallerModes.some((mode, index) => callerModes[index] !== mode)) {
+      fail(`${operation.operation_id} has an invalid protected caller-mode set`);
     }
     const consumerRefs = operation.consumer_refs;
     if (!Array.isArray(consumerRefs) || consumerRefs.length === 0 || consumerRefs.some((ref) => !String(ref || '').trim())) {
@@ -139,7 +150,8 @@ function renderSDKPolicy(operations) {
     `  value: string,\n` +
     `): value is NimiDesktopSourceReadinessRealmOperationID {\n` +
     `  return NIMI_DESKTOP_SOURCE_READINESS_REALM_OPERATION_ID_SET.has(value.trim());\n` +
-    `}\n`;
+    `}\n\n` +
+    `export const NIMI_BUNDLED_AVATAR_REALM_OPERATION_ID = ${quoted(bundledAvatarRealmOperationID)} as const;\n`;
 }
 
 const [policyText, openAPIText] = await Promise.all([
@@ -149,8 +161,8 @@ const [policyText, openAPIText] = await Promise.all([
 const policy = parse(policyText, { merge: true });
 const openAPI = parse(openAPIText);
 if (policy?.source_rule !== 'K-ACCSVC-023') fail('policy source_rule must be K-ACCSVC-023');
-if (policy?.authority_status !== 'admitted_exact_desktop_source_readiness_operations') {
-  fail('authority_status must admit only exact Desktop source-readiness operations');
+if (policy?.authority_status !== 'admitted_exact_protected_source_readiness_operations') {
+  fail('authority_status must admit only exact protected source-readiness operations');
 }
 if (policy?.production_consumption !== 'admitted_exact_rows_only') {
   fail('production_consumption must be admitted_exact_rows_only');

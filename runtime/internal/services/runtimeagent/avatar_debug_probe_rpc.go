@@ -29,8 +29,8 @@ const (
 	avatarDebugResultAuditRefPrefix   = "runtime.audit.avatar_debug.result/"
 )
 
-func (s *Service) GetAvatarDebugSnapshot(_ context.Context, req *runtimev1.GetAvatarDebugSnapshotRequest) (*runtimev1.GetAvatarDebugSnapshotResponse, error) {
-	agentID, anchorID, err := s.validateAvatarDebugControlRequest(req.GetContext(), req.GetAgentId(), req.GetConversationAnchorId(), avatarDebugReadScope)
+func (s *Service) GetAvatarDebugSnapshot(ctx context.Context, req *runtimev1.GetAvatarDebugSnapshotRequest) (*runtimev1.GetAvatarDebugSnapshotResponse, error) {
+	agentID, anchorID, err := s.validateAvatarDebugControlRequest(ctx, req.GetContext(), req.GetAgentId(), req.GetConversationAnchorId(), avatarDebugReadScope)
 	if err != nil {
 		return nil, err
 	}
@@ -47,8 +47,8 @@ func (s *Service) GetAvatarDebugSnapshot(_ context.Context, req *runtimev1.GetAv
 	}, nil
 }
 
-func (s *Service) RequestAvatarDebugProbe(_ context.Context, req *runtimev1.RequestAvatarDebugProbeRequest) (*runtimev1.RequestAvatarDebugProbeResponse, error) {
-	agentID, anchorID, err := s.validateAvatarDebugControlRequest(req.GetContext(), req.GetAgentId(), req.GetConversationAnchorId(), avatarDebugWriteScope)
+func (s *Service) RequestAvatarDebugProbe(ctx context.Context, req *runtimev1.RequestAvatarDebugProbeRequest) (*runtimev1.RequestAvatarDebugProbeResponse, error) {
+	agentID, anchorID, err := s.validateAvatarDebugControlRequest(ctx, req.GetContext(), req.GetAgentId(), req.GetConversationAnchorId(), avatarDebugWriteScope)
 	if err != nil {
 		return nil, err
 	}
@@ -117,8 +117,8 @@ func (s *Service) RequestAvatarDebugProbe(_ context.Context, req *runtimev1.Requ
 	}, nil
 }
 
-func (s *Service) SubmitAvatarDebugProbeResult(_ context.Context, req *runtimev1.SubmitAvatarDebugProbeResultRequest) (*runtimev1.SubmitAvatarDebugProbeResultResponse, error) {
-	agentID, anchorID, err := s.validateAvatarDebugControlRequest(req.GetContext(), req.GetAgentId(), req.GetConversationAnchorId(), avatarDebugWriteScope)
+func (s *Service) SubmitAvatarDebugProbeResult(ctx context.Context, req *runtimev1.SubmitAvatarDebugProbeResultRequest) (*runtimev1.SubmitAvatarDebugProbeResultResponse, error) {
+	agentID, anchorID, err := s.validateAvatarDebugControlRequest(ctx, req.GetContext(), req.GetAgentId(), req.GetConversationAnchorId(), avatarDebugWriteScope)
 	if err != nil {
 		return nil, err
 	}
@@ -135,8 +135,8 @@ func (s *Service) SubmitAvatarDebugProbeResult(_ context.Context, req *runtimev1
 	return &runtimev1.SubmitAvatarDebugProbeResultResponse{Result: result}, nil
 }
 
-func (s *Service) ListAvatarDebugProbeResults(_ context.Context, req *runtimev1.ListAvatarDebugProbeResultsRequest) (*runtimev1.ListAvatarDebugProbeResultsResponse, error) {
-	agentID, anchorID, err := s.validateAvatarDebugControlRequest(req.GetContext(), req.GetAgentId(), req.GetConversationAnchorId(), avatarDebugReadScope)
+func (s *Service) ListAvatarDebugProbeResults(ctx context.Context, req *runtimev1.ListAvatarDebugProbeResultsRequest) (*runtimev1.ListAvatarDebugProbeResultsResponse, error) {
+	agentID, anchorID, err := s.validateAvatarDebugControlRequest(ctx, req.GetContext(), req.GetAgentId(), req.GetConversationAnchorId(), avatarDebugReadScope)
 	if err != nil {
 		return nil, err
 	}
@@ -203,8 +203,8 @@ func validateSubmittedAvatarDebugProbeResult(agentID string, anchorID string, re
 	}, nil
 }
 
-func (s *Service) GetAvatarDebugReplay(_ context.Context, req *runtimev1.GetAvatarDebugReplayRequest) (*runtimev1.GetAvatarDebugReplayResponse, error) {
-	agentID, anchorID, err := s.validateAvatarDebugControlRequest(req.GetContext(), req.GetAgentId(), req.GetConversationAnchorId(), avatarDebugReadScope)
+func (s *Service) GetAvatarDebugReplay(ctx context.Context, req *runtimev1.GetAvatarDebugReplayRequest) (*runtimev1.GetAvatarDebugReplayResponse, error) {
+	agentID, anchorID, err := s.validateAvatarDebugControlRequest(ctx, req.GetContext(), req.GetAgentId(), req.GetConversationAnchorId(), avatarDebugReadScope)
 	if err != nil {
 		return nil, err
 	}

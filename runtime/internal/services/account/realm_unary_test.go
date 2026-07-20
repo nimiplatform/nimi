@@ -36,11 +36,19 @@ func TestRealmBrokerOperationSetIsExactDesktopSourceReadinessVocabulary(t *testi
 		if operation.method != want.method || operation.path != want.path {
 			t.Fatalf("%s route = %s %s, want %s %s", operationID, operation.method, operation.path, want.method, want.path)
 		}
-		if operation.authorizationProfile != realmBrokerProtectedDesktopSourceReadinessProfile {
-			t.Fatalf("%s authorization profile = %q", operationID, operation.authorizationProfile)
+		if operationID == "WorldCoreController_listPersonaCharacters" {
+			if operation.authorizationProfile != realmBrokerProtectedBundledAvatarSourceReadinessProfile ||
+				len(operation.allowedCallerModes) != 2 ||
+				!operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL) ||
+				!operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR) {
+				t.Fatalf("%s must admit the exact Desktop and protected bundled Avatar source-readiness callers: %+v", operationID, operation)
+			}
+			continue
 		}
-		if len(operation.allowedCallerModes) != 1 || !operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL) {
-			t.Fatalf("%s must admit only Desktop shell", operationID)
+		if operation.authorizationProfile != realmBrokerProtectedDesktopSourceReadinessProfile ||
+			len(operation.allowedCallerModes) != 1 ||
+			!operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL) {
+			t.Fatalf("%s must admit only Desktop shell: %+v", operationID, operation)
 		}
 	}
 }

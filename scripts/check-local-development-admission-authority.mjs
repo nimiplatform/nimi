@@ -118,6 +118,10 @@ const localAppHostMethods = Object.freeze([
   ['/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson', 'local_app_json_storage'],
 ]);
 
+const localAppTechnicalMethods = Object.freeze([
+  ['/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession', 'local_app_session_renewal'],
+]);
+
 const protectedMethodsExcludedFromLocalApp = Object.freeze([
   '/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes',
   '/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentInventory',
@@ -466,6 +470,7 @@ export function validateLocalDevelopmentAuthority(bundle) {
   if (transport) {
     const methods = methodMap(transport);
     const localWire = transport.open_local_app_session_wire;
+    const renewWire = transport.renew_local_app_session_wire;
     if (
       !exactArray(localWire?.request?.fields, [])
       || !exactArray(localWire?.request?.request_metadata_authority_inputs, [])
@@ -481,6 +486,21 @@ export function validateLocalDevelopmentAuthority(bundle) {
     const open = methods.get('/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession');
     if (!hasExactTransportRow(open, 'local_app_session_bootstrap', 'local_app_bootstrap', 'local_app_process')) {
       issues.push(issue('LOCAL_DEVELOPMENT_BOOTSTRAP_TRANSPORT_INVALID', authorityPaths.transportMatrix, 'OpenLocalAppSession requires the local-app bootstrap transport and exact bound process role.'));
+    }
+    const renew = methods.get('/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession');
+    if (
+      !exactArray(renewWire?.request?.fields, [])
+      || !exactArray(renewWire?.request?.request_metadata_authority_inputs, [])
+      || renewWire?.request?.unknown_field_disposition !== 'reject'
+      || renewWire?.connection_binding !== 'exact_current_local_app_host_connection_and_private_session'
+      || renewWire?.atomic_transition !== 'revoke_previous_private_session_and_insert_replacement_on_same_connection'
+      || renewWire?.renderer_projection !== 'forbidden'
+      || renewWire?.app_projection !== 'forbidden'
+      || renewWire?.ordinary_grpc_disposition !== 'deny'
+      || !includesAll(renewWire?.response?.forbidden_fields, ['local_app_principal_id', 'local_record_id', 'permission_id', 'permission_state', 'permission_decision_id', 'session_id', 'session_proof', 'launch_lease', 'process_proof', 'endpoint', 'token', 'credential'])
+      || !hasExactTransportRow(renew, 'local_app_session_renewal', 'local_app_host', 'local_app_session')
+    ) {
+      issues.push(issue('LOCAL_DEVELOPMENT_RENEW_SESSION_WIRE_INVALID', authorityPaths.transportMatrix, 'RenewLocalAppSession must be request-empty, exact-current-host/session-bound, atomic, renderer-inaccessible, and non-portable.'));
     }
     const prepare = methods.get('/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch');
     const bind = methods.get('/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess');
@@ -509,11 +529,18 @@ export function validateLocalDevelopmentAuthority(bundle) {
         issues.push(issue('LOCAL_DEVELOPMENT_BASE_SURFACE_INVALID', `${authorityPaths.transportMatrix}#${methodId}`, 'The local-app host carrier must expose exactly public permission posture/request and app-private JSON storage.'));
       }
     }
+    for (const [methodId, operationClass] of localAppTechnicalMethods) {
+      const row = methods.get(methodId);
+      if (!hasExactTransportRow(row, operationClass, 'local_app_host', 'local_app_session') || row?.generic_proxy !== 'forbidden') {
+        issues.push(issue('LOCAL_DEVELOPMENT_TECHNICAL_SURFACE_INVALID', `${authorityPaths.transportMatrix}#${methodId}`, 'The local-app host technical surface may only renew the exact current private session.'));
+      }
+    }
     const actualLocalAppHostMethods = (transport.methods ?? [])
       .filter((row) => row.allowed_transport_classes?.includes('local_app_host'))
       .map((row) => row.method_id);
-    if (!sameSet(actualLocalAppHostMethods, localAppHostMethods.map(([methodId]) => methodId))) {
-      issues.push(issue('LOCAL_DEVELOPMENT_BASE_SURFACE_INVALID', authorityPaths.transportMatrix, 'The local-app host carrier contains a missing or extra operation outside permission posture/request and app-private JSON storage.'));
+    const expectedLocalAppHostMethods = [...localAppTechnicalMethods, ...localAppHostMethods].map(([methodId]) => methodId);
+    if (!sameSet(actualLocalAppHostMethods, expectedLocalAppHostMethods)) {
+      issues.push(issue('LOCAL_DEVELOPMENT_BASE_SURFACE_INVALID', authorityPaths.transportMatrix, 'The local-app host carrier contains a missing or extra operation outside technical renewal, permission posture/request, and app-private JSON storage.'));
     }
     for (const methodId of protectedMethodsExcludedFromLocalApp) {
       const row = methods.get(methodId);
@@ -544,8 +571,9 @@ export function validateLocalDevelopmentAuthority(bundle) {
       !hasExactProtectedRow(methods.get('/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch'), 'desktop_control', 'local_app_control')
       || !hasExactProtectedRow(methods.get('/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess'), 'desktop_control', 'local_app_control')
       || !hasExactProtectedRow(methods.get('/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession'), 'local_app_bootstrap', 'local_app_process')
+      || !hasExactProtectedRow(methods.get('/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession'), 'local_app_host', 'local_app_session')
     ) {
-      issues.push(issue('LOCAL_DEVELOPMENT_RPC_LAUNCH_AUTH_INVALID', authorityPaths.rpcAuth, 'Runtime auth posture must match the Desktop prepare/bind and bound-process request-empty bootstrap roles.'));
+      issues.push(issue('LOCAL_DEVELOPMENT_RPC_LAUNCH_AUTH_INVALID', authorityPaths.rpcAuth, 'Runtime auth posture must match Desktop prepare/bind, bound-process request-empty bootstrap, and exact-host request-empty renewal roles.'));
     }
   }
 

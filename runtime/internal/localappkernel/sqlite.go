@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -216,6 +217,25 @@ func (kernel *Kernel) initialize(ctx context.Context) error {
 		if _, err := kernel.db.ExecContext(ctx, statement); err != nil {
 			return fmt.Errorf("initialize local-app sqlite schema: %w", err)
 		}
+	}
+	var duplicateAnchor string
+	var duplicateAuthorization string
+	var duplicateCount int
+	err := kernel.db.QueryRowContext(ctx, `SELECT local_os_user_anchor, development_authorization_id, COUNT(*)
+		FROM local_app_principals
+		WHERE principal_kind = 'development' AND state = 'active'
+		GROUP BY local_os_user_anchor, development_authorization_id
+		HAVING COUNT(*) > 1 LIMIT 1`).Scan(&duplicateAnchor, &duplicateAuthorization, &duplicateCount)
+	if err == nil {
+		return fmt.Errorf("initialize local-app sqlite schema: operator repair required for %d active development principals on anchor %q authorization %q", duplicateCount, duplicateAnchor, duplicateAuthorization)
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("preflight active development principal uniqueness: %w", err)
+	}
+	if _, err := kernel.db.ExecContext(ctx, `CREATE UNIQUE INDEX IF NOT EXISTS local_app_active_development_authorization
+		ON local_app_principals(local_os_user_anchor, development_authorization_id)
+		WHERE principal_kind = 'development' AND state = 'active'`); err != nil {
+		return fmt.Errorf("enforce active development principal uniqueness: %w", err)
 	}
 	now := kernel.now().UTC().UnixNano()
 	if _, err := kernel.db.ExecContext(ctx, `INSERT INTO local_app_partition(singleton, local_os_user_anchor, bound_unix_nano) VALUES (1, ?, ?) ON CONFLICT(singleton) DO NOTHING`, kernel.anchor, now); err != nil {

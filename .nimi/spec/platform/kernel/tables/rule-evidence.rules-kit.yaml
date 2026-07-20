@@ -41,6 +41,7 @@ entries:
   - P-KIT-044
   - P-KIT-045
   - P-KIT-046
+  - P-KIT-047
   - P-KIT-042
   - P-KIT-043
   - P-KIT-050
@@ -174,6 +175,15 @@ rules:
     test_files:
       - scripts/check-local-development-admission-authority.mjs
       - scripts/check-local-development-admission-authority.test.mjs
+  - rule_id: P-KIT-047
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+    note: Desktop-owned exact WebContents/main-frame binding and secondary URL integrity gate every bundled Avatar operation and sender-owned stream lifecycle.
+    test_files:
+      - kit/shell/electron/test/electron-bundled-avatar-host.test.ts
+      - apps/desktop/src-electron/bundled-avatar-host.ts
   - rule_id: P-KIT-042
     evidence_refs:
       - platform_kernel_consistency

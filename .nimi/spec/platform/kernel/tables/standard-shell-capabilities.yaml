@@ -152,6 +152,77 @@ capability_set_schema:
     - source_rule
 
 capability_sets:
+  - set_id: bundled-avatar-standard-shell-v1
+    host_class: verified-desktop-bundled-avatar-host
+    app_package_kind: bundled-nimi-app
+    launch_resolution: verified_desktop_exact_webcontents_registry_and_secondary_url_integrity
+    auth_binding: runtime_owned_bundled_avatar_protected_profile
+    authority_status: fixed_profile_app_private_and_floating_window_only
+    allowed_operations:
+      - runtime.unary
+      - runtime.streamOpen
+      - runtime.streamClose
+      - runtime-lifecycle.status
+      - storage.readJson
+      - storage.writeJson
+      - storage.removeJson
+      - diagnostics.rendererEntryProbe
+      - local-assets.resolveUrl
+      - avatar.assetResolve
+      - floating-window.setBounds
+      - floating-window.setIgnoreCursorEvents
+      - floating-window.setAlwaysOnTop
+      - floating-window.hide
+      - floating-window.close
+      - floating-window.beginManualDrag
+      - floating-window.moveManualDrag
+      - floating-window.constrainToVisibleArea
+    planned_operations: []
+    planned_operations_disposition: deny_until_separate_operation_admission
+    forbidden_operations:
+      - runtime-lifecycle.start
+      - runtime-lifecycle.restart
+      - runtime-defaults.get
+      - auth.sessionLoad
+      - auth.sessionSave
+      - auth.sessionClear
+      - oauth.openExternalUrl
+      - oauth.tokenExchange
+      - oauth.listenForCode
+      - local-agent.identity
+      - local-agent.runtimeTrustedCaller
+      - ai-profile.get
+      - agent-center.avatarAssetImport
+      - agent-center.avatarAssetValidate
+      - agent-center.avatarAssetResolvePreview
+      - agent-center.live2dAdapterImport
+      - agent-center.backgroundImport
+      - agent-center.backgroundGet
+      - agent-center.backgroundValidate
+      - agent-center.backgroundRemove
+      - agent-center.agentResourcesRemove
+      - agent-center.accountResourcesRemove
+      - platform-projection.get
+      - file-dialog.open
+      - file-reveal.reveal
+      - export.saveFile
+      - artifacts.write
+      - desktop-private.product-control
+      - tauri-only.commands
+      - electron.raw-ipc
+      - node.raw-fs
+    negative_tests:
+      - bundled-avatar-denies-unbound-or-replaced-webcontents
+      - bundled-avatar-denies-url-only-profile-selection
+      - bundled-avatar-denies-renderer-selected-profile
+      - bundled-avatar-denies-runtime-start-restart
+      - bundled-avatar-denies-auth-and-oauth-custody
+      - bundled-avatar-denies-agent-center-mutation
+      - bundled-avatar-denies-desktop-private-commands
+      - bundled-avatar-storage-root-stays-host-private
+      - bundled-avatar-window-commands-bind-invoking-window
+    source_rule: P-KIT-047
+
   - set_id: local-app-standard-shell-v1
     host_class: protected-local-app-host
     app_package_kind: nimi-app

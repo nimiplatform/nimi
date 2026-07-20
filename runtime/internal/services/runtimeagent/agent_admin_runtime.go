@@ -325,10 +325,13 @@ func (r agentAdminRuntime) setPresentationProfile(ctx context.Context, req *runt
 	}, nil
 }
 
-func (r agentAdminRuntime) list(req *runtimev1.ListAgentsRequest) (*runtimev1.ListAgentsResponse, error) {
+func (r agentAdminRuntime) list(req *runtimev1.ListAgentsRequest, ownerUserID string) (*runtimev1.ListAgentsResponse, error) {
 	r.svc.mu.RLock()
 	items := make([]*runtimev1.AgentRecord, 0, len(r.svc.agents))
 	for _, entry := range r.svc.agents {
+		if ownerUserID != "" && strings.TrimSpace(entry.Agent.GetOwnerUserId()) != ownerUserID {
+			continue
+		}
 		if req.GetLifecycleFilter() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_UNSPECIFIED &&
 			entry.Agent.GetLifecycleStatus() != req.GetLifecycleFilter() {
 			continue

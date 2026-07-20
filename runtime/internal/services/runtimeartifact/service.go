@@ -18,6 +18,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 )
@@ -25,14 +26,19 @@ import (
 // Service implements RuntimeArtifactService.
 type Service struct {
 	runtimev1.UnimplementedRuntimeArtifactServiceServer
-	store      Store
-	logger     *slog.Logger
-	authorizer LocalAppOperationAuthorizer
-	now        func() time.Time
+	store                             Store
+	logger                            *slog.Logger
+	authorizer                        LocalAppOperationAuthorizer
+	protectedGeneratedVoiceAuthorizer ProtectedGeneratedVoiceAuthorizer
+	now                               func() time.Time
 }
 
 type LocalAppOperationAuthorizer interface {
 	AuthorizeLocalAppOperation(context.Context, accountservice.LocalAppOperation) (accountservice.LocalAppCallerDecision, error)
+}
+
+type ProtectedGeneratedVoiceAuthorizer interface {
+	AuthorizeProtectedGeneratedVoiceArtifact(context.Context, ArtifactRecord) bool
 }
 
 type Option func(*Service)
@@ -40,6 +46,12 @@ type Option func(*Service)
 func WithLocalAppOperationAuthorizer(authorizer LocalAppOperationAuthorizer) Option {
 	return func(service *Service) {
 		service.authorizer = authorizer
+	}
+}
+
+func WithProtectedGeneratedVoiceAuthorizer(authorizer ProtectedGeneratedVoiceAuthorizer) Option {
+	return func(service *Service) {
+		service.protectedGeneratedVoiceAuthorizer = authorizer
 	}
 }
 
@@ -113,20 +125,33 @@ func (s *Service) ReadArtifactBytes(
 	if artifactID == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
 	}
-	if s == nil || s.store == nil || s.authorizer == nil {
+	if s == nil || s.store == nil {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
 	}
+	_, protectedCaller := protectedprincipal.FromContext(ctx)
 	now := s.now().UTC()
-	decision, err := s.authorizer.AuthorizeLocalAppOperation(ctx, accountservice.LocalAppOperationReadArtifactBytes)
-	if err != nil || !validLocalAppArtifactDecision(decision, now) {
-		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
+	var decision accountservice.LocalAppCallerDecision
+	if !protectedCaller {
+		if s.authorizer == nil {
+			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
+		}
+		var err error
+		decision, err = s.authorizer.AuthorizeLocalAppOperation(ctx, accountservice.LocalAppOperationReadArtifactBytes)
+		if err != nil || !validLocalAppArtifactDecision(decision, now) {
+			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
+		}
 	}
 
 	record, ok := s.store.Get(artifactID)
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
 	}
-	if !artifactAudienceMatches(record.Audience, decision, now) {
+	if protectedCaller {
+		if s.protectedGeneratedVoiceAuthorizer == nil ||
+			!s.protectedGeneratedVoiceAuthorizer.AuthorizeProtectedGeneratedVoiceArtifact(ctx, record) {
+			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
+		}
+	} else if !artifactAudienceMatches(record.Audience, decision, now) {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
 	}
 	if !artifactRecordIntegrityValid(record) {

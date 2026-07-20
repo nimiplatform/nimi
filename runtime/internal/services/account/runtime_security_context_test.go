@@ -16,8 +16,8 @@ func TestAuthenticatedRuntimeSecurityContextGenerationLifecycle(t *testing.T) {
 	}
 
 	completeLogin(t, svc)
-	projection, loginGeneration, ok := svc.AuthenticatedRuntimeSecurityContext(context.Background())
-	if !ok || projection.GetAccountId() != "acct-1" || projection.GetRealmEnvironmentId() != "realm-local" || loginGeneration == 0 {
+	projection, loginGeneration, invalidated, ok := svc.BindAuthenticatedRuntimeGeneration(context.Background())
+	if !ok || projection.GetAccountId() != "acct-1" || projection.GetRealmEnvironmentId() != "realm-local" || loginGeneration == 0 || invalidated == nil {
 		t.Fatalf("login security context = (%+v, %d, %v)", projection, loginGeneration, ok)
 	}
 
@@ -29,6 +29,11 @@ func TestAuthenticatedRuntimeSecurityContextGenerationLifecycle(t *testing.T) {
 	projection, refreshGeneration, ok := svc.AuthenticatedRuntimeSecurityContext(context.Background())
 	if !ok || projection.GetAccountId() != "acct-1" || refreshGeneration != loginGeneration {
 		t.Fatalf("same-identity refresh security context = (%+v, %d, %v), want generation %d", projection, refreshGeneration, ok, loginGeneration)
+	}
+	select {
+	case <-invalidated:
+		t.Fatal("same-identity refresh invalidated the bound account generation")
+	default:
 	}
 
 	unauthorized, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: firstPartyCaller()})
@@ -45,6 +50,11 @@ func TestAuthenticatedRuntimeSecurityContextGenerationLifecycle(t *testing.T) {
 	}
 	if projection, generation, ok := svc.AuthenticatedRuntimeSecurityContext(context.Background()); ok || projection != nil || generation <= loginGeneration {
 		t.Fatalf("logged-out security context = (%+v, %d, %v), want advanced unavailable generation", projection, generation, ok)
+	}
+	select {
+	case <-invalidated:
+	default:
+		t.Fatal("logout did not synchronously invalidate the bound account generation")
 	}
 	logoutGeneration := svc.accountGeneration
 

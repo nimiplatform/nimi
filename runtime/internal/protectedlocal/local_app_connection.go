@@ -40,17 +40,19 @@ func (verifier staticLocalAppPeerVerifier) VerifyLocalAppLaunchPeer(context.Cont
 }
 
 type LocalAppConnection struct {
-	launchID   Identifier
-	process    ProcessTuple
-	boot       Identifier
-	liveness   DesktopProcessLiveness
-	trustClass LocalAppTrustClass
-	live       atomic.Bool
-	done       chan struct{}
-	revokeMu   sync.Mutex
-	hooks      []func()
-	sessionMu  sync.RWMutex
-	session    *LocalAppSessionHandle
+	launchID          Identifier
+	process           ProcessTuple
+	boot              Identifier
+	liveness          DesktopProcessLiveness
+	trustClass        LocalAppTrustClass
+	live              atomic.Bool
+	done              chan struct{}
+	revokeMu          sync.Mutex
+	hooks             []func()
+	sessionRevokeMu   sync.Mutex
+	sessionRevokeHook func()
+	sessionMu         sync.RWMutex
+	session           *LocalAppSessionHandle
 }
 
 func EstablishLocalAppConnection(ctx context.Context, verifier LocalAppLaunchPeerVerifier) (*LocalAppConnection, error) {
@@ -188,6 +190,22 @@ func (connection *LocalAppConnection) RotateSession(previous LocalAppSessionHand
 	return nil
 }
 
+// ReplaceSessionRevokeHook keeps exactly one cleanup callback for the current
+// rotated technical session. Transport/liveness hooks remain independent.
+func (connection *LocalAppConnection) ReplaceSessionRevokeHook(hook func()) {
+	if connection == nil || hook == nil {
+		return
+	}
+	connection.sessionRevokeMu.Lock()
+	if !connection.live.Load() {
+		connection.sessionRevokeMu.Unlock()
+		hook()
+		return
+	}
+	connection.sessionRevokeHook = hook
+	connection.sessionRevokeMu.Unlock()
+}
+
 func (connection *LocalAppConnection) Revoke() {
 	if connection == nil || !connection.live.CompareAndSwap(true, false) {
 		return
@@ -201,8 +219,15 @@ func (connection *LocalAppConnection) Revoke() {
 	hooks := append([]func(){}, connection.hooks...)
 	connection.hooks = nil
 	connection.revokeMu.Unlock()
+	connection.sessionRevokeMu.Lock()
+	sessionRevokeHook := connection.sessionRevokeHook
+	connection.sessionRevokeHook = nil
+	connection.sessionRevokeMu.Unlock()
 	for _, hook := range hooks {
 		hook()
+	}
+	if sessionRevokeHook != nil {
+		sessionRevokeHook()
 	}
 }
 

@@ -366,6 +366,18 @@ export type NimiElectronStandardShellHost = {
   readonly desktopOpen?: NimiElectronDesktopOpenHost;
 };
 
+export type NimiElectronBundledAvatarHost = {
+  /** Secondary navigation-integrity URL for the Desktop-created Avatar window. */
+  readonly rendererUrl: string;
+  /** Non-portable exact sender/main-frame authorization owned by Desktop main. */
+  readonly authorizeSender: (event: NimiElectronIpcMainInvokeEvent) => boolean;
+  /** Desktop-owned destruction/navigation invalidation for exact sender objects. */
+  readonly subscribeSenderInvalidation: (listener: (sender: object) => void) => () => void;
+  readonly standardShellHost?: NimiElectronStandardShellHost;
+  readonly commandPolicy?: NimiElectronHostCommandPolicy;
+  readonly commandHandlers?: Readonly<Record<string, NimiElectronCommandHandler>>;
+};
+
 export type RegisterNimiElectronRuntimeBridgeInput = {
   readonly appId: string;
   readonly runtimeEndpoint: string;
@@ -381,6 +393,8 @@ export type RegisterNimiElectronRuntimeBridgeInput = {
   readonly commandPolicy?: NimiElectronHostCommandPolicy;
   readonly standardShellHost?: NimiElectronStandardShellHost;
   readonly commandHandlers?: Readonly<Record<string, NimiElectronCommandHandler>>;
+  /** Fixed Desktop-supervised Avatar profile; valid only for `nimi.desktop`. */
+  readonly bundledAvatarHost?: NimiElectronBundledAvatarHost;
 };
 
 export type RegisteredNimiElectronRuntimeBridge = {

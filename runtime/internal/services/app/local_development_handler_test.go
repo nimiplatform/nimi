@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"os"
@@ -218,12 +219,8 @@ func TestLocalDevelopmentStartupReconciliationRebuildsExactConsentAndTombstonesO
 	}); err != nil {
 		t.Fatalf("advance concurrent project generation: %v", err)
 	}
-	retriedRecord, err := service.updateLocalDevelopmentRecord(ctx, firstProjection, firstRecord, observation)
-	if err != nil {
-		t.Fatalf("retry stale project generation: %v", err)
-	}
-	if retriedRecord.InstallOrProjectGeneration != firstRecord.InstallOrProjectGeneration+2 || retriedRecord.PayloadRootDigest != observation.PayloadRootDigest {
-		t.Fatalf("revision-conflict retry record = %+v", retriedRecord)
+	if _, err := service.updateLocalDevelopmentRecord(ctx, firstProjection, firstRecord, observation); !errors.Is(err, localappkernel.ErrRevisionConflict) {
+		t.Fatalf("stale project generation must fail after one conflict reread, got %v", err)
 	}
 	if _, err := kernel.Principals().Tombstone(ctx, firstProjection.LocalAppPrincipalID); err != nil {
 		t.Fatalf("tombstone candidate projection: %v", err)
@@ -263,6 +260,29 @@ func TestLocalDevelopmentPreparationInvalidationPreservesTransientOwnerState(t *
 		if localDevelopmentPreparationInvalidatesAuthorization(err) {
 			t.Fatalf("%s must preserve exact durable authorization", name)
 		}
+	}
+}
+
+func TestLocalDevelopmentSessionOpenErrorPreservesFailureClass(t *testing.T) {
+	tests := []struct {
+		name   string
+		err    error
+		code   codes.Code
+		reason runtimev1.ReasonCode
+	}{
+		{name: "launch expired", err: errLocalDevelopmentLaunchExpired, code: codes.Unauthenticated, reason: runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED},
+		{name: "authorization revoked", err: errLocalDevelopmentAuthorization, code: codes.Unauthenticated, reason: runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED},
+		{name: "process mismatch", err: errLocalDevelopmentLaunchMismatch, code: codes.PermissionDenied, reason: runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH},
+		{name: "account changed", err: errLocalDevelopmentAccountChanged, code: codes.Unauthenticated, reason: runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED},
+		{name: "store unavailable", err: errors.New("store unavailable"), code: codes.FailedPrecondition, reason: runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			failure := status.Convert(localDevelopmentSessionOpenError(test.err))
+			if failure.Code() != test.code || failure.Message() != test.reason.String() {
+				t.Fatalf("session-open failure = %s/%q, want %s/%q", failure.Code(), failure.Message(), test.code, test.reason.String())
+			}
+		})
 	}
 }
 
@@ -391,9 +411,9 @@ permissions: []
 	if opened.TrustClass != runtimev1.LocalAppTrustClass_LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT || opened.AccountGeneration != account.generation || opened.RuntimeBootEpoch != boot {
 		t.Fatalf("unexpected development bootstrap: %+v", opened)
 	}
-	rotated, err := service.OpenLocalAppSessionProjection(hostContext)
+	rotated, err := service.RenewLocalAppSessionProjection(hostContext)
 	if err != nil {
-		t.Fatalf("rotate local-development technical session: %v", err)
+		t.Fatalf("renew local-development technical session: %v", err)
 	}
 	if rotated != opened {
 		t.Fatalf("session rotation changed the sanitized projection: before=%+v after=%+v", opened, rotated)

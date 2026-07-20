@@ -8,7 +8,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
+
+	"golang.org/x/sys/windows"
 )
 
 func TestWindowsLocalDevelopmentProcessVerifierBindsCurrentHostPathWithoutProductionSigning(t *testing.T) {
@@ -46,6 +49,50 @@ func TestWindowsLocalDevelopmentProcessVerifierBindsCurrentHostPathWithoutProduc
 		ProjectRoot: t.TempDir(), HostExecutablePath: executable,
 	}); err == nil {
 		t.Fatal("host executable outside the approved project root must fail closed")
+	}
+}
+
+func TestWindowsLocalDevelopmentProcessVerifierBindsSuspendedChildBeforeResume(t *testing.T) {
+	profile := mustActiveWindowsRuntimeProfile()
+	principal := WindowsServicePrincipal{serviceSID: profile.serviceSID, tokenUserSID: profile.serviceHostSID}
+	identity, err := ResolveWindowsActiveDesktopIdentity(context.Background(), principal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	verifier, err := NewWindowsLocalDevelopmentProcessVerifier(identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	executable, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	executable, err = filepath.EvalSymlinks(executable)
+	if err != nil {
+		t.Fatal(err)
+	}
+	child := exec.Command(executable, "-test.run=^$")
+	child.SysProcAttr = &syscall.SysProcAttr{CreationFlags: windows.CREATE_SUSPENDED}
+	if err := child.Start(); err != nil {
+		t.Fatalf("start suspended local-development child: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = child.Process.Kill()
+		_ = child.Wait()
+	})
+
+	process, liveness, err := verifier.VerifyLocalDevelopmentProcess(
+		context.Background(),
+		uint32(child.Process.Pid),
+		LocalDevelopmentProcessPolicy{ProjectRoot: filepath.Dir(executable), HostExecutablePath: executable},
+	)
+	if err != nil {
+		stage, _ := WindowsProcessTrustStageFromError(err)
+		t.Fatalf("verify suspended local-development process (stage=%d): %v", stage, err)
+	}
+	t.Cleanup(func() { _ = liveness.Close() })
+	if process.PID != uint32(child.Process.Pid) || process.CanonicalExecutablePath != filepath.Clean(executable) {
+		t.Fatalf("unexpected suspended local-development process tuple: %+v", process)
 	}
 }
 

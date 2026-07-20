@@ -16,12 +16,25 @@ func (s *Service) TerminateAgent(ctx context.Context, req *runtimev1.TerminateAg
 	return s.agentAdminRuntime().terminate(ctx, req)
 }
 
-func (s *Service) GetAgent(_ context.Context, req *runtimev1.GetAgentRequest) (*runtimev1.GetAgentResponse, error) {
+func (s *Service) GetAgent(ctx context.Context, req *runtimev1.GetAgentRequest) (*runtimev1.GetAgentResponse, error) {
+	if isBundledAvatarCapability(ctx, "runtime.agent.read") {
+		return s.getBundledAvatarAgent(ctx, req)
+	}
 	return s.agentAdminRuntime().get(req)
 }
 
-func (s *Service) ListAgents(_ context.Context, req *runtimev1.ListAgentsRequest) (*runtimev1.ListAgentsResponse, error) {
-	return s.agentAdminRuntime().list(req)
+func (s *Service) ListAgents(ctx context.Context, req *runtimev1.ListAgentsRequest) (*runtimev1.ListAgentsResponse, error) {
+	if isBundledAvatarCapability(ctx, "runtime.agent.read") {
+		principal, err := bundledAvatarPrincipal(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if err := validateBundledAvatarAgentSelector(req.GetContext()); err != nil {
+			return nil, err
+		}
+		return s.agentAdminRuntime().list(req, principal.AccountID)
+	}
+	return s.agentAdminRuntime().list(req, "")
 }
 
 func (s *Service) GetAgentState(_ context.Context, req *runtimev1.GetAgentStateRequest) (*runtimev1.GetAgentStateResponse, error) {

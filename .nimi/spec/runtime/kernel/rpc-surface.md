@@ -23,7 +23,10 @@ operations, and Runtime-private refresh. Method presence in proto or
 session do not grant those roles. `OpenDesktopSession` retains Desktop account
 control semantics; third-party apps use only `PrepareLocalAppLaunch`, native
 process binding, and request-empty `OpenLocalAppSession` on the verified
-local-app connection.
+local-app connection. The native host may rotate the resulting short-lived
+technical session only through request-empty `RenewLocalAppSession` on that
+same verified `local_app_host` connection; this is not an SDK or renderer
+operation and never creates portable authority.
 
 Runtime kernel 的 RPC 覆盖范围为 admitted proto 服务与已定义的 design-first service surface：
 

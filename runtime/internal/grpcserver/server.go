@@ -447,6 +447,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		}
 	}
 	agentSvc.SetScopedBindingValidator(accountSvc)
+	agentSvc.SetRuntimeAccountProjectionProvider(accountSvc)
 	agentSvc.SetAuditStore(auditStore)
 	// K-AGCORE-146: Runtime Agent AI Config readiness recomputes on provider health
 	// change evidence.
@@ -455,6 +456,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	agentSvc.SetRuntimePrivateAIBridge(runtimeagentservice.NewAIBackedRuntimePrivateAIBridge(aiSvc))
 	agentSvc.SetVoiceAssetResolver(runtimeagentservice.NewAIBackedVoiceAssetResolver(aiSvc))
 	agentSvc.SetVoiceLipsyncScenarioExecutor(aiSvc, "", runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED)
+	aiSvc.SetRuntimeAccountProjectionProvider(accountSvc)
 	if acceptance := cfg.NonReleaseDevKernelCheckpoint; acceptance != nil {
 		if protected == nil {
 			agentSvc.Close()
@@ -627,9 +629,14 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	authSvc.SetLocalAppSessionOpener(appSvc)
 	accountSvc.SetLocalAppSessionResolver(appSvc)
 	accountSvc.SetAccountAuthorityRevoker(appSvc)
-	artifactSvc := runtimeartifactservice.New(artifactStore, logger, runtimeartifactservice.WithLocalAppOperationAuthorizer(accountSvc))
+	artifactSvc := runtimeartifactservice.New(
+		artifactStore,
+		logger,
+		runtimeartifactservice.WithLocalAppOperationAuthorizer(accountSvc),
+		runtimeartifactservice.WithProtectedGeneratedVoiceAuthorizer(agentSvc),
+	)
 	if protected != nil {
-		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, appSvc, appSvc, protected.DesktopSessions)
+		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, appSvc, appSvc, artifactSvc, protected.DesktopSessions, accountSvc)
 		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, appSvc)
 	}
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)

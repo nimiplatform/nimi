@@ -112,28 +112,29 @@ const FORBIDDEN_LAUNCH_FIELDS = [
   'login_route',
   'conversationAnchorId',
   'conversation_anchor_id',
+  'ownerUserId',
+  'owner_user_id',
+  'runtimeSourceRef',
+  'runtime_source_ref',
+  'localAgentRef',
+  'local_agent_ref',
 ] as const;
 
 export type AvatarLaunchHandoffPayload = {
   readonly agentId: string;
-  readonly ownerUserId: string;
-  readonly runtimeSourceRef: string;
-  readonly localAgentRef: string;
   readonly avatarInstanceId: string | null;
   readonly launchSource: string | null;
 };
 
 export type AvatarLaunchHandoffPayloadInput = {
-  readonly ownerUserId: unknown;
-  readonly runtimeSourceRef: unknown;
-  readonly localAgentRef: unknown;
+  readonly agentId: unknown;
   readonly avatarInstanceId?: unknown;
   readonly sourceSurface?: unknown;
   readonly launchSource?: unknown;
 };
 
 export type AvatarLaunchInstanceIdInput = {
-  readonly localAgentRef: unknown;
+  readonly agentId: unknown;
   readonly sourceSurface?: unknown;
 };
 
@@ -146,20 +147,20 @@ export type AvatarLaunchHandoffResult = {
 };
 
 export function buildAvatarLaunchInstanceId(input: AvatarLaunchInstanceIdInput): string {
-  const localAgentRef = requireLocalAgentRef(input.localAgentRef, 'localAgentRef');
+  const agentId = requireLocalAgentRef(input.agentId, 'agentId');
   const sourceSurface = sanitizeIdentifier(optionalText(input.sourceSurface) || 'avatar');
-  return `${sourceSurface}-avatar-${sanitizeIdentifier(localAgentRef)}`;
+  return `${sourceSurface}-avatar-${sanitizeIdentifier(agentId)}`;
 }
 
 export function buildAvatarLaunchHandoffPayload(
   input: AvatarLaunchHandoffPayloadInput,
 ): AvatarLaunchHandoffPayload {
-  const localAgentRef = requireLocalAgentRef(input.localAgentRef, 'localAgentRef');
+  if (!isRecord(input)) {
+    throw new Error('avatar launch handoff returned invalid payload');
+  }
+  assertNoForbiddenFields(input, 'avatar launch handoff');
   return parseAvatarLaunchHandoffPayload({
-    agentId: localAgentRef,
-    ownerUserId: input.ownerUserId,
-    runtimeSourceRef: input.runtimeSourceRef,
-    localAgentRef,
+    agentId: input.agentId,
     avatarInstanceId: optionalText(input.avatarInstanceId),
     launchSource: optionalText(input.launchSource) || optionalText(input.sourceSurface),
   });
@@ -175,20 +176,8 @@ export function parseAvatarLaunchHandoffPayload(value: unknown): AvatarLaunchHan
     ?? optionalText(value.source_surface)
     ?? optionalText(value.launch_source);
   const agentId = requireLocalAgentRef(value.agentId ?? value.agent_id, 'agentId');
-  const ownerUserId = requireText(value.ownerUserId ?? value.owner_user_id, 'ownerUserId');
-  const runtimeSourceRef = requireText(value.runtimeSourceRef ?? value.runtime_source_ref, 'runtimeSourceRef');
-  const localAgentRef = requireLocalAgentRef(value.localAgentRef ?? value.local_agent_ref, 'localAgentRef');
-  if (agentId !== localAgentRef) {
-    throw new Error('avatar launch handoff requires agentId to equal localAgentRef');
-  }
-  if (localAgentRef === runtimeSourceRef) {
-    throw new Error('avatar launch handoff requires localAgentRef to be Runtime-owned');
-  }
   return {
     agentId,
-    ownerUserId,
-    runtimeSourceRef,
-    localAgentRef,
     avatarInstanceId: optionalText(value.avatarInstanceId ?? value.avatar_instance_id),
     launchSource,
   };

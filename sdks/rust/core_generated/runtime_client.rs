@@ -1040,6 +1040,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RegisterExternalPrincipalResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession",
+        service: "RuntimeAuthService",
+        method: "RenewLocalAppSession",
+        kind: "unary",
+        request_type: "RenewLocalAppSessionRequest",
+        response_type: "OpenLocalAppSessionResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession",
         service: "RuntimeAuthService",
         method: "RevokeExternalPrincipalSession",

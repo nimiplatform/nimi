@@ -50,6 +50,15 @@ func TestProtectedLocalAppUnaryPolicyRequiresAtomicBootstrapPromotion(t *testing
 	}
 
 	handlerCalled = false
+	_, err = interceptor(ctx, nil, &grpc.UnaryServerInfo{FullMethod: protectedRenewLocalAppSessionMethod}, func(context.Context, any) (any, error) {
+		handlerCalled = true
+		return nil, nil
+	})
+	if handlerCalled || localAppTransportReason(err) != runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED {
+		t.Fatalf("bootstrap reached renewal: called=%v reason=%v err=%v", handlerCalled, localAppTransportReason(err), err)
+	}
+
+	handlerCalled = false
 	_, err = interceptor(ctx, nil, &grpc.UnaryServerInfo{FullMethod: protectedOpenLocalAppSessionMethod}, func(handlerCtx context.Context, _ any) (any, error) {
 		handlerCalled = true
 		bound, ok := protectedlocal.LocalAppConnectionFromContext(handlerCtx)
@@ -75,6 +84,25 @@ func TestProtectedLocalAppUnaryPolicyRequiresAtomicBootstrapPromotion(t *testing
 	})
 	if handlerCalled || localAppTransportReason(err) != runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH {
 		t.Fatalf("promoted host reopened bootstrap: called=%v reason=%v err=%v", handlerCalled, localAppTransportReason(err), err)
+	}
+
+	handlerCalled = false
+	_, err = interceptor(ctx, nil, &grpc.UnaryServerInfo{FullMethod: protectedRenewLocalAppSessionMethod}, func(handlerCtx context.Context, _ any) (any, error) {
+		handlerCalled = true
+		bound, ok := protectedlocal.LocalAppConnectionFromContext(handlerCtx)
+		if !ok || bound != connection {
+			t.Fatal("renewal handler did not receive the verified session connection")
+		}
+		previous, ok := connection.Session()
+		if !ok {
+			t.Fatal("renewal handler did not receive the current private session")
+		}
+		return nil, connection.RotateSession(previous, protectedlocal.LocalAppSessionHandle{
+			SessionID: grpcLocalAppIdentifier(0xa4), SessionProof: grpcLocalAppIdentifier(0xa5),
+		})
+	})
+	if err != nil || !handlerCalled {
+		t.Fatalf("promoted host did not reach renewal: called=%v err=%v", handlerCalled, err)
 	}
 
 	handlerCalled = false
@@ -130,6 +158,7 @@ func TestLocalAppPermissionPreflightDistinguishesRawUncarriedFromStaleProcess(t 
 func TestProtectedLocalAppPoliciesExposeOnlyBaseEntitlementsAndPermissionPosture(t *testing.T) {
 	for _, method := range []string{
 		protectedOpenLocalAppSessionMethod,
+		protectedRenewLocalAppSessionMethod,
 		protectedGetLocalAppPermissionStatusMethod,
 		protectedRequestLocalAppPermissionMethod,
 		protectedReadLocalAppStorageJSONMethod,

@@ -269,6 +269,9 @@ services:
       - name: OpenLocalAppSession
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession
+      - name: RenewLocalAppSession
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession
       - name: RefreshSession
         type: unary
       - name: RevokeSession

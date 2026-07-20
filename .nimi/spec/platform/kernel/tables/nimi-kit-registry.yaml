@@ -110,7 +110,7 @@ modules:
     kind: logic
     surface_level: logic
     adapter_contract: none
-    description: Pure-logic utilities (OAuth, env, shell-mode, renderer-safe storage JSON helpers, runtime capability helpers, model config helpers, and reusable notification headless presentation helpers)
+    description: Pure-logic utilities (OAuth, env, shell-mode, renderer-safe storage JSON and structural JSON equality helpers, runtime capability helpers, model config helpers, and reusable notification headless presentation helpers)
     dependencies:
       - sdk
     peer_dependencies: []
@@ -118,6 +118,7 @@ modules:
       - ./core/shell-mode
       - ./core/oauth
       - ./core/storage-json
+      - ./core/json-value
       - ./core/offline-coordinator
       - ./core/notifications
       - ./core/sdk-contract
@@ -126,6 +127,7 @@ modules:
       - ./core/shell-mode
       - ./core/oauth
       - ./core/storage-json
+      - ./core/json-value
       - ./core/offline-coordinator
       - ./core/notifications
       - ./core/sdk-contract
@@ -135,6 +137,7 @@ modules:
       - ./core/shell-mode
       - ./core/oauth
       - ./core/storage-json
+      - ./core/json-value
       - ./core/offline-coordinator
       - ./core/notifications
       - ./core/sdk-contract
@@ -185,7 +188,7 @@ modules:
     kind: infra
     surface_level: infra
     adapter_contract: NimiProtectedLocalHostCarrier
-    description: Shared native protected-local carrier for mutual service/process/executable verification, empty OpenDesktopSession, typed fixed-service status/start/restart, PrepareLocalAppLaunch process binding, request-empty OpenLocalAppSession, zero-permission session posture, public permission status/request by admitted product id, and app-private JSON storage. The current reserved permission catalog exposes no Agent, artifact, or voice operation. Kit carries typed calls only; Runtime, canonical domain owners, and the OS retain principal, provenance, account, permission-decision, launch/session, storage, Agent, artifact, voice-route, and lifecycle authority.
+    description: Shared native protected-local carrier for mutual service/process/executable verification, empty OpenDesktopSession, typed fixed-service status/start/restart, PrepareLocalAppLaunch process binding, request-empty OpenLocalAppSession, host-only request-empty RenewLocalAppSession, zero-permission session posture, public permission status/request by admitted product id, and app-private JSON storage. The current reserved permission catalog exposes no Agent, artifact, or voice operation. Kit carries typed calls only; Runtime, canonical domain owners, and the OS retain principal, provenance, account, permission-decision, launch/session, storage, Agent, artifact, voice-route, and lifecycle authority.
     dependencies: []
     peer_dependencies: []
     exports: []
@@ -266,7 +269,7 @@ modules:
     kind: infra
     surface_level: infra
     adapter_contract: NimiStandardShellCapabilityHost
-    description: Shared Electron main/preload host glue consuming the native protected-local carrier and exact local-app operation allowlist while keeping renderer IPC narrowed; its Windows x64 adapter owns no external-daemon mode, executable/service selection, stop/config authority, bearer custody, principal/session truth, or protected origin truth.
+    description: Shared Electron main/preload host glue consuming the native protected-local carrier, exact local-app operation allowlist, and exact Desktop-supervised bundled Avatar profile while keeping renderer IPC narrowed; its Windows x64 adapter owns no external-daemon mode, executable/service selection, stop/config authority, bearer custody, principal/session truth, or protected origin truth.
     dependencies:
       - kit.shell.capabilities
       - kit.shell.protected-local
@@ -291,7 +294,7 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-KIT-041E
-    notes: Node/Electron-host only. Renderer code must not import this module directly. Product service control is exactly typed status/start/restart through kit.shell.protected-local; stop, binary selection, generic config mutation, raw bearer injection, and external-daemon fallback are forbidden. Generic @grpc/grpc-js proxying cannot carry protected methods. Local-app registration accepts only renderer origins and Electron IPC registration; Runtime derives principal/provenance/session from the native carrier. Runtime restart invalidates protected sessions; callers reopen only through the native carrier. Platform adapters load only their fixed protected-local Node-API package and expose the exact P-KIT-044 allowlist. The signed Nimi Dev Electron bundle may consume the compile-time non-product macOS profile; production Nimi.app cannot. macOS Electron and Tauri remain separate P-NAPP-037 gates, and Electron development admission cannot enable Tauri. Session/proof/account/principal/record/permission-decision fields and arbitrary method forwarding remain absent. Windows arm64, unadmitted production macOS candidates, and Linux remain fail-closed.
+    notes: Node/Electron-host only. Renderer code must not import this module directly. Product service control is exactly typed status/start/restart through kit.shell.protected-local; stop, binary selection, generic config mutation, raw bearer injection, and external-daemon fallback are forbidden. Generic @grpc/grpc-js proxying cannot carry protected methods. Local-app registration accepts only renderer origins and Electron IPC registration; Runtime derives principal/provenance/session from the native carrier. The P-KIT-047 bundled Avatar adapter additionally accepts a Desktop-owned exact WebContents authorization registry, binds every call to the invoking sender/main-frame object, and treats the registered URL only as secondary navigation integrity before using the spec-generated bundled_avatar_v1 method profile with fixed nimi.avatar identity; URL-only selection and renderer-selected host equivalence, profile, app id, metadata and endpoint are forbidden. Runtime restart invalidates protected sessions and Avatar streams; callers reopen only through the native carrier. Platform adapters load only their fixed protected-local Node-API package and expose the exact P-KIT-044/P-KIT-047 allowlists. The signed Nimi Dev Electron bundle may consume the compile-time non-product macOS profile; production Nimi.app cannot. macOS Electron and Tauri remain separate P-NAPP-037 gates, and Electron development admission cannot enable Tauri. Session/proof/account/principal/record/permission-decision fields and arbitrary method forwarding remain absent. Windows arm64, unadmitted production macOS candidates, and Linux remain fail-closed.
   - id: kit.core.runtime-capabilities
     subpath: /core/runtime-capabilities
     kind: logic

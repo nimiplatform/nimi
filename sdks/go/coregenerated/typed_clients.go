@@ -6979,6 +6979,10 @@ type RemoveModelRequest struct {
 	ModelId string `json:"model_id,omitempty"`
 }
 
+type RenewLocalAppSessionRequest struct {
+
+}
+
 type RepairLocalEnvironmentDependencyRequest struct {
 	EnvironmentKey string `json:"environment_key,omitempty"`
 	DependencyFamily string `json:"dependency_family,omitempty"`
@@ -9823,6 +9827,14 @@ func (c RuntimeTypedClient) RegisterExternalPrincipal(ctx context.Context, reque
 		return RegisterExternalPrincipalResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[RegisterExternalPrincipalResponse](raw, "RegisterExternalPrincipalResponse")
+}
+
+func (c RuntimeTypedClient) RenewLocalAppSession(ctx context.Context, request RenewLocalAppSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenLocalAppSessionResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession", request, metadata, timeoutMS)
+	if err != nil {
+		return OpenLocalAppSessionResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[OpenLocalAppSessionResponse](raw, "OpenLocalAppSessionResponse")
 }
 
 func (c RuntimeTypedClient) RevokeExternalPrincipalSession(ctx context.Context, request RevokeExternalPrincipalSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Ack, error) {

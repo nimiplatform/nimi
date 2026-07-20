@@ -21,7 +21,7 @@ services:
   - RuntimeAccountService
   - RuntimeAppService
   - RuntimeDevelopmentService
-method_count: 55
+method_count: 56
 method_mappings:
   - design_service: RuntimeServiceControlService
     design_method: RequestRuntimeRestart
@@ -72,6 +72,11 @@ method_mappings:
     design_method: OpenLocalAppSession
     proto_service: RuntimeAuthService
     proto_method: OpenLocalAppSession
+    mapping_posture: aligned
+  - design_service: RuntimeAuthService
+    design_method: RenewLocalAppSession
+    proto_service: RuntimeAuthService
+    proto_method: RenewLocalAppSession
     mapping_posture: aligned
   - design_service: RuntimeExternalAgentService
     design_method: GetExternalAgentGatewayStatus

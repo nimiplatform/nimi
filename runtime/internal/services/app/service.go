@@ -12,6 +12,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
@@ -199,6 +200,7 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	localDecision, localAppAuthorized := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
+	protectedPrincipal, protectedAuthorized := protectedprincipal.FromContext(ctx)
 	if localAppAuthorized {
 		if localDecision.Operation != accountservice.LocalAppOperationSendConversationTurn || req.GetToAppId() != "runtime.agent" || req.GetMessageType() != "runtime.agent.turn.request" || req.GetScopedBinding() != nil {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
@@ -209,6 +211,23 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 		}
 		cloned.FromAppId = localDecision.AppID
 		cloned.SubjectUserId = localDecision.AccountID
+		req = cloned
+	}
+	if protectedAuthorized {
+		candidateFromAppID := strings.TrimSpace(req.GetFromAppId())
+		if !runtimeagentservice.IsPublicChatIngressMessageType(strings.TrimSpace(req.GetMessageType())) {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
+		if (candidateFromAppID != "" && candidateFromAppID != protectedPrincipal.AppID) ||
+			strings.TrimSpace(req.GetToAppId()) != "runtime.agent" || req.GetScopedBinding() != nil {
+			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
+		}
+		cloned, ok := proto.Clone(req).(*runtimev1.SendAppMessageRequest)
+		if !ok {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
+		cloned.FromAppId = protectedPrincipal.AppID
+		cloned.SubjectUserId = protectedPrincipal.AccountID
 		req = cloned
 	}
 	fromAppID := strings.TrimSpace(req.GetFromAppId())
@@ -222,7 +241,7 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
 
-	if s.sessionValidator != nil && !localAppAuthorized && !isTrustedInternalCaller(ctx, fromAppID) {
+	if s.sessionValidator != nil && !localAppAuthorized && !protectedAuthorized && !isTrustedInternalCaller(ctx, fromAppID) {
 		sessionID, sessionToken, _ := envelope.ParseSessionFromContext(ctx)
 		if reasonCode, ok := s.sessionValidator.ValidateAppSession(fromAppID, sessionID, sessionToken); !ok {
 			return nil, grpcerr.WithReasonCode(codes.Unauthenticated, reasonCode)
@@ -322,6 +341,7 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	localDecision, localAppAuthorized := accountservice.AuthorizedLocalAppDecisionFromContext(stream.Context())
+	protectedPrincipal, protectedAuthorized := protectedprincipal.FromContext(stream.Context())
 	localAppSelector := localappop.Selector{}
 	if localAppAuthorized {
 		if localDecision.Operation != accountservice.LocalAppOperationSubscribeConversation || req.GetScopedBinding() != nil || len(req.GetFromAppIds()) != 1 || req.GetFromAppIds()[0] != "runtime.agent" || strings.TrimSpace(req.GetLocalAgentRef()) == "" || strings.TrimSpace(req.GetConversationAnchorId()) == "" {
@@ -346,6 +366,21 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 			AgentID: strings.TrimSpace(req.GetLocalAgentRef()), ConversationAnchorID: strings.TrimSpace(req.GetConversationAnchorId()),
 		}
 	}
+	if protectedAuthorized {
+		candidateAppID := strings.TrimSpace(req.GetAppId())
+		if (candidateAppID != "" && candidateAppID != protectedPrincipal.AppID) ||
+			req.GetScopedBinding() != nil || len(req.GetFromAppIds()) != 1 ||
+			strings.TrimSpace(req.GetFromAppIds()[0]) != "runtime.agent" {
+			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
+		}
+		cloned, ok := proto.Clone(req).(*runtimev1.SubscribeAppMessagesRequest)
+		if !ok {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
+		cloned.AppId = protectedPrincipal.AppID
+		cloned.SubjectUserId = protectedPrincipal.AccountID
+		req = cloned
+	}
 	if strings.TrimSpace(req.GetAppId()) == "" {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
@@ -355,7 +390,7 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 	if contextAppID := appIDFromContext(stream.Context()); contextAppID != "" && contextAppID != strings.TrimSpace(req.GetAppId()) {
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
-	if s.sessionValidator != nil && !localAppAuthorized && !isTrustedInternalCaller(stream.Context(), strings.TrimSpace(req.GetAppId())) {
+	if s.sessionValidator != nil && !localAppAuthorized && !protectedAuthorized && !isTrustedInternalCaller(stream.Context(), strings.TrimSpace(req.GetAppId())) {
 		sessionID, sessionToken, _ := envelope.ParseSessionFromContext(stream.Context())
 		if reasonCode, ok := s.sessionValidator.ValidateAppSession(strings.TrimSpace(req.GetAppId()), sessionID, sessionToken); !ok {
 			return grpcerr.WithReasonCode(codes.Unauthenticated, reasonCode)

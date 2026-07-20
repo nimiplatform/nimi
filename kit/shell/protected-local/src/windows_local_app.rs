@@ -5,10 +5,11 @@ use std::future::Future;
 use std::pin::Pin;
 use std::time::Duration;
 
+use tokio::sync::RwLock;
 use tonic::transport::Channel;
 
 use crate::generated::runtime_auth_service_client::RuntimeAuthServiceClient;
-use crate::generated::OpenLocalAppSessionRequest;
+use crate::generated::{OpenLocalAppSessionRequest, RenewLocalAppSessionRequest};
 use crate::grpc_status::local_app_error_from_status;
 #[cfg(target_os = "macos")]
 use crate::macos_peer_trust::{MacOSRuntimePeerState, VerifiedMacOSRuntimePeer};
@@ -51,7 +52,9 @@ type PlatformRuntimePeer = VerifiedMacOSRuntimePeer;
 struct PlatformLocalAppSession {
     channel: Channel,
     runtime_peer: PlatformRuntimePeer,
-    _runtime_boot_epoch: [u8; 32],
+    account_generation: u64,
+    runtime_boot_epoch: [u8; 32],
+    operation_gate: RwLock<()>,
 }
 
 impl PlatformLocalAppSession {
@@ -77,6 +80,29 @@ impl PlatformLocalAppSession {
         let _ = &self.runtime_peer;
         Ok(self.channel.clone())
     }
+
+    async fn renew_session(&self) -> Result<LocalAppSessionStatus, LocalAppOperationError> {
+        let _renewal = self.operation_gate.write().await;
+        let response = RuntimeAuthServiceClient::new(self.checked_channel()?)
+            .renew_local_app_session(RenewLocalAppSessionRequest {})
+            .await
+            .map_err(local_app_error_from_status)?
+            .into_inner();
+        let (account_generation, runtime_boot_epoch) = validate_session_projection(response)?;
+        if account_generation != self.account_generation {
+            return Err(LocalAppOperationError::new(
+                LocalAppReasonCode::AccountChanged,
+                false,
+            ));
+        }
+        if runtime_boot_epoch != self.runtime_boot_epoch {
+            return Err(LocalAppOperationError::new(
+                LocalAppReasonCode::RuntimeRestarted,
+                true,
+            ));
+        }
+        Ok(ready_session_status())
+    }
 }
 
 impl NimiLocalAppSession for PlatformLocalAppSession {
@@ -86,13 +112,18 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box<dyn Future<Output = Result<LocalAppSessionStatus, LocalAppOperationError>> + Send + '_>,
     > {
         Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
             self.checked_channel()?;
-            Ok(LocalAppSessionStatus {
-                state: LocalAppSessionState::Ready,
-                reason_code: LocalAppReasonCode::ActionExecuted,
-                retryable: false,
-            })
+            Ok(ready_session_status())
         })
+    }
+
+    fn renew_technical_session(
+        &self,
+    ) -> Pin<
+        Box<dyn Future<Output = Result<LocalAppSessionStatus, LocalAppOperationError>> + Send + '_>,
+    > {
+        Box::pin(self.renew_session())
     }
 
     fn permission_status(
@@ -106,6 +137,7 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         >,
     > {
         Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
             permission::local_app_permission_status(self.checked_channel()?, request).await
         })
     }
@@ -121,6 +153,7 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         >,
     > {
         Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
             permission::request_local_app_permission(self.checked_channel()?, request).await
         })
     }
@@ -136,6 +169,7 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         >,
     > {
         Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
             storage::read_local_app_storage_json(self.checked_channel()?, request).await
         })
     }
@@ -151,6 +185,7 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         >,
     > {
         Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
             storage::write_local_app_storage_json(self.checked_channel()?, request).await
         })
     }
@@ -166,6 +201,7 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         >,
     > {
         Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
             storage::remove_local_app_storage_json(self.checked_channel()?, request).await
         })
     }
@@ -210,6 +246,27 @@ async fn open_local_app_session() -> Result<Box<dyn NimiLocalAppSession>, LocalA
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
+    let (account_generation, runtime_boot_epoch) = validate_session_projection(response)?;
+    Ok(Box::new(PlatformLocalAppSession {
+        channel,
+        runtime_peer,
+        account_generation,
+        runtime_boot_epoch,
+        operation_gate: RwLock::new(()),
+    }))
+}
+
+fn ready_session_status() -> LocalAppSessionStatus {
+    LocalAppSessionStatus {
+        state: LocalAppSessionState::Ready,
+        reason_code: LocalAppReasonCode::ActionExecuted,
+        retryable: false,
+    }
+}
+
+fn validate_session_projection(
+    response: crate::generated::OpenLocalAppSessionResponse,
+) -> Result<(u64, [u8; 32]), LocalAppOperationError> {
     if response.state != LOCAL_APP_SESSION_READY
         || response.trust_class != LOCAL_APP_TRUST_LOCAL_DEVELOPMENT
         || response.account_generation == 0
@@ -224,11 +281,7 @@ async fn open_local_app_session() -> Result<Box<dyn NimiLocalAppSession>, LocalA
     if runtime_boot_epoch == [0u8; 32] {
         return Err(untrusted());
     }
-    Ok(Box::new(PlatformLocalAppSession {
-        channel,
-        runtime_peer,
-        _runtime_boot_epoch: runtime_boot_epoch,
-    }))
+    Ok((response.account_generation, runtime_boot_epoch))
 }
 
 #[cfg(target_os = "windows")]

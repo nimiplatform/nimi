@@ -25,12 +25,18 @@ separate grant and operation-owner policy.
 7. `RevokeExternalPrincipalSession`
 8. `OpenDesktopSession`（仅 `desktop_control`）
 9. `OpenLocalAppSession`（request-empty；仅已绑定 launch lease/process/record 的 `local_app_bootstrap`）
+10. `RenewLocalAppSession`（request-empty；仅当前 exact `local_app_host` / `local_app_session`）
 
 两种 protected session-open request 均为空。`OpenDesktopSession` keeps
 Desktop account-control semantics; `OpenLocalAppSession` is the single
 third-party app session path. Neither accepts app id, caller class, source host,
 principal, trust, lease, process, account, grant, or portable proof override,
 and neither returns a portable authorization bearer.
+`RenewLocalAppSession` is not another open path: it atomically replaces only
+the current Runtime-private short-lived technical session on the same verified
+host connection after complete revalidation. It never changes origin role,
+reconsumes a lease, or repeats durable consent, and it returns only the same
+sanitized session posture projection.
 
 ## K-AUTHSVC-003 RegisterApp 最小约束
 
@@ -83,7 +89,9 @@ Ordinary `OpenSession` has no broker, AI, artifact, realtime, media, lifecycle,
 or local-app launch authority. Local-app sessions are created only by
 request-empty `OpenLocalAppSession` on a verified `local_app_bootstrap` connection
 already bound to current lease/process/principal/record; success atomically
-promotes that same connection to `local_app_host`. The following table
+promotes that same connection to `local_app_host`. Its short-lived technical
+session may be renewed only by request-empty `RenewLocalAppSession` on that
+same verified `local_app_host` connection and current session. The following table
 remains a ceiling, not blanket effective rights：
 
 | AppMode | runtime.* ceiling | realm.* ceiling | 静态上限说明 |

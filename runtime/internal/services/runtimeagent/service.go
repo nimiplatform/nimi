@@ -35,13 +35,14 @@ type agentEntry struct {
 }
 
 type subscriber struct {
-	id            uint64
-	agentID       string
-	eventFilters  map[runtimev1.AgentEventType]struct{}
-	scopedBinding *runtimev1.ScopedRuntimeBindingAttachment
-	ch            chan *runtimev1.AgentEvent
-	mu            sync.Mutex
-	closed        bool
+	id                    uint64
+	agentID               string
+	eventFilters          map[runtimev1.AgentEventType]struct{}
+	scopedBinding         *runtimev1.ScopedRuntimeBindingAttachment
+	bundledAvatarIdentity *localAgentIdentity
+	ch                    chan *runtimev1.AgentEvent
+	mu                    sync.Mutex
+	closed                bool
 }
 
 type scopedBindingValidator interface {
@@ -50,6 +51,10 @@ type scopedBindingValidator interface {
 
 type scopedBindingRelationResolver interface {
 	ResolveScopedBindingRelation(bindingID string) *runtimev1.ScopedAppBindingRelation
+}
+
+type runtimeAccountProjectionProvider interface {
+	AuthenticatedRuntimeProjection(context.Context) (*runtimev1.AccountProjection, bool)
 }
 
 type Service struct {
@@ -73,6 +78,7 @@ type Service struct {
 	sourceMaterializationNow                 func() time.Time
 	chatAppEmit                              publicChatAppMessageEmitter
 	bindingValidator                         scopedBindingValidator
+	runtimeAccountProjection                 runtimeAccountProjectionProvider
 	voiceAssetResolverMu                     sync.RWMutex
 	voiceAssetResolver                       VoiceAssetResolver
 	aiBridgeMu                               sync.RWMutex

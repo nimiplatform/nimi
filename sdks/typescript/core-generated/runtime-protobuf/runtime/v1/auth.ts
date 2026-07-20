@@ -194,6 +194,15 @@ export interface OpenLocalAppSessionResponse {
     reasonCode: ReasonCode;
 }
 /**
+ * Request-empty by design. Runtime accepts renewal only on the same verified
+ * local_app_host connection that already owns the current private session.
+ * No request data or metadata may select session, process, account, or trust.
+ *
+ * @generated from protobuf message nimi.runtime.v1.RenewLocalAppSessionRequest
+ */
+export interface RenewLocalAppSessionRequest {
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.RefreshSessionRequest
  */
 export interface RefreshSessionRequest {
@@ -1024,6 +1033,44 @@ class OpenLocalAppSessionResponse$Type extends MessageType<OpenLocalAppSessionRe
  * @generated MessageType for protobuf message nimi.runtime.v1.OpenLocalAppSessionResponse
  */
 export const OpenLocalAppSessionResponse = new OpenLocalAppSessionResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RenewLocalAppSessionRequest$Type extends MessageType<RenewLocalAppSessionRequest> {
+    constructor() {
+        super("nimi.runtime.v1.RenewLocalAppSessionRequest", []);
+    }
+    create(value?: PartialMessage<RenewLocalAppSessionRequest>): RenewLocalAppSessionRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<RenewLocalAppSessionRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RenewLocalAppSessionRequest): RenewLocalAppSessionRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RenewLocalAppSessionRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RenewLocalAppSessionRequest
+ */
+export const RenewLocalAppSessionRequest = new RenewLocalAppSessionRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class RefreshSessionRequest$Type extends MessageType<RefreshSessionRequest> {
     constructor() {

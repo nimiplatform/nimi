@@ -27,7 +27,7 @@ func TestImmutablePackageUnaryRPCsAreDenyAllOnEveryRuntimeTransport(t *testing.T
 		interceptor grpc.UnaryServerInterceptor
 	}{
 		{name: "public", interceptor: newUnaryPublicTransportInterceptor()},
-		{name: "desktop_control", interceptor: newUnaryProtectedDesktopTransportInterceptor(nil)},
+		{name: "desktop_control", interceptor: newUnaryProtectedDesktopTransportInterceptor(nil, nil)},
 		{name: "local_app", interceptor: newUnaryProtectedLocalAppTransportInterceptor()},
 	}
 	for _, transport := range transports {
@@ -54,7 +54,7 @@ func TestImmutablePackageJobStreamIsDenyAllOnEveryRuntimeTransport(t *testing.T)
 		interceptor grpc.StreamServerInterceptor
 	}{
 		{name: "public", interceptor: newStreamPublicTransportInterceptor()},
-		{name: "desktop_control", interceptor: newStreamProtectedDesktopTransportInterceptor(nil)},
+		{name: "desktop_control", interceptor: newStreamProtectedDesktopTransportInterceptor(nil, nil)},
 		{name: "local_app", interceptor: newStreamProtectedLocalAppTransportInterceptor()},
 	}
 	for _, transport := range transports {

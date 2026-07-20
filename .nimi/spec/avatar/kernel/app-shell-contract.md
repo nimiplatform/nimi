@@ -20,7 +20,7 @@
 
 ## 0. 阅读指南
 
-本 contract 定义 Nimi Avatar 桌面 shell 的 window、交互、surface composition 与 lifecycle 行为。Avatar 不是常规软件窗口，而是**桌面悬浮 embodiment surface**：形象即 UI，透明背景，无 chrome，always-on-top。本 contract 专注 Tauri shell surface 的规则；shell 依赖 embodiment projection layer 提供 surface bounds / hit region，而不是直接拥有 backend truth。
+本 contract 定义 Nimi Avatar 桌面 shell 的 window、交互、surface composition 与 lifecycle 行为。Avatar 不是常规软件窗口，而是**桌面悬浮 embodiment surface**：形象即 UI，透明背景，无 chrome，always-on-top。Tauri 与 Electron 必须保持相同产品语义；Electron 默认路径由 verified Desktop process 监管并消费 Runtime `bundled_avatar_v1` protected carrier，不能直接启动独立 Electron host。shell 依赖 embodiment projection layer 提供 surface bounds / hit region，而不是直接拥有 backend truth。
 
 本 contract 是 Avatar shell surface 的完整权威。新增 surface、composition state、window sizing、hit-region 或 lifecycle 行为必须先更新本 contract 及对应 table authority。
 
@@ -275,6 +275,7 @@ Avatar shell 的渲染由 **composition state** 决定。任何时刻 shell 处�
 | `ready` | bootstrap 完成 + visual carrier ready + runtime binding active | `embodiment-stage`；transient overlays only when explicitly opened |
 | `loading` | bootstrap 进行中（pre-`avatar.app.ready`） | 仅 `loading-surface`（degraded-surface 子形态） |
 | `degraded:reauth-required` | runtime account state ≠ AUTHENTICATED | 仅 `degraded-surface`（reauth posture） |
+| `degraded:cloud-offline` | Runtime-mediated Realm operation returns the explicit `REALM_UNAVAILABLE` transport classification | 仅 `degraded-surface`（L1 Cloud offline posture） |
 | `degraded:runtime-unavailable` | daemon 不可用 / protected access 不可用 / driver_start 失败 | 仅 `degraded-surface`（runtime posture） |
 | `degraded:launch-context-invalid` | 缺失或非法 launch intent（无 `agent_id`） | 仅 `degraded-surface`（launch posture） |
 | `error:bootstrap-fatal` | bootstrap 抛错且不属于上述 typed degraded reason | 仅 `degraded-surface`（fatal posture） |
@@ -288,6 +289,7 @@ Avatar shell 的渲染由 **composition state** 决定。任何时刻 shell 处�
 - 不允许出现"degraded panel + embodiment 一起渲染"的 mid-state；若 ready 转入 degraded，必须先卸载 ready surface 再挂载 degraded surface
 - 不允许在 ready 主区域显示 diagnostic 文字、reason summary、或 recovery copy；这些信息只能出现在 degraded-surface
 - 不允许在 degraded-surface 内嵌入 transient overlay 或 embodiment-stage 子组件（保持视觉权威单一）
+- `degraded:cloud-offline` 只能由 Runtime-mediated Realm broker 明确返回 `source=realm`、`reason_code=REALM_UNAVAILABLE` 且 bootstrap stage 为 `realm_connectivity` 时进入；Runtime/account carrier unavailable、anonymous/reauth、permission、validation、contract、429 与其他 Realm application errors 不得映射为 Cloud offline
 
 ## K-NAV-SHELL-COMPOSITION-003 状态转移
 
@@ -523,12 +525,12 @@ Degraded Surface 是 ready 之外所有 composition state 的唯一渲染表面�
 ### 9.1 Start → Ready 序列
 
 ```
-1. Tauri window created
+1. Tauri window or Desktop-supervised Electron Avatar window created
 2. Renderer bootstrap (React mount)
 3. Emit avatar.app.start (composition state = loading)
-4. Register / identify as Runtime-admitted local first-party app (`nimi.avatar`)
+4. Identify as fixed Runtime-admitted bundled first-party app (`nimi.avatar`); no `RegisterApp` call
 5. Validate launch `agent_id` through Runtime / SDK authority
-6. Prepare SDK Runtime-backed protected access provider (typed admitted)
+6. Prepare the SDK transport over the exact host-injected protected carrier; no token provider
 7. Resolve the selected local Avatar asset and load materialized Live2D / VRM
    files
 8. Create or recover Avatar-owned conversation context
@@ -550,11 +552,8 @@ Normal path boundary:
 
 - launch bootstrap：Desktop launch intent only (`agent_id`, optional
   `avatar_instance_id`, optional `launch_source`)
-- runtime bootstrap：Runtime local first-party app registration / account
-  projection / SDK Runtime-backed token provider
-- protected access bootstrap：Avatar 通过 SDK local first-party
-  Runtime-backed token provider 为 `runtime.agent` turns API 获取
-  request-time capability token；默认路径不 issue scoped binding
+- runtime bootstrap：Runtime account projection plus the fixed `bundled_avatar_v1` host-injected SDK transport; Avatar does not register an app or open a portable Runtime session
+- protected access bootstrap：verified Desktop main/native code binds the exact Avatar renderer window to the fixed method/capability profile. Avatar renderer receives typed SDK responses only; it cannot request or hold a capability token, profile marker, endpoint, metadata, or scoped binding
 - visual bootstrap：Avatar resolves the selected local Avatar asset into
   materialized Live2D/VRM files after Runtime validates `agent_id`. Remote
   marketplace package sources are retired (Asset Market withdrawn); local
@@ -712,12 +711,13 @@ Minimum permission set for industrial baseline shell。窗口控制走 kit 标�
 默认 Avatar app shell 允许：
 
 - 加载 Desktop 启动 intent：required `agent_id`、optional `avatar_instance_id`、optional non-authoritative `launch_source`
-- 以 `nimi.avatar` / stable `app_instance_id` 注册或识别为 Runtime-admitted local first-party app
+- 以 fixed `nimi.avatar` / `nimi.avatar.desktop-supervised` identity 识别为 Runtime-admitted bundled first-party app；不调用 `RegisterApp` / `OpenSession`
 - 调用 Runtime account projection / event stream 与 admitted `InvokeRealmUnary` broker operation；Avatar 不拥有 login/logout/switch/refresh account-control UX
 - default `nimi.avatar` 只能调用 independently admitted Runtime-mediated
   broker/service operations；registry 或 first-party posture 不得启用 public token RPC
-- `runtime.agent` turns API 由 Runtime server-side evaluator、current account/app
-  relation、capability/grant 与 scoped binding 授权；SDK/host 不安装 bearer provider
+- `runtime.agent` turns API 由 Runtime server-side evaluator、current account/Agent
+  relation与 `bundled_avatar_v1` exact method profile 授权；默认路径不创建 grant、
+  scoped binding 或 bearer provider
 - 默认通过 SDK Runtime-mediated Realm transport 访问授权 Realm data API；不得
   直连 Realm、构造 authorization header 或自行 refresh
 - 通过 Runtime / SDK 验证 `agent_id`，解析 agent/user projection 与

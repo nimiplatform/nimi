@@ -177,7 +177,7 @@ function checkRuntimeBrokerPolicy() {
     'WorldPublicController_listWorlds',
   ];
   if (policy.owner !== 'runtime' || policy.source_rule !== 'K-ACCSVC-023') fail('broker policy owner/source rule drift');
-  if (policy.authority_status !== 'admitted_exact_desktop_source_readiness_operations') fail('broker authority status is not exact Desktop source readiness');
+  if (policy.authority_status !== 'admitted_exact_protected_source_readiness_operations') fail('broker authority status is not exact protected source readiness');
   if (policy.production_consumption !== 'admitted_exact_rows_only') fail('broker production consumption is not exact-row-only');
   if (policy.generic_proxy !== 'forbidden') fail('generic Realm proxy posture is not forbidden');
   if (policy.unlisted_operation_disposition !== 'deny_broker_operation_not_admitted') fail('unlisted Realm operations do not fail closed');
@@ -186,8 +186,16 @@ function checkRuntimeBrokerPolicy() {
   for (const operation of operations) {
     if (seen.has(operation.operation_id)) fail(`duplicate broker operation ${operation.operation_id}`);
     seen.add(operation.operation_id);
-    if (operation.authorization_profile !== 'protected_desktop_source_readiness') fail(`${operation.operation_id} has an unadmitted authorization profile`);
-    if (operation.allowed_runtime_caller_modes?.length !== 1 || operation.allowed_runtime_caller_modes[0] !== 'ACCOUNT_CALLER_MODE_DESKTOP_SHELL') fail(`${operation.operation_id} is not Desktop-shell-only`);
+    const bundledAvatarOperation = operation.operation_id === 'WorldCoreController_listPersonaCharacters';
+    const expectedProfile = bundledAvatarOperation
+      ? 'protected_bundled_avatar_source_readiness'
+      : 'protected_desktop_source_readiness';
+    const expectedModes = bundledAvatarOperation
+      ? ['ACCOUNT_CALLER_MODE_DESKTOP_SHELL', 'ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR']
+      : ['ACCOUNT_CALLER_MODE_DESKTOP_SHELL'];
+    if (operation.authorization_profile !== expectedProfile) fail(`${operation.operation_id} has an unadmitted authorization profile`);
+    if (operation.allowed_runtime_caller_modes?.length !== expectedModes.length
+      || expectedModes.some((mode, index) => operation.allowed_runtime_caller_modes[index] !== mode)) fail(`${operation.operation_id} has an invalid protected caller-mode set`);
     if (operation.protected_transport_ref !== '/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary') fail(`${operation.operation_id} does not use the protected broker transport`);
     if (operation.credential_response_policy !== 'forbidden') fail(`${operation.operation_id} permits credential responses`);
     if (operation.realm_base_policy !== 'runtime-configured-canonical-exact') fail(`${operation.operation_id} permits non-canonical Realm base`);

@@ -7,6 +7,7 @@
     "./auth/shell",
     "./auth/styles.css",
     "./core/desktop-open",
+    "./core/json-value",
     "./core/model-config",
     "./core/notifications",
     "./core/oauth",

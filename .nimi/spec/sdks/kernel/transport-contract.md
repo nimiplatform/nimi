@@ -157,7 +157,10 @@ single-use launch lease has been consumed by the exact process bind; the SDK
 receives neither that bootstrap operation nor any of its authority inputs.
 
 Technical-session rotation and controlled host/Runtime restart are transparent
-behind the typed transport. A revoked, expired, project-changed,
+behind the typed transport. The native host alone performs request-empty
+`RenewLocalAppSession` on the current verified `local_app_host` connection;
+the SDK and renderer cannot invoke it or observe its private material. A
+revoked, expired, project-changed,
 account-changed, untrusted-host, or unavailable carrier produces a stable typed
 failure before a business call. Session material never enters renderer IPC,
 application state, telemetry, errors, or retry callbacks.
@@ -176,6 +179,24 @@ permission or first-party service slice is admitted. App-native SQLite, media,
 settings, routes and exact product commands remain outside this SDK permission
 surface. Missing operation families remain typed unavailable. Ordinary
 Electron/Tauri IPC and localhost gRPC cannot claim this transport type.
+
+## S-TRANSPORT-015 Desktop-Supervised Bundled Avatar Carrier
+
+The `nimi.avatar` Electron SDK transport is injected by the verified Desktop
+host and exposes only the generated `bundled_avatar_v1` Runtime profile. SDK
+callers use the ordinary generated typed clients, but cannot select the fixed
+app id, profile marker, origin role, endpoint, metadata, capability, account,
+or transport implementation. `RegisterApp`, `OpenSession`, `GetAccessToken`,
+bearer injection, scoped binding bootstrap, public gRPC fallback and renderer
+auth truth are absent.
+
+Account snapshot/events, the admitted Realm unary, Runtime Agent/voice/lipsync,
+generated voice artifact reads and bounded scenario jobs preserve their normal
+typed SDK semantics. Carrier loss is Runtime unavailable; Realm transport
+failure alone is Cloud offline. Reauthentication, permission, validation,
+contract and rate-limit failures retain their owner-specific classifications.
+Streams close explicitly and the app reopens them after a new verified host
+connection; the SDK does not manufacture replay or durable authority.
 
 ## S-TRANSPORT-011 背压投影
 

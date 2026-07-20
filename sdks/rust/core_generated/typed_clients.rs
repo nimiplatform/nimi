@@ -25150,6 +25150,24 @@ impl RemoveModelRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RenewLocalAppSessionRequest {
+
+}
+
+impl RenewLocalAppSessionRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        if !raw.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
+        }
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RepairLocalEnvironmentDependencyRequest {
     pub environment_key: Option<String>,
     pub dependency_family: Option<String>,
@@ -37105,6 +37123,12 @@ impl From<Vec<u8>> for RemoveModelRequest {
     }
 }
 
+impl From<Vec<u8>> for RenewLocalAppSessionRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for RepairLocalEnvironmentDependencyRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -39930,6 +39954,16 @@ where
             timeout,
         })?;
         Ok(RegisterExternalPrincipalResponse::from_transport(&raw))
+    }
+
+    pub fn renew_local_app_session(&self, request: RenewLocalAppSessionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OpenLocalAppSessionResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(OpenLocalAppSessionResponse::from_transport(&raw))
     }
 
     pub fn revoke_external_principal_session(&self, request: RevokeExternalPrincipalSessionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Ack, T::Error> {

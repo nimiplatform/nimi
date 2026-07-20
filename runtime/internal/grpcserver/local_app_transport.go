@@ -19,6 +19,7 @@ import (
 
 const (
 	protectedOpenLocalAppSessionMethod         = "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession"
+	protectedRenewLocalAppSessionMethod        = "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession"
 	protectedGetLocalAppPermissionStatusMethod = "/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus"
 	protectedRequestLocalAppPermissionMethod   = "/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission"
 	protectedReadLocalAppStorageJSONMethod     = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson"
@@ -42,6 +43,7 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 		role:              protectedlocal.RoleLocalAppProcess,
 		missingRoleReason: runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH,
 	},
+	protectedRenewLocalAppSessionMethod:        localAppSessionMethodPolicy(),
 	protectedGetLocalAppPermissionStatusMethod: localAppSessionMethodPolicy(),
 	protectedRequestLocalAppPermissionMethod:   localAppSessionMethodPolicy(),
 	protectedReadLocalAppStorageJSONMethod:     localAppSessionMethodPolicy(),

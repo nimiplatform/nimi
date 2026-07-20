@@ -25,6 +25,23 @@ func TestLocalAppCarrierPromotesBootstrapToSession(t *testing.T) {
 	}
 }
 
+func TestLocalAppConnectionReplacesRotatedSessionCleanup(t *testing.T) {
+	connection := newLocalAppTestConnection(t, 0x51)
+	firstCalls := 0
+	secondCalls := 0
+	connection.ReplaceSessionRevokeHook(func() { firstCalls++ })
+	connection.ReplaceSessionRevokeHook(func() { secondCalls++ })
+	connection.Revoke()
+	if firstCalls != 0 || secondCalls != 1 {
+		t.Fatalf("rotated cleanup was not replaced exactly: first=%d second=%d", firstCalls, secondCalls)
+	}
+	lateCalls := 0
+	connection.ReplaceSessionRevokeHook(func() { lateCalls++ })
+	if lateCalls != 1 {
+		t.Fatalf("cleanup registered after revocation must run immediately: %d", lateCalls)
+	}
+}
+
 func newLocalAppTestConnection(t testing.TB, seed byte) *LocalAppConnection {
 	t.Helper()
 	liveness := &localAppTestLiveness{revoked: make(chan struct{})}

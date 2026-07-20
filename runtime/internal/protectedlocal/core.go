@@ -54,6 +54,7 @@ const (
 	RoleBindingOnly            OriginRole = "binding_only"
 	RoleVerifiedDesktopProcess OriginRole = "verified_desktop_process"
 	RoleDesktopAccountHost     OriginRole = "desktop_account_host"
+	RoleBundledAvatarHost      OriginRole = "bundled_avatar_host"
 	RoleLocalAppControl        OriginRole = "local_app_control"
 	RoleLocalAppProcess        OriginRole = "local_app_process"
 	RoleLocalAppSession        OriginRole = "local_app_session"
@@ -260,6 +261,7 @@ func EstablishDesktopConnection(ctx context.Context, verifier DesktopPeerVerifie
 			roles: map[OriginRole]struct{}{
 				RoleVerifiedDesktopProcess: {},
 				RoleDesktopAccountHost:     {},
+				RoleBundledAvatarHost:      {},
 				RoleLocalAppControl:        {},
 			},
 			connectionID: connectionID,

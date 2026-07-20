@@ -244,10 +244,10 @@ func TestRealmBrokerAuthorizationProfileRejectsSameAppNonDesktopInstance(t *test
 		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
 	}
 	operation := realmBrokerOperations["WorldCoreController_getPersonaCharacter"]
-	if !operation.admitsProtectedDesktopSourceReadinessCaller(caller) {
+	if !operation.admitsProtectedSourceReadinessCaller(caller) {
 		t.Fatal("protected Desktop caller must satisfy the exact source-readiness profile")
 	}
-	if operation.admitsProtectedDesktopSourceReadinessCaller(background) {
+	if operation.admitsProtectedSourceReadinessCaller(background) {
 		t.Fatal("same-app background instance must not inherit Desktop broker admission")
 	}
 }

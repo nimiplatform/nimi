@@ -9,6 +9,8 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/bundledavatar"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/oklog/ulid/v2"
 )
 
@@ -23,7 +25,15 @@ func validateProductionCaller(caller *runtimev1.AccountCaller, tokenRequest bool
 		}
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
 	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR:
-		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY, false
+		if tokenRequest {
+			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY, false
+		}
+		if strings.TrimSpace(caller.GetAppId()) != bundledavatar.AppID ||
+			strings.TrimSpace(caller.GetAppInstanceId()) != bundledavatar.AppInstanceID ||
+			strings.TrimSpace(caller.GetDeviceId()) != bundledavatar.DeviceID {
+			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
+		}
+		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
 	default:
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
 	}
@@ -51,6 +61,11 @@ func (s *Service) validateRuntimeAdmittedCaller(ctx context.Context, caller *run
 		}
 		if reason, ok := s.validateDesktopAccountHost(ctx, caller); !ok {
 			return reason, false
+		}
+	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR:
+		if !envelope.HasValidatedProtectedCapability(ctx, bundledavatar.AppID, "account.session.read") &&
+			!envelope.HasValidatedProtectedCapability(ctx, bundledavatar.AppID, "account.realm.read") {
+			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH, false
 		}
 	default:
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false

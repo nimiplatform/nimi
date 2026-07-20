@@ -15,6 +15,21 @@ pub async fn local_app_session_status() -> NativeJsonOutcome {
     }
 }
 
+#[napi(js_name = "localAppSessionRenew")]
+pub async fn local_app_session_renew() -> NativeJsonOutcome {
+    let session = match current_or_open_session().await {
+        Ok(session) => session,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    match session.renew_technical_session().await {
+        Ok(status) => NativeJsonOutcome::success(project_session_status(status)),
+        Err(error) => {
+            clear_session_on_transport_failure(&session, error).await;
+            NativeJsonOutcome::error(error)
+        }
+    }
+}
+
 #[napi(js_name = "localAppPermissionStatus")]
 pub async fn local_app_permission_status(input: NativePermissionStatusInput) -> NativeJsonOutcome {
     let session = match current_or_open_session().await {

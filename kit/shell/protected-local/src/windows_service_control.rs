@@ -20,6 +20,8 @@ use crate::generated::runtime_auth_service_client::RuntimeAuthServiceClient;
 use crate::generated::OpenDesktopSessionRequest;
 use crate::windows_peer_trust::{verify_runtime_peer_code_signing, VerifiedRuntimePeer};
 use crate::{
+    BundledAvatarRuntimeError, BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse,
+    BundledAvatarRuntimeStreamReceiver,
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
     DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse,
     DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse,
@@ -83,6 +85,20 @@ impl WindowsDesktopControl {
 }
 
 impl NimiDesktopControl for WindowsDesktopControl {
+    fn invoke_bundled_avatar(
+        &self,
+        request: BundledAvatarRuntimeRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<BundledAvatarRuntimeResponse, BundledAvatarRuntimeError>> + Send + '_>> {
+        Box::pin(crate::bundled_avatar::invoke(self.channel(), request))
+    }
+
+    fn open_bundled_avatar_stream(
+        &self,
+        request: BundledAvatarRuntimeRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<BundledAvatarRuntimeStreamReceiver, BundledAvatarRuntimeError>> + Send + '_>> {
+        Box::pin(crate::bundled_avatar::open_stream(self.channel(), request))
+    }
+
     fn invoke_product_control(
         &self,
         request: DesktopProductControlRequest,

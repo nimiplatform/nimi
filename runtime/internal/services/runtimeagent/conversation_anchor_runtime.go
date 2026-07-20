@@ -57,6 +57,9 @@ func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.Ope
 	if err != nil {
 		return nil, err
 	}
+	if err := s.authorizeBundledAvatarIdentity(ctx, req.GetContext(), identity, "runtime.agent.write"); err != nil {
+		return nil, err
+	}
 	localAgentRef := identity.LocalAgentRef
 	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())
 	if localAppAuthorized {
@@ -198,7 +201,7 @@ func (s *Service) ValidateLocalAppConversationScope(ctx context.Context, agentID
 // GetConversationAnchorSnapshot returns the committed runtime-owned anchor
 // snapshot. Late-join surfaces MUST use this path to recover continuity; they
 // MUST NOT reconstruct canonical anchor truth from app-local history.
-func (s *Service) GetConversationAnchorSnapshot(_ context.Context, req *runtimev1.GetConversationAnchorSnapshotRequest) (*runtimev1.GetConversationAnchorSnapshotResponse, error) {
+func (s *Service) GetConversationAnchorSnapshot(ctx context.Context, req *runtimev1.GetConversationAnchorSnapshotRequest) (*runtimev1.GetConversationAnchorSnapshotResponse, error) {
 	if s == nil || s.isClosed() {
 		return nil, status.Error(codes.FailedPrecondition, "runtime agent service unavailable")
 	}
@@ -207,6 +210,9 @@ func (s *Service) GetConversationAnchorSnapshot(_ context.Context, req *runtimev
 	}
 	identity, err := localAgentIdentityFromContext(req.GetContext())
 	if err != nil {
+		return nil, err
+	}
+	if err := s.authorizeBundledAvatarIdentity(ctx, req.GetContext(), identity, "runtime.agent.read"); err != nil {
 		return nil, err
 	}
 	localAgentRef := identity.LocalAgentRef

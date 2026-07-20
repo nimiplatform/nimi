@@ -72,6 +72,7 @@ test('the final transport, role, and request-empty local session shapes are exac
     'local_app_control',
     'local_app_process',
     'local_app_session',
+    'bundled_avatar_host',
   ]);
   assert.deepEqual(matrix.open_local_app_session_wire.request.fields, []);
   assert.deepEqual(matrix.open_local_app_session_wire.request.request_metadata_authority_inputs, []);
@@ -80,6 +81,13 @@ test('the final transport, role, and request-empty local session shapes are exac
   const open = matrix.methods.find((row) => row.method_id.endsWith('/OpenLocalAppSession'));
   assert.deepEqual(open.allowed_transport_classes, ['local_app_bootstrap']);
   assert.deepEqual(open.required_origin_roles, ['local_app_process']);
+  assert.deepEqual(matrix.renew_local_app_session_wire.request.fields, []);
+  assert.deepEqual(matrix.renew_local_app_session_wire.request.request_metadata_authority_inputs, []);
+  assert.equal(matrix.renew_local_app_session_wire.request.unknown_field_disposition, 'reject');
+  assert.equal(matrix.renew_local_app_session_wire.atomic_transition, 'revoke_previous_private_session_and_insert_replacement_on_same_connection');
+  const renew = matrix.methods.find((row) => row.method_id.endsWith('/RenewLocalAppSession'));
+  assert.deepEqual(renew.allowed_transport_classes, ['local_app_host']);
+  assert.deepEqual(renew.required_origin_roles, ['local_app_session']);
 });
 
 test('every method resolves through one platform-neutral transport binding and G5 keeps current behavior', () => {

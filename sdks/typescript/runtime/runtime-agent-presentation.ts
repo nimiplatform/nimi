@@ -30,6 +30,7 @@ import { normalizeNimiRuntimeAgentText } from './runtime-agent-values';
 export {
   isNimiRuntimeAgentPresentationOpaqueRef,
   normalizeNimiRuntimeAgentPresentationRevision,
+  projectNimiRuntimeAgentPresentationRecord,
 } from './runtime-agent-presentation-validation';
 
 export interface NimiRuntimeAgentPresentationProfileInput {

@@ -221,6 +221,7 @@ type Service struct {
 	projection                   *runtimev1.AccountProjection
 	material                     AccountMaterial
 	accountGeneration            uint64
+	accountGenerationInvalidated chan struct{}
 	authenticatedRuntimeIdentity bool
 	loginAttempts                map[string]loginAttemptRecord
 	bindings                     map[string]bindingRecord

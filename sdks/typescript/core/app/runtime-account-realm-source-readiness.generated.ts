@@ -23,3 +23,5 @@ export function isNimiDesktopSourceReadinessRealmOperationID(
 ): value is NimiDesktopSourceReadinessRealmOperationID {
   return NIMI_DESKTOP_SOURCE_READINESS_REALM_OPERATION_ID_SET.has(value.trim());
 }
+
+export const NIMI_BUNDLED_AVATAR_REALM_OPERATION_ID = "WorldCoreController_listPersonaCharacters" as const;

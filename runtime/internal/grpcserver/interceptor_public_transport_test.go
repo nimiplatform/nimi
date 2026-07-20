@@ -45,11 +45,12 @@ func TestA0OrdinaryGRPCRejectsProtectedAndTombstoneMethodsBeforeHandler(t *testi
 		{method: "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp", reason: runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE},
 		{method: "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
 		{method: "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
+		{method: "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
 		{method: "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
-		{method: "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
-		{method: "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
+		{method: "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
+		{method: "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
 		{method: "/nimi.runtime.v1.RuntimeAiService/GetVoiceAsset", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
-		{method: "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
+		{method: "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
 		{method: "/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
 	}
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
@@ -278,6 +279,10 @@ func TestA0PublicTransportHardcutOverRealGRPC(t *testing.T) {
 		}},
 		{name: "OpenLocalAppSession", call: func() error {
 			_, callErr := authClient.OpenLocalAppSession(bindingContext, &runtimev1.OpenLocalAppSessionRequest{})
+			return callErr
+		}},
+		{name: "RenewLocalAppSession", call: func() error {
+			_, callErr := authClient.RenewLocalAppSession(bindingContext, &runtimev1.RenewLocalAppSessionRequest{})
 			return callErr
 		}},
 		{name: "InstallApp", call: func() error {

@@ -81,8 +81,34 @@ export async function invokeElectronRuntimeUnary(input: {
   readonly command: string;
   readonly trustedRuntimeMetadataProvider?: ElectronRuntimeBridgeTrustedMetadataProvider;
   readonly desktopControlHost?: NimiElectronDesktopControlHost;
+  readonly bundledAvatarProfile?: boolean;
 }): Promise<ElectronRuntimeBridgeUnaryResponse> {
   const request = parseElectronRuntimeUnaryRequest(input.payload);
+  if (input.bundledAvatarProfile) {
+    if (!input.desktopControlHost) {
+      throw electronDesktopControlError(
+        new NimiElectronDesktopControlHostError('protected-carrier-required', false),
+        input.command,
+        request.methodId,
+      );
+    }
+    try {
+      const responseBytes = await input.desktopControlHost.bundledAvatarUnary({
+        methodId: request.methodId,
+        requestBytes: fromBase64(request.requestBytesBase64),
+        timeoutMs: request.timeoutMs,
+      });
+      return { responseBytesBase64: toBase64(responseBytes) };
+    } catch (error) {
+      throw electronDesktopControlError(
+        error instanceof NimiElectronDesktopControlHostError
+          ? error
+          : new NimiElectronDesktopControlHostError('runtime-service-untrusted', false),
+        input.command,
+        request.methodId,
+      );
+    }
+  }
   if (isElectronDesktopProductControlMethod(request.methodId)) {
     if (!input.desktopControlHost) {
       throw electronDesktopControlError(
@@ -291,13 +317,13 @@ export async function openElectronRuntimeStream(input: {
   readonly streams: Map<string, RuntimeGrpcBridgeStream>;
   readonly trustedRuntimeMetadataProvider?: ElectronRuntimeBridgeTrustedMetadataProvider;
   readonly desktopProtectedOnly?: boolean;
+  readonly desktopControlHost?: NimiElectronDesktopControlHost;
+  readonly bundledAvatarProfile?: boolean;
 }): Promise<ElectronRuntimeBridgeStreamOpenResponse> {
   const request = parseElectronRuntimeStreamOpenRequest(input.payload);
-  if (input.desktopProtectedOnly) {
+  if (input.desktopProtectedOnly && !input.bundledAvatarProfile) {
     throw electronDesktopRuntimeStreamNotAdmitted(input.command, request.methodId);
   }
-  assertElectronGenericRuntimeMethodAllowed(request.methodId);
-  const client = requireElectronRuntimeClient(input.client, input.command);
   const metadataInput = {
     provider: input.trustedRuntimeMetadataProvider,
     command: input.command,
@@ -306,16 +332,38 @@ export async function openElectronRuntimeStream(input: {
     appId: input.appId,
     runtimeEndpoint: input.runtimeEndpoint,
   };
-  const initialResolution = await resolveTrustedRuntimeMetadataWithSingleInvalidation(metadataInput);
-  let invalidationConsumed = initialResolution.invalidationConsumed;
+  let initialResolution: {
+    readonly trusted: ElectronRuntimeBridgeTrustedMetadata | undefined;
+    readonly invalidationConsumed: boolean;
+  };
+  let createStream: (trusted: ElectronRuntimeBridgeTrustedMetadata | undefined) => RuntimeGrpcBridgeStream;
   const requestBytes = fromBase64(request.requestBytesBase64);
-  const createStream = (trusted: ElectronRuntimeBridgeTrustedMetadata | undefined): RuntimeGrpcBridgeStream =>
-    client.serverStream({
+  if (input.bundledAvatarProfile) {
+    if (!input.desktopControlHost) {
+      throw electronDesktopControlError(
+        new NimiElectronDesktopControlHostError('protected-carrier-required', false),
+        input.command,
+        request.methodId,
+      );
+    }
+    initialResolution = { trusted: undefined, invalidationConsumed: true };
+    createStream = () => input.desktopControlHost!.bundledAvatarServerStream({
+      methodId: request.methodId,
+      requestBytes,
+      timeoutMs: request.timeoutMs,
+    });
+  } else {
+    assertElectronGenericRuntimeMethodAllowed(request.methodId);
+    const client = requireElectronRuntimeClient(input.client, input.command);
+    initialResolution = await resolveTrustedRuntimeMetadataWithSingleInvalidation(metadataInput);
+    createStream = (trusted) => client.serverStream({
       methodId: request.methodId,
       requestBytes,
       metadata: buildElectronRuntimeGrpcMetadata(request, input.appId, trusted),
       timeoutMs: request.timeoutMs,
     });
+  }
+  let invalidationConsumed = initialResolution.invalidationConsumed;
   let stream: RuntimeGrpcBridgeStream;
   try {
     stream = createStream(initialResolution.trusted);

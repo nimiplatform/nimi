@@ -41,6 +41,7 @@ const RETIRED_PUBLIC_VOCABULARY = Object.freeze([
 
 const FINAL_METHOD_MAPPINGS = Object.freeze([
   ['RuntimeAuthService', 'OpenLocalAppSession'],
+  ['RuntimeAuthService', 'RenewLocalAppSession'],
   ['RuntimeAccountService', 'GetLocalAppPermissionStatus'],
   ['RuntimeAccountService', 'RequestLocalAppPermission'],
   ['RuntimeAppService', 'PrepareLocalAppLaunch'],
@@ -186,6 +187,15 @@ export function validateProtectedLocalProtoLinkage(bundle) {
     'OpenLocalAppSessionRequest',
     'OpenLocalAppSessionResponse',
     'PLINK_AUTH_RPC',
+  );
+  expectMessage(bundle.authProto, 'RenewLocalAppSessionRequest', [], 'PLINK_AUTH_RENEW_REQUEST_EMPTY');
+  expectRpc(
+    bundle.authProto,
+    'RuntimeAuthService',
+    'RenewLocalAppSession',
+    'RenewLocalAppSessionRequest',
+    'OpenLocalAppSessionResponse',
+    'PLINK_AUTH_RENEW_RPC',
   );
 
   expectMessage(bundle.appProto, 'PrepareLocalAppLaunchRequest', expectedFields([

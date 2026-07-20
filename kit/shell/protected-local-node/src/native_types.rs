@@ -33,6 +33,27 @@ pub struct NativeDesktopRuntimeConsumerInput {
 }
 
 #[napi(object)]
+pub struct NativeBundledAvatarRuntimeInput {
+    pub method_id: String,
+    pub request_bytes: Buffer,
+    pub timeout_ms: Option<u32>,
+}
+
+#[napi(object)]
+pub struct NativeBundledAvatarStreamInput {
+    pub stream_id: String,
+}
+
+#[napi(object)]
+pub struct NativeBundledAvatarStreamNextOutcome {
+    pub status: String,
+    pub value: Option<Buffer>,
+    pub completed: Option<bool>,
+    pub reason_code: Option<String>,
+    pub retryable: Option<bool>,
+}
+
+#[napi(object)]
 pub struct NativeDesktopAccountBeginLoginInput {
     pub redirect_uri: String,
     pub callback_origin: String,

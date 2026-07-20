@@ -22,6 +22,9 @@ func (s *Service) InterruptAgentVoicePlayback(ctx context.Context, req *runtimev
 	if err != nil {
 		return nil, err
 	}
+	if err := s.authorizeBundledAvatarIdentity(ctx, req.GetContext(), identity, runtimeAgentTurnWriteScope); err != nil {
+		return nil, err
+	}
 	callerAppID := strings.TrimSpace(req.GetContext().GetAppId())
 	anchorID := strings.TrimSpace(req.GetConversationAnchorId())
 	turnID := strings.TrimSpace(req.GetTurnId())

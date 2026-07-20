@@ -2,10 +2,70 @@ import { describe, expect, it } from 'vitest';
 
 import {
   createNimiElectronLocalAppHostForBinding,
+  primeNimiElectronLocalAppHost,
   resolveNimiElectronProtectedLocalBindingPackage,
+  startNimiElectronLocalAppHostMaintenance,
 } from '../src/main/local-app-host.js';
+import { vi } from 'vitest';
 
 describe('Electron protected local-app host', () => {
+  it('can bootstrap the request-empty session before renderer navigation', async () => {
+    const calls: Array<{ method: string; input?: unknown }> = [];
+    const host = createNimiElectronLocalAppHostForBinding(binding(calls));
+
+    await expect(primeNimiElectronLocalAppHost(host)).resolves.toBeUndefined();
+    expect(calls).toEqual([{ method: 'localAppSessionStatus' }]);
+  });
+
+  it('rotates the technical session in main and stops maintenance exactly', async () => {
+    vi.useFakeTimers();
+    try {
+      const calls: Array<{ method: string; input?: unknown }> = [];
+      const host = createNimiElectronLocalAppHostForBinding(binding(calls));
+      const maintenance = startNimiElectronLocalAppHostMaintenance(host, 1_000);
+
+      await maintenance.ready;
+      expect(calls.map(({ method }) => method)).toEqual(['localAppSessionStatus']);
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(calls.map(({ method }) => method)).toEqual([
+        'localAppSessionStatus',
+        'localAppSessionRenew',
+      ]);
+      maintenance.close();
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(calls).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('closes maintenance and reports one typed failure when rotation fails', async () => {
+    vi.useFakeTimers();
+    try {
+      const calls: Array<{ method: string; input?: unknown }> = [];
+      const candidate = {
+        ...binding(calls),
+        localAppSessionRenew: async () => {
+          calls.push({ method: 'localAppSessionRenew' });
+          return { status: 'error' as const, reasonCode: 'revoked', retryable: false };
+        },
+      };
+      const host = createNimiElectronLocalAppHostForBinding(candidate);
+      const failures: Array<{ reasonCode: string; retryable: boolean }> = [];
+      const maintenance = startNimiElectronLocalAppHostMaintenance(host, 1_000, (failure) => {
+        failures.push(failure);
+      });
+
+      await maintenance.ready;
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(failures).toEqual([{ reasonCode: 'revoked', retryable: false }]);
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(calls.filter(({ method }) => method === 'localAppSessionRenew')).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('forwards only session, product permission, and app-private storage operations', async () => {
     const calls: Array<{ method: string; input?: unknown }> = [];
     const host = createNimiElectronLocalAppHostForBinding(binding(calls));
@@ -95,6 +155,7 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
   };
   return {
     localAppSessionStatus: record('localAppSessionStatus', statusProjection()),
+    localAppSessionRenew: record('localAppSessionRenew', statusProjection()),
     localAppPermissionStatus: record('localAppPermissionStatus', unavailable),
     localAppPermissionRequest: record('localAppPermissionRequest', unavailable),
     localAppStorageReadJson: record('localAppStorageReadJson', { value: { version: 1 }, sizeBytes: 13 }),

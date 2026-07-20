@@ -76,6 +76,9 @@ func (s *Service) GetPublicChatSessionSnapshot(ctx context.Context, req *runtime
 			return nil, err
 		}
 	}
+	if err := s.authorizeBundledAvatarIdentity(ctx, requestContext, identity, runtimeAgentReadScope); err != nil {
+		return nil, err
+	}
 	var snapshot *structpb.Struct
 	var session publicChatAnchorState
 	var err error

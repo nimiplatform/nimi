@@ -5148,6 +5148,10 @@ class RemoveModelRequest:
     model_id: str | None = None
 
 @dataclass(frozen=True)
+class RenewLocalAppSessionRequest:
+    pass
+
+@dataclass(frozen=True)
 class RepairLocalEnvironmentDependencyRequest:
     environment_key: str | None = None
     dependency_family: str | None = None
@@ -7372,6 +7376,10 @@ class RuntimeTypedClient:
     async def register_external_principal(self, request: RegisterExternalPrincipalRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RegisterExternalPrincipalResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RegisterExternalPrincipalResponse, raw)
+
+    async def renew_local_app_session(self, request: RenewLocalAppSessionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OpenLocalAppSessionResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(OpenLocalAppSessionResponse, raw)
 
     async def revoke_external_principal_session(self, request: RevokeExternalPrincipalSessionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> Ack:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

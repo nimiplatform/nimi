@@ -2,6 +2,7 @@
 
 use napi_derive::napi;
 use nimi_shell_protected_local::{
+    BundledAvatarRuntimeRequest,
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
     DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse, DesktopAccountProjection,
     DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse, DesktopAccountSessionEvent,
@@ -38,10 +39,12 @@ type PlatformLocalAppCarrier = MacOsLocalAppCarrier;
 type PlatformLocalAppCarrier = WindowsLocalAppCarrier;
 
 mod account_events;
+mod bundled_avatar_streams;
 mod local_app;
 mod native_types;
 mod projection;
 pub use account_events::*;
+pub use bundled_avatar_streams::*;
 pub use local_app::*;
 pub use native_types::*;
 use projection::*;
@@ -101,6 +104,34 @@ pub async fn desktop_runtime_consumer_unary(
     match control
         .invoke_runtime_consumer(DesktopRuntimeConsumerRequest {
             method,
+            request_bytes: input.request_bytes.to_vec(),
+            timeout,
+        })
+        .await
+    {
+        Ok(response) => NativeBytesOutcome::success(response.response_bytes),
+        Err(error) => {
+            clear_desktop_control_on_transport_reason(&control, error.reason_code()).await;
+            NativeBytesOutcome::error(error.reason_code(), error.retryable())
+        }
+    }
+}
+
+#[napi(js_name = "desktopBundledAvatarUnary")]
+pub async fn desktop_bundled_avatar_unary(
+    input: NativeBundledAvatarRuntimeInput,
+) -> NativeBytesOutcome {
+    let timeout = input
+        .timeout_ms
+        .map(u64::from)
+        .map(std::time::Duration::from_millis);
+    let control = match current_or_open_desktop_control().await {
+        Ok(control) => control,
+        Err(error) => return NativeBytesOutcome::host_error(error),
+    };
+    match control
+        .invoke_bundled_avatar(BundledAvatarRuntimeRequest {
+            method_id: input.method_id,
             request_bytes: input.request_bytes.to_vec(),
             timeout,
         })
@@ -627,6 +658,7 @@ async fn clear_desktop_control(control: &Arc<dyn NimiDesktopControl>) {
     // newer verified session already installed by another caller.
     if removed {
         account_events::close_all_account_event_streams().await;
+        bundled_avatar_streams::close_all_bundled_avatar_streams().await;
         nimi_shell_protected_local::invalidate_verified_desktop_runtime_channel().await;
     }
 }
@@ -650,9 +682,21 @@ mod desktop_transport_invalidation_tests {
     }
 
     #[test]
-    fn account_and_permission_results_never_poison_the_verified_channel() {
+    fn account_permission_and_local_development_results_never_poison_the_verified_channel() {
         for reason in [
             "principal-unauthorized",
+            "local-development-authorization-required",
+            "local-development-reapproval-required",
+            "local-development-project-changed",
+            "local-development-supervisor-required",
+            "local-development-session-revoked",
+            "local-app-developer-mode-disabled",
+            "local-app-permission-required",
+            "local-app-permission-denied",
+            "local-app-permission-revoked",
+            "local-app-presence-required",
+            "local-app-presence-expired",
+            "local-app-operation-unavailable",
             "PRINCIPAL_UNAUTHORIZED",
             "AUTH_TOKEN_INVALID",
             "BROKER_FORBIDDEN",

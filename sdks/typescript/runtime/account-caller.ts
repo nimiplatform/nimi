@@ -1,5 +1,10 @@
-import { AccountCallerMode, type AccountCaller } from '../core-generated/runtime-typed-client';
-import { createNimiError } from '../types';
+import { AccountCallerMode, type AccountCaller } from '../core-generated/runtime-typed-client.js';
+import { createNimiError } from '../types/index.js';
+import {
+  NIMI_BUNDLED_AVATAR_APP_ID,
+  NIMI_BUNDLED_AVATAR_APP_INSTANCE_ID,
+  NIMI_BUNDLED_AVATAR_DEVICE_ID,
+} from './bundled-avatar-profile.generated.js';
 
 export type NimiRuntimeAccountCaller = AccountCaller;
 
@@ -9,6 +14,7 @@ export type NimiSDKRuntimeAccountAppMode =
   | 'third-party-nimi-app'
   | 'dev-standalone'
   | 'desktop-account-ux'
+  | 'desktop-supervised-avatar'
   | 'binding-only-avatar';
 
 export const NIMI_SDK_RUNTIME_ACCOUNT_CALLER_MODE: Readonly<Record<NimiSDKRuntimeAccountAppMode, AccountCallerMode | null>> = {
@@ -19,6 +25,7 @@ export const NIMI_SDK_RUNTIME_ACCOUNT_CALLER_MODE: Readonly<Record<NimiSDKRuntim
   'third-party-nimi-app': null,
   'dev-standalone': null,
   'desktop-account-ux': AccountCallerMode.DESKTOP_SHELL,
+  'desktop-supervised-avatar': AccountCallerMode.DESKTOP_LAUNCHED_AVATAR,
   'binding-only-avatar': AccountCallerMode.DESKTOP_LAUNCHED_AVATAR,
 };
 
@@ -73,6 +80,24 @@ export function createNimiBindingOnlyAvatarRuntimeAccountCaller(
   );
 }
 
+/**
+ * Returns the single Runtime-admitted account caller for the verified
+ * Desktop-supervised bundled Avatar carrier. No app-owned identity input is
+ * accepted; Runtime still validates the fixed protected profile.
+ */
+export function createNimiDesktopLaunchedAvatarRuntimeAccountCaller(): NimiRuntimeAccountCaller {
+  return {
+    appId: NIMI_BUNDLED_AVATAR_APP_ID,
+    appInstanceId: NIMI_BUNDLED_AVATAR_APP_INSTANCE_ID,
+    deviceId: NIMI_BUNDLED_AVATAR_DEVICE_ID,
+    mode: AccountCallerMode.DESKTOP_LAUNCHED_AVATAR,
+    scopes: [],
+    launchHostId: '',
+    launchNonce: '',
+    releaseDescriptorRef: '',
+  };
+}
+
 export function createNimiDesktopShellRuntimeAccountCaller(
   input: NimiRuntimeAccountCallerInput,
 ): NimiRuntimeAccountCaller {
@@ -103,7 +128,10 @@ function createNimiRuntimeAccountCaller(
     deviceId,
     mode,
     scopes: [...new Set((input.scopes || []).map((scope) => String(scope).trim()).filter(Boolean))],
-  } as NimiRuntimeAccountCaller;
+    launchHostId: '',
+    launchNonce: '',
+    releaseDescriptorRef: '',
+  };
   return caller;
 }
 

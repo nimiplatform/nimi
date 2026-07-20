@@ -129,6 +129,7 @@ export type {
   RuntimeTauriIpcTransportOptions,
 } from './tauri-ipc';
 export * from './account-caller';
+export * from './bundled-avatar-runtime';
 export * from './app-lifecycle';
 export * from './app-storage';
 export * from './app-session';

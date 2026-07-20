@@ -1,0 +1,64 @@
+version: 1
+table_family: protocol_surface
+protocol_id: bundled_avatar_runtime_profile
+surfaces:
+  - protected.bundled_avatar.runtime
+owner: runtime
+profile_id: bundled_avatar_v1
+app_id: nimi.avatar
+native_profile_marker: avatar-v1
+source_rule: K-PLOCAL-010
+physical_transport_class: desktop_control
+required_origin_role: bundled_avatar_host
+host_owner: verified_desktop_process
+renderer_may_select_profile: false
+renderer_may_supply_metadata: false
+portable_session_allowed: false
+ordinary_grpc_disposition: deny
+account_caller:
+  mode: ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR
+  app_instance_id: nimi.avatar.desktop-supervised
+  device_id: desktop-avatar-host
+realm_operations:
+  - WorldCoreController_listPersonaCharacters
+methods:
+  - { method_id: /nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth, kind: unary, capability: runtime.health.read }
+  - { method_id: /nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus, kind: unary, capability: account.session.read }
+  - { method_id: /nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents, kind: server_stream, capability: account.session.read }
+  - { method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary, kind: unary, capability: account.realm.read }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/ListAgents, kind: unary, capability: runtime.agent.read }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgent, kind: unary, capability: runtime.agent.read }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding, kind: unary, capability: runtime.agent.read }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding, kind: unary, capability: runtime.agent.write }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor, kind: unary, capability: runtime.agent.write }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot, kind: unary, capability: runtime.agent.read }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot, kind: unary, capability: runtime.agent.read }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection, kind: unary, capability: runtime.agent.companion_participation.read }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation, kind: unary, capability: runtime.agent.companion_participation.write }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation, kind: unary, capability: runtime.agent.companion_participation.write }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay, kind: unary, capability: runtime.agent.companion_participation.read }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback, kind: unary, capability: runtime.agent.turn.write }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot, kind: unary, capability: runtime.agent.avatar_debug.read }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe, kind: unary, capability: runtime.agent.avatar_debug.write }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult, kind: unary, capability: runtime.agent.avatar_debug.write }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults, kind: unary, capability: runtime.agent.avatar_debug.read }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay, kind: unary, capability: runtime.agent.avatar_debug.read }
+  - { method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes, kind: unary, capability: runtime.artifact.read }
+  - { method_id: /nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob, kind: unary, capability: ai.spend.meter }
+  - { method_id: /nimi.runtime.v1.RuntimeAiService/GetScenarioJob, kind: unary, capability: runtime.ai.scenario.read }
+  - { method_id: /nimi.runtime.v1.RuntimeAiService/CancelScenarioJob, kind: unary, capability: runtime.ai.scenario.write }
+  - { method_id: /nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts, kind: unary, capability: runtime.ai.scenario.read }
+  - { method_id: /nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents, kind: server_stream, capability: runtime.ai.scenario.read }
+  - { method_id: /nimi.runtime.v1.RuntimeAppService/SendAppMessage, kind: unary, capability: runtime.agent.turn.write }
+  - { method_id: /nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages, kind: server_stream, capability: runtime.agent.turn.read }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents, kind: server_stream, capability: runtime.agent.read }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream, kind: server_stream, capability: runtime.agent.turn.read }
+forbidden:
+  - RegisterApp
+  - OpenSession
+  - GetAccessToken
+  - bearer_or_refresh_material
+  - renderer_selected_method_profile
+  - renderer_selected_app_id
+  - renderer_selected_endpoint
+  - generic_protected_proxy

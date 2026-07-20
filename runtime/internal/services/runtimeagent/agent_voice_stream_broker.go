@@ -399,6 +399,9 @@ func (s *Service) SubscribeAgentVoiceStream(req *runtimev1.SubscribeAgentVoiceSt
 	if identityErr != nil {
 		return identityErr
 	}
+	if err := s.authorizeBundledAvatarIdentity(stream.Context(), req.GetContext(), identity, runtimeAgentTurnReadScope); err != nil {
+		return err
+	}
 	callerAppID := strings.TrimSpace(req.GetContext().GetAppId())
 	if callerAppID == "" {
 		return status.Error(codes.InvalidArgument, "voice stream subscription requires app_id")
@@ -442,6 +445,9 @@ func (s *Service) SubscribeAgentVoiceStream(req *runtimev1.SubscribeAgentVoiceSt
 		case event, ok := <-ch:
 			if !ok {
 				return nil
+			}
+			if err := s.revalidateBundledAvatarIdentity(stream.Context(), identity); err != nil {
+				return err
 			}
 			if err := stream.Send(cloneAgentVoiceStreamEvent(event)); err != nil {
 				return err

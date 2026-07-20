@@ -155,7 +155,6 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         | "LOCAL_APP_OPERATION_UNAVAILABLE"
         | "LOCAL_APP_PRESENCE_REQUIRED"
         | "LOCAL_APP_DEVELOPER_MODE_DISABLED"
-        | "LOCAL_APP_REMEMBERED_PROJECT_DORMANT"
         | "LOCAL_APP_RISK_DISCLOSURE_REQUIRED"
         | "PRINCIPAL_UNAUTHORIZED" => LocalAppReasonCode::RuntimePermissionDenied,
         _ => return None,
@@ -168,40 +167,32 @@ fn host_reason_from_runtime_reason(value: &str) -> Option<NimiHostErrorReasonCod
             NimiHostErrorReasonCode::PrincipalUnauthorized
         }
         "PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH" => NimiHostErrorReasonCode::RuntimeRestarted,
-        "LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED" => {
+        "LOCAL_APP_PRINCIPAL_REQUIRED"
+        | "LOCAL_APP_RECORD_NOT_FOUND"
+        | "LOCAL_APP_RECORD_TOMBSTONED"
+        | "LOCAL_APP_RISK_DISCLOSURE_REQUIRED" => {
             NimiHostErrorReasonCode::LocalDevelopmentAuthorizationRequired
         }
-        "LOCAL_DEVELOPMENT_REAPPROVAL_REQUIRED" => {
-            NimiHostErrorReasonCode::LocalDevelopmentReapprovalRequired
-        }
-        "LOCAL_DEVELOPMENT_PROJECT_CHANGED" => {
+        "LOCAL_APP_ACCOUNT_CHANGED" => NimiHostErrorReasonCode::LocalDevelopmentReapprovalRequired,
+        "LOCAL_APP_PROVENANCE_UNAVAILABLE" => {
             NimiHostErrorReasonCode::LocalDevelopmentProjectChanged
         }
-        "LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED" => {
+        "LOCAL_APP_LAUNCH_LEASE_REQUIRED"
+        | "LOCAL_APP_LAUNCH_LEASE_MISMATCH"
+        | "LOCAL_APP_LAUNCH_LEASE_REPLAY"
+        | "LOCAL_APP_PROCESS_MISMATCH" => {
             NimiHostErrorReasonCode::LocalDevelopmentSupervisorRequired
         }
-        "LOCAL_DEVELOPMENT_SESSION_REVOKED" => {
-            NimiHostErrorReasonCode::LocalDevelopmentSessionRevoked
-        }
-        "LOCAL_DEVELOPMENT_PLATFORM_UNSUPPORTED" => {
-            NimiHostErrorReasonCode::LocalDevelopmentPlatformUnsupported
-        }
-        "LOCAL_DEVELOPMENT_OPERATION_FORBIDDEN" => {
-            NimiHostErrorReasonCode::LocalDevelopmentOperationForbidden
-        }
-        "LOCAL_DEVELOPMENT_DEV_SERVER_UNCONTROLLED" => {
-            NimiHostErrorReasonCode::LocalDevelopmentDevServerUncontrolled
-        }
-        "LOCAL_DEVELOPMENT_APPROVAL_DENIED" => {
-            NimiHostErrorReasonCode::LocalDevelopmentApprovalDenied
-        }
+        "LOCAL_APP_SESSION_REVOKED" => NimiHostErrorReasonCode::LocalDevelopmentSessionRevoked,
+        "LOCAL_APP_PERMISSION_REQUIRED" => NimiHostErrorReasonCode::LocalAppPermissionRequired,
+        "LOCAL_APP_PERMISSION_DENIED" => NimiHostErrorReasonCode::LocalAppPermissionDenied,
+        "LOCAL_APP_PERMISSION_REVOKED" => NimiHostErrorReasonCode::LocalAppPermissionRevoked,
+        "LOCAL_APP_PRESENCE_REQUIRED" => NimiHostErrorReasonCode::LocalAppPresenceRequired,
+        "LOCAL_APP_PRESENCE_EXPIRED" => NimiHostErrorReasonCode::LocalAppPresenceExpired,
         "LOCAL_APP_DEVELOPER_MODE_DISABLED" => {
             NimiHostErrorReasonCode::LocalAppDeveloperModeDisabled
         }
         "LOCAL_APP_OPERATION_UNAVAILABLE" => NimiHostErrorReasonCode::LocalAppOperationUnavailable,
-        "LOCAL_APP_PROVENANCE_UNAVAILABLE" => {
-            NimiHostErrorReasonCode::LocalDevelopmentProjectChanged
-        }
         "PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED" | "PROTECTED_LOCAL_LEDGER_UNAVAILABLE" => {
             NimiHostErrorReasonCode::RuntimeServiceUnavailable
         }
@@ -245,18 +236,59 @@ mod tests {
 
     #[test]
     fn local_development_runtime_failures_keep_actionable_host_reasons() {
-        assert_eq!(
-            host_reason_from_runtime_reason("LOCAL_APP_DEVELOPER_MODE_DISABLED"),
-            Some(NimiHostErrorReasonCode::LocalAppDeveloperModeDisabled)
-        );
-        assert_eq!(
-            host_reason_from_runtime_reason("LOCAL_APP_OPERATION_UNAVAILABLE"),
-            Some(NimiHostErrorReasonCode::LocalAppOperationUnavailable)
-        );
-        assert_eq!(
-            host_reason_from_runtime_reason("LOCAL_APP_PROVENANCE_UNAVAILABLE"),
-            Some(NimiHostErrorReasonCode::LocalDevelopmentProjectChanged)
-        );
+        for (runtime_reason, host_reason) in [
+            (
+                "LOCAL_APP_RECORD_NOT_FOUND",
+                NimiHostErrorReasonCode::LocalDevelopmentAuthorizationRequired,
+            ),
+            (
+                "LOCAL_APP_ACCOUNT_CHANGED",
+                NimiHostErrorReasonCode::LocalDevelopmentReapprovalRequired,
+            ),
+            (
+                "LOCAL_APP_PROVENANCE_UNAVAILABLE",
+                NimiHostErrorReasonCode::LocalDevelopmentProjectChanged,
+            ),
+            (
+                "LOCAL_APP_PROCESS_MISMATCH",
+                NimiHostErrorReasonCode::LocalDevelopmentSupervisorRequired,
+            ),
+            (
+                "LOCAL_APP_SESSION_REVOKED",
+                NimiHostErrorReasonCode::LocalDevelopmentSessionRevoked,
+            ),
+            (
+                "LOCAL_APP_DEVELOPER_MODE_DISABLED",
+                NimiHostErrorReasonCode::LocalAppDeveloperModeDisabled,
+            ),
+            (
+                "LOCAL_APP_OPERATION_UNAVAILABLE",
+                NimiHostErrorReasonCode::LocalAppOperationUnavailable,
+            ),
+        ] {
+            assert_eq!(
+                host_reason_from_runtime_reason(runtime_reason),
+                Some(host_reason),
+                "{runtime_reason}"
+            );
+        }
+    }
+
+    #[test]
+    fn retired_local_development_runtime_reasons_are_not_compatibility_truth() {
+        for retired in [
+            "LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED",
+            "LOCAL_DEVELOPMENT_REAPPROVAL_REQUIRED",
+            "LOCAL_DEVELOPMENT_PROJECT_CHANGED",
+            "LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED",
+            "LOCAL_DEVELOPMENT_SESSION_REVOKED",
+            "LOCAL_DEVELOPMENT_PLATFORM_UNSUPPORTED",
+            "LOCAL_DEVELOPMENT_OPERATION_FORBIDDEN",
+            "LOCAL_DEVELOPMENT_DEV_SERVER_UNCONTROLLED",
+            "LOCAL_DEVELOPMENT_APPROVAL_DENIED",
+        ] {
+            assert_eq!(host_reason_from_runtime_reason(retired), None, "{retired}");
+        }
     }
 
     #[test]
@@ -278,13 +310,13 @@ mod tests {
     #[test]
     fn structured_runtime_error_keeps_bounded_diagnostic_stage() {
         let info = GoogleRpcErrorInfo {
-            reason: "LOCAL_DEVELOPMENT_PROJECT_CHANGED".to_string(),
+            reason: "LOCAL_APP_PROVENANCE_UNAVAILABLE".to_string(),
             domain: ERROR_INFO_DOMAIN.to_string(),
             metadata: HashMap::from([("diagnostic_stage".to_string(), "launch-store".to_string())]),
         };
         let envelope = GoogleRpcStatus {
             code: Code::FailedPrecondition as i32,
-            message: "LOCAL_DEVELOPMENT_PROJECT_CHANGED".to_string(),
+            message: "LOCAL_APP_PROVENANCE_UNAVAILABLE".to_string(),
             details: vec![Any {
                 type_url: ERROR_INFO_TYPE_URL.to_string(),
                 value: info.encode_to_vec(),
@@ -292,11 +324,11 @@ mod tests {
         };
         let status = Status::with_details(
             Code::FailedPrecondition,
-            "LOCAL_DEVELOPMENT_PROJECT_CHANGED",
+            "LOCAL_APP_PROVENANCE_UNAVAILABLE",
             envelope.encode_to_vec().into(),
         );
         let parsed = runtime_error_info(&status).expect("structured Runtime error");
-        assert_eq!(parsed.reason, "LOCAL_DEVELOPMENT_PROJECT_CHANGED");
+        assert_eq!(parsed.reason, "LOCAL_APP_PROVENANCE_UNAVAILABLE");
         assert_eq!(
             parsed.metadata.get("diagnostic_stage").map(String::as_str),
             Some("launch-store")

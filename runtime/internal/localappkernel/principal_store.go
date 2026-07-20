@@ -53,6 +53,14 @@ func (store *PrincipalStore) Create(ctx context.Context, input CreatePrincipalIn
 	) VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, NULL)`,
 		store.kernel.anchor, identifier, string(input.Kind), input.AppID,
 		nullableText(input.ImmutableLineageID), nullableText(input.DevelopmentAuthorizationID), nullableText(input.CanonicalProjectFileID), now.UnixNano()); err != nil {
+		if input.Kind == PrincipalKindDevelopment {
+			var found int
+			if rereadErr := store.kernel.db.QueryRowContext(ctx, `SELECT 1 FROM local_app_principals
+				WHERE local_os_user_anchor = ? AND development_authorization_id = ? AND principal_kind = 'development' AND state = 'active'`,
+				store.kernel.anchor, input.DevelopmentAuthorizationID).Scan(&found); rereadErr == nil {
+				return Principal{}, fmt.Errorf("%w: active development authorization id", ErrStateConflict)
+			}
+		}
 		return Principal{}, fmt.Errorf("insert local-app principal: %w", err)
 	}
 	return Principal{

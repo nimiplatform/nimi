@@ -1039,6 +1039,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RegisterExternalPrincipalResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession",
+    "service": "RuntimeAuthService",
+    "method": "RenewLocalAppSession",
+    "kind": "unary",
+    "requestType": "RenewLocalAppSessionRequest",
+    "responseType": "OpenLocalAppSessionResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession",
     "service": "RuntimeAuthService",
     "method": "RevokeExternalPrincipalSession",

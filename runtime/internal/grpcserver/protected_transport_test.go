@@ -142,7 +142,9 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 		&runtimev1.UnimplementedRuntimeConnectorServiceServer{},
 		appService,
 		&runtimev1.UnimplementedRuntimeDevelopmentServiceServer{},
+		&runtimev1.UnimplementedRuntimeArtifactServiceServer{},
 		manager,
+		accountService,
 	)
 	for _, serviceName := range []string{
 		"nimi.runtime.v1.RuntimeAuditService",
@@ -373,6 +375,10 @@ type protectedDesktopAccountTestService struct {
 	statusBound            bool
 	subscriptionBound      bool
 	workspaceBindingCalled bool
+}
+
+func (*protectedDesktopAccountTestService) BindAuthenticatedRuntimeGeneration(context.Context) (*runtimev1.AccountProjection, uint64, <-chan struct{}, bool) {
+	return &runtimev1.AccountProjection{AccountId: "account-protected", RealmEnvironmentId: "realm-test"}, 1, make(chan struct{}), true
 }
 
 type protectedDesktopAuditTestService struct {

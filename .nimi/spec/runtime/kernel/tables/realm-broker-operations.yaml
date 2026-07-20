@@ -1,4 +1,4 @@
-version: 3
+version: 4
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_realm_broker_operations
@@ -13,14 +13,15 @@ surfaces:
   - WorldPublicController_getWorldDetailWithCharacters
   - WorldPublicController_listWorlds
 source_rule: K-ACCSVC-023
-authority_status: admitted_exact_desktop_source_readiness_operations
+authority_status: admitted_exact_protected_source_readiness_operations
 production_consumption: admitted_exact_rows_only
 generic_proxy: forbidden
 unlisted_operation_disposition: deny_broker_operation_not_admitted
 description: >
-  Exact RuntimeAccountService.InvokeRealmUnary admission for the Desktop
-  source-readiness journey. Every row requires the verified protected Desktop
-  account host, the host-bound Desktop caller envelope, the current
+  Exact RuntimeAccountService.InvokeRealmUnary admission for protected
+  source-readiness journeys. Every row requires either the verified protected
+  Desktop account host or the fixed Desktop-supervised bundled Avatar profile,
+  plus the current
   authenticated account, Runtime-only Realm bearer custody, the configured
   canonical Realm base, and the row-specific OpenAPI request shape. No other
   Realm operation is admitted by this table. Packet issuance and all raw
@@ -43,6 +44,7 @@ operation_schema:
     - source_rule
   authorization_profile_values:
     - protected_desktop_source_readiness
+    - protected_bundled_avatar_source_readiness
   credential_response_policy_values:
     - forbidden
 
@@ -50,6 +52,16 @@ policy_templates:
   desktop_source_read: &desktop_source_read
     authorization_profile: protected_desktop_source_readiness
     allowed_runtime_caller_modes: [ACCOUNT_CALLER_MODE_DESKTOP_SHELL]
+    protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
+    realm_base_policy: runtime-configured-canonical-exact
+    response_max_bytes: 1048576
+    credential_response_policy: forbidden
+    source_rule: K-ACCSVC-023
+  desktop_and_bundled_avatar_source_read: &desktop_and_bundled_avatar_source_read
+    authorization_profile: protected_bundled_avatar_source_readiness
+    allowed_runtime_caller_modes:
+      - ACCOUNT_CALLER_MODE_DESKTOP_SHELL
+      - ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR
     protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
     realm_base_policy: runtime-configured-canonical-exact
     response_max_bytes: 1048576
@@ -83,7 +95,7 @@ operations:
     consumer_refs:
       - apps/desktop/src/shell/renderer/features/source-detail/data/realm-source-detail-data.ts
 
-  - <<: *desktop_source_read
+  - <<: *desktop_and_bundled_avatar_source_read
     operation_id: WorldCoreController_listPersonaCharacters
     http_method: GET
     path_template: /api/realm/core/persona-characters
@@ -91,6 +103,7 @@ operations:
     response_schema_ref: realm-openapi://operation/WorldCoreController_listPersonaCharacters/response
     consumer_refs:
       - apps/desktop/src/shell/renderer/features/explore/data/realm-explore-data.ts
+      - apps/avatar/src/shell/renderer/app-shell/app-bootstrap.ts
 
   - <<: *desktop_source_read
     operation_id: WorldCoreController_discoverPersonaCharacters

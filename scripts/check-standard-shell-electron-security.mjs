@@ -15,6 +15,7 @@ const fileUrlAllowlist = new Set([
   'apps/tester/src-electron/main.ts',
   'apps/tester/src/tester/tester-runtime-invokers-media-speech.ts',
   'kit/shell/electron/src/main/app-bridge.ts',
+  'kit/shell/electron/src/main/bundled-avatar-sender.ts',
 ]);
 
 const scanRoots = [
@@ -34,10 +35,12 @@ assertContains(testerMain, /nodeIntegration:\s*false/u, 'apps/tester/src-electro
 assertContains(testerMain, /sandbox:\s*true/u, 'apps/tester/src-electron/main.ts must set sandbox: true');
 assertNotContains(testerMain, /sandbox:\s*false/u, 'apps/tester/src-electron/main.ts must not set sandbox: false');
 const avatarMain = readRepo('apps/avatar/src-electron/main.ts');
-assertContains(avatarMain, /contextIsolation:\s*true/u, 'apps/avatar/src-electron/main.ts must set contextIsolation: true');
-assertContains(avatarMain, /nodeIntegration:\s*false/u, 'apps/avatar/src-electron/main.ts must set nodeIntegration: false');
-assertContains(avatarMain, /sandbox:\s*true/u, 'apps/avatar/src-electron/main.ts must set sandbox: true');
-assertNotContains(avatarMain, /sandbox:\s*false/u, 'apps/avatar/src-electron/main.ts must not set sandbox: false');
+assertNotContains(avatarMain, /new BrowserWindow/u, 'apps/avatar/src-electron/main.ts must not create an unsupervised Avatar window');
+const desktopAvatarHost = readRepo('apps/desktop/src-electron/bundled-avatar-host.ts');
+assertContains(desktopAvatarHost, /contextIsolation:\s*true/u, 'Desktop bundled Avatar host must set contextIsolation: true');
+assertContains(desktopAvatarHost, /nodeIntegration:\s*false/u, 'Desktop bundled Avatar host must set nodeIntegration: false');
+assertContains(desktopAvatarHost, /sandbox:\s*true/u, 'Desktop bundled Avatar host must set sandbox: true');
+assertNotContains(desktopAvatarHost, /sandbox:\s*false/u, 'Desktop bundled Avatar host must not set sandbox: false');
 const electronHost = readRepo('kit/shell/electron/src/main/host.ts');
 assertContains(electronHost, /NIMI_STANDARD_SHELL_CAPABILITY_SETS/u, 'kit/shell/electron/src/main/host.ts must enforce standard shell capability sets');
 assertContains(electronHost, /createElectronCapabilityNotInHostSetError/u, 'kit/shell/electron/src/main/host.ts must fail closed for commands outside the host capability set');

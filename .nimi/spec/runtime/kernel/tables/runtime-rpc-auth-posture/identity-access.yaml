@@ -380,6 +380,12 @@ methods:
     required_origin_role: local_app_process
     rationale: request-empty open atomically consumes the current launch lease and binds a zero-permission local-app session to the exact connection
     kernel_refs: [K-PLOCAL-008, K-AUTHSVC-002]
+  - method_id: /nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession
+    posture: protected_origin_required
+    protected_transport_class: local_app_host
+    required_origin_role: local_app_session
+    rationale: request-empty renewal atomically replaces only the current Runtime-private technical session after complete same-connection revalidation
+    kernel_refs: [K-PLOCAL-008, K-AUTHSVC-002]
   - method_id: /nimi.runtime.v1.RuntimeAuthService/RefreshSession
     posture: authenticated_required
     rationale: requires app session_id + session_token via envelope.ParseSessionFromContext as admitted

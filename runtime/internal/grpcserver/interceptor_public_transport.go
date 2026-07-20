@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/bundledavatar"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -16,6 +17,7 @@ var publicTransportBlockedMethods = map[string]runtimev1.ReasonCode{
 	"/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding":       runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession":              runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
 	"/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession":             runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession":            runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAccountService/GetLocalAppPermissionStatus":  runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAccountService/RequestLocalAppPermission":    runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch":            runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
@@ -66,6 +68,9 @@ func newStreamPublicTransportInterceptor() grpc.StreamServerInterceptor {
 func publicTransportDenial(fullMethod string) (runtimev1.ReasonCode, bool) {
 	if immutablePackageTransportDenied(fullMethod) {
 		return runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE, true
+	}
+	if _, bundledAvatarMethod := bundledavatar.Method(fullMethod); bundledAvatarMethod {
+		return runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED, true
 	}
 	if reason, blocked := publicTransportBlockedMethods[fullMethod]; blocked {
 		return reason, true

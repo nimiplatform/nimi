@@ -37,12 +37,12 @@ test('protected Agent calls use only the supplied Runtime-owned scope runner', a
       scopeCalls.push(scopes);
       return operation({
         metadata: {
-          'x-nimi-runtime-host-equivalence': 'desktop-protected-carrier',
+          'x-nimi-runtime-scoped-binding-id': 'binding-runtime-owned',
         },
       });
     },
-  }, ['runtime.agent.read'], async (options) => options.metadata?.['x-nimi-runtime-host-equivalence']);
+  }, ['runtime.agent.read'], async (options) => options.metadata?.['x-nimi-runtime-scoped-binding-id']);
 
   assert.deepEqual(scopeCalls, [['runtime.agent.read']]);
-  assert.equal(result, 'desktop-protected-carrier');
+  assert.equal(result, 'binding-runtime-owned');
 });

@@ -79,7 +79,7 @@ const SCOPED_BINDING_FIELDS = new Set([
 
 export interface NimiRuntimeAgentTurnsRuntime {
   readonly appId: string;
-  readonly auth: NimiRuntimeAgentAuthClient;
+  readonly auth?: NimiRuntimeAgentAuthClient;
   readonly agents: {
     getPublicChatSessionSnapshot(
       request: GetPublicChatSessionSnapshotRequest,

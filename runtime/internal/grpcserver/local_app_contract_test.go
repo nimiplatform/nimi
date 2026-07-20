@@ -13,6 +13,10 @@ func TestLocalAppSessionWireKeepsPrivateAuthorityOutOfMessages(t *testing.T) {
 	if request.Fields().Len() != 0 {
 		t.Fatalf("OpenLocalAppSessionRequest must be empty, got %d caller-selectable fields", request.Fields().Len())
 	}
+	renewRequest := (&runtimev1.RenewLocalAppSessionRequest{}).ProtoReflect().Descriptor()
+	if renewRequest.Fields().Len() != 0 {
+		t.Fatalf("RenewLocalAppSessionRequest must be empty, got %d caller-selectable fields", renewRequest.Fields().Len())
+	}
 
 	response := (&runtimev1.OpenLocalAppSessionResponse{}).ProtoReflect().Descriptor()
 	for _, forbidden := range []string{
@@ -70,6 +74,7 @@ func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 
 	assertProtectedLocalAppMethodPolicy(t, protectedOpenLocalAppSessionMethod, protectedlocal.TransportLocalAppBootstrap, protectedlocal.RoleLocalAppProcess)
 	for _, method := range []string{
+		protectedRenewLocalAppSessionMethod,
 		protectedGetLocalAppPermissionStatusMethod,
 		protectedRequestLocalAppPermissionMethod,
 		protectedReadLocalAppStorageJSONMethod,

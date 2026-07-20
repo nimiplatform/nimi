@@ -283,6 +283,7 @@ function renderDefaultElectronMain(identity) {
     '    appId: APP_ID,',
     '    allowedRendererUrls: [rendererUrl],',
     '    ipcMain,',
+    '    onProtectedSessionFailure: () => app.quit(),',
     '  });',
     '  await createMainWindow();',
     '  app.on(\'activate\', () => {',

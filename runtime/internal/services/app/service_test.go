@@ -137,7 +137,13 @@ func TestSendRuntimeAgentMessageRequiresScopedBinding(t *testing.T) {
 
 func TestSendRuntimeAgentMessageAcceptsProtectedCapabilityWithoutScopedBinding(t *testing.T) {
 	validator := &testScopedBindingValidator{t: t, ok: false}
-	svc := newTestService(WithScopedBindingValidator(validator))
+	svc := newTestService(
+		WithScopedBindingValidator(validator),
+		WithRuntimeAccountProjectionProvider(testRuntimeAccountProjectionProvider{
+			projection: &runtimev1.AccountProjection{AccountId: "account-current"},
+			ok:         true,
+		}),
+	)
 	ctx := envelope.WithValidatedProtectedCapability(context.Background(), "nimi.avatar", "runtime.agent.turn.write")
 	resp, err := svc.SendAppMessage(ctx, &runtimev1.SendAppMessageRequest{
 		FromAppId:   "nimi.avatar",
@@ -498,7 +504,13 @@ func TestSubscribeRuntimeAgentMessagesRequiresScopedBinding(t *testing.T) {
 
 func TestSubscribeRuntimeAgentMessagesAcceptsProtectedCapabilityWithoutScopedBinding(t *testing.T) {
 	validator := &testScopedBindingValidator{t: t, ok: false}
-	svc := newTestService(WithScopedBindingValidator(validator))
+	svc := newTestService(
+		WithScopedBindingValidator(validator),
+		WithRuntimeAccountProjectionProvider(testRuntimeAccountProjectionProvider{
+			projection: &runtimev1.AccountProjection{AccountId: "account-current"},
+			ok:         true,
+		}),
+	)
 	ctx := envelope.WithValidatedProtectedCapability(
 		appContext("nimi.avatar"),
 		"nimi.avatar",

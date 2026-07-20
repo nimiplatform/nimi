@@ -90,6 +90,7 @@ entries:
   - K-PLOCAL-007
   - K-PLOCAL-008
   - K-PLOCAL-009
+  - K-PLOCAL-010
   - K-GRANT-001
   - K-GRANT-002
   - K-GRANT-003
@@ -451,6 +452,14 @@ rules:
     test_files:
       - scripts/check-local-development-admission-authority.mjs
       - scripts/check-local-development-admission-authority.test.mjs
+  - rule_id: K-PLOCAL-010
+    evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate, runtime_go_test]
+    evidence_requirement: required
+    note: Desktop-supervised bundled Avatar calls require a canonical account-generation-bound protected principal and event-driven stream invalidation.
+    test_files:
+      - runtime/internal/grpcserver/protected_transport_test.go
+      - runtime/internal/services/account/runtime_security_context_test.go
+      - runtime/internal/services/runtimeagent/bundled_avatar_authority_test.go
   - rule_id: K-GRANT-001
     evidence_refs:
       - runtime_kernel_consistency

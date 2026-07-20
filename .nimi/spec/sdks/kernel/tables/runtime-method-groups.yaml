@@ -173,6 +173,7 @@ groups:
       - OpenSession
       - OpenDesktopSession
       - OpenLocalAppSession
+      - RenewLocalAppSession
       - RefreshSession
       - RevokeSession
       - RegisterExternalPrincipal

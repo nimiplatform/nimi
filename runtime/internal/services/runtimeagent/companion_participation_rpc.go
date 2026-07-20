@@ -233,6 +233,20 @@ func (s *Service) validateCompanionParticipationProjectionRequest(
 	if callerAppID == "" {
 		return publicChatAnchorState{}, nil, nil, status.Error(codes.InvalidArgument, "context.app_id is required")
 	}
+	var bundledIdentity localAgentIdentity
+	if isBundledAvatarCapability(ctx, requiredScope) {
+		identity, _, identityErr := s.agentEntryForIdentityContext(requestContext)
+		if identityErr != nil {
+			return publicChatAnchorState{}, nil, nil, identityErr
+		}
+		if err := s.authorizeBundledAvatarIdentity(ctx, requestContext, identity, requiredScope); err != nil {
+			return publicChatAnchorState{}, nil, nil, err
+		}
+		if trimmedAgentID != identity.LocalAgentRef {
+			return publicChatAnchorState{}, nil, nil, status.Error(codes.FailedPrecondition, "agent_id must match local_agent_ref")
+		}
+		bundledIdentity = identity
+	}
 	if scopedBinding := requestContext.GetScopedBinding(); scopedBinding != nil {
 		if err := s.validateScopedBindingAttachment(scopedBinding, callerAppID, trimmedAgentID, requiredScope); err != nil {
 			return publicChatAnchorState{}, nil, nil, err
@@ -246,6 +260,12 @@ func (s *Service) validateCompanionParticipationProjectionRequest(
 	}
 	if strings.TrimSpace(session.AgentID) != trimmedAgentID {
 		return publicChatAnchorState{}, nil, nil, status.Error(codes.FailedPrecondition, "conversation anchor agent_id mismatch")
+	}
+	if bundledIdentity.LocalAgentRef != "" && (session.OwnerUserID != bundledIdentity.OwnerUserID ||
+		session.RuntimeSourceRef != bundledIdentity.RuntimeSourceRef ||
+		session.LocalAgentRef != bundledIdentity.LocalAgentRef ||
+		session.SubjectUserID != bundledIdentity.OwnerUserID) {
+		return publicChatAnchorState{}, nil, nil, status.Error(codes.PermissionDenied, "companion participation account scope mismatch")
 	}
 	return session, activeTurn, lastTurn, nil
 }

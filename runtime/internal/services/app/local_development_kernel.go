@@ -18,9 +18,8 @@ import (
 )
 
 const (
-	localDevelopmentPayloadMaxFiles      = 20_000
-	localDevelopmentPayloadMaxBytes      = int64(1 << 30)
-	localDevelopmentRecordUpdateAttempts = 3
+	localDevelopmentPayloadMaxFiles = 20_000
+	localDevelopmentPayloadMaxBytes = int64(1 << 30)
 )
 
 var localDevelopmentPayloadExcludedDirectories = map[string]struct{}{
@@ -110,73 +109,64 @@ func (s *Service) prepareLocalDevelopmentRecord(ctx context.Context, authorizati
 		return localappkernel.Principal{}, localappkernel.Record{}, err
 	}
 	authorizationRef := localDevelopmentAuthorizationRef(authorization.ID)
-	for attempt := 0; attempt < localDevelopmentRecordUpdateAttempts; attempt++ {
-		principal, lookupErr := s.localAppKernel.Principals().GetByDevelopmentAuthorizationID(ctx, authorizationRef)
-		if errors.Is(lookupErr, localappkernel.ErrNotFound) || (lookupErr == nil && principal.State == localappkernel.PrincipalStateTombstoned) {
-			principal, record, createErr := s.createLocalDevelopmentProjection(ctx, authorization, observation)
-			if errors.Is(createErr, localappkernel.ErrStateConflict) {
-				continue
-			}
-			return principal, record, createErr
+	principal, lookupErr := s.localAppKernel.Principals().GetByDevelopmentAuthorizationID(ctx, authorizationRef)
+	if errors.Is(lookupErr, localappkernel.ErrNotFound) || (lookupErr == nil && principal.State == localappkernel.PrincipalStateTombstoned) {
+		principal, record, createErr := s.createLocalDevelopmentProjection(ctx, authorization, observation)
+		if createErr == nil {
+			return principal, record, nil
 		}
-		if lookupErr != nil {
-			return localappkernel.Principal{}, localappkernel.Record{}, lookupErr
+		if !errors.Is(createErr, localappkernel.ErrStateConflict) {
+			return localappkernel.Principal{}, localappkernel.Record{}, createErr
 		}
-		if !localDevelopmentPrincipalMatchesAuthorization(principal, authorization, observation) {
-			return localappkernel.Principal{}, localappkernel.Record{}, errLocalDevelopmentProjectChanged
-		}
-
-		record, recordErr := s.localAppKernel.Records().GetByPrincipalID(ctx, principal.LocalAppPrincipalID)
-		if errors.Is(recordErr, localappkernel.ErrNotFound) {
-			record, recordErr = s.createLocalDevelopmentRecord(ctx, authorization, principal, observation)
-			if recordErr == nil {
-				return principal, record, nil
-			}
-			// A concurrent exact-consent repair may have won the record create.
-			// Re-read owner truth before surfacing the create error.
-			if current, currentErr := s.localAppKernel.Records().GetByPrincipalID(ctx, principal.LocalAppPrincipalID); currentErr == nil {
-				record = current
-				recordErr = nil
-			}
-		}
-		if recordErr != nil {
-			return localappkernel.Principal{}, localappkernel.Record{}, recordErr
-		}
-		if !localDevelopmentRecordMatchesAuthorization(record, authorization, observation) {
-			return localappkernel.Principal{}, localappkernel.Record{}, errLocalDevelopmentProjectChanged
-		}
-		record, recordErr = s.updateLocalDevelopmentRecord(ctx, principal, record, observation)
-		if errors.Is(recordErr, localappkernel.ErrRevisionConflict) {
-			continue
-		}
-		return principal, record, recordErr
+		principal, lookupErr = s.localAppKernel.Principals().GetByDevelopmentAuthorizationID(ctx, authorizationRef)
 	}
-	return localappkernel.Principal{}, localappkernel.Record{}, localappkernel.ErrRevisionConflict
+	if lookupErr != nil {
+		return localappkernel.Principal{}, localappkernel.Record{}, lookupErr
+	}
+	if !localDevelopmentPrincipalMatchesAuthorization(principal, authorization, observation) {
+		return localappkernel.Principal{}, localappkernel.Record{}, errLocalDevelopmentProjectChanged
+	}
+
+	record, recordErr := s.localAppKernel.Records().GetByPrincipalID(ctx, principal.LocalAppPrincipalID)
+	if errors.Is(recordErr, localappkernel.ErrNotFound) {
+		record, recordErr = s.createLocalDevelopmentRecord(ctx, authorization, principal, observation)
+		if recordErr != nil {
+			record, recordErr = s.localAppKernel.Records().GetByPrincipalID(ctx, principal.LocalAppPrincipalID)
+		}
+	}
+	if recordErr != nil {
+		return localappkernel.Principal{}, localappkernel.Record{}, recordErr
+	}
+	if !localDevelopmentRecordMatchesAuthorization(record, authorization, observation) {
+		return localappkernel.Principal{}, localappkernel.Record{}, errLocalDevelopmentProjectChanged
+	}
+	record, recordErr = s.updateLocalDevelopmentRecord(ctx, principal, record, observation)
+	return principal, record, recordErr
 }
 
 func (s *Service) updateLocalDevelopmentRecord(ctx context.Context, principal localappkernel.Principal, record localappkernel.Record, observation localDevelopmentExecutionObservation) (localappkernel.Record, error) {
-	for attempt := 0; attempt < localDevelopmentRecordUpdateAttempts; attempt++ {
-		updated, err := s.localAppKernel.Records().UpdateDevelopment(ctx, localappkernel.UpdateDevelopmentRecordInput{
-			LocalAppPrincipalID:       principal.LocalAppPrincipalID,
-			LocalAppRecordID:          record.LocalAppRecordID,
-			ExpectedProjectGeneration: record.InstallOrProjectGeneration,
-			HostExecutableDigest:      observation.HostExecutableDigest,
-			PayloadRootDigest:         observation.PayloadRootDigest,
-			LifecycleState:            localappkernel.LifecycleStateActive,
-		})
-		if err == nil {
-			return updated, nil
-		}
-		if !errors.Is(err, localappkernel.ErrRevisionConflict) {
-			return localappkernel.Record{}, err
-		}
-		current, currentErr := s.localAppKernel.Records().GetByPrincipalID(ctx, principal.LocalAppPrincipalID)
-		if currentErr != nil {
-			return localappkernel.Record{}, currentErr
-		}
-		record = current
+	updated, err := s.localAppKernel.Records().UpdateDevelopment(ctx, localappkernel.UpdateDevelopmentRecordInput{
+		LocalAppPrincipalID:       principal.LocalAppPrincipalID,
+		LocalAppRecordID:          record.LocalAppRecordID,
+		ExpectedProjectGeneration: record.InstallOrProjectGeneration,
+		HostExecutableDigest:      observation.HostExecutableDigest,
+		PayloadRootDigest:         observation.PayloadRootDigest,
+		LifecycleState:            localappkernel.LifecycleStateActive,
+	})
+	if err == nil || !errors.Is(err, localappkernel.ErrRevisionConflict) {
+		return updated, err
 	}
-	return localappkernel.Record{}, localappkernel.ErrRevisionConflict
+	current, rereadErr := s.localAppKernel.Records().GetByPrincipalID(ctx, principal.LocalAppPrincipalID)
+	if rereadErr != nil {
+		return localappkernel.Record{}, rereadErr
+	}
+	if current.LocalAppRecordID != record.LocalAppRecordID ||
+		current.HostExecutableDigest != observation.HostExecutableDigest ||
+		current.PayloadRootDigest != observation.PayloadRootDigest ||
+		current.LifecycleState != localappkernel.LifecycleStateActive {
+		return localappkernel.Record{}, localappkernel.ErrRevisionConflict
+	}
+	return current, nil
 }
 
 func localDevelopmentPrincipalMatchesAuthorization(principal localappkernel.Principal, authorization localDevelopmentAuthorization, observation localDevelopmentExecutionObservation) bool {

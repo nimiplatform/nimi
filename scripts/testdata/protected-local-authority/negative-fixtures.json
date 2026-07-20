@@ -105,8 +105,8 @@
     "target": ".nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml",
     "mutation": {
       "kind": "replace_exact",
-      "from": "  - local_app_control\n  - local_app_process\n  - local_app_session\noperation_classes:",
-      "to": "  - local_app_controller\n  - local_app_process\n  - local_app_session\noperation_classes:"
+      "from": "  - local_app_control\n  - local_app_process\n  - local_app_session\n  - bundled_avatar_host\noperation_classes:",
+      "to": "  - local_app_controller\n  - local_app_process\n  - local_app_session\n  - bundled_avatar_host\noperation_classes:"
     }
   },
   {

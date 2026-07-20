@@ -15,8 +15,8 @@
     "expected_issue": "PLINK_AUTH_RESPONSE_SHAPE",
     "mutation": {
       "kind": "replace_exact",
-      "from": "  ReasonCode reason_code = 5;\n}\n\nmessage RefreshSessionRequest",
-      "to": "  ReasonCode reason_code = 5;\n  string session_token = 6;\n}\n\nmessage RefreshSessionRequest"
+      "from": "message OpenLocalAppSessionResponse {\n  LocalAppSessionState state = 1;\n  LocalAppTrustClass trust_class = 2;\n  uint64 account_generation = 3;\n  bytes runtime_boot_epoch = 4;\n  ReasonCode reason_code = 5;\n}",
+      "to": "message OpenLocalAppSessionResponse {\n  LocalAppSessionState state = 1;\n  LocalAppTrustClass trust_class = 2;\n  uint64 account_generation = 3;\n  bytes runtime_boot_epoch = 4;\n  ReasonCode reason_code = 5;\n  string session_token = 6;\n}"
     }
   },
   {

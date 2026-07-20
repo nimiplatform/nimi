@@ -353,6 +353,7 @@ func newRuntimeAgentServiceForPublicChatStatePathWithClose(t *testing.T, localSt
 	if err != nil {
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
+	svc.SetRuntimeAccountProjectionProvider(bundledAvatarTestProjectionProvider{accountID: "user-1"})
 	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
 		Context:     testRuntimeAgentIdentityContext("agent-alpha"),
 		DisplayName: "Alpha",

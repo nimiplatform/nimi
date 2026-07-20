@@ -334,6 +334,7 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assert.equal(appOwned.some((file) => file.startsWith('src/shell/ai/')), false);
     assert.equal(appOwned.some((file) => file.startsWith('src-electron/')), false);
     assert.match(generated.read('src-electron/main.ts'), /registerNimiElectronAppBridge/);
+    assert.match(generated.read('src-electron/main.ts'), /onProtectedSessionFailure: \(\) => app\.quit\(\)/);
     assert.doesNotMatch(generated.read('src-electron/main.ts'), /runtimeEndpoint|sessionProof|launchTicket/);
     assert.match(generated.read('src-tauri/src/main.rs'), /RuntimeBridgeLocalAppHost::platform_default\(\)/);
     assert.equal(appOwned.some((file) => file.startsWith('test/tester-') || file === 'test/electron-acceptance.mjs'), false);

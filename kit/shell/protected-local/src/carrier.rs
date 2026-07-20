@@ -1,4 +1,6 @@
 use crate::{
+    BundledAvatarRuntimeError, BundledAvatarRuntimeRequest,
+    BundledAvatarRuntimeResponse, BundledAvatarRuntimeStreamReceiver,
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
     DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse,
     DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse,
@@ -191,6 +193,28 @@ pub struct LocalAppStorageRemoveResult {
 /// The handle carries only explicit typed operations and cannot proxy an
 /// arbitrary method id, request bytes, endpoint, or portable credential.
 pub trait NimiDesktopControl: Send + Sync {
+    fn invoke_bundled_avatar(
+        &self,
+        request: BundledAvatarRuntimeRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<BundledAvatarRuntimeResponse, BundledAvatarRuntimeError>>
+                + Send
+                + '_,
+        >,
+    >;
+
+    fn open_bundled_avatar_stream(
+        &self,
+        request: BundledAvatarRuntimeRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<BundledAvatarRuntimeStreamReceiver, BundledAvatarRuntimeError>>
+                + Send
+                + '_,
+        >,
+    >;
+
     fn invoke_product_control(
         &self,
         request: DesktopProductControlRequest,
@@ -357,6 +381,15 @@ pub trait NimiDesktopControl: Send + Sync {
 /// are the complete public carrier surface for the 0K checkpoint.
 pub trait NimiLocalAppSession: Send + Sync {
     fn session_status(
+        &self,
+    ) -> Pin<
+        Box<dyn Future<Output = Result<LocalAppSessionStatus, LocalAppOperationError>> + Send + '_>,
+    >;
+
+    /// Rotates only the Runtime-private short-lived technical session on the
+    /// exact current protected host connection. No authority material is
+    /// returned to the caller.
+    fn renew_technical_session(
         &self,
     ) -> Pin<
         Box<dyn Future<Output = Result<LocalAppSessionStatus, LocalAppOperationError>> + Send + '_>,

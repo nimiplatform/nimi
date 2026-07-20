@@ -512,7 +512,7 @@ test('Runtime Agent voice helper preserves scoped Runtime binding without render
   assert.equal(context?.scopedBinding?.conversationAnchorId, 'anchor-1');
 });
 
-test('Runtime Agent voice helper preserves host equivalence without renderer token fallback', async () => {
+test('Runtime Agent voice helper does not manufacture host-equivalence metadata', async () => {
   const streamOptions: RuntimeTypedCallOptions[] = [];
   const authCalls: string[] = [];
   const module = createNimiRuntimeAgentVoiceModule({
@@ -521,7 +521,7 @@ test('Runtime Agent voice helper preserves host equivalence without renderer tok
       auth: {
         async registerApp() {
           authCalls.push('register');
-          throw new Error('Runtime auth fallback must not run for Runtime host equivalence');
+          throw new Error('Runtime auth fallback must not run for the protected carrier');
         },
       },
       agents: {
@@ -555,30 +555,21 @@ test('Runtime Agent voice helper preserves host equivalence without renderer tok
       },
     },
     getSubjectUserId: () => 'user-1',
-    withScopes: async (_nextScopes, operation) => operation({
-      metadata: {
-        'x-nimi-runtime-host-equivalence': 'runtime-sdk-authority:kit-electron-runtime-bridge-local-first-party-host',
-      },
-    }),
+    withScopes: async (_nextScopes, operation) => operation({}),
   });
 
-  const stream = await module.subscribeStream({
-    ownerUserId: OWNER_USER_ID,
-    runtimeSourceRef: RUNTIME_SOURCE_REF,
-    localAgentRef: LOCAL_AGENT_REF,
-    conversationAnchorId: 'anchor-1',
-    turnId: 'turn-1',
-    voiceStreamId: 'voice-stream-1',
-  });
-  for await (const _event of stream) {
-    break;
-  }
+  await assert.rejects(
+    () => module.subscribeStream({
+      ownerUserId: OWNER_USER_ID,
+      runtimeSourceRef: RUNTIME_SOURCE_REF,
+      localAgentRef: LOCAL_AGENT_REF,
+      conversationAnchorId: 'anchor-1',
+      turnId: 'turn-1',
+      voiceStreamId: 'voice-stream-1',
+    }),
+    (error) => error?.reasonCode === 'SDK_RUNTIME_AGENT_SCOPED_CARRIER_REQUIRED',
+  );
 
   assert.deepEqual(authCalls, []);
-  assert.equal(
-    streamOptions[0]?.metadata?.['x-nimi-runtime-host-equivalence'],
-    'runtime-sdk-authority:kit-electron-runtime-bridge-local-first-party-host',
-  );
-  assert.equal(streamOptions[0]?.metadata?.['x-nimi-access-token-id'], undefined);
-  assert.equal(streamOptions[0]?.metadata?.['x-nimi-access-token-secret'], undefined);
+  assert.deepEqual(streamOptions, []);
 });

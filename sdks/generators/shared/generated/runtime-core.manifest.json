@@ -1218,6 +1218,15 @@
           "response_stream": false
         },
         {
+          "name": "RenewLocalAppSession",
+          "method_id": "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession",
+          "kind": "unary",
+          "request_type": "RenewLocalAppSessionRequest",
+          "response_type": "OpenLocalAppSessionResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "RefreshSession",
           "method_id": "/nimi.runtime.v1.RuntimeAuthService/RefreshSession",
           "kind": "unary",
@@ -2630,6 +2639,7 @@
     "/nimi.runtime.v1.RuntimeAuthService/RefreshSession",
     "/nimi.runtime.v1.RuntimeAuthService/RegisterApp",
     "/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal",
+    "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession",
     "/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession",
     "/nimi.runtime.v1.RuntimeAuthService/RevokeSession",
     "/nimi.runtime.v1.RuntimeCognitionService/AddLink",
@@ -3789,6 +3799,14 @@
       "kind": "unary",
       "request_type": "RegisterExternalPrincipalRequest",
       "response_type": "RegisterExternalPrincipalResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession",
+      "service": "RuntimeAuthService",
+      "method": "RenewLocalAppSession",
+      "kind": "unary",
+      "request_type": "RenewLocalAppSessionRequest",
+      "response_type": "OpenLocalAppSessionResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession",
@@ -5889,6 +5907,14 @@
       "response_type": "RegisterExternalPrincipalResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession",
+      "service": "RuntimeAuthService",
+      "method": "RenewLocalAppSession",
+      "kind": "unary",
+      "request_type": "RenewLocalAppSessionRequest",
+      "response_type": "OpenLocalAppSessionResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession",
       "service": "RuntimeAuthService",
       "method": "RevokeExternalPrincipalSession",
@@ -7592,6 +7618,7 @@
       "RemoveLocalServiceRequest",
       "RemoveLocalServiceResponse",
       "RemoveModelRequest",
+      "RenewLocalAppSessionRequest",
       "RepairLocalEnvironmentDependencyRequest",
       "RepairLocalEnvironmentDependencyResponse",
       "RequestAgentCanonicalMemoryBankBindRequest",
@@ -32504,6 +32531,11 @@
           }
         ],
         "source_file": "proto/runtime/v1/model.proto"
+      },
+      {
+        "name": "RenewLocalAppSessionRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/auth.proto"
       },
       {
         "name": "RepairLocalEnvironmentDependencyRequest",

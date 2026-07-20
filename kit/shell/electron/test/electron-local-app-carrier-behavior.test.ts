@@ -18,6 +18,7 @@ function createBridge() {
     appId: 'nimi.thirdparty.fixture',
     allowedRendererUrls: ['http://localhost:1430/'],
     ipcMain,
+    onProtectedSessionFailure: () => undefined,
   });
   const { event } = createInvokeEvent();
   return {
@@ -30,12 +31,21 @@ function createBridge() {
 }
 
 describe('Electron local-app carrier behavior', () => {
+  it('requires a host-close callback for protected session bootstrap and renewal failure', () => {
+    expect(() => registerNimiElectronAppBridge({
+      appId: 'nimi.thirdparty.fixture',
+      allowedRendererUrls: ['http://localhost:1430/'],
+      ipcMain: new FakeIpcMain(),
+    } as never)).toThrow(/input contains forbidden authority fields/i);
+  });
+
   it('routes exact app-owned commands without turning them into Nimi permissions', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronAppBridge({
       appId: 'nimi.thirdparty.fixture',
       allowedRendererUrls: ['http://localhost:1430/'],
       ipcMain,
+      onProtectedSessionFailure: () => undefined,
       appCommandHandlers: {
         'fixture.sqlite.read': ({ payload }) => ({ owner: 'fixture', payload }),
       },
@@ -79,6 +89,7 @@ describe('Electron local-app carrier behavior', () => {
       appId: 'nimi.thirdparty.fixture',
       allowedRendererUrls: ['http://localhost:1430/'],
       ipcMain,
+      onProtectedSessionFailure: () => undefined,
       appCommandHandlers: {
         'nimi.shell.runtime.unary': () => ({ forged: true }),
       },

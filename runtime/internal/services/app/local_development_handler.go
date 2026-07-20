@@ -393,46 +393,82 @@ func localDevelopmentBindDiagnosticStage(err error) string {
 }
 
 func (s *Service) OpenLocalAppSessionProjection(ctx context.Context) (authservice.LocalAppSessionProjection, error) {
+	connection, accountID, generation, err := s.localDevelopmentSessionOpenContext(ctx)
+	if err != nil {
+		return authservice.LocalAppSessionProjection{}, err
+	}
+	if _, alreadyOpen := connection.Session(); alreadyOpen {
+		return authservice.LocalAppSessionProjection{}, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	}
+	session, err := s.localDevelopment.ConsumeLaunch(ctx, connection.LaunchID(), connection.Process())
+	if err != nil {
+		return authservice.LocalAppSessionProjection{}, localDevelopmentSessionOpenError(err)
+	}
+	return s.finalizeLocalDevelopmentSession(ctx, connection, accountID, generation, session, nil)
+}
+
+func (s *Service) RenewLocalAppSessionProjection(ctx context.Context) (authservice.LocalAppSessionProjection, error) {
+	connection, accountID, generation, err := s.localDevelopmentSessionOpenContext(ctx)
+	if err != nil {
+		return authservice.LocalAppSessionProjection{}, err
+	}
+	previous, ok := connection.Session()
+	if !ok {
+		return authservice.LocalAppSessionProjection{}, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	}
+	session, err := s.localDevelopment.RenewSession(ctx, localDevelopmentSessionBinding{
+		SessionID: previous.SessionID, SessionProof: previous.SessionProof, Process: connection.Process(),
+		AccountGeneration: generation, RuntimeBootEpoch: connection.RuntimeBootEpoch(),
+	})
+	if err != nil {
+		return authservice.LocalAppSessionProjection{}, localDevelopmentSessionOpenError(err)
+	}
+	return s.finalizeLocalDevelopmentSession(ctx, connection, accountID, generation, session, &previous)
+}
+
+func (s *Service) localDevelopmentSessionOpenContext(ctx context.Context) (*protectedlocal.LocalAppConnection, string, uint64, error) {
 	if s == nil || s.localDevelopment == nil {
-		return authservice.LocalAppSessionProjection{}, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+		return nil, "", 0, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
 	connection, ok := protectedlocal.LocalAppConnectionFromContext(ctx)
 	if !ok || connection == nil || !protectedlocal.IsLocalDevelopmentProcessTrustSet(connection.Process()) {
-		return authservice.LocalAppSessionProjection{}, localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH)
+		return nil, "", 0, localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH)
 	}
 	account, generation, authenticated := s.authenticatedLifecycleAccount(ctx)
 	if !authenticated {
-		return authservice.LocalAppSessionProjection{}, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)
+		return nil, "", 0, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)
 	}
-	previous, rotating := connection.Session()
-	var session localDevelopmentSessionProjection
-	var err error
-	if rotating {
-		session, err = s.localDevelopment.RenewSession(ctx, localDevelopmentSessionBinding{
-			SessionID: previous.SessionID, SessionProof: previous.SessionProof, Process: connection.Process(),
-			AccountGeneration: generation, RuntimeBootEpoch: connection.RuntimeBootEpoch(),
-		})
-	} else {
-		session, err = s.localDevelopment.ConsumeLaunch(ctx, connection.LaunchID(), connection.Process())
-	}
-	if err != nil || session.AccountID != account.GetAccountId() || session.AccountGeneration != generation {
-		return authservice.LocalAppSessionProjection{}, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)
+	return connection, account.GetAccountId(), generation, nil
+}
+
+func (s *Service) finalizeLocalDevelopmentSession(
+	ctx context.Context,
+	connection *protectedlocal.LocalAppConnection,
+	accountID string,
+	generation uint64,
+	session localDevelopmentSessionProjection,
+	previous *protectedlocal.LocalAppSessionHandle,
+) (authservice.LocalAppSessionProjection, error) {
+	if session.AccountID != accountID || session.AccountGeneration != generation {
+		_ = s.localDevelopment.RevokeSession(ctx, session.SessionID)
+		return authservice.LocalAppSessionProjection{}, localDevelopmentSessionOpenError(errLocalDevelopmentAccountChanged)
 	}
 	if _, _, err := s.resolveLocalDevelopmentRecord(ctx, session); err != nil {
 		_ = s.localDevelopment.RevokeSession(ctx, session.SessionID)
 		return authservice.LocalAppSessionProjection{}, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
 	}
 	nextHandle := protectedlocal.LocalAppSessionHandle{SessionID: session.SessionID, SessionProof: session.SessionProof}
-	if rotating {
-		err = connection.RotateSession(previous, nextHandle)
-	} else {
+	var err error
+	if previous == nil {
 		err = connection.BindSession(nextHandle)
+	} else {
+		err = connection.RotateSession(*previous, nextHandle)
 	}
 	if err != nil {
 		_ = s.localDevelopment.RevokeSession(ctx, session.SessionID)
 		return authservice.LocalAppSessionProjection{}, localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
 	}
-	connection.OnRevoke(func() { _ = s.localDevelopment.RevokeSession(context.Background(), session.SessionID) })
+	connection.ReplaceSessionRevokeHook(func() { _ = s.localDevelopment.RevokeSession(context.Background(), session.SessionID) })
 	return authservice.LocalAppSessionProjection{
 		TrustClass:        runtimev1.LocalAppTrustClass_LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT,
 		AccountGeneration: session.AccountGeneration,
@@ -623,6 +659,19 @@ func localDevelopmentStoreError(err error) error {
 		return localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH)
 	default:
 		return localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND)
+	}
+}
+
+func localDevelopmentSessionOpenError(err error) error {
+	switch {
+	case errors.Is(err, errLocalDevelopmentAccountChanged):
+		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)
+	case errors.Is(err, errLocalDevelopmentLaunchMismatch), errors.Is(err, errLocalDevelopmentProcessMismatch):
+		return localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH)
+	case errors.Is(err, errLocalDevelopmentLaunchExpired), errors.Is(err, errLocalDevelopmentSessionRevoked), errors.Is(err, errLocalDevelopmentAuthorization):
+		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	default:
+		return localDevelopmentFailure(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
 }
 

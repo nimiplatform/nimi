@@ -83,6 +83,11 @@
       "import": "./dist/core/storage-json.js",
       "default": "./dist/core/storage-json.js"
     },
+    "./core/json-value": {
+      "types": "./dist/core/json-value.d.ts",
+      "import": "./dist/core/json-value.js",
+      "default": "./dist/core/json-value.js"
+    },
     "./core/offline-coordinator": {
       "types": "./dist/core/offline-coordinator.d.ts",
       "import": "./dist/core/offline-coordinator.js",

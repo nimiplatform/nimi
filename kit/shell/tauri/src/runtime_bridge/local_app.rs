@@ -51,6 +51,21 @@ impl RuntimeBridgeLocalAppHost {
         }
     }
 
+    /// Host-only technical renewal seam. Tauri renderers receive no command
+    /// for this operation; an admitted host lifecycle scheduler owns it.
+    pub async fn renew_technical_session(
+        &self,
+    ) -> Result<LocalAppSessionStatus, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.renew_technical_session().await {
+            Ok(status) => Ok(status),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, error).await;
+                Err(error)
+            }
+        }
+    }
+
     pub async fn permission_status(
         &self,
         request: LocalAppPermissionStatusRequest,

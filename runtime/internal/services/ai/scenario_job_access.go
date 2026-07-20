@@ -7,6 +7,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -15,7 +16,15 @@ import (
 const anonymousScenarioJobOwner = "anonymous"
 
 func normalizeSubmitScenarioJobOwner(ctx context.Context, req *runtimev1.SubmitScenarioJobRequest) (*runtimev1.SubmitScenarioJobRequest, error) {
-	owner, err := canonicalScenarioJobOwner(ctx)
+	return normalizeSubmitScenarioJobOwnerWithProvider(ctx, req, nil)
+}
+
+func (s *Service) normalizeSubmitScenarioJobOwner(ctx context.Context, req *runtimev1.SubmitScenarioJobRequest) (*runtimev1.SubmitScenarioJobRequest, error) {
+	return normalizeSubmitScenarioJobOwnerWithProvider(ctx, req, s.runtimeAccountProjection)
+}
+
+func normalizeSubmitScenarioJobOwnerWithProvider(ctx context.Context, req *runtimev1.SubmitScenarioJobRequest, provider runtimeAccountProjectionProvider) (*runtimev1.SubmitScenarioJobRequest, error) {
+	owner, protectedAvatar, err := canonicalScenarioJobOwnerWithProvider(ctx, provider)
 	if err != nil {
 		return nil, err
 	}
@@ -24,18 +33,30 @@ func normalizeSubmitScenarioJobOwner(ctx context.Context, req *runtimev1.SubmitS
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	out.Head.SubjectUserId = owner
+	if protectedAvatar {
+		principal, _ := protectedprincipal.FromContext(ctx)
+		out.Head.AppId = principal.AppID
+	}
 	return out, nil
 }
 
 func canonicalScenarioJobOwner(ctx context.Context) (string, error) {
+	owner, _, err := canonicalScenarioJobOwnerWithProvider(ctx, nil)
+	return owner, err
+}
+
+func canonicalScenarioJobOwnerWithProvider(ctx context.Context, provider runtimeAccountProjectionProvider) (string, bool, error) {
+	if principal, ok := protectedprincipal.FromContext(ctx); ok {
+		return principal.AccountID, true, nil
+	}
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
 		subject := strings.TrimSpace(identity.SubjectUserID)
 		if subject == "" {
-			return "", grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+			return "", false, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
 		}
-		return subject, nil
+		return subject, false, nil
 	}
-	return anonymousScenarioJobOwner, nil
+	return anonymousScenarioJobOwner, false, nil
 }
 
 func (s *Service) GetScenarioJob(ctx context.Context, req *runtimev1.GetScenarioJobRequest) (*runtimev1.GetScenarioJobResponse, error) {
@@ -44,7 +65,7 @@ func (s *Service) GetScenarioJob(ctx context.Context, req *runtimev1.GetScenario
 	}
 	jobID := strings.TrimSpace(req.GetJobId())
 	if job, ok := s.scenarioJobs.get(jobID); ok {
-		if err := authorizeScenarioJob(ctx, job); err != nil {
+		if err := s.authorizeScenarioJob(ctx, job); err != nil {
 			return nil, err
 		}
 		return &runtimev1.GetScenarioJobResponse{Job: sanitizeScenarioJobForResponse(job)}, nil
@@ -53,7 +74,7 @@ func (s *Service) GetScenarioJob(ctx context.Context, req *runtimev1.GetScenario
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND)
 	}
-	if err := authorizeScenarioJob(ctx, job); err != nil {
+	if err := s.authorizeScenarioJob(ctx, job); err != nil {
 		return nil, err
 	}
 	return &runtimev1.GetScenarioJobResponse{Job: job}, nil
@@ -65,7 +86,7 @@ func (s *Service) CancelScenarioJob(ctx context.Context, req *runtimev1.CancelSc
 	}
 	jobID := strings.TrimSpace(req.GetJobId())
 	if existingJob, exists := s.scenarioJobs.get(jobID); exists {
-		if err := authorizeScenarioJob(ctx, existingJob); err != nil {
+		if err := s.authorizeScenarioJob(ctx, existingJob); err != nil {
 			return nil, err
 		}
 		if isTerminalScenarioJobStatus(existingJob.GetStatus()) {
@@ -92,7 +113,7 @@ func (s *Service) CancelScenarioJob(ctx context.Context, req *runtimev1.CancelSc
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND)
 	}
-	if err := authorizeScenarioJob(ctx, existingJob); err != nil {
+	if err := s.authorizeScenarioJob(ctx, existingJob); err != nil {
 		return nil, err
 	}
 	job, ok := s.voiceAssets.cancelJob(jobID, req.GetReason())
@@ -108,11 +129,11 @@ func (s *Service) SubscribeScenarioJobEvents(req *runtimev1.SubscribeScenarioJob
 	}
 	jobID := strings.TrimSpace(req.GetJobId())
 	if job, ok := s.scenarioJobs.get(jobID); ok {
-		if err := authorizeScenarioJob(stream.Context(), job); err != nil {
+		if err := s.authorizeScenarioJob(stream.Context(), job); err != nil {
 			return err
 		}
 	} else if job, ok := s.voiceAssets.getJob(jobID); ok {
-		if err := authorizeScenarioJob(stream.Context(), job); err != nil {
+		if err := s.authorizeScenarioJob(stream.Context(), job); err != nil {
 			return err
 		}
 	}
@@ -188,7 +209,7 @@ func (s *Service) GetScenarioArtifacts(ctx context.Context, req *runtimev1.GetSc
 	jobID := strings.TrimSpace(req.GetJobId())
 	job, artifacts, traceID, ok := s.scenarioJobs.listArtifacts(jobID)
 	if ok {
-		if err := authorizeScenarioJob(ctx, job); err != nil {
+		if err := s.authorizeScenarioJob(ctx, job); err != nil {
 			return nil, err
 		}
 		if err := scenarioArtifactsTerminalFailure(job); err != nil {
@@ -204,7 +225,7 @@ func (s *Service) GetScenarioArtifacts(ctx context.Context, req *runtimev1.GetSc
 		}, nil
 	}
 	if job, ok := s.voiceAssets.getJob(jobID); ok {
-		if err := authorizeScenarioJob(ctx, job); err != nil {
+		if err := s.authorizeScenarioJob(ctx, job); err != nil {
 			return nil, err
 		}
 		if err := scenarioArtifactsTerminalFailure(job); err != nil {
@@ -228,6 +249,14 @@ func scenarioArtifactsTerminalFailure(job *runtimev1.ScenarioJob) error {
 }
 
 func authorizeScenarioJob(ctx context.Context, job *runtimev1.ScenarioJob) error {
+	return authorizeScenarioJobWithProvider(ctx, job, nil)
+}
+
+func (s *Service) authorizeScenarioJob(ctx context.Context, job *runtimev1.ScenarioJob) error {
+	return authorizeScenarioJobWithProvider(ctx, job, s.runtimeAccountProjection)
+}
+
+func authorizeScenarioJobWithProvider(ctx context.Context, job *runtimev1.ScenarioJob, provider runtimeAccountProjectionProvider) error {
 	if job == nil || job.GetHead() == nil {
 		return nil
 	}
@@ -240,6 +269,12 @@ func authorizeScenarioJob(ctx context.Context, job *runtimev1.ScenarioJob) error
 	appID := incomingAppID(ctx)
 	if appID == "" || expectedAppID != appID {
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
+	}
+	if principal, ok := protectedprincipal.FromContext(ctx); ok {
+		if expectedAppID != principal.AppID || !principal.Owns(expectedSubject) {
+			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
+		}
+		return nil
 	}
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
 		actualSubject := strings.TrimSpace(identity.SubjectUserID)

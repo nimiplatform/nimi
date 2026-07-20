@@ -21,6 +21,8 @@ use crate::macos_peer_trust::{
 };
 use crate::macos_supervised_process::SupervisedDevelopmentProcess;
 use crate::{
+    BundledAvatarRuntimeError, BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse,
+    BundledAvatarRuntimeStreamReceiver,
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
     DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse,
     DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse,
@@ -98,9 +100,33 @@ impl MacOSDesktopControl {
             DesktopRuntimeConsumerError::new(error.reason_code().as_str(), error.retryable())
         })
     }
+
+    fn bundled_avatar_channel(&self) -> Result<Channel, BundledAvatarRuntimeError> {
+        self.host_channel().map_err(|error| {
+            BundledAvatarRuntimeError::new(error.reason_code().as_str(), error.retryable())
+        })
+    }
 }
 
 impl NimiDesktopControl for MacOSDesktopControl {
+    fn invoke_bundled_avatar(
+        &self,
+        request: BundledAvatarRuntimeRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<BundledAvatarRuntimeResponse, BundledAvatarRuntimeError>> + Send + '_>> {
+        Box::pin(async move {
+            crate::bundled_avatar::invoke(self.bundled_avatar_channel()?, request).await
+        })
+    }
+
+    fn open_bundled_avatar_stream(
+        &self,
+        request: BundledAvatarRuntimeRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<BundledAvatarRuntimeStreamReceiver, BundledAvatarRuntimeError>> + Send + '_>> {
+        Box::pin(async move {
+            crate::bundled_avatar::open_stream(self.bundled_avatar_channel()?, request).await
+        })
+    }
+
     fn invoke_product_control(
         &self,
         request: DesktopProductControlRequest,

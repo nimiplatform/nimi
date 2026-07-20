@@ -8,18 +8,22 @@ import (
 	"sync"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/bundledavatar"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 )
 
 const protectedOpenDesktopSessionMethod = "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession"
 const protectedRequestRuntimeRestartMethod = "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart"
 const protectedDesktopAuditProjectionMethod = "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents"
+const protectedBundledProfileMetadata = "x-nimi-protected-bundled-profile"
 
 func protectedDesktopUnaryMethodAllowed(method string) bool {
 	_, allowed := protectedDesktopMethodRole(method)
@@ -211,6 +215,10 @@ func (protectedDesktopTransportCredentials) OverrideServerName(string) error {
 	return fmt.Errorf("protected Desktop transport has no portable server name")
 }
 
+type protectedAccountPrincipalProvider interface {
+	BindAuthenticatedRuntimeGeneration(context.Context) (*runtimev1.AccountProjection, uint64, <-chan struct{}, bool)
+}
+
 func newProtectedDesktopRPCServer(
 	runtimeControlService runtimev1.RuntimeServiceControlServiceServer,
 	authService runtimev1.RuntimeAuthServiceServer,
@@ -222,7 +230,9 @@ func newProtectedDesktopRPCServer(
 	connectorService runtimev1.RuntimeConnectorServiceServer,
 	appService runtimev1.RuntimeAppServiceServer,
 	developmentService runtimev1.RuntimeDevelopmentServiceServer,
+	artifactService runtimev1.RuntimeArtifactServiceServer,
 	desktopSessions *protectedlocal.DesktopSessionManager,
+	accountPrincipalProvider protectedAccountPrincipalProvider,
 ) *grpc.Server {
 	server := grpc.NewServer(
 		grpc.Creds(newProtectedDesktopTransportCredentials()),
@@ -231,8 +241,8 @@ func newProtectedDesktopRPCServer(
 		grpc.MaxConcurrentStreams(maxGRPCConcurrentStreams),
 		grpc.ReadBufferSize(grpcIOBufferBytes),
 		grpc.WriteBufferSize(grpcIOBufferBytes),
-		grpc.UnaryInterceptor(newUnaryProtectedDesktopTransportInterceptor(desktopSessions)),
-		grpc.StreamInterceptor(newStreamProtectedDesktopTransportInterceptor(desktopSessions)),
+		grpc.UnaryInterceptor(newUnaryProtectedDesktopTransportInterceptor(desktopSessions, accountPrincipalProvider)),
+		grpc.StreamInterceptor(newStreamProtectedDesktopTransportInterceptor(desktopSessions, accountPrincipalProvider)),
 	)
 	runtimev1.RegisterRuntimeServiceControlServiceServer(server, runtimeControlService)
 	runtimev1.RegisterRuntimeAuthServiceServer(server, authService)
@@ -244,10 +254,11 @@ func newProtectedDesktopRPCServer(
 	runtimev1.RegisterRuntimeConnectorServiceServer(server, connectorService)
 	runtimev1.RegisterRuntimeAppServiceServer(server, appService)
 	runtimev1.RegisterRuntimeDevelopmentServiceServer(server, developmentService)
+	runtimev1.RegisterRuntimeArtifactServiceServer(server, artifactService)
 	return server
 }
 
-func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedlocal.DesktopSessionManager) grpc.UnaryServerInterceptor {
+func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedlocal.DesktopSessionManager, accountPrincipalProvider protectedAccountPrincipalProvider) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		if info == nil {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
@@ -255,7 +266,11 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 		if immutablePackageTransportDenied(info.FullMethod) {
 			return nil, immutablePackageTransportUnavailable()
 		}
-		if !protectedDesktopUnaryMethodAllowed(info.FullMethod) {
+		bundledProfile, bundled, bundledErr := resolveProtectedBundledAvatarProfile(ctx, info.FullMethod, bundledavatar.MethodUnary)
+		if bundledErr != nil {
+			return nil, bundledErr
+		}
+		if !bundled && !protectedDesktopUnaryMethodAllowed(info.FullMethod) {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 		}
 		connection, err := protectedDesktopConnectionFromPeer(ctx)
@@ -263,10 +278,23 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 			return nil, err
 		}
 		protectedContext := protectedlocal.ContextWithDesktopConnection(ctx, connection)
-		if err := authorizeProtectedDesktopMethod(protectedContext, info.FullMethod, desktopSessions); err != nil {
+		if err := authorizeProtectedDesktopMethodForProfile(protectedContext, info.FullMethod, desktopSessions, bundled); err != nil {
 			return nil, err
 		}
-		protectedContext = withProtectedDesktopAuthorizationDecision(protectedContext, info.FullMethod)
+		if bundled {
+			principal, err := bindBundledAvatarPrincipal(protectedContext, bundledProfile.Capability, desktopSessions, accountPrincipalProvider)
+			if err != nil {
+				return nil, err
+			}
+			protectedContext = protectedprincipal.With(protectedContext, principal)
+			protectedContext = envelope.WithValidatedProtectedCapability(
+				protectedContext,
+				bundledavatar.AppID,
+				bundledProfile.Capability,
+			)
+		} else {
+			protectedContext = withProtectedDesktopAuthorizationDecision(protectedContext, info.FullMethod)
+		}
 		return handler(protectedContext, req)
 	}
 }
@@ -284,14 +312,22 @@ func withProtectedDesktopAuthorizationDecision(ctx context.Context, method strin
 
 type protectedDesktopServerStream struct {
 	grpc.ServerStream
-	ctx context.Context
+	ctx       context.Context
+	principal *protectedprincipal.Principal
 }
 
 func (stream *protectedDesktopServerStream) Context() context.Context {
 	return stream.ctx
 }
 
-func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedlocal.DesktopSessionManager) grpc.StreamServerInterceptor {
+func (stream *protectedDesktopServerStream) SendMsg(message any) error {
+	if stream.principal != nil && !stream.principal.Valid() {
+		return grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
+	return stream.ServerStream.SendMsg(message)
+}
+
+func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedlocal.DesktopSessionManager, accountPrincipalProvider protectedAccountPrincipalProvider) grpc.StreamServerInterceptor {
 	return func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		if info == nil {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
@@ -299,7 +335,11 @@ func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedloc
 		if immutablePackageTransportDenied(info.FullMethod) {
 			return immutablePackageTransportUnavailable()
 		}
-		if !protectedDesktopStreamMethodAllowed(info.FullMethod) {
+		bundledProfile, bundled, bundledErr := resolveProtectedBundledAvatarProfile(stream.Context(), info.FullMethod, bundledavatar.MethodServerStream)
+		if bundledErr != nil {
+			return bundledErr
+		}
+		if !bundled && !protectedDesktopStreamMethodAllowed(info.FullMethod) {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 		}
 		connection, err := protectedDesktopConnectionFromPeer(stream.Context())
@@ -307,11 +347,86 @@ func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedloc
 			return err
 		}
 		protectedContext := protectedlocal.ContextWithDesktopConnection(stream.Context(), connection)
-		if err := authorizeProtectedDesktopMethod(protectedContext, info.FullMethod, desktopSessions); err != nil {
+		if err := authorizeProtectedDesktopMethodForProfile(protectedContext, info.FullMethod, desktopSessions, bundled); err != nil {
 			return err
 		}
-		return handler(srv, &protectedDesktopServerStream{ServerStream: stream, ctx: protectedContext})
+		var principal *protectedprincipal.Principal
+		var cancel context.CancelFunc
+		if bundled {
+			bound, err := bindBundledAvatarPrincipal(protectedContext, bundledProfile.Capability, desktopSessions, accountPrincipalProvider)
+			if err != nil {
+				return err
+			}
+			protectedContext, cancel = context.WithCancel(protectedContext)
+			defer cancel()
+			go func() {
+				select {
+				case <-bound.Done():
+					cancel()
+				case <-protectedContext.Done():
+				}
+			}()
+			protectedContext = protectedprincipal.With(protectedContext, bound)
+			protectedContext = envelope.WithValidatedProtectedCapability(
+				protectedContext,
+				bundledavatar.AppID,
+				bundledProfile.Capability,
+			)
+			principal = &bound
+		}
+		return handler(srv, &protectedDesktopServerStream{ServerStream: stream, ctx: protectedContext, principal: principal})
 	}
+}
+
+func bindBundledAvatarPrincipal(
+	ctx context.Context,
+	capability string,
+	desktopSessions *protectedlocal.DesktopSessionManager,
+	provider protectedAccountPrincipalProvider,
+) (protectedprincipal.Principal, error) {
+	if desktopSessions == nil || provider == nil {
+		return protectedprincipal.Principal{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE)
+	}
+	projection, generation, invalidated, ok := provider.BindAuthenticatedRuntimeGeneration(ctx)
+	principal := protectedprincipal.New(
+		bundledavatar.AppID, bundledavatar.ProfileID, capability, projection,
+		generation, desktopSessions.BootEpoch(), invalidated,
+	)
+	if !ok || !principal.Valid() {
+		return protectedprincipal.Principal{}, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
+	return principal, nil
+}
+
+func resolveProtectedBundledAvatarProfile(ctx context.Context, method string, expectedKind bundledavatar.MethodKind) (bundledavatar.MethodProfile, bool, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok || len(md.Get(protectedBundledProfileMetadata)) == 0 {
+		return bundledavatar.MethodProfile{}, false, nil
+	}
+	profiles := md.Get(protectedBundledProfileMetadata)
+	appIDs := md.Get("x-nimi-app-id")
+	if len(profiles) != 1 || profiles[0] != bundledavatar.NativeProfileMarker ||
+		len(appIDs) != 1 || appIDs[0] != bundledavatar.AppID {
+		return bundledavatar.MethodProfile{}, false, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
+	}
+	profile, admitted := bundledavatar.Method(method)
+	if !admitted || profile.Kind != expectedKind {
+		return bundledavatar.MethodProfile{}, false, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
+	}
+	return profile, true, nil
+}
+
+func authorizeProtectedDesktopMethodForProfile(ctx context.Context, method string, desktopSessions *protectedlocal.DesktopSessionManager, bundledAvatar bool) error {
+	if bundledAvatar {
+		if desktopSessions == nil {
+			return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE)
+		}
+		if err := desktopSessions.AuthorizeContext(ctx, protectedlocal.RoleBundledAvatarHost); err != nil {
+			return protectedDesktopSessionAuthorizationError(err)
+		}
+		return nil
+	}
+	return authorizeProtectedDesktopMethod(ctx, method, desktopSessions)
 }
 
 func authorizeProtectedDesktopMethod(ctx context.Context, method string, desktopSessions *protectedlocal.DesktopSessionManager) error {

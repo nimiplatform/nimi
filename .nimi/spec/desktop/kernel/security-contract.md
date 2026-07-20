@@ -57,7 +57,12 @@ Renderer and app-owned Electron/Tauri host code are untrusted app principals.
 They cannot construct protected origin metadata, select a trust set, mint a
 Desktop session, or forward a portable protected credential. Desktop trust
 comes from Runtime/OS process verification and Platform's exact executable
-trust-set row, not from code calling itself trusted. Production builds cannot
+trust-set row, not from code calling itself trusted. For a Desktop-supervised
+bundled Electron surface, Desktop main additionally owns the registry of exact
+`BrowserWindow`/`WebContents` objects it created. Every protected call must bind
+the invoking sender and main frame to that registry; renderer URL/origin and
+navigation state are secondary integrity checks and cannot establish identity
+or select a protected profile. Production builds cannot
 load the non-product E2E trust set. Ordinary synthetic test Runtime
 configuration cannot connect to a real account Realm. The separately signed
 `dev_kernel_checkpoint` candidate is a closed exception: its installer-owned,

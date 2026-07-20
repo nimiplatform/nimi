@@ -161,6 +161,14 @@ the canonical renderer factory or a module-scope resource reachable by
 Simulator instances. Every renderer instance owns an independent provider,
 store, route, query-client, localization, subscription, and cleanup graph.
 
+The Electron production host MUST acquire its process-level single-instance
+lock before registering the protected Runtime bridge or creating a renderer
+window. A losing launch MUST NOT open a second protected Desktop session,
+reuse the active Chromium profile, or classify that local contention as
+Runtime unavailability. It exits without app bootstrap after asking the owning
+instance to focus its existing window. This focus notification carries no
+Desktop Open intent, account/session material, or queued work.
+
 ## D-BOOT-010 — 初始数据加载触发
 
 Initial authenticated feature-data projections are not loaded synchronously in

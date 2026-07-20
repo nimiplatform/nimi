@@ -58,14 +58,17 @@ function readCatalogCommands(content: string): string[] {
 }
 
 function readCapabilitySetList(field: string, content: string): string[] {
-  const start = content.indexOf(`    ${field}:`);
+  const localAppSetStart = content.indexOf('  - set_id: local-app-standard-shell-v1');
+  expect(localAppSetStart).toBeGreaterThanOrEqual(0);
+  const scopedContent = content.slice(localAppSetStart);
+  const start = scopedContent.indexOf(`    ${field}:`);
   expect(start).toBeGreaterThanOrEqual(0);
-  const lineEnd = content.indexOf('\n', start);
-  const fieldLine = content.slice(start, lineEnd === -1 ? content.length : lineEnd);
+  const lineEnd = scopedContent.indexOf('\n', start);
+  const fieldLine = scopedContent.slice(start, lineEnd === -1 ? scopedContent.length : lineEnd);
   if (fieldLine.endsWith(': []')) {
     return [];
   }
-  const afterStart = content.slice(lineEnd + 1);
+  const afterStart = scopedContent.slice(lineEnd + 1);
   const end = afterStart.search(/\n    [a-z_]+:/u);
   const block = end === -1 ? afterStart : afterStart.slice(0, end);
   return [...block.matchAll(/^\s+- ([a-zA-Z0-9.-]+)\s*$/gm)].map((match) => match[1]);

@@ -1,4 +1,4 @@
-version: 11
+version: 12
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_protected_local_rpc_transport_matrix
@@ -14,7 +14,8 @@ surfaces:
   - RuntimeLocalService
 description: >-
   Closed verified-platform-transport and verified-origin admission for Desktop
-  control and the common third-party local-app kernel. Physical carriers are
+  control, the Desktop-supervised bundled Avatar profile, and the common
+  third-party local-app kernel. Physical carriers are
   selected only by same-OS profiles. Immutable package/install/update/promotion
   remains typed unavailable; local_development is the only 0K positive
   third-party trust class.
@@ -25,6 +26,7 @@ authority_refs:
   - K-PLOCAL-007
   - K-PLOCAL-008
   - K-PLOCAL-009
+  - K-PLOCAL-010
   - K-APP-017
   - K-ACCSVC-026
   - K-GRANT-014
@@ -61,6 +63,11 @@ transport_class_bindings:
     binding: verified_platform_transport
     carrier_role: desktop_control
     profile_bundle_ref: verified_platform_transport
+    protected_subprofiles:
+      bundled_avatar_v1:
+        profile_ref: bundled-avatar-runtime-profile.yaml#bundled_avatar_v1
+        required_origin_role: bundled_avatar_host
+        renderer_selectable: false
   local_app_bootstrap:
     binding: verified_platform_transport
     carrier_role: local_app_bootstrap
@@ -71,7 +78,7 @@ transport_class_bindings:
     profile_bundle_ref: verified_platform_transport
 method_platform_binding:
   coverage: every_methods_row
-  declared_method_count: 62
+  declared_method_count: 89
   selector_field: allowed_transport_classes
   resolver: transport_class_bindings
   protected_binding_description: verified_platform_transport
@@ -144,6 +151,7 @@ origin_roles:
   - local_app_control
   - local_app_process
   - local_app_session
+  - bundled_avatar_host
 operation_classes:
   - binding_bootstrap
   - desktop_session_bootstrap
@@ -227,15 +235,45 @@ open_local_app_session_wire:
   renderer_projection: typed_session_and_permission_posture_only
   ordinary_grpc_disposition: deny
   source_rule: K-PLOCAL-008
+renew_local_app_session_wire:
+  request:
+    message: RenewLocalAppSessionRequest
+    fields: []
+    request_metadata_authority_inputs: []
+    unknown_field_disposition: reject
+  response:
+    message: OpenLocalAppSessionResponse
+    projection_fields: [state, trust_class, account_generation, runtime_boot_epoch, reason_code]
+    forbidden_fields:
+      - local_app_principal_id
+      - immutable_lineage_id
+      - local_record_id
+      - permission_id
+      - permission_state
+      - permission_decision_id
+      - session_id
+      - session_proof
+      - launch_lease
+      - process_proof
+      - endpoint
+      - token
+      - credential
+  connection_binding: exact_current_local_app_host_connection_and_private_session
+  atomic_transition: revoke_previous_private_session_and_insert_replacement_on_same_connection
+  renderer_projection: forbidden
+  app_projection: forbidden
+  ordinary_grpc_disposition: deny
+  source_rule: K-PLOCAL-008
 methods:
   - { method_id: /nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart, operation_class: runtime_service_control, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-003 }
   - { method_id: /nimi.runtime.v1.RuntimeAuthService/RegisterApp, operation_class: binding_bootstrap, allowed_transport_classes: [public_tcp], required_origin_roles: [binding_only], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: binding_only, source_rule: K-PLOCAL-001 }
   - { method_id: /nimi.runtime.v1.RuntimeAuthService/OpenSession, operation_class: binding_bootstrap, allowed_transport_classes: [public_tcp], required_origin_roles: [binding_only], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: binding_only, source_rule: K-PLOCAL-001 }
   - { method_id: /nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession, operation_class: desktop_session_bootstrap, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
   - { method_id: /nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession, operation_class: local_app_session_bootstrap, allowed_transport_classes: [local_app_bootstrap], required_origin_roles: [local_app_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-008 }
+  - { method_id: /nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession, operation_class: local_app_session_renewal, allowed_transport_classes: [local_app_host], required_origin_roles: [local_app_session], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-008 }
 
-  - { method_id: /nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus, operation_class: desktop_account_projection, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
-  - { method_id: /nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents, operation_class: desktop_account_projection, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
+  - { method_id: /nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus, operation_class: desktop_account_projection, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
+  - { method_id: /nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents, operation_class: desktop_account_projection, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
   - { method_id: /nimi.runtime.v1.RuntimeAccountService/BeginLogin, operation_class: desktop_account_control, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
   - { method_id: /nimi.runtime.v1.RuntimeAccountService/CompleteLogin, operation_class: desktop_account_control, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
   - { method_id: /nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification, operation_class: desktop_account_control, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
@@ -249,6 +287,7 @@ methods:
     portable_session_allowed: false
     public_tcp_disposition: deny
     broker_operation_policy_ref: runtime_realm_broker_operations
+    protected_subprofiles: [bundled_avatar_v1]
     generic_proxy: forbidden
     source_rule: K-ACCSVC-023
   - { method_id: /nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding, operation_class: desktop_binding_control, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-ACCSVC-024 }
@@ -277,13 +316,43 @@ methods:
   - { method_id: /nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog, operation_class: desktop_runtime_inventory, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
   - { method_id: /nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth, operation_class: desktop_runtime_health, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
   - { method_id: /nimi.runtime.v1.RuntimeConnectorService/ListConnectors, operation_class: desktop_runtime_inventory, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
-  - { method_id: /nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth, operation_class: desktop_runtime_health, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
+  - { method_id: /nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth, operation_class: desktop_runtime_health, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
   - { method_id: /nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth, operation_class: desktop_runtime_health, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
   - { method_id: /nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents, operation_class: desktop_runtime_audit_projection, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-AUDIT-024 }
   - { method_id: /nimi.runtime.v1.RuntimeAuditService/ListUsageStats, operation_class: desktop_runtime_usage, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
   - { method_id: /nimi.runtime.v1.RuntimeAiService/PeekScheduling, operation_class: desktop_runtime_scheduling, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
   - { method_id: /nimi.runtime.v1.RuntimeAiService/ExecuteScenario, operation_class: desktop_runtime_route_description, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
-  - { method_id: /nimi.runtime.v1.RuntimeAgentService/ListAgents, operation_class: desktop_runtime_inventory, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/ListAgents, operation_class: desktop_runtime_inventory, allowed_transport_classes: [desktop_control], required_origin_roles: [verified_desktop_process], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-PLOCAL-006 }
+
+  # Exact `bundled_avatar_v1` additions. The physical carrier remains the
+  # verified Desktop control connection; native-only profile selection and the
+  # `bundled_avatar_host` role are required in addition to each row.
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgent, operation_class: bundled_avatar_runtime_agent, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding, operation_class: bundled_avatar_runtime_agent, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding, operation_class: bundled_avatar_runtime_agent, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor, operation_class: bundled_avatar_runtime_agent, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot, operation_class: bundled_avatar_runtime_agent, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot, operation_class: bundled_avatar_runtime_agent, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection, operation_class: bundled_avatar_runtime_agent, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation, operation_class: bundled_avatar_runtime_agent, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation, operation_class: bundled_avatar_runtime_agent, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay, operation_class: bundled_avatar_runtime_agent, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback, operation_class: bundled_avatar_runtime_agent, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot, operation_class: bundled_avatar_runtime_agent, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe, operation_class: bundled_avatar_runtime_agent, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult, operation_class: bundled_avatar_runtime_agent, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults, operation_class: bundled_avatar_runtime_agent, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay, operation_class: bundled_avatar_runtime_agent, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes, operation_class: bundled_avatar_runtime_artifact, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob, operation_class: bundled_avatar_runtime_ai, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAiService/GetScenarioJob, operation_class: bundled_avatar_runtime_ai, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAiService/CancelScenarioJob, operation_class: bundled_avatar_runtime_ai, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts, operation_class: bundled_avatar_runtime_ai, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents, operation_class: bundled_avatar_runtime_ai_stream, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAppService/SendAppMessage, operation_class: bundled_avatar_runtime_turn, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages, operation_class: bundled_avatar_runtime_turn_stream, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents, operation_class: bundled_avatar_runtime_agent_stream, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
+  - { method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream, operation_class: bundled_avatar_runtime_voice_stream, allowed_transport_classes: [desktop_control], required_origin_roles: [bundled_avatar_host], protected_subprofiles: [bundled_avatar_v1], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, generic_proxy: forbidden, source_rule: K-PLOCAL-010 }
 
   # The fixed production service exposes no ordinary public listener. These
   # are the exact existing Desktop first-run/product-control methods carried

@@ -1032,6 +1032,14 @@ RUNTIME_METHODS = [
     "response_type": "RegisterExternalPrincipalResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession",
+    "service": "RuntimeAuthService",
+    "method": "RenewLocalAppSession",
+    "kind": "unary",
+    "request_type": "RenewLocalAppSessionRequest",
+    "response_type": "OpenLocalAppSessionResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession",
     "service": "RuntimeAuthService",
     "method": "RevokeExternalPrincipalSession",

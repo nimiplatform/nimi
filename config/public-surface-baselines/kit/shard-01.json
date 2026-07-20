@@ -74,6 +74,13 @@
       ]
     },
     {
+      "exportKey": "./core/json-value",
+      "source": "kit/core/src/json-value.ts",
+      "exports": [
+        "function jsonValuesEqual"
+      ]
+    },
+    {
       "exportKey": "./core/model-config",
       "source": "kit/core/src/model-config/index.ts",
       "exports": [
@@ -172,17 +179,6 @@
         "export { dataPart, textPart, } from '@nimiplatform/sdk/contracts';",
         "export { fromNimiRuntimeProtoStruct, toNimiRuntimeVoiceReference, toNimiRuntimeProtoStruct, } from '@nimiplatform/sdk/runtime';",
         "function runKitRuntimeScenarioJob"
-      ]
-    },
-    {
-      "exportKey": "./core/shell-mode",
-      "source": "kit/core/src/shell-mode.ts",
-      "exports": [
-        "export { readBundledEnv};",
-        "function getShellFeatureFlags",
-        "function isWebShellMode",
-        "type ShellFeatureFlags",
-        "type ShellMode"
       ]
     }
   ]

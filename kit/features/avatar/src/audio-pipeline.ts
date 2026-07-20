@@ -21,6 +21,10 @@
 
 import type { Runtime } from '@nimiplatform/kit/core/sdk-contract';
 
+export type AvatarAudioArtifactRuntime = {
+  readonly artifacts: Pick<Runtime['artifacts'], 'readArtifactBytes'>;
+};
+
 export type AvatarAudioPipelineSinkSnapshot = {
   weights: Record<'A' | 'E' | 'I' | 'O' | 'U' | 'S', number>;
   volume: number;
@@ -87,7 +91,7 @@ export class AudioPipelineController {
   private context: AudioContext | null = null;
   private currentSource: AudioBufferSourceNode | null = null;
   private playId = 0;
-  private runtime: Runtime | null = null;
+  private runtime: AvatarAudioArtifactRuntime | null = null;
   private sink: AvatarAudioPipelineSink | null = null;
   private readonly contextFactory: () => AudioContext | null;
   private readonly logger: AudioPipelineLogger;
@@ -100,7 +104,7 @@ export class AudioPipelineController {
   /** Bootstrap calls this once after constructing the SDK Runtime instance.
    *  Idempotent; subsequent calls are ignored to keep a single Runtime
    *  authority over `play()` requests. */
-  setRuntime(runtime: Runtime): void {
+  setRuntime(runtime: AvatarAudioArtifactRuntime): void {
     if (!this.runtime) {
       this.runtime = runtime;
     }
@@ -213,7 +217,7 @@ export class AudioPipelineController {
       return;
     }
 
-    let result: Awaited<ReturnType<Runtime['artifacts']['readArtifactBytes']>>;
+    let result: Awaited<ReturnType<AvatarAudioArtifactRuntime['artifacts']['readArtifactBytes']>>;
     try {
       result = await this.runtime.artifacts.readArtifactBytes({
         artifactId: audioArtifactId,
