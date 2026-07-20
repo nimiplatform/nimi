@@ -90,16 +90,16 @@ rules:
     evidence_requirement: test-governance-policy.yaml
     test_files:
       - scripts/lib/platform-spec-test-governance-checks.mjs
-      - scripts/check-local-agent-product-coverage.mjs
+      - scripts/check-local-agent-product-architecture.mjs
   - rule_id: P-TEST-016
     evidence_requirement: test-governance-policy.yaml
     test_files:
-      - scripts/check-local-agent-product-coverage.mjs
+      - scripts/check-local-agent-product-architecture.mjs
       - tests/local-agent-product/harness/harness.test.mjs
   - rule_id: P-TEST-017
     evidence_requirement: test-governance-policy.yaml
     test_files:
-      - scripts/check-local-agent-product-coverage.mjs
+      - scripts/check-local-agent-product-architecture.mjs
       - scripts/check-local-agent-product-acceptance.mjs
   - rule_id: P-TEST-018
     evidence_requirement: test-governance-policy.yaml
@@ -109,5 +109,5 @@ rules:
   - rule_id: P-TEST-019
     evidence_requirement: test-governance-policy.yaml
     test_files:
-      - scripts/check-local-agent-product-coverage.mjs
+      - scripts/check-local-agent-product-architecture.mjs
       - scripts/check-local-agent-product-acceptance.mjs

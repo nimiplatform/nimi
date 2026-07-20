@@ -171,7 +171,7 @@ rules:
   - desktop_kernel_consistency
   - desktop_lint_gate
   - desktop_test_gate
-  - desktop_e2e_smoke_gate
+  - desktop_e2e_gate
   evidence_requirement: required
   evidence_scope_note: Bridge/E2E evidence must prove K-PLOCAL process origin through the fixed service; loopback or synthetic state is insufficient.
   test_files:
@@ -181,7 +181,7 @@ rules:
   - desktop_kernel_consistency
   - desktop_lint_gate
   - desktop_test_gate
-  - desktop_e2e_journey_gate
+  - desktop_e2e_gate
   evidence_requirement: required
   evidence_scope_note: Lifecycle commands require protected Desktop origin, anchored challenge, and live fixed-service positive/negative evidence.
   test_files:
@@ -225,21 +225,21 @@ rules:
   - desktop_kernel_consistency
   - desktop_lint_gate
   - desktop_test_gate
-  - desktop_e2e_journey_gate
+  - desktop_e2e_gate
   evidence_requirement: required
 - rule_id: D-IPC-014
   evidence_refs:
   - desktop_kernel_consistency
   - desktop_lint_gate
   - desktop_test_gate
-  - desktop_e2e_journey_gate
+  - desktop_e2e_gate
   evidence_requirement: required
 - rule_id: D-IPC-015
   evidence_refs:
   - desktop_kernel_consistency
   - desktop_lint_gate
   - desktop_test_gate
-  - desktop_e2e_journey_gate
+  - desktop_e2e_gate
   evidence_requirement: required
 - rule_id: D-IPC-016
   evidence_refs:
@@ -274,11 +274,11 @@ rules:
   - desktop_kernel_consistency
   - desktop_lint_gate
   - desktop_test_gate
-  - desktop_e2e_journey_gate
+  - desktop_e2e_gate
   evidence_requirement: required
   note: Running-only Desktop Open Intent bridge authority; evidence covers presence descriptor lifecycle, loopback bearer validation, POST-only no-CORS behavior, and fail-closed not-running/not-ready states.
   test_files:
-  - apps/desktop/src-tauri/src/desktop_open_intent.rs
+  - apps/desktop/src-tauri/src/desktop_open_intent_presence_tests.rs
   - apps/desktop/src-tauri/src/desktop_open_intent_tests.rs
   - apps/desktop/test/desktop-open-intent-navigation.test.ts
 - rule_id: D-IPC-019
@@ -286,7 +286,7 @@ rules:
   - desktop_kernel_consistency
   - desktop_lint_gate
   - desktop_test_gate
-  - desktop_e2e_journey_gate
+  - desktop_e2e_gate
   evidence_requirement: required
   note: Production Developer Mode confirmation, run-once/allow-project lifetimes, fixed-service supervisor ownership, non-leak, and edit/build/restart invalidation authority.
   test_files:
@@ -297,7 +297,7 @@ rules:
   - desktop_kernel_consistency
   - desktop_lint_gate
   - desktop_test_gate
-  - desktop_e2e_journey_gate
+  - desktop_e2e_gate
   evidence_requirement: required
   note: Desktop local_app_control coordinates user decisions and native launch binding while Runtime retains principal, record, grant, lease, session, account, and operation-policy truth.
   test_files:

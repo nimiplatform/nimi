@@ -271,7 +271,7 @@ rules:
   - desktop_kernel_consistency
   - desktop_lint_gate
   - desktop_test_gate
-  - desktop_e2e_smoke_gate
+  - desktop_e2e_gate
   evidence_requirement: required
 - rule_id: D-SHELL-002
   evidence_refs:
@@ -302,7 +302,7 @@ rules:
   - desktop_kernel_consistency
   - desktop_lint_gate
   - desktop_test_gate
-  - desktop_e2e_smoke_gate
+  - desktop_e2e_gate
   evidence_requirement: required
 - rule_id: D-SHELL-007
   evidence_refs:
@@ -315,7 +315,7 @@ rules:
   - desktop_kernel_consistency
   - desktop_lint_gate
   - desktop_test_gate
-  - desktop_e2e_smoke_gate
+  - desktop_e2e_gate
   evidence_requirement: required
 - rule_id: D-SHELL-009
   evidence_refs:
@@ -509,12 +509,12 @@ rules:
   - desktop_kernel_consistency
   - desktop_spec_docs_drift_gate
   - desktop_test_gate
-  - desktop_e2e_journey_gate
+  - desktop_e2e_gate
   evidence_requirement: required
-  note: Desktop-owned Open Intent navigation targets; evidence binds target catalogs, renderer navigation adapters, and acceptance row manifests.
+  note: Desktop-owned Open Intent navigation targets; evidence binds canonical target catalogs, golden vectors, and executable renderer navigation behavior.
   test_files:
-  - apps/desktop/test/desktop-open-navigation.test.ts
-  - apps/desktop/test/desktop-open-target-catalog.test.ts
+  - apps/desktop/test/desktop-open-intent-navigation.test.ts
+  - scripts/check-desktop-open-contract.mjs
 - rule_id: D-STRM-001
   evidence_refs:
   - desktop_kernel_consistency
@@ -634,7 +634,7 @@ rules:
   - desktop_kernel_consistency
   - desktop_lint_gate
   - desktop_test_gate
-  - desktop_e2e_smoke_gate
+  - desktop_e2e_gate
   evidence_requirement: required
 - rule_id: D-OFFLINE-002
   evidence_refs:
@@ -653,7 +653,7 @@ rules:
   - desktop_kernel_consistency
   - desktop_lint_gate
   - desktop_test_gate
-  - desktop_e2e_smoke_gate
+  - desktop_e2e_gate
   evidence_requirement: required
   evidence_scope_note: Existing reconnect tests are compatibility evidence only; protected Desktop and child-channel reverification implementation/live evidence remains pending.
   test_files:

@@ -12,7 +12,7 @@ thin navigation only. Normative authority lives under `kernel/*.md` and
 4. `kernel/local-partner-center-state-contract.md`
 5. `kernel/conversation-surface-contract.md`
 6. `kernel/configuration-surface-contract.md`
-7. `kernel/testing-and-quarantine-contract.md`
+7. `kernel/testing-contract.md`
 
 ## Authority Boundary
 

@@ -47,6 +47,12 @@ provider, refresh provider, or persisted auth session. `RegisterApp`/
 establishes Desktop protected origin. Unavailable protected verification is a
 typed login/repair state, never anonymous product readiness.
 
+This is the Desktop production binding for the App-owned canonical renderer
+factory required by `P-SIM-006`; it is not renderer construction itself. The
+same factory can receive a host-neutral Simulator binding without executing
+`D-BOOT-*`, constructing a protected carrier, or reaching Runtime/Realm. The
+factory cannot detect which binding supplied it or select alternate UI/UX.
+
 ## D-BOOT-003 — Desktop DataSync Facade Retirement
 
 Desktop 不再初始化 `apps/desktop/src/runtime/data-sync/**`，也不得恢复
@@ -80,6 +86,11 @@ AppMode success, SDK connection, or loopback reachability is not authorization.
 - host-only Agent chat route capability 必须遵循 `D-LLM-002` fail-close 语义；host-only Agent memory capability 必须遵循 Runtime/Cognition memory authority 的 cache-only + fail-close 语义。
 - local route bootstrap / hydration / health merge 时，RuntimeLocalService local model list/status 是唯一 readiness 真源；host-local snapshot 只能补充展示元数据。
 - 当 selected local model 与 runtime authoritative local record 缺失、degraded、或状态冲突时，Desktop 可以保留原选择用于显示，但必须把 binding 视为 unavailable/not-sendable，不得继续 fail-open 发送。
+
+The Desktop production host alone performs this Runtime assembly. The
+Simulator Adapter must not call, emulate, partially execute, or return
+success-shaped values for this bootstrap; it supplies only declared
+presentation projections and commands through `nimi.simulator.module/v1`.
 
 ## D-BOOT-006 — External Agent 桥接
 
@@ -135,10 +146,20 @@ packaged desktop release 校验补充：
 - Desktop 不尝试 staging 或替换 Runtime；修复动作交给 signed installer/service
   updater。错误保持为 runtime unavailable / release invalid typed state。
 
+Canonical renderer factory construction/readiness is separate from production
+bootstrap readiness. Simulator-visible readiness follows `P-SIM-014`; it must
+not set or infer Desktop `bootstrapReady`, account readiness, product control
+readiness, or protected-host availability.
+
 ## D-BOOT-009 — 幂等性守卫
 
 `bootstrapRuntime()` 使用 `bootstrapPromise` 单例保证全局只执行一次。
 重复调用返回同一 Promise。
+
+This singleton is scoped to one Desktop production host. It must not live in
+the canonical renderer factory or a module-scope resource reachable by
+Simulator instances. Every renderer instance owns an independent provider,
+store, route, query-client, localization, subscription, and cleanup graph.
 
 ## D-BOOT-010 — 初始数据加载触发
 

@@ -12,8 +12,8 @@ entries:
   - tts_speaking_lipsync
   - interrupt_active_turn
   - runtime_degraded
-  - shared_auth_broker_ready
-  - shared_auth_login_required
+  - runtime_account_broker_ready
+  - runtime_account_login_required
   - first_party_raw_token_posture
   - binding_only_raw_token_denied
 description: >
@@ -156,16 +156,16 @@ scenarios:
       presence_state: runtime_degraded
       privacy_indicator: none
 
-  - id: shared_auth_broker_ready
+  - id: runtime_account_broker_ready
     backend: any
     mode: ready
     action: "Boot Avatar against a Runtime-owned authenticated acceptance fixture and execute an admitted Realm read through Runtime mediation."
     expected_visible_proof:
-      - "Runtime account projection and broker connectivity are ready without a shared auth launch payload."
+      - "Runtime account projection and broker connectivity are ready without a retired Desktop auth_session launch payload."
       - "The Realm result arrives through InvokeRealmUnary; no direct Realm REST path is used."
       - "Renderer globals, storage, console, DOM, and shell payload contain no access/refresh token, authorization header, auth_session payload, or JWT-shaped credential."
 
-  - id: shared_auth_login_required
+  - id: runtime_account_login_required
     backend: any
     mode: degraded
     action: "Boot Avatar with Runtime account state anonymous or reauth_required."
@@ -186,7 +186,7 @@ coverage_rules:
   - "idle_vrm_ready and idle_live2d_ready must both pass before launch-readiness can be claimed."
   - "runtime_voice_listening_projection, tts_speaking_lipsync, and interrupt_active_turn must show visible privacy feedback."
   - "runtime_degraded must show fail-closed mutual exclusion from ready surfaces."
-  - "shared_auth_broker_ready and shared_auth_login_required must be captured in a real shell against real Runtime/SDK transport; fixture-only renderer state is insufficient."
+  - "runtime_account_broker_ready and runtime_account_login_required must be captured in a real shell against real Runtime/SDK transport; fixture-only renderer state is insufficient."
   - "public_raw_token_surface_absent must prove that no public token method can be called by any local caller class."
-  - "Every shared-auth scenario must include a renderer token-leak scan and denied auth_session probe."
+  - "Every Runtime account scenario must include a renderer token-leak scan and denied auth_session probe."
   - "Recordings must be linked from the release evidence ledger or an admitted non-authoritative evidence dossier; local one-off screenshots are not closure."

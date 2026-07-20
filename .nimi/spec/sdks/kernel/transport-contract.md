@@ -11,6 +11,13 @@ Runtime SDK transport 必须满足以下构造边界：
 - `electron-ipc`
 - native `protected-local-host` carrier (host-injected; never renderer-constructed)
 
+The `@nimiplatform/sdk/testing` deterministic in-process Simulator harness is
+not a Runtime transport and must not be added to this transport enum. It is
+injected through the host-neutral SDK facade, opens no network/native carrier,
+and is excluded from production transport selection. Missing production
+transport therefore continues to fail closed even when the testing subpath is
+installed.
+
 Electron transport rules:
 - Non-Node Runtime consumers must pass an explicit transport. Supported explicit transports are `node-grpc`, `tauri-ipc`, and `electron-ipc`.
 - `electron-ipc` / `tauri-ipc` generic renderer bridges can carry only

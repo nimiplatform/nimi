@@ -49,13 +49,12 @@ Zhiyu must fail closed when that Runtime truth is absent, simulated, or
 incomplete; it must not revive deferred-looking success states or app-local
 speech fallbacks.
 
-The eventual Zhiyu Electron live-runtime gate
-(`test:e2e:electron:live-runtime`) is a `fixture-green` wiring proof only: it
-proves Runtime/SDK/Zhiyu plumbing against the admitted live-runtime fixture.
-`product-green` is a strictly stronger bar that additionally requires a named
+The retired Zhiyu-local direct-daemon fixture suite is not acceptance evidence.
+`product-green` requires an admitted platform fixed-service Journey plus a named
 real-provider route proving native custom-`VoiceAsset` streaming with the same
-final acceptance semantics. Fixture-green must never be reported as
-`product-green` real-provider readiness.
+final acceptance semantics. Until those checkpoints exist and execute, voice
+product readiness remains unproved; source inspection, cached artifacts, and
+fixture-green results must never be reported as `product-green`.
 
 ## Z-AV-005 Avatar Launch Parity Gate
 

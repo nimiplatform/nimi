@@ -1,0 +1,119 @@
+version: 1
+table_family: product_catalog
+owner: platform
+catalog_id: platform_simulator_performance_policy
+source_rule: P-SIM-022
+
+measurement_contract:
+  release_numeric_threshold_authority: admitted_calibration_artifact
+  calibration_artifact_path: config/simulator/performance-budget.yaml
+  threshold_before_calibration: forbidden
+  benchmark_runner_owner: simulator
+  browser_family: chromium
+  timing_source: performance.now
+  repetitions_per_scenario: 20
+  warmup_repetitions: 3
+  reported_statistics: [median, p95, maximum]
+  network_profile: local_static_artifact
+  cache_profiles: [cold, warm]
+  state_engine_digest_required: true
+  browser_console_error_budget: 0
+  integrity_error_budget: 0
+
+invariants:
+  - id: performance_invariant_01
+    subject: final_build
+    requirement: one_react_runtime_and_one_simulator_shell_root
+  - id: performance_invariant_02
+    subject: initial_route
+    requirement: only_shell_and_route_required_selected_modules_are_eager
+  - id: performance_invariant_03
+    subject: selected_app
+    requirement: one_lazy_javascript_chunk_and_one_lazy_css_layer_per_module
+  - id: performance_invariant_04
+    subject: shared_packages
+    requirement: mandatory_singletons_are_not_duplicated_in_app_chunks
+  - id: performance_invariant_05
+    subject: app_instances
+    requirement: opening_a_second_instance_reuses_code_but_allocates_independent_mutable_state
+  - id: performance_invariant_06
+    subject: state_engine
+    requirement: one_fifo_drain_never_yields_and_never_exceeds_10000_operations
+  - id: performance_invariant_07
+    subject: readiness
+    requirement: ready_time_includes_two_animation_frames_and_semantic_marker_validation
+  - id: performance_invariant_08
+    subject: cleanup
+    requirement: lifecycle_cleanup_finishes_within_the_5000ms_integrity_watchdog
+  - id: performance_invariant_09
+    subject: evidence
+    requirement: measured_revision_and_digest_match_the_expected_quiescent_state
+
+scenarios:
+  - id: PERF-S0
+    operation: load_shell
+    instance_set: []
+    cache_profiles: [cold, warm]
+    captures: [transfer_bytes, parsed_javascript_bytes, css_bytes, shell_interactive_time]
+  - id: PERF-S1
+    operation: open_first_tester_instance
+    instance_set: [tester]
+    captures: [chunk_transfer_bytes, style_transfer_bytes, visible_ready_time, long_tasks]
+  - id: PERF-S2
+    operation: open_second_tester_instance
+    instance_set: [tester, tester]
+    captures: [incremental_bytes, visible_ready_time, heap_delta, state_isolation]
+  - id: PERF-S3
+    operation: open_first_desktop_instance
+    instance_set: [desktop]
+    captures: [chunk_transfer_bytes, style_transfer_bytes, visible_ready_time, long_tasks]
+  - id: PERF-S4
+    operation: open_first_zhiyu_instance
+    instance_set: [zhiyu]
+    captures: [chunk_transfer_bytes, style_transfer_bytes, visible_ready_time, long_tasks]
+  - id: PERF-S5
+    operation: execute_desktop_zhiyu_interaction
+    instance_set: [desktop, zhiyu]
+    captures: [operation_count, quiescence_time, final_digest, visible_ready_time]
+  - id: PERF-S6
+    operation: reset_active_ecosystem_scenario
+    instance_set: [desktop, zhiyu, tester]
+    captures: [reset_time, cleanup_time, pending_resource_count, final_digest]
+  - id: PERF-S7
+    operation: repeated_open_close
+    instance_set: [tester]
+    repetitions: 100
+    captures: [heap_growth, listener_count, overlay_lease_count, pending_resource_count]
+  - id: PERF-S8
+    operation: state_engine_queue_saturation
+    accepted_operations: 10000
+    captures: [drain_time, revision_delta, final_digest]
+  - id: PERF-S9
+    operation: state_engine_queue_overflow
+    accepted_operations: 10001
+    expected_result: SIMULATOR_INTEGRITY_FAILURE
+    captures: [terminal_failure_time, pending_result_count]
+
+calibration_admission:
+  required_environment_fields:
+    - os
+    - cpu
+    - memory
+    - chromium_version
+    - viewport
+    - device_scale_factor
+    - power_mode
+    - build_digest
+  required_budget_fields_per_scenario:
+    - metric
+    - unit
+    - maximum_p95
+    - rationale
+    - measured_baseline_p95
+    - headroom_ratio
+  admission_rules:
+    - budgets_are_derived_from_release_build_measurement
+    - headroom_is_explicit_and_reviewable
+    - regressions_fail_the_simulator_release_gate
+    - budget_changes_require_new_measurement_evidence
+    - no_unmeasured_numeric_budget_is_normative

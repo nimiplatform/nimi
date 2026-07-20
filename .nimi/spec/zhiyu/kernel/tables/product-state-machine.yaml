@@ -40,15 +40,3 @@ states:
     entry_conditions: [owner_aware_recoverable_failure_including_bounded_source_or_context_projection_blocked_failed_unknown_or_partial]
     primary_actions: [retry, open_diagnostics]
     exit_conditions: [retry_started, user_changes_state]
-  - id: broker_login_required
-    user_visible_copy_floor: "需要先在 Nimi Desktop 登录"
-    entry_conditions: [runtime_account_anonymous_or_reauth_required]
-    primary_actions: [open_desktop_account_ux, retry_broker_request]
-    disabled_actions: [app_owned_login, direct_token_acquisition]
-    exit_conditions: [runtime_account_authenticated, user_leaves_surface]
-  - id: broker_grant_denied
-    user_visible_copy_floor: "当前应用没有访问此内容的权限"
-    entry_conditions: [runtime_broker_operation_or_caller_admission_denied]
-    primary_actions: [show_denial_reason, retry_after_runtime_admission_change]
-    disabled_actions: [direct_realm_request, direct_token_acquisition]
-    exit_conditions: [runtime_admission_granted, user_leaves_surface]

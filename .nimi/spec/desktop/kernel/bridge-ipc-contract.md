@@ -6,7 +6,7 @@
 
 Desktop Tauri IPC 桥接契约。定义 renderer 进程通过 `@tauri-apps/api/core` / `@tauri-apps/api/event` 的显式桥接与 Tauri backend 通信的命令集、类型解析、错误归一化。
 
-## D-IPC-001 — Bootstrap / Runtime Shared Auth Broker Boundary
+## D-IPC-001 — Bootstrap / Runtime Account Broker Boundary
 
 Desktop owns UX and orchestration but not protected-origin truth. Account
 control and lifecycle commands travel on one Runtime-authenticated
@@ -17,10 +17,11 @@ cannot replace the K-PLOCAL verified process context. Disconnect or Desktop
 process exit/exec disables the bridge until a fresh full verification.
 
 > **Authority Disposition**：
-> `auth_session_load` / `auth_session_save` / `auth_session_clear` 不是最终
-> shared auth，且不得注册为 active Tauri command、Kit renderer export 或
-> standard shell product capability。Shared auth 由 `RuntimeAccountService`
-> custody 拥有，并只经 exact typed protected carrier operations 投影。
+> `auth_session_load` / `auth_session_save` / `auth_session_clear` 是已退役的
+> Desktop session owner，且不得注册为 active Tauri command、Kit renderer
+> export 或 standard shell product capability。Account custody 由
+> `RuntimeAccountService` 拥有，并只经 exact typed protected carrier
+> operations 投影。
 > Generic renderer-selectable `runtime_bridge_unary` /
 > `runtime_bridge_stream_open` cannot carry protected account authority.
 > Desktop owns account UX, not token/session custody.

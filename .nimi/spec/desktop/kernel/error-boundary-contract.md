@@ -83,6 +83,12 @@ Desktop 必须把 baseline local speech 失败至少投影为以下 bundle-aware
 - 记录 `phase:bootstrap:failed` error 日志。
 - 重新抛出错误。
 
+This boundary belongs to the Desktop production binding only. Simulator never
+calls `bootstrapRuntime()` and cannot manufacture this success/failure state.
+Renderer/Adapter faults in Simulator retain the closed `P-SIM-019` instance,
+module, or session scope and must not leak `SIMULATOR_*` codes into Desktop UI
+or host-neutral SDK errors.
+
 ## D-ERR-007 — Runtime ReasonCode 投影链
 
 Runtime 错误通过三层投影到 Desktop UI：

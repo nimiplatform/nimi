@@ -37,3 +37,9 @@ model truth.
 Zhiyu formal authority lives under `.nimi/spec/zhiyu/**`. Local planning files
 under `.nimi/local/plans/zhiyu/**`, existing app code, old tests, screenshots,
 E2E, release evidence, and closeout reports are not product authority.
+
+Zhiyu also owns its canonical renderer factory, current
+`nimi.simulator.yaml`, App-owned Simulator Adapter, and conformance fixture.
+Those inputs define how current Zhiyu UI consumes a host-neutral binding; they
+cannot redefine Platform `P-SIM-*`, Kit, SDK, Runtime, Realm, Desktop, or
+Simulator selection/release authority.

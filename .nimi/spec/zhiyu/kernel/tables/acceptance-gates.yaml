@@ -35,8 +35,8 @@ gates:
     tier: spec
     target: zhiyu
     source_rule: Z-GATE-005
-  - id: binding_only_consumption
-    command: check:zhiyu-binding-only-consumption
+  - id: first_party_carrier_consumption
+    command: check:zhiyu-first-party-carrier-consumption
     tier: app_boundary
     target: zhiyu
     source_rule: Z-AUTH-002
@@ -75,13 +75,8 @@ gates:
     tier: app_boundary
     target: zhiyu
     source_rule: Z-PERSIST-002
-  - id: shared_auth_broker
-    command: check:shared-auth-live-apps
-    tier: app_boundary
-    target: zhiyu
-    source_rule: Z-AUTH-007
-  - id: test_quarantine
-    command: check:zhiyu-test-inventory
+  - id: test_topology
+    command: check:test-inventory
     tier: spec
     target: zhiyu
     source_rule: Z-GATE-001

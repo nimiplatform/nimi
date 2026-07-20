@@ -41,6 +41,14 @@ ownership.
 composition layer, adapter, parser, builder, stream assembler, or explicit
 test/development harness over admitted public surfaces.
 
+The existing public `@nimiplatform/sdk/testing` subpath may expose a
+deterministic in-process harness for the `P-SIM-*` host-neutral facade. That
+harness derives request, response, stream, abort, and `NimiError` shapes from
+the same public SDK types used by production consumers. It is a typed local
+execution adapter only: it cannot create a transport, endpoint, credential,
+principal, account, permission, Runtime/Realm record, Simulator State Engine,
+or alternate product method contract.
+
 `MUST NOT`：SDK helper placement must not be rejected solely because the helper
 performs client-side coordination. It must be rejected when it owns or infers
 canonical Runtime / Realm / Cognition / Platform truth, bypasses admitted
@@ -67,6 +75,12 @@ Until promoted, the helper must remain documented as non-authoritative,
 ephemeral, and caller-owned. If a product needs the helper's result as durable
 truth, the SDK must submit that result through an admitted typed Runtime /
 Realm / Cognition operation instead of persisting it locally.
+
+Simulator deterministic presentation state is explicitly non-authoritative
+and session-ephemeral under `P-SIM-010`. SDK may project typed calls against
+that state only through the injected testing harness. Cross-App ordering,
+scenario state, logical time, replay, fixtures, and reset remain Simulator/App
+contract concerns and cannot be promoted into SDK client orchestration.
 
 ## S-BOUNDARY-007 Agent Lifecycle Chat vs App AI Session Loop
 

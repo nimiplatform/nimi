@@ -12,7 +12,7 @@ registry_id: platform_release_gate_registry
 # file. Hand-edits in projection surfaces are a projection-drift fail.
 
 schema_version: release-gate-registry/v1
-registry_version: "1.7.0"
+registry_version: "3.1.1"
 profile_id: nimi
 # -----------------------------------------------------------------------
 # Tier definitions (P-RELG-012 tier membership constraint)
@@ -22,6 +22,8 @@ tiers:
     semantic: instant_no_network_per_staged_file
   - id: fast
     semantic: dev_laptop_under_60s_no_secrets
+  - id: regression
+    semantic: deterministic_workspace_test_aggregate
   - id: first-public-existence
     semantic: named_first_public_existence_proof_bundle
   - id: release
@@ -110,34 +112,15 @@ gates:
   # =====================================================================
   # owner: cargo (Rust / Tauri verification chain in apps/desktop/src-tauri)
   # =====================================================================
-  - id: gate.cargo.check
-    description: Desktop Rust cargo check with generated Desktop-only release metadata and no bundled Runtime resources.
-    command: pnpm --filter @nimiplatform/desktop run check:cargo
-    runner: pnpm
-    cwd: .
-    tiers: [release, release-target:desktop]
-    targets: [desktop]
-    timeout_seconds: 600
-    prerequisites: []
-    requires_secrets: []
-    requires_external_repo: []
-    requires_binaries: [pnpm, go, cargo]
-    blocker_semantics:
-      on_binary_missing: blocked
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
 
-  - id: gate.cargo.test
-    description: Desktop Rust cargo test with generated Desktop-only release metadata and no bundled Runtime resources.
-    command: pnpm --filter @nimiplatform/desktop run check:cargo:test
+  - id: gate.cargo.desktop-native-quality
+    description: Complete Desktop native quality gate across product-control-core and the Tauri shell, with one metadata preparation/sync followed by clippy and tests.
+    command: pnpm check:desktop-native-quality
     runner: pnpm
     tiers: [release, release-target:desktop]
     targets: [desktop]
     timeout_seconds: 1200
-    requires_binaries: [pnpm, go, cargo]
+    requires_binaries: [pnpm, cargo]
     blocker_semantics:
       on_binary_missing: blocked
     evidence:
@@ -146,37 +129,6 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
-  - id: gate.cargo.test-runtime-bridge
-    description: Desktop Rust runtime_bridge focused tests with generated Desktop-only release metadata and no Runtime staging path.
-    command: pnpm --filter @nimiplatform/desktop run check:cargo:runtime-bridge
-    runner: pnpm
-    tiers: [release, release-target:desktop]
-    targets: [desktop]
-    timeout_seconds: 600
-    requires_binaries: [pnpm, go, cargo]
-    blocker_semantics:
-      on_binary_missing: blocked
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  - id: gate.cargo.clippy
-    description: Desktop Rust cargo clippy with generated Desktop-only release metadata and no bundled Runtime resources.
-    command: pnpm --filter @nimiplatform/desktop run check:cargo:clippy
-    runner: pnpm
-    tiers: [release, release-target:desktop]
-    targets: [desktop]
-    timeout_seconds: 900
-    requires_binaries: [pnpm, go, cargo]
-    blocker_semantics:
-      on_binary_missing: blocked
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
 
   - id: gate.cargo.audit
     description: cargo audit against apps/desktop/src-tauri/Cargo.lock for known Rust vulnerabilities.
@@ -297,11 +249,25 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
+  - id: gate.desktop.open-intent-contract
+    description: Consolidated cross-domain Desktop Open authority, transport, presence, source identity, and target-catalog structural contract gate.
+    command: pnpm check:desktop-open-contract
+    runner: pnpm
+    tiers: [release, release-target:desktop, release-target:sdk]
+    targets: [desktop, sdk]
+    timeout_seconds: 900
+    requires_binaries: [node, pnpm, cargo]
+    evidence:
+      shape: command_exit
+    p_relg_anchors: [P-RELG-001, P-RELG-007, P-RELG-009]
+    parent_p_gov_anchors: [P-GOV-003, P-GOV-011]
+    experimental: false
+
   - id: gate.desktop.lint
     description: Desktop package-level lint pipeline (eslint + tailwind classnames + typecheck wrapper).
     command: pnpm --filter @nimiplatform/desktop lint
     runner: pnpm
-    tiers: [fast, release, release-target:desktop]
+    tiers: [release, release-target:desktop]
     targets: [desktop]
     timeout_seconds: 600
     requires_binaries: [pnpm]
@@ -316,7 +282,7 @@ gates:
     description: Forbid embedded cloud runtime config in desktop sources.
     command: pnpm check:desktop-cloud-runtime-only
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [desktop]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -330,7 +296,7 @@ gates:
     description: Detect anti-patterns in desktop chat authority surface.
     command: pnpm check:desktop-chat-authority-anti-patterns
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [desktop]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -344,7 +310,7 @@ gates:
     description: Forbid legacy runtime config path references in desktop.
     command: pnpm check:desktop-no-legacy-runtime-config-path
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [desktop]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -358,7 +324,7 @@ gates:
     description: Forbid E2E test bypass shortcuts in desktop.
     command: pnpm check:desktop-no-e2e-bypass
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [desktop]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -372,7 +338,7 @@ gates:
     description: Forbid private @client alias in desktop (must use public SDK surface).
     command: pnpm check:desktop-no-client-alias
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [desktop]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -386,7 +352,7 @@ gates:
     description: Desktop scroll shell contract verification.
     command: pnpm check:desktop-scroll-shell
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [desktop]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -400,7 +366,7 @@ gates:
     description: Desktop bootstrap hardcut check (no legacy paths).
     command: pnpm check:desktop-bootstrap-hardcut
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [desktop]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -414,7 +380,7 @@ gates:
     description: Desktop design contract verification.
     command: pnpm check:desktop-design-contract
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [desktop]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -424,53 +390,22 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
-  - id: gate.desktop.e2e-smoke
-    description: Desktop E2E smoke test (Linux/Windows CI only; macOS uses manual smoke).
-    command: pnpm check:desktop-e2e-smoke
+
+
+  - id: gate.desktop.macos-dev-security-native
+    description: Native macOS local-development security reducer, POSIX, timeout, journal codec, and crash-recovery suite.
+    command: pnpm test:macos:dev-security-native
     runner: pnpm
+    cwd: .
     tiers: [release, release-target:desktop]
     targets: [desktop]
-    timeout_seconds: 1800
-    requires_binaries: [pnpm, tauri-driver]
+    timeout_seconds: 180
+    prerequisites: []
+    requires_secrets: []
+    requires_external_repo: []
+    requires_binaries: [pnpm, node, xcrun]
     blocker_semantics:
       on_binary_missing: blocked
-    skip_when:
-      condition: macos
-      reason_code: PRECONDITION_NOT_MET
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-    notes: Native driver (WebKitWebDriver / msedgedriver) configuration is platform-specific and lives outside the registry.
-
-  - id: gate.desktop.e2e-journeys
-    description: Desktop E2E journeys (extended scenarios beyond smoke; Linux/Windows CI only).
-    command: pnpm check:desktop-e2e-journeys
-    runner: pnpm
-    tiers: [release, release-target:desktop]
-    targets: [desktop]
-    timeout_seconds: 3600
-    requires_binaries: [pnpm, tauri-driver]
-    blocker_semantics:
-      on_binary_missing: blocked
-    skip_when:
-      condition: macos
-      reason_code: PRECONDITION_NOT_MET
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  - id: gate.desktop.macos-smoke
-    description: Desktop macOS-specific smoke test.
-    command: pnpm check:desktop-macos-smoke
-    runner: pnpm
-    tiers: [release, release-target:desktop]
-    targets: [desktop]
-    timeout_seconds: 1800
-    requires_binaries: [pnpm]
     skip_when:
       condition: not_macos
       reason_code: PRECONDITION_NOT_MET
@@ -495,13 +430,14 @@ gates:
     experimental: false
 
   - id: gate.desktop.release-sync
-    description: Desktop-only release manifest sync verification; fails if Runtime archive/path/digest fields or bundled Runtime resources reappear.
-    command: pnpm --filter @nimiplatform/desktop run check:desktop-release-sync
-    runner: pnpm
-    tiers: [release, release-target:desktop]
+    description: Release-version-specific Desktop manifest sync verification before bundle publication; fails if the prepared manifests diverge from RELEASE_VERSION or if Runtime archive/path/digest fields or bundled Runtime resources reappear.
+    command: 'pnpm --filter @nimiplatform/desktop run check:desktop-release-sync -- --expected "${RELEASE_VERSION}"'
+    runner: shell
+    tiers: [release]
     targets: [desktop]
     timeout_seconds: 60
     requires_binaries: [pnpm]
+    requires_env: [RELEASE_VERSION]
     evidence:
       shape: command_exit
     p_relg_anchors: [P-RELG-001]
@@ -525,28 +461,11 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
-  - id: gate.desktop.group-chat-contract
-    description: Desktop group chat contract test bundle.
-    command: pnpm check:desktop-group-chat-contract
-    runner: pnpm
-    tiers: [release, release-target:desktop]
-    targets: [desktop]
-    timeout_seconds: 600
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  # =====================================================================
-  # owner: dev-loop (developer-loop helpers; mostly fast-tier supportive)
-  # =====================================================================
   - id: gate.dev-loop.agents-freshness
     description: AGENTS.md freshness gate (size + content drift).
     command: pnpm check:agents-freshness
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -591,7 +510,7 @@ gates:
     description: Markdown lint baseline.
     command: pnpm check:markdown
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -605,7 +524,7 @@ gates:
     description: First-run docs drift contract enforcement.
     command: pnpm check:first-run-doc-drift
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -619,7 +538,7 @@ gates:
     description: Examples package compile + check.
     command: pnpm check:examples
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 300
     requires_binaries: [pnpm]
@@ -633,7 +552,7 @@ gates:
     description: Verify examples have run-comment annotations.
     command: pnpm check:examples-run-comments
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -647,7 +566,7 @@ gates:
     description: Install script dry-run smoke test.
     command: pnpm check:install-script-smoke
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 120
     requires_binaries: [pnpm]
@@ -664,7 +583,7 @@ gates:
     description: Forbid absolute user-home paths in docs/spec/examples.
     command: pnpm check:no-absolute-user-paths
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -678,7 +597,7 @@ gates:
     description: Forbid legacy doc contract aliases.
     command: pnpm check:no-legacy-doc-contracts
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -692,7 +611,7 @@ gates:
     description: Public copy must stay inside the P-GOV-026 release promise freeze.
     command: pnpm check:release-promise-public-copy
     runner: pnpm
-    tiers: [fast, first-public-existence, release]
+    tiers: [first-public-existence, release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -758,7 +677,7 @@ gates:
     description: Live smoke gate offline regression test (deterministic, no live providers needed).
     command: pnpm check:live-smoke-gate-regression
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 120
     requires_binaries: [pnpm]
@@ -807,7 +726,7 @@ gates:
     description: Host-installed nimicoding CLI entrypoint smoke (--help must succeed).
     command: pnpm exec nimicoding --help
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -821,7 +740,7 @@ gates:
     description: Verify nimi-coding seed sync state.
     command: pnpm check:nimi-coding-seed-sync
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -835,7 +754,7 @@ gates:
     description: nimi-coding doctor diagnostic (host posture + bootstrap state).
     command: pnpm nimicoding:doctor
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -866,7 +785,7 @@ gates:
     description: Forbid legacy app-auth CLI naming.
     command: pnpm check:no-legacy-app-auth-cli
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -880,7 +799,7 @@ gates:
     description: Forbid private local_ai tauri command literals in desktop TypeScript.
     command: pnpm check:no-local-ai-private-calls
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [desktop]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -894,7 +813,7 @@ gates:
     description: Forbid local_ai tauri command exposure in apps/desktop/src-tauri.
     command: pnpm check:no-local-ai-tauri-commands
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [desktop]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -908,7 +827,7 @@ gates:
     description: Forbid legacy nimid daemon invocation in docs.
     command: pnpm check:no-nimid-doc-invocation
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -922,7 +841,7 @@ gates:
     description: Forbid legacy nimid entry/symbol in runtime + sdk.
     command: pnpm check:no-nimid-source
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [runtime, sdk]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -936,7 +855,7 @@ gates:
     description: Forbid legacy cloud provider key references.
     command: pnpm check:no-legacy-cloud-provider-keys
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -983,7 +902,7 @@ gates:
     description: Proto lint via buf.
     command: pnpm proto:lint
     runner: pnpm
-    tiers: [fast, release, release-target:proto]
+    tiers: [release, release-target:proto]
     targets: [proto]
     timeout_seconds: 120
     requires_binaries: [pnpm, buf]
@@ -1042,7 +961,7 @@ gates:
     description: Verify runtime proto methods linked to spec authority.
     command: pnpm check:runtime-proto-spec-linkage
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [runtime, proto]
     timeout_seconds: 120
     requires_binaries: [pnpm]
@@ -1073,7 +992,7 @@ gates:
     description: Forbid OpenAPI.BASE singleton assignment.
     command: pnpm check:no-openapi-base-assignment
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1087,7 +1006,7 @@ gates:
     description: Forbid OpenAPI.TOKEN singleton assignment.
     command: pnpm check:no-openapi-token-assignment
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1101,7 +1020,7 @@ gates:
     description: Forbid OpenAPI singleton import from @nimiplatform/sdk/realm.
     command: pnpm check:no-openapi-singleton-import
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1115,7 +1034,7 @@ gates:
     description: Account session hardcut validation.
     command: pnpm check:account-session-hardcut
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1129,21 +1048,7 @@ gates:
     description: Verify Realm v3 producer authority, first-party materialization posture, and public-permission separation.
     command: pnpm check:realm-v3:authority
     runner: pnpm
-    tiers: [fast, release]
-    targets: [any]
-    timeout_seconds: 120
-    requires_binaries: [pnpm, node]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  - id: gate.realm.v3-consumer-inventory
-    description: Verify every Realm v3 producer and consumer is represented by the closed migration inventory.
-    command: pnpm check:realm-v3:consumer-inventory
-    runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 120
     requires_binaries: [pnpm, node]
@@ -1157,24 +1062,10 @@ gates:
     description: Verify generated Realm v3 clients, models, wire shapes, and negative fixtures converge on the admitted producer contract.
     command: pnpm check:realm-v3:generated-convergence
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [sdk, runtime]
     timeout_seconds: 180
     requires_binaries: [pnpm, node]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  - id: gate.realm.v3-protected-sentinel
-    description: Freeze Realm v3 protected transport and authority paths against the exact admitted implementation baseline.
-    command: pnpm check:realm-v3:protected-sentinel
-    runner: pnpm
-    tiers: [fast, release]
-    targets: [any]
-    timeout_seconds: 180
-    requires_binaries: [pnpm, node, git]
     evidence:
       shape: command_exit
     p_relg_anchors: [P-RELG-001]
@@ -1185,7 +1076,7 @@ gates:
     description: Forbid first-party SDK client construction outside admitted entry.
     command: pnpm check:no-first-party-sdk-client-construction
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1195,11 +1086,11 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
-  - id: gate.realm.sdk-generator-smoke
-    description: Realm SDK generator smoke (regenerator does not drift).
-    command: pnpm check:realm-sdk-generator-smoke
+  - id: gate.realm.sdk-generator-drift
+    description: Realm SDK generators reproduce the checked-in generated surfaces without drift.
+    command: pnpm check:sdks-generators
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [sdk]
     timeout_seconds: 300
     requires_binaries: [pnpm]
@@ -1209,23 +1100,6 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
-  - id: gate.realm.group-chat-contract
-    description: Realm group chat contract bundle (sdk-generated-type-quality + sdk-consumer-smoke + desktop-group-chat-contract).
-    command: pnpm check:realm-group-chat-contract
-    runner: pnpm
-    tiers: [release]
-    targets: [sdk, desktop]
-    timeout_seconds: 1200
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  # =====================================================================
-  # owner: release-gate (registry self-bootstrap; D9 / P-RELG-009)
-  # =====================================================================
   - id: gate.release-gate.registry-coherence
     description: |
       Verify release-gate-registry.yaml is internally coherent: gate ids
@@ -1243,17 +1117,13 @@ gates:
     p_relg_anchors: [P-RELG-001, P-RELG-008, P-RELG-009, P-RELG-012, P-RELG-013]
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
-    notes: |
-      Self-bootstrap row per P-RELG-009. Exempt from coherence pre-check
-      (the checker cannot pre-validate itself; bootstrap order proof in
-      release-gate self-bootstrap design record).
+    notes: The checker validates the complete current registry, including its own row, before any projection is trusted.
 
   - id: gate.release-gate.projection-drift
     description: |
-      Verify projection surfaces (pnpm lint body, CI workflow marker
-      fences) match what the registry projects. Byte-compare drift
-      detector. Activated by W3 (lint mode) and W5 (CI fence mode);
-      W2 mode validates registry-coherent-with-current-lint only.
+      Verify projection surfaces (pnpm lint body and CI workflow marker
+      fences) byte-match the current registry projection and contain no
+      duplicate registered commands.
     command: node scripts/check-release-gate-projection-drift.mjs
     runner: node
     tiers: [fast, first-public-existence, release]
@@ -1266,73 +1136,11 @@ gates:
     p_relg_anchors: [P-RELG-003, P-RELG-009, P-RELG-010]
     parent_p_gov_anchors: [P-GOV-003, P-GOV-021, P-GOV-023]
     experimental: false
-    notes: |
-      Consumer script scripts/check-release-gate-projection-drift.mjs
-      landed in W2; experimental flag cleared in same commit per
-      implementation-doctrine.md W1 hard-constraint exception. The
-      checker operates in W2 mode (informational warnings only)
-      until W3 lands the lint-chain regenerator and W5 lands the
-      CI fence regenerator; both W3 and W5 transitions activate
-      stricter modes via mode-detection at runtime, not by row
-      mutation.
+    notes: All current projection surfaces fail closed on missing fences, malformed YAML, byte drift, or duplicate registered execution.
 
   # =====================================================================
   # owner: runtime (Go runtime)
   # =====================================================================
-  - id: gate.runtime.go-build
-    description: Runtime Go build diagnostic; final release admission is owned by gate.runtime.compliance.
-    command: go build ./...
-    runner: shell
-    cwd: runtime
-    tiers: [nightly]
-    targets: [runtime]
-    timeout_seconds: 300
-    requires_binaries: [go]
-    blocker_semantics:
-      on_binary_missing: blocked
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-    notes: Standalone owner diagnostic only; runtime-compliance executes the final source-bound build check.
-
-  - id: gate.runtime.go-vet
-    description: Runtime Go vet diagnostic; final release admission is owned by gate.runtime.compliance.
-    command: go vet ./...
-    runner: shell
-    cwd: runtime
-    tiers: [nightly]
-    targets: [runtime]
-    timeout_seconds: 300
-    requires_binaries: [go]
-    blocker_semantics:
-      on_binary_missing: blocked
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-    notes: Standalone owner diagnostic only; runtime-compliance executes the final source-bound vet check.
-
-  - id: gate.runtime.go-test
-    description: Runtime Go test diagnostic; final fresh full-suite admission is owned by gate.runtime.compliance.
-    command: go test ./...
-    runner: shell
-    cwd: runtime
-    tiers: [nightly]
-    targets: [runtime]
-    timeout_seconds: 1200
-    requires_binaries: [go]
-    blocker_semantics:
-      on_binary_missing: blocked
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-    notes: Standalone owner diagnostic only; it cannot replace the source-bound compliance gate.
-
   - id: gate.runtime.compliance
     description: Sole final Runtime admission gate; source-bound fresh full tests plus build, vet, and all 63 compliance items.
     command: go run ./cmd/runtime-compliance --gate
@@ -1387,7 +1195,7 @@ gates:
     command: pnpm check:runtime-golangci-lint
     runner: pnpm
     cwd: .
-    tiers: [fast, release, release-target:runtime]
+    tiers: [release, release-target:runtime]
     targets: [runtime]
     timeout_seconds: 600
     requires_binaries: [pnpm, go]
@@ -1420,7 +1228,7 @@ gates:
     description: Runtime bridge generated drift check (method allowlist and tonic/prost Runtime proto projection consistent).
     command: pnpm check:runtime-bridge-generated-drift
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [runtime, sdk]
     timeout_seconds: 120
     requires_binaries: [pnpm]
@@ -1434,7 +1242,7 @@ gates:
     description: Runtime provider/connector catalog drift check.
     command: pnpm check:runtime-catalog-drift
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [runtime]
     timeout_seconds: 120
     requires_binaries: [pnpm]
@@ -1448,7 +1256,7 @@ gates:
     description: Runtime model selection freshness check.
     command: pnpm check:runtime-selection-freshness
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [runtime]
     timeout_seconds: 120
     requires_binaries: [pnpm]
@@ -1462,7 +1270,7 @@ gates:
     description: Runtime startup hardcut check.
     command: pnpm check:runtime-startup-hardcut
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [runtime]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1476,7 +1284,7 @@ gates:
     description: Runtime stable AI output typing check.
     command: pnpm check:runtime-stable-ai-output-typing
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [runtime]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1490,7 +1298,7 @@ gates:
     description: ReasonCode constants policy check.
     command: pnpm check:reason-code-constants
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [runtime, sdk]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1504,7 +1312,7 @@ gates:
     description: Shared runtime defaults duplicate detection.
     command: pnpm check:shared-runtime-defaults-duplicate
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [runtime]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1518,7 +1326,7 @@ gates:
     description: Runtime agent-center local config boundary check.
     command: pnpm check:runtime-agent-center-local-config-boundary
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [runtime]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1535,7 +1343,7 @@ gates:
     description: Runtime provider capability token canonicalization.
     command: pnpm check:runtime-provider-capability-token-canonicalization
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [runtime]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1549,7 +1357,7 @@ gates:
     description: Runtime provider activation alignment.
     command: pnpm check:runtime-provider-activation-alignment
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [runtime]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1563,7 +1371,7 @@ gates:
     description: Runtime provider alias hardcut.
     command: pnpm check:runtime-provider-alias-hardcut
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [runtime]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1577,7 +1385,7 @@ gates:
     description: Runtime provider yaml-first hardcut.
     command: pnpm check:runtime-provider-yaml-first-hardcut
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [runtime]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1591,7 +1399,7 @@ gates:
     description: Runtime provider endpoint SSOT.
     command: pnpm check:runtime-provider-endpoint-ssot
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [runtime]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1605,7 +1413,7 @@ gates:
     description: Runtime connector auth profile drift.
     command: pnpm check:runtime-connector-auth-profile-drift
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [runtime]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1619,7 +1427,7 @@ gates:
     description: Runtime video capability block enforcement.
     command: pnpm check:runtime-video-capability-block-enforcement
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [runtime]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1632,34 +1440,6 @@ gates:
   # =====================================================================
   # owner: sdks (TypeScript SDK)
   # =====================================================================
-  - id: gate.sdk.build
-    description: Build SDK surfaces (@nimiplatform/sdk).
-    command: pnpm build:sdk
-    runner: pnpm
-    tiers: [release, release-target:sdk]
-    targets: [sdk]
-    timeout_seconds: 600
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  - id: gate.sdk.test
-    description: SDK unit + contract tests.
-    command: pnpm --filter @nimiplatform/sdk test
-    runner: pnpm
-    tiers: [release, release-target:sdk]
-    targets: [sdk]
-    timeout_seconds: 600
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
   - id: gate.sdk.coverage
     description: SDK coverage gate.
     command: pnpm check:sdk-coverage
@@ -1674,19 +1454,20 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
-  - id: gate.sdk.vnext-matrix
-    description: SDK vNext matrix gate.
-    command: pnpm check:sdk-vnext-matrix
+  - id: gate.sdk.release-contracts
+    description: Run the non-overlapping SDK boundary, external-consumer, adapter, proof, doctor, and hardcut contract leaves with one prepared SDK build.
+    command: pnpm check:sdk-release-contracts
     runner: pnpm
-    tiers: [release, release-target:sdk]
+    tiers: [first-public-existence, release, release-target:sdk]
     targets: [sdk]
-    timeout_seconds: 600
-    requires_binaries: [pnpm]
+    timeout_seconds: 1800
+    requires_binaries: [pnpm, node]
     evidence:
       shape: command_exit
-    p_relg_anchors: [P-RELG-001]
+    p_relg_anchors: [P-RELG-001, P-RELG-010]
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
+    notes: Full SDK tests/build are owned by gate.sdk.coverage; generator drift, typed-core conformance, packaged consumer smoke, and version parity remain independent gates.
 
   - id: gate.sdk.version-matrix
     description: SDK version matrix verification.
@@ -1716,139 +1497,13 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
-  - id: gate.sdk.vnext-root-composition-authority
-    description: Validate SDK vNext root composition authority and forbid legacy platform-client entries.
-    command: pnpm check:sdk-root-entry-contract
-    runner: pnpm
-    tiers: [fast, first-public-existence, release]
-    targets: [sdk]
-    timeout_seconds: 60
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  - id: gate.sdk.vnext-package-contract
-    description: SDK vNext package export and boundary contract check.
-    command: pnpm check:sdk-vnext-package-contract
-    runner: pnpm
-    tiers: [fast, first-public-existence, release]
-    targets: [sdk]
-    timeout_seconds: 60
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  - id: gate.sdk.vnext-public-surface-smoke
-    description: SDK vNext public surface consumer smoke check.
-    command: pnpm check:sdk-vnext-public-surface-smoke
-    runner: pnpm
-    tiers: [fast, first-public-existence, release]
-    targets: [sdk]
-    timeout_seconds: 60
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  - id: gate.sdk.vnext-runtime-facade
-    description: SDK vNext Runtime facade projection check.
-    command: pnpm check:sdk-vnext-runtime-facade
-    runner: pnpm
-    tiers: [fast, first-public-existence, release]
-    targets: [sdk]
-    timeout_seconds: 60
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  - id: gate.sdk.vnext-realm-consumer-smoke
-    description: SDK vNext Realm consumer smoke check.
-    command: pnpm check:sdk-vnext-realm-consumer-smoke
-    runner: pnpm
-    tiers: [fast, first-public-existence, release]
-    targets: [sdk]
-    timeout_seconds: 60
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
   - id: gate.sdk.vnext-typed-core-conformance
     description: SDKS generated typed-core conformance gate.
     command: pnpm check:sdks-conformance-typed-core
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [sdk]
     timeout_seconds: 120
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  - id: gate.sdk.vnext-ai-capability-ledger
-    description: SDK vNext AI capability ledger gate.
-    command: pnpm check:sdk-vnext-ai-capability-ledger
-    runner: pnpm
-    tiers: [fast, first-public-existence, release]
-    targets: [sdk]
-    timeout_seconds: 60
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  - id: gate.sdk.vnext-replacement-acceptance
-    description: SDK vNext replacement acceptance gate.
-    command: pnpm check:sdk-vnext-replacement-acceptance
-    runner: pnpm
-    tiers: [fast, release]
-    targets: [sdk]
-    timeout_seconds: 60
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  - id: gate.sdk.typed-surface-hardcut
-    description: SDK typed surface hardcut check.
-    command: pnpm check:typed-surface-hardcut
-    runner: pnpm
-    tiers: [fast, release]
-    targets: [sdk]
-    timeout_seconds: 60
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  - id: gate.sdk.experimental-api-lifecycle
-    description: SDK experimental API lifecycle gate.
-    command: pnpm check:experimental-api-lifecycle
-    runner: pnpm
-    tiers: [fast, release]
-    targets: [sdk]
-    timeout_seconds: 60
     requires_binaries: [pnpm]
     evidence:
       shape: command_exit
@@ -1891,13 +1546,9 @@ gates:
     parent_p_gov_anchors: [P-GOV-003, P-GOV-011]
     experimental: false
     notes: |
-      Historical provenance: originated as an inline pipe in
-      scripts/check-release-preflight.sh (deleted in W2). The W0
-      audit identified the pipe-shape risk under R8; the W2 shell
-      runner wraps the pipe in `bash -c "set -o pipefail; ..."`
-      so the rightmost command's exit propagates correctly. Unit
-      test "runByKind shell: piped command honors pipefail" in
-      scripts/lib/release-gate/runner.test.mjs verifies.
+      The shell runner executes piped commands with pipefail so every
+      pipeline failure propagates. scripts/lib/release-gate/runner.test.mjs
+      carries the negative regression proof.
 
   - id: gate.security.zizmor
     description: zizmor workflow + dependabot audit (high severity).
@@ -1933,7 +1584,7 @@ gates:
     description: License file map check.
     command: pnpm check:license-file-map
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1947,7 +1598,7 @@ gates:
     description: Package license matrix check.
     command: pnpm check:package-license-matrix
     runner: pnpm
-    tiers: [fast, release, release-target:sdk]
+    tiers: [release, release-target:sdk]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1977,28 +1628,36 @@ gates:
     parent_p_gov_anchors: [P-GOV-011, P-GOV-021, P-GOV-023]
     experimental: false
     notes: |
-      Inventoried in W1 from .github/workflows/release.yml +
-      release-runtime.yml (referenced but not previously registered).
-      Local invocation requires NIMI_ARTIFACT_PATHS_JSON env;
-      typically run inside CI release jobs, not from a dev laptop.
+      Local invocation requires NIMI_ARTIFACT_PATHS_JSON; normal execution
+      is inside the Runtime/Desktop release jobs after artifacts exist.
 
   # =====================================================================
   # owner: spec-governance (collapsed spec governance scope invocations)
   # =====================================================================
   - id: gate.spec-governance.all
     description: |
-      Run all 17 distinct validate-spec-governance handlers across 21
-      governance.yaml entries (avatar / runtime / sdk / desktop / platform
-      / realm / future / cognition / per-app / runtime-delegation +
-      release-gate-consistency landed by W1). Replaces 7 separate
-      per-scope invocations historically chained in pnpm lint, closing
-      the missing-10-scopes gap captured in D0.B.3.
+      Run every configured validate-spec-governance handler through the
+      canonical all-scope dispatcher, without duplicating per-scope calls.
     command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope all
     runner: pnpm
-    tiers: [fast, first-public-existence, release]
+    tiers: [first-public-existence, release]
     targets: [any]
     timeout_seconds: 600
     requires_binaries: [pnpm]
+    evidence:
+      shape: command_exit
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.spec-governance.simulator-authority
+    description: Validate the canonical P-SIM contract, structured tables, owner amendments, Tester app-slice admission, and structural evidence wiring.
+    command: pnpm check:simulator-authority
+    runner: pnpm
+    tiers: [fast, release]
+    targets: [any]
+    timeout_seconds: 60
+    requires_binaries: [pnpm, node]
     evidence:
       shape: command_exit
     p_relg_anchors: [P-RELG-001]
@@ -2009,7 +1668,7 @@ gates:
     description: Generate-spec-derived-docs --scope all --check (drift detection across all configured scopes including spec-human-doc).
     command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope all --check
     runner: pnpm
-    tiers: [fast, first-public-existence, release]
+    tiers: [first-public-existence, release]
     targets: [any]
     timeout_seconds: 300
     requires_binaries: [pnpm]
@@ -2023,7 +1682,7 @@ gates:
     description: Validate spec tree classification.
     command: pnpm exec nimicoding validate-spec-tree
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -2037,7 +1696,7 @@ gates:
     description: Validate AI governance (--scope all covers agents-freshness, context-budget, structure-budget, high-risk-doc-metadata).
     command: pnpm exec nimicoding validate-ai-governance --profile nimi --scope all
     runner: pnpm
-    tiers: [fast, first-public-existence, release]
+    tiers: [first-public-existence, release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -2062,22 +1721,8 @@ gates:
     experimental: false
 
   - id: gate.spec-governance.test-inventory
-    description: Platform test inventory census/classification coverage across all registered domains.
+    description: Resolve every active test-bearing source to one executable suite, root command, and release gate.
     command: pnpm check:test-inventory
-    runner: pnpm
-    tiers: [fast]
-    targets: [any]
-    timeout_seconds: 60
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  - id: gate.spec-governance.canonical-capability-catalog
-    description: Canonical capability catalog consistency check.
-    command: pnpm check:canonical-capability-catalog
     runner: pnpm
     tiers: [fast, release]
     targets: [any]
@@ -2093,7 +1738,7 @@ gates:
     description: apps/avatar isolation check (banned imports forbidden).
     command: pnpm check:apps-avatar-isolation
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [desktop]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -2106,36 +1751,14 @@ gates:
   # =====================================================================
   # owner: tester (apps/tester proof app shell and scaffold reference gates)
   # =====================================================================
-  - id: gate.tester.shell-parity
-    description: Tester app-owned Electron/Tauri shell command parity plus Electron and Tauri runtime acceptance.
-    command: pnpm --filter @nimiplatform/tester run check:shell-parity
-    runner: pnpm
-    cwd: .
-    tiers: [release]
-    targets: [any]
-    timeout_seconds: 1800
-    prerequisites: []
-    requires_secrets: []
-    requires_external_repo: []
-    requires_binaries: [pnpm, node, cargo]
-    blocker_semantics:
-      on_binary_missing: blocked
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  # =====================================================================
-  # owner: ui (kit + nimi-ui shared UI gates)
-  # =====================================================================
   - id: gate.ui.nimi-kit
-    description: nimi-kit module registry consistency check (also runs canonical-capability-catalog as part of this).
-    command: pnpm check:nimi-kit
+    description: nimi-kit module, boundary, distribution, design, and public-surface consistency after the governed Kit build/test suite.
+    command: pnpm check:nimi-kit:prepared
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release, release-target:desktop, release-target:web]
     targets: [desktop, web]
     timeout_seconds: 120
+    prerequisites: [gate.ui.kit-test]
     requires_binaries: [pnpm]
     evidence:
       shape: command_exit
@@ -2147,7 +1770,7 @@ gates:
     description: nimi-ui pattern adherence check.
     command: pnpm check:nimi-ui-pattern
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [desktop, web]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -2161,7 +1784,7 @@ gates:
     description: nimi-ui library drift check.
     command: pnpm check:nimi-ui-lib-drift
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [desktop, web]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -2175,7 +1798,7 @@ gates:
     description: UI contrast matrix gate.
     command: pnpm check:ui-contrast-matrix
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [desktop, web]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -2189,7 +1812,7 @@ gates:
     description: UI glass boundary check.
     command: pnpm check:ui-glass-boundary
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [release]
     targets: [desktop, web]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -2202,20 +1825,6 @@ gates:
   # =====================================================================
   # owner: web (apps/web)
   # =====================================================================
-  - id: gate.web.typecheck
-    description: TypeScript typecheck for apps/web.
-    command: pnpm --filter @nimiplatform/web typecheck
-    runner: pnpm
-    tiers: [release, release-target:web]
-    targets: [web]
-    timeout_seconds: 300
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
   - id: gate.web.build
     description: apps/web build.
     command: pnpm --filter @nimiplatform/web build
@@ -2229,21 +1838,6 @@ gates:
     p_relg_anchors: [P-RELG-001]
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
-
-  - id: gate.web.lint
-    description: apps/web package-level lint pipeline.
-    command: pnpm --filter @nimiplatform/web lint
-    runner: pnpm
-    tiers: [fast, release, release-target:web]
-    targets: [web]
-    timeout_seconds: 300
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-    notes: Wraps a multi-step package script; treated as opaque by the registry.
 
   - id: gate.web.test
     description: apps/web test suite.
@@ -2340,5 +1934,330 @@ gates:
     evidence:
       shape: command_exit
     p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  # =====================================================================
+  # Executable suite bindings (P-TEST-002 / P-TEST-003)
+  # =====================================================================
+  - id: gate.app-tools.unit
+    description: app-tools deterministic unit suite.
+    command: pnpm --filter @nimiplatform/app-tools test
+    runner: pnpm
+    tiers: [release]
+    targets: [any]
+    timeout_seconds: 300
+    requires_binaries: [pnpm, node]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.app-tools.platform-fixture-unit
+    description: Nimi App platform fixture deterministic unit suite.
+    command: pnpm --filter @nimiplatform/nimi-app-platform-fixture test
+    runner: pnpm
+    tiers: [release]
+    targets: [any]
+    timeout_seconds: 300
+    requires_binaries: [pnpm, node]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.desktop.avatar-unit
+    description: Avatar deterministic renderer and shell unit suite.
+    command: pnpm --filter @nimiplatform/avatar test
+    runner: pnpm
+    tiers: [release, release-target:desktop]
+    targets: [desktop]
+    timeout_seconds: 900
+    requires_binaries: [pnpm, node]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.desktop.zhiyu-unit
+    description: Zhiyu deterministic application unit suite.
+    command: pnpm --filter @nimiplatform/zhiyu test
+    runner: pnpm
+    tiers: [release, release-target:desktop]
+    targets: [desktop]
+    timeout_seconds: 600
+    requires_binaries: [pnpm, node]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.desktop.avatar-native-test
+    description: Avatar Tauri native Rust suite.
+    command: pnpm test:avatar:native
+    runner: pnpm
+    tiers: [release, release-target:desktop]
+    targets: [desktop]
+    timeout_seconds: 1200
+    requires_binaries: [pnpm, cargo]
+    blocker_semantics: { on_binary_missing: blocked }
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.desktop.windows-product-control-native
+    description: Signed Windows x64 Desktop product-control native acceptance.
+    command: pnpm --filter @nimiplatform/desktop test:windows:product-control-native
+    runner: pnpm
+    tiers: [release, release-target:desktop]
+    targets: [desktop]
+    timeout_seconds: 300
+    skip_when: { condition: not_windows, reason_code: PRECONDITION_NOT_MET }
+    requires_binaries: [pnpm, node]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001, P-RELG-007]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.desktop.e2e
+    description: Complete Desktop WebDriver product journey suite.
+    command: pnpm --filter @nimiplatform/desktop test:e2e
+    runner: pnpm
+    tiers: [release, release-target:desktop]
+    targets: [desktop]
+    timeout_seconds: 3600
+    requires_binaries: [pnpm, node]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.desktop.electron-acceptance
+    description: Desktop Electron real-shell acceptance.
+    command: pnpm --filter @nimiplatform/desktop test:e2e:electron
+    runner: pnpm
+    tiers: [release, release-target:desktop]
+    targets: [desktop]
+    timeout_seconds: 1800
+    requires_binaries: [pnpm, node]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.desktop.avatar-electron-acceptance
+    description: Avatar Electron real-shell acceptance.
+    command: pnpm --filter @nimiplatform/avatar test:e2e:electron
+    runner: pnpm
+    tiers: [release, release-target:desktop]
+    targets: [desktop]
+    timeout_seconds: 1800
+    requires_binaries: [pnpm, node]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.desktop.zhiyu-acceptance
+    description: Portable Zhiyu unsupervised Electron authority-denial and Agent Center browser-shell acceptance after one shared SDK, Kit, renderer, and Electron preparation; it does not claim Runtime-backed LocalAgent product acceptance.
+    command: pnpm check:zhiyu-acceptance
+    runner: pnpm
+    tiers: [release, release-target:desktop, release-target:web]
+    targets: [desktop, web]
+    timeout_seconds: 1800
+    requires_binaries: [pnpm, node]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.desktop.local-agent-product-core-stability
+    description: Windows fixed-service Desktop-to-Zhiyu LocalAgent product Journey with three isolated repeats and real shell, process, authorization, persistence, restart, layout, accessibility, and privacy evidence.
+    command: pnpm test:e2e:local-agent-product:core-stability
+    runner: pnpm
+    tiers: [release, release-target:desktop]
+    targets: [desktop, runtime]
+    timeout_seconds: 10800
+    skip_when: { condition: not_windows, reason_code: PRECONDITION_NOT_MET }
+    requires_binaries: [pnpm, node, powershell.exe]
+    requires_env: [REALM_ROOT]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001, P-RELG-007]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.platform-hardcut.local-agent-contract-tests
+    description: Deterministic LocalAgent journey and conversation-report contract suite.
+    command: pnpm test:local-agent-contracts
+    runner: pnpm
+    tiers: [release]
+    targets: [desktop, runtime]
+    timeout_seconds: 900
+    requires_binaries: [pnpm, node]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.runtime.python-assets-test
+    description: Runtime media asset Python behavior suite.
+    command: pnpm test:runtime:python
+    runner: pnpm
+    tiers: [release, release-target:runtime]
+    targets: [runtime]
+    timeout_seconds: 300
+    requires_binaries: [pnpm, node, python3]
+    blocker_semantics: { on_binary_missing: blocked }
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.tester.unit
+    description: Tester deterministic application unit suite.
+    command: pnpm --filter @nimiplatform/tester test
+    runner: pnpm
+    tiers: [release, release-target:desktop]
+    targets: [desktop]
+    timeout_seconds: 600
+    requires_binaries: [pnpm, node]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.tester.native-test
+    description: Tester Tauri native Rust suite.
+    command: pnpm test:tester:native
+    runner: pnpm
+    tiers: [release, release-target:desktop]
+    targets: [desktop]
+    timeout_seconds: 1200
+    requires_binaries: [pnpm, cargo]
+    blocker_semantics: { on_binary_missing: blocked }
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.tester.electron-acceptance
+    description: Tester Electron real-shell acceptance.
+    command: pnpm --filter @nimiplatform/tester test:e2e:electron
+    runner: pnpm
+    tiers: [release, release-target:desktop]
+    targets: [desktop]
+    timeout_seconds: 1800
+    requires_binaries: [pnpm, node]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.tester.tauri-acceptance
+    description: Tester Tauri real-shell negative command-boundary acceptance.
+    command: pnpm --filter @nimiplatform/tester test:e2e:tauri
+    runner: pnpm
+    tiers: [release, release-target:desktop]
+    targets: [desktop]
+    timeout_seconds: 1800
+    requires_binaries: [pnpm, node, cargo]
+    blocker_semantics: { on_binary_missing: blocked }
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001, P-RELG-007]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.ui.kit-test
+    description: Kit build plus deterministic TypeScript behavior suite.
+    command: pnpm test:kit
+    runner: pnpm
+    tiers: [release, release-target:desktop, release-target:web]
+    targets: [desktop, web]
+    timeout_seconds: 1200
+    requires_binaries: [pnpm, node]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.ui.kit-native-test
+    description: Complete Kit protected-local and Tauri native Rust suites.
+    command: pnpm test:kit:native
+    runner: pnpm
+    tiers: [release, release-target:desktop]
+    targets: [desktop]
+    timeout_seconds: 1800
+    requires_binaries: [pnpm, cargo]
+    blocker_semantics: { on_binary_missing: blocked }
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.ui.nimi2d-unit
+    description: Nimi2D deterministic command and image-workflow unit suite.
+    command: pnpm --filter @nimiplatform/nimi2d test
+    runner: pnpm
+    tiers: [release]
+    targets: [any]
+    timeout_seconds: 600
+    requires_binaries: [pnpm, node]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.web.install-gateway-unit
+    description: Install gateway deterministic unit suite.
+    command: pnpm --filter @nimiplatform/install-gateway test
+    runner: pnpm
+    tiers: [release, release-target:web]
+    targets: [web]
+    timeout_seconds: 300
+    requires_binaries: [pnpm, node]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.web.openai-compatible-gateway-unit
+    description: OpenAI-compatible gateway deterministic unit suite.
+    command: pnpm --filter @nimiplatform/openai-compatible-gateway test
+    runner: pnpm
+    tiers: [release, release-target:web]
+    targets: [web]
+    timeout_seconds: 300
+    requires_binaries: [pnpm, node]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.workflow.script-tests
+    description: Complete deterministic Node and Python script test suite.
+    command: pnpm test:scripts
+    runner: pnpm
+    tiers: [release]
+    targets: [any]
+    timeout_seconds: 1800
+    requires_binaries: [pnpm, node, python3]
+    blocker_semantics: { on_binary_missing: blocked }
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.workflow.workspace-regression
+    description: Stable root aggregate for every deterministic portable workspace suite.
+    command: pnpm test
+    runner: pnpm
+    tiers: [regression]
+    targets: [any]
+    timeout_seconds: 3600
+    requires_binaries: [pnpm, node, python3]
+    blocker_semantics: { on_binary_missing: fail }
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001, P-RELG-012]
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false

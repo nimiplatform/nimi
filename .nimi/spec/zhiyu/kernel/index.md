@@ -44,7 +44,7 @@ Allowed domains:
 | `creation-activity-contract.md` | `Z-ACT-*` | Partner activities and image hard cut |
 | `main-ui-copy-contract.md` | `Z-COPY-*` | Chinese main UI copy boundary |
 | `diagnostics-dev-mode-contract.md` | `Z-DIAG-*` | Developer diagnostics surface |
-| `testing-and-quarantine-contract.md` | `Z-GATE-*` | Tests, gates, and quarantine |
+| `testing-contract.md` | `Z-GATE-*` | Executable test topology and acceptance gates |
 | `incubation-release-contract.md` | `Z-REL-*` | Bundled developer-only release posture |
 | `local-persistence-boundary-contract.md` | `Z-PERSIST-*` | Local persistence boundary |
 

@@ -20,6 +20,12 @@ the support document must be corrected.
 
 SDK root package metadata must stay aligned with SDK testing and release gates. It must not introduce unpublished package names, ungoverned exports, hidden build entrypoints, or release behavior outside `S-GATE-*`, `S-SURFACE-*`, and `S-BOUNDARY-*` authority.
 
+Simulator support uses the already public `@nimiplatform/sdk/testing` subpath;
+it does not create a Simulator-specific SDK package, root export, transport, or
+compatibility layer. Its implementation and package evidence must remain
+reachable from the ordinary SDK build/test/coverage gates and from the
+Simulator final-graph qualification gate.
+
 ## S-PKG-004 Audit Evidence Admission
 
 Spec-first full audit may cover SDK root support files only through explicit evidence-root admission. Audit tools must not infer SDK root support ownership from package names or workspace membership alone.

@@ -1,0 +1,87 @@
+version: 1
+table_family: closed_enum
+owner: platform
+enum_id: platform_simulator_error_codes
+source_rule: P-SIM-019
+values:
+  - value: SIMULATOR_INVALID_MANIFEST
+    semantics: Manifest or module contract validation failed before runtime session creation.
+    scope: qualification
+    state_change: none
+  - value: SIMULATOR_SOURCE_MISMATCH
+    semantics: Descriptor, source digest, inventory, report, graph, or style identity does not match selected source.
+    scope: qualification
+    state_change: none
+  - value: SIMULATOR_UNSUPPORTED
+    semantics: The requested declared surface has no supported simulated behavior.
+    scope: operation
+    state_change: none
+  - value: SIMULATOR_CAPABILITY_DENIED
+    semantics: A declared capability is disabled by the active scenario or policy.
+    scope: operation
+    state_change: none
+  - value: SIMULATOR_RESOURCE_EXHAUSTED
+    semantics: A declared bounded resource limit was reached.
+    scope: operation
+    state_change: none
+  - value: SIMULATOR_INVALID_PAYLOAD
+    semantics: A request failed its owner-declared exact schema.
+    scope: operation
+    state_change: none
+  - value: SIMULATOR_INVALID_LIFECYCLE
+    semantics: The requested lifecycle transition is outside the closed transition table.
+    scope: operation
+    state_change: none
+  - value: SIMULATOR_STALE_EPOCH
+    semantics: A context or operation belongs to an invalidated scenario epoch.
+    scope: operation
+    state_change: none
+  - value: SIMULATOR_INSTANCE_DISPOSED
+    semantics: The target instance has completed disposal.
+    scope: operation
+    state_change: none
+  - value: SIMULATOR_INSTANCE_FAILED
+    semantics: An attributable renderer, Adapter, projection, or instance callback fault failed one instance after cleanup.
+    scope: instance
+    state_change: shell_diagnostic_only
+  - value: SIMULATOR_MODULE_FAILED
+    semantics: A resolved lazy renderer, style, or asset graph failed for every waiting instance of that module.
+    scope: module
+    state_change: shell_diagnostic_only
+  - value: SIMULATOR_EFFECT_FORBIDDEN
+    semantics: A cataloged typed port denied an effect without attempting a guard bypass.
+    scope: operation
+    state_change: none
+  - value: SIMULATOR_INTEGRITY_FAILURE
+    semantics: Determinism, containment, shared dependency, queue, cleanup, or attribution integrity can no longer be proven.
+    scope: session_terminal
+    state_change: terminal_failure
+
+error_shape:
+  required_fields: [code, message, moduleId, instanceId, operationId, retryable]
+  retryable: false
+  message_owner: platform_simulator_fixed_error_catalog
+  scenario_free_text: forbidden
+  secret: forbidden
+  absolute_path: forbidden
+  raw_source: forbidden
+  queued_operation_id: "{epoch}:op:{sequence}"
+  pre_queue_operation_id: null
+
+sdk_reachability:
+  unreachable:
+    - SIMULATOR_INVALID_MANIFEST
+    - SIMULATOR_SOURCE_MISMATCH
+    - SIMULATOR_INVALID_LIFECYCLE
+  host_neutral_mapping_required:
+    - SIMULATOR_UNSUPPORTED
+    - SIMULATOR_CAPABILITY_DENIED
+    - SIMULATOR_RESOURCE_EXHAUSTED
+    - SIMULATOR_INVALID_PAYLOAD
+    - SIMULATOR_STALE_EPOCH
+    - SIMULATOR_INSTANCE_DISPOSED
+    - SIMULATOR_INSTANCE_FAILED
+    - SIMULATOR_MODULE_FAILED
+    - SIMULATOR_EFFECT_FORBIDDEN
+    - SIMULATOR_INTEGRITY_FAILURE
+  raw_simulator_code_in_public_nimi_error: forbidden

@@ -178,7 +178,20 @@
 ## P-KIT-042 — Renderer Shell Module
 
 - `shell/renderer` is an infra module for shared renderer shell glue: host-neutral command wrappers, bridge primitives, and bootstrap skeleton for Tauri and Electron hosts.
-- Delivered as subpath exports of the single `@nimiplatform/kit` package: `./shell/renderer/bridge` and `./shell/renderer/bootstrap`.
+- Existing surfaces are delivered as subpath exports of the single
+  `@nimiplatform/kit` package: `./shell/renderer/bridge` and
+  `./shell/renderer/bootstrap`. The admitted hard-cut addition is
+  `./shell/renderer/host`; it is not consumable until its registry row,
+  package export, source, tests, and `P-KIT-090` evidence agree.
+- `./shell/renderer/host` owns the reusable `nimi.renderer.host/v1` seam once admitted:
+  provider-scoped capabilities, localization, opaque instance identity scope,
+  mandatory renderer/overlay targets, theme application, surface lifecycle,
+  overlay lease/coordinator types, and host-neutral standard-shell result
+  mapping. It cannot expose `hostKind`, `isSimulator`, `shellMode`, raw module
+  or instance ids, Runtime transport, credentials, or production authority.
+- The concrete host allocates roots, scopes, overlay/z-index leases, permitted
+  browser effects, and lifecycle resources. Kit defines and enforces the seam;
+  it does not allocate Simulator resources or infer the current host.
 - Must not contain app-specific stores, navigation, UI rendering, or runtime readiness policy.
 - Must not re-own auth session truth or telemetry normalization truth already owned by `kit/auth` (domain/auth) and `kit/telemetry` (domain/telemetry).
 - Shared `parseRuntimeDefaults()` semantics consume the `shell/capabilities` runtime-defaults contract: missing required realm defaults must fail closed instead of normalizing to empty strings, and consumer apps must not fork a parallel parser contract.
@@ -455,6 +468,14 @@ Fixed rules:
 - Feature modules must not import Tauri/Electron bridges, runtime internals, or SDK typed services directly when the same behavior can be injected through adapters.
 - Feature module exports must make the adapter seam obvious through typed public interfaces.
 - Registry metadata, package exports, and on-disk surface files must agree on whether a feature publishes `headless`, `ui`, `runtime`, and `realm`.
+- An App canonical renderer factory may receive a `nimi.renderer.host/v1`
+  binding from its production host or from the Simulator. The factory must use
+  the same provider/store/route/UI construction path for both bindings and may
+  not select components, copy, styles, or behavior through a host discriminator.
+- A Simulator App Adapter is App-owned integration code, not a Kit feature
+  adapter. It may construct values for Kit's renderer-host seam, but Kit does
+  not own App projection reducers, scenario commands/events, fixtures, or
+  Simulator selection.
 
 ## P-KIT-090 — Kit Hard Gate
 

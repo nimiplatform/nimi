@@ -36,7 +36,20 @@ entries:
   - canonical_capability_catalog_gate
   - public_raw_token_authority_hardcut_gate
   - protected_local_authority_gate
+  - desktop_open_contract_gate
+  - desktop_e2e_gate
+  - release_gate_registry_coherence_gate
+  - release_gate_projection_drift_gate
+  - script_test_gate
+  - workspace_regression_gate
+  - sdk_coverage_gate
+  - kit_test_gate
+  - runtime_compliance_gate
+  - desktop_test_gate
+  - desktop_native_quality_gate
+  - kit_native_test_gate
   - kit_preview_audit
+  - simulator_authority_gate
 platform_kernel_consistency:
   type: static_gate
   evidence_type: structural
@@ -115,9 +128,87 @@ protected_local_authority_gate:
   command: pnpm check:protected-local-authority
   path: scripts/check-protected-local-authority.mjs
   description: Cross-layer gate enforcing the protected local carrier, principal, session, permission, and base-entitlement authority boundary.
+desktop_open_contract_gate:
+  type: static_gate
+  evidence_type: structural
+  command: pnpm check:desktop-open-contract
+  path: scripts/check-desktop-open-contract.mjs
+  description: Cross-domain Desktop Open contract gate running the consolidated authority, transport, presence, identity, and target-catalog structural checks across SDK, Kit, and Desktop.
+desktop_e2e_gate:
+  type: behavioral_gate
+  evidence_type: behavioral
+  command: pnpm --filter @nimiplatform/desktop test:e2e
+  path: apps/desktop/e2e/specs/desktop-open-intent.running.e2e.mjs
+  description: Platform-aware real Desktop WebDriver journey proving the running-process bridge, host stamping, routing, and typed failure behavior where the Desktop E2E runner is admitted.
+release_gate_registry_coherence_gate:
+  type: static_gate
+  evidence_type: structural
+  command: pnpm check:release-gate-registry-coherence
+  path: scripts/check-release-gate-registry-coherence.mjs
+  description: Release registry schema, ownership, dependency, recursive command-leaf, platform, Cargo lock, and consumer resolution coherence gate.
+release_gate_projection_drift_gate:
+  type: static_gate
+  evidence_type: structural
+  command: pnpm check:release-gate-projection-drift
+  path: scripts/check-release-gate-projection-drift.mjs
+  description: Fail-closed byte projection check for registry-owned preflight, lint, and workflow fences.
+script_test_gate:
+  type: behavioral_gate
+  evidence_type: behavioral
+  command: pnpm test:scripts
+  path: scripts/run-script-tests.mjs
+  description: Complete deterministic Node and Python behavior suite for release-gate runners, projections, evidence, and repository guard scripts.
+workspace_regression_gate:
+  type: behavioral_gate
+  evidence_type: behavioral
+  command: pnpm test
+  path: scripts/run-workspace-tests.mjs
+  description: Complete portable deterministic workspace regression spanning the current governed test topology.
+sdk_coverage_gate:
+  type: behavioral_gate
+  evidence_type: behavioral
+  command: pnpm check:sdk-coverage
+  path: scripts/check-sdk-coverage.mjs
+  description: Complete SDK build, behavior, and coverage gate over the current TypeScript surface.
+kit_test_gate:
+  type: behavioral_gate
+  evidence_type: behavioral
+  command: pnpm test:kit
+  path: kit/core/test/desktop-open.test.ts
+  description: Complete Kit build and deterministic TypeScript behavior suite, including canonical Desktop Open golden-vector parsing.
+runtime_compliance_gate:
+  type: behavioral_gate
+  evidence_type: behavioral
+  command: cd runtime && go run ./cmd/runtime-compliance --gate
+  path: runtime/cmd/runtime-compliance/main.go
+  description: Source-bound Runtime admission gate running fresh build, vet, full Go tests, and compliance assertions.
+desktop_test_gate:
+  type: behavioral_gate
+  evidence_type: behavioral
+  command: pnpm --filter @nimiplatform/desktop test
+  path: apps/desktop/scripts/run-unit-tests.mjs
+  description: Complete deterministic Desktop TypeScript unit and contract suite.
+desktop_native_quality_gate:
+  type: behavioral_gate
+  evidence_type: behavioral
+  command: pnpm check:desktop-native-quality
+  path: apps/desktop/src-tauri/Cargo.toml
+  description: Complete locked Desktop native clippy and Rust behavior suite across product-control core and the Tauri shell.
+kit_native_test_gate:
+  type: behavioral_gate
+  evidence_type: behavioral
+  command: pnpm test:kit:native
+  path: kit/shell/tauri/Cargo.toml
+  description: Complete locked Kit protected-local and Tauri native behavior suite.
 kit_preview_audit:
   type: static_gate
   evidence_type: behavioral
   command: pnpm check:kit-visual-audit
   path: kit/preview/audit/run-audit.mjs
   description: Rendered kit preview audit (screenshot matrix, pressed feedback, spring overlay travel, density axis, typography execution, glass vibrancy, dead-class elimination, rendered contrast) producing a machine-readable report under .nimi/local/design-audit/.
+simulator_authority_gate:
+  type: static_gate
+  evidence_type: structural
+  command: pnpm check:simulator-authority
+  path: scripts/check-simulator-authority.mjs
+  description: Simulator canonical contract, structured-table, owner-amendment, app-slice, and rule-evidence closure gate; implementation behavior remains checkpoint evidence.

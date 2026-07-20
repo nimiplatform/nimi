@@ -32,8 +32,6 @@ entries:
     evidence_requirement: authority-owner-matrix.yaml and sdk-kit-consumption-surface.yaml bounded LocalAgent source/context rows
   - rule_id: Z-AUTH-006
     evidence_requirement: sdk-kit-consumption-surface.yaml and configuration-surface-contract.md no execution binding or app context attachment
-  - rule_id: Z-AUTH-007
-    evidence_requirement: implementation-acceptance-matrix.yaml shared_auth_broker rows and live Runtime/SDK evidence
   - rule_id: Z-STATE-001
     evidence_requirement: product-state-machine.yaml closed partner state mapping
   - rule_id: Z-STATE-003
@@ -59,4 +57,4 @@ entries:
   - rule_id: Z-MEM-002
     evidence_requirement: memory-state-projection-contract.md and sdk-kit forbidden writeMemory
   - rule_id: Z-GATE-001
-    evidence_requirement: test-quarantine-policy.yaml
+    evidence_requirement: platform executable test topology and check:test-inventory

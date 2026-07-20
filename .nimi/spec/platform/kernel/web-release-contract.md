@@ -6,6 +6,11 @@
 
 `apps/web/**` is the first-party web surface for the Nimi site, static legal pages, Cloudflare function adapters, and web-shell mode adapters. It is platform-owned release/web evidence, not an app-local subordinate spec slice unless a later `.nimi/spec` admission explicitly changes that ownership.
 
+The Nimi Ecosystem Simulator is the independent `apps/simulator/**` product
+owned by `P-SIM-*`. `apps/web` may expose a typed navigation link to its
+deployment route, but it must not become the Simulator Shell, selected-module
+registry, State Engine, source materializer, build owner, or evidence owner.
+
 ## P-WEB-002 — Desktop Public Boundary
 
 Web shell mode may consume desktop public-for-web surfaces and web-specific adapter replacements, but it must not import Tauri APIs, desktop-private renderer aliases, runtime internals, or local filesystem behaviors. Unsupported desktop-only release/self-update surfaces must fail closed rather than returning pseudo-success values.
@@ -13,6 +18,10 @@ Web shell mode may consume desktop public-for-web surfaces and web-specific adap
 Web shell bootstrap is client-only: no SSR and no service worker cache are part of the product contract. `realmBaseUrl` resolves to the browser same-origin deployment unless an admitted web release adapter supplies a different origin. Browser OAuth redirect replaces Tauri deep links, and raw bearer tokens remain memory-only while persistent browser storage carries non-sensitive session metadata.
 
 Web fetch adaptation may reuse the public proxy-fetch shape, but in `hasTauriInvoke() = false` mode it resolves to native browser `fetch`; it does not inherit Desktop CORS bypass or private IPC behavior.
+
+Simulator is not a third Desktop shell mode. Web code must not add `simulator`
+to the `desktop | web` shell-mode enum, import selected Simulator App source,
+or cause the Web artifact and Simulator artifact to share one module graph.
 
 ## P-WEB-003 — Install Gateway Ownership
 
@@ -22,6 +31,16 @@ Web fetch adaptation may reuse the public proxy-fetch shape, but in `hasTauriInv
 
 Cloudflare Workers/Pages functions under the web and install gateway surfaces are deployment adapters. They may proxy or project admitted runtime/release data, but they must not invent runtime, SDK, realm, desktop, or release truth outside their admitted source contracts.
 
+Simulator deployment may use its own Cloudflare static-site configuration and
+origin. It does not require co-location with an API server, and no Simulator
+module may rely on a Cloudflare function as a hidden real-capability backend.
+Cross-origin navigation between Web and Simulator does not merge their builds,
+credentials, CSPs, environment schemas, or release evidence.
+
 ## P-WEB-005 — Evidence Root Admission
 
 Audit evidence roots for `apps/web/**`, `apps/install-gateway/**`, and other platform web/release support surfaces must be admitted through `.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml`. Audit tooling must not infer these roots from broad `apps/**` ownership or from package names alone.
+
+`apps/simulator/**` evidence is admitted under its own Simulator authority row.
+It cannot be inferred as Web evidence merely because both artifacts are
+browser-deployed or use Cloudflare.

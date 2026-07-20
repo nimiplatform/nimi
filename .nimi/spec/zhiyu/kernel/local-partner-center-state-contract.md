@@ -37,6 +37,13 @@ maps to `partner_ready`; it maps to a typed unavailable/recoverable failure.
 Zhiyu must not maintain a second readiness reducer over raw source, profile,
 prompt, lane, memory, proof, or diagnostics data.
 
+In Simulator, the same canonical Zhiyu state projection receives typed mock
+inputs only through the App-owned Simulator Adapter. Those inputs remain
+deterministic presentation state under `P-SIM-010`: they may exercise the
+existing product states and failure mappings but cannot create new state names,
+relax a fail-closed transition, claim real partner/Runtime readiness, or enter
+Zhiyu persistence.
+
 ## Z-STATE-004 Check Local Service
 
 `检查本地服务` must run a real health reconnect action: probe Runtime/auth/SDK

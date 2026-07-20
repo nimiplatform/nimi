@@ -76,6 +76,14 @@ source/context from hashes, refs, counts, or profile metadata.
 - AUTHORITY-RELATION subject=zhiyu action=consume-status object=localagent-source value=bounded-only polarity=require
 - AUTHORITY-RELATION subject=zhiyu action=consume-status object=localagent-context value=bounded-only polarity=require
 
+The `P-SIM-007` Zhiyu Simulator Adapter is a separate App-owned host-binding
+adapter under `apps/zhiyu/src/simulator/**`. It creates one instance per
+canonical renderer instance and supplies only declared projections, commands,
+events, route, clock, localization, Kit, and SDK facade values. It must not
+render Zhiyu UI, reconstruct this product adapter, inspect DOM, select alternate
+components/styles, or expose a Simulator/host discriminator. Both production
+and Simulator bindings must reach the same canonical renderer factory.
+
 ## Z-AUTH-006 Runtime AI Consumption Projection Posture
 
 Zhiyu agent chat is a projection and edit surface of Runtime's own AI
@@ -105,17 +113,8 @@ distinction is normative:
   live outside the product shell and outside product app-level persisted
   AIConfig.
 
-## Z-AUTH-007 Runtime Shared Auth Broker Consumption
-
-Zhiyu consumes local account projection and Realm data through
-RuntimeAccountService. Realm data calls use SDK Runtime-mediated transport and
-`InvokeRealmUnary`; Zhiyu must not call `GetAccessToken`, public
-`RefreshAccountSession`, login completion, logout, switch, direct Realm auth,
-or `auth_session_*` shell/storage surfaces. Missing account, missing broker
-grant, denied operation, or Runtime unavailable is a typed product state and
-must not fall back to direct REST, local session persistence, or mock success.
-
-Live acceptance must prove real Runtime/account/SDK connectivity, admitted
-broker success, login-required and denied-grant states, no renderer-visible
-credential material, no console/page errors, desktop/narrow layout, Chinese
-readability, accessibility, and usable controls.
+The Simulator binding never executes a Runtime Agent turn, AI consume request,
+configuration mutation, protected first-party carrier, or recovery probe. It
+may return only declared host-neutral projections/results from deterministic
+scenario state. Unsupported behavior stays an explicit typed unavailable
+result; it cannot be implemented as a silent no-op or success-shaped mock.

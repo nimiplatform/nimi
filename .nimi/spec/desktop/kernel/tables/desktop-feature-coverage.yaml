@@ -1,4 +1,4 @@
-version: 1
+version: 2
 table_family: product_catalog
 owner: desktop
 catalog_id: desktop_desktop_feature_coverage
@@ -15,13 +15,13 @@ entries:
   - features_10
   - features_11
   - features_12
+  - features_13
 features:
   - feature: boot-startup
     risk_tier: P0
     required_layers:
       - unit_contract
-      - desktop_e2e_smoke
-      - desktop_e2e_recovery
+      - desktop_e2e
     covers_tabs: []
     covers_bootstrap_phases:
       - runtime-defaults
@@ -51,7 +51,7 @@ features:
     risk_tier: P0
     required_layers:
       - unit_contract
-      - desktop_e2e_smoke
+      - desktop_e2e
     covers_tabs:
       - home
       - chat
@@ -70,7 +70,7 @@ features:
     risk_tier: P0
     required_layers:
       - unit_contract
-      - desktop_e2e_recovery
+      - desktop_e2e
     covers_tabs: []
     covers_bootstrap_phases: []
     covers_ipc_commands:
@@ -84,7 +84,7 @@ features:
     risk_tier: P1
     required_layers:
       - unit_contract
-      - desktop_e2e_journey
+      - desktop_e2e
     covers_tabs:
       - settings
     covers_bootstrap_phases: []
@@ -99,7 +99,7 @@ features:
     risk_tier: P1
     required_layers:
       - unit_contract
-      - desktop_e2e_journey
+      - desktop_e2e
     covers_tabs:
       - support
     covers_bootstrap_phases: []
@@ -117,7 +117,7 @@ features:
     risk_tier: P1
     required_layers:
       - unit_contract
-      - desktop_e2e_journey
+      - desktop_e2e
     covers_tabs:
       - chat
     covers_bootstrap_phases: []
@@ -131,7 +131,7 @@ features:
     risk_tier: P1
     required_layers:
       - unit_contract
-      - desktop_e2e_journey
+      - desktop_e2e
     covers_tabs:
       - explore
     covers_bootstrap_phases: []
@@ -145,7 +145,7 @@ features:
     risk_tier: P1
     required_layers:
       - unit_contract
-      - desktop_e2e_journey
+      - desktop_e2e
     covers_tabs:
       - explore
       - profile
@@ -157,10 +157,9 @@ features:
         source_rule: D-GATE-040
         spec_path: apps/desktop/e2e/specs/explore.feed-profile-modal.e2e.mjs
   - feature: world-detail-surface
-    risk_tier: P1
+    risk_tier: P2
     required_layers:
       - unit_contract
-      - desktop_e2e_journey
     covers_tabs:
       - world-detail
     covers_bootstrap_phases: []
@@ -174,7 +173,7 @@ features:
     risk_tier: P1
     required_layers:
       - unit_contract
-      - desktop_e2e_smoke
+      - desktop_e2e
     covers_tabs:
       - runtime
     covers_bootstrap_phases: []
@@ -190,7 +189,7 @@ features:
     risk_tier: P1
     required_layers:
       - unit_contract
-      - desktop_e2e_journey
+      - desktop_e2e
     covers_tabs:
       - runtime
     covers_bootstrap_phases: []
@@ -205,7 +204,7 @@ features:
     risk_tier: P1
     required_layers:
       - unit_contract
-      - desktop_e2e_journey
+      - desktop_e2e
     covers_tabs:
       - runtime
     covers_bootstrap_phases:
@@ -217,3 +216,19 @@ features:
       - scenario_id: runtime.external-agent.panel-load
         source_rule: D-GATE-040
         spec_path: apps/desktop/e2e/specs/runtime.external-agent.panel-load.e2e.mjs
+  - feature: desktop-open-intent
+    risk_tier: P1
+    required_layers:
+      - unit_contract
+      - rust_tauri_integration
+      - desktop_e2e
+    covers_tabs: []
+    covers_bootstrap_phases: []
+    covers_ipc_commands:
+      - desktop_open_intent_open_intent
+      - desktop_open_intent_set_ready
+    covers_runtime_pages: []
+    scenarios:
+      - scenario_id: desktop-open-intent.running
+        source_rule: D-GATE-040
+        spec_path: apps/desktop/e2e/specs/desktop-open-intent.running.e2e.mjs

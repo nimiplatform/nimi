@@ -14,7 +14,7 @@ rows:
     forbidden_local_truth: [partner_creation, profile_schema, persona_truth, local_agent_creation]
     source_rule: Z-PARTNER-001
   - surface: runtime_agent_turns
-    zhiyu_role: binding_only_consumer
+    zhiyu_role: attested_first_party_product_consumer
     canonical_owner: runtime_sdk
     forbidden_local_truth: [turn_execution, prompt_assembly, localagent_context_attachment, event_stream_reducer, snapshot_replay, terminal_success]
     source_rule: Z-CHAT-001

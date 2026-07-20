@@ -1,12 +1,11 @@
-version: 1
+version: 2
 table_family: product_catalog
 owner: desktop
 catalog_id: desktop_desktop_testing_gates
 entries:
   - unit_contract_mock
   - rust_tauri_integration
-  - desktop_e2e_smoke
-  - desktop_e2e_journeys
+  - desktop_e2e
   - selector_testability
   - os_matrix
   - desktop_macos_automated_smoke
@@ -20,16 +19,13 @@ gates:
     command: pnpm --filter @nimiplatform/desktop test
     source_rule: D-GATE-010
   - gate: rust_tauri_integration
-    command: pnpm --filter @nimiplatform/desktop run check:cargo:test && pnpm --filter @nimiplatform/desktop run check:cargo:clippy
+    command: pnpm check:desktop-native-quality
     source_rule: D-GATE-020
-  - gate: desktop_e2e_smoke
-    command: pnpm check:desktop-e2e-smoke
+  - gate: desktop_e2e
+    command: pnpm --filter @nimiplatform/desktop test:e2e
     source_rule: D-GATE-030
-  - gate: desktop_e2e_journeys
-    command: pnpm check:desktop-e2e-journeys
-    source_rule: D-GATE-040
   - gate: selector_testability
-    command: pnpm --filter @nimiplatform/desktop lint && pnpm check:desktop-e2e-smoke
+    command: pnpm --filter @nimiplatform/desktop run check:e2e-parity
     source_rule: D-GATE-050
   - gate: os_matrix
     command: linux:PR+release; windows:release; macos:manual-smoke+supplementary-automated-smoke
@@ -38,7 +34,7 @@ gates:
     command: pnpm check:desktop-macos-smoke
     source_rule: D-GATE-060
   - gate: release_parity
-    command: pnpm check:desktop-e2e-smoke && pnpm check:desktop-e2e-journeys
+    command: pnpm --filter @nimiplatform/desktop test:e2e
     source_rule: D-GATE-070
   - gate: spec_consistency
     command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency

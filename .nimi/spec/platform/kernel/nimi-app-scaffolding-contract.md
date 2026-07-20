@@ -229,6 +229,15 @@ patterns, `.nimi/**` projection drift, `AGENTS.md` freshness, submitted
 manifest readiness, build profile readiness, support-file readiness, and
 developer-side local audit dry-run readiness.
 
+`MUST`: `nimi-app doctor --conformance simulator --json` is the App-side
+qualification command for `P-SIM-*`. It validates the closed current
+`nimi.simulator.yaml` schema, canonical renderer factory reachability,
+production-entry and Nimi-host-invocation equality, canonical style closure,
+per-instance isolation, Adapter and fixture shape, declared Kit/SDK needs,
+forbidden source imports, and browser-effect policy. Its JSON report binds the
+checked source digest and authority refs. It does not select the App, resolve
+the final graph, or certify the integrated Simulator artifact.
+
 `MUST`: `nimi-app update` operates on scaffold-managed glue only. It may update
 dependency versions under an admitted version matrix, rewrite managed files or
 regions, and apply admitted codemods. It must preserve app-owned product code.
@@ -334,6 +343,12 @@ SDK, Kit, Runtime account/session, Tauri shell, and Electron shell integration.
 Scaffolding may inspect tester to learn which admitted surfaces a complete app
 uses, and the explicit `tester-reference` profile may carry tester proof code.
 
+Tester is also the reference consumer for the generic Simulator module
+contract. Its canonical renderer factory, production bindings, App-owned
+Simulator Adapter, Manifest, and conformance fixture must obey the same
+`nimi-app doctor --conformance simulator --json` path as every selected App;
+Tester cannot use a private checker or selection bypass.
+
 `MUST`: generic `standalone` and `workspace-app` scaffold truth remains owned
 by this `P-SCAF-*` contract plus the app-tools default starter and tests. The
 default starter must contain generic product surfaces only.
@@ -378,6 +393,13 @@ success.
 evidence for a built app skeleton. Such evidence may include build input refs,
 entry refs, typed sizes, hashes, and local audit output when all fields are
 explicitly labeled as developer-submitted input.
+
+Simulator conformance output is deterministic App-source qualification
+evidence. It binds manifest protocol versions, source digest, resolved factory
+and style entries, production/host inventories, dependency needs, effect scan,
+fixture result, and app-tools version. It is invalid when copied to a different
+source digest and cannot claim final resolver, cross-App interaction,
+integrated CSS/DOM, performance, release, App publication, or trust truth.
 
 `MUST`: generated scaffold proof, sandbox fixture proof, live Runtime sandbox
 proof, and ordinary-visible product readiness are separate horizons:

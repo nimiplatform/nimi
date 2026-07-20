@@ -4,6 +4,7 @@ owner: platform
 catalog_id: platform_audit_evidence_roots
 entries:
   - platform-web-release
+  - platform-simulator-authority
   - avatar-shell-renderer-relative-modules
   - avatar-vrm-renderer-relative-modules
   - desktop-renderer-design-relative-modules
@@ -25,6 +26,23 @@ roots:
       - apps/web
       - apps/install-gateway
     source_rule: P-WEB-005
+  - id: platform-simulator-authority
+    owner_domain: platform
+    authority_refs:
+      - .nimi/spec/platform/kernel/nimi-ecosystem-simulator-contract.md
+      - .nimi/spec/platform/kernel/tables/simulator-authority-boundaries.yaml
+      - .nimi/spec/platform/kernel/tables/simulator-module-contract.yaml
+      - .nimi/spec/platform/kernel/tables/simulator-source-policy.yaml
+      - .nimi/spec/platform/kernel/tables/simulator-state-engine-policy.yaml
+      - .nimi/spec/platform/kernel/tables/simulator-error-codes.yaml
+      - .nimi/spec/platform/kernel/tables/simulator-mandatory-singletons.yaml
+      - .nimi/spec/platform/kernel/tables/simulator-browser-effects.yaml
+      - .nimi/spec/platform/kernel/tables/simulator-listener-families.yaml
+      - .nimi/spec/platform/kernel/tables/simulator-performance-policy.yaml
+    evidence_roots:
+      - scripts/check-simulator-authority.mjs
+      - package.json
+    source_rule: P-SIM-020
   - id: avatar-shell-renderer-relative-modules
     owner_domain: avatar
     authority_refs:

@@ -22,6 +22,12 @@ SDK 文档不得重新分配 Runtime ReasonCode 数值。
 
 SDK 本地错误码唯一事实源为 `tables/sdk-error-codes.yaml`。
 
+Simulator control errors remain owned by
+`.nimi/spec/platform/kernel/tables/simulator-error-codes.yaml` and are not SDK
+local error codes or Runtime ReasonCodes. `SIMULATOR_*` names must not be added
+to `sdk-error-codes.yaml`, exposed by a production SDK client, or leak through
+the host-neutral facade.
+
 ## S-ERROR-004 重试语义
 
 重试语义必须与底层 transport code 协同：
@@ -106,6 +112,13 @@ SDK 在特定场景合成不在 `reason-codes.yaml` 中的 ReasonCode：
 - 当前合成码：`OPERATION_ABORTED`、`RUNTIME_UNAVAILABLE`、`RUNTIME_BRIDGE_DAEMON_UNAVAILABLE`。
 - 合成码与 runtime ReasonCode 共享 `isRetryableReasonCode()` 语义空间（`S-ERROR-007`）。
 
+The Simulator harness must map declared simulated outcomes to the same
+host-neutral public result or `NimiError` shape that canonical UI handles in
+production. It must not synthesize a `SIMULATOR_*` ReasonCode, place a raw
+Simulator code in `code`, `reasonCode`, `message`, or `details`, or expand the
+retryable set. Qualification, lifecycle, module, and session-integrity failures
+remain Simulator Shell errors and never enter the App-facing SDK facade.
+
 ## S-ERROR-011 ExternalPrincipal 不可重试 ReasonCode
 
 `AUTH_TOKEN_EXPIRED` 和 `AUTH_UNSUPPORTED_PROOF_TYPE`（来源：`K-AUTHSVC-013`）为 ExternalPrincipal 场景的细分错误码，均为不可重试 ReasonCode：
@@ -168,6 +181,11 @@ capability / bundle slice / repair hint metadata；上层不得依赖 message �
 去猜测失败属于 `STT`、`TTS` 或 workflow slice。
 
 S-ERROR-013/014 引用的字段稳定性保证在此正式升级为类型契约：任何 `NimiError` 实例必须满足上述最小形状，归一化过程不得产出缺失必填字段的实例。
+
+For an injected deterministic harness, `NimiError` has exactly this same
+minimum shape and contains only public SDK/Runtime/Realm reason semantics that
+the simulated operation declares. Simulator module/instance/epoch/operation
+identifiers and raw `SIMULATOR_*` errors are forbidden in `details`.
 
 ## S-ERROR-016 Async ScenarioJob Failure Detail Projection
 

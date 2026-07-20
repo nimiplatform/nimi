@@ -167,7 +167,7 @@ rules:
   - desktop_kernel_consistency
   - desktop_lint_gate
   - desktop_test_gate
-  - desktop_e2e_smoke_gate
+  - desktop_e2e_gate
   - desktop_runtime_config_path_gate
   evidence_requirement: required
 - rule_id: D-BOOT-002
@@ -197,7 +197,7 @@ rules:
   - desktop_kernel_consistency
   - desktop_lint_gate
   - desktop_test_gate
-  - desktop_e2e_smoke_gate
+  - desktop_e2e_gate
   evidence_requirement: required
 - rule_id: D-BOOT-009
   evidence_refs: *1
@@ -213,7 +213,7 @@ rules:
   - desktop_kernel_consistency
   - desktop_lint_gate
   - desktop_test_gate
-  - desktop_e2e_smoke_gate
+  - desktop_e2e_gate
   evidence_requirement: required
 - rule_id: D-ERR-001
   evidence_refs:
@@ -378,7 +378,7 @@ rules:
   - desktop_kernel_consistency
   - desktop_lint_gate
   - desktop_test_gate
-  - desktop_e2e_journey_gate
+  - desktop_e2e_gate
   note: Local-app child renderers receive only exact typed operations and stable posture; bearer, endpoint, principal, permission-decision, lease, session, process proof, Runtime epoch, and generic forwarding are forbidden.
   evidence_requirement: required
 - rule_id: D-STATE-001
@@ -408,8 +408,7 @@ rules:
 - rule_id: D-GATE-001
   evidence_refs:
   - desktop_kernel_consistency
-  - desktop_e2e_smoke_gate
-  - desktop_e2e_journey_gate
+  - desktop_e2e_gate
   evidence_requirement: required
 - rule_id: D-GATE-010
   evidence_refs:
@@ -425,23 +424,23 @@ rules:
 - rule_id: D-GATE-030
   evidence_refs:
   - desktop_kernel_consistency
-  - desktop_e2e_smoke_gate
+  - desktop_e2e_gate
   evidence_requirement: required
 - rule_id: D-GATE-040
   evidence_refs:
   - desktop_kernel_consistency
-  - desktop_e2e_journey_gate
+  - desktop_e2e_gate
   evidence_requirement: required
 - rule_id: D-GATE-050
   evidence_refs:
   - desktop_kernel_consistency
   - desktop_lint_gate
-  - desktop_e2e_smoke_gate
+  - desktop_e2e_gate
   evidence_requirement: required
 - rule_id: D-GATE-060
   evidence_refs:
   - desktop_kernel_consistency
-  - desktop_e2e_journey_gate
+  - desktop_e2e_gate
   - desktop_macos_manual_smoke_policy
   - desktop_macos_automated_smoke_gate
   - desktop_macos_automated_smoke_report
@@ -449,8 +448,7 @@ rules:
 - rule_id: D-GATE-070
   evidence_refs:
   - desktop_kernel_consistency
-  - desktop_e2e_smoke_gate
-  - desktop_e2e_journey_gate
+  - desktop_e2e_gate
   - desktop_e2e_failure_artifacts_gate
   - desktop_e2e_ci_evidence_report
   evidence_requirement: required

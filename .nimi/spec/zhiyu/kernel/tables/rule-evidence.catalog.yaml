@@ -56,7 +56,7 @@ entries:
     evidence_requirement: diagnostics_contract_surface_registry_and_acceptance_matrix
   - id: gates
     rule_prefix: Z-GATE
-    evidence_requirement: acceptance_gates_test_quarantine_inventory_and_matrix
+    evidence_requirement: acceptance_gates_test_topology_and_matrix
   - id: release
     rule_prefix: Z-REL
     evidence_requirement: incubation_release_contract_and_platform_descriptor_refs

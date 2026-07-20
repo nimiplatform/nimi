@@ -27,8 +27,7 @@ entries:
 - avatar_test_gate
 - desktop_lint_gate
 - desktop_test_gate
-- desktop_e2e_smoke_gate
-- desktop_e2e_journey_gate
+- desktop_e2e_gate
 - desktop_rust_test_gate
 - desktop_rust_clippy_gate
 - desktop_macos_manual_smoke_policy
@@ -82,16 +81,11 @@ desktop_test_gate:
   command: pnpm --filter @nimiplatform/desktop test
   path: apps/desktop/package.json
   description: Desktop quality + unit tests for behavior regression coverage.
-desktop_e2e_smoke_gate:
+desktop_e2e_gate:
   type: e2e_gate
-  command: pnpm check:desktop-e2e-smoke
+  command: pnpm --filter @nimiplatform/desktop test:e2e
   path: apps/desktop/package.json
-  description: Desktop WebDriver smoke scenarios for Linux PR hard gate coverage.
-desktop_e2e_journey_gate:
-  type: e2e_gate
-  command: pnpm check:desktop-e2e-journeys
-  path: apps/desktop/package.json
-  description: Desktop WebDriver journey matrix for release/nightly key path coverage.
+  description: Complete registered Desktop WebDriver scenario suite for Linux PR and Linux/Windows release coverage.
 desktop_rust_test_gate:
   type: rust_test_gate
   command: pnpm --filter @nimiplatform/desktop run check:cargo:test

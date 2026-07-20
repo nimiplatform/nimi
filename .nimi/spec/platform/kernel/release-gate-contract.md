@@ -49,6 +49,12 @@ Refines: `P-GOV-003`, `P-GOV-021`.
 projections of the registry. Each projection surface must be
 reproducible by a deterministic generator.
 
+`MUST`: There is exactly one current projection posture. Projection checkers
+and generators must not retain wave, phase, staged-activation, warning-only,
+or auto-detection modes after a projection surface exists. An unreadable
+projection surface, missing required fence, malformed/nested/mismatched fence,
+or unclosed fence is projection drift and fails closed.
+
 `MUST NOT`: hand-edit a projection surface. The editor must edit
 the registry and re-run the generator. The drift checker
 (`gate.release-gate.projection-drift`) enforces this by
@@ -149,22 +155,31 @@ allow-list:
 `MUST`: Adding to the allow-list requires editing the coherence
 checker AND a `decision-review-*.md`.
 
-## P-RELG-009 — Drift Gate Self-Bootstrap
+## P-RELG-009 — Drift Gate Self-Protection
 
 Refines: `P-GOV-003`.
 
 `MUST`: `gate.release-gate.registry-coherence` and
-`gate.release-gate.projection-drift` are themselves registry rows
-with `tier: [fast, release]`.
+`gate.release-gate.projection-drift` are themselves registry rows whose tiers
+include both `fast` and `release`.
 
-The bootstrap order is locked as: registry data and the coherence
-checker land first; the consumer projections (preflight, lint
-chain, CI fences) wire the checker rows into fast tier afterward.
-From that point onward, registry edits are protected by gates
-generated from the registry.
+The coherence checker validates the complete current registry, including its
+own row, before any generated consumer is trusted. The projection checker then
+fails closed when the lint chain or any required CI fence is missing,
+malformed, duplicated, or byte-drifted. There is no transitional warning mode
+and no self-row bypass.
 
-`MUST`: The coherence checker's own row is exempt from coherence
-pre-check. This exception is locked here, not in code.
+`MUST`: Two different gate rows in the same tier may not expand to the same
+normalized command leaf. Expansion recursively resolves root/workspace package
+scripts and qualifies leaves by working directory. The coherence checker
+rejects same-tier duplicate execution even when different composite names hide
+it.
+
+`MUST`: Every release-gate leaf that invokes Cargo `build`, `check`, `clippy`,
+or `test` uses `--locked`. A release gate may not mutate a tracked lockfile or
+resolve a newer compatible dependency graph while proving the candidate. The
+coherence checker expands package composites and rejects every unlocked Cargo
+leaf.
 
 ## P-RELG-010 — Owner Of `.github/**` Step Block Codegen
 
@@ -189,6 +204,19 @@ projection-drift `fail`.
 permissions, job dependencies, concurrency, env) is NOT projected
 and remains hand-authored. Only step lists derived from the
 registry are fenced.
+
+`MUST`: Within one CI job, the same normalized gate command may occur at most
+once across generated and hand-authored steps. A hand-authored expansion of a
+registered composite may not repeat a leaf command already executed in that
+job. Duplicate comparison recursively resolves root/workspace package scripts
+and qualifies leaves by working directory. The projection drift checker rejects
+either form as duplicate execution.
+
+`MUST`: A release gate whose `skip_when` makes it runnable on only one OS must
+have an explicit workflow consumer whose `runs-on` or step condition selects
+that OS. Fixed-platform projections omit rows whose skip condition matches the
+projection runner; omission must not turn a platform gate into registry-only
+pseudo-coverage.
 
 ## P-RELG-011 — Undefined CI Script Hardcut
 
@@ -224,6 +252,13 @@ authority).
 `MUST`: A gate in `live` must also be in `release` (live tier is a
 release subset).
 
+`MUST`: The `regression` tier contains the deterministic workspace aggregate
+invoked by the stable root `pnpm test` command. It is a CI regression surface,
+not a release-preflight alias: individual suite gates remain in `release`, and
+the aggregate must not also enter `release` because that would execute every
+suite twice in one release run. Regression gates require no secrets or external
+repository and cannot use `skip_when` to turn missing prerequisites into pass.
+
 ## P-RELG-013 — Registry Version Discipline
 
 Refines: `P-GOV-003`.
@@ -233,7 +268,7 @@ Refines: `P-GOV-003`.
 mutation. Patch bump for non-breaking row addition or
 notes/description edit. Minor bump for any field change that
 affects projection output. Major bump for `gate.id` rename or
-removal of a tier/target/reason-code.
+gate-row removal, or removal of a tier/target/reason-code.
 
 `MUST`: The coherence checker compares `registry_version` against
 the previous git revision and fails on regression.
@@ -263,7 +298,7 @@ under `.nimi/spec/`.
 | 006 | 011 | Fail-closed for live/secret/external-repo |
 | 007 | 003, 011 | No pseudo-success |
 | 008 | 023 | Owner namespace allow-list |
-| 009 | 003 | Drift gate self-bootstrap |
+| 009 | 003 | Drift gate self-protection |
 | 010 | 021, 023 | CI workflow step block codegen |
 | 011 | 023 | Undefined CI script hardcut |
 | 012 | 003 | Tier membership constraint |

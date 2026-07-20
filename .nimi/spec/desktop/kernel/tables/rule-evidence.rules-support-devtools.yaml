@@ -88,21 +88,21 @@ rules:
   evidence_refs:
   - desktop_kernel_consistency
   - desktop_test_gate
-  - desktop_e2e_journey_gate
+  - desktop_e2e_gate
   note: One production Developer Mode and one Dev Trust Set; the mode grants nothing and no test-only Runtime principal or daemon is a positive path.
   evidence_requirement: required
 - rule_id: D-DEV-005
   evidence_refs:
   - desktop_kernel_consistency
   - desktop_test_gate
-  - desktop_e2e_journey_gate
+  - desktop_e2e_gate
   note: Run-once and allow-project lifetimes preserve zero-permission separation; process, Runtime, account, mode, or revoke transitions invalidate live leases/sessions without expiring unchanged allow-project consent.
   evidence_requirement: required
 - rule_id: D-DEV-006
   evidence_refs:
   - desktop_kernel_consistency
   - desktop_test_gate
-  - desktop_e2e_journey_gate
+  - desktop_e2e_gate
   note: Native Windows execution risk, failure/disabled/retry states, narrow and long-text layout, keyboard operation, and accessibility require real-shell evidence.
   evidence_requirement: required
 - rule_id: D-DEV-007

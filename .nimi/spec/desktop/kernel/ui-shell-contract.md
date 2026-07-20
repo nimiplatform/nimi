@@ -100,6 +100,11 @@ Shell 模式检测优先级（由高到低）：
 2. Tauri runtime presence 检测（`window.__TAURI_INTERNALS__` / `window.__TAURI_IPC__` 或等价 bridge 环境），不得要求 `window.__TAURI__` 全局暴露。
 3. SSR 环境默认 `'desktop'`。
 
+The closed result remains exactly `'desktop' | 'web'`. Simulator is not a shell
+mode, is never detected by environment/global probing, and must not add a third
+branch. The App-owned canonical renderer factory instead receives the opaque
+`nimi.renderer.host/v1` binding defined by `P-KIT-042`/`P-SIM-006`.
+
 检测结果驱动所有 feature flag 的默认值（`D-SHELL-001` ~ `D-SHELL-003`、`D-BOOT-004`）。
 
 **统一 Feature Flag 派生表**（事实源：`tables/feature-flags.yaml`）：
@@ -231,6 +236,12 @@ overlay 的 module、surface tone、elevation、z token、testability 与 reduce
 - 这些 surface 必须优先消费共享 `surface / action / overlay` primitive。
 - baseline 迁移优先级以 root shell、list/card、primary/secondary/icon actions、tooltip 与一个标准 dialog family 为先。
 - 新增 baseline 视觉决策必须先在这些 surface 验证，再扩散到 secondary/admin surface。
+
+The canonical renderer factory exposes these same current surfaces and their
+same style closure to Desktop production hosts and Simulator. Simulator cannot
+substitute a simplified page, App-specific wrapper UI, alternate copy, or
+forked CSS implementation. Host bindings may change data and supported
+operations, but never the selected component tree or design-language source.
 
 ## D-SHELL-020 — Controlled Exceptions
 

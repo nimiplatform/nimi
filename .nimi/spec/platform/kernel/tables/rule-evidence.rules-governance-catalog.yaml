@@ -40,6 +40,28 @@ entries:
   - P-GOV-024
   - P-GOV-025
   - P-GOV-026
+  - P-RELG-001
+  - P-RELG-002
+  - P-RELG-003
+  - P-RELG-004
+  - P-RELG-005
+  - P-RELG-006
+  - P-RELG-007
+  - P-RELG-008
+  - P-RELG-009
+  - P-RELG-010
+  - P-RELG-011
+  - P-RELG-012
+  - P-RELG-013
+  - P-RELG-014
+  - P-MIG-001
+  - P-MIG-002
+  - P-MIG-003
+  - P-MIG-004
+  - P-MIG-005
+  - P-MIG-006
+  - P-MIG-007
+  - P-MIG-008
 rules:
   - rule_id: P-CAPCAT-001
     evidence_refs:
@@ -114,3 +136,183 @@ rules:
       - platform_kernel_consistency
     evidence_requirement: required
     evidence_scope_note: release promise boundary is carried by `tables/release-promise-freeze.yaml`
+  - rule_id: P-RELG-001
+    evidence_refs:
+      - release_gate_registry_coherence_gate
+      - script_test_gate
+    evidence_requirement: required
+    test_files:
+      - scripts/check-release-gate-registry-coherence.test.mjs
+      - scripts/lib/release-gate/workflow-resolver.test.mjs
+  - rule_id: P-RELG-002
+    evidence_refs:
+      - platform_kernel_consistency
+      - release_gate_registry_coherence_gate
+      - script_test_gate
+    evidence_requirement: required
+    test_files:
+      - scripts/check-release-gate-registry-coherence.test.mjs
+  - rule_id: P-RELG-003
+    evidence_refs:
+      - release_gate_projection_drift_gate
+      - script_test_gate
+    evidence_requirement: required
+    test_files:
+      - scripts/generate-lint-chain.test.mjs
+      - scripts/generate-ci-workflow-steps.test.mjs
+  - rule_id: P-RELG-004
+    evidence_refs:
+      - script_test_gate
+    evidence_requirement: required
+    test_files:
+      - scripts/lib/release-gate/evidence.test.mjs
+      - scripts/release-preflight.test.mjs
+  - rule_id: P-RELG-005
+    evidence_refs:
+      - script_test_gate
+    evidence_requirement: required
+    test_files:
+      - scripts/lib/release-gate/runner.test.mjs
+      - scripts/lib/release-gate/cli.test.mjs
+  - rule_id: P-RELG-006
+    evidence_refs:
+      - script_test_gate
+    evidence_requirement: required
+    test_files:
+      - scripts/lib/release-gate/env-probe.test.mjs
+      - scripts/lib/release-gate/runner.test.mjs
+  - rule_id: P-RELG-007
+    evidence_refs:
+      - script_test_gate
+    evidence_requirement: required
+    test_files:
+      - scripts/lib/release-gate/runner.test.mjs
+  - rule_id: P-RELG-008
+    evidence_refs:
+      - release_gate_registry_coherence_gate
+      - script_test_gate
+    evidence_requirement: required
+    test_files:
+      - scripts/check-release-gate-registry-coherence.test.mjs
+  - rule_id: P-RELG-009
+    evidence_refs:
+      - release_gate_registry_coherence_gate
+      - release_gate_projection_drift_gate
+      - script_test_gate
+    evidence_requirement: required
+    test_files:
+      - scripts/check-release-gate-registry-coherence.test.mjs
+      - scripts/lib/release-gate/command-expander.test.mjs
+  - rule_id: P-RELG-010
+    evidence_refs:
+      - release_gate_projection_drift_gate
+      - script_test_gate
+    evidence_requirement: required
+    test_files:
+      - scripts/generate-ci-workflow-steps.test.mjs
+  - rule_id: P-RELG-011
+    evidence_refs:
+      - release_gate_registry_coherence_gate
+      - script_test_gate
+    evidence_requirement: required
+    test_files:
+      - scripts/lib/release-gate/workflow-resolver.test.mjs
+  - rule_id: P-RELG-012
+    evidence_refs:
+      - release_gate_registry_coherence_gate
+      - script_test_gate
+    evidence_requirement: required
+    test_files:
+      - scripts/check-release-gate-registry-coherence.test.mjs
+      - scripts/lib/release-gate/env-probe.test.mjs
+  - rule_id: P-RELG-013
+    evidence_refs:
+      - release_gate_projection_drift_gate
+      - script_test_gate
+    evidence_requirement: required
+    test_files:
+      - scripts/generate-lint-chain.test.mjs
+      - scripts/generate-ci-workflow-steps.test.mjs
+  - rule_id: P-RELG-014
+    evidence_refs:
+      - script_test_gate
+    evidence_requirement: required
+    test_files:
+      - scripts/lib/release-gate/evidence.test.mjs
+      - scripts/lib/release-gate/cli.test.mjs
+  - rule_id: P-MIG-001
+    evidence_refs:
+      - platform_kernel_consistency
+      - runtime_compliance_gate
+      - kit_native_test_gate
+      - desktop_native_quality_gate
+    evidence_requirement: required
+    test_files:
+      - runtime/internal/config/config_registry_migration_test.go
+      - kit/shell/tauri/src/governed_config.rs
+      - apps/desktop/src-tauri/src/factory_profile_index.rs
+  - rule_id: P-MIG-002
+    evidence_refs:
+      - platform_kernel_consistency
+      - runtime_compliance_gate
+      - kit_native_test_gate
+      - desktop_native_quality_gate
+    evidence_requirement: required
+    test_files:
+      - runtime/internal/config/config_registry_migration_test.go
+      - kit/shell/tauri/src/governed_config.rs
+      - apps/desktop/src-tauri/src/factory_profile_index.rs
+  - rule_id: P-MIG-003
+    evidence_refs:
+      - platform_kernel_consistency
+      - runtime_compliance_gate
+      - kit_native_test_gate
+      - desktop_native_quality_gate
+    evidence_requirement: required
+    test_files:
+      - runtime/cmd/nimi/config_commands_test.go
+      - kit/shell/tauri/src/governed_config.rs
+      - apps/desktop/src-tauri/src/factory_profile_index.rs
+  - rule_id: P-MIG-004
+    evidence_refs:
+      - platform_kernel_consistency
+      - runtime_compliance_gate
+      - desktop_native_quality_gate
+    evidence_requirement: required
+    test_files:
+      - runtime/cmd/nimi/config_commands_test.go
+      - apps/desktop/src-tauri/src/desktop_product_control/record_store.rs
+  - rule_id: P-MIG-005
+    evidence_refs:
+      - platform_kernel_consistency
+      - kit_native_test_gate
+      - desktop_native_quality_gate
+    evidence_requirement: required
+    test_files:
+      - kit/shell/tauri/src/governed_config.rs
+      - apps/desktop/src-tauri/src/desktop_product_control/record_store.rs
+  - rule_id: P-MIG-006
+    evidence_refs:
+      - platform_kernel_consistency
+      - kit_native_test_gate
+      - desktop_native_quality_gate
+    evidence_requirement: required
+    test_files:
+      - kit/shell/tauri/src/nimi_data_directory/tests.rs
+      - apps/desktop/src-tauri/src/nimi_data_directory.rs
+  - rule_id: P-MIG-007
+    evidence_refs:
+      - platform_kernel_consistency
+      - desktop_test_gate
+    evidence_requirement: required
+    test_files:
+      - apps/desktop/test/settings-destructive-action-gates.test.ts
+  - rule_id: P-MIG-008
+    evidence_refs:
+      - platform_kernel_consistency
+      - kit_native_test_gate
+      - desktop_test_gate
+    evidence_requirement: required
+    test_files:
+      - kit/shell/tauri/src/nimi_data_directory/tests.rs
+      - apps/desktop/test/settings-destructive-action-gates.test.ts

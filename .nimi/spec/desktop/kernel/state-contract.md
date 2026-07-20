@@ -74,10 +74,18 @@ detail 跳转 push 当前 `activeTab`，同一 detail tab 内切换不自我入�
 
 ## D-STATE-005 — Store 组合
 
-所有 slices 通过 `create<AppStoreState>` 合并为单一 Zustand store `useAppStore`。
+所有 slices 通过 canonical `createAppStore()` factory 合并为每个 renderer
+instance 独立的 Zustand store。Desktop production host binds exactly one
+instance and may expose its bound `useAppStore` hook; `useAppStore` cannot be a
+module-scope mutable singleton captured by the canonical renderer factory.
+Simulator opens a fresh factory result per instance and disposal releases every
+subscription/cache. No instance may observe another instance's state.
 
 - 不使用 middleware（无 devtools、persist）— Tauri webview 环境下 Zustand middleware 与 HMR 热替换存在兼容性问题；持久化通过 admitted Tauri backend IPC（`D-IPC-001`）或 owner-specific Runtime/Realm projections 实现，无需 Zustand persist middleware。
 - HMR 连续性只能保存 process-local UI/projection cache，不得保存 token custody、Realm business truth、Runtime execution truth、或恢复已退休的 DataSync hot-state。
+- Simulator projection state enters the store only through App-owned Adapter
+  projections/commands and is erased by scenario reset. It cannot hydrate the
+  Desktop production instance or enter any persistence path.
 
 ## Fact Sources
 

@@ -14,7 +14,6 @@ entries:
   - story_09_creation_artifact_boundary
   - story_10_local_service_offline
   - story_11_diagnostics
-  - story_12_shared_auth_broker
 stories:
   - id: story_01_first_open_partner_selection
     source_story: 1
@@ -71,8 +70,3 @@ stories:
     intent: developer_secondary_diagnostics_without_defining_first_screen
     states: [local_service_unavailable, recoverable_failure]
     authority_refs: [diagnostics-dev-mode-contract.md]
-  - id: story_12_shared_auth_broker
-    source_story: 12
-    intent: consume_runtime_owned_account_authority_through_mediated_realm_access_without_app_token_custody
-    states: [partner_ready, broker_login_required, broker_grant_denied]
-    authority_refs: [authority-boundary-contract.md, local-persistence-boundary-contract.md]

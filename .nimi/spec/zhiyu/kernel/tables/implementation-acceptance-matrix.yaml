@@ -36,13 +36,13 @@ story_acceptance:
   - story: story_01_first_open_partner_selection
     states: [no_partner, partner_candidates_unselected]
     decisions: [D7, D11, D12]
-    gates: [binding_only_consumption, local_persistence_boundary, test_quarantine]
+    gates: [first_party_carrier_consumption, local_persistence_boundary, test_topology]
     dimensions: [real_app_shell, desktop_screenshot, narrow_screenshot, primary_user_path, failure_state, chinese_readability, button_input_usability, owner_boundary_trace]
     required_evidence: [first_screen_not_diagnostics, no_partner_or_selection_state_visible, desktop_handoff_action_available, no_app_local_partner_creation]
   - story: story_02_select_existing_partner
     states: [partner_candidates_unselected, partner_ready]
     decisions: [D7, D11, D12]
-    gates: [binding_only_consumption, local_persistence_boundary]
+    gates: [first_party_carrier_consumption, local_persistence_boundary]
     dimensions: [real_app_shell, primary_user_path, dom_cdp_state, button_input_usability, owner_boundary_trace]
     required_evidence: [partner_projection_loaded_from_upstream, bounded_source_status_ready, unknown_or_partial_source_status_not_partner_ready, selection_changes_current_partner_projection, no_partner_profile_mutation]
   - story: story_03_configure_model
@@ -54,7 +54,7 @@ story_acceptance:
   - story: story_04_first_conversation
     states: [partner_ready, partner_responding]
     decisions: [D1, D9, D10, D11, D12]
-    gates: [binding_only_consumption, sdk_kit_turn_consumption, bounded_context_projection, no_direct_ai_consumption, no_duplicate_turn_reducer, local_persistence_boundary]
+    gates: [first_party_carrier_consumption, sdk_kit_turn_consumption, bounded_context_projection, no_direct_ai_consumption, no_duplicate_turn_reducer, local_persistence_boundary]
     dimensions: [real_app_shell, primary_user_path, real_runtime_auth_sdk_connectivity, dom_cdp_state, console_error_free, disabled_state, button_input_usability]
     required_evidence: [runtime_agent_turn_sent_through_sdk_client, kit_projection_renders_turn_events, bounded_context_ready_blocked_truncated_failed_visible, no_raw_context_or_app_prompt_assembly, composer_editable_while_turn_streams, send_disabled_while_responding]
   - story: story_05_revisit_continuity
@@ -90,21 +90,15 @@ story_acceptance:
   - story: story_10_local_service_offline
     states: [local_service_unavailable, recoverable_failure]
     decisions: [D6, D10, D11, D12]
-    gates: [binding_only_consumption, no_duplicate_turn_reducer, local_persistence_boundary]
+    gates: [first_party_carrier_consumption, no_duplicate_turn_reducer, local_persistence_boundary]
     dimensions: [real_app_shell, failure_state, primary_user_path, owner_boundary_trace, chinese_readability, console_error_free]
     required_evidence: [check_local_service_action_runs_health_refresh, bounded_source_or_context_failure_visible, unknown_or_partial_not_partner_ready, owner_aware_failure_copy, retry_action_available, no_pseudo_success]
   - story: story_11_diagnostics
     states: [local_service_unavailable, recoverable_failure]
     decisions: [D3, D4, D6, D11]
-    gates: [test_quarantine, no_direct_ai_consumption]
+    gates: [test_topology, no_direct_ai_consumption]
     dimensions: [real_app_shell, failure_state, dom_cdp_state, console_error_free, chinese_readability, owner_boundary_trace]
     required_evidence: [diagnostics_secondary_surface_only, owner_reason_trace_visible, proactive_marked_deferred]
-  - story: story_12_shared_auth_broker
-    states: [partner_ready, broker_login_required, broker_grant_denied]
-    decisions: [D11, D12, D13]
-    gates: [shared_auth_broker, local_persistence_boundary]
-    dimensions: [real_app_shell, desktop_screenshot, narrow_screenshot, primary_user_path, real_runtime_auth_sdk_connectivity, dom_cdp_state, console_error_free, accessibility_probe, failure_state, disabled_state, chinese_readability, long_text_narrow_layout, button_input_usability, owner_boundary_trace, no_renderer_token_leak]
-    required_evidence: [realm_read_uses_invoke_realm_unary, authenticated_broker_success, login_required_state_visible, denied_grant_state_visible, no_direct_realm_rest, denied_auth_session_surface, no_renderer_credential_material]
 state_acceptance:
   - state: local_service_unavailable
     stories: [story_10_local_service_offline, story_11_diagnostics]
@@ -119,7 +113,7 @@ state_acceptance:
     stories: [story_03_configure_model]
     required_evidence: [runtime_ai_config_missing_or_invalid_state, config_facade_action]
   - state: partner_ready
-    stories: [story_02_select_existing_partner, story_03_configure_model, story_04_first_conversation, story_05_revisit_continuity, story_06_relationship_state_summary, story_07_avatar_config_launch, story_08_voice_full_support, story_09_creation_artifact_boundary, story_12_shared_auth_broker]
+    stories: [story_02_select_existing_partner, story_03_configure_model, story_04_first_conversation, story_05_revisit_continuity, story_06_relationship_state_summary, story_07_avatar_config_launch, story_08_voice_full_support, story_09_creation_artifact_boundary]
     required_evidence: [bounded_source_status_ready, no_present_context_status_blocked_failed_unknown_or_partial, conversation_ready_controls, config_controls_available, avatar_launch_entry_available, continuity_projection_available]
   - state: partner_responding
     stories: [story_04_first_conversation, story_09_creation_artifact_boundary]
@@ -127,12 +121,6 @@ state_acceptance:
   - state: recoverable_failure
     stories: [story_10_local_service_offline, story_11_diagnostics]
     required_evidence: [retry_available, owner_aware_failure_reason, no_success_synthesis]
-  - state: broker_login_required
-    stories: [story_12_shared_auth_broker]
-    required_evidence: [runtime_account_anonymous_or_reauth_required, localized_login_action, no_app_owned_login_completion]
-  - state: broker_grant_denied
-    stories: [story_12_shared_auth_broker]
-    required_evidence: [typed_runtime_broker_denial, denied_state_not_success, no_direct_realm_bypass]
 decision_acceptance:
   - decision: D1
     semantics: ai_model_config_operation_required_without_zhiyu_config_truth
@@ -175,23 +163,16 @@ decision_acceptance:
     spec_refs: [Z-CHAT-001, Z-CHAT-002, Z-AUTH-005, Z-STATE-003]
     acceptance_rows: [story_04_first_conversation, story_09_creation_artifact_boundary, story_10_local_service_offline]
   - decision: D11
-    semantics: binding_only_first_party_consumer
-    spec_refs: [Z-AUTH-002, Z-AUTH-004]
+    semantics: attested_first_party_product_consumer_with_mutable_local_development_fail_closed
+    spec_refs: [Z-AUTH-002, Z-AUTH-003, Z-AUTH-004]
     acceptance_rows: [story_01_first_open_partner_selection, story_02_select_existing_partner, story_03_configure_model, story_04_first_conversation, story_05_revisit_continuity, story_06_relationship_state_summary, story_07_avatar_config_launch, story_08_voice_full_support, story_09_creation_artifact_boundary, story_10_local_service_offline, story_11_diagnostics]
   - decision: D12
     semantics: local_persistence_boundary_no_truth_localization
     spec_refs: [Z-PERSIST-001, Z-PERSIST-002, Z-PERSIST-003]
     acceptance_rows: [story_01_first_open_partner_selection, story_02_select_existing_partner, story_03_configure_model, story_04_first_conversation, story_05_revisit_continuity, story_06_relationship_state_summary, story_07_avatar_config_launch, story_09_creation_artifact_boundary, story_10_local_service_offline]
-  - decision: D13
-    semantics: runtime_shared_auth_broker_no_app_token_custody
-    spec_refs: [Z-AUTH-007, K-ACCSVC-023, K-ACCSVC-024, K-ACCSVC-025]
-    acceptance_rows: [story_12_shared_auth_broker]
 blocking_gates:
   - gate: bounded_context_projection
     blocks_real_app_acceptance_for: [story_02_select_existing_partner, story_04_first_conversation, story_10_local_service_offline]
-    source_rule: Z-GATE-007
-  - gate: shared_auth_broker
-    blocks_real_app_acceptance_for: [story_12_shared_auth_broker]
     source_rule: Z-GATE-007
   - gate: config_boundary
     blocks_real_app_acceptance_for: [story_03_configure_model, story_07_avatar_config_launch]
@@ -208,6 +189,6 @@ blocking_gates:
   - gate: no_duplicate_turn_reducer
     blocks_real_app_acceptance_for: [story_04_first_conversation, story_10_local_service_offline]
     source_rule: Z-GATE-007
-  - gate: test_quarantine
+  - gate: test_topology
     blocks_real_app_acceptance_for: [story_01_first_open_partner_selection, story_11_diagnostics]
     source_rule: Z-GATE-007
