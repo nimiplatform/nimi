@@ -9,8 +9,10 @@ import { build } from 'esbuild';
 
 const root = path.resolve(import.meta.dirname, '..');
 let buildDir = null;
+let buildPromise = null;
 
 test.after(async () => {
+  await buildPromise?.catch(() => undefined);
   if (buildDir) {
     await rm(buildDir, { recursive: true, force: true });
   }
@@ -122,7 +124,11 @@ async function importVoicePlayback() {
 }
 
 async function buildVoicePlayback() {
-  if (buildDir) return buildDir;
+  buildPromise ??= buildVoicePlaybackOnce();
+  return buildPromise;
+}
+
+async function buildVoicePlaybackOnce() {
   mkdirSync(path.join(root, '.tmp'), { recursive: true });
   buildDir = mkdtempSync(path.join(tmpdir(), 'nimi-zhiyu-voice-projection-matrix-'));
   await build({

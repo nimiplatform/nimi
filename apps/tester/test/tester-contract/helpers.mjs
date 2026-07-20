@@ -55,6 +55,7 @@ function buildBehaviorModules() {
     'src/tester/tester-runtime-model-provider.ts',
     'src/tester/tester-run-target.ts',
     'src/tester/tester-history.ts',
+    'src/tester/workbench/section-ai-testing-admission.ts',
     'src/tester/workbench/section-ai-testing-config-section.ts',
   ], {
     cwd: root,

@@ -40,16 +40,13 @@ export interface ZhiyuRuntimeAgentScopedBindingIssueRequest {
   readonly forceRenewal?: boolean;
 }
 
-export interface ZhiyuRuntimeAgentHostEquivalenceInput {
-  readonly evidenceRef?: string;
-  readonly authority?: string;
-  readonly failureSemantics?: string;
+export interface ZhiyuProtectedLocalAppCarrierInput {
+  readonly kind?: string;
 }
 
 export interface ZhiyuRuntimeAgentBindingHost {
   readonly scopedBinding?: ZhiyuScopedRuntimeBindingAttachment | null;
-  readonly hostEquivalence?: ZhiyuRuntimeAgentHostEquivalenceInput | null;
-  readonly localAppCarrier?: ZhiyuRuntimeAgentHostEquivalenceInput | null;
+  readonly localAppCarrier?: ZhiyuProtectedLocalAppCarrierInput | null;
   readonly getScopedBinding?: () => ZhiyuScopedRuntimeBindingAttachment | null;
   readonly setScopedBinding?: (scopedBinding: ZhiyuNormalizedScopedRuntimeBindingAttachment) => unknown;
 }
@@ -60,17 +57,12 @@ export type ZhiyuRuntimeAgentBindingDecision =
     readonly scopedBinding: ZhiyuNormalizedScopedRuntimeBindingAttachment;
   }
   | {
-    readonly kind: 'runtime-sdk-authority-admitted-first-party-electron-host-equivalence';
-    readonly evidenceRef: string;
-  }
-  | {
     readonly kind: 'local-app-carrier';
-    readonly evidenceRef: string;
   }
   | {
     readonly kind: 'missing';
     readonly reasonCode: 'ZHIYU_RUNTIME_AGENT_BINDING_REQUIRED';
-    readonly actionHint: 'attach_runtime_scoped_binding_or_admitted_host_equivalence';
+    readonly actionHint: 'attach_runtime_scoped_binding_or_protected_local_app_carrier';
     readonly message: string;
   };
 
@@ -104,8 +96,7 @@ type NormalizedScopedBindingIssueRequest = {
 
 export function resolveZhiyuRuntimeAgentBindingDecision(input: {
   readonly scopedBinding?: ZhiyuScopedRuntimeBindingAttachment | null;
-  readonly hostEquivalence?: ZhiyuRuntimeAgentHostEquivalenceInput | null;
-  readonly localAppCarrier?: ZhiyuRuntimeAgentHostEquivalenceInput | null;
+  readonly localAppCarrier?: ZhiyuProtectedLocalAppCarrierInput | null;
 } = {}, requiredScopes: readonly string[] = []): ZhiyuRuntimeAgentBindingDecision {
   const scopedBinding = normalizeScopedBinding(input.scopedBinding);
   if (scopedBinding && scopedBindingCoversScopes(scopedBinding, requiredScopes)) {
@@ -115,20 +106,8 @@ export function resolveZhiyuRuntimeAgentBindingDecision(input: {
     };
   }
 
-  const localAppCarrier = normalizeHostEquivalence(input.localAppCarrier);
-  if (localAppCarrier) {
-    return {
-      kind: 'local-app-carrier',
-      evidenceRef: localAppCarrier.evidenceRef,
-    };
-  }
-
-  const hostEquivalence = normalizeHostEquivalence(input.hostEquivalence);
-  if (hostEquivalence) {
-    return {
-      kind: 'runtime-sdk-authority-admitted-first-party-electron-host-equivalence',
-      evidenceRef: hostEquivalence.evidenceRef,
-    };
+  if (isProtectedLocalAppCarrier(input.localAppCarrier)) {
+    return { kind: 'local-app-carrier' };
   }
 
   return missingBindingDecision();
@@ -278,11 +257,7 @@ function callOptionsForBindingDecision(
   if (decision.kind === 'local-app-carrier') {
     return {};
   }
-  return {
-    metadata: {
-      'x-nimi-runtime-host-equivalence': decision.evidenceRef,
-    },
-  };
+  return {};
 }
 
 function metadataForScopedBinding(
@@ -460,8 +435,7 @@ function scopedBindingExpiresAtMs(scopedBinding: ZhiyuNormalizedScopedRuntimeBin
 
 function readBindingHost(input: ZhiyuRuntimeAgentBindingHost | null | undefined): {
   readonly scopedBinding?: ZhiyuScopedRuntimeBindingAttachment | null;
-  readonly hostEquivalence?: ZhiyuRuntimeAgentHostEquivalenceInput | null;
-  readonly localAppCarrier?: ZhiyuRuntimeAgentHostEquivalenceInput | null;
+  readonly localAppCarrier?: ZhiyuProtectedLocalAppCarrierInput | null;
 } | null {
   if (!isRecord(input)) {
     return null;
@@ -473,7 +447,6 @@ function readBindingHost(input: ZhiyuRuntimeAgentBindingHost | null | undefined)
     : host.scopedBinding;
   return {
     scopedBinding,
-    hostEquivalence: host.hostEquivalence,
     localAppCarrier: host.localAppCarrier,
   };
 }
@@ -539,26 +512,18 @@ function normalizedPositiveNumber(value: unknown): number {
   return Number.isFinite(normalized) && normalized > 0 ? normalized : 0;
 }
 
-function normalizeHostEquivalence(
-  input: ZhiyuRuntimeAgentHostEquivalenceInput | null | undefined,
-): { readonly evidenceRef: string } | null {
-  const evidenceRef = normalizeText(input?.evidenceRef);
-  if (
-    normalizeText(input?.authority) !== 'runtime-sdk'
-    || normalizeText(input?.failureSemantics) !== 'fail-closed'
-    || !evidenceRef.startsWith('runtime-sdk-authority:')
-  ) {
-    return null;
-  }
-  return { evidenceRef };
+function isProtectedLocalAppCarrier(
+  input: ZhiyuProtectedLocalAppCarrierInput | null | undefined,
+): boolean {
+  return normalizeText(input?.kind) === 'protected-local-app-carrier';
 }
 
 function missingBindingDecision(): ZhiyuRuntimeAgentBindingDecision {
   return {
     kind: 'missing',
     reasonCode: 'ZHIYU_RUNTIME_AGENT_BINDING_REQUIRED',
-    actionHint: 'attach_runtime_scoped_binding_or_admitted_host_equivalence',
-    message: 'Zhiyu Runtime Agent consumption requires a Runtime-issued scoped binding or Runtime/SDK-authority-admitted first-party Electron host equivalence.',
+    actionHint: 'attach_runtime_scoped_binding_or_protected_local_app_carrier',
+    message: 'Zhiyu Runtime Agent consumption requires a Runtime-issued scoped binding or the host-bound protected local-app carrier.',
   };
 }
 

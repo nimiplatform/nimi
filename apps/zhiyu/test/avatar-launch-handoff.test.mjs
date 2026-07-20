@@ -73,9 +73,6 @@ test('Zhiyu builds Runtime live-instance registration separately from the Avatar
   });
   assert.deepEqual(handoff.payload, {
     agentId: 'local-agent:owner-1:agent-1',
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'runtime-source:owner-1',
-    localAgentRef: 'local-agent:owner-1:agent-1',
     avatarInstanceId: 'zhiyu-avatar-local-agent-owner-1-agent-1',
     launchSource: 'zhiyu',
   });
@@ -89,10 +86,8 @@ test('Zhiyu registers the Runtime live instance before invoking the Avatar host'
   const action = projectZhiyuAvatarLaunchAction(evidence);
   const calls = [];
   globalThis.__nimiZhiyuRuntimeAgentBinding = {
-    hostEquivalence: {
-      evidenceRef: 'runtime-sdk-authority:test-host',
-      authority: 'runtime-sdk',
-      failureSemantics: 'fail-closed',
+    localAppCarrier: {
+      kind: 'protected-local-app-carrier',
     },
   };
   try {
@@ -128,11 +123,7 @@ test('Zhiyu registers the Runtime live instance before invoking the Avatar host'
       conversationAnchorId: 'conversation-anchor:must-stay-in-runtime',
       avatarInstanceId: 'zhiyu-avatar-local-agent-owner-1-agent-1',
     });
-    assert.deepEqual(calls[0].options, {
-      metadata: {
-        'x-nimi-runtime-host-equivalence': 'runtime-sdk-authority:test-host',
-      },
-    });
+    assert.deepEqual(calls[0].options, {});
     assert.doesNotMatch(JSON.stringify(calls[1].payload), /conversationAnchorId|must-stay-in-runtime|accessToken|subjectUserId|runtimeAppId/);
   } finally {
     delete globalThis.__nimiZhiyuRuntimeAgentBinding;

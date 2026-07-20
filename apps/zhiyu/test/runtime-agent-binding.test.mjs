@@ -28,7 +28,7 @@ test('Zhiyu Runtime Agent binding decision fails closed when no Runtime authorit
       return 'not allowed';
     }),
     (error) => error?.reasonCode === 'ZHIYU_RUNTIME_AGENT_BINDING_REQUIRED'
-      && error?.actionHint === 'attach_runtime_scoped_binding_or_admitted_host_equivalence',
+      && error?.actionHint === 'attach_runtime_scoped_binding_or_protected_local_app_carrier',
   );
   assert.equal(called, false);
 });
@@ -284,10 +284,8 @@ test('Zhiyu Runtime Agent delegation binding installs through contextBridge-styl
   const previousWindow = globalThis.window;
   let scopedBindingEvidence = null;
   const bindingHost = {
-    hostEquivalence: {
-      evidenceRef: 'runtime-sdk-authority:kit-electron-runtime-bridge-local-first-party-host',
-      authority: 'runtime-sdk',
-      failureSemantics: 'fail-closed',
+    localAppCarrier: {
+      kind: 'protected-local-app-carrier',
     },
     getScopedBinding: () => scopedBindingEvidence,
     setScopedBinding: (scopedBinding) => {
@@ -332,11 +330,7 @@ test('Zhiyu Runtime Agent delegation binding installs through contextBridge-styl
     assert.equal(hostDecision.kind, 'runtime-issued-scoped-binding');
     assert.equal(hostDecision.scopedBinding.bindingSource, 'runtime-account-service');
     const turnDecision = module.resolveZhiyuRuntimeAgentBindingDecisionFromHost(['runtime.agent.turn.write']);
-    assert.equal(turnDecision.kind, 'runtime-sdk-authority-admitted-first-party-electron-host-equivalence');
-    assert.equal(
-      turnDecision.evidenceRef,
-      'runtime-sdk-authority:kit-electron-runtime-bridge-local-first-party-host',
-    );
+    assert.equal(turnDecision.kind, 'local-app-carrier');
     assert.equal(globalThis.window.__nimiZhiyuRuntimeAgentBinding, bindingHost);
   } finally {
     delete globalThis.__NIMI_ELECTRON_TEST__;
@@ -347,7 +341,7 @@ test('Zhiyu Runtime Agent delegation binding installs through contextBridge-styl
   }
 });
 
-test('Zhiyu Runtime Agent host equivalence requires Runtime SDK authority evidence and fail-closed semantics', async () => {
+test('Zhiyu Runtime Agent rejects host equivalence and uses the protected local-app carrier without metadata', async () => {
   const module = await importBindingModule();
 
   assert.equal(module.resolveZhiyuRuntimeAgentBindingDecision({
@@ -359,21 +353,16 @@ test('Zhiyu Runtime Agent host equivalence requires Runtime SDK authority eviden
   }).kind, 'missing');
 
   const decision = module.resolveZhiyuRuntimeAgentBindingDecision({
-    hostEquivalence: {
-      evidenceRef: 'runtime-sdk-authority:local-first-party-electron-host-equivalence',
-      authority: 'runtime-sdk',
-      failureSemantics: 'fail-closed',
+    localAppCarrier: {
+      kind: 'protected-local-app-carrier',
     },
   });
 
-  assert.equal(decision.kind, 'runtime-sdk-authority-admitted-first-party-electron-host-equivalence');
+  assert.equal(decision.kind, 'local-app-carrier');
   assert.equal(module.scopedBindingForRuntimeAgentRequest(decision), undefined);
 
   const result = await module.withZhiyuRuntimeAgentBindingScopes(decision, ['runtime.agent.read'], async (options) => {
-    assert.equal(
-      options.metadata['x-nimi-runtime-host-equivalence'],
-      'runtime-sdk-authority:local-first-party-electron-host-equivalence',
-    );
+    assert.deepEqual(options, {});
     return 'allowed';
   });
   assert.equal(result, 'allowed');

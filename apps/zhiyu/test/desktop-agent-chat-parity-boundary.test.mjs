@@ -110,9 +110,7 @@ test('Desktop Agent Chat hardcut does not keep a production provenance map as mi
 test('Desktop Agent Chat binding uses only the supervised local-app carrier and fails closed', async () => {
   const preloadSource = await readFile(path.join(appRoot, 'src-electron', 'preload.cts'), 'utf8');
   assert.match(preloadSource, /__nimiZhiyuRuntimeAgentBinding/);
-  assert.match(preloadSource, /runtime-sdk-authority:kit-electron-local-app-host/);
-  assert.match(preloadSource, /authority:\s*['"]local-app-carrier['"]/);
-  assert.match(preloadSource, /failureSemantics:\s*['"]fail-closed['"]/);
+  assert.match(preloadSource, /kind:\s*['"]protected-local-app-carrier['"]/);
   assert.doesNotMatch(preloadSource, /hostEquivalence|local-first-party-host/);
 });
 

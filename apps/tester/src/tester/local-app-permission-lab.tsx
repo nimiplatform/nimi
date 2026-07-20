@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, KeyRound, RefreshCw, ShieldCheck } from 'lucide-react';
 import { Button, InlineAlert, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 import { testerLocalAppClient } from '../shell/local-app-runtime-platform.js';
+import { jsonValuesEqual } from '@nimiplatform/kit/core/json-value';
 
 const RESERVED_PERMISSION_ID = 'agents.interact' as const;
 const STORAGE_RELATIVE_PATH = 'authority-lab/app-private-storage.json';
@@ -100,7 +101,7 @@ export function TesterLocalAppPermissionLab() {
       } as const;
       const written = await testerLocalAppClient.storage.writeJson(STORAGE_RELATIVE_PATH, value);
       const read = await testerLocalAppClient.storage.readJson(STORAGE_RELATIVE_PATH);
-      if (JSON.stringify(read.value) !== JSON.stringify(value)) {
+      if (!jsonValuesEqual(read.value, value)) {
         throw new Error('App-private storage readback did not match the written value.');
       }
       const removed = await testerLocalAppClient.storage.removeJson(STORAGE_RELATIVE_PATH);

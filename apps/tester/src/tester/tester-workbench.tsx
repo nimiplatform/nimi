@@ -109,12 +109,14 @@ async function materializeTesterArtifactResult(
 function runtimeBadge(summary: TesterAIConfigSummary | null): { label: string; tone: 'success' | 'warning' | 'neutral' } {
   if (!summary) return { label: 'Checking', tone: 'neutral' };
   if (summary.runtime.status === 'ready') return { label: 'Ready', tone: 'success' };
-  return { label: 'Blocked', tone: 'warning' };
+  if (summary.runtime.status === 'connected') return { label: 'Connected', tone: 'success' };
+  return { label: 'Unavailable', tone: 'warning' };
 }
 
 function runtimeUserMessage(summary: TesterAIConfigSummary | null): string {
   if (!summary) return 'Checking the Runtime connection.';
   if (summary.runtime.status === 'ready') return 'Runtime is connected. You can generate text and stream responses.';
+  if (summary.runtime.status === 'connected') return summary.runtime.detail;
   return 'Runtime is unavailable. Open App Lab in the desktop runtime, or start and repair Runtime before generating.';
 }
 
@@ -362,9 +364,9 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
                     >
                       <Button
                         type="button"
-                        tone="secondary"
-                        size="md"
-                        className={`workbench-topbar__attachment workbench-topbar__attachment--${localAppProjection ? 'success' : 'neutral'}`}
+                        tone="ghost"
+                        size="sm"
+                        className={`workbench-topbar__attachment workbench-topbar__attachment--interactive workbench-topbar__attachment--${localAppProjection ? 'success' : 'neutral'}`}
                         data-testid="tester-local-app-status"
                         aria-label="打开 Local App 权限测试"
                         onClick={() => setPermissionLabOpen(true)}
@@ -379,7 +381,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
                     >
                       <span className={`workbench-topbar__attachment workbench-topbar__attachment--${runtimeState.tone}`}>
                         <span className="workbench-topbar__dot" aria-hidden="true" />
-                        <span>Runtime</span>
+                        <span>Runtime · {runtimeState.label}</span>
                       </span>
                     </Tooltip>
                   </>

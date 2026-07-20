@@ -26,7 +26,7 @@ export type TesterTypedSuccess = {
 };
 
 export type TesterRuntimeInspection = {
-  status: 'ready' | 'unavailable';
+  status: 'ready' | 'connected' | 'unavailable';
   mode: string;
   detail: string;
   healthJson?: string;
@@ -64,9 +64,9 @@ export async function inspectRuntimeReadiness(): Promise<TesterRuntimeInspection
     };
   }
   return {
-    status: 'unavailable',
+    status: 'connected',
     mode: projection.mode,
-    detail: 'The local-app identity session is bound. App-private JSON storage is a base entitlement; all public permissions are reserved, and generic Runtime health, account, Realm, Agent, AI, lifecycle, and media surfaces remain unavailable.',
+    detail: 'The protected local-app identity session is bound and Runtime is connected. This zero-permission manifest admits app-private JSON storage only; account, Realm, Agent, AI, lifecycle, realtime, and media capabilities are not admitted.',
     healthJson: compactJson({
       sessionState: projection.localAppSession.state,
       sessionBound: projection.localAppSession.sessionBound,

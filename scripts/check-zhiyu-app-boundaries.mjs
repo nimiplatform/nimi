@@ -139,10 +139,10 @@ function requireFileIncludes(rel, tokens) {
 function checkFirstPartyCarrierConsumption() {
   requireFileIncludes('apps/zhiyu/src/shell/agent-chat/runtime-agent-binding.ts', [
     'resolveZhiyuRuntimeAgentBindingDecision',
-    'runtime-sdk-authority-admitted-first-party-electron-host-equivalence',
+    'protected-local-app-carrier',
     'ZHIYU_RUNTIME_AGENT_BINDING_REQUIRED',
+    'attach_runtime_scoped_binding_or_protected_local_app_carrier',
     'x-nimi-runtime-scoped-binding-id',
-    'x-nimi-runtime-host-equivalence',
   ]);
   requireFileIncludes('apps/zhiyu/src/shell/agent-chat/runtime-agent-turn-adapter.ts', [
     'createNimiRuntimeAgentTurnsModule',
@@ -154,6 +154,8 @@ function checkFirstPartyCarrierConsumption() {
   const rawRuntimeTurnHits = scan([
     { label: 'raw runtime agent turn request', pattern: /runtime\.agent\.turn\.request/u },
     { label: 'raw runtime app-message send', pattern: /sendAppMessage\s*\([^)]*runtime\.agent/su },
+    { label: 'retired renderer host-equivalence metadata', pattern: /x-nimi-runtime-host-equivalence/u },
+    { label: 'retired host-equivalence authority', pattern: /runtime-sdk-authority-admitted-first-party-electron-host-equivalence/u },
   ]);
   reportHits('first-party carrier consumption gate', rawRuntimeTurnHits);
 }

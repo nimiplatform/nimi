@@ -198,13 +198,11 @@ test('separates required delegation scopes from granted and admitted scope evide
   assert.notDeepEqual(status.requiredScopes, status.grantedScopes);
 });
 
-test('fails closed before Runtime delegation RPC when only host equivalence is available', async () => {
+test('fails closed before Runtime delegation RPC when only the local-app carrier is available', async () => {
   const { probeZhiyuRuntimeDelegationUx } = await loadModule();
   globalThis.__nimiZhiyuRuntimeAgentBinding = {
-    hostEquivalence: {
-      evidenceRef: 'runtime-sdk-authority:test-host',
-      authority: 'runtime-sdk',
-      failureSemantics: 'fail-closed',
+    localAppCarrier: {
+      kind: 'protected-local-app-carrier',
     },
   };
   const calls = [];
@@ -213,8 +211,8 @@ test('fails closed before Runtime delegation RPC when only host equivalence is a
       calls.push({ command, payload });
       return {
         scopedBinding: {
-          bindingId: 'binding-host-equivalence-only',
-          bindingSource: 'runtime-sdk-host-equivalence',
+          bindingId: 'binding-local-app-carrier-only',
+          bindingSource: 'protected-local-app-carrier',
         },
       };
     },

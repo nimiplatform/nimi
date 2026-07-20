@@ -16,7 +16,7 @@ test('Tester consumes only the final typed local-app operation set', () => {
 
   assert.match(runtime, /session posture, public permission posture\/request, and app-private JSON storage/);
   assert.match(runtime, /'sdk-method-unavailable'/);
-  assert.match(runtime, /generic Runtime health, account, Realm, Agent, AI, lifecycle, and media surfaces remain unavailable/);
+  assert.match(runtime, /account, Realm, Agent, AI, lifecycle, realtime, and media capabilities are not admitted/);
   assert.doesNotMatch(runtime, /invokeTesterCapability|projection\.client|new Runtime/);
   assert.match(platform, /testerLocalAppClient\.auth\.status/);
   assert.doesNotMatch(client, /artifacts\.readRuntimeBytes|openConversation|agentInventory/);

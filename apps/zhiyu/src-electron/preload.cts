@@ -24,9 +24,7 @@ if (localDevelopment) {
 }
 contextBridge.exposeInMainWorld('__nimiZhiyuRuntimeAgentBinding', {
   localAppCarrier: {
-    evidenceRef: 'runtime-sdk-authority:kit-electron-local-app-host',
-    authority: 'local-app-carrier',
-    failureSemantics: 'fail-closed',
+    kind: 'protected-local-app-carrier',
   },
 });
 

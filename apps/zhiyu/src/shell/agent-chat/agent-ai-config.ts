@@ -23,7 +23,7 @@ import {
 // runtime-owned Runtime Agent AI Config (K-AGCORE-144~150). This module never
 // probes, warms, caches, or re-derives route truth; every call is a typed
 // pass-through over runtime.agent.ai_config.* behind the existing
-// Runtime-issued scoped binding / admitted host-equivalence custody.
+// Runtime-issued scoped binding / protected local-app carrier custody.
 export const ZHIYU_AGENT_AI_CONFIG_READ_SCOPES = [
   'runtime.agent.ai_config.read',
 ] as const;

@@ -17,6 +17,7 @@ import {
 } from '@nimiplatform/kit/ui';
 import type { ZhiyuSelectedLocalDevelopmentTarget } from '../app/evidence-window';
 import { zhiyuLocalAppClient } from './local-app-runtime-platform';
+import { jsonValuesEqual } from '@nimiplatform/kit/core/json-value';
 
 const RESERVED_PERMISSION_ID = 'agents.interact' as const;
 const STORAGE_RELATIVE_PATH = 'zhiyu/local-development-authority-proof.json';
@@ -210,7 +211,7 @@ export function ZhiyuLocalDevelopmentJourney({
       } as const;
       const written = await zhiyuLocalAppClient.storage.writeJson(STORAGE_RELATIVE_PATH, value);
       const read = await zhiyuLocalAppClient.storage.readJson(STORAGE_RELATIVE_PATH);
-      if (JSON.stringify(read.value) !== JSON.stringify(value)) {
+      if (!jsonValuesEqual(read.value, value)) {
         throw boundaryError('app-private-storage-readback-mismatch', 'inspect_app_private_storage');
       }
       const removed = await zhiyuLocalAppClient.storage.removeJson(STORAGE_RELATIVE_PATH);

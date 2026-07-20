@@ -53,7 +53,7 @@ export function projectZhiyuAvatarLaunchAction(evidence: ZhiyuEvidence): ZhiyuAv
   let avatarInstanceId: string;
   try {
     avatarInstanceId = buildAvatarLaunchInstanceId({
-      localAgentRef,
+      agentId: localAgentRef,
       sourceSurface: 'zhiyu',
     });
   } catch {

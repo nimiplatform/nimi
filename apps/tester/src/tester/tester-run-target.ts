@@ -14,7 +14,7 @@ import { getTesterRuntimeBindingCapabilityId } from './tester-capabilities.js';
 import { CAPABILITY_TO_SECTION } from './tester-capability-sections.js';
 import type { TesterRuntimeInspection } from './tester-runtime.js';
 
-export type TesterRunTargetStatus = ModelConfigRuntimeTargetStatus | 'tauri-only' | 'sdk-gap';
+export type TesterRunTargetStatus = ModelConfigRuntimeTargetStatus | 'tauri-only' | 'sdk-gap' | 'not-admitted';
 export type TesterRunTargetSource = ModelConfigRuntimeTargetSource | 'local-fixture';
 export type TesterRunTargetParamRecord = ModelConfigRuntimeTargetParamRecord;
 
@@ -83,6 +83,16 @@ export function createTesterRunTargetSummary(input: {
       source: 'unknown',
       modelLabel: 'SDK surface missing',
       detail: capability.missingSurface || 'No admitted typed SDK method is available for this capability.',
+      canDispatch: false,
+    };
+  }
+  if (runtime?.status === 'connected') {
+    return {
+      ...base,
+      status: 'not-admitted',
+      source: 'unknown',
+      modelLabel: 'Not admitted',
+      detail: runtime.detail,
       canDispatch: false,
     };
   }

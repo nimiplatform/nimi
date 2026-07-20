@@ -100,6 +100,34 @@ test('tester run target summary hydrates local runtime model labels without expo
   assert.equal(hydrated.modelLabel, 'z-image-turbo-Q4_K_M');
 });
 
+test('tester separates a connected protected session from an unadmitted capability', async () => {
+  const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
+  const { statusForCapability } = await importBehaviorModule('tester/workbench/section-ai-testing-admission.js');
+  const capability = {
+    id: 'text.generate',
+    label: 'Text Studio',
+    group: 'text',
+    summary: '',
+    surface: '',
+    execution: 'runtime-sdk',
+  };
+  const runtime = {
+    status: 'connected',
+    mode: 'electron-local-app',
+    detail: 'Runtime connected; AI is not admitted by this zero-permission manifest.',
+  };
+
+  const target = createTesterRunTargetSummary({ capability, runtime, config: null });
+  assert.equal(target.status, 'not-admitted');
+  assert.equal(target.modelLabel, 'Not admitted');
+  assert.equal(target.canDispatch, false);
+
+  const admission = statusForCapability(capability, runtime, null);
+  assert.equal(admission.label, 'not admitted');
+  assert.equal(admission.tone, 'info');
+  assert.doesNotMatch(admission.detail, /Runtime unavailable/i);
+});
+
 test('tester run history never exposes opaque runtime model ids as model titles', async () => {
   const { getTesterRunModelLabel, getTesterRunModelSource } = await importBehaviorModule('tester/tester-history.js');
   const opaqueRuntimeModelId = '01KV2PAC69SRGAB30PCZ9ZH8MN';

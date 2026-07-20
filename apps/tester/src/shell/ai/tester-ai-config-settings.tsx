@@ -31,13 +31,15 @@ export type TesterAiConfigProfileImportResult = {
   profileId?: string;
 };
 
+export type TesterAiConfigRuntimeStatus = 'checking' | 'ready' | 'connected' | 'unavailable';
+
 export type TesterAiConfigSettingsProps = {
   scopeRef: NimiAIScopeRef;
   service: SharedAIConfigService;
   enabledCapabilities: readonly string[];
   providerResolver: (capabilityId: string) => RouteModelPickerDataProvider | null;
   localAssetSource?: AppModelConfigSurface['localAssetSource'];
-  runtimeReady: boolean;
+  runtimeStatus: TesterAiConfigRuntimeStatus;
   runtimeDetail: string | null;
   copy: Record<string, string>;
   /** Open straight into this section's detail from the studio model gear. */
@@ -64,17 +66,35 @@ function makeTranslator(copy: Record<string, string>) {
 function bindingStatus(
   config: NimiAIConfig,
   capabilityId: string,
-  runtimeReady: boolean,
+  runtimeStatus: TesterAiConfigRuntimeStatus,
   runtimeDetail: string | null,
   localAssetSource?: AppModelConfigSurface['localAssetSource'],
 ): ModelConfigProjectionStatus {
-  if (!runtimeReady) {
+  if (runtimeStatus === 'checking') {
+    return {
+      supported: false,
+      tone: 'neutral',
+      badgeLabel: 'Checking Runtime',
+      title: 'Checking Runtime',
+      detail: runtimeDetail || 'Runtime inspection has not completed yet.',
+    };
+  }
+  if (runtimeStatus === 'unavailable') {
     return {
       supported: false,
       tone: 'attention',
       badgeLabel: 'Runtime unavailable',
       title: 'Runtime unavailable',
       detail: runtimeDetail || 'Runtime readiness has not succeeded.',
+    };
+  }
+  if (runtimeStatus === 'connected') {
+    return {
+      supported: false,
+      tone: 'attention',
+      badgeLabel: 'Not admitted',
+      title: 'Capability not admitted',
+      detail: runtimeDetail || 'Runtime is connected, but this capability is not admitted for the app.',
     };
   }
   const targetRef = config.capabilities.targetRefs[capabilityId] || null;
@@ -138,7 +158,7 @@ export function TesterAiConfigSettings({
   enabledCapabilities,
   providerResolver,
   localAssetSource,
-  runtimeReady,
+  runtimeStatus,
   runtimeDetail,
   copy,
   initialSection = null,
@@ -160,12 +180,14 @@ export function TesterAiConfigSettings({
     scopeRef,
     aiConfigService: service,
     requirementDeclaration,
-    providerResolver: (capabilityId: string) => (runtimeReady ? providerResolver(capabilityId) : null),
-    projectionResolver: (capabilityId: string) => bindingStatus(config, capabilityId, runtimeReady, runtimeDetail, localAssetSource),
+    providerResolver: (capabilityId: string) => (runtimeStatus === 'ready' ? providerResolver(capabilityId) : null),
+    projectionResolver: (capabilityId: string) => bindingStatus(config, capabilityId, runtimeStatus, runtimeDetail, localAssetSource),
     localAssetSource,
-    runtimeNotReadyLabel: runtimeDetail || 'Runtime unavailable',
+    runtimeNotReadyLabel: runtimeStatus === 'connected'
+      ? 'Capability not admitted'
+      : runtimeDetail || (runtimeStatus === 'checking' ? 'Checking Runtime' : 'Runtime unavailable'),
     i18n: { t },
-  }), [config, localAssetSource, providerResolver, requirementDeclaration, runtimeDetail, runtimeReady, scopeRef, service, t]);
+  }), [config, localAssetSource, providerResolver, requirementDeclaration, runtimeDetail, runtimeStatus, scopeRef, service, t]);
 
   const profileCopy = useMemo(() => defaultModelConfigProfileCopy(t), [t]);
   const currentOrigin = useMemo(
@@ -243,8 +265,14 @@ export function TesterAiConfigSettings({
               {t('Tester.settings.subtitle')}
             </span>
           </div>
-          {!runtimeReady ? (
-            <StatusBadge tone="warning" shape="dot">Runtime unavailable</StatusBadge>
+          {runtimeStatus !== 'ready' ? (
+            <StatusBadge tone={runtimeStatus === 'connected' ? 'neutral' : 'warning'} shape="dot">
+              {runtimeStatus === 'connected'
+                ? 'Capability not admitted'
+                : runtimeStatus === 'checking'
+                  ? 'Checking Runtime'
+                  : 'Runtime unavailable'}
+            </StatusBadge>
           ) : null}
           {onClose ? (
             <IconButton

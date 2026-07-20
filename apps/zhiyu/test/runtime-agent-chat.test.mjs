@@ -107,7 +107,7 @@ test('Zhiyu Runtime Agent chat delegates streaming turns through Desktop-parity 
   assert.equal(result.messages.at(-1).metadata.reasoningText, 'checking runtime');
 });
 
-test('Zhiyu Runtime Agent chat does not attach delegation-only scoped binding to turn requests', async () => {
+test('Zhiyu Runtime Agent chat does not widen a delegation-only binding through the local-app carrier', async () => {
   const module = await importRuntimeAgentChat();
   const previousBinding = globalThis.__nimiZhiyuRuntimeAgentBinding;
   const captured = [];
@@ -122,10 +122,8 @@ test('Zhiyu Runtime Agent chat does not attach delegation-only scoped binding to
       bindingSource: 'runtime-account-service',
       scopes: ['runtime.agent.delegation.read', 'runtime.agent.delegation.write'],
     },
-    hostEquivalence: {
-      evidenceRef: 'runtime-sdk-authority:kit-electron-runtime-bridge-local-first-party-host',
-      authority: 'runtime-sdk',
-      failureSemantics: 'fail-closed',
+    localAppCarrier: {
+      kind: 'protected-local-app-carrier',
     },
   };
 
@@ -155,9 +153,9 @@ test('Zhiyu Runtime Agent chat does not attach delegation-only scoped binding to
       },
     });
 
-    assert.equal(result.ready, true);
-    assert.equal(captured.length, 1);
-    assert.equal(captured[0].scopedBinding, undefined);
+    assert.equal(result.ready, false);
+    assert.equal(result.reasonCode, 'agents-interact-not-admitted');
+    assert.equal(captured.length, 0);
   } finally {
     if (previousBinding === undefined) {
       delete globalThis.__nimiZhiyuRuntimeAgentBinding;
@@ -414,7 +412,7 @@ test('Zhiyu Runtime Agent chat fails closed before streaming without Runtime bin
   assert.equal(called, false);
   assert.equal(result.ready, false);
   assert.equal(result.reasonCode, 'ZHIYU_RUNTIME_AGENT_BINDING_REQUIRED');
-  assert.equal(result.actionHint, 'attach_runtime_scoped_binding_or_admitted_host_equivalence');
+  assert.equal(result.actionHint, 'attach_runtime_scoped_binding_or_protected_local_app_carrier');
 });
 
 test('Zhiyu Runtime Agent chat fails closed for attachments and conversation anchor mismatch', async () => {

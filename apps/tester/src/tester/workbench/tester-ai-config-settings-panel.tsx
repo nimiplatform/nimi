@@ -146,7 +146,7 @@ export function TesterAiConfigSettingsPanel({ runtime, initialSection = null, on
       enabledCapabilities={enabledCapabilities}
       providerResolver={resolveRuntimeModelPickerProvider}
       localAssetSource={localAssetSource}
-      runtimeReady={runtime?.status === 'ready'}
+      runtimeStatus={runtime?.status ?? 'checking'}
       runtimeDetail={runtime?.detail ?? null}
       copy={copy}
       initialSection={initialSection}

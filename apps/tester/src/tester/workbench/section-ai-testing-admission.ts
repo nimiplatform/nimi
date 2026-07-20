@@ -11,7 +11,7 @@ export type ScenarioPreset = {
 };
 
 export type CapabilityStatus = {
-  label: 'ready' | 'blocked' | 'SDK gap' | 'tauri-only' | 'checking';
+  label: 'ready' | 'blocked' | 'not admitted' | 'SDK gap' | 'tauri-only' | 'checking';
   tone: 'success' | 'warning' | 'info' | 'neutral';
   detail: string;
 };
@@ -108,18 +108,30 @@ export function statusForCapability(
       detail: capability.missingSurface || 'No admitted typed SDK method is available for this capability.',
     };
   }
-  if (lastResult?.capabilityId === capability.id && !lastResult.ok && lastResult.reason === 'sdk-method-unavailable') {
-    return {
-      label: 'SDK gap',
-      tone: 'warning',
-      detail: lastResult.message,
-    };
-  }
   if (!runtime) {
     return {
       label: 'checking',
       tone: 'neutral',
       detail: 'Runtime inspection has not completed yet.',
+    };
+  }
+  if (runtime.status === 'connected') {
+    return {
+      label: 'not admitted',
+      tone: 'info',
+      detail: runtime.detail,
+    };
+  }
+  if (
+    lastResult?.capabilityId === capability.id
+    && !lastResult.ok
+    && 'reason' in lastResult
+    && lastResult.reason === 'sdk-method-unavailable'
+  ) {
+    return {
+      label: 'SDK gap',
+      tone: 'warning',
+      detail: lastResult.message,
     };
   }
   if (runtime.status !== 'ready') {
@@ -139,6 +151,7 @@ export function statusForCapability(
 export const STATUS_PILL_LABEL: Record<CapabilityStatus['label'], string> = {
   ready: 'Ready',
   blocked: 'Blocked',
+  'not admitted': 'Not admitted',
   'SDK gap': 'SDK gap',
   'tauri-only': 'Tauri only',
   checking: 'Checking',

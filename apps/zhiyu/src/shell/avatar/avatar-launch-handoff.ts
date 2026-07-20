@@ -83,9 +83,7 @@ export function buildZhiyuAvatarLaunchHandoff(input: {
       avatarInstanceId,
     },
     payload: buildAvatarLaunchHandoffPayload({
-      ownerUserId,
-      runtimeSourceRef,
-      localAgentRef,
+      agentId: localAgentRef,
       avatarInstanceId,
       sourceSurface: 'zhiyu',
     }),
