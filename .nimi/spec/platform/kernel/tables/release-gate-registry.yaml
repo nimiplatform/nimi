@@ -12,7 +12,7 @@ registry_id: platform_release_gate_registry
 # file. Hand-edits in projection surfaces are a projection-drift fail.
 
 schema_version: release-gate-registry/v1
-registry_version: "3.1.1"
+registry_version: "3.1.3"
 profile_id: nimi
 # -----------------------------------------------------------------------
 # Tier definitions (P-RELG-012 tier membership constraint)
@@ -1646,6 +1646,23 @@ gates:
       is inside the Runtime/Desktop release jobs after artifacts exist.
 
   # =====================================================================
+  # owner: simulator (apps/simulator build-control and artifact boundary)
+  # =====================================================================
+  - id: gate.simulator.build
+    description: Build the independent credential-free Simulator artifact from the generated selected-source registry.
+    command: pnpm build:simulator
+    runner: pnpm
+    tiers: [release]
+    targets: [any]
+    timeout_seconds: 600
+    requires_binaries: [pnpm, node]
+    evidence:
+      shape: command_exit
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  # =====================================================================
   # owner: spec-governance (collapsed spec governance scope invocations)
   # =====================================================================
   - id: gate.spec-governance.all
@@ -1974,6 +1991,33 @@ gates:
     tiers: [release]
     targets: [any]
     timeout_seconds: 300
+    requires_binaries: [pnpm, node]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.simulator.build-control-unit
+    description: Simulator Manifest, source materialization, report revalidation, resolver, and generated-registry deterministic unit suite.
+    command: pnpm --filter @nimiplatform/simulator test
+    runner: pnpm
+    tiers: [release]
+    targets: [any]
+    timeout_seconds: 300
+    requires_binaries: [pnpm, node, git]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.simulator.contract
+    description: Simulator deterministic State Engine, lifecycle, readiness barrier, browser-effect guard, Shell, and direct-source Tester component contracts; this is not selected-artifact or real-browser qualification evidence.
+    command: pnpm --filter @nimiplatform/simulator test:contract:prepared
+    runner: pnpm
+    tiers: [release]
+    targets: [any]
+    timeout_seconds: 300
+    prerequisites: [gate.sdk.coverage, gate.ui.kit-test]
     requires_binaries: [pnpm, node]
     evidence: { shape: command_exit }
     p_relg_anchors: [P-RELG-001]

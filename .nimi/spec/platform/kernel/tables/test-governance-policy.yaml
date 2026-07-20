@@ -398,6 +398,26 @@ suites:
     selectors:
       globs: ['app-tools/**/*.test.mjs']
     authority_refs: [P-TEST-002, P-TEST-003]
+  - id: simulator-build-control-unit
+    owner: simulator
+    lane: workspace_regression
+    workspace_order: 35
+    requires_workspace_surfaces: [sdk_dist, kit_dist]
+    gate_id: gate.simulator.build-control-unit
+    command: pnpm --filter @nimiplatform/simulator test
+    selectors:
+      globs: ['apps/simulator/test/*.test.mjs']
+    authority_refs: [P-TEST-002, P-TEST-003]
+  - id: simulator-contract-unit
+    owner: simulator
+    lane: workspace_regression
+    workspace_order: 36
+    requires_workspace_surfaces: [sdk_dist, kit_dist]
+    gate_id: gate.simulator.contract
+    command: pnpm --filter @nimiplatform/simulator test:contract:prepared
+    selectors:
+      globs: ['apps/simulator/test/contract/*.test.mjs']
+    authority_refs: [P-TEST-002, P-TEST-003]
   - id: avatar-unit
     owner: avatar
     lane: workspace_regression

@@ -331,18 +331,89 @@ for (const [relativePath, requiredTexts] of ownerRequirements) {
 
 const rootPackage = JSON.parse(read('package.json') || '{}');
 exactValue(rootPackage.scripts?.['check:simulator-authority'], 'node scripts/check-simulator-authority.mjs', 'root Simulator authority command');
+exactValue(rootPackage.scripts?.['check:simulator-selected-sources'], 'pnpm --filter @nimiplatform/simulator check:selected-sources', 'root Simulator selected-source command');
+exactValue(rootPackage.scripts?.['check:simulator-modules'], 'node scripts/with-workspace-surfaces.mjs -- pnpm --filter @nimiplatform/simulator check:modules', 'root Simulator module command');
+exactValue(rootPackage.scripts?.['build:simulator'], 'node scripts/with-workspace-surfaces.mjs -- pnpm --filter @nimiplatform/simulator build', 'root Simulator build command');
+exactValue(rootPackage.scripts?.['check:simulator-reproducible-build'], 'node scripts/with-workspace-surfaces.mjs -- node apps/simulator/build/check-reproducible-build.mjs', 'root Simulator reproducible-build command');
+exactValue(rootPackage.scripts?.['test:simulator-contract'], 'pnpm --filter @nimiplatform/simulator test:contract', 'root Simulator contract command');
+
+const simulatorPackage = JSON.parse(read('apps/simulator/package.json') || '{}');
+exactValue(simulatorPackage.name, '@nimiplatform/simulator', 'Simulator package name');
+exactValue(simulatorPackage.private, true, 'Simulator package privacy');
+exactValue(simulatorPackage.scripts?.['check:selected-sources'], 'node build/check-selected-sources.mjs', 'Simulator selected-source package command');
+exactValue(simulatorPackage.scripts?.['check:modules'], 'node build/check-modules.mjs', 'Simulator module package command');
+exactValue(simulatorPackage.scripts?.build, 'pnpm run check:modules && pnpm run typecheck && vite build && node build/write-artifact-manifest.mjs', 'Simulator package build command');
+exactValue(
+  simulatorPackage.scripts?.test,
+  'node ../../scripts/with-workspace-surfaces.mjs -- node --test test/*.test.mjs',
+  'Simulator self-contained build-control package command',
+);
+exactValue(
+  simulatorPackage.scripts?.['test:contract'],
+  'pnpm --filter @nimiplatform/sdk build && pnpm --filter @nimiplatform/kit build && pnpm run test:contract:prepared',
+  'Simulator self-contained contract package command',
+);
+exactValue(
+  simulatorPackage.scripts?.['test:contract:prepared'],
+  'node --test test/contract/*.test.mjs',
+  'Simulator prepared contract package command',
+);
+
+const appToolsPackage = JSON.parse(read('app-tools/package.json') || '{}');
+exactValue(appToolsPackage.exports?.['./simulator-conformance'], './lib/simulator-conformance.mjs', 'app-tools Simulator conformance export');
+requireText('app-tools/bin/nimi-app.mjs', ['--conformance simulator']);
+requireText('config/simulator/external-repositories.yaml', ['nimi.simulator.external-repository-catalog/v1', 'repositories: []']);
 
 const releaseRegistry = readYaml('.nimi/spec/platform/kernel/tables/release-gate-registry.yaml');
 const releaseGate = releaseRegistry.gates?.find((entry) => entry.id === 'gate.spec-governance.simulator-authority');
 exactValue(releaseGate?.command, 'pnpm check:simulator-authority', 'Simulator release gate command');
 exactSet(releaseGate?.tiers, ['fast', 'release'], 'Simulator release gate tiers');
 exactSet(releaseGate?.targets, ['any'], 'Simulator release gate targets');
+const simulatorBuildGate = releaseRegistry.gates?.find((entry) => entry.id === 'gate.simulator.build');
+exactValue(simulatorBuildGate?.command, 'pnpm build:simulator', 'Simulator product build release gate command');
+exactSet(simulatorBuildGate?.tiers, ['release'], 'Simulator product build release gate tiers');
+const simulatorUnitGate = releaseRegistry.gates?.find((entry) => entry.id === 'gate.simulator.build-control-unit');
+exactValue(simulatorUnitGate?.command, 'pnpm --filter @nimiplatform/simulator test', 'Simulator build-control unit gate command');
+const simulatorContractGate = releaseRegistry.gates?.find((entry) => entry.id === 'gate.simulator.contract');
+exactValue(
+  simulatorContractGate?.command,
+  'pnpm --filter @nimiplatform/simulator test:contract:prepared',
+  'Simulator prepared release-gate contract command',
+);
+exactSet(simulatorContractGate?.tiers, ['release'], 'Simulator contract gate tiers');
+
+const testGovernance = readYaml('.nimi/spec/platform/kernel/tables/test-governance-policy.yaml');
+const simulatorTestSuite = testGovernance.suites?.find((entry) => entry.id === 'simulator-build-control-unit');
+exactValue(simulatorTestSuite?.gate_id, 'gate.simulator.build-control-unit', 'Simulator test-governance gate');
+exactValue(simulatorTestSuite?.command, 'pnpm --filter @nimiplatform/simulator test', 'Simulator test-governance command');
+const simulatorContractSuite = testGovernance.suites?.find((entry) => entry.id === 'simulator-contract-unit');
+exactValue(simulatorContractSuite?.gate_id, 'gate.simulator.contract', 'Simulator contract test-governance gate');
+exactValue(
+  simulatorContractSuite?.command,
+  'pnpm --filter @nimiplatform/simulator test:contract:prepared',
+  'Simulator prepared contract test-governance command',
+);
+exactSet(
+  simulatorContractSuite?.requires_workspace_surfaces,
+  ['sdk_dist', 'kit_dist'],
+  'Simulator contract test-governance workspace surfaces',
+);
+exactValue(simulatorContractSuite?.workspace_order, 36, 'Simulator contract test-governance order');
 
 const auditEvidenceRoots = readYaml('.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml');
 const simulatorEvidenceRoot = auditEvidenceRoots.roots?.find((entry) => entry.id === 'platform-simulator-authority');
 exactValue(simulatorEvidenceRoot?.owner_domain, 'platform', 'Simulator audit evidence owner');
 exactValue(simulatorEvidenceRoot?.source_rule, 'P-SIM-020', 'Simulator audit evidence source rule');
-exactSet(simulatorEvidenceRoot?.evidence_roots, ['scripts/check-simulator-authority.mjs', 'package.json'], 'Simulator structural evidence roots');
+exactSet(simulatorEvidenceRoot?.evidence_roots, [
+  'app-tools/lib/simulator-conformance.mjs',
+  'app-tools/lib/simulator-manifest.mjs',
+  'app-tools/lib/simulator-source.mjs',
+  'app-tools/test/simulator-conformance.test.mjs',
+  'apps/simulator',
+  'config/simulator',
+  'scripts/check-simulator-authority.mjs',
+  'package.json',
+], 'Simulator structural evidence roots');
 
 if (failures.length > 0) {
   console.error(`Simulator authority check failed with ${failures.length} violation(s):`);

@@ -40,6 +40,12 @@ roots:
       - .nimi/spec/platform/kernel/tables/simulator-listener-families.yaml
       - .nimi/spec/platform/kernel/tables/simulator-performance-policy.yaml
     evidence_roots:
+      - app-tools/lib/simulator-conformance.mjs
+      - app-tools/lib/simulator-manifest.mjs
+      - app-tools/lib/simulator-source.mjs
+      - app-tools/test/simulator-conformance.test.mjs
+      - apps/simulator
+      - config/simulator
       - scripts/check-simulator-authority.mjs
       - package.json
     source_rule: P-SIM-020
