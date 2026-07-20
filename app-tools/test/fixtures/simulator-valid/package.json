@@ -1,0 +1,12 @@
+{
+  "name": "simulator-source-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "zod": "4.4.3"
+  },
+  "exports": {
+    "./renderer": "./src/renderer/factory.ts",
+    "./styles": "./src/renderer/styles.css"
+  }
+}

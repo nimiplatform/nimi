@@ -1,7 +1,14 @@
 #!/usr/bin/env node
 
 import process from 'node:process';
-import { createApp, doctorAppScaffold, initAppScaffold, runDevShell, updateAppScaffold } from '../lib/index.mjs';
+import {
+  createApp,
+  doctorAppScaffold,
+  initAppScaffold,
+  renderSimulatorConformanceFailure,
+  runDevShell,
+  updateAppScaffold,
+} from '../lib/index.mjs';
 
 function parseArgs(argv) {
   const [command = '', ...rest] = argv;
@@ -12,6 +19,7 @@ function parseArgs(argv) {
   let packageName = '';
   let author = '';
   let shell = '';
+  let conformance = '';
   let json = false;
   for (let index = 0; index < rest.length; index += 1) {
     if (rest[index] === '--') {
@@ -52,6 +60,11 @@ function parseArgs(argv) {
       index += 1;
       continue;
     }
+    if (rest[index] === '--conformance') {
+      conformance = String(rest[index + 1] || '').trim();
+      index += 1;
+      continue;
+    }
     if (rest[index] === '--json') {
       json = true;
       continue;
@@ -67,6 +80,7 @@ function parseArgs(argv) {
     packageName,
     author,
     shell,
+    conformance,
     json,
   };
 }
@@ -77,7 +91,7 @@ function printUsage() {
       'Usage:',
       '  nimi-app create [--dir path] [--profile standalone|workspace-app|tester-reference] [--app-id id] [--title title] [--package-name name] [--author author]',
       '  nimi-app init [--dir path] [--json]',
-      '  nimi-app doctor [--dir path] [--json]',
+      '  nimi-app doctor [--dir path] [--conformance simulator] [--json]',
       '  nimi-app update [--dir path] [--json]',
       '  nimi-app dev [--dir path] [--shell electron|tauri]',
       '',
@@ -85,8 +99,10 @@ function printUsage() {
   );
 }
 
+let parsedArgs = null;
 try {
-  const { command, dir, profile, appId, title, packageName, author, shell, json } = parseArgs(process.argv.slice(2));
+  parsedArgs = parseArgs(process.argv.slice(2));
+  const { command, dir, profile, appId, title, packageName, author, shell, conformance, json } = parsedArgs;
   if (!command || command === '--help' || command === '-h') {
     printUsage();
     process.exit(0);
@@ -111,6 +127,7 @@ try {
     case 'doctor':
       doctorAppScaffold(process.cwd(), {
         dir,
+        conformance,
         json,
       });
       break;
@@ -131,6 +148,10 @@ try {
   }
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error || 'unknown error');
+  if (parsedArgs?.json && parsedArgs?.command === 'doctor' && parsedArgs?.conformance === 'simulator') {
+    const payload = renderSimulatorConformanceFailure(error, parsedArgs.dir || process.cwd());
+    process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
+  }
   process.stderr.write(`[nimi-app] failed: ${message}\n`);
   process.exit(1);
 }

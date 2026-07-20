@@ -4,6 +4,10 @@ import path from 'node:path';
 import { createAppScaffold } from './app-scaffold.mjs';
 import { doctorApp, initApp, updateApp } from './app-doctor-update.mjs';
 export { runDevShell } from '../scripts/dev-shell.mjs';
+export {
+  renderSimulatorConformanceFailure,
+  validateSimulatorAppSource,
+} from './simulator-conformance.mjs';
 
 const SDK_VERSION = '^0.6.0';
 const NIMICODING_VERSION = '0.2.5';
@@ -28,7 +32,7 @@ const TAURI_CLI_VERSION = '^2.11.2';
 const YAML_VERSION = '^2.9.0';
 const NIMI_SHELL_TAURI_VERSION = '0.1.0';
 const AI_SDK_VERSION = '^6.0.85';
-const APP_TOOLS_VERSION = '^0.1.4';
+const APP_TOOLS_VERSION = '^0.2.0';
 const ELECTRON_VERSION = '^42.5.0';
 const ESBUILD_VERSION = '^0.28.0';
 const PLAYWRIGHT_VERSION = '^1.61.0';

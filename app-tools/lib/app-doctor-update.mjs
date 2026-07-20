@@ -14,6 +14,7 @@ import {
   SUPPORTED_APP_SCAFFOLD_PROFILES,
 } from './app-scaffold.mjs';
 import { assertManifestPermissionRequirements } from './app-manifest-permissions.mjs';
+import { validateSimulatorAppSource } from './simulator-conformance.mjs';
 
 const SCAN_EXCLUDED_DIRS = new Set([
   '.git',
@@ -671,6 +672,18 @@ export function initApp(cwd, options = {}, versions, runners = {}) {
 
 export function doctorApp(cwd, options = {}, versions, runners = {}) {
   const targetDir = resolveTargetDir(cwd, options);
+  if (options.conformance) {
+    if (options.conformance !== 'simulator') {
+      throw new Error(`Unsupported conformance target: ${options.conformance}`);
+    }
+    const result = validateSimulatorAppSource(targetDir);
+    if (options.json) {
+      process.stdout.write(`${JSON.stringify(result.report, null, 2)}\n`);
+    } else {
+      process.stdout.write(`[nimi-app] Simulator conformance passed for ${targetDir}\n`);
+    }
+    return result.report;
+  }
   const result = validateDoctorState(targetDir, versions, runners);
   const payload = {
     ok: true,

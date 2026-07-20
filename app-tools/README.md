@@ -71,8 +71,17 @@ nimi-app create [--dir path] [--profile standalone|workspace-app|tester-referenc
 nimi-app dev [--dir path] [--shell electron|tauri]
 nimi-app init [--dir path] [--json]
 nimi-app doctor [--dir path] [--json]
+nimi-app doctor [--dir path] --conformance simulator --json
 nimi-app update [--dir path] [--json]
 ```
+
+`doctor --conformance simulator --json` validates the current closed
+`nimi.simulator.module/v1` input, canonical renderer-factory reachability,
+Simulator renderer/Adapter/fixture source, canonical style namespace, forbidden
+closure imports/effects, and deterministic source/Manifest/style digests. The
+JSON result is App-source conformance evidence only. It neither selects the App
+nor certifies the Simulator's final resolver, combined graph, artifact, release,
+or Nimi App admission.
 
 Inside this monorepo, use the repo-local binary:
 

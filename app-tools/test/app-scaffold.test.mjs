@@ -1246,8 +1246,14 @@ test('app source resolves from the live reference app and is packaged via prepac
   // The snapshot is a gitignored build artifact baked into the tarball at pack.
   assert.ok(packageJson.files.includes('templates'));
   assert.ok(packageJson.files.includes('scripts'));
-  assert.equal(packageJson.scripts.prepack, 'node scripts/sync-app-source.mjs --apply');
-  assert.equal(packageJson.scripts.prepublishOnly, 'node scripts/sync-app-source.mjs --apply');
+  assert.equal(
+    packageJson.scripts.prepack,
+    'node scripts/generate-simulator-effect-policy.mjs --check && node scripts/sync-app-source.mjs --apply',
+  );
+  assert.equal(
+    packageJson.scripts.prepublishOnly,
+    'node scripts/generate-simulator-effect-policy.mjs --check && node scripts/sync-app-source.mjs --apply',
+  );
 
   // In the monorepo there is no baked snapshot; the generator reads apps/tester live.
   const { baseDir, manifest } = resolveAppSource();
