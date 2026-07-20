@@ -35,6 +35,7 @@ const OWNER_ALLOWLIST = new Set([
   'runtime-provider',
   'sdk',
   'security',
+  'simulator',
   'spec-governance',
   'tester',
   'ui',

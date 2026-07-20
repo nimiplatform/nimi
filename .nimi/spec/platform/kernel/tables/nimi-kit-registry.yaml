@@ -240,27 +240,31 @@ modules:
     subpath: /shell/renderer
     kind: infra
     surface_level: infra
-    adapter_contract: NimiStandardShellRendererBridge
-    description: Shared renderer shell glue for Tauri and Electron hosts - host-neutral command wrappers, bridge primitives, bootstrap skeleton, the exact no-input Desktop account-session-status projection, and the exact local-app session/public-permission/app-private-JSON projections; no protected projection can carry principal, permission-decision, session, token, credential, endpoint, or authorization material. Delivered as subpath exports of the single nimi-kit npm package.
+    adapter_contract: NimiStandardShellRendererBridge and nimi.renderer.host/v1
+    description: Shared renderer shell glue for Tauri and Electron hosts plus the provider-scoped nimi.renderer.host/v1 seam - host-neutral command wrappers, bridge primitives, bootstrap skeleton, opaque per-instance identity, explicit renderer/overlay theme targets, overlay lease types, and standard-shell result mapping; no protected projection can carry principal, permission-decision, session, token, credential, endpoint, authorization, raw module/instance identity, or host discriminator. Delivered as subpath exports of the single nimi-kit npm package.
     dependencies:
       - kit.shell.capabilities
       - kit.core
       - kit.core.desktop-open
       - kit.auth
       - kit.telemetry
+      - kit.ui
       - sdk
     peer_dependencies:
       - react
     exports:
       - ./shell/renderer/bridge
       - ./shell/renderer/bootstrap
+      - ./shell/renderer/host
     headless_exports:
       - ./shell/renderer/bridge
       - ./shell/renderer/bootstrap
-    ui_exports: []
+    ui_exports:
+      - ./shell/renderer/host
     reuse_entrypoints:
       - ./shell/renderer/bridge
       - ./shell/renderer/bootstrap
+      - ./shell/renderer/host
     admission_status: active
     owner: platform
     source_rule: P-KIT-042

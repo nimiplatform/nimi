@@ -3,6 +3,13 @@ owner: sdks
 enum_id: sdks_typescript_error_codes
 values:
   - SDK_APP_ID_REQUIRED
+  - SDK_HOST_UNSUPPORTED
+  - SDK_HOST_CAPABILITY_DENIED
+  - SDK_HOST_RESOURCE_EXHAUSTED
+  - SDK_INVALID_INPUT
+  - SDK_HOST_UNAVAILABLE
+  - SDK_HOST_EFFECT_FORBIDDEN
+  - SDK_HOST_INTERNAL
   - SDK_ADAPTER_FEATURE_UNSUPPORTED
   - SDK_TRANSPORT_INVALID
   - SDK_RUNTIME_NODE_GRPC_ENDPOINT_REQUIRED
@@ -35,6 +42,27 @@ values:
 codes:
   - name: SDK_APP_ID_REQUIRED
     family: SDK_CONFIG
+    source_rule: S-ERROR-003
+  - name: SDK_HOST_UNSUPPORTED
+    family: SDK_HOST
+    source_rule: S-ERROR-003
+  - name: SDK_HOST_CAPABILITY_DENIED
+    family: SDK_HOST
+    source_rule: S-ERROR-003
+  - name: SDK_HOST_RESOURCE_EXHAUSTED
+    family: SDK_HOST
+    source_rule: S-ERROR-003
+  - name: SDK_INVALID_INPUT
+    family: SDK_HOST
+    source_rule: S-ERROR-003
+  - name: SDK_HOST_UNAVAILABLE
+    family: SDK_HOST
+    source_rule: S-ERROR-003
+  - name: SDK_HOST_EFFECT_FORBIDDEN
+    family: SDK_HOST
+    source_rule: S-ERROR-003
+  - name: SDK_HOST_INTERNAL
+    family: SDK_HOST
     source_rule: S-ERROR-003
   - name: SDK_ADAPTER_FEATURE_UNSUPPORTED
     family: SDK_ADAPTER

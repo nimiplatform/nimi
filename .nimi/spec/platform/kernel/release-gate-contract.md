@@ -150,7 +150,7 @@ allow-list:
 `runtime`, `proto`, `sdk`, `desktop`, `web`, `cargo`, `nimicoding`,
 `app-tools`, `tester`, `spec-governance`, `docs`, `security`, `workflow`,
 `release-gate`, `platform-hardcut`, `runtime-provider`, `realm`, `cognition`,
-`ui`, `live`, `dev-loop`.
+`ui`, `live`, `dev-loop`, `simulator`.
 
 `MUST`: Adding to the allow-list requires editing the coherence
 checker AND a `decision-review-*.md`.
