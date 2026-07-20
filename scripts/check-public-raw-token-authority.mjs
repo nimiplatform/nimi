@@ -131,10 +131,41 @@ function validateBundle(bundle) {
 function applyFixture(bundle, fixture) {
   const source = bundle.get(fixture.path);
   if (typeof source !== 'string') throw new Error(`fixture target missing: ${fixture.fixture_id}`);
-  const first = source.indexOf(fixture.replace_from);
-  const second = first === -1 ? -1 : source.indexOf(fixture.replace_from, first + fixture.replace_from.length);
-  if (first === -1 || second !== -1) throw new Error(`fixture ${fixture.fixture_id} must replace exactly one current authority fragment`);
-  bundle.set(fixture.path, source.replace(fixture.replace_from, fixture.replace_to));
+  const mutation = fixture.mutation;
+  if (!mutation || typeof mutation !== 'object') {
+    throw new Error(`fixture ${fixture.fixture_id} is missing a semantic mutation`);
+  }
+
+  if (mutation.kind === 'markdown_weaken_public_removal') {
+    const pattern = /Public `GetAccessToken` and `RefreshAccountSession` have been removed from\s+the public protocol/iu;
+    if (!pattern.test(source)) throw new Error(`fixture ${fixture.fixture_id} canonical clause is absent`);
+    bundle.set(fixture.path, source.replace(pattern, 'Public `GetAccessToken` has no public protocol'));
+    return;
+  }
+
+  const document = YAML.parse(source);
+  if (mutation.kind === 'yaml_append') {
+    const target = mutation.path.reduce((value, segment) => value?.[segment], document);
+    if (!Array.isArray(target)) throw new Error(`fixture ${fixture.fixture_id} target is not an array`);
+    target.push(structuredClone(mutation.value));
+  } else if (mutation.kind === 'yaml_append_to_match') {
+    const rows = mutation.path.reduce((value, segment) => value?.[segment], document);
+    if (!Array.isArray(rows)) throw new Error(`fixture ${fixture.fixture_id} row target is not an array`);
+    const matches = rows.filter((row) => row?.[mutation.match.field] === mutation.match.value);
+    if (matches.length !== 1 || !Array.isArray(matches[0]?.[mutation.field])) {
+      throw new Error(`fixture ${fixture.fixture_id} must resolve one array field`);
+    }
+    matches[0][mutation.field].push(structuredClone(mutation.value));
+  } else if (mutation.kind === 'yaml_set_on_match') {
+    const rows = mutation.path.reduce((value, segment) => value?.[segment], document);
+    if (!Array.isArray(rows)) throw new Error(`fixture ${fixture.fixture_id} row target is not an array`);
+    const matches = rows.filter((row) => row?.[mutation.match.field] === mutation.match.value);
+    if (matches.length !== 1) throw new Error(`fixture ${fixture.fixture_id} must resolve one row`);
+    matches[0][mutation.field] = structuredClone(mutation.value);
+  } else {
+    throw new Error(`fixture ${fixture.fixture_id} has unknown mutation kind: ${mutation.kind}`);
+  }
+  bundle.set(fixture.path, YAML.stringify(document));
 }
 
 function runNegativeFixtures(baseline) {

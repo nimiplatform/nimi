@@ -4,7 +4,7 @@
 
 ## S-GATE-001 Layered Test Policy
 
-SDK 门禁分层：单元/模块、consumer smoke、合同/边界、runtime 投影、vNext 矩阵、覆盖率、adapter 对齐、live smoke、发布一致性。
+SDK 门禁分层：单元/模块、consumer smoke、合同/边界、runtime 投影、release contract composition、覆盖率、adapter 对齐、live smoke、发布一致性。
 
 ## S-GATE-010 Unit, Module & Consumer Baseline
 
@@ -44,9 +44,20 @@ root 下每个公开符号必须声明 `runtime-projection`、
 `capability_claims`；`check:sdk-doctor` 套件承载该一致性断言，map 与 ledger
 漂移时必须失败。
 
-## S-GATE-030 vNext Matrix Gate
+## S-GATE-030 Release Contract Composition Gate
 
-vNext 能力矩阵必须与 runtime method groups 对齐。
+SDK release contract gate 必须只组合尚未由其他 release gate 执行的
+boundary、external-consumer、adapter、proof、doctor 与 hardcut 检查。它必须在
+同一个 SDK distribution lock 内只准备一次 SDK build；各 leaf 命令独立执行时
+仍必须自包含并 fail closed。
+
+完整 SDK 测试与 build 由 coverage gate 承载；generator drift、typed-core
+conformance、packaged consumer smoke 与 version parity 保持独立边界。release
+contract composition 不得再次运行这些 suite/gate。
+
+执行命令：
+
+- `pnpm check:sdk-release-contracts`
 
 ## S-GATE-040 App And Permission Scope Gate
 

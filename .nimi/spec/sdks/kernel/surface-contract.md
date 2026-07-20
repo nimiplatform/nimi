@@ -147,7 +147,7 @@ Realm SDK 公开符号（类型名、service 名、公开方法名、property-en
 
 执行命令：
 
-- `pnpm check:sdk-vnext-matrix`
+- `pnpm check:sdk-release-contracts`
 
 ## S-SURFACE-008 App-Facing Realm DTO 必须具名且可消费
 

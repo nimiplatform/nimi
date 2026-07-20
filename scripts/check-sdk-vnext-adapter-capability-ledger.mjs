@@ -5,7 +5,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
-import { withSdkDistLock } from './lib/sdk-dist-lock.mjs';
+import { isSdkDistPrepared, withSdkDistLock } from './lib/sdk-dist-lock.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -319,12 +319,14 @@ async function main() {
   ]);
 
   await withSdkDistLock('check-sdk-vnext-adapter-capability-ledger build+test+typecheck', async () => {
-    runCommand('building vNext SDK package for adapter workspace resolution', [
-      'pnpm',
-      '--filter',
-      '@nimiplatform/sdk',
-      'build',
-    ]);
+    if (!isSdkDistPrepared()) {
+      runCommand('building vNext SDK package for adapter workspace resolution', [
+        'pnpm',
+        '--filter',
+        '@nimiplatform/sdk',
+        'build',
+      ]);
+    }
     runCommand('running adapter tests', [
       'pnpm',
       '--dir',

@@ -6,6 +6,11 @@ import { fileURLToPath } from 'node:url';
 
 export const SDK_DIST_LOCK_TOKEN_ENV = 'NIMI_SDK_DIST_LOCK_TOKEN';
 export const SDK_DIST_LOCK_DIR_ENV = 'NIMI_SDK_DIST_LOCK_DIR';
+export const SDK_DIST_PREPARED_ENV = 'NIMI_SDK_DIST_PREPARED';
+
+export function isSdkDistPrepared(env = process.env) {
+  return env[SDK_DIST_PREPARED_ENV] === '1';
+}
 
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(moduleDir, '..', '..');

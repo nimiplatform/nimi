@@ -22,7 +22,7 @@ surfaces:
     target_owner: sdks/typescript/index
     verification_gates:
       - check:sdk-vnext-package-contract
-      - check:sdk-vnext-matrix
+      - check:sdk-release-contracts
     rationale: Root remains the base package developer entry, but composition must be vNext-native and cannot re-export old SDK implementation.
 
   - current_package_subpath: "@nimiplatform/sdk/runtime"
@@ -37,8 +37,8 @@ surfaces:
       - check:sdk-vnext-runtime-consumer-smoke
       - check:runtime-bridge-method-drift
       - check:sdk-vnext-package-contract
-      - check:sdk-vnext-matrix
-      - check:sdk-vnext-matrix
+      - check:sdk-release-contracts
+      - check:sdk-release-contracts
     rationale: Runtime capability must survive over generated Runtime core, not old Runtime helpers or private Runtime imports.
 
   - current_package_subpath: "@nimiplatform/sdk/runtime/browser"
@@ -91,7 +91,7 @@ surfaces:
     target_owner: sdks/typescript/features/workflow
     verification_gates:
       - check:sdk-vnext-world-consumer-smoke
-      - check:sdk-vnext-matrix
+      - check:sdk-release-contracts
     rationale: World-domain consumption must be redesigned as Realm/Workflow-facing capability instead of keeping the old product-specific subpath.
 
   - current_package_subpath: "@nimiplatform/sdk/types"
@@ -115,7 +115,7 @@ surfaces:
       - sdks/typescript/adapters/vercel-ai
     target_owner: sdks/typescript/adapters/vercel-ai
     verification_gates:
-      - check:sdk-vnext-matrix
+      - check:sdk-release-contracts
       - check:live-provider-invariants
     rationale: Vercel-compatible provider behavior survives as an adapter source root; public adapter package naming remains owner-gated before release.
 
@@ -130,7 +130,7 @@ surfaces:
       - check:live-provider-invariants
       - check:sdk-vnext-ai-consumer-smoke
       - check:sdk-consumer-smoke
-      - check:sdk-vnext-matrix
+      - check:sdk-release-contracts
     rationale: AI capability survives as Nimi-native consume/config contracts over vNext Runtime/Realm surfaces, not provider routing truth.
 
   - current_package_subpath: "@nimiplatform/sdk/ai-app"
@@ -143,7 +143,7 @@ surfaces:
     target_owner: sdks/typescript/core/agent
     verification_gates:
       - check:sdk-consumer-smoke
-      - check:sdk-vnext-matrix
+      - check:sdk-release-contracts
     rationale: App AI session helpers survive as Agent and Conversation features; old AI App subpath must not imply Runtime Agent ownership.
 
   - current_package_subpath: "@nimiplatform/sdk/scope"

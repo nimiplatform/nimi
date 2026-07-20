@@ -3,49 +3,77 @@
     "fixture_id": "account-surface-reintroduced",
     "code": "PUBLIC_RAW_TOKEN_ACCOUNT_SURFACE_PRESENT",
     "path": ".nimi/spec/runtime/kernel/tables/account-rpc-permission-matrix.yaml",
-    "replace_from": "  - RevokeScopedAppBinding\n  - RevokeWorkspaceBinding",
-    "replace_to": "  - RevokeScopedAppBinding\n  - GetAccessToken\n  - RevokeWorkspaceBinding"
+    "mutation": {
+      "kind": "yaml_append",
+      "path": ["surfaces"],
+      "value": "GetAccessToken"
+    }
   },
   {
     "fixture_id": "refresh-account-surface-reintroduced",
     "code": "PUBLIC_REFRESH_ACCOUNT_SURFACE_PRESENT",
     "path": ".nimi/spec/runtime/kernel/tables/account-rpc-permission-matrix.yaml",
-    "replace_from": "  - RevokeScopedAppBinding\n  - RevokeWorkspaceBinding",
-    "replace_to": "  - RevokeScopedAppBinding\n  - RefreshAccountSession\n  - RevokeWorkspaceBinding"
+    "mutation": {
+      "kind": "yaml_append",
+      "path": ["surfaces"],
+      "value": "RefreshAccountSession"
+    }
   },
   {
     "fixture_id": "transport-surface-reintroduced",
     "code": "PUBLIC_RAW_TOKEN_TRANSPORT_SURFACE_PRESENT",
     "path": ".nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml",
-    "replace_from": "  - { method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary, operation_class: realm_broker_transport, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-ACCSVC-023 }",
-    "replace_to": "  - { method_id: /nimi.runtime.v1.RuntimeAccountService/GetAccessToken, operation_class: reintroduced }\n  - { method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary, operation_class: realm_broker_transport, allowed_transport_classes: [desktop_control], required_origin_roles: [desktop_account_host], request_may_select_role: false, portable_session_allowed: false, public_tcp_disposition: deny, source_rule: K-ACCSVC-023 }"
+    "mutation": {
+      "kind": "yaml_append",
+      "path": ["methods"],
+      "value": {
+        "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken",
+        "operation_class": "reintroduced"
+      }
+    }
   },
   {
     "fixture_id": "sdk-method-reexported",
     "code": "PUBLIC_RAW_TOKEN_SDK_EXPORT_FORBIDDEN",
     "path": ".nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml",
-    "replace_from": "      - RequestPresenceVerification\n      - InvokeRealmUnary",
-    "replace_to": "      - RequestPresenceVerification\n      - GetAccessToken\n      - InvokeRealmUnary"
+    "mutation": {
+      "kind": "yaml_append_to_match",
+      "path": ["groups"],
+      "match": { "field": "group", "value": "account_service_projection" },
+      "field": "methods",
+      "value": "GetAccessToken"
+    }
   },
   {
     "fixture_id": "platform-capability-reintroduced",
     "code": "PUBLIC_RAW_TOKEN_CAPABILITY_FORBIDDEN",
     "path": ".nimi/spec/platform/kernel/tables/nimi-app-registry.yaml",
-    "replace_from": "scopeName: account.session.read\n      - appId: nimi.avatar\n        scopeFamily: data\n        scopeName: data.scope.read\n        qualifier: realm.worlds.read-probe",
-    "replace_to": "scopeName: account.raw-token\n      - appId: nimi.avatar\n        scopeFamily: data\n        scopeName: data.scope.read\n        qualifier: realm.worlds.read-probe"
+    "mutation": {
+      "kind": "yaml_append_to_match",
+      "path": ["apps"],
+      "match": { "field": "app_id", "value": "nimi.avatar" },
+      "field": "permission_requirements",
+      "value": { "id": "account.raw-token", "reason": "negative fixture" }
+    }
   },
   {
     "fixture_id": "canonical-removal-weakened",
     "code": "PUBLIC_RAW_TOKEN_CANONICAL_CLAUSE_REQUIRED",
     "path": ".nimi/spec/runtime/kernel/account-session-contract.md",
-    "replace_from": "Public `GetAccessToken` and `RefreshAccountSession` have been removed from\nthe public protocol",
-    "replace_to": "Public `GetAccessToken` has no public protocol"
+    "mutation": {
+      "kind": "markdown_weaken_public_removal"
+    }
   },
   {
     "fixture_id": "avatar-surface-restored",
     "code": "PUBLIC_RAW_TOKEN_AVATAR_ACCEPTANCE_FORBIDDEN",
     "path": ".nimi/spec/avatar/kernel/tables/acceptance-recording-matrix.yaml",
-    "replace_from": "id: public_raw_token_surface_absent",
-    "replace_to": "id: first_party_raw_token_posture"
+    "mutation": {
+      "kind": "yaml_set_on_match",
+      "path": ["scenarios"],
+      "match": { "field": "id", "value": "public_raw_token_surface_absent" },
+      "field": "id",
+      "value": "first_party_raw_token_posture"
+    }
   }
 ]

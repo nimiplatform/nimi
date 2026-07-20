@@ -30,7 +30,7 @@ entries:
   - sdk_boundary_gate
   - sdk_realm_consumer_gate
   - sdk_app_realm_boundary_gate
-  - sdk_vnext_matrix_gate
+  - sdk_release_contract_gate
   - sdks_typed_core_gate
   - sdk_mod_hardcut_gate
   - sdk_runtime_stable_ai_output_gate
@@ -71,11 +71,11 @@ sdk_app_realm_boundary_gate:
   command: pnpm check:no-app-realm-rest-bypass
   path: scripts/check-no-app-realm-rest-bypass.mjs
   description: App production code Realm access boundary enforcement.
-sdk_vnext_matrix_gate:
+sdk_release_contract_gate:
   type: static_gate
-  command: pnpm check:sdk-vnext-matrix
-  path: scripts/check-sdk-vnext-matrix.mjs
-  description: vNext SDK matrix gate covering package contract, consumer smoke, adapters, migration proofs, and replacement evidence.
+  command: pnpm check:sdk-release-contracts
+  path: scripts/check-sdk-release-contracts.mjs
+  description: Non-overlapping SDK boundary, external-consumer, adapter, proof, doctor, and hardcut release contracts with one prepared SDK build.
 sdks_typed_core_gate:
   type: static_gate
   command: pnpm check:sdks-conformance-typed-core

@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { linkWorkspacePackage } from './lib/sdk-consumer-link.mjs';
-import { withSdkDistLock } from './lib/sdk-dist-lock.mjs';
+import { isSdkDistPrepared, withSdkDistLock } from './lib/sdk-dist-lock.mjs';
 
 const PNPM_BIN = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -164,7 +164,9 @@ void world;
 }
 
 function main() {
-  run('building sdks/typescript package', PNPM_BIN, ['--dir', vnextRoot, 'build']);
+  if (!isSdkDistPrepared()) {
+    run('building sdks/typescript package', PNPM_BIN, ['--dir', vnextRoot, 'build']);
+  }
   writeConsumerFiles();
   run('running package export consumer', 'node', [path.join(tempRoot, 'consumer.mjs')], { cwd: tempRoot });
   run('typechecking package export consumer', PNPM_BIN, [

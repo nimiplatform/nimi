@@ -359,7 +359,8 @@ rules:
   - rule_id: S-GATE-030
     evidence_refs:
       - sdk_kernel_consistency
-    note: "Meta-rule: vNext matrix gate"
+      - sdk_release_contract_gate
+    note: "Meta-rule: non-overlapping SDK release-contract composition"
     evidence_requirement: required
   - rule_id: S-GATE-040
     evidence_refs:
@@ -463,8 +464,12 @@ rules:
   - rule_id: S-SURFACE-007
     evidence_refs:
       - sdk_kernel_consistency
-      - sdk_vnext_matrix_gate
-    note: Unsafe raw escape hatches are naming-gated by check:sdk-vnext-matrix; stable SDK public domains must not wrap ungenerated raw Realm operations behind non-unsafe typed-looking APIs
+      - sdk_boundary_gate
+      - sdk_realm_consumer_gate
+      - sdk_app_realm_boundary_gate
+      - sdk_release_contract_gate
+      - public_raw_token_authority_hardcut_gate
+    note: Unsafe raw escape hatches are enforced at current package, Realm consumer, app boundary, release-contract, and public-token authority boundaries; stable SDK public domains must not wrap ungenerated raw Realm operations behind non-unsafe typed-looking APIs
     evidence_requirement: required
   - rule_id: S-SURFACE-008
     evidence_refs:

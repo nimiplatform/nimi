@@ -230,7 +230,7 @@ pnpm build
 ```bash
 pnpm --filter @nimiplatform/sdk lint
 pnpm --filter @nimiplatform/sdk test
-pnpm check:sdk-vnext-matrix
+pnpm check:sdk-release-contracts
 pnpm check:sdk-consumer-smoke
 ```
 

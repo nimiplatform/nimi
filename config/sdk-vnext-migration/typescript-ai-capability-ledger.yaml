@@ -177,7 +177,7 @@ surfaces:
     required_binding: Memory embedding state must bind to public Runtime memory methods and feature context surfaces; SDK AI config may reference capability intent only.
     verification_gates:
       - check:sdk-vnext-ai-runner-consumer-smoke
-      - check:sdk-vnext-matrix
+      - check:sdk-release-contracts
 
   - id: generation-jobs-and-artifacts
     current_sources:

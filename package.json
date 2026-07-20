@@ -306,7 +306,7 @@
     "check:sdk-vnext-first-party-adaptation": "node scripts/check-sdk-vnext-first-party-adaptation.mjs",
     "check:sdk-vnext-replacement-ledger": "node scripts/check-sdk-vnext-replacement-ledger.mjs",
     "check:sdk-vnext-replacement-acceptance": "node scripts/check-sdk-vnext-replacement-ledger.mjs --acceptance",
-    "check:sdk-vnext-matrix": "node scripts/check-sdk-vnext-matrix.mjs",
+    "check:sdk-release-contracts": "node scripts/check-sdk-release-contracts.mjs",
     "check:sdk-coverage": "node scripts/check-sdk-coverage.mjs",
     "check:runtime-go-coverage": "node scripts/check-runtime-go-coverage.mjs",
     "check:runtime-ai-scenario-coverage": "node scripts/check-runtime-ai-scenario-coverage.mjs",

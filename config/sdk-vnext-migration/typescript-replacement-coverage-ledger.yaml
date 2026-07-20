@@ -69,8 +69,8 @@ surfaces:
       - check:sdk-vnext-runtime-consumer-smoke
       - check:runtime-bridge-method-drift
       - check:sdk-vnext-package-contract
-      - check:sdk-vnext-matrix
-      - check:sdk-vnext-matrix
+      - check:sdk-release-contracts
+      - check:sdk-release-contracts
 
   - id: realm-projection
     current_package_surfaces:
