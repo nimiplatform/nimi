@@ -1,6 +1,8 @@
 node_modules/
 dist/
 dist-electron/
+/apps/simulator/.generated/
+/apps/.simulator-product-fixture-*/
 .next/
 coverage/
 .DS_Store
@@ -78,6 +80,8 @@ __pycache__/
 .coverage.*
 htmlcov/
 build/
+!/apps/simulator/build/
+!/apps/simulator/build/**
 site/
 .eggs/
 *.egg

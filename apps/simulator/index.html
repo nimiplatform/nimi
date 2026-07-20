@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en" data-nimi-scheme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="no-referrer" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'none'; font-src 'none'; media-src 'none'; connect-src 'none'; worker-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+    <title>Nimi Ecosystem Simulator</title>
+  </head>
+  <body>
+    <div id="simulator-disclosure-root" class="simulator-disclosure-root">
+      <header
+        id="simulator-bootstrap-status"
+        data-testid="simulator-status"
+        data-simulator-phase="starting"
+        role="status"
+        aria-live="polite"
+      >
+        <strong>Nimi Ecosystem Simulator — simulated data and effects</strong>
+        <span id="simulator-bootstrap-state">Starting controlled simulation.</span>
+      </header>
+    </div>
+    <div id="root" aria-busy="true"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
