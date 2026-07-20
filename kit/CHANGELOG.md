@@ -88,6 +88,11 @@ Discipline.
 
 ### Added
 
+- Added `@nimiplatform/kit/shell/renderer/host` as the provider-scoped
+  `nimi.renderer.host/v1` surface: exact canonical host bindings, opaque
+  instance identity, explicit renderer/overlay targets, per-instance theme,
+  host-neutral capability errors, and overlay lease contracts without a
+  process-global fallback.
 - Added the Agent Center bounded LocalAgent source/context projection. Kit now
   consumes the SDK-validated source status and latest turn summary through its
   core SDK contract, maps them to the closed `ready`, `blocked`, `truncated`,

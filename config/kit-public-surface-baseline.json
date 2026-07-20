@@ -60,6 +60,7 @@
     "./shell/electron/preload-cjs",
     "./shell/renderer/bootstrap",
     "./shell/renderer/bridge",
+    "./shell/renderer/host",
     "./telemetry",
     "./telemetry/error-boundary",
     "./ui",

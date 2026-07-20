@@ -24,31 +24,79 @@ type NimiThemeProviderProps = {
 
 const ALL_ACCENT_CLASSES = ACCENT_PACK_IDS.map((accentPack) => `nimi-theme-accent--${accentPack}`);
 
+export interface NimiThemeAttributeInput {
+  readonly scheme: NimiThemeScheme;
+  readonly accentPack: NimiAccentPack;
+  readonly density?: NimiDensity;
+}
+
+interface NimiThemeAttributeSnapshot {
+  readonly scheme: string | undefined;
+  readonly accent: string | undefined;
+  readonly density: string | undefined;
+  readonly dark: boolean;
+  readonly accentClasses: Readonly<Record<string, boolean>>;
+}
+
+/** Apply Kit theme attributes to one explicit target and restore it exactly. */
+export function applyNimiThemeAttributesToTarget(
+  target: HTMLElement,
+  {
+    scheme,
+    accentPack,
+    density = 'regular',
+  }: NimiThemeAttributeInput,
+): () => void {
+  const before: NimiThemeAttributeSnapshot = {
+    scheme: target.dataset.nimiScheme,
+    accent: target.dataset.nimiAccent,
+    density: target.dataset.nimiDensity,
+    dark: target.classList.contains('dark'),
+    accentClasses: Object.fromEntries(
+      ALL_ACCENT_CLASSES.map((className) => [className, target.classList.contains(className)]),
+    ),
+  };
+
+  target.dataset.nimiScheme = scheme;
+  target.dataset.nimiAccent = accentPack;
+  target.classList.toggle('dark', scheme === 'dark');
+  if (density === 'regular') {
+    delete target.dataset.nimiDensity;
+  } else {
+    target.dataset.nimiDensity = density;
+  }
+  for (const className of ALL_ACCENT_CLASSES) {
+    target.classList.remove(className);
+  }
+  target.classList.add(`nimi-theme-accent--${accentPack}`);
+
+  let restored = false;
+  return () => {
+    if (restored) return;
+    restored = true;
+    restoreDatasetValue(target, 'nimiScheme', before.scheme);
+    restoreDatasetValue(target, 'nimiAccent', before.accent);
+    restoreDatasetValue(target, 'nimiDensity', before.density);
+    target.classList.toggle('dark', before.dark);
+    for (const className of ALL_ACCENT_CLASSES) {
+      target.classList.toggle(className, before.accentClasses[className] === true);
+    }
+  };
+}
+
 export function applyNimiThemeAttributes({
   scheme,
   accentPack,
   density = 'regular',
-}: {
-  scheme: NimiThemeScheme;
-  accentPack: NimiAccentPack;
-  density?: NimiDensity;
-}) {
+}: NimiThemeAttributeInput): (() => void) | undefined {
   if (typeof document === 'undefined') {
     return;
   }
-  const html = document.documentElement;
-  html.dataset.nimiScheme = scheme;
-  html.dataset.nimiAccent = accentPack;
-  html.classList.toggle('dark', scheme === 'dark');
-  if (density === 'regular') {
-    delete html.dataset.nimiDensity;
-  } else {
-    html.dataset.nimiDensity = density;
-  }
-  for (const cls of ALL_ACCENT_CLASSES) {
-    html.classList.remove(cls);
-  }
-  html.classList.add(`nimi-theme-accent--${accentPack}`);
+  return applyNimiThemeAttributesToTarget(document.documentElement, {
+    scheme,
+    accentPack,
+    density,
+  });
 }
 
 export function NimiThemeProvider({
@@ -68,22 +116,11 @@ export function NimiThemeProvider({
     if (typeof document === 'undefined') {
       return;
     }
-    applyNimiThemeAttributes({ scheme: activeScheme, accentPack, density: activeDensity });
-
-    return () => {
-      const html = document.documentElement;
-      html.classList.remove('dark');
-      html.classList.remove(`nimi-theme-accent--${accentPack}`);
-      if (html.dataset.nimiAccent === accentPack) {
-        delete html.dataset.nimiAccent;
-      }
-      if (html.dataset.nimiScheme === activeScheme) {
-        delete html.dataset.nimiScheme;
-      }
-      if (html.dataset.nimiDensity === activeDensity) {
-        delete html.dataset.nimiDensity;
-      }
-    };
+    return applyNimiThemeAttributes({
+      scheme: activeScheme,
+      accentPack,
+      density: activeDensity,
+    });
   }, [accentPack, activeScheme, activeDensity]);
 
   const value = useMemo<NimiThemeContextValue>(() => ({
@@ -103,4 +140,16 @@ export function useNimiTheme() {
     throw new Error('NIMI_THEME_PROVIDER_MISSING');
   }
   return value;
+}
+
+function restoreDatasetValue(
+  target: HTMLElement,
+  key: 'nimiScheme' | 'nimiAccent' | 'nimiDensity',
+  value: string | undefined,
+): void {
+  if (value === undefined) {
+    delete target.dataset[key];
+    return;
+  }
+  target.dataset[key] = value;
 }

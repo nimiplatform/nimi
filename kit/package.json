@@ -133,6 +133,11 @@
       "import": "./dist/shell/renderer/bootstrap/index.js",
       "default": "./dist/shell/renderer/bootstrap/index.js"
     },
+    "./shell/renderer/host": {
+      "types": "./dist/shell/renderer/host/index.d.ts",
+      "import": "./dist/shell/renderer/host/index.js",
+      "default": "./dist/shell/renderer/host/index.js"
+    },
     "./shell/electron/main": {
       "types": "./dist/shell/electron/main/index.d.ts",
       "import": "./dist/shell/electron/main/index.js",

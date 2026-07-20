@@ -63,6 +63,7 @@
     "telemetry/src/**/*.d.ts",
     "shell/renderer/src/**/*.ts",
     "shell/renderer/src/**/*.tsx",
+    "shell/renderer/test/host-contract.typecheck.ts",
     "shell/capabilities/src/**/*.ts",
     "shell/electron/src/**/*.ts",
     "shell/electron/src/**/*.cts"
