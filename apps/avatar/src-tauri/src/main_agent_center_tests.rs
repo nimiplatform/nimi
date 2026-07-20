@@ -210,9 +210,6 @@ fn write_agent_center_vrm_package(home: &Path, entry_content: &[u8]) -> PathBuf 
 fn normalize_avatar_launch_instance_id_writes_generated_id_when_omitted() {
     let mut context = AvatarLaunchContext {
         agent_id: local_agent_ref(),
-        owner_user_id: owner_user_id().to_string(),
-        runtime_source_ref: runtime_source_ref().to_string(),
-        local_agent_ref: local_agent_ref(),
         avatar_instance_id: None,
         launch_source: Some("desktop-agent-chat".to_string()),
     };
@@ -231,9 +228,6 @@ fn normalize_avatar_launch_instance_id_writes_generated_id_when_omitted() {
 fn normalize_avatar_launch_instance_id_preserves_explicit_id() {
     let mut context = AvatarLaunchContext {
         agent_id: local_agent_ref(),
-        owner_user_id: owner_user_id().to_string(),
-        runtime_source_ref: runtime_source_ref().to_string(),
-        local_agent_ref: local_agent_ref(),
         avatar_instance_id: Some("instance-explicit".to_string()),
         launch_source: None,
     };

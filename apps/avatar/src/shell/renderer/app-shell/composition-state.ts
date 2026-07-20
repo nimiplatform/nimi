@@ -15,6 +15,7 @@ export type CompositionState =
   | 'fixture_active'
   | 'loading'
   | 'degraded_reauth_required'
+  | 'degraded_cloud_offline'
   | 'degraded_runtime_unavailable'
   | 'degraded_launch_context_invalid'
   | 'error_bootstrap_fatal'
@@ -60,6 +61,12 @@ export type CompositionInput = {
 };
 
 const READY_DRIVER_STATUSES = new Set<string>(['running', 'starting']);
+
+function isExplicitRealmTransportUnavailable(binding: AvatarAppState['runtime']['binding']): boolean {
+  return binding.stage === 'realm_connectivity'
+    && binding.source === 'realm'
+    && binding.reasonCode === 'REALM_UNAVAILABLE';
+}
 
 function readNormalizedString(value: string | null | undefined): string | null {
   if (typeof value !== 'string') return null;
@@ -182,7 +189,9 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
   if (!fixtureMode && input.runtimeBinding.status !== 'active') {
     const reason = readNormalizedString(input.runtimeBinding.reason);
     return {
-      state: classifyDegradedReason(reason),
+      state: isExplicitRealmTransportUnavailable(input.runtimeBinding)
+        ? 'degraded_cloud_offline'
+        : classifyDegradedReason(reason),
       variant: 'degraded',
       reason,
       reasonCode: input.runtimeBinding.reasonCode,

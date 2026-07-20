@@ -1,27 +1,16 @@
 import {
+  hasElectronRuntime,
   hasTauriRuntime,
+  invokeShell,
   invokeTauri,
+  listenShell,
   listenTauri,
 } from '@nimiplatform/kit/shell/renderer/bridge';
 
 export type ShellEventUnsubscribe = () => void;
 
-type AvatarElectronHost = {
-  invoke: <T>(command: string, payload?: unknown) => Promise<T>;
-};
-
-declare global {
-  interface Window {
-    __NIMI_AVATAR_ELECTRON__?: AvatarElectronHost;
-  }
-}
-
-export function getAvatarElectronHost(): AvatarElectronHost | undefined {
-  return typeof window === 'undefined' ? undefined : window.__NIMI_AVATAR_ELECTRON__;
-}
-
 export function hasAvatarHostRuntime(): boolean {
-  return hasTauriRuntime() || Boolean(getAvatarElectronHost());
+  return hasTauriRuntime() || hasElectronRuntime();
 }
 
 export function hasAvatarTauriHostRuntime(): boolean {
@@ -32,9 +21,8 @@ export async function invokeAvatarHostCommand<T>(
   command: string,
   payload?: unknown,
 ): Promise<T> {
-  const electronHost = getAvatarElectronHost();
-  if (electronHost) {
-    return electronHost.invoke<T>(command, payload);
+  if (hasElectronRuntime()) {
+    return invokeShell<T>(command, payload);
   }
   if (hasTauriRuntime()) {
     return invokeTauri<T>(command, payload);
@@ -46,10 +34,13 @@ export async function listenAvatarHostEvent<T>(
   eventName: string,
   handler: (payload: T) => void,
 ): Promise<ShellEventUnsubscribe> {
-  if (!hasTauriRuntime()) {
-    throw createAvatarHostUnavailableError(eventName);
+  if (hasElectronRuntime()) {
+    return listenShell(eventName, (event) => handler(event.payload as T));
   }
-  return listenTauri(eventName, (event) => handler(event.payload as T));
+  if (hasTauriRuntime()) {
+    return listenTauri(eventName, (event) => handler(event.payload as T));
+  }
+  throw createAvatarHostUnavailableError(eventName);
 }
 
 function createAvatarHostUnavailableError(command: string): Error {

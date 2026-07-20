@@ -9,6 +9,7 @@ export type FirstPartyBootstrapStage =
   | 'runtime_client_ready'
   | 'runtime_app_registration'
   | 'account_session_status'
+  | 'realm_connectivity'
   | 'account_access_token'
   | 'conversation_context'
   | 'runtime_identity_binding'

@@ -7,23 +7,12 @@ use crate::avatar_launch_context::AvatarLaunchContext;
 pub struct AvatarInstanceRegistryEntry {
     pub window_label: String,
     pub context: AvatarLaunchContext,
-    pub runtime_identity: Option<AvatarInstanceRuntimeIdentity>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct AvatarInstanceRuntimeIdentity {
-    pub avatar_instance_id: String,
-    pub owner_user_id: String,
-    pub runtime_source_ref: String,
-    pub local_agent_ref: String,
-    pub launch_source: Option<String>,
 }
 
 #[derive(Default)]
 struct AvatarInstanceRegistryState {
     instance_to_label: HashMap<String, String>,
     label_to_context: HashMap<String, AvatarLaunchContext>,
-    label_to_runtime_identity: HashMap<String, AvatarInstanceRuntimeIdentity>,
 }
 
 #[derive(Default)]
@@ -63,30 +52,9 @@ impl AvatarInstanceRegistry {
         {
             if previous_label != window_label {
                 guard.label_to_context.remove(&previous_label);
-                guard.label_to_runtime_identity.remove(&previous_label);
             }
         }
         guard.label_to_context.insert(window_label, context);
-        Ok(())
-    }
-
-    pub fn bind_runtime_identity(
-        &self,
-        window_label: &str,
-        identity: AvatarInstanceRuntimeIdentity,
-    ) -> Result<(), String> {
-        let mut guard = self
-            .state
-            .lock()
-            .map_err(|_| "failed to lock avatar instance registry".to_string())?;
-        if !guard.label_to_context.contains_key(window_label) {
-            return Err(
-                "avatar launch context is required before runtime identity binding".to_string(),
-            );
-        }
-        guard
-            .label_to_runtime_identity
-            .insert(window_label.to_string(), identity);
         Ok(())
     }
 
@@ -121,7 +89,6 @@ impl AvatarInstanceRegistry {
                 .unwrap_or_else(|| window_label.to_string());
             guard.instance_to_label.remove(&previous_instance_id);
         }
-        guard.label_to_runtime_identity.remove(window_label);
         Ok(())
     }
 
@@ -135,10 +102,6 @@ impl AvatarInstanceRegistry {
                     .map(|(window_label, context)| AvatarInstanceRegistryEntry {
                         window_label: window_label.clone(),
                         context: context.clone(),
-                        runtime_identity: guard
-                            .label_to_runtime_identity
-                            .get(window_label)
-                            .cloned(),
                     })
                     .collect::<Vec<_>>();
                 entries.sort_by(|left, right| {
@@ -170,9 +133,6 @@ mod tests {
     fn sample_context(instance_id: &str) -> AvatarLaunchContext {
         AvatarLaunchContext {
             agent_id: "local-agent:opaque-1".to_string(),
-            owner_user_id: "owner-1".to_string(),
-            runtime_source_ref: "agent-1".to_string(),
-            local_agent_ref: "local-agent:opaque-1".to_string(),
             avatar_instance_id: Some(instance_id.to_string()),
             launch_source: Some("desktop-agent-chat".to_string()),
         }

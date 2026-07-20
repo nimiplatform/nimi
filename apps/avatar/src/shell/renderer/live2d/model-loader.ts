@@ -1,4 +1,8 @@
 import { invokeAvatarHostCommand } from '../app-shell/avatar-host-bridge.js';
+import {
+  convertTauriFileSrc,
+  hasElectronRuntime,
+} from '@nimiplatform/kit/shell/renderer/bridge';
 
 // Local Avatar asset resolution is current private-skin materialization
 // plumbing. Asset Market distribution is retired; launched carriers consume
@@ -32,10 +36,20 @@ export async function resolveModelManifest(modelPath: string): Promise<ModelMani
 }
 
 export async function readTextFile(path: string): Promise<string> {
+  if (hasElectronRuntime()) {
+    const response = await fetch(convertTauriFileSrc(path));
+    if (!response.ok) throw new Error(`read ${path} failed: HTTP ${response.status}`);
+    return response.text();
+  }
   return invokeAvatarHostCommand<string>('nimi_avatar_read_text_file', { path });
 }
 
 export async function readBinaryFile(path: string): Promise<ArrayBuffer> {
+  if (hasElectronRuntime()) {
+    const response = await fetch(convertTauriFileSrc(path));
+    if (!response.ok) throw new Error(`read ${path} failed: HTTP ${response.status}`);
+    return response.arrayBuffer();
+  }
   const bytes = await invokeAvatarHostCommand<number[]>('nimi_avatar_read_binary_file', { path });
   return new Uint8Array(bytes).buffer;
 }

@@ -9,9 +9,6 @@ pub const AVATAR_CLOSE_HOST: &str = "close";
 #[serde(rename_all = "camelCase")]
 pub struct AvatarLaunchContext {
     pub agent_id: String,
-    pub owner_user_id: String,
-    pub runtime_source_ref: String,
-    pub local_agent_ref: String,
     pub avatar_instance_id: Option<String>,
     pub launch_source: Option<String>,
 }
@@ -103,6 +100,9 @@ fn forbidden_launch_query_parameter(key: &str) -> bool {
             | "reason_code"
             | "agent_center_account_id"
             | "account_id"
+            | "owner_user_id"
+            | "runtime_source_ref"
+            | "local_agent_ref"
             | "conversation_anchor_id"
             | "user_id"
             | "subject_user_id"
@@ -132,18 +132,12 @@ pub fn parse_avatar_launch_context(raw_url: &str) -> Result<AvatarLaunchContext,
     }
 
     let mut agent_id = None;
-    let mut owner_user_id = None;
-    let mut runtime_source_ref = None;
-    let mut local_agent_ref = None;
     let mut avatar_instance_id = None;
     let mut launch_source = None;
 
     for (key, value) in parsed.query_pairs() {
         match key.as_ref() {
             "agent_id" => agent_id = Some(value.into_owned()),
-            "owner_user_id" => owner_user_id = Some(value.into_owned()),
-            "runtime_source_ref" => runtime_source_ref = Some(value.into_owned()),
-            "local_agent_ref" => local_agent_ref = Some(value.into_owned()),
             "avatar_instance_id" => avatar_instance_id = Some(value.into_owned()),
             "launch_source" | "source_surface" => launch_source = Some(value.into_owned()),
             key if forbidden_launch_query_parameter(key) => {
@@ -159,24 +153,9 @@ pub fn parse_avatar_launch_context(raw_url: &str) -> Result<AvatarLaunchContext,
     }
 
     let agent_id = normalize_required_local_agent_ref(agent_id, "agent_id")?;
-    let owner_user_id = normalize_required_query_value(owner_user_id, "owner_user_id")?;
-    let runtime_source_ref =
-        normalize_required_query_value(runtime_source_ref, "runtime_source_ref")?;
-    let local_agent_ref = normalize_required_local_agent_ref(local_agent_ref, "local_agent_ref")?;
-    if agent_id != local_agent_ref {
-        return Err("avatar launch context requires agent_id to equal local_agent_ref".to_string());
-    }
-    if local_agent_ref == runtime_source_ref {
-        return Err(
-            "avatar launch context requires local_agent_ref to be Runtime-owned".to_string(),
-        );
-    }
 
     Ok(AvatarLaunchContext {
         agent_id,
-        owner_user_id,
-        runtime_source_ref,
-        local_agent_ref,
         avatar_instance_id: normalize_optional_query_value(avatar_instance_id),
         launch_source: normalize_optional_query_value(launch_source),
     })
@@ -269,7 +248,7 @@ mod tests {
             format!("&{extra}")
         };
         format!(
-            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=local-agent%3Aopaque-1&owner_user_id=owner-1&runtime_source_ref=agent-1&local_agent_ref=local-agent%3Aopaque-1{suffix}",
+            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=local-agent%3Aopaque-1{suffix}",
         )
     }
 
@@ -281,9 +260,6 @@ mod tests {
         .expect("valid launch context");
 
         assert_eq!(parsed.agent_id, "local-agent:opaque-1");
-        assert_eq!(parsed.owner_user_id, "owner-1");
-        assert_eq!(parsed.runtime_source_ref, "agent-1");
-        assert_eq!(parsed.local_agent_ref, "local-agent:opaque-1");
         assert_eq!(parsed.avatar_instance_id.as_deref(), Some("instance-1"));
         assert_eq!(parsed.launch_source.as_deref(), Some("desktop-agent-chat"));
     }

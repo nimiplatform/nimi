@@ -3,9 +3,6 @@ import { parseAvatarLaunchContext } from './launch-context.js';
 
 const baseLaunchIdentity = {
   agentId: 'local-agent:opaque-launch',
-  ownerUserId: 'owner-1',
-  runtimeSourceRef: 'agent-launch',
-  localAgentRef: 'local-agent:opaque-launch',
 };
 
 describe('parseAvatarLaunchContext', () => {
@@ -24,9 +21,6 @@ describe('parseAvatarLaunchContext', () => {
   it('accepts snake_case launch selector from the Tauri command boundary', () => {
     expect(parseAvatarLaunchContext({
       agent_id: baseLaunchIdentity.agentId,
-      owner_user_id: baseLaunchIdentity.ownerUserId,
-      runtime_source_ref: baseLaunchIdentity.runtimeSourceRef,
-      local_agent_ref: baseLaunchIdentity.localAgentRef,
       avatar_instance_id: 'instance-1',
       launch_source: 'desktop-agent-chat',
     })).toEqual({
@@ -39,19 +33,15 @@ describe('parseAvatarLaunchContext', () => {
   it('rejects bare agent identity', () => {
     expect(() => parseAvatarLaunchContext({
       agentId: 'agent-launch',
-      ownerUserId: baseLaunchIdentity.ownerUserId,
-      runtimeSourceRef: baseLaunchIdentity.runtimeSourceRef,
-      localAgentRef: 'agent-launch',
       avatarInstanceId: 'instance-1',
       launchSource: 'desktop-agent-chat',
     })).toThrow(/local-agent ref/);
   });
 
-  it('rejects missing identity and auth truth in launch context', () => {
+  it('rejects Runtime identity and auth truth in launch context', () => {
     expect(() => parseAvatarLaunchContext({
       agentId: baseLaunchIdentity.agentId,
-      runtimeSourceRef: baseLaunchIdentity.runtimeSourceRef,
-      localAgentRef: baseLaunchIdentity.localAgentRef,
+      ownerUserId: 'owner-1',
     })).toThrow(/ownerUserId/);
     expect(() => parseAvatarLaunchContext({
       ...baseLaunchIdentity,
@@ -59,11 +49,13 @@ describe('parseAvatarLaunchContext', () => {
     })).toThrow(/forbidden field: jwt/);
   });
 
-  it('rejects inconsistent identity and conversation truth in launch context', () => {
-    expect(() => parseAvatarLaunchContext({
-      ...baseLaunchIdentity,
-      localAgentRef: 'local-agent:other',
-    })).toThrow(/agentId to equal localAgentRef/);
+  it('rejects identity and conversation truth in launch context', () => {
+    for (const field of ['runtimeSourceRef', 'localAgentRef']) {
+      expect(() => parseAvatarLaunchContext({
+        ...baseLaunchIdentity,
+        [field]: 'forbidden',
+      })).toThrow(new RegExp(`forbidden field: ${field}`));
+    }
     for (const field of [
       'conversationAnchorId',
       'conversation_anchor_id',

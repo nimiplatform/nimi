@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev:renderer": "vite --host 127.0.0.1 --port 1427 --strictPort",
-    "dev:electron": "corepack pnpm run build:electron && electron dist-electron/main.js",
+    "dev:electron": "node scripts/run-electron-dev.mjs",
     "dev:shell": "tauri dev --config src-tauri/tauri.conf.json",
     "build:renderer": "vite build",
     "build:electron:prepared": "tsc -p tsconfig.electron.json && node scripts/bundle-electron-preload.mjs",

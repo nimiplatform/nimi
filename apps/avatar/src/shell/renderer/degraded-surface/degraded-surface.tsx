@@ -27,6 +27,8 @@ function stateKeyPrefix(state: CompositionDerivation['state']): string {
       return 'Avatar.degraded.loading';
     case 'degraded_reauth_required':
       return 'Avatar.degraded.degraded_reauth_required';
+    case 'degraded_cloud_offline':
+      return 'Avatar.degraded.degraded_cloud_offline';
     case 'degraded_runtime_unavailable':
       return 'Avatar.degraded.degraded_runtime_unavailable';
     case 'degraded_launch_context_invalid':
@@ -46,6 +48,7 @@ function stateKeyPrefix(state: CompositionDerivation['state']): string {
 // states render their plain summary unconditionally.
 const REASON_AWARE_STATES = new Set<CompositionDerivation['state']>([
   'degraded_reauth_required',
+  'degraded_cloud_offline',
   'degraded_runtime_unavailable',
   'error_bootstrap_fatal',
 ]);

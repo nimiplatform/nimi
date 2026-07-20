@@ -25,7 +25,7 @@ import { VRMAnimationLoaderPlugin } from '@pixiv/three-vrm-animation';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
-import { convertTauriFileSrc } from '@nimiplatform/kit/shell/renderer/bridge';
+import { convertTauriFileSrc, hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   hasAvatarHostRuntime,
   hasAvatarTauriHostRuntime,
@@ -105,7 +105,7 @@ export function __resetVrmLoaderForTests(): void {
  * and the test environment can mock the module.
  */
 export async function convertModelFilePathToUrl(path: string): Promise<string> {
-  return hasAvatarTauriHostRuntime() ? convertTauriFileSrc(path) : path;
+  return hasAvatarTauriHostRuntime() || hasElectronRuntime() ? convertTauriFileSrc(path) : path;
 }
 
 function isTauriRuntime(): boolean {

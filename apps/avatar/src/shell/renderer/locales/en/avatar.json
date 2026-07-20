@@ -75,6 +75,13 @@
         "summary_with_reason": "Avatar requires an authenticated Runtime account. Reason: {{reason}}.",
         "recovery": "Sign in through the desktop account flow, then relaunch this avatar surface."
       },
+      "degraded_cloud_offline": {
+        "badge": "Cloud offline",
+        "title": "Realm cloud is temporarily unavailable",
+        "summary": "Runtime is available, but the Realm transport could not reach the cloud service.",
+        "summary_with_reason": "Runtime is available, but the Realm transport could not reach the cloud service. Reason: {{reason}}.",
+        "recovery": "Keep Runtime running and retry this avatar surface when Realm connectivity returns."
+      },
       "degraded_runtime_unavailable": {
         "badge": "Runtime unavailable",
         "title": "Runtime interaction path is not ready",

@@ -24,47 +24,6 @@ pub(crate) async fn nimi_avatar_get_launch_context(
 }
 
 #[tauri::command]
-pub(crate) async fn nimi_avatar_bind_runtime_identity(
-    window: WebviewWindow,
-    registry: State<'_, AvatarInstanceRegistry>,
-    payload: AvatarRuntimeIdentityBindingPayload,
-) -> Result<(), String> {
-    let context = registry
-        .context_for_window(window.label())?
-        .ok_or_else(|| {
-            "avatar runtime identity binding requires launch context; launch from desktop orchestrator".to_string()
-        })?;
-    let context_instance_id = context
-        .avatar_instance_id
-        .as_deref()
-        .unwrap_or_else(|| window.label())
-        .trim();
-    if context_instance_id != payload.avatar_instance_id.trim() {
-        return Err("avatar runtime identity binding avatar_instance_id mismatch".to_string());
-    }
-    registry.bind_runtime_identity(
-        window.label(),
-        AvatarInstanceRuntimeIdentity {
-            avatar_instance_id: payload.avatar_instance_id,
-            owner_user_id: payload.owner_user_id,
-            runtime_source_ref: payload.runtime_source_ref,
-            local_agent_ref: payload.local_agent_ref,
-            launch_source: payload.launch_source.or(context.launch_source.clone()),
-        },
-    )?;
-    sync_avatar_instance_projection(&registry);
-    record_avatar_backend_evidence(
-        &context,
-        "avatar.runtime.identity-bound",
-        json!({
-            "source": "avatar-backend",
-            "window_label": window.label(),
-        }),
-    );
-    Ok(())
-}
-
-#[tauri::command]
 pub(crate) async fn nimi_avatar_record_evidence(
     window: WebviewWindow,
     registry: State<'_, AvatarInstanceRegistry>,

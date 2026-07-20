@@ -130,6 +130,50 @@ describe('deriveCompositionState', () => {
     });
   });
 
+  it('classifies only the explicit Runtime-mediated Realm transport failure as Cloud offline', () => {
+    const state = deriveCompositionState(input({
+      runtimeBinding: {
+        status: 'unavailable',
+        reason: 'realm_connectivity: REALM_UNAVAILABLE / retry_realm_operation_when_available',
+        reasonCode: 'REALM_UNAVAILABLE',
+        accountReasonCode: 'BROKER_REALM_UNAVAILABLE',
+        actionHint: 'retry_realm_operation_when_available',
+        stage: 'realm_connectivity',
+        source: 'realm',
+        retryable: true,
+      },
+    }));
+
+    expect(state).toMatchObject({
+      state: 'degraded_cloud_offline',
+      variant: 'degraded',
+      reasonCode: 'REALM_UNAVAILABLE',
+      source: 'realm',
+      ready: false,
+    });
+  });
+
+  it.each([
+    ['realm rate limit', 'REALM_RATE_LIMITED', 'realm_connectivity', 'realm'],
+    ['realm permission', 'PRINCIPAL_UNAUTHORIZED', 'realm_connectivity', 'realm'],
+    ['runtime carrier unavailable', 'RUNTIME_UNAVAILABLE', 'runtime_client_ready', 'runtime'],
+  ])('does not classify %s as Cloud offline', (_label, reasonCode, stage, source) => {
+    const state = deriveCompositionState(input({
+      runtimeBinding: {
+        status: 'unavailable',
+        reason: `${stage}: ${reasonCode}`,
+        reasonCode,
+        accountReasonCode: null,
+        actionHint: null,
+        stage,
+        source,
+        retryable: true,
+      },
+    }));
+
+    expect(state.state).not.toBe('degraded_cloud_offline');
+  });
+
   it('fails closed when fixture visual model loading fails', () => {
     const state = deriveCompositionState(input({
       model: {

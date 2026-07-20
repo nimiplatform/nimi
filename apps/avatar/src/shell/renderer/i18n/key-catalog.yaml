@@ -166,6 +166,18 @@ namespaces: &avatar_i18n_key_entries
       - key: Avatar.degraded.degraded_runtime_unavailable.recovery
         usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
 
+      # state: degraded_cloud_offline
+      - key: Avatar.degraded.degraded_cloud_offline.badge
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.degraded_cloud_offline.title
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.degraded_cloud_offline.summary
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.degraded_cloud_offline.summary_with_reason
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.degraded_cloud_offline.recovery
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+
       # state: degraded_launch_context_invalid
       - key: Avatar.degraded.degraded_launch_context_invalid.badge
         usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"

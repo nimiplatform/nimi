@@ -56,6 +56,7 @@ describe('DegradedSurface — composition postures', () => {
   it.each([
     ['loading', 'Preparing the avatar'],
     ['degraded_reauth_required', 'Runtime account session is not authenticated'],
+    ['degraded_cloud_offline', 'Realm cloud is temporarily unavailable'],
     ['degraded_runtime_unavailable', 'Runtime interaction path is not ready'],
     ['degraded_launch_context_invalid', 'Launch context invalid'],
     ['error_bootstrap_fatal', 'Avatar surface failed to start'],

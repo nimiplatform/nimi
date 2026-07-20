@@ -88,21 +88,3 @@ export async function hideAvatarWindow(): Promise<void> {
 export async function closeAvatarWindow(): Promise<void> {
   await floatingWindowClose();
 }
-
-export async function bindAvatarRuntimeIdentity(input: {
-  avatarInstanceId: string;
-  ownerUserId: string;
-  runtimeSourceRef: string;
-  localAgentRef: string;
-  launchSource?: string | null;
-}): Promise<void> {
-  await invokeAvatarHostCommand('nimi_avatar_bind_runtime_identity', {
-    payload: {
-      avatarInstanceId: input.avatarInstanceId,
-      ownerUserId: input.ownerUserId,
-      runtimeSourceRef: input.runtimeSourceRef,
-      localAgentRef: input.localAgentRef,
-      launchSource: input.launchSource || null,
-    },
-  });
-}

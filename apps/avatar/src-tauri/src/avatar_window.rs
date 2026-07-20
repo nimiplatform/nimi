@@ -21,15 +21,6 @@ pub(crate) struct AvatarCursorClientPosition {
     pub(crate) scale_factor: f64,
 }
 
-#[derive(Clone, Debug, serde::Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub(crate) struct AvatarRuntimeIdentityBindingPayload {
-    pub(crate) avatar_instance_id: String,
-    pub(crate) owner_user_id: String,
-    pub(crate) runtime_source_ref: String,
-    pub(crate) local_agent_ref: String,
-    pub(crate) launch_source: Option<String>,
-}
 pub(crate) const AVATAR_WINDOW_LABEL_PREFIX: &str = "avatar-instance";
 pub(crate) const AVATAR_LAUNCH_CONTEXT_UPDATED_EVENT: &str = "avatar://launch-context-updated";
 fn sanitize_window_label_component(input: &str) -> String {

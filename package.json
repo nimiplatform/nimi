@@ -347,6 +347,7 @@
     "dev:desktop": "node apps/desktop/scripts/run-tauri-dev.mjs",
     "dev:electron:desktop": "pnpm --filter @nimiplatform/desktop dev:electron",
     "dev:electron:zhiyu": "pnpm --filter @nimiplatform/zhiyu dev:electron",
+    "dev:electron:avatar": "pnpm --filter @nimiplatform/avatar dev:electron",
     "dev:avatar": "node scripts/dev-avatar.mjs",
     "dev:web": "pnpm --filter @nimiplatform/web dev",
     "dev:tester": "pnpm --filter @nimiplatform/tester dev",

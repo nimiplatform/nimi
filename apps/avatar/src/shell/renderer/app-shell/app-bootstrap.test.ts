@@ -19,6 +19,7 @@ vi.mock('../settings-state.js', () => ({
 }));
 
 vi.mock('./app-bootstrap-helpers.js', () => ({
+  installAvatarRuntimeBridge: () => ({ installed: false, reason: 'standard-host-preload-required' }),
   loadSelectedMockScenarioFixture: (...args: unknown[]) => loadSelectedMockScenarioFixtureMock(...args),
   readNormalizedString: (value: unknown) => typeof value === 'string' ? value.trim() : '',
 }));
@@ -116,10 +117,10 @@ describe('bootstrapAvatar', () => {
     expect(handle.driver).toBeNull();
     expect(useAvatarStore.getState().runtime.binding).toEqual({
       status: 'unavailable',
-      reason: 'protected_launch_session_required',
+      reason: 'desktop_supervisor_bridge_unavailable',
       reasonCode: 'PROTECTED_ORIGIN_ROLE_MISMATCH',
       accountReasonCode: null,
-      actionHint: 'connect_protected_desktop_control_carrier',
+      actionHint: 'launch_avatar_from_desktop_supervisor',
       stage: 'protected_launch_session',
       source: 'runtime',
       retryable: false,
@@ -129,7 +130,7 @@ describe('bootstrapAvatar', () => {
       kind: 'avatar.runtime.bind-failed',
       detail: expect.objectContaining({
         runtime_app_id: 'nimi.avatar',
-        reason: 'protected_launch_session_required',
+        reason: 'desktop_supervisor_bridge_unavailable',
         error_reason_code: 'PROTECTED_ORIGIN_ROLE_MISMATCH',
       }),
     }));

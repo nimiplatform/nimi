@@ -13,7 +13,7 @@ use avatar_evidence_projection::{
     AvatarEvidenceArtifactInput, AvatarEvidenceArtifactWriteResult, AvatarEvidenceRecordInput,
 };
 use avatar_instance_projection::{persist_projection, projection_record_from_registry_entry};
-use avatar_instance_registry::{AvatarInstanceRegistry, AvatarInstanceRuntimeIdentity};
+use avatar_instance_registry::AvatarInstanceRegistry;
 use avatar_launch_context::{
     parse_avatar_deep_link_request, resolve_initial_avatar_request, AvatarCloseRequest,
     AvatarDeepLinkRequest, AvatarLaunchContext, AVATAR_LAUNCH_SCHEME,
@@ -126,7 +126,6 @@ fn main() {
             // primitive).
             nimi_avatar_get_cursor_client_position,
             nimi_avatar_get_launch_context,
-            nimi_avatar_bind_runtime_identity,
             nimi_avatar_record_evidence,
             nimi_avatar_write_evidence_artifact,
             nimi_avatar_resolve_model,

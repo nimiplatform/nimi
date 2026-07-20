@@ -75,6 +75,13 @@
         "summary_with_reason": "Avatar 需要已登录的 Runtime 账号。原因：{{reason}}。",
         "recovery": "请通过桌面账号流程完成登录，然后重新启动此 Avatar 表面。"
       },
+      "degraded_cloud_offline": {
+        "badge": "云服务离线",
+        "title": "Realm 云服务暂时不可用",
+        "summary": "本地 Runtime 正常，但 Realm 传输当前无法连接云服务。",
+        "summary_with_reason": "本地 Runtime 正常，但 Realm 传输当前无法连接云服务。原因：{{reason}}。",
+        "recovery": "请保持 Runtime 运行，并在 Realm 连通性恢复后重试此 Avatar 表面。"
+      },
       "degraded_runtime_unavailable": {
         "badge": "Runtime 不可用",
         "title": "Runtime 交互通道未就绪",
