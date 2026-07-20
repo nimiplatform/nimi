@@ -667,10 +667,12 @@ pub async fn restart_daemon_async() -> Result<RuntimeBridgeDaemonStatus, String>
     result
 }
 
+#[cfg(any(test, feature = "test-observability"))]
 pub fn reset_channel_invalidation_count() {
     channel_pool::reset_invalidation_count();
 }
 
+#[cfg(any(test, feature = "test-observability"))]
 pub fn channel_invalidation_count() -> usize {
     channel_pool::invalidation_count()
 }

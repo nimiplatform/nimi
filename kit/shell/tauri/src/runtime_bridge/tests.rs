@@ -4,14 +4,15 @@ use base64::Engine;
 use prost::Message;
 
 use super::{
-    channel_invalidation_count, current_daemon_status, invoke_unary_typed_with_metadata,
-    is_allowlisted_method, is_stream_method, reset_channel_invalidation_count,
-    restart_daemon_async, runtime_account_session_status, runtime_bridge_unary, start_daemon_async,
-    stream_event_name_with_namespace, with_runtime_bridge_host_hooks,
-    with_runtime_bridge_host_hooks_async, RuntimeBridgeAppSession, RuntimeBridgeHostHooks,
-    RuntimeBridgeMetadata, RuntimeBridgeProtectedAccessToken, RuntimeBridgeTrustedMetadata,
-    RuntimeBridgeTrustedMetadataBridgeKind, RuntimeBridgeUnaryPayload, RuntimeBridgeUnaryResult,
-    DEFAULT_EVENT_NAMESPACE, RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
+    channel_invalidation_count, channel_pool::invalidation_observer_lock, current_daemon_status,
+    invoke_unary_typed_with_metadata, is_allowlisted_method, is_stream_method,
+    reset_channel_invalidation_count, restart_daemon_async, runtime_account_session_status,
+    runtime_bridge_unary, start_daemon_async, stream_event_name_with_namespace,
+    with_runtime_bridge_host_hooks, with_runtime_bridge_host_hooks_async, RuntimeBridgeAppSession,
+    RuntimeBridgeHostHooks, RuntimeBridgeMetadata, RuntimeBridgeProtectedAccessToken,
+    RuntimeBridgeTrustedMetadata, RuntimeBridgeTrustedMetadataBridgeKind,
+    RuntimeBridgeUnaryPayload, RuntimeBridgeUnaryResult, DEFAULT_EVENT_NAMESPACE,
+    RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
 };
 
 #[tokio::test]
@@ -45,6 +46,7 @@ fn public_lifecycle_routes_do_not_delegate_to_legacy_daemon_manager() {
 
 #[test]
 fn public_lifecycle_controls_fail_closed_without_a_verified_runtime() {
+    let _observer = invalidation_observer_lock();
     reset_channel_invalidation_count();
 
     for result in [

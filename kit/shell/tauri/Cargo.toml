@@ -39,4 +39,5 @@ serde_yaml = "0.9"
 
 [features]
 default = []
+test-observability = []
 windows-e2e-fixture = ["nimi-shell-protected-local/windows-e2e-fixture"]

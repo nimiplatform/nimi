@@ -1,6 +1,7 @@
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 
+#[cfg(any(test, feature = "test-observability"))]
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use tonic::transport::{Channel, Endpoint};
@@ -26,7 +27,10 @@ enum ChannelRole {
 }
 
 static CHANNEL_CACHE: OnceLock<Mutex<ChannelCache>> = OnceLock::new();
+#[cfg(any(test, feature = "test-observability"))]
 static INVALIDATION_COUNT: AtomicUsize = AtomicUsize::new(0);
+#[cfg(test)]
+static INVALIDATION_OBSERVER_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 
 fn cache() -> &'static Mutex<ChannelCache> {
     CHANNEL_CACHE.get_or_init(|| Mutex::new(ChannelCache::default()))
@@ -45,15 +49,26 @@ pub fn invalidate_channel() {
         .lock()
         .expect("runtime bridge channel cache lock poisoned");
     *guard = ChannelCache::default();
+    #[cfg(any(test, feature = "test-observability"))]
     INVALIDATION_COUNT.fetch_add(1, Ordering::Relaxed);
 }
 
+#[cfg(any(test, feature = "test-observability"))]
 pub fn invalidation_count() -> usize {
     INVALIDATION_COUNT.load(Ordering::Relaxed)
 }
 
+#[cfg(any(test, feature = "test-observability"))]
 pub fn reset_invalidation_count() {
     INVALIDATION_COUNT.store(0, Ordering::Relaxed);
+}
+
+#[cfg(test)]
+pub(super) fn invalidation_observer_lock() -> std::sync::MutexGuard<'static, ()> {
+    INVALIDATION_OBSERVER_LOCK
+        .get_or_init(|| Mutex::new(()))
+        .lock()
+        .expect("runtime bridge invalidation observer lock poisoned")
 }
 
 fn cached_channel_for_role(cache: &ChannelCache, role: ChannelRole) -> Option<&CachedChannel> {
@@ -123,7 +138,9 @@ pub async fn shared_stream_channel(grpc_addr: &str) -> Result<Channel, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{cache, invalidate_channel, CachedChannel, ChannelCache};
+    use super::{
+        cache, invalidate_channel, invalidation_observer_lock, CachedChannel, ChannelCache,
+    };
     use tonic::transport::Endpoint;
 
     fn lazy_channel() -> tonic::transport::Channel {
@@ -132,6 +149,7 @@ mod tests {
 
     #[tokio::test]
     async fn invalidate_channel_clears_unary_and_stream_caches() {
+        let _observer = invalidation_observer_lock();
         {
             let mut guard = cache()
                 .lock()

@@ -52,6 +52,7 @@ sysinfo = "0.34.2"
 libc = "0.2"
 
 [dev-dependencies]
+nimi-shell-tauri = { path = "../../../kit/shell/tauri", features = ["test-observability"] }
 tower = { version = "0.5", features = ["util"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]

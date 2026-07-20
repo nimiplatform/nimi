@@ -7,17 +7,19 @@ pub use catalog::{
 };
 
 pub mod runtime {
+    #[cfg(any(test, feature = "test-observability"))]
+    pub use crate::runtime_bridge::{channel_invalidation_count, reset_channel_invalidation_count};
+
     pub use crate::runtime_bridge::{
         begin_desktop_account_login, bridge_error, build_unary_payload,
-        build_unary_payload_with_metadata, channel_invalidation_count,
-        complete_desktop_account_login, current_daemon_status, current_daemon_status_async,
-        decide_local_development_project, decode_unary_result, end_local_development_run,
-        evaluate_local_development_project, generated, generated_method_ids,
-        get_developer_mode_status, get_local_development_authority_summary, http_addr,
-        invoke_desktop_account_realm_unary, invoke_unary_typed, invoke_unary_typed_with_metadata,
-        is_allowlisted_method, is_stream_method, launch_local_development_host,
-        list_local_development_authorizations, local_development_host_running,
-        logout_desktop_account, reset_channel_invalidation_count, restart_daemon_async,
+        build_unary_payload_with_metadata, complete_desktop_account_login, current_daemon_status,
+        current_daemon_status_async, decide_local_development_project, decode_unary_result,
+        end_local_development_run, evaluate_local_development_project, generated,
+        generated_method_ids, get_developer_mode_status, get_local_development_authority_summary,
+        http_addr, invoke_desktop_account_realm_unary, invoke_unary_typed,
+        invoke_unary_typed_with_metadata, is_allowlisted_method, is_stream_method,
+        launch_local_development_host, list_local_development_authorizations,
+        local_development_host_running, logout_desktop_account, restart_daemon_async,
         revoke_local_development_authorization, set_developer_mode, set_runtime_bridge_host_hooks,
         start_daemon_async, stream_event_name_with_namespace, switch_desktop_account,
         terminate_local_development_host, DesktopAccountSessionStatusRequest, DeveloperModeState,

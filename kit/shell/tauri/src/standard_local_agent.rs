@@ -255,7 +255,15 @@ mod tests {
     use crate::runtime_account_caller::desktop_shell_runtime_account_caller;
     use crate::runtime_local_agent_identity::project_runtime_local_agent_identity;
     use serde_json::{json, Value};
-    use std::sync::Arc;
+    use std::sync::{Arc, Mutex};
+
+    static HOST_HOOK_TEST_LOCK: Mutex<()> = Mutex::new(());
+
+    fn lock_host_hook_tests() -> std::sync::MutexGuard<'static, ()> {
+        HOST_HOOK_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
 
     fn envelope(error: &str) -> Value {
         serde_json::from_str::<Value>(error).expect("standard shell error envelope")
@@ -263,6 +271,7 @@ mod tests {
 
     #[test]
     fn identity_fails_closed_without_host_hook() {
+        let _host_hooks = lock_host_hook_tests();
         set_standard_local_agent_host_hooks(StandardLocalAgentHostHooks::default())
             .expect("reset hooks");
 
@@ -276,6 +285,7 @@ mod tests {
 
     #[test]
     fn identity_uses_host_hook_projection() {
+        let _host_hooks = lock_host_hook_tests();
         set_standard_local_agent_host_hooks(StandardLocalAgentHostHooks {
             identity: Some(Arc::new(|| {
                 project_runtime_local_agent_identity(
@@ -294,6 +304,7 @@ mod tests {
 
     #[test]
     fn runtime_trusted_caller_rejects_renderer_owned_identity_fields() {
+        let _host_hooks = lock_host_hook_tests();
         set_standard_local_agent_host_hooks(StandardLocalAgentHostHooks {
             identity: None,
             runtime_trusted_caller: Some(Arc::new(|| {
@@ -316,6 +327,7 @@ mod tests {
 
     #[test]
     fn runtime_trusted_caller_projects_host_account_caller() {
+        let _host_hooks = lock_host_hook_tests();
         set_standard_local_agent_host_hooks(StandardLocalAgentHostHooks {
             identity: None,
             runtime_trusted_caller: Some(Arc::new(|| {
