@@ -1,6 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import {
+  isWdioScenarioEntry,
+  scenarioRegistry,
+} from '../../e2e/helpers/registry.mjs';
+
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
@@ -76,43 +81,80 @@ export function buildDesktopE2EEvidence(input) {
   const tauriDriver = String(input.tauriDriver || '').trim() || 'tauri-driver';
   const appMode = String(input.appMode || '').trim() || 'packaged';
   const artifactUploadPath = String(input.artifactUploadPath || 'apps/desktop/reports/e2e/**').trim();
-  const smokeOutcome = normalizeOutcome(input.smokeOutcome);
-  const journeysOutcome = normalizeOutcome(input.journeysOutcome);
+  const suiteOutcome = normalizeOutcome(input.suiteOutcome);
   const scenarios = collectScenarioArtifacts(artifactRoot);
 
   if (!platform) {
     throw new Error('platform is required');
   }
 
-  const smokeScenarios = scenarios.filter((item) => item.suite_bucket === 'smoke');
-  const journeyScenarios = scenarios.filter((item) => item.suite_bucket === 'journeys');
-  const hasScenarioArtifacts = scenarios.length > 0;
-  const hasSmokeScenarioArtifacts = smokeScenarios.length > 0;
-  const hasJourneyScenarioArtifacts = journeyScenarios.length > 0;
-  const ok = smokeOutcome === 'success'
-    && journeysOutcome === 'success'
-    && hasScenarioArtifacts
-    && hasSmokeScenarioArtifacts
-    && hasJourneyScenarioArtifacts;
-  const residualRisks = [];
-  if (smokeOutcome !== 'success') {
-    residualRisks.push(`desktop E2E smoke outcome is ${smokeOutcome}`);
+  const expectedScenarios = Array.from(scenarioRegistry.entries())
+    .filter(([, entry]) => isWdioScenarioEntry(entry))
+    .map(([scenarioId, entry]) => ({
+      scenarioId,
+      bucket: entry.bucket,
+      spec: entry.spec,
+    }));
+  const expectedById = new Map(expectedScenarios.map((entry) => [entry.scenarioId, entry]));
+  const observedCounts = new Map();
+  for (const scenario of scenarios) {
+    observedCounts.set(scenario.scenario_id, (observedCounts.get(scenario.scenario_id) || 0) + 1);
   }
-  if (journeysOutcome !== 'success') {
-    residualRisks.push(`desktop E2E journeys outcome is ${journeysOutcome}`);
+  const missingScenarioIds = expectedScenarios
+    .map((entry) => entry.scenarioId)
+    .filter((scenarioId) => !observedCounts.has(scenarioId));
+  const unexpectedScenarioIds = Array.from(observedCounts.keys())
+    .filter((scenarioId) => !expectedById.has(scenarioId))
+    .sort((left, right) => left.localeCompare(right));
+  const duplicateScenarioIds = Array.from(observedCounts.entries())
+    .filter(([, count]) => count > 1)
+    .map(([scenarioId]) => scenarioId)
+    .sort((left, right) => left.localeCompare(right));
+  const metadataMismatches = scenarios.flatMap((scenario) => {
+    const expected = expectedById.get(scenario.scenario_id);
+    if (!expected) {
+      return [];
+    }
+    const mismatches = [];
+    if (scenario.suite_bucket !== expected.bucket) {
+      mismatches.push(`${scenario.scenario_id} bucket=${scenario.suite_bucket} expected=${expected.bucket}`);
+    }
+    if (scenario.spec_path !== expected.spec) {
+      mismatches.push(`${scenario.scenario_id} spec=${scenario.spec_path || '<missing>'} expected=${expected.spec}`);
+    }
+    if (!scenario.artifact_manifest_path || !scenario.scenario_manifest_path) {
+      mismatches.push(`${scenario.scenario_id} is missing an artifact or scenario manifest`);
+    }
+    return mismatches;
+  });
+  const bucketCounts = Object.fromEntries(
+    Array.from(new Set(expectedScenarios.map((entry) => entry.bucket)))
+      .sort((left, right) => left.localeCompare(right))
+      .map((bucket) => [bucket, scenarios.filter((scenario) => scenario.suite_bucket === bucket).length]),
+  );
+  const residualRisks = [];
+  if (suiteOutcome !== 'success') {
+    residualRisks.push(`complete desktop E2E suite outcome is ${suiteOutcome}`);
   }
   if (scenarios.length === 0) {
     residualRisks.push('no desktop E2E scenario artifacts were found under apps/desktop/reports/e2e');
   }
-  if (!hasSmokeScenarioArtifacts) {
-    residualRisks.push('no desktop E2E smoke scenario artifacts were found under apps/desktop/reports/e2e');
+  if (missingScenarioIds.length > 0) {
+    residualRisks.push(`missing registered desktop E2E scenario artifacts: ${missingScenarioIds.join(', ')}`);
   }
-  if (!hasJourneyScenarioArtifacts) {
-    residualRisks.push('no desktop E2E journey scenario artifacts were found under apps/desktop/reports/e2e');
+  if (unexpectedScenarioIds.length > 0) {
+    residualRisks.push(`unexpected desktop E2E scenario artifacts: ${unexpectedScenarioIds.join(', ')}`);
+  }
+  if (duplicateScenarioIds.length > 0) {
+    residualRisks.push(`duplicate desktop E2E scenario artifacts: ${duplicateScenarioIds.join(', ')}`);
+  }
+  if (metadataMismatches.length > 0) {
+    residualRisks.push(`desktop E2E artifact metadata mismatches: ${metadataMismatches.join('; ')}`);
   }
   if (platform.includes('macos')) {
-    residualRisks.push('macOS remains non-blocking manual smoke only per D-GATE-060');
+    residualRisks.push('complete Desktop WebDriver evidence is unsupported on macOS per D-GATE-060');
   }
+  const ok = residualRisks.length === 0;
 
   return {
     generatedAt: new Date().toISOString(),
@@ -121,8 +163,7 @@ export function buildDesktopE2EEvidence(input) {
     workflowRunId,
     commit,
     ok,
-    smokeOutcome,
-    journeysOutcome,
+    suiteOutcome,
     appMode,
     prerequisites: {
       tauriDriver,
@@ -131,9 +172,15 @@ export function buildDesktopE2EEvidence(input) {
     artifactRoot,
     artifactUploadPath,
     scenarioCounts: {
-      total: scenarios.length,
-      smoke: smokeScenarios.length,
-      journeys: journeyScenarios.length,
+      expected: expectedScenarios.length,
+      observed: scenarios.length,
+      byBucket: bucketCounts,
+    },
+    coverage: {
+      missingScenarioIds,
+      unexpectedScenarioIds,
+      duplicateScenarioIds,
+      metadataMismatches,
     },
     scenarios,
     residualRisks,
@@ -153,8 +200,7 @@ export function renderDesktopE2EEvidenceMarkdown(evidence) {
     '',
     '## Pass/Fail Summary',
     '',
-    `- Smoke: ${evidence.smokeOutcome}`,
-    `- Journeys: ${evidence.journeysOutcome}`,
+    `- Complete suite: ${evidence.suiteOutcome}`,
     '',
     '## Driver / Runtime Prerequisites',
     '',
@@ -164,9 +210,9 @@ export function renderDesktopE2EEvidenceMarkdown(evidence) {
     '',
     '## Scenario Set',
     '',
-    `- Total scenarios: ${evidence.scenarioCounts.total}`,
-    `- Smoke scenarios: ${evidence.scenarioCounts.smoke}`,
-    `- Journey scenarios: ${evidence.scenarioCounts.journeys}`,
+    `- Registered scenarios: ${evidence.scenarioCounts.expected}`,
+    `- Observed scenarios: ${evidence.scenarioCounts.observed}`,
+    ...Object.entries(evidence.scenarioCounts.byBucket).map(([bucket, count]) => `- ${bucket} scenarios: ${count}`),
     '',
     '## Artifact Paths',
     '',

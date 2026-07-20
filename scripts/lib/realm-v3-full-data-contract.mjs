@@ -135,7 +135,6 @@ const CONTRACT_EXACT_PATHS = Object.freeze([
   'config/realm-contract-lock.yaml',
   'config/realm-openapi/api-nimi.yaml',
   'config/realm-v3/current-producer-admission.json',
-  'config/realm-v3/handoff-dispositions.json',
   'proto/runtime/v1/agent_service.proto',
   'proto/runtime/v1/agent_source_materialization.proto',
   'runtime/internal/services/runtimeagent/realm_source_materialization_full_data_worker_test.go',

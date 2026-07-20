@@ -44,11 +44,11 @@ const fixtures = [
     },
   },
   {
-    name: 'acceptance gate id missing',
-    expectedOutput: 'gates.id must include shared_auth_broker',
+    name: 'test topology acceptance gate id missing',
+    expectedOutput: 'gates.id must include test_topology',
     mutate(root) {
       const rel = path.join(root, 'kernel', 'tables', 'acceptance-gates.yaml');
-      replaceInFile(rel, '  - id: shared_auth_broker\n', '  - id: fixture_gate\n');
+      replaceInFile(rel, '  - id: test_topology\n', '  - id: fixture_gate\n');
     },
   },
 ];

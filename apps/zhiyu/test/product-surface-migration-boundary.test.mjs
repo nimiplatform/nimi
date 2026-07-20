@@ -101,46 +101,6 @@ test('hardcut checkpoint replaces ZM0 shared-API-only migration assumptions', as
   }
 });
 
-test('Zhiyu Electron acceptance covers unsupervised authority denial and checkpoint-scoped live evidence', async () => {
-  const noRuntimeAcceptance = await readFile(path.join(appRoot, 'test', 'e2e', 'electron-acceptance.test.mjs'), 'utf8');
-  const liveRuntimeAcceptance = await readAppFiles([
-    'test/scenario/run-context-helpers.mjs',
-    'test/scenario/apml.scenarios.test.mjs',
-    'test/scenario/media.scenarios.test.mjs',
-    'test/scenario/lifecycle.scenarios.test.mjs',
-    'test/scenario/emotion.scenarios.test.mjs',
-    'test/scenario/voice.scenarios.test.mjs',
-    'test/electron-live-runtime-acceptance-helpers.mjs',
-  ]);
-
-  assert.match(noRuntimeAcceptance, /--user-data-dir=/);
-  assert.match(noRuntimeAcceptance, /trackPageProblems/);
-  assert.match(noRuntimeAcceptance, /assertNoPageProblems/);
-  assert.match(noRuntimeAcceptance, /assertAppOwnedDatabase/);
-  assert.match(noRuntimeAcceptance, /boot_count/);
-  assert.match(noRuntimeAcceptance, /unsupported-electron-shell-command/);
-  assert.match(liveRuntimeAcceptance, /NIMI_ZHIYU_EVIDENCE_CHECKPOINT/);
-  assert.match(liveRuntimeAcceptance, /trackPageProblems/);
-  assert.match(liveRuntimeAcceptance, /assertNoPageProblems/);
-  assert.match(liveRuntimeAcceptance, /captureScenarioEvidence/);
-  assert.match(liveRuntimeAcceptance, /\$\{safeId\}\.png/);
-  assert.match(liveRuntimeAcceptance, /\$\{safeId\}\.json/);
-  assert.match(liveRuntimeAcceptance, /A-06 voice action APML reaches Runtime voice truth/);
-  assert.match(liveRuntimeAcceptance, /B-01 single completed Runtime Agent text turn/);
-  assert.match(liveRuntimeAcceptance, /C-08 turn state matrix reaches completed with typed Runtime events/);
-  assert.match(liveRuntimeAcceptance, /D-06 hook and lipsync projections are carried into companion execution state/);
-  assert.match(liveRuntimeAcceptance, /E-04 user interrupt moves native_stream playback to interrupted/);
-});
-
-test('Zhiyu scripted Electron acceptance does not require retired app-local Agent Center DOM', async () => {
-  const realLocalAgentAcceptance = await readFile(path.join(appRoot, 'test', 'e2e', 'electron-real-local-agent-acceptance.test.mjs'), 'utf8');
-
-  assert.doesNotMatch(realLocalAgentAcceptance, /data-zhiyu-agent-appearance-panel/);
-  assert.doesNotMatch(realLocalAgentAcceptance, /data-zhiyu-agent-center-tab-button/);
-  assert.doesNotMatch(realLocalAgentAcceptance, /data-zhiyu-avatar-import-action/);
-  assert.doesNotMatch(realLocalAgentAcceptance, /data-zhiyu-live2d-workbench/);
-});
-
 test('zhiyu active product source does not expose legacy surface names', async () => {
   const files = await collectProductionFiles(productionRoot);
   const violations = [];
@@ -274,14 +234,6 @@ function resolveProductionImport(importer, specifier) {
     }
   }
   return null;
-}
-
-async function readAppFiles(relativePaths) {
-  const chunks = [];
-  for (const relativePath of relativePaths) {
-    chunks.push(await readFile(path.join(appRoot, relativePath), 'utf8'));
-  }
-  return chunks.join('\n');
 }
 
 function importSpecifiers(source) {

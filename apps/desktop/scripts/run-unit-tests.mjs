@@ -68,7 +68,11 @@ function collectTestFiles(dirPath) {
       files.push(...collectTestFiles(entryPath));
       continue;
     }
-    if (stat.isFile() && (entry.endsWith('.test.ts') || entry.endsWith('.test.tsx'))) {
+    if (stat.isFile() && (
+      entry.endsWith('.test.ts')
+      || entry.endsWith('.test.tsx')
+      || entry.endsWith('.test.mjs')
+    )) {
       files.push(path.relative(workspaceRoot, entryPath).replace(/\\/g, '/'));
     }
   }

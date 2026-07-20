@@ -25,8 +25,8 @@ const cargoTargetRoot = path.join(
 childEnv.CARGO_TARGET_DIR = cargoTargetRoot;
 const cargoArgs = [
   'build',
-  '--release',
   '--locked',
+  '--release',
   '--manifest-path',
   path.join(crateRoot, 'Cargo.toml'),
 ];

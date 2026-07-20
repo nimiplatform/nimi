@@ -3,7 +3,7 @@
 // Strategy: assemble a synthetic root dir on tmpfs with a pnpm-workspace.yaml,
 // a root package.json, a workspace package.json, and a few synthetic
 // .github/workflows/*.yml files. Run the resolver against the synthetic root.
-// This avoids depending on the live repo state (which evolves between waves).
+// This avoids depending on mutable live repository state.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -420,7 +420,7 @@ test('checkWorkflowReferences: green when all references resolve', () => {
   }
 });
 
-test('checkWorkflowReferences: fail-close on synthetic unresolvable ref (W4 negative test)', () => {
+test('checkWorkflowReferences: fail-close on synthetic unresolvable ref', () => {
   const root = makeRoot();
   try {
     writeWorkflow(

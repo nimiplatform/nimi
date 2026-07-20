@@ -15,6 +15,7 @@ import {
 import {
   mkdirSync,
   mkdtempSync,
+  realpathSync,
   readFileSync,
   rmSync,
   symlinkSync,
@@ -157,7 +158,7 @@ test('default Runtime user config reader rejects an oversized real file within t
 });
 
 test('development data root accessibility rejects missing, file, and reparse-ancestor paths', (t) => {
-  const temporaryRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-dev-root-'));
+  const temporaryRoot = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'nimi-dev-root-')));
   try {
     const directRoot = path.join(temporaryRoot, 'direct', 'nimi-data');
     mkdirSync(directRoot, { recursive: true });

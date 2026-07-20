@@ -154,7 +154,7 @@ function ensureSupportedPlatform() {
   const platform = os.platform();
   if (platform === 'darwin') {
     throw new Error(
-      'desktop E2E via tauri-driver is unsupported on macOS per D-GATE-060; run `pnpm check:desktop-e2e-smoke` or `pnpm check:desktop-e2e-journeys` on Linux/Windows CI, and keep macOS to local/manual smoke only',
+      'desktop E2E via tauri-driver is unsupported on macOS per D-GATE-060; run `pnpm --filter @nimiplatform/desktop test:e2e` on Linux/Windows CI, and keep macOS to local/manual smoke only',
     );
   }
 }

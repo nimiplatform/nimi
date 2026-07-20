@@ -24,7 +24,7 @@ const contractFiles = [
   `${kernelRoot}/creation-activity-contract.md`,
   `${kernelRoot}/main-ui-copy-contract.md`,
   `${kernelRoot}/diagnostics-dev-mode-contract.md`,
-  `${kernelRoot}/testing-and-quarantine-contract.md`,
+  `${kernelRoot}/testing-contract.md`,
   `${kernelRoot}/incubation-release-contract.md`,
   `${kernelRoot}/local-persistence-boundary-contract.md`,
 ];
@@ -41,7 +41,6 @@ const tableFiles = [
   `${tablesRoot}/agent-conversation-anchor-surface.yaml`,
   `${tablesRoot}/conversation-artifact-projection.yaml`,
   `${tablesRoot}/local-persistence-boundary.yaml`,
-  `${tablesRoot}/test-quarantine-policy.yaml`,
   `${tablesRoot}/main-ui-vocabulary.yaml`,
   `${tablesRoot}/diagnostics-surface-registry.yaml`,
   `${tablesRoot}/acceptance-gates.yaml`,
@@ -273,37 +272,12 @@ function checkCapabilityPosture() {
   }
 }
 
-function checkTestQuarantine() {
-  const rel = `${tablesRoot}/test-quarantine-policy.yaml`;
-  const parsed = readYaml(rel);
-  const defaults = catalogEntry(parsed, 'default_status')?.semantics || {};
-  for (const key of ['apps/zhiyu/test', 'check:zhiyu-bootstrap', 'release_evidence']) {
-    if (defaults[key] !== 'non_authoritative_until_inventory') {
-      fail(`${rel} entries[id=default_status].semantics.${key} must be non_authoritative_until_inventory`);
-    }
-  }
-  if (catalogEntry(parsed, 'classification')) {
-    fail(`${rel} must not define a local classification vocabulary`);
-  }
-  const vocabularyRef = catalogEntry(parsed, 'classification_vocabulary_ref')?.semantics || {};
-  if (vocabularyRef.source_policy !== '.nimi/spec/platform/kernel/tables/test-governance-policy.yaml') {
-    fail(`${rel} entries[id=classification_vocabulary_ref].semantics.source_policy must reference the platform test-governance policy`);
-  }
-  if (vocabularyRef.source_catalog_id !== 'platform_test_governance_policy') {
-    fail(`${rel} entries[id=classification_vocabulary_ref].semantics.source_catalog_id must be platform_test_governance_policy`);
-  }
-  if (vocabularyRef.source_entry !== 'classification_vocabulary') {
-    fail(`${rel} entries[id=classification_vocabulary_ref].semantics.source_entry must be classification_vocabulary`);
-  }
-  if (vocabularyRef.source_rule !== 'P-TEST-002') {
-    fail(`${rel} entries[id=classification_vocabulary_ref].semantics.source_rule must be P-TEST-002`);
-  }
-  if (vocabularyRef.inventory_support_input !== 'config/zhiyu-test-inventory.yaml') {
-    fail(`${rel} entries[id=classification_vocabulary_ref].semantics.inventory_support_input must be config/zhiyu-test-inventory.yaml`);
-  }
-  if (vocabularyRef.local_classification_values !== 'forbidden') {
-    fail(`${rel} entries[id=classification_vocabulary_ref].semantics.local_classification_values must be forbidden`);
-  }
+function checkTestTopologyBinding() {
+  const rel = `${kernelRoot}/testing-contract.md`;
+  requireIncludes(rel, '.nimi/spec/platform/kernel/tables/test-governance-policy.yaml', 'platform test topology authority');
+  requireIncludes(rel, 'pnpm check:test-inventory', 'executable topology gate');
+  const retiredTable = `${tablesRoot}/test-quarantine-policy.yaml`;
+  if (exists(retiredTable)) fail(`${retiredTable} is retired parallel truth and must not exist`);
 }
 
 function checkAcceptanceGates() {
@@ -314,7 +288,7 @@ function checkAcceptanceGates() {
     'spec_negative_fixture',
     'docs_drift',
     'acceptance_matrix',
-    'binding_only_consumption',
+    'first_party_carrier_consumption',
     'sdk_kit_turn_consumption',
     'bounded_context_projection',
     'no_duplicate_turn_reducer',
@@ -322,8 +296,7 @@ function checkAcceptanceGates() {
     'no_direct_ai_consumption',
     'artifact_boundary',
     'local_persistence_boundary',
-    'shared_auth_broker',
-    'test_quarantine',
+    'test_topology',
   ];
   const gates = new Set();
   for (const row of parsed?.gates || []) {
@@ -408,7 +381,7 @@ checkConfigConsumption();
 checkSdkKitConsumption();
 checkPermissionPosture();
 checkCapabilityPosture();
-checkTestQuarantine();
+checkTestTopologyBinding();
 checkAcceptanceGates();
 checkAdmissionAndGovernance();
 

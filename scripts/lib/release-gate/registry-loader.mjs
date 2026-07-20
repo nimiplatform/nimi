@@ -433,6 +433,27 @@ export function validateRegistry(registry, contextOverride = {}) {
     errors.push(...cycleErrors);
   }
 
+  if (tierIds.has('regression')) {
+    const regressionGates = registry.gates.filter((gate) => gate?.tiers?.includes('regression'));
+    if (regressionGates.length !== 1) {
+      errors.push(`regression tier must contain exactly one workspace aggregate (got: ${regressionGates.length})`);
+    }
+    for (const gate of regressionGates) {
+      if (gate.id !== 'gate.workflow.workspace-regression' || gate.command !== 'pnpm test') {
+        errors.push(`${gate.id}: regression tier must bind gate.workflow.workspace-regression to pnpm test`);
+      }
+      if ((gate.tiers ?? []).some((tier) => tier === 'release' || tier === 'live' || tier.startsWith('release-target:'))) {
+        errors.push(`${gate.id}: regression aggregate must not also enter release or live tiers`);
+      }
+      if ((gate.requires_secrets ?? []).length > 0 || (gate.requires_external_repo ?? []).length > 0) {
+        errors.push(`${gate.id}: regression aggregate must not require secrets or an external repository`);
+      }
+      if (gate.skip_when != null) {
+        errors.push(`${gate.id}: regression aggregate must not declare skip_when`);
+      }
+    }
+  }
+
   return errors.length === 0 ? { ok: true } : { ok: false, errors };
 }
 

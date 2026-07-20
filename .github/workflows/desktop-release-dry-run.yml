@@ -129,33 +129,27 @@ jobs:
       - name: Build SDK surfaces (desktop runtime dependency)
         run: pnpm build:sdk
 
-      - name: Run desktop E2E smoke (Linux)
-        id: desktop_e2e_smoke_linux
+      - name: gate.desktop.macos-dev-security-native
+        if: matrix.platform == 'macos-latest'
+        run: pnpm test:macos:dev-security-native
+
+      - name: gate.desktop.windows-product-control-native
+        if: matrix.platform == 'windows-2025-vs2026'
+        run: pnpm --filter @nimiplatform/desktop test:windows:product-control-native
+
+      - name: Run complete desktop E2E (Linux)
+        id: desktop_e2e_linux
         if: matrix.platform == 'ubuntu-22.04'
         env:
           NIMI_E2E_NATIVE_DRIVER: /usr/bin/WebKitWebDriver
-        run: xvfb-run -a pnpm check:desktop-e2e-smoke
+        run: xvfb-run -a pnpm --filter @nimiplatform/desktop test:e2e
 
-      - name: Run desktop E2E journeys (Linux)
-        id: desktop_e2e_journeys_linux
-        if: matrix.platform == 'ubuntu-22.04'
-        env:
-          NIMI_E2E_NATIVE_DRIVER: /usr/bin/WebKitWebDriver
-        run: xvfb-run -a pnpm check:desktop-e2e-journeys
-
-      - name: Run desktop E2E smoke (Windows)
-        id: desktop_e2e_smoke_windows
+      - name: Run complete desktop E2E (Windows)
+        id: desktop_e2e_windows
         if: matrix.platform == 'windows-2025-vs2026'
         env:
           NIMI_E2E_NATIVE_DRIVER: ${{ steps.windows_native_driver.outputs.msedgedriver_path }}
-        run: pnpm check:desktop-e2e-smoke
-
-      - name: Run desktop E2E journeys (Windows)
-        id: desktop_e2e_journeys_windows
-        if: matrix.platform == 'windows-2025-vs2026'
-        env:
-          NIMI_E2E_NATIVE_DRIVER: ${{ steps.windows_native_driver.outputs.msedgedriver_path }}
-        run: pnpm check:desktop-e2e-journeys
+        run: pnpm --filter @nimiplatform/desktop test:e2e
 
       - name: Generate desktop E2E evidence (Linux)
         if: always() && matrix.platform == 'ubuntu-22.04'
@@ -165,15 +159,13 @@ jobs:
             --workflow-ref desktop-release-dry-run \
             --workflow-run-id "${GITHUB_RUN_ID}" \
             --commit "${GITHUB_SHA}" \
-            --smoke-outcome "${SMOKE_OUTCOME}" \
-            --journeys-outcome "${JOURNEYS_OUTCOME}" \
+            --suite-outcome "${SUITE_OUTCOME}" \
             --native-driver /usr/bin/WebKitWebDriver \
             --tauri-driver tauri-driver \
             --app-mode packaged \
             --artifact-upload-path "apps/desktop/reports/e2e/**"
         env:
-          SMOKE_OUTCOME: ${{ steps.desktop_e2e_smoke_linux.outcome }}
-          JOURNEYS_OUTCOME: ${{ steps.desktop_e2e_journeys_linux.outcome }}
+          SUITE_OUTCOME: ${{ steps.desktop_e2e_linux.outcome }}
 
       - name: Generate desktop E2E evidence (Windows)
         if: always() && matrix.platform == 'windows-2025-vs2026'
@@ -184,15 +176,13 @@ jobs:
             --workflow-ref desktop-release-dry-run \
             --workflow-run-id "${GITHUB_RUN_ID}" \
             --commit "${GITHUB_SHA}" \
-            --smoke-outcome "${SMOKE_OUTCOME}" \
-            --journeys-outcome "${JOURNEYS_OUTCOME}" \
+            --suite-outcome "${SUITE_OUTCOME}" \
             --native-driver "${NATIVE_DRIVER}" \
             --tauri-driver tauri-driver \
             --app-mode packaged \
             --artifact-upload-path "apps/desktop/reports/e2e/**"
         env:
-          SMOKE_OUTCOME: ${{ steps.desktop_e2e_smoke_windows.outcome }}
-          JOURNEYS_OUTCOME: ${{ steps.desktop_e2e_journeys_windows.outcome }}
+          SUITE_OUTCOME: ${{ steps.desktop_e2e_windows.outcome }}
           NATIVE_DRIVER: ${{ steps.windows_native_driver.outputs.msedgedriver_path }}
 
       - name: Upload desktop E2E evidence

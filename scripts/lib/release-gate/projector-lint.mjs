@@ -4,19 +4,13 @@
 // Authority: P-RELG-003 projection-only execution surfaces.
 //
 // Pure function. Given a parsed registry, return the byte string that
-// `package.json` `scripts.lint` should hold. Used by:
-//   - W3's scripts/generate-lint-chain.mjs (write mode)
-//   - W2's projection-drift checker (compare mode)
+// `package.json` `scripts.lint` should hold. Used by the deterministic
+// lint writer and fail-closed projection checker.
 //
 // Determinism: gate selection is by tier=fast filter, then topo-sorted
 // by prerequisites with stable tie-break by gate id. Same registry →
 // same byte output. Offline-safe.
 //
-// W2 mode (current): the lint chain is NOT yet regenerated from the
-// registry. The projection function exists so W2's drift checker can
-// compute "what the projected lint body WOULD be" — useful for the
-// future W3 transition. W3 lands the actual write to package.json.
-
 const FAST_TIER = 'fast';
 
 /**

@@ -1,9 +1,0 @@
-version: 1
-inventory_id: zhiyu_test_inventory
-owner: zhiyu
-authority_class: non_authoritative_inventory
-spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
-shards:
-  - config/test-inventories/zhiyu/shard-01.yaml
-  - config/test-inventories/zhiyu/shard-02.yaml
-  - config/test-inventories/zhiyu/shard-03.yaml

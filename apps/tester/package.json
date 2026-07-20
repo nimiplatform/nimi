@@ -18,7 +18,7 @@
     "test:e2e:electron": "corepack pnpm run build && corepack pnpm run build:electron && node --test test/electron-acceptance.mjs",
     "test:e2e:tauri": "corepack pnpm run test:e2e:tauri:plain-negative",
     "test:e2e:tauri:plain-negative": "corepack pnpm run build && node scripts/run-tauri-acceptance.mjs",
-    "test": "pnpm run prepare:workspace-surfaces && node --test test/*.test.mjs",
+    "test": "node ../../scripts/with-workspace-surfaces.mjs -- node --test test/*.test.mjs",
     "check:shell-static-parity": "node scripts/check-shell-parity.mjs",
     "check:shell-parity": "pnpm run check:shell-static-parity && pnpm run test:e2e:electron && pnpm run test:e2e:tauri",
     "check": "pnpm run test && pnpm run validate",

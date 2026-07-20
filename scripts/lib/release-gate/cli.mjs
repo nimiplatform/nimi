@@ -10,6 +10,7 @@
 const VALID_TIERS_HINT = [
   'pre-commit',
   'fast',
+  'regression',
   'first-public-existence',
   'release',
   'release-target:sdk',

@@ -8,6 +8,7 @@ import {
   collectMissingRuntimeCapabilityPairs,
   collectMissingRuntimeGenerateProviders,
   collectRetiredSdkLiveAuthorityRefs,
+  collectRetiredSdkLiveFixtureImports,
 } from './check-live-provider-invariants.mjs';
 
 const scriptsDir = path.dirname(fileURLToPath(import.meta.url));
@@ -56,6 +57,10 @@ test('SDK carrier hardcut fixture has no retired live authority', () => {
   ]);
 
   assert.deepEqual(refs, []);
+});
+
+test('Zhiyu active tests contain no retired SDK live-fixture imports', () => {
+  assert.deepEqual(collectRetiredSdkLiveFixtureImports(repoRoot), []);
 });
 
 test('SDK daemon diagnostics retain no direct startup authority', () => {

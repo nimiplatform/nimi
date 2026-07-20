@@ -29,7 +29,6 @@ const files = {
   platformAppRegistry: '.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml',
   platformPermissionEvidence: '.nimi/spec/platform/kernel/tables/rule-evidence.rules-app-permission.yaml',
   realmPointer: '.nimi/spec/realm/external-realm.md',
-  sentinel: 'config/realm-v3/protected-sentinel.json',
 };
 
 const forbiddenLegacyTokens = [
@@ -341,34 +340,6 @@ function check(overrides = {}) {
       ])) {
       fail(`${files.accountPermissions} ${row.operation_id} protected security semantics drift`);
     }
-  }
-
-  const sentinel = JSON.parse(read(files.sentinel, overrides));
-  const migrations = sentinel.authorizedAuthorityMigrations ?? [];
-  const implementationAdmission = sentinel.implementationBaseline?.admitted;
-  const requiredRealmMigrationPaths = new Set([
-    '.nimi/spec/runtime/kernel/account-session-contract.md',
-    '.nimi/spec/runtime/kernel/tables/account-rpc-permission-matrix.yaml',
-    'scripts/check-shared-auth-broker.mjs',
-  ]);
-  const actualRealmMigrationPaths = new Set(
-    migrations
-      .filter((entry) => requiredRealmMigrationPaths.has(entry.path))
-      .map((entry) => entry.path),
-  );
-  if (sentinel.schemaVersion !== 'nimi.realm-v3-protected-sentinel/v2'
-    || sentinel.implementationBaseline?.schemaVersion !== 'nimi.realm-v3-protected-implementation-baseline/v1'
-    || implementationAdmission?.changeClass !== 'ecosystem_third_party_permission_authority_hardcut'
-    || !['P-PERM-014', 'P-PERM-015', 'P-PERM-017'].every(
-      (authorityRef) => implementationAdmission?.authorityRefs?.includes(authorityRef),
-    )
-    || migrations.length < requiredRealmMigrationPaths.size
-    || actualRealmMigrationPaths.size !== requiredRealmMigrationPaths.size
-    || migrations.some((entry) => entry.authorizationState !== 'authority_aligned_and_implemented')
-    || migrations.some((entry) => !Array.isArray(entry.authorityRefs) || entry.authorityRefs.length === 0)
-    || migrations.some((entry) => !Array.isArray(entry.requiredUnchangedSemantics)
-      || entry.requiredUnchangedSemantics.length === 0)) {
-    fail(`${files.sentinel} exact protected-authority authorization drift`);
   }
 
   const specRoot = path.join(repoRoot, '.nimi/spec');

@@ -266,8 +266,8 @@ test('Windows protected candidate gate batches every non-admin preinstall bounda
   assert.match(commandText, /windows-protected-e2e-fixture\.test\.mjs/);
   assert.match(commandText, /go test \.\/internal\/protectedlocal \.\/internal\/services\/app -count=1/);
   assert.match(commandText, /go build \.\/\.\.\./);
-  assert.match(commandText, /cargo test --manifest-path kit\/shell\/protected-local\/Cargo\.toml --features windows-e2e-fixture/);
-  assert.match(commandText, /cargo check --manifest-path apps\/desktop\/src-tauri\/Cargo\.toml --no-default-features --features protected-local-e2e-fixture/);
+  assert.match(commandText, /cargo test --locked --manifest-path kit\/shell\/protected-local\/Cargo\.toml --features windows-e2e-fixture/);
+  assert.match(commandText, /cargo check --locked --manifest-path apps\/desktop\/src-tauri\/Cargo\.toml --no-default-features --features protected-local-e2e-fixture/);
   assert.match(commandText, /build-windows-protected-e2e\.mjs/);
   assert.match(commandText, /git diff --check/);
 });

@@ -6,8 +6,8 @@
 // Authority: P-RELG-001..014 in
 // .nimi/spec/platform/kernel/release-gate-contract.md.
 //
-// Replaces scripts/check-release-preflight.sh (deleted in W2). This
-// entry point is intentionally thin: it composes the CLI, registry
+// Canonical release preflight entry point. It is intentionally thin:
+// it composes the CLI, registry
 // loader, runner, evidence writer, and log formatter modules under
 // scripts/lib/release-gate/.
 //

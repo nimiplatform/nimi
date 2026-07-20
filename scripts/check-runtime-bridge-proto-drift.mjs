@@ -51,7 +51,7 @@ try {
     writeFileSync(generatedFile, before, 'utf8');
     process.stderr.write(
       `runtime bridge proto generated drift detected: ${generatedFile}\n` +
-      'run `cargo check --manifest-path kit/shell/tauri/Cargo.toml` to regenerate, then commit the generated file.\n',
+      'run `cargo check --locked --manifest-path kit/shell/tauri/Cargo.toml` to regenerate, then commit the generated file.\n',
     );
     process.exit(1);
   }

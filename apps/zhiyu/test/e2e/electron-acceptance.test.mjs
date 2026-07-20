@@ -91,14 +91,14 @@ test('unsupervised Zhiyu Electron keeps app-owned SQLite usable and fails closed
       assertProtectedHostSetDenial(runtimeReady);
       assert.equal(runtimeReady.source, 'runtime');
 
-      const sharedAuthBroker = await page.evaluate(() =>
-        globalThis.window.__NIMI_ZHIYU_ELECTRON_SDK_ACCEPTANCE__.sharedAuthBroker(),
+      const protectedRealmBroker = await page.evaluate(() =>
+        globalThis.window.__NIMI_ZHIYU_ELECTRON_SDK_ACCEPTANCE__.protectedRealmBroker(),
       );
-      assert.equal(sharedAuthBroker.transport, 'electron-ipc');
-      assert.equal(sharedAuthBroker.ok, false);
-      assert.equal(sharedAuthBroker.code, 'SDK_RUNTIME_METHOD_UNAVAILABLE');
-      assert.equal(sharedAuthBroker.reasonCode, 'SDK_RUNTIME_METHOD_UNAVAILABLE');
-      assert.equal(sharedAuthBroker.actionHint, 'use_admitted_protected_runtime_carrier');
+      assert.equal(protectedRealmBroker.transport, 'electron-ipc');
+      assert.equal(protectedRealmBroker.ok, false);
+      assert.equal(protectedRealmBroker.code, 'SDK_RUNTIME_METHOD_UNAVAILABLE');
+      assert.equal(protectedRealmBroker.reasonCode, 'SDK_RUNTIME_METHOD_UNAVAILABLE');
+      assert.equal(protectedRealmBroker.actionHint, 'use_admitted_protected_runtime_carrier');
 
       await page.setViewportSize({ width: 390, height: 900 });
       const narrowState = await page.evaluate(() => ({

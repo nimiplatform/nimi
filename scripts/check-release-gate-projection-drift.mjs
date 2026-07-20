@@ -1,34 +1,23 @@
 #!/usr/bin/env node
-//
-// Check release gate projection drift.
-//
-// Owner: scripts; this checker enforces the registry authority below.
-// Authority: P-RELG-003 projection-only execution surfaces, P-RELG-009
-// drift gate self-bootstrap, P-RELG-010 .github/** step block codegen.
-//
-// Compares projection surfaces against what the registry projects:
-//   - W2 mode (current): registry-coherent-with-current-lint and
-//     fence-walk for any existing fences (zero at W2 close)
-//   - W3 mode (activated by W3 commit): byte-compares package.json
-//     scripts.lint against projector-lint output
-//   - W5 mode (activated by W5 commit): walks .github/workflows/*.yml
-//     for marker fences and byte-compares each fence body against
-//     projector-ci-step-block output
-//
-// Determinism: pure projection comparison; no network; no command
-// execution. Offline-safe.
 
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import YAML from 'yaml';
 import { loadRegistry } from './lib/release-gate/registry-loader.mjs';
 import { projectLintChain } from './lib/release-gate/projector-lint.mjs';
 import {
-  projectCiStepBlock,
   isKnownProjectionKey,
+  projectCiStepBlock,
 } from './lib/release-gate/projector-ci-step-block.mjs';
+import {
+  findDuplicateRegisteredLeaves,
+  loadPackageScriptCatalog,
+} from './lib/release-gate/command-expander.mjs';
+import { checkPlatformSpecificGateConsumers } from './lib/release-gate/workflow-platform-gates.mjs';
 
 const REQUIRED_WORKFLOW_PROJECTION_KEYS = {
+  'ci.yml': ['core-static-checks', 'workspace-regression-checks'],
   'assurance.yml': [
     'release-target-sdk-static-checks',
     'release-target-proto-checks',
@@ -36,7 +25,11 @@ const REQUIRED_WORKFLOW_PROJECTION_KEYS = {
     'release-target-desktop-static-checks',
   ],
   'live-smoke-matrix.yml': ['live-smoke-checks'],
-  'release-runtime.yml': ['live-smoke-checks', 'release-target-runtime-static-checks'],
+  'release-runtime.yml': [
+    'live-smoke-checks',
+    'release-target-runtime-preconditions',
+    'release-target-runtime-static-checks',
+  ],
   'release.yml': [
     'live-smoke-checks',
     'release-target-sdk-static-checks',
@@ -45,222 +38,196 @@ const REQUIRED_WORKFLOW_PROJECTION_KEYS = {
   ],
 };
 
-function parseArgs(argv) {
-  const opts = {
-    registryPath: undefined,
-    workflowsDir: '.github/workflows',
-    packageJsonPath: 'package.json',
-    mode: 'auto', // auto | w2 | w3 | w5
-  };
-  for (let i = 0; i < argv.length; i += 1) {
-    const arg = argv[i];
-    switch (arg) {
-      case '--registry-path':
-        opts.registryPath = argv[++i];
-        break;
-      case '--workflows-dir':
-        opts.workflowsDir = argv[++i];
-        break;
-      case '--package-json':
-        opts.packageJsonPath = argv[++i];
-        break;
-      case '--mode':
-        opts.mode = argv[++i];
-        break;
-      case '--help':
-      case '-h':
-        process.stdout.write(USAGE + '\n');
-        process.exit(0);
-        return null;
-      default:
-        process.stderr.write(`unknown argument: ${arg}\n`);
-        process.exit(2);
-    }
-  }
-  return opts;
-}
+const FENCE_HEAD_RE = /^(\s*)#\s*>>>\s*nimi-release-gate-projection:\s*([a-z0-9-]+(?::[a-z0-9-]+)?)\s*>>>\s*$/iu;
+const FENCE_TAIL_RE = /^(\s*)#\s*<<<\s*nimi-release-gate-projection:\s*([a-z0-9-]+(?::[a-z0-9-]+)?)\s*<<<\s*$/iu;
 
 const USAGE = [
   'Usage: node scripts/check-release-gate-projection-drift.mjs [options]',
   '',
   'Options:',
-  '  --registry-path <path>    Override default registry yaml path',
-  '  --workflows-dir <dir>     Override .github/workflows directory',
-  '  --package-json <path>     Override package.json path',
-  '  --mode <auto|w2|w3|w5>    Activation mode (default: auto)',
-  '                            auto: detect by presence of fences / lint regen marker',
-  '                            w2: registry-coherent-with-current-lint only',
-  '                            w3: include lint-chain projection drift',
-  '                            w5: include CI workflow fence projection drift',
+  '  --registry-path <path>    Override the release-gate registry',
+  '  --workflows-dir <dir>     Override .github/workflows',
+  '  --package-json <path>     Override package.json',
   '  --help                    Print this help and exit',
-  '',
-  'Exit: 0 on green; 1 on drift detected; 2 on usage error',
 ].join('\n');
 
-const FENCE_HEAD_RE = /^\s*#\s*>>>\s*nimi-release-gate-projection:\s*([a-z0-9-]+(?::[a-z0-9-]+)?)\s*>>>\s*$/i;
-const FENCE_TAIL_RE = /^\s*#\s*<<<\s*nimi-release-gate-projection:\s*([a-z0-9-]+(?::[a-z0-9-]+)?)\s*<<<\s*$/i;
-
-function main() {
-  const opts = parseArgs(process.argv.slice(2));
-  const errors = [];
-  const warnings = [];
-
-  const loadResult = loadRegistry(opts.registryPath);
-  if (!loadResult.ok) {
-    for (const err of loadResult.errors) {
-      process.stderr.write(`registry-load error: ${err}\n`);
-    }
-    process.exit(1);
-  }
-  const registry = loadResult.registry;
-
-  // W3+ mode: lint chain projection drift detection
-  if (opts.mode === 'w3' || opts.mode === 'w5' || opts.mode === 'auto') {
-    const lintCheck = checkLintChainDrift(registry, opts.packageJsonPath, opts.mode);
-    errors.push(...lintCheck.errors);
-    warnings.push(...lintCheck.warnings);
-  }
-
-  // W5+ mode: CI workflow fence projection drift detection
-  if (opts.mode === 'w5' || opts.mode === 'auto') {
-    const fenceCheck = checkWorkflowFenceDrift(registry, opts.workflowsDir);
-    errors.push(...fenceCheck.errors);
-    warnings.push(...fenceCheck.warnings);
-  }
-
-  if (warnings.length > 0) {
-    for (const w of warnings) {
-      process.stdout.write(`WARN: ${w}\n`);
+function parseArgs(argv) {
+  const options = {
+    registryPath: undefined,
+    workflowsDir: '.github/workflows',
+    packageJsonPath: 'package.json',
+  };
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === '--registry-path') options.registryPath = argv[++index];
+    else if (arg === '--workflows-dir') options.workflowsDir = argv[++index];
+    else if (arg === '--package-json') options.packageJsonPath = argv[++index];
+    else if (arg === '--help' || arg === '-h') {
+      process.stdout.write(`${USAGE}\n`);
+      process.exit(0);
+    } else {
+      process.stderr.write(`unknown argument: ${arg}\n`);
+      process.exit(2);
     }
   }
-
-  if (errors.length === 0) {
-    process.stdout.write(
-      `release-gate projection drift: OK (mode=${opts.mode})\n`
-    );
-    process.exit(0);
-  }
-
-  process.stderr.write(
-    `release-gate projection drift: FAIL (${errors.length} drift(s))\n`
-  );
-  for (const err of errors) {
-    process.stderr.write(`  - ${err}\n`);
-  }
-  process.exit(1);
+  return options;
 }
 
-function checkLintChainDrift(registry, packageJsonPath, mode) {
+function checkLintChainDrift(registry, packageJsonPath) {
   const errors = [];
-  const warnings = [];
   let pkg;
   try {
     pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
   } catch (error) {
-    errors.push(
-      `unable to read ${packageJsonPath}: ${String(error?.message ?? error)}`
-    );
-    return { errors, warnings };
+    return [`unable to read ${packageJsonPath}: ${String(error?.message ?? error)}`];
   }
-  const currentLintBody = pkg?.scripts?.lint;
-  if (typeof currentLintBody !== 'string') {
-    errors.push(`${packageJsonPath}: scripts.lint missing or not a string`);
-    return { errors, warnings };
+  if (typeof pkg?.scripts?.lint !== 'string') {
+    return [`${packageJsonPath}: scripts.lint missing or not a string`];
   }
 
   let projected;
   try {
     projected = projectLintChain(registry);
   } catch (error) {
-    errors.push(
-      `lint chain projection failed: ${String(error?.message ?? error)}`
-    );
-    return { errors, warnings };
+    return [`lint chain projection failed: ${String(error?.message ?? error)}`];
   }
-
-  if (mode === 'auto' || mode === 'w2') {
-    // W2 mode is informational: report whether the projection MATCHES the
-    // current hand-maintained lint body. We do NOT fail on drift here
-    // because W3 lands the actual generation.
-    if (projected.body !== currentLintBody) {
-      warnings.push(
-        `lint chain not yet generated from registry (W3 will land this transition); ` +
-          `projected length=${projected.body.length}, current length=${currentLintBody.length}, ` +
-          `gate count=${projected.gateIds.length}`
-      );
-    }
-    return { errors, warnings };
-  }
-
-  // W3+ mode: drift is BLOCKING
-  if (projected.body !== currentLintBody) {
+  if (projected.body !== pkg.scripts.lint) {
     errors.push(
-      `package.json scripts.lint drifted from registry projection (PROJECTION_DRIFT). ` +
-        `Re-run: pnpm exec node scripts/generate-lint-chain.mjs (lands in W3).`
+      `package.json scripts.lint drifted from registry projection (PROJECTION_DRIFT); `
+      + 'run: pnpm generate:lint-chain',
     );
   }
-  return { errors, warnings };
+  return errors;
 }
 
-function checkWorkflowFenceDrift(registry, workflowsDir) {
-  const errors = [];
-  const warnings = [];
+function extractFences(text, fileName, errors) {
+  const lines = text.split('\n');
+  const fences = [];
+  let open = null;
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const head = line.match(FENCE_HEAD_RE);
+    const tail = line.match(FENCE_TAIL_RE);
+    if (head) {
+      if (open) {
+        errors.push(`${fileName}:${index + 1}: nested fence before ${open.key} was closed`);
+        continue;
+      }
+      open = {
+        key: head[2],
+        headLine: index + 1,
+        indent: head[1].length,
+        bodyLines: [],
+      };
+      continue;
+    }
+    if (tail) {
+      if (!open) {
+        errors.push(`${fileName}:${index + 1}: unexpected fence footer ${tail[2]}`);
+        continue;
+      }
+      if (open.key !== tail[2]) {
+        errors.push(`${fileName}:${index + 1}: mismatched fence footer ${tail[2]} for ${open.key}`);
+        open = null;
+        continue;
+      }
+      fences.push(open);
+      open = null;
+      continue;
+    }
+    if (open) open.bodyLines.push(line);
+  }
+  if (open) errors.push(`${fileName}:${open.headLine}: unclosed fence ${open.key}`);
 
-  let entries = [];
-  try {
-    entries = fs.readdirSync(workflowsDir).filter((n) => /\.ya?ml$/.test(n));
-  } catch (error) {
-    warnings.push(
-      `workflows dir unreadable (${workflowsDir}): ${String(error?.message ?? error)}; skipping fence drift check`
+  const seen = new Set();
+  for (const fence of fences) {
+    if (seen.has(fence.key)) errors.push(`${fileName}:${fence.headLine}: duplicate fence ${fence.key}`);
+    seen.add(fence.key);
+  }
+  return fences;
+}
+
+function checkDuplicateJobCommands(document, fileName, registry, catalog, errors) {
+  for (const duplicate of findDuplicateRegisteredLeaves(document, registry, catalog)) {
+    const location = duplicate.leaf.cwd === '.'
+      ? duplicate.leaf.command
+      : `${duplicate.leaf.cwd}: ${duplicate.leaf.command}`;
+    errors.push(
+      `${fileName}:jobs.${duplicate.jobId}: duplicate registered command leaf in steps `
+      + `${duplicate.steps.join(', ')}: ${location}`,
     );
-    return { errors, warnings };
+  }
+}
+
+function checkWorkflowFenceDrift(registry, workflowsDir, rootDir) {
+  const errors = [];
+  let catalog;
+  try {
+    catalog = loadPackageScriptCatalog(rootDir);
+  } catch (error) {
+    return [`package script catalog unreadable: ${String(error?.message ?? error)}`];
+  }
+  let entries;
+  try {
+    entries = fs.readdirSync(workflowsDir)
+      .filter((name) => /\.ya?ml$/u.test(name))
+      .sort((left, right) => left.localeCompare(right));
+  } catch (error) {
+    return [`workflows directory unreadable: ${workflowsDir}: ${String(error?.message ?? error)}`];
   }
 
-  let totalFences = 0;
   const observedKeysByFile = new Map();
+  const workflowDocuments = [];
+  let totalFences = 0;
   for (const fileName of entries) {
     const fullPath = path.join(workflowsDir, fileName);
     let text;
     try {
       text = fs.readFileSync(fullPath, 'utf8');
     } catch (error) {
-      warnings.push(
-        `failed to read ${fullPath}: ${String(error?.message ?? error)}`
-      );
+      errors.push(`${fileName}: unreadable workflow: ${String(error?.message ?? error)}`);
       continue;
     }
-    const fences = extractFences(text);
+
+    let document;
+    try {
+      document = YAML.parse(text);
+    } catch (error) {
+      errors.push(`${fileName}: malformed workflow YAML: ${String(error?.message ?? error)}`);
+      continue;
+    }
+    workflowDocuments.push({ fileName, document });
+    checkDuplicateJobCommands(document, fileName, registry, catalog, errors);
+
+    const fences = extractFences(text, fileName, errors);
     observedKeysByFile.set(fileName, fences.map((fence) => fence.key));
     totalFences += fences.length;
     for (const fence of fences) {
       if (!isKnownProjectionKey(fence.key)) {
-        errors.push(
-          `${fileName}:${fence.headLine}: UNKNOWN_PROJECTION_KEY "${fence.key}"`
-        );
+        errors.push(`${fileName}:${fence.headLine}: UNKNOWN_PROJECTION_KEY ${fence.key}`);
         continue;
       }
       let projected;
       try {
         projected = projectCiStepBlock(registry, fence.key, { indent: fence.indent });
       } catch (error) {
-        errors.push(
-          `${fileName}:${fence.headLine}: projection failed for key "${fence.key}": ` +
-            String(error?.message ?? error)
-        );
+        errors.push(`${fileName}:${fence.headLine}: projection failed: ${String(error?.message ?? error)}`);
         continue;
       }
-      // Normalise trailing newlines for comparison
-      const projectedNorm = projected.body.replace(/\n+$/, '');
-      const fenceNorm = fence.bodyLines.join('\n').replace(/\n+$/, '');
-      if (projectedNorm !== fenceNorm) {
+      const expected = projected.body.replace(/\n+$/u, '');
+      const actual = fence.bodyLines.join('\n').replace(/\n+$/u, '');
+      if (expected !== actual) {
         errors.push(
-          `${fileName}:${fence.headLine}: PROJECTION_DRIFT for key "${fence.key}" — ` +
-            `fence content does not match registry projection. Re-run: ` +
-            `pnpm exec node scripts/generate-ci-workflow-steps.mjs (lands in W5).`
+          `${fileName}:${fence.headLine}: PROJECTION_DRIFT for ${fence.key}; `
+          + 'run: pnpm generate:ci-workflow-steps',
         );
       }
     }
   }
+
+  errors.push(...checkPlatformSpecificGateConsumers(registry, workflowDocuments));
+
+  if (totalFences === 0) errors.push(`${workflowsDir}: no release-gate projection fences found`);
   for (const [fileName, requiredKeys] of Object.entries(REQUIRED_WORKFLOW_PROJECTION_KEYS)) {
     if (!entries.includes(fileName)) {
       errors.push(`${fileName}: REQUIRED_WORKFLOW_MISSING`);
@@ -268,53 +235,30 @@ function checkWorkflowFenceDrift(registry, workflowsDir) {
     }
     const observed = new Set(observedKeysByFile.get(fileName) ?? []);
     for (const key of requiredKeys) {
-      if (!observed.has(key)) {
-        errors.push(
-          `${fileName}: MISSING_REQUIRED_PROJECTION_KEY "${key}" — release gate coverage is partial`
-        );
-      }
+      if (!observed.has(key)) errors.push(`${fileName}: MISSING_REQUIRED_PROJECTION_KEY ${key}`);
     }
   }
-  if (totalFences === 0) {
-    warnings.push(
-      `no projection fences found in ${workflowsDir}; W5 lands them. (mode=auto skips fence-drift fail.)`
-    );
-  }
-  return { errors, warnings };
+  return errors;
 }
 
-function extractFences(text) {
-  const lines = text.split('\n');
-  const fences = [];
-  let open = null;
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i];
-    const head = line.match(FENCE_HEAD_RE);
-    if (head) {
-      if (open) {
-        // Unmatched head before the previous closes; treat as fence-malformed
-        open = null;
-      }
-      // Capture indent of the marker line
-      const indent = (line.match(/^(\s*)/)?.[1] ?? '').length;
-      open = { key: head[1], headLine: i + 1, indent, bodyLines: [] };
-      continue;
-    }
-    const tail = line.match(FENCE_TAIL_RE);
-    if (tail) {
-      if (open && open.key === tail[1]) {
-        fences.push(open);
-        open = null;
-      } else {
-        open = null;
-      }
-      continue;
-    }
-    if (open) {
-      open.bodyLines.push(line);
-    }
-  }
-  return fences;
+const options = parseArgs(process.argv.slice(2));
+const loaded = loadRegistry(options.registryPath);
+if (!loaded.ok) {
+  for (const error of loaded.errors) process.stderr.write(`registry-load error: ${error}\n`);
+  process.exit(1);
 }
 
-main();
+const errors = [
+  ...checkLintChainDrift(loaded.registry, options.packageJsonPath),
+  ...checkWorkflowFenceDrift(
+    loaded.registry,
+    options.workflowsDir,
+    path.dirname(path.resolve(options.packageJsonPath)),
+  ),
+];
+if (errors.length > 0) {
+  process.stderr.write(`release-gate projection drift: FAIL (${errors.length} drift(s))\n`);
+  for (const error of errors) process.stderr.write(`  - ${error}\n`);
+  process.exit(1);
+}
+process.stdout.write('release-gate projection drift: OK\n');

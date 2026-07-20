@@ -6,7 +6,8 @@
   "scripts": {
     "build": "vite build",
     "build:artifact": "pnpm run build && node scripts/build-artifact.mjs",
-    "test": "node --test test/*.test.mjs"
+    "test": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run test:prepared",
+    "test:prepared": "pnpm run build && node --test test/*.test.mjs"
   },
   "dependencies": {
     "@nimiplatform/kit": "workspace:*",

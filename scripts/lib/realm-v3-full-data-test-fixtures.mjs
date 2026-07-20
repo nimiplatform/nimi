@@ -705,7 +705,6 @@ async function createDirtyCandidateRepository(root) {
     ['config/realm-contract-lock.yaml', `${JSON.stringify(lock)}\n`],
     ['config/realm-openapi/api-nimi.yaml', openapi],
     ['config/realm-v3/current-producer-admission.json', `${JSON.stringify(producerAdmission)}\n`],
-    ['config/realm-v3/handoff-dispositions.json', '{"schemaVersion":"fixture/v1"}\n'],
     ['proto/runtime/v1/agent_service.proto', 'syntax = "proto3";\n'],
     ['proto/runtime/v1/agent_source_materialization.proto', 'syntax = "proto3";\n'],
     ['runtime/internal/services/runtimeagent/realm_source_materialization_full_data_worker_test.go', 'package runtimeagent\n'],

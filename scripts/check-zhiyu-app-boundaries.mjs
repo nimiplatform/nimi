@@ -25,7 +25,7 @@ const agentCenterLocalConfigHardcutFiles = new Set([
 ]);
 
 const gates = new Map([
-  ['binding-only-consumption', checkBindingOnlyConsumption],
+  ['first-party-carrier-consumption', checkFirstPartyCarrierConsumption],
   ['sdk-kit-turn-consumption', checkSdkKitTurnConsumption],
   ['no-duplicate-turn-reducer', checkNoDuplicateTurnReducer],
   ['config-boundary', checkConfigBoundary],
@@ -136,7 +136,7 @@ function requireFileIncludes(rel, tokens) {
   }
 }
 
-function checkBindingOnlyConsumption() {
+function checkFirstPartyCarrierConsumption() {
   requireFileIncludes('apps/zhiyu/src/shell/agent-chat/runtime-agent-binding.ts', [
     'resolveZhiyuRuntimeAgentBindingDecision',
     'runtime-sdk-authority-admitted-first-party-electron-host-equivalence',
@@ -155,7 +155,7 @@ function checkBindingOnlyConsumption() {
     { label: 'raw runtime agent turn request', pattern: /runtime\.agent\.turn\.request/u },
     { label: 'raw runtime app-message send', pattern: /sendAppMessage\s*\([^)]*runtime\.agent/su },
   ]);
-  reportHits('binding-only consumption gate', rawRuntimeTurnHits);
+  reportHits('first-party carrier consumption gate', rawRuntimeTurnHits);
 }
 
 function checkSdkKitTurnConsumption() {

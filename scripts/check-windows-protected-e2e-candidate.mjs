@@ -10,8 +10,8 @@ export const candidateCommands = Object.freeze([
   Object.freeze({ command: process.execPath, args: ['--test', 'scripts/windows-protected-e2e-fixture.test.mjs'], cwd: repoRoot }),
   Object.freeze({ command: 'go', args: ['test', './internal/protectedlocal', './internal/services/app', '-count=1'], cwd: path.join(repoRoot, 'runtime') }),
   Object.freeze({ command: 'go', args: ['build', './...'], cwd: path.join(repoRoot, 'runtime') }),
-  Object.freeze({ command: 'cargo', args: ['test', '--manifest-path', 'kit/shell/protected-local/Cargo.toml', '--features', 'windows-e2e-fixture'], cwd: repoRoot }),
-  Object.freeze({ command: 'cargo', args: ['check', '--manifest-path', 'apps/desktop/src-tauri/Cargo.toml', '--no-default-features', '--features', 'protected-local-e2e-fixture'], cwd: repoRoot }),
+  Object.freeze({ command: 'cargo', args: ['test', '--locked', '--manifest-path', 'kit/shell/protected-local/Cargo.toml', '--features', 'windows-e2e-fixture'], cwd: repoRoot }),
+  Object.freeze({ command: 'cargo', args: ['check', '--locked', '--manifest-path', 'apps/desktop/src-tauri/Cargo.toml', '--no-default-features', '--features', 'protected-local-e2e-fixture'], cwd: repoRoot }),
   Object.freeze({ command: process.execPath, args: ['scripts/build-windows-protected-e2e.mjs'], cwd: repoRoot }),
   Object.freeze({ command: 'git', args: ['diff', '--check'], cwd: repoRoot }),
 ]);

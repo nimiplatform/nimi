@@ -6,12 +6,12 @@
 // Authority: P-RELG-003 projection-only execution surfaces, P-RELG-013
 // registry version discipline.
 //
-// Drives the per-surface generators:
-//   - lint chain body in package.json scripts.lint   (W3 lands writer)
-//   - CI workflow marker fences in .github/workflows  (W5 lands writer)
+// Drives the current per-surface generators:
+//   - lint chain body in package.json scripts.lint
+//   - CI workflow marker fences in .github/workflows
 //
 // Modes:
-//   default    write projections to disk (no-op at W2; W3/W5 wire writers)
+//   default    write projections to disk
 //   --check    invoke each surface's projection-drift check (read-only)
 //
 // Determinism: dispatcher only; per-surface generators are pure
@@ -48,9 +48,7 @@ const USAGE = [
   '              (used by nimicoding generate-spec-derived-docs --check)',
   '  --help      Print this help and exit',
   '',
-  'At W2 close, the only registered drift checker is',
-  '`scripts/check-release-gate-projection-drift.mjs`. W3 and W5 add',
-  'concrete writers that this umbrella will dispatch to once landed.',
+  'Write mode runs both deterministic projection writers.',
 ].join('\n');
 
 function runChild(command, args) {
@@ -68,21 +66,19 @@ async function main() {
   const opts = parseArgs(process.argv.slice(2));
 
   if (opts.check) {
-    // Drift-check mode dispatches to the W2 drift checker. W3 and W5
-    // can extend the dispatch list as their writers land.
     const exit = await runChild('node', [
       'scripts/check-release-gate-projection-drift.mjs',
     ]);
     process.exit(exit);
   }
 
-  // Write mode at W2: no writer surfaces are landed yet (lint chain
-  // regen lands W3; CI fence regen lands W5). Print an explicit
-  // no-op note so callers can distinguish "ran successfully with
-  // nothing to project" from "silent skip".
-  process.stdout.write(
-    'release-gate projection: no writable surfaces at W2; W3 lands lint generator; W5 lands CI fence generator.\n'
-  );
+  for (const [script, args] of [
+    ['scripts/generate-lint-chain.mjs', []],
+    ['scripts/generate-ci-workflow-steps.mjs', []],
+  ]) {
+    const exit = await runChild('node', [script, ...args]);
+    if (exit !== 0) process.exit(exit);
+  }
   process.exit(0);
 }
 

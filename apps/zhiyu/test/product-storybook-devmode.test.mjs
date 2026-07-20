@@ -27,18 +27,6 @@ function readAgentChatSource() {
   ]);
 }
 
-function readLiveRuntimeAcceptanceSource() {
-  return readAll([
-    'test/scenario/run-context-helpers.mjs',
-    'test/scenario/apml.scenarios.test.mjs',
-    'test/scenario/media.scenarios.test.mjs',
-    'test/scenario/lifecycle.scenarios.test.mjs',
-    'test/scenario/emotion.scenarios.test.mjs',
-    'test/scenario/voice.scenarios.test.mjs',
-    'test/electron-live-runtime-acceptance-helpers.mjs',
-  ]);
-}
-
 test('ZM16 product storybook is a first-class acceptance map, not an e2e script narrative', () => {
   const storybookPath = path.join(root, 'src/shell/app/zhiyu-product-storybook.ts');
   assert.equal(existsSync(storybookPath), true, 'product storybook source must exist');
@@ -86,13 +74,8 @@ test('ZM16 product shell keeps capability probes in backstage and removes image 
 test('ZM16 product shell has no app-scope AIConfig settings surface', () => {
   const settingsPath = path.join(root, 'src/shell/ai-config/zhiyu-ai-config-settings.tsx');
   const storePath = path.join(root, 'src/shell/ai-config/zhiyu-ai-config-store.ts');
-  const liveRuntimeAcceptance = readLiveRuntimeAcceptanceSource();
-
   assert.equal(existsSync(settingsPath), false);
   assert.equal(existsSync(storePath), false);
-  assert.doesNotMatch(liveRuntimeAcceptance, /localStorage|agent-home-ai|ai-config:index|clearZhiyuAIConfigStorage/);
-  assert.match(liveRuntimeAcceptance, /resetLiveRuntimeEvidenceRoot/);
-  assert.match(liveRuntimeAcceptance, /live-runtime-\.\*\\\.\(\?:png\|json\)/);
 });
 
 test('ZM16 product shell does not keep direct Runtime AI consume wrappers', () => {

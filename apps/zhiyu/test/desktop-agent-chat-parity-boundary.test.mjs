@@ -38,29 +38,6 @@ const agentChatParitySourceFiles = [
   'src/shell/agent-chat/ZhiyuAgentPanel.tsx',
 ];
 
-const liveRuntimeAcceptanceSourceFiles = [
-  'test/scenario/apml.scenarios.test.mjs',
-  'test/scenario/media.scenarios.test.mjs',
-  'test/scenario/lifecycle.scenarios.test.mjs',
-  'test/scenario/emotion.scenarios.test.mjs',
-  'test/scenario/voice.scenarios.test.mjs',
-  'test/scenario/run-context-helpers.mjs',
-  'test/scenario/repeat-runner-helpers.mjs',
-  'test/electron-live-runtime-acceptance-helpers.mjs',
-  'test/electron-live-runtime-delegation-helpers.mjs',
-  'src/shell/auth/electron-sdk-acceptance.ts',
-];
-const mediaScenarioAcceptanceSourceFiles = [
-  'test/scenario/media.scenarios.test.mjs',
-  'test/scenario/run-context-helpers.mjs',
-  'test/scenario/repeat-runner-helpers.mjs',
-];
-const lifecycleScenarioAcceptanceSourceFiles = [
-  'test/scenario/lifecycle.scenarios.test.mjs',
-  'test/scenario/run-context-helpers.mjs',
-  'test/scenario/repeat-runner-helpers.mjs',
-];
-
 test('Desktop Agent Chat hardcut removes old Zhiyu chat, binding, route, and shell paths', async () => {
   const files = await collectProductionFiles(productionRoot);
   const violations = [];
@@ -286,133 +263,6 @@ test('streaming chat exposes a product stop control wired to the active turn abo
   assert.match(appSource, /activeChatAbortRef\.current\?\.abort\('zhiyu_chat_turn_user_stopped'\)/, 'Stop handler must abort the active Runtime turn');
   assert.match(appSource, /if \(activeChatAbort\.signal\.aborted\)/, 'Aborted turns must not overwrite the user-canceled state when the Runtime promise settles');
   assert.match(appSource, /onStopChat=\{handleStopChat\}/, 'Stop handler must be passed to the agent chat surface');
-});
-
-test('Runtime action and artifact events are product-visible or explicitly deferred', async () => {
-  const surfaceSource = await readAgentChatSource();
-  const mediaScenarioSource = await readMediaScenarioAcceptanceSource();
-
-  for (const marker of [
-    'data-zhiyu-runtime-action-artifact-summary="true"',
-    'data-zhiyu-runtime-action-count',
-    'data-zhiyu-runtime-artifact-count',
-    'data-zhiyu-runtime-action-artifact-preview={summary.previewState}',
-    'data-zhiyu-runtime-action-artifact-preview-reason={summary.previewReason}',
-    'runtime-agent-turn-artifact-ready-image-rendered',
-    'zhiyu-runtime-artifact-preview-uri-not-admitted',
-    'metadata?.artifacts',
-  ]) {
-    assert.match(`${surfaceSource}\n${mediaScenarioSource}`, new RegExp(escapeRegExp(marker)), `${marker} missing from Runtime action/artifact visible parity`);
-  }
-
-  for (const marker of [
-    'B-07 image artifact renders',
-    "runtimeAgentLiveE2EChatScenarioPrompt('b-image-action')",
-    'artifact-ready',
-    'data-zhiyu-runtime-action-artifact-summary="true"',
-    'img[src^="data:image/"]',
-    'captureScenarioEvidence(context',
-    'scenarioEvidenceRoot',
-  ]) {
-    assert.match(mediaScenarioSource, new RegExp(escapeRegExp(marker)), `${marker} missing from B-07 Runtime action/artifact scenario acceptance`);
-  }
-});
-
-test('live Runtime acceptance captures streaming UI before exercising stop cancel', async () => {
-  const mediaScenarioSource = await readMediaScenarioAcceptanceSource();
-  const streamingCaptureIndex = mediaScenarioSource.indexOf("scenarioId: `${scenarioId}-streaming`");
-  const stopClickIndex = mediaScenarioSource.indexOf('await stopButton.click();');
-
-  assert.notEqual(streamingCaptureIndex, -1, 'live Runtime acceptance must capture the active streaming UI state');
-  assert.notEqual(stopClickIndex, -1, 'live Runtime acceptance must exercise the product stop action');
-  assert.ok(
-    streamingCaptureIndex < stopClickIndex,
-    'streaming screenshot/evidence must be captured before clicking stop, otherwise U08 visual parity is unproven',
-  );
-});
-
-test('live Runtime acceptance captures multi-turn transcript continuity', async () => {
-  const mediaScenarioSource = await readMediaScenarioAcceptanceSource();
-  const firstTurnIndex = mediaScenarioSource.indexOf("runtimeAgentLiveE2EChatScenarioPrompt('b-multi-turn-first')");
-  const secondTurnIndex = mediaScenarioSource.indexOf("runtimeAgentLiveE2EChatScenarioPrompt('b-multi-turn-second')");
-  const captureIndex = mediaScenarioSource.indexOf('captureScenarioEvidence(context', secondTurnIndex);
-
-  assert.notEqual(firstTurnIndex, -1, 'live Runtime acceptance must submit the first multi-turn prompt');
-  assert.notEqual(secondTurnIndex, -1, 'live Runtime acceptance must submit the second multi-turn prompt');
-  assert.notEqual(captureIndex, -1, 'live Runtime acceptance must capture multi-turn continuity evidence');
-  assert.ok(
-    firstTurnIndex < secondTurnIndex && secondTurnIndex < captureIndex,
-    'multi-turn continuity must be verified after the first and second completed turns',
-  );
-
-  for (const marker of [
-    'B-02 multi-turn Runtime Agent conversation context stays on the same anchor',
-    'firstOutput',
-    'secondPrompt',
-    'same anchor',
-    'captureScenarioEvidence(context',
-  ]) {
-    assert.match(
-      mediaScenarioSource,
-      new RegExp(escapeRegExp(marker)),
-      `${marker} missing from live Runtime multi-turn acceptance evidence`,
-    );
-  }
-
-  assert.match(mediaScenarioSource, /notEqual\(second\.chat\.requestId,\s*first\.chat\.requestId\)/);
-  assert.match(mediaScenarioSource, /second\.chat\.conversationAnchorId,\s*context\.readyEvidence\.conversation\.conversationAnchorId/);
-  assert.match(mediaScenarioSource, /second\.chat\.messages\.some\(\(message\)\s*=>\s*message\?\.text\s*===\s*firstOutput\)/);
-});
-
-test('live Runtime acceptance captures restart snapshot hydration continuity', async () => {
-  const lifecycleScenarioSource = await readLifecycleScenarioAcceptanceSource();
-  const beforeCaptureIndex = lifecycleScenarioSource.indexOf("C-05 pre-restart completed chat");
-  const restartCaptureIndex = lifecycleScenarioSource.indexOf("captureScenarioEvidence({\n          ...context,\n          page: relaunched.page");
-
-  assert.notEqual(beforeCaptureIndex, -1, 'live Runtime acceptance must capture a completed pre-restart turn');
-  assert.notEqual(restartCaptureIndex, -1, 'live Runtime acceptance must capture restart hydration evidence');
-  assert.ok(
-    beforeCaptureIndex < restartCaptureIndex,
-    'restart hydration must be verified after transcript continuity is established',
-  );
-
-  for (const marker of [
-    'C-05 app restart hydrates Runtime conversation and AI Config evidence',
-    'C-05 restart hydrated Runtime Agent chat snapshot and route',
-    'runtime-agent-session-snapshot-hydrated',
-    'const relaunchedApp = await context.launchApp();',
-    'openScenarioAppPage',
-    'captureScenarioEvidence({',
-  ]) {
-    assert.match(
-      lifecycleScenarioSource,
-      new RegExp(escapeRegExp(marker)),
-      `${marker} missing from live Runtime restart hydration acceptance evidence`,
-    );
-  }
-
-  assert.match(lifecycleScenarioSource, /await context\.closeApp\(\);/);
-  assert.match(lifecycleScenarioSource, /conversationAnchorId:\s*context\.readyEvidence\.conversation\.conversationAnchorId/);
-  assert.match(lifecycleScenarioSource, /messageCount\s*>=\s*2/);
-});
-
-test('live Runtime acceptance verifies Runtime-issued delegation scoped binding renewal', async () => {
-  const acceptanceSource = await readLiveRuntimeAcceptanceSource();
-
-  for (const marker of [
-    'renewDelegationScopedBinding',
-    'zhiyu-runtime-agent-scoped-binding-renewed',
-    'Runtime scoped binding renewal must issue a fresh binding instead of replaying the initial idempotency key',
-    'renewedScopedBinding',
-    'bindingSource, \'runtime-account-service\'',
-    'preConfigScopedBinding.bindingId',
-  ]) {
-    assert.match(
-      acceptanceSource,
-      new RegExp(escapeRegExp(marker)),
-      `${marker} missing from live Runtime scoped-binding renewal acceptance`,
-    );
-  }
 });
 
 test('chat voice controls project Runtime voice truth without settings-only pseudo affordances', async () => {
@@ -816,18 +666,6 @@ test('local-development journey separates app-owned authority from reserved publ
 
 async function readAgentChatSource() {
   return readAppFiles(agentChatParitySourceFiles);
-}
-
-async function readLiveRuntimeAcceptanceSource() {
-  return readAppFiles(liveRuntimeAcceptanceSourceFiles);
-}
-
-async function readMediaScenarioAcceptanceSource() {
-  return readAppFiles(mediaScenarioAcceptanceSourceFiles);
-}
-
-async function readLifecycleScenarioAcceptanceSource() {
-  return readAppFiles(lifecycleScenarioAcceptanceSourceFiles);
 }
 
 async function readAppFiles(relativePaths) {

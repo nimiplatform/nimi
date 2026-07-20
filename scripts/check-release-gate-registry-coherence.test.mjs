@@ -156,6 +156,47 @@ test('live tier without release tier (P-RELG-012): rejected', () => {
   expectFail(registry, "tier 'live' requires also being in 'release' tier");
 });
 
+function addRegressionAggregate(registry) {
+  registry.tiers.push({ id: 'regression', semantic: 'workspace_regression' });
+  registry.gates.push({
+    id: 'gate.workflow.workspace-regression',
+    description: 'workspace regression',
+    command: 'pnpm test',
+    runner: 'pnpm',
+    tiers: ['regression'],
+    targets: ['any'],
+    timeout_seconds: 60,
+    evidence: { shape: 'command_exit' },
+    p_relg_anchors: ['P-RELG-001'],
+    parent_p_gov_anchors: ['P-GOV-003'],
+    experimental: false,
+  });
+}
+
+test('one isolated workspace regression aggregate is valid', () => {
+  const registry = loadValidFixture();
+  addRegressionAggregate(registry);
+  const result = validateRegistry(registry, {});
+  assert.equal(result.ok, true, JSON.stringify(result.errors ?? []));
+});
+
+test('regression aggregate cannot duplicate the release lane', () => {
+  const registry = loadValidFixture();
+  addRegressionAggregate(registry);
+  registry.gates.at(-1).tiers.push('release');
+  expectFail(registry, 'must not also enter release or live tiers');
+});
+
+test('regression aggregate cannot hide prerequisites through skip_when', () => {
+  const registry = loadValidFixture();
+  addRegressionAggregate(registry);
+  registry.gates.at(-1).skip_when = {
+    condition: 'not_linux',
+    reason_code: 'PRECONDITION_NOT_MET',
+  };
+  expectFail(registry, 'must not declare skip_when');
+});
+
 test('prerequisite cycle: rejected', () => {
   const registry = loadValidFixture();
   // Add a second gate that creates a cycle

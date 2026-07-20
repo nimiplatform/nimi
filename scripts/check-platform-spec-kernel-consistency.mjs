@@ -330,38 +330,6 @@ for (const ref of allSourceRefs) {
 const kernelDir = path.join(cwd, '.nimi', 'spec', 'platform', 'kernel');
 const requiredKernelFiles = [
   'index.md',
-  'protocol-contract.md',
-  'architecture-contract.md',
-  'ai-last-mile-contract.md',
-  'ai-scope-contract.md',
-  'design-pattern-contract.md',
-  'kit-contract.md',
-  'capability-catalog-contract.md',
-  'app-slice-admission-contract.md',
-  'web-release-contract.md',
-  'package-authority-admission-contract.md',
-  'ai-profile-selection-policy-contract.md',
-  'nimi-home-contract.md',
-  'nimi-self-update-contract.md',
-  'nimi-package-release-contract.md',
-  'cold-start-authority-contract.md',
-  'nimi-app-admission-contract.md',
-  'nimi-app-local-admission-contract.md',
-  'macos-protected-local-admission-contract.md',
-  'local-config-migration-contract.md',
-  'nimi-app-audit-pipeline-contract.md',
-  'nimi-app-developer-workflow-contract.md',
-  'nimi-app-scaffolding-contract.md',
-  'nimi-proposal-intake-contract.md',
-  'test-governance-contract.md',
-  'mod-extension-retirement-contract.md',
-  'agent-identity-floor-contract.md',
-  'agent-center-contract.md',
-  'app-permission-contract.md',
-  'nimi-first-party-integration-contract.md',
-  'nimi-first-party-migration-contract.md',
-  'nimi-ecosystem-contract.md',
-  'governance-contract.md',
   'tables/nimi-kit-registry.yaml',
   'tables/canonical-capability-catalog.yaml',
   'tables/app-slice-admissions.yaml',
@@ -405,51 +373,39 @@ checkLocalAppTrustClasses();
 //          resolve to a ## P-<DOMAIN>-NNN heading in kernel
 // ========================================================
 
-const kernelContracts = [
-  'protocol-contract.md',
-  'architecture-contract.md',
-  'ai-last-mile-contract.md',
-  'ai-scope-contract.md',
-  'design-pattern-contract.md',
-  'kit-contract.md',
-  'capability-catalog-contract.md',
-  'app-slice-admission-contract.md',
-  'web-release-contract.md',
-  'package-authority-admission-contract.md',
-  'ai-profile-selection-policy-contract.md',
-  'nimi-home-contract.md',
-  'nimi-self-update-contract.md',
-  'nimi-package-release-contract.md',
-  'cold-start-authority-contract.md',
-  'nimi-app-admission-contract.md',
-  'nimi-app-local-admission-contract.md',
-  'macos-protected-local-admission-contract.md',
-  'nimi-app-audit-pipeline-contract.md',
-  'nimi-app-developer-workflow-contract.md',
-  'nimi-app-scaffolding-contract.md',
-  'nimi-proposal-intake-contract.md',
-  'test-governance-contract.md',
-  'mod-extension-retirement-contract.md',
-  'agent-identity-floor-contract.md',
-  'agent-center-contract.md',
-  'app-permission-contract.md',
-  'nimi-first-party-integration-contract.md',
-  'nimi-first-party-migration-contract.md',
-  'nimi-ecosystem-contract.md',
-  'governance-contract.md',
-];
+const kernelIndex = read('.nimi/spec/platform/kernel/index.md');
+const indexedKernelContracts = new Set(
+  [...kernelIndex.matchAll(/^\| `([^`]+-contract\.md)` \| `P-/gmu)]
+    .map((match) => match[1]),
+);
+const kernelContracts = fs.readdirSync(kernelDir)
+  .filter((name) => name.endsWith('-contract.md'))
+  .sort((a, b) => a.localeCompare(b));
+
+for (const file of indexedKernelContracts) {
+  if (!kernelContracts.includes(file)) {
+    fail(`Document Ownership Matrix references missing kernel contract: ${file}`);
+  }
+}
 
 const definedRuleIds = new Set();
 
 for (const file of kernelContracts) {
   const filePath = path.join(kernelDir, file);
-  if (!fs.existsSync(filePath)) continue;
   const content = fs.readFileSync(filePath, 'utf8');
   // Match headings like: ## P-PROTO-001 — ...
   const headingPattern = /^##\s+(P-(?:[A-Z]{2,12}|AGENT-CENTER)-\d{3})\b/gmu;
+  let definitionCount = 0;
   let match;
   while ((match = headingPattern.exec(content)) !== null) {
     definedRuleIds.add(match[1]);
+    definitionCount += 1;
+  }
+  if (definitionCount > 0 && !indexedKernelContracts.has(file)) {
+    fail(`rule-bearing kernel contract is absent from Document Ownership Matrix: ${file}`);
+  }
+  if (definitionCount === 0 && indexedKernelContracts.has(file)) {
+    fail(`Document Ownership Matrix contract defines no Platform rules: ${file}`);
   }
 }
 
@@ -773,6 +729,10 @@ function checkRuleEvidenceTraceability(definedRuleIds) {
       fail(`${rel} evidence_catalog.${ref} missing path`);
       continue;
     }
+    if (!isSafeRelativePathRef(targetPath) || targetPath.startsWith('.nimi/local/')) {
+      fail(`${rel} evidence_catalog.${ref} path must be a tracked repository-relative authority or implementation path: ${targetPath}`);
+      continue;
+    }
     if (!fs.existsSync(path.join(cwd, targetPath))) {
       fail(`${rel} evidence_catalog.${ref} path does not exist: ${targetPath}`);
     }
@@ -784,6 +744,8 @@ function checkRuleEvidenceTraceability(definedRuleIds) {
     const ruleId = String(item?.rule_id || '').trim();
     const requirement = String(item?.evidence_requirement || '').trim().toLowerCase();
     const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
+    const rawTestFiles = item?.test_files;
+    const testFiles = Array.isArray(rawTestFiles) ? rawTestFiles : [];
     const naReason = String(item?.na_reason || '').trim();
     const evidenceScopeNote = String(item?.evidence_scope_note || '').trim();
     if (!isPlatformRuleId(ruleId)) {
@@ -795,6 +757,26 @@ function checkRuleEvidenceTraceability(definedRuleIds) {
       continue;
     }
     seen.add(ruleId);
+    if (rawTestFiles != null && !Array.isArray(rawTestFiles)) {
+      fail(`${rel} ${ruleId} test_files must be an array`);
+    }
+    const seenTestFiles = new Set();
+    for (const rawTestFile of testFiles) {
+      const testFile = String(rawTestFile || '').trim();
+      if (!testFile || !isSafeRelativePathRef(testFile) || testFile.startsWith('.nimi/local/')) {
+        fail(`${rel} ${ruleId} has invalid test_files path: ${testFile || '<empty>'}`);
+        continue;
+      }
+      if (seenTestFiles.has(testFile)) {
+        fail(`${rel} ${ruleId} has duplicate test_files path: ${testFile}`);
+        continue;
+      }
+      seenTestFiles.add(testFile);
+      const absoluteTestFile = path.join(cwd, testFile);
+      if (!fs.existsSync(absoluteTestFile) || !fs.statSync(absoluteTestFile).isFile()) {
+        fail(`${rel} ${ruleId} test_files path does not resolve to a file: ${testFile}`);
+      }
+    }
     if (!definedRuleIds.has(ruleId)) {
       fail(`${rel} references unknown platform kernel rule: ${ruleId}`);
     }
@@ -1210,6 +1192,7 @@ function checkDelegatedProjectionAdmissions(definedRuleIds) {
 function checkOrphanRules(definedRuleIds, domainDocs) {
   const refs = new Map();
   const files = [...new Set([
+    ...kernelContracts.map((file) => path.posix.join('.nimi/spec/platform/kernel', file)),
     ...requiredKernelFiles.map((file) => path.posix.join('.nimi/spec/platform/kernel', file)),
     ...yamlTables.map((table) => path.posix.join('.nimi/spec/platform/kernel/tables', table.name)),
     ...domainDocs,

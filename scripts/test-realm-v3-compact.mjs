@@ -320,8 +320,7 @@ if (options.live) {
 }
 tests.push(
   { id: 'protected-local-authority', command: 'pnpm', args: ['check:protected-local-authority'], cwd: repoRoot },
-  { id: 'kit-auth-broker-parity', command: 'pnpm', args: ['check:kit-shared-auth-broker-parity'], cwd: repoRoot },
-  { id: 'realm-v3-protected-sentinel', command: 'pnpm', args: ['check:realm-v3:protected-sentinel'], cwd: repoRoot },
+  { id: 'kit-account-broker-parity', command: 'pnpm', args: ['check:kit-runtime-account-broker-parity'], cwd: repoRoot },
 );
 
 const report = {

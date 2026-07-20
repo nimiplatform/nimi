@@ -9,7 +9,7 @@ const SOURCE_PATH = resolve(
 );
 const source = readFileSync(SOURCE_PATH, 'utf-8');
 
-describe('shared-auth interim broker projection refresh', () => {
+describe('Runtime account broker projection refresh', () => {
   test('broker refresh covers chat, selected messages, notifications, and outboxes', () => {
     assert.match(source, /const syncThroughBroker = async \(\) => \{/);
     assert.match(source, /queryClient\.invalidateQueries\(\{ queryKey: \['chats'\] \}\)/);

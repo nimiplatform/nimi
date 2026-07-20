@@ -14,8 +14,8 @@
 // Per Auditor Precedence sub-rule C, this gate is a typed-contract emitter
 // — both exit code AND structured output communicate the verdict. The
 // structured output is plain text (one error per line), not JSON. Future
-// versions may emit validator-cli-result.v1 JSON; coherence checker is
-// kept simple at W1 to minimize bootstrap surface.
+// versions may emit validator-cli-result.v1 JSON; the coherence checker is
+// kept deliberately small to minimize its self-validation surface.
 //
 // Determinism: registry is read from a fixed path (or a path passed via
 // --registry-path); no network access; no environment variable reads
@@ -30,6 +30,11 @@ import {
   loadKnownPGovIds,
 } from './lib/release-gate/registry-loader.mjs';
 import { checkWorkflowReferences } from './lib/release-gate/workflow-resolver.mjs';
+import {
+  findDuplicateGateLeavesByTier,
+  findUnlockedCargoGateLeaves,
+  loadPackageScriptCatalog,
+} from './lib/release-gate/command-expander.mjs';
 
 function parseArgs(argv) {
   const opts = {
@@ -70,7 +75,7 @@ function printUsage() {
       '                                 (default: .nimi/spec/platform/kernel/tables/release-gate-registry.yaml)',
       '  --skip-anchor-resolution       Do not load P-RELG/P-GOV anchor sources',
       '                                 (used by tests; production runs always resolve)',
-      '  --skip-workflow-resolution     Do not run the W4 workflow-yml',
+      '  --skip-workflow-resolution     Do not resolve workflow pnpm references',
       '                                 reference resolution pass (used by',
       '                                 tests; production runs always check)',
       '  --root-dir <path>              Override repo root for the workflow',
@@ -122,7 +127,46 @@ function main() {
     process.exit(1);
   }
 
-  // W4 pass: every `pnpm <script>` reference inside .github/workflows/*.yml
+  let duplicateLeaves;
+  let unlockedCargoLeaves;
+  try {
+    const catalog = loadPackageScriptCatalog(opts.rootDir);
+    duplicateLeaves = findDuplicateGateLeavesByTier(loadResult.registry, catalog);
+    unlockedCargoLeaves = findUnlockedCargoGateLeaves(loadResult.registry, catalog);
+  } catch (error) {
+    process.stderr.write(
+      `release-gate command leaf uniqueness: FAIL (catalog or expansion error: ${String(error?.message ?? error)})\n`,
+    );
+    process.exit(1);
+  }
+  if (duplicateLeaves.length > 0) {
+    process.stderr.write(
+      `release-gate command leaf uniqueness: FAIL (${duplicateLeaves.length} duplicate leaf execution(s))\n`,
+    );
+    for (const duplicate of duplicateLeaves) {
+      const location = duplicate.leaf.cwd === '.'
+        ? duplicate.leaf.command
+        : `${duplicate.leaf.cwd}: ${duplicate.leaf.command}`;
+      process.stderr.write(
+        `  - tier=${duplicate.tier} gates=${duplicate.gateIds.join(',')} leaf=${location}\n`,
+      );
+    }
+    process.exit(1);
+  }
+  if (unlockedCargoLeaves.length > 0) {
+    process.stderr.write(
+      `release-gate Cargo lock closure: FAIL (${unlockedCargoLeaves.length} unlocked Cargo leaf execution(s))\n`,
+    );
+    for (const unlocked of unlockedCargoLeaves) {
+      const location = unlocked.leaf.cwd === '.'
+        ? unlocked.leaf.command
+        : `${unlocked.leaf.cwd}: ${unlocked.leaf.command}`;
+      process.stderr.write(`  - gate=${unlocked.gateId} leaf=${location}\n`);
+    }
+    process.exit(1);
+  }
+
+  // Every `pnpm <script>` reference inside .github/workflows/*.yml
   // must resolve to a defined script in the workspace package.json set.
   // Fail-close per P-RELG-011 enforcement.
   if (!opts.skipWorkflowResolution) {
@@ -149,6 +193,8 @@ function main() {
   process.stdout.write(
     `release-gate registry coherence: OK (${gateCount} gates, schema=${loadResult.registry.schema_version}, registry_version=${loadResult.registry.registry_version})\n`
   );
+  process.stdout.write('release-gate command leaf uniqueness: OK\n');
+  process.stdout.write('release-gate Cargo lock closure: OK\n');
   if (!opts.skipWorkflowResolution) {
     process.stdout.write(
       `release-gate workflow resolution: OK\n`

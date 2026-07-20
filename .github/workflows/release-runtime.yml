@@ -108,9 +108,12 @@ jobs:
           fi
           echo "tag=${GITHUB_REF_NAME#runtime/}" >> "${GITHUB_OUTPUT}"
 
-      # >>> nimi-release-gate-projection: release-target-runtime-static-checks >>>
+      # >>> nimi-release-gate-projection: release-target-runtime-preconditions >>>
       - name: gate.proto.baseline-exists
         run: test -s runtime/proto/runtime-v1.baseline.binpb
+      # <<< nimi-release-gate-projection: release-target-runtime-preconditions <<<
+
+      # >>> nimi-release-gate-projection: release-target-runtime-static-checks >>>
       - name: gate.runtime.ai-scenario-coverage
         run: pnpm check:runtime-ai-scenario-coverage
       - name: gate.runtime.compliance
@@ -122,6 +125,8 @@ jobs:
         run: pnpm check:runtime-golangci-lint
       - name: gate.runtime.govulncheck
         run: pnpm check:runtime-govulncheck
+      - name: gate.runtime.python-assets-test
+        run: pnpm test:runtime:python
       - name: gate.sdk.npm-binary-smoke
         run: pnpm check:npm-binary-smoke
       - name: gate.workflow.runtime-goreleaser-check

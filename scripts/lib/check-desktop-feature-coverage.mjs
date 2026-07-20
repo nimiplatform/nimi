@@ -3,6 +3,10 @@ import {
   read,
   readYaml,
 } from './check-desktop-spec-kernel-consistency-shared.mjs';
+import {
+  isWdioScenarioEntry,
+  scenarioRegistry,
+} from '../../apps/desktop/e2e/helpers/registry.mjs';
 
 export function checkDesktopTestingGateCoverage(fail, kernelRuleDefinitions) {
   const tablePath = '.nimi/spec/desktop/kernel/tables/desktop-testing-gates.yaml';
@@ -46,12 +50,11 @@ export function checkDesktopTestingGateCoverage(fail, kernelRuleDefinitions) {
 
   const requiredGates = [
     ['unit_contract_mock', 'D-GATE-010', ['pnpm --filter @nimiplatform/desktop test']],
-    ['rust_tauri_integration', 'D-GATE-020', ['pnpm --filter @nimiplatform/desktop run check:cargo:test', 'pnpm --filter @nimiplatform/desktop run check:cargo:clippy']],
-    ['desktop_e2e_smoke', 'D-GATE-030', ['pnpm check:desktop-e2e-smoke']],
-    ['desktop_e2e_journeys', 'D-GATE-040', ['pnpm check:desktop-e2e-journeys']],
-    ['selector_testability', 'D-GATE-050', ['pnpm --filter @nimiplatform/desktop lint', 'pnpm check:desktop-e2e-smoke']],
+    ['rust_tauri_integration', 'D-GATE-020', ['pnpm check:desktop-native-quality']],
+    ['desktop_e2e', 'D-GATE-030', ['pnpm --filter @nimiplatform/desktop test:e2e']],
+    ['selector_testability', 'D-GATE-050', ['pnpm --filter @nimiplatform/desktop run check:e2e-parity']],
     ['os_matrix', 'D-GATE-060', ['linux:PR+release', 'windows:release', 'macos:manual-smoke']],
-    ['release_parity', 'D-GATE-070', ['pnpm check:desktop-e2e-smoke', 'pnpm check:desktop-e2e-journeys']],
+    ['release_parity', 'D-GATE-070', ['pnpm --filter @nimiplatform/desktop test:e2e']],
     ['spec_consistency', 'D-GATE-080', ['pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency']],
     ['docs_drift', 'D-GATE-080', ['pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop --check']],
     ['design_contract', 'D-GATE-090', ['pnpm check:desktop-design-contract']],
@@ -96,6 +99,11 @@ export function checkDesktopFeatureCoverage(fail, kernelRuleDefinitions) {
   }
 
   const featureMap = new Map();
+  const registeredDesktopE2EScenarios = new Map(
+    Array.from(scenarioRegistry.entries()).filter(([, entry]) => isWdioScenarioEntry(entry)),
+  );
+  const coveredDesktopE2EScenarios = new Set();
+  const allowedLayers = new Set(['unit_contract', 'renderer_mock_integration', 'rust_tauri_integration', 'desktop_e2e']);
   for (const [index, featureEntry] of features.entries()) {
     const feature = String(featureEntry?.feature || '').trim();
     const riskTier = String(featureEntry?.risk_tier || '').trim();
@@ -121,8 +129,13 @@ export function checkDesktopFeatureCoverage(fail, kernelRuleDefinitions) {
     if (!['P0', 'P1', 'P2'].includes(riskTier)) {
       fail(`${tablePath} feature ${feature} has invalid risk_tier: ${riskTier || '<empty>'}`);
     }
-    if ((riskTier === 'P0' || riskTier === 'P1') && !requiredLayers.some((value) => String(value).startsWith('desktop_e2e_'))) {
-      fail(`${tablePath} feature ${feature} risk_tier=${riskTier} must declare desktop_e2e_* coverage`);
+    for (const layer of requiredLayers) {
+      if (!allowedLayers.has(String(layer))) {
+        fail(`${tablePath} feature ${feature} declares unknown required layer: ${String(layer)}`);
+      }
+    }
+    if ((riskTier === 'P0' || riskTier === 'P1') && !requiredLayers.includes('desktop_e2e')) {
+      fail(`${tablePath} feature ${feature} risk_tier=${riskTier} must declare desktop_e2e coverage`);
     }
     for (const field of ['covers_tabs', 'covers_bootstrap_phases', 'covers_ipc_commands', 'covers_runtime_pages']) {
       if (!Array.isArray(featureEntry?.[field])) {
@@ -137,7 +150,8 @@ export function checkDesktopFeatureCoverage(fail, kernelRuleDefinitions) {
       const scenarioId = String(scenario?.scenario_id || '').trim();
       const sourceRule = String(scenario?.source_rule || '').trim();
       const specPath = String(scenario?.spec_path || '').trim();
-      if (!/^[a-z0-9]+(?:\.[a-z0-9-]+)+$/u.test(scenarioId)) {
+      const registeredScenario = registeredDesktopE2EScenarios.get(scenarioId);
+      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*(?:\.[a-z0-9]+(?:-[a-z0-9]+)*)+$/u.test(scenarioId)) {
         fail(`${tablePath} feature ${feature} has invalid scenario_id: ${scenarioId || '<empty>'}`);
       }
       if (!/^D-[A-Z]+-\d{3}$/u.test(sourceRule)) {
@@ -157,6 +171,23 @@ export function checkDesktopFeatureCoverage(fail, kernelRuleDefinitions) {
       if (!specContent.includes(scenarioId)) {
         fail(`${tablePath} feature ${feature} scenario ${scenarioId} spec file must contain scenario id`);
       }
+      if (registeredScenario) {
+        coveredDesktopE2EScenarios.add(scenarioId);
+        if (String(registeredScenario.spec || '').trim() !== specPath) {
+          fail(`${tablePath} feature ${feature} scenario ${scenarioId} must use registered spec_path ${registeredScenario.spec}`);
+        }
+      } else if (specPath.startsWith('apps/desktop/e2e/specs/')) {
+        fail(`${tablePath} feature ${feature} scenario ${scenarioId} uses an E2E spec but is absent from the executable scenario registry`);
+      }
+    }
+    if (requiredLayers.includes('desktop_e2e') && !scenarios.some((scenario) => registeredDesktopE2EScenarios.has(String(scenario?.scenario_id || '').trim()))) {
+      fail(`${tablePath} feature ${feature} declares desktop_e2e but has no executable registered Desktop E2E scenario`);
+    }
+  }
+
+  for (const scenarioId of registeredDesktopE2EScenarios.keys()) {
+    if (!coveredDesktopE2EScenarios.has(scenarioId)) {
+      fail(`${tablePath} must map registered Desktop E2E scenario to a feature: ${scenarioId}`);
     }
   }
 

@@ -32,19 +32,19 @@ function checkTestGovernancePolicy({ definedRuleIds, fail, testGovernancePolicyT
     fail(`${rel} must parse as an object`);
     return;
   }
-  if (testGovernancePolicyTable.version !== 1) fail(`${rel} must declare version: 1`);
+  if (testGovernancePolicyTable.version !== 2) fail(`${rel} must declare version: 2`);
   if (testGovernancePolicyTable.table_family !== 'product_catalog') fail(`${rel} must declare table_family: product_catalog`);
   if (testGovernancePolicyTable.owner !== 'platform') fail(`${rel} must declare owner: platform`);
   if (testGovernancePolicyTable.catalog_id !== 'platform_test_governance_policy') {
     fail(`${rel} must declare catalog_id: platform_test_governance_policy`);
   }
   if (testGovernancePolicyTable.source_rule !== 'P-TEST-001') fail(`${rel} must declare source_rule: P-TEST-001`);
-  expectSetContains(fail, rel, testGovernancePolicyTable.entries, [
-    'classification_vocabulary',
-    'gate_eligibility_enum',
+  expectExactSet(fail, rel, testGovernancePolicyTable.entries, [
+    'evidence_classes',
+    'execution_lanes',
     'hard_blocks',
     'census',
-    'module_owner_map',
+    'suites',
     'local_agent_conversation_report',
     'local_agent_journey_acceptance',
   ], 'entries');
@@ -56,64 +56,55 @@ function checkTestGovernancePolicy({ definedRuleIds, fail, testGovernancePolicyT
     ['generated_drift_guard', 'T2'],
     ['product_acceptance', 'T6'],
     ['live_provider_proof', 'T7'],
-    ['source_regex_sentinel', 'T3'],
-    ['evidence_only', 'T10'],
-    ['legacy_drift_quarantine', null],
-    ['redundant_candidate', null],
-    ['remove_after_replacement', null],
-    ['quarantine_unreviewed', null],
   ]);
-  const vocabulary = Array.isArray(testGovernancePolicyTable.classification_vocabulary)
-    ? testGovernancePolicyTable.classification_vocabulary
+  const vocabulary = Array.isArray(testGovernancePolicyTable.evidence_classes)
+    ? testGovernancePolicyTable.evidence_classes
     : [];
-  if (vocabulary.length !== expectedClassifications.size) {
-    fail(`${rel} classification_vocabulary must contain exactly ${expectedClassifications.size} entries`);
-  }
-  const seenClassifications = new Set();
+  expectExactSet(
+    fail,
+    rel,
+    vocabulary.map((row) => row?.classification),
+    [...expectedClassifications.keys()],
+    'evidence_classes.classification',
+  );
   for (const row of vocabulary) {
-    const classification = String(row?.classification || '').trim();
-    if (!classification) {
-      fail(`${rel} classification_vocabulary row missing classification`);
-      continue;
-    }
-    if (seenClassifications.has(classification)) fail(`${rel} duplicate classification ${classification}`);
-    seenClassifications.add(classification);
-    if (!expectedClassifications.has(classification)) {
-      fail(`${rel} unexpected classification ${classification}`);
-      continue;
-    }
+    const classification = String(row?.classification || '').trim() || '<empty>';
     const expectedTier = expectedClassifications.get(classification);
-    if ((row?.tier ?? null) !== expectedTier) {
-      fail(`${rel} ${classification} tier must be ${expectedTier === null ? 'null' : expectedTier}`);
-    }
-    checkAuthorityRefs(fail, rel, `${classification}.authority_refs`, row?.authority_refs, definedRuleIds);
-  }
-  for (const classification of expectedClassifications.keys()) {
-    if (!seenClassifications.has(classification)) fail(`${rel} missing classification ${classification}`);
+    if (row?.tier !== expectedTier) fail(`${rel} ${classification} tier must be ${expectedTier}`);
+    if (!String(row?.meaning || '').trim()) fail(`${rel} classification ${classification} must declare meaning`);
+    checkAuthorityRefs(fail, rel, `evidence_classes.${classification}.authority_refs`, row?.authority_refs, definedRuleIds);
   }
 
-  expectExactSet(fail, rel, testGovernancePolicyTable.gate_eligibility_enum?.values, [
-    'allowed',
-    'never',
-    'after_rewrite',
-    'after_scope_limit',
-    'after_real_shell_evidence',
-    'after_env_evidence',
-  ], 'gate_eligibility_enum.values');
-  checkAuthorityRefs(fail, rel, 'gate_eligibility_enum.authority_refs', testGovernancePolicyTable.gate_eligibility_enum?.authority_refs, definedRuleIds);
+  const expectedLanes = new Map([
+    ['workspace_regression', 'pass'],
+    ['domain_release', 'pass'],
+    ['release_native', 'pass_or_declared_blocked'],
+    ['product_acceptance', 'pass_or_declared_blocked'],
+    ['live_provider', 'pass_or_declared_blocked'],
+  ]);
+  const lanes = Array.isArray(testGovernancePolicyTable.execution_lanes)
+    ? testGovernancePolicyTable.execution_lanes
+    : [];
+  expectExactSet(fail, rel, lanes.map((row) => row?.id), [...expectedLanes.keys()], 'execution_lanes.id');
+  for (const lane of lanes) {
+    const id = String(lane?.id || '').trim() || '<empty>';
+    if (!String(lane?.semantics || '').trim()) fail(`${rel} execution lane ${id} must declare semantics`);
+    if (lane?.required_outcome !== expectedLanes.get(id)) {
+      fail(`${rel} execution lane ${id} required_outcome must be ${expectedLanes.get(id)}`);
+    }
+    checkAuthorityRefs(fail, rel, `execution_lanes.${id}.authority_refs`, lane?.authority_refs, definedRuleIds);
+  }
 
   const hardBlocks = Array.isArray(testGovernancePolicyTable.hard_blocks) ? testGovernancePolicyTable.hard_blocks : [];
   expectExactSet(fail, rel, hardBlocks.map((row) => row?.id), [
-    'unclassified_test_file',
-    'test_file_without_spec_ref',
-    'authority_claim_true',
-    'quarantine_without_removal_condition',
-    'source_regex_sentinel_not_forbidden_purpose',
-    'evidence_only_in_gate',
-    'live_proof_without_env_evidence',
-    'unreviewed_in_release_gate',
-    'owner_mismatch',
-    'tier_classification_mismatch',
+    'unmapped_test_source',
+    'multiply_mapped_test_source',
+    'empty_or_missing_suite_selector',
+    'unresolved_suite_command_or_gate',
+    'workspace_regression_not_reachable',
+    'active_quarantine_or_phase_state',
+    'source_inspection_claims_behavior',
+    'required_prerequisite_converted_to_pass',
     'automatic_semantic_verdict_or_acceptance',
     'deterministic_context_admission_wrong_classification',
     'electron_behavior_acceptance_wrong_classification',
@@ -156,18 +147,13 @@ function checkTestGovernancePolicy({ definedRuleIds, fail, testGovernancePolicyT
     fail,
     rel,
   });
-
-  checkCensus({
+  checkCensus({ definedRuleIds, fail, rel, census: testGovernancePolicyTable.census });
+  checkSuites({
     definedRuleIds,
     fail,
     rel,
-    census: testGovernancePolicyTable.census,
-  });
-  checkModuleOwnerMap({
-    definedRuleIds,
-    fail,
-    rel,
-    moduleRows: testGovernancePolicyTable.module_owner_map,
+    suites: testGovernancePolicyTable.suites,
+    executionLanes: new Set(expectedLanes.keys()),
   });
 }
 
@@ -314,6 +300,17 @@ function checkLocalAgentJourneyAcceptance({ contract, definedRuleIds, fail, rel 
   expectScalar(fail, rel, `${base}.iteration_boundary.i8_layer`, boundary?.i8_layer, 'L5');
   checkAuthorityRefs(fail, rel, `${base}.iteration_boundary.authority_refs`, boundary?.authority_refs, definedRuleIds);
 
+  const accounting = contract.evidence_accounting;
+  expectObject(fail, rel, `${base}.evidence_accounting`, accounting);
+  for (const [field, expected] of Object.entries({
+    catalog_membership_counts_as_current_evidence: false,
+    historical_mapping_only_counts_as_current_evidence: false,
+    current_and_historical_counts_are_separate: true,
+    unbound_active_checkpoint_posture: 'explicit_incomplete_evidence',
+    architecture_validation_claim: 'structural_integrity_not_point_coverage',
+  })) expectScalar(fail, rel, `${base}.evidence_accounting.${field}`, accounting?.[field], expected);
+  checkAuthorityRefs(fail, rel, `${base}.evidence_accounting.authority_refs`, accounting?.authority_refs, definedRuleIds);
+
   const integrity = contract.result_integrity;
   expectObject(fail, rel, `${base}.result_integrity`, integrity);
   expectExactSet(fail, rel, integrity?.prerequisite_failure_outcomes, ['failed', 'blocked_by_failed_prerequisite'], `${base}.result_integrity.prerequisite_failure_outcomes`);
@@ -355,68 +352,115 @@ function checkCensus({ definedRuleIds, fail, rel, census }) {
     '**/*.test.jsx',
     '**/*.spec.ts',
     '**/*.spec.tsx',
+    '**/*.spec.mts',
+    '**/*.spec.cts',
     '**/*.spec.mjs',
+    '**/*.spec.cjs',
     '**/*.spec.js',
+    '**/*.spec.jsx',
+    '**/*.e2e.mjs',
     '**/*_test.go',
+    '**/test_*.py',
+    '**/*_test.py',
   ], 'census.include_globs');
-  expectExactSet(fail, rel, census.helper_globs, [
-    '**/*-helpers.mjs',
-    '**/*.test-helper.ts',
-  ], 'census.helper_globs');
+  expectScalar(fail, rel, 'census.rust_inline_glob', census.rust_inline_glob, '**/*.rs');
+  expectExactSet(fail, rel, census.rust_test_markers, ['#[test]', '#[cfg(test)]'], 'census.rust_test_markers');
+  expectExactSet(fail, rel, census.active_roots, [
+    'app-tools',
+    'apps',
+    'docs',
+    'examples',
+    'gateways',
+    'kit',
+    'nimi-cognition',
+    'nimi2d',
+    'proto',
+    'runtime',
+    'scripts',
+    'sdks',
+    'tests',
+  ], 'census.active_roots');
   expectExactSet(fail, rel, census.exclude_dirs, [
     'archive',
     '_external',
     'node_modules',
     'dist',
+    'dist-electron',
     'generated',
+    'gen',
+    'target',
+    'reports',
     '.next',
     '.cache',
     '.iterate',
+    '.local',
   ], 'census.exclude_dirs');
+  expectExactSet(fail, rel, census.exclude_paths, [
+    'app-tools/templates/app-source',
+  ], 'census.exclude_paths');
   checkAuthorityRefs(fail, rel, 'census.authority_refs', census.authority_refs, definedRuleIds);
 }
 
-function checkModuleOwnerMap({ definedRuleIds, fail, rel, moduleRows }) {
-  const rows = Array.isArray(moduleRows) ? moduleRows : [];
-  const expectedDomains = new Map([
-    ['runtime', ['runtime', 'runtime', 'config/runtime-test-inventory.yaml']],
-    ['desktop', ['desktop', 'apps/desktop', 'config/desktop-test-inventory.yaml']],
-    ['kit', ['platform', 'kit', 'config/kit-test-inventory.yaml']],
-    ['sdks-typescript', ['sdks', 'sdks/typescript', 'config/sdks-typescript-test-inventory.yaml']],
-    ['avatar', ['avatar', 'apps/avatar', 'config/avatar-test-inventory.yaml']],
-    ['scripts', ['platform', 'scripts', 'config/scripts-test-inventory.yaml']],
-    ['local-agent-product', ['platform', 'tests/local-agent-product', 'config/local-agent-product-test-inventory.yaml']],
-    ['zhiyu', ['zhiyu', 'apps/zhiyu/test', 'config/zhiyu-test-inventory.yaml']],
-    ['nimi-cognition', ['cognition', 'nimi-cognition', 'config/nimi-cognition-test-inventory.yaml']],
-    ['tester', ['tester', 'apps/tester', 'config/tester-test-inventory.yaml']],
-    ['web', ['web', 'apps/web', 'config/web-test-inventory.yaml']],
-    ['install-gateway', ['web', 'apps/install-gateway', 'config/install-gateway-test-inventory.yaml']],
-  ]);
-  if (rows.length !== expectedDomains.size) {
-    fail(`${rel} module_owner_map must contain exactly ${expectedDomains.size} entries`);
-  }
-  const seenDomains = new Set();
+function checkSuites({ definedRuleIds, fail, rel, suites, executionLanes }) {
+  const rows = Array.isArray(suites) ? suites : [];
+  if (rows.length === 0) fail(`${rel} suites must be a non-empty list`);
+  const suiteIds = new Set();
+  const gateIds = new Set();
+  const workspaceOrders = new Set();
+  const laneCounts = new Map([...executionLanes].map((lane) => [lane, 0]));
+  const surfaceIds = new Set(['sdk_dist', 'kit_dist']);
+
   for (const row of rows) {
-    const domain = String(row?.domain || '').trim();
-    if (!domain) {
-      fail(`${rel} module_owner_map row missing domain`);
-      continue;
+    const id = String(row?.id || '').trim();
+    if (!/^[a-z][a-z0-9-]*$/u.test(id)) fail(`${rel} suite id must be lower-kebab: ${id || '<empty>'}`);
+    if (suiteIds.has(id)) fail(`${rel} duplicate suite id ${id}`);
+    suiteIds.add(id);
+    if (!String(row?.owner || '').trim()) fail(`${rel} suite ${id} must declare owner`);
+    if (!executionLanes.has(row?.lane)) fail(`${rel} suite ${id} has unknown lane ${String(row?.lane)}`);
+    else laneCounts.set(row.lane, laneCounts.get(row.lane) + 1);
+    if (!/^gate\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$/u.test(String(row?.gate_id || ''))) {
+      fail(`${rel} suite ${id} must declare a valid gate_id`);
     }
-    if (seenDomains.has(domain)) fail(`${rel} duplicate module_owner_map domain ${domain}`);
-    seenDomains.add(domain);
-    const expected = expectedDomains.get(domain);
-    if (!expected) {
-      fail(`${rel} unexpected module_owner_map domain ${domain}`);
-      continue;
+    if (gateIds.has(row?.gate_id)) fail(`${rel} duplicate suite gate_id ${row?.gate_id}`);
+    gateIds.add(row?.gate_id);
+    if (!String(row?.command || '').trim()) fail(`${rel} suite ${id} must declare command`);
+    if (row?.cwd != null && !String(row.cwd).trim()) fail(`${rel} suite ${id} cwd must be non-empty when present`);
+
+    if (row?.lane === 'workspace_regression') {
+      if (!Number.isInteger(row?.workspace_order) || row.workspace_order <= 0) {
+        fail(`${rel} workspace suite ${id} must declare positive integer workspace_order`);
+      } else if (workspaceOrders.has(row.workspace_order)) {
+        fail(`${rel} duplicate workspace_order ${row.workspace_order}`);
+      }
+      workspaceOrders.add(row?.workspace_order);
+    } else if (row?.workspace_order != null) {
+      fail(`${rel} non-workspace suite ${id} must not declare workspace_order`);
     }
-    const [owner, root, inventory] = expected;
-    if (row?.owner !== owner) fail(`${rel} module_owner_map.${domain}.owner must be ${owner}`);
-    if (row?.root !== root) fail(`${rel} module_owner_map.${domain}.root must be ${root}`);
-    if (row?.inventory !== inventory) fail(`${rel} module_owner_map.${domain}.inventory must be ${inventory}`);
-    checkAuthorityRefs(fail, rel, `module_owner_map.${domain}.authority_refs`, row?.authority_refs, definedRuleIds);
+
+    for (const field of ['provides_workspace_surfaces', 'requires_workspace_surfaces']) {
+      for (const surface of Array.isArray(row?.[field]) ? row[field] : []) {
+        if (!surfaceIds.has(surface)) fail(`${rel} suite ${id} ${field} contains unknown surface ${surface}`);
+      }
+    }
+
+    const selectors = row?.selectors;
+    if (!selectors || typeof selectors !== 'object' || Array.isArray(selectors)) {
+      fail(`${rel} suite ${id} must declare selectors`);
+    } else {
+      const selectorFields = ['globs', 'files', 'rust_inline_globs'];
+      const unknownFields = Object.keys(selectors).filter((field) => !selectorFields.includes(field));
+      if (unknownFields.length > 0) fail(`${rel} suite ${id} has unknown selector fields: ${unknownFields.join(', ')}`);
+      const values = selectorFields.flatMap((field) => Array.isArray(selectors[field]) ? selectors[field] : []);
+      if (values.length === 0) fail(`${rel} suite ${id} selectors must not be empty`);
+      for (const value of values) {
+        if (!String(value || '').trim()) fail(`${rel} suite ${id} selector values must be non-empty strings`);
+      }
+    }
+    checkAuthorityRefs(fail, rel, `suites.${id}.authority_refs`, row?.authority_refs, definedRuleIds);
   }
-  for (const domain of expectedDomains.keys()) {
-    if (!seenDomains.has(domain)) fail(`${rel} missing module_owner_map domain ${domain}`);
+
+  for (const [lane, count] of laneCounts) {
+    if (count === 0 && lane !== 'live_provider') fail(`${rel} execution lane ${lane} must own at least one suite`);
   }
 }
 

@@ -67,6 +67,13 @@ const retiredSdkLiveExecutablePaths = [
   'sdks/typescript/runtime/runtime-agent-live-e2e-fixture-shared.test-helper.ts',
   'sdks/typescript/runtime/runtime-agent-live-e2e-fixture-source-packet.test-helper.ts',
 ];
+const retiredSdkLiveImportScanPaths = [
+  'apps/zhiyu/package.json',
+  ...listFilesUnder(path.join(repoRoot, 'apps/zhiyu/test'))
+    .filter((filePath) => /\.(?:c|m)?(?:js|ts|tsx)$/u.test(filePath))
+    .map((filePath) => path.relative(repoRoot, filePath).replaceAll(path.sep, '/')),
+];
+const retiredSdkLiveImportPattern = /\bfrom\s+['"][^'"]*(?:runtime-agent-live-e2e-fixture|live-runtime-daemon\.test-helper)[^'"]*['"]/u;
 const retiredSdkLiveAuthorityPatterns = [
   ['direct_daemon', /\bwithRuntimeDaemon\b/u],
   ['public_grant_rpc', /\bauthorizeExternalPrincipal\b/u],
@@ -339,6 +346,25 @@ function collectRetiredSdkLiveAuthorityRefs(
   return refs;
 }
 
+function collectRetiredSdkLiveFixtureImports(
+  scanRoot = repoRoot,
+  relativePaths = retiredSdkLiveImportScanPaths,
+) {
+  const refs = [];
+  for (const relativePath of relativePaths) {
+    const normalizedPath = String(relativePath || '').replace(/\\/g, '/');
+    const absolutePath = path.join(scanRoot, normalizedPath);
+    if (!normalizedPath || !fs.existsSync(absolutePath)) continue;
+    const lines = fs.readFileSync(absolutePath, 'utf8').split(/\r?\n/u);
+    for (const [index, line] of lines.entries()) {
+      if (retiredSdkLiveImportPattern.test(line)) {
+        refs.push({ path: normalizedPath, line: index + 1, token: 'retired_sdk_live_fixture_import' });
+      }
+    }
+  }
+  return refs;
+}
+
 function main() {
   const options = parseArgs();
   const baseline = readYamlFile(options.baselinePath);
@@ -453,6 +479,14 @@ function main() {
         .join(', ')}`,
     );
   }
+  const retiredSdkLiveFixtureImports = collectRetiredSdkLiveFixtureImports(repoRoot);
+  if (retiredSdkLiveFixtureImports.length > 0) {
+    failures.push(
+      `retired SDK live-fixture imports are forbidden in Zhiyu tests: ${retiredSdkLiveFixtureImports
+        .map((ref) => `${ref.path}:${ref.line}:${ref.token}`)
+        .join(', ')}`,
+    );
+  }
 
   const capabilityEnvSuffixes = {
     generate: ['MODEL_ID'],
@@ -552,4 +586,5 @@ export {
   collectMissingRuntimeGenerateProviders,
   collectNimi2DImage2LiveRouteDriftRefs,
   collectRetiredSdkLiveAuthorityRefs,
+  collectRetiredSdkLiveFixtureImports,
 };

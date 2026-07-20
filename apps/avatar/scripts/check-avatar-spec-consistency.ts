@@ -67,8 +67,8 @@ const requiredAcceptanceScenarioIds = [
   'tts_speaking_lipsync',
   'interrupt_active_turn',
   'runtime_degraded',
-  'shared_auth_broker_ready',
-  'shared_auth_login_required',
+  'runtime_account_broker_ready',
+  'runtime_account_login_required',
   'public_raw_token_surface_absent',
 ];
 

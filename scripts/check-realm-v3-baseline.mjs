@@ -114,7 +114,7 @@ function assertDeltaReport(report, expectedCommit, expectedTree) {
   );
   for (const command of [
     'pnpm check:protected-local-authority',
-    'pnpm check:kit-shared-auth-broker-parity',
+    'pnpm check:kit-runtime-account-broker-parity',
   ]) {
     const result = validators.get(command);
     if (result?.exitCode !== 0 || result?.result !== 'PASS') {

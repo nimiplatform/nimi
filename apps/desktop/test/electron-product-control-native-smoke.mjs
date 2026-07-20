@@ -8,7 +8,9 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
 test('signed Electron product-control native package materializes, reads, and rejects tampered evidence', async () => {
-  if (process.platform !== 'win32' || process.arch !== 'x64') return;
+  if (process.platform !== 'win32' || process.arch !== 'x64') {
+    throw new Error('WINDOWS_X64_REQUIRED: product-control native acceptance requires a Windows x64 release runner');
+  }
   const root = await mkdtemp(path.join(os.tmpdir(), 'nimi-product-control-native-'));
   const home = path.join(root, 'home');
   const dataRoot = path.join(root, 'nimi-data');

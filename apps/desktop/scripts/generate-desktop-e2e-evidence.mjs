@@ -15,8 +15,7 @@ function parseArgs(argv) {
     workflowRef: '',
     workflowRunId: '',
     commit: '',
-    smokeOutcome: '',
-    journeysOutcome: '',
+    suiteOutcome: '',
     nativeDriver: '',
     tauriDriver: '',
     appMode: '',
@@ -25,67 +24,32 @@ function parseArgs(argv) {
     outputDir: '',
   };
 
+  const optionFields = new Map([
+    ['--platform', 'platform'],
+    ['--workflow-ref', 'workflowRef'],
+    ['--workflow-run-id', 'workflowRunId'],
+    ['--commit', 'commit'],
+    ['--suite-outcome', 'suiteOutcome'],
+    ['--native-driver', 'nativeDriver'],
+    ['--tauri-driver', 'tauriDriver'],
+    ['--app-mode', 'appMode'],
+    ['--artifact-root', 'artifactRoot'],
+    ['--artifact-upload-path', 'artifactUploadPath'],
+    ['--output-dir', 'outputDir'],
+  ]);
+
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
-    if (token === '--platform') {
-      args.platform = String(argv[index + 1] || '').trim();
-      index += 1;
-      continue;
+    const field = optionFields.get(token);
+    if (!field) {
+      throw new Error(`unknown argument: ${token}`);
     }
-    if (token === '--workflow-ref') {
-      args.workflowRef = String(argv[index + 1] || '').trim();
-      index += 1;
-      continue;
+    const value = argv[index + 1];
+    if (value === undefined || String(value).startsWith('--')) {
+      throw new Error(`${token} requires a value`);
     }
-    if (token === '--workflow-run-id') {
-      args.workflowRunId = String(argv[index + 1] || '').trim();
-      index += 1;
-      continue;
-    }
-    if (token === '--commit') {
-      args.commit = String(argv[index + 1] || '').trim();
-      index += 1;
-      continue;
-    }
-    if (token === '--smoke-outcome') {
-      args.smokeOutcome = String(argv[index + 1] || '').trim();
-      index += 1;
-      continue;
-    }
-    if (token === '--journeys-outcome') {
-      args.journeysOutcome = String(argv[index + 1] || '').trim();
-      index += 1;
-      continue;
-    }
-    if (token === '--native-driver') {
-      args.nativeDriver = String(argv[index + 1] || '').trim();
-      index += 1;
-      continue;
-    }
-    if (token === '--tauri-driver') {
-      args.tauriDriver = String(argv[index + 1] || '').trim();
-      index += 1;
-      continue;
-    }
-    if (token === '--app-mode') {
-      args.appMode = String(argv[index + 1] || '').trim();
-      index += 1;
-      continue;
-    }
-    if (token === '--artifact-root') {
-      args.artifactRoot = String(argv[index + 1] || '').trim();
-      index += 1;
-      continue;
-    }
-    if (token === '--artifact-upload-path') {
-      args.artifactUploadPath = String(argv[index + 1] || '').trim();
-      index += 1;
-      continue;
-    }
-    if (token === '--output-dir') {
-      args.outputDir = String(argv[index + 1] || '').trim();
-      index += 1;
-    }
+    args[field] = String(value).trim();
+    index += 1;
   }
 
   return args;
@@ -101,8 +65,7 @@ const evidence = buildDesktopE2EEvidence({
   workflowRef: args.workflowRef,
   workflowRunId: args.workflowRunId,
   commit: args.commit,
-  smokeOutcome: args.smokeOutcome,
-  journeysOutcome: args.journeysOutcome,
+  suiteOutcome: args.suiteOutcome,
   nativeDriver: args.nativeDriver,
   tauriDriver: args.tauriDriver,
   appMode: args.appMode,
@@ -118,3 +81,7 @@ writeDesktopE2EEvidence(jsonPath, markdownPath, evidence);
 process.stdout.write(
   `[generate-desktop-e2e-evidence] wrote ${path.relative(desktopRoot, jsonPath)} and ${path.relative(desktopRoot, markdownPath)}\n`,
 );
+if (!evidence.ok) {
+  process.stderr.write('[generate-desktop-e2e-evidence] evidence verdict is FAIL\n');
+  process.exitCode = 1;
+}

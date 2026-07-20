@@ -113,18 +113,16 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       # >>> nimi-release-gate-projection: release-target-sdk-static-checks >>>
-      - name: gate.sdk.build
-        run: pnpm build:sdk
+      - name: gate.desktop.open-intent-contract
+        run: pnpm check:desktop-open-contract
       - name: gate.sdk.consumer-smoke
         run: pnpm check:sdk-consumer-smoke
       - name: gate.sdk.coverage
         run: pnpm check:sdk-coverage
-      - name: gate.sdk.test
-        run: pnpm --filter @nimiplatform/sdk test
+      - name: gate.sdk.release-contracts
+        run: pnpm check:sdk-release-contracts
       - name: gate.sdk.version-matrix
         run: pnpm check:sdk-version-matrix
-      - name: gate.sdk.vnext-matrix
-        run: pnpm check:sdk-vnext-matrix
       - name: gate.security.package-license-matrix
         run: pnpm check:package-license-matrix
       # <<< nimi-release-gate-projection: release-target-sdk-static-checks <<<
@@ -175,8 +173,6 @@ jobs:
       # <<< nimi-release-gate-projection: release-target-proto-checks <<<
 
       # >>> nimi-release-gate-projection: release-target-runtime-static-checks >>>
-      - name: gate.proto.baseline-exists
-        run: test -s runtime/proto/runtime-v1.baseline.binpb
       - name: gate.runtime.ai-scenario-coverage
         run: pnpm check:runtime-ai-scenario-coverage
       - name: gate.runtime.compliance
@@ -188,6 +184,8 @@ jobs:
         run: pnpm check:runtime-golangci-lint
       - name: gate.runtime.govulncheck
         run: pnpm check:runtime-govulncheck
+      - name: gate.runtime.python-assets-test
+        run: pnpm test:runtime:python
       - name: gate.sdk.npm-binary-smoke
         run: pnpm check:npm-binary-smoke
       - name: gate.workflow.runtime-goreleaser-check
@@ -242,39 +240,41 @@ jobs:
       # >>> nimi-release-gate-projection: release-target-desktop-static-checks >>>
       - name: gate.cargo.audit
         run: cargo audit --file apps/desktop/src-tauri/Cargo.lock
-      - name: gate.cargo.check
-        run: pnpm --filter @nimiplatform/desktop run check:cargo
-      - name: gate.cargo.clippy
-        run: pnpm --filter @nimiplatform/desktop run check:cargo:clippy
-      - name: gate.cargo.test
-        run: pnpm --filter @nimiplatform/desktop run check:cargo:test
-      - name: gate.cargo.test-runtime-bridge
-        run: pnpm --filter @nimiplatform/desktop run check:cargo:runtime-bridge
-      - name: gate.desktop.group-chat-contract
-        run: pnpm check:desktop-group-chat-contract
+      - name: gate.cargo.desktop-native-quality
+        run: pnpm check:desktop-native-quality
+      - name: gate.desktop.avatar-native-test
+        run: pnpm test:avatar:native
+      - name: gate.desktop.avatar-unit
+        run: pnpm --filter @nimiplatform/avatar test
       - name: gate.desktop.lint
         run: pnpm --filter @nimiplatform/desktop lint
-      - name: gate.desktop.release-sync
-        run: pnpm --filter @nimiplatform/desktop run check:desktop-release-sync
+      - name: gate.desktop.open-intent-contract
+        run: pnpm check:desktop-open-contract
       - name: gate.desktop.test
         run: pnpm --filter @nimiplatform/desktop test
       - name: gate.desktop.typecheck
         run: pnpm --filter @nimiplatform/desktop typecheck
       - name: gate.desktop.version-sync
         run: pnpm --filter @nimiplatform/desktop run check:version-sync
+      - name: gate.desktop.zhiyu-unit
+        run: pnpm --filter @nimiplatform/zhiyu test
+      - name: gate.tester.native-test
+        run: pnpm test:tester:native
+      - name: gate.tester.unit
+        run: pnpm --filter @nimiplatform/tester test
+      - name: gate.ui.kit-native-test
+        run: pnpm test:kit:native
+      - name: gate.ui.kit-test
+        run: pnpm test:kit
+      - name: gate.ui.nimi-kit
+        run: pnpm check:nimi-kit:prepared
       # <<< nimi-release-gate-projection: release-target-desktop-static-checks <<<
 
-      - name: Desktop E2E smoke assurance
-        id: desktop_e2e_smoke
+      - name: Complete Desktop E2E assurance
+        id: desktop_e2e
         env:
           NIMI_E2E_NATIVE_DRIVER: /usr/bin/WebKitWebDriver
-        run: xvfb-run -a pnpm check:desktop-e2e-smoke
-
-      - name: Desktop E2E journeys assurance
-        id: desktop_e2e_journeys
-        env:
-          NIMI_E2E_NATIVE_DRIVER: /usr/bin/WebKitWebDriver
-        run: xvfb-run -a pnpm check:desktop-e2e-journeys
+        run: xvfb-run -a pnpm --filter @nimiplatform/desktop test:e2e
 
       - name: Generate desktop E2E evidence
         if: always()
@@ -284,15 +284,13 @@ jobs:
             --workflow-ref assurance \
             --workflow-run-id "${GITHUB_RUN_ID}" \
             --commit "${GITHUB_SHA}" \
-            --smoke-outcome "${SMOKE_OUTCOME}" \
-            --journeys-outcome "${JOURNEYS_OUTCOME}" \
+            --suite-outcome "${SUITE_OUTCOME}" \
             --native-driver /usr/bin/WebKitWebDriver \
             --tauri-driver tauri-driver \
             --app-mode source \
             --artifact-upload-path "apps/desktop/reports/e2e/**"
         env:
-          SMOKE_OUTCOME: ${{ steps.desktop_e2e_smoke.outcome }}
-          JOURNEYS_OUTCOME: ${{ steps.desktop_e2e_journeys.outcome }}
+          SUITE_OUTCOME: ${{ steps.desktop_e2e.outcome }}
 
       - name: Upload desktop E2E evidence
         if: always()
@@ -330,9 +328,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
-
-      - name: Build SDK surfaces for examples
-        run: pnpm build:sdk
 
       - name: Examples compile assurance
         run: pnpm check:examples

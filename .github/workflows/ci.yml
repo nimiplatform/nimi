@@ -140,15 +140,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Install Linux desktop E2E dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y webkit2gtk-driver xvfb
-          cargo install tauri-driver --locked
-
-      - name: Build SDK surfaces for examples
-        run: pnpm build:sdk
-
       - name: Compile examples
         run: pnpm check:examples
 
@@ -193,247 +184,65 @@ jobs:
           cache: pnpm
           cache-dependency-path: package.json
 
+      - name: Setup Go for workflow lint
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version: '1.26.4'
+          cache: false
+
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
       # >>> nimi-release-gate-projection: core-static-checks >>>
-      - name: gate.desktop.bootstrap-hardcut
-        run: pnpm check:desktop-bootstrap-hardcut
-      - name: gate.desktop.chat-authority-anti-patterns
-        run: pnpm check:desktop-chat-authority-anti-patterns
-      - name: gate.desktop.design-contract
-        run: pnpm check:desktop-design-contract
-      - name: gate.desktop.lint
-        run: pnpm --filter @nimiplatform/desktop lint
-      - name: gate.desktop.no-client-alias
-        run: pnpm check:desktop-no-client-alias
-      - name: gate.desktop.no-cloud-runtime
-        run: pnpm check:desktop-cloud-runtime-only
-      - name: gate.desktop.no-e2e-bypass
-        run: pnpm check:desktop-no-e2e-bypass
-      - name: gate.desktop.no-legacy-runtime-config-path
-        run: pnpm check:desktop-no-legacy-runtime-config-path
-      - name: gate.desktop.scroll-shell
-        run: pnpm check:desktop-scroll-shell
-      - name: gate.dev-loop.agents-freshness
-        run: pnpm check:agents-freshness
       - name: gate.dev-loop.high-risk-doc-metadata
         run: pnpm check:high-risk-doc-metadata
-      - name: gate.docs.examples-build
-        run: pnpm check:examples
-      - name: gate.docs.examples-run-comments
-        run: pnpm check:examples-run-comments
-      - name: gate.docs.first-run-doc-drift
-        run: pnpm check:first-run-doc-drift
-      - name: gate.docs.install-script-smoke
-        run: pnpm check:install-script-smoke
-      - name: gate.docs.markdown-lint
-        run: pnpm check:markdown
-      - name: gate.docs.no-absolute-user-paths
-        run: pnpm check:no-absolute-user-paths
-      - name: gate.docs.no-legacy-doc-contracts
-        run: pnpm check:no-legacy-doc-contracts
-      - name: gate.docs.release-promise-public-copy
-        run: pnpm check:release-promise-public-copy
-      - name: gate.nimicoding.cli-help-smoke
-        run: pnpm exec nimicoding --help
-      - name: gate.nimicoding.doctor
-        run: pnpm nimicoding:doctor
-      - name: gate.nimicoding.seed-sync-check
-        run: pnpm check:nimi-coding-seed-sync
-      - name: gate.platform-hardcut.no-legacy-app-auth-cli
-        run: pnpm check:no-legacy-app-auth-cli
-      - name: gate.platform-hardcut.no-legacy-cloud-provider-keys
-        run: pnpm check:no-legacy-cloud-provider-keys
       - name: gate.platform-hardcut.no-legacy-imports
         run: pnpm check:no-legacy-imports
-      - name: gate.platform-hardcut.no-local-ai-private-calls
-        run: pnpm check:no-local-ai-private-calls
-      - name: gate.platform-hardcut.no-local-ai-tauri-commands
-        run: pnpm check:no-local-ai-tauri-commands
-      - name: gate.platform-hardcut.no-nimid-doc-invocation
-        run: pnpm check:no-nimid-doc-invocation
-      - name: gate.platform-hardcut.no-nimid-source
-        run: pnpm check:no-nimid-source
       - name: gate.platform-hardcut.no-retired-methodology-refs
         run: pnpm check:no-retired-methodology-refs
-      - name: gate.proto.lint
-        run: pnpm proto:lint
-      - name: gate.proto.runtime-spec-linkage
-        run: pnpm check:runtime-proto-spec-linkage
-      - name: gate.realm.account-session-hardcut
-        run: pnpm check:account-session-hardcut
       - name: gate.realm.no-app-rest-bypass
         run: pnpm check:no-app-realm-rest-bypass
-      - name: gate.realm.no-first-party-sdk-client-construction
-        run: pnpm check:no-first-party-sdk-client-construction
-      - name: gate.realm.no-openapi-base-assignment
-        run: pnpm check:no-openapi-base-assignment
-      - name: gate.realm.no-openapi-singleton-import
-        run: pnpm check:no-openapi-singleton-import
-      - name: gate.realm.no-openapi-token-assignment
-        run: pnpm check:no-openapi-token-assignment
-      - name: gate.realm.sdk-generator-smoke
-        run: pnpm check:realm-sdk-generator-smoke
-      - name: gate.realm.v3-authority
-        run: pnpm check:realm-v3:authority
-      - name: gate.realm.v3-consumer-inventory
-        run: pnpm check:realm-v3:consumer-inventory
-      - name: gate.realm.v3-generated-convergence
-        run: pnpm check:realm-v3:generated-convergence
-      - name: gate.realm.v3-protected-sentinel
-        run: pnpm check:realm-v3:protected-sentinel
       - name: gate.release-gate.registry-coherence
         run: node scripts/check-release-gate-registry-coherence.mjs
       - name: gate.release-gate.projection-drift
         run: node scripts/check-release-gate-projection-drift.mjs
-      - name: gate.runtime-provider.activation-alignment
-        run: pnpm check:runtime-provider-activation-alignment
-      - name: gate.runtime-provider.alias-hardcut
-        run: pnpm check:runtime-provider-alias-hardcut
-      - name: gate.runtime-provider.capability-token-canonicalization
-        run: pnpm check:runtime-provider-capability-token-canonicalization
-      - name: gate.runtime-provider.connector-auth-profile-drift
-        run: pnpm check:runtime-connector-auth-profile-drift
-      - name: gate.runtime-provider.endpoint-ssot
-        run: pnpm check:runtime-provider-endpoint-ssot
-      - name: gate.runtime-provider.video-capability-block-enforcement
-        run: pnpm check:runtime-video-capability-block-enforcement
-      - name: gate.runtime-provider.yaml-first-hardcut
-        run: pnpm check:runtime-provider-yaml-first-hardcut
-      - name: gate.runtime.agent-center-local-config-boundary
-        run: pnpm check:runtime-agent-center-local-config-boundary
-      - name: gate.runtime.bridge-generated-drift
-        run: pnpm check:runtime-bridge-generated-drift
-      - name: gate.runtime.catalog-drift
-        run: pnpm check:runtime-catalog-drift
-      - name: gate.runtime.golangci-lint
-        run: pnpm check:runtime-golangci-lint
-      - name: gate.runtime.reason-code-constants
-        run: pnpm check:reason-code-constants
-      - name: gate.runtime.selection-freshness
-        run: pnpm check:runtime-selection-freshness
-      - name: gate.runtime.shared-runtime-defaults-duplicate
-        run: pnpm check:shared-runtime-defaults-duplicate
-      - name: gate.runtime.stable-ai-output-typing
-        run: pnpm check:runtime-stable-ai-output-typing
-      - name: gate.runtime.startup-hardcut
-        run: pnpm check:runtime-startup-hardcut
-      - name: gate.sdk.experimental-api-lifecycle
-        run: pnpm check:experimental-api-lifecycle
-      - name: gate.sdk.typed-surface-hardcut
-        run: pnpm check:typed-surface-hardcut
-      - name: gate.sdk.vnext-ai-capability-ledger
-        run: pnpm check:sdk-vnext-ai-capability-ledger
-      - name: gate.sdk.vnext-package-contract
-        run: pnpm check:sdk-vnext-package-contract
-      - name: gate.sdk.vnext-public-surface-smoke
-        run: pnpm check:sdk-vnext-public-surface-smoke
-      - name: gate.sdk.vnext-realm-consumer-smoke
-        run: pnpm check:sdk-vnext-realm-consumer-smoke
-      - name: gate.sdk.vnext-replacement-acceptance
-        run: pnpm check:sdk-vnext-replacement-acceptance
-      - name: gate.sdk.vnext-root-composition-authority
-        run: pnpm check:sdk-root-entry-contract
-      - name: gate.sdk.vnext-runtime-facade
-        run: pnpm check:sdk-vnext-runtime-facade
-      - name: gate.sdk.vnext-typed-core-conformance
-        run: pnpm check:sdks-conformance-typed-core
-      - name: gate.security.license-headers
-        run: pnpm check:license-file-map
-      - name: gate.security.package-license-matrix
-        run: pnpm check:package-license-matrix
-      - name: gate.spec-governance.all
-        run: pnpm exec nimicoding validate-spec-governance --profile nimi --scope all
-      - name: gate.spec-governance.apps-avatar-isolation
-        run: pnpm check:apps-avatar-isolation
-      - name: gate.spec-governance.canonical-capability-catalog
-        run: pnpm check:canonical-capability-catalog
-      - name: gate.spec-governance.generated-doc-drift-all
-        run: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope all --check
+      - name: gate.spec-governance.simulator-authority
+        run: pnpm check:simulator-authority
       - name: gate.spec-governance.spec-semantic-completeness
         run: pnpm check:spec-semantic-completeness
       - name: gate.spec-governance.test-inventory
         run: pnpm check:test-inventory
-      - name: gate.spec-governance.validate-ai-governance
-        run: pnpm exec nimicoding validate-ai-governance --profile nimi --scope all
-      - name: gate.spec-governance.validate-spec-tree
-        run: pnpm exec nimicoding validate-spec-tree
-      - name: gate.ui.contrast-matrix
-        run: pnpm check:ui-contrast-matrix
-      - name: gate.ui.glass-boundary
-        run: pnpm check:ui-glass-boundary
-      - name: gate.ui.nimi-kit
-        run: pnpm check:nimi-kit
-      - name: gate.ui.nimi-ui-lib-drift
-        run: pnpm check:nimi-ui-lib-drift
-      - name: gate.ui.nimi-ui-pattern
-        run: pnpm check:nimi-ui-pattern
-      - name: gate.web.lint
-        run: pnpm --filter @nimiplatform/web lint
       - name: gate.workflow.actionlint
         run: pnpm check:actionlint
       # <<< nimi-release-gate-projection: core-static-checks <<<
 
-      - name: Enforce no-legacy imports
-        run: pnpm check:no-legacy-imports
+  workspace-regression:
+    needs: changes
+    if: needs.changes.outputs.core_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Enforce no-legacy app-auth CLI naming
-        run: pnpm check:no-legacy-app-auth-cli
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.32.1
 
-      - name: AGENTS freshness gate
-        run: pnpm check:agents-freshness
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: package.json
 
-      - name: Enforce no private local_ai tauri calls in desktop TS
-        run: pnpm check:no-local-ai-private-calls
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
 
-      - name: Enforce no local_ai tauri command exposure
-        run: pnpm check:no-local-ai-tauri-commands
-
-      - name: Enforce no legacy nimid symbols
-        run: pnpm check:no-nimid-source
-
-      - name: Enforce desktop no private @client alias
-        run: pnpm check:desktop-no-client-alias
-
-      - name: Enforce SDK root entry contract
-        run: pnpm check:sdk-root-entry-contract
-
-      - name: Enforce SDK AI runner export authority posture
-        run: pnpm check:sdk-ai-runner-export-posture && node --test scripts/check-sdk-ai-runner-export-posture.test.mjs
-
-      - name: SDK doctor framework-api map and assessment suite
-        run: pnpm check:sdk-doctor
-
-      - name: Enforce no global OpenAPI singleton config
-        run: pnpm check:no-global-openapi-config
-
-      - name: Enforce no OpenAPI singleton import
-        run: pnpm check:no-openapi-singleton-import
-
-      - name: Runtime spec kernel consistency check
-        run: pnpm exec nimicoding validate-spec-governance --profile nimi --scope runtime-consistency
-
-      - name: Runtime spec kernel generated-doc drift check
-        run: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope runtime --check
-
-      - name: SDKS spec kernel consistency check
-        run: pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdks-consistency
-
-      - name: SDKS spec kernel generated-doc drift check
-        run: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdks --check
-
-      - name: Desktop spec kernel consistency check
-        run: pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency
-
-      - name: Desktop spec kernel generated-doc drift check
-        run: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop --check
-
-      - name: ReasonCode constants policy check
-        run: pnpm check:reason-code-constants
-
-      - name: Runtime bridge generated drift check
-        run: pnpm check:runtime-bridge-generated-drift
+      # >>> nimi-release-gate-projection: workspace-regression-checks >>>
+      - name: gate.workflow.workspace-regression
+        run: pnpm test
+      # <<< nimi-release-gate-projection: workspace-regression-checks <<<
 
   sdk-quality:
     needs: changes
@@ -475,9 +284,6 @@ jobs:
 
       - name: SDK typed-core conformance check
         run: pnpm check:sdks-conformance-typed-core
-
-      - name: Test SDK
-        run: pnpm --filter @nimiplatform/sdk test
 
       - name: SDK vNext package contract check
         run: pnpm check:sdk-vnext-package-contract
@@ -564,32 +370,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf webkit2gtk-driver xvfb
 
-      - name: Build SDK surfaces for Desktop/Web
-        run: pnpm build:sdk
+      - name: Build workspace surfaces for Desktop/Web
+        run: pnpm dev:prepare
 
-      - name: Cargo check
-        run: pnpm --filter @nimiplatform/desktop run check:cargo
-
-      - name: Cargo clippy
-        run: pnpm --filter @nimiplatform/desktop run check:cargo:clippy
-
-      - name: Cargo test
-        run: pnpm --filter @nimiplatform/desktop run check:cargo:test
-
-      - name: Cargo runtime bridge tests
-        run: pnpm --filter @nimiplatform/desktop run check:cargo:runtime-bridge
+      - name: Complete Desktop native quality gate
+        run: pnpm check:desktop-native-quality
 
       - name: Lint desktop
         run: pnpm --filter @nimiplatform/desktop lint
 
-      - name: Test desktop
-        run: pnpm --filter @nimiplatform/desktop test
-
       - name: Typecheck desktop
         run: pnpm --filter @nimiplatform/desktop typecheck
-
-      - name: Typecheck web
-        run: pnpm --filter @nimiplatform/web typecheck
 
       - name: Build web
         run: pnpm --filter @nimiplatform/web build
@@ -617,50 +408,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Test Zhiyu
-        run: pnpm --filter @nimiplatform/zhiyu test
-
       - name: Typecheck Zhiyu
         run: pnpm --filter @nimiplatform/zhiyu typecheck
-
-  governance-security:
-    needs: changes
-    if: needs.changes.outputs.core_changed == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
-        with:
-          version: 10.32.1
-
-      - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: package.json
-
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
-
-      - name: License file map check
-        run: pnpm check:license-file-map
-
-      - name: Package license matrix check
-        run: pnpm check:package-license-matrix
 
   js-contract:
     needs:
       - changes
       - docs-contract
       - core-static
+      - workspace-regression
       - sdk-quality
       - runtime-quality
       - desktop-web-quality
-      - governance-security
+      - zhiyu-quality
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -669,10 +429,11 @@ jobs:
           CHANGES_RESULT: ${{ needs.changes.result }}
           DOCS_CONTRACT_RESULT: ${{ needs.docs-contract.result }}
           CORE_STATIC_RESULT: ${{ needs.core-static.result }}
+          WORKSPACE_REGRESSION_RESULT: ${{ needs.workspace-regression.result }}
           SDK_QUALITY_RESULT: ${{ needs.sdk-quality.result }}
           RUNTIME_QUALITY_RESULT: ${{ needs.runtime-quality.result }}
           DESKTOP_WEB_QUALITY_RESULT: ${{ needs.desktop-web-quality.result }}
-          GOVERNANCE_SECURITY_RESULT: ${{ needs.governance-security.result }}
+          ZHIYU_QUALITY_RESULT: ${{ needs.zhiyu-quality.result }}
         run: |
           set -euo pipefail
           failed=0
@@ -681,10 +442,11 @@ jobs:
             "changes:${CHANGES_RESULT}" \
             "docs-contract:${DOCS_CONTRACT_RESULT}" \
             "core-static:${CORE_STATIC_RESULT}" \
+            "workspace-regression:${WORKSPACE_REGRESSION_RESULT}" \
             "sdk-quality:${SDK_QUALITY_RESULT}" \
             "runtime-quality:${RUNTIME_QUALITY_RESULT}" \
             "desktop-web-quality:${DESKTOP_WEB_QUALITY_RESULT}" \
-            "governance-security:${GOVERNANCE_SECURITY_RESULT}"; do
+            "zhiyu-quality:${ZHIYU_QUALITY_RESULT}"; do
             name="${item%%:*}"
             result="${item#*:}"
             if [[ "${result}" != "success" && "${result}" != "skipped" ]]; then

@@ -96,8 +96,8 @@ const sourceStories = new Set();
 for (const row of storybook.stories || []) {
   const id = String(row?.id || '');
   const sourceStory = Number(row?.source_story);
-  if (!Number.isInteger(sourceStory) || sourceStory < 1 || sourceStory > 12) {
-    fail(`${id || '<unknown story>'} must declare source_story from 1 to 12`);
+  if (!Number.isInteger(sourceStory) || sourceStory < 1 || sourceStory > 11) {
+    fail(`${id || '<unknown story>'} must declare source_story from 1 to 11`);
   } else if (sourceStories.has(sourceStory)) {
     fail(`source_story ${sourceStory} is mapped by more than one formal story`);
   } else {
@@ -107,7 +107,7 @@ for (const row of storybook.stories || []) {
     fail(`${id || '<unknown story>'} must declare intent`);
   }
 }
-expectEqualSet('source_story mapping', sourceStories, new Set(Array.from({ length: 12 }, (_, index) => index + 1)));
+expectEqualSet('source_story mapping', sourceStories, new Set(Array.from({ length: 11 }, (_, index) => index + 1)));
 for (const row of matrix.story_acceptance || []) {
   const story = String(row?.story || '');
   const expectedStates = storyStates.get(story);
@@ -126,7 +126,7 @@ const expectedStates = idSet((stateMachine.states || []).map((row) => row?.id));
 const actualStates = idSet((matrix.state_acceptance || []).map((row) => row?.state));
 expectEqualSet('state_acceptance', actualStates, expectedStates);
 
-const expectedDecisions = new Set(Array.from({ length: 13 }, (_, index) => `D${index + 1}`));
+const expectedDecisions = new Set(Array.from({ length: 12 }, (_, index) => `D${index + 1}`));
 const actualDecisions = idSet((matrix.decision_acceptance || []).map((row) => row?.decision));
 expectEqualSet('decision_acceptance', actualDecisions, expectedDecisions);
 for (const row of matrix.decision_acceptance || []) {
@@ -158,9 +158,13 @@ expectIncludes('blocking_gates', idSet((matrix.blocking_gates || []).map((row) =
   'local_persistence_boundary',
   'no_direct_ai_consumption',
   'no_duplicate_turn_reducer',
-  'test_quarantine',
-  'shared_auth_broker',
+  'test_topology',
 ]));
+
+if (Array.isArray(matrix.unbound_acceptance_requirements)
+  && matrix.unbound_acceptance_requirements.length > 0) {
+  fail('Zhiyu acceptance must not restore app-local unbound evidence requirements owned by the platform fixed-service Journey');
+}
 
 if (failed) {
   process.exit(1);

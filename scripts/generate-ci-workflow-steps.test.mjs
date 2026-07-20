@@ -288,7 +288,7 @@ test('workflow file with no fences → no-op (exit 0; bytes unchanged)', () => {
   assert.equal(fs.readFileSync(wfPath, 'utf8'), wfContent);
 });
 
-test('registry rows with optional cwd and env fields project correctly', () => {
+test('registry rows with optional cwd project correctly', () => {
   setup();
   const regPath = createRegistry({
     gates: [
@@ -298,13 +298,6 @@ test('registry rows with optional cwd and env fields project correctly', () => {
         tiers: ['fast'],
         targets: ['any'],
         cwd: 'some/dir',
-      },
-      {
-        id: 'gate.env',
-        command: 'echo env',
-        tiers: ['fast'],
-        targets: ['any'],
-        env: { FOO: 'bar' },
       },
     ],
   });
@@ -316,7 +309,43 @@ test('registry rows with optional cwd and env fields project correctly', () => {
   runGenerator(['--registry-path', regPath, '--workflow-path', wfPath]);
   const updated = fs.readFileSync(wfPath, 'utf8');
   assert.ok(updated.includes('working-directory: some/dir'));
-  // Note: currently projectCiStepBlock DOES NOT project env,
-  // despite W5 design mentioning it. This test documents the current reality.
-  // assert.ok(updated.includes('env:'), 'Should project env');
+});
+
+test('Linux projection excludes gates whose canonical skip condition matches Linux', () => {
+  setup();
+  const regPath = createRegistry({
+    gates: [
+      {
+        id: 'gate.desktop.macos-only',
+        command: 'echo macos',
+        tiers: ['release', 'release-target:desktop'],
+        targets: ['desktop'],
+        skip_when: { condition: 'not_macos', reason_code: 'PRECONDITION_NOT_MET' },
+      },
+      {
+        id: 'gate.desktop.windows-only',
+        command: 'echo windows',
+        tiers: ['release', 'release-target:desktop'],
+        targets: ['desktop'],
+        skip_when: { condition: 'not_windows', reason_code: 'PRECONDITION_NOT_MET' },
+      },
+      {
+        id: 'gate.desktop.portable',
+        command: 'echo portable',
+        tiers: ['release', 'release-target:desktop'],
+        targets: ['desktop'],
+      },
+    ],
+  });
+  const wfPath = createWorkflow([
+    '      # >>> nimi-release-gate-projection: release-target-desktop-static-checks >>>',
+    '      # <<< nimi-release-gate-projection: release-target-desktop-static-checks <<<',
+  ].join('\n'));
+
+  const res = runGenerator(['--registry-path', regPath, '--workflow-path', wfPath]);
+  assert.equal(res.status, 0, res.stderr);
+  const updated = fs.readFileSync(wfPath, 'utf8');
+  assert.ok(updated.includes('- name: gate.desktop.portable'));
+  assert.ok(!updated.includes('gate.desktop.macos-only'));
+  assert.ok(!updated.includes('gate.desktop.windows-only'));
 });
