@@ -22,21 +22,21 @@
   --nimi-danger: #dc2626;
   --nimi-info: #2563eb;
 
-  /* — Field palette (smoked glass on a luminous sky) — */
-  --fld-text: #eef7ff;
-  --fld-text-2: rgba(238, 247, 255, 0.68);
-  --fld-text-3: rgba(238, 247, 255, 0.44);
+  /* — Field palette (frosted glass over the lunar field) — */
+  --fld-text: #f6efec;
+  --fld-text-2: rgba(246, 239, 236, 0.7);
+  --fld-text-3: rgba(246, 239, 236, 0.46);
   --fld-border: var(--nimi-border-subtle);
   --fld-border-hi: var(--nimi-border-strong);
   --fld-shadow: var(--nimi-elevation-modal);
   --fld-shadow-sm: var(--nimi-elevation-floating);
 
-  /* — Agent aurora (base agent only) — */
-  --fld-aurora: linear-gradient(120deg, #45e0e6 0%, #6d9fe8 48%, #9d7cf6 100%);
+  /* — Agent aurora (base agent only) — dusty rose over the lunar field — */
+  --fld-aurora: linear-gradient(120deg, #f4c9d6 0%, #d99ab6 48%, #a78fbf 100%);
   --fld-aurora-glow:
-    0 0 0 1px rgba(157, 124, 246, 0.4),
-    0 8px 32px rgba(69, 224, 230, 0.18),
-    0 0 64px rgba(157, 124, 246, 0.2);
+    0 0 0 1px rgba(217, 154, 182, 0.42),
+    0 8px 32px rgba(244, 201, 214, 0.16),
+    0 0 64px rgba(167, 143, 191, 0.22);
 
   --fld-radius: var(--nimi-radius-lg);
   --fld-radius-sm: var(--nimi-radius-md);
@@ -49,9 +49,31 @@
   --fld-spring: cubic-bezier(0.22, 1.2, 0.36, 1);
 
   /* module accents on glass */
-  --mod-desktop: #45e0e6;
-  --mod-zhiyu: #4ade80;
-  --mod-tester: #fbbf24;
+  --mod-desktop: #eab0c2;
+  --mod-zhiyu: #a4c6ae;
+  --mod-tester: #e6bd8a;
+
+  /* — Clear acrylic glass (prototype-local override of kit materials) — */
+  --nimi-material-glass-thin-bg: rgba(232, 224, 228, 0.08);
+  --nimi-material-glass-thin-border: rgba(255, 255, 255, 0.16);
+  --nimi-material-glass-regular-bg: rgba(238, 232, 234, 0.1);
+  --nimi-material-glass-regular-border: rgba(255, 255, 255, 0.24);
+  --nimi-material-glass-thick-bg: rgba(30, 25, 32, 0.5);
+  --nimi-material-glass-thick-border: rgba(255, 255, 255, 0.18);
+  --nimi-material-glass-chrome-bg: rgba(28, 23, 30, 0.55);
+  --nimi-material-glass-chrome-border: rgba(255, 255, 255, 0.16);
+  --nimi-backdrop-blur-thin: 12px;
+  --nimi-backdrop-blur-regular: 16px;
+  --nimi-backdrop-blur-strong: 18px;
+  --nimi-backdrop-blur-chrome: 18px;
+  --nimi-backdrop-saturate: 110%;
+  --nimi-border-subtle: rgba(255, 255, 255, 0.18);
+  --nimi-border-strong: rgba(255, 255, 255, 0.38);
+  --nimi-scrim-modal: rgba(26, 20, 26, 0.45);
+  --nimi-elevation-floating: 0 18px 48px rgba(25, 18, 28, 0.12);
+  --nimi-elevation-modal: 0 28px 72px rgba(25, 18, 28, 0.16);
+  --nimi-radius-md: 14px;
+  --nimi-radius-lg: 22px;
 }
 
 /* — Sky phases (the field itself changes with the atmosphere) — */
@@ -78,8 +100,8 @@
 }
 
 [data-phase='night'] {
-  --sky: linear-gradient(180deg, #150c30 0%, #241448 44%, #321d5c 76%, #452a6e 100%);
-  --sky-speck: rgba(255, 255, 255, 0.8);
-  --sky-wisp-1: rgba(109, 159, 232, 0.2);
-  --sky-wisp-2: rgba(157, 124, 246, 0.22);
+  --sky: #150c30 url('../assets/sky-night.png') center / cover no-repeat;
+  --sky-speck: rgba(255, 242, 246, 0.5);
+  --sky-wisp-1: rgba(234, 172, 192, 0.16);
+  --sky-wisp-2: rgba(167, 143, 191, 0.14);
 }

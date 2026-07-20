@@ -37,7 +37,7 @@ interface FlickOptions {
 }
 
 /** Settle a released pane with the governed momentum spring and inherited
- * velocity; calls onEnd where it lands so a flick can weave on touchdown. */
+ * velocity until it reaches the field boundary or minimum velocity. */
 export function startFlick(opts: FlickOptions): () => void {
   const { vx, vy } = opts;
   if (Math.hypot(vx, vy) < 80) {

@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode, type PointerEvent as ReactPointerEvent } from 'react';
 import { SPAWN_SIZE, useSim, type SimWindow } from '../engine/SimContext';
 import { MODULES } from '../scenario/meta';
-import { edgeDir, groupOf, guideFor, type Rect } from './weave';
 import { FlickTracker, startFlick } from './flick';
-import { SnapGuide } from './SnapGuide';
 import { DesktopMain } from '../modules/DesktopMain';
 import { ZhiyuMain } from '../modules/ZhiyuMain';
 import { TesterMain } from '../modules/TesterMain';
@@ -14,8 +12,8 @@ const SURFACES: Record<SimWindow['moduleId'], (win: SimWindow) => ReactNode> = {
   tester: (win) => <TesterMain win={win} />,
 };
 
-function WindowFrame({ win, onGuide }: { win: SimWindow; onGuide: (r: Rect | null) => void }) {
-  const { state, focusWindow, minimizeWindow, closeWindow, moveWindow, weaveEval, weaveUnlink } = useSim();
+function WindowFrame({ win }: { win: SimWindow }) {
+  const { state, focusWindow, minimizeWindow, closeWindow, moveWindow } = useSim();
   const drag = useRef<{ dx: number; dy: number } | null>(null);
   const tracker = useRef(new FlickTracker());
   const cancelFlick = useRef<(() => void) | null>(null);
@@ -24,30 +22,12 @@ function WindowFrame({ win, onGuide }: { win: SimWindow; onGuide: (r: Rect | nul
   useEffect(() => () => cancelFlick.current?.(), []);
   const meta = MODULES[win.moduleId];
   const size = SPAWN_SIZE[win.moduleId];
-  const woven = Boolean(groupOf(state.weaveGroups, win.instanceId));
   const topZ = Math.max(0, ...state.windows.map((w) => w.z));
 
   const clamp = (nx: number, ny: number) => ({
     x: Math.min(Math.max(nx, 8), window.innerWidth - 240),
     y: Math.min(Math.max(ny, 60), window.innerHeight - 96),
   });
-
-  const evalWeave = (finalPos?: { x: number; y: number }) => {
-    const rects: Record<string, Rect> = {};
-    for (const w of state.windows) {
-      if (w.minimized) continue;
-      const el = document.querySelector(`[data-instance-module="${w.moduleId}"]`);
-      if (el) {
-        const r = el.getBoundingClientRect();
-        rects[w.instanceId] = { x: r.left, y: r.top, w: r.width, h: r.height };
-      }
-    }
-    if (finalPos) {
-      // pointer-derived position wins over possibly-batched last render
-      rects[win.instanceId] = { x: finalPos.x, y: finalPos.y, w: size.w, h: size.h };
-    }
-    weaveEval(win.instanceId, rects);
-  };
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest('button')) return;
@@ -64,25 +44,8 @@ function WindowFrame({ win, onGuide }: { win: SimWindow; onGuide: (r: Rect | nul
     tracker.current.push(e.clientX, e.clientY);
     const c = clamp(e.clientX - drag.current.dx, e.clientY - drag.current.dy);
     moveWindow(win.instanceId, c.x, c.y);
-    // snap-guide against the nearest edge candidate (pointer-derived position)
-    const mine = { x: c.x, y: c.y, w: size.w, h: size.h };
-    let guide: Rect | null = null;
-    for (const w of state.windows) {
-      if (w.instanceId === win.instanceId || w.minimized) continue;
-      const el = document.querySelector(`[data-instance-module="${w.moduleId}"]`);
-      if (!el) continue;
-      const o = el.getBoundingClientRect();
-      const oRect = { x: o.left, y: o.top, w: o.width, h: o.height };
-      const dir = edgeDir(mine, oRect);
-      if (dir) {
-        guide = guideFor(dir, oRect);
-        break;
-      }
-    }
-    onGuide(guide);
   };
   const onPointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
-    onGuide(null);
     if (drag.current) {
       const finalPos = clamp(e.clientX - drag.current.dx, e.clientY - drag.current.dy);
       const { vx, vy } = tracker.current.velocity();
@@ -93,10 +56,7 @@ function WindowFrame({ win, onGuide }: { win: SimWindow; onGuide: (r: Rect | nul
         from: finalPos,
         clamp,
         onMove: (nx, ny) => moveWindow(win.instanceId, nx, ny),
-        onEnd: (ex, ey) => {
-          evalWeave({ x: ex, y: ey });
-          setDragging(false);
-        },
+        onEnd: () => setDragging(false),
       });
       drag.current = null;
       if (!flicking) setDragging(false);
@@ -129,11 +89,6 @@ function WindowFrame({ win, onGuide }: { win: SimWindow; onGuide: (r: Rect | nul
           {meta.name} <em>{meta.tag}</em>
         </span>
         <span className="t-mono window-iid">{win.instanceId}</span>
-        {woven ? (
-          <button type="button" className="weave-chip" title="拆分编织" onClick={() => weaveUnlink(win.instanceId)}>
-            ⇋ 已编织
-          </button>
-        ) : null}
         <span className="window-actions">
           <button type="button" title="最小化" onClick={() => minimizeWindow(win.instanceId)}>
             —
@@ -155,14 +110,12 @@ function WindowFrame({ win, onGuide }: { win: SimWindow; onGuide: (r: Rect | nul
 
 export function WindowManager() {
   const { state } = useSim();
-  const [guide, setGuide] = useState<Rect | null>(null);
   return (
     <>
-      <SnapGuide rect={guide} />
       {state.windows
         .filter((w) => !w.minimized)
         .map((w) => (
-          <WindowFrame key={w.instanceId} win={w} onGuide={setGuide} />
+          <WindowFrame key={w.instanceId} win={w} />
         ))}
     </>
   );

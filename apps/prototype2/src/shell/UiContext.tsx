@@ -6,8 +6,14 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import {
+  dayTimeFromDate,
+  phaseFromDayTime,
+  PHASE_PRESET_TIME,
+  type Phase,
+} from './sky/skyMath';
 
-export type Phase = 'day' | 'dusk' | 'night' | 'dawn';
+export type { Phase } from './sky/skyMath';
 export type PhaseSetting = Phase | 'auto';
 
 const PHASE_ORDER: PhaseSetting[] = ['auto', 'day', 'dusk', 'night', 'dawn'];
@@ -22,11 +28,7 @@ export const PHASE_LABEL: Record<PhaseSetting, string> = {
 
 /** Time-of-day driven phase for the Auto atmosphere mode. */
 export function autoPhase(now = new Date()): Phase {
-  const h = now.getHours();
-  if (h >= 5 && h < 8) return 'dawn';
-  if (h >= 8 && h < 17) return 'day';
-  if (h >= 17 && h < 20) return 'dusk';
-  return 'night';
+  return phaseFromDayTime(dayTimeFromDate(now));
 }
 
 interface UiState {
@@ -37,6 +39,20 @@ interface UiState {
   phase: PhaseSetting;
   effectivePhase: Phase;
   cyclePhase: () => void;
+  /** Continuous time of day, [0,1); drives the living-sky background. */
+  dayTime: number;
+  /** true while the background follows the local clock. */
+  autoTime: boolean;
+  /** Pin the background to a specific time (leaves auto mode). */
+  setDayTime: (t: number) => void;
+  /** Resume following the local clock. */
+  setAutoTime: () => void;
+  /** Light strength for the sky shader, ~[0,2]. */
+  intensity: number;
+  setIntensity: (v: number) => void;
+  /** Animation amplitude for the sky shader, [0,1]. */
+  motion: number;
+  setMotion: (v: number) => void;
   tide: boolean;
   toggleTide: () => void;
 }
@@ -46,31 +62,53 @@ const UiContext = createContext<UiState | null>(null);
 export function UiProvider({ children }: { children: ReactNode }) {
   const [awake, setAwake] = useState(false);
   const [lensOpen, setLensOpen] = useState(false);
-  const [phase, setPhase] = useState<PhaseSetting>('auto');
+  const [autoTime, setAutoTimeState] = useState(true);
+  const [dayTime, setDayTimeState] = useState(() => dayTimeFromDate());
+  const [intensity, setIntensity] = useState(1);
+  const [motion, setMotion] = useState(1);
   const [tide, setTide] = useState(false);
-  const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    if (phase !== 'auto') return;
-    const t = window.setInterval(() => setTick((n) => n + 1), 60_000);
+    if (!autoTime) return;
+    setDayTimeState(dayTimeFromDate());
+    const t = window.setInterval(() => setDayTimeState(dayTimeFromDate()), 15_000);
     return () => window.clearInterval(t);
-  }, [phase]);
+  }, [autoTime]);
 
   const value = useMemo<UiState>(() => {
-    void tick;
+    const effectivePhase = phaseFromDayTime(dayTime);
     return {
       awake,
       enter: () => setAwake(true),
       lensOpen,
       setLensOpen,
-      phase,
-      effectivePhase: phase === 'auto' ? autoPhase() : phase,
-      cyclePhase: () =>
-        setPhase((p) => PHASE_ORDER[(PHASE_ORDER.indexOf(p) + 1) % PHASE_ORDER.length]),
+      phase: autoTime ? 'auto' : effectivePhase,
+      effectivePhase,
+      cyclePhase: () => {
+        const current: PhaseSetting = autoTime ? 'auto' : effectivePhase;
+        const next = PHASE_ORDER[(PHASE_ORDER.indexOf(current) + 1) % PHASE_ORDER.length];
+        if (next === 'auto') {
+          setAutoTimeState(true);
+        } else {
+          setAutoTimeState(false);
+          setDayTimeState(PHASE_PRESET_TIME[next]);
+        }
+      },
+      dayTime,
+      autoTime,
+      setDayTime: (t: number) => {
+        setAutoTimeState(false);
+        setDayTimeState(((t % 1) + 1) % 1);
+      },
+      setAutoTime: () => setAutoTimeState(true),
+      intensity,
+      setIntensity,
+      motion,
+      setMotion,
       tide,
-      toggleTide: () => setTide((t) => !t),
+      toggleTide: () => setTide((v) => !v),
     };
-  }, [awake, lensOpen, phase, tide, tick]);
+  }, [awake, lensOpen, autoTime, dayTime, intensity, motion, tide]);
 
   return <UiContext.Provider value={value}>{children}</UiContext.Provider>;
 }

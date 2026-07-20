@@ -28,9 +28,6 @@ pnpm --filter @nimi-prototype/os-field build
   to coast; holding still before release produces no flick.
 - Minimize a window and it becomes a **buoy on the left edge** (bottom spine
   = launch; left buoys = running instances); click a buoy to restore it.
-- **Weave**: drag a pane/window until its edge meets another's — it snaps
-  flush (animated) and links into a woven group that moves and raises as one
-  (aurora `⇋ 已编织` chip in the header; click the chip to split).
 - Right-click an empty part of the field: spatial menu (整理场 tidy, Lens,
   Tide, phase, cradle). `Esc` closes the ledger.
 

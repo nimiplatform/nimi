@@ -37,6 +37,7 @@ export function LedgerDrawer() {
   const entries = [...state.ledger].reverse();
   return (
     <aside
+      id="interaction-ledger-drawer"
       className="ledger-drawer nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] backdrop-saturate-[var(--nimi-backdrop-saturate)]"
       data-nimi-material="glass-thick"
       data-nimi-tone="overlay"

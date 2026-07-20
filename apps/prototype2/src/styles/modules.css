@@ -56,7 +56,7 @@
 
 .mod-tabs button[data-active='true'] {
   color: var(--mod-desktop);
-  background: rgba(69, 224, 230, 0.12);
+  background: rgba(234, 176, 194, 0.12);
 }
 
 .mod-tabs .tab-disabled {
@@ -92,8 +92,8 @@
 }
 
 .msg-user .msg-bubble {
-  background: linear-gradient(135deg, rgba(109, 159, 232, 0.32), rgba(157, 124, 246, 0.3));
-  border-color: rgba(157, 124, 246, 0.35);
+  background: linear-gradient(135deg, rgba(217, 154, 182, 0.32), rgba(167, 143, 191, 0.3));
+  border-color: rgba(217, 154, 182, 0.35);
 }
 
 .msg-bubble p {
@@ -103,7 +103,7 @@
 
 .msg-bubble[data-agent='true'] {
   background:
-    linear-gradient(rgba(157, 124, 246, 0.1), rgba(157, 124, 246, 0.1)) padding-box,
+    linear-gradient(rgba(217, 154, 182, 0.1), rgba(217, 154, 182, 0.1)) padding-box,
     var(--fld-aurora) border-box;
   border: 1px solid transparent;
 }
@@ -230,7 +230,7 @@
 
 .zh-card[data-kind='agent-carry'] {
   background:
-    linear-gradient(rgba(157, 124, 246, 0.1), rgba(157, 124, 246, 0.1)) padding-box,
+    linear-gradient(rgba(217, 154, 182, 0.1), rgba(217, 154, 182, 0.1)) padding-box,
     var(--fld-aurora) border-box;
   border: 1px solid transparent;
   box-shadow: var(--fld-aurora-glow);
@@ -260,7 +260,7 @@
 }
 
 .zh-composer input:focus {
-  border-color: rgba(69, 224, 230, 0.5);
+  border-color: rgba(234, 176, 194, 0.5);
 }
 
 .zh-composer input::placeholder {

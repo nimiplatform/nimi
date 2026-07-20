@@ -10,22 +10,16 @@ interface PaneProps {
   w?: number;
   z: number;
   agent?: boolean;
-  woven?: boolean;
-  weaveHint?: boolean;
   top?: boolean;
   driftDelay?: number;
   enterDelay?: number;
   className?: string;
-  paneRef?: (id: string, el: HTMLElement | null) => void;
   onFocus: (id: string) => void;
   onDrag: (id: string, x: number, y: number) => void;
-  onDragEnd: (id: string, pos: { x: number; y: number }) => void;
-  onUnlink: (id: string) => void;
   children: ReactNode;
 }
 
-/** A draggable, weavable, flickable field pane (Aurora idiom). Fully
- * controlled: the parent owns position; weave groups decide who moves along. */
+/** A draggable, flickable field pane (Aurora idiom). The parent owns position. */
 export function Pane({
   id,
   title,
@@ -35,17 +29,12 @@ export function Pane({
   w,
   z,
   agent,
-  woven,
-  weaveHint,
   top,
   driftDelay = 0,
   enterDelay = 0,
   className,
-  paneRef,
   onFocus,
   onDrag,
-  onDragEnd,
-  onUnlink,
   children,
 }: PaneProps) {
   const drag = useRef<{ dx: number; dy: number } | null>(null);
@@ -62,6 +51,7 @@ export function Pane({
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest('button,input')) return;
+    if (window.matchMedia('(max-width: 720px), (max-height: 800px)').matches) return;
     cancelFlick.current?.();
     drag.current = { dx: e.clientX - x, dy: e.clientY - y };
     tracker.current.reset();
@@ -87,10 +77,7 @@ export function Pane({
         from: finalPos,
         clamp,
         onMove: (nx, ny) => onDrag(id, nx, ny),
-        onEnd: (ex, ey) => {
-          onDragEnd(id, { x: ex, y: ey });
-          setDragging(false);
-        },
+        onEnd: () => setDragging(false),
       });
       drag.current = null;
       if (!flicking) setDragging(false);
@@ -102,13 +89,11 @@ export function Pane({
 
   return (
     <section
-      ref={(el) => paneRef?.(id, el)}
       className={`pane pane-float nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] backdrop-saturate-[var(--nimi-backdrop-saturate)] ${agent ? 'pane-agent' : ''} ${className ?? ''}`}
       data-nimi-material="glass-regular"
       data-nimi-tone="panel"
-      data-weave-hint={weaveHint || undefined}
+      data-pane-id={id}
       data-top={top || undefined}
-      data-woven={woven || undefined}
       data-dragging={dragging || undefined}
       style={{ left: x, top: y, width: w, zIndex: z, animationDelay: `${enterDelay}s` }}
       aria-label={title}
@@ -122,14 +107,7 @@ export function Pane({
             onPointerUp={onPointerUp}
           >
             <span className="pane-title">{title}</span>
-            <span className="pane-head-right">
-              {woven ? (
-                <button type="button" className="weave-chip" title="拆分编织" onClick={() => onUnlink(id)}>
-                  ⇋ 已编织
-                </button>
-              ) : null}
-              {sub ? <span className="t-caption">{sub}</span> : null}
-            </span>
+            {sub ? <span className="t-caption">{sub}</span> : null}
           </div>
         ) : (
           <div

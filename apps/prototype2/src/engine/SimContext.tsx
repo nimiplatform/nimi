@@ -19,7 +19,6 @@ import {
 } from 'react';
 import { SCENARIO } from '../scenario/scenario';
 import { FLOWS, type FlowStep } from '../scenario/flows';
-import { edgeDir, groupOf, linkGroups, unlinkGroup, type Rect } from '../shell/weave';
 import type {
   AgentLocation,
   AgentStatus,
@@ -79,7 +78,6 @@ interface SimState {
   flowRunning: boolean;
   toast: { title: string; detail: string } | null;
   cradlePos: Record<string, { x: number; y: number; w: number }>;
-  weaveGroups: string[][];
 }
 
 type Action =
@@ -90,8 +88,6 @@ type Action =
   | { type: 'home' }
   | { type: 'move'; instanceId: string; x: number; y: number }
   | { type: 'pane-move'; paneId: string; x: number; y: number }
-  | { type: 'weave-eval'; id: string; rects: Record<string, Rect> }
-  | { type: 'weave-unlink'; id: string }
   | { type: 'tidy' }
   | { type: 'notice'; moduleId: ModuleId; text: string | null }
   | { type: 'consent-open'; flowId: string; grantId: string; origin: ModuleId }
@@ -122,11 +118,19 @@ function defaultCradleSpots(): Record<string, { x: number; y: number; w: number 
   const w = typeof window === 'undefined' ? 1600 : window.innerWidth;
   const h = typeof window === 'undefined' ? 1000 : window.innerHeight;
   return {
-    identity: { x: Math.round(w * 0.06), y: Math.round(h * 0.1), w: 430 },
-    agent: { x: Math.round(w * 0.56), y: Math.round(h * 0.12), w: 520 },
-    modules: { x: Math.round(w * 0.24), y: Math.round(h * 0.38), w: 620 },
-    grants: { x: Math.round(w * 0.66), y: Math.round(h * 0.5), w: 440 },
-    worlds: { x: Math.round(w * 0.2), y: Math.round(h * 0.7), w: 840 },
+    identity: { x: Math.max(24, Math.round(w * 0.05)), y: Math.round(h * 0.1), w: 430 },
+    agent: { x: Math.max(24, w - 520), y: Math.round(h * 0.1), w: 480 },
+    modules: {
+      x: Math.max(24, Math.min(Math.round(w * 0.42), w - 544)),
+      y: Math.max(180, Math.round(h * 0.24)),
+      w: 520,
+    },
+    grants: { x: Math.max(24, w - 480), y: Math.max(430, Math.round(h * 0.66)), w: 440 },
+    worlds: {
+      x: Math.max(24, Math.round(w * 0.04)),
+      y: Math.max(320, Math.min(Math.round(h * 0.48), h - 450)),
+      w: 520,
+    },
   };
 }
 
@@ -159,7 +163,6 @@ function buildInitialState(epoch: number): SimState {
     flowRunning: false,
     toast: null,
     cradlePos: defaultCradleSpots(),
-    weaveGroups: [],
   };
 }
 
@@ -208,18 +211,12 @@ function reducer(state: SimState, action: Action): SimState {
     case 'focus': {
       const win = state.windows.find((w) => w.instanceId === action.instanceId);
       if (!win) return state;
-      const group = groupOf(state.weaveGroups, win.instanceId) ?? [win.instanceId];
-      let z = state.zTop;
-      const zMap = new Map<string, number>();
-      for (const id of group) {
-        z += 1;
-        zMap.set(id, z);
-      }
+      const z = state.zTop + 1;
       return {
         ...state,
         zTop: z,
         windows: state.windows.map((w) =>
-          zMap.has(w.instanceId) ? { ...w, minimized: false, z: zMap.get(w.instanceId)! } : w,
+          w.instanceId === action.instanceId ? { ...w, minimized: false, z } : w,
         ),
         agent: observe(state.agent, win.moduleId),
       };
@@ -237,7 +234,6 @@ function reducer(state: SimState, action: Action): SimState {
       return {
         ...state,
         windows: rest,
-        weaveGroups: unlinkGroup(state.weaveGroups, action.instanceId),
         agent: anyVisible ? state.agent : { status: 'idle', location: 'cradle', carry: state.agent.carry },
       };
     }
@@ -251,118 +247,27 @@ function reducer(state: SimState, action: Action): SimState {
             : { status: 'idle', location: 'cradle', carry: state.agent.carry },
       };
     case 'move': {
-      const group = groupOf(state.weaveGroups, action.instanceId);
-      const dragged = state.windows.find((w) => w.instanceId === action.instanceId);
-      if (!dragged) return state;
-      if (!group) {
-        return {
-          ...state,
-          windows: state.windows.map((w) =>
-            w.instanceId === action.instanceId ? { ...w, x: action.x, y: action.y } : w,
-          ),
-        };
-      }
-      const dx = action.x - dragged.x;
-      const dy = action.y - dragged.y;
-      const cradlePos = { ...state.cradlePos };
-      for (const id of group) {
-        if (cradlePos[id]) {
-          cradlePos[id] = { ...cradlePos[id], x: cradlePos[id].x + dx, y: cradlePos[id].y + dy };
-        }
-      }
+      if (!state.windows.some((w) => w.instanceId === action.instanceId)) return state;
       return {
         ...state,
-        cradlePos,
         windows: state.windows.map((w) =>
-          group.includes(w.instanceId) ? { ...w, x: w.x + dx, y: w.y + dy } : w,
+          w.instanceId === action.instanceId ? { ...w, x: action.x, y: action.y } : w,
         ),
       };
     }
     case 'pane-move': {
       const spot = state.cradlePos[action.paneId];
       if (!spot) return state;
-      const group = groupOf(state.weaveGroups, action.paneId);
-      if (!group) {
-        return {
-          ...state,
-          cradlePos: { ...state.cradlePos, [action.paneId]: { ...spot, x: action.x, y: action.y } },
-        };
-      }
-      const dx = action.x - spot.x;
-      const dy = action.y - spot.y;
-      const cradlePos = { ...state.cradlePos };
-      for (const id of group) {
-        if (cradlePos[id]) {
-          cradlePos[id] = { ...cradlePos[id], x: cradlePos[id].x + dx, y: cradlePos[id].y + dy };
-        }
-      }
       return {
         ...state,
-        cradlePos,
-        windows: state.windows.map((w) =>
-          group.includes(w.instanceId) ? { ...w, x: w.x + dx, y: w.y + dy } : w,
-        ),
+        cradlePos: { ...state.cradlePos, [action.paneId]: { ...spot, x: action.x, y: action.y } },
       };
     }
-    case 'weave-eval': {
-      const rect = action.rects[action.id];
-      if (!rect) return state;
-      const found = Object.entries(action.rects).find(
-        ([otherId, other]) => otherId !== action.id && edgeDir(rect, other) !== null,
-      );
-      if (!found) return state;
-      const [targetId, targetRect] = found;
-      const dir = edgeDir(rect, targetRect)!;
-      const weaveGroups = linkGroups(state.weaveGroups, action.id, targetId);
-
-      // snap the dragged pane flush against the weave target
-      const gap = 8;
-      let nx: number | null = null;
-      let ny: number | null = null;
-      if (dir === 'right') {
-        nx = targetRect.x - rect.w - gap;
-        ny = targetRect.y;
-      } else if (dir === 'left') {
-        nx = targetRect.x + targetRect.w + gap;
-        ny = targetRect.y;
-      } else if (dir === 'bottom') {
-        nx = targetRect.x;
-        ny = targetRect.y - rect.h - gap;
-      } else {
-        nx = targetRect.x;
-        ny = targetRect.y + targetRect.h + gap;
-      }
-      nx = Math.min(Math.max(nx, 8), window.innerWidth - 160);
-      ny = Math.min(Math.max(ny, 16), window.innerHeight - 120);
-
-      const win = state.windows.find((w) => w.instanceId === action.id);
-      if (win) {
-        return {
-          ...state,
-          weaveGroups,
-          windows: state.windows.map((w) =>
-            w.instanceId === action.id ? { ...w, x: nx!, y: ny! } : w,
-          ),
-        };
-      }
-      const spot = state.cradlePos[action.id];
-      if (spot) {
-        return {
-          ...state,
-          weaveGroups,
-          cradlePos: { ...state.cradlePos, [action.id]: { ...spot, x: nx, y: ny } },
-        };
-      }
-      return { ...state, weaveGroups };
-    }
-    case 'weave-unlink':
-      return { ...state, weaveGroups: unlinkGroup(state.weaveGroups, action.id) };
     case 'tidy': {
       let i = 0;
       return {
         ...state,
         cradlePos: defaultCradleSpots(),
-        weaveGroups: [],
         windows: state.windows.map((w) => {
           if (w.minimized) return w;
           i += 1;
@@ -493,8 +398,6 @@ interface SimApi {
   closeWindow: (instanceId: string) => void;
   moveWindow: (instanceId: string, x: number, y: number) => void;
   movePane: (paneId: string, x: number, y: number) => void;
-  weaveEval: (id: string, rects: Record<string, Rect>) => void;
-  weaveUnlink: (id: string) => void;
   tidy: () => void;
   goHome: () => void;
   runFlow: (flowId: string) => void;
@@ -638,8 +541,6 @@ export function SimProvider({ children }: { children: ReactNode }) {
       closeWindow: (instanceId) => dispatch({ type: 'close', instanceId }),
       moveWindow: (instanceId, x, y) => dispatch({ type: 'move', instanceId, x, y }),
       movePane: (paneId, x, y) => dispatch({ type: 'pane-move', paneId, x, y }),
-      weaveEval: (id, rects) => dispatch({ type: 'weave-eval', id, rects }),
-      weaveUnlink: (id) => dispatch({ type: 'weave-unlink', id }),
       tidy: () => dispatch({ type: 'tidy' }),
       goHome: () => dispatch({ type: 'home' }),
       runFlow,
