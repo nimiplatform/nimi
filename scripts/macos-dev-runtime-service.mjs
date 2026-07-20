@@ -57,6 +57,7 @@ export async function runMacOSDevRuntimeService(input = {}) {
   if (mode === 'logs') return readRuntimeLogs();
 
   const initial = await queryStatus();
+  assertCurrentPrincipalCarrier(initial);
   if ((mode === 'install' || mode === 'update') && initial.signingProfile !== 'present') {
     throw workflowError(
       'The macOS local-development signing profile is not provisioned.',
@@ -64,7 +65,24 @@ export async function runMacOSDevRuntimeService(input = {}) {
       'run_pnpm_provision_macos_dev_signing',
     );
   }
-  assertCurrentPrincipalCarrier(initial);
+  if (mode === 'install' && initial.status !== 'absent') {
+    if (initial.status === 'present') {
+      throw workflowError(
+        'The macOS development Runtime is already installed; fresh install cannot act as an update.',
+        'dev-runtime-update-not-admitted',
+        'use_explicit_uninstall_then_install_for_the_current_local_development_profile',
+        { status: initial },
+      );
+    }
+    throw workflowError(
+      'The macOS development Runtime namespace is partial or unknown; fresh install requires exact absence.',
+      initial.reasonCode === MACOS_LOCAL_DEVELOPMENT_PROFILE.legacyReasonCode
+        ? MACOS_LOCAL_DEVELOPMENT_PROFILE.legacyReasonCode
+        : 'runtime-service-repair-required',
+      'inspect_or_run_the_exact_confirmed_reset_for_the_reported_namespace',
+      { status: initial, mutation: 'none' },
+    );
+  }
   if (mode === 'update' && initial.status !== 'present') {
     throw workflowError(
       'The macOS development Runtime service is not installed; update will not perform a silent first installation.',
@@ -198,6 +216,20 @@ export function assertCurrentPrincipalCarrier(status) {
 }
 
 async function readDevelopmentStatus() {
+  if (existsSync(legacySigningProfilePath)) {
+    return Object.freeze({
+      status: 'blocked',
+      state: 'stopped',
+      serviceName: 'ai.nimi.runtime.dev',
+      signingProfile: existsSync(userSigningProfilePath) ? 'present' : 'absent',
+      signingProfileTrusted: false,
+      runtimePrincipalCarrierContractVersion: null,
+      reasonCode: MACOS_LOCAL_DEVELOPMENT_PROFILE.legacyReasonCode,
+      legacyProfilePresent: true,
+      mutation: 'none',
+      productAdmission: false,
+    });
+  }
   if (!existsSync(helperPath)) {
     const installedArtifacts = [
       runtimePath,

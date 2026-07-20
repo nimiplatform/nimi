@@ -7,11 +7,13 @@ import {
   parseMacOSDevRuntimeArguments,
   runMacOSDevRuntimeService,
 } from './macos-dev-runtime-service.mjs';
+import { assertFreshSystemBaseline } from './provision-macos-dev-signing.mjs';
 
 const absentProfile = Object.freeze({
   status: 'absent',
   state: 'stopped',
   signingProfile: 'absent',
+  runtimePrincipalCarrierContractVersion: 4,
 });
 
 const installed = Object.freeze({
@@ -40,6 +42,48 @@ const installed = Object.freeze({
   localAppSocketTrusted: true,
   installationTransactionClean: true,
   installationTransactionCommitted: false,
+});
+
+function spawnStatuses(principalStatus, launchdStatus) {
+  return (command) => ({ status: command === '/usr/bin/id' ? principalStatus : launchdStatus });
+}
+
+test('fresh signing baseline accepts only complete fixed-system absence', () => {
+  assert.doesNotThrow(() => assertFreshSystemBaseline({
+    pathExists: () => false,
+    spawn: spawnStatuses(1, 113),
+  }));
+});
+
+test('fresh signing baseline rejects every fixed path, principal, and launchd residue', () => {
+  for (const residue of [
+    '/Library/Application Support/Nimi/RuntimeDev',
+    '/Applications/Nimi Dev.app',
+    '/Library/LaunchDaemons/ai.nimi.runtime.dev.plist',
+    '/private/var/run/nimi-dev',
+    '/usr/local/libexec/nimi-macos-dev-security',
+    '/usr/local/libexec/nimi-macos-dev-security-bootstrap',
+  ]) {
+    assert.throws(
+      () => assertFreshSystemBaseline({ pathExists: (value) => value === residue, spawn: spawnStatuses(1, 113) }),
+      (error) => error.reasonCode === 'legacy-local-dev-profile-not-supported',
+    );
+  }
+  for (const spawn of [spawnStatuses(0, 113), spawnStatuses(1, 0)]) {
+    assert.throws(
+      () => assertFreshSystemBaseline({ pathExists: () => false, spawn }),
+      (error) => error.reasonCode === 'legacy-local-dev-profile-not-supported',
+    );
+  }
+});
+
+test('fresh signing baseline fails closed on ambiguous principal or launchd queries', () => {
+  for (const spawn of [spawnStatuses(2, 113), spawnStatuses(1, 1), () => ({ status: null, error: new Error('unavailable') })]) {
+    assert.throws(
+      () => assertFreshSystemBaseline({ pathExists: () => false, spawn }),
+      (error) => error.reasonCode === 'dev-signing-baseline-query-failed',
+    );
+  }
 });
 
 test('macOS dev Runtime arguments are exact, mutually exclusive, and accept pnpm separators', () => {
@@ -153,6 +197,21 @@ test('macOS install builds and verifies before confirmation, then invokes only t
   assert.match(receipt.consequence, /boot epoch rotated/u);
 });
 
+test('macOS fresh install rejects carrier-4 partial and already-installed state before build, confirmation, or sudo', async () => {
+  for (const initial of [
+    { status: 'blocked', signingProfile: 'present', runtimePrincipalCarrierContractVersion: 4, reasonCode: 'runtime-service-repair-required' },
+    installed,
+  ]) {
+    const calls = [];
+    await assert.rejects(runMacOSDevRuntimeService({
+      architecture: 'arm64', mode: 'install', platform: 'darwin', queryStatus: async () => initial,
+      confirm: async () => calls.push('confirm'), buildCandidate: async () => calls.push('build'),
+      verifyCandidate: async () => calls.push('verify'), invokeHelper: async () => calls.push('helper'),
+    }), (error) => error.reasonCode === (initial.status === 'present' ? 'dev-runtime-update-not-admitted' : 'runtime-service-repair-required'));
+    assert.deepEqual(calls, []);
+  }
+});
+
 test('macOS explicit reset reaches the carrier-4 cleanup helper without user signing authority', async () => {
   const calls=[];
   const result=await runMacOSDevRuntimeService({
@@ -213,7 +272,7 @@ test('macOS mutation rejects every non-carrier-4 profile without mutation', asyn
   const calls = [];
   await assert.rejects(runMacOSDevRuntimeService({
     architecture: 'arm64', mode: 'install', platform: 'darwin',
-    queryStatus: async () => ({ ...absentProfile, signingProfile: 'present', runtimePrincipalCarrierContractVersion: 2 }),
+    queryStatus: async () => ({ ...absentProfile, runtimePrincipalCarrierContractVersion: 2 }),
     confirm: async () => calls.push('confirm'), buildCandidate: async () => calls.push('build'),
     verifyCandidate: async () => calls.push('verify'), invokeHelper: async () => calls.push('helper'),
   }), (error) => error.reasonCode === 'legacy-local-dev-profile-not-supported');
