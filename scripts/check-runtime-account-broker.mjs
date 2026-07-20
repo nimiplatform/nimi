@@ -10,7 +10,7 @@ const root = process.cwd();
 const gate = String(process.argv[2] || '').trim();
 
 function fail(message) {
-  throw new Error(`${gate || 'shared-auth-broker'} gate failed: ${message}`);
+  throw new Error(`${gate || 'runtime-account-broker'} gate failed: ${message}`);
 }
 
 function read(relativePath) {
@@ -256,7 +256,7 @@ function checkSdkLocalAppProtectedCarrier() {
     'core/app/local-app-runtime-platform.test.ts',
     'core/app/runtime-account-realm.test.ts',
     'runtime/account-caller.test.ts',
-    'runtime/shared-auth-surface.test.ts',
+    'runtime/runtime-account-surface.test.ts',
   ], path.join(root, 'sdks/typescript'));
 }
 
@@ -265,21 +265,27 @@ function checkKitParity() {
   const tauriCatalog = read('kit/shell/tauri/src/capabilities/catalog.rs');
   const activeTauriCatalog = tauriCatalog.split('#[cfg(test)]', 1)[0] || tauriCatalog;
   const tauriCommands = read('kit/shell/tauri/src/command_registration.rs');
-  const electronPolicy = read('kit/shell/electron/src/main/auth.ts');
+  const electronHost = read('kit/shell/electron/src/main/host.ts');
   const rendererBridge = read('kit/shell/renderer/src/bridge/tauri-api.ts');
   forbidMatch(catalog, /id: 'auth'|nimi\.shell\.auth\.session/u, 'active standard shell catalog still contains auth.session');
   forbidMatch(activeTauriCatalog, /id: "auth"|nimi\.shell\.auth\.session/u, 'active Tauri standard shell catalog still contains auth.session');
   forbidMatch(tauriCommands, /auth_session_(?:load|save|clear)/u, 'Tauri still registers auth_session commands');
   forbidMatch(rendererBridge, /auth_session_(?:load|save|clear)|auth\.session(?:Load|Save|Clear)/u, 'renderer bridge still aliases auth.session');
-  requireMatch(electronPolicy, /RETIRED_ELECTRON_AUTH_SESSION_COMMAND_SET/u, 'Electron does not keep explicit deny vocabulary for retired auth.session calls');
+  requireMatch(
+    electronHost,
+    /LOCAL_APP_EXPLICITLY_FORBIDDEN_COMMANDS[\s\S]*auth\.sessionLoad[\s\S]*auth\.sessionSave[\s\S]*auth\.sessionClear/u,
+    'Electron local-app host does not keep explicit deny vocabulary for retired auth.session calls',
+  );
+  requireMatch(electronHost, /unsupported-electron-shell-command/u, 'Electron unknown command path does not fail closed');
   requireMatch(tauriCommands, /runtime_bridge_unary/u, 'Tauri Runtime unary carrier is missing');
   run(process.execPath, [
     path.join(root, 'kit/node_modules/vitest/vitest.mjs'), 'run',
-    'shell/renderer/test/shared-auth-broker-hardcut.test.ts',
+    'shell/renderer/test/runtime-account-broker-hardcut.test.ts',
+    'shell/electron/test/electron-shell-bridge-guardrails.test.ts',
     'shell/electron/test/electron-protected-desktop-hosts.test.ts',
   ], path.join(root, 'kit'));
-  run('cargo', ['test', '--manifest-path', 'kit/shell/tauri/Cargo.toml', 'capabilities::catalog']);
-  run('cargo', ['test', '--manifest-path', 'kit/shell/tauri/Cargo.toml', 'runtime_bridge']);
+  run('cargo', ['test', '--locked', '--manifest-path', 'kit/shell/tauri/Cargo.toml', 'capabilities::catalog']);
+  run('cargo', ['test', '--locked', '--manifest-path', 'kit/shell/tauri/Cargo.toml', 'runtime_bridge']);
 }
 
 const gates = {
@@ -289,7 +295,7 @@ const gates = {
   'runtime-broker-operation-policy': checkRuntimeBrokerPolicy,
   'runtime-broker-token-leak': checkRuntimeBrokerTokenLeak,
   'sdk-local-app-protected-carrier': checkSdkLocalAppProtectedCarrier,
-  'kit-shared-auth-broker-parity': checkKitParity,
+  'kit-runtime-account-broker-parity': checkKitParity,
 };
 
 const check = gates[gate];

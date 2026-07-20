@@ -3,7 +3,7 @@ import { createNimiError } from '../types';
 
 export type NimiRuntimeAccountCaller = AccountCaller;
 
-export type NimiSDKSharedAuthAppMode =
+export type NimiSDKRuntimeAccountAppMode =
   | 'first-party-local-app'
   | 'local-app'
   | 'third-party-nimi-app'
@@ -11,7 +11,7 @@ export type NimiSDKSharedAuthAppMode =
   | 'desktop-account-ux'
   | 'binding-only-avatar';
 
-export const NIMI_SDK_SHARED_AUTH_RUNTIME_CALLER_MODE: Readonly<Record<NimiSDKSharedAuthAppMode, AccountCallerMode | null>> = {
+export const NIMI_SDK_RUNTIME_ACCOUNT_CALLER_MODE: Readonly<Record<NimiSDKRuntimeAccountAppMode, AccountCallerMode | null>> = {
   'first-party-local-app': AccountCallerMode.LOCAL_FIRST_PARTY_APP,
   // LOCAL_APP identity is inherited from the verified native carrier. It is
   // deliberately not constructible as an AccountCaller in SDK/app code.
@@ -22,10 +22,10 @@ export const NIMI_SDK_SHARED_AUTH_RUNTIME_CALLER_MODE: Readonly<Record<NimiSDKSh
   'binding-only-avatar': AccountCallerMode.DESKTOP_LAUNCHED_AVATAR,
 };
 
-export function resolveNimiSDKSharedAuthRuntimeCallerMode(
-  appMode: NimiSDKSharedAuthAppMode,
+export function resolveNimiSDKRuntimeAccountCallerMode(
+  appMode: NimiSDKRuntimeAccountAppMode,
 ): AccountCallerMode | null {
-  return NIMI_SDK_SHARED_AUTH_RUNTIME_CALLER_MODE[appMode];
+  return NIMI_SDK_RUNTIME_ACCOUNT_CALLER_MODE[appMode];
 }
 
 export type NimiRuntimeAccountCallerInput = {

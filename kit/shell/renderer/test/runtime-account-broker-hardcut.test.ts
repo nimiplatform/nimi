@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 const rendererRoot = resolve(import.meta.dirname, '../src');
 const capabilityRoot = resolve(import.meta.dirname, '../../capabilities/src');
 
-describe('shared auth broker renderer hardcut', () => {
+describe('Runtime account broker renderer hardcut', () => {
   it('does not export or alias the retired auth session custody surface', () => {
     const bridgeIndex = readFileSync(resolve(rendererRoot, 'bridge/index.ts'), 'utf8');
     const tauriApi = readFileSync(resolve(rendererRoot, 'bridge/tauri-api.ts'), 'utf8');

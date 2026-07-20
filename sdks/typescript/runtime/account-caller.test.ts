@@ -5,7 +5,7 @@ import {
   createNimiBindingOnlyAvatarRuntimeAccountCaller,
   createNimiDesktopShellRuntimeAccountCaller,
   createNimiLocalFirstPartyRuntimeAccountCaller,
-  resolveNimiSDKSharedAuthRuntimeCallerMode,
+  resolveNimiSDKRuntimeAccountCallerMode,
 } from './index';
 import { AccountCallerMode } from '../core-generated/runtime-typed-client';
 
@@ -91,11 +91,11 @@ test('Runtime account caller projection fails closed on missing identity', () =>
   );
 });
 
-test('SDK shared-auth app modes map exactly to Runtime caller modes', () => {
-  assert.equal(resolveNimiSDKSharedAuthRuntimeCallerMode('first-party-local-app'), AccountCallerMode.LOCAL_FIRST_PARTY_APP);
-  assert.equal(resolveNimiSDKSharedAuthRuntimeCallerMode('local-app'), null);
-  assert.equal(resolveNimiSDKSharedAuthRuntimeCallerMode('third-party-nimi-app'), null);
-  assert.equal(resolveNimiSDKSharedAuthRuntimeCallerMode('desktop-account-ux'), AccountCallerMode.DESKTOP_SHELL);
-  assert.equal(resolveNimiSDKSharedAuthRuntimeCallerMode('binding-only-avatar'), AccountCallerMode.DESKTOP_LAUNCHED_AVATAR);
-  assert.equal(resolveNimiSDKSharedAuthRuntimeCallerMode('dev-standalone'), null);
+test('SDK Runtime account app modes map exactly to Runtime caller modes', () => {
+  assert.equal(resolveNimiSDKRuntimeAccountCallerMode('first-party-local-app'), AccountCallerMode.LOCAL_FIRST_PARTY_APP);
+  assert.equal(resolveNimiSDKRuntimeAccountCallerMode('local-app'), null);
+  assert.equal(resolveNimiSDKRuntimeAccountCallerMode('third-party-nimi-app'), null);
+  assert.equal(resolveNimiSDKRuntimeAccountCallerMode('desktop-account-ux'), AccountCallerMode.DESKTOP_SHELL);
+  assert.equal(resolveNimiSDKRuntimeAccountCallerMode('binding-only-avatar'), AccountCallerMode.DESKTOP_LAUNCHED_AVATAR);
+  assert.equal(resolveNimiSDKRuntimeAccountCallerMode('dev-standalone'), null);
 });

@@ -162,8 +162,9 @@ import { ensureNimiShellRuntimeBridgeInstalled } from '@nimiplatform/kit/shell/r
 ```
 
 Renderer shell APIs are host-neutral; Tauri and Electron host implementations
-live behind injected bridge hooks. Shared authorization flows through the Runtime
-bridge; renderer code cannot load, save, clear, or persist Runtime account tokens.
+live behind injected bridge hooks. Runtime account operations flow through the
+protected bridge; renderer code cannot load, save, clear, or persist Runtime
+account tokens.
 
 ### Electron shell
 

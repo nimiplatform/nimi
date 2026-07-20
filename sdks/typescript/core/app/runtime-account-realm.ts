@@ -156,7 +156,7 @@ function assertRuntimeMediatedRealmCallerMode(caller: NimiRuntimeAccountCaller):
     && caller.mode !== AccountCallerMode.DESKTOP_SHELL
   ) {
     throw createNimiError({
-      message: 'Runtime-mediated Realm transport requires an admitted shared-auth caller mode.',
+      message: 'Runtime-mediated Realm transport requires an admitted Runtime account caller mode.',
       reasonCode: 'SDK_RUNTIME_REALM_MEDIATION_CALLER_MODE_FORBIDDEN',
       actionHint: 'register_the_app_or_use_a_scoped_binding_surface',
       source: 'sdk',

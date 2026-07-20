@@ -19,7 +19,7 @@ local-app origin or permission posture never creates blanket authorization.
 
 `RuntimeAuthService`（`K-AUTHSVC-*`）继续负责 app session 与 external-principal session，二者不互相替代。`RuntimeAccountService` 不接受调用方提供的 `subject_user_id` 作为 account 真相，account subject 必须从 Runtime account custody 内部派生。
 
-`RuntimeAccountService` 还是 Nimi 本地 app 的 shared auth broker 与唯一 Realm
+`RuntimeAccountService` 还是 Nimi 本地 app 的唯一 account custody 与 Realm
 credential mediation owner。`InvokeRealmUnary` 当前只对 matrix 中明确 admitted
 的 Desktop/bundled caller 生效；`LOCAL_APP` 行保持 deny，直到某个 exact Realm
 operation 独立完成 owner admission。checkpoint 的 selected RuntimeAgent/Cognition
@@ -568,7 +568,7 @@ expired, revoked, denied, tombstoned, process-mismatched or account-mismatched
 inputs deny the operation. Immutable provenance remains an opaque input seam and
 returns typed unavailable until 0P/P admits a producer.
 
-## K-ACCSVC-023 Runtime Shared Auth Broker
+## K-ACCSVC-023 Protected Desktop Realm Broker
 
 `RuntimeAccountService.InvokeRealmUnary` admits only the exact Desktop
 source-readiness operations enumerated by

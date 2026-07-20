@@ -26,7 +26,7 @@ type ZhiyuElectronSdkAcceptanceProbeResult =
 
 type ZhiyuElectronSdkAcceptanceProbe = {
   runtimeReady(): Promise<ZhiyuElectronSdkAcceptanceProbeResult>;
-  sharedAuthBroker(): Promise<ZhiyuElectronSdkAcceptanceProbeResult>;
+  protectedRealmBroker(): Promise<ZhiyuElectronSdkAcceptanceProbeResult>;
   renewDelegationScopedBinding(): Promise<ZhiyuElectronSdkAcceptanceProbeResult>;
 };
 
@@ -57,7 +57,7 @@ export function installZhiyuElectronSdkAcceptanceProbe(): void {
         return serializeSdkAcceptanceError(error);
       }
     },
-    async sharedAuthBroker() {
+    async protectedRealmBroker() {
       const runtime = getZhiyuRuntime();
       const client = createNimiClient({
         appId,

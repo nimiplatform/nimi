@@ -20,6 +20,6 @@
 - `node sdks/conformance/run.mjs --language all --profile typed-core`
 - `pnpm --filter @nimiplatform/sdk build`
 - `pnpm --filter @nimiplatform/sdk test`
-- `pnpm check:sdk-vnext-matrix`
+- `pnpm check:sdk-release-contracts`
 - `pnpm check:sdk-ai-runner-export-posture` (required after editing `sdks/typescript/core/ai-runner/**` public exports; registry: `.nimi/spec/sdks/kernel/tables/ai-runner-export-authority-posture.yaml`)
 - `pnpm check:sdk-doctor` (required after editing `sdks/typescript/doctor/**`, adapter manifests, or `.nimi/spec/sdks/kernel/tables/framework-api-capability-map.yaml`)
