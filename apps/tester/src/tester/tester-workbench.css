@@ -30,9 +30,6 @@
 .workbench-topbar-tooltip em{ color: var(--nimi-text-secondary); font-size: 12px; font-style: normal; line-height: 1.45;}
 .workbench-topbar__attachment{ display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; border: 0; border-radius: 999px; background: var(--nimi-material-glass-thick-bg); box-shadow: inset 0 0 0 1px var(--nimi-material-glass-thick-bg), 0 12px 30px rgba(36, 54, 82, 0.07); color: var(--nimi-text-primary); font-size: 14px; font-weight: 760;}
 .workbench-topbar__attachment:not(.workbench-topbar__attachment--icon){ padding: 0 16px;}
-.workbench-topbar__attachment--button{ font: inherit; cursor: pointer;}
-.workbench-topbar__attachment--button:hover{ background: var(--nimi-material-glass-chrome-bg);}
-.workbench-topbar__attachment--button:focus-visible{ outline: 2px solid var(--nimi-focus-ring); outline-offset: 2px;}
 .workbench-topbar__attachment--icon{ width: 40px; color: var(--nimi-text-secondary); cursor: pointer;}
 .workbench-topbar__dot{ width: 9px; height: 9px; border-radius: 999px; background: var(--nimi-text-muted); box-shadow: 0 0 0 4px color-mix(in srgb, var(--nimi-status-success) 12%, transparent);}
 .workbench-topbar__attachment--success .workbench-topbar__dot{ background: var(--nimi-status-success);}

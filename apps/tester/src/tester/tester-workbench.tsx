@@ -360,16 +360,18 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
                       content={<TopbarStatusTooltip title="Protected local app" rows={localAppTooltipRows} />}
                       placement="bottom"
                     >
-                      <button
+                      <Button
                         type="button"
-                        className={`workbench-topbar__attachment workbench-topbar__attachment--button workbench-topbar__attachment--${localAppProjection ? 'success' : 'neutral'}`}
+                        tone="secondary"
+                        size="md"
+                        className={`workbench-topbar__attachment workbench-topbar__attachment--${localAppProjection ? 'success' : 'neutral'}`}
                         data-testid="tester-local-app-status"
                         aria-label="打开 Local App 权限测试"
                         onClick={() => setPermissionLabOpen(true)}
                       >
                         <span className="workbench-topbar__dot" aria-hidden="true" />
                         <span>Local app</span>
-                      </button>
+                      </Button>
                     </Tooltip>
                     <Tooltip
                       content={<TopbarStatusTooltip title="Runtime" rows={runtimeTooltipRows} />}
