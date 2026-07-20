@@ -52,6 +52,19 @@ test('desktop Electron host installs the standard shell bridge for the Desktop r
   assert.doesNotMatch(mainSource, /local-agent:desktop-electron/);
 });
 
+test('desktop Electron host owns one protected Runtime session per profile', () => {
+  const mainSource = readIfExists(path.join(root, 'src-electron', 'main.ts'));
+
+  const lockIndex = mainSource.indexOf('app.requestSingleInstanceLock()');
+  const bridgeIndex = mainSource.indexOf('registerNimiElectronRuntimeBridge({');
+  const bootstrapIndex = mainSource.indexOf('bootstrapDesktopElectronHost()');
+  assert.ok(lockIndex >= 0, 'desktop Electron main must acquire a process-level instance lock');
+  assert.ok(bridgeIndex > lockIndex, 'protected Runtime bridge must initialize only after the instance lock');
+  assert.ok(bootstrapIndex > lockIndex, 'renderer bootstrap must initialize only after the instance lock');
+  assert.match(mainSource, /if \(!ownsDesktopInstanceLock\) \{\s*app\.quit\(\);\s*\} else \{/);
+  assert.match(mainSource, /app\.on\('second-instance', \(\) => \{\s*void focusDesktopMainWindow\(\);\s*\}\);/);
+});
+
 test('desktop Electron dev runner starts Vite and passes the renderer URL to Electron', () => {
   const runnerPath = path.join(root, 'scripts', 'run-electron-dev.mjs');
   const mainBundlePath = path.join(root, 'scripts', 'bundle-electron-main.mjs');
@@ -74,6 +87,11 @@ test('desktop Electron dev runner starts Vite and passes the renderer URL to Ele
   assert.match(runnerSource, /dist-electron\/main\.js/);
   assert.match(mainBundleSource, /src-electron\/main\.ts/);
   assert.match(mainBundleSource, /dist-electron\/main\.js/);
+  assert.match(mainBundleSource, /__NIMI_ELECTRON_DEVELOPMENT_BUILD__:\s*JSON\.stringify\(!releaseBuild\)/);
+  const mainSource = readIfExists(path.join(root, 'src-electron', 'main.ts'));
+  assert.match(mainSource, /const ELECTRON_DEVELOPMENT_BUILD =/);
+  assert.match(mainSource, /ELECTRON_DEVELOPMENT_BUILD\s*\? normalizeText\(process\.env\.NIMI_DESKTOP_ELECTRON_RENDERER_URL\)/);
+  assert.doesNotMatch(mainSource, /const nonReleaseShell = !app\.isPackaged/);
   assert.match(bundleSource, /src-electron\/preload\.cts/);
   assert.match(bundleSource, /dist-electron\/preload\.cjs/);
 });

@@ -54,37 +54,12 @@ fn normalize_optional_handoff_value(value: Option<&str>) -> Option<String> {
 fn build_avatar_handoff_uri(payload: &DesktopAvatarLaunchHandoffPayload) -> Result<String, String> {
     let agent_id =
         normalize_required_local_agent_handoff_value(payload.agent_id.as_str(), "agent_id")?;
-    let owner_user_id =
-        normalize_required_handoff_value(payload.owner_user_id.as_str(), "owner_user_id")?;
-    let runtime_source_ref = normalize_required_handoff_value(
-        payload.runtime_source_ref.as_str(),
-        "runtime_source_ref",
-    )?;
-    let local_agent_ref = normalize_required_local_agent_handoff_value(
-        payload.local_agent_ref.as_str(),
-        "local_agent_ref",
-    )?;
-    if local_agent_ref != agent_id {
-        return Err(structured_avatar_handoff_error(
-            "DESKTOP_AVATAR_HANDOFF_INVALID",
-            "avatar handoff requires agent_id to equal local_agent_ref",
-        ));
-    }
-    if local_agent_ref == runtime_source_ref {
-        return Err(structured_avatar_handoff_error(
-            "DESKTOP_AVATAR_HANDOFF_INVALID",
-            "avatar handoff requires local_agent_ref to be Runtime-owned",
-        ));
-    }
     let avatar_instance_id =
         normalize_optional_handoff_value(payload.avatar_instance_id.as_deref());
     let launch_source = normalize_optional_handoff_value(payload.launch_source.as_deref());
 
     let mut serializer = url::form_urlencoded::Serializer::new(String::new());
     serializer.append_pair("agent_id", agent_id.as_str());
-    serializer.append_pair("owner_user_id", owner_user_id.as_str());
-    serializer.append_pair("runtime_source_ref", runtime_source_ref.as_str());
-    serializer.append_pair("local_agent_ref", local_agent_ref.as_str());
     if let Some(avatar_instance_id) = avatar_instance_id {
         serializer.append_pair("avatar_instance_id", avatar_instance_id.as_str());
     }

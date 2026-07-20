@@ -2,9 +2,7 @@ import { createNimiClientId } from '@nimiplatform/sdk';
 import { invokeChecked } from './invoke';
 
 export type DesktopAvatarLaunchHandoffInput = {
-  ownerUserId: string;
-  runtimeSourceRef: string;
-  localAgentRef: string;
+  agentId: string;
   avatarInstanceId?: string | null;
   launchSource?: string | null;
   sourceSurface?: string | null;
@@ -28,16 +26,16 @@ export type DesktopAvatarCloseHandoffResult = {
 
 export type DesktopAvatarLaunchHandoffPayload = {
   agentId: string;
-  ownerUserId: string;
-  runtimeSourceRef: string;
-  localAgentRef: string;
   avatarInstanceId?: string;
   launchSource?: string;
 };
 
 const FORBIDDEN_LAUNCH_INPUT_FIELDS = [
+  'ownerUserId',
   'owner_user_id',
+  'runtimeSourceRef',
   'runtime_source_ref',
+  'localAgentRef',
   'local_agent_ref',
   'conversationAnchorId',
   'conversation_anchor_id',
@@ -230,19 +228,11 @@ export function buildDesktopAvatarLaunchHandoffPayload(
       throw new Error(`desktop avatar handoff contains forbidden field: ${field}`);
     }
   }
-  const ownerUserId = normalizeRequiredString(input.ownerUserId, 'ownerUserId');
-  const runtimeSourceRef = normalizeRequiredString(input.runtimeSourceRef, 'runtimeSourceRef');
-  const localAgentRef = normalizeRequiredLocalAgentRef(input.localAgentRef, 'localAgentRef');
-  if (localAgentRef === runtimeSourceRef) {
-    throw new Error('desktop avatar handoff requires localAgentRef to be Runtime-owned');
-  }
+  const agentId = normalizeRequiredLocalAgentRef(input.agentId, 'agentId');
   const avatarInstanceId = normalizeOptionalString(input.avatarInstanceId);
   const launchSource = normalizeOptionalString(input.launchSource) ?? normalizeOptionalString(input.sourceSurface);
   return {
-    agentId: localAgentRef,
-    ownerUserId,
-    runtimeSourceRef,
-    localAgentRef,
+    agentId,
     ...(avatarInstanceId ? { avatarInstanceId } : {}),
     ...(launchSource ? { launchSource } : {}),
   };
@@ -288,20 +278,22 @@ function sanitizeInstanceSegment(value: string | null | undefined): string {
 }
 
 export function buildDesktopAvatarInstanceId(input: {
-  localAgentRef: string;
+  agentId: string;
   threadId?: string | null;
 }): string {
   const record = input as Record<string, unknown>;
   if ('conversationAnchorId' in record) {
     throw new Error('desktop avatar instance id must not depend on conversationAnchorId');
   }
-  const agentSegment = sanitizeInstanceSegment(input.localAgentRef);
+  const agentSegment = sanitizeInstanceSegment(
+    normalizeRequiredLocalAgentRef(input.agentId, 'agentId'),
+  );
   const continuitySegment = sanitizeInstanceSegment(input.threadId || 'default');
   return `desktop-avatar-${agentSegment}-${continuitySegment}`;
 }
 
 export function buildDesktopAvatarEphemeralInstanceId(input: {
-  localAgentRef: string;
+  agentId: string;
   threadId?: string | null;
   nonce?: string | null;
 }): string {

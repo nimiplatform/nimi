@@ -87,6 +87,7 @@ type RunContext = {
 
 type PendingApproval = {
   readonly evaluationId: string;
+  readonly evaluationExpiresAtUnixMs: number;
   readonly run: RunContext;
   readonly projection: RendererApproval;
 };
@@ -322,13 +323,19 @@ class ElectronLocalDevelopmentHost {
   }
 
   private async queueApproval(run: RunContext, evaluation: NimiElectronLocalDevelopmentEvaluation): Promise<void> {
-    if (!evaluation.evaluationId) throw new Error('runtime-service-untrusted');
+    if (!evaluation.evaluationId
+      || !Number.isSafeInteger(evaluation.evaluationExpiresAtUnixMs)
+      || evaluation.evaluationExpiresAtUnixMs === null
+      || evaluation.evaluationExpiresAtUnixMs <= 0) {
+      throw new Error('runtime-service-untrusted');
+    }
     for (const [requestId, row] of this.pending) {
       if (row.run === run) this.pending.delete(requestId);
     }
     const requestId = randomSelector('dev-approval');
     this.pending.set(requestId, {
       evaluationId: evaluation.evaluationId,
+      evaluationExpiresAtUnixMs: evaluation.evaluationExpiresAtUnixMs,
       run,
       projection: {
         requestId,
@@ -355,6 +362,10 @@ class ElectronLocalDevelopmentHost {
     if (!selected) throw new Error('local-development-approval-request-not-found');
     const decision = localDecision(payload.decision);
     this.pending.delete(requestId);
+    if (Date.now() >= selected.evaluationExpiresAtUnixMs) {
+      await this.resolveAuthority(selected.run);
+      return selected.run.status;
+    }
     let authorization: NimiElectronLocalDevelopmentAuthorization;
     try {
       authorization = await this.control.decide({
@@ -363,7 +374,14 @@ class ElectronLocalDevelopmentHost {
         riskDisclosureAcknowledged: payload.riskDisclosureAcknowledged,
       });
     } catch (error) {
-      setRunState(selected.run, 'failed', reason(error), reason(error), false);
+      const code = reason(error);
+      if (requiresFreshLocalDevelopmentEvaluation(code)) {
+        await this.resolveAuthority(selected.run);
+        return selected.run.status;
+      }
+      const state = resolveLocalDevelopmentAuthorityFailureState(code);
+      setRunState(selected.run, state, code, code, state === 'runtime-unavailable');
+      if (state === 'runtime-unavailable') this.ensureHealthTimer(selected.run);
       return selected.run.status;
     }
     if (decision === 'deny') {
@@ -467,7 +485,10 @@ class ElectronLocalDevelopmentHost {
   private async launchHost(run: RunContext): Promise<void> {
     if (!run.authorizationId) throw new Error('local-development-authorization-required');
     const mainEntry = await canonicalElectronMain(run.plan);
-    const observationArguments = resolveLocalDevelopmentObservationArguments();
+    const observationArguments = resolveLocalDevelopmentObservationArguments(
+      process.env,
+      run.plan.appId,
+    );
     const userDataArguments = observationArguments.some((value) => value.startsWith('--user-data-dir='))
       ? []
       : await resolveLocalAppUserDataArguments({
@@ -741,4 +762,9 @@ export function resolveLocalDevelopmentAuthorityFailureState(
   ].includes(reasonCode)
     ? 'runtime-unavailable'
     : 'authorization-required';
+}
+
+function requiresFreshLocalDevelopmentEvaluation(reasonCode: string): boolean {
+  return reasonCode === 'local-development-authorization-required'
+    || reasonCode === 'local-development-reapproval-required';
 }

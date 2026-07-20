@@ -21,9 +21,6 @@ fn make_temp_dir(prefix: &str) -> PathBuf {
 fn launch_payload() -> DesktopAvatarLaunchHandoffPayload {
     DesktopAvatarLaunchHandoffPayload {
         agent_id: "local-agent:opaque-1".to_string(),
-        owner_user_id: "owner-1".to_string(),
-        runtime_source_ref: "agent-1".to_string(),
-        local_agent_ref: "local-agent:opaque-1".to_string(),
         avatar_instance_id: Some("instance-1".to_string()),
         launch_source: Some("desktop-agent-chat".to_string()),
     }
@@ -95,18 +92,6 @@ fn avatar_handoff_uri_includes_only_minimal_launch_intent() {
         Some("local-agent:opaque-1")
     );
     assert_eq!(
-        query.get("owner_user_id").map(String::as_str),
-        Some("owner-1")
-    );
-    assert_eq!(
-        query.get("runtime_source_ref").map(String::as_str),
-        Some("agent-1")
-    );
-    assert_eq!(
-        query.get("local_agent_ref").map(String::as_str),
-        Some("local-agent:opaque-1")
-    );
-    assert_eq!(
         query.get("avatar_instance_id").map(String::as_str),
         Some("instance-1")
     );
@@ -120,11 +105,11 @@ fn avatar_handoff_uri_includes_only_minimal_launch_intent() {
             "agent_id".to_string(),
             "avatar_instance_id".to_string(),
             "launch_source".to_string(),
-            "local_agent_ref".to_string(),
-            "owner_user_id".to_string(),
-            "runtime_source_ref".to_string(),
         ]
     );
+    assert!(!uri.contains("owner_user_id"));
+    assert!(!uri.contains("runtime_source_ref"));
+    assert!(!uri.contains("local_agent_ref"));
     assert!(!uri.contains("conversation_anchor_id"));
     assert!(!uri.contains("runtime_app_id"));
     assert!(!uri.contains("world_id"));
@@ -464,9 +449,6 @@ fn inferred_avatar_target_accepts_binary_newer_than_source() {
 fn avatar_handoff_uri_rejects_missing_agent_id() {
     let error = build_avatar_handoff_uri(&DesktopAvatarLaunchHandoffPayload {
         agent_id: " ".to_string(),
-        owner_user_id: "owner-1".to_string(),
-        runtime_source_ref: "agent-1".to_string(),
-        local_agent_ref: "local-agent:opaque-1".to_string(),
         avatar_instance_id: Some("instance-1".to_string()),
         launch_source: None,
     })
@@ -486,9 +468,6 @@ fn avatar_handoff_uri_rejects_missing_agent_id() {
 fn avatar_handoff_uri_rejects_bare_agent_id() {
     let error = build_avatar_handoff_uri(&DesktopAvatarLaunchHandoffPayload {
         agent_id: "agent-1".to_string(),
-        owner_user_id: "owner-1".to_string(),
-        runtime_source_ref: "agent-1".to_string(),
-        local_agent_ref: "local-agent:opaque-1".to_string(),
         avatar_instance_id: Some("instance-1".to_string()),
         launch_source: None,
     })

@@ -11,11 +11,35 @@ const MACOS_LOCAL_DEVELOPMENT_BUILD = typeof __NIMI_MACOS_LOCAL_DEVELOPMENT_BUIL
 
 export function resolveLocalDevelopmentObservationArguments(
   env: NodeJS.ProcessEnv = process.env,
+  expectedAppId = '',
+  acceptanceBuild = ACCEPTANCE_BUILD,
 ): string[] {
   const explicitMacOSAcceptance = MACOS_LOCAL_DEVELOPMENT_BUILD
     && String(env.NIMI_MACOS_DEV_ACCEPTANCE || '').trim() === '1';
-  if ((!ACCEPTANCE_BUILD && !explicitMacOSAcceptance)
+  if ((!acceptanceBuild && !explicitMacOSAcceptance)
     || String(env.NIMI_DEV_KERNEL_CHECKPOINT || '').trim() !== '1') return [];
+
+  const genericAppId = String(env.NIMI_LOCAL_APP_ACCEPTANCE_APP_ID || '').trim();
+  const genericPortValue = String(env.NIMI_LOCAL_APP_ACCEPTANCE_CDP_PORT || '').trim();
+  if (genericAppId || genericPortValue) {
+    if (!acceptanceBuild
+      || !genericAppId
+      || !genericPortValue
+      || !expectedAppId
+      || !/^nimi\.[a-z0-9](?:[a-z0-9.-]{0,126}[a-z0-9])?$/u.test(genericAppId)) {
+      throw new Error('local-development-observation-config-invalid');
+    }
+    if (genericAppId !== expectedAppId) return [];
+    const genericPort = Number(genericPortValue);
+    if (!Number.isInteger(genericPort) || genericPort < 1024 || genericPort > 65535) {
+      throw new Error('local-development-observation-config-invalid');
+    }
+    return [
+      '--remote-debugging-address=127.0.0.1',
+      `--remote-debugging-port=${genericPort}`,
+    ];
+  }
+
   const port = Number(env.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_CDP_PORT || 0);
   const root = String(env.NIMI_LOCAL_AGENT_PRODUCT_ZHIYU_USER_DATA_ROOT || '').trim();
   const agent = String(env.NIMI_LOCAL_AGENT_PRODUCT_AGENT_ID || '').trim();

@@ -30,6 +30,7 @@ await build({
     : ['electron', '@nimiplatform/*', 'yaml'],
   define: {
     __NIMI_ELECTRON_ACCEPTANCE_BUILD__: JSON.stringify(acceptanceBuild),
+    __NIMI_ELECTRON_DEVELOPMENT_BUILD__: JSON.stringify(!releaseBuild),
     __NIMI_MACOS_LOCAL_APP_HOST_PATH__: JSON.stringify(
       macOSLocalDevelopmentBuild ? MACOS_LOCAL_DEVELOPMENT_PROFILE.localAppHostPath : '',
     ),

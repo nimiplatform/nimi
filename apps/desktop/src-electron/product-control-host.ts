@@ -63,15 +63,22 @@ const METHOD = {
 
 type ProductCommand = typeof COMMANDS[number];
 
+export type DesktopProductControlTransport = Pick<
+  NimiElectronDesktopControlHost,
+  'runtimeConsumerUnary' | 'productControlUnary'
+>;
+
 export type DesktopElectronProductControlHost = {
   readonly commandHandlers: Readonly<Record<ProductCommand, (context: {
     readonly command: string;
     readonly payload: Readonly<Record<string, unknown>>;
   }) => Promise<unknown>>>;
+  /** Runtime-protected selected product data root for Desktop-owned native adapters. */
+  readonly resolveSelectedDataRoot: () => Promise<string>;
 };
 
 export function createDesktopElectronProductControlHost(input: {
-  readonly control?: NimiElectronDesktopControlHost;
+  readonly control?: DesktopProductControlTransport;
   readonly account?: NimiElectronDesktopAccountHost;
   readonly evidence?: DesktopProductControlEvidence;
 } = {}): DesktopElectronProductControlHost {
@@ -87,11 +94,12 @@ export function createDesktopElectronProductControlHost(input: {
         host.invoke(command, context.payload)
       ),
     ])) as DesktopElectronProductControlHost['commandHandlers'],
+    resolveSelectedDataRoot: () => host.resolveSelectedDataRoot(),
   };
 }
 class ElectronProductControlHost {
   constructor(
-    private readonly control: NimiElectronDesktopControlHost,
+    private readonly control: DesktopProductControlTransport,
     private readonly account: NimiElectronDesktopAccountHost,
     private readonly evidence: DesktopProductControlEvidence,
   ) {}
@@ -156,6 +164,19 @@ class ElectronProductControlHost {
     const surfaceId = payloadText(nested.surfaceId, 64);
     if (surfaceId !== 'nimi' && surfaceId !== 'agent') throw new Error('built-in-ai-config-surface-invalid');
     return this.builtInAiConfigForScopeInit(surfaceId);
+  }
+
+  async resolveSelectedDataRoot(): Promise<string> {
+    const projection = await this.selectedDataRoot();
+    const selectedPath = String(projection.path || projection.dataRoot?.path || '').trim();
+    if (
+      !projection.exists
+      || projection.dataRoot?.status !== 'selected'
+      || !selectedPath
+    ) {
+      throw new Error('desktop-product-control-selected-data-root-unavailable');
+    }
+    return selectedPath;
   }
 
   private async ensureAccountDefaultProfile(): Promise<NimiProductControlRecordProjection> {

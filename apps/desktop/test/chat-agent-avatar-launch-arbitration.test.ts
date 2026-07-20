@@ -302,20 +302,17 @@ test('start_with_chat condition 6 is not inferred from local readiness', () => {
   );
 });
 
-test('start_with_chat launch keeps the D-LLM-072 LocalAgent payload envelope and does not widen it', () => {
+test('start_with_chat launch keeps the minimal Desktop-supervised Agent selector', () => {
   const controlsSource = readFileSync(
     join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-local-avatar-launch-controls.ts'),
     'utf8',
   );
   const launchCall = controlsSource.match(/launchDesktopAvatarHandoff\(\{[\s\S]*?\}\)/u);
   assert.ok(launchCall, 'launchDesktopAvatarHandoff call must stay visible to the guard');
-  assert.match(launchCall[0], /ownerUserId:\s*presentation\.activeTarget\.ownerUserId/u);
-  assert.match(launchCall[0], /runtimeSourceRef:\s*presentation\.activeTarget\.runtimeSourceRef/u);
-  assert.match(launchCall[0], /localAgentRef:\s*presentation\.activeTarget\.localAgentRef/u);
+  assert.match(launchCall[0], /agentId:\s*presentation\.activeTarget\.localAgentRef/u);
   assert.match(launchCall[0], /avatarInstanceId/u);
   assert.match(launchCall[0], /launchSource/u);
-  // The D-LLM-072 hard cut: no package / descriptor / path / profile / token /
-  // account / binding / carrier / config record copied into the payload.
-  assert.doesNotMatch(launchCall[0], /agentId\s*:/u);
-  assert.doesNotMatch(launchCall[0], /package|descriptor|path|profile|token|accountId|binding|carrier|config/u);
+  // Account, owner and Runtime authority are resolved from the protected
+  // principal; renderer launch intent carries no host-equivalence material.
+  assert.doesNotMatch(launchCall[0], /ownerUserId|runtimeSourceRef|localAgentRef\s*:|package|descriptor|path|profile|token|accountId|binding|carrier|config/u);
 });

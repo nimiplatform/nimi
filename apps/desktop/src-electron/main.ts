@@ -11,7 +11,9 @@ import {
   type NimiElectronFileDialogOpenPayload,
   type NimiElectronFileDialogOpenResult,
   type NimiElectronShellFileProtocolHost,
+  type RegisteredNimiElectronRuntimeBridge,
 } from '@nimiplatform/kit/shell/electron/main';
+import { buildAvatarLaunchHandoffPayload } from '@nimiplatform/kit/features/avatar/headless';
 import type { NimiDesktopOpenIntentEnvelope } from '@nimiplatform/kit/core/desktop-open';
 import {
   createDesktopElectronLocalDevelopmentHost,
@@ -25,12 +27,19 @@ import {
   type DesktopElectronOpenIntentHost,
 } from './desktop-open-intent-host.js';
 import { assertMacOSDesktopAcceptanceProfile } from './macos-desktop-acceptance.js';
+import {
+  createDesktopElectronBundledAvatarHost,
+  type DesktopElectronBundledAvatarHost,
+} from './bundled-avatar-host.js';
 
 const APP_ID = 'nimi.desktop';
 const ELECTRON_RUNTIME_EVENT_CHANNEL_PREFIX = 'nimi:runtime:event:';
 declare const __NIMI_MACOS_LOCAL_DEVELOPMENT_BUILD__: boolean;
+declare const __NIMI_ELECTRON_DEVELOPMENT_BUILD__: boolean;
 const MACOS_LOCAL_DEVELOPMENT_BUILD = typeof __NIMI_MACOS_LOCAL_DEVELOPMENT_BUILD__ !== 'undefined'
   && __NIMI_MACOS_LOCAL_DEVELOPMENT_BUILD__;
+const ELECTRON_DEVELOPMENT_BUILD = typeof __NIMI_ELECTRON_DEVELOPMENT_BUILD__ !== 'undefined'
+  && __NIMI_ELECTRON_DEVELOPMENT_BUILD__;
 const MACOS_LOCAL_DEVELOPMENT_RENDERER_URL = 'http://127.0.0.1:1420';
 
 const currentFilePath = fileURLToPath(import.meta.url);
@@ -39,12 +48,18 @@ const appRoot = path.resolve(currentDir, '..');
 const preloadPath = path.join(currentDir, 'preload.cjs');
 const rendererDistIndex = path.join(appRoot, 'dist', 'index.html');
 const rendererDistUrl = pathToFileURL(rendererDistIndex).toString();
-const nonReleaseShell = !app.isPackaged;
+const rendererDistAvatarIndex = path.join(appRoot, '..', 'avatar', 'dist', 'index.html');
+const rendererDistAvatarUrl = pathToFileURL(rendererDistAvatarIndex).toString();
 const rendererUrl = MACOS_LOCAL_DEVELOPMENT_BUILD
   ? MACOS_LOCAL_DEVELOPMENT_RENDERER_URL
-  : nonReleaseShell
+  : ELECTRON_DEVELOPMENT_BUILD
     ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_RENDERER_URL)
     : '';
+const bundledAvatarRendererUrl = ELECTRON_DEVELOPMENT_BUILD
+  ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_RENDERER_URL) || 'http://127.0.0.1:1427'
+  : rendererDistAvatarUrl;
+const AVATAR_ONLY_DEVELOPMENT_MODE = ELECTRON_DEVELOPMENT_BUILD
+  && normalizeText(process.env.NIMI_DESKTOP_ELECTRON_AVATAR_ONLY) === '1';
 // Nimi Desktop has no public Runtime TCP endpoint. Kit uses this non-endpoint
 // label only in lifecycle/error projections; every admitted unary is carried
 // by the native protected Desktop control session.
@@ -70,80 +85,116 @@ const localAssetProtocolHost: NimiElectronShellFileProtocolHost = createElectron
 let mainWindow: BrowserWindow | undefined;
 let localDevelopmentHost: DesktopElectronLocalDevelopmentHost | undefined;
 let desktopOpenIntentHost: DesktopElectronOpenIntentHost | undefined;
+let bundledAvatarHost: DesktopElectronBundledAvatarHost | undefined;
+let registeredRuntimeBridge: RegisteredNimiElectronRuntimeBridge | undefined;
 let quitCleanup: Promise<void> | undefined;
 let quitCleanupComplete = false;
 const devKernelExternalUrlCapture = createDevKernelExternalUrlCapture();
 
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: NIMI_ELECTRON_SHELL_FILE_PROTOCOL_REGISTRATION.scheme,
-    privileges: { ...NIMI_ELECTRON_SHELL_FILE_PROTOCOL_REGISTRATION.privileges },
-  },
-]);
-
 app.setName(MACOS_LOCAL_DEVELOPMENT_BUILD ? 'Nimi Dev' : 'Nimi');
 configureDesktopElectronChromiumRuntime();
 
-void app.whenReady().then(async () => {
-  localAssetProtocolHost.registerProtocolHandler();
-  const standardDataRoot = resolveStandardDataRoot();
-  await mkdir(standardDataRoot, { recursive: true });
-  localDevelopmentHost = await createDesktopElectronLocalDevelopmentHost({
-    homeDirectory: app.getPath('home'),
-    focusMainWindow: focusDesktopMainWindow,
+const ownsDesktopInstanceLock = app.requestSingleInstanceLock();
+if (!ownsDesktopInstanceLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    void focusDesktopMainWindow();
   });
-  desktopOpenIntentHost = await createDesktopElectronOpenIntentHost({
-    homeDirectory: app.getPath('home'),
-    focusMainWindow: focusDesktopMainWindow,
-    emitIntent: emitDesktopOpenIntent,
-  });
-  const productControlHost = createDesktopElectronProductControlHost();
-  registerNimiElectronRuntimeBridge({
-    appId: APP_ID,
-    runtimeEndpoint: PROTECTED_DESKTOP_RUNTIME_TRANSPORT_REF,
-    allowedOrigins: allowedRendererOrigins(),
-    allowedRendererUrls: allowedRendererUrls(),
-    ipcMain,
-    commandHandlers: {
-      ...localDevelopmentHost.commandHandlers,
-      ...desktopOpenIntentHost.commandHandlers,
-      ...productControlHost.commandHandlers,
-      product_control_default_data_root_directory: () => path.resolve(app.getPath('home'), 'Nimi'),
+
+  protocol.registerSchemesAsPrivileged([
+    {
+      scheme: NIMI_ELECTRON_SHELL_FILE_PROTOCOL_REGISTRATION.scheme,
+      privileges: { ...NIMI_ELECTRON_SHELL_FILE_PROTOCOL_REGISTRATION.privileges },
     },
-    standardShellHost: {
-      allowAllStandardShellCommands: true,
-      // Runtime-owned app storage is outside authority package #2a. Omitting
-      // the binding keeps storage commands typed unavailable instead of
-      // reopening the retired public-TCP GetAppStorage fallback.
-      localAssetRoots: resolveStandardLocalAssetRoots(standardDataRoot),
-      localAssetProtocolHost,
-      openFileDialog: openDesktopStandardFileDialog,
-      openExternalUrl: openDesktopExternalUrl,
-      confirmDialog: confirmDesktopDialog,
+  ]);
+
+  void bootstrapDesktopElectronHost();
+}
+
+async function bootstrapDesktopElectronHost(): Promise<void> {
+  try {
+    await app.whenReady();
+    localAssetProtocolHost.registerProtocolHandler();
+    const standardDataRoot = resolveStandardDataRoot();
+    await mkdir(standardDataRoot, { recursive: true });
+    localDevelopmentHost = await createDesktopElectronLocalDevelopmentHost({
+      homeDirectory: app.getPath('home'),
       focusMainWindow: focusDesktopMainWindow,
-      runtimeTrustedCaller: {
-        mode: 'desktop-shell',
+    });
+    desktopOpenIntentHost = await createDesktopElectronOpenIntentHost({
+      homeDirectory: app.getPath('home'),
+      focusMainWindow: focusDesktopMainWindow,
+      emitIntent: emitDesktopOpenIntent,
+    });
+    const productControlHost = createDesktopElectronProductControlHost();
+    bundledAvatarHost = await createDesktopElectronBundledAvatarHost({
+      rendererUrl: bundledAvatarRendererUrl,
+      preloadPath,
+      appPrivateDataRoot: path.join(app.getPath('userData'), 'bundled-avatar', 'standard-shell-data'),
+      localAssetProtocolHost,
+      resolveSelectedDataRoot: productControlHost.resolveSelectedDataRoot,
+      devRendererRoot: app.isPackaged
+        ? undefined
+        : normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_DEV_ROOT),
+    });
+    registeredRuntimeBridge = registerNimiElectronRuntimeBridge({
+      appId: APP_ID,
+      runtimeEndpoint: PROTECTED_DESKTOP_RUNTIME_TRANSPORT_REF,
+      allowedOrigins: allowedRendererOrigins(),
+      allowedRendererUrls: allowedRendererUrls(),
+      ipcMain,
+      commandHandlers: {
+        ...localDevelopmentHost.commandHandlers,
+        ...desktopOpenIntentHost.commandHandlers,
+        ...productControlHost.commandHandlers,
+        ...bundledAvatarHost.desktopCommandHandlers,
+        product_control_default_data_root_directory: () => path.resolve(app.getPath('home'), 'Nimi'),
       },
-      aiConfigStore: createDesktopAiConfigStore(standardDataRoot),
-    },
-  });
+      standardShellHost: {
+        allowAllStandardShellCommands: true,
+        // Runtime-owned app storage is outside authority package #2a. Omitting
+        // the binding keeps storage commands typed unavailable instead of
+        // reopening the retired public-TCP GetAppStorage fallback.
+        localAssetRoots: resolveStandardLocalAssetRoots(standardDataRoot),
+        localAssetProtocolHost,
+        openFileDialog: openDesktopStandardFileDialog,
+        openExternalUrl: openDesktopExternalUrl,
+        confirmDialog: confirmDesktopDialog,
+        focusMainWindow: focusDesktopMainWindow,
+        runtimeTrustedCaller: {
+          mode: 'desktop-shell',
+        },
+        aiConfigStore: createDesktopAiConfigStore(standardDataRoot),
+      },
+      bundledAvatarHost: bundledAvatarHost.runtimeBridgeHost,
+    });
 
-  await createMainWindow();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      void createMainWindow();
+    if (AVATAR_ONLY_DEVELOPMENT_MODE) {
+      await bundledAvatarHost.launchInitialAvatar(buildAvatarLaunchHandoffPayload({
+        agentId: normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_ID),
+        avatarInstanceId: normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID),
+        launchSource: 'official-avatar-electron-dev-launcher',
+      }));
+    } else {
+      await createMainWindow();
     }
-  });
-}).catch(async (error: unknown) => {
-  await shutdownBeforeQuit().catch(() => undefined);
-  process.stderr.write(`[desktop-bootstrap] ${desktopBootstrapFailureCode(error)}\n`);
-  dialog.showErrorBox(
-    'Nimi could not start safely',
-    'The verified Desktop carrier could not be initialized. Repair the Nimi installation and try again.',
-  );
-  app.exit(1);
-});
+
+    app.on('activate', () => {
+      if (!AVATAR_ONLY_DEVELOPMENT_MODE && BrowserWindow.getAllWindows().length === 0) {
+        void createMainWindow();
+      }
+    });
+  } catch (error: unknown) {
+    await shutdownBeforeQuit().catch(() => undefined);
+    process.stderr.write(`[desktop-bootstrap] ${desktopBootstrapFailureCode(error)}\n`);
+    dialog.showErrorBox(
+      'Nimi could not start safely',
+      'The verified Desktop carrier could not be initialized. Repair the Nimi installation and try again.',
+    );
+    app.exit(1);
+  }
+}
 
 function desktopBootstrapFailureCode(error: unknown): string {
   if (!error || typeof error !== 'object') return 'desktop-bootstrap-failed';
@@ -189,12 +240,18 @@ app.on('before-quit', (event) => {
 async function shutdownBeforeQuit(): Promise<void> {
   const localHost = localDevelopmentHost;
   const openIntentHost = desktopOpenIntentHost;
+  const avatarHost = bundledAvatarHost;
+  const runtimeBridge = registeredRuntimeBridge;
   await Promise.all([
     localHost?.shutdown(),
     openIntentHost?.shutdown(),
+    avatarHost?.shutdown(),
   ]);
+  runtimeBridge?.unregister();
   if (localDevelopmentHost === localHost) localDevelopmentHost = undefined;
   if (desktopOpenIntentHost === openIntentHost) desktopOpenIntentHost = undefined;
+  if (bundledAvatarHost === avatarHost) bundledAvatarHost = undefined;
+  if (registeredRuntimeBridge === runtimeBridge) registeredRuntimeBridge = undefined;
 }
 
 async function createMainWindow(): Promise<BrowserWindow> {
@@ -266,7 +323,7 @@ function allowedRendererOrigins(): string[] {
   for (const url of allowedRendererUrls()) {
     origins.add(originForRendererUrl(url));
   }
-  const configured = nonReleaseShell
+  const configured = ELECTRON_DEVELOPMENT_BUILD
     ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_ALLOWED_ORIGINS)
     : '';
   for (const origin of configured.split(',')) {
@@ -280,7 +337,7 @@ function allowedRendererOrigins(): string[] {
 
 function allowedRendererUrls(): string[] {
   const urls = new Set<string>([rendererUrl || rendererDistUrl]);
-  const configured = nonReleaseShell
+  const configured = ELECTRON_DEVELOPMENT_BUILD
     ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_ALLOWED_RENDERER_URLS)
     : '';
   for (const url of configured.split(',')) {
@@ -302,14 +359,14 @@ function isDesktopRendererUrl(url: string): boolean {
 }
 
 function resolveStandardDataRoot(): string {
-  const fromEnv = nonReleaseShell
+  const fromEnv = ELECTRON_DEVELOPMENT_BUILD
     ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT)
     : '';
   return path.resolve(fromEnv || path.join(app.getPath('userData'), 'standard-shell-data'));
 }
 
 function resolveStandardLocalAssetRoots(dataRoot: string): string[] {
-  const fromEnv = nonReleaseShell
+  const fromEnv = ELECTRON_DEVELOPMENT_BUILD
     ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS)
     : '';
   if (!fromEnv) {

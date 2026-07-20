@@ -3,7 +3,6 @@ import test from 'node:test';
 
 import type {
   NimiElectronDesktopAccountHost,
-  NimiElectronDesktopControlHost,
 } from '@nimiplatform/kit/shell/electron/main';
 import {
   ProductControlProjectionJson,
@@ -15,6 +14,7 @@ import type { DesktopProductControlEvidence } from '../src-electron/product-cont
 import {
   FIRST_RUN_LOCAL_AI_MINT_TIMEOUT_MS,
   createDesktopElectronProductControlHost,
+  type DesktopProductControlTransport,
   formatRuntimeReadinessFailure,
 } from '../src-electron/product-control-host';
 
@@ -60,7 +60,7 @@ function projectionJson(state = 'data_root_selected'): string {
 
 test('Electron Product Control host maps every renderer command to an exact protected Runtime method', async () => {
   const calls: Array<{ methodId: string; requestBytes: Uint8Array }> = [];
-  const control: NimiElectronDesktopControlHost = {
+  const control: DesktopProductControlTransport = {
     runtimeConsumerUnary: async () => { throw new Error('not-called'); },
     productControlUnary: async (input) => {
       calls.push({ methodId: input.methodId, requestBytes: input.requestBytes });
@@ -180,7 +180,7 @@ test('Electron Product Control host rejects extra renderer fields before protect
 
 test('Electron first-run host records Desktop evidence through the exact protected Runtime method', async () => {
   const calls: Array<{ methodId: string; requestBytes: Uint8Array }> = [];
-  const control: NimiElectronDesktopControlHost = {
+  const control: DesktopProductControlTransport = {
     runtimeConsumerUnary: async () => { throw new Error('not-called'); },
     productControlUnary: async (input) => {
       calls.push({ methodId: input.methodId, requestBytes: input.requestBytes });

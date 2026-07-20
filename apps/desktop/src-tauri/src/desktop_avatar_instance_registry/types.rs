@@ -4,9 +4,7 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct DesktopAvatarInstanceRegistryRecord {
     pub(crate) avatar_instance_id: String,
-    pub(crate) owner_user_id: String,
-    pub(crate) runtime_source_ref: String,
-    pub(crate) local_agent_ref: String,
+    pub(crate) agent_id: String,
     pub(crate) launch_source: Option<String>,
 }
 
@@ -23,7 +21,5 @@ pub(crate) struct DesktopAvatarInstanceRegistryFile {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct DesktopAvatarInstanceRegistryLookupPayload {
-    pub(crate) owner_user_id: Option<String>,
-    pub(crate) runtime_source_ref: Option<String>,
-    pub(crate) local_agent_ref: Option<String>,
+    pub(crate) agent_id: String,
 }

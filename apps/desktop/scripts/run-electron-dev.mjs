@@ -18,9 +18,15 @@ import {
 const require = createRequire(import.meta.url);
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(currentDir, '..');
+const avatarRoot = path.resolve(appRoot, '../avatar');
 const workspaceRoot = path.resolve(appRoot, '../..');
 const sdkDistRoot = path.join(workspaceRoot, 'sdks', 'typescript', 'dist');
 const rendererUrl = process.env.NIMI_DESKTOP_ELECTRON_RENDERER_URL || 'http://127.0.0.1:1420';
+const bundledAvatarRendererUrl = process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_RENDERER_URL
+  || 'http://127.0.0.1:1427';
+const avatarOnly = process.argv.includes('--avatar-only');
+const unknownArgument = process.argv.slice(2).find((value) => value !== '--avatar-only');
+if (unknownArgument) throw new Error(`Unsupported Desktop Electron dev argument: ${unknownArgument}`);
 const electronVersion = String(require('electron/package.json').version || '').trim();
 const electronBin = resolveSignedDesktopDevCarrier({
   platform: process.platform,
@@ -75,8 +81,18 @@ async function runWindowsDesktopDev() {
     const signingIdentity = requireWindowsDevSigningIdentity({ cwd: workspaceRoot });
     requireWindowsDevSignedFiles([electronBin], signingIdentity.certificateSha256, { cwd: workspaceRoot });
     mkdirSync(standardDataRoot, { recursive: true });
-    spawnRenderer();
-    await waitForUrl(rendererUrl, 45_000);
+    if (!avatarOnly) {
+      spawnRenderer();
+      await waitForUrl(rendererUrl, 45_000);
+    }
+    const avatarAgentId = String(
+      process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_ID
+      || process.env.NIMI_AVATAR_AGENT_ID
+      || '',
+    ).trim();
+    if (avatarOnly && !avatarAgentId.startsWith('local-agent:')) {
+      throw new Error('Avatar-only Electron dev requires NIMI_AVATAR_AGENT_ID with a Runtime local-agent ref.');
+    }
     const electron = spawnTracked(electronBin, [
       ...resolveDesktopDevObservationArguments(),
       `--user-data-dir=${profileRoot}`,
@@ -86,6 +102,12 @@ async function runWindowsDesktopDev() {
       env: {
         ...process.env,
         NIMI_DESKTOP_ELECTRON_RENDERER_URL: rendererUrl,
+        NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_RENDERER_URL: bundledAvatarRendererUrl,
+        NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_DEV_ROOT: avatarRoot,
+        NIMI_DESKTOP_ELECTRON_AVATAR_ONLY: avatarOnly ? '1' : '0',
+        NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_ID: avatarAgentId,
+        NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID:
+          process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID || '',
         NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT: standardDataRoot,
         NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: standardDataRoot,
       },
@@ -207,9 +229,10 @@ function spawnRenderer() {
 }
 
 function spawnTracked(command, args, options) {
+  const { cwd = appRoot, ...spawnOptions } = options;
   const child = spawn(command, args, {
-    ...options,
-    cwd: appRoot,
+    ...spawnOptions,
+    cwd,
   });
   children.add(child);
   child.once('exit', () => {

@@ -11,221 +11,112 @@ import {
   parseDesktopAvatarLiveInstanceRecord,
 } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-instance-registry.js';
 
+const AGENT_ID = 'local-agent:opaque-1';
+
 function installTauriInvokeMock(
   handler: (command: string, payload?: unknown) => Promise<unknown> | unknown,
 ): () => void {
   const globalRecord = globalThis as Record<string, unknown>;
   const previousTauri = globalRecord.__NIMI_TAURI_TEST__;
   const previousWindow = globalRecord.window;
-  globalRecord.__NIMI_TAURI_TEST__ = {
-    invoke: handler,
-  };
-  globalRecord.window = {
-    __NIMI_TAURI_TEST__: globalRecord.__NIMI_TAURI_TEST__,
-  };
+  globalRecord.__NIMI_TAURI_TEST__ = { invoke: handler };
+  globalRecord.window = { __NIMI_TAURI_TEST__: globalRecord.__NIMI_TAURI_TEST__ };
   return () => {
-    if (typeof previousTauri === 'undefined') {
-      delete globalRecord.__NIMI_TAURI_TEST__;
-    } else {
-      globalRecord.__NIMI_TAURI_TEST__ = previousTauri;
-    }
-    if (typeof previousWindow === 'undefined') {
-      delete globalRecord.window;
-    } else {
-      globalRecord.window = previousWindow;
-    }
+    if (previousTauri === undefined) delete globalRecord.__NIMI_TAURI_TEST__;
+    else globalRecord.__NIMI_TAURI_TEST__ = previousTauri;
+    if (previousWindow === undefined) delete globalRecord.window;
+    else globalRecord.window = previousWindow;
   };
 }
 
-test('desktop avatar live instance parser rejects missing minimal identity', () => {
-  assert.throws(() => {
-    parseDesktopAvatarLiveInstanceRecord({
-      avatarInstanceId: 'instance-1',
-    });
-  }, /ownerUserId/);
-});
-
-test('desktop avatar live instance parser rejects old authority fields', () => {
-  assert.throws(() => {
-    parseDesktopAvatarLiveInstanceRecord({
-      avatarInstanceId: 'instance-1',
-      ownerUserId: 'owner-1',
-      runtimeSourceRef: 'agent-1',
-      localAgentRef: 'local-agent:owner-1:agent-1',
-      launchSource: 'desktop-agent-chat',
-      conversationAnchorId: 'anchor-1',
-    });
-  }, /forbidden authority field: conversationAnchorId/);
-
-  assert.throws(() => {
-    parseDesktopAvatarLiveInstanceRecord({
-      avatarInstanceId: 'instance-1',
-      ownerUserId: 'owner-1',
-      runtimeSourceRef: 'agent-1',
-      localAgentRef: 'local-agent:owner-1:agent-1',
-      avatarPackageId: 'live2d_ab12cd34ef56',
-    });
-  }, /forbidden authority field: avatarPackageId/);
-});
-
-test('desktop avatar live instance parser rejects bare and malformed localAgentRef values without parsing owner/source', () => {
-  const base = {
+test('desktop avatar live instance parser requires the minimal selector projection', () => {
+  assert.throws(
+    () => parseDesktopAvatarLiveInstanceRecord({ avatarInstanceId: 'instance-1' }),
+    /agentId/,
+  );
+  assert.deepEqual(parseDesktopAvatarLiveInstanceRecord({
     avatarInstanceId: 'instance-1',
-    ownerUserId: 'owner-1',
-    runtimeSourceRef: 'agent-1',
-  };
-  assert.throws(() => parseDesktopAvatarLiveInstanceRecord({
-    ...base,
-    localAgentRef: 'agent-1',
-  }), /bare runtimeSourceRef/);
-  assert.throws(() => parseDesktopAvatarLiveInstanceRecord({
-    ...base,
-    localAgentRef: 'agent:abc.def+1',
-  }), /malformed/);
-  const parsed = parseDesktopAvatarLiveInstanceRecord({
-    ...base,
-    localAgentRef: 'local-agent:opaque-fork-1',
+    agentId: AGENT_ID,
+    launchSource: 'desktop-agent-chat',
+  }), {
+    avatarInstanceId: 'instance-1',
+    agentId: AGENT_ID,
+    launchSource: 'desktop-agent-chat',
   });
-  assert.equal(parsed.ownerUserId, 'owner-1');
-  assert.equal(parsed.runtimeSourceRef, 'agent-1');
-  assert.equal(parsed.localAgentRef, 'local-agent:opaque-fork-1');
 });
 
-test('desktop avatar live instance bridge rejects authority-bearing projection records', async () => {
+test('desktop avatar live instance parser rejects authority-bearing projections', () => {
+  for (const field of ['ownerUserId', 'runtimeSourceRef', 'localAgentRef', 'conversationAnchorId', 'bindingId']) {
+    assert.throws(
+      () => parseDesktopAvatarLiveInstanceRecord({
+        avatarInstanceId: 'instance-1',
+        agentId: AGENT_ID,
+        [field]: 'forbidden',
+      }),
+      /forbidden authority field/,
+    );
+  }
+  assert.throws(
+    () => parseDesktopAvatarLiveInstanceRecord({ avatarInstanceId: 'instance-1', agentId: 'agent-1' }),
+    /local-agent ref/,
+  );
+});
+
+test('desktop avatar live instance bridge rejects authority-bearing host records', async () => {
   const restore = installTauriInvokeMock(async () => [{
     avatarInstanceId: 'instance-1',
-    ownerUserId: 'owner-1',
-    runtimeSourceRef: 'agent-1',
-    localAgentRef: 'local-agent:owner-1:agent-1',
-    bindingId: 'binding-1',
+    agentId: AGENT_ID,
+    ownerUserId: 'forbidden',
   }]);
-
   try {
-    await assert.rejects(
-      listDesktopAvatarLiveInstances({
-        ownerUserId: 'owner-1',
-        runtimeSourceRef: 'agent-1',
-        localAgentRef: 'local-agent:owner-1:agent-1',
-      }),
-      /forbidden authority field: bindingId/,
-    );
+    await assert.rejects(listDesktopAvatarLiveInstances({ agentId: AGENT_ID }), /forbidden authority field/);
   } finally {
     restore();
   }
 });
 
-test('desktop avatar ephemeral instance id extends deterministic base with nonce', () => {
-  const instanceId = buildDesktopAvatarEphemeralInstanceId({
-    localAgentRef: 'local-agent:owner-1:agent-1',
-    threadId: 'thread-1',
-    nonce: 'wave-4',
-  });
-
-  assert.equal(instanceId, 'desktop-avatar-local-agent-owner-1-agent-1-thread-1-wave-4');
+test('desktop avatar ephemeral instance id extends the deterministic selector id', () => {
+  assert.equal(
+    buildDesktopAvatarEphemeralInstanceId({ agentId: AGENT_ID, threadId: 'thread-1', nonce: 'wave-4' }),
+    'desktop-avatar-local-agent-opaque-1-thread-1-wave-4',
+  );
 });
 
-test('desktop avatar close handoff parser rejects invalid payload', () => {
-  assert.throws(() => parseDesktopAvatarCloseHandoffResult(null), /invalid payload/);
-});
-
-test('desktop avatar close handoff bridge invokes fixed command and payload shape', async () => {
+test('desktop avatar close handoff invokes the fixed command only', async () => {
   const calls: Array<{ command: string; payload: unknown }> = [];
   const restore = installTauriInvokeMock(async (command, payload) => {
     calls.push({ command, payload });
-    return {
-      opened: true,
-      handoffUri: 'nimi-avatar://close?avatar_instance_id=instance-1',
-    };
+    return { opened: true, handoffUri: 'desktop-supervised-avatar://close/instance-1' };
   });
-
   try {
     const result = await closeDesktopAvatarHandoff({
       avatarInstanceId: 'instance-1',
       closedBy: 'desktop',
       sourceSurface: 'desktop-agent-chat',
     });
-
     assert.equal(result.opened, true);
     assert.deepEqual(calls, [{
       command: 'desktop_avatar_close_handoff',
-      payload: {
-        payload: {
-          avatarInstanceId: 'instance-1',
-          closedBy: 'desktop',
-          sourceSurface: 'desktop-agent-chat',
-        },
-      },
+      payload: { payload: { avatarInstanceId: 'instance-1', closedBy: 'desktop', sourceSurface: 'desktop-agent-chat' } },
     }]);
   } finally {
     restore();
   }
+  assert.throws(() => parseDesktopAvatarCloseHandoffResult(null), /invalid payload/);
 });
 
-test('desktop avatar close handoff failure does not invoke unrelated bridge commands', async () => {
+test('desktop avatar live instance bridge sends only the Runtime Agent selector', async () => {
   const calls: Array<{ command: string; payload: unknown }> = [];
   const restore = installTauriInvokeMock(async (command, payload) => {
     calls.push({ command, payload });
-    throw new Error('close failed');
+    return [{ avatarInstanceId: 'instance-1', agentId: AGENT_ID, launchSource: 'desktop-agent-chat' }];
   });
-
   try {
-    await assert.rejects(
-      closeDesktopAvatarHandoff({
-        avatarInstanceId: 'instance-1',
-        closedBy: 'desktop',
-        sourceSurface: 'desktop-agent-chat',
-      }),
-      /close failed/,
-    );
-    assert.equal(calls[0]?.command, 'desktop_avatar_close_handoff');
-    assert.deepEqual(calls[0]?.payload, {
-      payload: {
-        avatarInstanceId: 'instance-1',
-        closedBy: 'desktop',
-        sourceSurface: 'desktop-agent-chat',
-      },
-    });
-    assert.ok(!calls.some(({ command }) => (
-      command.startsWith('desktop_agent_center_')
-      || command === 'runtime_bridge_unary'
-      || command === 'desktop_avatar_launch_handoff'
-    )));
-  } finally {
-    restore();
-  }
-});
-
-test('desktop avatar live instance bridge invokes fixed command and payload shape', async () => {
-  const calls: Array<{ command: string; payload: unknown }> = [];
-  const restore = installTauriInvokeMock(async (command, payload) => {
-    calls.push({ command, payload });
-    return [{
-      avatarInstanceId: 'instance-1',
-      ownerUserId: 'owner-1',
-      runtimeSourceRef: 'agent-1',
-      localAgentRef: 'local-agent:owner-1:agent-1',
-      launchSource: 'desktop-agent-chat',
-    }];
-  });
-
-  try {
-    const instances = await listDesktopAvatarLiveInstances({
-      ownerUserId: 'owner-1',
-      runtimeSourceRef: 'agent-1',
-      localAgentRef: 'local-agent:owner-1:agent-1',
-    });
-
+    const instances = await listDesktopAvatarLiveInstances({ agentId: AGENT_ID });
     assert.equal(instances.length, 1);
-    assert.equal(instances[0]?.avatarInstanceId, 'instance-1');
     assert.deepEqual(calls, [{
       command: 'desktop_avatar_instance_registry_list',
-      payload: {
-        payload: {
-          ownerUserId: 'owner-1',
-          runtimeSourceRef: 'agent-1',
-          localAgentRef: 'local-agent:owner-1:agent-1',
-        },
-      },
+      payload: { payload: { agentId: AGENT_ID } },
     }]);
   } finally {
     restore();

@@ -7,9 +7,5 @@ use super::types::{
 pub(crate) fn desktop_avatar_instance_registry_list(
     payload: DesktopAvatarInstanceRegistryLookupPayload,
 ) -> Result<Vec<DesktopAvatarInstanceRegistryRecord>, String> {
-    list_instances(
-        payload.owner_user_id.as_deref(),
-        payload.runtime_source_ref.as_deref(),
-        payload.local_agent_ref.as_deref(),
-    )
+    list_instances(payload.agent_id.as_str())
 }

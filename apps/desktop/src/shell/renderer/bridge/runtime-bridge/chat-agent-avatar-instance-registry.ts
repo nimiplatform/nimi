@@ -1,6 +1,5 @@
-import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
+import { hasShellHostInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from './invoke';
-import { projectRuntimeLocalAgentIdentity } from '@nimiplatform/sdk/runtime';
 import {
   assertRecord,
   parseOptionalString,
@@ -9,16 +8,12 @@ import {
 
 export type DesktopAvatarLiveInstanceRecord = {
   avatarInstanceId: string;
-  ownerUserId: string;
-  runtimeSourceRef: string;
-  localAgentRef: string;
+  agentId: string;
   launchSource: string | null;
 };
 
 export type DesktopAvatarLiveInstanceIdentityInput = {
-  ownerUserId: string;
-  runtimeSourceRef: string;
-  localAgentRef: string;
+  agentId: string;
 };
 
 const FORBIDDEN_LIVE_INSTANCE_FIELDS = new Set([
@@ -58,30 +53,27 @@ const FORBIDDEN_LIVE_INSTANCE_FIELDS = new Set([
   'accountAccessToken',
   'refreshToken',
   'jwt',
-  'agentId',
+  'ownerUserId',
+  'runtimeSourceRef',
+  'localAgentRef',
 ]);
 
-function requireTauri(commandName: string) {
-  if (!hasTauriInvoke()) {
-    throw new Error(`${commandName} requires Tauri runtime`);
+function requireShellHost(commandName: string) {
+  if (!hasShellHostInvoke()) {
+    throw new Error(`${commandName} requires the Desktop shell host`);
   }
 }
 
-export function desktopAvatarInstanceRegistryQueryKey(localAgentRef: string) {
-  return ['desktop-avatar-instance-registry', localAgentRef] as const;
+export function desktopAvatarInstanceRegistryQueryKey(agentId: string) {
+  return ['desktop-avatar-instance-registry', agentId] as const;
 }
 
-function validateLocalAgentRef(ownerUserId: string, runtimeSourceRef: string, localAgentRef: string): void {
-  if (localAgentRef === runtimeSourceRef) {
-    throw new Error('desktop avatar instance registry localAgentRef must not be a bare runtimeSourceRef');
+function validateAgentId(value: unknown): string {
+  const agentId = parseRequiredString(value, 'agentId', 'desktop avatar instance registry');
+  if (!agentId.startsWith('local-agent:')) {
+    throw new Error('desktop avatar instance registry agentId must be a local-agent ref');
   }
-  try {
-    projectRuntimeLocalAgentIdentity({ ownerUserId, runtimeSourceRef, localAgentRef });
-  } catch (error) {
-    throw new Error(`desktop avatar instance registry localAgentRef is invalid: ${String((error as Error).message || error)}`, {
-      cause: error,
-    });
-  }
+  return agentId;
 }
 
 export function parseDesktopAvatarLiveInstanceRecord(value: unknown): DesktopAvatarLiveInstanceRecord {
@@ -91,15 +83,9 @@ export function parseDesktopAvatarLiveInstanceRecord(value: unknown): DesktopAva
       throw new Error(`desktop avatar instance registry contains forbidden authority field: ${field}`);
     }
   }
-  const ownerUserId = parseRequiredString(record.ownerUserId, 'ownerUserId', 'desktop avatar instance registry');
-  const runtimeSourceRef = parseRequiredString(record.runtimeSourceRef, 'runtimeSourceRef', 'desktop avatar instance registry');
-  const localAgentRef = parseRequiredString(record.localAgentRef, 'localAgentRef', 'desktop avatar instance registry');
-  validateLocalAgentRef(ownerUserId, runtimeSourceRef, localAgentRef);
   return {
     avatarInstanceId: parseRequiredString(record.avatarInstanceId, 'avatarInstanceId', 'desktop avatar instance registry'),
-    ownerUserId,
-    runtimeSourceRef,
-    localAgentRef,
+    agentId: validateAgentId(record.agentId),
     launchSource: parseOptionalString(record.launchSource) || null,
   };
 }
@@ -114,9 +100,9 @@ function parseDesktopAvatarLiveInstanceList(value: unknown): DesktopAvatarLiveIn
 export async function listDesktopAvatarLiveInstances(
   input: DesktopAvatarLiveInstanceIdentityInput,
 ): Promise<DesktopAvatarLiveInstanceRecord[]> {
-  validateLocalAgentRef(input.ownerUserId, input.runtimeSourceRef, input.localAgentRef);
-  requireTauri('desktop_avatar_instance_registry_list');
+  const agentId = validateAgentId(input.agentId);
+  requireShellHost('desktop_avatar_instance_registry_list');
   return invokeChecked('desktop_avatar_instance_registry_list', {
-    payload: input,
+    payload: { agentId },
   }, parseDesktopAvatarLiveInstanceList);
 }

@@ -162,6 +162,106 @@ test('Electron local-development host keeps Runtime identifiers behind approval 
   }
 });
 
+for (const scenario of ['locally-expired', 'runtime-expiry-race'] as const) {
+  test(`Electron local-development refreshes ${scenario} approval without reusing the user decision`, {
+    skip: process.platform !== 'win32' && !existsSync(macosLocalAppHost),
+  }, async () => {
+    const home = await realpath(await mkdtemp(path.join(os.tmpdir(), `nimi-electron-local-development-${scenario}-`)));
+    let evaluationCount = 0;
+    let decisionCount = 0;
+    let launchCount = 0;
+    let focusCount = 0;
+    const evaluations: readonly NimiElectronLocalDevelopmentEvaluation[] = [
+      {
+        evaluationId,
+        project: project(),
+        state: 'confirmation-required',
+        confirmationRequired: true,
+        authorization: null,
+        evaluationExpiresAtUnixMs: scenario === 'locally-expired'
+          ? Date.now() - 1
+          : Date.now() + 30_000,
+      },
+      {
+        evaluationId: '55'.repeat(32),
+        project: project(),
+        state: 'confirmation-required',
+        confirmationRequired: true,
+        authorization: null,
+        evaluationExpiresAtUnixMs: Date.now() + 60_000,
+      },
+    ];
+    const control: NimiElectronLocalDevelopmentControl = {
+      getAuthoritySummary: async () => authoritySummary(),
+      evaluate: async () => evaluations[Math.min(evaluationCount++, evaluations.length - 1)]!,
+      decide: async () => {
+        decisionCount += 1;
+        throw Object.assign(new Error('local-development-authorization-required'), {
+          reasonCode: 'local-development-authorization-required',
+          retryable: false,
+        });
+      },
+      listAuthorizations: async () => [],
+      revokeAuthorization: async () => { throw new Error('not-called'); },
+      launch: async () => {
+        launchCount += 1;
+        return { processId: 42, bindDeadlineUnixMs: Date.now() + 5_000 };
+      },
+      hostRunning: async () => false,
+      terminateHost: async () => {},
+      endRun: async () => {},
+    };
+    const host = await createDesktopElectronLocalDevelopmentHost({
+      homeDirectory: home,
+      focusMainWindow: async () => { focusCount += 1; },
+      control,
+    });
+    try {
+      const descriptor = JSON.parse(await readFile(path.join(
+        home, '.nimi', 'run', 'desktop', 'local-development', 'presence.v1.json',
+      ), 'utf8')) as { endpoint: string };
+      const response = await fetch(`${descriptor.endpoint}/v1/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schemaVersion: 1, appId: 'nimi.zhiyu', projectRoot, shell: 'electron' }),
+      });
+      const started = await response.json() as { status: string; run?: { state: string } };
+      assert.equal(started.status, 'ok', JSON.stringify(started));
+      assert.equal(started.run?.state, 'pending-approval');
+      const firstPending = await host.commandHandlers.local_development_pending_approvals!({
+        command: 'local_development_pending_approvals',
+        payload: {},
+      }) as Array<{ requestId: string }>;
+      assert.equal(firstPending.length, 1);
+
+      const refreshed = await host.commandHandlers.local_development_decide!({
+        command: 'local_development_decide',
+        payload: {
+          payload: {
+            requestId: firstPending[0]?.requestId,
+            decision: 'allow-project',
+            riskDisclosureAcknowledged: true,
+          },
+        },
+      }) as { state: string };
+      assert.equal(refreshed.state, 'pending-approval');
+      const nextPending = await host.commandHandlers.local_development_pending_approvals!({
+        command: 'local_development_pending_approvals',
+        payload: {},
+      }) as Array<{ requestId: string }>;
+      assert.equal(nextPending.length, 1);
+      assert.notEqual(nextPending[0]?.requestId, firstPending[0]?.requestId);
+      assert.equal(evaluationCount, 2);
+      assert.equal(decisionCount, scenario === 'runtime-expiry-race' ? 1 : 0);
+      assert.equal(launchCount, 0);
+      assert.equal(focusCount, 2);
+    } finally {
+      await host.shutdown();
+      await rm(home, { recursive: true, force: true });
+    }
+  });
+}
+
 test('macOS local-development host fails closed when the exact installed carrier is absent', {
   skip: process.platform !== 'darwin' || existsSync(macosLocalAppHost),
 }, async () => {
@@ -249,6 +349,40 @@ test('ordinary Electron builds cannot enable observation from environment input'
     ...observation,
     NIMI_DEV_KERNEL_CHECKPOINT: '1',
   }), []);
+  assert.deepEqual(resolveLocalDevelopmentObservationArguments({
+    NIMI_DEV_KERNEL_CHECKPOINT: '1',
+    NIMI_LOCAL_APP_ACCEPTANCE_APP_ID: 'nimi.tester',
+    NIMI_LOCAL_APP_ACCEPTANCE_CDP_PORT: '19471',
+  }, 'nimi.tester'), []);
+});
+
+test('acceptance Electron build observes one exact supervised local app over loopback CDP', () => {
+  const observation = {
+    NIMI_DEV_KERNEL_CHECKPOINT: '1',
+    NIMI_LOCAL_APP_ACCEPTANCE_APP_ID: 'nimi.tester',
+    NIMI_LOCAL_APP_ACCEPTANCE_CDP_PORT: '19471',
+  };
+  assert.deepEqual(resolveLocalDevelopmentObservationArguments(
+    observation,
+    'nimi.tester',
+    true,
+  ), [
+    '--remote-debugging-address=127.0.0.1',
+    '--remote-debugging-port=19471',
+  ]);
+  assert.deepEqual(resolveLocalDevelopmentObservationArguments(
+    observation,
+    'nimi.zhiyu',
+    true,
+  ), []);
+  assert.throws(() => resolveLocalDevelopmentObservationArguments({
+    ...observation,
+    NIMI_LOCAL_APP_ACCEPTANCE_CDP_PORT: '80',
+  }, 'nimi.tester', true), /local-development-observation-config-invalid/u);
+  assert.throws(() => resolveLocalDevelopmentObservationArguments({
+    NIMI_DEV_KERNEL_CHECKPOINT: '1',
+    NIMI_LOCAL_APP_ACCEPTANCE_CDP_PORT: '19471',
+  }, 'nimi.tester', true), /local-development-observation-config-invalid/u);
 });
 
 test('Windows Electron launch uses the canonical app entry as the positional application argument', () => {

@@ -9,7 +9,7 @@ import {
   desktopAvatarInstanceRegistryQueryKey,
   listDesktopAvatarLiveInstances,
 } from '@renderer/bridge/runtime-bridge/chat-agent-avatar-instance-registry';
-import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
+import { hasShellHostInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   arbitrateAvatarLaunch,
   evaluateStartWithChatGate,
@@ -53,14 +53,14 @@ export function useAgentLocalAvatarLaunchControls(input: {
   validationStatus: string | null;
 }) {
   const presentation = input.presentation;
-  const avatarHandoffReady = hasTauriInvoke();
+  const avatarHandoffReady = hasShellHostInvoke();
   const avatarRuntimeAccountReady = Boolean(presentation.accountId);
   const avatarConversationAnchorReady = Boolean(presentation.activeConversationAnchorId);
   const [avatarActionPending, setAvatarActionPending] = useState(false);
   const avatarInstanceId = useMemo(() => (
     presentation.activeTarget
       ? buildDesktopAvatarInstanceId({
-        localAgentRef: presentation.activeTarget.localAgentRef,
+        agentId: presentation.activeTarget.localAgentRef,
         threadId: presentation.activeThreadId,
       })
       : null
@@ -72,9 +72,7 @@ export function useAgentLocalAvatarLaunchControls(input: {
     queryFn: async () => (
       presentation.activeTarget?.localAgentRef
         ? listDesktopAvatarLiveInstances({
-          ownerUserId: presentation.activeTarget.ownerUserId,
-          runtimeSourceRef: presentation.activeTarget.runtimeSourceRef,
-          localAgentRef: presentation.activeTarget.localAgentRef,
+          agentId: presentation.activeTarget.localAgentRef,
         })
         : []
     ),
@@ -92,7 +90,7 @@ export function useAgentLocalAvatarLaunchControls(input: {
   const avatarLiveInstances = useMemo(
     () => (avatarLiveInstancesQuery.data || []).map((instance) => ({
       avatarInstanceId: instance.avatarInstanceId,
-      localAgentRef: instance.localAgentRef,
+      localAgentRef: instance.agentId,
     })),
     [avatarLiveInstancesQuery.data],
   );
@@ -123,7 +121,7 @@ export function useAgentLocalAvatarLaunchControls(input: {
       };
     }
     const newInstanceId = buildDesktopAvatarEphemeralInstanceId({
-      localAgentRef: presentation.activeTarget.localAgentRef,
+      agentId: presentation.activeTarget.localAgentRef,
       threadId: presentation.activeThreadId,
     });
     const arbitration = arbitrateAvatarLaunch({
@@ -148,9 +146,7 @@ export function useAgentLocalAvatarLaunchControls(input: {
       subjectUserId: presentation.accountId,
     });
     const result = await launchDesktopAvatarHandoff({
-      ownerUserId: presentation.activeTarget.ownerUserId,
-      runtimeSourceRef: presentation.activeTarget.runtimeSourceRef,
-      localAgentRef: presentation.activeTarget.localAgentRef,
+      agentId: presentation.activeTarget.localAgentRef,
       avatarInstanceId: arbitration.avatarInstanceId,
       launchSource: input2.trigger === 'start_with_chat'
         ? 'desktop-agent-chat-start-with-chat'
