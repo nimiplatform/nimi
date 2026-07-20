@@ -9,10 +9,20 @@ import (
 	"io"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	goruntime "runtime"
 	"sort"
 	"strings"
 	"time"
+)
+
+const maxGoTestFailureOutputBytes = 8 * 1024
+
+var (
+	goTestAuthorizationValuePattern = regexp.MustCompile(`(?i)\b(authorization)\b["']?(\s*[:=]\s*)["']?(?:(?:bearer|basic)\s+)?([^\s"',;}]+)`)
+	goTestBearerValuePattern        = regexp.MustCompile(`(?i)\b(bearer)\b(\s+)([^\s,;]+)`)
+	goTestSensitiveValuePattern     = regexp.MustCompile(`(?i)\b(access[_-]?token|refresh[_-]?token|api[_-]?key|password|passphrase|private[_-]?key|secret)\b["']?(\s*[:=]\s*|\s+)["']?([^\s"',;}]+)`)
+	goTestJWTValuePattern           = regexp.MustCompile(`\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b`)
 )
 
 type goTestEvent struct {
@@ -64,8 +74,15 @@ type goTestScanResult struct {
 	PassedTests     map[string]bool
 	Packages        []packageTiming
 	Tests           []testTiming
+	FailureOutput   []goTestFailureOutput
 	MalformedEvents int
 	FirstOutput     time.Duration
+}
+
+type goTestFailureOutput struct {
+	Package string `json:"package"`
+	Test    string `json:"test,omitempty"`
+	Tail    string `json:"tail,omitempty"`
 }
 
 func collectPassingTests(
@@ -123,7 +140,10 @@ func collectPassingTests(
 		return result, fmt.Errorf("malformed Go JSON events: %d (fail closed)", scan.MalformedEvents)
 	}
 	if waitErr != nil {
-		detail := stderr.String()
+		detail := goTestFailureDetail(scan)
+		if stderrDetail := stderr.String(); stderrDetail != "" {
+			detail = strings.TrimSpace(detail + " stderr=" + stderrDetail)
+		}
 		if detail == "" {
 			detail = waitErr.Error()
 		}
@@ -144,6 +164,9 @@ func scanGoTestJSON(reader io.Reader, startedAt time.Time, progress *progressRep
 	result := goTestScanResult{PassedTests: make(map[string]bool)}
 	packageStarts := make(map[string]time.Time)
 	packageByName := make(map[string]*packageTiming)
+	packageOutput := make(map[string]*boundedTailBuffer)
+	testOutput := make(map[string]*boundedTailBuffer)
+	failedTestByPackage := make(map[string]bool)
 	firstOutputRecorded := false
 	scanner := bufio.NewScanner(reader)
 	scanner.Buffer(make([]byte, 0, 1024), 2*1024*1024)
@@ -159,8 +182,14 @@ func scanGoTestJSON(reader io.Reader, startedAt time.Time, progress *progressRep
 			continue
 		}
 		packagePath := strings.TrimSpace(event.Package)
-		if packagePath != "" && event.Action == "output" && strings.Contains(event.Output, "[no test files]") {
-			ensurePackageTiming(packageByName, packagePath).NoTestFiles = true
+		if packagePath != "" && event.Action == "output" {
+			if strings.Contains(event.Output, "[no test files]") {
+				ensurePackageTiming(packageByName, packagePath).NoTestFiles = true
+			}
+			appendGoTestOutput(packageOutput, packagePath, event.Output)
+			if testName := strings.TrimSpace(event.Test); testName != "" {
+				appendGoTestOutput(testOutput, packagePath+":"+testName, event.Output)
+			}
 		}
 		if event.Action == "start" && packagePath != "" && strings.TrimSpace(event.Test) == "" {
 			packageStarts[packagePath] = now
@@ -176,6 +205,12 @@ func scanGoTestJSON(reader io.Reader, startedAt time.Time, progress *progressRep
 			case "fail":
 				pkg := ensurePackageTiming(packageByName, packagePath)
 				pkg.FailedTests = appendUnique(pkg.FailedTests, event.Test)
+				failedTestByPackage[packagePath] = true
+				result.FailureOutput = append(result.FailureOutput, goTestFailureOutput{
+					Package: packagePath,
+					Test:    event.Test,
+					Tail:    goTestOutputTail(testOutput[packagePath+":"+event.Test]),
+				})
 			}
 			if event.Action == "pass" || event.Action == "fail" || event.Action == "skip" {
 				result.Tests = append(result.Tests, testTiming{
@@ -184,6 +219,7 @@ func scanGoTestJSON(reader io.Reader, startedAt time.Time, progress *progressRep
 					TerminalAction: event.Action,
 					ElapsedSeconds: event.Elapsed,
 				})
+				delete(testOutput, key)
 			}
 			continue
 		}
@@ -193,6 +229,14 @@ func scanGoTestJSON(reader io.Reader, startedAt time.Time, progress *progressRep
 		pkg := ensurePackageTiming(packageByName, packagePath)
 		pkg.TerminalAction = event.Action
 		pkg.ElapsedSeconds = event.Elapsed
+		if event.Action == "fail" && !failedTestByPackage[packagePath] {
+			result.FailureOutput = append(result.FailureOutput, goTestFailureOutput{
+				Package: packagePath,
+				Tail:    goTestOutputTail(packageOutput[packagePath]),
+			})
+		}
+		delete(packageOutput, packagePath)
+		delete(failedTestByPackage, packagePath)
 		elapsed := time.Duration(event.Elapsed * float64(time.Second))
 		if start, ok := packageStarts[packagePath]; ok {
 			wall := now.Sub(start)
@@ -201,6 +245,7 @@ func scanGoTestJSON(reader io.Reader, startedAt time.Time, progress *progressRep
 				pkg.ElapsedSeconds = wall.Seconds()
 			}
 		}
+		delete(packageStarts, packagePath)
 		if progress != nil {
 			progress.ItemDone("package", packagePath, elapsed, event.Action)
 		}
@@ -221,7 +266,99 @@ func scanGoTestJSON(reader io.Reader, startedAt time.Time, progress *progressRep
 		}
 		return result.Tests[i].Package < result.Tests[j].Package
 	})
+	sort.Slice(result.FailureOutput, func(i int, j int) bool {
+		if result.FailureOutput[i].Package == result.FailureOutput[j].Package {
+			return result.FailureOutput[i].Test < result.FailureOutput[j].Test
+		}
+		return result.FailureOutput[i].Package < result.FailureOutput[j].Package
+	})
 	return result
+}
+
+func appendGoTestOutput(outputs map[string]*boundedTailBuffer, key string, value string) {
+	buffer := outputs[key]
+	if buffer == nil {
+		buffer = &boundedTailBuffer{limit: maxGoTestFailureOutputBytes}
+		outputs[key] = buffer
+	}
+	buffer.WriteString(value)
+}
+
+func goTestOutputTail(buffer *boundedTailBuffer) string {
+	if buffer == nil {
+		return ""
+	}
+	return redactGoTestFailureOutput(buffer.String())
+}
+
+func redactGoTestFailureOutput(value string) string {
+	value = goTestAuthorizationValuePattern.ReplaceAllString(value, `${1}${2}[REDACTED]`)
+	value = goTestBearerValuePattern.ReplaceAllString(value, `${1}${2}[REDACTED]`)
+	value = goTestSensitiveValuePattern.ReplaceAllString(value, `${1}${2}[REDACTED]`)
+	value = goTestJWTValuePattern.ReplaceAllString(value, "[REDACTED_JWT]")
+	return strings.TrimSpace(value)
+}
+
+func goTestFailureDetail(scan goTestScanResult) string {
+	failedPackages := make([]string, 0)
+	failedTests := make([]string, 0)
+	for _, pkg := range scan.Packages {
+		if pkg.TerminalAction != "fail" {
+			continue
+		}
+		failedPackages = append(failedPackages, pkg.Package)
+		for _, testName := range pkg.FailedTests {
+			failedTests = append(failedTests, pkg.Package+":"+testName)
+		}
+	}
+	payload, err := json.Marshal(struct {
+		FailedPackages []string              `json:"failed_packages"`
+		FailedTests    []string              `json:"failed_tests"`
+		FailureOutput  []goTestFailureOutput `json:"failure_output,omitempty"`
+	}{
+		FailedPackages: failedPackages,
+		FailedTests:    failedTests,
+		FailureOutput:  scan.FailureOutput,
+	})
+	if err != nil {
+		return ""
+	}
+	output := &limitedBuffer{limit: maxGoTestFailureOutputBytes}
+	_, _ = output.Write(payload)
+	return output.String()
+}
+
+type boundedTailBuffer struct {
+	limit     int
+	data      []byte
+	truncated bool
+}
+
+func (b *boundedTailBuffer) WriteString(value string) {
+	if b.limit <= 0 || value == "" {
+		return
+	}
+	bytes := []byte(value)
+	if len(bytes) >= b.limit {
+		b.data = append(b.data[:0], bytes[len(bytes)-b.limit:]...)
+		b.truncated = true
+		return
+	}
+	overflow := len(b.data) + len(bytes) - b.limit
+	if overflow > 0 {
+		copy(b.data, b.data[overflow:])
+		b.data = b.data[:len(b.data)-overflow]
+		b.truncated = true
+	}
+	b.data = append(b.data, bytes...)
+}
+
+func (b *boundedTailBuffer) String() string {
+	value := string(b.data)
+	if b.truncated {
+		return "...(truncated)" + value
+	}
+	return value
 }
 
 func ensurePackageTiming(packages map[string]*packageTiming, packagePath string) *packageTiming {

@@ -303,9 +303,8 @@ func TestReleaseRegistryMakesComplianceSoleFinalRuntimeCoreOrchestrator(t *testi
 	}
 	text := string(raw)
 	for _, id := range []string{"gate.runtime.go-build", "gate.runtime.go-vet", "gate.runtime.go-test"} {
-		section := registryGateSection(t, text, id)
-		if !strings.Contains(section, "tiers: [nightly]") || strings.Contains(section, "release-target:runtime") {
-			t.Fatalf("%s is still final-release orchestration:\n%s", id, section)
+		if strings.Contains(text, "  - id: "+id+"\n") {
+			t.Fatalf("%s must not remain as a second Runtime core orchestrator", id)
 		}
 	}
 	compliance := registryGateSection(t, text, "gate.runtime.compliance")

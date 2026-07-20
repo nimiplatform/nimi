@@ -108,13 +108,15 @@ func mustAllocateTestPort() int {
 	return ln.Addr().(*net.TCPAddr).Port
 }
 
-func startSupervisorHelperProcess(t *testing.T, mode string) *exec.Cmd {
+func startSupervisorHelperProcess(t *testing.T, mode string, modeArgs ...string) *exec.Cmd {
 	t.Helper()
 	executablePath, err := os.Executable()
 	if err != nil {
 		t.Fatalf("os.Executable: %v", err)
 	}
-	cmd := exec.Command(executablePath, "-test.run=TestSupervisorHelperProcess", "--", mode)
+	args := []string{"-test.run=^TestSupervisorHelperProcess$", "--", mode}
+	args = append(args, modeArgs...)
+	cmd := exec.Command(executablePath, args...)
 	cmd.Env = append(os.Environ(), "GO_WANT_SUPERVISOR_HELPER_PROCESS=1")
 	setSupervisorProcessGroup(cmd)
 	if err := cmd.Start(); err != nil {
@@ -133,10 +135,18 @@ func TestSupervisorHelperProcess(t *testing.T) {
 	if os.Getenv("GO_WANT_SUPERVISOR_HELPER_PROCESS") != "1" {
 		return
 	}
-	if len(os.Args) < 3 {
+	separator := -1
+	for index, arg := range os.Args {
+		if arg == "--" {
+			separator = index
+			break
+		}
+	}
+	if separator < 0 || separator+1 >= len(os.Args) {
 		os.Exit(2)
 	}
-	mode := os.Args[len(os.Args)-1]
+	helperArgs := os.Args[separator+1:]
+	mode := helperArgs[0]
 	switch mode {
 	case "sleep":
 		time.Sleep(60 * time.Second)
@@ -146,6 +156,21 @@ func TestSupervisorHelperProcess(t *testing.T) {
 			signalChannel := make(chan os.Signal, 1)
 			signal.Notify(signalChannel, syscall.SIGTERM)
 		}
+		time.Sleep(60 * time.Second)
+		os.Exit(0)
+	case "listen":
+		if len(helperArgs) != 2 {
+			os.Exit(2)
+		}
+		port, err := strconv.Atoi(helperArgs[1])
+		if err != nil || port <= 0 || port > 65535 {
+			os.Exit(2)
+		}
+		listener, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(port))
+		if err != nil {
+			os.Exit(2)
+		}
+		defer func() { _ = listener.Close() }()
 		time.Sleep(60 * time.Second)
 		os.Exit(0)
 	default:
@@ -851,26 +876,27 @@ func TestSupervisorStartReclaimsStalePortFromPriorInstance(t *testing.T) {
 
 	port := mustAllocateTestPort()
 
-	// A "prior runtime instance" supervisor binds the port and stays alive.
-	priorScript := writeTestScript(t, "exec "+pythonOrNetcatPortHolder(t, port))
-	priorCfg := testSupervisorCfg(priorScript)
-	priorCfg.Port = port
-	priorCfg.StartupTimeout = 200 * time.Millisecond
-	priorCfg.MaxRestarts = 1
-
-	prior := NewSupervisor(priorCfg, testLogger(), nil)
-	if err := prior.Start(context.Background()); err != nil {
-		t.Fatalf("prior Start: %v", err)
+	// Model the exact state left by a crashed prior Runtime: its supervised
+	// child and durable PID identity remain, but no old Supervisor monitor is
+	// alive to restart that child while the new Runtime reclaims it.
+	priorProcess := startSupervisorHelperProcess(t, "listen", strconv.Itoa(port))
+	priorPID := priorProcess.Process.Pid
+	executablePath, err := os.Executable()
+	if err != nil {
+		t.Fatalf("os.Executable: %v", err)
 	}
-	priorPID := prior.Info().PID
-	t.Cleanup(func() {
-		if testProcessAlive(priorPID) {
-			_ = signalSupervisorProcessDirect(priorPID, syscall.SIGKILL)
-		}
-	})
+	prior := NewSupervisor(EngineConfig{
+		Kind:           EngineMedia,
+		BinaryPath:     executablePath,
+		Port:           port,
+		SupervisedRoot: testSupervisedRoot(),
+	}, testLogger(), nil)
+	prior.mu.Lock()
+	prior.pid = priorPID
+	prior.mu.Unlock()
+	prior.writePIDFile()
 
-	// The prior instance leaks its pid file (a hard runtime kill never ran
-	// removePIDFile). Wait until the pid + metadata are durably written.
+	// Wait until the PID + metadata are durably written.
 	if !waitForCondition(2*time.Second, func() bool {
 		metadata, err := readSupervisorPIDMetadata(prior.pidMetadataPath())
 		return err == nil && metadata.PID == priorPID
@@ -886,11 +912,12 @@ func TestSupervisorStartReclaimsStalePortFromPriorInstance(t *testing.T) {
 
 	// A new runtime instance: same SupervisedRoot, same configured port. Start
 	// must reclaim the stale process + port instead of crash-looping on bind.
-	nextScript := writeTestScript(t, "sleep 60")
-	nextCfg := testSupervisorCfg(nextScript)
+	nextCfg := testSupervisorCfg(executablePath)
 	nextCfg.Port = port
 	nextCfg.StartupTimeout = 500 * time.Millisecond
 	nextCfg.MaxRestarts = 1
+	nextCfg.CommandArgs = []string{"-test.run=^TestSupervisorHelperProcess$", "--", "sleep"}
+	nextCfg.CommandEnv = map[string]string{"GO_WANT_SUPERVISOR_HELPER_PROCESS": "1"}
 
 	next := NewSupervisor(nextCfg, testLogger(), nil)
 	if err := next.Start(context.Background()); err != nil {
@@ -899,26 +926,11 @@ func TestSupervisorStartReclaimsStalePortFromPriorInstance(t *testing.T) {
 	defer func() { _ = next.Stop() }()
 
 	if !waitForCondition(3*time.Second, func() bool {
-		return !testProcessAlive(priorPID)
+		return !supervisorProcessAlive(priorPID)
 	}) {
 		t.Fatalf("expected stale prior process %d to be killed during port reclaim", priorPID)
 	}
 	if nextPID := next.Info().PID; nextPID <= 0 || nextPID == priorPID {
 		t.Fatalf("expected new process spawned after port reclaim, got pid %d", nextPID)
 	}
-}
-
-// pythonOrNetcatPortHolder returns a shell command that binds the given TCP
-// port on 127.0.0.1 and holds it open, used to simulate a stale engine process
-// occupying a supervised-engine port.
-func pythonOrNetcatPortHolder(t *testing.T, port int) string {
-	t.Helper()
-	for _, name := range []string{"python3", "python"} {
-		if path, err := exec.LookPath(name); err == nil {
-			return path + " -c \"import socket,time;s=socket.socket();s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,0);s.bind(('127.0.0.1'," +
-				strconv.Itoa(port) + "));s.listen(1);time.sleep(60)\""
-		}
-	}
-	t.Skip("no python interpreter available to simulate a stale port holder")
-	return ""
 }

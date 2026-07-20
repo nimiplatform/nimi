@@ -53,6 +53,39 @@ func TestFailedTestFixtureIsNotPassing(t *testing.T) {
 	if len(result.Packages) != 1 || result.Packages[0].TerminalAction != "fail" {
 		t.Fatalf("failed package terminal state missing: %#v", result.Packages)
 	}
+	if len(result.FailureOutput) != 1 || result.FailureOutput[0].Test != "TestStreamBackpressureCloses" {
+		t.Fatalf("failed test diagnostic missing: %#v", result.FailureOutput)
+	}
+	if !strings.Contains(result.FailureOutput[0].Tail, "expected stream to close") {
+		t.Fatalf("failed assertion output missing: %#v", result.FailureOutput)
+	}
+	for _, leaked := range []string{"fixture-secret", "fixture-bearer", "fixture-refresh"} {
+		if strings.Contains(result.FailureOutput[0].Tail, leaked) {
+			t.Fatalf("failed assertion output leaked %q: %#v", leaked, result.FailureOutput)
+		}
+	}
+	for _, redacted := range []string{
+		"access_token=[REDACTED]",
+		"Authorization: [REDACTED]",
+		"refresh_token:[REDACTED]",
+	} {
+		if !strings.Contains(result.FailureOutput[0].Tail, redacted) {
+			t.Fatalf("failed assertion output missing redaction %q: %#v", redacted, result.FailureOutput)
+		}
+	}
+	detail := goTestFailureDetail(result)
+	if !strings.Contains(detail, key) || !strings.Contains(detail, "expected stream to close") {
+		t.Fatalf("failed test detail is incomplete: %s", detail)
+	}
+}
+
+func TestGoTestFailureOutputTailIsBounded(t *testing.T) {
+	buffer := &boundedTailBuffer{limit: 8}
+	buffer.WriteString("first-")
+	buffer.WriteString("second")
+	if got := buffer.String(); got != "...(truncated)t-second" {
+		t.Fatalf("bounded tail = %q", got)
+	}
 }
 
 func TestExecutionReportRejectsFailedTestTerminalEvenWithPassingPackage(t *testing.T) {
@@ -119,6 +152,20 @@ func TestNoTestFilesPackageHasExplicitAllowedSkipState(t *testing.T) {
 	pkg := result.Packages[0]
 	if pkg.TerminalAction != "skip" || !pkg.NoTestFiles {
 		t.Fatalf("no-test-files package was not distinguished from a skipped test package: %#v", pkg)
+	}
+}
+
+func TestPackageTimingPreservesObservedWallDuration(t *testing.T) {
+	raw := strings.Join([]string{
+		`{"Action":"start","Package":"github.com/nimiplatform/nimi/runtime/internal/streamutil"}`,
+		`{"Action":"pass","Package":"github.com/nimiplatform/nimi/runtime/internal/streamutil","Elapsed":0}`,
+	}, "\n")
+	result := scanGoTestJSON(strings.NewReader(raw), time.Now().Add(-time.Second), nil)
+	if len(result.Packages) != 1 {
+		t.Fatalf("unexpected package count: %#v", result.Packages)
+	}
+	if result.Packages[0].ElapsedSeconds <= 0 {
+		t.Fatalf("package wall duration was discarded: %#v", result.Packages[0])
 	}
 }
 
