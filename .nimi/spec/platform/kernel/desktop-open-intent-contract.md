@@ -106,14 +106,23 @@ Connection refused, stale descriptor, malformed descriptor, non-loopback
 endpoint, and `bridgeId` mismatch are `desktop-open-desktop-not-running`, not
 bridge-unavailable.
 
-## P-DOPEN-009 - Evidence Requirement
+## P-DOPEN-009 - Executable Evidence Closure
 
-Closeout evidence must cover every row in the Desktop Running Open Intent
-acceptance matrix by stable row id. Summary prose alone is not evidence.
+Current evidence must cover `P-DOPEN-001..008` through the canonical golden
+vectors, domain behavior tests, and release-consumed contract gates mapped in
+`tables/rule-evidence.yaml`. Evidence is valid only when its declared command
+executes and returns success on the candidate source.
+
+Ignored `.nimi/local/**` artifacts, generated source-reference manifests,
+constant assertion registries, and summary prose cannot satisfy current
+evidence and must never self-assert `passed`. Local plans may remain historical
+context, but no active checker or generator may consume them as product
+authority or release evidence.
 
 ## Fact Sources
 
 - `.nimi/spec/platform/kernel/tables/desktop-open-intents.yaml`
 - `.nimi/spec/platform/kernel/tables/desktop-open-intent-golden-vectors.yaml`
+- `.nimi/spec/platform/kernel/tables/rule-evidence.yaml`
 - `.nimi/spec/desktop/kernel/tables/desktop-open-targets.yaml`
 - `.nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml`

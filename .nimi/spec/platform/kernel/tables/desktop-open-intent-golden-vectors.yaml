@@ -41,6 +41,7 @@ authority_refs:
   - P-DOPEN-003
   - P-DOPEN-004
   - P-DOPEN-007
+  - P-DOPEN-009
 accepted:
   - id: explore-personas-select-partner
     envelope:
