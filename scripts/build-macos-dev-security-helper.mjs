@@ -2,120 +2,30 @@
 import { mkdir, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import { runReleaseCommand } from '../apps/desktop/scripts/lib/macos-release-process.mjs';
 
-if (process.platform !== 'darwin' || process.arch !== 'arm64') {
-  throw new Error('macOS development security helper must be built natively on Apple Silicon');
-}
-
-const scriptRoot = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(scriptRoot, '..');
-const sourceRoot = path.join(repoRoot, 'apps', 'desktop', 'macos', 'dev-security');
-const generatedRoot = path.join(repoRoot, 'apps', 'desktop', 'macos', 'generated');
-const outputRoot = path.join(repoRoot, '.nimi', 'local', 'macos-dev-security-build');
+if (process.platform !== 'darwin' || process.arch !== 'arm64') throw new Error('fresh carrier-4 helper requires native Apple Silicon macOS');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const source = path.join(root, 'apps/desktop/macos/dev-security');
+const generated = path.join(root, 'apps/desktop/macos/generated/macos_local_development_profile.swift');
+const outputRoot = path.join(root, '.nimi/local/macos-dev-security-build');
 const outputPath = path.join(outputRoot, 'nimi-macos-dev-security');
-const objectPath = path.join(outputRoot, 'nimi-macos-dev-security.o');
-const sources = [
-  path.join(generatedRoot, 'macos_local_development_profile.swift'),
-  'DER.swift',
-  'BoundedProcessWait.swift',
-  'RepairProcessGroupPolicy.swift',
-  'RepairProcessWitness.swift',
-  'StableMutationLock.swift',
-  'DevSecuritySupport.swift',
-  'FixedCommandRunner.swift',
-  'CodeSigningSearchList.swift',
-  'KeychainAccessControl.swift',
-  'TrustSettingsValidation.swift',
-  'ProfileKeyCleanup.swift',
-  'CertificateAuthority.swift',
-  'CertificateAuthorityKeychain.swift',
-  'CertificateAuthorityValidation.swift',
-  'DevelopmentCertificateProfile.swift',
-  'SigningProfileCleanupRecord.swift',
-  'SignedCode.swift',
-  'StableExecutableVnode.swift',
-  'ReleaseRecord.swift',
-  'InstalledReleaseTrust.swift',
-  'DirectoryServiceAccountPlan.swift',
-  'POSIXIdentityLookup.swift',
-  'POSIXIdentityProjection.swift',
-  'OpenDirectoryDeleteRecovery.swift',
-  'OpenDirectoryAccountStore.swift',
-  'OpenDirectoryAccountRepair.swift',
-  'RuntimePrincipalTransaction.swift',
-  'PartialInstallationRepairTransition.swift',
-  'PartialInstallationRepairExecutor.swift',
-  'PartialInstallationRepairPersistence.swift',
-  'PartialInstallationRepairJournalCodec.swift',
-  'PartialInstallationRepairReceipt.swift',
-  'PartialInstallationRepairDeadline.swift',
-  'SubprocessFailureDiagnostics.swift',
-  'PartialInstallationRepair.swift',
-  'PartialInstallationRepairExecution.swift',
-  'PartialInstallationRepairLiveAdapter.swift',
-  'PartialInstallationRepairProof.swift',
-  'PartialInstallationRepairAuthority.swift',
-  'PartialInstallationRepairArtifactsStorage.swift',
-  'PartialInstallationRepairStorage.swift',
-  'InstallerState.swift',
-  'SigningTransaction.swift',
-  'InstallationTransactionJournal.swift',
-  'InstalledHealth.swift',
-  'ServiceLifecycle.swift',
-  'main.swift',
-].map((name) => path.isAbsolute(name) ? name : path.join(sourceRoot, name));
-
-await Promise.all([
-  rm(outputPath, { force: true }),
-  rm(objectPath, { force: true }),
+const objectPath = `${outputPath}.o`;
+// Complete privileged TCB source list. Directory discovery is forbidden.
+export const PRIVILEGED_HELPER_SOURCES = Object.freeze([
+  generated,
+  path.join(source, 'FreshCarrier4Support.swift'),
+  path.join(source, 'FreshCarrier4Installer.swift'),
+  path.join(source, 'main.swift'),
 ]);
+await rm(outputRoot, { recursive: true, force: true });
 await mkdir(outputRoot, { recursive: true, mode: 0o700 });
-const sdkPath = runReleaseCommand('/usr/bin/xcrun', [
-  '--sdk', 'macosx', '--show-sdk-path',
-]).stdout.trim();
-const swiftFrontendPath = runReleaseCommand('/usr/bin/xcrun', [
-  '--find', 'swift-frontend',
-]).stdout.trim();
-if (!path.isAbsolute(sdkPath) || !path.isAbsolute(swiftFrontendPath)) {
-  throw new Error('xcrun returned a non-absolute macOS SDK or Swift frontend path');
-}
-const swiftToolchainRoot = path.resolve(path.dirname(swiftFrontendPath), '..');
-
-runReleaseCommand('/usr/bin/xcrun', [
-  'swift-frontend',
-  '-c',
-  '-O',
-  '-whole-module-optimization',
-  '-parse-as-library',
-  '-target', 'arm64-apple-macos13.0',
-  '-sdk', sdkPath,
-  '-module-name', 'NimiMacOSDevSecurity',
-  '-o', objectPath,
-  ...sources,
-], { cwd: repoRoot, inherit: true });
-runReleaseCommand('/usr/bin/xcrun', [
-  'clang',
-  '-target', 'arm64-apple-macos13.0',
-  '-isysroot', sdkPath,
-  '-L', path.join(sdkPath, 'usr', 'lib', 'swift'),
-  '-L', path.join(swiftToolchainRoot, 'lib', 'swift-5.0', 'macosx'),
-  '-Wl,-rpath,/usr/lib/swift',
-  '-framework', 'Security',
-  '-framework', 'OpenDirectory',
-  '-o', outputPath,
-  objectPath,
-], { cwd: repoRoot, inherit: true });
-await rm(objectPath, { force: true });
-const metadata = await stat(outputPath);
-if (!metadata.isFile() || metadata.size <= 0 || (metadata.mode & 0o111) === 0) {
-  throw new Error('macOS development security helper build did not produce an executable');
-}
-runReleaseCommand('/usr/bin/lipo', ['-archs', outputPath]);
-process.stdout.write(`${JSON.stringify({
-  architecture: 'arm64',
-  outputPath,
-  posture: 'linker_signed_adhoc_bootstrap_is_non_authorizing_and_requires_explicit_root_install_and_local_ca_resigning_transaction',
-  status: 'built',
-})}\n`);
+const sdk = runReleaseCommand('/usr/bin/xcrun', ['--sdk', 'macosx', '--show-sdk-path']).stdout.trim();
+const frontend = runReleaseCommand('/usr/bin/xcrun', ['--find', 'swift-frontend']).stdout.trim();
+const toolchain = path.resolve(path.dirname(frontend), '..');
+runReleaseCommand('/usr/bin/xcrun', ['swift-frontend','-c','-O','-whole-module-optimization','-parse-as-library','-target','arm64-apple-macos13.0','-sdk',sdk,'-module-name','NimiMacOSFreshCarrier4Installer','-o',objectPath,...PRIVILEGED_HELPER_SOURCES], { cwd: root, inherit: true });
+runReleaseCommand('/usr/bin/xcrun', ['clang','-target','arm64-apple-macos13.0','-isysroot',sdk,'-L',path.join(sdk,'usr/lib/swift'),'-L',path.join(toolchain,'lib/swift-5.0/macosx'),'-Wl,-rpath,/usr/lib/swift','-framework','Security','-framework','OpenDirectory','-o',outputPath,objectPath], { cwd: root, inherit: true });
+await rm(objectPath,{force:true});
+const metadata=await stat(outputPath);if(!metadata.isFile()||metadata.size===0||(metadata.mode&0o111)===0)throw new Error('helper build missing executable');
+runReleaseCommand('/usr/bin/lipo',['-archs',outputPath]);
+process.stdout.write(`${JSON.stringify({status:'built',architecture:'arm64',outputPath,sourceCount:PRIVILEGED_HELPER_SOURCES.length,operations:['status','verify-candidate','install-candidate','restart-service','reset-service-state','uninstall-service'],posture:'linker_signed_non_authorizing_candidate_requires_user_domain_local_CA_signature_before_install'})}\n`);

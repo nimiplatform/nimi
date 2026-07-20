@@ -33,7 +33,7 @@ func TestMacOSLocalDevelopmentReleaseRecordRequiresExactProfileAndP256Signature(
 	})
 
 	value := map[string]any{
-		"schema_version":                   2,
+		"schema_version":                   3,
 		"environment":                      "local_development",
 		"identity_class":                   "local_ca",
 		"signature_algorithm":              "ecdsa_p256_sha256",
@@ -54,6 +54,8 @@ func TestMacOSLocalDevelopmentReleaseRecordRequiresExactProfileAndP256Signature(
 		"macos_cdhash":                     strings.Repeat("22", 20),
 		"macos_hardened_runtime_required":  true,
 		"macos_notarization_required":      false,
+		"macos_architecture":              "arm64",
+		"macos_entitlements_sha256":       strings.Repeat("44", 32),
 		"linux_manifest_key_id":            "",
 		"os_service_principal":             "active_console_user",
 		"valid_from":                       "2026-07-01T00:00:00Z",

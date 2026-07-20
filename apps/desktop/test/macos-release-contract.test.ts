@@ -23,9 +23,11 @@ test('macOS release records are canonical, externally signed, and role exact', (
   const record = createMacOSReleaseTrustRecord({
     buildId: 'build-1',
     codeIdentity: {
+      architecture: 'arm64',
       artifactSha256: 'a'.repeat(64),
       cdhash: 'b'.repeat(40),
       designatedRequirement: 'identifier "ai.nimi.runtime" and anchor apple generic',
+      entitlementsSHA256: 'c'.repeat(64),
       signingIdentifier: role.signingIdentifier,
       teamId: 'ABCDE12345', // pragma: allowlist secret -- public synthetic Apple Team ID fixture
     },

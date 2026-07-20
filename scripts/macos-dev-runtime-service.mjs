@@ -10,7 +10,10 @@ import { MACOS_LOCAL_DEVELOPMENT_PROFILE } from '../apps/desktop/scripts/generat
 const scriptRoot = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptRoot, '..');
 const helperPath = '/usr/local/libexec/nimi-macos-dev-security';
-const signingProfilePath = '/Library/Application Support/Nimi/RuntimeDev/dev-signing-profile.json';
+const legacySigningProfilePath = '/Library/Application Support/Nimi/RuntimeDev/dev-signing-profile.json';
+const userSigningProfilePath = path.join(process.env.HOME ?? '', '.nimi/macos-dev-signing/public-profile.json');
+const installJournalPath = '/Library/Application Support/Nimi/RuntimeDev/installation-transaction.json';
+const bootstrapRoot = '/Library/Application Support/Nimi/RuntimeDev/bootstrap';
 const runtimePath = '/Library/Application Support/Nimi/RuntimeDev/active/bin/nimi-runtime';
 const desktopPath = '/Applications/Nimi Dev.app';
 const launchDaemonPath = '/Library/LaunchDaemons/ai.nimi.runtime.dev.plist';
@@ -54,11 +57,11 @@ export async function runMacOSDevRuntimeService(input = {}) {
   if (mode === 'logs') return readRuntimeLogs();
 
   const initial = await queryStatus();
-  if (initial.signingProfile !== 'present') {
+  if ((mode === 'install' || mode === 'update') && initial.signingProfile !== 'present') {
     throw workflowError(
       'The macOS local-development signing profile is not provisioned.',
       'dev-signing-profile-unprovisioned',
-      'run_pnpm_provision_macos_dev_trust',
+      'run_pnpm_provision_macos_dev_signing',
     );
   }
   assertCurrentPrincipalCarrier(initial);
@@ -95,11 +98,13 @@ export async function runMacOSDevRuntimeService(input = {}) {
     throw workflowError('Unsupported macOS dev Runtime mode.', 'dev-runtime-argument-invalid', 'use_one_documented_macos_dev_runtime_mode');
   }
 
-  await confirm(installImpact(mode), mode === 'install' ? 'INSTALL NIMI MACOS DEV RUNTIME' : 'UPDATE NIMI MACOS DEV RUNTIME');
   const buildCandidate = input.buildCandidate ?? buildDevelopmentCandidate;
+  const verifyCandidate = input.verifyCandidate ?? verifyDevelopmentCandidate;
   const candidate = await buildCandidate();
-  const receipt = await invokeHelper(['install-candidate', candidate.outputRoot]);
-  const final = await queryStatus();
+  const verification = await verifyCandidate(candidate);
+  await confirm(installImpact(mode, verification), mode === 'install' ? 'INSTALL NIMI MACOS DEV RUNTIME' : 'UPDATE NIMI MACOS DEV RUNTIME');
+  const receipt = await invokeHelper(['install-candidate', candidate.outputRoot], verification);
+  const final = await invokeHelper(['status']);
   assertHealthyInstalledStatus(final);
   return Object.freeze({
     ...receipt,
@@ -126,7 +131,7 @@ export function assertHealthyInstalledStatus(status) {
     && status?.launchDaemonDefinitionTrusted === true
     && status?.launchDaemonLoaded === true
     && status?.runtimeAccountTrusted === true
-    && status?.runtimePrincipalCarrierContractVersion === MACOS_LOCAL_DEVELOPMENT_PROFILE.runtimePrincipalCarrierContractVersion
+    && status?.runtimePrincipalCarrierContractVersion === MACOS_LOCAL_DEVELOPMENT_PROFILE.carrier
     && status?.installerLedgerTrusted === true
     && status?.installedReleaseSetTrusted === true
     && status?.runtimeProcessTrusted === true
@@ -141,7 +146,7 @@ export function assertHealthyInstalledStatus(status) {
     throw workflowError(
       'The macOS local-development signing profile is not provisioned.',
       'dev-signing-profile-unprovisioned',
-      'run_pnpm_provision_macos_dev_trust',
+      'run_pnpm_provision_macos_dev_signing',
       { status },
     );
   }
@@ -181,19 +186,28 @@ export function assertHealthyInstalledStatus(status) {
 }
 
 export function assertCurrentPrincipalCarrier(status) {
-  const expected = MACOS_LOCAL_DEVELOPMENT_PROFILE.runtimePrincipalCarrierContractVersion;
-  if (status?.runtimePrincipalCarrierContractVersion === expected) return;
+  const expected = MACOS_LOCAL_DEVELOPMENT_PROFILE.carrier;
+  const observed = status?.runtimePrincipalCarrierContractVersion;
+  if (observed === expected) return;
   throw workflowError(
-    `The installed macOS development security helper carries Runtime principal contract ${status?.runtimePrincipalCarrierContractVersion ?? 'absent'}, but this workspace requires ${expected}.`,
-    'dev-security-helper-update-required',
-    'run_pnpm_unprovision_then_provision_macos_dev_trust_before_installing_runtime',
-    { expected, observed: status?.runtimePrincipalCarrierContractVersion ?? null },
+    `The installed macOS development profile carries legacy, unknown, or absent Runtime principal contract ${observed ?? 'absent'}; fresh carrier ${expected} does not migrate it.`,
+    MACOS_LOCAL_DEVELOPMENT_PROFILE.legacyReasonCode,
+    'remove_the_exact_legacy_profile_with_the_one_time_local_delete_only_cutover_before_fresh_install',
+    { expected, observed: observed ?? null, mutation: 'none' },
   );
 }
 
 async function readDevelopmentStatus() {
   if (!existsSync(helperPath)) {
-    const installedArtifacts = [runtimePath, desktopPath, launchDaemonPath, signingProfilePath].filter(existsSync);
+    const installedArtifacts = [
+      runtimePath,
+      desktopPath,
+      launchDaemonPath,
+      legacySigningProfilePath,
+      helperPath,
+      '/Library/Application Support/Nimi/RuntimeDev',
+      '/private/var/run/nimi-dev',
+    ].filter(existsSync);
     if (installedArtifacts.length > 0) {
       throw workflowError(
         'macOS development Runtime artifacts exist without the fixed security helper.',
@@ -206,16 +220,15 @@ async function readDevelopmentStatus() {
       status: 'absent',
       state: 'stopped',
       serviceName: 'ai.nimi.runtime.dev',
-      signingProfile: 'absent',
-      reasonCode: 'dev-signing-profile-unprovisioned',
+      signingProfile: existsSync(userSigningProfilePath) ? 'present' : 'absent',
+      signingProfileTrusted: existsSync(userSigningProfilePath),
+      runtimePrincipalCarrierContractVersion: MACOS_LOCAL_DEVELOPMENT_PROFILE.carrier,
+      reasonCode: existsSync(userSigningProfilePath) ? 'dev-runtime-service-not-installed' : 'dev-signing-profile-unprovisioned',
       productAdmission: false,
     });
   }
   requireInstalledHelperMetadata();
   const publicStatus = runJSON(helperPath, ['status']);
-  if (publicStatus?.runtimeAccountVerification === 'privileged_required') {
-    return runJSON('/usr/bin/sudo', [helperPath, 'status']);
-  }
   return publicStatus;
 }
 
@@ -233,9 +246,9 @@ async function buildDevelopmentCandidate() {
   });
   const receipt = documents.at(-1);
   if (receipt?.outputRoot !== outputRoot
-    || receipt?.posture !== 'unsigned_local_development_candidate_requires_privileged_sign_install_transaction') {
+    || receipt?.posture !== 'signed_local_development_candidate_pending_independent_verifier') {
     throw workflowError(
-      'macOS development candidate build did not return the exact unsigned candidate receipt.',
+      'macOS development candidate build did not return the exact signed and preverified candidate receipt.',
       'dev-runtime-build-failed',
       'inspect_macos_development_candidate_build_output',
     );
@@ -243,9 +256,39 @@ async function buildDevelopmentCandidate() {
   return Object.freeze({ outputRoot });
 }
 
-async function runPrivilegedHelper(arguments_) {
-  requireInstalledHelperMetadata();
-  return runJSON('/usr/bin/sudo', [helperPath, ...arguments_]);
+async function verifyDevelopmentCandidate(candidate) {
+  const helperCandidate = path.join(candidate.outputRoot, 'installer', 'nimi-macos-dev-security');
+  if (!existsSync(helperCandidate)) throw workflowError('Signed candidate does not contain its exact installer verifier.', 'dev-candidate-incomplete', 'rebuild_the_complete_candidate');
+  const verification=runJSON(helperCandidate, ['verify-candidate', candidate.outputRoot]);
+  if(verification?.status!=='verified'||verification?.mutation!=='none')throw workflowError('Independent macOS candidate verifier did not return the exact non-mutating verified receipt.','dev-runtime-candidate-verification-failed','inspect_the_complete_candidate_verifier_output');
+  return verification;
+}
+
+async function runPrivilegedHelper(arguments_, authorizedVerification = undefined) {
+  if (arguments_[0] !== 'install-candidate' || arguments_.length !== 2) {
+    requireInstalledHelperMetadata();
+    return runJSON('/usr/bin/sudo', [helperPath, ...arguments_]);
+  }
+  const source = arguments_[1];
+  const transactionID = randomUUID();
+  const staged = path.join(bootstrapRoot, transactionID);
+  runCaptured('/usr/bin/sudo', ['/bin/mkdir', '-p', bootstrapRoot], process.env);
+  try {
+    runCaptured('/usr/bin/sudo', ['/usr/bin/ditto', '--noqtn', source, staged], process.env);
+    runCaptured('/usr/bin/sudo', ['/usr/sbin/chown', '-R', 'root:wheel', staged], process.env);
+    const stagedHelper = path.join(staged, 'installer', 'nimi-macos-dev-security');
+    const stagedVerification = runJSON(stagedHelper, ['verify-candidate', staged]);
+    assertEquivalentCandidateVerification(authorizedVerification, stagedVerification);
+    return runJSON('/usr/bin/sudo', [stagedHelper, 'install-candidate', staged]);
+  } catch (error) {
+    if (!existsSync(installJournalPath)) {
+      try { if(existsSync(staged))runCaptured('/usr/bin/sudo', ['/bin/rm', '-rf', staged], process.env); } catch { /* verified below */ }
+      for(const directory of [bootstrapRoot,path.dirname(bootstrapRoot)]){try{if(existsSync(directory))runCaptured('/usr/bin/sudo',['/bin/rmdir',directory],process.env);}catch{/* verified below */}}
+      const residue=[staged,bootstrapRoot,path.dirname(bootstrapRoot)].filter(existsSync);
+      if(residue.length>0)throw workflowError('Pre-journal root-owned candidate cleanup did not reach exact absence.','runtime-service-repair-required','inspect_only_the_reported_pre_journal_paths',{primary:String(error),residue});
+    }
+    throw error;
+  }
 }
 
 function readRuntimeLogs() {
@@ -278,18 +321,19 @@ async function confirmMachineMutation(impact, phrase) {
   }
 }
 
-function installImpact(mode) {
+function installImpact(mode, verification) {
   return Object.freeze({
     mode,
     stops: ['ai.nimi.runtime.dev; requires Nimi Dev and supervised hosts already stopped'],
     writes: [
       '/Applications/Nimi Dev.app',
-      '/Library/Application Support/Nimi/RuntimeDev/{active,state,rollback,transactions}',
+      '/Library/Application Support/Nimi/RuntimeDev/{bootstrap,active,state,installation-transaction.json,installer-ledger.json,signing-profile-public.json}',
       '/Library/LaunchDaemons/ai.nimi.runtime.dev.plist',
       '/private/var/run/nimi-dev launchd sockets',
       'Runtime-only ai.nimi.runtime.protected-local.dev.v1 System Keychain custody items',
     ],
     createsOnFirstInstall: ['non-login _nimiruntimedev user and group'],
+    authorizedCandidate: verification,
     productAdmission: false,
     notarization: false,
   });
@@ -300,11 +344,34 @@ function restartImpact() {
 }
 
 function resetImpact() {
-  return Object.freeze({ action: 'stop service, delete Runtime development custody and state, reprovision empty custody, restart', deletes: ['development ledger, authorization/session state, Runtime-only development Keychain custody items'], preserves: ['local CA identities', 'installed signed app and Runtime'] });
+  return Object.freeze({ action: 'stop and exactly reset the current carrier-4 Nimi Dev namespace to clean-unprovisioned', deletes: [desktopPath, '/Library/Application Support/Nimi/RuntimeDev service/state/public-profile/ledger/journal/staging data', launchDaemonPath, helperPath, '_nimiruntimedev account', 'Runtime-only development Keychain custody items'], preserves: ['user-domain local CA and stable role keys', 'all non-Nimi system and user state'] });
 }
 
 function uninstallImpact() {
-  return Object.freeze({ action: 'stop and remove development service', deletes: [desktopPath, '/Library/Application Support/Nimi/RuntimeDev service/state data except signing profile', launchDaemonPath, '_nimiruntimedev account', 'Runtime-only development Keychain custody items'], preserves: ['local CA, role keys, root-owned helper, public signing profile'] });
+  return Object.freeze({ action: 'stop and remove development service', deletes: [desktopPath, '/Library/Application Support/Nimi/RuntimeDev service/state/public-profile/ledger data', launchDaemonPath, helperPath, '_nimiruntimedev account', 'Runtime-only development Keychain custody items'], preserves: ['user-domain local CA and stable role keys'] });
+}
+
+function assertEquivalentCandidateVerification(expected, observed) {
+  const select = (value) => ({
+    carrier: value?.carrier,
+    desktop: value?.desktop,
+    hardenedRuntime: value?.hardenedRuntime,
+    installer: value?.installer,
+    launchDaemonSHA256: value?.launchDaemonSHA256,
+    localAppHost: value?.localAppHost,
+    profileSHA256: value?.profileSHA256,
+    releaseRecordSchemaVersion: value?.releaseRecordSchemaVersion,
+    runtime: value?.runtime,
+    teamID: value?.teamID,
+  });
+  if (!expected || !observed || JSON.stringify(select(expected)) !== JSON.stringify(select(observed))) {
+    throw workflowError(
+      'Root-owned staging does not match the exact candidate identity authorized before confirmation.',
+      'dev-candidate-staging-verification-mismatch',
+      'discard_the_staging_copy_and_rebuild_the_candidate',
+      { mutation: 'root_owned_bootstrap_only' },
+    );
+  }
 }
 
 function requireInstalledHelperMetadata() {

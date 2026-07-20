@@ -41,6 +41,55 @@ type MacOSProtectedStateProvisionResult struct {
 	RuntimePath   string `json:"runtimePath"`
 }
 
+// MacOSProtectedStateStatusResult is the read-only installer custody proof.
+// A separate operation is necessary because reusing Provision would be unsafe:
+// its fresh branch creates custody and its existing branch normalizes metadata.
+type MacOSProtectedStateStatusResult struct {
+	SchemaVersion int    `json:"schemaVersion"`
+	Disposition   string `json:"disposition"`
+	StateRoot     string `json:"stateRoot"`
+	RuntimePath   string `json:"runtimePath"`
+	CustodyACLs   string `json:"custodyACLs"`
+}
+
+// VerifyMacOSProtectedState proves the installed executable, role principal,
+// state inventory, and both exact Keychain item ACLs without changing them.
+func VerifyMacOSProtectedState(ctx context.Context) (_ MacOSProtectedStateStatusResult, resultErr error) {
+	if ctx == nil {
+		return MacOSProtectedStateStatusResult{}, fail(ReasonProtectedLocalCustodyBoundaryUnavailable, false, "repair_runtime_service", fmt.Errorf("verify macOS Runtime custody: context is required"))
+	}
+	if os.Geteuid() != 0 || os.Getuid() != 0 || os.Getegid() != 0 || os.Getgid() != 0 {
+		return MacOSProtectedStateStatusResult{}, fail(ReasonProtectedLocalRuntimePrincipalRequired, false, "run_signed_installer_as_administrator", fmt.Errorf("verify macOS Runtime custody: real root principal is required"))
+	}
+	_, liveness, err := verifyMacOSInstalledProvisioningProcess()
+	if err != nil {
+		return MacOSProtectedStateStatusResult{}, fail(ReasonRuntimeExecutableTrustRecordInvalid, false, "reinstall_signed_release", err)
+	}
+	defer func() { resultErr = errors.Join(resultErr, liveness.Close()) }()
+	principal, err := resolveMacOSRuntimePrincipal()
+	if err != nil {
+		return MacOSProtectedStateStatusResult{}, err
+	}
+	stateRoot, err := validateMacOSRuntimeStateRoot(MacOSRuntimeStateRoot, principal)
+	if err != nil {
+		return MacOSProtectedStateStatusResult{}, err
+	}
+	secrets, err := OpenMacOSSystemKeychainSecretStore()
+	if err != nil {
+		return MacOSProtectedStateStatusResult{}, err
+	}
+	defer func() { resultErr = errors.Join(resultErr, secrets.Close()) }()
+	inventory, err := inspectMacOSProvisionInventory(ctx, stateRoot, principal, secrets)
+	if err != nil {
+		return MacOSProtectedStateStatusResult{}, err
+	}
+	disposition, err := classifyMacOSProvisionInventory(inventory)
+	if err != nil || disposition != macOSProvisionExisting {
+		return MacOSProtectedStateStatusResult{}, fail(ReasonProtectedLocalCustodyBoundaryUnavailable, false, "repair_runtime_service", fmt.Errorf("verify macOS Runtime custody: complete existing inventory is required"))
+	}
+	return MacOSProtectedStateStatusResult{SchemaVersion: macOSProtectedStateProvisionSchemaVersion, Disposition: "verified", StateRoot: stateRoot, RuntimePath: MacOSRuntimeExecutablePath, CustodyACLs: "verified"}, nil
+}
+
 func classifyMacOSProvisionInventory(inventory macOSProvisionInventory) (macOSProvisionDisposition, error) {
 	if !inventory.stateLock && !inventory.ledger && !inventory.ledgerWAL && !inventory.ledgerSHM &&
 		!inventory.runtimeDir && !inventory.recordKey && !inventory.anchor {

@@ -18,13 +18,12 @@ use time::OffsetDateTime;
 
 use crate::macos_profile::{
     DESKTOP_APPLICATION_PATH, DESKTOP_SIGNING_IDENTIFIER, DESKTOP_TRUST_SET_ID, ENVIRONMENT,
-    IDENTITY_CLASS, RECORD_ROOT, REQUIRE_NOTARIZATION, REQUIRE_TRUSTED_ANCHOR, ROOT_KEY_ID,
-    ROOT_PUBLIC_KEY_B64URL, RUNTIME_SERVICE_PRINCIPAL, RUNTIME_SIGNING_IDENTIFIER,
-    RUNTIME_TRUST_SET_ID, SIGNATURE_ALGORITHM, SIGNER_POLICY_ID,
+    IDENTITY_CLASS, RECORD_ROOT, RECORD_SCHEMA_VERSION, REQUIRED_ARCHITECTURE, REQUIRE_NOTARIZATION,
+    REQUIRE_TRUSTED_ANCHOR, ROOT_KEY_ID, ROOT_PUBLIC_KEY_B64URL, RUNTIME_SERVICE_PRINCIPAL,
+    RUNTIME_SIGNING_IDENTIFIER, RUNTIME_TRUST_SET_ID, SIGNATURE_ALGORITHM, SIGNER_POLICY_ID,
 };
 use crate::{ProtectedCarrierError, ProtectedCarrierReasonCode};
 
-const RECORD_SCHEMA_VERSION: u64 = 2;
 const RECORD_MAX_BYTES: u64 = 64 * 1024;
 const OS_PROFILE: &str = "macos";
 const PROTOCOL_VERSION: &str = "1";
@@ -91,6 +90,8 @@ struct ReleaseTrustRecord {
     macos_cdhash: String,
     macos_hardened_runtime_required: bool,
     macos_notarization_required: bool,
+    macos_architecture: String,
+    macos_entitlements_sha256: String,
     linux_manifest_key_id: String,
     os_service_principal: String,
     valid_from: String,
@@ -329,6 +330,8 @@ fn validate_record(
         || !valid_profile_leaf_spki(&record.macos_leaf_spki_sha256)
         || !record.macos_hardened_runtime_required
         || record.macos_notarization_required != REQUIRE_NOTARIZATION
+        || record.macos_architecture != REQUIRED_ARCHITECTURE
+        || !valid_sha256(&record.macos_entitlements_sha256)
         || !valid_requirement(&record.macos_designated_requirement)
         || !valid_cdhash(&record.macos_cdhash)
     {
@@ -471,7 +474,7 @@ mod tests {
 
     fn signed_record(signing: &SigningKey) -> Vec<u8> {
         let mut value = json!({
-            "schema_version": 2,
+            "schema_version": 3,
             "environment": "production",
             "identity_class": "developer_id_application",
             "signature_algorithm": "ed25519",
@@ -492,6 +495,8 @@ mod tests {
             "macos_cdhash": "22".repeat(20),
             "macos_hardened_runtime_required": true,
             "macos_notarization_required": true,
+            "macos_architecture": "arm64",
+            "macos_entitlements_sha256": "44".repeat(32),
             "linux_manifest_key_id": "",
             "os_service_principal": "_nimiruntime",
             "valid_from": "2026-07-01T00:00:00Z",

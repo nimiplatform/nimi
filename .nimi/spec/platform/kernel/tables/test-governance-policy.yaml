@@ -576,8 +576,7 @@ suites:
     command: pnpm test:macos:dev-security-native
     selectors:
       files:
-        - scripts/macos-dev-security-journal-storage-native-tests.swift
-        - scripts/macos-dev-security-native-tests.swift
+        - scripts/macos-fresh-carrier4-native-tests.swift
     authority_refs: [P-TEST-002, P-TEST-003, P-TEST-004, P-TEST-006]
   - id: avatar-native
     owner: avatar

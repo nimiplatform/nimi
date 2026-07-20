@@ -26,7 +26,6 @@ import (
 
 const (
 	macOSReleaseRecordMaxBytes = 64 * 1024
-	macOSReleaseRecordSchema   = 2
 	macOSReleaseOSProfile      = "macos"
 	macOSReleaseProtocol       = "1"
 
@@ -61,6 +60,8 @@ type macOSReleaseTrustRecord struct {
 	MacOSCDHash                   string   `json:"macos_cdhash"`
 	MacOSHardenedRuntimeRequired  bool     `json:"macos_hardened_runtime_required"`
 	MacOSNotarizationRequired     bool     `json:"macos_notarization_required"`
+	MacOSArchitecture             string   `json:"macos_architecture"`
+	MacOSEntitlementsSHA256       string   `json:"macos_entitlements_sha256"`
 	LinuxManifestKeyID            string   `json:"linux_manifest_key_id"`
 	OSServicePrincipal            string   `json:"os_service_principal"`
 	ValidFrom                     string   `json:"valid_from"`
@@ -363,7 +364,7 @@ func marshalMacOSCanonicalJSON(value any) ([]byte, error) {
 }
 
 func validateMacOSReleaseTrustRecord(record macOSReleaseTrustRecord, requirements macOSRoleTrustRequirements, rootKeyID string, now time.Time) error {
-	if record.SchemaVersion != macOSReleaseRecordSchema ||
+	if record.SchemaVersion != MacOSReleaseRecordSchemaVersion ||
 		record.Environment != macOSReleaseEnvironment || record.ExecutableRole != requirements.role ||
 		record.IdentityClass != macOSReleaseIdentityClass ||
 		record.SignatureAlgorithm != macOSReleaseSignatureAlgorithm ||
@@ -377,6 +378,7 @@ func validateMacOSReleaseTrustRecord(record macOSReleaseTrustRecord, requirement
 		!validMacOSProfileLeafSPKI(record.MacOSLeafSPKISHA256) ||
 		record.MacOSHardenedRuntimeRequired != true ||
 		record.MacOSNotarizationRequired != macOSProfileRequiresNotarization ||
+		record.MacOSArchitecture != MacOSRequiredArchitecture || !validLowerHex(record.MacOSEntitlementsSHA256, sha256.Size*2) ||
 		!validMacOSRequirement(record.MacOSDesignatedRequirement) || !validMacOSCDHash(record.MacOSCDHash) ||
 		!validLowerHex(record.ArtifactSHA256, sha256.Size*2) {
 		return fmt.Errorf("macOS release trust record fields do not match the fixed role policy")

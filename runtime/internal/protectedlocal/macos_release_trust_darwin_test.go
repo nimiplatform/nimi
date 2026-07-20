@@ -14,7 +14,7 @@ import (
 func macOSFixtureReleaseRecord(t *testing.T, private ed25519.PrivateKey, overrides map[string]any) []byte {
 	t.Helper()
 	value := map[string]any{
-		"schema_version":                   2,
+		"schema_version":                   3,
 		"environment":                      "production",
 		"identity_class":                   "developer_id_application",
 		"signature_algorithm":              "ed25519",
@@ -35,6 +35,8 @@ func macOSFixtureReleaseRecord(t *testing.T, private ed25519.PrivateKey, overrid
 		"macos_cdhash":                     strings.Repeat("22", 20),
 		"macos_hardened_runtime_required":  true,
 		"macos_notarization_required":      true,
+		"macos_architecture":              "arm64",
+		"macos_entitlements_sha256":       strings.Repeat("44", 32),
 		"linux_manifest_key_id":            "",
 		"os_service_principal":             "active_console_user",
 		"valid_from":                       "2026-07-01T00:00:00Z",

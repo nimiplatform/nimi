@@ -57,10 +57,16 @@ export async function inspectSignedMacOSCode(executable, expectedIdentifier, exp
     || !/^Timestamp=/mu.test(output)) {
     throw new Error(`signed macOS role ${expectedIdentifier} does not satisfy the production code policy`);
   }
+  const architectures = runReleaseCommand('/usr/bin/lipo', ['-archs', executable]).stdout.trim().split(/\s+/u);
+  if (architectures.length !== 1 || architectures[0] !== 'arm64') {
+    throw new Error(`signed macOS role ${expectedIdentifier} is not exact native arm64`);
+  }
   return Object.freeze({
+    architecture: 'arm64',
     artifactSha256: await sha256File(executable),
     cdhash,
     designatedRequirement,
+    entitlementsSHA256: macOSEntitlementsSHA256(executable),
     signingIdentifier,
     teamId,
   });
@@ -132,6 +138,23 @@ export function signMacOSReleaseRecord(payload, signerPath, rootKeyId, expectedT
     throw new Error('macOS release record signing service returned an invalid signature');
   }
   return signature;
+}
+
+function macOSEntitlementsSHA256(executable) {
+  const result = runReleaseCommand('/usr/bin/codesign', ['--display', '--entitlements', ':-', executable]);
+  const combined = `${result.stdout}\n${result.stderr}`;
+  const start = combined.indexOf('<?xml');
+  const xml = start >= 0 ? combined.slice(start) : result.stdout;
+  const parsed = spawnSync('/usr/bin/plutil', ['-convert', 'json', '-o', '-', '--', '-'], { encoding: 'utf8', input: xml });
+  if (parsed.error || parsed.status !== 0) throw new Error(`cannot inspect macOS role entitlements: ${path.basename(executable)}`);
+  const canonical = JSON.stringify(canonicalValue(JSON.parse(parsed.stdout || '{}')));
+  return createHash('sha256').update(canonical).digest('hex');
+}
+
+function canonicalValue(value) {
+  if (Array.isArray(value)) return value.map(canonicalValue);
+  if (value && typeof value === 'object') return Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonicalValue(value[key])]));
+  return value;
 }
 
 function auditMacOSEntitlements(appPath) {

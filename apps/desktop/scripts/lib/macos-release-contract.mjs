@@ -83,13 +83,15 @@ export function createMacOSReleaseTrustRecord(input) {
     macos_hardened_runtime_required: true,
     macos_leaf_spki_sha256: '',
     macos_notarization_required: true,
+    macos_architecture: exactArchitecture(input.codeIdentity?.architecture),
+    macos_entitlements_sha256: lowerHex(input.codeIdentity?.entitlementsSHA256, 64, 'entitlements sha256'),
     macos_team_id: exactTeamId(input.codeIdentity?.teamId),
     os_profile: 'macos',
     os_service_principal: role.servicePrincipal,
     protected_local_protocol_version: '1',
     release_id: releaseText(input.releaseId, 'release id'),
     root_key_id: releaseText(input.rootKeyId, 'root key id'),
-    schema_version: 2,
+    schema_version: 3,
     signature_algorithm: 'ed25519',
     signer_policy_id: 'nimi-production-release-signing-policy',
     trust_set_id: role.trustSetId,
@@ -168,6 +170,11 @@ function exactRFC3339Second(value, label) {
     fail(`${label} is not a real RFC3339 instant`);
   }
   return { date, text: value };
+}
+
+function exactArchitecture(value) {
+  if (value !== 'arm64') fail('macOS release architecture must be exact native arm64');
+  return value;
 }
 
 function exactRequirement(value) {

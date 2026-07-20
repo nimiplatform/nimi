@@ -24,12 +24,13 @@ import {
   verifySignedMacOSInstaller,
 } from './lib/macos-release-process.mjs';
 import { MACOS_LOCAL_DEVELOPMENT_PROFILE } from './generated/macos-local-development-profile.mjs';
+import { exactDevelopmentIdentities, finalizeMacOSLocalDevelopmentCandidate } from './lib/macos-local-development-release.mjs';
 
 const scriptRoot = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(scriptRoot, '..');
 const repoRoot = path.resolve(desktopRoot, '../..');
 const localRoot = path.join(repoRoot, '.nimi', 'local');
-const localDevelopmentSigningProfilePath = '/Library/Application Support/Nimi/RuntimeDev/dev-signing-profile.json';
+const localDevelopmentSigningProfilePath = path.join(process.env.HOME ?? '', '.nimi', 'macos-dev-signing', 'public-profile.json');
 const layoutOnly = process.argv.includes('--layout-only');
 const localDevelopment = process.argv.includes('--local-development-candidate');
 if (layoutOnly && localDevelopment) {
@@ -91,15 +92,7 @@ try {
     const applicationName = localDevelopment ? 'Nimi Dev.app' : 'Nimi.app';
     await runDittoCopy(desktopApp, path.join(candidateRoot, applicationName));
     if (localDevelopment) {
-      const runtimeTarget = path.join(candidateRoot, 'RuntimeDev', 'bin', 'nimi-runtime');
-      await mkdir(path.dirname(runtimeTarget), { recursive: true });
-      await cp(path.join(sourceRoot, 'nimi-runtime'), runtimeTarget, { force: false });
-      await chmod(runtimeTarget, 0o755);
-      await cp(
-        path.join(desktopRoot, 'macos', 'generated', 'ai.nimi.runtime.dev.plist'),
-        path.join(candidateRoot, 'ai.nimi.runtime.dev.plist'),
-        { force: false },
-      );
+      await finalizeMacOSLocalDevelopmentCandidate({ candidateRoot, trust: localDevelopmentTrust, sourceRoot, outputName });
     }
     await writeManifest(path.join(candidateRoot, 'layout-manifest.json'), {
       acceptanceEligible: false,
@@ -110,10 +103,10 @@ try {
         : undefined,
       electronVersion,
       launchDaemonSha256: localDevelopment
-        ? await sha256File(path.join(candidateRoot, 'ai.nimi.runtime.dev.plist'))
+        ? await sha256File(path.join(candidateRoot, 'launchd', 'ai.nimi.runtime.dev.plist'))
         : undefined,
       posture: localDevelopment
-        ? 'unsigned_local_development_candidate_requires_privileged_sign_install_transaction'
+        ? 'signed_local_development_candidate_pending_independent_verifier'
         : 'requirements_only_fail_closed_unsigned_unnotarized_layout',
       productionRoleRecords: false,
       releaseRootKeyId: localDevelopmentTrust?.rootKeyId,
@@ -127,7 +120,7 @@ try {
     process.stdout.write(`${JSON.stringify({
       outputRoot,
       posture: localDevelopment
-        ? 'unsigned_local_development_candidate_requires_privileged_sign_install_transaction'
+        ? 'signed_local_development_candidate_pending_independent_verifier'
         : 'requirements_only_fail_closed_unsigned_unnotarized_layout',
     })}\n`);
   } else {
@@ -542,7 +535,7 @@ async function readMacOSLocalDevelopmentPublicProfile() {
     if (error?.code === 'ENOENT') {
       throw structuredFailure(
         'dev-signing-profile-unprovisioned',
-        'run pnpm provision:macos-dev-trust after reviewing and confirming the privileged machine changes',
+        'run pnpm provision:macos-dev-signing after reviewing and confirming the user-domain changes',
         'The macOS local-development signing profile has not been provisioned.',
       );
     }
@@ -550,35 +543,31 @@ async function readMacOSLocalDevelopmentPublicProfile() {
   });
   const canonicalPath = await realpath(localDevelopmentSigningProfilePath);
   if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.nlink !== 1
-    || metadata.uid !== 0 || metadata.gid !== 0 || (metadata.mode & 0o777) !== 0o644
+    || metadata.uid !== process.getuid() || metadata.gid !== process.getgid() || (metadata.mode & 0o777) !== 0o600
     || canonicalPath !== localDevelopmentSigningProfilePath || metadata.size < 2 || metadata.size > 64 * 1024) {
     throw structuredFailure(
       'runtime-service-repair-required',
-      'reprovision the macOS local-development signing profile from the root-owned helper',
+      'reprovision the macOS local-development signing profile with the confirmed user-domain provisioner',
       'The installed macOS local-development signing profile has unsafe ownership, mode, link, path, or size metadata.',
     );
   }
   const value = JSON.parse(await readFile(localDevelopmentSigningProfilePath, 'utf8'));
-  if (value?.schemaVersion !== 'nimi.macos-local-development-signing-profile/v4'
-    || value.profileId !== 'macos_local_development_v1'
+  if (value?.schemaVersion !== MACOS_LOCAL_DEVELOPMENT_PROFILE.freshProfileSchemaVersion
+    || value.profileId !== MACOS_LOCAL_DEVELOPMENT_PROFILE.profileId
+    || value.carrier !== 4
     || value.environment !== MACOS_LOCAL_DEVELOPMENT_PROFILE.environment
     || value.identityClass !== MACOS_LOCAL_DEVELOPMENT_PROFILE.identityClass
     || value.signatureAlgorithm !== MACOS_LOCAL_DEVELOPMENT_PROFILE.signatureAlgorithm
-    || value.aclIdentityDigestAlgorithm !== 'sha256_opaque_sectrustedapplication_data'
-    || typeof value.helperACLIdentitySHA256 !== 'string'
-    || !/^[a-f0-9]{64}$/u.test(value.helperACLIdentitySHA256)
-    || typeof value.codesignACLIdentitySHA256 !== 'string'
-    || !/^[a-f0-9]{64}$/u.test(value.codesignACLIdentitySHA256)
-    || value.helperACLIdentitySHA256 === value.codesignACLIdentitySHA256
-    || value.rootPrivateKeyPersistence !== 'non_durable_destroyed_after_leaf_issuance'
-    || value.rolePrivateKeyCustody !== 'all_five_roles_root_owned_locked_system_domain_signing_keychain'
-    || value.systemKeychainPrivateKeyPolicy !== 'forbidden_zero_profile_private_keys'
-    || value.systemUnlockSecretMutationPolicy !== 'born_final_exact_final_helper_decrypt_delete_changeACL_partition_no_post_insert_mutation'
+    || value.teamId !== '' || value.notarized !== false
+    || value.keychainPath !== path.join(process.env.HOME ?? '', MACOS_LOCAL_DEVELOPMENT_PROFILE.signingKeychainRelativePath)
+    || typeof value.rootCertificateSHA256 !== 'string' || !/^[a-f0-9]{64}$/u.test(value.rootCertificateSHA256)
     || typeof value.rootKeyId !== 'string' || !/^[a-z0-9][a-z0-9._-]{7,127}$/u.test(value.rootKeyId)
-    || typeof value.rootPublicKeyB64URL !== 'string' || !/^[A-Za-z0-9_-]{100,180}$/u.test(value.rootPublicKeyB64URL)) {
+    || typeof value.rootPublicKeyB64URL !== 'string' || !/^[A-Za-z0-9_-]{100,180}$/u.test(value.rootPublicKeyB64URL)
+    || typeof value.profileSignature !== 'string' || !/^[A-Za-z0-9_-]{90,110}$/u.test(value.profileSignature)
+    || !exactDevelopmentIdentities(value.identities)) {
     throw structuredFailure(
       'runtime-service-repair-required',
-      'reprovision the macOS local-development signing profile from the root-owned helper',
+      'reprovision the macOS local-development signing profile with the confirmed user-domain provisioner',
       'The installed macOS local-development signing profile does not match the admitted schema and compile-time profile.',
     );
   }
@@ -603,6 +592,11 @@ async function readMacOSLocalDevelopmentPublicProfile() {
     );
   }
   return Object.freeze({
+    identities: value.identities,
+    keychainPath: value.keychainPath,
+    profilePath: localDevelopmentSigningProfilePath,
+    profileSignature: value.profileSignature,
+    rootCertificateSHA256: value.rootCertificateSHA256,
     rootKeyId: value.rootKeyId,
     rootPublicKeyB64URL: value.rootPublicKeyB64URL,
   });
