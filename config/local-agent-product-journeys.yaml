@@ -117,6 +117,7 @@ journeys:
       - {checkpoint_id: cross-account-hidden, prerequisite_ids: [], covered_leaf_ids: [S-05]}
 
   - journey_id: source-revision-no-rebase
+    execution_disposition: active_checkpoint
     applicable_layer: L3
     environment:
       type: targeted_runtime_integration
@@ -135,6 +136,7 @@ journeys:
       - {checkpoint_id: new-revision-isolated, prerequisite_ids: [old-agent-stays-pinned], covered_leaf_ids: [L-06]}
 
   - journey_id: destructive-termination
+    execution_disposition: active_checkpoint
     applicable_layer: L3
     environment:
       type: targeted_runtime_integration
@@ -154,6 +156,7 @@ journeys:
       - {checkpoint_id: delete-failure-rollback, prerequisite_ids: [], covered_leaf_ids: [L-07-03]}
 
   - journey_id: challenge-replay-concurrency
+    execution_disposition: active_checkpoint
     applicable_layer: L3
     environment:
       type: targeted_runtime_integration
@@ -176,6 +179,7 @@ journeys:
       - {checkpoint_id: abort-commit-single-winner, prerequisite_ids: [], covered_leaf_ids: [S-01-19]}
 
   - journey_id: crash-recovery
+    execution_disposition: active_checkpoint
     applicable_layer: L3
     environment:
       type: targeted_runtime_integration

@@ -385,12 +385,27 @@ function requireTrialDescendant(trialRoot, candidate, label) {
   if (!path.isAbsolute(String(candidate || ''))) {
     throw new Error(`dev-kernel-browser-auth-${label.replaceAll(' ', '-')}-invalid`);
   }
-  const resolved = path.resolve(candidate);
+  const resolved = canonicalPathThroughExistingAncestor(candidate);
   const relative = path.relative(trialRoot, resolved);
   if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
     throw new Error(`dev-kernel-browser-auth-${label.replaceAll(' ', '-')}-forbidden`);
   }
   return resolved;
+}
+
+function canonicalPathThroughExistingAncestor(value) {
+  let existing = path.resolve(value);
+  const missingSegments = [];
+  while (!fs.existsSync(existing)) {
+    const parent = path.dirname(existing);
+    if (parent === existing) break;
+    missingSegments.unshift(path.basename(existing));
+    existing = parent;
+  }
+  const canonicalExisting = fs.existsSync(existing)
+    ? fs.realpathSync.native(existing)
+    : existing;
+  return path.join(canonicalExisting, ...missingSegments);
 }
 
 function requireRoles(value) {

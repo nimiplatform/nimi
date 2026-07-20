@@ -6,7 +6,10 @@ import {
   exhaustiveRepeatByLeaf,
 } from '../tests/local-agent-product/contract/plan.mjs';
 import { readLocalAgentTestArchitecture, repoRoot } from '../tests/local-agent-product/harness/registry.mjs';
-import { validateArchitecture } from '../tests/local-agent-product/harness/validation.mjs';
+import {
+  summarizeArchitectureEvidence,
+  validateArchitecture,
+} from '../tests/local-agent-product/harness/validation.mjs';
 
 const architecture = readLocalAgentTestArchitecture();
 const failures = validateArchitecture(architecture);
@@ -60,9 +63,9 @@ for (const relative of [
 
 const packageJson = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
 const expectedScripts = {
-  'check:local-agent-product-coverage': 'node scripts/check-local-agent-product-coverage.mjs',
+  'check:local-agent-product-architecture': 'node scripts/check-local-agent-product-architecture.mjs',
   'test:local-agent-product-contract': 'node tests/local-agent-product/harness/run-gate.mjs --gate contract',
-  'test:e2e:local-agent-product:core': 'node tests/local-agent-product/harness/run-gate.mjs --gate core',
+  'test:e2e:local-agent-product:core': 'node tests/local-agent-product/harness/run-fresh-prepared-electron-journey.mjs tests/local-agent-product/harness/run-gate.mjs --gate core',
   'test:e2e:local-agent-product:core-stability': 'node tests/local-agent-product/harness/run-gate.mjs --gate core-stability',
   'test:e2e:local-agent-product:extended': 'node tests/local-agent-product/harness/run-gate.mjs --gate extended',
   'test:local-agent-product:exhaustive': 'node tests/local-agent-product/harness/run-gate.mjs --gate exhaustive',
@@ -84,12 +87,11 @@ for (const [name, command] of Object.entries(packageJson.scripts || {})) {
 }
 
 if (failures.length > 0) {
-  for (const failure of failures) process.stderr.write(`local-agent-product-coverage: ${failure}\n`);
+  for (const failure of failures) process.stderr.write(`local-agent-product-architecture: ${failure}\n`);
   process.exit(1);
 }
 const counts = architecture.points.minimum_layer_counts;
-const journeyCounts = Object.fromEntries(architecture.journeys.journeys.map((journey) => [
-  journey.journey_id,
-  new Set(journey.checkpoints.flatMap((checkpoint) => checkpoint.covered_leaf_ids || checkpoint.covered_point_ids || [])).size,
-]));
-process.stdout.write(`local-agent-product-coverage: OK (145 acceptance points + 24 behavior observation points; layers=${JSON.stringify(counts)}; journeys=${JSON.stringify(journeyCounts)})\n`);
+const evidence = summarizeArchitectureEvidence(architecture);
+process.stdout.write(
+  `local-agent-product-architecture: VALID (catalog=${evidence.cataloguedPointCount}; currentExecutableBindings=${evidence.currentExecutablePointBindingCount}; historicalOnlyBindings=${evidence.historicalMappingOnlyPointBindingCount}; fixedServiceCheckpoints=${evidence.activeFixedServiceCheckpointCount}; fixedServiceCatalogBindings=${evidence.activeFixedServiceCataloguedPointBindingCount}; currentPointCoverage=${evidence.currentPointCoverageStatus}; layers=${JSON.stringify(counts)})\n`,
+);

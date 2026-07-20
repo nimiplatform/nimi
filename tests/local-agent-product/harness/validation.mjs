@@ -106,7 +106,7 @@ export function validateArchitecture({ points: pointCatalog, journeys, policy, s
   const failures = [];
   if (pointCatalog?.schema_version !== 'nimi.local-agent-product-test-points/v3') failures.push('test point catalog schema_version must be v3');
   if (journeys?.schema_version !== 'nimi.local-agent-product-journeys/v2') failures.push('journey registry schema_version must be v2');
-  if (policy?.schema_version !== 'nimi.local-agent-product-execution-policy/v2') failures.push('execution policy schema_version must be v2');
+  if (policy?.schema_version !== 'nimi.local-agent-product-execution-policy/v3') failures.push('execution policy schema_version must be v3');
   if (scenarios?.schema_version !== 'nimi.local-agent-conversation-scenarios/v1') failures.push('conversation scenario registry schema_version must be v1');
 
   const points = array(pointCatalog?.points);
@@ -156,7 +156,8 @@ export function validateArchitecture({ points: pointCatalog, journeys, policy, s
     if (!id) { failures.push('journey row missing journey_id'); continue; }
     if (journeyById.has(id)) failures.push(`duplicate journey ${id}`);
     else journeyById.set(id, journey);
-    checkRequiredFields(failures, `journey ${id}`, journey, ['applicable_layer', 'environment', 'prerequisites', 'isolation_level', 'repeat_policy_ref', 'time_budget_ms', 'checkpoints']);
+    checkRequiredFields(failures, `journey ${id}`, journey, ['execution_disposition', 'applicable_layer', 'environment', 'prerequisites', 'isolation_level', 'repeat_policy_ref', 'time_budget_ms', 'checkpoints']);
+    if (!['active_checkpoint', 'historical_mapping_only'].includes(journey.execution_disposition)) failures.push(`${id} has invalid execution_disposition ${String(journey.execution_disposition)}`);
     if (!['L2', 'L3', 'L5'].includes(journey.applicable_layer)) failures.push(`${id} applicable_layer must be L2, L3, or L5`);
     if (!text(journey.isolation_level) || !text(journey.repeat_policy_ref)) failures.push(`${id} must declare isolation and repeat policy`);
     if (!Number.isInteger(journey.time_budget_ms) || journey.time_budget_ms <= 0) failures.push(`${id} time budget must be positive`);
@@ -287,7 +288,7 @@ export function validateArchitecture({ points: pointCatalog, journeys, policy, s
   ]) if (!forbiddenPaths.includes(forbiddenPath)) failures.push(`execution policy must forbid old runner/path ${forbiddenPath}`);
   if (policy?.i8_execution_in_i7 !== 'forbidden') failures.push('I8 execution in I7 must be forbidden');
   const expectedGateCommands = {
-    coverage: 'pnpm check:local-agent-product-coverage',
+    architecture: 'pnpm check:local-agent-product-architecture',
     contract: 'pnpm test:local-agent-product-contract',
     core: 'pnpm test:e2e:local-agent-product:core',
     core_stability: 'pnpm test:e2e:local-agent-product:core-stability',
@@ -323,6 +324,27 @@ export function validateArchitecture({ points: pointCatalog, journeys, policy, s
     'turn-media-recovery',
     'native-macos-input',
   ])) failures.push('historical full-chain/report/product mappings must be explicitly non-executable');
+  const evidence = summarizeArchitectureEvidence({ points: pointCatalog, journeys, policy, scenarios });
+  const expectedEvidencePosture = {
+    catalogued_point_count: evidence.cataloguedPointCount,
+    current_executable_point_binding_count: evidence.currentExecutablePointBindingCount,
+    historical_mapping_only_point_binding_count: evidence.historicalMappingOnlyPointBindingCount,
+    active_fixed_service_checkpoint_count: evidence.activeFixedServiceCheckpointCount,
+    active_fixed_service_catalogued_point_binding_count: evidence.activeFixedServiceCataloguedPointBindingCount,
+    historical_mappings_count_as_current_evidence: false,
+    catalog_membership_counts_as_current_evidence: false,
+    current_point_coverage_status: 'incomplete',
+  };
+  if (!same(policy?.current_evidence_posture, expectedEvidencePosture)) {
+    failures.push(`current evidence posture must distinguish executable bindings from historical mappings: expected ${JSON.stringify(expectedEvidencePosture)}`);
+  }
+  if (evidence.currentExecutablePointBindingCount !== 83
+    || evidence.historicalMappingOnlyPointBindingCount !== 86
+    || evidence.activeFixedServiceCheckpointCount !== 22
+    || evidence.activeFixedServiceCataloguedPointBindingCount !== 0
+    || evidence.unclassifiedPointBindingCount !== 0) {
+    failures.push(`current evidence accounting drifted: ${JSON.stringify(evidence)}`);
+  }
   if (!same(policy?.gates?.acceptance?.journeys, [
     'dev-kernel-core',
     'source-revision-no-rebase',
@@ -334,6 +356,37 @@ export function validateArchitecture({ points: pointCatalog, journeys, policy, s
   if (policy?.repeat_policies?.exhaustive?.full_environment_per_leaf !== false) failures.push('exhaustive policy must forbid full environment per leaf');
   if (array(scenarios?.scenarios).length !== 1 || scenarios.scenarios[0]?.scenario_id !== 'conversation-report-baseline' || array(scenarios.scenarios[0]?.streams).length !== 2 || Object.hasOwn(scenarios.scenarios[0]?.lifecycle_timeline || {}, 'turns')) failures.push('scenario registry must contain two LocalAgent streams and one non-conversation lifecycle timeline');
   return failures;
+}
+
+export function summarizeArchitectureEvidence({ points: pointCatalog, journeys }) {
+  const journeyRows = array(journeys?.journeys);
+  const journeyById = new Map(journeyRows.map((journey) => [journey.journey_id, journey]));
+  let currentExecutablePointBindingCount = 0;
+  let historicalMappingOnlyPointBindingCount = 0;
+  let unclassifiedPointBindingCount = 0;
+  for (const point of array(pointCatalog?.points)) {
+    const binding = point?.execution_binding;
+    if (binding?.suite_id === 'contract-smoke' && ['L0', 'L1'].includes(point?.minimum_sufficient_layer)) {
+      currentExecutablePointBindingCount += 1;
+      continue;
+    }
+    const disposition = journeyById.get(binding?.journey_id)?.execution_disposition;
+    if (disposition === 'active_checkpoint') currentExecutablePointBindingCount += 1;
+    else if (disposition === 'historical_mapping_only') historicalMappingOnlyPointBindingCount += 1;
+    else unclassifiedPointBindingCount += 1;
+  }
+  const fixedServiceJourney = journeyById.get('dev-kernel-core');
+  return {
+    cataloguedPointCount: array(pointCatalog?.points).length,
+    currentExecutablePointBindingCount,
+    historicalMappingOnlyPointBindingCount,
+    unclassifiedPointBindingCount,
+    activeFixedServiceCheckpointCount: array(fixedServiceJourney?.checkpoints).length,
+    activeFixedServiceCataloguedPointBindingCount: array(pointCatalog?.points).filter(
+      (point) => point?.execution_binding?.journey_id === 'dev-kernel-core',
+    ).length,
+    currentPointCoverageStatus: 'incomplete',
+  };
 }
 
 export function validateJourneyResult({ architecture, journey, result, expectedSourceState }) {

@@ -28,7 +28,7 @@ test('browser auth driver completes real-flow orchestration and returns only the
         assert.equal(authorization.callback.origin, 'http://127.0.0.1:49151');
         assert.equal(credential.email, 'primary@example.invalid');
         assert.equal(credential.password, PASSWORD);
-        assert.ok(profileRoot.startsWith(trialRoot));
+        assert.ok(profileRoot.startsWith(fs.realpathSync.native(trialRoot)));
         assert.equal(childEnvironment.SAFE_VALUE, 'retained');
         assert.equal('NIMI_DEV_KERNEL_PRIMARY_PASSWORD' in childEnvironment, false);
         return {
@@ -77,6 +77,25 @@ test('browser auth driver rejects authorization origin, path, and query mismatch
     () => requireCapturedAuthorizationUrl(AUTHORIZATION_URL.replace('49151', '49152')),
     /dev-kernel-browser-auth-callback-invalid/u,
   );
+});
+
+test('browser auth driver rejects a symlinked capture path that escapes the canonical trial root', {
+  skip: process.platform === 'win32',
+}, async () => {
+  await withTrial(async ({ trialRoot, diagnosticsRoot }) => {
+    const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-browser-auth-outside-'));
+    try {
+      fs.symlinkSync(outsideRoot, path.join(trialRoot, 'escaped-control'), 'dir');
+      assert.throws(() => createDriver({
+        trialRoot,
+        captureFile: path.join(trialRoot, 'escaped-control', 'browser-auth.capture'),
+        diagnosticsRoot,
+      }), /dev-kernel-browser-auth-capture-file-forbidden/u);
+    } finally {
+      fs.unlinkSync(path.join(trialRoot, 'escaped-control'));
+      fs.rmSync(outsideRoot, { recursive: true, force: true });
+    }
+  });
 });
 
 test('browser auth driver admits Runtime-generated opaque presence purposes', () => {

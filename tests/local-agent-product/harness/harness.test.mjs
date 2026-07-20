@@ -30,7 +30,12 @@ import {
 } from './dev-kernel-local-development-driver.mjs';
 import { resolvePortableProcessInvocation } from './process-command.mjs';
 import { readLocalAgentTestArchitecture } from './registry.mjs';
-import { validateArchitecture, validateJourneyRepeatIsolation, validateJourneyResult } from './validation.mjs';
+import {
+  summarizeArchitectureEvidence,
+  validateArchitecture,
+  validateJourneyRepeatIsolation,
+  validateJourneyResult,
+} from './validation.mjs';
 
 const clone = (value) => structuredClone(value);
 const devKernelCrossAppDriverSource = [
@@ -389,6 +394,23 @@ test('architecture rejects reactivating historical direct-daemon mappings', () =
   mutated.policy.gates.core.journeys = [{ journey_id: 'full-chain-core', repeats: 1 }];
   mutated.policy.gates.acceptance.journeys.push('full-chain-core');
   expectFailure(validateArchitecture(mutated), /non-executable|historical|direct-daemon|core gates/i);
+});
+
+test('architecture evidence accounting never promotes historical mappings into current coverage', () => {
+  const architecture = validArchitecture();
+  assert.deepEqual(summarizeArchitectureEvidence(architecture), {
+    cataloguedPointCount: 169,
+    currentExecutablePointBindingCount: 83,
+    historicalMappingOnlyPointBindingCount: 86,
+    unclassifiedPointBindingCount: 0,
+    activeFixedServiceCheckpointCount: 22,
+    activeFixedServiceCataloguedPointBindingCount: 0,
+    currentPointCoverageStatus: 'incomplete',
+  });
+  const mutated = clone(architecture);
+  mutated.policy.current_evidence_posture.historical_mapping_only_point_binding_count = 0;
+  mutated.policy.current_evidence_posture.current_executable_point_binding_count = 169;
+  expectFailure(validateArchitecture(mutated), /current evidence posture/i);
 });
 
 test('process-mismatch checkpoint distinguishes stale supervised and raw uncarried denial', () => {

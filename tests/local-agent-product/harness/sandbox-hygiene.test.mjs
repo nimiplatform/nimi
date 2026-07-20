@@ -129,7 +129,8 @@ test('writeHarnessOwnerMarker binds owner identity to root hash and candidate', 
   assert.equal(marker.schemaVersion, 'nimi.local-agent-harness-owner/v2');
   assert.equal(marker.pid, process.pid);
   assert.equal(marker.candidateId, candidateId);
-  assert.equal(marker.trialRoot, process.platform === 'win32' ? path.resolve(root).toLowerCase() : path.resolve(root));
+  const canonicalRoot = fs.realpathSync.native(root);
+  assert.equal(marker.trialRoot, process.platform === 'win32' ? canonicalRoot.toLowerCase() : canonicalRoot);
   assert.match(marker.trialRootHash, /^[a-f0-9]{64}$/u);
   assert.ok(marker.creationTime);
   assert.ok(marker.executablePath);

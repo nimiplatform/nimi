@@ -59,7 +59,7 @@ jobs:
 
       - name: Run deterministic architecture and exhaustive gates
         run: |
-          pnpm check:local-agent-product-coverage
+          pnpm check:local-agent-product-architecture
           pnpm test:local-agent-conversation-report-contract
           pnpm test:local-agent-product-contract
           pnpm test:local-agent-product:exhaustive
