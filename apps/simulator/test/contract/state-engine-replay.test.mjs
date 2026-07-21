@@ -17,7 +17,7 @@ function registrations() {
 const STREAM_METHOD = Object.freeze({
   methodId: 'fixture-stream',
   ownerModuleId: 'fixture-module',
-  sourceEventType: 'fixture-module/counter-changed',
+  sourceEventType: 'fixture-module.counter.changed',
   terminalEventType: null,
   itemSchema: { kind: 'object', properties: { value: { kind: 'integer' } } },
   terminalSchema: { kind: 'json' },

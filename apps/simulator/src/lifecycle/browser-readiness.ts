@@ -224,11 +224,28 @@ export interface SimulatorBrowserReadinessOptions {
 }
 
 export function createBrowserReadinessPort(options: SimulatorBrowserReadinessOptions): SimulatorReadinessBrowserPort {
-  const windows = new Map<string, { readonly signal: AbortSignal; readonly abort: () => void }>();
+  interface PaintWindow {
+    readonly signal: AbortSignal;
+    readonly renderer: HTMLElement;
+    readonly priorFilter: string;
+    readonly priorFilterPriority: string;
+    readonly abort: () => void;
+    probeApplied: boolean;
+  }
+
+  const windows = new Map<string, PaintWindow>();
 
   function releaseWindow(token: string): void {
     const active = windows.get(token);
     if (!active) return;
+    if (active.probeApplied) {
+      if (active.priorFilter) {
+        active.renderer.style.setProperty('filter', active.priorFilter, active.priorFilterPriority);
+      } else {
+        active.renderer.style.removeProperty('filter');
+      }
+      active.probeApplied = false;
+    }
     active.signal.removeEventListener('abort', active.abort);
     windows.delete(token);
   }
@@ -252,6 +269,8 @@ export function createBrowserReadinessPort(options: SimulatorBrowserReadinessOpt
     },
     async beginPaintComposite(input) {
       if (!options.paintCompositeEvidence || input.signal.aborted) return null;
+      const roots = options.roots.get(input.instanceId, input.surfaceId);
+      if (!roots) return null;
       const token = await options.paintCompositeEvidence.begin({
         instanceId: input.instanceId,
         surfaceId: input.surfaceId,
@@ -272,12 +291,29 @@ export function createBrowserReadinessPort(options: SimulatorBrowserReadinessOpt
           secondFrame: null,
         });
       };
-      windows.set(token, { signal: input.signal, abort });
+      windows.set(token, {
+        signal: input.signal,
+        renderer: roots.renderer,
+        priorFilter: roots.renderer.style.getPropertyValue('filter'),
+        priorFilterPriority: roots.renderer.style.getPropertyPriority('filter'),
+        abort,
+        probeApplied: false,
+      });
       input.signal.addEventListener('abort', abort, { once: true });
       return token;
     },
     async markPaintCompositeFrame(input) {
       if (!options.paintCompositeEvidence || input.signal.aborted || !windows.has(input.observationToken)) return false;
+      if (input.ordinal === 'first') {
+        const active = windows.get(input.observationToken);
+        if (!active || active.probeApplied) return false;
+        // The App commit may already have painted before the runner-owned first
+        // marker crosses the CDP boundary. This one-frame filter makes the
+        // assigned renderer itself require a real composite without overriding
+        // an App-owned opacity-hidden state; releaseWindow restores exact styling.
+        active.renderer.style.setProperty('filter', 'opacity(0.999999)', 'important');
+        active.probeApplied = true;
+      }
       return options.paintCompositeEvidence.mark({
         observationToken: input.observationToken,
         ordinal: input.ordinal,

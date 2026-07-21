@@ -1,24 +1,14 @@
 import {
   AgentCenter,
-  createAgentCenterShellAppearanceAdapter,
   type AgentCenterAppearanceAdapter,
   type AgentCenterAppearanceCopy,
   type AgentCenterAppearanceProjection,
   type AgentCenterBehaviorCopy,
   type AgentCenterCopy,
-  type AgentCenterRuntimeAutonomyConfigInput,
   type AgentCenterRuntimeAdapter,
-  type AgentCenterRuntimeAIConfigUpsertInput,
   type AgentCenterSectionId,
   type AgentCenterStateInput,
 } from '@nimiplatform/kit/features/agent-center';
-import type {
-  RuntimeLocalAgentIdentityInput,
-} from '@nimiplatform/kit/core/sdk-contract';
-import {
-  createAgentCenterShellBridge,
-  hasElectronRuntime,
-} from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   AppCardSurface,
   IconToggleAction,
@@ -27,26 +17,11 @@ import { Globe2, X } from 'lucide-react';
 import { useMemo } from 'react';
 import type { ZhiyuEvidence } from '../app/evidence';
 import {
-  createZhiyuAgentInspectSurface,
-  createZhiyuAgentPresentationProfileSurface,
-  getZhiyuAgentAIConfig,
-  getZhiyuAgentAIConfigReadiness,
-  subscribeZhiyuAgentAIConfigReadiness,
-  upsertZhiyuAgentAIConfig,
-  type ZhiyuAgentAIConfigCallInput,
-  type ZhiyuAgentRuntimeScopedBindingIdentity,
-} from './agent-ai-config';
-import {
-  zhiyuAgentAIConfigIdentityFromRouteInput,
-  zhiyuAgentAIConfigRouteInputFromEvidence,
-} from '../app/agent-ai-config-route-input';
-import {
   agentCenterHeaderStateLabel,
   agentCenterWorldLabel,
   chatBlockedHint,
   partnerInitial,
 } from './ZhiyuAgentChatLabels';
-import { getZhiyuRouteModelPickerProvider } from './zhiyu-route-model-picker-provider';
 
 export type RightPanelMode = 'agent' | 'closed';
 export type VisibleRightPanelMode = Exclude<RightPanelMode, 'closed'>;
@@ -61,6 +36,8 @@ type RightAgentPanelProps = {
   readonly onClose: () => void;
   readonly onOpenModelConfig: () => void;
   readonly onAvatarLaunch?: () => void;
+  readonly appearanceAdapter: AgentCenterAppearanceAdapter;
+  readonly runtimeAdapter: AgentCenterRuntimeAdapter | null;
 };
 
 const ZHIYU_AGENT_CENTER_APPEARANCE_COPY: AgentCenterAppearanceCopy = {
@@ -352,24 +329,6 @@ const ZHIYU_AGENT_CENTER_COPY: AgentCenterCopy = {
 
 export function RightAgentPanel(props: RightAgentPanelProps) {
   const agentCenterWorld = agentCenterWorldLabel(props.evidence);
-  const appearanceAdapter = useMemo(
-    () => buildZhiyuAgentCenterAppearanceAdapter(props.evidence),
-    [
-      props.evidence.auth.accountId,
-      props.evidence.auth.ready,
-      props.evidence.avatar.backendKind,
-      props.evidence.avatar.message,
-      props.evidence.conversation.conversationAnchorId,
-      props.evidence.conversation.localAgentRef,
-      props.evidence.conversation.ownerUserId,
-      props.evidence.conversation.runtimeSourceRef,
-      props.evidence.localAgent.localAgentRef,
-      props.evidence.localAgent.ownerUserId,
-      props.evidence.localAgent.runtimeSourceRef,
-      props.evidence.source.ownerUserId,
-      props.evidence.source.runtimeSourceRef,
-    ],
-  );
   const runtimeState = props.evidence.runtime.ready
     ? 'ready'
     : props.evidence.runtime.reasonCode === 'not-probed'
@@ -398,10 +357,6 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
     props.evidence.runtime.ready,
     props.evidence.runtime.reasonCode,
   ]);
-  const runtimeAdapter = useMemo(
-    () => buildZhiyuAgentCenterRuntimeAdapter(props.evidence),
-    [props.evidence],
-  );
 
   return (
     <aside
@@ -511,234 +466,12 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
               openRuntimeSettings: props.onOpenModelConfig,
               launchAvatar: props.onAvatarLaunch,
             }}
-            appearanceAdapter={appearanceAdapter}
-            runtimeAdapter={runtimeAdapter}
+            appearanceAdapter={props.appearanceAdapter}
+            runtimeAdapter={props.runtimeAdapter}
             state={state}
           />
         </div>
       </AppCardSurface>
     </aside>
   );
-}
-
-function buildZhiyuAgentCenterAppearanceAdapter(
-  evidence: ZhiyuEvidence,
-): AgentCenterAppearanceAdapter {
-  const routeInput = zhiyuAgentAIConfigRouteInputFromEvidence(evidence);
-  const subjectUserId = routeInput.subjectUserId.trim();
-  const identity = zhiyuAgentAIConfigIdentityFromRouteInput(routeInput);
-  if (!subjectUserId || !identity) {
-    return createUnavailableZhiyuAgentCenterAppearanceAdapter(
-      evidence,
-      !subjectUserId
-        ? 'zhiyu-agent-center-runtime-subject-required'
-        : 'zhiyu-agent-center-runtime-identity-required',
-    );
-  }
-  if (!hasElectronRuntime()) {
-    return createUnavailableZhiyuAgentCenterAppearanceAdapter(
-      evidence,
-      'zhiyu-agent-center-runtime-bridge-unavailable',
-    );
-  }
-  const scopedBindingIdentity = zhiyuAgentCenterScopedBindingIdentity(identity, evidence);
-  const inspect = createZhiyuAgentInspectSurface(subjectUserId, scopedBindingIdentity);
-  return createAgentCenterShellAppearanceAdapter({
-    identity,
-    accountId: subjectUserId,
-    runtimePresentation: createZhiyuAgentPresentationProfileSurface(subjectUserId, scopedBindingIdentity),
-    shell: createAgentCenterShellBridge(),
-    avatarPreview: null,
-    loadSnapshot: async () => ({
-      inspect: await inspect.getPublicInspect(identity),
-    }),
-  });
-}
-
-function createUnavailableZhiyuAgentCenterAppearanceAdapter(
-  evidence: ZhiyuEvidence,
-  reason: string,
-): AgentCenterAppearanceAdapter {
-  const projection: AgentCenterAppearanceProjection = {
-    status: 'not_configured',
-    backendKind: evidence.avatar.backendKind || null,
-    avatarAssetRef: null,
-    avatarAssetValid: false,
-    avatarAssetChecking: false,
-    validationStatus: 'selection_missing',
-    validationMessage: evidence.avatar.message || null,
-    validationIssueRows: [],
-    backendCapabilityProfileRef: null,
-    backgroundRef: null,
-    backgroundValid: false,
-    backgroundChecking: false,
-    backgroundValidationStatus: 'selection_missing',
-    backgroundValidationMessage: null,
-    previewState: null,
-    previewTier: null,
-    previewArtifactRef: null,
-    previewImageRef: null,
-    previewFailureReason: null,
-    previewWarnings: [],
-    defaultVoiceReference: null,
-    avatarAutoplay: false,
-    avatarImportDisabled: true,
-    backgroundImportDisabled: true,
-    disabledReason: reason,
-  };
-  return {
-    async load() {
-      return projection;
-    },
-  };
-}
-
-function buildZhiyuAgentCenterRuntimeAdapter(evidence: ZhiyuEvidence): AgentCenterRuntimeAdapter | null {
-  const routeInput = zhiyuAgentAIConfigRouteInputFromEvidence(evidence);
-  const subjectUserId = routeInput.subjectUserId.trim();
-  const identity = zhiyuAgentAIConfigIdentityFromRouteInput(routeInput);
-  if (!subjectUserId || !identity) {
-    return null;
-  }
-  const callInput: ZhiyuAgentAIConfigCallInput = {
-    subjectUserId,
-    ...identity,
-  };
-  const scopedBindingIdentity = zhiyuAgentCenterScopedBindingIdentity(identity, evidence);
-  const upsertWithIdentity = (input: AgentCenterRuntimeAIConfigUpsertInput) =>
-    upsertZhiyuAgentAIConfig({
-      ...resolveZhiyuAgentCenterMutationIdentity(callInput, input),
-      subjectUserId,
-      expectedRevision: input.expectedRevision,
-      intents: input.intents,
-    });
-  const inspect = createZhiyuAgentInspectSurface(
-    subjectUserId,
-    scopedBindingIdentity,
-  );
-
-  return {
-    inspect,
-    agentAIConfig: {
-      get(input = callInput) {
-        return getZhiyuAgentAIConfig({
-          ...resolveZhiyuAgentCenterCallIdentity(callInput, input),
-          subjectUserId: input.subjectUserId || subjectUserId,
-        });
-      },
-      readiness(input = callInput) {
-        return getZhiyuAgentAIConfigReadiness({
-          ...resolveZhiyuAgentCenterCallIdentity(callInput, input),
-          subjectUserId: input.subjectUserId || subjectUserId,
-        });
-      },
-      subscribeReadiness(input = callInput) {
-        return subscribeZhiyuAgentAIConfigReadiness({
-          ...resolveZhiyuAgentCenterCallIdentity(callInput, input),
-          subjectUserId: input.subjectUserId || subjectUserId,
-        });
-      },
-      upsert(input) {
-        return upsertZhiyuAgentAIConfig({
-          ...resolveZhiyuAgentCenterCallIdentity(callInput, input),
-          subjectUserId: input.subjectUserId || subjectUserId,
-          expectedRevision: input.expectedRevision,
-          intents: input.intents,
-        });
-      },
-    },
-    modelConfig: {
-      providerResolver: getZhiyuRouteModelPickerProvider,
-    },
-    async loadSnapshot() {
-      const [agentAIConfig, readiness, publicInspect] = await Promise.all([
-        getZhiyuAgentAIConfig(callInput),
-        getZhiyuAgentAIConfigReadiness(callInput),
-        inspect.getPublicInspect(identity),
-      ]);
-      return {
-        agentAIConfig,
-        readiness,
-        inspect: publicInspect,
-        sourceContextStatus: evidence.source.sourceContextStatus,
-        turnContextSummary: evidence.source.turnContextSummary,
-      };
-    },
-    upsertAgentAIConfig: upsertWithIdentity,
-    async setAutonomyConfig(input) {
-      const identityInput = resolveZhiyuAgentCenterAutonomyIdentity(callInput, input);
-      const mode = input.enabled === false ? 'off' : input.mode;
-      const snapshot = await inspect.setAutonomyConfig({
-        ...identityInput,
-        mode,
-        dailyTokenBudget: input.dailyTokenBudget,
-        maxTokensPerHook: input.maxTokensPerHook,
-      });
-      if (input.enabled !== true || mode === 'off' || snapshot.enabled === true) {
-        return snapshot;
-      }
-      return inspect.enableAutonomy(identityInput);
-    },
-  };
-}
-
-function zhiyuAgentCenterScopedBindingIdentity(
-  identity: RuntimeLocalAgentIdentityInput,
-  evidence: ZhiyuEvidence,
-): ZhiyuAgentRuntimeScopedBindingIdentity | null {
-  const ownerUserId = typeof identity.ownerUserId === 'string' ? identity.ownerUserId.trim() : '';
-  const runtimeSourceRef = typeof identity.runtimeSourceRef === 'string' ? identity.runtimeSourceRef.trim() : '';
-  const localAgentRef = typeof identity.localAgentRef === 'string' ? identity.localAgentRef.trim() : '';
-  const conversationAnchorId = evidence.conversation.conversationAnchorId?.trim() || '';
-  if (!ownerUserId || !runtimeSourceRef || !localAgentRef || !conversationAnchorId) {
-    return null;
-  }
-  return {
-    ownerUserId,
-    runtimeSourceRef,
-    localAgentRef,
-    conversationAnchorId,
-  };
-}
-
-function resolveZhiyuAgentCenterMutationIdentity(
-  base: ZhiyuAgentAIConfigCallInput,
-  input: AgentCenterRuntimeAIConfigUpsertInput,
-): RuntimeLocalAgentIdentityInput {
-  if (input.ownerUserId && input.runtimeSourceRef && input.localAgentRef) {
-    return {
-      ownerUserId: input.ownerUserId,
-      runtimeSourceRef: input.runtimeSourceRef,
-      localAgentRef: input.localAgentRef,
-      ...(input.scopedBinding ? { scopedBinding: input.scopedBinding } : {}),
-    };
-  }
-  return resolveZhiyuAgentCenterCallIdentity(base, base);
-}
-
-function resolveZhiyuAgentCenterAutonomyIdentity(
-  base: ZhiyuAgentAIConfigCallInput,
-  input: AgentCenterRuntimeAutonomyConfigInput,
-): RuntimeLocalAgentIdentityInput {
-  if (input.ownerUserId && input.runtimeSourceRef && input.localAgentRef) {
-    return {
-      ownerUserId: input.ownerUserId,
-      runtimeSourceRef: input.runtimeSourceRef,
-      localAgentRef: input.localAgentRef,
-      ...(input.scopedBinding ? { scopedBinding: input.scopedBinding } : {}),
-    };
-  }
-  return resolveZhiyuAgentCenterCallIdentity(base, base);
-}
-
-function resolveZhiyuAgentCenterCallIdentity(
-  base: ZhiyuAgentAIConfigCallInput,
-  input: Partial<RuntimeLocalAgentIdentityInput>,
-): RuntimeLocalAgentIdentityInput {
-  return {
-    ownerUserId: input.ownerUserId || base.ownerUserId,
-    runtimeSourceRef: input.runtimeSourceRef || base.runtimeSourceRef,
-    localAgentRef: input.localAgentRef || base.localAgentRef,
-    ...(input.scopedBinding || base.scopedBinding ? { scopedBinding: input.scopedBinding || base.scopedBinding } : {}),
-  };
 }

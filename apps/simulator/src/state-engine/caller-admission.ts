@@ -177,11 +177,10 @@ export function isOwnDeclaredEvent(
   moduleId: string,
   fullEventType: string,
 ): boolean {
-  const prefix = `${moduleId}/`;
+  const prefix = `${moduleId}.`;
   if (!fullEventType.startsWith(prefix)) return false;
-  const eventType = fullEventType.slice(prefix.length);
-  return eventType.length > 0
-    && Object.hasOwn(context.moduleCatalogs.get(moduleId)?.eventSchemas ?? {}, eventType);
+  return fullEventType.length > prefix.length
+    && Object.hasOwn(context.moduleCatalogs.get(moduleId)?.eventSchemas ?? {}, fullEventType);
 }
 
 export function adapterCommandAdmissionError(

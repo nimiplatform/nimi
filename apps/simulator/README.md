@@ -49,18 +49,18 @@ stripping in the contract suite.
   into the State Engine. It proves a visible text action, two-instance
   isolation, lifecycle/reset, and cleanup under JSDOM.
 
-These are separate evidence segments. They do not yet prove that a selected
-generated-registry artifact boots and completes the same interaction.
+The product-acceptance qualifier closes these segments over the built artifact
+in pinned Chromium. It proves the selected Tester and Zhiyu canonical
+renderers, two instances of each module, visible deterministic interactions,
+isolation, reset, cleanup, replay, and browser Paint/Composite evidence.
 
 ## Current admission boundary
 
-The tracked product configuration is an explicit empty selection. A non-empty
-product artifact is not admitted yet: the Simulator still lacks a
-source-bound scenario artifact, a product launch/open path, an artifact
-execution harness, and immutable real-browser Paint/Composite evidence.
-`P-SIM-014` requires that browser evidence, so JSDOM readiness cannot promote
-the Tester branch to the integrated H2 checkpoint. CP4 remains red/incomplete
-until those four blockers close through preflighted implementation.
+The tracked product configuration selects immutable Tester and Zhiyu source
+objects and binds them to one source-bound Scenario. That exact two-module
+graph is the current admission boundary. Desktop, external-repository source,
+three-App cross-App behavior, release performance ceilings, deployment, and
+hostile-code isolation are not implied by this evidence.
 
 ```bash
 pnpm check:simulator-selected-sources
@@ -69,6 +69,7 @@ pnpm --filter @nimiplatform/simulator test          # I1 build-control suite
 pnpm test:simulator-contract                         # core + source-wired Tester contracts
 pnpm build:simulator
 pnpm check:simulator-reproducible-build
+pnpm check:simulator-cp5-z
 ```
 
 App rows are generated only from `config/simulator/selected-sources/*.yaml`.

@@ -906,7 +906,7 @@ test('instance invalidation cancels owned streams before abort and forbids post-
   harness.engine.registerStreamMethod({
     methodId: 'fixture-stream',
     ownerModuleId: 'fixture-module',
-    sourceEventType: 'fixture-module/counter-changed',
+    sourceEventType: 'fixture-module.counter.changed',
     terminalEventType: null,
     itemSchema: { kind: 'object', properties: { value: { kind: 'integer' } } },
     terminalSchema: { kind: 'json' },
@@ -1025,13 +1025,13 @@ test('event handlers register only during prepare and fire in subscription order
   const adapter = makeAdapter({
     prepare: (context) => {
       captured = context;
-      context.events.subscribe('fixture-module/counter-changed', (payload) => fired.push(['first', payload.value]));
-      context.events.subscribe('fixture-module/counter-changed', (payload) => fired.push(['second', payload.value]));
+      context.events.subscribe('fixture-module.counter.changed', (payload) => fired.push(['first', payload.value]));
+      context.events.subscribe('fixture-module.counter.changed', (payload) => fired.push(['second', payload.value]));
       return fixtureCanonicalBindings();
     },
   });
   const instanceId = await openReady(harness, { adapter });
-  const late = captured.events.subscribe('fixture-module/counter-changed', () => {});
+  const late = captured.events.subscribe('fixture-module.counter.changed', () => {});
   assert.equal(late.ok, false);
   assert.equal(late.error.code, 'SIMULATOR_INVALID_LIFECYCLE');
 
@@ -1044,10 +1044,10 @@ test('an event handler throw fails the instance and skips its remaining handlers
   const fired = [];
   const adapter = makeAdapter({
     prepare: (context) => {
-      context.events.subscribe('fixture-module/counter-changed', () => {
+      context.events.subscribe('fixture-module.counter.changed', () => {
         throw new Error('handler fault');
       });
-      context.events.subscribe('fixture-module/counter-changed', () => fired.push('after-throw'));
+      context.events.subscribe('fixture-module.counter.changed', () => fired.push('after-throw'));
       return fixtureCanonicalBindings();
     },
   });

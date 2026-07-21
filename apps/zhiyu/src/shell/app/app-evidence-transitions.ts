@@ -5,7 +5,7 @@ import type {
   ZhiyuEvidence,
   ZhiyuRuntimeAgentChatStatus,
 } from './evidence';
-import { runZhiyuAgentChatTurn } from '../agent-chat/runtime-agent-turn-adapter';
+import type { runZhiyuAgentChatTurn } from '../agent-chat/runtime-agent-turn-adapter';
 
 export function chatStatusFromSubmitRefreshFailure({
   current,
@@ -55,6 +55,7 @@ export function appendSubmittedUserMessage(
   conversation: ZhiyuEvidence['conversation'],
   requestId: string,
   text: string,
+  createdAt: string,
 ): ZhiyuRuntimeAgentChatStatus {
   return ensureSubmittedUserMessageInChat({
     ...current,
@@ -63,7 +64,7 @@ export function appendSubmittedUserMessage(
     localAgentRef: conversation.localAgentRef ?? current.localAgentRef,
     conversationAnchorId: conversation.conversationAnchorId ?? current.conversationAnchorId,
     requestId,
-  }, conversation, requestId, text);
+  }, conversation, requestId, text, createdAt);
 }
 
 export function ensureSubmittedUserMessageInChat(
@@ -71,6 +72,7 @@ export function ensureSubmittedUserMessageInChat(
   conversation: ZhiyuEvidence['conversation'],
   requestId: string | null,
   text: string,
+  createdAt: string,
 ): ZhiyuRuntimeAgentChatStatus {
   const turnId = requestId?.trim();
   if (!turnId || !conversation.conversationAnchorId || !conversation.localAgentRef || !text.trim()) {
@@ -88,7 +90,7 @@ export function ensureSubmittedUserMessageInChat(
     conversation,
     requestId: turnId,
     text,
-    createdAt: new Date().toISOString(),
+    createdAt,
   });
   const insertBeforeAssistantIndex = status.messages.findIndex((message) =>
     conversationMessageTurnId(message) === turnId
@@ -170,13 +172,6 @@ export function chatStatusFromResult(
   };
 }
 
-export function createZhiyuTurnRequestId(): string {
-  const randomId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  return `zhiyu-turn-${randomId}`;
-}
-
 export function mergeChatTranscript(
   current: ZhiyuRuntimeAgentChatStatus,
   incoming: ZhiyuRuntimeAgentChatStatus,
@@ -223,8 +218,8 @@ export function turnStatusFromChat(chat: ZhiyuRuntimeAgentChatStatus): ZhiyuEvid
 
 export function cancelStreamingChatMessages(
   messages: RuntimeAgentConversationProjectionState['messages'],
+  canceledAt: string,
 ): RuntimeAgentConversationProjectionState['messages'] {
-  const canceledAt = new Date().toISOString();
   return messages.map((message) => {
     if (message.status !== 'streaming' && message.kind !== 'streaming') {
       return message;

@@ -39,7 +39,10 @@ import {
   canonicalRelative,
   reachable,
   resolveRelativeImport,
+  isSimulatorStaticAssetPath,
 } from './simulator-conformance-graph.mjs';
+
+export { isSimulatorStaticAssetPath } from './simulator-conformance-graph.mjs';
 import { SIMULATOR_EFFECT_POLICY } from './simulator-effect-policy.generated.mjs';
 import { assertInvocationUsesCanonicalFactory } from './simulator-factory-use.mjs';
 

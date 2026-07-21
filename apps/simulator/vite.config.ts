@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { createSimulatorCssProfileVitePlugin } from '@nimiplatform/app-tools/simulator-css-profile';
+import { isSimulatorStaticAssetPath } from '@nimiplatform/app-tools/simulator-conformance';
 import { defineConfig, type Plugin } from 'vite';
 import { createSelectedDependencyQualifier } from './build/dependency-qualification.mjs';
 import { createMaterializedIntegrityVerifier } from './build/materialized-integrity.mjs';
@@ -139,6 +140,7 @@ function selectedSourcePlugin(): Plugin {
       return null;
     },
     transform(code, id) {
+      if (isSimulatorStaticAssetPath(id.split(/[?#]/u, 1)[0])) return null;
       materializedIntegrity.verifyTransform(code, id);
       dependencyQualifier.validateTransform(code, id);
       return null;
@@ -210,6 +212,21 @@ export default defineConfig(() => {
     ],
     resolve: {
       dedupe: resolver.packages.map((row) => row.name),
+    },
+    // Selected sources are immutable standalone trees. Their repository-local
+    // tsconfig inheritance is neither materialized nor allowed to influence
+    // the final Simulator transform.
+    esbuild: {
+      tsconfigRaw: JSON.stringify({
+        compilerOptions: {
+          target: 'ES2022',
+          module: 'ESNext',
+          moduleResolution: 'Bundler',
+          jsx: 'react-jsx',
+          useDefineForClassFields: true,
+          verbatimModuleSyntax: true,
+        },
+      }),
     },
     build: {
       outDir: path.join(simulatorRoot, 'dist'),

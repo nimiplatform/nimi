@@ -69,6 +69,7 @@ test('Agent Center UI classes do not use the retired home agent namespace', () =
   const agentCenterSource = [
     read('src/shell/agent-chat/ZhiyuAgentRightPanel.tsx'),
     read('src/shell/agent-chat/ZhiyuAgentChatPieces.tsx'),
+    read('src/production/agent-center-adapters.ts'),
     read('src/shell/app/home-surface.css'),
   ].join('\n');
 
@@ -79,7 +80,7 @@ test('Agent Center UI classes do not use the retired home agent namespace', () =
   );
   assert.doesNotMatch(agentCenterSource, /zhiyu-agent-center__(section|status|setup-hero|panel-row|kv-row)/);
   assert.match(agentCenterSource, /@nimiplatform\/kit\/features\/agent-center/);
-  assert.match(agentCenterSource, /appearanceAdapter=\{appearanceAdapter\}/);
+  assert.match(agentCenterSource, /appearanceAdapter=\{props\.appearanceAdapter\}/);
   assert.match(agentCenterSource, /createAgentCenterShellAppearanceAdapter/);
 });
 

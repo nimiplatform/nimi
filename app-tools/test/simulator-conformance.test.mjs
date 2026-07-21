@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import {
   computeSourceDigestV1,
+  isSimulatorStaticAssetPath,
   parseSimulatorManifest,
   validateSimulatorAppSource,
 } from '../lib/simulator-conformance.mjs';
@@ -113,6 +114,8 @@ export type HiddenType = typeof value;
 }));
 
 test('canonical closure admits source-bound PNG imports without parsing binary bytes as code', () => withFixture((root) => {
+  assert.equal(isSimulatorStaticAssetPath('src/renderer/logo.png'), true);
+  assert.equal(isSimulatorStaticAssetPath('src/renderer/logo.svg'), false);
   const assetPath = path.join(root, 'src', 'renderer', 'logo.png');
   writeFileSync(assetPath, Buffer.from('89504e470d0a1a0a', 'hex'));
   const factoryPath = path.join(root, 'src', 'renderer', 'factory.ts');

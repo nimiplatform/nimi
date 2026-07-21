@@ -206,7 +206,7 @@ export function processModuleCommand(
       eventId: formatCanonicalId(context.epoch, 'evt', sequence),
       sequence,
       epoch: context.epoch,
-      fullType: `${moduleId}/${event.type}`,
+      fullType: event.type,
       ownerModuleId: moduleId,
       payload: event.payload,
       causationOperationId: operation.operationId,

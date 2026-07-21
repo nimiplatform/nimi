@@ -6,6 +6,10 @@ import { SimulatorConformanceError } from './simulator-manifest.mjs';
 
 const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs', '.css'];
 const STATIC_ASSET_EXTENSIONS = new Set(['.png']);
+
+export function isSimulatorStaticAssetPath(filePath) {
+  return STATIC_ASSET_EXTENSIONS.has(path.extname(filePath).toLowerCase());
+}
 const FORBIDDEN_IMPORT_PATTERNS = [
   ['SIM_IMPORT_RUNTIME_PRIVATE', /(?:^|\/)runtime\/internal(?:\/|$)/],
   ['SIM_IMPORT_DESKTOP_PRIVATE', /(?:^|\/)apps\/desktop(?:\/|$)/],
@@ -650,7 +654,7 @@ export function buildModuleGraph(rootDir, entryPaths) {
       continue;
     }
     const relativePath = canonicalRelative(rootDir, absolutePath);
-    if (STATIC_ASSET_EXTENSIONS.has(path.extname(absolutePath).toLowerCase())) {
+    if (isSimulatorStaticAssetPath(absolutePath)) {
       nodes.set(absolutePath, { type: 'asset', imports: [] });
       continue;
     }

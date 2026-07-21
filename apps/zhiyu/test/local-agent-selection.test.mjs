@@ -213,6 +213,7 @@ test('source/context product path has no renderer fixture projection hook or pri
   const combined = [
     readFileSync(path.join(root, 'src/shell/agent/source-projection.ts'), 'utf8'),
     readFileSync(path.join(root, 'src/shell/app/App.tsx'), 'utf8'),
+    readFileSync(path.join(root, 'src/production/renderer-bindings.ts'), 'utf8'),
   ].join('\n');
   for (const forbidden of [
     ['acceptance', 'source', 'projection'].join('.'),
@@ -224,5 +225,6 @@ test('source/context product path has no renderer fixture projection hook or pri
     assert.equal(combined.toLowerCase().includes(forbidden.toLowerCase()), false);
   }
   assert.match(combined, /createNimiRuntimeAgentConsumeClient/);
+  assert.match(combined, /bindings\.app\.projection\.hydrateConversation/);
   assert.match(combined, /anchorSnapshot\.turnContextSummary/);
 });

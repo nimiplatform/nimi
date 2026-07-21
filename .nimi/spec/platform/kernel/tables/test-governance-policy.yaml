@@ -630,13 +630,13 @@ suites:
     selectors:
       globs: ['apps/desktop/e2e/specs/*.e2e.mjs']
     authority_refs: [P-TEST-002, P-TEST-003, P-TEST-006]
-  - id: simulator-cp4-product-acceptance
+  - id: simulator-cp5-z-product-acceptance
     owner: simulator
     lane: product_acceptance
-    gate_id: gate.simulator.cp4
-    command: pnpm --filter @nimiplatform/simulator qualify:cp4
+    gate_id: gate.simulator.cp5-z
+    command: pnpm --filter @nimiplatform/simulator qualify:cp5-z
     selectors:
-      files: [apps/simulator/build/qualify-cp4.mjs]
+      files: [apps/simulator/build/qualify-cp5-z.mjs]
     authority_refs: [P-TEST-002, P-TEST-003, P-TEST-006]
   - id: desktop-electron-acceptance
     owner: desktop

@@ -238,16 +238,18 @@ test('Avatar presence source keeps Zhiyu out of private renderer and asset truth
 test('Avatar product surfaces do not fabricate a local Avatar resource from Runtime projection evidence', () => {
   const homeSurfaceSections = readFileSync(path.join(root, 'src/shell/app/home-surface-sections.tsx'), 'utf8');
   const rightPanel = readFileSync(path.join(root, 'src/shell/agent-chat/ZhiyuAgentRightPanel.tsx'), 'utf8');
-  const source = `${homeSurfaceSections}\n${rightPanel}`;
+  const productionAdapters = readFileSync(path.join(root, 'src/production/agent-center-adapters.ts'), 'utf8');
+  const source = `${homeSurfaceSections}\n${rightPanel}\n${productionAdapters}`;
 
   assert.doesNotMatch(homeSurfaceSections, /fallback:\/\//);
   assert.doesNotMatch(homeSurfaceSections, /createAvatarStageSnapshot/);
   assert.doesNotMatch(homeSurfaceSections, /<AvatarStage/);
   assert.match(homeSurfaceSections, /data-zhiyu-avatar-resource-ref="not-owned-by-zhiyu"/);
-  assert.match(rightPanel, /createAgentCenterShellAppearanceAdapter/);
-  assert.match(rightPanel, /createZhiyuAgentPresentationProfileSurface/);
-  assert.match(rightPanel, /inspect\.getPublicInspect\(identity\)/);
-  assert.match(rightPanel, /avatarPreview:\s*null/);
+  assert.match(rightPanel, /appearanceAdapter:\s*AgentCenterAppearanceAdapter/);
+  assert.match(productionAdapters, /createAgentCenterShellAppearanceAdapter/);
+  assert.match(productionAdapters, /createZhiyuAgentPresentationProfileSurface/);
+  assert.match(productionAdapters, /inspect\.getPublicInspect\(identity\)/);
+  assert.match(productionAdapters, /avatarPreview:\s*null/);
   assert.doesNotMatch(rightPanel, /local_avatar_asset_ref|background_asset_id|ZhiyuAgentCenterLocalConfig/);
   assert.doesNotMatch(rightPanel, /avatarAssetRef\s*=\s*avatar\.configurationRef|avatarAssetRef\s*=\s*avatar\.projectionRef/);
   assert.doesNotMatch(rightPanel, /avatar\.configurationRef\s*\|\|\s*avatar\.projectionRef/);

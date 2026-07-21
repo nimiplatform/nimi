@@ -18,6 +18,13 @@ class FakeElement {
     this.tabIndex = attributes.tabindex === undefined ? -1 : Number(attributes.tabindex);
     this.disabled = false;
     this.labels = null;
+    const declarations = new Map();
+    this.style = {
+      getPropertyValue: (name) => declarations.get(name)?.value ?? '',
+      getPropertyPriority: (name) => declarations.get(name)?.priority ?? '',
+      setProperty: (name, value, priority = '') => declarations.set(name, { value, priority }),
+      removeProperty: (name) => declarations.delete(name),
+    };
   }
 
   getAttribute(name) { return this.attributes.get(name) ?? null; }
@@ -131,12 +138,20 @@ test('Paint/Composite evidence is fail-closed unless the pinned-browser source p
     observationToken: 'missing', signal,
   }), false);
 
+  const markerFilters = [];
   const withEvidence = browserHarness({
     paintCompositeEvidence: {
       begin: () => 'trace:1',
-      mark: () => true,
+      mark: () => { markerFilters.push(renderer.style.getPropertyValue('filter')); return true; },
       end: ({ firstFrame, secondFrame }) => firstFrame === 1 && secondFrame === 2,
     },
+  });
+  const renderer = new FakeElement('div');
+  renderer.style.setProperty('filter', 'blur(1px)', 'important');
+  renderer.style.setProperty('opacity', '0');
+  withEvidence.roots.assign('1:instance:1', 'main', {
+    renderer,
+    overlay: new FakeElement('div'),
   });
   const observationToken = await withEvidence.port.beginPaintComposite({
     instanceId: '1:instance:1', surfaceId: 'main', signal,
@@ -145,11 +160,43 @@ test('Paint/Composite evidence is fail-closed unless the pinned-browser source p
   assert.equal(await withEvidence.port.markPaintCompositeFrame({
     observationToken, ordinal: 'first', frame: 1, signal,
   }), true);
+  assert.equal(renderer.style.getPropertyValue('filter'), 'opacity(0.999999)');
+  assert.equal(renderer.style.getPropertyPriority('filter'), 'important');
+  assert.equal(renderer.style.getPropertyValue('opacity'), '0');
+  assert.deepEqual(markerFilters, ['opacity(0.999999)']);
   assert.equal(await withEvidence.port.markPaintCompositeFrame({
     observationToken, ordinal: 'second', frame: 2, signal,
   }), true);
+  assert.deepEqual(markerFilters, ['opacity(0.999999)', 'opacity(0.999999)']);
   assert.equal(await withEvidence.port.observePaintComposite({
     instanceId: '1:instance:1', surfaceId: 'main', firstFrame: 1, secondFrame: 2,
     observationToken, signal,
   }), true);
+  assert.equal(renderer.style.getPropertyValue('filter'), 'blur(1px)');
+  assert.equal(renderer.style.getPropertyPriority('filter'), 'important');
+  assert.equal(renderer.style.getPropertyValue('opacity'), '0');
+});
+
+test('Paint/Composite probe restores assigned-root styling on cancellation', async () => {
+  const ended = [];
+  const harness = browserHarness({
+    paintCompositeEvidence: {
+      begin: () => 'trace:cancel',
+      mark: () => true,
+      end: (input) => { ended.push(input); return false; },
+    },
+  });
+  const renderer = new FakeElement('div');
+  harness.roots.assign('1:instance:1', 'main', { renderer, overlay: new FakeElement('div') });
+  const abort = new AbortController();
+  const observationToken = await harness.port.beginPaintComposite({
+    instanceId: '1:instance:1', surfaceId: 'main', signal: abort.signal,
+  });
+  assert.equal(await harness.port.markPaintCompositeFrame({
+    observationToken, ordinal: 'first', frame: 1, signal: abort.signal,
+  }), true);
+  assert.equal(renderer.style.getPropertyValue('filter'), 'opacity(0.999999)');
+  abort.abort();
+  assert.equal(renderer.style.getPropertyValue('filter'), '');
+  assert.deepEqual(ended, [{ observationToken: 'trace:cancel', firstFrame: null, secondFrame: null }]);
 });

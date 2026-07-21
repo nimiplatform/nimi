@@ -9,12 +9,12 @@ export function registerStreamMethod(
   declaration: SimulatorStreamMethodDeclaration,
 ): void {
   const owner = context.moduleCatalogs.get(declaration.ownerModuleId);
-  const sourcePrefix = `${declaration.ownerModuleId}/`;
+  const sourcePrefix = `${declaration.ownerModuleId}.`;
   const sourceEvent = declaration.sourceEventType.startsWith(sourcePrefix)
-    ? declaration.sourceEventType.slice(sourcePrefix.length)
+    ? declaration.sourceEventType
     : '';
   const terminalEvent = declaration.terminalEventType?.startsWith(sourcePrefix)
-    ? declaration.terminalEventType.slice(sourcePrefix.length)
+    ? declaration.terminalEventType
     : null;
   if (
     context.phase !== 'open'

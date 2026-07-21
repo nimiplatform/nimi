@@ -65,6 +65,7 @@ test('zhiyu production source is reachable from the product entrypoint', async (
   const files = await collectImportGraphProductionFiles(productionRoot);
   const reachable = await collectReachableProductionFiles(path.join(productionRoot, 'main.tsx'));
   const unreachable = files
+    .filter((file) => !file.startsWith(path.join(productionRoot, 'simulator') + path.sep))
     .filter((file) => !reachable.has(file))
     .map((file) => path.relative(appRoot, file).replaceAll(path.sep, '/'));
 
@@ -210,8 +211,13 @@ function resolveProductionImport(importer, specifier) {
     return null;
   }
   const base = path.resolve(path.dirname(importer), specifier);
+  const sourceBase = base.replace(/\.(?:c|m)?js$/u, '');
   const candidates = [
     base,
+    `${sourceBase}.ts`,
+    `${sourceBase}.tsx`,
+    `${sourceBase}.mts`,
+    `${sourceBase}.cts`,
     `${base}.ts`,
     `${base}.tsx`,
     `${base}.js`,

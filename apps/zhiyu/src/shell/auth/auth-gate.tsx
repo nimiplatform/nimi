@@ -13,7 +13,6 @@ import { loadRuntimeAccountUser } from './runtime-account-auth';
 import { RuntimeLoginPage } from './runtime-login-page';
 import { RuntimeUnavailablePage } from './runtime-unavailable-page';
 import { createInitialZhiyuEvidence } from '../app/evidence';
-import './runtime-auth.css';
 
 const runtimeGateOfflineCoordinator = new OfflineCoordinator();
 const WEB_AGENT_CENTER_ACCEPTANCE_QUERY = 'nimiWebAgentCenterAcceptance';

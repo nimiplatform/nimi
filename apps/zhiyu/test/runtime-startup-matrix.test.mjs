@@ -7,20 +7,21 @@ const root = path.resolve(import.meta.dirname, '..');
 
 test('Zhiyu startup projects Runtime Agent AI Config isolated from core Runtime bootstrap probes', () => {
   const source = readFileSync(path.join(root, 'src/shell/app/App.tsx'), 'utf8');
+  const production = readFileSync(path.join(root, 'src/production/renderer-bindings.ts'), 'utf8');
 
   assert.doesNotMatch(
-    source,
+    production,
     /const \[conversation, memory, route, companion, avatar\] = await Promise\.all/s,
     'Runtime Agent AI Config projection must not share the core startup Promise.all with conversation, memory, companion, and avatar probes.',
   );
   assert.match(
-    source,
-    /fetchZhiyuAgentAIConfigRouteEvidence\(routeInput\)/,
+    production,
+    /loadExecutionRoute:\s*fetchZhiyuAgentAIConfigRouteEvidence/,
     'Startup route evidence must be fetched from Runtime Agent AI Config + readiness projection.',
   );
   assert.match(
-    source,
-    /subscribeZhiyuAgentAIConfigReadiness\(callInput\)/,
+    production,
+    /const stream = subscribeZhiyuAgentAIConfigReadiness\(\{[\s\S]*subjectUserId,[\s\S]*ownerUserId:[\s\S]*runtimeSourceRef:[\s\S]*localAgentRef:/,
     'Startup must keep a Runtime Agent AI Config readiness subscription for live updates.',
   );
   assert.match(
@@ -35,7 +36,7 @@ test('Zhiyu startup projects Runtime Agent AI Config isolated from core Runtime 
   );
   assert.match(
     source,
-    /\}, \[selectedLocalAgentRef, selectedLocalAgentRefreshKey\]\);/,
+    /\}, \[bindings, selectedLocalAgentRef, selectedLocalAgentRefreshKey\]\);/,
     'Runtime bootstrap effect must rerun when the selected Runtime LocalAgent is explicitly reselected.',
   );
   assert.match(
@@ -45,7 +46,7 @@ test('Zhiyu startup projects Runtime Agent AI Config isolated from core Runtime 
   );
   assert.match(
     source,
-    /const refreshedRoute = await fetchZhiyuAgentAIConfigRouteEvidence\(agentAIConfigRouteInputRef\.current\);/,
+    /const refreshedRoute = await bindings\.app\.projection\.loadExecutionRoute\(agentAIConfigRouteInputRef\.current\);/,
     'Submit refresh must re-read Runtime Agent AI Config + readiness, not probe or warm any route.',
   );
 
@@ -56,4 +57,5 @@ test('Zhiyu startup projects Runtime Agent AI Config isolated from core Runtime 
   assert.doesNotMatch(source, /fullRouteConfigKeyRef|aiConfigRouteKeyRef/);
   assert.doesNotMatch(source, /mergeTextOnlyRouteWithCurrentArtifactBindings|zhiyuAIConfigRouteKey/);
   assert.doesNotMatch(source, /refreshZhiyuAIConfig/);
+  assert.doesNotMatch(source, /fetchZhiyuAgentAIConfigRouteEvidence|subscribeZhiyuAgentAIConfigReadiness/);
 });

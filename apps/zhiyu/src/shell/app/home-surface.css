@@ -1,6 +1,4 @@
-@import "@nimiplatform/kit/ui/styles.css";
-@import "@nimiplatform/kit/ui/themes/light.css";
-@import "@nimiplatform/kit/ui/themes/nimi-accent.css";
+@scope (.nimi-ui-module--zhiyu) {
 
 .zhiyu-agent-chat {
   height: 100vh;
@@ -886,4 +884,6 @@
   .zhiyu-source-not-ready-empty__actions > button {
     width: 100%;
   }
+}
+
 }

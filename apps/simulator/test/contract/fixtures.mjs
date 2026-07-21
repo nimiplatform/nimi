@@ -20,8 +20,9 @@ export function fixtureScenario(overrides = {}) {
  * and optional random draws, used across State Engine tests.
  */
 export function fixtureModule(moduleId = 'fixture-module', options = {}) {
+  const counterChangedEvent = `${moduleId}.counter.changed`;
   const eventSchemas = {
-    'counter-changed': { kind: 'object', properties: { value: { kind: 'integer' } } },
+    [counterChangedEvent]: { kind: 'object', properties: { value: { kind: 'integer' } } },
     ...(options.eventSchemas || {}),
   };
   const commandSchemas = {
@@ -55,7 +56,7 @@ export function fixtureModule(moduleId = 'fixture-module', options = {}) {
         const value = state.counter + envelope.payload.by;
         return {
           state: { ...state, counter: value },
-          events: [{ type: 'counter-changed', payload: { value } }],
+          events: [{ type: counterChangedEvent, payload: { value } }],
         };
       }
       if (envelope.type === 'increment-with-random') {
@@ -63,7 +64,7 @@ export function fixtureModule(moduleId = 'fixture-module', options = {}) {
         const value = state.counter + Math.floor(draw * envelope.payload.scale);
         return {
           state: { ...state, counter: value },
-          events: [{ type: 'counter-changed', payload: { value } }],
+          events: [{ type: counterChangedEvent, payload: { value } }],
         };
       }
       if (envelope.type === 'enqueue') {

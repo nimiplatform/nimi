@@ -1,3 +1,5 @@
+@scope (.nimi-ui-module--zhiyu) {
+
 .runtime-check-screen,
 .runtime-unavailable-screen,
 .runtime-login-screen {
@@ -158,4 +160,6 @@
   margin: 0;
   color: var(--nimi-text-secondary);
   font-size: 13px;
+}
+
 }

@@ -1,0 +1,29 @@
+schema: nimi.simulator.module/v1
+module_id: zhiyu
+composition:
+  factory_entry: src/renderer/factory.tsx
+  factory_export: zhiyuCanonicalRendererFactory
+  style_entry: src/renderer/styles.css
+  app_production_entries:
+    - src/main.tsx
+renderer:
+  entry: src/simulator/renderer.ts
+  export: zhiyuSimulatorRenderer
+  adapter_entry: src/simulator/adapter.ts
+  adapter_export: zhiyuSimulatorAdapterFactory
+  surfaces:
+    - id: main
+      factory_surface: main
+      label: 织羽 Zhiyu
+      initial_route: /
+      readiness_contract: zhiyu.main.usable
+requires:
+  kit_capabilities: []
+  sdk_methods: []
+  simulator_commands:
+    - zhiyu.turn.allocate
+    - zhiyu.turn.submit
+  simulator_events:
+    - zhiyu.conversation.updated
+fixtures:
+  conformance: src/simulator/fixture.ts

@@ -476,6 +476,17 @@ function createCommandPort(context: TesterSimulatorPrepareContext) {
 export function createTesterSimulatorBindings(
   context: TesterSimulatorPrepareContext,
 ): TesterCanonicalRendererBindings {
+  let currentRoute = context.route.get();
+  const routeListeners = new Set<() => void>();
+  const unsubscribeRoute = context.route.subscribe((route) => {
+    currentRoute = route;
+    for (const listener of routeListeners) listener();
+  });
+  const cleanupRegistration = context.cleanup.add(() => {
+    routeListeners.clear();
+    unsubscribeRoute();
+  });
+  if (!cleanupRegistration.ok) throw new Error('TESTER_SIMULATOR_ROUTE_CLEANUP_REJECTED');
   const sdk = createSdkFacade(context);
   const commands = createCommandPort(context);
   return createNimiCanonicalRendererHostBindings({
@@ -521,9 +532,10 @@ export function createTesterSimulatorBindings(
       }),
     },
     route: Object.freeze({
-      get: () => context.route.get(),
+      get: () => currentRoute,
       subscribe(listener: () => void) {
-        return context.route.subscribe(() => listener());
+        routeListeners.add(listener);
+        return () => routeListeners.delete(listener);
       },
       async navigate(next: TesterSimulatorRouteState) {
         const result = await context.route.navigate(next);

@@ -11,21 +11,21 @@ import {
 const STREAM_METHOD = {
   methodId: 'fixture-stream',
   ownerModuleId: 'fixture-module',
-  sourceEventType: 'fixture-module/counter-changed',
-  terminalEventType: 'fixture-module/counter-finished',
+  sourceEventType: 'fixture-module.counter.changed',
+  terminalEventType: 'fixture-module.counter.finished',
   itemSchema: { kind: 'object', properties: { value: { kind: 'integer' } } },
   terminalSchema: { kind: 'object', properties: { done: { kind: 'boolean' } } },
 };
 
 function createEngine({ withTerminalEvent = false } = {}) {
   const registration = fixtureModule();
-  registration.eventSchemas['counter-finished'] = { kind: 'object', properties: { done: { kind: 'boolean' } } };
+  registration.eventSchemas['fixture-module.counter.finished'] = { kind: 'object', properties: { done: { kind: 'boolean' } } };
   const originalReduce = registration.behavior.reduce;
   registration.behavior = {
     ...registration.behavior,
     reduce(state, envelope, context) {
       if (envelope.type === 'finish') {
-        return { state, events: [{ type: 'counter-finished', payload: { done: true } }] };
+        return { state, events: [{ type: 'fixture-module.counter.finished', payload: { done: true } }] };
       }
       return originalReduce(state, envelope, context);
     },

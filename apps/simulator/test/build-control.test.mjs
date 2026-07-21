@@ -151,12 +151,12 @@ function externalCatalog(repositoryRoot) {
   }, { allowFileUri: true });
 }
 
-test('tracked Simulator configuration selects immutable Tester with one digest-bound Scenario', () => {
+test('tracked Simulator configuration selects immutable Tester and Zhiyu with one digest-bound Scenario', () => {
   const config = loadSimulatorConfig(CONFIG_ROOT);
-  assert.deepEqual(config.descriptors.map((entry) => entry.module_id), ['tester']);
+  assert.deepEqual(config.descriptors.map((entry) => entry.module_id), ['tester', 'zhiyu']);
   assert.deepEqual(config.repositoryCatalog.repositories, []);
   assert.equal(config.scenario.schema, 'nimi.simulator.scenario/v1');
-  assert.deepEqual(config.scenario.module_data.map((entry) => entry.module_id), ['tester']);
+  assert.deepEqual(config.scenario.module_data.map((entry) => entry.module_id), ['tester', 'zhiyu']);
   assert.match(config.scenario.digest, /^sha256:[0-9a-f]{64}$/u);
 });
 

@@ -254,6 +254,11 @@ test('real Tester source qualifies, builds through the final graph, and matches 
       'utf8',
     ));
     assert.equal(artifact.selectedModuleCount, 1);
+    assert.match(artifact.csp.policy, /img-src 'none'/u);
+    assert.equal(
+      readFileSync(path.join(simulator.distRoot, 'index.html'), 'utf8').includes(`content="${artifact.csp.policy}"`),
+      true,
+    );
     assert.equal(artifact.selectedDependencyPackageCount > 0, true);
     assert.match(artifact.selectedDependencyClosureDigest, /^sha256:[0-9a-f]{64}$/u);
     const finalGraph = JSON.parse(readFileSync(

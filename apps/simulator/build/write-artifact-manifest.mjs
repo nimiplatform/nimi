@@ -135,22 +135,41 @@ if (sourceProvidedInstallScriptsExecuted !== 0 || sourceProvidedBuildScriptsExec
 const publicEnvironment = readSimulatorPublicEnvironment();
 const assetClasses = assetClassesFromFileList(collectFiles(DIST_ROOT));
 const generatedCspPolicy = generateSimulatorCsp(assetClasses);
-const indexHtml = readFileSync(path.join(SIMULATOR_ROOT, 'index.html'), 'utf8');
+const indexHtmlPath = path.join(DIST_ROOT, 'index.html');
+const indexHtml = readFileSync(indexHtmlPath, 'utf8');
 const CSP_META_PREFIX = '<meta http-equiv="Content-Security-Policy" content="';
 const cspMetaStart = indexHtml.indexOf(CSP_META_PREFIX);
 if (cspMetaStart === -1) {
-  fail('SIM_ARTIFACT_CSP_MISSING', 'index.html must carry the generated CSP meta policy');
+  fail('SIM_ARTIFACT_CSP_MISSING', 'built index.html must carry the CSP meta template');
 }
 const cspValueStart = cspMetaStart + CSP_META_PREFIX.length;
-const metaCspValue = indexHtml.slice(cspValueStart, indexHtml.indexOf('"', cspValueStart));
-if (!simulatorCspSatisfiesFloor(metaCspValue)) {
-  fail('SIM_ARTIFACT_CSP_FLOOR', 'index.html CSP meta does not satisfy the restrictive floor');
+const cspValueEnd = indexHtml.indexOf('"', cspValueStart);
+if (cspValueEnd === -1) {
+  fail('SIM_ARTIFACT_CSP_MISSING', 'built index.html CSP meta template is malformed');
 }
-if (metaCspValue !== generatedCspPolicy) {
+const templateCspValue = indexHtml.slice(cspValueStart, cspValueEnd);
+const restrictiveTemplate = generateSimulatorCsp({
+  script: false,
+  style: false,
+  image: false,
+  font: false,
+  media: false,
+});
+if (templateCspValue !== restrictiveTemplate) {
   fail(
-    'SIM_ARTIFACT_CSP_DRIFT',
-    `index.html CSP meta differs from the policy generated from the emitted artifact inventory: ${generatedCspPolicy}`,
+    'SIM_ARTIFACT_CSP_TEMPLATE_DRIFT',
+    'source CSP template must remain at the asset-independent restrictive baseline',
   );
+}
+const generatedIndexHtml = `${indexHtml.slice(0, cspValueStart)}${generatedCspPolicy}${indexHtml.slice(cspValueEnd)}`;
+writeFileSync(indexHtmlPath, generatedIndexHtml);
+const emittedIndexHtml = readFileSync(indexHtmlPath, 'utf8');
+const emittedCspValue = emittedIndexHtml.slice(cspValueStart, emittedIndexHtml.indexOf('"', cspValueStart));
+if (!simulatorCspSatisfiesFloor(emittedCspValue)) {
+  fail('SIM_ARTIFACT_CSP_FLOOR', 'emitted index.html CSP meta does not satisfy the restrictive floor');
+}
+if (emittedCspValue !== generatedCspPolicy) {
+  fail('SIM_ARTIFACT_CSP_DRIFT', 'emitted index.html CSP meta differs from the generated artifact policy');
 }
 const files = collectFiles(DIST_ROOT).map((relativePath) => {
   const absolutePath = path.join(DIST_ROOT, ...relativePath.split('/'));

@@ -81,13 +81,16 @@ export function projectZhiyuCompanionFromRuntimeAgentEvent(input: {
   readonly event: NimiRuntimeAgentConsumeEvent;
   readonly ownerUserId: string;
   readonly runtimeSourceRef: string;
-  readonly observedAt?: string;
+  readonly observedAt: string;
 }): ZhiyuCompanionStatus {
   const projection = projectRuntimeAgentCompanionEvent(input.event, input.current);
   if (!projection) {
     return input.current;
   }
-  const observedAt = normalizeText(input.observedAt) || new Date().toISOString();
+  const observedAt = normalizeText(input.observedAt);
+  if (!observedAt) {
+    throw new Error('ZHIYU_COMPANION_OBSERVED_AT_REQUIRED');
+  }
   const statusText = projection.statusText || input.current.statusText;
   const executionState = projection.executionState || input.current.executionState;
   const voiceOutputMode = projection.voiceOutputMode || input.current.voiceOutputMode;
@@ -170,7 +173,7 @@ export function projectZhiyuCompanionFromRuntimeProjectionEvents(input: {
   readonly chat: ZhiyuAgentChatStatus;
   readonly ownerUserId: string;
   readonly runtimeSourceRef: string;
-  readonly observedAt?: string;
+  readonly observedAt: string;
 }): ZhiyuCompanionStatus {
   const events = runtimeProjectionEventsFromChat(input.chat);
   if (events.length === 0) {

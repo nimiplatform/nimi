@@ -10,7 +10,9 @@ import { DIST_ROOT, REPO_ROOT } from './paths.mjs';
 
 const require = createRequire(import.meta.url);
 const playwrightVersion = require('playwright/package.json').version;
-const EVIDENCE_ROOT = path.join(REPO_ROOT, '.nimi', 'local', 'state', 'simulator-cp4');
+const CHECKPOINT = 'CP5-Z';
+const evidenceSlug = 'simulator-cp5-z';
+const EVIDENCE_ROOT = path.join(REPO_ROOT, '.nimi', 'local', 'state', evidenceSlug);
 const RECEIPT_PATH = path.join(EVIDENCE_ROOT, 'qualification.json');
 const SCREENSHOT_PATH = path.join(EVIDENCE_ROOT, 'qualified.png');
 const TRACE_CATEGORIES = [
@@ -75,7 +77,7 @@ async function serveArtifact() {
     server.listen(0, '127.0.0.1', resolve);
   });
   const address = server.address();
-  if (!address || typeof address === 'string') throw new Error('SIM_CP4_SERVER_ADDRESS');
+  if (!address || typeof address === 'string') throw new Error('SIM_CP5_Z_SERVER_ADDRESS');
   return {
     origin: `http://127.0.0.1:${address.port}`,
     close: () => new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve())),
@@ -139,9 +141,9 @@ function createTraceQualification(cdp) {
   const evidence = [];
 
   async function begin(input) {
-    exactObject(input, ['instanceId', 'surfaceId'], 'SIM_CP4_TRACE_BEGIN');
+    exactObject(input, ['instanceId', 'surfaceId'], 'SIM_CP5_Z_TRACE_BEGIN');
     if (typeof input.instanceId !== 'string' || typeof input.surfaceId !== 'string') {
-      throw new Error('SIM_CP4_TRACE_BEGIN_VALUE');
+      throw new Error('SIM_CP5_Z_TRACE_BEGIN_VALUE');
     }
     let release;
     const slot = new Promise((resolve) => { release = resolve; });
@@ -150,9 +152,9 @@ function createTraceQualification(cdp) {
     await prior;
     if (active) {
       release();
-      throw new Error('SIM_CP4_TRACE_OVERLAP');
+      throw new Error('SIM_CP5_Z_TRACE_OVERLAP');
     }
-    const token = `cp4-trace-${++sequence}`;
+    const token = `cp5-z-trace-${++sequence}`;
     const completed = new Promise((resolve) => cdp.once('Tracing.tracingComplete', resolve));
     await cdp.send('Tracing.start', {
       categories: TRACE_CATEGORIES,
@@ -163,28 +165,36 @@ function createTraceQualification(cdp) {
   }
 
   async function mark(input) {
-    exactObject(input, ['observationToken', 'ordinal', 'frame'], 'SIM_CP4_TRACE_MARK');
+    exactObject(input, ['observationToken', 'ordinal', 'frame'], 'SIM_CP5_Z_TRACE_MARK');
     if (!active || input.observationToken !== active.token
       || !['first', 'second'].includes(input.ordinal)
       || !Number.isFinite(input.frame)
       || Object.hasOwn(active.frames, input.ordinal)) return false;
     await cdp.send('Tracing.recordClockSyncMarker', { syncId: `${active.token}:${input.ordinal}` });
     active.frames[input.ordinal] = input.frame;
+    if (input.ordinal === 'first') {
+      const screenshot = await cdp.send('Page.captureScreenshot', {
+        format: 'png',
+        fromSurface: true,
+        captureBeyondViewport: false,
+      });
+      active.probeScreenshotDigest = sha256Digest(Buffer.from(screenshot.data, 'base64'));
+    }
     return true;
   }
 
   async function end(input) {
-    exactObject(input, ['observationToken', 'firstFrame', 'secondFrame'], 'SIM_CP4_TRACE_END');
+    exactObject(input, ['observationToken', 'firstFrame', 'secondFrame'], 'SIM_CP5_Z_TRACE_END');
     const current = active;
     if (!current || input.observationToken !== current.token) return false;
     active = null;
     try {
       await cdp.send('Tracing.end');
       const complete = await current.completed;
-      if (!complete.stream) throw new Error('SIM_CP4_TRACE_STREAM_MISSING');
+      if (!complete.stream) throw new Error('SIM_CP5_Z_TRACE_STREAM_MISSING');
       const bytes = await readTraceStream(cdp, complete.stream);
       const trace = JSON.parse(bytes.toString('utf8'));
-      if (!Array.isArray(trace.traceEvents)) throw new Error('SIM_CP4_TRACE_EVENTS_MISSING');
+      if (!Array.isArray(trace.traceEvents)) throw new Error('SIM_CP5_Z_TRACE_EVENTS_MISSING');
       if (input.firstFrame === null || input.secondFrame === null) {
         evidence.push({
           token: current.token,
@@ -197,7 +207,7 @@ function createTraceQualification(cdp) {
         return false;
       }
       if (current.frames.first !== input.firstFrame || current.frames.second !== input.secondFrame) {
-        throw new Error('SIM_CP4_TRACE_FRAME_DRIFT');
+        throw new Error('SIM_CP5_Z_TRACE_FRAME_DRIFT');
       }
       const window = traceWindowEvidence(trace.traceEvents, current.token, input.firstFrame, input.secondFrame);
       evidence.push({
@@ -205,9 +215,14 @@ function createTraceQualification(cdp) {
         instanceId: current.input.instanceId,
         surfaceId: current.input.surfaceId,
         traceDigest: sha256Digest(bytes),
+        probeScreenshotDigest: current.probeScreenshotDigest ?? null,
         ...window,
       });
-      return window.ok;
+      if (!current.probeScreenshotDigest) {
+        evidence[evidence.length - 1].ok = false;
+        evidence[evidence.length - 1].reason = 'probe-screenshot-missing';
+      }
+      return evidence[evidence.length - 1].ok;
     } finally {
       current.release();
     }
@@ -231,24 +246,25 @@ async function waitForQualifiedInstances(page, traceEvidence, pageDiagnostics, e
         status: node.getAttribute('data-instance-status'),
         readiness: node.getAttribute('data-readiness-status'),
       })),
-      diagnostics: [...document.querySelectorAll('.simulator-diagnostics__item')].map((node) => node.textContent),
     }));
-    throw new Error(`SIM_CP4_READINESS_TIMEOUT:${JSON.stringify({ expectedCount, state, traceEvidence, pageDiagnostics, cause: String(error) })}`);
+    await page.getByRole('link', { name: 'Diagnostics' }).click();
+    const diagnostics = await page.locator('.simulator-diagnostics__item').allTextContents();
+    throw new Error(`SIM_CP5_Z_READINESS_TIMEOUT:${JSON.stringify({ expectedCount, state: { ...state, diagnostics }, traceEvidence, pageDiagnostics, cause: String(error) })}`);
   }
 }
 
 async function replayDigest(page) {
   const value = await page.locator('.simulator-shell').getAttribute('data-replay-digest');
-  if (!value || !/^sha256:[0-9a-f]{64}$/u.test(value)) throw new Error('SIM_CP4_REPLAY_DIGEST_MISSING');
+  if (!value || !/^sha256:[0-9a-f]{64}$/u.test(value)) throw new Error('SIM_CP5_Z_REPLAY_DIGEST_MISSING');
   return value;
 }
 
 async function qualify() {
   const artifactManifest = JSON.parse(readFileSync(path.join(DIST_ROOT, 'simulator-artifact-manifest.json'), 'utf8'));
   if (artifactManifest.schema !== 'nimi.simulator.artifact-manifest/v1'
-    || artifactManifest.selectedModuleCount !== 1
+    || artifactManifest.selectedModuleCount !== 2
     || typeof artifactManifest.scenarioDigest !== 'string') {
-    throw new Error('SIM_CP4_ARTIFACT_NOT_QUALIFIABLE');
+    throw new Error('SIM_CP5_Z_ARTIFACT_NOT_QUALIFIABLE');
   }
 
   const server = await serveArtifact();
@@ -279,49 +295,73 @@ async function qualify() {
 
   try {
     await page.goto(server.origin, { waitUntil: 'load', timeout: 30_000 });
-    await waitForQualifiedInstances(page, traces.evidence, pageDiagnostics);
+    await waitForQualifiedInstances(page, traces.evidence, pageDiagnostics, 4);
     const initialReplayDigest = await replayDigest(page);
     const initialStateRevision = Number(await page.locator('.simulator-shell').getAttribute('data-state-revision'));
     if (!Number.isSafeInteger(initialStateRevision) || initialStateRevision <= 0) {
-      throw new Error('SIM_CP4_INITIAL_REVISION_MISSING');
+      throw new Error('SIM_CP5_Z_INITIAL_REVISION_MISSING');
     }
     const initialInstanceIds = await page.locator('.simulator-windows__item').evaluateAll((nodes) => (
       nodes.map((node) => node.getAttribute('data-instance-id'))
     ));
-    const surfaces = page.locator('.simulator-surface');
-    const first = surfaces.nth(0);
-    const second = surfaces.nth(1);
+    const testerSurfaces = page.locator('.simulator-surface[data-module-id="tester"]');
+    const first = testerSurfaces.nth(0);
+    const second = testerSurfaces.nth(1);
     const firstPrompt = first.locator('textarea[aria-label="Text Studio request"]');
     const secondPrompt = second.locator('textarea[aria-label="Text Studio request"]');
     const secondBaseline = await secondPrompt.inputValue();
-    const isolatedPrompt = 'CP4 artifact-bound first-instance prompt';
+    const isolatedPrompt = 'CP5-Z artifact-bound first-instance prompt';
     await firstPrompt.fill(isolatedPrompt);
-    if (await secondPrompt.inputValue() !== secondBaseline) throw new Error('SIM_CP4_INSTANCE_ISOLATION_FAILED');
+    if (await secondPrompt.inputValue() !== secondBaseline) throw new Error('SIM_CP5_Z_TESTER_INSTANCE_ISOLATION_FAILED');
     await first.locator('button[aria-label="Generate text"]').click();
     await first.locator('.studio-result__text').filter({
       hasText: 'Nimi connects apps through one shared, simulated ecosystem state.',
     }).waitFor({ timeout: 30_000 });
     await first.getByText('Simulator result', { exact: true }).waitFor({ timeout: 30_000 });
+    const testerActionStateRevision = Number(await page.locator('.simulator-shell').getAttribute('data-state-revision'));
+    if (!Number.isSafeInteger(testerActionStateRevision) || testerActionStateRevision <= initialStateRevision) {
+      throw new Error('SIM_CP5_Z_TESTER_ACTION_REVISION_NOT_ADVANCED');
+    }
+
+    const zhiyuSurfaces = page.locator('.simulator-surface[data-module-id="zhiyu"]');
+    if (await zhiyuSurfaces.count() !== 2) throw new Error('SIM_CP5_Z_INSTANCE_COUNT');
+    const firstZhiyu = zhiyuSurfaces.nth(0);
+    const secondZhiyu = zhiyuSurfaces.nth(1);
+    const firstZhiyuComposer = firstZhiyu.locator('textarea[aria-label="和这个伙伴聊点什么..."]');
+    const secondZhiyuComposer = secondZhiyu.locator('textarea[aria-label="和这个伙伴聊点什么..."]');
+    const secondZhiyuBaseline = await secondZhiyuComposer.inputValue();
+    const isolatedZhiyuPrompt = '只在第一个织羽实例中提交这条消息。';
+    await firstZhiyuComposer.fill(isolatedZhiyuPrompt);
+    if (await secondZhiyuComposer.inputValue() !== secondZhiyuBaseline) {
+      throw new Error('SIM_CP5_Z_DRAFT_ISOLATION_FAILED');
+    }
+    await firstZhiyu.getByRole('button', { name: 'Send' }).click();
+    const zhiyuResponse = '我已收到你的消息。这次回复来自同一条可回放的 Nimi 模拟生态状态链。';
+    await firstZhiyu.getByText(zhiyuResponse, { exact: true }).waitFor({ timeout: 30_000 });
+    if (await secondZhiyu.getByText(zhiyuResponse, { exact: true }).count() !== 0) {
+      throw new Error('SIM_CP5_Z_TRANSCRIPT_ISOLATION_FAILED');
+    }
     const actionStateRevision = Number(await page.locator('.simulator-shell').getAttribute('data-state-revision'));
-    if (!Number.isSafeInteger(actionStateRevision) || actionStateRevision <= initialStateRevision) {
-      throw new Error('SIM_CP4_ACTION_REVISION_NOT_ADVANCED');
+    if (!Number.isSafeInteger(actionStateRevision) || actionStateRevision <= testerActionStateRevision) {
+      throw new Error('SIM_CP5_Z_ACTION_REVISION_NOT_ADVANCED');
     }
 
     await page.locator('.simulator-windows__item').nth(0).getByRole('button', { name: 'Close' }).click();
-    await page.waitForFunction(() => document.querySelectorAll('.simulator-surface').length === 1);
+    await page.waitForFunction(() => document.querySelectorAll('.simulator-surface').length === 3);
     await page.locator('button[data-simulator-action="reset"]').click();
-    await waitForQualifiedInstances(page, traces.evidence, pageDiagnostics);
+    await waitForQualifiedInstances(page, traces.evidence, pageDiagnostics, 4);
     const resetInstanceIds = await page.locator('.simulator-windows__item[data-instance-status="active"]').evaluateAll((nodes) => (
       nodes.map((node) => node.getAttribute('data-instance-id'))
     ));
-    if (resetInstanceIds.some((id) => initialInstanceIds.includes(id))) throw new Error('SIM_CP4_RESET_INSTANCE_REUSE');
-    if (await page.getByText('Simulator result', { exact: true }).count() !== 0) throw new Error('SIM_CP4_RESET_VISIBLE_STATE');
+    if (resetInstanceIds.some((id) => initialInstanceIds.includes(id))) throw new Error('SIM_CP5_Z_RESET_INSTANCE_REUSE');
+    if (await page.getByText('Simulator result', { exact: true }).count() !== 0) throw new Error('SIM_CP5_Z_TESTER_RESET_VISIBLE_STATE');
+    if (await page.getByText(zhiyuResponse, { exact: true }).count() !== 0) throw new Error('SIM_CP5_Z_RESET_VISIBLE_STATE');
 
-    for (let index = 0; index < 2; index += 1) {
+    for (let index = 0; index < 4; index += 1) {
       await page.locator('.simulator-windows__item[data-instance-status="active"]').first().getByRole('button', { name: 'Close' }).click();
-      await page.waitForFunction((count) => document.querySelectorAll('.simulator-surface').length === count, 1 - index);
+      await page.waitForFunction((count) => document.querySelectorAll('.simulator-surface').length === count, 3 - index);
     }
-    if (await page.locator('.simulator-surface__overlays').count() !== 0) throw new Error('SIM_CP4_OVERLAY_RESOURCE_LEAK');
+    if (await page.locator('.simulator-surface__overlays').count() !== 0) throw new Error('SIM_CP5_Z_OVERLAY_RESOURCE_LEAK');
 
     await page.getByRole('button', { name: 'Open Nimi Lab' }).click();
     await waitForQualifiedInstances(page, traces.evidence, pageDiagnostics, 1);
@@ -329,14 +369,14 @@ async function qualify() {
     await page.waitForFunction(() => document.querySelectorAll('.simulator-surface').length === 0);
 
     await page.reload({ waitUntil: 'load', timeout: 30_000 });
-    await waitForQualifiedInstances(page, traces.evidence, pageDiagnostics);
+    await waitForQualifiedInstances(page, traces.evidence, pageDiagnostics, 4);
     const reproducedReplayDigest = await replayDigest(page);
-    if (reproducedReplayDigest !== initialReplayDigest) throw new Error('SIM_CP4_REPLAY_NOT_REPRODUCIBLE');
+    if (reproducedReplayDigest !== initialReplayDigest) throw new Error('SIM_CP5_Z_REPLAY_NOT_REPRODUCIBLE');
     if (pageDiagnostics.length !== 0) {
-      throw new Error(`SIM_CP4_BROWSER_DIAGNOSTICS:${JSON.stringify(pageDiagnostics)}`);
+      throw new Error(`SIM_CP5_Z_BROWSER_DIAGNOSTICS:${JSON.stringify(pageDiagnostics)}`);
     }
     if (await page.locator('.simulator-diagnostics__item').count() !== 0) {
-      throw new Error('SIM_CP4_PRODUCT_DIAGNOSTICS');
+      throw new Error('SIM_CP5_Z_PRODUCT_DIAGNOSTICS');
     }
 
     mkdirSync(EVIDENCE_ROOT, { recursive: true });
@@ -344,8 +384,8 @@ async function qualify() {
     writeFileSync(SCREENSHOT_PATH, screenshot);
     const browserExecutable = readFileSync(chromium.executablePath());
     const proof = {
-      schema: 'nimi.simulator.cp4-qualification/v1',
-      checkpoint: 'CP4',
+      schema: 'nimi.simulator.cp5-z-qualification/v1',
+      checkpoint: CHECKPOINT,
       artifactRootDigest: artifactManifest.artifactRootDigest,
       selectedModuleRegistryDigest: artifactManifest.selectedModuleRegistryDigest,
       scenarioDigest: artifactManifest.scenarioDigest,
@@ -363,10 +403,16 @@ async function qualify() {
         serviceWorkers: 'block',
       },
       interaction: {
-        initialInstanceCount: 2,
+        initialInstanceCount: 4,
+        testerInstanceCount: 2,
+        zhiyuInstanceCount: 2,
         isolatedPrompt,
         secondInstancePromptUnchanged: true,
         visibleGeneratedText: true,
+        isolatedZhiyuPrompt,
+        secondZhiyuDraftUnchanged: true,
+        secondZhiyuTranscriptUnchanged: true,
+        visibleZhiyuResponse: true,
         browserDiagnosticCount: 0,
         productDiagnosticCount: 0,
         initialStateRevision,
@@ -382,19 +428,19 @@ async function qualify() {
       },
       traces: traces.evidence,
       screenshot: {
-        path: '.nimi/local/state/simulator-cp4/qualified.png',
+        path: `.nimi/local/state/${evidenceSlug}/qualified.png`,
         digest: sha256Digest(screenshot),
       },
     };
-    if (proof.traces.length < 7 || proof.traces.some((row) => row.ok !== true)) {
-      throw new Error('SIM_CP4_TRACE_EVIDENCE_INCOMPLETE');
+    if (proof.traces.length < 13 || proof.traces.some((row) => row.ok !== true)) {
+      throw new Error('SIM_CP5_Z_TRACE_EVIDENCE_INCOMPLETE');
     }
     const receipt = {
       ...proof,
-      receiptDigest: stableJsonDigest('nimi-simulator-cp4-qualification-v1', proof),
+      receiptDigest: stableJsonDigest('nimi-simulator-cp5-z-qualification-v1', proof),
     };
     writeFileSync(RECEIPT_PATH, `${JSON.stringify(receipt, null, 2)}\n`);
-    process.stdout.write(`simulator-cp4: OK (${proof.traces.length} trace windows, receipt ${receipt.receiptDigest})\n`);
+    process.stdout.write(`${evidenceSlug}: OK (${proof.traces.length} trace windows, receipt ${receipt.receiptDigest})\n`);
   } finally {
     await context.close();
     await browser.close();

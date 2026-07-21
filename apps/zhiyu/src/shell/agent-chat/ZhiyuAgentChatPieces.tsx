@@ -136,7 +136,14 @@ export function ComposerModeTools({
       >
         <Mic size={15} aria-hidden="true" />
       </button>
-      <button type="button" aria-label="伙伴中心" title="伙伴中心" data-zhiyu-composer-tool="agent" onClick={onOpenAgentPanel}>
+      <button
+        type="button"
+        aria-label="伙伴中心"
+        title="伙伴中心"
+        data-nimi-semantic-id="zhiyu-primary-action"
+        data-zhiyu-composer-tool="agent"
+        onClick={onOpenAgentPanel}
+      >
         <UserRound size={15} aria-hidden="true" />
       </button>
       <button

@@ -197,7 +197,7 @@ test('reset cancels jobs, reservations, and streams; nothing stays pending', asy
   engine.registerStreamMethod({
     methodId: 'fixture-stream',
     ownerModuleId: 'fixture-module',
-    sourceEventType: 'fixture-module/counter-changed',
+    sourceEventType: 'fixture-module.counter.changed',
     terminalEventType: null,
     itemSchema: { kind: 'object', properties: { value: { kind: 'integer' } } },
     terminalSchema: { kind: 'json' },
@@ -241,7 +241,7 @@ test('reset reconstructs epoch-owned clock, stream, and reservation registries',
   engine.registerStreamMethod({
     methodId: 'fixture-stream',
     ownerModuleId: 'fixture-module',
-    sourceEventType: 'fixture-module/counter-changed',
+    sourceEventType: 'fixture-module.counter.changed',
     terminalEventType: null,
     itemSchema: { kind: 'object', properties: { value: { kind: 'integer' } } },
     terminalSchema: { kind: 'json' },

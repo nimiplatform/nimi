@@ -2024,9 +2024,9 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
-  - id: gate.simulator.cp4
-    description: Build and execute the immutable selected Tester artifact in pinned Chromium, proving canonical rendering, SDK-to-State-Engine interaction, real browser readiness, isolation, reset, replay, and resource cleanup in one evidence chain.
-    command: pnpm --filter @nimiplatform/simulator qualify:cp4
+  - id: gate.simulator.cp5-z
+    description: Execute the immutable selected Tester and Zhiyu artifact graph in pinned Chromium, proving both canonical renderers, deterministic interactions, two-instance isolation, real browser readiness, reset, replay, and resource cleanup in one evidence chain.
+    command: pnpm --filter @nimiplatform/simulator qualify:cp5-z
     runner: pnpm
     tiers: [release]
     targets: [any]

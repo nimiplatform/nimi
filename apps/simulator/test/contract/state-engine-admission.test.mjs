@@ -18,14 +18,14 @@ function secondModule() {
     },
   };
   definition.eventSchemas = {
-    changed: { kind: 'object', properties: { value: { kind: 'integer' } } },
+    'module-b.state.changed': { kind: 'object', properties: { value: { kind: 'integer' } } },
   };
   definition.queries = {};
   definition.behavior = {
     ...definition.behavior,
     reduce(state, envelope) {
       const value = state.counter + envelope.payload.by;
-      return { state: { ...state, counter: value }, events: [{ type: 'changed', payload: { value } }] };
+      return { state: { ...state, counter: value }, events: [{ type: 'module-b.state.changed', payload: { value } }] };
     },
   };
   return definition;
@@ -68,7 +68,7 @@ test('caller admission is closed over module, event, route, clock, overlay, stre
   engine.registerStreamMethod({
     methodId: 'fixture-stream',
     ownerModuleId: 'fixture-module',
-    sourceEventType: 'fixture-module/counter-changed',
+    sourceEventType: 'fixture-module.counter.changed',
     terminalEventType: null,
     itemSchema: { kind: 'object', properties: { value: { kind: 'integer' } } },
     terminalSchema: { kind: 'json' },
@@ -80,9 +80,9 @@ test('caller admission is closed over module, event, route, clock, overlay, stre
   const firstIssuer = instanceIssuer('fixture-module', firstId);
   const prepareWindow = engine.beginPrepareWindow(firstId);
   assert.equal(prepareWindow.ok, true);
-  const foreignEvent = engine.subscribeEvent(prepareWindow.value, 'module-b/changed', () => {});
-  const undeclaredEvent = engine.subscribeEvent(prepareWindow.value, 'fixture-module/undeclared', () => {});
-  const ownEvent = engine.subscribeEvent(prepareWindow.value, 'fixture-module/counter-changed', () => {});
+  const foreignEvent = engine.subscribeEvent(prepareWindow.value, 'module-b.state.changed', () => {});
+  const undeclaredEvent = engine.subscribeEvent(prepareWindow.value, 'fixture-module.state.undeclared', () => {});
+  const ownEvent = engine.subscribeEvent(prepareWindow.value, 'fixture-module.counter.changed', () => {});
   assert.equal(foreignEvent.error.code, 'SIMULATOR_CAPABILITY_DENIED');
   assert.equal(undeclaredEvent.error.code, 'SIMULATOR_CAPABILITY_DENIED');
   assert.equal(ownEvent.ok, true);

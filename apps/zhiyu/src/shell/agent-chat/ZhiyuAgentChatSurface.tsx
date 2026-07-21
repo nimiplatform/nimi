@@ -5,7 +5,7 @@ import {
   StatusBadge,
   Surface,
 } from '@nimiplatform/kit/ui';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ChatComposerAdapter } from '@nimiplatform/kit/features/chat/headless';
 import {
   CanonicalComposer,
@@ -22,6 +22,7 @@ import {
 import type { ZhiyuEvidence } from '../app/evidence';
 import type { ZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
 import type { ZhiyuDesktopOpenActionResult } from '../desktop-open/desktop-open-action';
+import type { ZhiyuRendererProjectionPort } from '../../renderer/contract';
 import type {
   ZhiyuHomeProductState,
 } from '../app/home-product-state';
@@ -53,7 +54,6 @@ import {
   formatReasonLabel,
 } from '../app/home-surface-sections';
 import { ZHIYU_PRODUCT_STORYBOOK_VERSION } from '../app/zhiyu-product-storybook';
-import '../app/home-surface.css';
 
 export type ZhiyuAgentChatSurfaceProps = {
   readonly evidence: ZhiyuEvidence;
@@ -62,6 +62,7 @@ export type ZhiyuAgentChatSurfaceProps = {
   readonly submitEnabled: boolean;
   readonly composerState: string;
   readonly avatarLaunchAction: ZhiyuAvatarLaunchAction;
+  readonly agentCenterAdapters: ReturnType<ZhiyuRendererProjectionPort['agentCenterAdapters']>;
   readonly onDraftChange: (value: string) => void;
   readonly onSubmit: (text: string) => Promise<void> | void;
   readonly onStopChat: () => void;
@@ -81,6 +82,7 @@ export function ZhiyuAgentChatSurface({
   submitEnabled,
   composerState,
   avatarLaunchAction,
+  agentCenterAdapters,
   onDraftChange,
   onSubmit,
   onStopChat,
@@ -323,46 +325,10 @@ export function ZhiyuAgentChatSurface({
     evidence.chat.state,
     scrollChatTranscriptToLatest,
   ]);
-  useEffect(() => {
-    if (evidence.chat.messageCount <= 0) {
-      return undefined;
-    }
-    let frameId: number | null = null;
-    const scheduleScroll = () => {
-      if (frameId !== null) {
-        window.cancelAnimationFrame(frameId);
-      }
-      frameId = window.requestAnimationFrame(() => {
-        frameId = null;
-        scrollChatTranscriptToLatest();
-      });
-    };
-    const root = getChatTranscriptRoot();
-    const content = root?.querySelector<HTMLElement>('[data-canonical-transcript-width]') ?? null;
-    const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(scheduleScroll) : null;
-    if (root && observer) {
-      observer.observe(root);
-    }
-    if (content && observer) {
-      observer.observe(content);
-    }
-    window.addEventListener('resize', scheduleScroll);
-    scheduleScroll();
-    return () => {
-      window.removeEventListener('resize', scheduleScroll);
-      observer?.disconnect();
-      if (frameId !== null) {
-        window.cancelAnimationFrame(frameId);
-      }
-    };
-  }, [
-    evidence.chat.messageCount,
-    getChatTranscriptRoot,
-    scrollChatTranscriptToLatest,
-  ]);
   return (
     <main
       className="zhiyu-agent-chat"
+      aria-label="织羽伙伴对话"
       data-zhiyu-screen="home"
       data-zhiyu-product-stage={product.stage}
       data-zhiyu-readiness-score={product.readinessScore}
@@ -542,6 +508,8 @@ export function ZhiyuAgentChatSurface({
             onClose={() => setRightPanelMode('closed')}
             onOpenModelConfig={openModelConfig}
             onAvatarLaunch={onAvatarLaunch}
+            appearanceAdapter={agentCenterAdapters.appearance}
+            runtimeAdapter={agentCenterAdapters.runtime}
           />
         ) : null}
       </div>

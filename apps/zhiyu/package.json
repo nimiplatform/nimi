@@ -28,16 +28,16 @@
   "dependencies": {
     "@nimiplatform/kit": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
-    "lucide-react": "^0.577.0",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "lucide-react": "0.577.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.0",
     "@nimiplatform/app-tools": "workspace:*",
     "@types/node": "^24.10.1",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
+    "@types/react": "19.2.15",
+    "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "electron": "^42.5.0",
     "esbuild": "^0.28.0",

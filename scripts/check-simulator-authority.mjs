@@ -362,7 +362,7 @@ exactValue(rootPackage.scripts?.['check:simulator-modules'], 'node scripts/with-
 exactValue(rootPackage.scripts?.['build:simulator'], 'node scripts/with-workspace-surfaces.mjs -- pnpm --filter @nimiplatform/simulator build', 'root Simulator build command');
 exactValue(rootPackage.scripts?.['check:simulator-reproducible-build'], 'node scripts/with-workspace-surfaces.mjs -- node apps/simulator/build/check-reproducible-build.mjs', 'root Simulator reproducible-build command');
 exactValue(rootPackage.scripts?.['test:simulator-contract'], 'pnpm --filter @nimiplatform/simulator test:contract', 'root Simulator contract command');
-exactValue(rootPackage.scripts?.['check:simulator-cp4'], 'pnpm build:simulator && pnpm --filter @nimiplatform/simulator qualify:cp4', 'root Simulator CP4 command');
+exactValue(rootPackage.scripts?.['check:simulator-cp5-z'], 'pnpm build:simulator && pnpm --filter @nimiplatform/simulator qualify:cp5-z', 'root Simulator CP5-Z command');
 
 const simulatorPackage = JSON.parse(read('apps/simulator/package.json') || '{}');
 exactValue(simulatorPackage.name, '@nimiplatform/simulator', 'Simulator package name');
@@ -385,8 +385,8 @@ exactValue(
   'node --test test/contract/*.test.mjs',
   'Simulator prepared contract package command',
 );
-exactValue(simulatorPackage.scripts?.['qualify:cp4'], 'node build/qualify-cp4.mjs', 'Simulator CP4 package command');
-exactValue(simulatorPackage.devDependencies?.playwright, '1.61.1', 'Simulator CP4 pinned browser dependency');
+exactValue(simulatorPackage.scripts?.['qualify:cp5-z'], 'node build/qualify-cp5-z.mjs', 'Simulator CP5-Z package command');
+exactValue(simulatorPackage.devDependencies?.playwright, '1.61.1', 'Simulator CP5-Z pinned browser dependency');
 
 const appToolsPackage = JSON.parse(read('app-tools/package.json') || '{}');
 exactValue(appToolsPackage.exports?.['./simulator-conformance'], './lib/simulator-conformance.mjs', 'app-tools Simulator conformance export');
@@ -410,11 +410,11 @@ exactValue(
   'Simulator prepared release-gate contract command',
 );
 exactSet(simulatorContractGate?.tiers, ['release'], 'Simulator contract gate tiers');
-const simulatorCp4Gate = releaseRegistry.gates?.find((entry) => entry.id === 'gate.simulator.cp4');
-exactValue(simulatorCp4Gate?.command, 'pnpm --filter @nimiplatform/simulator qualify:cp4', 'Simulator CP4 release-gate command');
-exactSet(simulatorCp4Gate?.tiers, ['release'], 'Simulator CP4 gate tiers');
-exactSet(simulatorCp4Gate?.targets, ['any'], 'Simulator CP4 gate targets');
-exactSet(simulatorCp4Gate?.prerequisites, ['gate.simulator.contract'], 'Simulator CP4 prerequisites');
+const simulatorCp5ZGate = releaseRegistry.gates?.find((entry) => entry.id === 'gate.simulator.cp5-z');
+exactValue(simulatorCp5ZGate?.command, 'pnpm --filter @nimiplatform/simulator qualify:cp5-z', 'Simulator CP5-Z release-gate command');
+exactSet(simulatorCp5ZGate?.tiers, ['release'], 'Simulator CP5-Z gate tiers');
+exactSet(simulatorCp5ZGate?.targets, ['any'], 'Simulator CP5-Z gate targets');
+exactSet(simulatorCp5ZGate?.prerequisites, ['gate.simulator.contract'], 'Simulator CP5-Z prerequisites');
 
 const testGovernance = readYaml('.nimi/spec/platform/kernel/tables/test-governance-policy.yaml');
 if (!testGovernance.census?.exclude_paths?.includes('apps/simulator/.generated')) {
@@ -436,10 +436,10 @@ exactSet(
   'Simulator contract test-governance workspace surfaces',
 );
 exactValue(simulatorContractSuite?.workspace_order, 36, 'Simulator contract test-governance order');
-const simulatorCp4Suite = testGovernance.suites?.find((entry) => entry.id === 'simulator-cp4-product-acceptance');
-exactValue(simulatorCp4Suite?.lane, 'product_acceptance', 'Simulator CP4 acceptance lane');
-exactValue(simulatorCp4Suite?.gate_id, 'gate.simulator.cp4', 'Simulator CP4 test-governance gate');
-exactValue(simulatorCp4Suite?.command, 'pnpm --filter @nimiplatform/simulator qualify:cp4', 'Simulator CP4 test-governance command');
+const simulatorCp5ZSuite = testGovernance.suites?.find((entry) => entry.id === 'simulator-cp5-z-product-acceptance');
+exactValue(simulatorCp5ZSuite?.lane, 'product_acceptance', 'Simulator CP5-Z acceptance lane');
+exactValue(simulatorCp5ZSuite?.gate_id, 'gate.simulator.cp5-z', 'Simulator CP5-Z test-governance gate');
+exactValue(simulatorCp5ZSuite?.command, 'pnpm --filter @nimiplatform/simulator qualify:cp5-z', 'Simulator CP5-Z test-governance command');
 
 const auditEvidenceRoots = readYaml('.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml');
 const simulatorEvidenceRoot = auditEvidenceRoots.roots?.find((entry) => entry.id === 'platform-simulator-authority');

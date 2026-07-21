@@ -175,13 +175,15 @@ test('Zhiyu product shell contains no app-scope AIConfig or direct Capability St
 });
 
 test('Agent Center appearance config is owned by the Kit adapter instead of a Zhiyu-only panel', async () => {
-  const source = await readAgentChatSource();
+  const uiSource = await readAgentChatSource();
+  const productionSource = await readFile(path.join(appRoot, 'src', 'production', 'agent-center-adapters.ts'), 'utf8');
+  const source = `${uiSource}\n${productionSource}`;
 
   for (const marker of [
     'createAgentCenterShellAppearanceAdapter',
     'createAgentCenterShellBridge',
     'createZhiyuAgentPresentationProfileSurface',
-    'appearanceAdapter={appearanceAdapter}',
+    'appearanceAdapter={props.appearanceAdapter}',
     'avatarPreview: null',
     'loadSnapshot: async () => ({',
     'inspect.getPublicInspect(identity)',
@@ -265,6 +267,11 @@ test('streaming chat exposes a product stop control wired to the active turn abo
 
 test('chat voice controls project Runtime voice truth without settings-only pseudo affordances', async () => {
   const surfaceSource = await readAgentChatSource();
+  const surfaceComponentSource = await readFile(path.join(appRoot, 'src', 'shell', 'agent-chat', 'ZhiyuAgentChatSurface.tsx'), 'utf8');
+  const appSource = await readFile(path.join(appRoot, 'src', 'shell', 'app', 'App.tsx'), 'utf8');
+  const productionSource = await readFile(path.join(appRoot, 'src', 'production', 'renderer-bindings.ts'), 'utf8');
+  const voiceEvidenceSource = await readFile(path.join(appRoot, 'src', 'shell', 'agent-chat', 'voice-capture-evidence.ts'), 'utf8');
+  const productPathSource = `${surfaceSource}\n${appSource}\n${productionSource}\n${voiceEvidenceSource}`;
 
   for (const marker of [
     'data-zhiyu-composer-tool="voice-capture"',
@@ -284,8 +291,12 @@ test('chat voice controls project Runtime voice truth without settings-only pseu
     'runtime-voice-capture-ready',
     'disabled',
   ]) {
-    assert.match(surfaceSource, new RegExp(escapeRegExp(marker)), `${marker} missing from Runtime voice UI`);
+    assert.match(productPathSource, new RegExp(escapeRegExp(marker)), `${marker} missing from Runtime voice product path`);
   }
+
+  assert.match(appSource, /bindings\.app\.commands\.runVoicePlayback\(renderEvidence\)/);
+  assert.match(productionSource, /runZhiyuVoicePlaybackAction/);
+  assert.doesNotMatch(surfaceComponentSource, /runZhiyuVoicePlaybackAction|createBrowserVoiceCaptureRecorder/);
 
   assert.doesNotMatch(
     surfaceSource,
@@ -318,7 +329,9 @@ test('Zhiyu Tailwind source scan includes Kit Agent Center utilities', async () 
   const zhiyuStyles = await readFile(path.join(appRoot, 'src', 'styles.css'), 'utf8');
   const kitStyles = await readFile(path.join(repoRoot, 'kit', 'ui', 'src', 'styles.css'), 'utf8');
 
-  assert.match(zhiyuStyles, /kit\/features\/agent-center\/src\/\*\*\/\*\.\{ts,tsx\}/);
+  assert.match(zhiyuStyles, /@import "@nimiplatform\/kit\/ui\/styles\.css"/);
+  assert.match(zhiyuStyles, /@import "tailwindcss" source\(none\)/);
+  assert.doesNotMatch(zhiyuStyles, /@source/);
   assert.match(kitStyles, /features\/agent-center\/src\/\*\*\/\*\.\{ts,tsx\}/);
 });
 
@@ -356,6 +369,7 @@ test('Agent Center header mirrors Desktop side-sheet identity metadata', async (
 
 test('Agent Center model section projects Runtime AI Config and excludes Zhiyu AIConfig settings', async () => {
   const rightPanelSource = await readFile(path.join(appRoot, 'src', 'shell', 'agent-chat', 'ZhiyuAgentRightPanel.tsx'), 'utf8');
+  const productionAdapterSource = await readFile(path.join(appRoot, 'src', 'production', 'agent-center-adapters.ts'), 'utf8');
   const zhiyuRouteModelPickerProviderSource = await readFile(path.join(appRoot, 'src', 'shell', 'agent-chat', 'zhiyu-route-model-picker-provider.ts'), 'utf8');
   const kitModelSource = await readFile(path.join(repoRoot, 'kit', 'features', 'agent-center', 'src', 'components', 'AgentCenterModelSection.tsx'), 'utf8');
 
@@ -366,12 +380,13 @@ test('Agent Center model section projects Runtime AI Config and excludes Zhiyu A
     new RegExp(['buildZhiyu', 'AgentCenterState'].join('')),
   );
   assert.doesNotMatch(rightPanelSource, /projectZhiyuAgentCenterRuntimeProjection/);
-  assert.match(rightPanelSource, /runtimeAdapter=\{runtimeAdapter\}/);
-  assert.match(rightPanelSource, /modelConfig:\s*\{[\s\S]*providerResolver:\s*getZhiyuRouteModelPickerProvider/);
-  assert.match(rightPanelSource, /upsertAgentAIConfig/);
-  assert.match(rightPanelSource, /upsertZhiyuAgentAIConfig/);
-  assert.match(rightPanelSource, /expectedRevision/);
-  assert.match(rightPanelSource, /loadSnapshot/);
+  assert.match(rightPanelSource, /runtimeAdapter=\{props\.runtimeAdapter\}/);
+  assert.doesNotMatch(rightPanelSource, /getZhiyuRouteModelPickerProvider|upsertZhiyuAgentAIConfig/);
+  assert.match(productionAdapterSource, /modelConfig:\s*\{\s*providerResolver:\s*getZhiyuRouteModelPickerProvider\s*\}/);
+  assert.match(productionAdapterSource, /upsertAgentAIConfig/);
+  assert.match(productionAdapterSource, /upsertZhiyuAgentAIConfig/);
+  assert.match(productionAdapterSource, /expectedRevision/);
+  assert.match(productionAdapterSource, /loadSnapshot/);
   assert.doesNotMatch(rightPanelSource, /agentAIConfig:\s*buildAgentAIConfig\(evidence\)/);
   assert.doesNotMatch(rightPanelSource, /readiness:\s*buildReadiness\(evidence\)/);
   assert.doesNotMatch(rightPanelSource, /function\s+build(?:AgentAIConfig|Readiness|Inspect|Appearance)/);

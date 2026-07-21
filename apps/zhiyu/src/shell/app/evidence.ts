@@ -28,7 +28,7 @@ import {
 import {
   createInitialZhiyuVoiceCaptureEvidence,
   type ZhiyuVoiceCaptureEvidence,
-} from '../agent-chat/voice-capture';
+} from '../agent-chat/voice-capture-evidence';
 import type {
   ZhiyuCompanionEmotionViolation,
 } from '../agent/companion-emotion';

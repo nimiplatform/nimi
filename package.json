@@ -103,7 +103,7 @@
     "check:simulator-authority": "node scripts/check-simulator-authority.mjs",
     "check:simulator-selected-sources": "pnpm --filter @nimiplatform/simulator check:selected-sources",
     "check:simulator-modules": "node scripts/with-workspace-surfaces.mjs -- pnpm --filter @nimiplatform/simulator check:modules",
-    "check:simulator-cp4": "pnpm build:simulator && pnpm --filter @nimiplatform/simulator qualify:cp4",
+    "check:simulator-cp5-z": "pnpm build:simulator && pnpm --filter @nimiplatform/simulator qualify:cp5-z",
     "build:simulator": "node scripts/with-workspace-surfaces.mjs -- pnpm --filter @nimiplatform/simulator build",
     "check:simulator-reproducible-build": "node scripts/with-workspace-surfaces.mjs -- node apps/simulator/build/check-reproducible-build.mjs",
     "test:simulator-contract": "pnpm --filter @nimiplatform/simulator test:contract",
