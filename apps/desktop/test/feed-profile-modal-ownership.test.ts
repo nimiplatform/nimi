@@ -34,10 +34,14 @@ test('feed profile modal ownership: HomeView keeps feed profile state locally', 
   assert.doesNotMatch(homeViewSource, /selectedProfileId/);
 });
 
-test('feed profile modal ownership: Toast timer does not depend on unstable inline callbacks', () => {
+test('feed profile modal ownership: Toast uses the renderer clock and a stable callback', () => {
   assert.match(homeViewSource, /const onCloseRef = useRef\(onClose\)/);
   assert.match(homeViewSource, /onCloseRef\.current = onClose/);
-  assert.match(homeViewSource, /setTimeout\(\(\) => \{\s*onCloseRef\.current\(\);\s*\}, 3000\)/s);
+  assert.match(
+    homeViewSource,
+    /bindings\.clock\.schedule\(3_000, \(result\) => \{\s*if \(result\.ok\) onCloseRef\.current\(\);\s*\}\)/s,
+  );
+  assert.doesNotMatch(homeViewSource, /\bsetTimeout\s*\(/);
 });
 
 test('feed profile modal ownership: Explore feed forwards post author open to PostCard', () => {

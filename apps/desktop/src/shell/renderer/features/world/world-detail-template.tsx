@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { WorldCharacterQuickSheet } from './world-detail-quick-sheets.js';
 import { WorldLoreLibraryPage } from './world-detail-lore-library.js';
@@ -92,28 +92,25 @@ export function worldDetailRootSectionScrollTop(input: WorldDetailRootSectionScr
 }
 
 function scrollRootSectionIntoView(id: string, scrollViewport: HTMLDivElement | null | undefined) {
-  const target = document.getElementById(id);
-  if (!target) {
+  if (!scrollViewport) {
     return;
   }
+  const target = scrollViewport.querySelector<HTMLElement>(`#${id}`);
+  if (!target) return;
   const placement = rootSectionScrollPlacement(id);
-  if (scrollViewport && scrollViewport.contains(target)) {
-    const targetRect = target.getBoundingClientRect();
-    const viewportRect = scrollViewport.getBoundingClientRect();
-    scrollViewport.scrollTo({
-      top: worldDetailRootSectionScrollTop({
-        placement,
-        viewportScrollTop: scrollViewport.scrollTop,
-        viewportTop: viewportRect.top,
-        viewportHeight: viewportRect.height,
-        targetTop: targetRect.top,
-        targetHeight: targetRect.height,
-      }),
-      behavior: 'smooth',
-    });
-    return;
-  }
-  target.scrollIntoView({ behavior: 'smooth', block: placement });
+  const targetRect = target.getBoundingClientRect();
+  const viewportRect = scrollViewport.getBoundingClientRect();
+  scrollViewport.scrollTo({
+    top: worldDetailRootSectionScrollTop({
+      placement,
+      viewportScrollTop: scrollViewport.scrollTop,
+      viewportTop: viewportRect.top,
+      viewportHeight: viewportRect.height,
+      targetTop: targetRect.top,
+      targetHeight: targetRect.height,
+    }),
+    behavior: 'smooth',
+  });
 }
 
 export function WorldDetailLoadingState() {
@@ -203,22 +200,20 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
         'lore-library': 'world-detail-lore-library-page',
         'resource-references': 'world-detail-resource-references-page',
       }[activePaperSubpage];
-      window.requestAnimationFrame(() => {
-        document.querySelector(`[data-testid="${subpageTestId}"]`)?.scrollIntoView({ behavior: 'auto', block: 'start' });
-      });
+      props.rootScrollViewportRef?.current
+        ?.querySelector<HTMLElement>(`[data-testid="${subpageTestId}"]`)
+        ?.scrollIntoView({ behavior: 'auto', block: 'start' });
     }
-  }, [activePaperSubpage]);
+  }, [activePaperSubpage, props.rootScrollViewportRef]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (activePaperSubpage !== 'root' || !pendingRootScrollId) {
       return;
     }
     const targetId = pendingRootScrollId;
     setPendingRootScrollId(null);
-    window.requestAnimationFrame(() => {
-      scrollToSection(targetId);
-    });
-  }, [activePaperSubpage, pendingRootScrollId]);
+    scrollRootSectionIntoView(targetId, props.rootScrollViewportRef?.current);
+  }, [activePaperSubpage, pendingRootScrollId, props.rootScrollViewportRef]);
 
   const nav = {
     onBrowsePeople: () => scrollToSection('world-detail-characters'),

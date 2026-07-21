@@ -1,15 +1,15 @@
 import { AppCardSurface, cn, CompactAction } from '@nimiplatform/kit/ui';
 import type { ConversationThreadSummary } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
+import { useDesktopRendererBindings } from '../../renderer/binding-context';
 import { ChatSideSheet } from './chat-shared-side-sheet';
 
-function formatRelativeTime(dateStr: string): string {
+export function formatChatThreadRelativeTime(dateStr: string, nowMs: number): string {
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) {
     return dateStr;
   }
-  const now = Date.now();
-  const diffMs = now - date.getTime();
+  const diffMs = nowMs - date.getTime();
   const diffSec = Math.floor(diffMs / 1000);
   const diffMin = Math.floor(diffSec / 60);
   const diffHour = Math.floor(diffMin / 60);
@@ -39,10 +39,12 @@ function SessionThreadItem({
   thread,
   active,
   onSelect,
+  nowMs,
 }: {
   thread: ConversationThreadSummary;
   active: boolean;
   onSelect: () => void;
+  nowMs: number;
 }) {
   return (
     <AppCardSurface
@@ -68,7 +70,7 @@ function SessionThreadItem({
             </p>
           </div>
           <div className="shrink-0 pt-0.5 pr-1 text-[10px] text-slate-400">
-            {formatRelativeTime(thread.updatedAt)}
+            {formatChatThreadRelativeTime(thread.updatedAt, nowMs)}
           </div>
         </div>
       </button>
@@ -77,7 +79,9 @@ function SessionThreadItem({
 }
 
 export function ChatNimiThreadListSheet(props: ChatNimiThreadListSheetProps) {
+  const bindings = useDesktopRendererBindings();
   const { t } = useTranslation();
+  const nowMs = bindings.clock.now();
 
   return (
     <ChatSideSheet
@@ -119,6 +123,7 @@ export function ChatNimiThreadListSheet(props: ChatNimiThreadListSheetProps) {
               thread={thread}
               active={thread.id === props.activeThreadId}
               onSelect={() => props.onSelectThread(thread.id)}
+              nowMs={nowMs}
             />
           ))}
         </div>

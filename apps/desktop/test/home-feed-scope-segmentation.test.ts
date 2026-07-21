@@ -71,7 +71,9 @@ test('Home presents feed scope controls in the shell header', () => {
   assert.match(mainLayoutTitlebarContentSource, /props\.activeTab === 'home'/);
   assert.match(mainLayoutTitlebarContentSource, /<HomeFeedScopeNav[\s\S]*active=\{props\.homeFeedScope\}/);
   assert.match(mainLayoutTopBarSource, /<HomeCreatePostButton/);
-  assert.match(homeViewSource, /HOME_FEED_WIDE_MEDIA_QUERY\s*=\s*'\(min-width: 1280px\)'/);
+  assert.match(homeViewSource, /bindings\.app\.projection\.viewportWidth\(\) >= 1_280/);
+  assert.match(homeViewSource, /bindings\.app\.events\.subscribeWindowResize\(handleChange\)/);
+  assert.doesNotMatch(homeViewSource, /window\.matchMedia/);
   assert.match(homeViewSource, /max-w-\[560px\]/);
   assert.match(homeViewSource, /max-w-\[1144px\]/);
   assert.doesNotMatch(homeViewSource, /max-w-\[760px\]/);

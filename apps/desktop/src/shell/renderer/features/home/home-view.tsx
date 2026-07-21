@@ -10,6 +10,7 @@ import { PostCard, type PostCardAuthorProfileTarget } from './post-card';
 import { usePostCardActionAdapter } from './post-card-action-adapter';
 import { PostFeed } from './post-feed';
 import { prepareHomeFeedItems } from './utils';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 // Optimistic post placeholder component
 function PublishingPostCard() {
@@ -46,6 +47,7 @@ function PublishingPostCard() {
 
 // Toast notification component
 function Toast({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) {
+  const bindings = useDesktopRendererBindings();
   const onCloseRef = useRef(onClose);
 
   useEffect(() => {
@@ -53,11 +55,10 @@ function Toast({ message, type, onClose }: { message: string; type: 'success' | 
   }, [onClose]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onCloseRef.current();
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, []);
+    return bindings.clock.schedule(3_000, (result) => {
+      if (result.ok) onCloseRef.current();
+    });
+  }, [bindings]);
 
   return (
     <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 rounded-full px-4 py-2.5 shadow-lg animate-in fade-in slide-in-from-bottom-2 ${
@@ -80,8 +81,6 @@ function Toast({ message, type, onClose }: { message: string; type: 'success' | 
 }
 
 const PAGE_SIZE = 15;
-const HOME_FEED_WIDE_MEDIA_QUERY = '(min-width: 1280px)';
-
 type HomeFeedColumns = 1 | 2;
 
 type HomeViewProps = {
@@ -93,30 +92,16 @@ function resolveHomeFeedColumns(isWide: boolean): HomeFeedColumns {
   return isWide ? 2 : 1;
 }
 
-function readHomeFeedColumns(): HomeFeedColumns {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-    return 1;
-  }
-  return resolveHomeFeedColumns(window.matchMedia(HOME_FEED_WIDE_MEDIA_QUERY).matches);
-}
-
 function useHomeFeedColumns(): HomeFeedColumns {
-  const [columns, setColumns] = useState<HomeFeedColumns>(readHomeFeedColumns);
+  const bindings = useDesktopRendererBindings();
+  const readColumns = () => resolveHomeFeedColumns(bindings.app.projection.viewportWidth() >= 1_280);
+  const [columns, setColumns] = useState<HomeFeedColumns>(readColumns);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-      return undefined;
-    }
-
-    const mediaQuery = window.matchMedia(HOME_FEED_WIDE_MEDIA_QUERY);
-    const handleChange = (event: MediaQueryListEvent) => {
-      setColumns(resolveHomeFeedColumns(event.matches));
-    };
-
-    setColumns(resolveHomeFeedColumns(mediaQuery.matches));
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
+    const handleChange = () => setColumns(readColumns());
+    handleChange();
+    return bindings.app.events.subscribeWindowResize(handleChange);
+  }, [bindings]);
 
   return columns;
 }
@@ -150,7 +135,7 @@ export function HomeView(props: HomeViewProps) {
         nextCursor: data?.page?.nextCursor ?? null,
       };
     },
-    [props.feedScope],
+    [props.feedScope, realmSocialData],
   );
 
   useEffect(() => {

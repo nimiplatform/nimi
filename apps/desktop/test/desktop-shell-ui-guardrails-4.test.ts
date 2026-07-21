@@ -21,7 +21,8 @@ test('gift message bubble surfaces accept/reject failures instead of silently sw
 });
 
 test('runtime config hydration banner is localized instead of hardcoded Chinese text', () => {
-  assert.match(hydrationSource, /i18n\.t\('RuntimeConfig\.structureUpgraded'/);
+  assert.match(hydrationSource, /const \{ t \} = useTranslation\(\)/);
+  assert.match(hydrationSource, /message: t\('RuntimeConfig\.structureUpgraded'/);
   assert.doesNotMatch(hydrationSource, /配置结构已升级，请重新确认模型绑定/);
 });
 

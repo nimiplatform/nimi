@@ -31,13 +31,12 @@ function readSessionSource(): string {
   return readFileSync(sessionPath, 'utf8');
 }
 
-function findRealmRepoRoot(startDir: string): string {
+function findNimiRepoRoot(startDir: string): string {
   let current = startDir;
   for (;;) {
-    if (
-      existsSync(join(current, rootGateRel))
-      && existsSync(join(current, 'nimi/apps/desktop'))
-    ) {
+    const ownsGate = existsSync(join(current, rootGateRel));
+    const ownsDesktop = existsSync(join(current, 'apps/desktop'));
+    if (ownsGate && ownsDesktop) {
       return current;
     }
     const parent = dirname(current);
@@ -163,12 +162,12 @@ test('desktop Tauri Runtime calls fail closed instead of minting a public Grant 
 });
 
 test('root anonymous fallback gate scans the desktop session path for renderer Runtime construction', () => {
-  const realmRepoRoot = findRealmRepoRoot(dirname(__filename));
-  const driftScript = join(realmRepoRoot, rootGateRel);
+  const nimiRepoRoot = findNimiRepoRoot(dirname(__filename));
+  const driftScript = join(nimiRepoRoot, rootGateRel);
   const workdir = mkdtempSync(join(tmpdir(), 'desktop-runtime-session-gate-'));
   const syntheticSessionPath = join(
     workdir,
-    'nimi/apps/desktop/src/shell/renderer/infra/sdk/desktop-nimi-client-session.ts',
+    'apps/desktop/src/shell/renderer/infra/sdk/desktop-nimi-client-session.ts',
   );
   try {
     mkdirSync(dirname(syntheticSessionPath), { recursive: true });
