@@ -138,7 +138,7 @@ test('shared primitives render sidebar structure', () => {
           trailing={<SidebarAffordanceBadge>2</SidebarAffordanceBadge>}
         />
       </SidebarSection>
-      <SidebarResizeHandle ariaLabel="Resize sidebar" onMouseDown={() => {}} />
+      <SidebarResizeHandle ariaLabel="Resize sidebar" />
     </SidebarShell>,
   );
 

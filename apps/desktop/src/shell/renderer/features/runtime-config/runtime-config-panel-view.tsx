@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
+import { useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ScrollArea,
@@ -45,53 +45,31 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
   const { state } = model;
   const [sidebarWidth, setSidebarWidth] = useState(216);
   const containerRef = useRef<HTMLDivElement>(null);
-  const resizingRef = useRef(false);
+  const resizePointerIdRef = useRef<number | null>(null);
 
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
 
-  const dragCleanupRef = useRef<(() => void) | null>(null);
-
-  // Unmount safety: if the component tears down mid-drag, remove stale listeners.
-  useEffect(() => {
-    return () => {
-      dragCleanupRef.current?.();
-    };
-  }, []);
-
-  const startResize = (event: MouseEvent<HTMLDivElement>) => {
+  const startResize = (event: PointerEvent<HTMLDivElement>) => {
     event.preventDefault();
-    resizingRef.current = true;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
+    resizePointerIdRef.current = event.pointerId;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
 
-    const cleanup = () => {
-      resizingRef.current = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-      dragCleanupRef.current = null;
-    };
+  const continueResize = (event: PointerEvent<HTMLDivElement>) => {
+    if (resizePointerIdRef.current !== event.pointerId || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    setSidebarWidth(Math.min(
+      MAX_SIDEBAR_WIDTH,
+      Math.max(MIN_SIDEBAR_WIDTH, Math.round(event.clientX - rect.left)),
+    ));
+  };
 
-    const onMouseMove = (moveEvent: globalThis.MouseEvent) => {
-      if (!resizingRef.current || !containerRef.current) {
-        return;
-      }
-      const rect = containerRef.current.getBoundingClientRect();
-      const nextWidth = Math.min(
-        MAX_SIDEBAR_WIDTH,
-        Math.max(MIN_SIDEBAR_WIDTH, Math.round(moveEvent.clientX - rect.left)),
-      );
-      setSidebarWidth(nextWidth);
-    };
-
-    const onMouseUp = () => {
-      cleanup();
-    };
-
-    dragCleanupRef.current = cleanup;
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
+  const stopResize = (event: PointerEvent<HTMLDivElement>) => {
+    if (resizePointerIdRef.current !== event.pointerId) return;
+    resizePointerIdRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
   };
 
   if (!state) {
@@ -182,7 +160,10 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
         </ScrollArea>
         <SidebarResizeHandle
           ariaLabel={t('runtimeConfig.panel.resizeSidebar', { defaultValue: 'Resize runtime sidebar' })}
-          onMouseDown={startResize}
+          onPointerCancel={stopResize}
+          onPointerDown={startResize}
+          onPointerMove={continueResize}
+          onPointerUp={stopResize}
           className="hidden xl:block"
         />
       </SidebarShell>

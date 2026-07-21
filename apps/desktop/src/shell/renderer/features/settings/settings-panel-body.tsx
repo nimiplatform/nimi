@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ScrollArea,
@@ -43,7 +43,7 @@ export function SettingsPanelBody() {
   const settings = useDesktopRendererCommands().settings;
   const menuSections = getSettingsMenuSections();
   const containerRef = useRef<HTMLDivElement>(null);
-  const resizingRef = useRef(false);
+  const resizePointerIdRef = useRef<number | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(216);
   const [selectedId, setSelectedId] = useState(() => settings.loadSelected('profile'));
 
@@ -52,53 +52,31 @@ export function SettingsPanelBody() {
     setSelectedId(id);
   };
 
-  const dragCleanupRef = useRef<(() => void) | null>(null);
-
-  // Unmount safety: if the component tears down mid-drag, remove stale listeners.
-  useEffect(() => {
-    return () => {
-      dragCleanupRef.current?.();
-    };
-  }, []);
-
   useEffect(() => settings.subscribeOpenSection((id) => {
     setSelectedId(id);
   }), [settings]);
 
-  const startResize = (event: MouseEvent<HTMLDivElement>) => {
+  const startResize = (event: PointerEvent<HTMLDivElement>) => {
     event.preventDefault();
-    resizingRef.current = true;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
+    resizePointerIdRef.current = event.pointerId;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
 
-    const cleanup = () => {
-      resizingRef.current = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-      dragCleanupRef.current = null;
-    };
+  const continueResize = (event: PointerEvent<HTMLDivElement>) => {
+    if (resizePointerIdRef.current !== event.pointerId || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    setSidebarWidth(Math.min(
+      MAX_SETTINGS_SIDEBAR_WIDTH,
+      Math.max(MIN_SETTINGS_SIDEBAR_WIDTH, Math.round(event.clientX - rect.left)),
+    ));
+  };
 
-    const onMouseMove = (moveEvent: globalThis.MouseEvent) => {
-      if (!resizingRef.current || !containerRef.current) {
-        return;
-      }
-      const rect = containerRef.current.getBoundingClientRect();
-      const nextWidth = Math.min(
-        MAX_SETTINGS_SIDEBAR_WIDTH,
-        Math.max(MIN_SETTINGS_SIDEBAR_WIDTH, Math.round(moveEvent.clientX - rect.left)),
-      );
-      setSidebarWidth(nextWidth);
-    };
-
-    const onMouseUp = () => {
-      cleanup();
-    };
-
-    dragCleanupRef.current = cleanup;
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
+  const stopResize = (event: PointerEvent<HTMLDivElement>) => {
+    if (resizePointerIdRef.current !== event.pointerId) return;
+    resizePointerIdRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
   };
 
   return (
@@ -136,7 +114,10 @@ export function SettingsPanelBody() {
         </ScrollArea>
         <SidebarResizeHandle
           ariaLabel={t('Settings.resizeSidebarAriaLabel')}
-          onMouseDown={startResize}
+          onPointerCancel={stopResize}
+          onPointerDown={startResize}
+          onPointerMove={continueResize}
+          onPointerUp={stopResize}
         />
       </SidebarShell>
 

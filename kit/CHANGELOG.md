@@ -11,6 +11,9 @@ Discipline.
 
 ### Changed
 
+- `SidebarResizeHandle` now accepts native div interaction attributes instead
+  of requiring a mouse-only handler, allowing consumers to use pointer capture
+  without document-global drag listeners. This is a breaking pre-1.0 API cut.
 - Design authority redesign (P-DESIGN-027 / P-DESIGN-028, spec-owned in
   `.nimi/spec/platform/kernel/**`):
   - Motion: one unified duration/easing scale (`motion.fast` 120ms,

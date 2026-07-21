@@ -222,27 +222,25 @@ export function SidebarItem({
   );
 }
 
-type SidebarResizeHandleProps = {
+type SidebarResizeHandleProps = Omit<ComponentPropsWithoutRef<'div'>, 'children'> & {
   ariaLabel: string;
-  onMouseDown: (event: MouseEvent<HTMLDivElement>) => void;
-  className?: string;
 };
 
 export function SidebarResizeHandle({
   ariaLabel,
-  onMouseDown,
   className,
+  ...rest
 }: SidebarResizeHandleProps) {
   return (
     <div
       role="separator"
       aria-orientation="vertical"
       aria-label={ariaLabel}
-      onMouseDown={onMouseDown}
       className={cn(
         'nimi-sidebar-resize-handle absolute inset-y-0 right-0 z-10 w-2 translate-x-1/2 cursor-col-resize hover:bg-[var(--nimi-sidebar-resize-handle)]',
         className,
       )}
+      {...rest}
     />
   );
 }
