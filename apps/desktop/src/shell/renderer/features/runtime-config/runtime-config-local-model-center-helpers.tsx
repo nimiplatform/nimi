@@ -1,4 +1,6 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { useState } from 'react';
+import type { TFunction } from 'i18next';
 import type {
   NimiRuntimeLocalAssetKind,
   NimiRuntimeLocalAssetRecord,
@@ -19,7 +21,7 @@ import {
   type NimiRuntimeLocalRecommendationCopyOptions,
   type NimiRuntimeLocalRecommendationDetailItem,
 } from '@nimiplatform/sdk/runtime';
-import { formatRelativeLocaleTime, i18n } from '../../i18n';
+import type { DesktopI18nResource } from '../../i18n/desktop-i18n.js';
 import { parseTimestamp } from './runtime-config-model-center-utils';
 export {
   DownloadIcon,
@@ -43,9 +45,9 @@ export {
 
 export const ASSET_KIND_OPTIONS = NIMI_RUNTIME_LOCAL_PASSIVE_ASSET_KIND_IDS;
 export const ALL_ASSET_KIND_OPTIONS = NIMI_RUNTIME_LOCAL_ASSET_KIND_IDS;
-const LOCAL_RECOMMENDATION_COPY_OPTIONS: NimiRuntimeLocalRecommendationCopyOptions = {
-  translate: (key, options) => i18n.t(key, options),
-};
+function recommendationCopyOptions(t: TFunction): NimiRuntimeLocalRecommendationCopyOptions {
+  return { translate: (key, options) => t(key, options) };
+}
 
 export function formatAssetKindLabel(value: NimiRuntimeLocalAssetKind): string {
   return formatNimiRuntimeLocalAssetKindLabel(value);
@@ -216,19 +218,23 @@ export function assetTaskStatusLabel(state: AssetTaskState): string {
   return 'Failed';
 }
 
-export function formatLastCheckedAgo(lastCheckedAt: string | null): string {
+export function formatLastCheckedAgo(
+  lastCheckedAt: string | null,
+  i18n: DesktopI18nResource,
+): string {
+  const t = i18n.instance.t.bind(i18n.instance);
   if (!lastCheckedAt) {
-    return i18n.t('runtimeConfig.local.notCheckedYet', { defaultValue: 'Not checked yet' });
+    return t('runtimeConfig.local.notCheckedYet', { defaultValue: 'Not checked yet' });
   }
   const ts = parseTimestamp(lastCheckedAt);
   if (!ts) {
-    return i18n.t('runtimeConfig.local.lastCheckedRaw', {
+    return t('runtimeConfig.local.lastCheckedRaw', {
       value: lastCheckedAt,
       defaultValue: 'Last checked: {{value}}',
     });
   }
-  return i18n.t('runtimeConfig.local.checkedAgo', {
-    value: formatRelativeLocaleTime(new Date(ts)),
+  return t('runtimeConfig.local.checkedAgo', {
+    value: i18n.formatRelativeTime(new Date(ts)),
     defaultValue: 'Checked {{value}}',
   });
 }
@@ -262,30 +268,33 @@ export function recommendationConfidenceLabel(
 }
 
 export function recommendationBaselineLabel(
-  value?: NimiRuntimeLocalCatalogRecommendation['baseline'],
+  value: NimiRuntimeLocalCatalogRecommendation['baseline'] | undefined,
+  t: TFunction,
 ): string {
-  return formatNimiRuntimeLocalRecommendationBaselineLabel(value, LOCAL_RECOMMENDATION_COPY_OPTIONS);
+  return formatNimiRuntimeLocalRecommendationBaselineLabel(value, recommendationCopyOptions(t));
 }
 
-export function recommendationReasonLabel(code: string): string {
-  return formatNimiRuntimeLocalRecommendationReasonLabel(code, LOCAL_RECOMMENDATION_COPY_OPTIONS);
+export function recommendationReasonLabel(code: string, t: TFunction): string {
+  return formatNimiRuntimeLocalRecommendationReasonLabel(code, recommendationCopyOptions(t));
 }
 
 export function recommendationSummary(
   recommendation: NimiRuntimeLocalCatalogRecommendation | undefined,
+  t: TFunction,
 ): string {
-  return summarizeNimiRuntimeLocalCatalogRecommendation(recommendation, LOCAL_RECOMMENDATION_COPY_OPTIONS);
+  return summarizeNimiRuntimeLocalCatalogRecommendation(recommendation, recommendationCopyOptions(t));
 }
 
 export function recommendationDetailItems(
   recommendation: NimiRuntimeLocalCatalogRecommendation | undefined,
+  t: TFunction,
   options?: {
     maxFallbackEntries?: number;
     includeNote?: boolean;
   },
 ): NimiRuntimeLocalRecommendationDetailItem[] {
   return buildNimiRuntimeLocalRecommendationDetailItems(recommendation, {
-    ...LOCAL_RECOMMENDATION_COPY_OPTIONS,
+    ...recommendationCopyOptions(t),
     maxFallbackEntries: options?.maxFallbackEntries,
     includeNote: options?.includeNote,
   });
@@ -300,7 +309,9 @@ export function RecommendationDetailList(props: {
   maxFallbackEntries?: number;
   includeNote?: boolean;
 }) {
-  const items = recommendationDetailItems(props.recommendation, {
+  const i18n = useDesktopI18nResource().instance;
+  const t = i18n.t.bind(i18n);
+  const items = recommendationDetailItems(props.recommendation, t, {
     maxFallbackEntries: props.maxFallbackEntries,
     includeNote: props.includeNote,
   });
@@ -325,6 +336,8 @@ export function RecommendationDiagnosticsPanel(props: {
   buttonClassName?: string;
   panelClassName?: string;
 }) {
+  const i18n = useDesktopI18nResource().instance;
+  const t = i18n.t.bind(i18n);
   const recommendation = props.recommendation;
   const [open, setOpen] = useState(false);
   if (!recommendation) {
@@ -343,24 +356,24 @@ export function RecommendationDiagnosticsPanel(props: {
         className={props.buttonClassName || 'text-[10px] font-medium text-[var(--nimi-text-muted)] underline decoration-[color:var(--nimi-border-subtle)] underline-offset-2 hover:text-[var(--nimi-text-secondary)]'}
       >
         {open
-          ? i18n.t('runtimeConfig.local.recommendationDiagnosticsHide', {
+          ? t('runtimeConfig.local.recommendationDiagnosticsHide', {
               defaultValue: 'Hide diagnostics',
             })
-          : i18n.t('runtimeConfig.local.recommendationDiagnosticsShow', {
+          : t('runtimeConfig.local.recommendationDiagnosticsShow', {
               defaultValue: 'Show diagnostics',
             })}
       </button>
       {open ? (
         <div className={props.panelClassName || 'mt-2 space-y-2 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-2 text-[10px] text-[var(--nimi-text-secondary)]'}>
           <p className="font-medium text-[var(--nimi-text-primary)]">
-            {i18n.t('runtimeConfig.local.recommendationDiagnosticsTitle', {
+            {t('runtimeConfig.local.recommendationDiagnosticsTitle', {
               defaultValue: 'Recommendation diagnostics',
             })}
           </p>
           <div className="space-y-1">
             <p>
               <span className="font-medium text-[var(--nimi-text-primary)]">
-                {i18n.t('runtimeConfig.local.recommendationDiagnosticsSource', {
+                {t('runtimeConfig.local.recommendationDiagnosticsSource', {
                   defaultValue: 'Source',
                 })}
                 :
@@ -370,7 +383,7 @@ export function RecommendationDiagnosticsPanel(props: {
             {recommendation.format ? (
               <p>
                 <span className="font-medium text-[var(--nimi-text-primary)]">
-                  {i18n.t('runtimeConfig.local.recommendationDiagnosticsFormat', {
+                  {t('runtimeConfig.local.recommendationDiagnosticsFormat', {
                     defaultValue: 'Format',
                   })}
                   :
@@ -381,7 +394,7 @@ export function RecommendationDiagnosticsPanel(props: {
           </div>
           <div className="space-y-1">
             <p className="font-medium text-[var(--nimi-text-primary)]">
-              {i18n.t('runtimeConfig.local.recommendationDiagnosticsReasonCodes', {
+              {t('runtimeConfig.local.recommendationDiagnosticsReasonCodes', {
                 defaultValue: 'Reason codes',
               })}
               :
@@ -393,14 +406,14 @@ export function RecommendationDiagnosticsPanel(props: {
                     key={reasonCode}
                     className="rounded border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2 py-1 text-[var(--nimi-text-secondary)]"
                   >
-                    <p>{recommendationReasonLabel(reasonCode)}</p>
+                    <p>{recommendationReasonLabel(reasonCode, t)}</p>
                     <p className="font-mono text-[10px] text-[var(--nimi-text-muted)]">{reasonCode}</p>
                   </div>
                 ))}
               </div>
             ) : (
               <p>
-                {i18n.t('runtimeConfig.local.recommendationDiagnosticsNone', {
+                {t('runtimeConfig.local.recommendationDiagnosticsNone', {
                   defaultValue: 'No reason codes recorded.',
                 })}
               </p>

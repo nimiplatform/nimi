@@ -1,6 +1,7 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { useState } from 'react';
 import { AppCardSurface, CompactAction, OverlayShell, ScrollArea } from '@nimiplatform/kit/ui';
-import { i18n } from '../../i18n';
+
 import { E2E_IDS } from '../../testability/e2e-ids';
 
 const DATA_REQUIREMENTS = [
@@ -58,6 +59,7 @@ function TopSupportersModal({
   isOpen: boolean;
   onClose: () => void;
 }) {
+  const i18n = useDesktopI18nResource().instance;
   if (!isOpen) return null;
 
   return (
@@ -105,6 +107,7 @@ function TopSupportersModal({
 }
 
 export function GiftsTab() {
+  const i18n = useDesktopI18nResource().instance;
   const [showSupportersModal, setShowSupportersModal] = useState(false);
 
   return (

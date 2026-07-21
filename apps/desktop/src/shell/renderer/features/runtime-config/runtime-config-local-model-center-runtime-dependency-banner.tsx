@@ -1,4 +1,6 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import type { CSSProperties } from 'react';
+import type { TFunction } from 'i18next';
 import type {
   NimiRuntimeLocalEnvironmentDependencyJob,
   NimiRuntimeLocalEnvironmentPlanDependency,
@@ -12,7 +14,7 @@ import {
   isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState,
   isNimiRuntimeLocalEnvironmentDependencyUnsupportedState,
 } from '@nimiplatform/sdk/runtime';
-import { i18n } from '../../i18n';
+
 import {
   formatBytes,
   formatEta,
@@ -56,7 +58,10 @@ export function runtimeDependencyJobIsStale(
   return updatedAtMs > 0 && nowMs - updatedAtMs >= RUNTIME_DEPENDENCY_STALE_MS;
 }
 
-function runtimeDependencyJobTimingSummary(job?: NimiRuntimeLocalEnvironmentDependencyJob): string {
+function runtimeDependencyJobTimingSummary(
+  job: NimiRuntimeLocalEnvironmentDependencyJob | undefined,
+  t: TFunction,
+): string {
   if (!job) {
     return '';
   }
@@ -65,13 +70,13 @@ function runtimeDependencyJobTimingSummary(job?: NimiRuntimeLocalEnvironmentDepe
   const updatedAtMs = parseRuntimeDependencyTimestampMs(job.updatedAt || job.createdAt);
   const parts: string[] = [];
   if (createdAtMs > 0) {
-    parts.push(i18n.t('runtimeConfig.localModelCenter.runtimeDependencyElapsed', {
+    parts.push(t('runtimeConfig.localModelCenter.runtimeDependencyElapsed', {
       defaultValue: 'Elapsed {{value}}',
       value: formatRuntimeDependencyDuration(nowMs - createdAtMs),
     }));
   }
   if (updatedAtMs > 0) {
-    parts.push(i18n.t('runtimeConfig.localModelCenter.runtimeDependencyLastUpdate', {
+    parts.push(t('runtimeConfig.localModelCenter.runtimeDependencyLastUpdate', {
       defaultValue: 'Last update {{value}} ago',
       value: formatRuntimeDependencyDuration(nowMs - updatedAtMs),
     }));
@@ -79,33 +84,33 @@ function runtimeDependencyJobTimingSummary(job?: NimiRuntimeLocalEnvironmentDepe
   return parts.join(' | ');
 }
 
-function runtimeDependencyStateStageLabel(state: string, compact = false): string {
+function runtimeDependencyStateStageLabel(state: string, t: TFunction, compact = false): string {
   switch (state) {
     case 'queued':
       return compact
-        ? i18n.t('runtimeConfig.localModelCenter.runtimeStageQueuedCompact', { defaultValue: 'Waiting' })
-        : i18n.t('runtimeConfig.localModelCenter.runtimeStageQueued', { defaultValue: 'Waiting to start local image runtime setup' });
+        ? t('runtimeConfig.localModelCenter.runtimeStageQueuedCompact', { defaultValue: 'Waiting' })
+        : t('runtimeConfig.localModelCenter.runtimeStageQueued', { defaultValue: 'Waiting to start local image runtime setup' });
     case 'running':
       return compact
-        ? i18n.t('runtimeConfig.localModelCenter.runtimeStageRunningCompact', { defaultValue: 'Preparing runtime' })
-        : i18n.t('runtimeConfig.localModelCenter.runtimeStageRunning', { defaultValue: 'Preparing local image runtime setup' });
+        ? t('runtimeConfig.localModelCenter.runtimeStageRunningCompact', { defaultValue: 'Preparing runtime' })
+        : t('runtimeConfig.localModelCenter.runtimeStageRunning', { defaultValue: 'Preparing local image runtime setup' });
     case 'downloading':
       return compact
-        ? i18n.t('runtimeConfig.localModelCenter.runtimeStageDownloadingCompact', { defaultValue: 'Downloading runtime' })
-        : i18n.t('runtimeConfig.localModelCenter.runtimeStageDownloading', { defaultValue: 'Downloading local image runtime package' });
+        ? t('runtimeConfig.localModelCenter.runtimeStageDownloadingCompact', { defaultValue: 'Downloading runtime' })
+        : t('runtimeConfig.localModelCenter.runtimeStageDownloading', { defaultValue: 'Downloading local image runtime package' });
     case 'verifying':
       return compact
-        ? i18n.t('runtimeConfig.localModelCenter.runtimeStageVerifyingCompact', { defaultValue: 'Verifying runtime' })
-        : i18n.t('runtimeConfig.localModelCenter.runtimeStageVerifying', { defaultValue: 'Verifying local image runtime package' });
+        ? t('runtimeConfig.localModelCenter.runtimeStageVerifyingCompact', { defaultValue: 'Verifying runtime' })
+        : t('runtimeConfig.localModelCenter.runtimeStageVerifying', { defaultValue: 'Verifying local image runtime package' });
     case 'installing':
     case 'applying':
       return compact
-        ? i18n.t('runtimeConfig.localModelCenter.runtimeStageInstallingCompact', { defaultValue: 'Installing runtime' })
-        : i18n.t('runtimeConfig.localModelCenter.runtimeStageInstalling', { defaultValue: 'Installing local image runtime' });
+        ? t('runtimeConfig.localModelCenter.runtimeStageInstallingCompact', { defaultValue: 'Installing runtime' })
+        : t('runtimeConfig.localModelCenter.runtimeStageInstalling', { defaultValue: 'Installing local image runtime' });
     default:
       return compact
-        ? i18n.t('runtimeConfig.localModelCenter.runtimeStageActiveCompact', { defaultValue: 'Setting up runtime' })
-        : i18n.t('runtimeConfig.localModelCenter.runtimeStageActive', { defaultValue: 'Setting up local image runtime' });
+        ? t('runtimeConfig.localModelCenter.runtimeStageActiveCompact', { defaultValue: 'Setting up runtime' })
+        : t('runtimeConfig.localModelCenter.runtimeStageActive', { defaultValue: 'Setting up local image runtime' });
   }
 }
 
@@ -125,7 +130,10 @@ export function runtimeDependencyProgressPercent(job?: NimiRuntimeLocalEnvironme
   return Math.max(0, Math.min(100, Math.round((received / total) * 100)));
 }
 
-export function runtimeDependencyProgressSummary(job?: NimiRuntimeLocalEnvironmentDependencyJob): string {
+export function runtimeDependencyProgressSummary(
+  job: NimiRuntimeLocalEnvironmentDependencyJob | undefined,
+  t: TFunction,
+): string {
   if (!job || !isNimiRuntimeLocalEnvironmentDependencyJobTransferringState(job.state)) {
     return '';
   }
@@ -135,7 +143,7 @@ export function runtimeDependencyProgressSummary(job?: NimiRuntimeLocalEnvironme
   if (Number.isFinite(total) && total > 0) {
     parts.push(`${formatBytes(received)} / ${formatBytes(total)}`);
   } else if (Number.isFinite(received) && received > 0) {
-    parts.push(i18n.t('runtimeConfig.localModelCenter.runtimeDependencyDownloadedBytes', {
+    parts.push(t('runtimeConfig.localModelCenter.runtimeDependencyDownloadedBytes', {
       defaultValue: '{{value}} received',
       value: formatBytes(received),
     }));
@@ -144,7 +152,7 @@ export function runtimeDependencyProgressSummary(job?: NimiRuntimeLocalEnvironme
     parts.push(formatSpeed(job.speedBytesPerSec));
   }
   if (Number(job.etaSeconds) > 0) {
-    parts.push(i18n.t('runtimeConfig.localModelCenter.runtimeDependencyEta', {
+    parts.push(t('runtimeConfig.localModelCenter.runtimeDependencyEta', {
       defaultValue: 'ETA {{value}}',
       value: formatEta(job.etaSeconds),
     }));
@@ -152,14 +160,17 @@ export function runtimeDependencyProgressSummary(job?: NimiRuntimeLocalEnvironme
   return parts.join(' | ');
 }
 
-function runtimeDependencyActiveDetail(job: NimiRuntimeLocalEnvironmentDependencyJob): string {
-  const state = runtimeDependencyStateStageLabel(job.state);
-  const progress = runtimeDependencyProgressSummary(job);
+function runtimeDependencyActiveDetail(
+  job: NimiRuntimeLocalEnvironmentDependencyJob,
+  t: TFunction,
+): string {
+  const state = runtimeDependencyStateStageLabel(job.state, t);
+  const progress = runtimeDependencyProgressSummary(job, t);
   if (progress) {
     return `${state}. ${progress}.`;
   }
   if (job.state === 'installing' || job.state === 'applying') {
-    return i18n.t('runtimeConfig.localModelCenter.runtimeStageInstallingDetail', {
+    return t('runtimeConfig.localModelCenter.runtimeStageInstallingDetail', {
       defaultValue: 'Installing local image runtime. This step can take several minutes and may not report byte progress.',
     });
   }
@@ -210,81 +221,84 @@ export function runtimeDependencyToneStyle(tone: RuntimeDependencyTone): CSSProp
 }
 
 export function runtimeDependencyBannerTitle(
-  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
-  job?: NimiRuntimeLocalEnvironmentDependencyJob,
+  dependency: NimiRuntimeLocalEnvironmentPlanDependency | undefined,
+  job: NimiRuntimeLocalEnvironmentDependencyJob | undefined,
+  t: TFunction,
 ): string {
   const state = runtimeDependencyCurrentState(dependency, job);
   if (isNimiRuntimeLocalEnvironmentDependencyJobActiveState(state)) {
-    return runtimeDependencyStateStageLabel(state);
+    return runtimeDependencyStateStageLabel(state, t);
   }
   if (isNimiRuntimeLocalEnvironmentDependencyJobFailedState(state)) {
-    return i18n.t('runtimeConfig.localModelCenter.runtimeSetupFailedTitle', {
+    return t('runtimeConfig.localModelCenter.runtimeSetupFailedTitle', {
       defaultValue: 'Local image runtime setup failed',
     });
   }
   if (isNimiRuntimeLocalEnvironmentDependencyJobCancelledState(state)) {
-    return i18n.t('runtimeConfig.localModelCenter.runtimeSetupCancelledTitle', {
+    return t('runtimeConfig.localModelCenter.runtimeSetupCancelledTitle', {
       defaultValue: 'Local image runtime setup cancelled',
     });
   }
   if (isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(state)) {
-    return i18n.t('runtimeConfig.localModelCenter.runtimeRepairRequiredTitle', {
+    return t('runtimeConfig.localModelCenter.runtimeRepairRequiredTitle', {
       defaultValue: 'Local image runtime repair required',
     });
   }
   if (isNimiRuntimeLocalEnvironmentDependencyUnsupportedState(state)) {
-    return i18n.t('runtimeConfig.localModelCenter.runtimeUnsupportedTitle', {
+    return t('runtimeConfig.localModelCenter.runtimeUnsupportedTitle', {
       defaultValue: 'Local image runtime unsupported',
     });
   }
   if (runtimeDependencyIsCUDARuntime(dependency, job)) {
-    return i18n.t('runtimeConfig.localModelCenter.cudaRuntimeSetupTitle', {
+    return t('runtimeConfig.localModelCenter.cudaRuntimeSetupTitle', {
       defaultValue: 'Optional local GPU acceleration',
     });
   }
-  return i18n.t('runtimeConfig.localModelCenter.runtimeSetupTitle', {
+  return t('runtimeConfig.localModelCenter.runtimeSetupTitle', {
     defaultValue: 'Enable local image generation',
   });
 }
 
 export function runtimeDependencyShortStatusLabel(
-  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
-  job?: NimiRuntimeLocalEnvironmentDependencyJob,
+  dependency: NimiRuntimeLocalEnvironmentPlanDependency | undefined,
+  job: NimiRuntimeLocalEnvironmentDependencyJob | undefined,
+  t: TFunction,
 ): string {
   const state = runtimeDependencyCurrentState(dependency, job);
   if (isNimiRuntimeLocalEnvironmentDependencyJobActiveState(state)) {
-    return runtimeDependencyStateStageLabel(state, true);
+    return runtimeDependencyStateStageLabel(state, t, true);
   }
   if (isNimiRuntimeLocalEnvironmentDependencyJobFailedState(state)) {
-    return i18n.t('runtimeConfig.localModelCenter.runtimeSetupFailedBadge', { defaultValue: 'Runtime setup failed' });
+    return t('runtimeConfig.localModelCenter.runtimeSetupFailedBadge', { defaultValue: 'Runtime setup failed' });
   }
   if (isNimiRuntimeLocalEnvironmentDependencyJobCancelledState(state)) {
-    return i18n.t('runtimeConfig.localModelCenter.runtimeSetupCancelledBadge', { defaultValue: 'Runtime setup cancelled' });
+    return t('runtimeConfig.localModelCenter.runtimeSetupCancelledBadge', { defaultValue: 'Runtime setup cancelled' });
   }
   if (isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(state)) {
-    return i18n.t('runtimeConfig.localModelCenter.runtimeRepairRequiredBadge', { defaultValue: 'Runtime repair required' });
+    return t('runtimeConfig.localModelCenter.runtimeRepairRequiredBadge', { defaultValue: 'Runtime repair required' });
   }
   if (isNimiRuntimeLocalEnvironmentDependencyUnsupportedState(state)) {
-    return i18n.t('runtimeConfig.localModelCenter.runtimeUnsupportedBadge', { defaultValue: 'Runtime unsupported' });
+    return t('runtimeConfig.localModelCenter.runtimeUnsupportedBadge', { defaultValue: 'Runtime unsupported' });
   }
   return '';
 }
 
 export function runtimeDependencyStatusDetail(
-  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
-  job?: NimiRuntimeLocalEnvironmentDependencyJob,
+  dependency: NimiRuntimeLocalEnvironmentPlanDependency | undefined,
+  job: NimiRuntimeLocalEnvironmentDependencyJob | undefined,
+  t: TFunction,
 ): string {
   const displayJob = runtimeDependencyJobForDisplay(dependency, job);
   if (displayJob && isNimiRuntimeLocalEnvironmentDependencyJobActiveState(displayJob.state)) {
-    return runtimeDependencyActiveDetail(displayJob);
+    return runtimeDependencyActiveDetail(displayJob, t);
   }
   if (displayJob && isNimiRuntimeLocalEnvironmentDependencyJobFailedState(displayJob.state)) {
-    return i18n.t('runtimeConfig.localModelCenter.runtimeSetupFailedDetail', {
+    return t('runtimeConfig.localModelCenter.runtimeSetupFailedDetail', {
       defaultValue: 'Runtime stopped before the local image environment became ready. Technical reason is available in details.',
     });
   }
   if (displayJob && isNimiRuntimeLocalEnvironmentDependencyJobCancelledState(displayJob.state)) {
-    return i18n.t('runtimeConfig.localModelCenter.runtimeSetupCancelledDetail', {
+    return t('runtimeConfig.localModelCenter.runtimeSetupCancelledDetail', {
       defaultValue: 'Runtime setup was cancelled before the local image environment became ready.',
     });
   }
@@ -296,18 +310,19 @@ export function runtimeDependencyStatusDetail(
   }
   const currentState = runtimeDependencyCurrentState(dependency, displayJob);
   if (isNimiRuntimeLocalEnvironmentDependencyNeedsConfirmationState(currentState)) {
-    return i18n.t('runtimeConfig.localModelCenter.runtimeSetupRequiredDetail', {
+    return t('runtimeConfig.localModelCenter.runtimeSetupRequiredDetail', {
       defaultValue: 'Before first use, Nimi downloads and installs the required local runtime components once. This runs in the background and only happens the first time.',
     });
   }
-  return i18n.t('runtimeConfig.localModelCenter.runtimeDependencyNotReady', {
+  return t('runtimeConfig.localModelCenter.runtimeDependencyNotReady', {
     defaultValue: 'Runtime-managed local environment dependencies are not ready.',
   });
 }
 
 function runtimeDependencyTechnicalDetails(
-  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
-  job?: NimiRuntimeLocalEnvironmentDependencyJob,
+  dependency: NimiRuntimeLocalEnvironmentPlanDependency | undefined,
+  job: NimiRuntimeLocalEnvironmentDependencyJob | undefined,
+  t: TFunction,
 ): Array<[string, string]> {
   const displayJob = runtimeDependencyJobForDisplay(dependency, job);
   const rows: Array<[string, string]> = [];
@@ -317,11 +332,11 @@ function runtimeDependencyTechnicalDetails(
       rows.push([label, text]);
     }
   };
-  add(i18n.t('runtimeConfig.localModelCenter.runtimeDependencyDetailState', { defaultValue: 'State' }), runtimeDependencyCurrentState(dependency, displayJob));
-  add(i18n.t('runtimeConfig.localModelCenter.runtimeDependencyDetailJob', { defaultValue: 'Job' }), displayJob?.jobId);
-  add(i18n.t('runtimeConfig.localModelCenter.runtimeDependencyDetailDependency', { defaultValue: 'Dependency' }), dependency ? `${dependency.dependencyFamily}/${dependency.dependencyId}` : displayJob ? `${displayJob.dependencyFamily}/${displayJob.dependencyId}` : '');
-  add(i18n.t('runtimeConfig.localModelCenter.runtimeDependencyDetailScope', { defaultValue: 'Scope' }), displayJob?.consumerScope || dependency?.consumerScope);
-  add(i18n.t('runtimeConfig.localModelCenter.runtimeDependencyDetailReason', { defaultValue: 'Reason' }), displayJob?.failureDetail || displayJob?.reasonCode || dependency?.reasonCode);
+  add(t('runtimeConfig.localModelCenter.runtimeDependencyDetailState', { defaultValue: 'State' }), runtimeDependencyCurrentState(dependency, displayJob));
+  add(t('runtimeConfig.localModelCenter.runtimeDependencyDetailJob', { defaultValue: 'Job' }), displayJob?.jobId);
+  add(t('runtimeConfig.localModelCenter.runtimeDependencyDetailDependency', { defaultValue: 'Dependency' }), dependency ? `${dependency.dependencyFamily}/${dependency.dependencyId}` : displayJob ? `${displayJob.dependencyFamily}/${displayJob.dependencyId}` : '');
+  add(t('runtimeConfig.localModelCenter.runtimeDependencyDetailScope', { defaultValue: 'Scope' }), displayJob?.consumerScope || dependency?.consumerScope);
+  add(t('runtimeConfig.localModelCenter.runtimeDependencyDetailReason', { defaultValue: 'Reason' }), displayJob?.failureDetail || displayJob?.reasonCode || dependency?.reasonCode);
   return rows;
 }
 
@@ -343,17 +358,19 @@ type RuntimeDependencyAttentionBannerProps = {
 };
 
 export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttentionBannerProps) {
+  const i18n = useDesktopI18nResource().instance;
+  const t = i18n.t.bind(i18n);
   const displayJob = runtimeDependencyJobForDisplay(props.dependency, props.job);
   const progressPercent = runtimeDependencyProgressPercent(displayJob);
-  const progressSummary = runtimeDependencyProgressSummary(displayJob);
+  const progressSummary = runtimeDependencyProgressSummary(displayJob, t);
   const hasDeterminateProgress = Boolean(
     displayJob
     && isNimiRuntimeLocalEnvironmentDependencyJobTransferringState(displayJob.state)
     && Number(displayJob.bytesTotal) > 0,
   );
-  const timingSummary = runtimeDependencyJobTimingSummary(displayJob);
+  const timingSummary = runtimeDependencyJobTimingSummary(displayJob, t);
   const stale = runtimeDependencyJobIsStale(displayJob);
-  const technicalDetails = runtimeDependencyTechnicalDetails(props.dependency, displayJob);
+  const technicalDetails = runtimeDependencyTechnicalDetails(props.dependency, displayJob, t);
   const tone = runtimeDependencyTone(props.dependency, displayJob);
   const toneStyle = runtimeDependencyToneStyle(tone);
 
@@ -362,10 +379,10 @@ export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttenti
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-[var(--nimi-dep-tone)]">
-            {runtimeDependencyBannerTitle(props.dependency, displayJob)}
+            {runtimeDependencyBannerTitle(props.dependency, displayJob, t)}
           </p>
           <p className="mt-1 text-xs leading-5 text-[color-mix(in_srgb,var(--nimi-dep-tone)_82%,var(--nimi-text-secondary))]">
-            {runtimeDependencyStatusDetail(props.dependency, displayJob)}
+            {runtimeDependencyStatusDetail(props.dependency, displayJob, t)}
           </p>
           {displayJob ? (
             <>
@@ -402,7 +419,7 @@ export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttenti
               ) : null}
               {stale ? (
                 <p className="mt-1 text-[10px] font-medium text-[var(--nimi-status-warning)]">
-                  {i18n.t('runtimeConfig.localModelCenter.runtimeDependencyNoProgress', {
+                  {t('runtimeConfig.localModelCenter.runtimeDependencyNoProgress', {
                     defaultValue: 'No progress has been reported for more than 5 minutes. The task may still be installing, but details should be checked.',
                   })}
                 </p>
@@ -412,7 +429,7 @@ export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttenti
           {technicalDetails.length > 0 ? (
             <details className="mt-3 text-[10px] text-[color-mix(in_srgb,var(--nimi-text-secondary)_86%,transparent)]">
               <summary className="cursor-pointer font-medium">
-                {i18n.t('runtimeConfig.localModelCenter.runtimeDependencyDetailsToggle', { defaultValue: 'Runtime details' })}
+                {t('runtimeConfig.localModelCenter.runtimeDependencyDetailsToggle', { defaultValue: 'Runtime details' })}
               </summary>
               <dl className="mt-2 grid gap-1 sm:grid-cols-[7rem_minmax(0,1fr)]">
                 {technicalDetails.map(([label, value]) => (
@@ -433,7 +450,7 @@ export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttenti
               disabled={props.assetBusy}
               className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-dep-tone)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-dep-tone)] hover:bg-[color-mix(in_srgb,var(--nimi-dep-tone)_10%,transparent)] disabled:opacity-50"
             >
-              {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
+              {t('Common.cancel', { defaultValue: 'Cancel' })}
             </button>
           ) : null}
           {props.canRetryRuntimeDependencyJob && displayJob ? (
@@ -443,7 +460,7 @@ export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttenti
               disabled={props.assetBusy}
               className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-dep-tone)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-dep-tone)] hover:bg-[color-mix(in_srgb,var(--nimi-dep-tone)_10%,transparent)] disabled:opacity-50"
             >
-              {i18n.t('runtimeConfig.localModelCenter.retry', { defaultValue: 'Retry' })}
+              {t('runtimeConfig.localModelCenter.retry', { defaultValue: 'Retry' })}
             </button>
           ) : null}
           {props.canRepairRuntimeDependency ? (
@@ -453,7 +470,7 @@ export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttenti
               disabled={props.assetBusy}
               className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-dep-tone)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-dep-tone)] hover:bg-[color-mix(in_srgb,var(--nimi-dep-tone)_10%,transparent)] disabled:opacity-50"
             >
-              {i18n.t('runtimeConfig.localModelCenter.repair', { defaultValue: 'Repair' })}
+              {t('runtimeConfig.localModelCenter.repair', { defaultValue: 'Repair' })}
             </button>
           ) : null}
           {props.canStartRuntimeDependencySetup && props.confirmSetup ? (
@@ -464,14 +481,14 @@ export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttenti
                 disabled={props.assetBusy}
                 className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-dep-tone)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-dep-tone)] hover:bg-[color-mix(in_srgb,var(--nimi-dep-tone)_10%,transparent)] disabled:opacity-50"
               >
-                {i18n.t('runtimeConfig.localModelCenter.confirmSetup', { defaultValue: 'Confirm' })}
+                {t('runtimeConfig.localModelCenter.confirmSetup', { defaultValue: 'Confirm' })}
               </button>
               <button
                 type="button"
                 onClick={props.onCancelSetupConfirm}
                 className="rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
               >
-                {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
+                {t('Common.cancel', { defaultValue: 'Cancel' })}
               </button>
             </>
           ) : props.canStartRuntimeDependencySetup ? (
@@ -481,7 +498,7 @@ export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttenti
               disabled={props.assetBusy}
               className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-dep-tone)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-dep-tone)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-dep-tone)_10%,transparent)] disabled:opacity-50"
             >
-              {i18n.t('runtimeConfig.localModelCenter.setupDependency', { defaultValue: 'Download & Enable' })}
+              {t('runtimeConfig.localModelCenter.setupDependency', { defaultValue: 'Download & Enable' })}
             </button>
           ) : null}
         </div>

@@ -9,12 +9,8 @@ import {
   isNimiProductControlPhaseTransient,
   projectNimiProductControlFirstRunScreen,
 } from '@nimiplatform/sdk/runtime';
-import { desktopBridge, type NimiProductControlRecordProjection, type NimiProductControlState } from '../bridge';
+import type { NimiProductControlRecordProjection, NimiProductControlState } from '../bridge';
 import {
-  cancelDesktopNimiFirstRunMaterializationJob,
-  repairDesktopNimiFirstRunMaterializationDependency,
-  retryDesktopNimiFirstRunMaterializationJob,
-  startDesktopNimiFirstRunMaterialization,
   type NimiFirstRunMaterializationDependencyProjection,
   type NimiFirstRunMaterializationProjection,
 } from './runtime-materialization.js';
@@ -26,6 +22,8 @@ import { useFirstRunDeviceScan } from './use-first-run-device-scan.js';
 import { FirstRunWizardChrome } from './first-run-wizard-chrome.js';
 import { ProductControlWorkflowScreen } from './product-control-workflow-screen.js';
 import type { FirstRunSetupStatusDetails } from './phase-setup.js';
+import type { DesktopRendererClockView } from '../renderer/contract.js';
+import type { DesktopRendererFirstRunPort } from '../renderer/first-run-port.js';
 
 /**
  * Desktop first-run onboarding wizard.
@@ -44,6 +42,8 @@ import type { FirstRunSetupStatusDetails } from './phase-setup.js';
  */
 
 type ProductControlWorkflowProps = {
+  readonly clock: DesktopRendererClockView;
+  readonly firstRun: DesktopRendererFirstRunPort;
   readonly projection: NimiProductControlRecordProjection | null;
   readonly onProjectionChange: (projection: NimiProductControlRecordProjection) => void;
 };
@@ -114,6 +114,8 @@ export function resolveProjectedDataRootPick(input: {
 
 export function ProductControlWorkflow(props: ProductControlWorkflowProps): ReactElement {
   const { t } = useTranslation();
+  const clock = props.clock;
+  const firstRun = props.firstRun;
   const projection = props.projection;
   const state: NimiProductControlState = projection?.state ?? 'config_missing';
   const notifyProjectionChange = props.onProjectionChange;
@@ -178,19 +180,19 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     && state !== 'ready_for_use'
     && setupVisible
     && !error;
-  const [setupEnteredAtMs, setSetupEnteredAtMs] = useState(() => Date.now());
-  const [setupNowMs, setSetupNowMs] = useState(() => Date.now());
-  const [lastSetupCheckedAtMs, setLastSetupCheckedAtMs] = useState(() => Date.now());
-  const [lastSetupProgressChangedAtMs, setLastSetupProgressChangedAtMs] = useState(() => Date.now());
+  const [setupEnteredAtMs, setSetupEnteredAtMs] = useState(() => clock.now());
+  const [setupNowMs, setSetupNowMs] = useState(() => clock.now());
+  const [lastSetupCheckedAtMs, setLastSetupCheckedAtMs] = useState(() => clock.now());
+  const [lastSetupProgressChangedAtMs, setLastSetupProgressChangedAtMs] = useState(() => clock.now());
   const setupVisibleRef = useRef(false);
   const markSetupChecked = useCallback((): void => {
-    const now = Date.now();
+    const now = clock.now();
     setSetupNowMs(now);
     setLastSetupCheckedAtMs(now);
-  }, []);
+  }, [clock]);
 
   useEffect(() => {
-    const now = Date.now();
+    const now = clock.now();
     if (setupVisible && !setupVisibleRef.current) {
       setSetupEnteredAtMs(now);
       setSetupNowMs(now);
@@ -198,17 +200,25 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       setLastSetupProgressChangedAtMs(now);
     }
     setupVisibleRef.current = setupVisible;
-  }, [setupVisible]);
+  }, [clock, setupVisible]);
 
   useEffect(() => {
     if (!setupVisible) return;
-    const intervalId = window.setInterval(() => {
-      setSetupNowMs(Date.now());
-    }, SETUP_TICK_MS);
-    return () => {
-      window.clearInterval(intervalId);
+    let active = true;
+    let cancel: () => void = () => undefined;
+    const schedule = () => {
+      cancel = clock.schedule(SETUP_TICK_MS, (result) => {
+        if (!active || !result.ok) return;
+        setSetupNowMs(clock.now());
+        schedule();
+      });
     };
-  }, [setupVisible]);
+    schedule();
+    return () => {
+      active = false;
+      cancel();
+    };
+  }, [clock, setupVisible]);
 
   // A recorded Product Control root always wins. Before recording, the
   // Runtime-owned proposal supersedes only the renderer fallback; an explicit
@@ -231,13 +241,13 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   // empty product-control record, then the user-visible Storage phase starts
   // from `data_root_missing`.
   useEffect(() => {
-    if (state !== 'config_missing' || !desktopBridge.hasShellHostInvoke()) {
+    if (state !== 'config_missing' || !firstRun.available()) {
       return;
     }
     let disposed = false;
     setPendingAction('create-product-control-record');
     setError(null);
-    void desktopBridge.ensureProductControlRecordCreated()
+    void firstRun.ensureRecordCreated()
       .then((next) => {
         if (!disposed) notifyProjectionChange(next);
       })
@@ -268,7 +278,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     let disposed = false;
     void (async () => {
       try {
-        const proposed = await desktopBridge.defaultProductDataRootDirectory();
+        const proposed = await firstRun.defaultDataRootDirectory();
         if (!disposed && proposed) {
           setPickedPath((current) => {
             if (current) return current;
@@ -283,9 +293,13 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     return () => {
       disposed = true;
     };
-  }, [runtimeDataRootProposal]);
+  }, [firstRun, runtimeDataRootProposal]);
 
-  const { deviceSummary, deviceScanSettled, retryDeviceScan } = useFirstRunDeviceScan(selectedDataRoot);
+  const { deviceSummary, deviceScanSettled, retryDeviceScan } = useFirstRunDeviceScan(
+    selectedDataRoot,
+    clock,
+    firstRun,
+  );
 
   const projectMaterialization = useCallback(
     async (next: NimiFirstRunMaterializationProjection, observedProductState?: NimiProductControlState): Promise<void> => {
@@ -302,14 +316,16 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
         && next.productState !== 'local_ai_ready'
       ) {
         notifyProjectionChange(
-          await desktopBridge.reconcileProductFirstRunSetupState(),
+          await firstRun.reconcileSetupState(),
         );
       }
     },
-    [markSetupChecked, notifyProjectionChange],
+    [firstRun, markSetupChecked, notifyProjectionChange],
   );
 
   useFirstRunMaterializationObserver({
+    clock,
+    firstRun,
     selectedPlan,
     selectedDataRoot,
     selectedInstallLevel,
@@ -339,7 +355,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     setPendingAction('pick-folder');
     setError(null);
     try {
-      const picked = await desktopBridge.pickProductDataRootDirectory();
+      const picked = await firstRun.pickDataRootDirectory();
       if (picked) {
         pickedPathAuthorityRef.current = 'user';
         setPickedPath(picked);
@@ -373,7 +389,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       // `selectProductDataRoot` is the sole owner of recording + fail-closed
       // validation (absolute path, writability, root layout). A non-absolute
       // or unusable path fails closed here with the backend's typed error.
-      const next = await desktopBridge.selectProductDataRoot(candidate);
+      const next = await firstRun.selectDataRoot(candidate);
       notifyProjectionChange(next);
     } catch (nextError) {
       setError(
@@ -397,9 +413,9 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     setPendingAction('change-data-root');
     setError(null);
     try {
-      const picked = await desktopBridge.pickProductDataRootDirectory();
+      const picked = await firstRun.pickDataRootDirectory();
       if (!picked) return;
-      const next = await desktopBridge.selectProductDataRoot(picked);
+      const next = await firstRun.selectDataRoot(picked);
       notifyProjectionChange(next);
     } catch (nextError) {
       setError(
@@ -427,7 +443,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     setPendingAction('device-scan');
     setError(null);
     try {
-      const next = await desktopBridge.completeProductFirstRunDeviceEnvironmentScan();
+      const next = await firstRun.completeDeviceEnvironmentScan();
       notifyProjectionChange(next);
     } catch (nextError) {
       setError(
@@ -463,7 +479,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
         );
         return null;
       }
-      const next = await desktopBridge.setProductFirstRunInstallLevel({
+      const next = await firstRun.setInstallLevel({
         installLevel,
         aiProfileAlias: plan.alias,
       });
@@ -512,7 +528,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       // 2) Start Runtime materialization (explicit confirmation — this is the
       //    first storage/network-heavy step) and persist the resulting setup
       //    state so the gate advances into the Setup phase.
-      const next = await startDesktopNimiFirstRunMaterialization({
+      const next = await firstRun.startMaterialization({
         profile: plan,
         runtimeDataRoot: dataRoot,
         installLevel,
@@ -541,7 +557,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       setError(null);
       try {
         await projectMaterialization(
-          await retryDesktopNimiFirstRunMaterializationJob({
+          await firstRun.retryMaterializationJob({
             profile: selectedPlan,
             runtimeDataRoot: selectedDataRoot,
             installLevel: selectedInstallLevel,
@@ -571,7 +587,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       setError(null);
       try {
         await projectMaterialization(
-          await repairDesktopNimiFirstRunMaterializationDependency({
+          await firstRun.repairMaterializationDependency({
             profile: selectedPlan,
             runtimeDataRoot: selectedDataRoot,
             installLevel: selectedInstallLevel,
@@ -602,7 +618,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       setError(null);
       try {
         await projectMaterialization(
-          await cancelDesktopNimiFirstRunMaterializationJob({
+          await firstRun.cancelMaterializationJob({
             profile: selectedPlan,
             runtimeDataRoot: selectedDataRoot,
             installLevel: selectedInstallLevel,
@@ -634,7 +650,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     setPendingAction('reevaluate');
     setError(null);
     try {
-      const next = await desktopBridge.getProductControlRecord();
+      const next = await firstRun.getRecord();
       const nextScreen = projectNimiProductControlFirstRunScreen(next.state);
       if (
         setupVisible
@@ -642,7 +658,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
         && nextScreen.kind === 'phase'
         && nextScreen.phase === 'setup'
       ) {
-        notifyProjectionChange(await desktopBridge.reconcileProductFirstRunSetupState());
+        notifyProjectionChange(await firstRun.reconcileSetupState());
       } else {
         notifyProjectionChange(next);
       }
@@ -694,12 +710,12 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     }
     if (setupProgressSignatureRef.current !== setupProgressSignature) {
       setupProgressSignatureRef.current = setupProgressSignature;
-      const now = Date.now();
+      const now = clock.now();
       setSetupNowMs(now);
       setLastSetupCheckedAtMs(now);
       setLastSetupProgressChangedAtMs(now);
     }
-  }, [setupProgressSignature, setupVisible]);
+  }, [clock, setupProgressSignature, setupVisible]);
 
   const setupStatusDetails = useMemo<FirstRunSetupStatusDetails>(() => {
     const activeStep = (
@@ -815,6 +831,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
           </p>
         ) : null}
         <ProductControlWorkflowScreen
+          firstRun={firstRun}
           busy={busy}
           deviceScanSettled={deviceScanSettled}
           deviceSummary={deviceSummary}

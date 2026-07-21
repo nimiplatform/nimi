@@ -5,12 +5,8 @@ import {
   type CanonicalMessageContentSlot,
   type ConversationCanonicalMessage,
 } from '@nimiplatform/kit/features/chat/headless';
-import {
-  cancelStream,
-  getStreamState,
-  subscribeStream,
-  type StreamState,
-} from '../turns/stream-controller';
+import type { StreamState } from '../turns/stream-controller';
+import { useStreamController } from '../turns/stream-controller-context.js';
 import { parseAgentTextTurnDebugMetadata } from './chat-agent-debug-metadata';
 export { RuntimeVoiceMessageContent } from './chat-shared-runtime-voice-message-content';
 
@@ -42,18 +38,21 @@ function resolveImageUrls(message: ConversationCanonicalMessage): string[] {
 }
 
 export function useConversationStreamState(chatId: string | null): StreamState | null {
-  const [state, setState] = useState<StreamState | null>(() => (chatId ? getStreamState(chatId) : null));
+  const streamController = useStreamController();
+  const [state, setState] = useState<StreamState | null>(
+    () => (chatId ? streamController.getStreamState(chatId) : null),
+  );
 
   useEffect(() => {
     if (!chatId) {
       setState(null);
       return;
     }
-    setState(getStreamState(chatId));
-    return subscribeStream(chatId, (updated) => {
+    setState(streamController.getStreamState(chatId));
+    return streamController.subscribeStream(chatId, (updated) => {
       setState({ ...updated });
     });
-  }, [chatId]);
+  }, [chatId, streamController]);
 
   return state;
 }
@@ -360,6 +359,7 @@ export function RuntimeStreamFooter(props: {
   waitingLabel?: string;
   showStreamingText?: boolean;
 }) {
+  const streamController = useStreamController();
   if (props.optimisticWaiting && (!props.streamState || props.streamState.phase === 'idle')) {
     return (
       <ChatStreamStatus
@@ -384,7 +384,7 @@ export function RuntimeStreamFooter(props: {
     const stopIcon = (
       <button
         type="button"
-        onClick={() => cancelStream(props.chatId)}
+        onClick={() => streamController.cancelStream(props.chatId)}
         className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200/80 bg-white text-slate-400 shadow-sm transition-all duration-150 hover:border-red-300 hover:bg-red-50 hover:text-red-500 hover:shadow-md active:scale-95"
         aria-label={props.stopLabel}
         title={props.stopLabel}

@@ -1,14 +1,18 @@
 import React, { type PropsWithChildren } from 'react';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { getCurrentLocale, i18n } from '../../i18n';
+import type { DesktopI18nResource } from '../../i18n/desktop-i18n.js';
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 
 type ErrorBoundaryState = {
   hasError: boolean;
   message: string;
 };
 
-export class AppErrorBoundary extends React.Component<PropsWithChildren, ErrorBoundaryState> {
-  constructor(props: PropsWithChildren) {
+class AppErrorBoundaryImpl extends React.Component<
+  PropsWithChildren<{ readonly i18n: DesktopI18nResource }>,
+  ErrorBoundaryState
+> {
+  constructor(props: PropsWithChildren<{ readonly i18n: DesktopI18nResource }>) {
     super(props);
     this.state = {
       hasError: false,
@@ -53,11 +57,12 @@ export class AppErrorBoundary extends React.Component<PropsWithChildren, ErrorBo
       return this.props.children;
     }
 
-    const locale = getCurrentLocale();
-    const title = i18n.t('ErrorBoundary.rendererFailed', {
+    const { i18n } = this.props;
+    const locale = i18n.getCurrentLocale();
+    const title = i18n.instance.t('ErrorBoundary.rendererFailed', {
       defaultValue: locale === 'zh' ? '渲染层发生异常' : 'Renderer crashed',
     });
-    const hint = i18n.t('ErrorBoundary.rendererHint', {
+    const hint = i18n.instance.t('ErrorBoundary.rendererHint', {
       defaultValue: locale === 'zh'
         ? '请重启应用，或在 devtools 中查看 `renderer` 相关日志链路。'
         : 'Restart the app or inspect renderer logs in devtools.',
@@ -75,4 +80,9 @@ export class AppErrorBoundary extends React.Component<PropsWithChildren, ErrorBo
       </div>
     );
   }
+}
+
+export function AppErrorBoundary(props: PropsWithChildren) {
+  const i18n = useDesktopI18nResource();
+  return <AppErrorBoundaryImpl i18n={i18n}>{props.children}</AppErrorBoundaryImpl>;
 }

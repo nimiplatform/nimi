@@ -8,7 +8,7 @@ import {
 } from 'react';
 import type { TFunction } from 'i18next';
 import type { AgentLocalMessageRecord } from '../../bridge/runtime-bridge/types';
-import { cancelStream } from '../turns/stream-controller';
+import { useStreamController } from '../turns/stream-controller-context.js';
 import {
   createNimiConversationAISnapshot,
   type AgentEffectiveCapabilityResolution,
@@ -76,6 +76,7 @@ export function useAgentConversationVoiceSession(
   } | null;
   voiceSessionState: AgentVoiceSessionShellState;
 } {
+  const streamController = useStreamController();
   const [voiceSessionState, setVoiceSessionState] = useState<AgentVoiceSessionShellState>(
     () => createInitialAgentVoiceSessionShellState(),
   );
@@ -243,7 +244,7 @@ export function useAgentConversationVoiceSession(
         return false;
       }
       if (params.interruptActiveStream !== false) {
-        cancelStream(activeThreadId);
+        streamController.cancelStream(activeThreadId);
       }
       const captureSession = await startAgentVoiceCaptureSession(
         params.mode === 'hands-free'
@@ -304,6 +305,7 @@ export function useAgentConversationVoiceSession(
     input.activeThreadId,
     input.reportHostError,
     input.t,
+    streamController,
   ]);
 
   useEffect(() => {

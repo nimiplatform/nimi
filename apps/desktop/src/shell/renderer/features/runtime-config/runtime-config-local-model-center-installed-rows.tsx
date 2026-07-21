@@ -1,3 +1,5 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
+import type { TFunction } from 'i18next';
 import type {
   NimiRuntimeLocalAssetRecord,
   NimiRuntimeLocalEnvironmentDependencyJob,
@@ -12,7 +14,7 @@ import {
   isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState,
   isNimiRuntimeLocalEnvironmentDependencyUnsupportedState,
 } from '@nimiplatform/sdk/runtime';
-import { i18n } from '../../i18n';
+
 import { localizedAssetUnhealthyReason } from './runtime-config-reason-messages';
 import {
   formatAssetKindLabel,
@@ -129,11 +131,12 @@ function assetHasRuntimeDependencyWarning(
 
 function runtimeDependencyDetail(
   asset: NimiRuntimeLocalAssetRecord,
-  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
-  job?: NimiRuntimeLocalEnvironmentDependencyJob,
+  dependency: NimiRuntimeLocalEnvironmentPlanDependency | undefined,
+  job: NimiRuntimeLocalEnvironmentDependencyJob | undefined,
+  t: TFunction,
 ): string {
   if (runtimeDependencyRequiresAttention(dependency, job)) {
-    return runtimeDependencyStatusDetail(dependency, job);
+    return runtimeDependencyStatusDetail(dependency, job, t);
   }
   const healthDetail = String(asset.healthDetail || '').trim();
   if (healthDetail) {
@@ -166,35 +169,36 @@ function runtimeDependencyRowTone(
 }
 
 function runtimeDependencyReadinessLabel(
-  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
-  job?: NimiRuntimeLocalEnvironmentDependencyJob,
+  dependency: NimiRuntimeLocalEnvironmentPlanDependency | undefined,
+  job: NimiRuntimeLocalEnvironmentDependencyJob | undefined,
+  t: TFunction,
 ): string {
   const state = runtimeDependencyCurrentState(dependency, job);
   if (isNimiRuntimeLocalEnvironmentDependencyJobActiveState(state)) {
-    return runtimeDependencyShortStatusLabel(dependency, job)
-      || i18n.t('runtimeConfig.localModelCenter.runtimeSetupRunningBadge', { defaultValue: 'Runtime setup running' });
+    return runtimeDependencyShortStatusLabel(dependency, job, t)
+      || t('runtimeConfig.localModelCenter.runtimeSetupRunningBadge', { defaultValue: 'Runtime setup running' });
   }
   if (isNimiRuntimeLocalEnvironmentDependencyJobFailedState(state)) {
-    return i18n.t('runtimeConfig.localModelCenter.runtimeSetupFailedBadge', { defaultValue: 'Runtime setup failed' });
+    return t('runtimeConfig.localModelCenter.runtimeSetupFailedBadge', { defaultValue: 'Runtime setup failed' });
   }
   if (isNimiRuntimeLocalEnvironmentDependencyJobCancelledState(state)) {
-    return i18n.t('runtimeConfig.localModelCenter.runtimeSetupCancelledBadge', { defaultValue: 'Runtime setup cancelled' });
+    return t('runtimeConfig.localModelCenter.runtimeSetupCancelledBadge', { defaultValue: 'Runtime setup cancelled' });
   }
   if (isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(state)) {
-    return i18n.t('runtimeConfig.localModelCenter.runtimeRepairRequiredBadge', { defaultValue: 'Runtime repair required' });
+    return t('runtimeConfig.localModelCenter.runtimeRepairRequiredBadge', { defaultValue: 'Runtime repair required' });
   }
   if (isNimiRuntimeLocalEnvironmentDependencyUnsupportedState(state)) {
-    return i18n.t('runtimeConfig.localModelCenter.runtimeUnsupportedBadge', { defaultValue: 'Runtime unsupported' });
+    return t('runtimeConfig.localModelCenter.runtimeUnsupportedBadge', { defaultValue: 'Runtime unsupported' });
   }
   if (dependency?.confirmationRequired && isNimiRuntimeLocalEnvironmentDependencyNeedsConfirmationState(state)) {
-    return i18n.t('runtimeConfig.localModelCenter.runtimeSetupRequiredBadge', { defaultValue: 'Setup needed' });
+    return t('runtimeConfig.localModelCenter.runtimeSetupRequiredBadge', { defaultValue: 'Setup needed' });
   }
-  return i18n.t('runtimeConfig.localModelCenter.runtimeNotReadyBadge', { defaultValue: 'Runtime not ready' });
+  return t('runtimeConfig.localModelCenter.runtimeNotReadyBadge', { defaultValue: 'Runtime not ready' });
 }
 
-function assetStatusLabel(asset: NimiRuntimeLocalAssetRecord): string {
+function assetStatusLabel(asset: NimiRuntimeLocalAssetRecord, t: TFunction): string {
   if (asset.status === 'installed') {
-    return i18n.t('runtimeConfig.localModelCenter.installed', { defaultValue: 'Installed' });
+    return t('runtimeConfig.localModelCenter.installed', { defaultValue: 'Installed' });
   }
   return asset.status;
 }
@@ -230,16 +234,23 @@ type RunnableInstalledAssetRowProps = {
 };
 
 export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps) {
+  const i18n = useDesktopI18nResource().instance;
+  const t = i18n.t.bind(i18n);
   const needsRepair = assetNeedsAttachedEndpointRepair(props.asset);
   const hasRuntimeDependencyWarning = assetHasRuntimeDependencyWarning(
     props.asset,
     props.runtimeDependency,
     props.runtimeDependencyJob,
   );
-  const dependencyDetail = runtimeDependencyDetail(props.asset, props.runtimeDependency, props.runtimeDependencyJob);
+  const dependencyDetail = runtimeDependencyDetail(
+    props.asset,
+    props.runtimeDependency,
+    props.runtimeDependencyJob,
+    t,
+  );
   const statusLabel = hasRuntimeDependencyWarning
-    ? runtimeDependencyReadinessLabel(props.runtimeDependency, props.runtimeDependencyJob)
-    : assetStatusLabel(props.asset);
+    ? runtimeDependencyReadinessLabel(props.runtimeDependency, props.runtimeDependencyJob, t)
+    : assetStatusLabel(props.asset, t);
   const rowTone = runtimeDependencyRowTone(props.asset, props.runtimeDependency, props.runtimeDependencyJob);
   const rowToneStyle = runtimeDependencyToneStyle(rowTone);
   const isRepairing = props.repairAssetId === props.asset.localAssetId;
@@ -268,7 +279,7 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
           <p className="truncate text-xs text-[var(--nimi-text-muted)]">{props.asset.localAssetId}</p>
           {props.asset.recommendation ? (
             <p className="mt-1 line-clamp-2 text-[11px] text-[var(--nimi-text-muted)]">
-              {recommendationSummary(props.asset.recommendation)}
+              {recommendationSummary(props.asset.recommendation, t)}
             </p>
           ) : null}
           {(props.asset.status === 'unhealthy' || hasRuntimeDependencyWarning) && dependencyDetail ? (
@@ -285,7 +296,7 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
               className="mt-1 line-clamp-2 text-[11px] text-[var(--nimi-status-danger)]"
               title={String(props.asset.reasonCode || '').trim()}
             >
-              {unhealthyReasonSummary || i18n.t('runtimeConfig.localModelCenter.assetUnhealthyGeneric', {
+              {unhealthyReasonSummary || t('runtimeConfig.localModelCenter.assetUnhealthyGeneric', {
                 defaultValue: 'This model is currently unavailable. Try re-scanning its bundle, or remove and re-import it.',
               })}
             </p>
@@ -311,7 +322,7 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
               disabled={props.assetBusy}
               className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-dep-tone)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-dep-tone)_10%,transparent)] px-2.5 py-1 text-[11px] font-medium text-[var(--nimi-dep-tone)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-dep-tone)_16%,transparent)] disabled:opacity-50"
             >
-              {i18n.t('runtimeConfig.localModelCenter.setupDependency', { defaultValue: 'Set Up' })}
+              {t('runtimeConfig.localModelCenter.setupDependency', { defaultValue: 'Set Up' })}
             </button>
           ) : null}
           {needsRepair ? (
@@ -321,7 +332,7 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
               disabled={props.assetBusy}
               className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] px-2.5 py-1 text-[11px] font-medium text-[var(--nimi-status-warning)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_16%,transparent)] disabled:opacity-50"
             >
-              {i18n.t('runtimeConfig.localModelCenter.repair', { defaultValue: 'Repair' })}
+              {t('runtimeConfig.localModelCenter.repair', { defaultValue: 'Repair' })}
             </button>
           ) : null}
           {supportsRescan ? (
@@ -331,7 +342,7 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
               disabled={props.assetBusy}
               className="rounded-lg border border-[var(--nimi-border-subtle)] px-2.5 py-1 text-[11px] font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] disabled:opacity-50"
             >
-              {i18n.t('runtimeConfig.localModelCenter.rescanBundle', { defaultValue: 'Re-scan Bundle' })}
+              {t('runtimeConfig.localModelCenter.rescanBundle', { defaultValue: 'Re-scan Bundle' })}
             </button>
           ) : null}
           <button
@@ -339,7 +350,7 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
             onClick={() => props.onRequestRemove(props.asset.localAssetId)}
             disabled={props.assetBusy || props.confirmRemoveAssetId === props.asset.localAssetId}
             className="rounded-lg p-1.5 text-[var(--nimi-status-danger)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] disabled:opacity-50"
-            title={i18n.t('runtimeConfig.localModelCenter.remove', { defaultValue: 'Remove' })}
+            title={t('runtimeConfig.localModelCenter.remove', { defaultValue: 'Remove' })}
           >
             <TrashIcon className="h-4 w-4" />
           </button>
@@ -348,7 +359,7 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
       {isRepairing ? (
         <div className="mt-2 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] px-4 py-3">
           <p className="text-xs text-[var(--nimi-status-warning)]">
-            {String(props.asset.healthDetail || '').trim() || i18n.t('runtimeConfig.localModelCenter.repairAttachedEndpointHint', {
+            {String(props.asset.healthDetail || '').trim() || t('runtimeConfig.localModelCenter.repairAttachedEndpointHint', {
               defaultValue: 'This asset must be rebound to an external attached endpoint on the current host.',
             })}
           </p>
@@ -357,7 +368,7 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
               type="text"
               value={props.repairEndpoint}
               onChange={(event) => props.onRepairEndpointChange(event.target.value)}
-              placeholder={i18n.t('runtimeConfig.localModelCenter.repairEndpointPlaceholder', { defaultValue: 'http://host:port/v1' })}
+              placeholder={t('runtimeConfig.localModelCenter.repairEndpointPlaceholder', { defaultValue: 'http://host:port/v1' })}
               className="h-9 min-w-0 flex-1 rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-white px-3 text-xs text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-mint-100"
             />
             <button
@@ -368,14 +379,14 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
               disabled={props.assetBusy || !String(props.repairEndpoint || '').trim()}
               className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] disabled:opacity-50"
             >
-              {i18n.t('runtimeConfig.localModelCenter.confirmRepair', { defaultValue: 'Apply' })}
+              {t('runtimeConfig.localModelCenter.confirmRepair', { defaultValue: 'Apply' })}
             </button>
             <button
               type="button"
               onClick={props.onCancelRepair}
               className="rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
             >
-              {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
+              {t('Common.cancel', { defaultValue: 'Cancel' })}
             </button>
           </div>
         </div>
@@ -383,7 +394,7 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
       {props.confirmRemoveAssetId === props.asset.localAssetId ? (
         <div className="mt-2 flex items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-4 py-2.5">
           <p className="flex-1 text-xs text-[var(--nimi-status-danger)]">
-            {i18n.t('runtimeConfig.localModelCenter.confirmRemoveAsset', {
+            {t('runtimeConfig.localModelCenter.confirmRemoveAsset', {
               defaultValue: 'Remove "{{name}}"? Asset files will be permanently deleted.',
               name: props.asset.assetId,
             })}
@@ -394,14 +405,14 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
             disabled={props.assetBusy}
             className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-danger)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] disabled:opacity-50"
           >
-            {i18n.t('runtimeConfig.localModelCenter.confirm', { defaultValue: 'Confirm' })}
+            {t('runtimeConfig.localModelCenter.confirm', { defaultValue: 'Confirm' })}
           </button>
           <button
             type="button"
             onClick={props.onCancelRemove}
             className="rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
           >
-            {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
+            {t('Common.cancel', { defaultValue: 'Cancel' })}
           </button>
         </div>
       ) : null}
@@ -419,6 +430,8 @@ type DependencyInstalledAssetRowProps = {
 };
 
 export function DependencyInstalledAssetRow(props: DependencyInstalledAssetRowProps) {
+  const i18n = useDesktopI18nResource().instance;
+  const t = i18n.t.bind(i18n);
   const unhealthyReasonSummary = props.asset.status === 'unhealthy'
     ? localizedAssetUnhealthyReason(props.asset.reasonCode)
     : '';
@@ -448,7 +461,7 @@ export function DependencyInstalledAssetRow(props: DependencyInstalledAssetRowPr
             className="mt-1 line-clamp-2 text-[11px] text-[var(--nimi-status-danger)]"
             title={String(props.asset.reasonCode || '').trim()}
           >
-            {unhealthyReasonSummary || i18n.t('runtimeConfig.localModelCenter.assetUnhealthyGeneric', {
+            {unhealthyReasonSummary || t('runtimeConfig.localModelCenter.assetUnhealthyGeneric', {
               defaultValue: 'This model is currently unavailable. Try re-scanning its bundle, or remove and re-import it.',
             })}
           </p>
@@ -465,7 +478,7 @@ export function DependencyInstalledAssetRow(props: DependencyInstalledAssetRowPr
           onClick={() => props.onRequestRemove(props.asset.localAssetId)}
           disabled={props.assetBusy || props.confirmRemoveAssetId === props.asset.localAssetId}
           className="rounded-lg p-1.5 text-[var(--nimi-status-danger)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] disabled:opacity-50"
-          title={i18n.t('runtimeConfig.localModelCenter.removeAsset', { defaultValue: 'Remove asset' })}
+          title={t('runtimeConfig.localModelCenter.removeAsset', { defaultValue: 'Remove asset' })}
         >
           <TrashIcon className="h-4 w-4" />
         </button>
@@ -473,7 +486,7 @@ export function DependencyInstalledAssetRow(props: DependencyInstalledAssetRowPr
       {props.confirmRemoveAssetId === props.asset.localAssetId ? (
         <div className="mt-2 flex items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-4 py-2.5">
           <p className="flex-1 text-xs text-[var(--nimi-status-danger)]">
-            {i18n.t('runtimeConfig.localModelCenter.confirmRemoveAsset', {
+            {t('runtimeConfig.localModelCenter.confirmRemoveAsset', {
               defaultValue: 'Remove "{{name}}"? Asset files will be permanently deleted.',
               name: props.asset.assetId,
             })}
@@ -484,14 +497,14 @@ export function DependencyInstalledAssetRow(props: DependencyInstalledAssetRowPr
             disabled={props.assetBusy}
             className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-danger)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] disabled:opacity-50"
           >
-            {i18n.t('runtimeConfig.localModelCenter.confirm', { defaultValue: 'Confirm' })}
+            {t('runtimeConfig.localModelCenter.confirm', { defaultValue: 'Confirm' })}
           </button>
           <button
             type="button"
             onClick={props.onCancelRemove}
             className="rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
           >
-            {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
+            {t('Common.cancel', { defaultValue: 'Cancel' })}
           </button>
         </div>
       ) : null}

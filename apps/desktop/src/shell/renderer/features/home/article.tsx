@@ -1,6 +1,7 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import type { ReactNode, RefObject } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
-import { formatLocaleDate, i18n } from '../../i18n';
+import { formatLocaleDate } from '../../i18n';
 import { AppCardSurface } from '@nimiplatform/kit/ui';
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
@@ -47,6 +48,7 @@ export type PostCardArticleProps = {
 };
 
 export function PostCardArticle(props: PostCardArticleProps) {
+  const i18n = useDesktopI18nResource().instance;
   const authorName = props.authorName || i18n.t('Common.unknown', { defaultValue: 'Unknown' });
   const authorHandle = props.authorHandle || '';
   const SHOW_AVATAR_STATUS_INDICATOR = false;

@@ -33,6 +33,34 @@ import {
   localDevelopmentBridgeAvailable,
   subscribeLocalDevelopmentApprovals,
 } from '../features/local-development/local-development-bridge.js';
+import {
+  continueOauthNextIfPresent,
+  freshOauthLoginGateStorageKey,
+  readFreshOauthLoginState,
+} from '../features/auth/oauth-next-continuation.js';
+import {
+  getDesktopAccountRuntime,
+  getDesktopAppId,
+  getDesktopHostRuntimeAgentClient,
+  getDesktopNimiClient,
+  getDesktopRealm,
+  getDesktopRuntime,
+  getDesktopRuntimeAccountCaller,
+  getDesktopRuntimeAgentTurnsRuntime,
+  isDesktopNimiClientSessionReady,
+  isDesktopRuntimeAccountSessionReady,
+  withDesktopRuntimeProtectedScopes,
+} from '../infra/sdk/desktop-nimi-client-session.js';
+import { connectDesktopOpenIntentListener } from '../infra/desktop-open/desktop-open-intent-listener.js';
+import {
+  isDeveloperModeEnabled,
+  refreshDeveloperMode,
+  setDeveloperMode,
+  subscribeDeveloperMode,
+} from '../features/developer/developer-mode.js';
+import { connectProductionChatRealtimeSync } from '../infra/realtime/production-chat-realtime-sync.js';
+import { createDesktopProductionFirstRunPort } from './production-first-run-port.js';
+import { createDesktopProductionSettingsPort } from '../features/settings/settings-storage.js';
 
 export function createDesktopBrowserRoutePort(): DesktopRendererRoutePort {
   function read(): DesktopRendererRouteView {
@@ -93,7 +121,19 @@ export function createDesktopProductionBindings(
     capabilities: kit.capabilities,
     localization: kit.localization,
     kit,
-    sdk: Object.freeze({}),
+    sdk: Object.freeze({
+      isSessionReady: isDesktopNimiClientSessionReady,
+      isRuntimeAccountSessionReady: isDesktopRuntimeAccountSessionReady,
+      appId: getDesktopAppId,
+      client: getDesktopNimiClient,
+      runtime: getDesktopRuntime,
+      runtimeAgentTurns: getDesktopRuntimeAgentTurnsRuntime,
+      hostRuntimeAgent: getDesktopHostRuntimeAgentClient,
+      accountRuntime: getDesktopAccountRuntime,
+      realm: getDesktopRealm,
+      accountCaller: getDesktopRuntimeAccountCaller,
+      withRuntimeProtectedScopes: withDesktopRuntimeProtectedScopes,
+    }),
     app: {
       projection: Object.freeze({
         initialState: () => ({
@@ -105,8 +145,13 @@ export function createDesktopProductionBindings(
         }),
         attention: attention.getSnapshot,
         localDevelopmentAvailable: localDevelopmentBridgeAvailable,
+        loginMode: () => getShellFeatureFlags().mode === 'web' ? 'embedded' : 'desktop-browser',
+        developerModeEnabled: isDeveloperModeEnabled,
+        viewportWidth: () => window.innerWidth || document.documentElement.clientWidth,
       }),
       commands: Object.freeze({
+        firstRun: createDesktopProductionFirstRunPort(),
+        settings: createDesktopProductionSettingsPort(),
         commitAIConfig: dependencies.commitAIConfig,
         persistChatThinkingPreference: dependencies.persistChatThinkingPreference,
         setActiveScopeForMode: dependencies.setActiveScopeForMode,
@@ -116,6 +161,32 @@ export function createDesktopProductionBindings(
           writeStorageTextTo(resolveBrowserStorage('local'), LOCALE_STORAGE_KEY, locale);
           document.documentElement.lang = lang;
           document.title = title;
+        },
+        async reconcileLoginState({ authStatus }: Parameters<
+          DesktopCanonicalRendererBindings['app']['commands']['reconcileLoginState']
+        >[0]) {
+          if (getShellFeatureFlags().mode !== 'web') {
+            return Object.freeze({ clearAuthSession: false });
+          }
+          const freshOauthState = readFreshOauthLoginState(window.location.search);
+          if (freshOauthState && authStatus === 'anonymous') {
+            const key = freshOauthLoginGateStorageKey(freshOauthState);
+            if (!window.sessionStorage.getItem(key)) {
+              window.sessionStorage.setItem(key, 'started');
+            }
+          }
+          if (authStatus === 'authenticated') {
+            if (freshOauthState) {
+              const key = freshOauthLoginGateStorageKey(freshOauthState);
+              const marker = window.sessionStorage.getItem(key);
+              if (!marker) {
+                window.sessionStorage.setItem(key, 'cleared');
+                return Object.freeze({ clearAuthSession: true });
+              }
+            }
+            continueOauthNextIfPresent(window.location.search);
+          }
+          return Object.freeze({ clearAuthSession: false });
         },
         checkDesktopUpdate: (input: Parameters<
           DesktopCanonicalRendererBindings['app']['commands']['checkDesktopUpdate']
@@ -142,10 +213,66 @@ export function createDesktopProductionBindings(
           decision,
           riskDisclosureAcknowledged,
         ),
+        refreshDeveloperMode,
+        setDeveloperMode,
       }),
       events: Object.freeze({
+        connectChatRealtimeSync: connectProductionChatRealtimeSync,
+        subscribeWindowFocus(listener: (focused: boolean) => void) {
+          const onFocus = () => listener(true);
+          const onBlur = () => listener(false);
+          window.addEventListener('focus', onFocus);
+          window.addEventListener('blur', onBlur);
+          return () => {
+            window.removeEventListener('focus', onFocus);
+            window.removeEventListener('blur', onBlur);
+          };
+        },
+        subscribeWindowResize(listener: () => void) {
+          window.addEventListener('resize', listener);
+          return () => window.removeEventListener('resize', listener);
+        },
+        subscribeWindowKeyDown(listener: (event: KeyboardEvent) => void) {
+          window.addEventListener('keydown', listener);
+          return () => window.removeEventListener('keydown', listener);
+        },
+        subscribeDocumentMouseDown(listener: (event: MouseEvent) => void) {
+          document.addEventListener('mousedown', listener);
+          return () => document.removeEventListener('mousedown', listener);
+        },
         subscribeAttention: attention.subscribe,
+        subscribeDeveloperMode,
         subscribeLocalDevelopmentApprovals,
+        subscribeProductControlRecord(listener: Parameters<
+          DesktopCanonicalRendererBindings['app']['events']['subscribeProductControlRecord']
+        >[0]) {
+          let active = true;
+          let refreshInFlight = false;
+          const refresh = async () => {
+            if (!active || refreshInFlight) return;
+            refreshInFlight = true;
+            try {
+              const projection = await desktopBridge.getProductControlRecord();
+              if (active) listener({ ok: true, projection });
+            } catch (error) {
+              if (active) listener({
+                ok: false,
+                error: error instanceof Error ? error.message : String(error || 'product control record unavailable'),
+              });
+            } finally {
+              refreshInFlight = false;
+            }
+          };
+          const interval = window.setInterval(refresh, 3_000);
+          window.addEventListener('focus', refresh);
+          void refresh();
+          return () => {
+            active = false;
+            window.clearInterval(interval);
+            window.removeEventListener('focus', refresh);
+          };
+        },
+        connectDesktopOpenIntents: connectDesktopOpenIntentListener,
         connectLifecycle(lifecycle: Parameters<
           DesktopCanonicalRendererBindings['app']['events']['connectLifecycle']
         >[0]) {
@@ -178,7 +305,13 @@ export function createDesktopProductionBindings(
       }),
     },
     route: createDesktopBrowserRoutePort(),
-    clock: Object.freeze({ now: Date.now }),
+    clock: Object.freeze({
+      now: Date.now,
+      schedule(delayMs: number, listener: Parameters<DesktopCanonicalRendererBindings['clock']['schedule']>[1]) {
+        const timer = window.setTimeout(() => listener({ ok: true }), delayMs);
+        return () => window.clearTimeout(timer);
+      },
+    }),
     surfaceLifecycle: kit.surfaceLifecycle,
   });
 }

@@ -1,5 +1,6 @@
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
+import type { DesktopRendererClockView } from '../../renderer/contract.js';
 
 export const STREAM_FIRST_PACKET_TIMEOUT_MS = 60_000;
 export const STREAM_IDLE_TIMEOUT_MS = 30_000;
@@ -43,12 +44,26 @@ export type StreamEvent =
 
 type StreamListener = (state: StreamState) => void;
 
+export interface StreamController {
+  getStreamState(chatId: string): StreamState;
+  subscribeStream(chatId: string, listener: StreamListener): () => void;
+  subscribeStream(listener: StreamListener): () => void;
+  startStream(chatId: string, totalTimeoutMs?: number): AbortController;
+  feedStreamEvent(chatId: string, event: StreamEvent): void;
+  startKeepalive(chatId: string, intervalMs: number): () => void;
+  cancelStream(chatId: string): void;
+  clearStream(chatId: string): void;
+  clearAllStreams(): void;
+  dispose(): void;
+}
+
+export function createStreamController(clock: DesktopRendererClockView): StreamController {
 const activeStreams = new Map<string, StreamState>();
 const abortControllers = new Map<string, AbortController>();
-const firstPacketTimers = new Map<string, ReturnType<typeof setTimeout>>();
-const idleTimers = new Map<string, ReturnType<typeof setTimeout>>();
-const totalTimers = new Map<string, ReturnType<typeof setTimeout>>();
-const terminalCleanupTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const firstPacketTimers = new Map<string, () => void>();
+const idleTimers = new Map<string, () => void>();
+const totalTimers = new Map<string, () => void>();
+const terminalCleanupTimers = new Map<string, () => void>();
 const listenersByChatId = new Map<string, Set<StreamListener>>();
 
 function emptyState(chatId: string): StreamState {
@@ -89,17 +104,17 @@ function notify(state: StreamState) {
 function clearTimers(chatId: string) {
   const fpt = firstPacketTimers.get(chatId);
   if (fpt) {
-    clearTimeout(fpt);
+    fpt();
     firstPacketTimers.delete(chatId);
   }
   const idle = idleTimers.get(chatId);
   if (idle) {
-    clearTimeout(idle);
+    idle();
     idleTimers.delete(chatId);
   }
   const tt = totalTimers.get(chatId);
   if (tt) {
-    clearTimeout(tt);
+    tt();
     totalTimers.delete(chatId);
   }
 }
@@ -107,7 +122,7 @@ function clearTimers(chatId: string) {
 function clearTerminalCleanup(chatId: string) {
   const cleanupTimer = terminalCleanupTimers.get(chatId);
   if (cleanupTimer) {
-    clearTimeout(cleanupTimer);
+    cleanupTimer();
     terminalCleanupTimers.delete(chatId);
   }
 }
@@ -145,21 +160,56 @@ function setStreamState(chatId: string, state: StreamState) {
   enforceStreamCacheLimit();
 }
 
+function failClockSchedule(chatId: string, error: string) {
+  const current = activeStreams.get(chatId);
+  if (!current || isTerminalPhase(current.phase)) return;
+  const failed: StreamState = {
+    ...current,
+    phase: 'error',
+    errorMessage: `Renderer clock rejected stream timer: ${error}`,
+    interrupted: hasPartialContent(current),
+    reasonCode: 'DESKTOP_RENDERER_CLOCK_REJECTED',
+    cancelSource: 'timeout',
+  };
+  setStreamState(chatId, failed);
+  clearTimers(chatId);
+  const abortController = abortControllers.get(chatId);
+  abortController?.abort();
+  abortControllers.delete(chatId);
+  notify(failed);
+  logRendererEvent({
+    level: 'error',
+    area: 'stream-controller',
+    message: 'stream:clock-rejected',
+    details: { chatId, error },
+  });
+}
+
+function scheduleTimer(chatId: string, delayMs: number, onElapsed: () => void): () => void {
+  return clock.schedule(delayMs, (result) => {
+    if (!result.ok) {
+      failClockSchedule(chatId, result.error);
+      return;
+    }
+    onElapsed();
+  });
+}
+
 function scheduleTerminalCleanup(chatId: string) {
   clearTerminalCleanup(chatId);
-  const timer = setTimeout(() => {
+  const timer = scheduleTimer(chatId, STREAM_TERMINAL_STATE_TTL_MS, () => {
     clearStream(chatId);
-  }, STREAM_TERMINAL_STATE_TTL_MS);
+  });
   terminalCleanupTimers.set(chatId, timer);
 }
 
-export function getStreamState(chatId: string): StreamState {
+function getStreamState(chatId: string): StreamState {
   return activeStreams.get(chatId) || emptyState(chatId);
 }
 
-export function subscribeStream(chatId: string, listener: StreamListener): () => void;
-export function subscribeStream(listener: StreamListener): () => void;
-export function subscribeStream(
+function subscribeStream(chatId: string, listener: StreamListener): () => void;
+function subscribeStream(listener: StreamListener): () => void;
+function subscribeStream(
   chatIdOrListener: string | StreamListener,
   maybeListener?: StreamListener,
 ): () => void {
@@ -186,7 +236,7 @@ export function subscribeStream(
   };
 }
 
-export function startStream(chatId: string, totalTimeoutMs = STREAM_TEXT_TOTAL_TIMEOUT_MS): AbortController {
+function startStream(chatId: string, totalTimeoutMs = STREAM_TEXT_TOTAL_TIMEOUT_MS): AbortController {
   // Concurrent protection: cancel existing stream for this chat
   const existing = activeStreams.get(chatId);
   if (existing && (existing.phase === 'waiting' || existing.phase === 'streaming')) {
@@ -204,7 +254,7 @@ export function startStream(chatId: string, totalTimeoutMs = STREAM_TEXT_TOTAL_T
     partialReasoningText: '',
     errorMessage: null,
     interrupted: false,
-    startedAt: Date.now(),
+    startedAt: clock.now(),
     firstPacketAt: null,
     lastActivityAt: null,
     idleDeadlineAt: null,
@@ -215,7 +265,7 @@ export function startStream(chatId: string, totalTimeoutMs = STREAM_TEXT_TOTAL_T
   setStreamState(chatId, state);
 
   // First packet timeout
-  const fpt = setTimeout(() => {
+  const fpt = scheduleTimer(chatId, STREAM_FIRST_PACKET_TIMEOUT_MS, () => {
     const current = activeStreams.get(chatId);
     if (current?.phase === 'waiting') {
       const errorState: StreamState = {
@@ -236,11 +286,11 @@ export function startStream(chatId: string, totalTimeoutMs = STREAM_TEXT_TOTAL_T
         details: { chatId },
       });
     }
-  }, STREAM_FIRST_PACKET_TIMEOUT_MS);
+  });
   firstPacketTimers.set(chatId, fpt);
 
   // Total timeout
-  const tt = setTimeout(() => {
+  const tt = scheduleTimer(chatId, totalTimeoutMs, () => {
     const current = activeStreams.get(chatId);
     if (current && (current.phase === 'waiting' || current.phase === 'streaming')) {
       const errorState: StreamState = {
@@ -263,7 +313,7 @@ export function startStream(chatId: string, totalTimeoutMs = STREAM_TEXT_TOTAL_T
         details: { chatId, totalTimeoutMs },
       });
     }
-  }, totalTimeoutMs);
+  });
   totalTimers.set(chatId, tt);
 
   notify(state);
@@ -277,10 +327,10 @@ function hasPartialContent(state: StreamState): boolean {
 function resetIdleTimeout(chatId: string, abortController: AbortController) {
   const existing = idleTimers.get(chatId);
   if (existing) {
-    clearTimeout(existing);
+    existing();
   }
 
-  const idleDeadlineAt = Date.now() + STREAM_IDLE_TIMEOUT_MS;
+  const idleDeadlineAt = clock.now() + STREAM_IDLE_TIMEOUT_MS;
   const current = activeStreams.get(chatId);
   if (current && (current.phase === 'waiting' || current.phase === 'streaming')) {
     setStreamState(chatId, {
@@ -289,7 +339,7 @@ function resetIdleTimeout(chatId: string, abortController: AbortController) {
     });
   }
 
-  const timer = setTimeout(() => {
+  const timer = scheduleTimer(chatId, STREAM_IDLE_TIMEOUT_MS, () => {
     const latest = activeStreams.get(chatId);
     if (!latest || (latest.phase !== 'waiting' && latest.phase !== 'streaming')) {
       return;
@@ -313,12 +363,12 @@ function resetIdleTimeout(chatId: string, abortController: AbortController) {
       message: 'stream:idle-timeout',
       details: { chatId, idleTimeoutMs: STREAM_IDLE_TIMEOUT_MS },
     });
-  }, STREAM_IDLE_TIMEOUT_MS);
+  });
 
   idleTimers.set(chatId, timer);
 }
 
-export function feedStreamEvent(chatId: string, event: StreamEvent) {
+function feedStreamEvent(chatId: string, event: StreamEvent) {
   const current = activeStreams.get(chatId);
   const canRecoverTimeoutWithTerminal = Boolean(
     current
@@ -339,7 +389,7 @@ export function feedStreamEvent(chatId: string, event: StreamEvent) {
   }
 
   if (event.type === 'keepalive') {
-    const now = Date.now();
+    const now = clock.now();
     const updated: StreamState = {
       ...current,
       firstPacketAt: current.firstPacketAt ?? now,
@@ -350,7 +400,7 @@ export function feedStreamEvent(chatId: string, event: StreamEvent) {
     if (current.phase === 'waiting') {
       const fpt = firstPacketTimers.get(chatId);
       if (fpt) {
-        clearTimeout(fpt);
+        fpt();
         firstPacketTimers.delete(chatId);
       }
     }
@@ -364,7 +414,7 @@ export function feedStreamEvent(chatId: string, event: StreamEvent) {
 
   if (event.type === 'text_delta' || event.type === 'reasoning_delta') {
     const isFirst = current.phase === 'waiting';
-    const now = Date.now();
+    const now = clock.now();
     const updated: StreamState = {
       ...current,
       phase: 'streaming',
@@ -384,7 +434,7 @@ export function feedStreamEvent(chatId: string, event: StreamEvent) {
     if (isFirst) {
       const fpt = firstPacketTimers.get(chatId);
       if (fpt) {
-        clearTimeout(fpt);
+        fpt();
         firstPacketTimers.delete(chatId);
       }
     }
@@ -398,7 +448,7 @@ export function feedStreamEvent(chatId: string, event: StreamEvent) {
   }
 
   if (event.type === 'done') {
-    const now = Date.now();
+    const now = clock.now();
     const finalText = typeof event.finalText === 'string'
       ? event.finalText
       : current.partialText;
@@ -474,7 +524,25 @@ export function feedStreamEvent(chatId: string, event: StreamEvent) {
   }
 }
 
-export function cancelStream(chatId: string) {
+function startKeepalive(chatId: string, intervalMs: number): () => void {
+  let cancelled = false;
+  let cancelPending: () => void = () => undefined;
+  const scheduleNext = () => {
+    cancelPending = scheduleTimer(chatId, intervalMs, () => {
+      if (cancelled) return;
+      feedStreamEvent(chatId, { type: 'keepalive' });
+      scheduleNext();
+    });
+  };
+  scheduleNext();
+  return () => {
+    if (cancelled) return;
+    cancelled = true;
+    cancelPending();
+  };
+}
+
+function cancelStream(chatId: string) {
   const current = activeStreams.get(chatId);
   if (!current || (current.phase !== 'waiting' && current.phase !== 'streaming')) {
     return;
@@ -509,16 +577,30 @@ export function cancelStream(chatId: string) {
   });
 }
 
-export function clearStream(chatId: string) {
+function clearStream(chatId: string) {
   activeStreams.delete(chatId);
+  abortControllers.get(chatId)?.abort();
   abortControllers.delete(chatId);
   clearTimers(chatId);
   clearTerminalCleanup(chatId);
 }
 
-export function clearAllStreams() {
+function clearAllStreams() {
   for (const chatId of Array.from(activeStreams.keys())) {
     clearStream(chatId);
   }
   listenersByChatId.clear();
+}
+
+return Object.freeze({
+  getStreamState,
+  subscribeStream,
+  startStream,
+  feedStreamEvent,
+  startKeepalive,
+  cancelStream,
+  clearStream,
+  clearAllStreams,
+  dispose: clearAllStreams,
+});
 }

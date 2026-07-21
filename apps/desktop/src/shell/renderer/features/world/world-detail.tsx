@@ -1,7 +1,8 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '../../app-shell/providers/app-store';
-import { i18n } from '../../i18n';
+
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
@@ -34,6 +35,7 @@ type WorldDetailProps = {
 };
 
 export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps) {
+  const i18n = useDesktopI18nResource().instance;
   const queryClient = useQueryClient();
   const authStatus = useAppStore((state) => state.auth.status);
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());

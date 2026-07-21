@@ -1,6 +1,7 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { i18n } from '../../i18n';
+
 import { useAppStore } from '../../app-shell/providers/app-store';
 import {
   characterSourceMaterializationFailureMessage,
@@ -29,6 +30,7 @@ import { SourceDetailView } from './source-detail-view.js';
 import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 
 export function SourceDetailPanel() {
+  const i18n = useDesktopI18nResource().instance;
   const queryClient = useQueryClient();
   const authStatus = useAppStore((state) => state.auth.status);
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());

@@ -8,28 +8,33 @@ const SOURCE_PATH = resolve(
   '../src/shell/renderer/features/realtime/use-chat-realtime-sync.ts',
 );
 const source = readFileSync(SOURCE_PATH, 'utf-8');
+const connectorSource = readFileSync(resolve(
+  import.meta.dirname,
+  '../src/shell/renderer/infra/realtime/production-chat-realtime-sync.ts',
+), 'utf-8');
 
 describe('Runtime account broker projection refresh', () => {
   test('broker refresh covers chat, selected messages, notifications, and outboxes', () => {
-    assert.match(source, /const syncThroughBroker = async \(\) => \{/);
-    assert.match(source, /queryClient\.invalidateQueries\(\{ queryKey: \['chats'\] \}\)/);
-    assert.match(source, /queryClient\.invalidateQueries\(\{ queryKey: \['messages', selectedChatId\] \}\)/);
-    assert.match(source, /invalidateNotificationQueries\(queryClient\)/);
-    assert.match(source, /flushPendingChatOutbox\(\)/);
-    assert.match(source, /realmSocialData\.flushSocialOutbox\(\)/);
+    assert.match(connectorSource, /const syncThroughBroker = async \(\) => \{/);
+    assert.match(connectorSource, /input\.queryClient\.invalidateQueries\(\{ queryKey: \['chats'\] \}\)/);
+    assert.match(connectorSource, /queryKey: \['messages', input\.selectedChatId\]/);
+    assert.match(connectorSource, /invalidateNotificationQueries\(input\.queryClient\)/);
+    assert.match(connectorSource, /flushPendingChatOutbox\(\)/);
+    assert.match(connectorSource, /realmSocialData\.flushSocialOutbox\(\)/);
   });
 
   test('broker refresh is serialized and runs immediately, periodically, and on visibility', () => {
-    assert.match(source, /if \(cancelled \|\| inFlight\) \{/);
-    assert.match(source, /void syncThroughBroker\(\);/);
-    assert.match(source, /globalThis\.setInterval\([\s\S]*BROKER_SYNC_INTERVAL_MS/s);
-    assert.match(source, /document\.addEventListener\('visibilitychange', onVisibilityChange\)/);
-    assert.match(source, /document\.visibilityState === 'visible'/);
+    assert.match(connectorSource, /if \(!active \|\| inFlight\) return;/);
+    assert.match(connectorSource, /void syncThroughBroker\(\);/);
+    assert.match(connectorSource, /globalThis\.setInterval\([\s\S]*BROKER_SYNC_INTERVAL_MS/s);
+    assert.match(connectorSource, /document\.addEventListener\('visibilitychange', onVisibilityChange\)/);
+    assert.match(connectorSource, /document\.visibilityState === 'visible'/);
   });
 
   test('unauthenticated state disables broker refresh and the socket signal remains false', () => {
-    assert.match(source, /offlineCoordinator\.markRealmSocketReachability\('unknown'\)/);
-    assert.match(source, /if \(authStatus !== 'authenticated'\) \{\s*return undefined;/s);
+    assert.match(connectorSource, /offlineCoordinator\.markRealmSocketReachability\('unknown'\)/);
+    assert.match(source, /if \(authStatus !== 'authenticated'\) return undefined;/);
+    assert.match(source, /bindings\.app\.events\.connectChatRealtimeSync/);
   });
 
   test('shared seenEvents LRU helper remains stable for retained cache callers', () => {
@@ -41,8 +46,9 @@ describe('Runtime account broker projection refresh', () => {
   });
 
   test('renderer does not open a direct Realm socket or resolve raw authorization', () => {
-    assert.doesNotMatch(source, /useRealmChatRealtimeController|socket\.io|WebSocket|resolveRealtimeUrl/);
-    assert.doesNotMatch(source, /Authorization|Bearer|resolveAuthToken|getAccessToken/);
-    assert.doesNotMatch(source, /markRealmRestReachability\('unreachable'\)/);
+    const combined = `${source}\n${connectorSource}`;
+    assert.doesNotMatch(combined, /useRealmChatRealtimeController|socket\.io|WebSocket|resolveRealtimeUrl/);
+    assert.doesNotMatch(combined, /Authorization|Bearer|resolveAuthToken|getAccessToken/);
+    assert.doesNotMatch(combined, /markRealmRestReachability\('unreachable'\)/);
   });
 });

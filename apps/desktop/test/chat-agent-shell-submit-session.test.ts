@@ -13,7 +13,7 @@ import {
   resolveInterruptedAgentSubmitSession,
   resolveProjectionRefreshAgentSubmitSession,
 } from '../src/shell/renderer/features/chat/chat-agent-shell-submit-session.js';
-import type { StreamState } from '../src/shell/renderer/features/turns/stream-controller.js';
+import type { StreamState } from './helpers/test-stream-controller.js';
 import { createAgentTextMessage } from './helpers/agent-chat-record-fixtures.js';
 
 function sampleThread(): AgentLocalThreadRecord {

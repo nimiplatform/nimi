@@ -1,12 +1,10 @@
-import { productionQueryClient } from '../../infra/query-client/production-query-client';
-import { productionAppStore } from '../../app-shell/providers/production-app-store';
+import { useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { AppStoreState } from '../../app-shell/providers/store-types';
-import { i18n } from '../../i18n';
-import { clearAllStreams } from '../turns/stream-controller';
-import {
-  getDesktopAccountRuntime,
-  getDesktopRuntimeAccountCaller,
-} from '../../infra/sdk/desktop-nimi-client-session';
+import { useAppStore } from '../../app-shell/providers/app-store.js';
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
+import { useStreamController } from '../turns/stream-controller-context.js';
+import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 
 type LogoutAndClearSessionInput = {
   clearAuthSession: AppStoreState['clearAuthSession'];
@@ -28,7 +26,6 @@ type LogoutDependencies = {
     reasonCode?: unknown;
     accountReasonCode?: unknown;
   }>;
-  clearPersistedSession: () => Promise<void> | void;
   clearAllStreams: () => void;
   clearQueryClient: () => void;
   translate: LogoutTranslate;
@@ -38,36 +35,46 @@ type SwitchAccountDependencies = Omit<LogoutDependencies, 'logout'> & {
   switchAccount: () => Promise<void>;
 };
 
-const defaultLogoutDependencies: LogoutDependencies = {
-  logout: async () => {
-    return getDesktopAccountRuntime().account.logout({
-      caller: getDesktopRuntimeAccountCaller(),
-      reason: 'desktop_logout',
-    });
-  },
-  clearPersistedSession: async () => {
-    // Runtime owns the Desktop account session and durable credential custody.
-  },
-  clearAllStreams,
-  clearQueryClient: () => productionQueryClient.clear(),
-  translate: i18n.t.bind(i18n),
-};
-
-const defaultSwitchAccountDependencies: SwitchAccountDependencies = {
-  switchAccount: async () => {
-    const response = await getDesktopAccountRuntime().account.switchAccount({
-      caller: getDesktopRuntimeAccountCaller(),
-      reason: 'desktop_switch_account',
-    });
-    if (!response.accepted) {
-      throw new Error(String(response.accountReasonCode || response.reasonCode || 'runtime_switch_account_rejected'));
-    }
-  },
-  clearPersistedSession: defaultLogoutDependencies.clearPersistedSession,
-  clearAllStreams: defaultLogoutDependencies.clearAllStreams,
-  clearQueryClient: defaultLogoutDependencies.clearQueryClient,
-  translate: defaultLogoutDependencies.translate,
-};
+export function useLogoutSessionDependencies(): {
+  readonly logout: LogoutDependencies;
+  readonly switchAccount: SwitchAccountDependencies;
+  readonly feedback: NonNullable<LogoutAndClearSessionInput['onFeedback']>;
+} {
+  const queryClient = useQueryClient();
+  const i18n = useDesktopI18nResource().instance;
+  const streamController = useStreamController();
+  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
+  const sdk = useDesktopRendererSdk();
+  return useMemo(() => {
+    const shared = {
+      clearAllStreams: streamController.clearAllStreams,
+      clearQueryClient: () => queryClient.clear(),
+      translate: i18n.t.bind(i18n),
+    };
+    return {
+      logout: {
+        ...shared,
+        logout: () => sdk.accountRuntime().account.logout({
+          caller: sdk.accountCaller(),
+          reason: 'desktop_logout',
+        }),
+      },
+      switchAccount: {
+        ...shared,
+        async switchAccount() {
+          const response = await sdk.accountRuntime().account.switchAccount({
+            caller: sdk.accountCaller(),
+            reason: 'desktop_switch_account',
+          });
+          if (!response.accepted) {
+            throw new Error(String(response.accountReasonCode || response.reasonCode || 'runtime_switch_account_rejected'));
+          }
+        },
+      },
+      feedback: setStatusBanner,
+    };
+  }, [i18n, queryClient, sdk, setStatusBanner, streamController]);
+}
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || '');
@@ -100,12 +107,12 @@ async function emitLogoutFeedback(
     input.setStatusBanner(banner);
     return;
   }
-  productionAppStore.getState().setStatusBanner(banner);
+  throw new Error('LOGOUT_FEEDBACK_SINK_REQUIRED');
 }
 
 export async function logoutAndClearSession(
   input: LogoutAndClearSessionInput,
-  deps: LogoutDependencies = defaultLogoutDependencies,
+  deps: LogoutDependencies,
 ): Promise<void> {
   try {
     const response = await deps.logout();
@@ -132,7 +139,6 @@ export async function logoutAndClearSession(
     return;
   }
 
-  await deps.clearPersistedSession();
   deps.clearAllStreams();
   input.clearAuthSession();
   deps.clearQueryClient();
@@ -145,7 +151,7 @@ export async function logoutAndClearSession(
 
 export async function switchAccountAndClearSession(
   input: LogoutAndClearSessionInput,
-  deps: SwitchAccountDependencies = defaultSwitchAccountDependencies,
+  deps: SwitchAccountDependencies,
 ): Promise<boolean> {
   try {
     await deps.switchAccount();
@@ -160,7 +166,6 @@ export async function switchAccountAndClearSession(
     return false;
   }
 
-  await deps.clearPersistedSession();
   deps.clearAllStreams();
   input.clearAuthSession();
   deps.clearQueryClient();

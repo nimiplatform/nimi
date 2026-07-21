@@ -272,15 +272,19 @@ test('D-SUP-008: the first-run gate refreshes product-control while Setup is mou
   const gatePanel = readDesktop(
     'src/shell/renderer/features/nimi-home/first-run-gate-panel.tsx',
   );
+  const productionBindings = readDesktop(
+    'src/shell/renderer/renderer/production-bindings.ts',
+  );
 
   // Setup is a projection over the product-control record. If Runtime has
   // already admitted `ready_for_use`, the gate must not wait forever on a
   // stale initial read: it refreshes on a bounded interval and on window focus.
-  assert.match(gatePanel, /FIRST_RUN_PRODUCT_CONTROL_REFRESH_MS/);
-  assert.match(gatePanel, /window\.setInterval/);
-  assert.match(gatePanel, /window\.addEventListener\('focus'/);
-  assert.match(gatePanel, /desktopBridge\.getProductControlRecord/);
-  assert.match(gatePanel, /refreshInFlightRef/);
+  assert.match(gatePanel, /bindings\.app\.events\.subscribeProductControlRecord/);
+  assert.doesNotMatch(gatePanel, /window\.|desktopBridge|setInterval/);
+  assert.match(productionBindings, /window\.setInterval\(refresh, 3_000\)/);
+  assert.match(productionBindings, /window\.addEventListener\('focus', refresh\)/);
+  assert.match(productionBindings, /desktopBridge\.getProductControlRecord/);
+  assert.match(productionBindings, /refreshInFlight/);
   assert.match(gatePanel, /ready_for_use/);
 });
 

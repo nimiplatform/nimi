@@ -12,11 +12,7 @@ import {
 } from '@nimiplatform/kit/ui';
 import { getSettingsMenuSections } from './settings-assets.js';
 import { renderSettingsPage } from './settings-pages.js';
-import {
-  addSettingsOpenSectionListener,
-  loadStoredSettingsSelected,
-  persistStoredSettingsSelected,
-} from './settings-storage.js';
+import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 
 const SETTINGS_SECTION_KEY_BY_LABEL: Record<string, string> = {
   Account: 'Settings.sectionAccount',
@@ -44,14 +40,15 @@ export function SettingsPanelBody() {
   const MIN_SETTINGS_SIDEBAR_WIDTH = 200;
   const MAX_SETTINGS_SIDEBAR_WIDTH = 320;
   const { t } = useTranslation();
+  const settings = useDesktopRendererCommands().settings;
   const menuSections = getSettingsMenuSections();
   const containerRef = useRef<HTMLDivElement>(null);
   const resizingRef = useRef(false);
   const [sidebarWidth, setSidebarWidth] = useState(216);
-  const [selectedId, setSelectedId] = useState(() => loadStoredSettingsSelected('profile'));
+  const [selectedId, setSelectedId] = useState(() => settings.loadSelected('profile'));
 
   const handleSelect = (id: string) => {
-    persistStoredSettingsSelected(id);
+    settings.persistSelected(id);
     setSelectedId(id);
   };
 
@@ -64,9 +61,9 @@ export function SettingsPanelBody() {
     };
   }, []);
 
-  useEffect(() => addSettingsOpenSectionListener((id) => {
+  useEffect(() => settings.subscribeOpenSection((id) => {
     setSelectedId(id);
-  }), []);
+  }), [settings]);
 
   const startResize = (event: MouseEvent<HTMLDivElement>) => {
     event.preventDefault();

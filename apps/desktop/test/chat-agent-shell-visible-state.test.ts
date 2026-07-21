@@ -25,7 +25,7 @@ import type {
   AgentLocalThreadBundle,
   AgentLocalThreadRecord,
 } from '../src/shell/renderer/bridge/runtime-bridge/types.js';
-import { cancelStream } from '../src/shell/renderer/features/turns/stream-controller.js';
+import { cancelStream } from './helpers/test-stream-controller.js';
 import { createAgentTextMessage } from './helpers/agent-chat-record-fixtures.js';
 
 const runtimeGlobal = globalThis as typeof globalThis & {

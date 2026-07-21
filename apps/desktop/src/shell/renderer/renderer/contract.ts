@@ -6,12 +6,19 @@ import type {
 } from '@nimiplatform/kit/shell/renderer/host';
 
 import type { AppAttentionState } from '../app-shell/providers/app-attention-state.js';
+import type { AuthStatus } from '../app-shell/providers/store-types.js';
+import type { NimiProductControlRecordProjection } from '@nimiplatform/sdk/runtime';
 import type { ChatThinkingPreference } from '../features/chat/chat-shared-thinking.js';
 import type { DesktopRendererLifecyclePort } from './lifecycle-port.js';
+import type { DesktopRendererSdkPort } from './sdk-port.js';
 import type {
   LocalDevelopmentApproval,
   LocalDevelopmentDecision,
 } from '../features/local-development/local-development-types.js';
+import type { DeveloperModeProjection } from '../features/developer/developer-mode.js';
+import type { QueryClient } from '@tanstack/react-query';
+import type { DesktopRendererFirstRunPort } from './first-run-port.js';
+import type { DesktopRendererSettingsPort } from './settings-port.js';
 
 export type DesktopRendererInitialState = {
   readonly aiConfig: NimiAIConfig;
@@ -25,9 +32,14 @@ export interface DesktopRendererProjectionPort {
   initialState(): DesktopRendererInitialState;
   attention(): AppAttentionState;
   localDevelopmentAvailable(): boolean;
+  loginMode(): 'desktop-browser' | 'embedded';
+  developerModeEnabled(): boolean;
+  viewportWidth(): number;
 }
 
 export interface DesktopRendererCommandPort {
+  readonly firstRun: DesktopRendererFirstRunPort;
+  readonly settings: DesktopRendererSettingsPort;
   commitAIConfig(config: NimiAIConfig): void;
   persistChatThinkingPreference(preference: ChatThinkingPreference): void;
   setActiveScopeForMode(mode: 'human' | 'ai' | 'agent' | 'group'): void;
@@ -36,6 +48,9 @@ export interface DesktopRendererCommandPort {
     readonly lang: string;
     readonly title: string;
   }): Promise<void> | void;
+  reconcileLoginState(input: {
+    readonly authStatus: AuthStatus;
+  }): Promise<{ readonly clearAuthSession: boolean }>;
   checkDesktopUpdate(input?: {
     readonly autoDownload?: boolean;
     readonly silent?: boolean;
@@ -49,13 +64,31 @@ export interface DesktopRendererCommandPort {
     readonly decision: LocalDevelopmentDecision;
     readonly riskDisclosureAcknowledged: boolean;
   }): Promise<void>;
+  refreshDeveloperMode(): Promise<DeveloperModeProjection>;
+  setDeveloperMode(enabled: boolean): Promise<DeveloperModeProjection>;
 }
 
 export interface DesktopRendererEventPort {
+  connectChatRealtimeSync(input: {
+    readonly queryClient: QueryClient;
+    readonly selectedChatId: string | null;
+  }): () => void;
+  subscribeWindowFocus(listener: (focused: boolean) => void): () => void;
+  subscribeWindowResize(listener: () => void): () => void;
+  subscribeWindowKeyDown(listener: (event: KeyboardEvent) => void): () => void;
+  subscribeDocumentMouseDown(listener: (event: MouseEvent) => void): () => void;
   subscribeAttention(listener: () => void): () => void;
   subscribeLocalDevelopmentApprovals(
     listener: (approval: LocalDevelopmentApproval) => void,
   ): Promise<() => void>;
+  subscribeDeveloperMode(listener: (enabled: boolean) => void): () => void;
+  subscribeProductControlRecord(
+    listener: (result:
+      | { readonly ok: true; readonly projection: NimiProductControlRecordProjection }
+      | { readonly ok: false; readonly error: string }
+    ) => void,
+  ): () => void;
+  connectDesktopOpenIntents(): () => void;
   connectLifecycle(lifecycle: DesktopRendererLifecyclePort): () => void;
 }
 
@@ -80,6 +113,13 @@ export interface DesktopRendererRoutePort {
 
 export interface DesktopRendererClockView {
   now(): number;
+  schedule(
+    delayMs: number,
+    listener: (result:
+      | { readonly ok: true }
+      | { readonly ok: false; readonly error: string }
+    ) => void,
+  ): () => void;
 }
 
 export type DesktopCanonicalRendererBindings = Omit<
@@ -87,7 +127,7 @@ export type DesktopCanonicalRendererBindings = Omit<
   'app' | 'clock' | 'kit' | 'route' | 'sdk'
 > & {
   readonly kit: NimiRendererHostFacadeV1<NimiRendererHostMethodMap>;
-  readonly sdk: Record<string, never>;
+  readonly sdk: DesktopRendererSdkPort;
   readonly app: {
     readonly projection: DesktopRendererProjectionPort;
     readonly commands: DesktopRendererCommandPort;

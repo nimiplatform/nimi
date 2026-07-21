@@ -6,9 +6,9 @@ import { AmbientBackground, Surface } from '@nimiplatform/kit/ui';
 import { projectNimiProductControlAdmission, type NimiProductControlState } from '@nimiplatform/sdk/runtime';
 import { useAppStore, type AuthStatus } from '../providers/app-store';
 import { E2E_IDS } from '../../testability/e2e-ids';
-import { desktopBridge } from '../../bridge';
+import { useDesktopRendererBindings } from '../../renderer/binding-context';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { logoutAndClearSession } from '../../features/auth/logout';
+import { logoutAndClearSession, useLogoutSessionDependencies } from '../../features/auth/logout';
 import bootstrapLogoImage from '../../assets/logo.png';
 import { RuntimeLoadingScreen } from './runtime-loading-screen';
 
@@ -42,13 +42,14 @@ function SharedStatusShell(props: {
   children?: ReactNode;
 }) {
   const flags = getShellFeatureFlags();
+  const bindings = useDesktopRendererBindings();
 
   const onDragRegionMouseDown = (event: MouseEvent<HTMLDivElement>) => {
     if (!flags.enableTitlebarDrag) return;
     if (event.button !== 0) return;
     if (event.detail > 1) return;
     if (event.clientX < MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX) return;
-    void desktopBridge.startWindowDrag().catch(() => {
+    void bindings.app.commands.startWindowDrag().catch(() => {
       // no-op
     });
   };
@@ -162,6 +163,7 @@ function useDesktopOrdinaryShellAdmission(
 ): DesktopOrdinaryShellAdmissionHandle {
   const [admission, setAdmission] = useState<DesktopOrdinaryShellAdmission>('checking');
   const [retryToken, setRetryToken] = useState(0);
+  const bindings = useDesktopRendererBindings();
 
   useEffect(() => {
     if (authStatus === 'refresh-pending') {
@@ -207,7 +209,7 @@ function useDesktopOrdinaryShellAdmission(
         }
         admissionRequested = true;
         setAdmission('requesting-admission');
-        void desktopBridge.admitProductReadyForUse()
+        void bindings.app.commands.firstRun.admitReadyForUse()
           .then((next) => {
             projectVerdict(next);
           })
@@ -235,7 +237,7 @@ function useDesktopOrdinaryShellAdmission(
     // rechecked (notably after refresh-pending -> authenticated). Initial boot
     // already starts at `checking`; a completed shell must not be torn down
     // merely because token rotation advanced the account sequence.
-    void desktopBridge.getProductControlRecord()
+    void bindings.app.commands.firstRun.getRecord()
       .then(projectVerdict)
       .catch(() => {
         if (!cancelled) setAdmission('first-run');
@@ -243,7 +245,7 @@ function useDesktopOrdinaryShellAdmission(
     return () => {
       cancelled = true;
     };
-  }, [authStatus, retryToken]);
+  }, [authStatus, bindings, retryToken]);
 
   return {
     admission,
@@ -279,6 +281,7 @@ function ReadyDesktopShell() {
 function DesktopOrdinaryShellGate() {
   const authStatus = useAppStore((state) => state.auth.status);
   const clearAuthSession = useAppStore((state) => state.clearAuthSession);
+  const logoutDependencies = useLogoutSessionDependencies();
   const { admission: observedAdmission, retry: retryAdmission } = useDesktopOrdinaryShellAdmission(authStatus);
   const [firstRunReady, setFirstRunReady] = useState(false);
   const navigate = useNavigate();
@@ -319,7 +322,10 @@ function DesktopOrdinaryShellGate() {
           // clears the React Query cache — in addition to clearAuthSession.
           // A bare clearAuthSession() would leave the runtime session intact,
           // so the admission-failed surface looks unresponsive.
-          void logoutAndClearSession({ clearAuthSession });
+          void logoutAndClearSession(
+            { clearAuthSession, onFeedback: logoutDependencies.feedback },
+            logoutDependencies.logout,
+          );
         }}
       />
     );

@@ -6,7 +6,7 @@ import type {
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import type { NimiRuntimeAgentResolvedMessageActionEnvelope } from '@nimiplatform/sdk/runtime';
 import { getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
-import { feedStreamEvent } from '../turns/stream-controller';
+import type { StreamController } from '../turns/stream-controller.js';
 import {
   AGENT_RUNTIME_CHAT_PROVIDER_CAPABILITIES,
   type AgentChatUserAttachment,
@@ -21,6 +21,7 @@ import { RUNTIME_AGENT_CHAT_MODE_ID } from './chat-agent-runtime-mode';
 
 type AgentRuntimeChatProviderOptions = {
   runtimeAdapter?: AgentRuntimeChatTurnAdapter;
+  streamController: StreamController;
 };
 
 type AgentRuntimeChatProviderMetadata = {
@@ -100,6 +101,7 @@ async function* runRuntimeOwnedAgentTurn(input: {
   runtimeAdapter: AgentRuntimeChatTurnAdapter;
   userText: string;
   userAttachments: readonly AgentChatUserAttachment[];
+  streamController: StreamController;
 }): AsyncIterable<ConversationTurnEvent> {
   let reasoningText = '';
   let outputText = '';
@@ -124,9 +126,10 @@ async function* runRuntimeOwnedAgentTurn(input: {
     signal: input.baseInput.signal,
   });
 
-  const keepaliveIntervalId = setInterval(() => {
-    feedStreamEvent(input.baseInput.threadId, { type: 'keepalive' });
-  }, RUNTIME_AGENT_WAIT_KEEPALIVE_MS);
+  const stopKeepalive = input.streamController.startKeepalive(
+    input.baseInput.threadId,
+    RUNTIME_AGENT_WAIT_KEEPALIVE_MS,
+  );
 
   try {
     for await (const part of runtimeResult.stream) {
@@ -302,13 +305,13 @@ async function* runRuntimeOwnedAgentTurn(input: {
       }
     }
   } finally {
-    clearInterval(keepaliveIntervalId);
+    stopKeepalive();
   }
   throw new Error('runtime.agent stream ended without a terminal event');
 }
 
 export function createRuntimeAgentChatConversationProvider(
-  options: AgentRuntimeChatProviderOptions = {},
+  options: AgentRuntimeChatProviderOptions,
 ): ConversationOrchestrationProvider {
   const runtimeAdapter = options.runtimeAdapter ?? { streamAgentTurn: streamChatAgentRuntimeAgentTurn };
   return {
@@ -342,6 +345,7 @@ export function createRuntimeAgentChatConversationProvider(
           runtimeAdapter,
           userText,
           userAttachments,
+          streamController: options.streamController,
         })) {
           yield event;
         }

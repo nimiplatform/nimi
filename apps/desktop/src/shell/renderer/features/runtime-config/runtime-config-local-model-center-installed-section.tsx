@@ -1,3 +1,4 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { useState } from 'react';
 import type {
   NimiRuntimeLocalAssetKind,
@@ -9,7 +10,7 @@ import {
   isNimiRuntimeLocalEnvironmentDependencyJobActiveState,
   isNimiRuntimeLocalEnvironmentDependencyJobRetryableState,
 } from '@nimiplatform/sdk/runtime';
-import { i18n } from '../../i18n';
+
 import { RuntimeSelect } from './runtime-config-primitives';
 import {
   ASSET_KIND_OPTIONS,
@@ -51,6 +52,7 @@ type InstalledAssetsSectionProps = {
 };
 
 export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSectionProps) {
+  const i18n = useDesktopI18nResource().instance;
   const [confirmRemoveAssetId, setConfirmRemoveAssetId] = useState('');
   const [repairAssetId, setRepairAssetId] = useState('');
   const [repairEndpoint, setRepairEndpoint] = useState('');

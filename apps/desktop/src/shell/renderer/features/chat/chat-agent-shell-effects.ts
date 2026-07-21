@@ -15,7 +15,7 @@ import type {
 } from './chat-agent-shell-submit-driver';
 import { bundleQueryKey } from './chat-agent-shell-core';
 import { setAgentVisibleProjection } from './chat-agent-visible-projection-store';
-import { feedStreamEvent } from '../turns/stream-controller';
+import { useStreamController } from '../turns/stream-controller-context.js';
 
 type UseAgentConversationEffectsInput = {
   currentComposerTextRef: { current: string };
@@ -30,6 +30,7 @@ type UseAgentConversationEffectsInput = {
 };
 
 export function useAgentConversationEffects(input: UseAgentConversationEffectsInput) {
+  const streamController = useStreamController();
   const setBundleCache = useCallback((
     threadId: string,
     updater: (current: AgentLocalThreadBundle | null | undefined) => AgentLocalThreadBundle | null | undefined,
@@ -79,7 +80,7 @@ export function useAgentConversationEffects(input: UseAgentConversationEffectsIn
 
   const applyDriverEffects = useCallback((threadId: string, effects: AgentSubmitDriverEffectQueue): AgentSubmitDriverState => {
     for (const streamEffect of effects.streamEffects) {
-      feedStreamEvent(threadId, streamEffect);
+      streamController.feedStreamEvent(threadId, streamEffect);
     }
     if (effects.projectionEffect !== undefined) {
       setAgentVisibleProjection(threadId, effects.projectionEffect);
@@ -92,7 +93,7 @@ export function useAgentConversationEffects(input: UseAgentConversationEffectsIn
       applyHostInteractionPatch(threadId, effects.hostPatchEffect);
     }
     return effects.finalSession;
-  }, [applyHostInteractionPatch, input.queryClient]);
+  }, [applyHostInteractionPatch, input.queryClient, streamController]);
 
   const syncSelectionToThread = useCallback((thread: AgentLocalThreadSummary | AgentLocalThreadRecord | null) => {
     if (!thread) {

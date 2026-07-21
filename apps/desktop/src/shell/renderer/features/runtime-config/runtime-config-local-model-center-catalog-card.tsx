@@ -1,3 +1,4 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import type {
   NimiRuntimeLocalCatalogVariantDescriptor,
   NimiRuntimeLocalAssetRecord,
@@ -5,7 +6,7 @@ import type {
   NimiRuntimeLocalVerifiedAssetDescriptor,
 } from '@nimiplatform/sdk/runtime';
 import { Surface } from '@nimiplatform/kit/ui';
-import { i18n } from '../../i18n';
+
 import { RuntimeSelect } from './runtime-config-primitives';
 import {
   CAPABILITY_OPTIONS,
@@ -56,6 +57,8 @@ type CatalogCardProps = {
 };
 
 export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
+  const i18n = useDesktopI18nResource().instance;
+  const t = i18n.t.bind(i18n);
   return (
     <Surface tone="card" material="solid" padding="none" className="overflow-visible rounded-2xl shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
       <div className="border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] px-5 py-4">
@@ -135,7 +138,7 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                     <p className="truncate text-xs text-[var(--nimi-text-muted)]">{item.modelId}</p>
                     {item.recommendation ? (
                       <p className="mt-1 line-clamp-2 text-[11px] text-[var(--nimi-text-muted)]">
-                        {recommendationSummary(item.recommendation)}
+                        {recommendationSummary(item.recommendation, t)}
                       </p>
                     ) : null}
                     <RecommendationDetailList

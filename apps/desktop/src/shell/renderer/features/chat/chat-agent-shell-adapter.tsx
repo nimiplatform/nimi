@@ -41,10 +41,7 @@ import {
   normalizeAgentChatExperienceSettings,
   type AgentChatExperienceSettings,
 } from './chat-settings-storage';
-import {
-  isDeveloperModeEnabled,
-  subscribeDeveloperMode,
-} from '../developer/developer-mode';
+import { useDesktopRendererBindings } from '../../renderer/binding-context';
 import { useAgentConversationPresentation } from './chat-agent-shell-presentation';
 import { useAgentConversationEffects } from './chat-agent-shell-effects';
 import { useAgentConversationCapabilityEffects } from './chat-agent-shell-capability-effects';
@@ -61,6 +58,7 @@ import { RUNTIME_AGENT_CHAT_MODE_ID } from './chat-agent-runtime-mode';
 import { useAgentConversationHostFeedback } from './chat-agent-shell-adapter-host-feedback';
 import { useAgentConversationPendingAttachments } from './chat-agent-shell-adapter-attachments';
 import { AgentManualVoicePlaybackButton } from './chat-agent-manual-voice-playback-button';
+import { useStreamController } from '../turns/stream-controller-context.js';
 
 type UseAgentConversationModeHostInput = {
   authStatus: AuthStatus;
@@ -80,6 +78,8 @@ export function useAgentConversationModeHost(
   input: UseAgentConversationModeHostInput,
 ): DesktopConversationModeHost {
   const { t } = useTranslation();
+  const streamController = useStreamController();
+  const bindings = useDesktopRendererBindings();
   const queryClient = useQueryClient();
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
@@ -100,7 +100,7 @@ export function useAgentConversationModeHost(
     () => createDefaultAgentChatExperienceSettings(),
   );
   const [developerModeEnabled, setDeveloperModeEnabled] = useState(
-    () => isDeveloperModeEnabled(),
+    () => bindings.app.projection.developerModeEnabled(),
   );
   const schedulingJudgement = useSchedulingFeasibility();
   const [footerHostStateByThreadId, setFooterHostStateByThreadId] = useState<
@@ -113,9 +113,9 @@ export function useAgentConversationModeHost(
   const [composerPrefillRequestId, setComposerPrefillRequestId] = useState<number | null>(null);
   const registry = useMemo(() => {
     const nextRegistry = new ConversationOrchestrationRegistry();
-    nextRegistry.register(createRuntimeAgentChatConversationProvider());
+    nextRegistry.register(createRuntimeAgentChatConversationProvider({ streamController }));
     return nextRegistry;
-  }, []);
+  }, [streamController]);
   const agentProvider = useMemo(
     () => {
       const provider = registry.resolve(RUNTIME_AGENT_CHAT_MODE_ID);
@@ -137,7 +137,10 @@ export function useAgentConversationModeHost(
   const setBehaviorSettings = useCallback((nextSettings: AgentChatExperienceSettings) => {
     setBehaviorSettingsState(normalizeAgentChatExperienceSettings(nextSettings));
   }, []);
-  useEffect(() => subscribeDeveloperMode(setDeveloperModeEnabled), []);
+  useEffect(
+    () => bindings.app.events.subscribeDeveloperMode(setDeveloperModeEnabled),
+    [bindings],
+  );
   const thinkingUnsupportedReason = useMemo(() => {
     if (thinkingSupport.supported || !thinkingSupport.reason) {
       return null;
@@ -424,6 +427,7 @@ export function useAgentConversationModeHost(
   });
   const agentAiConfig = useAppStore((state) => state.aiConfig);
   const { handleSelectAgent, handleSubmit } = useAgentConversationHostActions({
+    streamController,
     activeTarget,
     activeThreadId,
     aiConfig: agentAiConfig,

@@ -22,6 +22,8 @@ requires:
   sdk_methods: []
   simulator_commands:
     - desktop.locale.apply
-  simulator_events: []
+    - desktop.renderer.timer.fire
+  simulator_events:
+    - desktop.renderer.timer.fired
 fixtures:
   conformance: src/simulator/fixture.ts

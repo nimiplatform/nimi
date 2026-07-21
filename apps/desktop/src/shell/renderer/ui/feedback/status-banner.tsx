@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 const STATUS_BANNER_MAX_MESSAGE_LENGTH = 200;
 
@@ -14,14 +15,16 @@ function formatStatusBannerMessage(value: string): string {
 
 export function StatusBanner() {
   const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
   const statusBanner = useAppStore((state) => state.statusBanner);
   const clear = useAppStore((state) => state.setStatusBanner);
 
   useEffect(() => {
     if (!statusBanner) return;
-    const timer = setTimeout(() => clear(null), 10_000);
-    return () => clearTimeout(timer);
-  }, [statusBanner, clear]);
+    return bindings.clock.schedule(10_000, (result) => {
+      if (result.ok) clear(null);
+    });
+  }, [bindings, statusBanner, clear]);
 
   if (!statusBanner) {
     return null;

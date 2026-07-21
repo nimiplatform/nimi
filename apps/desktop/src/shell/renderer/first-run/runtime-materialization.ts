@@ -14,7 +14,6 @@ import {
   type NimiRuntimeLocalEnvironmentDependencyJob,
   type NimiRuntimeLocalEnvironmentPlanDependency,
 } from '@nimiplatform/sdk/runtime';
-import { firstRunRuntimeLocalClient } from './first-run-runtime-local-client.js';
 
 export type {
   NimiFirstRunMaterializationDependencyProjection,
@@ -25,15 +24,9 @@ export type {
 } from '@nimiplatform/sdk/runtime';
 export { productStateForNimiFirstRunMaterializationStatus } from '@nimiplatform/sdk/runtime';
 
-export type DesktopNimiFirstRunMaterializationInput = Omit<NimiFirstRunMaterializationInput, 'runtime'> & {
-  readonly runtime?: NimiFirstRunMaterializationRuntime;
+export type DesktopNimiFirstRunMaterializationInput = NimiFirstRunMaterializationInput & {
+  readonly runtime: NimiFirstRunMaterializationRuntime;
 };
-
-function nimiFirstRunMaterializationRuntime(
-  input: DesktopNimiFirstRunMaterializationInput,
-): NimiFirstRunMaterializationRuntime {
-  return input.runtime ?? firstRunRuntimeLocalClient;
-}
 
 export function shouldResumeConfirmedNimiFirstRunMaterialization(
   productState: NimiProductControlState,
@@ -84,7 +77,6 @@ export async function resolveDesktopNimiFirstRunMaterializationProjection(
 ): Promise<NimiFirstRunMaterializationProjection> {
   return resolveNimiFirstRunMaterializationProjection({
     ...input,
-    runtime: nimiFirstRunMaterializationRuntime(input),
   });
 }
 
@@ -93,7 +85,6 @@ export async function startDesktopNimiFirstRunMaterialization(
 ): Promise<NimiFirstRunMaterializationProjection> {
   return startNimiFirstRunMaterialization({
     ...input,
-    runtime: nimiFirstRunMaterializationRuntime(input),
   });
 }
 
@@ -102,7 +93,6 @@ export async function cancelDesktopNimiFirstRunMaterializationJob(
 ): Promise<NimiFirstRunMaterializationProjection> {
   return cancelNimiFirstRunMaterializationJob({
     ...input,
-    runtime: nimiFirstRunMaterializationRuntime(input),
   });
 }
 
@@ -111,7 +101,6 @@ export async function retryDesktopNimiFirstRunMaterializationJob(
 ): Promise<NimiFirstRunMaterializationProjection> {
   return retryNimiFirstRunMaterializationJob({
     ...input,
-    runtime: nimiFirstRunMaterializationRuntime(input),
   });
 }
 
@@ -124,6 +113,5 @@ export async function repairDesktopNimiFirstRunMaterializationDependency(
 ): Promise<NimiFirstRunMaterializationProjection> {
   return repairNimiFirstRunMaterializationDependency({
     ...input,
-    runtime: nimiFirstRunMaterializationRuntime(input),
   });
 }

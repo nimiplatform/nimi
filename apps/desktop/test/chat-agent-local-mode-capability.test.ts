@@ -447,7 +447,7 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.match(voiceAdapterSource, /\[input\.activeConversationAnchorId,\s*input\.activeTarget\?\.localAgentRef,\s*input\.activeThreadId\]/);
   assert.match(voiceAdapterSource, /sessionAnchorId !== activeConversationAnchorId/);
   assert.match(voiceAdapterSource, /Voice input stopped because the conversation anchor changed\./);
-  assert.match(voiceAdapterSource, /cancelStream\(activeThreadId\)/);
+  assert.match(voiceAdapterSource, /streamController\.cancelStream\(activeThreadId\)/);
   assert.match(voiceAdapterSource, /conversationAnchorId:\s*sessionAnchorId/);
   assert.match(voiceAdapterSource, /applyVoiceTranscriptComposerText\(\{\s*text: result\.text,\s*conversationAnchorId: sessionAnchorId,\s*\}\)/);
   assert.doesNotMatch(hostActionSubmitSource, /latestVoiceCapture\?\.conversationAnchorId === conversationAnchorId/);
@@ -458,7 +458,7 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.match(runtimeProviderSource, /case 'text-delta':/);
   assert.match(runtimeProviderSource, /threadId:\s*input\.metadata\.runtimeThreadId/);
   assert.doesNotMatch(runtimeProviderSource, /threadId:\s*input\.baseInput\.threadId,\s*userMessageId/);
-  assert.match(runtimeProviderSource, /feedStreamEvent\(input\.baseInput\.threadId,\s*\{\s*type:\s*'keepalive'\s*\}\)/);
+  assert.match(runtimeProviderSource, /input\.streamController\.startKeepalive\(/);
   assert.doesNotMatch(runtimeProviderSource, /chat-agent-continuity|commitProviderOutcome|createAgentLocalChatContinuityAdapter/);
   assert.doesNotMatch(runtimeProviderSource, /chatAgentStoreClient\.commitTurnResult/);
   assert.doesNotMatch(runtimeProviderSource, /buildAgentLocalChatExecutionTextRequest/);

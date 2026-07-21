@@ -11,7 +11,7 @@ import {
   STREAM_SPEECH_TOTAL_TIMEOUT_MS,
   STREAM_TEXT_TOTAL_TIMEOUT_MS,
   STREAM_VIDEO_TOTAL_TIMEOUT_MS,
-} from '../src/shell/renderer/features/turns/stream-controller';
+} from './helpers/test-stream-controller.js';
 
 const SPEC_TIMEOUTS_PATH = resolve(
   import.meta.dirname,

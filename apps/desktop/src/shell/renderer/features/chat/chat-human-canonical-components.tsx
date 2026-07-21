@@ -29,7 +29,8 @@ import { EntityAvatar } from '../../components/entity-avatar.js';
 import { GiftMessageBubble, type GiftMessagePayload } from '../economy/gift-message-bubble.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS } from './chat-shared-content-layout';
-import { cancelStream, type StreamState } from '../turns/stream-controller';
+import type { StreamState } from '../turns/stream-controller';
+import { useStreamController } from '../turns/stream-controller-context.js';
 import {
   useHumanTimelineModel,
   type HumanRealmChatTimelineDisplay,
@@ -105,6 +106,7 @@ function HumanStreamFooter(props: {
   isStreaming: boolean;
 }) {
   const { t } = useTranslation();
+  const streamController = useStreamController();
 
   if (props.streamState && props.isStreaming) {
     return (
@@ -125,7 +127,7 @@ function HumanStreamFooter(props: {
             type="button"
             onClick={() => {
               if (props.selectedChatId) {
-                cancelStream(props.selectedChatId);
+                streamController.cancelStream(props.selectedChatId);
               }
             }}
             className="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-500 transition hover:bg-gray-50 hover:text-gray-700"

@@ -1,5 +1,6 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { type RefObject } from 'react';
-import { i18n } from '../../i18n';
+
 import { ScrollArea, Tooltip } from '@nimiplatform/kit/ui';
 import {
   AlertIcon,
@@ -161,6 +162,7 @@ export function ProfileDetailActionButtons(input: {
   onBlock?: () => void;
   onRemove?: () => void;
 }) {
+  const i18n = useDesktopI18nResource().instance;
   const addFriendLabel = input.addFriendLabel || i18n.t('ProfileView.addFriend', { defaultValue: 'Add Friend' });
   return (
     <>
@@ -295,6 +297,7 @@ export function ProfileDetailStatsActionsBlock(input: {
   onBlock?: () => void;
   onRemove?: () => void;
 }) {
+  const i18n = useDesktopI18nResource().instance;
   if (input.isEditing) {
     return input.isOwnProfile ? (
       <div className="rounded-[24px] border border-white/60 bg-white/70 p-4 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
@@ -353,6 +356,7 @@ export function ProfileDetailDesktopStatsActions(input: {
   onBlock?: () => void;
   onRemove?: () => void;
 }) {
+  const i18n = useDesktopI18nResource().instance;
   return (
     <div className="flex w-[220px] shrink-0 flex-col items-end">
       <div className="flex items-center justify-end gap-3">

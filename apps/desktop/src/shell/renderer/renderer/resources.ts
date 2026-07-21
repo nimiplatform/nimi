@@ -6,6 +6,7 @@ import { createDesktopI18n, resolveSupportedLocale } from '../i18n/desktop-i18n.
 import type { DesktopCanonicalRendererBindings } from './contract.js';
 import { createDesktopRendererLifecyclePort } from './lifecycle-port.js';
 import { createDesktopRouteProvider } from './route-provider.js';
+import { createStreamController } from '../features/turns/stream-controller.js';
 
 export function createDesktopRendererResources(
   bindings: DesktopCanonicalRendererBindings,
@@ -34,6 +35,7 @@ export function createDesktopRendererResources(
     subscribe: bindings.app.events.subscribeAttention,
   });
   const Router = createDesktopRouteProvider(bindings.route);
+  const streamController = createStreamController(bindings.clock);
   const lifecycle = createDesktopRendererLifecyclePort(
     store,
     queryClient,
@@ -48,10 +50,12 @@ export function createDesktopRendererResources(
     queryClient,
     Router,
     store,
+    streamController,
     dispose() {
       if (disposed) return;
       disposed = true;
       disconnectLifecycle();
+      streamController.dispose();
       queryClient.clear();
     },
   });

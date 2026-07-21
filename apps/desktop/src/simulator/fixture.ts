@@ -11,8 +11,21 @@ export const simulatorConformanceFixture = {
           title: { kind: 'string', minLength: 1, maxLength: 128 },
         },
       },
+      'desktop.renderer.timer.fire': {
+        kind: 'object',
+        properties: {
+          token: { kind: 'string', minLength: 1, maxLength: 128 },
+        },
+      },
     },
-    eventSchemas: {},
+    eventSchemas: {
+      'desktop.renderer.timer.fired': {
+        kind: 'object',
+        properties: {
+          token: { kind: 'string', minLength: 1, maxLength: 128 },
+        },
+      },
+    },
     moduleData: { locale: 'en' },
   },
   readiness: [{

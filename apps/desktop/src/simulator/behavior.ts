@@ -38,6 +38,16 @@ export const desktopSimulatorBehavior = Object.freeze({
     context: DesktopSimulatorBehaviorContext,
   ) {
     const current = state(currentValue);
+    if (envelope.type === 'desktop.renderer.timer.fire') {
+      const payload = record(envelope.payload, 'TIMER_PAYLOAD');
+      if (typeof payload.token !== 'string' || payload.token.length === 0 || payload.token.length > 128) {
+        throw new Error('DESKTOP_SIMULATOR_TIMER_TOKEN_INVALID');
+      }
+      return {
+        state: current,
+        events: [{ type: 'desktop.renderer.timer.fired', payload: { token: payload.token } }],
+      };
+    }
     if (envelope.type !== 'desktop.locale.apply') {
       throw new Error(`DESKTOP_SIMULATOR_COMMAND_UNDECLARED:${envelope.type}`);
     }

@@ -102,7 +102,7 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
 
             {/* Tagline / summary */}
             <p className="mt-3 text-sm leading-6 text-[var(--nimi-text-secondary)]">
-              {recommendationSummary(recommendation)}
+              {recommendationSummary(recommendation, t)}
             </p>
 
             {/* External links */}

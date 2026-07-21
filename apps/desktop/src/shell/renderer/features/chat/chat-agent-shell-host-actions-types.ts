@@ -21,6 +21,7 @@ import type {
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
 import type { AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
+import type { StreamController } from '../turns/stream-controller.js';
 
 export type AgentRunTurn = (input: {
   threadId: string;
@@ -39,6 +40,7 @@ export type AgentRunTurn = (input: {
 }) => AsyncIterable<ConversationTurnEvent>;
 
 export type UseAgentConversationHostActionsInput = {
+  streamController: StreamController;
   activeTarget: AgentLocalTargetSnapshot | null;
   activeThreadId: string | null;
   aiConfig: NimiAIConfig;

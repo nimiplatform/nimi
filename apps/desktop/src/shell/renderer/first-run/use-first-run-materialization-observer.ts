@@ -5,17 +5,17 @@ import type {
 } from '@nimiplatform/sdk/app';
 import type { NimiProductControlState } from '../bridge';
 import {
-  repairDesktopNimiFirstRunMaterializationDependency,
   repairableConfirmedNimiFirstRunMaterializationDependencies,
-  resolveDesktopNimiFirstRunMaterializationProjection,
-  retryDesktopNimiFirstRunMaterializationJob,
   retryableInterruptedNimiFirstRunMaterializationJobsForProductState,
   shouldResumeConfirmedNimiFirstRunMaterialization,
-  startDesktopNimiFirstRunMaterialization,
   type NimiFirstRunMaterializationProjection,
 } from './runtime-materialization.js';
+import type { DesktopRendererClockView } from '../renderer/contract.js';
+import type { DesktopRendererFirstRunPort } from '../renderer/first-run-port.js';
 
 type UseFirstRunMaterializationObserverInput = {
+  readonly clock: DesktopRendererClockView;
+  readonly firstRun: DesktopRendererFirstRunPort;
   readonly selectedPlan: NimiAppAIProfileFactoryRow | null;
   readonly selectedDataRoot: string | null;
   readonly selectedInstallLevel: NimiFirstRunInstallLevel | null;
@@ -63,7 +63,7 @@ export function useFirstRunMaterializationObserver(
     let disposed = false;
     async function observe(): Promise<void> {
       try {
-        const next = await resolveDesktopNimiFirstRunMaterializationProjection({
+        const next = await input.firstRun.resolveMaterialization({
           profile: observedPlan,
           runtimeDataRoot: observedDataRoot,
           installLevel: observedInstallLevel,
@@ -77,7 +77,7 @@ export function useFirstRunMaterializationObserver(
           resumingMaterializationRef.current = true;
           input.setPendingAction('resume-materialization');
           try {
-            const resumed = await startDesktopNimiFirstRunMaterialization({
+            const resumed = await input.firstRun.startMaterialization({
               profile: observedPlan,
               runtimeDataRoot: observedDataRoot,
               installLevel: observedInstallLevel,
@@ -117,7 +117,7 @@ export function useFirstRunMaterializationObserver(
           input.setPendingAction('resume-materialization');
           try {
             await Promise.all(retryableInterruptedJobs.map((job) =>
-              retryDesktopNimiFirstRunMaterializationJob({
+              input.firstRun.retryMaterializationJob({
                 profile: observedPlan,
                 runtimeDataRoot: observedDataRoot,
                 installLevel: observedInstallLevel,
@@ -125,7 +125,7 @@ export function useFirstRunMaterializationObserver(
                 confirmed: true,
               }),
             ));
-            const resumed = await resolveDesktopNimiFirstRunMaterializationProjection({
+            const resumed = await input.firstRun.resolveMaterialization({
               profile: observedPlan,
               runtimeDataRoot: observedDataRoot,
               installLevel: observedInstallLevel,
@@ -163,7 +163,7 @@ export function useFirstRunMaterializationObserver(
           input.setPendingAction('resume-materialization');
           try {
             await Promise.all(repairableDependencies.map(({ dependency }) =>
-              repairDesktopNimiFirstRunMaterializationDependency({
+              input.firstRun.repairMaterializationDependency({
                 profile: observedPlan,
                 runtimeDataRoot: observedDataRoot,
                 installLevel: observedInstallLevel,
@@ -172,7 +172,7 @@ export function useFirstRunMaterializationObserver(
                 reasonCode: dependency.reasonCode ?? next.reason,
               }),
             ));
-            const repaired = await resolveDesktopNimiFirstRunMaterializationProjection({
+            const repaired = await input.firstRun.resolveMaterialization({
               profile: observedPlan,
               runtimeDataRoot: observedDataRoot,
               installLevel: observedInstallLevel,
@@ -198,10 +198,19 @@ export function useFirstRunMaterializationObserver(
       }
     }
     void observe();
-    const interval = window.setInterval(() => void observe(), 3_000);
+    let cancel: () => void = () => undefined;
+    const schedule = () => {
+      cancel = input.clock.schedule(3_000, (result) => {
+        if (disposed || !result.ok) return;
+        void observe().finally(() => {
+          if (!disposed) schedule();
+        });
+      });
+    };
+    schedule();
     return () => {
       disposed = true;
-      window.clearInterval(interval);
+      cancel();
     };
   }, [
     input.selectedPlan,
@@ -213,5 +222,7 @@ export function useFirstRunMaterializationObserver(
     input.setPendingAction,
     input.setError,
     input.observeFailedFallback,
+    input.clock,
+    input.firstRun,
   ]);
 }

@@ -21,10 +21,6 @@ import {
   bundleQueryKey,
   normalizeText,
 } from './chat-agent-shell-core';
-import {
-  getStreamState,
-  startStream,
-} from '../turns/stream-controller';
 import { resolveAgentTurnTotalTimeoutMs } from './chat-agent-timeouts';
 import {
   describeRuntimeAgentTextReadiness,
@@ -268,7 +264,7 @@ export async function submitAgentConversationTurn(input: {
       workingBundle: userBundle,
     });
 
-    const abortController = startStream(
+    const abortController = input.hostInput.streamController.startStream(
       effectiveThreadId,
       resolveAgentTurnTotalTimeoutMs(input.hostInput.aiConfig),
     );
@@ -325,7 +321,7 @@ export async function submitAgentConversationTurn(input: {
         },
       });
     } catch (error) {
-      const streamSnapshot = getStreamState(effectiveThreadId);
+      const streamSnapshot = input.hostInput.streamController.getStreamState(effectiveThreadId);
       const runtimeError = streamSnapshot.cancelSource === 'user'
         ? {
           code: 'OPERATION_ABORTED',

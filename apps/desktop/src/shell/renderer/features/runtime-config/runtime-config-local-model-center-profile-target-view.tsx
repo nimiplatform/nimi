@@ -1,4 +1,5 @@
-import { i18n } from '../../i18n';
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
+
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import type {
   NimiRuntimeLocalProfileApplyResult,
@@ -30,6 +31,7 @@ type ProfileTargetViewProps = {
 };
 
 export function LocalModelCenterProfileTargetView(props: ProfileTargetViewProps) {
+  const i18n = useDesktopI18nResource().instance;
   const targetCapabilities = props.runtimeProfileTargets.find((item) => item.targetId === props.selectedProfileTargetId)?.consumeCapabilities || [];
   const capabilityStatuses = targetCapabilities.map((capability) => {
     const localNode = props.state.local.nodeMatrix.find((node) => node.capability === capability && node.available);

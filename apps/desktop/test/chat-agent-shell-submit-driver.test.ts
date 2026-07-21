@@ -13,7 +13,7 @@ import {
   resolveCompletedAgentSubmitDriverCheckpoint,
   resolveInterruptedAgentSubmitDriverCheckpoint,
 } from '../src/shell/renderer/features/chat/chat-agent-shell-submit-driver.js';
-import type { StreamState } from '../src/shell/renderer/features/turns/stream-controller.js';
+import type { StreamState } from './helpers/test-stream-controller.js';
 import { createAgentTextMessage } from './helpers/agent-chat-record-fixtures.js';
 
 function sampleThread(): AgentLocalThreadRecord {

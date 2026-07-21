@@ -23,6 +23,7 @@ import { mergeSentRealmChatMessageIntoCache } from '../turns/chat-send-cache.js'
 import { formatPendingAttachmentSize, appendPendingAttachment, clearPendingAttachments, type PendingAttachment } from '../turns/turn-input-attachments';
 import { ChatComposerLeadingAvatar } from './chat-shared-composer-leading-avatar';
 import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 
 function HumanAttachmentStrip(props: {
   attachments: readonly PendingAttachment[];
@@ -329,6 +330,7 @@ export function HumanCanonicalProfileDrawer(props: {
   onOpenGift?: () => void;
 }) {
   const { t } = useTranslation();
+  const i18n = useDesktopI18nResource();
   const authStatus = useAppStore((state) => state.auth.status);
   const currentUser = useAppStore((state) => state.auth.user);
   const currentUserId = String(currentUser?.id || '');
@@ -359,9 +361,10 @@ export function HumanCanonicalProfileDrawer(props: {
     const fallback = profilePanelTarget === 'self' ? currentUserFallback : otherUserFallback;
     return toChatProfileSummary({
       fallback,
+      i18n,
       profile: (profileQuery.data as Record<string, unknown> | undefined) || null,
     });
-  }, [currentUserFallback, otherUserFallback, profilePanelTarget, profileQuery.data]);
+  }, [currentUserFallback, i18n, otherUserFallback, profilePanelTarget, profileQuery.data]);
 
   const profileActionLabel = profilePanelTarget === 'self'
     ? t('ChatTimeline.openMyProfile')

@@ -1,5 +1,6 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import type { RefObject } from 'react';
-import { i18n } from '../../i18n';
+
 import type {
   NimiRuntimeLocalAssetDeclaration,
   NimiRuntimeLocalAssetKind,
@@ -49,7 +50,9 @@ type ToolbarProps = {
 };
 
 export function LocalModelCenterToolbar(props: ToolbarProps) {
-  const healthTooltip = formatLastCheckedAgo(props.lastCheckedAt);
+  const i18nResource = useDesktopI18nResource();
+  const i18n = i18nResource.instance;
+  const healthTooltip = formatLastCheckedAgo(props.lastCheckedAt, i18nResource);
   const iconBtnClass = 'flex h-8 w-8 items-center justify-center rounded-lg text-[var(--nimi-text-muted)] hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_8%,transparent)] hover:text-[var(--nimi-text-secondary)] disabled:opacity-50 transition-colors';
   const primaryBtnClass = 'flex items-center gap-1.5 rounded-lg bg-[var(--nimi-action-primary-bg)] px-3.5 py-2 text-xs font-semibold text-white shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:opacity-50';
 
@@ -158,6 +161,7 @@ type ImportDialogProps = {
 };
 
 export function LocalModelCenterImportDialog(props: ImportDialogProps) {
+  const i18n = useDesktopI18nResource().instance;
   if (!props.visible) {
     return null;
   }
@@ -287,6 +291,7 @@ type UnregisteredAssetsSectionProps = {
 };
 
 export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAssetsSectionProps) {
+  const i18n = useDesktopI18nResource().instance;
   if (props.assets.length === 0) {
     return null;
   }

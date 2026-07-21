@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
-import { desktopBridge, type NimiProductControlRecordProjection } from '../../bridge';
+import { useCallback, useEffect, useState, type ReactElement } from 'react';
+import type { NimiProductControlRecordProjection } from '@nimiplatform/sdk/runtime';
 import { ProductControlWorkflow } from '../../first-run/product-control-workflow.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context';
 
 /**
  * Non-ready first-run gate.
@@ -12,61 +13,32 @@ import { ProductControlWorkflow } from '../../first-run/product-control-workflow
  * the product-control setup surface; no ordinary Home-adjacent surfaces.
  */
 
-const FIRST_RUN_PRODUCT_CONTROL_REFRESH_MS = 3_000;
-
 function useProductControlRecord(): {
   projection: NimiProductControlRecordProjection | null;
   setProjection: (projection: NimiProductControlRecordProjection) => void;
 } {
   const [projection, setProjection] = useState<NimiProductControlRecordProjection | null>(null);
-  const refreshInFlightRef = useRef(false);
+  const bindings = useDesktopRendererBindings();
 
   useEffect(() => {
-    let cancelled = false;
-    const projectReadFailure = (error: unknown): void => {
-      const message = error instanceof Error ? error.message : 'product control record unavailable';
+    return bindings.app.events.subscribeProductControlRecord((result) => {
+      if (result.ok) {
+        setProjection(result.projection);
+        return;
+      }
       setProjection((current) => {
-        if (current) return { ...current, error: message };
+        if (current) return { ...current, error: result.error };
         return {
           path: '',
           exists: false,
           state: 'repair_required',
           record: null,
           dataRootProposal: null,
-          error: message,
+          error: result.error,
         };
       });
-    };
-    const refreshProductControlRecord = async (): Promise<void> => {
-      if (refreshInFlightRef.current) return;
-      refreshInFlightRef.current = true;
-      try {
-        const next = await desktopBridge.getProductControlRecord();
-        if (!cancelled) setProjection(next);
-      } catch (error) {
-        if (!cancelled) {
-          // A failed initial read fails closed onto `repair_required`. Later
-          // refresh failures preserve the last projection and surface the error
-          // on it, so a transient read failure does not mint a fake ready state.
-          projectReadFailure(error);
-        }
-      } finally {
-        refreshInFlightRef.current = false;
-      }
-    };
-
-    void refreshProductControlRecord();
-    const intervalId = window.setInterval(
-      () => void refreshProductControlRecord(),
-      FIRST_RUN_PRODUCT_CONTROL_REFRESH_MS,
-    );
-    window.addEventListener('focus', refreshProductControlRecord);
-    return () => {
-      cancelled = true;
-      window.clearInterval(intervalId);
-      window.removeEventListener('focus', refreshProductControlRecord);
-    };
-  }, []);
+    });
+  }, [bindings]);
 
   return { projection, setProjection };
 }
@@ -76,6 +48,7 @@ type FirstRunGatePanelProps = {
 };
 
 export function FirstRunGatePanel(props: FirstRunGatePanelProps): ReactElement {
+  const bindings = useDesktopRendererBindings();
   const { projection, setProjection } = useProductControlRecord();
   const onReadyForUse = props.onReadyForUse;
 
@@ -97,7 +70,12 @@ export function FirstRunGatePanel(props: FirstRunGatePanelProps): ReactElement {
 
   return (
     <div data-testid="first-run-gate-panel" className="flex min-h-0 flex-1 flex-col">
-      <ProductControlWorkflow projection={projection} onProjectionChange={updateProjection} />
+      <ProductControlWorkflow
+        clock={bindings.clock}
+        firstRun={bindings.app.commands.firstRun}
+        projection={projection}
+        onProjectionChange={updateProjection}
+      />
     </div>
   );
 }

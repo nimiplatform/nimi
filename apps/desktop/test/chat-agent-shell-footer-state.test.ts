@@ -7,7 +7,7 @@ import {
   reduceAgentTurnLifecycleState,
 } from '../src/shell/renderer/features/chat/chat-agent-shell-lifecycle.js';
 import { resolveAgentFooterViewState } from '../src/shell/renderer/features/chat/chat-agent-shell-footer-state.js';
-import type { StreamState } from '../src/shell/renderer/features/turns/stream-controller.js';
+import type { StreamState } from './helpers/test-stream-controller.js';
 
 function streamState(overrides: Partial<StreamState>): StreamState {
   return {

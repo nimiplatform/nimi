@@ -1,8 +1,6 @@
-import { useEffect } from 'react';
 import {
   safeParseNimiDesktopOpenIntentEnvelope,
 } from '@nimiplatform/kit/core/desktop-open';
-import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import {
   hasNimiShellRuntime,
   listenShell,
@@ -14,14 +12,9 @@ import { applyDesktopOpenIntentToAppStore } from './desktop-open-intent-navigati
 const DESKTOP_OPEN_INTENT_EVENT = 'desktop-open://open-intent';
 const DESKTOP_OPEN_READY_HEARTBEAT_INTERVAL_MS = 3_000;
 
-export function useDesktopOpenIntentListener(): void {
-  const flags = getShellFeatureFlags();
-
-  useEffect(() => {
-    if (flags.mode !== 'desktop' || !hasNimiShellRuntime()) {
-      return;
-    }
-    let mounted = true;
+export function connectDesktopOpenIntentListener(): () => void {
+    if (!hasNimiShellRuntime()) return () => undefined;
+    let active = true;
     let heartbeatTimer: ReturnType<typeof globalThis.setInterval> | undefined;
     const markReady = (): void => {
       void setDesktopOpenIntentReady(true).catch((error) => {
@@ -36,7 +29,7 @@ export function useDesktopOpenIntentListener(): void {
       });
     };
     const unsubscribePromise = Promise.resolve(listenShell(DESKTOP_OPEN_INTENT_EVENT, (event) => {
-      if (!mounted) {
+      if (!active) {
         return;
       }
       const parsed = safeParseNimiDesktopOpenIntentEnvelope(event.payload);
@@ -56,10 +49,10 @@ export function useDesktopOpenIntentListener(): void {
     }));
 
     void unsubscribePromise.then(() => {
-      if (mounted) {
+      if (active) {
         markReady();
         heartbeatTimer = globalThis.setInterval(() => {
-          if (mounted) {
+          if (active) {
             markReady();
           }
         }, DESKTOP_OPEN_READY_HEARTBEAT_INTERVAL_MS);
@@ -67,7 +60,7 @@ export function useDesktopOpenIntentListener(): void {
     });
 
     return () => {
-      mounted = false;
+      active = false;
       if (heartbeatTimer !== undefined) {
         globalThis.clearInterval(heartbeatTimer);
       }
@@ -78,5 +71,4 @@ export function useDesktopOpenIntentListener(): void {
         }
       });
     };
-  }, [flags.mode]);
 }

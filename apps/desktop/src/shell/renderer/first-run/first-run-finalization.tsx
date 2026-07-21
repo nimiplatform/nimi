@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { desktopBridge, type NimiProductControlRecordProjection } from '../bridge';
+import type { NimiProductControlRecordProjection } from '../bridge';
+import type { DesktopRendererFirstRunPort } from '../renderer/first-run-port.js';
 
 /**
  * Desktop first-run finalization surface for the `local_ai_ready` state.
@@ -17,34 +18,11 @@ import { desktopBridge, type NimiProductControlRecordProjection } from '../bridg
 
 type FinalizationStatus = 'requesting' | 'failed';
 
-type FirstRunFinalizationRequestResult = {
-  readonly prepared: NimiProductControlRecordProjection;
-  readonly final: NimiProductControlRecordProjection;
-};
-
 type FirstRunFinalizationProps = {
+  readonly firstRun: DesktopRendererFirstRunPort;
   readonly projection: NimiProductControlRecordProjection;
   readonly onProjectionChange: (projection: NimiProductControlRecordProjection) => void;
 };
-
-let firstRunFinalizationRequestInFlight: Promise<FirstRunFinalizationRequestResult> | null = null;
-
-async function requestAdmissionOnce(): Promise<FirstRunFinalizationRequestResult> {
-  if (firstRunFinalizationRequestInFlight !== null) return firstRunFinalizationRequestInFlight;
-  firstRunFinalizationRequestInFlight = runFirstRunFinalizationRequest().finally(() => {
-    firstRunFinalizationRequestInFlight = null;
-  });
-  return firstRunFinalizationRequestInFlight;
-}
-
-async function runFirstRunFinalizationRequest(): Promise<FirstRunFinalizationRequestResult> {
-  const prepared = await desktopBridge.prepareProductFirstRunLocalAiReady();
-  if (prepared.state !== 'local_ai_ready' && prepared.state !== 'ready_for_use') {
-    return { prepared, final: prepared };
-  }
-  const next = await desktopBridge.admitProductReadyForUse();
-  return { prepared, final: next };
-}
 
 export function FirstRunFinalization(props: FirstRunFinalizationProps): ReactElement {
   const { t } = useTranslation();
@@ -57,7 +35,7 @@ export function FirstRunFinalization(props: FirstRunFinalizationProps): ReactEle
     setStatus('requesting');
     setError(null);
     try {
-      const { prepared, final } = await requestAdmissionOnce();
+      const { prepared, final } = await props.firstRun.finalize();
       notifyProjectionChange(prepared);
       if (prepared.state !== 'local_ai_ready' && prepared.state !== 'ready_for_use') {
         setStatus('failed');
@@ -80,7 +58,7 @@ export function FirstRunFinalization(props: FirstRunFinalizationProps): ReactEle
             }),
       );
     }
-  }, [notifyProjectionChange, t]);
+  }, [notifyProjectionChange, props.firstRun, t]);
 
   // Request admission once on entry into `local_ai_ready`. The backend is the
   // only authority that may admit `ready_for_use`; the renderer only requests.

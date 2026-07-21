@@ -13,9 +13,6 @@ import {
   resolveAgentSubmitDriverProjectionRefresh,
 } from './chat-agent-shell-submit-driver';
 import {
-  getStreamState,
-} from '../turns/stream-controller';
-import {
   toAbortError,
   toStructuredProviderError,
 } from './chat-agent-shell-core';
@@ -78,7 +75,7 @@ export async function runActiveAgentSubmit(input: {
         if (rebuiltBundle) {
           submitSession = input.input.applyDriverEffects(input.threadId, resolveAgentSubmitDriverProjectionRefresh({
             state: submitSession,
-            streamSnapshot: getStreamState(input.threadId),
+            streamSnapshot: input.input.streamController.getStreamState(input.threadId),
             refreshedBundle: rebuiltBundle,
             composerText: input.currentComposerText(),
           }));
@@ -153,7 +150,7 @@ export async function runActiveAgentSubmit(input: {
   submitSession = input.input.applyDriverEffects(input.threadId, resolveCompletedAgentSubmitDriverCheckpoint({
     state: submitSession,
     refreshedBundle: null,
-    streamSnapshot: getStreamState(input.threadId),
+    streamSnapshot: input.input.streamController.getStreamState(input.threadId),
   }));
 
   if (submitSession.lifecycle.terminal === 'failed' && submitSession.lifecycle.error) {

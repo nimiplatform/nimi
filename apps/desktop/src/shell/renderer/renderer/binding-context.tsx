@@ -18,6 +18,10 @@ export function useDesktopRendererCommands(): DesktopCanonicalRendererBindings['
   return useDesktopRendererBindings().app.commands;
 }
 
+export function useDesktopRendererSdk(): DesktopCanonicalRendererBindings['sdk'] {
+  return useDesktopRendererBindings().sdk;
+}
+
 export function useDesktopRendererBindings(): DesktopCanonicalRendererBindings {
   const bindings = useContext(DesktopRendererBindingContext);
   if (!bindings) throw new Error('DESKTOP_RENDERER_BINDINGS_MISSING');

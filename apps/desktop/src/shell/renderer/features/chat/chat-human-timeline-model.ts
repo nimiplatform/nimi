@@ -10,7 +10,8 @@ import {
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useChatUploadPlaceholders } from '../turns/chat-upload-placeholder-store';
-import { getStreamState, subscribeStream, type StreamState } from '../turns/stream-controller';
+import type { StreamState } from '../turns/stream-controller';
+import { useStreamController } from '../turns/stream-controller-context.js';
 import { loadChatMessages } from './data/realm-human-chat-data';
 
 export type HumanRealmChatTimelineDisplay = ReturnType<typeof getRealmChatTimelineDisplayModel>;
@@ -29,18 +30,21 @@ function resolveAttachmentDisplayKind(payload: unknown): string {
 }
 
 function useHumanStreamState(chatId: string | null): StreamState | null {
-  const [state, setState] = useState<StreamState | null>(() => (chatId ? getStreamState(chatId) : null));
+  const streamController = useStreamController();
+  const [state, setState] = useState<StreamState | null>(
+    () => (chatId ? streamController.getStreamState(chatId) : null),
+  );
 
   useEffect(() => {
     if (!chatId) {
       setState(null);
       return;
     }
-    setState(getStreamState(chatId));
-    return subscribeStream(chatId, (updated) => {
+    setState(streamController.getStreamState(chatId));
+    return streamController.subscribeStream(chatId, (updated) => {
       setState({ ...updated });
     });
-  }, [chatId]);
+  }, [chatId, streamController]);
 
   return state;
 }

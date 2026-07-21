@@ -12,10 +12,12 @@ import { PhaseSetup, type FirstRunSetupStatusDetails } from './phase-setup.js';
 import { PhaseStorage } from './phase-storage.js';
 import type { NimiFirstRunMaterializationDependencyProjection } from './runtime-materialization.js';
 import { ScreenBlocked, ScreenReady, ScreenRepair } from './screen-terminal.js';
+import type { DesktopRendererFirstRunPort } from '../renderer/first-run-port.js';
 
 type FirstRunScreenProjection = ReturnType<typeof projectNimiProductControlFirstRunScreen>;
 
 type ProductControlWorkflowScreenProps = {
+  firstRun: DesktopRendererFirstRunPort;
   busy: boolean;
   deviceScanSettled: boolean;
   deviceSummary: string | null;
@@ -125,7 +127,11 @@ export function ProductControlWorkflowScreen(props: ProductControlWorkflowScreen
         }}
       />
       {(props.state === 'local_ai_ready' || props.materializationReadyForFinalization) && props.projection ? (
-        <FirstRunFinalization projection={props.projection} onProjectionChange={props.onProjectionChange} />
+        <FirstRunFinalization
+          firstRun={props.firstRun}
+          projection={props.projection}
+          onProjectionChange={props.onProjectionChange}
+        />
       ) : null}
     </div>
   );

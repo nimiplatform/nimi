@@ -1,7 +1,9 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { useRef, useState } from 'react';
-import { i18n } from '../../i18n';
+
 
 export function CloudflareVideoPlayer({ src }: { src: string }) {
+  const i18n = useDesktopI18nResource().instance;
   const [activated, setActivated] = useState(false);
 
   const iframeSrc = activated

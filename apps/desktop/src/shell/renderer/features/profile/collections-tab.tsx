@@ -1,4 +1,5 @@
-import { i18n } from '../../i18n';
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
+
 import { AppCardSurface } from '@nimiplatform/kit/ui';
 
 type CollectionsTabProps = {
@@ -7,6 +8,7 @@ type CollectionsTabProps = {
 };
 
 export function CollectionsTab({ layout = 'grid' }: CollectionsTabProps) {
+  const i18n = useDesktopI18nResource().instance;
   const layoutClass = layout === 'masonry' ? 'columns-1 sm:columns-2' : 'grid grid-cols-1 sm:grid-cols-2';
 
   return (

@@ -35,9 +35,6 @@ test('logout flow clears local state only after Runtime logout succeeds', async 
       logout: async () => {
         effects.push('server-logout');
       },
-      clearPersistedSession: () => {
-        effects.push('clear-token');
-      },
       clearAllStreams: () => {
         effects.push('clear-streams');
       },
@@ -50,7 +47,6 @@ test('logout flow clears local state only after Runtime logout succeeds', async 
 
   assert.deepEqual(effects, [
     'server-logout',
-    'clear-token',
     'clear-streams',
     'clear-auth',
     'clear-query',
@@ -78,9 +74,6 @@ test('logout flow fails closed when Runtime logout cannot be confirmed', async (
       logout: async () => {
         effects.push('server-logout');
         throw new Error('network timeout');
-      },
-      clearPersistedSession: () => {
-        effects.push('clear-token');
       },
       clearAllStreams: () => {
         effects.push('clear-streams');
@@ -117,7 +110,6 @@ test('logout flow fails closed when Runtime returns a typed rejection', async ()
           accountReasonCode: 'ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH',
         };
       },
-      clearPersistedSession: () => { effects.push('clear-token'); },
       clearAllStreams: () => { effects.push('clear-streams'); },
       clearQueryClient: () => { effects.push('clear-query'); },
       translate: createTranslate(),
@@ -130,7 +122,8 @@ test('logout flow fails closed when Runtime returns a typed rejection', async ()
 
 test('logout flow does not bypass Runtime logout for Desktop shells', () => {
   assert.doesNotMatch(logoutSource, /isDesktopRuntimeAccountSessionReady/);
-  assert.match(logoutSource, /getDesktopAccountRuntime\(\)\.account\.logout/);
+  assert.match(logoutSource, /sdk\.accountRuntime\(\)\.account\.logout/);
+  assert.match(logoutSource, /caller: sdk\.accountCaller\(\)/);
 });
 
 test('switch account flow clears local projection only after Runtime switch succeeds', async () => {
@@ -138,10 +131,10 @@ test('switch account flow clears local projection only after Runtime switch succ
   const switched = await switchAccountAndClearSession(
     {
       clearAuthSession: () => { effects.push('clear-auth'); },
+      onFeedback: () => { effects.push('feedback'); },
     },
     {
       switchAccount: async () => { effects.push('runtime-switch'); },
-      clearPersistedSession: () => { effects.push('clear-token'); },
       clearAllStreams: () => { effects.push('clear-streams'); },
       clearQueryClient: () => { effects.push('clear-query'); },
       translate: createTranslate(),
@@ -151,10 +144,10 @@ test('switch account flow clears local projection only after Runtime switch succ
   assert.equal(switched, true);
   assert.deepEqual(effects, [
     'runtime-switch',
-    'clear-token',
     'clear-streams',
     'clear-auth',
     'clear-query',
+    'feedback',
   ]);
-  assert.match(logoutSource, /getDesktopAccountRuntime\(\)\.account\.switchAccount/);
+  assert.match(logoutSource, /sdk\.accountRuntime\(\)\.account\.switchAccount/);
 });

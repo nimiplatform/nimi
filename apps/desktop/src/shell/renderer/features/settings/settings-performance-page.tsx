@@ -11,11 +11,7 @@ import {
   PageShell,
   SectionTitle,
 } from './settings-layout-components.js';
-import {
-  loadStoredPerformancePreferences,
-  persistStoredPerformancePreferences,
-  type PerformancePreferences,
-} from './settings-storage.js';
+import type { PerformancePreferences } from '../../renderer/settings-port.js';
 import { DeveloperModeToggle } from '../developer/developer-mode-toggle.js';
 import {
   AnimationIcon,
@@ -38,10 +34,11 @@ export function PerformancePage() {
   const desktopReleaseError = useAppStore((s) => s.desktopReleaseError);
   const desktopUpdateState = useAppStore((s) => s.desktopUpdateState);
   const updateCommands = useDesktopRendererCommands();
+  const settings = updateCommands.settings;
   const [preferences, setPreferences] = useState<PerformancePreferences>(() =>
-    loadStoredPerformancePreferences());
+    settings.loadPerformancePreferences());
   const [baseline, setBaseline] = useState<PerformancePreferences>(() =>
-    loadStoredPerformancePreferences());
+    settings.loadPerformancePreferences());
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{
     kind: 'info' | 'success' | 'warning' | 'error';
@@ -74,7 +71,7 @@ export function PerformancePage() {
     }
     setSaving(true);
     try {
-      persistStoredPerformancePreferences(preferences);
+      settings.persistPerformancePreferences(preferences);
       setBaseline(preferences);
       if (!silentSuccess) {
         setFeedback({

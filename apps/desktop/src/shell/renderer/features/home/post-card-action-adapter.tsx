@@ -2,7 +2,7 @@ import { realmSocialData } from '../social/data/realm-social-data';
 import { useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '../../app-shell/providers/app-store';
-import { i18n } from '../../i18n';
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { AddFriendModal } from './add-friend-modal';
 import { SendGiftModal } from '../economy/send-gift-modal';
 import { CreatePostModal } from '../profile/create-post-modal.js';
@@ -12,11 +12,15 @@ import {
 } from '../chat/data/realm-human-chat-data';
 import type { PostCardActionAdapter } from './post-card';
 
-function createOpenChatError(): Error {
-  return new Error(i18n.t('Relationship.openChatFailed', { defaultValue: 'Failed to open chat' }));
+function createOpenChatError(message: string): Error {
+  return new Error(message);
 }
 
 export function usePostCardActionAdapter(): PostCardActionAdapter {
+  const i18n = useDesktopI18nResource().instance;
+  const openChatError = i18n.t('Relationship.openChatFailed', {
+    defaultValue: 'Failed to open chat',
+  });
   const queryClient = useQueryClient();
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
@@ -41,7 +45,7 @@ export function usePostCardActionAdapter(): PostCardActionAdapter {
     openChat: async ({ authorId }) => {
       const result = await startChatWithTarget(authorId);
       if (!result?.chatId) {
-        throw createOpenChatError();
+        throw createOpenChatError(openChatError);
       }
       const requestedChatId = String(
         (result.chat && typeof result.chat === 'object'
@@ -50,7 +54,7 @@ export function usePostCardActionAdapter(): PostCardActionAdapter {
         ?? result.chatId,
       ).trim();
       if (!requestedChatId) {
-        throw createOpenChatError();
+        throw createOpenChatError(openChatError);
       }
       const chatsSnapshot = await loadChatList();
       const createdChat = result.chat && typeof result.chat === 'object'
@@ -77,7 +81,7 @@ export function usePostCardActionAdapter(): PostCardActionAdapter {
         ?? requestedChatId,
       ).trim();
       if (!chatId) {
-        throw createOpenChatError();
+        throw createOpenChatError(openChatError);
       }
       const mergedItems = createdChat
         ? [createdChat, ...snapshotItems.filter((item) => String((item as { id?: string | number })?.id ?? '') !== chatId)]
@@ -130,6 +134,7 @@ export function usePostCardActionAdapter(): PostCardActionAdapter {
   }), [
     authStatus,
     currentUserId,
+    openChatError,
     queryClient,
     realmBaseUrl,
     setActiveTab,

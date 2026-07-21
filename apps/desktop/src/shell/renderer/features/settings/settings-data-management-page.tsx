@@ -3,7 +3,7 @@ import { requestNimiRealmAccountDeletion } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { logoutAndClearSession } from '../auth/logout';
+import { logoutAndClearSession, useLogoutSessionDependencies } from '../auth/logout';
 import { desktopBridge } from '../../bridge';
 import type { DesktopStorageDirs } from '../../bridge';
 import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
@@ -68,6 +68,7 @@ export function DataManagementPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const clearAuthSession = useAppStore((s) => s.clearAuthSession);
+  const logoutDependencies = useLogoutSessionDependencies();
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
@@ -337,10 +338,13 @@ export function DataManagementPage() {
           <button
             type="button"
             onClick={() => {
-              void logoutAndClearSession({
-                clearAuthSession,
-                onFeedback: setFeedback,
-              });
+              void logoutAndClearSession(
+                {
+                  clearAuthSession,
+                  onFeedback: setFeedback,
+                },
+                logoutDependencies.logout,
+              );
             }}
             className="mt-4 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:border-gray-300"
           >

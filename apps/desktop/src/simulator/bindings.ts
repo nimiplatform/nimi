@@ -14,6 +14,8 @@ import type {
   DesktopSimulatorPrepareContext,
   DesktopSimulatorRouteState,
 } from './protocol.js';
+import { createUnavailableDesktopFirstRunPort } from '../shell/renderer/renderer/first-run-port.js';
+import { createMemoryDesktopRendererSettingsPort } from '../shell/renderer/renderer/settings-port.js';
 
 type JsonRecord = { readonly [key: string]: DesktopSimulatorJsonValue };
 
@@ -26,6 +28,10 @@ function record(value: DesktopSimulatorJsonValue, label: string): JsonRecord {
 
 function projection(context: DesktopSimulatorPrepareContext): JsonRecord {
   return record(context.projection.get(), 'PROJECTION');
+}
+
+function simulatorSdkUnadmitted(): never {
+  throw new Error('DESKTOP_SIMULATOR_SDK_UNADMITTED');
 }
 
 function toRendererRoute(route: DesktopSimulatorRouteState): DesktopRendererRouteView {
@@ -42,8 +48,15 @@ function toRendererRoute(route: DesktopSimulatorRouteState): DesktopRendererRout
 export function createDesktopSimulatorBindings(
   context: DesktopSimulatorPrepareContext,
 ): DesktopCanonicalRendererBindings {
+  type TimerEntry = {
+    cancelled: boolean;
+    jobId: string | null;
+    readonly listener: Parameters<DesktopCanonicalRendererBindings['clock']['schedule']>[1];
+  };
   let currentRoute = context.route.get();
+  let timerSequence = 0;
   const routeListeners = new Set<() => void>();
+  const timers = new Map<string, TimerEntry>();
   const unsubscribeRoute = context.route.subscribe((route) => {
     currentRoute = route;
     for (const listener of routeListeners) listener();
@@ -53,13 +66,44 @@ export function createDesktopSimulatorBindings(
     unsubscribeRoute();
   });
   if (!cleanup.ok) throw new Error('DESKTOP_SIMULATOR_ROUTE_CLEANUP_REJECTED');
+  const timerEvents = context.events.subscribe('desktop.renderer.timer.fired', (value) => {
+    const payload = record(value, 'TIMER_EVENT');
+    if (typeof payload.token !== 'string') throw new Error('DESKTOP_SIMULATOR_TIMER_EVENT_INVALID');
+    const entry = timers.get(payload.token);
+    if (!entry || entry.cancelled) return;
+    timers.delete(payload.token);
+    entry.listener({ ok: true });
+  });
+  if (!timerEvents.ok) throw new Error(`DESKTOP_SIMULATOR_TIMER_EVENT_REJECTED:${timerEvents.error.code}`);
+  const timerCleanup = context.cleanup.add(async () => {
+    timerEvents.value();
+    const pending = [...timers.values()];
+    for (const entry of pending) entry.cancelled = true;
+    timers.clear();
+    await Promise.all(pending.flatMap((entry) => entry.jobId
+      ? [context.clock.cancel(entry.jobId)]
+      : []));
+  });
+  if (!timerCleanup.ok) throw new Error('DESKTOP_SIMULATOR_TIMER_CLEANUP_REJECTED');
 
   return createNimiCanonicalRendererHostBindings({
     scope: context.kit.scope,
     capabilities: context.kit.capabilities,
     localization: context.kit.localization,
     kit: context.kit,
-    sdk: Object.freeze({}),
+    sdk: Object.freeze({
+      isSessionReady: () => false,
+      isRuntimeAccountSessionReady: () => false,
+      appId: simulatorSdkUnadmitted,
+      client: simulatorSdkUnadmitted,
+      runtime: simulatorSdkUnadmitted,
+      runtimeAgentTurns: simulatorSdkUnadmitted,
+      hostRuntimeAgent: simulatorSdkUnadmitted,
+      accountRuntime: simulatorSdkUnadmitted,
+      realm: simulatorSdkUnadmitted,
+      accountCaller: simulatorSdkUnadmitted,
+      withRuntimeProtectedScopes: async () => simulatorSdkUnadmitted(),
+    }),
     app: {
       projection: Object.freeze({
         initialState: () => ({
@@ -71,13 +115,21 @@ export function createDesktopSimulatorBindings(
         }),
         attention: createIdleAppAttentionState,
         localDevelopmentAvailable: () => false,
+        loginMode: () => 'embedded',
+        developerModeEnabled: () => false,
+        viewportWidth: () => 1_280,
       }),
       commands: Object.freeze({
+        firstRun: createUnavailableDesktopFirstRunPort('DESKTOP_SIMULATOR_FIRST_RUN_UNADMITTED'),
+        settings: createMemoryDesktopRendererSettingsPort(),
         commitAIConfig() {
           throw new Error('DESKTOP_SIMULATOR_AI_CONFIG_UNADMITTED');
         },
         persistChatThinkingPreference() {
           throw new Error('DESKTOP_SIMULATOR_CHAT_PREFERENCE_UNADMITTED');
+        },
+        async reconcileLoginState() {
+          return Object.freeze({ clearAuthSession: false });
         },
         setActiveScopeForMode() {
           throw new Error('DESKTOP_SIMULATOR_CHAT_MODE_UNADMITTED');
@@ -110,12 +162,31 @@ export function createDesktopSimulatorBindings(
         async decideLocalDevelopmentApproval() {
           throw new Error('DESKTOP_SIMULATOR_LOCAL_DEVELOPMENT_UNADMITTED');
         },
+        async refreshDeveloperMode() {
+          throw new Error('DESKTOP_SIMULATOR_DEVELOPER_MODE_UNADMITTED');
+        },
+        async setDeveloperMode() {
+          throw new Error('DESKTOP_SIMULATOR_DEVELOPER_MODE_UNADMITTED');
+        },
       }),
       events: Object.freeze({
+        connectChatRealtimeSync: () => () => undefined,
+        subscribeWindowFocus: () => () => undefined,
+        subscribeWindowResize: () => () => undefined,
+        subscribeWindowKeyDown: () => () => undefined,
+        subscribeDocumentMouseDown: () => () => undefined,
         subscribeAttention: () => () => undefined,
+        subscribeDeveloperMode: () => () => undefined,
         async subscribeLocalDevelopmentApprovals() {
           throw new Error('DESKTOP_SIMULATOR_LOCAL_DEVELOPMENT_UNADMITTED');
         },
+        subscribeProductControlRecord(listener: Parameters<
+          DesktopCanonicalRendererBindings['app']['events']['subscribeProductControlRecord']
+        >[0]) {
+          listener({ ok: false, error: 'DESKTOP_SIMULATOR_PRODUCT_CONTROL_UNADMITTED' });
+          return () => undefined;
+        },
+        connectDesktopOpenIntents: () => () => undefined,
         connectLifecycle(lifecycle: Parameters<
           DesktopCanonicalRendererBindings['app']['events']['connectLifecycle']
         >[0]) {
@@ -154,7 +225,42 @@ export function createDesktopSimulatorBindings(
         throw new Error('DESKTOP_SIMULATOR_HISTORY_DELTA_UNADMITTED');
       },
     }),
-    clock: context.clock,
+    clock: Object.freeze({
+      now: context.clock.now,
+      schedule(delayMs: number, listener: Parameters<DesktopCanonicalRendererBindings['clock']['schedule']>[1]) {
+        timerSequence += 1;
+        const token = `${context.instanceId}:timer:${timerSequence}`;
+        const entry: TimerEntry = { cancelled: false, jobId: null, listener };
+        timers.set(token, entry);
+        void context.clock.schedule({
+          type: 'desktop.renderer.timer.fire',
+          payload: { token },
+          causationId: null,
+        }, delayMs).then((result) => {
+          if (!result.ok) {
+            if (timers.delete(token) && !entry.cancelled) {
+              listener({ ok: false, error: result.error.code });
+            }
+            return;
+          }
+          const scheduled = record(result.value, 'TIMER_SCHEDULE_RESULT');
+          if (typeof scheduled.jobId !== 'string') {
+            if (timers.delete(token) && !entry.cancelled) {
+              listener({ ok: false, error: 'DESKTOP_SIMULATOR_TIMER_JOB_INVALID' });
+            }
+            return;
+          }
+          entry.jobId = scheduled.jobId;
+          if (entry.cancelled) void context.clock.cancel(scheduled.jobId);
+        });
+        return () => {
+          if (entry.cancelled) return;
+          entry.cancelled = true;
+          timers.delete(token);
+          if (entry.jobId) void context.clock.cancel(entry.jobId);
+        };
+      },
+    }),
     surfaceLifecycle: context.kit.surfaceLifecycle,
   });
 }

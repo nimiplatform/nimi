@@ -1,20 +1,18 @@
-import React, { Suspense, lazy, useEffect, useState, type MouseEvent, type PropsWithChildren } from 'react';
+import React, { Suspense, lazy, useEffect, useRef, useState, type MouseEvent, type PropsWithChildren } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { desktopBridge } from '../../bridge';
 import { useAppStore, type AppTab } from '../providers/app-store';
-import { logoutAndClearSession, switchAccountAndClearSession } from '../../features/auth/logout';
-import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { useDesktopOpenIntentListener } from '../../infra/desktop-open/desktop-open-intent-listener';
 import {
-  isDeveloperModeEnabled,
-  subscribeDeveloperMode,
-} from '../../features/developer/developer-mode';
+  logoutAndClearSession,
+  switchAccountAndClearSession,
+  useLogoutSessionDependencies,
+} from '../../features/auth/logout';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
+import { useDesktopRendererBindings } from '../../renderer/binding-context';
 import { MainLayoutView } from './main-layout-view';
 
 const MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX = 92;
-
-let tabSwitchPending: { fromTab: string; toTab: string; startMs: number } | null = null;
 
 const ChatRealtimeSyncHost = lazy(async () => {
   const mod = await import('../../features/realtime/use-chat-realtime-sync');
@@ -63,25 +61,32 @@ class NonCriticalStartupBoundary extends React.Component<PropsWithChildren, { ha
 export function MainLayout() {
   const navigate = useNavigate();
   const flags = getShellFeatureFlags();
-  useDesktopOpenIntentListener();
+  const bindings = useDesktopRendererBindings();
   const activeTab = useAppStore((state) => state.activeTab);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const clearAuthSession = useAppStore((state) => state.clearAuthSession);
+  const logoutDependencies = useLogoutSessionDependencies();
   const authStatus = useAppStore((state) => state.auth.status);
   const user = useAppStore((state) => state.auth.user);
+  const tabSwitchPending = useRef<{
+    fromTab: string;
+    toTab: string;
+    startMs: number;
+  } | null>(null);
 
   const displayName = String(user?.displayName || user?.handle || 'User');
   const userAvatarUrl = typeof user?.avatarUrl === 'string' ? user.avatarUrl : null;
   const userEmail = typeof user?.email === 'string' ? user.email : null;
 
   const [developerModeEnabled, setDeveloperModeEnabled] = useState(
-    () => isDeveloperModeEnabled(),
+    () => bindings.app.projection.developerModeEnabled(),
   );
+  useEffect(() => bindings.app.events.connectDesktopOpenIntents(), [bindings]);
   useEffect(() => {
-    return subscribeDeveloperMode((next) => {
+    return bindings.app.events.subscribeDeveloperMode((next) => {
       setDeveloperModeEnabled(next);
     });
-  }, []);
+  }, [bindings]);
   useEffect(() => {
     if (!developerModeEnabled && activeTab === 'developer-tools') {
       setActiveTab('chat');
@@ -89,26 +94,31 @@ export function MainLayout() {
   }, [activeTab, authStatus, developerModeEnabled, setActiveTab]);
 
   useEffect(() => {
-    if (!tabSwitchPending || tabSwitchPending.toTab !== activeTab) return;
-    const costMs = Number((performance.now() - tabSwitchPending.startMs).toFixed(2));
+    const pending = tabSwitchPending.current;
+    if (!pending || pending.toTab !== activeTab) return;
+    const costMs = Number((performance.now() - pending.startMs).toFixed(2));
     logRendererEvent({
       level: 'info',
       area: 'shell',
       message: 'action:tab-switch:committed',
       costMs,
-      details: { fromTab: tabSwitchPending.fromTab, toTab: tabSwitchPending.toTab },
+      details: { fromTab: pending.fromTab, toTab: pending.toTab },
     });
-    tabSwitchPending = null;
+    tabSwitchPending.current = null;
   }, [activeTab]);
 
   const onLogout = async () => {
-    await logoutAndClearSession({
-      clearAuthSession,
-    });
+    await logoutAndClearSession(
+      { clearAuthSession, onFeedback: logoutDependencies.feedback },
+      logoutDependencies.logout,
+    );
   };
 
   const onSwitchAccount = async () => {
-    const switched = await switchAccountAndClearSession({ clearAuthSession });
+    const switched = await switchAccountAndClearSession(
+      { clearAuthSession, onFeedback: logoutDependencies.feedback },
+      logoutDependencies.switchAccount,
+    );
     if (!switched) {
       return;
     }
@@ -120,7 +130,7 @@ export function MainLayout() {
   const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
 
   const onNav = (tabId: string) => {
-    tabSwitchPending = { fromTab: activeTab, toTab: tabId, startMs: performance.now() };
+    tabSwitchPending.current = { fromTab: activeTab, toTab: tabId, startMs: performance.now() };
     if (tabId === 'profile') {
       setSelectedProfileId(null);
     }

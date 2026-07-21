@@ -1,5 +1,6 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { useMemo, type CSSProperties, type MouseEvent } from 'react';
-import { i18n } from '../../i18n';
+
 import { AppCardSurface } from '@nimiplatform/kit/ui';
 import { getSemanticSourcePalette } from '../../components/source-theme.js';
 import { EntityAvatar } from '../../components/entity-avatar.js';
@@ -90,6 +91,7 @@ export function PersonaSourceCard({
   onPrimaryAction?: () => Promise<void> | void;
   onOpen?: () => void;
 }) {
+  const i18n = useDesktopI18nResource().instance;
   const palette = getSemanticSourcePalette({
     archetype: source.archetype,
     origin: source.origin,

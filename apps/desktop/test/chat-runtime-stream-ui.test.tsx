@@ -3,6 +3,8 @@ import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
+import { StreamControllerProvider } from '../src/shell/renderer/features/turns/stream-controller-context.js';
+import { createTestStreamController } from './helpers/test-stream-controller.js';
 
 async function loadRuntimeImageMessageContent() {
   Object.defineProperty(globalThis, 'React', {
@@ -99,32 +101,34 @@ test('runtime image message content falls back to mediaUrl when attachment metad
 test('runtime stream footer keeps a visible waiting label after first packet when streaming text is hidden', async () => {
   const RuntimeStreamFooter = await loadRuntimeStreamFooter();
   const markup = renderToStaticMarkup(
-    <RuntimeStreamFooter
-      chatId="thread-1"
-      assistantName="Companion"
-      assistantAvatarUrl={null}
-      assistantKind="agent"
-      streamState={{
-        chatId: 'thread-1',
-        phase: 'streaming',
-        partialText: '',
-        partialReasoningText: '',
-        errorMessage: null,
-        interrupted: false,
-        startedAt: 0,
-        firstPacketAt: 1,
-        lastActivityAt: 1,
-        idleDeadlineAt: 2,
-        reasonCode: null,
-        traceId: null,
-        cancelSource: null,
-      }}
-      stopLabel="Stop generating"
-      interruptedLabel="Interrupted"
-      reasoningLabel="Reasoning"
-      waitingLabel="The agent is replying..."
-      showStreamingText={false}
-    />,
+    <StreamControllerProvider controller={createTestStreamController()}>
+      <RuntimeStreamFooter
+        chatId="thread-1"
+        assistantName="Companion"
+        assistantAvatarUrl={null}
+        assistantKind="agent"
+        streamState={{
+          chatId: 'thread-1',
+          phase: 'streaming',
+          partialText: '',
+          partialReasoningText: '',
+          errorMessage: null,
+          interrupted: false,
+          startedAt: 0,
+          firstPacketAt: 1,
+          lastActivityAt: 1,
+          idleDeadlineAt: 2,
+          reasonCode: null,
+          traceId: null,
+          cancelSource: null,
+        }}
+        stopLabel="Stop generating"
+        interruptedLabel="Interrupted"
+        reasoningLabel="Reasoning"
+        waitingLabel="The agent is replying..."
+        showStreamingText={false}
+      />
+    </StreamControllerProvider>,
   );
 
   assert.match(markup, /The agent is replying\.\.\./u);

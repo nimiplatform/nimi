@@ -94,6 +94,7 @@ function installFakeTimers(): {
 
 import {
     STREAM_FIRST_PACKET_TIMEOUT_MS,
+    createStreamController,
     startStream,
     feedStreamEvent,
     cancelStream,
@@ -101,7 +102,7 @@ import {
     clearStream,
     clearAllStreams,
     subscribeStream,
-} from '../src/shell/renderer/features/turns/stream-controller';
+} from './helpers/test-stream-controller.js';
 
 const TEST_CHAT = 'test-chat-stream';
 let restoreBrowserGlobals: () => void = () => {};
@@ -122,6 +123,24 @@ test('D-STRM-001: startStream sets phase to waiting', () => {
   assert.equal(state.phase, 'waiting');
   assert.equal(state.partialText, '');
   cancelStream(TEST_CHAT);
+});
+
+test('renderer clock rejection fails an active stream closed', () => {
+  const controller = createStreamController({
+    now: () => 10,
+    schedule(_delayMs, listener) {
+      listener({ ok: false, error: 'CLOCK_UNAVAILABLE' });
+      return () => undefined;
+    },
+  });
+
+  const abortController = controller.startStream('clock-rejected');
+  const state = controller.getStreamState('clock-rejected');
+  assert.equal(state.phase, 'error');
+  assert.equal(state.reasonCode, 'DESKTOP_RENDERER_CLOCK_REJECTED');
+  assert.match(state.errorMessage || '', /CLOCK_UNAVAILABLE/);
+  assert.equal(abortController.signal.aborted, true);
+  controller.dispose();
 });
 
 test('D-STRM-001: text_delta transitions to streaming phase', () => {

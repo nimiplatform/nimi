@@ -50,7 +50,18 @@ export interface DesktopSimulatorPrepareContext {
     subscribe(listener: (route: DesktopSimulatorRouteState) => unknown): () => void;
     navigate(route: DesktopSimulatorRouteState): Promise<DesktopSimulatorResult<DesktopSimulatorJsonValue>>;
   };
-  readonly clock: { now(): number };
+  readonly clock: {
+    now(): number;
+    schedule(
+      command: {
+        readonly type: string;
+        readonly payload: DesktopSimulatorJsonValue;
+        readonly causationId: string | null;
+      },
+      delayMs: number,
+    ): Promise<DesktopSimulatorResult<DesktopSimulatorJsonValue>>;
+    cancel(jobId: string): Promise<DesktopSimulatorResult<DesktopSimulatorJsonValue>>;
+  };
 }
 
 export interface DesktopSimulatorCommandEnvelope {

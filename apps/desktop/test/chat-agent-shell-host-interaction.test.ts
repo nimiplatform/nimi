@@ -16,7 +16,7 @@ import {
   resolveInterruptedAgentHostInteraction,
   resolveProjectionRefreshAgentHostInteraction,
 } from '../src/shell/renderer/features/chat/chat-agent-shell-host-interaction.js';
-import type { StreamState } from '../src/shell/renderer/features/turns/stream-controller.js';
+import type { StreamState } from './helpers/test-stream-controller.js';
 import { createAgentTextMessage } from './helpers/agent-chat-record-fixtures.js';
 
 function sampleThread(): AgentLocalThreadRecord {

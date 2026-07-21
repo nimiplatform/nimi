@@ -1,5 +1,6 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { ConfirmDialog } from '@nimiplatform/kit/ui';
-import { i18n } from '../../i18n';
+
 
 export function BlockUserConfirmModal({
   isOpen,
@@ -14,6 +15,7 @@ export function BlockUserConfirmModal({
   onClose: () => void;
   onConfirm: () => void;
 }) {
+  const i18n = useDesktopI18nResource().instance;
   return (
     <ConfirmDialog
       open={isOpen}
@@ -44,6 +46,7 @@ export function DeletePostConfirmModal({
   onClose: () => void;
   onConfirm: () => void;
 }) {
+  const i18n = useDesktopI18nResource().instance;
   return (
     <ConfirmDialog
       open={isOpen}

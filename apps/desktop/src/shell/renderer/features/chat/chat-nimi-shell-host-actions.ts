@@ -31,12 +31,8 @@ import {
 import type { NimiAIConfig } from './conversation-capability';
 import { resolveNimiAIConfigRuntimeSchedulingTargetForCapability } from '../../app-shell/providers/desktop-ai-config-service';
 import { probeExecutionSchedulingGuard } from './chat-shared-execution-scheduling-guard';
-import {
-  feedStreamEvent,
-  getStreamState,
-  startStream,
-  STREAM_TEXT_TOTAL_TIMEOUT_MS,
-} from '../turns/stream-controller';
+import { STREAM_TEXT_TOTAL_TIMEOUT_MS } from '../turns/stream-controller';
+import { useStreamController } from '../turns/stream-controller-context.js';
 import {
   bundleQueryKey,
   createEmptyBundle,
@@ -141,6 +137,7 @@ export function useAiConversationHostActions(
   handleSelectThread: (threadId: string) => void;
   handleSubmit: (text: string) => Promise<void>;
 } {
+  const streamController = useStreamController();
   const syncAiThreadSelectionState = useCallback((
     threadId: string | null,
   ) => {
@@ -348,7 +345,7 @@ export function useAiConversationHostActions(
       userMessagePersisted = true;
       await chatAiStoreClient.createMessage(assistantPlaceholder);
 
-      const abortController = startStream(effectiveThreadId, STREAM_TEXT_TOTAL_TIMEOUT_MS);
+      const abortController = streamController.startStream(effectiveThreadId, STREAM_TEXT_TOTAL_TIMEOUT_MS);
       const history = toConversationHistoryMessages(
         recoveredMissingThread ? [] : (input.bundleMessages || []),
       );
@@ -367,14 +364,14 @@ export function useAiConversationHostActions(
           'turn-started': () => undefined,
           'reasoning-delta': (nextEvent) => {
             sessionTurn = appendNimiConversationReasoningDelta(sessionTurn, nextEvent.textDelta);
-            feedStreamEvent(effectiveThreadId, {
+            streamController.feedStreamEvent(effectiveThreadId, {
               type: 'reasoning_delta',
               textDelta: nextEvent.textDelta,
             });
           },
           'text-delta': (nextEvent) => {
             sessionTurn = appendNimiConversationTextDelta(sessionTurn, nextEvent.textDelta);
-            feedStreamEvent(effectiveThreadId, {
+            streamController.feedStreamEvent(effectiveThreadId, {
               type: 'text_delta',
               textDelta: nextEvent.textDelta,
             });
@@ -388,7 +385,7 @@ export function useAiConversationHostActions(
             });
             runtimeTraceId = (nextEvent.trace?.traceId || '').trim() || runtimeTraceId;
             promptTraceId = (nextEvent.trace?.promptTraceId || '').trim() || promptTraceId;
-            feedStreamEvent(effectiveThreadId, {
+            streamController.feedStreamEvent(effectiveThreadId, {
               type: 'done',
               usage: nextEvent.usage,
               finalText: nextEvent.outputText,
@@ -438,7 +435,7 @@ export function useAiConversationHostActions(
         throw new Error('simple-ai provider completed without a terminal event');
       }
 
-      const completedState = getStreamState(effectiveThreadId);
+      const completedState = streamController.getStreamState(effectiveThreadId);
       const finalText = stripBeatActionEnvelopeIfPresent(completedState.partialText || sessionTurn.text);
       const finalReasoningText = completedState.partialReasoningText || sessionTurn.reasoningText;
 
@@ -470,7 +467,7 @@ export function useAiConversationHostActions(
       input.currentDraftTextRef.current = '';
       syncAiThreadSelectionState(effectiveThreadId);
     } catch (error) {
-      const streamSnapshot = getStreamState(effectiveThreadId);
+      const streamSnapshot = streamController.getStreamState(effectiveThreadId);
       const partialText = streamSnapshot.partialText || sessionTurn.text;
       const partialReasoningText = streamSnapshot.partialReasoningText || sessionTurn.reasoningText;
       const runtimeError = streamSnapshot.cancelSource === 'user'
@@ -480,7 +477,7 @@ export function useAiConversationHostActions(
         }
         : toChatAiRuntimeError(error);
       if (streamSnapshot.phase === 'waiting' || streamSnapshot.phase === 'streaming') {
-        feedStreamEvent(effectiveThreadId, {
+        streamController.feedStreamEvent(effectiveThreadId, {
           type: 'error',
           message: runtimeError.message,
           reasonCode: runtimeError.code,

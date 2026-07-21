@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { PerformancePreferences } from './settings-storage.js';
+import type { PerformancePreferences } from '../../renderer/settings-port.js';
 
 type SettingRowProps = {
   icon?: ReactNode;

@@ -4,7 +4,7 @@ import { ScrollArea } from '@nimiplatform/kit/ui';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import { DEFAULT_CONNECTOR_ENDPOINT_V11 } from './runtime-config-state-types';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
-import { Card as PrimitiveCard, RuntimeSelect, StatusBadge, renderModelChips } from './runtime-config-primitives';
+import { Card as PrimitiveCard, ModelChips, RuntimeSelect, StatusBadge } from './runtime-config-primitives';
 import type { CodexOAuthPendingState } from './runtime-config-codex-oauth';
 import {
   Button,
@@ -310,7 +310,10 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                 <p className="mb-2 text-sm font-medium text-[var(--nimi-text-secondary)]">
                   {t('runtimeConfig.cloud.availableModels', { defaultValue: 'Available Models' })}
                 </p>
-                {renderModelChips(model.filteredConnectorModels, `connector-${selectedConnector.id}`)}
+                <ModelChips
+                  models={model.filteredConnectorModels}
+                  prefix={`connector-${selectedConnector.id}`}
+                />
               </div>
             </div>
           </div>

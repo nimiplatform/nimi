@@ -58,10 +58,6 @@ export default defineConfig([
         {
           patterns: [
             {
-              group: ['./bridge', '../bridge', '../../bridge', '../../../bridge', '../../../../bridge'],
-              message: 'Import bridge APIs through @renderer/bridge.',
-            },
-            {
               group: ['@runtime/chat/*'],
               message: 'Import chat APIs through @runtime/chat public entry.',
             },

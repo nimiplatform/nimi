@@ -1,3 +1,4 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { realmSocialData } from '../social/data/realm-social-data';
 import { useEffect, useMemo, useState } from 'react';
 import { AppCardSurface, Button, ScrollArea } from '@nimiplatform/kit/ui';
@@ -16,7 +17,7 @@ import {
 } from '@nimiplatform/kit/features/commerce/realm';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { E2E_IDS } from '../../testability/e2e-ids';
-import { i18n } from '../../i18n';
+
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import {
   invalidateNotificationQueries,
@@ -41,6 +42,7 @@ import { getDesktopRealmCommerceGiftService } from '../../infra/realm/realm-comm
 type ReviewRating = RealmModel<'ReviewRating'>;
 
 export function NotificationPanel() {
+  const i18n = useDesktopI18nResource().instance;
   const queryClient = useQueryClient();
   const authStatus = useAppStore((state) => state.auth.status);
   const authUser = useAppStore((state) => state.auth.user);

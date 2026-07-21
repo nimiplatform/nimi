@@ -8,7 +8,6 @@ import { desktopBridge } from '../../bridge';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import type { WebAuthMenuMode } from '@nimiplatform/kit/auth/shell';
 import { DesktopShellAuthPage } from '@nimiplatform/kit/auth';
-import '@nimiplatform/kit/auth/styles.css';
 import { toNimiRealmAuthUserRecord } from '@nimiplatform/sdk/realm';
 import {
   createDesktopAuthAdapter,

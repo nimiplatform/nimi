@@ -22,7 +22,8 @@ test('topbar keeps wallet balances hidden and does not poll commerce balances', 
 test('topbar notification unread count consumes SDK Realm projection, not Desktop dataSync', () => {
   assert.match(mainLayoutViewSource, /loadNimiRealmNotificationUnreadCount/);
   assert.match(mainLayoutViewSource, /from '@nimiplatform\/sdk\/realm'/);
-  assert.match(mainLayoutViewSource, /queryFn:\s*async \(\) => loadNimiRealmNotificationUnreadCount\(getDesktopRealm\(\)\)/);
+  assert.match(mainLayoutViewSource, /queryFn:\s*async \(\) => loadNimiRealmNotificationUnreadCount\(bindings\.sdk\.realm\(\)\)/);
+  assert.doesNotMatch(mainLayoutViewSource, /desktop-nimi-client-session/);
   assert.match(mainLayoutViewSource, /const unreadCount = unreadCountQuery\.data\?\.total \?\? 0/);
   assert.doesNotMatch(mainLayoutViewSource, /dataSync\.loadNotificationUnreadCount/);
   assert.doesNotMatch(mainLayoutViewSource, /function parseUnreadCount/);

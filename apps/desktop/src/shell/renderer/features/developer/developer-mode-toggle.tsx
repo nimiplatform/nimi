@@ -16,16 +16,14 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  isDeveloperModeEnabled,
-  refreshDeveloperMode,
-  setDeveloperMode,
-  subscribeDeveloperMode,
-} from './developer-mode.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 export function DeveloperModeToggle() {
   const { t } = useTranslation();
-  const [enabled, setEnabled] = useState(() => isDeveloperModeEnabled());
+  const bindings = useDesktopRendererBindings();
+  const [enabled, setEnabled] = useState(
+    () => bindings.app.projection.developerModeEnabled(),
+  );
   const [busy, setBusy] = useState(true);
   const [unavailable, setUnavailable] = useState(false);
   const [error, setError] = useState('');
@@ -33,10 +31,10 @@ export function DeveloperModeToggle() {
   // Keep in sync if Developer Mode is toggled elsewhere (e.g. another
   // discoverable entry or a second tab) — a single persisted truth.
   useEffect(() => {
-    const unsubscribe = subscribeDeveloperMode((next) => {
+    const unsubscribe = bindings.app.events.subscribeDeveloperMode((next) => {
       setEnabled(next);
     });
-    void refreshDeveloperMode()
+    void bindings.app.commands.refreshDeveloperMode()
       .then((projection) => {
         setUnavailable(projection.state === 'unavailable');
         setError('');
@@ -47,14 +45,14 @@ export function DeveloperModeToggle() {
       })
       .finally(() => setBusy(false));
     return unsubscribe;
-  }, []);
+  }, [bindings]);
 
   const toggle = async () => {
     if (busy) return;
     setBusy(true);
     setError('');
     try {
-      const projection = await setDeveloperMode(!enabled);
+      const projection = await bindings.app.commands.setDeveloperMode(!enabled);
       setUnavailable(projection.state === 'unavailable');
       setEnabled(projection.enabled);
     } catch (cause) {
@@ -68,7 +66,7 @@ export function DeveloperModeToggle() {
     setBusy(true);
     setError('');
     try {
-      const projection = await refreshDeveloperMode();
+      const projection = await bindings.app.commands.refreshDeveloperMode();
       setUnavailable(projection.state === 'unavailable');
       setEnabled(projection.enabled);
       if (projection.state === 'unavailable') setError(projection.reasonCode);

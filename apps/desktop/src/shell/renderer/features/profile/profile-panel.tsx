@@ -1,3 +1,4 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { realmSocialData } from '../social/data/realm-social-data';
 import { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -8,7 +9,7 @@ import {
   isPendingSentRequestInContacts,
   type SocialContactSnapshot,
 } from '../social/data/social-snapshot';
-import { i18n } from '../../i18n';
+
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { ProfileDetailView, type EditableProfileDraft } from '../relationship/profile-detail-view.js';
 import {
@@ -48,6 +49,7 @@ function toErrorMessage(error: unknown, fallback: string): string {
 }
 
 export function ProfilePanel() {
+  const i18n = useDesktopI18nResource().instance;
   const authStatus = useAppStore((state) => state.auth.status);
   const currentUser = useAppStore((state) => state.auth.user);
   const ownerUserId = String(currentUser?.id || '').trim();

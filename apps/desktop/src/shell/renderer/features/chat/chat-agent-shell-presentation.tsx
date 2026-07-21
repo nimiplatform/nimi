@@ -4,7 +4,7 @@ import {
 } from '@nimiplatform/kit/features/chat/headless';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import { RuntimeStreamFooter } from './chat-shared-runtime-stream-ui';
-import { cancelStream } from '../turns/stream-controller';
+import { useStreamController } from '../turns/stream-controller-context.js';
 import { createInitialAgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
 import { resolveLatestAgentStatusCue } from './chat-agent-shell-presentation-status';
 import { resolveAgentFooterViewState } from './chat-agent-shell-footer-state';
@@ -55,6 +55,7 @@ export function useAgentConversationPresentation(
   | 'thinkingState'
   | 'transcriptProps'
 > {
+  const streamController = useStreamController();
   const {
     guard: schedulingGuard,
     feedbackNode: schedulingFeedbackNode,
@@ -164,9 +165,9 @@ export function useAgentConversationPresentation(
   });
   const handleStopGenerating = useCallback(() => {
     if (input.activeThreadId) {
-      cancelStream(input.activeThreadId);
+      streamController.cancelStream(input.activeThreadId);
     }
-  }, [input.activeThreadId]);
+  }, [input.activeThreadId, streamController]);
   const hostView = useMemo(() => resolveAgentConversationHostView({
     threads: targetSummaries,
     selectedTargetId,

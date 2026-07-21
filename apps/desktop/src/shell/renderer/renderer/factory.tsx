@@ -50,6 +50,7 @@ function DesktopMainSurface(props: {
             queryClient={props.resources.queryClient}
             Router={props.resources.Router}
             store={props.resources.store}
+            streamController={props.resources.streamController}
           >
             <AppErrorBoundary>
               <DesktopRendererContent />

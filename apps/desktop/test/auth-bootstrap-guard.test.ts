@@ -83,8 +83,9 @@ test('desktop Electron login uses RuntimeAccountService desktop-browser auth, no
   assert.doesNotMatch(loginPageSource, /isDesktopRuntimeAccountSessionReady/);
   assert.match(
     loginPageSource,
-    /const authMode = flags\.mode === 'web'\s*\?\s*'embedded'\s*:\s*'desktop-browser'/s,
+    /const authMode = bindings\.app\.projection\.loginMode\(\)/,
   );
+  assert.doesNotMatch(loginPageSource, /getShellFeatureFlags|window\./);
   assert.match(loginPageSource, /<WebAuthMenu mode=\{authMode\} \/>/);
   assert.match(webAuthMenuSource, /mode === 'desktop-browser'\s*\?\s*createDesktopRuntimeAccountBrowserBroker\(\)\s*:\s*null/s);
 });

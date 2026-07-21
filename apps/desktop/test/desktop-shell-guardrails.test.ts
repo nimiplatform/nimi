@@ -256,7 +256,9 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
   assert.match(desktopClientSessionSource, /createNimiDesktopShellRuntimeAccountCaller/);
   assert.doesNotMatch(desktopClientSessionSource, /createNimiLocalFirstPartyRuntimeAccountCaller/);
   assert.doesNotMatch(desktopClientSessionSource, /createNimiRuntimeFullAppRegistration|registerApp\(/);
-  assert.match(logoutSource, /getDesktopRuntimeAccountCaller/);
+  assert.match(logoutSource, /useDesktopRendererSdk/);
+  assert.match(logoutSource, /sdk\.accountCaller\(\)/);
+  assert.doesNotMatch(logoutSource, /desktop-nimi-client-session/);
   assert.doesNotMatch(logoutSource, /createNimiDesktopShellRuntimeAccountCaller|createDesktopShellRuntimeAccountCaller/);
   assert.doesNotMatch(authAdapterSource, /发送验证码失败|验证码登录失败|2FA 验证失败|获取钱包签名挑战失败|钱包登录失败|OAuth 登录失败/);
   assert.equal(fs.existsSync(retiredBootstrapAuthPath), false);

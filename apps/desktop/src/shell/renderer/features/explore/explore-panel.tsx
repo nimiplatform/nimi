@@ -1,3 +1,4 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { useCallback, useMemo, useState } from 'react';
 import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
@@ -6,7 +7,7 @@ import { realmExploreData } from './data/realm-explore-data';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import type { WorldDetailNavigationOptions } from '../../app-shell/providers/store-types';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { i18n } from '../../i18n';
+
 import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { ProfileDetailModal } from '../relationship/profile-detail-modal.js';
 import { SendGiftModal } from '../economy/send-gift-modal';
@@ -48,6 +49,7 @@ type ExplorePanelProps = {
 };
 
 export function ExplorePanel(props: ExplorePanelProps) {
+  const i18n = useDesktopI18nResource().instance;
   const queryClient = useQueryClient();
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const authStatus = useAppStore((state) => state.auth.status);

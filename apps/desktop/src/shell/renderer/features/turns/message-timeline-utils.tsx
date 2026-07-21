@@ -1,7 +1,8 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { useEffect, useState } from 'react';
 import { resolveRealmChatMediaUrl } from '@nimiplatform/kit/features/chat/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
-import { formatLocaleDate, i18n } from '../../i18n';
+import type { DesktopI18nResource } from '../../i18n/desktop-i18n.js';
 
 type MessageViewDto = RealmModel<'MessageViewDto'>;
 
@@ -29,6 +30,7 @@ export function ChatMessageImage(input: {
   alt: string;
   realmBaseUrl: string;
 }) {
+  const i18n = useDesktopI18nResource().instance;
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -58,7 +60,7 @@ export function toMessageTimestamp(message: MessageViewDto): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-export function formatDateSeparator(isoString: string): string {
+export function formatDateSeparator(isoString: string, i18n: DesktopI18nResource): string {
   const date = new Date(isoString);
   if (isNaN(date.getTime())) return '';
 
@@ -67,7 +69,7 @@ export function formatDateSeparator(isoString: string): string {
   const msgDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const diffDays = Math.round((today.getTime() - msgDay.getTime()) / 86400000);
   const sameYear = date.getFullYear() === now.getFullYear();
-  const timeStr = formatLocaleDate(date, {
+  const timeStr = i18n.formatDate(date, {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
@@ -75,18 +77,18 @@ export function formatDateSeparator(isoString: string): string {
 
   if (diffDays === 0) return timeStr;
   if (diffDays === 1) {
-    return `${i18n.t('Chat.yesterday', { defaultValue: 'Yesterday' })} ${timeStr}`;
+    return `${i18n.instance.t('Chat.yesterday', { defaultValue: 'Yesterday' })} ${timeStr}`;
   }
   if (diffDays < 7) {
-    const weekday = formatLocaleDate(date, { weekday: 'long' });
+    const weekday = i18n.formatDate(date, { weekday: 'long' });
     return `${weekday} ${timeStr}`;
   }
   if (sameYear) {
-    const monthDay = formatLocaleDate(date, { month: 'short', day: 'numeric' });
+    const monthDay = i18n.formatDate(date, { month: 'short', day: 'numeric' });
     return `${monthDay}, ${timeStr}`;
   }
 
-  const fullDate = formatLocaleDate(date, {
+  const fullDate = i18n.formatDate(date, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -127,6 +129,7 @@ export type ChatProfileSummary = {
 export function toChatProfileSummary(input: {
   fallback?: Record<string, unknown> | null;
   profile?: Record<string, unknown> | null;
+  i18n: DesktopI18nResource;
 }): ChatProfileSummary {
   const source = (input.profile && Object.keys(input.profile).length > 0 ? input.profile : input.fallback) || {};
   const fallback = input.fallback || {};
@@ -135,12 +138,12 @@ export function toChatProfileSummary(input: {
       || fallback.displayName
       || source.handle
       || fallback.handle
-      || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
+      || input.i18n.instance.t('Common.unknown', { defaultValue: 'Unknown' }),
   ).trim();
   const handleValue = String(source.handle || fallback.handle || '').trim();
   return {
     id: String(source.id || fallback.id || '').trim(),
-    displayName: displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
+    displayName: displayName || input.i18n.instance.t('Common.unknown', { defaultValue: 'Unknown' }),
     handle: handleValue ? (handleValue.startsWith('@') ? handleValue : `@${handleValue}`) : '@unknown',
     avatarUrl: typeof source.avatarUrl === 'string'
       ? source.avatarUrl

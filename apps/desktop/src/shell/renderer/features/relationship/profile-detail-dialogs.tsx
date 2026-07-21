@@ -1,5 +1,6 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { Button, OverlayShell } from '@nimiplatform/kit/ui';
-import { i18n } from '../../i18n';
+
 import { E2E_IDS } from '../../testability/e2e-ids';
 
 export function RemoveFriendConfirmDialog({
@@ -13,6 +14,7 @@ export function RemoveFriendConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const i18n = useDesktopI18nResource().instance;
   return (
     <OverlayShell
       open

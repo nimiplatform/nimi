@@ -35,6 +35,12 @@ import type {
   DesktopCanonicalRendererBindings,
   DesktopRendererRouteView,
 } from '../src/shell/renderer/renderer/contract.js';
+import { createUnavailableDesktopFirstRunPort } from '../src/shell/renderer/renderer/first-run-port.js';
+import {
+  createMemoryDesktopRendererSettingsPort,
+  type PerformancePreferences,
+} from '../src/shell/renderer/renderer/settings-port.js';
+import { createTestStreamController } from './helpers/test-stream-controller.js';
 
 function createDependencies(input: {
   readonly commits: NimiAIConfig[];
@@ -190,6 +196,7 @@ test('AppProviders owns independent route, store, query, and i18n resources', as
       queryClient,
       Router: createRouter(entry),
       store,
+      streamController: createTestStreamController(),
     },
     createElement(InstanceSnapshot),
   ));
@@ -205,6 +212,9 @@ function createCanonicalBindings(input: {
   readonly locale: 'en' | 'zh';
   readonly surface: 'nimi' | 'agent';
 }): DesktopCanonicalRendererBindings {
+  const sdkUnavailable = (): never => {
+    throw new Error('TEST_DESKTOP_SDK_UNAVAILABLE');
+  };
   const element = () => ({
     nodeType: 1,
     setAttribute() {},
@@ -249,7 +259,19 @@ function createCanonicalBindings(input: {
     capabilities: host.facade.capabilities,
     localization: host.facade.localization,
     kit: host.facade,
-    sdk: Object.freeze({}),
+    sdk: Object.freeze({
+      isSessionReady: () => false,
+      isRuntimeAccountSessionReady: () => false,
+      appId: sdkUnavailable,
+      client: sdkUnavailable,
+      runtime: sdkUnavailable,
+      runtimeAgentTurns: sdkUnavailable,
+      hostRuntimeAgent: sdkUnavailable,
+      accountRuntime: sdkUnavailable,
+      realm: sdkUnavailable,
+      accountCaller: sdkUnavailable,
+      withRuntimeProtectedScopes: sdkUnavailable,
+    }),
     app: {
       projection: Object.freeze({
         initialState: () => ({
@@ -261,22 +283,38 @@ function createCanonicalBindings(input: {
         }),
         attention: createIdleAppAttentionState,
         localDevelopmentAvailable: () => false,
+        loginMode: () => 'embedded',
+        developerModeEnabled: () => false,
+        viewportWidth: () => 1_280,
       }),
       commands: Object.freeze({
+        firstRun: createUnavailableDesktopFirstRunPort('TEST_FIRST_RUN_UNADMITTED'),
+        settings: createMemoryDesktopRendererSettingsPort(),
         commitAIConfig() {},
         persistChatThinkingPreference() {},
         setActiveScopeForMode() {},
         applyLocale() {},
+        async reconcileLoginState() { return { clearAuthSession: false }; },
         async checkDesktopUpdate() {},
         async installDesktopUpdate() {},
         async restartDesktopUpdate() {},
         async startWindowDrag() {},
         async listLocalDevelopmentApprovals() { return []; },
         async decideLocalDevelopmentApproval() {},
+        async refreshDeveloperMode() { throw new Error('TEST_DEVELOPER_MODE_UNADMITTED'); },
+        async setDeveloperMode() { throw new Error('TEST_DEVELOPER_MODE_UNADMITTED'); },
       }),
       events: Object.freeze({
+        connectChatRealtimeSync: () => () => undefined,
+        subscribeWindowFocus: () => () => undefined,
+        subscribeWindowResize: () => () => undefined,
+        subscribeWindowKeyDown: () => () => undefined,
+        subscribeDocumentMouseDown: () => () => undefined,
         subscribeAttention: () => () => undefined,
+        subscribeDeveloperMode: () => () => undefined,
+        subscribeProductControlRecord: () => () => undefined,
         async subscribeLocalDevelopmentApprovals() { return () => undefined; },
+        connectDesktopOpenIntents: () => () => undefined,
         connectLifecycle(lifecycle: Parameters<
           DesktopCanonicalRendererBindings['app']['events']['connectLifecycle']
         >[0]) {
@@ -294,7 +332,12 @@ function createCanonicalBindings(input: {
       },
       go() {},
     }),
-    clock: Object.freeze({ now: () => 1_000 }),
+    clock: Object.freeze({
+      now: () => 1_000,
+      schedule() {
+        return () => undefined;
+      },
+    }),
     surfaceLifecycle: host.facade.surfaceLifecycle,
   });
 }
@@ -308,18 +351,52 @@ test('canonical Desktop resources are fresh for every factory invocation', async
 
   first.store.getState().setActiveTab('explore');
   first.queryClient.setQueryData(['instance'], 'first');
+  const firstAbortController = first.streamController.startStream('shared-chat');
 
   assert.notEqual(first.store, second.store);
   assert.notEqual(first.queryClient, second.queryClient);
   assert.notEqual(first.i18n.instance, second.i18n.instance);
   assert.notEqual(first.Router, second.Router);
+  assert.notEqual(first.streamController, second.streamController);
   assert.equal(first.store.getState().activeTab, 'explore');
   assert.equal(second.store.getState().activeTab, 'chat');
   assert.equal(first.queryClient.getQueryData(['instance']), 'first');
   assert.equal(second.queryClient.getQueryData(['instance']), undefined);
+  assert.equal(first.streamController.getStreamState('shared-chat').phase, 'waiting');
+  assert.equal(second.streamController.getStreamState('shared-chat').phase, 'idle');
   assert.equal(first.i18n.getCurrentLocale(), 'en');
   assert.equal(second.i18n.getCurrentLocale(), 'zh');
 
   first.dispose();
+  assert.equal(firstAbortController.signal.aborted, true);
   second.dispose();
+});
+
+test('renderer settings ports isolate selection, subscriptions, and preferences per instance', () => {
+  const first = createMemoryDesktopRendererSettingsPort();
+  const second = createMemoryDesktopRendererSettingsPort();
+  const opened: string[] = [];
+  const unsubscribe = first.subscribeOpenSection((id) => opened.push(id));
+  const firstPreferences: PerformancePreferences = {
+    hardwareAcceleration: false,
+    reduceAnimations: true,
+    autoUpdate: false,
+  };
+
+  first.openSection('performance');
+  first.persistPerformancePreferences(firstPreferences);
+
+  assert.equal(first.loadSelected('profile'), 'performance');
+  assert.equal(second.loadSelected('profile'), 'profile');
+  assert.deepEqual(opened, ['performance']);
+  assert.deepEqual(first.loadPerformancePreferences(), firstPreferences);
+  assert.deepEqual(second.loadPerformancePreferences(), {
+    hardwareAcceleration: true,
+    reduceAnimations: false,
+    autoUpdate: true,
+  });
+
+  unsubscribe();
+  first.openSection('profile');
+  assert.deepEqual(opened, ['performance']);
 });

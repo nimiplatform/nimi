@@ -52,11 +52,11 @@ test('first-run wizard exposes data root selection, install levels, and no mark-
   // the 4-phase wizard instead of the prior state-dump. The forbidden
   // mark-ready shortcut negative still holds.
   assert.match(productControlWorkflowSource, /ProductControlWorkflow/);
-  assert.match(productControlWorkflowSource, /selectProductDataRoot/);
-  assert.match(productControlWorkflowSource, /pickProductDataRootDirectory/);
-  assert.match(productControlWorkflowSource, /setProductFirstRunInstallLevel/);
-  assert.match(productControlWorkflowSource, /reconcileProductFirstRunSetupState/);
-  assert.match(productControlWorkflowSource, /startDesktopNimiFirstRunMaterialization/);
+  assert.match(productControlWorkflowSource, /firstRun\.selectDataRoot/);
+  assert.match(productControlWorkflowSource, /firstRun\.pickDataRootDirectory/);
+  assert.match(productControlWorkflowSource, /firstRun\.setInstallLevel/);
+  assert.match(productControlWorkflowSource, /firstRun\.reconcileSetupState/);
+  assert.match(productControlWorkflowSource, /firstRun\.startMaterialization/);
   // The two admitted install levels are still the only ones presented.
   assert.match(productControlWorkflowSource, /'minimal'/);
   assert.match(productControlWorkflowSource, /'recommended'/);
@@ -100,7 +100,7 @@ test('config_missing is an internal transient and does not expose the data-root 
   );
   assert.match(storagePhaseSource, /props\.transient/);
   assert.match(storagePhaseSource, /first-run-storage-choose-folder/);
-  assert.match(workflowSource, /ensureProductControlRecordCreated/);
+  assert.match(workflowSource, /firstRun\.ensureRecordCreated/);
   assert.match(desktopProductControlSource, /empty_record\(ProductControlState::DataRootMissing\)/);
 });
 

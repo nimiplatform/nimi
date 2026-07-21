@@ -1,4 +1,5 @@
-import { i18n } from '../../i18n';
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
+
 import type { NimiRuntimeLocalTransferProgressEvent } from '@nimiplatform/sdk/runtime';
 import {
   FolderOpenIcon,
@@ -24,6 +25,7 @@ type ActiveDownloadsSectionProps = {
 };
 
 function LocalModelCenterActiveDownloadsSection(props: ActiveDownloadsSectionProps) {
+  const i18n = useDesktopI18nResource().instance;
   if (props.downloads.length === 0) {
     return null;
   }
@@ -121,6 +123,7 @@ type ActiveImportsSectionProps = {
 };
 
 function LocalModelCenterActiveImportsSection(props: ActiveImportsSectionProps) {
+  const i18n = useDesktopI18nResource().instance;
   if (props.imports.length === 0) {
     return null;
   }
@@ -215,6 +218,7 @@ type AssetTasksSectionProps = {
 };
 
 function LocalModelCenterAssetTasksSection(props: AssetTasksSectionProps) {
+  const i18n = useDesktopI18nResource().instance;
   if (props.tasks.length === 0) {
     return null;
   }

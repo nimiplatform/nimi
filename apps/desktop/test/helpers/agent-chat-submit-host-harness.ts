@@ -21,7 +21,7 @@ import {
   feedStreamEvent,
   getStreamState,
   startStream,
-} from '../../src/shell/renderer/features/turns/stream-controller.js';
+} from './test-stream-controller.js';
 import { resolveAgentFooterViewState } from '../../src/shell/renderer/features/chat/chat-agent-shell-footer-state.js';
 import { resolveAgentConversationSurfaceState } from '../../src/shell/renderer/features/chat/chat-agent-shell-visible-state.js';
 import {

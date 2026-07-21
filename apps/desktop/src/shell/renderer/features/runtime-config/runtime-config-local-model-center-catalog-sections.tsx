@@ -1,4 +1,5 @@
-import { i18n } from '../../i18n';
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
+
 import { Surface } from '@nimiplatform/kit/ui';
 import { toCanonicalNimiRuntimeLocalAssetLookupKey } from '@nimiplatform/sdk/runtime';
 import type {
@@ -30,6 +31,7 @@ type AssetRequirementBadgesProps = {
 };
 
 function AssetRequirementBadges(props: AssetRequirementBadgesProps) {
+  const i18n = useDesktopI18nResource().instance;
   if (props.relatedAssets.length === 0) {
     return null;
   }
@@ -109,6 +111,7 @@ type VerifiedAssetsSectionProps = {
 };
 
 function LocalModelCenterVerifiedAssetsSection(props: VerifiedAssetsSectionProps) {
+  const i18n = useDesktopI18nResource().instance;
   return (
     <Surface tone="card" elevation="base" padding="none" className="rounded-xl p-4 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
@@ -201,6 +204,7 @@ type QuickPicksSectionProps = {
 };
 
 function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps) {
+  const i18n = useDesktopI18nResource().instance;
   if (props.verifiedModels.length === 0) {
     return null;
   }

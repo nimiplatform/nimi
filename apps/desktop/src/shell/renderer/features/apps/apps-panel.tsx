@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { useAppStore } from '../../app-shell/providers/app-store';
-import { dispatchSettingsOpenSection } from '../settings/settings-storage';
+import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import { useAppsPanelController } from './apps-panel-controller.js';
 import { AppsDetailView } from './apps-detail-view.js';
 import { AppsPanelView } from './apps-panel-view.js';
@@ -20,6 +20,7 @@ function LoadingAppsProjection(): ReactElement {
 export function AppsPanel(): ReactElement {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const settings = useDesktopRendererCommands().settings;
   const requestedDetailAppId = useAppStore((state) => state.appsDetailAppId);
   const setAppsDetailAppId = useAppStore((state) => state.setAppsDetailAppId);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
@@ -71,11 +72,11 @@ export function AppsPanel(): ReactElement {
               projection={projection}
               onCardAction={runCardAction}
               onOpenDeveloperMode={() => {
-                dispatchSettingsOpenSection('performance');
+                settings.openSection('performance');
                 setActiveTab('settings');
               }}
               onManageAccount={() => {
-                dispatchSettingsOpenSection('profile');
+                settings.openSection('profile');
                 setActiveTab('settings');
               }}
               onRetry={retryProjection}

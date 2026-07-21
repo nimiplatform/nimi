@@ -12,6 +12,14 @@ import {
   resolveProjectedDataRootPick,
   resolveProductControlWorkflowError,
 } from '../src/shell/renderer/first-run/product-control-workflow.js';
+import type { DesktopRendererClockView } from '../src/shell/renderer/renderer/contract.js';
+import { createUnavailableDesktopFirstRunPort } from '../src/shell/renderer/renderer/first-run-port.js';
+
+const TEST_CLOCK: DesktopRendererClockView = {
+  now: () => 0,
+  schedule: () => () => undefined,
+};
+const TEST_FIRST_RUN = createUnavailableDesktopFirstRunPort('TEST_FIRST_RUN_UNADMITTED');
 import {
   NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
   NIMI_FIRST_RUN_PHASES,
@@ -163,6 +171,8 @@ function projectionFor(
 function render(state: NimiProductControlState, override: Partial<NimiProductControlRecord> = {}): string {
   return renderToStaticMarkup(
     React.createElement(ProductControlWorkflow, {
+      clock: TEST_CLOCK,
+      firstRun: TEST_FIRST_RUN,
       projection: projectionFor(state, override),
       onProjectionChange: () => {},
     }),
@@ -172,6 +182,8 @@ function render(state: NimiProductControlState, override: Partial<NimiProductCon
 function renderProjection(projection: NimiProductControlRecordProjection): string {
   return renderToStaticMarkup(
     React.createElement(ProductControlWorkflow, {
+      clock: TEST_CLOCK,
+      firstRun: TEST_FIRST_RUN,
       projection,
       onProjectionChange: () => {},
     }),
@@ -261,8 +273,8 @@ test('the Storage phase wires the native folder picker to the selectProductDataR
     'utf8',
   );
   // The folder picker resolves a path; selectProductDataRoot records it.
-  assert.match(workflowSource, /pickProductDataRootDirectory/);
-  assert.match(workflowSource, /selectProductDataRoot/);
+  assert.match(workflowSource, /firstRun\.pickDataRootDirectory/);
+  assert.match(workflowSource, /firstRun\.selectDataRoot/);
   // The picked path is passed to selectProductDataRoot, not a raw text field.
   const storageSource = fs.readFileSync(
     path.join(import.meta.dirname, '../src/shell/renderer/first-run/phase-storage.tsx'),
@@ -303,7 +315,7 @@ test('the Storage phase prefers the Runtime checkpoint proposal and keeps the OS
   );
   assert.match(workflowSource, /projection\?\.dataRootProposal\?\.path/);
   assert.match(workflowSource, /if \(runtimeDataRootProposal\) return/);
-  assert.match(workflowSource, /defaultProductDataRootDirectory/);
+  assert.match(workflowSource, /firstRun\.defaultDataRootDirectory/);
 
   // The bridge call is read-only and fails closed: no Tauri runtime or a
   // non-string payload yields a null proposal, never a fabricated path.

@@ -34,6 +34,10 @@ const finalizationSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/first-run/first-run-finalization.tsx'),
   'utf8',
 );
+const productionFirstRunPortSource = readFileSync(
+  resolve(import.meta.dirname, '../src/shell/renderer/renderer/production-first-run-port.ts'),
+  'utf8',
+);
 const workflowSource = [
   readFileSync(
     resolve(import.meta.dirname, '../src/shell/renderer/first-run/product-control-workflow.tsx'),
@@ -122,7 +126,7 @@ test('Gate 7: ordinary shell admission stays gated strictly on backend ready_for
   // The safety valve against a stale persisted `not_logged_in` is an
   // explicit `admitProductReadyForUse` request — the only path that can
   // advance the file's state.
-  assert.match(appRoutesSource, /desktopBridge\.admitProductReadyForUse\(\)/);
+  assert.match(appRoutesSource, /bindings\.app\.commands\.firstRun\.admitReadyForUse\(\)/);
   // The hook must NOT clear renderer auth on divergence; doing so masked
   // the real bug and surprised the user with an unexplained sign-out. The
   // user-facing `admission-failed` surface exposes a `Sign out` button that
@@ -227,11 +231,12 @@ test('Wave 7: first-run finalization requests admission and routes on the projec
   // At local_ai_ready the finalization surface calls the admission command and
   // feeds the returned projection back into onProjectionChange so the gate
   // re-evaluates: ready_for_use on success, earliest-failed state on failure.
-  assert.match(finalizationSource, /desktopBridge\.prepareProductFirstRunLocalAiReady\(\)/);
-  assert.match(finalizationSource, /desktopBridge\.admitProductReadyForUse\(\)/);
+  assert.match(finalizationSource, /props\.firstRun\.finalize\(\)/);
+  assert.match(productionFirstRunPortSource, /desktopBridge\.prepareProductFirstRunLocalAiReady\(\)/);
+  assert.match(productionFirstRunPortSource, /desktopBridge\.admitProductReadyForUse\(\)/);
   assert.ok(
-    finalizationSource.indexOf('const prepared = await desktopBridge.prepareProductFirstRunLocalAiReady()')
-      < finalizationSource.indexOf('const next = await desktopBridge.admitProductReadyForUse()'),
+    productionFirstRunPortSource.indexOf('const prepared = await desktopBridge.prepareProductFirstRunLocalAiReady()')
+      < productionFirstRunPortSource.indexOf('desktopBridge.admitProductReadyForUse()'),
     'finalization must re-prepare owner evidence before admission, even when refs already exist',
   );
   assert.match(finalizationSource, /notifyProjectionChange\(next\)/);
@@ -245,10 +250,10 @@ test('Wave 7: first-run finalization requests admission and routes on the projec
 });
 
 test('Wave 7: first-run finalization deduplicates backend requests across remounts', () => {
-  assert.match(finalizationSource, /let firstRunFinalizationRequestInFlight/);
-  assert.match(finalizationSource, /firstRunFinalizationRequestInFlight !== null/);
-  assert.match(finalizationSource, /firstRunFinalizationRequestInFlight = runFirstRunFinalizationRequest\(\)\.finally/);
-  assert.match(finalizationSource, /finally\(\(\) => \{\s*firstRunFinalizationRequestInFlight = null;/);
+  assert.match(productionFirstRunPortSource, /let finalizationInFlight/);
+  assert.match(productionFirstRunPortSource, /if \(!finalizationInFlight\)/);
+  assert.match(productionFirstRunPortSource, /finalizationInFlight = finalize\(\)\.finally/);
+  assert.match(productionFirstRunPortSource, /finalizationInFlight = null/);
   assert.doesNotMatch(finalizationSource, /const inFlightRef = useRef\(false\)/);
 });
 
@@ -262,7 +267,7 @@ test('Wave 7: workflow mounts the finalization branch only after local AI eviden
     workflowSource,
     /(?:props\.)?state === 'local_ai_ready' \|\| (?:props\.)?materializationReadyForFinalization/,
   );
-  assert.match(workflowSource, /<FirstRunFinalization projection=\{(?:props\.)?projection\}/);
+  assert.match(workflowSource, /<FirstRunFinalization[\s\S]{0,160}projection=\{(?:props\.)?projection\}/);
   // The Setup-phase checklist projects the real materialization progression
   // and folds `local_ai_ready` as the active `finalize` sub-step rather than
   // re-rendering raw materialization rows.

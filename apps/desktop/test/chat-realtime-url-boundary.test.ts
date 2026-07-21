@@ -7,13 +7,17 @@ const realtimeSyncSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/realtime/use-chat-realtime-sync.ts'),
   'utf8',
 );
+const productionConnectorSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/infra/realtime/production-chat-realtime-sync.ts'),
+  'utf8',
+);
 
 test('Desktop chat sync stays on Runtime-mediated projections without a direct Realm realtime URL', () => {
-  assert.match(realtimeSyncSource, /syncThroughBroker/);
-  assert.match(realtimeSyncSource, /queryClient\.invalidateQueries/);
-  assert.doesNotMatch(realtimeSyncSource, /from '@nimiplatform\/sdk\/realm'/);
-  assert.doesNotMatch(realtimeSyncSource, /resolveNimiRealmRealtimeUrl/);
-  assert.doesNotMatch(realtimeSyncSource, /projectRealmRealtimeUrl/);
-  assert.doesNotMatch(realtimeSyncSource, /resolveRealtimeUrl/);
-  assert.doesNotMatch(realtimeSyncSource, /\/socket\.io|WebSocket/);
+  const combined = `${realtimeSyncSource}\n${productionConnectorSource}`;
+  assert.match(realtimeSyncSource, /bindings\.app\.events\.connectChatRealtimeSync/);
+  assert.match(productionConnectorSource, /syncThroughBroker/);
+  assert.match(productionConnectorSource, /queryClient\.invalidateQueries/);
+  assert.doesNotMatch(combined, /from '@nimiplatform\/sdk\/realm'/);
+  assert.doesNotMatch(combined, /resolveNimiRealmRealtimeUrl|projectRealmRealtimeUrl|resolveRealtimeUrl/);
+  assert.doesNotMatch(combined, /\/socket\.io|WebSocket/);
 });

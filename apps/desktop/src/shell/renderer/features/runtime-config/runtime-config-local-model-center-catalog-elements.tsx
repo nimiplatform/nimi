@@ -1,3 +1,4 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import type {
   NimiRuntimeLocalCatalogVariantDescriptor,
@@ -5,7 +6,7 @@ import type {
   NimiRuntimeLocalCatalogItemDescriptor,
   NimiRuntimeLocalVerifiedAssetDescriptor,
 } from '@nimiplatform/sdk/runtime';
-import { i18n } from '../../i18n';
+
 import { RuntimeSelect } from './runtime-config-primitives';
 import {
   CAPABILITY_OPTIONS,
@@ -35,6 +36,7 @@ export function VerifiedModelSearchRow(props: {
   onInstallAsset: (templateId: string) => void;
   onInstallVerifiedModel: (templateId: string) => void;
 }) {
+  const i18n = useDesktopI18nResource().instance;
   return (
     <div className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-white">
@@ -88,6 +90,8 @@ export function CatalogVariantPicker(props: {
   onCapabilityChange: (capability: CapabilityOption) => void;
   onInstallVariant: (filename: string) => void;
 }) {
+  const i18n = useDesktopI18nResource().instance;
+  const t = i18n.t.bind(i18n);
   return (
     <div className="bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]/80 px-4 pb-3">
       <div className="overflow-hidden rounded-lg border border-[var(--nimi-border-subtle)] bg-white">
@@ -167,7 +171,7 @@ export function CatalogVariantPicker(props: {
                   </div>
                   {variant.recommendation ? (
                     <p className="mt-1 truncate text-[10px] text-[var(--nimi-text-muted)]">
-                      {recommendationSummary(variant.recommendation)}
+                      {recommendationSummary(variant.recommendation, t)}
                     </p>
                   ) : null}
                   <RecommendationDetailList

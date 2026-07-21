@@ -14,13 +14,6 @@ import {
 } from '../../features/notification/notification-query.js';
 import type { NimiRealmFeedScope } from '@nimiplatform/sdk/realm';
 import { DEFAULT_HOME_FEED_SCOPE } from '../../features/home/home-feed-controls';
-import {
-  persistStoredSettingsSelected,
-} from '../../features/settings/settings-storage';
-import {
-  isDeveloperModeEnabled,
-  subscribeDeveloperMode,
-} from '../../features/developer/developer-mode';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { DesktopReleaseStrip } from './desktop-release-strip';
 import { MainLayoutPanelStack } from './main-layout-panel-stack';
@@ -47,7 +40,7 @@ import {
   NavLink,
 } from './navigation-config';
 import { E2E_IDS } from '../../testability/e2e-ids';
-import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
+import { useDesktopRendererBindings } from '../../renderer/binding-context';
 
 const DEFAULT_TITLEBAR_TOP_INSET_CLASS = 'top-0';
 const MACOS_TITLEBAR_TOP_INSET_CLASS = 'top-7';
@@ -57,18 +50,14 @@ const DEFAULT_SETTINGS_MENU_TOP_PX = 64;
 const MACOS_SETTINGS_MENU_TOP_PX = 92;
 
 /** Track window focus so polling queries can pause when the app is not focused. */
-function useWindowFocused(): boolean {
-  const [focused, setFocused] = useState(() => typeof document !== 'undefined' && document.hasFocus());
+function useWindowFocused(
+  subscribe: (listener: (focused: boolean) => void) => () => void,
+): boolean {
+  const [focused, setFocused] = useState(false);
   useEffect(() => {
-    const onFocus = () => setFocused(true);
-    const onBlur = () => setFocused(false);
-    window.addEventListener('focus', onFocus);
-    window.addEventListener('blur', onBlur);
-    return () => {
-      window.removeEventListener('focus', onFocus);
-      window.removeEventListener('blur', onBlur);
-    };
-  }, []);
+    setFocused(document.hasFocus());
+    return subscribe(setFocused);
+  }, [subscribe]);
   return focused;
 }
 
@@ -87,6 +76,7 @@ type MainLayoutViewProps = {
 
 export function MainLayoutView(props: MainLayoutViewProps) {
   const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
   const flags = getShellFeatureFlags();
   const usesMacTrafficLightTitlebar = flags.enableMenuBarShell;
   const titlebarTopInsetClass = usesMacTrafficLightTitlebar
@@ -119,13 +109,13 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   // surfaces appear / disappear immediately when the user flips it from
   // Settings.
   const [developerModeEnabled, setDeveloperModeEnabled] = useState(
-    () => isDeveloperModeEnabled(),
+    () => bindings.app.projection.developerModeEnabled(),
   );
   useEffect(() => {
-    return subscribeDeveloperMode((next) => {
+    return bindings.app.events.subscribeDeveloperMode((next) => {
       setDeveloperModeEnabled(next);
     });
-  }, []);
+  }, [bindings]);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [settingsMenuPosition, setSettingsMenuPosition] = useState<SettingsMenuAnchorPosition>({
     top: settingsMenuFallbackTop,
@@ -152,10 +142,10 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const hidePrimaryRail = immersiveRoute
     || (props.activeTab === 'profile' && Boolean(selectedProfileId))
     || profileDetailOverlayOpen;
-  const windowFocused = useWindowFocused();
+  const windowFocused = useWindowFocused(bindings.app.events.subscribeWindowFocus);
   const unreadCountQuery = useQuery({
     queryKey: notificationQueryKeys.topbarUnreadCount(notificationQueryIdentityRef),
-    queryFn: async () => loadNimiRealmNotificationUnreadCount(getDesktopRealm()),
+    queryFn: async () => loadNimiRealmNotificationUnreadCount(bindings.sdk.realm()),
     enabled: props.authStatus === 'authenticated' && Boolean(notificationIdentityRef),
     staleTime: 15_000,
     refetchInterval: windowFocused ? 30_000 : false,
@@ -169,12 +159,12 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       setSettingsMenuPosition({ top: settingsMenuFallbackTop, right: 16 });
       return;
     }
-    const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+    const viewportWidth = bindings.app.projection.viewportWidth();
     setSettingsMenuPosition({
       top: Math.max(12, Math.round(triggerRect.bottom + 12)),
       right: Math.max(12, Math.round(viewportWidth - triggerRect.right)),
     });
-  }, [settingsMenuFallbackTop]);
+  }, [bindings, settingsMenuFallbackTop]);
 
   useLayoutEffect(() => {
     if (settingsMenuOpen) {
@@ -186,11 +176,8 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     if (!settingsMenuOpen) {
       return;
     }
-    window.addEventListener('resize', updateSettingsMenuPosition);
-    return () => {
-      window.removeEventListener('resize', updateSettingsMenuPosition);
-    };
-  }, [settingsMenuOpen, updateSettingsMenuPosition]);
+    return bindings.app.events.subscribeWindowResize(updateSettingsMenuPosition);
+  }, [bindings, settingsMenuOpen, updateSettingsMenuPosition]);
 
   useEffect(() => {
     if (!settingsMenuOpen) {
@@ -214,13 +201,13 @@ export function MainLayoutView(props: MainLayoutViewProps) {
         setSettingsMenuOpen(false);
       }
     };
-    document.addEventListener('mousedown', onMouseDown);
-    window.addEventListener('keydown', onKeyDown);
+    const unsubscribeMouseDown = bindings.app.events.subscribeDocumentMouseDown(onMouseDown);
+    const unsubscribeKeyDown = bindings.app.events.subscribeWindowKeyDown(onKeyDown);
     return () => {
-      document.removeEventListener('mousedown', onMouseDown);
-      window.removeEventListener('keydown', onKeyDown);
+      unsubscribeKeyDown();
+      unsubscribeMouseDown();
     };
-  }, [settingsMenuOpen]);
+  }, [bindings, settingsMenuOpen]);
 
   useEffect(() => {
     setSettingsMenuOpen(false);
@@ -260,7 +247,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       return;
     }
     if (itemId === 'settings') {
-      persistStoredSettingsSelected('profile');
+      bindings.app.commands.settings.persistSelected('profile');
       props.onNav('settings');
       setSettingsMenuOpen(false);
       return;
@@ -427,7 +414,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             isItemActive={isSettingsMenuItemActive}
             onOpenItem={openSettingsSubmenuItem}
             onEditProfile={() => {
-              persistStoredSettingsSelected('profile');
+              bindings.app.commands.settings.persistSelected('profile');
               props.onNav('settings');
               setSettingsMenuOpen(false);
             }}

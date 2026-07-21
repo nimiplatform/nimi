@@ -11,6 +11,14 @@ import {
 } from '@nimiplatform/sdk/app';
 import { NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE } from '@nimiplatform/sdk/runtime';
 import { ProductControlWorkflow } from '../src/shell/renderer/first-run/product-control-workflow.js';
+import type { DesktopRendererClockView } from '../src/shell/renderer/renderer/contract.js';
+import { createUnavailableDesktopFirstRunPort } from '../src/shell/renderer/renderer/first-run-port.js';
+
+const TEST_CLOCK: DesktopRendererClockView = {
+  now: () => 0,
+  schedule: () => () => undefined,
+};
+const TEST_FIRST_RUN = createUnavailableDesktopFirstRunPort('TEST_FIRST_RUN_UNADMITTED');
 import {
   resolveDesktopNimiFirstRunMaterializationProjection,
   startDesktopNimiFirstRunMaterialization,
@@ -70,6 +78,10 @@ const productControlWorkflowSource = readFileSync(
 );
 const runtimeMaterializationSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/first-run/runtime-materialization.ts'),
+  'utf8',
+);
+const productionFirstRunPortSource = readFileSync(
+  resolve(import.meta.dirname, '../src/shell/renderer/renderer/production-first-run-port.ts'),
   'utf8',
 );
 const firstRunSetupChecklistSource = readFileSync(
@@ -136,6 +148,8 @@ function projectionFor(
 
 function renderWorkflow(state: NimiProductControlState, override: Partial<NimiProductControlRecord> = {}): string {
   return renderToStaticMarkup(React.createElement(ProductControlWorkflow, {
+    clock: TEST_CLOCK,
+    firstRun: TEST_FIRST_RUN,
     projection: projectionFor(state, override),
     onProjectionChange: () => {},
   }));
@@ -220,11 +234,11 @@ test('renderer evidence: continuing from the Local AI phase records the install 
   // The step indicator marks Local AI active and never advertises a ready
   // shortcut step.
   assert.match(markup, /data-testid="first-run-step-local-ai" data-active="true"/);
-  assert.match(productControlWorkflowSource, /setProductFirstRunInstallLevel/);
-  assert.match(productControlWorkflowSource, /startDesktopNimiFirstRunMaterialization/);
+  assert.match(productControlWorkflowSource, /firstRun\.setInstallLevel/);
+  assert.match(productControlWorkflowSource, /firstRun\.startMaterialization/);
   const installLevelIndex = productControlWorkflowSource.indexOf('await persistInstallLevel(installLevel)');
   const materializationStartIndex = productControlWorkflowSource.indexOf(
-    'await startDesktopNimiFirstRunMaterialization',
+    'await firstRun.startMaterialization',
     installLevelIndex,
   );
   assert.ok(installLevelIndex >= 0, 'Local AI continue must persist install level');
@@ -432,7 +446,8 @@ test('ready_for_use has no production renderer/Tauri mark-ready shortcut and rou
 test('Runtime materialization orchestration is wired through SDK Runtime local client and no renderer mark-ready shortcut exists', () => {
   assert.match(aiProfilePolicySource, /StartLocalEnvironmentDependencyJob/);
   assert.match(runtimeLocalEnvironmentContractSource, /Dependency materialization and repair run as Runtime-owned jobs/);
-  assert.match(runtimeMaterializationSource, /firstRunRuntimeLocalClient/);
+  assert.match(productionFirstRunPortSource, /firstRunRuntimeLocalClient/);
+  assert.doesNotMatch(runtimeMaterializationSource, /firstRunRuntimeLocalClient/);
   assert.match(runtimeMaterializationSource, /resolveNimiFirstRunMaterializationProjection/);
   assert.doesNotMatch(runtimeMaterializationSource, /\blocalRuntime\b/);
   assert.match(runtimeMaterializationSource, /@nimiplatform\/sdk\/runtime/);
@@ -441,8 +456,8 @@ test('Runtime materialization orchestration is wired through SDK Runtime local c
   assert.match(firstRunSetupChecklistSource, /isNimiRuntimeLocalEnvironmentDependencyJobFailedState/);
   assert.doesNotMatch(firstRunSetupChecklistSource, /JOB_ACTIVE_STATES|JOB_FAILED_STATES/);
   assert.doesNotMatch(firstRunSetupChecklistSource, /'starting'|'running'|'in_progress'/);
-  assert.match(productControlWorkflowSource, /reconcileProductFirstRunSetupState/);
-  assert.match(productControlWorkflowSource, /startDesktopNimiFirstRunMaterialization/);
+  assert.match(productControlWorkflowSource, /firstRun\.reconcileSetupState/);
+  assert.match(productControlWorkflowSource, /firstRun\.startMaterialization/);
   assert.doesNotMatch(productControlWorkflowSource, /markProductReadyForUse/);
   assert.doesNotMatch(productControlWorkflowSource, /setProductFirstRunSetupState/);
   assert.match(productControlWorkflowSource, /'local_ai_ready'/);

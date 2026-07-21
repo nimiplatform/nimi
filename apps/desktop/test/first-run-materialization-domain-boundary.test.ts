@@ -7,6 +7,10 @@ const desktopRuntimeMaterialization = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/first-run/runtime-materialization.ts'),
   'utf8',
 );
+const desktopProductionFirstRunPort = readFileSync(
+  resolve(import.meta.dirname, '../src/shell/renderer/renderer/production-first-run-port.ts'),
+  'utf8',
+);
 const desktopFirstRunIndexPath = resolve(import.meta.dirname, '../src/shell/renderer/first-run/index.ts');
 const desktopResumeTest = readFileSync(
   resolve(import.meta.dirname, 'first-run-materialization-resume.test.ts'),
@@ -25,7 +29,8 @@ test('Desktop first-run materialization does not re-export SDK-owned materializa
   );
   assert.doesNotMatch(desktopRuntimeMaterialization, /export function productStateForNimiFirstRunMaterializationStatus/);
   assert.doesNotMatch(desktopRuntimeMaterialization, /function withProductState/);
-  assert.match(desktopRuntimeMaterialization, /firstRunRuntimeLocalClient/);
+  assert.doesNotMatch(desktopRuntimeMaterialization, /firstRunRuntimeLocalClient/);
+  assert.match(desktopProductionFirstRunPort, /firstRunRuntimeLocalClient/);
   assert.match(desktopRuntimeMaterialization, /resolveNimiFirstRunMaterializationProjection/);
   assert.doesNotMatch(desktopRuntimeMaterialization, /\blocalRuntime\b/);
 });

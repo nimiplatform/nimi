@@ -8,7 +8,7 @@ import type {
 import {
   cancelStream,
   getStreamState,
-} from '../src/shell/renderer/features/turns/stream-controller.js';
+} from './helpers/test-stream-controller.js';
 import {
   beginAgentHostSubmit,
   closeAgentHostHarness,

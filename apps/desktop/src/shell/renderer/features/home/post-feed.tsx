@@ -1,9 +1,10 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import type { ReactNode } from 'react';
 import { AppCardSurface } from '@nimiplatform/kit/ui';
-import { i18n } from '../../i18n';
+
 
 type PostDto = RealmModel<'PostDto'>;
 
@@ -87,6 +88,7 @@ export function PostFeed({
   virtualOffsetRef,
   columns = 1,
 }: PostFeedProps) {
+  const i18n = useDesktopI18nResource().instance;
   const [posts, setPosts] = useState<FeedItem[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);

@@ -13,6 +13,10 @@ const loginPageSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/auth/login-page.tsx'),
   'utf8',
 );
+const productionBindingsSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/renderer/production-bindings.ts'),
+  'utf8',
+);
 const authStateWatcherSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/auth-state-watcher.ts'),
   'utf8',
@@ -55,7 +59,9 @@ test('setAuthSession keeps renderer auth projection token-free', () => {
 test('login page no longer preserves authenticated web shell for desktop callback URLs', () => {
   assert.doesNotMatch(loginPageSource, /hasDesktopCallbackRequestInLocation/);
   assert.match(loginPageSource, /if \(authStatus === 'authenticated'\) \{/);
-  assert.match(loginPageSource, /continueOauthNextIfPresent\(window\.location\.search\)/);
+  assert.match(loginPageSource, /bindings\.app\.commands\.reconcileLoginState\(\{ authStatus \}\)/);
+  assert.doesNotMatch(loginPageSource, /window\.|continueOauthNextIfPresent/);
+  assert.match(productionBindingsSource, /continueOauthNextIfPresent\(window\.location\.search\)/);
   assert.doesNotMatch(
     loginPageSource,
     /import\s*\{[^}]*\bNavigate\b[^}]*\}\s*from\s*'react-router-dom'/,

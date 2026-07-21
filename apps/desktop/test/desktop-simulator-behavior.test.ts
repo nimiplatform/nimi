@@ -27,6 +27,23 @@ test('Desktop Simulator behavior commits locale changes with the State Engine cl
   });
 });
 
+test('Desktop Simulator behavior publishes declared logical timer events without wall-clock state', () => {
+  const initial = desktopSimulatorBehavior.initialState(initialInput);
+  const reduced = desktopSimulatorBehavior.reduce(
+    initial,
+    { type: 'desktop.renderer.timer.fire', payload: { token: 'instance-1:timer:1' } },
+    { now: 60_000, drawRandom: () => 0.5 },
+  );
+
+  assert.deepEqual(reduced, {
+    state: initial,
+    events: [{
+      type: 'desktop.renderer.timer.fired',
+      payload: { token: 'instance-1:timer:1' },
+    }],
+  });
+});
+
 test('Desktop Simulator behavior fails closed for undeclared commands and invalid locale data', () => {
   const initial = desktopSimulatorBehavior.initialState(initialInput);
   assert.throws(

@@ -1,6 +1,7 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { RealmModel, ReportReason } from '@nimiplatform/sdk/realm/generated';
-import { i18n } from '../../i18n';
+
 import type { ProfileDetailSeed } from '../relationship/profile-detail-modal.js';
 import type { EditablePostSeed } from '../profile/create-post-modal-helpers.js';
 import { PostCardArticle } from './article';
@@ -93,6 +94,7 @@ type PostCardProps = {
 };
 
 export function PostCard(input: PostCardProps) {
+  const i18n = useDesktopI18nResource().instance;
   const {
     post,
     actionAdapter,

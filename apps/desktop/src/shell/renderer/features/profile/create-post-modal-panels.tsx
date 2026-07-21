@@ -1,7 +1,8 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { OverlayShell, ScrollArea } from '@nimiplatform/kit/ui';
 import type { Location } from './create-post-modal-helpers.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
-import { i18n } from '../../i18n';
+
 
 export function EmojiPickerPanel(input: {
   show: boolean;
@@ -14,6 +15,7 @@ export function EmojiPickerPanel(input: {
   setEmojiPage: (page: number) => void;
   insertEmoji: (emoji: string) => void;
 }) {
+  const i18n = useDesktopI18nResource().instance;
   const activeCategory = input.categories.find((category) => category.originalIndex === input.activeEmojiCategory)
     || input.categories[0]
     || { name: 'Default', emojis: [] as string[], originalIndex: 0 };
@@ -96,6 +98,7 @@ export function LocationPickerPanel(input: {
   selectedLocation: Location | null;
   selectLocation: (location: Location) => void;
 }) {
+  const i18n = useDesktopI18nResource().instance;
   if (!input.show || !input.position) {
     return null;
   }
@@ -177,6 +180,7 @@ export function TagPickerPanel(input: {
   tags: string[];
   insertTag: (tag: string) => void;
 }) {
+  const i18n = useDesktopI18nResource().instance;
   if (!input.show || !input.position) {
     return null;
   }

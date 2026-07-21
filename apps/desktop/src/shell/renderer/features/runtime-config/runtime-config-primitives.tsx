@@ -1,6 +1,7 @@
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { motion } from 'motion/react';
-import { i18n } from '../../i18n';
+
 
 import {
   AppCardSurface,
@@ -229,6 +230,8 @@ function SearchableRuntimeSelect({
   searchPlaceholder?: string;
   emptyLabel?: string;
 }) {
+  const i18n = useDesktopI18nResource().instance;
+  const t = i18n.t.bind(i18n);
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const interactiveMotion = useDesktopInteractiveMotion();
@@ -316,8 +319,8 @@ function SearchableRuntimeSelect({
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.currentTarget.value)}
               onKeyDown={onSearchKeyDown}
-              placeholder={searchPlaceholder || i18n.t('runtimeConfig.common.searchOptions', { defaultValue: 'Search options...' })}
-              aria-label={searchPlaceholder || i18n.t('runtimeConfig.common.searchOptions', { defaultValue: 'Search options...' })}
+              placeholder={searchPlaceholder || t('runtimeConfig.common.searchOptions', { defaultValue: 'Search options...' })}
+              aria-label={searchPlaceholder || t('runtimeConfig.common.searchOptions', { defaultValue: 'Search options...' })}
               className="h-9 w-full rounded-md border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] pl-9 pr-3 text-sm text-[var(--nimi-field-text)] outline-none placeholder:text-[var(--nimi-text-muted)] focus:border-[var(--nimi-field-focus)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)]"
             />
           </div>
@@ -351,7 +354,7 @@ function SearchableRuntimeSelect({
               );
             }) : (
               <p className="px-3 py-3 text-sm text-[var(--nimi-text-muted)]">
-                {emptyLabel || i18n.t('runtimeConfig.common.noOptionsMatchingSearch', { defaultValue: 'No matching options.' })}
+                {emptyLabel || t('runtimeConfig.common.noOptionsMatchingSearch', { defaultValue: 'No matching options.' })}
               </p>
             )}
           </div>
@@ -452,10 +455,12 @@ export function StatusBadge({ status }: { status: ProviderStatusV11 }) {
 }
 
 export function DaemonStatusBadge({ running }: { running: boolean }) {
+  const i18n = useDesktopI18nResource().instance;
+  const t = i18n.t.bind(i18n);
   return (
     <StatusIndicator
       status={running ? 'running' : 'stopped'}
-      text={i18n.t(`runtimeConfig.overview.${running ? 'running' : 'stopped'}`, {
+      text={t(`runtimeConfig.overview.${running ? 'running' : 'stopped'}`, {
         defaultValue: running ? 'daemon running' : 'daemon stopped',
       })}
       variant="daemon"
@@ -470,11 +475,13 @@ export function RuntimeHealthBadge({
   daemonRunning: boolean;
   providerStatus: ProviderStatusV11;
 }) {
+  const i18n = useDesktopI18nResource().instance;
+  const t = i18n.t.bind(i18n);
   if (!daemonRunning) {
     return (
       <StatusIndicator
         status="stopped"
-        text={i18n.t('runtimeConfig.overview.stopped', { defaultValue: 'daemon stopped' })}
+        text={t('runtimeConfig.overview.stopped', { defaultValue: 'daemon stopped' })}
         variant="daemon"
       />
     );
@@ -488,11 +495,14 @@ export function RuntimeHealthBadge({
   );
 }
 
-export function renderModelChips(models: string[], prefix: string) {
+export function ModelChips(props: { readonly models: string[]; readonly prefix: string }) {
+  const i18n = useDesktopI18nResource().instance;
+  const t = i18n.t.bind(i18n);
+  const { models, prefix } = props;
   if (models.length === 0) {
     return (
       <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-        {i18n.t('runtimeConfig.common.noModelsDiscovered', { defaultValue: 'No models discovered yet.' })}
+        {t('runtimeConfig.common.noModelsDiscovered', { defaultValue: 'No models discovered yet.' })}
       </p>
     );
   }

@@ -13,7 +13,6 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import type { TFunction } from 'i18next';
 import { useAppStore, type AuthStatus } from '../../app-shell/providers/app-store';
-import { productionAppStore } from '../../app-shell/providers/production-app-store';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
   createRuntimeAgentCenterAdapter,
@@ -118,17 +117,16 @@ function toRuntimeIdentityInput(target: AgentLocalTargetSnapshot): RuntimeIdenti
   };
 }
 
-function requireRuntimeSubjectUserId(): string {
-  const subjectUserId = normalizeText((productionAppStore.getState().auth.user as Record<string, unknown> | null)?.id);
-  if (!subjectUserId) {
-    throw new Error('desktop agent shell requires authenticated subject user id for runtime.agent');
-  }
-  return subjectUserId;
-}
-
 export function useAgentConversationRuntimeController(
   input: UseAgentConversationRuntimeControllerInput,
 ): AgentConversationRuntimeController {
+  const subjectUserId = useAppStore((state) => normalizeText(state.auth.user?.id));
+  const getSubjectUserId = useCallback(() => {
+    if (!subjectUserId) {
+      throw new Error('desktop agent shell requires authenticated subject user id for runtime.agent');
+    }
+    return subjectUserId;
+  }, [subjectUserId]);
   const {
     activeTarget,
     authStatus,
@@ -151,21 +149,21 @@ export function useAgentConversationRuntimeController(
   const [recentRuntimeEvents, setRecentRuntimeEvents] = useState<readonly NimiRuntimeAgentInspectEventSummary[]>([]);
   const lastInspectFetchedAgentIdRef = useRef<string | null>(null);
   const runtimeAgentMemory = useMemo(() => createRuntimeAgentMemoryAdapter({
-    getSubjectUserId: requireRuntimeSubjectUserId,
-  }), []);
+    getSubjectUserId,
+  }), [getSubjectUserId]);
   const runtimeAgentInspect = useMemo(() => createRuntimeAgentInspectAdapter({
-    getSubjectUserId: requireRuntimeSubjectUserId,
-  }), []);
+    getSubjectUserId,
+  }), [getSubjectUserId]);
   const runtimeAgentAIConfigAdapter = useMemo(() => createRuntimeAgentAIConfigAdapter({
-    getSubjectUserId: requireRuntimeSubjectUserId,
-  }), []);
+    getSubjectUserId,
+  }), [getSubjectUserId]);
   const runtimeAgentCenterAdapter = useMemo(() => {
     if (authStatus !== 'authenticated' || !activeTarget) {
       return null;
     }
     const lifecycle = createNimiHostRuntimeAgentLifecycleSurface({
       getRuntime: getDesktopHostRuntimeAgentClient,
-      getSubjectUserId: requireRuntimeSubjectUserId,
+      getSubjectUserId,
       withScopes: withDesktopRuntimeProtectedScopes,
     });
     const consume = createNimiRuntimeAgentConsumeClient({
@@ -199,7 +197,7 @@ export function useAgentConversationRuntimeController(
         return snapshot.turnContextSummary ?? null;
       },
     });
-  }, [activeTarget, authStatus, runtimeAgentAIConfigAdapter, runtimeAgentInspect]);
+  }, [activeTarget, authStatus, getSubjectUserId, runtimeAgentAIConfigAdapter, runtimeAgentInspect]);
 
   const requireActiveRuntimeIdentity = useCallback(() => {
     if (!activeTarget) {

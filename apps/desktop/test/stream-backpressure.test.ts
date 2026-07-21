@@ -31,7 +31,7 @@ import {
   cancelStream,
   getStreamState,
   clearStream,
-} from '../src/shell/renderer/features/turns/stream-controller';
+} from './helpers/test-stream-controller.js';
 
 const TEST_CHAT = 'test-chat-backpressure';
 

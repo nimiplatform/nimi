@@ -1,6 +1,7 @@
+import { useDesktopI18nResource } from '../i18n/i18n-context';
 import type { CSSProperties, ReactNode } from 'react';
 import { motion } from 'motion/react';
-import { i18n } from '../i18n';
+
 import { useDesktopInteractiveMotion } from '../ui/motion/desktop-motion';
 
 type ChromeTabProps = {
@@ -28,6 +29,7 @@ type ChromeTabStyle = CSSProperties & {
 };
 
 export function ChromeTab(props: ChromeTabProps) {
+  const i18n = useDesktopI18nResource().instance;
   const interactiveMotion = useDesktopInteractiveMotion();
   const {
     active = false,
