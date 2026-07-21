@@ -48,14 +48,33 @@ function packageDirectory(simulatorRoot, packageName) {
   return { root, packageJsonPath, packageJson };
 }
 
+function substituteExportWildcard(value, matchedSegment) {
+  if (typeof value === 'string') return value.replaceAll('*', matchedSegment);
+  if (Array.isArray(value)) return value.map((entry) => substituteExportWildcard(entry, matchedSegment));
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [key, substituteExportWildcard(entry, matchedSegment)]),
+  );
+}
+
 function exportEntry(packageJson, subpath) {
   const exportsField = packageJson.exports;
   if (!exportsField) return null;
   if (typeof exportsField === 'string' || Array.isArray(exportsField)) return subpath === '.' ? exportsField : null;
   if (typeof exportsField !== 'object') return null;
   const keys = Object.keys(exportsField);
-  if (keys.some((key) => key.startsWith('.'))) return exportsField[subpath] ?? null;
-  return subpath === '.' ? exportsField : null;
+  if (!keys.some((key) => key.startsWith('.'))) return subpath === '.' ? exportsField : null;
+  if (Object.hasOwn(exportsField, subpath)) return exportsField[subpath];
+  for (const key of keys) {
+    const wildcardIndex = key.indexOf('*');
+    if (wildcardIndex < 0 || wildcardIndex !== key.lastIndexOf('*')) continue;
+    const prefix = key.slice(0, wildcardIndex);
+    const suffix = key.slice(wildcardIndex + 1);
+    if (!subpath.startsWith(prefix) || !subpath.endsWith(suffix)) continue;
+    const matchedSegment = subpath.slice(prefix.length, subpath.length - suffix.length);
+    return substituteExportWildcard(exportsField[key], matchedSegment);
+  }
+  return null;
 }
 
 function selectConditionalTarget(value, conditions) {
@@ -79,9 +98,8 @@ function selectConditionalTarget(value, conditions) {
 
 function explicitTypesTarget(packageJson, subpath) {
   const entry = exportEntry(packageJson, subpath);
-  if (entry && typeof entry === 'object' && !Array.isArray(entry) && Object.hasOwn(entry, 'types')) {
-    return selectConditionalTarget(entry.types, CONDITIONS.types);
-  }
+  const selected = selectConditionalTarget(entry, CONDITIONS.types);
+  if (selected && /\.d\.(?:ts|mts|cts)$/u.test(selected)) return selected;
   if (subpath === '.' && typeof packageJson.types === 'string') return packageJson.types;
   if (subpath === '.' && typeof packageJson.typings === 'string') return packageJson.typings;
   return null;

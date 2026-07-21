@@ -183,10 +183,10 @@ importers:
         specifier: workspace:*
         version: link:../../sdks/typescript
       '@tanstack/react-query':
-        specifier: ^5.100.11
+        specifier: 5.100.11
         version: 5.100.11(react@19.2.6)
       '@tanstack/react-virtual':
-        specifier: ^3.13.25
+        specifier: 3.13.25
         version: 3.13.25(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       '@tauri-apps/api':
         specifier: ^2.11.0
@@ -195,13 +195,13 @@ importers:
         specifier: ^8.20.0
         version: 8.20.0
       i18next:
-        specifier: ^25.8.18
+        specifier: 25.8.18
         version: 25.8.18(typescript@5.9.3)
       lucide-react:
-        specifier: ^0.577.0
+        specifier: 0.577.0
         version: 0.577.0(react@19.2.6)
       motion:
-        specifier: ^12.42.0
+        specifier: 12.42.0
         version: 12.42.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       react:
         specifier: 19.2.6
@@ -210,13 +210,13 @@ importers:
         specifier: 19.2.6
         version: 19.2.6(react@19.2.6)
       react-i18next:
-        specifier: ^16.5.8
+        specifier: 16.5.8
         version: 16.5.8(i18next@25.8.18(typescript@5.9.3))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)
       react-router-dom:
-        specifier: ^7.15.1
+        specifier: 7.15.1
         version: 7.15.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       scheduler:
-        specifier: ^0.27.0
+        specifier: 0.27.0
         version: 0.27.0
       socket.io-client:
         specifier: ^4.8.3
@@ -231,7 +231,7 @@ importers:
         specifier: 4.4.3
         version: 4.4.3
       zustand:
-        specifier: ^5.0.13
+        specifier: 5.0.13
         version: 5.0.13(@types/react@19.2.15)(react@19.2.6)(use-sync-external-store@1.6.0(react@19.2.6))
     devDependencies:
       '@electron/asar':
@@ -396,12 +396,18 @@ importers:
       '@tanstack/react-query':
         specifier: 5.100.11
         version: 5.100.11(react@19.2.6)
+      '@tanstack/react-virtual':
+        specifier: 3.13.25
+        version: 3.13.25(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       i18next:
         specifier: 25.8.18
         version: 25.8.18(typescript@5.9.3)
       lucide-react:
         specifier: 0.577.0
         version: 0.577.0(react@19.2.6)
+      motion:
+        specifier: 12.42.0
+        version: 12.42.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       react:
         specifier: 19.2.6
         version: 19.2.6
