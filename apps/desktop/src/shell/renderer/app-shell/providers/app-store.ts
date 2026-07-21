@@ -4,7 +4,7 @@ import {
   useContext,
   type PropsWithChildren,
 } from 'react';
-import { useStore } from 'zustand';
+import { useStore } from 'zustand/react';
 
 import type { AppStoreApi } from './app-store-factory.js';
 import type { AppStoreState } from './store-types.js';

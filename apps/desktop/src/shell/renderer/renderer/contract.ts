@@ -35,6 +35,7 @@ import type { DesktopRendererVoiceCapturePort } from './voice-capture-port.js';
 import type { DesktopRendererSupportLogsPort } from './support-logs-port.js';
 import type { DesktopRendererLocalModelProgressPort } from './local-model-progress-port.js';
 import type { DesktopRendererAvatarHandoffPort } from './avatar-handoff-port.js';
+import type { DesktopRendererVirtualizationPort } from './virtualization-port.js';
 
 export type DesktopRendererInitialState = {
   readonly aiConfig: NimiAIConfig;
@@ -70,6 +71,7 @@ export interface DesktopRendererCommandPort {
   readonly voiceCapture: DesktopRendererVoiceCapturePort;
   readonly localModelProgress: DesktopRendererLocalModelProgressPort;
   readonly avatarHandoff: DesktopRendererAvatarHandoffPort;
+  readonly virtualization: DesktopRendererVirtualizationPort;
   readonly connectorAuth: Pick<
     NimiConnectorAuthAcquisitionHost,
     'proxyHttp' | 'oauthTokenExchange'

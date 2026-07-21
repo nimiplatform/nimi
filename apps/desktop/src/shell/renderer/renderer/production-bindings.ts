@@ -85,6 +85,7 @@ import {
 import { createDesktopProductionWorldFollowPort } from '../features/world/production-world-follow-port.js';
 import { createDesktopProductionVoiceCapturePort } from '../features/chat/production-agent-voice-capture.js';
 import { createDesktopProductionLocalModelProgressPort } from '../features/runtime-config/production-local-model-progress-port.js';
+import { createDesktopProductionVirtualizationPort } from './production-virtualization-port.js';
 import {
   closeDesktopAvatarHandoff,
   launchDesktopAvatarHandoff,
@@ -243,6 +244,7 @@ export function createDesktopProductionBindings(
         worldFollow: createDesktopProductionWorldFollowPort(),
         voiceCapture: createDesktopProductionVoiceCapturePort(),
         localModelProgress: createDesktopProductionLocalModelProgressPort(),
+        virtualization: createDesktopProductionVirtualizationPort(),
         avatarHandoff: Object.freeze({
           available: hasTauriInvoke,
           list: (agentId: string) => listDesktopAvatarLiveInstances({ agentId }),

@@ -1,6 +1,5 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import type { ReactNode } from 'react';
 import { AppCardSurface } from '@nimiplatform/kit/ui';
@@ -270,7 +269,7 @@ export function PostFeed({
   }, [posts, columns, useGridVirtual]);
 
   // Single-column virtualizer (Home path — unchanged)
-  const singleVirtualizer = useVirtualizer({
+  const singleVirtualizer = bindings.app.commands.virtualization.useVirtualizer({
     count: useVirtual && !useGridVirtual ? posts.length : 0,
     getScrollElement: () => scrollRef?.current ?? null,
     estimateSize: () => POST_ESTIMATED_HEIGHT + POST_GAP,
@@ -280,7 +279,7 @@ export function PostFeed({
   });
 
   // Grid row virtualizer (Explore path — new)
-  const gridVirtualizer = useVirtualizer({
+  const gridVirtualizer = bindings.app.commands.virtualization.useVirtualizer({
     count: useGridVirtual ? gridRows.length : 0,
     getScrollElement: () => scrollRef?.current ?? null,
     estimateSize: () => POST_ESTIMATED_HEIGHT + POST_GAP,

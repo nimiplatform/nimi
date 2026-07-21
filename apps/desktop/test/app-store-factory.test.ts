@@ -54,6 +54,7 @@ import { createUnavailableDesktopRendererVoiceCapturePort } from '../src/shell/r
 import { createUnavailableDesktopRendererSupportLogsPort } from '../src/shell/renderer/renderer/support-logs-port.js';
 import { createMemoryDesktopRendererLocalModelProgressPort } from '../src/shell/renderer/renderer/local-model-progress-port.js';
 import { createUnavailableDesktopRendererAvatarHandoffPort } from '../src/shell/renderer/renderer/avatar-handoff-port.js';
+import { createDeterministicDesktopVirtualizationPort } from '../src/shell/renderer/renderer/virtualization-port.js';
 import { createWorldFollowStore } from '../src/shell/renderer/features/world/world-follow-store.js';
 import { createAgentVisibleProjectionStore } from '../src/shell/renderer/features/chat/chat-agent-visible-projection-store.js';
 import { createChatUploadPlaceholderStore } from '../src/shell/renderer/features/turns/chat-upload-placeholder-store.js';
@@ -380,6 +381,7 @@ function createCanonicalBindings(input: {
         systemResources: createUnavailableDesktopRendererSystemResourcesPort('TEST_SYSTEM_RESOURCES_UNAVAILABLE'),
         voiceCapture: createUnavailableDesktopRendererVoiceCapturePort('TEST_VOICE_CAPTURE_UNAVAILABLE'),
         localModelProgress: createMemoryDesktopRendererLocalModelProgressPort(),
+        virtualization: createDeterministicDesktopVirtualizationPort(),
         avatarHandoff: createUnavailableDesktopRendererAvatarHandoffPort('TEST_AVATAR_HANDOFF_UNAVAILABLE'),
         connectorAuth: Object.freeze({
           async proxyHttp() { throw new Error('TEST_CONNECTOR_AUTH_UNADMITTED'); },

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { AppCardSurface, CompactAction } from '@nimiplatform/kit/ui';
 import { PostCard } from '../home/post-card';
@@ -93,7 +92,7 @@ export function PostFeedWithMediaPreview({
   const rows = useMemo(() => (isGrid ? chunkRows(posts, 2) : []), [isGrid, posts]);
   const useVirtual = isGrid && rows.length > 0 && scrollElement != null;
 
-  const virtualizer = useVirtualizer({
+  const virtualizer = bindings.app.commands.virtualization.useVirtualizer({
     count: useVirtual ? rows.length : 0,
     getScrollElement: () => scrollElement,
     estimateSize: () => ROW_ESTIMATED_HEIGHT + ROW_GAP,

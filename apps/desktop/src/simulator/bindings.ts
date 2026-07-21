@@ -27,6 +27,7 @@ import { createUnavailableDesktopRendererVoiceCapturePort } from '../shell/rende
 import { createUnavailableDesktopRendererSupportLogsPort } from '../shell/renderer/renderer/support-logs-port.js';
 import { createMemoryDesktopRendererLocalModelProgressPort } from '../shell/renderer/renderer/local-model-progress-port.js';
 import { createUnavailableDesktopRendererAvatarHandoffPort } from '../shell/renderer/renderer/avatar-handoff-port.js';
+import { createDeterministicDesktopVirtualizationPort } from '../shell/renderer/renderer/virtualization-port.js';
 
 type JsonRecord = { readonly [key: string]: DesktopSimulatorJsonValue };
 
@@ -205,6 +206,7 @@ export function createDesktopSimulatorBindings(
           'DESKTOP_SIMULATOR_WORLD_FOLLOW_UNADMITTED',
         ),
         localModelProgress: createMemoryDesktopRendererLocalModelProgressPort(),
+        virtualization: createDeterministicDesktopVirtualizationPort(),
         avatarHandoff: createUnavailableDesktopRendererAvatarHandoffPort(
           'DESKTOP_SIMULATOR_AVATAR_HANDOFF_UNADMITTED',
         ),
