@@ -3,6 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./renderer/factory": "./src/shell/renderer/renderer/factory.tsx",
+    "./renderer/production-bindings": "./src/shell/renderer/renderer/production-bindings.ts",
+    "./renderer/production-host": "./src/shell/renderer/renderer/production-host.ts",
+    "./renderer/styles": "./src/shell/renderer/styles.css"
+  },
   "scripts": {
     "postinstall": "node scripts/ensure-rust.mjs",
     "tauri": "tauri",

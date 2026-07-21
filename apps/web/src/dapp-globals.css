@@ -1,11 +1,6 @@
 /* DESIGN-RULE-ID: DESIGN-PLATFORM-001 */
 @import 'tailwindcss';
 
-/* World UI Design System - 凡人修仙传主题设计系统 */
-/* 注意：这些样式文件必须在 [data-world-isolated] 定义之后导入，否则会被 all: initial 重置 */
-/* @import '../styles/world-design-system.css'; */
-/* @import '../components/world-ui/styles/world-ui-visualizations.css'; */
-
 /* -------------------------------------------------------------------------- */
 /* Tailwind v4 Configuration                                                   */
 /* -------------------------------------------------------------------------- */

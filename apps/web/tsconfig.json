@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
     "paths": {
+      "@nimiplatform/desktop/renderer/factory": ["../desktop/src/shell/renderer/renderer/factory.tsx"],
+      "@nimiplatform/desktop/renderer/production-bindings": ["../desktop/src/shell/renderer/renderer/production-bindings.ts"],
+      "@nimiplatform/desktop/renderer/production-host": ["../desktop/src/shell/renderer/renderer/production-host.ts"],
+      "@nimiplatform/desktop/renderer/styles": ["../desktop/src/shell/renderer/styles.css"],
       "@desktop-public/*": ["../desktop/src/public-web/*"],
       "@renderer/infra/bootstrap/runtime-bootstrap": ["./src/desktop-adapter/runtime-bootstrap.web.ts"],
       "@renderer/features/runtime-config/runtime-config-panel-view": ["./src/desktop-adapter/runtime-config-panel.web.tsx"],

@@ -1,6 +1,4 @@
 @import "./dapp-globals.css";
-/* Desktop styles imported via the public-for-web boundary. */
-@import "../../desktop/src/public-web/styles.css";
 @source "../../../kit/ui/src/**/*.{ts,tsx}";
 @source "../../../kit/auth/src/**/*.{ts,tsx}";
 @source "../../../kit/features/chat/src/**/*.{ts,tsx}";

@@ -132,8 +132,25 @@ export default defineConfig(({ mode }) => {
           find: /^@renderer\/bridge$/,
           replacement: path.resolve(__dirname, 'src/desktop-adapter/bridge.web.ts'),
         },
-        // Desktop public-for-web boundary: web source files import from here
-        // instead of reaching into desktop internals directly.
+        // Exact Desktop package exports bind Web to the same canonical factory,
+        // production host, production bindings, and style entry as native Desktop.
+        {
+          find: '@nimiplatform/desktop/renderer/factory',
+          replacement: path.resolve(__dirname, '../desktop/src/shell/renderer/renderer/factory.tsx'),
+        },
+        {
+          find: '@nimiplatform/desktop/renderer/production-bindings',
+          replacement: path.resolve(__dirname, '../desktop/src/shell/renderer/renderer/production-bindings.ts'),
+        },
+        {
+          find: '@nimiplatform/desktop/renderer/production-host',
+          replacement: path.resolve(__dirname, '../desktop/src/shell/renderer/renderer/production-host.ts'),
+        },
+        {
+          find: '@nimiplatform/desktop/renderer/styles',
+          replacement: path.resolve(__dirname, '../desktop/src/shell/renderer/styles.css'),
+        },
+        // Desktop public-for-web boundary retained for non-renderer projections.
         {
           find: '@desktop-public',
           replacement: path.resolve(__dirname, '../desktop/src/public-web'),
