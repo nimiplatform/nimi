@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { realmWorldData } from '../src/shell/renderer/features/world/data/realm-world-data';
+import { createRealmWorldData } from '../src/shell/renderer/features/world/data/realm-world-data';
+import type { DesktopRendererSdkPort } from '../src/shell/renderer/renderer/sdk-port.js';
+
+const realmWorldData = createRealmWorldData({
+  socialData: {
+    callApi: async () => { throw new Error('TEST_REALM_API_UNAVAILABLE'); },
+    emitDataError: () => undefined,
+  },
+} as unknown as DesktopRendererSdkPort);
 import {
   buildWorldPublicScenes,
   projectWorldPublicDetail,
@@ -129,7 +137,7 @@ test('fetchWorldPublicAssets decodes canonical WorldCore asset references withou
     },
   });
 
-  const payload = await fetchWorldPublicAssets('world-1');
+  const payload = await fetchWorldPublicAssets('world-1', realmWorldData);
   assert.equal(payload.resourceRefs[0]?.refId, 'resource-1');
   assert.equal(payload.externalRefs[0]?.uri, 'https://example.com/cover.png');
   assert.equal(payload.intents[0]?.intentId, 'intent-1');
@@ -225,6 +233,6 @@ test('fetchWorldPublicAssets drops malformed external refs instead of inventing 
     },
   });
 
-  const payload = await fetchWorldPublicAssets('world-1');
+  const payload = await fetchWorldPublicAssets('world-1', realmWorldData);
   assert.deepEqual(payload.externalRefs, []);
 });

@@ -16,7 +16,7 @@ import { HumanConversationGiftModal } from '../turns/human-conversation-gift-mod
 import type { DesktopI18nResource } from '../../i18n/desktop-i18n.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { loadChatList, startChatWithTarget } from './data/realm-human-chat-data';
+import { useRealmHumanChatData } from './data/realm-human-chat-data-context.js';
 import {
   HumanCanonicalComposer,
   HumanCanonicalProfileDrawer,
@@ -73,6 +73,7 @@ function formatHumanChatTime(
 export function useHumanConversationModeHost(
   input: UseHumanConversationModeHostInput,
 ): DesktopConversationModeHost {
+  const realmHumanChatData = useRealmHumanChatData();
   const i18n = useDesktopI18nResource();
   const {
     authStatus,
@@ -85,7 +86,7 @@ export function useHumanConversationModeHost(
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const chatsQuery = useQuery({
     queryKey: ['chats', authStatus],
-    queryFn: async () => loadChatList(),
+    queryFn: async () => realmHumanChatData.loadChatList(),
     enabled: authStatus === 'authenticated',
   });
 
@@ -282,7 +283,7 @@ export function useHumanConversationModeHost(
         setSelectedChatId(null);
         return;
       }
-      void startChatWithTarget(normalizedTargetId, null)
+      void realmHumanChatData.startChatWithTarget(normalizedTargetId, null)
         .then((result) => {
           const chatId = String(result.chat?.id || result.chatId || '').trim();
           if (!chatId) {

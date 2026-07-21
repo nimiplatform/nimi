@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import type { NimiRuntimeRouteCapabilityCoverageProjection } from '@nimiplatform/sdk/runtime';
 import { Surface, StatusBadge as KitStatusBadge, cn } from '@nimiplatform/kit/ui';
-import { desktopBridge } from '../../bridge';
+import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { SectionTitle } from '../settings/settings-layout-components';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
@@ -34,10 +34,11 @@ export function RuntimeOverviewTab({
   onOpenHealth,
 }: RuntimeOverviewTabProps) {
   const i18n = useDesktopI18nResource();
+  const commands = useDesktopRendererCommands();
   const { t } = useTranslation();
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
   const daemonBusy = model.runtimeDaemonBusyAction !== null;
-  const canManageDaemon = desktopBridge.hasTauriInvoke();
+  const canManageDaemon = commands.runtimeDaemon.available();
   const daemonIssue = describeRuntimeDaemonIssue({
     status: model.runtimeDaemonStatus,
     runtimeDaemonError: model.runtimeDaemonError,

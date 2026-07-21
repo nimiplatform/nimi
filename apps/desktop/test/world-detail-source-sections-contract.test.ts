@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { realmWorldData } from '../src/shell/renderer/features/world/data/realm-world-data.js';
+import { createRealmWorldData } from '../src/shell/renderer/features/world/data/realm-world-data.js';
+import type { DesktopRendererSdkPort } from '../src/shell/renderer/renderer/sdk-port.js';
+
+const realmWorldData = createRealmWorldData({
+  socialData: {
+    callApi: async () => { throw new Error('TEST_REALM_API_UNAVAILABLE'); },
+    emitDataError: () => undefined,
+  },
+} as unknown as DesktopRendererSdkPort);
 import {
   fetchWorldDisplayDetail,
 } from '../src/shell/renderer/features/world/world-detail-queries.js';
@@ -137,7 +145,7 @@ test('World detail display keeps world characters and public personas as source 
   realmWorldData.loadWorldScenes = async () => ({ items: [] });
 
   try {
-    const detail = await fetchWorldDisplayDetail('world-1');
+    const detail = await fetchWorldDisplayDetail('world-1', realmWorldData);
     const sources = detail.characters as Array<{ id: string; sourceKind?: string; ownership?: string }>;
     assert.equal(sources.length, 2);
     assert.equal(sources[0]?.sourceKind, 'worldCharacter');

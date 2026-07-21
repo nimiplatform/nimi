@@ -5,6 +5,7 @@ import {
   resolveRuntimeVoicePlaybackFrameCue,
   type AgentVoicePlaybackCueEnvelope,
 } from '@nimiplatform/kit/features/avatar/runtime';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -25,6 +26,7 @@ export function RuntimeVoiceMessageContent(props: {
     visemeId: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | null;
   }) => void;
 }) {
+  const bindings = useDesktopRendererBindings();
   const metadata = (props.message.metadata as Record<string, unknown> | undefined) || {};
   const voiceUrl = normalizeText(metadata.voiceUrl);
   const transcript = normalizeText(metadata.voiceTranscript);
@@ -33,7 +35,7 @@ export function RuntimeVoiceMessageContent(props: {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const rafRef = useRef<number | null>(null);
+  const cancelFrameRef = useRef<(() => void) | null>(null);
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
   const estimatorFrameRef = useRef<{
     cue: {
@@ -55,10 +57,8 @@ export function RuntimeVoiceMessageContent(props: {
   }, [props.message.id, props.message.sessionId, props.onPlaybackStateChange]);
 
   const stopPlaybackSampling = useCallback(() => {
-    if (rafRef.current !== null && typeof cancelAnimationFrame === 'function') {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
+    cancelFrameRef.current?.();
+    cancelFrameRef.current = null;
     estimatorFrameRef.current = null;
     emitPlaybackState(false);
   }, [emitPlaybackState]);
@@ -96,9 +96,10 @@ export function RuntimeVoiceMessageContent(props: {
           timeDomainSamples: new Uint8Array(0),
         }).cue;
         emitPlaybackState(true, cue.amplitude, cue.visemeId);
-        rafRef.current = typeof requestAnimationFrame === 'function'
-          ? requestAnimationFrame(tick)
-          : null;
+        cancelFrameRef.current = bindings.clock.animationFrame((result) => {
+          cancelFrameRef.current = null;
+          if (result.ok) tick();
+        });
       };
       stopPlaybackSampling();
       tick();
@@ -142,13 +143,14 @@ export function RuntimeVoiceMessageContent(props: {
       estimatorFrameRef.current = frame.estimatorFrame;
       const cue = frame.cue;
       emitPlaybackState(true, cue.amplitude, cue.visemeId);
-      rafRef.current = typeof requestAnimationFrame === 'function'
-        ? requestAnimationFrame(tick)
-        : null;
+      cancelFrameRef.current = bindings.clock.animationFrame((result) => {
+        cancelFrameRef.current = null;
+        if (result.ok) tick();
+      });
     };
     stopPlaybackSampling();
     tick();
-  }, [emitPlaybackState, playbackCueEnvelope, resolveFrameCue, stopPlaybackSampling]);
+  }, [bindings.clock, emitPlaybackState, playbackCueEnvelope, resolveFrameCue, stopPlaybackSampling]);
 
   useEffect(() => () => {
     stopPlaybackSampling();

@@ -2,44 +2,43 @@ import {
   createNimiRuntimeRouteCapabilityRuntimeWithHost,
   type Runtime,
 } from '@nimiplatform/sdk/runtime';
+import type { ConversationCapabilityRouteRuntime } from '../../features/chat/conversation-capability';
+import { setProductionConversationCapabilityRouteRuntime } from '../../features/chat/production-conversation-route-runtime-state.js';
 import {
-  setConversationCapabilityRouteRuntime,
-  type ConversationCapabilityRouteRuntime,
-} from '../../features/chat/conversation-capability';
-import {
-  desktopRuntimeRouteAccess,
+  createDesktopRuntimeRouteAccess,
+  type DesktopRuntimeRouteAccess,
 } from '../runtime-route-host-access';
 import { getDesktopRuntime } from '../sdk/desktop-nimi-client-session';
 import {
   loadRuntimeRouteOptions,
 } from './runtime-bootstrap-route-options';
 
-type RuntimeClient = Pick<Runtime, 'ai'>;
+type RuntimeClient = Runtime;
 
 type DesktopConversationCapabilityRouteRuntimeDeps = {
   loadRuntimeRouteOptions: typeof loadRuntimeRouteOptions;
-  checkRuntimeRouteHealth: typeof desktopRuntimeRouteAccess.checkLocalHealth;
-  buildRuntimeCallOptions: typeof desktopRuntimeRouteAccess.buildCallOptions;
+  checkRuntimeRouteHealth: DesktopRuntimeRouteAccess['checkLocalHealth'];
+  buildRuntimeCallOptions: DesktopRuntimeRouteAccess['buildCallOptions'];
   getRuntimeClient: () => RuntimeClient;
-};
-
-const DEFAULT_DEPS: DesktopConversationCapabilityRouteRuntimeDeps = {
-  loadRuntimeRouteOptions,
-  checkRuntimeRouteHealth: desktopRuntimeRouteAccess.checkLocalHealth,
-  buildRuntimeCallOptions: desktopRuntimeRouteAccess.buildCallOptions,
-  getRuntimeClient: getDesktopRuntime,
 };
 
 export function createDesktopConversationCapabilityRouteRuntime(
   depsInput: Partial<DesktopConversationCapabilityRouteRuntimeDeps> = {},
 ): ConversationCapabilityRouteRuntime {
-  const deps = { ...DEFAULT_DEPS, ...depsInput };
+  const routeAccess = createDesktopRuntimeRouteAccess(getDesktopRuntime);
+  const deps: DesktopConversationCapabilityRouteRuntimeDeps = {
+    loadRuntimeRouteOptions,
+    checkRuntimeRouteHealth: routeAccess.checkLocalHealth,
+    buildRuntimeCallOptions: routeAccess.buildCallOptions,
+    getRuntimeClient: getDesktopRuntime,
+    ...depsInput,
+  };
   return createNimiRuntimeRouteCapabilityRuntimeWithHost({
     loadRuntimeRouteOptions: async (input) => deps.loadRuntimeRouteOptions({
       capability: input.capability,
       targetId: input.targetId,
       selectedTargetRef: input.selectedTargetRef,
-    }),
+    }, { runtime: deps.getRuntimeClient() }),
     checkHealth: deps.checkRuntimeRouteHealth,
     describeTargetId: 'core.chat.agent',
     buildDescribeCallOptions: deps.buildRuntimeCallOptions,
@@ -59,9 +58,9 @@ export function createDesktopConversationCapabilityRouteRuntime(
 export function bindDesktopConversationCapabilityRouteRuntime(
   deps?: Partial<DesktopConversationCapabilityRouteRuntimeDeps>,
 ): void {
-  setConversationCapabilityRouteRuntime(createDesktopConversationCapabilityRouteRuntime(deps));
+  setProductionConversationCapabilityRouteRuntime(createDesktopConversationCapabilityRouteRuntime(deps));
 }
 
 export function clearDesktopConversationCapabilityRouteRuntime(): void {
-  setConversationCapabilityRouteRuntime(null);
+  setProductionConversationCapabilityRouteRuntime(null);
 }

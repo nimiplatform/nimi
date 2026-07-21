@@ -59,8 +59,8 @@ export function callerKindLabel(kind: number): string {
   }
 }
 
-export function usageWindowLabel(window: number): string {
-  switch (projectNimiRuntimeUsageWindowName(window)) {
+export function usageWindowLabel(usageWindow: number): string {
+  switch (projectNimiRuntimeUsageWindowName(usageWindow)) {
     case 'MINUTE': return 'Minute';
     case 'HOUR': return 'Hour';
     case 'DAY': return 'Day';

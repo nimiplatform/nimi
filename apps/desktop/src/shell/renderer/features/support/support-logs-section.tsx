@@ -15,11 +15,9 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  desktopBridge,
-  type DesktopStorageDirs,
-  type LogsExportResult,
-} from '../../bridge';
+import type { DesktopRendererStorageDirs as DesktopStorageDirs } from '../../renderer/settings-port.js';
+import type { DesktopLogsExportResult as LogsExportResult } from '../../renderer/support-logs-port.js';
+import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import { useTypedProjection as useSupportProjection } from '@nimiplatform/kit/ui';
 import {
   SupportCard,
@@ -38,8 +36,10 @@ import { DESKTOP_LOG_AREAS, DESKTOP_LOG_AREA_LABEL_KEY } from './support-log-are
  */
 const LOG_EXPORT_IPC_AVAILABLE = true;
 
-async function loadLogsProjection(): Promise<DesktopStorageDirs> {
-  return desktopBridge.getDesktopStorageDirs();
+async function loadLogsProjection(
+  logs: ReturnType<typeof useDesktopRendererCommands>['supportLogs'],
+): Promise<DesktopStorageDirs> {
+  return logs.loadStorageDirs();
 }
 
 /** Typed state of the in-component log-export action (`D-SUP-006`). */
@@ -51,12 +51,13 @@ type LogsExportState =
 
 function SupportLogsExportCard() {
   const { t } = useTranslation();
+  const logs = useDesktopRendererCommands().supportLogs;
   const [exportState, setExportState] = useState<LogsExportState>({ status: 'idle' });
 
   async function runExport() {
     setExportState({ status: 'running' });
     try {
-      const result = await desktopBridge.exportDesktopLogs();
+      const result = await logs.exportLogs();
       setExportState({ status: 'done', result });
     } catch (error) {
       // D-SUP-006: a typed backend failure (missing / unreadable / empty logs
@@ -121,7 +122,8 @@ function SupportLogsExportCard() {
 
 export function SupportLogsSection() {
   const { t } = useTranslation();
-  const projection = useSupportProjection(loadLogsProjection, {
+  const logs = useDesktopRendererCommands().supportLogs;
+  const projection = useSupportProjection(() => loadLogsProjection(logs), {
     failClosedMessage: t('Support.logsProjectionUnavailable'),
   });
 

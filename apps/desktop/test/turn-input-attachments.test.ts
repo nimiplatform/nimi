@@ -9,12 +9,7 @@ import {
   getTurnInputSendPlan,
   removePendingAttachmentAt,
 } from '../src/shell/renderer/features/turns/turn-input-attachments.js';
-import {
-  addChatUploadPlaceholder,
-  createChatUploadPlaceholder,
-  getChatUploadPlaceholders,
-  removeChatUploadPlaceholder,
-} from '../src/shell/renderer/features/turns/chat-upload-placeholder-store.js';
+import { createChatUploadPlaceholderStore } from '../src/shell/renderer/features/turns/chat-upload-placeholder-store.js';
 
 describe('TurnInput attachment staging helpers', () => {
   test('stages image attachments instead of sending immediately', () => {
@@ -99,7 +94,8 @@ describe('TurnInput attachment staging helpers', () => {
   });
 
   test('upload placeholders can be added and removed for a chat', () => {
-    const placeholder = createChatUploadPlaceholder({
+    const store = createChatUploadPlaceholderStore(() => 0);
+    const placeholder = store.create({
       chatId: 'chat-1',
       previewUrl: 'blob:preview',
       kind: 'image',
@@ -107,11 +103,12 @@ describe('TurnInput attachment staging helpers', () => {
       createdAt: '2025-01-01T00:00:00.000Z',
     });
 
-    addChatUploadPlaceholder(placeholder);
-    assert.equal(getChatUploadPlaceholders('chat-1').some((entry) => entry.id === placeholder.id), true);
+    store.add(placeholder);
+    assert.equal(store.get('chat-1').some((entry) => entry.id === placeholder.id), true);
 
-    removeChatUploadPlaceholder(placeholder.id);
-    assert.equal(getChatUploadPlaceholders('chat-1').some((entry) => entry.id === placeholder.id), false);
+    store.remove(placeholder.id);
+    assert.equal(store.get('chat-1').some((entry) => entry.id === placeholder.id), false);
+    store.dispose();
   });
 
   test('canSend is true when there is a pending attachment even without text', () => {

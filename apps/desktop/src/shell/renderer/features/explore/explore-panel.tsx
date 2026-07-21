@@ -3,7 +3,8 @@ import { useCallback, useMemo, useState } from 'react';
 import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { realmExploreData } from './data/realm-explore-data';
+import { createRealmExploreData } from './data/realm-explore-data';
+import { createRealmWorldData } from '../world/data/realm-world-data.js';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import type { WorldDetailNavigationOptions } from '../../app-shell/providers/store-types';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
@@ -33,6 +34,7 @@ import { materializeSourceContactLaunchTarget } from '../relationship/source-con
 import { ensureRuntimeAgentExists } from '../chat/chat-agent-shell-host-actions-helpers';
 import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
 import { localAgentListQueryKey } from '../agents/local-agent-list-model';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 type PostDto = RealmModel<'PostDto'>;
 
@@ -49,6 +51,11 @@ type ExplorePanelProps = {
 };
 
 export function ExplorePanel(props: ExplorePanelProps) {
+  const bindings = useDesktopRendererBindings();
+  const realmExploreData = useMemo(
+    () => createRealmExploreData(bindings.sdk),
+    [bindings.sdk],
+  );
   const i18n = useDesktopI18nResource().instance;
   const queryClient = useQueryClient();
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
@@ -68,7 +75,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
   // Fetch worlds for banner carousel
   const worldsQuery = useQuery({
     queryKey: worldListQueryKey(),
-    queryFn: async () => fetchWorldListItems(),
+    queryFn: async () => fetchWorldListItems(createRealmWorldData(bindings.sdk)),
     enabled: bootstrapReady,
     staleTime: 30_000,
   });
@@ -105,7 +112,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
   const personaSourceLocalAgentsQuery = useQuery({
     queryKey: ['explore-personas-local-agents', ownerUserId, personaSourceDiscoveryKey],
     queryFn: async () => (await Promise.all(
-      personaSourceBase.map((source) => discoverCharacterSourceLocalAgents(source, ownerUserId)),
+      personaSourceBase.map((source) => discoverCharacterSourceLocalAgents(source, ownerUserId, bindings.sdk)),
     )).flat(),
     enabled: authStatus === 'authenticated' && Boolean(ownerUserId) && personaSourceBase.length > 0,
     staleTime: 10_000,
@@ -182,8 +189,8 @@ export function ExplorePanel(props: ExplorePanelProps) {
 
   const onPersonaSourceManage = useCallback(async (source: ExplorePersonaSourceCardData) => {
     try {
-      const target = await materializeSourceContactLaunchTarget(source, ownerUserId, i18n.t);
-      await ensureRuntimeAgentExists(target);
+      const target = await materializeSourceContactLaunchTarget(source, ownerUserId, i18n.t, bindings.sdk);
+      await ensureRuntimeAgentExists(target, bindings.sdk, ownerUserId);
       await queryClient.invalidateQueries({ queryKey: ['explore-personas-local-agents'], exact: false });
       await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });
       await launchAgentConversationFromDisplay({
@@ -212,6 +219,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
       });
     }
   }, [
+    bindings,
     ownerUserId,
     queryClient,
     setActiveTab,
@@ -271,8 +279,8 @@ export function ExplorePanel(props: ExplorePanelProps) {
         sourceKind: character.sourceRef.kind,
         sourceId: character.sourceRef.id,
         sourceHash: character.sourceRef.sourceHash,
-      }, ownerUserId, i18n.t);
-      await ensureRuntimeAgentExists(target);
+      }, ownerUserId, i18n.t, bindings.sdk);
+      await ensureRuntimeAgentExists(target, bindings.sdk, ownerUserId);
       await queryClient.invalidateQueries({
         queryKey: worldPrimaryDisplayDetailQueryKey(character.sourceRef.worldId),
         exact: true,
@@ -291,7 +299,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
         message: characterSourceMaterializationFailureMessage(error, i18n.t),
       });
     }
-  }, [ownerUserId, queryClient]);
+  }, [bindings, ownerUserId, queryClient]);
 
   const onPersonaSourceOpen = useCallback(
     (sourceId: string) => {

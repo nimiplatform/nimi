@@ -8,12 +8,8 @@ import { normalizeNimiRuntimeLocalProviderAdapterId, type NimiRuntimeLocalProvid
 import { LocalAssetKind, LocalAssetStatus } from '@nimiplatform/sdk/runtime/wire-types';
 import { asNimiError } from '@nimiplatform/sdk/types';
 import { NIMI_RUNTIME_REASON_CODES } from '@nimiplatform/sdk/runtime';
-import {
-  sdkTestConnector,
-  sdkListConnectorModelDescriptors,
-} from './runtime-config-connector-sdk-service';
-import { getRuntimeHealthCoordinator } from './runtime-health-coordinator';
-import { getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
+import type { RuntimeConfigConnectorSdkService } from './runtime-config-connector-sdk-service';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 
 type HealthResult = {
   status: 'healthy' | 'degraded' | 'unreachable' | 'unsupported';
@@ -57,11 +53,11 @@ export function normalizeRuntimeHealthResult(result: GetRuntimeHealthResponse): 
   };
 }
 
-async function listRuntimeLocalAssets() {
+async function listRuntimeLocalAssets(sdk: DesktopRendererSdkPort) {
   const assets = [];
   let pageToken = '';
   do {
-    const response = await getDesktopRuntime().local.listLocalAssets({
+    const response = await sdk.runtime().local.listLocalAssets({
       statusFilter: LocalAssetStatus.UNSPECIFIED,
       kindFilter: LocalAssetKind.UNSPECIFIED,
       engineFilter: '',
@@ -74,11 +70,11 @@ async function listRuntimeLocalAssets() {
   return assets;
 }
 
-async function listRuntimeLocalNodes() {
+async function listRuntimeLocalNodes(sdk: DesktopRendererSdkPort) {
   const nodes = [];
   let pageToken = '';
   do {
-    const response = await getDesktopRuntime().local.listNodeCatalog({
+    const response = await sdk.runtime().local.listNodeCatalog({
       capability: '',
       serviceId: '',
       provider: '',
@@ -92,11 +88,14 @@ async function listRuntimeLocalNodes() {
   return nodes;
 }
 
-export async function discoverLocalModelsFromEndpoint(state: RuntimeConfigStateV11) {
+export async function discoverLocalModelsFromEndpoint(
+  state: RuntimeConfigStateV11,
+  sdk: DesktopRendererSdkPort,
+) {
   const endpoint = String(state.local.endpoint || '').trim();
   const [models, nodes] = await Promise.all([
-    listRuntimeLocalAssets(),
-    listRuntimeLocalNodes(),
+    listRuntimeLocalAssets(sdk),
+    listRuntimeLocalNodes(sdk),
   ]);
   const activeModels = models.filter((m) => parseNimiRuntimeLocalAssetStatusId(m.status) !== 'removed');
   const discovered = activeModels.map((m) => m.assetId);
@@ -126,12 +125,12 @@ export async function discoverLocalModelsFromEndpoint(state: RuntimeConfigStateV
   return { endpoint, discovered, models: normalizedModels, nodeMatrix };
 }
 
-export async function checkLocalHealth(): Promise<{
+export async function checkLocalHealth(sdk: DesktopRendererSdkPort): Promise<{
   health: HealthResult;
   normalizedStatus: ProviderStatusV11;
 }> {
   try {
-    const snapshot = await getRuntimeHealthCoordinator().forceRefresh('local-health-check');
+    const snapshot = await sdk.runtimeHealthCoordinator().forceRefresh('local-health-check');
     if (!snapshot.runtimeHealth) {
       throw new Error(snapshot.error || snapshot.streamError || 'runtime health unavailable');
     }
@@ -147,6 +146,8 @@ export async function checkLocalHealth(): Promise<{
 
 export async function discoverConnectorModelsAndHealth(input: {
   connector: RuntimeConfigStateV11['connectors'][number];
+  connectorSdk: RuntimeConfigConnectorSdkService;
+  now: () => number;
 }): Promise<{
   endpoint: string;
   discovered: string[];
@@ -155,8 +156,11 @@ export async function discoverConnectorModelsAndHealth(input: {
   normalizedStatus: ProviderStatusV11;
 }> {
   const endpoint = input.connector.endpoint;
-  await sdkTestConnector(input.connector.id);
-  const descriptors = await sdkListConnectorModelDescriptors(input.connector.id, true);
+  await input.connectorSdk.sdkTestConnector(input.connector.id);
+  const descriptors = await input.connectorSdk.sdkListConnectorModelDescriptors(
+    input.connector.id,
+    true,
+  );
   const discovered = descriptors.map((d) => d.modelId);
   const modelCapabilities: Record<string, string[]> = {};
   for (const d of descriptors) {
@@ -171,7 +175,7 @@ export async function discoverConnectorModelsAndHealth(input: {
     health: {
       status: 'healthy',
       detail: '',
-      checkedAt: new Date().toISOString(),
+      checkedAt: new Date(input.now()).toISOString(),
     },
     normalizedStatus: 'healthy',
   };

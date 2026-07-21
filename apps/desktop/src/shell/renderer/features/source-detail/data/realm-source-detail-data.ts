@@ -1,6 +1,5 @@
 import { type Realm } from '@nimiplatform/sdk/realm';
 import { type JsonObject } from '@nimiplatform/sdk/types';
-import { getDesktopRealm } from '../../../infra/sdk/desktop-nimi-client-session';
 import {
   characterSourceRefKey,
   readCharacterSourceRefV3,
@@ -286,10 +285,10 @@ function projectWorldCharacterCore(core: JsonObject, publicMedia: JsonObject | n
 }
 
 async function loadRealmSourceDetailsBySourceRef(
+  realm: Realm,
   sourceRef: CharacterSourceRefV3,
   context?: { runtimeSourceRef?: string | null },
 ): Promise<JsonObject> {
-  const realm = getDesktopRealm();
   const runtimeSourceRef = toNonEmptyString(context?.runtimeSourceRef) || null;
   if (sourceRef.kind === 'personaCharacter') {
     const persona = await realm.worldCore.worldCoreControllerGetPersonaCharacter({
@@ -365,8 +364,9 @@ async function loadRealmSourceDetailsBySourceRef(
 
 export const realmSourceDetailData = {
   loadRealmSourceDetailsBySourceRef: (
+    realm: Realm,
     sourceRef: CharacterSourceRefV3,
     context?: { runtimeSourceRef?: string | null },
   ) =>
-    loadRealmSourceDetailsBySourceRef(sourceRef, context),
+    loadRealmSourceDetailsBySourceRef(realm, sourceRef, context),
 };

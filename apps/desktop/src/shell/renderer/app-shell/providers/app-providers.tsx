@@ -15,16 +15,43 @@ import type { ScenarioJobController } from '../../features/turns/scenario-job-co
 import { ScenarioJobControllerProvider } from '../../features/turns/scenario-job-controller-context.js';
 import type { RealmSocialData } from '../../features/social/data/realm-social-data.js';
 import { RealmSocialDataProvider } from '../../features/social/data/realm-social-data-context.js';
+import type { AgentConversationAnchorBindingStore } from './agent-conversation-anchor-binding-storage.js';
+import { AgentConversationAnchorBindingProvider } from './agent-conversation-anchor-binding-context.js';
+import type { RuntimeConfigConnectorSdkService } from '../../features/runtime-config/runtime-config-connector-sdk-service.js';
+import { RuntimeConfigConnectorSdkProvider } from '../../features/runtime-config/runtime-config-connector-sdk-context.js';
+import type { AccountProfileLibraryResource } from '../../features/runtime-config/runtime-config-profile-library.js';
+import { AccountProfileLibraryProvider } from '../../features/runtime-config/runtime-config-profile-library-context.js';
+import type { RealmGroupChatData } from '../../features/chat/data/realm-group-chat-data.js';
+import { RealmGroupChatDataProvider } from '../../features/chat/data/realm-group-chat-data-context.js';
+import type { RealmHumanChatData } from '../../features/chat/data/realm-human-chat-data.js';
+import { RealmHumanChatDataProvider } from '../../features/chat/data/realm-human-chat-data-context.js';
+import type { WorldFollowStore } from '../../features/world/world-follow-store.js';
+import { WorldFollowStoreProvider } from '../../features/world/world-follow-store-context.js';
+import type { AgentVisibleProjectionStore } from '../../features/chat/chat-agent-visible-projection-store.js';
+import { AgentVisibleProjectionProvider } from '../../features/chat/chat-agent-visible-projection-context.js';
+import type { ChatUploadPlaceholderStore } from '../../features/turns/chat-upload-placeholder-store.js';
+import { ChatUploadPlaceholderProvider } from '../../features/turns/chat-upload-placeholder-context.js';
+import type { LocalModelCenterProgressCache } from '../../features/runtime-config/runtime-config-local-model-center-progress-cache.js';
+import { LocalModelCenterProgressProvider } from '../../features/runtime-config/runtime-config-local-model-center-progress-context.js';
 
-export function AppProviders({ attention, children, i18n, queryClient, realmSocialData, Router, scenarioJobController, store, streamController }: PropsWithChildren<{
+export function AppProviders({ accountProfileLibrary, agentVisibleProjections, anchorBindings, attention, chatUploadPlaceholders, children, i18n, localModelCenterProgress, queryClient, realmGroupChatData, realmHumanChatData, realmSocialData, runtimeConnectorSdk, Router, scenarioJobController, store, streamController, worldFollowStore }: PropsWithChildren<{
+  readonly accountProfileLibrary: AccountProfileLibraryResource;
+  readonly agentVisibleProjections: AgentVisibleProjectionStore;
+  readonly anchorBindings: AgentConversationAnchorBindingStore;
   readonly attention: AppAttentionSource;
+  readonly chatUploadPlaceholders: ChatUploadPlaceholderStore;
   readonly i18n: DesktopI18nResource;
+  readonly localModelCenterProgress: LocalModelCenterProgressCache;
   readonly queryClient: QueryClient;
+  readonly realmGroupChatData: RealmGroupChatData;
+  readonly realmHumanChatData: RealmHumanChatData;
   readonly realmSocialData: RealmSocialData;
+  readonly runtimeConnectorSdk: RuntimeConfigConnectorSdkService;
   readonly Router: DesktopRendererRouter;
   readonly scenarioJobController: ScenarioJobController;
   readonly store: AppStoreApi;
   readonly streamController: StreamController;
+  readonly worldFollowStore: WorldFollowStore;
 }>) {
   return (
     <I18nextProvider i18n={i18n.instance}>
@@ -32,15 +59,33 @@ export function AppProviders({ attention, children, i18n, queryClient, realmSoci
         <AppStoreProvider store={store}>
           <QueryClientProvider client={queryClient}>
             <RealmSocialDataProvider resource={realmSocialData}>
+              <RealmGroupChatDataProvider resource={realmGroupChatData}>
+              <RealmHumanChatDataProvider resource={realmHumanChatData}>
+              <RuntimeConfigConnectorSdkProvider service={runtimeConnectorSdk}>
+              <AccountProfileLibraryProvider resource={accountProfileLibrary}>
+              <AgentConversationAnchorBindingProvider store={anchorBindings}>
+              <AgentVisibleProjectionProvider store={agentVisibleProjections}>
+              <ChatUploadPlaceholderProvider store={chatUploadPlaceholders}>
+              <LocalModelCenterProgressProvider cache={localModelCenterProgress}>
               <ScenarioJobControllerProvider controller={scenarioJobController}>
                 <StreamControllerProvider controller={streamController}>
+                  <WorldFollowStoreProvider store={worldFollowStore}>
                   <TooltipProvider>
                     <AppAttentionProvider source={attention}>
                       <Router>{children}</Router>
                     </AppAttentionProvider>
                   </TooltipProvider>
+                  </WorldFollowStoreProvider>
                 </StreamControllerProvider>
               </ScenarioJobControllerProvider>
+              </LocalModelCenterProgressProvider>
+              </ChatUploadPlaceholderProvider>
+              </AgentVisibleProjectionProvider>
+              </AgentConversationAnchorBindingProvider>
+              </AccountProfileLibraryProvider>
+              </RuntimeConfigConnectorSdkProvider>
+              </RealmHumanChatDataProvider>
+              </RealmGroupChatDataProvider>
             </RealmSocialDataProvider>
           </QueryClientProvider>
         </AppStoreProvider>

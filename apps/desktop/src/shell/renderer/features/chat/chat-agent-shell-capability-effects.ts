@@ -5,6 +5,7 @@ import {
   refreshConversationCapabilityProjections,
 } from './conversation-capability-projection';
 import { useAppStoreApi } from '../../app-shell/providers/app-store';
+import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 
 const AGENT_CONVERSATION_BOOTSTRAP_CAPABILITIES: readonly ConversationCapability[] = [
   'text.generate',
@@ -29,13 +30,15 @@ export function useAgentConversationCapabilityEffects(
   input: UseAgentConversationCapabilityEffectsInput,
 ): void {
   const store = useAppStoreApi();
+  const sdk = useDesktopRendererSdk();
   // Initial projection build on bootstrap. Ongoing config-change driven refresh
   // is handled by the surface subscription (S-AICONF-006 via bindProjectionRefreshToSurface).
   useEffect(() => {
     if (!input.bootstrapReady) return;
-    void refreshConversationCapabilityProjections(store, AGENT_CONVERSATION_BOOTSTRAP_CAPABILITIES);
-    void refreshConversationCapabilityProjections(store, AGENT_CONVERSATION_DEFERRED_CAPABILITIES);
-  }, [input.bootstrapReady, store]);
+    const routeRuntime = sdk.conversationCapabilityRuntime();
+    void refreshConversationCapabilityProjections(store, AGENT_CONVERSATION_BOOTSTRAP_CAPABILITIES, routeRuntime);
+    void refreshConversationCapabilityProjections(store, AGENT_CONVERSATION_DEFERRED_CAPABILITIES, routeRuntime);
+  }, [input.bootstrapReady, sdk, store]);
 
   useEffect(() => {
     refreshAgentEffectiveCapabilityResolution(store);

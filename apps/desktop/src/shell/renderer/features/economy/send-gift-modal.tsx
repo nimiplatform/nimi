@@ -1,12 +1,13 @@
 import { useMemo } from 'react';
 import { SendGiftDialog } from '@nimiplatform/kit/features/commerce/ui';
 import {
+  createRealmCommerceGiftService,
   useRealmSendGiftDialog,
 } from '@nimiplatform/kit/features/commerce/realm';
 import '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '../../components/entity-avatar.js';
-import { getDesktopRealmCommerceGiftService } from '../../infra/realm/realm-commerce-service';
+import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
 
 type SendGiftModalProps = {
@@ -22,7 +23,11 @@ type SendGiftModalProps = {
 
 export function SendGiftModal(props: SendGiftModalProps) {
   const { t } = useTranslation();
-  const giftService = useMemo(() => getDesktopRealmCommerceGiftService(), []);
+  const sdk = useDesktopRendererSdk();
+  const giftService = useMemo(
+    () => createRealmCommerceGiftService({ generated: sdk.realm().generated }),
+    [sdk],
+  );
   const state = useRealmSendGiftDialog({
     service: giftService,
     open: props.open,

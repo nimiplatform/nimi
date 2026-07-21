@@ -12,6 +12,8 @@ import {
   worldListQueryKey,
 } from './world-detail-queries';
 import { toWorldListItem, type WorldListItem } from './world-list-model';
+import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
+import { createRealmWorldData } from './data/realm-world-data.js';
 
 function readCachedWorldDetailListItem(
   detail: WorldDisplayDetail | WorldPrimaryDisplayDetail | null | undefined,
@@ -27,6 +29,7 @@ function readCachedWorldDetailListItem(
 }
 
 export function WorldDetailActivePanel() {
+  const sdk = useDesktopRendererSdk();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const authStatus = useAppStore((state) => state.auth.status);
@@ -50,7 +53,7 @@ export function WorldDetailActivePanel() {
 
   const worldsQuery = useQuery({
     queryKey: worldListQueryKey(),
-    queryFn: async () => fetchWorldListItems(),
+    queryFn: async () => fetchWorldListItems(createRealmWorldData(sdk)),
     enabled: authStatus === 'authenticated' && Boolean(selectedWorldId),
     initialData: cachedWorlds ?? undefined,
     staleTime: 30_000,

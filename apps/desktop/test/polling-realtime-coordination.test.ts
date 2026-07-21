@@ -19,7 +19,7 @@ describe('Runtime account broker projection refresh', () => {
     assert.match(connectorSource, /input\.queryClient\.invalidateQueries\(\{ queryKey: \['chats'\] \}\)/);
     assert.match(connectorSource, /queryKey: \['messages', input\.selectedChatId\]/);
     assert.match(connectorSource, /invalidateNotificationQueries\(input\.queryClient\)/);
-    assert.match(connectorSource, /flushPendingChatOutbox\(\)/);
+    assert.match(connectorSource, /flushPendingChatOutbox\(undefined, createDesktopRealmChatService\(callRealmApi\)\)/);
     assert.match(connectorSource, /flushPendingSocialMutations\(callRealmApi, emitRealmDataError\)/);
   });
 

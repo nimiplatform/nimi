@@ -19,14 +19,11 @@ export function toWorldDisplayHistoryItem(rawValue: unknown, index: number): Wor
   const eventType = readString(raw, 'eventType', 'type');
   const happenedAt = readString(raw, 'happenedAt', 'timestamp', 'timeRef', 'time', 'createdAt') || new Date(0).toISOString();
   const eventTypeLower = eventType.toLowerCase();
-  const parsedHappenedAt = new Date(happenedAt);
   const eventHorizon = eventTypeLower.includes('future')
     ? 'FUTURE'
     : eventTypeLower.includes('ongoing')
       ? 'ONGOING'
-      : !Number.isNaN(parsedHappenedAt.getTime()) && parsedHappenedAt.getTime() > Date.now()
-        ? 'FUTURE'
-        : 'PAST';
+      : 'PAST';
   const evidenceRefs: WorldHistoryEvidenceRef[] = readRecordArray(raw.evidenceRefs).map((evidence, evidenceIndex) => ({
     segmentId: readString(evidence, 'segmentId') || `${id}-evidence-${evidenceIndex + 1}`,
     offsetStart: readNumber(evidence.offsetStart) ?? 0,

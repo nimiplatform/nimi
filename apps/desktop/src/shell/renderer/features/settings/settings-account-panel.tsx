@@ -22,13 +22,14 @@ import {
 } from './settings-layout-components.js';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { ProfileConnectedAccountsSection } from './settings-account-oauth-section.js';
-import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
 import { profileOauthPlatform } from './profile-oauth-platform.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 const ACCEPTED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 const MAX_AVATAR_FILE_SIZE = 10 * 1024 * 1024;
 
 export function ProfilePage() {
+  const bindings = useDesktopRendererBindings();
   const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
   const user = useAppStore((s) => s.auth.user);
@@ -48,7 +49,7 @@ export function ProfilePage() {
   const [unlinkingProvider, setUnlinkingProvider] = useState<NimiRealmOAuthProvider | null>(null);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  const profileAutosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const profileAutosaveTimerRef = useRef<(() => void) | null>(null);
   const connectedProviders = Array.isArray(user?.oauthProviders)
     ? user.oauthProviders.filter((item): item is NimiRealmOAuthProvider => (
       item === NIMI_REALM_OAUTH_PROVIDER.GOOGLE
@@ -81,9 +82,7 @@ export function ProfilePage() {
   }, [displayName, t, user?.bio, userAvatarUrl]);
 
   useEffect(() => () => {
-    if (profileAutosaveTimerRef.current) {
-      clearTimeout(profileAutosaveTimerRef.current);
-    }
+    profileAutosaveTimerRef.current?.();
   }, []);
 
   const handleLinkProvider = async (provider: NimiRealmOAuthProvider) => {
@@ -198,7 +197,7 @@ export function ProfilePage() {
 
     setUploadingAvatar(true);
     try {
-      const uploaded = await uploadNimiRealmResourceFile(getDesktopRealm(), {
+      const uploaded = await uploadNimiRealmResourceFile(bindings.sdk.realm(), {
         kind: 'image',
         file,
         failureMessage: t('Profile.avatarUploadFailed'),
@@ -224,29 +223,23 @@ export function ProfilePage() {
 
   useEffect(() => {
     if (uploadingAvatar || saving || !hasPendingProfileChanges) {
-      if (profileAutosaveTimerRef.current) {
-        clearTimeout(profileAutosaveTimerRef.current);
-        profileAutosaveTimerRef.current = null;
-      }
+      profileAutosaveTimerRef.current?.();
+      profileAutosaveTimerRef.current = null;
       return;
     }
 
-    if (profileAutosaveTimerRef.current) {
-      clearTimeout(profileAutosaveTimerRef.current);
-    }
-
-    profileAutosaveTimerRef.current = setTimeout(() => {
-      void handleSave({ silentSuccess: true });
-    }, 700);
+    profileAutosaveTimerRef.current?.();
+    profileAutosaveTimerRef.current = bindings.clock.schedule(700, (result) => {
+      if (result.ok) void handleSave({ silentSuccess: true });
+    });
 
     return () => {
-      if (profileAutosaveTimerRef.current) {
-        clearTimeout(profileAutosaveTimerRef.current);
-        profileAutosaveTimerRef.current = null;
-      }
+      profileAutosaveTimerRef.current?.();
+      profileAutosaveTimerRef.current = null;
     };
   }, [
     avatarUrl,
+    bindings,
     bio,
     displayName,
     hasPendingProfileChanges,

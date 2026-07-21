@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CommerceGiftTransaction } from '@nimiplatform/kit/features/commerce';
 import {
   acceptRealmGift,
+  createRealmCommerceGiftService,
   loadRealmGiftTransaction,
   rejectRealmGift,
 } from '@nimiplatform/kit/features/commerce/realm';
 import { useTranslation } from 'react-i18next';
-import { getDesktopRealmCommerceGiftService } from '../../infra/realm/realm-commerce-service';
+import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 
 export interface GiftMessagePayload {
@@ -29,6 +30,11 @@ interface GiftMessageBubbleProps {
 export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageBubbleProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const sdk = useDesktopRendererSdk();
+  const giftService = useMemo(
+    () => createRealmCommerceGiftService({ generated: sdk.realm().generated }),
+    [sdk],
+  );
   const [actionLoading, setActionLoading] = useState<'accept' | 'reject' | null>(null);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
@@ -36,7 +42,7 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
     queryKey: ['gift-transaction', payload.giftTransactionId],
     queryFn: async (): Promise<CommerceGiftTransaction> =>
       loadRealmGiftTransaction({
-        service: getDesktopRealmCommerceGiftService(),
+        service: giftService,
         giftTransactionId: payload.giftTransactionId,
       }),
     staleTime: 30_000,
@@ -52,7 +58,7 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
     setActionLoading('accept');
     try {
       await acceptRealmGift({
-        service: getDesktopRealmCommerceGiftService(),
+        service: giftService,
         giftTransactionId: payload.giftTransactionId,
       });
       await queryClient.invalidateQueries({ queryKey: ['gift-transaction', payload.giftTransactionId] });
@@ -73,7 +79,7 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
     setActionLoading('reject');
     try {
       await rejectRealmGift({
-        service: getDesktopRealmCommerceGiftService(),
+        service: giftService,
         giftTransactionId: payload.giftTransactionId,
         input: {},
       });

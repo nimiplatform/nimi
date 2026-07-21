@@ -275,28 +275,3 @@ export class OfflineCacheManager {
   }
 
 }
-
-let offlineCacheManager: OfflineCacheManager | null = null;
-let offlineCacheManagerPromise: Promise<OfflineCacheManager> | null = null;
-
-function isNonBrowserOfflineStoreHarness(): boolean {
-  return typeof window === 'undefined' && !hasIndexedDb();
-}
-
-export async function getOfflineCacheManager(): Promise<OfflineCacheManager> {
-  if (offlineCacheManager) {
-    await offlineCacheManager.open();
-    return offlineCacheManager;
-  }
-  if (!offlineCacheManagerPromise) {
-    offlineCacheManagerPromise = (async () => {
-      const manager = new OfflineCacheManager({
-        enableEphemeralStore: isNonBrowserOfflineStoreHarness(),
-      });
-      await manager.open();
-      offlineCacheManager = manager;
-      return manager;
-    })();
-  }
-  return await offlineCacheManagerPromise;
-}

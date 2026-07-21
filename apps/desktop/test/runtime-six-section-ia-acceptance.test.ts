@@ -237,7 +237,7 @@ test('ordinary task 1: check whether the AI environment is ready (Overview)', ()
 test('ordinary task 2: see the account Default Profile for new scopes (Profiles)', () => {
   // Runtime > Profiles shows the account default template without projecting a
   // hidden current-scope AIConfig origin.
-  assert.match(profilesPageSource, /getAccountDefaultProfileForScopeInit/);
+  assert.match(profilesPageSource, /profileLibrary\.loadAccountDefault\(\)/);
   assert.doesNotMatch(profilesPageSource, /currentOrigin/);
   assert.doesNotMatch(profilesPageSource, /aiConfig\.profileOrigin/);
 });
@@ -247,7 +247,7 @@ test('ordinary task 3: import / edit / export portable profiles (Profiles)', () 
   assert.match(profilesPageSource, /runtime-profiles-create/);
   assert.match(profilesManagementSectionsSource, /runtime-profiles-import/);
   assert.match(profilesManagementSectionsSource, /runtime-profiles-export/);
-  assert.match(profilesPageSource, /deleteAccountProfileLibraryEntry/);
+  assert.match(profilesPageSource, /profileLibrary\.delete\(entry\.profileId\)/);
   assert.match(profilesManagementSectionsSource, /profileJsonText/);
   assert.doesNotMatch(profilesManagementSectionsSource, /runtime-profiles-factory-restore/);
   assert.doesNotMatch(profilesPageSource, /ModelConfigAiModelHub/);

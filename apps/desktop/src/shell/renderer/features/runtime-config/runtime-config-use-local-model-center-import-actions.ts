@@ -6,13 +6,9 @@ import type {
   NimiRuntimeLocalCatalogVariantDescriptor,
   NimiRuntimeLocalTransferProgressEvent,
 } from '@nimiplatform/sdk/runtime';
-import {
-  pickLocalRuntimeAssetDirectory,
-  pickLocalRuntimeAssetFile,
-  pickLocalRuntimeAssetManifestPath,
-} from '../../bridge/runtime-bridge/local-runtime-os-helpers';
+import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import { useTranslation } from 'react-i18next';
-import { runtimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
+import { useRuntimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
 import {
   basenameFromRuntimePath,
   type LocalModelCenterProps,
@@ -40,6 +36,8 @@ export function toAssetImportUserMessage(error: unknown): string {
 }
 
 export function useLocalModelCenterImportActions(input: UseLocalModelCenterImportActionsInput) {
+  const runtimeConfigLocalModelCenterClient = useRuntimeConfigLocalModelCenterClient();
+  const commands = useDesktopRendererCommands();
   const { t } = useTranslation();
   const [variantPickerItem, setVariantPickerItem] = useState<NimiRuntimeLocalCatalogItemDescriptor | null>(null);
   const [variantList, setVariantList] = useState<NimiRuntimeLocalCatalogVariantDescriptor[]>([]);
@@ -157,7 +155,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     endpoint?: string,
   ) => {
     setAssetImportError('');
-    const filePath = await pickLocalRuntimeAssetFile();
+    const filePath = await commands.pickLocalRuntimeAssetFile();
     if (!filePath) {
       return;
     }
@@ -179,7 +177,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
 
   const importPickedAssetManifest = useCallback(async (endpoint?: string) => {
     setAssetImportError('');
-    const manifestPath = await pickLocalRuntimeAssetManifestPath();
+    const manifestPath = await commands.pickLocalRuntimeAssetManifestPath();
     if (!manifestPath) {
       return;
     }
@@ -198,7 +196,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     endpoint?: string,
   ) => {
     setAssetImportError('');
-    const directoryPath = await pickLocalRuntimeAssetDirectory();
+    const directoryPath = await commands.pickLocalRuntimeAssetDirectory();
     if (!directoryPath) {
       return;
     }

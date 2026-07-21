@@ -13,7 +13,7 @@ import {
   createEmptyAgentThreadBundle,
   replaceAgentBundleMessage,
 } from './chat-agent-shell-bundle';
-import { setAgentVisibleProjection } from './chat-agent-visible-projection-store';
+import type { AgentVisibleProjectionStore } from './chat-agent-visible-projection-store';
 import {
   toChatAgentRuntimeError,
 } from './chat-agent-runtime';
@@ -52,9 +52,6 @@ function safeLogAgentSubmit(details: {
   level?: 'info' | 'warn' | 'error';
   details?: Record<string, unknown>;
 }): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
   logRendererEvent({
     level: details.level || 'info',
     area: 'agent-chat-submit',
@@ -68,6 +65,7 @@ export async function submitAgentConversationTurn(input: {
   payload: AgentConversationSubmitPayload;
   activeSubmitsByThreadRef: ActiveSubmitRegistryRef;
   submittingLockTokenRef: LockTokenRef;
+  visibleProjections: AgentVisibleProjectionStore;
 }): Promise<void> {
   let optimisticThreadId: string | null = null;
   let optimisticUserMessageIds: string[] = [];
@@ -115,6 +113,7 @@ export async function submitAgentConversationTurn(input: {
     }
     await assertAgentSubmitSchedulingAllowed({
       aiConfig: input.hostInput.aiConfig,
+      sdk: input.hostInput.sdk,
       t: input.hostInput.t,
     });
 
@@ -257,7 +256,7 @@ export async function submitAgentConversationTurn(input: {
     };
     userProjectionApplied = true;
     input.hostInput.queryClient.setQueryData(bundleQueryKey(effectiveThreadId), userBundle);
-    setAgentVisibleProjection(effectiveThreadId, userBundle);
+    input.visibleProjections.set(effectiveThreadId, userBundle);
     input.hostInput.syncSelectionToThread(userBundle.thread);
     let submitSession = createInitialAgentSubmitDriverState({
       fallbackThread: fallbackThreadRecord,

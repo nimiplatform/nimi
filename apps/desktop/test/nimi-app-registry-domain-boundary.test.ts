@@ -98,7 +98,7 @@ describe('Nimi App registry/admission domain boundary', () => {
     assert.match(liveBridge, /NimiAppClient/);
     assert.match(liveBridge, /createNimiAppRegistryTransport/);
     assert.match(liveBridge, /loadPackageReadiness/);
-    assert.match(liveBridge, /getDesktopRuntime\(\)\.appLifecycle\.packageReadiness/);
+    assert.match(liveBridge, /sdk\.runtime\(\)\.appLifecycle\.packageReadiness/);
     assert.match(liveBridge, /loadPackageReadiness:\s*async\s*\(\)/);
     assert.doesNotMatch(liveBridge, /loadActiveJobs|listJobs|watchJobEvents/);
     assert.doesNotMatch(liveBridge, /loadInstallEvidence/);

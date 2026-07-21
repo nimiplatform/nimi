@@ -1,11 +1,11 @@
 import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
-import { useCallback, useRef, useState, useEffect } from 'react';
+import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
 import { OverlayShell } from '@nimiplatform/kit/ui';
-import { realmWorldData } from '../world/data/realm-world-data';
+import { createRealmWorldData } from '../world/data/realm-world-data';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import {
   ACCEPTED_IMAGE_TYPES,
@@ -50,12 +50,16 @@ const POPULAR_TAGS = [
 
 export function CreatePostModal({ open, onClose, onComplete, onUploadStart, initialPost = null }: CreatePostModalProps) {
   const realmSocialData = useRealmSocialData();
+  const bindings = useDesktopRendererBindings();
+  const sdk = bindings.sdk;
+  const realmWorldData = useMemo(() => createRealmWorldData(sdk), [sdk]);
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const emojiBtnRef = useRef<HTMLButtonElement>(null);
   const locationBtnRef = useRef<HTMLButtonElement>(null);
   const tagBtnRef = useRef<HTMLButtonElement>(null);
+  const restoreCursorCancelRef = useRef<(() => void) | null>(null);
   const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);
   const selectedFileRef = useRef(selectedFile);
   selectedFileRef.current = selectedFile;
@@ -180,6 +184,8 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
 
   useEffect(() => {
     return () => {
+      restoreCursorCancelRef.current?.();
+      restoreCursorCancelRef.current = null;
       if (selectedFileRef.current) {
         URL.revokeObjectURL(selectedFileRef.current.previewUrl);
       }
@@ -267,16 +273,19 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
     
     if (newCaption.length <= MAX_CAPTION_LENGTH) {
       setCaption(newCaption);
-      // Restore focus and set cursor position after emoji
-      setTimeout(() => {
+      // Restore focus and set cursor position after React commits the caption.
+      restoreCursorCancelRef.current?.();
+      restoreCursorCancelRef.current = bindings.clock.schedule(0, (result) => {
+        restoreCursorCancelRef.current = null;
+        if (!result.ok) return;
         textarea.focus();
         textarea.setSelectionRange(start + emoji.length, start + emoji.length);
-      }, 0);
+      });
     }
   };
 
-  const selectLocation = (location: Location) => {
-    setSelectedLocation(location);
+  const selectLocation = (nextLocation: Location) => {
+    setSelectedLocation(nextLocation);
     closeAllPanels();
   };
 
@@ -313,7 +322,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
       let resourceId: string;
       
       if ('file' in activeAttachment) {
-        const upload = await uploadNimiRealmResourceFile(getDesktopRealm(), {
+        const upload = await uploadNimiRealmResourceFile(sdk.realm(), {
           kind: activeAttachment.type === 'image' ? 'image' : 'video',
           file: activeAttachment.file,
           failureMessage: activeAttachment.type === 'image' ? 'Image upload failed' : 'Video upload failed',

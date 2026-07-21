@@ -11,8 +11,8 @@ function readRendererFile(relativePath: string): string {
 
 test('desktop route options service delegates to host-owned runtime bootstrap route options', () => {
   const source = readRendererFile('features/runtime-config/desktop-route-options-service.ts');
-  assert.match(source, /loadRuntimeRouteOptions/);
-  assert.match(source, /return loadRuntimeRouteOptions\(\{ capability, targetId: input\?\.targetId \}\)/);
+  assert.match(source, /sdk\.loadRouteOptions/);
+  assert.match(source, /return sdk\.loadRouteOptions\(capability, input\?\.targetId\)/);
 });
 
 test('desktop route model picker provider consumes shared desktop route options service instead of mod runtime client', () => {

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { UsageWindow } from '@nimiplatform/sdk/runtime/wire-types';
 import type { UsageStatRecord } from '@nimiplatform/sdk/runtime/wire-types';
+import type { Runtime } from '@nimiplatform/sdk/runtime';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { fetchUsageStats } from './runtime-config-audit-sdk-service.js';
 import { usePricingIndex, type PricingEntry } from './runtime-config-pricing-index.js';
 import type { NimiRuntimeCatalogPricing } from './runtime-config-catalog-sdk-service.js';
@@ -138,12 +140,15 @@ export function mapUsageRecordsToEstimate(records: UsageStatRecord[]): Omit<Usag
   };
 }
 
-async function loadUsageRecords(window: UsageWindow): Promise<UsageStatRecord[]> {
+async function loadUsageRecords(
+  runtimeAudit: Runtime['audit'],
+  usageWindow: UsageWindow,
+): Promise<UsageStatRecord[]> {
   const output: UsageStatRecord[] = [];
   let pageToken = '';
   for (let i = 0; i < 20; i += 1) {
-    const response = await fetchUsageStats({
-      window,
+    const response = await fetchUsageStats(runtimeAudit, {
+      window: usageWindow,
       pageSize: 100,
       pageToken,
     });
@@ -187,6 +192,7 @@ export function useUsageEstimate(
   usageWindow: UsageWindow = UsageWindow.DAY,
   pollIntervalMs = 15000,
 ): UsageEstimate {
+  const bindings = useDesktopRendererBindings();
   const [records, setRecords] = useState<UsageStatRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -198,12 +204,12 @@ export function useUsageEstimate(
       setLoading(true);
       setError(null);
       try {
-        const next = await loadUsageRecords(usageWindow);
+        const next = await loadUsageRecords(bindings.sdk.runtime().audit, usageWindow);
         if (canceled) {
           return;
         }
         setRecords(next);
-        setUpdatedAt(new Date().toISOString());
+        setUpdatedAt(new Date(bindings.clock.now()).toISOString());
       } catch (loadError) {
         if (canceled) {
           return;
@@ -217,15 +223,21 @@ export function useUsageEstimate(
     };
 
     void load();
-    const timer = globalThis.setInterval(() => {
-      void load();
-    }, Math.max(5000, pollIntervalMs));
+    const schedule = (): (() => void) => bindings.clock.schedule(
+      Math.max(5000, pollIntervalMs),
+      (result) => {
+        if (!result.ok || canceled) return;
+        void load();
+        cancel = schedule();
+      },
+    );
+    let cancel = schedule();
 
     return () => {
       canceled = true;
-      globalThis.clearInterval(timer);
+      cancel();
     };
-  }, [pollIntervalMs, usageWindow]);
+  }, [bindings, pollIntervalMs, usageWindow]);
 
   const baseEstimate = useMemo(() => mapUsageRecordsToEstimate(records), [records]);
 

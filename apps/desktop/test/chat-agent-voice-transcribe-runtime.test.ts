@@ -46,6 +46,7 @@ function createTranscribeProjection(): ConversationCapabilityProjection {
 
 function createTranscribeSnapshot() {
   return createNimiConversationAISnapshot({
+    createdAtMs: 0,
     config: createEmptyNimiAIConfig(testScopeRef),
     capability: 'audio.transcribe',
     projection: createTranscribeProjection(),

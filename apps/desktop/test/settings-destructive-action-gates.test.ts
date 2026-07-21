@@ -12,7 +12,7 @@ function readDesktopFile(relativePath: string): string {
 test('settings account deletion opens a confirmation gate before Realm mutation', () => {
   const source = readDesktopFile('src/shell/renderer/features/settings/settings-data-management-page.tsx');
   const dangerZoneButtonIndex = source.indexOf('setDeleteConfirmationOpen(true)');
-  const mutationIndex = source.indexOf('requestNimiRealmAccountDeletion(getDesktopRealm()');
+  const mutationIndex = source.indexOf('requestNimiRealmAccountDeletion(bindings.sdk.realm()');
   const confirmationCheckIndex = source.indexOf('if (!deleteConfirmationMatches)');
   const confirmationInputIndex = source.indexOf('data-testid="settings-delete-account-confirmation-input"');
   const submitButtonIndex = source.indexOf('void handleDeleteAccount();');
@@ -38,7 +38,7 @@ test('settings account deletion consumes SDK Realm account-data helper directly'
 
   assert.match(source, /requestNimiRealmAccountDeletion/);
   assert.match(source, /from '@nimiplatform\/sdk\/realm'/);
-  assert.match(source, /getDesktopRealm\(\)/);
+  assert.match(source, /bindings\.sdk\.realm\(\)/);
   assert.doesNotMatch(source, /getPlatformClient\(\)\.realm/);
   assert.doesNotMatch(source, /@runtime\/data-sync|dataSync\.requestAccountDeletion/);
 });

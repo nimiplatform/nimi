@@ -10,7 +10,7 @@ import {
   type AgentCenterSectionId,
   type AgentCenterStateInput,
 } from '@nimiplatform/kit/features/agent-center';
-import { getDesktopRouteModelPickerProvider } from '../runtime-config/desktop-route-model-picker-provider';
+import { useDesktopRouteModelPickerProviderResolver } from '../runtime-config/desktop-route-model-picker-provider';
 import { useLocalAssets } from './capability-settings-shared';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
 
@@ -21,6 +21,7 @@ type AgentConversationSettingsContentProps = {
 
 export function AgentConversationSettingsContent(props: AgentConversationSettingsContentProps) {
   const { input } = props;
+  const providerResolver = useDesktopRouteModelPickerProviderResolver();
   const [activeSection, setActiveSection] = useState<AgentCenterSectionId>('overview');
   const [boundedContext, setBoundedContext] = useState<{
     sourceContextStatus: Awaited<ReturnType<NonNullable<typeof input.runtimeAgentCenterAdapter>['loadSnapshot']>>['sourceContextStatus'];
@@ -40,10 +41,10 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
       modelConfig: {
         ...input.runtimeAgentCenterAdapter.modelConfig,
         localAssetSource,
-        providerResolver: getDesktopRouteModelPickerProvider,
+        providerResolver,
       },
     };
-  }, [input.runtimeAgentCenterAdapter, localAssetSource]);
+  }, [input.runtimeAgentCenterAdapter, localAssetSource, providerResolver]);
   useEffect(() => {
     let cancelled = false;
     if (!runtimeAdapter) {

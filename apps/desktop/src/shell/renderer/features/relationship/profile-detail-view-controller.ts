@@ -1,7 +1,6 @@
 import { type ChangeEvent, type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
-import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import type { ProfileData, ProfileTab } from '../profile/profile-model';
 import { buildEditableDraft, type EditableProfileDraft } from './profile-detail-view-parts.js';
@@ -184,7 +183,7 @@ export function useProfileDetailViewController(props: ProfileDetailViewProps, re
     setIsUploadingAvatar(true);
     setSaveError(null);
     try {
-      const uploaded = await uploadNimiRealmResourceFile(getDesktopRealm(), {
+      const uploaded = await uploadNimiRealmResourceFile(bindings.sdk.realm(), {
         kind: 'image',
         file,
         failureMessage: t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }),

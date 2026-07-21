@@ -6,11 +6,13 @@ import {
   type AssetTaskEntry,
   type AssetTaskState,
 } from './runtime-config-local-model-center-helpers';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 export function useLocalModelCenterAssetTasks(input: {
   onInstallVerifiedAsset: LocalModelCenterProps['onInstallVerifiedAsset'];
   verifiedAssetsByTemplateId: Map<string, NimiRuntimeLocalVerifiedAssetDescriptor>;
 }) {
+  const bindings = useDesktopRendererBindings();
   const [assetPendingTemplateIds, setAssetPendingTemplateIds] = useState<string[]>([]);
   const [assetTasks, setAssetTasks] = useState<AssetTaskEntry[]>([]);
 
@@ -41,7 +43,7 @@ export function useLocalModelCenterAssetTasks(input: {
     if (!descriptor) {
       return;
     }
-    const nowMs = Date.now();
+    const nowMs = bindings.clock.now();
     setAssetTasks((prev) => {
       const next = prev.filter((task) => (
         task.templateId !== normalizedTemplateId

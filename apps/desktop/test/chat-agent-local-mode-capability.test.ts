@@ -307,6 +307,7 @@ test('agent local mode creates image execution snapshot for runtime-authoritativ
     imageProjection,
   });
   const imageExecutionSnapshot = createNimiConversationAISnapshot({
+    createdAtMs: 0,
     config: createEmptyNimiAIConfig(),
     capability: 'image.generate',
     projection: imageProjection,
@@ -364,8 +365,8 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.match(adapterSource, /useAgentConversationPresentation/);
   assert.match(adapterSource, /useAgentRuntimeSessionSnapshotHydration/);
   assert.match(adapterSessionSnapshotSource, /createNimiRuntimeAgentConsumeClient/);
-  assert.match(adapterSessionSnapshotSource, /getDesktopRuntime\(\)\.agents/);
-  assert.match(adapterSessionSnapshotSource, /getDesktopAppId\(\)/);
+  assert.match(adapterSessionSnapshotSource, /sdk\.runtime\(\)\.agents/);
+  assert.match(adapterSessionSnapshotSource, /sdk\.appId\(\)/);
   assert.match(adapterSessionSnapshotSource, /turns\.getSessionSnapshot/);
   assert.doesNotMatch(adapterSessionSnapshotSource, /getPlatformClient/);
   assert.doesNotMatch(adapterSessionSnapshotSource, /runtime\.agent\.turns\.getSessionSnapshot/);
@@ -375,17 +376,17 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.match(adapterSessionSnapshotSource, /desktop_runtime_agent_session_snapshot_request_deduped_total/);
   assert.match(adapterStateSource, /agentConversationTargetByLocalRef/);
   assert.match(adapterStateSource, /Object\.values\(storedTargetsByLocalRef\)/);
-  assert.match(adapterStateSource, /listRuntimeAgentConversationSummaries\(targets\)/);
+  assert.match(adapterStateSource, /listRuntimeAgentConversationSummaries\(targets, sdk\)/);
   assert.doesNotMatch(adapterStateSource, /realmSocialData\.loadSocialSnapshot\(\)/);
-  assert.match(adapterStateSource, /loadDesktopRouteOptions\('text\.generate'\)/);
+  assert.match(adapterStateSource, /loadDesktopRouteOptions\('text\.generate', sdk\)/);
   assert.match(adapterStateSource, /findNimiRuntimeRouteModelProfile/);
   assert.match(sessionHydrationSource, /snapshot\.transcript/);
   assert.match(hostActionHelpersSource, /createNimiHostRuntimeAgentPresentationProfileSurface/);
   assert.match(hostActionHelpersSource, /createNimiRuntimeAgentConsumeClient/);
-  assert.match(hostActionHelpersSource, /withScopes:\s*withDesktopRuntimeProtectedScopes/);
-  assert.match(runtimeAgentTurnSource, /withScopes:\s*withDesktopRuntimeProtectedScopes/);
-  assert.match(runtimeAgentMemorySource, /withScopes:\s*withDesktopRuntimeProtectedScopes/);
-  assert.match(runtimeAgentInspectSource, /withScopes:\s*withDesktopRuntimeProtectedScopes/);
+  assert.match(hostActionHelpersSource, /withScopes:\s*input\.sdk\.withRuntimeProtectedScopes/);
+  assert.match(runtimeAgentTurnSource, /withScopes:\s*sdk\.withRuntimeProtectedScopes/);
+  assert.match(runtimeAgentMemorySource, /withScopes:\s*deps\.withScopes/);
+  assert.match(runtimeAgentInspectSource, /withScopes:\s*deps\.withScopes/);
   assert.match(hostActionHelpersSource, /runtime\.agent\.getAgent/);
   assert.doesNotMatch(hostActionHelpersSource, /ensureLocalAgentInitialized/);
   assert.doesNotMatch(hostActionHelpersSource, /createRuntimeProtectedScopeHelper/);
@@ -393,7 +394,7 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.match(hostActionHelpersSource, /client\.anchors\.getSnapshot/);
   assert.match(hostActionHelpersSource, /client\.turns\.getSessionSnapshot/);
   assert.match(hostActionHelpersSource, /const threadId = normalizeText\(snapshot\.threadId\)/);
-  assert.match(hostActionHelpersSource, /clearAgentConversationAnchorBinding/);
+  assert.match(hostActionHelpersSource, /anchorBindings\.clear/);
   assert.doesNotMatch(
     hostActionHelpersSource,
     new RegExp(['runtimeAgent', 'Execution', 'BindingsMatch'].join('')),
@@ -431,7 +432,7 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
     'agent host actions must verify Runtime Agent AI Config readiness before applying in-memory user projection messages',
   );
   assert.match(hostActionSubmitSource, /userProjectionApplied = true/);
-  assert.match(hostActionSubmitSource, /setAgentVisibleProjection\(effectiveThreadId,\s*userBundle\)/);
+  assert.match(hostActionSubmitSource, /input\.visibleProjections\.set\(effectiveThreadId, userBundle\)/);
   assert.doesNotMatch(hostActionSubmitSource, /chatAgentStoreClient\.commitTurnResult/);
   assert.match(hostActionSubmitRunSource, /if \(projectionEffects\.awaitRefresh\) \{\s+const rebuiltBundle =/s);
   assert.match(adapterHostFeedbackSource, /logRendererEvent/);
@@ -439,7 +440,7 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.match(adapterSource, /voiceSessionState/);
   assert.match(voiceAdapterSource, /handleVoiceSessionToggle/);
   assert.match(voiceAdapterSource, /resolveIsVoiceSessionForeground/);
-  assert.match(voiceAdapterSource, /document\.addEventListener\('visibilitychange', syncForegroundState\)/);
+  assert.match(voiceAdapterSource, /bindings\.app\.events\.subscribeDocumentVisibility\(syncForegroundState\)/);
   assert.match(voiceAdapterSource, /autoStopMode:\s*'silence'/);
   assert.match(voiceAdapterSource, /onAutoStop:\s*\(recording\)/);
   assert.match(voiceAdapterSource, /handleHandsFreeAutoStopRecording\(recording, conversationAnchorId\)/);
@@ -474,8 +475,8 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.match(presentationSource, /voiceState=\{resolveAgentComposerVoiceState/);
   assert.match(effectsSource, /applyDriverEffects/);
   assert.match(effectsSource, /applyHostInteractionPatch/);
-  assert.match(effectsSource, /setAgentVisibleProjection\(threadId,\s*patch\.bundle\)/);
-  assert.doesNotMatch(effectsSource, /setAgentVisibleProjection\(threadId,\s*null\)/);
+  assert.match(effectsSource, /visibleProjections\.set\(threadId, patch\.bundle\)/);
+  assert.doesNotMatch(effectsSource, /visibleProjections\.set\(threadId,\s*null\)/);
   assert.doesNotMatch(humanAdapterSource, /voice session mode stays on/);
   assert.doesNotMatch(adapterSource, /chatAgentStoreClient\.createThread/);
   assert.doesNotMatch(adapterSource, /chatAgentStoreClient\.commitTurnResult/);

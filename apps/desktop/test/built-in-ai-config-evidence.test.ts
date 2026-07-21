@@ -212,7 +212,7 @@ test('desktop post-login sync initializes built-in chat AIConfig without full re
   assert.match(desktopAuthAdapterSource, /desktopBridge\.getProductControlRecord\(\)/);
   assert.match(desktopAuthAdapterSource, /if \(projection\.state !== 'ready_for_use'\)/);
   assert.match(desktopAuthAdapterSource, /initializeBuiltInChatScopesFromProductControl\(\)/);
-  assert.match(desktopAuthAdapterSource, /refreshConversationCapabilityProjections\(productionAppStore, \['text\.generate'\]\)/);
+  assert.match(desktopAuthAdapterSource, /refreshConversationCapabilityProjections\(\s*productionAppStore,\s*\['text\.generate'\],\s*getProductionConversationCapabilityRouteRuntime\(\),\s*\)/s);
   const completeStart = desktopAuthAdapterSource.indexOf('complete: async (request: Parameters<typeof broker.complete>[0]) => {');
   assert.notEqual(completeStart, -1, 'desktop Runtime account browser broker complete handler must exist');
   const completeEnd = desktopAuthAdapterSource.indexOf('\n    },', completeStart);

@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import type { TFunction } from 'i18next';
 import {
   matchConversationTurnEvent,
@@ -29,7 +30,7 @@ import {
   resolveThreadTitleAfterFirstSend,
 } from './chat-nimi-thread-model';
 import type { NimiAIConfig } from './conversation-capability';
-import { resolveNimiAIConfigRuntimeSchedulingTargetForCapability } from '../../app-shell/providers/desktop-ai-config-service';
+import { resolveNimiAIConfigRuntimeSchedulingTargetForCapability } from '@nimiplatform/sdk/ai';
 import { probeExecutionSchedulingGuard } from './chat-shared-execution-scheduling-guard';
 import { STREAM_TEXT_TOTAL_TIMEOUT_MS } from '../turns/stream-controller';
 import { useStreamController } from '../turns/stream-controller-context.js';
@@ -46,6 +47,8 @@ import {
   upsertThreadSummary,
 } from './chat-nimi-shell-core';
 import { ensureAiConversationSubmitRouteReady } from './conversation-submit-readiness';
+import type { AppStoreApi } from '../../app-shell/providers/app-store-factory.js';
+import { refreshConversationCapabilityProjections } from './conversation-capability-projection.js';
 
 type AiRunTurn = (input: {
   threadId: string;
@@ -62,9 +65,11 @@ type AiRunTurn = (input: {
 type UseAiConversationHostActionsInput = {
   activeThreadId: string | null;
   aiConfig: NimiAIConfig;
+  sdk: DesktopRendererSdkPort;
   bundleMessages: readonly ChatAiMessageRecord[] | undefined;
   currentDraftTextRef: { current: string };
   ephemeralThread: ChatAiThreadRecord | null;
+  now: () => number;
   queryClient: QueryClient;
   reportHostError: (error: unknown) => void;
   runAiTurn: AiRunTurn;
@@ -76,6 +81,7 @@ type UseAiConversationHostActionsInput = {
   setEphemeralThread: (thread: ChatAiThreadRecord | null) => void;
   setSubmittingThreadId: (threadId: string | null) => void;
   setThreadsCache: (updater: (current: ChatAiThreadSummary[]) => ChatAiThreadSummary[]) => void;
+  store: AppStoreApi;
   submittingThreadId: string | null;
   syncSelectionToThread: (threadId: string | null) => void;
   t: TFunction;
@@ -84,12 +90,15 @@ type UseAiConversationHostActionsInput = {
 
 export async function assertAiSubmitSchedulingAllowed(input: {
   aiConfig: NimiAIConfig;
+  sdk?: DesktopRendererSdkPort;
   t: TFunction;
 }): Promise<void> {
   const target = resolveNimiAIConfigRuntimeSchedulingTargetForCapability(input.aiConfig, 'text.generate');
   const schedulingGuard = await probeExecutionSchedulingGuard({
     scopeRef: input.aiConfig.scopeRef,
     target,
+    runtime: input.sdk?.runtime(),
+    surface: input.sdk?.aiConfig(),
     t: input.t,
   });
   if (schedulingGuard.disabled) {
@@ -155,7 +164,7 @@ export function useAiConversationHostActions(
         threadId: normalizedThreadId,
         text: nextText,
         attachments: [],
-        updatedAtMs: Date.now(),
+        updatedAtMs: input.now(),
       });
       input.setBundleCache(
         normalizedThreadId,
@@ -175,7 +184,7 @@ export function useAiConversationHostActions(
     if (input.ephemeralThread) {
       input.queryClient.removeQueries({ queryKey: bundleQueryKey(input.ephemeralThread.id) });
     }
-    const timestampMs = Date.now();
+    const timestampMs = input.now();
     const thread: ChatAiThreadRecord = {
       id: createNimiClientId('ai-thread'),
       title: AI_NEW_CONVERSATION_TITLE,
@@ -221,7 +230,7 @@ export function useAiConversationHostActions(
         ? input.ephemeralThread
         : input.selectedThreadRecord
     );
-    const createdAtMs = Date.now();
+    const createdAtMs = input.now();
 
     if (!effectiveThreadId || !effectiveThreadRecord) {
       const localThread: ChatAiThreadRecord = {
@@ -310,9 +319,22 @@ export function useAiConversationHostActions(
 
       await ensureAiConversationSubmitRouteReady({
         t: input.t,
+        deps: {
+          refreshConversationCapabilityProjections: (capabilities) => (
+            refreshConversationCapabilityProjections(
+              input.store,
+              capabilities,
+              input.sdk.conversationCapabilityRuntime(),
+            )
+          ),
+          getTextCapabilityProjection: () => (
+            input.store.getState().conversationCapabilityProjectionByCapability['text.generate'] || null
+          ),
+        },
       });
       await assertAiSubmitSchedulingAllowed({
         aiConfig: input.aiConfig,
+        sdk: input.sdk,
         t: input.t,
       });
 
@@ -446,12 +468,12 @@ export function useAiConversationHostActions(
         content: createAssistantMessageContent(finalText, finalReasoningText),
         error: null,
         traceId: runtimeTraceId || promptTraceId || null,
-        updatedAtMs: Date.now(),
+        updatedAtMs: input.now(),
       });
       const updatedThread = await chatAiStoreClient.updateThreadMetadata({
         id: effectiveThreadRecord.id,
         title: resolveThreadTitleAfterFirstSend(effectiveThreadRecord.title, submittedText),
-        updatedAtMs: Date.now(),
+        updatedAtMs: input.now(),
         lastMessageAtMs: assistantMessage.updatedAtMs,
       });
       input.setThreadsCache((current) => upsertThreadSummary(current, updatedThread));
@@ -484,7 +506,7 @@ export function useAiConversationHostActions(
           traceId: streamSnapshot.traceId || runtimeTraceId || promptTraceId || undefined,
         });
       }
-      const recoveredDraftUpdatedAtMs = Date.now();
+      const recoveredDraftUpdatedAtMs = input.now();
       const draft = threadPersisted
         ? await chatAiStoreClient.putDraft({
           threadId: effectiveThreadId,
@@ -502,7 +524,7 @@ export function useAiConversationHostActions(
           content: createAssistantMessageContent(partialText, partialReasoningText),
           error: runtimeError,
           traceId: streamSnapshot.traceId || runtimeTraceId || promptTraceId || null,
-          updatedAtMs: Date.now(),
+          updatedAtMs: input.now(),
         });
         input.setBundleCache(effectiveThreadId, (current) => {
           const base = current || createEmptyBundle(fallbackThreadRecord);

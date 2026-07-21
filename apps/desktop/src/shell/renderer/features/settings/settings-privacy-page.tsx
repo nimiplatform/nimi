@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import {
   loadNimiRealmUserSettings,
   updateNimiRealmUserSettings,
 } from '@nimiplatform/sdk/realm';
-import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
 import { useTranslation } from 'react-i18next';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useQuery } from '@tanstack/react-query';
 import { FormFeedback, PageShell, SectionTitle } from './settings-layout-components.js';
 import {
@@ -141,6 +141,7 @@ function getCurrentMode(form: PrivacyForm): VisibilityMode | 'CUSTOM' {
 
 export function PrivacyPage() {
   const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
   const [form, setForm] = useState<PrivacyForm>({ ...DEFAULT_FORM });
   const [baseline, setBaseline] = useState<PrivacyForm>({ ...DEFAULT_FORM });
   const [saving, setSaving] = useState(false);
@@ -148,7 +149,7 @@ export function PrivacyPage() {
     kind: 'info' | 'success' | 'warning' | 'error';
     message: string;
   } | null>(null);
-  const autosaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autosaveTimerRef = useRef<(() => void) | null>(null);
   const visibilitySelectOptions = useMemo(() => ([
     { value: 'PUBLIC', label: t('PrivacySettings.visibilityPublic') },
     { value: 'FRIENDS', label: t('PrivacySettings.visibilityFriends') },
@@ -172,7 +173,7 @@ export function PrivacyPage() {
 
   const settingsQuery = useQuery({
     queryKey: ['settings-privacy'],
-    queryFn: async () => loadNimiRealmUserSettings(getDesktopRealm()),
+    queryFn: async () => loadNimiRealmUserSettings(bindings.sdk.realm()),
   });
 
   useEffect(() => {
@@ -185,9 +186,8 @@ export function PrivacyPage() {
   }, [settingsQuery.data]);
 
   useEffect(() => () => {
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-    }
+    autosaveTimerRef.current?.();
+    autosaveTimerRef.current = null;
   }, []);
 
   const hasChanges = useMemo(() => !formsEqual(form, baseline), [form, baseline]);
@@ -204,7 +204,7 @@ export function PrivacyPage() {
     }
     setSaving(true);
     try {
-      await updateNimiRealmUserSettings(getDesktopRealm(), toUpdatePayload(form));
+      await updateNimiRealmUserSettings(bindings.sdk.realm(), toUpdatePayload(form));
       await settingsQuery.refetch();
       if (!silentSuccess) {
         setFeedback({
@@ -224,28 +224,26 @@ export function PrivacyPage() {
 
   useEffect(() => {
     if (saving || !hasChanges || settingsQuery.isPending || settingsQuery.isError) {
-      if (autosaveTimerRef.current) {
-        clearTimeout(autosaveTimerRef.current);
-        autosaveTimerRef.current = null;
-      }
+      autosaveTimerRef.current?.();
+      autosaveTimerRef.current = null;
       return;
     }
 
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-    }
-
-    autosaveTimerRef.current = setTimeout(() => {
+    autosaveTimerRef.current?.();
+    autosaveTimerRef.current = bindings.clock.schedule(700, (result) => {
+      autosaveTimerRef.current = null;
+      if (!result.ok) {
+        setFeedback({ kind: 'error', message: result.error });
+        return;
+      }
       void handleSave({ silentSuccess: true });
-    }, 700);
+    });
 
     return () => {
-      if (autosaveTimerRef.current) {
-        clearTimeout(autosaveTimerRef.current);
-        autosaveTimerRef.current = null;
-      }
+      autosaveTimerRef.current?.();
+      autosaveTimerRef.current = null;
     };
-  }, [form, hasChanges, saving, settingsQuery.isError, settingsQuery.isPending]);
+  }, [bindings.clock, form, hasChanges, saving, settingsQuery.isError, settingsQuery.isPending]);
 
   if (settingsQuery.isPending) {
     return (

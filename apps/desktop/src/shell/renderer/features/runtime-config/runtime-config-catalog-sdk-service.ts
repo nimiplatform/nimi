@@ -1,28 +1,32 @@
-import { createNimiRuntimeModelCatalogClient, type NimiRuntimeModelCatalogConnectorClient } from '@nimiplatform/sdk/runtime';
+import {
+  createNimiRuntimeModelCatalogClient,
+  type NimiRuntimeModelCatalogConnectorClient,
+  type Runtime,
+} from '@nimiplatform/sdk/runtime';
 import { type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
-import { getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
 
 const CATALOG_CALL_OPTIONS: RuntimeTypedCallOptions = {
   timeoutMs: 8000,
-  metadata: {
-    surfaceId: 'runtime.config',
-  },
+  metadata: { surfaceId: 'runtime.config' },
 };
 
-const runtimeCatalogConnectors: NimiRuntimeModelCatalogConnectorClient = {
-  listModelCatalogProviders: (request, options) => getDesktopRuntime().connectors.listModelCatalogProviders(request, options),
-  listCatalogProviderModels: (request, options) => getDesktopRuntime().connectors.listCatalogProviderModels(request, options),
-  getCatalogModelDetail: (request, options) => getDesktopRuntime().connectors.getCatalogModelDetail(request, options),
-  upsertModelCatalogProvider: (request, options) => getDesktopRuntime().connectors.upsertModelCatalogProvider(request, options),
-  deleteModelCatalogProvider: (request, options) => getDesktopRuntime().connectors.deleteModelCatalogProvider(request, options),
-  upsertCatalogModelOverlay: (request, options) => getDesktopRuntime().connectors.upsertCatalogModelOverlay(request, options),
-  deleteCatalogModelOverlay: (request, options) => getDesktopRuntime().connectors.deleteCatalogModelOverlay(request, options),
-};
+export function createRuntimeConfigCatalogClient(connectors: Runtime['connectors']) {
+  const runtimeCatalogConnectors: NimiRuntimeModelCatalogConnectorClient = {
+    listModelCatalogProviders: (request, options) => connectors.listModelCatalogProviders(request, options),
+    listCatalogProviderModels: (request, options) => connectors.listCatalogProviderModels(request, options),
+    getCatalogModelDetail: (request, options) => connectors.getCatalogModelDetail(request, options),
+    upsertModelCatalogProvider: (request, options) => connectors.upsertModelCatalogProvider(request, options),
+    deleteModelCatalogProvider: (request, options) => connectors.deleteModelCatalogProvider(request, options),
+    upsertCatalogModelOverlay: (request, options) => connectors.upsertCatalogModelOverlay(request, options),
+    deleteCatalogModelOverlay: (request, options) => connectors.deleteCatalogModelOverlay(request, options),
+  };
+  return createNimiRuntimeModelCatalogClient({
+    connectors: runtimeCatalogConnectors,
+    callOptions: CATALOG_CALL_OPTIONS,
+  });
+}
 
-export const runtimeConfigCatalogClient = createNimiRuntimeModelCatalogClient({
-  connectors: runtimeCatalogConnectors,
-  callOptions: CATALOG_CALL_OPTIONS,
-});
+export type RuntimeConfigCatalogClient = ReturnType<typeof createRuntimeConfigCatalogClient>;
 
 export type {
   NimiRuntimeCatalogModelDetail,

@@ -1,11 +1,12 @@
 import {
   acquireNimiManagedConnectorCredential,
+  type NimiConnectorAuthAcquisitionHost,
   type NimiConnectorAuthAcquisitionPendingState,
   type NimiManagedConnectorCredentialRuntime,
   type NimiManagedConnectorCredentialAcquisitionResult,
 } from '@nimiplatform/sdk/runtime';
 import type { JsonObject } from '@nimiplatform/sdk/types';
-import { desktopBridge, logRendererEvent } from '../../bridge';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 
 export type CodexOAuthPendingState = NimiConnectorAuthAcquisitionPendingState;
 
@@ -34,6 +35,7 @@ function logCodexOAuth(
 
 export async function acquireCodexManagedCredential(
   options: AcquireCodexManagedCredentialOptions,
+  host: NimiConnectorAuthAcquisitionHost,
 ): Promise<NimiManagedConnectorCredentialAcquisitionResult> {
   return acquireNimiManagedConnectorCredential({
     profileId: options.profileId,
@@ -43,34 +45,6 @@ export async function acquireCodexManagedCredential(
     endpoint: options.endpoint,
     label: options.label,
     onPending: options.onPending,
-    host: {
-      proxyHttp: (request) => desktopBridge.proxyHttp({
-        url: request.url,
-        method: request.method,
-        headers: request.headers,
-        body: request.body,
-        connectorAuthProfileId: request.profileId,
-        connectorAuthPurpose: request.purpose,
-      }),
-      openExternalUrl: desktopBridge.openExternalUrl,
-      oauthTokenExchange: async (input) => {
-        const result = await desktopBridge.oauthTokenExchange({
-          provider: input.provider as Parameters<typeof desktopBridge.oauthTokenExchange>[0]['provider'],
-          clientId: input.clientId,
-          code: input.code,
-          codeVerifier: input.codeVerifier,
-          redirectUri: input.redirectUri,
-        });
-        return {
-          ...result,
-          raw: result.raw as JsonObject,
-        };
-      },
-      sleep: (ms) => new Promise<void>((resolve) => {
-        globalThis.setTimeout(resolve, ms);
-      }),
-      now: () => Date.now(),
-      log: logCodexOAuth,
-    },
+    host: { ...host, log: logCodexOAuth },
   });
 }

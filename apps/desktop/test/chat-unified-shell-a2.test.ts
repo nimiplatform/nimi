@@ -255,7 +255,7 @@ test('chat unified shell a2: AIConfig is the umbrella authority over conversatio
   assert.match(productionAppStoreDependenciesSource, /getActiveScope\(\)/);
   assert.match(productionAppStoreDependenciesSource, /getDesktopAIConfigService\(\)/);
   assert.match(productionAppStoreSource, /bindDesktopAIConfigAppStore/);
-  assert.match(productionAppStoreSource, /bindProjectionRefreshToSurface\(productionAppStore\)/);
+  assert.match(productionAppStoreSource, /bindProductionProjectionRefreshToSurface\(productionAppStore\)/);
   assert.match(runtimeSliceSource, /dependencies\.initialAIConfig/);
   assert.match(runtimeSliceSource, /dependencies\.commitAIConfig\(config\)/);
   assert.doesNotMatch(runtimeSliceSource, /applyAIProfileToConfig/);

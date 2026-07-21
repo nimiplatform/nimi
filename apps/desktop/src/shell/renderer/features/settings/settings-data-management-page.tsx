@@ -1,13 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { requestNimiRealmAccountDeletion } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { logoutAndClearSession, useLogoutSessionDependencies } from '../auth/logout';
-import { desktopBridge } from '../../bridge';
-import type { DesktopStorageDirs } from '../../bridge';
-import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
-import { resolveBrowserStorage } from '@nimiplatform/kit/core/storage-json';
+import type { DesktopRendererStorageDirs } from '../../renderer/settings-port.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
   Button,
@@ -36,21 +34,6 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
 }
 
-function estimateLocalStorageBytes(): number {
-  const storage = resolveBrowserStorage('local');
-  if (!storage) {
-    return 0;
-  }
-  let total = 0;
-  for (let i = 0; i < storage.length; i += 1) {
-    const key = storage.key(i);
-    if (!key) continue;
-    const value = storage.getItem(key) || '';
-    total += (key.length + value.length) * 2;
-  }
-  return total;
-}
-
 function estimateQueryCacheBytes(queryClient: QueryClient): number {
   const queries = queryClient.getQueryCache().findAll();
   let total = 0;
@@ -67,6 +50,7 @@ function estimateQueryCacheBytes(queryClient: QueryClient): number {
 export function DataManagementPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const bindings = useDesktopRendererBindings();
   const clearAuthSession = useAppStore((s) => s.clearAuthSession);
   const logoutDependencies = useLogoutSessionDependencies();
   const [deleting, setDeleting] = useState(false);
@@ -86,32 +70,22 @@ export function DataManagementPage() {
 
   const refreshStorageSnapshot = useCallback(async () => {
     const queryCacheBytes = estimateQueryCacheBytes(queryClient);
-    const localStorageBytes = estimateLocalStorageBytes();
-    let estimatedUsageBytes = 0;
-    let estimatedQuotaBytes = 0;
-    if (typeof navigator !== 'undefined' && navigator.storage?.estimate) {
-      try {
-        const estimate = await navigator.storage.estimate();
-        estimatedUsageBytes = Number(estimate.usage || 0);
-        estimatedQuotaBytes = Number(estimate.quota || 0);
-      } catch {
-        estimatedUsageBytes = 0;
-        estimatedQuotaBytes = 0;
-      }
+    try {
+      const usage = await bindings.app.commands.settings.estimateStorageUsage();
+      setStorage({ queryCacheBytes, ...usage });
+    } catch (error) {
+      setFeedback({
+        kind: 'error',
+        message: error instanceof Error ? error.message : 'DESKTOP_STORAGE_ESTIMATE_UNAVAILABLE',
+      });
     }
-    setStorage({
-      queryCacheBytes,
-      localStorageBytes,
-      estimatedUsageBytes,
-      estimatedQuotaBytes,
-    });
-  }, [queryClient]);
+  }, [bindings.app.commands.settings, queryClient]);
 
   useEffect(() => {
     void refreshStorageSnapshot();
   }, [refreshStorageSnapshot]);
 
-  const applyStorageDirs = useCallback((dirs: DesktopStorageDirs) => {
+  const applyStorageDirs = useCallback((dirs: DesktopRendererStorageDirs) => {
     setResolvedNimiDir(dirs.nimiDir);
     setResolvedNimiDataDir(dirs.nimiDataDir);
     setResolvedLocalModelsDir(dirs.localModelsDir);
@@ -119,7 +93,7 @@ export function DataManagementPage() {
   }, []);
 
   useEffect(() => {
-    void desktopBridge.getDesktopStorageDirs()
+    void bindings.app.commands.settings.loadStorageDirs()
       .then(applyStorageDirs)
       .catch((error) => {
         logRendererEvent({
@@ -131,7 +105,7 @@ export function DataManagementPage() {
           },
         });
       });
-  }, [applyStorageDirs]);
+  }, [applyStorageDirs, bindings.app.commands.settings]);
 
   const totalTrackedBytes = useMemo(
     () => storage.queryCacheBytes + storage.localStorageBytes + storage.estimatedUsageBytes,
@@ -159,7 +133,7 @@ export function DataManagementPage() {
     }
     setDeleting(true);
     try {
-      const result = await requestNimiRealmAccountDeletion(getDesktopRealm(), {
+      const result = await requestNimiRealmAccountDeletion(bindings.sdk.realm(), {
         reason: 'user_request',
       });
       if (!result.accepted) {

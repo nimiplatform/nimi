@@ -6,10 +6,7 @@ import type { NimiMessage, NimiMessagePart, NimiRunEvent } from '@nimiplatform/s
 import { createNimiError } from '@nimiplatform/sdk/types';
 import type { ConversationRuntimeTextMessage } from '@nimiplatform/kit/features/chat/headless';
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import {
-  desktopRuntimeRouteAccess,
-} from '../../infra/runtime-route-host-access';
-import { getDesktopAppId, getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import {
   type NimiRuntimeResolvedBinding,
 } from '@nimiplatform/sdk/runtime';
@@ -46,6 +43,7 @@ type ChatAiRuntimeTextExecutionInput = {
 };
 
 export type ChatAiRuntimeStreamDeps = {
+  sdk: DesktopRendererSdkPort;
   resolveTextExecutionInputImpl?: (input: ChatAiRuntimeTextInput) => Promise<ChatAiRuntimeTextExecutionInput>;
 };
 
@@ -142,19 +140,20 @@ export function toChatAiRuntimeError(error: unknown, t: TFunction): { code: stri
 
 export async function streamChatAiRuntime(
   input: ChatAiRuntimeTextInput,
-  deps: ChatAiRuntimeStreamDeps = {},
+  deps: ChatAiRuntimeStreamDeps,
 ): Promise<ChatAiRuntimeStreamResult> {
   const executionInput = await (deps.resolveTextExecutionInputImpl || resolveRuntimeTextExecutionInput)(input);
   const resolved = executionInput.resolvedBinding;
   const timeoutMs = CHAT_AI_TEXT_GENERATE_TIMEOUT_MS;
 
-  await desktopRuntimeRouteAccess.ensureLocalModelWarm({
+  const runtimeRouteAccess = deps.sdk.runtimeRouteAccess();
+  await runtimeRouteAccess.ensureLocalModelWarm({
     targetId: executionInput.targetId,
     resolvedBinding: executionInput.resolvedBinding,
     timeoutMs,
   });
 
-  const callOptions = await desktopRuntimeRouteAccess.buildStreamOptions({
+  const callOptions = await runtimeRouteAccess.buildStreamOptions({
     targetId: executionInput.targetId,
     timeoutMs,
     signal: input.signal,
@@ -173,8 +172,8 @@ export async function streamChatAiRuntime(
     });
   }
   const model = createNimiRuntimeAIModel({
-    runtime: getDesktopRuntime(),
-    appId: getDesktopAppId(),
+    runtime: deps.sdk.runtime(),
+    appId: deps.sdk.appId(),
     model: {
       providerId: normalizeText(resolved.connectorId) || undefined,
       modelId: resolvedBindingModelId(resolved),

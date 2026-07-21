@@ -14,7 +14,7 @@ import type {
   AgentSubmitDriverState,
 } from './chat-agent-shell-submit-driver';
 import { bundleQueryKey } from './chat-agent-shell-core';
-import { setAgentVisibleProjection } from './chat-agent-visible-projection-store';
+import { useAgentVisibleProjectionStore } from './chat-agent-visible-projection-context.js';
 import { useStreamController } from '../turns/stream-controller-context.js';
 
 type UseAgentConversationEffectsInput = {
@@ -31,6 +31,7 @@ type UseAgentConversationEffectsInput = {
 
 export function useAgentConversationEffects(input: UseAgentConversationEffectsInput) {
   const streamController = useStreamController();
+  const visibleProjections = useAgentVisibleProjectionStore();
   const setBundleCache = useCallback((
     threadId: string,
     updater: (current: AgentLocalThreadBundle | null | undefined) => AgentLocalThreadBundle | null | undefined,
@@ -39,7 +40,7 @@ export function useAgentConversationEffects(input: UseAgentConversationEffectsIn
       bundleQueryKey(threadId),
       (current) => {
         const nextBundle = updater(current);
-        setAgentVisibleProjection(threadId, nextBundle || null);
+        visibleProjections.set(threadId, nextBundle || null);
         return nextBundle;
       },
     );
@@ -69,7 +70,7 @@ export function useAgentConversationEffects(input: UseAgentConversationEffectsIn
 
   const applyHostInteractionPatch = useCallback((threadId: string, patch: AgentHostInteractionPatch) => {
     input.queryClient.setQueryData(bundleQueryKey(threadId), patch.bundle);
-    setAgentVisibleProjection(threadId, patch.bundle);
+    visibleProjections.set(threadId, patch.bundle);
     input.currentComposerTextRef.current = patch.composerText;
     input.setSelection(patch.selection);
     setFooterHostState(threadId, {
@@ -83,11 +84,11 @@ export function useAgentConversationEffects(input: UseAgentConversationEffectsIn
       streamController.feedStreamEvent(threadId, streamEffect);
     }
     if (effects.projectionEffect !== undefined) {
-      setAgentVisibleProjection(threadId, effects.projectionEffect);
+      visibleProjections.set(threadId, effects.projectionEffect);
     }
     for (const bundleEffect of effects.bundleEffects) {
       input.queryClient.setQueryData(bundleQueryKey(threadId), bundleEffect);
-      setAgentVisibleProjection(threadId, bundleEffect);
+      visibleProjections.set(threadId, bundleEffect);
     }
     if (effects.hostPatchEffect) {
       applyHostInteractionPatch(threadId, effects.hostPatchEffect);

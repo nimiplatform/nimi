@@ -9,10 +9,9 @@ import type {
 } from '@nimiplatform/sdk/ai';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
-import {
-  getDesktopAIConfigService,
-  type DesktopAIConfigSDKSurface,
-} from '../../app-shell/providers/desktop-ai-config-service';
+import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
+import type { Runtime } from '@nimiplatform/sdk/runtime';
+import type { DesktopRendererAIConfigPort } from '../../renderer/ai-config-port.js';
 
 export type ExecutionSchedulingGuardDecision = {
   judgement: NimiAISchedulingJudgement | null;
@@ -117,19 +116,26 @@ export async function probeExecutionSchedulingGuard(input: {
   scopeRef: NimiAIScopeRef;
   target: NimiAISchedulingEvaluationTarget | null;
   t: TFunction;
-  surface?: Pick<DesktopAIConfigSDKSurface, 'aiConfig'>;
+  surface?: Pick<DesktopRendererAIConfigPort, 'aiConfig'>;
+  runtime?: Runtime;
 }): Promise<ExecutionSchedulingGuardDecision> {
-  const surface = input.surface ?? getDesktopAIConfigService();
+  if (!input.target) {
+    return resolveExecutionSchedulingGuardDecision({ judgement: null, t: input.t });
+  }
+  if (!input.surface) throw new Error('DESKTOP_AI_CONFIG_PORT_REQUIRED');
   return resolveExecutionSchedulingGuardDecision({
-    judgement: input.target
-      ? await surface.aiConfig.probeSchedulingTarget(input.scopeRef, input.target)
-      : null,
+    judgement: await input.surface.aiConfig.probeSchedulingTarget(
+      input.scopeRef,
+      input.target,
+      input.runtime,
+    ),
     t: input.t,
   });
 }
 
 export function useSchedulingFeasibility(): NimiAISchedulingJudgement | null {
-  const surface = useMemo(() => getDesktopAIConfigService(), []);
+  const sdk = useDesktopRendererSdk();
+  const surface = useMemo(() => sdk.aiConfig(), [sdk]);
   const scopeRef = useAppStore((state) => state.aiConfig.scopeRef);
 
   const { data } = useQuery({
@@ -140,7 +146,7 @@ export function useSchedulingFeasibility(): NimiAISchedulingJudgement | null {
       scopeRef.surfaceId ?? '',
     ],
     queryFn: async () => {
-      const result = await surface.aiConfig.probeFeasibility(scopeRef);
+      const result = await surface.aiConfig.probeFeasibility(scopeRef, sdk.runtime());
       return result.schedulingJudgement ?? null;
     },
     refetchInterval: 60_000,

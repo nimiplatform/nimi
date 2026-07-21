@@ -33,7 +33,7 @@ test('CBDB character source materialization uses the SDK terminal materializatio
   const materialization = readDesktopSource('features/explore/character-source-materialization.ts');
   const sourceIdentity = readDesktopSource('features/realm-source/realm-source-identity.ts');
   const materializationSurface = `${materialization}\n${sourceIdentity}`;
-  assert.match(materialization, /getDesktopRuntime\(\)\.materializeRealmSource/);
+  assert.match(materialization, /sdk\.runtime\(\)\.materializeRealmSource/);
   assert.match(materialization, /materializeRealmSource/);
   assert.doesNotMatch(materialization, /intendedRuntimeAudience/);
   assert.doesNotMatch(materialization, /connectNimiRealmSource/);

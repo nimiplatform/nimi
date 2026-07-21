@@ -17,8 +17,8 @@ const zhLocale = readDesktopLocale('zh') as Record<string, Record<string, string
 
 test('send gift modal loads dynamic gift catalog and sends selected gift ids', () => {
   assert.match(modalSource, /useRealmSendGiftDialog\(\{/);
-  assert.match(modalSource, /getDesktopRealmCommerceGiftService/);
-  assert.match(modalSource, /const giftService = useMemo\(\(\) => getDesktopRealmCommerceGiftService\(\), \[\]\)/);
+  assert.match(modalSource, /createRealmCommerceGiftService/);
+  assert.match(modalSource, /generated: sdk\.realm\(\)\.generated/);
   assert.match(modalSource, /service:\s*giftService/);
   assert.doesNotMatch(modalSource, /giftId:\s*'gem'/);
   assert.doesNotMatch(modalSource, /\bgemAmount\b/);

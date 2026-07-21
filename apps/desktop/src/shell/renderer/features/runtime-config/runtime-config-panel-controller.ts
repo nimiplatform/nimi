@@ -11,6 +11,7 @@ import { useRuntimeConfigPanelState } from './runtime-config-panel-state';
 import { useRuntimeConfigDaemonController } from './runtime-config-panel-controller-daemon';
 import { useRuntimeConfigInstallActions } from './runtime-config-panel-controller-install-actions';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import { useRuntimeConfigConnectorSdk } from './runtime-config-connector-sdk-context.js';
 
 export type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 
@@ -18,6 +19,7 @@ const RUNTIME_DAEMON_STATUS_POLL_INTERVAL_MS = 30_000;
 
 export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerModel {
   const bindings = useDesktopRendererBindings();
+  const runtimeConnectorSdk = useRuntimeConfigConnectorSdk();
   const runtimeConfigNavigation = bindings.app.commands.runtimeConfigNavigation;
   const activeTab = useAppStore((state) => state.activeTab);
   const runtimeTabActive = activeTab === 'runtime';
@@ -67,18 +69,22 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     provider: {
       discover: {
         get state() { return stateRef.current; },
+        sdk: bindings.sdk,
         get discovering() { return discoveringRef.current; },
         updateState: panelState.updateState,
         setStatusBanner: setPageFeedback,
       },
       health: {
         get state() { return stateRef.current; },
+        sdk: bindings.sdk,
         get checkingHealth() { return checkingHealthRef.current; },
         updateState: panelState.updateState,
         setStatusBanner: setPageFeedback,
       },
       testSelectedConnector: {
         get state() { return stateRef.current; },
+        connectorSdk: runtimeConnectorSdk,
+        now: bindings.clock.now,
         get selectedConnector() { return selectedConnectorRef.current; },
         get testingConnector() { return testingConnectorRef.current; },
         updateState: panelState.updateState,
@@ -87,6 +93,9 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
       },
     },
   }), [
+    bindings.clock.now,
+    bindings.sdk,
+    runtimeConnectorSdk,
     panelState.setApplying,
     panelState.setCheckingHealth,
     panelState.setDiscovering,

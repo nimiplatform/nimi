@@ -12,12 +12,11 @@ function read(relativePath: string): string {
 test('Desktop product-local state uses Kit storage mechanics, not direct browser storage', () => {
   const productLocalStorageModules = [
     'apps/desktop/src/shell/renderer/features/settings/settings-storage.ts',
-    'apps/desktop/src/shell/renderer/features/settings/settings-device-preferences.ts',
     'apps/desktop/src/shell/renderer/features/chat/chat-settings-storage.ts',
     'apps/desktop/src/shell/renderer/features/developer/developer-tools-storage.ts',
     'apps/desktop/src/shell/renderer/features/support/support-storage.ts',
     'apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-storage-persist.ts',
-    'apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-local-model-center-progress-cache.ts',
+    'apps/desktop/src/shell/renderer/features/runtime-config/production-local-model-progress-port.ts',
     'apps/desktop/src/shell/renderer/app-shell/providers/desktop-ai-config-storage.ts',
     'apps/desktop/src/shell/renderer/app-shell/providers/desktop-ai-config-snapshot-store.ts',
     'apps/desktop/src/shell/renderer/i18n/index.ts',

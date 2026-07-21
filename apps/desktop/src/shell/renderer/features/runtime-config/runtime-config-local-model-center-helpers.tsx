@@ -35,14 +35,6 @@ export {
   Toggle,
   TrashIcon,
 } from './runtime-config-local-model-center-icons';
-export {
-  cacheProgressSessions,
-  getCachedProgressSessions,
-  getDismissedSessionIds,
-  addDismissedSessionId,
-  removeDismissedSessionId,
-} from './runtime-config-local-model-center-progress-cache';
-
 export const ASSET_KIND_OPTIONS = NIMI_RUNTIME_LOCAL_PASSIVE_ASSET_KIND_IDS;
 export const ALL_ASSET_KIND_OPTIONS = NIMI_RUNTIME_LOCAL_ASSET_KIND_IDS;
 function recommendationCopyOptions(t: TFunction): NimiRuntimeLocalRecommendationCopyOptions {

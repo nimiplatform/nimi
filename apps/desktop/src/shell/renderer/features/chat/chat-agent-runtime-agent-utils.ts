@@ -18,32 +18,20 @@ export type PendingCommittedMessage = {
 };
 
 export function safeLogRuntimeAgentEvent(input: Parameters<typeof logRendererEvent>[0]): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
   logRendererEvent(input);
-}
-
-export function nowMs(): number {
-  return typeof performance !== 'undefined' && typeof performance.now === 'function'
-    ? performance.now()
-    : Date.now();
-}
-
-function elapsedMs(startedAt: number): number {
-  return Math.max(0, Math.round(nowMs() - startedAt));
 }
 
 export function safeLogRuntimeAgentTiming(input: {
   stage: string;
   startedAt: number;
   details?: JsonObject;
+  now?: () => number;
 }): void {
   safeLogRuntimeAgentEvent({
     level: 'info',
     area: 'agent-chat-runtime-latency',
     message: `phase:${input.stage}`,
-    costMs: elapsedMs(input.startedAt),
+    costMs: Math.max(0, Math.round((input.now?.() ?? input.startedAt) - input.startedAt)),
     details: {
       stage: input.stage,
       ...(input.details || {}),

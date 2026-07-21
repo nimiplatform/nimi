@@ -11,7 +11,8 @@ test('menu bar runtime sync consumes shared coordinator state instead of direct 
 
   assert.match(source, /useRuntimeHealthCoordinatorState/);
   assert.match(source, /export function connectMenuBarRuntimeSync\(/);
-  assert.match(source, /getRuntimeHealthCoordinator/);
+  assert.match(source, /coordinator: NimiRuntimeHealthCoordinator/);
+  assert.doesNotMatch(source, /getRuntimeHealthCoordinator/);
   assert.match(source, /lifecycle\.subscribeBootstrap\(reconcile\)/);
   assert.match(source, /coordinator\.subscribe\(reconcile\)/);
   assert.match(source, /projectNimiRuntimeHealthStatusName/);

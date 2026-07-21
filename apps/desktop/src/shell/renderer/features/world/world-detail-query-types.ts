@@ -1,4 +1,4 @@
-import { realmWorldData } from './data/realm-world-data.js';
+import type { RealmWorldData } from './data/realm-world-data.js';
 import type {
   WorldAuditItem,
   WorldCharacter,
@@ -8,7 +8,7 @@ import type {
   WorldSemanticData,
 } from './world-detail-types.js';
 
-export type WorldDetailWithCharactersResponse = Awaited<ReturnType<typeof realmWorldData.loadWorldDetailWithCharacters>>;
+export type WorldDetailWithCharactersResponse = Awaited<ReturnType<RealmWorldData['loadWorldDetailWithCharacters']>>;
 export type WorldPrimaryDetailRecord = NonNullable<WorldDetailWithCharactersResponse>;
 
 export type WorldDisplayDetail = {

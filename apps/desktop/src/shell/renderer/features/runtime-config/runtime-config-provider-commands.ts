@@ -18,6 +18,7 @@ export async function discoverLocalModelsCommand(input: DiscoverProviderCommandC
   try {
     await runDiscoverLocalModelsCommand({
       state: input.state,
+      sdk: input.sdk,
       updateState: input.updateState,
       setStatusBanner: input.setStatusBanner,
     });
@@ -34,6 +35,7 @@ export async function runLocalHealthCheckCommandWithGuard(input: HealthProviderC
   try {
     await runLocalHealthCheckCommand({
       state: input.state,
+      sdk: input.sdk,
       updateState: input.updateState,
       setStatusBanner: input.setStatusBanner,
     });
@@ -51,6 +53,8 @@ export async function testSelectedConnectorCommand(input: TestConnectorCommandCo
     await runSelectedConnectorTestCommand({
       state: input.state,
       selectedConnector: input.selectedConnector,
+      connectorSdk: input.connectorSdk,
+      now: input.now,
       updateState: input.updateState,
       setControlFeedback: input.setControlFeedback,
     });
@@ -58,6 +62,7 @@ export async function testSelectedConnectorCommand(input: TestConnectorCommandCo
     markSelectedConnectorTestFailedCommand({
       state: input.state,
       selectedConnector: input.selectedConnector,
+      now: input.now,
       updateState: input.updateState,
       setControlFeedback: input.setControlFeedback,
       error,

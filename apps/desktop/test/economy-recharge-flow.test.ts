@@ -13,12 +13,12 @@ const walletSectionsSource = fs.readFileSync(
 );
 
 test('Wallet page performs one-click Spark checkout and callback handling', () => {
-  assert.match(walletPageSource, /loadRealmSparkPackages\(\{\s*service: getDesktopRealmCommerceGiftService\(\),/s);
-  assert.match(walletPageSource, /createRealmSparkCheckout\(\{\s*service: getDesktopRealmCommerceGiftService\(\),/s);
-  assert.match(walletPageSource, /getDesktopRealmCommerceGiftService/);
+  assert.match(walletPageSource, /createRealmCommerceGiftService/);
+  assert.match(walletPageSource, /loadRealmSparkPackages\(\{ service: giftService \}\)/);
+  assert.match(walletPageSource, /createRealmSparkCheckout\(\{\s*service: giftService,/s);
   assert.doesNotMatch(walletPageSource, /dataSync\.loadSparkPackages/);
   assert.doesNotMatch(walletPageSource, /dataSync\.createSparkCheckout/);
-  assert.match(walletPageSource, /desktopBridge\.openExternalUrl\(checkoutUrl\)/);
+  assert.match(walletPageSource, /bindings\.app\.commands\.openWalletCheckout\(checkoutUrl\)/);
   assert.match(walletPageSource, /wallet_checkout/);
 });
 

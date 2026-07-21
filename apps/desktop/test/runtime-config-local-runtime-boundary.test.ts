@@ -36,7 +36,7 @@ const memoryEmbeddingServiceSource = readFileSync(
 test('Desktop local runtime asset consumers use SDK projection instead of raw Runtime DTOs', () => {
   assert.match(capabilitySettingsSource, /listNimiRuntimeLocalAssetEntries/);
   assert.match(capabilitySettingsSource, /from '@nimiplatform\/sdk\/runtime'/);
-  assert.match(capabilitySettingsSource, /getDesktopRuntime\(\)/);
+  assert.match(capabilitySettingsSource, /sdk\.runtime\(\)/);
   assert.doesNotMatch(capabilitySettingsSource, /getPlatformClient/);
   assert.doesNotMatch(capabilitySettingsSource, /listRuntimeLocalAssetEntries/);
   assert.doesNotMatch(capabilitySettingsSource, /runtime\.local\.listLocalAssets/);

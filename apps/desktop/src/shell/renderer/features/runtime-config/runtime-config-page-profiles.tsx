@@ -11,10 +11,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { NimiAIProfile } from '@nimiplatform/sdk/ai';
 import { validateNimiAIProfile } from '@nimiplatform/sdk/ai';
-import {
-  ensureProductAccountDefaultProfile,
-  getAccountDefaultProfileForScopeInit,
-} from '../../bridge/runtime-bridge/product-control.js';
 import { RuntimePageShell } from './runtime-config-page-shell.js';
 import { AccountProfileLibraryPanel } from './runtime-config-profile-library-panel.js';
 import {
@@ -23,15 +19,11 @@ import {
   type ProfileEditorDraft,
   type ProfileFeedback,
 } from './runtime-config-profile-management-sections.js';
-import {
-  createEmptyLibraryProfile,
-  createAccountProfileLibraryEntry,
-  deleteAccountProfileLibraryEntry,
-  editAccountProfileLibraryEntry,
-  loadAccountProfileLibrary,
-  type NimiAccountProfileLibraryProjection,
-  type LibraryProfile,
+import type {
+  NimiAccountProfileLibraryProjection,
+  LibraryProfile,
 } from './runtime-config-profile-library.js';
+import { useAccountProfileLibrary } from './runtime-config-profile-library-context.js';
 
 const PROFILE_BODY_RESERVED_FIELDS = [
   'profileId',
@@ -94,6 +86,7 @@ function buildProfileFromEditorDraft(draft: ProfileEditorDraft): NimiAIProfile {
 
 export function ProfileCatalogPage() {
   const { t } = useTranslation();
+  const profileLibrary = useAccountProfileLibrary();
   const [libraryProjection, setLibraryProjection] = useState<NimiAccountProfileLibraryProjection | null>(null);
   const [accountDefaultProfile, setAccountDefaultProfile] = useState<NimiAIProfile | null>(null);
   const [libraryLoading, setLibraryLoading] = useState(false);
@@ -104,10 +97,10 @@ export function ProfileCatalogPage() {
   const refreshProfileLibrary = useCallback(async () => {
     setLibraryLoading(true);
     try {
-      await ensureProductAccountDefaultProfile();
+      await profileLibrary.ensureAccountDefault();
       const [projection, defaultProfile] = await Promise.all([
-        loadAccountProfileLibrary(),
-        getAccountDefaultProfileForScopeInit(),
+        profileLibrary.load(),
+        profileLibrary.loadAccountDefault(),
       ]);
       setLibraryProjection(projection);
       setAccountDefaultProfile(defaultProfile);
@@ -115,7 +108,7 @@ export function ProfileCatalogPage() {
     } finally {
       setLibraryLoading(false);
     }
-  }, []);
+  }, [profileLibrary]);
 
   // Prime the file-backed account profile library projection.
   useEffect(() => {
@@ -139,7 +132,7 @@ export function ProfileCatalogPage() {
   }, [refreshProfileLibrary]);
 
   const openCreateProfile = useCallback(() => {
-    const base = createEmptyLibraryProfile();
+    const base = profileLibrary.createEmpty();
     setEditorDraft({
       mode: 'create',
       profile: base,
@@ -148,12 +141,12 @@ export function ProfileCatalogPage() {
       tagsText: '',
       profileJsonText: profileBodyJson(base),
     });
-  }, []);
+  }, [profileLibrary]);
 
   const openCreateProfileFromBase = useCallback((sourceProfile: NimiAIProfile) => {
     const base: NimiAIProfile = {
       ...sourceProfile,
-      profileId: createEmptyLibraryProfile().profileId,
+      profileId: profileLibrary.createEmpty().profileId,
       title: sourceProfile.title
         ? t('runtimeConfig.profiles.defaultCopyTitle', {
           defaultValue: '{{title}} custom',
@@ -171,7 +164,7 @@ export function ProfileCatalogPage() {
       tagsText: (base.tags ?? []).join(', '),
       profileJsonText: profileBodyJson(base),
     });
-  }, [t]);
+  }, [profileLibrary, t]);
 
   const openCreateProfileFromDefault = useCallback(() => {
     if (!accountDefaultProfile) return;
@@ -197,9 +190,9 @@ export function ProfileCatalogPage() {
       try {
         const nextProfile = buildProfileFromEditorDraft(editorDraft);
         if (editorDraft.mode === 'create') {
-          await createAccountProfileLibraryEntry(nextProfile);
+          await profileLibrary.create(nextProfile);
         } else {
-          await editAccountProfileLibraryEntry(nextProfile);
+          await profileLibrary.edit(nextProfile);
         }
         await reloadProfileLibrary();
         setEditorDraft(null);
@@ -216,13 +209,13 @@ export function ProfileCatalogPage() {
         setEditorSaving(false);
       }
     })();
-  }, [editorDraft, reloadProfileLibrary, t]);
+  }, [editorDraft, profileLibrary, reloadProfileLibrary, t]);
 
   const deleteProfile = useCallback((entry: LibraryProfile) => {
     setLibraryFeedback(null);
     void (async () => {
       try {
-        await deleteAccountProfileLibraryEntry(entry.profileId);
+        await profileLibrary.delete(entry.profileId);
         await reloadProfileLibrary();
         setLibraryFeedback({
           type: 'success',
@@ -235,7 +228,7 @@ export function ProfileCatalogPage() {
         });
       }
     })();
-  }, [reloadProfileLibrary, t]);
+  }, [profileLibrary, reloadProfileLibrary, t]);
 
   const exportableProfileCount = libraryProjection?.profiles.filter((entry) => entry.removable).length ?? 0;
 

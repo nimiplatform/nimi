@@ -9,7 +9,8 @@ import {
   type NimiRuntimeLocalEnvironmentPlan,
   type NimiRuntimeLocalEnvironmentPlanDependency,
 } from '@nimiplatform/sdk/runtime';
-import { runtimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
+import { useRuntimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import {
   retryableInterruptedRuntimeDependencyJobs,
   runtimeDependencyAutoRetryKey,
@@ -148,6 +149,8 @@ export function useLocalModelCenterRuntimeDependencies({
   refreshAssetInventorySections,
   setAssetBusy,
 }: RuntimeDependencyInput) {
+  const runtimeConfigLocalModelCenterClient = useRuntimeConfigLocalModelCenterClient();
+  const bindings = useDesktopRendererBindings();
   const mountedRef = useRef(true);
   const autoRetryAttemptedKeysRef = useRef<Set<string>>(new Set());
   const [sharedRuntimeEnvironmentPlan, setSharedRuntimeEnvironmentPlan] = useState<NimiRuntimeLocalEnvironmentPlan | undefined>(undefined);
@@ -337,22 +340,25 @@ export function useLocalModelCenterRuntimeDependencies({
       return undefined;
     }
     let cancelled = false;
+    let cancelNext: (() => void) | null = null;
     const tick = async () => {
       await refreshRuntimeDependencyJobs(allRuntimeDependencies);
       await refreshAssetInventorySections();
-      if (!cancelled && mountedRef.current) {
-        refreshRuntimeDependencies();
-      }
+      if (cancelled || !mountedRef.current) return;
+      refreshRuntimeDependencies();
+      cancelNext = bindings.clock.schedule(2_000, (result) => {
+        cancelNext = null;
+        if (result.ok) void tick();
+      });
     };
-    const interval = window.setInterval(() => {
-      void tick();
-    }, 2000);
     void tick();
     return () => {
       cancelled = true;
-      window.clearInterval(interval);
+      cancelNext?.();
+      cancelNext = null;
     };
   }, [
+    bindings.clock,
     hasActiveRuntimeDependencyJob,
     allRuntimeDependencies,
     refreshAssetInventorySections,

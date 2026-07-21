@@ -7,23 +7,14 @@ import {
   normalizeNimiRuntimeAgentPresentationBackendKind,
 } from '@nimiplatform/sdk/runtime';
 import { asNimiError, ReasonCode } from '@nimiplatform/sdk/types';
-import { productionAppStore } from '../../app-shell/providers/production-app-store';
-import {
-  getDesktopAppId,
-  getDesktopHostRuntimeAgentClient,
-  getDesktopRealm,
-  getDesktopRuntime,
-  withDesktopRuntimeProtectedScopes,
-} from '../../infra/sdk/desktop-nimi-client-session';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import type {
   AgentLocalTargetSnapshot,
   AgentLocalThreadRecord,
   AgentLocalThreadSummary,
   JsonObject,
 } from '../../bridge/runtime-bridge/types';
-import {
-  resolveNimiAIConfigRuntimeSchedulingTargetForCapability,
-} from '../../app-shell/providers/desktop-ai-config-service';
+import { resolveNimiAIConfigRuntimeSchedulingTargetForCapability } from '@nimiplatform/sdk/ai';
 import {
   bundleQueryKey,
   createAgentConversationCacheThreadId,
@@ -31,12 +22,7 @@ import {
 } from './chat-agent-shell-core';
 import { createEmptyAgentThreadBundle } from './chat-agent-shell-bundle';
 import { probeExecutionSchedulingGuard } from './chat-shared-execution-scheduling-guard';
-import {
-  clearAgentConversationAnchorBinding,
-  getAgentConversationAnchorBinding,
-  persistAgentConversationAnchorBinding,
-  type AgentConversationAnchorBinding,
-} from '../../app-shell/providers/agent-conversation-anchor-binding-storage';
+import type { AgentConversationAnchorBinding } from '../../app-shell/providers/agent-conversation-anchor-binding-storage';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
 import type { UseAgentConversationHostActionsInput } from './chat-agent-shell-host-actions-types';
@@ -49,8 +35,8 @@ export function isAbortLikeSubmitError(error: unknown): boolean {
     || message.includes('generation stopped');
 }
 
-function requireRuntimeSubjectUserId(): string {
-  const subjectUserId = normalizeText((productionAppStore.getState().auth.user as Record<string, unknown> | null)?.id);
+function requireRuntimeSubjectUserId(value: string): string {
+  const subjectUserId = normalizeText(value);
   if (!subjectUserId) {
     throw new Error('desktop agent chat requires authenticated subject user id for runtime.agent');
   }
@@ -85,6 +71,7 @@ export function buildAgentConversationAnchorMetadata(target: AgentLocalTargetSna
 
 async function syncRuntimePresentationProfile(input: {
   target: AgentLocalTargetSnapshot;
+  sdk: DesktopRendererSdkPort;
   context: {
     appId: string;
     subjectUserId: string;
@@ -101,13 +88,13 @@ async function syncRuntimePresentationProfile(input: {
   if (!profile || !backendKind || !avatarAssetRef) {
     return;
   }
-  const runtime = getDesktopHostRuntimeAgentClient();
+  const runtime = input.sdk.hostRuntimeAgent();
   const surface = createNimiHostRuntimeAgentPresentationProfileSurface({
     getRuntime: () => runtime,
     getSubjectUserId: () => input.context.subjectUserId,
-    withScopes: withDesktopRuntimeProtectedScopes,
+    withScopes: input.sdk.withRuntimeProtectedScopes,
   });
-  const current = await withDesktopRuntimeProtectedScopes(
+  const current = await input.sdk.withRuntimeProtectedScopes(
     ['runtime.agent.read'],
     (callOptions) => runtime.agent.getAgent({
       context: buildRuntimeAgentRequestContext({
@@ -133,9 +120,13 @@ async function syncRuntimePresentationProfile(input: {
   }, profile, expectedRevision);
 }
 
-export async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot): Promise<void> {
-  const runtime = getDesktopHostRuntimeAgentClient();
-  const subjectUserId = requireRuntimeSubjectUserId();
+export async function ensureRuntimeAgentExists(
+  target: AgentLocalTargetSnapshot,
+  sdk: DesktopRendererSdkPort,
+  subjectUserIdInput: string,
+): Promise<void> {
+  const runtime = sdk.hostRuntimeAgent();
+  const subjectUserId = requireRuntimeSubjectUserId(subjectUserIdInput);
   const context = {
     appId: runtime.appId,
     subjectUserId,
@@ -143,7 +134,7 @@ export async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot)
     runtimeSourceRef: target.runtimeSourceRef,
     localAgentRef: target.localAgentRef,
   };
-  const response = await withDesktopRuntimeProtectedScopes(
+  const response = await sdk.withRuntimeProtectedScopes(
     ['runtime.agent.read'],
     (callOptions) => runtime.agent.getAgent({
       context: buildRuntimeAgentRequestContext({
@@ -160,17 +151,20 @@ export async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot)
   if (returnedLocalAgentRef !== context.localAgentRef) {
     throw new Error('Runtime LocalAgent inventory did not return the selected opaque localAgentRef.');
   }
-  await syncRuntimePresentationProfile({ target, context });
+  await syncRuntimePresentationProfile({ target, context, sdk });
 }
 
 export async function assertAgentSubmitSchedulingAllowed(input: {
   aiConfig: UseAgentConversationHostActionsInput['aiConfig'];
+  sdk?: DesktopRendererSdkPort;
   t: UseAgentConversationHostActionsInput['t'];
 }): Promise<void> {
   const target = resolveNimiAIConfigRuntimeSchedulingTargetForCapability(input.aiConfig, 'text.generate');
   const schedulingGuard = await probeExecutionSchedulingGuard({
     scopeRef: input.aiConfig.scopeRef,
     target,
+    runtime: input.sdk?.runtime(),
+    surface: input.sdk?.aiConfig(),
     t: input.t,
   });
   if (schedulingGuard.disabled) {
@@ -183,15 +177,17 @@ export async function assertAgentSubmitSchedulingAllowed(input: {
 
 async function openConversationAnchorForTarget(
   target: AgentLocalTargetSnapshot,
+  sdk: DesktopRendererSdkPort,
+  subjectUserId: string,
 ): Promise<{
   conversationAnchorId: string;
   threadId: string;
 }> {
   const client = createNimiRuntimeAgentConsumeClient({
-    runtime: getDesktopRuntime(),
-    runtimeAppId: getDesktopAppId(),
+    runtime: sdk.runtime(),
+    runtimeAppId: sdk.appId(),
   });
-  await ensureRuntimeAgentExists(target);
+  await ensureRuntimeAgentExists(target, sdk, subjectUserId);
   const snapshot = await client.anchors.open({
     localAgentRef: target.localAgentRef,
     ownerUserId: target.ownerUserId,
@@ -248,12 +244,15 @@ async function ensureConversationAnchorBindingUpstream(input: {
   target: AgentLocalTargetSnapshot;
   binding: AgentConversationAnchorBinding;
   now: () => number;
+  anchorBindings: UseAgentConversationHostActionsInput['anchorBindings'];
+  sdk: DesktopRendererSdkPort;
+  subjectUserId: string;
 }): Promise<AgentConversationAnchorBinding | null> {
   const client = createNimiRuntimeAgentConsumeClient({
-    runtime: getDesktopRuntime(),
-    runtimeAppId: getDesktopAppId(),
+    runtime: input.sdk.runtime(),
+    runtimeAppId: input.sdk.appId(),
   });
-  await ensureRuntimeAgentExists(input.target);
+  await ensureRuntimeAgentExists(input.target, input.sdk, input.subjectUserId);
   try {
     await client.anchors.getSnapshot({
       localAgentRef: input.target.localAgentRef,
@@ -269,7 +268,7 @@ async function ensureConversationAnchorBindingUpstream(input: {
     if (threadId === input.binding.threadId) {
       return input.binding;
     }
-    return persistAgentConversationAnchorBinding({
+    return input.anchorBindings.persist({
       ...input.binding,
       threadId,
       updatedAtMs: input.now(),
@@ -283,7 +282,7 @@ async function ensureConversationAnchorBindingUpstream(input: {
         { cause: error },
       );
     }
-    clearAgentConversationAnchorBinding(input.target.localAgentRef);
+    input.anchorBindings.clear(input.target.localAgentRef);
     return null;
   }
 }
@@ -319,7 +318,7 @@ export async function ensureThreadAnchorBindingForTarget(input: {
   anchorBinding: AgentConversationAnchorBinding;
 }> {
   let anchorBinding: AgentConversationAnchorBinding | null = null;
-  const existingBinding = getAgentConversationAnchorBinding(input.target.localAgentRef);
+  const existingBinding = input.input.anchorBindings.get(input.target.localAgentRef);
   if (existingBinding) {
     if (existingBinding.localAgentRef !== input.target.localAgentRef) {
       throw new Error('agent thread anchor binding does not match selected agent');
@@ -328,14 +327,21 @@ export async function ensureThreadAnchorBindingForTarget(input: {
       target: input.target,
       binding: existingBinding,
       now: input.input.now,
+      anchorBindings: input.input.anchorBindings,
+      sdk: input.input.sdk,
+      subjectUserId: input.input.subjectUserId,
     });
     if (runtimeBinding) {
       anchorBinding = runtimeBinding;
     }
   }
   if (!anchorBinding) {
-    const { conversationAnchorId, threadId } = await openConversationAnchorForTarget(input.target);
-    anchorBinding = persistAgentConversationAnchorBinding({
+    const { conversationAnchorId, threadId } = await openConversationAnchorForTarget(
+      input.target,
+      input.input.sdk,
+      input.input.subjectUserId,
+    );
+    anchorBinding = input.input.anchorBindings.persist({
       ownerUserId: input.target.ownerUserId,
       runtimeSourceRef: input.target.runtimeSourceRef,
       localAgentRef: input.target.localAgentRef,
@@ -360,7 +366,7 @@ export async function uploadPendingAttachment(
       defaultValue: 'Agent chat currently supports image attachments only.',
     }));
   }
-  const uploaded = await uploadNimiRealmResourceFile(getDesktopRealm(), {
+  const uploaded = await uploadNimiRealmResourceFile(input.sdk.realm(), {
     kind: 'image',
     file: attachment.file,
     failureMessage: input.t('Chat.agentAttachmentUploadFailed', {

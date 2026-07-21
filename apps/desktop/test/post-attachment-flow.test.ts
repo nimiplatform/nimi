@@ -30,7 +30,7 @@ test('create post modal writes targetType-targetId attachments payloads for new 
 });
 
 test('create post modal uses shared Realm upload helper instead of owning direct upload transport', () => {
-  assert.match(createPostModalSource, /uploadNimiRealmResourceFile\(getDesktopRealm\(\),/);
+  assert.match(createPostModalSource, /uploadNimiRealmResourceFile\(sdk\.realm\(\),/);
   assert.doesNotMatch(createPostModalSource, /fetch\([^)]*uploadUrl/);
   assert.doesNotMatch(createPostModalSource, /finalizeResource\(/);
   assert.doesNotMatch(createPostModalSource, /uploadRealmResourceFileWithRealm/);
@@ -39,7 +39,7 @@ test('create post modal uses shared Realm upload helper instead of owning direct
 });
 
 test('create post modal revokes blob preview URLs on unmount', () => {
-  assert.match(createPostModalSource, /return \(\) => \{\s*if \(selectedFileRef\.current\) \{\s*URL\.revokeObjectURL\(selectedFileRef\.current\.previewUrl\);/s);
+  assert.match(createPostModalSource, /return \(\) => \{[\s\S]*URL\.revokeObjectURL\(selectedFileRef\.current\.previewUrl\);[\s\S]*\};\s*\}, \[\]\);/);
 });
 
 test('create post modal closes and resets preview state before background upload starts', () => {

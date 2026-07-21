@@ -124,7 +124,7 @@ test('multi-scope: production composition dynamically checks the mode-aware acti
   assert.match(productionAppStoreSource, /const activeScope = getActiveScope\(\)/);
   assert.match(productionAppStoreSource, /scopeKeyFromRef\(activeScope\)/);
   assert.match(productionAppStoreSource, /bindDesktopAIConfigAppStore/);
-  assert.match(productionAppStoreSource, /bindProjectionRefreshToSurface\(productionAppStore\)/);
+  assert.match(productionAppStoreSource, /bindProductionProjectionRefreshToSurface\(productionAppStore\)/);
   assert.match(runtimeSliceSource, /dependencies\.initialAIConfig/);
   // No fixed activeScopeKey const
   assert.doesNotMatch(productionAppStoreSource, /const activeScopeKey\b/);
@@ -365,7 +365,7 @@ test('multi-scope: loadAIConfigForScope repairs retired stored config before SDK
 // T3-1: Mode-aware built-in chat scope orchestration structural tests
 // ---------------------------------------------------------------------------
 
-const projectionSource = readSource('src/shell/renderer/features/chat/conversation-capability-projection.ts');
+const projectionSource = readSource('src/shell/renderer/features/chat/production-conversation-capability-subscription.ts');
 
 test('T3-1: active-scope module exports mode-aware orchestration API', () => {
   assert.match(activeScopeSource, /export function resolveChatModeAIScopeRef\(mode: ConversationMode\): NimiAIScopeRef \| null/);
@@ -404,13 +404,13 @@ test('T3-1: projection subscription follows the mode-aware active chat scope', (
   assert.match(projectionSource, /onActiveScopeChange/);
   assert.match(projectionSource, /bindSubscriptionForScope/);
   // Skips binding when no built-in chat scope is active (Human/Group)
-  assert.match(projectionSource, /if \(!scopeRef\) \{\s*return null;/);
+  assert.match(projectionSource, /if \(!scopeRef\) return null;/);
   assert.doesNotMatch(projectionSource, /^let (?:surfaceSubscriptionUnsubscribe|activeScopeUnsubscribe)/m);
 });
 
 test('T3-1: projection rebind triggers immediate refresh on scope switch', () => {
   // onActiveScopeChange callback triggers refresh
-  assert.match(projectionSource, /void refreshConversationCapabilityProjections\(store\)/);
+  assert.match(projectionSource, /void refreshConversationCapabilityProjections\(store, undefined, getProductionConversationCapabilityRouteRuntime\(\)\)/);
   assert.match(projectionSource, /return \(\) => \{[\s\S]*activeScopeUnsubscribe\(\)/);
 });
 

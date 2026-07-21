@@ -10,11 +10,10 @@ import {
   APPEARANCE_THEMES,
   appearanceEqual,
   DevicePreferenceProjectionError,
-  loadAppearancePreferences,
-  persistAppearancePreferences,
   type AppearancePreferences,
   type AppearanceTheme,
 } from './settings-device-preferences.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 type FeedbackState = {
   kind: 'info' | 'success' | 'warning' | 'error';
@@ -32,9 +31,11 @@ type AppearanceLoad =
   | { status: 'ok'; preferences: AppearancePreferences }
   | { status: 'failClosed'; reason: string };
 
-function resolveAppearanceLoad(): AppearanceLoad {
+function resolveAppearanceLoad(
+  settings: ReturnType<typeof useDesktopRendererBindings>['app']['commands']['settings'],
+): AppearanceLoad {
   try {
-    return { status: 'ok', preferences: loadAppearancePreferences() };
+    return { status: 'ok', preferences: settings.loadAppearancePreferences() };
   } catch (error) {
     if (error instanceof DevicePreferenceProjectionError) {
       return { status: 'failClosed', reason: error.message };
@@ -88,14 +89,15 @@ function TextSizeIcon({ className = '' }: { className?: string }) {
 }
 
 export function AppearancePage() {
+  const bindings = useDesktopRendererBindings();
   const { t } = useTranslation();
-  const [load] = useState<AppearanceLoad>(() => resolveAppearanceLoad());
+  const [load] = useState<AppearanceLoad>(() => resolveAppearanceLoad(bindings.app.commands.settings));
   const initialPreferences = load.status === 'ok' ? load.preferences : null;
   const [preferences, setPreferences] = useState<AppearancePreferences | null>(initialPreferences);
   const [baseline, setBaseline] = useState<AppearancePreferences | null>(initialPreferences);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
-  const autosaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autosaveTimerRef = React.useRef<(() => void) | null>(null);
 
   const hasChanges = useMemo(
     () => preferences !== null && baseline !== null && !appearanceEqual(preferences, baseline),
@@ -103,9 +105,7 @@ export function AppearancePage() {
   );
 
   useEffect(() => () => {
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-    }
+    autosaveTimerRef.current?.();
   }, []);
 
   const handleSave = ({ silentSuccess = false }: { silentSuccess?: boolean } = {}) => {
@@ -114,7 +114,7 @@ export function AppearancePage() {
     }
     setSaving(true);
     try {
-      persistAppearancePreferences(preferences);
+      bindings.app.commands.settings.persistAppearancePreferences(preferences);
       setBaseline(preferences);
       if (!silentSuccess) {
         setFeedback({ kind: 'success', message: t('Appearance.saveSuccess') });
@@ -133,25 +133,19 @@ export function AppearancePage() {
 
   useEffect(() => {
     if (saving || !hasChanges) {
-      if (autosaveTimerRef.current) {
-        clearTimeout(autosaveTimerRef.current);
-        autosaveTimerRef.current = null;
-      }
+      autosaveTimerRef.current?.();
+      autosaveTimerRef.current = null;
       return;
     }
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-    }
-    autosaveTimerRef.current = setTimeout(() => {
-      handleSave({ silentSuccess: true });
-    }, 700);
+    autosaveTimerRef.current?.();
+    autosaveTimerRef.current = bindings.clock.schedule(700, (result) => {
+      if (result.ok) handleSave({ silentSuccess: true });
+    });
     return () => {
-      if (autosaveTimerRef.current) {
-        clearTimeout(autosaveTimerRef.current);
-        autosaveTimerRef.current = null;
-      }
+      autosaveTimerRef.current?.();
+      autosaveTimerRef.current = null;
     };
-  }, [hasChanges, preferences, saving]);
+  }, [bindings, hasChanges, preferences, saving]);
 
   if (load.status === 'failClosed' || preferences === null) {
     return (

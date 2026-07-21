@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { ChatGroupCreateModal } from './chat-group-create-modal';
-import { realmGroupChatData } from './data/realm-group-chat-data';
+import { useRealmGroupChatData } from './data/realm-group-chat-data-context.js';
 
 const GROUP_CHATS_QUERY_KEY = ['group-chats'] as const;
 
@@ -29,6 +29,7 @@ export function resolveCreatedGroupId(result: unknown): string {
 }
 
 export function useChatGroupCreateController(): ChatGroupCreateController {
+  const realmGroupChatData = useRealmGroupChatData();
   const queryClient = useQueryClient();
   const setChatMode = useAppStore((state) => state.setChatMode);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);

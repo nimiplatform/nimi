@@ -4,6 +4,7 @@ import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useTranslation } from 'react-i18next';
 import { AppCardSurface, CompactAction } from '@nimiplatform/kit/ui';
 import { PostFeedWithMediaPreview } from './post-feed-with-media-preview.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 type PostDto = RealmModel<'PostDto'>;
 
@@ -41,6 +42,7 @@ function LikeSkeleton() {
 
 export function LikesTab({ profileId, layout = 'grid' }: LikesTabProps) {
   const realmSocialData = useRealmSocialData();
+  const bindings = useDesktopRendererBindings();
   const { t } = useTranslation();
   const [likedPosts, setLikedPosts] = useState<PostDto[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -127,17 +129,16 @@ export function LikesTab({ profileId, layout = 'grid' }: LikesTabProps) {
     const el = loadMoreRef.current;
     if (!el) return;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting && hasMoreRef.current && !loadingRef.current && cursorRef.current) {
+    return bindings.app.events.observeIntersection(
+      el,
+      { rootMargin: '200px', threshold: 0.1 },
+      (isIntersecting) => {
+        if (isIntersecting && hasMoreRef.current && !loadingRef.current && cursorRef.current) {
           void fetchLiked(cursorRef.current);
         }
       },
-      { rootMargin: '200px', threshold: 0.1 },
     );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [hasMore, fetchLiked]);
+  }, [bindings.app.events, hasMore, fetchLiked]);
 
   if (loadingInitial) {
     return (

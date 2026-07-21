@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   type NimiRuntimeLocalProfileResolutionPlan,
 } from '@nimiplatform/sdk/runtime';
-import { revealLocalRuntimeAssetsRootFolder } from '../../bridge/runtime-bridge/local-runtime-os-helpers';
+import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import {
   normalizeSelectedProfileCapability,
   type LocalModelCenterProps,
@@ -14,6 +14,7 @@ import { LocalModelCenterRuntimeView } from './runtime-config-local-model-center
 import { useLocalModelCenterRuntimeState } from './runtime-config-use-local-model-center-runtime-state';
 
 export function LocalModelCenter(props: LocalModelCenterProps) {
+  const commands = useDesktopRendererCommands();
   const [internalSelectedProfileTargetId, setInternalSelectedProfileTargetId] = useState('');
   const [selectedProfileId, setSelectedProfileId] = useState('');
   const [selectedProfileCapability, setSelectedProfileCapability] = useState('');
@@ -201,7 +202,7 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       }}
       onCloseImportFileDialog={() => runtimeState.setShowImportFileDialog(false)}
       onCloseVariantPicker={runtimeState.closeVariantPicker}
-      onOpenModelsFolder={() => { void revealLocalRuntimeAssetsRootFolder(); }}
+      onOpenModelsFolder={() => { void commands.revealLocalRuntimeAssetsRootFolder(); }}
       onHealthCheck={() => void props.onHealthCheck()}
       onImportManifest={() => {
         runtimeState.setShowImportMenu(false);

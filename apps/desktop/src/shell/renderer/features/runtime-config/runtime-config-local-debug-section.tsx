@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea, Surface, Tooltip, cn } from '@nimiplatform/kit/ui';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { buildAuditDiagnosticsText } from './runtime-config-audit-view-model.js';
 import { Button } from './runtime-config-primitives.js';
 import { useAuditPageData } from './runtime-config-use-audit-page-data.js';
@@ -98,6 +99,7 @@ function CollapsedHeader({ onExpand }: { onExpand: () => void }) {
 
 function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
   const i18n = useDesktopI18nResource();
+  const bindings = useDesktopRendererBindings();
   const { t } = useTranslation();
   const data = useAuditPageData(true);
   const {
@@ -124,6 +126,11 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
   const [quickRange, setQuickRange] = useState<QuickRangeKey>('all');
   const [showCustomRange, setShowCustomRange] = useState(false);
   const [copiedAll, setCopiedAll] = useState(false);
+  const clearCopiedCancelRef = useRef<(() => void) | null>(null);
+  useEffect(() => () => {
+    clearCopiedCancelRef.current?.();
+    clearCopiedCancelRef.current = null;
+  }, []);
 
   const latestEvent = filteredAudits.length > 0 ? filteredAudits[0] : null;
 
@@ -141,7 +148,7 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
       return;
     }
     const durationMs = QUICK_RANGE_MS[key];
-    const from = new Date(Date.now() - durationMs);
+    const from = new Date(bindings.clock.now() - durationMs);
     const yyyy = from.getFullYear();
     const mm = String(from.getMonth() + 1).padStart(2, '0');
     const dd = String(from.getDate()).padStart(2, '0');
@@ -156,23 +163,21 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
 
   const onCopyAll = () => {
     const text = buildAuditDiagnosticsText(filteredAudits, t);
-    if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) return;
-    void navigator.clipboard.writeText(text).then(() => {
+    void bindings.app.commands.writeClipboardText(text).then(() => {
       setCopiedAll(true);
-      window.setTimeout(() => setCopiedAll(false), 1500);
+      clearCopiedCancelRef.current?.();
+      clearCopiedCancelRef.current = bindings.clock.schedule(1_500, () => {
+        clearCopiedCancelRef.current = null;
+        setCopiedAll(false);
+      });
     }).catch(() => undefined);
   };
 
   const onExport = () => {
-    if (typeof document === 'undefined') return;
-    const text = JSON.stringify(filteredAudits, null, 2);
-    const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `local-ai-audits-${new Date().toISOString()}.json`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    bindings.app.commands.exportRuntimeAuditJson({
+      filename: `local-ai-audits-${new Date(bindings.clock.now()).toISOString()}.json`,
+      content: JSON.stringify(filteredAudits, null, 2),
+    });
   };
 
   const filterTabs: Array<{ key: QuickRangeKey; label: string }> = [

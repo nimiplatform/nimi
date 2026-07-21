@@ -14,16 +14,15 @@ import {
   type NimiRuntimeLocalProfileDescriptor,
   type NimiRuntimeLocalProfileResolutionPlan,
 } from '@nimiplatform/sdk/runtime';
-import { pickLocalRuntimeAssetManifestPath } from '../../bridge/runtime-bridge/local-runtime-os-helpers';
-import { getOfflineCoordinator } from '../../infra/offline/coordinator';
 import { useTranslation } from 'react-i18next';
-import { runtimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
+import { useRuntimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 import { asRecord } from './runtime-config-panel-controller-utils';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import {
   useRuntimeConfigModelManagementActions,
 } from './runtime-config-panel-controller-install-actions-models';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 type ManifestSummary = {
   id?: string;
@@ -86,7 +85,9 @@ export type UseRuntimeConfigInstallActionsInput = {
 };
 
 export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallActionsInput): RuntimeConfigInstallActions {
+  const runtimeConfigLocalModelCenterClient = useRuntimeConfigLocalModelCenterClient();
   const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
   const { localManifestSummaries, refreshLocalSnapshot, setStatusBanner, updateState } = input;
   const translateRuntimeLocalText = useCallback((
     key: string,
@@ -95,7 +96,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
   ) => String(t(key, { defaultValue, ...(options || {}) })), [t]);
 
   const assertRuntimeWriteAllowed = useCallback(() => {
-    if (getOfflineCoordinator().getTier() !== 'L2') {
+    if (bindings.sdk.offline.getTier() !== 'L2') {
       return;
     }
     throw createOfflineError({
@@ -106,7 +107,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       }),
       actionHint: 'retry-runtime-when-online',
     });
-  }, [t]);
+  }, [bindings.sdk.offline, t]);
 
   const installSessionMeta = useMemo(() => {
     return new Map<string, { plan: NimiRuntimeLocalInstallPlanDescriptor; installSource: string }>();
@@ -202,7 +203,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       assertRuntimeWriteAllowed();
       const plan = await resolveRuntimeProfile(targetId, profileId, capability);
       const confirmMessage = `Install recommended local profile "${plan.title}" for ${targetId}?`;
-      if (typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm(confirmMessage)) {
+      if (!bindings.app.commands.confirmRuntimeProfileInstall(confirmMessage)) {
         throw new Error('LOCAL_AI_PROFILE_INSTALL_DECLINED');
       }
       const result = await runtimeConfigLocalModelCenterClient.applyProfile(plan, { caller: 'core' });
@@ -234,7 +235,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       throw error;
     }
-  }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, resolveRuntimeProfile, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, bindings.app.commands, refreshLocalSnapshot, resolveRuntimeProfile, setStatusBanner]);
 
   const installCatalogLocalModel = useCallback(async (
     item: NimiRuntimeLocalCatalogItemDescriptor,
@@ -355,7 +356,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
   const importLocalAsset = useCallback(async () => {
     try {
       assertRuntimeWriteAllowed();
-      const manifestPath = await pickLocalRuntimeAssetManifestPath();
+      const manifestPath = await bindings.app.commands.pickLocalRuntimeAssetManifestPath();
       if (!manifestPath) {
         return;
       }
@@ -380,7 +381,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       throw error;
     }
-  }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, bindings.app.commands, refreshLocalSnapshot, setStatusBanner]);
 
   const scaffoldLocalAssetOrphan = useCallback(async (path: string, kind: NimiRuntimeLocalAssetKind) => {
     try {

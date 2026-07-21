@@ -5,6 +5,7 @@ import { CallerKind } from '@nimiplatform/sdk/runtime/wire-types';
 import { Popover, PopoverContent, PopoverTrigger, ScrollArea, Surface, Tooltip, cn } from '@nimiplatform/kit/ui';
 import { Button, RuntimeSelect } from './runtime-config-primitives.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import {
   callerKindLabel,
   timestampToIso,
@@ -161,8 +162,8 @@ function localDateAtNoon(year: number, monthIndex: number, day: number): Date {
   return new Date(year, monthIndex, day, 12, 0, 0, 0);
 }
 
-function currentDateTimeDraft(): DateTimeDraft {
-  const now = new Date();
+function currentDateTimeDraft(nowMs: number): DateTimeDraft {
+  const now = new Date(nowMs);
   return {
     date: localDateAtNoon(now.getFullYear(), now.getMonth(), now.getDate()),
     hour: now.getHours(),
@@ -294,8 +295,11 @@ function AuditDateTimeField({
   clearLabel: string;
 }) {
   const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState<DateTimeDraft>(() => parseDateTimeValue(value) ?? currentDateTimeDraft());
+  const [draft, setDraft] = useState<DateTimeDraft>(
+    () => parseDateTimeValue(value) ?? currentDateTimeDraft(bindings.clock.now()),
+  );
   const [visibleMonth, setVisibleMonth] = useState(() => draft.date);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
@@ -303,7 +307,7 @@ function AuditDateTimeField({
 
   useEffect(() => {
     if (!open) return;
-    const nextDraft = parseDateTimeValue(value) ?? currentDateTimeDraft();
+    const nextDraft = parseDateTimeValue(value) ?? currentDateTimeDraft(bindings.clock.now());
     setDraft(nextDraft);
     setVisibleMonth(localDateAtNoon(nextDraft.date.getFullYear(), nextDraft.date.getMonth(), 1));
   }, [open, value]);
@@ -316,20 +320,19 @@ function AuditDateTimeField({
       if (triggerRef.current?.contains(target) || contentRef.current?.contains(target)) return;
       setOpen(false);
     };
-    document.addEventListener('pointerdown', handlePointerDown, true);
-    return () => document.removeEventListener('pointerdown', handlePointerDown, true);
-  }, [open]);
+    return bindings.app.events.subscribeDocumentPointerDown(handlePointerDown, true);
+  }, [bindings.app.events, open]);
 
   const weekdayLabels = useMemo(
     () => Array.from({ length: 7 }, (_, index) => WEEKDAY_FORMATTER.format(localDateAtNoon(2024, 0, index + 1))),
     [],
   );
   const calendarCells = useMemo(() => buildCalendarCells(visibleMonth), [visibleMonth]);
-  const today = currentDateTimeDraft().date;
+  const today = currentDateTimeDraft(bindings.clock.now()).date;
   const committedValue = formatDateTimeValue(draft);
 
   const selectToday = () => {
-    const nextDraft = currentDateTimeDraft();
+    const nextDraft = currentDateTimeDraft(bindings.clock.now());
     setDraft(nextDraft);
     setVisibleMonth(localDateAtNoon(nextDraft.date.getFullYear(), nextDraft.date.getMonth(), 1));
   };

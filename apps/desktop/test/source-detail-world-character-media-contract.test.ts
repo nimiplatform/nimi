@@ -2,11 +2,22 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToStaticMarkup as renderMarkup } from 'react-dom/server';
 
 import { initI18n } from '../src/shell/renderer/i18n';
 import { toSourceDetailData } from '../src/shell/renderer/features/source-detail/source-detail-model.js';
 import { SourceDetailView } from '../src/shell/renderer/features/source-detail/source-detail-view.js';
+import { DesktopRendererBindingProvider } from '../src/shell/renderer/renderer/binding-context.js';
+import type { DesktopCanonicalRendererBindings } from '../src/shell/renderer/renderer/contract.js';
+
+function renderToStaticMarkup(element: React.ReactNode): string {
+  const bindings = {
+    app: { projection: { resourceBaseUrl: () => '' } },
+  } as DesktopCanonicalRendererBindings;
+  return renderMarkup(
+    React.createElement(DesktopRendererBindingProvider, { bindings }, element),
+  );
+}
 
 (globalThis as { React?: typeof React }).React = React;
 

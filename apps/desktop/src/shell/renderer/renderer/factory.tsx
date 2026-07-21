@@ -45,14 +45,23 @@ function DesktopMainSurface(props: {
       >
         <DesktopRendererBindingProvider bindings={props.bindings}>
           <AppProviders
+            accountProfileLibrary={props.resources.accountProfileLibrary}
+            agentVisibleProjections={props.resources.agentVisibleProjections}
+            anchorBindings={props.resources.anchorBindings}
             attention={props.resources.attention}
+            chatUploadPlaceholders={props.resources.chatUploadPlaceholders}
             i18n={props.resources.i18n}
+            localModelCenterProgress={props.resources.localModelCenterProgress}
             queryClient={props.resources.queryClient}
+            realmGroupChatData={props.resources.realmGroupChatData}
+            realmHumanChatData={props.resources.realmHumanChatData}
             realmSocialData={props.resources.realmSocialData}
+            runtimeConnectorSdk={props.resources.runtimeConnectorSdk}
             Router={props.resources.Router}
             scenarioJobController={props.resources.scenarioJobController}
             store={props.resources.store}
             streamController={props.resources.streamController}
+            worldFollowStore={props.resources.worldFollowStore}
           >
             <AppErrorBoundary>
               <DesktopRendererContent />

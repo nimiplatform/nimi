@@ -7,7 +7,6 @@ import {
 import { createNimiRuntimeRouteOptionsHostDeps, listNimiRuntimeRouteOptionsWithHost, nimiRuntimeRouteLocalKindForCapability, type NimiRuntimeCanonicalCapability, type NimiRuntimeRouteHostLocalMetadata, type NimiRuntimeRouteHostOptionsDeps, type NimiRuntimeRouteLocalAssetProjectionInput, type NimiRuntimeRouteOptionsHostRuntime, type NimiRuntimeRouteOptionsSnapshot, type NimiRuntimeRouteTargetRef } from '@nimiplatform/sdk/runtime';
 import { type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
 import { LocalAssetKind, LocalAssetStatus } from '@nimiplatform/sdk/runtime/wire-types';
-import { getDesktopRuntime } from '../sdk/desktop-nimi-client-session';
 
 const LOCAL_SNAPSHOT_TIMEOUT_MS = 3500;
 const LOCAL_ASSET_PAGE_SIZE = 200;
@@ -34,9 +33,8 @@ type LocalRouteMetadataDeps = {
 };
 
 type LoadRuntimeRouteOptionsDeps = {
-  readonly runtime?: NimiRuntimeRouteOptionsHostRuntime;
+  readonly runtime: NimiRuntimeRouteOptionsHostRuntime;
   readonly callOptions?: RuntimeTypedCallOptions;
-  readonly loadLocalRouteMetadata?: typeof loadLocalRouteMetadata;
 } & Partial<NimiRuntimeRouteHostOptionsDeps>;
 
 const DEFAULT_RUNTIME_ROUTE_OPTIONS_DEPS_SCOPE: Record<string, never> = {};
@@ -75,7 +73,7 @@ function localAssetKindFilterForCapability(capability: NimiRuntimeCanonicalCapab
 
 async function listRuntimeLocalAssets(
   capability: NimiRuntimeCanonicalCapability,
-  runtime: NimiRuntimeRouteOptionsHostRuntime = getDesktopRuntime(),
+  runtime: NimiRuntimeRouteOptionsHostRuntime,
   callOptions?: RuntimeTypedCallOptions,
 ): Promise<readonly NimiRuntimeRouteLocalAssetProjectionInput[]> {
   const assets: NimiRuntimeRouteLocalAssetProjectionInput[] = [];
@@ -98,9 +96,9 @@ async function listRuntimeLocalAssets(
 
 async function fetchLocalRouteSnapshot(
   capability: NimiRuntimeCanonicalCapability,
-  deps?: Pick<LocalRouteMetadataDeps, 'listRuntimeLocalAssets'>,
+  deps: Pick<LocalRouteMetadataDeps, 'listRuntimeLocalAssets'>,
 ): Promise<LocalRouteSnapshot> {
-  const assets = await (deps?.listRuntimeLocalAssets || listRuntimeLocalAssets)(capability);
+  const assets = await deps.listRuntimeLocalAssets(capability);
   return {
     assets,
     health: [],
@@ -110,7 +108,7 @@ async function fetchLocalRouteSnapshot(
 
 async function pollLocalSnapshotWithTimeout(
   capability: NimiRuntimeCanonicalCapability,
-  deps?: Pick<LocalRouteMetadataDeps, 'listRuntimeLocalAssets'>,
+  deps: Pick<LocalRouteMetadataDeps, 'listRuntimeLocalAssets'>,
 ): Promise<LocalRouteSnapshot> {
   let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
   try {
@@ -167,13 +165,9 @@ function rethrowLocalRouteMetadataError(input: {
 
 export async function loadLocalRouteMetadata(
   capability: NimiRuntimeCanonicalCapability,
-  deps?: Partial<LocalRouteMetadataDeps>,
+  deps: LocalRouteMetadataDeps,
 ): Promise<LocalRouteMetadata> {
-  const resolvedDeps: LocalRouteMetadataDeps = {
-    pollLocalSnapshotWithTimeout,
-    listRuntimeLocalAssets,
-    ...deps,
-  };
+  const resolvedDeps = deps;
   const snapshotPromise = resolvedDeps.pollLocalSnapshotWithTimeout(capability, {
     listRuntimeLocalAssets: resolvedDeps.listRuntimeLocalAssets,
   }).catch((error) => {
@@ -265,19 +259,26 @@ export async function loadRuntimeRouteOptions(input: {
   readonly capability: NimiRuntimeCanonicalCapability;
   readonly targetId?: string;
   readonly selectedTargetRef?: NimiRuntimeRouteTargetRef | null;
-}, deps?: Partial<LoadRuntimeRouteOptionsDeps>): Promise<NimiRuntimeRouteOptionsSnapshot> {
-  const localRouteMetadataLoader = deps?.loadLocalRouteMetadata ?? loadLocalRouteMetadata;
-  const runtime = deps?.runtime ?? getDesktopRuntime();
+}, deps: LoadRuntimeRouteOptionsDeps): Promise<NimiRuntimeRouteOptionsSnapshot> {
+  const runtime = deps.runtime;
   return listNimiRuntimeRouteOptionsWithHost({
     capability: input.capability,
     targetId: input.targetId,
     selectedTargetRef: input.selectedTargetRef,
   }, createNimiRuntimeRouteOptionsHostDeps(runtime, {
-    scope: deps?.scope || deps || DEFAULT_RUNTIME_ROUTE_OPTIONS_DEPS_SCOPE,
-    callOptions: deps?.callOptions,
-    listConnectors: deps?.listConnectors,
-    listConnectorModelDescriptors: deps?.listConnectorModelDescriptors,
-    loadLocalRouteMetadata: async (context) => toRuntimeRouteHostLocalMetadata(await localRouteMetadataLoader(context.capability)),
+    scope: deps.scope || deps || DEFAULT_RUNTIME_ROUTE_OPTIONS_DEPS_SCOPE,
+    callOptions: deps.callOptions,
+    listConnectors: deps.listConnectors,
+    listConnectorModelDescriptors: deps.listConnectorModelDescriptors,
+    loadLocalRouteMetadata: deps.loadLocalRouteMetadata ?? (async (context) =>
+      toRuntimeRouteHostLocalMetadata(await loadLocalRouteMetadata(context.capability, {
+        pollLocalSnapshotWithTimeout,
+        listRuntimeLocalAssets: (nextCapability) => listRuntimeLocalAssets(
+          nextCapability,
+          runtime,
+          deps.callOptions,
+        ),
+      }))),
     onListConnectorsError: (error, context) => {
       const normalized = asNimiError(error, {
         reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,

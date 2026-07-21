@@ -16,7 +16,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToStaticMarkup as renderMarkup } from 'react-dom/server';
 import {
   createEmptyNimiAIConfig,
   createNimiBuiltInChatAIScopeRef,
@@ -49,6 +49,19 @@ import type {
 test.before(async () => {
   await initI18n();
 });
+
+const TEST_BINDINGS = {
+  app: {
+    commands: {},
+    projection: { resourceBaseUrl: () => '' },
+  },
+} as DesktopCanonicalRendererBindings;
+
+function renderToStaticMarkup(element: React.ReactNode): string {
+  return renderMarkup(
+    React.createElement(DesktopRendererBindingProvider, { bindings: TEST_BINDINGS }, element),
+  );
+}
 
 test('D-SUP-001/002: the Support panel renders the five-item sub-area sidebar', () => {
   const markup = renderToStaticMarkup(React.createElement(SupportPanel));

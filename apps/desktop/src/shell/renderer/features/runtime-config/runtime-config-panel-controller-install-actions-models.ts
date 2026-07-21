@@ -9,12 +9,8 @@ import {
 } from '@nimiplatform/sdk/types';
 import type { NimiRuntimeLocalAssetRecord } from '@nimiplatform/sdk/runtime';
 import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
-import { runtimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
-import {
-  pickLocalRuntimeAssetFile,
-  pickLocalRuntimeAssetManifestPath,
-} from '../../bridge/runtime-bridge/local-runtime-os-helpers';
-import { getOfflineCoordinator } from '../../infra/offline/coordinator';
+import { useRuntimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useTranslation } from 'react-i18next';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
@@ -90,6 +86,8 @@ function applyLocalModelSnapshotToState(
 export function useRuntimeConfigModelManagementActions(
   input: UseRuntimeConfigModelManagementActionsInput,
 ): RuntimeConfigModelManagementActions {
+  const runtimeConfigLocalModelCenterClient = useRuntimeConfigLocalModelCenterClient();
+  const bindings = useDesktopRendererBindings();
   const { t } = useTranslation();
   const translateRuntimeLocalText = useCallback((
     key: string,
@@ -106,7 +104,7 @@ export function useRuntimeConfigModelManagementActions(
   const lifecycleEpochRef = useRef<Record<string, number>>({});
 
   const assertRuntimeWriteAllowed = useCallback(() => {
-    if (getOfflineCoordinator().getTier() !== 'L2') {
+    if (bindings.sdk.offline.getTier() !== 'L2') {
       return;
     }
     throw createOfflineError({
@@ -117,7 +115,7 @@ export function useRuntimeConfigModelManagementActions(
       }),
       actionHint: 'retry-runtime-when-online',
     });
-  }, [t]);
+  }, [bindings.sdk.offline, t]);
 
   const nextLifecycleEpoch = useCallback((localModelId: string): number => {
     const current = lifecycleEpochRef.current[localModelId] || 0;
@@ -162,7 +160,7 @@ export function useRuntimeConfigModelManagementActions(
   const importLocalModel = useCallback(async () => {
     try {
       assertRuntimeWriteAllowed();
-      const manifestPath = await pickLocalRuntimeAssetManifestPath();
+      const manifestPath = await bindings.app.commands.pickLocalRuntimeAssetManifestPath();
       if (!manifestPath) {
         return;
       }
@@ -192,7 +190,7 @@ export function useRuntimeConfigModelManagementActions(
   const importLocalModelFile = useCallback(async (capabilities: string[], engine?: string) => {
     try {
       assertRuntimeWriteAllowed();
-      const filePath = await pickLocalRuntimeAssetFile();
+      const filePath = await bindings.app.commands.pickLocalRuntimeAssetFile();
       if (!filePath) {
         return;
       }

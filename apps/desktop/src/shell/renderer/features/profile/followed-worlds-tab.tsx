@@ -3,12 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { CompactWorldCard } from '../world/world-list-compact-card';
-import { useFollowedWorlds } from '../world/world-follow-store';
+import { useFollowedWorlds } from '../world/world-follow-store-context.js';
 import {
   fetchWorldListItems,
   worldListQueryKey,
 } from '../world/world-detail-queries';
 import { ProfileDetailTabFallback } from '../relationship/profile-detail-view-content-shell.js';
+import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
+import { createRealmWorldData } from '../world/data/realm-world-data.js';
 
 /**
  * Own-profile tab listing the worlds the signed-in user follows.
@@ -18,6 +20,7 @@ import { ProfileDetailTabFallback } from '../relationship/profile-detail-view-co
  * it is not rendered on other people's profiles.
  */
 export function FollowedWorldsTab() {
+  const sdk = useDesktopRendererSdk();
   const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
@@ -25,7 +28,7 @@ export function FollowedWorldsTab() {
 
   const worldsQuery = useQuery({
     queryKey: worldListQueryKey(),
-    queryFn: async () => fetchWorldListItems(),
+    queryFn: async () => fetchWorldListItems(createRealmWorldData(sdk)),
     enabled: authStatus === 'authenticated' && followed.ids.length > 0,
     staleTime: 30_000,
   });

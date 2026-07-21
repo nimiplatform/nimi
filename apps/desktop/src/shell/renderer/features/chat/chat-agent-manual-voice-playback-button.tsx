@@ -4,11 +4,7 @@ import {
   createNimiRuntimeAgentTurnsModule,
 } from '@nimiplatform/sdk/runtime';
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
-import {
-  getDesktopRuntime,
-  getDesktopRuntimeAgentTurnsRuntime,
-  withDesktopRuntimeProtectedScopes,
-} from '../../infra/sdk/desktop-nimi-client-session';
+import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import type { ReportAgentConversationHostError } from './chat-agent-shell-adapter-host-feedback';
 import {
   resolveAgentManualVoiceRenderRequest,
@@ -49,6 +45,7 @@ export function AgentManualVoicePlaybackButton(props: {
   onPlaybackStateChange?: (state: VoicePlaybackState) => void;
   reportHostError?: ReportAgentConversationHostError;
 }) {
+  const sdk = useDesktopRendererSdk();
   const {
     activeConversationAnchorId,
     activeTarget,
@@ -125,9 +122,9 @@ export function AgentManualVoicePlaybackButton(props: {
     setStatus('rendering');
     try {
       const turns = createNimiRuntimeAgentTurnsModule({
-        runtime: getDesktopRuntimeAgentTurnsRuntime(),
+        runtime: sdk.runtimeAgentTurns(),
         getSubjectUserId: () => request.ownerUserId,
-        withScopes: withDesktopRuntimeProtectedScopes,
+        withScopes: sdk.withRuntimeProtectedScopes,
       });
       const result = await turns.renderVoice({
         ...request,
@@ -138,7 +135,7 @@ export function AgentManualVoicePlaybackButton(props: {
         emitPlaybackState(false);
         return;
       }
-      const artifact = await getDesktopRuntime().artifacts.readArtifactBytes({
+      const artifact = await sdk.runtime().artifacts.readArtifactBytes({
         artifactId: result.audioArtifactId,
       });
       const mimeType = normalizeText(artifact.mimeType) || result.audioMimeType;
@@ -180,7 +177,7 @@ export function AgentManualVoicePlaybackButton(props: {
         },
       });
     }
-  }, [emitPlaybackState, releaseObjectUrl, reportHostError, request, status, stopPlayback]);
+  }, [emitPlaybackState, releaseObjectUrl, reportHostError, request, sdk, status, stopPlayback]);
 
   if (!request) {
     return null;

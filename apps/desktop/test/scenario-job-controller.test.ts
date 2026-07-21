@@ -41,6 +41,10 @@ const controller = createScenarioJobController({
     const timer = setTimeout(() => listener({ ok: true }), delayMs);
     return () => clearTimeout(timer);
   },
+  animationFrame(listener) {
+    const timer = setTimeout(() => listener({ ok: true }), 16);
+    return () => clearTimeout(timer);
+  },
 });
 
 test.afterEach(() => {

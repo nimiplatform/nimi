@@ -1,15 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  buildDesktopAvatarEphemeralInstanceId,
-  buildDesktopAvatarInstanceId,
-  closeDesktopAvatarHandoff,
-  launchDesktopAvatarHandoff,
-} from '../../bridge/runtime-bridge/chat-agent-avatar-launcher';
-import {
-  desktopAvatarInstanceRegistryQueryKey,
-  listDesktopAvatarLiveInstances,
-} from '../../bridge/runtime-bridge/chat-agent-avatar-instance-registry';
-import { hasShellHostInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
+import { createNimiClientId } from '@nimiplatform/sdk';
 import {
   arbitrateAvatarLaunch,
   evaluateStartWithChatGate,
@@ -19,6 +9,20 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { registerDesktopAvatarLiveInstanceBinding } from './chat-agent-avatar-live-instance-runtime-binding';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+
+function avatarInstanceSegment(value: string): string {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/gu, '-').replace(/^-+|-+$/gu, '') || 'unknown';
+}
+
+function buildAvatarInstanceId(agentId: string, threadId?: string | null): string {
+  if (!agentId.startsWith('local-agent:')) throw new Error('avatar agentId must be a local-agent ref');
+  return `desktop-avatar-${avatarInstanceSegment(agentId)}-${avatarInstanceSegment(threadId || 'default')}`;
+}
+
+function buildEphemeralAvatarInstanceId(agentId: string, threadId?: string | null): string {
+  return `${buildAvatarInstanceId(agentId, threadId)}-${avatarInstanceSegment(createNimiClientId('avatar-nonce'))}`;
+}
 
 type AvatarComposerActionState =
   | 'running'
@@ -52,28 +56,28 @@ export function useAgentLocalAvatarLaunchControls(input: {
   avatarConfigured: boolean;
   validationStatus: string | null;
 }) {
+  const bindings = useDesktopRendererBindings();
+  const sdk = bindings.sdk;
   const presentation = input.presentation;
-  const avatarHandoffReady = hasShellHostInvoke();
+  const avatarHandoffReady = bindings.app.commands.avatarHandoff.available();
   const avatarRuntimeAccountReady = Boolean(presentation.accountId);
   const avatarConversationAnchorReady = Boolean(presentation.activeConversationAnchorId);
   const [avatarActionPending, setAvatarActionPending] = useState(false);
   const avatarInstanceId = useMemo(() => (
     presentation.activeTarget
-      ? buildDesktopAvatarInstanceId({
-        agentId: presentation.activeTarget.localAgentRef,
-        threadId: presentation.activeThreadId,
-      })
+      ? buildAvatarInstanceId(
+        presentation.activeTarget.localAgentRef,
+        presentation.activeThreadId,
+      )
       : null
   ), [presentation.activeTarget, presentation.activeThreadId]);
   const avatarLiveInstancesQuery = useQuery({
     queryKey: presentation.activeTarget?.localAgentRef
-      ? desktopAvatarInstanceRegistryQueryKey(presentation.activeTarget.localAgentRef)
+      ? ['desktop-avatar-instance-registry', presentation.activeTarget.localAgentRef]
       : ['desktop-avatar-instance-registry', 'none'],
     queryFn: async () => (
       presentation.activeTarget?.localAgentRef
-        ? listDesktopAvatarLiveInstances({
-          agentId: presentation.activeTarget.localAgentRef,
-        })
+        ? bindings.app.commands.avatarHandoff.list(presentation.activeTarget.localAgentRef)
         : []
     ),
     enabled: avatarHandoffReady && Boolean(presentation.activeTarget?.localAgentRef),
@@ -120,10 +124,10 @@ export function useAgentLocalAvatarLaunchControls(input: {
         opened: false,
       };
     }
-    const newInstanceId = buildDesktopAvatarEphemeralInstanceId({
-      agentId: presentation.activeTarget.localAgentRef,
-      threadId: presentation.activeThreadId,
-    });
+    const newInstanceId = buildEphemeralAvatarInstanceId(
+      presentation.activeTarget.localAgentRef,
+      presentation.activeThreadId,
+    );
     const arbitration = arbitrateAvatarLaunch({
       avatarInstancePolicy,
       trigger: input2.trigger,
@@ -143,9 +147,10 @@ export function useAgentLocalAvatarLaunchControls(input: {
       target: presentation.activeTarget,
       avatarInstanceId: arbitration.avatarInstanceId,
       conversationAnchorId: presentation.activeConversationAnchorId,
-      subjectUserId: presentation.accountId,
+      subjectUserId: presentation.accountId || '',
+      sdk,
     });
-    const result = await launchDesktopAvatarHandoff({
+    const result = await bindings.app.commands.avatarHandoff.launch({
       agentId: presentation.activeTarget.localAgentRef,
       avatarInstanceId: arbitration.avatarInstanceId,
       launchSource: input2.trigger === 'start_with_chat'
@@ -159,6 +164,7 @@ export function useAgentLocalAvatarLaunchControls(input: {
     avatarInstancePolicy,
     avatarLiveInstances,
     avatarLiveInstancesQuery,
+    sdk,
     presentation.accountId,
     presentation.activeConversationAnchorId,
     presentation.activeTarget,
@@ -201,10 +207,9 @@ export function useAgentLocalAvatarLaunchControls(input: {
     setAvatarActionPending(true);
     try {
       if (avatarRunning) {
-        const result = await closeDesktopAvatarHandoff({
+        const result = await bindings.app.commands.avatarHandoff.close({
           avatarInstanceId,
           closedBy: 'desktop',
-          sourceSurface: 'desktop-agent-chat',
         });
         await avatarLiveInstancesQuery.refetch();
         return {

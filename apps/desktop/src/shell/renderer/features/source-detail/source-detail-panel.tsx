@@ -28,8 +28,10 @@ import {
 } from './source-detail-queries.js';
 import { SourceDetailView } from './source-detail-view.js';
 import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 export function SourceDetailPanel() {
+  const bindings = useDesktopRendererBindings();
   const i18n = useDesktopI18nResource().instance;
   const queryClient = useQueryClient();
   const authStatus = useAppStore((state) => state.auth.status);
@@ -49,7 +51,9 @@ export function SourceDetailPanel() {
     queryKey: selectedSourceRef
       ? sourceDisplayDetailQueryKey(selectedSourceRef)
       : ['source-display-detail', 'missing-character-source-ref-v3'],
-    queryFn: async () => selectedSourceRef ? fetchSourceDisplayDetail(selectedSourceRef) : null,
+    queryFn: async () => selectedSourceRef
+      ? fetchSourceDisplayDetail(selectedSourceRef, bindings.sdk)
+      : null,
     enabled: authStatus === 'authenticated' && Boolean(selectedSourceRef),
   });
   const source = useMemo(() => {
@@ -66,14 +70,16 @@ export function SourceDetailPanel() {
         : source?.id ?? 'missing-source-ref',
       source?.runtimeSourceRef ?? '',
     ],
-    queryFn: async () => (source ? discoverCharacterSourceLocalAgents(source, ownerUserId) : []),
+    queryFn: async () => (source
+      ? discoverCharacterSourceLocalAgents(source, ownerUserId, bindings.sdk)
+      : []),
     enabled: authStatus === 'authenticated' && Boolean(source) && Boolean(ownerUserId),
     staleTime: 10_000,
   });
 
   const localAgentListQuery = useQuery({
     queryKey: localAgentListQueryKey(ownerUserId),
-    queryFn: async () => fetchLocalAgentList(ownerUserId),
+    queryFn: async () => fetchLocalAgentList(ownerUserId, bindings.sdk),
     enabled: authStatus === 'authenticated' && Boolean(ownerUserId),
     staleTime: 15_000,
   });
@@ -140,10 +146,10 @@ export function SourceDetailPanel() {
         runtimeSourceRef: existingAgent.runtimeSourceRef,
         localAgentRef: existingAgent.localAgentRef,
       }, ownerUserId)
-      : await materializeSourceContactLaunchTarget(source, ownerUserId, i18n.t);
+      : await materializeSourceContactLaunchTarget(source, ownerUserId, i18n.t, bindings.sdk);
 
     if (!existingAgent) {
-      await ensureRuntimeAgentExists(target);
+      await ensureRuntimeAgentExists(target, bindings.sdk, ownerUserId);
     }
     await queryClient.invalidateQueries({ queryKey: ['source-detail-local-agents'], exact: false });
     await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });

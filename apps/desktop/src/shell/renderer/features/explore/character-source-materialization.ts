@@ -7,11 +7,7 @@ import {
   type NimiRuntimeAgentDiscoveredLocalAgent,
   type RuntimeMaterializeRealmSourceResult,
 } from '@nimiplatform/sdk/runtime';
-import {
-  getDesktopHostRuntimeAgentClient,
-  getDesktopRuntime,
-  withDesktopRuntimeProtectedScopes,
-} from '../../infra/sdk/desktop-nimi-client-session';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import {
   characterSourceRefKey,
   resolveCharacterSourceRefV3,
@@ -116,10 +112,11 @@ export function characterSourceMaterializationFailureMessage(
 export async function materializeCharacterSourceLocalAgent(
   input: unknown,
   t: TFunction,
+  sdk: DesktopRendererSdkPort,
 ): Promise<RuntimeMaterializeRealmSourceResult> {
   const sourceRef = resolveCharacterSourceRefV3(input);
   if (!sourceRef) throw new Error(characterSourceMaterializationMessage(t));
-  return getDesktopRuntime().materializeRealmSource({
+  return sdk.runtime().materializeRealmSource({
     sourceRef,
     requestId: createNimiClientId('desktop-source-materialization'),
   });
@@ -128,14 +125,15 @@ export async function materializeCharacterSourceLocalAgent(
 export async function discoverCharacterSourceLocalAgents(
   input: unknown,
   ownerUserIdInput: unknown,
+  sdk: DesktopRendererSdkPort,
 ): Promise<NimiRuntimeAgentDiscoveredLocalAgent[]> {
   const ownerUserId = normalizeNimiRuntimeAgentText(ownerUserIdInput);
   const sourceRef = resolveCharacterSourceRefV3(input);
   if (!ownerUserId || !sourceRef) return [];
   const lifecycle = createNimiHostRuntimeAgentLifecycleSurface({
-    getRuntime: getDesktopHostRuntimeAgentClient,
+    getRuntime: sdk.hostRuntimeAgent,
     getSubjectUserId: () => ownerUserId,
-    withScopes: withDesktopRuntimeProtectedScopes,
+    withScopes: sdk.withRuntimeProtectedScopes,
   });
   return lifecycle.discoverLocalAgentsBySource({ ownerUserId, sourceRef });
 }

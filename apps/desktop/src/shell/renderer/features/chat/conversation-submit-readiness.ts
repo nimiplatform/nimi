@@ -5,7 +5,6 @@ import {
   isNimiRuntimeRouteCapabilityProjectionSelectionRequired,
 } from '@nimiplatform/sdk/runtime';
 import { createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
-import { productionAppStore } from '../../app-shell/providers/production-app-store';
 import type {
   AgentEffectiveCapabilityResolution,
   ConversationCapability,
@@ -14,10 +13,6 @@ import type {
 import {
   buildAgentEffectiveCapabilityResolution,
 } from './conversation-capability';
-import {
-  refreshAgentEffectiveCapabilityResolution,
-  refreshConversationCapabilityProjections,
-} from './conversation-capability-projection';
 
 type EnsureAiConversationSubmitRouteReadyDeps = {
   refreshConversationCapabilityProjections: (
@@ -54,28 +49,6 @@ function resolveAiSubmitRouteUnavailableMessage(
     defaultValue: 'Choose a ready Nimi route before sending a message.',
   });
 }
-
-const DEFAULT_AI_DEPS: EnsureAiConversationSubmitRouteReadyDeps = {
-  refreshConversationCapabilityProjections: (capabilities) => (
-    refreshConversationCapabilityProjections(productionAppStore, capabilities)
-  ),
-  getTextCapabilityProjection: () => (
-    productionAppStore.getState().conversationCapabilityProjectionByCapability['text.generate'] || null
-  ),
-};
-
-const DEFAULT_AGENT_DEPS: EnsureAgentConversationSubmitRouteReadyDeps = {
-  refreshConversationCapabilityProjections: (capabilities) => (
-    refreshConversationCapabilityProjections(productionAppStore, capabilities)
-  ),
-  refreshAgentEffectiveCapabilityResolution: () => (
-    refreshAgentEffectiveCapabilityResolution(productionAppStore)
-  ),
-  getTextCapabilityProjection: () => (
-    productionAppStore.getState().conversationCapabilityProjectionByCapability['text.generate'] || null
-  ),
-  getAgentResolution: () => productionAppStore.getState().agentEffectiveCapabilityResolution,
-};
 
 export function resolveAgentSubmitRouteUnavailableDetails(
   t: TFunction,
@@ -162,12 +135,9 @@ function routeUnavailableError(t: TFunction, projection: ConversationCapabilityP
 
 export async function ensureAiConversationSubmitRouteReady(input: {
   t: TFunction;
-  deps?: Partial<EnsureAiConversationSubmitRouteReadyDeps>;
+  deps: EnsureAiConversationSubmitRouteReadyDeps;
 }): Promise<ConversationCapabilityProjection> {
-  const deps = {
-    ...DEFAULT_AI_DEPS,
-    ...input.deps,
-  };
+  const deps = input.deps;
   await deps.refreshConversationCapabilityProjections(['text.generate']);
   const projection = deps.getTextCapabilityProjection();
   if (isNimiRuntimeRouteCapabilityProjectionReady(projection)) {
@@ -178,12 +148,9 @@ export async function ensureAiConversationSubmitRouteReady(input: {
 
 export async function ensureAgentConversationSubmitRouteReady(input: {
   t: TFunction;
-  deps?: Partial<EnsureAgentConversationSubmitRouteReadyDeps>;
+  deps: EnsureAgentConversationSubmitRouteReadyDeps;
 }): Promise<AgentEffectiveCapabilityResolution> {
-  const deps = {
-    ...DEFAULT_AGENT_DEPS,
-    ...input.deps,
-  };
+  const deps = input.deps;
   await deps.refreshConversationCapabilityProjections(['text.generate']);
   deps.refreshAgentEffectiveCapabilityResolution();
   const resolution = deps.getAgentResolution();

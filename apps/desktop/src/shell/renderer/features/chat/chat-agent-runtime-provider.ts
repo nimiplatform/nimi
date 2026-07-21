@@ -4,8 +4,11 @@ import type {
   ConversationTurnInput,
 } from '@nimiplatform/kit/features/chat/headless';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import type { NimiRuntimeAgentResolvedMessageActionEnvelope } from '@nimiplatform/sdk/runtime';
-import { getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
+import type {
+  NimiRuntimeAgentResolvedMessageActionEnvelope,
+  Runtime,
+} from '@nimiplatform/sdk/runtime';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import type { StreamController } from '../turns/stream-controller.js';
 import {
   AGENT_RUNTIME_CHAT_PROVIDER_CAPABILITIES,
@@ -24,6 +27,8 @@ type AgentRuntimeChatProviderOptions = {
   runtimeAdapter?: AgentRuntimeChatTurnAdapter;
   streamController: StreamController;
   t: TFunction;
+  sdk?: DesktopRendererSdkPort;
+  now?: () => number;
 };
 
 type AgentRuntimeChatProviderMetadata = {
@@ -104,6 +109,7 @@ async function* runRuntimeOwnedAgentTurn(input: {
   userText: string;
   userAttachments: readonly AgentChatUserAttachment[];
   streamController: StreamController;
+  readArtifactBytes: Runtime['artifacts']['readArtifactBytes'];
 }): AsyncIterable<ConversationTurnEvent> {
   let reasoningText = '';
   let outputText = '';
@@ -203,7 +209,7 @@ async function* runRuntimeOwnedAgentTurn(input: {
         }
         case 'artifact-ready': {
           const beatIndex = beatIndexFromRuntimeActionId(part.beatId);
-          const artifact = await getDesktopRuntime().artifacts.readArtifactBytes({
+          const artifact = await input.readArtifactBytes({
             artifactId: part.artifactId,
           });
           const mimeType = normalizeText(artifact.mimeType) || part.mimeType;
@@ -315,7 +321,12 @@ async function* runRuntimeOwnedAgentTurn(input: {
 export function createRuntimeAgentChatConversationProvider(
   options: AgentRuntimeChatProviderOptions,
 ): ConversationOrchestrationProvider {
-  const runtimeAdapter = options.runtimeAdapter ?? { streamAgentTurn: streamChatAgentRuntimeAgentTurn };
+  const runtimeAdapter = options.runtimeAdapter ?? {
+    streamAgentTurn: (request) => {
+      if (!options.sdk) throw new Error('DESKTOP_RUNTIME_AGENT_SDK_MISSING');
+      return streamChatAgentRuntimeAgentTurn(request, options.sdk, options.now);
+    },
+  };
   return {
     modeId: RUNTIME_AGENT_CHAT_MODE_ID,
     capabilities: AGENT_RUNTIME_CHAT_PROVIDER_CAPABILITIES,
@@ -348,6 +359,10 @@ export function createRuntimeAgentChatConversationProvider(
           userText,
           userAttachments,
           streamController: options.streamController,
+          readArtifactBytes: (request, callOptions) => {
+            if (!options.sdk) throw new Error('DESKTOP_RUNTIME_ARTIFACT_READER_MISSING');
+            return options.sdk.runtime().artifacts.readArtifactBytes(request, callOptions);
+          },
         })) {
           yield event;
         }

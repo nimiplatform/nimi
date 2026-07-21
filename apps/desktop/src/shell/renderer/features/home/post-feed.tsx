@@ -4,6 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import type { ReactNode } from 'react';
 import { AppCardSurface } from '@nimiplatform/kit/ui';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 
 type PostDto = RealmModel<'PostDto'>;
@@ -88,6 +89,7 @@ export function PostFeed({
   virtualOffsetRef,
   columns = 1,
 }: PostFeedProps) {
+  const bindings = useDesktopRendererBindings();
   const i18n = useDesktopI18nResource().instance;
   const [posts, setPosts] = useState<FeedItem[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -203,34 +205,27 @@ export function PostFeed({
   }, [load]);
 
   useEffect(() => {
-    if (!hasMore) {
-      return;
-    }
+    if (!hasMore) return;
     const target = loadMoreRef.current;
-    if (!target) {
-      return;
-    }
+    const scrollEl = scrollRef?.current;
+    if (!target || !scrollEl) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (!entry) {
-          return;
-        }
-        if (entry.isIntersecting && hasMore && !loadingMore && cursor) {
-          void load(cursor);
-        }
-      },
-      {
-        root: null,
-        rootMargin: '200px',
-        threshold: 0.1,
-      },
-    );
+    const loadWhenNearEnd = () => {
+      const targetRect = target.getBoundingClientRect();
+      const scrollRect = scrollEl.getBoundingClientRect();
+      if (targetRect.top <= scrollRect.bottom + 200 && !loadingMore && cursor) {
+        void load(cursor);
+      }
+    };
 
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [cursor, hasMore, loadingMore, load]);
+    scrollEl.addEventListener('scroll', loadWhenNearEnd, { passive: true });
+    const unsubscribeResize = bindings.app.events.subscribeWindowResize(loadWhenNearEnd);
+    loadWhenNearEnd();
+    return () => {
+      unsubscribeResize();
+      scrollEl.removeEventListener('scroll', loadWhenNearEnd);
+    };
+  }, [bindings, cursor, hasMore, loadingMore, load, scrollRef]);
 
   useEffect(() => {
     const scrollEl = scrollRef?.current;
@@ -248,23 +243,14 @@ export function PostFeed({
     };
 
     updateScrollMargin();
-
-    const raf = requestAnimationFrame(updateScrollMargin);
-    const onResize = () => updateScrollMargin();
-    window.addEventListener('resize', onResize);
-
-    const resizeObserver = typeof ResizeObserver !== 'undefined'
-      ? new ResizeObserver(() => updateScrollMargin())
-      : null;
-    resizeObserver?.observe(scrollEl);
-    resizeObserver?.observe(offsetEl);
+    scrollEl.addEventListener('scroll', updateScrollMargin, { passive: true });
+    const unsubscribeResize = bindings.app.events.subscribeWindowResize(updateScrollMargin);
 
     return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener('resize', onResize);
-      resizeObserver?.disconnect();
+      unsubscribeResize();
+      scrollEl.removeEventListener('scroll', updateScrollMargin);
     };
-  }, [scrollRef, virtualOffsetRef]);
+  }, [bindings, scrollRef, virtualOffsetRef]);
 
   // Virtualization is opt-in: only activate when the caller provides a scroll
   // container ref. Single-column feeds (HomeView) use per-item virtualization.

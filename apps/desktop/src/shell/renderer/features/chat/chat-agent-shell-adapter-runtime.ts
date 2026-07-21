@@ -21,13 +21,8 @@ import {
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
 import { type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { ensureRuntimeAgentExists } from './chat-agent-shell-host-actions-helpers';
-import {
-  getDesktopAppId,
-  getDesktopHostRuntimeAgentClient,
-  getDesktopRuntime,
-  withDesktopRuntimeProtectedScopes,
-} from '../../infra/sdk/desktop-nimi-client-session';
-import { getAgentConversationAnchorBinding } from '../../app-shell/providers/agent-conversation-anchor-binding-storage';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import { useAgentConversationAnchorBindings } from '../../app-shell/providers/agent-conversation-anchor-binding-context.js';
 import {
   createRuntimeAgentMemoryAdapter,
   type CanonicalMemoryBankStatus,
@@ -120,6 +115,8 @@ function toRuntimeIdentityInput(target: AgentLocalTargetSnapshot): RuntimeIdenti
 export function useAgentConversationRuntimeController(
   input: UseAgentConversationRuntimeControllerInput,
 ): AgentConversationRuntimeController {
+  const anchorBindings = useAgentConversationAnchorBindings();
+  const bindings = useDesktopRendererBindings();
   const subjectUserId = useAppStore((state) => normalizeText(state.auth.user?.id));
   const getSubjectUserId = useCallback(() => {
     if (!subjectUserId) {
@@ -148,27 +145,42 @@ export function useAgentConversationRuntimeController(
     useState<NimiRuntimeAgentPresentationProfileProjection | null>(null);
   const [recentRuntimeEvents, setRecentRuntimeEvents] = useState<readonly NimiRuntimeAgentInspectEventSummary[]>([]);
   const lastInspectFetchedAgentIdRef = useRef<string | null>(null);
+  const getRuntimeAgentClient = useCallback(() => ({
+    appId: bindings.sdk.appId(),
+    auth: bindings.sdk.accountRuntime().auth,
+    agent: bindings.sdk.runtime().agents,
+  }), [bindings]);
   const runtimeAgentMemory = useMemo(() => createRuntimeAgentMemoryAdapter({
+    getRuntime: getRuntimeAgentClient,
     getSubjectUserId,
-  }), [getSubjectUserId]);
+    withScopes: bindings.sdk.withRuntimeProtectedScopes,
+  }), [bindings, getRuntimeAgentClient, getSubjectUserId]);
   const runtimeAgentInspect = useMemo(() => createRuntimeAgentInspectAdapter({
+    getRuntime: getRuntimeAgentClient,
     getSubjectUserId,
-  }), [getSubjectUserId]);
+    withScopes: bindings.sdk.withRuntimeProtectedScopes,
+  }), [bindings, getRuntimeAgentClient, getSubjectUserId]);
   const runtimeAgentAIConfigAdapter = useMemo(() => createRuntimeAgentAIConfigAdapter({
+    runtime: {
+      get appId() { return bindings.sdk.appId(); },
+      get auth() { return bindings.sdk.accountRuntime().auth; },
+      get agent() { return bindings.sdk.runtime().agents; },
+    },
     getSubjectUserId,
-  }), [getSubjectUserId]);
+    withScopes: bindings.sdk.withRuntimeProtectedScopes,
+  }), [bindings, getSubjectUserId]);
   const runtimeAgentCenterAdapter = useMemo(() => {
     if (authStatus !== 'authenticated' || !activeTarget) {
       return null;
     }
     const lifecycle = createNimiHostRuntimeAgentLifecycleSurface({
-      getRuntime: getDesktopHostRuntimeAgentClient,
+      getRuntime: bindings.sdk.hostRuntimeAgent,
       getSubjectUserId,
-      withScopes: withDesktopRuntimeProtectedScopes,
+      withScopes: bindings.sdk.withRuntimeProtectedScopes,
     });
     const consume = createNimiRuntimeAgentConsumeClient({
-      runtime: { agents: getDesktopRuntime().agents },
-      runtimeAppId: getDesktopAppId(),
+      runtime: { agents: bindings.sdk.runtime().agents },
+      runtimeAppId: bindings.sdk.appId(),
     });
     return createRuntimeAgentCenterAdapter({
       identity: toRuntimeIdentityInput(activeTarget),
@@ -185,7 +197,7 @@ export function useAgentConversationRuntimeController(
       async loadTurnContextSummary(identity) {
         const localAgentRef = normalizeText(identity.localAgentRef);
         if (!localAgentRef) return null;
-        const binding = getAgentConversationAnchorBinding(localAgentRef);
+        const binding = anchorBindings.get(localAgentRef);
         const conversationAnchorId = normalizeText(identity.conversationAnchorId) || binding?.conversationAnchorId;
         if (!conversationAnchorId) return null;
         const snapshot = await consume.anchors.getSnapshot({
@@ -197,7 +209,7 @@ export function useAgentConversationRuntimeController(
         return snapshot.turnContextSummary ?? null;
       },
     });
-  }, [activeTarget, authStatus, getSubjectUserId, runtimeAgentAIConfigAdapter, runtimeAgentInspect]);
+  }, [activeTarget, anchorBindings, authStatus, bindings, getSubjectUserId, runtimeAgentAIConfigAdapter, runtimeAgentInspect]);
 
   const requireActiveRuntimeIdentity = useCallback(() => {
     if (!activeTarget) {
@@ -321,7 +333,7 @@ export function useAgentConversationRuntimeController(
         cancelled = true;
       };
     }
-    void ensureRuntimeAgentExists(target)
+    void ensureRuntimeAgentExists(target, bindings.sdk, subjectUserId)
       .then(() => runtimeAgentInspect.getPresentationProfile(toRuntimeIdentityInput(target)))
       .then((presentationProfileRead) => {
         if (!cancelled) {
@@ -345,7 +357,7 @@ export function useAgentConversationRuntimeController(
     return () => {
       cancelled = true;
     };
-  }, [activeTarget, authStatus, buildHostErrorDetails, runtimeAgentInspect]);
+  }, [activeTarget, authStatus, bindings, buildHostErrorDetails, runtimeAgentInspect, subjectUserId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -414,7 +426,7 @@ export function useAgentConversationRuntimeController(
       };
     }
     setRuntimeInspectLoading(true);
-    void ensureRuntimeAgentExists(target)
+    void ensureRuntimeAgentExists(target, bindings.sdk, subjectUserId)
       .then(() => runtimeAgentInspect.getPublicInspect(toRuntimeIdentityInput(target)))
       .then((snapshot) => {
         if (cancelled) {
@@ -447,7 +459,7 @@ export function useAgentConversationRuntimeController(
     return () => {
       cancelled = true;
     };
-  }, [activeTarget, authStatus, buildHostErrorDetails, runtimeAgentInspect]);
+  }, [activeTarget, authStatus, bindings, buildHostErrorDetails, runtimeAgentInspect, subjectUserId]);
 
   useEffect(() => {
     const target = activeTarget;
@@ -459,9 +471,9 @@ export function useAgentConversationRuntimeController(
     const eventsCoalesceMs = 2_000;
     const controller = new AbortController();
     let pendingEvents: NimiRuntimeAgentInspectEventSummary[] = [];
-    let flushTimer: ReturnType<typeof setTimeout> | null = null;
+    let cancelFlush: (() => void) | null = null;
     const flush = () => {
-      flushTimer = null;
+      cancelFlush = null;
       const batch = pendingEvents;
       pendingEvents = [];
       if (batch.length === 0) {
@@ -490,8 +502,16 @@ export function useAgentConversationRuntimeController(
       signal: controller.signal,
       onEvent: (event) => {
         pendingEvents.push(event);
-        if (flushTimer === null) {
-          flushTimer = setTimeout(flush, eventsCoalesceMs);
+        if (cancelFlush === null) {
+          cancelFlush = bindings.clock.schedule(eventsCoalesceMs, (result) => {
+            if (!result.ok) {
+              cancelFlush = null;
+              pendingEvents = [];
+              reportHostError(new Error(result.error));
+              return;
+            }
+            flush();
+          });
         }
       },
     }).catch((error) => {
@@ -509,11 +529,11 @@ export function useAgentConversationRuntimeController(
     });
     return () => {
       controller.abort();
-      if (flushTimer !== null) {
-        clearTimeout(flushTimer);
-      }
+      cancelFlush?.();
+      cancelFlush = null;
+      pendingEvents = [];
     };
-  }, [activeTarget?.localAgentRef, authStatus, buildHostErrorDetails, diagnosticsVisible, runtimeAgentInspect]);
+  }, [activeTarget?.localAgentRef, authStatus, bindings.clock, buildHostErrorDetails, diagnosticsVisible, reportHostError, runtimeAgentInspect]);
 
   const runtimeMutations = useAgentConversationRuntimeMutations({
     activeTarget,

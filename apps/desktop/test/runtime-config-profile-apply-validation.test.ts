@@ -61,16 +61,16 @@ test('profile section exposes file-backed library actions without factory restor
   assert.match(source, /runtime-profiles-create/);
   assert.match(managementSectionsSource, /runtime-profiles-import/);
   assert.match(managementSectionsSource, /runtime-profiles-export/);
-  assert.match(source, /getAccountDefaultProfileForScopeInit/);
+  assert.match(source, /profileLibrary\.loadAccountDefault\(\)/);
   assert.doesNotMatch(managementSectionsSource, /runtime-profiles-factory-restore/);
   assert.doesNotMatch(source, /profile\.onApply\(accountDefault\.profileId\)/);
 });
 
 test('profile section repairs missing Account Default Profile through the product-control owner before reading it', () => {
   const source = readFileSync(sourcePath, 'utf8');
-  const ensureIndex = source.indexOf('await ensureProductAccountDefaultProfile();');
-  const libraryReadIndex = source.indexOf('loadAccountProfileLibrary()', ensureIndex);
-  const defaultReadIndex = source.indexOf('getAccountDefaultProfileForScopeInit()', ensureIndex);
+  const ensureIndex = source.indexOf('await profileLibrary.ensureAccountDefault();');
+  const libraryReadIndex = source.indexOf('profileLibrary.load()', ensureIndex);
+  const defaultReadIndex = source.indexOf('profileLibrary.loadAccountDefault()', ensureIndex);
   assert.notEqual(ensureIndex, -1, 'Profiles refresh must call the Account Default Profile owner ensure path');
   assert.ok(
     libraryReadIndex > ensureIndex,
@@ -86,9 +86,9 @@ test('profile section restores account profile CRUD and portable body editing', 
   const source = readFileSync(sourcePath, 'utf8');
   const libraryPanelSource = readFileSync(libraryPanelPath, 'utf8');
   const managementSectionsSource = readFileSync(managementSectionsPath, 'utf8');
-  assert.match(source, /createAccountProfileLibraryEntry/);
-  assert.match(source, /editAccountProfileLibraryEntry/);
-  assert.match(source, /deleteAccountProfileLibraryEntry/);
+  assert.match(source, /profileLibrary\.create\(nextProfile\)/);
+  assert.match(source, /profileLibrary\.edit\(nextProfile\)/);
+  assert.match(source, /profileLibrary\.delete\(entry\.profileId\)/);
   assert.match(source, /buildProfileFromEditorDraft/);
   assert.match(source, /PROFILE_BODY_RESERVED_FIELDS/);
   assert.match(source, /validateNimiAIProfile\(nextProfile\)/);
@@ -98,8 +98,8 @@ test('profile section restores account profile CRUD and portable body editing', 
   assert.doesNotMatch(managementSectionsSource, /current AI config/i);
   assert.doesNotMatch(libraryPanelSource, /onApply/);
   assert.doesNotMatch(libraryPanelSource, /onReplaceFromCurrent/);
-  assert.doesNotMatch(source, /createAccountProfileLibraryEntry[\s\S]{0,300}aiConfigService\.aiConfig\.update/);
-  assert.doesNotMatch(source, /editAccountProfileLibraryEntry[\s\S]{0,300}aiConfigService\.aiConfig\.update/);
+  assert.doesNotMatch(source, /profileLibrary\.create[\s\S]{0,300}aiConfigService\.aiConfig\.update/);
+  assert.doesNotMatch(source, /profileLibrary\.edit[\s\S]{0,300}aiConfigService\.aiConfig\.update/);
 });
 
 // ---------------------------------------------------------------------------
@@ -204,24 +204,23 @@ test('account default profile can be copied into an editable library draft', () 
   const libraryPanelSource = readFileSync(libraryPanelPath, 'utf8');
   assert.match(source, /openCreateProfileFromDefault/);
   assert.match(source, /accountDefaultProfile/);
-  assert.match(source, /createEmptyLibraryProfile\(\)\.profileId/);
+  assert.match(source, /profileLibrary\.createEmpty\(\)\.profileId/);
   assert.match(libraryPanelSource, /runtime-profiles-copy-default/);
   assert.match(libraryPanelSource, /onCreateFromDefault/);
-  assert.doesNotMatch(source, /editAccountProfileLibraryEntry\(accountDefaultProfile/);
-  assert.doesNotMatch(source, /deleteAccountProfileLibraryEntry\(accountDefaultProfile/);
+  assert.doesNotMatch(source, /profileLibrary\.edit\(accountDefaultProfile/);
+  assert.doesNotMatch(source, /profileLibrary\.delete\(accountDefaultProfile/);
 });
 
 test('profile editor opens as a full-page library composition layer', () => {
   const managementSectionsSource = readFileSync(managementSectionsPath, 'utf8');
-  assert.match(managementSectionsSource, /import \{ createPortal \} from 'react-dom';/);
+  assert.doesNotMatch(managementSectionsSource, /createPortal|document\.body/);
   assert.match(managementSectionsSource, /runtime-profiles-editor-full-page/);
   assert.match(managementSectionsSource, /runtime-profiles-editor-identity-panel/);
   assert.match(managementSectionsSource, /runtime-profiles-editor-json-panel/);
   assert.doesNotMatch(managementSectionsSource, /runtime-profiles-editor-boundary-panel/);
   assert.doesNotMatch(managementSectionsSource, /profileEditorScopeBoundary/);
-  assert.match(managementSectionsSource, /createPortal\(editorLayer, document\.body\)/);
+  assert.match(managementSectionsSource, /return editorLayer/);
   assert.match(managementSectionsSource, /z-\[var\(--nimi-z-dialog\)\]/);
-  assert.match(managementSectionsSource, /typeof document === 'undefined'/);
   assert.match(managementSectionsSource, /max-w-5xl/);
   assert.match(managementSectionsSource, /xl:grid-cols-\[minmax\(220px,0\.75fr\)_minmax\(420px,1\.35fr\)\]/);
   assert.doesNotMatch(managementSectionsSource, /max-w-2xl/);
@@ -252,19 +251,20 @@ test('account profile library layer never mutates scope-bound AIConfig', () => {
   const source = readFileSync(libraryPath, 'utf8');
   assert.doesNotMatch(source, /aiConfig/i, 'profile library must not reference AIConfig');
   assert.doesNotMatch(source, /aiProfile\.apply/, 'profile library must not apply profiles');
-  // The library only ever adopts a Rust-returned projection.
-  assert.match(source, /adoptProjection/);
-  assert.match(source, /single source of truth/);
+  // The per-instance resource only adopts port-returned projections.
+  assert.match(source, /const adopt =/);
+  assert.match(source, /createAccountProfileLibraryResource/);
+  assert.match(source, /projectionCache/);
 });
 
 test('profile library import/edit is library-scoped and decoupled from AIConfig apply', () => {
-  // The Profiles section import handler writes the library file family
-  // (importAccountProfileLibraryEntries) — a separate concern from scope apply.
+  // The Profiles section import handler writes through the instance library port —
+  // a separate concern from scope apply.
   const source = readFileSync(sourcePath, 'utf8');
   const managementSectionsSource = readFileSync(managementSectionsPath, 'utf8');
-  assert.match(managementSectionsSource, /importAccountProfileLibraryEntries/);
+  assert.match(managementSectionsSource, /profileLibrary\.import\(candidates\)/);
   assert.doesNotMatch(source, /useModelConfigProfileController/);
   // Import success copy must not claim a scope AIConfig was changed.
   assert.match(managementSectionsSource, /importSuccess/);
-  assert.doesNotMatch(managementSectionsSource, /importAccountProfileLibraryEntries[\s\S]{0,200}aiProfile\.apply/);
+  assert.doesNotMatch(managementSectionsSource, /profileLibrary\.import[\s\S]{0,200}aiProfile\.apply/);
 });

@@ -5,6 +5,8 @@ import type {
   RuntimeConfigStateV11,
 } from './runtime-config-state-types';
 import type { RuntimeConfigStateUpdater } from './runtime-config-types';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
+import type { RuntimeConfigConnectorSdkService } from './runtime-config-connector-sdk-service.js';
 
 export type RuntimeConfigPanelAsyncGuardContext = {
   discovering: boolean;
@@ -21,6 +23,7 @@ type RuntimeConfigStateMaybe = RuntimeConfigStateV11 | null;
 
 export type DiscoverProviderCommandContext = {
   state: RuntimeConfigStateMaybe;
+  sdk: DesktopRendererSdkPort;
   discovering: boolean;
   updateState: RuntimeConfigStateUpdater;
   setStatusBanner: (next: StatusBanner | null) => void;
@@ -28,6 +31,7 @@ export type DiscoverProviderCommandContext = {
 
 export type HealthProviderCommandContext = {
   state: RuntimeConfigStateMaybe;
+  sdk: DesktopRendererSdkPort;
   checkingHealth: boolean;
   updateState: RuntimeConfigStateUpdater;
   setStatusBanner: (next: StatusBanner | null) => void;
@@ -35,6 +39,8 @@ export type HealthProviderCommandContext = {
 
 export type TestConnectorCommandContext = {
   state: RuntimeConfigStateMaybe;
+  connectorSdk: RuntimeConfigConnectorSdkService;
+  now: () => number;
   selectedConnector: RuntimeConfigStateV11['connectors'][number] | null;
   testingConnector: boolean;
   updateState: RuntimeConfigStateUpdater;

@@ -1,8 +1,8 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
+import type { DesktopI18nResource } from '../../i18n/desktop-i18n.js';
 import { useEffect, useState } from 'react';
 import { resolveRealmChatMediaUrl } from '@nimiplatform/kit/features/chat/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
-import type { DesktopI18nResource } from '../../i18n/desktop-i18n.js';
 
 type MessageViewDto = RealmModel<'MessageViewDto'>;
 
@@ -58,42 +58,6 @@ export function ChatMessageImage(input: {
 export function toMessageTimestamp(message: MessageViewDto): number {
   const parsed = Date.parse(String(message.createdAt || ''));
   return Number.isFinite(parsed) ? parsed : 0;
-}
-
-export function formatDateSeparator(isoString: string, i18n: DesktopI18nResource): string {
-  const date = new Date(isoString);
-  if (isNaN(date.getTime())) return '';
-
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const msgDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const diffDays = Math.round((today.getTime() - msgDay.getTime()) / 86400000);
-  const sameYear = date.getFullYear() === now.getFullYear();
-  const timeStr = i18n.formatDate(date, {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
-
-  if (diffDays === 0) return timeStr;
-  if (diffDays === 1) {
-    return `${i18n.instance.t('Chat.yesterday', { defaultValue: 'Yesterday' })} ${timeStr}`;
-  }
-  if (diffDays < 7) {
-    const weekday = i18n.formatDate(date, { weekday: 'long' });
-    return `${weekday} ${timeStr}`;
-  }
-  if (sameYear) {
-    const monthDay = i18n.formatDate(date, { month: 'short', day: 'numeric' });
-    return `${monthDay}, ${timeStr}`;
-  }
-
-  const fullDate = i18n.formatDate(date, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-  return `${fullDate}, ${timeStr}`;
 }
 
 export function shouldShowTimestamp(currentMessage: MessageViewDto, prevMessage: MessageViewDto | null): boolean {

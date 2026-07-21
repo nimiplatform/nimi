@@ -12,8 +12,7 @@ import {
   createReadyConversationSetupState,
 } from '@nimiplatform/kit/features/chat/headless';
 import { createSimpleAiConversationProvider } from '@nimiplatform/kit/features/chat/runtime';
-import { useAppStore } from '../../app-shell/providers/app-store';
-import { productionAppStore } from '../../app-shell/providers/production-app-store';
+import { useAppStore, useAppStoreApi } from '../../app-shell/providers/app-store';
 import type { ChatAiMessageRecord, ChatAiThreadRecord } from '../../bridge/runtime-bridge/types';
 import { chatAiStoreClient } from '../../bridge/runtime-bridge/chat-ai-store';
 import { useTranslation } from 'react-i18next';
@@ -54,6 +53,7 @@ import { useAiConversationEffects } from './chat-nimi-shell-effects';
 import { useAiConversationCapabilityEffects } from './chat-nimi-shell-capability-effects';
 import { useSchedulingFeasibility } from './chat-shared-execution-scheduling-guard';
 import { useAiConversationHostActions } from './chat-nimi-shell-host-actions';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 type UseAiConversationModeHostInput = {
   selection: NimiConversationSelection;
@@ -65,6 +65,9 @@ export function useAiConversationModeHost(
   input: UseAiConversationModeHostInput,
 ): { host: DesktopConversationModeHost } {
   const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
+  const sdk = bindings.sdk;
+  const store = useAppStoreApi();
   const queryClient = useQueryClient();
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const chatThinkingPreference = useAppStore((state) => state.chatThinkingPreference);
@@ -165,14 +168,12 @@ export function useAiConversationModeHost(
     registry.register(createSimpleAiConversationProvider({
       runtimeAdapter: createChatAiConversationRuntimeAdapter({
         reasoningPreference: chatThinkingPreference,
-        getTextProjection: () => (
-          productionAppStore.getState().conversationCapabilityProjectionByCapability['text.generate'] || null
-        ),
+        getTextProjection: () => textCapabilityProjection,
         aiConfig,
+        sdk,
+        now: bindings.clock.now,
       }),
-      resolveRuntimeRequest: () => resolveChatAiConversationRuntimeRequest(
-        productionAppStore.getState().conversationCapabilityProjectionByCapability['text.generate'] || null,
-      ),
+      resolveRuntimeRequest: () => resolveChatAiConversationRuntimeRequest(textCapabilityProjection),
       resolveSystemPrompt: (turnInput) => turnInput.systemPrompt || null,
     }));
     const provider = registry.resolve('simple-ai');
@@ -181,6 +182,8 @@ export function useAiConversationModeHost(
   }, [
     chatThinkingPreference,
     aiConfig,
+    sdk,
+    textCapabilityProjection,
   ]);
 
   const isBundleLoading = Boolean(activeThreadId) && bundleQuery.isPending && !bundle;
@@ -231,9 +234,11 @@ export function useAiConversationModeHost(
   } = useAiConversationHostActions({
     activeThreadId,
     aiConfig,
+    sdk,
     bundleMessages: bundle?.messages,
     currentDraftTextRef,
     ephemeralThread,
+    now: bindings.clock.now,
     queryClient,
     reportHostError,
     runAiTurn: (turnInput) => aiProvider.runTurn({
@@ -245,6 +250,7 @@ export function useAiConversationModeHost(
     setEphemeralThread,
     setSubmittingThreadId,
     setThreadsCache,
+    store,
     submittingThreadId,
     syncSelectionToThread,
     t,

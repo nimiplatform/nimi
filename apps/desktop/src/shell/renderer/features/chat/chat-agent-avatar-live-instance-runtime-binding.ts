@@ -1,22 +1,14 @@
 import { createNimiRuntimeAgentConsumeClient } from '@nimiplatform/sdk/runtime';
-import { productionAppStore } from '../../app-shell/providers/production-app-store';
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
-import { getDesktopAppId, getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import { normalizeText } from './chat-agent-shell-core';
-
-function requireRuntimeSubjectUserId(): string {
-  const subjectUserId = normalizeText((productionAppStore.getState().auth.user as Record<string, unknown> | null)?.id);
-  if (!subjectUserId) {
-    throw new Error('desktop avatar launch requires authenticated subject user id for runtime.agent');
-  }
-  return subjectUserId;
-}
 
 export async function registerDesktopAvatarLiveInstanceBinding(input: {
   target: AgentLocalTargetSnapshot;
   avatarInstanceId: string;
   conversationAnchorId: string;
-  subjectUserId?: string | null;
+  subjectUserId: string;
+  sdk: DesktopRendererSdkPort;
 }): Promise<void> {
   const avatarInstanceId = normalizeText(input.avatarInstanceId);
   const conversationAnchorId = normalizeText(input.conversationAnchorId);
@@ -24,10 +16,13 @@ export async function registerDesktopAvatarLiveInstanceBinding(input: {
     throw new Error('desktop avatar launch requires avatarInstanceId and conversationAnchorId');
   }
   const runtimeAgent = createNimiRuntimeAgentConsumeClient({
-    runtime: { agents: getDesktopRuntime().agents },
-    runtimeAppId: getDesktopAppId(),
+    runtime: { agents: input.sdk.runtime().agents },
+    runtimeAppId: input.sdk.appId(),
   });
-  const subjectUserId = normalizeText(input.subjectUserId) || requireRuntimeSubjectUserId();
+  const subjectUserId = normalizeText(input.subjectUserId);
+  if (!subjectUserId) {
+    throw new Error('desktop avatar launch requires authenticated subject user id for runtime.agent');
+  }
   await runtimeAgent.anchors.registerAvatarLiveInstance({
     ownerUserId: input.target.ownerUserId,
     runtimeSourceRef: input.target.runtimeSourceRef,

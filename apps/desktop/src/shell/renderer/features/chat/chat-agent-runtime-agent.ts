@@ -3,10 +3,7 @@ import {
   createNimiRuntimeAgentTurnsModule,
   runNimiRuntimeAgentTurn,
 } from '@nimiplatform/sdk/runtime';
-import {
-  getDesktopRuntimeAgentTurnsRuntime,
-  withDesktopRuntimeProtectedScopes,
-} from '../../infra/sdk/desktop-nimi-client-session';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import type {
   AgentRuntimeChatTurnRequest,
   AgentRuntimeChatTurnStreamPart,
@@ -25,12 +22,14 @@ import {
 
 export async function streamChatAgentRuntimeAgentTurn(
   request: AgentRuntimeChatTurnRequest,
+  sdk: DesktopRendererSdkPort,
+  now?: () => number,
 ): Promise<{ stream: AsyncIterable<AgentRuntimeChatTurnStreamPart> }> {
-  const runtime = getDesktopRuntimeAgentTurnsRuntime();
+  const runtime = sdk.runtimeAgentTurns();
   const turns = createNimiRuntimeAgentTurnsModule({
     runtime,
     getSubjectUserId: () => request.ownerUserId,
-    withScopes: withDesktopRuntimeProtectedScopes,
+    withScopes: sdk.withRuntimeProtectedScopes,
   });
   const requestId = createNimiClientId('runtime-agent-turn-request');
   safeLogRuntimeAgentEvent({
@@ -107,6 +106,7 @@ export async function streamChatAgentRuntimeAgentTurn(
         stage: stageByRunnerStage[event.stage],
         startedAt: event.startedAt,
         details: event.details,
+        now,
       });
     },
     resolveTrace: resolveRuntimeTrace,

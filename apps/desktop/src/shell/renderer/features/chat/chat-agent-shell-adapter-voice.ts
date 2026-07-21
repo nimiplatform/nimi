@@ -19,10 +19,7 @@ import {
   transcribeChatAgentVoiceRuntime,
   toChatAgentRuntimeError,
 } from './chat-agent-runtime';
-import {
-  startAgentVoiceCaptureSession,
-  type AgentVoiceCaptureSession,
-} from './chat-agent-voice-capture';
+import type { AgentVoiceCaptureSession } from './chat-agent-voice-capture';
 import {
   type AgentVoiceSessionAnchorBoundReferenceAudio,
   createInitialAgentVoiceSessionShellState,
@@ -32,6 +29,7 @@ import {
   type AgentVoiceSessionShellState,
 } from './chat-agent-voice-session';
 import { toErrorMessage } from './chat-agent-shell-core';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import {
   resolveIsVoiceSessionForeground,
   resolveVoiceSessionUnavailableMessage,
@@ -77,11 +75,16 @@ export function useAgentConversationVoiceSession(
   voiceSessionState: AgentVoiceSessionShellState;
 } {
   const streamController = useStreamController();
+  const bindings = useDesktopRendererBindings();
+  const sdk = bindings.sdk;
   const [voiceSessionState, setVoiceSessionState] = useState<AgentVoiceSessionShellState>(
     () => createInitialAgentVoiceSessionShellState(),
   );
   const [isVoiceSessionForeground, setIsVoiceSessionForeground] = useState<boolean>(
-    () => resolveIsVoiceSessionForeground(),
+    () => resolveIsVoiceSessionForeground({
+      documentVisible: bindings.app.projection.documentVisible(),
+      windowFocused: bindings.app.projection.windowFocused(),
+    }),
   );
   const latestVoiceCaptureByThreadRef = useRef<Record<string, AgentVoiceSessionAnchorBoundReferenceAudio | undefined>>({});
   const voiceCaptureSessionRef = useRef<AgentVoiceCaptureSession | null>(null);
@@ -105,22 +108,20 @@ export function useAgentConversationVoiceSession(
   }, [input.activeConversationAnchorId, input.activeTarget?.localAgentRef, input.activeThreadId]);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof document === 'undefined') {
-      return undefined;
-    }
     const syncForegroundState = () => {
-      setIsVoiceSessionForeground(resolveIsVoiceSessionForeground());
+      setIsVoiceSessionForeground(resolveIsVoiceSessionForeground({
+        documentVisible: bindings.app.projection.documentVisible(),
+        windowFocused: bindings.app.projection.windowFocused(),
+      }));
     };
     syncForegroundState();
-    document.addEventListener('visibilitychange', syncForegroundState);
-    window.addEventListener('focus', syncForegroundState);
-    window.addEventListener('blur', syncForegroundState);
+    const unsubscribeVisibility = bindings.app.events.subscribeDocumentVisibility(syncForegroundState);
+    const unsubscribeFocus = bindings.app.events.subscribeWindowFocus(syncForegroundState);
     return () => {
-      document.removeEventListener('visibilitychange', syncForegroundState);
-      window.removeEventListener('focus', syncForegroundState);
-      window.removeEventListener('blur', syncForegroundState);
+      unsubscribeVisibility();
+      unsubscribeFocus();
     };
-  }, []);
+  }, [bindings]);
 
   const resolveUnavailableMessage = useCallback(() => resolveVoiceSessionUnavailableMessage(input), [input]);
 
@@ -171,6 +172,7 @@ export function useAgentConversationVoiceSession(
             capability: 'audio.transcribe',
             projection: input.transcribeCapabilityProjection,
             agentResolution: input.agentResolution,
+            createdAtMs: bindings.clock.now(),
           })
           : null;
         const result = await transcribeChatAgentVoiceRuntime({
@@ -178,6 +180,10 @@ export function useAgentConversationVoiceSession(
           mimeType: recording.mimeType,
           transcribeExecutionSnapshot,
           signal: abortController.signal,
+        }, {
+          buildRuntimeCallOptionsImpl: sdk.runtimeRouteAccess().buildCallOptions,
+          getRuntimeImpl: sdk.runtime,
+          getAppIdImpl: sdk.appId,
         });
         if (input.activeThreadId) {
           latestVoiceCaptureByThreadRef.current[input.activeThreadId] = {
@@ -246,7 +252,7 @@ export function useAgentConversationVoiceSession(
       if (params.interruptActiveStream !== false) {
         streamController.cancelStream(activeThreadId);
       }
-      const captureSession = await startAgentVoiceCaptureSession(
+      const captureSession = await bindings.app.commands.voiceCapture.start(
         params.mode === 'hands-free'
           ? {
             autoStopMode: 'silence',
@@ -362,6 +368,7 @@ export function useAgentConversationVoiceSession(
               capability: 'audio.transcribe',
               projection: input.transcribeCapabilityProjection,
               agentResolution: input.agentResolution,
+              createdAtMs: bindings.clock.now(),
             })
             : null;
           const result = await transcribeChatAgentVoiceRuntime({
@@ -369,6 +376,10 @@ export function useAgentConversationVoiceSession(
             mimeType: recording.mimeType,
             transcribeExecutionSnapshot,
             signal: abortController.signal,
+          }, {
+            buildRuntimeCallOptionsImpl: sdk.runtimeRouteAccess().buildCallOptions,
+            getRuntimeImpl: sdk.runtime,
+            getAppIdImpl: sdk.appId,
           });
           if (input.activeThreadId) {
             latestVoiceCaptureByThreadRef.current[input.activeThreadId] = {

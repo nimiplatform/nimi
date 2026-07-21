@@ -3,15 +3,21 @@ import { useMutation } from '@tanstack/react-query';
 import { hasShellHostInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { createAgentCenterShellAppearanceAdapter } from '@nimiplatform/kit/features/agent-center/headless';
 import { createAgentCenterShellBridge } from '@nimiplatform/kit/shell/renderer/bridge';
-import { clearAgentConversationAnchorBinding } from '../../app-shell/providers/agent-conversation-anchor-binding-storage';
-import { getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
+import { useAgentConversationAnchorBindings } from '../../app-shell/providers/agent-conversation-anchor-binding-context.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { createRuntimeAgentPresentationProfileAdapter } from '../../infra/runtime-agent-presentation-profile';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
 import { useAgentLocalAvatarLaunchControls } from './chat-agent-local-avatar-launch-controls';
 export { resolveAvatarComposerActionState } from './chat-agent-local-avatar-launch-controls';
 
 export function useAgentConversationLocalAvatarControls(input: UseAgentConversationPresentationInput) {
-  const runtimePresentation = useMemo(() => createRuntimeAgentPresentationProfileAdapter(), []);
+  const anchorBindings = useAgentConversationAnchorBindings();
+  const bindings = useDesktopRendererBindings();
+  const runtimePresentation = useMemo(() => createRuntimeAgentPresentationProfileAdapter({
+    getRuntime: bindings.sdk.hostRuntimeAgent,
+    getSubjectUserId: () => input.accountId ?? undefined,
+    withScopes: bindings.sdk.withRuntimeProtectedScopes,
+  }), [bindings, input.accountId]);
   const shell = useMemo(() => (hasShellHostInvoke() ? createAgentCenterShellBridge() : null), []);
   const appearanceAdapter = useMemo(() => {
     if (!input.activeTarget || !input.accountId) {
@@ -44,14 +50,14 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
           defaultValue: 'Open a conversation before clearing generated voice.',
         }));
       }
-      return getDesktopRuntime().artifacts.cleanupGeneratedVoiceArtifacts({
+      return bindings.sdk.runtime().artifacts.cleanupGeneratedVoiceArtifacts({
         agentId: input.activeTarget.localAgentRef,
         conversationAnchorId: input.activeConversationAnchorId,
       });
     },
     onSuccess: async () => {
       if (input.activeTarget?.localAgentRef) {
-        clearAgentConversationAnchorBinding(input.activeTarget.localAgentRef);
+        anchorBindings.clear(input.activeTarget.localAgentRef);
       }
     },
   });

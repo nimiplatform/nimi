@@ -93,7 +93,7 @@ test('unregistered model imports use orphan scaffold for all kinds while picked 
   assert.doesNotMatch(localModelCenterImportActionsSource, /planBlocksCanonicalImageImport/);
   assert.match(localModelCenterImportActionsSource, /importManagedModelAssetFromPath\(assetPath, declaration, endpoint\)/);
   assert.match(localModelCenterImportActionsSource, /await runtimeConfigLocalModelCenterClient\.importAssetFile\(\{/);
-  assert.match(localModelCenterImportActionsSource, /const filePath = await pickLocalRuntimeAssetFile\(\)/);
+  assert.match(localModelCenterImportActionsSource, /const filePath = await commands\.pickLocalRuntimeAssetFile\(\)/);
 });
 
 test('asset kind helpers keep vae as a first-class passive asset', () => {

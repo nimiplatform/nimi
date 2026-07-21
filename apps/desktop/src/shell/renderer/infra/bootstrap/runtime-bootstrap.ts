@@ -31,8 +31,10 @@ import {
 } from './runtime-bootstrap-conversation-route-runtime';
 import {
   countPendingChatOutboxEntries,
+  createDesktopRealmChatService,
   flushPendingChatOutbox,
 } from '../../features/chat/data/realm-human-chat-data';
+import { productionDesktopOfflinePort } from '../../features/social/data/production-social-offline-port.js';
 import {
   runtimeDaemonUnavailable,
   syncDesktopRuntimeBootstrapConfig,
@@ -99,9 +101,16 @@ function bindOfflineCoordinator(lifecycle: DesktopRendererLifecyclePort): void {
       });
     },
     hasPendingRealmRecoveryWork: async () => (
-      await countPendingChatOutboxEntries()
+      await countPendingChatOutboxEntries(productionDesktopOfflinePort)
     ) > 0 || (await countPendingSocialMutations()) > 0,
-    flushChatOutbox: async () => { await flushPendingChatOutbox(); },
+    flushChatOutbox: async () => {
+      await flushPendingChatOutbox(
+        undefined,
+        createDesktopRealmChatService(callRealmApi),
+        undefined,
+        productionDesktopOfflinePort,
+      );
+    },
     flushSocialOutbox: async () => flushPendingSocialMutations(callRealmApi, emitRealmDataError),
     invalidateRealmQueries: async () => {
       await lifecycle.invalidateQueries([

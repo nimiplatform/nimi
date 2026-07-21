@@ -49,7 +49,7 @@ test('replayed terminal transfer events are de-duplicated before firing completi
   assert.match(downloadsSource, /seenTerminalSessionIdsRef/);
   assert.match(downloadsSource, /initialProgressBySessionIdRef/);
   assert.match(downloadsSource, /session\.event\.done/);
-  assert.match(downloadsSource, /const effectStartedMs = Date\.now\(\);/);
+  assert.match(downloadsSource, /const effectStartedMs = bindings\.clock\.now\(\);/);
   assert.match(downloadsSource, /updatedAtMs > 0 && updatedAtMs < effectStartedMs/);
   // The done-branch is guarded by the seen-set so snapshot replays of already
   // completed sessions do not re-fire the completion handler.

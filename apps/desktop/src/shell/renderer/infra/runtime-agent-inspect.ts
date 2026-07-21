@@ -2,13 +2,8 @@ import {
   createNimiHostRuntimeAgentInspectSurface,
   type NimiHostRuntimeAgentInspectClient,
   type NimiRuntimeAgentInspectSurface,
+  type NimiRuntimeAgentScopeRunner,
 } from '@nimiplatform/sdk/runtime';
-import {
-  getDesktopAccountRuntime,
-  getDesktopAppId,
-  getDesktopRuntime,
-  withDesktopRuntimeProtectedScopes,
-} from './sdk/desktop-nimi-client-session';
 
 export type {
   NimiRuntimeAgentCanonicalMemoryInspect,
@@ -22,23 +17,19 @@ export type {
 type RuntimeAgentInspectDeps = {
   getRuntime?: () => NimiHostRuntimeAgentInspectClient;
   getSubjectUserId?: () => string | undefined | Promise<string | undefined>;
+  withScopes?: NimiRuntimeAgentScopeRunner;
 };
 
-function getDesktopRuntimeAgentInspectClient(): NimiHostRuntimeAgentInspectClient {
-  const accountRuntime = getDesktopAccountRuntime();
-  return {
-    appId: getDesktopAppId(),
-    auth: accountRuntime.auth,
-    agent: getDesktopRuntime().agents,
-  };
+function runtimeAgentInspectUnavailable(): never {
+  throw new Error('DESKTOP_RUNTIME_AGENT_INSPECT_UNBOUND');
 }
 
 export function createRuntimeAgentInspectAdapter(
   deps: RuntimeAgentInspectDeps = {},
 ): NimiRuntimeAgentInspectSurface {
   return createNimiHostRuntimeAgentInspectSurface({
-    getRuntime: deps.getRuntime ?? getDesktopRuntimeAgentInspectClient,
+    getRuntime: deps.getRuntime ?? runtimeAgentInspectUnavailable,
     getSubjectUserId: deps.getSubjectUserId ?? (() => undefined),
-    ...(deps.getRuntime ? {} : { withScopes: withDesktopRuntimeProtectedScopes }),
+    ...(deps.withScopes ? { withScopes: deps.withScopes } : {}),
   });
 }

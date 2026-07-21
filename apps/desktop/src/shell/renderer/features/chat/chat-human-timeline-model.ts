@@ -9,10 +9,10 @@ import {
 } from '@nimiplatform/kit/features/chat/realm';
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
 import { useAppStore } from '../../app-shell/providers/app-store';
-import { useChatUploadPlaceholders } from '../turns/chat-upload-placeholder-store';
+import { useChatUploadPlaceholders } from '../turns/chat-upload-placeholder-context.js';
 import type { StreamState } from '../turns/stream-controller';
 import { useStreamController } from '../turns/stream-controller-context.js';
-import { loadChatMessages } from './data/realm-human-chat-data';
+import { useRealmHumanChatData } from './data/realm-human-chat-data-context.js';
 
 export type HumanRealmChatTimelineDisplay = ReturnType<typeof getRealmChatTimelineDisplayModel>;
 
@@ -50,6 +50,7 @@ function useHumanStreamState(chatId: string | null): StreamState | null {
 }
 
 export function useHumanTimelineModel(selectedChatId: string | null, selectedChat: RealmChatViewDto | null) {
+  const realmHumanChatData = useRealmHumanChatData();
   const authStatus = useAppStore((state) => state.auth.status);
   const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
   const currentUser = useAppStore((state) => state.auth.user);
@@ -67,7 +68,7 @@ export function useHumanTimelineModel(selectedChatId: string | null, selectedCha
       if (!selectedChatId) {
         return null;
       }
-      return await loadChatMessages(selectedChatId, 50);
+      return await realmHumanChatData.loadChatMessages(selectedChatId, 50);
     },
     enabled: authStatus === 'authenticated' && Boolean(selectedChatId),
   });

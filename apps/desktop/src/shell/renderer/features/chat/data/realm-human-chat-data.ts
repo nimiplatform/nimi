@@ -23,11 +23,9 @@ import {
   isRealmOfflineErrorLike as isRealmOfflineError,
   type JsonObject,
 } from '@nimiplatform/sdk/types';
-import { getOfflineCacheManager } from '../../../infra/offline/cache-manager';
-import { getOfflineCoordinator } from '../../../infra/offline/coordinator';
-import { getOfflineOutboxManager } from '../../../infra/offline/outbox-manager';
 import type { PersistentOutboxEntry } from '../../../infra/offline/types';
-import { callRealmApi } from '../../../infra/realm/realm-api';
+import type { DesktopRendererOfflinePort } from '../../../renderer/offline-port.js';
+import type { DesktopRendererSdkPort } from '../../../renderer/sdk-port.js';
 
 type DesktopChatErrorEmitter = (
   action: string,
@@ -37,28 +35,35 @@ type DesktopChatErrorEmitter = (
 
 type DesktopRealmHumanChatService = RealmChatService;
 
-function callDesktopRealmChatService<T>(
-  task: (service: RealmChatService) => Promise<T>,
-): Promise<T> {
-  return callRealmApi((realm) => task(createRealmChatService(realm.humanChats)));
+export function createDesktopRealmChatService(
+  callApi: DesktopRendererSdkPort['socialData']['callApi'],
+): RealmChatService {
+  function callService<T>(task: (service: RealmChatService) => Promise<T>): Promise<T> {
+    return callApi((realm) => task(createRealmChatService(realm.humanChats)));
+  }
+  return Object.freeze({
+    listChats: (limit, cursor) => callService((service) => service.listChats(limit, cursor)),
+    getChatById: (chatId) => callService((service) => service.getChatById(chatId)),
+    startChat: (input) => callService((service) => service.startChat(input)),
+    listMessages: (chatId, limit, cursor) => callService((service) => service.listMessages(chatId, limit, cursor)),
+    sendMessage: (chatId, input) => callService((service) => service.sendMessage(chatId, input)),
+    markChatRead: (chatId) => callService((service) => service.markChatRead(chatId)),
+    syncChatEvents: (chatId, afterSeq, limit) => callService((service) => service.syncChatEvents(chatId, afterSeq, limit)),
+  });
 }
 
-export const desktopRealmChatService: RealmChatService = {
-  listChats: (limit, cursor) =>
-    callDesktopRealmChatService((service) => service.listChats(limit, cursor)),
-  getChatById: (chatId) =>
-    callDesktopRealmChatService((service) => service.getChatById(chatId)),
-  startChat: (input) =>
-    callDesktopRealmChatService((service) => service.startChat(input)),
-  listMessages: (chatId, limit, cursor) =>
-    callDesktopRealmChatService((service) => service.listMessages(chatId, limit, cursor)),
-  sendMessage: (chatId, input) =>
-    callDesktopRealmChatService((service) => service.sendMessage(chatId, input)),
-  markChatRead: (chatId) =>
-    callDesktopRealmChatService((service) => service.markChatRead(chatId)),
-  syncChatEvents: (chatId, afterSeq, limit) =>
-    callDesktopRealmChatService((service) => service.syncChatEvents(chatId, afterSeq, limit)),
+const missingRealmChatService = async (): Promise<never> => {
+  throw new Error('DESKTOP_REALM_CHAT_SERVICE_REQUIRED');
 };
+const unavailableRealmChatService: RealmChatService = Object.freeze({
+  listChats: missingRealmChatService,
+  getChatById: missingRealmChatService,
+  startChat: missingRealmChatService,
+  listMessages: missingRealmChatService,
+  sendMessage: missingRealmChatService,
+  markChatRead: missingRealmChatService,
+  syncChatEvents: missingRealmChatService,
+});
 
 function emitNoop() {}
 
@@ -179,53 +184,64 @@ function toKitOutboxEntry(entry: PersistentOutboxEntry): RealmChatOutboxStoreEnt
   };
 }
 
-async function getDesktopRealmChatOutboxStore(): Promise<RealmChatOutboxStore> {
-  const manager = await getOfflineOutboxManager();
+function requireOffline(
+  offline: DesktopRendererOfflinePort | undefined,
+): DesktopRendererOfflinePort {
+  if (!offline) throw new Error('DESKTOP_REALM_CHAT_OFFLINE_PORT_REQUIRED');
+  return offline;
+}
+
+async function getDesktopRealmChatOutboxStore(
+  offline: DesktopRendererOfflinePort,
+): Promise<RealmChatOutboxStore> {
   return {
-    upsertChatOutboxEntry: (entry) => manager.upsertChatOutboxEntry(toPersistentEntry(entry)),
+    upsertChatOutboxEntry: (entry) => offline.upsertChatOutboxEntry(toPersistentEntry(entry)),
     getChatOutboxEntry: async (clientMessageId) => {
-      const entry = await manager.getChatOutboxEntry(clientMessageId);
+      const entry = await offline.getChatOutboxEntry(clientMessageId);
       return entry ? toKitOutboxEntry(entry) : undefined;
     },
     getChatOutboxEntries: async (chatId) => {
-      const entries = await manager.getChatOutboxEntries(chatId);
+      const entries = await offline.getChatOutboxEntries(chatId);
       return entries.map((entry) => toKitOutboxEntry(entry));
     },
-    markChatOutboxSent: (clientMessageId) => manager.markChatOutboxSent(clientMessageId),
-    markChatOutboxFailed: (clientMessageId, reason) => manager.markChatOutboxFailed(clientMessageId, reason),
+    markChatOutboxSent: (clientMessageId) => offline.markChatOutboxSent(clientMessageId),
+    markChatOutboxFailed: (clientMessageId, reason) => offline.markChatOutboxFailed(clientMessageId, reason),
   };
 }
 
-function markRealmOffline(error: unknown): void {
+function markRealmOffline(error: unknown, offline: DesktopRendererOfflinePort): void {
   if (isRealmOfflineError(error)) {
-    getOfflineCoordinator().markRealmRestReachability('unreachable');
+    offline.markRealmUnreachable();
   }
 }
 
-export async function countPendingChatOutboxEntries(): Promise<number> {
-  return countPendingRealmChatOutboxEntries(await getDesktopRealmChatOutboxStore());
+export async function countPendingChatOutboxEntries(
+  offline: DesktopRendererOfflinePort,
+): Promise<number> {
+  return countPendingRealmChatOutboxEntries(await getDesktopRealmChatOutboxStore(offline));
 }
 
 export async function loadChatList(
-  service: Pick<DesktopRealmHumanChatService, 'listChats'> = desktopRealmChatService,
+  service: Pick<DesktopRealmHumanChatService, 'listChats'> = unavailableRealmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
   limit = 20,
+  offline?: DesktopRendererOfflinePort,
 ) {
   try {
     const result = await service.listChats(limit);
-    const manager = await getOfflineCacheManager();
+    const cache = requireOffline(offline);
     const items = filterRealmDirectHumanChats(result?.items);
-    await manager.syncChatList(items);
+    await cache.syncChatList(items);
     return {
       ...result,
       items,
     };
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      const manager = await getOfflineCacheManager();
-      getOfflineCoordinator().markCacheFallbackUsed();
+      const cache = requireOffline(offline);
+      cache.markCacheFallbackUsed();
       return {
-        items: filterRealmDirectHumanChats(await manager.getCachedChatList()),
+        items: filterRealmDirectHumanChats(await cache.getCachedChatList()),
       };
     }
     emitChatError('load-chats', error);
@@ -234,7 +250,7 @@ export async function loadChatList(
 }
 
 export async function loadMoreChatList(
-  service: Pick<DesktopRealmHumanChatService, 'listChats'> = desktopRealmChatService,
+  service: Pick<DesktopRealmHumanChatService, 'listChats'> = unavailableRealmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
   cursor?: string,
 ) {
@@ -255,7 +271,7 @@ export async function loadMoreChatList(
 export async function startChatWithTarget(
   targetAccountId: string,
   initialMessage: string | null = null,
-  service: Pick<DesktopRealmHumanChatService, 'startChat' | 'getChatById'> = desktopRealmChatService,
+  service: Pick<DesktopRealmHumanChatService, 'startChat' | 'getChatById'> = unavailableRealmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
 ) {
   try {
@@ -273,30 +289,28 @@ export async function loadChatMessages(
   chatId: string,
   limit: number,
   markChatRead?: (chatId: string) => Promise<void>,
-  service: Pick<DesktopRealmHumanChatService, 'listMessages'> = desktopRealmChatService,
+  service: Pick<DesktopRealmHumanChatService, 'listMessages'> = unavailableRealmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
+  offline?: DesktopRendererOfflinePort,
 ) {
+  const offlinePort = requireOffline(offline);
   try {
     const result = await service.listMessages(chatId, limit);
-    const cacheManager = await getOfflineCacheManager();
-    const outboxManager = await getOfflineOutboxManager();
     const items = Array.isArray(result?.items) ? result.items : [];
-    await cacheManager.syncChatMessages(chatId, items);
+    await offlinePort.syncChatMessages(chatId, items);
     if (markChatRead) {
       await markChatRead(chatId);
     }
     return {
       ...result,
-      offlineOutbox: await outboxManager.getChatOutboxEntries(chatId),
+      offlineOutbox: await offlinePort.getChatOutboxEntries(chatId),
     };
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      const cacheManager = await getOfflineCacheManager();
-      const outboxManager = await getOfflineOutboxManager();
-      getOfflineCoordinator().markCacheFallbackUsed();
+      offlinePort.markCacheFallbackUsed();
       return {
-        items: await cacheManager.getCachedMessages<RealmMessageViewDto>(chatId),
-        offlineOutbox: await outboxManager.getChatOutboxEntries(chatId),
+        items: await offlinePort.getCachedMessages<RealmMessageViewDto>(chatId),
+        offlineOutbox: await offlinePort.getChatOutboxEntries(chatId),
       };
     }
     emitChatError('load-messages', error, { chatId });
@@ -308,7 +322,7 @@ export async function loadMoreChatMessages(
   chatId: string,
   cursor?: string,
   pageSize = 20,
-  service: Pick<DesktopRealmHumanChatService, 'listMessages'> = desktopRealmChatService,
+  service: Pick<DesktopRealmHumanChatService, 'listMessages'> = unavailableRealmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
 ) {
   if (!cursor) return undefined;
@@ -331,9 +345,11 @@ export async function sendChatMessage(
   chatId: string,
   content: string,
   options: Partial<RealmSendMessageInputDto>,
-  service: Pick<DesktopRealmHumanChatService, 'sendMessage'> = desktopRealmChatService,
+  service: Pick<DesktopRealmHumanChatService, 'sendMessage'> = unavailableRealmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
+  offline?: DesktopRendererOfflinePort,
 ) {
+  const offlinePort = requireOffline(offline);
   const clientMessageId = String(options.clientMessageId || '').trim() || createClientMessageId();
   try {
     const result = await sendRealmChatTextMessageWithOutbox({
@@ -341,12 +357,12 @@ export async function sendChatMessage(
       content,
       options: { ...options, clientMessageId },
       service,
-      outbox: await getDesktopRealmChatOutboxStore(),
+      outbox: await getDesktopRealmChatOutboxStore(offlinePort),
       createClientMessageId,
       isOfflineError: isRealmOfflineError,
       describeError: (error, fallback) => getErrorMessage(error, fallback),
       failureMessage: '发送消息失败',
-      onOffline: markRealmOffline,
+      onOffline: (error) => markRealmOffline(error, offlinePort),
     });
     return result.kind === 'sent' ? result.message : result.placeholder;
   } catch (error) {
@@ -357,18 +373,20 @@ export async function sendChatMessage(
 
 export async function flushPendingChatOutbox(
   chatId?: string,
-  service: Pick<DesktopRealmHumanChatService, 'sendMessage'> = desktopRealmChatService,
+  service: Pick<DesktopRealmHumanChatService, 'sendMessage'> = unavailableRealmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
+  offline?: DesktopRendererOfflinePort,
 ): Promise<RealmMessageViewDto[]> {
+  const offlinePort = requireOffline(offline);
   return flushRealmChatOutbox({
     chatId,
     service,
-    outbox: await getDesktopRealmChatOutboxStore(),
+    outbox: await getDesktopRealmChatOutboxStore(offlinePort),
     isOfflineError: isRealmOfflineError,
     describeError: (error, fallback) => getErrorMessage(error, fallback),
     failureMessage: '重放聊天消息失败',
     stopOnOffline: false,
-    onOffline: markRealmOffline,
+    onOffline: (error) => markRealmOffline(error, offlinePort),
     onEntryError: (error, entry) => {
       emitChatError('flush-chat-outbox', error, {
         chatId: entry.chatId,
@@ -380,7 +398,7 @@ export async function flushPendingChatOutbox(
 
 export async function markChatAsRead(
   chatId: string,
-  service: Pick<DesktopRealmHumanChatService, 'markChatRead'> = desktopRealmChatService,
+  service: Pick<DesktopRealmHumanChatService, 'markChatRead'> = unavailableRealmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
 ) {
   try {
@@ -394,7 +412,7 @@ export async function syncChatEventWindow(
   chatId: string,
   afterSeq: number,
   limit = 200,
-  service: Pick<DesktopRealmHumanChatService, 'syncChatEvents'> = desktopRealmChatService,
+  service: Pick<DesktopRealmHumanChatService, 'syncChatEvents'> = unavailableRealmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
 ): Promise<RealmChatSyncResultDto> {
   try {
@@ -409,3 +427,26 @@ export async function syncChatEventWindow(
     throw error;
   }
 }
+
+export function createRealmHumanChatData(sdk: DesktopRendererSdkPort) {
+  const service = createDesktopRealmChatService(sdk.socialData.callApi);
+  const emit = sdk.socialData.emitDataError;
+  return Object.freeze({
+    loadChatList: (limit = 20) => loadChatList(service, emit, limit, sdk.offline),
+    loadMoreChatList: (cursor?: string) => loadMoreChatList(service, emit, cursor),
+    startChatWithTarget: (targetAccountId: string, initialMessage: string | null = null) =>
+      startChatWithTarget(targetAccountId, initialMessage, service, emit),
+    loadChatMessages: (chatId: string, limit: number, markRead?: (chatId: string) => Promise<void>) =>
+      loadChatMessages(chatId, limit, markRead, service, emit, sdk.offline),
+    loadMoreChatMessages: (chatId: string, cursor?: string, pageSize = 20) =>
+      loadMoreChatMessages(chatId, cursor, pageSize, service, emit),
+    sendChatMessage: (chatId: string, content: string, options: Partial<RealmSendMessageInputDto>) =>
+      sendChatMessage(chatId, content, options, service, emit, sdk.offline),
+    flushPendingChatOutbox: (chatId?: string) => flushPendingChatOutbox(chatId, service, emit, sdk.offline),
+    markChatAsRead: (chatId: string) => markChatAsRead(chatId, service, emit),
+    syncChatEventWindow: (chatId: string, afterSeq: number, limit = 200) =>
+      syncChatEventWindow(chatId, afterSeq, limit, service, emit),
+  });
+}
+
+export type RealmHumanChatData = ReturnType<typeof createRealmHumanChatData>;

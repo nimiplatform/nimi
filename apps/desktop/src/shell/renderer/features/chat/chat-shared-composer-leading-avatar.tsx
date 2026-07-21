@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { EntityAvatar } from '../../components/entity-avatar';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { toProfileData, type ProfileData, type ProfileSource } from '../profile/profile-model';
 import {
   ProfileDetailModal,
@@ -91,33 +92,36 @@ function ChatComposerAvatarHoverPreview(props: {
   const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
+  const bindings = useDesktopRendererBindings();
   const [open, setOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
-  const openTimerRef = useRef<number | null>(null);
-  const closeTimerRef = useRef<number | null>(null);
+  const openTimerRef = useRef<(() => void) | null>(null);
+  const closeTimerRef = useRef<(() => void) | null>(null);
 
   const cancelTimers = useCallback(() => {
-    if (openTimerRef.current !== null) {
-      window.clearTimeout(openTimerRef.current);
-      openTimerRef.current = null;
-    }
-    if (closeTimerRef.current !== null) {
-      window.clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
+    openTimerRef.current?.();
+    openTimerRef.current = null;
+    closeTimerRef.current?.();
+    closeTimerRef.current = null;
   }, []);
 
   useEffect(() => () => cancelTimers(), [cancelTimers]);
 
   const scheduleOpen = useCallback(() => {
     cancelTimers();
-    openTimerRef.current = window.setTimeout(() => setOpen(true), HOVER_OPEN_DELAY_MS);
-  }, [cancelTimers]);
+    openTimerRef.current = bindings.clock.schedule(HOVER_OPEN_DELAY_MS, (result) => {
+      openTimerRef.current = null;
+      if (result.ok) setOpen(true);
+    });
+  }, [bindings.clock, cancelTimers]);
 
   const scheduleClose = useCallback(() => {
     cancelTimers();
-    closeTimerRef.current = window.setTimeout(() => setOpen(false), HOVER_CLOSE_DELAY_MS);
-  }, [cancelTimers]);
+    closeTimerRef.current = bindings.clock.schedule(HOVER_CLOSE_DELAY_MS, (result) => {
+      closeTimerRef.current = null;
+      if (result.ok) setOpen(false);
+    });
+  }, [bindings.clock, cancelTimers]);
 
   const profileQuery = useQuery({
     queryKey: ['chat-composer-avatar-preview', props.kind, props.targetId],

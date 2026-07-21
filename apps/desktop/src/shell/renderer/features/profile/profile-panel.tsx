@@ -32,10 +32,8 @@ import { toProfileData, type ProfileSource } from './profile-model.js';
 import { toFriendContact, type ContactRecord } from '../relationship/relationship-model';
 import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import {
-  loadChatList,
-  startChatWithTarget,
-} from '../chat/data/realm-human-chat-data';
+import { useRealmHumanChatData } from '../chat/data/realm-human-chat-data-context.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 function toErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {
@@ -48,6 +46,8 @@ function toErrorMessage(error: unknown, fallback: string): string {
 }
 
 export function ProfilePanel() {
+  const realmHumanChatData = useRealmHumanChatData();
+  const bindings = useDesktopRendererBindings();
   const realmSocialData = useRealmSocialData();
   const i18n = useDesktopI18nResource().instance;
   const authStatus = useAppStore((state) => state.auth.status);
@@ -144,7 +144,9 @@ export function ProfilePanel() {
       profileSourceRefKey,
       profile?.runtimeSourceRef ?? '',
     ],
-    queryFn: async () => (profile ? discoverCharacterSourceLocalAgents(profile, ownerUserId) : []),
+    queryFn: async () => (profile
+      ? discoverCharacterSourceLocalAgents(profile, ownerUserId, bindings.sdk)
+      : []),
     enabled: authStatus === 'authenticated' && Boolean(profile?.isSource) && Boolean(ownerUserId),
     staleTime: 10_000,
   });
@@ -185,11 +187,11 @@ export function ProfilePanel() {
     }
 
     try {
-      const result = await startChatWithTarget(profile.id);
+      const result = await realmHumanChatData.startChatWithTarget(profile.id);
       if (result?.chatId) {
         setSelectedChatId(String(result.chatId));
       }
-      const chatsSnapshot = await loadChatList();
+      const chatsSnapshot = await realmHumanChatData.loadChatList();
       queryClient.setQueriesData({ queryKey: ['chats'] }, () => chatsSnapshot);
       setRuntimeFields({
         targetType: 'FRIEND',
@@ -213,8 +215,13 @@ export function ProfilePanel() {
         if (addFriendBlocked) {
           throw new Error(addFriendHint || characterSourceMaterializationMessage(i18n.t));
         }
-        const target = await materializeSourceContactLaunchTarget(profile, ownerUserId, i18n.t);
-        await ensureRuntimeAgentExists(target);
+        const target = await materializeSourceContactLaunchTarget(
+          profile,
+          ownerUserId,
+          i18n.t,
+          bindings.sdk,
+        );
+        await ensureRuntimeAgentExists(target, bindings.sdk, ownerUserId);
         await queryClient.invalidateQueries({ queryKey: ['profile-source-local-agents'], exact: false });
         await launchAgentConversationFromDisplay({
           target,

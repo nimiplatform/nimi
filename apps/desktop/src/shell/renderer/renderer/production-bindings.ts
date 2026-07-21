@@ -15,7 +15,10 @@ import type {
 } from './contract.js';
 import { connectMenuBarNavigation } from '../infra/menu-bar/menu-bar-navigation-listener.js';
 import { connectMenuBarRuntimeSync } from '../infra/menu-bar/menu-bar-runtime-sync.js';
-import { connectRuntimeHealthCoordinator } from '../features/runtime-config/runtime-health-coordinator.js';
+import {
+  connectRuntimeHealthCoordinator,
+  createRuntimeHealthCoordinator,
+} from '../features/runtime-config/runtime-health-coordinator.js';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import {
   connectDesktopUpdates,
@@ -29,7 +32,10 @@ import { connectProductionBootstrap } from './production-bootstrap.js';
 import { desktopBridge } from '../bridge.js';
 import {
   decideLocalDevelopmentApproval,
+  listLocalDevelopmentAuthorizations,
+  listLocalDevelopmentRuns,
   listPendingLocalDevelopmentApprovals,
+  revokeLocalDevelopmentAuthorization,
   localDevelopmentBridgeAvailable,
   subscribeLocalDevelopmentApprovals,
 } from '../features/local-development/local-development-bridge.js';
@@ -64,7 +70,41 @@ import { createDesktopProductionSettingsPort } from '../features/settings/settin
 import { createDesktopProductionAuthPort } from '../features/auth/desktop-auth-adapter.js';
 import { createDesktopRendererRuntimeConfigNavigationPort } from './runtime-config-navigation-port.js';
 import { callRealmApi, emitRealmDataError } from '../infra/realm/realm-api.js';
-import { productionRealmSocialOfflinePort } from '../features/social/data/production-social-offline-port.js';
+import { getOfflineCoordinator } from '../infra/offline/coordinator.js';
+import { createDesktopProductionOfflinePort } from '../infra/offline/production-offline-port.js';
+import { createDesktopRuntimeRouteAccess } from '../infra/runtime-route-host-access.js';
+import { loadRuntimeRouteOptions } from '../infra/bootstrap/runtime-bootstrap-route-options.js';
+import { createNimiClientId } from '@nimiplatform/sdk';
+import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
+import {
+  pickLocalRuntimeAssetDirectory,
+  pickLocalRuntimeAssetFile,
+  pickLocalRuntimeAssetManifestPath,
+  revealLocalRuntimeAssetsRootFolder,
+} from '../bridge/runtime-bridge/local-runtime-os-helpers.js';
+import { createDesktopProductionWorldFollowPort } from '../features/world/production-world-follow-port.js';
+import { createDesktopProductionVoiceCapturePort } from '../features/chat/production-agent-voice-capture.js';
+import { createDesktopProductionLocalModelProgressPort } from '../features/runtime-config/production-local-model-progress-port.js';
+import {
+  closeDesktopAvatarHandoff,
+  launchDesktopAvatarHandoff,
+} from '../bridge/runtime-bridge/chat-agent-avatar-launcher.js';
+import { listDesktopAvatarLiveInstances } from '../bridge/runtime-bridge/chat-agent-avatar-instance-registry.js';
+import { getDesktopAIConfigService } from '../app-shell/providers/desktop-ai-config-service.js';
+import { setGroupLocalAgentParticipationActive } from '../features/chat/chat-shared-active-ai-config-scope.js';
+import { getProductionConversationCapabilityRouteRuntime } from '../features/chat/production-conversation-route-runtime-state.js';
+import {
+  ensureProductAccountDefaultProfile,
+  getAccountDefaultProfileForScopeInit,
+} from '../bridge/runtime-bridge/product-control.js';
+import {
+  createAccountProfileLibraryProfile,
+  deleteAccountProfileLibraryProfile,
+  editAccountProfileLibraryProfile,
+  exportAccountProfileLibraryProfiles,
+  importAccountProfileLibraryProfiles,
+  listAccountProfileLibrary,
+} from '../bridge/runtime-bridge/account-profile-library.js';
 
 export function createDesktopBrowserRoutePort(): DesktopRendererRoutePort {
   function read(): DesktopRendererRouteView {
@@ -116,6 +156,15 @@ export function createDesktopProductionBindings(
   const dependencies = createProductionAppStoreDependencies();
   const attention = createBrowserAppAttentionSource();
   const runtimeConfigNavigation = createDesktopRendererRuntimeConfigNavigationPort();
+  const runtimeRouteAccess = createDesktopRuntimeRouteAccess(getDesktopRuntime);
+  const offline = createDesktopProductionOfflinePort(getOfflineCoordinator());
+  const runtimeHealthCoordinator = createRuntimeHealthCoordinator(
+    () => getDesktopRuntime().audit,
+    {
+      setInterval: (callback, intervalMs) => window.setInterval(callback, intervalMs),
+      clearInterval: (handle) => window.clearInterval(handle as number),
+    },
+  );
   let connectedLifecycle: DesktopRendererLifecyclePort | null = null;
   const requireLifecycle = () => {
     if (!connectedLifecycle) throw new Error('DESKTOP_PRODUCTION_LIFECYCLE_NOT_CONNECTED');
@@ -135,11 +184,29 @@ export function createDesktopProductionBindings(
       runtimeAgentTurns: getDesktopRuntimeAgentTurnsRuntime,
       hostRuntimeAgent: getDesktopHostRuntimeAgentClient,
       accountRuntime: getDesktopAccountRuntime,
+      runtimeRouteAccess: () => runtimeRouteAccess,
+      loadRouteOptions: (
+        capability: Parameters<DesktopCanonicalRendererBindings['sdk']['loadRouteOptions']>[0],
+        targetId?: string,
+      ) => loadRuntimeRouteOptions(
+        { capability, targetId },
+        { runtime: getDesktopRuntime() },
+      ),
+      conversationCapabilityRuntime: getProductionConversationCapabilityRouteRuntime,
+      runtimeHealthCoordinator: () => runtimeHealthCoordinator,
+      aiConfig: getDesktopAIConfigService,
       realm: getDesktopRealm,
+      offline,
       socialData: Object.freeze({
         callApi: callRealmApi,
         emitDataError: emitRealmDataError,
-        offline: productionRealmSocialOfflinePort,
+        offline: Object.freeze({
+          syncProfileMetadata: offline.syncProfileMetadata,
+          loadProfileMetadata: offline.getCachedProfileMetadata,
+          markCacheFallbackUsed: offline.markCacheFallbackUsed,
+          markRealmUnreachable: offline.markRealmUnreachable,
+          queueSocialMutation: offline.queueSocialMutation,
+        }),
       }),
       accountCaller: getDesktopRuntimeAccountCaller,
       withRuntimeProtectedScopes: withDesktopRuntimeProtectedScopes,
@@ -158,15 +225,91 @@ export function createDesktopProductionBindings(
         loginMode: () => getShellFeatureFlags().mode === 'web' ? 'embedded' : 'desktop-browser',
         developerModeEnabled: isDeveloperModeEnabled,
         viewportWidth: () => window.innerWidth || document.documentElement.clientWidth,
+        documentVisible: () => document.visibilityState !== 'hidden',
+        windowFocused: () => document.hasFocus(),
+        resourceBaseUrl: () => window.location.href,
+        walletCheckoutBaseUrl() {
+          const configured = String(
+            (import.meta as { env?: { NIMI_WEB_URL?: string } }).env?.NIMI_WEB_URL || '',
+          ).trim();
+          return configured || window.location.origin;
+        },
       }),
       commands: Object.freeze({
         auth: createDesktopProductionAuthPort(),
         firstRun: createDesktopProductionFirstRunPort(),
         runtimeConfigNavigation,
         settings: createDesktopProductionSettingsPort(),
+        worldFollow: createDesktopProductionWorldFollowPort(),
+        voiceCapture: createDesktopProductionVoiceCapturePort(),
+        localModelProgress: createDesktopProductionLocalModelProgressPort(),
+        avatarHandoff: Object.freeze({
+          available: hasTauriInvoke,
+          list: (agentId: string) => listDesktopAvatarLiveInstances({ agentId }),
+          launch: launchDesktopAvatarHandoff,
+          close: closeDesktopAvatarHandoff,
+        }),
+        systemResources: Object.freeze({
+          load: () => desktopBridge.getSystemResourceSnapshot(),
+        }),
+        supportLogs: Object.freeze({
+          loadStorageDirs: () => desktopBridge.getDesktopStorageDirs(),
+          exportLogs: () => desktopBridge.exportDesktopLogs(),
+        }),
+        supportRepair: Object.freeze({
+          loadProductControlRecord: () => desktopBridge.getProductControlRecord(),
+          loadStorageDirs: () => desktopBridge.getDesktopStorageDirs(),
+          planDataCleanup: (directory: string) => desktopBridge.planNimiDataCleanup(directory),
+          executeDataCleanup: (directory: string, confirmation?: string) => (
+            desktopBridge.executeNimiDataCleanup(directory, confirmation)
+          ),
+        }),
+        profileLibrary: Object.freeze({
+          available: hasTauriInvoke,
+          createId: () => createNimiClientId('user'),
+          load: listAccountProfileLibrary,
+          ensureAccountDefault: async () => { await ensureProductAccountDefaultProfile(); },
+          loadAccountDefault: getAccountDefaultProfileForScopeInit,
+          create: createAccountProfileLibraryProfile,
+          edit: editAccountProfileLibraryProfile,
+          import: importAccountProfileLibraryProfiles,
+          export: exportAccountProfileLibraryProfiles,
+          delete: deleteAccountProfileLibraryProfile,
+        }),
+        connectorAuth: Object.freeze({
+          proxyHttp: async (request: Parameters<
+            DesktopCanonicalRendererBindings['app']['commands']['connectorAuth']['proxyHttp']
+          >[0]) => desktopBridge.proxyHttp({
+            url: request.url,
+            method: request.method,
+            headers: request.headers,
+            body: request.body,
+            connectorAuthProfileId: request.profileId,
+            connectorAuthPurpose: request.purpose,
+          }),
+          oauthTokenExchange: async (input: Parameters<
+            DesktopCanonicalRendererBindings['app']['commands']['connectorAuth']['oauthTokenExchange']
+          >[0]) => {
+            const result = await desktopBridge.oauthTokenExchange({
+              provider: input.provider as Parameters<typeof desktopBridge.oauthTokenExchange>[0]['provider'],
+              clientId: input.clientId,
+              code: input.code,
+              codeVerifier: input.codeVerifier,
+              redirectUri: input.redirectUri,
+            });
+            return { ...result, raw: result.raw as import('@nimiplatform/sdk/types').JsonObject };
+          },
+        }),
+        runtimeDaemon: Object.freeze({
+          available: hasTauriInvoke,
+          status: () => desktopBridge.getRuntimeBridgeStatus(),
+          start: () => desktopBridge.startRuntimeBridge(),
+          restart: () => desktopBridge.restartRuntimeBridge(),
+        }),
         commitAIConfig: dependencies.commitAIConfig,
         persistChatThinkingPreference: dependencies.persistChatThinkingPreference,
         setActiveScopeForMode: dependencies.setActiveScopeForMode,
+        setGroupLocalAgentParticipationActive,
         applyLocale({ locale, lang, title }: Parameters<
           DesktopCanonicalRendererBindings['app']['commands']['applyLocale']
         >[0]) {
@@ -174,6 +317,38 @@ export function createDesktopProductionBindings(
           document.documentElement.lang = lang;
           document.title = title;
         },
+        openWalletCheckout: (url: string) => desktopBridge.openExternalUrl(url),
+        async writeClipboardText(value: string) {
+          if (!navigator.clipboard?.writeText) {
+            throw new Error('DESKTOP_CLIPBOARD_WRITE_UNAVAILABLE');
+          }
+          await navigator.clipboard.writeText(value);
+        },
+        exportProfileLibraryJson({ filename, content }: Parameters<
+          DesktopCanonicalRendererBindings['app']['commands']['exportProfileLibraryJson']
+        >[0]) {
+          const url = URL.createObjectURL(new Blob([content], { type: 'application/json' }));
+          const anchor = document.createElement('a');
+          anchor.href = url;
+          anchor.download = filename;
+          anchor.click();
+          URL.revokeObjectURL(url);
+        },
+        exportRuntimeAuditJson({ filename, content }: Parameters<
+          DesktopCanonicalRendererBindings['app']['commands']['exportRuntimeAuditJson']
+        >[0]) {
+          const url = URL.createObjectURL(new Blob([content], { type: 'application/json' }));
+          const anchor = document.createElement('a');
+          anchor.href = url;
+          anchor.download = filename;
+          anchor.click();
+          URL.revokeObjectURL(url);
+        },
+        confirmRuntimeProfileInstall: (message: string) => window.confirm(message),
+        pickLocalRuntimeAssetManifestPath,
+        pickLocalRuntimeAssetFile,
+        pickLocalRuntimeAssetDirectory,
+        revealLocalRuntimeAssetsRootFolder,
         async reconcileLoginState({ authStatus }: Parameters<
           DesktopCanonicalRendererBindings['app']['commands']['reconcileLoginState']
         >[0]) {
@@ -214,6 +389,9 @@ export function createDesktopProductionBindings(
           await desktopBridge.startWindowDrag();
         },
         listLocalDevelopmentApprovals: listPendingLocalDevelopmentApprovals,
+        listLocalDevelopmentAuthorizations,
+        listLocalDevelopmentRuns,
+        revokeLocalDevelopmentAuthorization,
         decideLocalDevelopmentApproval: ({
           requestId,
           decision,
@@ -240,6 +418,11 @@ export function createDesktopProductionBindings(
             window.removeEventListener('blur', onBlur);
           };
         },
+        subscribeDocumentVisibility(listener: (visible: boolean) => void) {
+          const onVisibility = () => listener(document.visibilityState !== 'hidden');
+          document.addEventListener('visibilitychange', onVisibility);
+          return () => document.removeEventListener('visibilitychange', onVisibility);
+        },
         subscribeWindowResize(listener: () => void) {
           window.addEventListener('resize', listener);
           return () => window.removeEventListener('resize', listener);
@@ -251,6 +434,26 @@ export function createDesktopProductionBindings(
         subscribeDocumentMouseDown(listener: (event: MouseEvent) => void) {
           document.addEventListener('mousedown', listener);
           return () => document.removeEventListener('mousedown', listener);
+        },
+        subscribeDocumentClick(listener: (event: MouseEvent) => void) {
+          document.addEventListener('click', listener);
+          return () => document.removeEventListener('click', listener);
+        },
+        subscribeDocumentPointerDown(listener: (event: PointerEvent) => void, capture = false) {
+          document.addEventListener('pointerdown', listener, capture);
+          return () => document.removeEventListener('pointerdown', listener, capture);
+        },
+        observeIntersection(
+          target: Element,
+          options: IntersectionObserverInit,
+          listener: (isIntersecting: boolean) => void,
+        ) {
+          const observer = new IntersectionObserver(
+            ([entry]) => listener(entry?.isIntersecting === true),
+            options,
+          );
+          observer.observe(target);
+          return () => observer.disconnect();
         },
         subscribeAttention: attention.subscribe,
         subscribeDeveloperMode,
@@ -295,10 +498,14 @@ export function createDesktopProductionBindings(
           let active = true;
           const disconnectMenuBarNavigation = connectMenuBarNavigation(lifecycle, runtimeConfigNavigation);
           const disconnectRuntimeHealth = connectRuntimeHealthCoordinator(
+            runtimeHealthCoordinator,
             lifecycle,
             getShellFeatureFlags().mode === 'desktop',
           );
-          const disconnectMenuBarRuntimeSync = connectMenuBarRuntimeSync(lifecycle);
+          const disconnectMenuBarRuntimeSync = connectMenuBarRuntimeSync(
+            lifecycle,
+            runtimeHealthCoordinator,
+          );
           const disconnectDesktopUpdates = connectDesktopUpdates(lifecycle);
           const disconnectDesktopMacosSmoke = connectDesktopMacosSmoke(lifecycle);
           const disconnectBootstrap = connectProductionBootstrap(lifecycle);
@@ -322,6 +529,10 @@ export function createDesktopProductionBindings(
       schedule(delayMs: number, listener: Parameters<DesktopCanonicalRendererBindings['clock']['schedule']>[1]) {
         const timer = window.setTimeout(() => listener({ ok: true }), delayMs);
         return () => window.clearTimeout(timer);
+      },
+      animationFrame(listener: Parameters<DesktopCanonicalRendererBindings['clock']['animationFrame']>[0]) {
+        const frame = window.requestAnimationFrame(() => listener({ ok: true }));
+        return () => window.cancelAnimationFrame(frame);
       },
     }),
     surfaceLifecycle: kit.surfaceLifecycle,

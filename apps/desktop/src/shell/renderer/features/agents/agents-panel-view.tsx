@@ -18,6 +18,7 @@ import {
 } from '../source-detail/source-detail-queries';
 import type { LocalAgentListItem } from './local-agent-list-model';
 import type { AuthStatus } from '../../app-shell/providers/app-store';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 
 const ICON_AGENT_EMPTY = <Bot size={20} aria-hidden="true" />;
 
@@ -25,14 +26,16 @@ function LocalAgentCard({
   item,
   worldName,
   onOpen,
+  sdk,
 }: {
   item: LocalAgentListItem;
   worldName: string | null;
   onOpen: () => void;
+  sdk: DesktopRendererSdkPort;
 }) {
   const detailQuery = useQuery({
     queryKey: sourceDisplayDetailQueryKey(item.sourceRef),
-    queryFn: async () => fetchSourceDisplayDetail(item.sourceRef),
+    queryFn: async () => fetchSourceDisplayDetail(item.sourceRef, sdk),
     staleTime: 60_000,
   });
   const source = detailQuery.data?.source ?? null;
@@ -89,6 +92,7 @@ export type AgentsPanelViewProps = {
   onRetry: () => void;
   onOpenAgent: (item: LocalAgentListItem) => void;
   onBrowseExplore: () => void;
+  sdk: DesktopRendererSdkPort;
 };
 
 export function AgentsPanelView(props: AgentsPanelViewProps) {
@@ -184,6 +188,7 @@ export function AgentsPanelView(props: AgentsPanelViewProps) {
             item={item}
             worldName={props.worldNameById.get(item.sourceRef.worldId) || null}
             onOpen={() => props.onOpenAgent(item)}
+            sdk={props.sdk}
           />
         ))}
       </div>

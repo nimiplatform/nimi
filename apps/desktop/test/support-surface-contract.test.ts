@@ -155,8 +155,8 @@ test('D-SUP-003: repair delegates cleanup to the managed P-MIG-008 flow', () => 
   const source = readDesktop(SECTION_FILES.repair);
   // The repair sub-area never deletes data itself — it plans + executes via
   // the nimi_data cleanup bridge and gates destructive cleanup on the token.
-  assert.match(source, /planNimiDataCleanup/);
-  assert.match(source, /executeNimiDataCleanup/);
+  assert.match(source, /repair\.planDataCleanup/);
+  assert.match(source, /repair\.executeDataCleanup/);
   assert.match(source, /NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION/);
 });
 
@@ -182,16 +182,16 @@ test('support.updates-release-projection: D-SUP-004 updates consumes the Desktop
 
 test('D-SUP-005: diagnostics consumes typed runtime projections only', () => {
   const source = readDesktop(SECTION_FILES.diagnostics);
-  assert.match(source, /getRuntimeBridgeStatus/);
-  assert.match(source, /getSystemResourceSnapshot/);
+  assert.match(source, /bindings\.app\.commands\.runtimeDaemon\.status\(\)/);
+  assert.match(source, /bindings\.app\.commands\.systemResources\.load\(\)/);
 });
 
 test('D-SUP-006: logs consumes the log-areas table and exports via the typed IPC', () => {
   const source = readDesktop(SECTION_FILES.logs);
   assert.match(source, /DESKTOP_LOG_AREAS/);
-  assert.match(source, /getDesktopStorageDirs/);
+  assert.match(source, /logs\.loadStorageDirs\(\)/);
   // The typed `desktop_logs_export` IPC produces the user-locatable artifact.
-  assert.match(source, /exportDesktopLogs/);
+  assert.match(source, /logs\.exportLogs\(\)/);
   const exportBridge = readDesktop('src/shell/renderer/bridge/runtime-bridge/support-logs-export.ts');
   assert.match(exportBridge, /requirePositiveInteger\(record\.fileCount, 'fileCount'\)/);
   assert.match(exportBridge, /requirePositiveInteger\(record\.byteSize, 'byteSize'\)/);

@@ -6,12 +6,12 @@ import type {
   AgentLocalThreadBundle,
   AgentLocalThreadSummary,
 } from '../../bridge/runtime-bridge/types';
-import { getDesktopAppId, getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import {
   bundleQueryKey,
 } from './chat-agent-shell-core';
 import { hydrateAgentThreadBundleFromRuntimeSessionSnapshot } from './chat-agent-session-hydration';
-import { setAgentVisibleProjection } from './chat-agent-visible-projection-store';
+import { useAgentVisibleProjectionStore } from './chat-agent-visible-projection-context.js';
 import type { AuthStatus } from '../../app-shell/providers/app-store';
 
 type RuntimeHostErrorDetailsBuilder = (
@@ -36,19 +36,15 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function nowMs(): number {
-  return typeof performance !== 'undefined' && typeof performance.now === 'function'
-    ? performance.now()
-    : Date.now();
-}
-
-function elapsedMs(startedAt: number): number {
-  return Math.max(0, Math.round(nowMs() - startedAt));
+function elapsedMs(startedAt: number, now: number): number {
+  return Math.max(0, Math.round(now - startedAt));
 }
 
 export function useAgentRuntimeSessionSnapshotHydration(
   input: UseAgentRuntimeSessionSnapshotHydrationInput,
 ): void {
+  const bindings = useDesktopRendererBindings();
+  const visibleProjections = useAgentVisibleProjectionStore();
   const lastRuntimeSessionSnapshotRequestKeyRef = useRef<string | null>(null);
   const pendingRuntimeSessionSnapshotRequestKeyRef = useRef<string | null>(null);
 
@@ -106,7 +102,7 @@ export function useAgentRuntimeSessionSnapshotHydration(
       };
     }
     pendingRuntimeSessionSnapshotRequestKeyRef.current = snapshotRequestKey;
-    const snapshotStartedAt = nowMs();
+    const snapshotStartedAt = bindings.clock.now();
     logRendererEvent({
       level: 'info',
       area: 'agent-chat-shell-latency',
@@ -120,7 +116,7 @@ export function useAgentRuntimeSessionSnapshotHydration(
         submittingThreadId: input.submittingThreadId || null,
       },
     });
-    const runtimeAgent = createDesktopRuntimeAgentSessionSnapshotClient();
+    const runtimeAgent = createDesktopRuntimeAgentSessionSnapshotClient(bindings.sdk);
     void runtimeAgent.turns.getSessionSnapshot({
       localAgentRef,
       ownerUserId: thread.ownerUserId,
@@ -135,7 +131,7 @@ export function useAgentRuntimeSessionSnapshotHydration(
           level: 'info',
           area: 'agent-chat-shell-latency',
           message: 'phase:desktop.runtime_agent.session_snapshot_request_ms',
-          costMs: elapsedMs(snapshotStartedAt),
+          costMs: elapsedMs(snapshotStartedAt, bindings.clock.now()),
           details: {
             stage: 'desktop.runtime_agent.session_snapshot_request_ms',
             threadId: thread.id,
@@ -155,13 +151,13 @@ export function useAgentRuntimeSessionSnapshotHydration(
           bundle: currentBundle,
           conversationAnchorId,
           snapshot,
-          nowMs: Date.now(),
+          nowMs: bindings.clock.now(),
         });
         if (!hydratedBundle) {
           return;
         }
         input.queryClient.setQueryData(bundleQueryKey(thread.id), hydratedBundle);
-        setAgentVisibleProjection(thread.id, hydratedBundle);
+        visibleProjections.set(thread.id, hydratedBundle);
         lastRuntimeSessionSnapshotRequestKeyRef.current = snapshotRequestKey;
       })
       .catch((error) => {
@@ -188,6 +184,7 @@ export function useAgentRuntimeSessionSnapshotHydration(
       cancelled = true;
     };
   }, [
+    bindings,
     input.activeLocalAgentRef,
     input.activeConversationAnchorId,
     input.authStatus,
@@ -200,9 +197,11 @@ export function useAgentRuntimeSessionSnapshotHydration(
   ]);
 }
 
-function createDesktopRuntimeAgentSessionSnapshotClient() {
+function createDesktopRuntimeAgentSessionSnapshotClient(
+  sdk: ReturnType<typeof useDesktopRendererBindings>['sdk'],
+) {
   return createNimiRuntimeAgentConsumeClient({
-    runtime: { agents: getDesktopRuntime().agents },
-    runtimeAppId: getDesktopAppId(),
+    runtime: { agents: sdk.runtime().agents },
+    runtimeAppId: sdk.appId(),
   });
 }

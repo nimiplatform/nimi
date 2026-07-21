@@ -20,13 +20,9 @@ import {
   toConversationMessageViewModel,
 } from './chat-agent-thread-model';
 import type { AgentConversationSelection } from './chat-shell-types';
-import { useAgentVisibleProjection } from './chat-agent-visible-projection-store';
+import { useAgentVisibleProjection } from './chat-agent-visible-projection-context.js';
 import { useConversationStreamState } from './chat-shared-runtime-stream-ui';
-import {
-  getAgentConversationAnchorBinding,
-  getAgentConversationAnchorBindingVersion,
-  subscribeAgentConversationAnchorBindings,
-} from '../../app-shell/providers/agent-conversation-anchor-binding-storage';
+import { useAgentConversationAnchorBindings } from '../../app-shell/providers/agent-conversation-anchor-binding-context.js';
 import {
   createAgentConversationCacheThreadId,
   isEmptyPendingAssistantMessage,
@@ -41,6 +37,7 @@ import {
   type NimiAIConfig,
 } from './conversation-capability';
 import { loadDesktopRouteOptions } from '../runtime-config/desktop-route-options-service';
+import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 
 function synthesizeAgentThreadSummaryFromRuntimeSummary(
   summary: AgentRuntimeConversationSummary,
@@ -107,10 +104,12 @@ type AgentConversationShellState = {
 export function useAgentConversationShellState(
   input: UseAgentConversationShellStateInput,
 ): AgentConversationShellState {
+  const anchorBindings = useAgentConversationAnchorBindings();
+  const sdk = useDesktopRendererSdk();
   const agentResolution = useAppStore((state) => state.agentEffectiveCapabilityResolution);
   const textRouteOptionsQuery = useQuery({
     queryKey: ['chat-agent-route-options', 'text.generate'],
-    queryFn: () => loadDesktopRouteOptions('text.generate'),
+    queryFn: () => loadDesktopRouteOptions('text.generate', sdk),
     enabled: input.bootstrapReady,
     staleTime: 60_000,
   });
@@ -145,7 +144,7 @@ export function useAgentConversationShellState(
       ...RUNTIME_AGENT_CONVERSATION_SUMMARIES_QUERY_KEY,
       runtimeConversationSummaryTargetKey,
     ],
-    queryFn: () => listRuntimeAgentConversationSummaries(targets),
+    queryFn: () => listRuntimeAgentConversationSummaries(targets, sdk),
     enabled: input.authStatus === 'authenticated' && targets.length > 0,
     staleTime: 60_000,
   });
@@ -183,9 +182,9 @@ export function useAgentConversationShellState(
   }, [runtimeConversationSummaryByLocalAgentRef, selectedTarget]);
   const activeThreadId = selectedThreadRecord?.id || null;
   const anchorBindingVersion = useSyncExternalStore(
-    subscribeAgentConversationAnchorBindings,
-    getAgentConversationAnchorBindingVersion,
-    getAgentConversationAnchorBindingVersion,
+    anchorBindings.subscribe,
+    anchorBindings.getVersion,
+    anchorBindings.getVersion,
   );
   const activeAnchorBindingLocalAgentRef = selectedTarget?.localAgentRef
     || selectedThreadRecord?.localAgentRef
@@ -199,8 +198,8 @@ export function useAgentConversationShellState(
     if (runtimeSummary?.conversationAnchorId) {
       return runtimeSummary.conversationAnchorId;
     }
-    return getAgentConversationAnchorBinding(activeAnchorBindingLocalAgentRef)?.conversationAnchorId || null;
-  }, [activeAnchorBindingLocalAgentRef, anchorBindingVersion, runtimeConversationSummaryByLocalAgentRef]);
+    return anchorBindings.get(activeAnchorBindingLocalAgentRef)?.conversationAnchorId || null;
+  }, [activeAnchorBindingLocalAgentRef, anchorBindingVersion, anchorBindings, runtimeConversationSummaryByLocalAgentRef]);
   const activeTarget = useMemo(() => {
     const threadTarget = selectedThreadRecord?.targetSnapshot || null;
     if (!threadTarget) {

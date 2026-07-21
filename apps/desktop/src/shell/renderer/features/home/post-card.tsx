@@ -52,6 +52,7 @@ export type PostCardActionAdapter = {
     visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE',
   ): Promise<unknown>;
   deletePost(postId: string): Promise<void>;
+  copyText(value: string): Promise<void>;
   requestOrAcceptFriend(authorId: string, message?: string): Promise<unknown>;
   openChat(input: { authorId: string; authStatus: string }): Promise<void>;
   invalidateContacts?: () => Promise<unknown>;
@@ -328,9 +329,7 @@ export function PostCard(input: PostCardProps) {
       (import.meta as { env?: Record<string, string> }).env?.VITE_WEB_BASE_URL ?? 'https://nimi.ai';
     const postLink = `${webBaseUrl}/posts/${post.id}`;
     try {
-      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(postLink);
-      }
+      await actionAdapter.copyText(postLink);
       setFeedback(null);
     } catch {
       setFeedback({
@@ -338,7 +337,7 @@ export function PostCard(input: PostCardProps) {
         message: i18n.t('Home.copyLinkFailed', { defaultValue: 'Failed to copy post link' }),
       });
     }
-  }, [post.id, ui]);
+  }, [actionAdapter, post.id, ui]);
 
   const handleAddFriend = useCallback(
     async (message?: string) => {

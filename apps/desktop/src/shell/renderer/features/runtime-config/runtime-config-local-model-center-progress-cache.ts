@@ -1,97 +1,41 @@
-import {
-  readStorageJsonFrom,
-  resolveBrowserStorage,
-  writeStorageJsonTo,
-} from '@nimiplatform/kit/core/storage-json';
+import type { DesktopRendererLocalModelProgressPort } from '../../renderer/local-model-progress-port.js';
 import type { ProgressSessionState } from './runtime-config-model-center-utils';
 
-const downloadSessionSnapshotCache: Record<string, ProgressSessionState> = {};
-const DISMISSED_SESSION_STORAGE_KEY = 'nimi.runtime.local-model-center.dismissed-transfer-sessions.v1';
-const DISMISSED_SESSION_LIMIT = 200;
-
-export function getCachedProgressSessions(): Record<string, ProgressSessionState> {
-  return { ...downloadSessionSnapshotCache };
-}
-
-export function cacheProgressSessions(
-  sessions: Record<string, ProgressSessionState>,
-): Record<string, ProgressSessionState> {
-  for (const sessionId of Object.keys(downloadSessionSnapshotCache)) {
-    if (!(sessionId in sessions)) {
-      delete downloadSessionSnapshotCache[sessionId];
-    }
-  }
-  Object.assign(downloadSessionSnapshotCache, sessions);
-  return sessions;
-}
-
-// ---------------------------------------------------------------------------
-// Dismissed session IDs — persisted so dismissed failed sessions stay hidden
-// across component remounts and page reloads.
-// ---------------------------------------------------------------------------
-
-type DismissedTransferSessionStorageRecord = {
-  version: 1;
-  installSessionIds: string[];
-};
-
-function normalizeDismissedSessionIds(value: unknown): string[] {
-  const raw = value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Partial<DismissedTransferSessionStorageRecord>).installSessionIds
-    : value;
-  if (!Array.isArray(raw)) {
-    return [];
-  }
-  const normalized: string[] = [];
-  const seen = new Set<string>();
-  for (const item of raw) {
-    const installSessionId = String(item || '').trim();
-    if (!installSessionId || seen.has(installSessionId)) {
-      continue;
-    }
-    seen.add(installSessionId);
-    normalized.push(installSessionId);
-  }
-  return normalized.slice(-DISMISSED_SESSION_LIMIT);
-}
-
-function loadDismissedSessionIds(): string[] {
-  const result = readStorageJsonFrom(resolveBrowserStorage('local'), DISMISSED_SESSION_STORAGE_KEY);
-  return normalizeDismissedSessionIds(
-    result.state === 'ready' ? result.value : null,
+export function createLocalModelCenterProgressCache(
+  port: DesktopRendererLocalModelProgressPort,
+) {
+  let sessions: Record<string, ProgressSessionState> = {};
+  const dismissedSessionIds = new Set(
+    port.loadDismissedSessionIds().map((id) => String(id || '').trim()).filter(Boolean),
   );
-}
 
-function persistDismissedSessionIds(sessionIds: Iterable<string>): void {
-  const installSessionIds = normalizeDismissedSessionIds([...sessionIds]);
-  writeStorageJsonTo(resolveBrowserStorage('local'), DISMISSED_SESSION_STORAGE_KEY, {
-    version: 1,
-    installSessionIds,
-  } satisfies DismissedTransferSessionStorageRecord);
-}
-
-const dismissedSessionIdsCache = new Set<string>(loadDismissedSessionIds());
-
-export function getDismissedSessionIds(): Set<string> {
-  return dismissedSessionIdsCache;
-}
-
-export function addDismissedSessionId(installSessionId: string): void {
-  const normalized = String(installSessionId || '').trim();
-  if (!normalized) {
-    return;
+  function persistDismissed(): void {
+    port.persistDismissedSessionIds([...dismissedSessionIds]);
   }
-  if (dismissedSessionIdsCache.has(normalized)) {
-    return;
-  }
-  dismissedSessionIdsCache.add(normalized);
-  persistDismissedSessionIds(dismissedSessionIdsCache);
+
+  return Object.freeze({
+    getProgressSessions: () => ({ ...sessions }),
+    cacheProgressSessions(next: Record<string, ProgressSessionState>) {
+      sessions = { ...next };
+      return next;
+    },
+    getDismissedSessionIds: () => new Set(dismissedSessionIds),
+    addDismissedSessionId(installSessionId: string) {
+      const normalized = String(installSessionId || '').trim();
+      if (!normalized || dismissedSessionIds.has(normalized)) return;
+      dismissedSessionIds.add(normalized);
+      persistDismissed();
+    },
+    removeDismissedSessionId(installSessionId: string) {
+      const normalized = String(installSessionId || '').trim();
+      if (!normalized || !dismissedSessionIds.delete(normalized)) return;
+      persistDismissed();
+    },
+    clear() {
+      sessions = {};
+      dismissedSessionIds.clear();
+    },
+  });
 }
 
-export function removeDismissedSessionId(installSessionId: string): void {
-  const normalized = String(installSessionId || '').trim();
-  if (!normalized || !dismissedSessionIdsCache.delete(normalized)) {
-    return;
-  }
-  persistDismissedSessionIds(dismissedSessionIdsCache);
-}
+export type LocalModelCenterProgressCache = ReturnType<typeof createLocalModelCenterProgressCache>;

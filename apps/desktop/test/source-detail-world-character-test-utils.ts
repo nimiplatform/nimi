@@ -1,5 +1,7 @@
 import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToStaticMarkup as renderMarkup } from 'react-dom/server';
+import { DesktopRendererBindingProvider } from '../src/shell/renderer/renderer/binding-context.js';
+import type { DesktopCanonicalRendererBindings } from '../src/shell/renderer/renderer/contract.js';
 
 (globalThis as { React?: typeof React }).React = React;
 
@@ -7,7 +9,21 @@ export { changeLocale, initI18n } from '../src/shell/renderer/i18n';
 export { SourceDetailView } from '../src/shell/renderer/features/source-detail/source-detail-view';
 export { toSourceDetailData } from '../src/shell/renderer/features/source-detail/source-detail-model';
 export { simplifySourceDetailChineseText } from '../src/shell/renderer/features/source-detail/source-detail-simplified-chinese';
-export { React, renderToStaticMarkup };
+export { React };
+
+const TEST_BINDINGS = {
+  app: {
+    projection: {
+      resourceBaseUrl: () => '',
+    },
+  },
+} as DesktopCanonicalRendererBindings;
+
+export function renderToStaticMarkup(element: React.ReactNode): string {
+  return renderMarkup(
+    React.createElement(DesktopRendererBindingProvider, { bindings: TEST_BINDINGS }, element),
+  );
+}
 
 export const liBaiRaw = {
   id: 'cbdb-person-32540',

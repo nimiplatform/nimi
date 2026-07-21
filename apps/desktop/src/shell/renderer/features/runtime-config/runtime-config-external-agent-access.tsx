@@ -5,7 +5,7 @@ import {
   type NimiExternalAgentTokenLedgerRecord,
 } from '@nimiplatform/sdk/runtime';
 import { Surface, cn } from '@nimiplatform/kit/ui';
-import { getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { Button } from './runtime-config-primitives';
 import {
   CheckIcon,
@@ -26,12 +26,15 @@ import {
 import { ExternalAgentIssueTokenForm } from './runtime-config-external-agent-issue-token-form';
 import { ExternalAgentTokenTable } from './runtime-config-external-agent-token-table';
 
-const externalAgentAccess = createNimiRuntimeExternalAgentAccessSurface({
-  getExternalAgents: () => getDesktopRuntime().externalAgents,
-});
-
 export function ExternalAgentAccessPanel() {
   const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
+  const externalAgentAccess = useMemo(
+    () => createNimiRuntimeExternalAgentAccessSurface({
+      getExternalAgents: () => bindings.sdk.runtime().externalAgents,
+    }),
+    [bindings.sdk],
+  );
   const [gatewayStatus, setGatewayStatus] = useState<GatewayStatusParsed>({
     enabled: false,
     loading: true,
@@ -58,6 +61,7 @@ export function ExternalAgentAccessPanel() {
   const [showIssueForm, setShowIssueForm] = useState(false);
   const [expandedTokenId, setExpandedTokenId] = useState<string>('');
   const tokenMutationInFlightRef = useRef(false);
+  const copiedResetCancelRef = useRef<(() => void) | null>(null);
 
   const ttlRaw = Number(ttlSeconds);
   const ttlIsPositiveInteger = /^\d+$/.test(ttlSeconds.trim()) && Number.isInteger(ttlRaw) && ttlRaw > 0;
@@ -101,6 +105,10 @@ export function ExternalAgentAccessPanel() {
 
   useEffect(() => {
     void refreshGateway();
+    return () => {
+      copiedResetCancelRef.current?.();
+      copiedResetCancelRef.current = null;
+    };
   }, []);
 
   const tokenActionPlaneIsAvailable = () => isExternalAgentTokenActionPlaneAvailable({
@@ -177,11 +185,13 @@ export function ExternalAgentAccessPanel() {
 
   const onCopyBindAddress = () => {
     if (!gatewayStatus.enabled || !gatewayStatus.bindAddress) return;
-    const clip = typeof navigator !== 'undefined' ? navigator.clipboard : null;
-    if (!clip?.writeText) return;
-    void clip.writeText(gatewayStatus.bindAddress).then(() => {
+    void bindings.app.commands.writeClipboardText(gatewayStatus.bindAddress).then(() => {
       setCopiedBindAddress(true);
-      window.setTimeout(() => setCopiedBindAddress(false), 1500);
+      copiedResetCancelRef.current?.();
+      copiedResetCancelRef.current = bindings.clock.schedule(1500, (result) => {
+        copiedResetCancelRef.current = null;
+        if (result.ok) setCopiedBindAddress(false);
+      });
     }).catch(() => undefined);
   };
 
@@ -198,7 +208,7 @@ export function ExternalAgentAccessPanel() {
     let revoked = 0;
     let expired = 0;
     for (const token of tokens) {
-      const status = resolveTokenStatus(token);
+      const status = resolveTokenStatus(token, bindings.clock.now());
       if (status === 'active') active += 1;
       else if (status === 'revoked') revoked += 1;
       else expired += 1;
@@ -209,9 +219,9 @@ export function ExternalAgentAccessPanel() {
   const filteredTokens = useMemo(() => {
     if (filter === 'all') return tokens;
     if (filter === 'active') {
-      return tokens.filter((token) => resolveTokenStatus(token) === 'active');
+      return tokens.filter((token) => resolveTokenStatus(token, bindings.clock.now()) === 'active');
     }
-    return tokens.filter((token) => resolveTokenStatus(token) === 'revoked');
+    return tokens.filter((token) => resolveTokenStatus(token, bindings.clock.now()) === 'revoked');
   }, [tokens, filter]);
 
   const gatewayHeadline = gatewayStatus.loading

@@ -7,7 +7,10 @@ import {
   GiftInboxDetail,
   GiftInboxList,
 } from '@nimiplatform/kit/features/commerce/ui';
-import { useRealmGiftInbox } from '@nimiplatform/kit/features/commerce/realm';
+import {
+  createRealmCommerceGiftService,
+  useRealmGiftInbox,
+} from '@nimiplatform/kit/features/commerce/realm';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import { ScrollArea } from '@nimiplatform/kit/ui';
@@ -16,7 +19,7 @@ import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { invalidateNotificationQueries } from '../notification/notification-query.js';
 import { useTranslation } from 'react-i18next';
 import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
-import { getDesktopRealmCommerceGiftService } from '../../infra/realm/realm-commerce-service';
+import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 
 function formatGiftDate(input: string | null | undefined, i18n: DesktopI18nResource): string {
   const value = String(input || '').trim();
@@ -76,6 +79,7 @@ function toErrorMessage(error: unknown, fallback: string): string {
 export function GiftInboxPanel() {
   const i18n = useDesktopI18nResource();
   const queryClient = useQueryClient();
+  const sdk = useDesktopRendererSdk();
   const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
   const currentUser = useAppStore((state) => state.auth.user);
@@ -83,7 +87,10 @@ export function GiftInboxPanel() {
   const selectedGiftTransactionId = useAppStore((state) => state.selectedGiftTransactionId);
   const setSelectedGiftTransactionId = useAppStore((state) => state.setSelectedGiftTransactionId);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
-  const giftService = useMemo(() => getDesktopRealmCommerceGiftService(), []);
+  const giftService = useMemo(
+    () => createRealmCommerceGiftService({ generated: sdk.realm().generated }),
+    [sdk],
+  );
 
   const currentUserId = String(currentUser?.id || '').trim();
   const {

@@ -26,7 +26,9 @@ import {
   worldPrimaryDisplayDetailQueryKey,
   worldSupplementalDisplayDetailQueryKey,
 } from './world-detail-queries';
-import { useFollowedWorlds } from './world-follow-store';
+import { useFollowedWorlds } from './world-follow-store-context.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import { createRealmWorldData } from './data/realm-world-data.js';
 
 type WorldDetailProps = {
   world: WorldListItem;
@@ -35,6 +37,7 @@ type WorldDetailProps = {
 };
 
 export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps) {
+  const bindings = useDesktopRendererBindings();
   const i18n = useDesktopI18nResource().instance;
   const queryClient = useQueryClient();
   const authStatus = useAppStore((state) => state.auth.status);
@@ -54,7 +57,10 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
 
   const worldPrimaryQuery = useQuery({
     queryKey: worldPrimaryDisplayDetailQueryKey(world.id),
-    queryFn: () => fetchWorldPrimaryDisplayDetail(world.id),
+    queryFn: () => fetchWorldPrimaryDisplayDetail(
+      world.id,
+      createRealmWorldData(bindings.sdk),
+    ),
     enabled: isReady,
     initialData: cachedCompositeDisplay ? () => toWorldPrimaryDisplayDetail(cachedCompositeDisplay) : undefined,
     staleTime: 30_000,
@@ -63,7 +69,10 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
   const primaryDisplay = worldPrimaryQuery.data;
   const worldSupplementalQuery = useQuery({
     queryKey: worldSupplementalDisplayDetailQueryKey(world.id),
-    queryFn: () => fetchWorldSupplementalDisplayDetail(world.id),
+    queryFn: () => fetchWorldSupplementalDisplayDetail(
+      world.id,
+      createRealmWorldData(bindings.sdk),
+    ),
     enabled: isReady && Boolean(primaryDisplay),
     initialData: cachedCompositeDisplay ? () => toWorldSupplementalDisplayDetail(cachedCompositeDisplay) : undefined,
     staleTime: 30_000,
@@ -212,8 +221,8 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
         sourceKind: character.sourceRef.kind,
         sourceId: character.sourceRef.id,
         sourceHash: character.sourceRef.sourceHash,
-      }, ownerUserId, i18n.t);
-      await ensureRuntimeAgentExists(target);
+      }, ownerUserId, i18n.t, bindings.sdk);
+      await ensureRuntimeAgentExists(target, bindings.sdk, ownerUserId);
       setFeedback({
         kind: 'success',
         message: `${character.name} is ready as your partner.`,

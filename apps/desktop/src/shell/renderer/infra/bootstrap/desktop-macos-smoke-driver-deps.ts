@@ -2,10 +2,6 @@ import { writeDesktopMacosSmokeReport } from '../../bridge/runtime-bridge/macos-
 import { desktopBridge } from '../../bridge';
 import type { DesktopMacosSmokeContext } from '../../bridge/runtime-bridge/types';
 import { getDesktopAIConfigService } from '../../app-shell/providers/desktop-ai-config-service';
-import {
-  clearAllAgentConversationAnchorBindings,
-  getAgentConversationAnchorBinding,
-} from '../../app-shell/providers/agent-conversation-anchor-binding-storage';
 import { getActiveScope } from '../../features/chat/chat-shared-active-ai-config-scope';
 import {
   getDesktopAccountRuntime,
@@ -27,6 +23,8 @@ export type DesktopMacosSmokeDriverDepsOptions = {
     | 'applyRuntimeAccountProjection'
     | 'auth'
     | 'cancelAndClearQueries'
+    | 'clearAgentConversationAnchorBindings'
+    | 'readAgentConversationAnchorBinding'
   >;
   context?: DesktopMacosSmokeContext | null;
   onStepStart?: DesktopMacosSmokeDriverDeps['onStepStart'];
@@ -143,11 +141,11 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions)
       element.dispatchEvent(new Event('change', { bubbles: true }));
     },
     async clearAgentConversationAnchorBindings() {
-      clearAllAgentConversationAnchorBindings();
+      options.lifecycle.clearAgentConversationAnchorBindings();
       await new Promise<void>((resolve) => setTimeout(resolve, 0));
     },
     async readAgentConversationAnchorBinding(localAgentRef: string) {
-      return getAgentConversationAnchorBinding(localAgentRef);
+      return options.lifecycle.readAgentConversationAnchorBinding(localAgentRef);
     },
     async configureRuntimeTextRoute() {
       const scopeRef = getActiveScope();

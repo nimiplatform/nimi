@@ -4,6 +4,7 @@ import {
 } from './chat-agent-shell-core';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import { submitAgentConversationTurn } from './chat-agent-shell-host-actions-submit';
+import { useAgentVisibleProjectionStore } from './chat-agent-visible-projection-context.js';
 import type {
   ActiveAgentSubmit,
   AgentConversationSubmitPayload,
@@ -18,6 +19,7 @@ export function useAgentConversationHostActions(
   handleSelectAgent: (localAgentRef: string | null) => void;
   handleSubmit: (input: { text: string; attachments: readonly PendingAttachment[] }) => Promise<void>;
 } {
+  const visibleProjections = useAgentVisibleProjectionStore();
   useEffect(() => {
     if (!input.threadsReady) {
       return;
@@ -57,6 +59,7 @@ export function useAgentConversationHostActions(
       payload,
       activeSubmitsByThreadRef,
       submittingLockTokenRef,
+      visibleProjections,
     });
   }, [input]);
 

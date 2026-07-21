@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {
-  clearAllAgentConversationAnchorBindings,
-  clearAgentConversationAnchorBinding,
-  getAgentConversationAnchorBinding,
-  persistAgentConversationAnchorBinding,
-  subscribeAgentConversationAnchorBindings,
-} from '../src/shell/renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
+import { createAgentConversationAnchorBindingStore } from '../src/shell/renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
+
+const anchorBindings = createAgentConversationAnchorBindingStore(() => 0);
+const clearAllAgentConversationAnchorBindings = anchorBindings.clearAll;
+const clearAgentConversationAnchorBinding = anchorBindings.clear;
+const getAgentConversationAnchorBinding = anchorBindings.get;
+const persistAgentConversationAnchorBinding = anchorBindings.persist;
+const subscribeAgentConversationAnchorBindings = anchorBindings.subscribe;
 
 const LEGACY_AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY = 'nimi.chat.agent.anchor-bindings.v2';
 

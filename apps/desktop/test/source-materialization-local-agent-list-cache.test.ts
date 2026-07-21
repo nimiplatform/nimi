@@ -24,7 +24,7 @@ test('source materialization launch paths refresh Runtime localAgent list before
 
   for (const source of launchSources) {
     assert.match(source, /localAgentListQueryKey/);
-    assert.match(source, /ensureRuntimeAgentExists\(target\)/);
+    assert.match(source, /ensureRuntimeAgentExists\(target, bindings\.sdk, ownerUserId\)/);
     assert.match(
       source,
       /invalidateQueries\(\{\s*queryKey:\s*localAgentListQueryKey\(ownerUserId\),\s*exact:\s*true\s*\}\)/,

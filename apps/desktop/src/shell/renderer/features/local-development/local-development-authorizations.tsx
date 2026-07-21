@@ -1,17 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, InlineAlert, NimiText, StatusBadge, Surface } from '@nimiplatform/kit/ui';
-import {
-  listLocalDevelopmentAuthorizations,
-  listLocalDevelopmentRuns,
-  localDevelopmentBridgeAvailable,
-  revokeLocalDevelopmentAuthorization,
-  type LocalDevelopmentAuthorization,
-  type LocalDevelopmentRun,
-} from './local-development-bridge.js';
+import type {
+  LocalDevelopmentAuthorization,
+  LocalDevelopmentRun,
+} from './local-development-types.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 export function LocalDevelopmentAuthorizations() {
   const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
+  const available = bindings.app.projection.localDevelopmentAvailable();
   const [rows, setRows] = useState<LocalDevelopmentAuthorization[]>([]);
   const [runs, setRuns] = useState<LocalDevelopmentRun[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,11 +19,11 @@ export function LocalDevelopmentAuthorizations() {
   const [busySelector, setBusySelector] = useState('');
 
   const refresh = useCallback(async (showLoading = true) => {
-    if (!localDevelopmentBridgeAvailable()) return;
+    if (!available) return;
     if (showLoading) setLoading(true);
     const [authorizations, activity] = await Promise.allSettled([
-      listLocalDevelopmentAuthorizations(),
-      listLocalDevelopmentRuns(),
+      bindings.app.commands.listLocalDevelopmentAuthorizations(),
+      bindings.app.commands.listLocalDevelopmentRuns(),
     ]);
     const errors: string[] = [];
     if (authorizations.status === 'fulfilled') setRows(authorizations.value);
@@ -33,25 +32,42 @@ export function LocalDevelopmentAuthorizations() {
     else errors.push(activity.reason instanceof Error ? activity.reason.message : String(activity.reason));
     setError(errors.join(' '));
     if (showLoading) setLoading(false);
-  }, []);
+  }, [available, bindings.app.commands]);
 
   useEffect(() => {
-    if (!localDevelopmentBridgeAvailable()) {
+    if (!available) {
       setLoading(false);
       return;
     }
-    void refresh();
-    const interval = window.setInterval(() => { void refresh(false); }, 2_000);
-    return () => window.clearInterval(interval);
-  }, [refresh]);
+    let active = true;
+    let cancelNext: (() => void) | null = null;
+    const poll = async (showLoading: boolean) => {
+      await refresh(showLoading);
+      if (!active) return;
+      cancelNext = bindings.clock.schedule(2_000, (result) => {
+        cancelNext = null;
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        void poll(false);
+      });
+    };
+    void poll(true);
+    return () => {
+      active = false;
+      cancelNext?.();
+      cancelNext = null;
+    };
+  }, [available, bindings.clock, refresh]);
 
-  if (!localDevelopmentBridgeAvailable()) return null;
+  if (!available) return null;
 
   const revoke = async (selector: string) => {
     setBusySelector(selector);
     setError('');
     try {
-      const revoked = await revokeLocalDevelopmentAuthorization(selector);
+      const revoked = await bindings.app.commands.revokeLocalDevelopmentAuthorization(selector);
       setRows((current) => current.map((row) => row.selector === selector ? revoked : row));
       setConfirmSelector('');
     } catch (cause) {

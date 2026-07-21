@@ -4,8 +4,8 @@ import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/ch
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAppStore, type AuthStatus } from '../../app-shell/providers/app-store';
-import { setGroupLocalAgentParticipationActive } from './chat-shared-active-ai-config-scope';
-import { realmGroupChatData } from './data/realm-group-chat-data';
+import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
+import { useRealmGroupChatData } from './data/realm-group-chat-data-context.js';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import { ChatGroupParticipantPanel } from './chat-group-participant-panel';
 import { ChatGroupComposer } from './chat-group-composer';
@@ -108,6 +108,8 @@ export function resolveInvokableGroupSourceMention(
 export function useGroupConversationModeHost(
   input: UseGroupConversationModeHostInput,
 ): DesktopConversationModeHost {
+  const realmGroupChatData = useRealmGroupChatData();
+  const commands = useDesktopRendererCommands();
   const { authStatus, currentUserId } = input;
   const { t } = useTranslation();
   const groupChatCopy = useMemo<GroupChatCopy>(() => ({
@@ -231,13 +233,13 @@ export function useGroupConversationModeHost(
     [participants, currentUserId],
   );
   useEffect(() => {
-    setGroupLocalAgentParticipationActive(groupHasLocalAgentParticipation);
-  }, [groupHasLocalAgentParticipation]);
+    commands.setGroupLocalAgentParticipationActive(groupHasLocalAgentParticipation);
+  }, [commands, groupHasLocalAgentParticipation]);
   useEffect(() => () => {
     // Leaving the Group surface clears participation so a later mode does not
     // inherit a stale agent-scope binding from Group.
-    setGroupLocalAgentParticipationActive(false);
-  }, []);
+    commands.setGroupLocalAgentParticipationActive(false);
+  }, [commands]);
 
   const setupState = useMemo(() => {
     if (authStatus === 'authenticated') {

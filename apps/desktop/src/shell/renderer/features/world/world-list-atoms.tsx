@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { useId, type CSSProperties, type ReactNode } from 'react';
 
 const SEAL_GRADIENTS = [
   'linear-gradient(135deg, #a78bfa 0%, #6d28d9 100%)',
@@ -92,6 +92,7 @@ type PulseProps = {
 };
 
 export function Pulse({ data, width = 120, height = 28, color = 'var(--nimi-action-primary-bg)', gradientId }: PulseProps) {
+  const instanceId = useId();
   if (!data.length) return null;
   const max = Math.max(...data, 0.001);
   const step = width / Math.max(1, data.length - 1);
@@ -99,7 +100,7 @@ export function Pulse({ data, width = 120, height = 28, color = 'var(--nimi-acti
     .map((v, i) => `${(i * step).toFixed(1)},${(height - (v / max) * height * 0.9 - 2).toFixed(1)}`)
     .join(' ');
   const area = `0,${height} ${pts} ${width},${height}`;
-  const fadeId = gradientId ?? `pulseFade-${Math.random().toString(36).slice(2, 9)}`;
+  const fadeId = gradientId ?? `pulseFade-${instanceId.replace(/[^A-Za-z0-9_-]/gu, '')}`;
   return (
     <svg width={width} height={height} style={{ display: 'block' }} aria-hidden="true">
       <defs>

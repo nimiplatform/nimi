@@ -1,6 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 
 import type { AppStoreApi } from '../app-shell/providers/app-store-factory.js';
+import type { AgentConversationAnchorBindingStore } from '../app-shell/providers/agent-conversation-anchor-binding-storage.js';
 import type {
   AppStoreState,
   RuntimeAccountAuthProjection,
@@ -33,12 +34,17 @@ export interface DesktopRendererLifecyclePort {
   setBootstrapError(message: string | null): void;
   invalidateQueries(keys: readonly (readonly unknown[])[]): Promise<void>;
   cancelAndClearQueries(): Promise<void>;
+  clearAgentConversationAnchorBindings(): void;
+  readAgentConversationAnchorBinding(
+    localAgentRef: string,
+  ): ReturnType<AgentConversationAnchorBindingStore['get']>;
 }
 
 export function createDesktopRendererLifecyclePort(
   store: AppStoreApi,
   queryClient: QueryClient,
   translate: DesktopRendererLifecyclePort['translate'],
+  anchorBindings: AgentConversationAnchorBindingStore,
 ): DesktopRendererLifecyclePort {
   const port: DesktopRendererLifecyclePort = {
     auth: () => store.getState().auth,
@@ -87,6 +93,8 @@ export function createDesktopRendererLifecyclePort(
       await queryClient.cancelQueries();
       queryClient.clear();
     },
+    clearAgentConversationAnchorBindings: anchorBindings.clearAll,
+    readAgentConversationAnchorBinding: anchorBindings.get,
   };
   return Object.freeze(port);
 }

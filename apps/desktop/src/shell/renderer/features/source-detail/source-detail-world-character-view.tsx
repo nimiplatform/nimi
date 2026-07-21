@@ -4,6 +4,7 @@ import { ScrollArea, Tooltip, TooltipProvider } from '@nimiplatform/kit/ui';
 import { ArrowLeft, CirclePlus, MessageCircle } from 'lucide-react';
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import { toSafeBackgroundImage } from '../explore/explore-background-image.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { describeCharacterPrimaryAction } from '../explore/character-source-materialization';
 import type { SourceDetailData, SourceDetailWorldCharacterMilestone } from './source-detail-model.js';
 import { simplifySourceDetailChineseText as simplifyDisplayText } from './source-detail-simplified-chinese.js';
@@ -535,9 +536,11 @@ function WorldCharacterMediaSection({ source }: { source: SourceDetailData }) {
 
 export function WorldCharacterSourceDetailPage(props: WorldCharacterSourceDetailPageProps) {
   const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
   const { source } = props;
   const bannerImage = toSafeBackgroundImage(
     source.profileCoverUrl ?? source.worldBannerUrl ?? source.referenceImageUrl,
+    bindings.app.projection.resourceBaseUrl(),
   );
   const primaryAction = describeCharacterPrimaryAction(source.sourceState, t);
   const canStartChat = primaryAction.action === 'open_partner';

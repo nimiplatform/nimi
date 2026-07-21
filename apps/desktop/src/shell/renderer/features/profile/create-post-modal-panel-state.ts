@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { RefObject } from 'react';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 type PanelPosition = { left: number; top: number } | null;
 
@@ -17,6 +18,7 @@ export function useCreatePostModalPanelState(input: {
   locationButtonRef: RefObject<HTMLButtonElement | null>;
   tagButtonRef: RefObject<HTMLButtonElement | null>;
 }) {
+  const bindings = useDesktopRendererBindings();
   const [showEmojiPanel, setShowEmojiPanel] = useState(false);
   const [showLocationPanel, setShowLocationPanel] = useState(false);
   const [showTagPanel, setShowTagPanel] = useState(false);
@@ -86,9 +88,8 @@ export function useCreatePostModalPanelState(input: {
       }
     };
 
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [input.open, showEmojiPanel, showLocationPanel, showTagPanel]);
+    return bindings.app.events.subscribeDocumentClick(handleClickOutside);
+  }, [bindings.app.events, input.open, showEmojiPanel, showLocationPanel, showTagPanel]);
 
   useEffect(() => {
     if (!input.open) {
@@ -107,9 +108,8 @@ export function useCreatePostModalPanelState(input: {
       }
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [input.open, input.emojiButtonRef, input.locationButtonRef, input.tagButtonRef, showEmojiPanel, showLocationPanel, showTagPanel]);
+    return bindings.app.events.subscribeWindowResize(handleResize);
+  }, [bindings.app.events, input.open, input.emojiButtonRef, input.locationButtonRef, input.tagButtonRef, showEmojiPanel, showLocationPanel, showTagPanel]);
 
   return {
     showEmojiPanel,

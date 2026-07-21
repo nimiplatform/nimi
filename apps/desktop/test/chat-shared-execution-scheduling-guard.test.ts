@@ -9,6 +9,7 @@ import {
   type NimiAISchedulingJudgement,
 } from '@nimiplatform/sdk/ai';
 import { getDesktopAIConfigService } from '../src/shell/renderer/app-shell/providers/desktop-ai-config-service.js';
+import type { DesktopRendererSdkPort } from '../src/shell/renderer/renderer/sdk-port.js';
 import {
   isBusySlowdownRisk,
   resolveExecutionSchedulingGuardDecision,
@@ -42,6 +43,10 @@ function t(key: string, options?: Record<string, unknown>): string {
 }
 
 const translate = t as unknown as TFunction;
+const TEST_SDK = {
+  aiConfig: getDesktopAIConfigService,
+  runtime: () => undefined,
+} as unknown as DesktopRendererSdkPort;
 
 function createLocalTextSubmitConfig(): NimiAIConfig {
   const scopeRef = createNimiBuiltInChatAIScopeRef('agent');
@@ -172,6 +177,7 @@ test('AI submit: denied scheduling judgement blocks execution before submit proc
     await assert.rejects(
       assertAiSubmitSchedulingAllowed({
         aiConfig: createLocalTextSubmitConfig(),
+        sdk: TEST_SDK,
         t: translate,
       }),
       /GPU missing/,
@@ -184,6 +190,7 @@ test('Agent submit: denied scheduling judgement blocks execution before submit p
     await assert.rejects(
       assertAgentSubmitSchedulingAllowed({
         aiConfig: createLocalTextSubmitConfig(),
+        sdk: TEST_SDK,
         t: translate,
       }),
       /disk below safe threshold/,
@@ -203,6 +210,7 @@ test('AI submit: advisory scheduling states still allow submit preflight', async
       await assert.doesNotReject(async () => {
           await assertAiSubmitSchedulingAllowed({
             aiConfig: createLocalTextSubmitConfig(),
+            sdk: TEST_SDK,
             t: translate,
           });
       });
@@ -223,6 +231,7 @@ test('unknown scheduling judgement: submit stays allowed but does not masquerade
     await assert.doesNotReject(async () => {
       await assertAgentSubmitSchedulingAllowed({
         aiConfig: createLocalTextSubmitConfig(),
+        sdk: TEST_SDK,
         t: translate,
       });
     });
@@ -252,6 +261,7 @@ test('submit guard uses target-scoped probe instead of scope aggregate probe', a
     await assert.doesNotReject(async () => {
       await assertAiSubmitSchedulingAllowed({
         aiConfig: createLocalTextSubmitConfig(),
+        sdk: TEST_SDK,
         t: translate,
       });
     });

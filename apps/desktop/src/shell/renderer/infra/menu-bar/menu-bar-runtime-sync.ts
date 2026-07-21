@@ -4,7 +4,7 @@ import { projectNimiRuntimeHealthStatusName } from '@nimiplatform/sdk/runtime';
 import { desktopBridge } from '../../bridge';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import {
-  getRuntimeHealthCoordinator,
+  NimiRuntimeHealthCoordinator,
   useRuntimeHealthCoordinatorState,
   type NimiRuntimeHealthCoordinatorState,
 } from '../../features/runtime-config/runtime-health-coordinator';
@@ -94,12 +94,12 @@ export function shouldSyncMenuBarRuntimeHealth(
 
 export function connectMenuBarRuntimeSync(
   lifecycle: Pick<DesktopRendererLifecyclePort, 'bootstrap' | 'subscribeBootstrap'>,
+  coordinator: NimiRuntimeHealthCoordinator,
 ): () => void {
   const flags = getShellFeatureFlags();
   if (!flags.enableMenuBarShell || !desktopBridge.hasTauriInvoke()) {
     return () => {};
   }
-  const coordinator = getRuntimeHealthCoordinator();
   let active = true;
   let syncGeneration = 0;
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;

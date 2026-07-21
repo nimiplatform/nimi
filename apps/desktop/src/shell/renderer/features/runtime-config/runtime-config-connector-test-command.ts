@@ -7,6 +7,7 @@ import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import type { StatusBanner } from '../../app-shell/providers/app-store';
 import type { RuntimeConfigStateUpdater } from './runtime-config-types';
 import { discoverConnectorModelsAndHealth } from './runtime-config-connector-discovery';
+import type { RuntimeConfigConnectorSdkService } from './runtime-config-connector-sdk-service.js';
 
 function connectorTestFailureKind(status: string): StatusBanner['kind'] {
   return status === 'degraded' ? 'warning' : 'error';
@@ -15,6 +16,8 @@ function connectorTestFailureKind(status: string): StatusBanner['kind'] {
 export async function runSelectedConnectorTestCommand(input: {
   state: RuntimeConfigStateV11;
   selectedConnector: RuntimeConfigStateV11['connectors'][number];
+  connectorSdk: RuntimeConfigConnectorSdkService;
+  now: () => number;
   updateState: RuntimeConfigStateUpdater;
   setControlFeedback: (banner: StatusBanner | null) => void;
 }) {
@@ -27,6 +30,8 @@ export async function runSelectedConnectorTestCommand(input: {
     normalizedStatus,
   } = await discoverConnectorModelsAndHealth({
     connector: input.selectedConnector,
+    connectorSdk: input.connectorSdk,
+    now: input.now,
   });
 
   input.updateState((prev) => ({
@@ -76,6 +81,7 @@ export async function runSelectedConnectorTestCommand(input: {
 export function markSelectedConnectorTestFailedCommand(input: {
   state: RuntimeConfigStateV11;
   selectedConnector: RuntimeConfigStateV11['connectors'][number];
+  now: () => number;
   updateState: RuntimeConfigStateUpdater;
   setControlFeedback: (banner: StatusBanner | null) => void;
   error: unknown;
@@ -90,7 +96,7 @@ export function markSelectedConnectorTestFailedCommand(input: {
       return {
         ...connector,
         status: 'unreachable',
-        lastCheckedAt: new Date().toISOString(),
+        lastCheckedAt: new Date(input.now()).toISOString(),
         lastDetail: errorText,
       };
     }),

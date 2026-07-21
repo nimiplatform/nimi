@@ -1,5 +1,5 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
-import { useMemo, type CSSProperties, type MouseEvent } from 'react';
+import { useId, useMemo, type CSSProperties, type MouseEvent } from 'react';
 
 import { AppCardSurface } from '@nimiplatform/kit/ui';
 import { getSemanticSourcePalette } from '../../components/source-theme.js';
@@ -28,7 +28,7 @@ function deterministicPulse(seed: string, points = 12): number[] {
   return out;
 }
 function MiniSparkline({ seed, width = 52, height = 18 }: { seed: string; width?: number; height?: number }) {
-  const id = useMemo(() => `source-pulse-${Math.random().toString(36).slice(2, 10)}`, []);
+  const id = `source-pulse-${useId().replace(/[^A-Za-z0-9_-]/gu, '')}`;
   const data = useMemo(() => deterministicPulse(seed), [seed]);
   const max = Math.max(...data, 1);
   const step = width / Math.max(data.length - 1, 1);

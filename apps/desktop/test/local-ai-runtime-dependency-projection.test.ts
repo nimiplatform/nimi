@@ -208,9 +208,9 @@ test('local model center projects Runtime-owned local environment state instead 
 });
 
 test('runtime setup autodiscovery is debounced across panel remounts', () => {
-  assert.match(setupAutodiscoverSource, /let runtimeConfigSetupAutodiscoverTriggered = false/);
-  assert.match(setupAutodiscoverSource, /if \(runtimeConfigSetupAutodiscoverTriggered\) return/);
-  assert.match(setupAutodiscoverSource, /runtimeConfigSetupAutodiscoverTriggered = true;\s*void input\.discoverLocalModels\(\{ visible: false \}\)/);
+  assert.match(setupAutodiscoverSource, /useDesktopRendererCommands\(\)\.localModelProgress/);
+  assert.match(setupAutodiscoverSource, /if \(!progress\.claimSetupAutodiscover\(\)\) return/);
+  assert.match(setupAutodiscoverSource, /void input\.discoverLocalModels\(\{ visible: false \}\)/);
   assert.doesNotMatch(setupAutodiscoverSource, /useRef/);
 });
 

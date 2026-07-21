@@ -10,7 +10,8 @@
  */
 
 import { useTranslation } from 'react-i18next';
-import { desktopBridge, type NimiProductControlRecordProjection } from '../../bridge';
+import type { NimiProductControlRecordProjection } from '@nimiplatform/sdk/runtime';
+import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import { useTypedProjection as useSupportProjection } from '@nimiplatform/kit/ui';
 import {
   NIMI_PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY,
@@ -24,13 +25,16 @@ import {
   SupportSectionShell,
 } from './support-section-shell.js';
 
-async function loadRecoveryProjection(): Promise<NimiProductControlRecordProjection> {
-  return desktopBridge.getProductControlRecord();
+async function loadRecoveryProjection(
+  repair: ReturnType<typeof useDesktopRendererCommands>['supportRepair'],
+): Promise<NimiProductControlRecordProjection> {
+  return repair.loadProductControlRecord();
 }
 
 export function SupportRecoverySection(props: { onNavigateToRepair: () => void }) {
   const { t } = useTranslation();
-  const projection = useSupportProjection(loadRecoveryProjection, {
+  const repair = useDesktopRendererCommands().supportRepair;
+  const projection = useSupportProjection(() => loadRecoveryProjection(repair), {
     failClosedMessage: t('Support.recoveryProjectionUnavailable'),
   });
 

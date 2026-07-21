@@ -82,8 +82,8 @@ test('conversation capability UI contract: agent bootstrap prioritizes text.gene
   const agentHostActionsSource = readSource('src/shell/renderer/features/chat/chat-agent-shell-host-actions-submit.ts');
   assert.match(agentEffectsSource, /const AGENT_CONVERSATION_BOOTSTRAP_CAPABILITIES:[\s\S]*'text\.generate'/);
   assert.match(agentEffectsSource, /const AGENT_CONVERSATION_DEFERRED_CAPABILITIES:[\s\S]*'audio\.synthesize'/);
-  assert.match(agentEffectsSource, /refreshConversationCapabilityProjections\(store, AGENT_CONVERSATION_BOOTSTRAP_CAPABILITIES\)/);
-  assert.match(agentEffectsSource, /refreshConversationCapabilityProjections\(store, AGENT_CONVERSATION_DEFERRED_CAPABILITIES\)/);
+  assert.match(agentEffectsSource, /refreshConversationCapabilityProjections\(store, AGENT_CONVERSATION_BOOTSTRAP_CAPABILITIES, routeRuntime\)/);
+  assert.match(agentEffectsSource, /refreshConversationCapabilityProjections\(store, AGENT_CONVERSATION_DEFERRED_CAPABILITIES, routeRuntime\)/);
   assert.match(agentAdapterSource, /return createReadyConversationSetupState\('agent'\);/);
   assert.match(agentAdapterSource, /const composerReady = setupState\.status === 'ready'\s+&& !isBundleLoading\s+&& !bundleError/);
   assert.doesNotMatch(agentAdapterSource, /resolveAiConversationSetupStateFromProjection/);
@@ -117,8 +117,8 @@ test('conversation capability UI contract: Nimi active model selector uses Kit r
   assert.match(pickerSelectionAdapterSource, /pickerSelectionToTargetRef/);
   assert.match(pickerSelectionAdapterSource, /kind: 'cloud-connector'/);
   assert.match(pickerSelectionAdapterSource, /kind: 'local-runtime'/);
-  assert.match(settingsSource, /getDesktopRouteModelPickerProvider/);
-  assert.match(settingsSource, /providerResolver: \(routeCapability: string\) => getDesktopRouteModelPickerProvider\(routeCapability\)/);
+  assert.match(settingsSource, /useDesktopRouteModelPickerProviderResolver/);
+  assert.match(settingsSource, /providerResolver,/);
   assert.match(settingsSource, /Model selection required/);
   assert.match(settingsSource, /A route is selected, but runtime describe metadata is not available yet/);
   assert.match(settingsSource, /supported: Boolean\(projection\.selectedTargetRef && projection\.resolvedBinding\)/);

@@ -9,10 +9,12 @@ import { createNimiBuiltInChatAIScopeRef } from '@nimiplatform/sdk/ai';
 import {
   buildConversationCapabilityProjection,
   createDefaultConversationCapabilitySelectionStore,
-  getConversationCapabilityRouteRuntime,
   selectionStoreFromAIConfig,
   updateConversationCapabilityTargetRef,
 } from '../src/shell/renderer/features/chat/conversation-capability.js';
+import {
+  getProductionConversationCapabilityRouteRuntime as getConversationCapabilityRouteRuntime,
+} from '../src/shell/renderer/features/chat/production-conversation-route-runtime-state.js';
 import {
   bindDesktopConversationCapabilityRouteRuntime,
   clearDesktopConversationCapabilityRouteRuntime,

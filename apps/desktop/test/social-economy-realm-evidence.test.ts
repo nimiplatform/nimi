@@ -24,16 +24,16 @@ test('gift actions require loaded Realm transaction evidence', () => {
 
 test('gift inbox injects the Desktop Realm commerce service into Kit hook', () => {
   assert.match(giftInboxSource, /useRealmGiftInbox\(\{/);
-  assert.match(giftInboxSource, /getDesktopRealmCommerceGiftService/);
-  assert.match(giftInboxSource, /const giftService = useMemo\(\(\) => getDesktopRealmCommerceGiftService\(\), \[\]\)/);
+  assert.match(giftInboxSource, /createRealmCommerceGiftService/);
+  assert.match(giftInboxSource, /generated: sdk\.realm\(\)\.generated/);
   assert.match(giftInboxSource, /service:\s*giftService/);
 });
 
 test('wallet checkout return does not claim local success before Realm evidence', () => {
   assert.match(walletPageSource, /loadRealmCurrencyBalances/);
   assert.match(walletPageSource, /from '@nimiplatform\/kit\/features\/commerce\/realm'/);
-  assert.match(walletPageSource, /getDesktopRealmCommerceGiftService/);
-  assert.match(walletPageSource, /queryFn:\s*async \(\) => loadRealmCurrencyBalances\(\{\s*service: getDesktopRealmCommerceGiftService\(\),\s*\}\)/);
+  assert.match(walletPageSource, /createRealmCommerceGiftService/);
+  assert.match(walletPageSource, /loadRealmCurrencyBalances\(\{ service: giftService \}\)/);
   assert.doesNotMatch(walletPageSource, /dataSync\.loadCurrencyBalances/);
   assert.match(walletPageSource, /Wallet\.rechargeReturnRequiresRealmEvidence/);
   assert.match(walletPageSource, /void refreshSparkWalletSnapshot\(\)/);

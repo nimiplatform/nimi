@@ -2,11 +2,12 @@ import type {
   NimiRuntimeCanonicalCapability,
   NimiRuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/sdk/runtime';
-import { loadRuntimeRouteOptions } from '../../infra/bootstrap/runtime-bootstrap-route-options';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 
 export async function loadDesktopRouteOptions(
   capability: NimiRuntimeCanonicalCapability,
+  sdk: Pick<DesktopRendererSdkPort, 'loadRouteOptions'>,
   input?: { targetId?: string },
 ): Promise<NimiRuntimeRouteOptionsSnapshot> {
-  return loadRuntimeRouteOptions({ capability, targetId: input?.targetId });
+  return sdk.loadRouteOptions(capability, input?.targetId);
 }

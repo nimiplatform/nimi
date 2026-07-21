@@ -1,10 +1,20 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToStaticMarkup as renderMarkup } from 'react-dom/server';
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
 import { StreamControllerProvider } from '../src/shell/renderer/features/turns/stream-controller-context.js';
 import { createTestStreamController } from './helpers/test-stream-controller.js';
+import { DesktopRendererBindingProvider } from '../src/shell/renderer/renderer/binding-context.js';
+import type { DesktopCanonicalRendererBindings } from '../src/shell/renderer/renderer/contract.js';
+
+function renderToStaticMarkup(element: React.ReactNode): string {
+  return renderMarkup(
+    <DesktopRendererBindingProvider bindings={{ app: { commands: {} } } as DesktopCanonicalRendererBindings}>
+      {element}
+    </DesktopRendererBindingProvider>,
+  );
+}
 
 async function loadRuntimeImageMessageContent() {
   Object.defineProperty(globalThis, 'React', {

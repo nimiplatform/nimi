@@ -1,4 +1,21 @@
-import { createNimiRuntimeConnectorInventoryClient, defaultNimiRuntimeConnectorAuthOptionForProvider, listNimiRuntimeConnectorAuthOptionsForProvider, providerToNimiRuntimeConnectorVendor, resolveNimiRuntimeConnectorProviderEndpoint, nimiRuntimeConnectorAuthProfileForId, nimiRuntimeConnectorToProjection, runtimeConnectorProjectionToNimiRuntimeConfigConnector, nimiRuntimeConnectorVendorToProvider, type NimiRuntimeConnectorAuthProfileSpec, type NimiRuntimeConnectorAuthOption, type NimiRuntimeConnectorClient, type NimiRuntimeConnectorModelInfo, type NimiRuntimeConnectorProjection, type NimiRuntimeConnectorProjectionInput } from '@nimiplatform/sdk/runtime';
+import {
+  createNimiRuntimeConnectorInventoryClient,
+  defaultNimiRuntimeConnectorAuthOptionForProvider,
+  listNimiRuntimeConnectorAuthOptionsForProvider,
+  providerToNimiRuntimeConnectorVendor,
+  resolveNimiRuntimeConnectorProviderEndpoint,
+  nimiRuntimeConnectorAuthProfileForId,
+  nimiRuntimeConnectorToProjection,
+  runtimeConnectorProjectionToNimiRuntimeConfigConnector,
+  nimiRuntimeConnectorVendorToProvider,
+  type NimiRuntimeConnectorAuthProfileSpec,
+  type NimiRuntimeConnectorAuthOption,
+  type NimiRuntimeConnectorClient,
+  type NimiRuntimeConnectorModelInfo,
+  type NimiRuntimeConnectorProjection,
+  type NimiRuntimeConnectorProjectionInput,
+  type Runtime,
+} from '@nimiplatform/sdk/runtime';
 import { type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
 import { type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/wire-types';
 import type {
@@ -6,7 +23,6 @@ import type {
   ApiConnectorAuthModeV11,
   ApiVendor,
 } from './runtime-config-state-types';
-import { getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
 
 const CONNECTOR_CALL_OPTIONS: RuntimeTypedCallOptions = {
   timeoutMs: 5000,
@@ -24,20 +40,39 @@ export type ApiConnectorAuthOption = {
 
 export type ConnectorModelInfo = NimiRuntimeConnectorModelInfo;
 
-export const runtimeConnectors: NimiRuntimeConnectorClient = {
-  listProviderCatalog: (request, options) => getDesktopRuntime().connectors.listProviderCatalog(request, options),
-  listConnectors: (request, options) => getDesktopRuntime().connectors.listConnectors(request, options),
-  createConnector: (request, options) => getDesktopRuntime().connectors.createConnector(request, options),
-  updateConnector: (request, options) => getDesktopRuntime().connectors.updateConnector(request, options),
-  deleteConnector: (request, options) => getDesktopRuntime().connectors.deleteConnector(request, options),
-  testConnector: (request, options) => getDesktopRuntime().connectors.testConnector(request, options),
-  listConnectorModels: (request, options) => getDesktopRuntime().connectors.listConnectorModels(request, options),
-};
-
-const runtimeConnectorInventory = createNimiRuntimeConnectorInventoryClient({
-  connectors: runtimeConnectors,
-  callOptions: CONNECTOR_CALL_OPTIONS,
-});
+export type RuntimeConfigConnectorSdkService = Readonly<{
+  runtimeConnectors: NimiRuntimeConnectorClient;
+  clearCaches(): void;
+  sdkListProviderCatalog(): Promise<ProviderCatalogEntry[]>;
+  sdkListConnectors(): Promise<ApiConnector[]>;
+  sdkCreateConnector(input: {
+    provider: string;
+    endpoint: string;
+    label: string;
+    apiKey?: string;
+    credentialValue?: string;
+    credentialJson?: string;
+    authMode?: ApiConnectorAuthModeV11;
+    providerAuthProfile?: string;
+  }): Promise<ApiConnector | null>;
+  sdkUpdateConnector(input: {
+    connectorId: string;
+    label?: string;
+    endpoint?: string;
+    apiKey?: string;
+    credentialValue?: string;
+    credentialJson?: string;
+    authMode?: ApiConnectorAuthModeV11;
+    providerAuthProfile?: string;
+  }): Promise<ApiConnector | null>;
+  sdkDeleteConnector(connectorId: string): Promise<void>;
+  sdkTestConnector(connectorId: string): Promise<void>;
+  sdkListConnectorModels(connectorId: string, forceRefresh?: boolean): Promise<string[]>;
+  sdkListConnectorModelDescriptors(
+    connectorId: string,
+    forceRefresh?: boolean,
+  ): Promise<ConnectorModelInfo[]>;
+}>;
 
 function runtimeConnectorProjectionToApiConnector(
   connector: NimiRuntimeConnectorProjection,
@@ -56,8 +91,54 @@ function runtimeConnectorAuthOptionToApiOption(
   };
 }
 
-export function clearRuntimeConnectorSdkCaches(): void {
-  runtimeConnectorInventory.clearCaches();
+export function createRuntimeConfigConnectorSdkService(
+  getRuntime: () => Runtime,
+): RuntimeConfigConnectorSdkService {
+  const runtimeConnectors: NimiRuntimeConnectorClient = Object.freeze({
+    listProviderCatalog: (request, options) => getRuntime().connectors.listProviderCatalog(request, options),
+    listConnectors: (request, options) => getRuntime().connectors.listConnectors(request, options),
+    createConnector: (request, options) => getRuntime().connectors.createConnector(request, options),
+    updateConnector: (request, options) => getRuntime().connectors.updateConnector(request, options),
+    deleteConnector: (request, options) => getRuntime().connectors.deleteConnector(request, options),
+    testConnector: (request, options) => getRuntime().connectors.testConnector(request, options),
+    listConnectorModels: (request, options) => getRuntime().connectors.listConnectorModels(request, options),
+  });
+  const inventory = createNimiRuntimeConnectorInventoryClient({
+    connectors: runtimeConnectors,
+    callOptions: CONNECTOR_CALL_OPTIONS,
+  });
+
+  return Object.freeze({
+    runtimeConnectors,
+    clearCaches: () => inventory.clearCaches(),
+    async sdkListProviderCatalog() {
+      return [...await inventory.listProviderCatalog()];
+    },
+    async sdkListConnectors() {
+      const connectors = await inventory.listConnectors();
+      return connectors.map(runtimeConnectorProjectionToApiConnector);
+    },
+    async sdkCreateConnector(input) {
+      const connector = await inventory.createConnector(input);
+      return connector ? runtimeConnectorProjectionToApiConnector(connector) : null;
+    },
+    async sdkUpdateConnector(input) {
+      const connector = await inventory.updateConnector(input);
+      return connector ? runtimeConnectorProjectionToApiConnector(connector) : null;
+    },
+    async sdkDeleteConnector(connectorId) {
+      await inventory.deleteConnector(connectorId);
+    },
+    async sdkTestConnector(connectorId) {
+      await inventory.testConnector(connectorId);
+    },
+    async sdkListConnectorModels(connectorId, forceRefresh = false) {
+      return [...await inventory.listConnectorModels(connectorId, forceRefresh)];
+    },
+    async sdkListConnectorModelDescriptors(connectorId, forceRefresh = false) {
+      return [...await inventory.listConnectorModelDescriptors(connectorId, forceRefresh)];
+    },
+  });
 }
 
 export function resolveProviderEndpoint(
@@ -101,63 +182,4 @@ export function sdkConnectorToApiConnector(
   return runtimeConnectorProjectionToApiConnector(
     nimiRuntimeConnectorToProjection(connector, providerCatalog, models),
   );
-}
-
-export async function sdkListProviderCatalog(): Promise<ProviderCatalogEntry[]> {
-  return [...await runtimeConnectorInventory.listProviderCatalog()];
-}
-
-export async function sdkListConnectors(): Promise<ApiConnector[]> {
-  const connectors = await runtimeConnectorInventory.listConnectors();
-  return connectors.map(runtimeConnectorProjectionToApiConnector);
-}
-
-export async function sdkCreateConnector(input: {
-  provider: string;
-  endpoint: string;
-  label: string;
-  apiKey?: string;
-  credentialValue?: string;
-  credentialJson?: string;
-  authMode?: ApiConnectorAuthModeV11;
-  providerAuthProfile?: string;
-}): Promise<ApiConnector | null> {
-  const connector = await runtimeConnectorInventory.createConnector(input);
-  return connector ? runtimeConnectorProjectionToApiConnector(connector) : null;
-}
-
-export async function sdkUpdateConnector(input: {
-  connectorId: string;
-  label?: string;
-  endpoint?: string;
-  apiKey?: string;
-  credentialValue?: string;
-  credentialJson?: string;
-  authMode?: ApiConnectorAuthModeV11;
-  providerAuthProfile?: string;
-}): Promise<ApiConnector | null> {
-  const connector = await runtimeConnectorInventory.updateConnector(input);
-  return connector ? runtimeConnectorProjectionToApiConnector(connector) : null;
-}
-
-export async function sdkDeleteConnector(connectorId: string): Promise<void> {
-  await runtimeConnectorInventory.deleteConnector(connectorId);
-}
-
-export async function sdkTestConnector(connectorId: string): Promise<void> {
-  await runtimeConnectorInventory.testConnector(connectorId);
-}
-
-export async function sdkListConnectorModels(
-  connectorId: string,
-  forceRefresh: boolean = false,
-): Promise<string[]> {
-  return [...await runtimeConnectorInventory.listConnectorModels(connectorId, forceRefresh)];
-}
-
-export async function sdkListConnectorModelDescriptors(
-  connectorId: string,
-  forceRefresh: boolean = false,
-): Promise<ConnectorModelInfo[]> {
-  return [...await runtimeConnectorInventory.listConnectorModelDescriptors(connectorId, forceRefresh)];
 }

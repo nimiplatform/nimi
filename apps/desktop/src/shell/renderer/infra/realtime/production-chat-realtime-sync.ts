@@ -1,7 +1,10 @@
 import type { QueryClient } from '@tanstack/react-query';
 
 import { getOfflineCoordinator } from '../offline/coordinator.js';
-import { flushPendingChatOutbox } from '../../features/chat/data/realm-human-chat-data.js';
+import {
+  createDesktopRealmChatService,
+  flushPendingChatOutbox,
+} from '../../features/chat/data/realm-human-chat-data.js';
 import { invalidateNotificationQueries } from '../../features/notification/notification-query.js';
 import { flushPendingSocialMutations } from '../../features/social/data/offline-social-outbox.js';
 import { callRealmApi, emitRealmDataError } from '../realm/realm-api.js';
@@ -23,7 +26,7 @@ export function connectProductionChatRealtimeSync(input: {
       const tasks: Promise<unknown>[] = [
         input.queryClient.invalidateQueries({ queryKey: ['chats'] }),
         invalidateNotificationQueries(input.queryClient),
-        flushPendingChatOutbox(),
+        flushPendingChatOutbox(undefined, createDesktopRealmChatService(callRealmApi)),
         flushPendingSocialMutations(callRealmApi, emitRealmDataError),
       ];
       if (input.selectedChatId) {

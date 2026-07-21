@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { LocalAuditEvent } from '@nimiplatform/sdk/runtime/wire-types';
-import { getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import {
   filterAuditEvents,
   summarizeAuditReasons,
@@ -18,6 +18,7 @@ function toIsoTimeRangeValue(value: string): string | undefined {
 }
 
 export function useAuditPageData(enabled: boolean) {
+  const bindings = useDesktopRendererBindings();
   const [loadingAudits, setLoadingAudits] = useState(false);
   const [auditEvents, setAuditEvents] = useState<LocalAuditEvent[]>([]);
   const [auditEventType, setAuditEventType] = useState('all');
@@ -46,7 +47,7 @@ export function useAuditPageData(enabled: boolean) {
       const audits: LocalAuditEvent[] = [];
       let pageToken = '';
       do {
-        const response = await getDesktopRuntime().local.listLocalAudits({
+        const response = await bindings.sdk.runtime().local.listLocalAudits({
           eventType: eventType && eventType !== 'all' ? eventType : '',
           eventTypes: [],
           source: source && source !== 'all' ? source : '',
@@ -69,17 +70,18 @@ export function useAuditPageData(enabled: boolean) {
     } finally {
       setLoadingAudits(false);
     }
-  }, [auditEventType, auditModality, auditReasonCodeQuery, auditSource, auditTimeFrom, auditTimeTo]);
+  }, [auditEventType, auditModality, auditReasonCodeQuery, auditSource, auditTimeFrom, auditTimeTo, bindings.sdk]);
 
   useEffect(() => {
     if (!enabled) return;
     void loadAudits();
-    const timer = setInterval(() => {
+    const schedule = (): (() => void) => bindings.clock.schedule(5000, (result) => {
+      if (!result.ok) return;
       void loadAudits();
-    }, 5000);
-    return () => {
-      clearInterval(timer);
-    };
+      cancel = schedule();
+    });
+    let cancel = schedule();
+    return () => cancel();
   }, [enabled, loadAudits]);
 
   const filteredAudits = useMemo(

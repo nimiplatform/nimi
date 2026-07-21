@@ -97,7 +97,9 @@ function createDesktopRuntimeAgentMemoryTestAdapter(runtime: {
     realm: {},
   } as never);
   return createRuntimeAgentMemoryAdapter({
+    getRuntime: () => runtime as never,
     getSubjectUserId: () => 'user-1',
+    withScopes: async (_scopes, operation) => operation({}),
   });
 }
 

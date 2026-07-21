@@ -18,6 +18,7 @@ test('LLM health check behavior is SDK-owned and Desktop consumes configured hos
 
   assert.match(desktopAccess, /createNimiHostRuntimeRouteAccessSurface/);
   assert.match(desktopAccess, /appId:\s*'nimi\.desktop'/);
-  assert.match(bootstrap, /desktopRuntimeRouteAccess\.checkLocalHealth/);
+  assert.match(bootstrap, /createDesktopRuntimeRouteAccess/);
+  assert.match(bootstrap, /routeAccess\.checkLocalHealth/);
   assert.doesNotMatch(bootstrap, /@runtime\/llm-adapter/);
 });

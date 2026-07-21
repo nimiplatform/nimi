@@ -119,8 +119,6 @@ type BuildConversationCapabilityProjectionInput = Omit<NimiRuntimeRouteCapabilit
   capability: ConversationCapability;
 };
 
-let conversationCapabilityRouteRuntime: ConversationCapabilityRouteRuntime | null = null;
-
 export function createDefaultConversationCapabilitySelectionStore(): ConversationCapabilitySelectionStore {
   return createDefaultNimiRuntimeRouteCapabilitySelectionStore();
 }
@@ -135,20 +133,12 @@ export function updateConversationCapabilityTargetRef(
   routeTargetRefFromAIConfigTargetRef(targetRef));
 }
 
-export function setConversationCapabilityRouteRuntime(runtime: ConversationCapabilityRouteRuntime | null): void {
-  conversationCapabilityRouteRuntime = runtime;
-}
-
-export function getConversationCapabilityRouteRuntime(): ConversationCapabilityRouteRuntime | null {
-  return conversationCapabilityRouteRuntime;
-}
-
 export async function buildConversationCapabilityProjection(
   input: BuildConversationCapabilityProjectionInput,
   ): Promise<ConversationCapabilityProjection> {
   return buildNimiRuntimeRouteCapabilityProjection({
     ...input,
-  routeRuntime: input.routeRuntime || conversationCapabilityRouteRuntime,
+  routeRuntime: input.routeRuntime || null,
   });
 }
 
@@ -161,7 +151,7 @@ export async function buildConversationCapabilityProjectionMap(input: {
 }): Promise<ConversationCapabilityProjectionMap> {
   return buildNimiRuntimeRouteCapabilityProjectionMap({
     ...input,
-  routeRuntime: input.routeRuntime || conversationCapabilityRouteRuntime,
+  routeRuntime: input.routeRuntime || null,
   });
 }
 
@@ -247,10 +237,11 @@ export function createConversationExecutionSnapshot(input: {
   projection: ConversationCapabilityProjection;
   selectedTargetRef?: NimiAIConfigTargetRef | null;
   agentResolution?: AgentEffectiveCapabilityResolution | null;
+  createdAtMs: number;
 }): ConversationExecutionSnapshot {
   return {
     executionId: createNimiAISnapshotExecutionId(),
-  createdAt: new Date().toISOString(),
+  createdAt: new Date(input.createdAtMs).toISOString(),
   capability: input.capability,
   selectedTargetRef: input.selectedTargetRef || null,
   resolvedBinding: input.projection.resolvedBinding,
@@ -367,10 +358,12 @@ export function createNimiConversationAISnapshot(input: {
   projection: ConversationCapabilityProjection;
   agentResolution?: AgentEffectiveCapabilityResolution | null;
   runtimeEvidence?: NimiAIRuntimeEvidence | null;
+  createdAtMs: number;
 }): NimiAISnapshot {
   const capabilitySlice = createConversationExecutionSnapshot({
     capability: input.capability,
   projection: input.projection,
+  createdAtMs: input.createdAtMs,
   selectedTargetRef: input.config.capabilities.targetRefs[input.capability] || null,
   agentResolution: input.agentResolution,
   });

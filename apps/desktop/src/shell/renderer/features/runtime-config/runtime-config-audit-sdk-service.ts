@@ -1,6 +1,7 @@
 import {
   NIMI_RUNTIME_REASON_CODES,
   createNimiDesktopAuditProjectionClient,
+  type Runtime,
 } from '@nimiplatform/sdk/runtime';
 import { asNimiError } from '@nimiplatform/sdk/types';
 import type {
@@ -13,8 +14,6 @@ import type {
   RuntimeHealthEvent,
   AIProviderHealthEvent,
 } from '@nimiplatform/sdk/runtime/wire-types';
-import { getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
-
 const DEFAULT_DESKTOP_AUDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 const MAX_DESKTOP_AUDIT_WINDOW_MS = 7 * DEFAULT_DESKTOP_AUDIT_WINDOW_MS;
 
@@ -37,9 +36,7 @@ function withAuditError<T>(value: T | Promise<T>): Promise<T> {
   });
 }
 
-function runtimeAdmin() {
-  return getDesktopRuntime().audit;
-}
+type RuntimeAuditClient = Runtime['audit'];
 
 export function dateToTimestamp(date: Date): { seconds: string; nanos: number } {
   const ms = date.getTime();
@@ -53,7 +50,7 @@ export function dateToTimestamp(date: Date): { seconds: string; nanos: number } 
 
 export function resolveDesktopAuditTimeRange(
   input: { from?: Date; to?: Date },
-  now = new Date(),
+  now: Date,
 ): DesktopAuditTimeRange {
   const nowMs = now.getTime();
   if (!Number.isFinite(nowMs)) {
@@ -87,9 +84,10 @@ export function resolveDesktopAuditTimeRange(
 }
 
 export async function fetchDesktopAuditEvents(
+  runtimeAudit: RuntimeAuditClient,
   req: DesktopAuditListInput,
 ): Promise<ListDesktopAuditEventsResponse> {
-  const client = createNimiDesktopAuditProjectionClient({ runtime: runtimeAdmin() });
+  const client = createNimiDesktopAuditProjectionClient({ runtime: runtimeAudit });
   return withAuditError(
     client.listEvents({
       traceId: req.traceId ?? '',
@@ -108,10 +106,11 @@ export async function fetchDesktopAuditEvents(
 }
 
 export async function fetchUsageStats(
+  runtimeAudit: RuntimeAuditClient,
   req: Partial<ListUsageStatsRequest>,
 ): Promise<ListUsageStatsResponse> {
   return withAuditError(
-    runtimeAdmin().listUsageStats({
+    runtimeAudit.listUsageStats({
       appId: '',
       subjectUserId: '',
       callerKind: req.callerKind ?? 0,
@@ -127,22 +126,22 @@ export async function fetchUsageStats(
   );
 }
 
-export async function fetchRuntimeHealth(): Promise<GetRuntimeHealthResponse> {
+export async function fetchRuntimeHealth(runtimeAudit: RuntimeAuditClient): Promise<GetRuntimeHealthResponse> {
   return withAuditError(
-    runtimeAdmin().getRuntimeHealth({}, { timeoutMs: 5000 }),
+    runtimeAudit.getRuntimeHealth({}, { timeoutMs: 5000 }),
   );
 }
 
-export async function fetchProviderHealth(): Promise<ListAIProviderHealthResponse> {
+export async function fetchProviderHealth(runtimeAudit: RuntimeAuditClient): Promise<ListAIProviderHealthResponse> {
   return withAuditError(
-    runtimeAdmin().listAIProviderHealth({}, { timeoutMs: 5000 }),
+    runtimeAudit.listAIProviderHealth({}, { timeoutMs: 5000 }),
   );
 }
 
-export async function subscribeRuntimeHealth(): Promise<AsyncIterable<RuntimeHealthEvent>> {
-  return withAuditError(runtimeAdmin().subscribeRuntimeHealthEvents({}));
+export async function subscribeRuntimeHealth(runtimeAudit: RuntimeAuditClient): Promise<AsyncIterable<RuntimeHealthEvent>> {
+  return withAuditError(runtimeAudit.subscribeRuntimeHealthEvents({}));
 }
 
-export async function subscribeProviderHealth(): Promise<AsyncIterable<AIProviderHealthEvent>> {
-  return withAuditError(runtimeAdmin().subscribeAIProviderHealthEvents({}));
+export async function subscribeProviderHealth(runtimeAudit: RuntimeAuditClient): Promise<AsyncIterable<AIProviderHealthEvent>> {
+  return withAuditError(runtimeAudit.subscribeAIProviderHealthEvents({}));
 }

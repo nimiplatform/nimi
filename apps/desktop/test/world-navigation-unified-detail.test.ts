@@ -108,14 +108,14 @@ test('world detail cache fallback cannot synchronously crash before list project
 
 test('Explore World list click routes through world detail without app-level dataSync worlds load', () => {
   // World list navigation now lives in the Explore panel (D-EXPL-001 fold).
-  assert.match(explorePanelSource, /fetchWorldListItems\(\)/);
+  assert.match(explorePanelSource, /fetchWorldListItems\(createRealmWorldData\(bindings\.sdk\)\)/);
   assert.doesNotMatch(explorePanelSource, /prefetchWorldDetailPanel/);
   assert.doesNotMatch(explorePanelSource, /prefetchWorldDetailAndHistory\(worldId\)/);
   assert.doesNotMatch(explorePanelSource, /dataSync\.loadWorlds\(/);
 });
 
 test('explore world banner click routes through world detail without retired prefetch coupling', () => {
-  assert.match(explorePanelSource, /fetchWorldListItems\(\)/);
+  assert.match(explorePanelSource, /fetchWorldListItems\(createRealmWorldData\(bindings\.sdk\)\)/);
   assert.doesNotMatch(explorePanelSource, /prefetchWorldDetailPanel/);
   assert.doesNotMatch(explorePanelSource, /prefetchWorldDetailAndHistory\(worldId\)/);
 });

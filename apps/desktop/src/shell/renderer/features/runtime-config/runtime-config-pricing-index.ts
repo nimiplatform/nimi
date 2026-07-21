@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  runtimeConfigCatalogClient,
+  createRuntimeConfigCatalogClient,
   type NimiRuntimeCatalogPricing,
+  type RuntimeConfigCatalogClient,
 } from './runtime-config-catalog-sdk-service.js';
+import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 
 export type PricingEntry = {
   provider: string;
@@ -14,11 +16,13 @@ type PricingIndexState = {
   loading: boolean;
 };
 
-async function buildModelToProviderMap(): Promise<Map<string, string>> {
+async function buildModelToProviderMap(
+  catalog: RuntimeConfigCatalogClient,
+): Promise<Map<string, string>> {
   const map = new Map<string, string>();
-  const providers = await runtimeConfigCatalogClient.listProviders();
+  const providers = await catalog.listProviders();
   for (const provider of providers) {
-    const response = await runtimeConfigCatalogClient.listProviderModels(provider.provider);
+    const response = await catalog.listProviderModels(provider.provider);
     for (const model of response.models) {
       if (!map.has(model.modelId)) {
         map.set(model.modelId, model.provider);
@@ -31,6 +35,7 @@ async function buildModelToProviderMap(): Promise<Map<string, string>> {
 async function fetchPricingForModels(
   modelIds: string[],
   modelToProvider: Map<string, string>,
+  catalog: RuntimeConfigCatalogClient,
 ): Promise<Map<string, PricingEntry>> {
   const result = new Map<string, PricingEntry>();
   const fetches = modelIds
@@ -38,7 +43,7 @@ async function fetchPricingForModels(
     .map(async (modelId) => {
       const provider = modelToProvider.get(modelId)!;
       try {
-        const detail = await runtimeConfigCatalogClient.getModelDetail(provider, modelId);
+        const detail = await catalog.getModelDetail(provider, modelId);
         result.set(modelId, { provider, pricing: detail.model.pricing });
       } catch {
         // Model detail fetch failed — leave as unknown
@@ -49,6 +54,11 @@ async function fetchPricingForModels(
 }
 
 export function usePricingIndex(modelIds: string[]): PricingIndexState {
+  const sdk = useDesktopRendererSdk();
+  const catalog = useMemo(
+    () => createRuntimeConfigCatalogClient(sdk.runtime().connectors),
+    [sdk],
+  );
   const [state, setState] = useState<PricingIndexState>({ index: new Map(), loading: false });
   const modelToProviderRef = useRef<Map<string, string> | null>(null);
   const cachedRef = useRef<Map<string, PricingEntry>>(new Map());
@@ -67,11 +77,11 @@ export function usePricingIndex(modelIds: string[]): PricingIndexState {
 
     (async () => {
       if (!modelToProviderRef.current) {
-        modelToProviderRef.current = await buildModelToProviderMap();
+        modelToProviderRef.current = await buildModelToProviderMap(catalog);
       }
       if (canceled) return;
 
-      const fetched = await fetchPricingForModels(uncached, modelToProviderRef.current);
+      const fetched = await fetchPricingForModels(uncached, modelToProviderRef.current, catalog);
       if (canceled) return;
 
       for (const [id, entry] of fetched) {
@@ -83,7 +93,7 @@ export function usePricingIndex(modelIds: string[]): PricingIndexState {
     });
 
     return () => { canceled = true; };
-  }, [modelIds.join(',')]);
+  }, [catalog, modelIds.join(',')]);
 
   return state;
 }

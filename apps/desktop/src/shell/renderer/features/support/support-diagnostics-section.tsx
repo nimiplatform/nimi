@@ -9,11 +9,9 @@
  */
 
 import { useTranslation } from 'react-i18next';
-import {
-  desktopBridge,
-  type RuntimeBridgeDaemonStatus,
-  type SystemResourceSnapshot,
-} from '../../bridge';
+import type { RuntimeBridgeDaemonStatus } from '@nimiplatform/kit/shell/renderer/bridge';
+import type { DesktopSystemResourceSnapshot as SystemResourceSnapshot } from '../../renderer/system-resources-port.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useTypedProjection as useSupportProjection } from '@nimiplatform/kit/ui';
 import {
   SupportCard,
@@ -30,15 +28,17 @@ interface DiagnosticsProjection {
   readonly resourcesError: string | null;
 }
 
-async function loadDiagnosticsProjection(): Promise<DiagnosticsProjection> {
+async function loadDiagnosticsProjection(
+  bindings: ReturnType<typeof useDesktopRendererBindings>,
+): Promise<DiagnosticsProjection> {
   // The runtime daemon status is the load-bearing typed projection. The
   // resource snapshot can be legitimately unavailable (no Tauri host probe), so
   // its failure is captured inline instead of fail-closing the section.
-  const daemon = await desktopBridge.getRuntimeBridgeStatus();
+  const daemon = await bindings.app.commands.runtimeDaemon.status();
   let resources: SystemResourceSnapshot | null = null;
   let resourcesError: string | null = null;
   try {
-    resources = await desktopBridge.getSystemResourceSnapshot();
+    resources = await bindings.app.commands.systemResources.load();
   } catch (error) {
     resourcesError = error instanceof Error ? error.message : String(error ?? 'resource snapshot unavailable');
   }
@@ -54,9 +54,13 @@ function formatBytes(bytes: number): string {
 
 export function SupportDiagnosticsSection() {
   const { t } = useTranslation();
-  const projection = useSupportProjection(loadDiagnosticsProjection, {
-    failClosedMessage: t('Support.diagnosticsProjectionUnavailable'),
-  });
+  const bindings = useDesktopRendererBindings();
+  const projection = useSupportProjection(
+    () => loadDiagnosticsProjection(bindings),
+    {
+      failClosedMessage: t('Support.diagnosticsProjectionUnavailable'),
+    },
+  );
 
   if (projection.status === 'loading') {
     return (

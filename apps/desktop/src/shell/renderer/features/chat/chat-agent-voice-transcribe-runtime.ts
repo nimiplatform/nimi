@@ -1,15 +1,9 @@
+import { createNimiClientId } from '@nimiplatform/sdk';
 import { createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 import {
   runNimiRuntimeSpeechTranscription,
   type NimiRuntimeGenerationRoutePolicy,
 } from '@nimiplatform/sdk/features/generation';
-import {
-  desktopRuntimeRouteAccess,
-} from '../../infra/runtime-route-host-access';
-import {
-  getDesktopAppId,
-  getDesktopRuntime,
-} from '../../infra/sdk/desktop-nimi-client-session';
 import type {
   AgentRuntimeResolvedBinding,
   ChatAgentTranscribeRuntimeInvokeDeps,
@@ -24,7 +18,7 @@ import {
 
 export async function transcribeChatAgentVoiceRuntime(
   input: ChatAgentTranscribeRuntimeInvokeInput,
-  deps: ChatAgentTranscribeRuntimeInvokeDeps = {},
+  deps: ChatAgentTranscribeRuntimeInvokeDeps,
 ): Promise<ChatAgentTranscribeRuntimeInvokeResult> {
   if (!(input.audioBytes instanceof Uint8Array) || input.audioBytes.length === 0) {
     throw createNimiError({
@@ -57,7 +51,7 @@ export async function transcribeChatAgentVoiceRuntime(
     || normalizeText(resolved.localOpenAiEndpoint)
     || undefined;
   const timeoutMs = normalizePositiveTimeoutMs(input.timeoutMs);
-  const routeCallOptions = await (deps.buildRuntimeCallOptionsImpl || desktopRuntimeRouteAccess.buildCallOptions)({
+  const routeCallOptions = await deps.buildRuntimeCallOptionsImpl({
     source: resolved.source,
     connectorId,
     providerEndpoint,
@@ -70,9 +64,9 @@ export async function transcribeChatAgentVoiceRuntime(
   };
   const requestId = normalizeText(deps.createRequestIdImpl?.()) || createVoiceTranscribeRequestId();
   const response = await runNimiRuntimeSpeechTranscription({
-    runtime: { ai: (deps.getRuntimeImpl || getDesktopRuntime)().ai },
+    runtime: { ai: deps.getRuntimeImpl().ai },
     head: {
-      appId: (deps.getAppIdImpl || getDesktopAppId)(),
+      appId: deps.getAppIdImpl(),
       modelId: model,
       routePolicy: toGenerationRoutePolicy(resolved.source),
       connectorId,
@@ -105,9 +99,5 @@ function toGenerationRoutePolicy(source: string): NimiRuntimeGenerationRoutePoli
 }
 
 function createVoiceTranscribeRequestId(): string {
-  const cryptoLike = globalThis.crypto as { randomUUID?: () => string } | undefined;
-  if (typeof cryptoLike?.randomUUID === 'function') {
-    return `desktop-agent-voice-transcribe:${cryptoLike.randomUUID()}`;
-  }
-  return `desktop-agent-voice-transcribe:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`;
+  return createNimiClientId('desktop-agent-voice-transcribe');
 }

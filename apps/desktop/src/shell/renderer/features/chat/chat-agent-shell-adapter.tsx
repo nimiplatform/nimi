@@ -15,7 +15,6 @@ import {
 } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
 import { useAppStore, type AuthStatus } from '../../app-shell/providers/app-store';
-import { productionAppStore } from '../../app-shell/providers/production-app-store';
 import type { RuntimeFieldMap } from '../../app-shell/providers/store-types';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import {
@@ -59,6 +58,7 @@ import { useAgentConversationHostFeedback } from './chat-agent-shell-adapter-hos
 import { useAgentConversationPendingAttachments } from './chat-agent-shell-adapter-attachments';
 import { AgentManualVoicePlaybackButton } from './chat-agent-manual-voice-playback-button';
 import { useStreamController } from '../turns/stream-controller-context.js';
+import { useAgentConversationAnchorBindings } from '../../app-shell/providers/agent-conversation-anchor-binding-context.js';
 
 type UseAgentConversationModeHostInput = {
   authStatus: AuthStatus;
@@ -79,9 +79,11 @@ export function useAgentConversationModeHost(
 ): DesktopConversationModeHost {
   const { t } = useTranslation();
   const streamController = useStreamController();
+  const anchorBindings = useAgentConversationAnchorBindings();
   const bindings = useDesktopRendererBindings();
   const queryClient = useQueryClient();
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
+  const authUserId = useAppStore((state) => normalizeText(state.auth.user?.id));
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
   const pendingAgentComposerPrefill = useAppStore((state) => state.pendingAgentComposerPrefill);
   const clearPendingAgentComposerPrefill = useAppStore((state) => state.clearPendingAgentComposerPrefill);
@@ -113,9 +115,14 @@ export function useAgentConversationModeHost(
   const [composerPrefillRequestId, setComposerPrefillRequestId] = useState<number | null>(null);
   const registry = useMemo(() => {
     const nextRegistry = new ConversationOrchestrationRegistry();
-    nextRegistry.register(createRuntimeAgentChatConversationProvider({ streamController, t }));
+    nextRegistry.register(createRuntimeAgentChatConversationProvider({
+      streamController,
+      t,
+      sdk: bindings.sdk,
+      now: bindings.clock.now,
+    }));
     return nextRegistry;
-  }, [streamController, t]);
+  }, [bindings.sdk, streamController, t]);
   const agentProvider = useMemo(
     () => {
       const provider = registry.resolve(RUNTIME_AGENT_CHAT_MODE_ID);
@@ -216,7 +223,7 @@ export function useAgentConversationModeHost(
     t,
   });
   const accountId = input.runtimeFields.targetAccountId
-    || normalizeText((productionAppStore.getState().auth.user as Record<string, unknown> | null)?.id)
+    || authUserId
     || 'local_account';
   const activeTarget = useMemo(
     () => mergeAgentTargetWithPresentationProfile(shellActiveTarget, runtimePresentationProfile),
@@ -427,7 +434,10 @@ export function useAgentConversationModeHost(
   });
   const agentAiConfig = useAppStore((state) => state.aiConfig);
   const { handleSelectAgent, handleSubmit } = useAgentConversationHostActions({
+    anchorBindings,
     now: bindings.clock.now,
+    sdk: bindings.sdk,
+    subjectUserId: accountId,
     streamController,
     activeTarget,
     activeThreadId,

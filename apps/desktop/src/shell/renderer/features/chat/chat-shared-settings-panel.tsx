@@ -10,13 +10,9 @@ import {
   isNimiRuntimeRouteCapabilityProjectionReady,
 } from '@nimiplatform/sdk/runtime';
 import { useAppStore } from '../../app-shell/providers/app-store';
-import { getDesktopAIConfigService } from '../../app-shell/providers/desktop-ai-config-service';
-import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
-import {
-  ensureAccountProfileLibraryLoaded,
-  getCachedAccountProfileLibraryProfiles,
-} from '../runtime-config/runtime-config-profile-library';
-import { getDesktopRouteModelPickerProvider } from '../runtime-config/desktop-route-model-picker-provider';
+import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
+import { useAccountProfileLibrary } from '../runtime-config/runtime-config-profile-library-context.js';
+import { useDesktopRouteModelPickerProviderResolver } from '../runtime-config/desktop-route-model-picker-provider';
 import { useSchedulingFeasibility, schedulingDetailKeyForJudgement, schedulingTitleKey } from './chat-shared-execution-scheduling-guard';
 import type {
   AppModelConfigSurface,
@@ -293,18 +289,21 @@ function AiModeSettings(props: {
   superSections?: ReadonlyArray<import('@nimiplatform/kit/features/model-config').ModelConfigSuperSection>;
 }) {
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
+  const sdk = useDesktopRendererSdk();
+  const profileLibrary = useAccountProfileLibrary();
+  const providerResolver = useDesktopRouteModelPickerProviderResolver();
   const { t } = useTranslation();
   const aiConfig = useAppStore((state) => state.aiConfig);
   const projectionByCapability = useAppStore((state) => state.conversationCapabilityProjectionByCapability);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const aiConfigService = useMemo(() => getDesktopAIConfigService(), []);
+  const aiConfigService = useMemo(() => sdk.aiConfig(), [sdk]);
   const assetsQuery = useLocalAssets();
 
   const surface: AppModelConfigSurface = useMemo(() => ({
     scopeRef: aiConfig.scopeRef,
     aiConfigService,
     requirementDeclaration: chatRequirementDeclaration(aiConfig.scopeRef),
-    providerResolver: (routeCapability: string) => getDesktopRouteModelPickerProvider(routeCapability),
+    providerResolver,
     projectionResolver: (capabilityId: string) => toProjectionStatus(
       t,
       projectionByCapability[capabilityId as keyof typeof projectionByCapability] || null,
@@ -320,6 +319,7 @@ function AiModeSettings(props: {
     assetsQuery.data,
     assetsQuery.isLoading,
     projectionByCapability,
+    providerResolver,
     t,
   ]);
   const profileCopy = useMemo(() => defaultModelConfigProfileCopy(t), [t]);
@@ -328,11 +328,11 @@ function AiModeSettings(props: {
   // truth. The library file family is the source of truth (P-AIPS-013); this
   // is only its renderer projection.
   useEffect(() => {
-    void ensureAccountProfileLibraryLoaded();
-  }, []);
+    void profileLibrary.ensureLoaded();
+  }, [profileLibrary]);
   const userProfilesSource = useMemo(
-    () => ({ list: () => getCachedAccountProfileLibraryProfiles() }),
-    [],
+    () => ({ list: profileLibrary.cachedProfiles }),
+    [profileLibrary],
   );
   const currentOrigin = useMemo(
     () => (aiConfig.profileOrigin

@@ -12,13 +12,16 @@ import {
   SETTINGS_DOWNLOAD_PREFERENCES_STORAGE_KEY,
   appearanceEqual,
   downloadEqual,
-  loadAppearancePreferences,
-  loadDownloadPreferences,
-  persistAppearancePreferences,
-  persistDownloadPreferences,
   type AppearancePreferences,
   type DownloadPreferences,
 } from '../src/shell/renderer/features/settings/settings-device-preferences.js';
+import { createDesktopProductionSettingsPort } from '../src/shell/renderer/features/settings/settings-storage.js';
+
+const settings = createDesktopProductionSettingsPort();
+const loadAppearancePreferences = settings.loadAppearancePreferences;
+const loadDownloadPreferences = settings.loadDownloadPreferences;
+const persistAppearancePreferences = settings.persistAppearancePreferences;
+const persistDownloadPreferences = settings.persistDownloadPreferences;
 
 /**
  * T10.3 — Settings surface completion.

@@ -6,7 +6,7 @@ import type {
   NimiRuntimeLocalRecommendationFeed,
   NimiRuntimeLocalRecommendationFeedItem,
 } from '@nimiplatform/sdk/runtime';
-import { runtimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
+import { useRuntimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { Card } from './runtime-config-primitives';
@@ -43,6 +43,7 @@ type RecommendPageProps = {
 };
 
 export function RecommendPage({ model, state }: RecommendPageProps) {
+  const runtimeConfigLocalModelCenterClient = useRuntimeConfigLocalModelCenterClient();
   const { t } = useTranslation();
   const capability = normalizeRecommendPageCapability(state.activeCapability);
 

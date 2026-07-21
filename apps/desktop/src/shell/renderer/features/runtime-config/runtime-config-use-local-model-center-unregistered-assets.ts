@@ -4,7 +4,7 @@ import type {
   NimiRuntimeLocalAssetKind,
   NimiRuntimeLocalUnregisteredAssetDescriptor,
 } from '@nimiplatform/sdk/runtime';
-import { runtimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
+import { useRuntimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
 import {
   defaultAssetDeclaration,
   type AssetEngineOption,
@@ -14,6 +14,7 @@ import {
 } from './runtime-config-use-local-model-center-helpers.js';
 
 export function useLocalModelCenterUnregisteredAssets() {
+  const runtimeConfigLocalModelCenterClient = useRuntimeConfigLocalModelCenterClient();
   const [unregisteredAssets, setUnregisteredAssets] = useState<NimiRuntimeLocalUnregisteredAssetDescriptor[]>([]);
   const [unregisteredAssetDrafts, setUnregisteredAssetDrafts] = useState<Record<string, NimiRuntimeLocalAssetDeclaration>>({});
   const [unregisteredEndpointByPath, setUnregisteredEndpointByPath] = useState<Record<string, string>>({});

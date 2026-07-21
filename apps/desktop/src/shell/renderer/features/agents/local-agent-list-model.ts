@@ -4,10 +4,7 @@ import {
   type NimiRuntimeAgentSourceContextStatus,
   type NimiRuntimeAgentSourceRef,
 } from '@nimiplatform/sdk/runtime';
-import {
-  getDesktopHostRuntimeAgentClient,
-  withDesktopRuntimeProtectedScopes,
-} from '../../infra/sdk/desktop-nimi-client-session';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import { characterSourceRefKey } from '../realm-source/realm-source-identity.js';
 
 // The Characters tab (D-SHELL-001 `agents`) projects runtime ListAgents
@@ -98,15 +95,18 @@ export function toLocalAgentSourceDiscoveryProjections(
     }));
 }
 
-export async function fetchLocalAgentList(ownerUserIdInput: string): Promise<LocalAgentListItem[]> {
+export async function fetchLocalAgentList(
+  ownerUserIdInput: string,
+  sdk: DesktopRendererSdkPort,
+): Promise<LocalAgentListItem[]> {
   const ownerUserId = normalizeText(ownerUserIdInput);
   if (!ownerUserId) {
     return [];
   }
   const lifecycle = createNimiHostRuntimeAgentLifecycleSurface({
-    getRuntime: getDesktopHostRuntimeAgentClient,
+    getRuntime: sdk.hostRuntimeAgent,
     getSubjectUserId: () => ownerUserId,
-    withScopes: withDesktopRuntimeProtectedScopes,
+    withScopes: sdk.withRuntimeProtectedScopes,
   });
   const itemsByRef = new Map<string, LocalAgentListItem>();
   for (const agent of await lifecycle.listLocalAgents({ ownerUserId })) {

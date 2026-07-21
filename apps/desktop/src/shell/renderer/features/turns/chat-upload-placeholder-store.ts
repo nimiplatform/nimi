@@ -1,4 +1,3 @@
-import { useSyncExternalStore } from 'react';
 import { createNimiClientId } from '@nimiplatform/sdk';
 
 export type ChatUploadPlaceholder = {
@@ -10,7 +9,7 @@ export type ChatUploadPlaceholder = {
   senderId: string;
 };
 
-type UploadPlaceholderInput = {
+export type UploadPlaceholderInput = {
   chatId: string;
   previewUrl: string;
   kind: 'image' | 'video';
@@ -18,84 +17,69 @@ type UploadPlaceholderInput = {
   createdAt?: string;
 };
 
-let chatUploadPlaceholders: ChatUploadPlaceholder[] = [];
-const listeners = new Set<() => void>();
-const EMPTY_PLACEHOLDERS: ChatUploadPlaceholder[] = [];
-const snapshotCache = new Map<string, {
-  source: ChatUploadPlaceholder[];
-  snapshot: ChatUploadPlaceholder[];
-}>();
+export function createChatUploadPlaceholderStore(now: () => number) {
+  let placeholders: ChatUploadPlaceholder[] = [];
+  const listeners = new Set<() => void>();
+  const empty: ChatUploadPlaceholder[] = [];
+  const snapshotCache = new Map<string, {
+    source: ChatUploadPlaceholder[];
+    snapshot: ChatUploadPlaceholder[];
+  }>();
+  let disposed = false;
 
-function emitChange() {
-  snapshotCache.clear();
-  for (const listener of listeners) {
-    listener();
-  }
-}
-
-function buildPlaceholderId() {
-  return createNimiClientId('upload');
-}
-
-export function createChatUploadPlaceholder(input: UploadPlaceholderInput): ChatUploadPlaceholder {
-  return {
-    id: buildPlaceholderId(),
-    chatId: input.chatId,
-    previewUrl: input.previewUrl,
-    kind: input.kind,
-    createdAt: input.createdAt || new Date().toISOString(),
-    senderId: input.senderId,
-  };
-}
-
-export function addChatUploadPlaceholder(placeholder: ChatUploadPlaceholder) {
-  chatUploadPlaceholders = [...chatUploadPlaceholders, placeholder];
-  emitChange();
-}
-
-export function removeChatUploadPlaceholder(placeholderId: string) {
-  const next = chatUploadPlaceholders.filter((placeholder) => placeholder.id !== placeholderId);
-  if (next.length === chatUploadPlaceholders.length) {
-    return;
-  }
-  chatUploadPlaceholders = next;
-  emitChange();
-}
-
-export function getChatUploadPlaceholders(chatId: string | null): ChatUploadPlaceholder[] {
-  if (!chatId) {
-    return EMPTY_PLACEHOLDERS;
-  }
-  const normalizedChatId = String(chatId).trim();
-  if (!normalizedChatId) {
-    return EMPTY_PLACEHOLDERS;
+  function emitChange(): void {
+    snapshotCache.clear();
+    for (const listener of listeners) listener();
   }
 
-  const cached = snapshotCache.get(normalizedChatId);
-  if (cached && cached.source === chatUploadPlaceholders) {
-    return cached.snapshot;
-  }
-
-  const nextSnapshot = chatUploadPlaceholders.filter((placeholder) => placeholder.chatId === normalizedChatId);
-  const stableSnapshot = nextSnapshot.length > 0 ? nextSnapshot : EMPTY_PLACEHOLDERS;
-  snapshotCache.set(normalizedChatId, {
-    source: chatUploadPlaceholders,
-    snapshot: stableSnapshot,
+  return Object.freeze({
+    create(input: UploadPlaceholderInput): ChatUploadPlaceholder {
+      if (disposed) throw new Error('CHAT_UPLOAD_PLACEHOLDER_STORE_DISPOSED');
+      return {
+        id: createNimiClientId('upload'),
+        chatId: input.chatId,
+        previewUrl: input.previewUrl,
+        kind: input.kind,
+        createdAt: input.createdAt || new Date(now()).toISOString(),
+        senderId: input.senderId,
+      };
+    },
+    add(placeholder: ChatUploadPlaceholder): void {
+      if (disposed) throw new Error('CHAT_UPLOAD_PLACEHOLDER_STORE_DISPOSED');
+      placeholders = [...placeholders, placeholder];
+      emitChange();
+    },
+    remove(placeholderId: string): void {
+      if (disposed) throw new Error('CHAT_UPLOAD_PLACEHOLDER_STORE_DISPOSED');
+      const next = placeholders.filter((placeholder) => placeholder.id !== placeholderId);
+      if (next.length === placeholders.length) return;
+      placeholders = next;
+      emitChange();
+    },
+    get(chatId: string | null): ChatUploadPlaceholder[] {
+      if (disposed) throw new Error('CHAT_UPLOAD_PLACEHOLDER_STORE_DISPOSED');
+      const normalizedChatId = String(chatId || '').trim();
+      if (!normalizedChatId) return empty;
+      const cached = snapshotCache.get(normalizedChatId);
+      if (cached?.source === placeholders) return cached.snapshot;
+      const next = placeholders.filter((placeholder) => placeholder.chatId === normalizedChatId);
+      const snapshot = next.length > 0 ? next : empty;
+      snapshotCache.set(normalizedChatId, { source: placeholders, snapshot });
+      return snapshot;
+    },
+    subscribe(listener: () => void): () => void {
+      if (disposed) throw new Error('CHAT_UPLOAD_PLACEHOLDER_STORE_DISPOSED');
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    dispose(): void {
+      if (disposed) return;
+      disposed = true;
+      placeholders = [];
+      listeners.clear();
+      snapshotCache.clear();
+    },
   });
-  return stableSnapshot;
 }
 
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
-}
-
-export function useChatUploadPlaceholders(chatId: string | null): ChatUploadPlaceholder[] {
-  return useSyncExternalStore(
-    subscribe,
-    () => getChatUploadPlaceholders(chatId),
-    () => EMPTY_PLACEHOLDERS,
-  );
-}
+export type ChatUploadPlaceholderStore = ReturnType<typeof createChatUploadPlaceholderStore>;

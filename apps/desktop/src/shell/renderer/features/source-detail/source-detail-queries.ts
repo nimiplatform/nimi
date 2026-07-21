@@ -8,6 +8,7 @@ import {
   readCharacterSourceRefV3,
   type CharacterSourceRefV3,
 } from '../realm-source/realm-source-identity.js';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import type { SourceDetailData } from './source-detail-model.js';
 import { toSourceDetailData } from './source-detail-model.js';
 
@@ -54,10 +55,16 @@ export function sourceDisplayDetailQueryKey(selection: SourceDisplayDetailSelect
   ] as const;
 }
 
-export async function fetchSourceDisplayDetail(selection: SourceDisplayDetailSelection): Promise<SourceDisplayDetail | null> {
+export async function fetchSourceDisplayDetail(
+  selection: SourceDisplayDetailSelection,
+  sdk: DesktopRendererSdkPort,
+): Promise<SourceDisplayDetail | null> {
   const normalizedSourceRef = readCharacterSourceRefV3(selection);
   if (!normalizedSourceRef) return null;
-  const sourceResult = await realmSourceDetailData.loadRealmSourceDetailsBySourceRef(normalizedSourceRef);
+  const sourceResult = await realmSourceDetailData.loadRealmSourceDetailsBySourceRef(
+    sdk.realm(),
+    normalizedSourceRef,
+  );
   const sourceState = resolveCharacterSourceState(sourceResult);
   return {
     source: toSourceDetailData(sourceResult, sourceState),

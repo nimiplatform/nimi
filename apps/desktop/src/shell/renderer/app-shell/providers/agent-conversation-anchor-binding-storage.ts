@@ -9,27 +9,25 @@ export type AgentConversationAnchorBinding = {
   updatedAtMs: number;
 };
 
-const anchorBindingsByLocalAgentRef = new Map<string, AgentConversationAnchorBinding>();
-let anchorBindingVersion = 0;
-const anchorBindingListeners = new Set<() => void>();
+export type AgentConversationAnchorBindingStore = {
+  get(localAgentRef: string | null | undefined): AgentConversationAnchorBinding | null;
+  persist(binding: AgentConversationAnchorBinding): AgentConversationAnchorBinding;
+  clear(localAgentRef: string | null | undefined): void;
+  clearAll(): void;
+  getVersion(): number;
+  subscribe(listener: () => void): () => void;
+  dispose(): void;
+};
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function normalizeUpdatedAtMs(value: unknown): number {
-  const numeric = Number(value);
-  return Number.isFinite(numeric) && numeric >= 0
-    ? Math.floor(numeric)
-    : Date.now();
-}
-
 function normalizeBinding(
   value: unknown,
+  now: () => number,
 ): AgentConversationAnchorBinding | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const record = value as Record<string, unknown>;
   const ownerUserId = normalizeText(record.ownerUserId);
   const runtimeSourceRef = normalizeText(record.runtimeSourceRef);
@@ -44,71 +42,71 @@ function normalizeBinding(
   } catch {
     return null;
   }
+  const updatedAtCandidate = Number(record.updatedAtMs);
   return {
     ownerUserId,
     runtimeSourceRef,
     localAgentRef,
     conversationAnchorId,
     threadId,
-    updatedAtMs: normalizeUpdatedAtMs(record.updatedAtMs),
+    updatedAtMs: Number.isFinite(updatedAtCandidate) && updatedAtCandidate >= 0
+      ? Math.floor(updatedAtCandidate)
+      : now(),
   };
 }
 
-function notifyAnchorBindingListeners(): void {
-  anchorBindingVersion += 1;
-  for (const listener of anchorBindingListeners) {
-    listener();
-  }
-}
-
-export function getAgentConversationAnchorBinding(
-  localAgentRef: string | null | undefined,
-): AgentConversationAnchorBinding | null {
-  const normalizedLocalAgentRef = normalizeText(localAgentRef);
-  if (!normalizedLocalAgentRef) {
-    return null;
-  }
-  return anchorBindingsByLocalAgentRef.get(normalizedLocalAgentRef) || null;
-}
-
-export function persistAgentConversationAnchorBinding(
-  binding: AgentConversationAnchorBinding,
-): AgentConversationAnchorBinding {
-  const normalizedBinding = normalizeBinding(binding);
-  if (!normalizedBinding) {
-    throw new Error('agent conversation anchor binding is invalid');
-  }
-  anchorBindingsByLocalAgentRef.set(normalizedBinding.localAgentRef, normalizedBinding);
-  notifyAnchorBindingListeners();
-  return normalizedBinding;
-}
-
-export function clearAgentConversationAnchorBinding(
-  localAgentRef: string | null | undefined,
-): void {
-  const normalizedLocalAgentRef = normalizeText(localAgentRef);
-  if (!normalizedLocalAgentRef) {
-    return;
-  }
-  anchorBindingsByLocalAgentRef.delete(normalizedLocalAgentRef);
-  notifyAnchorBindingListeners();
-}
-
-export function clearAllAgentConversationAnchorBindings(): void {
-  if (anchorBindingsByLocalAgentRef.size === 0) {
-    return;
-  }
-  anchorBindingsByLocalAgentRef.clear();
-  notifyAnchorBindingListeners();
-}
-
-export function getAgentConversationAnchorBindingVersion(): number {
-  return anchorBindingVersion;
-}
-
-export function subscribeAgentConversationAnchorBindings(listener: () => void): () => void {
-  anchorBindingListeners.add(listener);
-  return () => {
-    anchorBindingListeners.delete(listener);
+export function createAgentConversationAnchorBindingStore(
+  now: () => number,
+): AgentConversationAnchorBindingStore {
+  const bindings = new Map<string, AgentConversationAnchorBinding>();
+  const listeners = new Set<() => void>();
+  let version = 0;
+  let disposed = false;
+  const notify = () => {
+    version += 1;
+    for (const listener of listeners) listener();
   };
+  const assertActive = () => {
+    if (disposed) throw new Error('AGENT_CONVERSATION_ANCHOR_BINDING_STORE_DISPOSED');
+  };
+  return Object.freeze({
+    get(localAgentRef: string | null | undefined) {
+      assertActive();
+      const normalized = normalizeText(localAgentRef);
+      return normalized ? bindings.get(normalized) ?? null : null;
+    },
+    persist(binding: AgentConversationAnchorBinding) {
+      assertActive();
+      const normalized = normalizeBinding(binding, now);
+      if (!normalized) throw new Error('agent conversation anchor binding is invalid');
+      bindings.set(normalized.localAgentRef, normalized);
+      notify();
+      return normalized;
+    },
+    clear(localAgentRef: string | null | undefined) {
+      assertActive();
+      const normalized = normalizeText(localAgentRef);
+      if (normalized && bindings.delete(normalized)) notify();
+    },
+    clearAll() {
+      assertActive();
+      if (bindings.size === 0) return;
+      bindings.clear();
+      notify();
+    },
+    getVersion() {
+      return version;
+    },
+    subscribe(listener: () => void) {
+      assertActive();
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      bindings.clear();
+      listeners.clear();
+    },
+  });
 }

@@ -4,6 +4,7 @@ import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { AppCardSurface, CompactAction } from '@nimiplatform/kit/ui';
 import { PostCard } from '../home/post-card';
 import { usePostCardActionAdapter } from '../home/post-card-action-adapter';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 type PostDto = RealmModel<'PostDto'>;
 
@@ -61,6 +62,7 @@ export function PostFeedWithMediaPreview({
   layout = 'grid',
   scrollRef,
 }: PostFeedWithMediaPreviewProps) {
+  const bindings = useDesktopRendererBindings();
   const [focusedPostId, setFocusedPostId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [detectedScrollEl, setDetectedScrollEl] = useState<HTMLElement | null>(null);
@@ -70,9 +72,10 @@ export function PostFeedWithMediaPreview({
     if (!focusedPostId) {
       return;
     }
-    const timer = window.setTimeout(() => setFocusedPostId(null), 1800);
-    return () => window.clearTimeout(timer);
-  }, [focusedPostId]);
+    return bindings.clock.schedule(1_800, (result) => {
+      if (result.ok) setFocusedPostId(null);
+    });
+  }, [bindings.clock, focusedPostId]);
 
   // Auto-detect scroll parent when no explicit scrollRef is provided.
   useEffect(() => {
@@ -80,11 +83,10 @@ export function PostFeedWithMediaPreview({
     const el = containerRef.current;
     if (!el) return;
     // Defer to next frame so layout has settled.
-    const raf = requestAnimationFrame(() => {
-      setDetectedScrollEl(findScrollParent(el));
+    return bindings.clock.animationFrame((result) => {
+      if (result.ok) setDetectedScrollEl(findScrollParent(el));
     });
-    return () => cancelAnimationFrame(raf);
-  }, [scrollRef]);
+  }, [bindings.clock, scrollRef]);
 
   const scrollElement = scrollRef?.current ?? detectedScrollEl;
   const isGrid = layout !== 'masonry';

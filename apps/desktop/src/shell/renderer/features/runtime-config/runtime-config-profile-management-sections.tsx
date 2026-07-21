@@ -1,14 +1,11 @@
 import { useCallback, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { ScrollShell } from '@nimiplatform/kit/ui';
 import type { NimiAIProfile } from '@nimiplatform/sdk/ai';
 import { validateNimiAIProfile } from '@nimiplatform/sdk/ai';
 
-import {
-  exportAccountProfileLibraryEntries,
-  importAccountProfileLibraryEntries,
-} from './runtime-config-profile-library.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import { useAccountProfileLibrary } from './runtime-config-profile-library-context.js';
 
 export type ProfileFeedback = { type: 'success' | 'error'; message: string } | null;
 
@@ -144,9 +141,7 @@ export function ProfileEditorModal(props: {
     </div>
   );
 
-  return typeof document === 'undefined'
-    ? editorLayer
-    : createPortal(editorLayer, document.body);
+  return editorLayer;
 }
 
 export function ProfileLibraryActions(props: {
@@ -154,6 +149,8 @@ export function ProfileLibraryActions(props: {
   onLibraryChanged: () => Promise<void>;
 }) {
   const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
+  const profileLibrary = useAccountProfileLibrary();
   const {
     exportCount,
     onLibraryChanged,
@@ -163,7 +160,7 @@ export function ProfileLibraryActions(props: {
 
   const handleExport = useCallback(async () => {
     try {
-      const profiles = await exportAccountProfileLibraryEntries();
+      const profiles = await profileLibrary.export();
       if (profiles.length === 0) {
         setFeedback({
           type: 'error',
@@ -171,21 +168,17 @@ export function ProfileLibraryActions(props: {
         });
         return;
       }
-      const json = JSON.stringify(profiles, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = `nimi-ai-profiles-${Date.now()}.json`;
-      anchor.click();
-      URL.revokeObjectURL(url);
+      bindings.app.commands.exportProfileLibraryJson({
+        filename: `nimi-ai-profiles-${bindings.clock.now()}.json`,
+        content: JSON.stringify(profiles, null, 2),
+      });
     } catch (error: unknown) {
       setFeedback({
         type: 'error',
         message: error instanceof Error ? error.message : 'Failed to export profiles.',
       });
     }
-  }, [t]);
+  }, [bindings.app.commands, bindings.clock, profileLibrary, t]);
 
   const handleImportClick = useCallback(() => {
     fileInputRef.current?.click();
@@ -195,54 +188,50 @@ export function ProfileLibraryActions(props: {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      void (async () => {
-        let parsed: unknown;
-        try {
-          parsed = JSON.parse(String(reader.result || ''));
-        } catch {
-          setFeedback({ type: 'error', message: t('runtimeConfig.profiles.invalidJson', { defaultValue: 'Invalid JSON' }) });
-          return;
+    void (async () => {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(await file.text());
+      } catch {
+        setFeedback({ type: 'error', message: t('runtimeConfig.profiles.invalidJson', { defaultValue: 'Invalid JSON' }) });
+        return;
+      }
+      const items = Array.isArray(parsed) ? parsed : [parsed];
+      const candidates: NimiAIProfile[] = [];
+      const errors: string[] = [];
+      for (let index = 0; index < items.length; index += 1) {
+        const result = validateNimiAIProfile(items[index]);
+        if (result.valid) {
+          candidates.push(items[index] as NimiAIProfile);
+        } else {
+          errors.push(`Item ${index}: ${result.errors.join(', ')}`);
         }
-        const items = Array.isArray(parsed) ? parsed : [parsed];
-        const candidates: NimiAIProfile[] = [];
-        const errors: string[] = [];
-        for (let index = 0; index < items.length; index += 1) {
-          const result = validateNimiAIProfile(items[index]);
-          if (result.valid) {
-            candidates.push(items[index] as NimiAIProfile);
-          } else {
-            errors.push(`Item ${index}: ${result.errors.join(', ')}`);
-          }
-        }
-        if (candidates.length === 0) {
-          setFeedback({
-            type: 'error',
-            message: errors.join('; ') || t('runtimeConfig.profiles.importNone', { defaultValue: 'No valid profiles found.' }),
-          });
-          return;
-        }
-        try {
-          await importAccountProfileLibraryEntries(candidates);
-          await onLibraryChanged();
-          setFeedback({
-            type: 'success',
-            message: t('runtimeConfig.profiles.importSuccess', {
-              defaultValue: 'Imported {{count}} profile(s).',
-              count: candidates.length,
-            }),
-          });
-        } catch (error: unknown) {
-          setFeedback({
-            type: 'error',
-            message: error instanceof Error ? error.message : 'Failed to import profiles.',
-          });
-        }
-      })();
-    };
-    reader.readAsText(file);
-  }, [onLibraryChanged, t]);
+      }
+      if (candidates.length === 0) {
+        setFeedback({
+          type: 'error',
+          message: errors.join('; ') || t('runtimeConfig.profiles.importNone', { defaultValue: 'No valid profiles found.' }),
+        });
+        return;
+      }
+      try {
+        await profileLibrary.import(candidates);
+        await onLibraryChanged();
+        setFeedback({
+          type: 'success',
+          message: t('runtimeConfig.profiles.importSuccess', {
+            defaultValue: 'Imported {{count}} profile(s).',
+            count: candidates.length,
+          }),
+        });
+      } catch (error: unknown) {
+        setFeedback({
+          type: 'error',
+          message: error instanceof Error ? error.message : 'Failed to import profiles.',
+        });
+      }
+    })();
+  }, [onLibraryChanged, profileLibrary, t]);
 
   return (
     <section

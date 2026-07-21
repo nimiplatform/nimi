@@ -28,6 +28,7 @@ import {
   type NimiAIScopeRef,
   type NimiAISnapshot,
 } from '@nimiplatform/sdk/ai';
+import type { Runtime } from '@nimiplatform/sdk/runtime';
 import {
   loadNimiAppAIProfileFactoryCatalog,
 } from '@nimiplatform/sdk/app';
@@ -38,10 +39,8 @@ import {
   persistAIConfigForScope,
   scopeKeyFromRef,
 } from './desktop-ai-config-storage.js';
-import {
-  getConversationCapabilityRouteRuntime,
-  type ConversationCapabilityRouteRuntime,
-} from '../../features/chat/conversation-capability.js';
+import type { ConversationCapabilityRouteRuntime } from '../../features/chat/conversation-capability.js';
+import { getProductionConversationCapabilityRouteRuntime } from '../../features/chat/production-conversation-route-runtime-state.js';
 import {
   getAccountDefaultProfileForScopeInit,
   getBuiltInAIConfigForScopeInit,
@@ -104,10 +103,11 @@ export type DesktopAIConfigSurface = {
   update(scopeRef: NimiAIScopeRef, config: NimiAIConfig): void;
   listScopes(): readonly NimiAIScopeRef[];
   probe(scopeRef: NimiAIScopeRef): Promise<NimiAIConfigProbeResult>;
-  probeFeasibility(scopeRef: NimiAIScopeRef): Promise<NimiAIConfigProbeResult>;
+  probeFeasibility(scopeRef: NimiAIScopeRef, runtime?: Runtime): Promise<NimiAIConfigProbeResult>;
   probeSchedulingTarget(
     scopeRef: NimiAIScopeRef,
     target: NimiAISchedulingEvaluationTarget,
+    runtime?: Runtime,
   ): Promise<NimiAISchedulingJudgement | null>;
   subscribe(scopeRef: NimiAIScopeRef, callback: (config: NimiAIConfig) => void): () => void;
 };
@@ -448,25 +448,30 @@ function createAIConfigSurface(): DesktopAIConfigSurface {
     async probe(scopeRef: NimiAIScopeRef): Promise<NimiAIConfigProbeResult> {
       // D-AIPC-012 layer 2: runtime availability probe
       const config = this.get(scopeRef);
-      const routeRuntime = getConversationCapabilityRouteRuntime();
+      const routeRuntime = getProductionConversationCapabilityRouteRuntime();
       if (!routeRuntime) {
         return { status: 'unknown', capabilityStatuses: {} };
       }
       return probeConfigAvailability(config, routeRuntime);
     },
 
-    async probeFeasibility(scopeRef: NimiAIScopeRef): Promise<NimiAIConfigProbeResult> {
+    async probeFeasibility(scopeRef: NimiAIScopeRef, runtime?: Runtime): Promise<NimiAIConfigProbeResult> {
       // D-AIPC-012 layer 3: resource feasibility probe.
       // Consumes runtime Peek (K-SCHED-002) for scheduling judgement.
       const config = this.get(scopeRef);
-      const routeRuntime = getConversationCapabilityRouteRuntime();
+      const routeRuntime = getProductionConversationCapabilityRouteRuntime();
       if (!routeRuntime) {
         return { status: 'unknown', capabilityStatuses: {}, schedulingJudgement: null };
       }
       const availabilityResult = await probeConfigAvailability(config, routeRuntime);
       const targets = resolveNimiAIConfigRuntimeSchedulingTargets(config);
-      const schedulingJudgement = targets.length > 0
-        ? await peekDesktopRuntimeAggregateSchedulingJudgement(CORE_RUNTIME_PROFILE_OWNER_ID, DESKTOP_RUNTIME_APP_ID, targets)
+      const schedulingJudgement = targets.length > 0 && runtime
+        ? await peekDesktopRuntimeAggregateSchedulingJudgement(
+          runtime,
+          CORE_RUNTIME_PROFILE_OWNER_ID,
+          DESKTOP_RUNTIME_APP_ID,
+          targets,
+        )
         : null;
 
       // Aggregate status projection: combine availability + scheduling.
@@ -490,12 +495,19 @@ function createAIConfigSurface(): DesktopAIConfigSurface {
     async probeSchedulingTarget(
       scopeRef: NimiAIScopeRef,
       target: NimiAISchedulingEvaluationTarget,
+      runtime?: Runtime,
     ): Promise<NimiAISchedulingJudgement | null> {
       const normalizedTarget = normalizeNimiAISchedulingTarget(target);
       if (!normalizedTarget) {
         return null;
       }
-      const batchResult = await peekDesktopRuntimeSchedulingBatch(CORE_RUNTIME_PROFILE_OWNER_ID, DESKTOP_RUNTIME_APP_ID, [normalizedTarget]);
+      if (!runtime) return null;
+      const batchResult = await peekDesktopRuntimeSchedulingBatch(
+        runtime,
+        CORE_RUNTIME_PROFILE_OWNER_ID,
+        DESKTOP_RUNTIME_APP_ID,
+        [normalizedTarget],
+      );
       if (!batchResult) {
         return null;
       }
@@ -593,6 +605,7 @@ export type {
 export async function peekDesktopAISchedulingForEvidence(input: {
   scopeRef: NimiAIScopeRef;
   target: NimiAISchedulingEvaluationTarget | null;
+  runtime: Runtime;
 }): Promise<NimiAIRuntimeEvidence | null> {
   const target = normalizeNimiAISchedulingTarget(input.target);
   if (!target) {
@@ -601,6 +614,7 @@ export async function peekDesktopAISchedulingForEvidence(input: {
   const judgement = await getDesktopAIConfigService().aiConfig.probeSchedulingTarget(
     input.scopeRef,
     target,
+    input.runtime,
   );
   return createNimiAIRuntimeEvidence({ schedulingJudgement: judgement });
 }

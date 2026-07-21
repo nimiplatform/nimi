@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import { desktopBridge, type RuntimeBridgeDaemonStatus } from '../../bridge';
+import type { RuntimeBridgeDaemonStatus } from '../../bridge';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { applyRuntimeDaemonStatusToConfigState } from './runtime-daemon-state';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
@@ -26,6 +27,7 @@ export function useRuntimeConfigDaemonController(
   input: UseRuntimeConfigDaemonControllerInput,
 ): UseRuntimeConfigDaemonControllerOutput {
   const { updateState, runLocalHealthCheck, setStatusBanner } = input;
+  const bindings = useDesktopRendererBindings();
 
   const [runtimeDaemonStatus, setRuntimeDaemonStatus] = useState<RuntimeBridgeDaemonStatus | null>(null);
   const [runtimeDaemonBusyAction, setRuntimeDaemonBusyAction] = useState<RuntimeDaemonAction | null>(null);
@@ -36,33 +38,33 @@ export function useRuntimeConfigDaemonController(
     status: RuntimeBridgeDaemonStatus,
     mode: 'poll' | 'action',
   ) => {
-    const checkedAt = new Date().toISOString();
+    const checkedAt = new Date(bindings.clock.now()).toISOString();
     updateState((previous) => {
       return applyRuntimeDaemonStatusToConfigState(previous, status, mode, checkedAt);
     });
-  }, [updateState]);
+  }, [bindings.clock, updateState]);
 
   const refreshRuntimeDaemonStatus = useCallback(async () => {
     try {
-      const status = await desktopBridge.getRuntimeBridgeStatus();
+      const status = await bindings.app.commands.runtimeDaemon.status();
       setRuntimeDaemonStatus(status);
-      setRuntimeDaemonUpdatedAt(new Date().toISOString());
+      setRuntimeDaemonUpdatedAt(new Date(bindings.clock.now()).toISOString());
       setRuntimeDaemonError('');
       applyRuntimeDaemonStatusToState(status, 'poll');
     } catch (error) {
       setRuntimeDaemonError(error instanceof Error ? error.message : String(error || 'runtime daemon status failed'));
     }
-  }, [applyRuntimeDaemonStatusToState]);
+  }, [applyRuntimeDaemonStatusToState, bindings.app.commands.runtimeDaemon, bindings.clock]);
 
   const runRuntimeDaemonAction = useCallback(async (action: RuntimeDaemonAction) => {
     setRuntimeDaemonBusyAction(action);
     setRuntimeDaemonError('');
     try {
       const status = action === 'start'
-        ? await desktopBridge.startRuntimeBridge()
-        : await desktopBridge.restartRuntimeBridge();
+        ? await bindings.app.commands.runtimeDaemon.start()
+        : await bindings.app.commands.runtimeDaemon.restart();
       setRuntimeDaemonStatus(status);
-      setRuntimeDaemonUpdatedAt(new Date().toISOString());
+      setRuntimeDaemonUpdatedAt(new Date(bindings.clock.now()).toISOString());
       applyRuntimeDaemonStatusToState(status, 'action');
       await runLocalHealthCheck();
       setStatusBanner({
@@ -80,7 +82,7 @@ export function useRuntimeConfigDaemonController(
     } finally {
       setRuntimeDaemonBusyAction(null);
     }
-  }, [applyRuntimeDaemonStatusToState, runLocalHealthCheck, setStatusBanner]);
+  }, [applyRuntimeDaemonStatusToState, bindings.app.commands.runtimeDaemon, bindings.clock, runLocalHealthCheck, setStatusBanner]);
 
   const startRuntimeDaemon = useCallback(async () => {
     await runRuntimeDaemonAction('start');

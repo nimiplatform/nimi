@@ -11,18 +11,19 @@ import {
   type RealmChatViewDto,
 } from '@nimiplatform/kit/features/chat/realm';
 import { useTranslation } from 'react-i18next';
-import { sendChatMessage } from './data/realm-human-chat-data';
+import type { RealmHumanChatData } from './data/realm-human-chat-data.js';
+import { useRealmHumanChatData } from './data/realm-human-chat-data-context.js';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { ChatProfileCard } from '../turns/message-timeline-profile-card.js';
 import { toChatProfileSummary } from '../turns/message-timeline-utils.js';
 import { toProfileData, type ProfileSource } from '../profile/profile-model';
 import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
-import { createChatUploadPlaceholder, addChatUploadPlaceholder, removeChatUploadPlaceholder } from '../turns/chat-upload-placeholder-store';
+import { useChatUploadPlaceholderStore } from '../turns/chat-upload-placeholder-context.js';
 import { mergeSentRealmChatMessageIntoCache } from '../turns/chat-send-cache.js';
 import { formatPendingAttachmentSize, appendPendingAttachment, clearPendingAttachments, type PendingAttachment } from '../turns/turn-input-attachments';
 import { ChatComposerLeadingAvatar } from './chat-shared-composer-leading-avatar';
-import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
+import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 
 function HumanAttachmentStrip(props: {
@@ -87,6 +88,9 @@ export function HumanCanonicalComposer(props: {
   } | null;
 }) {
   const { t } = useTranslation();
+  const realmHumanChatData = useRealmHumanChatData();
+  const uploadPlaceholders = useChatUploadPlaceholderStore();
+  const sdk = useDesktopRendererSdk();
   const queryClient = useQueryClient();
   const offlineTier = useAppStore((state) => state.offlineTier);
   const currentUserId = String(useAppStore((state) => state.auth.user?.id) || '');
@@ -108,7 +112,7 @@ export function HumanCanonicalComposer(props: {
     }
   }, []);
 
-  const mergeSentMessageIntoCache = (message: Awaited<ReturnType<typeof sendChatMessage>>) => {
+  const mergeSentMessageIntoCache = (message: Awaited<ReturnType<RealmHumanChatData['sendChatMessage']>>) => {
     mergeSentRealmChatMessageIntoCache({
       queryClient,
       message,
@@ -124,7 +128,7 @@ export function HumanCanonicalComposer(props: {
 
     const { file, kind } = attachment;
     const isImage = kind === 'image';
-    const uploaded = await uploadNimiRealmResourceFile(getDesktopRealm(), {
+    const uploaded = await uploadNimiRealmResourceFile(sdk.realm(), {
       kind: isImage ? 'image' : 'video',
       file,
       failureMessage: t('TurnInput.uploadFailed'),
@@ -137,7 +141,7 @@ export function HumanCanonicalComposer(props: {
       throw new Error(t('TurnInput.uploadFailed'));
     }
 
-    return await sendChatMessage(props.selectedChatId, '', {
+    return await realmHumanChatData.sendChatMessage(props.selectedChatId, '', {
       type: 'ATTACHMENT',
       payload: createRealmChatResourceAttachmentPayload(finalizedAttachmentTargetId),
     });
@@ -200,13 +204,13 @@ export function HumanCanonicalComposer(props: {
     setIsUploading(true);
     try {
       for (const attachment of attachments) {
-        const placeholder = createChatUploadPlaceholder({
+        const placeholder = uploadPlaceholders.create({
           chatId: props.selectedChatId,
           previewUrl: attachment.previewUrl,
           kind: attachment.kind,
           senderId: currentUserId || 'local-user',
         });
-        addChatUploadPlaceholder(placeholder);
+        uploadPlaceholders.add(placeholder);
         try {
           const message = await uploadPendingAttachment(attachment);
           mergeSentMessageIntoCache(message);
@@ -214,9 +218,9 @@ export function HumanCanonicalComposer(props: {
             queryClient.invalidateQueries({ queryKey: ['messages', message.chatId] }),
             queryClient.invalidateQueries({ queryKey: ['chats'] }),
           ]);
-          removeChatUploadPlaceholder(placeholder.id);
+          uploadPlaceholders.remove(placeholder.id);
         } catch (error) {
-          removeChatUploadPlaceholder(placeholder.id);
+          uploadPlaceholders.remove(placeholder.id);
           throw error;
         }
       }
@@ -225,10 +229,14 @@ export function HumanCanonicalComposer(props: {
     }
   }, [currentUserId, props.selectedChatId, queryClient, uploadPendingAttachment]);
 
-  const textSendAdapter = useMemo(() => createRealmChatComposerAdapter({
+  const { submit: sendText } = useMemo(() => createRealmChatComposerAdapter({
     chatId: props.selectedChatId || '',
     service: {
-      sendMessage: async (chatId, input) => sendChatMessage(chatId, String(input.text || ''), input),
+      sendMessage: async (chatId, input) => realmHumanChatData.sendChatMessage(
+        chatId,
+        String(input.text || ''),
+        input,
+      ),
     },
     onResponse: async (message) => {
       mergeSentMessageIntoCache(message);
@@ -264,10 +272,10 @@ export function HumanCanonicalComposer(props: {
         }
       }
       if (text.trim()) {
-        await textSendAdapter.submit({ text, attachments: [] });
+        await sendText({ text, attachments: [] });
       }
     },
-  }), [handleSendAttachments, offlineTier, t, textSendAdapter]);
+  }), [handleSendAttachments, offlineTier, sendText, t]);
 
   return (
     <>

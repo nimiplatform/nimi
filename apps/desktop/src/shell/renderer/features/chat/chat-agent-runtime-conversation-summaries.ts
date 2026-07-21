@@ -3,7 +3,7 @@ import {
   type NimiRuntimeAgentConversationSummary,
 } from '@nimiplatform/sdk/runtime';
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
-import { getDesktopAppId, getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 
 export const RUNTIME_AGENT_CONVERSATION_SUMMARIES_QUERY_KEY = ['chat-agent-runtime-conversation-summaries'] as const;
 
@@ -87,11 +87,12 @@ function sortRuntimeConversationSummaries(
 
 export async function listRuntimeAgentConversationSummaries(
   targets: readonly AgentLocalTargetSnapshot[],
+  sdk: DesktopRendererSdkPort,
 ): Promise<AgentRuntimeConversationSummary[]> {
   if (targets.length === 0) {
     return [];
   }
-  const runtimeAgent = createDesktopRuntimeAgentConversationSummariesClient();
+  const runtimeAgent = createDesktopRuntimeAgentConversationSummariesClient(sdk);
   const responses = await Promise.all(targets.map(async (target) => {
     const response = await runtimeAgent.anchors.listSummaries({
       ownerUserId: target.ownerUserId,
@@ -115,9 +116,9 @@ export async function listRuntimeAgentConversationSummaries(
   return sortRuntimeConversationSummaries([...deduped.values()]);
 }
 
-function createDesktopRuntimeAgentConversationSummariesClient() {
+function createDesktopRuntimeAgentConversationSummariesClient(sdk: DesktopRendererSdkPort) {
   return createNimiRuntimeAgentConsumeClient({
-    runtime: { agents: getDesktopRuntime().agents },
-    runtimeAppId: getDesktopAppId(),
+    runtime: { agents: sdk.runtime().agents },
+    runtimeAppId: sdk.appId(),
   });
 }

@@ -251,28 +251,3 @@ export class OfflineOutboxManager {
     });
   }
 }
-
-let offlineOutboxManager: OfflineOutboxManager | null = null;
-let offlineOutboxManagerPromise: Promise<OfflineOutboxManager> | null = null;
-
-function isNonBrowserOfflineStoreHarness(): boolean {
-  return typeof window === 'undefined' && !hasIndexedDb();
-}
-
-export async function getOfflineOutboxManager(): Promise<OfflineOutboxManager> {
-  if (offlineOutboxManager) {
-    await offlineOutboxManager.open();
-    return offlineOutboxManager;
-  }
-  if (!offlineOutboxManagerPromise) {
-    offlineOutboxManagerPromise = (async () => {
-      const manager = new OfflineOutboxManager({
-        enableEphemeralStore: isNonBrowserOfflineStoreHarness(),
-      });
-      await manager.open();
-      offlineOutboxManager = manager;
-      return manager;
-    })();
-  }
-  return await offlineOutboxManagerPromise;
-}

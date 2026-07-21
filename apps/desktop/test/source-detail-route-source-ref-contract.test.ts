@@ -20,12 +20,12 @@ test('source detail route state carries typed sourceRef instead of bare profile 
   assert.match(uiSlice, /selectedSourceRef:\s*null/);
   assert.match(uiSlice, /navigateToSourceDetail:\s*\(sourceRef\) =>/);
   assert.match(sourcePanel, /const selectedSourceRef = useAppStore\(\(state\) => state\.selectedSourceRef\);/);
-  assert.match(sourcePanel, /fetchSourceDisplayDetail\(selectedSourceRef\)/);
+  assert.match(sourcePanel, /fetchSourceDisplayDetail\(selectedSourceRef, bindings\.sdk\)/);
   assert.match(sourcePanel, /sourceDisplayDetailQueryKey\(selectedSourceRef\)/);
-  assert.match(sourcePanel, /materializeSourceContactLaunchTarget\(source, ownerUserId, i18n\.t\)/);
-  assert.match(sourcePanel, /ensureRuntimeAgentExists\(target\)/);
+  assert.match(sourcePanel, /materializeSourceContactLaunchTarget\(source, ownerUserId, i18n\.t, bindings\.sdk\)/);
+  assert.match(sourcePanel, /ensureRuntimeAgentExists\(target, bindings\.sdk, ownerUserId\)/);
   assert.doesNotMatch(sourcePanel, /invalidateQueries\(\{ queryKey: sourceDisplayDetailQueryKey\(selectedSourceRef\) \}\)/);
-  assert.match(sourceQueries, /loadRealmSourceDetailsBySourceRef\(normalizedSourceRef/);
+  assert.match(sourceQueries, /loadRealmSourceDetailsBySourceRef\(\s*sdk\.realm\(\),\s*normalizedSourceRef/s);
   assert.doesNotMatch(sourcePanel, /fetchSourceDisplayDetail\(sourceIdentifier\)/);
   assert.doesNotMatch(sourcePanel, /sourceDisplayDetailQueryKey\(sourceIdentifier\)/);
 });

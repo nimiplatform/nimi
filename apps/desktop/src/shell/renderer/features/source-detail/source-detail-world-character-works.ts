@@ -46,7 +46,7 @@ function toWorkCollection(row: JsonObject, index: number): SourceDetailWorkColle
   return {
     id: readScalarString(row.id)
       ?? readScalarString(row.workId)
-      ?? (textId ? `text-${textId}` : null)
+      ?? (textId ? ['text', textId].join('-') : null)
       ?? rowRef
       ?? slug(title, String(index + 1)),
     title,
@@ -106,7 +106,7 @@ function toWorkCollectionFromRelationship(row: JsonObject, index: number): Sourc
     return null;
   }
   return {
-    id: readRelationshipId(row, textId ? `text-${textId}` : slug(title, String(index + 1))),
+    id: readRelationshipId(row, textId ? ['text', textId].join('-') : slug(title, String(index + 1))),
     title,
     romanizedTitle: readOptionalString(attributes, 'title')
       ?? readOptionalString(attributes, 'romanizedTitle'),
@@ -295,7 +295,7 @@ function toWorkCollectionFromBiographyMilestone(
     id: readOptionalString(row, 'workId')
       ?? readOptionalString(row, 'milestoneId')
       ?? readOptionalString(row, 'id')
-      ?? (textId ? `text-${textId}` : null)
+      ?? (textId ? ['text', textId].join('-') : null)
       ?? slug(title, String(index + 1)),
     title,
     romanizedTitle: readOptionalString(row, 'romanizedTitle'),

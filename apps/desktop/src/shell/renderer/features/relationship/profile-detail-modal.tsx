@@ -22,7 +22,7 @@ import {
 import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
 import { ensureRuntimeAgentExists } from '../chat/chat-agent-shell-host-actions-helpers';
 import { materializeSourceContactLaunchTarget } from './source-contact-launch-target.js';
-import { startChatWithTarget } from '../chat/data/realm-human-chat-data';
+import { useRealmHumanChatData } from '../chat/data/realm-human-chat-data-context.js';
 import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 import {
   characterSourceMaterializationFailureMessage,
@@ -32,6 +32,7 @@ import {
   discoverCharacterSourceLocalAgents,
   resolveCharacterSourceState,
 } from '../explore/character-source-materialization';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 export type ProfileDetailSeed = {
   id: string;
@@ -76,6 +77,8 @@ type ProfileDetailModalProps = {
 const INTERNAL_OPEN_CHAT_ERROR_CODE = 'PROFILE_OPEN_CHAT_FAILED';
 
 export function ProfileDetailModal(props: ProfileDetailModalProps) {
+  const bindings = useDesktopRendererBindings();
+  const realmHumanChatData = useRealmHumanChatData();
   const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -133,9 +136,11 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
           if (!sourceRef) {
             throw new Error(characterSourceMaterializationMessage(t));
           }
-          result = await realmSourceDetailData.loadRealmSourceDetailsBySourceRef(sourceRef, {
-            runtimeSourceRef: props.profileSeed.runtimeSourceRef,
-          });
+          result = await realmSourceDetailData.loadRealmSourceDetailsBySourceRef(
+            bindings.sdk.realm(),
+            sourceRef,
+            { runtimeSourceRef: props.profileSeed.runtimeSourceRef },
+          );
         } else {
           result = await realmSocialData.loadUserProfile(props.profileId);
         }
@@ -170,7 +175,9 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
       profile?.sourceRef ? characterSourceRefKey(profile.sourceRef) : sourceRefKey,
       profile?.runtimeSourceRef ?? '',
     ],
-    queryFn: async () => (profile ? discoverCharacterSourceLocalAgents(profile, ownerUserId) : []),
+    queryFn: async () => (profile
+      ? discoverCharacterSourceLocalAgents(profile, ownerUserId, bindings.sdk)
+      : []),
     enabled: props.open && Boolean(profile?.isSource) && Boolean(ownerUserId),
     staleTime: 10_000,
   });
@@ -197,8 +204,13 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
       if (sourceMaterializationUnavailable) {
         throw new Error(sourceMaterializationHint || characterSourceMaterializationMessage(t));
       }
-      const target = await materializeSourceContactLaunchTarget(profile, ownerUserId, t);
-      await ensureRuntimeAgentExists(target);
+      const target = await materializeSourceContactLaunchTarget(
+        profile,
+        ownerUserId,
+        t,
+        bindings.sdk,
+      );
+      await ensureRuntimeAgentExists(target, bindings.sdk, ownerUserId);
       await queryClient.invalidateQueries({ queryKey: ['profile-source-local-agents'], exact: false });
       await launchAgentConversationFromDisplay({
         target,
@@ -222,6 +234,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
       });
     }
   }, [
+    bindings,
     ownerUserId,
     profile,
     props,
@@ -249,8 +262,13 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
         if (sourceMaterializationUnavailable) {
           throw new Error(characterSourceMaterializationMessage(t));
         }
-        const target = await materializeSourceContactLaunchTarget(profile, ownerUserId, t);
-        await ensureRuntimeAgentExists(target);
+        const target = await materializeSourceContactLaunchTarget(
+          profile,
+          ownerUserId,
+          t,
+          bindings.sdk,
+        );
+        await ensureRuntimeAgentExists(target, bindings.sdk, ownerUserId);
         await launchAgentConversationFromDisplay({
           target,
           setActiveTab,
@@ -263,7 +281,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
         return;
       }
 
-      const result = await startChatWithTarget(profile.id);
+      const result = await realmHumanChatData.startChatWithTarget(profile.id);
       if (!result?.chatId) {
         throw new Error(INTERNAL_OPEN_CHAT_ERROR_CODE);
       }
@@ -284,6 +302,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
       });
     }
   }, [
+    bindings,
     isBlockedProfile,
     ownerUserId,
     profile,

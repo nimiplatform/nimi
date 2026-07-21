@@ -12,7 +12,8 @@ import {
   resolveDesktopAuditTimeRange,
   type DesktopAuditTimeRange,
 } from './runtime-config-audit-sdk-service.js';
-import { getRuntimeHealthCoordinator, useRuntimeHealthCoordinatorState } from './runtime-health-coordinator.js';
+import { useRuntimeHealthCoordinatorState } from './runtime-health-coordinator.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 type AuditFilters = {
   domain: string;
@@ -28,6 +29,8 @@ type UsageFilters = {
 };
 
 export function useGlobalAuditData(enabled: boolean) {
+  const bindings = useDesktopRendererBindings();
+  const sdk = bindings.sdk;
   const healthState = useRuntimeHealthCoordinatorState();
 
   // --- Section 2: Global Audit ---
@@ -63,11 +66,11 @@ export function useGlobalAuditData(enabled: boolean) {
 
   const loadHealth = useCallback(async () => {
     try {
-      await getRuntimeHealthCoordinator().forceRefresh('runtime-page-refresh');
+      await sdk.runtimeHealthCoordinator().forceRefresh('runtime-page-refresh');
     } catch {
       // Keep rendering the shared state snapshot on refresh failure.
     }
-  }, []);
+  }, [sdk]);
 
   // --- Audit loading ---
   const loadAuditEvents = useCallback(async (filters?: AuditFilters) => {
@@ -79,9 +82,9 @@ export function useGlobalAuditData(enabled: boolean) {
       const auditWindow = resolveDesktopAuditTimeRange({
         from: f.timeFrom ? new Date(f.timeFrom) : undefined,
         to: f.timeTo ? new Date(f.timeTo) : undefined,
-      });
+      }, new Date(bindings.clock.now()));
       auditPageWindowRef.current = auditWindow;
-      const res = await fetchDesktopAuditEvents({
+      const res = await fetchDesktopAuditEvents(sdk.runtime().audit, {
         domain: f.domain || undefined,
         callerKind: f.callerKind || undefined,
         ...auditWindow,
@@ -107,7 +110,7 @@ export function useGlobalAuditData(enabled: boolean) {
     setAuditLoading(true);
     setAuditError(null);
     try {
-      const res = await fetchDesktopAuditEvents({
+      const res = await fetchDesktopAuditEvents(sdk.runtime().audit, {
         domain: auditFilters.domain || undefined,
         callerKind: auditFilters.callerKind || undefined,
         ...auditWindow,
@@ -129,7 +132,7 @@ export function useGlobalAuditData(enabled: boolean) {
     setUsageLoading(true);
     setUsageError(null);
     try {
-      const res = await fetchUsageStats({
+      const res = await fetchUsageStats(sdk.runtime().audit, {
         capability: f.capability || undefined,
         modelId: f.modelId || undefined,
         window: f.window || UsageWindow.HOUR,
@@ -150,7 +153,7 @@ export function useGlobalAuditData(enabled: boolean) {
     setUsageLoading(true);
     setUsageError(null);
     try {
-      const res = await fetchUsageStats({
+      const res = await fetchUsageStats(sdk.runtime().audit, {
         capability: usageFilters.capability || undefined,
         modelId: usageFilters.modelId || undefined,
         window: usageFilters.window || UsageWindow.HOUR,

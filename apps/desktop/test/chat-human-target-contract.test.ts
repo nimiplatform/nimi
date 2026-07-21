@@ -379,9 +379,9 @@ test('human target selection starts a Realm chat when the friend has no existing
     'utf8',
   );
 
-  assert.match(source, /import \{ loadChatList, startChatWithTarget \} from '\.\/data\/realm-human-chat-data';/);
+  assert.match(source, /useRealmHumanChatData/);
   assert.match(source, /const existingChatId = resolveCanonicalRealmHumanChatId\(allChats, normalizedTargetId\);/);
-  assert.match(source, /void startChatWithTarget\(normalizedTargetId, null\)/);
+  assert.match(source, /realmHumanChatData\.startChatWithTarget\(normalizedTargetId, null\)/);
   assert.match(source, /setSelectedChatId\(chatId\);/);
   assert.match(source, /queryClient\.invalidateQueries\(\{ queryKey: \['chats'\] \}\)/);
 });

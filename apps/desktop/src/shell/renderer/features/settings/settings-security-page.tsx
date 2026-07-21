@@ -9,8 +9,8 @@ import {
 } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { FormFeedback, PageShell, SaveFooter, SectionTitle } from './settings-layout-components.js';
 import {
   CheckIcon,
@@ -27,6 +27,7 @@ import { LocalDevelopmentAuthorizations } from '../local-development/local-devel
 export function SecurityPage() {
   const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
   const authUser = useAppStore((state) => state.auth.user);
   const setAuthSession = useAppStore((state) => state.setAuthSession);
   const initialTwoFactorEnabled = authUser?.isTwoFactorEnabled === true;
@@ -59,7 +60,7 @@ export function SecurityPage() {
       return;
     }
     setPreparingTwoFactor(true);
-    void prepareNimiRealmTwoFactor(getDesktopRealm())
+    void prepareNimiRealmTwoFactor(bindings.sdk.realm())
       .then((payload) => {
         setTwoFactorSecret(String(payload.secret || ''));
         setTwoFactorUri(String(payload.otpauthUri || ''));
@@ -76,6 +77,7 @@ export function SecurityPage() {
       });
   }, [
     initialTwoFactorEnabled,
+    bindings.sdk,
     preparingTwoFactor,
     t,
     twoFactor,
@@ -89,11 +91,11 @@ export function SecurityPage() {
   };
 
   const copyTwoFactorValue = async (value: string, successKey: string, successDefaultValue: string) => {
-    if (!value.trim() || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+    if (!value.trim()) {
       return;
     }
     try {
-      await navigator.clipboard.writeText(value);
+      await bindings.app.commands.writeClipboardText(value);
       setFeedback({
         kind: 'success',
         message: t(successKey, { defaultValue: successDefaultValue }),
@@ -127,7 +129,7 @@ export function SecurityPage() {
     setSaving(true);
     try {
       if (newPw.trim()) {
-        await updateNimiRealmPassword(getDesktopRealm(), {
+        await updateNimiRealmPassword(bindings.sdk.realm(), {
           oldPassword: currentPw.trim() || undefined,
           newPassword: newPw.trim(),
         });
@@ -138,9 +140,9 @@ export function SecurityPage() {
           code: twoFactorCode.trim(),
         };
         if (twoFactor) {
-          await enableNimiRealmTwoFactor(getDesktopRealm(), payload);
+          await enableNimiRealmTwoFactor(bindings.sdk.realm(), payload);
         } else {
-          await disableNimiRealmTwoFactor(getDesktopRealm(), payload);
+          await disableNimiRealmTwoFactor(bindings.sdk.realm(), payload);
         }
       }
 

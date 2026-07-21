@@ -123,7 +123,7 @@ test('useSchedulingFeasibility: exported from shared execution scheduling guard 
 
 test('useSchedulingFeasibility: calls probeFeasibility from the formal surface (D-AIPC-012 layer 3)', () => {
   const source = readSource(guardModulePath);
-  assert.match(source, /surface\.aiConfig\.probeFeasibility\(scopeRef\)/);
+  assert.match(source, /surface\.aiConfig\.probeFeasibility\(scopeRef, sdk\.runtime\(\)\)/);
 });
 
 test('useSchedulingFeasibility: reads schedulingJudgement from probe result, not custom truth', () => {
@@ -229,7 +229,8 @@ test('no parallel scheduling truth: Desktop delegates AIConfig scheduling projec
   assert.match(source, /from '@nimiplatform\/sdk\/ai'/);
   assert.match(source, /createNimiRuntimeAISchedulingClient/);
   assert.match(source, /resolveNimiAIConfigRuntimeSchedulingTargets/);
-  assert.match(source, /runtime:\s*getDesktopRuntime\(\)/);
+  assert.match(source, /runtime,/);
+  assert.match(source, /createNimiRuntimeAISchedulingClient/);
   assert.match(source, /return scheduling\.peek\(\);/);
   assert.doesNotMatch(source, /getPlatformClient\(\)\.runtime\.ai\.peekScheduling/);
   assert.doesNotMatch(source, /export function resolveAIConfigScopeSchedulingTargets\(/);

@@ -48,27 +48,6 @@ export function normalizeOptionalNonNegativeNumber(value: unknown): number | nul
   return Number.isFinite(normalized) && normalized >= 0 ? normalized : null;
 }
 
-export function sleepWithAbort(ms: number, signal?: AbortSignal): Promise<void> {
-  if (!signal) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-  if (signal.aborted) {
-    return Promise.reject(new DOMException('The operation was aborted.', 'AbortError'));
-  }
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      signal.removeEventListener('abort', onAbort);
-      resolve();
-    }, ms);
-    const onAbort = () => {
-      clearTimeout(timer);
-      signal.removeEventListener('abort', onAbort);
-      reject(new DOMException('The operation was aborted.', 'AbortError'));
-    };
-    signal.addEventListener('abort', onAbort, { once: true });
-  });
-}
-
 export function requireValue(value: unknown, reasonCode: string, actionHint: string, message: string): string {
   const normalized = normalizeText(value);
   if (!normalized) {

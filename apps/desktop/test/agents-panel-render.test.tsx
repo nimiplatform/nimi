@@ -68,6 +68,7 @@ function baseProps(overrides: Partial<AgentsPanelViewProps> = {}): AgentsPanelVi
     onRetry: () => {},
     onOpenAgent: () => {},
     onBrowseExplore: () => {},
+    sdk: {} as AgentsPanelViewProps['sdk'],
     ...overrides,
   };
 }

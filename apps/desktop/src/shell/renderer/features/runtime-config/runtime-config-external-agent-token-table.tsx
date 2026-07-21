@@ -12,6 +12,7 @@ import {
   relativeFromNow,
   resolveTokenStatus,
 } from './runtime-config-external-agent-access-model';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -90,10 +91,12 @@ function ExternalAgentTokenRow(props: {
   token: NimiExternalAgentTokenLedgerRecord;
 }) {
   const { token, t } = props;
-  const status = resolveTokenStatus(token);
+  const bindings = useDesktopRendererBindings();
+  const nowMs = bindings.clock.now();
+  const status = resolveTokenStatus(token, nowMs);
   const tone = STATUS_TONE[status];
-  const expiresRel = relativeFromNow(token.expiresAt, t);
-  const issuedRel = relativeFromNow(token.issuedAt, t);
+  const expiresRel = relativeFromNow(token.expiresAt, t, nowMs);
+  const issuedRel = relativeFromNow(token.issuedAt, t, nowMs);
   const isService = !!token.subjectAccountId && token.subjectAccountId.startsWith('service_');
   const displayScopes = token.actions.length > 0
     ? token.actions

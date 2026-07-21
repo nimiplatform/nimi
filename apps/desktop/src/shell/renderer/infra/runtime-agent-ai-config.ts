@@ -2,13 +2,9 @@ import {
   createNimiRuntimeAgentAIConfigModule,
   type NimiRuntimeAgentAIConfigModule,
   type NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
+  type NimiRuntimeAgentAIConfigRuntime,
+  type NimiRuntimeAgentScopeRunner,
 } from '@nimiplatform/sdk/runtime';
-import {
-  getDesktopAccountRuntime,
-  getDesktopAppId,
-  getDesktopRuntime,
-  withDesktopRuntimeProtectedScopes,
-} from './sdk/desktop-nimi-client-session';
 
 export type {
   NimiRuntimeAgentAIConfigBinding,
@@ -17,25 +13,18 @@ export type {
 } from '@nimiplatform/sdk/runtime';
 
 type RuntimeAgentAIConfigDeps = {
+  runtime: NimiRuntimeAgentAIConfigRuntime;
   getSubjectUserId?: () => string | undefined | Promise<string | undefined>;
+  withScopes?: NimiRuntimeAgentScopeRunner;
 };
 
-function getDesktopRuntimeAgentAIConfigClient() {
-  const accountRuntime = getDesktopAccountRuntime();
-  return {
-    appId: getDesktopAppId(),
-    auth: accountRuntime.auth,
-    agent: getDesktopRuntime().agents,
-  };
-}
-
 export function createRuntimeAgentAIConfigAdapter(
-  deps: RuntimeAgentAIConfigDeps = {},
+  deps: RuntimeAgentAIConfigDeps,
 ): NimiRuntimeAgentAIConfigModule {
   return createNimiRuntimeAgentAIConfigModule({
-    runtime: getDesktopRuntimeAgentAIConfigClient(),
+    runtime: deps.runtime,
     getSubjectUserId: deps.getSubjectUserId ?? (() => undefined),
-    withScopes: withDesktopRuntimeProtectedScopes,
+    ...(deps.withScopes ? { withScopes: deps.withScopes } : {}),
   });
 }
 

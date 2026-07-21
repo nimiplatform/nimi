@@ -6,6 +6,7 @@ import type { ShellOAuthBridge } from '@nimiplatform/kit/core/oauth';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { createNimiDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
 import { productionAppStore } from '../../app-shell/providers/production-app-store';
+import { getProductionConversationCapabilityRouteRuntime } from '../chat/production-conversation-route-runtime-state.js';
 import {
   initializeBuiltInChatScopesFromProductControl,
 } from '../../app-shell/providers/desktop-ai-config-service';
@@ -88,7 +89,11 @@ async function syncDesktopBuiltInChatAIConfigAfterLogin(): Promise<void> {
     return;
   }
   await initializeBuiltInChatScopesFromProductControl();
-  await refreshConversationCapabilityProjections(productionAppStore, ['text.generate']);
+  await refreshConversationCapabilityProjections(
+    productionAppStore,
+    ['text.generate'],
+    getProductionConversationCapabilityRouteRuntime(),
+  );
 }
 
 function logDesktopPostLoginSyncFailures(results: readonly PromiseSettledResult<unknown>[]): void {

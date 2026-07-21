@@ -28,14 +28,16 @@ import {
   toRealmHumanTargetSummary,
   type RealmChatViewDto,
 } from '@nimiplatform/kit/features/chat/realm';
-import { loadChatList } from './data/realm-human-chat-data';
-import { realmGroupChatData } from './data/realm-group-chat-data';
+import { useRealmHumanChatData } from './data/realm-human-chat-data-context.js';
+import { useRealmGroupChatData } from './data/realm-group-chat-data-context.js';
 import {
   compareGroupChatsByRecency,
   toGroupTargetSummary,
   type GroupChatViewDto,
   type GroupChatCopy,
 } from './chat-group-thread-model';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import { createRealmWorldData } from '../world/data/realm-world-data.js';
 
 type SocialSnapshot = Awaited<ReturnType<RealmSocialData['loadSocialSnapshot']>>;
 
@@ -274,6 +276,9 @@ export function toAgentTargetSnapshotFromSummary(
 export function useChatTargetsForSidebar(
   authStatus: AuthStatus,
 ): readonly ConversationTargetSummary[] {
+  const realmGroupChatData = useRealmGroupChatData();
+  const realmHumanChatData = useRealmHumanChatData();
+  const bindings = useDesktopRendererBindings();
   const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
   const groupChatCopy = useMemo<GroupChatCopy>(() => ({
@@ -285,7 +290,7 @@ export function useChatTargetsForSidebar(
 
   const humanChatsQuery = useQuery({
     queryKey: ['chats', authStatus],
-    queryFn: async () => loadChatList(),
+    queryFn: async () => realmHumanChatData.loadChatList(),
     enabled: authStatus === 'authenticated',
     staleTime: 30_000,
   });
@@ -306,14 +311,14 @@ export function useChatTargetsForSidebar(
 
   const worldsQuery = useQuery({
     queryKey: worldListQueryKey(),
-    queryFn: async () => fetchWorldListItems(),
+    queryFn: async () => fetchWorldListItems(createRealmWorldData(bindings.sdk)),
     enabled: authStatus === 'authenticated',
     staleTime: 30_000,
   });
 
   const localAgentsQuery = useQuery({
     queryKey: localAgentListQueryKey(ownerUserId),
-    queryFn: async () => fetchLocalAgentList(ownerUserId),
+    queryFn: async () => fetchLocalAgentList(ownerUserId, bindings.sdk),
     enabled: authStatus === 'authenticated' && Boolean(ownerUserId),
     staleTime: 15_000,
   });
@@ -322,7 +327,7 @@ export function useChatTargetsForSidebar(
   const localAgentSourceDetailQueries = useQueries({
     queries: localAgents.map((agent) => ({
       queryKey: sourceDisplayDetailQueryKey(agent.sourceRef),
-      queryFn: async () => fetchSourceDisplayDetail(agent.sourceRef),
+      queryFn: async () => fetchSourceDisplayDetail(agent.sourceRef, bindings.sdk),
       enabled: authStatus === 'authenticated',
       staleTime: 60_000,
     })),

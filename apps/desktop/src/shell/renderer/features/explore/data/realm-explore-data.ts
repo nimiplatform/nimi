@@ -5,7 +5,8 @@ import {
 import type {
   RealmGetExploreFeedOperationResponse,
 } from '@nimiplatform/sdk/realm/generated';
-import { callRealmApi, emitRealmDataError } from '../../../infra/realm/realm-api';
+import type { DesktopRendererSdkPort } from '../../../renderer/sdk-port.js';
+import type { JsonObject } from '@nimiplatform/sdk/types';
 
 export type LoadExplorePersonasInput = {
   tag?: string | null;
@@ -21,7 +22,7 @@ export type RealmExploreApiCaller = <T>(
 export type RealmExploreErrorEmitter = (
   action: string,
   error: unknown,
-  details?: Record<string, unknown>,
+  details?: JsonObject,
 ) => void;
 
 export type RealmSourceExploreResponse = {
@@ -211,7 +212,10 @@ export async function loadMoreExploreFeedItems(
   );
 }
 
-export const realmExploreData = {
+export function createRealmExploreData(sdk: DesktopRendererSdkPort) {
+  const callRealmApi = sdk.socialData.callApi;
+  const emitRealmDataError = sdk.socialData.emitDataError;
+  return Object.freeze({
   loadExplorePersonas: (input: LoadExplorePersonasInput = {}) =>
     loadExplorePersonas(callRealmApi, emitRealmDataError, {
       ...input,
@@ -221,4 +225,5 @@ export const realmExploreData = {
     loadExploreFeedItems(callRealmApi, emitRealmDataError, tag, Math.min(limit, 100)),
   loadMoreExploreFeed: (limit = 20, cursor?: string, tag?: string | null) =>
     loadMoreExploreFeedItems(callRealmApi, emitRealmDataError, Math.min(limit, 100), cursor, tag),
-};
+  });
+}

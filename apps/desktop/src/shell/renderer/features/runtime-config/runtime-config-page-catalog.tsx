@@ -9,7 +9,7 @@ import { ScrollArea } from '@nimiplatform/kit/ui';
 import { Button, Card, Input, RuntimeSelect } from './runtime-config-primitives';
 import { RuntimePageShell } from './runtime-config-page-shell';
 import {
-  runtimeConfigCatalogClient,
+  createRuntimeConfigCatalogClient,
   type NimiRuntimeCatalogModelDetail,
   type NimiRuntimeCatalogModelOverlayInput,
   type NimiRuntimeCatalogProviderModelsResponse,
@@ -21,6 +21,7 @@ import {
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import type { JsonObject } from '@nimiplatform/sdk/types';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 type CatalogPageProps = {
   model: RuntimeConfigPanelControllerModel;
@@ -79,39 +80,35 @@ type CatalogFormState = {
   bindingTypesText: string;
 };
 
-const MODEL_CATALOG_UPDATED_EVENT = 'nimi:runtime:model-catalog-updated';
-
-function emitModelCatalogUpdated(provider: string) {
-  if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function' || typeof CustomEvent !== 'function') return;
-  window.dispatchEvent(new CustomEvent(MODEL_CATALOG_UPDATED_EVENT, { detail: { provider, updatedAt: new Date().toISOString() } }));
+function todayDate(now: () => number) {
+  return new Date(now()).toISOString().slice(0, 10);
 }
 
-function todayDate() {
-  return new Date().toISOString().slice(0, 10);
+function createEmptyVoiceRow(now: () => number): VoiceRow {
+  return { voiceId: '', name: '', langs: '', modelIds: '', sourceUrl: '', sourceRetrievedAt: todayDate(now), sourceNote: '' };
 }
 
-function createEmptyVoiceRow(): VoiceRow {
-  return { voiceId: '', name: '', langs: '', modelIds: '', sourceUrl: '', sourceRetrievedAt: todayDate(), sourceNote: '' };
+function createEmptyWorkflowRow(now: () => number): WorkflowRow {
+  return { workflowModelId: '', workflowType: 'voice_clone', inputContractRef: '', outputPersistence: '', targetModelRefs: '', langs: '', sourceUrl: '', sourceRetrievedAt: todayDate(now), sourceNote: '' };
 }
 
-function createEmptyWorkflowRow(): WorkflowRow {
-  return { workflowModelId: '', workflowType: 'voice_clone', inputContractRef: '', outputPersistence: '', targetModelRefs: '', langs: '', sourceUrl: '', sourceRetrievedAt: todayDate(), sourceNote: '' };
-}
-
-function createEmptyFormState(_selectedProvider: NimiRuntimeModelCatalogProvider | null): CatalogFormState {
+function createEmptyFormState(
+  _selectedProvider: NimiRuntimeModelCatalogProvider | null,
+  now: () => number,
+): CatalogFormState {
   return {
     modelId: '',
     modelType: 'text',
-    updatedAt: todayDate(),
+    updatedAt: todayDate(now),
     capabilitiesText: '',
     pricingUnit: 'token',
     pricingInput: 'unknown',
     pricingOutput: 'unknown',
     pricingCurrency: 'USD',
-    pricingAsOf: todayDate(),
+    pricingAsOf: todayDate(now),
     pricingNotes: '',
     sourceUrl: '',
-    sourceRetrievedAt: todayDate(),
+    sourceRetrievedAt: todayDate(now),
     sourceNote: '',
     voiceSetId: '',
     voiceDiscoveryMode: 'static_catalog',
@@ -123,7 +120,7 @@ function createEmptyFormState(_selectedProvider: NimiRuntimeModelCatalogProvider
     videoConstraintsJson: '{}',
     videoOutputVideoUrl: true,
     videoOutputLastFrameUrl: false,
-    voices: [createEmptyVoiceRow()],
+    voices: [createEmptyVoiceRow(now)],
     workflows: [],
     bindingRefsText: '',
     bindingTypesText: '',
@@ -135,6 +132,11 @@ function splitCsv(value: string): string[] {
 }
 
 export function CatalogPage({ model, state: _state }: CatalogPageProps) {
+  const bindings = useDesktopRendererBindings();
+  const runtimeConfigCatalogClient = useMemo(
+    () => createRuntimeConfigCatalogClient(bindings.sdk.runtime().connectors),
+    [bindings.sdk],
+  );
   const [providers, setProviders] = useState<NimiRuntimeModelCatalogProvider[]>([]);
   const [selectedProviderId, setSelectedProviderId] = useState('');
   const [providerModels, setProviderModels] = useState<NimiRuntimeCatalogProviderModelsResponse | null>(null);
@@ -144,7 +146,9 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
   const [savingModel, setSavingModel] = useState(false);
   const [deletingModelId, setDeletingModelId] = useState('');
   const [showAddModel, setShowAddModel] = useState(false);
-  const [formState, setFormState] = useState<CatalogFormState>(createEmptyFormState(null));
+  const [formState, setFormState] = useState<CatalogFormState>(() => (
+    createEmptyFormState(null, bindings.clock.now)
+  ));
 
   const loadProviders = useCallback(async () => {
     try {
@@ -174,7 +178,9 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
 
   useEffect(() => { void loadProviders(); }, [loadProviders]);
   useEffect(() => { if (selectedProviderId) void loadProviderModels(selectedProviderId); }, [loadProviderModels, selectedProviderId]);
-  useEffect(() => { if (showAddModel) setFormState(createEmptyFormState(selectedProvider)); }, [showAddModel, selectedProvider]);
+  useEffect(() => {
+    if (showAddModel) setFormState(createEmptyFormState(selectedProvider, bindings.clock.now));
+  }, [bindings.clock.now, showAddModel, selectedProvider]);
 
   const onSaveOverlayYaml = useCallback(async () => {
     if (!selectedProvider) return;
@@ -185,7 +191,6 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
     setSavingOverlayYaml(true);
     try {
       await runtimeConfigCatalogClient.upsertProvider(selectedProvider.provider, overlayYamlDraft);
-      emitModelCatalogUpdated(selectedProvider.provider);
       await loadProviders();
       await loadProviderModels(selectedProvider.provider);
       model.setPageFeedback({ kind: 'success', message: `Overlay YAML saved for ${selectedProvider.provider}.` });
@@ -201,7 +206,6 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
     setSavingOverlayYaml(true);
     try {
       await runtimeConfigCatalogClient.deleteProvider(selectedProvider.provider);
-      emitModelCatalogUpdated(selectedProvider.provider);
       await loadProviders();
       await loadProviderModels(selectedProvider.provider);
       model.setPageFeedback({ kind: 'success', message: `Overlay removed for ${selectedProvider.provider}.` });
@@ -217,7 +221,6 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
     setDeletingModelId(modelId);
     try {
       await runtimeConfigCatalogClient.deleteModelOverlay(selectedProvider.provider, modelId);
-      emitModelCatalogUpdated(selectedProvider.provider);
       await loadProviders();
       await loadProviderModels(selectedProvider.provider);
       model.setPageFeedback({ kind: 'success', message: `Custom model removed: ${modelId}.` });
@@ -270,7 +273,6 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
       };
       setSavingModel(true);
       await runtimeConfigCatalogClient.upsertModelOverlay(selectedProvider.provider, overlayInput);
-      emitModelCatalogUpdated(selectedProvider.provider);
       setShowAddModel(false);
       await loadProviders();
       await loadProviderModels(selectedProvider.provider);
@@ -394,6 +396,7 @@ function YamlPanel(props: { provider: NimiRuntimeModelCatalogProvider; overlayYa
 }
 
 function AddModelDialog(props: { provider: NimiRuntimeModelCatalogProvider; formState: CatalogFormState; saving: boolean; onChange: (value: CatalogFormState) => void; onClose: () => void; onSubmit: () => void }) {
+  const bindings = useDesktopRendererBindings();
   const setField = <K extends keyof CatalogFormState>(key: K, value: CatalogFormState[K]) => props.onChange({ ...props.formState, [key]: value });
   const updateVoice = (index: number, patch: Partial<VoiceRow>) => props.onChange({ ...props.formState, voices: props.formState.voices.map((voice, voiceIndex) => (voiceIndex === index ? { ...voice, ...patch } : voice)) });
   const updateWorkflow = (index: number, patch: Partial<WorkflowRow>) => props.onChange({ ...props.formState, workflows: props.formState.workflows.map((workflow, workflowIndex) => (workflowIndex === index ? { ...workflow, ...patch } : workflow)) });
@@ -440,9 +443,9 @@ function AddModelDialog(props: { provider: NimiRuntimeModelCatalogProvider; form
           <JsonArea label="Video Constraints JSON" value={props.formState.videoConstraintsJson} onChange={(value) => setField('videoConstraintsJson', value)} placeholder='{"service_tier":["standard"]}' />
           <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] p-3"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-muted)]">Video Outputs</p><label className="mt-3 flex items-center gap-2 text-sm text-[var(--nimi-text-secondary)]"><input type="checkbox" checked={props.formState.videoOutputVideoUrl} onChange={(event) => setField('videoOutputVideoUrl', event.target.checked)} /> Video URL</label><label className="mt-2 flex items-center gap-2 text-sm text-[var(--nimi-text-secondary)]"><input type="checkbox" checked={props.formState.videoOutputLastFrameUrl} onChange={(event) => setField('videoOutputLastFrameUrl', event.target.checked)} /> Last Frame URL</label></div>
         </div>
-        <SectionHeader title="Voices" actionLabel="Add Voice" onAction={() => props.onChange({ ...props.formState, voices: [...props.formState.voices, createEmptyVoiceRow()] })} />
+        <SectionHeader title="Voices" actionLabel="Add Voice" onAction={() => props.onChange({ ...props.formState, voices: [...props.formState.voices, createEmptyVoiceRow(bindings.clock.now)] })} />
         <div className="space-y-3">{props.formState.voices.map((voice, index) => <div key={`voice-${index}`} className="grid gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] p-3 md:grid-cols-3"><Input label="Voice ID" value={voice.voiceId} onChange={(value) => updateVoice(index, { voiceId: value })} /><Input label="Name" value={voice.name} onChange={(value) => updateVoice(index, { name: value })} /><Input label="Langs" value={voice.langs} onChange={(value) => updateVoice(index, { langs: value })} placeholder="zh-cn, en-us" /><Input label="Model IDs" value={voice.modelIds} onChange={(value) => updateVoice(index, { modelIds: value })} placeholder={props.formState.modelId || 'model-id'} /><Input label="Source URL" value={voice.sourceUrl} onChange={(value) => updateVoice(index, { sourceUrl: value })} /><Input label="Retrieved At" value={voice.sourceRetrievedAt} onChange={(value) => updateVoice(index, { sourceRetrievedAt: value })} /><div className="md:col-span-3"><label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">Voice Note</label><textarea value={voice.sourceNote} onChange={(event) => updateVoice(index, { sourceNote: event.target.value })} className="min-h-[64px] w-full rounded-[10px] border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] p-3 text-sm text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:bg-white focus:ring-2 focus:ring-mint-100" /></div></div>)}</div>
-        <SectionHeader title="Voice Workflow Models" actionLabel="Add Workflow" onAction={() => props.onChange({ ...props.formState, workflows: [...props.formState.workflows, createEmptyWorkflowRow()] })} />
+        <SectionHeader title="Voice Workflow Models" actionLabel="Add Workflow" onAction={() => props.onChange({ ...props.formState, workflows: [...props.formState.workflows, createEmptyWorkflowRow(bindings.clock.now)] })} />
         <div className="space-y-3">{props.formState.workflows.map((workflow, index) => <div key={`workflow-${index}`} className="grid gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] p-3 md:grid-cols-3"><Input label="Workflow Model ID" value={workflow.workflowModelId} onChange={(value) => updateWorkflow(index, { workflowModelId: value })} /><Input label="Workflow Type" value={workflow.workflowType} onChange={(value) => updateWorkflow(index, { workflowType: value })} /><Input label="Input Contract Ref" value={workflow.inputContractRef} onChange={(value) => updateWorkflow(index, { inputContractRef: value })} /><Input label="Output Persistence" value={workflow.outputPersistence} onChange={(value) => updateWorkflow(index, { outputPersistence: value })} /><Input label="Target Model Refs" value={workflow.targetModelRefs} onChange={(value) => updateWorkflow(index, { targetModelRefs: value })} placeholder={props.formState.modelId || 'model-id'} /><Input label="Langs" value={workflow.langs} onChange={(value) => updateWorkflow(index, { langs: value })} /><Input label="Source URL" value={workflow.sourceUrl} onChange={(value) => updateWorkflow(index, { sourceUrl: value })} /><Input label="Retrieved At" value={workflow.sourceRetrievedAt} onChange={(value) => updateWorkflow(index, { sourceRetrievedAt: value })} /><Input label="Note" value={workflow.sourceNote} onChange={(value) => updateWorkflow(index, { sourceNote: value })} /></div>)}</div>
         <div className="mt-4 grid gap-3 md:grid-cols-2"><Input label="Binding Workflow Refs" value={props.formState.bindingRefsText} onChange={(value) => setField('bindingRefsText', value)} placeholder="workflow-a, workflow-b" /><Input label="Binding Workflow Types" value={props.formState.bindingTypesText} onChange={(value) => setField('bindingTypesText', value)} placeholder="voice_clone, voice_design" /></div>
         <div className="mt-5 flex items-center justify-end gap-2"><Button variant="secondary" onClick={props.onClose}>Cancel</Button><Button onClick={props.onSubmit} disabled={props.saving}>{props.saving ? 'Saving...' : 'Save Model'}</Button></div>

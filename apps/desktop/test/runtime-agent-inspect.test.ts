@@ -528,7 +528,9 @@ function createDesktopRuntimeAgentInspectTestAdapter(runtime: {
     realm: {},
   } as never);
   return createRuntimeAgentInspectAdapter({
+    getRuntime: () => runtime as never,
     getSubjectUserId: () => 'user-1',
+    withScopes: async (_scopes, operation) => operation({}),
   });
 }
 

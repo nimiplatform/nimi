@@ -14,7 +14,8 @@ import {
   loadWorldHistory,
   loadWorldSemanticBundle,
 } from '../src/shell/renderer/features/world/data/realm-world-data.js';
-import { getOfflineCacheManager } from '../src/shell/renderer/infra/offline/cache-manager.js';
+import { OfflineCoordinator } from '@nimiplatform/kit/core/offline-coordinator';
+import { createDesktopProductionOfflinePort } from '../src/shell/renderer/infra/offline/production-offline-port.js';
 
 type RealmWorldDataError = {
   action: string;
@@ -225,10 +226,11 @@ test('loadMainWorld fails close on non-object public world payloads', async () =
 });
 
 test('loadMainWorld still falls back to cached world metadata for offline errors', async () => {
-  const manager = await getOfflineCacheManager();
-  manager.close();
-  await manager.open();
-  await manager.syncWorldMetadata('main-world', {
+  const offline = createDesktopProductionOfflinePort(
+    new OfflineCoordinator(),
+    { enableEphemeralStore: true },
+  );
+  await offline.syncWorldMetadata('main-world', {
     id: 'cached-world',
     name: 'Cached World',
   });
@@ -243,6 +245,7 @@ test('loadMainWorld still falls back to cached world metadata for offline errors
       });
     },
     () => undefined,
+    offline,
   );
 
   assert.equal(result.id, 'cached-world');

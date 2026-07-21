@@ -29,6 +29,7 @@ import {
   clearDesktopTestNimiClientSession,
   createEmptyNimiAIConfig,
   createDesktopTestNimiClientSession,
+  getDesktopTestRendererSdk,
   resetRuntimeLocalModelWarmCacheForTests,
 } from './chat-agent-local-mode-test-utils.js';
 
@@ -299,6 +300,7 @@ test('chat ai a4: local runtime stream keeps explicit model id when resolved rou
 
   try {
     const executionSnapshot = createNimiConversationAISnapshot({
+      createdAtMs: 0,
       config: createEmptyNimiAIConfig(),
       capability: 'text.generate',
       projection: {
@@ -352,7 +354,7 @@ test('chat ai a4: local runtime stream keeps explicit model id when resolved rou
       threadId: 'thread-local-chat',
       reasoningPreference: 'off',
       executionSnapshot,
-    });
+    }, { sdk: getDesktopTestRendererSdk() });
     for await (const ignored of result.stream) {
       void ignored;
     }

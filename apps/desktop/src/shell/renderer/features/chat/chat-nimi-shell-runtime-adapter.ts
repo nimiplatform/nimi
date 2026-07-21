@@ -7,11 +7,11 @@ import {
   type ConversationCapabilityProjection,
 } from './conversation-capability';
 import {
-  peekDesktopAISchedulingForEvidence,
-  recordDesktopAISnapshot,
+  createNimiAIRuntimeEvidence,
   resolveNimiAIConfigRuntimeSchedulingTargetForCapability,
-} from '../../app-shell/providers/desktop-ai-config-service';
+} from '@nimiplatform/sdk/ai';
 import { withPromptTrace } from './chat-nimi-shell-core';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -55,16 +55,25 @@ export function createChatAiConversationRuntimeAdapter(input: {
   reasoningPreference: ChatThinkingPreference;
   getTextProjection: () => ConversationCapabilityProjection | null;
   aiConfig: NimiAIConfig;
+  sdk: DesktopRendererSdkPort;
+  now: () => number;
 }): ConversationRuntimeAdapter {
   return {
     async streamText(request) {
       const textProjection = input.getTextProjection();
       const prompt = request.messages[request.messages.length - 1]?.text || '';
       // K-AIEXEC-003: capture scheduling evidence before execution.
-      const runtimeEvidence = textProjection?.supported
-        ? await peekDesktopAISchedulingForEvidence({
-          scopeRef: input.aiConfig.scopeRef,
-          target: resolveNimiAIConfigRuntimeSchedulingTargetForCapability(input.aiConfig, 'text.generate'),
+      const schedulingTarget = resolveNimiAIConfigRuntimeSchedulingTargetForCapability(
+        input.aiConfig,
+        'text.generate',
+      );
+      const runtimeEvidence = textProjection?.supported && schedulingTarget
+        ? createNimiAIRuntimeEvidence({
+          schedulingJudgement: await input.sdk.aiConfig().aiConfig.probeSchedulingTarget(
+            input.aiConfig.scopeRef,
+            schedulingTarget,
+            input.sdk.runtime(),
+          ),
         })
         : null;
       const executionSnapshot = textProjection?.supported
@@ -73,10 +82,11 @@ export function createChatAiConversationRuntimeAdapter(input: {
           capability: 'text.generate',
           projection: textProjection,
           runtimeEvidence,
+          createdAtMs: input.now(),
         })
         : null;
       if (executionSnapshot) {
-        recordDesktopAISnapshot(executionSnapshot);
+        input.sdk.aiConfig().aiSnapshot.record(executionSnapshot);
       }
       const runtimeResult = await streamChatAiRuntime({
         prompt,
@@ -86,7 +96,7 @@ export function createChatAiConversationRuntimeAdapter(input: {
         reasoningPreference: input.reasoningPreference,
         executionSnapshot,
         signal: request.signal,
-      });
+      }, { sdk: input.sdk });
       return (async function* () {
         for await (const part of runtimeResult.stream) {
           yield withPromptTrace(part, runtimeResult.promptTraceId);

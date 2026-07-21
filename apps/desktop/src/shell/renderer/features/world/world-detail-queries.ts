@@ -1,4 +1,4 @@
-import { realmWorldData } from './data/realm-world-data.js';
+import type { RealmWorldData } from './data/realm-world-data.js';
 import type { WorldAssetExternalRef, WorldHistoryBundle, WorldPublicAssetsData, WorldSemanticData } from './world-detail-types.js';
 import { toWorldListItem, type WorldListItem } from './world-list-model.js';
 import { readStringValue } from './world-detail-query-readers.js';
@@ -74,6 +74,7 @@ export function worldListQueryKey() {
 }
 
 export async function fetchWorldListItems(
+  realmWorldData: RealmWorldData,
   status?: WorldListItem['status'],
 ): Promise<WorldListItem[]> {
   const worlds = await realmWorldData.loadWorlds(status as Parameters<typeof realmWorldData.loadWorlds>[0]);
@@ -112,7 +113,10 @@ export function worldPublicAssetsQueryKey(worldId: string) {
   return ['world-public-assets', normalizeWorldId(worldId)] as const;
 }
 
-export async function fetchWorldDetailWithCharacters(worldId: string): Promise<WorldPrimaryDetailRecord> {
+export async function fetchWorldDetailWithCharacters(
+  worldId: string,
+  realmWorldData: RealmWorldData,
+): Promise<WorldPrimaryDetailRecord> {
   const detail = await realmWorldData.loadWorldDetailWithCharacters(
     normalizeWorldId(worldId),
     DEFAULT_WORLD_DETAIL_RECOMMENDED_CHARACTER_LIMIT,
@@ -123,17 +127,17 @@ export async function fetchWorldDetailWithCharacters(worldId: string): Promise<W
   return detail;
 }
 
-export async function fetchWorldHistory(worldId: string): Promise<WorldHistoryBundle> {
+export async function fetchWorldHistory(worldId: string, realmWorldData: RealmWorldData): Promise<WorldHistoryBundle> {
   const payload = await realmWorldData.loadWorldHistory(normalizeWorldId(worldId));
   return toWorldDisplayHistoryBundle(payload);
 }
 
-export async function fetchWorldSemanticBundle(worldId: string): Promise<WorldSemanticData> {
+export async function fetchWorldSemanticBundle(worldId: string, realmWorldData: RealmWorldData): Promise<WorldSemanticData> {
   const payload = await realmWorldData.loadWorldSemanticBundle(normalizeWorldId(worldId));
   return toWorldDisplaySemanticBundle(payload);
 }
 
-export async function fetchWorldPublicAssets(worldId: string): Promise<WorldPublicAssetsData> {
+export async function fetchWorldPublicAssets(worldId: string, realmWorldData: RealmWorldData): Promise<WorldPublicAssetsData> {
   const normalizedWorldId = normalizeWorldId(worldId);
   const [assetsPayload, scenesPayload] = await Promise.all([
     realmWorldData.loadWorldAssets(normalizedWorldId),
@@ -174,16 +178,16 @@ export function mergeWorldDisplayDetail(
   };
 }
 
-export async function fetchWorldPrimaryDisplayDetail(worldId: string): Promise<WorldPrimaryDisplayDetail> {
-  const primary = await fetchWorldDetailWithCharacters(worldId);
+export async function fetchWorldPrimaryDisplayDetail(worldId: string, realmWorldData: RealmWorldData): Promise<WorldPrimaryDisplayDetail> {
+  const primary = await fetchWorldDetailWithCharacters(worldId, realmWorldData);
   return projectWorldPrimaryDisplayDetail(primary);
 }
 
-export async function fetchWorldSupplementalDisplayDetail(worldId: string): Promise<WorldSupplementalDisplayDetail> {
+export async function fetchWorldSupplementalDisplayDetail(worldId: string, realmWorldData: RealmWorldData): Promise<WorldSupplementalDisplayDetail> {
   const [historyResult, semanticResult, publicAssetsResult] = await Promise.allSettled([
-    fetchWorldHistory(worldId),
-    fetchWorldSemanticBundle(worldId),
-    fetchWorldPublicAssets(worldId),
+    fetchWorldHistory(worldId, realmWorldData),
+    fetchWorldSemanticBundle(worldId, realmWorldData),
+    fetchWorldPublicAssets(worldId, realmWorldData),
   ]);
   return {
     history: historyResult.status === 'fulfilled' ? historyResult.value : EMPTY_WORLD_HISTORY,
@@ -199,8 +203,8 @@ export async function fetchWorldSupplementalDisplayDetail(worldId: string): Prom
   };
 }
 
-export async function fetchWorldDisplayDetail(worldId: string): Promise<WorldDisplayDetail> {
-  const primary = await fetchWorldPrimaryDisplayDetail(worldId);
-  const supplemental = await fetchWorldSupplementalDisplayDetail(worldId);
+export async function fetchWorldDisplayDetail(worldId: string, realmWorldData: RealmWorldData): Promise<WorldDisplayDetail> {
+  const primary = await fetchWorldPrimaryDisplayDetail(worldId, realmWorldData);
+  const supplemental = await fetchWorldSupplementalDisplayDetail(worldId, realmWorldData);
   return mergeWorldDisplayDetail(primary, supplemental);
 }

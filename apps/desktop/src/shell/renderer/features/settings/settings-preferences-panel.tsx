@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import {
   loadNimiRealmUserNotificationSettings,
   updateNimiRealmUserNotificationSettings,
 } from '@nimiplatform/sdk/realm';
-import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
 import { useTranslation } from 'react-i18next';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useQuery } from '@tanstack/react-query';
 import {
   FormFeedback,
@@ -137,6 +137,7 @@ function toErrorMessage(error: unknown, fallback: string): string {
 
 export function NotificationsPage() {
   const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
   const [form, setForm] = useState<NotificationForm>({ ...DEFAULT_NOTIFICATION_FORM });
   const [baseline, setBaseline] = useState<NotificationForm>({ ...DEFAULT_NOTIFICATION_FORM });
   const [saving, setSaving] = useState(false);
@@ -144,11 +145,11 @@ export function NotificationsPage() {
     kind: 'info' | 'success' | 'warning' | 'error';
     message: string;
   } | null>(null);
-  const autosaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autosaveTimerRef = useRef<(() => void) | null>(null);
 
   const settingsQuery = useQuery({
     queryKey: ['settings-notification'],
-    queryFn: async () => loadNimiRealmUserNotificationSettings(getDesktopRealm()),
+    queryFn: async () => loadNimiRealmUserNotificationSettings(bindings.sdk.realm()),
   });
 
   useEffect(() => {
@@ -161,9 +162,8 @@ export function NotificationsPage() {
   }, [settingsQuery.data]);
 
   useEffect(() => () => {
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-    }
+    autosaveTimerRef.current?.();
+    autosaveTimerRef.current = null;
   }, []);
 
   const hasChanges = useMemo(() => !notificationsEqual(form, baseline), [form, baseline]);
@@ -180,7 +180,7 @@ export function NotificationsPage() {
     }
     setSaving(true);
     try {
-      await updateNimiRealmUserNotificationSettings(getDesktopRealm(), toNotificationPayload(form));
+      await updateNimiRealmUserNotificationSettings(bindings.sdk.realm(), toNotificationPayload(form));
       await settingsQuery.refetch();
       if (!silentSuccess) {
         setFeedback({
@@ -200,28 +200,29 @@ export function NotificationsPage() {
 
   useEffect(() => {
     if (saving || !hasChanges || settingsQuery.isPending || settingsQuery.isError) {
-      if (autosaveTimerRef.current) {
-        clearTimeout(autosaveTimerRef.current);
-        autosaveTimerRef.current = null;
-      }
+      autosaveTimerRef.current?.();
+      autosaveTimerRef.current = null;
       return;
     }
 
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-    }
-
-    autosaveTimerRef.current = setTimeout(() => {
+    autosaveTimerRef.current?.();
+    autosaveTimerRef.current = bindings.clock.schedule(700, (result) => {
+      autosaveTimerRef.current = null;
+      if (!result.ok) {
+        setFeedback({
+          kind: 'error',
+          message: result.error,
+        });
+        return;
+      }
       void handleSave({ silentSuccess: true });
-    }, 700);
+    });
 
     return () => {
-      if (autosaveTimerRef.current) {
-        clearTimeout(autosaveTimerRef.current);
-        autosaveTimerRef.current = null;
-      }
+      autosaveTimerRef.current?.();
+      autosaveTimerRef.current = null;
     };
-  }, [form, hasChanges, saving, settingsQuery.isError, settingsQuery.isPending]);
+  }, [bindings.clock, form, hasChanges, saving, settingsQuery.isError, settingsQuery.isPending]);
 
   if (settingsQuery.isPending) {
     return (

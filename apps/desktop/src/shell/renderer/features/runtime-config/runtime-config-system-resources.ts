@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { desktopBridge } from '../../bridge';
-import type { SystemResourceSnapshot as BridgeSystemResourceSnapshot } from '../../bridge';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import type { DesktopSystemResourceSnapshot } from '../../renderer/system-resources-port.js';
 
-export type SystemResourceSnapshot = BridgeSystemResourceSnapshot;
+export type SystemResourceSnapshot = DesktopSystemResourceSnapshot;
 export type SystemResourceStatus = 'idle' | 'loading' | 'ready' | 'unavailable' | 'stale';
 export type SystemResourceState = {
   status: SystemResourceStatus;
@@ -10,7 +10,7 @@ export type SystemResourceState = {
   errorMessage: string | null;
 };
 
-function normalizeSnapshot(raw: SystemResourceSnapshot): SystemResourceSnapshot {
+function normalizeSnapshot(raw: SystemResourceSnapshot, now: () => number): SystemResourceSnapshot {
   return {
     cpuPercent: Math.max(0, Math.min(100, Number(raw.cpuPercent) || 0)),
     memoryUsedBytes: Math.max(0, Number(raw.memoryUsedBytes) || 0),
@@ -20,7 +20,7 @@ function normalizeSnapshot(raw: SystemResourceSnapshot): SystemResourceSnapshot 
     temperatureCelsius: Number.isFinite(Number(raw.temperatureCelsius))
       ? Number(raw.temperatureCelsius)
       : undefined,
-    capturedAtMs: Number(raw.capturedAtMs) > 0 ? Number(raw.capturedAtMs) : Date.now(),
+    capturedAtMs: Number(raw.capturedAtMs) > 0 ? Number(raw.capturedAtMs) : now(),
     source: String(raw.source || '').trim() || 'tauri-unknown',
   };
 }
@@ -33,6 +33,7 @@ function toErrorMessage(error: unknown): string {
 }
 
 export function useSystemResources(pollIntervalMs = 5000): SystemResourceState {
+  const bindings = useDesktopRendererBindings();
   const [state, setState] = useState<SystemResourceState>({
     status: 'idle',
     snapshot: null,
@@ -48,13 +49,13 @@ export function useSystemResources(pollIntervalMs = 5000): SystemResourceState {
           : { status: 'loading', snapshot: null, errorMessage: null }
       ));
       try {
-        const payload = await desktopBridge.getSystemResourceSnapshot();
+        const payload = await bindings.app.commands.systemResources.load();
         if (canceled) {
           return;
         }
         setState({
           status: 'ready',
-          snapshot: normalizeSnapshot(payload),
+          snapshot: normalizeSnapshot(payload, bindings.clock.now),
           errorMessage: null,
         });
       } catch (error) {
@@ -69,16 +70,31 @@ export function useSystemResources(pollIntervalMs = 5000): SystemResourceState {
       }
     };
 
-    void load();
-    const timer = window.setInterval(() => {
-      void load();
-    }, Math.max(1500, pollIntervalMs));
+    let cancelNext: (() => void) | null = null;
+    const poll = async () => {
+      await load();
+      if (canceled) return;
+      cancelNext = bindings.clock.schedule(Math.max(1500, pollIntervalMs), (result) => {
+        cancelNext = null;
+        if (!result.ok) {
+          setState((previous) => ({
+            status: previous.snapshot ? 'stale' : 'unavailable',
+            snapshot: previous.snapshot,
+            errorMessage: result.error,
+          }));
+          return;
+        }
+        void poll();
+      });
+    };
+    void poll();
 
     return () => {
       canceled = true;
-      window.clearInterval(timer);
+      cancelNext?.();
+      cancelNext = null;
     };
-  }, [pollIntervalMs]);
+  }, [bindings, pollIntervalMs]);
 
   return state;
 }

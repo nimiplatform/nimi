@@ -4,6 +4,7 @@ import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useTranslation } from 'react-i18next';
 import { AppCardSurface, CompactAction } from '@nimiplatform/kit/ui';
 import { PostFeedWithMediaPreview } from './post-feed-with-media-preview.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 type PostDto = RealmModel<'PostDto'>;
 
@@ -42,6 +43,7 @@ function PostSkeleton() {
 
 export function PostsTab({ profileId, layout = 'grid', blockedContent = false }: PostsTabProps) {
   const realmSocialData = useRealmSocialData();
+  const bindings = useDesktopRendererBindings();
   const { t } = useTranslation();
   const [posts, setPosts] = useState<PostDto[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -151,17 +153,16 @@ export function PostsTab({ profileId, layout = 'grid', blockedContent = false }:
     const el = loadMoreRef.current;
     if (!el) return;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting && hasMoreRef.current && !loadingRef.current && cursorRef.current) {
+    return bindings.app.events.observeIntersection(
+      el,
+      { rootMargin: '200px', threshold: 0.1 },
+      (isIntersecting) => {
+        if (isIntersecting && hasMoreRef.current && !loadingRef.current && cursorRef.current) {
           void fetchPosts(cursorRef.current);
         }
       },
-      { rootMargin: '200px', threshold: 0.1 },
     );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [hasMore, fetchPosts]);
+  }, [bindings.app.events, hasMore, fetchPosts]);
 
   if (loadingInitial) {
     return (

@@ -1,11 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { StatusBadge } from '@nimiplatform/kit/ui';
 import { loadNimiRealmCreatorEligibility } from '@nimiplatform/sdk/realm';
-import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
 import { useAppStore } from '../../app-shell/providers/app-store';
-import { useDesktopRendererCommands } from '../../renderer/binding-context';
+import { useDesktopRendererBindings } from '../../renderer/binding-context';
 import {
   FormFeedback,
   PageShell,
@@ -33,7 +32,8 @@ export function PerformancePage() {
   const desktopReleaseInfo = useAppStore((s) => s.desktopReleaseInfo);
   const desktopReleaseError = useAppStore((s) => s.desktopReleaseError);
   const desktopUpdateState = useAppStore((s) => s.desktopUpdateState);
-  const updateCommands = useDesktopRendererCommands();
+  const bindings = useDesktopRendererBindings();
+  const updateCommands = bindings.app.commands;
   const settings = updateCommands.settings;
   const [preferences, setPreferences] = useState<PerformancePreferences>(() =>
     settings.loadPerformancePreferences());
@@ -44,19 +44,18 @@ export function PerformancePage() {
     kind: 'info' | 'success' | 'warning' | 'error';
     message: string;
   } | null>(null);
-  const autosaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autosaveTimerRef = useRef<(() => void) | null>(null);
 
   const eligibilityQuery = useQuery({
     queryKey: ['settings-creator-eligibility'],
-    queryFn: async () => loadNimiRealmCreatorEligibility(getDesktopRealm()),
+    queryFn: async () => loadNimiRealmCreatorEligibility(bindings.sdk.realm()),
   });
 
   const hasChanges = useMemo(() => !performanceEqual(preferences, baseline), [preferences, baseline]);
 
   useEffect(() => () => {
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-    }
+    autosaveTimerRef.current?.();
+    autosaveTimerRef.current = null;
   }, []);
 
   const handleSave = async ({ silentSuccess = false }: { silentSuccess?: boolean } = {}) => {
@@ -86,28 +85,26 @@ export function PerformancePage() {
 
   useEffect(() => {
     if (saving || !hasChanges) {
-      if (autosaveTimerRef.current) {
-        clearTimeout(autosaveTimerRef.current);
-        autosaveTimerRef.current = null;
-      }
+      autosaveTimerRef.current?.();
+      autosaveTimerRef.current = null;
       return;
     }
 
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-    }
-
-    autosaveTimerRef.current = setTimeout(() => {
+    autosaveTimerRef.current?.();
+    autosaveTimerRef.current = bindings.clock.schedule(700, (result) => {
+      autosaveTimerRef.current = null;
+      if (!result.ok) {
+        setFeedback({ kind: 'error', message: result.error });
+        return;
+      }
       void handleSave({ silentSuccess: true });
-    }, 700);
+    });
 
     return () => {
-      if (autosaveTimerRef.current) {
-        clearTimeout(autosaveTimerRef.current);
-        autosaveTimerRef.current = null;
-      }
+      autosaveTimerRef.current?.();
+      autosaveTimerRef.current = null;
     };
-  }, [hasChanges, preferences, saving]);
+  }, [bindings.clock, hasChanges, preferences, saving]);
 
   const eligibility = eligibilityQuery.data;
   const eligibilityState = eligibilityQuery.isPending

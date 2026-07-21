@@ -57,7 +57,7 @@ const localModelCenterUtilsPath = path.resolve(
 );
 const localModelCenterProgressCachePath = path.resolve(
   process.cwd(),
-  'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-progress-cache.ts',
+  'src/shell/renderer/features/runtime-config/production-local-model-progress-port.ts',
 );
 const runtimeBootstrapRouteOptionsPath = path.resolve(
   process.cwd(),
@@ -176,12 +176,12 @@ test('local model center consumes SDK local recommendation DX helpers', () => {
 });
 
 test('dismissed transfer sessions persist across renderer reloads', () => {
-  assert.match(localModelCenterProgressCacheSource, /DISMISSED_SESSION_STORAGE_KEY = 'nimi\.runtime\.local-model-center\.dismissed-transfer-sessions\.v1'/);
+  assert.match(localModelCenterProgressCacheSource, /STORAGE_KEY = 'nimi\.runtime\.local-model-center\.dismissed-transfer-sessions\.v1'/);
   assert.match(localModelCenterProgressCacheSource, /from '@nimiplatform\/kit\/core\/storage-json'/);
-  assert.match(localModelCenterProgressCacheSource, /readStorageJsonFrom\(resolveBrowserStorage\('local'\), DISMISSED_SESSION_STORAGE_KEY\)/);
-  assert.match(localModelCenterProgressCacheSource, /writeStorageJsonTo\(resolveBrowserStorage\('local'\), DISMISSED_SESSION_STORAGE_KEY,/);
-  assert.match(localModelCenterProgressCacheSource, /const dismissedSessionIdsCache = new Set<string>\(loadDismissedSessionIds\(\)\)/);
-  assert.match(localModelCenterProgressCacheSource, /persistDismissedSessionIds\(dismissedSessionIdsCache\)/);
+  assert.match(localModelCenterProgressCacheSource, /readStorageJsonFrom\(resolveBrowserStorage\('local'\), STORAGE_KEY\)/);
+  assert.match(localModelCenterProgressCacheSource, /writeStorageJsonTo\(resolveBrowserStorage\('local'\), STORAGE_KEY,/);
+  assert.match(localModelCenterProgressCacheSource, /loadDismissedSessionIds\(\)/);
+  assert.match(localModelCenterProgressCacheSource, /persistDismissedSessionIds\(sessionIds/);
 });
 
 test('local route options consume runtime node adapter truth without image-specific adapter overrides', () => {

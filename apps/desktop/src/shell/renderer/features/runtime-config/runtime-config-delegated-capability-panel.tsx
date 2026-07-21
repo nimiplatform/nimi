@@ -10,6 +10,7 @@ import {
 } from '@nimiplatform/sdk/runtime/wire-types';
 import { ScrollArea, Surface, cn } from '@nimiplatform/kit/ui';
 import { Button, Input } from './runtime-config-primitives';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import {
   createDesktopDelegatedCapabilityService,
   type DelegatedProviderProfileDraft,
@@ -65,6 +66,7 @@ function compactEvidence(values: Array<[string, unknown]>): string {
 
 export function DelegatedCapabilityControlPanel() {
   const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
   const [localAgentRef, setLocalAgentRef] = useState('');
   const [ownerUserId, setOwnerUserId] = useState('');
   const [runtimeSourceRef, setRuntimeSourceRef] = useState('');
@@ -77,8 +79,10 @@ export function DelegatedCapabilityControlPanel() {
   const [errorMessage, setErrorMessage] = useState('');
 
   const service = useMemo(() => createDesktopDelegatedCapabilityService({
+    getRuntime: bindings.sdk.hostRuntimeAgent,
     getSubjectUserId: async () => subjectUserId,
-  }), [subjectUserId]);
+    withScopes: bindings.sdk.withRuntimeProtectedScopes,
+  }), [bindings.sdk, subjectUserId]);
 
   const identityInput = {
     localAgentRef: localAgentRef.trim(),

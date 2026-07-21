@@ -3,6 +3,7 @@ import {
   test,
   clearDesktopTestNimiClientSession,
   createDesktopTestNimiClientSession,
+  getDesktopTestRendererSdk,
   streamChatAgentRuntimeAgentTurn,
 } from './chat-agent-local-mode-test-utils.js';
 import { createRuntimeAgentChatConversationProvider } from '../src/shell/renderer/features/chat/chat-agent-runtime-provider.js';
@@ -445,6 +446,7 @@ test('agent runtime provider projects Runtime image action artifact events as im
   const provider = createRuntimeAgentChatConversationProvider({
     streamController: createTestStreamController(),
     t: testTranslate,
+    sdk: getDesktopTestRendererSdk(),
     runtimeAdapter: {
       streamAgentTurn: async (input) => {
         runtimeThreadIds.push(input.threadId);

@@ -132,6 +132,10 @@ test('renderer clock rejection fails an active stream closed', () => {
       listener({ ok: false, error: 'CLOCK_UNAVAILABLE' });
       return () => undefined;
     },
+    animationFrame(listener) {
+      listener({ ok: false, error: 'CLOCK_UNAVAILABLE' });
+      return () => undefined;
+    },
   });
 
   const abortController = controller.startStream('clock-rejected');

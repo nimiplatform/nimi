@@ -4,7 +4,7 @@ type MediaStreamTrackLike = {
   stop: () => void;
 };
 
-type MediaStreamLike = {
+export type MediaStreamLike = {
   getTracks: () => readonly MediaStreamTrackLike[];
 };
 
@@ -19,7 +19,7 @@ type AnalyserLike = {
   disconnect?: () => void;
 };
 
-type AudioContextLike = {
+export type AudioContextLike = {
   state?: string;
   createAnalyser: () => AnalyserLike;
   createMediaStreamSource: (stream: MediaStreamLike) => MediaStreamSourceLike;
@@ -27,7 +27,7 @@ type AudioContextLike = {
   close?: () => Promise<void> | void;
 };
 
-type MediaRecorderLike = {
+export type MediaRecorderLike = {
   state: 'inactive' | 'recording' | 'paused';
   mimeType?: string;
   ondataavailable: ((event: { data: Blob }) => void) | null;
@@ -51,7 +51,7 @@ type AgentVoiceCaptureAutoStopHandle = {
   dispose: () => void;
 };
 
-type StartAgentVoiceCaptureSessionDeps = {
+export type StartAgentVoiceCaptureSessionDeps = {
   getUserMediaImpl?: (constraints: MediaStreamConstraints) => Promise<MediaStreamLike>;
   createMediaRecorderImpl?: (
     stream: MediaStreamLike,
@@ -102,35 +102,16 @@ function normalizeText(value: unknown): string {
 function resolveCreateAudioContext(
   deps: StartAgentVoiceCaptureSessionDeps,
 ): (() => AudioContextLike) | null {
-  if (deps.createAudioContextImpl) {
-    return deps.createAudioContextImpl;
-  }
-  const contextCtor = typeof globalThis !== 'undefined'
-    ? (
-      globalThis.AudioContext
-      || (globalThis as typeof globalThis & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-    )
-    : null;
-  return contextCtor
-    ? () => new contextCtor() as unknown as AudioContextLike
-    : null;
+  return deps.createAudioContextImpl || null;
 }
 
 function resolveGetUserMedia(
   deps: StartAgentVoiceCaptureSessionDeps,
 ): (constraints: MediaStreamConstraints) => Promise<MediaStreamLike> {
-  if (deps.getUserMediaImpl) {
-    return deps.getUserMediaImpl;
-  }
-  const mediaDevices = typeof navigator !== 'undefined'
-    ? navigator.mediaDevices
-    : undefined;
-  if (!mediaDevices?.getUserMedia) {
+  if (!deps.getUserMediaImpl) {
     throw new Error('Voice input is unavailable because microphone capture is not supported.');
   }
-  return mediaDevices.getUserMedia.bind(mediaDevices) as (
-    constraints: MediaStreamConstraints,
-  ) => Promise<MediaStreamLike>;
+  return deps.getUserMediaImpl;
 }
 
 function resolveCreateMediaRecorder(
@@ -139,25 +120,16 @@ function resolveCreateMediaRecorder(
   stream: MediaStreamLike,
   options?: { mimeType?: string },
 ) => MediaRecorderLike {
-  if (deps.createMediaRecorderImpl) {
-    return deps.createMediaRecorderImpl;
+  if (!deps.createMediaRecorderImpl) {
+    throw new Error('Voice input is unavailable because microphone capture is not supported.');
   }
-  if (typeof MediaRecorder === 'undefined') {
-    throw new Error('Voice input is unavailable because MediaRecorder is not supported.');
-  }
-  return (
-    stream: MediaStreamLike,
-    options?: { mimeType?: string },
-  ) => new MediaRecorder(stream as MediaStream, options) as MediaRecorderLike;
+  return deps.createMediaRecorderImpl;
 }
 
 function resolveCaptureMimeType(
   deps: StartAgentVoiceCaptureSessionDeps,
 ): string | undefined {
-  const isTypeSupported = deps.isTypeSupportedImpl
-    || (typeof MediaRecorder !== 'undefined' && typeof MediaRecorder.isTypeSupported === 'function'
-      ? MediaRecorder.isTypeSupported.bind(MediaRecorder)
-      : null);
+  const isTypeSupported = deps.isTypeSupportedImpl || null;
   if (!isTypeSupported) {
     return undefined;
   }
@@ -200,9 +172,12 @@ function createSilenceAutoStopHandle(input: {
   source.connect(analyser);
   void audioContext.resume?.();
 
-  const setTimer = input.setTimeoutImpl || ((handler: () => void, timeoutMs: number) => setTimeout(handler, timeoutMs));
-  const clearTimer = input.clearTimeoutImpl || ((timerId: unknown) => clearTimeout(timerId as ReturnType<typeof setTimeout>));
-  const now = input.nowImpl || (() => Date.now());
+  if (!input.setTimeoutImpl || !input.clearTimeoutImpl || !input.nowImpl) {
+    throw new Error('Hands-free is unavailable because timer custody is not configured.');
+  }
+  const setTimer = input.setTimeoutImpl;
+  const clearTimer = input.clearTimeoutImpl;
+  const now = input.nowImpl;
   const samples = new Uint8Array(analyser.fftSize);
   let observedSpeech = false;
   let lastSpeechAtMs = now();
@@ -270,8 +245,11 @@ function createVoiceLevelMonitorHandle(input: {
   source.connect(analyser);
   void audioContext.resume?.();
 
-  const setTimer = input.setTimeoutImpl || ((handler: () => void, timeoutMs: number) => setTimeout(handler, timeoutMs));
-  const clearTimer = input.clearTimeoutImpl || ((timerId: unknown) => clearTimeout(timerId as ReturnType<typeof setTimeout>));
+  if (!input.setTimeoutImpl || !input.clearTimeoutImpl) {
+    throw new Error('Voice level monitoring requires timer custody.');
+  }
+  const setTimer = input.setTimeoutImpl;
+  const clearTimer = input.clearTimeoutImpl;
   const samples = new Uint8Array(analyser.fftSize);
   let disposed = false;
   let timerId: unknown = null;
@@ -309,7 +287,7 @@ function createVoiceLevelMonitorHandle(input: {
 }
 
 export async function startAgentVoiceCaptureSession(
-  deps: StartAgentVoiceCaptureSessionDeps = {},
+  deps: StartAgentVoiceCaptureSessionDeps,
 ): Promise<AgentVoiceCaptureSession> {
   const getUserMedia = resolveGetUserMedia(deps);
   const createMediaRecorder = resolveCreateMediaRecorder(deps);

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ChatStreamStatus } from '@nimiplatform/kit/features/chat/components/chat-stream-status';
 import {
@@ -8,6 +8,7 @@ import {
 import type { StreamState } from '../turns/stream-controller';
 import { useStreamController } from '../turns/stream-controller-context.js';
 import { parseAgentTextTurnDebugMetadata } from './chat-agent-debug-metadata';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 export { RuntimeVoiceMessageContent } from './chat-shared-runtime-voice-message-content';
 
 function normalizeReasoningText(value: unknown): string | null {
@@ -152,16 +153,21 @@ export function RuntimeAgentDebugMessageAccessory(props: {
   rawOutputLabel: string;
   normalizedOutputLabel: string;
 }) {
+  const bindings = useDesktopRendererBindings();
   const debugMetadata = parseAgentTextTurnDebugMetadata(props.message.metadata);
-  if (!debugMetadata) {
-    return null;
-  }
   const [copied, setCopied] = useState(false);
+  const clearCopiedCancelRef = useRef<(() => void) | null>(null);
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      clearCopiedCancelRef.current?.();
+      clearCopiedCancelRef.current = null;
+    };
+  }, []);
   const handleCopy = useCallback(() => {
-    if (typeof navigator === 'undefined' || typeof navigator.clipboard?.writeText !== 'function') {
-      setCopied(false);
-      return;
-    }
+    if (!debugMetadata) return;
     const payload = JSON.stringify({
       prompt: debugMetadata.prompt,
       systemPrompt: debugMetadata.systemPrompt,
@@ -177,27 +183,21 @@ export function RuntimeAgentDebugMessageAccessory(props: {
       followUpDelayMs: debugMetadata.followUpDelayMs,
       runtimeAgentTurns: debugMetadata.runtimeAgentTurns,
     }, null, 2);
-    void navigator.clipboard.writeText(payload).then(() => {
+    void bindings.app.commands.writeClipboardText(payload).then(() => {
+      if (!mountedRef.current) return;
       setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      clearCopiedCancelRef.current?.();
+      clearCopiedCancelRef.current = bindings.clock.schedule(1_500, () => {
+        clearCopiedCancelRef.current = null;
+        setCopied(false);
+      });
     }).catch(() => {
-      setCopied(false);
+      if (mountedRef.current) setCopied(false);
     });
-  }, [
-    debugMetadata.chainId,
-    debugMetadata.followUpDelayMs,
-    debugMetadata.followUpDepth,
-    debugMetadata.followUpCanceledByUser,
-    debugMetadata.followUpInstruction,
-    debugMetadata.maxFollowUpTurns,
-    debugMetadata.followUpSourceActionId,
-    debugMetadata.followUpTurn,
-    debugMetadata.normalizedModelOutput,
-    debugMetadata.prompt,
-    debugMetadata.rawModelOutput,
-    debugMetadata.runtimeAgentTurns,
-    debugMetadata.systemPrompt,
-  ]);
+  }, [bindings, debugMetadata]);
+  if (!debugMetadata) {
+    return null;
+  }
   if (!props.debugVisible && !debugMetadata.followUpTurn) {
     return null;
   }

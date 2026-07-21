@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { NimiRuntimeLocalTransferProgressEvent } from '@nimiplatform/sdk/runtime';
 import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
-import { runtimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
+import { useRuntimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
 import {
   PROGRESS_SESSION_LIMIT,
   type ProgressSessionState,
@@ -10,12 +10,8 @@ import {
   pruneProgressSessions,
   sortProgressSessions,
 } from './runtime-config-model-center-utils';
-import {
-  cacheProgressSessions,
-  getCachedProgressSessions,
-  getDismissedSessionIds,
-  addDismissedSessionId,
-} from './runtime-config-local-model-center-helpers';
+import { useLocalModelCenterProgressCache } from './runtime-config-local-model-center-progress-context.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 type DownloadCompleteHandler = (
   installSessionId: string,
@@ -32,15 +28,18 @@ type UseLocalModelCenterDownloadsInput = {
 };
 
 export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloadsInput) {
+  const runtimeConfigLocalModelCenterClient = useRuntimeConfigLocalModelCenterClient();
+  const progressCache = useLocalModelCenterProgressCache();
+  const bindings = useDesktopRendererBindings();
   const initialProgressBySessionIdRef = useRef<Record<string, ProgressSessionState> | null>(null);
   if (initialProgressBySessionIdRef.current === null) {
-    initialProgressBySessionIdRef.current = getCachedProgressSessions();
+    initialProgressBySessionIdRef.current = progressCache.getProgressSessions();
   }
   const [progressBySessionId, setProgressBySessionId] = useState<Record<string, ProgressSessionState>>(
     () => initialProgressBySessionIdRef.current ?? {},
   );
   const progressBySessionIdRef = useRef<Record<string, ProgressSessionState>>(initialProgressBySessionIdRef.current ?? {});
-  const dismissedSessionIdsRef = useRef<Set<string>>(getDismissedSessionIds());
+  const dismissedSessionIdsRef = useRef<Set<string>>(progressCache.getDismissedSessionIds());
   // Sessions already observed in a terminal (done) state. WatchLocalTransfers
   // replays every existing session on each subscribe, so terminal sessions
   // arrive with done=true again and again; without this guard each replay would
@@ -72,14 +71,14 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
     }
     let disposed = false;
     let unsubscribe: (() => void) | null = null;
-    const effectStartedMs = Date.now();
+    const effectStartedMs = bindings.clock.now();
 
     void runtimeConfigLocalModelCenterClient.listTransfers()
       .then((sessions) => {
         if (disposed) {
           return;
         }
-        const nowMs = Date.now();
+        const nowMs = bindings.clock.now();
         setProgressBySessionId((prev) => {
           const next = pruneProgressSessions(prev, nowMs);
           const merged: Record<string, ProgressSessionState> = { ...next };
@@ -99,7 +98,7 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
               createdAtMs: previous?.createdAtMs || parseTimestamp(session.createdAt) || nowMs,
             };
           }
-          return cacheProgressSessions(merged);
+          return progressCache.cacheProgressSessions(merged);
         });
       })
       .catch((err) => {
@@ -118,11 +117,11 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
       if (dismissedSessionIdsRef.current.has(event.installSessionId)) {
         return;
       }
-      const nowMs = Date.now();
+      const nowMs = bindings.clock.now();
       setProgressBySessionId((prev) => {
         const next = pruneProgressSessions(prev, nowMs);
         const previous = next[event.installSessionId];
-        return cacheProgressSessions({
+        return progressCache.cacheProgressSessions({
           ...next,
           [event.installSessionId]: {
             event,
@@ -164,8 +163,8 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
   ) => {
     void updater()
       .then((event) => {
-        const nowMs = Date.now();
-        setProgressBySessionId((prev) => cacheProgressSessions({
+        const nowMs = bindings.clock.now();
+        setProgressBySessionId((prev) => progressCache.cacheProgressSessions({
           ...pruneProgressSessions(prev, nowMs),
           [installSessionId]: {
             event,
@@ -206,12 +205,12 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
   }, [mergeSessionSummary]);
 
   const onDismissSession = useCallback((installSessionId: string) => {
-    addDismissedSessionId(installSessionId);
+    progressCache.addDismissedSessionId(installSessionId);
     dismissedSessionIdsRef.current.add(installSessionId);
     setProgressBySessionId((prev) => {
       const next = { ...prev };
       delete next[installSessionId];
-      cacheProgressSessions(next);
+      progressCache.cacheProgressSessions(next);
       return next;
     });
     progressBySessionIdRef.current = { ...progressBySessionIdRef.current };

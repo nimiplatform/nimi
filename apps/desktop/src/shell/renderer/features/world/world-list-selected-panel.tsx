@@ -27,6 +27,8 @@ import { WORLD_EXPLORER_THEME } from './world-list-theme';
 import { fetchWorldPrimaryDisplayDetail, worldPrimaryDisplayDetailQueryKey } from './world-detail-queries.js';
 import type { WorldCharacter } from './world-detail-types';
 import type { WorldCharacterItem, WorldListItem } from './world-list-model';
+import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
+import { createRealmWorldData } from './data/realm-world-data.js';
 
 type PreviewPerson = {
   id: string;
@@ -109,6 +111,7 @@ export function SelectedWorldPanel({
   followAvailable?: boolean;
   onToggleFollow?: () => void;
 }) {
+  const sdk = useDesktopRendererSdk();
   const { t, i18n } = useTranslation();
   const tags = displayTags(world, 2, i18n.language);
   const peopleCount = sourceCount(world);
@@ -116,7 +119,7 @@ export function SelectedWorldPanel({
 
   const peopleQuery = useQuery({
     queryKey: worldPrimaryDisplayDetailQueryKey(world.id),
-    queryFn: () => fetchWorldPrimaryDisplayDetail(world.id),
+    queryFn: () => fetchWorldPrimaryDisplayDetail(world.id, createRealmWorldData(sdk)),
     enabled: Boolean(world.id),
     staleTime: 30_000,
   });

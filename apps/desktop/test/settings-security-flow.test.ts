@@ -95,19 +95,19 @@ test('SDK Realm security helpers behaviorally call password and 2FA APIs', async
 });
 
 test('security page consumes SDK Realm security helpers instead of Realm security helper', () => {
-  assert.match(securityPageSource, /prepareNimiRealmTwoFactor\(getDesktopRealm\(\)\)/);
-  assert.match(securityPageSource, /updateNimiRealmPassword\(getDesktopRealm\(\)/);
-  assert.match(securityPageSource, /enableNimiRealmTwoFactor\(getDesktopRealm\(\)/);
-  assert.match(securityPageSource, /disableNimiRealmTwoFactor\(getDesktopRealm\(\)/);
+  assert.match(securityPageSource, /prepareNimiRealmTwoFactor\(bindings\.sdk\.realm\(\)\)/);
+  assert.match(securityPageSource, /updateNimiRealmPassword\(bindings\.sdk\.realm\(\)/);
+  assert.match(securityPageSource, /enableNimiRealmTwoFactor\(bindings\.sdk\.realm\(\)/);
+  assert.match(securityPageSource, /disableNimiRealmTwoFactor\(bindings\.sdk\.realm\(\)/);
   assert.doesNotMatch(securityPageSource, /dataSync\.(prepareTwoFactor|updatePassword|enableTwoFactor|disableTwoFactor)/);
 });
 
 test('settings pages keep Realm settings in SDK and account linking on the Runtime-owned platform seam', () => {
-  assert.match(notificationsPageSource, /loadNimiRealmUserNotificationSettings\(getDesktopRealm\(\)\)/);
-  assert.match(notificationsPageSource, /updateNimiRealmUserNotificationSettings\(getDesktopRealm\(\)/);
-  assert.match(privacyPageSource, /loadNimiRealmUserSettings\(getDesktopRealm\(\)\)/);
-  assert.match(privacyPageSource, /updateNimiRealmUserSettings\(getDesktopRealm\(\)/);
-  assert.match(performancePageSource, /loadNimiRealmCreatorEligibility\(getDesktopRealm\(\)\)/);
+  assert.match(notificationsPageSource, /loadNimiRealmUserNotificationSettings\(bindings\.sdk\.realm\(\)\)/);
+  assert.match(notificationsPageSource, /updateNimiRealmUserNotificationSettings\(bindings\.sdk\.realm\(\)/);
+  assert.match(privacyPageSource, /loadNimiRealmUserSettings\(bindings\.sdk\.realm\(\)\)/);
+  assert.match(privacyPageSource, /updateNimiRealmUserSettings\(bindings\.sdk\.realm\(\)/);
+  assert.match(performancePageSource, /loadNimiRealmCreatorEligibility\(bindings\.sdk\.realm\(\)\)/);
   assert.match(accountPageSource, /profileOauthPlatform/);
   assert.match(accountPageSource, /profileOauthPlatform\.linkProvider\(/);
   assert.match(accountPageSource, /profileOauthPlatform\.unlinkProvider\(/);

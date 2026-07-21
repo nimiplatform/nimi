@@ -4,33 +4,24 @@ import {
   type NimiHostRuntimeAgentMemorySurfaceOptions,
   type NimiRuntimeAgentCanonicalMemoryBankStatus,
 } from '@nimiplatform/sdk/runtime';
-import {
-  getDesktopAccountRuntime,
-  getDesktopAppId,
-  getDesktopRuntime,
-  withDesktopRuntimeProtectedScopes,
-} from './sdk/desktop-nimi-client-session';
+import type { NimiRuntimeAgentScopeRunner } from '@nimiplatform/sdk/runtime';
 
 export type CanonicalMemoryBankStatus = NimiRuntimeAgentCanonicalMemoryBankStatus;
 
 type RuntimeAgentMemoryDeps = {
   getRuntime?: () => NimiHostRuntimeAgentMemoryClient;
   getSubjectUserId?: NimiHostRuntimeAgentMemorySurfaceOptions['getSubjectUserId'];
+  withScopes?: NimiRuntimeAgentScopeRunner;
 };
 
-function getDesktopRuntimeAgentMemoryClient(): NimiHostRuntimeAgentMemoryClient {
-  const accountRuntime = getDesktopAccountRuntime();
-  return {
-    appId: getDesktopAppId(),
-    auth: accountRuntime.auth,
-    agent: getDesktopRuntime().agents,
-  };
+function runtimeAgentMemoryUnavailable(): never {
+  throw new Error('DESKTOP_RUNTIME_AGENT_MEMORY_UNBOUND');
 }
 
 export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {}) {
   return createNimiHostRuntimeAgentMemorySurface({
-    getRuntime: deps.getRuntime ?? getDesktopRuntimeAgentMemoryClient,
+    getRuntime: deps.getRuntime ?? runtimeAgentMemoryUnavailable,
     getSubjectUserId: deps.getSubjectUserId ?? (() => undefined),
-    ...(deps.getRuntime ? {} : { withScopes: withDesktopRuntimeProtectedScopes }),
+    ...(deps.withScopes ? { withScopes: deps.withScopes } : {}),
   });
 }

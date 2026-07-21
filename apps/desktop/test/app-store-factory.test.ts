@@ -23,6 +23,7 @@ import { createDesktopQueryClient } from '../src/shell/renderer/infra/query-clie
 import { refreshAgentEffectiveCapabilityResolution } from '../src/shell/renderer/features/chat/conversation-capability-projection.js';
 import { createDesktopI18n } from '../src/shell/renderer/i18n/desktop-i18n.js';
 import { AppProviders } from '../src/shell/renderer/app-shell/providers/app-providers.js';
+import { createAgentConversationAnchorBindingStore } from '../src/shell/renderer/app-shell/providers/agent-conversation-anchor-binding-storage.js';
 import { createIdleAppAttentionState } from '../src/shell/renderer/app-shell/providers/app-attention-state.js';
 import {
   createNimiCanonicalRendererHostBindings,
@@ -44,7 +45,24 @@ import { createTestStreamController } from './helpers/test-stream-controller.js'
 import { createScenarioJobController } from '../src/shell/renderer/features/turns/scenario-job-controller.js';
 import { createUnavailableDesktopRendererAuthPort } from '../src/shell/renderer/renderer/auth-port.js';
 import { createDesktopRendererRuntimeConfigNavigationPort } from '../src/shell/renderer/renderer/runtime-config-navigation-port.js';
+import { createUnavailableDesktopRendererProfileLibraryPort } from '../src/shell/renderer/renderer/profile-library-port.js';
+import { createUnavailableDesktopRendererOfflinePort } from '../src/shell/renderer/renderer/offline-port.js';
+import { createUnavailableDesktopRendererWorldFollowPort } from '../src/shell/renderer/renderer/world-follow-port.js';
+import { createUnavailableDesktopRendererSupportRepairPort } from '../src/shell/renderer/renderer/support-repair-port.js';
+import { createUnavailableDesktopRendererSystemResourcesPort } from '../src/shell/renderer/renderer/system-resources-port.js';
+import { createUnavailableDesktopRendererVoiceCapturePort } from '../src/shell/renderer/renderer/voice-capture-port.js';
+import { createUnavailableDesktopRendererSupportLogsPort } from '../src/shell/renderer/renderer/support-logs-port.js';
+import { createMemoryDesktopRendererLocalModelProgressPort } from '../src/shell/renderer/renderer/local-model-progress-port.js';
+import { createUnavailableDesktopRendererAvatarHandoffPort } from '../src/shell/renderer/renderer/avatar-handoff-port.js';
+import { createWorldFollowStore } from '../src/shell/renderer/features/world/world-follow-store.js';
+import { createAgentVisibleProjectionStore } from '../src/shell/renderer/features/chat/chat-agent-visible-projection-store.js';
+import { createChatUploadPlaceholderStore } from '../src/shell/renderer/features/turns/chat-upload-placeholder-store.js';
+import { createLocalModelCenterProgressCache } from '../src/shell/renderer/features/runtime-config/runtime-config-local-model-center-progress-cache.js';
 import { createRealmSocialData } from '../src/shell/renderer/features/social/data/realm-social-data.js';
+import type { RealmGroupChatData } from '../src/shell/renderer/features/chat/data/realm-group-chat-data.js';
+import type { RealmHumanChatData } from '../src/shell/renderer/features/chat/data/realm-human-chat-data.js';
+import { createRuntimeConfigConnectorSdkService } from '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service.js';
+import { createAccountProfileLibraryResource } from '../src/shell/renderer/features/runtime-config/runtime-config-profile-library.js';
 
 function createDependencies(input: {
   readonly commits: NimiAIConfig[];
@@ -192,12 +210,23 @@ test('AppProviders owns independent route, store, query, and i18n resources', as
   ) => renderToStaticMarkup(createElement(
     AppProviders,
     {
+      agentVisibleProjections: createAgentVisibleProjectionStore(),
+      accountProfileLibrary: createAccountProfileLibraryResource(
+        createUnavailableDesktopRendererProfileLibraryPort(),
+      ),
+      anchorBindings: createAgentConversationAnchorBindingStore(() => 1),
+      chatUploadPlaceholders: createChatUploadPlaceholderStore(() => 1),
       attention: {
         getSnapshot: createIdleAppAttentionState,
         subscribe: () => () => undefined,
       },
       i18n,
+      localModelCenterProgress: createLocalModelCenterProgressCache(
+        createMemoryDesktopRendererLocalModelProgressPort(),
+      ),
       queryClient,
+      realmGroupChatData: {} as RealmGroupChatData,
+      realmHumanChatData: {} as RealmHumanChatData,
       realmSocialData: createRealmSocialData({
         callApi: async () => {
           throw new Error('TEST_REALM_API_NOT_AVAILABLE');
@@ -212,13 +241,20 @@ test('AppProviders owns independent route, store, query, and i18n resources', as
           async queueSocialMutation() {},
         }),
       }),
+      runtimeConnectorSdk: createRuntimeConfigConnectorSdkService(() => {
+        throw new Error('TEST_RUNTIME_UNAVAILABLE');
+      }),
       Router: createRouter(entry),
       scenarioJobController: createScenarioJobController({
         now: () => 1,
         schedule: () => () => undefined,
+        animationFrame: () => () => undefined,
       }),
       store,
       streamController: createTestStreamController(),
+      worldFollowStore: createWorldFollowStore(
+        createUnavailableDesktopRendererWorldFollowPort('TEST_WORLD_FOLLOW_UNAVAILABLE'),
+      ),
     },
     createElement(InstanceSnapshot),
   ));
@@ -290,7 +326,13 @@ function createCanonicalBindings(input: {
       runtimeAgentTurns: sdkUnavailable,
       hostRuntimeAgent: sdkUnavailable,
       accountRuntime: sdkUnavailable,
+      runtimeRouteAccess: sdkUnavailable,
+      loadRouteOptions: sdkUnavailable,
+      conversationCapabilityRuntime: () => null,
+      runtimeHealthCoordinator: sdkUnavailable,
+      aiConfig: sdkUnavailable,
       realm: sdkUnavailable,
+      offline: createUnavailableDesktopRendererOfflinePort('TEST_OFFLINE_UNAVAILABLE'),
       socialData: Object.freeze({
         callApi: async () => {
           throw new Error('TEST_REALM_API_NOT_AVAILABLE');
@@ -321,22 +363,57 @@ function createCanonicalBindings(input: {
         loginMode: () => 'embedded',
         developerModeEnabled: () => false,
         viewportWidth: () => 1_280,
+        documentVisible: () => true,
+        windowFocused: () => true,
+        resourceBaseUrl: () => 'https://simulator.invalid/',
+        walletCheckoutBaseUrl: () => 'https://simulator.invalid/',
       }),
       commands: Object.freeze({
         auth: createUnavailableDesktopRendererAuthPort(),
         firstRun: createUnavailableDesktopFirstRunPort('TEST_FIRST_RUN_UNADMITTED'),
         runtimeConfigNavigation: createDesktopRendererRuntimeConfigNavigationPort(),
         settings: createMemoryDesktopRendererSettingsPort(),
+        profileLibrary: createUnavailableDesktopRendererProfileLibraryPort(),
+        worldFollow: createUnavailableDesktopRendererWorldFollowPort('TEST_WORLD_FOLLOW_UNAVAILABLE'),
+        supportRepair: createUnavailableDesktopRendererSupportRepairPort('TEST_SUPPORT_REPAIR_UNAVAILABLE'),
+        supportLogs: createUnavailableDesktopRendererSupportLogsPort('TEST_SUPPORT_LOGS_UNAVAILABLE'),
+        systemResources: createUnavailableDesktopRendererSystemResourcesPort('TEST_SYSTEM_RESOURCES_UNAVAILABLE'),
+        voiceCapture: createUnavailableDesktopRendererVoiceCapturePort('TEST_VOICE_CAPTURE_UNAVAILABLE'),
+        localModelProgress: createMemoryDesktopRendererLocalModelProgressPort(),
+        avatarHandoff: createUnavailableDesktopRendererAvatarHandoffPort('TEST_AVATAR_HANDOFF_UNAVAILABLE'),
+        connectorAuth: Object.freeze({
+          async proxyHttp() { throw new Error('TEST_CONNECTOR_AUTH_UNADMITTED'); },
+          async oauthTokenExchange() { throw new Error('TEST_CONNECTOR_AUTH_UNADMITTED'); },
+        }),
+        runtimeDaemon: Object.freeze({
+          available: () => false,
+          async status() { throw new Error('TEST_RUNTIME_DAEMON_UNADMITTED'); },
+          async start() { throw new Error('TEST_RUNTIME_DAEMON_UNADMITTED'); },
+          async restart() { throw new Error('TEST_RUNTIME_DAEMON_UNADMITTED'); },
+        }),
         commitAIConfig() {},
         persistChatThinkingPreference() {},
         setActiveScopeForMode() {},
+        setGroupLocalAgentParticipationActive() {},
         applyLocale() {},
+        async openWalletCheckout() { return { opened: false }; },
+        async writeClipboardText() {},
+        exportProfileLibraryJson() {},
+        exportRuntimeAuditJson() {},
+        confirmRuntimeProfileInstall() { return false; },
+        async pickLocalRuntimeAssetManifestPath() { return null; },
+        async pickLocalRuntimeAssetFile() { return null; },
+        async pickLocalRuntimeAssetDirectory() { return null; },
+        async revealLocalRuntimeAssetsRootFolder() {},
         async reconcileLoginState() { return { clearAuthSession: false }; },
         async checkDesktopUpdate() {},
         async installDesktopUpdate() {},
         async restartDesktopUpdate() {},
         async startWindowDrag() {},
         async listLocalDevelopmentApprovals() { return []; },
+        async listLocalDevelopmentAuthorizations() { return []; },
+        async listLocalDevelopmentRuns() { return []; },
+        async revokeLocalDevelopmentAuthorization() { throw new Error('TEST_UNAVAILABLE'); },
         async decideLocalDevelopmentApproval() {},
         async refreshDeveloperMode() { throw new Error('TEST_DEVELOPER_MODE_UNADMITTED'); },
         async setDeveloperMode() { throw new Error('TEST_DEVELOPER_MODE_UNADMITTED'); },
@@ -344,9 +421,13 @@ function createCanonicalBindings(input: {
       events: Object.freeze({
         connectChatRealtimeSync: () => () => undefined,
         subscribeWindowFocus: () => () => undefined,
+        subscribeDocumentVisibility: () => () => undefined,
         subscribeWindowResize: () => () => undefined,
         subscribeWindowKeyDown: () => () => undefined,
         subscribeDocumentMouseDown: () => () => undefined,
+        subscribeDocumentClick: () => () => undefined,
+        subscribeDocumentPointerDown: () => () => undefined,
+        observeIntersection: () => () => undefined,
         subscribeAttention: () => () => undefined,
         subscribeDeveloperMode: () => () => undefined,
         subscribeProductControlRecord: () => () => undefined,
@@ -372,6 +453,9 @@ function createCanonicalBindings(input: {
     clock: Object.freeze({
       now: () => 1_000,
       schedule() {
+        return () => undefined;
+      },
+      animationFrame() {
         return () => undefined;
       },
     }),

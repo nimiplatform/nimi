@@ -13,7 +13,15 @@ import {
   sendChatMessage,
   startChatWithTarget,
 } from '../src/shell/renderer/features/chat/data/realm-human-chat-data.js';
-import { getOfflineOutboxManager } from '../src/shell/renderer/infra/offline/outbox-manager.js';
+import { OfflineCoordinator } from '@nimiplatform/kit/core/offline-coordinator';
+import { createDesktopProductionOfflinePort } from '../src/shell/renderer/infra/offline/production-offline-port.js';
+
+function createTestOfflinePort() {
+  return createDesktopProductionOfflinePort(
+    new OfflineCoordinator(),
+    { enableEphemeralStore: true },
+  );
+}
 
 const chatFlowSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/chat/data/realm-human-chat-data.ts'),
@@ -50,17 +58,15 @@ describe('desktop human chat scaffold source scanning', () => {
     assert.match(chatFlowSource, /parsePersistentRealmSendMessageInput/);
   });
 
-  test('default human chat service is bound to the Desktop Realm client', () => {
-    assert.match(chatFlowSource, /createRealmChatService/);
-    assert.match(chatFlowSource, /callRealmApi/);
-    assert.match(chatFlowSource, /desktopRealmChatService/);
-    assert.doesNotMatch(chatFlowSource, /= realmChatService/);
+  test('instance human chat service is bound to the renderer Realm API caller', () => {
+    assert.match(chatFlowSource, /createDesktopRealmChatService/);
+    assert.match(chatFlowSource, /sdk\.socialData\.callApi/);
+    assert.match(chatFlowSource, /createRealmHumanChatData/);
+    assert.doesNotMatch(chatFlowSource, /desktopRealmChatService/);
   });
 
   test('failed send queues to outbox with attempts tracking', async () => {
-    const manager = await getOfflineOutboxManager();
-    manager.close();
-    await manager.open();
+    const offline = createTestOfflinePort();
     const result = await sendChatMessage('chat-1', 'hello', {}, {
       sendMessage: async () => {
         throw createOfflineError({
@@ -70,8 +76,8 @@ describe('desktop human chat scaffold source scanning', () => {
           actionHint: 'retry',
         });
       },
-    } as never);
-    const entries = await manager.getChatOutboxEntries('chat-1');
+    } as never, undefined, offline);
+    const entries = await offline.getChatOutboxEntries('chat-1');
     assert.equal(entries.length, 1);
     assert.equal(entries[0]?.attempts, 1);
     assert.equal(entries[0]?.status, 'pending');
@@ -81,6 +87,7 @@ describe('desktop human chat scaffold source scanning', () => {
 
   test('sendChatMessage writes canonical TEXT payload', async () => {
     let capturedBody: Record<string, unknown> | null = null;
+    const offline = createTestOfflinePort();
     await sendChatMessage('chat-1', 'hello world', {}, {
       sendMessage: async (_chatId: string, body: Record<string, unknown>) => {
         capturedBody = body;
@@ -96,7 +103,7 @@ describe('desktop human chat scaffold source scanning', () => {
           payload: body.payload as Record<string, unknown>,
         };
       },
-    } as never);
+    } as never, undefined, offline);
 
     assert.ok(capturedBody);
     assert.deepEqual((capturedBody as Record<string, unknown>).payload, { content: 'hello world' });
@@ -104,10 +111,8 @@ describe('desktop human chat scaffold source scanning', () => {
   });
 
   test('flushChatOutbox replays FIFO order by enqueuedAt', async () => {
-    const manager = await getOfflineOutboxManager();
-    manager.close();
-    await manager.open();
-    await manager.upsertChatOutboxEntry({
+    const offline = createTestOfflinePort();
+    await offline.upsertChatOutboxEntry({
       clientMessageId: 'later',
       chatId: 'chat-1',
       body: { clientMessageId: 'later', text: 'later', type: 'TEXT', payload: { content: 'later' } },
@@ -115,7 +120,7 @@ describe('desktop human chat scaffold source scanning', () => {
       attempts: 0,
       status: 'pending',
     });
-    await manager.upsertChatOutboxEntry({
+    await offline.upsertChatOutboxEntry({
       clientMessageId: 'earlier',
       chatId: 'chat-1',
       body: { clientMessageId: 'earlier', text: 'earlier', type: 'TEXT', payload: { content: 'earlier' } },
@@ -139,15 +144,13 @@ describe('desktop human chat scaffold source scanning', () => {
           payload: body.payload as Record<string, unknown>,
         };
       },
-    } as never);
+    } as never, undefined, offline);
     assert.deepEqual(replayed, ['earlier', 'later']);
   });
 
   test('flushChatOutbox fails closed for malformed persistent message bodies', async () => {
-    const manager = await getOfflineOutboxManager();
-    manager.close();
-    await manager.open();
-    await manager.upsertChatOutboxEntry({
+    const offline = createTestOfflinePort();
+    await offline.upsertChatOutboxEntry({
       clientMessageId: 'malformed',
       chatId: 'chat-1',
       body: { clientMessageId: 'malformed', payload: { content: 'missing type' } },
@@ -161,7 +164,7 @@ describe('desktop human chat scaffold source scanning', () => {
         sendMessage: async () => {
           throw new Error('service should not receive malformed persistent outbox body');
         },
-      } as never),
+      } as never, undefined, offline),
       /Persistent chat outbox body\.type must be a non-empty string/,
     );
   });
@@ -185,6 +188,7 @@ describe('desktop human chat scaffold source scanning', () => {
 
 describe('desktop human chat filtering', () => {
   test('loadChatList fails closed for missing, malformed, or source chat rows', async () => {
+    const offline = createTestOfflinePort();
     const result = await loadChatList({
       listChats: async () => ({
         items: [
@@ -210,7 +214,7 @@ describe('desktop human chat filtering', () => {
           { id: 'human-2', otherUser: { id: 'user-3' } },
         ],
       }),
-    } as never);
+    } as never, undefined, 20, offline);
 
     assert.deepEqual(
       (result.items as Array<{ id: string }>).map((item) => item.id),

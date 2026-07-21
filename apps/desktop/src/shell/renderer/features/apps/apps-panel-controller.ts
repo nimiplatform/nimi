@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AppCardActionId } from './apps-card-actions.js';
 import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
 import { projectAppsPanel, type DesktopAppsPanelProjection } from './apps-panel-projection.js';
+import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 
 export interface AppsPanelState {
   readonly projection: DesktopAppsPanelProjection | null;
@@ -25,8 +26,9 @@ export interface AppsPanelControllerDeps {
 }
 
 export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): AppsPanelController {
+  const sdk = useDesktopRendererSdk();
   const buildLiveBridge = deps.buildLiveBridge ?? createDesktopAppsLiveBridge;
-  const liveBridge = useMemo(() => buildLiveBridge(), [buildLiveBridge]);
+  const liveBridge = useMemo(() => buildLiveBridge(sdk), [buildLiveBridge, sdk]);
   const [projection, setProjection] = useState<DesktopAppsPanelProjection | null>(null);
   const [detailAppId, setDetailAppId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);

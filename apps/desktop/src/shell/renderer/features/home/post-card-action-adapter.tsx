@@ -3,13 +3,11 @@ import { useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { AddFriendModal } from './add-friend-modal';
 import { SendGiftModal } from '../economy/send-gift-modal';
 import { CreatePostModal } from '../profile/create-post-modal.js';
-import {
-  loadChatList,
-  startChatWithTarget,
-} from '../chat/data/realm-human-chat-data';
+import { useRealmHumanChatData } from '../chat/data/realm-human-chat-data-context.js';
 import type { PostCardActionAdapter } from './post-card';
 
 function createOpenChatError(message: string): Error {
@@ -18,6 +16,8 @@ function createOpenChatError(message: string): Error {
 
 export function usePostCardActionAdapter(): PostCardActionAdapter {
   const realmSocialData = useRealmSocialData();
+  const realmHumanChatData = useRealmHumanChatData();
+  const bindings = useDesktopRendererBindings();
   const i18n = useDesktopI18nResource().instance;
   const openChatError = i18n.t('Relationship.openChatFailed', {
     defaultValue: 'Failed to open chat',
@@ -41,10 +41,11 @@ export function usePostCardActionAdapter(): PostCardActionAdapter {
     unlikePost: (postId) => realmSocialData.unlikePost(postId),
     updatePostVisibility: (postId, visibility) => realmSocialData.updatePostVisibility(postId, visibility),
     deletePost: (postId) => realmSocialData.deletePost(postId),
+    copyText: bindings.app.commands.writeClipboardText,
     requestOrAcceptFriend: (authorId, message) => realmSocialData.requestOrAcceptFriend(authorId, message),
     invalidateContacts: () => queryClient.invalidateQueries({ queryKey: ['contacts'] }),
     openChat: async ({ authorId }) => {
-      const result = await startChatWithTarget(authorId);
+      const result = await realmHumanChatData.startChatWithTarget(authorId);
       if (!result?.chatId) {
         throw createOpenChatError(openChatError);
       }
@@ -57,7 +58,7 @@ export function usePostCardActionAdapter(): PostCardActionAdapter {
       if (!requestedChatId) {
         throw createOpenChatError(openChatError);
       }
-      const chatsSnapshot = await loadChatList();
+      const chatsSnapshot = await realmHumanChatData.loadChatList();
       const createdChat = result.chat && typeof result.chat === 'object'
         ? ({
           ...(result.chat as Record<string, unknown>),
@@ -98,11 +99,9 @@ export function usePostCardActionAdapter(): PostCardActionAdapter {
         worldId: '',
       });
       setActiveTab('chat');
-      if (typeof window !== 'undefined') {
-        window.requestAnimationFrame(() => {
-          setSelectedChatId(chatId);
-        });
-      }
+      bindings.clock.schedule(0, (scheduleResult) => {
+        if (scheduleResult.ok) setSelectedChatId(chatId);
+      });
     },
     renderGiftSurface: (input) => (
       <SendGiftModal
@@ -134,9 +133,11 @@ export function usePostCardActionAdapter(): PostCardActionAdapter {
     ),
   }), [
     authStatus,
+    bindings,
     currentUserId,
     openChatError,
     queryClient,
+    realmHumanChatData,
     realmBaseUrl,
     setActiveTab,
     setRuntimeFields,

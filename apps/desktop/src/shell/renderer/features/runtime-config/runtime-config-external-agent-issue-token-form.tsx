@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@nimiplatform/kit/ui';
 import { Button, Input, RuntimeSelect } from './runtime-config-primitives';
@@ -10,6 +10,7 @@ import {
   TOKEN_TEXT_SECONDARY,
   type TokenMode,
 } from './runtime-config-external-agent-access-model';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 type ExternalAgentIssueTokenFormProps = {
   actionsInput: string;
@@ -35,15 +36,23 @@ type ExternalAgentIssueTokenFormProps = {
 
 export function ExternalAgentIssueTokenForm(props: ExternalAgentIssueTokenFormProps) {
   const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
   const [copiedToken, setCopiedToken] = useState(false);
+  const clearCopiedCancelRef = useRef<(() => void) | null>(null);
+  useEffect(() => () => {
+    clearCopiedCancelRef.current?.();
+    clearCopiedCancelRef.current = null;
+  }, []);
 
   const onCopyIssuedToken = () => {
     if (!props.issuedToken) return;
-    const clip = typeof navigator !== 'undefined' ? navigator.clipboard : null;
-    if (!clip?.writeText) return;
-    void clip.writeText(props.issuedToken).then(() => {
+    void bindings.app.commands.writeClipboardText(props.issuedToken).then(() => {
       setCopiedToken(true);
-      window.setTimeout(() => setCopiedToken(false), 1500);
+      clearCopiedCancelRef.current?.();
+      clearCopiedCancelRef.current = bindings.clock.schedule(1_500, () => {
+        clearCopiedCancelRef.current = null;
+        setCopiedToken(false);
+      });
     }).catch(() => undefined);
   };
 

@@ -109,7 +109,7 @@ test('chat human shell a5: canonical human bridge projects realm data into canon
 test('chat human shell a5: composer and profile drawer reuse existing desktop transport surfaces without reusing the old outer UI', () => {
   assert.match(canonicalHumanSource, /chat-human-canonical-composer-profile/);
   assert.match(canonicalHumanComposerProfileSource, /createRealmChatComposerAdapter/);
-  assert.match(canonicalHumanComposerProfileSource, /createChatUploadPlaceholder/);
+  assert.match(canonicalHumanComposerProfileSource, /uploadPlaceholders\.create/);
   assert.match(canonicalHumanComposerProfileSource, /ChatProfileCard/);
   assert.match(giftModalSource, /SendGiftModal/);
   assert.doesNotMatch(canonicalHumanComposerProfileSource, /<TurnInput/);

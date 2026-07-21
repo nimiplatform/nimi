@@ -45,7 +45,8 @@ test('RLA3 Desktop Agent Center placement consumes Kit surface only', () => {
   assert.match(placementSource, /agentAIConfig:\s*input\.runtimeAgentAIConfig/);
   assert.match(placementSource, /readiness:\s*input\.runtimeAgentAIConfigReadiness/);
   assert.match(placementSource, /inspect:\s*input\.runtimeInspect/);
-  assert.match(placementSource, /providerResolver:\s*getDesktopRouteModelPickerProvider/);
+  assert.match(placementSource, /providerResolver,/);
+  assert.match(placementSource, /useDesktopRouteModelPickerProviderResolver/);
   assert.doesNotMatch(placementSource, /\bidentity=\{/);
   assert.doesNotMatch(placementSource, /ChatSettingsPanel|modelContent|diagnosticsContent|avatarContent|localAppearanceContent/);
   assert.equal(fs.existsSync(desktopPanelPath), false, 'Desktop-owned AgentCenterPanel must be removed');

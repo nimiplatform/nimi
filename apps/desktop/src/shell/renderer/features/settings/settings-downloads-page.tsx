@@ -9,10 +9,9 @@ import { SettingRow } from './settings-preferences-panel-parts.js';
 import {
   DevicePreferenceProjectionError,
   downloadEqual,
-  loadDownloadPreferences,
-  persistDownloadPreferences,
   type DownloadPreferences,
 } from './settings-device-preferences.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 type FeedbackState = {
   kind: 'info' | 'success' | 'warning' | 'error';
@@ -23,9 +22,11 @@ type DownloadLoad =
   | { status: 'ok'; preferences: DownloadPreferences }
   | { status: 'failClosed'; reason: string };
 
-function resolveDownloadLoad(): DownloadLoad {
+function resolveDownloadLoad(
+  settings: ReturnType<typeof useDesktopRendererBindings>['app']['commands']['settings'],
+): DownloadLoad {
   try {
-    return { status: 'ok', preferences: loadDownloadPreferences() };
+    return { status: 'ok', preferences: settings.loadDownloadPreferences() };
   } catch (error) {
     if (error instanceof DevicePreferenceProjectionError) {
       return { status: 'failClosed', reason: error.message };
@@ -61,14 +62,15 @@ function OpenIcon({ className = '' }: { className?: string }) {
 }
 
 export function DownloadsPage() {
+  const bindings = useDesktopRendererBindings();
   const { t } = useTranslation();
-  const [load] = useState<DownloadLoad>(() => resolveDownloadLoad());
+  const [load] = useState<DownloadLoad>(() => resolveDownloadLoad(bindings.app.commands.settings));
   const initialPreferences = load.status === 'ok' ? load.preferences : null;
   const [preferences, setPreferences] = useState<DownloadPreferences | null>(initialPreferences);
   const [baseline, setBaseline] = useState<DownloadPreferences | null>(initialPreferences);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
-  const autosaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autosaveTimerRef = React.useRef<(() => void) | null>(null);
 
   const hasChanges = useMemo(
     () => preferences !== null && baseline !== null && !downloadEqual(preferences, baseline),
@@ -76,9 +78,7 @@ export function DownloadsPage() {
   );
 
   useEffect(() => () => {
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-    }
+    autosaveTimerRef.current?.();
   }, []);
 
   const handleSave = ({ silentSuccess = false }: { silentSuccess?: boolean } = {}) => {
@@ -91,7 +91,7 @@ export function DownloadsPage() {
         ...preferences,
         downloadLocation: preferences.downloadLocation.trim(),
       };
-      persistDownloadPreferences(normalized);
+      bindings.app.commands.settings.persistDownloadPreferences(normalized);
       setPreferences(normalized);
       setBaseline(normalized);
       if (!silentSuccess) {
@@ -111,25 +111,19 @@ export function DownloadsPage() {
 
   useEffect(() => {
     if (saving || !hasChanges) {
-      if (autosaveTimerRef.current) {
-        clearTimeout(autosaveTimerRef.current);
-        autosaveTimerRef.current = null;
-      }
+      autosaveTimerRef.current?.();
+      autosaveTimerRef.current = null;
       return;
     }
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-    }
-    autosaveTimerRef.current = setTimeout(() => {
-      handleSave({ silentSuccess: true });
-    }, 700);
+    autosaveTimerRef.current?.();
+    autosaveTimerRef.current = bindings.clock.schedule(700, (result) => {
+      if (result.ok) handleSave({ silentSuccess: true });
+    });
     return () => {
-      if (autosaveTimerRef.current) {
-        clearTimeout(autosaveTimerRef.current);
-        autosaveTimerRef.current = null;
-      }
+      autosaveTimerRef.current?.();
+      autosaveTimerRef.current = null;
     };
-  }, [hasChanges, preferences, saving]);
+  }, [bindings, hasChanges, preferences, saving]);
 
   if (load.status === 'failClosed' || preferences === null) {
     return (

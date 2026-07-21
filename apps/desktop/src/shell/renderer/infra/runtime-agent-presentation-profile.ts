@@ -5,25 +5,27 @@ import {
   type NimiRuntimeAgentPresentationProfileInput,
   type NimiRuntimeAgentPresentationProfileMutationResult,
   type NimiRuntimeAgentPresentationProfilePatchInput,
+  type NimiRuntimeAgentScopeRunner,
   type RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/sdk/runtime';
-import {
-  getDesktopHostRuntimeAgentClient,
-  withDesktopRuntimeProtectedScopes,
-} from './sdk/desktop-nimi-client-session';
 
 type RuntimeAgentPresentationProfileDeps = {
   getRuntime?: () => NimiHostRuntimeAgentPresentationProfileClient;
   getSubjectUserId?: NimiHostRuntimeAgentPresentationProfileSurfaceOptions['getSubjectUserId'];
+  withScopes?: NimiRuntimeAgentScopeRunner;
 };
+
+function runtimeAgentPresentationUnavailable(): never {
+  throw new Error('DESKTOP_RUNTIME_AGENT_PRESENTATION_UNBOUND');
+}
 
 export function createRuntimeAgentPresentationProfileAdapter(
   deps: RuntimeAgentPresentationProfileDeps = {},
 ) {
   const surface = createNimiHostRuntimeAgentPresentationProfileSurface({
-    getRuntime: deps.getRuntime ?? getDesktopHostRuntimeAgentClient,
+    getRuntime: deps.getRuntime ?? runtimeAgentPresentationUnavailable,
     getSubjectUserId: deps.getSubjectUserId ?? (() => undefined),
-    ...(deps.getRuntime ? {} : { withScopes: withDesktopRuntimeProtectedScopes }),
+    ...(deps.withScopes ? { withScopes: deps.withScopes } : {}),
   });
 
   return {

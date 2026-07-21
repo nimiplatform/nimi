@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { listNimiRuntimeLocalAssetEntries } from '@nimiplatform/sdk/runtime';
 import type { LocalAssetEntry } from '@nimiplatform/kit/features/model-config/headless';
-import { getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
+import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 
 export function useLocalAssets(options: { enabled?: boolean } = {}) {
+  const sdk = useDesktopRendererSdk();
   return useQuery<LocalAssetEntry[]>({
     queryKey: ['image-companion-local-assets'],
-    queryFn: async () => listNimiRuntimeLocalAssetEntries(getDesktopRuntime()),
+    queryFn: async () => listNimiRuntimeLocalAssetEntries(sdk.runtime()),
     enabled: options.enabled ?? true,
     staleTime: 30_000,
   });

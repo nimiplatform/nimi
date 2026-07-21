@@ -4,9 +4,11 @@ import {
   CanonicalDrawerSection,
 } from '@nimiplatform/kit/features/chat/components/canonical-drawer-section';
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 export function useHumanVoiceUiState() {
   const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playingVoiceMessageId, setPlayingVoiceMessageId] = useState<string | null>(null);
   const [voiceTranscriptVisibleById, setVoiceTranscriptVisibleById] = useState<Record<string, boolean>>({});
@@ -30,13 +32,13 @@ export function useHumanVoiceUiState() {
         setVoiceContextMenu(null);
       }
     };
-    window.addEventListener('pointerdown', handlePointerDown);
-    window.addEventListener('keydown', handleKeyDown);
+    const unsubscribePointer = bindings.app.events.subscribeDocumentPointerDown(handlePointerDown);
+    const unsubscribeKey = bindings.app.events.subscribeWindowKeyDown(handleKeyDown);
     return () => {
-      window.removeEventListener('pointerdown', handlePointerDown);
-      window.removeEventListener('keydown', handleKeyDown);
+      unsubscribePointer();
+      unsubscribeKey();
     };
-  }, [voiceContextMenu]);
+  }, [bindings.app.events, voiceContextMenu]);
 
   const onPlayVoiceMessage = useCallback((message: ConversationCanonicalMessage) => {
     const metadata = (message.metadata as Record<string, unknown> | undefined) || {};

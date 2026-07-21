@@ -1,4 +1,5 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import type { CSSProperties } from 'react';
 import type { TFunction } from 'i18next';
 import type {
@@ -49,7 +50,7 @@ function formatRuntimeDependencyDuration(ms: number): string {
 
 export function runtimeDependencyJobIsStale(
   job: NimiRuntimeLocalEnvironmentDependencyJob | undefined,
-  nowMs = Date.now(),
+  nowMs: number,
 ): boolean {
   if (!job || !isNimiRuntimeLocalEnvironmentDependencyJobActiveState(job.state)) {
     return false;
@@ -61,11 +62,11 @@ export function runtimeDependencyJobIsStale(
 function runtimeDependencyJobTimingSummary(
   job: NimiRuntimeLocalEnvironmentDependencyJob | undefined,
   t: TFunction,
+  nowMs: number,
 ): string {
   if (!job) {
     return '';
   }
-  const nowMs = Date.now();
   const createdAtMs = parseRuntimeDependencyTimestampMs(job.createdAt);
   const updatedAtMs = parseRuntimeDependencyTimestampMs(job.updatedAt || job.createdAt);
   const parts: string[] = [];
@@ -359,6 +360,8 @@ type RuntimeDependencyAttentionBannerProps = {
 
 export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttentionBannerProps) {
   const i18n = useDesktopI18nResource().instance;
+  const bindings = useDesktopRendererBindings();
+  const nowMs = bindings.clock.now();
   const t = i18n.t.bind(i18n);
   const displayJob = runtimeDependencyJobForDisplay(props.dependency, props.job);
   const progressPercent = runtimeDependencyProgressPercent(displayJob);
@@ -368,8 +371,8 @@ export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttenti
     && isNimiRuntimeLocalEnvironmentDependencyJobTransferringState(displayJob.state)
     && Number(displayJob.bytesTotal) > 0,
   );
-  const timingSummary = runtimeDependencyJobTimingSummary(displayJob, t);
-  const stale = runtimeDependencyJobIsStale(displayJob);
+  const timingSummary = runtimeDependencyJobTimingSummary(displayJob, t, nowMs);
+  const stale = runtimeDependencyJobIsStale(displayJob, nowMs);
   const technicalDetails = runtimeDependencyTechnicalDetails(props.dependency, displayJob, t);
   const tone = runtimeDependencyTone(props.dependency, displayJob);
   const toneStyle = runtimeDependencyToneStyle(tone);

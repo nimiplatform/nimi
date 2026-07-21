@@ -22,6 +22,8 @@ import type { PendingAttachment } from '../turns/turn-input-attachments';
 import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
 import type { AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
 import type { StreamController } from '../turns/stream-controller.js';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
+import type { AgentConversationAnchorBindingStore } from '../../app-shell/providers/agent-conversation-anchor-binding-storage.js';
 
 export type AgentRunTurn = (input: {
   threadId: string;
@@ -40,7 +42,10 @@ export type AgentRunTurn = (input: {
 }) => AsyncIterable<ConversationTurnEvent>;
 
 export type UseAgentConversationHostActionsInput = {
+  anchorBindings: AgentConversationAnchorBindingStore;
   now: () => number;
+  sdk: DesktopRendererSdkPort;
+  subjectUserId: string;
   streamController: StreamController;
   activeTarget: AgentLocalTargetSnapshot | null;
   activeThreadId: string | null;

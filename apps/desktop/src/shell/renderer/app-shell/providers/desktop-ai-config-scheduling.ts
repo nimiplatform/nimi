@@ -9,7 +9,7 @@ import {
   type NimiAISchedulingJudgement,
   type NimiAISchedulingProjection,
 } from '@nimiplatform/sdk/ai';
-import { getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
+import type { Runtime } from '@nimiplatform/sdk/runtime';
 
 export {
   normalizeNimiAISchedulingTarget,
@@ -19,6 +19,7 @@ export {
 };
 
 export async function peekDesktopRuntimeSchedulingBatch(
+  runtime: Runtime,
   _runtimePackageId: string,
   appId: string,
   targets: readonly NimiAISchedulingEvaluationTarget[],
@@ -30,7 +31,7 @@ export async function peekDesktopRuntimeSchedulingBatch(
     return null;
   }
   const scheduling = createNimiRuntimeAISchedulingClient({
-    runtime: getDesktopRuntime(),
+    runtime,
     appId,
     targets: normalizedTargets,
   });
@@ -38,11 +39,12 @@ export async function peekDesktopRuntimeSchedulingBatch(
 }
 
 export async function peekDesktopRuntimeAggregateSchedulingJudgement(
+  runtime: Runtime,
   runtimePackageId: string,
   appId: string,
   targets: readonly NimiAISchedulingEvaluationTarget[],
 ): Promise<NimiAISchedulingJudgement | null> {
-  const batchResult = await peekDesktopRuntimeSchedulingBatch(runtimePackageId, appId, targets);
+  const batchResult = await peekDesktopRuntimeSchedulingBatch(runtime, runtimePackageId, appId, targets);
   return batchResult?.aggregateJudgement ?? null;
 }
 

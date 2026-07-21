@@ -1,9 +1,9 @@
 import {
   createNimiHostRuntimeRouteAccessSurface,
   type NimiRuntimeRouteLocalWarmMetric,
+  type Runtime,
 } from '@nimiplatform/sdk/runtime';
 import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
-import { getDesktopRuntime } from './sdk/desktop-nimi-client-session';
 
 function emitDesktopRuntimeRouteWarmMetric(metric: NimiRuntimeRouteLocalWarmMetric): void {
   if (metric.kind === 'timing') {
@@ -31,19 +31,15 @@ function emitDesktopRuntimeRouteWarmMetric(metric: NimiRuntimeRouteLocalWarmMetr
   });
 }
 
-export const desktopRuntimeRouteAccess = createNimiHostRuntimeRouteAccessSurface({
-  getRuntime: getDesktopRuntime,
-  appId: 'nimi.desktop',
-  callerKind: 'desktop-core',
-  surfaceId: 'desktop.renderer',
-  identityMetadataMode: 'host',
-  emitWarmMetric: emitDesktopRuntimeRouteWarmMetric,
-});
-
-export function getDesktopRuntimeClient() {
-  return desktopRuntimeRouteAccess.getRuntimeClient();
+export function createDesktopRuntimeRouteAccess(getRuntime: () => Runtime) {
+  return createNimiHostRuntimeRouteAccessSurface({
+    getRuntime,
+    appId: 'nimi.desktop',
+    callerKind: 'desktop-core',
+    surfaceId: 'desktop.renderer',
+    identityMetadataMode: 'host',
+    emitWarmMetric: emitDesktopRuntimeRouteWarmMetric,
+  });
 }
 
-export function resetDesktopRuntimeRouteLocalWarmCacheForTests(): void {
-  desktopRuntimeRouteAccess.resetLocalModelWarmCache();
-}
+export type DesktopRuntimeRouteAccess = ReturnType<typeof createDesktopRuntimeRouteAccess>;

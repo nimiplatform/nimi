@@ -11,8 +11,11 @@ import {
   localAgentListQueryKey,
   type LocalAgentListItem,
 } from './local-agent-list-model';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import { createRealmWorldData } from '../world/data/realm-world-data.js';
 
 export function AgentsPanel() {
+  const bindings = useDesktopRendererBindings();
   const authStatus = useAppStore((state) => state.auth.status);
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
   const navigateToSourceDetail = useAppStore((state) => state.navigateToSourceDetail);
@@ -20,7 +23,7 @@ export function AgentsPanel() {
 
   const worldsQuery = useQuery({
     queryKey: worldListQueryKey(),
-    queryFn: async () => fetchWorldListItems(),
+    queryFn: async () => fetchWorldListItems(createRealmWorldData(bindings.sdk)),
     staleTime: 30_000,
     enabled: authStatus === 'authenticated',
   });
@@ -31,7 +34,7 @@ export function AgentsPanel() {
 
   const agentsQuery = useQuery({
     queryKey: localAgentListQueryKey(ownerUserId),
-    queryFn: async () => fetchLocalAgentList(ownerUserId),
+    queryFn: async () => fetchLocalAgentList(ownerUserId, bindings.sdk),
     enabled: authStatus === 'authenticated' && Boolean(ownerUserId),
     staleTime: 15_000,
   });
@@ -52,6 +55,7 @@ export function AgentsPanel() {
       onRetry={() => { void agentsQuery.refetch(); }}
       onOpenAgent={(item: LocalAgentListItem) => navigateToSourceDetail(item.sourceRef)}
       onBrowseExplore={() => setActiveTab('explore')}
+      sdk={bindings.sdk}
     />
   );
 }

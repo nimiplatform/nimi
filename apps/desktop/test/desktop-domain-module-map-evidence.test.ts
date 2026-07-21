@@ -74,7 +74,7 @@ test('Source Detail materializes Realm source through sourceRef packet admission
   assert.match(panelSource, /toSourceContactLaunchTarget/);
   assert.match(panelSource, /const existingAgent = sourceRuntimeLocalAgents\.length === 1 \? sourceRuntimeLocalAgents\[0\] : null/);
   assert.match(panelSource, /existingAgent\s*\?\s*toSourceContactLaunchTarget/);
-  assert.match(panelSource, /if \(!existingAgent\) \{\s*await ensureRuntimeAgentExists\(target\);\s*\}/);
+  assert.match(panelSource, /if \(!existingAgent\) \{\s*await ensureRuntimeAgentExists\(target, bindings\.sdk, ownerUserId\);\s*\}/);
   assert.match(panelSource, /invalidateQueries\(\{\s*queryKey:\s*localAgentListQueryKey\(ownerUserId\),\s*exact:\s*true\s*\}\)/);
   assert.match(panelSource, /setAgentConversationTargetSnapshot/);
   assert.match(panelSource, /setAgentConversationSelection/);

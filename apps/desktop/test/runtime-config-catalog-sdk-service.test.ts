@@ -10,12 +10,12 @@ const catalogSdkServiceSource = readFileSync(
 
 test('Desktop catalog service is only an SDK runtime catalog client binding', () => {
   assert.match(catalogSdkServiceSource, /createNimiRuntimeModelCatalogClient/);
-  assert.match(catalogSdkServiceSource, /getDesktopRuntime\(\)\.connectors/);
+  assert.match(catalogSdkServiceSource, /createRuntimeConfigCatalogClient/);
+  assert.match(catalogSdkServiceSource, /connectors\.listModelCatalogProviders/);
   assert.match(catalogSdkServiceSource, /surfaceId: 'runtime\.config'/);
   assert.doesNotMatch(catalogSdkServiceSource, /callerKind|callerId/);
   assert.doesNotMatch(catalogSdkServiceSource, /getPlatformClient/);
   assert.doesNotMatch(catalogSdkServiceSource, /function normalize/);
   assert.doesNotMatch(catalogSdkServiceSource, /runtimeJsonToProtoStruct|runtimeProtoStructToJson|jsonToProtoStruct|protoStructToJson/);
-  assert.doesNotMatch(catalogSdkServiceSource, /export function .*Catalog/);
-  assert.doesNotMatch(catalogSdkServiceSource, /export async function .*Catalog/);
+  assert.doesNotMatch(catalogSdkServiceSource, /export (?:async )?function (?:list|upsert|delete).*Catalog/);
 });

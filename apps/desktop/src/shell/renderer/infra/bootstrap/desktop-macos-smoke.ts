@@ -85,6 +85,8 @@ type DesktopMacosSmokeLifecycle = Pick<
   | 'auth'
   | 'bootstrap'
   | 'cancelAndClearQueries'
+  | 'clearAgentConversationAnchorBindings'
+  | 'readAgentConversationAnchorBinding'
   | 'subscribeBootstrap'
 >;
 

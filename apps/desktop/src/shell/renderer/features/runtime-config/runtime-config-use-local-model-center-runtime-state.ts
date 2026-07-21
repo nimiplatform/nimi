@@ -21,7 +21,7 @@ import {
   isRunnableAssetKind,
   manifestPathFromSourceRepo,
 } from './runtime-config-use-local-model-center-helpers.js';
-import { runtimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
+import { useRuntimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
 import {
   useLocalModelCenterImportFilePlan,
 } from './runtime-config-use-local-model-center-import-file-plan';
@@ -33,6 +33,7 @@ import {
 import { useLocalModelCenterInstalledAssetViews } from './runtime-config-use-local-model-center-installed-assets';
 import { useLocalModelCenterUnregisteredAssets } from './runtime-config-use-local-model-center-unregistered-assets';
 import { useLocalModelCenterAssetTasks } from './runtime-config-use-local-model-center-asset-tasks';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 type UseLocalModelCenterRuntimeStateInput = {
   isProfileTargetMode: boolean;
@@ -50,6 +51,8 @@ function runtimeInventoryErrorMessage(error: unknown, fallback: string): string 
 }
 
 export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: UseLocalModelCenterRuntimeStateInput) {
+  const runtimeConfigLocalModelCenterClient = useRuntimeConfigLocalModelCenterClient();
+  const bindings = useDesktopRendererBindings();
   const [installing, setInstalling] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -97,9 +100,8 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
         setShowImportMenu(false);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [showImportMenu]);
+    return bindings.app.events.subscribeDocumentMouseDown(handler);
+  }, [bindings.app.events, showImportMenu]);
 
   const {
     filteredInstalledDependencyAssets,
@@ -264,12 +266,9 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
     setCatalogDisplayCount(10);
   }, [deferredSearchQuery, catalogCapability]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      void refreshCatalogItems();
-    }, 600);
-    return () => clearTimeout(timer);
-  }, [catalogCapability, deferredSearchQuery, refreshCatalogItems]);
+  useEffect(() => bindings.clock.schedule(600, (result) => {
+    if (result.ok) void refreshCatalogItems();
+  }), [bindings.clock, catalogCapability, deferredSearchQuery, refreshCatalogItems]);
 
   useEffect(() => {
     void refreshVerifiedModels();

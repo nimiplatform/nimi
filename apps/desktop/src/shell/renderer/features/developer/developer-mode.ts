@@ -1,14 +1,8 @@
 import { hasShellHostInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from '../../bridge/runtime-bridge/invoke';
+import type { DeveloperModeProjection } from './developer-mode-types.js';
 
-export type DeveloperModeProjection = {
-  readonly state: 'disabled' | 'enabled' | 'unavailable';
-  readonly enabled: boolean;
-  readonly revision: number;
-  readonly accountGeneration: number;
-  readonly reasonCode: string;
-  readonly retryable: boolean;
-};
+export type { DeveloperModeProjection } from './developer-mode-types.js';
 
 const subscribers = new Set<(enabled: boolean) => void>();
 let current: DeveloperModeProjection = unavailable('protected-carrier-required', false);

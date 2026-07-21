@@ -10,15 +10,14 @@
 
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  desktopBridge,
-  type DesktopStorageDirs,
-  type NimiProductControlRecordProjection,
-} from '../../bridge';
+import type { NimiProductControlRecordProjection } from '@nimiplatform/sdk/runtime';
+import type { DesktopRendererStorageDirs as DesktopStorageDirs } from '../../renderer/settings-port.js';
 import {
   NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION,
+  type DesktopRendererSupportRepairPort,
   type NimiDataCleanupPlan,
-} from '../../bridge/runtime-bridge/nimi-data-directory';
+} from '../../renderer/support-repair-port.js';
+import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import { useTypedProjection as useSupportProjection } from '@nimiplatform/kit/ui';
 import {
   NIMI_PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY,
@@ -38,16 +37,18 @@ interface RepairProjection {
   readonly dirsError: string | null;
 }
 
-async function loadRepairProjection(): Promise<RepairProjection> {
+async function loadRepairProjection(
+  repair: DesktopRendererSupportRepairPort,
+): Promise<RepairProjection> {
   // The product-control record is the load-bearing typed projection — if it
   // fails, the whole sub-area fail-closes. The storage-dirs read is a
   // secondary input; its failure is captured inline, not promoted to a
   // whole-section fail-close (repair must stay reachable).
-  const control = await desktopBridge.getProductControlRecord();
+  const control = await repair.loadProductControlRecord();
   let dirs: DesktopStorageDirs | null = null;
   let dirsError: string | null = null;
   try {
-    dirs = await desktopBridge.getDesktopStorageDirs();
+    dirs = await repair.loadStorageDirs();
   } catch (error) {
     dirsError = error instanceof Error ? error.message : String(error ?? 'storage dirs unavailable');
   }
@@ -56,7 +57,9 @@ async function loadRepairProjection(): Promise<RepairProjection> {
 
 export function SupportRepairSection(props: { onNavigateToRecovery: () => void }) {
   const { t } = useTranslation();
-  const projection = useSupportProjection(loadRepairProjection, {
+  const repair = useDesktopRendererCommands().supportRepair;
+  const loadProjection = useCallback(() => loadRepairProjection(repair), [repair]);
+  const projection = useSupportProjection(loadProjection, {
     failClosedMessage: t('Support.repairProjectionUnavailable'),
   });
 
@@ -192,6 +195,7 @@ function SupportDataRootCleanupCard(props: {
   dirsError: string | null;
 }) {
   const { t } = useTranslation();
+  const repair = useDesktopRendererCommands().supportRepair;
   const [directoryInput, setDirectoryInput] = useState('');
   const [confirmationInput, setConfirmationInput] = useState('');
   const [plan, setPlan] = useState<NimiDataCleanupPlan | null>(null);
@@ -208,7 +212,7 @@ function SupportDataRootCleanupCard(props: {
     setPlan(null);
     setFeedback(null);
     try {
-      const result = await desktopBridge.planNimiDataCleanup(directory);
+      const result = await repair.planDataCleanup(directory);
       setPlan(result);
     } catch (error) {
       setFeedback({
@@ -218,7 +222,7 @@ function SupportDataRootCleanupCard(props: {
     } finally {
       setBusy(false);
     }
-  }, [directoryInput, t]);
+  }, [directoryInput, repair, t]);
 
   const handleExecute = useCallback(async () => {
     if (!plan) {
@@ -238,7 +242,7 @@ function SupportDataRootCleanupCard(props: {
     setBusy(true);
     setFeedback(null);
     try {
-      const outcome = await desktopBridge.executeNimiDataCleanup(plan.directory, confirmation);
+      const outcome = await repair.executeDataCleanup(plan.directory, confirmation);
       setPlan(null);
       setConfirmationInput('');
       setFeedback({
@@ -255,7 +259,7 @@ function SupportDataRootCleanupCard(props: {
     } finally {
       setBusy(false);
     }
-  }, [plan, confirmationInput, t]);
+  }, [plan, confirmationInput, repair, t]);
 
   return (
     <SupportCard

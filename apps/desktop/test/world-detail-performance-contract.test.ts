@@ -3,7 +3,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import { realmWorldData } from '../src/shell/renderer/features/world/data/realm-world-data.js';
+import { createRealmWorldData } from '../src/shell/renderer/features/world/data/realm-world-data.js';
+import type { DesktopRendererSdkPort } from '../src/shell/renderer/renderer/sdk-port.js';
+
+const realmWorldData = createRealmWorldData({
+  socialData: {
+    callApi: async () => { throw new Error('TEST_REALM_API_UNAVAILABLE'); },
+    emitDataError: () => undefined,
+  },
+} as unknown as DesktopRendererSdkPort);
 import {
   fetchWorldPrimaryDisplayDetail,
 } from '../src/shell/renderer/features/world/world-detail-queries.js';
@@ -156,7 +164,7 @@ test('world primary display detail resolves without waiting for supplemental sec
   };
 
   try {
-    const detail = await fetchWorldPrimaryDisplayDetail('world-primary');
+    const detail = await fetchWorldPrimaryDisplayDetail('world-primary', realmWorldData);
 
     assert.equal(detail.world.id, 'world-primary');
     assert.equal(detail.characters.length, 1);
@@ -185,7 +193,7 @@ test('world primary display detail preserves connected local-agent relation stat
   });
 
   try {
-    const detail = await fetchWorldPrimaryDisplayDetail('world-primary');
+    const detail = await fetchWorldPrimaryDisplayDetail('world-primary', realmWorldData);
     const relation = detail.characters[0]?.relation;
 
     assert.equal(relation?.state, 'connected');
@@ -198,7 +206,7 @@ test('world primary display detail preserves connected local-agent relation stat
 
 test('world semantic bundle projects public world detail without raw core fallback', () => {
   const semanticStart = worldFlowSource.indexOf('export async function loadWorldSemanticBundle');
-  const semanticEnd = worldFlowSource.indexOf('\nexport const realmWorldData', semanticStart);
+  const semanticEnd = worldFlowSource.indexOf('\nexport function createRealmWorldData', semanticStart);
   const semanticBundleSection = worldFlowSource.slice(semanticStart, semanticEnd);
   assert.match(semanticBundleSection, /getWorldCore\(realm, worldId\)/);
   assert.match(semanticBundleSection, /buildWorldPublicSemanticBundle\(asRecord\(world\)\)/);
@@ -224,7 +232,7 @@ test('world detail primary query adopts SDK public world DTO through a bounded a
 
 test('world atlas selected panel loads preview people from the primary display detail only', () => {
   assert.match(worldListSelectedPanelSource, /worldPrimaryDisplayDetailQueryKey\(world\.id\)/);
-  assert.match(worldListSelectedPanelSource, /fetchWorldPrimaryDisplayDetail\(world\.id\)/);
+  assert.match(worldListSelectedPanelSource, /fetchWorldPrimaryDisplayDetail\(world\.id, createRealmWorldData\(sdk\)\)/);
   assert.match(worldListSelectedPanelSource, /enabled: Boolean\(world\.id\)/);
   assert.doesNotMatch(worldListSelectedPanelSource, /enabled: peopleCount > 0/);
   assert.doesNotMatch(worldListSelectedPanelSource, /worldDisplayDetailQueryKey\(world\.id\)/);
@@ -260,7 +268,7 @@ test('world detail error state keeps a back escape hatch', () => {
 });
 
 test('explore shares the world list cache key and does not refetch characters when world metadata changes', () => {
-  assert.match(explorePanelSource, /fetchWorldListItems\(\)/);
+  assert.match(explorePanelSource, /fetchWorldListItems\(createRealmWorldData\(bindings\.sdk\)\)/);
   assert.match(explorePanelSource, /queryKey: worldListQueryKey\(\)/);
   assert.match(explorePanelSource, /queryKey: \['explore-personas', authStatus, selectedCategory, props\.searchText\]/);
   assert.match(explorePanelSource, /const personaSources = useMemo\(/);

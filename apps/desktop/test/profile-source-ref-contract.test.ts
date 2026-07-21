@@ -138,7 +138,7 @@ test('profile detail modal source branch loads by hash-bearing sourceRef instead
   const profileDetailViewSource = readRepo('apps/desktop/src/shell/renderer/features/relationship/profile-detail-view-content.tsx');
 
   assert.match(modalSource, /characterSourceRefKey/);
-  assert.match(modalSource, /loadRealmSourceDetailsBySourceRef\(sourceRef/);
+  assert.match(modalSource, /loadRealmSourceDetailsBySourceRef\(\s*bindings\.sdk\.realm\(\),\s*sourceRef/s);
   assert.match(modalSource, /sourceRef \? characterSourceRefKey\(sourceRef\) : 'missing-source-ref'/);
   assert.doesNotMatch(modalSource, /loadRealmSourceDetailsForDisplay\(props\.profileId\)/);
   assert.match(profileDetailViewSource, /profile\.entity/);

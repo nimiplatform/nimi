@@ -11,7 +11,7 @@ const productionBindingsSource = fs.readFileSync(
 test('web login shell does not start runtime health coordinator before a platform client exists', () => {
   assert.match(
     productionBindingsSource,
-    /connectRuntimeHealthCoordinator\(\s*lifecycle,\s*getShellFeatureFlags\(\)\.mode === 'desktop',\s*\)/s,
+    /connectRuntimeHealthCoordinator\(\s*runtimeHealthCoordinator,\s*lifecycle,\s*getShellFeatureFlags\(\)\.mode === 'desktop',\s*\)/s,
   );
   assert.doesNotMatch(productionBindingsSource, /connectRuntimeHealthCoordinator\(lifecycle, true\)/);
 });

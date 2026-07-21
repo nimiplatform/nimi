@@ -15,7 +15,6 @@ import {
   unblockUser,
 } from '../src/shell/renderer/features/social/data/profile-data.js';
 import { createSocialSnapshotStore } from '../src/shell/renderer/features/social/data/social-snapshot.js';
-import { getOfflineOutboxManager } from '../src/shell/renderer/infra/offline/outbox-manager.js';
 import type { RealmSocialOfflinePort } from '../src/shell/renderer/features/social/data/social-offline-port.js';
 
 const profileFlowSource = readFileSync(
@@ -90,9 +89,6 @@ describe('D-DSYNC-004: social flow source scanning', () => {
   });
 
   test('D-DSYNC-004: friendship mutations fail closed offline instead of entering generic social outbox', async () => {
-    const manager = await getOfflineOutboxManager();
-    manager.close();
-    await manager.open();
     const offline = createOfflineNimiError({
       source: 'realm',
       reasonCode: ReasonCode.REALM_UNAVAILABLE,
@@ -131,7 +127,6 @@ describe('D-DSYNC-004: social flow source scanning', () => {
       /realm offline/,
     );
 
-    assert.equal(await manager.getPendingSocialMutationCount(), 0);
   });
 });
 

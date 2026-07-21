@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { desktopBridge } from '../../bridge';
 import {
+  createRealmCommerceGiftService,
   createRealmSparkCheckout,
   createRealmWithdrawal,
   loadRealmCurrencyBalances,
@@ -16,7 +16,11 @@ import {
 import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { DesktopI18nResource } from '../../i18n/desktop-i18n.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
-import { getDesktopRealmCommerceGiftService } from '../../infra/realm/realm-commerce-service';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import type {
+  DesktopRendererRoutePort,
+  DesktopRendererRouteView,
+} from '../../renderer/contract.js';
 import { PageShell } from './settings-layout-components.js';
 import {
   WalletBalanceCards,
@@ -38,18 +42,6 @@ type SparkPackageItem = {
 };
 
 type WalletCheckoutStatus = 'success' | 'cancel';
-
-function readEnv(name: string): string {
-  const importMetaEnv = (import.meta as { env?: Record<string, string | undefined> }).env;
-  const fromImportMeta = String(importMetaEnv?.[name] || '').trim();
-  if (fromImportMeta) {
-    return fromImportMeta;
-  }
-  const globalProcess = (globalThis as {
-    process?: { env?: Record<string, string | undefined> };
-  }).process;
-  return String(globalProcess?.env?.[name] || '').trim();
-}
 
 function normalizeWalletCheckoutStatus(input: unknown): WalletCheckoutStatus | null {
   const normalized = String(input || '').trim().toLowerCase();
@@ -102,80 +94,64 @@ function pickDefaultSparkPackage(packages: SparkPackageItem[]): SparkPackageItem
   return [...packages].sort(sortByPrice)[0] || null;
 }
 
-function resolveCheckoutBaseUrl(): URL {
-  const fallbackOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
-  const raw = readEnv('NIMI_WEB_URL') || fallbackOrigin;
-  try {
-    const parsed = new URL(raw);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      throw new Error();
-    }
-    return parsed;
-  } catch {
-    return new URL(fallbackOrigin);
+function resolveCheckoutBaseUrl(raw: string): URL {
+  const parsed = new URL(raw);
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('DESKTOP_WALLET_CHECKOUT_BASE_URL_INVALID');
   }
+  return parsed;
 }
 
-function buildWalletCheckoutRedirectUrl(status: WalletCheckoutStatus): string {
-  const base = resolveCheckoutBaseUrl();
+function buildWalletCheckoutRedirectUrl(
+  status: WalletCheckoutStatus,
+  checkoutBaseUrl: string,
+): string {
+  const base = resolveCheckoutBaseUrl(checkoutBaseUrl);
   const query = new URLSearchParams();
   query.set('wallet_checkout', status);
   base.hash = `/?${query.toString()}`;
   return base.toString();
 }
 
-function readWalletCheckoutStatusFromLocation(): WalletCheckoutStatus | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-  const searchParams = new URLSearchParams(window.location.search);
+function readWalletCheckoutStatusFromRoute(
+  route: DesktopRendererRouteView,
+): WalletCheckoutStatus | null {
+  const searchParams = new URLSearchParams(route.search);
   const searchStatus = normalizeWalletCheckoutStatus(searchParams.get('wallet_checkout'));
   if (searchStatus) {
     return searchStatus;
   }
 
-  const hash = String(window.location.hash || '');
-  const queryStart = hash.indexOf('?');
+  const queryStart = route.hash.indexOf('?');
   if (queryStart < 0) {
     return null;
   }
-  const hashQuery = hash.slice(queryStart + 1);
-  const hashParams = new URLSearchParams(hashQuery);
+  const hashParams = new URLSearchParams(route.hash.slice(queryStart + 1));
   return normalizeWalletCheckoutStatus(hashParams.get('wallet_checkout'));
 }
 
-function clearWalletCheckoutStatusFromLocation(): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  const current = new URL(window.location.href);
-  let changed = false;
-
-  if (current.searchParams.has('wallet_checkout')) {
-    current.searchParams.delete('wallet_checkout');
-    changed = true;
-  }
-
+function clearWalletCheckoutStatusFromRoute(route: DesktopRendererRoutePort): void {
+  const current = route.get();
+  const searchParams = new URLSearchParams(current.search);
   const hashRaw = current.hash.startsWith('#') ? current.hash.slice(1) : current.hash;
-  const [hashPathRaw = '/', hashQueryRaw = ''] = hashRaw.split('?');
-  const hashPath = hashPathRaw || '/';
+  const [hashPathRaw = '', hashQueryRaw = ''] = hashRaw.split('?');
   const hashParams = new URLSearchParams(hashQueryRaw);
-  if (hashParams.has('wallet_checkout')) {
-    hashParams.delete('wallet_checkout');
-    changed = true;
-  }
-  if (!changed) {
+  const searchChanged = searchParams.has('wallet_checkout');
+  const hashChanged = hashParams.has('wallet_checkout');
+  searchParams.delete('wallet_checkout');
+  hashParams.delete('wallet_checkout');
+  if (!searchChanged && !hashChanged) {
     return;
   }
 
+  const search = searchParams.toString();
   const hashQuery = hashParams.toString();
-  current.hash = hashQuery ? `${hashPath}?${hashQuery}` : hashPath;
-  window.history.replaceState({}, document.title, current.toString());
-}
-
-async function sleep(ms: number): Promise<void> {
-  await new Promise<void>((resolve) => {
-    setTimeout(resolve, ms);
+  const hash = hashPathRaw || hashQuery
+    ? `#${hashPathRaw}${hashQuery ? `?${hashQuery}` : ''}`
+    : '';
+  route.navigate({
+    to: `${current.pathname}${search ? `?${search}` : ''}${hash}`,
+    replace: true,
   });
 }
 
@@ -233,6 +209,14 @@ function toTimelineItems(input: unknown): WalletTimelineItem[] {
 export function WalletPage() {
   const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
+  const giftService = useMemo(
+    () => createRealmCommerceGiftService({ generated: bindings.sdk.realm().generated }),
+    [bindings.sdk],
+  );
+  const rechargeLoopCancelRef = useRef<(() => void) | null>(null);
+  const processedCheckoutRouteRef = useRef<string | null>(null);
+  const checkoutRoute = bindings.route.get();
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [submittingWithdrawal, setSubmittingWithdrawal] = useState(false);
   const [withdrawalMessage, setWithdrawalMessage] = useState<string | null>(null);
@@ -241,54 +225,37 @@ export function WalletPage() {
 
   const balancesQuery = useQuery({
     queryKey: ['wallet-currency-balances'],
-    queryFn: async () => loadRealmCurrencyBalances({
-      service: getDesktopRealmCommerceGiftService(),
-    }),
+    queryFn: async () => loadRealmCurrencyBalances({ service: giftService }),
   });
 
   const sparkHistoryQuery = useQuery({
     queryKey: ['wallet-spark-history'],
-    queryFn: async () => loadRealmSparkTransactionHistory({
-      service: getDesktopRealmCommerceGiftService(),
-      limit: 20,
-    }),
+    queryFn: async () => loadRealmSparkTransactionHistory({ service: giftService, limit: 20 }),
   });
 
   const gemHistoryQuery = useQuery({
     queryKey: ['wallet-gem-history'],
-    queryFn: async () => loadRealmGemTransactionHistory({
-      service: getDesktopRealmCommerceGiftService(),
-      limit: 20,
-    }),
+    queryFn: async () => loadRealmGemTransactionHistory({ service: giftService, limit: 20 }),
   });
 
   const subscriptionQuery = useQuery({
     queryKey: ['wallet-subscription'],
-    queryFn: async () => loadRealmSubscriptionStatus({
-      service: getDesktopRealmCommerceGiftService(),
-    }),
+    queryFn: async () => loadRealmSubscriptionStatus({ service: giftService }),
   });
 
   const sparkPackagesQuery = useQuery({
     queryKey: ['wallet-spark-packages'],
-    queryFn: async () => loadRealmSparkPackages({
-      service: getDesktopRealmCommerceGiftService(),
-    }),
+    queryFn: async () => loadRealmSparkPackages({ service: giftService }),
   });
 
   const withdrawEligibilityQuery = useQuery({
     queryKey: ['wallet-withdrawal-eligibility'],
-    queryFn: async () => loadRealmWithdrawalEligibility({
-      service: getDesktopRealmCommerceGiftService(),
-    }),
+    queryFn: async () => loadRealmWithdrawalEligibility({ service: giftService }),
   });
 
   const withdrawalHistoryQuery = useQuery({
     queryKey: ['wallet-withdrawal-history'],
-    queryFn: async () => loadRealmWithdrawalHistory({
-      service: getDesktopRealmCommerceGiftService(),
-      limit: 10,
-    }),
+    queryFn: async () => loadRealmWithdrawalHistory({ service: giftService, limit: 10 }),
   });
 
   const subscriptionPayload = parseOptionalJsonObject(subscriptionQuery.data);
@@ -342,28 +309,72 @@ export function WalletPage() {
   }, [balancesQuery, sparkHistoryQuery]);
 
   const startRechargeRefreshLoop = useCallback(() => {
-    void (async () => {
-      for (let attempt = 0; attempt < 6; attempt += 1) {
-        await refreshSparkWalletSnapshot();
-        if (attempt < 5) {
-          await sleep(5000);
+    rechargeLoopCancelRef.current?.();
+    let active = true;
+    let cancelScheduled: (() => void) | null = null;
+    let attempt = 0;
+    const cancel = () => {
+      if (!active) return;
+      active = false;
+      cancelScheduled?.();
+      cancelScheduled = null;
+    };
+    rechargeLoopCancelRef.current = cancel;
+
+    const refresh = async () => {
+      await refreshSparkWalletSnapshot();
+      if (!active) return;
+      attempt += 1;
+      if (attempt >= 6) {
+        active = false;
+        if (rechargeLoopCancelRef.current === cancel) {
+          rechargeLoopCancelRef.current = null;
         }
+        return;
       }
-    })();
-  }, [refreshSparkWalletSnapshot]);
+      cancelScheduled = bindings.clock.schedule(5_000, (result) => {
+        cancelScheduled = null;
+        if (!active) return;
+        if (!result.ok) {
+          active = false;
+          if (rechargeLoopCancelRef.current === cancel) {
+            rechargeLoopCancelRef.current = null;
+          }
+          setRechargeMessage(t('Wallet.rechargeReturnRequiresRealmEvidence'));
+          return;
+        }
+        void refresh();
+      });
+    };
+    void refresh();
+  }, [bindings.clock, refreshSparkWalletSnapshot, t]);
+
+  useEffect(() => () => {
+    rechargeLoopCancelRef.current?.();
+    rechargeLoopCancelRef.current = null;
+  }, []);
 
   useEffect(() => {
-    const checkoutStatus = readWalletCheckoutStatusFromLocation();
-    if (!checkoutStatus) {
+    const checkoutStatus = readWalletCheckoutStatusFromRoute(checkoutRoute);
+    if (!checkoutStatus || processedCheckoutRouteRef.current === checkoutRoute.key) {
       return;
     }
-    clearWalletCheckoutStatusFromLocation();
+    processedCheckoutRouteRef.current = checkoutRoute.key;
+    clearWalletCheckoutStatusFromRoute(bindings.route);
     setRechargeMessage(t('Wallet.rechargeReturnRequiresRealmEvidence'));
     void refreshSparkWalletSnapshot();
     if (checkoutStatus === 'success') {
       startRechargeRefreshLoop();
     }
-  }, [refreshSparkWalletSnapshot, startRechargeRefreshLoop, t]);
+  }, [
+    bindings.route,
+    checkoutRoute.hash,
+    checkoutRoute.key,
+    checkoutRoute.search,
+    refreshSparkWalletSnapshot,
+    startRechargeRefreshLoop,
+    t,
+  ]);
 
   const handleStartRecharge = async () => {
     if (!defaultSparkPackage) {
@@ -379,18 +390,24 @@ export function WalletPage() {
     setRechargeMessage(null);
     try {
       const checkout = await createRealmSparkCheckout({
-        service: getDesktopRealmCommerceGiftService(),
+        service: giftService,
         input: {
           packageId: defaultSparkPackage.id,
-          successUrl: buildWalletCheckoutRedirectUrl('success'),
-          cancelUrl: buildWalletCheckoutRedirectUrl('cancel'),
+          successUrl: buildWalletCheckoutRedirectUrl(
+            'success',
+            bindings.app.projection.walletCheckoutBaseUrl(),
+          ),
+          cancelUrl: buildWalletCheckoutRedirectUrl(
+            'cancel',
+            bindings.app.projection.walletCheckoutBaseUrl(),
+          ),
         },
       });
       const checkoutUrl = String(checkout?.url || '').trim();
       if (!checkoutUrl) {
         throw new Error(t('Wallet.rechargeLaunchError'));
       }
-      const launchResult = await desktopBridge.openExternalUrl(checkoutUrl);
+      const launchResult = await bindings.app.commands.openWalletCheckout(checkoutUrl);
       if (!launchResult.opened) {
         throw new Error(t('Wallet.rechargeLaunchError'));
       }
@@ -414,7 +431,7 @@ export function WalletPage() {
     setWithdrawalMessage(null);
     try {
       await createRealmWithdrawal({
-        service: getDesktopRealmCommerceGiftService(),
+        service: giftService,
         input: { gemAmount: normalized },
       });
       setWithdrawAmount('');

@@ -7,7 +7,7 @@ import type {
   NimiRuntimeLocalRecommendationFeedItem,
 } from '@nimiplatform/sdk/runtime';
 import { Button, Card } from './runtime-config-primitives';
-import { runtimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
+import { useRuntimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
 import {
   DownloadIcon,
   PackageIcon,
@@ -94,6 +94,7 @@ export function useRecommendInstallController({
   item,
   model,
 }: RecommendInstallControllerInput): RecommendInstallController {
+  const runtimeConfigLocalModelCenterClient = useRuntimeConfigLocalModelCenterClient();
   const [planPreview, setPlanPreview] = useState<NimiRuntimeLocalInstallPlanDescriptor | null>(null);
   const [planLoading, setPlanLoading] = useState(false);
   const [planError, setPlanError] = useState('');

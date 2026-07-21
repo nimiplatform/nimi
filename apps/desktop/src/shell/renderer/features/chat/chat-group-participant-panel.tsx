@@ -13,7 +13,9 @@ import {
   fetchLocalAgentList,
   type LocalAgentListItem,
 } from '../agents/local-agent-list-model.js';
-import { realmGroupChatData, type GroupSourceParticipantInput } from './data/realm-group-chat-data';
+import type { GroupSourceParticipantInput } from './data/realm-group-chat-data';
+import { useRealmGroupChatData } from './data/realm-group-chat-data-context.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
 type SourceFromSnapshot = {
@@ -81,6 +83,8 @@ export function ChatGroupParticipantPanel(props: {
   embedded?: boolean;
 }) {
   const { participants, currentUserId, chatId, onSourceSlotChanged, embedded = false } = props;
+  const realmGroupChatData = useRealmGroupChatData();
+  const bindings = useDesktopRendererBindings();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [addSourceOpen, setAddSourceOpen] = useState(false);
@@ -118,7 +122,7 @@ export function ChatGroupParticipantPanel(props: {
       };
     }
     setSourcePickerLoading(true);
-    void fetchLocalAgentList(currentUserId).then((agents) => {
+    void fetchLocalAgentList(currentUserId, bindings.sdk).then((agents) => {
       if (cancelled) return;
       setRuntimeSources(agents
         .map((agent) => toSourceFromRuntimeAgent(agent, currentUserId))
@@ -144,7 +148,7 @@ export function ChatGroupParticipantPanel(props: {
     return () => {
       cancelled = true;
     };
-  }, [chatId, currentUserId, showAddSourcePicker, t]);
+  }, [bindings, chatId, currentUserId, showAddSourcePicker, t]);
 
   const availableSources = runtimeSources.filter((source) =>
     source.ownerUserId === currentUserId

@@ -123,7 +123,7 @@ test('Account Default Profile library is account-local evidence, not scope AICon
   assert.match(accountProfileBridge, /parseExportedNimiAccountProfileLibraryProfiles/);
   assert.doesNotMatch(accountProfileBridge, /localStorage|sessionStorage/);
 
-  assert.match(profilePage, /getAccountDefaultProfileForScopeInit/);
+  assert.match(profilePage, /profileLibrary\.loadAccountDefault\(\)/);
   assert.match(profilePage, /ProfileLibraryActions/);
   assert.match(profilePage, /AccountProfileLibraryPanel/);
   assert.match(profilePage, /buildProfileFromEditorDraft/);
@@ -133,8 +133,9 @@ test('Account Default Profile library is account-local evidence, not scope AICon
   assert.doesNotMatch(profilePage, /aiConfigService\.aiProfile\.apply\(/);
   assert.doesNotMatch(profilePage, /aiConfigService\.aiConfig\.update\(/);
 
-  assert.match(profileLibraryStore, /adoptProjection/);
-  assert.match(profileLibraryStore, /single source of truth/);
+  assert.match(profileLibraryStore, /createAccountProfileLibraryResource/);
+  assert.match(profileLibraryStore, /const adopt =/);
+  assert.match(profileLibraryStore, /DesktopRendererProfileLibraryPort/);
   assert.doesNotMatch(profileLibraryStore, /aiConfig/i);
   assert.doesNotMatch(profileLibraryStore, /aiProfile\.apply/);
 });

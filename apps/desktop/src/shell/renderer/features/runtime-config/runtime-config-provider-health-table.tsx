@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AIProviderHealthSnapshot, AIProviderSubHealth } from '@nimiplatform/sdk/runtime/wire-types';
 import { cn } from '@nimiplatform/kit/ui';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import {
   relativeTimeShort,
   timestampToIso,
@@ -240,14 +241,22 @@ function ErrorDetailRow({
   reason: string;
   indent?: boolean;
 }) {
+  const bindings = useDesktopRendererBindings();
   const [copied, setCopied] = useState(false);
+  const clearCopiedCancelRef = useRef<(() => void) | null>(null);
+  useEffect(() => () => {
+    clearCopiedCancelRef.current?.();
+    clearCopiedCancelRef.current = null;
+  }, []);
 
   const onCopy = () => {
-    const clip = typeof navigator !== 'undefined' ? navigator.clipboard : null;
-    if (!clip?.writeText) return;
-    void clip.writeText(reason).then(() => {
+    void bindings.app.commands.writeClipboardText(reason).then(() => {
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
+      clearCopiedCancelRef.current?.();
+      clearCopiedCancelRef.current = bindings.clock.schedule(1_500, () => {
+        clearCopiedCancelRef.current = null;
+        setCopied(false);
+      });
     }).catch(() => undefined);
   };
 

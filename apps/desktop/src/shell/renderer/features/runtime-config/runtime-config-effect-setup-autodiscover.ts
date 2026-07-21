@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 
 type SetupAutodiscoverEffectInput = {
@@ -12,15 +13,13 @@ const PAGES_REQUIRING_DISCOVERY: readonly string[] = [
   'overview', 'models', 'cloud', 'environment',
 ];
 
-let runtimeConfigSetupAutodiscoverTriggered = false;
-
 export function useRuntimeConfigSetupAutodiscoverEffect(input: SetupAutodiscoverEffectInput) {
+  const progress = useDesktopRendererCommands().localModelProgress;
   useEffect(() => {
     if (!input.state || !input.hydrated) return;
-    if (runtimeConfigSetupAutodiscoverTriggered) return;
     if (!PAGES_REQUIRING_DISCOVERY.includes(input.activePage)) return;
+    if (!progress.claimSetupAutodiscover()) return;
 
-    runtimeConfigSetupAutodiscoverTriggered = true;
     void input.discoverLocalModels({ visible: false });
-  }, [input.discoverLocalModels, input.hydrated, input.state, input.activePage]);
+  }, [input.discoverLocalModels, input.hydrated, input.state, input.activePage, progress]);
 }

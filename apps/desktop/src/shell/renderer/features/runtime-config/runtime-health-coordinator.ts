@@ -1,89 +1,74 @@
 import { useEffect, useSyncExternalStore } from 'react';
-import { NimiRuntimeHealthCoordinator, type NimiRuntimeHealthCoordinatorState } from '@nimiplatform/sdk/runtime';
+import {
+  NimiRuntimeHealthCoordinator,
+  type NimiRuntimeHealthCoordinatorState,
+  type Runtime,
+} from '@nimiplatform/sdk/runtime';
 import { type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
-import { getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
+import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import type { DesktopRendererLifecyclePort } from '../../renderer/lifecycle-port';
 
-const HEALTH_METADATA = {
-  surfaceId: 'runtime.health',
+const HEALTH_METADATA = { surfaceId: 'runtime.health' };
+const HEALTH_CALL_OPTIONS = { timeoutMs: 5000, metadata: HEALTH_METADATA };
+const HEALTH_STREAM_OPTIONS: RuntimeTypedCallOptions = { metadata: HEALTH_METADATA };
+
+type RuntimeHealthTimerPort = {
+  setInterval(callback: () => void, intervalMs: number): unknown;
+  clearInterval(handle: unknown): void;
 };
 
-const HEALTH_CALL_OPTIONS = {
-  timeoutMs: 5000,
-  metadata: HEALTH_METADATA,
-};
-
-const HEALTH_STREAM_OPTIONS: RuntimeTypedCallOptions = {
-  metadata: HEALTH_METADATA,
-};
-
-function runtimeAudit() {
-  return getDesktopRuntime().audit;
+export function createRuntimeHealthCoordinator(
+  getAudit: () => Runtime['audit'],
+  timers: RuntimeHealthTimerPort,
+): NimiRuntimeHealthCoordinator {
+  return new NimiRuntimeHealthCoordinator({
+    fetchRuntimeHealth: async () => getAudit().getRuntimeHealth({}, HEALTH_CALL_OPTIONS),
+    fetchProviderHealth: async () => getAudit().listAIProviderHealth({}, HEALTH_CALL_OPTIONS),
+    subscribeRuntimeHealth: async () => getAudit().subscribeRuntimeHealthEvents({}, HEALTH_STREAM_OPTIONS),
+    subscribeProviderHealth: async () => getAudit().subscribeAIProviderHealthEvents({}, HEALTH_STREAM_OPTIONS),
+    subscribeRuntimeConnected: () => () => {},
+    subscribeRuntimeDisconnected: () => () => {},
+    setInterval: timers.setInterval,
+    clearInterval: timers.clearInterval,
+  });
 }
-
-const runtimeHealthCoordinator = new NimiRuntimeHealthCoordinator({
-  fetchRuntimeHealth: async () => runtimeAudit().getRuntimeHealth({}, HEALTH_CALL_OPTIONS),
-  fetchProviderHealth: async () => runtimeAudit().listAIProviderHealth({}, HEALTH_CALL_OPTIONS),
-  subscribeRuntimeHealth: async () => runtimeAudit().subscribeRuntimeHealthEvents({}, HEALTH_STREAM_OPTIONS),
-  subscribeProviderHealth: async () => runtimeAudit().subscribeAIProviderHealthEvents({}, HEALTH_STREAM_OPTIONS),
-  subscribeRuntimeConnected: () => () => {},
-  subscribeRuntimeDisconnected: () => () => {},
-  setInterval: (callback, intervalMs) => window.setInterval(callback, intervalMs),
-  clearInterval: (handle) => window.clearInterval(handle as number),
-});
 
 export { NimiRuntimeHealthCoordinator };
 export type { NimiRuntimeHealthCoordinatorState };
 
-export function getRuntimeHealthCoordinator(): NimiRuntimeHealthCoordinator {
-  return runtimeHealthCoordinator;
-}
-
 export function connectRuntimeHealthCoordinator(
+  coordinator: NimiRuntimeHealthCoordinator,
   lifecycle: Pick<DesktopRendererLifecyclePort, 'bootstrap' | 'subscribeBootstrap'>,
   enabled: boolean,
 ): () => void {
-  if (!enabled) {
-    return () => {};
-  }
-  const coordinator = getRuntimeHealthCoordinator();
+  if (!enabled) return () => {};
   let running = false;
   const sync = () => {
     const shouldRun = lifecycle.bootstrap().bootstrapReady;
     if (shouldRun === running) return;
     running = shouldRun;
-    if (running) {
-      coordinator.start();
-    } else {
-      coordinator.stop();
-    }
+    if (running) coordinator.start();
+    else coordinator.stop();
   };
   const unsubscribe = lifecycle.subscribeBootstrap(sync);
   sync();
   return () => {
     unsubscribe();
-    if (running) {
-      running = false;
-      coordinator.stop();
-    }
+    if (running) coordinator.stop();
   };
 }
 
 export function useRuntimeHealthCoordinatorBootstrap(enabled: boolean): void {
+  const coordinator = useDesktopRendererSdk().runtimeHealthCoordinator();
   useEffect(() => {
-    if (!enabled) {
-      return;
-    }
-    const coordinator = getRuntimeHealthCoordinator();
+    if (!enabled) return;
     coordinator.start();
-    return () => {
-      coordinator.stop();
-    };
-  }, [enabled]);
+    return () => coordinator.stop();
+  }, [coordinator, enabled]);
 }
 
 export function useRuntimeHealthCoordinatorState(): NimiRuntimeHealthCoordinatorState {
-  const coordinator = getRuntimeHealthCoordinator();
+  const coordinator = useDesktopRendererSdk().runtimeHealthCoordinator();
   return useSyncExternalStore(
     coordinator.subscribe,
     coordinator.getSnapshot,

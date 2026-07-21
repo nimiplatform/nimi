@@ -1,7 +1,26 @@
+import type {
+  AppearancePreferences,
+  DownloadPreferences,
+} from '../features/settings/settings-device-preferences.js';
+
 export type PerformancePreferences = {
   readonly hardwareAcceleration: boolean;
   readonly reduceAnimations: boolean;
   readonly autoUpdate: boolean;
+};
+
+export type DesktopRendererStorageUsage = {
+  readonly localStorageBytes: number;
+  readonly estimatedUsageBytes: number;
+  readonly estimatedQuotaBytes: number;
+};
+
+export type DesktopRendererStorageDirs = {
+  readonly nimiDir: string;
+  readonly nimiDataDir: string;
+  readonly localModelsDir: string;
+  readonly localRuntimeStatePath: string;
+  readonly logsDir: string;
 };
 
 export const DEFAULT_PERFORMANCE_PREFERENCES: PerformancePreferences = Object.freeze({
@@ -52,11 +71,32 @@ export interface DesktopRendererSettingsPort {
   subscribeOpenSection(listener: (id: string) => void): () => void;
   loadPerformancePreferences(): PerformancePreferences;
   persistPerformancePreferences(preferences: PerformancePreferences): void;
+  loadAppearancePreferences(): AppearancePreferences;
+  persistAppearancePreferences(preferences: AppearancePreferences): void;
+  subscribeAppearancePreferences(listener: (preferences: AppearancePreferences) => void): () => void;
+  loadDownloadPreferences(): DownloadPreferences;
+  persistDownloadPreferences(preferences: DownloadPreferences): void;
+  subscribeDownloadPreferences(listener: (preferences: DownloadPreferences) => void): () => void;
+  estimateStorageUsage(): Promise<DesktopRendererStorageUsage>;
+  loadStorageDirs(): Promise<DesktopRendererStorageDirs>;
 }
 
 export function createMemoryDesktopRendererSettingsPort(): DesktopRendererSettingsPort {
   let selectedId = 'profile';
   let performancePreferences = DEFAULT_PERFORMANCE_PREFERENCES;
+  let appearancePreferences: AppearancePreferences = {
+    theme: 'system',
+    reduceMotion: false,
+    highContrast: false,
+    largerText: false,
+  };
+  let downloadPreferences: DownloadPreferences = {
+    downloadLocation: '',
+    askEachTime: false,
+    autoOpenOnComplete: false,
+  };
+  const appearanceListeners = new Set<(preferences: AppearancePreferences) => void>();
+  const downloadListeners = new Set<(preferences: DownloadPreferences) => void>();
   const openSectionListeners = new Set<(id: string) => void>();
 
   return Object.freeze({
@@ -75,6 +115,34 @@ export function createMemoryDesktopRendererSettingsPort(): DesktopRendererSettin
     loadPerformancePreferences: () => ({ ...performancePreferences }),
     persistPerformancePreferences(preferences: PerformancePreferences) {
       performancePreferences = normalizePerformancePreferences(preferences);
+    },
+    loadAppearancePreferences: () => ({ ...appearancePreferences }),
+    persistAppearancePreferences(preferences: AppearancePreferences) {
+      appearancePreferences = { ...preferences };
+      for (const listener of appearanceListeners) listener({ ...appearancePreferences });
+    },
+    subscribeAppearancePreferences(listener: (preferences: AppearancePreferences) => void) {
+      appearanceListeners.add(listener);
+      return () => appearanceListeners.delete(listener);
+    },
+    loadDownloadPreferences: () => ({ ...downloadPreferences }),
+    persistDownloadPreferences(preferences: DownloadPreferences) {
+      downloadPreferences = { ...preferences };
+      for (const listener of downloadListeners) listener({ ...downloadPreferences });
+    },
+    subscribeDownloadPreferences(listener: (preferences: DownloadPreferences) => void) {
+      downloadListeners.add(listener);
+      return () => downloadListeners.delete(listener);
+    },
+    async estimateStorageUsage() {
+      return Object.freeze({
+        localStorageBytes: 0,
+        estimatedUsageBytes: 0,
+        estimatedQuotaBytes: 0,
+      });
+    },
+    async loadStorageDirs() {
+      throw new Error('DESKTOP_SIMULATOR_STORAGE_DIRS_UNADMITTED');
     },
   });
 }

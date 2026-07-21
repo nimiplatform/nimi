@@ -96,7 +96,7 @@ export function LocationPickerPanel(input: {
   filteredLocations: Location[];
   availableLocations: Location[];
   selectedLocation: Location | null;
-  selectLocation: (location: Location) => void;
+  selectLocation: (nextLocation: Location) => void;
 }) {
   const i18n = useDesktopI18nResource().instance;
   if (!input.show || !input.position) {
@@ -135,11 +135,11 @@ export function LocationPickerPanel(input: {
             {i18n.t('Profile.CreatePost.loadingLocations', { defaultValue: 'Loading locations...' })}
           </div>
         ) : input.filteredLocations.length > 0 ? (
-          input.filteredLocations.map((location) => (
+          input.filteredLocations.map((locationItem) => (
             <button
-              key={location.id}
+              key={locationItem.id}
               type="button"
-              onClick={() => input.selectLocation(location)}
+              onClick={() => input.selectLocation(locationItem)}
               className="flex w-full items-start gap-3 px-3 py-2.5 transition hover:bg-gray-50"
             >
               <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)]/10 text-[var(--nimi-action-primary-bg)]">
@@ -149,10 +149,10 @@ export function LocationPickerPanel(input: {
                 </svg>
               </div>
               <div className="min-w-0 flex-1 text-left">
-                <p className="truncate text-sm font-medium text-gray-900">{location.name}</p>
-                <p className="truncate text-xs text-gray-500">{location.address}</p>
+                <p className="truncate text-sm font-medium text-gray-900">{locationItem.name}</p>
+                <p className="truncate text-xs text-gray-500">{locationItem.address}</p>
               </div>
-              {input.selectedLocation?.id === location.id ? (
+              {input.selectedLocation?.id === locationItem.id ? (
                 <svg className="mt-1 h-4 w-4 text-[var(--nimi-action-primary-bg)]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>

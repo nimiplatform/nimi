@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import type { StatusBanner } from '../../app-shell/providers/store-types';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 type SetFeedback = (banner: StatusBanner | null) => void;
 
@@ -46,6 +47,7 @@ export type UsePostCardUiResult = {
 
 export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
   const i18n = useDesktopI18nResource().instance;
+  const bindings = useDesktopRendererBindings();
   const { authorId, initialLiked, setFeedback } = input;
 
   const [isLiked, setIsLiked] = useState(Boolean(initialLiked));
@@ -61,6 +63,25 @@ export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const [deferredActions] = useState(() => new Set<{ cancel: (() => void) | null }>());
+
+  useEffect(() => () => {
+    for (const action of deferredActions) action.cancel?.();
+    deferredActions.clear();
+  }, [deferredActions]);
+
+  const deferAction = useCallback((action: () => void) => {
+    const pending = { cancel: null as (() => void) | null };
+    deferredActions.add(pending);
+    pending.cancel = bindings.clock.schedule(0, (result) => {
+      deferredActions.delete(pending);
+      if (result.ok) {
+        action();
+        return;
+      }
+      setFeedback({ kind: 'error', message: result.error });
+    });
+  }, [bindings.clock, deferredActions, setFeedback]);
 
   useEffect(() => {
     if (!showPostMenu) {
@@ -71,11 +92,8 @@ export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
         setShowPostMenu(false);
       }
     };
-    document.addEventListener('click', handleClickOutside);
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, [showPostMenu]);
+    return bindings.app.events.subscribeDocumentClick(handleClickOutside);
+  }, [bindings.app.events, showPostMenu]);
 
   const toggleLike = useCallback(() => {
     setIsLiked((prev) => !prev);
@@ -111,31 +129,23 @@ export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
 
   const openEditPost = useCallback(() => {
     setShowPostMenu(false);
-    setTimeout(() => {
-      setShowEditVisibilityModal(true);
-    }, 0);
-  }, []);
+    deferAction(() => setShowEditVisibilityModal(true));
+  }, [deferAction]);
 
   const openDeleteConfirm = useCallback(() => {
     setShowPostMenu(false);
-    setTimeout(() => {
-      setShowDeleteConfirm(true);
-    }, 0);
-  }, []);
+    deferAction(() => setShowDeleteConfirm(true));
+  }, [deferAction]);
 
   const openBlockConfirm = useCallback(() => {
     setShowPostMenu(false);
-    setTimeout(() => {
-      setShowBlockConfirm(true);
-    }, 0);
-  }, []);
+    deferAction(() => setShowBlockConfirm(true));
+  }, [deferAction]);
 
   const openReportModal = useCallback(() => {
     setShowPostMenu(false);
-    setTimeout(() => {
-      setShowReportModal(true);
-    }, 0);
-  }, []);
+    deferAction(() => setShowReportModal(true));
+  }, [deferAction]);
 
   return {
     isLiked,

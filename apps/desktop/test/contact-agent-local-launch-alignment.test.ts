@@ -31,7 +31,7 @@ test('profile detail modal materializes source chat without Realm connection evi
   const launchTarget = readRepo('apps/desktop/src/shell/renderer/features/relationship/source-contact-launch-target.ts');
 
   assert.match(source, /launchAgentConversationFromDisplay/);
-  assert.match(source, /materializeSourceContactLaunchTarget\(profile,\s*ownerUserId,\s*t\)/);
+  assert.match(source, /materializeSourceContactLaunchTarget\(\s*profile,\s*ownerUserId,\s*t,\s*bindings\.sdk,\s*\)/);
   assert.match(launchTarget, /materializeCharacterSourceLocalAgent/);
   assert.doesNotMatch(launchTarget, new RegExp(['initialize', 'Local', 'Agent'].join('')));
   assert.doesNotMatch(launchTarget, new RegExp(['source', 'Materialization', 'Packet'].join('')));

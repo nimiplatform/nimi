@@ -4,17 +4,15 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import {
-  clearRuntimeConnectorSdkCaches,
+  createRuntimeConfigConnectorSdkService,
   listConnectorAuthOptionsForProvider,
   sdkConnectorToApiConnector,
-  sdkCreateConnector,
-  sdkListConnectorModelDescriptors,
-  sdkListConnectors,
   providerToVendor,
   vendorToProvider,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service';
 import {
   clearDesktopNimiClientSession,
+  getDesktopRuntime,
   setDesktopNimiClientSessionForTests,
   type DesktopNimiClientSession,
 } from '../src/shell/renderer/infra/sdk/desktop-nimi-client-session';
@@ -32,6 +30,13 @@ const CONNECTOR_SERVICE_SOURCE = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service.ts'),
   'utf8',
 );
+const connectorSdk = createRuntimeConfigConnectorSdkService(getDesktopRuntime);
+const {
+  clearCaches: clearRuntimeConnectorSdkCaches,
+  sdkCreateConnector,
+  sdkListConnectorModelDescriptors,
+  sdkListConnectors,
+} = connectorSdk;
 
 type TauriInvokeCall = {
   command: string;
@@ -793,7 +798,8 @@ test('sdkCreateConnector preserves explicit credentialJson for oauth-managed pro
 
 test('connector service delegates inventory ownership to the SDK client', () => {
   assert.match(CONNECTOR_SERVICE_SOURCE, /createNimiRuntimeConnectorInventoryClient/);
-  assert.match(CONNECTOR_SERVICE_SOURCE, /getDesktopRuntime\(\)\.connectors/);
+  assert.match(CONNECTOR_SERVICE_SOURCE, /getRuntime\(\)\.connectors/);
+  assert.match(CONNECTOR_SERVICE_SOURCE, /createRuntimeConfigConnectorSdkService/);
   assert.match(CONNECTOR_SERVICE_SOURCE, /surfaceId: 'runtime\.config'/);
   assert.doesNotMatch(CONNECTOR_SERVICE_SOURCE, /callerKind|callerId/);
   assert.doesNotMatch(CONNECTOR_SERVICE_SOURCE, /getPlatformClient/);

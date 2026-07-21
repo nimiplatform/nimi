@@ -258,7 +258,7 @@ test('start_with_chat is actuated only by the launch-arbitration gate (single ac
   // The launch executor branches every launch on instance-policy arbitration
   // before any handoff is emitted.
   const launchExecutor = controlsSource.match(
-    /executeArbitratedLaunch[\s\S]*?launchDesktopAvatarHandoff\(\{[\s\S]*?\}\)/u,
+    /executeArbitratedLaunch[\s\S]*?bindings\.app\.commands\.avatarHandoff\.launch\(\{[\s\S]*?\}\)/u,
   );
   assert.ok(launchExecutor, 'executeArbitratedLaunch must wrap the handoff call');
   assert.match(launchExecutor[0], /arbitrateAvatarLaunch\(/u);
@@ -307,12 +307,12 @@ test('start_with_chat launch keeps the minimal Desktop-supervised Agent selector
     join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-local-avatar-launch-controls.ts'),
     'utf8',
   );
-  const launchCall = controlsSource.match(/launchDesktopAvatarHandoff\(\{[\s\S]*?\}\)/u);
-  assert.ok(launchCall, 'launchDesktopAvatarHandoff call must stay visible to the guard');
+  const launchCall = controlsSource.match(/bindings\.app\.commands\.avatarHandoff\.launch\(\{[\s\S]*?\}\)/u);
+  assert.ok(launchCall, 'avatar handoff port call must stay visible to the guard');
   assert.match(launchCall[0], /agentId:\s*presentation\.activeTarget\.localAgentRef/u);
   assert.match(launchCall[0], /avatarInstanceId/u);
   assert.match(launchCall[0], /launchSource/u);
   // Account, owner and Runtime authority are resolved from the protected
   // principal; renderer launch intent carries no host-equivalence material.
-  assert.doesNotMatch(launchCall[0], /ownerUserId|runtimeSourceRef|localAgentRef\s*:|package|descriptor|path|profile|token|accountId|binding|carrier|config/u);
+  assert.doesNotMatch(launchCall[0], /ownerUserId|runtimeSourceRef|localAgentRef\s*:|package|descriptor|path|profile|token|accountId|carrier|config/u);
 });

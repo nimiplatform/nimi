@@ -13,6 +13,7 @@ import {
   type NimiRuntimeAgentTurnInterruptRequest,
   type NimiRuntimeAgentTurnRequest,
   type NimiRuntimeAgentTurnsModule,
+  type NimiRuntimeAgentScopeRunner,
 } from '@nimiplatform/sdk/runtime';
 import { createNimiError, ReasonCode, type JsonObject } from '@nimiplatform/sdk/types';
 import {
@@ -21,12 +22,8 @@ import {
   type DesktopNimiClientSession,
 } from '../src/shell/renderer/infra/sdk/desktop-nimi-client-session.js';
 import {
-  resetDesktopRuntimeRouteLocalWarmCacheForTests as resetRuntimeLocalModelWarmCacheForTests,
-} from '../src/shell/renderer/infra/runtime-route-host-access.js';
-
-import {
   CORE_CHAT_AGENT_TARGET_ID,
-  streamChatAgentRuntimeAgentTurn,
+  streamChatAgentRuntimeAgentTurn as streamChatAgentRuntimeAgentTurnImpl,
   } from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
 import {
   resolveAgentChatRequestedMaxOutputTokens,
@@ -48,8 +45,11 @@ import {
   createEmptyNimiAIConfig as createSdkEmptyAIConfig,
 } from '@nimiplatform/sdk/ai';
 import { findNimiRuntimeRouteModelProfile } from '@nimiplatform/sdk/runtime';
+import type { DesktopRendererSdkPort } from '../src/shell/renderer/renderer/sdk-port.js';
+import { createDesktopRuntimeRouteAccess } from '../src/shell/renderer/infra/runtime-route-host-access.js';
 
 const TEST_CHAT_SCOPE_REF = createNimiBuiltInChatAIScopeRef('agent');
+let currentDesktopTestSession: DesktopNimiClientSession | null = null;
 
 function createEmptyNimiAIConfig() {
   return createSdkEmptyAIConfig(TEST_CHAT_SCOPE_REF);
@@ -57,6 +57,10 @@ function createEmptyNimiAIConfig() {
 
 function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
+}
+
+function resetRuntimeLocalModelWarmCacheForTests(): void {
+  // Runtime route access is renderer-instance owned; each test gets a fresh instance.
 }
 
 function createDefaultDesktopTestRealm() {
@@ -313,6 +317,7 @@ function normalizeDesktopTestRuntimeTransport(value: unknown) {
 }
 
 function clearDesktopTestNimiClientSession() {
+  currentDesktopTestSession = null;
   clearDesktopNimiClientSession();
 }
 
@@ -349,8 +354,37 @@ function createDesktopTestNimiClientSession(input: {
     },
     realm: createDefaultDesktopTestRealm(),
   } as unknown as DesktopNimiClientSession;
+  currentDesktopTestSession = session;
   setDesktopNimiClientSessionForTests(session);
   return session;
+}
+
+function getDesktopTestRendererSdk(): DesktopRendererSdkPort {
+  const session = currentDesktopTestSession;
+  if (!session?.runtime || !session.accountRuntime) {
+    throw new Error('DESKTOP_TEST_RUNTIME_SESSION_MISSING');
+  }
+  const runtime = session.runtime;
+  const accountRuntime = session.accountRuntime;
+  const runtimeRouteAccess = createDesktopRuntimeRouteAccess(() => runtime);
+  return {
+    appId: () => session.appId,
+    runtime: () => runtime,
+    runtimeAgentTurns: () => ({
+      appId: session.appId,
+      auth: accountRuntime.auth,
+      agents: runtime.agents,
+      appMessages: runtime.appMessages,
+    }),
+    runtimeRouteAccess: () => runtimeRouteAccess,
+    withRuntimeProtectedScopes: (async (_scopes, operation) => operation({})) as NimiRuntimeAgentScopeRunner,
+  } as unknown as DesktopRendererSdkPort;
+}
+
+function streamChatAgentRuntimeAgentTurn(
+  request: Parameters<typeof streamChatAgentRuntimeAgentTurnImpl>[0],
+) {
+  return streamChatAgentRuntimeAgentTurnImpl(request, getDesktopTestRendererSdk());
 }
 
 function createRuntimeTurnTimeline(input: {
@@ -471,6 +505,7 @@ export {
   resetRuntimeLocalModelWarmCacheForTests,
   CORE_CHAT_AGENT_TARGET_ID,
   streamChatAgentRuntimeAgentTurn,
+  getDesktopTestRendererSdk,
   findNimiRuntimeRouteModelProfile,
   resolveAgentChatRequestedMaxOutputTokens,
   resolveAgentTurnTotalTimeoutMs,

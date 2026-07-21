@@ -170,11 +170,15 @@ export function ServiceIcon() {
   );
 }
 
-export function relativeFromNow(iso: string, t: (key: string, options?: Record<string, unknown>) => string): string {
+export function relativeFromNow(
+  iso: string,
+  t: (key: string, options?: Record<string, unknown>) => string,
+  nowMs: number,
+): string {
   if (!iso) return '—';
   const targetMs = new Date(iso).getTime();
   if (!Number.isFinite(targetMs)) return '—';
-  const diffMs = targetMs - Date.now();
+  const diffMs = targetMs - nowMs;
   const past = diffMs < 0;
   const abs = Math.abs(diffMs);
   const minute = 60_000;
@@ -206,10 +210,13 @@ export function relativeFromNow(iso: string, t: (key: string, options?: Record<s
     : t('runtimeConfig.eaa.inPattern', { defaultValue: 'in {{value}}{{unit}}', value, unit: unitLabel });
 }
 
-export function resolveTokenStatus(token: NimiExternalAgentTokenLedgerRecord): TokenStatus {
+export function resolveTokenStatus(
+  token: NimiExternalAgentTokenLedgerRecord,
+  nowMs: number,
+): TokenStatus {
   if (token.revokedAt) return 'revoked';
   const expiresMs = new Date(token.expiresAt).getTime();
-  if (Number.isFinite(expiresMs) && expiresMs < Date.now()) return 'expired';
+  if (Number.isFinite(expiresMs) && expiresMs < nowMs) return 'expired';
   return 'active';
 }
 

@@ -3,9 +3,8 @@ import {
   isRealmOfflineErrorLike as isRealmOfflineError,
   type JsonObject,
 } from '@nimiplatform/sdk/types';
-import { callRealmApi, emitRealmDataError } from '../../../infra/realm/realm-api';
-import { getOfflineCacheManager } from '../../../infra/offline/cache-manager';
-import { getOfflineCoordinator } from '../../../infra/offline/coordinator';
+import type { DesktopRendererOfflinePort } from '../../../renderer/offline-port.js';
+import type { DesktopRendererSdkPort } from '../../../renderer/sdk-port.js';
 import {
   asRecord,
   attachWorldEntryRecommendations,
@@ -47,6 +46,13 @@ type RealmWorldErrorEmitter = (
   error: unknown,
   details?: JsonObject,
 ) => void;
+
+function requireOffline(
+  offline: DesktopRendererOfflinePort | undefined,
+): DesktopRendererOfflinePort {
+  if (!offline) throw new Error('DESKTOP_REALM_WORLD_OFFLINE_PORT_REQUIRED');
+  return offline;
+}
 
 async function listWorldCores(realm: Realm, status?: NimiRealmWorldStatus): Promise<WorldDetailDto[]> {
   const worlds = await realm.worldPublic.worldPublicControllerListWorlds({
@@ -94,18 +100,20 @@ export async function loadWorldList(
   callApi: RealmWorldApiCaller,
   emitRealmWorldError: RealmWorldErrorEmitter,
   status?: NimiRealmWorldStatus,
+  offline?: DesktopRendererOfflinePort,
 ): Promise<WorldDetailDto[]> {
   try {
     const normalized = await callApi(
       (realm) => listWorldCores(realm, status),
       'Failed to load world list',
     );
-    await (await getOfflineCacheManager()).syncWorldList(normalized);
+    if (offline) await offline.syncWorldList(normalized);
     return normalized;
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      getOfflineCoordinator().markCacheFallbackUsed();
-      return await (await getOfflineCacheManager()).getCachedWorldList<WorldDetailDto>();
+      const offlinePort = requireOffline(offline);
+      offlinePort.markCacheFallbackUsed();
+      return await offlinePort.getCachedWorldList<WorldDetailDto>();
     }
     emitRealmWorldError('load-world-list', error);
     throw error;
@@ -115,6 +123,7 @@ export async function loadWorldList(
 export async function loadMainWorld(
   callApi: RealmWorldApiCaller,
   emitRealmWorldError: RealmWorldErrorEmitter,
+  offline?: DesktopRendererOfflinePort,
 ): Promise<WorldDetailDto> {
   try {
     const world = await callApi(
@@ -123,13 +132,14 @@ export async function loadMainWorld(
       ),
       'Failed to load main world',
     );
-    await (await getOfflineCacheManager()).syncWorldMetadata('main-world', world);
+    if (offline) await offline.syncWorldMetadata('main-world', world);
     return world;
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      const cached = await (await getOfflineCacheManager()).getCachedWorldMetadata<WorldDetailDto>('main-world');
+      const offlinePort = requireOffline(offline);
+      const cached = await offlinePort.getCachedWorldMetadata<WorldDetailDto>('main-world');
       if (cached) {
-        getOfflineCoordinator().markCacheFallbackUsed();
+        offlinePort.markCacheFallbackUsed();
         return cached;
       }
     }
@@ -142,6 +152,7 @@ export async function loadWorldDetailById(
   callApi: RealmWorldApiCaller,
   emitRealmWorldError: RealmWorldErrorEmitter,
   worldId: string,
+  offline?: DesktopRendererOfflinePort,
 ): Promise<WorldDetailDto | null> {
   const normalizedWorldId = String(worldId || '').trim();
   try {
@@ -149,18 +160,16 @@ export async function loadWorldDetailById(
       (realm) => getWorldCore(realm, normalizedWorldId),
       'Failed to load world detail',
     );
-    if (record) {
-      await (await getOfflineCacheManager()).syncWorldMetadata(
-        `world:${normalizedWorldId}`,
-        record,
-      );
+    if (record && offline) {
+      await offline.syncWorldMetadata(`world:${normalizedWorldId}`, record);
     }
     return record;
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      const cached = await (await getOfflineCacheManager()).getCachedWorldMetadata<WorldDetailDto>(`world:${normalizedWorldId}`);
+      const offlinePort = requireOffline(offline);
+      const cached = await offlinePort.getCachedWorldMetadata<WorldDetailDto>(`world:${normalizedWorldId}`);
       if (cached) {
-        getOfflineCoordinator().markCacheFallbackUsed();
+        offlinePort.markCacheFallbackUsed();
         return cached;
       }
     }
@@ -238,6 +247,7 @@ export async function loadWorldDetailWithCharacters(
   emitRealmWorldError: RealmWorldErrorEmitter,
   worldId: string,
   recommendedCharacterLimit?: number,
+  offline?: DesktopRendererOfflinePort,
 ): Promise<WorldDetailWithCharactersDto | null> {
   const normalizedWorldId = String(worldId || '').trim();
   const cacheKey = worldDetailWithCharactersCacheKey(normalizedWorldId, recommendedCharacterLimit);
@@ -270,15 +280,16 @@ export async function loadWorldDetailWithCharacters(
       },
       'Failed to load world detail with characters',
     );
-    if (detail) {
-      await (await getOfflineCacheManager()).syncWorldMetadata(cacheKey, detail);
+    if (detail && offline) {
+      await offline.syncWorldMetadata(cacheKey, detail);
     }
     return detail;
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      const cached = await (await getOfflineCacheManager()).getCachedWorldMetadata<WorldDetailWithCharactersDto>(cacheKey);
+      const offlinePort = requireOffline(offline);
+      const cached = await offlinePort.getCachedWorldMetadata<WorldDetailWithCharactersDto>(cacheKey);
       if (cached) {
-        getOfflineCoordinator().markCacheFallbackUsed();
+        offlinePort.markCacheFallbackUsed();
         return cached;
       }
     }
@@ -303,23 +314,29 @@ export async function loadWorldSemanticBundle(
   }
 }
 
-export const realmWorldData = {
+export function createRealmWorldData(sdk: DesktopRendererSdkPort) {
+  const callRealmApi = sdk.socialData.callApi;
+  const emitRealmDataError = sdk.socialData.emitDataError;
+  return {
   loadWorlds: (status?: NimiRealmWorldStatus) =>
-    loadWorldList(callRealmApi, emitRealmDataError, status),
+    loadWorldList(callRealmApi, emitRealmDataError, status, sdk.offline),
   loadWorldDetailById: (worldId: string) =>
-    loadWorldDetailById(callRealmApi, emitRealmDataError, worldId),
+    loadWorldDetailById(callRealmApi, emitRealmDataError, worldId, sdk.offline),
   loadWorldSemanticBundle: (worldId: string) =>
     loadWorldSemanticBundle(callRealmApi, emitRealmDataError, worldId),
   loadMainWorld: () =>
-    loadMainWorld(callRealmApi, emitRealmDataError),
+    loadMainWorld(callRealmApi, emitRealmDataError, sdk.offline),
   loadWorldCharacters: (worldId: string) =>
     loadWorldCharacters(callRealmApi, emitRealmDataError, worldId),
   loadWorldDetailWithCharacters: (worldId: string, recommendedCharacterLimit?: number) =>
-    loadWorldDetailWithCharacters(callRealmApi, emitRealmDataError, worldId, recommendedCharacterLimit),
+    loadWorldDetailWithCharacters(callRealmApi, emitRealmDataError, worldId, recommendedCharacterLimit, sdk.offline),
   loadWorldHistory: (worldId: string) =>
     loadWorldHistory(callRealmApi, emitRealmDataError, worldId),
   loadWorldAssets: (worldId: string) =>
     loadWorldAssets(callRealmApi, emitRealmDataError, worldId),
   loadWorldScenes: (worldId: string) =>
     loadWorldScenes(callRealmApi, emitRealmDataError, worldId),
-};
+  };
+}
+
+export type RealmWorldData = ReturnType<typeof createRealmWorldData>;

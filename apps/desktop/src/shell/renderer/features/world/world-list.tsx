@@ -10,7 +10,7 @@ import { AtlasCategoryTabs } from './world-list-catalog-controls';
 import { CompactWorldCard } from './world-list-compact-card';
 import { FeaturedStrip } from './world-list-featured-strip';
 import { SelectedWorldPanel } from './world-list-selected-panel';
-import { useFollowedWorlds } from './world-follow-store';
+import { useFollowedWorlds } from './world-follow-store-context.js';
 import { WORLD_EXPLORER_THEME } from './world-list-theme';
 import type { WorldCharacter } from './world-detail-types';
 import type { WorldListItem } from './world-list-model';

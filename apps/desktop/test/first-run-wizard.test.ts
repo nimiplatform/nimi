@@ -18,6 +18,7 @@ import { createUnavailableDesktopFirstRunPort } from '../src/shell/renderer/rend
 const TEST_CLOCK: DesktopRendererClockView = {
   now: () => 0,
   schedule: () => () => undefined,
+  animationFrame: () => () => undefined,
 };
 const TEST_FIRST_RUN = createUnavailableDesktopFirstRunPort('TEST_FIRST_RUN_UNADMITTED');
 import {

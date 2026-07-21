@@ -7,20 +7,34 @@ import type {
 
 import type { AppAttentionState } from '../app-shell/providers/app-attention-state.js';
 import type { AuthStatus } from '../app-shell/providers/store-types.js';
-import type { NimiProductControlRecordProjection } from '@nimiplatform/sdk/runtime';
+import type {
+  NimiConnectorAuthAcquisitionHost,
+  NimiProductControlRecordProjection,
+} from '@nimiplatform/sdk/runtime';
 import type { ChatThinkingPreference } from '../features/chat/chat-shared-thinking.js';
 import type { DesktopRendererLifecyclePort } from './lifecycle-port.js';
 import type { DesktopRendererSdkPort } from './sdk-port.js';
 import type {
   LocalDevelopmentApproval,
+  LocalDevelopmentAuthorization,
   LocalDevelopmentDecision,
+  LocalDevelopmentRun,
 } from '../features/local-development/local-development-types.js';
-import type { DeveloperModeProjection } from '../features/developer/developer-mode.js';
+import type { DeveloperModeProjection } from '../features/developer/developer-mode-types.js';
 import type { QueryClient } from '@tanstack/react-query';
 import type { DesktopRendererFirstRunPort } from './first-run-port.js';
 import type { DesktopRendererSettingsPort } from './settings-port.js';
 import type { DesktopRendererAuthPort } from './auth-port.js';
 import type { DesktopRendererRuntimeConfigNavigationPort } from './runtime-config-navigation-port.js';
+import type { DesktopRendererProfileLibraryPort } from './profile-library-port.js';
+import type { RuntimeBridgeDaemonStatus } from '@nimiplatform/kit/shell/renderer/bridge';
+import type { DesktopRendererWorldFollowPort } from './world-follow-port.js';
+import type { DesktopRendererSupportRepairPort } from './support-repair-port.js';
+import type { DesktopRendererSystemResourcesPort } from './system-resources-port.js';
+import type { DesktopRendererVoiceCapturePort } from './voice-capture-port.js';
+import type { DesktopRendererSupportLogsPort } from './support-logs-port.js';
+import type { DesktopRendererLocalModelProgressPort } from './local-model-progress-port.js';
+import type { DesktopRendererAvatarHandoffPort } from './avatar-handoff-port.js';
 
 export type DesktopRendererInitialState = {
   readonly aiConfig: NimiAIConfig;
@@ -37,6 +51,10 @@ export interface DesktopRendererProjectionPort {
   loginMode(): 'desktop-browser' | 'embedded';
   developerModeEnabled(): boolean;
   viewportWidth(): number;
+  documentVisible(): boolean;
+  windowFocused(): boolean;
+  walletCheckoutBaseUrl(): string;
+  resourceBaseUrl(): string;
 }
 
 export interface DesktopRendererCommandPort {
@@ -44,14 +62,48 @@ export interface DesktopRendererCommandPort {
   readonly firstRun: DesktopRendererFirstRunPort;
   readonly runtimeConfigNavigation: DesktopRendererRuntimeConfigNavigationPort;
   readonly settings: DesktopRendererSettingsPort;
+  readonly profileLibrary: DesktopRendererProfileLibraryPort;
+  readonly worldFollow: DesktopRendererWorldFollowPort;
+  readonly supportRepair: DesktopRendererSupportRepairPort;
+  readonly supportLogs: DesktopRendererSupportLogsPort;
+  readonly systemResources: DesktopRendererSystemResourcesPort;
+  readonly voiceCapture: DesktopRendererVoiceCapturePort;
+  readonly localModelProgress: DesktopRendererLocalModelProgressPort;
+  readonly avatarHandoff: DesktopRendererAvatarHandoffPort;
+  readonly connectorAuth: Pick<
+    NimiConnectorAuthAcquisitionHost,
+    'proxyHttp' | 'oauthTokenExchange'
+  >;
+  readonly runtimeDaemon: {
+    available(): boolean;
+    status(): Promise<RuntimeBridgeDaemonStatus>;
+    start(): Promise<RuntimeBridgeDaemonStatus>;
+    restart(): Promise<RuntimeBridgeDaemonStatus>;
+  };
   commitAIConfig(config: NimiAIConfig): void;
   persistChatThinkingPreference(preference: ChatThinkingPreference): void;
   setActiveScopeForMode(mode: 'human' | 'ai' | 'agent' | 'group'): void;
+  setGroupLocalAgentParticipationActive(active: boolean): void;
   applyLocale(input: {
     readonly locale: 'en' | 'zh';
     readonly lang: string;
     readonly title: string;
   }): Promise<void> | void;
+  writeClipboardText(value: string): Promise<void>;
+  openWalletCheckout(url: string): Promise<{ readonly opened: boolean; readonly reason?: string }>;
+  exportProfileLibraryJson(input: {
+    readonly filename: string;
+    readonly content: string;
+  }): void;
+  exportRuntimeAuditJson(input: {
+    readonly filename: string;
+    readonly content: string;
+  }): void;
+  confirmRuntimeProfileInstall(message: string): boolean;
+  pickLocalRuntimeAssetManifestPath(): Promise<string | null>;
+  pickLocalRuntimeAssetFile(): Promise<string | null>;
+  pickLocalRuntimeAssetDirectory(): Promise<string | null>;
+  revealLocalRuntimeAssetsRootFolder(): Promise<void>;
   reconcileLoginState(input: {
     readonly authStatus: AuthStatus;
   }): Promise<{ readonly clearAuthSession: boolean }>;
@@ -63,6 +115,9 @@ export interface DesktopRendererCommandPort {
   restartDesktopUpdate(): Promise<void>;
   startWindowDrag(): Promise<void>;
   listLocalDevelopmentApprovals(): Promise<readonly LocalDevelopmentApproval[]>;
+  listLocalDevelopmentAuthorizations(): Promise<LocalDevelopmentAuthorization[]>;
+  listLocalDevelopmentRuns(): Promise<LocalDevelopmentRun[]>;
+  revokeLocalDevelopmentAuthorization(selector: string): Promise<LocalDevelopmentAuthorization>;
   decideLocalDevelopmentApproval(input: {
     readonly requestId: string;
     readonly decision: LocalDevelopmentDecision;
@@ -78,9 +133,17 @@ export interface DesktopRendererEventPort {
     readonly selectedChatId: string | null;
   }): () => void;
   subscribeWindowFocus(listener: (focused: boolean) => void): () => void;
+  subscribeDocumentVisibility(listener: (visible: boolean) => void): () => void;
   subscribeWindowResize(listener: () => void): () => void;
   subscribeWindowKeyDown(listener: (event: KeyboardEvent) => void): () => void;
   subscribeDocumentMouseDown(listener: (event: MouseEvent) => void): () => void;
+  subscribeDocumentClick(listener: (event: MouseEvent) => void): () => void;
+  subscribeDocumentPointerDown(listener: (event: PointerEvent) => void, capture?: boolean): () => void;
+  observeIntersection(
+    target: Element,
+    options: IntersectionObserverInit,
+    listener: (isIntersecting: boolean) => void,
+  ): () => void;
   subscribeAttention(listener: () => void): () => void;
   subscribeLocalDevelopmentApprovals(
     listener: (approval: LocalDevelopmentApproval) => void,
@@ -119,6 +182,12 @@ export interface DesktopRendererClockView {
   now(): number;
   schedule(
     delayMs: number,
+    listener: (result:
+      | { readonly ok: true }
+      | { readonly ok: false; readonly error: string }
+    ) => void,
+  ): () => void;
+  animationFrame(
     listener: (result:
       | { readonly ok: true }
       | { readonly ok: false; readonly error: string }

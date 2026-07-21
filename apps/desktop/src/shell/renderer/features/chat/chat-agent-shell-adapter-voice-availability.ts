@@ -6,15 +6,11 @@ import {
 import type { ConversationCapabilityProjection } from './conversation-capability';
 import { normalizeAgentVoiceSessionConversationAnchorId } from './chat-agent-voice-session';
 
-export function resolveIsVoiceSessionForeground(): boolean {
-  if (typeof document === 'undefined') {
-    return true;
-  }
-  const visible = document.visibilityState !== 'hidden';
-  const focused = typeof document.hasFocus === 'function'
-    ? document.hasFocus()
-    : true;
-  return visible && focused;
+export function resolveIsVoiceSessionForeground(input: {
+  readonly documentVisible: boolean;
+  readonly windowFocused: boolean;
+}): boolean {
+  return input.documentVisible && input.windowFocused;
 }
 
 export function resolveVoiceSessionUnavailableMessage(input: {

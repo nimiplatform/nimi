@@ -5,7 +5,9 @@ import { type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/wire-types'
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import { getVendorLabelV11, randomIdV11, type ApiVendor } from './runtime-config-state-types';
 import { useAppStore } from '../../app-shell/providers/app-store';
-import { connectorAuthProfileForId, defaultConnectorAuthOptionForProvider, listConnectorAuthOptionsForProvider, providerToVendor, resolveProviderEndpoint, runtimeConnectors, sdkCreateConnector, sdkDeleteConnector, sdkListConnectors, sdkListProviderCatalog, sdkUpdateConnector, vendorToProvider } from './runtime-config-connector-sdk-service';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import { connectorAuthProfileForId, defaultConnectorAuthOptionForProvider, listConnectorAuthOptionsForProvider, providerToVendor, resolveProviderEndpoint, vendorToProvider } from './runtime-config-connector-sdk-service';
+import { useRuntimeConfigConnectorSdk } from './runtime-config-connector-sdk-context.js';
 import { addConnectorToState, removeConnectorFromState, replaceConnectorsInState, updateConnectorField } from './runtime-config-connector-actions';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { RuntimePageShell } from './runtime-config-page-shell';
@@ -21,6 +23,15 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const PROVIDER_CATALOG_ERROR_LABEL = 'Load provider catalog failed';
   const CONNECTORS_LOAD_ERROR_LABEL = 'Load connectors failed';
   const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
+  const {
+    runtimeConnectors,
+    sdkCreateConnector,
+    sdkDeleteConnector,
+    sdkListConnectors,
+    sdkListProviderCatalog,
+    sdkUpdateConnector,
+  } = useRuntimeConfigConnectorSdk();
   const { selectedConnector, orderedConnectors, updateState } = model;
   const authStatus = useAppStore((s) => s.auth.status);
   const [providerCatalog, setProviderCatalog] = useState<ProviderCatalogEntry[]>([]);
@@ -323,6 +334,20 @@ export function CloudPage({ model, state }: CloudPageProps) {
         onPending: (pending) => {
           setCodexOAuthPending(pending);
         },
+      }, {
+        proxyHttp: bindings.app.commands.connectorAuth.proxyHttp,
+        openExternalUrl: bindings.app.commands.auth.oauthBridge.openExternalUrl,
+        oauthTokenExchange: bindings.app.commands.connectorAuth.oauthTokenExchange,
+        sleep: (delayMs) => new Promise<void>((resolve, reject) => {
+          bindings.clock.schedule(delayMs, (result) => {
+            if (result.ok) {
+              resolve();
+              return;
+            }
+            reject(new Error(result.error));
+          });
+        }),
+        now: bindings.clock.now,
       });
       setTokenDraft('');
       setCodexOAuthPending(null);
@@ -334,7 +359,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
     } finally {
       setCodexOAuthBusy(false);
     }
-  }, [isCodexManagedConnector, model, selectedConnector, selectedConnectorId, updateState]);
+  }, [bindings, isCodexManagedConnector, model, selectedConnector, selectedConnectorId, updateState]);
   const onChangeConnectorVendor = useCallback(async (vendor: string) => {
     if (!selectedConnector || !canEditVendor) return;
     const previousConnector = selectedConnector;

@@ -5,14 +5,10 @@ import {
   type NimiRuntimeAgentDelegatedControlSurfaceQuery,
   type NimiRuntimeAgentDelegatedProviderProfileDraft,
 } from '@nimiplatform/sdk/runtime';
-import {
-  getDesktopHostRuntimeAgentClient,
-  withDesktopRuntimeProtectedScopes,
-} from '../../infra/sdk/desktop-nimi-client-session';
-
 type DelegatedCapabilityServiceDeps = {
-  getRuntime?: () => NimiHostRuntimeAgentDelegatedCapabilityClient;
-  getSubjectUserId?: NimiHostRuntimeAgentDelegatedCapabilitySurfaceOptions['getSubjectUserId'];
+  getRuntime: () => NimiHostRuntimeAgentDelegatedCapabilityClient;
+  getSubjectUserId: NimiHostRuntimeAgentDelegatedCapabilitySurfaceOptions['getSubjectUserId'];
+  withScopes: NonNullable<NimiHostRuntimeAgentDelegatedCapabilitySurfaceOptions['withScopes']>;
 };
 
 export type DelegatedProviderProfileDraft = NimiRuntimeAgentDelegatedProviderProfileDraft;
@@ -24,17 +20,17 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-export function createDesktopDelegatedCapabilityService(deps: DelegatedCapabilityServiceDeps = {}) {
+export function createDesktopDelegatedCapabilityService(deps: DelegatedCapabilityServiceDeps) {
   const surface = createNimiHostRuntimeAgentDelegatedCapabilitySurface({
-    getRuntime: deps.getRuntime ?? getDesktopHostRuntimeAgentClient,
+    getRuntime: deps.getRuntime,
     getSubjectUserId: async () => {
-      const subjectUserId = normalizeText(await deps.getSubjectUserId?.());
+      const subjectUserId = normalizeText(await deps.getSubjectUserId());
       if (!subjectUserId) {
         throw new Error('DESKTOP_DELEGATED_CAPABILITY_SUBJECT_REQUIRED');
       }
       return subjectUserId;
     },
-    ...(deps.getRuntime ? {} : { withScopes: withDesktopRuntimeProtectedScopes }),
+    withScopes: deps.withScopes,
     disabledProviderReasonCode: DESKTOP_USER_DISABLED_PROVIDER_REASON,
   });
 
