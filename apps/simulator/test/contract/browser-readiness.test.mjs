@@ -123,14 +123,33 @@ test('semantic evidence searches only assigned roots and requires one exact acti
 test('Paint/Composite evidence is fail-closed unless the pinned-browser source proves the interval', async () => {
   const withoutEvidence = browserHarness();
   const signal = new AbortController().signal;
+  assert.equal(await withoutEvidence.port.beginPaintComposite({
+    instanceId: '1:instance:1', surfaceId: 'main', signal,
+  }), null);
   assert.equal(await withoutEvidence.port.observePaintComposite({
-    instanceId: '1:instance:1', surfaceId: 'main', firstFrame: 1, secondFrame: 2, signal,
+    instanceId: '1:instance:1', surfaceId: 'main', firstFrame: 1, secondFrame: 2,
+    observationToken: 'missing', signal,
   }), false);
 
   const withEvidence = browserHarness({
-    paintCompositeEvidence: ({ firstFrame, secondFrame }) => firstFrame === 1 && secondFrame === 2,
+    paintCompositeEvidence: {
+      begin: () => 'trace:1',
+      mark: () => true,
+      end: ({ firstFrame, secondFrame }) => firstFrame === 1 && secondFrame === 2,
+    },
   });
+  const observationToken = await withEvidence.port.beginPaintComposite({
+    instanceId: '1:instance:1', surfaceId: 'main', signal,
+  });
+  assert.equal(observationToken, 'trace:1');
+  assert.equal(await withEvidence.port.markPaintCompositeFrame({
+    observationToken, ordinal: 'first', frame: 1, signal,
+  }), true);
+  assert.equal(await withEvidence.port.markPaintCompositeFrame({
+    observationToken, ordinal: 'second', frame: 2, signal,
+  }), true);
   assert.equal(await withEvidence.port.observePaintComposite({
-    instanceId: '1:instance:1', surfaceId: 'main', firstFrame: 1, secondFrame: 2, signal,
+    instanceId: '1:instance:1', surfaceId: 'main', firstFrame: 1, secondFrame: 2,
+    observationToken, signal,
   }), true);
 });

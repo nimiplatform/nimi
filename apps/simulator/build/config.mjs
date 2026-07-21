@@ -9,6 +9,7 @@ import {
 
 export const SELECTED_SOURCE_SCHEMA = 'nimi.simulator.selected-source/v1';
 export const EXTERNAL_REPOSITORY_CATALOG_SCHEMA = 'nimi.simulator.external-repository-catalog/v1';
+export const SIMULATOR_SCENARIO_SCHEMA = 'nimi.simulator.scenario/v1';
 
 const MODULE_ID_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const REPOSITORY_KEY_PATTERN = /^[a-z][a-z0-9]*(?:[-/][a-z0-9]+)*$/;
@@ -91,6 +92,214 @@ function assertString(value, fieldPath, { pattern = null, min = 1, max = 4096 } 
 
 function assertDigest(value, fieldPath) {
   return assertString(value, fieldPath, { pattern: DIGEST_PATTERN, min: 71, max: 71 });
+}
+
+function assertBoolean(value, fieldPath) {
+  if (typeof value !== 'boolean') fail('SIM_SCENARIO_TYPE', 'must be a boolean', fieldPath);
+  return value;
+}
+
+function assertJsonValue(value, fieldPath, ancestors = new Set()) {
+  if (value === null || typeof value === 'boolean' || typeof value === 'string') return value;
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value) || Object.is(value, -0)) {
+      fail('SIM_SCENARIO_JSON', 'must be a finite JSON number other than negative zero', fieldPath);
+    }
+    return value;
+  }
+  if (Array.isArray(value)) {
+    if (ancestors.has(value)) fail('SIM_SCENARIO_JSON', 'cyclic arrays are forbidden', fieldPath);
+    ancestors.add(value);
+    const output = value.map((entry, index) => assertJsonValue(entry, `${fieldPath}[${index}]`, ancestors));
+    ancestors.delete(value);
+    return output;
+  }
+  if (value && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
+    if (ancestors.has(value)) fail('SIM_SCENARIO_JSON', 'cyclic objects are forbidden', fieldPath);
+    ancestors.add(value);
+    const output = {};
+    for (const [key, entry] of Object.entries(value)) {
+      assertString(key, `${fieldPath}.[key]`, { min: 1, max: 512 });
+      output[key] = assertJsonValue(entry, `${fieldPath}.${key}`, ancestors);
+    }
+    ancestors.delete(value);
+    return output;
+  }
+  fail('SIM_SCENARIO_JSON', 'must be an ordinary JSON value', fieldPath);
+}
+
+function assertUniqueStrings(value, fieldPath) {
+  if (!Array.isArray(value)) fail('SIM_SCENARIO_TYPE', 'must be a sequence', fieldPath);
+  const entries = value.map((entry, index) => assertString(entry, `${fieldPath}[${index}]`, {
+    pattern: /^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$/,
+    min: 2,
+    max: 224,
+  }));
+  if (new Set(entries).size !== entries.length) fail('SIM_SCENARIO_DUPLICATE', 'entries must be unique', fieldPath);
+  const ordered = [...entries].sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right)));
+  if (JSON.stringify(entries) !== JSON.stringify(ordered)) {
+    fail('SIM_SCENARIO_ORDER', 'entries must use Unicode code-point order', fieldPath);
+  }
+  return entries;
+}
+
+function assertPrimaryControl(value, fieldPath) {
+  assertExact(value, ['semantic_id', 'aria_role', 'accessible_name'], fieldPath);
+  return {
+    semantic_id: assertString(value.semantic_id, `${fieldPath}.semantic_id`, { min: 2, max: 256 }),
+    aria_role: assertString(value.aria_role, `${fieldPath}.aria_role`, {
+      pattern: /^[a-z][a-z0-9-]*$/,
+      min: 2,
+      max: 64,
+    }),
+    accessible_name: assertString(value.accessible_name, `${fieldPath}.accessible_name`, { min: 1, max: 512 }),
+  };
+}
+
+function assertJsonPointer(value, fieldPath) {
+  assertString(value, fieldPath, { min: 0, max: 2048 });
+  if (value !== '' && (!value.startsWith('/') || /~(?:[^01]|$)/u.test(value))) {
+    fail('SIM_SCENARIO_JSON_POINTER', 'must be an RFC 6901 JSON Pointer', fieldPath);
+  }
+  return value;
+}
+
+export function validateSimulatorScenario(value, label = 'config/simulator/scenario.yaml') {
+  assertExact(value, [
+    'schema',
+    'scenario_id',
+    'scenario_revision',
+    'seed',
+    'initial_logical_time',
+    'state',
+    'module_data',
+    'enabled_capabilities',
+    'launch',
+    'readiness',
+  ], '');
+  if (value.schema !== SIMULATOR_SCENARIO_SCHEMA) {
+    fail('SIM_SCENARIO_SCHEMA', `must equal ${SIMULATOR_SCENARIO_SCHEMA}`, 'schema');
+  }
+  const scenarioId = assertString(value.scenario_id, 'scenario_id', {
+    pattern: MODULE_ID_PATTERN,
+    min: 2,
+    max: 128,
+  });
+  const scenarioRevision = assertString(value.scenario_revision, 'scenario_revision', {
+    pattern: /^[a-z0-9][a-z0-9.-]*$/,
+    min: 1,
+    max: 128,
+  });
+  const seed = assertString(value.seed, 'seed', { pattern: /^[0-9a-f]{64}$/, min: 64, max: 64 });
+  if (/^0{64}$/u.test(seed)) fail('SIM_SCENARIO_SEED', 'all-zero seed is forbidden', 'seed');
+  if (!Number.isSafeInteger(value.initial_logical_time) || value.initial_logical_time < 0) {
+    fail('SIM_SCENARIO_LOGICAL_TIME', 'must be a non-negative safe integer', 'initial_logical_time');
+  }
+
+  assertExact(value.state, ['scenario', 'ecosystem', 'shell'], 'state');
+  const state = {
+    scenario: assertJsonValue(value.state.scenario, 'state.scenario'),
+    ecosystem: assertJsonValue(value.state.ecosystem, 'state.ecosystem'),
+    shell: assertJsonValue(value.state.shell, 'state.shell'),
+  };
+
+  if (!Array.isArray(value.module_data)) fail('SIM_SCENARIO_TYPE', 'must be a sequence', 'module_data');
+  const moduleIds = new Set();
+  const moduleData = value.module_data.map((entry, index) => {
+    const fieldPath = `module_data[${index}]`;
+    assertExact(entry, ['module_id', 'data'], fieldPath);
+    const moduleId = assertString(entry.module_id, `${fieldPath}.module_id`, {
+      pattern: MODULE_ID_PATTERN,
+      min: 2,
+      max: 64,
+    });
+    if (moduleIds.has(moduleId)) fail('SIM_SCENARIO_DUPLICATE', `duplicate module ${JSON.stringify(moduleId)}`, fieldPath);
+    moduleIds.add(moduleId);
+    return { module_id: moduleId, data: assertJsonValue(entry.data, `${fieldPath}.data`) };
+  });
+
+  if (!Array.isArray(value.launch)) fail('SIM_SCENARIO_TYPE', 'must be a sequence', 'launch');
+  const launchIds = new Set();
+  const launch = value.launch.map((entry, index) => {
+    const fieldPath = `launch[${index}]`;
+    assertExact(entry, ['launch_id', 'module_id', 'surface_id', 'activate'], fieldPath);
+    const launchId = assertString(entry.launch_id, `${fieldPath}.launch_id`, {
+      pattern: MODULE_ID_PATTERN,
+      min: 2,
+      max: 64,
+    });
+    if (launchIds.has(launchId)) fail('SIM_SCENARIO_DUPLICATE', `duplicate launch ID ${JSON.stringify(launchId)}`, fieldPath);
+    launchIds.add(launchId);
+    return {
+      launch_id: launchId,
+      module_id: assertString(entry.module_id, `${fieldPath}.module_id`, { pattern: MODULE_ID_PATTERN, min: 2, max: 64 }),
+      surface_id: assertString(entry.surface_id, `${fieldPath}.surface_id`, { pattern: MODULE_ID_PATTERN, min: 2, max: 64 }),
+      activate: assertBoolean(entry.activate, `${fieldPath}.activate`),
+    };
+  });
+
+  if (!Array.isArray(value.readiness)) fail('SIM_SCENARIO_TYPE', 'must be a sequence', 'readiness');
+  const readinessKeys = new Set();
+  const readiness = value.readiness.map((entry, index) => {
+    const fieldPath = `readiness[${index}]`;
+    assertExact(entry, [
+      'module_id',
+      'surface_id',
+      'contract_id',
+      'root_content_semantic_id',
+      'primary_control',
+      'projection',
+      'blocking',
+    ], fieldPath);
+    const moduleId = assertString(entry.module_id, `${fieldPath}.module_id`, { pattern: MODULE_ID_PATTERN, min: 2, max: 64 });
+    const surfaceId = assertString(entry.surface_id, `${fieldPath}.surface_id`, { pattern: MODULE_ID_PATTERN, min: 2, max: 64 });
+    const key = `${moduleId}/${surfaceId}`;
+    if (readinessKeys.has(key)) fail('SIM_SCENARIO_DUPLICATE', `duplicate readiness row ${JSON.stringify(key)}`, fieldPath);
+    readinessKeys.add(key);
+    assertExact(entry.projection, ['kind', 'json_pointer', 'expected'], `${fieldPath}.projection`);
+    if (entry.projection.kind !== 'json_pointer_equals') {
+      fail('SIM_SCENARIO_PREDICATE', 'projection kind must equal json_pointer_equals', `${fieldPath}.projection.kind`);
+    }
+    assertExact(entry.blocking, ['kind'], `${fieldPath}.blocking`);
+    if (entry.blocking.kind !== 'no_active_overlay_lease') {
+      fail('SIM_SCENARIO_PREDICATE', 'blocking kind must equal no_active_overlay_lease', `${fieldPath}.blocking.kind`);
+    }
+    return {
+      module_id: moduleId,
+      surface_id: surfaceId,
+      contract_id: assertString(entry.contract_id, `${fieldPath}.contract_id`, { min: 2, max: 256 }),
+      root_content_semantic_id: assertString(entry.root_content_semantic_id, `${fieldPath}.root_content_semantic_id`, { min: 2, max: 256 }),
+      primary_control: assertPrimaryControl(entry.primary_control, `${fieldPath}.primary_control`),
+      projection: {
+        kind: 'json_pointer_equals',
+        json_pointer: assertJsonPointer(entry.projection.json_pointer, `${fieldPath}.projection.json_pointer`),
+        expected: assertJsonValue(entry.projection.expected, `${fieldPath}.projection.expected`),
+      },
+      blocking: { kind: 'no_active_overlay_lease' },
+    };
+  });
+
+  const wire = {
+    schema: SIMULATOR_SCENARIO_SCHEMA,
+    scenario_id: scenarioId,
+    scenario_revision: scenarioRevision,
+    seed,
+    initial_logical_time: value.initial_logical_time,
+    state,
+    module_data: moduleData,
+    enabled_capabilities: assertUniqueStrings(value.enabled_capabilities, 'enabled_capabilities'),
+    launch,
+    readiness,
+  };
+  return Object.freeze({
+    ...wire,
+    digest: stableJsonDigest('nimi-simulator-scenario-v1', wire),
+    descriptor_label: label,
+  });
+}
+
+export function parseSimulatorScenario(text, label = 'config/simulator/scenario.yaml') {
+  return validateSimulatorScenario(parseStrictConfigYaml(text, label), label);
 }
 
 function assertAuthorityRefs(value, fieldPath) {
@@ -307,5 +516,10 @@ export function loadSimulatorConfig(configRoot) {
   const repositoryCatalog = validateExternalRepositoryCatalog(
     parseStrictConfigYaml(readFileSync(repositoryPath, 'utf8'), 'config/simulator/external-repositories.yaml'),
   );
-  return { descriptors, repositoryCatalog };
+  const scenarioPath = path.join(configRoot, 'scenario.yaml');
+  const scenario = parseSimulatorScenario(
+    readFileSync(scenarioPath, 'utf8'),
+    'config/simulator/scenario.yaml',
+  );
+  return { descriptors, repositoryCatalog, scenario };
 }

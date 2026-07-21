@@ -24,6 +24,7 @@ import {
   hostInvocationInventoryDigest,
   loadSimulatorConfig,
   parseSelectedSourceDescriptor,
+  validateSimulatorScenario,
   validateExternalRepositoryCatalog,
   validateSelectedSourceDescriptor,
 } from '../build/config.mjs';
@@ -39,6 +40,7 @@ import {
   REPO_ROOT,
   SIMULATOR_ROOT,
 } from '../build/paths.mjs';
+import { scenarioForQualifiedReports } from './scenario-fixture.mjs';
 
 const APP_FIXTURE = path.join(REPO_ROOT, 'app-tools', 'test', 'fixtures', 'simulator-valid');
 const DIRECTORY_LINK_TYPE = process.platform === 'win32' ? 'junction' : 'dir';
@@ -149,10 +151,59 @@ function externalCatalog(repositoryRoot) {
   }, { allowFileUri: true });
 }
 
-test('tracked Simulator configuration is an explicit empty selection', () => {
+test('tracked Simulator configuration selects immutable Tester with one digest-bound Scenario', () => {
   const config = loadSimulatorConfig(CONFIG_ROOT);
-  assert.deepEqual(config.descriptors, []);
+  assert.deepEqual(config.descriptors.map((entry) => entry.module_id), ['tester']);
   assert.deepEqual(config.repositoryCatalog.repositories, []);
+  assert.equal(config.scenario.schema, 'nimi.simulator.scenario/v1');
+  assert.deepEqual(config.scenario.module_data.map((entry) => entry.module_id), ['tester']);
+  assert.match(config.scenario.digest, /^sha256:[0-9a-f]{64}$/u);
+});
+
+function scenarioValue() {
+  return {
+    schema: 'nimi.simulator.scenario/v1',
+    scenario_id: 'scenario-test',
+    scenario_revision: 'test',
+    seed: 'a5'.repeat(32),
+    initial_logical_time: 0,
+    state: { scenario: {}, ecosystem: {}, shell: {} },
+    module_data: [{ module_id: 'sample-app', data: {} }],
+    enabled_capabilities: [],
+    launch: [{ launch_id: 'sample-launch', module_id: 'sample-app', surface_id: 'main', activate: true }],
+    readiness: [],
+  };
+}
+
+test('Simulator Scenario schema fails closed before registry qualification', () => {
+  const valid = scenarioValue();
+  assert.doesNotThrow(() => validateSimulatorScenario(valid));
+  assert.throws(
+    () => validateSimulatorScenario({ ...valid, future_mode: 'implicit' }),
+    (error) => error?.code === 'SIM_DESCRIPTOR_UNKNOWN_FIELD',
+  );
+  assert.throws(
+    () => validateSimulatorScenario({
+      ...valid,
+      launch: [...valid.launch, { ...valid.launch[0] }],
+    }),
+    (error) => error?.code === 'SIM_SCENARIO_DUPLICATE',
+  );
+  assert.throws(
+    () => validateSimulatorScenario({
+      ...valid,
+      readiness: [{
+        module_id: 'sample-app',
+        surface_id: 'main',
+        contract_id: 'sample.main.usable',
+        root_content_semantic_id: 'sample-main-root',
+        primary_control: { semantic_id: 'sample-action', aria_role: 'button', accessible_name: 'Run' },
+        projection: { kind: 'json_pointer_equals', json_pointer: '/invalid~2token', expected: true },
+        blocking: { kind: 'no_active_overlay_lease' },
+      }],
+    }),
+    (error) => error?.code === 'SIM_SCENARIO_JSON_POINTER',
+  );
 });
 
 test('selected-source descriptor keeps App and host inventories independent', () => {
@@ -600,9 +651,11 @@ test('generated registry has resolved facts only and no hand-authored App row', 
       kind: 'external-repository',
       repositoryKey: 'fixture-external',
     }));
+    const report = validateSimulatorAppSource(fixture.appRoot).report;
     const registry = qualifySelectedModules({
       descriptors: [descriptor],
       repositoryCatalog: externalCatalog(fixture.root),
+      scenario: scenarioForQualifiedReports([{ moduleId: 'sample-app', report }]),
       repoRoot: REPO_ROOT,
       simulatorRoot: simulator.root,
       generatedRoot: simulator.generatedRoot,
@@ -685,9 +738,11 @@ test('a host invocation in its own selected source reaches the exact App package
     }];
     value.host_invocations.inventory_digest = hostInvocationInventoryDigest(value.host_invocations);
     const descriptor = validateSelectedSourceDescriptor(value);
+    const report = validateSimulatorAppSource(fixture.appRoot).report;
     const registry = qualifySelectedModules({
       descriptors: [descriptor],
       repositoryCatalog: { repositories: [] },
+      scenario: scenarioForQualifiedReports([{ moduleId: 'sample-app', report }]),
       repoRoot: REPO_ROOT,
       simulatorRoot: simulator.root,
       generatedRoot: simulator.generatedRoot,

@@ -20,5 +20,5 @@ export async function bootstrapSimulator(): Promise<void> {
     target: globalThis as unknown as Record<string, unknown>,
   });
   const { mountSimulatorShell } = await import('../shell/mount.ts');
-  mountSimulatorShell(guard);
+  await mountSimulatorShell(guard);
 }

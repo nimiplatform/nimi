@@ -225,6 +225,15 @@ entries:
     phases: [bootstrap, instance_lifecycle, test_only]
     permitted_purposes: [integrity_watchdog, performance_evidence]
     state_authority: forbidden
+  - id: qualification_trace
+    browser_surface: globalThis.__NIMI_SIMULATOR_QUALIFICATION_BEGIN_V1__|globalThis.__NIMI_SIMULATOR_QUALIFICATION_MARK_V1__|globalThis.__NIMI_SIMULATOR_QUALIFICATION_END_V1__
+    classification: port_only
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    permitted_owner: simulator_shell
+    phases: [instance_lifecycle, test_only]
+    permitted_purposes: [paint_composite_trace_evidence]
+    cleanup: end_or_cancel_before_readiness_terminal
+    state_authority: forbidden
 
 enforcement:
   manifest_declared_exemption: forbidden

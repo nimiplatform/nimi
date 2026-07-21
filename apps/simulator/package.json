@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "build": "pnpm run check:modules && pnpm run typecheck && vite build && node build/write-artifact-manifest.mjs",
     "preview": "vite preview",
+    "qualify:cp4": "node build/qualify-cp4.mjs",
     "test": "node ../../scripts/with-workspace-surfaces.mjs -- node --test test/*.test.mjs",
     "test:contract": "pnpm --filter @nimiplatform/sdk build && pnpm --filter @nimiplatform/kit build && pnpm run test:contract:prepared",
     "test:contract:prepared": "node --test test/contract/*.test.mjs"
@@ -36,7 +37,9 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "5.1.4",
     "jsdom": "28.1.0",
+    "playwright": "1.61.1",
     "tailwindcss": "4.3.0",
+    "tsx": "^4.22.4",
     "typescript": "5.9.3",
     "vite": "7.3.1",
     "yaml": "2.9.0"

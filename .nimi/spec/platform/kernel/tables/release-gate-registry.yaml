@@ -2024,6 +2024,20 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
+  - id: gate.simulator.cp4
+    description: Build and execute the immutable selected Tester artifact in pinned Chromium, proving canonical rendering, SDK-to-State-Engine interaction, real browser readiness, isolation, reset, replay, and resource cleanup in one evidence chain.
+    command: pnpm --filter @nimiplatform/simulator qualify:cp4
+    runner: pnpm
+    tiers: [release]
+    targets: [any]
+    timeout_seconds: 600
+    prerequisites: [gate.simulator.contract]
+    requires_binaries: [pnpm, node, git]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
   - id: gate.desktop.avatar-unit
     description: Avatar deterministic renderer and shell unit suite.
     command: pnpm --filter @nimiplatform/avatar test

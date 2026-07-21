@@ -365,7 +365,7 @@ census:
   rust_test_markers: ['#[test]', '#[cfg(test)]']
   active_roots: [app-tools, apps, docs, examples, gateways, kit, nimi-cognition, nimi2d, proto, runtime, scripts, sdks, tests]
   exclude_dirs: [archive, _external, node_modules, dist, dist-electron, generated, gen, target, reports, .next, .cache, .iterate, .local]
-  exclude_paths: [app-tools/templates/app-source]
+  exclude_paths: [app-tools/templates/app-source, apps/simulator/.generated]
   authority_refs: [P-TEST-003, P-TEST-007]
 suites:
   - id: sdk-typescript
@@ -629,6 +629,14 @@ suites:
     command: pnpm --filter @nimiplatform/desktop test:e2e
     selectors:
       globs: ['apps/desktop/e2e/specs/*.e2e.mjs']
+    authority_refs: [P-TEST-002, P-TEST-003, P-TEST-006]
+  - id: simulator-cp4-product-acceptance
+    owner: simulator
+    lane: product_acceptance
+    gate_id: gate.simulator.cp4
+    command: pnpm --filter @nimiplatform/simulator qualify:cp4
+    selectors:
+      files: [apps/simulator/build/qualify-cp4.mjs]
     authority_refs: [P-TEST-002, P-TEST-003, P-TEST-006]
   - id: desktop-electron-acceptance
     owner: desktop

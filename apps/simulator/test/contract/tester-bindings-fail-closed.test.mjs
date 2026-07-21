@@ -9,9 +9,10 @@ const helper = path.join(
   'helpers',
   'tester-bindings-fail-closed.ts',
 );
+const tsxImport = import.meta.resolve('tsx');
 
 test('Tester Simulator exposes only modeled positive outcomes and settles rejected diagnostics', () => {
-  const output = execFileSync(process.execPath, ['--import', 'tsx', helper], {
+  const output = execFileSync(process.execPath, ['--import', tsxImport, helper], {
     cwd: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..'),
     encoding: 'utf8',
   });

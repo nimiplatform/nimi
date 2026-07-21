@@ -151,7 +151,11 @@ const readinessBrowser = createBrowserReadinessPort({
   requestAnimationFrame: browser.requestAnimationFrame.bind(browser),
   cancelAnimationFrame: browser.cancelAnimationFrame.bind(browser),
   computedStyle: (element) => browser.getComputedStyle(element),
-  paintCompositeEvidence: async () => true,
+  paintCompositeEvidence: {
+    begin: async () => 'fixture-paint-window',
+    mark: async () => true,
+    end: async () => true,
+  },
 });
 const simulatorRoot = browser.document.getElementById('simulator-test-root');
 const shellRoot = browser.document.getElementById('simulator-shell-root');

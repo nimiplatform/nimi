@@ -15,6 +15,7 @@ import {
   simulatorResolvedModules,
   simulatorResolvedReadinessDeclarations,
   simulatorResolvedRegistryDigest,
+  simulatorResolvedScenario,
 } from '../registry.ts';
 import type { SimulatorGuardHandle } from '../effects/guards.ts';
 import { completeSimulatorBootstrapDisclosure } from '../bootstrap/disclosure.ts';
@@ -39,23 +40,16 @@ import '../styles.css';
 import type { JsonValue } from '../state-engine/json-value.ts';
 import type { SimulatorModuleCatalogDeclaration } from '../state-engine/types.ts';
 import { simulatorError } from '../state-engine/errors.ts';
+import {
+  bindScenarioModuleData,
+  compileScenarioReadiness,
+  launchScenarioInstances,
+  type SimulatorScenarioPredicateDefinition,
+} from './scenario-runtime.ts';
+import type { SimulatorReadinessExpectation } from '../lifecycle/readiness.ts';
 
-const EMPTY_SESSION_SEED = 'e5'.repeat(32);
-const SCENARIO_MODULE_DATA: Readonly<Record<string, JsonValue>> = Object.freeze({});
 const RESOLVED_MODULE_CATALOGS: readonly Omit<SimulatorModuleCatalogDeclaration, 'moduleData'>[] =
   simulatorResolvedModuleCatalogs;
-
-function resolvedScenarioModuleCatalogs(): readonly SimulatorModuleCatalogDeclaration[] {
-  const selected = new Set(RESOLVED_MODULE_CATALOGS.map((entry) => entry.moduleId));
-  const configured = Object.keys(SCENARIO_MODULE_DATA);
-  if (selected.size !== configured.length || configured.some((moduleId) => !selected.has(moduleId))) {
-    throw new Error('SIMULATOR_SCENARIO_MODULE_DATA_MISMATCH');
-  }
-  return RESOLVED_MODULE_CATALOGS.map((catalog) => ({
-    ...catalog,
-    moduleData: SCENARIO_MODULE_DATA[catalog.moduleId],
-  }));
-}
 
 function privilegedFunction<T extends (...args: never[]) => unknown>(
   guard: SimulatorGuardHandle,
@@ -64,6 +58,14 @@ function privilegedFunction<T extends (...args: never[]) => unknown>(
   const value = guard.privileged[targetPath];
   if (typeof value !== 'function') throw new Error(`SIMULATOR_PRIVILEGED_PORT_MISSING:${targetPath}`);
   return value as T;
+}
+
+function optionalPrivilegedFunction<T extends (...args: never[]) => unknown>(
+  guard: SimulatorGuardHandle,
+  targetPath: string,
+): T | null {
+  const value = guard.privileged[targetPath];
+  return typeof value === 'function' ? value as T : null;
 }
 
 function ShellRoot({
@@ -75,23 +77,52 @@ function ShellRoot({
 }) {
   const version = useSyncExternalStore(
     (listener) => session.subscribe(listener),
-    () => `${session.epoch}:${session.phase}:${session.instances().length}:${session.diagnostics.list().length}:${session.route().kind}`,
+    () => `${session.epoch}:${session.phase}:${session.engine.getCommitted().revision}:${session.replayDigest() ?? ''}:${session.instances().map((entry) => `${entry.instanceId}:${entry.status}:${entry.readiness}`).join(',')}:${session.diagnostics.list().length}:${session.route().kind}`,
   );
   void version;
   const props: SimulatorShellViewProps = {
     epoch: session.epoch,
     phase: session.phase,
     registryDigest: simulatorResolvedRegistryDigest,
+    replayDigest: session.replayDigest(),
+    stateRevision: session.engine.getCommitted().revision,
     moduleCount: simulatorResolvedModules.length,
     route: session.route(),
     instances: session.instances(),
     diagnostics: session.diagnostics.list(),
+    modules: simulatorResolvedModules.map((row) => ({
+      moduleId: row.metadata.moduleId,
+      surfaces: row.metadata.surfaces.map((surface) => ({ id: surface.id, label: surface.label })),
+    })),
     onNavigate: (route) => session.navigate(route),
+    onOpen: (moduleId, surfaceId) => {
+      void session.openInstance(moduleId, surfaceId, { activateBeforeMount: true });
+    },
+    onClose: (instanceId) => { void session.closeInstance(instanceId); },
+    onActivate: (instanceId) => { void session.activateInstance(instanceId); },
+    onDeactivate: (instanceId) => { void session.deactivateInstance(instanceId); },
+    onReset: () => { void resetAndRelaunch(session); },
   };
   return h(Fragment, null,
     createPortal(h(SimulatorStatusBar, props), disclosureRoot),
     h(SimulatorShellContent, props),
   );
+}
+
+let resetInFlight: Promise<void> | null = null;
+
+function resetAndRelaunch(session: SimulatorSession): Promise<void> {
+  if (resetInFlight) return resetInFlight;
+  resetInFlight = (async () => {
+    const reset = await session.resetScenario();
+    if (!reset.ok) throw new Error(reset.error.code);
+    await launchScenarioInstances(session, simulatorResolvedScenario.launch);
+  })().catch(() => {
+    session.engine.terminateIntegrity(simulatorError('SIMULATOR_INTEGRITY_FAILURE'));
+  }).finally(() => {
+    resetInFlight = null;
+  });
+  return resetInFlight;
 }
 
 function CommitTrackedShellRoot({
@@ -107,7 +138,7 @@ function CommitTrackedShellRoot({
   return h(ShellRoot, { session, disclosureRoot });
 }
 
-export function mountSimulatorShell(guard: SimulatorGuardHandle): void {
+export async function mountSimulatorShell(guard: SimulatorGuardHandle): Promise<void> {
   const rootElement = document.getElementById('root');
   if (!rootElement) {
     throw new Error('Simulator root element is missing');
@@ -120,6 +151,23 @@ export function mountSimulatorShell(guard: SimulatorGuardHandle): void {
   const privilegedSetTimeout = privilegedFunction<typeof setTimeout>(guard, 'globalThis.setTimeout');
   const privilegedRaf = privilegedFunction<typeof requestAnimationFrame>(guard, 'globalThis.requestAnimationFrame');
   const privilegedCancelRaf = privilegedFunction<typeof cancelAnimationFrame>(guard, 'globalThis.cancelAnimationFrame');
+  const qualificationBegin = optionalPrivilegedFunction<(
+    input: { readonly instanceId: string; readonly surfaceId: string },
+  ) => Promise<unknown>>(guard, 'globalThis.__NIMI_SIMULATOR_QUALIFICATION_BEGIN_V1__');
+  const qualificationEnd = optionalPrivilegedFunction<(
+    input: {
+      readonly observationToken: string;
+      readonly firstFrame: number | null;
+      readonly secondFrame: number | null;
+    },
+  ) => Promise<unknown>>(guard, 'globalThis.__NIMI_SIMULATOR_QUALIFICATION_END_V1__');
+  const qualificationMark = optionalPrivilegedFunction<(
+    input: {
+      readonly observationToken: string;
+      readonly ordinal: 'first' | 'second';
+      readonly frame: number;
+    },
+  ) => Promise<unknown>>(guard, 'globalThis.__NIMI_SIMULATOR_QUALIFICATION_MARK_V1__');
   const commits = createReactCommitTracker();
   const assignedRoots = createAssignedRootRegistry();
   rootElement.tabIndex = -1;
@@ -143,7 +191,20 @@ export function mountSimulatorShell(guard: SimulatorGuardHandle): void {
     requestAnimationFrame: (callback) => privilegedRaf.call(globalThis, callback),
     cancelAnimationFrame: (handle) => privilegedCancelRaf.call(globalThis, handle),
     computedStyle: (element) => window.getComputedStyle(element),
-    paintCompositeEvidence: null,
+    paintCompositeEvidence: qualificationBegin && qualificationMark && qualificationEnd
+      ? {
+          async begin(input) {
+            const token = await qualificationBegin.call(globalThis, input);
+            return typeof token === 'string' && token.length >= 1 && token.length <= 256 ? token : null;
+          },
+          async mark(input) {
+            return await qualificationMark.call(globalThis, input) === true;
+          },
+          async end(input) {
+            return await qualificationEnd.call(globalThis, input) === true;
+          },
+        }
+      : null,
   });
   const sessionRef: { current: SimulatorSession | null } = { current: null };
   const surfaces = createSimulatorBrowserSurfaceManager({
@@ -166,18 +227,18 @@ export function mountSimulatorShell(guard: SimulatorGuardHandle): void {
       if (!signaled.ok) throw new Error(signaled.error.code);
     },
   });
+  const readiness = compileScenarioReadiness({
+    expectations: simulatorResolvedScenario.readiness as unknown as Readonly<Record<string, SimulatorReadinessExpectation>>,
+    predicates: simulatorResolvedScenario.predicates as unknown as Readonly<Record<string, SimulatorScenarioPredicateDefinition>>,
+    activeOverlayLeaseCount: () => surfaces.activeOverlayLeaseCount,
+  });
   const session = createSimulatorSession({
-    scenario: {
-      scenarioId: 'nimi-ecosystem-simulator',
-      scenarioRevision: 'empty-selection',
-      seed: EMPTY_SESSION_SEED,
-      initialLogicalTime: 0,
-      scenarioState: { disclosure: 'simulated' },
-      ecosystemState: {},
-      shellState: { readiness: {} },
-    },
+    scenario: simulatorResolvedScenario.scenario,
     registryModules: simulatorResolvedModules,
-    moduleCatalogs: resolvedScenarioModuleCatalogs(),
+    moduleCatalogs: bindScenarioModuleData(
+      RESOLVED_MODULE_CATALOGS,
+      simulatorResolvedScenario.moduleData as unknown as Readonly<Record<string, JsonValue>>,
+    ),
     timers: {
       setTimeout: (handler, delayMs) => privilegedSetTimeout.call(globalThis, handler, delayMs),
       clearTimeout: (handle) => clearTimeout(handle as Parameters<typeof clearTimeout>[0]),
@@ -189,9 +250,9 @@ export function mountSimulatorShell(guard: SimulatorGuardHandle): void {
     prepareSurface: (input) => surfaces.prepare(input),
     readinessBrowser,
     readinessDeclarations: simulatorResolvedReadinessDeclarations,
-    readinessExpectations: {},
-    readinessProjectionPredicates: {},
-    readinessBlockingPredicates: {},
+    readinessExpectations: readiness.expectations,
+    readinessProjectionPredicates: readiness.projectionPredicates,
+    readinessBlockingPredicates: readiness.blockingPredicates,
     commitToken: commits.current,
     simulationDisclosureVisible: () => {
       const status = document.querySelector('[data-testid="simulator-status"]');
@@ -201,6 +262,7 @@ export function mountSimulatorShell(guard: SimulatorGuardHandle): void {
       );
     },
   });
+  session.engine.setCapabilities(new Set(simulatorResolvedScenario.enabledCapabilities));
   sessionRef.current = session;
   installSimulatorIntegrityListener({
     guard,
@@ -232,4 +294,10 @@ export function mountSimulatorShell(guard: SimulatorGuardHandle): void {
     );
   });
   completeSimulatorBootstrapDisclosure(document);
+  try {
+    await launchScenarioInstances(session, simulatorResolvedScenario.launch);
+  } catch (error) {
+    const cause = error instanceof Error ? error.message : String(error);
+    throw new Error(`SIMULATOR_SCENARIO_LAUNCH_FAILED:${cause}`);
+  }
 }

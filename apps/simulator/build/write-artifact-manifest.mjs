@@ -54,6 +54,12 @@ function assertCredentialFree(relativePath, bytes) {
 }
 
 const registry = JSON.parse(readFileSync(path.join(GENERATED_ROOT, 'registry.json'), 'utf8'));
+const resolvedScenario = JSON.parse(readFileSync(path.join(GENERATED_ROOT, 'evidence', 'scenario.json'), 'utf8'));
+if (resolvedScenario.schema !== 'nimi.simulator.resolved-scenario/v1'
+  || resolvedScenario.digest !== registry.scenarioDigest
+  || resolvedScenario.digest !== stableJsonDigest('nimi-simulator-scenario-v1', resolvedScenario.scenario)) {
+  fail('SIM_ARTIFACT_SCENARIO', 'generated Scenario evidence is missing, malformed, or registry-stale');
+}
 const finalGraph = JSON.parse(readFileSync(path.join(DIST_ROOT, 'evidence', 'final-graph.json'), 'utf8'));
 if (finalGraph.schema !== 'nimi.simulator.final-graph/v1'
   || finalGraph.resolverTupleDigest !== registry.resolverTupleDigest
@@ -194,6 +200,7 @@ const manifest = {
   product: '@nimiplatform/simulator',
   selectedModuleCount: registry.moduleCount,
   selectedModuleRegistryDigest: registry.digest,
+  scenarioDigest: resolvedScenario.digest,
   selectedAppGraphCount: finalGraph.selectedModules.length,
   finalGraphResolverTupleDigest: finalGraph.resolverTupleDigest,
   finalGraphQualifiedPackageTargetCount: finalGraph.packageTargets.length,
@@ -220,6 +227,7 @@ const manifest = {
     package: sha256Digest(readFileSync(path.join(SIMULATOR_ROOT, 'package.json'))),
     lockfile: sha256Digest(readFileSync(path.join(REPO_ROOT, 'pnpm-lock.yaml'))),
     registry: sha256Digest(readFileSync(path.join(GENERATED_ROOT, 'registry.json'))),
+    scenario: sha256Digest(readFileSync(path.join(GENERATED_ROOT, 'evidence', 'scenario.json'))),
     vite: sha256Digest(readFileSync(path.join(SIMULATOR_ROOT, 'vite.config.ts'))),
   },
   sourceProvidedInstallScriptsExecuted,

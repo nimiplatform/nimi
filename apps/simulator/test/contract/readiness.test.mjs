@@ -36,6 +36,8 @@ function browserPort(overrides = {}) {
   return {
     awaitCommit: async (floor) => floor + 1,
     nextAnimationFrame: async () => { frame += 1; return frame; },
+    beginPaintComposite: async () => 'fixture-paint-window',
+    markPaintCompositeFrame: async () => true,
     observePaintComposite: async () => true,
     checkSemanticMarkers: async () => ({ ok: true }),
     ...overrides,
@@ -86,6 +88,14 @@ test('full barrier: candidate, quiescence, commit, two frames, paint evidence, u
         order.push('commit');
         return floor + 1;
       },
+      beginPaintComposite: async () => {
+        order.push('paint-begin');
+        return 'fixture-paint-window';
+      },
+      markPaintCompositeFrame: async ({ ordinal, frame }) => {
+        order.push(`mark:${ordinal}:${frame}`);
+        return true;
+      },
       nextAnimationFrame: async () => {
         const id = order.filter((entry) => entry.startsWith('frame')).length + 1;
         order.push(`frame:${id}`);
@@ -116,8 +126,11 @@ test('full barrier: candidate, quiescence, commit, two frames, paint evidence, u
   });
   assert.deepEqual(order, [
     'commit',
+    'paint-begin',
     'frame:1',
+    'mark:first:1',
     'frame:2',
+    'mark:second:2',
     'paint:1:2',
     'projection',
     'blocking',

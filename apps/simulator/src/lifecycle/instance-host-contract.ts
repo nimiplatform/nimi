@@ -117,6 +117,8 @@ export interface SimulatorOpenInstanceInput {
   readonly moduleId: string;
   readonly surfaceId: string;
   readonly initialRoute: SimulatorRouteState;
+  /** Scenario/Shell intent applied before the canonical surface may render. */
+  readonly activateBeforeMount?: boolean;
   readonly loadRenderer: () => Promise<unknown>;
   readonly loadAdapter: () => Promise<unknown>;
   readonly loadStyle: () => Promise<unknown>;

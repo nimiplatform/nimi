@@ -1,0 +1,64 @@
+schema: nimi.simulator.scenario/v1
+scenario_id: tester-ecosystem
+scenario_revision: cp4
+seed: e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5
+initial_logical_time: 0
+state:
+  scenario:
+    disclosure: simulated
+  ecosystem: {}
+  shell:
+    readiness: {}
+module_data:
+  - module_id: tester
+    data:
+      generatedText: Nimi connects apps through one shared, simulated ecosystem state.
+      textModel:
+        providerId: simulated-provider
+        modelId: simulated-text-model
+      connector:
+        connectorId: simulated-connector
+        provider: simulated-provider
+        label: Simulator Cloud
+        remoteModelCatalogId: simulated-catalog
+        providerModelId: simulated-text-model
+        modelLabel: Simulator Text Model
+      runtimePlatform:
+        status: unavailable
+        mode: local-app
+        reasonCode: simulator-local-app-unavailable
+        message: Local-app identity and Desktop protection are unavailable in the Simulator.
+        actionHint: use_simulated_capability
+      aiConfigSummary:
+        runtime:
+          status: simulated
+          mode: simulated
+          detail: The SDK testing facade uses deterministic Simulator State Engine data; no Runtime connection is established.
+        schedulingOwner: runtime
+        providerCatalogSurface: sdk.runtime.listNimiRuntimeRouteOptions
+        appLocalProviderDefaults: false
+enabled_capabilities: []
+launch:
+  - launch_id: tester-primary
+    module_id: tester
+    surface_id: main
+    activate: true
+  - launch_id: tester-secondary
+    module_id: tester
+    surface_id: main
+    activate: true
+readiness:
+  - module_id: tester
+    surface_id: main
+    contract_id: tester.main.usable
+    root_content_semantic_id: tester-main-root
+    primary_control:
+      semantic_id: tester-primary-action
+      aria_role: button
+      accessible_name: Text Studio
+    projection:
+      kind: json_pointer_equals
+      json_pointer: /protocolRevision
+      expected: 1
+    blocking:
+      kind: no_active_overlay_lease

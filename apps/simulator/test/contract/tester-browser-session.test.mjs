@@ -9,9 +9,10 @@ const helper = path.join(
   'helpers',
   'tester-browser-session.tsx',
 );
+const tsxImport = import.meta.resolve('tsx');
 
 test('one React root isolates two Tester DOM assignments and returns lifecycle resources to session baseline', () => {
-  const output = execFileSync(process.execPath, ['--import', 'tsx', helper], {
+  const output = execFileSync(process.execPath, ['--import', tsxImport, helper], {
     cwd: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..'),
     encoding: 'utf8',
   });

@@ -98,7 +98,7 @@ rules:
     evidence_requirement: structural_required
     evidence_refs: [platform_kernel_consistency, simulator_authority_gate]
     evidence_scope_note: Structural-only authority wiring; behavioral proof enters the implementation checkpoints.
-    note: Deterministic presentation state is Simulator-only truth.
+    note: Deterministic presentation state and the digest-bound executable Scenario are Simulator-only truth.
   - rule_id: P-SIM-011
     evidence_requirement: structural_required
     evidence_refs: [platform_kernel_consistency, simulator_authority_gate]

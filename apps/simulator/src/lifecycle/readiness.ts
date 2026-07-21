@@ -79,12 +79,26 @@ export interface SimulatorReadinessBrowserPort {
   awaitCommit(sinceToken: number, signal: AbortSignal): Promise<number>;
   /** One animation frame; resolves with the frame's sequence number. */
   nextAnimationFrame(signal: AbortSignal): Promise<number>;
+  /** Begins runner-owned trace capture before the first readiness frame. */
+  beginPaintComposite(input: {
+    readonly instanceId: string;
+    readonly surfaceId: string;
+    readonly signal: AbortSignal;
+  }): Promise<string | null>;
+  /** Records a runner clock-sync marker after one readiness frame callback. */
+  markPaintCompositeFrame(input: {
+    readonly observationToken: string;
+    readonly ordinal: 'first' | 'second';
+    readonly frame: number;
+    readonly signal: AbortSignal;
+  }): Promise<boolean>;
   /** Verifies a Paint/Composite trace event between the two frame tokens. */
   observePaintComposite(input: {
     readonly instanceId: string;
     readonly surfaceId: string;
     readonly firstFrame: number;
     readonly secondFrame: number;
+    readonly observationToken: string;
     readonly signal: AbortSignal;
   }): Promise<boolean>;
   /**
@@ -115,6 +129,7 @@ export interface SimulatorReadinessBarrierOptions {
   readonly commitToken: () => number;
   readonly projection: () => JsonValue;
   readonly simulationDisclosureVisible: () => boolean;
+  readonly onStateChange?: (state: SimulatorReadinessState) => void;
 }
 
 export interface SimulatorReadinessBarrier {
@@ -207,6 +222,7 @@ export function createReadinessBarrier(options: SimulatorReadinessBarrierOptions
     }));
     if (!completionSettled) {
       state = 'cancelled';
+      options.onStateChange?.(state);
       settleCompletion('cancelled', 'session-failure', null);
     }
   }
@@ -221,6 +237,7 @@ export function createReadinessBarrier(options: SimulatorReadinessBarrierOptions
     publication = null;
     reservation = null;
     state = candidate.terminalState;
+    options.onStateChange?.(state);
     settleCompletion(candidate.terminalState, candidate.reason, candidate.markedAtLogicalTime);
   }
 
@@ -253,6 +270,7 @@ export function createReadinessBarrier(options: SimulatorReadinessBarrierOptions
     if (state === 'usable' || state === 'cancelled' || state === 'failed') return;
     if (publication?.observed) return;
     state = 'cancelled';
+    options.onStateChange?.(state);
     publication = null;
     const activeReservation = reservation;
     reservation = null;
@@ -264,6 +282,7 @@ export function createReadinessBarrier(options: SimulatorReadinessBarrierOptions
     if (state === 'usable' || state === 'cancelled' || state === 'failed') return null;
     if (publication?.observed) return null;
     state = 'cancelled';
+    options.onStateChange?.(state);
     publication = null;
     const activeReservation = reservation;
     reservation = null;
@@ -300,6 +319,7 @@ export function createReadinessBarrier(options: SimulatorReadinessBarrierOptions
   async function drive(): Promise<void> {
     // 1. State Engine quiescence (an open external reservation never blocks).
     state = 'waiting-quiescence';
+    options.onStateChange?.(state);
     if (!engine.isQuiescent()) {
       const reached = await raceCancel(new Promise<boolean>((resolve) => {
         unsubscribeState = engine.subscribeState(() => {
@@ -340,6 +360,7 @@ export function createReadinessBarrier(options: SimulatorReadinessBarrierOptions
       return;
     }
     state = 'waiting-commit';
+    options.onStateChange?.(state);
     const commitFloor = options.commitToken();
     const commit = await raceCancel(options.browser.awaitCommit(commitFloor, evidenceAbort.signal));
     if (commit === CANCELLED || state !== 'waiting-commit') return;
@@ -348,11 +369,33 @@ export function createReadinessBarrier(options: SimulatorReadinessBarrierOptions
       return;
     }
 
-    // 3. Two successive animation frames with Paint/Composite evidence.
+    // 3. Begin immutable trace capture, then observe two successive frames.
     state = 'waiting-paint';
+    options.onStateChange?.(state);
+    const observationToken = await raceCancel(options.browser.beginPaintComposite({
+      instanceId: options.instanceId,
+      surfaceId: options.surfaceId,
+      signal: evidenceAbort.signal,
+    }));
+    if (observationToken === CANCELLED || state !== 'waiting-paint') return;
+    if (observationToken === EVIDENCE_FAILED || observationToken === null) {
+      publishTerminal('failed', 'paint-barrier-failed');
+      return;
+    }
     const firstFrame = await raceCancel(options.browser.nextAnimationFrame(evidenceAbort.signal));
     if (firstFrame === CANCELLED || state !== 'waiting-paint') return;
     if (firstFrame === EVIDENCE_FAILED) {
+      publishTerminal('failed', 'paint-barrier-failed');
+      return;
+    }
+    const firstMarked = await raceCancel(options.browser.markPaintCompositeFrame({
+      observationToken,
+      ordinal: 'first',
+      frame: firstFrame,
+      signal: evidenceAbort.signal,
+    }));
+    if (firstMarked === CANCELLED || state !== 'waiting-paint') return;
+    if (firstMarked === EVIDENCE_FAILED || !firstMarked) {
       publishTerminal('failed', 'paint-barrier-failed');
       return;
     }
@@ -362,11 +405,23 @@ export function createReadinessBarrier(options: SimulatorReadinessBarrierOptions
       publishTerminal('failed', 'paint-barrier-failed');
       return;
     }
+    const secondMarked = await raceCancel(options.browser.markPaintCompositeFrame({
+      observationToken,
+      ordinal: 'second',
+      frame: secondFrame,
+      signal: evidenceAbort.signal,
+    }));
+    if (secondMarked === CANCELLED || state !== 'waiting-paint') return;
+    if (secondMarked === EVIDENCE_FAILED || !secondMarked) {
+      publishTerminal('failed', 'paint-barrier-failed');
+      return;
+    }
     const painted = await raceCancel(options.browser.observePaintComposite({
       instanceId: options.instanceId,
       surfaceId: options.surfaceId,
       firstFrame,
       secondFrame,
+      observationToken,
       signal: evidenceAbort.signal,
     }));
     if (painted === CANCELLED || state !== 'waiting-paint') return;
@@ -441,6 +496,7 @@ export function createReadinessBarrier(options: SimulatorReadinessBarrierOptions
       if (!reserved.ok) return simulatorFail(reserved.error);
       reservation = reserved.value;
       state = 'signaled';
+      options.onStateChange?.(state);
       void drive();
       return simulatorOk({ signaled: true });
     },

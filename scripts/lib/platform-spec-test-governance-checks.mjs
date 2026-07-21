@@ -397,6 +397,7 @@ function checkCensus({ definedRuleIds, fail, rel, census }) {
   ], 'census.exclude_dirs');
   expectExactSet(fail, rel, census.exclude_paths, [
     'app-tools/templates/app-source',
+    'apps/simulator/.generated',
   ], 'census.exclude_paths');
   checkAuthorityRefs(fail, rel, 'census.authority_refs', census.authority_refs, definedRuleIds);
 }

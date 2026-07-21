@@ -14,11 +14,19 @@ function renderShell(overrides = {}) {
     epoch: 1,
     phase: 'open',
     registryDigest: 'sha256:43fcca22e15ccc6241d82ab0fda6f963cdaa2af965d0ffdde960aec786cc0279',
+    replayDigest: 'sha256:af4d66a2f62a13a96d99c8602e6f4cc36a7dc12fa63353489338739c70622bb1',
+    stateRevision: 0,
     moduleCount: 0,
     route: { kind: 'home' },
     instances: [],
     diagnostics: [],
+    modules: [],
     onNavigate: () => {},
+    onOpen: () => {},
+    onClose: () => {},
+    onActivate: () => {},
+    onDeactivate: () => {},
+    onReset: () => {},
     ...overrides,
   }));
 }
@@ -73,8 +81,8 @@ test('open instances render in creation order with status', () => {
   const markup = renderShell({
     moduleCount: 1,
     instances: [
-      { instanceId: '1:instance:1', moduleId: 'fixture-module', surfaceId: 'main', status: 'active' },
-      { instanceId: '1:instance:2', moduleId: 'fixture-module', surfaceId: 'main', status: 'inactive' },
+      { instanceId: '1:instance:1', moduleId: 'fixture-module', surfaceId: 'main', status: 'active', readiness: 'usable' },
+      { instanceId: '1:instance:2', moduleId: 'fixture-module', surfaceId: 'main', status: 'inactive', readiness: 'pending' },
     ],
   });
   assert.ok(markup.includes('fixture-module — active'));

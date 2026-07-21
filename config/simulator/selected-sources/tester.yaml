@@ -1,0 +1,38 @@
+schema: nimi.simulator.selected-source/v1
+module_id: tester
+source_app_id_ref: nimi.tester
+sources:
+  - id: app
+    kind: workspace
+    repository_key: nimi
+    object_format: git-sha1
+    object_id: eedd71d1ede6a35e3d388244ea31e805b053e080
+    root: apps/tester
+    expected_digest: sha256:93ee676c8d7dcfd6c33fd3e862e2c310d1f6436921832e2d1f786dc3758e0c08
+    authority_refs:
+      - owner: tester
+        rule_id: T-SIM-008
+    authority_index_digest: sha256:3bf3a8c6c66c1dbbd4dc013ce175d9d120bdd09445cb83b47ff9fb02311cc468
+app_production:
+  source_id: app
+  entries:
+    - src/main.tsx
+  inventory_digest: sha256:00a3e79d8171886e516b3b9ab2aebae973a7069766f4a6dee7303f69510e9704
+  inventory_authority_refs:
+    - owner: tester
+      rule_id: T-SIM-008
+host_invocations:
+  entries:
+    - id: tester-renderer
+      source_id: app
+      entry: src/main.tsx
+      authority_refs:
+        - owner: tester
+          rule_id: T-SIM-008
+  inventory_digest: sha256:48f1ae189af822845224abd7a96ff82a3b6435c3f73c13b3919546eb584201ea
+  inventory_authority_refs:
+    - owner: tester
+      rule_id: T-SIM-008
+manifest:
+  source_id: app
+  path: nimi.simulator.yaml

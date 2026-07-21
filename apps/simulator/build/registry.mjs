@@ -505,7 +505,98 @@ function buildReadinessDeclarations(qualified) {
   }
   return Object.freeze(declarations);
 }
-
+function scenarioWire(scenario) {
+  const { digest: ignoredDigest, descriptor_label: ignoredLabel, ...wire } = scenario;
+  void ignoredDigest; void ignoredLabel;
+  return wire;
+}
+function assertScenarioMatchesQualified(scenario, rows, readinessDeclarations, supportedCapabilities = new Set()) {
+  if (!scenario || typeof scenario !== 'object') {
+    fail('SIM_SCENARIO_MISSING', 'one validated Simulator Scenario is required');
+  }
+  const selectedModuleIds = rows.map((row) => row.moduleId);
+  const scenarioModuleIds = scenario.module_data.map((row) => row.module_id);
+  if (stableJson(selectedModuleIds) !== stableJson(scenarioModuleIds)) {
+    fail('SIM_SCENARIO_MODULE_DATA_MISMATCH', 'Scenario module_data must exactly follow selected registry order');
+  }
+  for (const capability of scenario.enabled_capabilities) {
+    if (!supportedCapabilities.has(capability)) {
+      fail('SIM_SCENARIO_CAPABILITY_UNSUPPORTED', `Scenario capability ${JSON.stringify(capability)} is not admitted`);
+    }
+  }
+  const surfaces = new Map();
+  for (const row of rows) {
+    for (const surface of row.surfaces) surfaces.set(`${row.moduleId}/${surface.id}`, surface);
+  }
+  for (const launch of scenario.launch) {
+    if (!surfaces.has(`${launch.module_id}/${launch.surface_id}`)) {
+      fail(
+        'SIM_SCENARIO_LAUNCH_TARGET',
+        `Scenario launch ${JSON.stringify(launch.launch_id)} targets an undeclared selected surface`,
+      );
+    }
+  }
+  const readinessKeys = scenario.readiness.map((row) => `${row.module_id}/${row.surface_id}`);
+  if (stableJson([...surfaces.keys()]) !== stableJson(readinessKeys)) {
+    fail('SIM_SCENARIO_READINESS_COVERAGE', 'Scenario readiness must exactly follow selected surface order');
+  }
+  for (const row of scenario.readiness) {
+    const key = `${row.module_id}/${row.surface_id}`;
+    const declaration = readinessDeclarations[key];
+    if (!declaration
+      || declaration.contractId !== row.contract_id
+      || declaration.rootContentSemanticId !== row.root_content_semantic_id
+      || declaration.primaryControl.semanticId !== row.primary_control.semantic_id
+      || declaration.primaryControl.ariaRole !== row.primary_control.aria_role
+      || declaration.primaryControl.accessibleName !== row.primary_control.accessible_name) {
+      fail('SIM_SCENARIO_READINESS_DECLARATION', `Scenario readiness differs from App declaration ${JSON.stringify(key)}`);
+    }
+  }
+}
+function runtimeScenarioProjection(scenario) {
+  const readiness = Object.fromEntries(scenario.readiness.map((row) => {
+    const key = `${row.module_id}/${row.surface_id}`;
+    return [key, {
+      contractId: row.contract_id,
+      rootContentSemanticId: row.root_content_semantic_id,
+      primaryControl: {
+        semanticId: row.primary_control.semantic_id,
+        ariaRole: row.primary_control.aria_role,
+        accessibleName: row.primary_control.accessible_name,
+      },
+      projectionPredicateId: `${key}/projection`,
+      blockingStatePredicateId: `${key}/blocking`,
+    }];
+  }));
+  const predicates = Object.fromEntries(scenario.readiness.flatMap((row) => {
+    const key = `${row.module_id}/${row.surface_id}`;
+    return [
+      [`${key}/projection`, row.projection],
+      [`${key}/blocking`, row.blocking],
+    ];
+  }));
+  return {
+    scenario: {
+      scenarioId: scenario.scenario_id,
+      scenarioRevision: scenario.scenario_revision,
+      seed: scenario.seed,
+      initialLogicalTime: scenario.initial_logical_time,
+      scenarioState: scenario.state.scenario,
+      ecosystemState: scenario.state.ecosystem,
+      shellState: scenario.state.shell,
+    },
+    moduleData: Object.fromEntries(scenario.module_data.map((row) => [row.module_id, row.data])),
+    enabledCapabilities: scenario.enabled_capabilities,
+    launch: scenario.launch.map((row) => ({
+      launchId: row.launch_id,
+      moduleId: row.module_id,
+      surfaceId: row.surface_id,
+      activate: row.activate,
+    })),
+    readiness,
+    predicates,
+  };
+}
 export function generateRegistryFiles({
   generatedRoot,
   repoRoot,
@@ -517,12 +608,14 @@ export function generateRegistryFiles({
   cssProfiles,
   moduleCatalogs,
   readinessDeclarations,
+  scenario,
 }) {
   const moduleCatalogDigest = stableJsonDigest('nimi-simulator-module-catalogs-v1', moduleCatalogs);
   const readinessDeclarationDigest = stableJsonDigest(
     'nimi-simulator-readiness-declarations-v1',
     readinessDeclarations,
   );
+  const scenarioDigest = scenario.digest;
   const registry = {
     schema: 'nimi.simulator.resolved-registry/v1',
     modules: rows,
@@ -530,10 +623,12 @@ export function generateRegistryFiles({
     resolverTupleDigest: resolver.tupleDigest,
     moduleCatalogDigest,
     readinessDeclarationDigest,
+    scenarioDigest,
     digest: stableJsonDigest('nimi-simulator-resolved-registry-v1', {
       modules: rows,
       moduleCatalogDigest,
       readinessDeclarationDigest,
+      scenarioDigest,
     }),
   };
   assertRootIndependent(registry, repoRoot);
@@ -543,12 +638,18 @@ export function generateRegistryFiles({
   assertRootIndependent(cssProfiles, repoRoot);
   assertRootIndependent(moduleCatalogs, repoRoot);
   assertRootIndependent(readinessDeclarations, repoRoot);
+  assertRootIndependent(scenarioWire(scenario), repoRoot);
   mkdirSync(path.join(generatedRoot, 'evidence', 'app-tools'), { recursive: true });
   mkdirSync(path.join(generatedRoot, 'evidence', 'css-profile'), { recursive: true });
   writeFileSync(path.join(generatedRoot, 'registry.json'), `${JSON.stringify(registry, null, 2)}\n`);
   writeFileSync(path.join(generatedRoot, 'build-map.json'), `${JSON.stringify(buildMap, null, 2)}\n`);
   writeFileSync(path.join(generatedRoot, 'evidence', 'resolver.json'), `${JSON.stringify(resolver, null, 2)}\n`);
   writeFileSync(path.join(generatedRoot, 'evidence', 'materialization.json'), `${JSON.stringify(materializationEvidence, null, 2)}\n`);
+  writeFileSync(path.join(generatedRoot, 'evidence', 'scenario.json'), `${JSON.stringify({
+    schema: 'nimi.simulator.resolved-scenario/v1',
+    digest: scenario.digest,
+    scenario: scenarioWire(scenario),
+  }, null, 2)}\n`);
   for (const [moduleId, report] of Object.entries(appToolsReports)) {
     writeFileSync(path.join(generatedRoot, 'evidence', 'app-tools', `${moduleId}.json`), `${JSON.stringify(report, null, 2)}\n`);
   }
@@ -580,12 +681,21 @@ export function generateRegistryFiles({
     '',
   ].join('\n');
   writeFileSync(path.join(generatedRoot, 'runtime-catalogs.ts'), runtimeCatalogs);
+  const scenarioProjection = runtimeScenarioProjection(scenario);
+  const scenarioTypescript = [
+    '// Generated by apps/simulator/build/registry.mjs. Do not edit.',
+    `export const simulatorResolvedScenarioDigest = ${JSON.stringify(scenario.digest)} as const;`,
+    `export const simulatorResolvedScenario = ${JSON.stringify(scenarioProjection)} as const;`,
+    '',
+  ].join('\n');
+  writeFileSync(path.join(generatedRoot, 'scenario.ts'), scenarioTypescript);
   return registry;
 }
 
 export function qualifySelectedModules({
   descriptors,
   repositoryCatalog,
+  scenario,
   repoRoot,
   simulatorRoot,
   generatedRoot,
@@ -593,6 +703,7 @@ export function qualifySelectedModules({
   workspaceRoot = repoRoot,
   workspaceRepositoryKey = 'nimi',
   reportProvider = null,
+  supportedScenarioCapabilities = new Set(),
 }) {
   ensureGeneratedRoot(simulatorRoot, generatedRoot);
   const qualified = [];
@@ -667,6 +778,7 @@ export function qualifySelectedModules({
   });
   const moduleCatalogs = qualified.map(({ report, orderingKey }) => buildStaticModuleCatalog(report, orderingKey));
   const readinessDeclarations = buildReadinessDeclarations(qualified);
+  assertScenarioMatchesQualified(scenario, rows, readinessDeclarations, supportedScenarioCapabilities);
   // The effect catalog shares the generated workspace lifecycle: every
   // registry regeneration re-emits it after the wipe.
   generateEffectCatalog({ write: true, generatedRoot });
@@ -681,5 +793,6 @@ export function qualifySelectedModules({
     cssProfiles,
     moduleCatalogs,
     readinessDeclarations,
+    scenario,
   });
 }

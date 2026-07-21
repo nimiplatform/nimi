@@ -150,6 +150,16 @@ ecosystem, Shell/instance presentation, and private App-module state. An
 App reducer writes only its own module partition; Simulator interactions write
 only their declared Simulator-owned partitions.
 
+The one current executable Scenario is the tracked
+`config/simulator/scenario.yaml` artifact with schema
+`nimi.simulator.scenario/v1`; its closed field sets, initial state, exact
+selected-module data coverage, enabled capabilities, ordered launch intents,
+readiness expectations, cross-validation, generated projection, and digest
+binding are fixed by `tables/simulator-scenario-contract.yaml`. A non-empty
+selection without exact Scenario coverage fails before registry generation.
+App conformance fixtures are validation evidence and cannot become runtime
+Scenario input.
+
 State Engine data cannot be persisted or consumed as Runtime, Realm, App
 registry, identity, permission, account, message-delivery, model, provider,
 memory, or world truth. Persistence-shaped behavior is ordinary scenario state
@@ -207,6 +217,21 @@ visible checkpoint requires: the declared candidate, State Engine quiescence,
 current instance/epoch validity, React commit, two animation frames, successful
 Paint/Composite observation, and declared semantic markers within the assigned
 renderer/overlay roots.
+
+The immutable browser runner injects the closed `qualification_trace` port
+defined by `tables/simulator-browser-effects.yaml`. The Shell begins capture
+before the first readiness frame, records runner-owned clock-sync markers after
+each frame callback, and must end or cancel capture before the readiness
+terminal. Selected source and selected dependencies cannot call the injected
+global transport directly. Absence, stale tokens, overlapping trace ownership,
+or a trace without Paint/Composite evidence between the two markers fails
+readiness.
+
+Scenario readiness rows must exactly cover selected surfaces and exactly match
+each App-owned readiness declaration. Projection and blocking predicates are
+data from the closed predicate kinds in
+`tables/simulator-scenario-contract.yaml`; executable predicate functions or
+App-specific Shell branches are not Scenario authority.
 
 Close, reset, stale epoch, failure, or new state invalidates the barrier. A
 skeleton, loading fallback, off-root marker, hidden simulation disclosure, or
@@ -337,6 +362,9 @@ App-production and host-invocation inventories, resolver targets, catalog
 versions/digests, graph/style identities, artifact chunks/assets/maps, guard
 installation, denied effects, lifecycle/reset/replay records, visual and
 accessibility evidence, calibrated performance, and the final gate verdict.
+It also binds the canonical Scenario digest, generated Scenario projection,
+ordered launch intents, and the readiness expectation rows used by the final
+artifact.
 
 Every referenced artifact has a SHA-256 digest and summaries are reproducible.
 Evidence contains no absolute user path, credential, token, source secret, or
@@ -368,6 +396,7 @@ authority. That table cannot grant authority to an implementation path.
 - `tables/simulator-authority-boundaries.yaml`
 - `tables/simulator-module-contract.yaml`
 - `tables/simulator-source-policy.yaml`
+- `tables/simulator-scenario-contract.yaml`
 - `tables/simulator-state-engine-policy.yaml`
 - `tables/simulator-error-codes.yaml`
 - `tables/simulator-mandatory-singletons.yaml`

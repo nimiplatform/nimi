@@ -28,6 +28,7 @@ import {
   REPO_ROOT,
   SIMULATOR_ROOT,
 } from '../build/paths.mjs';
+import { scenarioForQualifiedReports } from './scenario-fixture.mjs';
 
 const TESTER_SOURCE = path.join(REPO_ROOT, 'apps', 'tester');
 const VITE_CLI = path.join(SIMULATOR_ROOT, 'node_modules', 'vite', 'bin', 'vite.js');
@@ -144,9 +145,11 @@ function writePublicWebIsolationEvidence(generatedRoot) {
 
 function buildSelectedTesterArtifact(fixture, simulator) {
   const descriptor = validateSelectedSourceDescriptor(testerDescriptorValue(fixture));
+  const report = validateSimulatorAppSource(fixture.appRoot).report;
   const registry = qualifySelectedModules({
     descriptors: [descriptor],
     repositoryCatalog: { repositories: [] },
+    scenario: scenarioForQualifiedReports([{ moduleId: 'tester', report }]),
     repoRoot: REPO_ROOT,
     simulatorRoot: simulator.root,
     generatedRoot: simulator.generatedRoot,
@@ -188,6 +191,7 @@ test('real Tester source qualifies, builds through the final graph, and matches 
     const registry = qualifySelectedModules({
       descriptors: [descriptor],
       repositoryCatalog: { repositories: [] },
+      scenario: scenarioForQualifiedReports([{ moduleId: 'tester', report: sourceReport }]),
       repoRoot: REPO_ROOT,
       simulatorRoot: simulator.root,
       generatedRoot: simulator.generatedRoot,

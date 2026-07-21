@@ -48,3 +48,40 @@ body {
 .simulator-empty-shell__status {
   margin: 0;
 }
+
+.simulator-shell {
+  padding: 1rem;
+}
+
+.simulator-nav,
+.simulator-modules,
+.simulator-windows__item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.simulator-modules {
+  flex-wrap: wrap;
+  margin-block: 1rem;
+}
+
+.simulator-windows {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.simulator-surfaces {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.simulator-surface {
+  min-width: 0;
+  border: 1px solid var(--nimi-border-subtle);
+  border-radius: var(--nimi-radius-lg);
+  overflow: clip;
+}

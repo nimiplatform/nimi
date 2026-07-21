@@ -28,6 +28,7 @@
   "include": [
     "src",
     ".generated/registry.ts",
+    ".generated/scenario.ts",
     ".generated/effect-catalog.ts",
     "vite.config.ts"
   ]

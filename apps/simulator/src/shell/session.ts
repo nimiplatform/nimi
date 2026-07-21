@@ -91,12 +91,17 @@ export interface SimulatorSessionInstanceView {
   readonly moduleId: string;
   readonly surfaceId: string;
   readonly status: string;
+  readonly readiness: string;
 }
 
 export interface SimulatorSession {
   readonly engine: SimulatorStateEngine;
   readonly diagnostics: SimulatorDiagnosticsStore;
-  openInstance(moduleId: string, surfaceId?: string): Promise<SimulatorResult<{ readonly instanceId: string }>>;
+  openInstance(
+    moduleId: string,
+    surfaceId?: string,
+    options?: { readonly activateBeforeMount?: boolean },
+  ): Promise<SimulatorResult<{ readonly instanceId: string }>>;
   closeInstance(instanceId: string): Promise<SimulatorResult<{ readonly disposed: boolean }>>;
   activateInstance(instanceId: string): Promise<SimulatorResult<{ readonly activated: boolean }>>;
   deactivateInstance(instanceId: string): Promise<SimulatorResult<{ readonly deactivated: boolean }>>;
@@ -105,6 +110,8 @@ export interface SimulatorSession {
   navigate(route: SimulatorShellRoute): void;
   instances(): readonly SimulatorSessionInstanceView[];
   readinessFor(instanceId: string, surfaceId: string): SimulatorResult<SimulatorReadinessBarrier>;
+  /** Last digest published at a completed visible-checkpoint boundary. */
+  replayDigest(): string | null;
   subscribe(listener: () => void): () => void;
   readonly phase: 'open' | 'resetting' | 'terminal';
   readonly epoch: number;
@@ -117,6 +124,7 @@ export function createSimulatorSession(options: SimulatorSessionOptions): Simula
   const resetReadinessSettlements: { readonly sequence: number; readonly settle: () => void }[] = [];
   const hostRef: { current: SimulatorInstanceHost | null } = { current: null };
   let currentRoute: SimulatorShellRoute = { kind: 'home' };
+  let publishedReplayDigest: string | null = null;
 
   const engine = createSimulatorStateEngine({
     scenario: options.scenario,
@@ -222,7 +230,7 @@ export function createSimulatorSession(options: SimulatorSessionOptions): Simula
   const session: SimulatorSession = {
     engine,
     diagnostics,
-    async openInstance(moduleId, surfaceId = 'main') {
+    async openInstance(moduleId, surfaceId = 'main', openOptions = {}) {
       if (engine.phase === 'terminal') {
         return simulatorFail(simulatorError('SIMULATOR_INTEGRITY_FAILURE', { moduleId }));
       }
@@ -238,6 +246,7 @@ export function createSimulatorSession(options: SimulatorSessionOptions): Simula
         moduleId,
         surfaceId,
         initialRoute: { pathname: surface.initialRoute, search: [], fragment: null },
+        activateBeforeMount: openOptions.activateBeforeMount === true,
         loadRenderer: async () => await row.loadRenderer() as SimulatorRendererModuleSource,
         loadAdapter: async () => row.loadAdapter(),
         loadStyle: async () => row.loadStyle(),
@@ -271,6 +280,7 @@ export function createSimulatorSession(options: SimulatorSessionOptions): Simula
         if (result.ok) {
           readinessBarriers.clear();
           currentRoute = { kind: 'home' };
+          publishedReplayDigest = null;
         }
         notify();
       });
@@ -284,12 +294,31 @@ export function createSimulatorSession(options: SimulatorSessionOptions): Simula
       notify();
     },
     instances() {
-      return engine.getCommitted().instancesInCreationOrder().map((instance) => ({
-        instanceId: instance.instanceId,
-        moduleId: instance.moduleId,
-        surfaceId: instance.surfaceId,
-        status: instance.status,
-      }));
+      const committed = engine.getCommitted();
+      const shell = committed.partitions.shell as Readonly<Record<string, JsonValue>>;
+      const readiness = shell.readiness && typeof shell.readiness === 'object' && !Array.isArray(shell.readiness)
+        ? shell.readiness as Readonly<Record<string, JsonValue>>
+        : {};
+      return committed.instancesInCreationOrder().map((instance) => {
+        const readinessState = Object.values(readiness).find((entry) => {
+          if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) return false;
+          const record = entry as Readonly<Record<string, JsonValue>>;
+          return record.instanceId === instance.instanceId && record.surfaceId === instance.surfaceId;
+        });
+        const readinessRecord = readinessState !== null && typeof readinessState === 'object' && !Array.isArray(readinessState)
+          ? readinessState as Readonly<Record<string, JsonValue>>
+          : null;
+        const readinessBarrier = readinessBarriers.get(`${instance.instanceId}\u0000${instance.surfaceId}`);
+        return {
+          instanceId: instance.instanceId,
+          moduleId: instance.moduleId,
+          surfaceId: instance.surfaceId,
+          status: instance.status,
+          readiness: readinessRecord && typeof readinessRecord.state === 'string'
+            ? readinessRecord.state
+            : readinessBarrier?.state ?? 'pending',
+        };
+      });
     },
     readinessFor(instanceId, surfaceId) {
       const instance = engine.getCommitted().instance(instanceId);
@@ -335,9 +364,19 @@ export function createSimulatorSession(options: SimulatorSessionOptions): Simula
           return projected.ok ? projected.value : null;
         },
         simulationDisclosureVisible: options.simulationDisclosureVisible,
+        onStateChange: notify,
       });
       readinessBarriers.set(barrierKey, barrier);
+      void barrier.completion.then(() => {
+        if (engine.phase === 'open' && engine.isQuiescent()) {
+          publishedReplayDigest = engine.replayRecordDigest();
+        }
+        notify();
+      });
       return simulatorOk(barrier);
+    },
+    replayDigest() {
+      return publishedReplayDigest;
     },
     subscribe(listener) {
       listeners.add(listener);

@@ -33,6 +33,7 @@ roots:
       - .nimi/spec/platform/kernel/tables/simulator-authority-boundaries.yaml
       - .nimi/spec/platform/kernel/tables/simulator-module-contract.yaml
       - .nimi/spec/platform/kernel/tables/simulator-source-policy.yaml
+      - .nimi/spec/platform/kernel/tables/simulator-scenario-contract.yaml
       - .nimi/spec/platform/kernel/tables/simulator-state-engine-policy.yaml
       - .nimi/spec/platform/kernel/tables/simulator-error-codes.yaml
       - .nimi/spec/platform/kernel/tables/simulator-mandatory-singletons.yaml

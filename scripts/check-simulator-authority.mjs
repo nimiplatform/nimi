@@ -75,6 +75,7 @@ const tableSpecs = [
   ['simulator-authority-boundaries.yaml', 'owner_matrix', 'matrix_id', 'platform_simulator_authority_boundaries', 'P-SIM-001'],
   ['simulator-module-contract.yaml', 'protocol_surface', 'protocol_id', 'platform_simulator_module_contract', 'P-SIM-004'],
   ['simulator-source-policy.yaml', 'protocol_surface', 'protocol_id', 'platform_simulator_selected_source', 'P-SIM-003'],
+  ['simulator-scenario-contract.yaml', 'protocol_surface', 'protocol_id', 'platform_simulator_scenario', 'P-SIM-010'],
   ['simulator-state-engine-policy.yaml', 'protocol_surface', 'protocol_id', 'platform_simulator_state_engine', 'P-SIM-010'],
   ['simulator-error-codes.yaml', 'closed_enum', 'enum_id', 'platform_simulator_error_codes', 'P-SIM-019'],
   ['simulator-mandatory-singletons.yaml', 'product_catalog', 'catalog_id', 'platform_simulator_mandatory_singletons', 'P-SIM-008'],
@@ -133,6 +134,30 @@ exactSet(sourcePolicy.source_location?.kinds, ['workspace', 'external-repository
 exactValue(sourcePolicy.source_digest_v1?.algorithm, 'sha256', 'selected-source digest algorithm');
 exactValue(sourcePolicy.resolver?.owner, 'simulator', 'selected-source resolver owner');
 exactValue(sourcePolicy.resolved_registry?.generated_only, true, 'selected-module registry generation posture');
+
+const scenarioContract = tables.get('simulator-scenario-contract.yaml');
+exactValue(scenarioContract.tracked_artifact?.path, 'config/simulator/scenario.yaml', 'Simulator Scenario path');
+exactValue(scenarioContract.tracked_artifact?.schema, 'nimi.simulator.scenario/v1', 'Simulator Scenario schema');
+exactValue(scenarioContract.tracked_artifact?.active_artifacts, 'exactly_one', 'Simulator active Scenario count');
+exactSet(scenarioContract.tracked_artifact?.top_level_required_fields, [
+  'schema',
+  'scenario_id',
+  'scenario_revision',
+  'seed',
+  'initial_logical_time',
+  'state',
+  'module_data',
+  'enabled_capabilities',
+  'launch',
+  'readiness',
+], 'Simulator Scenario top-level fields');
+exactValue(scenarioContract.module_data?.selected_module_coverage, 'exact', 'Scenario module-data coverage');
+exactValue(scenarioContract.module_data?.app_fixture_as_runtime_input, 'forbidden', 'Scenario fixture runtime posture');
+exactValue(scenarioContract.launch?.app_specific_shell_branch, 'forbidden', 'Scenario launch branch posture');
+exactSet(scenarioContract.readiness?.projection_kinds, ['json_pointer_equals'], 'Scenario projection predicates');
+exactSet(scenarioContract.readiness?.blocking_kinds, ['no_active_overlay_lease'], 'Scenario blocking predicates');
+exactValue(scenarioContract.build_binding?.generated_projection, 'apps/simulator/.generated/scenario.ts', 'Scenario generated projection path');
+exactValue(scenarioContract.build_binding?.artifact_manifest_binding, 'required', 'Scenario artifact binding');
 
 const statePolicy = tables.get('simulator-state-engine-policy.yaml');
 exactValue(statePolicy.operation_queue?.ordering, 'FIFO_acceptance_sequence', 'State Engine queue ordering');
@@ -214,6 +239,7 @@ exactSet(effectCatalog.entries?.map((entry) => entry.id), [
   'layout_read',
   'layout_observer',
   'integrity_timing',
+  'qualification_trace',
 ], 'Simulator browser-effect catalog');
 exactValue(effectCatalog.enforcement?.violation_result, 'SIMULATOR_EFFECT_FORBIDDEN', 'browser-effect violation result');
 for (const requiredForbidden of ['network_fetch', 'persistent_web_storage', 'worker_construction', 'wall_clock', 'nondeterministic_random']) {
@@ -336,6 +362,7 @@ exactValue(rootPackage.scripts?.['check:simulator-modules'], 'node scripts/with-
 exactValue(rootPackage.scripts?.['build:simulator'], 'node scripts/with-workspace-surfaces.mjs -- pnpm --filter @nimiplatform/simulator build', 'root Simulator build command');
 exactValue(rootPackage.scripts?.['check:simulator-reproducible-build'], 'node scripts/with-workspace-surfaces.mjs -- node apps/simulator/build/check-reproducible-build.mjs', 'root Simulator reproducible-build command');
 exactValue(rootPackage.scripts?.['test:simulator-contract'], 'pnpm --filter @nimiplatform/simulator test:contract', 'root Simulator contract command');
+exactValue(rootPackage.scripts?.['check:simulator-cp4'], 'pnpm build:simulator && pnpm --filter @nimiplatform/simulator qualify:cp4', 'root Simulator CP4 command');
 
 const simulatorPackage = JSON.parse(read('apps/simulator/package.json') || '{}');
 exactValue(simulatorPackage.name, '@nimiplatform/simulator', 'Simulator package name');
@@ -358,6 +385,8 @@ exactValue(
   'node --test test/contract/*.test.mjs',
   'Simulator prepared contract package command',
 );
+exactValue(simulatorPackage.scripts?.['qualify:cp4'], 'node build/qualify-cp4.mjs', 'Simulator CP4 package command');
+exactValue(simulatorPackage.devDependencies?.playwright, '1.61.1', 'Simulator CP4 pinned browser dependency');
 
 const appToolsPackage = JSON.parse(read('app-tools/package.json') || '{}');
 exactValue(appToolsPackage.exports?.['./simulator-conformance'], './lib/simulator-conformance.mjs', 'app-tools Simulator conformance export');
@@ -381,8 +410,16 @@ exactValue(
   'Simulator prepared release-gate contract command',
 );
 exactSet(simulatorContractGate?.tiers, ['release'], 'Simulator contract gate tiers');
+const simulatorCp4Gate = releaseRegistry.gates?.find((entry) => entry.id === 'gate.simulator.cp4');
+exactValue(simulatorCp4Gate?.command, 'pnpm --filter @nimiplatform/simulator qualify:cp4', 'Simulator CP4 release-gate command');
+exactSet(simulatorCp4Gate?.tiers, ['release'], 'Simulator CP4 gate tiers');
+exactSet(simulatorCp4Gate?.targets, ['any'], 'Simulator CP4 gate targets');
+exactSet(simulatorCp4Gate?.prerequisites, ['gate.simulator.contract'], 'Simulator CP4 prerequisites');
 
 const testGovernance = readYaml('.nimi/spec/platform/kernel/tables/test-governance-policy.yaml');
+if (!testGovernance.census?.exclude_paths?.includes('apps/simulator/.generated')) {
+  fail('Simulator generated materialization must be excluded from the host test census');
+}
 const simulatorTestSuite = testGovernance.suites?.find((entry) => entry.id === 'simulator-build-control-unit');
 exactValue(simulatorTestSuite?.gate_id, 'gate.simulator.build-control-unit', 'Simulator test-governance gate');
 exactValue(simulatorTestSuite?.command, 'pnpm --filter @nimiplatform/simulator test', 'Simulator test-governance command');
@@ -399,6 +436,10 @@ exactSet(
   'Simulator contract test-governance workspace surfaces',
 );
 exactValue(simulatorContractSuite?.workspace_order, 36, 'Simulator contract test-governance order');
+const simulatorCp4Suite = testGovernance.suites?.find((entry) => entry.id === 'simulator-cp4-product-acceptance');
+exactValue(simulatorCp4Suite?.lane, 'product_acceptance', 'Simulator CP4 acceptance lane');
+exactValue(simulatorCp4Suite?.gate_id, 'gate.simulator.cp4', 'Simulator CP4 test-governance gate');
+exactValue(simulatorCp4Suite?.command, 'pnpm --filter @nimiplatform/simulator qualify:cp4', 'Simulator CP4 test-governance command');
 
 const auditEvidenceRoots = readYaml('.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml');
 const simulatorEvidenceRoot = auditEvidenceRoots.roots?.find((entry) => entry.id === 'platform-simulator-authority');

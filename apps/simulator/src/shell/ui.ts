@@ -21,11 +21,22 @@ export interface SimulatorShellViewProps {
   readonly epoch: number;
   readonly phase: 'open' | 'resetting' | 'terminal';
   readonly registryDigest: string;
+  readonly replayDigest: string | null;
+  readonly stateRevision: number;
   readonly moduleCount: number;
   readonly route: SimulatorShellRoute;
   readonly instances: readonly SimulatorSessionInstanceView[];
   readonly diagnostics: readonly SimulatorDiagnostic[];
+  readonly modules: readonly {
+    readonly moduleId: string;
+    readonly surfaces: readonly { readonly id: string; readonly label: string }[];
+  }[];
   readonly onNavigate: (route: SimulatorShellRoute) => void;
+  readonly onOpen: (moduleId: string, surfaceId: string) => void;
+  readonly onClose: (instanceId: string) => void;
+  readonly onActivate: (instanceId: string) => void;
+  readonly onDeactivate: (instanceId: string) => void;
+  readonly onReset: () => void;
 }
 
 export function SimulatorStatusBar(props: SimulatorShellViewProps): ReactElement {
@@ -68,6 +79,21 @@ function HomeView(props: SimulatorShellViewProps): ReactElement {
   return h('main', { className: 'simulator-home' },
     h('p', { className: 'simulator-home__summary' },
       `${props.moduleCount} selected module${props.moduleCount === 1 ? '' : 's'}`),
+    h('section', { className: 'simulator-modules', 'aria-label': 'Selected modules' },
+      props.modules.flatMap((module) => module.surfaces.map((surface) => h('button', {
+        key: `${module.moduleId}/${surface.id}`,
+        type: 'button',
+        onClick: () => props.onOpen(module.moduleId, surface.id),
+        'data-module-id': module.moduleId,
+        'data-surface-id': surface.id,
+      }, `Open ${surface.label}`))),
+      h('button', {
+        type: 'button',
+        onClick: props.onReset,
+        disabled: props.phase !== 'open',
+        'data-simulator-action': 'reset',
+      }, 'Reset scenario'),
+    ),
     props.instances.length === 0
       ? h('p', { className: 'simulator-home__empty' }, 'No App instances are open.')
       : h('ul', { className: 'simulator-windows', 'aria-label': 'Open instances' },
@@ -75,7 +101,21 @@ function HomeView(props: SimulatorShellViewProps): ReactElement {
             key: instance.instanceId,
             className: 'simulator-windows__item',
             'data-instance-status': instance.status,
-          }, `${instance.moduleId} — ${instance.status}`))),
+            'data-readiness-status': instance.readiness,
+            'data-instance-id': instance.instanceId,
+            'data-module-id': instance.moduleId,
+            'data-surface-id': instance.surfaceId,
+          },
+          h('span', null, `${instance.moduleId} — ${instance.status} — ${instance.readiness}`),
+          instance.status === 'active'
+            ? h('button', { type: 'button', onClick: () => props.onDeactivate(instance.instanceId) }, 'Deactivate')
+            : instance.status === 'inactive'
+              ? h('button', { type: 'button', onClick: () => props.onActivate(instance.instanceId) }, 'Activate')
+              : null,
+          instance.status !== 'disposed'
+            ? h('button', { type: 'button', onClick: () => props.onClose(instance.instanceId) }, 'Close')
+            : null,
+          ))),
   );
 }
 
@@ -96,6 +136,8 @@ export function SimulatorShellContent(props: SimulatorShellViewProps): ReactElem
   return h('div', {
     className: 'simulator-shell',
     'data-registry-digest': props.registryDigest,
+    'data-replay-digest': props.replayDigest ?? undefined,
+    'data-state-revision': props.stateRevision,
   },
     h(Navigation, props),
     props.route.kind === 'diagnostics' ? h(DiagnosticsView, props) : h(HomeView, props),

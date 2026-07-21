@@ -52,10 +52,11 @@ function assertPublicWebIsolation() {
 }
 
 const publicWebIsolation = assertPublicWebIsolation();
-const { descriptors, repositoryCatalog } = loadSimulatorConfig(CONFIG_ROOT);
+const { descriptors, repositoryCatalog, scenario } = loadSimulatorConfig(CONFIG_ROOT);
 const registry = qualifySelectedModules({
   descriptors,
   repositoryCatalog,
+  scenario,
   repoRoot: REPO_ROOT,
   simulatorRoot: SIMULATOR_ROOT,
   generatedRoot: GENERATED_ROOT,

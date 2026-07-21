@@ -46,6 +46,8 @@ function readinessBrowser() {
   return {
     awaitCommit: async (floor) => floor + 1,
     nextAnimationFrame: async () => { frame += 1; return frame; },
+    beginPaintComposite: async () => 'fixture-paint-window',
+    markPaintCompositeFrame: async () => true,
     observePaintComposite: async () => true,
     checkSemanticMarkers: async () => ({ ok: true }),
   };

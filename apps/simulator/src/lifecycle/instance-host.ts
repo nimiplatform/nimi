@@ -73,9 +73,7 @@ export type {
   SimulatorOpenInstanceInput,
   SimulatorPreparedSurfaceHost,
 } from './instance-host-contract.ts';
-
 type InstanceRecord = SimulatorInstanceRecord;
-
 export function createSimulatorInstanceHost(options: SimulatorInstanceHostOptions): SimulatorInstanceHost {
   const { engine, timers } = options;
   const watchdogMs = options.watchdogMs ?? SIMULATOR_CLEANUP_WATCHDOG_MS;
@@ -486,7 +484,6 @@ export function createSimulatorInstanceHost(options: SimulatorInstanceHostOption
       } catch {
         return completeModuleOpenFailure(record);
       }
-
       const attachedBehavior = attachedBehaviors.get(input.moduleId);
       if (attachedBehavior && attachedBehavior !== adapterFactory.behavior) {
         return completeModuleOpenFailure(record);
@@ -498,17 +495,15 @@ export function createSimulatorInstanceHost(options: SimulatorInstanceHostOption
         }
         attachedBehaviors.set(input.moduleId, adapterFactory.behavior);
       }
-
-      const behaviorActivated = await engine.acceptCommand('simulator.behavior.activate', {
-        moduleId: input.moduleId,
-      }, { kind: 'shell', moduleId: null, instanceId: null });
+      const behaviorActivated = await engine.acceptCommand(
+        'simulator.behavior.activate', { moduleId: input.moduleId }, { kind: 'shell', moduleId: null, instanceId: null },
+      );
       if (!record.tokenValid || record.phase !== 'loading') {
         return invalidatedOpen(record.epoch);
       }
       if (!behaviorActivated.ok) {
         return completeModuleOpenFailure(record);
       }
-
       const loaded = await transition(record, 'module_loaded');
       if (!record.tokenValid || record.phase !== 'loading') {
         return invalidatedOpen(record.epoch);
@@ -535,7 +530,6 @@ export function createSimulatorInstanceHost(options: SimulatorInstanceHostOption
         return completeInstanceOpenFailure(record, 'prepare-window-failure');
       }
       const prepareWindow = prepareWindowResult.value;
-
       let prepareOutcome:
         | { ok: true; value: SimulatorCanonicalRendererBindings }
         | { ok: false; error: unknown };
@@ -571,7 +565,6 @@ export function createSimulatorInstanceHost(options: SimulatorInstanceHostOption
         prepareWindow.close();
         prepareOutcome = { ok: false, error };
       }
-
       // Stale completion: a close interrupted the pending prepare.
       if (!record.tokenValid || record.phase !== 'preparing') {
         return invalidatedOpen(record.epoch);
@@ -579,7 +572,6 @@ export function createSimulatorInstanceHost(options: SimulatorInstanceHostOption
       if (!prepareOutcome.ok) {
         return completeInstanceOpenFailure(record, 'prepare-failure');
       }
-
       try {
         assertSimulatorCanonicalBindings(prepareOutcome.value);
         record.canonical = runRenderer(
@@ -587,7 +579,6 @@ export function createSimulatorInstanceHost(options: SimulatorInstanceHostOption
           () => rendererModule.factory.createInstance(prepareOutcome.value),
         );
         assertSimulatorCanonicalInstance(record.canonical, input.surfaceId);
-        record.surfaceHost.mount(record.canonical);
       } catch {
         return completeInstanceOpenFailure(record, 'factory-failure');
       }
@@ -597,6 +588,25 @@ export function createSimulatorInstanceHost(options: SimulatorInstanceHostOption
       }
       if (!prepared.ok) return simulatorFail(prepared.error);
       record.phase = 'ready';
+      if (input.activateBeforeMount) {
+        const activated = await transition(record, 'activate');
+        if (!activated.ok) return completeInstanceOpenFailure(record, 'activate-transition-failure');
+        try {
+          record.cleanup.beginWindow();
+          await runAdapter('instance-lifecycle', () => record.adapter?.activate?.());
+          record.cleanup.closeWindow();
+        } catch {
+          record.cleanup.closeWindow();
+          return completeInstanceOpenFailure(record, 'activate-failure');
+        }
+      }
+      try {
+        // The surface cannot report readiness until the authoritative initial
+        // inactive/active lifecycle intent has committed.
+        record.surfaceHost.mount(record.canonical);
+      } catch {
+        return completeInstanceOpenFailure(record, 'surface-mount-failure');
+      }
       return simulatorOk({ instanceId });
       })().then(
         (result) => lifecycle.settle(result),

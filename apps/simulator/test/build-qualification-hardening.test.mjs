@@ -8,6 +8,7 @@ import test from 'node:test';
 import {
   buildSimulatorSourceInventory,
   stableJsonDigest,
+  validateSimulatorAppSource,
 } from '@nimiplatform/app-tools/simulator-conformance';
 import {
   appProductionInventoryDigest,
@@ -16,6 +17,7 @@ import {
 } from '../build/config.mjs';
 import { qualifySelectedModules } from '../build/registry.mjs';
 import { REPO_ROOT, SIMULATOR_ROOT } from '../build/paths.mjs';
+import { scenarioForQualifiedReports } from './scenario-fixture.mjs';
 
 const APP_FIXTURE = path.join(REPO_ROOT, 'app-tools', 'test', 'fixtures', 'simulator-valid');
 const DIRECTORY_LINK_TYPE = process.platform === 'win32' ? 'junction' : 'dir';
@@ -107,6 +109,10 @@ test('qualification rejects App-owned conditional package exports', () => {
       () => qualifySelectedModules({
         descriptors: [descriptor(fixture)],
         repositoryCatalog: { repositories: [] },
+        scenario: scenarioForQualifiedReports([{
+          moduleId: 'sample-app',
+          report: validateSimulatorAppSource(fixture.appRoot).report,
+        }]),
         repoRoot: REPO_ROOT,
         simulatorRoot: fixture.simulatorRoot,
         generatedRoot: path.join(fixture.simulatorRoot, '.generated'),
