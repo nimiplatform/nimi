@@ -1,6 +1,6 @@
-import { useEffect, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 import type { StatusBanner } from '../../app-shell/providers/app-store';
-import { i18n } from '../../i18n';
+import { useTranslation } from 'react-i18next';
 import {
   readStorageTextFrom,
   resolveBrowserStorage,
@@ -12,10 +12,6 @@ import {
 } from './runtime-config-storage-defaults';
 import { loadRuntimeConfigStateV11 } from './runtime-config-storage-persist';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
-import {
-  markRuntimeConfigV11ResetLogged,
-  wasRuntimeConfigV11ResetLogged,
-} from './runtime-config-meta-v11';
 
 type HydrationEffectInput = {
   bootstrapReady: boolean;
@@ -26,6 +22,8 @@ type HydrationEffectInput = {
 };
 
 export function useRuntimeConfigHydrationEffect(input: HydrationEffectInput) {
+  const { t } = useTranslation();
+  const resetLoggedRef = useRef(false);
   useEffect(() => {
     if (!input.bootstrapReady || input.hydrated) return;
 
@@ -40,7 +38,7 @@ export function useRuntimeConfigHydrationEffect(input: HydrationEffectInput) {
     input.setState(loaded);
     input.setHydrated(true);
 
-    const shouldEmitResetLog = !wasRuntimeConfigV11ResetLogged();
+    const shouldEmitResetLog = !resetLoggedRef.current;
     if (shouldEmitResetLog) {
       const flowId = createRendererFlowId('runtime-config');
       logRendererEvent({
@@ -52,13 +50,13 @@ export function useRuntimeConfigHydrationEffect(input: HydrationEffectInput) {
           hadStoredState,
         },
       });
-      markRuntimeConfigV11ResetLogged();
+      resetLoggedRef.current = true;
     }
 
     if (!hadStoredState && shouldEmitResetLog) {
       input.setStatusBanner({
         kind: 'info',
-        message: i18n.t('RuntimeConfig.structureUpgraded', {
+        message: t('RuntimeConfig.structureUpgraded', {
           defaultValue: 'Configuration structure upgraded. Please re-confirm model bindings.',
         }),
       });
@@ -69,5 +67,6 @@ export function useRuntimeConfigHydrationEffect(input: HydrationEffectInput) {
     input.setHydrated,
     input.setState,
     input.setStatusBanner,
+    t,
   ]);
 }

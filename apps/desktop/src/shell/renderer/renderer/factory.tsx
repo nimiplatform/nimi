@@ -48,7 +48,9 @@ function DesktopMainSurface(props: {
             attention={props.resources.attention}
             i18n={props.resources.i18n}
             queryClient={props.resources.queryClient}
+            realmSocialData={props.resources.realmSocialData}
             Router={props.resources.Router}
+            scenarioJobController={props.resources.scenarioJobController}
             store={props.resources.store}
             streamController={props.resources.streamController}
           >

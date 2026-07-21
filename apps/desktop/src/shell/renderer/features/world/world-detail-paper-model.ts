@@ -1,5 +1,4 @@
 import type { WorldCharacter, WorldDetailData, WorldHistoryBundle, WorldPublicAssetsData, WorldSceneItem, WorldSemanticData } from './world-detail-types.js';
-import { formatLocaleDateTime } from '../../i18n';
 import { currentWorldTime, formatNum, personaCount, sourceCount, worldCharacterCount } from './world-detail-template-model';
 
 /**
@@ -132,10 +131,13 @@ export function derivedMetrics(
 
 const ISO_DATE_TIME_LABEL = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
-function formatAuthoredWorldTimeLabel(value: string): string {
+function formatAuthoredWorldTimeLabel(
+  value: string,
+  formatDateTime: (value: unknown) => string,
+): string {
   const label = value.trim();
   if (ISO_DATE_TIME_LABEL.test(label) && !Number.isNaN(new Date(label).getTime())) {
-    return formatLocaleDateTime(label);
+    return formatDateTime(label);
   }
   return value;
 }
@@ -145,12 +147,15 @@ function formatAuthoredWorldTimeLabel(value: string): string {
  * raw timestamp into the active locale's short date-time instead of leaking an
  * ISO string. Falls back to the era label when no time is set.
  */
-export function worldTimeDisplay(world: WorldDetailData): string {
+export function worldTimeDisplay(
+  world: WorldDetailData,
+  formatDateTime: (value: unknown) => string,
+): string {
   if (world.currentTimeLabel) {
-    return formatAuthoredWorldTimeLabel(world.currentTimeLabel);
+    return formatAuthoredWorldTimeLabel(world.currentTimeLabel, formatDateTime);
   }
   if (world.currentWorldTime) {
-    return formatLocaleDateTime(world.currentWorldTime);
+    return formatDateTime(world.currentWorldTime);
   }
   return currentWorldTime(world);
 }

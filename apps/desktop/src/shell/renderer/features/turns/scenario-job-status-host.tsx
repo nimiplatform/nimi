@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react';
-import {
-  clearJobTracking,
-  subscribeJobEvents,
-  type ScenarioJobState,
-} from './scenario-job-controller';
+import type { ScenarioJobState } from './scenario-job-controller';
 import { ScenarioJobProgress } from './scenario-job-progress';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import { useScenarioJobController } from './scenario-job-controller-context.js';
 
 const TERMINAL_VISIBILITY_MS = 10_000;
 
@@ -33,11 +30,12 @@ function toDisplayStatus(state: ScenarioJobState): 'SUBMITTED' | 'QUEUED' | 'RUN
 
 export function ScenarioJobStatusHost() {
   const bindings = useDesktopRendererBindings();
+  const controller = useScenarioJobController();
   const [activeState, setActiveState] = useState<ScenarioJobState | null>(null);
 
-  useEffect(() => subscribeJobEvents((state) => {
+  useEffect(() => controller.subscribeJobEvents((state) => {
     setActiveState({ ...state });
-  }), []);
+  }), [controller]);
 
   useEffect(() => {
     if (!activeState || (activeState.phase !== 'terminal' && activeState.phase !== 'recovery_timeout')) {
@@ -48,9 +46,9 @@ export function ScenarioJobStatusHost() {
     return bindings.clock.schedule(TERMINAL_VISIBILITY_MS, (result) => {
       if (!result.ok) return;
       setActiveState((current) => (current?.jobId === jobId ? null : current));
-      clearJobTracking(jobId);
+      controller.clearJobTracking(jobId);
     });
-  }, [activeState, bindings]);
+  }, [activeState, bindings, controller]);
 
   if (!activeState) {
     return null;

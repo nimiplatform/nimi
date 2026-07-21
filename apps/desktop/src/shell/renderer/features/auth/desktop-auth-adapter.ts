@@ -18,6 +18,7 @@ import { applyRuntimeAccountStatusProjection } from '../../infra/bootstrap/auth-
 import { getDesktopAccountRuntime } from '../../infra/sdk/desktop-nimi-client-session';
 import { productionQueryClient } from '../../infra/query-client/production-query-client';
 import { productionRendererLifecyclePort } from '../../renderer/production-lifecycle-port';
+import type { DesktopRendererAuthPort } from '../../renderer/auth-port.js';
 
 export const desktopOAuthBridge: ShellOAuthBridge = {
   hasShellHostInvoke: () => desktopBridge.hasShellHostInvoke(),
@@ -142,4 +143,12 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
       logDesktopPostLoginSyncFailures(results);
     },
   };
+}
+
+export function createDesktopProductionAuthPort(): DesktopRendererAuthPort {
+  return Object.freeze({
+    adapter: createDesktopAuthAdapter(),
+    oauthBridge: desktopOAuthBridge,
+    runtimeAccountBroker: createDesktopRuntimeAccountBrowserBroker(),
+  });
 }

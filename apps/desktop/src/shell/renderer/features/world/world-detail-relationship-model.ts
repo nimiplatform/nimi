@@ -141,7 +141,7 @@ const KINSHIP_TERMS = [
   '妻',
 ] as const;
 
-const KINSHIP_TARGET_STOP_WORDS = new Set([
+const KINSHIP_TARGET_STOP_WORDS = [
   '亲属',
   '亲族',
   '族人',
@@ -149,7 +149,7 @@ const KINSHIP_TARGET_STOP_WORDS = new Set([
   '宗族',
   '渊源',
   '传承',
-]);
+] as const;
 
 const KINSHIP_ROLE_PREFIX_TERMS = KINSHIP_TERMS.filter((term) => term.length > 1);
 
@@ -198,7 +198,7 @@ function normalizeKinshipTargetName(value: string, source: WorldCharacter): stri
   }
   // A candidate that still contains the source's own name is a narrative
   // fragment about the source, not a kinship target.
-  if (candidate.includes(source.name) || KINSHIP_TARGET_STOP_WORDS.has(candidate)) {
+  if (candidate.includes(source.name) || KINSHIP_TARGET_STOP_WORDS.includes(candidate as (typeof KINSHIP_TARGET_STOP_WORDS)[number])) {
     return null;
   }
   return candidate;

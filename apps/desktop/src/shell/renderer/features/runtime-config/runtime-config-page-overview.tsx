@@ -13,7 +13,7 @@ import {
 import {
   type RuntimeConfigStateV11,
 } from './runtime-config-state-types';
-import { formatLocaleDateTime } from '../../i18n';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { SectionTitle } from '../settings/settings-layout-components';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { describeRuntimeDaemonIssue } from './runtime-daemon-guidance';
@@ -134,6 +134,7 @@ function QuickLinkCard({
 }
 
 export function OverviewPage({ model, state }: OverviewPageProps) {
+  const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
   const capabilityStatuses = useMemo(() => deriveCapabilityStatuses(state), [state]);
 
@@ -145,7 +146,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
   const daemonIssue = describeRuntimeDaemonIssue({
     status: model.runtimeDaemonStatus,
     runtimeDaemonError: model.runtimeDaemonError,
-  });
+  }, t);
 
   return (
     <RuntimePageShell>
@@ -248,7 +249,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
               {
                 key: 'last-check',
                 label: t('runtimeConfig.overview.lastCheck', { defaultValue: 'Last check' }),
-                value: model.runtimeDaemonUpdatedAt ? formatLocaleDateTime(model.runtimeDaemonUpdatedAt) : '-',
+                value: model.runtimeDaemonUpdatedAt ? i18n.formatDateTime(model.runtimeDaemonUpdatedAt) : '-',
               },
             ].map((entry) => {
               const toneStyle = TONE_STYLES[daemonRunning ? 'success' : 'danger'];

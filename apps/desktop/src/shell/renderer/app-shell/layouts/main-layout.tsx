@@ -1,7 +1,6 @@
 import React, { Suspense, lazy, useEffect, useRef, useState, type MouseEvent, type PropsWithChildren } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
-import { desktopBridge } from '../../bridge';
 import { useAppStore, type AppTab } from '../providers/app-store';
 import {
   logoutAndClearSession,
@@ -35,11 +34,8 @@ class NonCriticalStartupBoundary extends React.Component<PropsWithChildren, { ha
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(): { hasError: boolean } {
-    return { hasError: true };
-  }
-
   override componentDidCatch(error: Error): void {
+    this.setState({ hasError: true });
     logRendererEvent({
       level: 'warn',
       area: 'shell',
@@ -96,7 +92,7 @@ export function MainLayout() {
   useEffect(() => {
     const pending = tabSwitchPending.current;
     if (!pending || pending.toTab !== activeTab) return;
-    const costMs = Number((performance.now() - pending.startMs).toFixed(2));
+    const costMs = Number((bindings.clock.now() - pending.startMs).toFixed(2));
     logRendererEvent({
       level: 'info',
       area: 'shell',
@@ -130,7 +126,7 @@ export function MainLayout() {
   const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
 
   const onNav = (tabId: string) => {
-    tabSwitchPending.current = { fromTab: activeTab, toTab: tabId, startMs: performance.now() };
+    tabSwitchPending.current = { fromTab: activeTab, toTab: tabId, startMs: bindings.clock.now() };
     if (tabId === 'profile') {
       setSelectedProfileId(null);
     }
@@ -144,7 +140,7 @@ export function MainLayout() {
     if (event.clientX < MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX) return;
     const target = event.target as HTMLElement | null;
     if (target?.closest('[data-titlebar-interactive="true"]')) return;
-    void desktopBridge.startWindowDrag().catch(() => {
+    void bindings.app.commands.startWindowDrag().catch(() => {
       // no-op
     });
   };

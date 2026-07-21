@@ -1,11 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type { TFunction } from 'i18next';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { NIMI_RUNTIME_BRIDGE_CONFIG_DEFAULTS } from '@nimiplatform/sdk/runtime';
 import type { RuntimeBridgeDaemonStatus } from '../src/shell/renderer/bridge/runtime-bridge/types';
 import { describeRuntimeDaemonIssue } from '../src/shell/renderer/features/runtime-config/runtime-daemon-guidance';
+
+const testTranslate = ((_: string, options?: { defaultValue?: string }) => (
+  options?.defaultValue ?? ''
+)) as TFunction;
 
 function createDaemonStatus(input: Partial<RuntimeBridgeDaemonStatus>): RuntimeBridgeDaemonStatus {
   return {
@@ -27,7 +32,7 @@ for (const [reason, code, title] of [
   test(`describeRuntimeDaemonIssue preserves ${reason}`, () => {
     const issue = describeRuntimeDaemonIssue({
       status: createDaemonStatus({ lastError: `RUNTIME_BRIDGE_DAEMON_UNAVAILABLE: ${reason}` }),
-    });
+    }, testTranslate);
     assert.equal(issue?.code, code);
     assert.equal(issue?.title, title);
     assert.match(issue?.rawError || '', new RegExp(reason));
@@ -37,7 +42,7 @@ for (const [reason, code, title] of [
 test('describeRuntimeDaemonIssue maps missing protected carrier to repair', () => {
   const issue = describeRuntimeDaemonIssue({
     runtimeDaemonError: 'RUNTIME_BRIDGE_DAEMON_UNAVAILABLE: protected-carrier-required',
-  });
+  }, testTranslate);
   assert.equal(issue?.code, 'runtime_service_repair_required');
   assert.match(issue?.message || '', /protected native carrier/);
 });
@@ -45,7 +50,7 @@ test('describeRuntimeDaemonIssue maps missing protected carrier to repair', () =
 test('describeRuntimeDaemonIssue returns null for unrelated runtime errors', () => {
   const issue = describeRuntimeDaemonIssue({
     status: createDaemonStatus({ lastError: 'unrelated-error' }),
-  });
+  }, testTranslate);
   assert.equal(issue, null);
 });
 

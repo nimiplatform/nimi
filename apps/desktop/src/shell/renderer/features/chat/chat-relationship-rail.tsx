@@ -12,6 +12,7 @@ import {
   clampHoverCardTop,
   type RelationshipHoverCardPosition,
 } from './chat-relationship-hover-card.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -42,9 +43,10 @@ function RelationshipAvatar({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const bindings = useDesktopRendererBindings();
   const { t } = useTranslation();
   const ref = useRef<HTMLButtonElement>(null);
-  const hideTimerRef = useRef<number | null>(null);
+  const cancelHideRef = useRef<(() => void) | null>(null);
   const [hoverCardPos, setHoverCardPos] = useState<RelationshipHoverCardPosition | null>(null);
   const [profileTarget, setProfileTarget] = useState<ReturnType<typeof buildRelationshipProfileSeed>>(null);
 
@@ -59,24 +61,21 @@ function RelationshipAvatar({
       : undefined;
 
   useEffect(() => () => {
-    if (hideTimerRef.current !== null) {
-      window.clearTimeout(hideTimerRef.current);
-    }
-  }, []);
+    cancelHideRef.current?.();
+    cancelHideRef.current = null;
+  }, [bindings.clock]);
 
   const cancelHide = () => {
-    if (hideTimerRef.current !== null) {
-      window.clearTimeout(hideTimerRef.current);
-      hideTimerRef.current = null;
-    }
+    cancelHideRef.current?.();
+    cancelHideRef.current = null;
   };
 
   const scheduleHide = () => {
     cancelHide();
-    hideTimerRef.current = window.setTimeout(() => {
+    cancelHideRef.current = bindings.clock.schedule(90, () => {
       setHoverCardPos(null);
-      hideTimerRef.current = null;
-    }, 90);
+      cancelHideRef.current = null;
+    });
   };
 
   const showHoverCard = (top: number) => {
@@ -87,7 +86,7 @@ function RelationshipAvatar({
       const rect = ref.current.getBoundingClientRect();
       setHoverCardPos({
         top: clampHoverCardTop(top),
-        right: window.innerWidth - rect.left + 14,
+        right: bindings.app.projection.viewportWidth() - rect.left + 14,
       });
     }
   };

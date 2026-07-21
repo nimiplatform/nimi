@@ -1,4 +1,5 @@
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
+import type { DesktopRendererClockView } from '../../renderer/contract.js';
 
 // D-STRM-010 polling recovery constants (spec: 2s interval, 30 retries, 60s total)
 export const JOB_POLL_INTERVAL_MS = 2_000;
@@ -58,10 +59,6 @@ export type JobControllerDeps = {
 
 type JobListener = (state: ScenarioJobState) => void;
 
-const activeJobs = new Map<string, ScenarioJobState>();
-const recoveryAbortControllers = new Map<string, AbortController>();
-const listeners = new Set<JobListener>();
-
 function emptyJobState(jobId: string): ScenarioJobState {
   return {
     jobId,
@@ -83,57 +80,79 @@ export function isTerminalStatus(status: JobStatus): boolean {
   return status === 'COMPLETED' || status === 'FAILED' || status === 'CANCELED' || status === 'TIMEOUT';
 }
 
-function notify(state: ScenarioJobState): void {
-  for (const listener of listeners) {
-    try {
-      listener(state);
-    } catch {
-      // swallow listener errors
-    }
-  }
-}
-
-function delay(ms: number, signal?: AbortSignal): Promise<void> {
+function delay(clock: DesktopRendererClockView, ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
       reject(new DOMException('Aborted', 'AbortError'));
       return;
     }
-    const timer = setTimeout(resolve, ms);
+    const cancel = clock.schedule(ms, (result) => {
+      if (result.ok) {
+        resolve();
+      } else {
+        reject(new Error(result.error));
+      }
+    });
     signal?.addEventListener('abort', () => {
-      clearTimeout(timer);
+      cancel();
       reject(new DOMException('Aborted', 'AbortError'));
     }, { once: true });
   });
 }
 
-export function getJobState(jobId: string): ScenarioJobState {
-  return activeJobs.get(jobId) || emptyJobState(jobId);
+export interface ScenarioJobController {
+  getJobState(jobId: string): ScenarioJobState;
+  subscribeJobEvents(listener: JobListener): () => void;
+  startJobTracking(jobId: string): void;
+  feedJobEvent(jobId: string, event: JobPollResult): void;
+  startPollingRecovery(
+    jobId: string,
+    deps: JobControllerDeps,
+    options?: { readonly pollIntervalMs?: number },
+  ): AbortController;
+  requestCancel(jobId: string, deps: JobControllerDeps): Promise<void>;
+  clearJobTracking(jobId: string): void;
+  dispose(): void;
 }
 
-export function subscribeJobEvents(listener: JobListener): () => void {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
+class DesktopScenarioJobController implements ScenarioJobController {
+  private readonly jobs = new Map<string, ScenarioJobState>();
+  private readonly recoveries = new Map<string, AbortController>();
+  private readonly listeners = new Set<JobListener>();
 
-export function startJobTracking(jobId: string): void {
+  constructor(private readonly clock: DesktopRendererClockView) {}
+
+  private notify(state: ScenarioJobState): void {
+    for (const listener of this.listeners) {
+      try {
+        listener(state);
+      } catch {
+        // Listener failures cannot corrupt controller state or other subscribers.
+      }
+    }
+  }
+
+  getJobState(jobId: string): ScenarioJobState {
+    return this.jobs.get(jobId) || emptyJobState(jobId);
+  }
+
+  subscribeJobEvents(listener: JobListener): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  startJobTracking(jobId: string): void {
   const state: ScenarioJobState = {
     ...emptyJobState(jobId),
     phase: 'subscribing',
-    startedAt: Date.now(),
+    startedAt: this.clock.now(),
   };
-  activeJobs.set(jobId, state);
-  notify(state);
-}
+    this.jobs.set(jobId, state);
+    this.notify(state);
+  }
 
-export function feedJobEvent(jobId: string, event: {
-  status: JobStatus;
-  reasonCode?: string;
-  reasonDetail?: string;
-  traceId?: string;
-  progress?: number;
-}): void {
-  const current = activeJobs.get(jobId);
+  feedJobEvent(jobId: string, event: JobPollResult): void {
+  const current = this.jobs.get(jobId);
   if (!current || current.phase === 'terminal' || current.phase === 'recovery_timeout') {
     return;
   }
@@ -147,18 +166,18 @@ export function feedJobEvent(jobId: string, event: {
       reasonCode: event.reasonCode ?? current.reasonCode,
       traceId: event.traceId ?? current.traceId,
       errorMessage: event.reasonDetail ?? current.errorMessage,
-      terminalAt: Date.now(),
+      terminalAt: this.clock.now(),
     };
-    activeJobs.set(jobId, terminalState);
+    this.jobs.set(jobId, terminalState);
 
     // Abort any active polling recovery
-    const ac = recoveryAbortControllers.get(jobId);
+    const ac = this.recoveries.get(jobId);
     if (ac) {
       ac.abort();
-      recoveryAbortControllers.delete(jobId);
+      this.recoveries.delete(jobId);
     }
 
-    notify(terminalState);
+    this.notify(terminalState);
     return;
   }
 
@@ -169,36 +188,36 @@ export function feedJobEvent(jobId: string, event: {
     reasonCode: event.reasonCode ?? current.reasonCode,
     traceId: event.traceId ?? current.traceId,
   };
-  activeJobs.set(jobId, updated);
-  notify(updated);
-}
+    this.jobs.set(jobId, updated);
+    this.notify(updated);
+  }
 
-export function startPollingRecovery(jobId: string, deps: JobControllerDeps, options?: { pollIntervalMs?: number }): AbortController {
-  const current = activeJobs.get(jobId);
+  startPollingRecovery(jobId: string, deps: JobControllerDeps, options?: { pollIntervalMs?: number }): AbortController {
+  const current = this.jobs.get(jobId);
   if (!current) {
-    startJobTracking(jobId);
+    this.startJobTracking(jobId);
   } else if (current.phase === 'terminal' || current.phase === 'recovery_timeout') {
     const ac = new AbortController();
     ac.abort();
     return ac;
   }
 
-  const existing = recoveryAbortControllers.get(jobId);
+  const existing = this.recoveries.get(jobId);
   if (existing) {
     existing.abort();
-    recoveryAbortControllers.delete(jobId);
+    this.recoveries.delete(jobId);
   }
 
   const ac = new AbortController();
-  recoveryAbortControllers.set(jobId, ac);
+  this.recoveries.set(jobId, ac);
 
   const recoveryState: ScenarioJobState = {
-    ...(activeJobs.get(jobId) || emptyJobState(jobId)),
+    ...(this.jobs.get(jobId) || emptyJobState(jobId)),
     phase: 'recovering',
     pollRetryCount: 0,
   };
-  activeJobs.set(jobId, recoveryState);
-  notify(recoveryState);
+  this.jobs.set(jobId, recoveryState);
+  this.notify(recoveryState);
 
   logRendererEvent({
     level: 'info',
@@ -210,16 +229,16 @@ export function startPollingRecovery(jobId: string, deps: JobControllerDeps, opt
   void (async () => {
     try {
       for (let i = 0; i < JOB_POLL_MAX_RETRIES; i++) {
-        await delay(options?.pollIntervalMs ?? JOB_POLL_INTERVAL_MS, ac.signal);
+        await delay(this.clock, options?.pollIntervalMs ?? JOB_POLL_INTERVAL_MS, ac.signal);
 
-        const latest = activeJobs.get(jobId);
+        const latest = this.jobs.get(jobId);
         if (!latest || latest.phase === 'terminal' || latest.phase === 'recovery_timeout') {
           return;
         }
 
         const result = await deps.pollJob(jobId);
 
-        const afterPoll = activeJobs.get(jobId);
+        const afterPoll = this.jobs.get(jobId);
         if (!afterPoll || afterPoll.phase === 'terminal' || afterPoll.phase === 'recovery_timeout') {
           return;
         }
@@ -234,13 +253,13 @@ export function startPollingRecovery(jobId: string, deps: JobControllerDeps, opt
             traceId: result.traceId ?? afterPoll.traceId,
             errorMessage: result.reasonDetail ?? afterPoll.errorMessage,
             pollRetryCount: i + 1,
-            terminalAt: Date.now(),
+            terminalAt: this.clock.now(),
           };
 
           if (result.status === 'COMPLETED') {
             finalState = { ...finalState, phase: 'fetching_artifacts' };
-            activeJobs.set(jobId, finalState);
-            notify(finalState);
+            this.jobs.set(jobId, finalState);
+            this.notify(finalState);
 
             try {
               const artifacts = await deps.fetchArtifacts(jobId);
@@ -260,9 +279,9 @@ export function startPollingRecovery(jobId: string, deps: JobControllerDeps, opt
             }
           }
 
-          activeJobs.set(jobId, finalState);
-          recoveryAbortControllers.delete(jobId);
-          notify(finalState);
+          this.jobs.set(jobId, finalState);
+          this.recoveries.delete(jobId);
+          this.notify(finalState);
 
           logRendererEvent({
             level: 'info',
@@ -280,21 +299,21 @@ export function startPollingRecovery(jobId: string, deps: JobControllerDeps, opt
           traceId: result.traceId ?? afterPoll.traceId,
           pollRetryCount: i + 1,
         };
-        activeJobs.set(jobId, pollingState);
-        notify(pollingState);
+        this.jobs.set(jobId, pollingState);
+        this.notify(pollingState);
       }
 
       // Max retries exhausted
-      const timeoutCurrent = activeJobs.get(jobId);
+      const timeoutCurrent = this.jobs.get(jobId);
       if (timeoutCurrent && timeoutCurrent.phase !== 'terminal') {
         const timeoutState: ScenarioJobState = {
           ...timeoutCurrent,
           phase: 'recovery_timeout',
           pollRetryCount: JOB_POLL_MAX_RETRIES,
         };
-        activeJobs.set(jobId, timeoutState);
-        recoveryAbortControllers.delete(jobId);
-        notify(timeoutState);
+        this.jobs.set(jobId, timeoutState);
+        this.recoveries.delete(jobId);
+        this.notify(timeoutState);
 
         logRendererEvent({
           level: 'warn',
@@ -307,25 +326,25 @@ export function startPollingRecovery(jobId: string, deps: JobControllerDeps, opt
       if (error instanceof DOMException && error.name === 'AbortError') {
         return;
       }
-      const current = activeJobs.get(jobId);
+      const current = this.jobs.get(jobId);
       if (current && current.phase !== 'terminal') {
         const errorState: ScenarioJobState = {
           ...current,
           phase: 'recovery_timeout',
           errorMessage: error instanceof Error ? error.message : 'Recovery failed',
         };
-        activeJobs.set(jobId, errorState);
-        recoveryAbortControllers.delete(jobId);
-        notify(errorState);
+        this.jobs.set(jobId, errorState);
+        this.recoveries.delete(jobId);
+        this.notify(errorState);
       }
     }
   })();
 
   return ac;
-}
+  }
 
-export async function requestCancel(jobId: string, deps: JobControllerDeps): Promise<void> {
-  const current = activeJobs.get(jobId);
+  async requestCancel(jobId: string, deps: JobControllerDeps): Promise<void> {
+  const current = this.jobs.get(jobId);
   if (!current || current.phase === 'terminal' || current.phase === 'recovery_timeout') {
     return;
   }
@@ -335,8 +354,8 @@ export async function requestCancel(jobId: string, deps: JobControllerDeps): Pro
     phase: 'cancelling',
     cancelRequested: true,
   };
-  activeJobs.set(jobId, cancellingState);
-  notify(cancellingState);
+  this.jobs.set(jobId, cancellingState);
+  this.notify(cancellingState);
 
   logRendererEvent({
     level: 'info',
@@ -348,10 +367,10 @@ export async function requestCancel(jobId: string, deps: JobControllerDeps): Pro
   try {
     const result = await deps.cancelJob(jobId);
     if (isTerminalStatus(result.status)) {
-      feedJobEvent(jobId, { status: result.status, reasonCode: result.reasonCode });
+      this.feedJobEvent(jobId, { status: result.status, reasonCode: result.reasonCode });
       return;
     }
-    startPollingRecovery(jobId, deps);
+    this.startPollingRecovery(jobId, deps);
   } catch (error) {
     const reasonCode = error instanceof Error ? error.message : String(error || '');
     if (reasonCode.includes('AI_MEDIA_JOB_NOT_CANCELLABLE')) {
@@ -366,7 +385,7 @@ export async function requestCancel(jobId: string, deps: JobControllerDeps): Pro
       try {
         const pollResult = await deps.pollJob(jobId);
         if (isTerminalStatus(pollResult.status)) {
-          feedJobEvent(jobId, {
+          this.feedJobEvent(jobId, {
             status: pollResult.status,
             reasonCode: pollResult.reasonCode,
             reasonDetail: pollResult.reasonDetail,
@@ -379,15 +398,29 @@ export async function requestCancel(jobId: string, deps: JobControllerDeps): Pro
       }
     }
 
-    startPollingRecovery(jobId, deps);
+    this.startPollingRecovery(jobId, deps);
+  }
+  }
+
+  clearJobTracking(jobId: string): void {
+  this.jobs.delete(jobId);
+  const ac = this.recoveries.get(jobId);
+  if (ac) {
+    ac.abort();
+    this.recoveries.delete(jobId);
+  }
+  }
+
+  dispose(): void {
+    for (const recovery of this.recoveries.values()) recovery.abort();
+    this.recoveries.clear();
+    this.jobs.clear();
+    this.listeners.clear();
   }
 }
 
-export function clearJobTracking(jobId: string): void {
-  activeJobs.delete(jobId);
-  const ac = recoveryAbortControllers.get(jobId);
-  if (ac) {
-    ac.abort();
-    recoveryAbortControllers.delete(jobId);
-  }
+export function createScenarioJobController(
+  clock: DesktopRendererClockView,
+): ScenarioJobController {
+  return new DesktopScenarioJobController(clock);
 }

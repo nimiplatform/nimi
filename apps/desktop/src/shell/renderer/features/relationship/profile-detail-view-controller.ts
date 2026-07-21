@@ -1,7 +1,8 @@
 import { type ChangeEvent, type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
-import { i18n } from '../../i18n';
+import { useTranslation } from 'react-i18next';
 import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import type { ProfileData, ProfileTab } from '../profile/profile-model';
 import { buildEditableDraft, type EditableProfileDraft } from './profile-detail-view-parts.js';
 
@@ -41,6 +42,8 @@ const DEFAULT_TAB: ProfileTab = 'Posts';
 const MAX_AVATAR_FILE_SIZE = 10 * 1024 * 1024;
 
 export function useProfileDetailViewController(props: ProfileDetailViewProps, realmBaseUrl: string) {
+  const bindings = useDesktopRendererBindings();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<ProfileTab>(DEFAULT_TAB);
   const [showMenu, setShowMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -76,9 +79,8 @@ export function useProfileDetailViewController(props: ProfileDetailViewProps, re
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showMenu]);
+    return bindings.app.events.subscribeDocumentMouseDown(handleClickOutside);
+  }, [bindings, showMenu]);
 
   useEffect(() => {
     setDraft(buildEditableDraft(props.profile));
@@ -107,9 +109,8 @@ export function useProfileDetailViewController(props: ProfileDetailViewProps, re
     };
 
     updateIndicator();
-    window.addEventListener('resize', updateIndicator);
-    return () => window.removeEventListener('resize', updateIndicator);
-  }, [activeTab]);
+    return bindings.app.events.subscribeWindowResize(updateIndicator);
+  }, [activeTab, bindings]);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -146,7 +147,7 @@ export function useProfileDetailViewController(props: ProfileDetailViewProps, re
       return;
     }
     if (!draft.displayName.trim()) {
-      setSaveError(i18n.t('Profile.displayNameRequired', { defaultValue: 'Display name is required' }));
+      setSaveError(t('Profile.displayNameRequired', { defaultValue: 'Display name is required' }));
       return;
     }
     setIsSaving(true);
@@ -155,7 +156,7 @@ export function useProfileDetailViewController(props: ProfileDetailViewProps, re
       await props.onSaveProfile(draft);
       setIsEditing(false);
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : i18n.t('Profile.updateError', { defaultValue: 'Failed to update profile' }));
+      setSaveError(error instanceof Error ? error.message : t('Profile.updateError', { defaultValue: 'Failed to update profile' }));
     } finally {
       setIsSaving(false);
     }
@@ -168,15 +169,15 @@ export function useProfileDetailViewController(props: ProfileDetailViewProps, re
       return;
     }
     if (!ACCEPTED_AVATAR_TYPES.includes(file.type)) {
-      setSaveError(i18n.t('Profile.avatarUnsupportedFormat', { defaultValue: 'Unsupported avatar format. Use PNG, JPEG, GIF, or WebP.' }));
+      setSaveError(t('Profile.avatarUnsupportedFormat', { defaultValue: 'Unsupported avatar format. Use PNG, JPEG, GIF, or WebP.' }));
       return;
     }
     if (file.size > MAX_AVATAR_FILE_SIZE) {
-      setSaveError(i18n.t('Profile.avatarSizeLimit', { defaultValue: 'Avatar must be smaller than 10MB.' }));
+      setSaveError(t('Profile.avatarSizeLimit', { defaultValue: 'Avatar must be smaller than 10MB.' }));
       return;
     }
     if (!realmBaseUrl) {
-      setSaveError(i18n.t('Profile.avatarUploadUnavailable', { defaultValue: 'Image upload is unavailable right now. Please try again.' }));
+      setSaveError(t('Profile.avatarUploadUnavailable', { defaultValue: 'Image upload is unavailable right now. Please try again.' }));
       return;
     }
 
@@ -186,15 +187,15 @@ export function useProfileDetailViewController(props: ProfileDetailViewProps, re
       const uploaded = await uploadNimiRealmResourceFile(getDesktopRealm(), {
         kind: 'image',
         file,
-        failureMessage: i18n.t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }),
+        failureMessage: t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }),
       });
       const avatarUrl = uploaded.resource.url;
       if (!avatarUrl) {
-        throw new Error(i18n.t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }));
+        throw new Error(t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }));
       }
       setDraft((current) => ({ ...current, avatarUrl }));
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : i18n.t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }));
+      setSaveError(error instanceof Error ? error.message : t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }));
     } finally {
       setIsUploadingAvatar(false);
     }

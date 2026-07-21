@@ -5,19 +5,13 @@ import {
   invokeShell,
   toShellBridgeNimiError,
 } from '@nimiplatform/kit/shell/renderer/bridge';
-import { i18n } from '../../i18n';
 import { emitRendererLog, resolveRendererSessionTraceId, toRendererLogMessage } from '@nimiplatform/kit/telemetry';
 import { parseOptionalJsonObject } from './shared.js';
 import type { JsonObject } from './types';
 
 function translateBridgeMessage(key: string, defaultValue: string): string {
-  if (!i18n.isInitialized) {
-    return defaultValue;
-  }
-  const translated = i18n.t(key, { defaultValue });
-  return typeof translated === 'string' && translated.trim().length > 0
-    ? translated
-    : defaultValue;
+  void key;
+  return defaultValue;
 }
 
 export function toBridgeUserMessage(error: unknown): string {

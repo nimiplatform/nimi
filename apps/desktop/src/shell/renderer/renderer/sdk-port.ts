@@ -11,6 +11,11 @@ import type {
 import type { Realm } from '@nimiplatform/sdk/realm';
 
 import type { DesktopAccountRuntime } from '../infra/sdk/desktop-nimi-client-session.js';
+import type {
+  RealmApiCaller,
+  RealmDataErrorEmitter,
+} from '../features/social/data/social-snapshot.js';
+import type { RealmSocialOfflinePort } from '../features/social/data/social-offline-port.js';
 
 export interface DesktopRendererSdkPort {
   isSessionReady(): boolean;
@@ -25,6 +30,11 @@ export interface DesktopRendererSdkPort {
     & NimiHostRuntimeAgentDelegatedCapabilityClient;
   accountRuntime(): DesktopAccountRuntime;
   realm(): Realm;
+  readonly socialData: {
+    readonly callApi: RealmApiCaller;
+    readonly emitDataError: RealmDataErrorEmitter;
+    readonly offline: RealmSocialOfflinePort;
+  };
   accountCaller(): NimiRuntimeAccountCaller;
   withRuntimeProtectedScopes: NimiRuntimeAgentScopeRunner;
 }

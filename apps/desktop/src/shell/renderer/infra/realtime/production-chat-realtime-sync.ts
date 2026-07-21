@@ -3,7 +3,8 @@ import type { QueryClient } from '@tanstack/react-query';
 import { getOfflineCoordinator } from '../offline/coordinator.js';
 import { flushPendingChatOutbox } from '../../features/chat/data/realm-human-chat-data.js';
 import { invalidateNotificationQueries } from '../../features/notification/notification-query.js';
-import { realmSocialData } from '../../features/social/data/realm-social-data.js';
+import { flushPendingSocialMutations } from '../../features/social/data/offline-social-outbox.js';
+import { callRealmApi, emitRealmDataError } from '../realm/realm-api.js';
 
 const BROKER_SYNC_INTERVAL_MS = 5_000;
 
@@ -23,7 +24,7 @@ export function connectProductionChatRealtimeSync(input: {
         input.queryClient.invalidateQueries({ queryKey: ['chats'] }),
         invalidateNotificationQueries(input.queryClient),
         flushPendingChatOutbox(),
-        realmSocialData.flushSocialOutbox(),
+        flushPendingSocialMutations(callRealmApi, emitRealmDataError),
       ];
       if (input.selectedChatId) {
         tasks.push(input.queryClient.invalidateQueries({

@@ -23,6 +23,7 @@ import {
   ExploreSectionHeader,
   type ExploreSectionId,
 } from './explore-section-nav';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 type PostDto = RealmModel<'PostDto'>;
 
@@ -92,27 +93,23 @@ function ExplorePersonaSourcesSection({
 }
 
 export function ExploreView(props: ExploreViewProps) {
+  const bindings = useDesktopRendererBindings();
   const { t } = useTranslation();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const feedScrollRef = useRef<HTMLDivElement>(null);
   const feedSectionRef = useRef<HTMLElement>(null);
   const postCardActionAdapter = usePostCardActionAdapter();
   const [feedColumns, setFeedColumns] = useState(() => (
-    typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 640px)').matches
-      ? 2
-      : 1
+    bindings.app.projection.viewportWidth() >= 640 ? 2 : 1
   ));
 
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-      return;
-    }
-    const media = window.matchMedia('(min-width: 640px)');
-    const updateColumns = () => setFeedColumns(media.matches ? 2 : 1);
+    const updateColumns = () => setFeedColumns(
+      bindings.app.projection.viewportWidth() >= 640 ? 2 : 1,
+    );
     updateColumns();
-    media.addEventListener?.('change', updateColumns);
-    return () => media.removeEventListener?.('change', updateColumns);
-  }, []);
+    return bindings.app.events.subscribeWindowResize(updateColumns);
+  }, [bindings]);
 
   useEffect(() => {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'auto' });

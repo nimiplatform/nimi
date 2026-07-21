@@ -41,6 +41,10 @@ import {
   type PerformancePreferences,
 } from '../src/shell/renderer/renderer/settings-port.js';
 import { createTestStreamController } from './helpers/test-stream-controller.js';
+import { createScenarioJobController } from '../src/shell/renderer/features/turns/scenario-job-controller.js';
+import { createUnavailableDesktopRendererAuthPort } from '../src/shell/renderer/renderer/auth-port.js';
+import { createDesktopRendererRuntimeConfigNavigationPort } from '../src/shell/renderer/renderer/runtime-config-navigation-port.js';
+import { createRealmSocialData } from '../src/shell/renderer/features/social/data/realm-social-data.js';
 
 function createDependencies(input: {
   readonly commits: NimiAIConfig[];
@@ -194,7 +198,25 @@ test('AppProviders owns independent route, store, query, and i18n resources', as
       },
       i18n,
       queryClient,
+      realmSocialData: createRealmSocialData({
+        callApi: async () => {
+          throw new Error('TEST_REALM_API_NOT_AVAILABLE');
+        },
+        emitDataError: () => undefined,
+        now: () => 1,
+        offline: Object.freeze({
+          async syncProfileMetadata() {},
+          async loadProfileMetadata() { return null; },
+          markCacheFallbackUsed() {},
+          markRealmUnreachable() {},
+          async queueSocialMutation() {},
+        }),
+      }),
       Router: createRouter(entry),
+      scenarioJobController: createScenarioJobController({
+        now: () => 1,
+        schedule: () => () => undefined,
+      }),
       store,
       streamController: createTestStreamController(),
     },
@@ -269,6 +291,19 @@ function createCanonicalBindings(input: {
       hostRuntimeAgent: sdkUnavailable,
       accountRuntime: sdkUnavailable,
       realm: sdkUnavailable,
+      socialData: Object.freeze({
+        callApi: async () => {
+          throw new Error('TEST_REALM_API_NOT_AVAILABLE');
+        },
+        emitDataError: () => undefined,
+        offline: Object.freeze({
+          async syncProfileMetadata() {},
+          async loadProfileMetadata() { return null; },
+          markCacheFallbackUsed() {},
+          markRealmUnreachable() {},
+          async queueSocialMutation() {},
+        }),
+      }),
       accountCaller: sdkUnavailable,
       withRuntimeProtectedScopes: sdkUnavailable,
     }),
@@ -288,7 +323,9 @@ function createCanonicalBindings(input: {
         viewportWidth: () => 1_280,
       }),
       commands: Object.freeze({
+        auth: createUnavailableDesktopRendererAuthPort(),
         firstRun: createUnavailableDesktopFirstRunPort('TEST_FIRST_RUN_UNADMITTED'),
+        runtimeConfigNavigation: createDesktopRendererRuntimeConfigNavigationPort(),
         settings: createMemoryDesktopRendererSettingsPort(),
         commitAIConfig() {},
         persistChatThinkingPreference() {},
@@ -352,6 +389,7 @@ test('canonical Desktop resources are fresh for every factory invocation', async
   first.store.getState().setActiveTab('explore');
   first.queryClient.setQueryData(['instance'], 'first');
   const firstAbortController = first.streamController.startStream('shared-chat');
+  first.scenarioJobController.startJobTracking('shared-job');
 
   assert.notEqual(first.store, second.store);
   assert.notEqual(first.queryClient, second.queryClient);
@@ -364,6 +402,8 @@ test('canonical Desktop resources are fresh for every factory invocation', async
   assert.equal(second.queryClient.getQueryData(['instance']), undefined);
   assert.equal(first.streamController.getStreamState('shared-chat').phase, 'waiting');
   assert.equal(second.streamController.getStreamState('shared-chat').phase, 'idle');
+  assert.equal(first.scenarioJobController.getJobState('shared-job').phase, 'subscribing');
+  assert.equal(second.scenarioJobController.getJobState('shared-job').phase, 'idle');
   assert.equal(first.i18n.getCurrentLocale(), 'en');
   assert.equal(second.i18n.getCurrentLocale(), 'zh');
 
@@ -399,4 +439,39 @@ test('renderer settings ports isolate selection, subscriptions, and preferences 
   unsubscribe();
   first.openSection('profile');
   assert.deepEqual(opened, ['performance']);
+});
+
+test('runtime config navigation retains pre-subscription intent and isolates renderer instances', () => {
+  const first = createDesktopRendererRuntimeConfigNavigationPort();
+  const second = createDesktopRendererRuntimeConfigNavigationPort();
+  const revisions: number[] = [];
+
+  first.openPage('profiles');
+  const unsubscribe = first.subscribe(() => revisions.push(first.get().revision));
+  first.focusAction({
+    page: 'cloud',
+    action: 'add-connector',
+    focus: 'runtime-config-action-focus.cloud-connector-draft',
+  });
+
+  assert.deepEqual(first.get(), {
+    revision: 2,
+    intent: {
+      kind: 'focus-action',
+      actionFocus: {
+        page: 'cloud',
+        action: 'add-connector',
+        focus: 'runtime-config-action-focus.cloud-connector-draft',
+      },
+    },
+  });
+  assert.deepEqual(second.get(), {
+    revision: 0,
+    intent: null,
+  });
+  assert.deepEqual(revisions, [2]);
+
+  unsubscribe();
+  first.openPage('models');
+  assert.deepEqual(revisions, [2]);
 });

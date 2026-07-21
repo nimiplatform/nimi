@@ -1,4 +1,4 @@
-import { realmSocialData } from '../social/data/realm-social-data';
+import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
@@ -49,6 +49,7 @@ const POPULAR_TAGS = [
 ];
 
 export function CreatePostModal({ open, onClose, onComplete, onUploadStart, initialPost = null }: CreatePostModalProps) {
+  const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);

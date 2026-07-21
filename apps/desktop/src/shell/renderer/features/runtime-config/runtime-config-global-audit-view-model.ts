@@ -4,7 +4,6 @@ import {
   projectNimiRuntimeUsageWindowName,
   toNimiRuntimeIsoFromTimestamp,
 } from '@nimiplatform/sdk/runtime';
-import { formatRelativeLocaleTime } from '../../i18n';
 
 export function runtimeHealthStatusLabel(status: number): string {
   switch (projectNimiRuntimeHealthStatusName(status)) {
@@ -87,8 +86,11 @@ export function structToRecord(struct?: { fields: Record<string, unknown> }): Re
   return struct.fields;
 }
 
-export function relativeTimeShort(isoString: string): string {
-  return formatRelativeLocaleTime(isoString);
+export function relativeTimeShort(
+  isoString: string,
+  formatRelativeTime: (value: unknown) => string,
+): string {
+  return formatRelativeTime(isoString);
 }
 
 export function formatComputeMs(msStr: string): string {

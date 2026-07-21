@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import type { TFunction } from 'i18next';
 import {
   describeCharacterPrimaryAction,
   resolveCharacterSourceState,
@@ -17,6 +18,9 @@ const WORLD_SOURCE_REF = {
   worldEntityRef: { kind: 'worldEntity' as const, worldId: 'oasis', entityId: 'entity-1' },
   sourceHash: SOURCE_HASH,
 };
+const testTranslate = ((_: string, options?: { defaultValue?: string }) => (
+  options?.defaultValue ?? ''
+)) as TFunction;
 
 function readRepo(relativePath: string): string {
   return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
@@ -27,7 +31,7 @@ test('profile detail modal materializes source chat without Realm connection evi
   const launchTarget = readRepo('apps/desktop/src/shell/renderer/features/relationship/source-contact-launch-target.ts');
 
   assert.match(source, /launchAgentConversationFromDisplay/);
-  assert.match(source, /materializeSourceContactLaunchTarget\(profile,\s*ownerUserId\)/);
+  assert.match(source, /materializeSourceContactLaunchTarget\(profile,\s*ownerUserId,\s*t\)/);
   assert.match(launchTarget, /materializeCharacterSourceLocalAgent/);
   assert.doesNotMatch(launchTarget, new RegExp(['initialize', 'Local', 'Agent'].join('')));
   assert.doesNotMatch(launchTarget, new RegExp(['source', 'Materialization', 'Packet'].join('')));
@@ -216,7 +220,7 @@ test('Realm source state distinguishes packet availability from Runtime-owned Lo
   };
 
   assert.equal(resolveCharacterSourceState(source), 'source_materialization_available');
-  const availableAction = describeCharacterPrimaryAction('source_materialization_available');
+  const availableAction = describeCharacterPrimaryAction('source_materialization_available', testTranslate);
   assert.equal(availableAction.action, 'become_partner');
   assert.equal(availableAction.label, 'Become my partner');
 
@@ -240,7 +244,7 @@ test('Realm source state distinguishes packet availability from Runtime-owned Lo
     sourceId: 'character-1',
     sourceHash: SOURCE_HASH,
   }]), 'local_agent_available');
-  const existingAction = describeCharacterPrimaryAction('local_agent_available');
+  const existingAction = describeCharacterPrimaryAction('local_agent_available', testTranslate);
   assert.equal(existingAction.action, 'open_partner');
   assert.equal(existingAction.label, 'Open partner');
 
@@ -265,7 +269,7 @@ test('Realm source state distinguishes packet availability from Runtime-owned Lo
     },
   ];
   assert.equal(resolveCharacterSourceState(source, duplicateAgents), 'local_agent_ambiguous');
-  const ambiguousAction = describeCharacterPrimaryAction('local_agent_ambiguous');
+  const ambiguousAction = describeCharacterPrimaryAction('local_agent_ambiguous', testTranslate);
   assert.equal(ambiguousAction.action, 'partner_ambiguous');
   assert.equal(ambiguousAction.disabled, true);
 
@@ -273,7 +277,7 @@ test('Realm source state distinguishes packet availability from Runtime-owned Lo
     resolveCharacterSourceState(source, [], { runtimeInventoryUnavailable: true }),
     'runtime_agent_inventory_unavailable',
   );
-  const runtimeFailureAction = describeCharacterPrimaryAction('runtime_agent_inventory_unavailable');
+  const runtimeFailureAction = describeCharacterPrimaryAction('runtime_agent_inventory_unavailable', testTranslate);
   assert.equal(runtimeFailureAction.action, 'partner_runtime_unavailable');
   assert.equal(runtimeFailureAction.disabled, true);
 

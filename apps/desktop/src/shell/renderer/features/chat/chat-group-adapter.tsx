@@ -19,6 +19,7 @@ import {
   type GroupChatViewDto,
   type GroupMessageViewDto,
   type GroupParticipantDto,
+  type GroupChatCopy,
 } from './chat-group-thread-model';
 
 const GROUP_CHATS_QUERY_KEY = ['group-chats'] as const;
@@ -109,6 +110,11 @@ export function useGroupConversationModeHost(
 ): DesktopConversationModeHost {
   const { authStatus, currentUserId } = input;
   const { t } = useTranslation();
+  const groupChatCopy = useMemo<GroupChatCopy>(() => ({
+    group: t('Chat.group', { defaultValue: 'Group' }),
+    noMessages: t('Chat.noMessages', { defaultValue: 'No messages yet' }),
+    members: t('Chat.groupMembers', { defaultValue: 'members' }),
+  }), [t]);
   const queryClient = useQueryClient();
   const setLastSelectedThreadForMode = useAppStore((state) => state.setLastSelectedThreadForMode);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
@@ -154,13 +160,13 @@ export function useGroupConversationModeHost(
   }, [messagesQuery.data, currentUserId]);
 
   const threads = useMemo(
-    () => allGroups.map(toGroupConversationThreadSummary),
-    [allGroups],
+    () => allGroups.map((group) => toGroupConversationThreadSummary(group, groupChatCopy)),
+    [allGroups, groupChatCopy],
   );
 
   const targets = useMemo(
-    () => allGroups.map(toGroupTargetSummary),
-    [allGroups],
+    () => allGroups.map((group) => toGroupTargetSummary(group, groupChatCopy)),
+    [allGroups, groupChatCopy],
   );
 
   const sendMutation = useMutation({
@@ -281,8 +287,8 @@ export function useGroupConversationModeHost(
   }, [candidateCommitMutation, currentUserId, participants, selectedGroupId, sendMutation]);
 
   const selectedGroupTitle = selectedGroup
-    ? getGroupChatTitle(selectedGroup)
-    : t('Chat.group', { defaultValue: 'Group' });
+    ? getGroupChatTitle(selectedGroup, groupChatCopy.group)
+    : groupChatCopy.group;
 
   return useMemo((): DesktopConversationModeHost => ({
     mode: 'group',

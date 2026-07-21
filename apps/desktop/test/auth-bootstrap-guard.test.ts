@@ -87,5 +87,7 @@ test('desktop Electron login uses RuntimeAccountService desktop-browser auth, no
   );
   assert.doesNotMatch(loginPageSource, /getShellFeatureFlags|window\./);
   assert.match(loginPageSource, /<WebAuthMenu mode=\{authMode\} \/>/);
-  assert.match(webAuthMenuSource, /mode === 'desktop-browser'\s*\?\s*createDesktopRuntimeAccountBrowserBroker\(\)\s*:\s*null/s);
+  assert.match(webAuthMenuSource, /runtimeAccountBroker: auth\.runtimeAccountBroker/);
+  assert.match(authAdapterSource, /runtimeAccountBroker: createDesktopRuntimeAccountBrowserBroker\(\)/);
+  assert.doesNotMatch(webAuthMenuSource, /desktop-auth-adapter|desktopBridge/);
 });

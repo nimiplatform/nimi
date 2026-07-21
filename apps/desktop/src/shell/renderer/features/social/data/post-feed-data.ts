@@ -13,14 +13,13 @@ import {
   type NimiRealmPostFeedInput,
 } from '@nimiplatform/sdk/realm';
 import { isRealmOfflineErrorLike as isRealmOfflineError } from '@nimiplatform/sdk/types';
-import { getOfflineCoordinator } from '../../../infra/offline/coordinator';
 import {
   filterBlockedPosts,
   isBlockedUser,
   isPostHiddenByBlockedAuthor,
 } from './blocked-content';
-import { queueSocialMutation } from './offline-social-outbox';
-import type { RealmApiCaller, RealmDataErrorEmitter } from './social-snapshot';
+import type { RealmApiCaller, RealmDataErrorEmitter, SocialContactSnapshot } from './social-snapshot';
+import type { RealmSocialOfflinePort } from './social-offline-port.js';
 
 type CreateReportDto = RealmModel<'CreateReportDto'>;
 type CreatePostDto = RealmModel<'CreatePostDto'>;
@@ -37,16 +36,17 @@ export type PostFeedScope = 'personal' | 'friends' | 'persona_activity' | 'world
 
 export type LoadPostFeedInput = NimiRealmPostFeedInput;
 
-function filterFeedResponse(response: FeedResponseDto): FeedResponseDto {
+function filterFeedResponse(contacts: SocialContactSnapshot, response: FeedResponseDto): FeedResponseDto {
   return {
     ...response,
-    items: filterBlockedPosts(Array.isArray(response.items) ? response.items : []),
+    items: filterBlockedPosts(contacts, Array.isArray(response.items) ? response.items : []),
   };
 }
 
 export async function loadPostFeed(
   callApi: RealmApiCaller,
   emitRealmDataError: RealmDataErrorEmitter,
+  contacts: SocialContactSnapshot,
   input: LoadPostFeedInput,
 ): Promise<FeedResponseDto> {
   const normalized: LoadPostFeedInput = {
@@ -58,7 +58,7 @@ export async function loadPostFeed(
     scope: input.scope,
   };
 
-  if (normalized.authorId && isBlockedUser(normalized.authorId)) {
+  if (normalized.authorId && isBlockedUser(contacts, normalized.authorId)) {
     return buildEmptyNimiRealmPostFeedResponse(normalized);
   }
 
@@ -66,12 +66,13 @@ export async function loadPostFeed(
     (realm) => loadNimiRealmPostFeed(realm, emitRealmDataError, normalized),
     'Failed to load Realm post feed',
   );
-  return filterFeedResponse(response);
+  return filterFeedResponse(contacts, response);
 }
 
 export async function loadLikedPosts(
   callApi: RealmApiCaller,
   emitRealmDataError: RealmDataErrorEmitter,
+  contacts: SocialContactSnapshot,
   profileId: string,
   limit = 20,
   cursor?: string,
@@ -80,19 +81,20 @@ export async function loadLikedPosts(
     (realm) => loadNimiRealmLikedPosts(realm, emitRealmDataError, profileId, limit, cursor),
     'Failed to load Realm liked posts',
   );
-  return filterFeedResponse(response);
+  return filterFeedResponse(contacts, response);
 }
 
 export async function loadPostById(
   callApi: RealmApiCaller,
   emitRealmDataError: RealmDataErrorEmitter,
+  contacts: SocialContactSnapshot,
   postId: string,
 ): Promise<PostDto> {
   const post = await callApi(
     (realm) => loadNimiRealmPostById(realm, emitRealmDataError, postId),
     'Failed to load Realm post',
   );
-  if (isPostHiddenByBlockedAuthor(post)) {
+  if (isPostHiddenByBlockedAuthor(contacts, post)) {
     throw new Error('This post is unavailable because you blocked the author.');
   }
   return post;
@@ -135,6 +137,8 @@ export async function updatePostVisibility(
 export async function likePost(
   callApi: RealmApiCaller,
   emitRealmDataError: RealmDataErrorEmitter,
+  offline: RealmSocialOfflinePort,
+  now: () => number,
   postId: string,
 ): Promise<void> {
   try {
@@ -144,11 +148,12 @@ export async function likePost(
     );
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      await queueSocialMutation({
+      await offline.queueSocialMutation({
         kind: 'post-like',
         payload: { postId },
+        now,
       });
-      getOfflineCoordinator().markRealmRestReachability('unreachable');
+      offline.markRealmUnreachable();
       return;
     }
     throw error;
@@ -158,6 +163,8 @@ export async function likePost(
 export async function unlikePost(
   callApi: RealmApiCaller,
   emitRealmDataError: RealmDataErrorEmitter,
+  offline: RealmSocialOfflinePort,
+  now: () => number,
   postId: string,
 ): Promise<void> {
   try {
@@ -167,11 +174,12 @@ export async function unlikePost(
     );
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      await queueSocialMutation({
+      await offline.queueSocialMutation({
         kind: 'post-unlike',
         payload: { postId },
+        now,
       });
-      getOfflineCoordinator().markRealmRestReachability('unreachable');
+      offline.markRealmUnreachable();
       return;
     }
     throw error;

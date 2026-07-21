@@ -9,6 +9,7 @@ import {
   relativeTimeShort,
 } from './runtime-config-global-audit-view-model.js';
 import { ProviderHealthTable } from './runtime-config-provider-health-table.js';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 
 const TOKEN_TEXT_PRIMARY = 'text-[var(--nimi-text-primary)]';
 const TOKEN_TEXT_MUTED = 'text-[var(--nimi-text-muted)]';
@@ -159,6 +160,7 @@ export function RuntimeHealthSection({
   stale,
   onRefresh,
 }: RuntimeHealthSectionProps) {
+  const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
   const health = runtimeHealth;
 
@@ -253,7 +255,7 @@ export function RuntimeHealthSection({
             <span>
               {t('runtimeConfig.runtime.sampled', { defaultValue: 'Sampled' })}
               {' '}
-              {relativeTimeShort(timestampToIso(health.sampledAt))}
+              {relativeTimeShort(timestampToIso(health.sampledAt), i18n.formatRelativeTime)}
             </span>
           ) : null}
           {health.reason ? (

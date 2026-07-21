@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { formatProfileDate } from '../profile/profile-model';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import {
   ArrowUpIcon,
   CalendarIcon,
@@ -49,8 +51,10 @@ export function ProfileDetailViewContent(input: {
   controller: ProfileDetailViewController;
   onVisitWorld: (worldId: string) => void;
 } & ProfileDetailViewProps) {
+  const bindings = useDesktopRendererBindings();
+  const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
-  const [isWideLayout, setIsWideLayout] = useState(() => window.innerWidth >= 1180);
+  const [isWideLayout, setIsWideLayout] = useState(() => bindings.app.projection.viewportWidth() >= 1180);
   const {
     activeTab,
     avatarInputRef,
@@ -105,7 +109,7 @@ export function ProfileDetailViewContent(input: {
     ? `${profile.city}, ${profile.countryCode.toUpperCase()}`
     : profile.city || profile.countryCode?.toUpperCase() || t('Profile.unknownRegion', { defaultValue: 'Unknown region' });
   const originLabel = profile.sourceOrigin || t('Profile.unknownOrigin', { defaultValue: 'Unknown origin' });
-  const joinedLabel = formatProfileDate(profile.createdAt) || t('Profile.unknownJoinedDate', { defaultValue: 'Unknown joined date' });
+  const joinedLabel = formatProfileDate(profile.createdAt, i18n.formatDate) || t('Profile.unknownJoinedDate', { defaultValue: 'Unknown joined date' });
   const worldLabel = profile.worldName || t('Profile.unknownWorld', { defaultValue: 'Unknown world' });
   const worldNavigationId = profile.sourceWorldId || '';
   const canVisitWorld = Boolean(worldNavigationId);
@@ -122,13 +126,12 @@ export function ProfileDetailViewContent(input: {
 
   useEffect(() => {
     const syncLayoutMode = () => {
-      setIsWideLayout(window.innerWidth >= 1180);
+      setIsWideLayout(bindings.app.projection.viewportWidth() >= 1180);
     };
 
     syncLayoutMode();
-    window.addEventListener('resize', syncLayoutMode);
-    return () => window.removeEventListener('resize', syncLayoutMode);
-  }, []);
+    return bindings.app.events.subscribeWindowResize(syncLayoutMode);
+  }, [bindings]);
 
   const contentClassName = input.fullBleed ? 'flex min-h-full w-full flex-col' : 'flex min-h-full w-full flex-col pb-6';
   const profileDetailBody = (

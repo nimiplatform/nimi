@@ -475,7 +475,7 @@ export function useAiConversationHostActions(
           code: 'OPERATION_ABORTED',
           message: input.t('Chat.nimiGenerationStopped', { defaultValue: 'Generation stopped.' }),
         }
-        : toChatAiRuntimeError(error);
+        : toChatAiRuntimeError(error, input.t);
       if (streamSnapshot.phase === 'waiting' || streamSnapshot.phase === 'streaming') {
         streamController.feedStreamEvent(effectiveThreadId, {
           type: 'error',

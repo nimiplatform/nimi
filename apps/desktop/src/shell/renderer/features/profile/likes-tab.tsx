@@ -1,8 +1,7 @@
-import { realmSocialData } from '../social/data/realm-social-data';
+import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useTranslation } from 'react-i18next';
-import { BLOCKED_USERS_UPDATED_EVENT } from '../social/data/blocked-content';
 import { AppCardSurface, CompactAction } from '@nimiplatform/kit/ui';
 import { PostFeedWithMediaPreview } from './post-feed-with-media-preview.js';
 
@@ -41,6 +40,7 @@ function LikeSkeleton() {
 }
 
 export function LikesTab({ profileId, layout = 'grid' }: LikesTabProps) {
+  const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
   const [likedPosts, setLikedPosts] = useState<PostDto[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -107,9 +107,6 @@ export function LikesTab({ profileId, layout = 'grid' }: LikesTabProps) {
   }, [fetchLiked, profileId]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return undefined;
-    }
     const handleBlockedUsersUpdated = () => {
       setLikedPosts([]);
       setCursor(null);
@@ -119,9 +116,8 @@ export function LikesTab({ profileId, layout = 'grid' }: LikesTabProps) {
       setLoadError(null);
       void fetchLiked(null);
     };
-    window.addEventListener(BLOCKED_USERS_UPDATED_EVENT, handleBlockedUsersUpdated);
-    return () => window.removeEventListener(BLOCKED_USERS_UPDATED_EVENT, handleBlockedUsersUpdated);
-  }, [fetchLiked]);
+    return realmSocialData.subscribeBlockedUsers(handleBlockedUsersUpdated);
+  }, [fetchLiked, realmSocialData]);
 
   const cursorRef = useRef<string | null>(null);
   cursorRef.current = cursor;

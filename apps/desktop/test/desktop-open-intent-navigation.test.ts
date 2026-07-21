@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import type { NimiDesktopOpenIntent } from '@nimiplatform/kit/core/desktop-open';
 import {
-  applyDesktopOpenIntentToAppStore,
+  applyDesktopOpenIntentToAppStore as applyDesktopOpenIntent,
 } from '../src/shell/renderer/infra/desktop-open/desktop-open-intent-navigation';
 import { productionAppStore } from '../src/shell/renderer/app-shell/providers/production-app-store';
 import {
@@ -19,6 +19,10 @@ import {
 import {
   DESKTOP_OPEN_TEST_TARGETS,
 } from '../e2e/fixtures/desktop-open-test-launcher.mjs';
+import {
+  createDesktopRendererRuntimeConfigNavigationPort,
+  type DesktopRendererRuntimeConfigNavigationPort,
+} from '../src/shell/renderer/renderer/runtime-config-navigation-port.js';
 
 class MemoryStorage implements Storage {
   private readonly values = new Map<string, string>();
@@ -51,8 +55,17 @@ class MemoryStorage implements Storage {
 const initialState = productionAppStore.getState();
 const previousLocalStorage = globalThis.localStorage;
 const previousWindow = globalThis.window;
+let runtimeConfigNavigation: DesktopRendererRuntimeConfigNavigationPort;
+
+function applyDesktopOpenIntentToAppStore(intent: NimiDesktopOpenIntent): void {
+  applyDesktopOpenIntent(intent, {
+    store: productionAppStore.getState(),
+    runtimeConfigNavigation,
+  });
+}
 
 test.beforeEach(() => {
+  runtimeConfigNavigation = createDesktopRendererRuntimeConfigNavigationPort();
   Object.defineProperty(globalThis, 'localStorage', {
     configurable: true,
     value: new MemoryStorage(),
@@ -132,15 +145,6 @@ for (const target of DESKTOP_OPEN_TEST_TARGETS) {
 }
 
 test('Desktop Open Intent maps runtime connector actions to Runtime Cloud state', () => {
-  const openedPages: string[] = [];
-  const actionFocuses: unknown[] = [];
-  window.addEventListener('nimi://runtime-config-open-page', (event) => {
-    openedPages.push(String((event as CustomEvent<unknown>).detail));
-  });
-  window.addEventListener('nimi://runtime-config-action-focus', (event) => {
-    actionFocuses.push((event as CustomEvent<unknown>).detail);
-  });
-
   applyDesktopOpenIntentToAppStore({
     kind: 'open-runtime-config',
     page: 'cloud',
@@ -154,20 +158,20 @@ test('Desktop Open Intent maps runtime connector actions to Runtime Cloud state'
     action: 'add-connector',
     focus: 'runtime-config-action-focus.cloud-connector-draft',
   });
-  assert.deepEqual(openedPages, ['cloud']);
-  assert.deepEqual(actionFocuses, [{
-    page: 'cloud',
-    action: 'add-connector',
-    focus: 'runtime-config-action-focus.cloud-connector-draft',
-  }]);
+  assert.deepEqual(runtimeConfigNavigation.get(), {
+    revision: 2,
+    intent: {
+      kind: 'focus-action',
+      actionFocus: {
+        page: 'cloud',
+        action: 'add-connector',
+        focus: 'runtime-config-action-focus.cloud-connector-draft',
+      },
+    },
+  });
 });
 
 test('Desktop Open Intent maps runtime model install actions to Models catalog focus', () => {
-  const actionFocuses: unknown[] = [];
-  window.addEventListener('nimi://runtime-config-action-focus', (event) => {
-    actionFocuses.push((event as CustomEvent<unknown>).detail);
-  });
-
   applyDesktopOpenIntentToAppStore({
     kind: 'open-runtime-config',
     page: 'models',
@@ -181,11 +185,17 @@ test('Desktop Open Intent maps runtime model install actions to Models catalog f
     action: 'install-model',
     focus: 'runtime-config-action-focus.models-catalog-install',
   });
-  assert.deepEqual(actionFocuses, [{
-    page: 'models',
-    action: 'install-model',
-    focus: 'runtime-config-action-focus.models-catalog-install',
-  }]);
+  assert.deepEqual(runtimeConfigNavigation.get(), {
+    revision: 2,
+    intent: {
+      kind: 'focus-action',
+      actionFocus: {
+        page: 'models',
+        action: 'install-model',
+        focus: 'runtime-config-action-focus.models-catalog-install',
+      },
+    },
+  });
 });
 
 test('Desktop Open Intent maps settings profile and app details to owned surfaces', () => {

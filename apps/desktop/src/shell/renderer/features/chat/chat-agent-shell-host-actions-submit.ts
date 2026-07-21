@@ -138,7 +138,10 @@ export async function submitAgentConversationTurn(input: {
         conversationAnchorId,
       },
     });
-    const fallbackThreadRecord = toFallbackThreadRecord(effectiveThreadRecord);
+    const fallbackThreadRecord = toFallbackThreadRecord(
+      effectiveThreadRecord,
+      input.hostInput.now(),
+    );
 
     const existingSubmit = input.activeSubmitsByThreadRef.current.get(effectiveThreadId) || null;
     if (existingSubmit && existingSubmit.threadId === effectiveThreadId && existingSubmit.interruptible) {
@@ -156,7 +159,7 @@ export async function submitAgentConversationTurn(input: {
     const userTurnId = createNimiClientId('agent-turn-user');
     const assistantTurnId = createNimiClientId('agent-turn');
     const assistantMessageId = `${assistantTurnId}:message:0`;
-    const createdAtMs = Date.now();
+    const createdAtMs = input.hostInput.now();
     const optimisticPreviewAttachments = input.payload.attachments
       .filter((attachment) => attachment.kind === 'image' && normalizeText(attachment.previewUrl))
       .map((attachment) => ({
@@ -327,7 +330,7 @@ export async function submitAgentConversationTurn(input: {
           code: 'OPERATION_ABORTED',
           message: input.hostInput.t('Chat.agentGenerationStopped', { defaultValue: 'Generation stopped.' }),
         }
-        : toChatAgentRuntimeError(error);
+        : toChatAgentRuntimeError(error, input.hostInput.t);
       safeLogAgentSubmit({
         level: 'warn',
         message: 'action:submit:runtime-turn-failed',
@@ -348,7 +351,7 @@ export async function submitAgentConversationTurn(input: {
         state: submitSession,
         refreshedBundle: null,
         runtimeError,
-        updatedAtMs: Date.now(),
+        updatedAtMs: input.hostInput.now(),
         streamSnapshot,
       }));
       throw new Error(runtimeError.message, { cause: error });

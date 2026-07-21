@@ -26,15 +26,3 @@ export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; descrip
     description: 'Rendering preferences, updates, and developer-only surfaces.',
   },
 };
-
-const RESET_LOG_FLAG_KEY = '__nimiRuntimeConfigV11ResetLogged__';
-
-export function wasRuntimeConfigV11ResetLogged(): boolean {
-  const root = globalThis as Record<string, unknown>;
-  return Boolean(root[RESET_LOG_FLAG_KEY]);
-}
-
-export function markRuntimeConfigV11ResetLogged(): void {
-  const root = globalThis as Record<string, unknown>;
-  root[RESET_LOG_FLAG_KEY] = true;
-}

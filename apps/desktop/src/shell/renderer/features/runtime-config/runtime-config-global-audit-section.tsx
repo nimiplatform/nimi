@@ -4,6 +4,7 @@ import type { DesktopAuditEventProjection } from '@nimiplatform/sdk/runtime/wire
 import { CallerKind } from '@nimiplatform/sdk/runtime/wire-types';
 import { Popover, PopoverContent, PopoverTrigger, ScrollArea, Surface, Tooltip, cn } from '@nimiplatform/kit/ui';
 import { Button, RuntimeSelect } from './runtime-config-primitives.js';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import {
   callerKindLabel,
   timestampToIso,
@@ -516,6 +517,7 @@ export function GlobalAuditSection({
   onRefresh,
   onLoadMore,
 }: GlobalAuditSectionProps) {
+  const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
   return (
     <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'min-w-0 max-w-full overflow-hidden p-5')}>
@@ -613,7 +615,13 @@ export function GlobalAuditSection({
               ) : null}
             </div>
           ) : (
-            events.map((event) => <AuditEventRow key={event.auditId} event={event} />)
+            events.map((event) => (
+              <AuditEventRow
+                key={event.auditId}
+                event={event}
+                formatRelativeTime={i18n.formatRelativeTime}
+              />
+            ))
           )}
         </ScrollArea>
       </div>
@@ -632,7 +640,13 @@ export function GlobalAuditSection({
   );
 }
 
-function AuditEventRow({ event }: { event: DesktopAuditEventProjection }) {
+function AuditEventRow({
+  event,
+  formatRelativeTime,
+}: {
+  event: DesktopAuditEventProjection;
+  formatRelativeTime: (value: unknown) => string;
+}) {
   const [expanded, setExpanded] = useState(false);
   const ts = timestampToIso(event.timestamp);
   const reasonCodeText = event.reasonCode !== undefined && event.reasonCode !== null ? String(event.reasonCode) : '';
@@ -677,7 +691,7 @@ function AuditEventRow({ event }: { event: DesktopAuditEventProjection }) {
         <span className="ml-auto shrink-0">
           <Tooltip content={ts} placement="top">
             <span className={cn('text-[11px]', TOKEN_TEXT_MUTED)}>
-              {ts !== '-' ? relativeTimeShort(ts) : '—'}
+              {ts !== '-' ? relativeTimeShort(ts, formatRelativeTime) : '—'}
             </span>
           </Tooltip>
         </span>

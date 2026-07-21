@@ -1,4 +1,4 @@
-import { realmSocialData } from '../social/data/realm-social-data';
+import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useCallback, useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -16,6 +16,7 @@ export function ChatGroupCreateModal(props: {
   onClose: () => void;
   onCreateGroup: (title: string, participantIds: string[]) => Promise<void>;
 }) {
+  const realmSocialData = useRealmSocialData();
   const { open, onClose, onCreateGroup } = props;
   const { t } = useTranslation();
   const [title, setTitle] = useState('');

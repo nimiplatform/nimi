@@ -14,11 +14,9 @@ import {
   requestOrAcceptFriend,
   unblockUser,
 } from '../src/shell/renderer/features/social/data/profile-data.js';
-import {
-  getCachedContacts,
-  updateCachedContacts,
-} from '../src/shell/renderer/features/social/data/social-snapshot.js';
+import { createSocialSnapshotStore } from '../src/shell/renderer/features/social/data/social-snapshot.js';
 import { getOfflineOutboxManager } from '../src/shell/renderer/infra/offline/outbox-manager.js';
+import type { RealmSocialOfflinePort } from '../src/shell/renderer/features/social/data/social-offline-port.js';
 
 const profileFlowSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/social/data/profile-data.ts'),
@@ -29,9 +27,19 @@ const profileFlowSocialSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/social/data/social-snapshot.ts'),
   'utf8',
 );
+const snapshotStore = createSocialSnapshotStore();
+const failClosedOffline: RealmSocialOfflinePort = Object.freeze({
+  async syncProfileMetadata() {},
+  async loadProfileMetadata() { return null; },
+  markCacheFallbackUsed() {},
+  markRealmUnreachable() {},
+  async queueSocialMutation() {
+    throw new Error('TEST_SOCIAL_OFFLINE_QUEUE_UNADMITTED');
+  },
+});
 
 function resetCachedContacts() {
-  updateCachedContacts({
+  snapshotStore.update({
     friends: [],
     pendingReceived: [],
     pendingSent: [],
@@ -98,6 +106,7 @@ describe('D-DSYNC-004: social flow source scanning', () => {
     await assert.rejects(
       () => requestOrAcceptFriend({
         callApi: callApi as never,
+        offline: failClosedOffline,
         userId: 'agent-or-human-1',
         reloadContacts: async () => undefined,
       }),
@@ -106,6 +115,7 @@ describe('D-DSYNC-004: social flow source scanning', () => {
     await assert.rejects(
       () => removeFriend({
         callApi: callApi as never,
+        offline: failClosedOffline,
         userId: 'agent-or-human-1',
         reloadContacts: async () => undefined,
       }),
@@ -114,6 +124,7 @@ describe('D-DSYNC-004: social flow source scanning', () => {
     await assert.rejects(
       () => rejectOrRemoveFriend({
         callApi: callApi as never,
+        offline: failClosedOffline,
         userId: 'agent-or-human-1',
         reloadContacts: async () => undefined,
       }),
@@ -126,7 +137,7 @@ describe('D-DSYNC-004: social flow source scanning', () => {
 
 test('social snapshot ignores local test and fallback contacts when Realm returns none', async () => {
   resetCachedContacts();
-  updateCachedContacts({
+  snapshotStore.update({
     friends: [
       { id: 'test-local-user', displayName: 'Local Test' },
       { id: 'fallback-user', displayName: 'Fallback', __localFallbackUntil: Date.now() + 60_000 },
@@ -146,12 +157,13 @@ test('social snapshot ignores local test and fallback contacts when Realm return
       },
     } as never),
     () => undefined,
+    snapshotStore,
   );
 
   assert.deepEqual(snapshot.friends, []);
   assert.deepEqual(snapshot.blocked, []);
-  assert.deepEqual(getCachedContacts().friends, []);
-  assert.deepEqual(getCachedContacts().blocked, []);
+  assert.deepEqual(snapshotStore.get().friends, []);
+  assert.deepEqual(snapshotStore.get().blocked, []);
 });
 
 test('block and unblock test-prefixed contacts use Realm instead of local success state', async () => {
@@ -179,8 +191,8 @@ test('block and unblock test-prefixed contacts use Realm instead of local succes
 
   assert.deepEqual(calls, ['block:test-contact', 'unblock:test-contact']);
   assert.equal(reloads, 2);
-  assert.deepEqual(getCachedContacts().friends, []);
-  assert.deepEqual(getCachedContacts().blocked, []);
+  assert.deepEqual(snapshotStore.get().friends, []);
+  assert.deepEqual(snapshotStore.get().blocked, []);
 });
 
 test('unblock does not insert a fallback friend when Realm add-friend would fail', async () => {
@@ -200,7 +212,7 @@ test('unblock does not insert a fallback friend when Realm add-friend would fail
   );
 
   assert.deepEqual(calls, ['unblock:contact-1']);
-  assert.deepEqual(getCachedContacts().friends, []);
+  assert.deepEqual(snapshotStore.get().friends, []);
 });
 
 test('blocked user load failures fail close instead of becoming an empty social graph', async () => {
@@ -222,6 +234,7 @@ test('blocked user load failures fail close instead of becoming an empty social 
       (action, error) => {
         errors.push({ action, error });
       },
+      snapshotStore,
     ),
     /blocked users unavailable/,
   );

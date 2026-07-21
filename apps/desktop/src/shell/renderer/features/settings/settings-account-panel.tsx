@@ -1,4 +1,4 @@
-import { realmSocialData } from '../social/data/realm-social-data';
+import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useEffect, useRef, useState } from 'react';
 import {
   NIMI_REALM_OAUTH_PROVIDER,
@@ -29,6 +29,7 @@ const ACCEPTED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/g
 const MAX_AVATAR_FILE_SIZE = 10 * 1024 * 1024;
 
 export function ProfilePage() {
+  const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
   const user = useAppStore((s) => s.auth.user);
   const realmBaseUrl = useAppStore((s) => String(s.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));

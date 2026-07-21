@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Popover, PopoverContent, PopoverTrigger, ScrollArea } from '@nimiplatform/kit/ui';
-import { formatRelativeLocaleTime } from '../../i18n';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import type {
   NimiRuntimeLocalRecommendationFeedItem,
 } from '@nimiplatform/sdk/runtime';
@@ -63,6 +63,7 @@ export function DeviceProfileBar({
   loading,
   onRefresh,
 }: DeviceProfileBarProps) {
+  const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
   const badge = cacheStateBadge(cacheState);
   const gpuName = [gpu.vendor, gpu.model].filter(Boolean).join(' ') || t('runtimeConfig.recommend.machineGpuUnknown', { defaultValue: 'GPU unavailable' });
@@ -89,7 +90,7 @@ export function DeviceProfileBar({
         <div className="flex items-center gap-3">
           {generatedAt ? (
             <span className="text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]" title={generatedAt}>
-              {t('runtimeConfig.recommend.lastChecked', { defaultValue: 'Last checked:' })} {formatRelativeLocaleTime(generatedAt)}
+              {t('runtimeConfig.recommend.lastChecked', { defaultValue: 'Last checked:' })} {i18n.formatRelativeTime(generatedAt)}
             </span>
           ) : null}
           <Button variant="secondary" size="sm" onClick={onRefresh}>
@@ -331,6 +332,7 @@ export type ModelRowProps = {
 };
 
 export function ModelRow({ item, totalVramBytes, onSelect }: ModelRowProps) {
+  const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
   const recommendation = item.recommendation;
   const grade = tierToGrade(recommendation?.tier);
@@ -338,7 +340,7 @@ export function ModelRow({ item, totalVramBytes, onSelect }: ModelRowProps) {
   const license = parseLicenseShort(item.installPayload.license);
   const sizeBytes = primaryEntrySize(item);
   const vramPct = computeVramPercentage(sizeBytes, totalVramBytes);
-  const lastMod = item.lastModified ? formatRelativeLocaleTime(item.lastModified) : '—';
+  const lastMod = item.lastModified ? i18n.formatRelativeTime(item.lastModified) : '—';
 
   return (
     <button

@@ -22,7 +22,7 @@ test('source detail route state carries typed sourceRef instead of bare profile 
   assert.match(sourcePanel, /const selectedSourceRef = useAppStore\(\(state\) => state\.selectedSourceRef\);/);
   assert.match(sourcePanel, /fetchSourceDisplayDetail\(selectedSourceRef\)/);
   assert.match(sourcePanel, /sourceDisplayDetailQueryKey\(selectedSourceRef\)/);
-  assert.match(sourcePanel, /materializeSourceContactLaunchTarget\(source, ownerUserId\)/);
+  assert.match(sourcePanel, /materializeSourceContactLaunchTarget\(source, ownerUserId, i18n\.t\)/);
   assert.match(sourcePanel, /ensureRuntimeAgentExists\(target\)/);
   assert.doesNotMatch(sourcePanel, /invalidateQueries\(\{ queryKey: sourceDisplayDetailQueryKey\(selectedSourceRef\) \}\)/);
   assert.match(sourceQueries, /loadRealmSourceDetailsBySourceRef\(normalizedSourceRef/);

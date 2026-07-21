@@ -40,8 +40,8 @@ describe('notification panel action wiring', () => {
   });
 
   test('gift actions use Kit commerce Realm helpers', () => {
-    assert.match(source, /acceptRealmGift\(\{[\s\S]*service: getDesktopRealmCommerceGiftService\(\),[\s\S]*giftTransactionId: item\.giftTransactionId as string/);
-    assert.match(source, /rejectRealmGift\(\{[\s\S]*service: getDesktopRealmCommerceGiftService\(\),[\s\S]*giftTransactionId: rejectingItem\.giftTransactionId as string/);
+    assert.match(source, /acceptRealmGift\(\{[\s\S]*service: createRealmCommerceGiftService\(\{ generated: bindings\.sdk\.realm\(\)\.generated \}\),[\s\S]*giftTransactionId: item\.giftTransactionId as string/);
+    assert.match(source, /rejectRealmGift\(\{[\s\S]*service: createRealmCommerceGiftService\(\{ generated: bindings\.sdk\.realm\(\)\.generated \}\),[\s\S]*giftTransactionId: rejectingItem\.giftTransactionId as string/);
     assert.match(source, /createRealmGiftReview\(\{/);
     assert.doesNotMatch(source, /dataSync\.acceptGift/);
     assert.doesNotMatch(source, /dataSync\.rejectGift/);

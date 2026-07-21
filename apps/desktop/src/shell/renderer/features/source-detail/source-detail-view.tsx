@@ -111,7 +111,7 @@ export function SourceDetailView(props: SourceDetailViewProps) {
     description: source.bio || source.archetype,
     tags: source.tags,
   });
-  const primaryAction = describeCharacterPrimaryAction(source.sourceState);
+  const primaryAction = describeCharacterPrimaryAction(source.sourceState, t);
   const handlePrimaryAction = () => {
     props.onPrimaryAction();
   };

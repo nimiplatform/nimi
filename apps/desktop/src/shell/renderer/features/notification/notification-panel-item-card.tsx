@@ -7,6 +7,7 @@ import { NotificationActionButtons } from './notification-action-buttons.js';
 import { formatNotificationTime } from './notification-panel-helpers.js';
 import { getBadgeDefaultLabel } from './notification-panel-labels.js';
 import type { ItemActionKind, NotificationItemView, PendingItemAction } from './notification-panel-types.js';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 
 type ReviewRating = RealmModel<'ReviewRating'>;
 
@@ -37,6 +38,7 @@ export function NotificationPanelItemCard({
   onStartRejectGift,
   onCreateReview,
 }: NotificationPanelItemCardProps) {
+  const i18n = useDesktopI18nResource();
   const badgeKey = getNimiNotificationBadgeKey(item);
   const giftMessage = item.giftMessage?.trim() || '';
   const body = item.body.trim();
@@ -93,7 +95,7 @@ export function NotificationPanelItemCard({
             </span>
           </p>
 
-          <p className="mt-0.5 text-xs text-gray-400">{formatNotificationTime(item.createdAt)}</p>
+          <p className="mt-0.5 text-xs text-gray-400">{formatNotificationTime(item.createdAt, i18n)}</p>
 
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {item.giftSparkCost ? (

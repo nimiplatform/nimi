@@ -35,16 +35,16 @@ export function readRelationshipType(record: JsonObject): string | null {
     ?? readOptionalString(record, 'kind');
 }
 
-export const CAREER_RELATIONSHIP_TYPES = new Set(['entry', 'postedToOffice']);
-export const WORK_RELATIONSHIP_TYPES = new Set(['text', 'authoredText']);
+export const CAREER_RELATIONSHIP_TYPES = ['entry', 'postedToOffice'] as const;
+export const WORK_RELATIONSHIP_TYPES = ['text', 'authoredText'] as const;
 
 
 export function isCareerRelationshipType(type: string | null): type is string {
-  return Boolean(type && CAREER_RELATIONSHIP_TYPES.has(type));
+  return Boolean(type && CAREER_RELATIONSHIP_TYPES.includes(type as (typeof CAREER_RELATIONSHIP_TYPES)[number]));
 }
 
 export function isWorkRelationshipType(type: string | null): type is string {
-  return Boolean(type && WORK_RELATIONSHIP_TYPES.has(type));
+  return Boolean(type && WORK_RELATIONSHIP_TYPES.includes(type as (typeof WORK_RELATIONSHIP_TYPES)[number]));
 }
 
 export function readRelationshipSummary(record: JsonObject): string | null {

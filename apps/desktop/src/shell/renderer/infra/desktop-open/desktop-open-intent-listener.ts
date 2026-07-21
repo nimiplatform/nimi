@@ -8,11 +8,15 @@ import {
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { setDesktopOpenIntentReady } from '../../bridge/runtime-bridge';
 import { applyDesktopOpenIntentToAppStore } from './desktop-open-intent-navigation';
+import { productionAppStore } from '../../app-shell/providers/production-app-store.js';
+import type { DesktopRendererRuntimeConfigNavigationPort } from '../../renderer/runtime-config-navigation-port.js';
 
 const DESKTOP_OPEN_INTENT_EVENT = 'desktop-open://open-intent';
 const DESKTOP_OPEN_READY_HEARTBEAT_INTERVAL_MS = 3_000;
 
-export function connectDesktopOpenIntentListener(): () => void {
+export function connectDesktopOpenIntentListener(
+  runtimeConfigNavigation: DesktopRendererRuntimeConfigNavigationPort,
+): () => void {
     if (!hasNimiShellRuntime()) return () => undefined;
     let active = true;
     let heartbeatTimer: ReturnType<typeof globalThis.setInterval> | undefined;
@@ -45,7 +49,10 @@ export function connectDesktopOpenIntentListener(): () => void {
         });
         return;
       }
-      applyDesktopOpenIntentToAppStore(parsed.value.intent);
+      applyDesktopOpenIntentToAppStore(parsed.value.intent, {
+        store: productionAppStore.getState(),
+        runtimeConfigNavigation,
+      });
     }));
 
     void unsubscribePromise.then(() => {

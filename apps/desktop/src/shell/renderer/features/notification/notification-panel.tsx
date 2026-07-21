@@ -1,5 +1,5 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
-import { realmSocialData } from '../social/data/realm-social-data';
+import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useEffect, useMemo, useState } from 'react';
 import { AppCardSurface, Button, ScrollArea } from '@nimiplatform/kit/ui';
 import { loadNimiRealmNotifications, loadNimiRealmNotificationUnreadCount, markNimiRealmNotificationRead, markNimiRealmNotificationsRead, toNimiRealmNotificationListView } from '@nimiplatform/sdk/realm';
@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   acceptRealmGift,
+  createRealmCommerceGiftService,
   createRealmGiftReview,
   rejectRealmGift,
 } from '@nimiplatform/kit/features/commerce/realm';
@@ -36,12 +37,13 @@ import {
   type NotificationItemView,
   type PendingItemAction,
 } from './notification-panel-types.js';
-import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
-import { getDesktopRealmCommerceGiftService } from '../../infra/realm/realm-commerce-service';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 type ReviewRating = RealmModel<'ReviewRating'>;
 
 export function NotificationPanel() {
+  const realmSocialData = useRealmSocialData();
+  const bindings = useDesktopRendererBindings();
   const i18n = useDesktopI18nResource().instance;
   const queryClient = useQueryClient();
   const authStatus = useAppStore((state) => state.auth.status);
@@ -71,7 +73,7 @@ export function NotificationPanel() {
     queryKey: notificationQueryKeys.page(notificationQueryIdentityRef, serverFilter),
     initialPageParam: '',
     queryFn: async ({ pageParam }) => loadNimiRealmNotifications(
-      getDesktopRealm(),
+      bindings.sdk.realm(),
       {
         limit: PAGE_SIZE,
         ...(pageParam ? { cursor: String(pageParam) } : {}),
@@ -90,7 +92,7 @@ export function NotificationPanel() {
   });
   const unreadCountQuery = useQuery({
     queryKey: notificationQueryKeys.topbarUnreadCount(notificationQueryIdentityRef),
-    queryFn: async () => loadNimiRealmNotificationUnreadCount(getDesktopRealm()),
+    queryFn: async () => loadNimiRealmNotificationUnreadCount(bindings.sdk.realm()),
     enabled: authStatus === 'authenticated' && Boolean(notificationIdentityRef),
     staleTime: 15_000,
     refetchInterval: 30_000,
@@ -175,7 +177,7 @@ export function NotificationPanel() {
     updateUnreadCount(Math.max(0, previousUnreadCount - 1));
 
     try {
-      await markNimiRealmNotificationRead(getDesktopRealm(), notificationId);
+      await markNimiRealmNotificationRead(bindings.sdk.realm(), notificationId);
       await refreshNotifications();
     } catch (error) {
       setReadOverrides((previous) => {
@@ -214,8 +216,8 @@ export function NotificationPanel() {
 
     try {
       await markNimiRealmNotificationsRead(
-        getDesktopRealm(),
-        { markAllBefore: new Date().toISOString() },
+        bindings.sdk.realm(),
+        { markAllBefore: new Date(bindings.clock.now()).toISOString() },
       );
       await refreshNotifications();
     } catch (error) {
@@ -323,7 +325,7 @@ export function NotificationPanel() {
       action: 'gift-accept',
       task: async () => {
         await acceptRealmGift({
-          service: getDesktopRealmCommerceGiftService(),
+          service: createRealmCommerceGiftService({ generated: bindings.sdk.realm().generated }),
           giftTransactionId: item.giftTransactionId as string,
         });
       },
@@ -341,7 +343,7 @@ export function NotificationPanel() {
       action: 'gift-reject',
       task: async () => {
         await rejectRealmGift({
-          service: getDesktopRealmCommerceGiftService(),
+          service: createRealmCommerceGiftService({ generated: bindings.sdk.realm().generated }),
           giftTransactionId: rejectingItem.giftTransactionId as string,
           input: {
             reason: rejectReason.trim() || undefined,
@@ -365,7 +367,7 @@ export function NotificationPanel() {
       action,
       task: async () => {
         await createRealmGiftReview({
-          service: getDesktopRealmCommerceGiftService(),
+          service: createRealmCommerceGiftService({ generated: bindings.sdk.realm().generated }),
           input: {
             giftTransactionId: item.giftTransactionId as string,
             rating,

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test, { describe } from 'node:test';
+import { formatRelativeLocaleTime } from '../src/shell/renderer/i18n';
 
 import {
   runtimeHealthStatusLabel,
@@ -300,31 +301,31 @@ describe('structToRecord', () => {
 describe('relativeTimeShort', () => {
   test('just now for future time', () => {
     const future = new Date(Date.now() + 60_000).toISOString();
-    assert.equal(relativeTimeShort(future), 'just now');
+    assert.equal(relativeTimeShort(future, formatRelativeLocaleTime), 'just now');
   });
 
   test('Xs ago for recent time', () => {
     const recent = new Date(Date.now() - 30_000).toISOString();
-    assert.equal(relativeTimeShort(recent), '30s ago');
+    assert.equal(relativeTimeShort(recent, formatRelativeLocaleTime), '30s ago');
   });
 
   test('Xm ago for minutes', () => {
     const minutes = new Date(Date.now() - 5 * 60_000).toISOString();
-    assert.equal(relativeTimeShort(minutes), '5m ago');
+    assert.equal(relativeTimeShort(minutes, formatRelativeLocaleTime), '5m ago');
   });
 
   test('Xh ago for hours', () => {
     const hours = new Date(Date.now() - 3 * 3600_000).toISOString();
-    assert.equal(relativeTimeShort(hours), '3h ago');
+    assert.equal(relativeTimeShort(hours, formatRelativeLocaleTime), '3h ago');
   });
 
   test('Xd ago for days', () => {
     const days = new Date(Date.now() - 2 * 86400_000).toISOString();
-    assert.equal(relativeTimeShort(days), '2d ago');
+    assert.equal(relativeTimeShort(days, formatRelativeLocaleTime), '2d ago');
   });
 
   test('invalid string → returns as-is', () => {
-    assert.equal(relativeTimeShort('not-a-date'), 'not-a-date');
+    assert.equal(relativeTimeShort('not-a-date', formatRelativeLocaleTime), 'not-a-date');
   });
 });
 

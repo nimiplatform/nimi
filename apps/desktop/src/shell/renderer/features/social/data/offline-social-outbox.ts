@@ -21,13 +21,14 @@ function createId(prefix: string): string {
 export async function queueSocialMutation(input: {
   kind: SocialMutationKind;
   payload: JsonObject;
+  now: () => number;
 }): Promise<PersistentSocialMutationEntry> {
   const manager = await getOfflineOutboxManager();
   const entry: PersistentSocialMutationEntry = {
     id: createId(`social:${input.kind}`),
     kind: input.kind,
     payload: input.payload,
-    enqueuedAt: Date.now(),
+    enqueuedAt: input.now(),
     attempts: 0,
     status: 'pending',
   };

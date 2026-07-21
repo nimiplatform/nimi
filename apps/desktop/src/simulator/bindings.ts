@@ -16,6 +16,8 @@ import type {
 } from './protocol.js';
 import { createUnavailableDesktopFirstRunPort } from '../shell/renderer/renderer/first-run-port.js';
 import { createMemoryDesktopRendererSettingsPort } from '../shell/renderer/renderer/settings-port.js';
+import { createUnavailableDesktopRendererAuthPort } from '../shell/renderer/renderer/auth-port.js';
+import { createDesktopRendererRuntimeConfigNavigationPort } from '../shell/renderer/renderer/runtime-config-navigation-port.js';
 
 type JsonRecord = { readonly [key: string]: DesktopSimulatorJsonValue };
 
@@ -101,6 +103,27 @@ export function createDesktopSimulatorBindings(
       hostRuntimeAgent: simulatorSdkUnadmitted,
       accountRuntime: simulatorSdkUnadmitted,
       realm: simulatorSdkUnadmitted,
+      socialData: Object.freeze({
+        callApi: async () => simulatorSdkUnadmitted(),
+        emitDataError: () => undefined,
+        offline: Object.freeze({
+          async syncProfileMetadata() {
+            throw new Error('DESKTOP_SIMULATOR_SOCIAL_OFFLINE_UNADMITTED');
+          },
+          async loadProfileMetadata() {
+            return null;
+          },
+          markCacheFallbackUsed() {
+            throw new Error('DESKTOP_SIMULATOR_SOCIAL_OFFLINE_UNADMITTED');
+          },
+          markRealmUnreachable() {
+            throw new Error('DESKTOP_SIMULATOR_SOCIAL_OFFLINE_UNADMITTED');
+          },
+          async queueSocialMutation() {
+            throw new Error('DESKTOP_SIMULATOR_SOCIAL_OFFLINE_UNADMITTED');
+          },
+        }),
+      }),
       accountCaller: simulatorSdkUnadmitted,
       withRuntimeProtectedScopes: async () => simulatorSdkUnadmitted(),
     }),
@@ -120,7 +143,9 @@ export function createDesktopSimulatorBindings(
         viewportWidth: () => 1_280,
       }),
       commands: Object.freeze({
+        auth: createUnavailableDesktopRendererAuthPort(),
         firstRun: createUnavailableDesktopFirstRunPort('DESKTOP_SIMULATOR_FIRST_RUN_UNADMITTED'),
+        runtimeConfigNavigation: createDesktopRendererRuntimeConfigNavigationPort(),
         settings: createMemoryDesktopRendererSettingsPort(),
         commitAIConfig() {
           throw new Error('DESKTOP_SIMULATOR_AI_CONFIG_UNADMITTED');

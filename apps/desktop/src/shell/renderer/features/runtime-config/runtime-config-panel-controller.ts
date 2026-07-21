@@ -2,10 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import type { RuntimePageIdV11 } from './runtime-config-state-types';
 import { persistRuntimeConfigStateV11 } from './runtime-config-storage-persist';
-import {
-  addRuntimeConfigActionFocusListener,
-  addRuntimeConfigOpenPageListener,
-} from './runtime-config-navigation-events';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useRuntimeConfigPanelEffects } from './runtime-config-panel-effects';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { createRuntimeConfigPanelCommands } from './runtime-config-panel-commands';
@@ -20,6 +17,8 @@ export type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-t
 const RUNTIME_DAEMON_STATUS_POLL_INTERVAL_MS = 30_000;
 
 export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerModel {
+  const bindings = useDesktopRendererBindings();
+  const runtimeConfigNavigation = bindings.app.commands.runtimeConfigNavigation;
   const activeTab = useAppStore((state) => state.activeTab);
   const runtimeTabActive = activeTab === 'runtime';
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
@@ -151,33 +150,52 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   useEffect(() => {
     if (!panelState.hydrated || !runtimeTabActive) return;
     void daemon.refreshRuntimeDaemonStatus();
-    const timer = setInterval(() => {
-      void daemon.refreshRuntimeDaemonStatus();
-    }, RUNTIME_DAEMON_STATUS_POLL_INTERVAL_MS);
-    return () => {
-      clearInterval(timer);
+    let active = true;
+    let cancelScheduledRefresh: (() => void) | null = null;
+    const scheduleRefresh = () => {
+      cancelScheduledRefresh = bindings.clock.schedule(
+        RUNTIME_DAEMON_STATUS_POLL_INTERVAL_MS,
+        (result) => {
+          cancelScheduledRefresh = null;
+          if (!active || !result.ok) return;
+          void daemon.refreshRuntimeDaemonStatus();
+          scheduleRefresh();
+        },
+      );
     };
-  }, [daemon.refreshRuntimeDaemonStatus, panelState.hydrated, runtimeTabActive]);
+    scheduleRefresh();
+    return () => {
+      active = false;
+      cancelScheduledRefresh?.();
+    };
+  }, [bindings.clock, daemon.refreshRuntimeDaemonStatus, panelState.hydrated, runtimeTabActive]);
 
   useEffect(() => {
     if (!panelState.hydrated || !panelState.state) return;
     persistRuntimeConfigStateV11(panelState.state);
   }, [panelState.hydrated, panelState.state]);
 
-  useEffect(() => addRuntimeConfigOpenPageListener((pageId) => {
-    panelState.updateState((prev) => ({
-      ...prev,
-      activePage: pageId,
-    }));
-  }), [panelState.updateState]);
-
-  useEffect(() => addRuntimeConfigActionFocusListener((actionFocus) => {
-    panelState.updateState((prev) => ({
-      ...prev,
-      activePage: actionFocus.page,
-      actionFocus,
-    }));
-  }), [panelState.updateState]);
+  useEffect(() => {
+    const applyNavigation = () => {
+      const navigation = runtimeConfigNavigation.get();
+      if (navigation.revision === 0 || !navigation.intent) return;
+      const intent = navigation.intent;
+      if (intent.kind === 'open-page') {
+        panelState.updateState((prev) => ({
+          ...prev,
+          activePage: intent.page,
+        }));
+        return;
+      }
+      panelState.updateState((prev) => ({
+        ...prev,
+        activePage: intent.actionFocus.page,
+        actionFocus: intent.actionFocus,
+      }));
+    };
+    applyNavigation();
+    return runtimeConfigNavigation.subscribe(applyNavigation);
+  }, [panelState.updateState, runtimeConfigNavigation]);
 
   const resolveRuntimeProfile = useCallback(async (
     targetId: string,

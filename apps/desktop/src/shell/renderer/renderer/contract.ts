@@ -19,6 +19,8 @@ import type { DeveloperModeProjection } from '../features/developer/developer-mo
 import type { QueryClient } from '@tanstack/react-query';
 import type { DesktopRendererFirstRunPort } from './first-run-port.js';
 import type { DesktopRendererSettingsPort } from './settings-port.js';
+import type { DesktopRendererAuthPort } from './auth-port.js';
+import type { DesktopRendererRuntimeConfigNavigationPort } from './runtime-config-navigation-port.js';
 
 export type DesktopRendererInitialState = {
   readonly aiConfig: NimiAIConfig;
@@ -38,7 +40,9 @@ export interface DesktopRendererProjectionPort {
 }
 
 export interface DesktopRendererCommandPort {
+  readonly auth: DesktopRendererAuthPort;
   readonly firstRun: DesktopRendererFirstRunPort;
+  readonly runtimeConfigNavigation: DesktopRendererRuntimeConfigNavigationPort;
   readonly settings: DesktopRendererSettingsPort;
   commitAIConfig(config: NimiAIConfig): void;
   persistChatThinkingPreference(preference: ChatThinkingPreference): void;

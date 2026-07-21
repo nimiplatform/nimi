@@ -1,5 +1,4 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
-import { i18n } from '../../i18n';
 import type { ProfileDetailSeed } from '../relationship/profile-detail-modal.js';
 import type { EditablePostSeed } from '../profile/create-post-modal-helpers.js';
 import { readCharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
@@ -79,6 +78,7 @@ export function buildPostCardMediaProjection(input: {
 export function buildPostCardAuthorProjection(input: {
   authorId: string;
   post: PostDto;
+  unknownDisplayName: string;
 }): {
   authorProfileSeed: ProfileDetailSeed | null;
   displayAuthor: PostCardDisplayAuthor | null;
@@ -90,12 +90,12 @@ export function buildPostCardAuthorProjection(input: {
   const isSourceAuthored = post.authorKind !== 'human' && Boolean(sourceAuthor);
 
   if (isSourceAuthored && sourceAuthor) {
-    const sourceAuthorSeed = buildSourceAuthorProfileSeed(sourceAuthor);
+    const sourceAuthorSeed = buildSourceAuthorProfileSeed(sourceAuthor, input.unknownDisplayName);
     return {
       authorProfileSeed: sourceAuthorSeed,
       displayAuthor: {
         id: sourceAuthor.id,
-        displayName: sourceAuthor.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
+        displayName: sourceAuthor.displayName || input.unknownDisplayName,
         handle: sourceAuthor.handle || '',
         avatarUrl: sourceAuthor.avatarUrl ?? null,
         isSource: true,
@@ -112,7 +112,7 @@ export function buildPostCardAuthorProjection(input: {
     };
   }
 
-  const displayName = author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' });
+  const displayName = author?.displayName || input.unknownDisplayName;
   const handle = author?.handle || '';
 
   return {
@@ -145,7 +145,10 @@ export function buildPostCardAuthorProjection(input: {
   };
 }
 
-function buildSourceAuthorProfileSeed(sourceAuthor: PostSourceAuthorDto): ProfileDetailSeed {
+function buildSourceAuthorProfileSeed(
+  sourceAuthor: PostSourceAuthorDto,
+  unknownDisplayName: string,
+): ProfileDetailSeed {
   const sourceRef = readCharacterSourceRefV3(sourceAuthor.sourceRef);
   if (!sourceRef
     || sourceRef.kind !== sourceAuthor.kind
@@ -155,7 +158,7 @@ function buildSourceAuthorProfileSeed(sourceAuthor: PostSourceAuthorDto): Profil
   }
   return {
     id: sourceAuthor.id,
-    displayName: sourceAuthor.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
+    displayName: sourceAuthor.displayName || unknownDisplayName,
     handle: sourceAuthor.handle || '',
     avatarUrl: sourceAuthor.avatarUrl ?? null,
     bio: null,

@@ -65,7 +65,7 @@ export async function runActiveAgentSubmit(input: {
       const projectionEffects = reduceAgentSubmitDriverEvent({
         state: submitSession,
         event,
-        updatedAtMs: Date.now(),
+        updatedAtMs: input.input.now(),
       });
       submitSession = input.input.applyDriverEffects(input.threadId, projectionEffects);
       if (projectionEffects.awaitRefresh) {
@@ -89,28 +89,28 @@ export async function runActiveAgentSubmit(input: {
         submitSession = input.input.applyDriverEffects(input.threadId, reduceAgentSubmitDriverEvent({
           state: submitSession,
           event: nextEvent,
-          updatedAtMs: Date.now(),
+          updatedAtMs: input.input.now(),
         }));
       },
       'text-delta': (nextEvent) => {
         submitSession = input.input.applyDriverEffects(input.threadId, reduceAgentSubmitDriverEvent({
           state: submitSession,
           event: nextEvent,
-          updatedAtMs: Date.now(),
+          updatedAtMs: input.input.now(),
         }));
       },
       'message-sealed': (nextEvent) => {
         submitSession = input.input.applyDriverEffects(input.threadId, reduceAgentSubmitDriverEvent({
           state: submitSession,
           event: nextEvent,
-          updatedAtMs: Date.now(),
+          updatedAtMs: input.input.now(),
         }));
       },
       'beat-planned': (nextEvent) => {
         submitSession = input.input.applyDriverEffects(input.threadId, reduceAgentSubmitDriverEvent({
           state: submitSession,
           event: nextEvent,
-          updatedAtMs: Date.now(),
+          updatedAtMs: input.input.now(),
         }));
       },
       'beat-delivery-started': () => undefined,
@@ -119,7 +119,7 @@ export async function runActiveAgentSubmit(input: {
         submitSession = input.input.applyDriverEffects(input.threadId, reduceAgentSubmitDriverEvent({
           state: submitSession,
           event: nextEvent,
-          updatedAtMs: Date.now(),
+          updatedAtMs: input.input.now(),
         }));
       },
       'projection-rebuilt': () => undefined,
@@ -127,21 +127,21 @@ export async function runActiveAgentSubmit(input: {
         submitSession = input.input.applyDriverEffects(input.threadId, reduceAgentSubmitDriverEvent({
           state: submitSession,
           event: nextEvent,
-          updatedAtMs: Date.now(),
+          updatedAtMs: input.input.now(),
         }));
       },
       'turn-failed': (nextEvent) => {
         submitSession = input.input.applyDriverEffects(input.threadId, reduceAgentSubmitDriverEvent({
           state: submitSession,
           event: nextEvent,
-          updatedAtMs: Date.now(),
+          updatedAtMs: input.input.now(),
         }));
       },
       'turn-canceled': (nextEvent) => {
         submitSession = input.input.applyDriverEffects(input.threadId, reduceAgentSubmitDriverEvent({
           state: submitSession,
           event: nextEvent,
-          updatedAtMs: Date.now(),
+          updatedAtMs: input.input.now(),
         }));
       },
     });

@@ -61,6 +61,10 @@ import {
 import { connectProductionChatRealtimeSync } from '../infra/realtime/production-chat-realtime-sync.js';
 import { createDesktopProductionFirstRunPort } from './production-first-run-port.js';
 import { createDesktopProductionSettingsPort } from '../features/settings/settings-storage.js';
+import { createDesktopProductionAuthPort } from '../features/auth/desktop-auth-adapter.js';
+import { createDesktopRendererRuntimeConfigNavigationPort } from './runtime-config-navigation-port.js';
+import { callRealmApi, emitRealmDataError } from '../infra/realm/realm-api.js';
+import { productionRealmSocialOfflinePort } from '../features/social/data/production-social-offline-port.js';
 
 export function createDesktopBrowserRoutePort(): DesktopRendererRoutePort {
   function read(): DesktopRendererRouteView {
@@ -111,6 +115,7 @@ export function createDesktopProductionBindings(
 ): DesktopCanonicalRendererBindings {
   const dependencies = createProductionAppStoreDependencies();
   const attention = createBrowserAppAttentionSource();
+  const runtimeConfigNavigation = createDesktopRendererRuntimeConfigNavigationPort();
   let connectedLifecycle: DesktopRendererLifecyclePort | null = null;
   const requireLifecycle = () => {
     if (!connectedLifecycle) throw new Error('DESKTOP_PRODUCTION_LIFECYCLE_NOT_CONNECTED');
@@ -131,6 +136,11 @@ export function createDesktopProductionBindings(
       hostRuntimeAgent: getDesktopHostRuntimeAgentClient,
       accountRuntime: getDesktopAccountRuntime,
       realm: getDesktopRealm,
+      socialData: Object.freeze({
+        callApi: callRealmApi,
+        emitDataError: emitRealmDataError,
+        offline: productionRealmSocialOfflinePort,
+      }),
       accountCaller: getDesktopRuntimeAccountCaller,
       withRuntimeProtectedScopes: withDesktopRuntimeProtectedScopes,
     }),
@@ -150,7 +160,9 @@ export function createDesktopProductionBindings(
         viewportWidth: () => window.innerWidth || document.documentElement.clientWidth,
       }),
       commands: Object.freeze({
+        auth: createDesktopProductionAuthPort(),
         firstRun: createDesktopProductionFirstRunPort(),
+        runtimeConfigNavigation,
         settings: createDesktopProductionSettingsPort(),
         commitAIConfig: dependencies.commitAIConfig,
         persistChatThinkingPreference: dependencies.persistChatThinkingPreference,
@@ -272,7 +284,7 @@ export function createDesktopProductionBindings(
             window.removeEventListener('focus', refresh);
           };
         },
-        connectDesktopOpenIntents: connectDesktopOpenIntentListener,
+        connectDesktopOpenIntents: () => connectDesktopOpenIntentListener(runtimeConfigNavigation),
         connectLifecycle(lifecycle: Parameters<
           DesktopCanonicalRendererBindings['app']['events']['connectLifecycle']
         >[0]) {
@@ -281,7 +293,7 @@ export function createDesktopProductionBindings(
           }
           connectedLifecycle = lifecycle;
           let active = true;
-          const disconnectMenuBarNavigation = connectMenuBarNavigation(lifecycle);
+          const disconnectMenuBarNavigation = connectMenuBarNavigation(lifecycle, runtimeConfigNavigation);
           const disconnectRuntimeHealth = connectRuntimeHealthCoordinator(
             lifecycle,
             getShellFeatureFlags().mode === 'desktop',

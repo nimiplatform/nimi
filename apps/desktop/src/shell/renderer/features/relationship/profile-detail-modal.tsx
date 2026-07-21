@@ -1,4 +1,4 @@
-import { realmSocialData } from '../social/data/realm-social-data';
+import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useCallback, useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DialogDescription, DialogTitle, OverlayShell } from '@nimiplatform/kit/ui';
@@ -76,6 +76,7 @@ type ProfileDetailModalProps = {
 const INTERNAL_OPEN_CHAT_ERROR_CODE = 'PROFILE_OPEN_CHAT_FAILED';
 
 export function ProfileDetailModal(props: ProfileDetailModalProps) {
+  const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const setActiveTab = useAppStore((state) => state.setActiveTab);
@@ -130,7 +131,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
         let result: unknown;
         if (props.profileSeed?.isSource) {
           if (!sourceRef) {
-            throw new Error(characterSourceMaterializationMessage());
+            throw new Error(characterSourceMaterializationMessage(t));
           }
           result = await realmSourceDetailData.loadRealmSourceDetailsBySourceRef(sourceRef, {
             runtimeSourceRef: props.profileSeed.runtimeSourceRef,
@@ -181,11 +182,11 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
           runtimeInventoryPending: Boolean(ownerUserId && profileSourceLocalAgentsQuery.isPending),
           runtimeInventoryUnavailable: !ownerUserId || profileSourceLocalAgentsQuery.isError,
         },
-      ))
+    ), t)
     : null;
   const sourceMaterializationUnavailable = sourceAction?.disabled === true;
   const sourceMaterializationHint = sourceMaterializationUnavailable
-    ? sourceAction?.hint ?? characterSourceMaterializationMessage()
+    ? sourceAction?.hint ?? characterSourceMaterializationMessage(t)
     : null;
 
   const handleConnectSource = useCallback(async () => {
@@ -194,9 +195,9 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
     }
     try {
       if (sourceMaterializationUnavailable) {
-        throw new Error(sourceMaterializationHint || characterSourceMaterializationMessage());
+        throw new Error(sourceMaterializationHint || characterSourceMaterializationMessage(t));
       }
-      const target = await materializeSourceContactLaunchTarget(profile, ownerUserId);
+      const target = await materializeSourceContactLaunchTarget(profile, ownerUserId, t);
       await ensureRuntimeAgentExists(target);
       await queryClient.invalidateQueries({ queryKey: ['profile-source-local-agents'], exact: false });
       await launchAgentConversationFromDisplay({
@@ -217,7 +218,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: characterSourceMaterializationFailureMessage(error),
+        message: characterSourceMaterializationFailureMessage(error, t),
       });
     }
   }, [
@@ -246,9 +247,9 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
     try {
       if (profile.isSource) {
         if (sourceMaterializationUnavailable) {
-          throw new Error(characterSourceMaterializationMessage());
+          throw new Error(characterSourceMaterializationMessage(t));
         }
-        const target = await materializeSourceContactLaunchTarget(profile, ownerUserId);
+        const target = await materializeSourceContactLaunchTarget(profile, ownerUserId, t);
         await ensureRuntimeAgentExists(target);
         await launchAgentConversationFromDisplay({
           target,
@@ -273,15 +274,13 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
         worldId: '',
       });
       await queryClient.invalidateQueries({ queryKey: ['chats'] });
+      setSelectedChatId(String(result.chatId));
       setActiveTab('chat');
       props.onClose();
-      setTimeout(() => {
-        setSelectedChatId(String(result.chatId));
-      }, 100);
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: profile.isSource ? characterSourceMaterializationFailureMessage(error) : toChatErrorMessage(error),
+        message: profile.isSource ? characterSourceMaterializationFailureMessage(error, t) : toChatErrorMessage(error),
       });
     }
   }, [

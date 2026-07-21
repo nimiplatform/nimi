@@ -26,14 +26,8 @@ if (typeof globalThis.sessionStorage === 'undefined') {
 import {
   JOB_POLL_INTERVAL_MS,
   JOB_POLL_MAX_RETRIES,
+  createScenarioJobController,
   isTerminalStatus,
-  getJobState,
-  startJobTracking,
-  feedJobEvent,
-  startPollingRecovery,
-  requestCancel,
-  clearJobTracking,
-  subscribeJobEvents,
   type JobControllerDeps,
   type JobPollResult,
   type JobStatus,
@@ -41,9 +35,16 @@ import {
 } from '../src/shell/renderer/features/turns/scenario-job-controller';
 
 const TEST_JOB = 'test-job-001';
+const controller = createScenarioJobController({
+  now: Date.now,
+  schedule(delayMs, listener) {
+    const timer = setTimeout(() => listener({ ok: true }), delayMs);
+    return () => clearTimeout(timer);
+  },
+});
 
 test.afterEach(() => {
-  clearJobTracking(TEST_JOB);
+  controller.clearJobTracking(TEST_JOB);
 });
 
 // ---------------------------------------------------------------------------
@@ -63,37 +64,37 @@ test('D-STRM-010: max poll retries is 30 per spec', () => {
 // ---------------------------------------------------------------------------
 
 test('D-STRM-010: idle state for unknown jobId', () => {
-  const state = getJobState('nonexistent');
+  const state = controller.getJobState('nonexistent');
   assert.equal(state.phase, 'idle');
   assert.equal(state.jobStatus, null);
 });
 
 test('D-STRM-010: startJobTracking sets phase to subscribing', () => {
-  startJobTracking(TEST_JOB);
-  const state = getJobState(TEST_JOB);
+  controller.startJobTracking(TEST_JOB);
+  const state = controller.getJobState(TEST_JOB);
   assert.equal(state.phase, 'subscribing');
   assert.ok(state.startedAt > 0);
 });
 
 test('D-STRM-010: feedJobEvent with non-terminal updates jobStatus', () => {
-  startJobTracking(TEST_JOB);
-  feedJobEvent(TEST_JOB, { status: 'SUBMITTED' });
-  assert.equal(getJobState(TEST_JOB).jobStatus, 'SUBMITTED');
+  controller.startJobTracking(TEST_JOB);
+  controller.feedJobEvent(TEST_JOB, { status: 'SUBMITTED' });
+  assert.equal(controller.getJobState(TEST_JOB).jobStatus, 'SUBMITTED');
 
-  feedJobEvent(TEST_JOB, { status: 'QUEUED' });
-  assert.equal(getJobState(TEST_JOB).jobStatus, 'QUEUED');
+  controller.feedJobEvent(TEST_JOB, { status: 'QUEUED' });
+  assert.equal(controller.getJobState(TEST_JOB).jobStatus, 'QUEUED');
 
-  feedJobEvent(TEST_JOB, { status: 'RUNNING', progress: 50 });
-  const state = getJobState(TEST_JOB);
+  controller.feedJobEvent(TEST_JOB, { status: 'RUNNING', progress: 50 });
+  const state = controller.getJobState(TEST_JOB);
   assert.equal(state.jobStatus, 'RUNNING');
   assert.equal(state.progress, 50);
   assert.equal(state.phase, 'subscribing');
 });
 
 test('D-STRM-010: feedJobEvent with COMPLETED transitions to terminal', () => {
-  startJobTracking(TEST_JOB);
-  feedJobEvent(TEST_JOB, { status: 'COMPLETED', traceId: 'trace-1' });
-  const state = getJobState(TEST_JOB);
+  controller.startJobTracking(TEST_JOB);
+  controller.feedJobEvent(TEST_JOB, { status: 'COMPLETED', traceId: 'trace-1' });
+  const state = controller.getJobState(TEST_JOB);
   assert.equal(state.phase, 'terminal');
   assert.equal(state.jobStatus, 'COMPLETED');
   assert.equal(state.traceId, 'trace-1');
@@ -101,9 +102,9 @@ test('D-STRM-010: feedJobEvent with COMPLETED transitions to terminal', () => {
 });
 
 test('D-STRM-010: feedJobEvent with FAILED transitions to terminal', () => {
-  startJobTracking(TEST_JOB);
-  feedJobEvent(TEST_JOB, { status: 'FAILED', reasonCode: ReasonCode.AI_PROVIDER_AUTH_FAILED, reasonDetail: 'Auth expired' });
-  const state = getJobState(TEST_JOB);
+  controller.startJobTracking(TEST_JOB);
+  controller.feedJobEvent(TEST_JOB, { status: 'FAILED', reasonCode: ReasonCode.AI_PROVIDER_AUTH_FAILED, reasonDetail: 'Auth expired' });
+  const state = controller.getJobState(TEST_JOB);
   assert.equal(state.phase, 'terminal');
   assert.equal(state.jobStatus, 'FAILED');
   assert.equal(state.reasonCode, ReasonCode.AI_PROVIDER_AUTH_FAILED);
@@ -111,11 +112,11 @@ test('D-STRM-010: feedJobEvent with FAILED transitions to terminal', () => {
 });
 
 test('D-STRM-010: events after terminal are ignored', () => {
-  startJobTracking(TEST_JOB);
-  feedJobEvent(TEST_JOB, { status: 'COMPLETED' });
-  feedJobEvent(TEST_JOB, { status: 'RUNNING' });
-  assert.equal(getJobState(TEST_JOB).phase, 'terminal');
-  assert.equal(getJobState(TEST_JOB).jobStatus, 'COMPLETED');
+  controller.startJobTracking(TEST_JOB);
+  controller.feedJobEvent(TEST_JOB, { status: 'COMPLETED' });
+  controller.feedJobEvent(TEST_JOB, { status: 'RUNNING' });
+  assert.equal(controller.getJobState(TEST_JOB).phase, 'terminal');
+  assert.equal(controller.getJobState(TEST_JOB).jobStatus, 'COMPLETED');
 });
 
 // ---------------------------------------------------------------------------
@@ -140,15 +141,15 @@ test('D-STRM-010: isTerminalStatus returns false for non-terminal statuses', () 
 // ---------------------------------------------------------------------------
 
 test('D-STRM-010: startPollingRecovery enters recovering phase', () => {
-  startJobTracking(TEST_JOB);
+  controller.startJobTracking(TEST_JOB);
   const deps = makeDeps({ pollResponses: [{ status: 'RUNNING' }] });
-  const ac = startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
-  assert.equal(getJobState(TEST_JOB).phase, 'recovering');
+  const ac = controller.startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
+  assert.equal(controller.getJobState(TEST_JOB).phase, 'recovering');
   ac.abort();
 });
 
 test('D-STRM-010: polling detects terminal COMPLETED and stops', async () => {
-  startJobTracking(TEST_JOB);
+  controller.startJobTracking(TEST_JOB);
   const deps = makeDeps({
     pollResponses: [
       { status: 'RUNNING', progress: 60 },
@@ -158,11 +159,11 @@ test('D-STRM-010: polling detects terminal COMPLETED and stops', async () => {
     pollDelayMs: 5,
   });
 
-  startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
+  controller.startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
 
-  await waitFor(() => getJobState(TEST_JOB).phase === 'terminal', 500);
+  await waitFor(() => controller.getJobState(TEST_JOB).phase === 'terminal', 500);
 
-  const state = getJobState(TEST_JOB);
+  const state = controller.getJobState(TEST_JOB);
   assert.equal(state.phase, 'terminal');
   assert.equal(state.jobStatus, 'COMPLETED');
   assert.equal(state.traceId, 'trace-poll');
@@ -172,7 +173,7 @@ test('D-STRM-010: polling detects terminal COMPLETED and stops', async () => {
 });
 
 test('D-STRM-010: polling detects terminal FAILED and stops', async () => {
-  startJobTracking(TEST_JOB);
+  controller.startJobTracking(TEST_JOB);
   const deps = makeDeps({
     pollResponses: [
       { status: 'RUNNING' },
@@ -181,33 +182,33 @@ test('D-STRM-010: polling detects terminal FAILED and stops', async () => {
     pollDelayMs: 5,
   });
 
-  startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
-  await waitFor(() => getJobState(TEST_JOB).phase === 'terminal', 500);
+  controller.startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
+  await waitFor(() => controller.getJobState(TEST_JOB).phase === 'terminal', 500);
 
-  const state = getJobState(TEST_JOB);
+  const state = controller.getJobState(TEST_JOB);
   assert.equal(state.phase, 'terminal');
   assert.equal(state.jobStatus, 'FAILED');
   assert.equal(state.artifacts, null);
 });
 
 test('D-STRM-010: polling recovery timeout after max retries', async () => {
-  startJobTracking(TEST_JOB);
+  controller.startJobTracking(TEST_JOB);
   // Always return RUNNING — will exhaust retries
   const deps = makeDeps({
     pollResponses: Array.from({ length: JOB_POLL_MAX_RETRIES }, () => ({ status: 'RUNNING' as JobStatus })),
     pollDelayMs: 0,
   });
 
-  startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
-  await waitFor(() => getJobState(TEST_JOB).phase === 'recovery_timeout', 2_000);
+  controller.startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
+  await waitFor(() => controller.getJobState(TEST_JOB).phase === 'recovery_timeout', 2_000);
 
-  const state = getJobState(TEST_JOB);
+  const state = controller.getJobState(TEST_JOB);
   assert.equal(state.phase, 'recovery_timeout');
   assert.equal(state.pollRetryCount, JOB_POLL_MAX_RETRIES);
 });
 
 test('D-STRM-010: recovery abort controller stops polling', async () => {
-  startJobTracking(TEST_JOB);
+  controller.startJobTracking(TEST_JOB);
   let pollCount = 0;
   const deps: JobControllerDeps = {
     pollJob: async () => {
@@ -218,7 +219,7 @@ test('D-STRM-010: recovery abort controller stops polling', async () => {
     fetchArtifacts: async () => [],
   };
 
-  const ac = startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
+  const ac = controller.startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
 
   // Let a few polls run then abort
   await sleep(50);
@@ -231,7 +232,7 @@ test('D-STRM-010: recovery abort controller stops polling', async () => {
 });
 
 test('D-STRM-010: starting recovery twice aborts the previous poller for the same job', async () => {
-  startJobTracking(TEST_JOB);
+  controller.startJobTracking(TEST_JOB);
   let firstPollCount = 0;
   let secondPollCount = 0;
 
@@ -252,11 +253,11 @@ test('D-STRM-010: starting recovery twice aborts the previous poller for the sam
     fetchArtifacts: async () => [],
   };
 
-  startPollingRecovery(TEST_JOB, firstDeps, { pollIntervalMs: 5 });
+  controller.startPollingRecovery(TEST_JOB, firstDeps, { pollIntervalMs: 5 });
   await sleep(20);
   const firstCountBeforeRestart = firstPollCount;
 
-  startPollingRecovery(TEST_JOB, secondDeps, { pollIntervalMs: 5 });
+  controller.startPollingRecovery(TEST_JOB, secondDeps, { pollIntervalMs: 5 });
   await sleep(60);
 
   assert.equal(secondPollCount > 0, true);
@@ -267,8 +268,8 @@ test('D-STRM-010: starting recovery twice aborts the previous poller for the sam
 });
 
 test('D-STRM-010: terminal jobs do not restart recovery polling', async () => {
-  startJobTracking(TEST_JOB);
-  feedJobEvent(TEST_JOB, { status: 'COMPLETED' });
+  controller.startJobTracking(TEST_JOB);
+  controller.feedJobEvent(TEST_JOB, { status: 'COMPLETED' });
 
   let pollCount = 0;
   const deps: JobControllerDeps = {
@@ -280,11 +281,11 @@ test('D-STRM-010: terminal jobs do not restart recovery polling', async () => {
     fetchArtifacts: async () => [],
   };
 
-  const ac = startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
+  const ac = controller.startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
   await sleep(20);
 
   assert.equal(ac.signal.aborted, true);
-  assert.equal(getJobState(TEST_JOB).phase, 'terminal');
+  assert.equal(controller.getJobState(TEST_JOB).phase, 'terminal');
   assert.equal(pollCount, 0);
 });
 
@@ -293,8 +294,8 @@ test('D-STRM-010: terminal jobs do not restart recovery polling', async () => {
 // ---------------------------------------------------------------------------
 
 test('D-STRM-010: requestCancel with async ACK enters recovery polling', async () => {
-  startJobTracking(TEST_JOB);
-  feedJobEvent(TEST_JOB, { status: 'RUNNING' });
+  controller.startJobTracking(TEST_JOB);
+  controller.feedJobEvent(TEST_JOB, { status: 'RUNNING' });
 
   const deps = makeDeps({
     cancelResult: { status: 'RUNNING' },
@@ -302,29 +303,29 @@ test('D-STRM-010: requestCancel with async ACK enters recovery polling', async (
     pollDelayMs: 5,
   });
 
-  const promise = requestCancel(TEST_JOB, deps);
-  assert.equal(getJobState(TEST_JOB).phase, 'cancelling');
-  assert.equal(getJobState(TEST_JOB).cancelRequested, true);
+  const promise = controller.requestCancel(TEST_JOB, deps);
+  assert.equal(controller.getJobState(TEST_JOB).phase, 'cancelling');
+  assert.equal(controller.getJobState(TEST_JOB).cancelRequested, true);
   await promise;
-  assert.equal(getJobState(TEST_JOB).phase, 'recovering');
+  assert.equal(controller.getJobState(TEST_JOB).phase, 'recovering');
 });
 
 test('D-STRM-010: requestCancel with terminal cancel result transitions to terminal', async () => {
-  startJobTracking(TEST_JOB);
-  feedJobEvent(TEST_JOB, { status: 'RUNNING' });
+  controller.startJobTracking(TEST_JOB);
+  controller.feedJobEvent(TEST_JOB, { status: 'RUNNING' });
 
   const deps = makeDeps({
     cancelResult: { status: 'CANCELED' },
   });
 
-  await requestCancel(TEST_JOB, deps);
-  assert.equal(getJobState(TEST_JOB).phase, 'terminal');
-  assert.equal(getJobState(TEST_JOB).jobStatus, 'CANCELED');
+  await controller.requestCancel(TEST_JOB, deps);
+  assert.equal(controller.getJobState(TEST_JOB).phase, 'terminal');
+  assert.equal(controller.getJobState(TEST_JOB).jobStatus, 'CANCELED');
 });
 
 test('D-STRM-010: requestCancel with AI_MEDIA_JOB_NOT_CANCELLABLE polls for final status', async () => {
-  startJobTracking(TEST_JOB);
-  feedJobEvent(TEST_JOB, { status: 'RUNNING' });
+  controller.startJobTracking(TEST_JOB);
+  controller.feedJobEvent(TEST_JOB, { status: 'RUNNING' });
 
   const deps: JobControllerDeps = {
     pollJob: async () => ({ status: 'COMPLETED', traceId: 'final-trace' }),
@@ -332,15 +333,15 @@ test('D-STRM-010: requestCancel with AI_MEDIA_JOB_NOT_CANCELLABLE polls for fina
     fetchArtifacts: async () => [],
   };
 
-  await requestCancel(TEST_JOB, deps);
-  const state = getJobState(TEST_JOB);
+  await controller.requestCancel(TEST_JOB, deps);
+  const state = controller.getJobState(TEST_JOB);
   assert.equal(state.phase, 'terminal');
   assert.equal(state.jobStatus, 'COMPLETED');
 });
 
 test('D-STRM-010: requestCancel with AI_MEDIA_JOB_NOT_CANCELLABLE enters recovery when polled status is non-terminal', async () => {
-  startJobTracking(TEST_JOB);
-  feedJobEvent(TEST_JOB, { status: 'RUNNING' });
+  controller.startJobTracking(TEST_JOB);
+  controller.feedJobEvent(TEST_JOB, { status: 'RUNNING' });
 
   const deps: JobControllerDeps = {
     pollJob: async () => ({ status: 'RUNNING' }),
@@ -348,15 +349,15 @@ test('D-STRM-010: requestCancel with AI_MEDIA_JOB_NOT_CANCELLABLE enters recover
     fetchArtifacts: async () => [],
   };
 
-  await requestCancel(TEST_JOB, deps);
-  const state = getJobState(TEST_JOB);
+  await controller.requestCancel(TEST_JOB, deps);
+  const state = controller.getJobState(TEST_JOB);
   assert.equal(state.phase, 'recovering');
   assert.equal(state.cancelRequested, true);
 });
 
 test('D-STRM-010: requestCancel with generic cancel error enters recovery', async () => {
-  startJobTracking(TEST_JOB);
-  feedJobEvent(TEST_JOB, { status: 'RUNNING' });
+  controller.startJobTracking(TEST_JOB);
+  controller.feedJobEvent(TEST_JOB, { status: 'RUNNING' });
 
   const deps: JobControllerDeps = {
     pollJob: async () => ({ status: 'RUNNING' }),
@@ -364,20 +365,20 @@ test('D-STRM-010: requestCancel with generic cancel error enters recovery', asyn
     fetchArtifacts: async () => [],
   };
 
-  await requestCancel(TEST_JOB, deps);
-  const state = getJobState(TEST_JOB);
+  await controller.requestCancel(TEST_JOB, deps);
+  const state = controller.getJobState(TEST_JOB);
   assert.equal(state.phase, 'recovering');
   assert.equal(state.cancelRequested, true);
 });
 
 test('D-STRM-010: cancelRequested flag is preserved in state', async () => {
-  startJobTracking(TEST_JOB);
-  feedJobEvent(TEST_JOB, { status: 'RUNNING' });
+  controller.startJobTracking(TEST_JOB);
+  controller.feedJobEvent(TEST_JOB, { status: 'RUNNING' });
 
   const deps = makeDeps({ cancelResult: { status: 'CANCELED' } });
-  await requestCancel(TEST_JOB, deps);
+  await controller.requestCancel(TEST_JOB, deps);
 
-  assert.equal(getJobState(TEST_JOB).cancelRequested, true);
+  assert.equal(controller.getJobState(TEST_JOB).cancelRequested, true);
 });
 
 // ---------------------------------------------------------------------------
@@ -385,7 +386,7 @@ test('D-STRM-010: cancelRequested flag is preserved in state', async () => {
 // ---------------------------------------------------------------------------
 
 test('D-STRM-010: COMPLETED via polling triggers artifact fetch', async () => {
-  startJobTracking(TEST_JOB);
+  controller.startJobTracking(TEST_JOB);
   const artifacts = [{ url: 'https://cdn.example/video.mp4', mimeType: 'video/mp4' }];
   const deps = makeDeps({
     pollResponses: [{ status: 'COMPLETED' }],
@@ -393,17 +394,17 @@ test('D-STRM-010: COMPLETED via polling triggers artifact fetch', async () => {
     pollDelayMs: 5,
   });
 
-  startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
-  await waitFor(() => getJobState(TEST_JOB).phase === 'terminal', 500);
+  controller.startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
+  await waitFor(() => controller.getJobState(TEST_JOB).phase === 'terminal', 500);
 
-  const state = getJobState(TEST_JOB);
+  const state = controller.getJobState(TEST_JOB);
   assert.equal(state.phase, 'terminal');
   assert.equal(state.jobStatus, 'COMPLETED');
   assert.deepEqual(state.artifacts, artifacts);
 });
 
 test('D-STRM-010: non-COMPLETED terminal does not fetch artifacts', async () => {
-  startJobTracking(TEST_JOB);
+  controller.startJobTracking(TEST_JOB);
   let artifactsFetched = false;
   const deps: JobControllerDeps = {
     pollJob: async () => ({ status: 'FAILED' }),
@@ -411,11 +412,11 @@ test('D-STRM-010: non-COMPLETED terminal does not fetch artifacts', async () => 
     fetchArtifacts: async () => { artifactsFetched = true; return []; },
   };
 
-  startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
-  await waitFor(() => getJobState(TEST_JOB).phase === 'terminal', 500);
+  controller.startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
+  await waitFor(() => controller.getJobState(TEST_JOB).phase === 'terminal', 500);
 
   assert.equal(artifactsFetched, false);
-  assert.equal(getJobState(TEST_JOB).artifacts, null);
+  assert.equal(controller.getJobState(TEST_JOB).artifacts, null);
 });
 
 // ---------------------------------------------------------------------------
@@ -424,11 +425,11 @@ test('D-STRM-010: non-COMPLETED terminal does not fetch artifacts', async () => 
 
 test('D-STRM-010: subscribeJobEvents receives state updates', () => {
   const received: ScenarioJobState[] = [];
-  const unsub = subscribeJobEvents((state) => received.push({ ...state }));
+  const unsub = controller.subscribeJobEvents((state) => received.push({ ...state }));
 
-  startJobTracking(TEST_JOB);
-  feedJobEvent(TEST_JOB, { status: 'RUNNING' });
-  feedJobEvent(TEST_JOB, { status: 'COMPLETED' });
+  controller.startJobTracking(TEST_JOB);
+  controller.feedJobEvent(TEST_JOB, { status: 'RUNNING' });
+  controller.feedJobEvent(TEST_JOB, { status: 'COMPLETED' });
 
   unsub();
   assert.equal(received.length, 3);
@@ -438,9 +439,9 @@ test('D-STRM-010: subscribeJobEvents receives state updates', () => {
 });
 
 test('D-STRM-010: clearJobTracking removes state', () => {
-  startJobTracking(TEST_JOB);
-  clearJobTracking(TEST_JOB);
-  assert.equal(getJobState(TEST_JOB).phase, 'idle');
+  controller.startJobTracking(TEST_JOB);
+  controller.clearJobTracking(TEST_JOB);
+  assert.equal(controller.getJobState(TEST_JOB).phase, 'idle');
 });
 
 // ---------------------------------------------------------------------------
@@ -448,20 +449,20 @@ test('D-STRM-010: clearJobTracking removes state', () => {
 // ---------------------------------------------------------------------------
 
 test('D-STRM-010: ScenarioJobState includes pollRetryCount field', () => {
-  startJobTracking(TEST_JOB);
-  const state = getJobState(TEST_JOB);
+  controller.startJobTracking(TEST_JOB);
+  const state = controller.getJobState(TEST_JOB);
   assert.equal(typeof state.pollRetryCount, 'number');
   assert.equal(state.pollRetryCount, 0);
 });
 
 test('D-STRM-010: ScenarioJobState includes cancelRequested field', () => {
-  startJobTracking(TEST_JOB);
-  assert.equal(getJobState(TEST_JOB).cancelRequested, false);
+  controller.startJobTracking(TEST_JOB);
+  assert.equal(controller.getJobState(TEST_JOB).cancelRequested, false);
 });
 
 test('D-STRM-010: ScenarioJobState includes artifacts field', () => {
-  startJobTracking(TEST_JOB);
-  assert.equal(getJobState(TEST_JOB).artifacts, null);
+  controller.startJobTracking(TEST_JOB);
+  assert.equal(controller.getJobState(TEST_JOB).artifacts, null);
 });
 
 // ---------------------------------------------------------------------------

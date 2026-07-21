@@ -11,13 +11,14 @@ import { useRealmGiftInbox } from '@nimiplatform/kit/features/commerce/realm';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import { ScrollArea } from '@nimiplatform/kit/ui';
-import { formatLocaleDate } from '../../i18n';
+import type { DesktopI18nResource } from '../../i18n/desktop-i18n.js';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { invalidateNotificationQueries } from '../notification/notification-query.js';
 import { useTranslation } from 'react-i18next';
 import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { getDesktopRealmCommerceGiftService } from '../../infra/realm/realm-commerce-service';
 
-function formatGiftDate(input: string | null | undefined): string {
+function formatGiftDate(input: string | null | undefined, i18n: DesktopI18nResource): string {
   const value = String(input || '').trim();
   if (!value) {
     return '--';
@@ -26,7 +27,7 @@ function formatGiftDate(input: string | null | undefined): string {
   if (Number.isNaN(date.getTime())) {
     return '--';
   }
-  return formatLocaleDate(date, {
+  return i18n.formatDate(date, {
     month: 'short',
     day: 'numeric',
     hour: 'numeric',
@@ -73,6 +74,7 @@ function toErrorMessage(error: unknown, fallback: string): string {
 
 
 export function GiftInboxPanel() {
+  const i18n = useDesktopI18nResource();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
@@ -241,7 +243,7 @@ export function GiftInboxPanel() {
                 textClassName="text-sm font-semibold"
               />
             )}
-            formatDate={formatGiftDate}
+            formatDate={(value) => formatGiftDate(value, i18n)}
             getPartyDisplayName={getUserDisplayName}
             getStatusLabel={(status) => getStatusLabel(t, status)}
             sparkAmountLabel={(amount) => t('GiftInbox.sparkAmount', {
@@ -320,7 +322,7 @@ export function GiftInboxPanel() {
           onSelect={(giftTransactionId) => {
             setSelectedGiftTransactionId(giftTransactionId);
           }}
-          formatDate={formatGiftDate}
+          formatDate={(value) => formatGiftDate(value, i18n)}
           getSenderDisplayName={(item) => getUserDisplayName(item.sender)}
           getStatusLabel={(status) => getStatusLabel(t, status)}
           sparkAmountLabel={(amount) => t('GiftInbox.sparkAmount', {

@@ -10,7 +10,6 @@ import {
   type RealmMessageViewDto,
 } from '@nimiplatform/kit/features/chat/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
-import { i18n } from '../../i18n';
 
 export type GroupChatViewDto = RealmModel<'GroupChatViewDto'>;
 export type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
@@ -31,7 +30,13 @@ function projectGroupMessageTextSource(
   };
 }
 
-export function getGroupChatTitle(chat: GroupChatViewDto): string {
+export type GroupChatCopy = {
+  readonly group: string;
+  readonly noMessages: string;
+  readonly members: string;
+};
+
+export function getGroupChatTitle(chat: GroupChatViewDto, groupFallback: string): string {
   const title = String(chat.title || '').trim();
   if (title) return title;
   const humanParticipants = (chat.participants || []).filter(
@@ -42,14 +47,14 @@ export function getGroupChatTitle(chat: GroupChatViewDto): string {
       .slice(0, 3)
       .map((p) => String(p.displayName || '').trim() || String(p.handle || '').trim())
       .filter(Boolean)
-      .join(', ') || i18n.t('Chat.group', { defaultValue: 'Group' });
+      .join(', ') || groupFallback;
   }
-  return i18n.t('Chat.group', { defaultValue: 'Group' });
+  return groupFallback;
 }
 
 export function getGroupChatPreview(
   chat: GroupChatViewDto,
-  noMessagesFallback = i18n.t('Chat.noMessages', { defaultValue: 'No messages yet' }),
+  noMessagesFallback: string,
 ): string {
   const lastMsg = chat.lastMessage;
   if (lastMsg) {
@@ -82,33 +87,41 @@ export function getGroupParticipantCount(chat: GroupChatViewDto): number {
   return (chat.participants || []).filter((p) => p.type === 'human').length;
 }
 
-export function toGroupConversationThreadSummary(chat: GroupChatViewDto): ConversationThreadSummary {
+export function toGroupConversationThreadSummary(
+  chat: GroupChatViewDto,
+  copy: GroupChatCopy,
+): ConversationThreadSummary {
+  const title = getGroupChatTitle(chat, copy.group);
   return {
     id: String(chat.id || ''),
     mode: 'group',
-    title: getGroupChatTitle(chat),
-    previewText: getGroupChatPreview(chat),
+    title,
+    previewText: getGroupChatPreview(chat, copy.noMessages),
     createdAt: String(chat.createdAt || ''),
     updatedAt: String(chat.lastMessageAt || chat.lastMessage?.createdAt || chat.createdAt || ''),
     unreadCount: Number(chat.unreadCount || 0),
     status: 'active',
     targetId: String(chat.id || ''),
-    targetLabel: getGroupChatTitle(chat),
+    targetLabel: title,
   };
 }
 
-export function toGroupTargetSummary(chat: GroupChatViewDto): ConversationTargetSummary {
+export function toGroupTargetSummary(
+  chat: GroupChatViewDto,
+  copy: GroupChatCopy,
+): ConversationTargetSummary {
   const humanCount = getGroupParticipantCount(chat);
+  const title = getGroupChatTitle(chat, copy.group);
   return {
     id: String(chat.id || ''),
     source: 'group' as const,
     canonicalSessionId: String(chat.id || ''),
-    title: getGroupChatTitle(chat),
-    handle: `${humanCount} ${i18n.t('Chat.groupMembers', { defaultValue: 'members' })}`,
+    title,
+    handle: `${humanCount} ${copy.members}`,
     bio: null,
     avatarUrl: null,
-    avatarFallback: getGroupChatTitle(chat).charAt(0).toUpperCase() || 'G',
-    previewText: getGroupChatPreview(chat),
+    avatarFallback: title.charAt(0).toUpperCase() || 'G',
+    previewText: getGroupChatPreview(chat, copy.noMessages),
     updatedAt: String(chat.lastMessageAt || chat.lastMessage?.createdAt || chat.createdAt || ''),
     unreadCount: Number(chat.unreadCount || 0),
     status: 'active' as const,

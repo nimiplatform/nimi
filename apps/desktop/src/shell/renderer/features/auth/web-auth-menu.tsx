@@ -4,26 +4,19 @@ import {
   type MouseEvent,
 } from 'react';
 import authLogoImage from '../../assets/logo.png';
-import { desktopBridge } from '../../bridge';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import type { WebAuthMenuMode } from '@nimiplatform/kit/auth/shell';
 import { DesktopShellAuthPage } from '@nimiplatform/kit/auth';
 import { toNimiRealmAuthUserRecord } from '@nimiplatform/sdk/realm';
-import {
-  createDesktopAuthAdapter,
-  createDesktopRuntimeAccountBrowserBroker,
-  desktopOAuthBridge,
-} from './desktop-auth-adapter.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
   const mode = props.mode || 'embedded';
-  const adapter = useMemo(() => createDesktopAuthAdapter(), []);
-  const runtimeAccountBroker = useMemo(
-    () => mode === 'desktop-browser' ? createDesktopRuntimeAccountBrowserBroker() : null,
-    [mode],
-  );
+  const bindings = useDesktopRendererBindings();
+  const auth = bindings.app.commands.auth;
+  const adapter = useMemo(() => auth.adapter, [auth]);
   const authStatus = useAppStore((state) => state.auth.status);
   const authUser = useAppStore((state) => state.auth.user);
   const setAuthSession = useAppStore((state) => state.setAuthSession);
@@ -68,7 +61,7 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
       return;
     }
 
-    void desktopBridge.startWindowDrag().catch(() => {
+    void bindings.app.commands.startWindowDrag().catch(() => {
       // no-op
     });
   };
@@ -87,11 +80,11 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
       }}
       footer={footer}
       desktopBrowserAuth={
-        mode === 'desktop-browser' && runtimeAccountBroker
+        mode === 'desktop-browser'
           ? {
-              bridge: desktopOAuthBridge,
+              bridge: auth.oauthBridge,
               onRootPointerDown: handleRootMouseDown,
-              runtimeAccountBroker,
+              runtimeAccountBroker: auth.runtimeAccountBroker,
             }
           : undefined
       }

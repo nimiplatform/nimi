@@ -1,15 +1,11 @@
 import type { NimiDesktopOpenIntent } from '@nimiplatform/kit/core/desktop-open';
 import type { AppStoreState } from '../../app-shell/providers/app-store';
-import { productionAppStore } from '../../app-shell/providers/production-app-store';
 import {
   loadRuntimeConfigStateV11,
   persistRuntimeConfigStateV11,
 } from '../../features/runtime-config/runtime-config-storage-persist';
-import {
-  dispatchRuntimeConfigActionFocus,
-  dispatchRuntimeConfigOpenPage,
-} from '../../features/runtime-config/runtime-config-navigation-events';
 import { dispatchSettingsOpenSection } from '../../features/settings/settings-storage';
+import type { DesktopRendererRuntimeConfigNavigationPort } from '../../renderer/runtime-config-navigation-port.js';
 
 type DesktopOpenIntentStore = Pick<AppStoreState,
   | 'setActiveTab'
@@ -20,8 +16,12 @@ type DesktopOpenIntentStore = Pick<AppStoreState,
 
 export function applyDesktopOpenIntentToAppStore(
   intent: NimiDesktopOpenIntent,
-  store: DesktopOpenIntentStore = productionAppStore.getState(),
+  input: {
+    readonly store: DesktopOpenIntentStore;
+    readonly runtimeConfigNavigation: DesktopRendererRuntimeConfigNavigationPort;
+  },
 ): void {
+  const { runtimeConfigNavigation, store } = input;
   switch (intent.kind) {
     case 'open-explore': {
       store.setExploreActiveSection(intent.section);
@@ -37,9 +37,9 @@ export function applyDesktopOpenIntentToAppStore(
         activePage: intent.page,
         actionFocus,
       });
-      dispatchRuntimeConfigOpenPage(intent.page);
+      runtimeConfigNavigation.openPage(intent.page);
       if (actionFocus) {
-        dispatchRuntimeConfigActionFocus(actionFocus);
+        runtimeConfigNavigation.focusAction(actionFocus);
       }
       store.setActiveTab('runtime');
       return;

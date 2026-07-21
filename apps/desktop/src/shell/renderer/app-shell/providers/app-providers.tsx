@@ -11,12 +11,18 @@ import type { DesktopRendererRouter } from './renderer-router.js';
 import type { AppAttentionSource } from './app-attention-source.js';
 import type { StreamController } from '../../features/turns/stream-controller.js';
 import { StreamControllerProvider } from '../../features/turns/stream-controller-context.js';
+import type { ScenarioJobController } from '../../features/turns/scenario-job-controller.js';
+import { ScenarioJobControllerProvider } from '../../features/turns/scenario-job-controller-context.js';
+import type { RealmSocialData } from '../../features/social/data/realm-social-data.js';
+import { RealmSocialDataProvider } from '../../features/social/data/realm-social-data-context.js';
 
-export function AppProviders({ attention, children, i18n, queryClient, Router, store, streamController }: PropsWithChildren<{
+export function AppProviders({ attention, children, i18n, queryClient, realmSocialData, Router, scenarioJobController, store, streamController }: PropsWithChildren<{
   readonly attention: AppAttentionSource;
   readonly i18n: DesktopI18nResource;
   readonly queryClient: QueryClient;
+  readonly realmSocialData: RealmSocialData;
   readonly Router: DesktopRendererRouter;
+  readonly scenarioJobController: ScenarioJobController;
   readonly store: AppStoreApi;
   readonly streamController: StreamController;
 }>) {
@@ -25,13 +31,17 @@ export function AppProviders({ attention, children, i18n, queryClient, Router, s
       <DesktopI18nResourceProvider resource={i18n}>
         <AppStoreProvider store={store}>
           <QueryClientProvider client={queryClient}>
-            <StreamControllerProvider controller={streamController}>
-              <TooltipProvider>
-                <AppAttentionProvider source={attention}>
-                  <Router>{children}</Router>
-                </AppAttentionProvider>
-              </TooltipProvider>
-            </StreamControllerProvider>
+            <RealmSocialDataProvider resource={realmSocialData}>
+              <ScenarioJobControllerProvider controller={scenarioJobController}>
+                <StreamControllerProvider controller={streamController}>
+                  <TooltipProvider>
+                    <AppAttentionProvider source={attention}>
+                      <Router>{children}</Router>
+                    </AppAttentionProvider>
+                  </TooltipProvider>
+                </StreamControllerProvider>
+              </ScenarioJobControllerProvider>
+            </RealmSocialDataProvider>
           </QueryClientProvider>
         </AppStoreProvider>
       </DesktopI18nResourceProvider>

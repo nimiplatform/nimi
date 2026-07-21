@@ -7,6 +7,8 @@ import type { DesktopCanonicalRendererBindings } from './contract.js';
 import { createDesktopRendererLifecyclePort } from './lifecycle-port.js';
 import { createDesktopRouteProvider } from './route-provider.js';
 import { createStreamController } from '../features/turns/stream-controller.js';
+import { createScenarioJobController } from '../features/turns/scenario-job-controller.js';
+import { createRealmSocialData } from '../features/social/data/realm-social-data.js';
 
 export function createDesktopRendererResources(
   bindings: DesktopCanonicalRendererBindings,
@@ -36,6 +38,13 @@ export function createDesktopRendererResources(
   });
   const Router = createDesktopRouteProvider(bindings.route);
   const streamController = createStreamController(bindings.clock);
+  const scenarioJobController = createScenarioJobController(bindings.clock);
+  const realmSocialData = createRealmSocialData({
+    callApi: bindings.sdk.socialData.callApi,
+    emitDataError: bindings.sdk.socialData.emitDataError,
+    now: bindings.clock.now,
+    offline: bindings.sdk.socialData.offline,
+  });
   const lifecycle = createDesktopRendererLifecyclePort(
     store,
     queryClient,
@@ -48,15 +57,19 @@ export function createDesktopRendererResources(
     attention,
     i18n,
     queryClient,
+    realmSocialData,
     Router,
+    scenarioJobController,
     store,
     streamController,
     dispose() {
       if (disposed) return;
       disposed = true;
       disconnectLifecycle();
+      scenarioJobController.dispose();
       streamController.dispose();
       queryClient.clear();
+      realmSocialData.dispose();
     },
   });
 }

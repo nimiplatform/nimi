@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { formatRelativeLocaleTime } from '../../i18n';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import {
   type NimiRuntimeLocalRecommendationFeedItem,
 } from '@nimiplatform/sdk/runtime';
@@ -48,6 +48,7 @@ function formatSizeLabel(sizeBytes: number): string {
 // ---------------------------------------------------------------------------
 
 export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: RecommendDetailPageProps) {
+  const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
   const installController = useRecommendInstallController({ item, model });
   const [showDiagnostics, setShowDiagnostics] = useState(false);
@@ -137,7 +138,7 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
           <StatBlock label={t('runtimeConfig.recommend.detailStatLikes', { defaultValue: 'Likes' })} value={item.likes.toLocaleString()} />
         ) : null}
         {item.lastModified ? (
-          <StatBlock label={t('runtimeConfig.recommend.detailStatReleased', { defaultValue: 'Released' })} value={formatRelativeLocaleTime(item.lastModified)} />
+          <StatBlock label={t('runtimeConfig.recommend.detailStatReleased', { defaultValue: 'Released' })} value={i18n.formatRelativeTime(item.lastModified)} />
         ) : null}
         <StatBlock
           label={t('runtimeConfig.recommend.detailStatContext', { defaultValue: 'Context' })}
@@ -210,7 +211,7 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
           <SpecRow label={t('runtimeConfig.recommend.specFormats', { defaultValue: 'Formats' })} value={item.formats.join(', ') || '\u2014'} />
           <SpecRow
             label={t('runtimeConfig.recommend.specUpdated', { defaultValue: 'Updated' })}
-            value={item.lastModified ? formatRelativeLocaleTime(item.lastModified) : '\u2014'}
+            value={item.lastModified ? i18n.formatRelativeTime(item.lastModified) : '\u2014'}
           />
           <SpecRow
             label={t('runtimeConfig.recommend.detailSpecContext', { defaultValue: 'Context' })}

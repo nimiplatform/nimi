@@ -8,24 +8,22 @@ import {
   loadPostById,
   loadPostFeed,
 } from '../src/shell/renderer/features/social/data/post-feed-data';
-import {
-  getCachedContacts,
-  updateCachedContacts,
-} from '../src/shell/renderer/features/social/data/social-snapshot';
+import { createSocialSnapshotStore } from '../src/shell/renderer/features/social/data/social-snapshot';
 
 type PostDto = RealmModel<'PostDto'>;
 type PostFeedGeneratedMock = Pick<NimiRealmSocialApi['generated'], 'getHomeFeed' | 'listLikedPosts' | 'getPost'>;
+const snapshotStore = createSocialSnapshotStore();
 
 async function withBlockedUsers(blockedIds: string[], run: () => Promise<void> | void) {
-  const original = getCachedContacts();
-  updateCachedContacts({
+  const original = snapshotStore.get();
+  snapshotStore.update({
     ...original,
     blocked: blockedIds.map((id) => ({ id })),
   });
   try {
     await run();
   } finally {
-    updateCachedContacts(original);
+    snapshotStore.update(original);
   }
 }
 
@@ -63,6 +61,7 @@ test('loadPostFeed returns an empty feed without calling the service for blocked
         throw new Error('should not be called');
       },
       () => undefined,
+      snapshotStore.get(),
       { authorId: 'blocked-author', limit: 15, cursor: 'cursor-1' },
     );
 
@@ -86,6 +85,7 @@ test('loadPostFeed filters blocked authors from unscoped feeds', async () => {
         }),
       })),
       () => undefined,
+      snapshotStore.get(),
       { limit: 20 },
     );
 
@@ -107,6 +107,7 @@ test('loadLikedPosts filters blocked authors from liked-post feeds', async () =>
         }),
       })),
       () => undefined,
+      snapshotStore.get(),
       'profile-1',
       20,
     );
@@ -123,6 +124,7 @@ test('loadPostById fails closed for blocked-author posts', async () => {
           getPost: async () => createPost('post-1', 'blocked-author'),
         })),
         () => undefined,
+        snapshotStore.get(),
         'post-1',
       ),
       /blocked the author/,
@@ -137,7 +139,7 @@ test('filterBlockedPosts removes posts for blocked authors only', async () => {
       createPost('post-2', 'blocked-author'),
     ];
 
-    const filtered = filterBlockedPosts(posts);
+    const filtered = filterBlockedPosts(snapshotStore.get(), posts);
     assert.deepEqual(filtered.map((post) => post.id), ['post-1']);
   });
 });

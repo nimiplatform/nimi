@@ -53,7 +53,7 @@ export function formatAssetKindLabel(value: NimiRuntimeLocalAssetKind): string {
   return formatNimiRuntimeLocalAssetKindLabel(value);
 }
 
-const GENERIC_MODEL_TAGS = new Set([
+const GENERIC_MODEL_TAGS = [
   'verified',
   'recommended',
   'chat',
@@ -65,7 +65,7 @@ const GENERIC_MODEL_TAGS = new Set([
   'llama',
   'media',
   'sidecar',
-]);
+] as const;
 
 function normalizeDescriptorToken(value: string | undefined | null): string {
   return String(value || '').trim().toLowerCase();
@@ -75,7 +75,7 @@ function collectAssetFamilyHints(asset: NimiRuntimeLocalVerifiedAssetDescriptor)
   const hints = new Set<string>();
   for (const tag of asset.tags || []) {
     const normalized = normalizeDescriptorToken(tag);
-    if (!normalized || GENERIC_MODEL_TAGS.has(normalized)) {
+    if (!normalized || GENERIC_MODEL_TAGS.includes(normalized as (typeof GENERIC_MODEL_TAGS)[number])) {
       continue;
     }
     hints.add(normalized);
@@ -149,7 +149,7 @@ function collectPassiveAssetFamilyHints(asset: NimiRuntimeLocalVerifiedAssetDesc
   }
   for (const tag of asset.tags || []) {
     const normalized = normalizeDescriptorToken(tag);
-    if (!normalized || GENERIC_MODEL_TAGS.has(normalized)) {
+    if (!normalized || GENERIC_MODEL_TAGS.includes(normalized as (typeof GENERIC_MODEL_TAGS)[number])) {
       continue;
     }
     hints.add(normalized);

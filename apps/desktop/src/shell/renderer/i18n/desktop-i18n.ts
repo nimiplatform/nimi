@@ -22,6 +22,7 @@ export type I18nIssue = {
 
 export type DesktopI18nResource = {
   readonly instance: I18nInstance;
+  now(): number;
   init(): Promise<void>;
   changeLocale(locale: SupportedLocale): Promise<void>;
   getCurrentLocale(): SupportedLocale;
@@ -346,6 +347,7 @@ export function createDesktopI18n(input: CreateDesktopI18nInput): DesktopI18nRes
 
   return {
     instance,
+    now,
     init,
     changeLocale,
     getCurrentLocale,

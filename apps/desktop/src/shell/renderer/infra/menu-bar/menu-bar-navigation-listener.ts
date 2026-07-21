@@ -1,7 +1,5 @@
-import { useEffect } from 'react';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { hasTauriRuntime, listenTauri } from '@nimiplatform/kit/shell/renderer/bridge';
-import { useAppStoreApi } from '../../app-shell/providers/app-store';
 import {
   loadRuntimeConfigStateV11,
   persistRuntimeConfigStateV11,
@@ -10,8 +8,8 @@ import {
   normalizePageIdV11,
   type RuntimePageIdV11,
 } from '../../features/runtime-config/runtime-config-state-types';
-import { dispatchRuntimeConfigOpenPage } from '../../features/runtime-config/runtime-config-navigation-events';
 import type { DesktopRendererLifecyclePort } from '../../renderer/lifecycle-port';
+import type { DesktopRendererRuntimeConfigNavigationPort } from '../../renderer/runtime-config-navigation-port.js';
 
 type MenuBarOpenTabEvent =
   | { tab?: 'runtime'; page?: RuntimePageIdV11 }
@@ -48,7 +46,10 @@ function asOpenTabPayload(value: unknown): MenuBarOpenTabEvent {
 
 type MenuBarNavigationPort = Pick<DesktopRendererLifecyclePort, 'setActiveTab'>;
 
-export function connectMenuBarNavigation(port: MenuBarNavigationPort): () => void {
+export function connectMenuBarNavigation(
+  port: MenuBarNavigationPort,
+  runtimeConfigNavigation: DesktopRendererRuntimeConfigNavigationPort,
+): () => void {
   const flags = getShellFeatureFlags();
   if (!flags.enableMenuBarShell) {
     return () => {};
@@ -77,7 +78,7 @@ export function connectMenuBarNavigation(port: MenuBarNavigationPort): () => voi
         ...state,
         activePage: nextPage,
       });
-      dispatchRuntimeConfigOpenPage(nextPage);
+      runtimeConfigNavigation.openPage(nextPage);
       port.setActiveTab('runtime');
     }
   }));
@@ -90,11 +91,4 @@ export function connectMenuBarNavigation(port: MenuBarNavigationPort): () => voi
       }
     });
   };
-}
-
-export function useMenuBarNavigationListener(): void {
-  const store = useAppStoreApi();
-  useEffect(() => connectMenuBarNavigation({
-    setActiveTab: (tab) => store.getState().setActiveTab(tab),
-  }), [store]);
 }

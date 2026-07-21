@@ -539,7 +539,7 @@ export function WorldCharacterSourceDetailPage(props: WorldCharacterSourceDetail
   const bannerImage = toSafeBackgroundImage(
     source.profileCoverUrl ?? source.worldBannerUrl ?? source.referenceImageUrl,
   );
-  const primaryAction = describeCharacterPrimaryAction(source.sourceState);
+  const primaryAction = describeCharacterPrimaryAction(source.sourceState, t);
   const canStartChat = primaryAction.action === 'open_partner';
   const dynastyLabel = worldCharacterHeroSubtitle(source);
   const heroDescription = worldCharacterHeroDescription(source, dynastyLabel);

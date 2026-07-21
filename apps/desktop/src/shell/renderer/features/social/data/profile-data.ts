@@ -12,16 +12,14 @@ import {
   isRealmOfflineErrorLike as isRealmOfflineError,
   type JsonObject,
 } from '@nimiplatform/sdk/types';
-import { getOfflineCacheManager } from '../../../infra/offline/cache-manager';
-import { getOfflineCoordinator } from '../../../infra/offline/coordinator';
 import {
   fetchPendingFriendRequests,
-  loadMergedSocialSnapshot,
+  type SocialSnapshotStore,
   type RealmApiCaller,
   type RealmDataErrorEmitter,
   type SocialContactSnapshot,
 } from './social-snapshot';
-import { dispatchBlockedUsersUpdated } from './blocked-content';
+import type { RealmSocialOfflinePort } from './social-offline-port.js';
 
 type UserProfileProjection = NimiRealmSocialProfileView;
 
@@ -51,9 +49,10 @@ export async function updateCurrentUserProfile(
 export async function loadContactList(
   callApi: RealmApiCaller,
   emitRealmDataError: RealmDataErrorEmitter,
+  snapshotStore: SocialSnapshotStore,
 ): Promise<SocialContactSnapshot> {
   try {
-    return await loadMergedSocialSnapshot(callApi, emitRealmDataError);
+    return await snapshotStore.load(callApi, emitRealmDataError);
   } catch (error) {
     emitRealmDataError('load-contacts', error);
     throw error;
@@ -63,9 +62,10 @@ export async function loadContactList(
 export async function loadSocialSnapshot(
   callApi: RealmApiCaller,
   emitRealmDataError: RealmDataErrorEmitter,
+  snapshotStore: SocialSnapshotStore,
 ): Promise<SocialContactSnapshot> {
   try {
-    return await loadMergedSocialSnapshot(callApi, emitRealmDataError);
+    return await snapshotStore.load(callApi, emitRealmDataError);
   } catch (error) {
     emitRealmDataError('load-social-snapshot', error);
     throw error;
@@ -82,6 +82,7 @@ export async function loadPendingFriendRequests(
 export async function loadUserProfileById(
   callApi: RealmApiCaller,
   emitRealmDataError: RealmDataErrorEmitter,
+  offline: RealmSocialOfflinePort,
   id: string,
 ): Promise<UserProfileProjection> {
   const normalizedId = String(id || '').trim();
@@ -90,15 +91,13 @@ export async function loadUserProfileById(
       (realm) => loadNimiRealmUserProfileById(realm, emitRealmDataError, normalizedId),
       'Failed to load Realm user profile',
     );
-    const cache = await getOfflineCacheManager();
-    await cache.syncProfileMetadata(`user:${normalizedId}`, enriched);
+    await offline.syncProfileMetadata(`user:${normalizedId}`, enriched);
     return enriched;
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      const cache = await getOfflineCacheManager();
-      const cached = await cache.getCachedProfileMetadata<UserProfileProjection>(`user:${normalizedId}`);
+      const cached = await offline.loadProfileMetadata<UserProfileProjection>(`user:${normalizedId}`);
       if (cached) {
-        getOfflineCoordinator().markCacheFallbackUsed();
+        offline.markCacheFallbackUsed();
         return cached;
       }
     }
@@ -145,6 +144,7 @@ export async function addFriendByIdentifier(input: {
 
 export async function requestOrAcceptFriend(input: {
   callApi: RealmApiCaller;
+  offline: RealmSocialOfflinePort;
   userId: string;
   message?: string;
   reloadContacts: () => Promise<void>;
@@ -154,7 +154,7 @@ export async function requestOrAcceptFriend(input: {
     await input.reloadContacts();
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      getOfflineCoordinator().markRealmRestReachability('unreachable');
+      input.offline.markRealmUnreachable();
     }
     throw error;
   }
@@ -163,6 +163,7 @@ export async function requestOrAcceptFriend(input: {
 
 export async function removeFriend(input: {
   callApi: RealmApiCaller;
+  offline: RealmSocialOfflinePort;
   userId: string;
   reloadContacts: () => Promise<void>;
 }) {
@@ -171,7 +172,7 @@ export async function removeFriend(input: {
     await input.reloadContacts();
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      getOfflineCoordinator().markRealmRestReachability('unreachable');
+      input.offline.markRealmUnreachable();
     }
     throw error;
   }
@@ -179,6 +180,7 @@ export async function removeFriend(input: {
 
 export async function rejectOrRemoveFriend(input: {
   callApi: RealmApiCaller;
+  offline: RealmSocialOfflinePort;
   userId: string;
   reloadContacts: () => Promise<void>;
 }) {
@@ -187,7 +189,7 @@ export async function rejectOrRemoveFriend(input: {
     await input.reloadContacts();
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      getOfflineCoordinator().markRealmRestReachability('unreachable');
+      input.offline.markRealmUnreachable();
     }
     throw error;
   }
@@ -210,7 +212,6 @@ export async function blockUser(
   );
 
   await reloadContacts();
-  dispatchBlockedUsersUpdated();
   return result;
 }
 
@@ -230,6 +231,5 @@ export async function unblockUser(
   );
 
   await reloadContacts();
-  dispatchBlockedUsersUpdated();
   return result;
 }

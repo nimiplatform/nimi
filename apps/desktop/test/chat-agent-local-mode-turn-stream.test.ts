@@ -7,6 +7,11 @@ import {
 } from './chat-agent-local-mode-test-utils.js';
 import { createRuntimeAgentChatConversationProvider } from '../src/shell/renderer/features/chat/chat-agent-runtime-provider.js';
 import { createTestStreamController } from './helpers/test-stream-controller.js';
+import type { TFunction } from 'i18next';
+
+const testTranslate = ((_: string, options?: { defaultValue?: string }) => (
+  options?.defaultValue ?? ''
+)) as TFunction;
 
 test('agent runtime turns interrupt stays bound to the aborted anchor and does not cross-wire sibling anchors', async () => {
   clearDesktopTestNimiClientSession();
@@ -439,6 +444,7 @@ test('agent runtime provider projects Runtime image action artifact events as im
   const runtimeThreadIds: string[] = [];
   const provider = createRuntimeAgentChatConversationProvider({
     streamController: createTestStreamController(),
+    t: testTranslate,
     runtimeAdapter: {
       streamAgentTurn: async (input) => {
         runtimeThreadIds.push(input.threadId);

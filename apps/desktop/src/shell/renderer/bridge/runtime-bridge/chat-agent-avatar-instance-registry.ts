@@ -16,7 +16,7 @@ export type DesktopAvatarLiveInstanceIdentityInput = {
   agentId: string;
 };
 
-const FORBIDDEN_LIVE_INSTANCE_FIELDS = new Set([
+const FORBIDDEN_LIVE_INSTANCE_FIELDS = [
   'conversationAnchorId',
   'avatarPackage',
   'avatarPackageKind',
@@ -56,7 +56,7 @@ const FORBIDDEN_LIVE_INSTANCE_FIELDS = new Set([
   'ownerUserId',
   'runtimeSourceRef',
   'localAgentRef',
-]);
+] as const;
 
 function requireShellHost(commandName: string) {
   if (!hasShellHostInvoke()) {

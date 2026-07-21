@@ -15,7 +15,7 @@ import {
   pickLocalRuntimeAssetManifestPath,
 } from '../../bridge/runtime-bridge/local-runtime-os-helpers';
 import { getOfflineCoordinator } from '../../infra/offline/coordinator';
-import { i18n } from '../../i18n';
+import { useTranslation } from 'react-i18next';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 
@@ -36,20 +36,6 @@ export type UseRuntimeConfigModelManagementActionsInput = {
   setStatusBanner: SetRuntimeConfigBanner;
   updateState: (updater: (prev: RuntimeConfigStateV11) => RuntimeConfigStateV11) => void;
 };
-
-function translateRuntimeLocalText(
-  key: string,
-  defaultValue: string,
-  options?: Record<string, unknown>,
-): string {
-  if (!i18n.isInitialized) {
-    return defaultValue;
-  }
-  return i18n.t(key, {
-    defaultValue,
-    ...(options || {}),
-  });
-}
 
 function toRuntimeConfigLocalModel(
   model: NimiRuntimeLocalAssetRecord,
@@ -104,6 +90,12 @@ function applyLocalModelSnapshotToState(
 export function useRuntimeConfigModelManagementActions(
   input: UseRuntimeConfigModelManagementActionsInput,
 ): RuntimeConfigModelManagementActions {
+  const { t } = useTranslation();
+  const translateRuntimeLocalText = useCallback((
+    key: string,
+    defaultValue: string,
+    options?: Record<string, unknown>,
+  ) => String(t(key, { defaultValue, ...(options || {}) })), [t]);
   const {
     refreshLocalSnapshot,
     setStatusBanner,
@@ -120,14 +112,12 @@ export function useRuntimeConfigModelManagementActions(
     throw createOfflineError({
       source: 'runtime',
       reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
-      message: i18n.isInitialized
-        ? i18n.t('runtimeConfig.local.runtimeUnavailableWriteReadOnly', {
-          defaultValue: 'Runtime unavailable. Local model writes are disabled in read-only mode.',
-        })
-        : 'Runtime unavailable. Local model writes are disabled in read-only mode.',
+      message: t('runtimeConfig.local.runtimeUnavailableWriteReadOnly', {
+        defaultValue: 'Runtime unavailable. Local model writes are disabled in read-only mode.',
+      }),
       actionHint: 'retry-runtime-when-online',
     });
-  }, []);
+  }, [t]);
 
   const nextLifecycleEpoch = useCallback((localModelId: string): number => {
     const current = lifecycleEpochRef.current[localModelId] || 0;

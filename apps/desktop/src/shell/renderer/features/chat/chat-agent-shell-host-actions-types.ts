@@ -40,6 +40,7 @@ export type AgentRunTurn = (input: {
 }) => AsyncIterable<ConversationTurnEvent>;
 
 export type UseAgentConversationHostActionsInput = {
+  now: () => number;
   streamController: StreamController;
   activeTarget: AgentLocalTargetSnapshot | null;
   activeThreadId: string | null;

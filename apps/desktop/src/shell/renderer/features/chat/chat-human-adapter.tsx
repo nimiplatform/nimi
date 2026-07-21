@@ -13,7 +13,8 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { HumanConversationGiftModal } from '../turns/human-conversation-gift-modal';
-import { formatLocaleDate, formatRelativeLocaleTime } from '../../i18n';
+import type { DesktopI18nResource } from '../../i18n/desktop-i18n.js';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { loadChatList, startChatWithTarget } from './data/realm-human-chat-data';
 import {
@@ -42,7 +43,10 @@ type UseHumanConversationModeHostInput = {
   setChatProfilePanelTarget: (target: 'self' | 'other' | null) => void;
 };
 
-function formatHumanChatTime(isoString: string | null | undefined): string {
+function formatHumanChatTime(
+  isoString: string | null | undefined,
+  i18n: DesktopI18nResource,
+): string {
   if (!isoString) {
     return '';
   }
@@ -50,26 +54,26 @@ function formatHumanChatTime(isoString: string | null | undefined): string {
   if (Number.isNaN(date.getTime())) {
     return '';
   }
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
+  const diffMs = i18n.now() - date.getTime();
   const diffMin = Math.floor(diffMs / 60000);
   if (diffMin < 60) {
-    return formatRelativeLocaleTime(date);
+    return i18n.formatRelativeTime(date);
   }
   const diffHour = Math.floor(diffMin / 60);
   if (diffHour < 24) {
-    return formatRelativeLocaleTime(date);
+    return i18n.formatRelativeTime(date);
   }
   const diffDay = Math.floor(diffHour / 24);
   if (diffDay < 7) {
-    return formatLocaleDate(date, { weekday: 'short' });
+    return i18n.formatDate(date, { weekday: 'short' });
   }
-  return formatLocaleDate(date, { month: 'short', day: 'numeric' });
+  return i18n.formatDate(date, { month: 'short', day: 'numeric' });
 }
 
 export function useHumanConversationModeHost(
   input: UseHumanConversationModeHostInput,
 ): DesktopConversationModeHost {
+  const i18n = useDesktopI18nResource();
   const {
     authStatus,
     selectedChatId,
@@ -99,8 +103,8 @@ export function useHumanConversationModeHost(
   const projectionOptions = useMemo(() => ({
     noMessagesFallback,
     unknownTitle,
-    formatUpdatedAt: ({ timestamp }: { timestamp: string }) => formatHumanChatTime(timestamp),
-  }), [noMessagesFallback, unknownTitle]);
+    formatUpdatedAt: ({ timestamp }: { timestamp: string }) => formatHumanChatTime(timestamp, i18n),
+  }), [i18n, noMessagesFallback, unknownTitle]);
   const threads = useMemo(
     () => collapsedChats.map((chat) => toRealmHumanConversationThreadSummary(chat, projectionOptions)),
     [collapsedChats, projectionOptions],

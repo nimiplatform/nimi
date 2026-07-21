@@ -1,4 +1,4 @@
-import { realmSocialData } from '../social/data/realm-social-data';
+import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -25,6 +25,7 @@ import {
 import { LocalDevelopmentAuthorizations } from '../local-development/local-development-authorizations';
 
 export function SecurityPage() {
+  const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
   const authUser = useAppStore((state) => state.auth.user);
   const setAuthSession = useAppStore((state) => state.setAuthSession);

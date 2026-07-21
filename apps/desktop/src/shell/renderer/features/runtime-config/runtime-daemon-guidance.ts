@@ -1,5 +1,5 @@
-import { i18n } from '../../i18n';
 import type { RuntimeBridgeDaemonStatus } from '../../bridge';
+import type { TFunction } from 'i18next';
 
 export type RuntimeDaemonIssue = {
   code:
@@ -54,11 +54,6 @@ const ISSUE_DEFINITIONS: readonly IssueDefinition[] = [
   },
 ];
 
-function translateRuntimeDaemonText(key: string, defaultValue: string): string {
-  if (!i18n.isInitialized) return defaultValue;
-  return i18n.t(key, { defaultValue });
-}
-
 function collectRuntimeDaemonErrorText(input: {
   status?: RuntimeBridgeDaemonStatus | null;
   runtimeDaemonError?: string | null;
@@ -72,7 +67,7 @@ function collectRuntimeDaemonErrorText(input: {
 export function describeRuntimeDaemonIssue(input: {
   status?: RuntimeBridgeDaemonStatus | null;
   runtimeDaemonError?: string | null;
-}): RuntimeDaemonIssue | null {
+}, t: TFunction): RuntimeDaemonIssue | null {
   const rawError = collectRuntimeDaemonErrorText(input);
   if (!rawError) return null;
   const definition = ISSUE_DEFINITIONS.find((candidate) => rawError.includes(candidate.marker));
@@ -80,8 +75,8 @@ export function describeRuntimeDaemonIssue(input: {
   const keyPrefix = `runtimeConfig.runtime.${definition.code}`;
   return {
     code: definition.code,
-    title: translateRuntimeDaemonText(`${keyPrefix}Title`, definition.title),
-    message: translateRuntimeDaemonText(`${keyPrefix}Message`, definition.message),
+    title: t(`${keyPrefix}Title`, { defaultValue: definition.title }),
+    message: t(`${keyPrefix}Message`, { defaultValue: definition.message }),
     rawError,
   };
 }

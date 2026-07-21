@@ -1,11 +1,10 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
-import { realmSocialData } from '../social/data/realm-social-data';
+import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import {
-  getCachedContacts,
   isPendingSentRequestInContacts,
   type SocialContactSnapshot,
 } from '../social/data/social-snapshot';
@@ -49,6 +48,7 @@ function toErrorMessage(error: unknown, fallback: string): string {
 }
 
 export function ProfilePanel() {
+  const realmSocialData = useRealmSocialData();
   const i18n = useDesktopI18nResource().instance;
   const authStatus = useAppStore((state) => state.auth.status);
   const currentUser = useAppStore((state) => state.auth.user);
@@ -90,7 +90,7 @@ export function ProfilePanel() {
           return { ...data, isFriend: true };
         }
         // Check if a pending sent request exists in local cache
-        if (data.isPendingFriendRequest !== true && isPendingSentRequestInContacts(getCachedContacts(), selectedProfileId!)) {
+        if (data.isPendingFriendRequest !== true && isPendingSentRequestInContacts(realmSocialData.contacts(), selectedProfileId!)) {
           return { ...data, isPendingFriendRequest: true };
         }
         return data;
@@ -159,7 +159,7 @@ export function ProfilePanel() {
         runtimeInventoryPending: Boolean(ownerUserId && profileSourceLocalAgentsQuery.isPending),
         runtimeInventoryUnavailable: !ownerUserId || profileSourceLocalAgentsQuery.isError,
       },
-    ));
+    ), i18n.t);
   }, [
     ownerUserId,
     profile,
@@ -173,7 +173,7 @@ export function ProfilePanel() {
   const isBlockedProfile = Boolean(!isOwnProfile && profile && realmSocialData.isBlockedUser(profile.id));
   const addFriendBlocked = Boolean(profile?.isSource && sourceAction?.disabled);
   const addFriendHint = profile?.isSource && sourceAction?.disabled
-    ? sourceAction.hint ?? characterSourceMaterializationMessage()
+    ? sourceAction.hint ?? characterSourceMaterializationMessage(i18n.t)
     : null;
   const addFriendLabel = profile?.isSource
     ? sourceAction?.label || i18n.t('Explore.characterSourceMaterialize', { defaultValue: 'Become my partner' })
@@ -211,9 +211,9 @@ export function ProfilePanel() {
     try {
       if (profile.isSource) {
         if (addFriendBlocked) {
-          throw new Error(addFriendHint || characterSourceMaterializationMessage());
+          throw new Error(addFriendHint || characterSourceMaterializationMessage(i18n.t));
         }
-        const target = await materializeSourceContactLaunchTarget(profile, ownerUserId);
+        const target = await materializeSourceContactLaunchTarget(profile, ownerUserId, i18n.t);
         await ensureRuntimeAgentExists(target);
         await queryClient.invalidateQueries({ queryKey: ['profile-source-local-agents'], exact: false });
         await launchAgentConversationFromDisplay({
@@ -246,7 +246,7 @@ export function ProfilePanel() {
       setFeedback({
         kind: 'error',
         message: profile.isSource
-          ? characterSourceMaterializationFailureMessage(error)
+          ? characterSourceMaterializationFailureMessage(error, i18n.t)
           : toErrorMessage(error, i18n.t('Relationship.addContactFailed', { defaultValue: 'Failed to add contact' })),
       });
     }

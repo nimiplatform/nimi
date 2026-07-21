@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Surface, cn } from '@nimiplatform/kit/ui';
-import { formatLocaleDateTime, formatLocaleNumber } from '../../i18n';
+import type { DesktopI18nResource } from '../../i18n/desktop-i18n.js';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { SectionTitle } from '../settings/settings-layout-components';
 import { useSystemResources } from './runtime-config-system-resources';
 import { useUsageEstimate } from './runtime-config-cost-estimator';
@@ -64,11 +65,11 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
 }
 
-function formatCount(value: number): string {
+function formatCount(value: number, i18n: DesktopI18nResource): string {
   if (!Number.isFinite(value) || value <= 0) {
     return '0';
   }
-  return formatLocaleNumber(Math.round(value));
+  return i18n.formatNumber(Math.round(value));
 }
 
 function ResourceStateMessage(props: {
@@ -119,6 +120,7 @@ function ProgressBar({ percent, tone }: { percent: number; tone: ProgressTone })
 }
 
 export function OverviewLoadUsageSection() {
+  const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
   const sysResources = useSystemResources();
   const usageEstimate = useUsageEstimate();
@@ -187,7 +189,7 @@ export function OverviewLoadUsageSection() {
               <p className={cn('pt-1 text-xs', TOKEN_TEXT_MUTED)}>
                 {t('runtimeConfig.overview.systemResourceMeta', {
                   source: resourceSnapshot.source,
-                  capturedAt: formatLocaleDateTime(new Date(resourceSnapshot.capturedAtMs).toISOString()),
+                  capturedAt: i18n.formatDateTime(new Date(resourceSnapshot.capturedAtMs).toISOString()),
                   defaultValue: 'Source: {{source}} | Captured: {{capturedAt}}',
                 })}
               </p>
@@ -208,24 +210,24 @@ export function OverviewLoadUsageSection() {
           <div className="grid grid-cols-2 gap-2">
             <div className={METRIC_CARD_CLASS}>
               <p className={cn('text-xs', TOKEN_TEXT_MUTED)}>{t('runtimeConfig.overview.requests', { defaultValue: 'Requests' })}</p>
-              <p className={cn('text-lg font-semibold', TOKEN_TEXT_PRIMARY)}>{formatCount(usageEstimate.totalRequests)}</p>
+              <p className={cn('text-lg font-semibold', TOKEN_TEXT_PRIMARY)}>{formatCount(usageEstimate.totalRequests, i18n)}</p>
             </div>
             <div className={METRIC_CARD_CLASS}>
               <p className={cn('text-xs', TOKEN_TEXT_MUTED)}>{t('runtimeConfig.overview.compute', { defaultValue: 'Compute' })}</p>
               <p className={cn('text-lg font-semibold', TOKEN_TEXT_PRIMARY)}>
                 {t('runtimeConfig.overview.computeValue', {
-                  value: formatCount(usageEstimate.totalComputeMs),
+                  value: formatCount(usageEstimate.totalComputeMs, i18n),
                   defaultValue: '{{value}} ms',
                 })}
               </p>
             </div>
             <div className={METRIC_CARD_CLASS}>
               <p className={cn('text-xs', TOKEN_TEXT_MUTED)}>{t('runtimeConfig.overview.inputTokens', { defaultValue: 'Input Tokens' })}</p>
-              <p className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>{formatCount(usageEstimate.totalInputTokens)}</p>
+              <p className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>{formatCount(usageEstimate.totalInputTokens, i18n)}</p>
             </div>
             <div className={METRIC_CARD_CLASS}>
               <p className={cn('text-xs', TOKEN_TEXT_MUTED)}>{t('runtimeConfig.overview.outputTokens', { defaultValue: 'Output Tokens' })}</p>
-              <p className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>{formatCount(usageEstimate.totalOutputTokens)}</p>
+              <p className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>{formatCount(usageEstimate.totalOutputTokens, i18n)}</p>
             </div>
             <div
               className={cn(METRIC_CARD_CLASS, 'col-span-2')}

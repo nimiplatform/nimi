@@ -8,9 +8,9 @@ type SetupAutodiscoverEffectInput = {
   activePage: string;
 };
 
-const PAGES_REQUIRING_DISCOVERY: ReadonlySet<string> = new Set([
+const PAGES_REQUIRING_DISCOVERY: readonly string[] = [
   'overview', 'models', 'cloud', 'environment',
-]);
+];
 
 let runtimeConfigSetupAutodiscoverTriggered = false;
 
@@ -18,7 +18,7 @@ export function useRuntimeConfigSetupAutodiscoverEffect(input: SetupAutodiscover
   useEffect(() => {
     if (!input.state || !input.hydrated) return;
     if (runtimeConfigSetupAutodiscoverTriggered) return;
-    if (!PAGES_REQUIRING_DISCOVERY.has(input.activePage)) return;
+    if (!PAGES_REQUIRING_DISCOVERY.includes(input.activePage)) return;
 
     runtimeConfigSetupAutodiscoverTriggered = true;
     void input.discoverLocalModels({ visible: false });

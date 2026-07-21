@@ -2,7 +2,7 @@ import { Component, Suspense, lazy, useCallback, useEffect, useLayoutEffect, use
 import type { ConversationSetupAction } from '@nimiplatform/kit/features/chat/headless';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../app-shell/providers/app-store';
-import { dispatchRuntimeConfigOpenPage } from '../runtime-config/runtime-config-navigation-events';
+import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { ChatRelationshipRail } from './chat-relationship-rail';
@@ -133,6 +133,7 @@ function toRuntimePageId(targetId: Extract<ConversationSetupAction, { kind: 'ope
 }
 
 export function ChatPage() {
+  const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const navigate = useNavigate();
   const authStatus = useAppStore((state) => state.auth.status);
   const chatMode = useAppStore((state) => state.chatMode);
@@ -223,8 +224,8 @@ export function ChatPage() {
     }
     setChatMode(action.returnToMode || chatMode);
     setActiveTab('runtime');
-    dispatchRuntimeConfigOpenPage(toRuntimePageId(action.targetId));
-  }, [chatMode, navigate, setActiveTab, setChatMode]);
+    runtimeConfigNavigation.openPage(toRuntimePageId(action.targetId));
+  }, [chatMode, navigate, runtimeConfigNavigation, setActiveTab, setChatMode]);
 
   const handleSelectTarget = useCallback((targetId: string) => {
     const target = allTargets.find((t) => t.id === targetId);

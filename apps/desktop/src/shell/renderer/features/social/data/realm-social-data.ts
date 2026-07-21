@@ -1,8 +1,9 @@
 import type { JsonObject } from '@nimiplatform/sdk/types';
-import { callRealmApi, emitRealmDataError } from '../../../infra/realm/realm-api';
 import {
-  getCachedContacts,
+  createSocialSnapshotStore,
   isFriendInContacts,
+  type RealmApiCaller,
+  type RealmDataErrorEmitter,
 } from './social-snapshot';
 import {
   blockUser,
@@ -33,75 +34,104 @@ import {
   isBlockedUser,
 } from './blocked-content';
 import {
-  countPendingSocialMutations,
-  flushPendingSocialMutations,
-} from './offline-social-outbox';
+  type RealmSocialOfflinePort,
+} from './social-offline-port.js';
 
 export type { SocialContactSnapshot } from './social-snapshot';
 export type { PostFeedScope } from './post-feed-data';
 
-const reloadSocialSnapshot = async (): Promise<void> => {
-  await loadSocialSnapshot(callRealmApi, emitRealmDataError);
-};
+export function createRealmSocialData(input: {
+  readonly callApi: RealmApiCaller;
+  readonly emitDataError: RealmDataErrorEmitter;
+  readonly now: () => number;
+  readonly offline: RealmSocialOfflinePort;
+}) {
+  const snapshotStore = createSocialSnapshotStore();
+  const blockedUserListeners = new Set<() => void>();
+  const notifyBlockedUsersChanged = () => {
+    for (const listener of blockedUserListeners) listener();
+  };
+  const reloadSocialSnapshot = async (): Promise<void> => {
+    await loadSocialSnapshot(input.callApi, input.emitDataError, snapshotStore);
+  };
 
-export const realmSocialData = {
-  loadCurrentUser: () =>
-    loadCurrentUserProfile(callRealmApi, emitRealmDataError),
-  updateUserProfile: (data: JsonObject) =>
-    updateCurrentUserProfile(callRealmApi, emitRealmDataError, data),
-  loadContacts: () =>
-    loadContactList(callRealmApi, emitRealmDataError),
-  loadSocialSnapshot: () =>
-    loadSocialSnapshot(callRealmApi, emitRealmDataError),
-  loadFriendRequests: () =>
-    loadPendingFriendRequests(callRealmApi, emitRealmDataError),
-  loadUserProfile: (id: string) =>
-    loadUserProfileById(callRealmApi, emitRealmDataError, id),
-  requestOrAcceptFriend: (userId: string, message?: string) =>
-    requestOrAcceptFriend({
-      callApi: callRealmApi,
-      userId,
-      message,
-      reloadContacts: reloadSocialSnapshot,
-    }),
-  removeFriend: (userId: string) =>
-    removeFriend({
-      callApi: callRealmApi,
-      userId,
-      reloadContacts: reloadSocialSnapshot,
-    }),
-  rejectOrRemoveFriend: (userId: string) =>
-    rejectOrRemoveFriend({
-      callApi: callRealmApi,
-      userId,
-      reloadContacts: reloadSocialSnapshot,
-    }),
-  blockUser: (contact: JsonObject) =>
-    blockUser(callRealmApi, contact, reloadSocialSnapshot),
-  unblockUser: (contact: JsonObject) =>
-    unblockUser(callRealmApi, contact, reloadSocialSnapshot),
-  isFriend: (userId: string) => isFriendInContacts(getCachedContacts(), userId),
-  isBlockedUser,
-  loadPostFeed: (input: LoadPostFeedInput) =>
-    loadPostFeed(callRealmApi, emitRealmDataError, input),
-  loadLikedPosts: (profileId: string, limit = 20, cursor?: string) =>
-    loadLikedPosts(callRealmApi, emitRealmDataError, profileId, limit, cursor),
-  loadPostById: (postId: string) =>
-    loadPostById(callRealmApi, emitRealmDataError, postId),
-  createPost: (payload: Parameters<typeof createPost>[2]) =>
-    createPost(callRealmApi, emitRealmDataError, payload),
-  deletePost: (postId: string) =>
-    deletePost(callRealmApi, emitRealmDataError, postId),
-  updatePostVisibility: (postId: string, visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE') =>
-    updatePostVisibility(callRealmApi, emitRealmDataError, postId, visibility),
-  likePost: (postId: string) =>
-    likePost(callRealmApi, emitRealmDataError, postId),
-  unlikePost: (postId: string) =>
-    unlikePost(callRealmApi, emitRealmDataError, postId),
-  createReport: (payload: Parameters<typeof createReport>[2]) =>
-    createReport(callRealmApi, emitRealmDataError, payload),
-  hasPendingOfflineRecoveryWork: async () =>
-    (await countPendingSocialMutations()) > 0,
-  flushSocialOutbox: () =>
-    flushPendingSocialMutations(callRealmApi, emitRealmDataError),
-};
+  return Object.freeze({
+    loadCurrentUser: () =>
+      loadCurrentUserProfile(input.callApi, input.emitDataError),
+    updateUserProfile: (data: JsonObject) =>
+      updateCurrentUserProfile(input.callApi, input.emitDataError, data),
+    loadContacts: () =>
+      loadContactList(input.callApi, input.emitDataError, snapshotStore),
+    loadSocialSnapshot: () =>
+      loadSocialSnapshot(input.callApi, input.emitDataError, snapshotStore),
+    loadFriendRequests: () =>
+      loadPendingFriendRequests(input.callApi, input.emitDataError),
+    loadUserProfile: (id: string) =>
+      loadUserProfileById(input.callApi, input.emitDataError, input.offline, id),
+    requestOrAcceptFriend: (userId: string, message?: string) =>
+      requestOrAcceptFriend({
+        callApi: input.callApi,
+        offline: input.offline,
+        userId,
+        message,
+        reloadContacts: reloadSocialSnapshot,
+      }),
+    removeFriend: (userId: string) =>
+      removeFriend({
+        callApi: input.callApi,
+        offline: input.offline,
+        userId,
+        reloadContacts: reloadSocialSnapshot,
+      }),
+    rejectOrRemoveFriend: (userId: string) =>
+      rejectOrRemoveFriend({
+        callApi: input.callApi,
+        offline: input.offline,
+        userId,
+        reloadContacts: reloadSocialSnapshot,
+      }),
+    async blockUser(contact: JsonObject) {
+      const result = await blockUser(input.callApi, contact, reloadSocialSnapshot);
+      notifyBlockedUsersChanged();
+      return result;
+    },
+    async unblockUser(contact: JsonObject) {
+      const result = await unblockUser(input.callApi, contact, reloadSocialSnapshot);
+      notifyBlockedUsersChanged();
+      return result;
+    },
+    subscribeBlockedUsers(listener: () => void) {
+      blockedUserListeners.add(listener);
+      return () => {
+        blockedUserListeners.delete(listener);
+      };
+    },
+    isFriend: (userId: string) => isFriendInContacts(snapshotStore.get(), userId),
+    isBlockedUser: (userId: string) => isBlockedUser(snapshotStore.get(), userId),
+    contacts: snapshotStore.get,
+    loadPostFeed: (feedInput: LoadPostFeedInput) =>
+      loadPostFeed(input.callApi, input.emitDataError, snapshotStore.get(), feedInput),
+    loadLikedPosts: (profileId: string, limit = 20, cursor?: string) =>
+      loadLikedPosts(input.callApi, input.emitDataError, snapshotStore.get(), profileId, limit, cursor),
+    loadPostById: (postId: string) =>
+      loadPostById(input.callApi, input.emitDataError, snapshotStore.get(), postId),
+    createPost: (payload: Parameters<typeof createPost>[2]) =>
+      createPost(input.callApi, input.emitDataError, payload),
+    deletePost: (postId: string) =>
+      deletePost(input.callApi, input.emitDataError, postId),
+    updatePostVisibility: (postId: string, visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE') =>
+      updatePostVisibility(input.callApi, input.emitDataError, postId, visibility),
+    likePost: (postId: string) =>
+      likePost(input.callApi, input.emitDataError, input.offline, input.now, postId),
+    unlikePost: (postId: string) =>
+      unlikePost(input.callApi, input.emitDataError, input.offline, input.now, postId),
+    createReport: (payload: Parameters<typeof createReport>[2]) =>
+      createReport(input.callApi, input.emitDataError, payload),
+    dispose() {
+      blockedUserListeners.clear();
+      snapshotStore.reset();
+    },
+  });
+}
+
+export type RealmSocialData = ReturnType<typeof createRealmSocialData>;

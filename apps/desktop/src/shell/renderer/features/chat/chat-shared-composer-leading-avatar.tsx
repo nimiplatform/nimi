@@ -1,4 +1,4 @@
-import { realmSocialData } from '../social/data/realm-social-data';
+import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@nimiplatform/kit/ui';
 import { useQuery } from '@tanstack/react-query';
@@ -88,6 +88,7 @@ function ChatComposerAvatarHoverPreview(props: {
   onOpenProfilePage?: (targetId: string) => void;
   children: ReactNode;
 }) {
+  const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
   const [open, setOpen] = useState(false);

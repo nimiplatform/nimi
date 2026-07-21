@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AIProviderHealthSnapshot, AIProviderSubHealth } from '@nimiplatform/sdk/runtime/wire-types';
 import { cn } from '@nimiplatform/kit/ui';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import {
   relativeTimeShort,
   timestampToIso,
@@ -112,6 +113,7 @@ type ProviderHealthTableProps = {
 };
 
 export function ProviderHealthTable({ providerHealth }: ProviderHealthTableProps) {
+  const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
   const [expandedProviders, setExpandedProviders] = useState<Set<string>>(new Set());
   const [expandedErrors, setExpandedErrors] = useState<Set<string>>(new Set());
@@ -163,6 +165,7 @@ export function ProviderHealthTable({ providerHealth }: ProviderHealthTableProps
                 isErrorExpanded={(key) => expandedErrors.has(key)}
                 onToggleErrorKey={(key) => toggleError(key)}
                 showFullErrorLabel={t('runtimeConfig.runtime.showFullError', { defaultValue: 'Show full error' })}
+                formatRelativeTime={i18n.formatRelativeTime}
               />
             ))}
           </tbody>
@@ -290,6 +293,7 @@ function ProviderRow({
   isErrorExpanded,
   onToggleErrorKey,
   showFullErrorLabel,
+  formatRelativeTime,
 }: {
   provider: AIProviderHealthSnapshot;
   expanded: boolean;
@@ -299,6 +303,7 @@ function ProviderRow({
   isErrorExpanded: (key: string) => boolean;
   onToggleErrorKey: (key: string) => void;
   showFullErrorLabel: string;
+  formatRelativeTime: (value: unknown) => string;
 }) {
   const hasSubs = provider.subHealth.length > 0;
 
@@ -327,7 +332,7 @@ function ProviderRow({
         </td>
         <td className={cn('px-4 py-2.5', TOKEN_TEXT_MUTED)}>
           <LastCheckedCell
-            lastCheckedText={provider.lastCheckedAt ? relativeTimeShort(timestampToIso(provider.lastCheckedAt)) : '—'}
+            lastCheckedText={provider.lastCheckedAt ? relativeTimeShort(timestampToIso(provider.lastCheckedAt), formatRelativeTime) : '—'}
             state={provider.state}
             reason={provider.reason || ''}
             errorKey={provider.providerName}
@@ -352,6 +357,7 @@ function ProviderRow({
                 expanded={subExpanded}
                 onToggle={() => onToggleErrorKey(subErrorKey)}
                 showFullErrorLabel={showFullErrorLabel}
+                formatRelativeTime={formatRelativeTime}
               />
             );
           })
@@ -366,12 +372,14 @@ function SubHealthRow({
   expanded,
   onToggle,
   showFullErrorLabel,
+  formatRelativeTime,
 }: {
   sub: AIProviderSubHealth;
   errorKey: string;
   expanded: boolean;
   onToggle: () => void;
   showFullErrorLabel: string;
+  formatRelativeTime: (value: unknown) => string;
 }) {
   return (
     <>
@@ -383,7 +391,7 @@ function SubHealthRow({
         <td className={cn('px-4 py-2 font-mono', TOKEN_TEXT_SECONDARY)}>{sub.consecutiveFailures}</td>
         <td className={cn('px-4 py-2', TOKEN_TEXT_MUTED)}>
           <LastCheckedCell
-            lastCheckedText={sub.lastCheckedAt ? relativeTimeShort(timestampToIso(sub.lastCheckedAt)) : '—'}
+            lastCheckedText={sub.lastCheckedAt ? relativeTimeShort(timestampToIso(sub.lastCheckedAt), formatRelativeTime) : '—'}
             state={sub.state}
             reason={sub.reason || ''}
             errorKey={errorKey}

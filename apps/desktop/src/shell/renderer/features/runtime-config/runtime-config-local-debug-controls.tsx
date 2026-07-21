@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip, cn } from '@nimiplatform/kit/ui';
-import { formatRelativeLocaleTime } from '../../i18n';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import {
   resolveAuditDetail,
   resolveAuditModality,
@@ -205,6 +205,7 @@ export function FacetPill({
 }
 
 export function AuditTableRow({ event }: { event: RuntimeConfigAuditEvent }) {
+  const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
@@ -243,7 +244,7 @@ export function AuditTableRow({ event }: { event: RuntimeConfigAuditEvent }) {
           title={event.occurredAt}
           className={cn('block truncate text-left text-xs', TOKEN_TEXT_SECONDARY)}
         >
-          {formatRelativeLocaleTime(event.occurredAt)}
+          {i18n.formatRelativeTime(event.occurredAt)}
         </span>
         <span className={cn('inline-flex max-w-full items-center gap-1 justify-self-start self-center truncate rounded-md border px-2 py-0.5 font-mono text-[11px] font-medium', colorClass)}>
           <span className="truncate">{event.eventType}</span>

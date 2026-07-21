@@ -23,6 +23,7 @@ import {
   aiConfigTargetRefFromRouteTargetRef,
   type NimiAISnapshot,
 } from './conversation-capability';
+import type { TFunction } from 'i18next';
 
 export type ChatAiRuntimeTextInput = {
   prompt: string;
@@ -135,8 +136,8 @@ async function resolveRuntimeTextExecutionInput(
   };
 }
 
-export function toChatAiRuntimeError(error: unknown): { code: string; message: string } {
-  return toChatUserFacingRuntimeError(error, 'AI response failed');
+export function toChatAiRuntimeError(error: unknown, t: TFunction): { code: string; message: string } {
+  return toChatUserFacingRuntimeError(error, 'AI response failed', t);
 }
 
 export async function streamChatAiRuntime(

@@ -1,7 +1,6 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import type { ReactNode, RefObject } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
-import { formatLocaleDate } from '../../i18n';
 import { AppCardSurface } from '@nimiplatform/kit/ui';
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
@@ -48,11 +47,12 @@ export type PostCardArticleProps = {
 };
 
 export function PostCardArticle(props: PostCardArticleProps) {
-  const i18n = useDesktopI18nResource().instance;
+  const i18nResource = useDesktopI18nResource();
+  const i18n = i18nResource.instance;
   const authorName = props.authorName || i18n.t('Common.unknown', { defaultValue: 'Unknown' });
   const authorHandle = props.authorHandle || '';
   const SHOW_AVATAR_STATUS_INDICATOR = false;
-  const isRecent = new Date().getTime() - new Date(props.post.createdAt).getTime() < 3600000; // 1 hour
+  const isRecent = i18nResource.now() - new Date(props.post.createdAt).getTime() < 3600000; // 1 hour
   return (
     <AppCardSurface
       kind="promoted-glass"
@@ -190,7 +190,7 @@ export function PostCardArticle(props: PostCardArticleProps) {
             </span>
           ) : null}
           <span className="rounded-full bg-white/62 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400 ring-1 ring-white/70">
-            {formatLocaleDate(props.post.createdAt, { month: 'short', day: 'numeric' })}
+            {i18nResource.formatDate(props.post.createdAt, { month: 'short', day: 'numeric' })}
           </span>
         </div>
       </div>

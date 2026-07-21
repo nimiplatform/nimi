@@ -1,4 +1,4 @@
-import { realmSocialData } from '../social/data/realm-social-data';
+import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
@@ -329,6 +329,7 @@ export function HumanCanonicalProfileDrawer(props: {
   selectedChat: RealmChatViewDto | null;
   onOpenGift?: () => void;
 }) {
+  const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
   const i18n = useDesktopI18nResource();
   const authStatus = useAppStore((state) => state.auth.status);

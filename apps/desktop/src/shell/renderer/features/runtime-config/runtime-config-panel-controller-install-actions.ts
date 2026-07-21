@@ -16,7 +16,7 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import { pickLocalRuntimeAssetManifestPath } from '../../bridge/runtime-bridge/local-runtime-os-helpers';
 import { getOfflineCoordinator } from '../../infra/offline/coordinator';
-import { i18n } from '../../i18n';
+import { useTranslation } from 'react-i18next';
 import { runtimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 import { asRecord } from './runtime-config-panel-controller-utils';
@@ -29,20 +29,6 @@ type ManifestSummary = {
   id?: string;
   manifest?: Record<string, unknown>;
 };
-
-function translateRuntimeLocalText(
-  key: string,
-  defaultValue: string,
-  options?: Record<string, unknown>,
-): string {
-  if (!i18n.isInitialized) {
-    return defaultValue;
-  }
-  return i18n.t(key, {
-    defaultValue,
-    ...(options || {}),
-  });
-}
 
 export type RuntimeConfigInstallActions = {
   installSessionMeta: Map<string, { plan: NimiRuntimeLocalInstallPlanDescriptor; installSource: string }>;
@@ -100,7 +86,13 @@ export type UseRuntimeConfigInstallActionsInput = {
 };
 
 export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallActionsInput): RuntimeConfigInstallActions {
+  const { t } = useTranslation();
   const { localManifestSummaries, refreshLocalSnapshot, setStatusBanner, updateState } = input;
+  const translateRuntimeLocalText = useCallback((
+    key: string,
+    defaultValue: string,
+    options?: Record<string, unknown>,
+  ) => String(t(key, { defaultValue, ...(options || {}) })), [t]);
 
   const assertRuntimeWriteAllowed = useCallback(() => {
     if (getOfflineCoordinator().getTier() !== 'L2') {
@@ -109,14 +101,12 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     throw createOfflineError({
       source: 'runtime',
       reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
-      message: i18n.isInitialized
-        ? i18n.t('runtimeConfig.local.runtimeUnavailableWriteReadOnly', {
-          defaultValue: 'Runtime unavailable. Local model writes are disabled in read-only mode.',
-        })
-        : 'Runtime unavailable. Local model writes are disabled in read-only mode.',
+      message: t('runtimeConfig.local.runtimeUnavailableWriteReadOnly', {
+        defaultValue: 'Runtime unavailable. Local model writes are disabled in read-only mode.',
+      }),
       actionHint: 'retry-runtime-when-online',
     });
-  }, []);
+  }, [t]);
 
   const installSessionMeta = useMemo(() => {
     return new Map<string, { plan: NimiRuntimeLocalInstallPlanDescriptor; installSource: string }>();

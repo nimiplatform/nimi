@@ -3,6 +3,7 @@ import { UsageWindow } from '@nimiplatform/sdk/runtime/wire-types';
 import { useTranslation } from 'react-i18next';
 import { Surface, Tooltip, cn } from '@nimiplatform/kit/ui';
 import { Button } from './runtime-config-primitives.js';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import {
   formatTokenCount,
   formatComputeMs,
@@ -136,6 +137,7 @@ export function UsageStatsSection({
   onRefresh,
   onLoadMore,
 }: UsageStatsSectionProps) {
+  const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
 
   const successRate = computeSuccessRate(summary.totalSuccess, summary.totalRequests);
@@ -310,7 +312,7 @@ export function UsageStatsSection({
                       <td className={cn('px-4 py-2.5 font-mono', TOKEN_TEXT_SECONDARY)}>{formatComputeMs(r.queueWaitMs)}</td>
                       <td className={cn('px-4 py-2.5', TOKEN_TEXT_MUTED)}>
                         <Tooltip content={bucketTs} placement="top">
-                          <span>{bucketTs !== '-' ? relativeTimeShort(bucketTs) : '—'}</span>
+                          <span>{bucketTs !== '-' ? relativeTimeShort(bucketTs, i18n.formatRelativeTime) : '—'}</span>
                         </Tooltip>
                       </td>
                     </tr>

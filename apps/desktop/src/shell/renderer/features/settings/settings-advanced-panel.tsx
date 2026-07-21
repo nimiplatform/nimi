@@ -14,7 +14,8 @@ import {
   loadRealmWithdrawalHistory,
 } from '@nimiplatform/kit/features/commerce/realm';
 import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import { formatLocaleDateTime, formatLocaleNumber } from '../../i18n';
+import type { DesktopI18nResource } from '../../i18n/desktop-i18n.js';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { getDesktopRealmCommerceGiftService } from '../../infra/realm/realm-commerce-service';
 import { PageShell } from './settings-layout-components.js';
 import {
@@ -191,14 +192,14 @@ function parseNumber(value: unknown): number {
   return 0;
 }
 
-function formatAmount(value: unknown, digits = 2): string {
-  return formatLocaleNumber(parseNumber(value), {
+function formatAmount(value: unknown, i18n: DesktopI18nResource, digits = 2): string {
+  return i18n.formatNumber(parseNumber(value), {
     minimumFractionDigits: 0,
     maximumFractionDigits: digits,
   });
 }
 
-function formatDateTime(value: unknown): string {
+function formatDateTime(value: unknown, i18n: DesktopI18nResource): string {
   const raw = typeof value === 'string' ? value : '';
   if (!raw) {
     return '--';
@@ -207,7 +208,7 @@ function formatDateTime(value: unknown): string {
   if (Number.isNaN(date.getTime())) {
     return raw;
   }
-  return formatLocaleDateTime(date);
+  return i18n.formatDateTime(date);
 }
 
 function toTimelineItems(input: unknown): WalletTimelineItem[] {
@@ -230,6 +231,7 @@ function toTimelineItems(input: unknown): WalletTimelineItem[] {
 }
 
 export function WalletPage() {
+  const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [submittingWithdrawal, setSubmittingWithdrawal] = useState(false);
@@ -291,13 +293,13 @@ export function WalletPage() {
 
   const subscriptionPayload = parseOptionalJsonObject(subscriptionQuery.data);
   const withdrawEligibilityPayload = parseOptionalJsonObject(withdrawEligibilityQuery.data);
-  const sparkBalance = formatAmount(balancesQuery.data?.sparkBalance);
-  const gemBalance = formatAmount(balancesQuery.data?.gemBalance);
+  const sparkBalance = formatAmount(balancesQuery.data?.sparkBalance, i18n);
+  const gemBalance = formatAmount(balancesQuery.data?.gemBalance, i18n);
   const subscriptionStatus = String(subscriptionPayload?.status || 'UNKNOWN');
   const subscriptionTier = String(subscriptionPayload?.tier || 'FREE');
   const canWithdraw = withdrawEligibilityPayload?.canWithdraw === true;
   const withdrawReason = String(withdrawEligibilityPayload?.reason || '');
-  const withdrawMin = formatAmount(withdrawEligibilityPayload?.minAmount, 0);
+  const withdrawMin = formatAmount(withdrawEligibilityPayload?.minAmount, i18n, 0);
   const sparkPackages = useMemo(() => toSparkPackages(sparkPackagesQuery.data), [sparkPackagesQuery.data]);
   const defaultSparkPackage = useMemo(
     () => pickDefaultSparkPackage(sparkPackages),
@@ -324,13 +326,13 @@ export function WalletPage() {
       return {
         id: typeof record.id === 'string' ? record.id : `wd-${index}`,
         status: typeof record.status === 'string' ? record.status : 'UNKNOWN',
-        gemAmount: formatAmount(record.gemAmount),
-        netAmount: formatAmount(record.netAmount),
-        usdAmount: formatAmount(record.usdAmount),
-        createdAt: formatDateTime(record.createdAt),
+        gemAmount: formatAmount(record.gemAmount, i18n),
+        netAmount: formatAmount(record.netAmount, i18n),
+        usdAmount: formatAmount(record.usdAmount, i18n),
+        createdAt: formatDateTime(record.createdAt, i18n),
       };
     });
-  }, [withdrawalHistoryQuery.data]);
+  }, [i18n, withdrawalHistoryQuery.data]);
 
   const refreshSparkWalletSnapshot = useCallback(async () => {
     await Promise.all([
@@ -437,10 +439,10 @@ export function WalletPage() {
     || withdrawEligibilityQuery.isPending;
 
   const defaultSparkPackageLabel = defaultSparkPackage?.label || '';
-  const defaultSparkAmount = formatLocaleNumber(defaultSparkPackage?.sparkAmount || 0, {
+  const defaultSparkAmount = i18n.formatNumber(defaultSparkPackage?.sparkAmount || 0, {
     maximumFractionDigits: 0,
   });
-  const defaultSparkPrice = formatLocaleNumber(defaultSparkPackage?.usdPrice || 0, {
+  const defaultSparkPrice = i18n.formatNumber(defaultSparkPackage?.usdPrice || 0, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });

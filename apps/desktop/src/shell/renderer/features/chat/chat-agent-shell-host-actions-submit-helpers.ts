@@ -11,6 +11,7 @@ import type {
 
 export function toFallbackThreadRecord(
   thread: AgentLocalThreadSummary | AgentLocalThreadRecord,
+  nowMs: number,
 ): AgentLocalThreadRecord {
   if ('createdAtMs' in thread && typeof thread.createdAtMs === 'number') {
     return {
@@ -20,7 +21,7 @@ export function toFallbackThreadRecord(
   }
   return {
     ...thread,
-    createdAtMs: Date.now(),
+    createdAtMs: nowMs,
   };
 }
 

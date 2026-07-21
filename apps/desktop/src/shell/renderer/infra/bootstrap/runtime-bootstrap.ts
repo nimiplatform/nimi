@@ -1,4 +1,3 @@
-import { realmSocialData } from '../../features/social/data/realm-social-data';
 import { isRealmOfflineErrorLike as isRealmOfflineError } from '@nimiplatform/sdk/types';
 import { setRuntimeLogger } from '@nimiplatform/kit/telemetry';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
@@ -46,6 +45,11 @@ import {
   type DesktopRuntimeTransport,
 } from '../sdk/desktop-nimi-client-session';
 import type { DesktopRendererLifecyclePort } from '../../renderer/lifecycle-port.js';
+import {
+  countPendingSocialMutations,
+  flushPendingSocialMutations,
+} from '../../features/social/data/offline-social-outbox.js';
+import { callRealmApi, emitRealmDataError } from '../realm/realm-api.js';
 
 let bootstrapPromise: Promise<void> | null = null;
 let rebootstrapPromise: Promise<void> | null = null;
@@ -96,9 +100,9 @@ function bindOfflineCoordinator(lifecycle: DesktopRendererLifecyclePort): void {
     },
     hasPendingRealmRecoveryWork: async () => (
       await countPendingChatOutboxEntries()
-    ) > 0 || await realmSocialData.hasPendingOfflineRecoveryWork(),
+    ) > 0 || (await countPendingSocialMutations()) > 0,
     flushChatOutbox: async () => { await flushPendingChatOutbox(); },
-    flushSocialOutbox: async () => realmSocialData.flushSocialOutbox(),
+    flushSocialOutbox: async () => flushPendingSocialMutations(callRealmApi, emitRealmDataError),
     invalidateRealmQueries: async () => {
       await lifecycle.invalidateQueries([
         ['chats'],

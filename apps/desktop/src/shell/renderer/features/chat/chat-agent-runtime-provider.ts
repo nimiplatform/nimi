@@ -18,10 +18,12 @@ import { normalizeText } from './chat-agent-runtime-normalize';
 import { encodeBytesAsDataUrl } from './chat-agent-runtime-shared';
 import { toChatAgentRuntimeError } from './chat-agent-runtime';
 import { RUNTIME_AGENT_CHAT_MODE_ID } from './chat-agent-runtime-mode';
+import type { TFunction } from 'i18next';
 
 type AgentRuntimeChatProviderOptions = {
   runtimeAdapter?: AgentRuntimeChatTurnAdapter;
   streamController: StreamController;
+  t: TFunction;
 };
 
 type AgentRuntimeChatProviderMetadata = {
@@ -359,7 +361,7 @@ export function createRuntimeAgentChatConversationProvider(
           yield terminalEvent;
           return;
         }
-        const runtimeError = toChatAgentRuntimeError(error);
+        const runtimeError = toChatAgentRuntimeError(error, options.t);
         logRendererEvent({
           level: 'warn',
           area: 'agent-chat-runtime',

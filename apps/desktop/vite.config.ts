@@ -286,9 +286,6 @@ export default defineConfig(({ mode }) => {
               return 'runtime-memory-embedding-config';
             }
             if (normalizedId.includes('/apps/desktop/src/shell/renderer/features/runtime-config/')) {
-              if (normalizedId.includes('/runtime-config-navigation-events')) {
-                return 'runtime-config-overview';
-              }
               if (matchesAny(normalizedId, [
                 '/runtime-config-page-overview',
                 '/runtime-config-usage-stats-section',

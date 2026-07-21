@@ -11,7 +11,7 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { getDesktopAIConfigService } from '../../app-shell/providers/desktop-ai-config-service';
-import { dispatchRuntimeConfigOpenPage } from '../runtime-config/runtime-config-navigation-events';
+import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import {
   ensureAccountProfileLibraryLoaded,
   getCachedAccountProfileLibraryProfiles,
@@ -292,6 +292,7 @@ function AiModeSettings(props: {
   showDiagnosticsFooter?: boolean;
   superSections?: ReadonlyArray<import('@nimiplatform/kit/features/model-config').ModelConfigSuperSection>;
 }) {
+  const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const { t } = useTranslation();
   const aiConfig = useAppStore((state) => state.aiConfig);
   const projectionByCapability = useAppStore((state) => state.conversationCapabilityProjectionByCapability);
@@ -341,8 +342,8 @@ function AiModeSettings(props: {
   );
   const handleManageProfiles = useCallback(() => {
     setActiveTab('runtime');
-    setTimeout(() => dispatchRuntimeConfigOpenPage('profiles'), 100);
-  }, [setActiveTab]);
+    runtimeConfigNavigation.openPage('profiles');
+  }, [runtimeConfigNavigation, setActiveTab]);
 
   const profile = useModelConfigProfileController({
     scopeRef: aiConfig.scopeRef,

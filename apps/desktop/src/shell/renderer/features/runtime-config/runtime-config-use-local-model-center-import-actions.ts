@@ -11,7 +11,7 @@ import {
   pickLocalRuntimeAssetFile,
   pickLocalRuntimeAssetManifestPath,
 } from '../../bridge/runtime-bridge/local-runtime-os-helpers';
-import { i18n } from '../../i18n';
+import { useTranslation } from 'react-i18next';
 import { runtimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
 import {
   basenameFromRuntimePath,
@@ -40,6 +40,7 @@ export function toAssetImportUserMessage(error: unknown): string {
 }
 
 export function useLocalModelCenterImportActions(input: UseLocalModelCenterImportActionsInput) {
+  const { t } = useTranslation();
   const [variantPickerItem, setVariantPickerItem] = useState<NimiRuntimeLocalCatalogItemDescriptor | null>(null);
   const [variantList, setVariantList] = useState<NimiRuntimeLocalCatalogVariantDescriptor[]>([]);
   const [variantError, setVariantError] = useState('');
@@ -249,13 +250,13 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
       setVariantError(
         error instanceof Error
           ? error.message
-          : String(error || i18n.t('runtimeConfig.local.unknownError', {
+          : String(error || t('runtimeConfig.local.unknownError', {
             defaultValue: 'Unknown error',
           })),
       );
       setLoadingVariants(false);
     });
-  }, [closeVariantPicker, variantPickerItem?.itemId]);
+  }, [closeVariantPicker, t, variantPickerItem?.itemId]);
 
   const installCatalogVariant = useCallback(async (
     item: NimiRuntimeLocalCatalogItemDescriptor,

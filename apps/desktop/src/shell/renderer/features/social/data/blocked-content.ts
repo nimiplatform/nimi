@@ -1,16 +1,14 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
-import { getCachedContacts } from './social-snapshot';
+import type { SocialContactSnapshot } from './social-snapshot';
 
 type PostDto = RealmModel<'PostDto'>;
-
-export const BLOCKED_USERS_UPDATED_EVENT = 'nimi:blocked-users-updated';
 
 function normalizeUserId(value: unknown): string {
   return String(value || '').trim();
 }
 
-export function getBlockedUserIds(): Set<string> {
-  const blocked = getCachedContacts().blocked;
+export function getBlockedUserIds(contacts: SocialContactSnapshot): Set<string> {
+  const blocked = contacts.blocked;
   const ids = new Set<string>();
   for (const item of blocked) {
     const id = normalizeUserId(item.id);
@@ -21,9 +19,9 @@ export function getBlockedUserIds(): Set<string> {
   return ids;
 }
 
-export function isBlockedUser(userId: string): boolean {
+export function isBlockedUser(contacts: SocialContactSnapshot, userId: string): boolean {
   const normalized = normalizeUserId(userId);
-  return normalized ? getBlockedUserIds().has(normalized) : false;
+  return normalized ? getBlockedUserIds(contacts).has(normalized) : false;
 }
 
 export function getPostAuthorId(post: Partial<PostDto> | null | undefined): string {
@@ -38,13 +36,19 @@ export function getPostAuthorId(post: Partial<PostDto> | null | undefined): stri
   return normalizeUserId(post.authorId) || normalizeUserId(author?.id) || normalizeUserId(author?._id);
 }
 
-export function isPostHiddenByBlockedAuthor(post: PostDto | null | undefined): boolean {
+export function isPostHiddenByBlockedAuthor(
+  contacts: SocialContactSnapshot,
+  post: PostDto | null | undefined,
+): boolean {
   const authorId = getPostAuthorId(post);
-  return authorId ? isBlockedUser(authorId) : false;
+  return authorId ? isBlockedUser(contacts, authorId) : false;
 }
 
-export function filterBlockedPosts<T extends PostDto>(posts: T[]): T[] {
-  const blockedIds = getBlockedUserIds();
+export function filterBlockedPosts<T extends PostDto>(
+  contacts: SocialContactSnapshot,
+  posts: T[],
+): T[] {
+  const blockedIds = getBlockedUserIds(contacts);
   if (blockedIds.size === 0) {
     return posts;
   }
@@ -52,11 +56,4 @@ export function filterBlockedPosts<T extends PostDto>(posts: T[]): T[] {
     const authorId = getPostAuthorId(post);
     return !authorId || !blockedIds.has(authorId);
   });
-}
-
-export function dispatchBlockedUsersUpdated(): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  window.dispatchEvent(new CustomEvent(BLOCKED_USERS_UPDATED_EVENT));
 }

@@ -113,9 +113,9 @@ export function useAgentConversationModeHost(
   const [composerPrefillRequestId, setComposerPrefillRequestId] = useState<number | null>(null);
   const registry = useMemo(() => {
     const nextRegistry = new ConversationOrchestrationRegistry();
-    nextRegistry.register(createRuntimeAgentChatConversationProvider({ streamController }));
+    nextRegistry.register(createRuntimeAgentChatConversationProvider({ streamController, t }));
     return nextRegistry;
-  }, [streamController]);
+  }, [streamController, t]);
   const agentProvider = useMemo(
     () => {
       const provider = registry.resolve(RUNTIME_AGENT_CHAT_MODE_ID);
@@ -427,6 +427,7 @@ export function useAgentConversationModeHost(
   });
   const agentAiConfig = useAppStore((state) => state.aiConfig);
   const { handleSelectAgent, handleSubmit } = useAgentConversationHostActions({
+    now: bindings.clock.now,
     streamController,
     activeTarget,
     activeThreadId,

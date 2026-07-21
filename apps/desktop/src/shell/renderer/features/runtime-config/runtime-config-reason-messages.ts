@@ -1,5 +1,5 @@
 import { normalizeNimiRuntimeReasonCode } from '@nimiplatform/sdk/runtime';
-import { i18n } from '../../i18n';
+import type { TFunction } from 'i18next';
 import { assetUnhealthyReasonSummary } from './runtime-config-model-center-utils';
 
 // Localized, human-readable message for a runtime reason code.
@@ -13,7 +13,10 @@ import { assetUnhealthyReasonSummary } from './runtime-config-model-center-utils
 //   3. '' for an unmapped code, so the caller renders generic copy.
 //
 // The raw machine code is never returned as user-facing text.
-export function localizedAssetUnhealthyReason(reasonCode: string | undefined): string {
+export function localizedAssetUnhealthyReason(
+  reasonCode: string | undefined,
+  t: TFunction,
+): string {
   // An unmapped code has no English default; return '' so the caller renders
   // generic copy. (Short-circuiting here also avoids calling i18n.t with an
   // empty defaultValue, which i18next resolves to a humanized key, not ''.)
@@ -25,5 +28,5 @@ export function localizedAssetUnhealthyReason(reasonCode: string | undefined): s
   if (!normalized) {
     return englishDefault;
   }
-  return i18n.t(`runtimeConfig.reasonMessages.${normalized}`, { defaultValue: englishDefault });
+  return t(`runtimeConfig.reasonMessages.${normalized}`, { defaultValue: englishDefault });
 }

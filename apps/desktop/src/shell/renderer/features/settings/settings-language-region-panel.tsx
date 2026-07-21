@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  changeLocale,
-  getCurrentLocale,
   getLocaleLabel,
   SUPPORTED_LOCALES,
   type SupportedLocale,
-} from '../../i18n';
+} from '../../i18n/desktop-i18n.js';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import {
   FormFeedback,
   PageShell,
@@ -65,6 +65,7 @@ function SettingsDropdown({
   disabled?: boolean;
   icon?: ReactNode;
 }) {
+  const bindings = useDesktopRendererBindings();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -74,9 +75,8 @@ function SettingsDropdown({
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    return bindings.app.events.subscribeDocumentMouseDown(handleClickOutside);
+  }, [bindings]);
 
   const selectedLabel = options.find((item) => item.value === value)?.label || value;
 
@@ -133,8 +133,9 @@ function SettingsDropdown({
 }
 
 export function LanguageRegionPage() {
+  const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
-  const [language, setLanguage] = useState<SupportedLocale>(getCurrentLocale());
+  const [language, setLanguage] = useState<SupportedLocale>(() => i18n.getCurrentLocale());
   const [timezone, setTimezone] = useState('Asia/Shanghai');
   const [dateFormat, setDateFormat] = useState('YYYY-MM-DD');
   const [saving, setSaving] = useState(false);
@@ -165,7 +166,7 @@ export function LanguageRegionPage() {
     setLanguage(locale);
     setSaving(true);
     try {
-      await changeLocale(locale);
+      await i18n.changeLocale(locale);
       setFeedback(null);
     } catch (error) {
       setFeedback({

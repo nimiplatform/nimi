@@ -247,6 +247,7 @@ async function readConversationThreadId(input: {
 async function ensureConversationAnchorBindingUpstream(input: {
   target: AgentLocalTargetSnapshot;
   binding: AgentConversationAnchorBinding;
+  now: () => number;
 }): Promise<AgentConversationAnchorBinding | null> {
   const client = createNimiRuntimeAgentConsumeClient({
     runtime: getDesktopRuntime(),
@@ -271,7 +272,7 @@ async function ensureConversationAnchorBindingUpstream(input: {
     return persistAgentConversationAnchorBinding({
       ...input.binding,
       threadId,
-      updatedAtMs: Date.now(),
+      updatedAtMs: input.now(),
     });
   } catch (error) {
     if (!isRecoverableRuntimeAnchorError(error)) {
@@ -291,7 +292,7 @@ export async function createThreadForTarget(
   input: UseAgentConversationHostActionsInput,
   target: AgentLocalTargetSnapshot,
 ): Promise<AgentLocalThreadSummary> {
-  const timestampMs = Date.now();
+  const timestampMs = input.now();
   const thread: AgentLocalThreadRecord = {
     id: createAgentConversationCacheThreadId(target.localAgentRef),
     ownerUserId: target.ownerUserId,
@@ -326,6 +327,7 @@ export async function ensureThreadAnchorBindingForTarget(input: {
     const runtimeBinding = await ensureConversationAnchorBindingUpstream({
       target: input.target,
       binding: existingBinding,
+      now: input.input.now,
     });
     if (runtimeBinding) {
       anchorBinding = runtimeBinding;
@@ -339,7 +341,7 @@ export async function ensureThreadAnchorBindingForTarget(input: {
       localAgentRef: input.target.localAgentRef,
       conversationAnchorId,
       threadId,
-      updatedAtMs: Date.now(),
+      updatedAtMs: input.input.now(),
     });
   }
   const ensuredThread = input.thread ?? await createThreadForTarget(input.input, input.target);

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
-import { i18n } from '../../i18n';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import type { StatusBanner } from '../../app-shell/providers/store-types';
 
 type SetFeedback = (banner: StatusBanner | null) => void;
@@ -45,6 +45,7 @@ export type UsePostCardUiResult = {
 };
 
 export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
+  const i18n = useDesktopI18nResource().instance;
   const { authorId, initialLiked, setFeedback } = input;
 
   const [isLiked, setIsLiked] = useState(Boolean(initialLiked));

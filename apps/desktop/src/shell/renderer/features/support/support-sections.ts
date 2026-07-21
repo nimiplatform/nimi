@@ -31,8 +31,6 @@ export const SUPPORT_SECTION_LABEL_KEY: Record<SupportSectionId, string> = {
   recovery: 'Support.sectionRecovery',
 };
 
-const SUPPORT_SECTION_SET = new Set<SupportSectionId>(SUPPORT_SECTION_IDS);
-
 /**
  * Sub-areas that must stay reachable under a degraded / fail-closed product
  * state (`D-SUP-008`). Repair and recovery are the user's first-class recovery
@@ -44,7 +42,7 @@ export const SUPPORT_DEGRADED_REACHABLE_SECTIONS: readonly SupportSectionId[] = 
 ] as const;
 
 export function isSupportSectionId(value: unknown): value is SupportSectionId {
-  return typeof value === 'string' && SUPPORT_SECTION_SET.has(value as SupportSectionId);
+  return typeof value === 'string' && SUPPORT_SECTION_IDS.includes(value as SupportSectionId);
 }
 
 /** Resolve the persisted / requested section to a valid `D-SUP-002` sub-area. */

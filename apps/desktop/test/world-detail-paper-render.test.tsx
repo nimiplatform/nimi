@@ -850,7 +850,13 @@ test('paper world detail formats ISO world time labels before rendering', () => 
     ...world,
     currentWorldTime: isoWorldTime,
     currentTimeLabel: isoWorldTime,
-  });
+  }, (value) => new Intl.DateTimeFormat('en', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(String(value))));
 
   assert.notEqual(display, isoWorldTime);
   assert.doesNotMatch(display, /T03:32:40\.159Z/);

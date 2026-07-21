@@ -1,9 +1,8 @@
-import { realmSocialData } from '../social/data/realm-social-data';
+import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import type { NimiRealmFeedScope } from '@nimiplatform/sdk/realm';
-import { BLOCKED_USERS_UPDATED_EVENT } from '../social/data/blocked-content';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { ProfileDetailModal } from '../relationship/profile-detail-modal.js';
 import { CreatePostModal } from '../profile/create-post-modal.js';
@@ -123,6 +122,7 @@ function useHomeFeedColumns(): HomeFeedColumns {
 }
 
 export function HomeView(props: HomeViewProps) {
+  const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
   const [createPostOpen, setCreatePostOpen] = useState(false);
   const [selectedFeedProfile, setSelectedFeedProfile] = useState<PostCardAuthorProfileTarget | null>(null);
@@ -163,15 +163,11 @@ export function HomeView(props: HomeViewProps) {
   }, [props.createPostRequestKey]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return undefined;
-    }
     const handleBlockedUsersUpdated = () => {
       setRefreshKey((current) => current + 1);
     };
-    window.addEventListener(BLOCKED_USERS_UPDATED_EVENT, handleBlockedUsersUpdated);
-    return () => window.removeEventListener(BLOCKED_USERS_UPDATED_EVENT, handleBlockedUsersUpdated);
-  }, []);
+    return realmSocialData.subscribeBlockedUsers(handleBlockedUsersUpdated);
+  }, [realmSocialData]);
 
   return (
     <div

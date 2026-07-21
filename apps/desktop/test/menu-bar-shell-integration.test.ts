@@ -50,8 +50,9 @@ test('menu bar runtime navigation updates both persisted state and live runtime 
   const listenerSource = readFileSync(MENU_BAR_NAVIGATION_PATH, 'utf-8');
   const actionsSource = readFileSync(MENU_BAR_ACTIONS_PATH, 'utf-8');
   const controllerSource = readFileSync(RUNTIME_PANEL_CONTROLLER_PATH, 'utf-8');
-  assert.match(listenerSource, /dispatchRuntimeConfigOpenPage/);
-  assert.match(controllerSource, /addRuntimeConfigOpenPageListener/);
+  assert.match(listenerSource, /runtimeConfigNavigation\.openPage/);
+  assert.match(controllerSource, /runtimeConfigNavigation\.subscribe/);
+  assert.match(controllerSource, /runtimeConfigNavigation\.get/);
   assert.doesNotMatch(listenerSource, /page:\s*'local'/);
   assert.match(actionsSource, /Some\("models"\)/);
 });

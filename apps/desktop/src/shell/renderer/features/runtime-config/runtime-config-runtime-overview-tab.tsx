@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import type { NimiRuntimeRouteCapabilityCoverageProjection } from '@nimiplatform/sdk/runtime';
 import { Surface, StatusBadge as KitStatusBadge, cn } from '@nimiplatform/kit/ui';
 import { desktopBridge } from '../../bridge';
-import { formatLocaleDateTime } from '../../i18n';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { SectionTitle } from '../settings/settings-layout-components';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { Button } from './runtime-config-primitives';
@@ -33,6 +33,7 @@ export function RuntimeOverviewTab({
   availableCapabilityCount,
   onOpenHealth,
 }: RuntimeOverviewTabProps) {
+  const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
   const daemonBusy = model.runtimeDaemonBusyAction !== null;
@@ -40,7 +41,7 @@ export function RuntimeOverviewTab({
   const daemonIssue = describeRuntimeDaemonIssue({
     status: model.runtimeDaemonStatus,
     runtimeDaemonError: model.runtimeDaemonError,
-  });
+  }, t);
 
   return (
     <>
@@ -60,7 +61,7 @@ export function RuntimeOverviewTab({
                 <p className={cn('mt-1.5 text-xs', TOKEN_TEXT_MUTED)}>
                   {t('runtimeConfig.overview.lastCheck', { defaultValue: 'Last check' })}
                   {': '}
-                  {formatLocaleDateTime(model.runtimeDaemonUpdatedAt)}
+                  {i18n.formatDateTime(model.runtimeDaemonUpdatedAt)}
                 </p>
               ) : null}
             </div>

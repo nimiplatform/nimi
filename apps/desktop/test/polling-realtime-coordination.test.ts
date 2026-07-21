@@ -20,7 +20,7 @@ describe('Runtime account broker projection refresh', () => {
     assert.match(connectorSource, /queryKey: \['messages', input\.selectedChatId\]/);
     assert.match(connectorSource, /invalidateNotificationQueries\(input\.queryClient\)/);
     assert.match(connectorSource, /flushPendingChatOutbox\(\)/);
-    assert.match(connectorSource, /realmSocialData\.flushSocialOutbox\(\)/);
+    assert.match(connectorSource, /flushPendingSocialMutations\(callRealmApi, emitRealmDataError\)/);
   });
 
   test('broker refresh is serialized and runs immediately, periodically, and on visibility', () => {

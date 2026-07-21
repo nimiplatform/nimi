@@ -1,8 +1,7 @@
-import { realmSocialData } from '../social/data/realm-social-data';
+import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useTranslation } from 'react-i18next';
-import { BLOCKED_USERS_UPDATED_EVENT } from '../social/data/blocked-content';
 import { AppCardSurface, CompactAction } from '@nimiplatform/kit/ui';
 import { PostFeedWithMediaPreview } from './post-feed-with-media-preview.js';
 
@@ -42,6 +41,7 @@ function PostSkeleton() {
 }
 
 export function PostsTab({ profileId, layout = 'grid', blockedContent = false }: PostsTabProps) {
+  const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
   const [posts, setPosts] = useState<PostDto[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -128,9 +128,6 @@ export function PostsTab({ profileId, layout = 'grid', blockedContent = false }:
   }, [blockedContent, fetchPosts, profileId]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return undefined;
-    }
     const handleBlockedUsersUpdated = () => {
       setPosts([]);
       setCursor(null);
@@ -143,9 +140,8 @@ export function PostsTab({ profileId, layout = 'grid', blockedContent = false }:
       }
       void fetchPosts(null);
     };
-    window.addEventListener(BLOCKED_USERS_UPDATED_EVENT, handleBlockedUsersUpdated);
-    return () => window.removeEventListener(BLOCKED_USERS_UPDATED_EVENT, handleBlockedUsersUpdated);
-  }, [blockedContent, fetchPosts]);
+    return realmSocialData.subscribeBlockedUsers(handleBlockedUsersUpdated);
+  }, [blockedContent, fetchPosts, realmSocialData]);
 
   const cursorRef = useRef<string | null>(null);
   cursorRef.current = cursor;

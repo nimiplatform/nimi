@@ -212,14 +212,14 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
         sourceKind: character.sourceRef.kind,
         sourceId: character.sourceRef.id,
         sourceHash: character.sourceRef.sourceHash,
-      }, ownerUserId);
+      }, ownerUserId, i18n.t);
       await ensureRuntimeAgentExists(target);
       setFeedback({
         kind: 'success',
         message: `${character.name} is ready as your partner.`,
       });
     } catch (error) {
-      const message = characterSourceMaterializationFailureMessage(error);
+      const message = characterSourceMaterializationFailureMessage(error, i18n.t);
       setFeedback({ kind: 'error', message });
     }
   };

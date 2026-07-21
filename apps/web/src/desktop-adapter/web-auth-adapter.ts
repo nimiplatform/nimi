@@ -1,4 +1,4 @@
-import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
+import { productionRealmSocialData as realmSocialData } from '@renderer/features/social/data/production-realm-social-data';
 import {
   clearPersistedAccessToken,
   createRuntimeAccountBrowserBroker,

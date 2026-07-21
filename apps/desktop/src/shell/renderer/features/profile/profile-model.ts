@@ -307,15 +307,16 @@ export function toProfileData(raw: ProfileSource): ProfileData {
   };
 }
 
-import { formatLocaleDate } from '../../i18n';
-
 export function getProfileInitial(name: string): string {
   return name.charAt(0).toUpperCase();
 }
 
-export function formatProfileDate(dateStr: string): string {
+export function formatProfileDate(
+  dateStr: string,
+  formatDate: (value: unknown, options?: Intl.DateTimeFormatOptions) => string,
+): string {
   if (!dateStr) return '';
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return '';
-  return formatLocaleDate(date, { year: 'numeric', month: 'long', day: 'numeric' });
+  return formatDate(date, { year: 'numeric', month: 'long', day: 'numeric' });
 }

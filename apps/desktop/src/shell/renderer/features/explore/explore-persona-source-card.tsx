@@ -108,7 +108,7 @@ export function PersonaSourceCard({
   const isPublic = source.visibility === 'public';
   const glyph = source.name ? source.name.trim().charAt(0).toUpperCase() : '·';
   const sourceState: CharacterSourceState = source.sourceState ?? 'source_materialization_unavailable';
-  const primaryAction = describeCharacterPrimaryAction(sourceState);
+  const primaryAction = describeCharacterPrimaryAction(sourceState, i18n.t);
   const handlePrimaryActionClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     void onPrimaryAction?.();

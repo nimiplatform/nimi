@@ -256,7 +256,7 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
   const isRepairing = props.repairAssetId === props.asset.localAssetId;
   const supportsRescan = assetSupportsBundleRescan(props.asset);
   const unhealthyReasonSummary = props.asset.status === 'unhealthy'
-    ? localizedAssetUnhealthyReason(props.asset.reasonCode)
+    ? localizedAssetUnhealthyReason(props.asset.reasonCode, i18n.t)
     : '';
 
   return (
@@ -433,7 +433,7 @@ export function DependencyInstalledAssetRow(props: DependencyInstalledAssetRowPr
   const i18n = useDesktopI18nResource().instance;
   const t = i18n.t.bind(i18n);
   const unhealthyReasonSummary = props.asset.status === 'unhealthy'
-    ? localizedAssetUnhealthyReason(props.asset.reasonCode)
+    ? localizedAssetUnhealthyReason(props.asset.reasonCode, i18n.t)
     : '';
 
   return (

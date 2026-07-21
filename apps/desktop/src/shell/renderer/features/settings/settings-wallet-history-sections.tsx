@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { formatLocaleDateTime } from '../../i18n';
+import type { DesktopI18nResource } from '../../i18n/desktop-i18n.js';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { SectionTitle } from './settings-layout-components.js';
 import {
   ArrowDownIcon,
@@ -38,7 +39,7 @@ function parseWalletNumber(value: unknown): number {
   return 0;
 }
 
-function formatWalletDateTime(value: unknown): string {
+function formatWalletDateTime(value: unknown, i18n: DesktopI18nResource): string {
   const raw = typeof value === 'string' ? value : '';
   if (!raw) {
     return '--';
@@ -47,7 +48,7 @@ function formatWalletDateTime(value: unknown): string {
   if (Number.isNaN(date.getTime())) {
     return raw;
   }
-  return formatLocaleDateTime(date);
+  return i18n.formatDateTime(date);
 }
 
 export function WalletRecentTransactionsSection({
@@ -55,6 +56,7 @@ export function WalletRecentTransactionsSection({
 }: {
   timeline: WalletTimelineItem[];
 }) {
+  const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
   return (
     <section className="mt-8">
@@ -84,7 +86,7 @@ export function WalletRecentTransactionsSection({
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">{tx.description}</p>
-                      <p className="text-xs text-gray-400">{formatWalletDateTime(tx.createdAt)}</p>
+                      <p className="text-xs text-gray-400">{formatWalletDateTime(tx.createdAt, i18n)}</p>
                     </div>
                   </div>
                   <div className="text-right">

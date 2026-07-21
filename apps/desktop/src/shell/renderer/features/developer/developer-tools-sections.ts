@@ -18,11 +18,9 @@ export const DEVELOPER_TOOLS_SECTION_LABEL_KEY: Record<DeveloperToolsSectionId, 
   diagnostics: 'DeveloperTools.sectionDiagnostics',
 };
 
-const DEVELOPER_TOOLS_SECTION_SET = new Set<DeveloperToolsSectionId>(DEVELOPER_TOOLS_SECTION_IDS);
-
 export function isDeveloperToolsSectionId(value: unknown): value is DeveloperToolsSectionId {
   return typeof value === 'string'
-    && DEVELOPER_TOOLS_SECTION_SET.has(value as DeveloperToolsSectionId);
+    && DEVELOPER_TOOLS_SECTION_IDS.includes(value as DeveloperToolsSectionId);
 }
 
 /** Resolve the persisted / requested section to a valid `D-DEV-003` sub-area. */

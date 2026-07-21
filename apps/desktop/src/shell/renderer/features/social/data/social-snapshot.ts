@@ -12,14 +12,14 @@ export type RealmApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMes
 export type RealmDataErrorEmitter = NimiRealmSocialDataErrorEmitter;
 export type SocialContactSnapshot = NimiRealmSocialContactSnapshot;
 
-let cachedContacts: SocialContactSnapshot = {
-  friends: [],
-  pendingReceived: [],
-  pendingSent: [],
-  blocked: [],
-};
-
-const inflightSnapshots = new Map<string, Promise<SocialContactSnapshot>>();
+function emptySocialContactSnapshot(): SocialContactSnapshot {
+  return {
+    friends: [],
+    pendingReceived: [],
+    pendingSent: [],
+    blocked: [],
+  };
+}
 
 function mergeWithLocalContacts(snapshot: SocialContactSnapshot): SocialContactSnapshot {
   return snapshot;
@@ -42,33 +42,48 @@ export function fetchPendingFriendRequests(
   );
 }
 
-export async function loadMergedSocialSnapshot(
-  callApi: RealmApiCaller,
-  emitRealmDataError: RealmDataErrorEmitter,
-): Promise<SocialContactSnapshot> {
-  const key = 'social';
-  const existing = inflightSnapshots.get(key);
-  if (existing) return existing;
+export type SocialSnapshotStore = {
+  load(
+    callApi: RealmApiCaller,
+    emitRealmDataError: RealmDataErrorEmitter,
+  ): Promise<SocialContactSnapshot>;
+  get(): SocialContactSnapshot;
+  update(snapshot: SocialContactSnapshot): void;
+  reset(): void;
+};
 
-  const task = callApi(
-    (realm) => loadNimiRealmSocialSnapshot(realm, emitRealmDataError),
-    'Failed to load Realm social snapshot',
-  )
-    .then((snapshot) => {
-      const merged = mergeWithLocalContacts(snapshot);
-      cachedContacts = { ...merged };
-      return merged;
-    })
-    .finally(() => {
-      inflightSnapshots.delete(key);
-    });
+export function createSocialSnapshotStore(): SocialSnapshotStore {
+  let cachedContacts = emptySocialContactSnapshot();
+  let inflightSnapshot: Promise<SocialContactSnapshot> | null = null;
 
-  inflightSnapshots.set(key, task);
-  return task;
-}
-
-export function getCachedContacts(): SocialContactSnapshot {
-  return cachedContacts;
+  return Object.freeze({
+    load(callApi, emitRealmDataError) {
+      if (inflightSnapshot) return inflightSnapshot;
+      inflightSnapshot = callApi(
+        (realm) => loadNimiRealmSocialSnapshot(realm, emitRealmDataError),
+        'Failed to load Realm social snapshot',
+      )
+        .then((snapshot) => {
+          const merged = mergeWithLocalContacts(snapshot);
+          cachedContacts = { ...merged };
+          return merged;
+        })
+        .finally(() => {
+          inflightSnapshot = null;
+        });
+      return inflightSnapshot;
+    },
+    get() {
+      return cachedContacts;
+    },
+    update(snapshot) {
+      cachedContacts = { ...snapshot };
+    },
+    reset() {
+      cachedContacts = emptySocialContactSnapshot();
+      inflightSnapshot = null;
+    },
+  });
 }
 
 export function isPendingSentRequestInContacts(
@@ -77,10 +92,6 @@ export function isPendingSentRequestInContacts(
 ): boolean {
   if (!contacts?.pendingSent?.length) return false;
   return contacts.pendingSent.some((req) => req.userId === userId);
-}
-
-export function updateCachedContacts(snapshot: SocialContactSnapshot) {
-  cachedContacts = { ...snapshot };
 }
 
 export function isFriendInContacts(

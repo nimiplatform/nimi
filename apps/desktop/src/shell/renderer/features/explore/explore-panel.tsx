@@ -182,7 +182,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
 
   const onPersonaSourceManage = useCallback(async (source: ExplorePersonaSourceCardData) => {
     try {
-      const target = await materializeSourceContactLaunchTarget(source, ownerUserId);
+      const target = await materializeSourceContactLaunchTarget(source, ownerUserId, i18n.t);
       await ensureRuntimeAgentExists(target);
       await queryClient.invalidateQueries({ queryKey: ['explore-personas-local-agents'], exact: false });
       await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });
@@ -208,7 +208,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: characterSourceMaterializationFailureMessage(error),
+        message: characterSourceMaterializationFailureMessage(error, i18n.t),
       });
     }
   }, [
@@ -271,7 +271,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
         sourceKind: character.sourceRef.kind,
         sourceId: character.sourceRef.id,
         sourceHash: character.sourceRef.sourceHash,
-      }, ownerUserId);
+      }, ownerUserId, i18n.t);
       await ensureRuntimeAgentExists(target);
       await queryClient.invalidateQueries({
         queryKey: worldPrimaryDisplayDetailQueryKey(character.sourceRef.worldId),
@@ -288,7 +288,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: characterSourceMaterializationFailureMessage(error),
+        message: characterSourceMaterializationFailureMessage(error, i18n.t),
       });
     }
   }, [ownerUserId, queryClient]);

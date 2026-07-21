@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test, { describe } from 'node:test';
+import type { TFunction } from 'i18next';
 
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
@@ -23,6 +24,9 @@ const TEST_REASON_TIMEOUT = 'TIMEOUT';
 const TEST_REASON_OK = 'OK';
 const TEST_REASON_A_ERROR = 'A_ERROR';
 const TEST_REASON_B_ERROR = 'B_ERROR';
+const testTranslate = ((_: string, options?: { defaultValue?: string }) => (
+  options?.defaultValue ?? ''
+)) as TFunction;
 
 function makeEvent(overrides: Partial<AuditEvent> = {}): AuditEvent {
   return {
@@ -335,14 +339,14 @@ describe('summarizeAuditReasons', () => {
 
 describe('buildAuditDiagnosticsText', () => {
   test('empty audits → message', () => {
-    assert.equal(buildAuditDiagnosticsText([]), 'No audit events.');
+    assert.equal(buildAuditDiagnosticsText([], testTranslate), 'No audit events.');
   });
 
   test('produces pipe-separated lines', () => {
     const events: AuditEvent[] = [
       makeEvent({ source: 'local-runtime', modality: 'chat', modelId: 'gpt-4' }),
     ];
-    const text = buildAuditDiagnosticsText(events);
+    const text = buildAuditDiagnosticsText(events, testTranslate);
     assert.ok(text.includes(' | '));
     assert.ok(text.includes('inference_invoked'));
     assert.ok(text.includes('source=local'));
@@ -352,7 +356,7 @@ describe('buildAuditDiagnosticsText', () => {
 
   test('multiple events → multiple lines', () => {
     const events: AuditEvent[] = [makeEvent({ id: '1' }), makeEvent({ id: '2' })];
-    const lines = buildAuditDiagnosticsText(events).split('\n');
+    const lines = buildAuditDiagnosticsText(events, testTranslate).split('\n');
     assert.equal(lines.length, 2);
   });
 });

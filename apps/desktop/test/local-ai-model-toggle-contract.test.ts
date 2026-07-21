@@ -149,7 +149,8 @@ test('local model center hides removed tombstones from installed sections and re
 
 test('local model center consumes SDK local runtime asset-kind DX helpers', () => {
   assert.match(localModelCenterSectionsSource, /formatAssetKindLabel/);
-  assert.match(localModelCenterUseHelpersSource, /NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS/);
+  assert.match(localModelCenterUseHelpersSource, /isNimiRuntimeLocalRunnableAssetKindId/);
+  assert.doesNotMatch(localModelCenterUseHelpersSource, /new Set/);
   assert.match(localModelCenterUseHelpersSource, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(localModelCenterUseHelpersSource, /canImportNimiRuntimeLocalAssetDeclaration/);
   assert.match(localModelCenterUseHelpersSource, /normalizeNimiRuntimeLocalAssetDeclaration/);

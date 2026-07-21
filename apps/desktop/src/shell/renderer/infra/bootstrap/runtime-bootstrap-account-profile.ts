@@ -1,4 +1,4 @@
-import { realmSocialData } from '../../features/social/data/realm-social-data';
+import { productionRealmSocialData as realmSocialData } from '../../features/social/data/production-realm-social-data.js';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import type { DesktopRendererLifecyclePort } from '../../renderer/lifecycle-port.js';
 

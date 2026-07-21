@@ -130,7 +130,7 @@ export function SourceDetailPanel() {
 
   const resolveSourceContactTarget = async () => {
     if (!source) {
-      throw new Error(characterSourceMaterializationMessage());
+      throw new Error(characterSourceMaterializationMessage(i18n.t));
     }
 
     const existingAgent = sourceRuntimeLocalAgents.length === 1 ? sourceRuntimeLocalAgents[0] : null;
@@ -140,7 +140,7 @@ export function SourceDetailPanel() {
         runtimeSourceRef: existingAgent.runtimeSourceRef,
         localAgentRef: existingAgent.localAgentRef,
       }, ownerUserId)
-      : await materializeSourceContactLaunchTarget(source, ownerUserId);
+      : await materializeSourceContactLaunchTarget(source, ownerUserId, i18n.t);
 
     if (!existingAgent) {
       await ensureRuntimeAgentExists(target);
@@ -162,7 +162,7 @@ export function SourceDetailPanel() {
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: characterSourceMaterializationFailureMessage(error),
+        message: characterSourceMaterializationFailureMessage(error, i18n.t),
       });
     }
   };
@@ -184,7 +184,7 @@ export function SourceDetailPanel() {
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: characterSourceMaterializationFailureMessage(error),
+        message: characterSourceMaterializationFailureMessage(error, i18n.t),
       });
     }
   };

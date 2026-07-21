@@ -101,10 +101,3 @@ export const CORE_DATA_API_CAPABILITIES = {
   agentMemoryE2EList: 'data-api.core.agent.memory.e2e.list',
   agentMemoryStatsGet: 'data-api.core.agent.memory.stats.get',
 } as const;
-
-export const CORE_WORLD_DATA_CAPABILITY_SET = new Set<string>(
-  [
-    ...Object.values(WORLD_DATA_API_CAPABILITIES),
-    ...Object.values(CORE_DATA_API_CAPABILITIES),
-  ],
-);

@@ -1,14 +1,11 @@
 import type { NimiRuntimeLocalAssetDeclaration, NimiRuntimeLocalAssetKind } from '@nimiplatform/sdk/runtime';
 import {
-  NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS,
   canImportNimiRuntimeLocalAssetDeclaration,
   isNimiRuntimeLocalRunnableAssetKindId,
   nimiRuntimeLocalCapabilitiesForAssetKind,
   normalizeNimiRuntimeLocalAssetDeclaration,
   normalizeNimiRuntimeLocalDependencyAssetDeclaration,
 } from '@nimiplatform/sdk/runtime';
-
-export const RUNNABLE_ASSET_KINDS = new Set(NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS);
 
 export function isRunnableAssetKind(kind: NimiRuntimeLocalAssetKind): boolean {
   return isNimiRuntimeLocalRunnableAssetKindId(kind);

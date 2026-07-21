@@ -11,6 +11,7 @@ import {
   materializeCharacterSourceLocalAgent,
   resolveCharacterSourceRefV3,
 } from '../explore/character-source-materialization';
+import type { TFunction } from 'i18next';
 
 type SourceContactLaunchSource = {
   id: string;
@@ -52,6 +53,7 @@ function normalizeOwnershipType(value: unknown): AgentLocalTargetSnapshot['owner
 async function discoverSourceContactLaunchTarget(
   source: SourceContactLaunchSource,
   ownerUserId: string,
+  t: TFunction,
 ): Promise<AgentLocalTargetSnapshot | null> {
   const sourceRef = resolveCharacterSourceRefV3(source);
   const runtimeSourceRef = normalizeNimiRuntimeAgentText(source.runtimeSourceRef);
@@ -64,7 +66,7 @@ async function discoverSourceContactLaunchTarget(
     sourceRef,
   }, ownerUserId);
   if (existing.length > 1) {
-    throw new Error(characterSourceAmbiguousMessage());
+    throw new Error(characterSourceAmbiguousMessage(t));
   }
   const first = existing[0];
   if (!first) {
@@ -123,13 +125,14 @@ export function toSourceContactLaunchTarget(
 export async function materializeSourceContactLaunchTarget(
   source: SourceContactLaunchSource,
   ownerUserIdInput: string | null | undefined,
+  t: TFunction,
 ): Promise<AgentLocalTargetSnapshot> {
   const ownerUserId = normalizeRequiredText(ownerUserIdInput, 'ownerUserId');
-  const discovered = await discoverSourceContactLaunchTarget(source, ownerUserId);
+  const discovered = await discoverSourceContactLaunchTarget(source, ownerUserId, t);
   if (discovered) {
     return discovered;
   }
-  const materialized = await materializeCharacterSourceLocalAgent(source);
+  const materialized = await materializeCharacterSourceLocalAgent(source, t);
   const discoveredAfterCommit = await discoverCharacterSourceLocalAgents(source, ownerUserId);
   const materializedAgent = discoveredAfterCommit.find(
     (agent) => agent.localAgentRef === materialized.localAgentRef,

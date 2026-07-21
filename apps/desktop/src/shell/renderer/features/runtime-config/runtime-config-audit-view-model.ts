@@ -1,6 +1,6 @@
-import { i18n } from '../../i18n';
 import type { LocalAuditEvent } from '@nimiplatform/sdk/runtime/wire-types';
 import { nimiRuntimeProtoStructToJson } from '@nimiplatform/sdk/runtime';
+import type { TFunction } from 'i18next';
 
 export type RuntimeConfigAuditEvent = Omit<Partial<LocalAuditEvent>, 'payload'> & {
   id: string;
@@ -51,20 +51,6 @@ function toIsoTimestampMs(value: string): number | null {
   const parsed = new Date(normalized);
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed.getTime();
-}
-
-function translateAuditText(
-  key: string,
-  defaultValue: string,
-  options?: Record<string, unknown>,
-): string {
-  if (!i18n.isInitialized) {
-    return defaultValue;
-  }
-  return i18n.t(key, {
-    defaultValue,
-    ...(options || {}),
-  });
 }
 
 export function resolveAuditSource(event: RuntimeConfigAuditEvent): string {
@@ -205,9 +191,12 @@ export function summarizeAuditModalities(audits: RuntimeConfigAuditEvent[]): Arr
     .sort((left, right) => right.count - left.count || left.modality.localeCompare(right.modality));
 }
 
-export function buildAuditDiagnosticsText(audits: RuntimeConfigAuditEvent[]): string {
+export function buildAuditDiagnosticsText(
+  audits: RuntimeConfigAuditEvent[],
+  t: TFunction,
+): string {
   if (audits.length === 0) {
-    return translateAuditText('runtimeConfig.runtime.noAuditEventsSimple', 'No audit events.');
+    return t('runtimeConfig.runtime.noAuditEventsSimple', { defaultValue: 'No audit events.' });
   }
   return audits.map((event) => {
     return [

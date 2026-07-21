@@ -4,6 +4,7 @@ import { Tooltip } from '@nimiplatform/kit/ui';
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import type { ProfileData } from '../profile/profile-model';
 import { formatProfileDate } from '../profile/profile-model';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
 
 export type ChatProfileCardProps = {
@@ -21,6 +22,7 @@ export function ChatProfileCard({
   viewFullProfileLabel,
   onOpenGift,
 }: ChatProfileCardProps) {
+  const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
   const friendCount = profileData.stats?.friendsCount ?? 0;
   const postCount = profileData.stats?.postsCount ?? 0;
@@ -33,7 +35,7 @@ export function ChatProfileCard({
     aboutRows.push({
       key: 'joined',
       icon: <CalendarIcon className="h-3.5 w-3.5" />,
-      label: `Joined ${formatProfileDate(profileData.createdAt)}`,
+      label: `Joined ${formatProfileDate(profileData.createdAt, i18n.formatDate)}`,
     });
   }
 

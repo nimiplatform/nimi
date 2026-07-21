@@ -132,8 +132,12 @@ export function PostCard(input: PostCardProps) {
     [post, postVisibility, realmBaseUrl],
   );
   const { authorProfileSeed, displayAuthor, isSourceAuthored } = useMemo(
-    () => buildPostCardAuthorProjection({ authorId: ownerAuthorId, post }),
-    [ownerAuthorId, post],
+    () => buildPostCardAuthorProjection({
+      authorId: ownerAuthorId,
+      post,
+      unknownDisplayName: String(i18n.t('Common.unknown', { defaultValue: 'Unknown' })),
+    }),
+    [i18n, ownerAuthorId, post],
   );
   const humanActionAuthorId = isSourceAuthored ? '' : ownerAuthorId;
   const displayProfileId = displayAuthor?.id ?? ownerAuthorId;

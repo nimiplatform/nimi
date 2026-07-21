@@ -197,7 +197,7 @@ export function useAgentConversationVoiceSession(
           setVoiceSessionState(resolveIdleAgentVoiceSessionShellState('hands-free'));
           return;
         }
-        const runtimeError = toChatAgentRuntimeError(error);
+        const runtimeError = toChatAgentRuntimeError(error, input.t);
         input.reportHostError(new Error(runtimeError.message, { cause: error }));
         setVoiceSessionState({
           status: 'failed',
@@ -405,7 +405,7 @@ export function useAgentConversationVoiceSession(
             setVoiceSessionState(resolveIdleAgentVoiceSessionShellState(activeMode));
             return;
           }
-          const runtimeError = toChatAgentRuntimeError(error);
+          const runtimeError = toChatAgentRuntimeError(error, input.t);
           input.reportHostError(new Error(runtimeError.message, { cause: error }));
           setVoiceSessionState({
             status: 'failed',

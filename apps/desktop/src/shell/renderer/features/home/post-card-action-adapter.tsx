@@ -1,4 +1,4 @@
-import { realmSocialData } from '../social/data/realm-social-data';
+import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '../../app-shell/providers/app-store';
@@ -17,6 +17,7 @@ function createOpenChatError(message: string): Error {
 }
 
 export function usePostCardActionAdapter(): PostCardActionAdapter {
+  const realmSocialData = useRealmSocialData();
   const i18n = useDesktopI18nResource().instance;
   const openChatError = i18n.t('Relationship.openChatFailed', {
     defaultValue: 'Failed to open chat',

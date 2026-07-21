@@ -1,4 +1,5 @@
-import { realmSocialData } from '../social/data/realm-social-data';
+import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
+import type { RealmSocialData } from '../social/data/realm-social-data.js';
 import { useMemo } from 'react';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -33,9 +34,10 @@ import {
   compareGroupChatsByRecency,
   toGroupTargetSummary,
   type GroupChatViewDto,
+  type GroupChatCopy,
 } from './chat-group-thread-model';
 
-type SocialSnapshot = Awaited<ReturnType<typeof realmSocialData.loadSocialSnapshot>>;
+type SocialSnapshot = Awaited<ReturnType<RealmSocialData['loadSocialSnapshot']>>;
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -272,7 +274,13 @@ export function toAgentTargetSnapshotFromSummary(
 export function useChatTargetsForSidebar(
   authStatus: AuthStatus,
 ): readonly ConversationTargetSummary[] {
+  const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
+  const groupChatCopy = useMemo<GroupChatCopy>(() => ({
+    group: t('Chat.group', { defaultValue: 'Group' }),
+    noMessages: t('Chat.noMessages', { defaultValue: 'No messages yet' }),
+    members: t('Chat.groupMembers', { defaultValue: 'members' }),
+  }), [t]);
   const ownerUserId = useAppStore((state) => normalizeText(state.auth.user?.id));
 
   const humanChatsQuery = useQuery({
@@ -355,8 +363,10 @@ export function useChatTargetsForSidebar(
 
   const groupTargets = useMemo(() => {
     const items = ((groupChatsQuery.data as { items?: GroupChatViewDto[] } | undefined)?.items || []) as GroupChatViewDto[];
-    return [...items].sort(compareGroupChatsByRecency).map(toGroupTargetSummary);
-  }, [groupChatsQuery.data]);
+    return [...items]
+      .sort(compareGroupChatsByRecency)
+      .map((group) => toGroupTargetSummary(group, groupChatCopy));
+  }, [groupChatCopy, groupChatsQuery.data]);
 
   const aiTarget = useMemo((): ConversationTargetSummary => ({
     id: 'ai:assistant',
