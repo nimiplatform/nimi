@@ -5,6 +5,7 @@ import { assertSimulatorStaticEffects } from './simulator-static-effects.mjs';
 import { SimulatorConformanceError } from './simulator-manifest.mjs';
 
 const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs', '.css'];
+const STATIC_ASSET_EXTENSIONS = new Set(['.png']);
 const FORBIDDEN_IMPORT_PATTERNS = [
   ['SIM_IMPORT_RUNTIME_PRIVATE', /(?:^|\/)runtime\/internal(?:\/|$)/],
   ['SIM_IMPORT_DESKTOP_PRIVATE', /(?:^|\/)apps\/desktop(?:\/|$)/],
@@ -649,6 +650,13 @@ export function buildModuleGraph(rootDir, entryPaths) {
       continue;
     }
     const relativePath = canonicalRelative(rootDir, absolutePath);
+    if (STATIC_ASSET_EXTENSIONS.has(path.extname(absolutePath).toLowerCase())) {
+      nodes.set(absolutePath, { type: 'asset', imports: [] });
+      continue;
+    }
+    if (!SOURCE_EXTENSIONS.includes(path.extname(absolutePath).toLowerCase())) {
+      fail('SIM_IMPORT_ASSET_TYPE', 'imported static asset type is not admitted', relativePath);
+    }
     const source = parseSourceFile(absolutePath);
     const localImports = [];
     const specifiers = importSpecifiers(source, relativePath);
@@ -684,6 +692,7 @@ export function assertRestrictedClosure(rootDir, graph, entries) {
     const node = graph.nodes.get(current);
     if (!node) continue;
     const relativePath = canonicalRelative(rootDir, current);
+    if (node.type === 'asset') continue;
     if (node.type === 'css') {
       fail('SIM_CSS_OUTSIDE_CANONICAL_STYLE', 'restricted module closure cannot import CSS outside the canonical style identity', relativePath);
     }

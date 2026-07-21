@@ -112,6 +112,30 @@ export type HiddenType = typeof value;
   assert.equal(result.report.checks.imports.evidence.includes('src/simulator/type-only-effect.ts'), false);
 }));
 
+test('canonical closure admits source-bound PNG imports without parsing binary bytes as code', () => withFixture((root) => {
+  const assetPath = path.join(root, 'src', 'renderer', 'logo.png');
+  writeFileSync(assetPath, Buffer.from('89504e470d0a1a0a', 'hex'));
+  const factoryPath = path.join(root, 'src', 'renderer', 'factory.ts');
+  writeFileSync(
+    factoryPath,
+    `import logo from './logo.png';\n${readFileSync(factoryPath, 'utf8')}\nexport const logoAsset = logo;\n`,
+  );
+  const result = validateSimulatorAppSource(root);
+  assert.equal(result.report.result, 'pass');
+  assert.equal(result.report.checks.imports.evidence.includes('src/renderer/logo.png'), true);
+  assert.equal(result.source.evidence.some((entry) => entry.path === 'src/renderer/logo.png'), true);
+}));
+
+test('canonical closure rejects static asset types outside the admitted set', () => withFixture((root) => {
+  writeFileSync(path.join(root, 'src', 'renderer', 'logo.svg'), '<svg/>');
+  const factoryPath = path.join(root, 'src', 'renderer', 'factory.ts');
+  writeFileSync(factoryPath, `import './logo.svg';\n${readFileSync(factoryPath, 'utf8')}`);
+  assert.throws(
+    () => validateSimulatorAppSource(root),
+    (error) => error?.code === 'SIM_IMPORT_ASSET_TYPE',
+  );
+}));
+
 test('root-scoped local classes and exact CSS @scope are admitted', () => withFixture((root) => {
   writeFileSync(path.join(root, 'src', 'renderer', 'styles.css'), `
 .nimi-ui-module--sample-app .panel { display: block; }
