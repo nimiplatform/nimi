@@ -7,11 +7,11 @@ import {
   isRealmOfflineErrorLike as isRealmOfflineError,
   type JsonObject,
 } from '@nimiplatform/sdk/types';
-import { getOfflineOutboxManager } from '@renderer/infra/offline/outbox-manager';
+import { getOfflineOutboxManager } from '../../../infra/offline/outbox-manager';
 import type {
   PersistentSocialMutationEntry,
   SocialMutationKind,
-} from '@renderer/infra/offline/types';
+} from '../../../infra/offline/types';
 import type { RealmApiCaller, RealmDataErrorEmitter } from './social-snapshot';
 
 function createId(prefix: string): string {

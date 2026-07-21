@@ -19,7 +19,7 @@ test('W2 shell redesign: shared status shell adopts AmbientBackground and compac
   assert.match(runtimeLoadingSource, /import \{ AmbientBackground, ProgressIndicator \} from '@nimiplatform\/kit\/ui';/);
   assert.match(appRoutesSource, /<AmbientBackground[\s\S]*variant="mesh"/);
   assert.match(appRoutesSource, /<Surface[\s\S]*material="glass-regular"/);
-  assert.match(runtimeLoadingSource, /<ProgressIndicator[\s\S]*value=\{clamped\}/);
+  assert.match(runtimeLoadingSource, /<ProgressIndicator[\s\S]*value=\{BOOT_PROGRESS_FLOOR_PERCENT\}/);
   assert.doesNotMatch(appRoutesSource, /function SharedScreenBackdrop/u);
 });
 

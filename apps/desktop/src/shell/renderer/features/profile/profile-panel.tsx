@@ -1,4 +1,4 @@
-import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
+import { realmSocialData } from '../social/data/realm-social-data';
 import { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
@@ -7,15 +7,15 @@ import {
   getCachedContacts,
   isPendingSentRequestInContacts,
   type SocialContactSnapshot,
-} from '@renderer/features/social/data/social-snapshot';
-import { i18n } from '@renderer/i18n';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { ProfileDetailView, type EditableProfileDraft } from '@renderer/features/relationship/profile-detail-view.js';
+} from '../social/data/social-snapshot';
+import { i18n } from '../../i18n';
+import { useAppStore } from '../../app-shell/providers/app-store';
+import { ProfileDetailView, type EditableProfileDraft } from '../relationship/profile-detail-view.js';
 import {
   ProfileDetailErrorState,
   ProfileDetailLoadingState,
-} from '@renderer/features/relationship/profile-detail-view-content-shell.js';
-import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
+} from '../relationship/profile-detail-view-content-shell.js';
+import { SendGiftModal } from '../economy/send-gift-modal';
 import {
   characterSourceMaterializationFailureMessage,
   characterSourceMaterializationMessage,
@@ -23,19 +23,19 @@ import {
   describeCharacterPrimaryAction,
   discoverCharacterSourceLocalAgents,
   resolveCharacterSourceState,
-} from '@renderer/features/explore/character-source-materialization';
-import { materializeSourceContactLaunchTarget } from '@renderer/features/relationship/source-contact-launch-target.js';
-import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
-import { launchAgentConversationFromDisplay } from '@renderer/features/chat/agent-conversation-launcher.js';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+} from '../explore/character-source-materialization';
+import { materializeSourceContactLaunchTarget } from '../relationship/source-contact-launch-target.js';
+import { ensureRuntimeAgentExists } from '../chat/chat-agent-shell-host-actions-helpers';
+import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
+import { E2E_IDS } from '../../testability/e2e-ids';
 import { toProfileData, type ProfileSource } from './profile-model.js';
-import { toFriendContact, type ContactRecord } from '@renderer/features/relationship/relationship-model';
-import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { toFriendContact, type ContactRecord } from '../relationship/relationship-model';
+import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   loadChatList,
   startChatWithTarget,
-} from '@renderer/features/chat/data/realm-human-chat-data';
+} from '../chat/data/realm-human-chat-data';
 
 function toErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {

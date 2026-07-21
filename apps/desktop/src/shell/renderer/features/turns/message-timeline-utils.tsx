@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { resolveRealmChatMediaUrl } from '@nimiplatform/kit/features/chat/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
-import { formatLocaleDate, i18n } from '@renderer/i18n';
+import { formatLocaleDate, i18n } from '../../i18n';
 
 type MessageViewDto = RealmModel<'MessageViewDto'>;
 

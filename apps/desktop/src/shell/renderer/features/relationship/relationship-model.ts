@@ -2,7 +2,7 @@ import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shel
 import {
   resolveCharacterSourceRefV3,
   type CharacterSourceRefV3,
-} from '@renderer/features/realm-source/realm-source-identity.js';
+} from '../realm-source/realm-source-identity.js';
 
 export type ContactRecord = {
   id: string;

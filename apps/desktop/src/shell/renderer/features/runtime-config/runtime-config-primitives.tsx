@@ -1,6 +1,6 @@
 import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { motion } from 'motion/react';
-import { i18n } from '@renderer/i18n';
+import { i18n } from '../../i18n';
 
 import {
   AppCardSurface,
@@ -16,11 +16,11 @@ import {
 import {
   statusTextV11,
   type ProviderStatusV11,
-} from '@renderer/features/runtime-config/runtime-config-state-types';
+} from './runtime-config-state-types';
 import {
   useDesktopCardMotion,
   useDesktopInteractiveMotion,
-} from '@renderer/ui/motion/desktop-motion';
+} from '../../ui/motion/desktop-motion';
 
 export function Card({
   children,

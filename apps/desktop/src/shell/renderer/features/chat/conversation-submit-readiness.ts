@@ -5,7 +5,7 @@ import {
   isNimiRuntimeRouteCapabilityProjectionSelectionRequired,
 } from '@nimiplatform/sdk/runtime';
 import { createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
-import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
+import { productionAppStore } from '../../app-shell/providers/production-app-store';
 import type {
   AgentEffectiveCapabilityResolution,
   ConversationCapability,

@@ -1,8 +1,8 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
-import type { CharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
+import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import type { SourceDetailEntity } from '@renderer/features/source-detail/source-detail-model.js';
-import { resolveCharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
+import type { SourceDetailEntity } from '../source-detail/source-detail-model.js';
+import { resolveCharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 
 export type ProfileTab = 'Posts' | 'Collections' | 'Likes' | 'Gifts' | 'FollowedWorlds';
 
@@ -307,7 +307,7 @@ export function toProfileData(raw: ProfileSource): ProfileData {
   };
 }
 
-import { formatLocaleDate } from '@renderer/i18n';
+import { formatLocaleDate } from '../../i18n';
 
 export function getProfileInitial(name: string): string {
   return name.charAt(0).toUpperCase();

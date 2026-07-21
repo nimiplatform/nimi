@@ -1,10 +1,10 @@
 import { Component, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useState, type ErrorInfo, type ReactNode } from 'react';
 import type { ConversationSetupAction } from '@nimiplatform/kit/features/chat/headless';
 import { useNavigate } from 'react-router-dom';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { dispatchRuntimeConfigOpenPage } from '@renderer/features/runtime-config/runtime-config-navigation-events';
+import { useAppStore } from '../../app-shell/providers/app-store';
+import { dispatchRuntimeConfigOpenPage } from '../runtime-config/runtime-config-navigation-events';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { E2E_IDS } from '../../testability/e2e-ids';
 import { ChatRelationshipRail } from './chat-relationship-rail';
 import {
   toAgentTargetSnapshotFromSummary,

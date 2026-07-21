@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea, Surface, Tooltip, cn } from '@nimiplatform/kit/ui';
-import { formatLocaleDateTime, formatRelativeLocaleTime } from '@renderer/i18n';
+import { formatLocaleDateTime, formatRelativeLocaleTime } from '../../i18n';
 import { buildAuditDiagnosticsText } from './runtime-config-audit-view-model.js';
 import { Button } from './runtime-config-primitives.js';
 import { useAuditPageData } from './runtime-config-use-audit-page-data.js';

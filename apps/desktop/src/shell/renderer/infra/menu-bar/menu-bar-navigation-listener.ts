@@ -1,16 +1,17 @@
 import { useEffect } from 'react';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { hasTauriRuntime, listenTauri } from '@nimiplatform/kit/shell/renderer/bridge';
-import { useAppStoreApi } from '@renderer/app-shell/providers/app-store';
+import { useAppStoreApi } from '../../app-shell/providers/app-store';
 import {
   loadRuntimeConfigStateV11,
   persistRuntimeConfigStateV11,
-} from '@renderer/features/runtime-config/runtime-config-storage-persist';
+} from '../../features/runtime-config/runtime-config-storage-persist';
 import {
   normalizePageIdV11,
   type RuntimePageIdV11,
-} from '@renderer/features/runtime-config/runtime-config-state-types';
-import { dispatchRuntimeConfigOpenPage } from '@renderer/features/runtime-config/runtime-config-navigation-events';
+} from '../../features/runtime-config/runtime-config-state-types';
+import { dispatchRuntimeConfigOpenPage } from '../../features/runtime-config/runtime-config-navigation-events';
+import type { DesktopRendererLifecyclePort } from '../../renderer/lifecycle-port';
 
 type MenuBarOpenTabEvent =
   | { tab?: 'runtime'; page?: RuntimePageIdV11 }
@@ -45,51 +46,55 @@ function asOpenTabPayload(value: unknown): MenuBarOpenTabEvent {
   return {};
 }
 
-export function useMenuBarNavigationListener(): void {
+type MenuBarNavigationPort = Pick<DesktopRendererLifecyclePort, 'setActiveTab'>;
+
+export function connectMenuBarNavigation(port: MenuBarNavigationPort): () => void {
   const flags = getShellFeatureFlags();
-  const store = useAppStoreApi();
+  if (!flags.enableMenuBarShell) {
+    return () => {};
+  }
+  const listen = resolveTauriEventListen();
+  if (!listen) {
+    return () => {};
+  }
 
-  useEffect(() => {
-    if (!flags.enableMenuBarShell) {
+  let active = true;
+  const unsubscribePromise = Promise.resolve(listen('menu-bar://open-tab', (event) => {
+    if (!active) {
       return;
     }
-    const listen = resolveTauriEventListen();
-    if (!listen) {
+    const payload = asOpenTabPayload(event.payload);
+
+    if (payload.tab === 'settings') {
+      port.setActiveTab('settings');
       return;
     }
 
-    let mounted = true;
-    const unsubscribePromise = Promise.resolve(listen('menu-bar://open-tab', (event) => {
-      if (!mounted) {
-        return;
-      }
-      const payload = asOpenTabPayload(event.payload);
-      const appState = store.getState();
-
-      if (payload.tab === 'settings') {
-        appState.setActiveTab('settings');
-        return;
-      }
-
-      if (payload.tab === 'runtime') {
-        const nextPage = payload.page || 'overview';
-        const state = loadRuntimeConfigStateV11();
-        persistRuntimeConfigStateV11({
-          ...state,
-          activePage: nextPage,
-        });
-        dispatchRuntimeConfigOpenPage(nextPage);
-        appState.setActiveTab('runtime');
-      }
-    }));
-
-    return () => {
-      mounted = false;
-      void unsubscribePromise.then((unsubscribe) => {
-        if (typeof unsubscribe === 'function') {
-          unsubscribe();
-        }
+    if (payload.tab === 'runtime') {
+      const nextPage = payload.page || 'overview';
+      const state = loadRuntimeConfigStateV11();
+      persistRuntimeConfigStateV11({
+        ...state,
+        activePage: nextPage,
       });
-    };
-  }, [flags.enableMenuBarShell, store]);
+      dispatchRuntimeConfigOpenPage(nextPage);
+      port.setActiveTab('runtime');
+    }
+  }));
+
+  return () => {
+    active = false;
+    void unsubscribePromise.then((unsubscribe) => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    });
+  };
+}
+
+export function useMenuBarNavigationListener(): void {
+  const store = useAppStoreApi();
+  useEffect(() => connectMenuBarNavigation({
+    setActiveTab: (tab) => store.getState().setActiveTab(tab),
+  }), [store]);
 }

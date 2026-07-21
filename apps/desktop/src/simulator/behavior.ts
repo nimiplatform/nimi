@@ -30,7 +30,7 @@ export const desktopSimulatorBehavior = Object.freeze({
     if (locale !== 'en' && locale !== 'zh') {
       throw new Error('DESKTOP_SIMULATOR_LOCALE_INVALID');
     }
-    return { protocolRevision: 1, locale, appliedAt: null };
+    return { protocolRevision: 1, locale, appliedAt: null, bootstrapReady: true };
   },
   reduce(
     currentValue: DesktopSimulatorJsonValue,

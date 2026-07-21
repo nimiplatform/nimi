@@ -7,6 +7,11 @@ import type {
 
 import type { AppAttentionState } from '../app-shell/providers/app-attention-state.js';
 import type { ChatThinkingPreference } from '../features/chat/chat-shared-thinking.js';
+import type { DesktopRendererLifecyclePort } from './lifecycle-port.js';
+import type {
+  LocalDevelopmentApproval,
+  LocalDevelopmentDecision,
+} from '../features/local-development/local-development-types.js';
 
 export type DesktopRendererInitialState = {
   readonly aiConfig: NimiAIConfig;
@@ -19,6 +24,7 @@ export type DesktopRendererInitialState = {
 export interface DesktopRendererProjectionPort {
   initialState(): DesktopRendererInitialState;
   attention(): AppAttentionState;
+  localDevelopmentAvailable(): boolean;
 }
 
 export interface DesktopRendererCommandPort {
@@ -30,10 +36,27 @@ export interface DesktopRendererCommandPort {
     readonly lang: string;
     readonly title: string;
   }): Promise<void> | void;
+  checkDesktopUpdate(input?: {
+    readonly autoDownload?: boolean;
+    readonly silent?: boolean;
+  }): Promise<void>;
+  installDesktopUpdate(input?: { readonly silent?: boolean }): Promise<void>;
+  restartDesktopUpdate(): Promise<void>;
+  startWindowDrag(): Promise<void>;
+  listLocalDevelopmentApprovals(): Promise<readonly LocalDevelopmentApproval[]>;
+  decideLocalDevelopmentApproval(input: {
+    readonly requestId: string;
+    readonly decision: LocalDevelopmentDecision;
+    readonly riskDisclosureAcknowledged: boolean;
+  }): Promise<void>;
 }
 
 export interface DesktopRendererEventPort {
   subscribeAttention(listener: () => void): () => void;
+  subscribeLocalDevelopmentApprovals(
+    listener: (approval: LocalDevelopmentApproval) => void,
+  ): Promise<() => void>;
+  connectLifecycle(lifecycle: DesktopRendererLifecyclePort): () => void;
 }
 
 export type DesktopRendererRouteView = {

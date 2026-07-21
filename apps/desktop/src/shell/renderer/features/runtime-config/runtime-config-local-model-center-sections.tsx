@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import { i18n } from '@renderer/i18n';
+import { i18n } from '../../i18n';
 import type {
   NimiRuntimeLocalAssetDeclaration,
   NimiRuntimeLocalAssetKind,

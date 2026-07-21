@@ -1,8 +1,7 @@
-import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
-import { desktopBridge, type DesktopAccountSessionEvent, type DesktopAccountSessionStatus } from '@renderer/bridge';
-import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
-import { productionQueryClient } from '@renderer/infra/query-client/production-query-client';
+import { desktopBridge, type DesktopAccountSessionEvent, type DesktopAccountSessionStatus } from '../../bridge';
+import { getOfflineCoordinator } from '../offline/coordinator';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
+import type { DesktopRendererLifecyclePort } from '../../renderer/lifecycle-port.js';
 import {
   advanceRuntimeAccountStreamCursor,
   createRuntimeAccountStreamCursor,
@@ -19,9 +18,13 @@ let watcherRunning = false;
 
 export function applyRuntimeAccountStatusProjection(
   status: DesktopAccountSessionStatus | DesktopAccountSessionEvent,
+  lifecycle: Pick<
+    DesktopRendererLifecyclePort,
+    'applyRuntimeAccountProjection' | 'auth' | 'cancelAndClearQueries'
+  >,
 ): void {
-  const current = productionAppStore.getState().auth;
-  productionAppStore.getState().applyRuntimeAccountProjection(
+  const current = lifecycle.auth();
+  lifecycle.applyRuntimeAccountProjection(
     projectRuntimeAccountAuthState(status, current.user),
   );
 
@@ -32,16 +35,15 @@ export function applyRuntimeAccountStatusProjection(
   }
 
   if (runtimeAccountClearsAccountMemory(status.state)) {
-    void productionQueryClient.cancelQueries();
-    productionQueryClient.clear();
+    void lifecycle.cancelAndClearQueries();
   }
 }
 
-export function startAuthStateWatcher(): void {
+export function startAuthStateWatcher(lifecycle: DesktopRendererLifecyclePort): void {
   if (watcherRunning) return;
   watcherRunning = true;
   const runGeneration = ++generation;
-  void resyncAndSubscribe(runGeneration);
+  void resyncAndSubscribe(runGeneration, lifecycle);
 }
 
 export function stopAuthStateWatcher(): void {
@@ -56,21 +58,24 @@ export function stopAuthStateWatcher(): void {
   retryAttempt = 0;
 }
 
-async function resyncAndSubscribe(runGeneration: number): Promise<void> {
+async function resyncAndSubscribe(
+  runGeneration: number,
+  lifecycle: DesktopRendererLifecyclePort,
+): Promise<void> {
   unsubscribe?.();
   unsubscribe = null;
   try {
     const status = await desktopBridge.getRuntimeAccountSessionStatus();
     if (runGeneration !== generation) return;
     getOfflineCoordinator().markRuntimeReachability('reachable');
-    applyRuntimeAccountStatusProjection(status);
-    await openSubscription(runGeneration, status.sequence);
+    applyRuntimeAccountStatusProjection(status, lifecycle);
+    await openSubscription(runGeneration, status.sequence, lifecycle);
     if (runGeneration === generation && unsubscribe) {
       retryAttempt = 0;
     }
   } catch (error) {
     if (runGeneration !== generation) return;
-    applyRuntimeAccountUnavailableProjection();
+    applyRuntimeAccountUnavailableProjection(lifecycle);
     getOfflineCoordinator().markRuntimeReachability('unreachable');
     logRendererEvent({
       level: 'warn',
@@ -78,11 +83,15 @@ async function resyncAndSubscribe(runGeneration: number): Promise<void> {
       message: 'phase:runtime-account-status:unavailable',
       details: { error: error instanceof Error ? error.message : String(error) },
     });
-    scheduleRetry(runGeneration);
+    scheduleRetry(runGeneration, lifecycle);
   }
 }
 
-async function openSubscription(runGeneration: number, afterSequence: string): Promise<void> {
+async function openSubscription(
+  runGeneration: number,
+  afterSequence: string,
+  lifecycle: DesktopRendererLifecyclePort,
+): Promise<void> {
   let cursor = createRuntimeAccountStreamCursor(afterSequence);
   let resyncRequested = false;
   const requestResync = (reason: string) => {
@@ -99,8 +108,8 @@ async function openSubscription(runGeneration: number, afterSequence: string): P
     // A missing or malformed stream segment means the renderer can no longer
     // prove which account owns cached product data. Hide the last projection
     // and clear account-scoped queries before asking Runtime for fresh truth.
-    applyRuntimeAccountUnavailableProjection();
-    scheduleRetry(runGeneration);
+    applyRuntimeAccountUnavailableProjection(lifecycle);
+    scheduleRetry(runGeneration, lifecycle);
   };
 
   const nextUnsubscribe = await desktopBridge.subscribeRuntimeAccountSessionEvents(afterSequence, {
@@ -112,7 +121,7 @@ async function openSubscription(runGeneration: number, afterSequence: string): P
         return;
       }
       cursor = advance.cursor;
-      applyRuntimeAccountStatusProjection(event);
+      applyRuntimeAccountStatusProjection(event, lifecycle);
     },
     onError: (error) => {
       logRendererEvent({
@@ -138,26 +147,30 @@ async function openSubscription(runGeneration: number, afterSequence: string): P
   });
 }
 
-export function applyRuntimeAccountUnavailableProjection(): void {
-  const current = productionAppStore.getState().auth;
-  productionAppStore.getState().applyRuntimeAccountProjection({
+export function applyRuntimeAccountUnavailableProjection(
+  lifecycle: DesktopRendererLifecyclePort,
+): void {
+  const current = lifecycle.auth();
+  lifecycle.applyRuntimeAccountProjection({
     status: 'unavailable',
     sequence: current.sequence,
     reasonCode: current.reasonCode,
     accountReasonCode: current.accountReasonCode,
     user: null,
   });
-  void productionQueryClient.cancelQueries();
-  productionQueryClient.clear();
+  void lifecycle.cancelAndClearQueries();
   getOfflineCoordinator().markRealmRestReachability('unknown');
 }
 
-function scheduleRetry(runGeneration: number): void {
+function scheduleRetry(
+  runGeneration: number,
+  lifecycle: DesktopRendererLifecyclePort,
+): void {
   if (retryTimer || runGeneration !== generation) return;
   const delayMs = Math.min(1_000 * (2 ** retryAttempt), 30_000);
   retryAttempt += 1;
   retryTimer = setTimeout(() => {
     retryTimer = null;
-    void resyncAndSubscribe(runGeneration);
+    void resyncAndSubscribe(runGeneration, lifecycle);
   }, delayMs);
 }

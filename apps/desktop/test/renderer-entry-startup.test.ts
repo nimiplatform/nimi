@@ -21,7 +21,9 @@ test('renderer entry never mounts the root with a null Suspense fallback', () =>
   assert.match(source, /DEFAULT_DEV_RENDERER_ENTRY_IMPORT_RETRY_DELAYS_MS/);
   assert.match(source, /describeRendererEntryFailureReason/);
   assert.match(source, /entry:renderer-app/);
-  assert.match(source, /entry:app-routes/);
+  assert.match(source, /entry:canonical-renderer-factory/);
+  assert.match(source, /entry:production-renderer-host/);
+  assert.match(source, /entry:production-renderer-bindings/);
   assert.match(source, /entry:sdk-ai/);
   assert.match(source, /renderer-app-import-failed/);
   assert.match(source, /renderer-entry-boundary-caught/);

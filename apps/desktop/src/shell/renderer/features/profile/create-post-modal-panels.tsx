@@ -1,7 +1,7 @@
 import { OverlayShell, ScrollArea } from '@nimiplatform/kit/ui';
 import type { Location } from './create-post-modal-helpers.js';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import { i18n } from '@renderer/i18n';
+import { E2E_IDS } from '../../testability/e2e-ids';
+import { i18n } from '../../i18n';
 
 export function EmojiPickerPanel(input: {
   show: boolean;

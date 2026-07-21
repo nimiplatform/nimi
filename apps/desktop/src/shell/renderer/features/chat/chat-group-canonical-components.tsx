@@ -5,7 +5,7 @@ import type {
   CanonicalStagePanelProps,
   ConversationCanonicalMessage,
 } from '@nimiplatform/kit/features/chat';
-import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { EntityAvatar } from '../../components/entity-avatar.js';
 
 function resolveSenderName(message: ConversationCanonicalMessage): string {
   return String(message.senderName || '').trim() || (message.senderKind === 'source' ? 'Source' : 'User');

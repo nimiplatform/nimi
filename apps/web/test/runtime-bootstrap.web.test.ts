@@ -30,8 +30,11 @@ test('runtime-bootstrap.web withTimeout resolves and times out deterministically
 
 test('runtime-bootstrap.web exports rebootstrapRuntime for desktop renderer parity', () => {
   assert.equal(typeof rebootstrapRuntime, 'function');
-  assert.match(runtimeBootstrapWebSource, /export function rebootstrapRuntime\(\): Promise<void>/);
-  assert.match(runtimeBootstrapWebSource, /bootstrapPromise = null;\s*return bootstrapRuntime\(\);/);
+  assert.match(
+    runtimeBootstrapWebSource,
+    /export function rebootstrapRuntime\(lifecycle\?: DesktopRendererLifecyclePort\): Promise<void>/,
+  );
+  assert.match(runtimeBootstrapWebSource, /bootstrapPromise = null;\s*return bootstrapRuntime\(lifecycle\);/);
 });
 
 test('runtime-bootstrap.web defers chat and contact hydration until UI demand', () => {

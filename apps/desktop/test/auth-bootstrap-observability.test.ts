@@ -76,7 +76,7 @@ test('desktop bootstrap projects protected account unavailability independently 
     runtimeAccountStatusIndex < firstRuntimeUnavailableBranch,
     'exact native account status must be read before generic Runtime unavailable handling',
   );
-  assert.match(runtimeBootstrapSource, /applyRuntimeAccountUnavailableProjection\(\);/);
+  assert.match(runtimeBootstrapSource, /applyRuntimeAccountUnavailableProjection\(lifecycle\);/);
   assert.doesNotMatch(runtimeBootstrapSource, /if \(!runtimeUnavailable\) \{\s*throw error;/);
   assert.match(runtimeBootstrapSource, /phase:protected-account-status:unavailable/);
   assert.doesNotMatch(runtimeBootstrapSource, /getAccessToken|refreshAccountSession|accessTokenProvider:/);

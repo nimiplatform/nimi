@@ -1,11 +1,11 @@
 import { type Realm } from '@nimiplatform/sdk/realm';
 import { type JsonObject } from '@nimiplatform/sdk/types';
-import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { getDesktopRealm } from '../../../infra/sdk/desktop-nimi-client-session';
 import {
   characterSourceRefKey,
   readCharacterSourceRefV3,
   type CharacterSourceRefV3,
-} from '@renderer/features/realm-source/realm-source-identity.js';
+} from '../../realm-source/realm-source-identity.js';
 
 function toNonEmptyString(value: unknown): string {
   return String(value || '').trim();

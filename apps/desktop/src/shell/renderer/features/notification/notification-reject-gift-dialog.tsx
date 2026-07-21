@@ -1,5 +1,5 @@
 import { Button, OverlayShell } from '@nimiplatform/kit/ui';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { E2E_IDS } from '../../testability/e2e-ids';
 
 type RejectGiftDialogProps = {
   actorName: string;

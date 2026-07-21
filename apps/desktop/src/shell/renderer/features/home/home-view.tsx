@@ -1,11 +1,11 @@
-import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
+import { realmSocialData } from '../social/data/realm-social-data';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import type { NimiRealmFeedScope } from '@nimiplatform/sdk/realm';
-import { BLOCKED_USERS_UPDATED_EVENT } from '@renderer/features/social/data/blocked-content';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import { ProfileDetailModal } from '@renderer/features/relationship/profile-detail-modal.js';
+import { BLOCKED_USERS_UPDATED_EVENT } from '../social/data/blocked-content';
+import { E2E_IDS } from '../../testability/e2e-ids';
+import { ProfileDetailModal } from '../relationship/profile-detail-modal.js';
 import { CreatePostModal } from '../profile/create-post-modal.js';
 import { PostCard, type PostCardAuthorProfileTarget } from './post-card';
 import { usePostCardActionAdapter } from './post-card-action-adapter';

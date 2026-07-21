@@ -1,13 +1,11 @@
-import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
+import { realmSocialData } from '../../features/social/data/realm-social-data';
 import { isRealmOfflineErrorLike as isRealmOfflineError } from '@nimiplatform/sdk/types';
 import { setRuntimeLogger } from '@nimiplatform/kit/telemetry';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
-import { desktopBridge, toRendererLogMessage } from '@renderer/bridge';
-import { productionQueryClient } from '@renderer/infra/query-client/production-query-client';
+import { desktopBridge, toRendererLogMessage } from '../../bridge';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
-import { initializeBuiltInChatScopesFromProductControl } from '@renderer/app-shell/providers/desktop-ai-config-service';
-import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
+import { initializeBuiltInChatScopesFromProductControl } from '../../app-shell/providers/desktop-ai-config-service';
+import { getOfflineCoordinator } from '../offline/coordinator';
 import {
   DEFAULT_NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
   checkRuntimeDaemonVersion,
@@ -24,8 +22,8 @@ import {
   stopAuthStateWatcher,
 } from './auth-state-watcher';
 import { registerExitHandler } from './exit-handler';
-import { getDesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/macos-smoke';
-import { pingDesktopMacosSmoke } from '@renderer/bridge/runtime-bridge/macos-smoke';
+import { getDesktopMacosSmokeContext } from '../../bridge/runtime-bridge/macos-smoke';
+import { pingDesktopMacosSmoke } from '../../bridge/runtime-bridge/macos-smoke';
 import { hydrateDesktopAccountProfile } from './runtime-bootstrap-account-profile';
 import { DESKTOP_VERSION_FALLBACK } from './desktop-version';
 import {
@@ -35,7 +33,7 @@ import {
 import {
   countPendingChatOutboxEntries,
   flushPendingChatOutbox,
-} from '@renderer/features/chat/data/realm-human-chat-data';
+} from '../../features/chat/data/realm-human-chat-data';
 import {
   runtimeDaemonUnavailable,
   syncDesktopRuntimeBootstrapConfig,
@@ -46,7 +44,8 @@ import {
   getDesktopRealm,
   isDesktopNimiClientSessionReady,
   type DesktopRuntimeTransport,
-} from '@renderer/infra/sdk/desktop-nimi-client-session';
+} from '../sdk/desktop-nimi-client-session';
+import type { DesktopRendererLifecyclePort } from '../../renderer/lifecycle-port.js';
 
 let bootstrapPromise: Promise<void> | null = null;
 let rebootstrapPromise: Promise<void> | null = null;
@@ -57,21 +56,21 @@ let unsubscribeRealmConnectivityEvents: (() => void) | null = null;
 function suspendRuntimeCallbacksForL2(): void {
 }
 
-function bindOfflineCoordinator(): void {
+function bindOfflineCoordinator(lifecycle: DesktopRendererLifecyclePort): void {
   if (offlineCoordinatorBindingsReady) {
     return;
   }
   offlineCoordinatorBindingsReady = true;
   const coordinator = getOfflineCoordinator();
   const setOfflineTier = (tier: ReturnType<typeof coordinator.getTier>) => {
-    productionAppStore.getState().setOfflineTier(tier);
+    lifecycle.setOfflineTier(tier);
   };
   attachOfflineCoordinatorBindings({
     coordinator,
     setOfflineTier,
     suspendRuntimeCallbacksForL2,
     probeRealmReachability: async () => {
-      const authStatus = productionAppStore.getState().auth.status;
+      const authStatus = lifecycle.auth().status;
       if (authStatus !== 'authenticated' || !isDesktopNimiClientSessionReady()) {
         return false;
       }
@@ -101,17 +100,17 @@ function bindOfflineCoordinator(): void {
     flushChatOutbox: async () => { await flushPendingChatOutbox(); },
     flushSocialOutbox: async () => realmSocialData.flushSocialOutbox(),
     invalidateRealmQueries: async () => {
-      await Promise.all([
-        productionQueryClient.invalidateQueries({ queryKey: ['chats'] }),
-        productionQueryClient.invalidateQueries({ queryKey: ['contacts'] }),
-        productionQueryClient.invalidateQueries({ queryKey: ['topbar-currency-balances'] }),
-        productionQueryClient.invalidateQueries({ queryKey: ['topbar-notification-unread-count'] }),
-        productionQueryClient.invalidateQueries({ queryKey: ['notification-unread-count'] }),
-        productionQueryClient.invalidateQueries({ queryKey: ['notification-page'] }),
+      await lifecycle.invalidateQueries([
+        ['chats'],
+        ['contacts'],
+        ['topbar-currency-balances'],
+        ['topbar-notification-unread-count'],
+        ['notification-unread-count'],
+        ['notification-page'],
       ]);
     },
     rebootstrapRuntime: async () => {
-      await rebootstrapRuntime();
+      await rebootstrapRuntime(lifecycle);
     },
   });
 }
@@ -130,7 +129,7 @@ function resolveDesktopRuntimeTransport(): DesktopRuntimeTransport {
   throw new Error('Desktop Runtime transport requires a standard shell host invoke.');
 }
 
-export function rebootstrapRuntime(): Promise<void> {
+export function rebootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise<void> {
   pendingRebootstrap = true;
   if (rebootstrapPromise) {
     return rebootstrapPromise;
@@ -148,7 +147,7 @@ export function rebootstrapRuntime(): Promise<void> {
       }
       await teardownBootstrapState();
       bootstrapPromise = null;
-      await startBootstrapRuntime();
+      await startBootstrapRuntime(lifecycle);
     }
   })().finally(() => {
     rebootstrapPromise = null;
@@ -162,6 +161,16 @@ async function teardownBootstrapState(): Promise<void> {
   unsubscribeRealmConnectivityEvents = null;
   clearDesktopConversationCapabilityRouteRuntime();
   clearDesktopNimiClientSession();
+}
+
+export async function disposeRuntimeBootstrap(): Promise<void> {
+  pendingRebootstrap = false;
+  const activeBootstrap = bootstrapPromise;
+  if (activeBootstrap) {
+    await activeBootstrap.catch(() => undefined);
+  }
+  await teardownBootstrapState();
+  bootstrapPromise = null;
 }
 
 async function initializeBuiltInChatScopesAfterReadyAdmission(flowId: string): Promise<void> {
@@ -181,15 +190,15 @@ async function initializeBuiltInChatScopesAfterReadyAdmission(flowId: string): P
   await initializeBuiltInChatScopesFromProductControl();
 }
 
-export function bootstrapRuntime(): Promise<void> {
-  bindOfflineCoordinator();
+export function bootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise<void> {
+  bindOfflineCoordinator(lifecycle);
   if (rebootstrapPromise) {
     return rebootstrapPromise;
   }
-  return startBootstrapRuntime();
+  return startBootstrapRuntime(lifecycle);
 }
 
-function startBootstrapRuntime(): Promise<void> {
+function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise<void> {
   if (bootstrapPromise) {
     return bootstrapPromise;
   }
@@ -200,9 +209,8 @@ function startBootstrapRuntime(): Promise<void> {
     const flags = getShellFeatureFlags();
     const macosSmokeContext = await getDesktopMacosSmokeContext();
     const skipHeavyBootstrapForMacosSmoke = Boolean(macosSmokeContext.disableRuntimeBootstrap);
-    const appStore = productionAppStore.getState();
-    appStore.setAuthBootstrapping();
-    appStore.setBootstrapReady(false);
+    lifecycle.setAuthBootstrapping();
+    lifecycle.setBootstrapReady(false);
 
     setRuntimeLogger((payload) => {
       desktopBridge.logRendererEvent({
@@ -228,12 +236,12 @@ function startBootstrapRuntime(): Promise<void> {
     if (desktopBridge.hasTauriInvoke()) {
       try {
         releaseInfo = await desktopBridge.getDesktopReleaseInfo();
-        productionAppStore.getState().setDesktopReleaseInfo(releaseInfo);
-        productionAppStore.getState().setDesktopReleaseError(null);
+        lifecycle.setDesktopReleaseInfo(releaseInfo);
+        lifecycle.setDesktopReleaseError(null);
       } catch (error) {
         const message = safeBootstrapErrorMessage(error);
-        productionAppStore.getState().setDesktopReleaseInfo(null);
-        productionAppStore.getState().setDesktopReleaseError(message);
+        lifecycle.setDesktopReleaseInfo(null);
+        lifecycle.setDesktopReleaseError(message);
         logRendererEvent({
           level: 'warn',
           area: 'renderer-bootstrap',
@@ -247,7 +255,7 @@ function startBootstrapRuntime(): Promise<void> {
       skipHeavyBootstrapForMacosSmoke,
     }).catch(() => {});
     const defaults = await desktopBridge.getRuntimeDefaults();
-    productionAppStore.getState().setRuntimeDefaults(defaults);
+    lifecycle.setRuntimeDefaults(defaults);
     let daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
     let runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
     if (desktopBridge.hasTauriInvoke() && runtimeUnavailable) {
@@ -369,9 +377,9 @@ function startBootstrapRuntime(): Promise<void> {
     }
     const accountProjection = accountStatus?.accountProjection;
     if (accountStatus) {
-      applyRuntimeAccountStatusProjection(accountStatus);
+      applyRuntimeAccountStatusProjection(accountStatus, lifecycle);
     } else {
-      applyRuntimeAccountUnavailableProjection();
+      applyRuntimeAccountUnavailableProjection(lifecycle);
     }
 
     if (runtimeUnavailable) {
@@ -407,6 +415,7 @@ function startBootstrapRuntime(): Promise<void> {
           hydrateDesktopAccountProfile({
             accountProjection,
             flowId,
+            lifecycle,
           }),
           DEFAULT_NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
         ).catch((error) => {
@@ -443,7 +452,7 @@ function startBootstrapRuntime(): Promise<void> {
       skipHeavyBootstrapForMacosSmoke,
     }).catch(() => {});
 
-    startAuthStateWatcher();
+    startAuthStateWatcher(lifecycle);
 
     if (!flags.enableRuntimeBootstrap || macosSmokeContext.disableRuntimeBootstrap) {
       if (macosSmokeContext.disableRuntimeBootstrap) {
@@ -475,14 +484,14 @@ function startBootstrapRuntime(): Promise<void> {
       });
     }
     if (bootstrapRuntimeConfigWarning) {
-      productionAppStore.getState().setStatusBanner({
+      lifecycle.setStatusBanner({
         kind: 'warning',
         message: bootstrapRuntimeConfigWarning,
       });
     }
 
-    productionAppStore.getState().setBootstrapReady(true);
-    productionAppStore.getState().setBootstrapError(null);
+    lifecycle.setBootstrapReady(true);
+    lifecycle.setBootstrapError(null);
     void pingDesktopMacosSmoke('bootstrap-ready', {
       scenarioId: macosSmokeContext.scenarioId || null,
       skipHeavyBootstrapForMacosSmoke,
@@ -510,9 +519,9 @@ function startBootstrapRuntime(): Promise<void> {
       );
     }
     const message = safeBootstrapErrorMessage(failure);
-    productionAppStore.getState().setBootstrapError(message);
-    productionAppStore.getState().setBootstrapReady(false);
-    applyRuntimeAccountUnavailableProjection();
+    lifecycle.setBootstrapError(message);
+    lifecycle.setBootstrapReady(false);
+    applyRuntimeAccountUnavailableProjection(lifecycle);
     logRendererEvent({
       level: 'error',
       area: 'renderer-bootstrap',

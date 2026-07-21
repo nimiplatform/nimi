@@ -1,9 +1,9 @@
 import type { ReactNode, RefObject } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
-import { formatLocaleDate, i18n } from '@renderer/i18n';
+import { formatLocaleDate, i18n } from '../../i18n';
 import { AppCardSurface } from '@nimiplatform/kit/ui';
-import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { EntityAvatar } from '../../components/entity-avatar.js';
+import { E2E_IDS } from '../../testability/e2e-ids';
 import { ChatIcon, GiftIcon, HeartIcon } from './icons';
 import { CloudflareVideoPlayer, NativeVideoPlayer } from './video-players';
 import type { MediaDisplayKind, VideoPlaybackSource } from './utils';

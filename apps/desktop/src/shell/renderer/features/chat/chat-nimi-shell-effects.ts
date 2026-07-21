@@ -3,7 +3,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import type {
   ChatAiThreadBundle,
   ChatAiThreadSummary,
-} from '@renderer/bridge/runtime-bridge/types';
+} from '../../bridge/runtime-bridge/types';
 import type { NimiConversationSelection } from './chat-shell-types';
 import { bundleQueryKey, THREADS_QUERY_KEY } from './chat-nimi-shell-core';
 

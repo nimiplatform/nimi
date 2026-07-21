@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
-import { desktopBridge, type NimiProductControlRecordProjection } from '@renderer/bridge';
+import { desktopBridge, type NimiProductControlRecordProjection } from '../../bridge';
 import { ProductControlWorkflow } from '../../first-run/product-control-workflow.js';
 
 /**

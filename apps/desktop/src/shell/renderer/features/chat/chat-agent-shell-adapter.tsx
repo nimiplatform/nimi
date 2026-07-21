@@ -14,9 +14,9 @@ import {
   ConversationOrchestrationRegistry,
 } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
-import { useAppStore, type AuthStatus } from '@renderer/app-shell/providers/app-store';
-import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
-import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
+import { useAppStore, type AuthStatus } from '../../app-shell/providers/app-store';
+import { productionAppStore } from '../../app-shell/providers/production-app-store';
+import type { RuntimeFieldMap } from '../../app-shell/providers/store-types';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import {
   type AgentTurnLifecycleState,
@@ -117,7 +117,11 @@ export function useAgentConversationModeHost(
     return nextRegistry;
   }, []);
   const agentProvider = useMemo(
-    () => registry.require(RUNTIME_AGENT_CHAT_MODE_ID),
+    () => {
+      const provider = registry.resolve(RUNTIME_AGENT_CHAT_MODE_ID);
+      if (!provider) throw new Error('RUNTIME_AGENT_CONVERSATION_PROVIDER_MISSING');
+      return provider;
+    },
     [registry],
   );
   const {

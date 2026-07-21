@@ -1,5 +1,5 @@
-import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
-import type { ProfileData } from '@renderer/features/profile/profile-model';
+import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
+import type { ProfileData } from '../profile/profile-model';
 import type { ContactRecord } from './relationship-model';
 import {
   isRuntimeLocalAgentRef,
@@ -10,7 +10,7 @@ import {
   discoverCharacterSourceLocalAgents,
   materializeCharacterSourceLocalAgent,
   resolveCharacterSourceRefV3,
-} from '@renderer/features/explore/character-source-materialization';
+} from '../explore/character-source-materialization';
 
 type SourceContactLaunchSource = {
   id: string;

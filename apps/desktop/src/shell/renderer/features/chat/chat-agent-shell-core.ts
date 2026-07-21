@@ -3,7 +3,7 @@ import type {
 } from '@nimiplatform/kit/features/chat/headless';
 import type {
   AgentLocalThreadSummary,
-} from '@renderer/bridge/runtime-bridge/types';
+} from '../../bridge/runtime-bridge/types';
 import { toConversationMessageViewModel } from './chat-agent-thread-model';
 
 export function bundleQueryKey(threadId: string): readonly ['chat-agent-thread-bundle', string] {

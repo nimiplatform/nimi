@@ -106,6 +106,7 @@ test('app shell kit compositions are registered with their direct kit imports', 
 });
 
 test('desktop renderer stylesheet does not redefine shared .nimi authorities', () => {
-  assert.doesNotMatch(desktopStylesSource, /(^|\n)\s*\.nimi-[^\n]*\{/u);
-  assert.doesNotMatch(desktopStylesSource, /--nimi-[a-z0-9-]+\s*:/u);
+  assert.match(desktopStylesSource, /^@scope \(\.nimi-ui-module--desktop\) \{/u);
+  assert.doesNotMatch(desktopStylesSource, /(^|\n)\s*\.nimi-(?!ui-module--desktop\b)[^\n]*\{/u);
+  assert.doesNotMatch(desktopStylesSource, /--nimi-(?!ui-module-desktop-)[a-z0-9-]+\s*:/u);
 });

@@ -22,7 +22,7 @@ test('Desktop Simulator behavior commits locale changes with the State Engine cl
   );
 
   assert.deepEqual(reduced, {
-    state: { protocolRevision: 1, locale: 'zh', appliedAt: 42 },
+    state: { protocolRevision: 1, locale: 'zh', appliedAt: 42, bootstrapReady: true },
     events: [],
   });
 });
@@ -61,6 +61,7 @@ test('Desktop Simulator projection preserves deterministic route structure', () 
     protocolRevision: 1,
     locale: 'en',
     appliedAt: null,
+    bootstrapReady: true,
     surfaceId: 'main',
     route: {
       pathname: '/login',

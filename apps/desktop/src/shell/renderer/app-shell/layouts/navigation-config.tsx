@@ -2,8 +2,8 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@nimiplatform/kit/ui';
 import { motion } from 'motion/react';
-import type { AppTab } from '@renderer/app-shell/providers/app-store';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import type { AppTab } from '../providers/app-store';
+import { E2E_IDS } from '../../testability/e2e-ids';
 import {
   SHELL_CHROME_INTERACTIVE_RADIUS_CLASS,
   SHELL_CHROME_TOOLTIP_CLASS,
@@ -12,7 +12,7 @@ import {
   desktopActiveIndicatorTransition,
   useDesktopInteractiveMotion,
   useDesktopReducedMotion,
-} from '@renderer/ui/motion/desktop-motion';
+} from '../../ui/motion/desktop-motion';
 
 export type NavItem = { id: AppTab | string; label: string; icon: ReactNode };
 

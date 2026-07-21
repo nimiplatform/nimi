@@ -3,7 +3,7 @@ import {
   type ConversationSetupAction,
   type ConversationTargetSummary,
 } from '@nimiplatform/kit/features/chat/headless';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { useAppStore } from '../../app-shell/providers/app-store';
 import { useHumanConversationModeHost } from './chat-human-adapter';
 import { ChatCanonicalModeFrame } from './chat-canonical-mode-frame';
 

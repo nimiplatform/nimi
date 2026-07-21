@@ -1,29 +1,29 @@
-import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
+import { realmSocialData } from '../social/data/realm-social-data';
 import { useCallback, useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DialogDescription, DialogTitle, OverlayShell } from '@nimiplatform/kit/ui';
-import { realmSourceDetailData } from '@renderer/features/source-detail/data/realm-source-detail-data';
+import { realmSourceDetailData } from '../source-detail/data/realm-source-detail-data';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { SendGiftModal } from '@renderer/features/economy/send-gift-modal.js';
-import { toProfileData, type ProfileData, type ProfileSource } from '@renderer/features/profile/profile-model';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { useAppStore } from '../../app-shell/providers/app-store';
+import { SendGiftModal } from '../economy/send-gift-modal.js';
+import { toProfileData, type ProfileData, type ProfileSource } from '../profile/profile-model';
+import { E2E_IDS } from '../../testability/e2e-ids';
 import { ProfileDetailView } from './profile-detail-view.js';
 import {
   ProfileDetailErrorState,
   ProfileDetailLoadingState,
 } from './profile-detail-view-content-shell.js';
-import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { RemoveFriendConfirmDialog } from './profile-detail-dialogs.js';
 import {
   isPrivateProfileAccessError,
   toRestrictedContactProfileData,
 } from './profile-private-state.js';
-import { launchAgentConversationFromDisplay } from '@renderer/features/chat/agent-conversation-launcher.js';
-import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
+import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
+import { ensureRuntimeAgentExists } from '../chat/chat-agent-shell-host-actions-helpers';
 import { materializeSourceContactLaunchTarget } from './source-contact-launch-target.js';
-import { startChatWithTarget } from '@renderer/features/chat/data/realm-human-chat-data';
-import type { CharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
+import { startChatWithTarget } from '../chat/data/realm-human-chat-data';
+import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 import {
   characterSourceMaterializationFailureMessage,
   characterSourceMaterializationMessage,
@@ -31,7 +31,7 @@ import {
   describeCharacterPrimaryAction,
   discoverCharacterSourceLocalAgents,
   resolveCharacterSourceState,
-} from '@renderer/features/explore/character-source-materialization';
+} from '../explore/character-source-materialization';
 
 export type ProfileDetailSeed = {
   id: string;

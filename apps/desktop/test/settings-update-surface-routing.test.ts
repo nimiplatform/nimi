@@ -34,5 +34,6 @@ test('settings page router keeps PerformancePage as ordinary preferences only', 
   assert.match(performanceSource, /collectDesktopUpdatePanelAlerts/);
   assert.match(performanceSource, /desktopReleaseInfo\?\.desktopVersion/);
   assert.match(performanceSource, /desktopUpdateState\?\.targetVersion/);
-  assert.match(performanceSource, /runDesktopUpdateCheck/);
+  assert.match(performanceSource, /updateCommands\.checkDesktopUpdate/);
+  assert.doesNotMatch(performanceSource, /infra\/bootstrap\/desktop-updates/);
 });

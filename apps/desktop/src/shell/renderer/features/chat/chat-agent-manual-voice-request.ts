@@ -1,5 +1,5 @@
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
-import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
+import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
 import { parseAgentTextTurnDebugMetadata } from './chat-agent-debug-metadata';
 
 export type AgentManualVoiceRenderRequest = {

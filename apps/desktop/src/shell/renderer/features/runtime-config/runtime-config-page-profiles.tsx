@@ -14,7 +14,7 @@ import { validateNimiAIProfile } from '@nimiplatform/sdk/ai';
 import {
   ensureProductAccountDefaultProfile,
   getAccountDefaultProfileForScopeInit,
-} from '@renderer/bridge/runtime-bridge/product-control.js';
+} from '../../bridge/runtime-bridge/product-control.js';
 import { RuntimePageShell } from './runtime-config-page-shell.js';
 import { AccountProfileLibraryPanel } from './runtime-config-profile-library-panel.js';
 import {

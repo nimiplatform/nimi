@@ -1,4 +1,4 @@
-import { desktopBridge } from '@renderer/bridge';
+import { desktopBridge } from '../../bridge';
 
 function normalizeHeaders(headers: HeadersInit | undefined): Record<string, string> {
   const entries = headers instanceof Headers

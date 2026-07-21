@@ -1,8 +1,8 @@
 import { type ChangeEvent, type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
-import { i18n } from '@renderer/i18n';
-import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
-import type { ProfileData, ProfileTab } from '@renderer/features/profile/profile-model';
+import { i18n } from '../../i18n';
+import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
+import type { ProfileData, ProfileTab } from '../profile/profile-model';
 import { buildEditableDraft, type EditableProfileDraft } from './profile-detail-view-parts.js';
 
 export type ProfileDetailViewProps = {

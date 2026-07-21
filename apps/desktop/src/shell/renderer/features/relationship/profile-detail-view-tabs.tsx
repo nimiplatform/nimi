@@ -1,6 +1,6 @@
 import { Suspense, lazy, type MutableRefObject, type RefObject, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { ProfileTab } from '@renderer/features/profile/profile-model';
+import type { ProfileTab } from '../profile/profile-model';
 import type { ProfileDetailViewController } from './profile-detail-view-controller.js';
 import { ProfileDetailTabFallback } from './profile-detail-view-content-shell.js';
 
@@ -8,23 +8,23 @@ const PROFILE_DETAIL_TABS: ProfileTab[] = ['Posts', 'Collections', 'Likes', 'Gif
 const OWN_PROFILE_DETAIL_TABS: ProfileTab[] = ['Posts', 'Collections', 'Likes', 'Gifts', 'FollowedWorlds'];
 
 const PostsTab = lazy(async () => {
-  const module = await import('@renderer/features/profile/posts-tab');
+  const module = await import('../profile/posts-tab');
   return { default: module.PostsTab };
 });
 const CollectionsTab = lazy(async () => {
-  const module = await import('@renderer/features/profile/collections-tab');
+  const module = await import('../profile/collections-tab');
   return { default: module.CollectionsTab };
 });
 const LikesTab = lazy(async () => {
-  const module = await import('@renderer/features/profile/likes-tab');
+  const module = await import('../profile/likes-tab');
   return { default: module.LikesTab };
 });
 const GiftsTab = lazy(async () => {
-  const module = await import('@renderer/features/profile/gifts-tab');
+  const module = await import('../profile/gifts-tab');
   return { default: module.GiftsTab };
 });
 const FollowedWorldsTab = lazy(async () => {
-  const module = await import('@renderer/features/profile/followed-worlds-tab');
+  const module = await import('../profile/followed-worlds-tab');
   return { default: module.FollowedWorldsTab };
 });
 

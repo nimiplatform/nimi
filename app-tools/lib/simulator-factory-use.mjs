@@ -89,6 +89,37 @@ function directFactoryCall(call, direct, namespaces, factoryExport) {
     && owner.name.text === factoryExport;
 }
 
+function externalPackageBindings(source) {
+  const bindings = new Set();
+  for (const statement of source.statements) {
+    if (!ts.isImportDeclaration(statement)
+      || !statement.importClause
+      || statement.importClause.isTypeOnly
+      || !ts.isStringLiteral(statement.moduleSpecifier)
+      || statement.moduleSpecifier.text.startsWith('.')) continue;
+    const clause = statement.importClause;
+    if (clause.name) bindings.add(clause.name.text);
+    if (clause.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
+      bindings.add(clause.namedBindings.name.text);
+    }
+    if (clause.namedBindings && ts.isNamedImports(clause.namedBindings)) {
+      for (const element of clause.namedBindings.elements) {
+        if (!element.isTypeOnly) bindings.add(element.name.text);
+      }
+    }
+  }
+  return bindings;
+}
+
+function callOwnerRoot(call) {
+  if (!ts.isPropertyAccessExpression(call.expression)) return null;
+  let owner = call.expression.expression;
+  while (ts.isPropertyAccessExpression(owner) || ts.isElementAccessExpression(owner)) {
+    owner = owner.expression;
+  }
+  return ts.isIdentifier(owner) ? owner.text : null;
+}
+
 /**
  * Proves that an invocation closure does not merely reach the canonical factory
  * module: one exact runtime import binding must call its createInstance method.
@@ -109,6 +140,7 @@ export function assertInvocationUsesCanonicalFactory({
     const node = graph.nodes.get(filePath);
     if (!node || node.type !== 'module') continue;
     const bindings = canonicalBindings(rootDir, filePath, node.source, factoryPath, factoryExport);
+    const packageBindings = externalPackageBindings(node.source);
     const relativePath = canonicalRelative(rootDir, filePath);
     if (bindings.direct.size > 0 || bindings.namespaces.size > 0) {
       assertUnshadowed(node.source, new Set([...bindings.direct, ...bindings.namespaces]), relativePath);
@@ -118,6 +150,11 @@ export function assertInvocationUsesCanonicalFactory({
         && ts.isPropertyAccessExpression(astNode.expression)
         && astNode.expression.name.text === 'createInstance') {
         if (!directFactoryCall(astNode, bindings.direct, bindings.namespaces, factoryExport)) {
+          const ownerRoot = callOwnerRoot(astNode);
+          if (ownerRoot && packageBindings.has(ownerRoot)) {
+            ts.forEachChild(astNode, visit);
+            return;
+          }
           fail(
             code,
             'invocation closure calls createInstance through a non-canonical factory binding',

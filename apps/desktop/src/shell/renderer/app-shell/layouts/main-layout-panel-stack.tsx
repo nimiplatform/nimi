@@ -1,57 +1,57 @@
 import { Suspense, lazy, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import type { AppTab } from '@renderer/app-shell/providers/app-store';
+import type { AppTab } from '../providers/app-store';
 import type { NimiRealmFeedScope } from '@nimiplatform/sdk/realm';
-import type { ExploreSectionId } from '@renderer/features/explore/explore-section-nav';
-import { loadWorldDetailPanelModule, WorldDetailRouteLoading } from '@renderer/features/world/world-detail-route-state';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import type { ExploreSectionId } from '../../features/explore/explore-section-nav';
+import { loadWorldDetailPanelModule, WorldDetailRouteLoading } from '../../features/world/world-detail-route-state';
+import { E2E_IDS } from '../../testability/e2e-ids';
 import {
   DESKTOP_PANEL_VARIANTS,
   useDesktopPanelCustom,
-} from '@renderer/ui/motion/desktop-motion';
+} from '../../ui/motion/desktop-motion';
 
 const ChatPage = lazy(async () => {
-  const mod = await import('@renderer/features/chat/chat-page');
+  const mod = await import('../../features/chat/chat-page');
   return { default: mod.ChatPage };
 });
 const ExplorePanel = lazy(async () => {
-  const mod = await import('@renderer/features/explore/explore-panel');
+  const mod = await import('../../features/explore/explore-panel');
   return { default: mod.ExplorePanel };
 });
 const AgentsPanel = lazy(async () => {
-  const mod = await import('@renderer/features/agents/agents-panel');
+  const mod = await import('../../features/agents/agents-panel');
   return { default: mod.AgentsPanel };
 });
 const AppsPanel = lazy(async () => {
-  const mod = await import('@renderer/features/apps/apps-panel');
+  const mod = await import('../../features/apps/apps-panel');
   return { default: mod.AppsPanel };
 });
 const SettingsPanelBody = lazy(async () => {
-  const mod = await import('@renderer/features/settings/settings-panel-body');
+  const mod = await import('../../features/settings/settings-panel-body');
   return { default: mod.SettingsPanelBody };
 });
 const SupportPanel = lazy(async () => {
-  const mod = await import('@renderer/features/support/support-panel');
+  const mod = await import('../../features/support/support-panel');
   return { default: mod.SupportPanel };
 });
 const RuntimeConfigPanelBody = lazy(async () => {
-  const mod = await import('@renderer/features/runtime-config/runtime-config-panel-view');
+  const mod = await import('../../features/runtime-config/runtime-config-panel-view');
   return { default: mod.RuntimeConfigPanelBody };
 });
 const NotificationPanel = lazy(async () => {
-  const mod = await import('@renderer/features/notification/notification-panel');
+  const mod = await import('../../features/notification/notification-panel');
   return { default: mod.NotificationPanel };
 });
 const GiftInboxPanel = lazy(async () => {
-  const mod = await import('@renderer/features/economy/gift-inbox-panel');
+  const mod = await import('../../features/economy/gift-inbox-panel');
   return { default: mod.GiftInboxPanel };
 });
 const ProfilePanel = lazy(async () => {
-  const mod = await import('@renderer/features/profile/profile-panel');
+  const mod = await import('../../features/profile/profile-panel');
   return { default: mod.ProfilePanel };
 });
 const SourceDetailPanel = lazy(async () => {
-  const mod = await import('@renderer/features/source-detail/source-detail-panel');
+  const mod = await import('../../features/source-detail/source-detail-panel');
   return { default: mod.SourceDetailPanel };
 });
 const WorldDetailPanel = lazy(async () => {
@@ -59,19 +59,19 @@ const WorldDetailPanel = lazy(async () => {
   return { default: mod.WorldDetailActivePanel };
 });
 const HomePanel = lazy(async () => {
-  const mod = await import('@renderer/features/home/home-panel');
+  const mod = await import('../../features/home/home-panel');
   return { default: mod.HomePanel };
 });
 const DeveloperToolsPanel = lazy(async () => {
-  const mod = await import('@renderer/features/developer/developer-tools-panel');
+  const mod = await import('../../features/developer/developer-tools-panel');
   return { default: mod.DeveloperToolsPanel };
 });
 const PrivacyPolicyView = lazy(async () => {
-  const mod = await import('@renderer/features/legal/privacy-policy-view');
+  const mod = await import('../../features/legal/privacy-policy-view');
   return { default: mod.PrivacyPolicyView };
 });
 const TermsOfServiceView = lazy(async () => {
-  const mod = await import('@renderer/features/legal/terms-of-service-view');
+  const mod = await import('../../features/legal/terms-of-service-view');
   return { default: mod.TermsOfServiceView };
 });
 

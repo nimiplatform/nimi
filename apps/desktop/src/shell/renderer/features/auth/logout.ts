@@ -1,12 +1,12 @@
-import { productionQueryClient } from '@renderer/infra/query-client/production-query-client';
-import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
-import type { AppStoreState } from '@renderer/app-shell/providers/store-types';
-import { i18n } from '@renderer/i18n';
-import { clearAllStreams } from '@renderer/features/turns/stream-controller';
+import { productionQueryClient } from '../../infra/query-client/production-query-client';
+import { productionAppStore } from '../../app-shell/providers/production-app-store';
+import type { AppStoreState } from '../../app-shell/providers/store-types';
+import { i18n } from '../../i18n';
+import { clearAllStreams } from '../turns/stream-controller';
 import {
   getDesktopAccountRuntime,
   getDesktopRuntimeAccountCaller,
-} from '@renderer/infra/sdk/desktop-nimi-client-session';
+} from '../../infra/sdk/desktop-nimi-client-session';
 
 type LogoutAndClearSessionInput = {
   clearAuthSession: AppStoreState['clearAuthSession'];

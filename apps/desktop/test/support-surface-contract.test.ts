@@ -172,7 +172,8 @@ test('support.updates-release-projection: D-SUP-004 updates consumes the Desktop
   assert.match(source, /desktopReleaseInfo/);
   assert.match(source, /support-updates-fail-closed/);
   assert.match(source, /updatesProjectionMissing/);
-  assert.match(source, /runDesktopUpdateCheck/);
+  assert.match(source, /updateCommands\.checkDesktopUpdate/);
+  assert.doesNotMatch(source, /infra\/bootstrap\/desktop-updates/);
   // updaterAvailable=false must surface the typed reason and disable actions.
   assert.match(source, /updaterAvailable/);
   assert.match(source, /updaterUnavailableReason/);

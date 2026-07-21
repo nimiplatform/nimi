@@ -1,4 +1,4 @@
-import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
+import { realmSocialData } from '../social/data/realm-social-data';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -7,10 +7,10 @@ import {
   prepareNimiRealmTwoFactor,
   updateNimiRealmPassword,
 } from '@nimiplatform/sdk/realm';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { useAppStore } from '../../app-shell/providers/app-store';
 import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
-import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
+import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { FormFeedback, PageShell, SaveFooter, SectionTitle } from './settings-layout-components.js';
 import {
   CheckIcon,
@@ -22,7 +22,7 @@ import {
   SettingRow,
   ShieldIcon,
 } from './settings-security-controls.js';
-import { LocalDevelopmentAuthorizations } from '@renderer/features/local-development/local-development-authorizations';
+import { LocalDevelopmentAuthorizations } from '../local-development/local-development-authorizations';
 
 export function SecurityPage() {
   const { t } = useTranslation();

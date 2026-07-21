@@ -1,4 +1,4 @@
-import { i18n } from '@renderer/i18n';
+import { i18n } from '../../i18n';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import type {
   NimiRuntimeLocalProfileApplyResult,
@@ -7,7 +7,7 @@ import type {
 import type {
   RuntimeConfigStateV11,
   RuntimeSetupPageIdV11,
-} from '@renderer/features/runtime-config/runtime-config-state-types';
+} from './runtime-config-state-types';
 import type { RuntimeProfileTargetDescriptor } from './runtime-config-panel-types';
 import { ModelCenterProfileSection } from './runtime-config-model-center-profile-section';
 import { resolveSelectedRuntimeProfileTarget } from './runtime-config-model-center-utils';

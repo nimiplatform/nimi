@@ -6,7 +6,7 @@ import type {
 } from './world-detail-types.js';
 import { toWorldListItem, type WorldListItem } from './world-list-model.js';
 import type { WorldPrimaryDetailRecord, WorldPrimaryDisplayDetail } from './world-detail-query-types.js';
-import { readCharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
+import { readCharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 import {
   asRecord,
   readPublicMediaAsset,

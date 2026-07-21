@@ -1,5 +1,5 @@
-import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
-import type { AppStoreState } from '@renderer/app-shell/providers/store-types';
+import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
+import type { AppStoreState } from '../../app-shell/providers/store-types';
 import type { ConversationMode } from '@nimiplatform/kit/features/chat/headless';
 import type { AgentConversationSelection } from './chat-shell-types.js';
 import { isRuntimeLocalAgentRef } from '@nimiplatform/sdk/runtime';

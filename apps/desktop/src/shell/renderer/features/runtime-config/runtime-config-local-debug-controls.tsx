@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip, cn } from '@nimiplatform/kit/ui';
-import { formatRelativeLocaleTime } from '@renderer/i18n';
+import { formatRelativeLocaleTime } from '../../i18n';
 import {
   resolveAuditDetail,
   resolveAuditModality,

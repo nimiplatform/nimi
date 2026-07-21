@@ -62,6 +62,7 @@ test('pure forwarding shells are limited to the admitted public-web scaffold', (
     'apps/desktop/src/public-web/i18n/index.ts',
     'apps/desktop/src/public-web/infra/index.ts',
     'apps/desktop/src/public-web/realm/index.ts',
+    'apps/desktop/src/public-web/renderer-host/index.ts',
   ]);
   const actual = new Set<string>();
 

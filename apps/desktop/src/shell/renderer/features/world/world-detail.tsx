@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { i18n } from '@renderer/i18n';
+import { useAppStore } from '../../app-shell/providers/app-store';
+import { i18n } from '../../i18n';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
-import { characterSourceMaterializationFailureMessage } from '@renderer/features/explore/character-source-materialization';
-import { materializeSourceContactLaunchTarget } from '@renderer/features/relationship/source-contact-launch-target.js';
-import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
+import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import { characterSourceMaterializationFailureMessage } from '../explore/character-source-materialization';
+import { materializeSourceContactLaunchTarget } from '../relationship/source-contact-launch-target.js';
+import { ensureRuntimeAgentExists } from '../chat/chat-agent-shell-host-actions-helpers';
 import {
   NarrativeWorldDetailPage,
   OasisWorldDetailPage,

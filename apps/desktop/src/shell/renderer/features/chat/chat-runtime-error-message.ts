@@ -2,7 +2,7 @@ import {
   getNimiRuntimeReasonCodeMessage,
   toNimiRuntimeUserFacingError,
 } from '@nimiplatform/sdk/runtime';
-import { i18n } from '@renderer/i18n';
+import { i18n } from '../../i18n';
 
 function translateMessage(key: string, defaultValue: string): string {
   if (!i18n.isInitialized) {

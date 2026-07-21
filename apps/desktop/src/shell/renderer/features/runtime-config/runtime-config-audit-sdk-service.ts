@@ -13,7 +13,7 @@ import type {
   RuntimeHealthEvent,
   AIProviderHealthEvent,
 } from '@nimiplatform/sdk/runtime/wire-types';
-import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
 
 const DEFAULT_DESKTOP_AUDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 const MAX_DESKTOP_AUDIT_WINDOW_MS = 7 * DEFAULT_DESKTOP_AUDIT_WINDOW_MS;

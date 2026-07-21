@@ -1,6 +1,6 @@
 import React, { type PropsWithChildren } from 'react';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { getCurrentLocale, i18n } from '@renderer/i18n';
+import { getCurrentLocale, i18n } from '../../i18n';
 
 type ErrorBoundaryState = {
   hasError: boolean;

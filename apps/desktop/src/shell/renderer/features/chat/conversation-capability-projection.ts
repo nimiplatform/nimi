@@ -1,4 +1,4 @@
-import type { AppStoreApi } from '@renderer/app-shell/providers/app-store-factory';
+import type { AppStoreApi } from '../../app-shell/providers/app-store-factory';
 import {
   buildAgentEffectiveCapabilityResolution,
   buildConversationCapabilityProjectionMap,
@@ -7,7 +7,7 @@ import {
 } from './conversation-capability';
 import {
   getDesktopAIConfigService,
-} from '@renderer/app-shell/providers/desktop-ai-config-service';
+} from '../../app-shell/providers/desktop-ai-config-service';
 import {
   getActiveScope,
   onActiveScopeChange,

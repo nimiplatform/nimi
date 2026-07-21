@@ -40,7 +40,7 @@ import {
   exportAccountProfileLibraryProfiles,
   importAccountProfileLibraryProfiles,
   listAccountProfileLibrary,
-} from '@renderer/bridge/runtime-bridge/account-profile-library.js';
+} from '../../bridge/runtime-bridge/account-profile-library.js';
 
 export type LibraryProfileOrigin = NimiAccountProfileLibraryOrigin;
 export type LibraryProfile = NimiAccountProfileLibraryProfile;

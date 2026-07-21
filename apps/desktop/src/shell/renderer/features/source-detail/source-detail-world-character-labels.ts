@@ -1,5 +1,5 @@
 import type { useTranslation } from 'react-i18next';
-import type { describeCharacterPrimaryAction } from '@renderer/features/explore/character-source-materialization';
+import type { describeCharacterPrimaryAction } from '../explore/character-source-materialization';
 import type { SourceDetailData } from './source-detail-model.js';
 import { simplifySourceDetailChineseText as simplifyDisplayText } from './source-detail-simplified-chinese.js';
 

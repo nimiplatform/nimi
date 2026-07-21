@@ -1,4 +1,4 @@
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { E2E_IDS } from '../../testability/e2e-ids';
 import {
   type DesktopMacosSmokeDriverDeps,
   type JsonObject,

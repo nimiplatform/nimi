@@ -76,7 +76,7 @@ test('World Atlas selected panel routes people through Source profiles and local
 test('world detail tab renders active world detail panel through route-state loader', () => {
   assert.match(mainLayoutSource, /loadWorldDetailPanelModule\(\)/);
   assert.match(mainLayoutSource, /WorldDetailRouteLoading/);
-  assert.match(worldDetailRouteStateSource, /import\('@renderer\/features\/world\/world-detail-active-panel'\)/);
+  assert.match(worldDetailRouteStateSource, /import\('\.\/world-detail-active-panel'\)/);
 });
 
 test('world detail route handoff does not flash the retired standalone skeleton page', () => {

@@ -5,7 +5,7 @@ import type {
 } from '@nimiplatform/kit/features/chat/headless';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import type { NimiRuntimeAgentResolvedMessageActionEnvelope } from '@nimiplatform/sdk/runtime';
-import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
 import { feedStreamEvent } from '../turns/stream-controller';
 import {
   AGENT_RUNTIME_CHAT_PROVIDER_CAPABILITIES,

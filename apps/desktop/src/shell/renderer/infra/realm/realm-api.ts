@@ -8,8 +8,8 @@ import {
   tryParseJsonLike,
 } from '@nimiplatform/sdk/types';
 import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
-import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
-import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { getOfflineCoordinator } from '../offline/coordinator';
+import { getDesktopRealm } from '../sdk/desktop-nimi-client-session';
 import { resolveRealmDataErrorLogLevel } from './realm-api-log-level';
 
 export type RealmApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;

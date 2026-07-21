@@ -13,9 +13,9 @@ import { runtimeConfigLocalModelCenterClient } from './runtime-config-local-mode
 import {
   pickLocalRuntimeAssetFile,
   pickLocalRuntimeAssetManifestPath,
-} from '@renderer/bridge/runtime-bridge/local-runtime-os-helpers';
-import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
-import { i18n } from '@renderer/i18n';
+} from '../../bridge/runtime-bridge/local-runtime-os-helpers';
+import { getOfflineCoordinator } from '../../infra/offline/coordinator';
+import { i18n } from '../../i18n';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 

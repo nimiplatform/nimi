@@ -1,12 +1,12 @@
-import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
+import { realmSocialData } from '../social/data/realm-social-data';
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
 import { OverlayShell } from '@nimiplatform/kit/ui';
-import { realmWorldData } from '@renderer/features/world/data/realm-world-data';
+import { realmWorldData } from '../world/data/realm-world-data';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
+import { E2E_IDS } from '../../testability/e2e-ids';
 import {
   ACCEPTED_IMAGE_TYPES,
   ACCEPTED_VIDEO_TYPES,

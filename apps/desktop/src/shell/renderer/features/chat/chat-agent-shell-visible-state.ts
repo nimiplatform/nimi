@@ -1,4 +1,4 @@
-import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
+import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
 import type { NimiRuntimeAgentResolvedStatusCue } from '@nimiplatform/sdk/runtime';
 import {
   mapRuntimeAgentEmotionToAvatarCue,

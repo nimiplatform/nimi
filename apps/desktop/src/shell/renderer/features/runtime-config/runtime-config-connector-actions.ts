@@ -1,7 +1,7 @@
 import {
   type ApiConnector,
   type RuntimeConfigStateV11,
-} from '@renderer/features/runtime-config/runtime-config-state-types';
+} from './runtime-config-state-types';
 
 export function addConnectorToState(
   prev: RuntimeConfigStateV11,

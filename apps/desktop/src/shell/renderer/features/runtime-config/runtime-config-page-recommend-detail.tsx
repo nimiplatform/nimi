@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { formatRelativeLocaleTime } from '@renderer/i18n';
+import { formatRelativeLocaleTime } from '../../i18n';
 import {
   type NimiRuntimeLocalRecommendationFeedItem,
 } from '@nimiplatform/sdk/runtime';

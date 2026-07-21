@@ -1,6 +1,6 @@
 import { Suspense, lazy } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { useAppStore } from '../../app-shell/providers/app-store';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import {
   continueOauthNextIfPresent,

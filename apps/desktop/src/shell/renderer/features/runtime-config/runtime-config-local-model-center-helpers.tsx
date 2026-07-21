@@ -19,7 +19,7 @@ import {
   type NimiRuntimeLocalRecommendationCopyOptions,
   type NimiRuntimeLocalRecommendationDetailItem,
 } from '@nimiplatform/sdk/runtime';
-import { formatRelativeLocaleTime, i18n } from '@renderer/i18n';
+import { formatRelativeLocaleTime, i18n } from '../../i18n';
 import { parseTimestamp } from './runtime-config-model-center-utils';
 export {
   DownloadIcon,

@@ -12,7 +12,7 @@ import {
   isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState,
   isNimiRuntimeLocalEnvironmentDependencyUnsupportedState,
 } from '@nimiplatform/sdk/runtime';
-import { i18n } from '@renderer/i18n';
+import { i18n } from '../../i18n';
 import { localizedAssetUnhealthyReason } from './runtime-config-reason-messages';
 import {
   formatAssetKindLabel,

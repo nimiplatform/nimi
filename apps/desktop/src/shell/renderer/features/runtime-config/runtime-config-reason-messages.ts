@@ -1,5 +1,5 @@
 import { normalizeNimiRuntimeReasonCode } from '@nimiplatform/sdk/runtime';
-import { i18n } from '@renderer/i18n';
+import { i18n } from '../../i18n';
 import { assetUnhealthyReasonSummary } from './runtime-config-model-center-utils';
 
 // Localized, human-readable message for a runtime reason code.

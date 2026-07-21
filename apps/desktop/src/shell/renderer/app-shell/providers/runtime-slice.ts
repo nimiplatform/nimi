@@ -2,14 +2,14 @@ import type { AppStoreSet, AppStoreState } from './store-types';
 import { INITIAL_RUNTIME_FIELDS } from './store-types';
 import type { NimiAIConfig } from '@nimiplatform/sdk/ai';
 
-const RETIRED_ROUTE_RUNTIME_FIELD_KEYS = new Set([
+const RETIRED_ROUTE_RUNTIME_FIELD_KEYS: readonly string[] = [
   'provider',
   'runtimeModelType',
   'localProviderEndpoint',
   'localProviderModel',
   'localOpenAiEndpoint',
   'connectorId',
-]);
+];
 
 type RuntimeSlice = Pick<AppStoreState,
   'runtimeDefaults'
@@ -56,7 +56,7 @@ export function createRuntimeSlice(
       }),
     setRuntimeField: (key, value) =>
       set((state) => {
-        if (RETIRED_ROUTE_RUNTIME_FIELD_KEYS.has(String(key))) {
+        if (RETIRED_ROUTE_RUNTIME_FIELD_KEYS.includes(String(key))) {
           return {};
         }
         return {
@@ -69,7 +69,7 @@ export function createRuntimeSlice(
     setRuntimeFields: (updates) =>
       set((state) => {
         const allowedEntries = Object.entries(updates).filter(([key, value]) => (
-          value !== undefined && !RETIRED_ROUTE_RUNTIME_FIELD_KEYS.has(key)
+          value !== undefined && !RETIRED_ROUTE_RUNTIME_FIELD_KEYS.includes(key)
         ));
         if (allowedEntries.length === 0) {
           return {};

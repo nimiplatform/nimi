@@ -39,6 +39,12 @@ import { SupportRecoverySection } from '../src/shell/renderer/features/support/s
 import { SupportDegradedEntry } from '../src/shell/renderer/features/support/support-degraded-entry';
 import { createAppStore } from '../src/shell/renderer/app-shell/providers/app-store-factory';
 import { AppStoreProvider } from '../src/shell/renderer/app-shell/providers/app-store';
+import {
+  DesktopRendererBindingProvider,
+} from '../src/shell/renderer/renderer/binding-context';
+import type {
+  DesktopCanonicalRendererBindings,
+} from '../src/shell/renderer/renderer/contract';
 
 test.before(async () => {
   await initI18n();
@@ -113,9 +119,17 @@ test('D-SUP-004: updates fails closed before the release projection arrives', ()
   });
   const markup = renderToStaticMarkup(
     React.createElement(
-      AppStoreProvider,
-      { store },
-      React.createElement(SupportUpdatesSection),
+      DesktopRendererBindingProvider,
+      {
+        bindings: {
+          app: { commands: {} },
+        } as DesktopCanonicalRendererBindings,
+      },
+      React.createElement(
+        AppStoreProvider,
+        { store },
+        React.createElement(SupportUpdatesSection),
+      ),
     ),
   );
   assert.match(markup, /data-testid="support-section-updates"/);

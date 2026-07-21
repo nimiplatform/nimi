@@ -3,13 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { StatusBadge } from '@nimiplatform/kit/ui';
 import { loadNimiRealmCreatorEligibility } from '@nimiplatform/sdk/realm';
-import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import {
-  runDesktopUpdateCheck,
-  runDesktopUpdateInstall,
-  runDesktopUpdateRestart,
-} from '@renderer/infra/bootstrap/desktop-updates';
+import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
+import { useAppStore } from '../../app-shell/providers/app-store';
+import { useDesktopRendererCommands } from '../../renderer/binding-context';
 import {
   FormFeedback,
   PageShell,
@@ -20,7 +16,7 @@ import {
   persistStoredPerformancePreferences,
   type PerformancePreferences,
 } from './settings-storage.js';
-import { DeveloperModeToggle } from '@renderer/features/developer/developer-mode-toggle.js';
+import { DeveloperModeToggle } from '../developer/developer-mode-toggle.js';
 import {
   AnimationIcon,
   AwardIcon,
@@ -41,6 +37,7 @@ export function PerformancePage() {
   const desktopReleaseInfo = useAppStore((s) => s.desktopReleaseInfo);
   const desktopReleaseError = useAppStore((s) => s.desktopReleaseError);
   const desktopUpdateState = useAppStore((s) => s.desktopUpdateState);
+  const updateCommands = useDesktopRendererCommands();
   const [preferences, setPreferences] = useState<PerformancePreferences>(() =>
     loadStoredPerformancePreferences());
   const [baseline, setBaseline] = useState<PerformancePreferences>(() =>
@@ -227,7 +224,7 @@ export function PerformancePage() {
                   disabled={!canCheckUpdates || isUpdateBusy}
                   className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={() => {
-                    void runDesktopUpdateCheck({ autoDownload: false, silent: false });
+                    void updateCommands.checkDesktopUpdate({ autoDownload: false, silent: false });
                   }}
                 >
                   {t('Performance.checkNow')}
@@ -237,7 +234,7 @@ export function PerformancePage() {
                   disabled={!canCheckUpdates || isUpdateBusy || canRestartForUpdate}
                   className="rounded-lg bg-mint-600 px-3 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={() => {
-                    void runDesktopUpdateInstall({ silent: false });
+                    void updateCommands.installDesktopUpdate({ silent: false });
                   }}
                 >
                   {t('Performance.downloadAndInstall')}
@@ -247,7 +244,7 @@ export function PerformancePage() {
                   disabled={!canRestartForUpdate}
                   className="rounded-lg bg-gray-900 px-3 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={() => {
-                    void runDesktopUpdateRestart();
+                    void updateCommands.restartDesktopUpdate();
                   }}
                 >
                   {t('Performance.restartNow')}

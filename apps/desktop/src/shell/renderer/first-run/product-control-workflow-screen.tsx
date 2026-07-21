@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import { projectNimiProductControlFirstRunScreen } from '@nimiplatform/sdk/runtime';
 import type { NimiFirstRunInstallLevel } from '@nimiplatform/sdk/app';
-import type { NimiProductControlRecordProjection, NimiProductControlState } from '@renderer/bridge';
+import type { NimiProductControlRecordProjection, NimiProductControlState } from '../bridge';
 import { FirstRunFinalization } from './first-run-finalization.js';
 import type { FirstRunInstallLevelCard } from './first-run-install-level-cards.js';
 import type { FirstRunSetupChecklist } from './first-run-setup-checklist.js';

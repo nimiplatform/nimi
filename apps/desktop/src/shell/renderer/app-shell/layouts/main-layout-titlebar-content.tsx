@@ -3,11 +3,11 @@ import {
   ExploreSearchField,
   ExploreSectionNav,
   type ExploreSectionId,
-} from '@renderer/features/explore/explore-section-nav';
+} from '../../features/explore/explore-section-nav';
 import {
   HomeFeedScopeNav,
-} from '@renderer/features/home/home-feed-controls';
-import type { AppTab } from '@renderer/app-shell/providers/app-store';
+} from '../../features/home/home-feed-controls';
+import type { AppTab } from '../providers/app-store';
 import { useTranslation } from 'react-i18next';
 
 type MainLayoutTitlebarContentProps = {

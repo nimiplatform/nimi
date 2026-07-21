@@ -2,7 +2,7 @@ import type {
   DesktopReleaseInfo,
   DesktopUpdateState,
   RuntimeDefaults,
-} from '@renderer/bridge';
+} from '../../bridge';
 import type {
   ConversationMode,
   ConversationSourceFilter,
@@ -18,17 +18,17 @@ import type {
   LastSelectedThreadByMode,
   SelectedTargetBySource,
   ViewModeBySourceTarget,
-} from '@renderer/features/chat/chat-shell-types';
-import type { ChatThinkingPreference } from '@renderer/features/chat/chat-shared-thinking';
+} from '../../features/chat/chat-shell-types';
+import type { ChatThinkingPreference } from '../../features/chat/chat-shared-thinking';
 import type {
   AgentEffectiveCapabilityResolution,
   ConversationCapability,
   ConversationCapabilityProjection,
-} from '@renderer/features/chat/conversation-capability';
-import type { ExploreSectionId } from '@renderer/features/explore/explore-section-nav';
+} from '../../features/chat/conversation-capability';
+import type { ExploreSectionId } from '../../features/explore/explore-section-nav';
 import type { NimiAIConfig } from '@nimiplatform/sdk/ai';
-import type { CharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
-import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
+import type { CharacterSourceRefV3 } from '../../features/realm-source/realm-source-identity.js';
+import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
 
 export type AuthStatus =
   | 'bootstrapping'

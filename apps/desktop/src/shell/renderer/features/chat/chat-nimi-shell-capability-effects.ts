@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import type { ConversationCapability } from './conversation-capability';
 import { refreshConversationCapabilityProjections } from './conversation-capability-projection';
-import { useAppStoreApi } from '@renderer/app-shell/providers/app-store';
+import { useAppStoreApi } from '../../app-shell/providers/app-store';
 
 const AI_CONVERSATION_BOOTSTRAP_CAPABILITIES: readonly ConversationCapability[] = [
   'text.generate',

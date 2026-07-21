@@ -10,8 +10,8 @@ import {
   pickLocalRuntimeAssetDirectory,
   pickLocalRuntimeAssetFile,
   pickLocalRuntimeAssetManifestPath,
-} from '@renderer/bridge/runtime-bridge/local-runtime-os-helpers';
-import { i18n } from '@renderer/i18n';
+} from '../../bridge/runtime-bridge/local-runtime-os-helpers';
+import { i18n } from '../../i18n';
 import { runtimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
 import {
   basenameFromRuntimePath,

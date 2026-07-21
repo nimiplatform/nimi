@@ -1,11 +1,11 @@
-import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
+import { realmSocialData } from '../social/data/realm-social-data';
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { rememberRealmChatSeenEvent } from '@nimiplatform/kit/features/chat/realm';
-import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { invalidateNotificationQueries } from '@renderer/features/notification/notification-query.js';
-import { flushPendingChatOutbox } from '@renderer/features/chat/data/realm-human-chat-data';
+import { getOfflineCoordinator } from '../../infra/offline/coordinator';
+import { useAppStore } from '../../app-shell/providers/app-store';
+import { invalidateNotificationQueries } from '../notification/notification-query.js';
+import { flushPendingChatOutbox } from '../chat/data/realm-human-chat-data';
 
 const BROKER_SYNC_INTERVAL_MS = 5_000;
 

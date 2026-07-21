@@ -1,6 +1,6 @@
 import type {
-  RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import type { ProviderStatusV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+  RuntimeConfigStateV11 } from './runtime-config-state-types';
+import type { ProviderStatusV11 } from './runtime-config-state-types';
 import type { NimiRuntimeLocalRunnableAssetKindId } from '@nimiplatform/sdk/runtime';
 import type { GetRuntimeHealthResponse } from '@nimiplatform/sdk/runtime/wire-types';
 import type { JsonObject } from '@nimiplatform/sdk/types';
@@ -13,7 +13,7 @@ import {
   sdkListConnectorModelDescriptors,
 } from './runtime-config-connector-sdk-service';
 import { getRuntimeHealthCoordinator } from './runtime-health-coordinator';
-import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
 
 type HealthResult = {
   status: 'healthy' | 'degraded' | 'unreachable' | 'unsupported';

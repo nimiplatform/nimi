@@ -3,7 +3,7 @@ import {
   DEFAULT_SELECTED_TARGET_BY_SOURCE,
   DEFAULT_VIEW_MODE_BY_SOURCE_TARGET,
   EMPTY_AGENT_CONVERSATION_SELECTION,
-} from '@renderer/features/chat/chat-shell-types';
+} from '../../features/chat/chat-shell-types';
 import type { AppStoreSet, AppStoreState } from './store-types';
 
 type AuthSlice = Pick<AppStoreState,

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { desktopBridge, type NimiProductControlRecordProjection } from '@renderer/bridge';
+import { desktopBridge, type NimiProductControlRecordProjection } from '../bridge';
 
 /**
  * Desktop first-run finalization surface for the `local_ai_ready` state.

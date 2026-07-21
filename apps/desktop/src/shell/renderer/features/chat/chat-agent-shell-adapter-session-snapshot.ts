@@ -5,14 +5,14 @@ import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import type {
   AgentLocalThreadBundle,
   AgentLocalThreadSummary,
-} from '@renderer/bridge/runtime-bridge/types';
-import { getDesktopAppId, getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
+} from '../../bridge/runtime-bridge/types';
+import { getDesktopAppId, getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
 import {
   bundleQueryKey,
 } from './chat-agent-shell-core';
 import { hydrateAgentThreadBundleFromRuntimeSessionSnapshot } from './chat-agent-session-hydration';
 import { setAgentVisibleProjection } from './chat-agent-visible-projection-store';
-import type { AuthStatus } from '@renderer/app-shell/providers/app-store';
+import type { AuthStatus } from '../../app-shell/providers/app-store';
 
 type RuntimeHostErrorDetailsBuilder = (
   error: unknown,

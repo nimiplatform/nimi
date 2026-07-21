@@ -8,7 +8,7 @@ import {
 import {
   getDesktopHostRuntimeAgentClient,
   withDesktopRuntimeProtectedScopes,
-} from '@renderer/infra/sdk/desktop-nimi-client-session';
+} from '../../infra/sdk/desktop-nimi-client-session';
 
 type DelegatedCapabilityServiceDeps = {
   getRuntime?: () => NimiHostRuntimeAgentDelegatedCapabilityClient;

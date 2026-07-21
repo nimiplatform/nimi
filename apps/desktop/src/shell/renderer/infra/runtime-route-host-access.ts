@@ -3,7 +3,7 @@ import {
   type NimiRuntimeRouteLocalWarmMetric,
 } from '@nimiplatform/sdk/runtime';
 import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
-import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { getDesktopRuntime } from './sdk/desktop-nimi-client-session';
 
 function emitDesktopRuntimeRouteWarmMetric(metric: NimiRuntimeRouteLocalWarmMetric): void {
   if (metric.kind === 'timing') {

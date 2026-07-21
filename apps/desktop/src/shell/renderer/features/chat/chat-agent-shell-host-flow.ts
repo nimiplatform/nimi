@@ -3,7 +3,7 @@ import type {
   AgentLocalMessageRecord,
   AgentLocalThreadBundle,
   AgentLocalThreadRecord,
-} from '@renderer/bridge/runtime-bridge/types';
+} from '../../bridge/runtime-bridge/types';
 import type { AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
 import type { AgentSubmitOutcomeState } from './chat-agent-shell-submit-outcome';
 import {

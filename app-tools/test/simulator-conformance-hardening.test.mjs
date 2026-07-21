@@ -146,3 +146,15 @@ test('production invocation must call the canonical factory instead of merely im
   writeFileSync(mainPath, source);
   expectFailure(root, 'SIM_PRODUCTION_FACTORY_USE');
 }));
+
+test('production invocation permits createInstance APIs owned by declared external packages', () => withFixture((root) => {
+  const mainPath = path.join(root, 'src', 'main.ts');
+  const source = readFileSync(mainPath, 'utf8')
+    .replace(
+      "import './renderer/styles.css';",
+      "import './renderer/styles.css';\nimport zod from 'zod';\nvoid zod.createInstance();",
+    );
+  writeFileSync(mainPath, source);
+  const result = validateSimulatorAppSource(root);
+  assert.equal(result.manifest.module_id, 'sample-app');
+}));

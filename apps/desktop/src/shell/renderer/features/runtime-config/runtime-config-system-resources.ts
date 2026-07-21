@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { desktopBridge } from '@renderer/bridge';
-import type { SystemResourceSnapshot as BridgeSystemResourceSnapshot } from '@renderer/bridge';
+import { desktopBridge } from '../../bridge';
+import type { SystemResourceSnapshot as BridgeSystemResourceSnapshot } from '../../bridge';
 
 export type SystemResourceSnapshot = BridgeSystemResourceSnapshot;
 export type SystemResourceStatus = 'idle' | 'loading' | 'ready' | 'unavailable' | 'stale';

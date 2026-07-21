@@ -12,7 +12,7 @@
 // happy path stays calm and a failing sub-step surfaces the typed action
 // exactly where it failed.
 
-import type { NimiProductControlState } from '@renderer/bridge';
+import type { NimiProductControlState } from '../bridge';
 import {
   aggregateNimiFirstRunMaterializationDownloadProgress,
   isNimiRuntimeLocalEnvironmentDependencyJobActiveState,

@@ -1,4 +1,4 @@
-import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
+import { realmSocialData } from '../social/data/realm-social-data';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
@@ -12,17 +12,17 @@ import {
 } from '@nimiplatform/kit/features/chat/realm';
 import { useTranslation } from 'react-i18next';
 import { sendChatMessage } from './data/realm-human-chat-data';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { useAppStore } from '../../app-shell/providers/app-store';
+import { E2E_IDS } from '../../testability/e2e-ids';
 import { ChatProfileCard } from '../turns/message-timeline-profile-card.js';
 import { toChatProfileSummary } from '../turns/message-timeline-utils.js';
-import { toProfileData, type ProfileSource } from '@renderer/features/profile/profile-model';
-import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { toProfileData, type ProfileSource } from '../profile/profile-model';
+import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { createChatUploadPlaceholder, addChatUploadPlaceholder, removeChatUploadPlaceholder } from '../turns/chat-upload-placeholder-store';
 import { mergeSentRealmChatMessageIntoCache } from '../turns/chat-send-cache.js';
 import { formatPendingAttachmentSize, appendPendingAttachment, clearPendingAttachments, type PendingAttachment } from '../turns/turn-input-attachments';
 import { ChatComposerLeadingAvatar } from './chat-shared-composer-leading-avatar';
-import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
 
 function HumanAttachmentStrip(props: {
   attachments: readonly PendingAttachment[];

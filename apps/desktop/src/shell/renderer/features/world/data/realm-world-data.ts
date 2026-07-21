@@ -3,9 +3,9 @@ import {
   isRealmOfflineErrorLike as isRealmOfflineError,
   type JsonObject,
 } from '@nimiplatform/sdk/types';
-import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
-import { getOfflineCacheManager } from '@renderer/infra/offline/cache-manager';
-import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
+import { callRealmApi, emitRealmDataError } from '../../../infra/realm/realm-api';
+import { getOfflineCacheManager } from '../../../infra/offline/cache-manager';
+import { getOfflineCoordinator } from '../../../infra/offline/coordinator';
 import {
   asRecord,
   attachWorldEntryRecommendations,

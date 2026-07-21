@@ -4,26 +4,26 @@ import { useTranslation } from 'react-i18next';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { AmbientBackground, Surface } from '@nimiplatform/kit/ui';
 import { projectNimiProductControlAdmission, type NimiProductControlState } from '@nimiplatform/sdk/runtime';
-import { useAppStore, type AuthStatus } from '@renderer/app-shell/providers/app-store';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import { desktopBridge } from '@renderer/bridge';
+import { useAppStore, type AuthStatus } from '../providers/app-store';
+import { E2E_IDS } from '../../testability/e2e-ids';
+import { desktopBridge } from '../../bridge';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { logoutAndClearSession } from '@renderer/features/auth/logout';
+import { logoutAndClearSession } from '../../features/auth/logout';
 import bootstrapLogoImage from '../../assets/logo.png';
 import { RuntimeLoadingScreen } from './runtime-loading-screen';
 
 const LoginPage = lazy(async () => {
-  const mod = await import('@renderer/features/auth/login-page');
+  const mod = await import('../../features/auth/login-page');
   return { default: mod.LoginPage };
 });
 
 const MainLayout = lazy(async () => {
-  const mod = await import('@renderer/app-shell/layouts/main-layout');
+  const mod = await import('../layouts/main-layout');
   return { default: mod.MainLayout };
 });
 
 const FirstRunGatePanel = lazy(async () => {
-  const mod = await import('@renderer/features/nimi-home/first-run-gate-panel');
+  const mod = await import('../../features/nimi-home/first-run-gate-panel');
   return { default: mod.FirstRunGatePanel };
 });
 

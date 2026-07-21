@@ -40,7 +40,7 @@ import {
   exportDesktopLogs,
   ensureProductControlRecordCreated,
   toRendererLogMessage,
-} from '@renderer/bridge/runtime-bridge';
+} from './bridge/runtime-bridge';
 import type {
   DesktopReleaseInfo,
   DesktopUpdateCheckResult,
@@ -66,7 +66,7 @@ import type {
   LogsExportResult,
   SystemResourceSnapshot,
   DesktopStorageDirs,
-} from '@renderer/bridge/runtime-bridge';
+} from './bridge/runtime-bridge';
 
 export type {
   DesktopReleaseInfo,
@@ -103,7 +103,7 @@ export {
   toRendererLogMessage,
 };
 
-export type { AppsBridgeProjection } from '@renderer/bridge/runtime-bridge';
+export type { AppsBridgeProjection } from './bridge/runtime-bridge';
 
 export const desktopBridge = {
   hasTauriInvoke,

@@ -3,7 +3,7 @@ import {
   type NimiRuntimeLocalAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { getDesktopRuntime } from '../sdk/desktop-nimi-client-session';
 import { safeErrorMessage } from './runtime-bootstrap-utils';
 
 type GoRuntimeSyncResult = {

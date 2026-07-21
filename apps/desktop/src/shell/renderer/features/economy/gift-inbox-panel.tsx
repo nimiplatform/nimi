@@ -8,14 +8,14 @@ import {
   GiftInboxList,
 } from '@nimiplatform/kit/features/commerce/ui';
 import { useRealmGiftInbox } from '@nimiplatform/kit/features/commerce/realm';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { useAppStore } from '../../app-shell/providers/app-store';
+import { EntityAvatar } from '../../components/entity-avatar.js';
 import { ScrollArea } from '@nimiplatform/kit/ui';
-import { formatLocaleDate } from '@renderer/i18n';
-import { invalidateNotificationQueries } from '@renderer/features/notification/notification-query.js';
+import { formatLocaleDate } from '../../i18n';
+import { invalidateNotificationQueries } from '../notification/notification-query.js';
 import { useTranslation } from 'react-i18next';
-import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
-import { getDesktopRealmCommerceGiftService } from '@renderer/infra/realm/realm-commerce-service';
+import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import { getDesktopRealmCommerceGiftService } from '../../infra/realm/realm-commerce-service';
 
 function formatGiftDate(input: string | null | undefined): string {
   const value = String(input || '').trim();

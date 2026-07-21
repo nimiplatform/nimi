@@ -1,4 +1,4 @@
-import type { CharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
+import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 
 export type WorldRecommendedCharacterDisplay = {
   readonly role?: string | null;

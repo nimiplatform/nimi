@@ -12,8 +12,8 @@ import {
   isRealmOfflineErrorLike as isRealmOfflineError,
   type JsonObject,
 } from '@nimiplatform/sdk/types';
-import { getOfflineCacheManager } from '@renderer/infra/offline/cache-manager';
-import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
+import { getOfflineCacheManager } from '../../../infra/offline/cache-manager';
+import { getOfflineCoordinator } from '../../../infra/offline/coordinator';
 import {
   fetchPendingFriendRequests,
   loadMergedSocialSnapshot,

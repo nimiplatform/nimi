@@ -23,11 +23,11 @@ import {
   isRealmOfflineErrorLike as isRealmOfflineError,
   type JsonObject,
 } from '@nimiplatform/sdk/types';
-import { getOfflineCacheManager } from '@renderer/infra/offline/cache-manager';
-import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
-import { getOfflineOutboxManager } from '@renderer/infra/offline/outbox-manager';
-import type { PersistentOutboxEntry } from '@renderer/infra/offline/types';
-import { callRealmApi } from '@renderer/infra/realm/realm-api';
+import { getOfflineCacheManager } from '../../../infra/offline/cache-manager';
+import { getOfflineCoordinator } from '../../../infra/offline/coordinator';
+import { getOfflineOutboxManager } from '../../../infra/offline/outbox-manager';
+import type { PersistentOutboxEntry } from '../../../infra/offline/types';
+import { callRealmApi } from '../../../infra/realm/realm-api';
 
 type DesktopChatErrorEmitter = (
   action: string,

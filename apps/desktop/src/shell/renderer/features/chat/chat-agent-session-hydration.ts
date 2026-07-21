@@ -8,7 +8,7 @@ import type {
   AgentLocalThreadBundle,
   AgentLocalThreadRecord,
   AgentLocalThreadSummary,
-} from '@renderer/bridge/runtime-bridge/types';
+} from '../../bridge/runtime-bridge/types';
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';

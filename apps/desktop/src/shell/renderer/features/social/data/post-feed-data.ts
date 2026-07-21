@@ -13,7 +13,7 @@ import {
   type NimiRealmPostFeedInput,
 } from '@nimiplatform/sdk/realm';
 import { isRealmOfflineErrorLike as isRealmOfflineError } from '@nimiplatform/sdk/types';
-import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
+import { getOfflineCoordinator } from '../../../infra/offline/coordinator';
 import {
   filterBlockedPosts,
   isBlockedUser,

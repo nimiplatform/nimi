@@ -5,7 +5,7 @@ import {
   invokeShell,
   toShellBridgeNimiError,
 } from '@nimiplatform/kit/shell/renderer/bridge';
-import { i18n } from '@renderer/i18n';
+import { i18n } from '../../i18n';
 import { emitRendererLog, resolveRendererSessionTraceId, toRendererLogMessage } from '@nimiplatform/kit/telemetry';
 import { parseOptionalJsonObject } from './shared.js';
 import type { JsonObject } from './types';

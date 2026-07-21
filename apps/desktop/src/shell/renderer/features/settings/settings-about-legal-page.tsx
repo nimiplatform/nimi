@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { useAppStore } from '../../app-shell/providers/app-store';
 import {
   Button,
   PageShell,

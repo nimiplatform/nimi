@@ -1,7 +1,8 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { NimiRuntimeHealthCoordinator, type NimiRuntimeHealthCoordinatorState } from '@nimiplatform/sdk/runtime';
 import { type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
-import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
+import type { DesktopRendererLifecyclePort } from '../../renderer/lifecycle-port';
 
 const HEALTH_METADATA = {
   surfaceId: 'runtime.health',
@@ -36,6 +37,36 @@ export type { NimiRuntimeHealthCoordinatorState };
 
 export function getRuntimeHealthCoordinator(): NimiRuntimeHealthCoordinator {
   return runtimeHealthCoordinator;
+}
+
+export function connectRuntimeHealthCoordinator(
+  lifecycle: Pick<DesktopRendererLifecyclePort, 'bootstrap' | 'subscribeBootstrap'>,
+  enabled: boolean,
+): () => void {
+  if (!enabled) {
+    return () => {};
+  }
+  const coordinator = getRuntimeHealthCoordinator();
+  let running = false;
+  const sync = () => {
+    const shouldRun = lifecycle.bootstrap().bootstrapReady;
+    if (shouldRun === running) return;
+    running = shouldRun;
+    if (running) {
+      coordinator.start();
+    } else {
+      coordinator.stop();
+    }
+  };
+  const unsubscribe = lifecycle.subscribeBootstrap(sync);
+  sync();
+  return () => {
+    unsubscribe();
+    if (running) {
+      running = false;
+      coordinator.stop();
+    }
+  };
 }
 
 export function useRuntimeHealthCoordinatorBootstrap(enabled: boolean): void {

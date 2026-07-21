@@ -5,11 +5,11 @@ import {
 } from '@nimiplatform/sdk/features/generation';
 import {
   desktopRuntimeRouteAccess,
-} from '@renderer/infra/runtime-route-host-access';
+} from '../../infra/runtime-route-host-access';
 import {
   getDesktopAppId,
   getDesktopRuntime,
-} from '@renderer/infra/sdk/desktop-nimi-client-session';
+} from '../../infra/sdk/desktop-nimi-client-session';
 import type {
   AgentRuntimeResolvedBinding,
   ChatAgentTranscribeRuntimeInvokeDeps,

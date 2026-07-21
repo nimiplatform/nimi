@@ -4,7 +4,7 @@ import type {
   AgentLocalThreadBundle,
   AgentLocalThreadRecord,
   AgentLocalThreadSummary,
-} from '@renderer/bridge/runtime-bridge/types';
+} from '../../bridge/runtime-bridge/types';
 import type { AgentConversationSelection } from './chat-shell-types';
 import type { AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
 import type { AgentHostFlowFooterState } from './chat-agent-shell-host-flow';

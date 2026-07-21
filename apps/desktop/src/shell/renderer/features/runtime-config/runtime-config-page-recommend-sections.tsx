@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Popover, PopoverContent, PopoverTrigger, ScrollArea } from '@nimiplatform/kit/ui';
-import { formatRelativeLocaleTime } from '@renderer/i18n';
+import { formatRelativeLocaleTime } from '../../i18n';
 import type {
   NimiRuntimeLocalRecommendationFeedItem,
 } from '@nimiplatform/sdk/runtime';

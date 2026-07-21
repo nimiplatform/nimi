@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Surface, cn } from '@nimiplatform/kit/ui';
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
+import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
+import { SectionTitle } from '../settings/settings-layout-components';
 import { localSpeechReasonSummary } from './runtime-config-model-center-utils';
 import {
   TOKEN_PANEL_CARD,

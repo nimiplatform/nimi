@@ -15,7 +15,7 @@ const STATUS_HOST_PATH = resolve(
 
 test('D-STRM-010: scenario job status host is mounted in the desktop shell', () => {
   const source = readFileSync(MAIN_LAYOUT_PATH, 'utf8');
-  assert.ok(source.includes("import('@renderer/features/turns/scenario-job-status-host')"), 'expected main layout to lazy import scenario job status host');
+  assert.ok(source.includes("import('../../features/turns/scenario-job-status-host')"), 'expected main layout to lazy import scenario job status host');
   assert.ok(source.includes('<ScenarioJobStatusHost />'), 'expected main layout to render scenario job status host');
 });
 

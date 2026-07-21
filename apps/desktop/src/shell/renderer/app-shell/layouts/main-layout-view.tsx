@@ -4,23 +4,23 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { loadNimiRealmNotificationUnreadCount } from '@nimiplatform/sdk/realm';
 import { AnimatePresence, motion } from 'motion/react';
-import { useAppStore, type AppTab, type AuthStatus } from '@renderer/app-shell/providers/app-store';
-import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { useAppStore, type AppTab, type AuthStatus } from '../providers/app-store';
+import { EntityAvatar } from '../../components/entity-avatar.js';
 import { AmbientBackground, ScrollArea, Tooltip } from '@nimiplatform/kit/ui';
-import { StatusBanner } from '@renderer/ui/feedback/status-banner';
+import { StatusBanner } from '../../ui/feedback/status-banner';
 import {
   notificationQueryKeys,
   resolveNotificationIdentityRef,
-} from '@renderer/features/notification/notification-query.js';
+} from '../../features/notification/notification-query.js';
 import type { NimiRealmFeedScope } from '@nimiplatform/sdk/realm';
-import { DEFAULT_HOME_FEED_SCOPE } from '@renderer/features/home/home-feed-controls';
+import { DEFAULT_HOME_FEED_SCOPE } from '../../features/home/home-feed-controls';
 import {
   persistStoredSettingsSelected,
-} from '@renderer/features/settings/settings-storage';
+} from '../../features/settings/settings-storage';
 import {
   isDeveloperModeEnabled,
   subscribeDeveloperMode,
-} from '@renderer/features/developer/developer-mode';
+} from '../../features/developer/developer-mode';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { DesktopReleaseStrip } from './desktop-release-strip';
 import { MainLayoutPanelStack } from './main-layout-panel-stack';
@@ -40,14 +40,14 @@ import {
   DESKTOP_MENU_VARIANTS,
   useDesktopInteractiveMotion,
   useDesktopReducedMotion,
-} from '@renderer/ui/motion/desktop-motion';
+} from '../../ui/motion/desktop-motion';
 import {
   getCoreNavItems,
   getQuickNavItems,
   NavLink,
 } from './navigation-config';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { E2E_IDS } from '../../testability/e2e-ids';
+import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
 
 const DEFAULT_TITLEBAR_TOP_INSET_CLASS = 'top-0';
 const MACOS_TITLEBAR_TOP_INSET_CLASS = 'top-7';

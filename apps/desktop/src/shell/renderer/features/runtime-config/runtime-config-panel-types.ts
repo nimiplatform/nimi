@@ -2,9 +2,9 @@ import type {
   CapabilityV11,
   ProviderStatusV11,
   RuntimeConfigStateV11,
-} from '@renderer/features/runtime-config/runtime-config-state-types';
-import type { RuntimeBridgeDaemonStatus } from '@renderer/bridge';
-import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+} from './runtime-config-state-types';
+import type { RuntimeBridgeDaemonStatus } from '../../bridge';
+import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import type {
   NimiRuntimeLocalAssetKind,
   NimiRuntimeLocalCatalogItemDescriptor,

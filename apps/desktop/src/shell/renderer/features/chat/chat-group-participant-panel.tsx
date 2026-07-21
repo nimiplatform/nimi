@@ -8,11 +8,11 @@ import {
   characterSourceRefKey,
   readCharacterSourceRefV3,
   type CharacterSourceRefV3,
-} from '@renderer/features/realm-source/realm-source-identity.js';
+} from '../realm-source/realm-source-identity.js';
 import {
   fetchLocalAgentList,
   type LocalAgentListItem,
-} from '@renderer/features/agents/local-agent-list-model.js';
+} from '../agents/local-agent-list-model.js';
 import { realmGroupChatData, type GroupSourceParticipantInput } from './data/realm-group-chat-data';
 
 type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;

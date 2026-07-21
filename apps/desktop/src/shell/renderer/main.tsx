@@ -9,9 +9,10 @@ import {
   describeRendererEntryFailureReason,
   ensureNimiShellRuntimeBridgeInstalled,
 } from '@nimiplatform/kit/shell/renderer/bootstrap';
-import bootstrapEntryCopy from '@renderer/locales/en/26-Bootstrap.json';
+import bootstrapEntryCopy from './locales/en/26-Bootstrap.json';
 import entryLogoImage from './assets/logo.png';
-import '@renderer/styles.css';
+import './foundation.css';
+import './styles.css';
 
 const entryModuleLoader = createRendererEntryModuleLoader({
     retryDelaysMs: import.meta.env.DEV ? DEFAULT_DEV_RENDERER_ENTRY_IMPORT_RETRY_DELAYS_MS : [],
@@ -25,29 +26,21 @@ async function preflightRendererAppDependencies(): Promise<void> {
         return;
     }
     await Promise.all([
-      loadEntryModule('entry:app-providers', () => import('@renderer/app-shell/providers/app-providers')),
-      loadEntryModule('entry:app-routes', () => import('@renderer/app-shell/routes/app-routes')),
-      loadEntryModule('entry:app-error-boundary', () => import('@renderer/infra/error-boundary/app-error-boundary')),
+      loadEntryModule('entry:canonical-renderer-factory', () => import('./renderer/factory')),
+      loadEntryModule('entry:production-renderer-host', () => import('./renderer/production-host')),
+      loadEntryModule('entry:production-renderer-bindings', () => import('./renderer/production-bindings')),
       loadEntryModule('entry:sdk-ai', () => import('@nimiplatform/sdk/ai')),
       loadEntryModule('entry:renderer-log', () => import('@nimiplatform/kit/telemetry')),
-      loadEntryModule('entry:menu-bar-navigation-listener', () => import('@renderer/infra/menu-bar/menu-bar-navigation-listener')),
-      loadEntryModule('entry:menu-bar-runtime-sync', () => import('@renderer/infra/menu-bar/menu-bar-runtime-sync')),
-      loadEntryModule('entry:desktop-updates', () => import('@renderer/infra/bootstrap/desktop-updates')),
-      loadEntryModule('entry:desktop-macos-smoke', () => import('@renderer/infra/bootstrap/desktop-macos-smoke')),
-      loadEntryModule('entry:runtime-health-coordinator', () => import('@renderer/features/runtime-config/runtime-health-coordinator')),
     ]);
 }
 
 // The standard shell host hook is an entry preflight: App must never mount
 // before the host invoke/listen surface exists. Other runtime modules still
 // resolve with the lazy App chunk before App makes product bridge calls.
-const runtimeReady = Promise.all([
-    ensureNimiShellRuntimeBridgeInstalled({
-      reportStage: pingSmokeAsync,
-      setTimeout: window.setTimeout.bind(window),
-    }),
-    loadEntryModule('entry:i18n', () => import('@renderer/i18n')),
-]).then(([, i18nMod]) => i18nMod);
+const runtimeReady = ensureNimiShellRuntimeBridgeInstalled({
+    reportStage: pingSmokeAsync,
+    setTimeout: window.setTimeout.bind(window),
+});
 const entryBootCopy = bootstrapEntryCopy as {
     initializingRuntime: string;
     initializingRuntimeDescription: string;
@@ -115,10 +108,9 @@ const App = lazy(async () => {
     try {
         const appPromise = (async () => {
             await preflightRendererAppDependencies();
-            return loadEntryModule('entry:renderer-app', () => import('@renderer/App'));
+            return loadEntryModule('entry:renderer-app', () => import('./App'));
         })();
-        const i18nMod = await runtimeReady;
-        await i18nMod.initI18n();
+        await runtimeReady;
         const mod = await appPromise;
         return { default: mod.default };
     } catch (error) {

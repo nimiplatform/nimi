@@ -1,6 +1,6 @@
 import type {
   AgentLocalMessageRecord,
-} from '@renderer/bridge/runtime-bridge/types';
+} from '../../bridge/runtime-bridge/types';
 import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
 import { RUNTIME_AGENT_CHAT_MODE_ID } from './chat-agent-runtime-mode';
 

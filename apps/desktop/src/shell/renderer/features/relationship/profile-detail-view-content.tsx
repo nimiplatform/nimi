@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { ScrollArea, Tooltip } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
-import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import { formatProfileDate } from '@renderer/features/profile/profile-model';
+import { EntityAvatar } from '../../components/entity-avatar.js';
+import { E2E_IDS } from '../../testability/e2e-ids';
+import { formatProfileDate } from '../profile/profile-model';
 import {
   ArrowUpIcon,
   CalendarIcon,

@@ -1,5 +1,5 @@
 import type { CharacterSourceState } from './character-source-materialization';
-import type { CharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
+import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 export { PersonaSourceCard } from './explore-persona-source-card';
 export { toSafeBackgroundImage } from './explore-background-image';
 export type ExplorePersonaSourceCardData = {

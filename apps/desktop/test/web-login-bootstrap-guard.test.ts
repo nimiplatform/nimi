@@ -3,17 +3,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-const appSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/App.tsx'),
+const productionBindingsSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/renderer/production-bindings.ts'),
   'utf8',
 );
 
 test('web login shell does not start runtime health coordinator before a platform client exists', () => {
-  assert.match(appSource, /const shellMode = getShellFeatureFlags\(\)\.mode;/);
   assert.match(
-    appSource,
-    /const runtimeHealthBootstrapEnabled = shellMode === 'desktop' && bootstrapReady(?: && !standaloneWorldTour)?;/,
+    productionBindingsSource,
+    /connectRuntimeHealthCoordinator\(\s*lifecycle,\s*getShellFeatureFlags\(\)\.mode === 'desktop',\s*\)/s,
   );
-  assert.match(appSource, /useRuntimeHealthCoordinatorBootstrap\(runtimeHealthBootstrapEnabled\);/);
-  assert.doesNotMatch(appSource, /useRuntimeHealthCoordinatorBootstrap\(bootstrapReady\);/);
+  assert.doesNotMatch(productionBindingsSource, /connectRuntimeHealthCoordinator\(lifecycle, true\)/);
 });

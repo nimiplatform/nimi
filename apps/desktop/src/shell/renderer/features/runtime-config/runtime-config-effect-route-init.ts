@@ -2,8 +2,8 @@ import { useEffect, type Dispatch, type SetStateAction } from 'react';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
   type RuntimeConfigStateV11,
-} from '@renderer/features/runtime-config/runtime-config-state-types';
-import { setInitializedByV11 } from '@renderer/features/runtime-config/runtime-config-storage-persist';
+} from './runtime-config-state-types';
+import { setInitializedByV11 } from './runtime-config-storage-persist';
 
 type RouteInitEffectInput = {
   state: RuntimeConfigStateV11 | null;

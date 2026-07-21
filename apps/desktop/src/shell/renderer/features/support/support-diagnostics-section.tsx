@@ -13,7 +13,7 @@ import {
   desktopBridge,
   type RuntimeBridgeDaemonStatus,
   type SystemResourceSnapshot,
-} from '@renderer/bridge';
+} from '../../bridge';
 import { useTypedProjection as useSupportProjection } from '@nimiplatform/kit/ui';
 import {
   SupportCard,

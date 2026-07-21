@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Surface } from '@nimiplatform/kit/ui';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { E2E_IDS } from '../../testability/e2e-ids';
 
 // Canonical Explore section catalog. Fact source:
 // .nimi/spec/desktop/kernel/tables/explore-sections.yaml (D-EXPL-002).

@@ -9,8 +9,8 @@ import {
   getNimiRuntimeRouteCapabilityProjectionIssueKind,
   isNimiRuntimeRouteCapabilityProjectionReady,
 } from '@nimiplatform/sdk/runtime';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
+import { useAppStore } from '../../app-shell/providers/app-store';
+import { getDesktopAIConfigService } from '../../app-shell/providers/desktop-ai-config-service';
 import { dispatchRuntimeConfigOpenPage } from '../runtime-config/runtime-config-navigation-events';
 import {
   ensureAccountProfileLibraryLoaded,

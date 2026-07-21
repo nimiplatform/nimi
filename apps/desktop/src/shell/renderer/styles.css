@@ -1,10 +1,4 @@
-@import "@nimiplatform/kit/ui/styles.css";
-@import "@nimiplatform/kit/ui/themes/light.css";
-@import "@nimiplatform/kit/ui/themes/dark.css";
-@import "@nimiplatform/kit/ui/themes/nimi-accent.css";
-@import "@nimiplatform/kit/ui/themes/nimi-density-compact.css";
-@import "tailwindcss";
-
+@scope (.nimi-ui-module--desktop) {
 /* Kicker + ghost pill utilities lifted from the handoff design system. */
 .desktop-kicker-tiny {
   font-family: var(--nimi-font-mono);
@@ -100,6 +94,7 @@
   height: 0 !important;
   background: transparent !important;
 }
+}
 
 /* ---- Custom utilities ---- */
 
@@ -111,14 +106,15 @@
   );
 }
 
+@scope (.nimi-ui-module--desktop) {
 /* ---- Chrome-style tab primitive ---- */
 
 .chrome-tab {
-  --tab-bg: rgba(255, 255, 255, 0.24);
-  --tab-hover-bg: rgba(255, 255, 255, 0.38);
-  --tab-active-bg: color-mix(in srgb, var(--nimi-action-primary-bg) 12%, white);
-  --tab-color: var(--nimi-text-secondary);
-  --tab-active-color: var(--nimi-text-primary);
+  --nimi-ui-module-desktop-tab-bg: rgba(255, 255, 255, 0.24);
+  --nimi-ui-module-desktop-tab-hover-bg: rgba(255, 255, 255, 0.38);
+  --nimi-ui-module-desktop-tab-active-bg: color-mix(in srgb, var(--nimi-action-primary-bg) 12%, white);
+  --nimi-ui-module-desktop-tab-color: var(--nimi-text-secondary);
+  --nimi-ui-module-desktop-tab-active-color: var(--nimi-text-primary);
   position: relative;
   display: inline-flex;
   align-items: flex-end;
@@ -137,8 +133,8 @@
   gap: 8px;
   height: 34px;
   padding: 0 14px 0 22px;
-  background: var(--tab-bg);
-  color: var(--tab-color);
+  background: var(--nimi-ui-module-desktop-tab-bg);
+  color: var(--nimi-ui-module-desktop-tab-color);
   border: 1px solid rgba(255, 255, 255, 0.45);
   border-radius: 999px;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
@@ -146,15 +142,15 @@
 }
 
 .chrome-tab:hover .chrome-tab__body {
-  background: var(--tab-hover-bg);
+  background: var(--nimi-ui-module-desktop-tab-hover-bg);
   border-color: rgba(255, 255, 255, 0.58);
   padding-right: 32px;
 }
 
 .chrome-tab.active .chrome-tab__body {
-  background: var(--tab-active-bg);
+  background: var(--nimi-ui-module-desktop-tab-active-bg);
   border-color: color-mix(in srgb, var(--nimi-action-primary-bg) 22%, white);
-  color: var(--tab-active-color);
+  color: var(--nimi-ui-module-desktop-tab-active-color);
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
 }
 
@@ -218,14 +214,15 @@
   border-radius: 50%;
   background: var(--nimi-action-primary-bg);
   box-shadow: 0 0 0 0 color-mix(in srgb, var(--nimi-action-primary-bg) 45%, transparent);
-  animation: desktop-world-pulse-ring 2.4s ease-out infinite;
+  animation: nimi-ui-module-desktop-world-pulse-ring 2.4s ease-out infinite;
   flex-shrink: 0;
 }
-@keyframes desktop-world-pulse-ring {
+}
+@keyframes nimi-ui-module-desktop-world-pulse-ring {
   0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--nimi-action-primary-bg) 45%, transparent); }
   80% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--nimi-action-primary-bg) 0%, transparent); }
   100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--nimi-action-primary-bg) 0%, transparent); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .desktop-world-pulse-dot { animation: none; }
+  .nimi-ui-module--desktop .desktop-world-pulse-dot { animation: none; }
 }

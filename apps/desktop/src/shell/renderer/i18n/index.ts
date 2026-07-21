@@ -39,6 +39,7 @@ function readStoredLocale(): SupportedLocale {
 export const productionDesktopI18n = createDesktopI18n({
   initialLocale: readStoredLocale(),
   development: Boolean((import.meta as { env?: { DEV?: boolean } }).env?.DEV),
+  now: Date.now,
   persistLocale(locale) {
     writeStorageTextTo(
       resolveBrowserStorage('local'),

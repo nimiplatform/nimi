@@ -10,7 +10,7 @@
  */
 
 import { useTranslation } from 'react-i18next';
-import { desktopBridge, type NimiProductControlRecordProjection } from '@renderer/bridge';
+import { desktopBridge, type NimiProductControlRecordProjection } from '../../bridge';
 import { useTypedProjection as useSupportProjection } from '@nimiplatform/kit/ui';
 import {
   NIMI_PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY,

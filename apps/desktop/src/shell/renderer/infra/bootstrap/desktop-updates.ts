@@ -1,14 +1,12 @@
-import { useEffect, useRef } from 'react';
-import { desktopBridge, type DesktopReleaseInfo } from '@renderer/bridge';
-import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { i18n } from '@renderer/i18n';
+import { useEffect } from 'react';
+import { desktopBridge, type DesktopReleaseInfo } from '../../bridge';
 import {
   loadStoredPerformancePreferences,
   subscribeStoredPerformancePreferences,
   type PerformancePreferences,
-} from '@renderer/features/settings/settings-storage';
+} from '../../features/settings/settings-storage';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
+import type { DesktopRendererLifecyclePort } from '../../renderer/lifecycle-port';
 
 const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const IDLE_CHECK_TIMEOUT_MS = 2_000;
@@ -19,6 +17,18 @@ type IdleSchedulerWindow = Window & {
   requestIdleCallback?: (callback: (deadline: IdleDeadlineLike) => void, options?: { timeout: number }) => RequestIdleCallbackHandle;
   cancelIdleCallback?: (handle: RequestIdleCallbackHandle) => void;
 };
+
+type DesktopUpdatesPort = Pick<
+  DesktopRendererLifecyclePort,
+  | 'bootstrap'
+  | 'desktopReleaseInfo'
+  | 'setDesktopReleaseError'
+  | 'setDesktopReleaseInfo'
+  | 'setDesktopUpdateState'
+  | 'setStatusBanner'
+  | 'subscribeBootstrap'
+  | 'translate'
+>;
 
 export function shouldRunAutomaticUpdateCheck(
   preferences: PerformancePreferences,
@@ -56,74 +66,78 @@ export function isDesktopUpdaterAvailable(releaseInfo: DesktopReleaseInfo | null
   return releaseInfo?.updaterAvailable === true;
 }
 
-function resolveUpdaterUnavailableMessage(releaseInfo: DesktopReleaseInfo | null | undefined): string {
+function resolveUpdaterUnavailableMessage(
+  port: DesktopUpdatesPort,
+  releaseInfo: DesktopReleaseInfo | null | undefined,
+): string {
   const message = String(releaseInfo?.updaterUnavailableReason || '').trim();
   if (message) {
     return message;
   }
-  return i18n.t('Performance.updateUnavailable', {
+  return port.translate('Performance.updateUnavailable', {
     defaultValue: 'Desktop updates are unavailable in the current environment.',
   });
 }
 
 function publishUpdaterUnavailableBanner(
+  port: DesktopUpdatesPort,
   releaseInfo: DesktopReleaseInfo | null | undefined,
   silent: boolean | undefined,
 ): void {
   if (silent) {
     return;
   }
-  productionAppStore.getState().setStatusBanner({
+  port.setStatusBanner({
     kind: 'warning',
-    message: resolveUpdaterUnavailableMessage(releaseInfo),
+    message: resolveUpdaterUnavailableMessage(port, releaseInfo),
   });
 }
 
-async function syncDesktopReleaseInfo(): Promise<DesktopReleaseInfo | null> {
+async function syncDesktopReleaseInfo(port: DesktopUpdatesPort): Promise<DesktopReleaseInfo | null> {
   if (!desktopBridge.hasTauriInvoke()) {
     return null;
   }
   try {
     const releaseInfo = await desktopBridge.getDesktopReleaseInfo();
-    productionAppStore.getState().setDesktopReleaseInfo(releaseInfo);
-    productionAppStore.getState().setDesktopReleaseError(null);
+    port.setDesktopReleaseInfo(releaseInfo);
+    port.setDesktopReleaseError(null);
     return releaseInfo;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error || 'desktop release metadata unavailable');
-    productionAppStore.getState().setDesktopReleaseInfo(null);
-    productionAppStore.getState().setDesktopReleaseError(message);
+    port.setDesktopReleaseInfo(null);
+    port.setDesktopReleaseError(message);
     throw error;
   }
 }
 
-async function syncDesktopUpdateState(): Promise<void> {
+async function syncDesktopUpdateState(port: DesktopUpdatesPort): Promise<void> {
   if (!desktopBridge.hasTauriInvoke()) {
     return;
   }
   try {
     const updateState = await desktopBridge.getDesktopUpdateState();
-    productionAppStore.getState().setDesktopUpdateState(updateState);
+    port.setDesktopUpdateState(updateState);
   } catch {
-    productionAppStore.getState().setDesktopUpdateState(null);
+    port.setDesktopUpdateState(null);
     throw new Error('desktop update state unavailable');
   }
 }
 
-function publishReadyBanner(targetVersion: string): void {
-  productionAppStore.getState().setStatusBanner({
+function publishReadyBanner(port: DesktopUpdatesPort, targetVersion: string): void {
+  port.setStatusBanner({
     kind: 'warning',
-    message: i18n.t('Performance.updateReadyBanner', {
+    message: port.translate('Performance.updateReadyBanner', {
       version: targetVersion,
       defaultValue: `Nimi v${targetVersion} is ready. Restart to finish updating.`,
     }),
-    actionLabel: i18n.t('Performance.restartNow', { defaultValue: 'Restart now' }),
+    actionLabel: port.translate('Performance.restartNow', { defaultValue: 'Restart now' }),
     onAction: () => {
       void runDesktopUpdateRestart();
     },
   });
 }
 
-export async function runDesktopUpdateCheck(input: {
+export async function runDesktopUpdateCheck(port: DesktopUpdatesPort, input: {
   autoDownload?: boolean;
   silent?: boolean;
 } = {}): Promise<void> {
@@ -131,18 +145,18 @@ export async function runDesktopUpdateCheck(input: {
     return;
   }
   try {
-    const releaseInfo = await syncDesktopReleaseInfo();
+    const releaseInfo = await syncDesktopReleaseInfo(port);
     if (!isDesktopUpdaterAvailable(releaseInfo)) {
-      publishUpdaterUnavailableBanner(releaseInfo, input.silent);
+      publishUpdaterUnavailableBanner(port, releaseInfo, input.silent);
       return;
     }
     const checkResult = await desktopBridge.desktopUpdateCheck();
-    await syncDesktopUpdateState();
+    await syncDesktopUpdateState(port);
     if (!checkResult.available) {
       if (!input.silent) {
-        productionAppStore.getState().setStatusBanner({
+        port.setStatusBanner({
           kind: 'info',
-          message: i18n.t('Performance.updateCheckUpToDate', {
+          message: port.translate('Performance.updateCheckUpToDate', {
             defaultValue: 'Nimi is already up to date.',
           }),
         });
@@ -150,13 +164,13 @@ export async function runDesktopUpdateCheck(input: {
       return;
     }
     if (input.autoDownload) {
-      await runDesktopUpdateInstall({ silent: input.silent !== false });
+      await runDesktopUpdateInstall(port, { silent: input.silent !== false });
       return;
     }
     if (!input.silent && checkResult.targetVersion) {
-      productionAppStore.getState().setStatusBanner({
+      port.setStatusBanner({
         kind: 'info',
-        message: i18n.t('Performance.updateCheckAvailable', {
+        message: port.translate('Performance.updateCheckAvailable', {
           version: checkResult.targetVersion,
           defaultValue: `Update available: v${checkResult.targetVersion}`,
         }),
@@ -171,12 +185,12 @@ export async function runDesktopUpdateCheck(input: {
       details: { error: message },
     });
     try {
-      await syncDesktopUpdateState();
+      await syncDesktopUpdateState(port);
     } catch {
       // release metadata failure already surfaced separately
     }
     if (!input.silent) {
-      productionAppStore.getState().setStatusBanner({
+      port.setStatusBanner({
         kind: 'warning',
         message,
       });
@@ -184,16 +198,16 @@ export async function runDesktopUpdateCheck(input: {
   }
 }
 
-export async function runDesktopUpdateInstall(input: {
+export async function runDesktopUpdateInstall(port: DesktopUpdatesPort, input: {
   silent?: boolean;
 } = {}): Promise<void> {
   if (!desktopBridge.hasTauriInvoke()) {
     return;
   }
   try {
-    const releaseInfo = await syncDesktopReleaseInfo();
+    const releaseInfo = await syncDesktopReleaseInfo(port);
     if (!isDesktopUpdaterAvailable(releaseInfo)) {
-      publishUpdaterUnavailableBanner(releaseInfo, input.silent);
+      publishUpdaterUnavailableBanner(port, releaseInfo, input.silent);
       return;
     }
     const existingState = await desktopBridge.getDesktopUpdateState().catch(() => null);
@@ -202,15 +216,15 @@ export async function runDesktopUpdateInstall(input: {
     }
     await desktopBridge.desktopUpdateInstall();
     const updateState = await desktopBridge.getDesktopUpdateState();
-    productionAppStore.getState().setDesktopUpdateState(updateState);
+    port.setDesktopUpdateState(updateState);
     if (updateState.readyToRestart && updateState.targetVersion) {
-      publishReadyBanner(updateState.targetVersion);
+      publishReadyBanner(port, updateState.targetVersion);
       return;
     }
     if (!input.silent) {
-      productionAppStore.getState().setStatusBanner({
+      port.setStatusBanner({
         kind: 'success',
-        message: i18n.t('Performance.updateDownloadedSuccess', {
+        message: port.translate('Performance.updateDownloadedSuccess', {
           defaultValue: 'Update downloaded successfully.',
         }),
       });
@@ -224,12 +238,12 @@ export async function runDesktopUpdateInstall(input: {
       details: { error: message },
     });
     try {
-      await syncDesktopUpdateState();
+      await syncDesktopUpdateState(port);
     } catch {
       // release metadata failure already surfaced separately
     }
     if (!input.silent) {
-      productionAppStore.getState().setStatusBanner({
+      port.setStatusBanner({
         kind: 'warning',
         message,
       });
@@ -244,111 +258,92 @@ export async function runDesktopUpdateRestart(): Promise<void> {
   await desktopBridge.desktopUpdateRestart();
 }
 
-export function useDesktopUpdatesBootstrap(bootstrapReady: boolean) {
-  const setDesktopUpdateState = useAppStore((state) => state.setDesktopUpdateState);
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
-  const readyBannerVersionRef = useRef<string>('');
-  const lastErrorRef = useRef<string>('');
+export function connectDesktopUpdates(port: DesktopUpdatesPort): () => void {
+  if (!desktopBridge.hasTauriInvoke()) return () => {};
+  let active = true;
+  let unsubscribeUpdateState: (() => void) | undefined;
+  let readyBannerVersion = '';
+  let lastError = '';
+  let cancelIdle = () => {};
+  let preferences = currentPerformancePreferences();
 
-  useEffect(() => {
-    if (!desktopBridge.hasTauriInvoke()) {
-      return undefined;
+  const triggerAutomaticCheck = () => {
+    const updaterAvailable = isDesktopUpdaterAvailable(port.desktopReleaseInfo());
+    if (
+      !active
+      || !port.bootstrap().bootstrapReady
+      || !shouldRunAutomaticUpdateCheck(preferences, currentVisibilityState(), updaterAvailable)
+    ) return;
+    cancelIdle();
+    cancelIdle = scheduleIdleCheck(() => {
+      const latestUpdaterAvailable = isDesktopUpdaterAvailable(port.desktopReleaseInfo());
+      if (
+        !active
+        || !port.bootstrap().bootstrapReady
+        || !shouldRunAutomaticUpdateCheck(preferences, currentVisibilityState(), latestUpdaterAvailable)
+      ) return;
+      void runDesktopUpdateCheck(port, { autoDownload: true, silent: true });
+    });
+  };
+
+  void syncDesktopReleaseInfo(port).catch((error) => {
+    if (!active) return;
+    port.setStatusBanner({
+      kind: 'warning',
+      message: error instanceof Error
+        ? error.message
+        : String(error || 'desktop release metadata unavailable'),
+    });
+  });
+  void syncDesktopUpdateState(port).catch(() => {
+    // Release metadata failure is surfaced separately.
+  });
+  void desktopBridge.subscribeDesktopUpdateState((state) => {
+    if (!active) return;
+    port.setDesktopUpdateState(state);
+    if (state.readyToRestart && state.targetVersion && readyBannerVersion !== state.targetVersion) {
+      readyBannerVersion = state.targetVersion;
+      publishReadyBanner(port, state.targetVersion);
     }
-
-    let active = true;
-    let unsubscribe: (() => void) | undefined;
-
-    void syncDesktopReleaseInfo().catch((error) => {
-      if (!active) {
-        return;
-      }
-      const message = error instanceof Error ? error.message : String(error || 'desktop release metadata unavailable');
-      setStatusBanner({
-        kind: 'warning',
-        message,
-      });
-    });
-    void syncDesktopUpdateState().catch(() => {
-      // release metadata failure already surfaced separately
-    });
-    void desktopBridge.subscribeDesktopUpdateState((state) => {
-      if (!active) {
-        return;
-      }
-      setDesktopUpdateState(state);
-      if (state.readyToRestart && state.targetVersion && readyBannerVersionRef.current !== state.targetVersion) {
-        readyBannerVersionRef.current = state.targetVersion;
-        publishReadyBanner(state.targetVersion);
-      }
-      if (state.status === 'error' && state.lastError && lastErrorRef.current !== state.lastError) {
-        lastErrorRef.current = state.lastError;
-        setStatusBanner({
-          kind: 'warning',
-          message: state.lastError,
-        });
-      }
-    }).then((nextUnsubscribe) => {
-      unsubscribe = nextUnsubscribe;
-    });
-
-    return () => {
-      active = false;
-      unsubscribe?.();
-    };
-  }, [setDesktopUpdateState, setStatusBanner]);
-
-  useEffect(() => {
-    if (!bootstrapReady || !desktopBridge.hasTauriInvoke()) {
-      return undefined;
+    if (state.status === 'error' && state.lastError && lastError !== state.lastError) {
+      lastError = state.lastError;
+      port.setStatusBanner({ kind: 'warning', message: state.lastError });
     }
-    let cancelled = false;
-    let cancelIdle = () => {};
-    let preferences = currentPerformancePreferences();
+  }).then((unsubscribe) => {
+    if (!active) {
+      unsubscribe();
+      return;
+    }
+    unsubscribeUpdateState = unsubscribe;
+  });
 
-    const triggerAutomaticCheck = () => {
-      const updaterAvailable = isDesktopUpdaterAvailable(productionAppStore.getState().desktopReleaseInfo);
-      if (cancelled || !shouldRunAutomaticUpdateCheck(preferences, currentVisibilityState(), updaterAvailable)) {
-        return;
-      }
+  const unsubscribeBootstrap = port.subscribeBootstrap(triggerAutomaticCheck);
+  const unsubscribePreferences = subscribeStoredPerformancePreferences((nextPreferences) => {
+    preferences = nextPreferences;
+    if (!preferences.autoUpdate) {
       cancelIdle();
-      cancelIdle = scheduleIdleCheck(() => {
-        const latestUpdaterAvailable = isDesktopUpdaterAvailable(productionAppStore.getState().desktopReleaseInfo);
-        if (cancelled || !shouldRunAutomaticUpdateCheck(preferences, currentVisibilityState(), latestUpdaterAvailable)) {
-          return;
-        }
-        void runDesktopUpdateCheck({
-          autoDownload: true,
-          silent: true,
-        });
-      });
-    };
-
-    const unsubscribePreferences = subscribeStoredPerformancePreferences((nextPreferences) => {
-      preferences = nextPreferences;
-      if (!preferences.autoUpdate) {
-        cancelIdle();
-        return;
-      }
-      triggerAutomaticCheck();
-    });
-
-    const onVisibilityChange = () => {
-      if (currentVisibilityState() === 'visible') {
-        triggerAutomaticCheck();
-      }
-    };
-
-    globalThis.document?.addEventListener?.('visibilitychange', onVisibilityChange);
+      return;
+    }
     triggerAutomaticCheck();
-    const timer = setInterval(() => {
-      triggerAutomaticCheck();
-    }, UPDATE_CHECK_INTERVAL_MS);
-    return () => {
-      cancelled = true;
-      cancelIdle();
-      unsubscribePreferences();
-      globalThis.document?.removeEventListener?.('visibilitychange', onVisibilityChange);
-      clearInterval(timer);
-    };
-  }, [bootstrapReady]);
+  });
+  const onVisibilityChange = () => {
+    if (currentVisibilityState() === 'visible') triggerAutomaticCheck();
+  };
+  globalThis.document?.addEventListener?.('visibilitychange', onVisibilityChange);
+  triggerAutomaticCheck();
+  const timer = setInterval(triggerAutomaticCheck, UPDATE_CHECK_INTERVAL_MS);
+
+  return () => {
+    active = false;
+    cancelIdle();
+    unsubscribeUpdateState?.();
+    unsubscribeBootstrap();
+    unsubscribePreferences();
+    globalThis.document?.removeEventListener?.('visibilitychange', onVisibilityChange);
+    clearInterval(timer);
+  };
+}
+
+export function useDesktopUpdatesBootstrap(port: DesktopUpdatesPort) {
+  useEffect(() => connectDesktopUpdates(port), [port]);
 }

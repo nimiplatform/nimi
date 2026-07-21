@@ -1,6 +1,6 @@
 import { useEffect, type Dispatch, type SetStateAction } from 'react';
-import type { StatusBanner } from '@renderer/app-shell/providers/app-store';
-import { i18n } from '@renderer/i18n';
+import type { StatusBanner } from '../../app-shell/providers/app-store';
+import { i18n } from '../../i18n';
 import {
   readStorageTextFrom,
   resolveBrowserStorage,
@@ -9,9 +9,9 @@ import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/teleme
 import {
   RUNTIME_CONFIG_STORAGE_KEY_V11,
   RUNTIME_CONFIG_STORAGE_KEY_V12,
-} from '@renderer/features/runtime-config/runtime-config-storage-defaults';
-import { loadRuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-storage-persist';
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+} from './runtime-config-storage-defaults';
+import { loadRuntimeConfigStateV11 } from './runtime-config-storage-persist';
+import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import {
   markRuntimeConfigV11ResetLogged,
   wasRuntimeConfigV11ResetLogged,

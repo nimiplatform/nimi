@@ -1,7 +1,7 @@
 import { createNimiRuntimeAgentConsumeClient } from '@nimiplatform/sdk/runtime';
-import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
-import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
-import { getDesktopAppId, getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { productionAppStore } from '../../app-shell/providers/production-app-store';
+import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
+import { getDesktopAppId, getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
 import { normalizeText } from './chat-agent-shell-core';
 
 function requireRuntimeSubjectUserId(): string {

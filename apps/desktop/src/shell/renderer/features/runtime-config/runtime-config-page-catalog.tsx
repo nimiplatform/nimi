@@ -18,7 +18,7 @@ import {
   type NimiRuntimeCatalogWorkflowModel,
   type NimiRuntimeModelCatalogProvider,
 } from './runtime-config-catalog-sdk-service';
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import type { JsonObject } from '@nimiplatform/sdk/types';
 

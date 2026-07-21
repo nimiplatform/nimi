@@ -9,7 +9,7 @@ import {
   isNimiProductControlPhaseTransient,
   projectNimiProductControlFirstRunScreen,
 } from '@nimiplatform/sdk/runtime';
-import { desktopBridge, type NimiProductControlRecordProjection, type NimiProductControlState } from '@renderer/bridge';
+import { desktopBridge, type NimiProductControlRecordProjection, type NimiProductControlState } from '../bridge';
 import {
   cancelDesktopNimiFirstRunMaterializationJob,
   repairDesktopNimiFirstRunMaterializationDependency,

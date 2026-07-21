@@ -5,9 +5,9 @@ import {
 } from '@nimiplatform/kit/features/commerce/realm';
 import '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
-import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { getDesktopRealmCommerceGiftService } from '@renderer/infra/realm/realm-commerce-service';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { EntityAvatar } from '../../components/entity-avatar.js';
+import { getDesktopRealmCommerceGiftService } from '../../infra/realm/realm-commerce-service';
+import { E2E_IDS } from '../../testability/e2e-ids';
 
 type SendGiftModalProps = {
   open: boolean;

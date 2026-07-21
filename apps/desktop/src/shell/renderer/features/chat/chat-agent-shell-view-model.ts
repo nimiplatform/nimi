@@ -6,7 +6,7 @@ import type {
 import type {
   AgentLocalTargetSnapshot,
   AgentLocalThreadSummary,
-} from '@renderer/bridge/runtime-bridge/types';
+} from '../../bridge/runtime-bridge/types';
 import type { AgentRuntimeConversationSummary } from './chat-agent-runtime-conversation-summaries';
 
 function toIsoStringFromMs(value: number): string | null {

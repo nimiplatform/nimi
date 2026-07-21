@@ -5,18 +5,19 @@ import type { AuthPlatformAdapter } from '@nimiplatform/kit/auth/shell';
 import type { ShellOAuthBridge } from '@nimiplatform/kit/core/oauth';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { createNimiDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
-import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
+import { productionAppStore } from '../../app-shell/providers/production-app-store';
 import {
   initializeBuiltInChatScopesFromProductControl,
-} from '@renderer/app-shell/providers/desktop-ai-config-service';
-import { desktopBridge } from '@renderer/bridge';
+} from '../../app-shell/providers/desktop-ai-config-service';
+import { desktopBridge } from '../../bridge';
 import {
   refreshConversationCapabilityProjections,
-} from '@renderer/features/chat/conversation-capability-projection';
-import { bootstrapRuntime } from '@renderer/infra/bootstrap/runtime-bootstrap';
-import { applyRuntimeAccountStatusProjection } from '@renderer/infra/bootstrap/auth-state-watcher';
-import { getDesktopAccountRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
-import { productionQueryClient } from '@renderer/infra/query-client/production-query-client';
+} from '../chat/conversation-capability-projection';
+import { bootstrapRuntime } from '../../infra/bootstrap/runtime-bootstrap';
+import { applyRuntimeAccountStatusProjection } from '../../infra/bootstrap/auth-state-watcher';
+import { getDesktopAccountRuntime } from '../../infra/sdk/desktop-nimi-client-session';
+import { productionQueryClient } from '../../infra/query-client/production-query-client';
+import { productionRendererLifecyclePort } from '../../renderer/production-lifecycle-port';
 
 export const desktopOAuthBridge: ShellOAuthBridge = {
   hasShellHostInvoke: () => desktopBridge.hasShellHostInvoke(),
@@ -32,7 +33,7 @@ const desktopRuntimeAccountCaller = createNimiDesktopShellRuntimeAccountCaller({
 
 async function loadDesktopRuntimeAccountUser(): Promise<Record<string, unknown> | null> {
   const response = await desktopBridge.getRuntimeAccountSessionStatus();
-  applyRuntimeAccountStatusProjection(response);
+  applyRuntimeAccountStatusProjection(response, productionRendererLifecyclePort);
   const projection = response.accountProjection;
   if (response.state !== 'authenticated' || !projection?.accountId) {
     return null;
@@ -102,7 +103,7 @@ function logDesktopPostLoginSyncFailures(results: readonly PromiseSettledResult<
 }
 
 export async function ensureAuthApiReady(): Promise<void> {
-  await bootstrapRuntime();
+  await bootstrapRuntime(productionRendererLifecyclePort);
 }
 
 function runtimeAccountOwned(route: string): never {

@@ -59,7 +59,7 @@ const CHAT_NIMI_PRESENTATION_SOURCE = readFileSync(
 test('default desktop route keeps the main layout behind a lazy startup boundary', () => {
   assert.match(
     APP_ROUTES_SOURCE,
-    /const MainLayout = lazy\(async \(\) => \{\s*const mod = await import\('@renderer\/app-shell\/layouts\/main-layout'\)/s,
+    /const MainLayout = lazy\(async \(\) => \{\s*const mod = await import\('\.\.\/layouts\/main-layout'\)/s,
   );
   assert.doesNotMatch(APP_ROUTES_SOURCE, /import \{ MainLayout \} from '@renderer\/app-shell\/layouts\/main-layout'/);
 });
@@ -67,7 +67,7 @@ test('default desktop route keeps the main layout behind a lazy startup boundary
 test('default chat route stays behind a second-stage lazy module during desktop startup', () => {
   assert.match(
     MAIN_LAYOUT_PANEL_STACK_SOURCE,
-    /const ChatPage = lazy\(async \(\) => \{\s*const mod = await import\('@renderer\/features\/chat\/chat-page'\)/s,
+    /const ChatPage = lazy\(async \(\) => \{\s*const mod = await import\('\.\.\/\.\.\/features\/chat\/chat-page'\)/s,
   );
   assert.doesNotMatch(MAIN_LAYOUT_PANEL_STACK_SOURCE, /import \{ ChatPage \} from '@renderer\/features\/chat\/chat-page'/);
 });

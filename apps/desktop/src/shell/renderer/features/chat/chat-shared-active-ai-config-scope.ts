@@ -3,8 +3,8 @@ import {
   type NimiAIScopeRef,
 } from '@nimiplatform/sdk/ai';
 import type { ConversationMode } from '@nimiplatform/kit/features/chat/headless';
-import { scopeKeyFromRef } from '@renderer/app-shell/providers/desktop-ai-config-storage';
-import { pushDesktopAIConfigToBoundStore } from '@renderer/app-shell/providers/desktop-ai-config-service';
+import { scopeKeyFromRef } from '../../app-shell/providers/desktop-ai-config-storage';
+import { pushDesktopAIConfigToBoundStore } from '../../app-shell/providers/desktop-ai-config-service';
 
 /**
  * Chat consumer-local active scope orchestration.

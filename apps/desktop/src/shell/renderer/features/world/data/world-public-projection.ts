@@ -1,7 +1,7 @@
 import {
   readCharacterSourceRefV3,
   type CharacterSourceRefV3,
-} from '@renderer/features/realm-source/realm-source-identity.js';
+} from '../../realm-source/realm-source-identity.js';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 
 export type WorldPublicItemDto = RealmModel<'WorldPublicItemDto'>;

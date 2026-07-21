@@ -2,7 +2,7 @@ import type {
   AgentLocalMessageRecord,
   AgentLocalThreadRecord,
   AgentLocalThreadSummary,
-} from '@renderer/bridge/runtime-bridge/types';
+} from '../../bridge/runtime-bridge/types';
 import { createNimiClientId } from '@nimiplatform/sdk';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
@@ -29,7 +29,7 @@ import { resolveAgentTurnTotalTimeoutMs } from './chat-agent-timeouts';
 import {
   describeRuntimeAgentTextReadiness,
   isRuntimeAgentTextReadinessReady,
-} from '@renderer/infra/runtime-agent-ai-config';
+} from '../../infra/runtime-agent-ai-config';
 import { buildAgentUserProjection } from './chat-agent-user-projection';
 import {
   assertAgentSubmitSchedulingAllowed,

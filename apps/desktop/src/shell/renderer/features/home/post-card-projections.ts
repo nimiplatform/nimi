@@ -1,8 +1,8 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
-import { i18n } from '@renderer/i18n';
-import type { ProfileDetailSeed } from '@renderer/features/relationship/profile-detail-modal.js';
-import type { EditablePostSeed } from '@renderer/features/profile/create-post-modal-helpers.js';
-import { readCharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
+import { i18n } from '../../i18n';
+import type { ProfileDetailSeed } from '../relationship/profile-detail-modal.js';
+import type { EditablePostSeed } from '../profile/create-post-modal-helpers.js';
+import { readCharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 import {
   normalizeMediaType,
   resolveMediaUrl,

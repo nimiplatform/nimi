@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { useAppStore } from '../../app-shell/providers/app-store';
 import {
   ProfileDetailViewContent,
 } from './profile-detail-view-content.js';

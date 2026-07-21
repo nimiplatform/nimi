@@ -1,6 +1,6 @@
 import { Button, Surface } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
-import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { FILTER_TABS, type NotificationFilterTab } from './notification-panel-types.js';
 
 type NotificationPanelHeaderProps = {

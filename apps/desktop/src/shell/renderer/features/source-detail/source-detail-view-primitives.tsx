@@ -1,4 +1,4 @@
-import { describeCharacterPrimaryAction } from '@renderer/features/explore/character-source-materialization';
+import { describeCharacterPrimaryAction } from '../explore/character-source-materialization';
 
 export function ScoreProgressBar({ score = 0 }: { score?: number }) {
   const percentage = Math.min(100, Math.max(0, score));

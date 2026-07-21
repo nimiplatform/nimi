@@ -3,12 +3,12 @@ import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/ch
 import {
   createNimiRuntimeAgentTurnsModule,
 } from '@nimiplatform/sdk/runtime';
-import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
+import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
 import {
   getDesktopRuntime,
   getDesktopRuntimeAgentTurnsRuntime,
   withDesktopRuntimeProtectedScopes,
-} from '@renderer/infra/sdk/desktop-nimi-client-session';
+} from '../../infra/sdk/desktop-nimi-client-session';
 import type { ReportAgentConversationHostError } from './chat-agent-shell-adapter-host-feedback';
 import {
   resolveAgentManualVoiceRenderRequest,

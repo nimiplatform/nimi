@@ -4,6 +4,7 @@ type LogRendererEvent = (typeof import('@desktop-public/infra'))['logRendererEve
 type DesktopPublicWebBootstrapStore = (typeof import('@desktop-public/app-store'))['desktopPublicWebBootstrapStore'];
 type ConfigureWebRealmPlatformClient = (typeof import('./web-realm-session'))['configureWebRealmPlatformClient'];
 type ClearPersistedAccessToken = (typeof import('@nimiplatform/kit/auth'))['clearPersistedAccessToken'];
+type DesktopRendererLifecyclePort = import('@renderer/renderer/lifecycle-port').DesktopRendererLifecyclePort;
 
 type RuntimeBootstrapWebDeps = {
   desktopBridge: DesktopBridgeFacade;
@@ -84,7 +85,10 @@ export function withTimeout<T>(task: Promise<T>, timeoutMs: number, label: strin
   });
 }
 
-async function configureWebRealmSession(deps: RuntimeBootstrapWebDeps): Promise<void> {
+async function configureWebRealmSession(
+  deps: RuntimeBootstrapWebDeps,
+  lifecycle?: DesktopRendererLifecyclePort,
+): Promise<void> {
   let defaults = deps.bootstrapStore.getRuntimeDefaults();
   if (!defaults?.realm?.realmBaseUrl) {
     defaults = await deps.desktopBridge.getRuntimeDefaults();
@@ -97,20 +101,23 @@ async function configureWebRealmSession(deps: RuntimeBootstrapWebDeps): Promise<
     getCurrentUser: () => deps.bootstrapStore.getCurrentUser(),
     setAuthSession: (user) => {
       deps.bootstrapStore.applyAuthSession(user);
+      lifecycle?.setAuthSession(user);
     },
     clearAuthSession: () => {
       deps.bootstrapStore.applySignedOutAuthSession();
+      lifecycle?.clearAuthSession();
     },
   });
 }
 
 async function bootstrapAuthSession(input: {
   flowId: string;
-}, deps: RuntimeBootstrapWebDeps): Promise<void> {
+}, deps: RuntimeBootstrapWebDeps, lifecycle?: DesktopRendererLifecyclePort): Promise<void> {
   const bootstrapStore = deps.bootstrapStore;
   deps.clearPersistedAccessToken();
-  await configureWebRealmSession(deps);
+  await configureWebRealmSession(deps, lifecycle);
   bootstrapStore.applySignedOutAuthSession();
+  lifecycle?.clearAuthSession();
   deps.logRendererEvent({
     level: 'info',
     area: 'renderer-bootstrap',
@@ -122,7 +129,7 @@ async function bootstrapAuthSession(input: {
   });
 }
 
-export function bootstrapRuntime(): Promise<void> {
+export function bootstrapRuntime(lifecycle?: DesktopRendererLifecyclePort): Promise<void> {
   if (bootstrapPromise) {
     return bootstrapPromise;
   }
@@ -133,6 +140,8 @@ export function bootstrapRuntime(): Promise<void> {
     const flowId = deps.createRendererFlowId('renderer-bootstrap-web');
     const startedAt = performance.now();
     deps.bootstrapStore.beginBootstrap();
+    lifecycle?.setAuthBootstrapping();
+    lifecycle?.setBootstrapReady(false);
 
     deps.logRendererEvent({
       level: 'info',
@@ -143,19 +152,21 @@ export function bootstrapRuntime(): Promise<void> {
 
     const defaults = await deps.desktopBridge.getRuntimeDefaults();
     deps.bootstrapStore.applyRuntimeDefaults(defaults);
+    lifecycle?.setRuntimeDefaults(defaults);
 
     try {
       await withTimeout(
         bootstrapAuthSession({
           flowId,
-        }, deps),
+        }, deps, lifecycle),
         WEB_BOOTSTRAP_AUTH_TIMEOUT_MS,
         'web-bootstrap-auth',
       );
     } catch (error) {
       deps.clearPersistedAccessToken();
       deps.bootstrapStore.applySignedOutAuthSession();
-      await configureWebRealmSession(deps);
+      lifecycle?.clearAuthSession();
+      await configureWebRealmSession(deps, lifecycle);
       deps.logRendererEvent({
         level: 'warn',
         area: 'renderer-bootstrap',
@@ -169,6 +180,8 @@ export function bootstrapRuntime(): Promise<void> {
     }
 
     deps.bootstrapStore.completeBootstrap();
+    lifecycle?.setBootstrapError(null);
+    lifecycle?.setBootstrapReady(true);
     deps.logRendererEvent({
       level: 'info',
       area: 'renderer-bootstrap',
@@ -181,6 +194,9 @@ export function bootstrapRuntime(): Promise<void> {
     if (deps) {
       deps.bootstrapStore.failBootstrap(message);
       deps.bootstrapStore.applySignedOutAuthSession();
+      lifecycle?.setBootstrapError(message);
+      lifecycle?.setBootstrapReady(false);
+      lifecycle?.clearAuthSession();
       deps.logRendererEvent({
         level: 'error',
         area: 'renderer-bootstrap',
@@ -196,7 +212,7 @@ export function bootstrapRuntime(): Promise<void> {
   return bootstrapPromise;
 }
 
-export function rebootstrapRuntime(): Promise<void> {
+export function rebootstrapRuntime(lifecycle?: DesktopRendererLifecyclePort): Promise<void> {
   bootstrapPromise = null;
-  return bootstrapRuntime();
+  return bootstrapRuntime(lifecycle);
 }

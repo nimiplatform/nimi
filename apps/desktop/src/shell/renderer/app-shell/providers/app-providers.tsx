@@ -5,7 +5,7 @@ import { TooltipProvider } from '@nimiplatform/kit/ui';
 import { AppStoreProvider } from './app-store.js';
 import type { AppStoreApi } from './app-store-factory.js';
 import { AppAttentionProvider } from './app-attention-context';
-import type { DesktopI18nResource } from '@renderer/i18n';
+import type { DesktopI18nResource } from '../../i18n';
 import type { DesktopRendererRouter } from './renderer-router.js';
 import type { AppAttentionSource } from './app-attention-source.js';
 

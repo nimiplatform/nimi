@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   getDesktopMacosSmokeContext,
   pingDesktopMacosSmoke,
   writeDesktopMacosSmokeReport,
-} from '@renderer/bridge/runtime-bridge/macos-smoke';
-import type { DesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/types';
+} from '../../bridge/runtime-bridge/macos-smoke';
+import type { DesktopMacosSmokeContext } from '../../bridge/runtime-bridge/types';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
   buildDesktopMacosSmokeFailureReportPayload,
@@ -16,6 +16,7 @@ import {
 } from './desktop-macos-smoke-shared';
 import { createDomDriverDeps } from './desktop-macos-smoke-driver-deps';
 import { runDesktopMacosSmokeScenario } from './desktop-macos-smoke-scenarios';
+import type { DesktopRendererLifecyclePort } from '../../renderer/lifecycle-port.js';
 
 export {
   buildDesktopMacosSmokeFailureReportPayload,
@@ -78,87 +79,63 @@ async function writeBootstrapFailureReport(
   );
 }
 
-export function useDesktopMacosSmokeBootstrap(
-  bootstrapReady: boolean,
-  bootstrapError: string | null,
-) {
-  const startedRef = useRef(false);
-  const reportedRef = useRef(false);
-  const [context, setContext] = useState<DesktopMacosSmokeContext | null>(null);
+type DesktopMacosSmokeLifecycle = Pick<
+  DesktopRendererLifecyclePort,
+  | 'applyRuntimeAccountProjection'
+  | 'auth'
+  | 'bootstrap'
+  | 'cancelAndClearQueries'
+  | 'subscribeBootstrap'
+>;
 
-  useEffect(() => {
-    if (!hasTauriInvoke()) {
-      return;
-    }
-    let cancelled = false;
-    void (async () => {
-      try {
-        const nextContext = await getDesktopMacosSmokeContext();
-        if (!cancelled) {
-          setContext(nextContext);
-          if (nextContext.enabled && nextContext.scenarioId) {
-            void pingDesktopMacosSmoke('macos-smoke-context-ready', {
-              scenarioId: nextContext.scenarioId,
-            }).catch(() => {});
-          }
-        }
-      } catch (error) {
-        if (cancelled || reportedRef.current) {
-          return;
-        }
-        reportedRef.current = true;
-        await writeBootstrapFailureReport(
-          'smoke-context-load-failed',
-          error instanceof Error ? error.message : String(error || 'unknown error'),
-          error,
-        ).catch(() => {});
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+export function connectDesktopMacosSmoke(
+  lifecycle: DesktopMacosSmokeLifecycle,
+): () => void {
+  if (!hasTauriInvoke()) return () => {};
+  let active = true;
+  let started = false;
+  let reported = false;
+  let context: DesktopMacosSmokeContext | null = null;
+  let bootstrapTimer: ReturnType<typeof setTimeout> | null = null;
 
-  useEffect(() => {
-    if (!hasTauriInvoke()) {
-      return;
-    }
-    if (!shouldStartDesktopMacosSmoke({
-      bootstrapReady,
-      context,
-      alreadyStarted: startedRef.current || reportedRef.current,
-    })) {
-      return;
-    }
-    let cancelled = false;
+  const clearBootstrapTimer = () => {
+    if (!bootstrapTimer) return;
+    clearTimeout(bootstrapTimer);
+    bootstrapTimer = null;
+  };
+
+  const startScenario = (scenarioContext: DesktopMacosSmokeContext) => {
+    if (!active || started || reported || !scenarioContext.scenarioId) return;
+    started = true;
+    clearBootstrapTimer();
     const flowId = createRendererFlowId('desktop-macos-smoke');
-    startedRef.current = true;
     logRendererEvent({
       area: 'desktop-macos-smoke',
       message: 'phase:desktop-macos-smoke:start',
       flowId,
       details: {
-        scenarioId: context?.scenarioId,
+        scenarioId: scenarioContext.scenarioId,
       },
     });
 
     void (async () => {
       let currentStep = 'scenario-start';
       let recordedSteps: string[] = [];
-      let reportOpen = true;
+      let reportOpen: boolean = active;
       let scenarioReportWritten = false;
       try {
-        if (!cancelled && context?.scenarioId) {
+        if (active && scenarioContext.scenarioId) {
           await pingDesktopMacosSmoke('macos-smoke-scenario-start', {
-            scenarioId: context.scenarioId,
+            scenarioId: scenarioContext.scenarioId,
           }).catch(() => {});
           const deps = createDomDriverDeps({
-            context,
+            context: scenarioContext,
+            lifecycle,
             onStepStart(step, steps) {
               currentStep = step;
               recordedSteps = [...steps];
               void pingDesktopMacosSmoke('macos-smoke-step-start', {
-                scenarioId: context.scenarioId,
+                scenarioId: scenarioContext.scenarioId,
                 step,
                 stepCount: recordedSteps.length,
               }).catch(() => {});
@@ -166,29 +143,30 @@ export function useDesktopMacosSmokeBootstrap(
             onReportWrite() {
               scenarioReportWritten = true;
             },
-            isReportOpen: () => reportOpen,
+            isReportOpen: () => active && reportOpen,
           });
           await withDesktopMacosSmokeScenarioTimeout(
-            context.scenarioId,
-            runDesktopMacosSmokeScenario(context.scenarioId, deps),
-            resolveSmokeScenarioTimeoutMs(context),
+            scenarioContext.scenarioId,
+            runDesktopMacosSmokeScenario(scenarioContext.scenarioId, deps),
+            resolveSmokeScenarioTimeoutMs(scenarioContext),
           );
           await pingDesktopMacosSmoke('macos-smoke-scenario-finished', {
-            scenarioId: context.scenarioId,
+            scenarioId: scenarioContext.scenarioId,
           }).catch(() => {});
           reportOpen = false;
-          reportedRef.current = true;
+          reported = true;
         }
       } catch (error) {
         reportOpen = false;
-        reportedRef.current = true;
+        if (!active) return;
+        reported = true;
         logRendererEvent({
           level: 'error',
           area: 'desktop-macos-smoke',
           message: 'phase:desktop-macos-smoke:failed',
           flowId,
           details: {
-            scenarioId: context?.scenarioId,
+            scenarioId: scenarioContext.scenarioId,
             error: error instanceof Error ? error.message : String(error || 'unknown error'),
           },
         });
@@ -209,7 +187,7 @@ export function useDesktopMacosSmokeBootstrap(
               message: 'phase:desktop-macos-smoke:scenario-failure-report-failed',
               flowId,
               details: {
-                scenarioId: context?.scenarioId,
+                scenarioId: scenarioContext.scenarioId,
                 error: reportError instanceof Error ? reportError.message : String(reportError || 'unknown error'),
               },
             });
@@ -217,26 +195,53 @@ export function useDesktopMacosSmokeBootstrap(
         }
       }
     })();
-    return () => {
-      cancelled = true;
-    };
-  }, [bootstrapReady, context]);
+  };
 
-  useEffect(() => {
-    if (!hasTauriInvoke() || bootstrapReady || startedRef.current || reportedRef.current || !context?.enabled || !context.scenarioId) {
+  const reconcile = () => {
+    if (!active || !context?.enabled || !context.scenarioId || started || reported) return;
+    const bootstrap = lifecycle.bootstrap();
+    if (bootstrap.bootstrapError) {
+      reported = true;
+      clearBootstrapTimer();
+      const flowId = createRendererFlowId('desktop-macos-smoke-bootstrap-error');
+      void writeBootstrapFailureReport(
+        'bootstrap-error-screen',
+        bootstrap.bootstrapError,
+        new Error(bootstrap.bootstrapError),
+      ).catch((error) => {
+        if (!active) return;
+        logRendererEvent({
+          level: 'error',
+          area: 'desktop-macos-smoke',
+          message: 'phase:desktop-macos-smoke:bootstrap-error-report-failed',
+          flowId,
+          details: {
+            error: error instanceof Error ? error.message : String(error || 'unknown error'),
+          },
+        });
+      });
       return;
     }
+    if (shouldStartDesktopMacosSmoke({
+      bootstrapReady: bootstrap.bootstrapReady,
+      context,
+      alreadyStarted: started || reported,
+    })) {
+      startScenario(context);
+      return;
+    }
+    if (bootstrapTimer) return;
     const flowId = createRendererFlowId('desktop-macos-smoke-bootstrap-timeout');
     const timeoutMs = resolveSmokeBootstrapTimeoutMs(context);
-    const timeoutId = setTimeout(() => {
-      if (startedRef.current || reportedRef.current) {
-        return;
-      }
-      reportedRef.current = true;
+    bootstrapTimer = setTimeout(() => {
+      bootstrapTimer = null;
+      if (!active || started || reported) return;
+      reported = true;
       void writeBootstrapFailureReport(
         'bootstrap-timeout-before-ready',
         'desktop macOS smoke bootstrap did not reach ready state before timeout',
       ).catch((error) => {
+        if (!active) return;
         logRendererEvent({
           level: 'error',
           area: 'desktop-macos-smoke',
@@ -248,27 +253,36 @@ export function useDesktopMacosSmokeBootstrap(
         });
       });
     }, timeoutMs);
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [bootstrapReady, context]);
+  };
 
-  useEffect(() => {
-    if (!hasTauriInvoke() || startedRef.current || reportedRef.current || !context?.enabled || !context.scenarioId || !bootstrapError) {
-      return;
+  void pingDesktopMacosSmoke('app-mounted').catch(() => {});
+  void getDesktopMacosSmokeContext().then((nextContext) => {
+    if (!active) return;
+    context = nextContext;
+    if (nextContext.enabled && nextContext.scenarioId) {
+      void pingDesktopMacosSmoke('macos-smoke-context-ready', {
+        scenarioId: nextContext.scenarioId,
+      }).catch(() => {});
     }
-    const flowId = createRendererFlowId('desktop-macos-smoke-bootstrap-error');
-    reportedRef.current = true;
-    void writeBootstrapFailureReport('bootstrap-error-screen', bootstrapError, new Error(bootstrapError)).catch((error) => {
-      logRendererEvent({
-        level: 'error',
-        area: 'desktop-macos-smoke',
-        message: 'phase:desktop-macos-smoke:bootstrap-error-report-failed',
-        flowId,
-        details: {
-          error: error instanceof Error ? error.message : String(error || 'unknown error'),
-        },
-      });
-    });
-  }, [bootstrapError, context]);
+    reconcile();
+  }).catch((error) => {
+    if (!active || reported) return;
+    reported = true;
+    void writeBootstrapFailureReport(
+      'smoke-context-load-failed',
+      error instanceof Error ? error.message : String(error || 'unknown error'),
+      error,
+    ).catch(() => {});
+  });
+  const unsubscribeBootstrap = lifecycle.subscribeBootstrap(reconcile);
+
+  return () => {
+    active = false;
+    clearBootstrapTimer();
+    unsubscribeBootstrap();
+  };
+}
+
+export function useDesktopMacosSmokeBootstrap(lifecycle: DesktopMacosSmokeLifecycle) {
+  useEffect(() => connectDesktopMacosSmoke(lifecycle), [lifecycle]);
 }

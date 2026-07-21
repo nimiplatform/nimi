@@ -1,5 +1,5 @@
 import { extractNimiErrorFields, ReasonCode } from '@nimiplatform/sdk/types';
-import { toProfileData, type ProfileData, type ProfileSource } from '@renderer/features/profile/profile-model';
+import { toProfileData, type ProfileData, type ProfileSource } from '../profile/profile-model';
 
 export type RestrictedContactProfileSeed = {
   id: string;

@@ -9,7 +9,7 @@ import {
   type NimiAISchedulingJudgement,
   type NimiAISchedulingProjection,
 } from '@nimiplatform/sdk/ai';
-import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
 
 export {
   normalizeNimiAISchedulingTarget,

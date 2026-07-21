@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { ProfileData } from '@renderer/features/profile/profile-model';
+import type { ProfileData } from '../profile/profile-model';
 
 export type EditableProfileDraft = {
   displayName: string;

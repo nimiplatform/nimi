@@ -1,4 +1,4 @@
-import { i18n } from '@renderer/i18n';
+import { i18n } from '../../i18n';
 import {
   createNimiHostRuntimeAgentLifecycleSurface,
   isRuntimeLocalAgentRef,
@@ -10,11 +10,11 @@ import {
   getDesktopHostRuntimeAgentClient,
   getDesktopRuntime,
   withDesktopRuntimeProtectedScopes,
-} from '@renderer/infra/sdk/desktop-nimi-client-session';
+} from '../../infra/sdk/desktop-nimi-client-session';
 import {
   characterSourceRefKey,
   resolveCharacterSourceRefV3,
-} from '@renderer/features/realm-source/realm-source-identity.js';
+} from '../realm-source/realm-source-identity.js';
 
 export {
   characterSourceRefKey,

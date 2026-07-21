@@ -14,8 +14,8 @@ import {
   type NimiRealmGroupSourceParticipantInput,
 } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
-import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
-import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
+import { callRealmApi, emitRealmDataError } from '../../../infra/realm/realm-api';
+import { productionAppStore } from '../../../app-shell/providers/production-app-store';
 import {
   createNimiHostRuntimeRealmGroupMessageCandidateSurface,
   isRuntimeLocalAgentRef,
@@ -27,7 +27,7 @@ import {
   getDesktopAppId,
   getDesktopRuntime,
   withDesktopRuntimeProtectedScopes,
-} from '@renderer/infra/sdk/desktop-nimi-client-session';
+} from '../../../infra/sdk/desktop-nimi-client-session';
 import { assertGroupTriggerMessageMatchesChat } from './realm-group-trigger-evidence';
 
 type GroupChatViewDto = RealmModel<'GroupChatViewDto'>;

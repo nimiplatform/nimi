@@ -1,15 +1,15 @@
 import type { NimiDesktopOpenIntent } from '@nimiplatform/kit/core/desktop-open';
-import type { AppStoreState } from '@renderer/app-shell/providers/app-store';
-import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
+import type { AppStoreState } from '../../app-shell/providers/app-store';
+import { productionAppStore } from '../../app-shell/providers/production-app-store';
 import {
   loadRuntimeConfigStateV11,
   persistRuntimeConfigStateV11,
-} from '@renderer/features/runtime-config/runtime-config-storage-persist';
+} from '../../features/runtime-config/runtime-config-storage-persist';
 import {
   dispatchRuntimeConfigActionFocus,
   dispatchRuntimeConfigOpenPage,
-} from '@renderer/features/runtime-config/runtime-config-navigation-events';
-import { dispatchSettingsOpenSection } from '@renderer/features/settings/settings-storage';
+} from '../../features/runtime-config/runtime-config-navigation-events';
+import { dispatchSettingsOpenSection } from '../../features/settings/settings-storage';
 
 type DesktopOpenIntentStore = Pick<AppStoreState,
   | 'setActiveTab'

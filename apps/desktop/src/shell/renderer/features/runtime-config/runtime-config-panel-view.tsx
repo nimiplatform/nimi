@@ -10,7 +10,7 @@ import {
   SidebarShell,
   Surface,
 } from '@nimiplatform/kit/ui';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { E2E_IDS } from '../../testability/e2e-ids';
 import { RUNTIME_PAGE_META } from './runtime-config-meta-v11';
 import { RUNTIME_SIDEBAR_ITEMS } from './runtime-config-sidebar';
 import { RuntimeHealthBadge } from './runtime-config-primitives';
@@ -22,7 +22,7 @@ import { AdvancedPage } from './runtime-config-page-advanced';
 import { ProfileCatalogPage } from './runtime-config-page-profiles';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { useRuntimeConfigPanelController } from './runtime-config-panel-controller';
-import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
+import { InlineFeedback } from '../../ui/feedback/inline-feedback';
 
 function RuntimeSkeletonBlock({ className }: { className: string }) {
   return <div className={`animate-pulse rounded-2xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] ${className}`} />;

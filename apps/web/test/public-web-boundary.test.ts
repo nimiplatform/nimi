@@ -15,6 +15,7 @@ const admittedPublicWebFiles = new Set([
   'i18n/index.ts',
   'infra/index.ts',
   'realm/index.ts',
+  'renderer-host/index.ts',
   'styles.css',
 ]);
 

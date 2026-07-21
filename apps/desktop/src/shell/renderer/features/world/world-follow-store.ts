@@ -21,7 +21,7 @@ import {
   resolveBrowserStorage,
   writeStorageJsonTo,
 } from '@nimiplatform/kit/core/storage-json';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { useAppStore } from '../../app-shell/providers/app-store';
 
 const STORAGE_PREFIX = 'nimi.world.followed.v1';
 export const WORLD_FOLLOW_EVENT = 'nimi:world:followed-changed';

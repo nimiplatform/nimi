@@ -12,39 +12,39 @@ import {
   createNimiRuntimeAgentConsumeClient,
 } from '@nimiplatform/sdk/runtime';
 import type { TFunction } from 'i18next';
-import { useAppStore, type AuthStatus } from '@renderer/app-shell/providers/app-store';
-import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
+import { useAppStore, type AuthStatus } from '../../app-shell/providers/app-store';
+import { productionAppStore } from '../../app-shell/providers/production-app-store';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
   createRuntimeAgentCenterAdapter,
   type AgentCenterRuntimeAdapter,
 } from '@nimiplatform/kit/features/agent-center';
-import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
-import { type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
+import { type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { ensureRuntimeAgentExists } from './chat-agent-shell-host-actions-helpers';
 import {
   getDesktopAppId,
   getDesktopHostRuntimeAgentClient,
   getDesktopRuntime,
   withDesktopRuntimeProtectedScopes,
-} from '@renderer/infra/sdk/desktop-nimi-client-session';
-import { getAgentConversationAnchorBinding } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
+} from '../../infra/sdk/desktop-nimi-client-session';
+import { getAgentConversationAnchorBinding } from '../../app-shell/providers/agent-conversation-anchor-binding-storage';
 import {
   createRuntimeAgentMemoryAdapter,
   type CanonicalMemoryBankStatus,
-} from '@renderer/infra/runtime-agent-memory';
+} from '../../infra/runtime-agent-memory';
 import {
   createRuntimeAgentInspectAdapter,
   type NimiRuntimeAgentInspectEventSummary,
   type NimiRuntimeAgentInspectSnapshot,
-} from '@renderer/infra/runtime-agent-inspect';
+} from '../../infra/runtime-agent-inspect';
 import {
   createRuntimeAgentAIConfigAdapter,
   describeRuntimeAgentTextReadiness,
   isRuntimeAgentTextReadinessReady,
   type NimiRuntimeAgentAIConfigSnapshot,
   type NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
-} from '@renderer/infra/runtime-agent-ai-config';
+} from '../../infra/runtime-agent-ai-config';
 import type { NimiRuntimeAgentPresentationProfileProjection } from '@nimiplatform/sdk/runtime';
 import {
   useAgentConversationRuntimeMutations,

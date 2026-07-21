@@ -1,5 +1,5 @@
 import { hasTauriRuntime, listenTauri } from '@nimiplatform/kit/shell/renderer/bridge';
-import { completeMenuBarQuit } from '@renderer/bridge';
+import { completeMenuBarQuit } from '../../bridge';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { stopAuthStateWatcher } from './auth-state-watcher';
 

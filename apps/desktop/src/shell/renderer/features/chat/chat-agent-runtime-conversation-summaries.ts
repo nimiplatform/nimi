@@ -2,8 +2,8 @@ import {
   createNimiRuntimeAgentConsumeClient,
   type NimiRuntimeAgentConversationSummary,
 } from '@nimiplatform/sdk/runtime';
-import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
-import { getDesktopAppId, getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
+import { getDesktopAppId, getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
 
 export const RUNTIME_AGENT_CONVERSATION_SUMMARIES_QUERY_KEY = ['chat-agent-runtime-conversation-summaries'] as const;
 

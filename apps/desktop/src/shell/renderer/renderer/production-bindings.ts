@@ -3,28 +3,36 @@ import {
   type NimiRendererHostFacadeV1,
   type NimiRendererHostMethodMap,
 } from '@nimiplatform/kit/shell/renderer/host';
-import {
-  readStorageTextFrom,
-  resolveBrowserStorage,
-  writeStorageTextTo,
-} from '@nimiplatform/kit/core/storage-json';
+import { resolveBrowserStorage, writeStorageTextTo } from '@nimiplatform/kit/core/storage-json';
 
 import { createProductionAppStoreDependencies } from '../app-shell/providers/production-app-store-dependencies.js';
 import { createBrowserAppAttentionSource } from '../app-shell/providers/production-app-attention-source.js';
-import {
-  LOCALE_STORAGE_KEY,
-  resolveSupportedLocale,
-} from '../i18n/desktop-i18n.js';
+import { LOCALE_STORAGE_KEY } from '../i18n/desktop-i18n.js';
 import type {
   DesktopCanonicalRendererBindings,
   DesktopRendererRoutePort,
   DesktopRendererRouteView,
 } from './contract.js';
-
-function readProductionLocale(): 'en' | 'zh' {
-  const result = readStorageTextFrom(resolveBrowserStorage('local'), LOCALE_STORAGE_KEY);
-  return resolveSupportedLocale(result.state === 'ready' ? result.value : '');
-}
+import { connectMenuBarNavigation } from '../infra/menu-bar/menu-bar-navigation-listener.js';
+import { connectMenuBarRuntimeSync } from '../infra/menu-bar/menu-bar-runtime-sync.js';
+import { connectRuntimeHealthCoordinator } from '../features/runtime-config/runtime-health-coordinator.js';
+import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
+import {
+  connectDesktopUpdates,
+  runDesktopUpdateCheck,
+  runDesktopUpdateInstall,
+  runDesktopUpdateRestart,
+} from '../infra/bootstrap/desktop-updates.js';
+import type { DesktopRendererLifecyclePort } from './lifecycle-port.js';
+import { connectDesktopMacosSmoke } from '../infra/bootstrap/desktop-macos-smoke.js';
+import { connectProductionBootstrap } from './production-bootstrap.js';
+import { desktopBridge } from '../bridge.js';
+import {
+  decideLocalDevelopmentApproval,
+  listPendingLocalDevelopmentApprovals,
+  localDevelopmentBridgeAvailable,
+  subscribeLocalDevelopmentApprovals,
+} from '../features/local-development/local-development-bridge.js';
 
 export function createDesktopBrowserRoutePort(): DesktopRendererRoutePort {
   function read(): DesktopRendererRouteView {
@@ -75,15 +83,15 @@ export function createDesktopProductionBindings(
 ): DesktopCanonicalRendererBindings {
   const dependencies = createProductionAppStoreDependencies();
   const attention = createBrowserAppAttentionSource();
-  const initialLocale = readProductionLocale();
+  let connectedLifecycle: DesktopRendererLifecyclePort | null = null;
+  const requireLifecycle = () => {
+    if (!connectedLifecycle) throw new Error('DESKTOP_PRODUCTION_LIFECYCLE_NOT_CONNECTED');
+    return connectedLifecycle;
+  };
   return createNimiCanonicalRendererHostBindings({
     scope: kit.scope,
     capabilities: kit.capabilities,
-    localization: Object.freeze({
-      locale: initialLocale === 'zh' ? 'zh-CN' : 'en-US',
-      language: initialLocale,
-      direction: 'ltr' as const,
-    }),
+    localization: kit.localization,
     kit,
     sdk: Object.freeze({}),
     app: {
@@ -96,6 +104,7 @@ export function createDesktopProductionBindings(
           development: Boolean((import.meta as { env?: { DEV?: boolean } }).env?.DEV),
         }),
         attention: attention.getSnapshot,
+        localDevelopmentAvailable: localDevelopmentBridgeAvailable,
       }),
       commands: Object.freeze({
         commitAIConfig: dependencies.commitAIConfig,
@@ -108,9 +117,64 @@ export function createDesktopProductionBindings(
           document.documentElement.lang = lang;
           document.title = title;
         },
+        checkDesktopUpdate: (input: Parameters<
+          DesktopCanonicalRendererBindings['app']['commands']['checkDesktopUpdate']
+        >[0]) => runDesktopUpdateCheck(requireLifecycle(), input),
+        installDesktopUpdate: (input: Parameters<
+          DesktopCanonicalRendererBindings['app']['commands']['installDesktopUpdate']
+        >[0]) => runDesktopUpdateInstall(requireLifecycle(), input),
+        restartDesktopUpdate: runDesktopUpdateRestart,
+        async startWindowDrag() {
+          if (!getShellFeatureFlags().enableTitlebarDrag) {
+            throw new Error('DESKTOP_WINDOW_DRAG_UNAVAILABLE');
+          }
+          await desktopBridge.startWindowDrag();
+        },
+        listLocalDevelopmentApprovals: listPendingLocalDevelopmentApprovals,
+        decideLocalDevelopmentApproval: ({
+          requestId,
+          decision,
+          riskDisclosureAcknowledged,
+        }: Parameters<
+          DesktopCanonicalRendererBindings['app']['commands']['decideLocalDevelopmentApproval']
+        >[0]) => decideLocalDevelopmentApproval(
+          requestId,
+          decision,
+          riskDisclosureAcknowledged,
+        ),
       }),
       events: Object.freeze({
         subscribeAttention: attention.subscribe,
+        subscribeLocalDevelopmentApprovals,
+        connectLifecycle(lifecycle: Parameters<
+          DesktopCanonicalRendererBindings['app']['events']['connectLifecycle']
+        >[0]) {
+          if (connectedLifecycle) {
+            throw new Error('DESKTOP_PRODUCTION_LIFECYCLE_ALREADY_CONNECTED');
+          }
+          connectedLifecycle = lifecycle;
+          let active = true;
+          const disconnectMenuBarNavigation = connectMenuBarNavigation(lifecycle);
+          const disconnectRuntimeHealth = connectRuntimeHealthCoordinator(
+            lifecycle,
+            getShellFeatureFlags().mode === 'desktop',
+          );
+          const disconnectMenuBarRuntimeSync = connectMenuBarRuntimeSync(lifecycle);
+          const disconnectDesktopUpdates = connectDesktopUpdates(lifecycle);
+          const disconnectDesktopMacosSmoke = connectDesktopMacosSmoke(lifecycle);
+          const disconnectBootstrap = connectProductionBootstrap(lifecycle);
+          return () => {
+            if (!active) return;
+            active = false;
+            connectedLifecycle = null;
+            disconnectDesktopMacosSmoke();
+            disconnectDesktopUpdates();
+            disconnectMenuBarRuntimeSync();
+            disconnectRuntimeHealth();
+            disconnectMenuBarNavigation();
+            disconnectBootstrap();
+          };
+        },
       }),
     },
     route: createDesktopBrowserRoutePort(),

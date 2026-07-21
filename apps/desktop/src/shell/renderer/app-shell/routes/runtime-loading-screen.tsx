@@ -1,22 +1,20 @@
-import { useEffect, useRef, useState, type MouseEvent } from 'react';
+import { type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { AmbientBackground, ProgressIndicator } from '@nimiplatform/kit/ui';
-import { desktopBridge } from '@renderer/bridge';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { E2E_IDS } from '../../testability/e2e-ids';
+import { useDesktopRendererCommands } from '../../renderer/binding-context';
 import bootstrapLogoImage from '../../assets/logo.png';
 
 const MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX = 92;
 const BOOT_PROGRESS_FLOOR_PERCENT = 8;
 
 function WindowDragRegion() {
-  const flags = getShellFeatureFlags();
+  const commands = useDesktopRendererCommands();
 
   const onMouseDown = (event: MouseEvent<HTMLDivElement>) => {
-    if (!flags.enableTitlebarDrag) return;
     if (event.button !== 0 || event.detail > 1) return;
     if (event.clientX < MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX) return;
-    void desktopBridge.startWindowDrag().catch(() => {
+    void commands.startWindowDrag().catch(() => {
       // Window dragging is a shell enhancement; loading must continue if it is unavailable.
     });
   };
@@ -26,30 +24,6 @@ function WindowDragRegion() {
 
 export function RuntimeLoadingScreen() {
   const { t } = useTranslation();
-  const [progress, setProgress] = useState(BOOT_PROGRESS_FLOOR_PERCENT);
-  const rafRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    const start = performance.now();
-    const target = 90;
-    const range = target - BOOT_PROGRESS_FLOOR_PERCENT;
-    const duration = 6500;
-
-    const tick = (now: number) => {
-      const elapsed = now - start;
-      const normalized = Math.min(1, elapsed / duration);
-      const eased = 1 - Math.pow(1 - normalized, 3);
-      setProgress(BOOT_PROGRESS_FLOOR_PERCENT + range * eased);
-      if (normalized < 1) rafRef.current = requestAnimationFrame(tick);
-    };
-
-    rafRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
-
-  const clamped = Math.min(100, progress);
   const title = t('Bootstrap.initializingRuntime').replace(/(?:\.{3}|…)+$/u, '');
 
   return (
@@ -92,7 +66,7 @@ export function RuntimeLoadingScreen() {
 
           <div className="mt-7 w-full max-w-[18rem]">
             <ProgressIndicator
-              value={clamped}
+              value={BOOT_PROGRESS_FLOOR_PERCENT}
               showValue
               aria-label={title}
               className="[&_.nimi-progress__track]:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,white)]"

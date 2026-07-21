@@ -73,10 +73,6 @@ test('desktop macos smoke renderer sources include mounted ping markers', () => 
     path.join(root, 'src-tauri/src/main_parts/app_bootstrap.rs'),
     'utf8',
   );
-  const appSource = fs.readFileSync(
-    path.join(root, 'src/shell/renderer/App.tsx'),
-    'utf8',
-  );
   const bootstrapSource = fs.readFileSync(
     path.join(root, 'src/shell/renderer/infra/bootstrap/desktop-macos-smoke.ts'),
     'utf8',
@@ -92,7 +88,8 @@ test('desktop macos smoke renderer sources include mounted ping markers', () => 
   assert.match(mainSource, /desktop_macos_smoke_ping/);
   assert.doesNotMatch(mainSource, /import\('@renderer\/bridge\/runtime-bridge\/macos-smoke'\)/);
   assert.match(bootstrapRsSource, /build_renderer_entry_probe_script/);
-  assert.match(appSource, /app-mounted/);
+  assert.match(bootstrapSource, /app-mounted/);
+  assert.match(bootstrapSource, /connectDesktopMacosSmoke/);
   assert.match(bootstrapSource, /macos-smoke-context-ready/);
   assert.match(bootstrapSource, /macos-smoke-scenario-start/);
   assert.match(bootstrapSource, /macos-smoke-step-start/);
@@ -183,6 +180,8 @@ test('desktop macos smoke driver consumes SDK Runtime smoke verification surface
   );
 
   assert.match(driverSource, /createNimiRuntimeAgentSmokeVerificationSurface/);
+  assert.match(driverSource, /options\.lifecycle\.auth\(\)/);
+  assert.doesNotMatch(driverSource, /productionAppStore/);
   assert.doesNotMatch(driverSource, /createRuntimeAgentSmokeVerificationSurface/);
   assert.doesNotMatch(driverSource, /createRuntimeProtectedScopeHelper/);
   assert.doesNotMatch(driverSource, /withScopes\(\['runtime\.agent\.read'\]/);

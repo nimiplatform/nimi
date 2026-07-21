@@ -3,7 +3,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import type { ReactNode } from 'react';
 import { AppCardSurface } from '@nimiplatform/kit/ui';
-import { i18n } from '@renderer/i18n';
+import { i18n } from '../../i18n';
 
 type PostDto = RealmModel<'PostDto'>;
 

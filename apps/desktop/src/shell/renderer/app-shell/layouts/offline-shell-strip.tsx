@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { useAppStore } from '../providers/app-store';
+import { E2E_IDS } from '../../testability/e2e-ids';
 
 export function OfflineShellStrip() {
   const { t } = useTranslation();

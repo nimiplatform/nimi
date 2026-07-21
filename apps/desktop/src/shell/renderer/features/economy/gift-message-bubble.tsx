@@ -7,8 +7,8 @@ import {
   rejectRealmGift,
 } from '@nimiplatform/kit/features/commerce/realm';
 import { useTranslation } from 'react-i18next';
-import { getDesktopRealmCommerceGiftService } from '@renderer/infra/realm/realm-commerce-service';
-import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { getDesktopRealmCommerceGiftService } from '../../infra/realm/realm-commerce-service';
+import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 
 export interface GiftMessagePayload {
   giftTransactionId: string;

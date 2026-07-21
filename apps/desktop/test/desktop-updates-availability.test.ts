@@ -11,11 +11,27 @@ if (typeof globalThis.localStorage === 'undefined') {
 }
 
 import { desktopBridge } from '../src/shell/renderer/bridge';
-import { productionAppStore } from '../src/shell/renderer/app-shell/providers/production-app-store';
 import {
   runDesktopUpdateCheck,
   runDesktopUpdateInstall,
 } from '../src/shell/renderer/infra/bootstrap/desktop-updates';
+
+type UpdatesPort = Parameters<typeof runDesktopUpdateCheck>[0];
+
+function createUpdatesPort(
+  setStatusBanner: UpdatesPort['setStatusBanner'],
+): UpdatesPort {
+  return {
+    bootstrap: () => ({ bootstrapReady: true, bootstrapError: null }),
+    desktopReleaseInfo: () => null,
+    setDesktopReleaseError: () => {},
+    setDesktopReleaseInfo: () => {},
+    setDesktopUpdateState: () => {},
+    setStatusBanner,
+    subscribeBootstrap: () => () => {},
+    translate: (_key, options) => String(options?.defaultValue || ''),
+  };
+}
 
 function createUnavailableReleaseInfo() {
   return {
@@ -35,8 +51,6 @@ test('runDesktopUpdateCheck short-circuits unavailable updater without invoking 
     getDesktopReleaseInfo: desktopBridge.getDesktopReleaseInfo,
     desktopUpdateCheck: desktopBridge.desktopUpdateCheck,
   };
-  const originalGetState = productionAppStore.getState;
-
   let banner: { kind: string; message: string } | null = null;
   let desktopUpdateCheckCalls = 0;
 
@@ -46,18 +60,12 @@ test('runDesktopUpdateCheck short-circuits unavailable updater without invoking 
     desktopUpdateCheckCalls += 1;
     throw new Error('desktopUpdateCheck should not be called');
   };
-  productionAppStore.getState = (() => ({
-    ...originalGetState(),
-    setDesktopReleaseInfo: () => {},
-    setDesktopReleaseError: () => {},
-    setStatusBanner: (nextBanner: { kind: string; message: string } | null) => {
-      banner = nextBanner;
-    },
-    setDesktopUpdateState: () => {},
-  })) as typeof productionAppStore.getState;
+  const port = createUpdatesPort((nextBanner) => {
+    banner = nextBanner;
+  });
 
   try {
-    await runDesktopUpdateCheck({ silent: false });
+    await runDesktopUpdateCheck(port, { silent: false });
     assert.equal(desktopUpdateCheckCalls, 0);
     assert.deepEqual(banner, {
       kind: 'warning',
@@ -67,7 +75,6 @@ test('runDesktopUpdateCheck short-circuits unavailable updater without invoking 
     desktopBridge.hasTauriInvoke = originalBridge.hasTauriInvoke;
     desktopBridge.getDesktopReleaseInfo = originalBridge.getDesktopReleaseInfo;
     desktopBridge.desktopUpdateCheck = originalBridge.desktopUpdateCheck;
-    productionAppStore.getState = originalGetState;
   }
 });
 
@@ -77,8 +84,6 @@ test('silent desktop update checks no-op when updater is unavailable', async () 
     getDesktopReleaseInfo: desktopBridge.getDesktopReleaseInfo,
     desktopUpdateCheck: desktopBridge.desktopUpdateCheck,
   };
-  const originalGetState = productionAppStore.getState;
-
   let bannerCalls = 0;
   let desktopUpdateCheckCalls = 0;
 
@@ -88,25 +93,18 @@ test('silent desktop update checks no-op when updater is unavailable', async () 
     desktopUpdateCheckCalls += 1;
     throw new Error('desktopUpdateCheck should not be called');
   };
-  productionAppStore.getState = (() => ({
-    ...originalGetState(),
-    setDesktopReleaseInfo: () => {},
-    setDesktopReleaseError: () => {},
-    setStatusBanner: () => {
-      bannerCalls += 1;
-    },
-    setDesktopUpdateState: () => {},
-  })) as typeof productionAppStore.getState;
+  const port = createUpdatesPort(() => {
+    bannerCalls += 1;
+  });
 
   try {
-    await runDesktopUpdateCheck({ silent: true, autoDownload: true });
+    await runDesktopUpdateCheck(port, { silent: true, autoDownload: true });
     assert.equal(desktopUpdateCheckCalls, 0);
     assert.equal(bannerCalls, 0);
   } finally {
     desktopBridge.hasTauriInvoke = originalBridge.hasTauriInvoke;
     desktopBridge.getDesktopReleaseInfo = originalBridge.getDesktopReleaseInfo;
     desktopBridge.desktopUpdateCheck = originalBridge.desktopUpdateCheck;
-    productionAppStore.getState = originalGetState;
   }
 });
 
@@ -118,8 +116,6 @@ test('runDesktopUpdateInstall short-circuits unavailable updater before download
     desktopUpdateDownload: desktopBridge.desktopUpdateDownload,
     desktopUpdateInstall: desktopBridge.desktopUpdateInstall,
   };
-  const originalGetState = productionAppStore.getState;
-
   let banner: { kind: string; message: string } | null = null;
   let downloadCalls = 0;
   let installCalls = 0;
@@ -140,18 +136,12 @@ test('runDesktopUpdateInstall short-circuits unavailable updater before download
     installCalls += 1;
     throw new Error('desktopUpdateInstall should not be called');
   };
-  productionAppStore.getState = (() => ({
-    ...originalGetState(),
-    setDesktopReleaseInfo: () => {},
-    setDesktopReleaseError: () => {},
-    setStatusBanner: (nextBanner: { kind: string; message: string } | null) => {
-      banner = nextBanner;
-    },
-    setDesktopUpdateState: () => {},
-  })) as typeof productionAppStore.getState;
+  const port = createUpdatesPort((nextBanner) => {
+    banner = nextBanner;
+  });
 
   try {
-    await runDesktopUpdateInstall({ silent: false });
+    await runDesktopUpdateInstall(port, { silent: false });
     assert.equal(downloadCalls, 0);
     assert.equal(installCalls, 0);
     assert.deepEqual(banner, {
@@ -164,6 +154,5 @@ test('runDesktopUpdateInstall short-circuits unavailable updater before download
     desktopBridge.getDesktopUpdateState = originalBridge.getDesktopUpdateState;
     desktopBridge.desktopUpdateDownload = originalBridge.desktopUpdateDownload;
     desktopBridge.desktopUpdateInstall = originalBridge.desktopUpdateInstall;
-    productionAppStore.getState = originalGetState;
   }
 });

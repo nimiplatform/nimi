@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { useAppStore } from '../../app-shell/providers/app-store';
 import { ChatGroupCreateModal } from './chat-group-create-modal';
 import { realmGroupChatData } from './data/realm-group-chat-data';
 

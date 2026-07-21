@@ -24,10 +24,10 @@ import {
   type ConversationCharacterData,
 } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { GiftMessageBubble, type GiftMessagePayload } from '@renderer/features/economy/gift-message-bubble.js';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { useAppStore } from '../../app-shell/providers/app-store';
+import { EntityAvatar } from '../../components/entity-avatar.js';
+import { GiftMessageBubble, type GiftMessagePayload } from '../economy/gift-message-bubble.js';
+import { E2E_IDS } from '../../testability/e2e-ids';
 import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS } from './chat-shared-content-layout';
 import { cancelStream, type StreamState } from '../turns/stream-controller';
 import {

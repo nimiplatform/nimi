@@ -3,11 +3,11 @@ import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shel
 import {
   characterSourceRefKey,
   resolveCharacterSourceState,
-} from '@renderer/features/explore/character-source-materialization';
+} from '../explore/character-source-materialization';
 import {
   readCharacterSourceRefV3,
   type CharacterSourceRefV3,
-} from '@renderer/features/realm-source/realm-source-identity.js';
+} from '../realm-source/realm-source-identity.js';
 import type { SourceDetailData } from './source-detail-model.js';
 import { toSourceDetailData } from './source-detail-model.js';
 

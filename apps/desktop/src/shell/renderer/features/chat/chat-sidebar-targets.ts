@@ -1,26 +1,26 @@
-import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
+import { realmSocialData } from '../social/data/realm-social-data';
 import { useMemo } from 'react';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import { isRuntimeLocalAgentRef } from '@nimiplatform/sdk/runtime';
-import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
-import { useAppStore, type AuthStatus } from '@renderer/app-shell/providers/app-store';
+import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
+import { useAppStore, type AuthStatus } from '../../app-shell/providers/app-store';
 import {
   fetchLocalAgentList,
   localAgentListQueryKey,
   type LocalAgentListItem,
-} from '@renderer/features/agents/local-agent-list-model';
-import { toSourceContactLaunchTarget } from '@renderer/features/relationship/source-contact-launch-target';
+} from '../agents/local-agent-list-model';
+import { toSourceContactLaunchTarget } from '../relationship/source-contact-launch-target';
 import {
   fetchSourceDisplayDetail,
   sourceDisplayDetailQueryKey,
-} from '@renderer/features/source-detail/source-detail-queries';
-import type { SourceDetailData } from '@renderer/features/source-detail/source-detail-model.js';
+} from '../source-detail/source-detail-queries';
+import type { SourceDetailData } from '../source-detail/source-detail-model.js';
 import {
   fetchWorldListItems,
   worldListQueryKey,
-} from '@renderer/features/world/world-detail-queries';
+} from '../world/world-detail-queries';
 import {
   collapseRealmHumanChatsToTargets,
   compareRealmHumanChatsByRecency,

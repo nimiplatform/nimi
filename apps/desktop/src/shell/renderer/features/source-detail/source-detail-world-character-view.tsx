@@ -2,9 +2,9 @@ import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea, Tooltip, TooltipProvider } from '@nimiplatform/kit/ui';
 import { ArrowLeft, CirclePlus, MessageCircle } from 'lucide-react';
-import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { toSafeBackgroundImage } from '@renderer/features/explore/explore-background-image.js';
-import { describeCharacterPrimaryAction } from '@renderer/features/explore/character-source-materialization';
+import { EntityAvatar } from '../../components/entity-avatar.js';
+import { toSafeBackgroundImage } from '../explore/explore-background-image.js';
+import { describeCharacterPrimaryAction } from '../explore/character-source-materialization';
 import type { SourceDetailData, SourceDetailWorldCharacterMilestone } from './source-detail-model.js';
 import { simplifySourceDetailChineseText as simplifyDisplayText } from './source-detail-simplified-chinese.js';
 import {

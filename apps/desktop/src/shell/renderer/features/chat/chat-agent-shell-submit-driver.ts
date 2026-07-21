@@ -3,7 +3,7 @@ import type {
   AgentLocalMessageRecord,
   AgentLocalThreadBundle,
   AgentLocalThreadRecord,
-} from '@renderer/bridge/runtime-bridge/types';
+} from '../../bridge/runtime-bridge/types';
 import type { ConversationTurnEvent } from '@nimiplatform/kit/features/chat/headless';
 import type { AgentHostInteractionPatch } from './chat-agent-shell-host-interaction';
 import {

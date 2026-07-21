@@ -41,14 +41,14 @@ import {
 import {
   getConversationCapabilityRouteRuntime,
   type ConversationCapabilityRouteRuntime,
-} from '@renderer/features/chat/conversation-capability.js';
+} from '../../features/chat/conversation-capability.js';
 import {
   getAccountDefaultProfileForScopeInit,
   getBuiltInAIConfigForScopeInit,
-} from '@renderer/bridge/runtime-bridge/product-control.js';
+} from '../../bridge/runtime-bridge/product-control.js';
 import {
   listAccountProfileLibrary,
-} from '@renderer/bridge/runtime-bridge/account-profile-library.js';
+} from '../../bridge/runtime-bridge/account-profile-library.js';
 
 import { createDesktopAISnapshotStore } from './desktop-ai-config-snapshot-store.js';
 import {

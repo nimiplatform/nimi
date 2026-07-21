@@ -1,4 +1,4 @@
-import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
+import { realmSocialData } from '../social/data/realm-social-data';
 import { useEffect, useRef, useState } from 'react';
 import {
   NIMI_REALM_OAUTH_PROVIDER,
@@ -6,8 +6,8 @@ import {
   type NimiRealmOAuthProvider,
 } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
-import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { EntityAvatar } from '../../components/entity-avatar.js';
+import { useAppStore } from '../../app-shell/providers/app-store';
 import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   BIO_MAX,
@@ -20,9 +20,9 @@ import {
   PageShell,
   SectionTitle,
 } from './settings-layout-components.js';
-import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { ProfileConnectedAccountsSection } from './settings-account-oauth-section.js';
-import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
 import { profileOauthPlatform } from './profile-oauth-platform.js';
 
 const ACCEPTED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];

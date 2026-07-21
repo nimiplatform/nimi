@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import type { NimiRuntimeRouteCapabilityCoverageProjection } from '@nimiplatform/sdk/runtime';
 import { Surface, StatusBadge as KitStatusBadge, cn } from '@nimiplatform/kit/ui';
-import { desktopBridge } from '@renderer/bridge';
-import { formatLocaleDateTime } from '@renderer/i18n';
-import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
+import { desktopBridge } from '../../bridge';
+import { formatLocaleDateTime } from '../../i18n';
+import { SectionTitle } from '../settings/settings-layout-components';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { Button } from './runtime-config-primitives';
 import { describeRuntimeDaemonIssue } from './runtime-daemon-guidance';

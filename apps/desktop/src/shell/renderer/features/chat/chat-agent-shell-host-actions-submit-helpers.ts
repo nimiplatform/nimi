@@ -1,7 +1,7 @@
 import type {
   AgentLocalThreadRecord,
   AgentLocalThreadSummary,
-} from '@renderer/bridge/runtime-bridge/types';
+} from '../../bridge/runtime-bridge/types';
 import {
   createEmptyAgentThreadBundle,
 } from './chat-agent-shell-bundle';

@@ -7,7 +7,7 @@ import type {
   AgentLocalThreadBundle,
   AgentLocalThreadRecord,
   AgentLocalThreadSummary,
-} from '@renderer/bridge/runtime-bridge/types';
+} from '../../bridge/runtime-bridge/types';
 import type { AgentHostFlowFooterState } from './chat-agent-shell-host-flow';
 import type {
   AgentSubmitDriverState,
@@ -17,7 +17,7 @@ import type {
 } from './conversation-capability';
 import type {
   NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
-} from '@renderer/infra/runtime-agent-ai-config';
+} from '../../infra/runtime-agent-ai-config';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
 import type { AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';

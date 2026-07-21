@@ -1,15 +1,15 @@
-import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
+import { realmSocialData } from '../social/data/realm-social-data';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@nimiplatform/kit/ui';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { EntityAvatar } from '@renderer/components/entity-avatar';
-import { toProfileData, type ProfileData, type ProfileSource } from '@renderer/features/profile/profile-model';
+import { useAppStore } from '../../app-shell/providers/app-store';
+import { EntityAvatar } from '../../components/entity-avatar';
+import { toProfileData, type ProfileData, type ProfileSource } from '../profile/profile-model';
 import {
   ProfileDetailModal,
   type ProfileDetailSeed,
-} from '@renderer/features/relationship/profile-detail-modal.js';
+} from '../relationship/profile-detail-modal.js';
 
 export type ChatComposerLeadingAvatarPreviewTarget = {
   targetId: string;

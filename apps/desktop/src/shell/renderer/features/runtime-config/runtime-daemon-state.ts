@@ -1,5 +1,5 @@
-import type { RuntimeBridgeDaemonStatus } from '@renderer/bridge';
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import type { RuntimeBridgeDaemonStatus } from '../../bridge';
+import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 
 export type RuntimeDaemonStatusApplyMode = 'poll' | 'action';
 

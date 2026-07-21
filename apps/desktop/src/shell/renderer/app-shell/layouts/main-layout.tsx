@@ -1,15 +1,15 @@
 import React, { Suspense, lazy, useEffect, useState, type MouseEvent, type PropsWithChildren } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
-import { desktopBridge } from '@renderer/bridge';
-import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
-import { logoutAndClearSession, switchAccountAndClearSession } from '@renderer/features/auth/logout';
+import { desktopBridge } from '../../bridge';
+import { useAppStore, type AppTab } from '../providers/app-store';
+import { logoutAndClearSession, switchAccountAndClearSession } from '../../features/auth/logout';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { useDesktopOpenIntentListener } from '@renderer/infra/desktop-open/desktop-open-intent-listener';
+import { useDesktopOpenIntentListener } from '../../infra/desktop-open/desktop-open-intent-listener';
 import {
   isDeveloperModeEnabled,
   subscribeDeveloperMode,
-} from '@renderer/features/developer/developer-mode';
+} from '../../features/developer/developer-mode';
 import { MainLayoutView } from './main-layout-view';
 
 const MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX = 92;
@@ -17,7 +17,7 @@ const MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX = 92;
 let tabSwitchPending: { fromTab: string; toTab: string; startMs: number } | null = null;
 
 const ChatRealtimeSyncHost = lazy(async () => {
-  const mod = await import('@renderer/features/realtime/use-chat-realtime-sync');
+  const mod = await import('../../features/realtime/use-chat-realtime-sync');
   return {
     default: function ChatRealtimeSyncHostModule() {
       mod.useChatRealtimeSync();
@@ -27,7 +27,7 @@ const ChatRealtimeSyncHost = lazy(async () => {
 });
 
 const ScenarioJobStatusHost = lazy(async () => {
-  const mod = await import('@renderer/features/turns/scenario-job-status-host');
+  const mod = await import('../../features/turns/scenario-job-status-host');
   return { default: mod.ScenarioJobStatusHost };
 });
 

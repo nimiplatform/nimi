@@ -5,7 +5,7 @@ import {
   type NimiExternalAgentTokenLedgerRecord,
 } from '@nimiplatform/sdk/runtime';
 import { Surface, cn } from '@nimiplatform/kit/ui';
-import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
 import { Button } from './runtime-config-primitives';
 import {
   CheckIcon,

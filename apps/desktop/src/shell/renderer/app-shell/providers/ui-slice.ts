@@ -1,6 +1,6 @@
 import { startTransition } from 'react';
 import type { OfflineTier } from '@nimiplatform/kit/core/offline-coordinator';
-import type { ExploreSectionId } from '@renderer/features/explore/explore-section-nav';
+import type { ExploreSectionId } from '../../features/explore/explore-section-nav';
 import {
   DEFAULT_CHAT_SOURCE_FILTER,
   DEFAULT_CHAT_SETUP_STATE,
@@ -9,8 +9,8 @@ import {
   DEFAULT_VIEW_MODE_BY_SOURCE_TARGET,
   EMPTY_AGENT_CONVERSATION_SELECTION,
   EMPTY_NIMI_CONVERSATION_SELECTION,
-} from '@renderer/features/chat/chat-shell-types';
-import type { ChatThinkingPreference } from '@renderer/features/chat/chat-shared-thinking';
+} from '../../features/chat/chat-shell-types';
+import type { ChatThinkingPreference } from '../../features/chat/chat-shared-thinking';
 import type { AppStoreSet, AppStoreState, AppTab } from './store-types';
 
 export type UiSliceDependencies = {

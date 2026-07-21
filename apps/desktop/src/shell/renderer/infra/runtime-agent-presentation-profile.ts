@@ -10,7 +10,7 @@ import {
 import {
   getDesktopHostRuntimeAgentClient,
   withDesktopRuntimeProtectedScopes,
-} from '@renderer/infra/sdk/desktop-nimi-client-session';
+} from './sdk/desktop-nimi-client-session';
 
 type RuntimeAgentPresentationProfileDeps = {
   getRuntime?: () => NimiHostRuntimeAgentPresentationProfileClient;

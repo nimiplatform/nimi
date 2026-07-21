@@ -4,7 +4,7 @@ import {
   refreshAgentEffectiveCapabilityResolution,
   refreshConversationCapabilityProjections,
 } from './conversation-capability-projection';
-import { useAppStoreApi } from '@renderer/app-shell/providers/app-store';
+import { useAppStoreApi } from '../../app-shell/providers/app-store';
 
 const AGENT_CONVERSATION_BOOTSTRAP_CAPABILITIES: readonly ConversationCapability[] = [
   'text.generate',

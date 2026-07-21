@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { projectNimiRuntimeRouteCapabilityCoverageList } from '@nimiplatform/sdk/runtime';
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import { cn } from '@nimiplatform/kit/ui';
 import { RuntimeHealthSection } from './runtime-config-runtime-health-section.js';
 import { GlobalAuditSection } from './runtime-config-global-audit-section.js';

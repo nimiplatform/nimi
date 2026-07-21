@@ -19,7 +19,7 @@ import {
   desktopBridge,
   type DesktopStorageDirs,
   type LogsExportResult,
-} from '@renderer/bridge';
+} from '../../bridge';
 import { useTypedProjection as useSupportProjection } from '@nimiplatform/kit/ui';
 import {
   SupportCard,

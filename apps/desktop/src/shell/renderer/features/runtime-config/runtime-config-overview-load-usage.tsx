@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Surface, cn } from '@nimiplatform/kit/ui';
-import { formatLocaleDateTime, formatLocaleNumber } from '@renderer/i18n';
-import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
+import { formatLocaleDateTime, formatLocaleNumber } from '../../i18n';
+import { SectionTitle } from '../settings/settings-layout-components';
 import { useSystemResources } from './runtime-config-system-resources';
 import { useUsageEstimate } from './runtime-config-cost-estimator';
 

@@ -12,9 +12,9 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import {
   type RuntimeConfigStateV11,
-} from '@renderer/features/runtime-config/runtime-config-state-types';
-import { formatLocaleDateTime } from '@renderer/i18n';
-import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
+} from './runtime-config-state-types';
+import { formatLocaleDateTime } from '../../i18n';
+import { SectionTitle } from '../settings/settings-layout-components';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { describeRuntimeDaemonIssue } from './runtime-daemon-guidance';
 import { Button, DaemonStatusBadge } from './runtime-config-primitives';

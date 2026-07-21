@@ -1,5 +1,5 @@
 import type { JsonObject } from '@nimiplatform/sdk/types';
-import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
+import { callRealmApi, emitRealmDataError } from '../../../infra/realm/realm-api';
 import {
   getCachedContacts,
   isFriendInContacts,

@@ -4,52 +4,24 @@ import {
   hasTauriInvoke,
   listenTauri,
 } from '@nimiplatform/kit/shell/renderer/bridge';
-import { invokeChecked } from '@renderer/bridge/runtime-bridge/invoke';
+import { invokeChecked } from '../../bridge/runtime-bridge/invoke';
+import type {
+  LocalDevelopmentApproval,
+  LocalDevelopmentAuthorization,
+  LocalDevelopmentDecision,
+  LocalDevelopmentPermissionRequirement,
+  LocalDevelopmentRun,
+} from './local-development-types.js';
+
+export type {
+  LocalDevelopmentApproval,
+  LocalDevelopmentAuthorization,
+  LocalDevelopmentDecision,
+  LocalDevelopmentPermissionRequirement,
+  LocalDevelopmentRun,
+} from './local-development-types.js';
 
 const APPROVAL_EVENT = 'local-development://approval-requested';
-
-export type LocalDevelopmentPermissionRequirement = {
-  readonly permissionId: string;
-  readonly reason: string;
-};
-
-export type LocalDevelopmentApproval = {
-  readonly requestId: string;
-  readonly appId: string;
-  readonly displayName: string;
-  readonly canonicalProjectRoot: string;
-  readonly shell: 'electron' | 'tauri';
-  readonly accountId: string;
-  readonly permissionRequirements: readonly LocalDevelopmentPermissionRequirement[];
-  readonly approvalState: string;
-};
-
-export type LocalDevelopmentAuthorization = {
-  readonly selector: string;
-  readonly appId: string;
-  readonly displayName: string;
-  readonly canonicalProjectRoot: string;
-  readonly shell: 'electron' | 'tauri';
-  readonly accountId: string;
-  readonly permissionRequirements: readonly LocalDevelopmentPermissionRequirement[];
-  readonly persistence: string;
-  readonly state: string;
-  readonly updatedAtUnixMs: number;
-};
-
-export type LocalDevelopmentRun = {
-  readonly appId: string;
-  readonly displayName: string;
-  readonly canonicalProjectRoot: string;
-  readonly shell: 'electron' | 'tauri';
-  readonly state: string;
-  readonly message: string;
-  readonly reasonCode?: string;
-  readonly retryable: boolean;
-  readonly hostGeneration: number;
-};
-
-export type LocalDevelopmentDecision = 'deny' | 'allow-run-once' | 'allow-project';
 
 export function localDevelopmentBridgeAvailable(): boolean {
   return hasShellHostInvoke();

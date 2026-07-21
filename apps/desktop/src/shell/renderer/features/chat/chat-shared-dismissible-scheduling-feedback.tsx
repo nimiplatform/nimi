@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { TFunction } from 'i18next';
 import type { NimiAISchedulingJudgement } from '@nimiplatform/sdk/ai';
-import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
+import { InlineFeedback } from '../../ui/feedback/inline-feedback';
 import {
   resolveExecutionSchedulingGuardDecision,
 } from './chat-shared-execution-scheduling-guard';

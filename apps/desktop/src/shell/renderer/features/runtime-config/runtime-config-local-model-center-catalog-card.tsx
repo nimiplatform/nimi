@@ -5,7 +5,7 @@ import type {
   NimiRuntimeLocalVerifiedAssetDescriptor,
 } from '@nimiplatform/sdk/runtime';
 import { Surface } from '@nimiplatform/kit/ui';
-import { i18n } from '@renderer/i18n';
+import { i18n } from '../../i18n';
 import { RuntimeSelect } from './runtime-config-primitives';
 import {
   CAPABILITY_OPTIONS,

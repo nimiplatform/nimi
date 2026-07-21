@@ -1,6 +1,6 @@
 import { createNimiRuntimeModelCatalogClient, type NimiRuntimeModelCatalogConnectorClient } from '@nimiplatform/sdk/runtime';
 import { type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
-import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
 
 const CATALOG_CALL_OPTIONS: RuntimeTypedCallOptions = {
   timeoutMs: 8000,

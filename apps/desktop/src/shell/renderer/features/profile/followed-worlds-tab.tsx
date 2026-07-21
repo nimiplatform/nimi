@@ -1,14 +1,14 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { CompactWorldCard } from '@renderer/features/world/world-list-compact-card';
-import { useFollowedWorlds } from '@renderer/features/world/world-follow-store';
+import { useAppStore } from '../../app-shell/providers/app-store';
+import { CompactWorldCard } from '../world/world-list-compact-card';
+import { useFollowedWorlds } from '../world/world-follow-store';
 import {
   fetchWorldListItems,
   worldListQueryKey,
-} from '@renderer/features/world/world-detail-queries';
-import { ProfileDetailTabFallback } from '@renderer/features/relationship/profile-detail-view-content-shell.js';
+} from '../world/world-detail-queries';
+import { ProfileDetailTabFallback } from '../relationship/profile-detail-view-content-shell.js';
 
 /**
  * Own-profile tab listing the worlds the signed-in user follows.

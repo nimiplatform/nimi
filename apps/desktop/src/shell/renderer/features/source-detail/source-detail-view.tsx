@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next';
-import { getSemanticSourcePalette } from '@renderer/components/source-theme.js';
-import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { getSemanticSourcePalette } from '../../components/source-theme.js';
+import { EntityAvatar } from '../../components/entity-avatar.js';
 import { ScrollArea } from '@nimiplatform/kit/ui';
-import { describeCharacterPrimaryAction } from '@renderer/features/explore/character-source-materialization';
+import { describeCharacterPrimaryAction } from '../explore/character-source-materialization';
 import type { SourceDetailData } from './source-detail-model.js';
 import { getStateBadgeColor } from './source-detail-model.js';
 import { SourceDetailPrimaryActionIcon } from './source-detail-view-primitives.js';

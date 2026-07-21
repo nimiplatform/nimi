@@ -28,7 +28,8 @@ test('Desktop src/runtime residual namespace is fully retired', () => {
   );
 
   assert.match(bootstrap, /configureDesktopRuntimeRealmSession/);
-  assert.match(bootstrap, /from '@renderer\/infra\/sdk\/desktop-nimi-client-session'/);
+  assert.match(bootstrap, /from '\.\.\/sdk\/desktop-nimi-client-session'/);
+  assert.doesNotMatch(bootstrap, /@renderer\//);
   assert.doesNotMatch(bootstrap, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(desktopSession, /from '@nimiplatform\/sdk\/runtime'/);
   assert.doesNotMatch(bootstrap, /@runtime\/world-evolution/);

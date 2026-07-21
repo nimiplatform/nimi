@@ -31,7 +31,7 @@ import {
   loadStoredDeveloperToolsSection,
   persistStoredDeveloperToolsSection,
 } from './developer-tools-storage.js';
-import { SupportDiagnosticsSection } from '@renderer/features/support/support-diagnostics-section.js';
+import { SupportDiagnosticsSection } from '../support/support-diagnostics-section.js';
 
 function renderDeveloperToolsSection(section: DeveloperToolsSectionId) {
   switch (section) {

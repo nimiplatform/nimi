@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { formatLocaleDateTime } from '@renderer/i18n';
+import { formatLocaleDateTime } from '../../i18n';
 import { SectionTitle } from './settings-layout-components.js';
 import {
   ArrowDownIcon,

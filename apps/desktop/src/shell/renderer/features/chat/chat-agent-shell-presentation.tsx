@@ -17,7 +17,7 @@ import {
   resolveAgentSelectedTargetId,
   resolveAgentTargetSummaries,
 } from './chat-agent-shell-view-model';
-import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
+import { InlineFeedback } from '../../ui/feedback/inline-feedback';
 import { useDismissibleSchedulingFeedback } from './chat-shared-dismissible-scheduling-feedback';
 import {
   resolveAgentComposerVoiceState,

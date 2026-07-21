@@ -16,7 +16,7 @@ import { actionPlanForInventoryEntry, type AppCardAction, type AppCardActionId }
 import { deriveIconGlyph, deriveRequirementSummary, type AppCardRequirementSummary } from './apps-card-fields.js';
 import type { AppAccessState, AppInventoryPresenceState } from './apps-card-state.js';
 import type { DesktopAppsEntry, DesktopAppsPanelProjection } from './apps-panel-projection.js';
-import { useDesktopCardMotion } from '@renderer/ui/motion/desktop-motion';
+import { useDesktopCardMotion } from '../../ui/motion/desktop-motion';
 
 type InventorySourceKey = keyof NimiAppInventorySources;
 

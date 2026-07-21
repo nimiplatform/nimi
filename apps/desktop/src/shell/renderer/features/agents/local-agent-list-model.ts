@@ -7,8 +7,8 @@ import {
 import {
   getDesktopHostRuntimeAgentClient,
   withDesktopRuntimeProtectedScopes,
-} from '@renderer/infra/sdk/desktop-nimi-client-session';
-import { characterSourceRefKey } from '@renderer/features/realm-source/realm-source-identity.js';
+} from '../../infra/sdk/desktop-nimi-client-session';
+import { characterSourceRefKey } from '../realm-source/realm-source-identity.js';
 
 // The Characters tab (D-SHELL-001 `agents`) projects runtime ListAgents
 // authority: source-materialized LocalAgents owned by the signed-in account.

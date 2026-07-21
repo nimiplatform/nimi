@@ -10,7 +10,7 @@ import type {
   ChatAiThreadBundle,
   ChatAiThreadRecord,
   ChatAiThreadSummary,
-} from '@renderer/bridge/runtime-bridge/types';
+} from '../../bridge/runtime-bridge/types';
 import { toConversationMessageViewModel } from './chat-nimi-thread-model';
 
 export const THREADS_QUERY_KEY = ['chat-ai-threads'];

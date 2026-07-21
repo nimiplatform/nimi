@@ -2,13 +2,13 @@ import type { MouseEvent, ReactNode, RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@nimiplatform/kit/ui';
 import { motion } from 'motion/react';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import { HomeCreatePostButton } from '@renderer/features/home/home-feed-controls';
+import { E2E_IDS } from '../../testability/e2e-ids';
+import { HomeCreatePostButton } from '../../features/home/home-feed-controls';
 import {
   SHELL_CHROME_ACTION_CELL_CLASS,
 } from './shell-chrome-classes';
-import { useDesktopInteractiveMotion } from '@renderer/ui/motion/desktop-motion';
-import type { AuthStatus } from '@renderer/app-shell/providers/app-store';
+import { useDesktopInteractiveMotion } from '../../ui/motion/desktop-motion';
+import type { AuthStatus } from '../providers/app-store';
 
 const SHELL_TOPBAR_GHOST_ICON_CLASS =
   'relative flex h-9 w-9 items-center justify-center rounded-full text-[color:var(--nimi-fg-2)] transition-colors hover:text-[color:var(--nimi-fg-1)]';

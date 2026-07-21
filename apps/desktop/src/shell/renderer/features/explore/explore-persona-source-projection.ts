@@ -1,8 +1,8 @@
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import type { ProfileDetailSeed } from '@renderer/features/relationship/profile-detail-modal.js';
+import type { ProfileDetailSeed } from '../relationship/profile-detail-modal.js';
 import type { PostCardAuthorProfileTarget } from '../home/post-card';
 import type { ExplorePersonaSourceCardData } from './explore-cards';
-import { resolveCharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
+import { resolveCharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 
 type SourceWorldProjection = {
   bannerUrl: string | null;

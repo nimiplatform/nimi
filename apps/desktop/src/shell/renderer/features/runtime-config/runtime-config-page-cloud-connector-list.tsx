@@ -1,7 +1,7 @@
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import { getVendorLabelV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
+import { getVendorLabelV11 } from './runtime-config-state-types';
 import { ScrollArea } from '@nimiplatform/kit/ui';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { E2E_IDS } from '../../testability/e2e-ids';
 import { Card as PrimitiveCard } from './runtime-config-primitives';
 import { CloudIcon, TrashIcon } from './runtime-config-page-cloud-primitives';
 

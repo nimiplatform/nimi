@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { AgentLocalThreadBundle } from '@renderer/bridge/runtime-bridge/types';
+import type { AgentLocalThreadBundle } from '../../bridge/runtime-bridge/types';
 
 const projectionsByThreadId = new Map<string, AgentLocalThreadBundle>();
 const listenersByThreadId = new Map<string, Set<() => void>>();

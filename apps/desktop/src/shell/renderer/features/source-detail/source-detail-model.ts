@@ -1,9 +1,9 @@
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import type { CharacterSourceState } from '@renderer/features/explore/character-source-materialization';
+import type { CharacterSourceState } from '../explore/character-source-materialization';
 import {
   readCharacterSourceRefV3,
   type CharacterSourceRefV3,
-} from '@renderer/features/realm-source/realm-source-identity.js';
+} from '../realm-source/realm-source-identity.js';
 import {
   readExternalAssetUri,
   readOptionalString,

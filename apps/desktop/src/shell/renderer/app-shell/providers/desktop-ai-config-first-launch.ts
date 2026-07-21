@@ -9,7 +9,7 @@ import {
   type NimiAppManifestRequirementGap,
 } from '@nimiplatform/sdk/ai';
 import { loadNimiAppAIProfileFactoryCatalog } from '@nimiplatform/sdk/app';
-import { getAccountDefaultProfileForScopeInit } from '@renderer/bridge/runtime-bridge/product-control.js';
+import { getAccountDefaultProfileForScopeInit } from '../../bridge/runtime-bridge/product-control.js';
 
 export interface EnsureAppFirstLaunchAIConfigInput {
   /** Admitted Nimi App `app_id` (dot-separated namespace identity). */

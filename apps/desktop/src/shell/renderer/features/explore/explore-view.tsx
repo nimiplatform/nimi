@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
-import type { CharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
+import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useTranslation } from 'react-i18next';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import type { WorldDetailNavigationOptions } from '@renderer/app-shell/providers/store-types';
+import { E2E_IDS } from '../../testability/e2e-ids';
+import type { WorldDetailNavigationOptions } from '../../app-shell/providers/store-types';
 import { PostCard, type PostCardAuthorProfileTarget } from '../home/post-card';
 import { usePostCardActionAdapter } from '../home/post-card-action-adapter';
 import { PostFeed } from '../home/post-feed';

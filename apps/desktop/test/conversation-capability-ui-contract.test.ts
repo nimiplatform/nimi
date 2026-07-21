@@ -43,7 +43,7 @@ test('conversation capability UI contract: runtimeFields no longer mirrors route
   const runtimeSliceSource = readSource('src/shell/renderer/app-shell/providers/runtime-slice.ts');
   const storeTypesSource = readSource('src/shell/renderer/app-shell/providers/store-types.ts');
   const conversationCapabilitySource = readSource('src/shell/renderer/features/chat/conversation-capability.ts');
-  assert.match(runtimeSliceSource, /const RETIRED_ROUTE_RUNTIME_FIELD_KEYS = new Set\(\[/);
+  assert.match(runtimeSliceSource, /const RETIRED_ROUTE_RUNTIME_FIELD_KEYS: readonly string\[\] = \[/);
   assert.doesNotMatch(runtimeSliceSource, /setRuntimeRouteProjection/);
   assert.doesNotMatch(runtimeSliceSource, /toConversationCapabilityRouteProjectionFields/);
   assert.doesNotMatch(storeTypesSource, /setRuntimeRouteProjection/);

@@ -1,7 +1,7 @@
-type WorldDetailPanelModule = typeof import('@renderer/features/world/world-detail-active-panel');
+type WorldDetailPanelModule = typeof import('./world-detail-active-panel');
 
 export async function loadWorldDetailPanelModule(): Promise<WorldDetailPanelModule> {
-  return import('@renderer/features/world/world-detail-active-panel');
+  return import('./world-detail-active-panel');
 }
 
 export function prefetchWorldDetailPanel(): void {

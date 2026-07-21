@@ -2,8 +2,8 @@ import type {
   DesktopAccountSessionEvent,
   DesktopAccountSessionState,
   DesktopAccountSessionStatus,
-} from '@renderer/bridge';
-import type { RuntimeAccountAuthProjection } from '@renderer/app-shell/providers/store-types';
+} from '../../bridge';
+import type { RuntimeAccountAuthProjection } from '../../app-shell/providers/store-types';
 
 export type RuntimeAccountStreamCursor = {
   readonly sequence: bigint;

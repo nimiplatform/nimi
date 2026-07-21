@@ -4,6 +4,7 @@ import { createAppStore } from '../app-shell/providers/app-store-factory.js';
 import { createDesktopQueryClient } from '../infra/query-client/query-client.js';
 import { createDesktopI18n, resolveSupportedLocale } from '../i18n/desktop-i18n.js';
 import type { DesktopCanonicalRendererBindings } from './contract.js';
+import { createDesktopRendererLifecyclePort } from './lifecycle-port.js';
 import { createDesktopRouteProvider } from './route-provider.js';
 
 export function createDesktopRendererResources(
@@ -33,6 +34,12 @@ export function createDesktopRendererResources(
     subscribe: bindings.app.events.subscribeAttention,
   });
   const Router = createDesktopRouteProvider(bindings.route);
+  const lifecycle = createDesktopRendererLifecyclePort(
+    store,
+    queryClient,
+    (key, options) => String(i18n.instance.t(key, options)),
+  );
+  const disconnectLifecycle = bindings.app.events.connectLifecycle(lifecycle);
   let disposed = false;
 
   return Object.freeze({
@@ -44,6 +51,7 @@ export function createDesktopRendererResources(
     dispose() {
       if (disposed) return;
       disposed = true;
+      disconnectLifecycle();
       queryClient.clear();
     },
   });

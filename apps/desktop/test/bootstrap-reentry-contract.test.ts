@@ -26,15 +26,17 @@ test('bootstrap re-entry is queued instead of resetting bootstrapPromise inline'
   );
   assert.ok(
     bootstrapSource.includes(
-      'if (rebootstrapPromise) {\n    return rebootstrapPromise;\n  }\n  return startBootstrapRuntime();',
+      'if (rebootstrapPromise) {\n    return rebootstrapPromise;\n  }\n  return startBootstrapRuntime(lifecycle);',
     ),
     'public bootstrap must wait on queued rebootstrap before starting another bootstrap',
   );
   assert.ok(
-    bootstrapSource.includes('await startBootstrapRuntime();'),
+    bootstrapSource.includes('await startBootstrapRuntime(lifecycle);'),
     'rebootstrap must call the internal bootstrap executor instead of awaiting its own public promise',
   );
-  const internalBootstrapStart = bootstrapSource.indexOf('function startBootstrapRuntime(): Promise<void>');
+  const internalBootstrapStart = bootstrapSource.indexOf(
+    'function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise<void>',
+  );
   const internalBootstrapBody = bootstrapSource.slice(
     internalBootstrapStart,
     bootstrapSource.indexOf('bootstrapPromise = (async () => {', internalBootstrapStart),
@@ -56,7 +58,7 @@ test('bootstrap failure performs teardown before projecting Runtime account unav
   assert.notEqual(catchIndex, -1, 'bootstrap catch block must exist');
   const catchBlock = bootstrapSource.slice(catchIndex);
   const teardownIndex = catchBlock.indexOf('await teardownBootstrapState();');
-  const unavailableProjectionIndex = catchBlock.indexOf('applyRuntimeAccountUnavailableProjection();');
+  const unavailableProjectionIndex = catchBlock.indexOf('applyRuntimeAccountUnavailableProjection(lifecycle);');
   assert.notEqual(teardownIndex, -1, 'bootstrap catch must teardown runtime state');
   assert.notEqual(unavailableProjectionIndex, -1, 'bootstrap catch must project unavailable account state');
   assert.ok(

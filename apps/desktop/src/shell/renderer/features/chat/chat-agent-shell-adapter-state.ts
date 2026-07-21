@@ -8,13 +8,13 @@ import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model
 import {
   findNimiRuntimeRouteModelProfile,
 } from '@nimiplatform/sdk/runtime';
-import { useAppStore, type AppStoreState, type AuthStatus } from '@renderer/app-shell/providers/app-store';
+import { useAppStore, type AppStoreState, type AuthStatus } from '../../app-shell/providers/app-store';
 import type {
   AgentLocalMessageRecord,
   AgentLocalTargetSnapshot,
   AgentLocalThreadBundle,
   AgentLocalThreadSummary,
-} from '@renderer/bridge/runtime-bridge/types';
+} from '../../bridge/runtime-bridge/types';
 import {
   overlayAgentTargetWithLiveProfileContent,
   toConversationMessageViewModel,
@@ -26,7 +26,7 @@ import {
   getAgentConversationAnchorBinding,
   getAgentConversationAnchorBindingVersion,
   subscribeAgentConversationAnchorBindings,
-} from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
+} from '../../app-shell/providers/agent-conversation-anchor-binding-storage';
 import {
   createAgentConversationCacheThreadId,
   isEmptyPendingAssistantMessage,

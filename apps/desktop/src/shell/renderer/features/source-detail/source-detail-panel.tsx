@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { i18n } from '@renderer/i18n';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { i18n } from '../../i18n';
+import { useAppStore } from '../../app-shell/providers/app-store';
 import {
   characterSourceMaterializationFailureMessage,
   characterSourceMaterializationMessage,
@@ -9,24 +9,24 @@ import {
   discoverCharacterSourceLocalAgents,
   resolveCharacterSourceState,
   type CharacterSourceDiscoveredLocalAgent,
-} from '@renderer/features/explore/character-source-materialization';
+} from '../explore/character-source-materialization';
 import {
   materializeSourceContactLaunchTarget,
   toSourceContactLaunchTarget,
-} from '@renderer/features/relationship/source-contact-launch-target.js';
-import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
-import { launchAgentConversationFromDisplay } from '@renderer/features/chat/agent-conversation-launcher.js';
+} from '../relationship/source-contact-launch-target.js';
+import { ensureRuntimeAgentExists } from '../chat/chat-agent-shell-host-actions-helpers';
+import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
 import {
   fetchLocalAgentList,
   localAgentListQueryKey,
   toLocalAgentSourceDiscoveryProjections,
-} from '@renderer/features/agents/local-agent-list-model';
+} from '../agents/local-agent-list-model';
 import {
   sourceDisplayDetailQueryKey,
   fetchSourceDisplayDetail,
 } from './source-detail-queries.js';
 import { SourceDetailView } from './source-detail-view.js';
-import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 
 export function SourceDetailPanel() {
   const queryClient = useQueryClient();

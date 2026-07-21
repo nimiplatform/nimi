@@ -1,4 +1,4 @@
-import { formatLocaleDate, formatRelativeLocaleTime } from '@renderer/i18n';
+import { formatLocaleDate, formatRelativeLocaleTime } from '../../i18n';
 
 export function formatNotificationTime(input: string): string {
   const date = new Date(input);

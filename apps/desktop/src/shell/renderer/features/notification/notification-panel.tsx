@@ -1,4 +1,4 @@
-import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
+import { realmSocialData } from '../social/data/realm-social-data';
 import { useEffect, useMemo, useState } from 'react';
 import { AppCardSurface, Button, ScrollArea } from '@nimiplatform/kit/ui';
 import { loadNimiRealmNotifications, loadNimiRealmNotificationUnreadCount, markNimiRealmNotificationRead, markNimiRealmNotificationsRead, toNimiRealmNotificationListView } from '@nimiplatform/sdk/realm';
@@ -14,10 +14,10 @@ import {
   createRealmGiftReview,
   rejectRealmGift,
 } from '@nimiplatform/kit/features/commerce/realm';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import { i18n } from '@renderer/i18n';
-import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { useAppStore } from '../../app-shell/providers/app-store';
+import { E2E_IDS } from '../../testability/e2e-ids';
+import { i18n } from '../../i18n';
+import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import {
   invalidateNotificationQueries,
   notificationQueryKeys,
@@ -35,8 +35,8 @@ import {
   type NotificationItemView,
   type PendingItemAction,
 } from './notification-panel-types.js';
-import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
-import { getDesktopRealmCommerceGiftService } from '@renderer/infra/realm/realm-commerce-service';
+import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
+import { getDesktopRealmCommerceGiftService } from '../../infra/realm/realm-commerce-service';
 
 type ReviewRating = RealmModel<'ReviewRating'>;
 

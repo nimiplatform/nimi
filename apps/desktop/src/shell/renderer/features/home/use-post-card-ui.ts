@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
-import { i18n } from '@renderer/i18n';
-import type { StatusBanner } from '@renderer/app-shell/providers/store-types';
+import { i18n } from '../../i18n';
+import type { StatusBanner } from '../../app-shell/providers/store-types';
 
 type SetFeedback = (banner: StatusBanner | null) => void;
 

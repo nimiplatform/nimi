@@ -5,7 +5,7 @@ import type { NimiRuntimeAgentPresentationProfileProjection } from '@nimiplatfor
 import type {
   AgentLocalMessageRecord,
   AgentLocalTargetSnapshot,
-} from '@renderer/bridge/runtime-bridge/types';
+} from '../../bridge/runtime-bridge/types';
 import {
   parseOptionalString,
 } from '@nimiplatform/kit/shell/renderer/bridge';

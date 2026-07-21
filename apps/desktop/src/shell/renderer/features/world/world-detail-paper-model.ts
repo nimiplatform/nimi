@@ -1,5 +1,5 @@
 import type { WorldCharacter, WorldDetailData, WorldHistoryBundle, WorldPublicAssetsData, WorldSceneItem, WorldSemanticData } from './world-detail-types.js';
-import { formatLocaleDateTime } from '@renderer/i18n';
+import { formatLocaleDateTime } from '../../i18n';
 import { currentWorldTime, formatNum, personaCount, sourceCount, worldCharacterCount } from './world-detail-template-model';
 
 /**

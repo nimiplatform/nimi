@@ -11,8 +11,8 @@ import {
   type ChatAiThreadBundle,
   type ChatAiThreadRecord,
   type ChatAiThreadSummary,
-} from '@renderer/bridge/runtime-bridge/types';
-import { chatAiStoreClient } from '@renderer/bridge/runtime-bridge/chat-ai-store';
+} from '../../bridge/runtime-bridge/types';
+import { chatAiStoreClient } from '../../bridge/runtime-bridge/chat-ai-store';
 import {
   appendNimiConversationReasoningDelta,
   appendNimiConversationTextDelta,
@@ -29,7 +29,7 @@ import {
   resolveThreadTitleAfterFirstSend,
 } from './chat-nimi-thread-model';
 import type { NimiAIConfig } from './conversation-capability';
-import { resolveNimiAIConfigRuntimeSchedulingTargetForCapability } from '@renderer/app-shell/providers/desktop-ai-config-service';
+import { resolveNimiAIConfigRuntimeSchedulingTargetForCapability } from '../../app-shell/providers/desktop-ai-config-service';
 import { probeExecutionSchedulingGuard } from './chat-shared-execution-scheduling-guard';
 import {
   feedStreamEvent,

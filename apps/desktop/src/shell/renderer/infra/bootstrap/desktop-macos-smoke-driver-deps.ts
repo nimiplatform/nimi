@@ -1,18 +1,17 @@
-import { writeDesktopMacosSmokeReport } from '@renderer/bridge/runtime-bridge/macos-smoke';
-import { desktopBridge } from '@renderer/bridge';
-import type { DesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/types';
-import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
-import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
+import { writeDesktopMacosSmokeReport } from '../../bridge/runtime-bridge/macos-smoke';
+import { desktopBridge } from '../../bridge';
+import type { DesktopMacosSmokeContext } from '../../bridge/runtime-bridge/types';
+import { getDesktopAIConfigService } from '../../app-shell/providers/desktop-ai-config-service';
 import {
   clearAllAgentConversationAnchorBindings,
   getAgentConversationAnchorBinding,
-} from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
-import { getActiveScope } from '@renderer/features/chat/chat-shared-active-ai-config-scope';
+} from '../../app-shell/providers/agent-conversation-anchor-binding-storage';
+import { getActiveScope } from '../../features/chat/chat-shared-active-ai-config-scope';
 import {
   getDesktopAccountRuntime,
   getDesktopAppId,
   getDesktopRuntime,
-} from '@renderer/infra/sdk/desktop-nimi-client-session';
+} from '../sdk/desktop-nimi-client-session';
 import { createNimiDesktopShellRuntimeAccountCaller, createNimiRuntimeAgentSmokeVerificationSurface, type NimiRuntimeAgentSmokeVerificationRuntime } from '@nimiplatform/sdk/runtime';
 import { AccountSessionState } from '@nimiplatform/sdk/runtime/wire-types';
 import {
@@ -20,8 +19,15 @@ import {
   SMOKE_STEP_TIMEOUT_MS,
 } from './desktop-macos-smoke-shared';
 import { applyRuntimeAccountStatusProjection } from './auth-state-watcher';
+import type { DesktopRendererLifecyclePort } from '../../renderer/lifecycle-port.js';
 
 export type DesktopMacosSmokeDriverDepsOptions = {
+  lifecycle: Pick<
+    DesktopRendererLifecyclePort,
+    | 'applyRuntimeAccountProjection'
+    | 'auth'
+    | 'cancelAndClearQueries'
+  >;
   context?: DesktopMacosSmokeContext | null;
   onStepStart?: DesktopMacosSmokeDriverDeps['onStepStart'];
   onReportWrite?: () => void;
@@ -37,7 +43,7 @@ function getDesktopRuntimeAgentSmokeVerificationRuntime(): NimiRuntimeAgentSmoke
   };
 }
 
-export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions = {}): DesktopMacosSmokeDriverDeps {
+export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions): DesktopMacosSmokeDriverDeps {
   const queryByTestId = (id: string): HTMLElement | null => (
     document.querySelector(`[data-testid="${id}"]`) as HTMLElement | null
   );
@@ -168,7 +174,7 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
       });
     },
     async verifyRuntimeConversationAnchor(input) {
-      const auth = productionAppStore.getState().auth;
+      const auth = options.lifecycle.auth();
       const subjectUserId = String((auth.user as Record<string, unknown> | null)?.id || '').trim();
       await createNimiRuntimeAgentSmokeVerificationSurface({
         getRuntime: getDesktopRuntimeAgentSmokeVerificationRuntime,
@@ -178,7 +184,7 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
       }).verifyConversationAnchor(input);
     },
     async readRuntimeProductPathEvidence(input) {
-      const auth = productionAppStore.getState().auth;
+      const auth = options.lifecycle.auth();
       const subjectUserId = String((auth.user as Record<string, unknown> | null)?.id || '').trim();
       return createNimiRuntimeAgentSmokeVerificationSurface({
         getRuntime: getDesktopRuntimeAgentSmokeVerificationRuntime,
@@ -263,7 +269,7 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
           const accountId = String(account.accountProjection?.accountId || '').trim();
           const isAuthenticated = account.state === 'authenticated';
           if (isAuthenticated && accountId) {
-            applyRuntimeAccountStatusProjection(account);
+            applyRuntimeAccountStatusProjection(account, options.lifecycle);
             return;
           }
           lastError = `Runtime account state=${String(account.state || 'unknown')} account_present=${Boolean(accountId)}`;

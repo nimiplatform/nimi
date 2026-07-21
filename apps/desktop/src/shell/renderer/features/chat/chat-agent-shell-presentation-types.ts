@@ -5,9 +5,9 @@ import type {
   ConversationMessageViewModel,
   ConversationSetupState,
 } from '@nimiplatform/kit/features/chat/headless';
-import type { AgentLocalTargetSnapshot, AgentLocalThreadBundle, AgentLocalThreadSummary } from '@renderer/bridge/runtime-bridge/types';
+import type { AgentLocalTargetSnapshot, AgentLocalThreadBundle, AgentLocalThreadSummary } from '../../bridge/runtime-bridge/types';
 import type { AgentRuntimeConversationSummary } from './chat-agent-runtime-conversation-summaries';
-import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
 import type { AgentCenterRuntimeAdapter } from '@nimiplatform/kit/features/agent-center';
 import type { NimiAISchedulingJudgement } from '@nimiplatform/sdk/ai';
@@ -20,11 +20,11 @@ import type { AgentChatExperienceSettings } from './chat-settings-storage';
 import type {
   NimiRuntimeAgentInspectEventSummary,
   NimiRuntimeAgentInspectSnapshot,
-} from '@renderer/infra/runtime-agent-inspect';
+} from '../../infra/runtime-agent-inspect';
 import type {
   NimiRuntimeAgentAIConfigSnapshot,
   NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
-} from '@renderer/infra/runtime-agent-ai-config';
+} from '../../infra/runtime-agent-ai-config';
 import type { AgentVoiceSessionShellState } from './chat-agent-voice-session';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 

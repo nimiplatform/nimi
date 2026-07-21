@@ -1,7 +1,7 @@
 import { useEffect, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import type { NimiProductControlState } from '@renderer/bridge';
+import type { NimiProductControlState } from '../bridge';
 
 export function FirstRunReconcilingScreen(props: {
   readonly productState: NimiProductControlState;

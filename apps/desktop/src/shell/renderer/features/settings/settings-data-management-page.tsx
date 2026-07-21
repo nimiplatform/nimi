@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { requestNimiRealmAccountDeletion } from '@nimiplatform/sdk/realm';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { useAppStore } from '../../app-shell/providers/app-store';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { logoutAndClearSession } from '@renderer/features/auth/logout';
-import { desktopBridge } from '@renderer/bridge';
-import type { DesktopStorageDirs } from '@renderer/bridge';
-import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { logoutAndClearSession } from '../auth/logout';
+import { desktopBridge } from '../../bridge';
+import type { DesktopStorageDirs } from '../../bridge';
+import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
 import { resolveBrowserStorage } from '@nimiplatform/kit/core/storage-json';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
@@ -15,7 +15,7 @@ import {
   PageShell,
   SectionTitle,
 } from './settings-layout-components.js';
-import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 
 type StorageSnapshot = {
   queryCacheBytes: number;

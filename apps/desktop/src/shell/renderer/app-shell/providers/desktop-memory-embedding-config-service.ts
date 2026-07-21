@@ -6,7 +6,7 @@
  * The committed text.embed intent is owned by Runtime Agent AI Config.
  */
 
-import { getDesktopAppId, getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { getDesktopAppId, getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
 import {
   createNimiProtectedHostMemoryEmbeddingRuntimeSurface,
   type NimiProtectedHostMemoryEmbeddingRuntimeClient,

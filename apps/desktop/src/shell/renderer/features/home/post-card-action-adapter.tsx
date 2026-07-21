@@ -1,15 +1,15 @@
-import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
+import { realmSocialData } from '../social/data/realm-social-data';
 import { useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { i18n } from '@renderer/i18n';
+import { useAppStore } from '../../app-shell/providers/app-store';
+import { i18n } from '../../i18n';
 import { AddFriendModal } from './add-friend-modal';
-import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
-import { CreatePostModal } from '@renderer/features/profile/create-post-modal.js';
+import { SendGiftModal } from '../economy/send-gift-modal';
+import { CreatePostModal } from '../profile/create-post-modal.js';
 import {
   loadChatList,
   startChatWithTarget,
-} from '@renderer/features/chat/data/realm-human-chat-data';
+} from '../chat/data/realm-human-chat-data';
 import type { PostCardActionAdapter } from './post-card';
 
 function createOpenChatError(): Error {

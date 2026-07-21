@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { LocalModelCenter } from './runtime-config-local-model-center';
 

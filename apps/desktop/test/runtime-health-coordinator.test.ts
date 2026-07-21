@@ -17,6 +17,9 @@ test('desktop runtime health coordinator delegates orchestration to SDK', () => 
 
   assert.match(source, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(source, /new NimiRuntimeHealthCoordinator\(/);
+  assert.match(source, /export function connectRuntimeHealthCoordinator\(/);
+  assert.match(source, /lifecycle\.subscribeBootstrap\(sync\)/);
+  assert.match(source, /lifecycle\.bootstrap\(\)\.bootstrapReady/);
   assert.match(source, /useSyncExternalStore/);
   assert.doesNotMatch(source, /class RuntimeHealthCoordinator/);
   assert.doesNotMatch(source, /HEALTH_STALE_MS/);

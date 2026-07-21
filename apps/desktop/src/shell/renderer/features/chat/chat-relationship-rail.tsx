@@ -4,8 +4,8 @@ import { IconToggleAction, ScrollArea } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import {
   ProfileDetailModal,
-} from '@renderer/features/relationship/profile-detail-modal.js';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+} from '../relationship/profile-detail-modal.js';
+import { E2E_IDS } from '../../testability/e2e-ids';
 import {
   RelationshipHoverCard,
   buildRelationshipProfileSeed,

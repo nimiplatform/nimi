@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { EntityAvatar } from '../../components/entity-avatar.js';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { joinParts } from './world-detail-primitives.js';
 import type { WorldCharacter } from './world-detail-types.js';

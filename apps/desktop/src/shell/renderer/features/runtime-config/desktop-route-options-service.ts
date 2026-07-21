@@ -2,7 +2,7 @@ import type {
   NimiRuntimeCanonicalCapability,
   NimiRuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/sdk/runtime';
-import { loadRuntimeRouteOptions } from '@renderer/infra/bootstrap/runtime-bootstrap-route-options';
+import { loadRuntimeRouteOptions } from '../../infra/bootstrap/runtime-bootstrap-route-options';
 
 export async function loadDesktopRouteOptions(
   capability: NimiRuntimeCanonicalCapability,

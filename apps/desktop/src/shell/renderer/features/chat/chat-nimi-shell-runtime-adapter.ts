@@ -10,7 +10,7 @@ import {
   peekDesktopAISchedulingForEvidence,
   recordDesktopAISnapshot,
   resolveNimiAIConfigRuntimeSchedulingTargetForCapability,
-} from '@renderer/app-shell/providers/desktop-ai-config-service';
+} from '../../app-shell/providers/desktop-ai-config-service';
 import { withPromptTrace } from './chat-nimi-shell-core';
 
 function normalizeText(value: unknown): string {

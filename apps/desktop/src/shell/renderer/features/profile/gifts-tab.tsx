@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { AppCardSurface, CompactAction, OverlayShell, ScrollArea } from '@nimiplatform/kit/ui';
-import { i18n } from '@renderer/i18n';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { i18n } from '../../i18n';
+import { E2E_IDS } from '../../testability/e2e-ids';
 
 const DATA_REQUIREMENTS = [
   'Profile.Gifts.requirementGiftFeed',

@@ -4,11 +4,11 @@ import {
   buildDesktopAvatarInstanceId,
   closeDesktopAvatarHandoff,
   launchDesktopAvatarHandoff,
-} from '@renderer/bridge/runtime-bridge/chat-agent-avatar-launcher';
+} from '../../bridge/runtime-bridge/chat-agent-avatar-launcher';
 import {
   desktopAvatarInstanceRegistryQueryKey,
   listDesktopAvatarLiveInstances,
-} from '@renderer/bridge/runtime-bridge/chat-agent-avatar-instance-registry';
+} from '../../bridge/runtime-bridge/chat-agent-avatar-instance-registry';
 import { hasShellHostInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   arbitrateAvatarLaunch,

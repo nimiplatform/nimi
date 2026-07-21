@@ -6,7 +6,7 @@ export const simulatorConformanceFixture = {
       'desktop.locale.apply': {
         kind: 'object',
         properties: {
-          locale: { kind: 'string', enum: ['en', 'zh'] },
+          locale: { kind: 'stringEnum', values: ['en', 'zh'] },
           lang: { kind: 'string', minLength: 1, maxLength: 32 },
           title: { kind: 'string', minLength: 1, maxLength: 128 },
         },

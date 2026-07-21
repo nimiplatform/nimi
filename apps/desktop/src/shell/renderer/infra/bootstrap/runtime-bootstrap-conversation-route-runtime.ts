@@ -5,11 +5,11 @@ import {
 import {
   setConversationCapabilityRouteRuntime,
   type ConversationCapabilityRouteRuntime,
-} from '@renderer/features/chat/conversation-capability';
+} from '../../features/chat/conversation-capability';
 import {
   desktopRuntimeRouteAccess,
-} from '@renderer/infra/runtime-route-host-access';
-import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
+} from '../runtime-route-host-access';
+import { getDesktopRuntime } from '../sdk/desktop-nimi-client-session';
 import {
   loadRuntimeRouteOptions,
 } from './runtime-bootstrap-route-options';

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import type { RuntimePageIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import { persistRuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-storage-persist';
+import { useAppStore } from '../../app-shell/providers/app-store';
+import type { RuntimePageIdV11 } from './runtime-config-state-types';
+import { persistRuntimeConfigStateV11 } from './runtime-config-storage-persist';
 import {
   addRuntimeConfigActionFocusListener,
   addRuntimeConfigOpenPageListener,
-} from '@renderer/features/runtime-config/runtime-config-navigation-events';
+} from './runtime-config-navigation-events';
 import { useRuntimeConfigPanelEffects } from './runtime-config-panel-effects';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { createRuntimeConfigPanelCommands } from './runtime-config-panel-commands';
@@ -13,7 +13,7 @@ import { useRuntimeConfigPanelDerived } from './runtime-config-panel-derived';
 import { useRuntimeConfigPanelState } from './runtime-config-panel-state';
 import { useRuntimeConfigDaemonController } from './runtime-config-panel-controller-daemon';
 import { useRuntimeConfigInstallActions } from './runtime-config-panel-controller-install-actions';
-import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 
 export type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 

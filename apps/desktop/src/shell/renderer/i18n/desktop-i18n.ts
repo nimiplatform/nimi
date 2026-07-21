@@ -36,7 +36,7 @@ export type DesktopI18nResource = {
 export type CreateDesktopI18nInput = {
   readonly initialLocale: SupportedLocale;
   readonly development: boolean;
-  readonly now?: () => number;
+  readonly now: () => number;
   readonly persistLocale?: (locale: SupportedLocale) => Promise<void> | void;
   readonly syncDocument?: (input: {
     locale: SupportedLocale;
@@ -102,7 +102,7 @@ export function createDesktopI18n(input: CreateDesktopI18nInput): DesktopI18nRes
   const instance = i18next.createInstance();
   const issueListeners = new Set<(issue: I18nIssue) => void>();
   const reportedIssueFingerprints = new Set<string>();
-  const now = input.now ?? Date.now;
+  const now = input.now;
   let initPromise: Promise<void> | null = null;
 
   function emitIssue(issue: I18nIssue): void {
@@ -285,7 +285,9 @@ export function createDesktopI18n(input: CreateDesktopI18nInput): DesktopI18nRes
     options?: Intl.DateTimeFormatOptions,
     locale?: string,
   ): string {
-    const date = value instanceof Date ? value : new Date(String(value || ''));
+    const date = typeof value === 'number'
+      ? new Date(value)
+      : new Date(String(value || ''));
     if (Number.isNaN(date.getTime())) {
       return typeof value === 'string' ? value : '--';
     }
@@ -303,7 +305,9 @@ export function createDesktopI18n(input: CreateDesktopI18nInput): DesktopI18nRes
   }
 
   function formatRelativeTime(value: unknown, locale?: string): string {
-    const date = value instanceof Date ? value : new Date(String(value || ''));
+    const date = typeof value === 'number'
+      ? new Date(value)
+      : new Date(String(value || ''));
     if (Number.isNaN(date.getTime())) {
       return typeof value === 'string' ? value : '--';
     }

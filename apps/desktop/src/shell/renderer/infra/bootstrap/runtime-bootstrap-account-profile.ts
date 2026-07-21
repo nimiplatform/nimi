@@ -1,6 +1,6 @@
-import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
-import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
+import { realmSocialData } from '../../features/social/data/realm-social-data';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
+import type { DesktopRendererLifecyclePort } from '../../renderer/lifecycle-port.js';
 
 export type RuntimeAccountProjection = {
   accountId?: string;
@@ -52,6 +52,7 @@ function mergeRuntimeAccountProjectionWithRealmProfile(input: {
 export async function hydrateDesktopAccountProfile(input: {
   accountProjection: RuntimeAccountProjection;
   flowId: string;
+  lifecycle: DesktopRendererLifecyclePort;
 }): Promise<void> {
   if (!readNonEmptyString(input.accountProjection.accountId)) {
     return;
@@ -60,9 +61,9 @@ export async function hydrateDesktopAccountProfile(input: {
   const hydratedUser = mergeRuntimeAccountProjectionWithRealmProfile({
     accountProjection: input.accountProjection,
     realmProfile,
-    currentUser: productionAppStore.getState().auth.user,
+    currentUser: input.lifecycle.auth().user,
   });
-  productionAppStore.getState().setAuthSession(hydratedUser);
+  input.lifecycle.setAuthSession(hydratedUser);
   logRendererEvent({
     level: 'info',
     area: 'renderer-bootstrap',

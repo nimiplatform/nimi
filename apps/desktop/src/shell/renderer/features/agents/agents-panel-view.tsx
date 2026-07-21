@@ -10,14 +10,14 @@ import {
   SearchField,
   Surface,
 } from '@nimiplatform/kit/ui';
-import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { EntityAvatar } from '../../components/entity-avatar.js';
+import { E2E_IDS } from '../../testability/e2e-ids';
 import {
   fetchSourceDisplayDetail,
   sourceDisplayDetailQueryKey,
-} from '@renderer/features/source-detail/source-detail-queries';
+} from '../source-detail/source-detail-queries';
 import type { LocalAgentListItem } from './local-agent-list-model';
-import type { AuthStatus } from '@renderer/app-shell/providers/app-store';
+import type { AuthStatus } from '../../app-shell/providers/app-store';
 
 const ICON_AGENT_EMPTY = <Bot size={20} aria-hidden="true" />;
 

@@ -5,8 +5,8 @@
 // owner projections exposed through the SDK and protected Runtime carrier.
 
 import { NimiAppClient, createNimiAppRegistryTransport } from '@nimiplatform/sdk/app';
-import { getAppsBridgeProjection } from '@renderer/bridge/runtime-bridge/apps-projection';
-import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { getAppsBridgeProjection } from '../../bridge/runtime-bridge/apps-projection';
+import { getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
 
 export interface DesktopAppsLiveBridge {
   readonly appClient: NimiAppClient;

@@ -1,8 +1,8 @@
-import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
+import { realmSocialData } from '../social/data/realm-social-data';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useTranslation } from 'react-i18next';
-import { BLOCKED_USERS_UPDATED_EVENT } from '@renderer/features/social/data/blocked-content';
+import { BLOCKED_USERS_UPDATED_EVENT } from '../social/data/blocked-content';
 import { AppCardSurface, CompactAction } from '@nimiplatform/kit/ui';
 import { PostFeedWithMediaPreview } from './post-feed-with-media-preview.js';
 

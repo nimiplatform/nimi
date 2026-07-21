@@ -2,12 +2,12 @@ import { type KeyboardEvent } from 'react';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
-import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { type ProfileDetailSeed } from '@renderer/features/relationship/profile-detail-modal.js';
+import { EntityAvatar } from '../../components/entity-avatar.js';
+import { type ProfileDetailSeed } from '../relationship/profile-detail-modal.js';
 import {
   readCharacterSourceRefV3,
   type CharacterSourceRefV3,
-} from '@renderer/features/realm-source/realm-source-identity.js';
+} from '../realm-source/realm-source-identity.js';
 
 export type RelationshipHoverCardPosition = {
   top: number;

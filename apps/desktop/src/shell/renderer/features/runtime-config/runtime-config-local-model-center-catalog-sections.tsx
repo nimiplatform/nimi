@@ -1,4 +1,4 @@
-import { i18n } from '@renderer/i18n';
+import { i18n } from '../../i18n';
 import { Surface } from '@nimiplatform/kit/ui';
 import { toCanonicalNimiRuntimeLocalAssetLookupKey } from '@nimiplatform/sdk/runtime';
 import type {

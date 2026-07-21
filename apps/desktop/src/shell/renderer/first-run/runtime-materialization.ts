@@ -1,4 +1,4 @@
-import type { NimiProductControlState } from '@renderer/bridge';
+import type { NimiProductControlState } from '../bridge';
 import {
   cancelNimiFirstRunMaterializationJob,
   isNimiRuntimeLocalEnvironmentDependencyJobCancelledState,

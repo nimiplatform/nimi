@@ -5,7 +5,7 @@ import {
 import type {
   RealmGetExploreFeedOperationResponse,
 } from '@nimiplatform/sdk/realm/generated';
-import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
+import { callRealmApi, emitRealmDataError } from '../../../infra/realm/realm-api';
 
 export type LoadExplorePersonasInput = {
   tag?: string | null;

@@ -2,10 +2,10 @@ import { useTranslation } from 'react-i18next';
 import type { CSSProperties } from 'react';
 import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { motion } from 'motion/react';
-import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { EntityAvatar } from '../../components/entity-avatar.js';
 import { SHELL_CHROME_MENU_ITEM_BASE_CLASS, SHELL_CHROME_OVERLAY_CLASS } from './shell-chrome-classes';
 import { renderShellNavIcon } from './navigation-config';
-import { useDesktopInteractiveMotion } from '@renderer/ui/motion/desktop-motion';
+import { useDesktopInteractiveMotion } from '../../ui/motion/desktop-motion';
 
 export type SettingsSubmenuItemId =
   | 'profile'

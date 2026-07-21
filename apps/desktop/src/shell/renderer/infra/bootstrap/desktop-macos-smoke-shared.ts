@@ -1,6 +1,6 @@
-import type { AgentConversationAnchorBinding } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
-import type { DesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/types';
-import type { JsonObject } from '@renderer/bridge/runtime-bridge/types';
+import type { AgentConversationAnchorBinding } from '../../app-shell/providers/agent-conversation-anchor-binding-storage';
+import type { DesktopMacosSmokeContext } from '../../bridge/runtime-bridge/types';
+import type { JsonObject } from '../../bridge/runtime-bridge/types';
 import type { NimiRuntimeAgentSmokeProductPathEvidence } from '@nimiplatform/sdk/runtime';
 
 export type { JsonObject };

@@ -38,7 +38,7 @@ const mainLayoutViewSource = [
 ].join('\n');
 
 test('chat unified shell a2: main layout mounts the dedicated chat page host', () => {
-  assert.match(mainLayoutViewSource, /@renderer\/features\/chat\/chat-page/);
+  assert.match(mainLayoutViewSource, /\.\.\/\.\.\/features\/chat\/chat-page/);
   assert.match(mainLayoutViewSource, /<ChatPage \/>/);
   assert.doesNotMatch(mainLayoutViewSource, /function ChatLayout\(/);
 });

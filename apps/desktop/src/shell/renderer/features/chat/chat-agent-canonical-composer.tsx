@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, ty
 import { CanonicalComposer } from '@nimiplatform/kit/features/chat/components/canonical-composer';
 import type { ChatComposerVoiceState } from '@nimiplatform/kit/features/chat/types';
 import { useTranslation } from 'react-i18next';
-import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { cn } from '@nimiplatform/kit/ui';
 import {
   appendPendingAttachment,

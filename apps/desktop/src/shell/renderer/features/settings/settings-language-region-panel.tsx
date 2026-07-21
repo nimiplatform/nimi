@@ -6,13 +6,13 @@ import {
   getLocaleLabel,
   SUPPORTED_LOCALES,
   type SupportedLocale,
-} from '@renderer/i18n';
+} from '../../i18n';
 import {
   FormFeedback,
   PageShell,
   SectionTitle,
 } from './settings-layout-components.js';
-import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 
 type SettingsDropdownOption = {
   value: string;

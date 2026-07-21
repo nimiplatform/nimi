@@ -6,6 +6,7 @@ import { AppErrorBoundary } from '../infra/error-boundary/app-error-boundary.js'
 import type { DesktopCanonicalRendererBindings } from './contract.js';
 import { DesktopRendererContent } from './content.js';
 import { createDesktopRendererResources } from './resources.js';
+import { DesktopRendererBindingProvider } from './binding-context.js';
 
 function DesktopMainSurface(props: {
   readonly bindings: DesktopCanonicalRendererBindings;
@@ -42,17 +43,19 @@ function DesktopMainSurface(props: {
         role="region"
         aria-label="Nimi Desktop"
       >
-        <AppProviders
-          attention={props.resources.attention}
-          i18n={props.resources.i18n}
-          queryClient={props.resources.queryClient}
-          Router={props.resources.Router}
-          store={props.resources.store}
-        >
-          <AppErrorBoundary>
-            <DesktopRendererContent />
-          </AppErrorBoundary>
-        </AppProviders>
+        <DesktopRendererBindingProvider bindings={props.bindings}>
+          <AppProviders
+            attention={props.resources.attention}
+            i18n={props.resources.i18n}
+            queryClient={props.resources.queryClient}
+            Router={props.resources.Router}
+            store={props.resources.store}
+          >
+            <AppErrorBoundary>
+              <DesktopRendererContent />
+            </AppErrorBoundary>
+          </AppProviders>
+        </DesktopRendererBindingProvider>
       </div>
     </NimiThemeProvider>
   );

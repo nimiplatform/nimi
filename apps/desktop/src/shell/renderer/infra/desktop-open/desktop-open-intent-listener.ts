@@ -8,7 +8,7 @@ import {
   listenShell,
 } from '@nimiplatform/kit/shell/renderer/bridge';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { setDesktopOpenIntentReady } from '@renderer/bridge/runtime-bridge';
+import { setDesktopOpenIntentReady } from '../../bridge/runtime-bridge';
 import { applyDesktopOpenIntentToAppStore } from './desktop-open-intent-navigation';
 
 const DESKTOP_OPEN_INTENT_EVENT = 'desktop-open://open-intent';

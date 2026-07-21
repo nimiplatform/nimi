@@ -1,8 +1,8 @@
 import type { TFunction } from 'i18next';
 import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/wire-types';
 import { ScrollArea } from '@nimiplatform/kit/ui';
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import { DEFAULT_CONNECTOR_ENDPOINT_V11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
+import { DEFAULT_CONNECTOR_ENDPOINT_V11 } from './runtime-config-state-types';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { Card as PrimitiveCard, RuntimeSelect, StatusBadge, renderModelChips } from './runtime-config-primitives';
 import type { CodexOAuthPendingState } from './runtime-config-codex-oauth';

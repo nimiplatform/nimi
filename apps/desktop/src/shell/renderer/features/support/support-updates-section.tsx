@@ -13,12 +13,8 @@
  */
 
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import {
-  runDesktopUpdateCheck,
-  runDesktopUpdateInstall,
-  runDesktopUpdateRestart,
-} from '@renderer/infra/bootstrap/desktop-updates';
+import { useAppStore } from '../../app-shell/providers/app-store';
+import { useDesktopRendererCommands } from '../../renderer/binding-context';
 import {
   SupportCard,
   SupportFailClosed,
@@ -31,6 +27,7 @@ export function SupportUpdatesSection() {
   const desktopReleaseInfo = useAppStore((state) => state.desktopReleaseInfo);
   const desktopReleaseError = useAppStore((state) => state.desktopReleaseError);
   const desktopUpdateState = useAppStore((state) => state.desktopUpdateState);
+  const updateCommands = useDesktopRendererCommands();
 
   // Fail closed: the release projection is the load-bearing typed input. If it
   // is absent, the sub-area shows the captured typed failure or an explicit
@@ -103,7 +100,7 @@ export function SupportUpdatesSection() {
               type="button"
               data-testid="support-updates-check-button"
               disabled={isUpdateBusy}
-              onClick={() => { void runDesktopUpdateCheck({ autoDownload: false, silent: false }); }}
+              onClick={() => { void updateCommands.checkDesktopUpdate({ autoDownload: false, silent: false }); }}
               className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-xs font-medium text-[var(--nimi-text-primary)] transition hover:bg-[var(--nimi-surface-active)] disabled:opacity-50"
             >
               {t('Support.updatesCheckButton')}
@@ -112,7 +109,7 @@ export function SupportUpdatesSection() {
               type="button"
               data-testid="support-updates-install-button"
               disabled={isUpdateBusy || canRestartForUpdate}
-              onClick={() => { void runDesktopUpdateInstall({ silent: false }); }}
+              onClick={() => { void updateCommands.installDesktopUpdate({ silent: false }); }}
               className="rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-2 text-xs font-medium text-[var(--nimi-action-primary-fg)] transition hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:opacity-50"
             >
               {t('Support.updatesInstallButton')}
@@ -121,7 +118,7 @@ export function SupportUpdatesSection() {
               type="button"
               data-testid="support-updates-restart-button"
               disabled={!canRestartForUpdate}
-              onClick={() => { void runDesktopUpdateRestart(); }}
+              onClick={() => { void updateCommands.restartDesktopUpdate(); }}
               className="rounded-lg bg-[var(--nimi-text-primary)] px-3 py-2 text-xs font-medium text-[var(--nimi-surface-card)] transition disabled:opacity-50"
             >
               {t('Support.updatesRestartButton')}

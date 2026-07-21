@@ -14,8 +14,6 @@ if (!rootElement) {
 const mountElement = rootElement;
 
 async function bootstrapWebShell(): Promise<void> {
-  const { initI18n } = await import('@desktop-public/i18n');
-  await initI18n();
   const { default: WebShellApp } = await import('@desktop-public/app');
 
   createRoot(mountElement).render(

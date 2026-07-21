@@ -1,4 +1,4 @@
-import { SendGiftModal } from '@renderer/features/economy/send-gift-modal.js';
+import { SendGiftModal } from '../economy/send-gift-modal.js';
 import type { RealmChatViewDto } from '@nimiplatform/kit/features/chat/realm';
 
 type HumanConversationGiftModalProps = {

@@ -7,12 +7,12 @@ import type {
   NimiAISchedulingJudgement,
   NimiAISchedulingState,
 } from '@nimiplatform/sdk/ai';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { useAppStore } from '../../app-shell/providers/app-store';
+import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import {
   getDesktopAIConfigService,
   type DesktopAIConfigSDKSurface,
-} from '@renderer/app-shell/providers/desktop-ai-config-service';
+} from '../../app-shell/providers/desktop-ai-config-service';
 
 export type ExecutionSchedulingGuardDecision = {
   judgement: NimiAISchedulingJudgement | null;

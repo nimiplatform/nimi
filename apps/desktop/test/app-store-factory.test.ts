@@ -157,8 +157,8 @@ test('AppProviders owns independent route, store, query, and i18n resources', as
   const secondStore = createAppStore(createDependencies(secondEffects));
   const firstQueryClient = createDesktopQueryClient();
   const secondQueryClient = createDesktopQueryClient();
-  const firstI18n = createDesktopI18n({ initialLocale: 'en', development: false });
-  const secondI18n = createDesktopI18n({ initialLocale: 'zh', development: false });
+  const firstI18n = createDesktopI18n({ initialLocale: 'en', development: false, now: () => 1 });
+  const secondI18n = createDesktopI18n({ initialLocale: 'zh', development: false, now: () => 2 });
   await Promise.all([firstI18n.init(), secondI18n.init()]);
 
   function InstanceSnapshot() {
@@ -260,15 +260,30 @@ function createCanonicalBindings(input: {
           development: false,
         }),
         attention: createIdleAppAttentionState,
+        localDevelopmentAvailable: () => false,
       }),
       commands: Object.freeze({
         commitAIConfig() {},
         persistChatThinkingPreference() {},
         setActiveScopeForMode() {},
         applyLocale() {},
+        async checkDesktopUpdate() {},
+        async installDesktopUpdate() {},
+        async restartDesktopUpdate() {},
+        async startWindowDrag() {},
+        async listLocalDevelopmentApprovals() { return []; },
+        async decideLocalDevelopmentApproval() {},
       }),
       events: Object.freeze({
         subscribeAttention: () => () => undefined,
+        async subscribeLocalDevelopmentApprovals() { return () => undefined; },
+        connectLifecycle(lifecycle: Parameters<
+          DesktopCanonicalRendererBindings['app']['events']['connectLifecycle']
+        >[0]) {
+          lifecycle.setBootstrapError(null);
+          lifecycle.setBootstrapReady(true);
+          return () => undefined;
+        },
       }),
     },
     route: Object.freeze({

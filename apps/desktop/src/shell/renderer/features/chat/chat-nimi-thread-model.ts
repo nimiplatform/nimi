@@ -7,7 +7,7 @@ import type {
   ChatAiMessageError,
   ChatAiMessageRecord,
   ChatAiThreadSummary,
-} from '@renderer/bridge/runtime-bridge/types';
+} from '../../bridge/runtime-bridge/types';
 
 export const AI_NEW_CONVERSATION_TITLE = 'New conversation';
 const AI_THREAD_TITLE_MAX_LENGTH = 80;

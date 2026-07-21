@@ -9,19 +9,18 @@ import {
   StatusBadge,
   Surface,
 } from '@nimiplatform/kit/ui';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import {
-  decideLocalDevelopmentApproval,
-  listPendingLocalDevelopmentApprovals,
-  localDevelopmentBridgeAvailable,
-  subscribeLocalDevelopmentApprovals,
-  type LocalDevelopmentApproval,
-  type LocalDevelopmentDecision,
-} from './local-development-bridge.js';
+import { useAppStore } from '../../app-shell/providers/app-store';
+import type {
+  LocalDevelopmentApproval,
+  LocalDevelopmentDecision,
+} from './local-development-types.js';
 import { isRiskAcknowledgedForApproval } from './local-development-approval-state.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context';
 
 export function LocalDevelopmentApprovalCenter() {
   const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
+  const localDevelopmentAvailable = bindings.app.projection.localDevelopmentAvailable();
   const authUser = useAppStore((state) => state.auth.user);
   const [approvals, setApprovals] = useState<LocalDevelopmentApproval[]>([]);
   const [busy, setBusy] = useState(false);
@@ -34,21 +33,21 @@ export function LocalDevelopmentApprovalCenter() {
   );
 
   const refresh = useCallback(async () => {
-    if (!localDevelopmentBridgeAvailable()) return;
+    if (!localDevelopmentAvailable) return;
     try {
-      setApprovals(await listPendingLocalDevelopmentApprovals());
+      setApprovals([...(await bindings.app.commands.listLocalDevelopmentApprovals())]);
       setError('');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     }
-  }, []);
+  }, [bindings, localDevelopmentAvailable]);
 
   useEffect(() => {
-    if (!localDevelopmentBridgeAvailable()) return;
+    if (!localDevelopmentAvailable) return;
     let cancelled = false;
     let unsubscribe: (() => void) | undefined;
     void refresh();
-    void subscribeLocalDevelopmentApprovals((next) => {
+    void bindings.app.events.subscribeLocalDevelopmentApprovals((next) => {
       if (cancelled) return;
       setApprovals((current) => [next, ...current.filter((row) => row.requestId !== next.requestId)]);
     }).then((value) => {
@@ -61,7 +60,7 @@ export function LocalDevelopmentApprovalCenter() {
       cancelled = true;
       unsubscribe?.();
     };
-  }, [refresh]);
+  }, [bindings, localDevelopmentAvailable, refresh]);
 
   const accountLabel = useMemo(
     () => accountDisplayLabel(authUser, approval?.accountId ?? ''),
@@ -73,11 +72,11 @@ export function LocalDevelopmentApprovalCenter() {
     setBusy(true);
     setError('');
     try {
-      await decideLocalDevelopmentApproval(
-        approval.requestId,
+      await bindings.app.commands.decideLocalDevelopmentApproval({
+        requestId: approval.requestId,
         decision,
-        decision === 'deny' ? false : riskAcknowledged,
-      );
+        riskDisclosureAcknowledged: decision === 'deny' ? false : riskAcknowledged,
+      });
       setApprovals((current) => current.filter((row) => row.requestId !== approval.requestId));
       await refresh();
     } catch (cause) {
@@ -85,7 +84,7 @@ export function LocalDevelopmentApprovalCenter() {
     } finally {
       setBusy(false);
     }
-  }, [approval, busy, refresh, riskAcknowledged]);
+  }, [approval, bindings, busy, refresh, riskAcknowledged]);
 
   if (!approval) return null;
 

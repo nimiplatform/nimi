@@ -8,7 +8,7 @@ import {
   type RealmChatViewDto,
 } from '@nimiplatform/kit/features/chat/realm';
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { useAppStore } from '../../app-shell/providers/app-store';
 import { useChatUploadPlaceholders } from '../turns/chat-upload-placeholder-store';
 import { getStreamState, subscribeStream, type StreamState } from '../turns/stream-controller';
 import { loadChatMessages } from './data/realm-human-chat-data';

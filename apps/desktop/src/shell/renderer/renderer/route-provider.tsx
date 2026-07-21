@@ -20,8 +20,8 @@ function toRouteString(to: To): string {
 
 export function createDesktopRouteProvider(route: DesktopRendererRoutePort) {
   return function DesktopRouteProvider({ children }: PropsWithChildren) {
-    const location = useSyncExternalStore(route.subscribe, route.get, route.get);
-    const navigator = useMemo<Navigator>(() => ({
+    const routeLocation = useSyncExternalStore(route.subscribe, route.get, route.get);
+    const routerNavigator = useMemo<Navigator>(() => ({
       createHref: toRouteString,
       encodeLocation(to) {
         return typeof to === 'string'
@@ -41,7 +41,7 @@ export function createDesktopRouteProvider(route: DesktopRendererRoutePort) {
       },
     }), [route]);
     return (
-      <Router location={location} navigator={navigator}>
+      <Router location={routeLocation} navigator={routerNavigator}>
         {children}
       </Router>
     );

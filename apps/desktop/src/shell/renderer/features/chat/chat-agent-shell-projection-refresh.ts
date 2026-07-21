@@ -1,4 +1,4 @@
-import type { AgentLocalThreadBundle } from '@renderer/bridge/runtime-bridge/types';
+import type { AgentLocalThreadBundle } from '../../bridge/runtime-bridge/types';
 import { resolveAuthoritativeAgentThreadBundle } from './chat-agent-shell-bundle';
 import type { AgentConversationSelection } from './chat-shell-types';
 

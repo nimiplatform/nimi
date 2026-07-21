@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import type {
   ChatAiThreadBundle,
   ChatAiThreadSummary,
-} from '@renderer/bridge/runtime-bridge/types';
+} from '../../bridge/runtime-bridge/types';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS } from './chat-shared-content-layout';
 import {
@@ -18,7 +18,7 @@ import {
 } from './chat-runtime-inspect-content';
 import { toConversationThreadSummary } from './chat-nimi-thread-model';
 import type { ChatThinkingPreference } from './chat-shared-thinking';
-import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
 import type { NimiAISchedulingJudgement } from '@nimiplatform/sdk/ai';
 import { useDismissibleSchedulingFeedback } from './chat-shared-dismissible-scheduling-feedback';

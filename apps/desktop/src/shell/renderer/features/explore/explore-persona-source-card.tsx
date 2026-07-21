@@ -1,9 +1,9 @@
 import { useMemo, type CSSProperties, type MouseEvent } from 'react';
-import { i18n } from '@renderer/i18n';
+import { i18n } from '../../i18n';
 import { AppCardSurface } from '@nimiplatform/kit/ui';
-import { getSemanticSourcePalette } from '@renderer/components/source-theme.js';
-import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { getSemanticSourcePalette } from '../../components/source-theme.js';
+import { EntityAvatar } from '../../components/entity-avatar.js';
+import { E2E_IDS } from '../../testability/e2e-ids';
 import type { ExplorePersonaSourceCardData } from './explore-cards';
 import {
   describeCharacterPrimaryAction,

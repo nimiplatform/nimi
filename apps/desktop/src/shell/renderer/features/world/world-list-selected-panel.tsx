@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import type { CharacterSourceRefV3 } from '@renderer/features/realm-source/realm-source-identity.js';
+import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 import {
   ArrowRight,
   Check,

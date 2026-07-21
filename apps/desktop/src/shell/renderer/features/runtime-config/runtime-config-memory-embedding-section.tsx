@@ -10,7 +10,7 @@ import {
   type NimiRuntimeRouteTargetRef,
 } from '@nimiplatform/sdk/runtime';
 import { Surface, cn } from '@nimiplatform/kit/ui';
-import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
+import { SectionTitle } from '../settings/settings-layout-components';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 
 const TOKEN_TEXT_PRIMARY = 'text-[var(--nimi-text-primary)]';

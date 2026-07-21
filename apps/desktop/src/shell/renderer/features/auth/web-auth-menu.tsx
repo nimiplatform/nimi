@@ -4,8 +4,8 @@ import {
   type MouseEvent,
 } from 'react';
 import authLogoImage from '../../assets/logo.png';
-import { desktopBridge } from '@renderer/bridge';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { desktopBridge } from '../../bridge';
+import { useAppStore } from '../../app-shell/providers/app-store';
 import type { WebAuthMenuMode } from '@nimiplatform/kit/auth/shell';
 import { DesktopShellAuthPage } from '@nimiplatform/kit/auth';
 import '@nimiplatform/kit/auth/styles.css';
@@ -14,9 +14,9 @@ import {
   createDesktopAuthAdapter,
   createDesktopRuntimeAccountBrowserBroker,
   desktopOAuthBridge,
-} from '@renderer/features/auth/desktop-auth-adapter.js';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+} from './desktop-auth-adapter.js';
+import { E2E_IDS } from '../../testability/e2e-ids';
+import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 
 export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
   const mode = props.mode || 'embedded';

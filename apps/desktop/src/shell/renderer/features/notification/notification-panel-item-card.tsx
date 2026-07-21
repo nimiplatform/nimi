@@ -2,7 +2,7 @@ import type { TFunction } from 'i18next';
 import { AppCardSurface } from '@nimiplatform/kit/ui';
 import { getNimiNotificationBadgeKey } from '@nimiplatform/kit/core/notifications';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
-import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { EntityAvatar } from '../../components/entity-avatar.js';
 import { NotificationActionButtons } from './notification-action-buttons.js';
 import { formatNotificationTime } from './notification-panel-helpers.js';
 import { getBadgeDefaultLabel } from './notification-panel-labels.js';

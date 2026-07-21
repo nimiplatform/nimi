@@ -11,7 +11,7 @@ import type {
 import type {
   CanonicalTranscriptViewProps,
 } from '@nimiplatform/kit/features/chat/components/canonical-transcript-view';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { useAppStore } from '../../app-shell/providers/app-store';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import { ChatSideSheet } from './chat-shared-side-sheet';
 

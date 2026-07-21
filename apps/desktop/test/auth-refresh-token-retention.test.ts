@@ -73,7 +73,7 @@ test('auth state watcher observes Runtime projection without shared desktop sess
 });
 
 test('desktop bootstrap reads Runtime account projection and has no shared-auth auto-login owner', () => {
-  const watcherIndex = runtimeBootstrapSource.indexOf('startAuthStateWatcher();');
+  const watcherIndex = runtimeBootstrapSource.indexOf('startAuthStateWatcher(lifecycle);');
   assert.notEqual(watcherIndex, -1);
   assert.doesNotMatch(runtimeBootstrapSource, /bootstrapAuthSession\(/);
   assert.match(runtimeBootstrapSource, /configureDesktopRuntimeRealmSession\(/);

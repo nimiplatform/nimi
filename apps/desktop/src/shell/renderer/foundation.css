@@ -1,0 +1,7 @@
+@import "@nimiplatform/kit/ui/styles.css";
+@import "@nimiplatform/kit/ui/themes/light.css";
+@import "@nimiplatform/kit/ui/themes/dark.css";
+@import "@nimiplatform/kit/ui/themes/nimi-accent.css";
+@import "@nimiplatform/kit/ui/themes/nimi-density-compact.css";
+@import "@nimiplatform/kit/auth/styles.css";
+@import "tailwindcss" source(none);

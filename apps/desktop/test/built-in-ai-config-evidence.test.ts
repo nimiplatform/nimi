@@ -185,7 +185,7 @@ test('built-in AIConfig renderer init waits for Runtime account projection and p
   const accountProjectionIndex = rendererRuntimeBootstrapSource.indexOf('const accountProjection = accountStatus?.accountProjection;');
   const productGateIndex = rendererRuntimeBootstrapSource.indexOf('initializeBuiltInChatScopesAfterReadyAdmission(flowId)');
   const initIndex = rendererRuntimeBootstrapSource.indexOf('initializeBuiltInChatScopesFromProductControl()');
-  const watcherIndex = rendererRuntimeBootstrapSource.indexOf('startAuthStateWatcher();');
+  const watcherIndex = rendererRuntimeBootstrapSource.indexOf('startAuthStateWatcher(lifecycle);');
   assert.ok(accountProjectionIndex !== -1, 'Runtime account projection must be read');
   assert.ok(productGateIndex !== -1, 'bootstrap must gate built-in AIConfig init through product readiness');
   assert.ok(initIndex !== -1, 'built-in AIConfig init must run from bootstrap');

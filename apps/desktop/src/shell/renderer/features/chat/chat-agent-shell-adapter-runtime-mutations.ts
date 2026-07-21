@@ -1,10 +1,10 @@
 import { useCallback, useState, type Dispatch, type SetStateAction } from 'react';
 import type { TFunction } from 'i18next';
 import { confirmDialog } from '@nimiplatform/kit/shell/renderer/bridge';
-import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
-import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
-import type { CanonicalMemoryBankStatus, createRuntimeAgentMemoryAdapter } from '@renderer/infra/runtime-agent-memory';
-import type { createRuntimeAgentInspectAdapter, NimiRuntimeAgentInspectSnapshot } from '@renderer/infra/runtime-agent-inspect';
+import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
+import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import type { CanonicalMemoryBankStatus, createRuntimeAgentMemoryAdapter } from '../../infra/runtime-agent-memory';
+import type { createRuntimeAgentInspectAdapter, NimiRuntimeAgentInspectSnapshot } from '../../infra/runtime-agent-inspect';
 
 type RuntimeAgentMemoryAdapter = ReturnType<typeof createRuntimeAgentMemoryAdapter>;
 type RuntimeAgentInspectAdapter = ReturnType<typeof createRuntimeAgentInspectAdapter>;

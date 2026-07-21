@@ -12,10 +12,10 @@ import {
   createReadyConversationSetupState,
 } from '@nimiplatform/kit/features/chat/headless';
 import { createSimpleAiConversationProvider } from '@nimiplatform/kit/features/chat/runtime';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
-import type { ChatAiMessageRecord, ChatAiThreadRecord } from '@renderer/bridge/runtime-bridge/types';
-import { chatAiStoreClient } from '@renderer/bridge/runtime-bridge/chat-ai-store';
+import { useAppStore } from '../../app-shell/providers/app-store';
+import { productionAppStore } from '../../app-shell/providers/production-app-store';
+import type { ChatAiMessageRecord, ChatAiThreadRecord } from '../../bridge/runtime-bridge/types';
+import { chatAiStoreClient } from '../../bridge/runtime-bridge/chat-ai-store';
 import { useTranslation } from 'react-i18next';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import {
@@ -36,7 +36,7 @@ import {
   getChatThinkingUnsupportedCopy,
   resolveAiThinkingSupportFromProjection,
 } from './chat-shared-thinking';
-import { type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import {
   bundleQueryKey,
   isEmptyPendingAssistantMessage,
@@ -175,7 +175,9 @@ export function useAiConversationModeHost(
       ),
       resolveSystemPrompt: (turnInput) => turnInput.systemPrompt || null,
     }));
-    return registry.require('simple-ai');
+    const provider = registry.resolve('simple-ai');
+    if (!provider) throw new Error('SIMPLE_AI_CONVERSATION_PROVIDER_MISSING');
+    return provider;
   }, [
     chatThinkingPreference,
     aiConfig,

@@ -1,4 +1,4 @@
-import { i18n } from '@renderer/i18n';
+import { i18n } from '../../i18n';
 import { AppCardSurface } from '@nimiplatform/kit/ui';
 
 type CollectionsTabProps = {

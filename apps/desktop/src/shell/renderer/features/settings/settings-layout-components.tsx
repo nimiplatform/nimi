@@ -9,12 +9,12 @@ import {
   StatusBadge as KitStatusBadge,
   cn,
 } from '@nimiplatform/kit/ui';
-import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import {
   useDesktopCardMotion,
   useDesktopInteractiveMotion,
   useDesktopReducedMotion,
-} from '@renderer/ui/motion/desktop-motion';
+} from '../../ui/motion/desktop-motion';
 
 type AppCardSurfaceStyle = ComponentProps<typeof AppCardSurface>['style'];
 

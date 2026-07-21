@@ -3,7 +3,7 @@ import { createReadyConversationSetupState } from '@nimiplatform/kit/features/ch
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { useAppStore, type AuthStatus } from '@renderer/app-shell/providers/app-store';
+import { useAppStore, type AuthStatus } from '../../app-shell/providers/app-store';
 import { setGroupLocalAgentParticipationActive } from './chat-shared-active-ai-config-scope';
 import { realmGroupChatData } from './data/realm-group-chat-data';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';

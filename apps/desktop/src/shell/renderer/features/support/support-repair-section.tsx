@@ -14,11 +14,11 @@ import {
   desktopBridge,
   type DesktopStorageDirs,
   type NimiProductControlRecordProjection,
-} from '@renderer/bridge';
+} from '../../bridge';
 import {
   NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION,
   type NimiDataCleanupPlan,
-} from '@renderer/bridge/runtime-bridge/nimi-data-directory';
+} from '../../bridge/runtime-bridge/nimi-data-directory';
 import { useTypedProjection as useSupportProjection } from '@nimiplatform/kit/ui';
 import {
   NIMI_PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY,

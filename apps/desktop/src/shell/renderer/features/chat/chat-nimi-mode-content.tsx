@@ -4,7 +4,7 @@ import {
   type ConversationTargetSummary,
 } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { useAppStore } from '../../app-shell/providers/app-store';
 import { useAiConversationModeHost } from './chat-nimi-shell-adapter';
 import { ChatNimiThreadListSheet } from './chat-nimi-session-list-panel';
 import { ChatCanonicalModeFrame } from './chat-canonical-mode-frame';

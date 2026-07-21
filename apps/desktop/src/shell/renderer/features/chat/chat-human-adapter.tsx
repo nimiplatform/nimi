@@ -12,8 +12,8 @@ import {
 } from '@nimiplatform/kit/features/chat/realm';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { HumanConversationGiftModal } from '@renderer/features/turns/human-conversation-gift-modal';
-import { formatLocaleDate, formatRelativeLocaleTime } from '@renderer/i18n';
+import { HumanConversationGiftModal } from '../turns/human-conversation-gift-modal';
+import { formatLocaleDate, formatRelativeLocaleTime } from '../../i18n';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { loadChatList, startChatWithTarget } from './data/realm-human-chat-data';
 import {
@@ -22,7 +22,7 @@ import {
   useHumanCanonicalConversationSurface,
 } from './chat-human-canonical-components';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
-import type { AuthStatus } from '@renderer/app-shell/providers/app-store';
+import type { AuthStatus } from '../../app-shell/providers/app-store';
 
 import {
   ChatRuntimeInspectContent,

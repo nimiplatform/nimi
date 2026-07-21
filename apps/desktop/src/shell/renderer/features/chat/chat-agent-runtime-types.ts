@@ -4,7 +4,7 @@ import type {
 import type {
   getDesktopAppId,
   getDesktopRuntime,
-} from '@renderer/infra/sdk/desktop-nimi-client-session';
+} from '../../infra/sdk/desktop-nimi-client-session';
 import type {
   NimiAISnapshot,
   ConversationExecutionSnapshot,

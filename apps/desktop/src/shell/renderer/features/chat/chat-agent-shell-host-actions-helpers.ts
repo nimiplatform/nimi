@@ -7,23 +7,23 @@ import {
   normalizeNimiRuntimeAgentPresentationBackendKind,
 } from '@nimiplatform/sdk/runtime';
 import { asNimiError, ReasonCode } from '@nimiplatform/sdk/types';
-import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
+import { productionAppStore } from '../../app-shell/providers/production-app-store';
 import {
   getDesktopAppId,
   getDesktopHostRuntimeAgentClient,
   getDesktopRealm,
   getDesktopRuntime,
   withDesktopRuntimeProtectedScopes,
-} from '@renderer/infra/sdk/desktop-nimi-client-session';
+} from '../../infra/sdk/desktop-nimi-client-session';
 import type {
   AgentLocalTargetSnapshot,
   AgentLocalThreadRecord,
   AgentLocalThreadSummary,
   JsonObject,
-} from '@renderer/bridge/runtime-bridge/types';
+} from '../../bridge/runtime-bridge/types';
 import {
   resolveNimiAIConfigRuntimeSchedulingTargetForCapability,
-} from '@renderer/app-shell/providers/desktop-ai-config-service';
+} from '../../app-shell/providers/desktop-ai-config-service';
 import {
   bundleQueryKey,
   createAgentConversationCacheThreadId,
@@ -36,7 +36,7 @@ import {
   getAgentConversationAnchorBinding,
   persistAgentConversationAnchorBinding,
   type AgentConversationAnchorBinding,
-} from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
+} from '../../app-shell/providers/agent-conversation-anchor-binding-storage';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
 import type { UseAgentConversationHostActionsInput } from './chat-agent-shell-host-actions-types';

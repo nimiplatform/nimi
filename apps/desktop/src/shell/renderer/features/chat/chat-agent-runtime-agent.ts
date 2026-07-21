@@ -6,7 +6,7 @@ import {
 import {
   getDesktopRuntimeAgentTurnsRuntime,
   withDesktopRuntimeProtectedScopes,
-} from '@renderer/infra/sdk/desktop-nimi-client-session';
+} from '../../infra/sdk/desktop-nimi-client-session';
 import type {
   AgentRuntimeChatTurnRequest,
   AgentRuntimeChatTurnStreamPart,

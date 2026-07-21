@@ -5,8 +5,8 @@ import type {
   ApiConnector,
   ApiConnectorAuthModeV11,
   ApiVendor,
-} from '@renderer/features/runtime-config/runtime-config-state-types';
-import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
+} from './runtime-config-state-types';
+import { getDesktopRuntime } from '../../infra/sdk/desktop-nimi-client-session';
 
 const CONNECTOR_CALL_OPTIONS: RuntimeTypedCallOptions = {
   timeoutMs: 5000,

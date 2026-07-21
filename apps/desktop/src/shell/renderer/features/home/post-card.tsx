@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { RealmModel, ReportReason } from '@nimiplatform/sdk/realm/generated';
-import { i18n } from '@renderer/i18n';
-import type { ProfileDetailSeed } from '@renderer/features/relationship/profile-detail-modal.js';
-import type { EditablePostSeed } from '@renderer/features/profile/create-post-modal-helpers.js';
+import { i18n } from '../../i18n';
+import type { ProfileDetailSeed } from '../relationship/profile-detail-modal.js';
+import type { EditablePostSeed } from '../profile/create-post-modal-helpers.js';
 import { PostCardArticle } from './article';
 import { BlockUserConfirmModal, DeletePostConfirmModal } from './confirm-modals';
 import { EditVisibilityModal } from './edit-visibility-modal';
 import { ReportModal } from './report-modal';
 import { usePostCardUi } from './use-post-card-ui';
-import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import {
   buildPostCardAuthorProjection,
   buildPostCardMediaProjection,

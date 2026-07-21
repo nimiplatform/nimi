@@ -3,7 +3,7 @@ import {
 } from '@nimiplatform/kit/features/chat/headless';
 import type {
   AgentLocalThreadBundle,
-} from '@renderer/bridge/runtime-bridge/types';
+} from '../../bridge/runtime-bridge/types';
 import {
   assertAgentTurnLifecycleCompleted,
 } from './chat-agent-shell-lifecycle';

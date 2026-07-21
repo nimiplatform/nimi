@@ -4,7 +4,7 @@ import {
   projectNimiRuntimeUsageWindowName,
   toNimiRuntimeIsoFromTimestamp,
 } from '@nimiplatform/sdk/runtime';
-import { formatRelativeLocaleTime } from '@renderer/i18n';
+import { formatRelativeLocaleTime } from '../../i18n';
 
 export function runtimeHealthStatusLabel(status: number): string {
   switch (projectNimiRuntimeHealthStatusName(status)) {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { desktopBridge } from '@renderer/bridge';
+import { desktopBridge } from '../../bridge';
 import {
   createRealmSparkCheckout,
   createRealmWithdrawal,
@@ -14,8 +14,8 @@ import {
   loadRealmWithdrawalHistory,
 } from '@nimiplatform/kit/features/commerce/realm';
 import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import { formatLocaleDateTime, formatLocaleNumber } from '@renderer/i18n';
-import { getDesktopRealmCommerceGiftService } from '@renderer/infra/realm/realm-commerce-service';
+import { formatLocaleDateTime, formatLocaleNumber } from '../../i18n';
+import { getDesktopRealmCommerceGiftService } from '../../infra/realm/realm-commerce-service';
 import { PageShell } from './settings-layout-components.js';
 import {
   WalletBalanceCards,

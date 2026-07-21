@@ -5,7 +5,7 @@ import {
   type NimiManagedConnectorCredentialAcquisitionResult,
 } from '@nimiplatform/sdk/runtime';
 import type { JsonObject } from '@nimiplatform/sdk/types';
-import { desktopBridge, logRendererEvent } from '@renderer/bridge';
+import { desktopBridge, logRendererEvent } from '../../bridge';
 
 export type CodexOAuthPendingState = NimiConnectorAuthAcquisitionPendingState;
 

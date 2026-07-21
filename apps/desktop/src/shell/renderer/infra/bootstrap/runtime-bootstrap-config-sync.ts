@@ -1,4 +1,4 @@
-import { desktopBridge } from '@renderer/bridge';
+import { desktopBridge } from '../../bridge';
 
 type RuntimeBridgeStatus = Awaited<ReturnType<typeof desktopBridge.getRuntimeBridgeStatus>>;
 type RuntimeDefaults = Awaited<ReturnType<typeof desktopBridge.getRuntimeDefaults>>;

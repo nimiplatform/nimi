@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { useAppStore } from '../../app-shell/providers/app-store';
 import {
   fetchWorldListItems,
   worldListQueryKey,
-} from '@renderer/features/world/world-detail-queries.js';
+} from '../world/world-detail-queries.js';
 import { AgentsPanelView } from './agents-panel-view';
 import {
   fetchLocalAgentList,

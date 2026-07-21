@@ -7,7 +7,7 @@ import {
   useState,
 } from 'react';
 import type { TFunction } from 'i18next';
-import type { AgentLocalMessageRecord } from '@renderer/bridge/runtime-bridge/types';
+import type { AgentLocalMessageRecord } from '../../bridge/runtime-bridge/types';
 import { cancelStream } from '../turns/stream-controller';
 import {
   createNimiConversationAISnapshot,
@@ -48,8 +48,8 @@ type UseAgentConversationVoiceSessionInput = {
   reportHostError: (error: unknown) => void;
   setBundleCache: (
     threadId: string,
-    updater: (current: import('@renderer/bridge/runtime-bridge/types').AgentLocalThreadBundle | null | undefined) =>
-      import('@renderer/bridge/runtime-bridge/types').AgentLocalThreadBundle | null | undefined,
+    updater: (current: import('../../bridge/runtime-bridge/types').AgentLocalThreadBundle | null | undefined) =>
+      import('../../bridge/runtime-bridge/types').AgentLocalThreadBundle | null | undefined,
   ) => void;
   submittingThreadId: string | null;
   t: TFunction;

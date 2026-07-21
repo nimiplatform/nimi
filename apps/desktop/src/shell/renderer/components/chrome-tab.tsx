@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { motion } from 'motion/react';
-import { i18n } from '@renderer/i18n';
-import { useDesktopInteractiveMotion } from '@renderer/ui/motion/desktop-motion';
+import { i18n } from '../i18n';
+import { useDesktopInteractiveMotion } from '../ui/motion/desktop-motion';
 
 type ChromeTabProps = {
   active?: boolean;

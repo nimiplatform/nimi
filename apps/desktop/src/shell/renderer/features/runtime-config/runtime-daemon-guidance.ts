@@ -1,5 +1,5 @@
-import { i18n } from '@renderer/i18n';
-import type { RuntimeBridgeDaemonStatus } from '@renderer/bridge';
+import { i18n } from '../../i18n';
+import type { RuntimeBridgeDaemonStatus } from '../../bridge';
 
 export type RuntimeDaemonIssue = {
   code:

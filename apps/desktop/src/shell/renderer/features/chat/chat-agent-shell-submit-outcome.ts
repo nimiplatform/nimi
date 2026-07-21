@@ -3,7 +3,7 @@ import type {
   AgentLocalMessageRecord,
   AgentLocalThreadBundle,
   AgentLocalThreadRecord,
-} from '@renderer/bridge/runtime-bridge/types';
+} from '../../bridge/runtime-bridge/types';
 import type { AgentConversationSelection } from './chat-shell-types';
 import {
   resolveCompletedAgentThreadBundle,

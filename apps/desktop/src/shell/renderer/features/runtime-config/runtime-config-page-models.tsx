@@ -9,12 +9,12 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { RecommendPage } from './runtime-config-page-recommend';
 import { LocalPage } from './runtime-config-page-local';
 import { CatalogPage } from './runtime-config-page-catalog';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { E2E_IDS } from '../../testability/e2e-ids';
 
 type ModelsSubTabId = 'recommend' | 'installed' | 'catalog';
 

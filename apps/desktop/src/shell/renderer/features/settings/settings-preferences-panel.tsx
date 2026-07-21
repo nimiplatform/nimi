@@ -4,7 +4,7 @@ import {
   loadNimiRealmUserNotificationSettings,
   updateNimiRealmUserNotificationSettings,
 } from '@nimiplatform/sdk/realm';
-import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { getDesktopRealm } from '../../infra/sdk/desktop-nimi-client-session';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import {

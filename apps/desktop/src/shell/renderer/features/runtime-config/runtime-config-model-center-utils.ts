@@ -22,7 +22,7 @@ import {
   type NimiRuntimeLocalRunnableAssetKindId,
 } from '@nimiplatform/sdk/runtime';
 import type { RuntimeProfileTargetDescriptor } from './runtime-config-panel-types';
-import type { RuntimeConfigStateV11, RuntimeSetupPageIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import type { RuntimeConfigStateV11, RuntimeSetupPageIdV11 } from './runtime-config-state-types';
 
 export type LocalModelCenterProps = {
   state: RuntimeConfigStateV11;

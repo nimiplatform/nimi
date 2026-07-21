@@ -14,9 +14,9 @@ import {
   type NimiRuntimeLocalProfileDescriptor,
   type NimiRuntimeLocalProfileResolutionPlan,
 } from '@nimiplatform/sdk/runtime';
-import { pickLocalRuntimeAssetManifestPath } from '@renderer/bridge/runtime-bridge/local-runtime-os-helpers';
-import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
-import { i18n } from '@renderer/i18n';
+import { pickLocalRuntimeAssetManifestPath } from '../../bridge/runtime-bridge/local-runtime-os-helpers';
+import { getOfflineCoordinator } from '../../infra/offline/coordinator';
+import { i18n } from '../../i18n';
 import { runtimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 import { asRecord } from './runtime-config-panel-controller-utils';

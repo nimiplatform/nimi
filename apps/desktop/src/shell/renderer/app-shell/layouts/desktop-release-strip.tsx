@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { persistStoredSupportSection } from '@renderer/features/support/support-storage';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { useAppStore } from '../providers/app-store';
+import { persistStoredSupportSection } from '../../features/support/support-storage';
+import { E2E_IDS } from '../../testability/e2e-ids';
 
 export function resolveDesktopReleaseStripMessage(input: {
   desktopReleaseError?: string | null;

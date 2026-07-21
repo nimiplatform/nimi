@@ -4,13 +4,13 @@ import {
   type CapabilityV11,
   type ProviderStatusV11,
   type RuntimeConfigStateV11,
-} from '@renderer/features/runtime-config/runtime-config-state-types';
+} from './runtime-config-state-types';
 import {
   selectAllLocalModelsV11,
   selectFilteredConnectorModelsV11,
   selectFilteredLocalModelsV11,
   selectOrderedConnectorsV11,
-} from '@renderer/features/runtime-config/runtime-config-selectors-v11';
+} from './runtime-config-selectors-v11';
 
 export type RuntimeConfigPanelDerivedModel = {
   selectedConnector: RuntimeConfigStateV11['connectors'][number] | null;

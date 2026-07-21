@@ -70,6 +70,7 @@ export function createDesktopSimulatorBindings(
           development: false,
         }),
         attention: createIdleAppAttentionState,
+        localDevelopmentAvailable: () => false,
       }),
       commands: Object.freeze({
         commitAIConfig() {
@@ -91,9 +92,44 @@ export function createDesktopSimulatorBindings(
           });
           if (!result.ok) throw new Error(`DESKTOP_SIMULATOR_LOCALE_REJECTED:${result.error.code}`);
         },
+        async checkDesktopUpdate() {
+          throw new Error('DESKTOP_SIMULATOR_UPDATE_UNADMITTED');
+        },
+        async installDesktopUpdate() {
+          throw new Error('DESKTOP_SIMULATOR_UPDATE_UNADMITTED');
+        },
+        async restartDesktopUpdate() {
+          throw new Error('DESKTOP_SIMULATOR_UPDATE_UNADMITTED');
+        },
+        async startWindowDrag() {
+          throw new Error('DESKTOP_SIMULATOR_WINDOW_DRAG_UNADMITTED');
+        },
+        async listLocalDevelopmentApprovals() {
+          throw new Error('DESKTOP_SIMULATOR_LOCAL_DEVELOPMENT_UNADMITTED');
+        },
+        async decideLocalDevelopmentApproval() {
+          throw new Error('DESKTOP_SIMULATOR_LOCAL_DEVELOPMENT_UNADMITTED');
+        },
       }),
       events: Object.freeze({
         subscribeAttention: () => () => undefined,
+        async subscribeLocalDevelopmentApprovals() {
+          throw new Error('DESKTOP_SIMULATOR_LOCAL_DEVELOPMENT_UNADMITTED');
+        },
+        connectLifecycle(lifecycle: Parameters<
+          DesktopCanonicalRendererBindings['app']['events']['connectLifecycle']
+        >[0]) {
+          const apply = () => {
+            const current = projection(context);
+            if (typeof current.bootstrapReady !== 'boolean') {
+              throw new Error('DESKTOP_SIMULATOR_BOOTSTRAP_PROJECTION_INVALID');
+            }
+            lifecycle.setBootstrapError(null);
+            lifecycle.setBootstrapReady(current.bootstrapReady);
+          };
+          apply();
+          return context.projection.subscribe(apply);
+        },
       }),
     },
     route: Object.freeze({

@@ -1,13 +1,15 @@
 import { useEffect, useRef } from 'react';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { projectNimiRuntimeHealthStatusName } from '@nimiplatform/sdk/runtime';
-import { desktopBridge } from '@renderer/bridge';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { desktopBridge } from '../../bridge';
+import { useAppStore } from '../../app-shell/providers/app-store';
 import {
+  getRuntimeHealthCoordinator,
   useRuntimeHealthCoordinatorState,
   type NimiRuntimeHealthCoordinatorState,
-} from '@renderer/features/runtime-config/runtime-health-coordinator';
-import type { MenuBarRuntimeHealthSyncPayload } from '@renderer/bridge/runtime-bridge/types';
+} from '../../features/runtime-config/runtime-health-coordinator';
+import type { MenuBarRuntimeHealthSyncPayload } from '../../bridge/runtime-bridge/types';
+import type { DesktopRendererLifecyclePort } from '../../renderer/lifecycle-port';
 
 const MENU_BAR_SYNC_DEBOUNCE_MS = 250;
 export const MENU_BAR_SYNC_HEARTBEAT_MS = 10_000;
@@ -88,6 +90,74 @@ export function shouldSyncMenuBarRuntimeHealth(
     return true;
   }
   return nowMs - lastSync.syncedAtMs >= heartbeatMs;
+}
+
+export function connectMenuBarRuntimeSync(
+  lifecycle: Pick<DesktopRendererLifecyclePort, 'bootstrap' | 'subscribeBootstrap'>,
+): () => void {
+  const flags = getShellFeatureFlags();
+  if (!flags.enableMenuBarShell || !desktopBridge.hasTauriInvoke()) {
+    return () => {};
+  }
+  const coordinator = getRuntimeHealthCoordinator();
+  let active = true;
+  let syncGeneration = 0;
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  let lastSync: { key: string | null; syncedAtMs: number } = {
+    key: null,
+    syncedAtMs: 0,
+  };
+
+  const sync = () => {
+    if (!active || !lifecycle.bootstrap().bootstrapReady) return;
+    const payload = buildMenuBarRuntimeSyncPayload(coordinator.getSnapshot());
+    const nowMs = Date.now();
+    if (!shouldSyncMenuBarRuntimeHealth(payload, lastSync, nowMs)) return;
+    const key = buildMenuBarRuntimeSyncKey(payload);
+    const generation = syncGeneration;
+    void desktopBridge.syncMenuBarRuntimeHealth(payload).then(() => {
+      if (
+        !active
+        || generation !== syncGeneration
+        || !lifecycle.bootstrap().bootstrapReady
+      ) return;
+      lastSync = { key, syncedAtMs: nowMs };
+    }).catch(() => undefined);
+  };
+
+  const reconcile = () => {
+    const enabled = lifecycle.bootstrap().bootstrapReady;
+    if (!enabled) {
+      syncGeneration += 1;
+      lastSync = { key: null, syncedAtMs: 0 };
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = null;
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+      return;
+    }
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      debounceTimer = null;
+      sync();
+    }, MENU_BAR_SYNC_DEBOUNCE_MS);
+    if (!heartbeatTimer) {
+      heartbeatTimer = setInterval(sync, MENU_BAR_SYNC_HEARTBEAT_MS);
+    }
+  };
+
+  const unsubscribeBootstrap = lifecycle.subscribeBootstrap(reconcile);
+  const unsubscribeHealth = coordinator.subscribe(reconcile);
+  reconcile();
+  return () => {
+    active = false;
+    syncGeneration += 1;
+    unsubscribeHealth();
+    unsubscribeBootstrap();
+    if (debounceTimer) clearTimeout(debounceTimer);
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
+  };
 }
 
 export function useMenuBarRuntimeSync(): void {

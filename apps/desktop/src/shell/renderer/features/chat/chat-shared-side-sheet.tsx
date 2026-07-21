@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { AppCardSurface, cn, IconToggleAction, ScrollShell } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
-import { EntityAvatar } from '@renderer/components/entity-avatar';
+import { EntityAvatar } from '../../components/entity-avatar';
 
 export type ChatSideSheetProps = {
   title: ReactNode;

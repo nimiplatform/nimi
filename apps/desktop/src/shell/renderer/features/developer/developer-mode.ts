@@ -1,5 +1,5 @@
 import { hasShellHostInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
-import { invokeChecked } from '@renderer/bridge/runtime-bridge/invoke';
+import { invokeChecked } from '../../bridge/runtime-bridge/invoke';
 
 export type DeveloperModeProjection = {
   readonly state: 'disabled' | 'enabled' | 'unavailable';
