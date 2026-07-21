@@ -11,6 +11,58 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[test]
+fn protected_account_status_fixture_projects_anonymous_without_a_realm_user() {
+    let temp = temp_fixture_dir("protected-account-anonymous");
+    let manifest_path = temp.join("scenario-manifest.json");
+    write_fixture_manifest(
+        &manifest_path,
+        json!({
+            "tauriFixture": {},
+            "realmFixture": {}
+        }),
+    );
+
+    with_env(&[("NIMI_E2E_FIXTURE_PATH", manifest_path.to_str())], || {
+        let status = runtime_account_session_status_override()
+            .expect("protected account status fixture")
+            .expect("protected account status override");
+        assert_eq!(status.sequence, "1");
+        assert_eq!(status.state, "anonymous");
+        assert!(status.account_projection.is_none());
+        assert_eq!(
+            status.reason_code,
+            runtime_bridge_generated::ReasonCode::ActionExecuted as i32
+        );
+    });
+    let _ = fs::remove_dir_all(temp);
+}
+
+#[test]
+fn protected_account_event_stream_fixture_keeps_the_snapshot_open() {
+    let temp = temp_fixture_dir("protected-account-events");
+    let manifest_path = temp.join("scenario-manifest.json");
+    write_fixture_manifest(&manifest_path, json!({ "tauriFixture": {} }));
+
+    with_env(&[("NIMI_E2E_FIXTURE_PATH", manifest_path.to_str())], || {
+        let result = runtime_account_session_events_open_override(
+            &crate::runtime_bridge::RuntimeBridgeAccountEventsOpenPayload {
+                after_sequence: "1".to_string(),
+            },
+        )
+        .expect("protected account event stream fixture")
+        .expect("protected account event stream override");
+        assert_eq!(result.stream_id, "e2e-account-session-1");
+        assert!(runtime_account_session_events_open_override(
+            &crate::runtime_bridge::RuntimeBridgeAccountEventsOpenPayload {
+                after_sequence: "01".to_string(),
+            },
+        )
+        .is_err());
+    });
+    let _ = fs::remove_dir_all(temp);
+}
+
+#[test]
 fn runtime_register_app_fixture_accepts_local_first_party_registration() {
     let request = runtime_bridge_generated::RegisterAppRequest {
         app_id: "nimi.desktop".to_string(),

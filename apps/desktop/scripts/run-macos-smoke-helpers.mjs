@@ -6,6 +6,37 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 export const desktopRoot = path.resolve(scriptDir, '..');
 export const repoRoot = path.resolve(desktopRoot, '..', '..');
 
+export function parseArgs(argv) {
+  const options = {
+    suite: 'all',
+    scenario: '',
+    skipBuild: false,
+    timeoutMs: 45000,
+  };
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === '--suite') {
+      options.suite = String(argv[index + 1] || 'all');
+      index += 1;
+      continue;
+    }
+    if (arg === '--scenario') {
+      options.scenario = String(argv[index + 1] || '');
+      index += 1;
+      continue;
+    }
+    if (arg === '--timeout-ms') {
+      options.timeoutMs = Number(argv[index + 1] || '45000') || 45000;
+      index += 1;
+      continue;
+    }
+    if (arg === '--skip-build') {
+      options.skipBuild = true;
+    }
+  }
+  return options;
+}
+
 export function mergeDeep(baseValue, overrideValue) {
   if (Array.isArray(baseValue) || Array.isArray(overrideValue)) {
     return overrideValue === undefined ? baseValue : overrideValue;

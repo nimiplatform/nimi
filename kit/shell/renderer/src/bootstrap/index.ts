@@ -136,7 +136,20 @@ export type StandardShellHostInstallOptions = {
   install?: () => NimiShellRuntimeBridgeResult;
 };
 
-export const DEFAULT_STANDARD_SHELL_HOST_INSTALL_RETRY_DELAYS_MS = [8, 16, 32, 64, 128, 256] as const;
+// A fast renderer entry can execute before WebKit exposes Tauri's native invoke
+// hook. Keep the boundary bounded and fail-closed, but span the page-load handoff
+// instead of assuming the preload appears within the first 504 ms.
+export const DEFAULT_STANDARD_SHELL_HOST_INSTALL_RETRY_DELAYS_MS = [
+  8,
+  16,
+  32,
+  64,
+  128,
+  256,
+  512,
+  1_024,
+  2_048,
+] as const;
 
 export async function ensureNimiShellRuntimeBridgeInstalled(
   options: StandardShellHostInstallOptions = {},

@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 const desktopTauriApiPath = fileURLToPath(new URL('../src/runtime/tauri-api.ts', import.meta.url));
-const mainSource = readFileSync(
-  fileURLToPath(new URL('../src/shell/renderer/main.tsx', import.meta.url)),
+const bootstrapSource = readFileSync(
+  fileURLToPath(new URL('../src/shell/renderer/bootstrap.ts', import.meta.url)),
   'utf8',
 );
 const kitBridgeSource = readFileSync(
@@ -30,10 +30,11 @@ test('desktop does not publish a parallel runtime-transport hook installer', () 
 });
 
 test('desktop renderer entry installs the Kit-owned runtime bridge', () => {
-  assert.match(mainSource, /@nimiplatform\/kit\/shell\/renderer\/bootstrap/);
-  assert.match(mainSource, /ensureNimiShellRuntimeBridgeInstalled\(/);
-  assert.doesNotMatch(mainSource, /installNimiShellRuntimeBridge\(\);/);
-  assert.doesNotMatch(mainSource, /installSdkTauriRuntimeHook/);
+  assert.match(bootstrapSource, /@nimiplatform\/kit\/shell\/renderer\/bootstrap/);
+  assert.match(bootstrapSource, /ensureNimiShellRuntimeBridgeInstalled\(/);
+  assert.match(bootstrapSource, /await import\('\.\/main\.js'\)/);
+  assert.doesNotMatch(bootstrapSource, /installNimiShellRuntimeBridge\(\);/);
+  assert.doesNotMatch(bootstrapSource, /installSdkTauriRuntimeHook/);
 });
 
 test('Kit bootstrap delegates to the bridge-owned runtime installer', () => {

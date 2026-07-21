@@ -4,8 +4,10 @@ use crate::desktop_product_control::{
 };
 use crate::desktop_release::DesktopReleaseInfo;
 use crate::runtime_bridge::{
-    generated as runtime_bridge_generated, RuntimeBridgeDaemonStatus, RuntimeBridgeUnaryPayload,
-    RuntimeBridgeUnaryResult,
+    generated as runtime_bridge_generated, RuntimeBridgeAccountEventsOpenPayload,
+    RuntimeBridgeAccountEventsOpenResult, RuntimeBridgeDaemonStatus,
+    RuntimeBridgeDesktopAccountProjection, RuntimeBridgeDesktopAccountSessionStatus,
+    RuntimeBridgeUnaryPayload, RuntimeBridgeUnaryResult,
 };
 use crate::RuntimeDefaults;
 use base64::Engine;
@@ -548,6 +550,57 @@ pub fn runtime_bridge_unary_override(
         Ok(None)
     }
 }
+}
+
+pub fn runtime_account_session_status_override(
+) -> Result<Option<RuntimeBridgeDesktopAccountSessionStatus>, String> {
+    let Some(manifest) = load_fixture_manifest()? else {
+        return Ok(None);
+    };
+    let projection = account_projection_from_fixture(manifest.realm_fixture.as_ref());
+    let authenticated = projection.is_some();
+    append_backend_log(&format!(
+        "runtime_account_fixture transport=protected-carrier method=getAccountSessionStatus authenticated={authenticated}"
+    ));
+    Ok(Some(RuntimeBridgeDesktopAccountSessionStatus {
+        sequence: "1".to_string(),
+        state: if authenticated {
+            "authenticated"
+        } else {
+            "anonymous"
+        }
+        .to_string(),
+        reason_code: runtime_bridge_generated::ReasonCode::ActionExecuted as i32,
+        account_reason_code: runtime_bridge_generated::AccountReasonCode::ActionExecuted as i32,
+        account_projection: projection.map(|value| RuntimeBridgeDesktopAccountProjection {
+            account_id: value.account_id,
+            display_name: value.display_name,
+            realm_environment_id: value.realm_environment_id,
+        }),
+    }))
+}
+
+pub fn runtime_account_session_events_open_override(
+    payload: &RuntimeBridgeAccountEventsOpenPayload,
+) -> Result<Option<RuntimeBridgeAccountEventsOpenResult>, String> {
+    if load_fixture_manifest()?.is_none() {
+        return Ok(None);
+    }
+    let after_sequence = payload.after_sequence.as_str();
+    if after_sequence != after_sequence.trim()
+        || after_sequence.is_empty()
+        || after_sequence.len() > 20
+        || (after_sequence.len() > 1 && after_sequence.starts_with('0'))
+        || after_sequence.parse::<u64>().is_err()
+    {
+        return Err("DESKTOP_E2E_ACCOUNT_EVENT_SEQUENCE_INVALID".to_string());
+    }
+    append_backend_log(&format!(
+        "runtime_account_fixture transport=protected-carrier method=openAccountSessionEvents after_sequence={after_sequence}"
+    ));
+    Ok(Some(RuntimeBridgeAccountEventsOpenResult {
+        stream_id: format!("e2e-account-session-{after_sequence}"),
+    }))
 }
 
 pub fn runtime_defaults_override() -> Result<Option<RuntimeDefaults>, String> {

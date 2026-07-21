@@ -6,7 +6,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/bundledavatar"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -14,12 +13,10 @@ import (
 )
 
 func bundledAvatarScenarioContext(capability string, accountID string) context.Context {
-	var epoch protectedlocal.Identifier
-	epoch[0] = 1
 	principal := protectedprincipal.New(
 		bundledavatar.AppID, bundledavatar.ProfileID, capability,
 		&runtimev1.AccountProjection{AccountId: accountID, RealmEnvironmentId: "realm-test"},
-		1, epoch, make(chan struct{}),
+		1, [32]byte{1}, make(chan struct{}),
 	)
 	ctx := protectedprincipal.With(context.Background(), principal)
 	return metadata.NewIncomingContext(ctx, metadata.Pairs("x-nimi-app-id", bundledavatar.AppID))

@@ -7,7 +7,6 @@ import {
   DEFAULT_DEV_RENDERER_ENTRY_IMPORT_RETRY_DELAYS_MS,
   createRendererEntryModuleLoader,
   describeRendererEntryFailureReason,
-  ensureNimiShellRuntimeBridgeInstalled,
 } from '@nimiplatform/kit/shell/renderer/bootstrap';
 import bootstrapEntryCopy from './locales/en/26-Bootstrap.json';
 import entryLogoImage from './assets/logo.png';
@@ -34,13 +33,6 @@ async function preflightRendererAppDependencies(): Promise<void> {
     ]);
 }
 
-// The standard shell host hook is an entry preflight: App must never mount
-// before the host invoke/listen surface exists. Other runtime modules still
-// resolve with the lazy App chunk before App makes product bridge calls.
-const runtimeReady = ensureNimiShellRuntimeBridgeInstalled({
-    reportStage: pingSmokeAsync,
-    setTimeout: window.setTimeout.bind(window),
-});
 const entryBootCopy = bootstrapEntryCopy as {
     initializingRuntime: string;
     initializingRuntimeDescription: string;
@@ -110,7 +102,6 @@ const App = lazy(async () => {
             await preflightRendererAppDependencies();
             return loadEntryModule('entry:renderer-app', () => import('./App'));
         })();
-        await runtimeReady;
         const mod = await appPromise;
         return { default: mod.default };
     } catch (error) {

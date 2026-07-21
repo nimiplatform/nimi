@@ -128,13 +128,18 @@ pub fn build_renderer_entry_probe_script(
     }};
     const moduleScripts = Array.from(globalRecord.document?.querySelectorAll('script[type="module"][src]') || []);
     const scriptSrc = moduleScripts.map((script) => script?.src || '').find(Boolean) || '';
-    const details = {{
+    const readDetails = () => ({{
       href: globalRecord.location?.href || '',
       readyState: globalRecord.document?.readyState || '',
       hasRoot: Boolean(globalRecord.document?.getElementById('root')),
+      rootChildCount: globalRecord.document?.getElementById('root')?.childElementCount || 0,
+      rootText: String(globalRecord.document?.getElementById('root')?.textContent || '').slice(0, 500),
       hasInvoke: typeof invoke === 'function',
+      hasNimiTauriRuntime: typeof globalRecord.__NIMI_TAURI_RUNTIME__?.invoke === 'function',
+      hasNimiElectronRuntime: typeof globalRecord.__NIMI_ELECTRON_RUNTIME__?.invoke === 'function',
       scriptSrc,
-    }};
+    }});
+    const details = readDetails();
     if (typeof invoke === 'function') {{
       void invokeSafe(pingCommand, {{
         payload: {{
@@ -172,6 +177,14 @@ pub fn build_renderer_entry_probe_script(
               }},
             }},
           }});
+          globalRecord.setTimeout?.(() => {{
+            void invokeSafe(pingCommand, {{
+              payload: {{
+                stage: 'window-post-import-state',
+                details: readDetails(),
+              }},
+            }});
+          }}, 1_000);
           await runCommandChecks(context, {{
             ...details,
             scriptSrc,

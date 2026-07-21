@@ -61,6 +61,14 @@ fn install_shared_runtime_bridge_hooks() {
                 None
             }
         },
+        #[cfg(feature = "desktop-e2e-fixture")]
+        account_status_override: Some(Arc::new(|| {
+            crate::desktop_e2e_fixture::runtime_account_session_status_override()
+        })),
+        #[cfg(feature = "desktop-e2e-fixture")]
+        account_events_open_override: Some(Arc::new(|payload| {
+            crate::desktop_e2e_fixture::runtime_account_session_events_open_override(payload)
+        })),
         unary_override: {
             #[cfg(any(test, feature = "desktop-e2e-fixture"))]
             {

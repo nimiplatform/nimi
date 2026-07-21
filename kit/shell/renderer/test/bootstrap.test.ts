@@ -150,6 +150,25 @@ describe('shell renderer bootstrap primitives', () => {
     ]);
   });
 
+  it('keeps the default bridge wait open across the native page-load handoff', async () => {
+    let attempts = 0;
+    const result = await ensureNimiShellRuntimeBridgeInstalled({
+      install: () => {
+        attempts += 1;
+        return attempts < 8
+          ? { installed: false, reason: 'standard-host-preload-required' }
+          : { installed: true, host: 'tauri' };
+      },
+      setTimeout: ((handler: TimerHandler) => {
+        if (typeof handler === 'function') handler();
+        return 0 as unknown as ReturnType<typeof setTimeout>;
+      }) as typeof setTimeout,
+    });
+
+    expect(result).toEqual({ installed: true, host: 'tauri' });
+    expect(attempts).toBe(8);
+  });
+
   it('fails closed when the standard shell runtime bridge never appears', async () => {
     await expect(ensureNimiShellRuntimeBridgeInstalled({
       retryDelaysMs: [],

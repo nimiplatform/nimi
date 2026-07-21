@@ -5,23 +5,27 @@ import process from 'node:process';
 import { spawn } from 'node:child_process';
 import { repoRoot, writeJson } from './run-macos-smoke-helpers.mjs';
 
-export function applicationPath() {
-  const bundleRoot = path.join(repoRoot, 'apps/desktop/src-tauri/target/release/bundle/macos');
-  if (!fs.existsSync(bundleRoot)) {
-    throw new Error(`desktop macOS app bundle not found: ${bundleRoot}`);
+export function applicationPath(options = {}) {
+  const bundleRoot = options.bundleRoot
+    || path.join(repoRoot, 'apps/desktop/src-tauri/target/release/bundle/macos');
+  const tauriConfigPath = options.tauriConfigPath
+    || path.join(repoRoot, 'apps/desktop/src-tauri/tauri.conf.json');
+  const tauriConfig = JSON.parse(fs.readFileSync(tauriConfigPath, 'utf8'));
+  const productName = String(tauriConfig.productName || '').trim();
+  if (!productName || productName.includes('/') || productName.includes('\\')) {
+    throw new Error(`desktop macOS productName is invalid in ${tauriConfigPath}`);
   }
-  const appEntry = fs.readdirSync(bundleRoot, { withFileTypes: true })
-    .find((entry) => entry.isDirectory() && entry.name.endsWith('.app'));
-  if (!appEntry) {
-    throw new Error(`desktop macOS app bundle is missing under ${bundleRoot}`);
+  const appRoot = path.join(bundleRoot, `${productName}.app`);
+  if (!fs.statSync(appRoot, { throwIfNoEntry: false })?.isDirectory()) {
+    throw new Error(`desktop macOS app bundle not found: ${appRoot}`);
   }
-  const macOsDir = path.join(bundleRoot, appEntry.name, 'Contents', 'MacOS');
-  const executable = fs.readdirSync(macOsDir, { withFileTypes: true })
-    .find((entry) => entry.isFile());
-  if (!executable) {
-    throw new Error(`desktop macOS bundle executable is missing under ${macOsDir}`);
+  const macOsDir = path.join(appRoot, 'Contents', 'MacOS');
+  const executables = fs.readdirSync(macOsDir, { withFileTypes: true })
+    .filter((entry) => entry.isFile());
+  if (executables.length !== 1) {
+    throw new Error(`desktop macOS bundle must contain exactly one executable under ${macOsDir}`);
   }
-  return path.join(macOsDir, executable.name);
+  return path.join(macOsDir, executables[0].name);
 }
 
 export async function spawnLogged(command, args, options = {}) {

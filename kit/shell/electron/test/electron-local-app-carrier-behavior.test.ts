@@ -61,20 +61,42 @@ describe('Electron local-app carrier behavior', () => {
       payload: { rowId: 'row-1' },
     })).resolves.toEqual({ owner: 'fixture', payload: { rowId: 'row-1' } });
 
+    const routeIpcMain = new FakeIpcMain();
+    registerNimiElectronAppBridge({
+      appId: 'nimi.thirdparty.fixture',
+      allowedRendererUrls: ['http://localhost:1430/timeline?child=local#today'],
+      ipcMain: routeIpcMain,
+      onProtectedSessionFailure: () => undefined,
+      appCommandHandlers: {
+        'fixture.sqlite.read': ({ payload }) => ({ owner: 'fixture', payload }),
+      },
+    });
+    const { event: routeEvent } = createInvokeEvent();
     const sameOriginRouteEvent = {
-      ...event,
-      senderFrame: { ...event.senderFrame, url: 'http://localhost:1430/timeline?child=local#today' },
+      ...routeEvent,
+      senderFrame: { ...routeEvent.senderFrame, url: 'http://localhost:1430/timeline?child=local#today' },
     };
-    await expect(invokeBridge(ipcMain, sameOriginRouteEvent, {
+    await expect(invokeBridge(routeIpcMain, sameOriginRouteEvent, {
       command: 'fixture.sqlite.read',
       payload: { rowId: 'row-2' },
     })).resolves.toEqual({ owner: 'fixture', payload: { rowId: 'row-2' } });
 
+    const foreignIpcMain = new FakeIpcMain();
+    registerNimiElectronAppBridge({
+      appId: 'nimi.thirdparty.fixture',
+      allowedRendererUrls: ['http://localhost:1430/'],
+      ipcMain: foreignIpcMain,
+      onProtectedSessionFailure: () => undefined,
+      appCommandHandlers: {
+        'fixture.sqlite.read': ({ payload }) => ({ owner: 'fixture', payload }),
+      },
+    });
+    const { event: foreignBaseEvent } = createInvokeEvent();
     const foreignOriginEvent = {
-      ...event,
-      senderFrame: { ...event.senderFrame, url: 'http://localhost:1431/timeline' },
+      ...foreignBaseEvent,
+      senderFrame: { ...foreignBaseEvent.senderFrame, url: 'http://localhost:1431/timeline' },
     };
-    await expect(invokeBridge(ipcMain, foreignOriginEvent, {
+    await expect(invokeBridge(foreignIpcMain, foreignOriginEvent, {
       command: 'fixture.sqlite.read',
       payload: { rowId: 'row-3' },
     })).rejects.toMatchObject({

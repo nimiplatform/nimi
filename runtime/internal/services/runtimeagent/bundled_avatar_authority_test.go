@@ -6,7 +6,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/bundledavatar"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -25,12 +24,10 @@ func (p bundledAvatarTestProjectionProvider) AuthenticatedRuntimeProjection(cont
 }
 
 func bundledAvatarTestPrincipalContext(capability string, accountID string, invalidated <-chan struct{}) context.Context {
-	var epoch protectedlocal.Identifier
-	epoch[0] = 1
 	principal := protectedprincipal.New(
 		bundledavatar.AppID, bundledavatar.ProfileID, capability,
 		&runtimev1.AccountProjection{AccountId: accountID, RealmEnvironmentId: "realm-test"},
-		1, epoch, invalidated,
+		1, [32]byte{1}, invalidated,
 	)
 	return protectedprincipal.With(context.Background(), principal)
 }

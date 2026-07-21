@@ -44,17 +44,10 @@ test('desktop renderer no longer keeps an Agent Center local config bridge chunk
   assert.doesNotMatch(viteConfigSource, /chat-agent-center-local-config-store/);
 });
 
-test('desktop settings dependencies stay out of the agent chat chunk', () => {
-  const memoryEmbeddingProviderChunkIndex = viteConfigSource.indexOf(
-    '/app-shell/providers/desktop-memory-embedding-config-',
-  );
-
+test('desktop app features are not forced into hand-maintained manual chunks', () => {
   assert.doesNotMatch(viteConfigSource, /runtime-config-navigation-events/);
-  assert.notEqual(memoryEmbeddingProviderChunkIndex, -1);
-  assert.match(
-    viteConfigSource.slice(memoryEmbeddingProviderChunkIndex, memoryEmbeddingProviderChunkIndex + 220),
-    /return 'runtime-memory-embedding-config';/,
-  );
+  assert.doesNotMatch(viteConfigSource, /\/apps\/desktop\/src\/shell\/renderer\/features\//);
+  assert.doesNotMatch(viteConfigSource, /\/app-shell\/providers\/desktop-memory-embedding-config-/);
 });
 
 test('desktop renderer entrypoint is packaged-local and has no remote boot resources', () => {

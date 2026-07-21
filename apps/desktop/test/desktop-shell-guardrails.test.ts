@@ -203,6 +203,10 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
     path.join(import.meta.dirname, '../src/shell/renderer/main.tsx'),
     'utf8',
   );
+  const rendererBootstrapSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../src/shell/renderer/bootstrap.ts'),
+    'utf8',
+  );
   const authAdapterSource = fs.readFileSync(
     path.join(import.meta.dirname, '../src/shell/renderer/features/auth/desktop-auth-adapter.ts'),
     'utf8',
@@ -238,8 +242,9 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
   assert.doesNotMatch(authMenuSource, /function toAuthUserRecord/);
   assert.match(mainSource, /createRendererEntryModuleLoader/);
   assert.match(mainSource, /describeRendererEntryFailureReason/);
-  assert.match(mainSource, /ensureNimiShellRuntimeBridgeInstalled/);
-  assert.doesNotMatch(mainSource, /installNimiShellRuntimeBridge\(\);/);
+  assert.match(rendererBootstrapSource, /ensureNimiShellRuntimeBridgeInstalled/);
+  assert.match(rendererBootstrapSource, /await import\('\.\/main\.js'\)/);
+  assert.doesNotMatch(rendererBootstrapSource, /installNimiShellRuntimeBridge\(\);/);
   assert.match(mainSource, /from '@nimiplatform\/kit\/shell\/renderer\/bootstrap'/);
   assert.doesNotMatch(mainSource, /function isRetryableEntryImportError|function createEntryImportError|Failed to fetch dynamically imported module|Importing a module script failed/);
   assert.doesNotMatch(desktopTauriConfigSource, /"pubkey"\s*:\s*"dev-placeholder"/);
