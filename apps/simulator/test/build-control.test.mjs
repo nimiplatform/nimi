@@ -41,6 +41,7 @@ import {
 } from '../build/paths.mjs';
 
 const APP_FIXTURE = path.join(REPO_ROOT, 'app-tools', 'test', 'fixtures', 'simulator-valid');
+const DIRECTORY_LINK_TYPE = process.platform === 'win32' ? 'junction' : 'dir';
 const AUTHORITY_DIGEST = stableJsonDigest('fixture-authority-index-v1', [
   { owner: 'platform', rule_id: 'P-SIM-003' },
 ]);
@@ -88,7 +89,7 @@ function createSimulatorBuildFixture() {
   const root = mkdtempSync(path.join(tmpdir(), 'nimi-simulator-build-fixture-'));
   cpSync(path.join(SIMULATOR_ROOT, 'package.json'), path.join(root, 'package.json'));
   cpSync(path.join(SIMULATOR_ROOT, 'src'), path.join(root, 'src'), { recursive: true });
-  symlinkSync(path.join(SIMULATOR_ROOT, 'node_modules'), path.join(root, 'node_modules'), 'dir');
+  symlinkSync(path.join(SIMULATOR_ROOT, 'node_modules'), path.join(root, 'node_modules'), DIRECTORY_LINK_TYPE);
   return {
     root,
     generatedRoot: path.join(root, '.generated'),
@@ -330,9 +331,15 @@ test('materialization rejects non-commit objects, symlinks, LFS pointers, and un
     const fixture = createGitFixture();
     const staging = mkdtempSync(path.join(tmpdir(), 'nimi-simulator-git-symlink-'));
     try {
-      symlinkSync('src/main.ts', path.join(fixture.appRoot, 'linked-main.ts'));
-      git(fixture.root, 'add', '.');
+      const linkTarget = 'src/main.ts';
+      const linkBlob = execFileSync('git', ['hash-object', '-w', '--stdin'], {
+        cwd: fixture.root,
+        encoding: 'utf8',
+        input: linkTarget,
+      }).trim();
+      git(fixture.root, 'update-index', '--add', '--cacheinfo', `120000,${linkBlob},app/linked-main.ts`);
       git(fixture.root, '-c', 'user.name=Nimi Simulator Test', '-c', 'user.email=simulator@example.invalid', 'commit', '-q', '-m', 'symlink');
+      git(fixture.root, 'reset', '--hard', '-q', 'HEAD');
       const value = descriptorValue(fixture);
       value.sources[0].object_id = git(fixture.root, 'rev-parse', 'HEAD');
       const descriptor = validateSelectedSourceDescriptor(value);
@@ -413,8 +420,10 @@ test('materialization rejects non-commit objects, symlinks, LFS pointers, and un
 test('source inventory rejects symbolic links before report generation', () => {
   const root = mkdtempSync(path.join(tmpdir(), 'nimi-simulator-symlink-'));
   try {
-    writeFileSync(path.join(root, 'target.ts'), 'export {};\n');
-    symlinkSync('target.ts', path.join(root, 'link.ts'));
+    const target = path.join(root, 'target');
+    mkdirSync(target);
+    writeFileSync(path.join(target, 'main.ts'), 'export {};\n');
+    symlinkSync(target, path.join(root, 'link'), DIRECTORY_LINK_TYPE);
     assert.throws(
       () => buildSimulatorSourceInventory(root),
       (error) => error?.code === 'SIM_SOURCE_SYMLINK',

@@ -52,6 +52,14 @@ test('desktop Electron host installs the standard shell bridge for the Desktop r
   assert.doesNotMatch(mainSource, /local-agent:desktop-electron/);
 });
 
+test('bundled Avatar releases sender ownership before quit cleanup can re-enter window destruction', () => {
+  const hostSource = readIfExists(path.join(root, 'src-electron', 'bundled-avatar-host.ts'));
+
+  assert.match(hostSource, /window\.on\('close', releaseWindow\)/u);
+  assert.match(hostSource, /if \(!senderReleased\) \{[\s\S]*invalidateSender\(sender\)/u);
+  assert.match(hostSource, /window\.on\('closed', \(\) => \{\s*releaseWindow\(\)/u);
+});
+
 test('desktop Electron host owns one protected Runtime session per profile', () => {
   const mainSource = readIfExists(path.join(root, 'src-electron', 'main.ts'));
 
@@ -91,6 +99,8 @@ test('desktop Electron dev runner starts Vite and passes the renderer URL to Ele
   const mainSource = readIfExists(path.join(root, 'src-electron', 'main.ts'));
   assert.match(mainSource, /const ELECTRON_DEVELOPMENT_BUILD =/);
   assert.match(mainSource, /ELECTRON_DEVELOPMENT_BUILD\s*\? normalizeText\(process\.env\.NIMI_DESKTOP_ELECTRON_RENDERER_URL\)/);
+  assert.match(mainSource, /devRendererRoot:\s*ELECTRON_DEVELOPMENT_BUILD\s*\? normalizeText\(process\.env\.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_DEV_ROOT\)/);
+  assert.doesNotMatch(mainSource, /devRendererRoot:\s*app\.isPackaged/);
   assert.doesNotMatch(mainSource, /const nonReleaseShell = !app\.isPackaged/);
   assert.match(bundleSource, /src-electron\/preload\.cts/);
   assert.match(bundleSource, /dist-electron\/preload\.cjs/);

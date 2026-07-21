@@ -53,6 +53,7 @@ test('materialization evidence binds every selected file path, mode, byte length
     chmodSync(path.join(appRoot, 'run.sh'), 0o755);
     git(root, 'init', '-q', '-b', 'main');
     git(root, 'add', '.');
+    git(root, 'update-index', '--chmod=+x', 'app/run.sh');
     git(root, '-c', 'user.name=Nimi Simulator Test', '-c', 'user.email=simulator@example.invalid', 'commit', '-q', '-m', 'fixture');
     const objectId = git(root, 'rev-parse', 'HEAD');
     const expectedDigest = buildSimulatorSourceInventory(appRoot).digest;

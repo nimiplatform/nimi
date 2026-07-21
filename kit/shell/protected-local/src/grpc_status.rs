@@ -30,6 +30,13 @@ pub(crate) fn runtime_reason(status: &Status) -> Option<String> {
     runtime_error_info(status).map(|info| info.reason)
 }
 
+pub(crate) fn bundled_avatar_runtime_reason(status: &Status) -> Option<String> {
+    runtime_reason(status).or_else(|| match status.code() {
+        Code::NotFound => Some("RUNTIME_GRPC_NOT_FOUND".to_string()),
+        _ => None,
+    })
+}
+
 fn runtime_error_info(status: &Status) -> Option<GoogleRpcErrorInfo> {
     let details = GoogleRpcStatus::decode(status.details()).ok()?;
     details.details.iter().find_map(|detail| {
@@ -220,6 +227,19 @@ mod tests {
             NimiHostErrorReasonCode::RuntimeServiceUntrusted
         );
         assert!(!error.to_string().contains("secret"));
+    }
+
+    #[test]
+    fn bundled_avatar_projects_not_found_without_exposing_status_text() {
+        let status = Status::not_found("sensitive runtime record detail");
+        assert_eq!(
+            bundled_avatar_runtime_reason(&status).as_deref(),
+            Some("RUNTIME_GRPC_NOT_FOUND")
+        );
+        assert_eq!(
+            bundled_avatar_runtime_reason(&Status::permission_denied("sensitive")),
+            None
+        );
     }
 
     #[test]

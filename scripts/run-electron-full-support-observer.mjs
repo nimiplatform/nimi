@@ -72,7 +72,9 @@ try {
 
   const product = options.app === 'desktop' || options.approvalApp
     ? await observeDesktopProduct(page)
-    : await observeLocalAppProduct(page, cdp, options.app);
+    : options.app === 'avatar'
+      ? await observeAvatarProduct(page)
+      : await observeLocalAppProduct(page, cdp, options.app);
   if (options.approvalApp) {
     const expectedAppId = `nimi.${options.approvalApp}`;
     assert.equal(product.interaction.approvalRequired, true, `${expectedAppId} approval dialog must be visible`);
@@ -89,7 +91,7 @@ try {
   await page.waitForTimeout(300);
   const narrow = await captureDomSummary(page);
   assert.equal(narrow.horizontalOverflow, false, `${options.app} 390px viewport has horizontal overflow`);
-  await capturePageScreenshot(cdp, path.join(evidenceRoot, '390px.png'));
+  await capturePageScreenshot(cdp, path.join(evidenceRoot, 'narrow-390.png'));
   await page.setViewportSize({
     width: Math.max(390, originalViewport.innerWidth),
     height: Math.max(600, originalViewport.innerHeight),
@@ -151,7 +153,15 @@ try {
 }
 
 async function observeDesktopProduct(page) {
-  await page.getByTestId('main-shell').waitFor({ state: 'visible', timeout: 30_000 });
+  await page.waitForFunction(() => {
+    const visible = (testId) => {
+      const element = document.querySelector(`[data-testid="${testId}"]`);
+      return element instanceof HTMLElement && element.offsetParent !== null;
+    };
+    return visible('main-shell') || visible('login-screen');
+  }, undefined, { timeout: 30_000 });
+  const shellReady = await page.getByTestId('main-shell').isVisible().catch(() => false);
+  const loginRequired = await page.getByTestId('login-screen').isVisible().catch(() => false);
   const runtimeStatus = await invokeRenderer(page, 'nimi.shell.runtimeLifecycle.status', {});
   const account = await captureDesktopAccountSession(page);
   const realm = await invokeRenderer(page, 'runtime_account_invoke_realm_unary', {
@@ -169,13 +179,15 @@ async function observeDesktopProduct(page) {
   const rendererProbe = await invokeRenderer(page, 'nimi.shell.diagnostics.rendererEntryProbe', {});
 
   const approvalDialog = page.getByTestId('local-development-approval-dialog');
-  const approvalRequired = await approvalDialog.count() > 0 && await approvalDialog.isVisible();
+  const approvalRequired = shellReady
+    && await approvalDialog.count() > 0
+    && await approvalDialog.isVisible();
   const approvalDialogDigest = approvalRequired
     ? digestText((await approvalDialog.innerText()).slice(0, 8_000))
     : null;
   const navigation = [];
   let accountMenuVisible = false;
-  if (!approvalRequired) {
+  if (shellReady && !approvalRequired) {
     for (const target of ['nav-tab:apps', 'nav-tab:runtime', 'nav-tab:chat']) {
       const control = page.getByTestId(target);
       if (await control.count()) {
@@ -201,7 +213,15 @@ async function observeDesktopProduct(page) {
     localDevelopmentRuns: projectLocalDevelopmentRuns(localDevelopmentRuns),
     developerMode: projectDeveloperMode(developerMode),
     rendererProbe: projectRendererProbe(rendererProbe),
-    interaction: { navigation, accountMenuVisible, approvalRequired, approvalDialogDigest },
+    interaction: {
+      surface: shellReady ? 'main-shell' : loginRequired ? 'login-screen' : 'unknown',
+      loginRequired,
+      oauthInteractionPerformed: false,
+      navigation,
+      accountMenuVisible,
+      approvalRequired,
+      approvalDialogDigest,
+    },
   };
 }
 
@@ -211,6 +231,73 @@ async function prepareInitialProductState(page, app, approvalApp) {
   await page.getByRole('button', { name: 'Text Studio', exact: true }).click();
   await page.getByRole('heading', { name: 'Test text generation', exact: true })
     .waitFor({ state: 'visible', timeout: 10_000 });
+}
+
+async function observeAvatarProduct(page) {
+  const root = page.getByTestId('avatar-root');
+  await root.waitFor({ state: 'visible', timeout: 30_000 });
+  await page.waitForFunction(() => {
+    const element = document.querySelector('[data-testid="avatar-root"]');
+    return element instanceof HTMLElement
+      && element.dataset.composition
+      && element.dataset.composition !== 'loading';
+  }, undefined, { timeout: 45_000 });
+
+  const launchContext = await invokeRenderer(page, 'nimi_avatar_get_launch_context', {});
+  assert.equal(launchContext.ok, true, 'Avatar must read its Desktop-supervised launch context');
+  assert.equal(String(launchContext.value?.launchSource || ''), 'official-avatar-electron-dev-launcher');
+  assert.match(String(launchContext.value?.agentId || ''), /^local-agent:/u);
+  assert.ok(String(launchContext.value?.avatarInstanceId || '').length > 0, 'Avatar instance id must be present');
+  assert.deepEqual(
+    Object.keys(launchContext.value || {}).sort(),
+    ['agentId', 'avatarInstanceId', 'launchSource'],
+    'Avatar renderer launch context must remain minimal',
+  );
+
+  const rendererBridge = await page.evaluate(() => ({
+    invoke: typeof globalThis.window.__NIMI_ELECTRON_RUNTIME__?.invoke,
+    listen: typeof globalThis.window.__NIMI_ELECTRON_RUNTIME__?.listen,
+  }));
+  assert.deepEqual(rendererBridge, { invoke: 'function', listen: 'function' }, 'Avatar preload bridge is incomplete');
+
+  const state = await root.getAttribute('data-composition');
+  const degradedSurface = page.getByTestId('avatar-degraded-surface');
+  const degradedVisible = await degradedSurface.isVisible().catch(() => false);
+  const degradedText = degradedVisible ? (await degradedSurface.innerText()).slice(0, 8_000) : '';
+  const missingPresentationAsset = degradedText.includes('runtime_agent_avatar_asset_missing_test_data');
+  const degraded = degradedVisible ? {
+    compositionState: String(await degradedSurface.getAttribute('data-composition-state') || ''),
+    reasonCode: missingPresentationAsset ? 'RUNTIME_AGENT_PRESENTATION_ASSET_NOT_CONFIGURED' : null,
+    textDigest: digestText(degradedText),
+  } : null;
+  const readySurface = {
+    embodimentVisible: await page.getByTestId('avatar-embodiment-stage').isVisible().catch(() => false),
+    companionVisible: await page.getByTestId('avatar-companion-surface').isVisible().catch(() => false),
+    live2dVisible: await page.getByTestId('avatar-live2d-carrier-visual').isVisible().catch(() => false),
+    vrmVisible: await page.getByTestId('avatar-vrm-carrier').isVisible().catch(() => false),
+    nimi2dVisible: await page.getByTestId('avatar-nimi2d-carrier').isVisible().catch(() => false),
+  };
+
+  return {
+    protectedBundledProfile: true,
+    rendererBridge,
+    launchContext: {
+      agentIdDigest: digestText(String(launchContext.value.agentId)),
+      avatarInstanceIdDigest: digestText(String(launchContext.value.avatarInstanceId)),
+      launchSource: String(launchContext.value.launchSource),
+      projectedKeys: Object.keys(launchContext.value).sort(),
+    },
+    composition: {
+      state: String(state || ''),
+      degraded,
+      readySurface,
+      classification: state === 'ready'
+        ? 'pass'
+        : missingPresentationAsset
+          ? 'data-blocked'
+          : 'fail',
+    },
+  };
 }
 
 async function observeLocalAppProduct(page, cdp, app) {
@@ -292,7 +379,7 @@ async function observeTesterProduct(page, cdp) {
   const lab = page.getByTestId('tester-local-app-permission-lab');
   await drawer.waitFor({ state: 'visible', timeout: 10_000 });
   await lab.waitFor({ state: 'visible', timeout: 10_000 });
-  const refresh = lab.getByRole('button', { name: '刷新真实状态', exact: true });
+  const refresh = lab.getByRole('button', { name: '刷新状态', exact: true });
   await refresh.click();
   await waitForEnabled(refresh);
 

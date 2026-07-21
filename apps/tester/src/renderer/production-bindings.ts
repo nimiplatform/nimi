@@ -10,6 +10,7 @@ import {
   requestNimiRealmDataExport,
   toNimiRealmNotificationListView,
 } from '@nimiplatform/sdk/realm';
+import { jsonValuesEqual } from '@nimiplatform/kit/core/json-value';
 import { getNimiNotificationServerFilter } from '@nimiplatform/kit/core/notifications';
 import { createRealmChatService, listRealmChats } from '@nimiplatform/kit/features/chat/realm';
 import { emitRuntimeLog, logRendererEvent } from '@nimiplatform/kit/telemetry';
@@ -234,7 +235,7 @@ export function createTesterProductionBindings(
         async localAppStorageRoundTrip(input: { readonly relativePath: string; readonly value: Readonly<Record<string, string | number>> }) {
           const written = await testerLocalAppClient.storage.writeJson(input.relativePath, input.value);
           const read = await testerLocalAppClient.storage.readJson(input.relativePath);
-          if (JSON.stringify(read.value) !== JSON.stringify(input.value)) {
+          if (!jsonValuesEqual(read.value, input.value)) {
             throw new Error('App-private storage readback did not match the written value.');
           }
           const removed = await testerLocalAppClient.storage.removeJson(input.relativePath);

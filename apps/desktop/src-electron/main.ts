@@ -134,9 +134,9 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       appPrivateDataRoot: path.join(app.getPath('userData'), 'bundled-avatar', 'standard-shell-data'),
       localAssetProtocolHost,
       resolveSelectedDataRoot: productControlHost.resolveSelectedDataRoot,
-      devRendererRoot: app.isPackaged
-        ? undefined
-        : normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_DEV_ROOT),
+      devRendererRoot: ELECTRON_DEVELOPMENT_BUILD
+        ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_DEV_ROOT)
+        : undefined,
     });
     registeredRuntimeBridge = registerNimiElectronRuntimeBridge({
       appId: APP_ID,

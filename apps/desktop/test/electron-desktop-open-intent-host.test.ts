@@ -10,6 +10,17 @@ import {
   DESKTOP_OPEN_INTENT_EVENT,
 } from '../src-electron/desktop-open-intent-host';
 
+test('Desktop Open shutdown closes idle HTTP connections without force-closing active requests', async () => {
+  const source = await readFile(path.join(
+    path.resolve(import.meta.dirname, '..'),
+    'src-electron',
+    'desktop-open-intent-host.ts',
+  ), 'utf8');
+  assert.match(source, /server\.closeIdleConnections\(\)/u);
+  assert.match(source, /desktop-open-intent-http-shutdown-timeout/u);
+  assert.doesNotMatch(source, /closeAllConnections\(\)/u);
+});
+
 const envelope: NimiDesktopOpenIntentEnvelope = {
   schemaVersion: 1,
   sourceApp: 'nimi.zhiyu',

@@ -142,15 +142,17 @@ async fn invoke_inner(
                     | tonic::Code::Cancelled
                     | tonic::Code::ResourceExhausted
             );
-            let reason =
-                crate::grpc_status::runtime_reason(&status).unwrap_or_else(|| {
-                    match status.code() {
-                        tonic::Code::Unavailable
-                        | tonic::Code::DeadlineExceeded
-                        | tonic::Code::Cancelled => "runtime-service-unavailable".to_string(),
-                        _ => "runtime-service-untrusted".to_string(),
-                    }
-                });
+            let reason = (if bundled_avatar {
+                crate::grpc_status::bundled_avatar_runtime_reason(&status)
+            } else {
+                crate::grpc_status::runtime_reason(&status)
+            })
+            .unwrap_or_else(|| match status.code() {
+                tonic::Code::Unavailable
+                | tonic::Code::DeadlineExceeded
+                | tonic::Code::Cancelled => "runtime-service-unavailable".to_string(),
+                _ => "runtime-service-untrusted".to_string(),
+            });
             DesktopUnaryError::new(reason, retryable)
         })?;
     Ok(response.into_inner())

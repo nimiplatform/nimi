@@ -117,15 +117,20 @@ export async function createDesktopElectronBundledAvatarHost(
       },
     });
     windows.set(avatarInstanceId, { window, launchContext: canonicalContext });
-    secureAvatarWindow(window, rendererUrl, () => {
+    const sender = window.webContents;
+    let senderReleased = false;
+    const releaseWindow = (): void => {
       const current = windows.get(avatarInstanceId);
       if (current?.window === window) windows.delete(avatarInstanceId);
-      invalidateSender(window.webContents);
-    });
+      if (!senderReleased) {
+        senderReleased = true;
+        invalidateSender(sender);
+      }
+    };
+    secureAvatarWindow(window, rendererUrl, releaseWindow);
+    window.on('close', releaseWindow);
     window.on('closed', () => {
-      const current = windows.get(avatarInstanceId);
-      if (current?.window === window) windows.delete(avatarInstanceId);
-      invalidateSender(window.webContents);
+      releaseWindow();
       for (const watcherId of [...nasWatchers.keys()]) closeWatcher(watcherId);
     });
     await window.loadURL(rendererUrl);

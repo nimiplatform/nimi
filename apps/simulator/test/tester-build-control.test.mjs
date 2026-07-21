@@ -30,6 +30,8 @@ import {
 } from '../build/paths.mjs';
 
 const TESTER_SOURCE = path.join(REPO_ROOT, 'apps', 'tester');
+const VITE_CLI = path.join(SIMULATOR_ROOT, 'node_modules', 'vite', 'bin', 'vite.js');
+const DIRECTORY_LINK_TYPE = process.platform === 'win32' ? 'junction' : 'dir';
 
 function git(repository, ...args) {
   return execFileSync('git', args, { cwd: repository, encoding: 'utf8' }).trim();
@@ -65,7 +67,7 @@ function createSimulatorProductBuildFixture() {
   for (const entry of ['build', 'src']) {
     cpSync(path.join(SIMULATOR_ROOT, entry), path.join(root, entry), { recursive: true });
   }
-  symlinkSync(path.join(SIMULATOR_ROOT, 'node_modules'), path.join(root, 'node_modules'), 'dir');
+  symlinkSync(path.join(SIMULATOR_ROOT, 'node_modules'), path.join(root, 'node_modules'), DIRECTORY_LINK_TYPE);
   let cleaned = false;
   const cleanup = () => {
     if (cleaned) return;
@@ -154,8 +156,8 @@ function buildSelectedTesterArtifact(fixture, simulator) {
   });
   writePublicWebIsolationEvidence(simulator.generatedRoot);
   execFileSync(
-    path.join(SIMULATOR_ROOT, 'node_modules', '.bin', 'vite'),
-    ['build', '--config', path.join(simulator.root, 'vite.config.ts')],
+    process.execPath,
+    [VITE_CLI, 'build', '--config', path.join(simulator.root, 'vite.config.ts')],
     { cwd: simulator.root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
   );
   execFileSync(
@@ -233,8 +235,8 @@ test('real Tester source qualifies, builds through the final graph, and matches 
     );
 
     execFileSync(
-      path.join(SIMULATOR_ROOT, 'node_modules', '.bin', 'vite'),
-      ['build', '--config', path.join(simulator.root, 'vite.config.ts')],
+      process.execPath,
+      [VITE_CLI, 'build', '--config', path.join(simulator.root, 'vite.config.ts')],
       { cwd: simulator.root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
     );
     writePublicWebIsolationEvidence(simulator.generatedRoot);
@@ -269,8 +271,9 @@ test('real Tester source qualifies, builds through the final graph, and matches 
     assert.equal(buildCssEvidence.transformed.utility_selector_count > 0, true);
     const productionDist = path.join(simulator.root, 'tester-production-dist');
     execFileSync(
-      path.join(SIMULATOR_ROOT, 'node_modules', '.bin', 'vite'),
+      process.execPath,
       [
+        VITE_CLI,
         'build',
         '--config', path.join(TESTER_SOURCE, 'vite.config.ts'),
         '--outDir', productionDist,

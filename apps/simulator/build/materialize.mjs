@@ -18,6 +18,7 @@ import {
 
 const ACCEPTED_MODES = new Set(['100644', '100755']);
 const LFS_POINTER_PREFIX = Buffer.from('version https://git-lfs.github.com/spec/v1\n', 'utf8');
+const GIT_NULL_DEVICE = process.platform === 'win32' ? 'NUL' : devNull;
 
 function fail(code, message, fieldPath = '') {
   throw new SimulatorConformanceError(code, message, fieldPath);
@@ -31,7 +32,7 @@ function runGit(repositoryPath, args, { allowFailure = false, encoding = null } 
     env: {
       PATH: process.env.PATH,
       HOME: process.env.HOME,
-      GIT_CONFIG_GLOBAL: devNull,
+      GIT_CONFIG_GLOBAL: GIT_NULL_DEVICE,
       GIT_CONFIG_NOSYSTEM: '1',
       GIT_TERMINAL_PROMPT: '0',
       GIT_OPTIONAL_LOCKS: '0',
@@ -83,7 +84,7 @@ function resolveExternalRepository(source, repositoryCatalog, options) {
     env: {
       PATH: process.env.PATH,
       HOME: process.env.HOME,
-      GIT_CONFIG_GLOBAL: devNull,
+      GIT_CONFIG_GLOBAL: GIT_NULL_DEVICE,
       GIT_CONFIG_NOSYSTEM: '1',
       GIT_TERMINAL_PROMPT: '0',
       GIT_OPTIONAL_LOCKS: '0',

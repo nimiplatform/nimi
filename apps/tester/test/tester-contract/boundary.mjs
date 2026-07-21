@@ -465,6 +465,9 @@ test('tester capability runs consume Kit renderer telemetry', () => {
   assert.match(workbench, /rendererHost\.app\.commands\.rendererLog\(/);
   assert.match(workbench, /rendererHost\.app\.commands\.nextRunIdentity\(\)/);
   assert.match(productionBindings, /from '@nimiplatform\/kit\/telemetry'/);
+  assert.match(productionBindings, /jsonValuesEqual/);
+  assert.match(productionBindings, /from '@nimiplatform\/kit\/core\/json-value'/);
+  assert.doesNotMatch(productionBindings, /JSON\.stringify\(read\.value\)/);
   assert.match(productionBindings, /from '@nimiplatform\/sdk'/);
   assert.match(productionBindings, /from '@nimiplatform\/sdk\/types'/);
   assert.match(productionBindings, /loadTesterAIConfigSummary/);

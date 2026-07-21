@@ -311,7 +311,15 @@ function writeJson(response: ServerResponse, statusCode: number, value: unknown)
 async function closeServer(server: Server): Promise<void> {
   if (!server.listening) return;
   await new Promise<void>((resolve, reject) => {
-    server.close((error) => error ? reject(error) : resolve());
+    const timer = setTimeout(() => {
+      reject(new Error('desktop-open-intent-http-shutdown-timeout'));
+    }, 5_000);
+    server.close((error) => {
+      clearTimeout(timer);
+      if (error) reject(error);
+      else resolve();
+    });
+    server.closeIdleConnections();
   });
 }
 

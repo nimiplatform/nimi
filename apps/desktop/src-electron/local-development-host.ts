@@ -152,6 +152,7 @@ class ElectronLocalDevelopmentHost {
   private readonly authorizationSelectors = new Map<string, string>();
   private server: Server | undefined;
   private endpoint = '';
+  private shutdownPromise: Promise<void> | undefined;
   private readonly projectionPublisher: DesktopElectronLocalDevelopmentProjectionPublisher;
 
   constructor(
@@ -199,7 +200,12 @@ class ElectronLocalDevelopmentHost {
     return this.revoke(nested);
   }
 
-  async shutdown(): Promise<void> {
+  shutdown(): Promise<void> {
+    this.shutdownPromise ??= this.performShutdown();
+    return this.shutdownPromise;
+  }
+
+  private async performShutdown(): Promise<void> {
     const failures: unknown[] = [];
     const stopped = await Promise.allSettled([...this.runs.values()].map((run) => this.stopRun(run, 'stopped')));
     for (const result of stopped) {
@@ -643,7 +649,6 @@ async function closeHttpServer(server: Server): Promise<void> {
   if (!server.listening) return;
   await new Promise<void>((resolve, reject) => {
     const timer = setTimeout(() => {
-      server.closeAllConnections();
       reject(new Error('local-development-supervisor-http-shutdown-timeout'));
     }, 5_000);
     server.close((error) => {
@@ -652,7 +657,6 @@ async function closeHttpServer(server: Server): Promise<void> {
       else resolve();
     });
     server.closeIdleConnections();
-    server.closeAllConnections();
   });
 }
 

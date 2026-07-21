@@ -18,6 +18,7 @@ import { qualifySelectedModules } from '../build/registry.mjs';
 import { REPO_ROOT, SIMULATOR_ROOT } from '../build/paths.mjs';
 
 const APP_FIXTURE = path.join(REPO_ROOT, 'app-tools', 'test', 'fixtures', 'simulator-valid');
+const DIRECTORY_LINK_TYPE = process.platform === 'win32' ? 'junction' : 'dir';
 const AUTHORITY_REFS = [{ owner: 'platform', rule_id: 'P-SIM-021' }];
 const AUTHORITY_DIGEST = stableJsonDigest('nimi-simulator-hardening-authority-v1', AUTHORITY_REFS);
 
@@ -44,7 +45,11 @@ function createFixture() {
   mkdirSync(simulatorRoot);
   cpSync(path.join(SIMULATOR_ROOT, 'package.json'), path.join(simulatorRoot, 'package.json'));
   cpSync(path.join(SIMULATOR_ROOT, 'src'), path.join(simulatorRoot, 'src'), { recursive: true });
-  symlinkSync(path.join(SIMULATOR_ROOT, 'node_modules'), path.join(simulatorRoot, 'node_modules'), 'dir');
+  symlinkSync(
+    path.join(SIMULATOR_ROOT, 'node_modules'),
+    path.join(simulatorRoot, 'node_modules'),
+    DIRECTORY_LINK_TYPE,
+  );
   return {
     root,
     appRoot,
