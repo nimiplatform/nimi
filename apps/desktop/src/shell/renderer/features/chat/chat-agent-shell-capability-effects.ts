@@ -4,6 +4,7 @@ import {
   refreshAgentEffectiveCapabilityResolution,
   refreshConversationCapabilityProjections,
 } from './conversation-capability-projection';
+import { useAppStoreApi } from '@renderer/app-shell/providers/app-store';
 
 const AGENT_CONVERSATION_BOOTSTRAP_CAPABILITIES: readonly ConversationCapability[] = [
   'text.generate',
@@ -27,15 +28,16 @@ type UseAgentConversationCapabilityEffectsInput = {
 export function useAgentConversationCapabilityEffects(
   input: UseAgentConversationCapabilityEffectsInput,
 ): void {
+  const store = useAppStoreApi();
   // Initial projection build on bootstrap. Ongoing config-change driven refresh
   // is handled by the surface subscription (S-AICONF-006 via bindProjectionRefreshToSurface).
   useEffect(() => {
     if (!input.bootstrapReady) return;
-    void refreshConversationCapabilityProjections(AGENT_CONVERSATION_BOOTSTRAP_CAPABILITIES);
-    void refreshConversationCapabilityProjections(AGENT_CONVERSATION_DEFERRED_CAPABILITIES);
-  }, [input.bootstrapReady]);
+    void refreshConversationCapabilityProjections(store, AGENT_CONVERSATION_BOOTSTRAP_CAPABILITIES);
+    void refreshConversationCapabilityProjections(store, AGENT_CONVERSATION_DEFERRED_CAPABILITIES);
+  }, [input.bootstrapReady, store]);
 
   useEffect(() => {
-    refreshAgentEffectiveCapabilityResolution();
-  }, [input.imageCapabilityProjection, input.textCapabilityProjection]);
+    refreshAgentEffectiveCapabilityResolution(store);
+  }, [input.imageCapabilityProjection, input.textCapabilityProjection, store]);
 }

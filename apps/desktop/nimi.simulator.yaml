@@ -1,0 +1,27 @@
+schema: nimi.simulator.module/v1
+module_id: desktop
+composition:
+  factory_entry: src/shell/renderer/renderer/factory.tsx
+  factory_export: desktopCanonicalRendererFactory
+  style_entry: src/shell/renderer/styles.css
+  app_production_entries:
+    - src/shell/renderer/main.tsx
+renderer:
+  entry: src/simulator/renderer.ts
+  export: desktopSimulatorRenderer
+  adapter_entry: src/simulator/adapter.ts
+  adapter_export: desktopSimulatorAdapterFactory
+  surfaces:
+    - id: main
+      factory_surface: main
+      label: Nimi Desktop
+      initial_route: /
+      readiness_contract: desktop.main.usable
+requires:
+  kit_capabilities: []
+  sdk_methods: []
+  simulator_commands:
+    - desktop.locale.apply
+  simulator_events: []
+fixtures:
+  conformance: src/simulator/fixture.ts

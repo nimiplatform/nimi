@@ -6,6 +6,7 @@ import { CANONICAL_CAPABILITY_CATALOG } from '@nimiplatform/kit/core/runtime-cap
 
 import {
   changeLocale,
+  createDesktopI18n,
   formatRelativeLocaleTime,
   initI18n,
   i18n,
@@ -182,6 +183,39 @@ test('duplicate missing renderer translation keys emit a single issue per sessio
   } finally {
     unsubscribe();
   }
+});
+
+test('createDesktopI18n owns locale, diagnostics, and clock per renderer instance', async () => {
+  const first = createDesktopI18n({
+    initialLocale: 'en',
+    development: false,
+    now: () => Date.UTC(2026, 0, 1, 0, 5),
+  });
+  const second = createDesktopI18n({
+    initialLocale: 'zh',
+    development: false,
+    now: () => Date.UTC(2026, 0, 1, 1, 0),
+  });
+  const firstIssues: string[] = [];
+  const secondIssues: string[] = [];
+  first.onIssue((issue) => firstIssues.push(issue.key));
+  second.onIssue((issue) => secondIssues.push(issue.key));
+
+  await Promise.all([first.init(), second.init()]);
+  assert.equal(first.getCurrentLocale(), 'en');
+  assert.equal(second.getCurrentLocale(), 'zh');
+  assert.equal(
+    first.formatRelativeTime(new Date(Date.UTC(2026, 0, 1, 0, 0))),
+    '5m ago',
+  );
+  assert.equal(
+    second.formatRelativeTime(new Date(Date.UTC(2026, 0, 1, 0, 0))),
+    '1 小时前',
+  );
+
+  assert.equal(first.instance.t('I18nSpecRegression.instanceOwned'), 'Instance Owned');
+  assert.deepEqual(firstIssues, ['I18nSpecRegression.instanceOwned']);
+  assert.deepEqual(secondIssues, []);
 });
 
 test('auth runtime locale keys exist in both desktop locales', async () => {

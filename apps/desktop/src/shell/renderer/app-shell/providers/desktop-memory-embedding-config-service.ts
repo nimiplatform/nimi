@@ -26,8 +26,8 @@ type DesktopMemoryEmbeddingConfigServiceDeps = {
 };
 
 async function currentSubjectUserId(): Promise<string> {
-  const { useAppStore } = await import('./app-store.js');
-  const user = useAppStore.getState().auth.user as Record<string, unknown> | null;
+  const { productionAppStore } = await import('./production-app-store.js');
+  const user = productionAppStore.getState().auth.user as Record<string, unknown> | null;
   return String(user?.id || '').trim();
 }
 

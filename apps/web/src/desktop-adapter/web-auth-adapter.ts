@@ -28,11 +28,13 @@ import {
 } from '@nimiplatform/sdk/realm';
 import { createNimiDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
 import { bootstrapRuntime } from '@renderer/infra/bootstrap/runtime-bootstrap';
-import { queryClient } from '@renderer/infra/query-client/query-client';
+import {
+  desktopPublicWebBootstrapStore,
+  desktopPublicWebQueryClient,
+} from '@desktop-public/app-store';
 import { desktopBridge } from '@renderer/bridge';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { createWebRealmFetch } from './web-realm-fetch.js';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { callRealmApi } from '@renderer/infra/realm/realm-api';
 import { getDesktopAccountRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import { i18n } from '@renderer/i18n';
@@ -111,11 +113,11 @@ export async function ensureAuthApiReady(): Promise<void> {
 }
 
 async function resolveWebRealmBaseUrl(): Promise<string> {
-  const defaults = useAppStore.getState().runtimeDefaults;
+  const defaults = desktopPublicWebBootstrapStore.getRuntimeDefaults();
   if (!defaults?.realm?.realmBaseUrl) {
     await bootstrapRuntime();
   }
-  const refreshedDefaults = useAppStore.getState().runtimeDefaults;
+  const refreshedDefaults = desktopPublicWebBootstrapStore.getRuntimeDefaults();
   const realmBaseUrl = String(refreshedDefaults?.realm?.realmBaseUrl || '').trim();
   if (!realmBaseUrl) {
     throw new Error('API not initialized');
@@ -138,12 +140,12 @@ async function configureWebAuthRealmSession(accessToken: string, refreshToken?: 
     accessToken,
     refreshToken,
     fetchImpl: createWebRealmFetch(),
-    getCurrentUser: () => useAppStore.getState().auth.user,
+    getCurrentUser: desktopPublicWebBootstrapStore.getCurrentUser,
     setAuthSession: (user) => {
-      useAppStore.getState().setAuthSession(user);
+      desktopPublicWebBootstrapStore.applyAuthSession(user);
     },
     clearAuthSession: () => {
-      useAppStore.getState().clearAuthSession();
+      desktopPublicWebBootstrapStore.applySignedOutAuthSession();
     },
   });
 }
@@ -260,8 +262,8 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
     oauthBridge: desktopOAuthBridge,
     syncAfterLogin: async () => {
       await Promise.allSettled([
-        queryClient.invalidateQueries({ queryKey: ['chats'] }),
-        queryClient.invalidateQueries({ queryKey: ['contacts'] }),
+        desktopPublicWebQueryClient.invalidateQueries({ queryKey: ['chats'] }),
+        desktopPublicWebQueryClient.invalidateQueries({ queryKey: ['contacts'] }),
       ]);
     },
   };

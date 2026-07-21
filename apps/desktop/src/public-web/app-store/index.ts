@@ -1,6 +1,7 @@
 // Desktop public-for-web boundary: semantic Web bootstrap store facade.
 import type { RuntimeDefaults } from '../../shell/renderer/bridge';
-import { useAppStore } from '../../shell/renderer/app-shell/providers/app-store';
+import { productionAppStore } from '../../shell/renderer/app-shell/providers/production-app-store';
+export { productionQueryClient as desktopPublicWebQueryClient } from '../../shell/renderer/infra/query-client/production-query-client.js';
 
 export type DesktopPublicWebAuthSnapshot = {
   status: string;
@@ -20,7 +21,7 @@ export type DesktopPublicWebBootstrapStore = {
 };
 
 function currentStore() {
-  return useAppStore.getState();
+  return productionAppStore.getState();
 }
 
 export const desktopPublicWebBootstrapStore: DesktopPublicWebBootstrapStore = {

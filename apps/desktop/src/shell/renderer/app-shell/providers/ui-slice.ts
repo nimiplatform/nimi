@@ -10,11 +10,14 @@ import {
   EMPTY_AGENT_CONVERSATION_SELECTION,
   EMPTY_NIMI_CONVERSATION_SELECTION,
 } from '@renderer/features/chat/chat-shell-types';
-import { loadStoredChatThinkingPreference, persistStoredChatThinkingPreference } from '@renderer/features/chat/chat-settings-storage';
-import { setActiveScopeForMode } from '@renderer/features/chat/chat-shared-active-ai-config-scope';
+import type { ChatThinkingPreference } from '@renderer/features/chat/chat-shared-thinking';
 import type { AppStoreSet, AppStoreState, AppTab } from './store-types';
 
-const initialChatThinkingPreference = loadStoredChatThinkingPreference();
+export type UiSliceDependencies = {
+  readonly initialChatThinkingPreference: ChatThinkingPreference;
+  readonly persistChatThinkingPreference: (preference: ChatThinkingPreference) => void;
+  readonly setActiveScopeForMode: (mode: AppStoreState['chatMode']) => void;
+};
 
 function pushNavigationBackStack(
   stack: readonly AppTab[],
@@ -104,7 +107,10 @@ type UiSlice = Pick<AppStoreState,
   | 'setStatusBanner'
 >;
 
-export function createUiSlice(set: AppStoreSet): UiSlice {
+export function createUiSlice(
+  set: AppStoreSet,
+  dependencies: UiSliceDependencies,
+): UiSlice {
   return {
     bootstrapReady: false,
     bootstrapError: null,
@@ -114,7 +120,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     activeTab: 'chat',
     navigationBackStack: [],
     chatMode: 'ai',
-    chatThinkingPreference: initialChatThinkingPreference,
+    chatThinkingPreference: dependencies.initialChatThinkingPreference,
     chatSourceFilter: DEFAULT_CHAT_SOURCE_FILTER,
     selectedTargetBySource: { ...DEFAULT_SELECTED_TARGET_BY_SOURCE },
     viewModeBySourceTarget: { ...DEFAULT_VIEW_MODE_BY_SOURCE_TARGET },
@@ -156,14 +162,14 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
       // feature:desktop.chat:agent, `human`/`group` -> no built-in chat scope.
       // This rewires the AIConfig projection only; per-mode thread/session
       // selection state is independent and untouched.
-      setActiveScopeForMode(mode);
+      dependencies.setActiveScopeForMode(mode);
       startTransition(() => {
         set({ chatMode: mode });
       });
     },
     setChatThinkingPreference: (preference) => {
       const normalizedPreference = preference === 'on' ? 'on' : 'off';
-      persistStoredChatThinkingPreference(normalizedPreference);
+      dependencies.persistChatThinkingPreference(normalizedPreference);
       set({ chatThinkingPreference: normalizedPreference });
     },
     setChatSourceFilter: (filter) => {

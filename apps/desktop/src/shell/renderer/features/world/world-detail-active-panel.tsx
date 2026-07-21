@@ -1,7 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { queryClient } from '@renderer/infra/query-client/query-client';
 import { WorldDetail } from './world-detail';
 import { WorldDetailLoadingState } from './world-detail-template';
 import {
@@ -29,6 +28,7 @@ function readCachedWorldDetailListItem(
 
 export function WorldDetailActivePanel() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const authStatus = useAppStore((state) => state.auth.status);
   const selectedWorldId = useAppStore((state) => state.selectedWorldId);
   const selectedWorldInitialSubpage = useAppStore((state) => state.selectedWorldInitialSubpage);

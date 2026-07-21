@@ -532,7 +532,7 @@ function checkRetryJitterPresence() {
 }
 
 function checkStoreSliceCount() {
-  const storePath = 'apps/desktop/src/shell/renderer/app-shell/providers/app-store.ts';
+  const storePath = 'apps/desktop/src/shell/renderer/app-shell/providers/app-store-factory.ts';
   if (!fileExists(storePath)) return;
 
   const content = read(storePath);

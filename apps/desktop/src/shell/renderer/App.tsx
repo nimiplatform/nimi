@@ -6,7 +6,10 @@ import { AppRoutes } from '@renderer/app-shell/routes/app-routes';
 import { AppErrorBoundary } from '@renderer/infra/error-boundary/app-error-boundary';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { onI18nIssue } from '@renderer/i18n';
+import {
+  productionDesktopI18n,
+  type DesktopI18nResource,
+} from '@renderer/i18n';
 import { useMenuBarNavigationListener } from '@renderer/infra/menu-bar/menu-bar-navigation-listener';
 import { useMenuBarRuntimeSync } from '@renderer/infra/menu-bar/menu-bar-runtime-sync';
 import { useDesktopUpdatesBootstrap } from '@renderer/infra/bootstrap/desktop-updates';
@@ -14,6 +17,10 @@ import { useDesktopMacosSmokeBootstrap } from '@renderer/infra/bootstrap/desktop
 import { useRuntimeHealthCoordinatorBootstrap } from '@renderer/features/runtime-config/runtime-health-coordinator';
 import { getDesktopMacosSmokeContext, pingDesktopMacosSmoke } from '@renderer/bridge/runtime-bridge/macos-smoke';
 import { LocalDevelopmentApprovalCenter } from '@renderer/features/local-development/local-development-approval-center';
+import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
+import { productionQueryClient } from '@renderer/infra/query-client/production-query-client';
+import { ProductionDesktopRouter } from '@renderer/app-shell/providers/production-router';
+import { productionAppAttentionSource } from '@renderer/app-shell/providers/production-app-attention-source';
 
 const WEB_BOOTSTRAP_TIMEOUT_MS = 15000;
 const DESKTOP_BOOTSTRAP_TIMEOUT_MS = 25000;
@@ -47,7 +54,7 @@ async function resolveBootstrapTimeoutMs(shellMode: string): Promise<number> {
   }
 }
 
-function AppBoot() {
+function AppBoot(props: { readonly i18n: DesktopI18nResource }) {
   const { t } = useTranslation();
   const shellMode = getShellFeatureFlags().mode;
   const setBootstrapError = useAppStore((state) => state.setBootstrapError);
@@ -178,7 +185,7 @@ function AppBoot() {
   }, [setBootstrapError, setBootstrapReady, setStatusBanner, shellMode, t]);
 
   useEffect(() => {
-    const unsubscribe = onI18nIssue((issue) => {
+    const unsubscribe = props.i18n.onIssue((issue) => {
       logRendererEvent({
         level: issue.severity === 'error' ? 'error' : 'warn',
         area: 'i18n',
@@ -193,7 +200,7 @@ function AppBoot() {
       });
     });
     return unsubscribe;
-  }, []);
+  }, [props.i18n]);
 
   return (
     <>
@@ -205,9 +212,15 @@ function AppBoot() {
 
 export default function App() {
   return (
-    <AppProviders>
+    <AppProviders
+      attention={productionAppAttentionSource}
+      i18n={productionDesktopI18n}
+      queryClient={productionQueryClient}
+      Router={ProductionDesktopRouter}
+      store={productionAppStore}
+    >
       <AppErrorBoundary>
-        <AppBoot />
+        <AppBoot i18n={productionDesktopI18n} />
       </AppErrorBoundary>
     </AppProviders>
   );

@@ -13,6 +13,7 @@ import {
 } from '@nimiplatform/kit/features/chat/headless';
 import { createSimpleAiConversationProvider } from '@nimiplatform/kit/features/chat/runtime';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
 import type { ChatAiMessageRecord, ChatAiThreadRecord } from '@renderer/bridge/runtime-bridge/types';
 import { chatAiStoreClient } from '@renderer/bridge/runtime-bridge/chat-ai-store';
 import { useTranslation } from 'react-i18next';
@@ -165,12 +166,12 @@ export function useAiConversationModeHost(
       runtimeAdapter: createChatAiConversationRuntimeAdapter({
         reasoningPreference: chatThinkingPreference,
         getTextProjection: () => (
-          useAppStore.getState().conversationCapabilityProjectionByCapability['text.generate'] || null
+          productionAppStore.getState().conversationCapabilityProjectionByCapability['text.generate'] || null
         ),
         aiConfig,
       }),
       resolveRuntimeRequest: () => resolveChatAiConversationRuntimeRequest(
-        useAppStore.getState().conversationCapabilityProjectionByCapability['text.generate'] || null,
+        productionAppStore.getState().conversationCapabilityProjectionByCapability['text.generate'] || null,
       ),
       resolveSystemPrompt: (turnInput) => turnInput.systemPrompt || null,
     }));

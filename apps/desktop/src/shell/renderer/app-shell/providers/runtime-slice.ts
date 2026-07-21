@@ -1,14 +1,6 @@
 import type { AppStoreSet, AppStoreState } from './store-types';
 import { INITIAL_RUNTIME_FIELDS } from './store-types';
-import {
-  scopeKeyFromRef,
-} from './desktop-ai-config-storage';
-import {
-  bindDesktopAIConfigAppStore,
-  getDesktopAIConfigService,
-} from './desktop-ai-config-service';
-import { getActiveScope } from '@renderer/features/chat/chat-shared-active-ai-config-scope';
-import { bindProjectionRefreshToSurface } from '@renderer/features/chat/conversation-capability-projection';
+import type { NimiAIConfig } from '@nimiplatform/sdk/ai';
 
 const RETIRED_ROUTE_RUNTIME_FIELD_KEYS = new Set([
   'provider',
@@ -33,37 +25,19 @@ type RuntimeSlice = Pick<AppStoreState,
   | 'setAgentEffectiveCapabilityResolution'
 >;
 
-export function createRuntimeSlice(set: AppStoreSet): RuntimeSlice {
-  // T3-1: the active chat scope is mode-aware. The chat surface boots in `ai`
-  // mode, so the initial active scope is always the canonical Nimi built-in
-  // chat scope (feature:desktop.chat:nimi). A `null` active scope at slice
-  // construction means the chat surface default mode no longer binds a
-  // built-in chat scope — fail closed rather than fabricate a generic scope.
-  const initialActiveScope = getActiveScope();
-  if (!initialActiveScope) {
-    throw new Error(
-      'runtime-slice: chat surface default mode resolved no built-in chat AIScopeRef',
-    );
-  }
-  const initialAIConfig = getDesktopAIConfigService().aiConfig.get(initialActiveScope);
+export type RuntimeSliceDependencies = {
+  readonly initialAIConfig: NimiAIConfig;
+  readonly commitAIConfig: (config: NimiAIConfig) => void;
+};
 
-  // Bind the surface so it can push config updates to the store.
-  // Surface is the unified write owner; store is a read projection.
-  // The filter dynamically checks getActiveScope() so chat-mode scope
-  // switches are immediately reflected.
-  bindDesktopAIConfigAppStore((updatedScopeKey, config) => {
-    const activeScope = getActiveScope();
-    if (activeScope && updatedScopeKey === scopeKeyFromRef(activeScope)) {
-      set({ aiConfig: config });
-    }
-  });
-  // S-AICONF-006: surface subscription drives projection refresh centrally.
-  bindProjectionRefreshToSurface();
-
+export function createRuntimeSlice(
+  set: AppStoreSet,
+  dependencies: RuntimeSliceDependencies,
+): RuntimeSlice {
   return {
     runtimeDefaults: null,
     runtimeFields: INITIAL_RUNTIME_FIELDS,
-    aiConfig: initialAIConfig,
+    aiConfig: dependencies.initialAIConfig,
     conversationCapabilityProjectionByCapability: {},
     agentEffectiveCapabilityResolution: null,
     setRuntimeDefaults: (defaults) =>
@@ -110,9 +84,8 @@ export function createRuntimeSlice(set: AppStoreSet): RuntimeSlice {
         };
       }),
     setAIConfig: (config) => {
-      // Delegate to surface as unified write owner. commitConfig inside
-      // the surface handles persistence + in-memory + app store push + subscribers.
-      getDesktopAIConfigService().aiConfig.update(config.scopeRef, config);
+      dependencies.commitAIConfig(config);
+      set({ aiConfig: config });
     },
     setConversationCapabilityProjections: (projections) =>
       set((state) => {

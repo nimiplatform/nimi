@@ -15,7 +15,7 @@ import {
 } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
 import {
   createNimiHostRuntimeRealmGroupMessageCandidateSurface,
   isRuntimeLocalAgentRef,
@@ -350,7 +350,7 @@ export async function syncGroupChatEvents(
 }
 
 function getCurrentUser(): Record<string, unknown> | null {
-  return useAppStore.getState().auth.user;
+  return productionAppStore.getState().auth.user;
 }
 
 export const realmGroupChatData = {

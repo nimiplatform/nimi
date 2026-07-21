@@ -38,7 +38,11 @@ function createUiSliceHarness(): { getState: () => AppStoreState } {
 
   state = {
     ...state,
-    ...createUiSlice(set),
+    ...createUiSlice(set, {
+      initialChatThinkingPreference: 'off',
+      persistChatThinkingPreference: () => {},
+      setActiveScopeForMode: () => {},
+    }),
   } as AppStoreState;
 
   return {

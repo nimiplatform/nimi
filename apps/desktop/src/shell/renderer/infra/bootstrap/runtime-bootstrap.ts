@@ -3,9 +3,9 @@ import { isRealmOfflineErrorLike as isRealmOfflineError } from '@nimiplatform/sd
 import { setRuntimeLogger } from '@nimiplatform/kit/telemetry';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { desktopBridge, toRendererLogMessage } from '@renderer/bridge';
-import { queryClient } from '@renderer/infra/query-client/query-client';
+import { productionQueryClient } from '@renderer/infra/query-client/production-query-client';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
 import { initializeBuiltInChatScopesFromProductControl } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
 import {
@@ -64,14 +64,14 @@ function bindOfflineCoordinator(): void {
   offlineCoordinatorBindingsReady = true;
   const coordinator = getOfflineCoordinator();
   const setOfflineTier = (tier: ReturnType<typeof coordinator.getTier>) => {
-    useAppStore.getState().setOfflineTier(tier);
+    productionAppStore.getState().setOfflineTier(tier);
   };
   attachOfflineCoordinatorBindings({
     coordinator,
     setOfflineTier,
     suspendRuntimeCallbacksForL2,
     probeRealmReachability: async () => {
-      const authStatus = useAppStore.getState().auth.status;
+      const authStatus = productionAppStore.getState().auth.status;
       if (authStatus !== 'authenticated' || !isDesktopNimiClientSessionReady()) {
         return false;
       }
@@ -102,12 +102,12 @@ function bindOfflineCoordinator(): void {
     flushSocialOutbox: async () => realmSocialData.flushSocialOutbox(),
     invalidateRealmQueries: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['chats'] }),
-        queryClient.invalidateQueries({ queryKey: ['contacts'] }),
-        queryClient.invalidateQueries({ queryKey: ['topbar-currency-balances'] }),
-        queryClient.invalidateQueries({ queryKey: ['topbar-notification-unread-count'] }),
-        queryClient.invalidateQueries({ queryKey: ['notification-unread-count'] }),
-        queryClient.invalidateQueries({ queryKey: ['notification-page'] }),
+        productionQueryClient.invalidateQueries({ queryKey: ['chats'] }),
+        productionQueryClient.invalidateQueries({ queryKey: ['contacts'] }),
+        productionQueryClient.invalidateQueries({ queryKey: ['topbar-currency-balances'] }),
+        productionQueryClient.invalidateQueries({ queryKey: ['topbar-notification-unread-count'] }),
+        productionQueryClient.invalidateQueries({ queryKey: ['notification-unread-count'] }),
+        productionQueryClient.invalidateQueries({ queryKey: ['notification-page'] }),
       ]);
     },
     rebootstrapRuntime: async () => {
@@ -200,7 +200,7 @@ function startBootstrapRuntime(): Promise<void> {
     const flags = getShellFeatureFlags();
     const macosSmokeContext = await getDesktopMacosSmokeContext();
     const skipHeavyBootstrapForMacosSmoke = Boolean(macosSmokeContext.disableRuntimeBootstrap);
-    const appStore = useAppStore.getState();
+    const appStore = productionAppStore.getState();
     appStore.setAuthBootstrapping();
     appStore.setBootstrapReady(false);
 
@@ -228,12 +228,12 @@ function startBootstrapRuntime(): Promise<void> {
     if (desktopBridge.hasTauriInvoke()) {
       try {
         releaseInfo = await desktopBridge.getDesktopReleaseInfo();
-        useAppStore.getState().setDesktopReleaseInfo(releaseInfo);
-        useAppStore.getState().setDesktopReleaseError(null);
+        productionAppStore.getState().setDesktopReleaseInfo(releaseInfo);
+        productionAppStore.getState().setDesktopReleaseError(null);
       } catch (error) {
         const message = safeBootstrapErrorMessage(error);
-        useAppStore.getState().setDesktopReleaseInfo(null);
-        useAppStore.getState().setDesktopReleaseError(message);
+        productionAppStore.getState().setDesktopReleaseInfo(null);
+        productionAppStore.getState().setDesktopReleaseError(message);
         logRendererEvent({
           level: 'warn',
           area: 'renderer-bootstrap',
@@ -247,7 +247,7 @@ function startBootstrapRuntime(): Promise<void> {
       skipHeavyBootstrapForMacosSmoke,
     }).catch(() => {});
     const defaults = await desktopBridge.getRuntimeDefaults();
-    useAppStore.getState().setRuntimeDefaults(defaults);
+    productionAppStore.getState().setRuntimeDefaults(defaults);
     let daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
     let runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
     if (desktopBridge.hasTauriInvoke() && runtimeUnavailable) {
@@ -475,14 +475,14 @@ function startBootstrapRuntime(): Promise<void> {
       });
     }
     if (bootstrapRuntimeConfigWarning) {
-      useAppStore.getState().setStatusBanner({
+      productionAppStore.getState().setStatusBanner({
         kind: 'warning',
         message: bootstrapRuntimeConfigWarning,
       });
     }
 
-    useAppStore.getState().setBootstrapReady(true);
-    useAppStore.getState().setBootstrapError(null);
+    productionAppStore.getState().setBootstrapReady(true);
+    productionAppStore.getState().setBootstrapError(null);
     void pingDesktopMacosSmoke('bootstrap-ready', {
       scenarioId: macosSmokeContext.scenarioId || null,
       skipHeavyBootstrapForMacosSmoke,
@@ -510,8 +510,8 @@ function startBootstrapRuntime(): Promise<void> {
       );
     }
     const message = safeBootstrapErrorMessage(failure);
-    useAppStore.getState().setBootstrapError(message);
-    useAppStore.getState().setBootstrapReady(false);
+    productionAppStore.getState().setBootstrapError(message);
+    productionAppStore.getState().setBootstrapReady(false);
     applyRuntimeAccountUnavailableProjection();
     logRendererEvent({
       level: 'error',

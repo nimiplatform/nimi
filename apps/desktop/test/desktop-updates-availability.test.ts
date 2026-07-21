@@ -11,7 +11,7 @@ if (typeof globalThis.localStorage === 'undefined') {
 }
 
 import { desktopBridge } from '../src/shell/renderer/bridge';
-import { useAppStore } from '../src/shell/renderer/app-shell/providers/app-store';
+import { productionAppStore } from '../src/shell/renderer/app-shell/providers/production-app-store';
 import {
   runDesktopUpdateCheck,
   runDesktopUpdateInstall,
@@ -35,7 +35,7 @@ test('runDesktopUpdateCheck short-circuits unavailable updater without invoking 
     getDesktopReleaseInfo: desktopBridge.getDesktopReleaseInfo,
     desktopUpdateCheck: desktopBridge.desktopUpdateCheck,
   };
-  const originalGetState = useAppStore.getState;
+  const originalGetState = productionAppStore.getState;
 
   let banner: { kind: string; message: string } | null = null;
   let desktopUpdateCheckCalls = 0;
@@ -46,7 +46,7 @@ test('runDesktopUpdateCheck short-circuits unavailable updater without invoking 
     desktopUpdateCheckCalls += 1;
     throw new Error('desktopUpdateCheck should not be called');
   };
-  useAppStore.getState = (() => ({
+  productionAppStore.getState = (() => ({
     ...originalGetState(),
     setDesktopReleaseInfo: () => {},
     setDesktopReleaseError: () => {},
@@ -54,7 +54,7 @@ test('runDesktopUpdateCheck short-circuits unavailable updater without invoking 
       banner = nextBanner;
     },
     setDesktopUpdateState: () => {},
-  })) as typeof useAppStore.getState;
+  })) as typeof productionAppStore.getState;
 
   try {
     await runDesktopUpdateCheck({ silent: false });
@@ -67,7 +67,7 @@ test('runDesktopUpdateCheck short-circuits unavailable updater without invoking 
     desktopBridge.hasTauriInvoke = originalBridge.hasTauriInvoke;
     desktopBridge.getDesktopReleaseInfo = originalBridge.getDesktopReleaseInfo;
     desktopBridge.desktopUpdateCheck = originalBridge.desktopUpdateCheck;
-    useAppStore.getState = originalGetState;
+    productionAppStore.getState = originalGetState;
   }
 });
 
@@ -77,7 +77,7 @@ test('silent desktop update checks no-op when updater is unavailable', async () 
     getDesktopReleaseInfo: desktopBridge.getDesktopReleaseInfo,
     desktopUpdateCheck: desktopBridge.desktopUpdateCheck,
   };
-  const originalGetState = useAppStore.getState;
+  const originalGetState = productionAppStore.getState;
 
   let bannerCalls = 0;
   let desktopUpdateCheckCalls = 0;
@@ -88,7 +88,7 @@ test('silent desktop update checks no-op when updater is unavailable', async () 
     desktopUpdateCheckCalls += 1;
     throw new Error('desktopUpdateCheck should not be called');
   };
-  useAppStore.getState = (() => ({
+  productionAppStore.getState = (() => ({
     ...originalGetState(),
     setDesktopReleaseInfo: () => {},
     setDesktopReleaseError: () => {},
@@ -96,7 +96,7 @@ test('silent desktop update checks no-op when updater is unavailable', async () 
       bannerCalls += 1;
     },
     setDesktopUpdateState: () => {},
-  })) as typeof useAppStore.getState;
+  })) as typeof productionAppStore.getState;
 
   try {
     await runDesktopUpdateCheck({ silent: true, autoDownload: true });
@@ -106,7 +106,7 @@ test('silent desktop update checks no-op when updater is unavailable', async () 
     desktopBridge.hasTauriInvoke = originalBridge.hasTauriInvoke;
     desktopBridge.getDesktopReleaseInfo = originalBridge.getDesktopReleaseInfo;
     desktopBridge.desktopUpdateCheck = originalBridge.desktopUpdateCheck;
-    useAppStore.getState = originalGetState;
+    productionAppStore.getState = originalGetState;
   }
 });
 
@@ -118,7 +118,7 @@ test('runDesktopUpdateInstall short-circuits unavailable updater before download
     desktopUpdateDownload: desktopBridge.desktopUpdateDownload,
     desktopUpdateInstall: desktopBridge.desktopUpdateInstall,
   };
-  const originalGetState = useAppStore.getState;
+  const originalGetState = productionAppStore.getState;
 
   let banner: { kind: string; message: string } | null = null;
   let downloadCalls = 0;
@@ -140,7 +140,7 @@ test('runDesktopUpdateInstall short-circuits unavailable updater before download
     installCalls += 1;
     throw new Error('desktopUpdateInstall should not be called');
   };
-  useAppStore.getState = (() => ({
+  productionAppStore.getState = (() => ({
     ...originalGetState(),
     setDesktopReleaseInfo: () => {},
     setDesktopReleaseError: () => {},
@@ -148,7 +148,7 @@ test('runDesktopUpdateInstall short-circuits unavailable updater before download
       banner = nextBanner;
     },
     setDesktopUpdateState: () => {},
-  })) as typeof useAppStore.getState;
+  })) as typeof productionAppStore.getState;
 
   try {
     await runDesktopUpdateInstall({ silent: false });
@@ -164,6 +164,6 @@ test('runDesktopUpdateInstall short-circuits unavailable updater before download
     desktopBridge.getDesktopUpdateState = originalBridge.getDesktopUpdateState;
     desktopBridge.desktopUpdateDownload = originalBridge.desktopUpdateDownload;
     desktopBridge.desktopUpdateInstall = originalBridge.desktopUpdateInstall;
-    useAppStore.getState = originalGetState;
+    productionAppStore.getState = originalGetState;
   }
 });

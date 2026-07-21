@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { requestNimiRealmAccountDeletion } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useTranslation } from 'react-i18next';
-import { queryClient } from '@renderer/infra/query-client/query-client';
+import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { logoutAndClearSession } from '@renderer/features/auth/logout';
 import { desktopBridge } from '@renderer/bridge';
 import type { DesktopStorageDirs } from '@renderer/bridge';
@@ -51,7 +51,7 @@ function estimateLocalStorageBytes(): number {
   return total;
 }
 
-function estimateQueryCacheBytes(): number {
+function estimateQueryCacheBytes(queryClient: QueryClient): number {
   const queries = queryClient.getQueryCache().findAll();
   let total = 0;
   for (const query of queries) {
@@ -66,6 +66,7 @@ function estimateQueryCacheBytes(): number {
 
 export function DataManagementPage() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const clearAuthSession = useAppStore((s) => s.clearAuthSession);
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
@@ -83,7 +84,7 @@ export function DataManagementPage() {
   });
 
   const refreshStorageSnapshot = useCallback(async () => {
-    const queryCacheBytes = estimateQueryCacheBytes();
+    const queryCacheBytes = estimateQueryCacheBytes(queryClient);
     const localStorageBytes = estimateLocalStorageBytes();
     let estimatedUsageBytes = 0;
     let estimatedQuotaBytes = 0;
@@ -103,7 +104,7 @@ export function DataManagementPage() {
       estimatedUsageBytes,
       estimatedQuotaBytes,
     });
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     void refreshStorageSnapshot();

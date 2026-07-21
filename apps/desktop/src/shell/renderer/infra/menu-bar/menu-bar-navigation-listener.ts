@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { hasTauriRuntime, listenTauri } from '@nimiplatform/kit/shell/renderer/bridge';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { useAppStoreApi } from '@renderer/app-shell/providers/app-store';
 import {
   loadRuntimeConfigStateV11,
   persistRuntimeConfigStateV11,
@@ -47,6 +47,7 @@ function asOpenTabPayload(value: unknown): MenuBarOpenTabEvent {
 
 export function useMenuBarNavigationListener(): void {
   const flags = getShellFeatureFlags();
+  const store = useAppStoreApi();
 
   useEffect(() => {
     if (!flags.enableMenuBarShell) {
@@ -63,10 +64,10 @@ export function useMenuBarNavigationListener(): void {
         return;
       }
       const payload = asOpenTabPayload(event.payload);
-      const store = useAppStore.getState();
+      const appState = store.getState();
 
       if (payload.tab === 'settings') {
-        store.setActiveTab('settings');
+        appState.setActiveTab('settings');
         return;
       }
 
@@ -78,7 +79,7 @@ export function useMenuBarNavigationListener(): void {
           activePage: nextPage,
         });
         dispatchRuntimeConfigOpenPage(nextPage);
-        store.setActiveTab('runtime');
+        appState.setActiveTab('runtime');
       }
     }));
 
@@ -90,5 +91,5 @@ export function useMenuBarNavigationListener(): void {
         }
       });
     };
-  }, [flags.enableMenuBarShell]);
+  }, [flags.enableMenuBarShell, store]);
 }

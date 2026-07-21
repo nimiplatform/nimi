@@ -5,9 +5,10 @@ import {
   isNimiRuntimeRouteCapabilityProjectionSelectionRequired,
 } from '@nimiplatform/sdk/runtime';
 import { createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
 import type {
   AgentEffectiveCapabilityResolution,
+  ConversationCapability,
   ConversationCapabilityProjection,
 } from './conversation-capability';
 import {
@@ -19,13 +20,17 @@ import {
 } from './conversation-capability-projection';
 
 type EnsureAiConversationSubmitRouteReadyDeps = {
-  refreshConversationCapabilityProjections: typeof refreshConversationCapabilityProjections;
+  refreshConversationCapabilityProjections: (
+    capabilities?: readonly ConversationCapability[],
+  ) => Promise<void>;
   getTextCapabilityProjection: () => ConversationCapabilityProjection | null;
 };
 
 type EnsureAgentConversationSubmitRouteReadyDeps = {
-  refreshConversationCapabilityProjections: typeof refreshConversationCapabilityProjections;
-  refreshAgentEffectiveCapabilityResolution: typeof refreshAgentEffectiveCapabilityResolution;
+  refreshConversationCapabilityProjections: (
+    capabilities?: readonly ConversationCapability[],
+  ) => Promise<void>;
+  refreshAgentEffectiveCapabilityResolution: () => void;
   getTextCapabilityProjection: () => ConversationCapabilityProjection | null;
   getAgentResolution: () => AgentEffectiveCapabilityResolution | null;
 };
@@ -51,19 +56,25 @@ function resolveAiSubmitRouteUnavailableMessage(
 }
 
 const DEFAULT_AI_DEPS: EnsureAiConversationSubmitRouteReadyDeps = {
-  refreshConversationCapabilityProjections,
+  refreshConversationCapabilityProjections: (capabilities) => (
+    refreshConversationCapabilityProjections(productionAppStore, capabilities)
+  ),
   getTextCapabilityProjection: () => (
-    useAppStore.getState().conversationCapabilityProjectionByCapability['text.generate'] || null
+    productionAppStore.getState().conversationCapabilityProjectionByCapability['text.generate'] || null
   ),
 };
 
 const DEFAULT_AGENT_DEPS: EnsureAgentConversationSubmitRouteReadyDeps = {
-  refreshConversationCapabilityProjections,
-  refreshAgentEffectiveCapabilityResolution,
-  getTextCapabilityProjection: () => (
-    useAppStore.getState().conversationCapabilityProjectionByCapability['text.generate'] || null
+  refreshConversationCapabilityProjections: (capabilities) => (
+    refreshConversationCapabilityProjections(productionAppStore, capabilities)
   ),
-  getAgentResolution: () => useAppStore.getState().agentEffectiveCapabilityResolution,
+  refreshAgentEffectiveCapabilityResolution: () => (
+    refreshAgentEffectiveCapabilityResolution(productionAppStore)
+  ),
+  getTextCapabilityProjection: () => (
+    productionAppStore.getState().conversationCapabilityProjectionByCapability['text.generate'] || null
+  ),
+  getAgentResolution: () => productionAppStore.getState().agentEffectiveCapabilityResolution,
 };
 
 export function resolveAgentSubmitRouteUnavailableDetails(

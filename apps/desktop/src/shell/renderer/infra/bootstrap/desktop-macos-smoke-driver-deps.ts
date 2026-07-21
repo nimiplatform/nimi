@@ -1,7 +1,7 @@
 import { writeDesktopMacosSmokeReport } from '@renderer/bridge/runtime-bridge/macos-smoke';
 import { desktopBridge } from '@renderer/bridge';
 import type { DesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/types';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import {
   clearAllAgentConversationAnchorBindings,
@@ -168,7 +168,7 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
       });
     },
     async verifyRuntimeConversationAnchor(input) {
-      const auth = useAppStore.getState().auth;
+      const auth = productionAppStore.getState().auth;
       const subjectUserId = String((auth.user as Record<string, unknown> | null)?.id || '').trim();
       await createNimiRuntimeAgentSmokeVerificationSurface({
         getRuntime: getDesktopRuntimeAgentSmokeVerificationRuntime,
@@ -178,7 +178,7 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
       }).verifyConversationAnchor(input);
     },
     async readRuntimeProductPathEvidence(input) {
-      const auth = useAppStore.getState().auth;
+      const auth = productionAppStore.getState().auth;
       const subjectUserId = String((auth.user as Record<string, unknown> | null)?.id || '').trim();
       return createNimiRuntimeAgentSmokeVerificationSurface({
         getRuntime: getDesktopRuntimeAgentSmokeVerificationRuntime,

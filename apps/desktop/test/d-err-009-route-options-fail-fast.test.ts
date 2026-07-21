@@ -5,7 +5,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { setRuntimeLogger } from '@nimiplatform/kit/telemetry';
-import { useAppStore } from '../src/shell/renderer/app-shell/providers/app-store.js';
+import { productionAppStore } from '../src/shell/renderer/app-shell/providers/production-app-store.js';
 import {
   loadLocalRouteMetadata,
   loadRuntimeRouteOptions,
@@ -17,8 +17,8 @@ import type {
 } from '@nimiplatform/sdk/runtime';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const initialRuntimeFields = { ...useAppStore.getState().runtimeFields };
-const initialAIConfig = useAppStore.getState().aiConfig;
+const initialRuntimeFields = { ...productionAppStore.getState().runtimeFields };
+const initialAIConfig = productionAppStore.getState().aiConfig;
 const routeOptionsRuntimeStub: NimiRuntimeRouteOptionsHostRuntime = {
   connectors: {
     listConnectors: async () => ({ connectors: [], nextPageToken: '' }),
@@ -55,7 +55,7 @@ function targetsBySource(
 
 test.afterEach(() => {
   setRuntimeLogger(null);
-  useAppStore.setState({
+  productionAppStore.setState({
     runtimeFields: { ...initialRuntimeFields },
     aiConfig: initialAIConfig,
   });
@@ -155,9 +155,9 @@ test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata
     logs.push(payload as Record<string, unknown>);
   });
 
-  useAppStore.setState({
+  productionAppStore.setState({
     runtimeFields: {
-      ...useAppStore.getState().runtimeFields,
+      ...productionAppStore.getState().runtimeFields,
     },
     aiConfig: {
       ...initialAIConfig,
@@ -217,9 +217,9 @@ test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata
 });
 
 test('loadRuntimeRouteOptions does not treat desktop snapshot-only local models as authoritative route truth', async () => {
-  useAppStore.setState({
+  productionAppStore.setState({
     runtimeFields: {
-      ...useAppStore.getState().runtimeFields,
+      ...productionAppStore.getState().runtimeFields,
     },
     aiConfig: {
       ...initialAIConfig,

@@ -1,5 +1,5 @@
-import { queryClient } from '@renderer/infra/query-client/query-client';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { productionQueryClient } from '@renderer/infra/query-client/production-query-client';
+import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
 import type { AppStoreState } from '@renderer/app-shell/providers/store-types';
 import { i18n } from '@renderer/i18n';
 import { clearAllStreams } from '@renderer/features/turns/stream-controller';
@@ -49,7 +49,7 @@ const defaultLogoutDependencies: LogoutDependencies = {
     // Runtime owns the Desktop account session and durable credential custody.
   },
   clearAllStreams,
-  clearQueryClient: () => queryClient.clear(),
+  clearQueryClient: () => productionQueryClient.clear(),
   translate: i18n.t.bind(i18n),
 };
 
@@ -100,7 +100,7 @@ async function emitLogoutFeedback(
     input.setStatusBanner(banner);
     return;
   }
-  useAppStore.getState().setStatusBanner(banner);
+  productionAppStore.getState().setStatusBanner(banner);
 }
 
 export async function logoutAndClearSession(

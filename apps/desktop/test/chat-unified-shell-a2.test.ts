@@ -8,6 +8,8 @@ function readWorkspaceFile(relativePath: string): string {
 }
 
 const conversationCapabilitySource = readWorkspaceFile('src/shell/renderer/features/chat/conversation-capability.ts');
+const productionAppStoreSource = readWorkspaceFile('src/shell/renderer/app-shell/providers/production-app-store.ts');
+const productionAppStoreDependenciesSource = readWorkspaceFile('src/shell/renderer/app-shell/providers/production-app-store-dependencies.ts');
 const runtimeSliceSource = readWorkspaceFile('src/shell/renderer/app-shell/providers/runtime-slice.ts');
 const storeTypesSource = readWorkspaceFile('src/shell/renderer/app-shell/providers/store-types.ts');
 const capabilityStorageSource = readWorkspaceFile('src/shell/renderer/app-shell/providers/desktop-ai-config-storage.ts');
@@ -248,12 +250,14 @@ test('chat unified shell a2: AIConfig is the umbrella authority over conversatio
   assert.match(storeTypesSource, /setAIConfig:/);
   assert.doesNotMatch(storeTypesSource, /applyAIProfile:/);
 
-  // Runtime slice initializes from the mode-aware active chat scope AIConfig
-  // and delegates writes to surface — no legacy store in public shape.
-  assert.match(runtimeSliceSource, /getActiveScope\(\)/);
-  assert.match(runtimeSliceSource, /getDesktopAIConfigService\(\)\.aiConfig\.get\(initialActiveScope\)/);
-  assert.match(runtimeSliceSource, /getDesktopAIConfigService/);
-  assert.match(runtimeSliceSource, /bindDesktopAIConfigAppStore/);
+  // Production composition initializes from and dynamically follows the
+  // mode-aware active chat scope; the slice consumes injected authority.
+  assert.match(productionAppStoreDependenciesSource, /getActiveScope\(\)/);
+  assert.match(productionAppStoreDependenciesSource, /getDesktopAIConfigService\(\)/);
+  assert.match(productionAppStoreSource, /bindDesktopAIConfigAppStore/);
+  assert.match(productionAppStoreSource, /bindProjectionRefreshToSurface\(productionAppStore\)/);
+  assert.match(runtimeSliceSource, /dependencies\.initialAIConfig/);
+  assert.match(runtimeSliceSource, /dependencies\.commitAIConfig\(config\)/);
   assert.doesNotMatch(runtimeSliceSource, /applyAIProfileToConfig/);
   assert.doesNotMatch(runtimeSliceSource, /conversationCapabilitySelectionStore/);
 

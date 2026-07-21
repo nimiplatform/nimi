@@ -1,9 +1,9 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { rememberRealmChatSeenEvent } from '@nimiplatform/kit/features/chat/realm';
 import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { queryClient } from '@renderer/infra/query-client/query-client';
 import { invalidateNotificationQueries } from '@renderer/features/notification/notification-query.js';
 import { flushPendingChatOutbox } from '@renderer/features/chat/data/realm-human-chat-data';
 
@@ -14,6 +14,7 @@ export function rememberSeenEvent(seen: Map<string, number>, key: string): boole
 }
 
 export function useChatRealtimeSync(): void {
+  const queryClient = useQueryClient();
   const authStatus = useAppStore((state) => state.auth.status);
   const selectedChatId = useAppStore((state) => state.selectedChatId);
   const offlineCoordinator = getOfflineCoordinator();
@@ -33,7 +34,7 @@ export function useChatRealtimeSync(): void {
       try {
         const tasks: Promise<unknown>[] = [
           queryClient.invalidateQueries({ queryKey: ['chats'] }),
-          invalidateNotificationQueries(),
+          invalidateNotificationQueries(queryClient),
           flushPendingChatOutbox(),
           realmSocialData.flushSocialOutbox(),
         ];
@@ -60,5 +61,5 @@ export function useChatRealtimeSync(): void {
       globalThis.clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, [authStatus, offlineCoordinator, selectedChatId]);
+  }, [authStatus, offlineCoordinator, queryClient, selectedChatId]);
 }

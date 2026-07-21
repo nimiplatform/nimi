@@ -115,6 +115,7 @@ export type HiddenType = typeof value;
 
 test('canonical closure admits source-bound PNG imports without parsing binary bytes as code', () => withFixture((root) => {
   assert.equal(isSimulatorStaticAssetPath('src/renderer/logo.png'), true);
+  assert.equal(isSimulatorStaticAssetPath('src/renderer/messages.json'), true);
   assert.equal(isSimulatorStaticAssetPath('src/renderer/logo.svg'), false);
   const assetPath = path.join(root, 'src', 'renderer', 'logo.png');
   writeFileSync(assetPath, Buffer.from('89504e470d0a1a0a', 'hex'));
@@ -127,6 +128,25 @@ test('canonical closure admits source-bound PNG imports without parsing binary b
   assert.equal(result.report.result, 'pass');
   assert.equal(result.report.checks.imports.evidence.includes('src/renderer/logo.png'), true);
   assert.equal(result.source.evidence.some((entry) => entry.path === 'src/renderer/logo.png'), true);
+}));
+
+test('canonical closure admits valid source-bound JSON data and rejects malformed JSON', () => withFixture((root) => {
+  const messagesPath = path.join(root, 'src', 'renderer', 'messages.json');
+  writeFileSync(messagesPath, '{"title":"Nimi"}\n');
+  const factoryPath = path.join(root, 'src', 'renderer', 'factory.ts');
+  writeFileSync(
+    factoryPath,
+    `import messages from './messages.json';\n${readFileSync(factoryPath, 'utf8')}\nexport const title = messages.title;\n`,
+  );
+  const result = validateSimulatorAppSource(root);
+  assert.equal(result.report.result, 'pass');
+  assert.equal(result.report.checks.imports.evidence.includes('src/renderer/messages.json'), true);
+
+  writeFileSync(messagesPath, '{"title":');
+  assert.throws(
+    () => validateSimulatorAppSource(root),
+    (error) => error?.code === 'SIM_IMPORT_JSON_INVALID',
+  );
 }));
 
 test('canonical closure rejects static asset types outside the admitted set', () => withFixture((root) => {

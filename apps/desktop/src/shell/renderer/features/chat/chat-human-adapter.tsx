@@ -10,11 +10,10 @@ import {
   toRealmHumanTargetSummary,
   type RealmChatViewDto,
 } from '@nimiplatform/kit/features/chat/realm';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { HumanConversationGiftModal } from '@renderer/features/turns/human-conversation-gift-modal';
 import { formatLocaleDate, formatRelativeLocaleTime } from '@renderer/i18n';
-import { queryClient } from '@renderer/infra/query-client/query-client';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { loadChatList, startChatWithTarget } from './data/realm-human-chat-data';
 import {
@@ -78,6 +77,7 @@ export function useHumanConversationModeHost(
     setChatProfilePanelTarget,
   } = input;
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const chatsQuery = useQuery({
     queryKey: ['chats', authStatus],

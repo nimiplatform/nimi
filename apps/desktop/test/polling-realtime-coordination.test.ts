@@ -14,7 +14,7 @@ describe('Runtime account broker projection refresh', () => {
     assert.match(source, /const syncThroughBroker = async \(\) => \{/);
     assert.match(source, /queryClient\.invalidateQueries\(\{ queryKey: \['chats'\] \}\)/);
     assert.match(source, /queryClient\.invalidateQueries\(\{ queryKey: \['messages', selectedChatId\] \}\)/);
-    assert.match(source, /invalidateNotificationQueries\(\)/);
+    assert.match(source, /invalidateNotificationQueries\(queryClient\)/);
     assert.match(source, /flushPendingChatOutbox\(\)/);
     assert.match(source, /realmSocialData\.flushSocialOutbox\(\)/);
   });

@@ -12,7 +12,7 @@ const source = readFileSync(SOURCE_PATH, 'utf-8');
 describe('notification broker sync wiring', () => {
   test('broker projection refresh invalidates notification queries', () => {
     assert.match(source, /syncThroughBroker/);
-    assert.match(source, /invalidateNotificationQueries\(\),/);
+    assert.match(source, /invalidateNotificationQueries\(queryClient\),/);
   });
 
   test('chat sync polls mediated projections instead of opening a renderer socket', () => {

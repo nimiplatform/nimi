@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   type CommerceGiftStatus,
 } from '@nimiplatform/kit/features/commerce/headless';
@@ -72,6 +73,7 @@ function toErrorMessage(error: unknown, fallback: string): string {
 
 
 export function GiftInboxPanel() {
+  const queryClient = useQueryClient();
   const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
   const currentUser = useAppStore((state) => state.auth.user);
@@ -104,7 +106,7 @@ export function GiftInboxPanel() {
     currentUserId,
     selectedGiftTransactionId,
     onActionSuccess: async (kind) => {
-      await invalidateNotificationQueries();
+      await invalidateNotificationQueries(queryClient);
       setFeedback({
         kind: 'success',
         message: kind === 'accept'

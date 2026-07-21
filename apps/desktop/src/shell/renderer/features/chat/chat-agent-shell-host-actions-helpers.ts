@@ -7,7 +7,7 @@ import {
   normalizeNimiRuntimeAgentPresentationBackendKind,
 } from '@nimiplatform/sdk/runtime';
 import { asNimiError, ReasonCode } from '@nimiplatform/sdk/types';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
 import {
   getDesktopAppId,
   getDesktopHostRuntimeAgentClient,
@@ -50,7 +50,7 @@ export function isAbortLikeSubmitError(error: unknown): boolean {
 }
 
 function requireRuntimeSubjectUserId(): string {
-  const subjectUserId = normalizeText((useAppStore.getState().auth.user as Record<string, unknown> | null)?.id);
+  const subjectUserId = normalizeText((productionAppStore.getState().auth.user as Record<string, unknown> | null)?.id);
   if (!subjectUserId) {
     throw new Error('desktop agent chat requires authenticated subject user id for runtime.agent');
   }

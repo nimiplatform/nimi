@@ -73,7 +73,9 @@ describe('notification panel action wiring', () => {
     assert.match(source, /queryKey: notificationQueryKeys\.page\(notificationQueryIdentityRef, serverFilter\)/);
     assert.match(source, /queryKey: notificationQueryKeys\.topbarUnreadCount\(notificationQueryIdentityRef\)/);
     assert.match(source, /enabled: authStatus === 'authenticated' && Boolean\(notificationIdentityRef\)/);
-    assert.match(source, /patchNotificationUnreadCaches\(nextUnreadCount, notificationIdentityRef\)/);
+    assert.match(source, /const queryClient = useQueryClient\(\)/);
+    assert.match(source, /patchNotificationUnreadCaches\(nextUnreadCount, notificationIdentityRef, queryClient\)/);
+    assert.match(source, /invalidateNotificationQueries\(queryClient\)/);
     assert.match(mainLayoutViewSource, /queryKey: notificationQueryKeys\.topbarUnreadCount\(notificationQueryIdentityRef\)/);
     assert.match(mainLayoutViewSource, /enabled: props\.authStatus === 'authenticated' && Boolean\(notificationIdentityRef\)/);
   });

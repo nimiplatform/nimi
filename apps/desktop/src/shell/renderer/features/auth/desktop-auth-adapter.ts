@@ -5,7 +5,7 @@ import type { AuthPlatformAdapter } from '@nimiplatform/kit/auth/shell';
 import type { ShellOAuthBridge } from '@nimiplatform/kit/core/oauth';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { createNimiDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
 import {
   initializeBuiltInChatScopesFromProductControl,
 } from '@renderer/app-shell/providers/desktop-ai-config-service';
@@ -16,7 +16,7 @@ import {
 import { bootstrapRuntime } from '@renderer/infra/bootstrap/runtime-bootstrap';
 import { applyRuntimeAccountStatusProjection } from '@renderer/infra/bootstrap/auth-state-watcher';
 import { getDesktopAccountRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
-import { queryClient } from '@renderer/infra/query-client/query-client';
+import { productionQueryClient } from '@renderer/infra/query-client/production-query-client';
 
 export const desktopOAuthBridge: ShellOAuthBridge = {
   hasShellHostInvoke: () => desktopBridge.hasShellHostInvoke(),
@@ -86,7 +86,7 @@ async function syncDesktopBuiltInChatAIConfigAfterLogin(): Promise<void> {
     return;
   }
   await initializeBuiltInChatScopesFromProductControl();
-  await refreshConversationCapabilityProjections(['text.generate']);
+  await refreshConversationCapabilityProjections(productionAppStore, ['text.generate']);
 }
 
 function logDesktopPostLoginSyncFailures(results: readonly PromiseSettledResult<unknown>[]): void {
@@ -129,13 +129,13 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
     restoreSession: async () => runtimeAccountOwned('restoreSession'),
     persistSession: async () => runtimeAccountOwned('persistSession'),
     clearPersistedSession: async () => {
-      useAppStore.getState().clearAuthSession();
+      productionAppStore.getState().clearAuthSession();
     },
     oauthBridge: desktopOAuthBridge,
     syncAfterLogin: async () => {
       const results = await Promise.allSettled([
-        queryClient.invalidateQueries({ queryKey: ['chats'] }),
-        queryClient.invalidateQueries({ queryKey: ['contacts'] }),
+        productionQueryClient.invalidateQueries({ queryKey: ['chats'] }),
+        productionQueryClient.invalidateQueries({ queryKey: ['contacts'] }),
         syncDesktopBuiltInChatAIConfigAfterLogin(),
       ]);
       logDesktopPostLoginSyncFailures(results);

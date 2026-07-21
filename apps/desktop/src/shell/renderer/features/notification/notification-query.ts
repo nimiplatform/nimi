@@ -1,6 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
 import type { NimiRealmNotificationUnreadView } from '@nimiplatform/sdk/realm';
-import { queryClient } from '@renderer/infra/query-client/query-client';
 
 interface NotificationIdentityUser {
   readonly [key: string]: unknown;
@@ -42,7 +41,7 @@ function normalizeUnreadCount(value: number): number {
 export function patchNotificationUnreadCaches(
   unreadCount: number,
   identityRef: string,
-  client: QueryClient = queryClient,
+  client: QueryClient,
 ): void {
   const nextUnreadCount = normalizeUnreadCount(unreadCount);
 
@@ -84,7 +83,7 @@ export function patchNotificationUnreadCaches(
 }
 
 export async function invalidateNotificationQueries(
-  client: QueryClient = queryClient,
+  client: QueryClient,
 ): Promise<void> {
   await Promise.all([
     client.invalidateQueries({ queryKey: notificationQueryKeys.pageRoot }),

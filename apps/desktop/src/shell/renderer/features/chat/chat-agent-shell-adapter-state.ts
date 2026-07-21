@@ -8,7 +8,7 @@ import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model
 import {
   findNimiRuntimeRouteModelProfile,
 } from '@nimiplatform/sdk/runtime';
-import { useAppStore, type AuthStatus } from '@renderer/app-shell/providers/app-store';
+import { useAppStore, type AppStoreState, type AuthStatus } from '@renderer/app-shell/providers/app-store';
 import type {
   AgentLocalMessageRecord,
   AgentLocalTargetSnapshot,
@@ -83,7 +83,7 @@ type AgentConversationShellState = {
   activeTarget: AgentLocalTargetSnapshot | null;
   activeThreadId: string | null;
   activeConversationAnchorId: string | null;
-  agentResolution: ReturnType<typeof useAppStore.getState>['agentEffectiveCapabilityResolution'];
+  agentResolution: AppStoreState['agentEffectiveCapabilityResolution'];
   agentRouteReady: boolean;
   bundle: AgentLocalThreadBundle | null;
   bundleError: Error | null;

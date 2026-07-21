@@ -13,6 +13,7 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import type { TFunction } from 'i18next';
 import { useAppStore, type AuthStatus } from '@renderer/app-shell/providers/app-store';
+import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
   createRuntimeAgentCenterAdapter,
@@ -118,7 +119,7 @@ function toRuntimeIdentityInput(target: AgentLocalTargetSnapshot): RuntimeIdenti
 }
 
 function requireRuntimeSubjectUserId(): string {
-  const subjectUserId = normalizeText((useAppStore.getState().auth.user as Record<string, unknown> | null)?.id);
+  const subjectUserId = normalizeText((productionAppStore.getState().auth.user as Record<string, unknown> | null)?.id);
   if (!subjectUserId) {
     throw new Error('desktop agent shell requires authenticated subject user id for runtime.agent');
   }

@@ -1,7 +1,7 @@
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
 import { desktopBridge, type DesktopAccountSessionEvent, type DesktopAccountSessionStatus } from '@renderer/bridge';
 import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
-import { queryClient } from '@renderer/infra/query-client/query-client';
+import { productionQueryClient } from '@renderer/infra/query-client/production-query-client';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
   advanceRuntimeAccountStreamCursor,
@@ -20,8 +20,8 @@ let watcherRunning = false;
 export function applyRuntimeAccountStatusProjection(
   status: DesktopAccountSessionStatus | DesktopAccountSessionEvent,
 ): void {
-  const current = useAppStore.getState().auth;
-  useAppStore.getState().applyRuntimeAccountProjection(
+  const current = productionAppStore.getState().auth;
+  productionAppStore.getState().applyRuntimeAccountProjection(
     projectRuntimeAccountAuthState(status, current.user),
   );
 
@@ -32,8 +32,8 @@ export function applyRuntimeAccountStatusProjection(
   }
 
   if (runtimeAccountClearsAccountMemory(status.state)) {
-    void queryClient.cancelQueries();
-    queryClient.clear();
+    void productionQueryClient.cancelQueries();
+    productionQueryClient.clear();
   }
 }
 
@@ -139,16 +139,16 @@ async function openSubscription(runGeneration: number, afterSequence: string): P
 }
 
 export function applyRuntimeAccountUnavailableProjection(): void {
-  const current = useAppStore.getState().auth;
-  useAppStore.getState().applyRuntimeAccountProjection({
+  const current = productionAppStore.getState().auth;
+  productionAppStore.getState().applyRuntimeAccountProjection({
     status: 'unavailable',
     sequence: current.sequence,
     reasonCode: current.reasonCode,
     accountReasonCode: current.accountReasonCode,
     user: null,
   });
-  void queryClient.cancelQueries();
-  queryClient.clear();
+  void productionQueryClient.cancelQueries();
+  productionQueryClient.clear();
   getOfflineCoordinator().markRealmRestReachability('unknown');
 }
 

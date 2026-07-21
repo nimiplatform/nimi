@@ -5,7 +5,7 @@ import type { NimiDesktopOpenIntent } from '@nimiplatform/kit/core/desktop-open'
 import {
   applyDesktopOpenIntentToAppStore,
 } from '../src/shell/renderer/infra/desktop-open/desktop-open-intent-navigation';
-import { useAppStore } from '../src/shell/renderer/app-shell/providers/app-store';
+import { productionAppStore } from '../src/shell/renderer/app-shell/providers/production-app-store';
 import {
   loadRuntimeConfigStateV11,
   persistRuntimeConfigStateV11,
@@ -48,7 +48,7 @@ class MemoryStorage implements Storage {
   }
 }
 
-const initialState = useAppStore.getState();
+const initialState = productionAppStore.getState();
 const previousLocalStorage = globalThis.localStorage;
 const previousWindow = globalThis.window;
 
@@ -62,7 +62,7 @@ test.beforeEach(() => {
     value: new EventTarget(),
   });
   persistRuntimeConfigStateV11(createDefaultStateV11());
-  useAppStore.setState({
+  productionAppStore.setState({
     activeTab: 'chat',
     exploreActiveSection: 'worlds',
     exploreSearchText: '',
@@ -71,7 +71,7 @@ test.beforeEach(() => {
 });
 
 test.afterEach(() => {
-  useAppStore.setState(initialState, true);
+  productionAppStore.setState(initialState, true);
   if (previousLocalStorage === undefined) {
     delete (globalThis as { localStorage?: Storage }).localStorage;
   } else {
@@ -94,7 +94,7 @@ for (const target of DESKTOP_OPEN_TEST_TARGETS) {
   test(`Desktop Open acceptance ${target.rowId} maps to Desktop renderer state`, () => {
     applyDesktopOpenIntentToAppStore(target.request.intent as NimiDesktopOpenIntent);
 
-    const appState = useAppStore.getState();
+    const appState = productionAppStore.getState();
     assert.equal(appState.activeTab, target.expected.activeTab);
 
     if (target.expected.activeTab === 'explore') {
@@ -147,7 +147,7 @@ test('Desktop Open Intent maps runtime connector actions to Runtime Cloud state'
     action: 'add-connector',
   });
 
-  assert.equal(useAppStore.getState().activeTab, 'runtime');
+  assert.equal(productionAppStore.getState().activeTab, 'runtime');
   assert.equal(loadRuntimeConfigStateV11().activePage, 'cloud');
   assert.deepEqual(loadRuntimeConfigStateV11().actionFocus, {
     page: 'cloud',
@@ -174,7 +174,7 @@ test('Desktop Open Intent maps runtime model install actions to Models catalog f
     action: 'install-model',
   });
 
-  assert.equal(useAppStore.getState().activeTab, 'runtime');
+  assert.equal(productionAppStore.getState().activeTab, 'runtime');
   assert.equal(loadRuntimeConfigStateV11().activePage, 'models');
   assert.deepEqual(loadRuntimeConfigStateV11().actionFocus, {
     page: 'models',
@@ -193,14 +193,14 @@ test('Desktop Open Intent maps settings profile and app details to owned surface
     kind: 'open-settings',
     section: 'profile',
   });
-  assert.equal(useAppStore.getState().activeTab, 'settings');
+  assert.equal(productionAppStore.getState().activeTab, 'settings');
   assert.equal(localStorage.getItem(SETTINGS_SELECTED_STORAGE_KEY), 'profile');
 
   applyDesktopOpenIntentToAppStore({
     kind: 'open-apps',
     appId: 'nimi.notes',
   });
-  const state = useAppStore.getState();
+  const state = productionAppStore.getState();
   assert.equal(state.activeTab, 'apps');
   assert.equal(state.appsDetailAppId, 'nimi.notes');
 });

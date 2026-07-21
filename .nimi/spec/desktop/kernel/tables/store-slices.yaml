@@ -6,7 +6,7 @@ entries:
   - runtime
   - ui
 # Desktop Zustand Store Slices
-# Source: apps/desktop/src/shell/renderer/app-shell/providers/app-store.ts
+# Source: apps/desktop/src/shell/renderer/app-shell/providers/app-store-factory.ts
 
 slices:
   - name: auth

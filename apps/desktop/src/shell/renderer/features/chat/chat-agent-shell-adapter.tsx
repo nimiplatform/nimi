@@ -15,6 +15,7 @@ import {
 } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
 import { useAppStore, type AuthStatus } from '@renderer/app-shell/providers/app-store';
+import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import {
@@ -208,7 +209,7 @@ export function useAgentConversationModeHost(
     t,
   });
   const accountId = input.runtimeFields.targetAccountId
-    || normalizeText((useAppStore.getState().auth.user as Record<string, unknown> | null)?.id)
+    || normalizeText((productionAppStore.getState().auth.user as Record<string, unknown> | null)?.id)
     || 'local_account';
   const activeTarget = useMemo(
     () => mergeAgentTargetWithPresentationProfile(shellActiveTarget, runtimePresentationProfile),

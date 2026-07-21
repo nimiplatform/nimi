@@ -1,4 +1,4 @@
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import type { AppStoreApi } from '@renderer/app-shell/providers/app-store-factory';
 import {
   buildAgentEffectiveCapabilityResolution,
   buildConversationCapabilityProjectionMap,
@@ -14,28 +14,30 @@ import {
 } from './chat-shared-active-ai-config-scope';
 
 export async function refreshConversationCapabilityProjections(
+  store: AppStoreApi,
   capabilities?: readonly import('./conversation-capability').ConversationCapability[],
 ): Promise<void> {
-  const appStore = useAppStore.getState();
+  const appStore = store.getState();
   const selectionStore = selectionStoreFromAIConfig(appStore.aiConfig);
   const projections = await buildConversationCapabilityProjectionMap({
     capabilities,
     selectionStore,
     routeRuntime: getConversationCapabilityRouteRuntime(),
   });
-  useAppStore.getState().setConversationCapabilityProjections(projections);
+  store.getState().setConversationCapabilityProjections(projections);
   // Keep the derived agent execution resolution in sync even when the agent
   // conversation shell has not been mounted yet, so GROUP @mentions can run.
-  refreshAgentEffectiveCapabilityResolution();
+  refreshAgentEffectiveCapabilityResolution(store);
 }
 
-export function refreshAgentEffectiveCapabilityResolution(): void {
-  const textProjection = useAppStore.getState().conversationCapabilityProjectionByCapability['text.generate'] || null;
-  const imageProjection = useAppStore.getState().conversationCapabilityProjectionByCapability['image.generate'] || null;
-  const voiceProjection = useAppStore.getState().conversationCapabilityProjectionByCapability['audio.synthesize'] || null;
-  const voiceWorkflowCloneProjection = useAppStore.getState().conversationCapabilityProjectionByCapability['voice_workflow.voice_clone'] || null;
-  const voiceWorkflowDesignProjection = useAppStore.getState().conversationCapabilityProjectionByCapability['voice_workflow.voice_design'] || null;
-  useAppStore.getState().setAgentEffectiveCapabilityResolution(
+export function refreshAgentEffectiveCapabilityResolution(store: AppStoreApi): void {
+  const state = store.getState();
+  const textProjection = state.conversationCapabilityProjectionByCapability['text.generate'] || null;
+  const imageProjection = state.conversationCapabilityProjectionByCapability['image.generate'] || null;
+  const voiceProjection = state.conversationCapabilityProjectionByCapability['audio.synthesize'] || null;
+  const voiceWorkflowCloneProjection = state.conversationCapabilityProjectionByCapability['voice_workflow.voice_clone'] || null;
+  const voiceWorkflowDesignProjection = state.conversationCapabilityProjectionByCapability['voice_workflow.voice_design'] || null;
+  state.setAgentEffectiveCapabilityResolution(
     buildAgentEffectiveCapabilityResolution({
       textProjection,
       imageProjection,
@@ -51,9 +53,6 @@ export function refreshAgentEffectiveCapabilityResolution(): void {
 // T3-1: follows the mode-aware active chat scope, rebinds on chat-mode switch.
 // ---------------------------------------------------------------------------
 
-let surfaceSubscriptionUnsubscribe: (() => void) | null = null;
-let activeScopeUnsubscribe: (() => void) | null = null;
-
 /**
  * Bind the config subscription for the current active chat scope.
  * Unsubscribes from any previous scope first.
@@ -62,19 +61,23 @@ let activeScopeUnsubscribe: (() => void) | null = null;
  * NimiAIConfig scope) no subscription is bound — the chat path holds no generic
  * fallback scope subscription.
  */
-function bindSubscriptionForScope(): void {
+function bindSubscriptionForScope(
+  store: AppStoreApi,
+  currentUnsubscribe: (() => void) | null,
+): (() => void) | null {
+  let surfaceSubscriptionUnsubscribe = currentUnsubscribe;
   if (surfaceSubscriptionUnsubscribe) {
     surfaceSubscriptionUnsubscribe();
-    surfaceSubscriptionUnsubscribe = null;
   }
   const scopeRef = getActiveScope();
   if (!scopeRef) {
-    return;
+    return null;
   }
   const surface = getDesktopAIConfigService();
   surfaceSubscriptionUnsubscribe = surface.aiConfig.subscribe(scopeRef, () => {
-    void refreshConversationCapabilityProjections();
+    void refreshConversationCapabilityProjections(store);
   });
+  return surfaceSubscriptionUnsubscribe;
 }
 
 /**
@@ -86,20 +89,23 @@ function bindSubscriptionForScope(): void {
  * to the new per-mode scope. Projection refresh always tracks the mode-aware
  * active chat scope.
  *
- * Must be called once at bootstrap time, after `bindDesktopAIConfigAppStore()`.
+ * Bind once per renderer instance and invoke the returned disposer at unmount.
  */
-export function bindProjectionRefreshToSurface(): void {
-  if (activeScopeUnsubscribe) {
-    return; // already bound
-  }
-
-  // Bind for the initial active scope
-  bindSubscriptionForScope();
+export function bindProjectionRefreshToSurface(store: AppStoreApi): () => void {
+  let surfaceSubscriptionUnsubscribe = bindSubscriptionForScope(store, null);
 
   // Rebind whenever active scope changes
-  activeScopeUnsubscribe = onActiveScopeChange(() => {
-    bindSubscriptionForScope();
+  const activeScopeUnsubscribe = onActiveScopeChange(() => {
+    surfaceSubscriptionUnsubscribe = bindSubscriptionForScope(
+      store,
+      surfaceSubscriptionUnsubscribe,
+    );
     // Trigger immediate refresh for the new scope's config
-    void refreshConversationCapabilityProjections();
+    void refreshConversationCapabilityProjections(store);
   });
+  return () => {
+    activeScopeUnsubscribe();
+    surfaceSubscriptionUnsubscribe?.();
+    surfaceSubscriptionUnsubscribe = null;
+  };
 }

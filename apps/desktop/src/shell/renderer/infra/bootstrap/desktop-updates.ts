@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { desktopBridge, type DesktopReleaseInfo } from '@renderer/bridge';
+import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { i18n } from '@renderer/i18n';
 import {
@@ -72,7 +73,7 @@ function publishUpdaterUnavailableBanner(
   if (silent) {
     return;
   }
-  useAppStore.getState().setStatusBanner({
+  productionAppStore.getState().setStatusBanner({
     kind: 'warning',
     message: resolveUpdaterUnavailableMessage(releaseInfo),
   });
@@ -84,13 +85,13 @@ async function syncDesktopReleaseInfo(): Promise<DesktopReleaseInfo | null> {
   }
   try {
     const releaseInfo = await desktopBridge.getDesktopReleaseInfo();
-    useAppStore.getState().setDesktopReleaseInfo(releaseInfo);
-    useAppStore.getState().setDesktopReleaseError(null);
+    productionAppStore.getState().setDesktopReleaseInfo(releaseInfo);
+    productionAppStore.getState().setDesktopReleaseError(null);
     return releaseInfo;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error || 'desktop release metadata unavailable');
-    useAppStore.getState().setDesktopReleaseInfo(null);
-    useAppStore.getState().setDesktopReleaseError(message);
+    productionAppStore.getState().setDesktopReleaseInfo(null);
+    productionAppStore.getState().setDesktopReleaseError(message);
     throw error;
   }
 }
@@ -101,15 +102,15 @@ async function syncDesktopUpdateState(): Promise<void> {
   }
   try {
     const updateState = await desktopBridge.getDesktopUpdateState();
-    useAppStore.getState().setDesktopUpdateState(updateState);
+    productionAppStore.getState().setDesktopUpdateState(updateState);
   } catch {
-    useAppStore.getState().setDesktopUpdateState(null);
+    productionAppStore.getState().setDesktopUpdateState(null);
     throw new Error('desktop update state unavailable');
   }
 }
 
 function publishReadyBanner(targetVersion: string): void {
-  useAppStore.getState().setStatusBanner({
+  productionAppStore.getState().setStatusBanner({
     kind: 'warning',
     message: i18n.t('Performance.updateReadyBanner', {
       version: targetVersion,
@@ -139,7 +140,7 @@ export async function runDesktopUpdateCheck(input: {
     await syncDesktopUpdateState();
     if (!checkResult.available) {
       if (!input.silent) {
-        useAppStore.getState().setStatusBanner({
+        productionAppStore.getState().setStatusBanner({
           kind: 'info',
           message: i18n.t('Performance.updateCheckUpToDate', {
             defaultValue: 'Nimi is already up to date.',
@@ -153,7 +154,7 @@ export async function runDesktopUpdateCheck(input: {
       return;
     }
     if (!input.silent && checkResult.targetVersion) {
-      useAppStore.getState().setStatusBanner({
+      productionAppStore.getState().setStatusBanner({
         kind: 'info',
         message: i18n.t('Performance.updateCheckAvailable', {
           version: checkResult.targetVersion,
@@ -175,7 +176,7 @@ export async function runDesktopUpdateCheck(input: {
       // release metadata failure already surfaced separately
     }
     if (!input.silent) {
-      useAppStore.getState().setStatusBanner({
+      productionAppStore.getState().setStatusBanner({
         kind: 'warning',
         message,
       });
@@ -201,13 +202,13 @@ export async function runDesktopUpdateInstall(input: {
     }
     await desktopBridge.desktopUpdateInstall();
     const updateState = await desktopBridge.getDesktopUpdateState();
-    useAppStore.getState().setDesktopUpdateState(updateState);
+    productionAppStore.getState().setDesktopUpdateState(updateState);
     if (updateState.readyToRestart && updateState.targetVersion) {
       publishReadyBanner(updateState.targetVersion);
       return;
     }
     if (!input.silent) {
-      useAppStore.getState().setStatusBanner({
+      productionAppStore.getState().setStatusBanner({
         kind: 'success',
         message: i18n.t('Performance.updateDownloadedSuccess', {
           defaultValue: 'Update downloaded successfully.',
@@ -228,7 +229,7 @@ export async function runDesktopUpdateInstall(input: {
       // release metadata failure already surfaced separately
     }
     if (!input.silent) {
-      useAppStore.getState().setStatusBanner({
+      productionAppStore.getState().setStatusBanner({
         kind: 'warning',
         message,
       });
@@ -305,13 +306,13 @@ export function useDesktopUpdatesBootstrap(bootstrapReady: boolean) {
     let preferences = currentPerformancePreferences();
 
     const triggerAutomaticCheck = () => {
-      const updaterAvailable = isDesktopUpdaterAvailable(useAppStore.getState().desktopReleaseInfo);
+      const updaterAvailable = isDesktopUpdaterAvailable(productionAppStore.getState().desktopReleaseInfo);
       if (cancelled || !shouldRunAutomaticUpdateCheck(preferences, currentVisibilityState(), updaterAvailable)) {
         return;
       }
       cancelIdle();
       cancelIdle = scheduleIdleCheck(() => {
-        const latestUpdaterAvailable = isDesktopUpdaterAvailable(useAppStore.getState().desktopReleaseInfo);
+        const latestUpdaterAvailable = isDesktopUpdaterAvailable(productionAppStore.getState().desktopReleaseInfo);
         if (cancelled || !shouldRunAutomaticUpdateCheck(preferences, currentVisibilityState(), latestUpdaterAvailable)) {
           return;
         }

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import type { ConversationCapability } from './conversation-capability';
 import { refreshConversationCapabilityProjections } from './conversation-capability-projection';
+import { useAppStoreApi } from '@renderer/app-shell/providers/app-store';
 
 const AI_CONVERSATION_BOOTSTRAP_CAPABILITIES: readonly ConversationCapability[] = [
   'text.generate',
@@ -16,12 +17,13 @@ type UseAiConversationCapabilityEffectsInput = {
 export function useAiConversationCapabilityEffects(
   input: UseAiConversationCapabilityEffectsInput,
 ): void {
+  const store = useAppStoreApi();
   // Initial projection build on bootstrap. Ongoing config-change driven refresh
   // is handled by the surface subscription (S-AICONF-006 via bindProjectionRefreshToSurface).
   useEffect(() => {
     if (!input.bootstrapReady) return;
-    void refreshConversationCapabilityProjections(AI_CONVERSATION_BOOTSTRAP_CAPABILITIES);
-  }, [input.bootstrapReady]);
+    void refreshConversationCapabilityProjections(store, AI_CONVERSATION_BOOTSTRAP_CAPABILITIES);
+  }, [input.bootstrapReady, store]);
 
   useEffect(() => {
     input.currentDraftTextRef.current = input.draftText || '';

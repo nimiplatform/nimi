@@ -1,6 +1,6 @@
 import type { NimiDesktopOpenIntent } from '@nimiplatform/kit/core/desktop-open';
 import type { AppStoreState } from '@renderer/app-shell/providers/app-store';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { productionAppStore } from '@renderer/app-shell/providers/production-app-store';
 import {
   loadRuntimeConfigStateV11,
   persistRuntimeConfigStateV11,
@@ -20,7 +20,7 @@ type DesktopOpenIntentStore = Pick<AppStoreState,
 
 export function applyDesktopOpenIntentToAppStore(
   intent: NimiDesktopOpenIntent,
-  store: DesktopOpenIntentStore = useAppStore.getState(),
+  store: DesktopOpenIntentStore = productionAppStore.getState(),
 ): void {
   switch (intent.kind) {
     case 'open-explore': {

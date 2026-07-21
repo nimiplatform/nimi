@@ -17,6 +17,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import {
+  createEmptyNimiAIConfig,
+  createNimiBuiltInChatAIScopeRef,
+} from '@nimiplatform/sdk/ai';
 
 // Some transitively rendered kit primitives (ScrollArea via @radix-ui) are
 // CJS bundles compiled with the classic JSX runtime and expect a global
@@ -33,6 +37,8 @@ import { SupportDiagnosticsSection } from '../src/shell/renderer/features/suppor
 import { SupportLogsSection } from '../src/shell/renderer/features/support/support-logs-section';
 import { SupportRecoverySection } from '../src/shell/renderer/features/support/support-recovery-section';
 import { SupportDegradedEntry } from '../src/shell/renderer/features/support/support-degraded-entry';
+import { createAppStore } from '../src/shell/renderer/app-shell/providers/app-store-factory';
+import { AppStoreProvider } from '../src/shell/renderer/app-shell/providers/app-store';
 
 test.before(async () => {
   await initI18n();
@@ -98,7 +104,20 @@ test('D-SUP-004: updates fails closed before the release projection arrives', ()
   // The updates sub-area reads the release projection from the app store
   // (synchronously available, null on a cold store). It must render the
   // section frame without crashing and without fabricating version rows.
-  const markup = renderToStaticMarkup(React.createElement(SupportUpdatesSection));
+  const store = createAppStore({
+    initialAIConfig: createEmptyNimiAIConfig(createNimiBuiltInChatAIScopeRef('nimi')),
+    commitAIConfig: () => {},
+    initialChatThinkingPreference: 'off',
+    persistChatThinkingPreference: () => {},
+    setActiveScopeForMode: () => {},
+  });
+  const markup = renderToStaticMarkup(
+    React.createElement(
+      AppStoreProvider,
+      { store },
+      React.createElement(SupportUpdatesSection),
+    ),
+  );
   assert.match(markup, /data-testid="support-section-updates"/);
   assert.match(markup, /data-testid="support-updates-fail-closed"/);
   assert.doesNotMatch(markup, /data-testid="support-updates-versions"/);

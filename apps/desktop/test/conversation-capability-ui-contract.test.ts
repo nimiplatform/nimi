@@ -82,8 +82,8 @@ test('conversation capability UI contract: agent bootstrap prioritizes text.gene
   const agentHostActionsSource = readSource('src/shell/renderer/features/chat/chat-agent-shell-host-actions-submit.ts');
   assert.match(agentEffectsSource, /const AGENT_CONVERSATION_BOOTSTRAP_CAPABILITIES:[\s\S]*'text\.generate'/);
   assert.match(agentEffectsSource, /const AGENT_CONVERSATION_DEFERRED_CAPABILITIES:[\s\S]*'audio\.synthesize'/);
-  assert.match(agentEffectsSource, /refreshConversationCapabilityProjections\(AGENT_CONVERSATION_BOOTSTRAP_CAPABILITIES\)/);
-  assert.match(agentEffectsSource, /refreshConversationCapabilityProjections\(AGENT_CONVERSATION_DEFERRED_CAPABILITIES\)/);
+  assert.match(agentEffectsSource, /refreshConversationCapabilityProjections\(store, AGENT_CONVERSATION_BOOTSTRAP_CAPABILITIES\)/);
+  assert.match(agentEffectsSource, /refreshConversationCapabilityProjections\(store, AGENT_CONVERSATION_DEFERRED_CAPABILITIES\)/);
   assert.match(agentAdapterSource, /return createReadyConversationSetupState\('agent'\);/);
   assert.match(agentAdapterSource, /const composerReady = setupState\.status === 'ready'\s+&& !isBundleLoading\s+&& !bundleError/);
   assert.doesNotMatch(agentAdapterSource, /resolveAiConversationSetupStateFromProjection/);
@@ -95,7 +95,7 @@ test('conversation capability UI contract: agent bootstrap prioritizes text.gene
 
 test('conversation capability UI contract: projection refresh also refreshes derived agent execution resolution', () => {
   const projectionSource = readSource('src/shell/renderer/features/chat/conversation-capability-projection.ts');
-  assert.match(projectionSource, /setConversationCapabilityProjections\(projections\);[\s\S]*refreshAgentEffectiveCapabilityResolution\(\);/);
+  assert.match(projectionSource, /setConversationCapabilityProjections\(projections\);[\s\S]*refreshAgentEffectiveCapabilityResolution\(store\);/);
 });
 
 test('conversation capability UI contract: Nimi active model selector uses Kit route model picker and writes AIConfig targetRef', () => {

@@ -5,7 +5,7 @@ import { assertSimulatorStaticEffects } from './simulator-static-effects.mjs';
 import { SimulatorConformanceError } from './simulator-manifest.mjs';
 
 const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs', '.css'];
-const STATIC_ASSET_EXTENSIONS = new Set(['.png']);
+const STATIC_ASSET_EXTENSIONS = new Set(['.json', '.png']);
 
 export function isSimulatorStaticAssetPath(filePath) {
   return STATIC_ASSET_EXTENSIONS.has(path.extname(filePath).toLowerCase());
@@ -655,6 +655,13 @@ export function buildModuleGraph(rootDir, entryPaths) {
     }
     const relativePath = canonicalRelative(rootDir, absolutePath);
     if (isSimulatorStaticAssetPath(absolutePath)) {
+      if (path.extname(absolutePath).toLowerCase() === '.json') {
+        try {
+          JSON.parse(readFileSync(absolutePath, 'utf8'));
+        } catch {
+          fail('SIM_IMPORT_JSON_INVALID', 'imported JSON data module is not valid JSON', relativePath);
+        }
+      }
       nodes.set(absolutePath, { type: 'asset', imports: [] });
       continue;
     }

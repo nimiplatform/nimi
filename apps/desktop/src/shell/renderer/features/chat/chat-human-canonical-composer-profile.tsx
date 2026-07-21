@@ -1,6 +1,6 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
 import { CanonicalComposer } from '@nimiplatform/kit/features/chat/components/canonical-composer';
 import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS } from './chat-shared-content-layout';
@@ -12,7 +12,6 @@ import {
 } from '@nimiplatform/kit/features/chat/realm';
 import { useTranslation } from 'react-i18next';
 import { sendChatMessage } from './data/realm-human-chat-data';
-import { queryClient } from '@renderer/infra/query-client/query-client';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ChatProfileCard } from '../turns/message-timeline-profile-card.js';
@@ -87,6 +86,7 @@ export function HumanCanonicalComposer(props: {
   } | null;
 }) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const offlineTier = useAppStore((state) => state.offlineTier);
   const currentUserId = String(useAppStore((state) => state.auth.user?.id) || '');
   const navigateToProfile = useAppStore((state) => state.navigateToProfile);
@@ -222,7 +222,7 @@ export function HumanCanonicalComposer(props: {
     } finally {
       setIsUploading(false);
     }
-  }, [currentUserId, props.selectedChatId, uploadPendingAttachment]);
+  }, [currentUserId, props.selectedChatId, queryClient, uploadPendingAttachment]);
 
   const textSendAdapter = useMemo(() => createRealmChatComposerAdapter({
     chatId: props.selectedChatId || '',
@@ -236,7 +236,7 @@ export function HumanCanonicalComposer(props: {
         queryClient.invalidateQueries({ queryKey: ['chats'] }),
       ]);
     },
-  }), [currentUserId, props.selectedChatId]);
+  }), [currentUserId, props.selectedChatId, queryClient]);
 
   const adapter = useMemo(() => ({
     submit: async ({ text, attachments }: { text: string; attachments: readonly PendingAttachment[] }) => {

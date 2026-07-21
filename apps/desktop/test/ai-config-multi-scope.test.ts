@@ -27,6 +27,7 @@ function readSource(relativePath: string): string {
 const storageSource = readSource('src/shell/renderer/app-shell/providers/desktop-ai-config-storage.ts');
 const serviceSource = readSource('src/shell/renderer/app-shell/providers/desktop-ai-config-service.ts');
 const snapshotStoreSource = readSource('src/shell/renderer/app-shell/providers/desktop-ai-config-snapshot-store.ts');
+const productionAppStoreSource = readSource('src/shell/renderer/app-shell/providers/production-app-store.ts');
 const runtimeSliceSource = readSource('src/shell/renderer/app-shell/providers/runtime-slice.ts');
 const activeScopeSource = readSource('src/shell/renderer/features/chat/chat-shared-active-ai-config-scope.ts');
 const oldDefaultScopeFactoryPattern = new RegExp('createDefaultAI' + 'ScopeRef');
@@ -116,15 +117,17 @@ test('multi-scope: shared Desktop host service subscribe is scoped (S-AICONF-006
   assert.doesNotMatch(serviceSource, /from '\.\/desktop-ai-config-subscriptions\.js'/);
 });
 
-test('multi-scope: runtime-slice dynamically checks the mode-aware active chat scope for store sync', () => {
-  // Uses getActiveScope() dynamically, not a fixed capture at bootstrap
-  assert.match(runtimeSliceSource, /getActiveScope\(\)/);
+test('multi-scope: production composition dynamically checks the mode-aware active chat scope for store sync', () => {
+  // Uses getActiveScope() dynamically, not a fixed capture at bootstrap.
+  assert.match(productionAppStoreSource, /getActiveScope\(\)/);
   // Store-sync filter guards against a null active scope (Human/Group mode)
-  assert.match(runtimeSliceSource, /const activeScope = getActiveScope\(\)/);
-  assert.match(runtimeSliceSource, /scopeKeyFromRef\(activeScope\)/);
-  assert.match(runtimeSliceSource, /getDesktopAIConfigService\(\)\.aiConfig\.get\(initialActiveScope\)/);
+  assert.match(productionAppStoreSource, /const activeScope = getActiveScope\(\)/);
+  assert.match(productionAppStoreSource, /scopeKeyFromRef\(activeScope\)/);
+  assert.match(productionAppStoreSource, /bindDesktopAIConfigAppStore/);
+  assert.match(productionAppStoreSource, /bindProjectionRefreshToSurface\(productionAppStore\)/);
+  assert.match(runtimeSliceSource, /dependencies\.initialAIConfig/);
   // No fixed activeScopeKey const
-  assert.doesNotMatch(runtimeSliceSource, /const activeScopeKey\b/);
+  assert.doesNotMatch(productionAppStoreSource, /const activeScopeKey\b/);
 });
 
 test('multi-scope: snapshot getLatest is scope-keyed', () => {
@@ -401,12 +404,14 @@ test('T3-1: projection subscription follows the mode-aware active chat scope', (
   assert.match(projectionSource, /onActiveScopeChange/);
   assert.match(projectionSource, /bindSubscriptionForScope/);
   // Skips binding when no built-in chat scope is active (Human/Group)
-  assert.match(projectionSource, /if \(!scopeRef\) \{\s*return;/);
+  assert.match(projectionSource, /if \(!scopeRef\) \{\s*return null;/);
+  assert.doesNotMatch(projectionSource, /^let (?:surfaceSubscriptionUnsubscribe|activeScopeUnsubscribe)/m);
 });
 
 test('T3-1: projection rebind triggers immediate refresh on scope switch', () => {
   // onActiveScopeChange callback triggers refresh
-  assert.match(projectionSource, /void refreshConversationCapabilityProjections\(\)/);
+  assert.match(projectionSource, /void refreshConversationCapabilityProjections\(store\)/);
+  assert.match(projectionSource, /return \(\) => \{[\s\S]*activeScopeUnsubscribe\(\)/);
 });
 
 test('T3-1: resolveChatModeAIScopeRef binds each mode to its canonical built-in scope', async () => {

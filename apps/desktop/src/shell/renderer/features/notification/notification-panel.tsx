@@ -8,7 +8,7 @@ import {
   getNimiNotificationServerFilter,
 } from '@nimiplatform/kit/core/notifications';
 import { useTranslation } from 'react-i18next';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   acceptRealmGift,
   createRealmGiftReview,
@@ -41,6 +41,7 @@ import { getDesktopRealmCommerceGiftService } from '@renderer/infra/realm/realm-
 type ReviewRating = RealmModel<'ReviewRating'>;
 
 export function NotificationPanel() {
+  const queryClient = useQueryClient();
   const authStatus = useAppStore((state) => state.auth.status);
   const authUser = useAppStore((state) => state.auth.user);
   const navigateToGiftInbox = useAppStore((state) => state.navigateToGiftInbox);
@@ -139,7 +140,7 @@ export function NotificationPanel() {
       return;
     }
     setOptimisticUnreadCount(nextUnreadCount);
-    patchNotificationUnreadCaches(nextUnreadCount, notificationIdentityRef);
+    patchNotificationUnreadCaches(nextUnreadCount, notificationIdentityRef, queryClient);
   };
 
   const resetRejectDialog = () => {
@@ -148,7 +149,7 @@ export function NotificationPanel() {
   };
 
   const refreshNotifications = async () => {
-    await invalidateNotificationQueries();
+    await invalidateNotificationQueries(queryClient);
   };
 
   const isBusyForItem = (itemId: string): boolean =>
