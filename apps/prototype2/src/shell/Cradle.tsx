@@ -1,14 +1,35 @@
 import { useState } from 'react';
+import { IconButton } from '@nimiplatform/kit/ui';
+import { BarChart3, PanelRightOpen, RotateCcw, Settings } from 'lucide-react';
 import { SCENARIO } from '../scenario/scenario';
 import { MODULES, MODULE_ORDER } from '../scenario/meta';
 import { useSim } from '../engine/SimContext';
 import { Pane } from './Pane';
+import { GRANT_PARTY_TONES, GrantReceiptDialog } from './GrantReceipt';
 import type { ModuleId } from '../scenario/types';
+import moduleBackgroundUrl from '../assets/module-background.png';
 import moduleBannerUrl from '../assets/module-banner.png';
 import skyNightUrl from '../assets/sky-night.png';
 
 const PANE_IDS = ['identity', 'agent', 'modules', 'grants', 'worlds'] as const;
 type PaneId = (typeof PANE_IDS)[number];
+
+const AGENT_STATUS: Record<string, string> = {
+  idle: '待命中',
+  observing: '主动运行中',
+  migrating: '迁移中',
+  acting: '行动中',
+};
+
+/** Mock content for the agent HUD panel (top-right presence chip). */
+const AGENT_FEELING = '平静 · 专注';
+const AGENT_FEED = [
+  { text: '整理了 2 条生态足迹', done: true, at: null },
+  { text: '在星港停留 23 分钟', done: false, at: null },
+  { text: '为你恢复上次对话上下文', done: false, at: '14:27' },
+];
+const AGENT_LAST_CHAT = { text: '回声谷 · 低语回廊，停在第三段回声', at: '昨天 22:41' };
+const AGENT_RECENT = '你在优化世界入口与 Agent 呈现方式';
 
 /** Per-world card backdrops: existing field imagery, re-cropped per world and
  * tinted by the world's hue on top. */
@@ -19,32 +40,45 @@ const WORLD_BACKDROPS: Record<string, { src: string; position: string }> = {
 };
 
 /** The cradle — a constellation of draggable panes floating on the field. */
-export function Cradle() {
-  const { state, openApp, toggleGrant, runFlow, movePane } = useSim();
+export function Cradle({
+  onOpenApps,
+  onOpenGrantLedger,
+}: {
+  onOpenApps: () => void;
+  onOpenGrantLedger: () => void;
+}) {
+  const { state, openApp, toggleGrant, toggleLedger, runFlow, movePane } = useSim();
   const [zs, setZs] = useState<Record<string, number>>({});
   const [worldIdx, setWorldIdx] = useState(0);
+  const [receiptGrantId, setReceiptGrantId] = useState<string | null>(null);
+  const [agentHover, setAgentHover] = useState(false);
+  const [agentPinned, setAgentPinned] = useState(false);
+  const agentOpen = agentHover || agentPinned;
   const footprints = state.footprints;
-  const activeGrants = state.grants.filter((g) => g.status === 'active').length;
+  const visibleGrants = state.grants.filter((g) => g.id !== 'g-context-carry');
   const pos = state.cradlePos;
 
+  const paneTopZ = Math.max(PANE_IDS.length, ...Object.values(zs));
   const bringUp = (id: string) => {
-    setZs((s) => ({ ...s, [id]: Math.max(0, ...Object.values(s)) + 1 }));
+    setZs((s) => ({ ...s, [id]: Math.max(PANE_IDS.length, ...Object.values(s)) + 1 }));
   };
   const zOf = (id: string, base: number) => zs[id] ?? base;
-  const topZ = Math.max(0, ...Object.values(zs));
 
-  const paneProps = (id: PaneId, baseZ: number, drift: number, enter: number) => ({
-    id,
-    x: pos[id].x,
-    y: pos[id].y,
-    w: pos[id].w,
-    z: zOf(id, baseZ),
-    top: zOf(id, baseZ) === topZ && topZ > 0,
-    driftDelay: drift,
-    enterDelay: enter,
-    onFocus: bringUp,
-    onDrag: movePane,
-  });
+  const paneProps = (id: PaneId, baseZ: number, drift: number, enter: number, elevated = false) => {
+    const z = elevated ? Math.max(state.zTop, paneTopZ) + 1 : zOf(id, baseZ);
+    return {
+      id,
+      x: pos[id].x,
+      y: pos[id].y,
+      w: pos[id].w,
+      z,
+      top: elevated || z === paneTopZ,
+      driftDelay: drift,
+      enterDelay: enter,
+      onFocus: bringUp,
+      onDrag: movePane,
+    };
+  };
 
   return (
     <div className="cradle-space">
@@ -52,23 +86,134 @@ export function Cradle() {
         <h1 className="cradle-hi">
           欢迎回来，<em>林澈</em>
         </h1>
-        <div className="cradle-chips">
-          <span className="chip" data-tone="primary">{MODULE_ORDER.length} 个领域</span>
-          <span className="chip" data-tone="primary">{SCENARIO.worlds.length} 个世界</span>
-          <span className="chip" data-tone="success">{activeGrants} 项授权生效</span>
+      </Pane>
+
+      <Pane className="pane-bare" {...paneProps('agent', 2, 1.4, 0.1, agentOpen)}>
+        <div
+          className="agent-hud"
+          data-open={agentOpen || undefined}
+          onMouseEnter={() => setAgentHover(true)}
+          onMouseLeave={() => setAgentHover(false)}
+        >
+          <button
+            type="button"
+            className="agent-hud-chip"
+            aria-expanded={agentOpen}
+            aria-controls="agent-hud-panel"
+            title={`${SCENARIO.agent.name} · ${SCENARIO.agent.mode}`}
+            onClick={() => setAgentPinned((v) => !v)}
+          >
+            <span className="agent-hud-sparkle" aria-hidden />
+            <b>{SCENARIO.agent.name}</b>
+            <span className="agent-hud-chip-status">
+              · {SCENARIO.agent.mode}
+            </span>
+          </button>
+
+          {agentOpen ? (
+            <div className="agent-hud-panel" id="agent-hud-panel" role="dialog" aria-label="Nimi agent 面板">
+              <header className="agent-hud-head">
+                <span className="agent-hud-dot" data-status={state.agent.status} aria-hidden />
+                <span className="agent-hud-head-main">
+                  <b>
+                    {SCENARIO.agent.name} · {AGENT_STATUS[state.agent.status] ?? state.agent.status}
+                  </b>
+                  <span>{SCENARIO.agent.kind}</span>
+                </span>
+                <button
+                  type="button"
+                  className="agent-hud-gear"
+                  title="管理应用与 agent"
+                  aria-label="管理应用与 agent"
+                  onClick={onOpenApps}
+                >
+                  <Settings size={14} strokeWidth={1.8} aria-hidden />
+                </button>
+              </header>
+
+              <section className="agent-hud-section">
+                <span className="agent-hud-label">
+                  <i className="agent-hud-label-ico" aria-hidden /> 今日心情
+                </span>
+                <span className="agent-hud-mood">
+                  <i aria-hidden /> {AGENT_FEELING}
+                </span>
+              </section>
+
+              <section className="agent-hud-section">
+                <span className="agent-hud-label">
+                  <i className="agent-hud-label-ico" aria-hidden /> 今日动态
+                </span>
+                <ul className="agent-hud-feed">
+                  {AGENT_FEED.map((item) => (
+                    <li key={item.text} data-done={item.done || undefined}>
+                      {item.text}
+                      {item.at ? <time>{item.at}</time> : null}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+
+              <section className="agent-hud-section">
+                <span className="agent-hud-label">
+                  <i className="agent-hud-label-ico" aria-hidden /> 上次聊到
+                </span>
+                <p className="agent-hud-note">{AGENT_LAST_CHAT.text}</p>
+                <span className="agent-hud-meta">{AGENT_LAST_CHAT.at}</span>
+              </section>
+
+              <section className="agent-hud-section">
+                <span className="agent-hud-label">
+                  <i className="agent-hud-label-ico" aria-hidden /> 你最近在做
+                </span>
+                <p className="agent-hud-note">{AGENT_RECENT}</p>
+              </section>
+
+              <div className="agent-hud-actions">
+                <button
+                  type="button"
+                  className="agent-hud-btn primary"
+                  onClick={() => {
+                    setAgentPinned(false);
+                    openApp('desktop');
+                  }}
+                >
+                  <RotateCcw size={13} strokeWidth={1.8} aria-hidden /> 继续上次对话
+                </button>
+                <button
+                  type="button"
+                  className="agent-hud-btn"
+                  onClick={() => {
+                    setAgentPinned(false);
+                    if (!state.ledgerOpen) toggleLedger();
+                  }}
+                >
+                  <BarChart3 size={13} strokeWidth={1.8} aria-hidden /> 查看今日轨迹
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       </Pane>
 
-      <Pane className="pane-bare pane-bare-agent" {...paneProps('agent', 2, 1.4, 0.1)}>
-        <div className="cradle-agent-row">
-          <span className="agent-sphere" data-status={state.agent.status} aria-hidden />
-          <p className="cradle-quote">「上次我们在回声谷的『低语回廊』停下——第三段回声，只差最后一步。」</p>
-        </div>
-      </Pane>
-
-      <Pane title="领域" sub="从基座进入" className="pane-modules" {...paneProps('modules', 3, 0.7, 0.2)}>
+      <Pane
+        title="领域"
+        className="pane-modules"
+        actions={
+          <button
+            type="button"
+            className="pane-action-enter"
+            title="打开全部应用"
+            aria-label="打开全部应用"
+            onClick={onOpenApps}
+          >
+            从基座进入 <span aria-hidden>⤢</span>
+          </button>
+        }
+        {...paneProps('modules', 3, 0.7, 0.2)}
+      >
+        <img className="cradle-modules-background" src={moduleBackgroundUrl} alt="" aria-hidden />
         <div className="cradle-modules-wrap">
-          <img className="cradle-modules-background" src={moduleBannerUrl} alt="" aria-hidden />
           <div className="cradle-modules">
             {MODULE_ORDER.map((id: ModuleId) => {
               const m = MODULES[id];
@@ -93,18 +238,76 @@ export function Cradle() {
         </div>
       </Pane>
 
-      <Pane title="授权" sub="可撤销" {...paneProps('grants', 4, 2.1, 0.3)}>
+      <Pane
+        title="授权动态"
+        actions={
+          <IconButton
+            tone="ghost"
+            size="sm"
+            className="cradle-grants-all"
+            icon={<PanelRightOpen size={15} strokeWidth={1.8} aria-hidden />}
+            title="查看全部授权"
+            aria-label="查看全部授权，并打开交互账本授权页"
+            onClick={onOpenGrantLedger}
+          />
+        }
+        {...paneProps('grants', 4, 2.1, 0.3)}
+      >
         <div className="cradle-grants">
-          {state.grants.map((g) => (
-            <div key={g.id} className="cradle-grant-row" data-revoked={g.status === 'revoked'}>
-              <span className="grant-status-dot" data-active={g.status === 'active'} />
-              <div className="cradle-grant-main">
-                <b>{g.title}</b>
-                <span>{g.scope}</span>
-              </div>
-              <button type="button" className="fld-btn small" onClick={() => toggleGrant(g.id)}>
-                {g.status === 'active' ? '撤销' : '重新授权'}
+          {visibleGrants.map((g) => (
+            <div
+              key={g.id}
+              className="cradle-grant-card"
+              data-revoked={g.status === 'revoked'}
+            >
+              <button
+                type="button"
+                className="cradle-grant-open"
+                aria-label={`查看授权回单：${g.title}`}
+                onClick={() => setReceiptGrantId(g.id)}
+              >
+                <span className="cradle-grant-head">
+                  <span className="grant-party" data-tone={GRANT_PARTY_TONES[g.from] ?? 'eco'}>
+                    <span className="grant-party-icon" aria-hidden />
+                    <span className="grant-party-main">
+                      <b>{g.from}</b>
+                      <em>发起方</em>
+                    </span>
+                  </span>
+                  <span className="grant-arrow" aria-hidden>
+                    →
+                  </span>
+                  <span className="grant-party" data-tone={GRANT_PARTY_TONES[g.to] ?? 'eco'}>
+                    <span className="grant-party-icon" aria-hidden />
+                    <span className="grant-party-main">
+                      <b>{g.to}</b>
+                      <em>接收方</em>
+                    </span>
+                  </span>
+                </span>
+                <b className="cradle-grant-title">{g.title}</b>
+                <span className="cradle-grant-tags">
+                  {g.tags.map((t) => (
+                    <span key={t} className="grant-tag">
+                      {t}
+                    </span>
+                  ))}
+                </span>
               </button>
+              <span className="grant-status">
+                <button
+                  type="button"
+                  className="grant-status-badge"
+                  data-active={g.status === 'active'}
+                  title={g.status === 'active' ? '点击撤销' : '点击重新授权'}
+                  onClick={() => toggleGrant(g.id)}
+                >
+                  {g.status === 'active' ? '生效中' : '已撤销'}
+                </button>
+                <span className="grant-status-meta">
+                  {g.status === 'active' ? g.meta : '点击徽标重新授权'}
+                </span>
+              </span>
             </div>
           ))}
         </div>
@@ -177,6 +380,8 @@ export function Cradle() {
           );
         })()}
       </Pane>
+
+      {receiptGrantId ? <GrantReceiptDialog grantId={receiptGrantId} onClose={() => setReceiptGrantId(null)} /> : null}
     </div>
   );
 }

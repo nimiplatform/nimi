@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, type ReactNode, type PointerEvent as ReactPointerEvent } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import { FlickTracker, startFlick } from './flick';
 
 interface PaneProps {
@@ -14,6 +21,7 @@ interface PaneProps {
   driftDelay?: number;
   enterDelay?: number;
   className?: string;
+  actions?: ReactNode;
   onFocus: (id: string) => void;
   onDrag: (id: string, x: number, y: number) => void;
   children: ReactNode;
@@ -33,6 +41,7 @@ export function Pane({
   driftDelay = 0,
   enterDelay = 0,
   className,
+  actions,
   onFocus,
   onDrag,
   children,
@@ -86,6 +95,11 @@ export function Pane({
       setDragging(false);
     }
   };
+  const onPointerCancel = () => {
+    drag.current = null;
+    tracker.current.reset();
+    setDragging(false);
+  };
 
   return (
     <section
@@ -95,19 +109,30 @@ export function Pane({
       data-pane-id={id}
       data-top={top || undefined}
       data-dragging={dragging || undefined}
-      style={{ left: x, top: y, width: w, zIndex: z, animationDelay: `${enterDelay}s` }}
+      style={{
+        left: x,
+        top: y,
+        width: w,
+        zIndex: z,
+        '--pane-enter-delay': `${enterDelay}s`,
+        '--pane-drift-delay': `${driftDelay}s`,
+      } as CSSProperties}
       aria-label={title}
     >
-      <div className="pane-drift" style={{ animationDelay: `${driftDelay}s` }}>
+      <div className="pane-drift">
         {title ? (
           <div
             className="pane-head"
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
+            onPointerCancel={onPointerCancel}
           >
             <span className="pane-title">{title}</span>
-            {sub ? <span className="t-caption">{sub}</span> : null}
+            <span className="pane-head-side">
+              {sub ? <span className="t-caption">{sub}</span> : null}
+              {actions}
+            </span>
           </div>
         ) : (
           <div
@@ -115,6 +140,7 @@ export function Pane({
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
+            onPointerCancel={onPointerCancel}
             aria-hidden
           />
         )}

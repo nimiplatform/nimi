@@ -356,6 +356,9 @@ importers:
       '@nimiplatform/kit':
         specifier: workspace:*
         version: link:../../kit
+      lucide-react:
+        specifier: ^0.577.0
+        version: 0.577.0(react@19.2.6)
       react:
         specifier: 19.2.6
         version: 19.2.6

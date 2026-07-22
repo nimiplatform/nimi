@@ -26,10 +26,10 @@ pnpm --filter @nimi-prototype/os-field build
   day → dusk → night → dawn).
 - Every pane and app window is draggable — and flickable: release with speed
   to coast; holding still before release produces no flick.
-- Minimize a window and it becomes a **buoy on the left edge** (bottom spine
-  = launch; left buoys = running instances); click a buoy to restore it.
+- The left **app rail** is both launcher and running-instance switcher. Minimize
+  a window and it flies back to its rail icon; click the icon to restore it.
 - Right-click an empty part of the field: spatial menu (整理场 tidy, Lens,
-  Tide, phase, cradle). `Esc` closes the ledger.
+  Tide, phase, cradle). `Esc` closes the active overlay or exits Tide.
 
 ## What it demonstrates
 
@@ -39,7 +39,7 @@ modules (Desktop / 织语 Zhiyu / Tester), the three canonical cross-app flows
 (data sharing, intent handoff, agent-mediated context carry), system-level
 consent, revocable grants with typed `SIMULATOR_UNSUPPORTED` results, the
 interaction ledger as a floating pane, deterministic ids/logical clock, and
-the persistent simulation badge in the spine.
+simulation disclosure on the wake screen.
 
 Engine, scenario, flows, module content, and the spatial shell are self-contained
 under this package. Glass material tiers, theme tokens, and accessibility

@@ -118,8 +118,8 @@ function defaultCradleSpots(): Record<string, { x: number; y: number; w: number 
   const w = typeof window === 'undefined' ? 1600 : window.innerWidth;
   const h = typeof window === 'undefined' ? 1000 : window.innerHeight;
   return {
-    identity: { x: Math.max(24, Math.round(w * 0.05)), y: Math.round(h * 0.1), w: 430 },
-    agent: { x: Math.max(24, w - 520), y: Math.round(h * 0.1), w: 480 },
+    identity: { x: Math.max(24, Math.round(w * 0.05)), y: Math.max(24, Math.round(h * 0.07)), w: 430 },
+    agent: { x: Math.max(24, w - 520), y: Math.max(24, Math.round(h * 0.07)), w: 480 },
     modules: {
       x: Math.max(24, Math.min(Math.round(w * 0.42), w - 544)),
       y: Math.max(180, Math.round(h * 0.24)),
@@ -169,6 +169,16 @@ function buildInitialState(epoch: number): SimState {
 function observe(agent: AgentState, location: AgentLocation): AgentState {
   if (agent.status === 'migrating' || agent.status === 'acting') return agent;
   return { status: 'observing', location, carry: agent.carry };
+}
+
+function agentAfterWindowHidden(agent: AgentState, windows: SimWindow[]): AgentState {
+  if (agent.status === 'migrating' || agent.status === 'acting') return agent;
+  const topVisible = windows
+    .filter((win) => !win.minimized)
+    .reduce<SimWindow | null>((top, win) => (!top || win.z > top.z ? win : top), null);
+  return topVisible
+    ? { status: 'observing', location: topVisible.moduleId, carry: agent.carry }
+    : { status: 'idle', location: 'cradle', carry: agent.carry };
 }
 
 function reducer(state: SimState, action: Action): SimState {
@@ -221,20 +231,24 @@ function reducer(state: SimState, action: Action): SimState {
         agent: observe(state.agent, win.moduleId),
       };
     }
-    case 'minimize':
+    case 'minimize': {
+      if (!state.windows.some((w) => w.instanceId === action.instanceId)) return state;
+      const windows = state.windows.map((w) =>
+        w.instanceId === action.instanceId ? { ...w, minimized: true } : w,
+      );
       return {
         ...state,
-        windows: state.windows.map((w) =>
-          w.instanceId === action.instanceId ? { ...w, minimized: true } : w,
-        ),
+        windows,
+        agent: agentAfterWindowHidden(state.agent, windows),
       };
+    }
     case 'close': {
-      const rest = state.windows.filter((w) => w.instanceId !== action.instanceId);
-      const anyVisible = rest.some((w) => !w.minimized);
+      if (!state.windows.some((w) => w.instanceId === action.instanceId)) return state;
+      const windows = state.windows.filter((w) => w.instanceId !== action.instanceId);
       return {
         ...state,
-        windows: rest,
-        agent: anyVisible ? state.agent : { status: 'idle', location: 'cradle', carry: state.agent.carry },
+        windows,
+        agent: agentAfterWindowHidden(state.agent, windows),
       };
     }
     case 'home':

@@ -177,6 +177,7 @@ button {
 @media (prefers-reduced-motion: reduce) {
   .wisp,
   .field::before { animation: none !important; }
+  .pane-float { animation: none !important; translate: none; }
   * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
 

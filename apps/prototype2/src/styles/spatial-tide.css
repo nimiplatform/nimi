@@ -1,0 +1,205 @@
+/* Tide spatial overview — DOM-native cards in a cinematic 3D camera. */
+
+.stage[data-tide='true'] {
+  --tide-camera-x: 0px;
+  --tide-camera-y: 0px;
+  --tide-camera-yaw: 0deg;
+  --tide-camera-pitch: 0deg;
+  z-index: 2;
+  outline: none;
+}
+
+.field:has(.stage[data-tide='true'])::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(55, 126, 103, 0.13), transparent 32%),
+    rgba(2, 5, 7, 0.76);
+  backdrop-filter: saturate(72%) brightness(68%);
+  -webkit-backdrop-filter: saturate(72%) brightness(68%);
+}
+
+.tide-caption {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 14px;
+  border: 1px solid var(--nimi-material-glass-chrome-border);
+  border-radius: var(--nimi-radius-full);
+  background: var(--nimi-material-glass-chrome-bg);
+  box-shadow: var(--nimi-elevation-floating);
+  backdrop-filter: blur(var(--nimi-backdrop-blur-chrome));
+  -webkit-backdrop-filter: blur(var(--nimi-backdrop-blur-chrome));
+}
+
+.tide-caption::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: var(--nimi-radius-full);
+  background: var(--nimi-status-success);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--nimi-status-success) 68%, transparent);
+}
+
+@media (min-width: 900px) and (min-height: 600px) {
+  .stage[data-tide='true'] {
+    perspective: 1500px;
+    perspective-origin: 50% 48%;
+    transform: none;
+    filter: none;
+  }
+
+  .stage[data-tide='true'] .cradle-space {
+    display: block;
+    overflow: visible;
+    padding: 0;
+    transform-style: preserve-3d;
+    transform:
+      translate3d(var(--tide-camera-x), var(--tide-camera-y), 0)
+      rotateX(var(--tide-camera-pitch))
+      rotateY(var(--tide-camera-yaw));
+    transition: transform var(--nimi-motion-ambient) var(--nimi-motion-ease-standard);
+  }
+
+  .stage[data-tide='true'] .cradle-space > .pane-float {
+    --tide-x: 0px;
+    --tide-y: 0px;
+    --tide-z: 0px;
+    --tide-rotate-x: 0deg;
+    --tide-rotate-y: 0deg;
+    --tide-scale: 0.76;
+    --tide-focus-z: 0px;
+    position: absolute;
+    left: 50% !important;
+    top: 50% !important;
+    width: var(--tide-width, 480px) !important;
+    margin: 0;
+    animation: none;
+    translate: none;
+    transform-style: preserve-3d;
+    transform:
+      translate(-50%, -50%)
+      translate3d(var(--tide-x), var(--tide-y), calc(var(--tide-z) + var(--tide-focus-z)))
+      rotateX(var(--tide-rotate-x))
+      rotateY(var(--tide-rotate-y))
+      scale(var(--tide-scale));
+    opacity: 0.58;
+    filter: brightness(0.76) saturate(0.82) blur(0.45px);
+    transition:
+      transform var(--nimi-motion-slow) var(--nimi-motion-ease-emphasized),
+      opacity var(--nimi-motion-base) var(--nimi-motion-ease-standard),
+      filter var(--nimi-motion-base) var(--nimi-motion-ease-standard),
+      border-color var(--nimi-motion-base) var(--nimi-motion-ease-standard),
+      box-shadow var(--nimi-motion-slow) var(--nimi-motion-ease-standard);
+    will-change: transform;
+  }
+
+  .stage[data-tide='true'] .cradle-space > [data-pane-id='identity'] {
+    --tide-x: -430px;
+    --tide-y: -190px;
+    --tide-z: -180px;
+    --tide-rotate-y: 24deg;
+    --tide-width: 430px;
+  }
+
+  .stage[data-tide='true'] .cradle-space > [data-pane-id='agent'] {
+    --tide-x: 20px;
+    --tide-y: -240px;
+    --tide-z: -90px;
+    --tide-rotate-x: -7deg;
+    --tide-width: 500px;
+  }
+
+  .stage[data-tide='true'] .cradle-space > [data-pane-id='modules'] {
+    --tide-x: -90px;
+    --tide-y: 10px;
+    --tide-z: 40px;
+    --tide-rotate-y: -4deg;
+    --tide-width: 540px;
+    --tide-scale: 0.86;
+  }
+
+  .stage[data-tide='true'] .cradle-space > [data-pane-id='grants'] {
+    --tide-x: 430px;
+    --tide-y: -80px;
+    --tide-z: -170px;
+    --tide-rotate-y: -22deg;
+    --tide-width: 460px;
+  }
+
+  .stage[data-tide='true'] .cradle-space > [data-pane-id='worlds'] {
+    --tide-x: -350px;
+    --tide-y: 240px;
+    --tide-z: -220px;
+    --tide-rotate-x: 7deg;
+    --tide-rotate-y: 17deg;
+    --tide-width: 540px;
+  }
+
+  .stage[data-tide='true'] .pane-float.pane-bare,
+  .stage[data-tide='true'] .pane-float.pane-bare[data-top='true'] {
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.16),
+      rgba(255, 255, 255, 0.055) 50%,
+      rgba(12, 18, 20, 0.2)
+    );
+    border: 1px solid var(--nimi-material-glass-regular-border);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.28),
+      var(--nimi-elevation-floating);
+    backdrop-filter: blur(var(--nimi-backdrop-blur-regular)) saturate(var(--nimi-backdrop-saturate));
+    -webkit-backdrop-filter: blur(var(--nimi-backdrop-blur-regular)) saturate(var(--nimi-backdrop-saturate));
+  }
+
+  .stage[data-tide='true'][data-tide-focus='identity'] [data-pane-id='identity'],
+  .stage[data-tide='true'][data-tide-focus='agent'] [data-pane-id='agent'],
+  .stage[data-tide='true'][data-tide-focus='modules'] [data-pane-id='modules'],
+  .stage[data-tide='true'][data-tide-focus='grants'] [data-pane-id='grants'],
+  .stage[data-tide='true'][data-tide-focus='worlds'] [data-pane-id='worlds'] {
+    --tide-x: 0px;
+    --tide-y: 0px;
+    --tide-z: 80px;
+    --tide-focus-z: 190px;
+    --tide-rotate-x: 0deg;
+    --tide-rotate-y: 0deg;
+    --tide-scale: 1;
+    z-index: 50 !important;
+    opacity: 1;
+    filter: none;
+    border-color: var(--nimi-border-strong);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.34),
+      0 34px 110px rgba(0, 0, 0, 0.5),
+      0 0 70px color-mix(in srgb, var(--nimi-status-success) 12%, transparent);
+  }
+
+  .stage[data-tide='true'] .window-frame {
+    transform: translateZ(-80px) scale(0.88);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage[data-tide='true'] .cradle-space,
+  .stage[data-tide='true'] .cradle-space > .pane-float {
+    transition: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .field:has(.stage[data-tide='true'])::after {
+    background: rgba(5, 8, 10, 0.94);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .stage[data-tide='true'] .pane-float.pane-bare,
+  .stage[data-tide='true'] .pane-float.pane-bare[data-top='true'] {
+    background: var(--nimi-surface-panel);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}

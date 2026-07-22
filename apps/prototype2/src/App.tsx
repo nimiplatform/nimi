@@ -7,31 +7,46 @@ import { Spine } from './shell/Spine';
 import { Lens } from './shell/Lens';
 import { Cradle } from './shell/Cradle';
 import { WindowManager } from './shell/WindowManager';
-import { BuoyDock } from './shell/BuoyDock';
+import { AppRail } from './shell/AppRail';
+import { AppsPage } from './shell/AppsPage';
 import { ConsentOverlay } from './shell/ConsentOverlay';
-import { LedgerDrawer } from './shell/LedgerDrawer';
+import { LedgerDrawer, type LedgerFilter } from './shell/LedgerDrawer';
 import { ToastFloat } from './shell/ToastFloat';
 import { AgentLayer } from './shell/AgentLayer';
 import { FieldMenu, type FieldMenuState } from './shell/FieldMenu';
 import { SkyPanel } from './shell/SkyPanel';
+import { SpatialStage } from './shell/SpatialStage';
 
-const BLOCK_MENU = '.pane-float, .window-frame, .spine, .ledger-drawer, .consent-backdrop, .lens-backdrop, .toast-float, .field-menu, .sky-panel, button, input';
+const BLOCK_MENU = '.pane-float, .window-frame, .spine, .app-rail, .apps-page, .ledger-drawer, .consent-backdrop, .lens-backdrop, .toast-float, .field-menu, .sky-panel, button, input';
 
 function Stage() {
   const { state, goHome, tidy, toggleLedger } = useSim();
   const { awake, phase, effectivePhase, tide, setLensOpen, toggleTide, cyclePhase } = useUi();
   const [menu, setMenu] = useState<FieldMenuState | null>(null);
   const [skyPanelOpen, setSkyPanelOpen] = useState(false);
+  const [appsOpen, setAppsOpen] = useState(false);
+  const [ledgerFilter, setLedgerFilter] = useState<LedgerFilter>('all');
   const home = state.windows.every((w) => w.minimized);
   const openSkyPanel = useCallback(() => setSkyPanelOpen(true), []);
   const closeSkyPanel = useCallback(() => setSkyPanelOpen(false), []);
+  const closeApps = useCallback(() => setAppsOpen(false), []);
+  const openGrantLedger = useCallback(() => {
+    setLedgerFilter('grant');
+    if (!state.ledgerOpen) toggleLedger();
+  }, [state.ledgerOpen, toggleLedger]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      const target = e.target instanceof HTMLElement ? e.target : null;
+      const inDialog = Boolean(target?.closest('[role="dialog"]'));
+      const inEditable = Boolean(target?.matches('input, textarea, select, [contenteditable="true"]'));
+      if (!awake || inDialog) return;
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setLensOpen(true);
       } else if (e.key === '`' || e.key === '~') {
+        if (inEditable) return;
+        e.preventDefault();
         toggleTide();
       } else if (e.key === 'Escape') {
         if (skyPanelOpen) closeSkyPanel();
@@ -40,7 +55,7 @@ function Stage() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [setLensOpen, toggleTide, skyPanelOpen, closeSkyPanel, state.ledgerOpen, toggleLedger]);
+  }, [awake, setLensOpen, toggleTide, skyPanelOpen, closeSkyPanel, state.ledgerOpen, toggleLedger]);
 
   const onContextMenu = (e: ReactMouseEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest(BLOCK_MENU)) return;
@@ -53,19 +68,22 @@ function Stage() {
 
   return (
     <Field phase={effectivePhase}>
-      <div className="stage" data-tide={tide} onContextMenu={onContextMenu}>
-        {home && awake ? <Cradle /> : null}
+      <SpatialStage active={tide} onContextMenu={onContextMenu} onExit={toggleTide}>
+        {home && awake ? (
+          <Cradle onOpenApps={() => setAppsOpen(true)} onOpenGrantLedger={openGrantLedger} />
+        ) : null}
         <WindowManager />
-      </div>
-      <BuoyDock />
+      </SpatialStage>
+      {appsOpen ? <AppsPage onClose={closeApps} /> : null}
+      <AppRail />
       <AgentLayer />
       <ToastFloat />
       <ConsentOverlay />
-      <LedgerDrawer />
+      <LedgerDrawer filter={ledgerFilter} onFilterChange={setLedgerFilter} />
       <Spine onOpenSkyPanel={openSkyPanel} skyPanelOpen={skyPanelOpen} />
       <Lens />
       <WakeScreen />
-      {tide ? <div className="tide-caption">The Tide — 一览</div> : null}
+      {tide ? <div className="tide-caption">The Tide · 滚轮聚焦 · Esc 返回</div> : null}
       <FieldMenu
         menu={menu}
         onClose={() => setMenu(null)}
