@@ -456,7 +456,7 @@ function publicReport(report) {
 
 function assertRootIndependent(value, repoRoot) {
   const text = JSON.stringify(value);
-  if (text.includes(path.resolve(repoRoot)) || /\/(?:Users|home)\//.test(text)) {
+  if (text.includes(path.resolve(repoRoot)) || /"\/(?:Users|home)\//u.test(text)) {
     fail('SIM_REGISTRY_ABSOLUTE_PATH', 'generated registry contains a host-absolute path');
   }
 }

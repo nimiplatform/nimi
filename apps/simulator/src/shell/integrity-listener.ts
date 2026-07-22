@@ -24,8 +24,11 @@ export function installSimulatorIntegrityListener(options: {
       const release = unsubscribe;
       unsubscribe = null;
       release?.();
-      options.terminate();
     });
+    // Product-state termination and React publication are not browser-global
+    // effect calls. Publish only after callback attribution has been released,
+    // otherwise framework scheduling is falsely attributed to bootstrap.
+    options.terminate();
   });
   if (!subscribed.ok) throw new Error('SIMULATOR_INTEGRITY_LISTENER_UNAVAILABLE');
   unsubscribe = subscribed.value;

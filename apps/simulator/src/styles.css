@@ -53,6 +53,22 @@ body {
   padding: 1rem;
 }
 
+.simulator-shell--full-window {
+  position: sticky;
+  top: 2.5rem;
+  z-index: 2010098;
+  padding-block: 0.5rem;
+  background: var(--nimi-surface-overlay);
+  border-bottom: 1px solid var(--nimi-border-subtle);
+}
+
+.simulator-full-window {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .simulator-nav,
 .simulator-modules,
 .simulator-windows__item {
@@ -84,4 +100,14 @@ body {
   border: 1px solid var(--nimi-border-subtle);
   border-radius: var(--nimi-radius-lg);
   overflow: clip;
+}
+
+.simulator-surface[hidden] {
+  display: none;
+}
+
+.simulator-surface[data-full-window='true'] {
+  min-height: calc(100vh - 7rem);
+  border: 0;
+  border-radius: 0;
 }

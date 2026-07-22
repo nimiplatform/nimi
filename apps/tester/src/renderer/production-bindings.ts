@@ -172,6 +172,7 @@ export function createTesterProductionBindings(
           executor: loadTesterRunHistory,
           options: { maxAttempts: 2, initialDelayMs: 25, maxDelayMs: 50 },
         }),
+        ecosystemReference: () => null,
         preferences: () => loadTesterPreferences().preferences,
         promptDraft: loadTesterPromptDraft,
       }),

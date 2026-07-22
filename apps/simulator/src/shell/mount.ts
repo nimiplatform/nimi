@@ -7,7 +7,7 @@
  * Authority: P-SIM-001, P-SIM-017, P-SIM-018.
  */
 
-import { Fragment, StrictMode, createElement as h, useLayoutEffect, useSyncExternalStore } from 'react';
+import { Fragment, StrictMode, createElement as h, useSyncExternalStore } from 'react';
 import { createPortal, flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import {
@@ -47,6 +47,7 @@ import {
   type SimulatorScenarioPredicateDefinition,
 } from './scenario-runtime.ts';
 import type { SimulatorReadinessExpectation } from '../lifecycle/readiness.ts';
+import { simulatorReferenceInteractionCatalog } from '../interactions/reference-ecosystem.ts';
 
 const RESOLVED_MODULE_CATALOGS: readonly Omit<SimulatorModuleCatalogDeclaration, 'moduleData'>[] =
   simulatorResolvedModuleCatalogs;
@@ -123,19 +124,6 @@ function resetAndRelaunch(session: SimulatorSession): Promise<void> {
     resetInFlight = null;
   });
   return resetInFlight;
-}
-
-function CommitTrackedShellRoot({
-  session,
-  disclosureRoot,
-  recordCommit,
-}: {
-  session: SimulatorSession;
-  disclosureRoot: HTMLElement;
-  recordCommit: () => void;
-}) {
-  useLayoutEffect(recordCommit);
-  return h(ShellRoot, { session, disclosureRoot });
 }
 
 export async function mountSimulatorShell(guard: SimulatorGuardHandle): Promise<void> {
@@ -234,6 +222,7 @@ export async function mountSimulatorShell(guard: SimulatorGuardHandle): Promise<
   });
   const session = createSimulatorSession({
     scenario: simulatorResolvedScenario.scenario,
+    interactions: simulatorReferenceInteractionCatalog,
     registryModules: simulatorResolvedModules,
     moduleCatalogs: bindScenarioModuleData(
       RESOLVED_MODULE_CATALOGS,
@@ -253,7 +242,13 @@ export async function mountSimulatorShell(guard: SimulatorGuardHandle): Promise<
     readinessExpectations: readiness.expectations,
     readinessProjectionPredicates: readiness.projectionPredicates,
     readinessBlockingPredicates: readiness.blockingPredicates,
-    commitToken: commits.current,
+    onRouteChange: (route) => {
+      surfaces.setFullWindow(route.kind === 'instance' ? route.instanceId : null);
+    },
+    writeRoute: (path, replace) => {
+      if (replace) window.history.replaceState(null, '', path);
+      else window.history.pushState(null, '', path);
+    },
     simulationDisclosureVisible: () => {
       const status = document.querySelector('[data-testid="simulator-status"]');
       return isSimulationDisclosureVisible(
@@ -270,13 +265,21 @@ export async function mountSimulatorShell(guard: SimulatorGuardHandle): Promise<
     terminate: () => session.engine.terminateIntegrity(simulatorError('SIMULATOR_INTEGRITY_FAILURE')),
   });
 
-  const initial = parseShellRoute(window.location.pathname);
-  if (initial) session.navigate(initial);
+  const initial = parseShellRoute({
+    pathname: window.location.pathname,
+    search: window.location.search,
+    hash: window.location.hash,
+  });
+  if (initial) session.navigate(initial, { history: false });
   installSimulatorRouteHistoryListener({
     coordinator,
     onHistory: () => {
-      const route = parseShellRoute(window.location.pathname);
-      if (route) session.navigate(route);
+      const route = parseShellRoute({
+        pathname: window.location.pathname,
+        search: window.location.search,
+        hash: window.location.hash,
+      });
+      if (route) session.navigate(route, { history: false });
     },
   });
 
@@ -284,11 +287,7 @@ export async function mountSimulatorShell(guard: SimulatorGuardHandle): Promise<
   flushSync(() => {
     root.render(
       h(StrictMode, null,
-        h(CommitTrackedShellRoot, {
-          session,
-          disclosureRoot,
-          recordCommit: () => { commits.recordCommit(); },
-        }),
+        h(ShellRoot, { session, disclosureRoot }),
         surfaces.renderPortals(),
       ),
     );

@@ -76,23 +76,51 @@ function browserHarness({ paintCompositeEvidence = null } = {}) {
 
 test('React commit tracker resolves only a token strictly after the signal floor', async () => {
   const tracker = createReactCommitTracker();
-  tracker.recordCommit();
+  const scope = { instanceId: '1:instance:1', surfaceId: 'main' };
+  tracker.recordCommit(scope);
   const abort = new AbortController();
   let settled = false;
-  const waiting = tracker.awaitAfter(1, abort.signal).then((token) => { settled = true; return token; });
+  const waiting = tracker.awaitAfter({ ...scope, floor: 1, signal: abort.signal })
+    .then((token) => { settled = true; return token; });
   await Promise.resolve();
   assert.equal(settled, false);
-  tracker.recordCommit();
+  tracker.recordCommit(scope);
   assert.equal(await waiting, 2);
 });
 
 test('cancelled commit waiters reject and cannot be revived by a late commit', async () => {
   const tracker = createReactCommitTracker();
+  const scope = { instanceId: '1:instance:1', surfaceId: 'main' };
   const abort = new AbortController();
-  const waiting = tracker.awaitAfter(0, abort.signal);
+  const waiting = tracker.awaitAfter({ ...scope, floor: 0, signal: abort.signal });
   abort.abort();
   await assert.rejects(waiting, /SIMULATOR_READINESS_CANCELLED/);
-  assert.equal(tracker.recordCommit(), 1);
+  assert.equal(tracker.recordCommit(scope), 1);
+});
+
+test('commit tokens and releases are isolated by instance and surface', async () => {
+  const tracker = createReactCommitTracker();
+  const first = { instanceId: '1:instance:1', surfaceId: 'main' };
+  const second = { instanceId: '1:instance:2', surfaceId: 'main' };
+  const alternate = { instanceId: '1:instance:1', surfaceId: 'secondary' };
+  const firstAbort = new AbortController();
+  const secondAbort = new AbortController();
+  let firstSettled = false;
+  const firstWaiting = tracker.awaitAfter({ ...first, floor: 0, signal: firstAbort.signal })
+    .then((token) => { firstSettled = true; return token; });
+  const secondWaiting = tracker.awaitAfter({ ...second, floor: 0, signal: secondAbort.signal });
+
+  assert.equal(tracker.recordCommit(second), 1);
+  assert.equal(await secondWaiting, 1);
+  await Promise.resolve();
+  assert.equal(firstSettled, false);
+  assert.equal(tracker.current(alternate), 0);
+
+  tracker.release(first);
+  await assert.rejects(firstWaiting, /SIMULATOR_READINESS_CANCELLED/);
+  assert.equal(tracker.current(first), 0);
+  assert.equal(tracker.recordCommit(first), 1);
+  assert.equal(firstSettled, false);
 });
 
 test('assigned root registry rejects duplicate/colliding ownership and releases exactly', () => {

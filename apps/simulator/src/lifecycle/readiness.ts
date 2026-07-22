@@ -75,8 +75,15 @@ export interface SimulatorReadinessExpectation {
  * wire deterministic fixtures.
  */
 export interface SimulatorReadinessBrowserPort {
-  /** Resolves with the first React commit token at or after `sinceToken`. */
-  awaitCommit(sinceToken: number, signal: AbortSignal): Promise<number>;
+  /** Returns the current React commit token for one assigned App surface. */
+  currentCommitToken(input: { readonly instanceId: string; readonly surfaceId: string }): number;
+  /** Resolves with the first commit token after the scoped candidate floor. */
+  awaitCommit(input: {
+    readonly instanceId: string;
+    readonly surfaceId: string;
+    readonly sinceToken: number;
+    readonly signal: AbortSignal;
+  }): Promise<number>;
   /** One animation frame; resolves with the frame's sequence number. */
   nextAnimationFrame(signal: AbortSignal): Promise<number>;
   /** Begins runner-owned trace capture before the first readiness frame. */
@@ -126,7 +133,6 @@ export interface SimulatorReadinessBarrierOptions {
   readonly projectionPredicate: (projection: JsonValue) => boolean;
   /** True while a blocking coordinator lease exists. */
   readonly blockingPredicate: () => boolean;
-  readonly commitToken: () => number;
   readonly projection: () => JsonValue;
   readonly simulationDisclosureVisible: () => boolean;
   readonly onStateChange?: (state: SimulatorReadinessState) => void;
@@ -157,6 +163,7 @@ export function createReadinessBarrier(options: SimulatorReadinessBarrierOptions
   const { engine } = options;
   let state: SimulatorReadinessState = 'idle';
   let readinessId: string | null = null;
+  let candidateCommitFloor: number | null = null;
   let reservation: {
     settle(outcome: JsonValue): SimulatorResult<{ readonly accepted: boolean }>;
     cancel(reason: 'caller' | 'dispose' | 'reset'): SimulatorResult<{ readonly cancelled: boolean }>;
@@ -361,8 +368,17 @@ export function createReadinessBarrier(options: SimulatorReadinessBarrierOptions
     }
     state = 'waiting-commit';
     options.onStateChange?.(state);
-    const commitFloor = options.commitToken();
-    const commit = await raceCancel(options.browser.awaitCommit(commitFloor, evidenceAbort.signal));
+    const commitFloor = candidateCommitFloor;
+    if (commitFloor === null) {
+      failPublicationIntegrity();
+      return;
+    }
+    const commit = await raceCancel(options.browser.awaitCommit({
+      instanceId: options.instanceId,
+      surfaceId: options.surfaceId,
+      sinceToken: commitFloor,
+      signal: evidenceAbort.signal,
+    }));
     if (commit === CANCELLED || state !== 'waiting-commit') return;
     if (commit === EVIDENCE_FAILED || commit <= commitFloor) {
       publishTerminal('failed', 'paint-barrier-failed');
@@ -495,6 +511,10 @@ export function createReadinessBarrier(options: SimulatorReadinessBarrierOptions
       });
       if (!reserved.ok) return simulatorFail(reserved.error);
       reservation = reserved.value;
+      candidateCommitFloor = options.browser.currentCommitToken({
+        instanceId: options.instanceId,
+        surfaceId: options.surfaceId,
+      });
       state = 'signaled';
       options.onStateChange?.(state);
       void drive();

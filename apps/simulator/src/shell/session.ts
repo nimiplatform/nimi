@@ -35,9 +35,11 @@ import {
 } from './diagnostics.ts';
 import {
   parseShellRoute,
+  sameSimulatorRouteState,
   serializeShellRoute,
   type SimulatorShellRoute,
 } from './routes.ts';
+import type { SimulatorRouteState } from '../state-engine/types.ts';
 
 export interface SimulatorRegistryModuleRow {
   readonly metadata: {
@@ -63,6 +65,7 @@ export interface SimulatorRegistryModuleRow {
 
 export interface SimulatorSessionOptions {
   readonly scenario: Parameters<typeof createSimulatorStateEngine>[0]['scenario'];
+  readonly interactions?: Parameters<typeof createSimulatorStateEngine>[0]['interactions'];
   readonly registryModules: readonly SimulatorRegistryModuleRow[];
   readonly moduleCatalogs: readonly Parameters<SimulatorStateEngine['registerModuleCatalog']>[0][];
   readonly timers: SimulatorHostTimers;
@@ -77,8 +80,9 @@ export interface SimulatorSessionOptions {
     readonly failInstance: (instanceId: string, cause: string) => void;
   }) => SimulatorPreparedSurfaceHost;
   readonly readinessBrowser: SimulatorReadinessBrowserPort;
-  readonly commitToken: () => number;
   readonly simulationDisclosureVisible: () => boolean;
+  readonly onRouteChange?: (route: SimulatorShellRoute) => void;
+  readonly writeRoute?: (path: string, replace: boolean) => void;
   /** Keys are `<moduleId>/<surfaceId>` and must exist for every mounted surface. */
   readonly readinessDeclarations?: Readonly<Record<string, SimulatorReadinessDeclaration>>;
   readonly readinessExpectations?: Readonly<Record<string, SimulatorReadinessExpectation>>;
@@ -92,6 +96,7 @@ export interface SimulatorSessionInstanceView {
   readonly surfaceId: string;
   readonly status: string;
   readonly readiness: string;
+  readonly route: SimulatorRouteState;
 }
 
 export interface SimulatorSession {
@@ -107,7 +112,7 @@ export interface SimulatorSession {
   deactivateInstance(instanceId: string): Promise<SimulatorResult<{ readonly deactivated: boolean }>>;
   resetScenario(): Promise<SimulatorResult<JsonValue>>;
   route(): SimulatorShellRoute;
-  navigate(route: SimulatorShellRoute): void;
+  navigate(route: SimulatorShellRoute, options?: { readonly history?: boolean; readonly replace?: boolean }): void;
   instances(): readonly SimulatorSessionInstanceView[];
   readinessFor(instanceId: string, surfaceId: string): SimulatorResult<SimulatorReadinessBarrier>;
   /** Last digest published at a completed visible-checkpoint boundary. */
@@ -124,10 +129,12 @@ export function createSimulatorSession(options: SimulatorSessionOptions): Simula
   const resetReadinessSettlements: { readonly sequence: number; readonly settle: () => void }[] = [];
   const hostRef: { current: SimulatorInstanceHost | null } = { current: null };
   let currentRoute: SimulatorShellRoute = { kind: 'home' };
+  let pendingDeepLink: Extract<SimulatorShellRoute, { readonly kind: 'instance' }> | null = null;
   let publishedReplayDigest: string | null = null;
 
   const engine = createSimulatorStateEngine({
     scenario: options.scenario,
+    interactions: options.interactions,
     hooks: {
       requestInstanceFailure(instanceId, cause) {
         hostRef.current?.failInstance(instanceId, cause);
@@ -217,7 +224,24 @@ export function createSimulatorSession(options: SimulatorSessionOptions): Simula
   });
   hostRef.current = host;
 
-  engine.subscribeState(() => notify());
+  engine.subscribeState(() => {
+    if (currentRoute.kind === 'instance' && pendingDeepLink === null) {
+      const instance = engine.getCommitted().instance(currentRoute.instanceId);
+      if (instance
+        && instance.status !== 'disposed'
+        && instance.status !== 'disposing'
+        && !sameSimulatorRouteState(currentRoute.appRoute, instance.route)) {
+        currentRoute = Object.freeze({
+          kind: 'instance',
+          instanceId: currentRoute.instanceId,
+          appRoute: instance.route,
+        });
+        options.onRouteChange?.(currentRoute);
+        options.writeRoute?.(serializeShellRoute(currentRoute), true);
+      }
+    }
+    notify();
+  });
 
   function notify(): void {
     for (const listener of listeners) listener();
@@ -251,6 +275,20 @@ export function createSimulatorSession(options: SimulatorSessionOptions): Simula
         loadAdapter: async () => row.loadAdapter(),
         loadStyle: async () => row.loadStyle(),
       });
+      if (opened.ok && currentRoute.kind === 'instance' && currentRoute.instanceId === opened.value.instanceId) {
+        pendingDeepLink = null;
+        const routed = await engine.acceptCommand('simulator.instance.route', {
+          instanceId: opened.value.instanceId,
+          route: currentRoute.appRoute as unknown as JsonValue,
+        }, { kind: 'shell', moduleId: null, instanceId: null });
+        if (!routed.ok) {
+          engine.terminateIntegrity(simulatorError('SIMULATOR_INTEGRITY_FAILURE', {
+            moduleId,
+            instanceId: opened.value.instanceId,
+          }));
+          return simulatorFail(routed.error);
+        }
+      }
       notify();
       return opened;
     },
@@ -258,7 +296,12 @@ export function createSimulatorSession(options: SimulatorSessionOptions): Simula
       for (const [key, barrier] of readinessBarriers) {
         if (key.startsWith(`${instanceId}\u0000`)) barrier.cancel('dispose');
       }
-      return host.disposeInstance(instanceId);
+      const closing = host.disposeInstance(instanceId);
+      if (pendingDeepLink?.instanceId === instanceId) pendingDeepLink = null;
+      if (currentRoute.kind === 'instance' && currentRoute.instanceId === instanceId) {
+        session.navigate({ kind: 'home' }, { replace: true });
+      }
+      return closing;
     },
     activateInstance(instanceId) {
       return host.activateInstance(instanceId);
@@ -279,7 +322,10 @@ export function createSimulatorSession(options: SimulatorSessionOptions): Simula
       void pending.then((result) => {
         if (result.ok) {
           readinessBarriers.clear();
+          pendingDeepLink = null;
           currentRoute = { kind: 'home' };
+          options.onRouteChange?.(currentRoute);
+          options.writeRoute?.(serializeShellRoute(currentRoute), true);
           publishedReplayDigest = null;
         }
         notify();
@@ -289,8 +335,29 @@ export function createSimulatorSession(options: SimulatorSessionOptions): Simula
     route() {
       return currentRoute;
     },
-    navigate(route) {
+    navigate(route, navigateOptions = {}) {
+      if (route.kind === 'instance') {
+        const instance = engine.getCommitted().instance(route.instanceId);
+        pendingDeepLink = !instance || instance.status === 'disposed' || instance.status === 'disposing'
+          ? route
+          : null;
+      } else {
+        pendingDeepLink = null;
+      }
       currentRoute = route;
+      options.onRouteChange?.(route);
+      if (navigateOptions.history !== false) {
+        options.writeRoute?.(serializeShellRoute(route), navigateOptions.replace === true);
+      }
+      if (route.kind === 'instance') {
+        const instance = engine.getCommitted().instance(route.instanceId);
+        if (instance && instance.status !== 'disposed' && instance.status !== 'disposing') {
+          void engine.acceptCommand('simulator.instance.route', {
+            instanceId: route.instanceId,
+            route: route.appRoute as unknown as JsonValue,
+          }, { kind: 'shell', moduleId: null, instanceId: null });
+        }
+      }
       notify();
     },
     instances() {
@@ -317,6 +384,7 @@ export function createSimulatorSession(options: SimulatorSessionOptions): Simula
           readiness: readinessRecord && typeof readinessRecord.state === 'string'
             ? readinessRecord.state
             : readinessBarrier?.state ?? 'pending',
+          route: instance.route,
         };
       });
     },
@@ -358,7 +426,6 @@ export function createSimulatorSession(options: SimulatorSessionOptions): Simula
         browser: options.readinessBrowser,
         projectionPredicate,
         blockingPredicate,
-        commitToken: options.commitToken,
         projection: () => {
           const projected = engine.projectInstance(instanceId);
           return projected.ok ? projected.value : null;

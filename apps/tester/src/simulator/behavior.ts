@@ -58,6 +58,7 @@ interface TesterSimulatorState extends JsonRecord {
   readonly aiConfig: JsonRecord;
   readonly actionLog: readonly JsonRecord[];
   readonly capabilityExecutions: readonly JsonRecord[];
+  readonly ecosystemReference: JsonRecord | null;
 }
 
 function record(value: TesterSimulatorJsonValue, label: string): JsonRecord {
@@ -170,6 +171,7 @@ export const testerSimulatorBehavior = Object.freeze({
       aiConfig: initialConfig(scenario),
       actionLog: [],
       capabilityExecutions: [],
+      ecosystemReference: null,
     };
   },
 
@@ -180,6 +182,30 @@ export const testerSimulatorBehavior = Object.freeze({
   ) {
     const current = state(currentValue);
     const payload = payloadRecord(envelope);
+    if (envelope.type === 'tester.ecosystem.observe') {
+      if (payload.protocolRevision !== 1
+        || !Number.isSafeInteger(payload.ecosystemRevision)
+        || typeof payload.interactionId !== 'string'
+        || typeof payload.checkpointId !== 'string'
+        || typeof payload.label !== 'string'
+        || !Number.isSafeInteger(payload.committedAt)) {
+        throw new Error('TESTER_SIMULATOR_ECOSYSTEM_REFERENCE_INVALID');
+      }
+      return {
+        state: {
+          ...current,
+          ecosystemReference: {
+            protocolRevision: 1,
+            ecosystemRevision: payload.ecosystemRevision,
+            interactionId: payload.interactionId,
+            checkpointId: payload.checkpointId,
+            label: payload.label,
+            committedAt: payload.committedAt,
+          },
+        },
+        events: [],
+      };
+    }
     if (envelope.type === 'tester.run.allocate') {
       return { state: { ...current, runSequence: current.runSequence + 1 }, events: [] };
     }

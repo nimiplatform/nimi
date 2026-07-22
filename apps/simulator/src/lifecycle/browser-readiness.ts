@@ -49,49 +49,82 @@ export function createAssignedRootRegistry(): SimulatorAssignedRootRegistry {
 interface CommitWaiter {
   readonly floor: number;
   readonly resolve: (token: number) => void;
+  readonly reject: (error: Error) => void;
   readonly signal: AbortSignal;
   readonly onAbort: () => void;
 }
 
+export interface SimulatorSurfaceCommitScope {
+  readonly instanceId: string;
+  readonly surfaceId: string;
+}
+
+interface SurfaceCommitState {
+  token: number;
+  readonly waiters: Set<CommitWaiter>;
+}
+
 export interface SimulatorReactCommitTracker {
-  current(): number;
-  recordCommit(): number;
-  awaitAfter(floor: number, signal: AbortSignal): Promise<number>;
+  current(scope: SimulatorSurfaceCommitScope): number;
+  recordCommit(scope: SimulatorSurfaceCommitScope): number;
+  awaitAfter(input: SimulatorSurfaceCommitScope & { readonly floor: number; readonly signal: AbortSignal }): Promise<number>;
+  release(scope: SimulatorSurfaceCommitScope): void;
 }
 
 export function createReactCommitTracker(): SimulatorReactCommitTracker {
-  let token = 0;
-  const waiters = new Set<CommitWaiter>();
+  const surfaces = new Map<string, SurfaceCommitState>();
 
-  function remove(waiter: CommitWaiter): void {
-    waiters.delete(waiter);
+  function state(scope: SimulatorSurfaceCommitScope): SurfaceCommitState {
+    const key = rootKey(scope.instanceId, scope.surfaceId);
+    const existing = surfaces.get(key);
+    if (existing) return existing;
+    const created = { token: 0, waiters: new Set<CommitWaiter>() };
+    surfaces.set(key, created);
+    return created;
+  }
+
+  function remove(surface: SurfaceCommitState, waiter: CommitWaiter): void {
+    surface.waiters.delete(waiter);
     waiter.signal.removeEventListener('abort', waiter.onAbort);
   }
 
   const tracker: SimulatorReactCommitTracker = {
-    current: () => token,
-    recordCommit() {
-      token += 1;
-      for (const waiter of [...waiters]) {
-        if (token <= waiter.floor) continue;
-        remove(waiter);
-        waiter.resolve(token);
+    current: (scope) => surfaces.get(rootKey(scope.instanceId, scope.surfaceId))?.token ?? 0,
+    recordCommit(scope) {
+      const surface = state(scope);
+      surface.token += 1;
+      for (const waiter of [...surface.waiters]) {
+        if (surface.token <= waiter.floor) continue;
+        remove(surface, waiter);
+        waiter.resolve(surface.token);
       }
-      return token;
+      return surface.token;
     },
-    awaitAfter(floor, signal) {
+    awaitAfter(input) {
+      const { floor, signal } = input;
       if (signal.aborted) return Promise.reject(new Error('SIMULATOR_READINESS_CANCELLED'));
-      if (token > floor) return Promise.resolve(token);
+      const surface = state(input);
+      if (surface.token > floor) return Promise.resolve(surface.token);
       return new Promise<number>((resolve, reject) => {
         let waiter: CommitWaiter;
         const onAbort = (): void => {
-          remove(waiter);
+          remove(surface, waiter);
           reject(new Error('SIMULATOR_READINESS_CANCELLED'));
         };
-        waiter = { floor, resolve, signal, onAbort };
-        waiters.add(waiter);
+        waiter = { floor, resolve, reject, signal, onAbort };
+        surface.waiters.add(waiter);
         signal.addEventListener('abort', onAbort, { once: true });
       });
+    },
+    release(scope) {
+      const key = rootKey(scope.instanceId, scope.surfaceId);
+      const surface = surfaces.get(key);
+      if (!surface) return;
+      surfaces.delete(key);
+      for (const waiter of [...surface.waiters]) {
+        remove(surface, waiter);
+        waiter.reject(new Error('SIMULATOR_READINESS_CANCELLED'));
+      }
     },
   };
   return Object.freeze(tracker);
@@ -251,7 +284,13 @@ export function createBrowserReadinessPort(options: SimulatorBrowserReadinessOpt
   }
 
   const port: SimulatorReadinessBrowserPort = {
-    awaitCommit: (floor, signal) => options.commits.awaitAfter(floor, signal),
+    currentCommitToken: (scope) => options.commits.current(scope),
+    awaitCommit: (input) => options.commits.awaitAfter({
+      instanceId: input.instanceId,
+      surfaceId: input.surfaceId,
+      floor: input.sinceToken,
+      signal: input.signal,
+    }),
     nextAnimationFrame(signal) {
       if (signal.aborted) return Promise.reject(new Error('SIMULATOR_READINESS_CANCELLED'));
       return new Promise<number>((resolve, reject) => {

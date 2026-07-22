@@ -34,7 +34,8 @@ function expectation(overrides = {}) {
 function browserPort(overrides = {}) {
   let frame = 0;
   return {
-    awaitCommit: async (floor) => floor + 1,
+    currentCommitToken: () => 1,
+    awaitCommit: async ({ sinceToken }) => sinceToken + 1,
     nextAnimationFrame: async () => { frame += 1; return frame; },
     beginPaintComposite: async () => 'fixture-paint-window',
     markPaintCompositeFrame: async () => true,
@@ -73,7 +74,6 @@ function createBarrier(engine, overrides = {}) {
     browser: browserPort(overrides.browser),
     projectionPredicate: overrides.projectionPredicate ?? (() => true),
     blockingPredicate: overrides.blockingPredicate ?? (() => false),
-    commitToken: overrides.commitToken ?? (() => 1),
     projection: overrides.projection ?? (() => ({})),
     simulationDisclosureVisible: overrides.simulationDisclosureVisible ?? (() => true),
   });
@@ -84,9 +84,9 @@ test('full barrier: candidate, quiescence, commit, two frames, paint evidence, u
   const order = [];
   const barrier = createBarrier(engine, {
     browser: {
-      awaitCommit: async (floor) => {
+      awaitCommit: async ({ sinceToken }) => {
         order.push('commit');
-        return floor + 1;
+        return sinceToken + 1;
       },
       beginPaintComposite: async () => {
         order.push('paint-begin');
@@ -143,6 +143,31 @@ test('full barrier: candidate, quiescence, commit, two frames, paint evidence, u
   const shell = engine.getCommitted().partitions.shell;
   assert.equal(shell.readiness['1:ready:1'].state, 'usable');
   assert.equal(shell.readiness['1:ready:1'].reason, 'qualified');
+});
+
+test('candidate binds the pre-signal commit floor before asynchronous quiescence work', async () => {
+  const engine = await createEngine();
+  let commitToken = 7;
+  let observedFloor = null;
+  const barrier = createBarrier(engine, {
+    browser: {
+      currentCommitToken: () => commitToken,
+      awaitCommit: async ({ instanceId, surfaceId, sinceToken }) => {
+        assert.equal(instanceId, '1:instance:1');
+        assert.equal(surfaceId, 'main');
+        observedFloor = sinceToken;
+        return sinceToken + 1;
+      },
+    },
+  });
+
+  assert.deepEqual(
+    barrier.signalCandidate({ contractId: DECLARATION.contractId }),
+    { ok: true, value: { signaled: true } },
+  );
+  commitToken = 99;
+  assert.equal((await barrier.completion).state, 'usable');
+  assert.equal(observedFloor, 7);
 });
 
 test('completion remains pending until its ordered State Engine publication commits', async () => {
@@ -354,7 +379,6 @@ test('declaration and expectation must match exactly at signal acceptance', asyn
     browser: browserPort(),
     projectionPredicate: () => true,
     blockingPredicate: () => false,
-    commitToken: () => 1,
     projection: () => ({}),
     simulationDisclosureVisible: () => true,
   });

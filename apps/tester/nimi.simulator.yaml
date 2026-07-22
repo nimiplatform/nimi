@@ -25,6 +25,7 @@ requires:
     - tester.action.record
     - tester.ai-config.update
     - tester.capability.execute
+    - tester.ecosystem.observe
     - tester.history.append
     - tester.image-history.append
     - tester.prompt.save

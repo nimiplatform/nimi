@@ -362,7 +362,9 @@ exactValue(rootPackage.scripts?.['check:simulator-modules'], 'node scripts/with-
 exactValue(rootPackage.scripts?.['build:simulator'], 'node scripts/with-workspace-surfaces.mjs -- pnpm --filter @nimiplatform/simulator build', 'root Simulator build command');
 exactValue(rootPackage.scripts?.['check:simulator-reproducible-build'], 'node scripts/with-workspace-surfaces.mjs -- node apps/simulator/build/check-reproducible-build.mjs', 'root Simulator reproducible-build command');
 exactValue(rootPackage.scripts?.['test:simulator-contract'], 'pnpm --filter @nimiplatform/simulator test:contract', 'root Simulator contract command');
+exactValue(rootPackage.scripts?.['test:simulator-integration'], 'pnpm --filter @nimiplatform/simulator test:integration', 'root Simulator integration command');
 exactValue(rootPackage.scripts?.['check:simulator-cp5-z'], 'pnpm build:simulator && pnpm --filter @nimiplatform/simulator qualify:cp5-z', 'root Simulator CP5-Z command');
+exactValue(rootPackage.scripts?.['check:simulator-cp6'], 'pnpm build:simulator && pnpm --filter @nimiplatform/simulator qualify:cp6', 'root Simulator CP6 command');
 
 const simulatorPackage = JSON.parse(read('apps/simulator/package.json') || '{}');
 exactValue(simulatorPackage.name, '@nimiplatform/simulator', 'Simulator package name');
@@ -385,8 +387,14 @@ exactValue(
   'node --test test/contract/*.test.mjs',
   'Simulator prepared contract package command',
 );
+exactValue(
+  simulatorPackage.scripts?.['test:integration'],
+  'node ../../scripts/with-workspace-surfaces.mjs -- tsx --test test/integration/*.test.mjs',
+  'Simulator integration package command',
+);
 exactValue(simulatorPackage.scripts?.['qualify:cp5-z'], 'node build/qualify-cp5-z.mjs', 'Simulator CP5-Z package command');
-exactValue(simulatorPackage.devDependencies?.playwright, '1.61.1', 'Simulator CP5-Z pinned browser dependency');
+exactValue(simulatorPackage.scripts?.['qualify:cp6'], 'node build/qualify-cp6.mjs', 'Simulator CP6 package command');
+exactValue(simulatorPackage.devDependencies?.playwright, '1.61.1', 'Simulator pinned browser dependency');
 
 const appToolsPackage = JSON.parse(read('app-tools/package.json') || '{}');
 exactValue(appToolsPackage.exports?.['./simulator-conformance'], './lib/simulator-conformance.mjs', 'app-tools Simulator conformance export');
@@ -414,7 +422,15 @@ const simulatorCp5ZGate = releaseRegistry.gates?.find((entry) => entry.id === 'g
 exactValue(simulatorCp5ZGate?.command, 'pnpm --filter @nimiplatform/simulator qualify:cp5-z', 'Simulator CP5-Z release-gate command');
 exactSet(simulatorCp5ZGate?.tiers, ['release'], 'Simulator CP5-Z gate tiers');
 exactSet(simulatorCp5ZGate?.targets, ['any'], 'Simulator CP5-Z gate targets');
-exactSet(simulatorCp5ZGate?.prerequisites, ['gate.simulator.contract'], 'Simulator CP5-Z prerequisites');
+exactSet(simulatorCp5ZGate?.prerequisites, ['gate.simulator.build', 'gate.simulator.contract'], 'Simulator CP5-Z prerequisites');
+const simulatorIntegrationGate = releaseRegistry.gates?.find((entry) => entry.id === 'gate.simulator.integration');
+exactValue(simulatorIntegrationGate?.command, 'pnpm test:simulator-integration', 'Simulator integration release-gate command');
+exactSet(simulatorIntegrationGate?.prerequisites, ['gate.simulator.contract'], 'Simulator integration prerequisites');
+const simulatorCp6Gate = releaseRegistry.gates?.find((entry) => entry.id === 'gate.simulator.cp6');
+exactValue(simulatorCp6Gate?.command, 'pnpm --filter @nimiplatform/simulator qualify:cp6', 'Simulator CP6 release-gate command');
+exactSet(simulatorCp6Gate?.tiers, ['release'], 'Simulator CP6 gate tiers');
+exactSet(simulatorCp6Gate?.targets, ['any'], 'Simulator CP6 gate targets');
+exactSet(simulatorCp6Gate?.prerequisites, ['gate.simulator.integration', 'gate.simulator.cp5-z'], 'Simulator CP6 prerequisites');
 
 const testGovernance = readYaml('.nimi/spec/platform/kernel/tables/test-governance-policy.yaml');
 if (!testGovernance.census?.exclude_paths?.includes('apps/simulator/.generated')) {
@@ -436,10 +452,20 @@ exactSet(
   'Simulator contract test-governance workspace surfaces',
 );
 exactValue(simulatorContractSuite?.workspace_order, 36, 'Simulator contract test-governance order');
+const simulatorIntegrationSuite = testGovernance.suites?.find((entry) => entry.id === 'simulator-integration');
+exactValue(simulatorIntegrationSuite?.lane, 'workspace_regression', 'Simulator integration lane');
+exactValue(simulatorIntegrationSuite?.gate_id, 'gate.simulator.integration', 'Simulator integration test-governance gate');
+exactValue(simulatorIntegrationSuite?.command, 'pnpm test:simulator-integration', 'Simulator integration test-governance command');
+exactSet(simulatorIntegrationSuite?.requires_workspace_surfaces, ['sdk_dist', 'kit_dist'], 'Simulator integration workspace surfaces');
+exactValue(simulatorIntegrationSuite?.workspace_order, 37, 'Simulator integration test-governance order');
 const simulatorCp5ZSuite = testGovernance.suites?.find((entry) => entry.id === 'simulator-cp5-z-product-acceptance');
 exactValue(simulatorCp5ZSuite?.lane, 'product_acceptance', 'Simulator CP5-Z acceptance lane');
 exactValue(simulatorCp5ZSuite?.gate_id, 'gate.simulator.cp5-z', 'Simulator CP5-Z test-governance gate');
 exactValue(simulatorCp5ZSuite?.command, 'pnpm --filter @nimiplatform/simulator qualify:cp5-z', 'Simulator CP5-Z test-governance command');
+const simulatorCp6Suite = testGovernance.suites?.find((entry) => entry.id === 'simulator-cp6-product-acceptance');
+exactValue(simulatorCp6Suite?.lane, 'product_acceptance', 'Simulator CP6 acceptance lane');
+exactValue(simulatorCp6Suite?.gate_id, 'gate.simulator.cp6', 'Simulator CP6 test-governance gate');
+exactValue(simulatorCp6Suite?.command, 'pnpm --filter @nimiplatform/simulator qualify:cp6', 'Simulator CP6 test-governance command');
 
 const auditEvidenceRoots = readYaml('.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml');
 const simulatorEvidenceRoot = auditEvidenceRoots.roots?.find((entry) => entry.id === 'platform-simulator-authority');

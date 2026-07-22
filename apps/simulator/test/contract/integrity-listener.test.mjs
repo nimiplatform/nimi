@@ -26,10 +26,16 @@ test('integrity error family terminates through bootstrap callback attribution',
   const windowTarget = listenerTarget();
   const documentTarget = listenerTarget();
   const scopes = [];
+  let activeScope = null;
   const guard = {
     withScope(scope, callback) {
       scopes.push(`${scope.owner}:${scope.phase}`);
-      return callback();
+      activeScope = scope;
+      try {
+        return callback();
+      } finally {
+        activeScope = null;
+      }
     },
   };
   const coordinator = createGlobalListenerCoordinator([{
@@ -49,7 +55,10 @@ test('integrity error family terminates through bootstrap callback attribution',
   installSimulatorIntegrityListener({
     guard,
     coordinator,
-    terminate() { terminalCount += 1; },
+    terminate() {
+      assert.equal(activeScope, null);
+      terminalCount += 1;
+    },
   });
   assert.equal(coordinator.familyListenerCount('integrity_error'), 2);
   windowTarget.dispatch('error', { message: 'must not enter product state' });

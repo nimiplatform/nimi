@@ -11,6 +11,7 @@ import {
   type SimulatorStreamMethodDeclaration,
 } from './engine.ts';
 import { replayStreamMethodIdentity } from './replay-identity.ts';
+import type { SimulatorInteractionDeclaration } from './interactions.ts';
 import type {
   SimulatorModuleDefinition,
   SimulatorScenarioDeclaration,
@@ -25,6 +26,7 @@ export function simulatorReplayRecordDigest(record: SimulatorReplayRecord): stri
 export interface SimulatorReplayOptions {
   readonly scenario: SimulatorScenarioDeclaration;
   readonly modules: readonly SimulatorModuleDefinition[];
+  readonly interactions?: readonly SimulatorInteractionDeclaration[];
   readonly streamMethods?: readonly SimulatorStreamMethodDeclaration[];
   readonly hooks?: SimulatorStateEngineHooks;
   /** Called for every replayed external operation settlement, in order. */
@@ -72,7 +74,11 @@ export async function replaySimulatorSession(
   options: SimulatorReplayOptions,
 ): Promise<SimulatorReplayOutcome> {
   assertReplayIdentity(record, options);
-  const engine = createSimulatorStateEngine({ scenario: options.scenario, hooks: options.hooks });
+  const engine = createSimulatorStateEngine({
+    scenario: options.scenario,
+    interactions: options.interactions,
+    hooks: options.hooks,
+  });
   for (const definition of options.modules) {
     const { behavior, ...catalog } = definition;
     engine.registerModuleCatalog(catalog);

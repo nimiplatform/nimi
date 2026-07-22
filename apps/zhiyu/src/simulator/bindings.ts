@@ -20,6 +20,7 @@ type Projection = {
     readonly responseText: string;
   };
   readonly turnSequence: number;
+  readonly ecosystemReference: JsonRecord | null;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -34,7 +35,8 @@ function projection(context: ZhiyuSimulatorPrepareContext): Projection {
     || typeof value.scenario.ownerUserId !== 'string'
     || !Array.isArray(value.scenario.agents)
     || typeof value.scenario.responseText !== 'string'
-    || !Number.isSafeInteger(value.turnSequence)) {
+    || !Number.isSafeInteger(value.turnSequence)
+    || (value.ecosystemReference !== null && !isRecord(value.ecosystemReference))) {
     throw new Error('ZHIYU_SIMULATOR_PROJECTION_INVALID');
   }
   return value as unknown as Projection;
@@ -48,6 +50,7 @@ function simulatedHome(
   const selected = scenario.agents.find((agent) => agent.localAgentRef === selectedLocalAgentRef)
     ?? scenario.agents[0];
   if (!selected) throw new Error('ZHIYU_SIMULATOR_AGENT_REQUIRED');
+  const currentProjection = projection(context);
   const initial = createInitialZhiyuEvidence();
   const identity = {
     ownerUserId: scenario.ownerUserId,
@@ -132,7 +135,9 @@ function simulatedHome(
       observedAt: new Date(context.clock.now()).toISOString(),
       stateUpdatedAt: new Date(context.clock.now()).toISOString(),
       executionState: 'idle',
-      statusText: '等待与你对话',
+      statusText: currentProjection.ecosystemReference
+        ? `生态 revision ${String(currentProjection.ecosystemReference.ecosystemRevision)}`
+        : '等待与你对话',
       participationMode: 'idle',
       participationSource: 'simulator-state-engine',
       projectedFields: ['executionState', 'statusText', 'participationMode'],
@@ -284,9 +289,40 @@ export function createZhiyuSimulatorBindings(
     for (const listener of companionListeners) listener(companion);
   });
   if (!eventSubscription.ok) throw new Error('ZHIYU_SIMULATOR_EVENT_SUBSCRIPTION_REJECTED');
+  let observedEcosystemRevision = 0;
+  const projectEcosystemCompanion = (
+    reference: JsonRecord,
+  ): ZhiyuEvidence['companion'] | null => {
+    if (!Number.isSafeInteger(reference.ecosystemRevision)) return null;
+    const revision = reference.ecosystemRevision as number;
+    const baseline = publishedEvidence?.companion ?? simulatedHome(context, null).companion;
+    observedEcosystemRevision = Math.max(observedEcosystemRevision, revision);
+    return {
+      ...baseline,
+      ready: true,
+      state: 'projected',
+      reasonCode: 'simulator-ecosystem-reference-projected',
+      actionHint: 'inspect_simulated_ecosystem_revision',
+      source: 'simulator',
+      message: `Shared simulated ecosystem revision ${revision} reached Zhiyu.`,
+      executionState: 'idle',
+      statusText: `生态 revision ${revision}`,
+      observedAt: new Date(context.clock.now()).toISOString(),
+    };
+  };
+  const unsubscribeProjection = context.projection.subscribe(() => {
+    const reference = projection(context).ecosystemReference;
+    if (!reference || !Number.isSafeInteger(reference.ecosystemRevision)) return;
+    const revision = reference.ecosystemRevision as number;
+    if (revision <= observedEcosystemRevision) return;
+    const companion = projectEcosystemCompanion(reference);
+    if (!companion) return;
+    for (const listener of companionListeners) listener(companion);
+  });
   const cleanupRegistration = context.cleanup.add(() => {
     routeListeners.clear();
     unsubscribeRoute();
+    unsubscribeProjection();
     companionListeners.clear();
     eventSubscription.value();
   });
@@ -433,6 +469,11 @@ export function createZhiyuSimulatorBindings(
         },
         subscribeCompanion({ onCompanion }: Parameters<ZhiyuCanonicalRendererBindings['app']['events']['subscribeCompanion']>[0]) {
           companionListeners.add(onCompanion);
+          const reference = projection(context).ecosystemReference;
+          if (reference) {
+            const companion = projectEcosystemCompanion(reference);
+            if (companion) onCompanion(companion);
+          }
           return () => companionListeners.delete(onCompanion);
         },
       }),

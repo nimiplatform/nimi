@@ -3,6 +3,17 @@ export const simulatorConformanceFixture = {
   moduleId: 'zhiyu',
   catalog: {
     commandSchemas: {
+      'zhiyu.ecosystem.project': {
+        kind: 'object',
+        properties: {
+          protocolRevision: { kind: 'integer', minimum: 1, maximum: 1 },
+          ecosystemRevision: { kind: 'integer', minimum: 1 },
+          interactionId: { kind: 'string', minLength: 1, maxLength: 256 },
+          checkpointId: { kind: 'string', minLength: 1, maxLength: 128 },
+          label: { kind: 'string', minLength: 1, maxLength: 256 },
+          committedAt: { kind: 'integer', minimum: 0 },
+        },
+      },
       'zhiyu.turn.allocate': {
         kind: 'object',
         properties: {},
@@ -16,6 +27,17 @@ export const simulatorConformanceFixture = {
       },
     },
     eventSchemas: {
+      'zhiyu.ecosystem.projected': {
+        kind: 'object',
+        properties: {
+          protocolRevision: { kind: 'integer', minimum: 1, maximum: 1 },
+          ecosystemRevision: { kind: 'integer', minimum: 1 },
+          interactionId: { kind: 'string', minLength: 1, maxLength: 256 },
+          checkpointId: { kind: 'string', minLength: 1, maxLength: 128 },
+          label: { kind: 'string', minLength: 1, maxLength: 256 },
+          committedAt: { kind: 'integer', minimum: 0 },
+        },
+      },
       'zhiyu.conversation.updated': {
         kind: 'object',
         properties: {

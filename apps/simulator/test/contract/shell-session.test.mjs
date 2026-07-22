@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createSimulatorStateEngine } from '../../src/state-engine/engine.ts';
-import { createSimulatorSession } from '../../src/shell/session.ts';
+import {
+  createSimulatorSession,
+  parseShellRoute,
+  serializeShellRoute,
+} from '../../src/shell/session.ts';
 import { createGlobalListenerCoordinator } from '../../src/shell/global-coordinator.ts';
 import { generateEffectCatalog } from '../../build/generate-effect-catalog.mjs';
 import {
@@ -44,7 +48,8 @@ function fakeTimers() {
 function readinessBrowser() {
   let frame = 0;
   return {
-    awaitCommit: async (floor) => floor + 1,
+    currentCommitToken: () => 1,
+    awaitCommit: async ({ sinceToken }) => sinceToken + 1,
     nextAnimationFrame: async () => { frame += 1; return frame; },
     beginPaintComposite: async () => 'fixture-paint-window',
     markPaintCompositeFrame: async () => true,
@@ -95,7 +100,10 @@ function moduleSourceFor(moduleId, behavior = {}) {
       moduleId,
       behavior: fixtureModule(moduleId).behavior,
       create: () => ({
-        prepare: behavior.prepare ?? (() => fixtureCanonicalBindings()),
+        prepare: behavior.prepare ?? ((context) => {
+          behavior.capturePrepareContext?.(context);
+          return fixtureCanonicalBindings();
+        }),
         activate: behavior.activate ?? (() => {}),
         deactivate: behavior.deactivate ?? (() => {}),
         dispose: behavior.dispose ?? (() => {}),
@@ -124,6 +132,8 @@ function createSession({
   registryRows = [],
   readiness = true,
   readinessBrowserPort = readinessBrowser(),
+  onRouteChange,
+  writeRoute,
 } = {}) {
   const clock = fakeTimers();
   const session = createSimulatorSession({
@@ -138,8 +148,9 @@ function createSession({
       unmount: () => {},
     }),
     readinessBrowser: readinessBrowserPort,
-    commitToken: () => 1,
     simulationDisclosureVisible: () => true,
+    onRouteChange,
+    writeRoute,
     readinessDeclarations: readiness ? { 'fixture-module/main': READINESS_DECLARATION } : {},
     readinessExpectations: readiness ? { 'fixture-module/main': READINESS_EXPECTATION } : {},
     readinessProjectionPredicates: readiness ? { 'fixture-projection': () => true } : {},
@@ -188,6 +199,124 @@ test('shell opens, activates, and closes an instance from the generated registry
   assert.deepEqual(session.instances().map((instance) => instance.status), ['disposed']);
 });
 
+test('full-window routes project one instance, write a deep link, and exit on close', async () => {
+  const moduleId = 'fixture-module';
+  const row = registryRow(moduleId, moduleSourceFor(moduleId));
+  const projected = [];
+  const written = [];
+  const { session } = createSession({
+    modules: [fixtureModule()],
+    registryRows: [row],
+    onRouteChange: (route) => projected.push(route),
+    writeRoute: (path, replace) => written.push({ path, replace }),
+  });
+  const opened = await session.openInstance(moduleId);
+  session.navigate({
+    kind: 'instance',
+    instanceId: opened.value.instanceId,
+    appRoute: {
+      pathname: '/details',
+      search: [{ key: 'view', value: 'first' }, { key: 'view', value: 'second' }],
+      fragment: 'section one',
+    },
+  });
+  assert.deepEqual(session.route(), {
+    kind: 'instance',
+    instanceId: opened.value.instanceId,
+    appRoute: {
+      pathname: '/details',
+      search: [{ key: 'view', value: 'first' }, { key: 'view', value: 'second' }],
+      fragment: 'section one',
+    },
+  });
+  assert.deepEqual(projected.at(-1), session.route());
+  assert.deepEqual(written.at(-1), {
+    path: `/instance/${encodeURIComponent(opened.value.instanceId)}/details?view=first&view=second#section%20one`,
+    replace: false,
+  });
+  assert.equal(session.engine.getCommitted().instance(opened.value.instanceId).route.pathname, '/details');
+  await session.closeInstance(opened.value.instanceId);
+  assert.equal(session.route().kind, 'home');
+  assert.deepEqual(written.at(-1), { path: '/', replace: true });
+});
+
+test('Shell deep links preserve ordered query entries and the fragment', () => {
+  const route = {
+    kind: 'instance',
+    instanceId: '3:instance:17',
+    appRoute: {
+      pathname: '/settings/profile',
+      search: [{ key: 'tab', value: 'one' }, { key: 'tab', value: 'two' }],
+      fragment: 'profile controls',
+    },
+  };
+  const serialized = serializeShellRoute(route);
+  assert.equal(serialized, '/instance/3%3Ainstance%3A17/settings/profile?tab=one&tab=two#profile%20controls');
+  assert.deepEqual(parseShellRoute({
+    pathname: '/instance/3%3Ainstance%3A17/settings/profile',
+    search: '?tab=one&tab=two',
+    hash: '#profile%20controls',
+  }), route);
+  assert.equal(parseShellRoute({ pathname: '/instance/not-an-instance', search: '', hash: '' }), null);
+  assert.equal(parseShellRoute({ pathname: '/instance/3%3Ainstance%3A17//authority', search: '', hash: '' }), null);
+  assert.equal(parseShellRoute({ pathname: '/instance/3%3Ainstance%3A17/%2e%2e/escape', search: '', hash: '' }), null);
+});
+
+test('an App-originated route update replaces the active full-window URL', async () => {
+  const moduleId = 'fixture-module';
+  let adapterContext = null;
+  const row = registryRow(moduleId, moduleSourceFor(moduleId, {
+    capturePrepareContext: (context) => { adapterContext = context; },
+  }));
+  const written = [];
+  const { session } = createSession({
+    modules: [fixtureModule()],
+    registryRows: [row],
+    writeRoute: (path, replace) => written.push({ path, replace }),
+  });
+  const opened = await session.openInstance(moduleId);
+  session.navigate({
+    kind: 'instance',
+    instanceId: opened.value.instanceId,
+    appRoute: { pathname: '/', search: [], fragment: null },
+  });
+  const navigated = await adapterContext.route.navigate({
+    pathname: '/inside-app',
+    search: [{ key: 'mode', value: 'inspect' }],
+    fragment: 'result',
+  });
+  assert.equal(navigated.ok, true);
+  assert.deepEqual(session.route(), {
+    kind: 'instance',
+    instanceId: opened.value.instanceId,
+    appRoute: {
+      pathname: '/inside-app',
+      search: [{ key: 'mode', value: 'inspect' }],
+      fragment: 'result',
+    },
+  });
+  assert.deepEqual(written.at(-1), {
+    path: `/instance/${encodeURIComponent(opened.value.instanceId)}/inside-app?mode=inspect#result`,
+    replace: true,
+  });
+});
+
+test('a deep link selected before launch is applied after its deterministic instance opens', async () => {
+  const moduleId = 'fixture-module';
+  const row = registryRow(moduleId, moduleSourceFor(moduleId));
+  const { session } = createSession({ modules: [fixtureModule()], registryRows: [row] });
+  const appRoute = {
+    pathname: '/deep',
+    search: [{ key: 'from', value: 'shell' }],
+    fragment: 'target',
+  };
+  session.navigate({ kind: 'instance', instanceId: '1:instance:1', appRoute }, { history: false });
+  const opened = await session.openInstance(moduleId);
+  assert.equal(opened.ok, true);
+  assert.deepEqual(session.engine.getCommitted().instance(opened.value.instanceId).route, appRoute);
+  assert.deepEqual(session.route(), { kind: 'instance', instanceId: opened.value.instanceId, appRoute });
+});
+
 test('readiness barriers are session-owned and cancel on close', async () => {
   const moduleId = 'fixture-module';
   const row = registryRow(moduleId, moduleSourceFor(moduleId));
@@ -230,7 +359,11 @@ test('scenario reset disposes instances and returns the shell home', async () =>
     registryRows: [row],
   });
   await session.openInstance(moduleId);
-  session.navigate({ kind: 'instance', instanceId: '1:instance:1', appPath: '/' });
+  session.navigate({
+    kind: 'instance',
+    instanceId: '1:instance:1',
+    appRoute: { pathname: '/', search: [], fragment: null },
+  });
   const reset = await session.resetScenario();
   assert.equal(reset.ok, true);
   assert.equal(session.epoch, 2);

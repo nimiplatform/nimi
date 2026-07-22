@@ -112,6 +112,12 @@ export interface EngineContext {
 }
 
 export interface EngineContextWiring {
+  readonly onModuleCommandCommitted: (
+    operation: QueuedOperation,
+    moduleId: string,
+    events: readonly SimulatorEventRecord[],
+  ) => void;
+  readonly onResetLinearization: (oldEpoch: number) => void;
   readonly onReservationRelease: (record: {
     readonly reservationId: string;
     readonly allocationSequence: number;

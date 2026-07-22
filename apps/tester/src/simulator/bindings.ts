@@ -71,6 +71,7 @@ interface TesterProjection extends JsonRecord {
   readonly imageHistory: readonly JsonRecord[];
   readonly promptDrafts: Readonly<Record<string, string>>;
   readonly aiConfig: JsonRecord;
+  readonly ecosystemReference: JsonRecord | null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -122,7 +123,8 @@ function projection(context: TesterSimulatorPrepareContext): TesterProjection {
     || !isRecord(value.runHistory)
     || !Array.isArray(value.imageHistory)
     || !isRecord(value.promptDrafts)
-    || !isRecord(value.aiConfig)) {
+    || !isRecord(value.aiConfig)
+    || (value.ecosystemReference !== null && !isRecord(value.ecosystemReference))) {
     throw new Error('Tester simulated projection is invalid.');
   }
   return value as unknown as TesterProjection;
@@ -482,9 +484,26 @@ export function createTesterSimulatorBindings(
     currentRoute = route;
     for (const listener of routeListeners) listener();
   });
+  const ecosystemListeners = new Set<(payload: unknown) => void>();
+  let observedEcosystemRevision = 0;
+  const unsubscribeProjection = context.projection.subscribe(() => {
+    const reference = projection(context).ecosystemReference;
+    if (!reference || !Number.isSafeInteger(reference.ecosystemRevision)) return;
+    const revision = reference.ecosystemRevision as number;
+    if (revision <= observedEcosystemRevision) return;
+    observedEcosystemRevision = revision;
+    const payload = Object.freeze({
+      ecosystemRevision: revision,
+      checkpointId: reference.checkpointId,
+      label: reference.label,
+    });
+    for (const listener of ecosystemListeners) listener(payload);
+  });
   const cleanupRegistration = context.cleanup.add(() => {
     routeListeners.clear();
     unsubscribeRoute();
+    unsubscribeProjection();
+    ecosystemListeners.clear();
   });
   if (!cleanupRegistration.ok) throw new Error('TESTER_SIMULATOR_ROUTE_CLEANUP_REJECTED');
   const sdk = createSdkFacade(context);
@@ -506,6 +525,18 @@ export function createTesterSimulatorBindings(
         async runHistory() {
           return projection(context).runHistory as unknown as TesterRunHistory;
         },
+        ecosystemReference() {
+          const reference = projection(context).ecosystemReference;
+          if (!reference || !Number.isSafeInteger(reference.ecosystemRevision)
+            || typeof reference.checkpointId !== 'string' || typeof reference.label !== 'string') {
+            return null;
+          }
+          return Object.freeze({
+            ecosystemRevision: reference.ecosystemRevision as number,
+            checkpointId: reference.checkpointId,
+            label: reference.label,
+          });
+        },
         preferences() {
           return { schemaVersion: 1 as const, draftPersistence: true, verboseConsole: false };
         },
@@ -526,8 +557,12 @@ export function createTesterSimulatorBindings(
       }),
       commands,
       events: Object.freeze({
-        subscribe(_eventType: string, _listener: (payload: unknown) => void): () => void {
-          throw hostError('Tester declares no App event subscription in this scenario.', 'TESTER_SIMULATED_EVENT_UNDECLARED');
+        subscribe(eventType: string, listener: (payload: unknown) => void): () => void {
+          if (eventType !== 'tester.ecosystem.reference-updated') {
+            throw hostError('Tester event is not declared in this scenario.', 'TESTER_SIMULATED_EVENT_UNDECLARED');
+          }
+          ecosystemListeners.add(listener);
+          return () => ecosystemListeners.delete(listener);
         },
       }),
     },

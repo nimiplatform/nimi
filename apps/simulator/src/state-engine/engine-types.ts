@@ -274,6 +274,7 @@ export interface CommittedState {
 
 export interface SimulatorStateEngineOptions {
   readonly scenario: SimulatorScenarioDeclaration;
+  readonly interactions?: readonly import('./interactions.ts').SimulatorInteractionDeclaration[];
   readonly hooks?: SimulatorStateEngineHooks;
   readonly maxOperationsPerDrain?: number;
 }

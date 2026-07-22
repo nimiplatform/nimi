@@ -3,6 +3,7 @@ import { Button, OverlayShell, Tooltip } from '@nimiplatform/kit/ui';
 import { NimiLabAccountMenu } from '../shell/account/account-panel.js';
 import type { RuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
 import { useTesterRendererHost } from '../renderer/context.js';
+import type { TesterEcosystemReferenceProjection } from '../renderer/contract.js';
 import { getTesterCapability, testerCapabilities, type TesterCapabilityId } from './tester-capabilities.js';
 import { shouldPersistTesterArtifactRecord } from './tester-artifact-persistence.js';
 import {
@@ -140,6 +141,9 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
   const [historySelectionRequest, setHistorySelectionRequest] = useState<TesterHistorySelectionRequest | null>(null);
   const [preferences] = useState<TesterPreferences>(() => rendererHost.app.projection.preferences());
   const [localAppProjection, setLocalAppProjection] = useState<RuntimePlatformProjection | null>(null);
+  const [ecosystemReference, setEcosystemReference] = useState<TesterEcosystemReferenceProjection | null>(
+    () => rendererHost.app.projection.ecosystemReference(),
+  );
   const [permissionLabOpen, setPermissionLabOpen] = useState(false);
 
   const capability = useMemo(() => getTesterCapability(activeCapabilityId), [activeCapabilityId]);
@@ -192,6 +196,18 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
       setLocalAppProjection(projection);
     });
   }, [refreshSummary, refreshHistory, rendererHost]);
+
+  useEffect(() => rendererHost.app.events.subscribe(
+    'tester.ecosystem.reference-updated',
+    (payload) => {
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return;
+      const reference = payload as Partial<TesterEcosystemReferenceProjection>;
+      if (!Number.isSafeInteger(reference.ecosystemRevision)
+        || typeof reference.checkpointId !== 'string'
+        || typeof reference.label !== 'string') return;
+      setEcosystemReference(reference as TesterEcosystemReferenceProjection);
+    },
+  ), [rendererHost]);
 
   const localAppTooltipRows = useMemo(() => {
     const ready = localAppProjection?.status === 'ready' ? localAppProjection : null;
@@ -365,6 +381,16 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
                 draftPersistence={preferences.draftPersistence}
                 headerActions={(
                   <>
+                    {ecosystemReference ? (
+                      <output
+                        role="status"
+                        data-nimi-semantic-id="tester-ecosystem-reference"
+                        data-ecosystem-revision={ecosystemReference.ecosystemRevision}
+                        className="workbench-topbar__attachment workbench-topbar__attachment--success"
+                      >
+                        Ecosystem revision {ecosystemReference.ecosystemRevision}
+                      </output>
+                    ) : null}
                     <Tooltip
                       content={<TopbarStatusTooltip title="Local app" rows={localAppTooltipRows} />}
                       placement="bottom"

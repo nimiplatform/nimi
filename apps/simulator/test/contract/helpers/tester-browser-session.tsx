@@ -221,7 +221,6 @@ session = createSimulatorSession({
     ),
   },
   readinessBlockingPredicates: { 'tester-no-blocking-lease': () => false },
-  commitToken: commits.current,
   simulationDisclosureVisible: () => isSimulationDisclosureVisible(
     browser.document.querySelector('[data-testid="simulator-status"]'),
     (element) => browser.getComputedStyle(element),

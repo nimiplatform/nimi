@@ -10,7 +10,6 @@
 import {
   Component,
   createElement as h,
-  useLayoutEffect,
   useSyncExternalStore,
   type ErrorInfo,
   type ReactNode,
@@ -74,6 +73,7 @@ export interface SimulatorBrowserSurfacePrepareInput {
 
 export interface SimulatorBrowserSurfaceManager {
   prepare(input: SimulatorBrowserSurfacePrepareInput): SimulatorPreparedSurfaceHost;
+  setFullWindow(instanceId: string | null): void;
   renderPortals(): ReactNode;
   readonly liveSurfaceCount: number;
   readonly activeOverlayLeaseCount: number;
@@ -86,6 +86,7 @@ interface SurfaceRecord {
   readonly rendererRoot: HTMLElement;
   readonly overlayRoot: HTMLElement;
   readonly failInstance: (instanceId: string, cause: string) => void;
+  readonly commitObserver: MutationObserver;
   binding: NimiRendererHostBindingV1<NimiRendererHostMethodMap> | null;
   canonical: SimulatorCanonicalInstance | null;
   mounted: boolean;
@@ -114,14 +115,12 @@ class CanonicalSurfaceBoundary extends Component<BoundaryProps, { failed: boolea
   }
 }
 
-function CommitTrackedCanonicalSurface(props: {
+function CanonicalSurface(props: {
   readonly canonical: SimulatorCanonicalInstance;
   readonly surfaceId: string;
-  readonly recordCommit: () => void;
   readonly runRenderer: <T>(callback: () => T) => T;
 }): ReactNode {
   const { canonical, surfaceId } = props;
-  useLayoutEffect(props.recordCommit);
   return props.runRenderer(() => canonical.surfaces[surfaceId].render() as ReactNode);
 }
 
@@ -147,6 +146,7 @@ export function createSimulatorBrowserSurfaceManager(
   let engine: SimulatorStateEngine | null = null;
   let overlays: SimulatorOverlayCoordinator | null = null;
   let portalVersion = 0;
+  let fullWindowInstanceId: string | null = null;
 
   const surfaceContainer = options.document.createElement('div');
   surfaceContainer.id = 'simulator-surfaces';
@@ -197,10 +197,9 @@ export function createSimulatorBrowserSurfaceManager(
           failInstance: record.failInstance,
           children: h(NimiRendererHostProvider<NimiRendererHostMethodMap>, {
             binding: record.binding as NimiRendererHostBindingV1<NimiRendererHostMethodMap>,
-            children: h(CommitTrackedCanonicalSurface, {
+            children: h(CanonicalSurface, {
               canonical: record.canonical as SimulatorCanonicalInstance,
               surfaceId: record.surfaceId,
-              recordCommit: () => { options.commits.recordCommit(); },
               runRenderer: (callback) => options.guard.withScope({
                 owner: 'canonical-renderer',
                 phase: 'render',
@@ -224,6 +223,8 @@ export function createSimulatorBrowserSurfaceManager(
     stage.dataset.instanceId = input.instanceId;
     stage.dataset.moduleId = input.moduleId;
     stage.dataset.surfaceId = input.surfaceId;
+    stage.hidden = fullWindowInstanceId !== null && fullWindowInstanceId !== input.instanceId;
+    stage.dataset.fullWindow = fullWindowInstanceId === input.instanceId ? 'true' : 'false';
     const rendererRoot = options.document.createElement('div');
     rendererRoot.className = `simulator-surface__renderer ${moduleRootClass}`;
     const overlayRoot = options.document.createElement('div');
@@ -234,6 +235,28 @@ export function createSimulatorBrowserSurfaceManager(
       renderer: rendererRoot,
       overlay: overlayRoot,
     });
+    const commitScope = { instanceId: input.instanceId, surfaceId: input.surfaceId };
+    const commitObserver = options.guard.withScope(
+      { owner: 'simulator-shell', phase: 'instance-lifecycle' },
+      () => new MutationObserver(() => {
+        options.guard.withScope(
+          { owner: 'simulator-shell', phase: 'callback' },
+          () => { options.commits.recordCommit(commitScope); },
+        );
+      }),
+    );
+    commitObserver.observe(rendererRoot, {
+      attributes: true,
+      characterData: true,
+      childList: true,
+      subtree: true,
+    });
+    commitObserver.observe(overlayRoot, {
+      attributes: true,
+      characterData: true,
+      childList: true,
+      subtree: true,
+    });
     const record: SurfaceRecord = {
       instanceId: input.instanceId,
       surfaceId: input.surfaceId,
@@ -241,6 +264,7 @@ export function createSimulatorBrowserSurfaceManager(
       rendererRoot,
       overlayRoot,
       failInstance: input.failInstance,
+      commitObserver,
       binding: null,
       canonical: null,
       mounted: false,
@@ -266,6 +290,8 @@ export function createSimulatorBrowserSurfaceManager(
         overlayRoot: record.overlayRoot,
       });
       if (!overlayResult.ok) {
+        record.commitObserver.disconnect();
+        options.commits.release({ instanceId: input.instanceId, surfaceId: input.surfaceId });
         records.delete(input.instanceId);
         options.assignedRoots.release(input.instanceId, input.surfaceId);
         record.stage.remove();
@@ -316,6 +342,8 @@ export function createSimulatorBrowserSurfaceManager(
           const dismissed = await overlayHost.requestDismissAll(reason);
           let failure = dismissed.ok ? null : new Error(dismissed.error.code);
           record.unmounted = true;
+          record.commitObserver.disconnect();
+          options.commits.release({ instanceId: input.instanceId, surfaceId: input.surfaceId });
           flushSync(publishPortals);
           record.canonical = null;
           const released = await overlayHost.acknowledgeInstanceUnmounted(reason);
@@ -332,6 +360,14 @@ export function createSimulatorBrowserSurfaceManager(
         },
       };
       return Object.freeze(surfaceHost);
+    },
+    setFullWindow(instanceId) {
+      fullWindowInstanceId = instanceId;
+      surfaceContainer.dataset.fullWindow = instanceId ? 'true' : 'false';
+      for (const record of records.values()) {
+        record.stage.hidden = instanceId !== null && record.instanceId !== instanceId;
+        record.stage.dataset.fullWindow = instanceId === record.instanceId ? 'true' : 'false';
+      }
     },
     renderPortals() {
       return h(SurfacePortals);

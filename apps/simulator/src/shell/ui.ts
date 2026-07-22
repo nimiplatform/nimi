@@ -112,10 +112,38 @@ function HomeView(props: SimulatorShellViewProps): ReactElement {
             : instance.status === 'inactive'
               ? h('button', { type: 'button', onClick: () => props.onActivate(instance.instanceId) }, 'Activate')
               : null,
+          instance.status === 'active' || instance.status === 'inactive'
+            ? h('button', {
+                type: 'button',
+                onClick: () => props.onNavigate({
+                  kind: 'instance',
+                  instanceId: instance.instanceId,
+                  appRoute: instance.route,
+                }),
+              }, 'Full window')
+            : null,
           instance.status !== 'disposed'
             ? h('button', { type: 'button', onClick: () => props.onClose(instance.instanceId) }, 'Close')
             : null,
           ))),
+  );
+}
+
+function FullWindowView(props: SimulatorShellViewProps): ReactElement {
+  const fullWindowInstanceId = props.route.kind === 'instance' ? props.route.instanceId : null;
+  const instance = fullWindowInstanceId
+    ? props.instances.find((entry) => entry.instanceId === fullWindowInstanceId) ?? null
+    : null;
+  return h('main', {
+    className: 'simulator-full-window',
+    'data-full-window-instance': instance?.instanceId,
+  },
+    h('button', {
+      type: 'button',
+      onClick: () => props.onNavigate({ kind: 'home' }),
+    }, 'Exit full window'),
+    h('span', { role: 'status', 'aria-live': 'polite' },
+      instance ? `${instance.moduleId} full window` : 'Requested instance is unavailable'),
   );
 }
 
@@ -133,14 +161,22 @@ function DiagnosticsView(props: SimulatorShellViewProps): ReactElement {
 }
 
 export function SimulatorShellContent(props: SimulatorShellViewProps): ReactElement {
+  const usableActiveInstanceCount = props.instances.filter((instance) => (
+    instance.status === 'active' && instance.readiness === 'usable'
+  )).length;
   return h('div', {
-    className: 'simulator-shell',
+    className: `simulator-shell${props.route.kind === 'instance' ? ' simulator-shell--full-window' : ''}`,
     'data-registry-digest': props.registryDigest,
     'data-replay-digest': props.replayDigest ?? undefined,
     'data-state-revision': props.stateRevision,
+    'data-usable-active-instance-count': usableActiveInstanceCount,
   },
-    h(Navigation, props),
-    props.route.kind === 'diagnostics' ? h(DiagnosticsView, props) : h(HomeView, props),
+    props.route.kind === 'instance' ? null : h(Navigation, props),
+    props.route.kind === 'diagnostics'
+      ? h(DiagnosticsView, props)
+      : props.route.kind === 'instance'
+        ? h(FullWindowView, props)
+        : h(HomeView, props),
   );
 }
 

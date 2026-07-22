@@ -232,7 +232,7 @@ function createTraceQualification(cdp) {
 }
 
 async function waitForQualifiedInstances(page, traceEvidence, pageDiagnostics, expectedCount = 2) {
-  await page.locator('.simulator-surface').waitFor({ state: 'visible', timeout: 30_000 });
+  await page.locator('.simulator-surface').first().waitFor({ state: 'visible', timeout: 30_000 });
   try {
     await page.waitForFunction((count) => (
       document.querySelectorAll('.simulator-surface').length === count
@@ -262,7 +262,7 @@ async function replayDigest(page) {
 async function qualify() {
   const artifactManifest = JSON.parse(readFileSync(path.join(DIST_ROOT, 'simulator-artifact-manifest.json'), 'utf8'));
   if (artifactManifest.schema !== 'nimi.simulator.artifact-manifest/v1'
-    || artifactManifest.selectedModuleCount !== 2
+    || artifactManifest.selectedModuleCount !== 3
     || typeof artifactManifest.scenarioDigest !== 'string') {
     throw new Error('SIM_CP5_Z_ARTIFACT_NOT_QUALIFIABLE');
   }
@@ -293,8 +293,18 @@ async function qualify() {
   await page.exposeBinding('__NIMI_SIMULATOR_QUALIFICATION_MARK_V1__', (_source, input) => traces.mark(input));
   await page.exposeBinding('__NIMI_SIMULATOR_QUALIFICATION_END_V1__', (_source, input) => traces.end(input));
 
+  const closeDesktopSubset = async () => {
+    while (await page.locator('.simulator-windows__item[data-module-id="desktop"]:not([data-instance-status="disposed"])').count() > 0) {
+      const before = await page.locator('.simulator-surface').count();
+      await page.locator('.simulator-windows__item[data-module-id="desktop"]:not([data-instance-status="disposed"])').first().getByRole('button', { name: 'Close' }).click();
+      await page.waitForFunction((count) => document.querySelectorAll('.simulator-surface').length === count, before - 1);
+    }
+  };
+
   try {
     await page.goto(server.origin, { waitUntil: 'load', timeout: 30_000 });
+    await waitForQualifiedInstances(page, traces.evidence, pageDiagnostics, 6);
+    await closeDesktopSubset();
     await waitForQualifiedInstances(page, traces.evidence, pageDiagnostics, 4);
     const initialReplayDigest = await replayDigest(page);
     const initialStateRevision = Number(await page.locator('.simulator-shell').getAttribute('data-state-revision'));
@@ -346,9 +356,11 @@ async function qualify() {
       throw new Error('SIM_CP5_Z_ACTION_REVISION_NOT_ADVANCED');
     }
 
-    await page.locator('.simulator-windows__item').nth(0).getByRole('button', { name: 'Close' }).click();
+    await page.locator('.simulator-windows__item:not([data-instance-status="disposed"])').first().getByRole('button', { name: 'Close' }).click();
     await page.waitForFunction(() => document.querySelectorAll('.simulator-surface').length === 3);
     await page.locator('button[data-simulator-action="reset"]').click();
+    await waitForQualifiedInstances(page, traces.evidence, pageDiagnostics, 6);
+    await closeDesktopSubset();
     await waitForQualifiedInstances(page, traces.evidence, pageDiagnostics, 4);
     const resetInstanceIds = await page.locator('.simulator-windows__item[data-instance-status="active"]').evaluateAll((nodes) => (
       nodes.map((node) => node.getAttribute('data-instance-id'))
@@ -369,6 +381,8 @@ async function qualify() {
     await page.waitForFunction(() => document.querySelectorAll('.simulator-surface').length === 0);
 
     await page.reload({ waitUntil: 'load', timeout: 30_000 });
+    await waitForQualifiedInstances(page, traces.evidence, pageDiagnostics, 6);
+    await closeDesktopSubset();
     await waitForQualifiedInstances(page, traces.evidence, pageDiagnostics, 4);
     const reproducedReplayDigest = await replayDigest(page);
     if (reproducedReplayDigest !== initialReplayDigest) throw new Error('SIM_CP5_Z_REPLAY_NOT_REPRODUCIBLE');

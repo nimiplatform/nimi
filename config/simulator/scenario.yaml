@@ -1,15 +1,19 @@
 schema: nimi.simulator.scenario/v1
 scenario_id: nimi-ecosystem
-scenario_revision: cp5-z
+scenario_revision: cp6
 seed: e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5
 initial_logical_time: 0
 state:
   scenario:
     disclosure: simulated
-  ecosystem: {}
+  ecosystem:
+    reference: null
   shell:
     readiness: {}
 module_data:
+  - module_id: desktop
+    data:
+      locale: en
   - module_id: tester
     data:
       generatedText: Nimi connects apps through one shared, simulated ecosystem state.
@@ -50,6 +54,14 @@ module_data:
       responseText: 我已收到你的消息。这次回复来自同一条可回放的 Nimi 模拟生态状态链。
 enabled_capabilities: []
 launch:
+  - launch_id: desktop-primary
+    module_id: desktop
+    surface_id: main
+    activate: true
+  - launch_id: desktop-secondary
+    module_id: desktop
+    surface_id: main
+    activate: true
   - launch_id: tester-primary
     module_id: tester
     surface_id: main
@@ -67,6 +79,20 @@ launch:
     surface_id: main
     activate: true
 readiness:
+  - module_id: desktop
+    surface_id: main
+    contract_id: desktop.main.usable
+    root_content_semantic_id: desktop-main-content
+    primary_control:
+      semantic_id: desktop-login-primary
+      aria_role: button
+      accessible_name: Nimi Logo
+    projection:
+      kind: json_pointer_equals
+      json_pointer: /protocolRevision
+      expected: 1
+    blocking:
+      kind: no_active_overlay_lease
   - module_id: tester
     surface_id: main
     contract_id: tester.main.usable

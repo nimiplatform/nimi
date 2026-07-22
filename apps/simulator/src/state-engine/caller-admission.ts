@@ -6,6 +6,7 @@ import { simulatorError, type SimulatorError } from './errors.ts';
 import { INTERNAL, QUERY_COMMITTED } from './engine-types.ts';
 import type { JsonValue } from './json-value.ts';
 import type { SimulatorIssuer } from './types.ts';
+import { SIMULATOR_INTERACTION_EMIT } from './interactions.ts';
 
 const LIVE_INSTANCE_STATUSES = new Set(['loading', 'preparing', 'inactive', 'active']);
 
@@ -87,6 +88,16 @@ function admitsInstanceShellOperation(
 ): boolean {
   const input = payload as Record<string, JsonValue>;
   switch (type) {
+    case SIMULATOR_INTERACTION_EMIT: {
+      const source = input.source;
+      return Boolean(
+        source
+        && typeof source === 'object'
+        && !Array.isArray(source)
+        && (source as Record<string, JsonValue>).moduleId === issuer.moduleId
+        && (source as Record<string, JsonValue>).instanceId === issuer.instanceId,
+      );
+    }
     case INTERNAL.instanceRoute:
       return input.instanceId === issuer.instanceId;
     case INTERNAL.clockSchedule: {

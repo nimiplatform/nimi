@@ -52,11 +52,11 @@ import {
   resetOwnsRecordDisposal,
   type SimulatorInstanceRecord,
 } from './lifecycle-settlements.ts';
-import { adapterCommandAdmissionError } from '../state-engine/caller-admission.ts';
 import {
   assertSimulatorAdapterPortCurrent,
   simulatorAdapterPortError,
 } from './adapter-port-state.ts';
+import { createSimulatorAdapterCommandPorts } from './instance-adapter-command-ports.ts';
 
 export type {
   SimulatorCanonicalInstance,
@@ -110,15 +110,7 @@ export function createSimulatorInstanceHost(options: SimulatorInstanceHostOption
       epoch: record.epoch,
       abortSignal: record.abortController.signal,
       kit: record.surfaceHost.kit,
-      commands: {
-        invoke(type, payload) {
-          const error = adapterCommandAdmissionError(
-            type, record.moduleId, record.instanceId, simulatorAdapterPortError(engine, record),
-          );
-          if (error) return Promise.resolve(simulatorFail(error));
-          return engine.acceptCommand(type, payload, issuer);
-        },
-      },
+      ...createSimulatorAdapterCommandPorts(engine, record),
       events: {
         subscribe(eventType, handler) {
           const error = simulatorAdapterPortError(engine, record);

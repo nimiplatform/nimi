@@ -37,6 +37,7 @@ import {
 } from './module-commands.ts';
 import { beginResetLinearization } from './reset.ts';
 import { processOverlayCommand, registerOverlayCommands } from './overlay-state.ts';
+import { isSimulatorRouteState } from './route-state.ts';
 
 const INTEGER_SCHEMA: SimulatorSchema = { kind: 'integer', minimum: 0, maximum: Number.MAX_SAFE_INTEGER };
 const JOB_ID_SCHEMA: SimulatorSchema = { kind: 'string', pattern: /^[0-9]+:job:[0-9]+$/, minLength: 1 };
@@ -419,6 +420,13 @@ export function processInternalCommand(context: EngineContext, operation: Queued
     }
     case INTERNAL.instanceOpen: {
       const moduleId = payload.moduleId as string;
+      if (!isSimulatorRouteState(payload.initialRoute as JsonValue)) {
+        recordSettlement(context, operation.sequence, operation.settle, simulatorFail(simulatorError('SIMULATOR_INVALID_PAYLOAD', {
+          moduleId,
+          operationId: operation.operationId,
+        })));
+        return;
+      }
       if (!context.moduleCatalogs.has(moduleId)) {
         recordSettlement(context, operation.sequence, operation.settle, simulatorFail(simulatorError('SIMULATOR_MODULE_FAILED', {
           moduleId, operationId: operation.operationId,
@@ -472,6 +480,13 @@ export function processInternalCommand(context: EngineContext, operation: Queued
     }
     case INTERNAL.instanceRoute: {
       const instanceId = payload.instanceId as string;
+      if (!isSimulatorRouteState(payload.route as JsonValue)) {
+        recordSettlement(context, operation.sequence, operation.settle, simulatorFail(simulatorError('SIMULATOR_INVALID_PAYLOAD', {
+          instanceId,
+          operationId: operation.operationId,
+        })));
+        return;
+      }
       const instance = context.committed.snapshot.instances[instanceId];
       if (!instance || (instance.status !== 'inactive' && instance.status !== 'active')) {
         recordSettlement(context, operation.sequence, operation.settle, simulatorFail(simulatorError(

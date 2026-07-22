@@ -12,7 +12,7 @@ registry_id: platform_release_gate_registry
 # file. Hand-edits in projection surfaces are a projection-drift fail.
 
 schema_version: release-gate-registry/v1
-registry_version: "3.1.3"
+registry_version: "3.2.0"
 profile_id: nimi
 # -----------------------------------------------------------------------
 # Tier definitions (P-RELG-012 tier membership constraint)
@@ -63,6 +63,8 @@ reason_codes:
     semantic: blocked_runtime_env_missing_required_secret
   - id: LIVE_PROVIDER_UNAVAILABLE
     semantic: blocked_live_provider_endpoint_unreachable
+  - id: EXTERNAL_REPO_UNAVAILABLE
+    semantic: blocked_required_external_repository_not_available
   - id: BINARY_MISSING
     semantic: blocked_required_binary_not_on_path
   - id: PRECONDITION_NOT_MET
@@ -2024,14 +2026,42 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
+  - id: gate.simulator.integration
+    description: Execute the deterministic Desktop to shared ecosystem to Zhiyu to Tester interaction chain, including typed missing-target and unsupported outcomes plus byte-identical replay.
+    command: pnpm test:simulator-integration
+    runner: pnpm
+    tiers: [release]
+    targets: [any]
+    timeout_seconds: 300
+    prerequisites: [gate.simulator.contract]
+    requires_binaries: [pnpm, node]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
   - id: gate.simulator.cp5-z
-    description: Execute the immutable selected Tester and Zhiyu artifact graph in pinned Chromium, proving both canonical renderers, deterministic interactions, two-instance isolation, real browser readiness, reset, replay, and resource cleanup in one evidence chain.
+    description: Execute the immutable selected three-App artifact in pinned Chromium, qualifying the Tester and Zhiyu canonical renderers, deterministic interactions, two-instance isolation, browser readiness, reset, fresh-launch replay digest, and DOM cleanup.
     command: pnpm --filter @nimiplatform/simulator qualify:cp5-z
     runner: pnpm
     tiers: [release]
     targets: [any]
     timeout_seconds: 600
-    prerequisites: [gate.simulator.contract]
+    prerequisites: [gate.simulator.build, gate.simulator.contract]
+    requires_binaries: [pnpm, node, git]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.simulator.cp6
+    description: Qualify the built three-App artifact interaction, full-window deep-link reload, reset, instance isolation, browser readiness, and DOM cleanup; deterministic interaction replay is proven by the integration prerequisite.
+    command: pnpm --filter @nimiplatform/simulator qualify:cp6
+    runner: pnpm
+    tiers: [release]
+    targets: [any]
+    timeout_seconds: 600
+    prerequisites: [gate.simulator.integration, gate.simulator.cp5-z]
     requires_binaries: [pnpm, node, git]
     evidence: { shape: command_exit }
     p_relg_anchors: [P-RELG-001]

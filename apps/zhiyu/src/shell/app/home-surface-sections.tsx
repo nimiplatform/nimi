@@ -111,6 +111,15 @@ export function CompanionEmotionStatus({ companion }: { readonly companion: Zhiy
       <StatusBadge tone={tone} shape="dot">
         {label}
       </StatusBadge>
+      {companion.statusText && !companion.currentEmotionId && !companion.emotionViolation ? (
+        <span
+          className="max-w-[180px] truncate text-[11px] text-[var(--nimi-text-secondary)]"
+          data-nimi-semantic-id="zhiyu-companion-status"
+          title={companion.statusText}
+        >
+          {companion.statusText}
+        </span>
+      ) : null}
     </span>
   );
 }

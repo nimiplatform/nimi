@@ -361,7 +361,7 @@ export const RECIPES: Recipe[] = [
     category: 'overlays',
     name: 'Dialog',
     exportsLabel: 'Dialog, DialogContent, Button',
-    importNames: ['Dialog', 'DialogContent', 'DialogHeader', 'DialogBody', 'Button'],
+    importNames: ['Dialog', 'DialogContent', 'DialogHeader', 'DialogTitle', 'DialogBody', 'Button'],
     badge: { label: 'interactive', tone: 'info' },
     stage: <DialogDemo />,
     extraImports: ["import { useState } from 'react';"],
@@ -373,7 +373,7 @@ export const RECIPES: Recipe[] = [
       <Button tone="secondary" size="sm" onClick={() => setOpen(true)}>Open dialog</Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent onClose={() => setOpen(false)}>
-          <DialogHeader>Apply AIProfile</DialogHeader>
+          <DialogHeader><DialogTitle>Apply AIProfile</DialogTitle></DialogHeader>
           <DialogBody>Review the NimiAIConfig diff before applying it to this capability.</DialogBody>
         </DialogContent>
       </Dialog>

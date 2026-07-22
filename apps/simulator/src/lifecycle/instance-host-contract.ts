@@ -50,6 +50,15 @@ export interface SimulatorAdapterPrepareContext {
   readonly commands: {
     invoke(type: string, payload: JsonValue): Promise<SimulatorResult<JsonValue>>;
   };
+  readonly interactions: {
+    emit(input: {
+      readonly protocol: 'nimi.simulator.interaction/v1';
+      readonly interactionId: string;
+      readonly targets: readonly string[];
+      readonly type: string;
+      readonly payload: JsonValue;
+    }): Promise<SimulatorResult<JsonValue>>;
+  };
   readonly events: {
     subscribe(
       eventType: string,

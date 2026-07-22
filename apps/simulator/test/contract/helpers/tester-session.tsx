@@ -77,7 +77,8 @@ const session = createSimulatorSession({
     };
   },
   readinessBrowser: {
-    awaitCommit: async (floor) => floor + 1,
+    currentCommitToken: () => 0,
+    awaitCommit: async ({ sinceToken }) => sinceToken + 1,
     nextAnimationFrame: async () => {
       frame += 1;
       return frame;
@@ -87,7 +88,6 @@ const session = createSimulatorSession({
     observePaintComposite: async () => true,
     checkSemanticMarkers: async () => ({ ok: true }),
   },
-  commitToken: () => 0,
   simulationDisclosureVisible: () => true,
   readinessDeclarations: { 'tester/main': readinessDeclaration },
   readinessExpectations: { 'tester/main': readinessExpectation },

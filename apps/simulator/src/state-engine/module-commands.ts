@@ -217,6 +217,7 @@ export function processModuleCommand(
   for (const event of published) {
     deliverEvent(context, event);
   }
+  context.wiring.onModuleCommandCommitted(operation, moduleId, published);
   recordSettlement(context, operation.sequence, operation.settle, simulatorOk({
     revision: context.committed.revision,
     eventIds: published.map((event) => event.eventId),

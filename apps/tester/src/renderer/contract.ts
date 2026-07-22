@@ -40,10 +40,17 @@ import type {
   WorldTourRenderAcceptance,
 } from '../tester/world-tour/world-tour-shared.js';
 
+export interface TesterEcosystemReferenceProjection {
+  readonly ecosystemRevision: number;
+  readonly checkpointId: string;
+  readonly label: string;
+}
+
 export interface TesterRendererProjectionPort {
   runtimePlatform(): Promise<RuntimePlatformProjection>;
   aiConfigSummary(): Promise<TesterAIConfigSummary>;
   runHistory(): Promise<TesterRunHistory>;
+  ecosystemReference(): TesterEcosystemReferenceProjection | null;
   preferences(): TesterPreferences;
   promptDraft(key: TesterPromptDraftKey, enabled: boolean): TesterPromptDraftLoadResult;
 }

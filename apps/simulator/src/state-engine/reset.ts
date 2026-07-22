@@ -49,6 +49,7 @@ export function beginResetLinearization(context: EngineContext, operation: Queue
     throw new SimulatorIntegrityAbort(simulatorError('SIMULATOR_INTEGRITY_FAILURE'));
   }
   context.phase = 'resetting';
+  context.wiring.onResetLinearization(oldEpoch);
   context.epoch += 1;
   context.allocators = createEpochAllocators();
   // Synchronous linearization: close admission, invalidate old tokens,

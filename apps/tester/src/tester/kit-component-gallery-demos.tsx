@@ -7,6 +7,7 @@ import {
   DialogBody,
   DialogContent,
   DialogHeader,
+  DialogTitle,
   NimiTabs,
   NumberStepper,
   OverlayShell,
@@ -94,7 +95,7 @@ export function DialogDemo() {
       <Button tone="secondary" size="sm" onClick={() => setOpen(true)}>Open dialog</Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent onClose={() => setOpen(false)}>
-          <DialogHeader>Apply AIProfile</DialogHeader>
+          <DialogHeader><DialogTitle>Apply AIProfile</DialogTitle></DialogHeader>
           <DialogBody>Review the NimiAIConfig diff before applying it to this capability.</DialogBody>
         </DialogContent>
       </Dialog>

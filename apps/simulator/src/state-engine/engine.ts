@@ -30,6 +30,7 @@ import type {
   SimulatorModuleCatalogDeclaration,
 } from './types.ts';
 import {
+  INTERNAL,
   SIMULATOR_MAX_OPERATIONS_PER_DRAIN,
   SimulatorIntegrityAbort,
   freezeInstancePresentation,
@@ -71,6 +72,8 @@ import {
   engineReplayRecordDigest,
 } from './engine-replay.ts';
 import { registerStreamMethod } from './stream-methods.ts';
+import { createInteractionRuntime } from './interactions.ts';
+import { isSimulatorRouteState } from './route-state.ts';
 
 export {
   SIMULATOR_MAX_OPERATIONS_PER_DRAIN,
@@ -78,9 +81,13 @@ export {
   type SimulatorStateEngine,
   type SimulatorStateEngineOptions,
 };
-
 export function createSimulatorStateEngine(options: SimulatorStateEngineOptions): SimulatorStateEngine {
+  const interactions = createInteractionRuntime(options.interactions, enqueueInternal);
   const context: EngineContext = createEngineContext(options, {
+    onModuleCommandCommitted(operation, moduleId, events) {
+      interactions.onModuleCommandCommitted(context, operation, moduleId, events);
+    },
+    onResetLinearization: interactions.clearEpoch,
     onReservationRelease(record, outcome) {
       const settlement = accept(record.commandType, outcome, record.issuer, record.causationId, {
         derived: true,
@@ -179,42 +186,46 @@ export function createSimulatorStateEngine(options: SimulatorStateEngineOptions)
   // Queue acceptance
   // -------------------------------------------------------------------------
 
-  function enqueueInternal(type: string, payload: JsonValue, issuer: SimulatorIssuer, causationId: string | null): void {
-    void accept(type, payload, issuer, causationId, { derived: true, kind: 'command' });
+  function enqueueInternal(type: string, payload: JsonValue, issuer: SimulatorIssuer, causationId: string | null): string | null {
+    return acceptWithIdentity(type, payload, issuer, causationId, { derived: true, kind: 'command' }).operationId;
   }
 
-  function accept(
+  function acceptWithIdentity(
     type: string,
     payload: JsonValue,
     issuer: SimulatorIssuer,
     causationId: string | null,
     options: { readonly derived?: boolean; readonly kind: 'command' | 'query' },
-  ): Promise<SimulatorResult<JsonValue>> {
+  ): { readonly operationId: string | null; readonly settlement: Promise<SimulatorResult<JsonValue>> } {
+    const reject = (error: import('./errors.ts').SimulatorError) => ({
+      operationId: null,
+      settlement: Promise.resolve(simulatorFail<JsonValue>(error)),
+    });
     if (context.phase === 'terminal') {
-      return Promise.resolve(simulatorFail(simulatorError('SIMULATOR_INTEGRITY_FAILURE', {
+      return reject(simulatorError('SIMULATOR_INTEGRITY_FAILURE', {
         moduleId: issuer.moduleId, instanceId: issuer.instanceId,
-      })));
+      }));
     }
     if (context.phase === 'resetting') {
-      return Promise.resolve(simulatorFail(simulatorError('SIMULATOR_STALE_EPOCH', {
+      return reject(simulatorError('SIMULATOR_STALE_EPOCH', {
         moduleId: issuer.moduleId, instanceId: issuer.instanceId,
-      })));
+      }));
     }
     const kind = options.kind;
     const registration = kind === 'command' ? context.catalog.command(type) : context.catalog.query(type);
     if (!registration) {
-      return Promise.resolve(simulatorFail(simulatorError('SIMULATOR_UNSUPPORTED', {
+      return reject(simulatorError('SIMULATOR_UNSUPPORTED', {
         moduleId: issuer.moduleId, instanceId: issuer.instanceId,
-      })));
+      }));
     }
     const schema = kind === 'command'
       ? (registration as { payloadSchema: SimulatorSchema }).payloadSchema
       : (registration as { inputSchema: SimulatorSchema }).inputSchema;
     const validation = validateSchema(schema, payload);
     if (!validation.ok) {
-      return Promise.resolve(simulatorFail(simulatorError('SIMULATOR_INVALID_PAYLOAD', {
+      return reject(simulatorError('SIMULATOR_INVALID_PAYLOAD', {
         moduleId: issuer.moduleId, instanceId: issuer.instanceId,
-      })));
+      }));
     }
     const admissionError = admitOperationCaller(context, {
       kind,
@@ -223,14 +234,26 @@ export function createSimulatorStateEngine(options: SimulatorStateEngineOptions)
       issuer,
       owner: registration.owner,
     });
-    if (admissionError) return Promise.resolve(simulatorFail(admissionError));
+    if (admissionError) return reject(admissionError);
+    const interactionError = interactions.admitBeforeQueue(context, type, validation.value, issuer);
+    if (interactionError) return reject(interactionError);
+    if (kind === 'command' && (type === INTERNAL.instanceOpen || type === INTERNAL.instanceRoute)) {
+      const input = validation.value as Readonly<Record<string, JsonValue>>;
+      const route = (type === INTERNAL.instanceOpen ? input.initialRoute : input.route) as JsonValue;
+      if (!isSimulatorRouteState(route)) {
+        return reject(simulatorError('SIMULATOR_INVALID_PAYLOAD', {
+          moduleId: issuer.moduleId,
+          instanceId: issuer.instanceId,
+        }));
+      }
+    }
     let sequence: number;
     try {
       sequence = context.allocators.op.next();
     } catch {
-      return Promise.resolve(simulatorFail(simulatorError('SIMULATOR_RESOURCE_EXHAUSTED', {
+      return reject(simulatorError('SIMULATOR_RESOURCE_EXHAUSTED', {
         moduleId: issuer.moduleId, instanceId: issuer.instanceId,
-      })));
+      }));
     }
     const operationId = formatCanonicalId(context.epoch, 'op', sequence);
     let settleFn: (result: SimulatorResult<JsonValue>) => void = () => undefined;
@@ -262,7 +285,17 @@ export function createSimulatorStateEngine(options: SimulatorStateEngineOptions)
       });
     }
     if (!context.draining) drain();
-    return promise;
+    return { operationId, settlement: promise };
+  }
+
+  function accept(
+    type: string,
+    payload: JsonValue,
+    issuer: SimulatorIssuer,
+    causationId: string | null,
+    options: { readonly derived?: boolean; readonly kind: 'command' | 'query' },
+  ): Promise<SimulatorResult<JsonValue>> {
+    return acceptWithIdentity(type, payload, issuer, causationId, options).settlement;
   }
 
   // -------------------------------------------------------------------------
@@ -309,6 +342,9 @@ export function createSimulatorStateEngine(options: SimulatorStateEngineOptions)
           }, job.command.causationId);
         }
       }
+      if (interactions.hasPending()) {
+        failSessionIntegrity(simulatorError('SIMULATOR_INTEGRITY_FAILURE'), null);
+      }
     } finally {
       context.draining = false;
       flushSettlements(context);
@@ -317,6 +353,7 @@ export function createSimulatorStateEngine(options: SimulatorStateEngineOptions)
 
   function failSessionIntegrity(error: import('./errors.ts').SimulatorError, current: QueuedOperation | null): void {
     if (context.phase === 'terminal') return;
+    interactions.clearAll();
     context.phase = 'terminal';
     context.terminalError = error;
     const remainder = current ? [current, ...context.queue] : context.queue.slice();
@@ -370,6 +407,7 @@ export function createSimulatorStateEngine(options: SimulatorStateEngineOptions)
       processQuery(context, operation);
       return;
     }
+    interactions.assertExpectedDerived(context, operation);
     const registration = context.catalog.command(operation.type);
     if (!registration) {
       recordSettlement(context, operation.sequence, operation.settle, simulatorFail(simulatorError('SIMULATOR_UNSUPPORTED', {
@@ -389,6 +427,7 @@ export function createSimulatorStateEngine(options: SimulatorStateEngineOptions)
       processModuleCommand(context, operation, registration.owner.moduleId);
       return;
     }
+    if (interactions.process(context, operation)) return;
     processInternalCommand(context, operation);
   }
 
@@ -397,6 +436,7 @@ export function createSimulatorStateEngine(options: SimulatorStateEngineOptions)
   // -------------------------------------------------------------------------
 
   registerInternalCommands(context);
+  interactions.register(context);
 
   const engine: SimulatorStateEngine = {
     get epoch() {
@@ -755,6 +795,7 @@ export function createSimulatorStateEngine(options: SimulatorStateEngineOptions)
         && !context.callbackRunning
         && context.clock.collectDuePreview(context.committed.logicalTime).length === 0
         && !context.pump.hasImmediatelyReleasable()
+        && !interactions.hasPending()
       );
     },
     buildReplayRecord() {

@@ -151,12 +151,12 @@ function externalCatalog(repositoryRoot) {
   }, { allowFileUri: true });
 }
 
-test('tracked Simulator configuration selects immutable Tester and Zhiyu with one digest-bound Scenario', () => {
+test('tracked Simulator configuration selects immutable Desktop, Tester, and Zhiyu with one digest-bound Scenario', () => {
   const config = loadSimulatorConfig(CONFIG_ROOT);
-  assert.deepEqual(config.descriptors.map((entry) => entry.module_id), ['tester', 'zhiyu']);
+  assert.deepEqual(config.descriptors.map((entry) => entry.module_id), ['desktop', 'tester', 'zhiyu']);
   assert.deepEqual(config.repositoryCatalog.repositories, []);
   assert.equal(config.scenario.schema, 'nimi.simulator.scenario/v1');
-  assert.deepEqual(config.scenario.module_data.map((entry) => entry.module_id), ['tester', 'zhiyu']);
+  assert.deepEqual(config.scenario.module_data.map((entry) => entry.module_id), ['desktop', 'tester', 'zhiyu']);
   assert.match(config.scenario.digest, /^sha256:[0-9a-f]{64}$/u);
 });
 
@@ -532,6 +532,29 @@ test('final resolver proves every canonical singleton tuple without absolute pat
     }
   }
   assert.equal(JSON.stringify(resolver).includes(REPO_ROOT), false);
+});
+
+test('final resolver resolves imported mandatory singleton wildcard subpaths', () => {
+  const resolver = resolveMandatorySingletons({
+    repoRoot: REPO_ROOT,
+    simulatorRoot: SIMULATOR_ROOT,
+    moduleRequirements: [{
+      moduleId: 'zustand-vanilla-app',
+      appSourceKind: 'workspace',
+      imports: ['zustand/vanilla'],
+      requirements: { zustand: '5.0.13' },
+    }],
+  });
+  const zustand = resolver.packages.find((row) => row.name === 'zustand');
+  assert.ok(zustand);
+  assert.equal(
+    zustand.targets.some((target) => target.exportSubpath === './vanilla' && target.phase === 'types'),
+    true,
+  );
+  assert.equal(
+    zustand.targets.some((target) => target.exportSubpath === './vanilla' && target.phase === 'runtime'),
+    true,
+  );
 });
 
 test('final resolver admits only exact App-specific dependencies used by the renderer closure', () => {

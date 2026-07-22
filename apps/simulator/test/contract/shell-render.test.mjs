@@ -81,14 +81,30 @@ test('open instances render in creation order with status', () => {
   const markup = renderShell({
     moduleCount: 1,
     instances: [
-      { instanceId: '1:instance:1', moduleId: 'fixture-module', surfaceId: 'main', status: 'active', readiness: 'usable' },
-      { instanceId: '1:instance:2', moduleId: 'fixture-module', surfaceId: 'main', status: 'inactive', readiness: 'pending' },
+      { instanceId: '1:instance:1', moduleId: 'fixture-module', surfaceId: 'main', status: 'active', readiness: 'usable', route: { pathname: '/', search: [], fragment: null } },
+      { instanceId: '1:instance:2', moduleId: 'fixture-module', surfaceId: 'main', status: 'inactive', readiness: 'pending', route: { pathname: '/', search: [], fragment: null } },
     ],
   });
   assert.ok(markup.includes('fixture-module — active'));
   assert.ok(markup.includes('fixture-module — inactive'));
   assert.ok(markup.indexOf('fixture-module — active') < markup.indexOf('fixture-module — inactive'));
   assert.ok(markup.includes('1 selected module'));
+  assert.ok(markup.includes('data-usable-active-instance-count="1"'));
+});
+
+test('full-window route retains disclosure and exposes a deterministic exit control', () => {
+  const markup = renderShell({
+    route: { kind: 'instance', instanceId: '1:instance:1', appRoute: { pathname: '/details', search: [], fragment: null } },
+    instances: [
+      { instanceId: '1:instance:1', moduleId: 'desktop', surfaceId: 'main', status: 'active', readiness: 'usable', route: { pathname: '/details', search: [], fragment: null } },
+    ],
+  });
+  assert.ok(markup.includes(SIMULATOR_STATUS_TEXT));
+  assert.ok(markup.includes('simulator-shell--full-window'));
+  assert.ok(markup.includes('data-full-window-instance="1:instance:1"'));
+  assert.ok(markup.includes('data-usable-active-instance-count="1"'));
+  assert.ok(markup.includes('Exit full window'));
+  assert.ok(markup.includes('desktop full window'));
 });
 
 test('the Simulator owns exactly one React root and App surfaces render as portals', () => {

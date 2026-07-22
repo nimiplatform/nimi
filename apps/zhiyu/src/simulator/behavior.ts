@@ -23,6 +23,7 @@ interface ZhiyuSimulatorState extends JsonRecord {
   readonly scenario: ZhiyuScenarioData;
   readonly turnSequence: number;
   readonly turns: readonly JsonRecord[];
+  readonly ecosystemReference: JsonRecord | null;
 }
 
 function record(value: ZhiyuSimulatorJsonValue, label: string): JsonRecord {
@@ -72,6 +73,7 @@ export const zhiyuSimulatorBehavior = Object.freeze({
       scenario: scenarioData(input.moduleData),
       turnSequence: 0,
       turns: [],
+      ecosystemReference: null,
     };
   },
   reduce(
@@ -81,6 +83,28 @@ export const zhiyuSimulatorBehavior = Object.freeze({
   ) {
     const current = state(currentValue);
     const payload = record(envelope.payload, 'COMMAND_PAYLOAD');
+    if (envelope.type === 'zhiyu.ecosystem.project') {
+      if (payload.protocolRevision !== 1
+        || !Number.isSafeInteger(payload.ecosystemRevision)
+        || typeof payload.interactionId !== 'string'
+        || typeof payload.checkpointId !== 'string'
+        || typeof payload.label !== 'string'
+        || !Number.isSafeInteger(payload.committedAt)) {
+        throw new Error('ZHIYU_SIMULATOR_ECOSYSTEM_REFERENCE_INVALID');
+      }
+      const reference = {
+        protocolRevision: 1,
+        ecosystemRevision: payload.ecosystemRevision,
+        interactionId: payload.interactionId,
+        checkpointId: payload.checkpointId,
+        label: payload.label,
+        committedAt: payload.committedAt,
+      };
+      return {
+        state: { ...current, ecosystemReference: reference },
+        events: [{ type: 'zhiyu.ecosystem.projected', payload: reference }],
+      };
+    }
     if (envelope.type === 'zhiyu.turn.allocate') {
       return { state: { ...current, turnSequence: current.turnSequence + 1 }, events: [] };
     }
