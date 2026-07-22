@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useMemo,
   useState,
   type MouseEvent,
@@ -21,6 +22,11 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
   const authUser = useAppStore((state) => state.auth.user);
   const setAuthSession = useAppStore((state) => state.setAuthSession);
   const [authFeedback, setAuthFeedback] = useState<InlineFeedbackState | null>(null);
+  const reportActionableReadiness = useCallback(() => {
+    bindings.surfaceLifecycle.reportReadyCandidate({
+      contractId: 'desktop.main.usable',
+    });
+  }, [bindings]);
   const normalizedAuthUser = toNimiRealmAuthUserRecord(authUser);
   const handleStatusBanner = (banner: { kind: string; message: string } | null) => {
     if (!banner) {
@@ -79,6 +85,11 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
         setStatusBanner: handleStatusBanner,
       }}
       footer={footer}
+      onActionableReady={reportActionableReadiness}
+      onEntryAction={() => {
+        void bindings.app.commands.reportAuthEntryAction();
+      }}
+      semanticIds={{ entryAction: 'desktop-login-primary' }}
       desktopBrowserAuth={
         mode === 'desktop-browser'
           ? {

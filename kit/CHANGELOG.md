@@ -11,6 +11,10 @@ Discipline.
 
 ### Changed
 
+- Auth shell entry actions now use a host-neutral callback and expose the
+  primary semantic marker only while the logo is the actionable entry control;
+  the compact logo on later embedded stages is named and behaves as Back.
+
 - `SidebarResizeHandle` now accepts native div interaction attributes instead
   of requiring a mouse-only handler, allowing consumers to use pointer capture
   without document-global drag listeners. This is a breaking pre-1.0 API cut.

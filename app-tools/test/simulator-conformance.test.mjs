@@ -176,6 +176,18 @@ test('domain-local discriminator words do not impersonate host-binding reads', (
   assert.equal(validateSimulatorAppSource(root).report.result, 'pass');
 }));
 
+test('canonical closure rejects the Kit shell-mode host discriminator', () => withFixture((root) => {
+  const factoryPath = path.join(root, 'src', 'renderer', 'factory.ts');
+  writeFileSync(
+    factoryPath,
+    `import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';\nvoid getShellFeatureFlags;\n${readFileSync(factoryPath, 'utf8')}`,
+  );
+  assert.throws(
+    () => validateSimulatorAppSource(root),
+    (error) => error?.code === 'SIM_FACTORY_HOST_DISCRIMINATOR',
+  );
+}));
+
 test('canonical closure rejects a host discriminator property read', () => withFixture((root) => {
   const factoryPath = path.join(root, 'src', 'renderer', 'factory.ts');
   writeFileSync(

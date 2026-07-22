@@ -15,6 +15,7 @@ const FORBIDDEN_IMPORT_PATTERNS = [
   ['SIM_IMPORT_DESKTOP_PRIVATE', /(?:^|\/)apps\/desktop(?:\/|$)/],
   ['SIM_IMPORT_TAURI', /^@tauri-apps\//],
   ['SIM_IMPORT_ELECTRON', /^electron(?:\/|$)/],
+  ['SIM_FACTORY_HOST_DISCRIMINATOR', /^@nimiplatform\/kit\/core\/shell-mode$/],
   ['SIM_IMPORT_NODE_BUILTIN', /^(?:node:|fs(?:\/|$)|net(?:\/|$)|tls(?:\/|$)|child_process$|worker_threads$)/],
 ];
 const FORBIDDEN_CALLS = new Map([

@@ -63,7 +63,8 @@ test('shell chrome retune: account menu is anchored to the titlebar avatar trigg
 test('shell chrome retune: mac titlebar safe area moves ordinary shell below traffic lights', () => {
   assert.match(mainLayoutViewSource, /MACOS_TITLEBAR_TOP_INSET_CLASS = 'top-7'/u);
   assert.match(mainLayoutViewSource, /MACOS_SHELL_CONTENT_TOP_PADDING_CLASS = 'pt-\[calc\(3\.5rem\+1\.75rem\)\]'/u);
-  assert.match(mainLayoutViewSource, /const usesMacTrafficLightTitlebar = flags\.enableMenuBarShell/u);
+  assert.match(mainLayoutViewSource, /const usesMacTrafficLightTitlebar = bindings\.app\.projection\.menuBarShellEnabled\(\)/u);
+  assert.doesNotMatch(mainLayoutViewSource, /getShellFeatureFlags/u);
   assert.match(mainLayoutViewSource, /titlebarTopInsetClass=\{titlebarTopInsetClass\}/u);
   assert.match(mainLayoutViewSource, /className=\{`relative z-10 flex min-h-0 flex-1 gap-3 px-3 pb-3 \$\{shellContentTopPaddingClass\}`\}/u);
   assert.match(mainLayoutTopbarSource, /titlebarTopInsetClass: string/u);

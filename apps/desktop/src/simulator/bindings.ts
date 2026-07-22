@@ -38,10 +38,6 @@ function record(value: DesktopSimulatorJsonValue, label: string): JsonRecord {
   return value as JsonRecord;
 }
 
-function projection(context: DesktopSimulatorPrepareContext): JsonRecord {
-  return record(context.projection.get(), 'PROJECTION');
-}
-
 function simulatorSdkUnadmitted(): never {
   throw new Error('DESKTOP_SIMULATOR_SDK_UNADMITTED');
 }
@@ -66,11 +62,14 @@ export function createDesktopSimulatorBindings(
     readonly listener: Parameters<DesktopCanonicalRendererBindings['clock']['schedule']>[1];
   };
   let currentRoute = context.route.get();
+  let currentRouteView = toRendererRoute(currentRoute);
   let timerSequence = 0;
+  let interactionSequence = 0;
   const routeListeners = new Set<() => void>();
   const timers = new Map<string, TimerEntry>();
   const unsubscribeRoute = context.route.subscribe((route) => {
     currentRoute = route;
+    currentRouteView = toRendererRoute(route);
     for (const listener of routeListeners) listener();
   });
   const cleanup = context.cleanup.add(() => {
@@ -182,7 +181,7 @@ export function createDesktopSimulatorBindings(
         initialState: () => ({
           aiConfig: createEmptyNimiAIConfig(createNimiBuiltInChatAIScopeRef('nimi')),
           bootstrapError: null,
-          bootstrapReady: true,
+          bootstrapReady: false,
           chatThinkingPreference: 'off' as const,
           development: false,
         }),
@@ -193,6 +192,8 @@ export function createDesktopSimulatorBindings(
         viewportWidth: () => 1_280,
         documentVisible: () => true,
         windowFocused: () => true,
+        titlebarDragEnabled: () => false,
+        menuBarShellEnabled: () => false,
         resourceBaseUrl: () => 'https://simulator.invalid/',
         walletCheckoutBaseUrl: () => 'https://simulator.invalid/',
       }),
@@ -251,6 +252,35 @@ export function createDesktopSimulatorBindings(
         setGroupLocalAgentParticipationActive() {
           throw new Error('DESKTOP_SIMULATOR_GROUP_LOCAL_AGENT_UNADMITTED');
         },
+        async reportAuthEntryAction() {
+          interactionSequence += 1;
+          const result = await context.interactions.emit({
+            protocol: 'nimi.simulator.interaction/v1',
+            interactionId: `${context.instanceId}:ecosystem:${interactionSequence}`,
+            targets: ['zhiyu', 'tester'],
+            type: 'ecosystem.reference.checkpoint',
+            payload: {
+              checkpointId: 'desktop-auth-primary',
+              label: 'Desktop login action committed',
+            },
+          });
+          if (!result.ok) {
+            const disposition = result.error.code === 'SIMULATOR_INSTANCE_DISPOSED'
+              ? 'missing-target' as const
+              : result.error.code === 'SIMULATOR_UNSUPPORTED'
+                ? 'unsupported' as const
+                : 'rejected' as const;
+            return Object.freeze({ ok: false as const, disposition });
+          }
+          const value = record(result.value, 'ECOSYSTEM_INTERACTION_RESULT');
+          if (!Number.isSafeInteger(value.ecosystemRevision)) {
+            return Object.freeze({ ok: false as const, disposition: 'rejected' as const });
+          }
+          return Object.freeze({
+            ok: true as const,
+            ecosystemRevision: value.ecosystemRevision as number,
+          });
+        },
         async applyLocale(input: Parameters<
           DesktopCanonicalRendererBindings['app']['commands']['applyLocale']
         >[0]) {
@@ -296,6 +326,9 @@ export function createDesktopSimulatorBindings(
         },
         async restartDesktopUpdate() {
           throw new Error('DESKTOP_SIMULATOR_UPDATE_UNADMITTED');
+        },
+        reloadApplication() {
+          throw new Error('DESKTOP_SIMULATOR_APPLICATION_RELOAD_UNADMITTED');
         },
         async startWindowDrag() {
           throw new Error('DESKTOP_SIMULATOR_WINDOW_DRAG_UNADMITTED');
@@ -347,21 +380,14 @@ export function createDesktopSimulatorBindings(
         connectLifecycle(lifecycle: Parameters<
           DesktopCanonicalRendererBindings['app']['events']['connectLifecycle']
         >[0]) {
-          const apply = () => {
-            const current = projection(context);
-            if (typeof current.bootstrapReady !== 'boolean') {
-              throw new Error('DESKTOP_SIMULATOR_BOOTSTRAP_PROJECTION_INVALID');
-            }
-            lifecycle.setBootstrapError(null);
-            lifecycle.setBootstrapReady(current.bootstrapReady);
-          };
-          apply();
-          return context.projection.subscribe(apply);
+          lifecycle.setBootstrapError(null);
+          lifecycle.clearAuthSession();
+          return () => undefined;
         },
       }),
     },
     route: Object.freeze({
-      get: () => toRendererRoute(currentRoute),
+      get: () => currentRouteView,
       subscribe(listener: () => void) {
         routeListeners.add(listener);
         return () => routeListeners.delete(listener);

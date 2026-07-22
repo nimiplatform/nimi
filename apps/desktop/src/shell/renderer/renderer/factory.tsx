@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NimiThemeProvider } from '@nimiplatform/kit/ui';
 
 import { AppProviders } from '../app-shell/providers/app-providers.js';
@@ -12,9 +12,7 @@ function DesktopMainSurface(props: {
   readonly bindings: DesktopCanonicalRendererBindings;
   readonly resources: ReturnType<typeof createDesktopRendererResources>;
 }) {
-  const [localizationReady, setLocalizationReady] = useState(
-    props.resources.i18n.instance.isInitialized,
-  );
+  const [localizationReady, setLocalizationReady] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -26,25 +24,18 @@ function DesktopMainSurface(props: {
     };
   }, [props.resources]);
 
-  useLayoutEffect(() => {
-    if (!localizationReady) return;
-    props.bindings.surfaceLifecycle.reportReadyCandidate({
-      contractId: 'desktop.main.usable',
-    });
-  }, [localizationReady, props.bindings]);
-
-  if (!localizationReady) return null;
   return (
     <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light" defaultDensity="compact">
       <div
-        className="nimi-ui-module--desktop"
+        className="nimi-ui-module--desktop min-h-px"
         data-nimi-semantic-id="desktop-main-root"
         id={props.bindings.scope.domId('main-root')}
         role="region"
         aria-label="Nimi Desktop"
       >
-        <DesktopRendererBindingProvider bindings={props.bindings}>
-          <AppProviders
+        {localizationReady ? (
+          <DesktopRendererBindingProvider bindings={props.bindings}>
+            <AppProviders
             accountProfileLibrary={props.resources.accountProfileLibrary}
             agentVisibleProjections={props.resources.agentVisibleProjections}
             anchorBindings={props.resources.anchorBindings}
@@ -64,10 +55,13 @@ function DesktopMainSurface(props: {
             worldFollowStore={props.resources.worldFollowStore}
           >
             <AppErrorBoundary>
-              <DesktopRendererContent />
+              <div data-nimi-semantic-id="desktop-main-content">
+                <DesktopRendererContent />
+              </div>
             </AppErrorBoundary>
-          </AppProviders>
-        </DesktopRendererBindingProvider>
+            </AppProviders>
+          </DesktopRendererBindingProvider>
+        ) : null}
       </div>
     </NimiThemeProvider>
   );

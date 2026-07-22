@@ -31,11 +31,11 @@ export const simulatorConformanceFixture = {
   readiness: [{
     contractId: 'desktop.main.usable',
     surfaceId: 'main',
-    rootContentSemanticId: 'desktop-main-root',
+    rootContentSemanticId: 'desktop-main-content',
     primaryControl: {
-      semanticId: 'desktop-main-root',
-      ariaRole: 'region',
-      accessibleName: 'Nimi Desktop',
+      semanticId: 'desktop-login-primary',
+      ariaRole: 'button',
+      accessibleName: 'Nimi Logo',
     },
   }],
   lifecycle: ['prepare', 'activate', 'deactivate', 'dispose'],

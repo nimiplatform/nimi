@@ -18,7 +18,9 @@ test('Gate 7 ready entry: default app tab is Chat', () => {
 });
 
 test('Gate 7 ready entry: desktop router gates root ordinary shell', () => {
-  assert.match(appRoutesSource, /const isDesktopShell = flags\.mode === 'desktop';/);
+  assert.match(appRoutesSource, /const embeddedLogin = bindings\.app\.projection\.loginMode\(\) === 'embedded';/);
+  assert.match(appRoutesSource, /const isDesktopShell = !embeddedLogin;/);
+  assert.doesNotMatch(appRoutesSource, /getShellFeatureFlags/);
   assert.match(appRoutesSource, /{isDesktopShell \? \(/);
   assert.match(appRoutesSource, /function DesktopOrdinaryShellGate/);
   // Wave 1 route-admission single-point: the gate routes every Runtime state

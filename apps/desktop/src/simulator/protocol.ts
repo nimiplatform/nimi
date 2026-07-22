@@ -32,6 +32,15 @@ export interface DesktopSimulatorPrepareContext {
   readonly commands: {
     invoke(type: string, payload: DesktopSimulatorJsonValue): Promise<DesktopSimulatorResult<DesktopSimulatorJsonValue>>;
   };
+  readonly interactions: {
+    emit(input: {
+      readonly protocol: 'nimi.simulator.interaction/v1';
+      readonly interactionId: string;
+      readonly targets: readonly string[];
+      readonly type: string;
+      readonly payload: DesktopSimulatorJsonValue;
+    }): Promise<DesktopSimulatorResult<DesktopSimulatorJsonValue>>;
+  };
   readonly events: {
     subscribe(
       eventType: string,

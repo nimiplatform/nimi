@@ -41,9 +41,15 @@ export function createDesktopRendererResources(
     now: bindings.clock.now,
     syncDocument: bindings.app.commands.applyLocale,
   });
+  let attentionSnapshot = bindings.app.projection.attention() ?? createIdleAppAttentionState();
   const attention: AppAttentionSource = Object.freeze({
-    getSnapshot: () => bindings.app.projection.attention() ?? createIdleAppAttentionState(),
-    subscribe: bindings.app.events.subscribeAttention,
+    getSnapshot: () => attentionSnapshot,
+    subscribe(listener: () => void) {
+      return bindings.app.events.subscribeAttention(() => {
+        attentionSnapshot = bindings.app.projection.attention() ?? createIdleAppAttentionState();
+        listener();
+      });
+    },
   });
   const Router = createDesktopRouteProvider(bindings.route);
   const streamController = createStreamController(bindings.clock);

@@ -45,6 +45,10 @@ export type DesktopRendererInitialState = {
   readonly development: boolean;
 };
 
+export type DesktopAuthEntryActionResult =
+  | { readonly ok: true; readonly ecosystemRevision: number }
+  | { readonly ok: false; readonly disposition: 'unsupported' | 'missing-target' | 'rejected' };
+
 export interface DesktopRendererProjectionPort {
   initialState(): DesktopRendererInitialState;
   attention(): AppAttentionState;
@@ -54,6 +58,8 @@ export interface DesktopRendererProjectionPort {
   viewportWidth(): number;
   documentVisible(): boolean;
   windowFocused(): boolean;
+  titlebarDragEnabled(): boolean;
+  menuBarShellEnabled(): boolean;
   walletCheckoutBaseUrl(): string;
   resourceBaseUrl(): string;
 }
@@ -86,6 +92,7 @@ export interface DesktopRendererCommandPort {
   persistChatThinkingPreference(preference: ChatThinkingPreference): void;
   setActiveScopeForMode(mode: 'human' | 'ai' | 'agent' | 'group'): void;
   setGroupLocalAgentParticipationActive(active: boolean): void;
+  reportAuthEntryAction(): Promise<DesktopAuthEntryActionResult>;
   applyLocale(input: {
     readonly locale: 'en' | 'zh';
     readonly lang: string;
@@ -115,6 +122,7 @@ export interface DesktopRendererCommandPort {
   }): Promise<void>;
   installDesktopUpdate(input?: { readonly silent?: boolean }): Promise<void>;
   restartDesktopUpdate(): Promise<void>;
+  reloadApplication(): void;
   startWindowDrag(): Promise<void>;
   listLocalDevelopmentApprovals(): Promise<readonly LocalDevelopmentApproval[]>;
   listLocalDevelopmentAuthorizations(): Promise<LocalDevelopmentAuthorization[]>;

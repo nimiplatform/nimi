@@ -56,6 +56,8 @@ describe('DesktopShellAuthPage', () => {
 
   it('lets host shells provide the current Nimi logo asset', () => {
     shellAuthPageSpy.mockClear();
+    const onActionableReady = vi.fn();
+    const onEntryAction = vi.fn();
 
     renderToStaticMarkup(
       <DesktopShellAuthPage
@@ -74,6 +76,9 @@ describe('DesktopShellAuthPage', () => {
         }}
         logo="/current-nimi-logo.png"
         logoAltText="Current Nimi logo"
+        onActionableReady={onActionableReady}
+        onEntryAction={onEntryAction}
+        semanticIds={{ entryAction: 'desktop-login-primary' }}
         session={{
           mode: 'embedded',
           authStatus: 'unauthenticated',
@@ -83,10 +88,16 @@ describe('DesktopShellAuthPage', () => {
 
     const props = shellAuthPageSpy.mock.calls[0]?.[0] as {
       branding?: { logo?: unknown; logoAltText?: string };
+      onActionableReady?: () => void;
+      onEntryAction?: () => void;
+      semanticIds?: { entryAction?: string };
     };
 
     expect(props.branding?.logo).toBe('/current-nimi-logo.png');
     expect(props.branding?.logoAltText).toBe('Current Nimi logo');
+    expect(props.onActionableReady).toBe(onActionableReady);
+    expect(props.onEntryAction).toBe(onEntryAction);
+    expect(props.semanticIds?.entryAction).toBe('desktop-login-primary');
   });
 
   it('keeps scoped theme routing enabled', () => {

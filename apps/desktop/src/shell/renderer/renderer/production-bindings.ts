@@ -228,6 +228,8 @@ export function createDesktopProductionBindings(
         viewportWidth: () => window.innerWidth || document.documentElement.clientWidth,
         documentVisible: () => document.visibilityState !== 'hidden',
         windowFocused: () => document.hasFocus(),
+        titlebarDragEnabled: () => getShellFeatureFlags().enableTitlebarDrag,
+        menuBarShellEnabled: () => getShellFeatureFlags().enableMenuBarShell,
         resourceBaseUrl: () => window.location.href,
         walletCheckoutBaseUrl() {
           const configured = String(
@@ -312,6 +314,9 @@ export function createDesktopProductionBindings(
         persistChatThinkingPreference: dependencies.persistChatThinkingPreference,
         setActiveScopeForMode: dependencies.setActiveScopeForMode,
         setGroupLocalAgentParticipationActive,
+        async reportAuthEntryAction() {
+          return Object.freeze({ ok: false as const, disposition: 'unsupported' as const });
+        },
         applyLocale({ locale, lang, title }: Parameters<
           DesktopCanonicalRendererBindings['app']['commands']['applyLocale']
         >[0]) {
@@ -384,6 +389,9 @@ export function createDesktopProductionBindings(
           DesktopCanonicalRendererBindings['app']['commands']['installDesktopUpdate']
         >[0]) => runDesktopUpdateInstall(requireLifecycle(), input),
         restartDesktopUpdate: runDesktopUpdateRestart,
+        reloadApplication() {
+          window.location.reload();
+        },
         async startWindowDrag() {
           if (!getShellFeatureFlags().enableTitlebarDrag) {
             throw new Error('DESKTOP_WINDOW_DRAG_UNAVAILABLE');

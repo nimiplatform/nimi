@@ -14,7 +14,6 @@ import {
 } from '../../features/notification/notification-query.js';
 import type { NimiRealmFeedScope } from '@nimiplatform/sdk/realm';
 import { DEFAULT_HOME_FEED_SCOPE } from '../../features/home/home-feed-controls';
-import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { DesktopReleaseStrip } from './desktop-release-strip';
 import { MainLayoutPanelStack } from './main-layout-panel-stack';
 import { MainLayoutTopBar } from './main-layout-topbar';
@@ -51,13 +50,11 @@ const MACOS_SETTINGS_MENU_TOP_PX = 92;
 
 /** Track window focus so polling queries can pause when the app is not focused. */
 function useWindowFocused(
+  initialFocused: boolean,
   subscribe: (listener: (focused: boolean) => void) => () => void,
 ): boolean {
-  const [focused, setFocused] = useState(false);
-  useEffect(() => {
-    setFocused(document.hasFocus());
-    return subscribe(setFocused);
-  }, [subscribe]);
+  const [focused, setFocused] = useState(initialFocused);
+  useEffect(() => subscribe(setFocused), [subscribe]);
   return focused;
 }
 
@@ -77,8 +74,7 @@ type MainLayoutViewProps = {
 export function MainLayoutView(props: MainLayoutViewProps) {
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
-  const flags = getShellFeatureFlags();
-  const usesMacTrafficLightTitlebar = flags.enableMenuBarShell;
+  const usesMacTrafficLightTitlebar = bindings.app.projection.menuBarShellEnabled();
   const titlebarTopInsetClass = usesMacTrafficLightTitlebar
     ? MACOS_TITLEBAR_TOP_INSET_CLASS
     : DEFAULT_TITLEBAR_TOP_INSET_CLASS;
@@ -124,7 +120,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const settingsTriggerRef = useRef<HTMLDivElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
   const sidebarWidthClass = 'w-[60px]';
-  const titlebarLeftInsetClass = flags.enableTitlebarDrag ? 'pl-[92px]' : 'pl-3';
+  const titlebarLeftInsetClass = bindings.app.projection.titlebarDragEnabled() ? 'pl-[92px]' : 'pl-3';
   const [homeFeedScope, setHomeFeedScope] = useState(DEFAULT_HOME_FEED_SCOPE);
   const [homeCreatePostRequestKey, setHomeCreatePostRequestKey] = useState(0);
   const reducedMotion = useDesktopReducedMotion();
@@ -142,7 +138,10 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const hidePrimaryRail = immersiveRoute
     || (props.activeTab === 'profile' && Boolean(selectedProfileId))
     || profileDetailOverlayOpen;
-  const windowFocused = useWindowFocused(bindings.app.events.subscribeWindowFocus);
+  const windowFocused = useWindowFocused(
+    bindings.app.projection.windowFocused(),
+    bindings.app.events.subscribeWindowFocus,
+  );
   const unreadCountQuery = useQuery({
     queryKey: notificationQueryKeys.topbarUnreadCount(notificationQueryIdentityRef),
     queryFn: async () => loadNimiRealmNotificationUnreadCount(bindings.sdk.realm()),

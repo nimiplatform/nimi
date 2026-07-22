@@ -1,4 +1,5 @@
 import {
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -55,12 +56,14 @@ export function ShellAuthPage(props: ShellAuthPageProps) {
     footer,
     desktopBrowserAuth,
     copy,
+    semanticIds,
     testIds,
   } = props;
   const [isLogoHovered, setIsLogoHovered] = useState(false);
   const [desktopAuthPending, setDesktopAuthPending] = useState(false);
   const [desktopAuthError, setDesktopAuthError] = useState<string | null>(null);
   const desktopAttemptRef = useRef(0);
+  const actionableReadyReportedRef = useRef(false);
 
   const flow = useAuthFlow({
     adapter,
@@ -79,8 +82,15 @@ export function ShellAuthPage(props: ShellAuthPageProps) {
   const isEmbedded = session.mode === 'embedded';
   const isLogoStage = flow.view === 'main' && flow.embeddedStage === 'logo';
   const isAuthenticating = flow.pending || desktopAuthPending;
+  const actionableLogoReady = !isAuthenticating && (!isEmbedded || isLogoStage);
   const displayError = flow.loginError || desktopAuthError || session.authError || null;
   const logoAltText = branding.logoAltText || branding.networkLabel;
+  useLayoutEffect(() => {
+    if (!actionableLogoReady || actionableReadyReportedRef.current) return;
+    actionableReadyReportedRef.current = true;
+    props.onActionableReady?.();
+  }, [actionableLogoReady, props.onActionableReady]);
+
   const desktopLogoErrorHintText = desktopAuthError
     ? (copy?.desktopLogoHintText || t('Auth.desktopAuthFailed', 'Authorization failed. Click logo to retry.'))
     : undefined;
@@ -91,6 +101,7 @@ export function ShellAuthPage(props: ShellAuthPageProps) {
     || desktopAuthPending;
 
   const handleDesktopBrowserAuth = () => {
+    props.onEntryAction?.();
     if (!desktopBrowserAuth) {
       return;
     }
@@ -199,6 +210,8 @@ export function ShellAuthPage(props: ShellAuthPageProps) {
             <div className="pointer-events-auto flex flex-col items-center gap-8">
               <button
                 type="button"
+                aria-label={logoAltText}
+                data-nimi-semantic-id={semanticIds?.entryAction}
                 data-testid={testIds?.logoTrigger}
                 onClick={handleDesktopBrowserAuth}
                 onMouseEnter={() => setIsLogoHovered(true)}
@@ -239,9 +252,12 @@ export function ShellAuthPage(props: ShellAuthPageProps) {
             <div className="pointer-events-auto flex w-full flex-col items-center gap-6">
               <button
                 type="button"
+                aria-label={isLogoStage ? logoAltText : t('Common.back', { defaultValue: 'Back' })}
+                data-nimi-semantic-id={isLogoStage ? semanticIds?.entryAction : undefined}
                 data-testid={testIds?.logoTrigger}
                 onClick={() => {
                   if (isLogoStage) {
+                    props.onEntryAction?.();
                     flow.handleEmbeddedLogoClick();
                   } else {
                     flow.handleHeaderBack();

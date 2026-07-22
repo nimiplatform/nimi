@@ -4,6 +4,7 @@ import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
 import type {
   ShellAuthDesktopBrowserAuth,
   ShellAuthSession,
+  ShellAuthSemanticIds,
   ShellAuthTestIds,
 } from '../types/auth-types.js';
 import { ShellAuthPage } from './shell-auth-page.js';
@@ -45,6 +46,9 @@ export type DesktopShellAuthPageProps = {
   logoAltText?: string;
   footer?: ReactNode;
   desktopBrowserAuth?: ShellAuthDesktopBrowserAuth;
+  onActionableReady?: () => void;
+  onEntryAction?: () => void;
+  semanticIds?: ShellAuthSemanticIds;
   testIds?: ShellAuthTestIds;
 };
 
@@ -90,6 +94,9 @@ export function DesktopShellAuthPage(props: DesktopShellAuthPageProps) {
         desktopAuthOpenMessage: '已打开浏览器，请在网页完成授权登录。',
         desktopAuthSuccessMessage: '网页登录授权成功，已登录。',
       }}
+      onActionableReady={props.onActionableReady}
+      onEntryAction={props.onEntryAction}
+      semanticIds={props.semanticIds}
       testIds={testIds}
     />
   );

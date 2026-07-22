@@ -163,6 +163,10 @@ export type ShellAuthCopy = {
   desktopAuthSuccessMessage?: string;
 };
 
+export type ShellAuthSemanticIds = {
+  entryAction?: string;
+};
+
 export type ShellAuthTestIds = {
   screen?: string;
   logoTrigger?: string;
@@ -187,7 +191,10 @@ export type ShellAuthPageProps = {
   background?: ReactNode | ((state: ShellAuthBackgroundState) => ReactNode);
   footer?: ReactNode;
   desktopBrowserAuth?: ShellAuthDesktopBrowserAuth;
+  onActionableReady?: () => void;
+  onEntryAction?: () => void;
   copy?: ShellAuthCopy;
+  semanticIds?: ShellAuthSemanticIds;
   testIds?: ShellAuthTestIds;
 };
 

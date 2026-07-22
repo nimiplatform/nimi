@@ -1,6 +1,5 @@
 import React, { Suspense, lazy, useEffect, useRef, useState, type MouseEvent, type PropsWithChildren } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { useAppStore, type AppTab } from '../providers/app-store';
 import {
   logoutAndClearSession,
@@ -56,7 +55,6 @@ class NonCriticalStartupBoundary extends React.Component<PropsWithChildren, { ha
 
 export function MainLayout() {
   const navigate = useNavigate();
-  const flags = getShellFeatureFlags();
   const bindings = useDesktopRendererBindings();
   const activeTab = useAppStore((state) => state.activeTab);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
@@ -134,7 +132,7 @@ export function MainLayout() {
   };
 
   const onTitlebarMouseDown = (event: MouseEvent<HTMLDivElement>) => {
-    if (!flags.enableTitlebarDrag) return;
+    if (!bindings.app.projection.titlebarDragEnabled()) return;
     if (event.button !== 0) return;
     if (event.detail > 1) return;
     if (event.clientX < MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX) return;

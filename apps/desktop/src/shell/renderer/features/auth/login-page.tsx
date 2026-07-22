@@ -1,12 +1,9 @@
-import { Suspense, lazy, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useDesktopRendererBindings } from '../../renderer/binding-context';
 
-const WebAuthMenu = lazy(async () => {
-  const mod = await import('./web-auth-menu');
-  return { default: mod.WebAuthMenu };
-});
+import { WebAuthMenu } from './web-auth-menu.js';
 
 export function LoginPage() {
   const bindings = useDesktopRendererBindings();
@@ -53,9 +50,7 @@ export function LoginPage() {
           {accountNotice}
         </div>
       ) : null}
-      <Suspense fallback={null}>
-        <WebAuthMenu mode={authMode} />
-      </Suspense>
+      <WebAuthMenu mode={authMode} />
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import { Suspense, lazy, useState, useEffect, type ReactNode, type MouseEvent } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { AmbientBackground, Surface } from '@nimiplatform/kit/ui';
 import { projectNimiProductControlAdmission, type NimiProductControlState } from '@nimiplatform/sdk/runtime';
 import { useAppStore, type AuthStatus } from '../providers/app-store';
@@ -41,11 +40,10 @@ function SharedStatusShell(props: {
   description?: string;
   children?: ReactNode;
 }) {
-  const flags = getShellFeatureFlags();
   const bindings = useDesktopRendererBindings();
 
   const onDragRegionMouseDown = (event: MouseEvent<HTMLDivElement>) => {
-    if (!flags.enableTitlebarDrag) return;
+    if (!bindings.app.projection.titlebarDragEnabled()) return;
     if (event.button !== 0) return;
     if (event.detail > 1) return;
     if (event.clientX < MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX) return;
@@ -381,6 +379,7 @@ function DesktopAdmissionFailedScreen(props: {
 
 function DesktopAccountUnavailableScreen() {
   const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
   return (
     <SharedStatusShell
       eyebrow="Nimi Runtime"
@@ -395,7 +394,7 @@ function DesktopAccountUnavailableScreen() {
       <button
         type="button"
         data-testid="desktop-account-unavailable-retry"
-        onClick={() => window.location.reload()}
+        onClick={() => bindings.app.commands.reloadApplication()}
         className="mt-8 inline-flex h-10 min-w-36 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] px-5 text-sm font-semibold text-[var(--nimi-action-primary-fg)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)]"
       >
         {t('Common.retry', { defaultValue: 'Retry' })}
@@ -405,11 +404,12 @@ function DesktopAccountUnavailableScreen() {
 }
 
 export function AppRoutes() {
-  const flags = getShellFeatureFlags();
+  const bindings = useDesktopRendererBindings();
+  const embeddedLogin = bindings.app.projection.loginMode() === 'embedded';
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const bootstrapError = useAppStore((state) => state.bootstrapError);
   const authStatus = useAppStore((state) => state.auth.status);
-  const isDesktopShell = flags.mode === 'desktop';
+  const isDesktopShell = !embeddedLogin;
 
   // Single post-login handoff: the user-agent leaves /login exactly once when
   // the renderer-store flips to authenticated. Doing this here (instead of
@@ -425,7 +425,7 @@ export function AppRoutes() {
     }
   }, [authStatus, location.pathname, navigate]);
 
-  if (flags.mode !== 'web' && !bootstrapReady && !bootstrapError) {
+  if (!embeddedLogin && !bootstrapReady && !bootstrapError) {
     return <RuntimeLoadingScreen />;
   }
 
@@ -460,7 +460,7 @@ export function AppRoutes() {
             </Suspense>
           )}
           />
-          {flags.mode === 'web' ? (
+          {embeddedLogin ? (
             <Route
               path="/login"
               element={(

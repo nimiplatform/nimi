@@ -15,7 +15,7 @@ renderer:
     - id: main
       factory_surface: main
       label: Nimi Desktop
-      initial_route: /
+      initial_route: /login
       readiness_contract: desktop.main.usable
 requires:
   kit_capabilities: []
