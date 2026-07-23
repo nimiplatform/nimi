@@ -7,7 +7,7 @@
  * Authority: P-SIM-001, P-SIM-017, P-SIM-018.
  */
 
-import { Fragment, StrictMode, createElement as h, useSyncExternalStore } from 'react';
+import { Fragment, StrictMode, createElement as h, useMemo, useSyncExternalStore } from 'react';
 import { createPortal, flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import {
@@ -20,16 +20,21 @@ import {
 import type { SimulatorGuardHandle } from '../effects/guards.ts';
 import { completeSimulatorBootstrapDisclosure } from '../bootstrap/disclosure.ts';
 import { createSimulatorSession, type SimulatorSession } from './session.ts';
-import { createGlobalListenerCoordinator } from './global-coordinator.ts';
+import { createGlobalListenerCoordinator, type SimulatorGlobalCoordinator } from './global-coordinator.ts';
 import { installSimulatorIntegrityListener } from './integrity-listener.ts';
 import { installSimulatorRouteHistoryListener } from './route-listener.ts';
-import { createSimulatorBrowserSurfaceManager } from './browser-surface-host.tsx';
+import {
+  createSimulatorBrowserSurfaceManager,
+  type SimulatorBrowserSurfaceManager,
+} from './browser-surface-host.tsx';
 import {
   SimulatorShellContent,
   SimulatorStatusBar,
   type SimulatorShellViewProps,
-} from './ui.ts';
+} from './ui.tsx';
 import { parseShellRoute } from './routes.ts';
+import { SIMULATOR_PRODUCT_COMMANDS } from '../state-engine/product-state.ts';
+import type { ProductEnginePorts } from './chrome/product-presentation.tsx';
 import {
   createAssignedRootRegistry,
   createBrowserReadinessPort,
@@ -37,6 +42,13 @@ import {
   isSimulationDisclosureVisible,
 } from '../lifecycle/browser-readiness.ts';
 import '../styles.css';
+/* Field shell chrome (prototype2 Aurora port) — imported from JS because the
+ * CSS profile protocol pins src/styles.css to the exact Kit import sequence.
+ * Order matters: tokens override Kit material tokens, then the surfaces. */
+import './styles/tokens.css';
+import './styles/field.css';
+import './styles/panes.css';
+import './styles/spatial-tide.css';
 import type { JsonValue } from '../state-engine/json-value.ts';
 import type { SimulatorModuleCatalogDeclaration } from '../state-engine/types.ts';
 import { simulatorError } from '../state-engine/errors.ts';
@@ -72,15 +84,48 @@ function optionalPrivilegedFunction<T extends (...args: never[]) => unknown>(
 function ShellRoot({
   session,
   disclosureRoot,
+  coordinator,
+  surfaces,
 }: {
   session: SimulatorSession;
   disclosureRoot: HTMLElement;
+  coordinator: SimulatorGlobalCoordinator;
+  surfaces: SimulatorBrowserSurfaceManager;
 }) {
   const version = useSyncExternalStore(
     (listener) => session.subscribe(listener),
     () => `${session.epoch}:${session.phase}:${session.engine.getCommitted().revision}:${session.replayDigest() ?? ''}:${session.instances().map((entry) => `${entry.instanceId}:${entry.status}:${entry.readiness}`).join(',')}:${session.diagnostics.list().length}:${session.route().kind}`,
   );
   void version;
+  // Identity-stable chrome ports: the flow runner's timer effect keys off
+  // these identities, so they must not change per session tick.
+  const subscribeFamily = useMemo(
+    () => (familyId: string, handler: (event: unknown) => void): (() => void) | null => {
+      const subscribed = coordinator.subscribeFamily(familyId, handler);
+      return subscribed.ok ? subscribed.value : null;
+    },
+    [coordinator],
+  );
+  const stageElement = useMemo(
+    () => (instanceId: string): HTMLElement | null => surfaces.stageElement(instanceId),
+    [surfaces],
+  );
+  const productPorts = useMemo<ProductEnginePorts>(() => ({
+    productState: () => session.productState(),
+    productFlow: (flowId) => session.productFlow(flowId),
+    dispatchProductCommand: (type, payload) => session.dispatchProductCommand(
+      type as (typeof SIMULATOR_PRODUCT_COMMANDS)[keyof typeof SIMULATOR_PRODUCT_COMMANDS],
+      payload,
+    ),
+    emitInteraction: (input) => session.engine.acceptCommand('simulator.interaction.emit', {
+      protocol: 'nimi.simulator.interaction/v1',
+      interactionId: input.interactionId,
+      source: { moduleId: input.sourceModuleId, instanceId: input.sourceInstanceId },
+      targets: [...input.targets],
+      type: input.type,
+      payload: input.payload,
+    }, { kind: 'instance', moduleId: input.sourceModuleId, instanceId: input.sourceInstanceId }),
+  }), [session]);
   const props: SimulatorShellViewProps = {
     epoch: session.epoch,
     phase: session.phase,
@@ -103,6 +148,9 @@ function ShellRoot({
     onActivate: (instanceId) => { void session.activateInstance(instanceId); },
     onDeactivate: (instanceId) => { void session.deactivateInstance(instanceId); },
     onReset: () => { void resetAndRelaunch(session); },
+    subscribeFamily,
+    stageElement,
+    productPorts,
   };
   return h(Fragment, null,
     createPortal(h(SimulatorStatusBar, props), disclosureRoot),
@@ -265,29 +313,11 @@ export async function mountSimulatorShell(guard: SimulatorGuardHandle): Promise<
     terminate: () => session.engine.terminateIntegrity(simulatorError('SIMULATOR_INTEGRITY_FAILURE')),
   });
 
-  const initial = parseShellRoute({
-    pathname: window.location.pathname,
-    search: window.location.search,
-    hash: window.location.hash,
-  });
-  if (initial) session.navigate(initial, { history: false });
-  installSimulatorRouteHistoryListener({
-    coordinator,
-    onHistory: () => {
-      const route = parseShellRoute({
-        pathname: window.location.pathname,
-        search: window.location.search,
-        hash: window.location.hash,
-      });
-      if (route) session.navigate(route, { history: false });
-    },
-  });
-
   const root = createRoot(rootElement);
   flushSync(() => {
     root.render(
       h(StrictMode, null,
-        h(ShellRoot, { session, disclosureRoot }),
+        h(ShellRoot, { session, disclosureRoot, coordinator, surfaces }),
         surfaces.renderPortals(),
       ),
     );
@@ -299,4 +329,17 @@ export async function mountSimulatorShell(guard: SimulatorGuardHandle): Promise<
     const cause = error instanceof Error ? error.message : String(error);
     throw new Error(`SIMULATOR_SCENARIO_LAUNCH_FAILED:${cause}`);
   }
+  const applyBrowserRoute = (): void => {
+    const route = parseShellRoute({
+      pathname: window.location.pathname,
+      search: window.location.search,
+      hash: window.location.hash,
+    });
+    if (route) session.navigate(route, { history: false });
+  };
+  // Instance routes hide every non-target surface. Apply them only after the
+  // canonical Scenario has reached its visible readiness checkpoints so a
+  // fresh deep link cannot invalidate or falsely fail background readiness.
+  installSimulatorRouteHistoryListener({ coordinator, onHistory: applyBrowserRoute });
+  applyBrowserRoute();
 }

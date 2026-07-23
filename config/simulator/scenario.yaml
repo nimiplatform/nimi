@@ -1,6 +1,6 @@
 schema: nimi.simulator.scenario/v1
 scenario_id: nimi-ecosystem
-scenario_revision: cp6
+scenario_revision: cp6-authenticated-desktop
 seed: e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5
 initial_logical_time: 0
 state:
@@ -10,10 +10,145 @@ state:
     reference: null
   shell:
     readiness: {}
+    product:
+      persona: null
+      agentPersona:
+        name: Nimi
+        kind: 基座伴侣 agent
+        mode: 主动模式
+      agent:
+        status: idle
+        location: cradle
+        carry: null
+      grants:
+        - id: g-world-write
+          title: 生态足迹写入
+          scope: Desktop → 生态共享 · 可写足迹、可被其他应用读取
+          from: Desktop
+          to: 生态共享
+          meta: 2 分钟前更新
+          tags: [写入, 当前世界, 长期有效]
+          receipt:
+            access: 写入
+            range: 生态共享 · 可被其他应用读取
+            validity: 长期有效
+            expiry: ''
+            restriction: 无
+            lastUsed: 2 分钟前
+          status: active
+          seeded: true
+        - id: g-presence-read
+          title: 在场状态读取
+          scope: Zhiyu → 生态共享 · 只读你在各世界的在场状态
+          from: Zhiyu
+          to: 生态共享
+          meta: 2 分钟前更新
+          tags: [只读, 当前世界, 2 天有效, 不写入长期记忆]
+          receipt:
+            access: 只读
+            range: 仅当前世界
+            validity: 2 天
+            expiry: 模拟时间 · 2 天后到期
+            restriction: 不写入长期记忆
+            lastUsed: 2 分钟前
+          status: active
+          seeded: true
+        - id: g-context-carry
+          title: context 携带
+          scope: Nimi · Desktop → Zhiyu · 仅本次会话摘要的只读投影，可撤销
+          from: Nimi (基座 agent)
+          to: Zhiyu
+          meta: 上次会话结束
+          tags: [只读, 本次会话, 不写入长期记忆]
+          receipt:
+            access: 只读
+            range: 仅本次会话摘要的只读投影
+            validity: 本次会话
+            expiry: 已随上次会话结束失效
+            restriction: 不写入长期记忆
+            lastUsed: 昨天
+          status: revoked
+          seeded: false
+      ledger:
+        - id: '0:op:090'
+          epoch: 1
+          kind: system
+          title: 基座会话建立
+          detail: 身份 sim-user-linche 载入，基座 agent Nimi 进入在场状态。
+          actors: [系统, Nimi, 基座]
+          result: info
+          at: '17:30'
+          history: true
+        - id: '0:op:096'
+          epoch: 1
+          kind: delegation
+          title: 写入生态足迹
+          detail: 你允许 Desktop 写入你的生态足迹。
+          actors: [林澈, Desktop]
+          tags: [林澈, Desktop, 生态共享, 长期]
+          result: committed
+          at: '17:42'
+          history: true
+        - id: '0:op:118'
+          epoch: 1
+          kind: flow
+          title: 读取居民列表
+          detail: Zhiyu 查询星港的在场居民列表。
+          actors: [Zhiyu, 星港]
+          tags: [Zhiyu, 星港, 只读]
+          result: committed
+          at: '18:20'
+          history: true
+        - id: '1:op:005'
+          epoch: 1
+          kind: delegation
+          title: 写入生态足迹
+          detail: 你允许 Desktop 向生态共享写入足迹。
+          actors: [Desktop, 生态足迹写入]
+          tags: [林澈, Desktop, 生态共享, 本次会话]
+          result: pending
+          at: 'T+00:05'
+        - id: '1:op:008'
+          epoch: 1
+          kind: flow
+          title: 写入生态足迹
+          detail: Desktop 提交了一条生态足迹：抵达星港大厅。
+          actors: [Desktop, 星港]
+          tags: [Desktop, 生态共享, 本次会话]
+          result: committed
+          at: 'T+00:08'
+        - id: '1:op:011'
+          epoch: 1
+          kind: delegation
+          title: 读取在场状态
+          detail: 你允许 Zhiyu 只读取你在当前世界的在场状态。
+          actors: [Desktop, Zhiyu]
+          tags: [林澈, Zhiyu, 当前世界, 只读]
+          result: committed
+          at: 'T+00:11'
+      consent: null
+      flow:
+        flowId: null
+        stepIndex: 0
+        status: idle
+        currentDirective: null
+      opSeq: 12
 module_data:
   - module_id: desktop
     data:
       locale: en
+      auth:
+        initialStatus: authenticated
+        persona:
+          accountId: sim-account-linche
+          userId: sim-user-linche
+          displayName: 林澈
+          role: 生态居民 · 早期体验者
+          realmEnvironmentId: sim-realm-env-desktop
+      productControl:
+        initialStatus: ready_for_use
+      aiConfig:
+        runtimeStatus: unavailable
   - module_id: tester
     data:
       generatedText: Nimi connects apps through one shared, simulated ecosystem state.
@@ -84,9 +219,9 @@ readiness:
     contract_id: desktop.main.usable
     root_content_semantic_id: desktop-main-content
     primary_control:
-      semantic_id: desktop-login-primary
+      semantic_id: desktop-main-shell-primary
       aria_role: button
-      accessible_name: Nimi Logo
+      accessible_name: Home
     projection:
       kind: json_pointer_equals
       json_pointer: /protocolRevision

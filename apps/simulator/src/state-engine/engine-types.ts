@@ -2,7 +2,7 @@
  * Shared Simulator State Engine internal types and constants.
  *
  * Authority: P-SIM-010..015, P-SIM-019;
- * tables/simulator-state-engine-policy.yaml; simulator-protocol.md §11.
+ * tables/simulator-state-engine-policy.yaml.
  */
 
 import type { JsonValue } from './json-value.ts';

@@ -32,6 +32,7 @@ test('static HTML exposes simulation and starting status before JavaScript or CS
   assert.equal(simulatorRootElement.contains(disclosureRoot), false);
   assert.ok(indexHtml.indexOf('simulator-disclosure-root') < indexHtml.indexOf('id="root"'));
   assert.ok(indexHtml.indexOf('simulator-bootstrap-status') < indexHtml.indexOf('<script'));
+  assert.equal(dom.window.document.querySelector('link[rel="icon"]')?.getAttribute('href'), 'data:,');
   assert.match(simulatorStyles, /\.simulator-disclosure-root\s*\{[^}]*position:\s*sticky;[^}]*z-index:\s*2010099;/su);
 });
 

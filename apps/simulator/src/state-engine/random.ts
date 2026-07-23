@@ -2,7 +2,7 @@
  * xoshiro256ss-v1 deterministic randomness with canonical JSON state.
  *
  * Authority: tables/simulator-state-engine-policy.yaml `random` surface and
- * simulator-protocol.md §11.7. Arithmetic uses JavaScript bigint masked to
+ * P-SIM-012 (seeded randomness). Arithmetic uses JavaScript bigint masked to
  * uint64 with `(1n << 64n) - 1n`. Committed JSON never contains bigint.
  */
 

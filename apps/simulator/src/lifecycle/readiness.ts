@@ -3,7 +3,7 @@
  * quiescence, React commit, two animation frames, and Paint/Composite
  * evidence to a visible checkpoint.
  *
- * Authority: P-SIM-014; simulator-protocol.md §7.2;
+ * Authority: P-SIM-014;
  * tables/simulator-state-engine-policy.yaml `readiness`.
  * A skeleton, loading fallback, off-root marker, hidden simulation
  * disclosure, or pending lifecycle/reset can never become ready.

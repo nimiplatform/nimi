@@ -4,7 +4,7 @@
  * Paint/Composite qualification is injected by the pinned-browser runner and
  * fails closed when that evidence source is absent.
  *
- * Authority: P-SIM-014; simulator-protocol.md §7.2.
+ * Authority: P-SIM-014.
  */
 
 import type {

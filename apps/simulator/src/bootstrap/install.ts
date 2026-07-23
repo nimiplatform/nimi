@@ -5,7 +5,7 @@
  * source, and every effect-capable dependency are dynamically imported only
  * after descriptor verification and guard installation succeed.
  *
- * Authority: P-SIM-018; simulator-protocol.md §16.3.
+ * Authority: P-SIM-018; tables/simulator-browser-effects.yaml.
  */
 
 import { simulatorEffectCatalog } from '../../.generated/effect-catalog';

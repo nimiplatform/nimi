@@ -1,0 +1,59 @@
+schema: nimi.simulator.selected-source/v1
+module_id: desktop
+source_app_id_ref: nimi.desktop
+sources:
+  - id: app
+    kind: workspace
+    repository_key: nimi
+    object_format: git-sha1
+    object_id: 0cbf2d57fe5242a2c0e8576386ed49c97cf68a94
+    root: apps/desktop
+    expected_digest: sha256:4a2909dbae18c9e6751f5db0a7b8d8231a322300500603dd89047152358f15bd
+    authority_refs:
+      - owner: desktop
+        rule_id: D-GATE-010
+      - owner: platform
+        rule_id: P-SIM-006
+    authority_index_digest: sha256:2f358c649a8292eb853457691e2da0e94172b8a4f7d6e418d85ae96188b4603a
+  - id: web
+    kind: workspace
+    repository_key: nimi
+    object_format: git-sha1
+    object_id: 0cbf2d57fe5242a2c0e8576386ed49c97cf68a94
+    root: apps/web/src
+    expected_digest: sha256:46cedbd3090101b92de321b4777d1c50c7e9c5c1ba333a00a0b452fa693af981
+    authority_refs:
+      - owner: platform
+        rule_id: P-WEB-002
+      - owner: platform
+        rule_id: P-SIM-006
+    authority_index_digest: sha256:620c18bdb6060a15f5377fde1b9a4d5dd4cb1d1607add83e66cbb85e81530e26
+app_production:
+  source_id: app
+  entries:
+    - src/shell/renderer/main.tsx
+  inventory_digest: sha256:a4c975c0f7a9de29018adb1fbc1c0a4d1694f0b91441f36f69213ea949e6c99a
+  inventory_authority_refs:
+    - owner: desktop
+      rule_id: D-GATE-010
+    - owner: platform
+      rule_id: P-SIM-006
+host_invocations:
+  entries:
+    - id: desktop-web-renderer
+      source_id: web
+      entry: web-shell-main.tsx
+      authority_refs:
+        - owner: platform
+          rule_id: P-WEB-002
+        - owner: platform
+          rule_id: P-SIM-006
+  inventory_digest: sha256:270df2936c2b1fc5e066c5fb4a7df5193650c508ea113aa4b26d9eb7e3c13fc0
+  inventory_authority_refs:
+    - owner: platform
+      rule_id: P-WEB-002
+    - owner: platform
+      rule_id: P-SIM-006
+manifest:
+  source_id: app
+  path: nimi.simulator.yaml

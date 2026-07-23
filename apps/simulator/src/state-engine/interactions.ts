@@ -21,6 +21,11 @@ import { notifyStateSubscribers } from './module-commands.ts';
 import { SimulatorIntegrityAbort, type QueuedOperation } from './engine-types.ts';
 import type { SimulatorEventRecord, SimulatorIssuer } from './types.ts';
 
+import {
+  applyInteractionProductEffects,
+  type SimulatorInteractionProductEffects,
+} from './product-state.ts';
+
 export const SIMULATOR_INTERACTION_EMIT = 'simulator.interaction.emit' as const;
 
 export interface SimulatorInteractionTargetDeclaration {
@@ -45,6 +50,10 @@ export interface SimulatorInteractionDeclaration {
   }): {
     readonly ecosystem: JsonValue;
     readonly targetPayload: JsonValue;
+    /** Optional declared Shell-partition product effects, committed atomically. */
+    readonly product?: SimulatorInteractionProductEffects;
+    /** A duplicate against committed State Engine truth settles without a commit or target replay. */
+    readonly idempotent?: boolean;
   };
 }
 
@@ -167,7 +176,7 @@ export function registerInteractionCommand(context: EngineContext): void {
     type: SIMULATOR_INTERACTION_EMIT,
     owner: { kind: 'shell' },
     payloadSchema: SIMULATOR_INTERACTION_ENVELOPE_SCHEMA,
-    writeSet: ['ecosystem'],
+    writeSet: ['ecosystem', 'shell', 'instances'],
     requiredCapabilities: [],
   });
 }
@@ -309,6 +318,15 @@ export function createInteractionRuntime(
       } catch {
         abortIntegrity(operation, operation.issuer.moduleId);
       }
+      if (reduction.idempotent === true) {
+        recordSettlement(context, operation.sequence, operation.settle, simulatorOk({
+          interactionId: envelope.interactionId as string,
+          ecosystemRevision: context.committed.revision,
+          eventId: null,
+          idempotent: true,
+        }));
+        return true;
+      }
       const ecosystem = freezeJsonValue(assertJsonValue(reduction.ecosystem));
       const targetPayload = freezeJsonValue(assertJsonValue(reduction.targetPayload));
       for (const target of declaration.targets) {
@@ -317,9 +335,21 @@ export function createInteractionRuntime(
           abortIntegrity(operation, target.moduleId);
         }
       }
+      let shell = context.committed.snapshot.shell;
+      let instances = context.committed.snapshot.instances as unknown as JsonValue;
+      if (reduction.product !== undefined) {
+        const applied = applyInteractionProductEffects(context, reduction.product, operation.operationId);
+        shell = applied.shell;
+        instances = applied.instances;
+      }
       context.committed = freezeCommittedState({
         ...context.committed,
-        snapshot: { ...context.committed.snapshot, ecosystem },
+        snapshot: {
+          ...context.committed.snapshot,
+          ecosystem,
+          shell,
+          instances: instances as unknown as typeof context.committed.snapshot.instances,
+        },
         revision: ecosystemRevision,
       });
       const eventSequence = context.allocators.evt.next();

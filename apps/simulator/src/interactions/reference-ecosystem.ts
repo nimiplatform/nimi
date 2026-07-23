@@ -1,5 +1,6 @@
 import type { JsonValue } from '../state-engine/json-value.ts';
 import type { SimulatorInteractionDeclaration } from '../state-engine/interactions.ts';
+import { simulatorProductInteractionCatalog } from './product-interactions.ts';
 
 const REFERENCE_TYPE = 'ecosystem.reference.checkpoint' as const;
 
@@ -48,4 +49,5 @@ export const simulatorReferenceInteraction = Object.freeze(referenceInteraction)
 
 export const simulatorReferenceInteractionCatalog = Object.freeze([
   simulatorReferenceInteraction,
+  ...simulatorProductInteractionCatalog,
 ]);

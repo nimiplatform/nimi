@@ -1,0 +1,118 @@
+/* ---------------------------------------------------------------------------
+ * Nimi OS "Field" tokens (simulator port of prototype2)
+ *
+ * Aesthetic study after the Aurora spatial-OS concept: a luminous gradient
+ * field, smoked-glass panes, wide-tracked light typography. Layer 1 keeps
+ * Nimi semantic colors (primary/success/warning/danger) so it still reads
+ * as Nimi; the field itself is prototype-local (`--fld-*`).
+ *
+ * Port note: kit style/theme imports stay in src/styles.css (the simulator
+ * foundation entry); this file carries tokens only. The night phase uses a
+ * pure-CSS sky because the simulator CSP pins `img-src 'none'` — the
+ * prototype's sky-night.png photo is intentionally not ported; the WebGL
+ * shader generates its own procedural night terrain instead.
+ * ------------------------------------------------------------------------- */
+
+:root {
+  /* — Nimi semantic anchors — */
+  --nimi-primary: #45b8d6;
+  --nimi-primary-hover: #35a7c4;
+  --nimi-on-primary: #0b1220;
+  --nimi-success: #16a34a;
+  --nimi-warning: #d97706;
+  --nimi-danger: #dc2626;
+  --nimi-info: #2563eb;
+
+  /* — Field palette (frosted glass over the lunar field) — */
+  --fld-text: #f6efec;
+  --fld-text-2: rgba(246, 239, 236, 0.7);
+  --fld-text-3: rgba(246, 239, 236, 0.46);
+  --fld-border: var(--nimi-border-subtle);
+  --fld-border-hi: var(--nimi-border-strong);
+  --fld-shadow: var(--nimi-elevation-modal);
+  --fld-shadow-sm: var(--nimi-elevation-floating);
+
+  /* — Agent aurora (base agent only) — dusty rose over the lunar field — */
+  --fld-aurora: linear-gradient(120deg, #f4c9d6 0%, #d99ab6 48%, #a78fbf 100%);
+  --fld-aurora-glow:
+    0 0 0 1px rgba(217, 154, 182, 0.42),
+    0 8px 32px rgba(244, 201, 214, 0.16),
+    0 0 64px rgba(167, 143, 191, 0.22);
+
+  --fld-radius: var(--nimi-radius-lg);
+  --fld-radius-sm: var(--nimi-radius-md);
+
+  --fld-font: "Inter", "Noto Sans SC", "Source Han Sans SC", "PingFang SC",
+    "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
+  --fld-mono: "JetBrains Mono", "SF Mono", "Fira Code", ui-monospace, monospace;
+
+  --fld-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --fld-spring: cubic-bezier(0.22, 1.2, 0.36, 1);
+
+  /* module accents on glass */
+  --mod-desktop: #eab0c2;
+  --mod-zhiyu: #a4c6ae;
+  --mod-tester: #e6bd8a;
+
+  /* — Clear acrylic glass (prototype-local override of kit materials) — */
+  --nimi-material-glass-thin-bg: rgba(232, 224, 228, 0.08);
+  --nimi-material-glass-thin-border: rgba(255, 255, 255, 0.16);
+  --nimi-material-glass-regular-bg: rgba(238, 232, 234, 0.1);
+  --nimi-material-glass-regular-border: rgba(255, 255, 255, 0.24);
+  --nimi-material-glass-thick-bg: rgba(30, 25, 32, 0.5);
+  --nimi-material-glass-thick-border: rgba(255, 255, 255, 0.18);
+  --nimi-material-glass-chrome-bg: rgba(28, 23, 30, 0.55);
+  --nimi-material-glass-chrome-border: rgba(255, 255, 255, 0.16);
+  --nimi-backdrop-blur-thin: 12px;
+  --nimi-backdrop-blur-regular: 16px;
+  --nimi-backdrop-blur-strong: 18px;
+  --nimi-backdrop-blur-chrome: 18px;
+  --nimi-backdrop-saturate: 110%;
+  --nimi-border-subtle: rgba(255, 255, 255, 0.18);
+  --nimi-border-strong: rgba(255, 255, 255, 0.38);
+  --nimi-scrim-modal: rgba(26, 20, 26, 0.45);
+  --nimi-elevation-floating: 0 18px 48px rgba(25, 18, 28, 0.12);
+  --nimi-elevation-modal: 0 28px 72px rgba(25, 18, 28, 0.16);
+  --nimi-radius-md: 14px;
+  --nimi-radius-lg: 22px;
+}
+
+/* — Sky phases (the field itself changes with the atmosphere) — */
+:root,
+[data-phase='day'] {
+  --sky: linear-gradient(180deg, #2c44c2 0%, #2f6ed6 34%, #35a8dd 66%, #4fd2e8 100%);
+  --sky-speck: rgba(255, 255, 255, 0.5);
+  --sky-wisp-1: rgba(120, 220, 255, 0.28);
+  --sky-wisp-2: rgba(157, 124, 246, 0.22);
+}
+
+[data-phase='dawn'] {
+  --sky: linear-gradient(180deg, #27389a 0%, #5a63c8 38%, #a58fd8 72%, #f2c9d6 100%);
+  --sky-speck: rgba(255, 255, 255, 0.45);
+  --sky-wisp-1: rgba(255, 214, 231, 0.3);
+  --sky-wisp-2: rgba(157, 124, 246, 0.24);
+}
+
+[data-phase='dusk'] {
+  --sky: linear-gradient(180deg, #3a2a8c 0%, #7a3fa0 40%, #d0608e 74%, #f0a070 100%);
+  --sky-speck: rgba(255, 255, 255, 0.5);
+  --sky-wisp-1: rgba(255, 176, 120, 0.26);
+  --sky-wisp-2: rgba(208, 96, 142, 0.24);
+}
+
+/* Pure-CSS night sky (CSP img-src 'none'): layered radial star fields over a
+ * deep indigo gradient replace the prototype's sky-night.png photo. */
+[data-phase='night'] {
+  --sky:
+    radial-gradient(1.4px 1.4px at 18% 22%, rgba(255, 242, 246, 0.8), transparent 60%),
+    radial-gradient(1.1px 1.1px at 42% 12%, rgba(255, 242, 246, 0.6), transparent 60%),
+    radial-gradient(1.7px 1.7px at 66% 30%, rgba(255, 242, 246, 0.7), transparent 60%),
+    radial-gradient(1.2px 1.2px at 84% 16%, rgba(255, 242, 246, 0.55), transparent 60%),
+    radial-gradient(1.3px 1.3px at 30% 44%, rgba(255, 242, 246, 0.5), transparent 60%),
+    radial-gradient(1.5px 1.5px at 74% 52%, rgba(255, 242, 246, 0.45), transparent 60%),
+    radial-gradient(120% 90% at 50% 110%, #2a1848 0%, transparent 60%),
+    linear-gradient(180deg, #150c30 0%, #1a0f38 52%, #241544 100%);
+  --sky-speck: rgba(255, 242, 246, 0.5);
+  --sky-wisp-1: rgba(234, 172, 192, 0.16);
+  --sky-wisp-2: rgba(167, 143, 191, 0.14);
+}

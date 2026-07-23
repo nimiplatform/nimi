@@ -6,9 +6,9 @@ sources:
     kind: workspace
     repository_key: nimi
     object_format: git-sha1
-    object_id: 368b1c5b38c560e40ff04b7034d7f5d3661c3356
+    object_id: 0cbf2d57fe5242a2c0e8576386ed49c97cf68a94
     root: apps/tester
-    expected_digest: sha256:19a312430f1f83245f1230ae6d88530dc46d244006beab62ee8153456965d077
+    expected_digest: sha256:de529ee141b56549d82da1c7ee7f3c1c0b32649d16b3b2c305c7957ce4cdabbc
     authority_refs:
       - owner: tester
         rule_id: T-SIM-008

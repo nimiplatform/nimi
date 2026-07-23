@@ -1,8 +1,8 @@
 /**
  * Restrictive Simulator CSP generation from the emitted artifact inventory.
  *
- * Authority: P-SIM-018 and simulator-protocol.md §16.3. The semantic floor is
- * connect-src/worker-src/frame-src/object-src/base-uri/form-action 'none';
+ * Authority: P-SIM-018 and tables/simulator-browser-effects.yaml. The
+ * semantic floor is connect-src/worker-src/frame-src/object-src/base-uri/form-action 'none';
  * remaining sources are restricted to the Simulator origin and exact emitted
  * asset classes.
  */

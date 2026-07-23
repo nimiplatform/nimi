@@ -3,7 +3,7 @@
  * committed events, and one-shot terminal completion.
  *
  * Authority: tables/simulator-state-engine-policy.yaml `stream` and
- * simulator-protocol.md §6. Stream items are delivered from committed State
+ * P-SIM-012 (streams). Stream items are delivered from committed State
  * Engine events in event-sequence order; terminals settle by stream
  * allocation sequence; stale-epoch delivery is forbidden.
  */

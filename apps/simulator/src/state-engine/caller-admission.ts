@@ -2,10 +2,20 @@
 
 import type { SimulatorOperationOwner } from './catalog.ts';
 import type { EngineContext } from './engine-context.ts';
-import { simulatorError, type SimulatorError } from './errors.ts';
-import { INTERNAL, QUERY_COMMITTED } from './engine-types.ts';
+import {
+  simulatorError,
+  simulatorFail,
+  simulatorOk,
+  type SimulatorError,
+  type SimulatorResult,
+} from './errors.ts';
+import {
+  INTERNAL,
+  QUERY_COMMITTED,
+  type SimulatorPrepareWindow,
+} from './engine-types.ts';
 import type { JsonValue } from './json-value.ts';
-import type { SimulatorIssuer } from './types.ts';
+import type { SimulatorEventRecord, SimulatorIssuer } from './types.ts';
 import { SIMULATOR_INTERACTION_EMIT } from './interactions.ts';
 
 const LIVE_INSTANCE_STATUSES = new Set(['loading', 'preparing', 'inactive', 'active']);
@@ -183,7 +193,7 @@ export function admitOperationCaller(
   });
 }
 
-export function isOwnDeclaredEvent(
+function isOwnDeclaredEvent(
   context: EngineContext,
   moduleId: string,
   fullEventType: string,
@@ -192,6 +202,65 @@ export function isOwnDeclaredEvent(
   if (!fullEventType.startsWith(prefix)) return false;
   return fullEventType.length > prefix.length
     && Object.hasOwn(context.moduleCatalogs.get(moduleId)?.eventSchemas ?? {}, fullEventType);
+}
+
+export function beginEventPrepareWindow(
+  context: EngineContext,
+  instanceId: string,
+): SimulatorResult<SimulatorPrepareWindow> {
+  const instance = context.committed.snapshot.instances[instanceId];
+  if (!instance || instance.status !== 'preparing' || context.prepareWindows.has(instanceId)) {
+    return simulatorFail(simulatorError('SIMULATOR_INVALID_LIFECYCLE', { instanceId }));
+  }
+  const windowState = { closed: false, subscriptionCount: 0 };
+  context.prepareWindows.set(instanceId, windowState);
+  const windowObject: SimulatorPrepareWindow = {
+    instanceId,
+    close() {
+      windowState.closed = true;
+    },
+    get closed() {
+      return windowState.closed;
+    },
+  };
+  return simulatorOk(windowObject);
+}
+
+export function subscribePreparedEvent(
+  context: EngineContext,
+  windowObject: SimulatorPrepareWindow,
+  eventType: string,
+  handler: (payload: JsonValue, event: SimulatorEventRecord) => unknown,
+): SimulatorResult<() => void> {
+  const windowState = context.prepareWindows.get(windowObject.instanceId);
+  if (!windowState || windowState.closed || windowObject.closed) {
+    return simulatorFail(simulatorError('SIMULATOR_INVALID_LIFECYCLE', { instanceId: windowObject.instanceId }));
+  }
+  const instance = context.committed.snapshot.instances[windowObject.instanceId];
+  if (!instance || instance.status !== 'preparing') {
+    return simulatorFail(simulatorError('SIMULATOR_INVALID_LIFECYCLE', { instanceId: windowObject.instanceId }));
+  }
+  if (!isOwnDeclaredEvent(context, instance.moduleId, eventType)) {
+    return simulatorFail(simulatorError('SIMULATOR_CAPABILITY_DENIED', {
+      moduleId: instance.moduleId,
+      instanceId: windowObject.instanceId,
+    }));
+  }
+  const registration = context.moduleCatalogs.get(instance.moduleId);
+  windowState.subscriptionCount += 1;
+  const subscriber = {
+    eventType,
+    subscriberModuleId: instance.moduleId,
+    subscriberInstanceId: windowObject.instanceId,
+    moduleOrderingKey: registration?.orderingKey ?? 0,
+    instanceCreationSequence: instance.creationSequence,
+    subscriptionSequence: windowState.subscriptionCount,
+    handler,
+  };
+  context.eventSubscribers.push(subscriber);
+  return simulatorOk(() => {
+    context.eventSubscribers = context.eventSubscribers.filter((entry) => entry !== subscriber);
+  });
 }
 
 export function adapterCommandAdmissionError(

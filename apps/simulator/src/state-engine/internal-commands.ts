@@ -37,6 +37,7 @@ import {
 } from './module-commands.ts';
 import { beginResetLinearization } from './reset.ts';
 import { processOverlayCommand, registerOverlayCommands } from './overlay-state.ts';
+import { processProductCommand, registerProductCommands } from './product-state.ts';
 import { isSimulatorRouteState } from './route-state.ts';
 
 const INTEGER_SCHEMA: SimulatorSchema = { kind: 'integer', minimum: 0, maximum: Number.MAX_SAFE_INTEGER };
@@ -188,6 +189,7 @@ export function registerInternalCommands(context: EngineContext): void {
     projectionSchema: { kind: 'json' },
   });
   registerOverlayCommands(context);
+  registerProductCommands(context);
 }
 
 export function stateChanged(context: EngineContext, operation: QueuedOperation, value: JsonValue): void {
@@ -266,6 +268,7 @@ function processClockAdvance(context: EngineContext, operation: QueuedOperation,
 
 export function processInternalCommand(context: EngineContext, operation: QueuedOperation): void {
   if (processOverlayCommand(context, operation)) return;
+  if (processProductCommand(context, operation)) return;
   const payload = operation.payload as Record<string, JsonValue>;
   const unsupported = () => recordSettlement(context, operation.sequence, operation.settle, simulatorFail(simulatorError('SIMULATOR_UNSUPPORTED', {
     moduleId: operation.issuer.moduleId, instanceId: operation.issuer.instanceId, operationId: operation.operationId,

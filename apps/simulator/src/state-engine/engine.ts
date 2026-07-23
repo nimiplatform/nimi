@@ -3,7 +3,7 @@
  * drain, session integrity failure, and the public engine surface.
  *
  * Authority: P-SIM-010..015, P-SIM-019;
- * tables/simulator-state-engine-policy.yaml; simulator-protocol.md §11.
+ * tables/simulator-state-engine-policy.yaml.
  *
  * This module is pure TypeScript: it never reads wall-clock time, host
  * randomness, timers, DOM, or network. Hosts inject every effect.
@@ -36,7 +36,6 @@ import {
   freezeInstancePresentation,
   isThenable,
   type QueuedOperation,
-  type SimulatorPrepareWindow,
   type SimulatorReplayRecord,
   type SimulatorStateEngine,
   type SimulatorStateEngineOptions,
@@ -63,7 +62,8 @@ import { settleActiveResetForTerminal } from './reset.ts';
 import {
   admitsReservationCaller,
   admitOperationCaller,
-  isOwnDeclaredEvent,
+  beginEventPrepareWindow,
+  subscribePreparedEvent,
   validateLiveIssuer,
 } from './caller-admission.ts';
 import {
@@ -679,53 +679,10 @@ export function createSimulatorStateEngine(options: SimulatorStateEngineOptions)
       };
     },
     beginPrepareWindow(instanceId) {
-      const instance = context.committed.snapshot.instances[instanceId];
-      if (!instance || instance.status !== 'preparing' || context.prepareWindows.has(instanceId)) {
-        return simulatorFail(simulatorError('SIMULATOR_INVALID_LIFECYCLE', { instanceId }));
-      }
-      const windowState = { closed: false, subscriptionCount: 0 };
-      context.prepareWindows.set(instanceId, windowState);
-      const windowObject: SimulatorPrepareWindow = {
-        instanceId,
-        close() {
-          windowState.closed = true;
-        },
-        get closed() {
-          return windowState.closed;
-        },
-      };
-      return simulatorOk(windowObject);
+      return beginEventPrepareWindow(context, instanceId);
     },
     subscribeEvent(windowObject, eventType, handler) {
-      const windowState = context.prepareWindows.get(windowObject.instanceId);
-      if (!windowState || windowState.closed || windowObject.closed) {
-        return simulatorFail(simulatorError('SIMULATOR_INVALID_LIFECYCLE', { instanceId: windowObject.instanceId }));
-      }
-      const instance = context.committed.snapshot.instances[windowObject.instanceId];
-      if (!instance || instance.status !== 'preparing') {
-        return simulatorFail(simulatorError('SIMULATOR_INVALID_LIFECYCLE', { instanceId: windowObject.instanceId }));
-      }
-      if (!isOwnDeclaredEvent(context, instance.moduleId, eventType)) {
-        return simulatorFail(simulatorError('SIMULATOR_CAPABILITY_DENIED', {
-          moduleId: instance.moduleId,
-          instanceId: windowObject.instanceId,
-        }));
-      }
-      const registration = context.moduleCatalogs.get(instance.moduleId);
-      windowState.subscriptionCount += 1;
-      const subscriber = {
-        eventType,
-        subscriberModuleId: instance.moduleId,
-        subscriberInstanceId: windowObject.instanceId,
-        moduleOrderingKey: registration?.orderingKey ?? 0,
-        instanceCreationSequence: instance.creationSequence,
-        subscriptionSequence: windowState.subscriptionCount,
-        handler,
-      };
-      context.eventSubscribers.push(subscriber);
-      return simulatorOk(() => {
-        context.eventSubscribers = context.eventSubscribers.filter((entry) => entry !== subscriber);
-      });
+      return subscribePreparedEvent(context, windowObject, eventType, handler);
     },
     attachStream(streamId) {
       const result = context.streams.attach(streamId);

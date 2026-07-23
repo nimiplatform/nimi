@@ -2,8 +2,9 @@
  * Instance host cleanup registry: registration windows, one-shot reverse
  * order cleanup, and the fixed host-integrity watchdog.
  *
- * Authority: simulator-protocol.md §7.5, SIM-PROTO-012/013 and
- * tables/simulator-state-engine-policy.yaml `instance_lifecycle`.
+ * Authority: P-SIM-013 (the retired SIM-PROTO-012/013 cleanup rules map
+ * onto it) and tables/simulator-state-engine-policy.yaml
+ * `instance_lifecycle`.
  * Cleanup runs once in reverse registration order, is awaited serially, and
  * every rejection or watchdog timeout is a session integrity failure.
  */

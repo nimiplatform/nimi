@@ -4,7 +4,7 @@
  * reconstruction with ordered settlement.
  *
  * Authority: P-SIM-013; tables/simulator-state-engine-policy.yaml
- * `scenario_reset`; simulator-protocol.md §11.8.
+ * `scenario_reset`.
  */
 
 import {

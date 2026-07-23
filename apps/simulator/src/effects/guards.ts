@@ -3,8 +3,7 @@
  * for interceptable browser surfaces, installed before any Shell or
  * effect-capable module evaluates.
  *
- * Authority: P-SIM-018; tables/simulator-browser-effects.yaml;
- * simulator-protocol.md §16.3.
+ * Authority: P-SIM-018; tables/simulator-browser-effects.yaml.
  *
  * Guards are semantic containment, not a hostile-code sandbox: reviewed
  * source, static qualification, CSP, and these guards jointly own the

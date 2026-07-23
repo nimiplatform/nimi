@@ -1,7 +1,7 @@
 /**
  * Shared State Engine protocol types.
  *
- * Authority: simulator-protocol.md §3, §9, §11 and
+ * Authority: P-SIM-010, P-SIM-011, P-SIM-012 and
  * tables/simulator-state-engine-policy.yaml.
  */
 

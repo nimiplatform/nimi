@@ -21,9 +21,9 @@ function fail(code, message, fieldPath = '') {
 function ensureGeneratedRoot(simulatorRoot, generatedRoot) {
   const simulator = path.resolve(simulatorRoot);
   const generated = path.resolve(generatedRoot);
-  if (generated !== path.join(simulator, '.generated')) {
-    fail('SIM_GENERATED_ROOT', 'generated output must be apps/simulator/.generated');
-  }
+  const canonical = path.join(simulator, '.generated');
+  const staged = path.dirname(generated) === simulator && path.basename(generated).startsWith('.generated-stage-');
+  if (generated !== canonical && !staged) fail('SIM_GENERATED_ROOT', 'generated output must be canonical or a controlled sibling staging root');
   rmSync(generated, { recursive: true, force: true });
   mkdirSync(generated, { recursive: true });
 }
@@ -519,6 +519,27 @@ function assertScenarioMatchesQualified(scenario, rows, readinessDeclarations, s
   if (stableJson(selectedModuleIds) !== stableJson(scenarioModuleIds)) {
     fail('SIM_SCENARIO_MODULE_DATA_MISMATCH', 'Scenario module_data must exactly follow selected registry order');
   }
+  if (scenario.scenario_id === 'nimi-ecosystem') {
+    const desktopData = scenario.module_data.find((row) => row.module_id === 'desktop')?.data;
+    const desktopAuth = desktopData?.auth;
+    const desktopPersona = desktopAuth?.persona;
+    if (!desktopData || desktopAuth?.initialStatus !== 'authenticated'
+      || desktopData?.productControl?.initialStatus !== 'ready_for_use'
+      || !desktopPersona
+      || !['accountId', 'userId', 'realmEnvironmentId'].every((field) => (
+        typeof desktopPersona[field] === 'string' && desktopPersona[field].startsWith('sim-')
+      ))) {
+      fail('SIM_SCENARIO_DESKTOP_AUTH', 'canonical Desktop Scenario auth must be a simulated authenticated State Engine projection');
+    }
+    const desktopSurface = rows.find((row) => row.moduleId === 'desktop')?.surfaces.find((surface) => surface.id === 'main');
+    const desktopReadiness = scenario.readiness.find((row) => row.module_id === 'desktop' && row.surface_id === 'main');
+    if (desktopSurface?.initialRoute !== '/'
+      || desktopReadiness?.primary_control?.semantic_id !== 'desktop-main-shell-primary'
+      || desktopReadiness?.primary_control?.accessible_name !== 'Home'
+      || desktopReadiness?.primary_control?.semantic_id === 'desktop-login-primary') {
+      fail('SIM_SCENARIO_DESKTOP_SHELL', 'canonical Desktop Scenario must qualify the post-login main Shell at route /');
+    }
+  }
   for (const capability of scenario.enabled_capabilities) {
     if (!supportedCapabilities.has(capability)) {
       fail('SIM_SCENARIO_CAPABILITY_UNSUPPORTED', `Scenario capability ${JSON.stringify(capability)} is not admitted`);
@@ -554,6 +575,32 @@ function assertScenarioMatchesQualified(scenario, rows, readinessDeclarations, s
   }
 }
 function runtimeScenarioProjection(scenario) {
+  const desktopPersona = scenario.scenario_id === 'nimi-ecosystem'
+    ? scenario.module_data.find((row) => row.module_id === 'desktop')?.data?.auth?.persona
+    : null;
+  const scenarioPersona = desktopPersona ? {
+    protocolRevision: 1,
+    ecosystemRevision: 0,
+    interactionId: `sim-scenario-persona-${desktopPersona.userId}`,
+    persona: desktopPersona,
+    committedAt: scenario.initial_logical_time,
+  } : null;
+  const ecosystemState = scenarioPersona
+    ? { ...scenario.state.ecosystem, persona: scenarioPersona }
+    : scenario.state.ecosystem;
+  const shellState = scenarioPersona
+    ? {
+      ...scenario.state.shell,
+      product: {
+        ...scenario.state.shell.product,
+        persona: {
+          name: desktopPersona.displayName,
+          id: desktopPersona.userId,
+          role: desktopPersona.role,
+        },
+      },
+    }
+    : scenario.state.shell;
   const readiness = Object.fromEntries(scenario.readiness.map((row) => {
     const key = `${row.module_id}/${row.surface_id}`;
     return [key, {
@@ -582,8 +629,8 @@ function runtimeScenarioProjection(scenario) {
       seed: scenario.seed,
       initialLogicalTime: scenario.initial_logical_time,
       scenarioState: scenario.state.scenario,
-      ecosystemState: scenario.state.ecosystem,
-      shellState: scenario.state.shell,
+      ecosystemState,
+      shellState,
     },
     moduleData: Object.fromEntries(scenario.module_data.map((row) => [row.module_id, row.data])),
     enabledCapabilities: scenario.enabled_capabilities,

@@ -2,7 +2,7 @@
  * Ordered asynchronous reservation pump.
  *
  * Authority: tables/simulator-state-engine-policy.yaml `async_reservation`
- * and simulator-protocol.md §11.6. External state-affecting Promise work
+ * and P-SIM-012 (async reservations). External state-affecting Promise work
  * reserves release order synchronously before awaiting; settlement timing
  * writes only a typed completion buffer; release is strictly by allocation
  * sequence. Promise timing is never ordering truth.

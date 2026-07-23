@@ -3,8 +3,8 @@
  * admitted listener family and target, deterministic subscriber order, and
  * session-wide subscriber dispatch.
  *
- * Authority: P-SIM-017/018; tables/simulator-listener-families.yaml;
- * simulator-protocol.md §7.3. Apps and Kit instances never mutate these
+ * Authority: P-SIM-017/018; tables/simulator-listener-families.yaml.
+ * Apps and Kit instances never mutate these
  * globals independently; every lease releases exactly once.
  */
 

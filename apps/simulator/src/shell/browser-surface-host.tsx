@@ -75,6 +75,10 @@ export interface SimulatorBrowserSurfaceManager {
   prepare(input: SimulatorBrowserSurfacePrepareInput): SimulatorPreparedSurfaceHost;
   setFullWindow(instanceId: string | null): void;
   renderPortals(): ReactNode;
+  /** The imperative stage section for a live instance, or null when the
+   * instance has no allocated surface. Shell chrome uses this to project
+   * window geometry and to host the window-chrome portal. */
+  stageElement(instanceId: string): HTMLElement | null;
   readonly liveSurfaceCount: number;
   readonly activeOverlayLeaseCount: number;
 }
@@ -229,7 +233,12 @@ export function createSimulatorBrowserSurfaceManager(
     rendererRoot.className = `simulator-surface__renderer ${moduleRootClass}`;
     const overlayRoot = options.document.createElement('div');
     overlayRoot.className = `simulator-surface__overlays ${moduleRootClass}`;
-    stage.append(rendererRoot, overlayRoot);
+    // Shell-owned window chrome host: stays empty until the shell
+    // WindowManager portals the header into it. It must precede the
+    // renderer/overlay roots and carry no App content.
+    const chromeRoot = options.document.createElement('div');
+    chromeRoot.className = 'simulator-surface__chrome';
+    stage.append(chromeRoot, rendererRoot, overlayRoot);
     surfaceContainer.append(stage);
     options.assignedRoots.assign(input.instanceId, input.surfaceId, {
       renderer: rendererRoot,
@@ -371,6 +380,9 @@ export function createSimulatorBrowserSurfaceManager(
     },
     renderPortals() {
       return h(SurfacePortals);
+    },
+    stageElement(instanceId) {
+      return records.get(instanceId)?.stage ?? null;
     },
     get liveSurfaceCount() {
       return records.size;

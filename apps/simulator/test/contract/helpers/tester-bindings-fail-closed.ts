@@ -25,6 +25,7 @@ const projection = {
   imageHistory: [],
   promptDrafts: {},
   ecosystemReference: null,
+  personaReference: null,
   aiConfig: {
     scopeRef: { kind: 'app', ownerId: 'nimi.tester', surfaceId: 'app-lab' },
     capabilities: { targetRefs: {}, selectedParams: {} },

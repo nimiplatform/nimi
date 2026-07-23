@@ -3,8 +3,7 @@
  * exhaustive failure-scope matrix. Diagnostics are Shell-owned projections;
  * they never expose raw Simulator identifiers to App UI.
  *
- * Authority: P-SIM-001, P-SIM-019; simulator-protocol.md §15 (failure-scope
- * matrix).
+ * Authority: P-SIM-001, P-SIM-019 (failure-scope matrix).
  */
 
 import type { SimulatorError, SimulatorErrorCode } from '../state-engine/errors.ts';

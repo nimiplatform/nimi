@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { SimulatorShellView, SIMULATOR_STATUS_TEXT } from '../../src/shell/ui.ts';
+import { SimulatorShellView, SIMULATOR_STATUS_TEXT } from '../../src/shell/ui.tsx';
 
 const simulatorRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 

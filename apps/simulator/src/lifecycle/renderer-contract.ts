@@ -3,7 +3,7 @@
  * envelope is validated by Kit; Simulator validates only module/factory and
  * surface facts that it owns before mounting anything.
  *
- * Authority: P-SIM-006, P-SIM-007, P-SIM-016; simulator-protocol.md §4/§5.
+ * Authority: P-SIM-006, P-SIM-007, P-SIM-016.
  */
 
 import {

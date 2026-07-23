@@ -3,7 +3,7 @@
  * one diagnostics store, and the Shell-owned route surface — wired behind
  * injected browser ports so the session is fully testable outside a browser.
  *
- * Authority: P-SIM-001, P-SIM-013, P-SIM-017; simulator-protocol.md §7/§10.
+ * Authority: P-SIM-001, P-SIM-013, P-SIM-017.
  */
 
 import {
@@ -40,6 +40,15 @@ import {
   type SimulatorShellRoute,
 } from './routes.ts';
 import type { SimulatorRouteState } from '../state-engine/types.ts';
+import {
+  parseShellProductState,
+  SIMULATOR_PRODUCT_COMMANDS,
+  type SimulatorShellProductState,
+} from '../state-engine/product-state.ts';
+import {
+  SIMULATOR_PRODUCT_FLOWS,
+  type SimulatorProductFlowDefinition,
+} from '../state-engine/product-flows.ts';
 
 export interface SimulatorRegistryModuleRow {
   readonly metadata: {
@@ -115,6 +124,18 @@ export interface SimulatorSession {
   navigate(route: SimulatorShellRoute, options?: { readonly history?: boolean; readonly replace?: boolean }): void;
   instances(): readonly SimulatorSessionInstanceView[];
   readinessFor(instanceId: string, surfaceId: string): SimulatorResult<SimulatorReadinessBarrier>;
+  /**
+   * Read-only typed projection of the `shell.product` sub-state (grants,
+   * ledger, consent, agent, flow). Null when the scenario does not seed it.
+   */
+  productState(): SimulatorShellProductState | null;
+  /** Declared product-flow catalog (engine truth for the Shell flow runner). */
+  productFlow(flowId: string): SimulatorProductFlowDefinition | null;
+  /** Shell-issuer dispatch for `simulator.product.*` presentation commands. */
+  dispatchProductCommand(
+    type: (typeof SIMULATOR_PRODUCT_COMMANDS)[keyof typeof SIMULATOR_PRODUCT_COMMANDS],
+    payload: JsonValue,
+  ): Promise<SimulatorResult<JsonValue>>;
   /** Last digest published at a completed visible-checkpoint boundary. */
   replayDigest(): string | null;
   subscribe(listener: () => void): () => void;
@@ -386,6 +407,23 @@ export function createSimulatorSession(options: SimulatorSessionOptions): Simula
             : readinessBarrier?.state ?? 'pending',
           route: instance.route,
         };
+      });
+    },
+    productState() {
+      const shell = engine.getCommitted().partitions.shell;
+      const product = shell && typeof shell === 'object' && !Array.isArray(shell)
+        ? (shell as Readonly<Record<string, JsonValue>>).product
+        : undefined;
+      return parseShellProductState(product);
+    },
+    productFlow(flowId) {
+      return SIMULATOR_PRODUCT_FLOWS[flowId] ?? null;
+    },
+    dispatchProductCommand(type, payload) {
+      return engine.acceptCommand(type, payload, {
+        kind: 'shell',
+        moduleId: null,
+        instanceId: null,
       });
     },
     readinessFor(instanceId, surfaceId) {
