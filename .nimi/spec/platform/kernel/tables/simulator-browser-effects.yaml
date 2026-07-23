@@ -88,7 +88,7 @@ entries:
     classification: forbidden
     governed_owners: [app_adapter, canonical_renderer, selected_dependency]
     phases: [module_evaluation, instance_lifecycle, render, callback]
-    reason: all_persistence_shaped_behavior_is_erasable_scenario_state
+    reason: simulated_auth_and_all_persistence_shaped_behavior_are_erasable_state_engine_state
   - id: session_web_storage
     browser_surface: sessionStorage
     classification: forbidden
@@ -100,19 +100,19 @@ entries:
     classification: forbidden
     governed_owners: [app_adapter, canonical_renderer, selected_dependency]
     phases: [module_evaluation, instance_lifecycle, render, callback]
-    reason: selected_modules_cannot_construct_browser_persistence
+    reason: simulated_auth_never_uses_browser_persistence
   - id: cache_storage
     browser_surface: globalThis.caches
     classification: forbidden
     governed_owners: [app_adapter, canonical_renderer, selected_dependency]
     phases: [module_evaluation, instance_lifecycle, render, callback]
-    reason: selected_modules_cannot_construct_browser_persistence
+    reason: simulated_auth_never_uses_cache_or_service_worker_session_persistence
   - id: cookie_storage
     browser_surface: document.cookie
     classification: forbidden
     governed_owners: [app_adapter, canonical_renderer, selected_dependency]
     phases: [module_evaluation, instance_lifecycle, render, callback]
-    reason: selected_modules_have_no_account_or_persistent_session
+    reason: simulated_authenticated_projection_is_state_engine_state_not_an_account_cookie_or_persistent_session
   - id: origin_private_filesystem
     browser_surface: navigator.storage.getDirectory
     classification: forbidden

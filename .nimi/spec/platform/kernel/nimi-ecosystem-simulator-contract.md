@@ -139,8 +139,14 @@ and reproducible; it cannot become source truth.
 Serialized paths are root-independent canonical build paths. Host absolute
 paths, credentials, branch names, moving refs, dirty release sources, symlinks,
 submodules, Git LFS pointers, unsupported file modes, path normalization
-collisions, or source-provided install/build scripts fail materialization. The
-source digest algorithm is fixed by `tables/simulator-source-policy.yaml`.
+collisions, or source-provided install/build scripts fail release
+materialization. Development preparation and functional test materialization
+must remain independent from release cleanliness: they read only the selected
+immutable object, may proceed while a workspace source is dirty, and mark the
+result non-releasable without consuming workspace-only bytes. Release and
+artifact qualification remain fail-closed on dirty selected workspace roots.
+The source digest algorithm and execution profiles are fixed by
+`tables/simulator-source-policy.yaml`.
 
 ## P-SIM-010 — Deterministic Presentation State Ownership
 
@@ -164,6 +170,23 @@ State Engine data cannot be persisted or consumed as Runtime, Realm, App
 registry, identity, permission, account, message-delivery, model, provider,
 memory, or world truth. Persistence-shaped behavior is ordinary scenario state
 and is erased by scenario reset.
+
+A Scenario may seed an `authenticated` simulated account projection for a
+canonical App renderer. This is presentation state, not a real or inferred
+product account. The State Engine is its sole session-truth owner: the Scenario
+owns one persona input and one closed initial status, while every renderer
+instance receives an independent projected session, login attempt, route,
+store, and lifecycle. A per-instance override may change only that instance;
+Scenario reset clears all overrides and restores the Scenario default.
+
+The canonical Scenario defaults both Desktop instances to `authenticated`.
+Every identity-shaped identifier in that input uses the `sim-` prefix. Shared
+ecosystem identity presentation must be deterministically derived from that one
+persona through a declared interaction or State Engine derivation with explicit
+idempotency; a second independently authored persona is forbidden. Simulated
+login, logout, and browser OAuth completion remain declared State Engine
+commands/events. They create no Runtime/Realm call, token, credential, Cookie,
+browser-storage record, persistent session, or account authority.
 
 ## P-SIM-011 — Serial Queue And Atomic Publication
 
@@ -231,7 +254,11 @@ Scenario readiness rows must exactly cover selected surfaces and exactly match
 each App-owned readiness declaration. Projection and blocking predicates are
 data from the closed predicate kinds in
 `tables/simulator-scenario-contract.yaml`; executable predicate functions or
-App-specific Shell branches are not Scenario authority.
+App-specific Shell branches are not Scenario authority. For a Scenario whose
+Desktop default is authenticated, Desktop readiness must identify a stable,
+accessible primary control in the canonical post-login main Shell and prove the
+Shell is usable; a login logo, login form, loading screen, or Simulator-owned
+Desktop-specific DOM cannot satisfy that contract.
 
 Close, reset, stale epoch, failure, or new state invalidates the barrier. A
 skeleton, loading fallback, off-root marker, hidden simulation disclosure, or
@@ -298,6 +325,12 @@ effects boundary.
 The CSP floor is `connect-src 'none'`, `worker-src 'none'`, `frame-src 'none'`,
 `object-src 'none'`, `base-uri 'none'`, and `form-action 'none'`; remaining
 sources are restricted to the Simulator origin and emitted asset classes.
+Simulated authentication does not weaken this boundary: auth and Runtime/Realm
+requests plus authentication use of Cookie, `localStorage`, `sessionStorage`,
+IndexedDB, Cache Storage, or any persistent browser session surface are
+forbidden and must be observed as absent in controlled-browser qualification.
+Development, CP5-Z, and CP6 use the same real controlled Vite + Chromium trace
+mechanism rather than a receipt-only substitute.
 
 ## P-SIM-019 — Closed Errors And Failure Scope
 

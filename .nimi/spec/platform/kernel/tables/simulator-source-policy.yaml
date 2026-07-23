@@ -80,7 +80,15 @@ materialization:
   source_install_script_execution: forbidden
   source_build_script_execution: forbidden
   path_max_utf8_bytes: 4096
-  release_dirty_workspace: forbidden
+  execution_profiles:
+    development_and_functional_test:
+      dirty_workspace: permitted
+      bytes_source: selected_object_blob_only
+      workspace_only_bytes_consumed: false
+      releasable: false_when_dirty
+    release_and_artifact_qualification:
+      dirty_selected_workspace_root: forbidden
+      failure_code: SIM_SOURCE_DIRTY_RELEASE
   local_dirty_workspace_evidence: non_releasable_only
   git_bytes_source: selected_object_blob
 

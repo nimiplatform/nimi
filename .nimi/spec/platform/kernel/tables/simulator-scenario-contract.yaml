@@ -51,6 +51,17 @@ module_data:
   duplicate_module_id: forbidden
   selected_module_coverage: exact
   app_fixture_as_runtime_input: forbidden
+  desktop_auth:
+    persona_input_count: exactly_one
+    initial_status_enum: [anonymous, authenticated]
+    canonical_initial_status: authenticated
+    identity_identifier_prefix: sim-
+    state_owner: simulator_state_engine
+    per_instance_override: required
+    shared_ecosystem_projection: derived_from_persona_at_scenario_construction_then_updated_by_declared_idempotent_interaction
+    second_persona_authority: forbidden
+    reset: clear_overrides_and_restore_initial_status
+    post_login_ai_runtime_status: typed_unavailable
 
 enabled_capabilities:
   representation: ordered_unique_strings
@@ -91,6 +102,11 @@ readiness:
   blocking_exact_fields: [kind]
   blocking_kinds: [no_active_overlay_lease]
   semantic_marker_scope: assigned_renderer_and_overlay_roots_only
+  authenticated_desktop_primary_control:
+    owner: desktop_canonical_renderer
+    required_surface: post_login_main_shell
+    login_surface_marker: forbidden
+    simulator_owned_desktop_dom: forbidden
 
 build_binding:
   parser_owner: simulator
@@ -103,5 +119,11 @@ build_binding:
   digest_domain: nimi-simulator-scenario-v1
   artifact_manifest_binding: required
   final_qualification_binding: required
+  controlled_browser_profiles: [development, cp5-z, cp6]
+  controlled_browser_trace_mechanism: shared_vite_chromium_qualification_trace
+  all_launch_instances_usable: required
+  default_desktop_shell: authenticated_post_login
+  auth_runtime_realm_request_observation: zero
+  browser_auth_persistence_observation: zero
   absolute_path_serialization: forbidden
   source_secret_or_credential: forbidden

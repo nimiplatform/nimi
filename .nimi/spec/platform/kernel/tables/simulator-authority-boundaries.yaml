@@ -6,10 +6,10 @@ source_rule: P-SIM-001
 rows:
   - id: simulator-product
     owner: platform
-    responsibility: Simulator product identity, selected-source protocol, deterministic State Engine, final build, integrated qualification, and release evidence
+    responsibility: Simulator product identity, selected-source protocol, deterministic State Engine, simulated session presentation truth, final build, integrated qualification, and release evidence
     relation: owns
-    authority_refs: [P-SIM-001, P-SIM-024]
-    boundary: Does not own App UI, Kit primitives, SDK public semantics, Runtime, Realm, identity, permission, admission, or product messaging truth.
+    authority_refs: [P-SIM-001, P-SIM-010, P-SIM-024]
+    boundary: May own deterministic authenticated presentation and per-instance session overrides only; does not own App UI, Kit primitives, SDK public semantics, Runtime, Realm, product identity, permission, admission, or product messaging truth.
   - id: platform-architecture
     owner: platform
     responsibility: Existing layer and dependency direction
@@ -54,10 +54,10 @@ rows:
     boundary: app-tools validates submitted source but cannot select a module or certify the integrated graph.
   - id: desktop
     owner: desktop
-    responsibility: Desktop canonical renderer factory, native and Web production bindings, App Adapter, App fixtures, and canonical style input
+    responsibility: Desktop canonical renderer factory, native and Web production bindings, App Adapter, App fixtures, canonical post-login Shell readiness marker, and canonical style input
     relation: amended
-    authority_refs: [D-BOOT-002, D-BOOT-004, D-BOOT-008, D-BOOT-009, D-SHELL-001, D-SHELL-004, D-SHELL-005, D-SHELL-006, D-SHELL-008, D-SHELL-018, D-SHELL-019, D-SHELL-022, D-STATE-005, D-ERR-006, D-GATE-001, D-GATE-010, D-GATE-080, D-GATE-090, P-SIM-006, P-SIM-007]
-    boundary: Desktop keeps its UI and production behavior; Simulator owns no Desktop store, route, provider, or UI fork.
+    authority_refs: [D-BOOT-002, D-BOOT-004, D-BOOT-008, D-BOOT-009, D-SHELL-001, D-SHELL-004, D-SHELL-005, D-SHELL-006, D-SHELL-008, D-SHELL-018, D-SHELL-019, D-SHELL-022, D-STATE-005, D-ERR-006, D-GATE-001, D-GATE-010, D-GATE-080, D-GATE-090, P-SIM-006, P-SIM-007, P-SIM-014]
+    boundary: Desktop keeps its UI and production behavior; Simulator supplies per-instance bindings and State Engine projections but owns no Desktop store, route, provider, readiness DOM, or UI fork.
   - id: zhiyu
     owner: zhiyu
     responsibility: Zhiyu canonical renderer factory, production binding, App Adapter, App fixture, and simulated projection mapping
@@ -75,7 +75,7 @@ rows:
     responsibility: Runtime execution and Realm canonical business truth
     relation: unchanged_excluded
     authority_refs: [P-SIM-001, P-SIM-010, P-SIM-018]
-    boundary: No real Runtime, Realm, provider, model, account, permission, credential, or persistence path executes in Simulator.
+    boundary: A simulated authenticated projection never widens this authority; no real Runtime, Realm, provider, model, account, token, credential, Cookie, browser auth storage, network, permission, or persistence path executes in Simulator.
   - id: app-messaging
     owner: runtime-app-messaging
     responsibility: Product App-message delivery, history, audit, and authorization

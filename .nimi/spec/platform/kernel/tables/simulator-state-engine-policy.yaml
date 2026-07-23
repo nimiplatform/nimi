@@ -14,6 +14,7 @@ surfaces:
   - stream
   - instance_lifecycle
   - scenario_reset
+  - simulated_auth_projection
   - readiness
   - replay
 
@@ -154,6 +155,21 @@ instance_lifecycle:
   watchdog_ms: 5000
   cleanup_failure_result: SIMULATOR_INTEGRITY_FAILURE
   disposed_instance_id_reuse_same_epoch: forbidden
+
+simulated_auth_projection:
+  owner: simulator_state_engine
+  scenario_fields: [persona, initialStatus]
+  initial_status_values: [anonymous, authenticated]
+  canonical_scenario_initial_status: authenticated
+  session_resolution: per_instance_override_then_scenario_default
+  override_scope: one_instance
+  instance_fields: [status, loginAttemptId, oauthState, oauthNonce, oauthCode, redirectUri, callbackOrigin, authorizationUrl, authenticatedAt]
+  login_validation: [instance, status, loginAttemptId, state, nonce, code, redirectUri, callbackOrigin, authorizationUrl]
+  stale_malformed_overlap_replay: fail_closed_zero_commit
+  module_scope_mutable_session: forbidden
+  browser_storage: forbidden
+  runtime_realm_network: forbidden
+  reset: clear_all_instance_overrides
 
 scenario_reset:
   only_reset_operation: resetScenario
