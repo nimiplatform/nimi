@@ -20,14 +20,13 @@ import {
   type SimulatorResult,
 } from './errors.ts';
 import { formatCanonicalId } from './ids.ts';
-import { validateSchema, type SimulatorSchema } from './schema.ts';
+import { validateSchema } from './schema.ts';
 import type { EngineContext } from './engine-context.ts';
 import { freezeCommittedState, recordSettlement } from './engine-context.ts';
 import { abortIntegrity, notifyStateSubscribers } from './module-commands.ts';
 import type { QueuedOperation } from './engine-types.ts';
 import type { SimulatorEventRecord } from './types.ts';
 import {
-  SIMULATOR_PRODUCT_FLOW_IDS,
   SIMULATOR_PRODUCT_FLOWS,
   type SimulatorProductAgentStatus,
   type SimulatorProductFlowDefinition,
@@ -36,60 +35,24 @@ import {
   type SimulatorProductLedgerResult,
 } from './product-flows.ts';
 import { isSimulatorRouteState } from './route-state.ts';
+import {
+  PRODUCT_AGENT_STATUSES,
+  PRODUCT_EVENT_SCHEMAS,
+  PRODUCT_FLOW_STATUSES,
+  PRODUCT_LEDGER_KINDS,
+  PRODUCT_LEDGER_RESULTS,
+  SIMULATOR_PRODUCT_COMMANDS,
+  SIMULATOR_PRODUCT_EVENTS,
+  productLedgerEntrySchema,
+  type SimulatorProductFlowStatus,
+} from './product-state-contract.ts';
 
-export const SIMULATOR_PRODUCT_COMMANDS = Object.freeze({
-  grantToggle: 'simulator.product.grant.toggle',
-  consentRequest: 'simulator.product.consent.request',
-  consentResolve: 'simulator.product.consent.resolve',
-  flowBegin: 'simulator.product.flow.begin',
-  flowStep: 'simulator.product.flow.step',
-  ledgerAppend: 'simulator.product.ledger.append',
-  agentTransition: 'simulator.product.agent.transition',
-  personaCommit: 'simulator.product.persona.commit',
-} as const);
-
-export const SIMULATOR_PRODUCT_EVENTS = Object.freeze({
-  grantChanged: 'simulator.product.grant.changed',
-  ledgerAppended: 'simulator.product.ledger.appended',
-  consentChanged: 'simulator.product.consent.changed',
-  flowChanged: 'simulator.product.flow.changed',
-  agentChanged: 'simulator.product.agent.changed',
-  personaChanged: 'simulator.product.persona.changed',
-} as const);
-
-export type SimulatorProductFlowStatus =
-  | 'idle'
-  | 'running'
-  | 'awaiting-consent'
-  | 'blocked'
-  | 'denied'
-  | 'completed';
-
-const AGENT_STATUSES: readonly SimulatorProductAgentStatus[] = ['idle', 'observing', 'migrating', 'acting'];
-const LEDGER_KINDS: readonly SimulatorProductLedgerKind[] = ['delegation', 'agent-action', 'flow', 'system'];
-const LEDGER_RESULTS: readonly SimulatorProductLedgerResult[] = ['committed', 'pending', 'unsupported', 'denied', 'info'];
-const FLOW_STATUSES: readonly SimulatorProductFlowStatus[] = ['idle', 'running', 'awaiting-consent', 'blocked', 'denied', 'completed'];
-const DIRECTIVE_NAMES = ['open-app', 'focus-app', 'notice', 'toast', 'bridge-measure', 'bridge-to-target', 'bridge-done'] as const;
-
-const FLOW_ID_SCHEMA: SimulatorSchema = { kind: 'stringEnum', values: SIMULATOR_PRODUCT_FLOW_IDS };
-const NULLABLE_TEXT_SCHEMA = (maxLength: number): SimulatorSchema => ({
-  kind: 'union',
-  variants: [{ kind: 'null' }, { kind: 'string', minLength: 1, maxLength }],
-});
-
-function ledgerEntrySchema(): SimulatorSchema {
-  return {
-    kind: 'object',
-    properties: {
-      kind: { kind: 'stringEnum', values: LEDGER_KINDS },
-      title: { kind: 'string', minLength: 1, maxLength: 256 },
-      detail: { kind: 'string', minLength: 1, maxLength: 1024 },
-      actors: { kind: 'array', items: { kind: 'string', minLength: 1, maxLength: 64 }, minItems: 1, maxItems: 8 },
-      tags: { kind: 'array', items: { kind: 'string', minLength: 1, maxLength: 64 }, maxItems: 8 },
-      result: { kind: 'stringEnum', values: LEDGER_RESULTS },
-    },
-  };
-}
+export {
+  registerProductCommands,
+  SIMULATOR_PRODUCT_COMMANDS,
+  SIMULATOR_PRODUCT_EVENTS,
+  type SimulatorProductFlowStatus,
+} from './product-state-contract.ts';
 
 /** Ledger entry shape accepted from interactions and the flow catalog. */
 export interface SimulatorProductLedgerInput {
@@ -204,12 +167,12 @@ function validateLedgerEntry(entry: JsonValue): void {
     || typeof entry.id !== 'string'
     || !Number.isSafeInteger(entry.epoch)
     || typeof entry.kind !== 'string'
-    || !LEDGER_KINDS.includes(entry.kind as SimulatorProductLedgerKind)
+    || !PRODUCT_LEDGER_KINDS.includes(entry.kind as SimulatorProductLedgerKind)
     || typeof entry.title !== 'string'
     || typeof entry.detail !== 'string'
     || !Array.isArray(entry.actors)
     || typeof entry.result !== 'string'
-    || !LEDGER_RESULTS.includes(entry.result as SimulatorProductLedgerResult)
+    || !PRODUCT_LEDGER_RESULTS.includes(entry.result as SimulatorProductLedgerResult)
     || typeof entry.at !== 'string') {
     abortIntegrity(simulatorError('SIMULATOR_INTEGRITY_FAILURE'));
   }
@@ -231,7 +194,7 @@ function validateFlowState(flow: JsonValue): void {
     || (flow.flowId !== null && typeof flow.flowId !== 'string')
     || !Number.isSafeInteger(flow.stepIndex)
     || typeof flow.status !== 'string'
-    || !FLOW_STATUSES.includes(flow.status as SimulatorProductFlowStatus)
+    || !PRODUCT_FLOW_STATUSES.includes(flow.status as SimulatorProductFlowStatus)
     || (flow.currentDirective !== null && !isRecord(flow.currentDirective))) {
     abortIntegrity(simulatorError('SIMULATOR_INTEGRITY_FAILURE'));
   }
@@ -247,7 +210,7 @@ export function readProductState(context: EngineContext): JsonRecord | null {
     || (product.persona !== null && !isRecord(product.persona))
     || !isRecord(product.agentPersona)
     || !isRecord(product.agent)
-    || !AGENT_STATUSES.includes(product.agent.status as SimulatorProductAgentStatus)
+    || !PRODUCT_AGENT_STATUSES.includes(product.agent.status as SimulatorProductAgentStatus)
     || !Array.isArray(product.grants)
     || !Array.isArray(product.ledger)
     || (product.consent !== null && !isRecord(product.consent))
@@ -409,79 +372,6 @@ class ProductEditor {
   }
 }
 
-const PRODUCT_EVENT_SCHEMAS: Readonly<Record<string, SimulatorSchema>> = {
-  [SIMULATOR_PRODUCT_EVENTS.grantChanged]: {
-    kind: 'object',
-    properties: {
-      grantId: { kind: 'string', minLength: 1, maxLength: 64 },
-      status: { kind: 'stringEnum', values: ['active', 'revoked'] },
-    },
-  },
-  [SIMULATOR_PRODUCT_EVENTS.ledgerAppended]: {
-    kind: 'object',
-    properties: {
-      entryId: { kind: 'string', minLength: 1, maxLength: 64 },
-      kind: { kind: 'stringEnum', values: LEDGER_KINDS },
-      result: { kind: 'stringEnum', values: LEDGER_RESULTS },
-    },
-  },
-  [SIMULATOR_PRODUCT_EVENTS.consentChanged]: {
-    kind: 'object',
-    properties: {
-      consent: {
-        kind: 'union',
-        variants: [
-          { kind: 'null' },
-          {
-            kind: 'object',
-            properties: {
-              flowId: FLOW_ID_SCHEMA,
-              grantId: { kind: 'string', minLength: 1, maxLength: 64 },
-              origin: { kind: 'string', minLength: 1, maxLength: 64 },
-            },
-          },
-        ],
-      },
-    },
-  },
-  [SIMULATOR_PRODUCT_EVENTS.flowChanged]: {
-    kind: 'object',
-    properties: {
-      flowId: NULLABLE_TEXT_SCHEMA(64),
-      stepIndex: { kind: 'integer', minimum: 0 },
-      status: { kind: 'stringEnum', values: FLOW_STATUSES },
-      currentDirective: { kind: 'union', variants: [{ kind: 'null' }, { kind: 'json' }] },
-    },
-  },
-  [SIMULATOR_PRODUCT_EVENTS.agentChanged]: {
-    kind: 'object',
-    properties: {
-      status: { kind: 'stringEnum', values: AGENT_STATUSES },
-      location: { kind: 'string', minLength: 1, maxLength: 64 },
-      carry: NULLABLE_TEXT_SCHEMA(256),
-    },
-  },
-  [SIMULATOR_PRODUCT_EVENTS.personaChanged]: {
-    kind: 'object',
-    properties: {
-      persona: {
-        kind: 'union',
-        variants: [
-          { kind: 'null' },
-          {
-            kind: 'object',
-            properties: {
-              name: { kind: 'string', minLength: 1, maxLength: 128 },
-              id: { kind: 'string', minLength: 1, maxLength: 128 },
-              role: { kind: 'string', minLength: 1, maxLength: 128 },
-            },
-          },
-        ],
-      },
-    },
-  },
-};
-
 function appendProductEvents(
   context: EngineContext,
   commit: ProductCommit,
@@ -530,57 +420,6 @@ function settleProductCommand(
   commitProduct(context, editor, { bumpRevision: true, causationOperationId: operation.operationId });
   notifyStateSubscribers(context);
   recordSettlement(context, operation.sequence, operation.settle, simulatorOk(value));
-}
-
-export function registerProductCommands(context: EngineContext): void {
-  const shellOwner = { kind: 'shell' } as const;
-  const register = (type: string, payloadSchema: SimulatorSchema): void => {
-    context.catalog.registerCommand({
-      kind: 'command',
-      type,
-      owner: shellOwner,
-      payloadSchema,
-      writeSet: ['shell'],
-      requiredCapabilities: [],
-    });
-  };
-  register(SIMULATOR_PRODUCT_COMMANDS.grantToggle, {
-    kind: 'object',
-    properties: { grantId: { kind: 'string', minLength: 1, maxLength: 64 } },
-  });
-  register(SIMULATOR_PRODUCT_COMMANDS.consentRequest, {
-    kind: 'object',
-    properties: { flowId: FLOW_ID_SCHEMA },
-  });
-  register(SIMULATOR_PRODUCT_COMMANDS.consentResolve, {
-    kind: 'object',
-    properties: { accept: { kind: 'boolean' } },
-  });
-  register(SIMULATOR_PRODUCT_COMMANDS.flowBegin, {
-    kind: 'object',
-    properties: { flowId: FLOW_ID_SCHEMA },
-  });
-  register(SIMULATOR_PRODUCT_COMMANDS.flowStep, {
-    kind: 'object',
-    properties: {},
-  });
-  register(SIMULATOR_PRODUCT_COMMANDS.ledgerAppend, ledgerEntrySchema());
-  register(SIMULATOR_PRODUCT_COMMANDS.agentTransition, {
-    kind: 'object',
-    properties: {
-      status: { kind: 'stringEnum', values: AGENT_STATUSES },
-      location: { kind: 'string', minLength: 1, maxLength: 64 },
-      carry: NULLABLE_TEXT_SCHEMA(256),
-    },
-  });
-  register(SIMULATOR_PRODUCT_COMMANDS.personaCommit, {
-    kind: 'object',
-    properties: {
-      name: { kind: 'string', minLength: 1, maxLength: 128 },
-      id: { kind: 'string', minLength: 1, maxLength: 128 },
-      role: { kind: 'string', minLength: 1, maxLength: 128 },
-    },
-  });
 }
 
 function flowDefinition(flowId: string): SimulatorProductFlowDefinition {
@@ -829,7 +668,7 @@ export function processProductCommand(context: EngineContext, operation: QueuedO
   return false;
 }
 
-const INTERACTION_LEDGER_EFFECT_SCHEMA = ledgerEntrySchema();
+const INTERACTION_LEDGER_EFFECT_SCHEMA = productLedgerEntrySchema();
 
 function validateInteractionEffects(effects: SimulatorInteractionProductEffects): void {
   if (effects.persona) {
