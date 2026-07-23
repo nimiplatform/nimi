@@ -64,6 +64,13 @@ function exactValue(actual, expected, label) {
 
 const contractPath = '.nimi/spec/platform/kernel/nimi-ecosystem-simulator-contract.md';
 const contract = read(contractPath);
+requireText(contractPath, [
+  'The canonical Scenario defaults both Desktop instances to `authenticated`.',
+  'The State Engine is its sole session-truth owner',
+  'Scenario reset clears all overrides and restores the Scenario default.',
+  'requests plus authentication use of Cookie',
+  'Development, CP5-Z, and CP6 use the same real controlled Vite + Chromium trace',
+]);
 const ruleIds = [...contract.matchAll(/^## (P-SIM-\d{3})\b/gmu)].map((match) => match[1]);
 const expectedRuleIds = Array.from({ length: 24 }, (_, index) => `P-SIM-${String(index + 1).padStart(3, '0')}`);
 exactSet(ruleIds, expectedRuleIds, `${contractPath} rule headings`);
@@ -153,6 +160,11 @@ exactSet(scenarioContract.tracked_artifact?.top_level_required_fields, [
 ], 'Simulator Scenario top-level fields');
 exactValue(scenarioContract.module_data?.selected_module_coverage, 'exact', 'Scenario module-data coverage');
 exactValue(scenarioContract.module_data?.app_fixture_as_runtime_input, 'forbidden', 'Scenario fixture runtime posture');
+exactSet(scenarioContract.module_data?.desktop_auth?.initial_status_enum, ['anonymous', 'authenticated'], 'Desktop simulated auth initial status');
+exactValue(scenarioContract.module_data?.desktop_auth?.canonical_initial_status, 'authenticated', 'canonical Desktop auth default');
+exactValue(scenarioContract.module_data?.desktop_auth?.state_owner, 'simulator_state_engine', 'Desktop simulated auth owner');
+exactValue(scenarioContract.module_data?.desktop_auth?.per_instance_override, 'required', 'Desktop auth instance isolation');
+exactValue(scenarioContract.module_data?.desktop_auth?.second_persona_authority, 'forbidden', 'Desktop persona authority');
 exactValue(scenarioContract.launch?.app_specific_shell_branch, 'forbidden', 'Scenario launch branch posture');
 exactSet(scenarioContract.readiness?.projection_kinds, ['json_pointer_equals'], 'Scenario projection predicates');
 exactSet(scenarioContract.readiness?.blocking_kinds, ['no_active_overlay_lease'], 'Scenario blocking predicates');
@@ -167,6 +179,10 @@ exactValue(statePolicy.logical_clock?.real_time_affects_state, 'forbidden', 'Sta
 exactValue(statePolicy.random?.generator, 'xoshiro256ss-v1', 'State Engine random generator');
 exactValue(statePolicy.instance_lifecycle?.watchdog_ms, 5000, 'instance cleanup watchdog');
 exactValue(statePolicy.scenario_reset?.only_reset_operation, 'resetScenario', 'scenario reset operation');
+exactValue(statePolicy.simulated_auth_projection?.owner, 'simulator_state_engine', 'simulated auth State Engine owner');
+exactValue(statePolicy.simulated_auth_projection?.canonical_scenario_initial_status, 'authenticated', 'simulated auth default');
+exactValue(statePolicy.simulated_auth_projection?.browser_storage, 'forbidden', 'simulated auth browser storage');
+exactValue(statePolicy.simulated_auth_projection?.runtime_realm_network, 'forbidden', 'simulated auth network');
 exactValue(statePolicy.replay?.canonicalization, 'RFC-8785', 'replay canonicalization');
 exactValue(statePolicy.replay?.digest, 'SHA-256', 'replay digest');
 
@@ -242,6 +258,10 @@ exactSet(effectCatalog.entries?.map((entry) => entry.id), [
   'qualification_trace',
 ], 'Simulator browser-effect catalog');
 exactValue(effectCatalog.enforcement?.violation_result, 'SIMULATOR_EFFECT_FORBIDDEN', 'browser-effect violation result');
+for (const authPersistenceEffect of ['persistent_web_storage', 'session_web_storage', 'indexed_database', 'cache_storage', 'cookie_storage']) {
+  const row = effectCatalog.entries?.find((entry) => entry.id === authPersistenceEffect);
+  exactValue(row?.classification, 'forbidden', `simulated auth persistence ${authPersistenceEffect}`);
+}
 for (const requiredForbidden of ['network_fetch', 'persistent_web_storage', 'worker_construction', 'wall_clock', 'nondeterministic_random']) {
   const row = effectCatalog.entries?.find((entry) => entry.id === requiredForbidden);
   exactValue(row?.classification, 'forbidden', `browser effect ${requiredForbidden} classification`);
@@ -357,6 +377,7 @@ for (const [relativePath, requiredTexts] of ownerRequirements) {
 
 const rootPackage = JSON.parse(read('package.json') || '{}');
 exactValue(rootPackage.scripts?.['check:simulator-authority'], 'node scripts/check-simulator-authority.mjs', 'root Simulator authority command');
+exactValue(rootPackage.scripts?.['dev:simulator'], 'pnpm --filter @nimiplatform/simulator dev', 'root Simulator development command');
 exactValue(rootPackage.scripts?.['check:simulator-selected-sources'], 'pnpm --filter @nimiplatform/simulator check:selected-sources', 'root Simulator selected-source command');
 exactValue(rootPackage.scripts?.['check:simulator-modules'], 'node scripts/with-workspace-surfaces.mjs -- pnpm --filter @nimiplatform/simulator check:modules', 'root Simulator module command');
 exactValue(rootPackage.scripts?.['build:simulator'], 'node scripts/with-workspace-surfaces.mjs -- pnpm --filter @nimiplatform/simulator build', 'root Simulator build command');
@@ -369,9 +390,75 @@ exactValue(rootPackage.scripts?.['check:simulator-cp6'], 'pnpm build:simulator &
 const simulatorPackage = JSON.parse(read('apps/simulator/package.json') || '{}');
 exactValue(simulatorPackage.name, '@nimiplatform/simulator', 'Simulator package name');
 exactValue(simulatorPackage.private, true, 'Simulator package privacy');
+exactValue(
+  simulatorPackage.scripts?.dev,
+  'node build/prepare-dev-modules.mjs && node build/dev-controlled-browser.mjs',
+  'Simulator controlled development command',
+);
+exactValue(simulatorPackage.scripts?.['prepare:dev'], 'node build/prepare-dev-modules.mjs', 'Simulator development preparation command');
+exactValue(
+  simulatorPackage.scripts?.['check:dev-controlled'],
+  'node build/prepare-dev-modules.mjs && node build/check-controlled-dev.mjs',
+  'Simulator controlled development acceptance command',
+);
 exactValue(simulatorPackage.scripts?.['check:selected-sources'], 'node build/check-selected-sources.mjs', 'Simulator selected-source package command');
 exactValue(simulatorPackage.scripts?.['check:modules'], 'node build/check-modules.mjs', 'Simulator module package command');
 exactValue(simulatorPackage.scripts?.build, 'pnpm run check:modules && pnpm run typecheck && vite build && node build/write-artifact-manifest.mjs', 'Simulator package build command');
+requireText('apps/simulator/build/materialize.mjs', ["['cat-file', '--batch']", 'GIT_BATCH_MAX_OBJECTS']);
+const simulatorDevPreparation = read('apps/simulator/build/prepare-dev-modules.mjs');
+if (simulatorDevPreparation.includes('assertWorkspaceSourcesClean')) {
+  fail('apps/simulator/build/prepare-dev-modules.mjs: development preparation must not enforce release workspace cleanliness');
+}
+if (!simulatorDevPreparation.includes('runFreshQualification(inputs, { release: false })')) {
+  fail('apps/simulator/build/prepare-dev-modules.mjs: development qualification must be explicitly non-release');
+}
+requireText('apps/simulator/build/qualification.mjs', [
+  'runFreshQualification(inputs = loadQualificationInputs(), { release = true } = {})',
+  'release,',
+]);
+requireText('apps/simulator/build/qualification-cache.mjs', [
+  'nimi.simulator.qualification-cache/v1',
+  'createMaterializedIntegrityVerifier({ generatedRoot }).verifyAll()',
+]);
+requireText('apps/simulator/build/resolver.mjs', ['devInteropImports', "moduleFormat === 'commonjs'"]);
+requireText('apps/simulator/vite.config.ts', [
+  "qualifyDependencyClosure: command === 'build'",
+  'include: [...resolver.devInteropImports]',
+  'hmr: false',
+  'controlledDevWithoutViteClient()',
+  'src="\\/@vite\\/client"',
+  'nimiControlledDevStyle',
+  'const __vite__injectQuery',
+  "img-src 'self' data:",
+  "connect-src 'none'",
+]);
+requireText('apps/simulator/index.html', ["connect-src 'none'", '<link rel="icon" href="data:," />']);
+requireText('apps/simulator/build/browser-trace-qualification.mjs', [
+  "cdp.send('Tracing.start'",
+  "cdp.send('Tracing.recordClockSyncMarker'",
+  "cdp.send('Tracing.end'",
+  'paint-composite-event-missing',
+]);
+for (const qualificationPath of [
+  'apps/simulator/build/qualify-cp5-z.mjs',
+  'apps/simulator/build/qualify-cp6.mjs',
+  'apps/simulator/build/dev-controlled-browser.mjs',
+]) {
+  requireText(qualificationPath, [
+    "from './browser-trace-qualification.mjs'",
+    'createBrowserTraceQualification({',
+    'installQualificationBindings(page, traces)',
+  ]);
+  if (read(qualificationPath).includes("cdp.send('Tracing.start'")) {
+    fail(`${qualificationPath}: browser tracing must be owned only by browser-trace-qualification.mjs`);
+  }
+}
+const controlledDevSource = read('apps/simulator/build/dev-controlled-browser.mjs');
+for (const forbiddenReceiptText of ['simulator-cp5-z', 'simulator-cp6', 'qualification.json', 'writeFile']) {
+  if (controlledDevSource.includes(forbiddenReceiptText)) {
+    fail(`apps/simulator/build/dev-controlled-browser.mjs: Dev runner must not write formal evidence (${forbiddenReceiptText})`);
+  }
+}
 exactValue(
   simulatorPackage.scripts?.test,
   'node ../../scripts/with-workspace-surfaces.mjs -- node --test test/*.test.mjs',
@@ -384,7 +471,7 @@ exactValue(
 );
 exactValue(
   simulatorPackage.scripts?.['test:contract:prepared'],
-  'node --test test/contract/*.test.mjs',
+  'node --test test/contract/*.test.mjs && node ../../scripts/with-workspace-surfaces.mjs -- tsx --test test/contract/*.test.tsx',
   'Simulator prepared contract package command',
 );
 exactValue(
@@ -395,6 +482,36 @@ exactValue(
 exactValue(simulatorPackage.scripts?.['qualify:cp5-z'], 'node build/qualify-cp5-z.mjs', 'Simulator CP5-Z package command');
 exactValue(simulatorPackage.scripts?.['qualify:cp6'], 'node build/qualify-cp6.mjs', 'Simulator CP6 package command');
 exactValue(simulatorPackage.devDependencies?.playwright, '1.61.1', 'Simulator pinned browser dependency');
+
+const canonicalScenario = readYaml('config/simulator/scenario.yaml');
+const desktopScenarioData = canonicalScenario.module_data?.find((row) => row.module_id === 'desktop')?.data;
+exactValue(desktopScenarioData?.auth?.initialStatus, 'authenticated', 'canonical Desktop Scenario auth default');
+for (const field of ['accountId', 'userId', 'realmEnvironmentId']) {
+  if (!String(desktopScenarioData?.auth?.persona?.[field] || '').startsWith('sim-')) {
+    fail(`canonical Desktop Scenario persona ${field} must use sim- prefix`);
+  }
+}
+exactValue(desktopScenarioData?.productControl?.initialStatus, 'ready_for_use', 'canonical Desktop product-control projection');
+const desktopReadiness = canonicalScenario.readiness?.find((row) => row.module_id === 'desktop' && row.surface_id === 'main');
+exactValue(desktopReadiness?.primary_control?.semantic_id, 'desktop-main-shell-primary', 'Desktop post-login readiness marker');
+exactValue(desktopReadiness?.primary_control?.accessible_name, 'Home', 'Desktop post-login readiness control');
+const desktopManifest = readYaml('apps/desktop/nimi.simulator.yaml');
+exactValue(desktopManifest.renderer?.surfaces?.find((surface) => surface.id === 'main')?.initial_route, '/', 'Desktop Simulator initial route');
+requireText('apps/desktop/src/simulator/behavior.ts', [
+  'initialStatus',
+  'sessionFor(auth, instance.instanceId)',
+  'DESKTOP_SIMULATOR_AUTH_INSTANCE_REJECTED',
+]);
+requireText('apps/desktop/src/simulator/bindings.ts', [
+  "loginMode: () => 'desktop-browser'",
+  'isSessionReady: authSession.isSessionReady',
+  'accountCaller: () => authSession.caller',
+]);
+requireText('apps/desktop/src/simulator/auth-port.ts', [
+  'Deterministic State Engine-backed simulated RuntimeAccount projection.',
+  'context.interactions.emit',
+  'context.commands.invoke',
+]);
 
 const appToolsPackage = JSON.parse(read('app-tools/package.json') || '{}');
 exactValue(appToolsPackage.exports?.['./simulator-conformance'], './lib/simulator-conformance.mjs', 'app-tools Simulator conformance export');

@@ -201,6 +201,20 @@ function serializedTarget(target) {
   return `${serializedPackageRoot(target.providerName, target.providerVersion)}${relative}`;
 }
 
+function runtimeModuleFormat(absoluteTarget) {
+  const extension = path.extname(absoluteTarget);
+  if (extension === '.mjs') return 'esm';
+  if (extension === '.cjs') return 'commonjs';
+  const source = ts.createSourceFile(
+    absoluteTarget,
+    readFileSync(absoluteTarget, 'utf8'),
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.JS,
+  );
+  return ts.isExternalModule(source) ? 'esm' : 'commonjs';
+}
+
 function exactDependencySpecifier(packageJson, packageName) {
   const value = packageJson.dependencies?.[packageName] ?? packageJson.devDependencies?.[packageName];
   if (typeof value !== 'string') fail('SIM_RESOLVER_ROOT_DECLARATION', `Simulator package must declare ${JSON.stringify(packageName)}`);
@@ -460,6 +474,7 @@ export function resolveMandatorySingletons({ repoRoot, simulatorRoot, moduleRequ
         phase,
         orderedConditions: [...orderedConditions],
         canonicalTarget,
+        ...(phase === 'runtime' ? { moduleFormat: runtimeModuleFormat(target.absoluteTarget) } : {}),
         typeProvider: target.providerName === packageName ? null : `${target.providerName}@${target.providerVersion}`,
         fileDigest: sha256Digest(readFileSync(target.absoluteTarget)),
       };
@@ -497,6 +512,14 @@ export function resolveMandatorySingletons({ repoRoot, simulatorRoot, moduleRequ
       digest: sha256Digest(policyBytes),
     },
     packages: rows,
+    devInteropImports: importedSpecifiers.filter((specifier) => {
+      const packageName = packageNameFromSpecifier(specifier);
+      const subpath = exportSubpathFromSpecifier(specifier, packageName);
+      return rows.some((row) => row.name === packageName
+        && row.targets.some((target) => target.phase === 'runtime'
+          && target.exportSubpath === subpath
+          && target.moduleFormat === 'commonjs'));
+    }),
     tupleDigest: stableJsonDigest('nimi-simulator-resolver-tuples-v1', rows),
   });
 }

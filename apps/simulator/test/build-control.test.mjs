@@ -340,12 +340,24 @@ test('materialization rejects digest mismatch and dirty release source', () => {
         workspaceRoot: fixture.root,
         workspaceRepositoryKey: 'fixture',
         stagingRoot: staging,
-        targetRoot: path.join(staging, 'dirty'),
+        targetRoot: path.join(staging, 'dirty-release'),
         moduleId: 'sample-app',
         release: true,
       }),
       (error) => error?.code === 'SIM_SOURCE_DIRTY_RELEASE',
     );
+
+    const development = materializeSourceLocation(descriptor.sources[0], { repositories: [] }, {
+      workspaceRoot: fixture.root,
+      workspaceRepositoryKey: 'fixture',
+      stagingRoot: staging,
+      targetRoot: path.join(staging, 'dirty-development'),
+      moduleId: 'sample-app',
+      release: false,
+    });
+    assert.equal(development.dirtyWorkspace, true);
+    assert.equal(development.releasable, false);
+    assert.equal(existsSync(path.join(development.targetRoot, 'dirty.ts')), false);
   } finally {
     fixture.cleanup();
     rmSync(staging, { recursive: true, force: true });
@@ -508,6 +520,10 @@ test('final resolver proves every canonical singleton tuple without absolute pat
   const resolver = resolveMandatorySingletons({ repoRoot: REPO_ROOT, simulatorRoot: SIMULATOR_ROOT });
   assert.equal(resolver.packages.length, 10);
   assert.match(resolver.tupleDigest, /^sha256:[0-9a-f]{64}$/);
+  assert.equal(resolver.devInteropImports.includes('react/jsx-runtime'), true);
+  assert.equal(resolver.devInteropImports.includes('react-dom/client'), true);
+  assert.equal(resolver.devInteropImports.includes('motion/react'), false);
+  assert.equal(resolver.devInteropImports.includes('lucide-react'), false);
   const tuples = new Set();
   for (const row of resolver.packages) {
     assert.match(row.version, /^\d+\.\d+\.\d+/);

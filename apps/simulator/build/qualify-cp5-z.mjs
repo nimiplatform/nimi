@@ -6,6 +6,13 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { chromium } from 'playwright';
 import { sha256Digest, stableJsonDigest } from '@nimiplatform/app-tools/simulator-conformance';
+import { createBrowserTraceQualification, installQualificationBindings } from './browser-trace-qualification.mjs';
+import {
+  assertDesktopAuthenticatedShells,
+  assertNoBrowserAuthPersistence,
+  exerciseDesktopAuthIsolation,
+  observeDesktopAuthRequests,
+} from './desktop-auth-browser-acceptance.mjs';
 import { DIST_ROOT, REPO_ROOT } from './paths.mjs';
 
 const require = createRequire(import.meta.url);
@@ -15,29 +22,6 @@ const evidenceSlug = 'simulator-cp5-z';
 const EVIDENCE_ROOT = path.join(REPO_ROOT, '.nimi', 'local', 'state', evidenceSlug);
 const RECEIPT_PATH = path.join(EVIDENCE_ROOT, 'qualification.json');
 const SCREENSHOT_PATH = path.join(EVIDENCE_ROOT, 'qualified.png');
-const TRACE_CATEGORIES = [
-  '-*',
-  'blink',
-  'cc',
-  'devtools.timeline',
-  'disabled-by-default-devtools.timeline',
-  'disabled-by-default-devtools.timeline.frame',
-].join(',');
-const PAINT_COMPOSITE_EVENTS = new Set([
-  'Paint',
-  'PaintImage',
-  'CompositeLayers',
-  'DrawFrame',
-  'RasterTask',
-]);
-
-function exactObject(value, keys, label) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label}:object`);
-  const actual = Object.keys(value).sort();
-  const expected = [...keys].sort();
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`${label}:fields`);
-}
-
 function contentType(filePath) {
   if (filePath.endsWith('.html')) return 'text/html; charset=utf-8';
   if (filePath.endsWith('.js')) return 'text/javascript; charset=utf-8';
@@ -82,153 +66,6 @@ async function serveArtifact() {
     origin: `http://127.0.0.1:${address.port}`,
     close: () => new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve())),
   };
-}
-
-async function readTraceStream(cdp, handle) {
-  const chunks = [];
-  while (true) {
-    const row = await cdp.send('IO.read', { handle });
-    chunks.push(row.base64Encoded ? Buffer.from(row.data, 'base64') : Buffer.from(row.data));
-    if (row.eof) break;
-  }
-  await cdp.send('IO.close', { handle });
-  return Buffer.concat(chunks);
-}
-
-function clockSyncId(event) {
-  return event?.args?.sync_id ?? event?.args?.syncId ?? event?.args?.data?.sync_id ?? null;
-}
-
-function traceWindowEvidence(events, token, firstFrame, secondFrame) {
-  const firstId = `${token}:first`;
-  const secondId = `${token}:second`;
-  const firstMarker = events.find((event) => event.name === 'clock_sync' && clockSyncId(event) === firstId);
-  const secondMarker = events.find((event) => event.name === 'clock_sync' && clockSyncId(event) === secondId);
-  if (!firstMarker || !secondMarker || !(secondMarker.ts > firstMarker.ts)) {
-    const markerSamples = events
-      .filter((event) => JSON.stringify(event).includes(token) || /clock/i.test(event.name ?? ''))
-      .slice(0, 12)
-      .map((event) => ({ name: event.name, category: event.cat, timestamp: event.ts, args: event.args }));
-    return {
-      ok: false,
-      reason: 'clock-sync-marker-missing',
-      firstFrame,
-      secondFrame,
-      events: [],
-      markerSamples,
-    };
-  }
-  const matched = events
-    .filter((event) => event.ts >= firstMarker.ts
-      && event.ts <= secondMarker.ts
-      && PAINT_COMPOSITE_EVENTS.has(event.name))
-    .map((event) => event.name)
-    .sort();
-  return {
-    ok: matched.length > 0,
-    reason: matched.length > 0 ? null : 'paint-composite-event-missing',
-    firstFrame,
-    secondFrame,
-    markerIntervalMicros: secondMarker.ts - firstMarker.ts,
-    events: [...new Set(matched)],
-  };
-}
-
-function createTraceQualification(cdp) {
-  let sequence = 0;
-  let tail = Promise.resolve();
-  let active = null;
-  const evidence = [];
-
-  async function begin(input) {
-    exactObject(input, ['instanceId', 'surfaceId'], 'SIM_CP5_Z_TRACE_BEGIN');
-    if (typeof input.instanceId !== 'string' || typeof input.surfaceId !== 'string') {
-      throw new Error('SIM_CP5_Z_TRACE_BEGIN_VALUE');
-    }
-    let release;
-    const slot = new Promise((resolve) => { release = resolve; });
-    const prior = tail;
-    tail = prior.then(() => slot);
-    await prior;
-    if (active) {
-      release();
-      throw new Error('SIM_CP5_Z_TRACE_OVERLAP');
-    }
-    const token = `cp5-z-trace-${++sequence}`;
-    const completed = new Promise((resolve) => cdp.once('Tracing.tracingComplete', resolve));
-    await cdp.send('Tracing.start', {
-      categories: TRACE_CATEGORIES,
-      transferMode: 'ReturnAsStream',
-    });
-    active = { token, input, release, completed, frames: {} };
-    return token;
-  }
-
-  async function mark(input) {
-    exactObject(input, ['observationToken', 'ordinal', 'frame'], 'SIM_CP5_Z_TRACE_MARK');
-    if (!active || input.observationToken !== active.token
-      || !['first', 'second'].includes(input.ordinal)
-      || !Number.isFinite(input.frame)
-      || Object.hasOwn(active.frames, input.ordinal)) return false;
-    await cdp.send('Tracing.recordClockSyncMarker', { syncId: `${active.token}:${input.ordinal}` });
-    active.frames[input.ordinal] = input.frame;
-    if (input.ordinal === 'first') {
-      const screenshot = await cdp.send('Page.captureScreenshot', {
-        format: 'png',
-        fromSurface: true,
-        captureBeyondViewport: false,
-      });
-      active.probeScreenshotDigest = sha256Digest(Buffer.from(screenshot.data, 'base64'));
-    }
-    return true;
-  }
-
-  async function end(input) {
-    exactObject(input, ['observationToken', 'firstFrame', 'secondFrame'], 'SIM_CP5_Z_TRACE_END');
-    const current = active;
-    if (!current || input.observationToken !== current.token) return false;
-    active = null;
-    try {
-      await cdp.send('Tracing.end');
-      const complete = await current.completed;
-      if (!complete.stream) throw new Error('SIM_CP5_Z_TRACE_STREAM_MISSING');
-      const bytes = await readTraceStream(cdp, complete.stream);
-      const trace = JSON.parse(bytes.toString('utf8'));
-      if (!Array.isArray(trace.traceEvents)) throw new Error('SIM_CP5_Z_TRACE_EVENTS_MISSING');
-      if (input.firstFrame === null || input.secondFrame === null) {
-        evidence.push({
-          token: current.token,
-          instanceId: current.input.instanceId,
-          surfaceId: current.input.surfaceId,
-          ok: false,
-          reason: 'cancelled',
-          traceDigest: sha256Digest(bytes),
-        });
-        return false;
-      }
-      if (current.frames.first !== input.firstFrame || current.frames.second !== input.secondFrame) {
-        throw new Error('SIM_CP5_Z_TRACE_FRAME_DRIFT');
-      }
-      const window = traceWindowEvidence(trace.traceEvents, current.token, input.firstFrame, input.secondFrame);
-      evidence.push({
-        token: current.token,
-        instanceId: current.input.instanceId,
-        surfaceId: current.input.surfaceId,
-        traceDigest: sha256Digest(bytes),
-        probeScreenshotDigest: current.probeScreenshotDigest ?? null,
-        ...window,
-      });
-      if (!current.probeScreenshotDigest) {
-        evidence[evidence.length - 1].ok = false;
-        evidence[evidence.length - 1].reason = 'probe-screenshot-missing';
-      }
-      return evidence[evidence.length - 1].ok;
-    } finally {
-      current.release();
-    }
-  }
-
-  return { begin, mark, end, evidence };
 }
 
 async function waitForQualifiedInstances(page, traceEvidence, pageDiagnostics, expectedCount = 2) {
@@ -287,11 +124,14 @@ async function qualify() {
     if (message.type() === 'error' || message.type() === 'warning') pageDiagnostics.push(`${message.type()}:${message.text()}`);
   });
   page.on('pageerror', (error) => pageDiagnostics.push(`pageerror:${error.stack ?? error.message}`));
+  const requestAudit = observeDesktopAuthRequests(page, server.origin);
   const cdp = await context.newCDPSession(page);
-  const traces = createTraceQualification(cdp);
-  await page.exposeBinding('__NIMI_SIMULATOR_QUALIFICATION_BEGIN_V1__', (_source, input) => traces.begin(input));
-  await page.exposeBinding('__NIMI_SIMULATOR_QUALIFICATION_MARK_V1__', (_source, input) => traces.mark(input));
-  await page.exposeBinding('__NIMI_SIMULATOR_QUALIFICATION_END_V1__', (_source, input) => traces.end(input));
+  const traces = createBrowserTraceQualification({
+    cdp,
+    errorPrefix: 'SIM_CP5_Z',
+    tokenPrefix: 'cp5-z-trace',
+  });
+  await installQualificationBindings(page, traces);
 
   const closeDesktopSubset = async () => {
     while (await page.locator('.simulator-windows__item[data-module-id="desktop"]:not([data-instance-status="disposed"])').count() > 0) {
@@ -304,6 +144,14 @@ async function qualify() {
   try {
     await page.goto(server.origin, { waitUntil: 'load', timeout: 30_000 });
     await waitForQualifiedInstances(page, traces.evidence, pageDiagnostics, 6);
+    await exerciseDesktopAuthIsolation(page);
+    await assertNoBrowserAuthPersistence(page);
+    requestAudit.assertNone();
+    await page.locator('button[data-simulator-action="reset"]').click();
+    await waitForQualifiedInstances(page, traces.evidence, pageDiagnostics, 6);
+    await assertDesktopAuthenticatedShells(page);
+    await assertNoBrowserAuthPersistence(page);
+    requestAudit.assertNone();
     await closeDesktopSubset();
     await waitForQualifiedInstances(page, traces.evidence, pageDiagnostics, 4);
     const initialReplayDigest = await replayDigest(page);
@@ -382,10 +230,20 @@ async function qualify() {
 
     await page.reload({ waitUntil: 'load', timeout: 30_000 });
     await waitForQualifiedInstances(page, traces.evidence, pageDiagnostics, 6);
+    await exerciseDesktopAuthIsolation(page);
+    await assertNoBrowserAuthPersistence(page);
+    requestAudit.assertNone();
+    await page.locator('button[data-simulator-action="reset"]').click();
+    await waitForQualifiedInstances(page, traces.evidence, pageDiagnostics, 6);
+    await assertDesktopAuthenticatedShells(page);
+    await assertNoBrowserAuthPersistence(page);
+    requestAudit.assertNone();
     await closeDesktopSubset();
     await waitForQualifiedInstances(page, traces.evidence, pageDiagnostics, 4);
     const reproducedReplayDigest = await replayDigest(page);
-    if (reproducedReplayDigest !== initialReplayDigest) throw new Error('SIM_CP5_Z_REPLAY_NOT_REPRODUCIBLE');
+    if (reproducedReplayDigest !== initialReplayDigest) {
+      throw new Error(`SIM_CP5_Z_REPLAY_NOT_REPRODUCIBLE:${initialReplayDigest}:${reproducedReplayDigest}`);
+    }
     if (pageDiagnostics.length !== 0) {
       throw new Error(`SIM_CP5_Z_BROWSER_DIAGNOSTICS:${JSON.stringify(pageDiagnostics)}`);
     }
@@ -446,6 +304,7 @@ async function qualify() {
         digest: sha256Digest(screenshot),
       },
     };
+    requestAudit.assertNone();
     if (proof.traces.length < 13 || proof.traces.some((row) => row.ok !== true)) {
       throw new Error('SIM_CP5_Z_TRACE_EVIDENCE_INCOMPLETE');
     }
@@ -456,6 +315,8 @@ async function qualify() {
     writeFileSync(RECEIPT_PATH, `${JSON.stringify(receipt, null, 2)}\n`);
     process.stdout.write(`${evidenceSlug}: OK (${proof.traces.length} trace windows, receipt ${receipt.receiptDigest})\n`);
   } finally {
+    requestAudit.dispose();
+    await traces.close();
     await context.close();
     await browser.close();
     await server.close();

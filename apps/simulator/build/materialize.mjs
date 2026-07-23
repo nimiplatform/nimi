@@ -24,10 +24,14 @@ function fail(code, message, fieldPath = '') {
   throw new SimulatorConformanceError(code, message, fieldPath);
 }
 
-function runGit(repositoryPath, args, { allowFailure = false, encoding = null } = {}) {
+const GIT_BATCH_TARGET_BYTES = 64 * 1024 * 1024;
+const GIT_BATCH_MAX_OBJECTS = 512;
+
+function runGit(repositoryPath, args, { allowFailure = false, encoding = null, input = undefined } = {}) {
   const result = spawnSync('git', ['-c', 'core.quotepath=false', ...args], {
     cwd: repositoryPath,
     encoding,
+    input,
     maxBuffer: 256 * 1024 * 1024,
     env: {
       PATH: process.env.PATH,
@@ -140,28 +144,109 @@ function workspaceDirty(repositoryPath, sourceRoot) {
   return status.stdout.length > 0;
 }
 
+export function assertWorkspaceSourcesClean(descriptors, {
+  workspaceRoot,
+  workspaceRepositoryKey = 'nimi',
+}) {
+  const roots = new Set();
+  for (const descriptor of descriptors) {
+    for (const source of descriptor.sources) {
+      if (source.kind !== 'workspace') continue;
+      if (source.repository_key !== workspaceRepositoryKey) {
+        fail('SIM_WORKSPACE_REPOSITORY', `workspace source must use repository key ${JSON.stringify(workspaceRepositoryKey)}`);
+      }
+      roots.add(source.root);
+    }
+  }
+  for (const root of [...roots].sort()) {
+    if (workspaceDirty(path.resolve(workspaceRoot), root)) {
+      fail('SIM_SOURCE_DIRTY_RELEASE', `workspace source ${JSON.stringify(root)} is dirty`);
+    }
+  }
+}
+
+export function partitionGitBatchRows(rows) {
+  const chunks = [];
+  let chunk = [];
+  let chunkBytes = 0;
+  for (const row of rows) {
+    if (chunk.length > 0 && (chunk.length >= GIT_BATCH_MAX_OBJECTS || chunkBytes + row.size > GIT_BATCH_TARGET_BYTES)) {
+      chunks.push(chunk);
+      chunk = [];
+      chunkBytes = 0;
+    }
+    chunk.push(row);
+    chunkBytes += row.size;
+  }
+  if (chunk.length > 0) chunks.push(chunk);
+  return chunks;
+}
+
+export function parseGitBatchResponse(batch, output) {
+  const files = [];
+  let cursor = 0;
+  for (const row of batch) {
+    const headerEnd = output.indexOf(0x0a, cursor);
+    if (headerEnd < 0) fail('SIM_SOURCE_BATCH_HEADER', 'git cat-file batch response is missing an object header', row.path);
+    const header = output.subarray(cursor, headerEnd).toString('utf8').split(' ');
+    if (header.length !== 3 || header[0] !== row.objectId || header[1] !== 'blob' || !/^\d+$/u.test(header[2])) {
+      fail('SIM_SOURCE_BATCH_HEADER', 'git cat-file batch response has an invalid object identity or type', row.path);
+    }
+    const size = Number(header[2]);
+    if (!Number.isSafeInteger(size) || size !== row.size) {
+      fail('SIM_SOURCE_BATCH_SIZE', 'git cat-file batch response size differs from the selected tree', row.path);
+    }
+    const contentStart = headerEnd + 1;
+    const contentEnd = contentStart + size;
+    if (contentEnd >= output.length || output[contentEnd] !== 0x0a) {
+      fail('SIM_SOURCE_BATCH_TRUNCATED', 'git cat-file batch response is truncated or missing its delimiter', row.path);
+    }
+    const bytes = Buffer.from(output.subarray(contentStart, contentEnd));
+    if (bytes.subarray(0, LFS_POINTER_PREFIX.length).equals(LFS_POINTER_PREFIX)) {
+      fail('SIM_SOURCE_LFS_POINTER', 'unresolved Git LFS pointers are forbidden', row.path);
+    }
+    files.push({ path: row.path, mode: row.mode, bytes, objectId: row.objectId });
+    cursor = contentEnd + 1;
+  }
+  if (cursor !== output.length) {
+    fail('SIM_SOURCE_BATCH_TRAILING', 'git cat-file batch response contains unrequested trailing bytes');
+  }
+  return files;
+}
+
+function parseBatchObjects(repositoryPath, rows) {
+  const files = [];
+  for (const batch of partitionGitBatchRows(rows)) {
+    const input = Buffer.from(`${batch.map((row) => row.objectId).join('\n')}\n`, 'utf8');
+    const output = runGit(repositoryPath, ['cat-file', '--batch'], { input }).stdout;
+    files.push(...parseGitBatchResponse(batch, output));
+  }
+  return files;
+}
+
 function readGitTree(repositoryPath, source) {
   const output = runGit(repositoryPath, [
     'ls-tree',
     '-r',
     '-z',
+    '-l',
     '--full-tree',
     source.object_id,
     '--',
     source.root,
   ]).stdout;
   const prefix = `${source.root}/`;
-  const files = [];
+  const rows = [];
   for (const record of output.toString('utf8').split('\0')) {
     if (!record) continue;
     const tab = record.indexOf('\t');
     if (tab < 0) fail('SIM_SOURCE_TREE_RECORD', 'invalid Git tree record');
-    const header = record.slice(0, tab).split(' ');
+    const header = record.slice(0, tab).trim().split(/\s+/u);
     const fullPath = record.slice(tab + 1);
-    if (header.length !== 3 || !fullPath.startsWith(prefix)) {
+    if (header.length !== 4 || !fullPath.startsWith(prefix)) {
       fail('SIM_SOURCE_TREE_RECORD', `invalid Git tree row for ${JSON.stringify(fullPath)}`);
     }
-    const [mode, type, objectId] = header;
+    const [mode, type, objectId, rawSize] = header;
     const relativePath = fullPath.slice(prefix.length);
     assertSimulatorSourcePath(relativePath, fullPath);
     if (relativePath !== relativePath.normalize('NFC')) {
@@ -176,14 +261,15 @@ function readGitTree(repositoryPath, source) {
     if (type !== 'blob' || !ACCEPTED_MODES.has(mode)) {
       fail('SIM_SOURCE_MODE', `unsupported Git tree entry ${mode} ${type}`, relativePath);
     }
-    const bytes = runGit(repositoryPath, ['cat-file', 'blob', objectId]).stdout;
-    if (bytes.subarray(0, LFS_POINTER_PREFIX.length).equals(LFS_POINTER_PREFIX)) {
-      fail('SIM_SOURCE_LFS_POINTER', 'unresolved Git LFS pointers are forbidden', relativePath);
+    if (!/^\d+$/u.test(rawSize)) {
+      fail('SIM_SOURCE_TREE_RECORD', 'Git tree blob size is missing or invalid', relativePath);
     }
-    files.push({ path: relativePath, mode, bytes, objectId });
+    const size = Number(rawSize);
+    if (!Number.isSafeInteger(size) || size < 0) fail('SIM_SOURCE_TREE_RECORD', 'Git tree blob size is not safe', relativePath);
+    rows.push({ path: relativePath, mode, objectId, size });
   }
-  if (files.length === 0) fail('SIM_SOURCE_EMPTY_ROOT', `selected root ${JSON.stringify(source.root)} contains no files`);
-  return files;
+  if (rows.length === 0) fail('SIM_SOURCE_EMPTY_ROOT', `selected root ${JSON.stringify(source.root)} contains no files`);
+  return parseBatchObjects(repositoryPath, rows);
 }
 
 function prepareTarget(targetRoot, stagingRoot) {

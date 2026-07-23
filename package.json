@@ -101,6 +101,7 @@
     "check:text-encoding:staged": "node scripts/check-text-encoding-gate.mjs --staged-only --quiet-success",
     "check:spec-semantic-completeness": "node scripts/check-spec-semantic-completeness.mjs",
     "check:simulator-authority": "node scripts/check-simulator-authority.mjs",
+    "dev:simulator": "pnpm --filter @nimiplatform/simulator dev",
     "check:simulator-selected-sources": "pnpm --filter @nimiplatform/simulator check:selected-sources",
     "check:simulator-modules": "node scripts/with-workspace-surfaces.mjs -- pnpm --filter @nimiplatform/simulator check:modules",
     "check:simulator-cp5-z": "pnpm build:simulator && pnpm --filter @nimiplatform/simulator qualify:cp5-z",

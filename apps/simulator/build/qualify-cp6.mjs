@@ -6,6 +6,13 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { chromium } from 'playwright';
 import { sha256Digest, stableJsonDigest } from '@nimiplatform/app-tools/simulator-conformance';
+import { createBrowserTraceQualification, installQualificationBindings } from './browser-trace-qualification.mjs';
+import {
+  assertDesktopAuthenticatedShells,
+  assertNoBrowserAuthPersistence,
+  exerciseDesktopAuthIsolation,
+  observeDesktopAuthRequests,
+} from './desktop-auth-browser-acceptance.mjs';
 import { DIST_ROOT, REPO_ROOT } from './paths.mjs';
 
 const require = createRequire(import.meta.url);
@@ -15,29 +22,6 @@ const evidenceSlug = 'simulator-cp6';
 const EVIDENCE_ROOT = path.join(REPO_ROOT, '.nimi', 'local', 'state', evidenceSlug);
 const RECEIPT_PATH = path.join(EVIDENCE_ROOT, 'qualification.json');
 const SCREENSHOT_PATH = path.join(EVIDENCE_ROOT, 'qualified.png');
-const TRACE_CATEGORIES = [
-  '-*',
-  'blink',
-  'cc',
-  'devtools.timeline',
-  'disabled-by-default-devtools.timeline',
-  'disabled-by-default-devtools.timeline.frame',
-].join(',');
-const PAINT_COMPOSITE_EVENTS = new Set([
-  'Paint',
-  'PaintImage',
-  'CompositeLayers',
-  'DrawFrame',
-  'RasterTask',
-]);
-
-function exactObject(value, keys, label) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label}:object`);
-  const actual = Object.keys(value).sort();
-  const expected = [...keys].sort();
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`${label}:fields`);
-}
-
 function contentType(filePath) {
   if (filePath.endsWith('.html')) return 'text/html; charset=utf-8';
   if (filePath.endsWith('.js')) return 'text/javascript; charset=utf-8';
@@ -107,153 +91,6 @@ async function serveArtifact() {
   };
 }
 
-async function readTraceStream(cdp, handle) {
-  const chunks = [];
-  while (true) {
-    const row = await cdp.send('IO.read', { handle });
-    chunks.push(row.base64Encoded ? Buffer.from(row.data, 'base64') : Buffer.from(row.data));
-    if (row.eof) break;
-  }
-  await cdp.send('IO.close', { handle });
-  return Buffer.concat(chunks);
-}
-
-function clockSyncId(event) {
-  return event?.args?.sync_id ?? event?.args?.syncId ?? event?.args?.data?.sync_id ?? null;
-}
-
-function traceWindowEvidence(events, token, firstFrame, secondFrame) {
-  const firstId = `${token}:first`;
-  const secondId = `${token}:second`;
-  const firstMarker = events.find((event) => event.name === 'clock_sync' && clockSyncId(event) === firstId);
-  const secondMarker = events.find((event) => event.name === 'clock_sync' && clockSyncId(event) === secondId);
-  if (!firstMarker || !secondMarker || !(secondMarker.ts > firstMarker.ts)) {
-    const markerSamples = events
-      .filter((event) => JSON.stringify(event).includes(token) || /clock/i.test(event.name ?? ''))
-      .slice(0, 12)
-      .map((event) => ({ name: event.name, category: event.cat, timestamp: event.ts, args: event.args }));
-    return {
-      ok: false,
-      reason: 'clock-sync-marker-missing',
-      firstFrame,
-      secondFrame,
-      events: [],
-      markerSamples,
-    };
-  }
-  const matched = events
-    .filter((event) => event.ts >= firstMarker.ts
-      && event.ts <= secondMarker.ts
-      && PAINT_COMPOSITE_EVENTS.has(event.name))
-    .map((event) => event.name)
-    .sort();
-  return {
-    ok: matched.length > 0,
-    reason: matched.length > 0 ? null : 'paint-composite-event-missing',
-    firstFrame,
-    secondFrame,
-    markerIntervalMicros: secondMarker.ts - firstMarker.ts,
-    events: [...new Set(matched)],
-  };
-}
-
-function createTraceQualification(cdp) {
-  let sequence = 0;
-  let tail = Promise.resolve();
-  let active = null;
-  const evidence = [];
-
-  async function begin(input) {
-    exactObject(input, ['instanceId', 'surfaceId'], 'SIM_CP6_TRACE_BEGIN');
-    if (typeof input.instanceId !== 'string' || typeof input.surfaceId !== 'string') {
-      throw new Error('SIM_CP6_TRACE_BEGIN_VALUE');
-    }
-    let release;
-    const slot = new Promise((resolve) => { release = resolve; });
-    const prior = tail;
-    tail = prior.then(() => slot);
-    await prior;
-    if (active) {
-      release();
-      throw new Error('SIM_CP6_TRACE_OVERLAP');
-    }
-    const token = `cp6-trace-${++sequence}`;
-    const completed = new Promise((resolve) => cdp.once('Tracing.tracingComplete', resolve));
-    await cdp.send('Tracing.start', {
-      categories: TRACE_CATEGORIES,
-      transferMode: 'ReturnAsStream',
-    });
-    active = { token, input, release, completed, frames: {} };
-    return token;
-  }
-
-  async function mark(input) {
-    exactObject(input, ['observationToken', 'ordinal', 'frame'], 'SIM_CP6_TRACE_MARK');
-    if (!active || input.observationToken !== active.token
-      || !['first', 'second'].includes(input.ordinal)
-      || !Number.isFinite(input.frame)
-      || Object.hasOwn(active.frames, input.ordinal)) return false;
-    await cdp.send('Tracing.recordClockSyncMarker', { syncId: `${active.token}:${input.ordinal}` });
-    active.frames[input.ordinal] = input.frame;
-    if (input.ordinal === 'first') {
-      const screenshot = await cdp.send('Page.captureScreenshot', {
-        format: 'png',
-        fromSurface: true,
-        captureBeyondViewport: false,
-      });
-      active.probeScreenshotDigest = sha256Digest(Buffer.from(screenshot.data, 'base64'));
-    }
-    return true;
-  }
-
-  async function end(input) {
-    exactObject(input, ['observationToken', 'firstFrame', 'secondFrame'], 'SIM_CP6_TRACE_END');
-    const current = active;
-    if (!current || input.observationToken !== current.token) return false;
-    active = null;
-    try {
-      await cdp.send('Tracing.end');
-      const complete = await current.completed;
-      if (!complete.stream) throw new Error('SIM_CP6_TRACE_STREAM_MISSING');
-      const bytes = await readTraceStream(cdp, complete.stream);
-      const trace = JSON.parse(bytes.toString('utf8'));
-      if (!Array.isArray(trace.traceEvents)) throw new Error('SIM_CP6_TRACE_EVENTS_MISSING');
-      if (input.firstFrame === null || input.secondFrame === null) {
-        evidence.push({
-          token: current.token,
-          instanceId: current.input.instanceId,
-          surfaceId: current.input.surfaceId,
-          ok: false,
-          reason: 'cancelled',
-          traceDigest: sha256Digest(bytes),
-        });
-        return false;
-      }
-      if (current.frames.first !== input.firstFrame || current.frames.second !== input.secondFrame) {
-        throw new Error('SIM_CP6_TRACE_FRAME_DRIFT');
-      }
-      const window = traceWindowEvidence(trace.traceEvents, current.token, input.firstFrame, input.secondFrame);
-      evidence.push({
-        token: current.token,
-        instanceId: current.input.instanceId,
-        surfaceId: current.input.surfaceId,
-        traceDigest: sha256Digest(bytes),
-        probeScreenshotDigest: current.probeScreenshotDigest ?? null,
-        ...window,
-      });
-      if (!current.probeScreenshotDigest) {
-        evidence[evidence.length - 1].ok = false;
-        evidence[evidence.length - 1].reason = 'probe-screenshot-missing';
-      }
-      return evidence[evidence.length - 1].ok;
-    } finally {
-      current.release();
-    }
-  }
-
-  return { begin, mark, end, evidence };
-}
-
 async function waitForQualifiedInstances(page, traceEvidence, pageDiagnostics, expectedCount = 2) {
   try {
     await page.waitForFunction((count) => (
@@ -272,10 +109,16 @@ async function waitForQualifiedInstances(page, traceEvidence, pageDiagnostics, e
       })),
     }));
     let diagnostics = [];
+    let homeInstances = [];
     let diagnosticCollectionError = null;
     try {
       const exitFullWindow = page.getByRole('button', { name: 'Exit full window' });
       if (await exitFullWindow.count() === 1) await exitFullWindow.click();
+      homeInstances = await page.locator('.simulator-windows__item').evaluateAll((nodes) => nodes.map((node) => ({
+        id: node.getAttribute('data-instance-id'),
+        status: node.getAttribute('data-instance-status'),
+        readiness: node.getAttribute('data-readiness-status'),
+      })));
       const diagnosticsLink = page.getByRole('link', { name: 'Diagnostics' });
       if (await diagnosticsLink.count() === 1) {
         await diagnosticsLink.click();
@@ -284,7 +127,7 @@ async function waitForQualifiedInstances(page, traceEvidence, pageDiagnostics, e
     } catch (diagnosticError) {
       diagnosticCollectionError = String(diagnosticError);
     }
-    throw new Error(`SIM_CP6_READINESS_TIMEOUT:${JSON.stringify({ expectedCount, state: { ...state, diagnostics, diagnosticCollectionError }, traceEvidence, pageDiagnostics, cause: String(error) })}`);
+    throw new Error(`SIM_CP6_READINESS_TIMEOUT:${JSON.stringify({ expectedCount, state: { ...state, homeInstances, diagnostics, diagnosticCollectionError }, traceEvidence, pageDiagnostics, cause: String(error) })}`);
   }
 }
 
@@ -322,11 +165,14 @@ async function qualify() {
     if (message.type() === 'error' || message.type() === 'warning') pageDiagnostics.push(`${message.type()}:${message.text()}`);
   });
   page.on('pageerror', (error) => pageDiagnostics.push(`pageerror:${error.stack ?? error.message}`));
+  const requestAudit = observeDesktopAuthRequests(page, server.origin);
   const cdp = await context.newCDPSession(page);
-  const traces = createTraceQualification(cdp);
-  await page.exposeBinding('__NIMI_SIMULATOR_QUALIFICATION_BEGIN_V1__', (_source, input) => traces.begin(input));
-  await page.exposeBinding('__NIMI_SIMULATOR_QUALIFICATION_MARK_V1__', (_source, input) => traces.mark(input));
-  await page.exposeBinding('__NIMI_SIMULATOR_QUALIFICATION_END_V1__', (_source, input) => traces.end(input));
+  const traces = createBrowserTraceQualification({
+    cdp,
+    errorPrefix: 'SIM_CP6',
+    tokenPrefix: 'cp6-trace',
+  });
+  await installQualificationBindings(page, traces);
 
   try {
     await page.goto(server.origin, { waitUntil: 'load', timeout: 30_000 });
@@ -359,23 +205,20 @@ async function qualify() {
     });
     if (duplicateIds.length > 0) throw new Error(`SIM_CP6_DOM_ID_COLLISION:${JSON.stringify(duplicateIds)}`);
 
-    const secondDesktopBaseline = await secondDesktop.innerText();
-    await firstDesktop.locator('[data-testid="login-logo-trigger"]').click();
-    await firstDesktop.locator('[data-testid="login-email-input"]').waitFor({ timeout: 30_000 });
-    await page.waitForFunction((revision) => (
-      Number(document.querySelector('.simulator-shell')?.getAttribute('data-state-revision')) === revision + 3
-      && document.querySelectorAll('[data-nimi-semantic-id="tester-ecosystem-reference"][data-ecosystem-revision]').length === 2
+    const desktopAuth = await exerciseDesktopAuthIsolation(page);
+    await assertNoBrowserAuthPersistence(page);
+    requestAudit.assertNone();
+    await page.waitForFunction(() => (
+      document.querySelectorAll('[data-nimi-semantic-id="tester-ecosystem-reference"][data-ecosystem-revision]').length === 2
+      && document.querySelectorAll('[data-nimi-semantic-id="tester-persona-reference"][data-persona-id="sim-user-linche"]').length === 2
       && [...document.querySelectorAll('.simulator-surface[data-module-id="zhiyu"]')]
-        .every((node) => /生态 revision [0-9]+/u.test(node.textContent ?? ''))
-    ), initialStateRevision, { timeout: 30_000 });
-    if (await secondDesktop.innerText() !== secondDesktopBaseline) {
-      throw new Error('SIM_CP6_DESKTOP_INSTANCE_INTERACTION_ISOLATION_FAILED');
-    }
+        .every((node) => /模拟居民 林澈/u.test(node.textContent ?? ''))
+    ), undefined, { timeout: 30_000 });
     const ecosystemRevisions = await page.locator('[data-nimi-semantic-id="tester-ecosystem-reference"]').evaluateAll((nodes) => (
       nodes.map((node) => Number(node.getAttribute('data-ecosystem-revision')))
     ));
     if (ecosystemRevisions.length !== 2
-      || ecosystemRevisions.some((revision) => revision !== initialStateRevision + 1)) {
+      || ecosystemRevisions.some((revision) => revision !== ecosystemRevisions[0])) {
       throw new Error(`SIM_CP6_ECOSYSTEM_REVISION_DRIFT:${JSON.stringify(ecosystemRevisions)}`);
     }
     const interactionStateRevision = Number(await page.locator('.simulator-shell').getAttribute('data-state-revision'));
@@ -398,10 +241,18 @@ async function qualify() {
     }
     await page.waitForFunction(() => document.querySelectorAll('.simulator-surface[data-module-id="zhiyu"]').length === 0);
     const missingTargetRevision = Number(await page.locator('.simulator-shell').getAttribute('data-state-revision'));
-    await secondDesktop.locator('[data-testid="login-logo-trigger"]').click();
-    await secondDesktop.locator('[data-testid="login-email-input"]').waitFor({ timeout: 30_000 });
-    if (Number(await page.locator('.simulator-shell').getAttribute('data-state-revision')) !== missingTargetRevision) {
-      throw new Error('SIM_CP6_MISSING_TARGET_COMMITTED_STATE');
+    await secondDesktop.locator('[data-testid="desktop-account-menu-trigger"]').evaluate((node) => node.click());
+    await secondDesktop.locator('[data-testid="desktop-account-logout"]').evaluate((node) => node.click());
+    await secondDesktop.locator('[data-testid="login-screen"]:visible').waitFor({ timeout: 30_000 });
+    const missingTargetLogoutRevision = Number(await page.locator('.simulator-shell').getAttribute('data-state-revision'));
+    if (missingTargetLogoutRevision !== missingTargetRevision + 2) {
+      throw new Error(`SIM_CP6_MISSING_TARGET_LOGOUT_STATE:${missingTargetRevision}:${missingTargetLogoutRevision}`);
+    }
+    await secondDesktop.locator('[data-testid="login-logo-trigger"]').evaluate((node) => node.click());
+    await secondDesktop.locator('[data-testid="main-shell"]:visible').waitFor({ timeout: 30_000 });
+    const missingTargetFinalRevision = Number(await page.locator('.simulator-shell').getAttribute('data-state-revision'));
+    if (missingTargetFinalRevision !== missingTargetLogoutRevision + 5) {
+      throw new Error(`SIM_CP6_MISSING_TARGET_LOGIN_STATE:${missingTargetLogoutRevision}:${missingTargetFinalRevision}`);
     }
 
     await page.locator('button[data-simulator-action="reset"]').click();
@@ -488,12 +339,14 @@ async function qualify() {
       throw new Error('SIM_CP6_PRODUCT_DIAGNOSTICS');
     }
     await page.getByRole('link', { name: 'Home' }).click();
-    await page.locator('.simulator-surface[data-module-id="desktop"]').first().locator('[data-testid="login-logo-trigger"]').click();
+    await assertDesktopAuthenticatedShells(page);
     await page.waitForFunction(() => (
-      document.querySelectorAll('[data-nimi-semantic-id="tester-ecosystem-reference"]').length === 2
+      document.querySelectorAll('[data-nimi-semantic-id="tester-persona-reference"][data-persona-id="sim-user-linche"]').length === 2
       && [...document.querySelectorAll('.simulator-surface[data-module-id="zhiyu"]')]
-        .every((node) => /生态 revision [0-9]+/u.test(node.textContent ?? ''))
+        .every((node) => /模拟居民 林澈/u.test(node.textContent ?? ''))
     ), undefined, { timeout: 30_000 });
+    await assertNoBrowserAuthPersistence(page);
+    requestAudit.assertNone();
     if (pageDiagnostics.length !== 0) {
       throw new Error(`SIM_CP6_BROWSER_DIAGNOSTICS_AFTER_REPLAY:${JSON.stringify(pageDiagnostics)}`);
     }
@@ -526,14 +379,14 @@ async function qualify() {
         type: 'ecosystem.reference.checkpoint',
         scenarioInstanceCount: 6,
         selectedModuleCount: 3,
-        desktopAction: 'login-primary-action',
+        desktopAction: 'isolated-logout-and-deterministic-oauth-relogin',
         ecosystemRevision: ecosystemRevisions[0],
         finalInteractionStateRevision: interactionStateRevision,
         orderedEcosystemThenZhiyuThenTesterRevisionDelta: 3,
         testerVisibleInstanceUpdates: 2,
         zhiyuVisibleInstanceUpdates: 2,
         desktopDomScopeIsolated: true,
-        secondDesktopLocalStateUnchanged: true,
+        secondDesktopLocalStateUnchanged: desktopAuth.secondRendererUnchanged,
         missingTargetCommittedState: false,
         fullWindowDisclosureVisible: true,
         pairwiseLoadOrderShellStyleStable: true,
@@ -577,6 +430,8 @@ async function qualify() {
     writeFileSync(RECEIPT_PATH, `${JSON.stringify(receipt, null, 2)}\n`);
     process.stdout.write(`${evidenceSlug}: OK (${proof.traces.length} trace windows, receipt ${receipt.receiptDigest})\n`);
   } finally {
+    requestAudit.dispose();
+    await traces.close();
     await context.close();
     await browser.close();
     await server.close();

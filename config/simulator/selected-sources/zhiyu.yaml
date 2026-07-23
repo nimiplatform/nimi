@@ -6,9 +6,9 @@ sources:
     kind: workspace
     repository_key: nimi
     object_format: git-sha1
-    object_id: 0cbf2d57fe5242a2c0e8576386ed49c97cf68a94
+    object_id: 67e37141cc9bd6a94099b52bd46d1d9680ea3bf8
     root: apps/zhiyu
-    expected_digest: sha256:c6a308878369ddd9a12d65331b59827849d4c39d0080df337cec18891e7bc93a
+    expected_digest: sha256:f8140c49594de3d5f9772961611d2d4b993447f8902a40986d31be0700f486c1
     authority_refs:
       - owner: zhiyu
         rule_id: Z-PROD-004

@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node build/check-modules.mjs && vite",
+    "dev": "node build/prepare-dev-modules.mjs && node build/dev-controlled-browser.mjs",
+    "prepare:dev": "node build/prepare-dev-modules.mjs",
     "check:selected-sources": "node build/check-selected-sources.mjs",
     "check:modules": "node build/check-modules.mjs",
     "typecheck": "tsc --noEmit",
@@ -12,9 +13,10 @@
     "preview": "vite preview",
     "qualify:cp5-z": "node build/qualify-cp5-z.mjs",
     "qualify:cp6": "node build/qualify-cp6.mjs",
+    "check:dev-controlled": "node build/prepare-dev-modules.mjs && node build/check-controlled-dev.mjs",
     "test": "node ../../scripts/with-workspace-surfaces.mjs -- node --test test/*.test.mjs",
     "test:contract": "pnpm --filter @nimiplatform/sdk build && pnpm --filter @nimiplatform/kit build && pnpm run test:contract:prepared",
-    "test:contract:prepared": "node --test test/contract/*.test.mjs",
+    "test:contract:prepared": "node --test test/contract/*.test.mjs && node ../../scripts/with-workspace-surfaces.mjs -- tsx --test test/contract/*.test.tsx",
     "test:integration": "node ../../scripts/with-workspace-surfaces.mjs -- tsx --test test/integration/*.test.mjs"
   },
   "dependencies": {

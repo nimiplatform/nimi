@@ -2,6 +2,8 @@ node_modules/
 dist/
 dist-electron/
 /apps/simulator/.generated/
+/apps/simulator/.generated-stage-*/
+/apps/simulator/.generated-backup-*/
 /apps/.simulator-product-fixture-*/
 .next/
 coverage/

@@ -19,6 +19,7 @@ interface ResolverTargetRow {
   readonly phase: 'types' | 'runtime' | 'style';
   readonly canonicalTarget: string;
   readonly fileDigest: string;
+  readonly moduleFormat?: 'esm' | 'commonjs';
 }
 
 interface ResolverPackageRow {
@@ -33,6 +34,7 @@ interface ResolverPackageRow {
 interface ResolverEvidence {
   readonly tupleDigest: string;
   readonly packages: readonly ResolverPackageRow[];
+  readonly devInteropImports: readonly string[];
 }
 
 function sha256File(filePath: string): string {
@@ -56,7 +58,7 @@ function canonicalPackageTarget(packageRow: ResolverPackageRow, target: Resolver
   return absolute;
 }
 
-function selectedSourcePlugin(): Plugin {
+function selectedSourcePlugin({ qualifyDependencyClosure }: { readonly qualifyDependencyClosure: boolean }): Plugin {
   const materializedIntegrity = createMaterializedIntegrityVerifier({ generatedRoot });
   materializedIntegrity.verifyAll();
   const buildMap = JSON.parse(readFileSync(path.join(generatedRoot, 'build-map.json'), 'utf8')) as Record<string, string>;
@@ -104,6 +106,9 @@ function selectedSourcePlugin(): Plugin {
       const packageTarget = packageTargets.get(id);
       if (packageTarget) {
         usedPackageTargets.set(id, packageTarget.canonical);
+        if (!qualifyDependencyClosure) {
+          return null;
+        }
         const importerSelected = Boolean(importer
           && (path.resolve(importer.split(/[?#]/u, 1)[0]).startsWith(`${materializedRoot}${path.sep}`)
             || dependencyQualifier.isTaintedImporter(importer)));
@@ -114,7 +119,7 @@ function selectedSourcePlugin(): Plugin {
         );
         return packageTarget.absolute;
       }
-      if (importer && dependencyQualifier.isTaintedImporter(importer)) {
+      if (qualifyDependencyClosure && importer && dependencyQualifier.isTaintedImporter(importer)) {
         const resolved = await this.resolve(id, importer, { skipSelf: true });
         if (!resolved || resolved.external) {
           throw new Error(`SIM_DEPENDENCY_UNRESOLVED_EDGE:${id}`);
@@ -142,7 +147,7 @@ function selectedSourcePlugin(): Plugin {
     transform(code, id) {
       if (isSimulatorStaticAssetPath(id.split(/[?#]/u, 1)[0])) return null;
       materializedIntegrity.verifyTransform(code, id);
-      dependencyQualifier.validateTransform(code, id);
+      if (qualifyDependencyClosure) dependencyQualifier.validateTransform(code, id);
       return null;
     },
     generateBundle() {
@@ -189,7 +194,83 @@ function selectedCssProfiles() {
     });
 }
 
-export default defineConfig(() => {
+function controlledDevWithoutViteClient(): Plugin {
+  const stripCssHmr = (code: string, id: string): string => {
+    if (!code.includes('from "/@vite/client"')
+      || !code.includes('const __vite__css = ')
+      || !code.includes('__vite__updateStyle(__vite__id, __vite__css)')) return code;
+    const withoutClient = code
+      .replace(/^import \{ createHotContext[^\n]+from "\/@vite\/client"\n/u, '')
+      .replace(
+        '__vite__updateStyle(__vite__id, __vite__css)',
+        'const __nimiStyle = document.createElement("style"); __nimiStyle.dataset.nimiControlledDevStyle = __vite__id; __nimiStyle.textContent = __vite__css; document.head.appendChild(__nimiStyle)',
+      )
+      .replace(/\nimport\.meta\.hot\.accept\(\)\nimport\.meta\.hot\.prune\([^\n]+\)\s*$/u, '\n');
+    if (withoutClient.includes('/@vite/client') || withoutClient.includes('import.meta.hot')) {
+      throw new Error(`SIM_DEV_CSS_HMR_TRANSFORM_DRIFT:${id}`);
+    }
+    return withoutClient;
+  };
+  const stripModuleHmr = (code: string): string => code
+    .replace(
+      /import \{ injectQuery as __vite__injectQuery \} from "\/@vite\/client";/gu,
+      'const __vite__injectQuery = (url, query) => { if (url[0] !== "." && url[0] !== "/") return url; const pathname = url.replace(/[?#].*$/, ""); const parsed = new URL(url, "http://vite.dev"); return `${pathname}?${query}${parsed.search ? `&${parsed.search.slice(1)}` : ""}${parsed.hash || ""}`; };',
+    )
+    .replace(
+      /import \{ createHotContext as __vite__createHotContext \} from "\/@vite\/client";import\.meta\.hot = __vite__createHotContext\([^;]+\);/gu,
+      '',
+    );
+  return {
+    name: 'nimi-simulator-controlled-dev-no-vite-client',
+    apply: 'serve',
+    enforce: 'post',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html) {
+        const withoutClient = html.replace(/\s*<script type="module" src="\/@vite\/client"><\/script>\s*/u, '\n');
+        const withSelectedSourceAssets = withoutClient.replace(
+          "img-src 'none'",
+          "img-src 'self' data:",
+        );
+        if (!withSelectedSourceAssets.includes("connect-src 'none'")) {
+          throw new Error('SIM_DEV_CSP_FLOOR_DRIFT');
+        }
+        return withSelectedSourceAssets;
+      },
+    },
+    configureServer(server) {
+      server.middlewares.use((request, response, next) => {
+        const pathname = new URL(request.url ?? '/', 'http://127.0.0.1').pathname;
+        if (!/\.(?:css|js|jsx|mjs|ts|tsx)$/u.test(pathname)
+          && !pathname.startsWith('/node_modules/.vite/deps/')) {
+          return next();
+        }
+        const chunks: Buffer[] = [];
+        const originalWrite = response.write.bind(response);
+        const originalEnd = response.end.bind(response);
+        response.write = ((chunk: unknown) => {
+          if (chunk !== undefined && chunk !== null) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
+          return true;
+        }) as typeof response.write;
+        response.end = ((chunk?: unknown) => {
+          if (chunk !== undefined && chunk !== null) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
+          try {
+            const source = Buffer.concat(chunks).toString('utf8');
+            const transformed = stripModuleHmr(stripCssHmr(source, pathname));
+            response.removeHeader('content-length');
+            return originalEnd(transformed);
+          } catch (error) {
+            response.write = originalWrite;
+            throw error;
+          }
+        }) as typeof response.end;
+        return next();
+      });
+    },
+  };
+}
+
+export default defineConfig(({ command }) => {
   const publicEnvironment = readSimulatorPublicEnvironment();
   const resolver = JSON.parse(
     readFileSync(path.join(generatedRoot, 'evidence', 'resolver.json'), 'utf8'),
@@ -201,7 +282,7 @@ export default defineConfig(() => {
       __NIMI_SIMULATOR_PUBLIC_CONFIG__: JSON.stringify(publicEnvironment),
     },
     plugins: [
-      selectedSourcePlugin(),
+      selectedSourcePlugin({ qualifyDependencyClosure: command === 'build' }),
       createSimulatorCssProfileVitePlugin({
         compilerRoot: simulatorRoot,
         foundationEntry: path.join(simulatorRoot, 'src/styles.css'),
@@ -209,9 +290,21 @@ export default defineConfig(() => {
       }),
       react(),
       tailwindcss(),
+      controlledDevWithoutViteClient(),
     ],
     resolve: {
       dedupe: resolver.packages.map((row) => row.name),
+    },
+    // The governed resolver verifies every admitted target before startup.
+    // Dev then lets Vite prebundle CommonJS targets so they expose the same
+    // ESM surface that Rollup provides in Build.
+    optimizeDeps: {
+      include: [...resolver.devInteropImports],
+    },
+    server: {
+      host: '127.0.0.1',
+      strictPort: false,
+      hmr: false,
     },
     // Selected sources are immutable standalone trees. Their repository-local
     // tsconfig inheritance is neither materialized nor allowed to influence
