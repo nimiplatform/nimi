@@ -6,7 +6,8 @@ import { getActiveScope } from '../../features/chat/chat-shared-active-ai-config
 import {
   getDesktopAccountRuntime,
   getDesktopAppId,
-  getDesktopRuntime,
+  getDesktopAuditAdminClient,
+  getDesktopRuntimeAgentOwnerClient,
 } from '../sdk/desktop-nimi-client-session';
 import { createNimiDesktopShellRuntimeAccountCaller, createNimiRuntimeAgentSmokeVerificationSurface, type NimiRuntimeAgentSmokeVerificationRuntime } from '@nimiplatform/sdk/runtime';
 import { AccountSessionState } from '@nimiplatform/sdk/runtime/wire-types';
@@ -33,11 +34,10 @@ export type DesktopMacosSmokeDriverDepsOptions = {
 };
 
 function getDesktopRuntimeAgentSmokeVerificationRuntime(): NimiRuntimeAgentSmokeVerificationRuntime {
-  const runtime = getDesktopRuntime();
   return {
     appId: getDesktopAppId(),
-    agents: runtime.agents,
-    health: (request, options) => runtime.health(request, options),
+    agents: getDesktopRuntimeAgentOwnerClient(),
+    health: (request, options) => getDesktopAuditAdminClient().getRuntimeHealth(request ?? {}, options),
   };
 }
 

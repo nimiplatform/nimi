@@ -105,14 +105,6 @@ pub const RUNTIME_LOCAL_RESOLVE_LOCAL_ENVIRONMENT_PLAN_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan";
 pub const RUNTIME_LOCAL_LIST_LOCAL_ENVIRONMENT_DEPENDENCY_JOBS_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs";
-pub const RUNTIME_LOCAL_START_LOCAL_ENVIRONMENT_DEPENDENCY_JOB_METHOD_ID: &str =
-    "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob";
-pub const RUNTIME_LOCAL_CANCEL_LOCAL_ENVIRONMENT_DEPENDENCY_JOB_METHOD_ID: &str =
-    "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob";
-pub const RUNTIME_LOCAL_RETRY_LOCAL_ENVIRONMENT_DEPENDENCY_JOB_METHOD_ID: &str =
-    "/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob";
-pub const RUNTIME_LOCAL_REPAIR_LOCAL_ENVIRONMENT_DEPENDENCY_METHOD_ID: &str =
-    "/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency";
 pub const RUNTIME_LOCAL_RESOLVE_RUNTIME_BASELINE_READINESS_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness";
 pub const RUNTIME_LOCAL_MINT_RUNTIME_BASELINE_READINESS_METHOD_ID: &str =
@@ -443,6 +435,7 @@ impl fmt::Debug for RuntimeBridgeAppSession {
 pub struct RuntimeBridgeUnaryPayload {
     pub method_id: String,
     pub request_bytes_base64: String,
+    pub product_intent: Option<String>,
     pub metadata: Option<RuntimeBridgeMetadata>,
     pub authorization: Option<String>,
     pub protected_access_token: Option<RuntimeBridgeProtectedAccessToken>,
@@ -497,11 +490,25 @@ async fn runtime_bridge_unary_host_trusted(
             return Ok(result);
         }
     }
-    unary::invoke_unary(&payload).await
+    unary::invoke_unary(&payload, false).await
 }
 
 pub async fn runtime_bridge_unary(
+    payload: RuntimeBridgeUnaryPayload,
+) -> Result<RuntimeBridgeUnaryResult, String> {
+    runtime_bridge_unary_with_main_window(payload, false).await
+}
+
+pub async fn runtime_bridge_unary_from_window(
+    payload: RuntimeBridgeUnaryPayload,
+    window_label: &str,
+) -> Result<RuntimeBridgeUnaryResult, String> {
+    runtime_bridge_unary_with_main_window(payload, window_label == "main").await
+}
+
+async fn runtime_bridge_unary_with_main_window(
     mut payload: RuntimeBridgeUnaryPayload,
+    protected_main_window: bool,
 ) -> Result<RuntimeBridgeUnaryResult, String> {
     let method_id = payload.method_id.clone();
     if is_allowlisted_method(method_id.as_str()) && !is_stream_method(method_id.as_str()) {
@@ -518,12 +525,21 @@ pub async fn runtime_bridge_unary(
             return Ok(result);
         }
     }
-    unary::invoke_unary(&payload).await
+    unary::invoke_unary(&payload, protected_main_window).await
 }
 
-pub async fn runtime_bridge_stream_open(
+pub async fn runtime_bridge_stream_open_from_window(
+    app: AppHandle,
+    payload: RuntimeBridgeStreamOpenPayload,
+    window_label: &str,
+) -> Result<RuntimeBridgeStreamOpenResult, String> {
+    runtime_bridge_stream_open_with_main_window(app, payload, window_label == "main").await
+}
+
+async fn runtime_bridge_stream_open_with_main_window(
     app: AppHandle,
     mut payload: RuntimeBridgeStreamOpenPayload,
+    protected_main_window: bool,
 ) -> Result<RuntimeBridgeStreamOpenResult, String> {
     let method_id = payload.method_id.clone();
     if is_allowlisted_method(method_id.as_str()) && is_stream_method(method_id.as_str()) {
@@ -537,11 +553,16 @@ pub async fn runtime_bridge_stream_open(
         )
         .await?;
     }
-    stream::open_stream(&app, &payload).await
+    stream::open_stream(&app, &payload, protected_main_window).await
 }
 
 pub fn runtime_bridge_stream_close(payload: RuntimeBridgeStreamClosePayload) -> Result<(), String> {
     stream::close_stream(&payload)
+}
+
+pub async fn invalidate_desktop_host() {
+    stream::close_all_streams();
+    service_control::invalidate_desktop_host().await;
 }
 
 pub async fn runtime_bridge_status(app: AppHandle) -> RuntimeBridgeDaemonStatus {

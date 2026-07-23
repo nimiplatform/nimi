@@ -1,7 +1,8 @@
-import type { NimiClient } from '@nimiplatform/sdk';
 import type {
+  NimiDesktopAccountProductRuntimeClient,
+  NimiDesktopMachineProductRuntimeClient,
+  NimiDesktopRuntimeAgentPurposeClient,
   NimiHostRuntimeAgentDelegatedCapabilityClient,
-  NimiHostRuntimeAgentLifecycleClient,
   NimiHostRuntimeAgentPresentationProfileClient,
   NimiRuntimeAccountCaller,
   NimiRuntimeAgentScopeRunner,
@@ -9,9 +10,22 @@ import type {
   NimiRuntimeRouteCapabilityRuntime,
   NimiRuntimeCanonicalCapability,
   NimiRuntimeRouteOptionsSnapshot,
-  Runtime,
 } from '@nimiplatform/sdk/runtime';
 import type { Realm } from '@nimiplatform/sdk/realm';
+import type {
+  DesktopAccountRuntime,
+  DesktopHostRuntimeAgentClient,
+  DesktopRuntimeAgentDiscoverySurface,
+  getDesktopAiExecutionClient,
+  getDesktopAppLifecycleClient,
+  getDesktopAuditAdminClient,
+  getDesktopConnectorAdminClient,
+  getDesktopExternalAgentClient,
+  getDesktopLocalAssetAdminClient,
+  getDesktopLocalAuditClient,
+  getDesktopRouteHostAccessClient,
+  getDesktopRouteOptionsClient,
+} from '../infra/sdk/desktop-nimi-client-session.js';
 import type {
   RealmApiCaller,
   RealmDataErrorEmitter,
@@ -22,28 +36,28 @@ import type { NimiRuntimeHealthCoordinator } from '@nimiplatform/sdk/runtime';
 import type { DesktopRendererOfflinePort } from './offline-port.js';
 import type { DesktopRendererAIConfigPort } from './ai-config-port.js';
 
-type DesktopAccountRuntime = {
-  readonly auth: Runtime['auth'];
-  readonly account: Pick<
-    Runtime['account'],
-    | 'getAccountSessionStatus'
-    | 'beginLogin'
-    | 'completeLogin'
-    | 'invokeRealmUnary'
-    | 'logout'
-    | 'switchAccount'
-  >;
-};
-
 export interface DesktopRendererSdkPort {
   isSessionReady(): boolean;
   isRuntimeAccountSessionReady(): boolean;
   appId(): string;
-  client(): NimiClient;
-  runtime(): Runtime;
+  machineProduct(): NimiDesktopMachineProductRuntimeClient;
+  accountProduct(): NimiDesktopAccountProductRuntimeClient;
+  appLifecycle(): ReturnType<typeof getDesktopAppLifecycleClient>;
+  connectorAdmin(): ReturnType<typeof getDesktopConnectorAdminClient>;
+  localAssetAdmin(): ReturnType<typeof getDesktopLocalAssetAdminClient>;
+  localAudit(): ReturnType<typeof getDesktopLocalAuditClient>;
+  auditAdmin(): ReturnType<typeof getDesktopAuditAdminClient>;
+  aiExecution(): ReturnType<typeof getDesktopAiExecutionClient>;
+  routeHostAccessClient(): ReturnType<typeof getDesktopRouteHostAccessClient>;
+  routeOptionsClient(): ReturnType<typeof getDesktopRouteOptionsClient>;
+  externalAgent(): ReturnType<typeof getDesktopExternalAgentClient>;
+  runtimeAgentOwner(): NimiDesktopRuntimeAgentPurposeClient;
+  runtimeAgentDiscovery(
+    getSubjectUserId: () => string | Promise<string | undefined> | undefined,
+  ): DesktopRuntimeAgentDiscoverySurface;
   runtimeAgentTurns(): NimiRuntimeAgentTurnsRuntime;
   hostRuntimeAgent():
-    NimiHostRuntimeAgentLifecycleClient
+    DesktopHostRuntimeAgentClient
     & NimiHostRuntimeAgentPresentationProfileClient
     & NimiHostRuntimeAgentDelegatedCapabilityClient;
   accountRuntime(): DesktopAccountRuntime;

@@ -470,8 +470,12 @@ registered_command_families:
       - sync_lock_contention
     source_rule: D-GATE-094
 
-  # Retained app-local in the 2026-07-09 Tauri shell refactor batch;
-  # future owner is pending explicit decision between admitted Desktop local truth and runtime ownership.
+  # Ordinary Nimi Chat app-local session storage only. This family is not
+  # Desktop Agent Chat, Runtime Agent turn/history, LocalAgent lifecycle, or
+  # ConversationAnchor authority; those product truths remain Runtime/SDK
+  # projections under D-LLM-025a/D-LLM-107. The owner label below classifies
+  # the physical Desktop store for ordinary Nimi Chat and must not be used to
+  # infer Agent Chat semantic ownership.
   - family: chat_ai_local_store
     match:
       regex: "^chat_ai_.*$"

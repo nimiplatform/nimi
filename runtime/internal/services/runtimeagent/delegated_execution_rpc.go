@@ -15,7 +15,7 @@ import (
 )
 
 func (s *Service) ExecuteDelegatedCapability(ctx context.Context, req *runtimev1.ExecuteDelegatedCapabilityRequest) (*runtimev1.ExecuteDelegatedCapabilityResponse, error) {
-	agentID, err := s.validateDelegatedControlRequest(req.GetContext(), req.GetAgentId(), "runtime.agent.delegation.write")
+	agentID, err := s.validateDelegatedControlRequest(ctx, req.GetContext(), req.GetAgentId(), "runtime.agent.delegation.write")
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (s *Service) ExecuteDelegatedCapability(ctx context.Context, req *runtimev1
 }
 
 func (s *Service) ResumeDelegatedCapability(ctx context.Context, req *runtimev1.ResumeDelegatedCapabilityRequest) (*runtimev1.ResumeDelegatedCapabilityResponse, error) {
-	agentID, err := s.validateDelegatedControlRequest(req.GetContext(), req.GetAgentId(), "runtime.agent.delegation.write")
+	agentID, err := s.validateDelegatedControlRequest(ctx, req.GetContext(), req.GetAgentId(), "runtime.agent.delegation.write")
 	if err != nil {
 		return nil, err
 	}

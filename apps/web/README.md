@@ -58,7 +58,10 @@ Required:
 Optional:
 
 - `VITE_NIMI_GOOGLE_CLIENT_ID=...` (for Google OAuth in web auth menu)
-- `VITE_NIMI_ACCESS_TOKEN=...`
+
+Bearer tokens, passwords, secrets, API keys, and credentials must never be supplied through
+Web build environment variables. The Web client receives only the exact public allowlist in
+`public-env.ts`.
 
 Runtime wallet login is available in web mode when wallet providers are injected into `window`
 (MetaMask / OKX / Binance Wallet).
@@ -113,7 +116,8 @@ Suggested Pages environment variables:
 Notes:
 
 - In production web mode, runtime request code uses same-origin API routing.
-- `VITE_NIMI_REALM_URL` is only relevant for local Vite dev proxy behavior.
+- `NIMI_REALM_URL` is server-only build/dev proxy configuration. Vite validates its HTTP(S)
+  origin and derives the public `VITE_NIMI_REALM_BASE_URL` value used by OAuth continuation.
 
 ## Sync Rule
 

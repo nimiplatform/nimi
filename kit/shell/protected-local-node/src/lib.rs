@@ -2,21 +2,22 @@
 
 use napi_derive::napi;
 use nimi_shell_protected_local::{
-    BundledAvatarRuntimeRequest,
-    DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
-    DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse, DesktopAccountProjection,
-    DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse, DesktopAccountSessionEvent,
-    DesktopAccountSessionStatusRequest, DesktopProductControlError, DesktopProductControlMethod,
-    DesktopProductControlRequest, DesktopRuntimeConsumerMethod, DesktopRuntimeConsumerRequest,
-    FixedRuntimeServiceControl, LocalAppOperationError, LocalAppPermissionRequest,
-    LocalAppPermissionStatus, LocalAppPermissionStatusRequest, LocalAppReasonCode,
-    LocalAppSessionStatus, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
-    LocalAppStorageWriteRequest, LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
-    LocalDevelopmentDecision, LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest,
-    LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchRequest,
-    LocalDevelopmentShellKind, LocalDevelopmentSummaryAvailability, NimiDesktopControl,
-    NimiHostError, NimiHostErrorReasonCode, NimiLocalAppCarrier, NimiLocalAppSession,
-    NimiProtectedLocalHostCarrier, ProtectedCarrierError, RuntimeServiceActionOutcome,
+    BundledAvatarRuntimeRequest, DesktopAccountActionRequest, DesktopAccountBeginLoginRequest,
+    DesktopAccountBeginLoginResponse, DesktopAccountCompleteLoginRequest,
+    DesktopAccountMutationResponse, DesktopAccountProductUnaryMethod,
+    DesktopAccountProductUnaryRequest, DesktopAccountProjection, DesktopAccountRealmUnaryRequest,
+    DesktopAccountRealmUnaryResponse, DesktopAccountSessionEvent,
+    DesktopAccountSessionStatusRequest, DesktopMachineProductUnaryMethod,
+    DesktopMachineProductUnaryRequest, FixedRuntimeServiceControl, LocalAppOperationError,
+    LocalAppPermissionRequest, LocalAppPermissionStatus, LocalAppPermissionStatusRequest,
+    LocalAppReasonCode, LocalAppSessionStatus, LocalAppStorageReadRequest,
+    LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest, LocalDevelopmentAuthoritySummary,
+    LocalDevelopmentAuthorization, LocalDevelopmentDecision, LocalDevelopmentDecisionRequest,
+    LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest,
+    LocalDevelopmentLaunchRequest, LocalDevelopmentShellKind, LocalDevelopmentSummaryAvailability,
+    NimiDesktopControl, NimiHostError, NimiHostErrorReasonCode, NimiLocalAppCarrier,
+    NimiLocalAppSession, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
+    RuntimeServiceActionOutcome,
 };
 #[cfg(target_os = "macos")]
 use nimi_shell_protected_local::{MacOsLocalAppCarrier, MacOsUnixSocketCarrier};
@@ -40,27 +41,30 @@ type PlatformLocalAppCarrier = WindowsLocalAppCarrier;
 
 mod account_events;
 mod bundled_avatar_streams;
+mod first_party_streams;
 mod local_app;
 mod native_types;
 mod projection;
 pub use account_events::*;
 pub use bundled_avatar_streams::*;
+pub use first_party_streams::*;
 pub use local_app::*;
 pub use native_types::*;
 use projection::*;
 
-#[napi(js_name = "desktopProductControlUnary")]
-pub async fn desktop_product_control_unary(
-    input: NativeDesktopProductControlInput,
+#[napi(js_name = "desktopMachineProductUnary")]
+pub async fn desktop_machine_product_unary(
+    input: NativeFirstPartyProductInput,
 ) -> NativeBytesOutcome {
-    let Some(method) = DesktopProductControlMethod::from_method_id(input.method_id.trim()) else {
+    let Some(method) = DesktopMachineProductUnaryMethod::from_method_id(input.method_id.trim())
+    else {
         return NativeBytesOutcome::error("runtime-service-untrusted", false);
     };
     let timeout = input
         .timeout_ms
         .map(u64::from)
         .map(std::time::Duration::from_millis);
-    if !desktop_product_control_timeout_allowed(method, timeout) {
+    if !machine_product_timeout_allowed(method, timeout) {
         return NativeBytesOutcome::error("runtime-service-untrusted", false);
     }
     let control = match current_or_open_desktop_control().await {
@@ -68,7 +72,7 @@ pub async fn desktop_product_control_unary(
         Err(error) => return NativeBytesOutcome::host_error(error),
     };
     match control
-        .invoke_product_control(DesktopProductControlRequest {
+        .invoke_machine_product_unary(DesktopMachineProductUnaryRequest {
             method,
             request_bytes: input.request_bytes.to_vec(),
             timeout,
@@ -78,16 +82,17 @@ pub async fn desktop_product_control_unary(
         Ok(response) => NativeBytesOutcome::success(response.response_bytes),
         Err(error) => {
             clear_desktop_control_on_transport_reason(&control, error.reason_code()).await;
-            NativeBytesOutcome::product_control_error(error)
+            NativeBytesOutcome::error(error.reason_code(), error.retryable())
         }
     }
 }
 
-#[napi(js_name = "desktopRuntimeConsumerUnary")]
-pub async fn desktop_runtime_consumer_unary(
-    input: NativeDesktopRuntimeConsumerInput,
+#[napi(js_name = "desktopAccountProductUnary")]
+pub async fn desktop_account_product_unary(
+    input: NativeFirstPartyProductInput,
 ) -> NativeBytesOutcome {
-    let Some(method) = DesktopRuntimeConsumerMethod::from_method_id(input.method_id.trim()) else {
+    let Some(method) = DesktopAccountProductUnaryMethod::from_method_id(input.method_id.trim())
+    else {
         return NativeBytesOutcome::error("runtime-service-untrusted", false);
     };
     let timeout = input
@@ -102,7 +107,7 @@ pub async fn desktop_runtime_consumer_unary(
         Err(error) => return NativeBytesOutcome::host_error(error),
     };
     match control
-        .invoke_runtime_consumer(DesktopRuntimeConsumerRequest {
+        .invoke_account_product_unary(DesktopAccountProductUnaryRequest {
             method,
             request_bytes: input.request_bytes.to_vec(),
             timeout,
@@ -145,11 +150,11 @@ pub async fn desktop_bundled_avatar_unary(
     }
 }
 
-fn desktop_product_control_timeout_allowed(
-    method: DesktopProductControlMethod,
+fn machine_product_timeout_allowed(
+    method: DesktopMachineProductUnaryMethod,
     timeout: Option<std::time::Duration>,
 ) -> bool {
-    let maximum = if method == DesktopProductControlMethod::MintFirstRunExecutionEvidence {
+    let maximum = if method == DesktopMachineProductUnaryMethod::MintFirstRunExecutionEvidence {
         // One First Run mint performs the admitted text, STT, and TTS
         // executions serially. Their Runtime budgets total 255 seconds before
         // cold activation and carrier overhead, so the Desktop host's bounded
@@ -162,29 +167,29 @@ fn desktop_product_control_timeout_allowed(
 }
 
 #[cfg(test)]
-mod desktop_product_control_timeout_tests {
+mod first_party_product_timeout_tests {
     use super::*;
 
     #[test]
     fn first_run_execution_mint_accepts_the_host_ten_minute_deadline() {
-        assert!(desktop_product_control_timeout_allowed(
-            DesktopProductControlMethod::MintFirstRunExecutionEvidence,
+        assert!(machine_product_timeout_allowed(
+            DesktopMachineProductUnaryMethod::MintFirstRunExecutionEvidence,
             Some(std::time::Duration::from_secs(600)),
         ));
     }
 
     #[test]
     fn ordinary_product_control_methods_keep_the_five_minute_bound() {
-        assert!(!desktop_product_control_timeout_allowed(
-            DesktopProductControlMethod::GetProductControlRecord,
+        assert!(!machine_product_timeout_allowed(
+            DesktopMachineProductUnaryMethod::GetProductControlRecord,
             Some(std::time::Duration::from_secs(301)),
         ));
-        assert!(!desktop_product_control_timeout_allowed(
-            DesktopProductControlMethod::MintFirstRunExecutionEvidence,
+        assert!(!machine_product_timeout_allowed(
+            DesktopMachineProductUnaryMethod::MintFirstRunExecutionEvidence,
             Some(std::time::Duration::from_secs(601)),
         ));
-        assert!(!desktop_product_control_timeout_allowed(
-            DesktopProductControlMethod::MintFirstRunExecutionEvidence,
+        assert!(!machine_product_timeout_allowed(
+            DesktopMachineProductUnaryMethod::MintFirstRunExecutionEvidence,
             Some(std::time::Duration::ZERO),
         ));
     }
@@ -351,6 +356,9 @@ pub async fn fixed_runtime_service_restart() -> NativeJsonOutcome {
         *current = None;
     }
     drop(current);
+    account_events::close_all_account_event_streams().await;
+    bundled_avatar_streams::close_all_bundled_avatar_streams().await;
+    first_party_streams::close_all_first_party_product_streams().await;
     nimi_shell_protected_local::invalidate_verified_desktop_runtime_channel().await;
     match result {
         Ok(outcome) => NativeJsonOutcome::success(project_runtime_service_action(outcome)),
@@ -659,6 +667,7 @@ async fn clear_desktop_control(control: &Arc<dyn NimiDesktopControl>) {
     if removed {
         account_events::close_all_account_event_streams().await;
         bundled_avatar_streams::close_all_bundled_avatar_streams().await;
+        first_party_streams::close_all_first_party_product_streams().await;
         nimi_shell_protected_local::invalidate_verified_desktop_runtime_channel().await;
     }
 }

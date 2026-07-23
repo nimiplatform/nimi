@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
@@ -28,15 +28,15 @@ const modelConfigConstantsSource = readFileSync(
   'utf8',
 );
 
-const memoryEmbeddingServiceSource = readFileSync(
-  resolve(import.meta.dirname, '../src/shell/renderer/app-shell/providers/desktop-memory-embedding-config-service.ts'),
-  'utf8',
+const memoryEmbeddingServicePath = resolve(
+  import.meta.dirname,
+  '../src/shell/renderer/app-shell/providers/desktop-memory-embedding-config-service.ts',
 );
 
 test('Desktop local runtime asset consumers use SDK projection instead of raw Runtime DTOs', () => {
   assert.match(capabilitySettingsSource, /listNimiRuntimeLocalAssetEntries/);
   assert.match(capabilitySettingsSource, /from '@nimiplatform\/sdk\/runtime'/);
-  assert.match(capabilitySettingsSource, /sdk\.runtime\(\)/);
+  assert.match(capabilitySettingsSource, /sdk\.machineProduct\(\)/);
   assert.doesNotMatch(capabilitySettingsSource, /getPlatformClient/);
   assert.doesNotMatch(capabilitySettingsSource, /listRuntimeLocalAssetEntries/);
   assert.doesNotMatch(capabilitySettingsSource, /runtime\.local\.listLocalAssets/);
@@ -63,8 +63,6 @@ test('SDK and Kit local asset projection keeps generated enums behind UI-readabl
   assert.match(modelConfigConstantsSource, /a\.status\s*!==\s*'removed'/);
 });
 
-test('Desktop memory embedding host does not own Runtime protected access', () => {
-  assert.match(memoryEmbeddingServiceSource, /createNimiProtectedHostMemoryEmbeddingRuntimeSurface/);
-  assert.doesNotMatch(memoryEmbeddingServiceSource, /createRuntimeProtectedScopeHelper/);
-  assert.doesNotMatch(memoryEmbeddingServiceSource, /withRuntimeMemoryScopes/);
+test('Desktop memory embedding lifecycle host surface is removed', () => {
+  assert.equal(existsSync(memoryEmbeddingServicePath), false);
 });

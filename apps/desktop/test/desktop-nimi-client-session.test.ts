@@ -64,12 +64,14 @@ function importsRuntimeAsValueFromSdkRuntime(source: string): boolean {
   return false;
 }
 
-test('desktop Runtime Realm session delegates Runtime construction to the SDK platform client owner', () => {
+test('desktop Runtime Realm session delegates exact client construction to the SDK owner', () => {
   const source = readSessionSource();
 
   assert.doesNotMatch(source, /\bnew\s+Runtime\s*\(/u);
   assert.equal(importsRuntimeAsValueFromSdkRuntime(source), false);
-  assert.match(source, /\bcreateNimiRuntimePlatformClient\b/);
+  assert.match(source, /\bcreateNimiDesktopFirstPartyRuntimeClients\b/);
+  assert.doesNotMatch(source, /\bcreateNimiRuntimePlatformClient\b/);
+  assert.doesNotMatch(source, /readonly runtime(?:\?|): Runtime\b/);
 });
 
 test('desktop Runtime Realm session accepts the Electron IPC Runtime transport', () => {
@@ -89,8 +91,7 @@ test('desktop Electron Runtime calls leave host-owned auth metadata to the Elect
   setDesktopNimiClientSessionForTests({
     appId: 'nimi.desktop',
     runtimeTransport: { type: 'electron-ipc' },
-    client: {},
-    runtime: {},
+    runtimeClients: {},
     accountRuntime: {
       account: {
         getAccountSessionStatus: async () => {
@@ -112,14 +113,13 @@ test('desktop Electron Runtime calls leave host-owned auth metadata to the Elect
   }
 });
 
-test('desktop Tauri Runtime calls fail closed instead of minting a public Grant token', async () => {
+test('desktop Tauri Runtime calls use the exact host carrier without minting a public Grant token', async () => {
   let accountStatusCalls = 0;
   let publicGrantCalls = 0;
   setDesktopNimiClientSessionForTests({
     appId: 'nimi.desktop',
     runtimeTransport: { type: 'tauri-ipc' },
-    client: {},
-    runtime: {},
+    runtimeClients: {},
     accountRuntime: {
       account: {
         getAccountSessionStatus: async () => {
@@ -141,16 +141,14 @@ test('desktop Tauri Runtime calls fail closed instead of minting a public Grant 
     realm: {},
   } as never);
   try {
-    await assert.rejects(
-      withDesktopRuntimeProtectedScopes(['runtime.agent.read'], async () => 'must-not-run'),
-      (error: unknown) => {
-        assert.equal(
-          (error as { readonly reasonCode?: unknown }).reasonCode,
-          'SDK_RUNTIME_AGENT_SCOPED_CARRIER_REQUIRED',
-        );
-        return true;
+    const result = await withDesktopRuntimeProtectedScopes(
+      ['runtime.agent.read'],
+      async (callOptions) => {
+        assert.deepEqual(callOptions, {});
+        return 'tauri-host-owned';
       },
     );
+    assert.equal(result, 'tauri-host-owned');
     assert.equal(accountStatusCalls, 0);
     assert.equal(publicGrantCalls, 0);
     const source = readSessionSource();

@@ -28,7 +28,7 @@ import {
   type NimiAIScopeRef,
   type NimiAISnapshot,
 } from '@nimiplatform/sdk/ai';
-import type { Runtime } from '@nimiplatform/sdk/runtime';
+import type { NimiDesktopMachineProductRuntimeClient } from '@nimiplatform/sdk/runtime';
 import {
   loadNimiAppAIProfileFactoryCatalog,
 } from '@nimiplatform/sdk/app';
@@ -103,11 +103,14 @@ export type DesktopAIConfigSurface = {
   update(scopeRef: NimiAIScopeRef, config: NimiAIConfig): void;
   listScopes(): readonly NimiAIScopeRef[];
   probe(scopeRef: NimiAIScopeRef): Promise<NimiAIConfigProbeResult>;
-  probeFeasibility(scopeRef: NimiAIScopeRef, runtime?: Runtime): Promise<NimiAIConfigProbeResult>;
+  probeFeasibility(
+    scopeRef: NimiAIScopeRef,
+    runtime?: NimiDesktopMachineProductRuntimeClient,
+  ): Promise<NimiAIConfigProbeResult>;
   probeSchedulingTarget(
     scopeRef: NimiAIScopeRef,
     target: NimiAISchedulingEvaluationTarget,
-    runtime?: Runtime,
+    runtime?: NimiDesktopMachineProductRuntimeClient,
   ): Promise<NimiAISchedulingJudgement | null>;
   subscribe(scopeRef: NimiAIScopeRef, callback: (config: NimiAIConfig) => void): () => void;
 };
@@ -455,7 +458,10 @@ function createAIConfigSurface(): DesktopAIConfigSurface {
       return probeConfigAvailability(config, routeRuntime);
     },
 
-    async probeFeasibility(scopeRef: NimiAIScopeRef, runtime?: Runtime): Promise<NimiAIConfigProbeResult> {
+    async probeFeasibility(
+      scopeRef: NimiAIScopeRef,
+      runtime?: NimiDesktopMachineProductRuntimeClient,
+    ): Promise<NimiAIConfigProbeResult> {
       // D-AIPC-012 layer 3: resource feasibility probe.
       // Consumes runtime Peek (K-SCHED-002) for scheduling judgement.
       const config = this.get(scopeRef);
@@ -495,7 +501,7 @@ function createAIConfigSurface(): DesktopAIConfigSurface {
     async probeSchedulingTarget(
       scopeRef: NimiAIScopeRef,
       target: NimiAISchedulingEvaluationTarget,
-      runtime?: Runtime,
+      runtime?: NimiDesktopMachineProductRuntimeClient,
     ): Promise<NimiAISchedulingJudgement | null> {
       const normalizedTarget = normalizeNimiAISchedulingTarget(target);
       if (!normalizedTarget) {
@@ -605,7 +611,7 @@ export type {
 export async function peekDesktopAISchedulingForEvidence(input: {
   scopeRef: NimiAIScopeRef;
   target: NimiAISchedulingEvaluationTarget | null;
-  runtime: Runtime;
+  runtime: NimiDesktopMachineProductRuntimeClient;
 }): Promise<NimiAIRuntimeEvidence | null> {
   const target = normalizeNimiAISchedulingTarget(input.target);
   if (!target) {

@@ -107,9 +107,9 @@ test('desktop Runtime session uses the host carrier without renderer-held author
   assert.match(desktopSessionSource, /assertDesktopProtectedScopes\(requestedScopes\)/);
   assert.doesNotMatch(desktopSessionSource, /createNimiRuntimeFullAppRegistration|registerApp\(/);
   assert.match(desktopSessionSource, /from ['"]\.\.\/\.\.\/\.\.\/shared\/runtime-account-contract/u);
-  assert.match(desktopSessionSource, /session\.runtimeTransport\.type === 'electron-ipc'/);
+  assert.match(desktopSessionSource, /getDesktopRuntimeRealmSession\(\);/);
   assert.match(desktopSessionSource, /return \{\};/);
-  assert.match(desktopSessionSource, /SDK_RUNTIME_AGENT_SCOPED_CARRIER_REQUIRED/);
+  assert.doesNotMatch(desktopSessionSource, /SDK_RUNTIME_AGENT_SCOPED_CARRIER_REQUIRED/);
   const protectedCarrierSection = desktopSessionSource.slice(
     desktopSessionSource.indexOf('async function getDesktopRuntimeProtectedAccessCallOptions'),
     desktopSessionSource.indexOf('export function installRealmProjectionSession'),

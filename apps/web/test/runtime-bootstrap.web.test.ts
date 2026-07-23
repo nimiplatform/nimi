@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
+  disposeRuntimeBootstrap,
   isExpectedUnauthorizedAutoLogin,
   rebootstrapRuntime,
   withTimeout,
@@ -30,11 +31,16 @@ test('runtime-bootstrap.web withTimeout resolves and times out deterministically
 
 test('runtime-bootstrap.web exports rebootstrapRuntime for desktop renderer parity', () => {
   assert.equal(typeof rebootstrapRuntime, 'function');
+  assert.equal(typeof disposeRuntimeBootstrap, 'function');
   assert.match(
     runtimeBootstrapWebSource,
-    /export function rebootstrapRuntime\(lifecycle\?: DesktopRendererLifecyclePort\): Promise<void>/,
+    /export async function rebootstrapRuntime\(lifecycle\?: DesktopRendererLifecyclePort\): Promise<void>/,
   );
-  assert.match(runtimeBootstrapWebSource, /bootstrapPromise = null;\s*return bootstrapRuntime\(lifecycle\);/);
+  assert.match(runtimeBootstrapWebSource, /await disposeRuntimeBootstrap\(\);\s*return bootstrapRuntime\(lifecycle\);/);
+  assert.match(
+    runtimeBootstrapWebSource,
+    /export async function disposeRuntimeBootstrap\(\): Promise<void>/,
+  );
 });
 
 test('runtime-bootstrap.web defers chat and contact hydration until UI demand', () => {

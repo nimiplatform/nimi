@@ -24,6 +24,7 @@ import (
 
 const (
 	windowsProductionRealmBaseURL     = "https://realm.nimi.ai"
+	windowsProductAcceptanceRealmURL  = "http://localhost:3002"
 	windowsDevKernelAccountRealmURL   = "http://localhost:3002"
 	windowsDevKernelFixtureBaseURL    = "http://127.0.0.1:19443"
 	windowsProductionInstallStateFile = "installation.json"
@@ -36,6 +37,12 @@ const (
 // Runtime fails closed if an acceptance profile is present beside its fixed
 // service state.
 var windowsNonReleaseAcceptanceProfileEnabled string
+
+// Set only by the explicit developer-signed first-party product acceptance
+// build. The endpoint is compiled into that exact signed binary; it is not
+// selected by service argv, environment, the installer caller, or mutable
+// service state.
+var windowsFirstPartyProductAcceptanceEnabled string
 
 var windowsAcceptanceTrialIDPattern = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$`)
 var windowsRuntimeCandidateIDPattern = regexp.MustCompile(`^dev-kernel-runtime-[0-9a-f]{32}$`)
@@ -113,6 +120,10 @@ func loadWindowsProtectedRuntimeConfig(stateRoot string) (config.Config, error) 
 	if root == "." || !filepath.IsAbs(root) {
 		return config.Config{}, fmt.Errorf("fixed Windows Runtime state root is required")
 	}
+	realmBaseURL, err := windowsProtectedRealmBaseURL()
+	if err != nil {
+		return config.Config{}, err
+	}
 	profile, err := loadWindowsAcceptanceProfile(root, time.Now().UTC())
 	if err != nil {
 		return config.Config{}, err
@@ -130,7 +141,7 @@ func loadWindowsProtectedRuntimeConfig(stateRoot string) (config.Config, error) 
 		return config.Config{}, err
 	}
 
-	cfg := newProtectedRuntimeConfig(runtimeRoot, runtimeID, windowsProductionRealmBaseURL)
+	cfg := newProtectedRuntimeConfig(runtimeRoot, runtimeID, realmBaseURL)
 	if profile != nil {
 		cfg.AuthJWTIssuer = profile.AccountRealmBaseURL
 		cfg.AuthJWTJWKSURL = profile.AccountRealmBaseURL + "/api/auth/jwks"
@@ -171,6 +182,18 @@ func loadWindowsProtectedRuntimeConfig(stateRoot string) (config.Config, error) 
 		return config.Config{}, fmt.Errorf("validate fixed Windows Runtime config: %w", err)
 	}
 	return cfg, nil
+}
+
+func windowsProtectedRealmBaseURL() (string, error) {
+	devKernelEnabled := windowsNonReleaseAcceptanceProfileEnabled == "true"
+	productAcceptanceEnabled := windowsFirstPartyProductAcceptanceEnabled == "true"
+	if devKernelEnabled && productAcceptanceEnabled {
+		return "", fmt.Errorf("conflicting non-release Windows Runtime build profiles")
+	}
+	if productAcceptanceEnabled {
+		return windowsProductAcceptanceRealmURL, nil
+	}
+	return windowsProductionRealmBaseURL, nil
 }
 
 func loadWindowsAcceptanceProfile(root string, now time.Time) (*windowsAcceptanceProfile, error) {

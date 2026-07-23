@@ -139,6 +139,8 @@ const ELECTRON_RENDERER_FORBIDDEN_IDENTITY_METADATA_KEYS = new Set([
 
 export interface RuntimeElectronIpcTransportOptions {
   readonly type?: 'electron-ipc';
+  /** SDK-owned named intent used only for the dual-profile ListConnectors RPC. */
+  readonly firstPartyListConnectorsIntent?: 'machine.route-connectors.list' | 'account.connector-admin.list';
 }
 
 export class RuntimeElectronIpcTransportError extends Error {
@@ -418,6 +420,9 @@ export function createRuntimeElectronIpcTransport(
       payload: {
         methodId,
         requestBytesBase64: toBase64(body),
+        productIntent: methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
+          ? options.firstPartyListConnectorsIntent
+          : undefined,
         metadata,
         timeoutMs: request.timeoutMs,
       },

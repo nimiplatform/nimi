@@ -6,6 +6,16 @@ import path from 'node:path';
 const SHA256_PATTERN = /^[0-9a-f]{64}$/u;
 const GIT_HEAD_PATTERN = /^[0-9a-f]{40}$/u;
 
+export const WINDOWS_RUNTIME_BUILD_SOURCE_PATHS = Object.freeze([
+  'go.work',
+  'go.work.sum',
+  'nimi-cognition',
+  'runtime',
+  'scripts/build-runtime.mjs',
+  'scripts/lib/runtime-build-record.mjs',
+  'scripts/lib/windows-dev-signing.mjs',
+]);
+
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
 }
@@ -18,17 +28,19 @@ function git(repoRoot, args, encoding = 'utf8') {
   });
 }
 
-function nulSeparatedGitPaths(repoRoot, args) {
-  return git(repoRoot, [...args, '-z'], 'buffer')
+function nulSeparatedGitPaths(repoRoot, args, pathspecs = []) {
+  const commandArgs = [...args, '-z'];
+  if (pathspecs.length > 0) commandArgs.push('--', ...pathspecs);
+  return git(repoRoot, commandArgs, 'buffer')
     .toString('utf8')
     .split('\0')
     .filter(Boolean)
     .sort();
 }
 
-function hashSourceTree(repoRoot) {
+function hashSourceTree(repoRoot, pathspecs = []) {
   const digest = createHash('sha256');
-  const paths = nulSeparatedGitPaths(repoRoot, ['ls-files', '--cached', '--others', '--exclude-standard']);
+  const paths = nulSeparatedGitPaths(repoRoot, ['ls-files', '--cached', '--others', '--exclude-standard'], pathspecs);
   for (const relative of paths) {
     const absolute = path.join(repoRoot, relative);
     let stat;
@@ -53,8 +65,8 @@ function hashSourceTree(repoRoot) {
   return digest.digest('hex');
 }
 
-function untrackedFileBindings(repoRoot) {
-  return nulSeparatedGitPaths(repoRoot, ['ls-files', '--others', '--exclude-standard']).map((relative) => {
+function untrackedFileBindings(repoRoot, pathspecs = []) {
+  return nulSeparatedGitPaths(repoRoot, ['ls-files', '--others', '--exclude-standard'], pathspecs).map((relative) => {
     const absolute = path.join(repoRoot, relative);
     const stat = fs.lstatSync(absolute);
     if (!stat.isFile() && !stat.isSymbolicLink()) {
@@ -81,14 +93,16 @@ export function fileSha256(file) {
   return sha256(fs.readFileSync(file));
 }
 
-export function captureRuntimeBuildSource(repoRoot) {
+export function captureRuntimeBuildSource(repoRoot, { pathspecs = [] } = {}) {
   const headCommit = git(repoRoot, ['rev-parse', 'HEAD']).trim();
   const branch = git(repoRoot, ['branch', '--show-current']).trim();
-  const trackedDiff = git(repoRoot, ['diff', '--binary', '--no-ext-diff', 'HEAD'], 'buffer');
+  const diffArgs = ['diff', '--binary', '--no-ext-diff', 'HEAD'];
+  if (pathspecs.length > 0) diffArgs.push('--', ...pathspecs);
+  const trackedDiff = git(repoRoot, diffArgs, 'buffer');
   const trackedDiffSha256 = sha256(trackedDiff);
-  const untrackedFiles = untrackedFileBindings(repoRoot);
+  const untrackedFiles = untrackedFileBindings(repoRoot, pathspecs);
   const dirty = trackedDiff.length > 0 || untrackedFiles.length > 0;
-  const sourceTreeSha256 = hashSourceTree(repoRoot);
+  const sourceTreeSha256 = hashSourceTree(repoRoot, pathspecs);
   const descriptor = {
     repositoryId: 'nimi',
     headCommit,
@@ -104,15 +118,15 @@ export function captureRuntimeBuildSource(repoRoot) {
   });
 }
 
-export function assertRuntimeBuildSourceUnchanged(expected, repoRoot) {
-  const actual = captureRuntimeBuildSource(repoRoot);
+export function assertRuntimeBuildSourceUnchanged(expected, repoRoot, { pathspecs = [] } = {}) {
+  const actual = captureRuntimeBuildSource(repoRoot, { pathspecs });
   if (canonicalJson(actual) !== canonicalJson(expected)) {
     throw new Error(`repository source changed during Runtime candidate build: expected ${expected.dirtyDescriptorSha256}, observed ${actual.dirtyDescriptorSha256}`);
   }
   return actual;
 }
 
-export function createRuntimeBuildRecord({ source, runtimeBinarySha256, signerCertificateSha256, nonRelease = false, generatedAt = new Date().toISOString() }) {
+export function createRuntimeBuildRecord({ source, runtimeBinarySha256, signerCertificateSha256, buildProfile = 'production_build', generatedAt = new Date().toISOString() }) {
   if (!GIT_HEAD_PATTERN.test(source?.headCommit || '')
       || !SHA256_PATTERN.test(source?.dirtyDescriptorSha256 || '')
       || !SHA256_PATTERN.test(source?.sourceTreeSha256 || '')
@@ -120,7 +134,16 @@ export function createRuntimeBuildRecord({ source, runtimeBinarySha256, signerCe
       || !SHA256_PATTERN.test(signerCertificateSha256 || '')) {
     throw new Error('Runtime build record inputs are invalid');
   }
-  const checkpoint = nonRelease ? 'dev_kernel_checkpoint' : 'production_build';
+  if (!['dev_kernel_checkpoint', 'first_party_product_acceptance', 'production_build'].includes(buildProfile)) {
+    throw new Error(`Runtime build profile is invalid: ${buildProfile}`);
+  }
+  const checkpoint = buildProfile;
+  const isNonRelease = checkpoint !== 'production_build';
+  const candidatePrefix = checkpoint === 'dev_kernel_checkpoint'
+    ? 'dev-kernel-runtime'
+    : checkpoint === 'first_party_product_acceptance'
+      ? 'product-acceptance-runtime'
+      : 'runtime';
   const identity = {
     checkpoint,
     sourceDirtyDescriptorSha256: source.dirtyDescriptorSha256,
@@ -132,9 +155,9 @@ export function createRuntimeBuildRecord({ source, runtimeBinarySha256, signerCe
     schemaVersion: 1,
     artifactKind: 'nimi.windows-runtime-service-binary',
     checkpoint,
-    nonRelease,
+    nonRelease: isNonRelease,
     generatedAt,
-    candidateId: `${nonRelease ? 'dev-kernel-runtime' : 'runtime'}-${sha256(canonicalJson(identity)).slice(0, 32)}`,
+    candidateId: `${candidatePrefix}-${sha256(canonicalJson(identity)).slice(0, 32)}`,
     source,
     runtime: {
       binarySha256: runtimeBinarySha256,
@@ -143,7 +166,7 @@ export function createRuntimeBuildRecord({ source, runtimeBinarySha256, signerCe
   };
 }
 
-export function validateRuntimeBuildRecord(record, { source, runtimeBinarySha256, signerCertificateSha256, requireDevKernel = false } = {}) {
+export function validateRuntimeBuildRecord(record, { source, runtimeBinarySha256, signerCertificateSha256, requireDevKernel = false, requireProductAcceptance = false } = {}) {
   const exact = (value, keys, location) => {
     const actual = value && typeof value === 'object' && !Array.isArray(value) ? Object.keys(value).sort() : [];
     const expected = [...keys].sort();
@@ -156,9 +179,9 @@ export function validateRuntimeBuildRecord(record, { source, runtimeBinarySha256
   exact(record.runtime, ['binarySha256', 'signerCertificateSha256'], 'Runtime build artifact');
   if (record.schemaVersion !== 1
       || record.artifactKind !== 'nimi.windows-runtime-service-binary'
-      || !['dev_kernel_checkpoint', 'production_build'].includes(record.checkpoint)
+      || !['dev_kernel_checkpoint', 'first_party_product_acceptance', 'production_build'].includes(record.checkpoint)
       || typeof record.nonRelease !== 'boolean'
-      || !/^(?:dev-kernel-runtime|runtime)-[0-9a-f]{32}$/u.test(record.candidateId || '')
+      || !/^(?:dev-kernel-runtime|product-acceptance-runtime|runtime)-[0-9a-f]{32}$/u.test(record.candidateId || '')
       || !Number.isFinite(Date.parse(record.generatedAt || ''))
       || record.source.repositoryId !== 'nimi'
       || !GIT_HEAD_PATTERN.test(record.source.headCommit || '')
@@ -171,8 +194,11 @@ export function validateRuntimeBuildRecord(record, { source, runtimeBinarySha256
       || !SHA256_PATTERN.test(record.runtime.signerCertificateSha256 || '')) {
     throw new Error('Runtime build record is invalid');
   }
-  if ((record.checkpoint === 'dev_kernel_checkpoint') !== record.nonRelease
-      || (requireDevKernel && (!record.nonRelease || record.checkpoint !== 'dev_kernel_checkpoint'))) {
+  const expectedNonRelease = record.checkpoint !== 'production_build';
+  if (expectedNonRelease !== record.nonRelease
+      || (requireDevKernel && (!record.nonRelease || record.checkpoint !== 'dev_kernel_checkpoint'))
+      || (requireProductAcceptance && (!record.nonRelease || record.checkpoint !== 'first_party_product_acceptance'))
+      || (requireDevKernel && requireProductAcceptance)) {
     throw new Error('Runtime build record checkpoint posture is invalid');
   }
   for (const [index, entry] of record.source.untrackedFiles.entries()) {
@@ -200,7 +226,11 @@ export function validateRuntimeBuildRecord(record, { source, runtimeBinarySha256
     runtimeBinarySha256: record.runtime.binarySha256,
     signerCertificateSha256: record.runtime.signerCertificateSha256,
   };
-  const candidatePrefix = record.nonRelease ? 'dev-kernel-runtime' : 'runtime';
+  const candidatePrefix = record.checkpoint === 'dev_kernel_checkpoint'
+    ? 'dev-kernel-runtime'
+    : record.checkpoint === 'first_party_product_acceptance'
+      ? 'product-acceptance-runtime'
+      : 'runtime';
   if (record.candidateId !== `${candidatePrefix}-${sha256(canonicalJson(identity)).slice(0, 32)}`) {
     throw new Error('Runtime build candidate id does not recompute');
   }

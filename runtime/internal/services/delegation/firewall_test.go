@@ -87,9 +87,9 @@ func TestFirewallClassifiesRealCredentialFormatsAsSensitive(t *testing.T) {
 	credentialOutputs := []string{
 		"AKIAIOSFODNN7EXAMPLE",                                                    // pragma: allowlist secret
 		"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",                                // pragma: allowlist secret
-		"ghp_16C7e42F292c6912E7710c838347Ae178B4a",                                 // pragma: allowlist secret
-		"sk-abcdef0123456789ABCDEF0123",                                            // pragma: allowlist secret
-		"xoxb-1234567890-abcdefABCDEF",                                             // pragma: allowlist secret
+		"ghp_16C7e42F292c6912E7710c838347Ae178B4a",                                // pragma: allowlist secret
+		"sk-abcdef0123456789ABCDEF0123",                                           // pragma: allowlist secret
+		"xoxb-1234567890-abcdefABCDEF",                                            // pragma: allowlist secret
 		"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N", // pragma: allowlist secret
 		"password: hunter2value",
 		"token=abcdef0123456789ABCD", // pragma: allowlist secret

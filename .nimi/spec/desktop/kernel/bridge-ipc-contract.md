@@ -235,7 +235,24 @@ Desktop 自更新命令集：
 
 Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不是临时妥协：
 
-**SDK typed Runtime path**（D-BOOT-004 → SDK Runtime client + native carrier）：
+**SDK typed Runtime path**（D-BOOT-004 → SDK narrow intent client + native carrier）：
+- First-party product calls use only generated purpose-specific clients derived
+  from Runtime's `desktop_machine_product_v1` and
+  `desktop_account_product_v1` rows. Desktop production code cannot obtain,
+  return, store, cast to, or pass a full SDK `Runtime` facade. The machine,
+  account-product, account/Realm-broker, and bundled-Avatar clients remain
+  distinct; no client falls back to another profile.
+- Desktop feature code expresses named product intents rather than Runtime
+  method ids. Electron/Tauri main binds the exact registered Desktop main sender
+  and main frame, then selects the generated native intent entrypoint. Renderer
+  payloads cannot carry endpoint, profile, role, principal, account, owner
+  authority, app id, session, boot epoch, token, grant, scope, authority
+  metadata, generic request bytes, or arbitrary method id.
+- Machine calls invalidate on sender/process/connection/Runtime-boot change.
+  Account calls and streams additionally invalidate and cancel on logout,
+  account switch, or account-generation change before later delivery or commit.
+  UI projects only product repair states such as retry, reconnect or relogin;
+  it never exposes permission/profile/carrier concepts for first-party use.
 - Binding-only bootstrap includes only `RegisterApp` and `OpenSession`.
   AI, connector, scenario, account, lifecycle and every other protected
   operation require their own admitted transport/origin/policy; listing a
@@ -247,7 +264,7 @@ Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不
 - `RegisterApp` / `OpenSession` in this list are binding-only bootstrap and do
   not authorize any other listed capability. Each privileged capability must
   satisfy its own admitted transport/origin/operation authority.
-- 本地资产控制面：`RuntimeLocalService` 负责 local asset inventory 的 list、import/install、health/readiness、intake、audit、transfer session 与 progress watch；`StartLocalAsset` / `StopLocalAsset` 保留为 runtime 维护能力，不是 Desktop 产品主路径
+- 本地资产控制面：`RuntimeLocalService` 负责 local asset inventory 的 list、import/install、health/readiness、intake、audit、transfer session 与 progress watch；`StartLocalAsset` / `StopLocalAsset` 是当前 first-party Runtime Config 产品编排动作，必须经 `desktop_machine_product_v1` 的 typed named-intent path 调用，并保留既有可达性、pending/reconcile、authoritative result 与 error semantics。不得以“no new toggle”为由隐藏、删除、降级或拒绝该产品动作；该约束仅禁止新增独立 manual toggle、generic `RuntimeLocalService` client、full Runtime facade 或 broad Runtime exposure
 - agent presentation projection：runtime-owned persistent `AgentPresentationProfile` 通过 `runtime.agent.*` 暴露；Desktop avatar current-surface state 不得借道升格为 IPC canonical truth
 - Phase 1 健康监控（GetRuntimeHealth、ListAIProviderHealth、SubscribeRuntimeHealthEvents、SubscribeAIProviderHealthEvents）— 见 S-TRANSPORT-007 Mode D Phase 1 投影
 - Phase 2 服务（Workflow、Knowledge、Audit、AppMessage、Script）
@@ -257,8 +274,9 @@ Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不
   but an `authorization` bearer never establishes protected origin.
 - Protected Runtime calls travel through the shared native carrier on the
   mutually verified connection. Renderer IPC exposes neither a generic
-  gRPC-over-IPC method selector nor `authorization`, Desktop session id, boot
-  epoch, process tuple, lifecycle intent proof, account material, or token.
+  gRPC-over-IPC unary/stream selector nor `authorization`, Desktop session id,
+  boot epoch, process tuple, lifecycle intent proof, account material, token,
+  profile, role, principal, owner selector, or serialized method/request pair.
 - SDK transport code cannot inject or upgrade protected authority from a
   bearer, metadata.extra, app id, caller enum, or renderer payload.
 
@@ -326,7 +344,7 @@ Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_
 - ordinary-user local speech product flow 必须表现为单一 `Local Speech` bundle projection；helper IPC 不得把 env/bootstrap、host readiness 或 capability materialization 暗示成 Desktop/Tauri-owned install truth。
 - ordinary-user local speech 的 env/bootstrap、host init、capability materialization 只能在显式 `Download` 用户确认后启动；capability 选择、route 尝试、被动刷新或 recommendation helper 不得静默触发后台下载/初始化。
 - helper IPC 若返回 speech 相关状态，只能被 renderer 投影为 runtime-owned bundle state；不得据此创建独立 Desktop persisted speech bundle owner。
-- Desktop Local Model Center 不得再暴露手动 start/stop toggle；本地模型 readiness 必须直接反映 runtime 状态。
+- Desktop Local Model Center 不得新增独立于既有产品编排的手动 start/stop toggle；既有 Runtime Config `StartLocalAsset` / `StopLocalAsset` 动作必须继续可达并固定走 generated machine-product typed intent，且本地模型 readiness 必须直接反映 runtime 状态。
 - 自动纳管只适用于 go-runtime 已有结构化 local model record 的模型，以及 verified/catalog/manual-download 已携带显式 declaration 的 intake 来源。
 - 用户直接 copy 到 `~/.nimi/models` 的裸文件必须统一进入 RuntimeLocalService `ScanUnregisteredAssets` intake：
   - 根目录或未知目录文件不得静默纳管；

@@ -47,7 +47,7 @@ export function useAuditPageData(enabled: boolean) {
       const audits: LocalAuditEvent[] = [];
       let pageToken = '';
       do {
-        const response = await bindings.sdk.runtime().local.listLocalAudits({
+        const response = await bindings.sdk.localAudit().listLocalAudits({
           eventType: eventType && eventType !== 'all' ? eventType : '',
           eventTypes: [],
           source: source && source !== 'all' ? source : '',

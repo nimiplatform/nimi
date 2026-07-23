@@ -29,8 +29,8 @@ var allowedMigrationTransitions = map[MigrationState]map[MigrationState]bool{
 		MigrationStateFailedTerminal: true,
 	},
 	MigrationStateBlockedMasterGate: {
-		MigrationStatePending:           true,
-		MigrationStateFailedTerminal:    true,
+		MigrationStatePending:        true,
+		MigrationStateFailedTerminal: true,
 	},
 }
 

@@ -6,14 +6,14 @@ import "fmt"
 // worst-state-wins aggregation. Worse states preempt better ones to
 // preserve fail-closed semantics per P-COLD-001.
 var statePriority = []State{
-	StateUnsupported,      // hard hardware/runtime gap
-	StateFailed,           // explicit failure
-	StateUnavailable,      // upstream not reachable
-	StateStaleProjection,  // bounded staleness, unconfirmed
-	StateSetupRequired,    // dependency missing
+	StateUnsupported,       // hard hardware/runtime gap
+	StateFailed,            // explicit failure
+	StateUnavailable,       // upstream not reachable
+	StateStaleProjection,   // bounded staleness, unconfirmed
+	StateSetupRequired,     // dependency missing
 	StateNeedsConfirmation, // user confirmation pending
-	StateInProgress,       // active progress
-	StateReady,            // all good
+	StateInProgress,        // active progress
+	StateReady,             // all good
 }
 
 func priorityIndex(state State) int {

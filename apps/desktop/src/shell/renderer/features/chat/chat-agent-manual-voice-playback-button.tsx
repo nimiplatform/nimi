@@ -135,7 +135,7 @@ export function AgentManualVoicePlaybackButton(props: {
         emitPlaybackState(false);
         return;
       }
-      const artifact = await sdk.runtime().artifacts.readArtifactBytes({
+      const artifact = await sdk.accountProduct().artifacts.readArtifactBytes({
         artifactId: result.audioArtifactId,
       });
       const mimeType = normalizeText(artifact.mimeType) || result.audioMimeType;

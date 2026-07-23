@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "compiler": "scripts/generate-first-party-protected-runtime-profiles.mjs",
+  "source": ".nimi/spec/runtime/kernel/tables/first-party-protected-runtime-profiles.yaml",
+  "sourceSha256": "7cc53b54b9e57e703bb6b10186f7bfc7ffa690d42f35a9e791bc92057e134a59",
+  "profiles": {
+    "desktop_machine_product_v1": {
+      "identityClass": "machine",
+      "unary": 60,
+      "serverStream": 4,
+      "total": 64,
+      "fingerprintSha256": "0301a9b796c2abc1c95d644e7929fa4c645f7579f313b81dc41cd2e78acec7f0"
+    },
+    "desktop_account_product_v1": {
+      "identityClass": "account",
+      "unary": 46,
+      "serverStream": 3,
+      "total": 49,
+      "fingerprintSha256": "43f262088302a157cb56ba276595f95eed5b7896108a33dbabafd17bd0ef273d"
+    },
+    "bundled_avatar_v1": {
+      "identityClass": "avatar",
+      "unary": 26,
+      "serverStream": 5,
+      "total": 31,
+      "fingerprintSha256": "4bc4aa263abe992c343766af7d0943d8a1ef3131fb5447893917852af57b417e"
+    }
+  },
+  "parityViews": {
+    "product_control_v1": {
+      "unary": 21,
+      "serverStream": 0,
+      "total": 21,
+      "fingerprintSha256": "7fbaf4a067eab9d111bd4fc074c855db0cc7c56de37c5c84df0f3f389c329e14"
+    },
+    "ordinary_desktop_runtime_consumer_v1": {
+      "unary": 11,
+      "serverStream": 0,
+      "total": 11,
+      "fingerprintSha256": "b86770bcf80f89693a63a1b46e726d1ff3c8e1b251ffb05a9da5ac594e0efffb"
+    },
+    "bundled_avatar_v1": {
+      "unary": 26,
+      "serverStream": 5,
+      "total": 31,
+      "fingerprintSha256": "4bc4aa263abe992c343766af7d0943d8a1ef3131fb5447893917852af57b417e",
+      "capabilityFingerprintSha256": "39a009f27f1c9f7c8c54ee96b3404c64e554ae0a1fa93ed1a2f8d2a6322cc4ab"
+    }
+  },
+  "outputSha256": {
+    "runtime/internal/protectedlocal/first_party_profiles_generated.go": "efdbe2578d8301bf846973e2f2ab94c4f9420fea9235de9086c502f1dee12b8e",
+    "runtime/internal/bundledavatar/profile_generated.go": "d69a563a13553f5616428d7cb5f117d3fd3d9051ee7b0376de713a8b88f1675a",
+    "kit/shell/protected-local/src/first_party_profiles_generated.rs": "4e88b6245b174a5b58d6eddc08c6d220a649ebcff8a05c717730b07677d93001",
+    "kit/shell/electron/src/main/first-party-protected-runtime-profiles.generated.ts": "2be8f323aa78c8776a20097e42bb9cdc533dbc6a8ca6ff2b1ae51cfd13fdd696",
+    "kit/shell/electron/src/main/bundled-avatar-profile.generated.ts": "998246bd40a143a40199ab07aa13f4f7808e3f1a8a1ed9111fd6a45e3668486d",
+    "sdks/typescript/runtime/first-party-protected-runtime-profiles.generated.ts": "5fb72111c9af37d3bff13905045c764e49bbd501fd4833f8525ae6587ec55952",
+    "sdks/typescript/runtime/bundled-avatar-profile.generated.ts": "30a1f473619cd9db5dbeb3bf47fc4f3aee0254f7cea94f38e425f072902cbcdd"
+  }
+}

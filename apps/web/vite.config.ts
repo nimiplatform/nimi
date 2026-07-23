@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { createWebPublicEnvDefines, resolveWebPublicEnv } from './public-env.js';
 
 function loadWebBuildEnvFiles(): void {
   if (typeof process.loadEnvFile !== 'function') {
@@ -92,12 +93,17 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, '');
   const realmProxyTarget = resolveRealmProxyTarget(env);
   const realtimeProxyTarget = resolveRealtimeProxyTarget(env, realmProxyTarget);
+  const publicEnv = resolveWebPublicEnv({
+    source: { ...process.env, ...env },
+    realmProxyTarget,
+    mode,
+  });
   const sdkVNextDist = path.resolve(__dirname, '../../sdks/typescript/dist');
   return {
     plugins: [react(), tailwindcss()],
-    envPrefix: ['VITE_', 'NIMI_'],
+    envPrefix: [],
     define: {
-      'import.meta.env.VITE_NIMI_SHELL_MODE': JSON.stringify('web'),
+      ...createWebPublicEnvDefines(publicEnv),
     },
     optimizeDeps: {
       include: [

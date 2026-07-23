@@ -105,8 +105,8 @@ function checkCycles(failures, journey, checkpointMap) {
 export function validateArchitecture({ points: pointCatalog, journeys, policy, scenarios }) {
   const failures = [];
   if (pointCatalog?.schema_version !== 'nimi.local-agent-product-test-points/v3') failures.push('test point catalog schema_version must be v3');
-  if (journeys?.schema_version !== 'nimi.local-agent-product-journeys/v2') failures.push('journey registry schema_version must be v2');
-  if (policy?.schema_version !== 'nimi.local-agent-product-execution-policy/v3') failures.push('execution policy schema_version must be v3');
+  if (journeys?.schema_version !== 'nimi.local-agent-product-journeys/v3') failures.push('journey registry schema_version must be v3');
+  if (policy?.schema_version !== 'nimi.local-agent-product-execution-policy/v4') failures.push('execution policy schema_version must be v4');
   if (scenarios?.schema_version !== 'nimi.local-agent-conversation-scenarios/v1') failures.push('conversation scenario registry schema_version must be v1');
 
   const points = array(pointCatalog?.points);
@@ -192,8 +192,25 @@ export function validateArchitecture({ points: pointCatalog, journeys, policy, s
     }
     checkCycles(failures, journey, checkpointMap);
   }
-  for (const requiredJourney of ['dev-kernel-core', 'full-chain-core', 'conversation-report-baseline']) if (!journeyById.has(requiredJourney)) failures.push(`journey registry must contain ${requiredJourney}`);
+  for (const requiredJourney of ['first-party-installed-first-run', 'first-party-direct-nimi', 'first-party-partner-core', 'dev-kernel-core', 'full-chain-core', 'conversation-report-baseline']) if (!journeyById.has(requiredJourney)) failures.push(`journey registry must contain ${requiredJourney}`);
   if (journeyById.has('live-behavior-product') || journeyById.has('live-evaluator-calibration')) failures.push('old live behavior/calibration Journeys are forbidden');
+  const firstPartyGateJourneys = [
+    ['first-party-installed-first-run', ['fresh_same_source_developer_signed_windows_x64_candidate', 'fixed_windows_runtime_service', 'installed_desktop_candidate', 'real_realm_account'], 'fresh_product_root_same_candidate'],
+    ['first-party-direct-nimi', ['first_party_gate_0_same_candidate_pass'], 'reuse_gate_0_product_root_and_candidate'],
+    ['first-party-partner-core', ['first_party_gate_0_same_candidate_pass', 'first_party_gate_1_pass'], 'reuse_gate_0_product_root_and_candidate'],
+  ];
+  for (const [journeyId, prerequisites, isolation] of firstPartyGateJourneys) {
+    const journey = journeyById.get(journeyId);
+    if (journey?.execution_disposition !== 'active_checkpoint'
+      || journey?.environment?.type !== 'installed_windows_first_party_product'
+      || journey?.environment?.requires_real_realm !== true
+      || journey?.environment?.requires_desktop !== true
+      || journey?.environment?.requires_zhiyu !== false
+      || !same(journey?.prerequisites, prerequisites)
+      || journey?.isolation_level !== isolation) {
+      failures.push(`${journeyId} must retain the installed Electron-first product topology and same-candidate isolation`);
+    }
+  }
 
   for (const point of points) {
     const id = point.point_id;
@@ -221,7 +238,26 @@ export function validateArchitecture({ points: pointCatalog, journeys, policy, s
 
   const coreJourney = journeyById.get('full-chain-core');
   const coreLeafIds = new Set(array(coreJourney?.checkpoints).flatMap((checkpoint) => array(checkpoint.covered_leaf_ids)));
-  if (coreLeafIds.size !== 44) failures.push(`full-chain-core must cover 44 unique L2 acceptance points, got ${coreLeafIds.size}`);
+  if (coreLeafIds.size !== 36) failures.push(`full-chain-core must retain exactly the 36 historical L2 acceptance points, got ${coreLeafIds.size}`);
+  const p4PartnerJourney = journeyById.get('first-party-partner-core');
+  const p4PointIds = new Set(array(p4PartnerJourney?.checkpoints).flatMap((checkpoint) => array(checkpoint.covered_leaf_ids)));
+  const expectedP4PointIds = ['R-01', 'M-01', 'K-03-01', 'L-01', 'L-03-02', 'C-05-01', 'E-03-01', 'O-03-01'];
+  if (!sameSet([...p4PointIds], expectedP4PointIds)) failures.push(`first-party-partner-core must own the exact eight current P4 points, got ${[...p4PointIds].join(',')}`);
+  if ([...p4PointIds].some((pointId) => coreLeafIds.has(pointId))) failures.push('P4 current points must not retain historical full-chain-core coverage');
+  for (const checkpoint of array(p4PartnerJourney?.checkpoints)) {
+    const covered = array(checkpoint?.covered_leaf_ids);
+    if (covered.length > 0 && !text(checkpoint?.checkpoint_type).startsWith('ordinary_ui')) {
+      failures.push(`first-party-partner-core product checkpoint ${checkpoint?.checkpoint_id} must be ordinary UI evidence`);
+    }
+    if (text(checkpoint?.checkpoint_type).startsWith('auxiliary_') && covered.length > 0) {
+      failures.push(`first-party-partner-core auxiliary checkpoint ${checkpoint?.checkpoint_id} cannot satisfy L2 product points`);
+    }
+  }
+  const directNimiJourney = journeyById.get('first-party-direct-nimi');
+  const directNimiCheckpointTypes = array(directNimiJourney?.checkpoints).map((checkpoint) => checkpoint.checkpoint_type);
+  const requiredDirectNimiTypes = ['F-01-admitted-route', 'F-01-stream-delta', 'F-01-terminal', 'F-01-usage-reason', 'F-01-cancel', 'F-01-timeout', 'F-01-model-unavailable', 'F-01-no-cloud-fallback'];
+  if (directNimiJourney?.evidence_domain !== 'exact_typed_gate_checkpoints' || !sameSet(directNimiCheckpointTypes, requiredDirectNimiTypes)) failures.push('first-party-direct-nimi must own the exact non-zero typed F-01 checkpoint domain');
+  if (array(directNimiJourney?.checkpoints).some((checkpoint) => array(checkpoint.covered_leaf_ids).length !== 0)) failures.push('first-party-direct-nimi must not claim Character/LocalAgent catalog points');
   const extendedLeafIds = new Set(journeyRows.filter((journey) => journey.applicable_layer === 'L3').flatMap((journey) => journey.checkpoints.flatMap((checkpoint) => array(checkpoint.covered_leaf_ids))));
   if (extendedLeafIds.size !== 30) failures.push(`extended journeys must cover 30 unique L3 acceptance points, got ${extendedLeafIds.size}`);
   const reportJourney = journeyById.get('conversation-report-baseline');
@@ -288,6 +324,7 @@ export function validateArchitecture({ points: pointCatalog, journeys, policy, s
   ]) if (!forbiddenPaths.includes(forbiddenPath)) failures.push(`execution policy must forbid old runner/path ${forbiddenPath}`);
   if (policy?.i8_execution_in_i7 !== 'forbidden') failures.push('I8 execution in I7 must be forbidden');
   const expectedGateCommands = {
+    first_party_p4: 'pnpm test:e2e:first-party-product:p4',
     architecture: 'pnpm check:local-agent-product-architecture',
     contract: 'pnpm test:local-agent-product-contract',
     core: 'pnpm test:e2e:local-agent-product:core',
@@ -329,17 +366,20 @@ export function validateArchitecture({ points: pointCatalog, journeys, policy, s
     catalogued_point_count: evidence.cataloguedPointCount,
     current_executable_point_binding_count: evidence.currentExecutablePointBindingCount,
     historical_mapping_only_point_binding_count: evidence.historicalMappingOnlyPointBindingCount,
+    current_gate_2_product_point_binding_count: 8,
+    current_gate_1_exact_typed_checkpoint_count: 8,
     active_fixed_service_checkpoint_count: evidence.activeFixedServiceCheckpointCount,
     active_fixed_service_catalogued_point_binding_count: evidence.activeFixedServiceCataloguedPointBindingCount,
     historical_mappings_count_as_current_evidence: false,
     catalog_membership_counts_as_current_evidence: false,
     current_point_coverage_status: 'incomplete',
+    current_p4_declared_scope_coverage_status: 'complete',
   };
   if (!same(policy?.current_evidence_posture, expectedEvidencePosture)) {
     failures.push(`current evidence posture must distinguish executable bindings from historical mappings: expected ${JSON.stringify(expectedEvidencePosture)}`);
   }
-  if (evidence.currentExecutablePointBindingCount !== 83
-    || evidence.historicalMappingOnlyPointBindingCount !== 86
+  if (evidence.currentExecutablePointBindingCount !== 91
+    || evidence.historicalMappingOnlyPointBindingCount !== 78
     || evidence.activeFixedServiceCheckpointCount !== 22
     || evidence.activeFixedServiceCataloguedPointBindingCount !== 0
     || evidence.unclassifiedPointBindingCount !== 0) {
@@ -393,7 +433,7 @@ export function validateJourneyResult({ architecture, journey, result, expectedS
   const failures = [];
   checkRequiredFields(failures, 'journey result', result, [
     'schemaVersion', 'journeyTrialId', 'journeyId', 'tier', 'batch', 'repeatIndex', 'sourceState',
-    'environmentIdentity', 'durationMs', 'checkpoints', 'leafResults', 'artifacts', 'processProblems', 'privacy', 'outcome',
+    'environmentIdentity', 'durationMs', 'checkpoints', 'leafResults', 'gateEvidenceResults', 'artifacts', 'processProblems', 'privacy', 'outcome',
   ]);
   if (result?.schemaVersion !== 'nimi.local-agent-product-journey-result/v2') failures.push('journey result schemaVersion must be v2');
   if (result?.journeyId !== journey?.journey_id || result?.tier !== journey?.applicable_layer) failures.push('journey result identity or tier mismatch');
@@ -401,6 +441,33 @@ export function validateJourneyResult({ architecture, journey, result, expectedS
   if (JSON.stringify(result?.sourceState) !== JSON.stringify(expectedSourceState)) failures.push('journey source state or source digest mismatch');
   if (!Number.isInteger(result?.durationMs) || result.durationMs < 0 || result.durationMs > Number(journey?.time_budget_ms || 0)) failures.push(`journey duration exceeds budget ${journey?.time_budget_ms}`);
   if (!object(result?.environmentIdentity) || !text(result.environmentIdentity.rootId)) failures.push('journey environment identity/root is missing');
+  if (journey?.journey_id?.startsWith('first-party-')) {
+    const candidate = result?.environmentIdentity?.candidateIdentity;
+    checkRequiredFields(failures, 'first-party candidate identity', candidate, [
+      'runtimeCandidateId', 'runtimeBuildProfile', 'configuredAccountRealmBaseUrl', 'desktopSha256',
+      'signerCertificateSha256', 'serviceIdentity', 'os', 'arch', 'executionEvidenceRef',
+      'evidencePosture', 'installedDesktopPath', 'runtimeInstallerPath',
+      'electronUserDataRoot', 'productRoot',
+    ]);
+    for (const field of ['desktopSha256', 'signerCertificateSha256']) {
+      if (!/^[a-f0-9]{64}$/u.test(text(candidate?.[field]))) failures.push(`first-party candidate ${field} must be an exact SHA-256 digest`);
+    }
+    if (candidate?.os !== 'windows' || candidate?.arch !== 'x64') failures.push('first-party candidate must be Windows x64');
+    if (candidate?.evidencePosture !== 'developer-signed_non-release_non-promotable') failures.push('first-party evidence must remain developer-signed, non-release, and non-promotable');
+    if (!/^product-acceptance-runtime-[a-f0-9]{32}$/u.test(text(candidate?.runtimeCandidateId))) {
+      failures.push('first-party Runtime candidate ID must come from the endpoint-only product acceptance build record');
+    }
+    if (candidate?.runtimeBuildProfile !== 'first_party_product_acceptance'
+      || candidate?.configuredAccountRealmBaseUrl !== 'http://localhost:3002') {
+      failures.push('first-party candidate must bind the endpoint-only non-seeded local product acceptance Runtime build');
+    }
+    if (!/^execution_evidence_[0-9a-z]+$/u.test(text(candidate?.executionEvidenceRef))) failures.push('first-party candidate executionEvidenceRef must be the unique product-control evidence ID');
+    const topology = result?.environmentIdentity?.endpointTopology;
+    if (topology?.realm?.baseUrl !== 'http://localhost:3002' || topology?.realm?.jwksHealthy !== true
+      || topology?.web?.baseUrl !== 'http://localhost:3000' || topology?.web?.htmlHealthy !== true) {
+      failures.push('first-party candidate must observe the local Realm 3002 and Nimi Web 3000 product topology');
+    }
+  }
   if (journey?.journey_id === 'dev-kernel-core') {
     const observed = result?.environmentIdentity?.processStarts;
     const limits = journey?.environment?.start_limits;
@@ -410,6 +477,26 @@ export function validateJourneyResult({ architecture, journey, result, expectedS
         || observed[role] < minimums[role]
         || observed[role] > Number(limits?.[role])) {
         failures.push(`dev-kernel-core observed ${role} process starts must be within ${minimums[role]}..${limits?.[role]}`);
+      }
+    }
+  } else if (journey?.journey_id?.startsWith('first-party-')) {
+    const observed = result?.environmentIdentity?.processStarts;
+    const limits = journey?.environment?.start_limits;
+    const events = array(result?.environmentIdentity?.processObservations);
+    const minimums = {
+      provider: 0,
+      realm: 1,
+      runtime: 1,
+      desktop: journey.journey_id === 'first-party-partner-core' ? 2 : 1,
+      zhiyu: 0,
+    };
+    for (const role of ['provider', 'realm', 'runtime', 'desktop', 'zhiyu']) {
+      const identities = new Set(events.filter((event) => event?.role === role).map((event) => text(event?.identity)).filter(Boolean));
+      if (!Number.isInteger(observed?.[role])
+        || observed[role] < minimums[role]
+        || observed[role] > Number(limits?.[role])
+        || observed[role] !== identities.size) {
+        failures.push(`${journey.journey_id} observed ${role} process identities must be actual, unique, and within ${minimums[role]}..${limits?.[role]}`);
       }
     }
   } else if (JSON.stringify(result?.environmentIdentity?.processStarts) !== JSON.stringify(journey?.environment?.start_limits)) {
@@ -453,6 +540,12 @@ export function validateJourneyResult({ architecture, journey, result, expectedS
     if (assertionIds.length !== new Set(assertionIds).size) failures.push(`${id} has duplicate assertion IDs`);
     for (const assertion of array(checkpoint.assertions)) {
       if (!text(assertion?.assertionId) || !journeyOutcomeIds.includes(assertion?.outcome)) failures.push(`${id} has invalid assertion record`);
+      if (journey?.journey_id?.startsWith('first-party-') && !text(assertion?.observationType)) {
+        failures.push(`${id}/${assertion?.assertionId || '<missing>'} lacks an explicit observation type`);
+      }
+    }
+    if (journey?.journey_id?.startsWith('first-party-') && checkpoint.outcome === 'passed' && assertionIds.length === 0) {
+      failures.push(`${id} cannot pass without explicit observed assertions`);
     }
   }
   for (const checkpointId of expectedCheckpointMap.keys()) if (!checkpointMap.has(checkpointId)) failures.push(`missing required checkpoint ${checkpointId}`);
@@ -492,6 +585,12 @@ export function validateJourneyResult({ architecture, journey, result, expectedS
     if (leaf.outcome === 'passed') {
       for (const [index, assertionId] of array(leaf.assertionIds).entries()) {
         if (!leafAssertions[index] || leafAssertions[index].outcome !== 'passed') failures.push(`${id} assertion ${assertionId} lacks passing checkpoint evidence`);
+        if (journey?.journey_id === 'first-party-partner-core'
+          && leafAssertions[index]
+          && !text(leafAssertions[index].observationType).startsWith('ordinary_')
+          && leafAssertions[index].observationType !== 'safe_evidence_projection') {
+          failures.push(`${id} assertion ${assertionId} is not backed by ordinary Electron UI evidence`);
+        }
       }
     } else if (leaf.outcome === 'failed' && leafAssertions.every((assertion) => assertion?.outcome === 'passed')) {
       failures.push(`${id} failed leaf has no failed assertion evidence`);
@@ -500,6 +599,26 @@ export function validateJourneyResult({ architecture, journey, result, expectedS
     if (leaf.outcome !== 'passed' && !text(leaf.failureClass)) failures.push(`${id} non-passing leaf must have a failureClass`);
   }
   for (const point of points) if (!leafMap.has(point.point_id)) failures.push(`missing leaf result ${point.point_id}`);
+
+  const gateEvidenceMap = new Map();
+  for (const evidence of array(result?.gateEvidenceResults)) {
+    const id = text(evidence?.evidenceId);
+    if (!id || gateEvidenceMap.has(id)) failures.push(`invalid or duplicate gate evidence ${id || '<empty>'}`);
+    else gateEvidenceMap.set(id, evidence);
+    checkRequiredFields(failures, `gate evidence ${id}`, evidence, ['checkpointId', 'assertionIds', 'evidenceRefs', 'outcome', 'failureClass']);
+    const checkpoint = checkpointMap.get(evidence?.checkpointId);
+    if (!checkpoint) failures.push(`${id} references missing checkpoint ${evidence?.checkpointId}`);
+    if (evidence?.outcome === 'passed' && checkpoint?.outcome !== 'passed') failures.push(`${id} cannot pass without a passing checkpoint`);
+    if (array(evidence?.assertionIds).length === 0 || array(evidence?.evidenceRefs).length === 0) failures.push(`${id} requires typed assertions and evidence refs`);
+    if (checkpoint && !sameSet(evidence?.assertionIds, array(checkpoint.assertions).map((assertion) => assertion?.assertionId))) {
+      failures.push(`${id} assertion mapping must come from the explicit checkpoint observations`);
+    }
+    if (evidence?.outcome === 'passed' && evidence?.failureClass != null) failures.push(`${id} passing gate evidence cannot have failureClass`);
+  }
+  if (journey?.evidence_domain === 'exact_typed_gate_checkpoints') {
+    const expectedIds = array(journey?.checkpoints).map((checkpoint) => `${checkpoint.checkpoint_type}:${checkpoint.checkpoint_id}`);
+    if (!sameSet([...gateEvidenceMap.keys()], expectedIds)) failures.push(`${journey.journey_id} exact typed gate evidence is incomplete`);
+  } else if (gateEvidenceMap.size !== 0) failures.push(`${journey?.journey_id} must not mix exact gate evidence with point-catalog evidence`);
 
   const artifactMap = new Map();
   for (const artifact of array(result?.artifacts)) {
@@ -518,6 +637,7 @@ export function validateJourneyResult({ architecture, journey, result, expectedS
     if (artifact.privacyClass !== 'safe_evidence') failures.push(`artifact ${id} is not safe evidence`);
   }
   for (const leaf of leafMap.values()) for (const evidenceRef of array(leaf.evidenceRefs)) if (!artifactMap.has(evidenceRef)) failures.push(`${leaf.leafId} references missing evidence ${evidenceRef}`);
+  for (const evidence of gateEvidenceMap.values()) for (const evidenceRef of array(evidence.evidenceRefs)) if (!artifactMap.has(evidenceRef)) failures.push(`${evidence.evidenceId} references missing evidence ${evidenceRef}`);
   for (const checkpoint of checkpointMap.values()) for (const artifactRef of array(checkpoint.artifactRefs)) if (!artifactMap.has(artifactRef)) failures.push(`${checkpoint.checkpointId} references missing artifact ${artifactRef}`);
 
   if (journey?.journey_id === 'full-chain-core' || journey?.journey_id === 'dev-kernel-core') {
@@ -537,7 +657,7 @@ export function validateJourneyResult({ architecture, journey, result, expectedS
   }
   if (array(result?.processProblems).length !== 0) failures.push('journey process problems must be zero');
   if (result?.privacy?.ok !== true || array(result?.privacy?.findings).length !== 0) failures.push('journey privacy findings must be zero');
-  if (result?.outcome === 'passed' && ([...checkpointMap.values()].some((checkpoint) => checkpoint.outcome !== 'passed') || [...leafMap.values()].some((leaf) => leaf.outcome !== 'passed'))) failures.push('journey cannot PASS with non-passing checkpoint or leaf');
+  if (result?.outcome === 'passed' && ([...checkpointMap.values()].some((checkpoint) => checkpoint.outcome !== 'passed') || [...leafMap.values()].some((leaf) => leaf.outcome !== 'passed') || [...gateEvidenceMap.values()].some((evidence) => evidence.outcome !== 'passed'))) failures.push('journey cannot PASS with non-passing checkpoint, leaf, or exact gate evidence');
   if (result?.outcome !== 'passed' && result?.outcome !== 'failed' && result?.outcome !== 'blocked_by_failed_prerequisite') failures.push('journey outcome is invalid');
 
   return failures;

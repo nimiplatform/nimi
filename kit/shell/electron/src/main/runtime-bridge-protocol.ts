@@ -26,6 +26,7 @@ export function parseElectronRuntimeUnaryRequest(payload: Readonly<Record<string
   return {
     methodId: normalizeGrpcMethodId(payload.methodId),
     requestBytesBase64: normalizeBase64Text(payload.requestBytesBase64, 'requestBytesBase64'),
+    productIntent: normalizeText(payload.productIntent) || undefined,
     metadata: parseRuntimeBridgeMetadata(payload.metadata),
     timeoutMs: parseOptionalPositiveNumber(payload.timeoutMs),
   };

@@ -132,17 +132,20 @@ pub mod runtime {
 
     #[tauri::command]
     pub async fn runtime_bridge_unary(
+        window: tauri::WebviewWindow,
         payload: RuntimeBridgeUnaryPayload,
     ) -> Result<RuntimeBridgeUnaryResult, String> {
-        crate::runtime_bridge::runtime_bridge_unary(payload).await
+        crate::runtime_bridge::runtime_bridge_unary_from_window(payload, window.label()).await
     }
 
     #[tauri::command]
     pub async fn runtime_bridge_stream_open(
         app: tauri::AppHandle,
+        window: tauri::WebviewWindow,
         payload: RuntimeBridgeStreamOpenPayload,
     ) -> Result<RuntimeBridgeStreamOpenResult, String> {
-        crate::runtime_bridge::runtime_bridge_stream_open(app, payload).await
+        crate::runtime_bridge::runtime_bridge_stream_open_from_window(app, payload, window.label())
+            .await
     }
 
     #[tauri::command]
@@ -150,6 +153,10 @@ pub mod runtime {
         payload: RuntimeBridgeStreamClosePayload,
     ) -> Result<(), String> {
         crate::runtime_bridge::runtime_bridge_stream_close(payload)
+    }
+
+    pub async fn invalidate_desktop_host() {
+        crate::runtime_bridge::invalidate_desktop_host().await;
     }
 
     #[tauri::command]

@@ -15,6 +15,76 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+func TestM1DelegatedControlOwnershipAndAuditMatrix(t *testing.T) {
+	svc := testDelegatedControlSurfaceService()
+	svc.agents["agent-1"].Agent.OwnerUserId = "user-1"
+	svc.agents["agent-1"].Agent.RuntimeSourceRef = "agent-1"
+	svc.agents["agent-1"].Agent.LocalAgentRef = "local-agent:agent-1"
+	svc.agents["agent-other"] = &agentEntry{Agent: &runtimev1.AgentRecord{
+		AgentId: "agent-other", OwnerUserId: "user-2", RuntimeSourceRef: "agent-other", LocalAgentRef: "local-agent:agent-other",
+	}, State: &runtimev1.AgentStateProjection{ActiveUserId: "user-2"}}
+	callContext := desktopAccountProductTestPrincipalContext("user-1", make(chan struct{}))
+	selector := func() *runtimev1.AgentRequestContext { return &runtimev1.AgentRequestContext{AppId: "nimi.desktop"} }
+	assertWrongOwner := func(t *testing.T, err error) {
+		t.Helper()
+		if status.Code(err) != codes.NotFound {
+			t.Fatalf("wrong-owner delegated call did not fail closed: %v", err)
+		}
+	}
+	profile := func() *runtimev1.DelegatedProviderProfile {
+		return &runtimev1.DelegatedProviderProfile{
+			ProviderProfileId: "m1-provider", DisplayName: "M1 Provider",
+			ProviderKind:  runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
+			TransportKind: runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
+			TrustTier:     runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED,
+			AllowedTools:  []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "read", EffectClass: runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY}},
+			TransportRef:  "runtime-transport://m1",
+		}
+	}
+
+	t.Run("GetDelegatedControlSurfaceSnapshot", func(t *testing.T) {
+		_, err := svc.GetDelegatedControlSurfaceSnapshot(callContext, &runtimev1.GetDelegatedControlSurfaceSnapshotRequest{Context: selector(), AgentId: "agent-other"})
+		assertWrongOwner(t, err)
+		response, err := svc.GetDelegatedControlSurfaceSnapshot(callContext, &runtimev1.GetDelegatedControlSurfaceSnapshotRequest{Context: selector(), AgentId: "agent-1"})
+		if err != nil || response.GetSnapshot().GetAgentId() != "agent-1" {
+			t.Fatalf("current owner snapshot=%+v err=%v", response, err)
+		}
+	})
+	t.Run("UpsertDelegatedProviderProfile", func(t *testing.T) {
+		_, err := svc.UpsertDelegatedProviderProfile(callContext, &runtimev1.UpsertDelegatedProviderProfileRequest{Context: selector(), AgentId: "agent-other", ProviderProfile: profile()})
+		assertWrongOwner(t, err)
+		response, err := svc.UpsertDelegatedProviderProfile(callContext, &runtimev1.UpsertDelegatedProviderProfileRequest{Context: selector(), AgentId: "agent-1", ProviderProfile: profile()})
+		if err != nil || response.GetProviderProfile().GetProviderProfileId() != "m1-provider" {
+			t.Fatalf("current owner upsert=%+v err=%v", response, err)
+		}
+	})
+	t.Run("SetDelegatedProviderState", func(t *testing.T) {
+		_, err := svc.SetDelegatedProviderState(callContext, &runtimev1.SetDelegatedProviderStateRequest{Context: selector(), AgentId: "agent-other", ProviderProfileId: "m1-provider", State: runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_DISABLED, LifecycleReasonCode: "m1"})
+		assertWrongOwner(t, err)
+		response, err := svc.SetDelegatedProviderState(callContext, &runtimev1.SetDelegatedProviderStateRequest{Context: selector(), AgentId: "agent-1", ProviderProfileId: "m1-provider", State: runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_DISABLED, LifecycleReasonCode: "m1"})
+		if err != nil || response.GetProviderProfile().GetState() != runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_DISABLED {
+			t.Fatalf("current owner state=%+v err=%v", response, err)
+		}
+	})
+	t.Run("GetDelegatedReplayTrace", func(t *testing.T) {
+		_, err := svc.GetDelegatedReplayTrace(callContext, &runtimev1.GetDelegatedReplayTraceRequest{Context: selector(), AgentId: "agent-other", DecisionId: "deleg-decision-1"})
+		assertWrongOwner(t, err)
+		recordDelegatedApprovalDecisionForTest(t, svc)
+		response, err := svc.GetDelegatedReplayTrace(callContext, &runtimev1.GetDelegatedReplayTraceRequest{Context: selector(), AgentId: "agent-1", DecisionId: "deleg-decision-1"})
+		if err != nil || response.GetTrace().GetAgentId() != "agent-1" {
+			t.Fatalf("current owner replay=%+v err=%v", response, err)
+		}
+	})
+	t.Run("SubmitDelegatedApprovalDecision", func(t *testing.T) {
+		_, err := svc.SubmitDelegatedApprovalDecision(callContext, &runtimev1.SubmitDelegatedApprovalDecisionRequest{Context: selector(), AgentId: "agent-other", ApprovalRequestId: "missing", Decision: runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_REJECTED})
+		assertWrongOwner(t, err)
+		_, err = svc.SubmitDelegatedApprovalDecision(callContext, &runtimev1.SubmitDelegatedApprovalDecisionRequest{Context: selector(), AgentId: "agent-1", ApprovalRequestId: "missing", Decision: runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_REJECTED})
+		if status.Code(err) != codes.NotFound {
+			t.Fatalf("current owner did not reach approval domain: %v", err)
+		}
+	})
+}
+
 func TestDelegatedProviderProfilesAreRuntimeOwned(t *testing.T) {
 	svc := testDelegatedControlSurfaceService()
 	ctx := testDelegatedControlContext()

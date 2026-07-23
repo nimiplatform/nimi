@@ -44,6 +44,10 @@ const DEFAULT_MODEL_PICKER_MODAL_COPY: Required<ModelPickerModalCopy> = {
   noModelsAvailable: 'No models available.',
 };
 
+const SENDABLE_LOCAL_MODEL_STATUSES = new Set(['active', 'installed']);
+export const FIRST_UNAVAILABLE_LOCAL_MODEL_TEST_ID = 'model-picker-option:local-unavailable';
+export const FIRST_READY_LOCAL_MODEL_TEST_ID = 'model-picker-option:local-ready';
+
 const LOCAL_ICON = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <rect x="2" y="3" width="20" height="14" rx="2" />
@@ -134,6 +138,15 @@ export function ModelPickerModal({
     });
   }, [search, pickerState.models, pickerState.adapter]);
 
+  const firstReadyLocalModelId = useMemo(
+    () => localModels.find((model) => SENDABLE_LOCAL_MODEL_STATUSES.has(model.status))?.localModelId || null,
+    [localModels],
+  );
+  const firstUnavailableLocalModelId = useMemo(
+    () => localModels.find((model) => !SENDABLE_LOCAL_MODEL_STATUSES.has(model.status))?.localModelId || null,
+    [localModels],
+  );
+
   const handleSelect = useCallback((modelId: string) => {
     // Resolve display label from picker adapter
     const displayModel = pickerState.models.find((m) => pickerState.adapter.getId(m) === modelId);
@@ -201,6 +214,7 @@ export function ModelPickerModal({
 
   const modal = (
     <div
+      data-testid="model-picker-modal"
       className="fixed inset-0 z-[var(--nimi-z-dialog)] grid place-items-center bg-[var(--nimi-overlay-backdrop)] px-4 py-6"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
@@ -292,10 +306,22 @@ export function ModelPickerModal({
                 const title = pickerState.adapter.getTitle(model);
                 const description = pickerState.adapter.getDescription?.(model);
                 const selected = pickerState.selectedId === id;
+                const localModel = selection.source === 'local'
+                  ? localModels.find((candidate) => candidate.localModelId === id) || null
+                  : null;
+                const dataTestId = id === firstUnavailableLocalModelId
+                  ? FIRST_UNAVAILABLE_LOCAL_MODEL_TEST_ID
+                  : id === firstReadyLocalModelId
+                    ? FIRST_READY_LOCAL_MODEL_TEST_ID
+                    : undefined;
                 return (
                   <button
                     key={id}
                     type="button"
+                    data-testid={dataTestId}
+                    data-nimi-route-source={selection.source}
+                    data-nimi-route-readiness={localModel?.status}
+                    data-nimi-local-model-id={localModel?.localModelId}
                     onClick={() => handleSelect(id)}
                     className={cn(
                       'flex w-full items-center gap-3 px-5 py-2.5 text-left transition-colors',

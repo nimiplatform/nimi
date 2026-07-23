@@ -11,13 +11,17 @@ use nimi_shell_protected_local::{
 use nimi_shell_protected_local::{
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
     DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse,
+    DesktopAccountProductStreamMethod, DesktopAccountProductStreamRequest,
+    DesktopAccountProductUnaryMethod, DesktopAccountProductUnaryRequest,
     DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse,
     DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
-    DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, DesktopProductControlMethod,
-    DesktopProductControlRequest, DesktopRuntimeConsumerMethod, DesktopRuntimeConsumerRequest,
-    DeveloperModeStatus, FixedRuntimeServiceControl, LocalDevelopmentAuthoritySummary,
-    LocalDevelopmentAuthorization, LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest,
-    LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
+    DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest,
+    DesktopFirstPartyProductStreamReceiver, DesktopMachineProductStreamMethod,
+    DesktopMachineProductStreamRequest, DesktopMachineProductUnaryMethod,
+    DesktopMachineProductUnaryRequest, DeveloperModeStatus, FixedRuntimeServiceControl,
+    LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
+    LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
+    LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
     LocalDevelopmentLaunchRequest, NimiDesktopControl, NimiHostError, NimiHostErrorReasonCode,
     NimiProtectedLocalHostCarrier, ProtectedCarrierError, ProtectedCarrierReasonCode,
     RuntimeServiceAction, RuntimeServiceActionOutcome, RuntimeServiceState, RuntimeServiceStatus,
@@ -300,12 +304,30 @@ pub(super) async fn invoke_protected_desktop_unary(
     method_id: &str,
     request_bytes: Vec<u8>,
     timeout: Option<Duration>,
+    product_intent: Option<&str>,
 ) -> Result<Vec<u8>, String> {
-    if let Some(method) = DesktopProductControlMethod::from_method_id(method_id) {
-        return invoke_product_control(method, request_bytes, timeout).await;
-    }
-    if let Some(method) = DesktopRuntimeConsumerMethod::from_method_id(method_id) {
-        return invoke_runtime_consumer(method, request_bytes, timeout).await;
+    let machine = DesktopMachineProductUnaryMethod::from_method_id(method_id);
+    let account = DesktopAccountProductUnaryMethod::from_method_id(method_id);
+    match (machine, account, product_intent) {
+        (Some(method), Some(_), Some("machine.route-connectors.list")) => {
+            return invoke_machine_product_unary(method, request_bytes, timeout).await;
+        }
+        (Some(_), Some(method), Some("account.connector-admin.list")) => {
+            return invoke_account_product_unary(method, request_bytes, timeout).await;
+        }
+        (Some(_), Some(_), _) | (_, _, Some(_)) => {
+            return Err(bridge_error(
+                "RUNTIME_BRIDGE_PRODUCT_INTENT_REQUIRED",
+                method_id,
+            ));
+        }
+        (Some(method), None, None) => {
+            return invoke_machine_product_unary(method, request_bytes, timeout).await;
+        }
+        (None, Some(method), None) => {
+            return invoke_account_product_unary(method, request_bytes, timeout).await;
+        }
+        (None, None, None) => {}
     }
     Err(bridge_error(
         "RUNTIME_BRIDGE_PROTECTED_METHOD_FORBIDDEN",
@@ -313,25 +335,25 @@ pub(super) async fn invoke_protected_desktop_unary(
     ))
 }
 
-async fn invoke_product_control(
-    method: DesktopProductControlMethod,
+async fn invoke_machine_product_unary(
+    method: DesktopMachineProductUnaryMethod,
     request_bytes: Vec<u8>,
     timeout: Option<Duration>,
 ) -> Result<Vec<u8>, String> {
     let control = control_for_call().await.map_err(host_call_error)?;
-    let request = DesktopProductControlRequest {
+    let request = DesktopMachineProductUnaryRequest {
         method,
         request_bytes: request_bytes.clone(),
         timeout,
     };
-    match control.invoke_product_control(request).await {
+    match control.invoke_machine_product_unary(request).await {
         Ok(response) => Ok(response.response_bytes),
         Err(error) if should_reconnect_reason(error.reason_code()) => {
             clear_desktop_control_if_same(control).await;
             control_for_call()
                 .await
                 .map_err(host_call_error)?
-                .invoke_product_control(DesktopProductControlRequest {
+                .invoke_machine_product_unary(DesktopMachineProductUnaryRequest {
                     method,
                     request_bytes,
                     timeout,
@@ -344,25 +366,25 @@ async fn invoke_product_control(
     }
 }
 
-async fn invoke_runtime_consumer(
-    method: DesktopRuntimeConsumerMethod,
+async fn invoke_account_product_unary(
+    method: DesktopAccountProductUnaryMethod,
     request_bytes: Vec<u8>,
     timeout: Option<Duration>,
 ) -> Result<Vec<u8>, String> {
     let control = control_for_call().await.map_err(host_call_error)?;
-    let request = DesktopRuntimeConsumerRequest {
+    let request = DesktopAccountProductUnaryRequest {
         method,
         request_bytes: request_bytes.clone(),
         timeout,
     };
-    match control.invoke_runtime_consumer(request).await {
+    match control.invoke_account_product_unary(request).await {
         Ok(response) => Ok(response.response_bytes),
         Err(error) if should_reconnect_reason(error.reason_code()) => {
             clear_desktop_control_if_same(control).await;
             control_for_call()
                 .await
                 .map_err(host_call_error)?
-                .invoke_runtime_consumer(DesktopRuntimeConsumerRequest {
+                .invoke_account_product_unary(DesktopAccountProductUnaryRequest {
                     method,
                     request_bytes,
                     timeout,
@@ -373,6 +395,38 @@ async fn invoke_runtime_consumer(
         }
         Err(error) => Err(protected_unary_error(error.reason_code())),
     }
+}
+
+pub(super) async fn open_protected_desktop_stream(
+    method_id: &str,
+    request_bytes: Vec<u8>,
+    timeout: Option<Duration>,
+) -> Result<DesktopFirstPartyProductStreamReceiver, String> {
+    let control = control_for_call().await.map_err(host_call_error)?;
+    if let Some(method) = DesktopMachineProductStreamMethod::from_method_id(method_id) {
+        return control
+            .open_machine_product_stream(DesktopMachineProductStreamRequest {
+                method,
+                request_bytes,
+                timeout,
+            })
+            .await
+            .map_err(|error| protected_unary_error(error.reason_code()));
+    }
+    if let Some(method) = DesktopAccountProductStreamMethod::from_method_id(method_id) {
+        return control
+            .open_account_product_stream(DesktopAccountProductStreamRequest {
+                method,
+                request_bytes,
+                timeout,
+            })
+            .await
+            .map_err(|error| protected_unary_error(error.reason_code()));
+    }
+    Err(bridge_error(
+        "RUNTIME_BRIDGE_PROTECTED_METHOD_FORBIDDEN",
+        method_id,
+    ))
 }
 
 fn host_call_error(error: NimiHostError) -> String {
@@ -664,6 +718,10 @@ async fn clear_desktop_control_if_same(control: Arc<dyn NimiDesktopControl>) {
         invalidate_platform_desktop_runtime_channel().await;
     }
     drop(control);
+}
+
+pub(super) async fn invalidate_desktop_host() {
+    clear_desktop_control().await;
 }
 
 async fn clear_desktop_control() {

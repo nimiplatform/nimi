@@ -52,26 +52,26 @@ func (s ActivationState) IsTerminalNonReady() bool {
 type ReasonCode string
 
 const (
-	ReasonEnginePackageMissing         ReasonCode = "engine_package_missing"
-	ReasonModelAssetMissing            ReasonCode = "model_asset_missing"
-	ReasonCompanionAssetMissing        ReasonCode = "companion_asset_missing"
-	ReasonSelectedSourceRecordMissing  ReasonCode = "selected_source_record_missing"
-	ReasonAcceleratorRuntimeMissing    ReasonCode = "accelerator_runtime_missing"
+	ReasonEnginePackageMissing          ReasonCode = "engine_package_missing"
+	ReasonModelAssetMissing             ReasonCode = "model_asset_missing"
+	ReasonCompanionAssetMissing         ReasonCode = "companion_asset_missing"
+	ReasonSelectedSourceRecordMissing   ReasonCode = "selected_source_record_missing"
+	ReasonAcceleratorRuntimeMissing     ReasonCode = "accelerator_runtime_missing"
 	ReasonAcceleratorRuntimeUnconfirmed ReasonCode = "accelerator_runtime_unconfirmed"
-	ReasonUVMissing                    ReasonCode = "uv_missing"
-	ReasonPythonRuntimeMissing         ReasonCode = "python_runtime_missing"
-	ReasonPythonVenvMissing            ReasonCode = "python_venv_missing"
-	ReasonPythonPackageSetMissing      ReasonCode = "python_package_set_missing"
-	ReasonTorchWheelMissing            ReasonCode = "torch_wheel_missing"
-	ReasonVulkanRuntimeUnavailable     ReasonCode = "vulkan_runtime_unavailable"
-	ReasonMetalRuntimeUnavailable      ReasonCode = "metal_runtime_unavailable"
-	ReasonUnsupported                  ReasonCode = "unsupported"
-	ReasonRepairRequired               ReasonCode = "repair_required"
-	ReasonFailed                       ReasonCode = "failed"
-	ReasonCancelled                    ReasonCode = "cancelled"
-	ReasonSetupInProgress              ReasonCode = "setup_in_progress"
-	ReasonSetupRequired                ReasonCode = "setup_required"
-	ReasonReady                        ReasonCode = "ready"
+	ReasonUVMissing                     ReasonCode = "uv_missing"
+	ReasonPythonRuntimeMissing          ReasonCode = "python_runtime_missing"
+	ReasonPythonVenvMissing             ReasonCode = "python_venv_missing"
+	ReasonPythonPackageSetMissing       ReasonCode = "python_package_set_missing"
+	ReasonTorchWheelMissing             ReasonCode = "torch_wheel_missing"
+	ReasonVulkanRuntimeUnavailable      ReasonCode = "vulkan_runtime_unavailable"
+	ReasonMetalRuntimeUnavailable       ReasonCode = "metal_runtime_unavailable"
+	ReasonUnsupported                   ReasonCode = "unsupported"
+	ReasonRepairRequired                ReasonCode = "repair_required"
+	ReasonFailed                        ReasonCode = "failed"
+	ReasonCancelled                     ReasonCode = "cancelled"
+	ReasonSetupInProgress               ReasonCode = "setup_in_progress"
+	ReasonSetupRequired                 ReasonCode = "setup_required"
+	ReasonReady                         ReasonCode = "ready"
 )
 
 // CanonicalReasonCodes returns the full canonical reason code enum in
@@ -128,9 +128,9 @@ func (r Readiness) IsReady() bool {
 
 // Sentinel errors returned by readiness constructors.
 var (
-	ErrUnknownReasonCode               = errors.New("materialization-readiness unknown reason code")
-	ErrUnknownActivationState          = errors.New("materialization-readiness unknown activation state")
-	ErrActiveReadyRequiresReasonReady  = errors.New("materialization-readiness state=ready requires reason=ready")
-	ErrNonReadyMustNotProjectActive    = errors.New("materialization-readiness non-ready state must not project active or degraded-ready")
-	ErrNonReadyRequiresExplicitReason  = errors.New("materialization-readiness non-ready state requires an explicit reason code")
+	ErrUnknownReasonCode              = errors.New("materialization-readiness unknown reason code")
+	ErrUnknownActivationState         = errors.New("materialization-readiness unknown activation state")
+	ErrActiveReadyRequiresReasonReady = errors.New("materialization-readiness state=ready requires reason=ready")
+	ErrNonReadyMustNotProjectActive   = errors.New("materialization-readiness non-ready state must not project active or degraded-ready")
+	ErrNonReadyRequiresExplicitReason = errors.New("materialization-readiness non-ready state requires an explicit reason code")
 )

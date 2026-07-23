@@ -31,7 +31,7 @@ export function ExternalAgentAccessPanel() {
   const bindings = useDesktopRendererBindings();
   const externalAgentAccess = useMemo(
     () => createNimiRuntimeExternalAgentAccessSurface({
-      getExternalAgents: () => bindings.sdk.runtime().externalAgents,
+      getExternalAgents: bindings.sdk.externalAgent,
     }),
     [bindings.sdk],
   );

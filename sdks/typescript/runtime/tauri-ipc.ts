@@ -112,6 +112,8 @@ export interface RuntimeTauriIpcTransportOptions {
   readonly type?: 'tauri-ipc';
   readonly commandNamespace?: string;
   readonly eventNamespace?: string;
+  /** SDK-owned named intent used only for the dual-profile ListConnectors RPC. */
+  readonly firstPartyListConnectorsIntent?: 'machine.route-connectors.list' | 'account.connector-admin.list';
 }
 
 export class RuntimeTauriIpcTransportError extends Error {
@@ -388,6 +390,9 @@ export function createRuntimeTauriIpcTransport(
       payload: {
         methodId,
         requestBytesBase64: toBase64(body),
+        productIntent: methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
+          ? options.firstPartyListConnectorsIntent
+          : undefined,
         metadata,
         timeoutMs: request.timeoutMs,
       },

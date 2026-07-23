@@ -1,7 +1,5 @@
-import type {
-  NimiRuntimeRouteHostAccessSurface,
-} from '@nimiplatform/sdk/runtime';
-import type { Runtime } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeRouteHostAccessSurface } from '@nimiplatform/sdk/runtime';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import type {
   NimiAISnapshot,
   ConversationExecutionSnapshot,
@@ -29,7 +27,7 @@ export type ChatAgentTranscribeRuntimeInvokeResult = {
 
 export type ChatAgentTranscribeRuntimeInvokeDeps = {
   buildRuntimeCallOptionsImpl: NimiRuntimeRouteHostAccessSurface['buildCallOptions'];
-  getRuntimeImpl: () => Runtime;
+  getRuntimeImpl: DesktopRendererSdkPort['aiExecution'];
   getAppIdImpl: () => string;
   createRequestIdImpl?: () => string;
 };

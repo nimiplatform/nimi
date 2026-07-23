@@ -21,14 +21,15 @@ use crate::generated::OpenDesktopSessionRequest;
 use crate::windows_peer_trust::{verify_runtime_peer_code_signing, VerifiedRuntimePeer};
 use crate::{
     BundledAvatarRuntimeError, BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse,
-    BundledAvatarRuntimeStreamReceiver,
-    DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
+    BundledAvatarRuntimeStreamReceiver, DesktopAccountActionRequest,
+    DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
     DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse,
+    DesktopAccountProductStreamRequest, DesktopAccountProductUnaryRequest,
     DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse,
     DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
-    DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, DesktopProductControlError,
-    DesktopProductControlRequest, DesktopProductControlResponse, DesktopRuntimeConsumerError,
-    DesktopRuntimeConsumerRequest, DesktopRuntimeConsumerResponse, DeveloperModeStatus,
+    DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, DesktopFirstPartyProductError,
+    DesktopFirstPartyProductStreamReceiver, DesktopFirstPartyProductUnaryResponse,
+    DesktopMachineProductStreamRequest, DesktopMachineProductUnaryRequest, DeveloperModeStatus,
     LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
     LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
     LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
@@ -88,44 +89,105 @@ impl NimiDesktopControl for WindowsDesktopControl {
     fn invoke_bundled_avatar(
         &self,
         request: BundledAvatarRuntimeRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<BundledAvatarRuntimeResponse, BundledAvatarRuntimeError>> + Send + '_>> {
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<BundledAvatarRuntimeResponse, BundledAvatarRuntimeError>>
+                + Send
+                + '_,
+        >,
+    > {
         Box::pin(crate::bundled_avatar::invoke(self.channel(), request))
     }
 
     fn open_bundled_avatar_stream(
         &self,
         request: BundledAvatarRuntimeRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<BundledAvatarRuntimeStreamReceiver, BundledAvatarRuntimeError>> + Send + '_>> {
-        Box::pin(crate::bundled_avatar::open_stream(self.channel(), request))
-    }
-
-    fn invoke_product_control(
-        &self,
-        request: DesktopProductControlRequest,
     ) -> Pin<
         Box<
-            dyn Future<Output = Result<DesktopProductControlResponse, DesktopProductControlError>>
-                + Send
+            dyn Future<
+                    Output = Result<BundledAvatarRuntimeStreamReceiver, BundledAvatarRuntimeError>,
+                > + Send
                 + '_,
         >,
     > {
-        Box::pin(crate::desktop_product_control::invoke(
+        Box::pin(crate::bundled_avatar::open_stream(self.channel(), request))
+    }
+
+    fn invoke_machine_product_unary(
+        &self,
+        request: DesktopMachineProductUnaryRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<
+                        DesktopFirstPartyProductUnaryResponse,
+                        DesktopFirstPartyProductError,
+                    >,
+                > + Send
+                + '_,
+        >,
+    > {
+        Box::pin(crate::first_party_product::invoke_machine_unary(
             self.channel(),
             request,
         ))
     }
 
-    fn invoke_runtime_consumer(
+    fn open_machine_product_stream(
         &self,
-        request: DesktopRuntimeConsumerRequest,
+        request: DesktopMachineProductStreamRequest,
     ) -> Pin<
         Box<
-            dyn Future<Output = Result<DesktopRuntimeConsumerResponse, DesktopRuntimeConsumerError>>
-                + Send
+            dyn Future<
+                    Output = Result<
+                        DesktopFirstPartyProductStreamReceiver,
+                        DesktopFirstPartyProductError,
+                    >,
+                > + Send
                 + '_,
         >,
     > {
-        Box::pin(crate::desktop_runtime_consumer::invoke(
+        Box::pin(crate::first_party_product::open_machine_stream(
+            self.channel(),
+            request,
+        ))
+    }
+
+    fn invoke_account_product_unary(
+        &self,
+        request: DesktopAccountProductUnaryRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<
+                        DesktopFirstPartyProductUnaryResponse,
+                        DesktopFirstPartyProductError,
+                    >,
+                > + Send
+                + '_,
+        >,
+    > {
+        Box::pin(crate::first_party_product::invoke_account_unary(
+            self.channel(),
+            request,
+        ))
+    }
+
+    fn open_account_product_stream(
+        &self,
+        request: DesktopAccountProductStreamRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<
+                        DesktopFirstPartyProductStreamReceiver,
+                        DesktopFirstPartyProductError,
+                    >,
+                > + Send
+                + '_,
+        >,
+    > {
+        Box::pin(crate::first_party_product::open_account_stream(
             self.channel(),
             request,
         ))

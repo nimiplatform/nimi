@@ -15,7 +15,7 @@ export function PostPermalinkPage({ postId }: { postId: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    const baseUrl = String(import.meta.env.VITE_NIMI_REALM_BASE_URL || import.meta.env.NIMI_REALM_URL || '').trim();
+    const baseUrl = String(import.meta.env.VITE_NIMI_REALM_BASE_URL || '').trim();
     if (!baseUrl) {
       setState({ status: 'error' });
       return () => {

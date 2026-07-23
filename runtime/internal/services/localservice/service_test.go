@@ -11,11 +11,13 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/managedimagebackend"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -62,6 +64,139 @@ func newTestServiceWithProbe(t *testing.T, probe func(context.Context, string) e
 		svc.Close()
 	})
 	return svc
+}
+
+type m1LocalTransferTestStream struct {
+	ctx  context.Context
+	sent chan *runtimev1.LocalTransferProgressEvent
+}
+
+func (stream *m1LocalTransferTestStream) Send(event *runtimev1.LocalTransferProgressEvent) error {
+	select {
+	case <-stream.ctx.Done():
+		return stream.ctx.Err()
+	case stream.sent <- event:
+		return nil
+	}
+}
+
+func (*m1LocalTransferTestStream) SetHeader(metadata.MD) error  { return nil }
+func (*m1LocalTransferTestStream) SendHeader(metadata.MD) error { return nil }
+func (*m1LocalTransferTestStream) SetTrailer(metadata.MD)       {}
+func (stream *m1LocalTransferTestStream) Context() context.Context {
+	return stream.ctx
+}
+func (*m1LocalTransferTestStream) SendMsg(any) error { return nil }
+func (*m1LocalTransferTestStream) RecvMsg(any) error { return io.EOF }
+
+func TestM1LocalProductPostconditionMatrix(t *testing.T) {
+	svc := newTestService(t)
+
+	t.Run("ListVerifiedAssets", func(t *testing.T) {
+		response, err := svc.ListVerifiedAssets(context.Background(), &runtimev1.ListVerifiedAssetsRequest{PageSize: 200})
+		if err != nil {
+			t.Fatalf("ListVerifiedAssets: %v", err)
+		}
+		if len(response.GetAssets()) == 0 {
+			t.Fatal("verified catalog unexpectedly empty")
+		}
+		for _, asset := range response.GetAssets() {
+			if strings.TrimSpace(asset.GetTemplateId()) == "" || strings.TrimSpace(asset.GetAssetId()) == "" ||
+				strings.TrimSpace(asset.GetRepo()) == "" || strings.TrimSpace(asset.GetRevision()) == "" || len(asset.GetHashes()) == 0 {
+				t.Fatalf("incomplete verified catalog row escaped initialization: %+v", asset)
+			}
+		}
+	})
+
+	newTransfer := func(state string) *runtimev1.LocalTransferSessionSummary {
+		return svc.newLocalTransfer(localTransferKindDownload, localTransferMutation{
+			ModelID: "model-m1", Phase: "download", State: state, BytesTotal: 1024,
+		})
+	}
+
+	t.Run("PauseLocalTransfer", func(t *testing.T) {
+		transfer := newTransfer(localTransferStateRunning)
+		response, err := svc.PauseLocalTransfer(context.Background(), &runtimev1.PauseLocalTransferRequest{InstallSessionId: transfer.GetInstallSessionId()})
+		if err != nil || response.GetTransfer().GetState() != localTransferStatePaused {
+			t.Fatalf("pause response=%+v err=%v", response, err)
+		}
+		terminal := newTransfer(localTransferStateCompleted)
+		response, err = svc.PauseLocalTransfer(context.Background(), &runtimev1.PauseLocalTransferRequest{InstallSessionId: terminal.GetInstallSessionId()})
+		if err != nil || response.GetTransfer().GetState() != localTransferStateCompleted {
+			t.Fatalf("terminal pause response=%+v err=%v", response, err)
+		}
+	})
+
+	t.Run("ResumeLocalTransfer", func(t *testing.T) {
+		transfer := newTransfer(localTransferStateRunning)
+		paused, err := svc.PauseLocalTransfer(context.Background(), &runtimev1.PauseLocalTransferRequest{InstallSessionId: transfer.GetInstallSessionId()})
+		if err != nil || paused.GetTransfer().GetState() != localTransferStatePaused {
+			t.Fatalf("prepare paused transfer=%+v err=%v", paused, err)
+		}
+		response, err := svc.ResumeLocalTransfer(context.Background(), &runtimev1.ResumeLocalTransferRequest{InstallSessionId: transfer.GetInstallSessionId()})
+		if err != nil || response.GetTransfer().GetState() != localTransferStateRunning {
+			t.Fatalf("resume response=%+v err=%v", response, err)
+		}
+	})
+
+	t.Run("CancelLocalTransfer", func(t *testing.T) {
+		transfer := newTransfer(localTransferStateRunning)
+		response, err := svc.CancelLocalTransfer(context.Background(), &runtimev1.CancelLocalTransferRequest{InstallSessionId: transfer.GetInstallSessionId()})
+		if err != nil || response.GetTransfer().GetState() != localTransferStateCancelled || response.GetTransfer().GetReasonCode() != "LOCAL_TRANSFER_CANCELLED" {
+			t.Fatalf("cancel response=%+v err=%v", response, err)
+		}
+		repeated, err := svc.CancelLocalTransfer(context.Background(), &runtimev1.CancelLocalTransferRequest{InstallSessionId: transfer.GetInstallSessionId()})
+		if err != nil || repeated.GetTransfer().GetState() != localTransferStateCancelled || repeated.GetTransfer().GetReasonCode() != "LOCAL_TRANSFER_CANCELLED" {
+			t.Fatalf("idempotent cancel response=%+v err=%v", repeated, err)
+		}
+	})
+
+	t.Run("WatchLocalTransfers", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		stream := &m1LocalTransferTestStream{ctx: ctx, sent: make(chan *runtimev1.LocalTransferProgressEvent, 64)}
+		done := make(chan error, 1)
+		go func() { done <- svc.WatchLocalTransfers(&runtimev1.WatchLocalTransfersRequest{}, stream) }()
+		deadline := time.Now().Add(2 * time.Second)
+		for {
+			svc.mu.RLock()
+			subscribers := len(svc.transferSubscribers)
+			svc.mu.RUnlock()
+			if subscribers > 0 {
+				break
+			}
+			if time.Now().After(deadline) {
+				t.Fatal("WatchLocalTransfers did not register subscriber")
+			}
+			time.Sleep(time.Millisecond)
+		}
+		transfer := newTransfer(localTransferStateRunning)
+		for {
+			select {
+			case event := <-stream.sent:
+				if event.GetInstallSessionId() == transfer.GetInstallSessionId() && event.GetState() == localTransferStateRunning {
+					cancel()
+					goto cancelled
+				}
+			case <-time.After(2 * time.Second):
+				t.Fatal("WatchLocalTransfers did not deliver committed event")
+			}
+		}
+	cancelled:
+		select {
+		case err := <-done:
+			if err != nil && status.Code(err) != codes.Canceled {
+				t.Fatalf("watch cancellation error=%v", err)
+			}
+		case <-time.After(2 * time.Second):
+			t.Fatal("WatchLocalTransfers did not stop after cancellation")
+		}
+		newTransfer(localTransferStateRunning)
+		select {
+		case event := <-stream.sent:
+			t.Fatalf("post-cancel event delivered: %+v", event)
+		case <-time.After(25 * time.Millisecond):
+		}
+	})
 }
 
 func TestNewDerivesManagedLlamaConfigFromRuntimeState(t *testing.T) {

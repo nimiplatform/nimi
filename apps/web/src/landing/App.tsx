@@ -57,7 +57,15 @@ function GithubIcon() {
 }
 
 export function App() {
-  const baseLinks = useMemo(() => resolveLandingLinks(import.meta.env), []);
+  const baseLinks = useMemo(() => resolveLandingLinks({
+    VITE_LANDING_APP_URL: import.meta.env.VITE_LANDING_APP_URL,
+    VITE_LANDING_WEB_APP_URL: import.meta.env.VITE_LANDING_WEB_APP_URL,
+    VITE_LANDING_DISCORD_URL: import.meta.env.VITE_LANDING_DISCORD_URL,
+    VITE_LANDING_DOCS_URL: import.meta.env.VITE_LANDING_DOCS_URL,
+    VITE_LANDING_GITHUB_URL: import.meta.env.VITE_LANDING_GITHUB_URL,
+    VITE_LANDING_PROTOCOL_URL: import.meta.env.VITE_LANDING_PROTOCOL_URL,
+    VITE_LANDING_DESKTOP_DOWNLOAD_URL: import.meta.env.VITE_LANDING_DESKTOP_DOWNLOAD_URL,
+  }), []);
   const [catalogQuery, setCatalogQuery] = useState('');
   const [locale, setLocale] = useState<LandingLocale>(() =>
     resolveInitialLocale({

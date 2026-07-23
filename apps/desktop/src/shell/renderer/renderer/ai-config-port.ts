@@ -12,7 +12,7 @@ import type {
   NimiAIScopeRef,
   NimiAISnapshot,
 } from '@nimiplatform/sdk/ai';
-import type { Runtime } from '@nimiplatform/sdk/runtime';
+import type { NimiDesktopMachineProductRuntimeClient } from '@nimiplatform/sdk/runtime';
 
 export interface DesktopRendererAIConfigPort {
   readonly aiProfile: {
@@ -35,11 +35,14 @@ export interface DesktopRendererAIConfigPort {
     update(scopeRef: NimiAIScopeRef, config: NimiAIConfig): void;
     listScopes(): readonly NimiAIScopeRef[];
     probe(scopeRef: NimiAIScopeRef): Promise<NimiAIConfigProbeResult>;
-    probeFeasibility(scopeRef: NimiAIScopeRef, runtime?: Runtime): Promise<NimiAIConfigProbeResult>;
+    probeFeasibility(
+      scopeRef: NimiAIScopeRef,
+      runtime?: NimiDesktopMachineProductRuntimeClient,
+    ): Promise<NimiAIConfigProbeResult>;
     probeSchedulingTarget(
       scopeRef: NimiAIScopeRef,
       target: NimiAISchedulingEvaluationTarget,
-      runtime?: Runtime,
+      runtime?: NimiDesktopMachineProductRuntimeClient,
     ): Promise<NimiAISchedulingJudgement | null>;
     subscribe(scopeRef: NimiAIScopeRef, callback: (config: NimiAIConfig) => void): () => void;
   };

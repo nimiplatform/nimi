@@ -26,6 +26,10 @@ export function isWebRealmPlatformClientReady(): boolean {
   return isDesktopNimiClientSessionReady();
 }
 
+export function clearWebRealmPlatformClient(): void {
+  clearDesktopNimiClientSession();
+}
+
 export async function configureWebRealmPlatformClient(input: {
   appId?: string;
   realmBaseUrl: string;

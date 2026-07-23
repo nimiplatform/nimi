@@ -1,7 +1,7 @@
 import {
   createNimiHostRuntimeRouteAccessSurface,
   type NimiRuntimeRouteLocalWarmMetric,
-  type Runtime,
+  type NimiRuntimeRouteHostAccessClient,
 } from '@nimiplatform/sdk/runtime';
 import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
 
@@ -31,7 +31,7 @@ function emitDesktopRuntimeRouteWarmMetric(metric: NimiRuntimeRouteLocalWarmMetr
   });
 }
 
-export function createDesktopRuntimeRouteAccess(getRuntime: () => Runtime) {
+export function createDesktopRuntimeRouteAccess(getRuntime: () => NimiRuntimeRouteHostAccessClient) {
   return createNimiHostRuntimeRouteAccessSurface({
     getRuntime,
     appId: 'nimi.desktop',

@@ -77,6 +77,7 @@ fn runtime_register_app_fixture_accepts_local_first_party_registration() {
             .to_string(),
         request_bytes_base64: base64::engine::general_purpose::STANDARD
             .encode(request.encode_to_vec()),
+        product_intent: None,
         metadata: None,
         authorization: None,
         protected_access_token: None,
@@ -166,6 +167,7 @@ where
         method_id: method_id.to_string(),
         request_bytes_base64: base64::engine::general_purpose::STANDARD
             .encode(request.encode_to_vec()),
+        product_intent: None,
         metadata: None,
         authorization: None,
         protected_access_token: None,

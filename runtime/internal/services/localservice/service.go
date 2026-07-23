@@ -57,34 +57,34 @@ type RuntimeAccountProjectionProvider interface {
 type Service struct {
 	runtimev1.UnimplementedRuntimeLocalServiceServer
 
-	logger                           *slog.Logger
-	auditStore                       *auditlog.Store
-	localProviderCatalog             *catalog.LocalProviderCatalog
-	runtimeAccountProvider           RuntimeAccountProjectionProvider
-	stateStorePath                   string
-	productControlRoot               string
-	productControlRootLocked         bool
-	productControlDataRootProposal   string
-	productControlProposalLocked     bool
+	logger                             *slog.Logger
+	auditStore                         *auditlog.Store
+	localProviderCatalog               *catalog.LocalProviderCatalog
+	runtimeAccountProvider             RuntimeAccountProjectionProvider
+	stateStorePath                     string
+	productControlRoot                 string
+	productControlRootLocked           bool
+	productControlDataRootProposal     string
+	productControlProposalLocked       bool
 	productControlDataRootConfigWriter func(string) (bool, error)
-	localAuditCap                    int
-	productVersion                   string
-	localModelsPath                  string
-	runtimeDataRoot                  string
-	managedLlamaModelsConfigPath     string
-	managedLlamaEnabled              bool
-	managedLlamaEndpointValue        string
-	managedMediaEndpointValue        string
-	managedSpeechEndpointValue       string
-	managedMediaBackendConfigured    bool
-	managedMediaBackendHealthy       bool
-	managedMediaBackendAddress       string
-	managedMediaBackendPackageSource string
-	managedMediaBackendStatus        runtimev1.LocalServiceStatus
-	managedMediaBackendDetail        string
-	managedMediaBackendInstalledAt   string
-	managedMediaBackendUpdatedAt     string
-	managedMediaBackendEpoch         uint64
+	localAuditCap                      int
+	productVersion                     string
+	localModelsPath                    string
+	runtimeDataRoot                    string
+	managedLlamaModelsConfigPath       string
+	managedLlamaEnabled                bool
+	managedLlamaEndpointValue          string
+	managedMediaEndpointValue          string
+	managedSpeechEndpointValue         string
+	managedMediaBackendConfigured      bool
+	managedMediaBackendHealthy         bool
+	managedMediaBackendAddress         string
+	managedMediaBackendPackageSource   string
+	managedMediaBackendStatus          runtimev1.LocalServiceStatus
+	managedMediaBackendDetail          string
+	managedMediaBackendInstalledAt     string
+	managedMediaBackendUpdatedAt       string
+	managedMediaBackendEpoch           uint64
 
 	mu                                      sync.RWMutex
 	assets                                  map[string]*runtimev1.LocalAssetRecord

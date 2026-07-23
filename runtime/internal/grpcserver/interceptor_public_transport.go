@@ -7,6 +7,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/bundledavatar"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )
@@ -72,11 +73,11 @@ func publicTransportDenial(fullMethod string) (runtimev1.ReasonCode, bool) {
 	if _, bundledAvatarMethod := bundledavatar.Method(fullMethod); bundledAvatarMethod {
 		return runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED, true
 	}
+	if protectedlocal.IsFirstPartyProtectedProfileMethod(fullMethod) {
+		return runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED, true
+	}
 	if reason, blocked := publicTransportBlockedMethods[fullMethod]; blocked {
 		return reason, true
-	}
-	if protectedDesktopProductControlMethod(fullMethod) || protectedDesktopRuntimeConsumerMethod(fullMethod) {
-		return runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED, true
 	}
 	if strings.HasPrefix(fullMethod, "/nimi.runtime.v1.RuntimeAccountService/") {
 		return runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED, true

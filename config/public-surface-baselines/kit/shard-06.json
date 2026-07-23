@@ -4,6 +4,13 @@
   "shardId": "kit_public_surface_baseline_shard_06",
   "entryPoints": [
     {
+      "exportKey": "./telemetry/error-boundary",
+      "source": "kit/telemetry/src/error-boundary/index.ts",
+      "exports": [
+        "export { ShellErrorBoundary} from './shell-error-boundary.js';"
+      ]
+    },
+    {
       "exportKey": "./ui",
       "source": "kit/ui/src/index.ts",
       "exports": [

@@ -10,15 +10,17 @@ main processes. The addon exposes the exact six Local App operations:
 - `localAppStorageWriteJson`
 - `localAppStorageRemoveJson`
 
-For Nimi Desktop it additionally exposes two closed unary families:
+For Nimi Desktop it additionally exposes the generated first-party product
+families:
 
-- `desktopProductControlUnary`, whose selector must be one of the 21
-  K-RPC-004 Desktop product-control operations; and
-- `desktopRuntimeConsumerUnary`, whose selector must be one of the 10 exact
-  K-PLOCAL-006 Desktop runtime-consumer methods.
+- `desktopMachineProductUnary` and `desktopMachineProductStreamOpen`;
+- `desktopAccountProductUnary` and `desktopAccountProductStreamOpen`; and
+- shared opaque `desktopFirstPartyProductStreamNext` / `Close` lifecycle calls.
 
-Each selector is converted to its native enum before the verified channel
-opens; unrelated Runtime methods and every stream fail closed.
+Each method is converted to the generated profile-and-kind-specific native enum
+before the verified channel opens. Machine and account profile markers are fixed
+by the named native entrypoint; renderer input cannot select them. Unrelated,
+wrong-profile, and wrong-kind Runtime methods fail closed.
 
 Every call returns either `{ status: "ok", value }` or
 `{ status: "error", reasonCode, retryable }`. The addon has no arbitrary Runtime

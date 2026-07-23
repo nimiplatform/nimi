@@ -2,13 +2,12 @@
 
 mod adapters;
 mod bundled_avatar;
-mod bundled_avatar_profile_generated;
 mod carrier;
 mod desktop_account;
-mod desktop_product_control;
-mod desktop_runtime_consumer;
 mod desktop_stream;
 mod desktop_unary;
+mod first_party_product;
+mod first_party_profiles_generated;
 mod grpc_status;
 mod local_development;
 #[cfg(target_os = "macos")]
@@ -66,6 +65,10 @@ pub use adapters::MacOsLocalAppCarrier;
 pub use adapters::{
     LinuxLocalAppCarrier, LinuxUnixSocketCarrier, WindowsLocalAppCarrier, WindowsNamedPipeCarrier,
 };
+pub use bundled_avatar::{
+    BundledAvatarRuntimeError, BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse,
+    BundledAvatarRuntimeStreamReceiver,
+};
 pub use carrier::{
     DesktopControlFuture, LocalAppOperationError, LocalAppPermissionRequest,
     LocalAppPermissionState, LocalAppPermissionStatus, LocalAppPermissionStatusRequest,
@@ -73,10 +76,6 @@ pub use carrier::{
     LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
     LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, NimiDesktopControl,
     NimiLocalAppCarrier, NimiLocalAppSession, NimiProtectedLocalHostCarrier,
-};
-pub use bundled_avatar::{
-    BundledAvatarRuntimeError, BundledAvatarRuntimeRequest,
-    BundledAvatarRuntimeResponse, BundledAvatarRuntimeStreamReceiver,
 };
 pub use desktop_account::{
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
@@ -86,13 +85,20 @@ pub use desktop_account::{
     DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
     DesktopAccountSessionState, DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest,
 };
-pub use desktop_product_control::{
-    DesktopProductControlError, DesktopProductControlMethod, DesktopProductControlRequest,
-    DesktopProductControlResponse,
+pub use first_party_product::{
+    DesktopAccountProductStreamRequest, DesktopAccountProductUnaryRequest,
+    DesktopFirstPartyProductError, DesktopFirstPartyProductStreamReceiver,
+    DesktopFirstPartyProductUnaryResponse, DesktopMachineProductStreamRequest,
+    DesktopMachineProductUnaryRequest,
 };
-pub use desktop_runtime_consumer::{
-    DesktopRuntimeConsumerError, DesktopRuntimeConsumerMethod, DesktopRuntimeConsumerRequest,
-    DesktopRuntimeConsumerResponse,
+pub use first_party_profiles_generated::{
+    DesktopAccountProductStreamMethod, DesktopAccountProductUnaryMethod,
+    DesktopMachineProductStreamMethod, DesktopMachineProductUnaryMethod,
+    DesktopProductControlMethod, DesktopRuntimeConsumerMethod, DESKTOP_ACCOUNT_PRODUCT_PROFILE_ID,
+    DESKTOP_ACCOUNT_PRODUCT_STREAM_METHODS, DESKTOP_ACCOUNT_PRODUCT_UNARY_METHODS,
+    DESKTOP_MACHINE_PRODUCT_PROFILE_ID, DESKTOP_MACHINE_PRODUCT_STREAM_METHODS,
+    DESKTOP_MACHINE_PRODUCT_UNARY_METHODS, DESKTOP_PRODUCT_CONTROL_V1_METHODS,
+    ORDINARY_DESKTOP_RUNTIME_CONSUMER_V1_METHODS,
 };
 pub use local_development::{
     DeveloperModeState, DeveloperModeStatus, LocalDevelopmentAuthoritySummary,

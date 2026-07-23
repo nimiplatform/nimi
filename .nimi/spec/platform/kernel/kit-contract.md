@@ -349,32 +349,46 @@ unadmitted protected operation families. App-native commands remain separate
 typed host commands. A missing/untrusted carrier fails closed and cannot fall
 back to ordinary gRPC or inherit another principal's state.
 
-## P-KIT-047 - Desktop-Supervised Bundled Avatar Electron Carrier
+## P-KIT-047 - Generated First-Party Protected Desktop Carriers
 
-Kit owns the shared Electron main/native adapter for Runtime's exact
-`bundled_avatar_v1` profile. Desktop supplies a main-process authorization
-registry that recognizes only the exact `WebContents` object of an Avatar
-`BrowserWindow` created by Desktop's supervised launch path. Kit binds every
-unary, stream-open, stream-close, and app-private command to `event.sender` and
-the current main frame in that registry before applying the exact registered
-Avatar URL as an additional navigation-integrity condition. URL or origin alone
-never selects this profile. Kit then routes only the canonical methods generated
-from `.nimi/spec/runtime/kernel/tables/bundled-avatar-runtime-profile.yaml`
-through the existing verified Desktop connection. The adapter fixes the native
-profile and app id after renderer parsing. It accepts no endpoint, app id,
-metadata, capability, role, token, session, account, Agent owner, arbitrary
-method profile, or host-equivalence marker from renderer or app code.
+Kit owns one shared Electron/Tauri main/native adapter family for Runtime's exact
+first-party protected profiles. The sole operation-set input is
+`.nimi/spec/runtime/kernel/tables/first-party-protected-runtime-profiles.yaml`;
+Kit, Desktop and app code cannot maintain another method/profile selector. The
+compiler emits exact unary and stream entrypoint families for
+`desktop_machine_product_v1`, `desktop_account_product_v1`, and
+`bundled_avatar_v1` while preserving one physical `desktop_control` carrier.
+The profiles remain logically distinct and Desktop never borrows Avatar app id,
+origin role, sender registry, or principal.
+
+Desktop supplies main-process authorization registries that recognize only the
+exact `BrowserWindow`/`WebContents` objects it created. Kit binds every unary,
+stream-open, stream-next, stream-close and cancel command to `event.sender` and
+the current main frame before applying registered URL/navigation state as a
+secondary integrity condition. URL or origin alone never establishes identity.
+Native main selects a generated named intent entrypoint and fixes the profile
+after renderer parsing. Renderer input cannot contain or override endpoint,
+profile, role, principal, app id, account, owner, metadata, token, grant, scope,
+capability, arbitrary method id, or host-equivalence marker.
 
 Unary and server-stream calls use generated SDK request/response bytes. Kit may
-carry those bytes only after exact generated method selection; it does not own
-the Runtime DTOs or business policy. Stream registries are bounded per exact
-sender. Navigation, destruction, sender replacement, window closure, or host
-shutdown removes the binding and closes that sender's streams. They never
-silently reconnect after account, process, connection, or Runtime epoch change.
-The normal Desktop renderer and local-development hosts cannot access this
-profile. Missing native support, unbound or non-main-frame sender, wrong
-renderer URL/navigation state, unsupported platform, or any unlisted method
-fails closed without public gRPC or direct-Electron fallback.
+carry those bytes only after exact generated intent/method selection; it owns
+neither Runtime DTOs nor business policy. Machine streams bind sender,
+connection and Runtime boot epoch. Account and Avatar streams additionally bind
+the current Runtime account generation. Navigation, destruction, sender
+replacement, logout/switch, account-generation change, connection loss, process
+replacement, Runtime restart, window closure, or host shutdown closes every
+applicable stream before later delivery or commit; streams never silently
+reconnect across an invalidation boundary.
+
+The compiler must emit matching Runtime, protected-native Rust, Electron, Tauri
+and SDK projections plus one count/member/kind/digest manifest. Missing native
+support, unbound/non-main-frame sender, wrong generated entrypoint, stale boot or
+account generation, unsupported platform, and every profile-external method
+fail before Runtime handler dispatch, without public gRPC, direct-Electron,
+generic unary/stream, or another profile fallback. The existing
+`bundled_avatar_v1` 31-method fingerprint remains parity-locked during the
+compiler cut.
 
 ## P-KIT-043 — Runtime Capabilities Module
 

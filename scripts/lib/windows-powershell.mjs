@@ -1,8 +1,9 @@
 import { existsSync as defaultExistsSync } from 'node:fs';
 import path from 'node:path';
 
-export function parseFirstJsonDocument(output, reasonCode) {
+function parseJsonDocuments(output) {
   const raw = String(output ?? '').replace(/^\ufeff/u, '').trim();
+  const documents = [];
   for (let start = 0; start < raw.length; start += 1) {
     const opening = raw[start];
     if (opening !== '{' && opening !== '[') continue;
@@ -34,16 +35,27 @@ export function parseFirstJsonDocument(output, reasonCode) {
       if (stack.length !== 0) continue;
 
       try {
-        return {
-          value: JSON.parse(raw.slice(start, cursor + 1)),
-          diagnostics: [raw.slice(0, start).trim(), raw.slice(cursor + 1).trim()]
-            .filter(Boolean)
-            .join('\n'),
-        };
+        documents.push({ value: JSON.parse(raw.slice(start, cursor + 1)), start, end: cursor + 1 });
+        start = cursor;
       } catch {
-        break;
+        // Continue looking for a later complete JSON document.
       }
+      break;
     }
+  }
+  return { raw, documents };
+}
+
+function jsonReceipt(output, reasonCode, position) {
+  const { raw, documents } = parseJsonDocuments(output);
+  const document = position === 'last' ? documents.at(-1) : documents[0];
+  if (document) {
+    return {
+      value: document.value,
+      diagnostics: [raw.slice(0, document.start).trim(), raw.slice(document.end).trim()]
+        .filter(Boolean)
+        .join('\n'),
+    };
   }
 
   throw Object.assign(
@@ -53,6 +65,14 @@ export function parseFirstJsonDocument(output, reasonCode) {
       actionHint: 'inspect_powershell_command_output',
     },
   );
+}
+
+export function parseFirstJsonDocument(output, reasonCode) {
+  return jsonReceipt(output, reasonCode, 'first');
+}
+
+export function parseLastJsonDocument(output, reasonCode) {
+  return jsonReceipt(output, reasonCode, 'last');
 }
 
 export function parsePowerShellJsonResult(result, reasonCode, {

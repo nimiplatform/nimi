@@ -212,6 +212,54 @@ describe('useRuntimeModelPicker', () => {
 });
 
 describe('ModelPickerModal', () => {
+  it('exposes unique ready and unavailable selectors from authoritative local readiness', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <ModelPickerModal
+          open
+          onClose={() => undefined}
+          capability="text.generate"
+          capabilityLabel="Chat"
+          provider={{
+            listLocalModels: async () => [{
+              localModelId: 'ready-local-chat',
+              modelId: 'local-import/ready-chat',
+              label: 'ready-chat',
+              engine: 'llama',
+              status: 'active',
+              capabilities: ['text.generate'],
+            }, {
+              localModelId: 'unavailable-local-chat',
+              modelId: 'local-import/unavailable-chat',
+              label: 'unavailable-chat',
+              engine: 'llama',
+              status: 'unhealthy',
+              capabilities: ['text.generate'],
+            }],
+            listConnectors: async () => [],
+            listConnectorModels: async () => [],
+          }}
+          onSelect={() => undefined}
+        />,
+      );
+      await flush();
+      await flush();
+    });
+
+    const ready = document.body.querySelector('[data-testid="model-picker-option:local-ready"]');
+    const unavailable = document.body.querySelector('[data-testid="model-picker-option:local-unavailable"]');
+    expect(ready?.getAttribute('data-nimi-route-source')).toBe('local');
+    expect(ready?.getAttribute('data-nimi-route-readiness')).toBe('active');
+    expect(ready?.getAttribute('data-nimi-local-model-id')).toBe('ready-local-chat');
+    expect(unavailable?.getAttribute('data-nimi-route-source')).toBe('local');
+    expect(unavailable?.getAttribute('data-nimi-route-readiness')).toBe('unhealthy');
+    expect(unavailable?.getAttribute('data-nimi-local-model-id')).toBe('unavailable-local-chat');
+  });
+
   it('preserves the v2 local target ref when selecting a local runtime model', async () => {
     const onSelect = vi.fn();
     container = document.createElement('div');

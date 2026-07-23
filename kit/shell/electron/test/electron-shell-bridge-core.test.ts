@@ -77,7 +77,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     });
     const { event } = createInvokeEvent();
     const request: ElectronRuntimeBridgeUnaryRequest = {
-      methodId: '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth',
+      methodId: '/nimi.runtime.v1.RuntimeModelService/ListModels',
       requestBytesBase64: toBase64(Uint8Array.from([1, 2, 3])),
       metadata: {
         protocolVersion: '1.0.0',
@@ -90,7 +90,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
       payload: request,
     }) as { responseBytesBase64: string; responseMetadata: Record<string, string> };
 
-    expect(capturedMethod).toBe('/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth');
+    expect(capturedMethod).toBe('/nimi.runtime.v1.RuntimeModelService/ListModels');
     expect([...capturedBytes]).toEqual([1, 2, 3]);
     expect(capturedMetadata).toMatchObject({
       'x-nimi-protocol-version': '1.0.0',
@@ -102,7 +102,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     expect(capturedMetadata['x-nimi-access-token-id']).toBeUndefined();
     expect(capturedMetadata['x-nimi-access-token-secret']).toBeUndefined();
     expect(capturedMetadata.authorization).toBeUndefined();
-    expect(capturedMetadata['x-nimi-idempotency-key']).toMatch(/^bridge-_nimi\.runtime\.v1\.RuntimeAuditService_GetRuntimeHealth-\d+-\d+$/);
+    expect(capturedMetadata['x-nimi-idempotency-key']).toMatch(/^bridge-_nimi\.runtime\.v1\.RuntimeModelService_ListModels-\d+-\d+$/);
     expect(capturedMetadata['x-nimi-custom']).toBe('custom-value');
     expect(capturedMetadata['x-nimi-source-host']).toBe('unit-test-trusted-metadata-provider');
     expect(capturedMetadata['x-nimi-app-instance-id']).toBe('nimi.tester.desktop-shell');
@@ -141,7 +141,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
       command: STANDARD_COMMANDS.unary,
       payload: {
-        methodId: '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth',
+        methodId: '/nimi.runtime.v1.RuntimeModelService/ListModels',
         requestBytesBase64: '',
       },
     })).rejects.toMatchObject({
@@ -362,7 +362,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     const response = await invokeBridge(ipcMain, createInvokeEvent().event, {
       command: STANDARD_COMMANDS.unary,
       payload: {
-        methodId: '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth',
+        methodId: '/nimi.runtime.v1.RuntimeModelService/ListModels',
         requestBytesBase64: '',
       },
     }) as { responseBytesBase64: string };
@@ -432,7 +432,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     await invokeBridge(ipcMain, event, {
       command: STANDARD_COMMANDS.stream_open,
       payload: {
-        methodId: '/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents',
+        methodId: '/nimi.runtime.v1.RuntimeModelService/WatchModels',
         streamId: 'restart-stream',
         requestBytesBase64: '',
       },
@@ -491,7 +491,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     await invokeBridge(ipcMain, event, {
       command: STANDARD_COMMANDS.stream_open,
       payload: {
-        methodId: '/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents',
+        methodId: '/nimi.runtime.v1.RuntimeModelService/WatchModels',
         streamId: 'ordinary-failure-stream',
         requestBytesBase64: '',
       },
@@ -538,7 +538,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     await invokeBridge(ipcMain, createInvokeEvent().event, {
       command: STANDARD_COMMANDS.unary,
       payload: {
-        methodId: '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth',
+        methodId: '/nimi.runtime.v1.RuntimeModelService/ListModels',
         requestBytesBase64: '',
         metadata: {
           surfaceId: 'renderer-spoofed-surface',
@@ -600,14 +600,14 @@ describe('registerNimiElectronRuntimeBridge', () => {
 
     const response = await hook.invoke(STANDARD_COMMANDS.unary, {
       payload: {
-        methodId: '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth',
+        methodId: '/nimi.runtime.v1.RuntimeModelService/ListModels',
         requestBytesBase64: toBase64(Uint8Array.from([1, 2, 3])),
       },
     }) as { responseBytesBase64: string };
 
-    expect(capturedMethod).toBe('/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth');
+    expect(capturedMethod).toBe('/nimi.runtime.v1.RuntimeModelService/ListModels');
     expect([...capturedBytes]).toEqual([1, 2, 3]);
-    expect(capturedMetadata['x-nimi-idempotency-key']).toMatch(/^bridge-_nimi\.runtime\.v1\.RuntimeAuditService_GetRuntimeHealth-\d+-\d+$/);
+    expect(capturedMetadata['x-nimi-idempotency-key']).toMatch(/^bridge-_nimi\.runtime\.v1\.RuntimeModelService_ListModels-\d+-\d+$/);
     expect([...fromBase64(response.responseBytesBase64)]).toEqual([7, 8, 9]);
   });
 

@@ -12,7 +12,7 @@ import {
 } from '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service';
 import {
   clearDesktopNimiClientSession,
-  getDesktopRuntime,
+  getDesktopConnectorAdminClient,
   setDesktopNimiClientSessionForTests,
   type DesktopNimiClientSession,
 } from '../src/shell/renderer/infra/sdk/desktop-nimi-client-session';
@@ -30,7 +30,7 @@ const CONNECTOR_SERVICE_SOURCE = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service.ts'),
   'utf8',
 );
-const connectorSdk = createRuntimeConfigConnectorSdkService(getDesktopRuntime);
+const connectorSdk = createRuntimeConfigConnectorSdkService(getDesktopConnectorAdminClient);
 const {
   clearCaches: clearRuntimeConnectorSdkCaches,
   sdkCreateConnector,
@@ -120,7 +120,13 @@ function installRuntimeConnectorProbeDesktopSession(): void {
 
   setDesktopNimiClientSessionForTests({
     appId: RUNTIME_CONNECTOR_PROBE_APP_ID,
-    runtime,
+    runtimeTransport: { type: 'tauri-ipc' },
+    runtimeClients: {
+      machineProduct: { connectors: runtime.connectors },
+      accountProduct: { connectors: runtime.connectors },
+    },
+    accountRuntime: {},
+    accountCaller: {},
     realm: {},
   } as unknown as DesktopNimiClientSession);
 }
@@ -798,7 +804,7 @@ test('sdkCreateConnector preserves explicit credentialJson for oauth-managed pro
 
 test('connector service delegates inventory ownership to the SDK client', () => {
   assert.match(CONNECTOR_SERVICE_SOURCE, /createNimiRuntimeConnectorInventoryClient/);
-  assert.match(CONNECTOR_SERVICE_SOURCE, /getRuntime\(\)\.connectors/);
+  assert.match(CONNECTOR_SERVICE_SOURCE, /getConnectors\(\)/);
   assert.match(CONNECTOR_SERVICE_SOURCE, /createRuntimeConfigConnectorSdkService/);
   assert.match(CONNECTOR_SERVICE_SOURCE, /surfaceId: 'runtime\.config'/);
   assert.doesNotMatch(CONNECTOR_SERVICE_SOURCE, /callerKind|callerId/);

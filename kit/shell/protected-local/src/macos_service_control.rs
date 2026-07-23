@@ -22,14 +22,15 @@ use crate::macos_peer_trust::{
 use crate::macos_supervised_process::SupervisedDevelopmentProcess;
 use crate::{
     BundledAvatarRuntimeError, BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse,
-    BundledAvatarRuntimeStreamReceiver,
-    DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
+    BundledAvatarRuntimeStreamReceiver, DesktopAccountActionRequest,
+    DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
     DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse,
+    DesktopAccountProductStreamRequest, DesktopAccountProductUnaryRequest,
     DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse,
     DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
-    DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, DesktopProductControlError,
-    DesktopProductControlRequest, DesktopProductControlResponse, DesktopRuntimeConsumerError,
-    DesktopRuntimeConsumerRequest, DesktopRuntimeConsumerResponse, DeveloperModeStatus,
+    DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, DesktopFirstPartyProductError,
+    DesktopFirstPartyProductStreamReceiver, DesktopFirstPartyProductUnaryResponse,
+    DesktopMachineProductStreamRequest, DesktopMachineProductUnaryRequest, DeveloperModeStatus,
     FixedRuntimeServiceControl, LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
     LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
     LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
@@ -43,6 +44,8 @@ const SERVICE_ENABLED: i32 = 1;
 const SERVICE_REQUIRES_APPROVAL: i32 = 2;
 const SERVICE_NOT_FOUND: i32 = 3;
 const RESTART_DEADLINE: Duration = Duration::from_secs(90);
+
+type ControlFuture<'a, T, E> = Pin<Box<dyn Future<Output = Result<T, E>> + Send + 'a>>;
 
 unsafe extern "C" {
     fn nimi_macos_runtime_service_status() -> i32;
@@ -89,15 +92,9 @@ impl MacOSDesktopControl {
         }
     }
 
-    fn product_channel(&self) -> Result<Channel, DesktopProductControlError> {
+    fn product_profile_channel(&self) -> Result<Channel, DesktopFirstPartyProductError> {
         self.host_channel().map_err(|error| {
-            DesktopProductControlError::new(error.reason_code().as_str(), error.retryable())
-        })
-    }
-
-    fn consumer_channel(&self) -> Result<Channel, DesktopRuntimeConsumerError> {
-        self.host_channel().map_err(|error| {
-            DesktopRuntimeConsumerError::new(error.reason_code().as_str(), error.retryable())
+            DesktopFirstPartyProductError::new(error.reason_code().as_str(), error.retryable())
         })
     }
 
@@ -112,7 +109,7 @@ impl NimiDesktopControl for MacOSDesktopControl {
     fn invoke_bundled_avatar(
         &self,
         request: BundledAvatarRuntimeRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<BundledAvatarRuntimeResponse, BundledAvatarRuntimeError>> + Send + '_>> {
+    ) -> ControlFuture<'_, BundledAvatarRuntimeResponse, BundledAvatarRuntimeError> {
         Box::pin(async move {
             crate::bundled_avatar::invoke(self.bundled_avatar_channel()?, request).await
         })
@@ -121,39 +118,65 @@ impl NimiDesktopControl for MacOSDesktopControl {
     fn open_bundled_avatar_stream(
         &self,
         request: BundledAvatarRuntimeRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<BundledAvatarRuntimeStreamReceiver, BundledAvatarRuntimeError>> + Send + '_>> {
+    ) -> ControlFuture<'_, BundledAvatarRuntimeStreamReceiver, BundledAvatarRuntimeError> {
         Box::pin(async move {
             crate::bundled_avatar::open_stream(self.bundled_avatar_channel()?, request).await
         })
     }
 
-    fn invoke_product_control(
+    fn invoke_machine_product_unary(
         &self,
-        request: DesktopProductControlRequest,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<DesktopProductControlResponse, DesktopProductControlError>>
-                + Send
-                + '_,
-        >,
-    > {
+        request: DesktopMachineProductUnaryRequest,
+    ) -> ControlFuture<'_, DesktopFirstPartyProductUnaryResponse, DesktopFirstPartyProductError>
+    {
         Box::pin(async move {
-            crate::desktop_product_control::invoke(self.product_channel()?, request).await
+            crate::first_party_product::invoke_machine_unary(
+                self.product_profile_channel()?,
+                request,
+            )
+            .await
         })
     }
 
-    fn invoke_runtime_consumer(
+    fn open_machine_product_stream(
         &self,
-        request: DesktopRuntimeConsumerRequest,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<DesktopRuntimeConsumerResponse, DesktopRuntimeConsumerError>>
-                + Send
-                + '_,
-        >,
-    > {
+        request: DesktopMachineProductStreamRequest,
+    ) -> ControlFuture<'_, DesktopFirstPartyProductStreamReceiver, DesktopFirstPartyProductError>
+    {
         Box::pin(async move {
-            crate::desktop_runtime_consumer::invoke(self.consumer_channel()?, request).await
+            crate::first_party_product::open_machine_stream(
+                self.product_profile_channel()?,
+                request,
+            )
+            .await
+        })
+    }
+
+    fn invoke_account_product_unary(
+        &self,
+        request: DesktopAccountProductUnaryRequest,
+    ) -> ControlFuture<'_, DesktopFirstPartyProductUnaryResponse, DesktopFirstPartyProductError>
+    {
+        Box::pin(async move {
+            crate::first_party_product::invoke_account_unary(
+                self.product_profile_channel()?,
+                request,
+            )
+            .await
+        })
+    }
+
+    fn open_account_product_stream(
+        &self,
+        request: DesktopAccountProductStreamRequest,
+    ) -> ControlFuture<'_, DesktopFirstPartyProductStreamReceiver, DesktopFirstPartyProductError>
+    {
+        Box::pin(async move {
+            crate::first_party_product::open_account_stream(
+                self.product_profile_channel()?,
+                request,
+            )
+            .await
         })
     }
 

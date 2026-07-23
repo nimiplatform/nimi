@@ -16,16 +16,16 @@ import (
 
 const defaultDelegatedApprovalTTL = 15 * time.Minute
 
-func (s *Service) ListDelegatedProviderProfiles(_ context.Context, req *runtimev1.ListDelegatedProviderProfilesRequest) (*runtimev1.ListDelegatedProviderProfilesResponse, error) {
-	agentID, err := s.validateDelegatedControlRequest(req.GetContext(), req.GetAgentId(), "runtime.agent.delegation.read")
+func (s *Service) ListDelegatedProviderProfiles(ctx context.Context, req *runtimev1.ListDelegatedProviderProfilesRequest) (*runtimev1.ListDelegatedProviderProfilesResponse, error) {
+	agentID, err := s.validateDelegatedControlRequest(ctx, req.GetContext(), req.GetAgentId(), "runtime.agent.delegation.read")
 	if err != nil {
 		return nil, err
 	}
 	return &runtimev1.ListDelegatedProviderProfilesResponse{ProviderProfiles: s.listDelegatedProviderProfiles(agentID)}, nil
 }
 
-func (s *Service) UpsertDelegatedProviderProfile(_ context.Context, req *runtimev1.UpsertDelegatedProviderProfileRequest) (*runtimev1.UpsertDelegatedProviderProfileResponse, error) {
-	agentID, err := s.validateDelegatedControlRequest(req.GetContext(), req.GetAgentId(), "runtime.agent.delegation.write")
+func (s *Service) UpsertDelegatedProviderProfile(ctx context.Context, req *runtimev1.UpsertDelegatedProviderProfileRequest) (*runtimev1.UpsertDelegatedProviderProfileResponse, error) {
+	agentID, err := s.validateDelegatedControlRequest(ctx, req.GetContext(), req.GetAgentId(), "runtime.agent.delegation.write")
 	if err != nil {
 		return nil, err
 	}
@@ -69,8 +69,8 @@ func (s *Service) UpsertDelegatedProviderProfile(_ context.Context, req *runtime
 	return &runtimev1.UpsertDelegatedProviderProfileResponse{ProviderProfile: out}, nil
 }
 
-func (s *Service) SetDelegatedProviderState(_ context.Context, req *runtimev1.SetDelegatedProviderStateRequest) (*runtimev1.SetDelegatedProviderStateResponse, error) {
-	agentID, err := s.validateDelegatedControlRequest(req.GetContext(), req.GetAgentId(), "runtime.agent.delegation.write")
+func (s *Service) SetDelegatedProviderState(ctx context.Context, req *runtimev1.SetDelegatedProviderStateRequest) (*runtimev1.SetDelegatedProviderStateResponse, error) {
+	agentID, err := s.validateDelegatedControlRequest(ctx, req.GetContext(), req.GetAgentId(), "runtime.agent.delegation.write")
 	if err != nil {
 		return nil, err
 	}
@@ -128,16 +128,16 @@ func (s *Service) SetDelegatedProviderState(_ context.Context, req *runtimev1.Se
 	return &runtimev1.SetDelegatedProviderStateResponse{ProviderProfile: out}, nil
 }
 
-func (s *Service) ListDelegatedApprovalRequests(_ context.Context, req *runtimev1.ListDelegatedApprovalRequestsRequest) (*runtimev1.ListDelegatedApprovalRequestsResponse, error) {
-	agentID, err := s.validateDelegatedControlRequest(req.GetContext(), req.GetAgentId(), "runtime.agent.delegation.read")
+func (s *Service) ListDelegatedApprovalRequests(ctx context.Context, req *runtimev1.ListDelegatedApprovalRequestsRequest) (*runtimev1.ListDelegatedApprovalRequestsResponse, error) {
+	agentID, err := s.validateDelegatedControlRequest(ctx, req.GetContext(), req.GetAgentId(), "runtime.agent.delegation.read")
 	if err != nil {
 		return nil, err
 	}
 	return &runtimev1.ListDelegatedApprovalRequestsResponse{ApprovalRequests: s.listDelegatedApprovalRequests(agentID, strings.TrimSpace(req.GetConversationAnchorId()))}, nil
 }
 
-func (s *Service) SubmitDelegatedApprovalDecision(_ context.Context, req *runtimev1.SubmitDelegatedApprovalDecisionRequest) (*runtimev1.SubmitDelegatedApprovalDecisionResponse, error) {
-	agentID, err := s.validateDelegatedControlRequest(req.GetContext(), req.GetAgentId(), "runtime.agent.delegation.write")
+func (s *Service) SubmitDelegatedApprovalDecision(ctx context.Context, req *runtimev1.SubmitDelegatedApprovalDecisionRequest) (*runtimev1.SubmitDelegatedApprovalDecisionResponse, error) {
+	agentID, err := s.validateDelegatedControlRequest(ctx, req.GetContext(), req.GetAgentId(), "runtime.agent.delegation.write")
 	if err != nil {
 		return nil, err
 	}
@@ -202,8 +202,8 @@ func (s *Service) SubmitDelegatedApprovalDecision(_ context.Context, req *runtim
 	return &runtimev1.SubmitDelegatedApprovalDecisionResponse{ApprovalRequest: out}, nil
 }
 
-func (s *Service) ListDelegatedDiagnostics(_ context.Context, req *runtimev1.ListDelegatedDiagnosticsRequest) (*runtimev1.ListDelegatedDiagnosticsResponse, error) {
-	agentID, err := s.validateDelegatedControlRequest(req.GetContext(), req.GetAgentId(), "runtime.agent.delegation.read")
+func (s *Service) ListDelegatedDiagnostics(ctx context.Context, req *runtimev1.ListDelegatedDiagnosticsRequest) (*runtimev1.ListDelegatedDiagnosticsResponse, error) {
+	agentID, err := s.validateDelegatedControlRequest(ctx, req.GetContext(), req.GetAgentId(), "runtime.agent.delegation.read")
 	if err != nil {
 		return nil, err
 	}
@@ -222,8 +222,8 @@ func (s *Service) ListDelegatedDiagnostics(_ context.Context, req *runtimev1.Lis
 	return &runtimev1.ListDelegatedDiagnosticsResponse{Diagnostics: out}, nil
 }
 
-func (s *Service) GetDelegatedReplayTrace(_ context.Context, req *runtimev1.GetDelegatedReplayTraceRequest) (*runtimev1.GetDelegatedReplayTraceResponse, error) {
-	agentID, err := s.validateDelegatedControlRequest(req.GetContext(), req.GetAgentId(), "runtime.agent.delegation.read")
+func (s *Service) GetDelegatedReplayTrace(ctx context.Context, req *runtimev1.GetDelegatedReplayTraceRequest) (*runtimev1.GetDelegatedReplayTraceResponse, error) {
+	agentID, err := s.validateDelegatedControlRequest(ctx, req.GetContext(), req.GetAgentId(), "runtime.agent.delegation.read")
 	if err != nil {
 		return nil, err
 	}
@@ -238,8 +238,8 @@ func (s *Service) GetDelegatedReplayTrace(_ context.Context, req *runtimev1.GetD
 	return &runtimev1.GetDelegatedReplayTraceResponse{Trace: trace}, nil
 }
 
-func (s *Service) GetDelegatedControlSurfaceSnapshot(_ context.Context, req *runtimev1.GetDelegatedControlSurfaceSnapshotRequest) (*runtimev1.GetDelegatedControlSurfaceSnapshotResponse, error) {
-	agentID, err := s.validateDelegatedControlRequest(req.GetContext(), req.GetAgentId(), "runtime.agent.delegation.read")
+func (s *Service) GetDelegatedControlSurfaceSnapshot(ctx context.Context, req *runtimev1.GetDelegatedControlSurfaceSnapshotRequest) (*runtimev1.GetDelegatedControlSurfaceSnapshotResponse, error) {
+	agentID, err := s.validateDelegatedControlRequest(ctx, req.GetContext(), req.GetAgentId(), "runtime.agent.delegation.read")
 	if err != nil {
 		return nil, err
 	}
@@ -255,13 +255,18 @@ func (s *Service) GetDelegatedControlSurfaceSnapshot(_ context.Context, req *run
 	}}, nil
 }
 
-func (s *Service) validateDelegatedControlRequest(ctx *runtimev1.AgentRequestContext, agentID string, requiredScope string) (string, error) {
+func (s *Service) validateDelegatedControlRequest(callContext context.Context, ctx *runtimev1.AgentRequestContext, agentID string, requiredScope string) (string, error) {
 	if s == nil || s.isClosed() {
 		return "", status.Error(codes.FailedPrecondition, "runtime agent service unavailable")
 	}
 	trimmedAgentID := strings.TrimSpace(agentID)
 	if trimmedAgentID == "" {
 		return "", status.Error(codes.InvalidArgument, "agent_id is required")
+	}
+	if protected, err := s.authorizeProtectedAccountAgent(callContext, ctx, trimmedAgentID, requiredScope); err != nil {
+		return "", err
+	} else if protected {
+		return trimmedAgentID, nil
 	}
 	if _, err := s.agentByID(trimmedAgentID); err != nil {
 		return "", err

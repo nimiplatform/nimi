@@ -200,7 +200,10 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	localDecision, localAppAuthorized := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
-	protectedPrincipal, protectedAuthorized := protectedprincipal.FromContext(ctx)
+	protectedPrincipal, protectedAuthorized := protectedprincipal.AttachedToContext(ctx)
+	if protectedAuthorized && !protectedPrincipal.Valid() {
+		return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
 	if localAppAuthorized {
 		if localDecision.Operation != accountservice.LocalAppOperationSendConversationTurn || req.GetToAppId() != "runtime.agent" || req.GetMessageType() != "runtime.agent.turn.request" || req.GetScopedBinding() != nil {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
@@ -341,7 +344,10 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	localDecision, localAppAuthorized := accountservice.AuthorizedLocalAppDecisionFromContext(stream.Context())
-	protectedPrincipal, protectedAuthorized := protectedprincipal.FromContext(stream.Context())
+	protectedPrincipal, protectedAuthorized := protectedprincipal.AttachedToContext(stream.Context())
+	if protectedAuthorized && !protectedPrincipal.Valid() {
+		return grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
 	localAppSelector := localappop.Selector{}
 	if localAppAuthorized {
 		if localDecision.Operation != accountservice.LocalAppOperationSubscribeConversation || req.GetScopedBinding() != nil || len(req.GetFromAppIds()) != 1 || req.GetFromAppIds()[0] != "runtime.agent" || strings.TrimSpace(req.GetLocalAgentRef()) == "" || strings.TrimSpace(req.GetConversationAnchorId()) == "" {

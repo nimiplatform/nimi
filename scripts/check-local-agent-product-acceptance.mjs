@@ -89,6 +89,14 @@ function validateEvidenceRoot({ architecture, evidenceRoot, gate }) {
   const expected = (() => {
     const acceptancePoints = architecture.points.points.filter((point) => point.point_kind === 'acceptance_point');
     if (gate === 'contract') return { suite: 1, journeys: new Map(), leaves: acceptancePoints.filter((point) => ['L0', 'L1'].includes(point.minimum_sufficient_layer)), repeats: 1 };
+    if (gate === 'first-run') return { suite: 0, journeys: new Map([['first-party-installed-first-run', 1]]), leaves: [], repeats: 1 };
+    if (gate === 'direct-nimi') return { suite: 0, journeys: new Map([['first-party-direct-nimi', 1]]), leaves: [], repeats: 1 };
+    if (gate === 'partner-core') return {
+      suite: 0,
+      journeys: new Map([['first-party-partner-core', 1]]),
+      leaves: acceptancePoints.filter((point) => point.execution_binding?.journey_id === 'first-party-partner-core'),
+      repeats: 1,
+    };
     if (gate === 'core') return { suite: 0, journeys: new Map([['dev-kernel-core', 1]]), leaves: [], repeats: 1 };
     if (gate === 'core-stability') return { suite: 0, journeys: new Map([['dev-kernel-core', 3]]), leaves: [], repeats: 3 };
     if (gate === 'extended') {
@@ -126,6 +134,9 @@ function validateEvidenceRoot({ architecture, evidenceRoot, gate }) {
   }
   const budget = {
     contract: architecture.policy.layer_budgets_ms.L1,
+    'first-run': architecture.journeys.journeys.find((row) => row.journey_id === 'first-party-installed-first-run')?.time_budget_ms,
+    'direct-nimi': architecture.journeys.journeys.find((row) => row.journey_id === 'first-party-direct-nimi')?.time_budget_ms,
+    'partner-core': architecture.journeys.journeys.find((row) => row.journey_id === 'first-party-partner-core')?.time_budget_ms,
     core: architecture.policy.layer_budgets_ms.L2_hard,
     'core-stability': architecture.policy.gate_budgets_ms.core_stability_hard,
     extended: architecture.policy.gate_budgets_ms.extended_hard,
@@ -135,13 +146,41 @@ function validateEvidenceRoot({ architecture, evidenceRoot, gate }) {
   return failures;
 }
 
+function validateFirstPartyPrerequisite(evidenceRoot, gate) {
+  if (!['direct-nimi', 'partner-core'].includes(gate)) return [];
+  const failures = [];
+  const indexPath = path.join(repoRoot, '.nimi', 'local', 'evidence', 'local-agent-full-chain', 'v2-index.json');
+  if (!fs.existsSync(indexPath)) return [`${gate} requires the current first-party evidence index`];
+  const index = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
+  const current = JSON.parse(fs.readFileSync(path.join(evidenceRoot, 'gate-ledger.json'), 'utf8'));
+  const required = gate === 'direct-nimi' ? ['first-run'] : ['first-run', 'direct-nimi'];
+  for (const priorGate of required) {
+    const priorRoot = index.gates?.[priorGate]?.evidenceRoot;
+    if (!priorRoot) {
+      failures.push(`${gate} prerequisite ${priorGate} is missing`);
+      continue;
+    }
+    const prior = JSON.parse(fs.readFileSync(path.join(priorRoot, 'gate-ledger.json'), 'utf8'));
+    if (prior.sourceState?.sourceDigest !== current.sourceState?.sourceDigest
+      || JSON.stringify(prior.candidateIdentity) !== JSON.stringify(current.candidateIdentity)
+      || prior.gate0ExecutionEvidenceRef !== current.gate0ExecutionEvidenceRef) {
+      failures.push(`${gate} does not reuse the exact ${priorGate} candidate and Gate 0 executionEvidenceRef`);
+    }
+  }
+  return failures;
+}
+
 const architecture = readLocalAgentTestArchitecture();
 const failures = validateArchitecture(architecture);
 const requestedGate = option('--gate');
 const requestedRoot = option('--evidence-root');
 if (requestedGate || requestedRoot) {
   if (!requestedGate || !requestedRoot) failures.push('--gate and --evidence-root must be provided together');
-  else failures.push(...validateEvidenceRoot({ architecture, evidenceRoot: path.resolve(requestedRoot), gate: requestedGate }));
+  else {
+    const evidenceRoot = path.resolve(requestedRoot);
+    failures.push(...validateEvidenceRoot({ architecture, evidenceRoot, gate: requestedGate }));
+    failures.push(...validateFirstPartyPrerequisite(evidenceRoot, requestedGate));
+  }
 } else {
   const indexPath = path.join(repoRoot, '.nimi', 'local', 'evidence', 'local-agent-full-chain', 'v2-index.json');
   if (!fs.existsSync(indexPath)) failures.push(`missing I7 evidence index ${indexPath}`);

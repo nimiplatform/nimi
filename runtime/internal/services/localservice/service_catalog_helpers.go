@@ -233,7 +233,7 @@ func modelHealth(model *runtimev1.LocalAssetRecord) *runtimev1.LocalAssetHealth 
 
 func mergeInferencePayload(req *runtimev1.AppendInferenceAuditRequest) *structpb.Struct {
 	payload := map[string]any{
-		"targetId":        strings.TrimSpace(req.GetTargetId()),
+		"targetId":     strings.TrimSpace(req.GetTargetId()),
 		"source":       strings.TrimSpace(req.GetSource()),
 		"provider":     strings.TrimSpace(req.GetProvider()),
 		"modality":     strings.TrimSpace(req.GetModality()),

@@ -53,10 +53,33 @@ governed by
 `.nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml` (S-SURFACE-009);
 each group tracks alignment status and phase independently.
 
-`runtime-method-groups.yaml` is not the cross-language core method source.
-Cross-language core method truth comes from Runtime proto plus admitted
-generator/spec inputs under `S-SURFACE-019`, and generated Runtime bindings
-must not use the TypeScript facade table as selective omission authority.
+`runtime-method-groups.yaml` is not the cross-language core method source and
+is not protected Desktop admission authority. Cross-language core method truth
+comes from Runtime proto plus admitted generator/spec inputs under
+`S-SURFACE-019`, and generated Runtime bindings must not use the TypeScript
+facade table as selective omission authority.
+
+The sole protected first-party Desktop operation-set input is Runtime's
+`first-party-protected-runtime-profiles.yaml` under `K-PLOCAL-006`. SDK codegen
+must join that registry to RPC method/kind authority and emit closed
+`DesktopMachineProductRuntimeMethods` and
+`DesktopAccountProductRuntimeMethods` types plus purpose-specific machine and
+account intent clients. Exact public names may evolve only through this rule and
+the generated projection; the method memberships cannot be copied into an SDK
+table. Desktop production code must not import, return, store, cast to, or
+construct the full `Runtime` facade. A profile-external method is a generation,
+type, and structural-gate failure, not a deferred carrier error.
+
+Host injection supplies transport and selects a generated named intent outside
+renderer control. SDK/renderer inputs expose no endpoint, carrier, profile,
+role, principal, app id, account, owner authority, session, boot epoch, token,
+grant, scope, metadata authority, or arbitrary method id. Account-client calls
+and streams bind Runtime's current account generation and surface typed
+relogin/retry state after logout, switch or generation change; they never
+silently reopen. First-party product clients are distinct from third-party app
+permissions and must not project permission/grant UX. The independent Runtime
+account/Realm broker remains a separate narrow client and does not merge into
+the machine or account product method groups.
 
 app-facing `runtime.route.*` route projection surface 是例外的 host-typed logical surface，遵循 `runtime-route-contract.md`（`S-RUNTIME-074` ~ `S-RUNTIME-078`）。该例外覆盖 `listOptions / resolve / checkHealth / describe` 的 app-facing facade，但不得被误写成新增 daemon 顶层 RPC 投影，且不得把 SDK projection 升级为 catalog、readiness、capability 或 fallback policy authority。
 
@@ -176,9 +199,13 @@ It uses an explicit-maintenance plus consistency-check model:
   drift.
 
 The table is not a cross-language core method source, not an omission list for
-generated Runtime bindings, and not a release waiver for any generated core
-language. Generated Runtime bindings derive their core method truth from Runtime
-proto plus admitted generator/spec inputs under `S-SURFACE-019`.
+generated Runtime bindings, not protected Desktop admission authority, and not
+a release waiver for any generated core language. Generated Runtime bindings
+derive their core method truth from Runtime proto plus admitted generator/spec
+inputs under `S-SURFACE-019`. Protected Desktop narrow clients derive their
+membership only from Runtime's `first-party-protected-runtime-profiles.yaml` and
+must fail generation when the profile row, RPC kind, intent, owner postcondition,
+negative-test class, or gate reference is missing or contradictory.
 
 ## S-SURFACE-010 Realm Dynamic Envelope Allowlist
 

@@ -266,6 +266,7 @@
         "type NimiElectronCommandHandlerInput",
         "type NimiElectronConfirmDialogPayload",
         "type NimiElectronConfirmDialogResult",
+        "type NimiElectronDesktopHost",
         "type NimiElectronDesktopOpenFetch",
         "type NimiElectronDesktopOpenFetchResponse",
         "type NimiElectronDesktopOpenHost",
@@ -467,13 +468,6 @@
         "export { createRendererFlowId, resolveRendererSessionTraceId} from './session-trace.js';",
         "export { emitRendererLog, logRendererEvent, toRendererLogMessage} from './emit.js';",
         "export { emitRuntimeLog, setRuntimeLogger, toRuntimeLogMessage} from './runtime-log.js';"
-      ]
-    },
-    {
-      "exportKey": "./telemetry/error-boundary",
-      "source": "kit/telemetry/src/error-boundary/index.ts",
-      "exports": [
-        "export { ShellErrorBoundary} from './shell-error-boundary.js';"
       ]
     }
   ]

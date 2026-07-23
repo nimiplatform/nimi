@@ -39,6 +39,7 @@ type LocalAppOperationAuthorizer interface {
 
 type ProtectedGeneratedVoiceAuthorizer interface {
 	AuthorizeProtectedGeneratedVoiceArtifact(context.Context, ArtifactRecord) bool
+	AuthorizeProtectedGeneratedVoiceCleanup(context.Context, GeneratedVoiceArtifactSelector) bool
 }
 
 type Option func(*Service)
@@ -62,7 +63,6 @@ func (s *Service) CleanupGeneratedVoiceArtifacts(
 	ctx context.Context,
 	req *runtimev1.CleanupGeneratedVoiceArtifactsRequest,
 ) (*runtimev1.CleanupGeneratedVoiceArtifactsResponse, error) {
-	_ = ctx
 	agentID := ""
 	conversationAnchorID := ""
 	if req != nil {
@@ -72,10 +72,16 @@ func (s *Service) CleanupGeneratedVoiceArtifacts(
 	if (agentID == "" && conversationAnchorID == "") || s.store == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
 	}
-	deleted, err := s.store.CleanupGeneratedVoiceArtifacts(GeneratedVoiceArtifactSelector{
+	selector := GeneratedVoiceArtifactSelector{
 		AgentID:              agentID,
 		ConversationAnchorID: conversationAnchorID,
-	})
+	}
+	if principal, protected := protectedprincipal.AttachedToContext(ctx); protected &&
+		(!principal.Valid() || s.protectedGeneratedVoiceAuthorizer == nil ||
+			!s.protectedGeneratedVoiceAuthorizer.AuthorizeProtectedGeneratedVoiceCleanup(ctx, selector)) {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
+	}
+	deleted, err := s.store.CleanupGeneratedVoiceArtifacts(selector)
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
 	}
@@ -128,7 +134,10 @@ func (s *Service) ReadArtifactBytes(
 	if s == nil || s.store == nil {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
 	}
-	_, protectedCaller := protectedprincipal.FromContext(ctx)
+	principal, protectedCaller := protectedprincipal.AttachedToContext(ctx)
+	if protectedCaller && !principal.Valid() {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
+	}
 	now := s.now().UTC()
 	var decision accountservice.LocalAppCallerDecision
 	if !protectedCaller {

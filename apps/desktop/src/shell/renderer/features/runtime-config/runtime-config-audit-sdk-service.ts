@@ -1,8 +1,8 @@
 import {
   NIMI_RUNTIME_REASON_CODES,
   createNimiDesktopAuditProjectionClient,
-  type Runtime,
 } from '@nimiplatform/sdk/runtime';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import { asNimiError } from '@nimiplatform/sdk/types';
 import type {
   ListDesktopAuditEventsRequest,
@@ -36,7 +36,7 @@ function withAuditError<T>(value: T | Promise<T>): Promise<T> {
   });
 }
 
-type RuntimeAuditClient = Runtime['audit'];
+type RuntimeAuditClient = ReturnType<DesktopRendererSdkPort['auditAdmin']>;
 
 export function dateToTimestamp(date: Date): { seconds: string; nanos: number } {
   const ms = date.getTime();

@@ -3,7 +3,7 @@ import {
   type NimiRuntimeLocalAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { getDesktopRuntime } from '../sdk/desktop-nimi-client-session';
+import { getDesktopLocalAssetAdminClient } from '../sdk/desktop-nimi-client-session';
 import { safeErrorMessage } from './runtime-bootstrap-utils';
 
 type GoRuntimeSyncResult = {
@@ -27,7 +27,7 @@ type BootstrapLocalRuntimeDeps = {
 };
 
 const runtimeBootstrapLocalModelCenterClient = createNimiRuntimeLocalModelCenterClient({
-  local: () => getDesktopRuntime().local,
+  local: getDesktopLocalAssetAdminClient,
 });
 
 function defaultDeps(): BootstrapLocalRuntimeDeps {

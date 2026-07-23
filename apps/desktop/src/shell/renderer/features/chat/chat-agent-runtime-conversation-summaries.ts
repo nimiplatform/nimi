@@ -118,7 +118,7 @@ export async function listRuntimeAgentConversationSummaries(
 
 function createDesktopRuntimeAgentConversationSummariesClient(sdk: DesktopRendererSdkPort) {
   return createNimiRuntimeAgentConsumeClient({
-    runtime: { agents: sdk.runtime().agents },
+    runtime: { agents: sdk.accountProduct().agents },
     runtimeAppId: sdk.appId(),
   });
 }

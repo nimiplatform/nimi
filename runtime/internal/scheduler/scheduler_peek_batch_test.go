@@ -70,7 +70,7 @@ func TestPeekDependencyDenialFires(t *testing.T) {
 	})
 
 	j := peekSingleTarget(s, "app-a", SchedulingEvaluationTarget{
-		TargetID:     "core:runtime",
+		TargetID:  "core:runtime",
 		ProfileID: "image-gpu-profile",
 	})
 	if j.State != StateDenied {
@@ -105,7 +105,7 @@ func TestPeekDependencyDenialSkippedWithoutChecker(t *testing.T) {
 	// No dependency checker set
 
 	j := peekSingleTarget(s, "app-a", SchedulingEvaluationTarget{
-		TargetID:     "core:runtime",
+		TargetID:  "core:runtime",
 		ProfileID: "some-profile",
 	})
 	// Without checker, profile identity is ignored - should not deny
@@ -123,7 +123,7 @@ func TestPeekDependencyDenialFeasibleContinuesToRiskAssessment(t *testing.T) {
 	})
 
 	j := peekSingleTarget(s, "app-a", SchedulingEvaluationTarget{
-		TargetID:     "core:runtime",
+		TargetID:  "core:runtime",
 		ProfileID: "ok-profile",
 	})
 	if j.State != StateRunnable {
@@ -144,7 +144,7 @@ func TestPeekStaticDenialTakesPrecedenceOverDependencyDenial(t *testing.T) {
 	})
 
 	j := peekSingleTarget(s, "app-a", SchedulingEvaluationTarget{
-		TargetID:     "core:runtime",
+		TargetID:  "core:runtime",
 		ProfileID: "some-profile",
 	})
 	if j.State != StateDenied {

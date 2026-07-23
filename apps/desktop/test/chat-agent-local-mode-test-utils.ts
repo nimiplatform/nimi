@@ -18,6 +18,7 @@ import {
 import { createNimiError, ReasonCode, type JsonObject } from '@nimiplatform/sdk/types';
 import {
   clearDesktopNimiClientSession,
+  createDesktopRuntimeAgentDiscoverySurface,
   setDesktopNimiClientSessionForTests,
   type DesktopNimiClientSession,
 } from '../src/shell/renderer/infra/sdk/desktop-nimi-client-session.js';
@@ -49,7 +50,12 @@ import type { DesktopRendererSdkPort } from '../src/shell/renderer/renderer/sdk-
 import { createDesktopRuntimeRouteAccess } from '../src/shell/renderer/infra/runtime-route-host-access.js';
 
 const TEST_CHAT_SCOPE_REF = createNimiBuiltInChatAIScopeRef('agent');
-let currentDesktopTestSession: DesktopNimiClientSession | null = null;
+type DesktopTestNimiClientSession = DesktopNimiClientSession & {
+  readonly runtime: any;
+  readonly accountRuntime: any;
+};
+
+let currentDesktopTestSession: DesktopTestNimiClientSession | null = null;
 
 function createEmptyNimiAIConfig() {
   return createSdkEmptyAIConfig(TEST_CHAT_SCOPE_REF);
@@ -341,7 +347,6 @@ function createDesktopTestNimiClientSession(input: {
   const session = {
     appId: input.appId,
     runtimeTransport: normalizeDesktopTestRuntimeTransport(input.runtimeTransport),
-    client: {},
     accountCaller: createDefaultDesktopTestAccountCaller(),
     get runtime() {
       return currentRuntime;
@@ -349,12 +354,36 @@ function createDesktopTestNimiClientSession(input: {
     set runtime(nextRuntime: unknown) {
       currentRuntime = normalizeDesktopTestRuntime(input.appId, nextRuntime);
     },
+    get runtimeClients() {
+      const runtime = currentRuntime as Record<string, unknown>;
+      return {
+        machineProduct: {
+          local: runtime.local,
+          connectors: runtime.connectors,
+          audit: runtime.audit,
+          ai: runtime.ai,
+          scheduling: runtime.scheduling,
+          externalAgents: runtime.externalAgents,
+        },
+        accountProduct: {
+          agents: runtime.agents,
+          connectors: runtime.connectors,
+          apps: runtime.appLifecycle,
+          appMessages: runtime.appMessages,
+          artifacts: runtime.artifacts,
+          materializeRealmSource: runtime.materializeRealmSource,
+        },
+        agentPurpose: runtime.agents,
+        auth: runtime.auth,
+        aiScenarioJobs: runtime.ai,
+      };
+    },
     get accountRuntime() {
       return currentRuntime;
     },
     realm: createDefaultDesktopTestRealm(),
   } as unknown as DesktopNimiClientSession;
-  currentDesktopTestSession = session;
+  currentDesktopTestSession = session as unknown as DesktopTestNimiClientSession;
   setDesktopNimiClientSessionForTests(session);
   return session;
 }
@@ -369,7 +398,19 @@ function getDesktopTestRendererSdk(): DesktopRendererSdkPort {
   const runtimeRouteAccess = createDesktopRuntimeRouteAccess(() => runtime);
   return {
     appId: () => session.appId,
-    runtime: () => runtime,
+    machineProduct: () => runtime,
+    accountProduct: () => runtime,
+    appLifecycle: () => runtime.appLifecycle,
+    connectorAdmin: () => runtime.connectors,
+    localAssetAdmin: () => runtime.local,
+    localAudit: () => runtime.local,
+    auditAdmin: () => runtime.audit,
+    aiExecution: () => ({ ai: runtime.ai }),
+    routeHostAccessClient: () => runtime,
+    routeOptionsClient: () => runtime,
+    externalAgent: () => runtime.externalAgents,
+    runtimeAgentOwner: () => runtime.agents,
+    runtimeAgentDiscovery: createDesktopRuntimeAgentDiscoverySurface,
     runtimeAgentTurns: () => ({
       appId: session.appId,
       auth: accountRuntime.auth,

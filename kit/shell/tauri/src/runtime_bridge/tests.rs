@@ -174,6 +174,7 @@ fn runtime_bridge_unary_applies_trusted_metadata_before_override() {
     let payload = RuntimeBridgeUnaryPayload {
         method_id: RUNTIME_APP_GET_APP_STORAGE_METHOD_ID.to_string(),
         request_bytes_base64: String::new(),
+        product_intent: None,
         metadata: Some(RuntimeBridgeMetadata {
             surface_id: Some("renderer.surface".to_string()),
             ..RuntimeBridgeMetadata::default()

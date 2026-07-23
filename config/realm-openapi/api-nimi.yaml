@@ -4504,7 +4504,9 @@ components:
     OAuthTokenRequestDto:
       properties:
         client_id:
-          description: Public client identifier; must be in admitted set (R-OAUTH-007).
+          description: >-
+            Public client identifier; must be in admitted set
+            (rule.realm.oauth.r007).
           example: nimi-desktop
           type: string
         code:
@@ -4513,18 +4515,19 @@ components:
         code_verifier:
           description: >-
             PKCE code_verifier; SHA-256 hash must equal the code_challenge bound
-            at issuance (R-OAUTH-003 / R-OAUTH-006).
+            at issuance (rule.realm.oauth.r003 / rule.realm.oauth.r006).
           type: string
         grant_type:
           description: >-
             Must equal "authorization_code"; any other value fails-close
-            unsupported_grant_type (R-OAUTH-010).
+            unsupported_grant_type (rule.realm.oauth.r010).
           example: authorization_code
           type: string
         redirect_uri:
           description: >-
             Loopback redirect URI; must byte-for-byte match the redirect_uri
-            presented at /authorize (R-OAUTH-005 / R-OAUTH-006).
+            presented at /authorize (rule.realm.oauth.r005 /
+            rule.realm.oauth.r006).
           type: string
       required:
         - grant_type
@@ -9658,10 +9661,7 @@ components:
       type: http
 info:
   contact: {}
-  description: |-
-    The Nimi Social Platform API
-
-    Last updated: 2026-07-18T06:41:11.456Z
+  description: The Nimi Social Platform API
   title: Nimi Realm SDK API
   version: '1.0'
 openapi: 3.0.0
@@ -14216,7 +14216,7 @@ paths:
           required: false
           schema:
             type: string
-        - description: Canonical feed scope (R-FEED-005). Defaults to personal.
+        - description: Canonical feed scope (rule.realm.feed.r005). Defaults to personal.
           in: query
           name: scope
           required: false
@@ -14277,7 +14277,7 @@ paths:
           required: false
           schema:
             type: string
-        - description: Canonical feed scope (R-FEED-005). Defaults to personal.
+        - description: Canonical feed scope (rule.realm.feed.r005). Defaults to personal.
           in: query
           name: scope
           required: false

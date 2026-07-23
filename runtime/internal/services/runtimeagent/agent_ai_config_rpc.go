@@ -14,12 +14,15 @@ import (
 // (runtime.agent.ai_config.read/write) is enforced by the gRPC interceptor
 // scope map, and the handlers enforce payload admission fail-closed.
 
-func (s *Service) GetRuntimeAgentAIConfig(_ context.Context, req *runtimev1.GetRuntimeAgentAIConfigRequest) (*runtimev1.GetRuntimeAgentAIConfigResponse, error) {
+func (s *Service) GetRuntimeAgentAIConfig(ctx context.Context, req *runtimev1.GetRuntimeAgentAIConfigRequest) (*runtimev1.GetRuntimeAgentAIConfigResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "get runtime agent ai config request is required")
 	}
 	if s.isClosed() {
 		return nil, status.Error(codes.Unavailable, "runtime agent service is closed")
+	}
+	if err := s.authorizeProtectedAIConfigIdentity(ctx, req.GetContext(), "runtime.agent.read"); err != nil {
+		return nil, err
 	}
 	config, err := s.committedRuntimeAgentAIConfigForContext(req.GetContext())
 	if err != nil {
@@ -28,9 +31,12 @@ func (s *Service) GetRuntimeAgentAIConfig(_ context.Context, req *runtimev1.GetR
 	return &runtimev1.GetRuntimeAgentAIConfigResponse{Config: cloneRuntimeAgentAIConfig(config)}, nil
 }
 
-func (s *Service) UpsertRuntimeAgentAIConfig(_ context.Context, req *runtimev1.UpsertRuntimeAgentAIConfigRequest) (*runtimev1.UpsertRuntimeAgentAIConfigResponse, error) {
+func (s *Service) UpsertRuntimeAgentAIConfig(ctx context.Context, req *runtimev1.UpsertRuntimeAgentAIConfigRequest) (*runtimev1.UpsertRuntimeAgentAIConfigResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "upsert runtime agent ai config request is required")
+	}
+	if err := s.authorizeProtectedAIConfigIdentity(ctx, req.GetContext(), "runtime.agent.write"); err != nil {
+		return nil, err
 	}
 	config, err := s.upsertRuntimeAgentAIConfig(req.GetContext(), req.GetExpectedRevision(), req.GetIntents())
 	if err != nil {
@@ -39,12 +45,15 @@ func (s *Service) UpsertRuntimeAgentAIConfig(_ context.Context, req *runtimev1.U
 	return &runtimev1.UpsertRuntimeAgentAIConfigResponse{Config: config}, nil
 }
 
-func (s *Service) GetRuntimeAgentAIConfigReadiness(_ context.Context, req *runtimev1.GetRuntimeAgentAIConfigReadinessRequest) (*runtimev1.GetRuntimeAgentAIConfigReadinessResponse, error) {
+func (s *Service) GetRuntimeAgentAIConfigReadiness(ctx context.Context, req *runtimev1.GetRuntimeAgentAIConfigReadinessRequest) (*runtimev1.GetRuntimeAgentAIConfigReadinessResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "get runtime agent ai config readiness request is required")
 	}
 	if s.isClosed() {
 		return nil, status.Error(codes.Unavailable, "runtime agent service is closed")
+	}
+	if err := s.authorizeProtectedAIConfigIdentity(ctx, req.GetContext(), "runtime.agent.read"); err != nil {
+		return nil, err
 	}
 	config, err := s.committedRuntimeAgentAIConfigForContext(req.GetContext())
 	if err != nil {
@@ -60,6 +69,18 @@ func (s *Service) GetRuntimeAgentAIConfigReadiness(_ context.Context, req *runti
 	return &runtimev1.GetRuntimeAgentAIConfigReadinessResponse{Snapshot: snapshot}, nil
 }
 
+func (s *Service) authorizeProtectedAIConfigIdentity(
+	ctx context.Context,
+	requestContext *runtimev1.AgentRequestContext,
+	capability string,
+) error {
+	identity, err := localAgentIdentityFromContext(requestContext)
+	if err != nil {
+		return err
+	}
+	return s.authorizeBundledAvatarIdentity(ctx, requestContext, identity, capability)
+}
+
 // SubscribeRuntimeAgentAIConfigReadiness delivers the initial snapshot immediately,
 // then a new snapshot on every config mutation and readiness recompute
 // (K-AGCORE-149). The seam is domain-scoped: it never rides the agent-scoped
@@ -70,6 +91,9 @@ func (s *Service) SubscribeRuntimeAgentAIConfigReadiness(req *runtimev1.Subscrib
 	}
 	if s.isClosed() {
 		return status.Error(codes.Unavailable, "runtime agent service is closed")
+	}
+	if err := s.authorizeProtectedAIConfigIdentity(stream.Context(), req.GetContext(), "runtime.agent.read"); err != nil {
+		return err
 	}
 	config, err := s.committedRuntimeAgentAIConfigForContext(req.GetContext())
 	if err != nil {

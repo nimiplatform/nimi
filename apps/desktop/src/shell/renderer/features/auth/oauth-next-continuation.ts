@@ -14,28 +14,28 @@
  * do not match the allowlisted origin are silently dropped.
  */
 
-const APPS_WEB_VITE_REALM_ENV_KEYS = [
-  'VITE_NIMI_REALM_BASE_URL',
-  'NIMI_REALM_URL',
-] as const;
-
 function readApiOriginAllowlist(): string[] {
   const allowlist: string[] = [];
   // In Vite production / dev builds, env values are surfaced via
   // `import.meta.env`. In the Node `node:test` runtime used by the desktop
   // test harness, those values are exposed via `process.env`. Prefer the
   // Vite shape but fall back so the helper is testable without Vite.
-  let env: Record<string, string | undefined> = {};
+  let viteRealmBaseUrl = '';
   try {
-    env = (import.meta as { env?: Record<string, string | undefined> }).env || {};
+    viteRealmBaseUrl = String(import.meta.env.VITE_NIMI_REALM_BASE_URL || '').trim();
   } catch {
     // ignore
   }
   const processEnv = (typeof globalThis !== 'undefined'
     && (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env)
     || {};
-  for (const key of APPS_WEB_VITE_REALM_ENV_KEYS) {
-    const raw = String(env[key] || processEnv[key] || '').trim();
+  const candidates = [
+    viteRealmBaseUrl,
+    processEnv.VITE_NIMI_REALM_BASE_URL,
+    processEnv.NIMI_REALM_URL,
+  ];
+  for (const candidate of candidates) {
+    const raw = String(candidate || '').trim();
     if (!raw) continue;
     try {
       const origin = new URL(raw).origin;

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { UsageWindow } from '@nimiplatform/sdk/runtime/wire-types';
 import type { UsageStatRecord } from '@nimiplatform/sdk/runtime/wire-types';
-import type { Runtime } from '@nimiplatform/sdk/runtime';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { fetchUsageStats } from './runtime-config-audit-sdk-service.js';
 import { usePricingIndex, type PricingEntry } from './runtime-config-pricing-index.js';
@@ -141,7 +140,7 @@ export function mapUsageRecordsToEstimate(records: UsageStatRecord[]): Omit<Usag
 }
 
 async function loadUsageRecords(
-  runtimeAudit: Runtime['audit'],
+  runtimeAudit: ReturnType<import('../../renderer/sdk-port.js').DesktopRendererSdkPort['auditAdmin']>,
   usageWindow: UsageWindow,
 ): Promise<UsageStatRecord[]> {
   const output: UsageStatRecord[] = [];
@@ -204,7 +203,7 @@ export function useUsageEstimate(
       setLoading(true);
       setError(null);
       try {
-        const next = await loadUsageRecords(bindings.sdk.runtime().audit, usageWindow);
+        const next = await loadUsageRecords(bindings.sdk.auditAdmin(), usageWindow);
         if (canceled) {
           return;
         }

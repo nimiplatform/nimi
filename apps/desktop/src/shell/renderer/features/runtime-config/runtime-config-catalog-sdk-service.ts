@@ -1,16 +1,18 @@
 import {
   createNimiRuntimeModelCatalogClient,
   type NimiRuntimeModelCatalogConnectorClient,
-  type Runtime,
 } from '@nimiplatform/sdk/runtime';
 import { type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 
 const CATALOG_CALL_OPTIONS: RuntimeTypedCallOptions = {
   timeoutMs: 8000,
   metadata: { surfaceId: 'runtime.config' },
 };
 
-export function createRuntimeConfigCatalogClient(connectors: Runtime['connectors']) {
+export function createRuntimeConfigCatalogClient(
+  connectors: ReturnType<DesktopRendererSdkPort['connectorAdmin']>,
+) {
   const runtimeCatalogConnectors: NimiRuntimeModelCatalogConnectorClient = {
     listModelCatalogProviders: (request, options) => connectors.listModelCatalogProviders(request, options),
     listCatalogProviderModels: (request, options) => connectors.listCatalogProviderModels(request, options),

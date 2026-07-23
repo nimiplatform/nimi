@@ -226,6 +226,27 @@ updater may instead pass the canonical user-config `dataRootRef` as an explicit
 selection, but the installer and Runtime never consume any other user-config
 field.
 
+### First-party product acceptance build profile
+
+The developer-signed `first_party_product_acceptance` build profile is a
+separate closed, non-release, non-promotable exception for installed-product
+acceptance against the admitted local Realm development deployment. It changes
+only the Runtime account Realm, OAuth, token, issuer, JWKS, and revocation base
+from the release-fixed `https://realm.nimi.ai` to the build-fixed
+`http://localhost:3002`. The exact profile identity is compiled into the signed
+Runtime binary, recorded in its source-bound build record, and must match an
+explicit signed-installer mode. Environment, argv, mutable service state,
+renderer input, and arbitrary installer endpoint input cannot select or alter
+that endpoint.
+
+This profile does not admit a fixture, seed, provider endpoint, model default,
+data-root selection, alternate service principal, compatibility path, or
+dev-kernel checkpoint state. It uses ordinary product configuration and state
+semantics apart from the exact local Realm endpoint projection. A release
+`production_build` continues to use only `https://realm.nimi.ai`, and a
+`dev_kernel_checkpoint` candidate remains the only build that may carry its
+separately bounded provider fixture and seeded checkpoint identity.
+
 ## K-CFG-016 Transition Backup & Drift Boundary
 
 Automatic backups cannot restore older security-critical generations, executable trust,

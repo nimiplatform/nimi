@@ -326,7 +326,7 @@ export function PostCard(input: PostCardProps) {
   const handleCopyLink = useCallback(async () => {
     ui.togglePostMenu();
     const webBaseUrl =
-      (import.meta as { env?: Record<string, string> }).env?.VITE_WEB_BASE_URL ?? 'https://nimi.ai';
+      import.meta.env.VITE_WEB_BASE_URL || 'https://nimi.ai';
     const postLink = `${webBaseUrl}/posts/${post.id}`;
     try {
       await actionAdapter.copyText(postLink);

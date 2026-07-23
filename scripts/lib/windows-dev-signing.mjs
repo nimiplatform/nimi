@@ -17,6 +17,14 @@ function runSigningHelper(mode, paths = [], options = {}) {
   if (process.platform !== 'win32') {
     throw new Error('Windows development signing is available only on Windows');
   }
+  if (paths.length > 1) {
+    const payloads = paths.map((filePath) => runSigningHelper(mode, [filePath], options));
+    return {
+      ...payloads[0],
+      signatures: payloads.flatMap((payload) => payload.signatures || []),
+      applicationControlEvents: payloads.flatMap((payload) => payload.applicationControlEvents || []),
+    };
+  }
   const args = [
     '-NoProfile',
     '-ExecutionPolicy',
@@ -25,7 +33,7 @@ function runSigningHelper(mode, paths = [], options = {}) {
     scriptPath,
     '-Mode',
     mode,
-    ...paths.flatMap((filePath) => ['-Path', path.resolve(filePath)]),
+    ...(paths.length > 0 ? ['-Path', ...paths.map((filePath) => path.resolve(filePath))] : []),
     '-Json',
   ];
   const powershellPath = resolveWindowsPowerShell7(options);

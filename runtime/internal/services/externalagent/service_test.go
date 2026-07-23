@@ -77,6 +77,31 @@ func TestIssueTokenValidatesRequiredFields(t *testing.T) {
 	}
 }
 
+func TestM1ExternalAgentRegistryEmptyReasons(t *testing.T) {
+	t.Run("RevokeExternalAgentToken", func(t *testing.T) {
+		svc := newTestService()
+		before, err := svc.ListExternalAgentTokens(context.Background(), &runtimev1.ExternalAgentListTokensRequest{})
+		if err != nil || len(before.GetTokens()) != 0 {
+			t.Fatalf("pre-revoke ledger=%+v err=%v", before, err)
+		}
+		ack, err := svc.RevokeExternalAgentToken(context.Background(), &runtimev1.ExternalAgentRevokeTokenRequest{TokenId: "token-m1"})
+		if ack != nil || status.Code(err) != codes.FailedPrecondition {
+			t.Fatalf("reserved revoke ack=%+v err=%v", ack, err)
+		}
+		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_APP_GRANT_INVALID {
+			t.Fatalf("reserved revoke reason=%v present=%v", reason, ok)
+		}
+		metadata, ok := grpcerr.ExtractReasonMetadata(err)
+		if !ok || metadata["action_hint"] != "EXTERNAL_AGENT_ACTION_REGISTRY_EMPTY" {
+			t.Fatalf("reserved revoke metadata=%#v", metadata)
+		}
+		after, err := svc.ListExternalAgentTokens(context.Background(), &runtimev1.ExternalAgentListTokensRequest{})
+		if err != nil || len(after.GetTokens()) != 0 {
+			t.Fatalf("post-revoke ledger=%+v err=%v", after, err)
+		}
+	})
+}
+
 func TestListAndRevokeUseRuntimeOwnedEmptyLedger(t *testing.T) {
 	svc := newTestService()
 	list, err := svc.ListExternalAgentTokens(context.Background(), &runtimev1.ExternalAgentListTokensRequest{})

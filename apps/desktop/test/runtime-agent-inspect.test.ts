@@ -521,8 +521,10 @@ function createDesktopRuntimeAgentInspectTestAdapter(runtime: {
   setDesktopNimiClientSessionForTests({
     appId: runtime.appId,
     runtimeTransport: { type: 'electron-ipc' },
-    client: {},
-    runtime: { agents: runtime.agent },
+    runtimeClients: {
+      accountProduct: { agents: runtime.agent },
+      agentPurpose: runtime.agent,
+    },
     accountRuntime: { auth: runtime.auth },
     accountCaller: {},
     realm: {},

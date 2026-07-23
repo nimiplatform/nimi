@@ -64,12 +64,12 @@ func TestRealmOAuthPresenceProviderCompletesFreshReauth(t *testing.T) {
 			tokenForm = r.PostForm
 			w.Header().Set("content-type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{
-				"access_token":          "fresh-access",
-				"refresh_token":         "fresh-refresh",
-				"token_type":            "Bearer",
-				"expires_in":            300,
-				"account_id":            "acct-1",
-				"display_name":          "Alice",
+				"access_token":         "fresh-access",
+				"refresh_token":        "fresh-refresh",
+				"token_type":           "Bearer",
+				"expires_in":           300,
+				"account_id":           "acct-1",
+				"display_name":         "Alice",
 				"realm_environment_id": "realm-local",
 			})
 		default:

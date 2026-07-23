@@ -182,7 +182,7 @@ export function useAgentConversationVoiceSession(
           signal: abortController.signal,
         }, {
           buildRuntimeCallOptionsImpl: sdk.runtimeRouteAccess().buildCallOptions,
-          getRuntimeImpl: sdk.runtime,
+          getRuntimeImpl: sdk.aiExecution,
           getAppIdImpl: sdk.appId,
         });
         if (input.activeThreadId) {
@@ -378,7 +378,7 @@ export function useAgentConversationVoiceSession(
             signal: abortController.signal,
           }, {
             buildRuntimeCallOptionsImpl: sdk.runtimeRouteAccess().buildCallOptions,
-            getRuntimeImpl: sdk.runtime,
+            getRuntimeImpl: sdk.aiExecution,
             getAppIdImpl: sdk.appId,
           });
           if (input.activeThreadId) {

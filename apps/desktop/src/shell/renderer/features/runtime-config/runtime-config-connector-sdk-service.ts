@@ -14,7 +14,6 @@ import {
   type NimiRuntimeConnectorModelInfo,
   type NimiRuntimeConnectorProjection,
   type NimiRuntimeConnectorProjectionInput,
-  type Runtime,
 } from '@nimiplatform/sdk/runtime';
 import { type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
 import { type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/wire-types';
@@ -23,6 +22,7 @@ import type {
   ApiConnectorAuthModeV11,
   ApiVendor,
 } from './runtime-config-state-types';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 
 const CONNECTOR_CALL_OPTIONS: RuntimeTypedCallOptions = {
   timeoutMs: 5000,
@@ -92,16 +92,16 @@ function runtimeConnectorAuthOptionToApiOption(
 }
 
 export function createRuntimeConfigConnectorSdkService(
-  getRuntime: () => Runtime,
+  getConnectors: () => ReturnType<DesktopRendererSdkPort['connectorAdmin']>,
 ): RuntimeConfigConnectorSdkService {
   const runtimeConnectors: NimiRuntimeConnectorClient = Object.freeze({
-    listProviderCatalog: (request, options) => getRuntime().connectors.listProviderCatalog(request, options),
-    listConnectors: (request, options) => getRuntime().connectors.listConnectors(request, options),
-    createConnector: (request, options) => getRuntime().connectors.createConnector(request, options),
-    updateConnector: (request, options) => getRuntime().connectors.updateConnector(request, options),
-    deleteConnector: (request, options) => getRuntime().connectors.deleteConnector(request, options),
-    testConnector: (request, options) => getRuntime().connectors.testConnector(request, options),
-    listConnectorModels: (request, options) => getRuntime().connectors.listConnectorModels(request, options),
+    listProviderCatalog: (request, options) => getConnectors().listProviderCatalog(request, options),
+    listConnectors: (request, options) => getConnectors().listConnectors(request, options),
+    createConnector: (request, options) => getConnectors().createConnector(request, options),
+    updateConnector: (request, options) => getConnectors().updateConnector(request, options),
+    deleteConnector: (request, options) => getConnectors().deleteConnector(request, options),
+    testConnector: (request, options) => getConnectors().testConnector(request, options),
+    listConnectorModels: (request, options) => getConnectors().listConnectorModels(request, options),
   });
   const inventory = createNimiRuntimeConnectorInventoryClient({
     connectors: runtimeConnectors,

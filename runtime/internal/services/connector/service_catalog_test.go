@@ -146,6 +146,224 @@ voices:
 	}
 }
 
+func TestM1ConnectorCatalogAndOwnershipMatrix(t *testing.T) {
+	const customCatalog = `version: 1
+provider: dashscope
+catalog_version: m1-custom
+models:
+  - provider: dashscope
+    model_id: m1-account-model
+    model_type: chat
+    updated_at: "2026-07-22"
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: "unknown"
+      output: "unknown"
+      currency: CNY
+      as_of: "2026-07-22"
+      notes: m1 test
+    source_ref:
+      url: https://example.com/m1
+      retrieved_at: "2026-07-22"
+      note: m1 test
+voices: []
+`
+	assertCode := func(t *testing.T, err error, want codes.Code) {
+		t.Helper()
+		if status.Code(err) != want {
+			t.Fatalf("error code=%v want=%v err=%v", status.Code(err), want, err)
+		}
+	}
+
+	t.Run("ListProviderCatalog", func(t *testing.T) {
+		svc := newTestServiceWithModelCatalog(t)
+		machine, err := svc.ListProviderCatalog(context.Background(), &runtimev1.ListProviderCatalogRequest{})
+		if err != nil || len(machine.GetProviders()) == 0 {
+			t.Fatalf("machine provider catalog=%+v err=%v", machine, err)
+		}
+		account, err := svc.ListProviderCatalog(userContext("account-a"), &runtimev1.ListProviderCatalogRequest{})
+		if err != nil || len(account.GetProviders()) != len(machine.GetProviders()) {
+			t.Fatalf("account input altered machine catalog: machine=%d account=%d err=%v", len(machine.GetProviders()), len(account.GetProviders()), err)
+		}
+	})
+
+	t.Run("ListModelCatalogProviders", func(t *testing.T) {
+		svc := newTestServiceWithModelCatalog(t)
+		if _, err := svc.UpsertModelCatalogProvider(userContext("account-a"), &runtimev1.UpsertModelCatalogProviderRequest{Provider: "dashscope", Yaml: customCatalog}); err != nil {
+			t.Fatalf("upsert account catalog: %v", err)
+		}
+		owned, err := svc.ListModelCatalogProviders(userContext("account-a"), &runtimev1.ListModelCatalogProvidersRequest{})
+		if err != nil {
+			t.Fatalf("list owned providers: %v", err)
+		}
+		other, err := svc.ListModelCatalogProviders(userContext("account-b"), &runtimev1.ListModelCatalogProvidersRequest{})
+		if err != nil {
+			t.Fatalf("list other providers: %v", err)
+		}
+		var ownedYAML, otherYAML string
+		for _, provider := range owned.GetProviders() {
+			if provider.GetProvider() == "dashscope" {
+				ownedYAML = provider.GetYaml()
+			}
+		}
+		for _, provider := range other.GetProviders() {
+			if provider.GetProvider() == "dashscope" {
+				otherYAML = provider.GetYaml()
+			}
+		}
+		if !strings.Contains(ownedYAML, "m1-account-model") || strings.Contains(otherYAML, "m1-account-model") {
+			t.Fatalf("account catalog overlay leaked: owned=%q other=%q", ownedYAML, otherYAML)
+		}
+	})
+
+	t.Run("ListCatalogProviderModels", func(t *testing.T) {
+		svc := newTestServiceWithModelCatalog(t)
+		response, err := svc.ListCatalogProviderModels(userContext("account-a"), &runtimev1.ListCatalogProviderModelsRequest{Provider: "dashscope", PageSize: 500})
+		if err != nil || response.GetProvider().GetProvider() != "dashscope" || len(response.GetModels()) == 0 {
+			t.Fatalf("provider models=%+v err=%v", response, err)
+		}
+	})
+
+	t.Run("GetCatalogModelDetail", func(t *testing.T) {
+		svc := newTestServiceWithModelCatalog(t)
+		models, err := svc.ListCatalogProviderModels(userContext("account-a"), &runtimev1.ListCatalogProviderModelsRequest{Provider: "dashscope", PageSize: 1})
+		if err != nil || len(models.GetModels()) != 1 {
+			t.Fatalf("seed model=%+v err=%v", models, err)
+		}
+		modelID := models.GetModels()[0].GetModelId()
+		detail, err := svc.GetCatalogModelDetail(userContext("account-a"), &runtimev1.GetCatalogModelDetailRequest{Provider: "dashscope", ModelId: modelID})
+		if err != nil || detail.GetModel().GetModelId() != modelID {
+			t.Fatalf("model detail=%+v err=%v", detail, err)
+		}
+	})
+
+	t.Run("UpsertModelCatalogProvider", func(t *testing.T) {
+		svc := newTestServiceWithModelCatalog(t)
+		response, err := svc.UpsertModelCatalogProvider(userContext("account-a"), &runtimev1.UpsertModelCatalogProviderRequest{Provider: "dashscope", Yaml: customCatalog})
+		if err != nil || !response.GetProvider().GetHasOverlay() || !strings.Contains(response.GetProvider().GetYaml(), "m1-account-model") {
+			t.Fatalf("upsert provider=%+v err=%v", response, err)
+		}
+		_, err = svc.UpsertModelCatalogProvider(context.Background(), &runtimev1.UpsertModelCatalogProviderRequest{Provider: "dashscope", Yaml: customCatalog})
+		assertCode(t, err, codes.Unauthenticated)
+	})
+
+	t.Run("DeleteModelCatalogProvider", func(t *testing.T) {
+		svc := newTestServiceWithModelCatalog(t)
+		ctx := userContext("account-a")
+		if _, err := svc.UpsertModelCatalogProvider(ctx, &runtimev1.UpsertModelCatalogProviderRequest{Provider: "dashscope", Yaml: customCatalog}); err != nil {
+			t.Fatalf("seed provider: %v", err)
+		}
+		response, err := svc.DeleteModelCatalogProvider(ctx, &runtimev1.DeleteModelCatalogProviderRequest{Provider: "dashscope"})
+		if err != nil || !response.GetAck().GetOk() {
+			t.Fatalf("delete provider=%+v err=%v", response, err)
+		}
+		_, err = svc.DeleteModelCatalogProvider(context.Background(), &runtimev1.DeleteModelCatalogProviderRequest{Provider: "dashscope"})
+		assertCode(t, err, codes.Unauthenticated)
+	})
+
+	t.Run("UpsertCatalogModelOverlay", func(t *testing.T) {
+		svc := newTestServiceWithModelCatalog(t)
+		request := &runtimev1.UpsertCatalogModelOverlayRequest{Provider: "dashscope", Model: &runtimev1.CatalogModelInput{
+			Provider: "dashscope", ModelId: "m1-overlay-model", ModelType: "chat", UpdatedAt: "2026-07-22", Capabilities: []string{"text.generate"},
+			Pricing:   &runtimev1.CatalogPricing{Unit: "token", Input: "unknown", Output: "unknown", Currency: "CNY", AsOf: "2026-07-22", Notes: "m1 test"},
+			SourceRef: &runtimev1.CatalogSourceRef{Url: "https://example.com/m1-overlay", RetrievedAt: "2026-07-22", Note: "m1 test"},
+		}}
+		response, err := svc.UpsertCatalogModelOverlay(userContext("account-a"), request)
+		if err != nil || response.GetModel().GetModelId() != "m1-overlay-model" {
+			t.Fatalf("upsert overlay=%+v err=%v", response, err)
+		}
+		_, err = svc.GetCatalogModelDetail(userContext("account-b"), &runtimev1.GetCatalogModelDetailRequest{Provider: "dashscope", ModelId: "m1-overlay-model"})
+		assertCode(t, err, codes.NotFound)
+	})
+
+	t.Run("DeleteCatalogModelOverlay", func(t *testing.T) {
+		svc := newTestServiceWithModelCatalog(t)
+		ctx := userContext("account-a")
+		request := &runtimev1.UpsertCatalogModelOverlayRequest{Provider: "dashscope", Model: &runtimev1.CatalogModelInput{
+			Provider: "dashscope", ModelId: "m1-delete-overlay", ModelType: "chat", UpdatedAt: "2026-07-22", Capabilities: []string{"text.generate"},
+			Pricing:   &runtimev1.CatalogPricing{Unit: "token", Input: "unknown", Output: "unknown", Currency: "CNY", AsOf: "2026-07-22", Notes: "m1 test"},
+			SourceRef: &runtimev1.CatalogSourceRef{Url: "https://example.com/m1-delete", RetrievedAt: "2026-07-22", Note: "m1 test"},
+		}}
+		if _, err := svc.UpsertCatalogModelOverlay(ctx, request); err != nil {
+			t.Fatalf("seed overlay: %v", err)
+		}
+		response, err := svc.DeleteCatalogModelOverlay(ctx, &runtimev1.DeleteCatalogModelOverlayRequest{Provider: "dashscope", ModelId: "m1-delete-overlay"})
+		if err != nil || !response.GetAck().GetOk() {
+			t.Fatalf("delete overlay=%+v err=%v", response, err)
+		}
+		_, err = svc.GetCatalogModelDetail(ctx, &runtimev1.GetCatalogModelDetailRequest{Provider: "dashscope", ModelId: "m1-delete-overlay"})
+		assertCode(t, err, codes.NotFound)
+	})
+
+	connectorFixture := func(t *testing.T) (*Service, string) {
+		t.Helper()
+		svc := newTestServiceWithModelCatalog(t)
+		created, err := svc.CreateConnector(userContext("account-a"), &runtimev1.CreateConnectorRequest{Provider: "openai", ApiKey: "sk-m1", Label: "M1"})
+		if err != nil {
+			t.Fatalf("create connector: %v", err)
+		}
+		return svc, created.GetConnector().GetConnectorId()
+	}
+
+	t.Run("ListConnectors", func(t *testing.T) {
+		svc, connectorID := connectorFixture(t)
+		owned, err := svc.ListConnectors(userContext("account-a"), &runtimev1.ListConnectorsRequest{})
+		if err != nil || len(owned.GetConnectors()) != 1 || owned.GetConnectors()[0].GetConnectorId() != connectorID {
+			t.Fatalf("owned connectors=%+v err=%v", owned, err)
+		}
+		other, err := svc.ListConnectors(userContext("account-b"), &runtimev1.ListConnectorsRequest{})
+		if err != nil || len(other.GetConnectors()) != 0 {
+			t.Fatalf("other connectors=%+v err=%v", other, err)
+		}
+	})
+
+	t.Run("CreateConnector", func(t *testing.T) {
+		svc, connectorID := connectorFixture(t)
+		if strings.TrimSpace(connectorID) == "" {
+			t.Fatal("CreateConnector returned empty id")
+		}
+		owned, err := svc.ListConnectors(userContext("account-a"), &runtimev1.ListConnectorsRequest{})
+		if err != nil || len(owned.GetConnectors()) != 1 || owned.GetConnectors()[0].GetConnectorId() != connectorID {
+			t.Fatalf("created connector custody=%+v err=%v", owned, err)
+		}
+	})
+
+	t.Run("UpdateConnector", func(t *testing.T) {
+		svc, connectorID := connectorFixture(t)
+		wrongLabel := "wrong"
+		_, err := svc.UpdateConnector(userContext("account-b"), &runtimev1.UpdateConnectorRequest{ConnectorId: connectorID, Label: &wrongLabel, UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"label"}}})
+		assertCode(t, err, codes.NotFound)
+		ownedLabel := "owned"
+		updated, err := svc.UpdateConnector(userContext("account-a"), &runtimev1.UpdateConnectorRequest{ConnectorId: connectorID, Label: &ownedLabel, UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"label"}}})
+		if err != nil || updated.GetConnector().GetLabel() != "owned" {
+			t.Fatalf("owned update=%+v err=%v", updated, err)
+		}
+	})
+
+	t.Run("DeleteConnector", func(t *testing.T) {
+		svc, connectorID := connectorFixture(t)
+		_, err := svc.DeleteConnector(userContext("account-b"), &runtimev1.DeleteConnectorRequest{ConnectorId: connectorID})
+		assertCode(t, err, codes.NotFound)
+		response, err := svc.DeleteConnector(userContext("account-a"), &runtimev1.DeleteConnectorRequest{ConnectorId: connectorID})
+		if err != nil || !response.GetAck().GetOk() {
+			t.Fatalf("owned delete=%+v err=%v", response, err)
+		}
+	})
+
+	t.Run("TestConnector", func(t *testing.T) {
+		svc, connectorID := connectorFixture(t)
+		_, err := svc.TestConnector(userContext("account-b"), &runtimev1.TestConnectorRequest{ConnectorId: connectorID})
+		assertCode(t, err, codes.NotFound)
+	})
+
+	t.Run("ListConnectorModels", func(t *testing.T) {
+		svc, connectorID := connectorFixture(t)
+		_, err := svc.ListConnectorModels(userContext("account-b"), &runtimev1.ListConnectorModelsRequest{ConnectorId: connectorID})
+		assertCode(t, err, codes.NotFound)
+	})
+}
+
 func TestConnectorCheckOrderOwnerBeforeStatusBeforeCredential(t *testing.T) {
 	// K-AUTH-005: check order is owner → status → credential.
 	// Owner mismatch MUST return NOT_FOUND (information hiding), even if connector

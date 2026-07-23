@@ -50,7 +50,7 @@ test('Runtime Agent domain stays on SDK and Kit shared surfaces', () => {
   assert.doesNotMatch(streamAdapter, /recoverNimiRuntimeAgentTerminalSnapshot/);
   assert.doesNotMatch(streamAdapter, /summarizeNimiRuntimeAgentTimeline/);
   assert.match(avatarLiveInstanceBinding, /createNimiRuntimeAgentConsumeClient/);
-  assert.match(avatarLiveInstanceBinding, /input\.sdk\.runtime\(\)\.agents/);
+  assert.match(avatarLiveInstanceBinding, /input\.sdk\.accountProduct\(\)\.agents/);
   assert.match(avatarLiveInstanceBinding, /input\.sdk\.appId\(\)/);
   assert.match(avatarLiveInstanceBinding, /registerAvatarLiveInstance/);
   assert.doesNotMatch(avatarLiveInstanceBinding, /getPlatformClient/);

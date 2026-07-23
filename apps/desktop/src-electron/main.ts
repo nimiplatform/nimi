@@ -83,6 +83,7 @@ const localAssetProtocolHost: NimiElectronShellFileProtocolHost = createElectron
   },
 });
 let mainWindow: BrowserWindow | undefined;
+const desktopSenderInvalidationListeners = new Set<() => void>();
 let localDevelopmentHost: DesktopElectronLocalDevelopmentHost | undefined;
 let desktopOpenIntentHost: DesktopElectronOpenIntentHost | undefined;
 let bundledAvatarHost: DesktopElectronBundledAvatarHost | undefined;
@@ -144,6 +145,18 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       allowedOrigins: allowedRendererOrigins(),
       allowedRendererUrls: allowedRendererUrls(),
       ipcMain,
+      desktopHost: {
+        authorizeSender: (event) => {
+          const window = mainWindow;
+          return Boolean(window && !window.isDestroyed()
+            && event.sender === window.webContents
+            && event.senderFrame === window.webContents.mainFrame);
+        },
+        subscribeSenderInvalidation: (listener) => {
+          desktopSenderInvalidationListeners.add(listener);
+          return () => desktopSenderInvalidationListeners.delete(listener);
+        },
+      },
       commandHandlers: {
         ...localDevelopmentHost.commandHandlers,
         ...desktopOpenIntentHost.commandHandlers,
@@ -275,7 +288,12 @@ async function createMainWindow(): Promise<BrowserWindow> {
       app.quit();
     }
   });
+  const invalidateDesktopSender = () => {
+    for (const listener of desktopSenderInvalidationListeners) listener();
+  };
+  window.webContents.on('render-process-gone', invalidateDesktopSender);
   window.on('closed', () => {
+    invalidateDesktopSender();
     if (mainWindow === window) {
       mainWindow = undefined;
     }

@@ -7,6 +7,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/bundledavatar"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/grpc/codes"
@@ -30,6 +31,23 @@ func bundledAvatarPrincipal(ctx context.Context) (protectedprincipal.Principal, 
 	return principal, nil
 }
 
+func protectedAccountProductPrincipal(ctx context.Context, avatarCapability string) (protectedprincipal.Principal, bool, error) {
+	principal, attached := protectedprincipal.AttachedToContext(ctx)
+	if !attached {
+		return protectedprincipal.Principal{}, false, nil
+	}
+	if !principal.Valid() {
+		return protectedprincipal.Principal{}, true, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
+	if principal.ProfileID == protectedlocal.DesktopAccountProductProfileID && principal.AppID == "nimi.desktop" {
+		return principal, true, nil
+	}
+	if principal.ProfileID == bundledavatar.ProfileID && principal.AppID == bundledavatar.AppID && principal.Capability == avatarCapability {
+		return principal, true, nil
+	}
+	return protectedprincipal.Principal{}, true, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+}
+
 // authorizeBundledAvatarIdentity is the single Runtime Agent domain policy
 // adapter for checking a renderer-selected local Agent against the canonical
 // protected principal established by the transport interceptor.
@@ -39,11 +57,8 @@ func (s *Service) authorizeBundledAvatarIdentity(
 	identity localAgentIdentity,
 	capability string,
 ) error {
-	if !isBundledAvatarCapability(ctx, capability) {
-		return nil
-	}
-	principal, err := bundledAvatarPrincipal(ctx)
-	if err != nil {
+	principal, protected, err := protectedAccountProductPrincipal(ctx, capability)
+	if err != nil || !protected {
 		return err
 	}
 	if requestContext == nil || strings.TrimSpace(requestContext.GetAppId()) != principal.AppID {
@@ -62,8 +77,12 @@ func (s *Service) authorizeBundledAvatarIdentity(
 }
 
 func (s *Service) revalidateBundledAvatarIdentity(ctx context.Context, identity localAgentIdentity) error {
-	principal, err := bundledAvatarPrincipal(ctx)
-	if err != nil {
+	return s.revalidateProtectedAccountIdentity(ctx, identity)
+}
+
+func (s *Service) revalidateProtectedAccountIdentity(ctx context.Context, identity localAgentIdentity) error {
+	principal, protected, err := protectedAccountProductPrincipal(ctx, "runtime.agent.read")
+	if err != nil || !protected {
 		return err
 	}
 	if !principal.Owns(identity.OwnerUserID) {
@@ -72,11 +91,44 @@ func (s *Service) revalidateBundledAvatarIdentity(ctx context.Context, identity 
 	return nil
 }
 
-func validateBundledAvatarAgentSelector(selector *runtimev1.AgentRequestContext) error {
+func (s *Service) authorizeProtectedAccountAgent(
+	ctx context.Context,
+	selector *runtimev1.AgentRequestContext,
+	agentID string,
+	capability string,
+) (bool, error) {
+	principal, protected, err := protectedAccountProductPrincipal(ctx, capability)
+	if err != nil || !protected {
+		return protected, err
+	}
+	if selector == nil {
+		return true, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	if err := validateProtectedAccountAgentSelector(selector, principal); err != nil {
+		return true, err
+	}
+	entry, err := s.agentByID(strings.TrimSpace(agentID))
+	if err != nil {
+		return true, err
+	}
+	if !principal.Owns(entry.Agent.GetOwnerUserId()) {
+		return true, status.Error(codes.NotFound, "agent not found")
+	}
+	*selector = runtimev1.AgentRequestContext{
+		AppId:            principal.AppID,
+		SubjectUserId:    principal.AccountID,
+		OwnerUserId:      entry.Agent.GetOwnerUserId(),
+		RuntimeSourceRef: entry.Agent.GetRuntimeSourceRef(),
+		LocalAgentRef:    entry.Agent.GetLocalAgentRef(),
+	}
+	return true, nil
+}
+
+func validateProtectedAccountAgentSelector(selector *runtimev1.AgentRequestContext, principal protectedprincipal.Principal) error {
 	if selector == nil {
 		return nil
 	}
-	if appID := strings.TrimSpace(selector.GetAppId()); appID != "" && appID != bundledavatar.AppID {
+	if appID := strings.TrimSpace(selector.GetAppId()); appID != "" && appID != principal.AppID {
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
 	if strings.TrimSpace(selector.GetSubjectUserId()) != "" ||
@@ -88,15 +140,15 @@ func validateBundledAvatarAgentSelector(selector *runtimev1.AgentRequestContext)
 	return nil
 }
 
-func (s *Service) getBundledAvatarAgent(ctx context.Context, req *runtimev1.GetAgentRequest) (*runtimev1.GetAgentResponse, error) {
+func (s *Service) getProtectedAccountAgent(ctx context.Context, req *runtimev1.GetAgentRequest) (*runtimev1.GetAgentResponse, error) {
 	if req == nil || strings.TrimSpace(req.GetAgentId()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	if err := validateBundledAvatarAgentSelector(req.GetContext()); err != nil {
+	principal, protected, err := protectedAccountProductPrincipal(ctx, "runtime.agent.read")
+	if err != nil || !protected {
 		return nil, err
 	}
-	principal, err := bundledAvatarPrincipal(ctx)
-	if err != nil {
+	if err := validateProtectedAccountAgentSelector(req.GetContext(), principal); err != nil {
 		return nil, err
 	}
 	entry, err := s.agentByID(strings.TrimSpace(req.GetAgentId()))
@@ -115,12 +167,38 @@ func (s *Service) getBundledAvatarAgent(ctx context.Context, req *runtimev1.GetA
 
 // AuthorizeProtectedGeneratedVoiceArtifact validates the Runtime Agent-owned
 // artifact selector against the canonical protected principal.
-func (s *Service) AuthorizeProtectedGeneratedVoiceArtifact(ctx context.Context, record runtimeartifact.ArtifactRecord) bool {
-	if !isBundledAvatarCapability(ctx, "runtime.artifact.read") || record.GeneratedVoice == nil {
+func (s *Service) AuthorizeProtectedGeneratedVoiceCleanup(ctx context.Context, selector runtimeartifact.GeneratedVoiceArtifactSelector) bool {
+	principal, protected, err := protectedAccountProductPrincipal(ctx, "runtime.artifact.read")
+	if err != nil || !protected {
 		return false
 	}
-	principal, err := bundledAvatarPrincipal(ctx)
-	if err != nil {
+	agentID := strings.TrimSpace(selector.AgentID)
+	anchorID := strings.TrimSpace(selector.ConversationAnchorID)
+	if agentID != "" {
+		entry, lookupErr := s.agentByID(agentID)
+		if lookupErr != nil || !principal.Owns(entry.Agent.GetOwnerUserId()) {
+			return false
+		}
+	}
+	if anchorID != "" {
+		s.chatSurfaceMu.Lock()
+		anchor := s.chatAnchors[anchorID]
+		valid := anchor != nil && principal.Owns(anchor.OwnerUserID) &&
+			(agentID == "" || anchor.LocalAgentRef == agentID)
+		s.chatSurfaceMu.Unlock()
+		if !valid {
+			return false
+		}
+	}
+	return agentID != "" || anchorID != ""
+}
+
+func (s *Service) AuthorizeProtectedGeneratedVoiceArtifact(ctx context.Context, record runtimeartifact.ArtifactRecord) bool {
+	if record.GeneratedVoice == nil {
+		return false
+	}
+	principal, protected, err := protectedAccountProductPrincipal(ctx, "runtime.artifact.read")
+	if err != nil || !protected {
 		return false
 	}
 	agentID := strings.TrimSpace(record.GeneratedVoice.AgentID)

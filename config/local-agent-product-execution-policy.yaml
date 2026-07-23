@@ -1,4 +1,4 @@
-schema_version: nimi.local-agent-product-execution-policy/v3
+schema_version: nimi.local-agent-product-execution-policy/v4
 authority_class: non_authoritative_execution_manifest
 owner: platform-test-governance
 source_rules: [P-TEST-015, P-TEST-016, P-TEST-017, P-TEST-018, P-TEST-019]
@@ -33,6 +33,13 @@ suites:
     repeat_policy_ref: exhaustive
     repetition_boundary: property_generator_or_schema_mutator_inside_suite
 gates:
+  first_party_p4:
+    command: pnpm test:e2e:first-party-product:p4
+    suites: []
+    journeys:
+      - {journey_id: first-party-installed-first-run, repeats: 1}
+      - {journey_id: first-party-direct-nimi, repeats: 1}
+      - {journey_id: first-party-partner-core, repeats: 1}
   architecture:
     command: pnpm check:local-agent-product-architecture
     suites: []
@@ -68,13 +75,16 @@ gates:
 non_executable_historical_mappings: [full-chain-core, conversation-report-baseline, access-denial, pre-materialization-offline, turn-media-recovery, native-macos-input]
 current_evidence_posture:
   catalogued_point_count: 169
-  current_executable_point_binding_count: 83
-  historical_mapping_only_point_binding_count: 86
+  current_executable_point_binding_count: 91
+  historical_mapping_only_point_binding_count: 78
+  current_gate_2_product_point_binding_count: 8
+  current_gate_1_exact_typed_checkpoint_count: 8
   active_fixed_service_checkpoint_count: 22
   active_fixed_service_catalogued_point_binding_count: 0
   historical_mappings_count_as_current_evidence: false
   catalog_membership_counts_as_current_evidence: false
   current_point_coverage_status: incomplete
+  current_p4_declared_scope_coverage_status: complete
 required_local_pr_composition: [architecture, contract, core, acceptance]
 active_required_runner: tests/local-agent-product/harness/run-gate.mjs
 forbidden_active_paths:

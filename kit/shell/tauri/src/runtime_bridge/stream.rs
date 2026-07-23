@@ -59,7 +59,17 @@ fn decode_request_bytes(payload: &RuntimeBridgeStreamOpenPayload) -> Result<Vec<
         })
 }
 
+fn protected_desktop_stream_method(method_id: &str) -> bool {
+    nimi_shell_protected_local::DesktopMachineProductStreamMethod::from_method_id(method_id)
+        .is_some()
+        || nimi_shell_protected_local::DesktopAccountProductStreamMethod::from_method_id(method_id)
+            .is_some()
+}
+
 fn validate_stream_method(method_id: &str) -> Result<(), String> {
+    if protected_desktop_stream_method(method_id) {
+        return Ok(());
+    }
     if !super::is_allowlisted_method(method_id) {
         return Err(bridge_error("RUNTIME_BRIDGE_METHOD_FORBIDDEN", method_id));
     }
@@ -169,10 +179,20 @@ fn resolve_stream_id(payload: &RuntimeBridgeStreamOpenPayload) -> Result<String,
 pub async fn open_stream(
     app: &AppHandle,
     payload: &RuntimeBridgeStreamOpenPayload,
+    protected_main_window: bool,
 ) -> Result<RuntimeBridgeStreamOpenResult, String> {
     validate_stream_method(payload.method_id.as_str())?;
 
     let request_bytes = decode_request_bytes(payload)?;
+    if protected_desktop_stream_method(payload.method_id.as_str()) {
+        if !protected_main_window {
+            return Err(bridge_error(
+                "RUNTIME_BRIDGE_PROTECTED_MAIN_WINDOW_REQUIRED",
+                payload.method_id.as_str(),
+            ));
+        }
+        return open_protected_desktop_stream(app, payload, request_bytes).await;
+    }
     let path = tonic::codegen::http::uri::PathAndQuery::from_maybe_shared(
         payload.method_id.trim().to_string(),
     )
@@ -271,6 +291,88 @@ pub async fn open_stream(
     Ok(RuntimeBridgeStreamOpenResult { stream_id })
 }
 
+async fn open_protected_desktop_stream(
+    app: &AppHandle,
+    payload: &RuntimeBridgeStreamOpenPayload,
+    request_bytes: Vec<u8>,
+) -> Result<RuntimeBridgeStreamOpenResult, String> {
+    let timeout = payload
+        .timeout_ms
+        .filter(|value| *value > 0)
+        .map(std::time::Duration::from_millis);
+    let mut receiver = super::service_control::open_protected_desktop_stream(
+        payload.method_id.as_str(),
+        request_bytes,
+        timeout,
+    )
+    .await?;
+    let stream_id = resolve_stream_id(payload)?;
+    let event_name = super::stream_event_name_with_namespace(
+        payload.event_namespace.as_deref().unwrap_or(""),
+        stream_id.as_str(),
+    );
+    let app_handle = app.clone();
+    let stream_id_for_task = stream_id.clone();
+    let event_name_for_task = event_name.clone();
+    let task = tauri::async_runtime::spawn(async move {
+        while let Some(next) = receiver.recv().await {
+            match next {
+                Ok(chunk) => emit_stream_event(
+                    &app_handle,
+                    event_name_for_task.as_str(),
+                    RuntimeBridgeStreamEvent {
+                        stream_id: stream_id_for_task.clone(),
+                        event_type: "next",
+                        payload_bytes_base64: Some(
+                            base64::engine::general_purpose::STANDARD.encode(chunk),
+                        ),
+                        error: None,
+                    },
+                ),
+                Err(error) => {
+                    emit_stream_event(
+                        &app_handle,
+                        event_name_for_task.as_str(),
+                        RuntimeBridgeStreamEvent {
+                            stream_id: stream_id_for_task.clone(),
+                            event_type: "error",
+                            payload_bytes_base64: None,
+                            error: Some(RuntimeBridgeStreamError {
+                                reason_code: error.reason_code().to_string(),
+                                action_hint: "retry_verified_desktop_control_operation".to_string(),
+                                trace_id: String::new(),
+                                retryable: error.retryable(),
+                                message: error.reason_code().to_string(),
+                            }),
+                        },
+                    );
+                    break;
+                }
+            }
+        }
+        emit_stream_completed(
+            &app_handle,
+            event_name_for_task.as_str(),
+            stream_id_for_task.as_str(),
+        );
+        let mut guard = stream_registry()
+            .lock()
+            .expect("runtime stream registry lock poisoned");
+        guard.remove(stream_id_for_task.as_str());
+    });
+    register_stream_task(stream_id.as_str(), task)?;
+    Ok(RuntimeBridgeStreamOpenResult { stream_id })
+}
+
+pub fn close_all_streams() {
+    let mut guard = stream_registry()
+        .lock()
+        .expect("runtime stream registry lock poisoned");
+    for (_, handle) in guard.drain() {
+        handle.abort();
+    }
+}
+
 pub fn close_stream(payload: &RuntimeBridgeStreamClosePayload) -> Result<(), String> {
     let stream_id = payload.stream_id.trim();
     if stream_id.is_empty() {
@@ -302,8 +404,8 @@ pub fn close_stream(payload: &RuntimeBridgeStreamClosePayload) -> Result<(), Str
 #[cfg(test)]
 mod tests {
     use super::{
-        close_stream, decode_request_bytes, register_stream_task, stream_registry,
-        validate_stream_method,
+        close_stream, decode_request_bytes, protected_desktop_stream_method, register_stream_task,
+        stream_registry, validate_stream_method,
     };
     use crate::runtime_bridge::{RuntimeBridgeStreamClosePayload, RuntimeBridgeStreamOpenPayload};
     use serde_json::Value;
@@ -359,6 +461,27 @@ mod tests {
             .err()
             .unwrap_or_default()
             .contains("RUNTIME_BRIDGE_METHOD_UNARY_ONLY"));
+    }
+
+    #[test]
+    fn generated_machine_and_account_streams_use_protected_transport() {
+        for method_id in [
+            "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
+            "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
+            "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
+            "/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness",
+        ] {
+            assert!(protected_desktop_stream_method(method_id));
+            assert!(validate_stream_method(method_id).is_ok());
+        }
+        for method_id in [
+            "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",
+            "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",
+            "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents",
+        ] {
+            assert!(protected_desktop_stream_method(method_id));
+            assert!(validate_stream_method(method_id).is_ok());
+        }
     }
 
     #[test]

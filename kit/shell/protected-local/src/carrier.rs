@@ -1,13 +1,14 @@
 use crate::{
-    BundledAvatarRuntimeError, BundledAvatarRuntimeRequest,
-    BundledAvatarRuntimeResponse, BundledAvatarRuntimeStreamReceiver,
-    DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
+    BundledAvatarRuntimeError, BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse,
+    BundledAvatarRuntimeStreamReceiver, DesktopAccountActionRequest,
+    DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
     DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse,
+    DesktopAccountProductStreamRequest, DesktopAccountProductUnaryRequest,
     DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse,
     DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
-    DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, DesktopProductControlError,
-    DesktopProductControlRequest, DesktopProductControlResponse, DesktopRuntimeConsumerError,
-    DesktopRuntimeConsumerRequest, DesktopRuntimeConsumerResponse, DeveloperModeStatus,
+    DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, DesktopFirstPartyProductError,
+    DesktopFirstPartyProductStreamReceiver, DesktopFirstPartyProductUnaryResponse,
+    DesktopMachineProductStreamRequest, DesktopMachineProductUnaryRequest, DeveloperModeStatus,
     FixedRuntimeServiceControl, LocalDevelopmentAuthoritySummary, LocalDevelopmentAuthorization,
     LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
     LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
@@ -209,30 +210,69 @@ pub trait NimiDesktopControl: Send + Sync {
         request: BundledAvatarRuntimeRequest,
     ) -> Pin<
         Box<
-            dyn Future<Output = Result<BundledAvatarRuntimeStreamReceiver, BundledAvatarRuntimeError>>
-                + Send
+            dyn Future<
+                    Output = Result<BundledAvatarRuntimeStreamReceiver, BundledAvatarRuntimeError>,
+                > + Send
                 + '_,
         >,
     >;
 
-    fn invoke_product_control(
+    fn invoke_machine_product_unary(
         &self,
-        request: DesktopProductControlRequest,
+        request: DesktopMachineProductUnaryRequest,
     ) -> Pin<
         Box<
-            dyn Future<Output = Result<DesktopProductControlResponse, DesktopProductControlError>>
-                + Send
+            dyn Future<
+                    Output = Result<
+                        DesktopFirstPartyProductUnaryResponse,
+                        DesktopFirstPartyProductError,
+                    >,
+                > + Send
                 + '_,
         >,
     >;
 
-    fn invoke_runtime_consumer(
+    fn open_machine_product_stream(
         &self,
-        request: DesktopRuntimeConsumerRequest,
+        request: DesktopMachineProductStreamRequest,
     ) -> Pin<
         Box<
-            dyn Future<Output = Result<DesktopRuntimeConsumerResponse, DesktopRuntimeConsumerError>>
-                + Send
+            dyn Future<
+                    Output = Result<
+                        DesktopFirstPartyProductStreamReceiver,
+                        DesktopFirstPartyProductError,
+                    >,
+                > + Send
+                + '_,
+        >,
+    >;
+
+    fn invoke_account_product_unary(
+        &self,
+        request: DesktopAccountProductUnaryRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<
+                        DesktopFirstPartyProductUnaryResponse,
+                        DesktopFirstPartyProductError,
+                    >,
+                > + Send
+                + '_,
+        >,
+    >;
+
+    fn open_account_product_stream(
+        &self,
+        request: DesktopAccountProductStreamRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<
+                        DesktopFirstPartyProductStreamReceiver,
+                        DesktopFirstPartyProductError,
+                    >,
+                > + Send
                 + '_,
         >,
     >;

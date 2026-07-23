@@ -1,7 +1,7 @@
 import { NIMI_STANDARD_SHELL_CAPABILITY_IDS, NIMI_STANDARD_SHELL_COMMANDS, type NimiStandardShellCapabilityId } from '@nimiplatform/kit/shell/capabilities';
 import {
-  isElectronDesktopProductControlMethod,
-  isElectronDesktopRuntimeConsumerMethod,
+  isElectronDesktopAccountProductMethod,
+  isElectronDesktopMachineProductMethod,
   NimiElectronDesktopControlHostError,
   type NimiElectronDesktopControlHost,
 } from './desktop-control-host.js';
@@ -81,6 +81,7 @@ export async function invokeElectronRuntimeUnary(input: {
   readonly command: string;
   readonly trustedRuntimeMetadataProvider?: ElectronRuntimeBridgeTrustedMetadataProvider;
   readonly desktopControlHost?: NimiElectronDesktopControlHost;
+  readonly desktopSenderAuthorized?: boolean;
   readonly bundledAvatarProfile?: boolean;
 }): Promise<ElectronRuntimeBridgeUnaryResponse> {
   const request = parseElectronRuntimeUnaryRequest(input.payload);
@@ -109,34 +110,18 @@ export async function invokeElectronRuntimeUnary(input: {
       );
     }
   }
-  if (isElectronDesktopProductControlMethod(request.methodId)) {
-    if (!input.desktopControlHost) {
-      throw electronDesktopControlError(
-        new NimiElectronDesktopControlHostError('protected-carrier-required', false),
-        input.command,
-        request.methodId,
-      );
-    }
-    try {
-      const responseBytes = await input.desktopControlHost.productControlUnary({
-        methodId: request.methodId,
-        requestBytes: fromBase64(request.requestBytesBase64),
-        timeoutMs: request.timeoutMs,
-      });
-      return { responseBytesBase64: toBase64(responseBytes) };
-    } catch (error) {
-      if (error instanceof NimiElectronDesktopControlHostError) {
-        throw electronDesktopControlError(error, input.command, request.methodId);
-      }
-      throw electronDesktopControlError(
-        new NimiElectronDesktopControlHostError('runtime-service-untrusted', false),
-        input.command,
-        request.methodId,
-      );
-    }
+  const machineProduct = isElectronDesktopMachineProductMethod(request.methodId, 'unary');
+  const accountProduct = isElectronDesktopAccountProductMethod(request.methodId, 'unary');
+  const machineSelected = machineProduct && (!accountProduct
+    || request.productIntent === 'machine.route-connectors.list');
+  const accountSelected = accountProduct && (!machineProduct
+    || request.productIntent === 'account.connector-admin.list');
+  if ((machineProduct && accountProduct && !machineSelected && !accountSelected)
+    || (request.productIntent && !(machineProduct && accountProduct))) {
+    throw electronDesktopRuntimeMethodNotAdmitted(input.command, request.methodId);
   }
-  if (input.appId === 'nimi.desktop' && isElectronDesktopRuntimeConsumerMethod(request.methodId)) {
-    if (!input.desktopControlHost) {
+  if (machineSelected || accountSelected) {
+    if (!input.desktopControlHost || input.appId !== 'nimi.desktop' || !input.desktopSenderAuthorized) {
       throw electronDesktopControlError(
         new NimiElectronDesktopControlHostError('protected-carrier-required', false),
         input.command,
@@ -144,18 +129,20 @@ export async function invokeElectronRuntimeUnary(input: {
       );
     }
     try {
-      const responseBytes = await input.desktopControlHost.runtimeConsumerUnary({
+      const nativeInput = {
         methodId: request.methodId,
         requestBytes: fromBase64(request.requestBytesBase64),
         timeoutMs: request.timeoutMs,
-      });
+      };
+      const responseBytes = machineSelected
+        ? await input.desktopControlHost.machineProductUnary(nativeInput)
+        : await input.desktopControlHost.accountProductUnary(nativeInput);
       return { responseBytesBase64: toBase64(responseBytes) };
     } catch (error) {
-      if (error instanceof NimiElectronDesktopControlHostError) {
-        throw electronDesktopControlError(error, input.command, request.methodId);
-      }
       throw electronDesktopControlError(
-        new NimiElectronDesktopControlHostError('runtime-service-untrusted', false),
+        error instanceof NimiElectronDesktopControlHostError
+          ? error
+          : new NimiElectronDesktopControlHostError('runtime-service-untrusted', false),
         input.command,
         request.methodId,
       );
@@ -318,12 +305,10 @@ export async function openElectronRuntimeStream(input: {
   readonly trustedRuntimeMetadataProvider?: ElectronRuntimeBridgeTrustedMetadataProvider;
   readonly desktopProtectedOnly?: boolean;
   readonly desktopControlHost?: NimiElectronDesktopControlHost;
+  readonly desktopSenderAuthorized?: boolean;
   readonly bundledAvatarProfile?: boolean;
 }): Promise<ElectronRuntimeBridgeStreamOpenResponse> {
   const request = parseElectronRuntimeStreamOpenRequest(input.payload);
-  if (input.desktopProtectedOnly && !input.bundledAvatarProfile) {
-    throw electronDesktopRuntimeStreamNotAdmitted(input.command, request.methodId);
-  }
   const metadataInput = {
     provider: input.trustedRuntimeMetadataProvider,
     command: input.command,
@@ -338,6 +323,8 @@ export async function openElectronRuntimeStream(input: {
   };
   let createStream: (trusted: ElectronRuntimeBridgeTrustedMetadata | undefined) => RuntimeGrpcBridgeStream;
   const requestBytes = fromBase64(request.requestBytesBase64);
+  const machineProduct = isElectronDesktopMachineProductMethod(request.methodId, 'server_stream');
+  const accountProduct = isElectronDesktopAccountProductMethod(request.methodId, 'server_stream');
   if (input.bundledAvatarProfile) {
     if (!input.desktopControlHost) {
       throw electronDesktopControlError(
@@ -352,7 +339,21 @@ export async function openElectronRuntimeStream(input: {
       requestBytes,
       timeoutMs: request.timeoutMs,
     });
+  } else if (machineProduct || accountProduct) {
+    if (!input.desktopControlHost || input.appId !== 'nimi.desktop' || !input.desktopSenderAuthorized) {
+      throw electronDesktopRuntimeStreamNotAdmitted(input.command, request.methodId);
+    }
+    initialResolution = { trusted: undefined, invalidationConsumed: true };
+    createStream = () => {
+      const nativeInput = { methodId: request.methodId, requestBytes, timeoutMs: request.timeoutMs };
+      return machineProduct
+        ? input.desktopControlHost!.machineProductServerStream(nativeInput)
+        : input.desktopControlHost!.accountProductServerStream(nativeInput);
+    };
   } else {
+    if (input.desktopProtectedOnly) {
+      throw electronDesktopRuntimeStreamNotAdmitted(input.command, request.methodId);
+    }
     assertElectronGenericRuntimeMethodAllowed(request.methodId);
     const client = requireElectronRuntimeClient(input.client, input.command);
     initialResolution = await resolveTrustedRuntimeMetadataWithSingleInvalidation(metadataInput);

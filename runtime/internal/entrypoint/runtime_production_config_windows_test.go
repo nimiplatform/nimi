@@ -16,6 +16,9 @@ import (
 )
 
 func TestWindowsProductionRuntimeConfigUsesOnlyServiceOwnedRootAndFixedAuthority(t *testing.T) {
+	previousProductAcceptanceFlag := windowsFirstPartyProductAcceptanceEnabled
+	windowsFirstPartyProductAcceptanceEnabled = ""
+	t.Cleanup(func() { windowsFirstPartyProductAcceptanceEnabled = previousProductAcceptanceFlag })
 	t.Setenv("NIMI_RUNTIME_GRPC_ADDR", "127.0.0.1:59999")
 	t.Setenv("NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL", "https://attacker.invalid")
 	t.Setenv("NIMI_RUNTIME_AUTH_JWT_ISSUER", "https://attacker.invalid")
@@ -38,6 +41,47 @@ func TestWindowsProductionRuntimeConfigUsesOnlyServiceOwnedRootAndFixedAuthority
 	wantState := filepath.Join(root, "runtime", windowsProductionInstallStateFile)
 	if _, err := os.Stat(wantState); err != nil {
 		t.Fatalf("service-owned installation state missing: %v", err)
+	}
+}
+
+func TestWindowsFirstPartyProductAcceptanceUsesOnlyCompiledLocalRealmProjection(t *testing.T) {
+	previousProductAcceptanceFlag := windowsFirstPartyProductAcceptanceEnabled
+	previousDevKernelFlag := windowsNonReleaseAcceptanceProfileEnabled
+	windowsFirstPartyProductAcceptanceEnabled = "true"
+	windowsNonReleaseAcceptanceProfileEnabled = ""
+	t.Cleanup(func() {
+		windowsFirstPartyProductAcceptanceEnabled = previousProductAcceptanceFlag
+		windowsNonReleaseAcceptanceProfileEnabled = previousDevKernelFlag
+	})
+	t.Setenv("NIMI_REALM_URL", "https://attacker.invalid")
+	t.Setenv("NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL", "https://attacker.invalid")
+
+	cfg, err := loadWindowsProtectedRuntimeConfig(t.TempDir())
+	if err != nil {
+		t.Fatalf("load first-party product acceptance config: %v", err)
+	}
+	if cfg.AccountRealmBaseURL != windowsProductAcceptanceRealmURL ||
+		cfg.AuthJWTIssuer != windowsProductAcceptanceRealmURL ||
+		cfg.AuthJWTJWKSURL != windowsProductAcceptanceRealmURL+"/api/auth/jwks" ||
+		cfg.AuthJWTRevocationURL != windowsProductAcceptanceRealmURL+"/api/auth/sessions/introspect" {
+		t.Fatalf("first-party product acceptance did not retain its fixed local Realm projection: %+v", cfg)
+	}
+	if cfg.NonReleaseDevKernelCheckpoint != nil || cfg.AllowLoopbackProviderEndpoint {
+		t.Fatalf("first-party product acceptance enabled dev-kernel fixture semantics: %+v", cfg)
+	}
+}
+
+func TestWindowsNonReleaseBuildProfilesAreMutuallyExclusive(t *testing.T) {
+	previousProductAcceptanceFlag := windowsFirstPartyProductAcceptanceEnabled
+	previousDevKernelFlag := windowsNonReleaseAcceptanceProfileEnabled
+	windowsFirstPartyProductAcceptanceEnabled = "true"
+	windowsNonReleaseAcceptanceProfileEnabled = "true"
+	t.Cleanup(func() {
+		windowsFirstPartyProductAcceptanceEnabled = previousProductAcceptanceFlag
+		windowsNonReleaseAcceptanceProfileEnabled = previousDevKernelFlag
+	})
+	if _, err := loadWindowsProtectedRuntimeConfig(t.TempDir()); err == nil {
+		t.Fatal("conflicting non-release Windows Runtime build profiles were accepted")
 	}
 }
 

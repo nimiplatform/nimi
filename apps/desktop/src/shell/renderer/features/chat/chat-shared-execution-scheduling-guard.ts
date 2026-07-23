@@ -10,7 +10,7 @@ import type {
 import { useAppStore } from '../../app-shell/providers/app-store';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
-import type { Runtime } from '@nimiplatform/sdk/runtime';
+import type { NimiDesktopMachineProductRuntimeClient } from '@nimiplatform/sdk/runtime';
 import type { DesktopRendererAIConfigPort } from '../../renderer/ai-config-port.js';
 
 export type ExecutionSchedulingGuardDecision = {
@@ -117,7 +117,7 @@ export async function probeExecutionSchedulingGuard(input: {
   target: NimiAISchedulingEvaluationTarget | null;
   t: TFunction;
   surface?: Pick<DesktopRendererAIConfigPort, 'aiConfig'>;
-  runtime?: Runtime;
+  runtime?: NimiDesktopMachineProductRuntimeClient;
 }): Promise<ExecutionSchedulingGuardDecision> {
   if (!input.target) {
     return resolveExecutionSchedulingGuardDecision({ judgement: null, t: input.t });
@@ -146,7 +146,7 @@ export function useSchedulingFeasibility(): NimiAISchedulingJudgement | null {
       scopeRef.surfaceId ?? '',
     ],
     queryFn: async () => {
-      const result = await surface.aiConfig.probeFeasibility(scopeRef, sdk.runtime());
+      const result = await surface.aiConfig.probeFeasibility(scopeRef, sdk.machineProduct());
       return result.schedulingJudgement ?? null;
     },
     refetchInterval: 60_000,

@@ -60,7 +60,7 @@ export function createDesktopRendererResources(
   const localModelCenterProgress = createLocalModelCenterProgressCache(
     bindings.app.commands.localModelProgress,
   );
-  const runtimeConnectorSdk = createRuntimeConfigConnectorSdkService(bindings.sdk.runtime);
+  const runtimeConnectorSdk = createRuntimeConfigConnectorSdkService(bindings.sdk.connectorAdmin);
   const accountProfileLibrary = createAccountProfileLibraryResource(
     bindings.app.commands.profileLibrary,
   );

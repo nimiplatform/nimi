@@ -18,6 +18,9 @@ const requiredFiles = [
   'apps/desktop/src/shell/renderer/infra/runtime-agent-ai-config.ts',
   'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-adapter-runtime.ts',
   'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-presentation-settings.tsx',
+];
+
+const removedFiles = [
   'apps/desktop/src/shell/renderer/app-shell/providers/desktop-memory-embedding-config-service.ts',
 ];
 
@@ -141,6 +144,12 @@ for (const relPath of requiredFiles) {
   }
 }
 
+for (const relPath of removedFiles) {
+  if (await exists(relPath)) {
+    findings.push(`${relPath}: excluded dead memory lifecycle surface remains reachable`);
+  }
+}
+
 for (const relPath of forbiddenFiles) {
   if (await exists(relPath)) {
     findings.push(`${relPath}: forbidden Desktop-owned Agent Center implementation remains after Kit hardcut`);
@@ -180,7 +189,7 @@ if (await exists('apps/desktop/src/shell/renderer/features/chat/chat-agent-shell
       'readiness: input.runtimeAgentAIConfigReadiness',
       'inspect: input.runtimeInspect',
       'runtimeAdapter={runtimeAdapter}',
-      'appearanceAdapter={appearanceAdapter}',
+      'appearanceAdapter={props.appearanceAdapter}',
       'providerResolver: getDesktopRouteModelPickerProvider',
     ],
     findings,

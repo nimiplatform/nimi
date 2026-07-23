@@ -13,14 +13,14 @@ func boolPtr(v bool) *bool { return &v }
 // config init by InitFileConfig, never regenerated on merge/read. (K-CFG-018)
 func DefaultFileConfig() FileConfig {
 	return FileConfig{
-		SchemaVersion:           DefaultSchemaVersion,
-		RuntimeID:               "",
-		GRPCAddr:                defaultGRPCAddr,
-		HTTPAddr:                defaultHTTPAddr,
-		ShutdownTimeoutSeconds:  intPtr(10),
-		LocalStatePath:          "~/" + defaultLocalStateRelPath,
-		DataRootRef:             "",
-		ManagedRoots:            &FileConfigManagedRoots{},
+		SchemaVersion:          DefaultSchemaVersion,
+		RuntimeID:              "",
+		GRPCAddr:               defaultGRPCAddr,
+		HTTPAddr:               defaultHTTPAddr,
+		ShutdownTimeoutSeconds: intPtr(10),
+		LocalStatePath:         "~/" + defaultLocalStateRelPath,
+		DataRootRef:            "",
+		ManagedRoots:           &FileConfigManagedRoots{},
 		LocalService: &FileConfigLocalService{
 			Enabled: boolPtr(true),
 			Mode:    LocalServiceModeDesktopLocal,

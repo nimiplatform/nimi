@@ -1,8 +1,6 @@
 use crate::{
-    bundled_avatar_profile_generated::{
-        bundled_avatar_method_profile, BundledAvatarMethodKind,
-    },
     desktop_unary,
+    first_party_profiles_generated::{bundled_avatar_method_profile, BundledAvatarMethodKind},
 };
 use std::time::Duration;
 use tokio::sync::mpsc;
@@ -16,11 +14,18 @@ pub struct BundledAvatarRuntimeError {
 
 impl BundledAvatarRuntimeError {
     pub(crate) fn new(reason_code: impl Into<String>, retryable: bool) -> Self {
-        Self { reason_code: reason_code.into(), retryable }
+        Self {
+            reason_code: reason_code.into(),
+            retryable,
+        }
     }
 
-    pub fn reason_code(&self) -> &str { self.reason_code.as_str() }
-    pub const fn retryable(&self) -> bool { self.retryable }
+    pub fn reason_code(&self) -> &str {
+        self.reason_code.as_str()
+    }
+    pub const fn retryable(&self) -> bool {
+        self.retryable
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -43,10 +48,16 @@ pub(crate) async fn invoke(
     request: BundledAvatarRuntimeRequest,
 ) -> Result<BundledAvatarRuntimeResponse, BundledAvatarRuntimeError> {
     let Some(profile) = bundled_avatar_method_profile(request.method_id.trim()) else {
-        return Err(BundledAvatarRuntimeError::new("runtime-service-untrusted", false));
+        return Err(BundledAvatarRuntimeError::new(
+            "runtime-service-untrusted",
+            false,
+        ));
     };
     if profile.kind != BundledAvatarMethodKind::Unary || !timeout_allowed(request.timeout) {
-        return Err(BundledAvatarRuntimeError::new("runtime-service-untrusted", false));
+        return Err(BundledAvatarRuntimeError::new(
+            "runtime-service-untrusted",
+            false,
+        ));
     }
     let response_bytes = desktop_unary::invoke_bundled_avatar(
         channel,
@@ -64,10 +75,16 @@ pub(crate) async fn open_stream(
     request: BundledAvatarRuntimeRequest,
 ) -> Result<BundledAvatarRuntimeStreamReceiver, BundledAvatarRuntimeError> {
     let Some(profile) = bundled_avatar_method_profile(request.method_id.trim()) else {
-        return Err(BundledAvatarRuntimeError::new("runtime-service-untrusted", false));
+        return Err(BundledAvatarRuntimeError::new(
+            "runtime-service-untrusted",
+            false,
+        ));
     };
     if profile.kind != BundledAvatarMethodKind::ServerStream || !timeout_allowed(request.timeout) {
-        return Err(BundledAvatarRuntimeError::new("runtime-service-untrusted", false));
+        return Err(BundledAvatarRuntimeError::new(
+            "runtime-service-untrusted",
+            false,
+        ));
     }
     crate::desktop_stream::open_bundled_avatar(
         channel,

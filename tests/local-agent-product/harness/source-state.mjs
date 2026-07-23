@@ -11,6 +11,61 @@ function gitFiles(repoRoot) {
   }).toString('utf8').split('\0').filter(Boolean).sort();
 }
 
+const exactCandidateSourcePaths = new Set([
+  'package.json',
+  'pnpm-lock.yaml',
+  'pnpm-workspace.yaml',
+  'go.work',
+  'go.work.sum',
+  'scripts/build-runtime.mjs',
+  'scripts/build-windows-runtime-service-installer.mjs',
+  'scripts/generate-first-party-protected-runtime-profiles.mjs',
+  'scripts/install-windows-runtime-service.ps1',
+  'scripts/lib/first-party-protected-runtime-profile-compiler.mjs',
+  'scripts/lib/runtime-build-record.mjs',
+  'scripts/lib/windows-dev-signing.mjs',
+  '.nimi/spec/runtime/kernel/tables/first-party-protected-runtime-profiles.yaml',
+]);
+
+const nimiCandidateSourcePrefixes = [
+  'apps/desktop/',
+  'apps/web/',
+  'kit/',
+  'nimi-cognition/',
+  'runtime/',
+  'sdks/typescript/',
+];
+
+const nimiCandidateExcludedPrefixes = [
+  'apps/desktop/src-tauri/',
+  'apps/desktop/test/',
+  'apps/web/test/',
+  'kit/test/',
+  'sdks/typescript/test/',
+];
+
+function excludedNimiCandidateSource(relative) {
+  return nimiCandidateExcludedPrefixes.some((prefix) => relative.startsWith(prefix))
+    || /(?:^|\/)(?:__tests__|fixtures)\//u.test(relative)
+    || /(?:\.test\.[cm]?[jt]sx?|\.spec\.[cm]?[jt]sx?|_test\.go)$/u.test(relative);
+}
+
+const realmCandidateSourcePrefixes = [
+  'config/',
+  'nimi-backend/',
+  'packages/nimi-forge/',
+];
+
+function candidateSourceFiles(repoRoot, role) {
+  const prefixes = role === 'realm' ? realmCandidateSourcePrefixes : nimiCandidateSourcePrefixes;
+  return gitFiles(repoRoot).filter((relative) => (
+    !executionCarrierPaths.has(relative)
+    && (role !== 'nimi' || !excludedNimiCandidateSource(relative))
+    && (exactCandidateSourcePaths.has(relative)
+      || prefixes.some((prefix) => relative.startsWith(prefix)))
+  ));
+}
+
 const executionCarrierPaths = new Set([
   'apps/desktop/product-control-node/npm/win32-x64/nimi_desktop_product_control.node',
   'kit/shell/protected-local-node/npm/win32-x64/nimi_shell_protected_local.node',
@@ -21,8 +76,12 @@ function fileSha256(file) {
 }
 
 export function sourceTreeSha256(repoRoot) {
+  return hashSourceFiles(repoRoot, gitFiles(repoRoot));
+}
+
+function hashSourceFiles(repoRoot, files) {
   const digest = createHash('sha256');
-  for (const relative of gitFiles(repoRoot)) {
+  for (const relative of files) {
     const absolute = path.join(repoRoot, relative);
     let stat;
     try {
@@ -36,10 +95,7 @@ export function sourceTreeSha256(repoRoot) {
     if (stat.isSymbolicLink()) {
       digest.update('symlink\0').update(fs.readlinkSync(absolute)).update('\0');
     } else if (stat.isFile()) {
-      const content = executionCarrierPaths.has(relative)
-        ? execFileSync('git', ['show', `HEAD:${relative}`], { cwd: repoRoot, encoding: 'buffer', maxBuffer: 64 * 1024 * 1024 })
-        : fs.readFileSync(absolute);
-      digest.update('file\0').update(String(stat.mode & 0o111)).update('\0').update(content).update('\0');
+      digest.update('file\0').update(String(stat.mode & 0o111)).update('\0').update(fs.readFileSync(absolute)).update('\0');
     } else if (stat.isDirectory()) {
       digest.update('directory\0');
     } else {
@@ -47,6 +103,11 @@ export function sourceTreeSha256(repoRoot) {
     }
   }
   return digest.digest('hex');
+}
+
+export function candidateSourceTreeSha256(repoRoot, role) {
+  if (role !== 'nimi' && role !== 'realm') throw new Error(`unsupported candidate source role: ${role}`);
+  return hashSourceFiles(repoRoot, candidateSourceFiles(repoRoot, role));
 }
 
 export function captureSourceState(nimiRoot) {
@@ -59,8 +120,8 @@ export function captureSourceState(nimiRoot) {
     schemaVersion: 'nimi.local-agent-product-source-state/v3',
     nimiCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: nimiRoot, encoding: 'utf8' }).trim(),
     realmCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: realmRoot, encoding: 'utf8' }).trim(),
-    nimiSourceTreeSha256: sourceTreeSha256(nimiRoot),
-    realmSourceTreeSha256: sourceTreeSha256(realmRoot),
+    nimiSourceTreeSha256: candidateSourceTreeSha256(nimiRoot, 'nimi'),
+    realmSourceTreeSha256: candidateSourceTreeSha256(realmRoot, 'realm'),
     testPointCatalogSha256: fileSha256(path.join(nimiRoot, 'config', 'local-agent-product-acceptance-points.yaml')),
     journeyRegistrySha256: fileSha256(path.join(nimiRoot, 'config', 'local-agent-product-journeys.yaml')),
     executionPolicySha256: fileSha256(path.join(nimiRoot, 'config', 'local-agent-product-execution-policy.yaml')),
@@ -68,14 +129,20 @@ export function captureSourceState(nimiRoot) {
   };
   return {
     ...state,
-    sourceDigest: createHash('sha256').update(JSON.stringify(state)).digest('hex'),
+    sourceDigest: createHash('sha256').update(JSON.stringify({
+      schemaVersion: state.schemaVersion,
+      nimiCommit: state.nimiCommit,
+      realmCommit: state.realmCommit,
+      nimiSourceTreeSha256: state.nimiSourceTreeSha256,
+      realmSourceTreeSha256: state.realmSourceTreeSha256,
+    })).digest('hex'),
   };
 }
 
 export function assertSourceState(expected, nimiRoot) {
   const actual = captureSourceState(nimiRoot);
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-    throw new Error(`source state changed during acceptance run: expected=${JSON.stringify(expected)} actual=${JSON.stringify(actual)}`);
+  if (actual.sourceDigest !== expected?.sourceDigest) {
+    throw new Error(`candidate source changed during acceptance run: expected=${JSON.stringify(expected)} actual=${JSON.stringify(actual)}`);
   }
 }
 

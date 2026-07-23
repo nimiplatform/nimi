@@ -1,8 +1,85 @@
-schema_version: nimi.local-agent-product-journeys/v2
+schema_version: nimi.local-agent-product-journeys/v3
 authority_class: non_authoritative_execution_manifest
 owner: platform-test-governance
 source_rules: [P-TEST-016, P-TEST-017, P-TEST-018, P-TEST-019]
 journeys:
+  - journey_id: first-party-installed-first-run
+    execution_disposition: active_checkpoint
+    product_gate: gate_0
+    applicable_layer: L2
+    evidence_domain: exact_typed_gate_checkpoints
+    environment:
+      type: installed_windows_first_party_product
+      requires_real_realm: true
+      supports_real_realm: true
+      requires_desktop: true
+      requires_zhiyu: false
+      requires_native_macos: false
+      start_limits: {provider: 0, realm: 1, runtime: 2, desktop: 1, zhiyu: 0}
+    prerequisites: [fresh_same_source_developer_signed_windows_x64_candidate, fixed_windows_runtime_service, installed_desktop_candidate, real_realm_account]
+    isolation_level: fresh_product_root_same_candidate
+    repeat_policy_ref: core
+    time_budget_ms: 1800000
+    checkpoints:
+      - {checkpoint_id: candidate-built-signed-installed, checkpoint_type: candidate_identity, prerequisite_ids: [], covered_leaf_ids: []}
+      - {checkpoint_id: ordinary-desktop-first-run-completed, checkpoint_type: ui_action, prerequisite_ids: [candidate-built-signed-installed], covered_leaf_ids: []}
+      - {checkpoint_id: product-control-owner-ready, checkpoint_type: authoritative_readback, prerequisite_ids: [ordinary-desktop-first-run-completed], covered_leaf_ids: []}
+      - {checkpoint_id: execution-evidence-ref-parseable, checkpoint_type: authoritative_readback, prerequisite_ids: [product-control-owner-ready], covered_leaf_ids: []}
+
+  - journey_id: first-party-direct-nimi
+    execution_disposition: active_checkpoint
+    product_gate: gate_1
+    applicable_layer: L2
+    evidence_domain: exact_typed_gate_checkpoints
+    environment:
+      type: installed_windows_first_party_product
+      requires_real_realm: true
+      supports_real_realm: true
+      requires_desktop: true
+      requires_zhiyu: false
+      requires_native_macos: false
+      start_limits: {provider: 1, realm: 1, runtime: 2, desktop: 1, zhiyu: 0}
+    prerequisites: [first_party_gate_0_same_candidate_pass]
+    isolation_level: reuse_gate_0_product_root_and_candidate
+    repeat_policy_ref: core
+    time_budget_ms: 1800000
+    checkpoints:
+      - {checkpoint_id: direct-nimi-admitted-local-text-route, checkpoint_type: F-01-admitted-route, prerequisite_ids: [], covered_leaf_ids: []}
+      - {checkpoint_id: direct-nimi-real-local-stream-delta, checkpoint_type: F-01-stream-delta, prerequisite_ids: [direct-nimi-admitted-local-text-route], covered_leaf_ids: []}
+      - {checkpoint_id: direct-nimi-single-terminal, checkpoint_type: F-01-terminal, prerequisite_ids: [direct-nimi-real-local-stream-delta], covered_leaf_ids: []}
+      - {checkpoint_id: direct-nimi-usage-reason, checkpoint_type: F-01-usage-reason, prerequisite_ids: [direct-nimi-single-terminal], covered_leaf_ids: []}
+      - {checkpoint_id: direct-nimi-cancel, checkpoint_type: F-01-cancel, prerequisite_ids: [direct-nimi-usage-reason], covered_leaf_ids: []}
+      - {checkpoint_id: direct-nimi-timeout, checkpoint_type: F-01-timeout, prerequisite_ids: [direct-nimi-cancel], covered_leaf_ids: []}
+      - {checkpoint_id: direct-nimi-model-unavailable, checkpoint_type: F-01-model-unavailable, prerequisite_ids: [direct-nimi-timeout], covered_leaf_ids: []}
+      - {checkpoint_id: direct-nimi-no-cloud-fallback, checkpoint_type: F-01-no-cloud-fallback, prerequisite_ids: [direct-nimi-model-unavailable], covered_leaf_ids: []}
+
+  - journey_id: first-party-partner-core
+    execution_disposition: active_checkpoint
+    product_gate: gate_2
+    applicable_layer: L2
+    evidence_domain: local_agent_point_catalog
+    environment:
+      type: installed_windows_first_party_product
+      requires_real_realm: true
+      supports_real_realm: true
+      requires_desktop: true
+      requires_zhiyu: false
+      requires_native_macos: false
+      start_limits: {provider: 1, realm: 1, runtime: 2, desktop: 2, zhiyu: 0}
+    prerequisites: [first_party_gate_0_same_candidate_pass, first_party_gate_1_pass]
+    isolation_level: reuse_gate_0_product_root_and_candidate
+    repeat_policy_ref: core
+    time_budget_ms: 3600000
+    checkpoints:
+      - {checkpoint_id: realm-source-selected, checkpoint_type: ordinary_ui_action, prerequisite_ids: [], covered_leaf_ids: [R-01]}
+      - {checkpoint_id: materialization-owner-verified, checkpoint_type: ordinary_ui_materialization_with_auxiliary_readback, prerequisite_ids: [realm-source-selected], covered_leaf_ids: [M-01]}
+      - {checkpoint_id: materialization-idempotence-verified, checkpoint_type: ordinary_ui_retry_observation, prerequisite_ids: [materialization-owner-verified], covered_leaf_ids: [M-01]}
+      - {checkpoint_id: characters-projection-visible, checkpoint_type: ordinary_ui_observation, prerequisite_ids: [materialization-idempotence-verified], covered_leaf_ids: [K-03-01]}
+      - {checkpoint_id: ordinary-desktop-open-owner-readback, checkpoint_type: ordinary_ui_open_with_auxiliary_readback, prerequisite_ids: [characters-projection-visible], covered_leaf_ids: [L-01]}
+      - {checkpoint_id: partner-route-ready, checkpoint_type: ordinary_ui_send_admission, prerequisite_ids: [ordinary-desktop-open-owner-readback], covered_leaf_ids: [L-03-02]}
+      - {checkpoint_id: partner-turn-committed-reloaded, checkpoint_type: ordinary_ui_send_terminal_reopen, prerequisite_ids: [partner-route-ready], covered_leaf_ids: [C-05-01, E-03-01, O-03-01]}
+      - {checkpoint_id: partner-negative-mutation-closure, checkpoint_type: auxiliary_negative_runtime_probe, prerequisite_ids: [partner-turn-committed-reloaded], covered_leaf_ids: []}
+
   - journey_id: dev-kernel-core
     execution_disposition: active_checkpoint
     applicable_layer: L2
@@ -67,17 +144,17 @@ journeys:
       - {checkpoint_id: realm-ready, prerequisite_ids: [provider-ready], covered_leaf_ids: []}
       - {checkpoint_id: desktop-ready, prerequisite_ids: [runtime-ready, realm-ready], covered_leaf_ids: []}
       - {checkpoint_id: runtime-account-login, prerequisite_ids: [desktop-ready], covered_leaf_ids: []}
-      - {checkpoint_id: character-source-selected, prerequisite_ids: [runtime-account-login], covered_leaf_ids: [R-01, O-01]}
-      - {checkpoint_id: materialization-challenge, prerequisite_ids: [character-source-selected], covered_leaf_ids: [M-01]}
-      - {checkpoint_id: character-packet-v3, prerequisite_ids: [materialization-challenge], covered_leaf_ids: [M-01]}
-      - {checkpoint_id: character-snapshot, prerequisite_ids: [character-packet-v3], covered_leaf_ids: [M-01, M-06, O-01]}
-      - {checkpoint_id: agent-center-safe-status, prerequisite_ids: [character-snapshot], covered_leaf_ids: [K-02, K-03-01, L-03-02]}
-      - {checkpoint_id: desktop-chat-turn-1, prerequisite_ids: [agent-center-safe-status], covered_leaf_ids: [C-05-01, E-03-01, O-03-01]}
+      - {checkpoint_id: character-source-selected, prerequisite_ids: [runtime-account-login], covered_leaf_ids: [O-01]}
+      - {checkpoint_id: materialization-challenge, prerequisite_ids: [character-source-selected], covered_leaf_ids: []}
+      - {checkpoint_id: character-packet-v3, prerequisite_ids: [materialization-challenge], covered_leaf_ids: []}
+      - {checkpoint_id: character-snapshot, prerequisite_ids: [character-packet-v3], covered_leaf_ids: [M-06, O-01]}
+      - {checkpoint_id: agent-center-safe-status, prerequisite_ids: [character-snapshot], covered_leaf_ids: [K-02]}
+      - {checkpoint_id: desktop-chat-turn-1, prerequisite_ids: [agent-center-safe-status], covered_leaf_ids: []}
       - {checkpoint_id: desktop-chat-turn-2, prerequisite_ids: [desktop-chat-turn-1], covered_leaf_ids: [C-05-02, E-03-02, O-03-02]}
       - {checkpoint_id: desktop-chat-turn-3, prerequisite_ids: [desktop-chat-turn-2], covered_leaf_ids: [C-05-03, O-03-03]}
       - {checkpoint_id: provider-context-lanes, prerequisite_ids: [desktop-chat-turn-3], covered_leaf_ids: [K-02, C-01, C-02, C-03, C-04, S-02-01, S-03]}
       - {checkpoint_id: zhiyu-ready, prerequisite_ids: [provider-context-lanes], covered_leaf_ids: []}
-      - {checkpoint_id: zhiyu-character-selected, prerequisite_ids: [zhiyu-ready], covered_leaf_ids: [L-01, O-01]}
+      - {checkpoint_id: zhiyu-character-selected, prerequisite_ids: [zhiyu-ready], covered_leaf_ids: [O-01]}
       - {checkpoint_id: cross-app-anchor-continuity, prerequisite_ids: [zhiyu-character-selected], covered_leaf_ids: [C-09]}
       - {checkpoint_id: zhiyu-multiturn, prerequisite_ids: [cross-app-anchor-continuity], covered_leaf_ids: [E-03-03, E-03-04, E-03-05, O-03-06]}
       - {checkpoint_id: voice-emotion-apml, prerequisite_ids: [zhiyu-multiturn], covered_leaf_ids: [E-04, E-08, E-05-01, E-06-01, E-06-02, E-07-05]}

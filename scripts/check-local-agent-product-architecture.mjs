@@ -47,6 +47,8 @@ for (const relative of [
 }
 for (const relative of [
   'tests/local-agent-product/harness/run-gate.mjs',
+  'tests/local-agent-product/harness/run-first-party-signed-candidate-journey.mjs',
+  'tests/local-agent-product/harness/first-party-product-journey-driver.mjs',
   'tests/local-agent-product/schemas/journey-result.schema.json',
   'tests/local-agent-product/schemas/suite-result.schema.json',
   'config/local-agent-product-acceptance-points.yaml',
@@ -73,6 +75,8 @@ const expectedScripts = {
   'check:local-agent-conversation-report': 'node scripts/check-local-agent-conversation-report.mjs',
   'test:local-agent-conversation-report-contract': 'node --test tests/local-agent-product/conversation-report/*.test.mjs',
   'test:e2e:local-agent-product': 'pnpm test:e2e:local-agent-product:core',
+  'test:e2e:first-party-product:p4': 'node tests/local-agent-product/harness/run-first-party-signed-candidate-journey.mjs --gate all --reset-stale-first-run-control',
+  'test:e2e:first-party-product:gate-0-1-2': 'pnpm test:e2e:first-party-product:p4',
 };
 for (const [name, command] of Object.entries(expectedScripts)) {
   if (packageJson.scripts?.[name] !== command) failures.push(`package script ${name} must be ${command}`);
@@ -83,6 +87,43 @@ if (Object.hasOwn(packageJson.scripts || {}, 'test:e2e:local-agent-conversation-
 for (const [name, command] of Object.entries(packageJson.scripts || {})) {
   if (/local-agent-product/u.test(`${name} ${command}`) && /run-tier\.mjs|orchestrator\.mjs|--leaf\b/u.test(command)) {
     failures.push(`package script ${name} restores a leaf-per-process required path`);
+  }
+}
+
+const firstPartySources = [
+  'tests/local-agent-product/harness/run-first-party-signed-candidate-journey.mjs',
+  'tests/local-agent-product/harness/first-party-product-journey-driver.mjs',
+].map((relative) => fs.readFileSync(path.join(repoRoot, relative), 'utf8')).join('\n');
+for (const forbidden of [
+  'dev-kernel-cross-app-driver.mjs',
+  'dev-kernel-result-driver.mjs',
+  'run-fresh-prepared-electron-journey.mjs',
+  'tauri-driver',
+  'tauri:options',
+  '__NIMI_TAURI_RUNTIME__',
+  '__TAURI_INTERNALS__',
+  'msedgedriver',
+  'build:dev-kernel-service-candidate',
+]) {
+  if (firstPartySources.includes(forbidden)) failures.push(`first-party product gate must not consume ${forbidden}`);
+}
+for (const required of [
+  "desktopRequire.resolve('playwright')",
+  'electron.launch',
+  'build:first-party-product-acceptance-service-candidate',
+  'checkpointProfileRuntimeValidated, false',
+  '__NIMI_ELECTRON_RUNTIME__',
+]) {
+  if (!firstPartySources.includes(required)) failures.push(`first-party product gate must retain Electron-first installed candidate behavior: ${required}`);
+}
+for (const relative of ['.github/workflows/release.yml', '.github/workflows/desktop-release-dry-run.yml']) {
+  const workflow = fs.readFileSync(path.join(repoRoot, relative), 'utf8');
+  if (!workflow.includes('pnpm test:e2e:first-party-product:p4')
+    || /test:e2e:first-party-product:(?:first-run|direct-nimi|partner-core)/u.test(workflow)) {
+    failures.push(`${relative} must execute the single linear P4 product target`);
+  }
+  if (/path:\s*\.nimi\/local\/evidence\/local-agent-full-chain\/\*\*/u.test(workflow)) {
+    failures.push(`${relative} must not upload the historical local-agent-full-chain evidence owner wholesale`);
   }
 }
 

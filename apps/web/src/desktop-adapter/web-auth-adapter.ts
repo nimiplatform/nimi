@@ -9,6 +9,7 @@ import type {
   AuthPlatformAdapter,
 } from '@nimiplatform/kit/auth/shell';
 import type { ShellOAuthBridge } from '@nimiplatform/kit/core/oauth';
+import type { DesktopRendererAuthPort } from '@renderer/renderer/auth-port';
 import {
   checkNimiRealmAuthEmail,
   createNimiRealmWalletChallenge,
@@ -267,4 +268,12 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
       ]);
     },
   };
+}
+
+export function createDesktopProductionAuthPort(): DesktopRendererAuthPort {
+  return Object.freeze({
+    adapter: createDesktopAuthAdapter(),
+    oauthBridge: desktopOAuthBridge,
+    runtimeAccountBroker: createDesktopRuntimeAccountBrowserBroker(),
+  });
 }

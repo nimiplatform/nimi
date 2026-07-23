@@ -61,8 +61,7 @@ function projectionJson(state = 'data_root_selected'): string {
 test('Electron Product Control host maps every renderer command to an exact protected Runtime method', async () => {
   const calls: Array<{ methodId: string; requestBytes: Uint8Array }> = [];
   const control: DesktopProductControlTransport = {
-    runtimeConsumerUnary: async () => { throw new Error('not-called'); },
-    productControlUnary: async (input) => {
+    machineProductUnary: async (input) => {
       calls.push({ methodId: input.methodId, requestBytes: input.requestBytes });
       const json = input.methodId === GET_SELECTED_DATA_ROOT
         ? JSON.stringify({
@@ -144,8 +143,7 @@ test('Electron Product Control host rejects extra renderer fields before protect
   let calls = 0;
   const host = createDesktopElectronProductControlHost({
     control: {
-      runtimeConsumerUnary: async () => { throw new Error('not-called'); },
-      productControlUnary: async () => { calls += 1; throw new Error('not-called'); },
+      machineProductUnary: async () => { calls += 1; throw new Error('not-called'); },
     },
     account: {
       invoke: async () => { throw new Error('not-called'); },
@@ -181,8 +179,7 @@ test('Electron Product Control host rejects extra renderer fields before protect
 test('Electron first-run host records Desktop evidence through the exact protected Runtime method', async () => {
   const calls: Array<{ methodId: string; requestBytes: Uint8Array }> = [];
   const control: DesktopProductControlTransport = {
-    runtimeConsumerUnary: async () => { throw new Error('not-called'); },
-    productControlUnary: async (input) => {
+    machineProductUnary: async (input) => {
       calls.push({ methodId: input.methodId, requestBytes: input.requestBytes });
       assert.ok(input.methodId === GET_RECORD || input.methodId === RECORD_ACCOUNT);
       return ProductControlProjectionJson.toBinary(ProductControlProjectionJson.create({
@@ -235,8 +232,7 @@ test('Electron first-run host records Desktop evidence through the exact protect
 test('Electron first-run host rejects renderer-supplied evidence fields', async () => {
   const host = createDesktopElectronProductControlHost({
     control: {
-      runtimeConsumerUnary: async () => { throw new Error('not-called'); },
-      productControlUnary: async () => { throw new Error('not-called'); },
+      machineProductUnary: async () => { throw new Error('not-called'); },
     },
     account: {
       invoke: async () => { throw new Error('not-called'); },

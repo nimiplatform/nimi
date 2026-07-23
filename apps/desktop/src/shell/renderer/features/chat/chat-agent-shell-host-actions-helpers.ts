@@ -163,7 +163,7 @@ export async function assertAgentSubmitSchedulingAllowed(input: {
   const schedulingGuard = await probeExecutionSchedulingGuard({
     scopeRef: input.aiConfig.scopeRef,
     target,
-    runtime: input.sdk?.runtime(),
+    runtime: input.sdk?.machineProduct(),
     surface: input.sdk?.aiConfig(),
     t: input.t,
   });
@@ -184,7 +184,7 @@ async function openConversationAnchorForTarget(
   threadId: string;
 }> {
   const client = createNimiRuntimeAgentConsumeClient({
-    runtime: sdk.runtime(),
+    runtime: sdk.accountProduct(),
     runtimeAppId: sdk.appId(),
   });
   await ensureRuntimeAgentExists(target, sdk, subjectUserId);
@@ -249,7 +249,7 @@ async function ensureConversationAnchorBindingUpstream(input: {
   subjectUserId: string;
 }): Promise<AgentConversationAnchorBinding | null> {
   const client = createNimiRuntimeAgentConsumeClient({
-    runtime: input.sdk.runtime(),
+    runtime: input.sdk.accountProduct(),
     runtimeAppId: input.sdk.appId(),
   });
   await ensureRuntimeAgentExists(input.target, input.sdk, input.subjectUserId);

@@ -72,7 +72,7 @@ export function createChatAiConversationRuntimeAdapter(input: {
           schedulingJudgement: await input.sdk.aiConfig().aiConfig.probeSchedulingTarget(
             input.aiConfig.scopeRef,
             schedulingTarget,
-            input.sdk.runtime(),
+            input.sdk.machineProduct(),
           ),
         })
         : null;

@@ -45,7 +45,7 @@ function t(key: string, options?: Record<string, unknown>): string {
 const translate = t as unknown as TFunction;
 const TEST_SDK = {
   aiConfig: getDesktopAIConfigService,
-  runtime: () => undefined,
+  machineProduct: () => undefined,
 } as unknown as DesktopRendererSdkPort;
 
 function createLocalTextSubmitConfig(): NimiAIConfig {

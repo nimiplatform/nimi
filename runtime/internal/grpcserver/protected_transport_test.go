@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"errors"
 	"io"
 	"log/slog"
 	"net"
@@ -13,13 +14,17 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 )
@@ -60,7 +65,6 @@ func TestProtectedDesktopProductControlAdmitsExactDependencyJobControls(t *testi
 		}
 	}
 	for _, method := range []string{
-		"/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset",
 		"/nimi.runtime.v1.RuntimeLocalService/InstallLocalService",
 		"/nimi.runtime.v1.RuntimeLocalService/StartEngine",
 	} {
@@ -85,12 +89,16 @@ func TestProtectedDesktopRuntimeConsumerAdmitsExactUnarySet(t *testing.T) {
 		"/nimi.runtime.v1.RuntimeAgentService/ListAgents",
 	}
 	for _, method := range admitted {
-		if !protectedDesktopRuntimeConsumerMethod(method) {
+		if !protectedlocal.IsOrdinaryDesktopRuntimeConsumerV1Method(method) {
 			t.Fatalf("Desktop Runtime consumer method %q is missing from the exact classifier", method)
 		}
 		role, allowed := protectedDesktopMethodRole(method)
-		if !allowed || role != protectedlocal.RoleVerifiedDesktopProcess {
-			t.Fatalf("Desktop Runtime consumer method %q role = %q allowed=%v", method, role, allowed)
+		expectedRole := protectedlocal.RoleVerifiedDesktopProcess
+		if method == "/nimi.runtime.v1.RuntimeAgentService/ListAgents" {
+			expectedRole = protectedlocal.RoleDesktopAccountHost
+		}
+		if !allowed || role != expectedRole {
+			t.Fatalf("Desktop Runtime consumer method %q role = %q want=%q allowed=%v", method, role, expectedRole, allowed)
 		}
 		if !protectedDesktopUnaryMethodAllowed(method) {
 			t.Fatalf("Desktop Runtime consumer unary %q was not admitted", method)
@@ -106,7 +114,7 @@ func TestProtectedDesktopRuntimeConsumerAdmitsExactUnarySet(t *testing.T) {
 		"/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
 	}
 	for _, method := range excluded {
-		if protectedDesktopRuntimeConsumerMethod(method) {
+		if protectedlocal.IsOrdinaryDesktopRuntimeConsumerV1Method(method) {
 			t.Fatalf("unadmitted method %q escaped the exact Desktop Runtime consumer classifier", method)
 		}
 	}
@@ -140,6 +148,7 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 		&runtimev1.UnimplementedRuntimeAiServiceServer{},
 		&runtimev1.UnimplementedRuntimeAgentServiceServer{},
 		&runtimev1.UnimplementedRuntimeConnectorServiceServer{},
+		&runtimev1.UnimplementedRuntimeExternalAgentServiceServer{},
 		appService,
 		&runtimev1.UnimplementedRuntimeDevelopmentServiceServer{},
 		&runtimev1.UnimplementedRuntimeArtifactServiceServer{},
@@ -181,16 +190,20 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	accountClient := runtimev1.NewRuntimeAccountServiceClient(clientConn)
 	auditClient := runtimev1.NewRuntimeAuditServiceClient(clientConn)
 	localClient := runtimev1.NewRuntimeLocalServiceClient(clientConn)
+	machineContext := metadata.NewOutgoingContext(context.Background(), metadata.Pairs(
+		protectedFirstPartyProfileMetadata, protectedlocal.DesktopMachineProductNativeMarker,
+		"x-nimi-app-id", envelope.ProtectedDesktopAppID,
+	))
 
 	_, err = accountClient.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{})
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH {
 		t.Fatalf("account request without Desktop session reason = %v (present=%v), err=%v", reason, ok, err)
 	}
-	_, err = localClient.GetProductControlRecord(context.Background(), &runtimev1.GetProductControlRecordRequest{})
+	_, err = localClient.GetProductControlRecord(machineContext, &runtimev1.GetProductControlRecordRequest{})
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH {
 		t.Fatalf("product-control request without Desktop session reason = %v (present=%v), err=%v", reason, ok, err)
 	}
-	_, err = auditClient.ListDesktopAuditEvents(context.Background(), &runtimev1.ListDesktopAuditEventsRequest{})
+	_, err = auditClient.ListDesktopAuditEvents(machineContext, &runtimev1.ListDesktopAuditEventsRequest{})
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH || auditService.projectionCalled {
 		t.Fatalf("audit projection without Desktop session reason = %v (present=%v), called=%v err=%v", reason, ok, auditService.projectionCalled, err)
 	}
@@ -199,19 +212,19 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 		call func() error
 	}{
 		{name: "StartLocalEnvironmentDependencyJob", call: func() error {
-			_, callErr := localClient.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{})
+			_, callErr := localClient.StartLocalEnvironmentDependencyJob(machineContext, &runtimev1.StartLocalEnvironmentDependencyJobRequest{})
 			return callErr
 		}},
 		{name: "CancelLocalEnvironmentDependencyJob", call: func() error {
-			_, callErr := localClient.CancelLocalEnvironmentDependencyJob(context.Background(), &runtimev1.CancelLocalEnvironmentDependencyJobRequest{})
+			_, callErr := localClient.CancelLocalEnvironmentDependencyJob(machineContext, &runtimev1.CancelLocalEnvironmentDependencyJobRequest{})
 			return callErr
 		}},
 		{name: "RetryLocalEnvironmentDependencyJob", call: func() error {
-			_, callErr := localClient.RetryLocalEnvironmentDependencyJob(context.Background(), &runtimev1.RetryLocalEnvironmentDependencyJobRequest{})
+			_, callErr := localClient.RetryLocalEnvironmentDependencyJob(machineContext, &runtimev1.RetryLocalEnvironmentDependencyJobRequest{})
 			return callErr
 		}},
 		{name: "RepairLocalEnvironmentDependency", call: func() error {
-			_, callErr := localClient.RepairLocalEnvironmentDependency(context.Background(), &runtimev1.RepairLocalEnvironmentDependencyRequest{})
+			_, callErr := localClient.RepairLocalEnvironmentDependency(machineContext, &runtimev1.RepairLocalEnvironmentDependencyRequest{})
 			return callErr
 		}},
 	}
@@ -242,11 +255,11 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	if err != nil || statusResponse.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED || !accountService.statusBound {
 		t.Fatalf("GetAccountSessionStatus protected carrier = (%+v, %v), bound=%v", statusResponse, err, accountService.statusBound)
 	}
-	productControlResponse, err := localClient.GetProductControlRecord(context.Background(), &runtimev1.GetProductControlRecordRequest{})
+	productControlResponse, err := localClient.GetProductControlRecord(machineContext, &runtimev1.GetProductControlRecordRequest{})
 	if err != nil || productControlResponse.GetJson() == "" || !localService.productControlBound {
 		t.Fatalf("GetProductControlRecord protected carrier = (%+v, %v), bound=%v", productControlResponse, err, localService.productControlBound)
 	}
-	dependencyJobResponse, err := localClient.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+	dependencyJobResponse, err := localClient.StartLocalEnvironmentDependencyJob(machineContext, &runtimev1.StartLocalEnvironmentDependencyJobRequest{
 		EnvironmentKey:   "native-engine-package.llama|llama.cpp.package|host|windows/amd64|root|llama.cpp.cpu",
 		DependencyFamily: "native-engine-package.llama",
 		DependencyId:     "llama.cpp.package",
@@ -257,15 +270,15 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	if err != nil || dependencyJobResponse.GetJob().GetJobId() == "" || !localService.dependencyJobBound {
 		t.Fatalf("StartLocalEnvironmentDependencyJob protected carrier = (%+v, %v), bound=%v", dependencyJobResponse, err, localService.dependencyJobBound)
 	}
-	cancelResponse, err := localClient.CancelLocalEnvironmentDependencyJob(context.Background(), &runtimev1.CancelLocalEnvironmentDependencyJobRequest{JobId: "dependency-job-protected"})
+	cancelResponse, err := localClient.CancelLocalEnvironmentDependencyJob(machineContext, &runtimev1.CancelLocalEnvironmentDependencyJobRequest{JobId: "dependency-job-protected"})
 	if err != nil || cancelResponse.GetJob().GetJobId() == "" || !localService.cancelDependencyJobBound {
 		t.Fatalf("CancelLocalEnvironmentDependencyJob protected carrier = (%+v, %v), bound=%v", cancelResponse, err, localService.cancelDependencyJobBound)
 	}
-	retryResponse, err := localClient.RetryLocalEnvironmentDependencyJob(context.Background(), &runtimev1.RetryLocalEnvironmentDependencyJobRequest{JobId: "dependency-job-protected", Confirmed: true})
+	retryResponse, err := localClient.RetryLocalEnvironmentDependencyJob(machineContext, &runtimev1.RetryLocalEnvironmentDependencyJobRequest{JobId: "dependency-job-protected", Confirmed: true})
 	if err != nil || retryResponse.GetJob().GetJobId() == "" || !localService.retryDependencyJobBound {
 		t.Fatalf("RetryLocalEnvironmentDependencyJob protected carrier = (%+v, %v), bound=%v", retryResponse, err, localService.retryDependencyJobBound)
 	}
-	repairResponse, err := localClient.RepairLocalEnvironmentDependency(context.Background(), &runtimev1.RepairLocalEnvironmentDependencyRequest{
+	repairResponse, err := localClient.RepairLocalEnvironmentDependency(machineContext, &runtimev1.RepairLocalEnvironmentDependencyRequest{
 		EnvironmentKey:   "native-engine-package.llama|llama.cpp.package|host|windows/amd64|root|llama.cpp.cpu",
 		DependencyFamily: "native-engine-package.llama",
 		DependencyId:     "llama.cpp.package",
@@ -275,11 +288,11 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	if err != nil || repairResponse.GetJob().GetJobId() == "" || !localService.repairDependencyJobBound {
 		t.Fatalf("RepairLocalEnvironmentDependency protected carrier = (%+v, %v), bound=%v", repairResponse, err, localService.repairDependencyJobBound)
 	}
-	_, err = localClient.ListLocalAssets(context.Background(), &runtimev1.ListLocalAssetsRequest{})
+	_, err = localClient.ListLocalAssets(machineContext, &runtimev1.ListLocalAssetsRequest{})
 	if err != nil || !localService.localAssetsCalled {
 		t.Fatalf("ListLocalAssets protected carrier: called=%v err=%v", localService.localAssetsCalled, err)
 	}
-	projection, err := auditClient.ListDesktopAuditEvents(context.Background(), &runtimev1.ListDesktopAuditEventsRequest{})
+	projection, err := auditClient.ListDesktopAuditEvents(machineContext, &runtimev1.ListDesktopAuditEventsRequest{})
 	if err != nil || projection.GetNextPageToken() != "" || !auditService.projectionCalled || !auditService.authorizationDecisionBound {
 		t.Fatalf("ListDesktopAuditEvents protected carrier: called=%v decision=%v response=%+v err=%v", auditService.projectionCalled, auditService.authorizationDecisionBound, projection, err)
 	}
@@ -368,6 +381,359 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
+}
+
+type finalM1ProfileAdmissionCase struct {
+	id        string
+	method    string
+	profileID string
+	marker    string
+	kind      protectedlocal.FirstPartyMethodKind
+}
+
+var finalM1ProfileAdmissionCases = []finalM1ProfileAdmissionCase{
+	{"M01", "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M02", "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M03", "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M04", "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M05", "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M06", "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M07", "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M08", "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M09", "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M10", "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M11", "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M12", "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M13", "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M14", "/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M15", "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M16", "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M17", "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M18", "/nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M19", "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodServerStream},
+	{"M20", "/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M21", "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M22", "/nimi.runtime.v1.RuntimeLocalService/ResolveProfile", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M23", "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M24", "/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M25", "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M26", "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodServerStream},
+	{"M27", "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodServerStream},
+	{"M28", "/nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M29", "/nimi.runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M30", "/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"M31", "/nimi.runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens", protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A01", "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A02", "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A06", "/nimi.runtime.v1.RuntimeConnectorService/ListModelCatalogProviders", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A07", "/nimi.runtime.v1.RuntimeConnectorService/ListCatalogProviderModels", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A08", "/nimi.runtime.v1.RuntimeConnectorService/GetCatalogModelDetail", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A09", "/nimi.runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A10", "/nimi.runtime.v1.RuntimeConnectorService/DeleteModelCatalogProvider", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A11", "/nimi.runtime.v1.RuntimeConnectorService/UpsertCatalogModelOverlay", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A12", "/nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A13", "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A14", "/nimi.runtime.v1.RuntimeConnectorService/CreateConnector", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A15", "/nimi.runtime.v1.RuntimeConnectorService/UpdateConnector", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A16", "/nimi.runtime.v1.RuntimeConnectorService/DeleteConnector", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A17", "/nimi.runtime.v1.RuntimeConnectorService/TestConnector", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A18", "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A19", "/nimi.runtime.v1.RuntimeAgentService/GetAgentState", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A20", "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A21", "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A22", "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A23", "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A24", "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A25", "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A26", "/nimi.runtime.v1.RuntimeAgentService/CancelHook", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A27", "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A28", "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A29", "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A30", "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+	{"A31", "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision", protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.FirstPartyMethodUnary},
+}
+
+func TestM1ExactProfileAdmission(t *testing.T) {
+	manager, connection := newProtectedRPCFixture(t)
+	if _, err := manager.Open(protectedlocal.ContextWithDesktopConnection(context.Background(), connection)); err != nil {
+		t.Fatalf("open Desktop session: %v", err)
+	}
+	provider := &protectedAccountPrincipalTestProvider{invalidated: make(chan struct{})}
+	unary := newUnaryProtectedDesktopTransportInterceptor(manager, provider)
+	streaming := newStreamProtectedDesktopTransportInterceptor(manager, provider)
+	for _, tc := range finalM1ProfileAdmissionCases {
+		t.Run(tc.profileID+"/"+tc.id+"/"+tc.method, func(t *testing.T) {
+			kind, admitted := protectedlocal.FirstPartyProfileMethod(tc.profileID, tc.method)
+			if !admitted || kind != tc.kind {
+				t.Fatalf("generated membership = (%s, %v), want (%s, true)", kind, admitted, tc.kind)
+			}
+			ctx := protectedFirstPartyProfileTestContext(context.Background(), connection, tc.marker)
+			assertHandlerContext := func(callContext context.Context) error {
+				principal, hasPrincipal := protectedprincipal.FromContext(callContext)
+				identity := authn.IdentityFromContext(callContext)
+				if tc.profileID == protectedlocal.DesktopAccountProductProfileID {
+					if !hasPrincipal || principal.AccountID != "account-protected" || identity == nil || identity.SubjectUserID != principal.AccountID {
+						return status.Error(codes.Internal, "Runtime-minted account principal was not projected exactly")
+					}
+				} else if hasPrincipal || identity != nil {
+					return status.Error(codes.Internal, "machine profile received account identity")
+				}
+				return nil
+			}
+			if tc.kind == protectedlocal.FirstPartyMethodUnary {
+				reached := false
+				_, err := unary(ctx, nil, &grpc.UnaryServerInfo{FullMethod: tc.method}, func(callContext context.Context, _ any) (any, error) {
+					reached = true
+					return struct{}{}, assertHandlerContext(callContext)
+				})
+				if err != nil || !reached {
+					t.Fatalf("unary admission reached=%v err=%v", reached, err)
+				}
+				return
+			}
+			reached := false
+			err := streaming(nil, &recordingServerStream{ctx: ctx}, &grpc.StreamServerInfo{FullMethod: tc.method, IsServerStream: true}, func(_ any, protectedStream grpc.ServerStream) error {
+				reached = true
+				return assertHandlerContext(protectedStream.Context())
+			})
+			if err != nil || !reached {
+				t.Fatalf("stream admission reached=%v err=%v", reached, err)
+			}
+		})
+	}
+}
+
+func TestM1ExactProfileNegativeMatrix(t *testing.T) {
+	manager, connection := newProtectedRPCFixture(t)
+	if _, err := manager.Open(protectedlocal.ContextWithDesktopConnection(context.Background(), connection)); err != nil {
+		t.Fatalf("open Desktop session: %v", err)
+	}
+	provider := &protectedAccountPrincipalTestProvider{invalidated: make(chan struct{})}
+	unary := newUnaryProtectedDesktopTransportInterceptor(manager, provider)
+	streaming := newStreamProtectedDesktopTransportInterceptor(manager, provider)
+	for _, tc := range finalM1ProfileAdmissionCases {
+		t.Run(tc.profileID+"/"+tc.id+"/"+tc.method, func(t *testing.T) {
+			wrongKind := protectedlocal.FirstPartyMethodUnary
+			if tc.kind == protectedlocal.FirstPartyMethodUnary {
+				wrongKind = protectedlocal.FirstPartyMethodServerStream
+			}
+			valid := protectedFirstPartyProfileTestContext(context.Background(), connection, tc.marker)
+			if _, _, err := resolveProtectedFirstPartyProfile(valid, tc.method, wrongKind); status.Code(err) != codes.PermissionDenied {
+				t.Fatalf("wrong kind was not denied: %v", err)
+			}
+			wrongApp := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+				protectedFirstPartyProfileMetadata, tc.marker, "x-nimi-app-id", "renderer-selected",
+			))
+			if _, _, err := resolveProtectedFirstPartyProfile(wrongApp, tc.method, tc.kind); status.Code(err) != codes.PermissionDenied {
+				t.Fatalf("renderer-selected app was not denied: %v", err)
+			}
+			noProfile := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedDesktopAuthInfo{connection: connection}})
+			reached := false
+			if tc.kind == protectedlocal.FirstPartyMethodUnary {
+				_, err := unary(noProfile, nil, &grpc.UnaryServerInfo{FullMethod: tc.method}, func(context.Context, any) (any, error) { reached = true; return struct{}{}, nil })
+				if status.Code(err) != codes.PermissionDenied || reached {
+					t.Fatalf("missing profile result reached=%v err=%v", reached, err)
+				}
+			} else {
+				err := streaming(nil, &recordingServerStream{ctx: noProfile}, &grpc.StreamServerInfo{FullMethod: tc.method, IsServerStream: true}, func(any, grpc.ServerStream) error { reached = true; return nil })
+				if status.Code(err) != codes.PermissionDenied || reached {
+					t.Fatalf("missing profile stream result reached=%v err=%v", reached, err)
+				}
+			}
+			conflictingBase := authn.WithIdentity(context.Background(), &authn.Identity{SubjectUserID: "renderer-selected-account"})
+			conflicting := protectedFirstPartyProfileTestContext(conflictingBase, connection, tc.marker)
+			reached = false
+			if tc.kind == protectedlocal.FirstPartyMethodUnary {
+				_, err := unary(conflicting, nil, &grpc.UnaryServerInfo{FullMethod: tc.method}, func(context.Context, any) (any, error) { reached = true; return struct{}{}, nil })
+				if status.Code(err) != codes.PermissionDenied || reached {
+					t.Fatalf("conflicting identity result reached=%v err=%v", reached, err)
+				}
+			} else {
+				err := streaming(nil, &recordingServerStream{ctx: conflicting}, &grpc.StreamServerInfo{FullMethod: tc.method, IsServerStream: true}, func(any, grpc.ServerStream) error { reached = true; return nil })
+				if status.Code(err) != codes.PermissionDenied || reached {
+					t.Fatalf("conflicting identity stream result reached=%v err=%v", reached, err)
+				}
+			}
+		})
+	}
+}
+
+func TestM1ExactProfilePostStateCounts(t *testing.T) {
+	machine := protectedlocal.FirstPartyProfileMethods(protectedlocal.DesktopMachineProductProfileID)
+	account := protectedlocal.FirstPartyProfileMethods(protectedlocal.DesktopAccountProductProfileID)
+	if len(machine) != 64 || len(account) != 49 {
+		t.Fatalf("profile counts machine=%d account=%d", len(machine), len(account))
+	}
+	union := map[string]struct{}{}
+	for _, method := range append(append([]protectedlocal.FirstPartyProfileMethodEntry(nil), machine...), account...) {
+		union[method.MethodID] = struct{}{}
+	}
+	if len(machine)+len(account) != 113 || len(union) != 112 {
+		t.Fatalf("post-state memberships=%d union=%d", len(machine)+len(account), len(union))
+	}
+}
+
+func protectedFirstPartyProfileTestContext(base context.Context, connection *protectedlocal.Connection, marker string) context.Context {
+	ctx := metadata.NewIncomingContext(base, metadata.Pairs(
+		protectedFirstPartyProfileMetadata, marker,
+		"x-nimi-app-id", envelope.ProtectedDesktopAppID,
+	))
+	return peer.NewContext(ctx, &peer.Peer{AuthInfo: &protectedDesktopAuthInfo{connection: connection}})
+}
+
+func TestGeneratedFirstPartyProfilesResolveExactMarkerMethodAndKind(t *testing.T) {
+	profiles := []struct {
+		profileID string
+		marker    string
+		role      protectedlocal.OriginRole
+		account   bool
+	}{
+		{protectedlocal.DesktopMachineProductProfileID, protectedlocal.DesktopMachineProductNativeMarker, protectedlocal.RoleVerifiedDesktopProcess, false},
+		{protectedlocal.DesktopAccountProductProfileID, protectedlocal.DesktopAccountProductNativeMarker, protectedlocal.RoleDesktopAccountHost, true},
+	}
+	for _, profile := range profiles {
+		for _, method := range protectedlocal.FirstPartyProfileMethods(profile.profileID) {
+			ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+				protectedFirstPartyProfileMetadata, profile.marker,
+				"x-nimi-app-id", envelope.ProtectedDesktopAppID,
+			))
+			resolved, ok, err := resolveProtectedFirstPartyProfile(ctx, method.MethodID, method.Kind)
+			if err != nil || !ok || resolved.profileID != profile.profileID || resolved.role != profile.role || resolved.account != profile.account {
+				t.Fatalf("resolve %s %s = (%+v, %v, %v)", profile.profileID, method.MethodID, resolved, ok, err)
+			}
+			wrongKind := protectedlocal.FirstPartyMethodUnary
+			if method.Kind == protectedlocal.FirstPartyMethodUnary {
+				wrongKind = protectedlocal.FirstPartyMethodServerStream
+			}
+			if _, _, err := resolveProtectedFirstPartyProfile(ctx, method.MethodID, wrongKind); status.Code(err) != codes.PermissionDenied {
+				t.Fatalf("kind drift for %s was not denied: %v", method.MethodID, err)
+			}
+		}
+	}
+	wrongApp := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		protectedFirstPartyProfileMetadata, protectedlocal.DesktopMachineProductNativeMarker,
+		"x-nimi-app-id", "renderer-selected",
+	))
+	if _, _, err := resolveProtectedFirstPartyProfile(wrongApp, "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets", protectedlocal.FirstPartyMethodUnary); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("wrong app marker was not denied: %v", err)
+	}
+}
+
+func TestDesktopMachineProfileStreamReachesHandler(t *testing.T) {
+	manager, connection := newProtectedRPCFixture(t)
+	if _, err := manager.Open(protectedlocal.ContextWithDesktopConnection(context.Background(), connection)); err != nil {
+		t.Fatalf("open Desktop session: %v", err)
+	}
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		protectedFirstPartyProfileMetadata, protectedlocal.DesktopMachineProductNativeMarker,
+		"x-nimi-app-id", envelope.ProtectedDesktopAppID,
+	))
+	ctx = peer.NewContext(ctx, &peer.Peer{AuthInfo: &protectedDesktopAuthInfo{connection: connection}})
+	reached := false
+	err := newStreamProtectedDesktopTransportInterceptor(manager, nil)(nil, &recordingServerStream{ctx: ctx}, &grpc.StreamServerInfo{
+		FullMethod:     "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
+		IsServerStream: true,
+	}, func(_ any, protectedStream grpc.ServerStream) error {
+		reached = true
+		if _, ok := protectedprincipal.FromContext(protectedStream.Context()); ok {
+			return status.Error(codes.Internal, "machine profile must not receive account principal")
+		}
+		return nil
+	})
+	if err != nil || !reached {
+		t.Fatalf("machine stream handler result = reached=%v error=%v", reached, err)
+	}
+}
+
+func TestDesktopAccountProfileInvalidationCancelsUnaryBeforeLaterMutation(t *testing.T) {
+	manager, connection := newProtectedRPCFixture(t)
+	connectionContext := protectedlocal.ContextWithDesktopConnection(context.Background(), connection)
+	if _, err := manager.Open(connectionContext); err != nil {
+		t.Fatalf("open Desktop session: %v", err)
+	}
+	invalidated := make(chan struct{})
+	provider := &protectedAccountPrincipalTestProvider{invalidated: invalidated}
+	ctx := protectedAccountProfileTestContext(connection)
+	started := make(chan struct{})
+	result := make(chan error, 1)
+	interceptor := newUnaryProtectedDesktopTransportInterceptor(manager, provider)
+	go func() {
+		_, err := interceptor(ctx, &runtimev1.ListAgentsRequest{}, &grpc.UnaryServerInfo{
+			FullMethod: "/nimi.runtime.v1.RuntimeAgentService/ListAgents",
+		}, func(callContext context.Context, _ any) (any, error) {
+			principal, ok := protectedprincipal.FromContext(callContext)
+			if !ok || principal.ProfileID != protectedlocal.DesktopAccountProductProfileID || principal.AccountID != "account-protected" {
+				return nil, status.Error(codes.Internal, "account principal missing")
+			}
+			close(started)
+			<-callContext.Done()
+			return nil, callContext.Err()
+		})
+		result <- err
+	}()
+	<-started
+	close(invalidated)
+	select {
+	case err := <-result:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("account invalidation result = %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("account invalidation did not cancel in-flight unary")
+	}
+}
+
+func TestDesktopAccountProfileInvalidationCancelsStreamBeforeLaterEvent(t *testing.T) {
+	manager, connection := newProtectedRPCFixture(t)
+	if _, err := manager.Open(protectedlocal.ContextWithDesktopConnection(context.Background(), connection)); err != nil {
+		t.Fatalf("open Desktop session: %v", err)
+	}
+	invalidated := make(chan struct{})
+	provider := &protectedAccountPrincipalTestProvider{invalidated: invalidated}
+	stream := &recordingServerStream{ctx: protectedAccountProfileTestContext(connection)}
+	started := make(chan struct{})
+	result := make(chan error, 1)
+	interceptor := newStreamProtectedDesktopTransportInterceptor(manager, provider)
+	go func() {
+		result <- interceptor(nil, stream, &grpc.StreamServerInfo{
+			FullMethod:     "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
+			IsServerStream: true,
+		}, func(_ any, protectedStream grpc.ServerStream) error {
+			principal, ok := protectedprincipal.FromContext(protectedStream.Context())
+			if !ok || principal.ProfileID != protectedlocal.DesktopAccountProductProfileID || principal.AccountID != "account-protected" {
+				return status.Error(codes.Internal, "account principal missing")
+			}
+			close(started)
+			<-protectedStream.Context().Done()
+			return protectedStream.Context().Err()
+		})
+	}()
+	<-started
+	close(invalidated)
+	select {
+	case err := <-result:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("account stream invalidation result = %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("account invalidation did not cancel in-flight stream")
+	}
+}
+
+func protectedAccountProfileTestContext(connection *protectedlocal.Connection) context.Context {
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		protectedFirstPartyProfileMetadata, protectedlocal.DesktopAccountProductNativeMarker,
+		"x-nimi-app-id", envelope.ProtectedDesktopAppID,
+	))
+	return peer.NewContext(ctx, &peer.Peer{AuthInfo: &protectedDesktopAuthInfo{connection: connection}})
+}
+
+type protectedAccountPrincipalTestProvider struct {
+	invalidated <-chan struct{}
+}
+
+func (provider *protectedAccountPrincipalTestProvider) BindAuthenticatedRuntimeGeneration(context.Context) (*runtimev1.AccountProjection, uint64, <-chan struct{}, bool) {
+	return &runtimev1.AccountProjection{AccountId: "account-protected", RealmEnvironmentId: "realm-test"}, 7, provider.invalidated, true
 }
 
 type protectedDesktopAccountTestService struct {

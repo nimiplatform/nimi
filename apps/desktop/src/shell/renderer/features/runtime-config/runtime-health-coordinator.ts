@@ -2,11 +2,11 @@ import { useEffect, useSyncExternalStore } from 'react';
 import {
   NimiRuntimeHealthCoordinator,
   type NimiRuntimeHealthCoordinatorState,
-  type Runtime,
 } from '@nimiplatform/sdk/runtime';
 import { type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import type { DesktopRendererLifecyclePort } from '../../renderer/lifecycle-port';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 
 const HEALTH_METADATA = { surfaceId: 'runtime.health' };
 const HEALTH_CALL_OPTIONS = { timeoutMs: 5000, metadata: HEALTH_METADATA };
@@ -18,7 +18,7 @@ type RuntimeHealthTimerPort = {
 };
 
 export function createRuntimeHealthCoordinator(
-  getAudit: () => Runtime['audit'],
+  getAudit: DesktopRendererSdkPort['auditAdmin'],
   timers: RuntimeHealthTimerPort,
 ): NimiRuntimeHealthCoordinator {
   return new NimiRuntimeHealthCoordinator({

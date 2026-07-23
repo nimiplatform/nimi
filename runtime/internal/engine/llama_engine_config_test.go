@@ -208,10 +208,10 @@ func TestLlamaCommandIncludesEngineParams(t *testing.T) {
 	}
 
 	cfg := EngineConfig{
-		Kind:             EngineLlama,
-		Port:             1234,
-		BinaryPath:       "/usr/bin/true",
-		ModelsPath:       modelsDir,
+		Kind:       EngineLlama,
+		Port:       1234,
+		BinaryPath: "/usr/bin/true",
+		ModelsPath: modelsDir,
 		ManagedLlamaTarget: &ManagedLlamaTarget{
 			ModelPath:  "test/model.gguf",
 			ModelAlias: "test-model",

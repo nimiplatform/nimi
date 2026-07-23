@@ -50,7 +50,7 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
           defaultValue: 'Open a conversation before clearing generated voice.',
         }));
       }
-      return bindings.sdk.runtime().artifacts.cleanupGeneratedVoiceArtifacts({
+      return bindings.sdk.accountProduct().artifacts.cleanupGeneratedVoiceArtifacts({
         agentId: input.activeTarget.localAgentRef,
         conversationAnchorId: input.activeConversationAnchorId,
       });

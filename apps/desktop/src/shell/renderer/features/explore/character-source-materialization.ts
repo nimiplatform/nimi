@@ -1,7 +1,6 @@
 import { createNimiClientId } from '@nimiplatform/sdk';
 import type { TFunction } from 'i18next';
 import {
-  createNimiHostRuntimeAgentLifecycleSurface,
   isRuntimeLocalAgentRef,
   normalizeNimiRuntimeAgentText,
   type NimiRuntimeAgentDiscoveredLocalAgent,
@@ -116,7 +115,7 @@ export async function materializeCharacterSourceLocalAgent(
 ): Promise<RuntimeMaterializeRealmSourceResult> {
   const sourceRef = resolveCharacterSourceRefV3(input);
   if (!sourceRef) throw new Error(characterSourceMaterializationMessage(t));
-  return sdk.runtime().materializeRealmSource({
+  return sdk.accountProduct().materializeRealmSource({
     sourceRef,
     requestId: createNimiClientId('desktop-source-materialization'),
   });
@@ -130,11 +129,7 @@ export async function discoverCharacterSourceLocalAgents(
   const ownerUserId = normalizeNimiRuntimeAgentText(ownerUserIdInput);
   const sourceRef = resolveCharacterSourceRefV3(input);
   if (!ownerUserId || !sourceRef) return [];
-  const lifecycle = createNimiHostRuntimeAgentLifecycleSurface({
-    getRuntime: sdk.hostRuntimeAgent,
-    getSubjectUserId: () => ownerUserId,
-    withScopes: sdk.withRuntimeProtectedScopes,
-  });
+  const lifecycle = sdk.runtimeAgentDiscovery(() => ownerUserId);
   return lifecycle.discoverLocalAgentsBySource({ ownerUserId, sourceRef });
 }
 

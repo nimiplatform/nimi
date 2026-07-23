@@ -2108,15 +2108,15 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
-  - id: gate.desktop.windows-product-control-native
-    description: Signed Windows x64 Desktop product-control native acceptance.
-    command: pnpm --filter @nimiplatform/desktop test:windows:product-control-native
+  - id: gate.desktop.first-party-installed-first-run
+    description: Gate 0 — signed Windows x64 Desktop First Run/Product Control acceptance; one normal regression binding per exact candidate, not a redesigned subsystem.
+    command: pnpm test:e2e:first-party-product:first-run
     runner: pnpm
     tiers: [release, release-target:desktop]
     targets: [desktop]
-    timeout_seconds: 300
+    timeout_seconds: 1800
     skip_when: { condition: not_windows, reason_code: PRECONDITION_NOT_MET }
-    requires_binaries: [pnpm, node]
+    requires_binaries: [pnpm, node, powershell.exe]
     evidence: { shape: command_exit }
     p_relg_anchors: [P-RELG-001, P-RELG-007]
     parent_p_gov_anchors: [P-GOV-003]
@@ -2174,16 +2174,62 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
+  - id: gate.desktop.first-party-direct-nimi-core
+    description: Gate 1 — same-candidate signed Windows installed direct-Nimi journey from Gate 0 ready_for_use through a real local stream terminal, with no cloud, fixture, seeded readiness, endpoint, or generic transport substitution.
+    command: pnpm test:e2e:first-party-product:direct-nimi
+    runner: pnpm
+    tiers: [release, release-target:desktop]
+    targets: [desktop, runtime]
+    timeout_seconds: 1800
+    prerequisites: [gate.desktop.first-party-installed-first-run]
+    skip_when: { condition: not_windows, reason_code: PRECONDITION_NOT_MET }
+    requires_binaries: [pnpm, node, powershell.exe]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001, P-RELG-007]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.desktop.first-party-partner-core
+    description: Gate 2 — same-candidate signed Windows installed Realm-source materialize, LocalAgent open, partner turn, commit and authoritative reload journey with owner/account/boot/sender negative closure.
+    command: pnpm test:e2e:first-party-product:partner-core
+    runner: pnpm
+    tiers: [release, release-target:desktop]
+    targets: [desktop, runtime]
+    timeout_seconds: 3600
+    prerequisites: [gate.desktop.first-party-direct-nimi-core]
+    skip_when: { condition: not_windows, reason_code: PRECONDITION_NOT_MET }
+    requires_binaries: [pnpm, node, powershell.exe]
+    requires_env: [REALM_ROOT]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001, P-RELG-007]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
   - id: gate.desktop.local-agent-product-core-stability
-    description: Windows fixed-service Desktop-to-Zhiyu LocalAgent product Journey with three isolated repeats and real shell, process, authorization, persistence, restart, layout, accessibility, and privacy evidence.
+    description: Gate 3 — same-candidate signed Windows fixed-service first-party LocalAgent no-regression floor; aggregate the inherited passing P4 eight-point prerequisite with current execution of the remaining 36 L2 points, including multi-turn, continuity, restart, offline/recovery, isolation, layout, accessibility, and privacy, without dual ownership or historical-only substitution.
     command: pnpm test:e2e:local-agent-product:core-stability
     runner: pnpm
     tiers: [release, release-target:desktop]
     targets: [desktop, runtime]
     timeout_seconds: 10800
+    prerequisites: [gate.desktop.first-party-partner-core]
     skip_when: { condition: not_windows, reason_code: PRECONDITION_NOT_MET }
     requires_binaries: [pnpm, node, powershell.exe]
     requires_env: [REALM_ROOT]
+    evidence: { shape: command_exit }
+    p_relg_anchors: [P-RELG-001, P-RELG-007]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.desktop.dev-kernel-foundation
+    description: Independent protected-carrier and local-development foundation journey; it proves fixed-service/dev-kernel security mechanics only and does not satisfy Gate 0-3, first-party product acceptance, or third-party positive permission admission.
+    command: pnpm test:e2e:dev-kernel:owner-minimal
+    runner: pnpm
+    tiers: [release, release-target:desktop]
+    targets: [desktop, runtime]
+    timeout_seconds: 1800
+    skip_when: { condition: not_windows, reason_code: PRECONDITION_NOT_MET }
+    requires_binaries: [pnpm, node, powershell.exe]
     evidence: { shape: command_exit }
     p_relg_anchors: [P-RELG-001, P-RELG-007]
     parent_p_gov_anchors: [P-GOV-003]

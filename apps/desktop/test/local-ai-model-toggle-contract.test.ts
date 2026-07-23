@@ -283,7 +283,7 @@ test('installed unhealthy assets surface runtime health detail in the model list
   assert.match(installedSectionProjectionSource, /text-\[var\(--nimi-status-danger\)\]/);
 });
 
-test('runtime local lifecycle controller remains available only as non-product maintenance surface', () => {
+test('runtime local lifecycle controller preserves current first-party Runtime Config product orchestration', () => {
   assert.match(controllerSource, /from ['"]@nimiplatform\/sdk\/runtime['"]/);
   assert.doesNotMatch(controllerSource, /from ['"]@runtime\/local-runtime['"]/);
   assert.doesNotMatch(controllerSource, /from ['"]runtime\/internal/);

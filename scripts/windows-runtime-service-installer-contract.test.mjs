@@ -29,7 +29,7 @@ const fixedServiceContract = readFileSync(
 
 test('service installer binds the signed binary to the exact repository source record', () => {
   assert.match(installerBuild, /validateRuntimeBuildRecord\(runtimeBuildRecord, \{/u);
-  assert.match(installerBuild, /source: captureRuntimeBuildSource\(repoRoot\)/u);
+  assert.match(installerBuild, /source: captureRuntimeBuildSource\(repoRoot, \{ pathspecs: WINDOWS_RUNTIME_BUILD_SOURCE_PATHS \}\)/u);
   assert.match(installerBuild, /runtimeBuildRecordSha256/u);
   assert.match(installerBuild, /copyFileSync\(runtimeBuildRecordSource/u);
   assert.match(installer, /Assert-InstalledCandidate/u);
@@ -87,6 +87,43 @@ test('checkpoint profile separates real Realm account authority from the provide
   assert.match(installer, /\$fixture\.fixtureBaseUrl -ne 'http:\/\/127\.0\.0\.1:19443'/u);
   assert.match(installer, /\$fixture\.providerBaseUrl -ne \(\$fixture\.fixtureBaseUrl \+ '\/v1'\)/u);
   assert.doesNotMatch(installer, /realmIssuer\s*=\s*\$fixture\.realmBaseUrl/u);
+});
+
+test('first-party product acceptance is an exact signed endpoint-only build profile', () => {
+  assert.match(installer, /\[switch\]\s+\$FirstPartyProductAcceptance/u);
+  assert.match(installer, /DevKernelCheckpoint and FirstPartyProductAcceptance are mutually exclusive/u);
+  assert.match(installer, /first_party_product_acceptance/u);
+  assert.match(installer, /\^product-acceptance-runtime-\[0-9a-f\]\{32\}\$/u);
+  assert.match(installer, /configuredAccountRealmBaseUrl/u);
+  assert.match(installer, /http:\/\/localhost:3002/u);
+  assert.match(installer, /productAcceptanceCandidatePostureVerified/u);
+  assert.match(installerBuild, /runtimeBuildRecord\.checkpoint === 'dev_kernel_checkpoint'/u);
+  assert.match(installerBuild, /rmSync\(path\.join\(resourceOutputDir, 'dev-kernel-checkpoint-acceptance\.json'\)/u);
+  assert.doesNotMatch(
+    installer.slice(installer.indexOf('function Assert-RequestedBuildProfile'), installer.indexOf('function Assert-InstalledCandidate')),
+    /Realm|endpoint|environment/u,
+  );
+});
+
+test('installer build-profile verifier rejects implicit or cross-profile installation', {
+  skip: process.platform !== 'win32',
+}, () => {
+  const installerPath = fileURLToPath(new URL('./install-windows-runtime-service.ps1', import.meta.url));
+  const escapedInstallerPath = installerPath.replaceAll("'", "''");
+  const command = [
+    `. '${escapedInstallerPath}'`,
+    `$FirstPartyProductAcceptance = $true`,
+    `$accepted = $true`,
+    `Assert-RequestedBuildProfile -BuildRecord ([pscustomobject]@{ checkpoint = 'first_party_product_acceptance' })`,
+    `$rejected = $false`,
+    `try { Assert-RequestedBuildProfile -BuildRecord ([pscustomobject]@{ checkpoint = 'production_build' }) } catch { $rejected = $true }`,
+    `@{ accepted = $accepted; rejected = $rejected } | ConvertTo-Json -Compress`,
+  ].join('; ');
+  const result = spawnSync(resolveWindowsPowerShell7(), [
+    '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command,
+  ], { encoding: 'utf8', windowsHide: true });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.deepEqual(JSON.parse(result.stdout.trim()), { accepted: true, rejected: true });
 });
 
 test('service mutation propagates native failures and restores the prior SCM/profile state', () => {

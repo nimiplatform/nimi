@@ -3,6 +3,7 @@ type CreateRendererFlowId = (typeof import('@desktop-public/infra'))['createRend
 type LogRendererEvent = (typeof import('@desktop-public/infra'))['logRendererEvent'];
 type DesktopPublicWebBootstrapStore = (typeof import('@desktop-public/app-store'))['desktopPublicWebBootstrapStore'];
 type ConfigureWebRealmPlatformClient = (typeof import('./web-realm-session'))['configureWebRealmPlatformClient'];
+type ClearWebRealmPlatformClient = (typeof import('./web-realm-session'))['clearWebRealmPlatformClient'];
 type ClearPersistedAccessToken = (typeof import('@nimiplatform/kit/auth'))['clearPersistedAccessToken'];
 type DesktopRendererLifecyclePort = import('@renderer/renderer/lifecycle-port').DesktopRendererLifecyclePort;
 
@@ -13,6 +14,7 @@ type RuntimeBootstrapWebDeps = {
   logRendererEvent: LogRendererEvent;
   bootstrapStore: DesktopPublicWebBootstrapStore;
   configureWebRealmPlatformClient: ConfigureWebRealmPlatformClient;
+  clearWebRealmPlatformClient: ClearWebRealmPlatformClient;
   clearPersistedAccessToken: ClearPersistedAccessToken;
 };
 
@@ -51,6 +53,7 @@ async function loadRuntimeBootstrapWebDeps(): Promise<RuntimeBootstrapWebDeps> {
       logRendererEvent: infraModule.logRendererEvent,
       bootstrapStore: bootstrapStoreModule.desktopPublicWebBootstrapStore,
       configureWebRealmPlatformClient: webRealmSessionModule.configureWebRealmPlatformClient,
+      clearWebRealmPlatformClient: webRealmSessionModule.clearWebRealmPlatformClient,
       clearPersistedAccessToken: authStorageModule.clearPersistedAccessToken,
     };
   })();
@@ -212,7 +215,19 @@ export function bootstrapRuntime(lifecycle?: DesktopRendererLifecyclePort): Prom
   return bootstrapPromise;
 }
 
-export function rebootstrapRuntime(lifecycle?: DesktopRendererLifecyclePort): Promise<void> {
-  bootstrapPromise = null;
+export async function rebootstrapRuntime(lifecycle?: DesktopRendererLifecyclePort): Promise<void> {
+  await disposeRuntimeBootstrap();
   return bootstrapRuntime(lifecycle);
+}
+
+export async function disposeRuntimeBootstrap(): Promise<void> {
+  const activeBootstrap = bootstrapPromise;
+  if (activeBootstrap) {
+    await activeBootstrap.catch(() => undefined);
+  }
+  if (depsPromise) {
+    const deps = await depsPromise.catch(() => null);
+    deps?.clearWebRealmPlatformClient();
+  }
+  bootstrapPromise = null;
 }

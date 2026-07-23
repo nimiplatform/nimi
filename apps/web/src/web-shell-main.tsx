@@ -8,7 +8,14 @@ import '@nimiplatform/desktop/renderer/styles';
 import { installBundledImportMetaEnv } from './import-meta-env.js';
 import './web-styles.css';
 
-installBundledImportMetaEnv(import.meta.env);
+installBundledImportMetaEnv({
+  VITE_NIMI_SHELL_MODE: import.meta.env.VITE_NIMI_SHELL_MODE,
+  VITE_NIMI_REALM_BASE_URL: import.meta.env.VITE_NIMI_REALM_BASE_URL,
+  VITE_NIMI_GOOGLE_CLIENT_ID: import.meta.env.VITE_NIMI_GOOGLE_CLIENT_ID,
+  VITE_GOOGLE_CLIENT_ID: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+  VITE_NIMI_DEBUG_BOOT: import.meta.env.VITE_NIMI_DEBUG_BOOT,
+  VITE_NIMI_VERBOSE_RENDERER_LOGS: import.meta.env.VITE_NIMI_VERBOSE_RENDERER_LOGS,
+});
 applyNimiThemeAttributes({ scheme: 'light', accentPack: 'nimi-accent' });
 
 const mountElement = document.getElementById('root');

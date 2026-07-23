@@ -16,7 +16,7 @@ export async function registerDesktopAvatarLiveInstanceBinding(input: {
     throw new Error('desktop avatar launch requires avatarInstanceId and conversationAnchorId');
   }
   const runtimeAgent = createNimiRuntimeAgentConsumeClient({
-    runtime: { agents: input.sdk.runtime().agents },
+    runtime: { agents: input.sdk.accountProduct().agents },
     runtimeAppId: input.sdk.appId(),
   });
   const subjectUserId = normalizeText(input.subjectUserId);

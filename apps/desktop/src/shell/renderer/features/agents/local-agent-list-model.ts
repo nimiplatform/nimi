@@ -1,5 +1,4 @@
 import {
-  createNimiHostRuntimeAgentLifecycleSurface,
   isRuntimeLocalAgentRef,
   type NimiRuntimeAgentSourceContextStatus,
   type NimiRuntimeAgentSourceRef,
@@ -103,11 +102,7 @@ export async function fetchLocalAgentList(
   if (!ownerUserId) {
     return [];
   }
-  const lifecycle = createNimiHostRuntimeAgentLifecycleSurface({
-    getRuntime: sdk.hostRuntimeAgent,
-    getSubjectUserId: () => ownerUserId,
-    withScopes: sdk.withRuntimeProtectedScopes,
-  });
+  const lifecycle = sdk.runtimeAgentDiscovery(() => ownerUserId);
   const itemsByRef = new Map<string, LocalAgentListItem>();
   for (const agent of await lifecycle.listLocalAgents({ ownerUserId })) {
     const item = toLocalAgentListItem(agent, ownerUserId);

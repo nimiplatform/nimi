@@ -5,7 +5,7 @@ import { getDesktopMacosSmokeContext } from '../bridge/runtime-bridge/macos-smok
 import {
   bootstrapRuntime,
   disposeRuntimeBootstrap,
-} from '../infra/bootstrap/runtime-bootstrap.js';
+} from '@renderer/infra/bootstrap/runtime-bootstrap';
 import type { DesktopRendererLifecyclePort } from './lifecycle-port.js';
 
 const WEB_BOOTSTRAP_TIMEOUT_MS = 15_000;

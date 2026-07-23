@@ -1,4 +1,7 @@
 use base64::Engine;
+use nimi_shell_protected_local::{
+    DesktopAccountProductUnaryMethod, DesktopMachineProductUnaryMethod,
+};
 use prost::Message;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -15,34 +18,6 @@ const EXECUTE_SCENARIO_METHOD_ID: &str = "/nimi.runtime.v1.RuntimeAiService/Exec
 const TEXT_GENERATE_ROUTE_DESCRIBE_EXTENSION_NAMESPACE: &str =
     "nimi.scenario.text_generate.route_describe";
 const RUNTIME_BRIDGE_UNARY_MAX_DECODING_MESSAGE_BYTES: usize = 32 * 1024 * 1024;
-const PROTECTED_DESKTOP_PRODUCT_CONTROL_UNARY_METHODS: &[&str] = &[
-    super::RUNTIME_LOCAL_COLLECT_DEVICE_PROFILE_METHOD_ID,
-    super::RUNTIME_LOCAL_RESOLVE_LOCAL_ENVIRONMENT_PLAN_METHOD_ID,
-    super::RUNTIME_LOCAL_LIST_LOCAL_ENVIRONMENT_DEPENDENCY_JOBS_METHOD_ID,
-    super::RUNTIME_LOCAL_START_LOCAL_ENVIRONMENT_DEPENDENCY_JOB_METHOD_ID,
-    super::RUNTIME_LOCAL_CANCEL_LOCAL_ENVIRONMENT_DEPENDENCY_JOB_METHOD_ID,
-    super::RUNTIME_LOCAL_RETRY_LOCAL_ENVIRONMENT_DEPENDENCY_JOB_METHOD_ID,
-    super::RUNTIME_LOCAL_REPAIR_LOCAL_ENVIRONMENT_DEPENDENCY_METHOD_ID,
-    super::RUNTIME_LOCAL_RESOLVE_RUNTIME_BASELINE_READINESS_METHOD_ID,
-    super::RUNTIME_LOCAL_MINT_RUNTIME_BASELINE_READINESS_METHOD_ID,
-    super::RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID,
-    super::RUNTIME_LOCAL_MINT_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID,
-    super::RUNTIME_LOCAL_GET_PRODUCT_CONTROL_RECORD_METHOD_ID,
-    super::RUNTIME_LOCAL_GET_PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD_ID,
-    super::RUNTIME_LOCAL_ENSURE_PRODUCT_CONTROL_RECORD_CREATED_METHOD_ID,
-    super::RUNTIME_LOCAL_SELECT_PRODUCT_CONTROL_DATA_ROOT_METHOD_ID,
-    super::RUNTIME_LOCAL_SET_PRODUCT_CONTROL_FIRST_RUN_INSTALL_LEVEL_METHOD_ID,
-    super::RUNTIME_LOCAL_COMPLETE_PRODUCT_CONTROL_FIRST_RUN_DEVICE_ENVIRONMENT_SCAN_METHOD_ID,
-    super::RUNTIME_LOCAL_ADMIT_PRODUCT_CONTROL_READY_FOR_USE_METHOD_ID,
-    super::RUNTIME_LOCAL_RECORD_PRODUCT_CONTROL_ACCOUNT_DEFAULT_PROFILE_EVIDENCE_METHOD_ID,
-    super::RUNTIME_LOCAL_RECORD_PRODUCT_CONTROL_FIRST_RUN_LOCAL_AI_READY_EVIDENCE_METHOD_ID,
-    super::RUNTIME_LOCAL_RECONCILE_PRODUCT_CONTROL_FIRST_RUN_SETUP_STATE_METHOD_ID,
-];
-
-fn protected_desktop_runtime_consumer_method(method_id: &str) -> bool {
-    nimi_shell_protected_local::DesktopRuntimeConsumerMethod::from_method_id(method_id).is_some()
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum UnaryTransport {
     PublicRuntime,
@@ -50,8 +25,8 @@ enum UnaryTransport {
 }
 
 fn transport_for_public_unary(method_id: &str) -> UnaryTransport {
-    if PROTECTED_DESKTOP_PRODUCT_CONTROL_UNARY_METHODS.contains(&method_id)
-        || protected_desktop_runtime_consumer_method(method_id)
+    if DesktopMachineProductUnaryMethod::from_method_id(method_id).is_some()
+        || DesktopAccountProductUnaryMethod::from_method_id(method_id).is_some()
     {
         UnaryTransport::ProtectedDesktop
     } else {
@@ -78,6 +53,7 @@ where
         method_id: method_id.to_string(),
         request_bytes_base64: base64::engine::general_purpose::STANDARD
             .encode(request.encode_to_vec()),
+        product_intent: None,
         metadata: None,
         authorization: None,
         protected_access_token: None,
@@ -280,6 +256,7 @@ async fn invoke_validated_unary(
             payload.method_id.as_str(),
             request_bytes,
             timeout,
+            payload.product_intent.as_deref(),
         )
         .await?;
         return Ok(RuntimeBridgeUnaryResult {
@@ -334,8 +311,17 @@ async fn invoke_validated_unary(
 
 pub async fn invoke_unary(
     payload: &RuntimeBridgeUnaryPayload,
+    protected_main_window: bool,
 ) -> Result<RuntimeBridgeUnaryResult, String> {
     validate_unary_method(payload.method_id.as_str())?;
+    if transport_for_public_unary(payload.method_id.as_str()) == UnaryTransport::ProtectedDesktop
+        && !protected_main_window
+    {
+        return Err(bridge_error(
+            "RUNTIME_BRIDGE_PROTECTED_MAIN_WINDOW_REQUIRED",
+            payload.method_id.as_str(),
+        ));
+    }
     invoke_validated_unary(
         payload,
         transport_for_public_unary(payload.method_id.as_str()),
@@ -354,11 +340,16 @@ mod tests {
         RuntimeBridgeUnaryResult, UnaryTransport,
     };
     use crate::runtime_bridge::{generated, RuntimeBridgeMetadata, RuntimeBridgeUnaryPayload};
+    use nimi_shell_protected_local::{
+        DesktopMachineProductUnaryMethod, DESKTOP_PRODUCT_CONTROL_V1_METHODS,
+        ORDINARY_DESKTOP_RUNTIME_CONSUMER_V1_METHODS,
+    };
 
     fn payload(method_id: &str, request_bytes_base64: &str) -> RuntimeBridgeUnaryPayload {
         RuntimeBridgeUnaryPayload {
             method_id: method_id.to_string(),
             request_bytes_base64: request_bytes_base64.to_string(),
+            product_intent: None,
             metadata: None,
             authorization: None,
             protected_access_token: None,
@@ -402,26 +393,16 @@ mod tests {
 
     #[test]
     fn desktop_product_control_methods_use_protected_transport_without_widening_local_service() {
-        for method_id in super::PROTECTED_DESKTOP_PRODUCT_CONTROL_UNARY_METHODS {
+        for method in DESKTOP_PRODUCT_CONTROL_V1_METHODS {
+            let method_id = method.method_id();
             assert!(validate_unary_method(method_id).is_ok());
             assert_eq!(
                 transport_for_public_unary(method_id),
                 UnaryTransport::ProtectedDesktop
             );
         }
-        for protected_method in [
-            "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets",
-            "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog",
-            "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
-            "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors",
-            "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
-            "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth",
-            "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents",
-            "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats",
-            "/nimi.runtime.v1.RuntimeAiService/PeekScheduling",
-            "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
-            "/nimi.runtime.v1.RuntimeAgentService/ListAgents",
-        ] {
+        for method in ORDINARY_DESKTOP_RUNTIME_CONSUMER_V1_METHODS {
+            let protected_method = method.method_id();
             assert!(validate_unary_method(protected_method).is_ok());
             assert_eq!(
                 transport_for_public_unary(protected_method),
@@ -429,7 +410,7 @@ mod tests {
             );
         }
         assert_eq!(
-            transport_for_public_unary("/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset"),
+            transport_for_public_unary("/nimi.runtime.v1.RuntimeLocalService/InstallLocalService"),
             UnaryTransport::PublicRuntime
         );
     }
@@ -442,7 +423,7 @@ mod tests {
             "/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob",
             "/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency",
         ] {
-            assert!(super::PROTECTED_DESKTOP_PRODUCT_CONTROL_UNARY_METHODS.contains(&method_id));
+            assert!(DesktopMachineProductUnaryMethod::from_method_id(method_id).is_some());
             assert_eq!(
                 transport_for_public_unary(method_id),
                 UnaryTransport::ProtectedDesktop
@@ -457,6 +438,18 @@ mod tests {
             .err()
             .unwrap_or_default()
             .contains("RUNTIME_BRIDGE_METHOD_STREAM_ONLY"));
+    }
+
+    #[test]
+    fn protected_profile_rejects_non_main_window_before_transport() {
+        let result = tauri::async_runtime::block_on(invoke_unary(
+            &payload("/nimi.runtime.v1.RuntimeAgentService/ListAgents", ""),
+            false,
+        ));
+        assert!(result
+            .err()
+            .unwrap_or_default()
+            .contains("RUNTIME_BRIDGE_PROTECTED_MAIN_WINDOW_REQUIRED"));
     }
 
     #[test]
@@ -561,10 +554,10 @@ mod tests {
 
     #[tokio::test]
     async fn invoke_unary_rejects_invalid_base64_before_network() {
-        let result = invoke_unary(&payload(
-            "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
-            "!!!",
-        ))
+        let result = invoke_unary(
+            &payload("/nimi.runtime.v1.RuntimeAiService/ExecuteScenario", "!!!"),
+            true,
+        )
         .await;
         assert!(result
             .err()

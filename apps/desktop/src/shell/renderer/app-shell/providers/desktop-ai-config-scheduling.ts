@@ -9,7 +9,7 @@ import {
   type NimiAISchedulingJudgement,
   type NimiAISchedulingProjection,
 } from '@nimiplatform/sdk/ai';
-import type { Runtime } from '@nimiplatform/sdk/runtime';
+import type { NimiDesktopMachineProductRuntimeClient } from '@nimiplatform/sdk/runtime';
 
 export {
   normalizeNimiAISchedulingTarget,
@@ -19,7 +19,7 @@ export {
 };
 
 export async function peekDesktopRuntimeSchedulingBatch(
-  runtime: Runtime,
+  runtime: NimiDesktopMachineProductRuntimeClient,
   _runtimePackageId: string,
   appId: string,
   targets: readonly NimiAISchedulingEvaluationTarget[],
@@ -39,7 +39,7 @@ export async function peekDesktopRuntimeSchedulingBatch(
 }
 
 export async function peekDesktopRuntimeAggregateSchedulingJudgement(
-  runtime: Runtime,
+  runtime: NimiDesktopMachineProductRuntimeClient,
   runtimePackageId: string,
   appId: string,
   targets: readonly NimiAISchedulingEvaluationTarget[],

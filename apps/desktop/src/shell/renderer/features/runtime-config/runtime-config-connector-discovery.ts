@@ -57,7 +57,7 @@ async function listRuntimeLocalAssets(sdk: DesktopRendererSdkPort) {
   const assets = [];
   let pageToken = '';
   do {
-    const response = await sdk.runtime().local.listLocalAssets({
+    const response = await sdk.localAssetAdmin().listLocalAssets({
       statusFilter: LocalAssetStatus.UNSPECIFIED,
       kindFilter: LocalAssetKind.UNSPECIFIED,
       engineFilter: '',
@@ -74,7 +74,7 @@ async function listRuntimeLocalNodes(sdk: DesktopRendererSdkPort) {
   const nodes = [];
   let pageToken = '';
   do {
-    const response = await sdk.runtime().local.listNodeCatalog({
+    const response = await sdk.localAssetAdmin().listNodeCatalog({
       capability: '',
       serviceId: '',
       provider: '',

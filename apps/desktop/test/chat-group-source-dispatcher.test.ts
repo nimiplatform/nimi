@@ -47,8 +47,8 @@ describe('Realm group source participation Desktop hardcut', () => {
 
     assert.match(flowSource, /createNimiHostRuntimeRealmGroupMessageCandidateSurface/);
     assert.match(flowSource, /createCommitPayload/);
-    assert.match(flowSource, /input\.sdk\.runtime\(\)/);
-    assert.match(flowSource, /sdk\.runtime\(\)\.agents/);
+    assert.match(flowSource, /input\.sdk\.accountProduct\(\)/);
+    assert.match(flowSource, /sdk\.runtimeAgentOwner\(\)/);
     assert.match(flowSource, /sdk\.appId\(\)/);
     assert.doesNotMatch(flowSource, /createHostRuntimeRealmGroupMessageCandidateSurface/);
     assert.doesNotMatch(flowSource, /getPlatformClient/);

@@ -601,7 +601,8 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		return nil, fmt.Errorf("init cognition service: %w", err)
 	}
 
-	runtimev1.RegisterRuntimeExternalAgentServiceServer(g, externalagentservice.New(logger))
+	externalAgentSvc := externalagentservice.New(logger)
+	runtimev1.RegisterRuntimeExternalAgentServiceServer(g, externalAgentSvc)
 	runtimev1.RegisterRuntimeAuthServiceServer(g, authSvc)
 	runtimev1.RegisterRuntimeServiceControlServiceServer(g, runtimeControlSvc)
 	runtimev1.RegisterRuntimeAccountServiceServer(g, accountSvc)
@@ -636,7 +637,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		runtimeartifactservice.WithProtectedGeneratedVoiceAuthorizer(agentSvc),
 	)
 	if protected != nil {
-		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, appSvc, appSvc, artifactSvc, protected.DesktopSessions, accountSvc)
+		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, externalAgentSvc, appSvc, appSvc, artifactSvc, protected.DesktopSessions, accountSvc)
 		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, appSvc)
 	}
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)

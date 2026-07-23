@@ -65,7 +65,7 @@ type ProductCommand = typeof COMMANDS[number];
 
 export type DesktopProductControlTransport = Pick<
   NimiElectronDesktopControlHost,
-  'runtimeConsumerUnary' | 'productControlUnary'
+  'machineProductUnary'
 >;
 
 export type DesktopElectronProductControlHost = {
@@ -429,7 +429,7 @@ class ElectronProductControlHost {
 
   private async unary(methodId: string, request: Readonly<Record<string, unknown>>, timeoutMs: number): Promise<unknown> {
     const codec = getRuntimeWireCodec(methodId);
-    const response = await this.control.productControlUnary({
+    const response = await this.control.machineProductUnary({
       methodId,
       requestBytes: codec.encodeRequest(request),
       timeoutMs,

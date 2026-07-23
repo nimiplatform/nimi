@@ -123,7 +123,7 @@ test('useSchedulingFeasibility: exported from shared execution scheduling guard 
 
 test('useSchedulingFeasibility: calls probeFeasibility from the formal surface (D-AIPC-012 layer 3)', () => {
   const source = readSource(guardModulePath);
-  assert.match(source, /surface\.aiConfig\.probeFeasibility\(scopeRef, sdk\.runtime\(\)\)/);
+  assert.match(source, /surface\.aiConfig\.probeFeasibility\(scopeRef, sdk\.machineProduct\(\)\)/);
 });
 
 test('useSchedulingFeasibility: reads schedulingJudgement from probe result, not custom truth', () => {

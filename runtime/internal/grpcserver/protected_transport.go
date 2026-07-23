@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/bundledavatar"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
@@ -24,6 +26,7 @@ const protectedOpenDesktopSessionMethod = "/nimi.runtime.v1.RuntimeAuthService/O
 const protectedRequestRuntimeRestartMethod = "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart"
 const protectedDesktopAuditProjectionMethod = "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents"
 const protectedBundledProfileMetadata = "x-nimi-protected-bundled-profile"
+const protectedFirstPartyProfileMetadata = "x-nimi-protected-first-party-profile"
 
 func protectedDesktopUnaryMethodAllowed(method string) bool {
 	_, allowed := protectedDesktopMethodRole(method)
@@ -35,8 +38,11 @@ func protectedDesktopStreamMethodAllowed(method string) bool {
 }
 
 func protectedDesktopMethodRole(method string) (protectedlocal.OriginRole, bool) {
-	if protectedDesktopProductControlMethod(method) || protectedDesktopRuntimeConsumerMethod(method) {
+	if kind, ok := protectedlocal.FirstPartyProfileMethod(protectedlocal.DesktopMachineProductProfileID, method); ok && kind == protectedlocal.FirstPartyMethodUnary {
 		return protectedlocal.RoleVerifiedDesktopProcess, true
+	}
+	if kind, ok := protectedlocal.FirstPartyProfileMethod(protectedlocal.DesktopAccountProductProfileID, method); ok && kind == protectedlocal.FirstPartyMethodUnary {
+		return protectedlocal.RoleDesktopAccountHost, true
 	}
 	switch method {
 	case protectedOpenDesktopSessionMethod, protectedRequestRuntimeRestartMethod:
@@ -68,52 +74,19 @@ func protectedDesktopMethodRole(method string) (protectedlocal.OriginRole, bool)
 	}
 }
 
-func protectedDesktopRuntimeConsumerMethod(method string) bool {
-	switch method {
-	case "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets",
-		"/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog",
-		"/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
-		"/nimi.runtime.v1.RuntimeConnectorService/ListConnectors",
-		"/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
-		"/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth",
-		protectedDesktopAuditProjectionMethod,
-		"/nimi.runtime.v1.RuntimeAuditService/ListUsageStats",
-		"/nimi.runtime.v1.RuntimeAiService/PeekScheduling",
-		"/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
-		"/nimi.runtime.v1.RuntimeAgentService/ListAgents":
+func protectedDesktopProductProfileMethod(method string) bool {
+	if _, ok := protectedlocal.FirstPartyProfileMethod(protectedlocal.DesktopMachineProductProfileID, method); ok {
 		return true
-	default:
-		return false
 	}
+	_, ok := protectedlocal.FirstPartyProfileMethod(protectedlocal.DesktopAccountProductProfileID, method)
+	return ok
 }
 
-func protectedDesktopProductControlMethod(method string) bool {
-	switch method {
-	case "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile",
-		"/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan",
-		"/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs",
-		"/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob",
-		"/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob",
-		"/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob",
-		"/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency",
-		"/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness",
-		"/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness",
-		"/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence",
-		"/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence",
-		"/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
-		"/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot",
-		"/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
-		"/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",
-		"/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel",
-		"/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
-		"/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
-		"/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence",
-		"/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence",
-		"/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState":
-		return true
-	default:
-		return false
-	}
+type protectedFirstPartyProfile struct {
+	profileID string
+	role      protectedlocal.OriginRole
+	kind      protectedlocal.FirstPartyMethodKind
+	account   bool
 }
 
 // protectedDesktopNetConn is minted only after the native listener has
@@ -228,6 +201,7 @@ func newProtectedDesktopRPCServer(
 	aiService runtimev1.RuntimeAiServiceServer,
 	agentService runtimev1.RuntimeAgentServiceServer,
 	connectorService runtimev1.RuntimeConnectorServiceServer,
+	externalAgentService runtimev1.RuntimeExternalAgentServiceServer,
 	appService runtimev1.RuntimeAppServiceServer,
 	developmentService runtimev1.RuntimeDevelopmentServiceServer,
 	artifactService runtimev1.RuntimeArtifactServiceServer,
@@ -252,6 +226,7 @@ func newProtectedDesktopRPCServer(
 	runtimev1.RegisterRuntimeAiServiceServer(server, aiService)
 	runtimev1.RegisterRuntimeAgentServiceServer(server, agentService)
 	runtimev1.RegisterRuntimeConnectorServiceServer(server, connectorService)
+	runtimev1.RegisterRuntimeExternalAgentServiceServer(server, externalAgentService)
 	runtimev1.RegisterRuntimeAppServiceServer(server, appService)
 	runtimev1.RegisterRuntimeDevelopmentServiceServer(server, developmentService)
 	runtimev1.RegisterRuntimeArtifactServiceServer(server, artifactService)
@@ -270,7 +245,17 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 		if bundledErr != nil {
 			return nil, bundledErr
 		}
-		if !bundled && !protectedDesktopUnaryMethodAllowed(info.FullMethod) {
+		firstPartyProfile, firstParty, firstPartyErr := resolveProtectedFirstPartyProfile(ctx, info.FullMethod, protectedlocal.FirstPartyMethodUnary)
+		if firstPartyErr != nil || (bundled && firstParty) {
+			if firstPartyErr != nil {
+				return nil, firstPartyErr
+			}
+			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
+		}
+		if !bundled && !firstParty && protectedDesktopProductProfileMethod(info.FullMethod) {
+			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
+		}
+		if !bundled && !firstParty && !protectedDesktopUnaryMethodAllowed(info.FullMethod) {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 		}
 		connection, err := protectedDesktopConnectionFromPeer(ctx)
@@ -278,24 +263,55 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 			return nil, err
 		}
 		protectedContext := protectedlocal.ContextWithDesktopConnection(ctx, connection)
-		if err := authorizeProtectedDesktopMethodForProfile(protectedContext, info.FullMethod, desktopSessions, bundled); err != nil {
+		if err := authorizeProtectedDesktopMethodForProfile(protectedContext, info.FullMethod, desktopSessions, bundled, firstPartyProfile, firstParty); err != nil {
 			return nil, err
 		}
+		var cancel context.CancelFunc
 		if bundled {
 			principal, err := bindBundledAvatarPrincipal(protectedContext, bundledProfile.Capability, desktopSessions, accountPrincipalProvider)
 			if err != nil {
 				return nil, err
 			}
-			protectedContext = protectedprincipal.With(protectedContext, principal)
+			protectedContext, cancel = context.WithCancel(protectedContext)
+			protectedContext = bindProtectedPrincipalContext(protectedContext, principal, cancel)
 			protectedContext = envelope.WithValidatedProtectedCapability(
 				protectedContext,
 				bundledavatar.AppID,
 				bundledProfile.Capability,
 			)
+		} else if firstPartyProfile.account {
+			principal, err := bindDesktopAccountProductPrincipal(protectedContext, firstPartyProfile.profileID, desktopSessions, accountPrincipalProvider)
+			if err != nil {
+				return nil, err
+			}
+			protectedContext, err = bindDesktopAccountHandlerIdentity(protectedContext, principal)
+			if err != nil {
+				return nil, err
+			}
+			protectedContext, cancel = context.WithCancel(protectedContext)
+			protectedContext = bindProtectedPrincipalContext(protectedContext, principal, cancel)
+			protectedContext = withDesktopAccountProductAuthorizationDecision(protectedContext, info.FullMethod)
 		} else {
+			if firstParty && authn.IdentityFromContext(protectedContext) != nil {
+				return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+			}
 			protectedContext = withProtectedDesktopAuthorizationDecision(protectedContext, info.FullMethod)
 		}
+		if cancel != nil {
+			defer cancel()
+		}
 		return handler(protectedContext, req)
+	}
+}
+
+func withDesktopAccountProductAuthorizationDecision(ctx context.Context, method string) context.Context {
+	switch method {
+	case "/nimi.runtime.v1.RuntimeAppService/SendAppMessage":
+		return envelope.WithValidatedProtectedCapability(ctx, envelope.ProtectedDesktopAppID, "runtime.agent.turn.write")
+	case "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages":
+		return envelope.WithValidatedProtectedCapability(ctx, envelope.ProtectedDesktopAppID, "runtime.agent.turn.read")
+	default:
+		return ctx
 	}
 }
 
@@ -339,7 +355,17 @@ func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedloc
 		if bundledErr != nil {
 			return bundledErr
 		}
-		if !bundled && !protectedDesktopStreamMethodAllowed(info.FullMethod) {
+		firstPartyProfile, firstParty, firstPartyErr := resolveProtectedFirstPartyProfile(stream.Context(), info.FullMethod, protectedlocal.FirstPartyMethodServerStream)
+		if firstPartyErr != nil || (bundled && firstParty) {
+			if firstPartyErr != nil {
+				return firstPartyErr
+			}
+			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
+		}
+		if !bundled && !firstParty && protectedDesktopProductProfileMethod(info.FullMethod) {
+			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
+		}
+		if !bundled && !firstParty && !protectedDesktopStreamMethodAllowed(info.FullMethod) {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 		}
 		connection, err := protectedDesktopConnectionFromPeer(stream.Context())
@@ -347,7 +373,7 @@ func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedloc
 			return err
 		}
 		protectedContext := protectedlocal.ContextWithDesktopConnection(stream.Context(), connection)
-		if err := authorizeProtectedDesktopMethodForProfile(protectedContext, info.FullMethod, desktopSessions, bundled); err != nil {
+		if err := authorizeProtectedDesktopMethodForProfile(protectedContext, info.FullMethod, desktopSessions, bundled, firstPartyProfile, firstParty); err != nil {
 			return err
 		}
 		var principal *protectedprincipal.Principal
@@ -358,24 +384,45 @@ func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedloc
 				return err
 			}
 			protectedContext, cancel = context.WithCancel(protectedContext)
-			defer cancel()
-			go func() {
-				select {
-				case <-bound.Done():
-					cancel()
-				case <-protectedContext.Done():
-				}
-			}()
-			protectedContext = protectedprincipal.With(protectedContext, bound)
+			protectedContext = bindProtectedPrincipalContext(protectedContext, bound, cancel)
 			protectedContext = envelope.WithValidatedProtectedCapability(
 				protectedContext,
 				bundledavatar.AppID,
 				bundledProfile.Capability,
 			)
 			principal = &bound
+		} else if firstPartyProfile.account {
+			bound, err := bindDesktopAccountProductPrincipal(protectedContext, firstPartyProfile.profileID, desktopSessions, accountPrincipalProvider)
+			if err != nil {
+				return err
+			}
+			protectedContext, err = bindDesktopAccountHandlerIdentity(protectedContext, bound)
+			if err != nil {
+				return err
+			}
+			protectedContext, cancel = context.WithCancel(protectedContext)
+			protectedContext = bindProtectedPrincipalContext(protectedContext, bound, cancel)
+			protectedContext = withDesktopAccountProductAuthorizationDecision(protectedContext, info.FullMethod)
+			principal = &bound
+		} else if firstParty && authn.IdentityFromContext(protectedContext) != nil {
+			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+		}
+		if cancel != nil {
+			defer cancel()
 		}
 		return handler(srv, &protectedDesktopServerStream{ServerStream: stream, ctx: protectedContext, principal: principal})
 	}
+}
+
+func bindProtectedPrincipalContext(ctx context.Context, principal protectedprincipal.Principal, cancel context.CancelFunc) context.Context {
+	go func() {
+		select {
+		case <-principal.Done():
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
+	return protectedprincipal.With(ctx, principal)
 }
 
 func bindBundledAvatarPrincipal(
@@ -398,6 +445,65 @@ func bindBundledAvatarPrincipal(
 	return principal, nil
 }
 
+func bindDesktopAccountProductPrincipal(
+	ctx context.Context,
+	profileID string,
+	desktopSessions *protectedlocal.DesktopSessionManager,
+	provider protectedAccountPrincipalProvider,
+) (protectedprincipal.Principal, error) {
+	if desktopSessions == nil || provider == nil || profileID != protectedlocal.DesktopAccountProductProfileID {
+		return protectedprincipal.Principal{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE)
+	}
+	projection, generation, invalidated, ok := provider.BindAuthenticatedRuntimeGeneration(ctx)
+	principal := protectedprincipal.New(
+		envelope.ProtectedDesktopAppID, profileID, profileID, projection,
+		generation, desktopSessions.BootEpoch(), invalidated,
+	)
+	if !ok || !principal.Valid() {
+		return protectedprincipal.Principal{}, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
+	return principal, nil
+}
+
+func bindDesktopAccountHandlerIdentity(ctx context.Context, principal protectedprincipal.Principal) (context.Context, error) {
+	if !principal.Valid() {
+		return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
+	if existing := authn.IdentityFromContext(ctx); existing != nil && strings.TrimSpace(existing.SubjectUserID) != principal.AccountID {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
+	return authn.WithIdentity(ctx, &authn.Identity{SubjectUserID: principal.AccountID}), nil
+}
+
+func resolveProtectedFirstPartyProfile(ctx context.Context, method string, expectedKind protectedlocal.FirstPartyMethodKind) (protectedFirstPartyProfile, bool, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok || len(md.Get(protectedFirstPartyProfileMetadata)) == 0 {
+		return protectedFirstPartyProfile{}, false, nil
+	}
+	markers := md.Get(protectedFirstPartyProfileMetadata)
+	appIDs := md.Get("x-nimi-app-id")
+	if len(markers) != 1 || len(appIDs) != 1 || appIDs[0] != envelope.ProtectedDesktopAppID {
+		return protectedFirstPartyProfile{}, false, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
+	}
+	profile := protectedFirstPartyProfile{kind: expectedKind}
+	switch markers[0] {
+	case protectedlocal.DesktopMachineProductNativeMarker:
+		profile.profileID = protectedlocal.DesktopMachineProductProfileID
+		profile.role = protectedlocal.RoleVerifiedDesktopProcess
+	case protectedlocal.DesktopAccountProductNativeMarker:
+		profile.profileID = protectedlocal.DesktopAccountProductProfileID
+		profile.role = protectedlocal.RoleDesktopAccountHost
+		profile.account = true
+	default:
+		return protectedFirstPartyProfile{}, false, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
+	}
+	kind, admitted := protectedlocal.FirstPartyProfileMethod(profile.profileID, method)
+	if !admitted || kind != expectedKind {
+		return protectedFirstPartyProfile{}, false, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
+	}
+	return profile, true, nil
+}
+
 func resolveProtectedBundledAvatarProfile(ctx context.Context, method string, expectedKind bundledavatar.MethodKind) (bundledavatar.MethodProfile, bool, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok || len(md.Get(protectedBundledProfileMetadata)) == 0 {
@@ -416,12 +522,28 @@ func resolveProtectedBundledAvatarProfile(ctx context.Context, method string, ex
 	return profile, true, nil
 }
 
-func authorizeProtectedDesktopMethodForProfile(ctx context.Context, method string, desktopSessions *protectedlocal.DesktopSessionManager, bundledAvatar bool) error {
+func authorizeProtectedDesktopMethodForProfile(
+	ctx context.Context,
+	method string,
+	desktopSessions *protectedlocal.DesktopSessionManager,
+	bundledAvatar bool,
+	firstParty protectedFirstPartyProfile,
+	hasFirstParty bool,
+) error {
 	if bundledAvatar {
 		if desktopSessions == nil {
 			return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE)
 		}
 		if err := desktopSessions.AuthorizeContext(ctx, protectedlocal.RoleBundledAvatarHost); err != nil {
+			return protectedDesktopSessionAuthorizationError(err)
+		}
+		return nil
+	}
+	if hasFirstParty {
+		if desktopSessions == nil {
+			return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE)
+		}
+		if err := desktopSessions.AuthorizeContext(ctx, firstParty.role); err != nil {
 			return protectedDesktopSessionAuthorizationError(err)
 		}
 		return nil

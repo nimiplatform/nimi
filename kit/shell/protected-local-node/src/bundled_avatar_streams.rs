@@ -44,9 +44,14 @@ pub(super) async fn close_all_bundled_avatar_streams() -> usize {
     let registered = {
         let mut registry = streams().lock().await;
         let registered = registry.len();
-        let active = registry.drain().filter_map(|(_, stream)| stream).collect::<Vec<_>>();
+        let active = registry
+            .drain()
+            .filter_map(|(_, stream)| stream)
+            .collect::<Vec<_>>();
         drop(registry);
-        for stream in active { close_stream(stream).await; }
+        for stream in active {
+            close_stream(stream).await;
+        }
         registered
     };
     registered
@@ -70,12 +75,18 @@ pub async fn desktop_bundled_avatar_stream_open(
             return NativeJsonOutcome::host_error(error);
         }
     };
-    let timeout = input.timeout_ms.map(u64::from).map(std::time::Duration::from_millis);
-    let receiver = match control.open_bundled_avatar_stream(BundledAvatarRuntimeRequest {
-        method_id: input.method_id,
-        request_bytes: input.request_bytes.to_vec(),
-        timeout,
-    }).await {
+    let timeout = input
+        .timeout_ms
+        .map(u64::from)
+        .map(std::time::Duration::from_millis);
+    let receiver = match control
+        .open_bundled_avatar_stream(BundledAvatarRuntimeRequest {
+            method_id: input.method_id,
+            request_bytes: input.request_bytes.to_vec(),
+            timeout,
+        })
+        .await
+    {
         Ok(receiver) => receiver,
         Err(error) => {
             streams().lock().await.remove(stream_id.as_str());
@@ -102,13 +113,21 @@ pub async fn desktop_bundled_avatar_stream_next(
     input: NativeBundledAvatarStreamInput,
 ) -> NativeBundledAvatarStreamNextOutcome {
     let stream_id = input.stream_id;
-    let stream = streams().lock().await.get(stream_id.as_str()).and_then(Clone::clone);
-    let Some(stream) = stream else { return next_error("not-found", false); };
+    let stream = streams()
+        .lock()
+        .await
+        .get(stream_id.as_str())
+        .and_then(Clone::clone);
+    let Some(stream) = stream else {
+        return next_error("not-found", false);
+    };
     let mut close_rx = stream.close_tx.subscribe();
     let Ok(mut receiver_slot) = stream.receiver.try_lock() else {
         return next_error("runtime-service-untrusted", false);
     };
-    let Some(receiver) = receiver_slot.as_mut() else { return next_completed(); };
+    let Some(receiver) = receiver_slot.as_mut() else {
+        return next_completed();
+    };
     let next = tokio::select! {
         biased;
         changed = close_rx.changed() => { let _ = changed; None }
@@ -116,8 +135,11 @@ pub async fn desktop_bundled_avatar_stream_next(
     };
     match next {
         Some(Ok(bytes)) => NativeBundledAvatarStreamNextOutcome {
-            status: "ok".to_string(), value: Some(Buffer::from(bytes)), completed: Some(false),
-            reason_code: None, retryable: None,
+            status: "ok".to_string(),
+            value: Some(Buffer::from(bytes)),
+            completed: Some(false),
+            reason_code: None,
+            retryable: None,
         },
         Some(Err(error)) => {
             streams().lock().await.remove(stream_id.as_str());
@@ -137,21 +159,37 @@ pub async fn desktop_bundled_avatar_stream_next(
 pub async fn desktop_bundled_avatar_stream_close(
     input: NativeBundledAvatarStreamInput,
 ) -> NativeJsonOutcome {
-    let stream = streams().lock().await.remove(input.stream_id.as_str()).flatten();
+    let stream = streams()
+        .lock()
+        .await
+        .remove(input.stream_id.as_str())
+        .flatten();
     let closed = stream.is_some();
-    if let Some(stream) = stream { close_stream(stream).await; }
+    if let Some(stream) = stream {
+        close_stream(stream).await;
+    }
     NativeJsonOutcome::success(json!({ "closed": closed }))
 }
 
 fn next_completed() -> NativeBundledAvatarStreamNextOutcome {
     NativeBundledAvatarStreamNextOutcome {
-        status: "ok".to_string(), value: None, completed: Some(true), reason_code: None, retryable: None,
+        status: "ok".to_string(),
+        value: None,
+        completed: Some(true),
+        reason_code: None,
+        retryable: None,
     }
 }
 
-fn next_error(reason_code: impl Into<String>, retryable: bool) -> NativeBundledAvatarStreamNextOutcome {
+fn next_error(
+    reason_code: impl Into<String>,
+    retryable: bool,
+) -> NativeBundledAvatarStreamNextOutcome {
     NativeBundledAvatarStreamNextOutcome {
-        status: "error".to_string(), value: None, completed: None,
-        reason_code: Some(reason_code.into()), retryable: Some(retryable),
+        status: "error".to_string(),
+        value: None,
+        completed: None,
+        reason_code: Some(reason_code.into()),
+        retryable: Some(retryable),
     }
 }

@@ -29,7 +29,7 @@ import {
 import type { DesktopRendererLifecyclePort } from './lifecycle-port.js';
 import { connectDesktopMacosSmoke } from '../infra/bootstrap/desktop-macos-smoke.js';
 import { connectProductionBootstrap } from './production-bootstrap.js';
-import { desktopBridge } from '../bridge.js';
+import { desktopBridge } from '@renderer/bridge';
 import {
   decideLocalDevelopmentApproval,
   listLocalDevelopmentAuthorizations,
@@ -45,13 +45,24 @@ import {
   readFreshOauthLoginState,
 } from '../features/auth/oauth-next-continuation.js';
 import {
+  createDesktopRuntimeAgentDiscoverySurface,
   getDesktopAccountRuntime,
+  getDesktopAccountProductClient,
+  getDesktopAiExecutionClient,
   getDesktopAppId,
+  getDesktopAppLifecycleClient,
+  getDesktopAuditAdminClient,
+  getDesktopConnectorAdminClient,
+  getDesktopExternalAgentClient,
   getDesktopHostRuntimeAgentClient,
-  getDesktopNimiClient,
+  getDesktopLocalAssetAdminClient,
+  getDesktopLocalAuditClient,
+  getDesktopMachineProductClient,
   getDesktopRealm,
-  getDesktopRuntime,
+  getDesktopRouteHostAccessClient,
+  getDesktopRouteOptionsClient,
   getDesktopRuntimeAccountCaller,
+  getDesktopRuntimeAgentOwnerClient,
   getDesktopRuntimeAgentTurnsRuntime,
   isDesktopNimiClientSessionReady,
   isDesktopRuntimeAccountSessionReady,
@@ -67,7 +78,7 @@ import {
 import { connectProductionChatRealtimeSync } from '../infra/realtime/production-chat-realtime-sync.js';
 import { createDesktopProductionFirstRunPort } from './production-first-run-port.js';
 import { createDesktopProductionSettingsPort } from '../features/settings/settings-storage.js';
-import { createDesktopProductionAuthPort } from '../features/auth/desktop-auth-adapter.js';
+import { createDesktopProductionAuthPort } from '@renderer/features/auth/desktop-auth-adapter.js';
 import { createDesktopRendererRuntimeConfigNavigationPort } from './runtime-config-navigation-port.js';
 import { callRealmApi, emitRealmDataError } from '../infra/realm/realm-api.js';
 import { getOfflineCoordinator } from '../infra/offline/coordinator.js';
@@ -157,10 +168,10 @@ export function createDesktopProductionBindings(
   const dependencies = createProductionAppStoreDependencies();
   const attention = createBrowserAppAttentionSource();
   const runtimeConfigNavigation = createDesktopRendererRuntimeConfigNavigationPort();
-  const runtimeRouteAccess = createDesktopRuntimeRouteAccess(getDesktopRuntime);
+  const runtimeRouteAccess = createDesktopRuntimeRouteAccess(getDesktopRouteHostAccessClient);
   const offline = createDesktopProductionOfflinePort(getOfflineCoordinator());
   const runtimeHealthCoordinator = createRuntimeHealthCoordinator(
-    () => getDesktopRuntime().audit,
+    getDesktopAuditAdminClient,
     {
       setInterval: (callback, intervalMs) => window.setInterval(callback, intervalMs),
       clearInterval: (handle) => window.clearInterval(handle as number),
@@ -180,8 +191,19 @@ export function createDesktopProductionBindings(
       isSessionReady: isDesktopNimiClientSessionReady,
       isRuntimeAccountSessionReady: isDesktopRuntimeAccountSessionReady,
       appId: getDesktopAppId,
-      client: getDesktopNimiClient,
-      runtime: getDesktopRuntime,
+      machineProduct: getDesktopMachineProductClient,
+      accountProduct: getDesktopAccountProductClient,
+      appLifecycle: getDesktopAppLifecycleClient,
+      connectorAdmin: getDesktopConnectorAdminClient,
+      localAssetAdmin: getDesktopLocalAssetAdminClient,
+      localAudit: getDesktopLocalAuditClient,
+      auditAdmin: getDesktopAuditAdminClient,
+      aiExecution: getDesktopAiExecutionClient,
+      routeHostAccessClient: getDesktopRouteHostAccessClient,
+      routeOptionsClient: getDesktopRouteOptionsClient,
+      externalAgent: getDesktopExternalAgentClient,
+      runtimeAgentOwner: getDesktopRuntimeAgentOwnerClient,
+      runtimeAgentDiscovery: createDesktopRuntimeAgentDiscoverySurface,
       runtimeAgentTurns: getDesktopRuntimeAgentTurnsRuntime,
       hostRuntimeAgent: getDesktopHostRuntimeAgentClient,
       accountRuntime: getDesktopAccountRuntime,
@@ -191,7 +213,7 @@ export function createDesktopProductionBindings(
         targetId?: string,
       ) => loadRuntimeRouteOptions(
         { capability, targetId },
-        { runtime: getDesktopRuntime() },
+        { runtime: getDesktopRouteOptionsClient() },
       ),
       conversationCapabilityRuntime: getProductionConversationCapabilityRouteRuntime,
       runtimeHealthCoordinator: () => runtimeHealthCoordinator,

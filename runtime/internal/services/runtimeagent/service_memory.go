@@ -12,6 +12,9 @@ import (
 )
 
 func (s *Service) QueryAgentMemory(ctx context.Context, req *runtimev1.QueryAgentMemoryRequest) (*runtimev1.QueryAgentMemoryResponse, error) {
+	if _, err := s.authorizeProtectedAccountAgent(ctx, req.GetContext(), req.GetAgentId(), "runtime.agent.read"); err != nil {
+		return nil, err
+	}
 	return s.memoryPolicyRuntime().query(ctx, req)
 }
 
@@ -30,6 +33,9 @@ func (s *Service) GetAgentCanonicalMemoryBankStatus(ctx context.Context, req *ru
 func (s *Service) RequestAgentCanonicalMemoryBankBind(ctx context.Context, req *runtimev1.RequestAgentCanonicalMemoryBankBindRequest) (*runtimev1.RequestAgentCanonicalMemoryBankBindResponse, error) {
 	identity, _, memoryContext, locator, err := s.agentCanonicalMemoryTarget(req.GetContext(), req.GetAgentId())
 	if err != nil {
+		return nil, err
+	}
+	if err := s.authorizeBundledAvatarIdentity(ctx, req.GetContext(), identity, "runtime.agent.write"); err != nil {
 		return nil, err
 	}
 	result, err := s.memorySvc.RequestCanonicalMemoryEmbeddingBind(ctx, memoryservice.RequestCanonicalMemoryEmbeddingBindRequest{
@@ -96,6 +102,9 @@ func (s *Service) agentCanonicalMemoryTarget(ctx *runtimev1.AgentRequestContext,
 func (s *Service) agentCanonicalMemoryBankStatus(ctx context.Context, agentContext *runtimev1.AgentRequestContext, agentID string) (*runtimev1.AgentCanonicalMemoryBankStatus, error) {
 	identity, _, memoryContext, locator, err := s.agentCanonicalMemoryTarget(agentContext, agentID)
 	if err != nil {
+		return nil, err
+	}
+	if err := s.authorizeBundledAvatarIdentity(ctx, agentContext, identity, "runtime.agent.read"); err != nil {
 		return nil, err
 	}
 	return s.agentCanonicalMemoryBankStatusForTarget(ctx, identity, memoryContext, locator)

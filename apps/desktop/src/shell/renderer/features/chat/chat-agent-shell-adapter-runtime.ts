@@ -7,10 +7,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from 'react';
-import {
-  createNimiHostRuntimeAgentLifecycleSurface,
-  createNimiRuntimeAgentConsumeClient,
-} from '@nimiplatform/sdk/runtime';
+import { createNimiRuntimeAgentConsumeClient } from '@nimiplatform/sdk/runtime';
 import type { TFunction } from 'i18next';
 import { useAppStore, type AuthStatus } from '../../app-shell/providers/app-store';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
@@ -145,26 +142,31 @@ export function useAgentConversationRuntimeController(
     useState<NimiRuntimeAgentPresentationProfileProjection | null>(null);
   const [recentRuntimeEvents, setRecentRuntimeEvents] = useState<readonly NimiRuntimeAgentInspectEventSummary[]>([]);
   const lastInspectFetchedAgentIdRef = useRef<string | null>(null);
-  const getRuntimeAgentClient = useCallback(() => ({
+  const getRuntimeAgentMemoryClient = useCallback(() => ({
     appId: bindings.sdk.appId(),
     auth: bindings.sdk.accountRuntime().auth,
-    agent: bindings.sdk.runtime().agents,
+    agent: bindings.sdk.accountProduct().agents,
+  }), [bindings]);
+  const getRuntimeAgentInspectClient = useCallback(() => ({
+    appId: bindings.sdk.appId(),
+    auth: bindings.sdk.accountRuntime().auth,
+    agent: bindings.sdk.runtimeAgentOwner(),
   }), [bindings]);
   const runtimeAgentMemory = useMemo(() => createRuntimeAgentMemoryAdapter({
-    getRuntime: getRuntimeAgentClient,
+    getRuntime: getRuntimeAgentMemoryClient,
     getSubjectUserId,
     withScopes: bindings.sdk.withRuntimeProtectedScopes,
-  }), [bindings, getRuntimeAgentClient, getSubjectUserId]);
+  }), [bindings, getRuntimeAgentMemoryClient, getSubjectUserId]);
   const runtimeAgentInspect = useMemo(() => createRuntimeAgentInspectAdapter({
-    getRuntime: getRuntimeAgentClient,
+    getRuntime: getRuntimeAgentInspectClient,
     getSubjectUserId,
     withScopes: bindings.sdk.withRuntimeProtectedScopes,
-  }), [bindings, getRuntimeAgentClient, getSubjectUserId]);
+  }), [bindings, getRuntimeAgentInspectClient, getSubjectUserId]);
   const runtimeAgentAIConfigAdapter = useMemo(() => createRuntimeAgentAIConfigAdapter({
     runtime: {
       get appId() { return bindings.sdk.appId(); },
       get auth() { return bindings.sdk.accountRuntime().auth; },
-      get agent() { return bindings.sdk.runtime().agents; },
+      get agent() { return bindings.sdk.accountProduct().agents; },
     },
     getSubjectUserId,
     withScopes: bindings.sdk.withRuntimeProtectedScopes,
@@ -173,13 +175,9 @@ export function useAgentConversationRuntimeController(
     if (authStatus !== 'authenticated' || !activeTarget) {
       return null;
     }
-    const lifecycle = createNimiHostRuntimeAgentLifecycleSurface({
-      getRuntime: bindings.sdk.hostRuntimeAgent,
-      getSubjectUserId,
-      withScopes: bindings.sdk.withRuntimeProtectedScopes,
-    });
+    const lifecycle = bindings.sdk.runtimeAgentDiscovery(getSubjectUserId);
     const consume = createNimiRuntimeAgentConsumeClient({
-      runtime: { agents: bindings.sdk.runtime().agents },
+      runtime: { agents: bindings.sdk.accountProduct().agents },
       runtimeAppId: bindings.sdk.appId(),
     });
     return createRuntimeAgentCenterAdapter({

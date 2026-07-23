@@ -5,10 +5,7 @@ import {
   resolveBundledAvatarRendererUrl,
 } from './bundled-avatar-sender.js';
 import { createNimiElectronDesktopControlHost } from './desktop-control-host.js';
-import {
-  createNimiElectronDesktopAccountHost,
-  isElectronDesktopAccountCommand,
-} from './desktop-account-host.js';
+import { createNimiElectronDesktopAccountHost, isElectronDesktopAccountCommand } from './desktop-account-host.js';
 import {
   NIMI_STANDARD_SHELL_CAPABILITIES,
   NIMI_STANDARD_SHELL_CAPABILITY_SETS,
@@ -126,6 +123,7 @@ type ResolvedElectronStandardShellCapabilitySet = {
 type ResolvedElectronRendererProfile = {
   readonly appId: string;
   readonly bundledAvatarProfile: boolean;
+  readonly desktopSenderAuthorized: boolean;
   readonly capabilitySet: ResolvedElectronStandardShellCapabilitySet | undefined;
   readonly standardShellHost: RegisterNimiElectronRuntimeBridgeInput['standardShellHost'];
   readonly commandPolicy: RegisterNimiElectronRuntimeBridgeInput['commandPolicy'];
@@ -223,6 +221,10 @@ export function registerNimiElectronRuntimeBridge(
     }
     return streams;
   };
+  const unsubscribeDesktopInvalidation = input.desktopHost?.subscribeSenderInvalidation(() => {
+    for (const stream of desktopStreams.values()) stream.cancel();
+    desktopStreams.clear();
+  });
   const unsubscribeBundledAvatarInvalidation = input.bundledAvatarHost?.subscribeSenderInvalidation((sender) => {
     const streams = bundledAvatarStreamsBySender.get(sender);
     for (const stream of streams?.values() ?? []) stream.cancel();
@@ -245,6 +247,7 @@ export function registerNimiElectronRuntimeBridge(
       return {
         appId: 'nimi.avatar',
         bundledAvatarProfile: true,
+        desktopSenderAuthorized: false,
         capabilitySet: bundledAvatarCapabilitySet,
         standardShellHost: input.bundledAvatarHost?.standardShellHost,
         commandPolicy: input.bundledAvatarHost?.commandPolicy,
@@ -256,6 +259,7 @@ export function registerNimiElectronRuntimeBridge(
     return {
       appId,
       bundledAvatarProfile: false,
+      desktopSenderAuthorized: input.desktopHost?.authorizeSender(event) === true,
       capabilitySet,
       standardShellHost: input.standardShellHost,
       commandPolicy: input.commandPolicy,
@@ -291,6 +295,7 @@ export function registerNimiElectronRuntimeBridge(
         command,
         trustedRuntimeMetadataProvider: input.trustedRuntimeMetadataProvider,
         desktopControlHost,
+        desktopSenderAuthorized: rendererProfile.desktopSenderAuthorized,
         bundledAvatarProfile: rendererProfile.bundledAvatarProfile,
       });
     }
@@ -310,6 +315,7 @@ export function registerNimiElectronRuntimeBridge(
         trustedRuntimeMetadataProvider: input.trustedRuntimeMetadataProvider,
         desktopProtectedOnly: Boolean(desktopControlHost),
         desktopControlHost,
+        desktopSenderAuthorized: rendererProfile.desktopSenderAuthorized,
         bundledAvatarProfile: rendererProfile.bundledAvatarProfile,
       });
     }
@@ -435,6 +441,7 @@ export function registerNimiElectronRuntimeBridge(
       }
       desktopStreams.clear();
       bundledAvatarStreamsBySender.clear();
+      unsubscribeDesktopInvalidation?.();
       unsubscribeBundledAvatarInvalidation?.();
       desktopAccountHost?.close();
       void clientPromise?.then((client) => client.close()).catch(() => undefined);

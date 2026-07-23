@@ -172,7 +172,7 @@ export async function streamChatAiRuntime(
     });
   }
   const model = createNimiRuntimeAIModel({
-    runtime: deps.sdk.runtime(),
+    runtime: deps.sdk.machineProduct(),
     appId: deps.sdk.appId(),
     model: {
       providerId: normalizeText(resolved.connectorId) || undefined,

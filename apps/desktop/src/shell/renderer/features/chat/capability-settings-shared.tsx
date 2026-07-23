@@ -7,7 +7,7 @@ export function useLocalAssets(options: { enabled?: boolean } = {}) {
   const sdk = useDesktopRendererSdk();
   return useQuery<LocalAssetEntry[]>({
     queryKey: ['image-companion-local-assets'],
-    queryFn: async () => listNimiRuntimeLocalAssetEntries(sdk.runtime()),
+    queryFn: async () => listNimiRuntimeLocalAssetEntries(sdk.machineProduct()),
     enabled: options.enabled ?? true,
     staleTime: 30_000,
   });

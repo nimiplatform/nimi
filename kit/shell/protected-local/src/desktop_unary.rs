@@ -1,7 +1,8 @@
-use std::time::Duration;
-use crate::bundled_avatar_profile_generated::{
+use crate::first_party_profiles_generated::{
     BUNDLED_AVATAR_APP_ID, BUNDLED_AVATAR_NATIVE_PROFILE_MARKER,
+    DESKTOP_ACCOUNT_PRODUCT_NATIVE_PROFILE_MARKER, DESKTOP_MACHINE_PRODUCT_NATIVE_PROFILE_MARKER,
 };
+use std::time::Duration;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct DesktopUnaryError {
@@ -26,14 +27,38 @@ impl DesktopUnaryError {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum DesktopFirstPartyProfile {
+    Machine,
+    Account,
+}
+
+impl DesktopFirstPartyProfile {
+    pub(crate) const fn marker(self) -> &'static str {
+        match self {
+            Self::Machine => DESKTOP_MACHINE_PRODUCT_NATIVE_PROFILE_MARKER,
+            Self::Account => DESKTOP_ACCOUNT_PRODUCT_NATIVE_PROFILE_MARKER,
+        }
+    }
+}
+
 #[cfg(any(target_os = "windows", target_os = "macos"))]
-pub(crate) async fn invoke(
+pub(crate) async fn invoke_first_party(
     channel: tonic::transport::Channel,
+    profile: DesktopFirstPartyProfile,
     method_id: &'static str,
     request_bytes: Vec<u8>,
     timeout: Option<Duration>,
 ) -> Result<Vec<u8>, DesktopUnaryError> {
-    invoke_inner(channel, method_id, request_bytes, timeout, false).await
+    invoke_inner(
+        channel,
+        method_id,
+        request_bytes,
+        timeout,
+        Some(profile.marker()),
+        false,
+    )
+    .await
 }
 
 #[cfg(any(target_os = "windows", target_os = "macos"))]
@@ -43,7 +68,7 @@ pub(crate) async fn invoke_bundled_avatar(
     request_bytes: Vec<u8>,
     timeout: Option<Duration>,
 ) -> Result<Vec<u8>, DesktopUnaryError> {
-    invoke_inner(channel, method_id, request_bytes, timeout, true).await
+    invoke_inner(channel, method_id, request_bytes, timeout, None, true).await
 }
 
 #[cfg(any(target_os = "windows", target_os = "macos"))]
@@ -52,6 +77,7 @@ async fn invoke_inner(
     method_id: &'static str,
     request_bytes: Vec<u8>,
     timeout: Option<Duration>,
+    first_party_profile_marker: Option<&'static str>,
     bundled_avatar: bool,
 ) -> Result<Vec<u8>, DesktopUnaryError> {
     use prost::bytes::{Buf, BufMut};
@@ -114,7 +140,16 @@ async fn invoke_inner(
         .await
         .map_err(|_| DesktopUnaryError::new("runtime-service-unavailable", true))?;
     let mut tonic_request = tonic::Request::new(request_bytes);
-    if bundled_avatar {
+    if let Some(profile_marker) = first_party_profile_marker {
+        tonic_request.metadata_mut().insert(
+            "x-nimi-protected-first-party-profile",
+            tonic::metadata::MetadataValue::from_static(profile_marker),
+        );
+        tonic_request.metadata_mut().insert(
+            "x-nimi-app-id",
+            tonic::metadata::MetadataValue::from_static("nimi.desktop"),
+        );
+    } else if bundled_avatar {
         tonic_request.metadata_mut().insert(
             "x-nimi-protected-bundled-profile",
             tonic::metadata::MetadataValue::from_static(BUNDLED_AVATAR_NATIVE_PROFILE_MARKER),

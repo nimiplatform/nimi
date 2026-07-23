@@ -28,7 +28,10 @@ func (r eventStreamRuntime) subscribe(req *runtimev1.SubscribeAgentEventsRequest
 	if err != nil {
 		return err
 	}
-	bundledAvatar := isBundledAvatarCapability(stream.Context(), "runtime.agent.read")
+	_, protectedAccount, principalErr := protectedAccountProductPrincipal(stream.Context(), "runtime.agent.read")
+	if principalErr != nil {
+		return principalErr
+	}
 	if err := r.svc.authorizeBundledAvatarIdentity(stream.Context(), req.GetContext(), identity, "runtime.agent.read"); err != nil {
 		return err
 	}
@@ -60,7 +63,7 @@ func (r eventStreamRuntime) subscribe(req *runtimev1.SubscribeAgentEventsRequest
 		bundledAvatarIdentity: nil,
 		ch:                    make(chan *runtimev1.AgentEvent, subscriberBuffer),
 	}
-	if bundledAvatar {
+	if protectedAccount {
 		identityCopy := identity
 		sub.bundledAvatarIdentity = &identityCopy
 	}
@@ -125,7 +128,7 @@ func (r eventStreamRuntime) validateSubscriberBinding(ctx context.Context, sub *
 		return nil
 	}
 	if sub.bundledAvatarIdentity != nil {
-		return r.svc.revalidateBundledAvatarIdentity(ctx, *sub.bundledAvatarIdentity)
+		return r.svc.revalidateProtectedAccountIdentity(ctx, *sub.bundledAvatarIdentity)
 	}
 	if sub.scopedBinding == nil {
 		return nil

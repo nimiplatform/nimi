@@ -5,44 +5,10 @@ import {
   isNimiElectronBundledAvatarServerStreamMethod,
   isNimiElectronBundledAvatarUnaryMethod,
 } from './bundled-avatar-profile.generated.js';
-
-const DESKTOP_PRODUCT_CONTROL_METHOD_IDS: ReadonlySet<string> = new Set([
-  '/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile',
-  '/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan',
-  '/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs',
-  '/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob',
-  '/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob',
-  '/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob',
-  '/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency',
-  '/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness',
-  '/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness',
-  '/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence',
-  '/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence',
-  '/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord',
-  '/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot',
-  '/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated',
-  '/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot',
-  '/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel',
-  '/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan',
-  '/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse',
-  '/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence',
-  '/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence',
-  '/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState',
-]);
-
-const DESKTOP_RUNTIME_CONSUMER_METHOD_IDS: ReadonlySet<string> = new Set([
-  '/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets',
-  '/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog',
-  '/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth',
-  '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors',
-  '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth',
-  '/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth',
-  '/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents',
-  '/nimi.runtime.v1.RuntimeAuditService/ListUsageStats',
-  '/nimi.runtime.v1.RuntimeAiService/PeekScheduling',
-  '/nimi.runtime.v1.RuntimeAiService/ExecuteScenario',
-  '/nimi.runtime.v1.RuntimeAgentService/ListAgents',
-]);
+import {
+  isNimiElectronDesktopAccountProductMethod,
+  isNimiElectronDesktopMachineProductMethod,
+} from './first-party-protected-runtime-profiles.generated.js';
 
 type NativeBytesOutcome =
   | { readonly status: 'ok'; readonly value: unknown }
@@ -61,16 +27,28 @@ type NativeStreamNextOutcome = {
 };
 
 export type NimiElectronDesktopControlBinding = {
-  readonly desktopProductControlUnary: (input: {
+  readonly desktopMachineProductUnary: (input: {
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
   }) => Promise<NativeBytesOutcome>;
-  readonly desktopRuntimeConsumerUnary: (input: {
+  readonly desktopAccountProductUnary: (input: {
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
   }) => Promise<NativeBytesOutcome>;
+  readonly desktopMachineProductStreamOpen: (input: {
+    readonly methodId: string;
+    readonly requestBytes: Uint8Array;
+    readonly timeoutMs?: number;
+  }) => Promise<NativeJsonOutcome>;
+  readonly desktopAccountProductStreamOpen: (input: {
+    readonly methodId: string;
+    readonly requestBytes: Uint8Array;
+    readonly timeoutMs?: number;
+  }) => Promise<NativeJsonOutcome>;
+  readonly desktopFirstPartyProductStreamNext: (input: { readonly streamId: string }) => Promise<NativeStreamNextOutcome>;
+  readonly desktopFirstPartyProductStreamClose: (input: { readonly streamId: string }) => Promise<NativeJsonOutcome>;
   readonly desktopBundledAvatarUnary: (input: {
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
@@ -86,16 +64,26 @@ export type NimiElectronDesktopControlBinding = {
 };
 
 export type NimiElectronDesktopControlHost = {
-  readonly productControlUnary: (input: {
+  readonly machineProductUnary: (input: {
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
   }) => Promise<Uint8Array>;
-  readonly runtimeConsumerUnary: (input: {
+  readonly accountProductUnary: (input: {
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
   }) => Promise<Uint8Array>;
+  readonly machineProductServerStream: (input: {
+    readonly methodId: string;
+    readonly requestBytes: Uint8Array;
+    readonly timeoutMs?: number;
+  }) => RuntimeGrpcBridgeStream;
+  readonly accountProductServerStream: (input: {
+    readonly methodId: string;
+    readonly requestBytes: Uint8Array;
+    readonly timeoutMs?: number;
+  }) => RuntimeGrpcBridgeStream;
   readonly bundledAvatarUnary: (input: {
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
@@ -123,26 +111,40 @@ export class NimiElectronDesktopControlHostError extends Error {
 class ElectronDesktopControlHost implements NimiElectronDesktopControlHost {
   constructor(private readonly binding: NimiElectronDesktopControlBinding) {}
 
-  async productControlUnary(input: {
+  async machineProductUnary(input: {
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
   }): Promise<Uint8Array> {
-    if (!isElectronDesktopProductControlMethod(input.methodId)) {
-      throw untrusted();
-    }
-    return this.invokeNative(() => this.binding.desktopProductControlUnary(input));
+    if (!isNimiElectronDesktopMachineProductMethod(input.methodId, 'unary')) throw untrusted();
+    return this.invokeNative(() => this.binding.desktopMachineProductUnary(input));
   }
 
-  async runtimeConsumerUnary(input: {
+  async accountProductUnary(input: {
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
   }): Promise<Uint8Array> {
-    if (!isElectronDesktopRuntimeConsumerMethod(input.methodId)) {
-      throw untrusted();
-    }
-    return this.invokeNative(() => this.binding.desktopRuntimeConsumerUnary(input));
+    if (!isNimiElectronDesktopAccountProductMethod(input.methodId, 'unary')) throw untrusted();
+    return this.invokeNative(() => this.binding.desktopAccountProductUnary(input));
+  }
+
+  machineProductServerStream(input: {
+    readonly methodId: string;
+    readonly requestBytes: Uint8Array;
+    readonly timeoutMs?: number;
+  }): RuntimeGrpcBridgeStream {
+    if (!isNimiElectronDesktopMachineProductMethod(input.methodId, 'server_stream')) throw untrusted();
+    return new ElectronFirstPartyProductStream(this.binding, input, 'machine');
+  }
+
+  accountProductServerStream(input: {
+    readonly methodId: string;
+    readonly requestBytes: Uint8Array;
+    readonly timeoutMs?: number;
+  }): RuntimeGrpcBridgeStream {
+    if (!isNimiElectronDesktopAccountProductMethod(input.methodId, 'server_stream')) throw untrusted();
+    return new ElectronFirstPartyProductStream(this.binding, input, 'account');
   }
 
   async bundledAvatarUnary(input: {
@@ -188,22 +190,40 @@ class ElectronDesktopControlHost implements NimiElectronDesktopControlHost {
 class LazyElectronDesktopControlHost implements NimiElectronDesktopControlHost {
   private host: NimiElectronDesktopControlHost | undefined;
 
-  productControlUnary(input: {
+  machineProductUnary(input: {
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
   }): Promise<Uint8Array> {
     this.host ??= new ElectronDesktopControlHost(loadPlatformBinding());
-    return this.host.productControlUnary(input);
+    return this.host.machineProductUnary(input);
   }
 
-  runtimeConsumerUnary(input: {
+  accountProductUnary(input: {
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
   }): Promise<Uint8Array> {
     this.host ??= new ElectronDesktopControlHost(loadPlatformBinding());
-    return this.host.runtimeConsumerUnary(input);
+    return this.host.accountProductUnary(input);
+  }
+
+  machineProductServerStream(input: {
+    readonly methodId: string;
+    readonly requestBytes: Uint8Array;
+    readonly timeoutMs?: number;
+  }): RuntimeGrpcBridgeStream {
+    this.host ??= new ElectronDesktopControlHost(loadPlatformBinding());
+    return this.host.machineProductServerStream(input);
+  }
+
+  accountProductServerStream(input: {
+    readonly methodId: string;
+    readonly requestBytes: Uint8Array;
+    readonly timeoutMs?: number;
+  }): RuntimeGrpcBridgeStream {
+    this.host ??= new ElectronDesktopControlHost(loadPlatformBinding());
+    return this.host.accountProductServerStream(input);
   }
 
   bundledAvatarUnary(input: {
@@ -222,6 +242,58 @@ class LazyElectronDesktopControlHost implements NimiElectronDesktopControlHost {
   }): RuntimeGrpcBridgeStream {
     this.host ??= new ElectronDesktopControlHost(loadPlatformBinding());
     return this.host.bundledAvatarServerStream(input);
+  }
+}
+
+class ElectronFirstPartyProductStream implements RuntimeGrpcBridgeStream {
+  private cancelled = false;
+  private started = false;
+  private streamId = '';
+
+  constructor(
+    private readonly binding: NimiElectronDesktopControlBinding,
+    private readonly input: { readonly methodId: string; readonly requestBytes: Uint8Array; readonly timeoutMs?: number },
+    private readonly profile: 'machine' | 'account',
+  ) {}
+
+  start(handlers: RuntimeGrpcBridgeStreamHandlers): void {
+    if (this.started) throw untrusted();
+    this.started = true;
+    void this.pump(handlers);
+  }
+
+  cancel(): void {
+    this.cancelled = true;
+    if (this.streamId) {
+      void this.binding.desktopFirstPartyProductStreamClose({ streamId: this.streamId }).catch(() => undefined);
+    }
+  }
+
+  private async pump(handlers: RuntimeGrpcBridgeStreamHandlers): Promise<void> {
+    try {
+      const opened = await (this.profile === 'machine'
+        ? this.binding.desktopMachineProductStreamOpen(this.input)
+        : this.binding.desktopAccountProductStreamOpen(this.input));
+      if (opened.status === 'error') throw nativeError(opened);
+      const streamId = readStreamId(opened.value);
+      this.streamId = streamId;
+      if (this.cancelled) {
+        await this.binding.desktopFirstPartyProductStreamClose({ streamId }).catch(() => undefined);
+        return;
+      }
+      while (!this.cancelled) {
+        const next = await this.binding.desktopFirstPartyProductStreamNext({ streamId });
+        if (next.status === 'error') throw nativeError(next);
+        if (next.completed === true) {
+          handlers.onEnd();
+          return;
+        }
+        if (!isUint8Array(next.value)) throw untrusted();
+        handlers.onData(Uint8Array.from(next.value));
+      }
+    } catch (error) {
+      if (!this.cancelled) handlers.onError(error);
+    }
   }
 }
 
@@ -285,12 +357,12 @@ export function createNimiElectronDesktopControlHostForBinding(
   return new ElectronDesktopControlHost(validateBinding(binding));
 }
 
-export function isElectronDesktopProductControlMethod(methodId: string): boolean {
-  return DESKTOP_PRODUCT_CONTROL_METHOD_IDS.has(methodId.trim());
+export function isElectronDesktopMachineProductMethod(methodId: string, kind: 'unary' | 'server_stream'): boolean {
+  return isNimiElectronDesktopMachineProductMethod(methodId, kind);
 }
 
-export function isElectronDesktopRuntimeConsumerMethod(methodId: string): boolean {
-  return DESKTOP_RUNTIME_CONSUMER_METHOD_IDS.has(methodId.trim());
+export function isElectronDesktopAccountProductMethod(methodId: string, kind: 'unary' | 'server_stream'): boolean {
+  return isNimiElectronDesktopAccountProductMethod(methodId, kind);
 }
 
 function loadPlatformBinding(): NimiElectronDesktopControlBinding {
@@ -305,8 +377,12 @@ function loadPlatformBinding(): NimiElectronDesktopControlBinding {
 
 function validateBinding(value: unknown): NimiElectronDesktopControlBinding {
   if (!value || typeof value !== 'object' || Array.isArray(value)
-    || typeof (value as Record<string, unknown>).desktopProductControlUnary !== 'function'
-    || typeof (value as Record<string, unknown>).desktopRuntimeConsumerUnary !== 'function'
+    || typeof (value as Record<string, unknown>).desktopMachineProductUnary !== 'function'
+    || typeof (value as Record<string, unknown>).desktopAccountProductUnary !== 'function'
+    || typeof (value as Record<string, unknown>).desktopMachineProductStreamOpen !== 'function'
+    || typeof (value as Record<string, unknown>).desktopAccountProductStreamOpen !== 'function'
+    || typeof (value as Record<string, unknown>).desktopFirstPartyProductStreamNext !== 'function'
+    || typeof (value as Record<string, unknown>).desktopFirstPartyProductStreamClose !== 'function'
     || typeof (value as Record<string, unknown>).desktopBundledAvatarUnary !== 'function'
     || typeof (value as Record<string, unknown>).desktopBundledAvatarStreamOpen !== 'function'
     || typeof (value as Record<string, unknown>).desktopBundledAvatarStreamNext !== 'function'

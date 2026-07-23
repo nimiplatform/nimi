@@ -249,7 +249,7 @@ func (s *Service) GetConversationAnchorSnapshot(ctx context.Context, req *runtim
 // ListAgentConversationSummaries returns read-only conversation summaries for
 // Runtime-owned Agent Chat anchors. The display title is derived projection
 // text; selected transcript recovery remains GetPublicChatSessionSnapshot.
-func (s *Service) ListAgentConversationSummaries(_ context.Context, req *runtimev1.ListAgentConversationSummariesRequest) (*runtimev1.ListAgentConversationSummariesResponse, error) {
+func (s *Service) ListAgentConversationSummaries(ctx context.Context, req *runtimev1.ListAgentConversationSummariesRequest) (*runtimev1.ListAgentConversationSummariesResponse, error) {
 	if s == nil || s.isClosed() {
 		return nil, status.Error(codes.FailedPrecondition, "runtime agent service unavailable")
 	}
@@ -258,6 +258,9 @@ func (s *Service) ListAgentConversationSummaries(_ context.Context, req *runtime
 	}
 	identity, err := localAgentIdentityFromContext(req.GetContext())
 	if err != nil {
+		return nil, err
+	}
+	if err := s.authorizeBundledAvatarIdentity(ctx, req.GetContext(), identity, "runtime.agent.read"); err != nil {
 		return nil, err
 	}
 	localAgentRef := identity.LocalAgentRef

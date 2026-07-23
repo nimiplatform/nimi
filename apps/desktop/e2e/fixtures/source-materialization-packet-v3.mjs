@@ -197,7 +197,10 @@ export function createFixtureSourceMaterializationPacket(request) {
 }
 
 function readReferencePacket(name) {
-  const file = new URL(`./source-materialization-reference-v3/${name}.json`, import.meta.url);
+  const file = new URL(
+    `../../../../../packages/nimi-forge/conformance/source-materialization-v3/${name}.json`,
+    import.meta.url,
+  );
   const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
   if (parsed?.schemaVersion !== 'realm.reference-packet-v3-vector/v1'
       || parsed?.packet?.packetSchemaVersion !== 'realm.source-materialization-packet/v3') {

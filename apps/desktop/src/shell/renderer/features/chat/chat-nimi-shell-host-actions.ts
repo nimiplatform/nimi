@@ -97,7 +97,7 @@ export async function assertAiSubmitSchedulingAllowed(input: {
   const schedulingGuard = await probeExecutionSchedulingGuard({
     scopeRef: input.aiConfig.scopeRef,
     target,
-    runtime: input.sdk?.runtime(),
+    runtime: input.sdk?.machineProduct(),
     surface: input.sdk?.aiConfig(),
     t: input.t,
   });

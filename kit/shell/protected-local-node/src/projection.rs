@@ -301,10 +301,6 @@ impl NativeBytesOutcome {
         Self::error(error.reason_code().as_str(), error.retryable())
     }
 
-    pub(super) fn product_control_error(error: DesktopProductControlError) -> Self {
-        Self::error(error.reason_code(), error.retryable())
-    }
-
     pub(super) fn error(reason_code: &str, retryable: bool) -> Self {
         Self {
             status: "error".to_string(),
@@ -368,7 +364,7 @@ mod tests {
     }
 
     #[test]
-    pub(super) fn desktop_product_control_bytes_outcome_exposes_no_authority_material() {
+    pub(super) fn first_party_product_bytes_outcome_exposes_no_authority_material() {
         let outcome = NativeBytesOutcome::success(vec![1, 2, 3]);
         assert_eq!(outcome.status, "ok");
         assert_eq!(outcome.value.as_ref().map(|value| value.len()), Some(3));

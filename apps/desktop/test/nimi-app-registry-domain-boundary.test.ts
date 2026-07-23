@@ -98,7 +98,7 @@ describe('Nimi App registry/admission domain boundary', () => {
     assert.match(liveBridge, /NimiAppClient/);
     assert.match(liveBridge, /createNimiAppRegistryTransport/);
     assert.match(liveBridge, /loadPackageReadiness/);
-    assert.match(liveBridge, /sdk\.runtime\(\)\.appLifecycle\.packageReadiness/);
+    assert.match(liveBridge, /sdk\.appLifecycle\(\)\.packageReadiness/);
     assert.match(liveBridge, /loadPackageReadiness:\s*async\s*\(\)/);
     assert.doesNotMatch(liveBridge, /loadActiveJobs|listJobs|watchJobEvents/);
     assert.doesNotMatch(liveBridge, /loadInstallEvidence/);
@@ -120,8 +120,8 @@ describe('Nimi App registry/admission domain boundary', () => {
     const appsPanelController = readRepo('apps/desktop/src/shell/renderer/features/apps/apps-panel-controller.ts');
     const appsLiveBridge = readRepo('apps/desktop/src/shell/renderer/features/apps/apps-live-bridge.ts');
 
-    assert.match(appsLiveBridge, /appLifecycle\.accountInventory/);
-    assert.doesNotMatch(appsLiveBridge, /appLifecycle\.listLocalAdoptions/);
+    assert.match(appsLiveBridge, /sdk\.appLifecycle\(\)\.accountInventory/);
+    assert.doesNotMatch(appsLiveBridge, /sdk\.appLifecycle\(\)\.listLocalAdoptions/);
     assert.doesNotMatch(appBootstrap, /account_app_inventory_/);
     assert.doesNotMatch(tauriMain, /account_apps_projection/);
     assert.doesNotMatch(appsPanelController, /desktopAppLibraryBridge\.apply|AccountAppLibraryMutationKind/);

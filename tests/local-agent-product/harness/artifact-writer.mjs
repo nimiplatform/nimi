@@ -33,7 +33,7 @@ export function persistResultEvidence({ outputDir, result, artifactInputs }) {
     };
   });
   const resultPath = path.join(outputDir, 'result.json');
-  const normalized = { ...result, artifacts, privacy: { ok: true, findings: [] } };
+  const normalized = { ...result, artifacts, privacy: { ok: false, findings: ['privacy_scan_pending'] } };
   fs.writeFileSync(resultPath, `${JSON.stringify(normalized, null, 2)}\n`);
   const scannedFiles = [resultPath, ...artifacts.map((artifact) => artifact.path)];
   const privacy = scanArtifactFiles(scannedFiles);

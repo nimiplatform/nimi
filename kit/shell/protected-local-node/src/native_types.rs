@@ -19,17 +19,15 @@ pub struct NativeBytesOutcome {
 }
 
 #[napi(object)]
-pub struct NativeDesktopProductControlInput {
+pub struct NativeFirstPartyProductInput {
     pub method_id: String,
     pub request_bytes: Buffer,
     pub timeout_ms: Option<u32>,
 }
 
 #[napi(object)]
-pub struct NativeDesktopRuntimeConsumerInput {
-    pub method_id: String,
-    pub request_bytes: Buffer,
-    pub timeout_ms: Option<u32>,
+pub struct NativeFirstPartyProductStreamInput {
+    pub stream_id: String,
 }
 
 #[napi(object)]

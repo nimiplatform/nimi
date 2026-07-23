@@ -84,7 +84,7 @@ export function useGlobalAuditData(enabled: boolean) {
         to: f.timeTo ? new Date(f.timeTo) : undefined,
       }, new Date(bindings.clock.now()));
       auditPageWindowRef.current = auditWindow;
-      const res = await fetchDesktopAuditEvents(sdk.runtime().audit, {
+      const res = await fetchDesktopAuditEvents(sdk.auditAdmin(), {
         domain: f.domain || undefined,
         callerKind: f.callerKind || undefined,
         ...auditWindow,
@@ -110,7 +110,7 @@ export function useGlobalAuditData(enabled: boolean) {
     setAuditLoading(true);
     setAuditError(null);
     try {
-      const res = await fetchDesktopAuditEvents(sdk.runtime().audit, {
+      const res = await fetchDesktopAuditEvents(sdk.auditAdmin(), {
         domain: auditFilters.domain || undefined,
         callerKind: auditFilters.callerKind || undefined,
         ...auditWindow,
@@ -132,7 +132,7 @@ export function useGlobalAuditData(enabled: boolean) {
     setUsageLoading(true);
     setUsageError(null);
     try {
-      const res = await fetchUsageStats(sdk.runtime().audit, {
+      const res = await fetchUsageStats(sdk.auditAdmin(), {
         capability: f.capability || undefined,
         modelId: f.modelId || undefined,
         window: f.window || UsageWindow.HOUR,
@@ -153,7 +153,7 @@ export function useGlobalAuditData(enabled: boolean) {
     setUsageLoading(true);
     setUsageError(null);
     try {
-      const res = await fetchUsageStats(sdk.runtime().audit, {
+      const res = await fetchUsageStats(sdk.auditAdmin(), {
         capability: usageFilters.capability || undefined,
         modelId: usageFilters.modelId || undefined,
         window: usageFilters.window || UsageWindow.HOUR,

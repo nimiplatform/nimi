@@ -174,12 +174,12 @@ func TestAggregate_NeverReturnsReadyWhenAnyUpstreamIsNotReady(t *testing.T) {
 func TestAggregate_AllUpstreamsConsidered(t *testing.T) {
 	// Confirm each upstream owner can drive the projection's ReasonOwner.
 	expected := map[string]func(i *UpstreamInputs){
-		"runtime-daemon":             func(i *UpstreamInputs) { i.RuntimeDaemon = StateFailed },
-		"account":                    func(i *UpstreamInputs) { i.Account = StateFailed },
-		"ai-profile-selection":       func(i *UpstreamInputs) { i.AIProfileSelection = StateFailed },
-		"materialization":            func(i *UpstreamInputs) { i.Materialization = StateFailed },
-		"app-registry":               func(i *UpstreamInputs) { i.AppRegistry = StateFailed },
-		"cognition-memory":           func(i *UpstreamInputs) { i.CognitionMemory = StateFailed },
+		"runtime-daemon":       func(i *UpstreamInputs) { i.RuntimeDaemon = StateFailed },
+		"account":              func(i *UpstreamInputs) { i.Account = StateFailed },
+		"ai-profile-selection": func(i *UpstreamInputs) { i.AIProfileSelection = StateFailed },
+		"materialization":      func(i *UpstreamInputs) { i.Materialization = StateFailed },
+		"app-registry":         func(i *UpstreamInputs) { i.AppRegistry = StateFailed },
+		"cognition-memory":     func(i *UpstreamInputs) { i.CognitionMemory = StateFailed },
 	}
 	for owner, mutate := range expected {
 		inputs := allReady()

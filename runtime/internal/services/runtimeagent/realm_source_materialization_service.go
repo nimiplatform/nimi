@@ -6,6 +6,8 @@ import (
 	"io"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/codes"
 )
 
 // MaterializeRealmSource is the sole public Realm source ingress. Every Realm
@@ -16,6 +18,11 @@ func (s *Service) MaterializeRealmSource(ctx context.Context, req *runtimev1.Mat
 	request, err := validateRealmSourceMaterializationRequestV3(ctx, req)
 	if err != nil {
 		return nil, err
+	}
+	if principal, protected, principalErr := protectedAccountProductPrincipal(ctx, "runtime.agent.write"); principalErr != nil {
+		return nil, principalErr
+	} else if protected && !principal.Owns(request.AccountID) {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
 	if s == nil || s.isClosed() {
 		return realmSourceMaterializationFailureResponseV3(sourceMaterializationFailureIssuerUnavailableV3), nil

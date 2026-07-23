@@ -344,6 +344,7 @@ function createValidJourneyFixture() {
       outcome: 'passed',
       failureClass: null,
     })),
+    gateEvidenceResults: [],
     artifacts: [{ artifactId: 'safe-evidence', path: safePath, sha256: sha256(safePath), bytes: fs.statSync(safePath).size, privacyClass: 'safe_evidence' }, { artifactId: 'provider-capture-summary', path: providerPath, sha256: sha256(providerPath), bytes: fs.statSync(providerPath).size, privacyClass: 'safe_evidence' }],
     processProblems: [],
     privacy: { ok: true, findings: [] },
@@ -400,8 +401,8 @@ test('architecture evidence accounting never promotes historical mappings into c
   const architecture = validArchitecture();
   assert.deepEqual(summarizeArchitectureEvidence(architecture), {
     cataloguedPointCount: 169,
-    currentExecutablePointBindingCount: 83,
-    historicalMappingOnlyPointBindingCount: 86,
+    currentExecutablePointBindingCount: 91,
+    historicalMappingOnlyPointBindingCount: 78,
     unclassifiedPointBindingCount: 0,
     activeFixedServiceCheckpointCount: 22,
     activeFixedServiceCataloguedPointBindingCount: 0,

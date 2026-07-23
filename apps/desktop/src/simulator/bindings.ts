@@ -100,7 +100,6 @@ export function createDesktopSimulatorBindings(
 
   const authSession = createDesktopSimulatorAuthSessionPort(context);
   const aiConfigPort = createDesktopSimulatorAIConfigPort(context.projection.get);
-  const unavailableRuntimeFacade = Object.freeze({});
 
   const handoffSubscription = context.events.subscribe('desktop.handoff.requested', (value) => {
     const payload = record(value, 'HANDOFF_REQUEST_EVENT');
@@ -189,8 +188,19 @@ export function createDesktopSimulatorBindings(
       isSessionReady: authSession.isSessionReady,
       isRuntimeAccountSessionReady: authSession.isSessionReady,
       appId: simulatorSdkUnadmitted,
-      client: simulatorSdkUnadmitted,
-      runtime: () => unavailableRuntimeFacade as ReturnType<DesktopCanonicalRendererBindings['sdk']['runtime']>,
+      machineProduct: simulatorSdkUnadmitted,
+      accountProduct: simulatorSdkUnadmitted,
+      appLifecycle: simulatorSdkUnadmitted,
+      connectorAdmin: simulatorSdkUnadmitted,
+      localAssetAdmin: simulatorSdkUnadmitted,
+      localAudit: simulatorSdkUnadmitted,
+      auditAdmin: simulatorSdkUnadmitted,
+      aiExecution: simulatorSdkUnadmitted,
+      routeHostAccessClient: simulatorSdkUnadmitted,
+      routeOptionsClient: simulatorSdkUnadmitted,
+      externalAgent: simulatorSdkUnadmitted,
+      runtimeAgentOwner: simulatorSdkUnadmitted,
+      runtimeAgentDiscovery: simulatorSdkUnadmitted,
       runtimeAgentTurns: simulatorSdkUnadmitted,
       hostRuntimeAgent: simulatorSdkUnadmitted,
       accountRuntime: () => authSession.accountRuntime,

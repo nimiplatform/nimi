@@ -276,7 +276,7 @@ app session and is not a local-development principal. The physical carrier is
 the current `desktop_control` connection; Runtime derives the immutable
 `bundled_avatar_host` role from that verified connection and admits only the
 fixed `bundled_avatar_v1` profile in
-`tables/bundled-avatar-runtime-profile.yaml`.
+`tables/first-party-protected-runtime-profiles.yaml#bundled_avatar_v1`.
 
 Desktop main registers the exact `BrowserWindow`/`WebContents` object it
 created through the supervised Avatar launch path. Kit main/native code selects
@@ -453,42 +453,82 @@ forbidden, and a new connection must repeat the full mutual endpoint, process,
 and executable verification. At most one live Desktop control session exists
 per process tuple.
 
-After that session exists, the verified Nimi Desktop shell has one additional
-exact unary consumer set. It consists only of:
+After that session exists, first-party Desktop product calls resolve one exact
+logical profile from
+`tables/first-party-protected-runtime-profiles.yaml`. The canonical table, not
+this prose or a language-specific selector, owns method membership and unary or
+server-stream kind. `desktop_machine_product_v1` remains connection-, process-,
+exact-main-sender-, session-, and boot-epoch-bound. It contains the established
+Product Control surface plus the finite machine-local asset lifecycle, catalog,
+transfer, profile, connector-catalog, observability, reserved External Agent,
+inventory, route, readiness, scheduling and direct-Nimi operation set. Existing
+Runtime Config `StartLocalAsset` / `StopLocalAsset` product orchestration is part
+of that exact machine set and is not a generic local-service exposure. The
+machine profile owns no account resource inventory or owner authority.
+`ListAgents` is therefore account-bound; possession
+of an agent id or request owner field cannot convert it to a machine read.
 
-- `RuntimeLocalService/ListLocalAssets`;
-- `RuntimeLocalService/ListNodeCatalog`;
-- `RuntimeLocalService/CheckLocalAssetHealth`;
-- `RuntimeConnectorService/ListConnectors`;
-- `RuntimeAuditService/GetRuntimeHealth`;
-- `RuntimeAuditService/ListAIProviderHealth`;
-- `RuntimeAuditService/ListDesktopAuditEvents`;
-- `RuntimeAuditService/ListUsageStats`;
-- `RuntimeAiService/PeekScheduling`;
-- `RuntimeAiService/ExecuteScenario`; and
-- `RuntimeAgentService/ListAgents`.
+`desktop_account_product_v1` includes every machine identity condition and also
+binds the immutable call principal to Runtime's current authenticated account id
+and account generation. Only `protected_transport` may project that Runtime-
+minted principal into authenticated handler context, and only after exact
+account-profile binding. Any pre-existing authenticated identity that conflicts
+with the minted account fails closed before handler dispatch; the machine
+profile receives no account identity. The account profile carries only the exact
+source materialization, account app inventory/readiness, account-partitioned
+connector catalog/admin, LocalAgent inventory/state/autonomy/hooks, delegated
+control, anchor/snapshot, partner-turn, AI-config, memory-binding, presentation
+and owned-artifact operations in the canonical table. Logout,
+account switch, account-generation change, sender destruction, connection loss,
+process replacement, or boot-epoch change invalidates the profile and centrally
+cancels its streams before any later read, event, or commit. The independent
+`desktop_account_broker_v1` remains owned by K-ACCSVC-023..024 and is not merged
+into either product profile.
 
-Each call remains connection-, process-, session-, and boot-epoch-bound. The
-protected carrier selects from this compiled method set; renderer metadata,
-method ids, and serialized request bytes cannot add another method or role.
-`ExecuteScenario` transport admission does not authorize a scenario, route, or
-capability and does not bypass the existing handler-level request validation,
-scheduling, execution, account, grant, or policy checks.
+Native main code derives the logical profile from a generated named intent
+entrypoint after exact sender and main-frame binding. Renderer or request input
+cannot select a profile, origin role, method id, principal, account, owner,
+endpoint, metadata, token, grant, scope, or capability. Every method absent from
+the selected profile fails before handler dispatch. A method row admits only
+transport reachability: handler-level request, route, scheduling, capability,
+owner, idempotency and domain postcondition validation remain mandatory.
 
-`ListDesktopAuditEvents` is additionally constrained by K-AUDIT-024: both
+`ListDesktopAuditEvents` remains additionally constrained by K-AUDIT-024: both
 timestamps and the seven-day window are mandatory, pagination rejects values
 above 100, and Runtime projects the exact nine-field event whitelist before
 transport. Its admission does not admit raw `ListAuditEvents`, audit export,
 payload content, subject/caller identifiers, authorization lineage, or audit
-storage access.
+storage access. No logical profile creates a generic Runtime proxy, portable
+session, public TCP fallback, third-party permission, account custody owner, or
+second carrier.
 
-This consumer set admits no stream and no generic Runtime proxy. In particular,
-health-event subscriptions, connector-model enumeration, connector testing,
-asset warming, conversation streaming, and every method missing from the exact
-matrix remain typed unavailable before handler dispatch. The Desktop must not
-fall back to public TCP. This addition changes no account custody, permission decision,
-presence, Realm broker, storage, memory, media, local-app, development
-authorization, lifecycle, dormancy, epoch, or public-listener semantics.
+### K-PLOCAL-006 Canonical First-Party Protected Runtime Profile Family
+
+`tables/first-party-protected-runtime-profiles.yaml` is the sole editable owner
+of first-party protected logical profile identity, exact method membership,
+method kind, intent reference, principal policy, invalidation policy, native
+entrypoint class, owner-postcondition reference, negative-test class, and gate
+reference. It contains `desktop_machine_product_v1`,
+`desktop_account_product_v1`, and the unchanged `bundled_avatar_v1` operation
+set. The account/Realm broker remains an external referenced profile whose exact
+account methods stay owned by `tables/account-rpc-permission-matrix.yaml`.
+
+Runtime RPC/proto authority continues to own method existence and kind; domain
+contracts continue to own success semantics; protected transport tables own
+physical carrier and origin binding; Desktop owns user intent and UX; SDK and
+Kit own generated consumer projections. Go, Rust, Electron, Tauri, TypeScript,
+and transport-matrix method/profile selectors are deterministic projections of
+the canonical profile table and cannot be independent edit points. Generation
+must reject duplicate or unknown methods, kind mismatch, wildcard/service-wide
+membership, missing intent or postcondition, unknown principal/invalidation,
+renderer-selectable authority, and orphan outputs.
+
+The machine and account profiles are distinct exact logical operation sets on
+the same `desktop_control` carrier. Account calls do not inherit account
+authority from machine calls, and renderer code does not choose between them.
+Desktop may consume only generated purpose-specific clients; a full Runtime
+facade, generic unary/stream bridge, serialized method selector, Avatar identity,
+or account-broker method selector is not an admitted first-party product path.
 
 The third-party `local_app_host` matrix separately admits the three exact
 K-APP-032 RuntimeAppService JSON storage methods. They are not part of the

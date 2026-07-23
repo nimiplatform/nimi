@@ -17,14 +17,14 @@ import "errors"
 type State string
 
 const (
-	StateUnavailable      State = "unavailable"
-	StateSetupRequired    State = "setup-required"
+	StateUnavailable       State = "unavailable"
+	StateSetupRequired     State = "setup-required"
 	StateNeedsConfirmation State = "needs-confirmation"
-	StateInProgress       State = "in-progress"
-	StateFailed           State = "failed"
-	StateUnsupported      State = "unsupported"
-	StateStaleProjection  State = "stale-projection"
-	StateReady            State = "ready"
+	StateInProgress        State = "in-progress"
+	StateFailed            State = "failed"
+	StateUnsupported       State = "unsupported"
+	StateStaleProjection   State = "stale-projection"
+	StateReady             State = "ready"
 )
 
 // Valid reports whether the state is one of the P-COLD-001 allowed

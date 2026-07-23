@@ -365,7 +365,7 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.match(adapterSource, /useAgentConversationPresentation/);
   assert.match(adapterSource, /useAgentRuntimeSessionSnapshotHydration/);
   assert.match(adapterSessionSnapshotSource, /createNimiRuntimeAgentConsumeClient/);
-  assert.match(adapterSessionSnapshotSource, /sdk\.runtime\(\)\.agents/);
+  assert.match(adapterSessionSnapshotSource, /sdk\.accountProduct\(\)\.agents/);
   assert.match(adapterSessionSnapshotSource, /sdk\.appId\(\)/);
   assert.match(adapterSessionSnapshotSource, /turns\.getSessionSnapshot/);
   assert.doesNotMatch(adapterSessionSnapshotSource, /getPlatformClient/);

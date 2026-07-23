@@ -318,7 +318,30 @@ local_agent_journey_acceptance:
     current_and_historical_counts_are_separate: true
     unbound_active_checkpoint_posture: explicit_incomplete_evidence
     architecture_validation_claim: structural_integrity_not_point_coverage
+    product_gate_pass_requires_current_point_coverage_complete: true
+    applicable_point_catalog_domain_requires_nonzero_current_reciprocal_bindings: true
+    no_applicable_point_catalog_domain_requires_nonzero_exact_typed_gate_checkpoints_and_evidence: true
+    zero_current_product_bindings: fail_closed_for_applicable_point_catalog_domain
+    current_point_coverage_complete_semantics: complete_coverage_of_the_current_gate_declared_scope
     authority_refs: [P-TEST-017]
+  first_party_product_gate_truth:
+    platform_order: signed_windows_x64_first
+    gate_0: { gate_id: gate.desktop.first-party-installed-first-run, role: installed_first_run_regression_prerequisite }
+    gate_1: { gate_id: gate.desktop.first-party-direct-nimi-core, role: direct_nimi_real_local_stream }
+    gate_2: { gate_id: gate.desktop.first-party-partner-core, role: materialize_open_turn_commit_reload }
+    gate_3: { gate_id: gate.desktop.local-agent-product-core-stability, role: complete_current_first_party_floor }
+    independent_foundation_gate: gate.desktop.dev-kernel-foundation
+    independent_third_party_positive_permission_gate: reserved_not_satisfied_by_first_party_gates
+    same_candidate_required: true
+    disallowed_product_substitutes: [dev_kernel_journey, historical_mapping_only, positive_runtime_path_none, zero_current_product_bindings, current_point_coverage_incomplete, direct_daemon, fixture, seeded_ready_state, cloud_substitution]
+    point_classification:
+      unit_or_contract: { count: 71, bindings: [L0_contract-smoke, L1_contract-smoke] }
+      protected_integration: { count: 12, journeys: [source-revision-no-rebase, destructive-termination, challenge-replay-concurrency, crash-recovery] }
+      installed_windows_product: { count: 53, journeys: [full-chain-core, access-denial, pre-materialization-offline] }
+      retained_but_excluded_from_this_windows_floor: { count: 9, journeys: [turn-media-recovery, native-macos-input], reasons: [advanced_media_recovery_separate_admission, R-06_windows_first_platform_order] }
+      on_demand_l5_report: { count: 24, journeys: [conversation-report-baseline] }
+      total: 169
+    authority_refs: [P-TEST-017, P-TEST-019]
   result_integrity:
     prerequisite_failure_outcomes: [failed, blocked_by_failed_prerequisite]
     passing_outcome: passed
@@ -624,13 +647,13 @@ suites:
     selectors:
       rust_inline_globs: ['apps/tester/src-tauri/src/**/*.rs']
     authority_refs: [P-TEST-002, P-TEST-003, P-TEST-006]
-  - id: desktop-windows-product-control-native
+  - id: desktop-first-party-installed-first-run
     owner: desktop
-    lane: release_native
-    gate_id: gate.desktop.windows-product-control-native
-    command: pnpm --filter @nimiplatform/desktop test:windows:product-control-native
+    lane: product_acceptance
+    gate_id: gate.desktop.first-party-installed-first-run
+    command: pnpm test:e2e:first-party-product:first-run
     selectors:
-      files: [apps/desktop/test/electron-product-control-native-smoke.mjs]
+      files: [tests/local-agent-product/harness/run-first-party-signed-candidate-journey.mjs, tests/local-agent-product/harness/first-party-product-journey-driver.mjs]
     authority_refs: [P-TEST-002, P-TEST-003, P-TEST-006]
   - id: desktop-e2e
     owner: desktop
@@ -703,6 +726,22 @@ suites:
     lane: product_acceptance
     gate_id: gate.desktop.local-agent-product-core-stability
     command: pnpm test:e2e:local-agent-product:core-stability
+    required_journey: full-chain-core
+    required_execution_disposition: active_checkpoint
+    required_positive_runtime_path: signed_windows_fixed_service_protected_carrier
+    required_current_point_coverage: complete
+    forbidden_journey_substitutes: [dev-kernel-core, historical_mapping_only]
     selectors:
       files: [tests/local-agent-product/harness/run-gate.mjs]
-    authority_refs: [P-TEST-002, P-TEST-003, P-TEST-006, P-TEST-010, P-TEST-018]
+    authority_refs: [P-TEST-002, P-TEST-003, P-TEST-006, P-TEST-010, P-TEST-017, P-TEST-018, P-TEST-019]
+  - id: desktop-dev-kernel-foundation
+    owner: platform
+    lane: product_acceptance
+    gate_id: gate.desktop.dev-kernel-foundation
+    command: pnpm test:e2e:dev-kernel:owner-minimal
+    evidence_role: protected_foundation_only
+    product_point_coverage_claim: forbidden
+    third_party_positive_permission_claim: forbidden
+    selectors:
+      files: [tests/local-agent-product/harness/run-owner-minimal.mjs]
+    authority_refs: [P-TEST-002, P-TEST-003, P-TEST-017]

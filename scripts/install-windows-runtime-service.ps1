@@ -6,6 +6,8 @@ param(
 
   [switch] $DevKernelCheckpoint,
 
+  [switch] $FirstPartyProductAcceptance,
+
   [string] $DevelopmentDataRoot = '',
 
   [switch] $Json
@@ -53,6 +55,9 @@ $RuntimeStartupStages = @{
   42480 = 'shutdown-timeout'
 }
 
+if ($DevKernelCheckpoint -and $FirstPartyProductAcceptance) {
+  throw 'DevKernelCheckpoint and FirstPartyProductAcceptance are mutually exclusive.'
+}
 if (-not $DevKernelCheckpoint -and -not [string]::IsNullOrWhiteSpace($DevelopmentDataRoot)) {
   throw 'DevelopmentDataRoot is admitted only with DevKernelCheckpoint.'
 }
@@ -180,7 +185,9 @@ function Copy-PlatformResources {
   $sourceRuntimeBuildRecord = Join-Path $payloadRoot 'runtime-build-record.json'
   Assert-FileSha256 -Path $sourceRegistry -Expected $ExpectedRegistrySha256
   Assert-FileSha256 -Path $sourceDescriptors -Expected $ExpectedReleaseDescriptorsSha256
-  Assert-FileSha256 -Path $sourceDevKernelFixture -Expected $ExpectedDevKernelFixtureSha256
+  if ($DevKernelCheckpoint) {
+    Assert-FileSha256 -Path $sourceDevKernelFixture -Expected $ExpectedDevKernelFixtureSha256
+  }
   Assert-FileSha256 -Path $sourceRuntimeBuildRecord -Expected $ExpectedRuntimeBuildRecordSha256
   $destinationResources = Join-Path $DestinationRoot 'resources'
   New-Item -ItemType Directory -Path $destinationResources -Force | Out-Null
@@ -190,11 +197,15 @@ function Copy-PlatformResources {
   $destinationBuildRecord = Join-Path $destinationResources 'runtime-build-record.json'
   Copy-Item -LiteralPath $sourceRegistry -Destination $destinationRegistry
   Copy-Item -LiteralPath $sourceDescriptors -Destination $destinationDescriptors
-  Copy-Item -LiteralPath $sourceDevKernelFixture -Destination $destinationFixture
+  if ($DevKernelCheckpoint) {
+    Copy-Item -LiteralPath $sourceDevKernelFixture -Destination $destinationFixture
+  }
   Copy-Item -LiteralPath $sourceRuntimeBuildRecord -Destination $destinationBuildRecord
   Assert-FileSha256 -Path $destinationRegistry -Expected $ExpectedRegistrySha256
   Assert-FileSha256 -Path $destinationDescriptors -Expected $ExpectedReleaseDescriptorsSha256
-  Assert-FileSha256 -Path $destinationFixture -Expected $ExpectedDevKernelFixtureSha256
+  if ($DevKernelCheckpoint) {
+    Assert-FileSha256 -Path $destinationFixture -Expected $ExpectedDevKernelFixtureSha256
+  }
   Assert-FileSha256 -Path $destinationBuildRecord -Expected $ExpectedRuntimeBuildRecordSha256
 }
 
@@ -211,9 +222,13 @@ function Read-RuntimeBuildRecord {
       ($runtimeKeys -join ',') -ne 'binarySha256,signerCertificateSha256' -or
       $record.schemaVersion -ne 1 -or
       $record.artifactKind -ne 'nimi.windows-runtime-service-binary' -or
-      $record.checkpoint -ne 'dev_kernel_checkpoint' -or
-      $record.nonRelease -ne $true -or
-      $record.candidateId -notmatch '^dev-kernel-runtime-[0-9a-f]{32}$' -or
+      (($record.checkpoint -eq 'dev_kernel_checkpoint') -and
+        ($record.nonRelease -ne $true -or $record.candidateId -notmatch '^dev-kernel-runtime-[0-9a-f]{32}$')) -or
+      (($record.checkpoint -eq 'first_party_product_acceptance') -and
+        ($record.nonRelease -ne $true -or $record.candidateId -notmatch '^product-acceptance-runtime-[0-9a-f]{32}$')) -or
+      (($record.checkpoint -eq 'production_build') -and
+        ($record.nonRelease -ne $false -or $record.candidateId -notmatch '^runtime-[0-9a-f]{32}$')) -or
+      $record.checkpoint -notin @('dev_kernel_checkpoint', 'first_party_product_acceptance', 'production_build') -or
       $source.repositoryId -ne 'nimi' -or
       $source.headCommit -notmatch '^[0-9a-f]{40}$' -or
       $source.dirtyDescriptorSha256 -notmatch '^[0-9a-f]{64}$' -or
@@ -225,18 +240,35 @@ function Read-RuntimeBuildRecord {
   return $record
 }
 
+function Assert-RequestedBuildProfile {
+  param([Parameter(Mandatory = $true)] [object] $BuildRecord)
+  $expectedCheckpoint = if ($DevKernelCheckpoint) {
+    'dev_kernel_checkpoint'
+  } elseif ($FirstPartyProductAcceptance) {
+    'first_party_product_acceptance'
+  } else {
+    'production_build'
+  }
+  if ([string] $BuildRecord.checkpoint -ne $expectedCheckpoint) {
+    throw "Installed Runtime build profile does not match the explicit installer mode: expected $expectedCheckpoint."
+  }
+}
+
 function Assert-InstalledCandidate {
   param([Parameter(Mandatory = $true)] [string] $ExpectedSignerCertificateSha256)
   Assert-FileSha256 -Path $InstalledBinary -Expected $ExpectedRuntimeSha256
   Assert-FileSha256 -Path $InstalledRegistry -Expected $ExpectedRegistrySha256
   Assert-FileSha256 -Path $InstalledReleaseDescriptors -Expected $ExpectedReleaseDescriptorsSha256
-  Assert-FileSha256 -Path $InstalledDevKernelFixture -Expected $ExpectedDevKernelFixtureSha256
+  if ($DevKernelCheckpoint) {
+    Assert-FileSha256 -Path $InstalledDevKernelFixture -Expected $ExpectedDevKernelFixtureSha256
+  }
   Assert-FileSha256 -Path $InstalledRuntimeBuildRecord -Expected $ExpectedRuntimeBuildRecordSha256
   $certificate = Assert-SignedFile -Path $InstalledBinary
   if ((Get-CertificateSha256 -Certificate $certificate) -ne $ExpectedSignerCertificateSha256) {
     throw 'Installed Runtime signer does not match the signed installer candidate.'
   }
   $record = Read-RuntimeBuildRecord
+  Assert-RequestedBuildProfile -BuildRecord $record
   if ($record.runtime.signerCertificateSha256 -ne $ExpectedSignerCertificateSha256) {
     throw 'Installed Runtime build record signer does not match the signed installer candidate.'
   }
@@ -588,6 +620,7 @@ function Write-DevKernelCheckpointProfile {
   $temporary = "$AcceptanceProfilePath.tmp"
   [IO.File]::WriteAllText($temporary, (($profile | ConvertTo-Json -Depth 4) + "`n"), [Text.UTF8Encoding]::new($false))
   Move-Item -LiteralPath $temporary -Destination $AcceptanceProfilePath -Force
+  $developmentDataRootBinding['protectedProfileDigest'] = (Get-FileHash -LiteralPath $AcceptanceProfilePath -Algorithm SHA256).Hash.ToLowerInvariant()
   $developmentDataRootBinding['developmentStateCandidateId'] = [string] $stateLineage.developmentStateCandidateId
   $developmentDataRootBinding['acceptanceRoundId'] = [string] $stateLineage.acceptanceRoundId
   $developmentDataRootBinding['stateLineageAuthority'] = [string] $stateLineage.authority
@@ -610,6 +643,10 @@ function Get-Status {
   $checkpointCandidateVerified = $null -ne $runtimeBuildRecord -and
     $runtimeBuildRecord.nonRelease -eq $true -and
     $runtimeBuildRecord.checkpoint -eq 'dev_kernel_checkpoint' -and
+    $runtimeBuildRecord.runtime.binarySha256 -eq $runtimeSha256
+  $productAcceptanceCandidateVerified = $null -ne $runtimeBuildRecord -and
+    $runtimeBuildRecord.nonRelease -eq $true -and
+    $runtimeBuildRecord.checkpoint -eq 'first_party_product_acceptance' -and
     $runtimeBuildRecord.runtime.binarySha256 -eq $runtimeSha256
   $acceptanceProfile = try {
     if (Test-Path -LiteralPath $AcceptanceProfilePath -PathType Leaf) {
@@ -646,7 +683,18 @@ function Get-Status {
     sourceDirtyDescriptorSha256 = if ($null -eq $runtimeBuildRecord) { $null } else { $runtimeBuildRecord.source.dirtyDescriptorSha256 }
     sourceTreeSha256 = if ($null -eq $runtimeBuildRecord) { $null } else { $runtimeBuildRecord.source.sourceTreeSha256 }
     nonProductCandidate = $true
+    runtimeBuildProfile = if ($null -eq $runtimeBuildRecord) { $null } else { [string] $runtimeBuildRecord.checkpoint }
     checkpointCandidatePostureVerified = $checkpointCandidateVerified
+    productAcceptanceCandidatePostureVerified = $productAcceptanceCandidateVerified
+    configuredAccountRealmBaseUrl = if ($productAcceptanceCandidateVerified -or $checkpointCandidateVerified) {
+      'http://localhost:3002'
+    } elseif ($null -ne $runtimeBuildRecord -and $runtimeBuildRecord.checkpoint -eq 'production_build') {
+      'https://realm.nimi.ai'
+    } else {
+      $null
+    }
+    productAcceptanceReleasePosture = if ($productAcceptanceCandidateVerified) { 'non_release' } else { 'unverified' }
+    productAcceptanceProductClosePromotion = if ($productAcceptanceCandidateVerified) { 'non_promotable_to_product_close' } else { 'unverified' }
     checkpointReleasePosture = if ($checkpointCandidateVerified) { 'non_release' } else { 'unverified' }
     checkpointProductClosePromotion = if ($checkpointCandidateVerified) { 'non_promotable_to_product_close' } else { 'unverified' }
     developmentDataRootRef = if ($null -eq $acceptanceProfile) { $null } else { [string] $acceptanceProfile.developmentDataRootRef }
@@ -736,7 +784,8 @@ function Install-Service {
         -not $status.desktopPipePresent -or -not $status.localAppPipePresent -or
         -not $status.runtimeBinaryMatchesCandidate -or
         -not $status.runtimeBuildRecordMatchesCandidate -or
-        -not $status.checkpointCandidatePostureVerified -or
+        ($DevKernelCheckpoint -and -not $status.checkpointCandidatePostureVerified) -or
+        ($FirstPartyProductAcceptance -and -not $status.productAcceptanceCandidatePostureVerified) -or
         $status.signatureStatus -ne 'Valid' -or $status.state -ne 'running' -or
         ($DevKernelCheckpoint -and $status.checkpointReleasePosture -ne 'non_release')) {
       throw 'NimiRuntime failed post-install fixed-service validation.'
@@ -745,11 +794,13 @@ function Install-Service {
     $status['stateAclConfiguredBySignedInstaller'] = $true
     $status['atomicVersionRoot'] = $InstalledVersionRoot
     $status['checkpointProfileRuntimeValidated'] = [bool] $DevKernelCheckpoint
+    $status['firstPartyProductAcceptanceRuntimeValidated'] = [bool] $FirstPartyProductAcceptance
     if ($DevKernelCheckpoint) {
       $boundDevelopmentDataRoot = [string] $developmentDataRootBinding.path
       $status['developmentDataRootRef'] = if ([string]::IsNullOrWhiteSpace($boundDevelopmentDataRoot)) { $null } else { $boundDevelopmentDataRoot }
       $status['developmentDataRootAuthority'] = [string] $developmentDataRootBinding.authority
       $status['developmentDataRootDisposition'] = 'runtime_validated_development_payload_root'
+      $status['protectedProfileDigest'] = [string] $developmentDataRootBinding.protectedProfileDigest
       $status['developmentStateCandidateId'] = [string] $developmentDataRootBinding.developmentStateCandidateId
       $status['acceptanceRoundId'] = [string] $developmentDataRootBinding.acceptanceRoundId
       $status['developmentStateLineageAuthority'] = [string] $developmentDataRootBinding.stateLineageAuthority

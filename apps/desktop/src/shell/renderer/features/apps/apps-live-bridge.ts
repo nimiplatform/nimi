@@ -28,13 +28,13 @@ export function createDesktopAppsLiveBridge(sdk: DesktopRendererSdkPort): Deskto
     appClient: new NimiAppClient(createNimiAppRegistryTransport({
       loadRows: async () => (await loadProjection()).registryRows,
       loadReleaseDescriptors: async () => (await loadProjection()).releaseDescriptors,
-      loadAccountInventory: async () => sdk.runtime().appLifecycle.accountInventory({
+      loadAccountInventory: async () => sdk.appLifecycle().accountInventory({
         timeoutMs: 20_000,
         metadata: {
           surfaceId: 'desktop.apps',
         },
       }),
-      loadPackageReadiness: async () => sdk.runtime().appLifecycle.packageReadiness({
+      loadPackageReadiness: async () => sdk.appLifecycle().packageReadiness({
         timeoutMs: 20_000,
         metadata: {
           surfaceId: 'desktop.apps',

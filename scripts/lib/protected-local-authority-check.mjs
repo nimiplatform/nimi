@@ -60,30 +60,6 @@ const PACKAGE_METHODS = Object.freeze([
 
 const PACKAGE_DENY_METHODS = new Set(PACKAGE_METHODS.filter((name) => name !== 'GetAppPackageReadiness'));
 
-const DESKTOP_PRODUCT_CONTROL_METHODS = Object.freeze([
-  'CollectDeviceProfile',
-  'ResolveLocalEnvironmentPlan',
-  'ListLocalEnvironmentDependencyJobs',
-  'StartLocalEnvironmentDependencyJob',
-  'CancelLocalEnvironmentDependencyJob',
-  'RetryLocalEnvironmentDependencyJob',
-  'RepairLocalEnvironmentDependency',
-  'ResolveRuntimeBaselineReadiness',
-  'MintRuntimeBaselineReadiness',
-  'ResolveFirstRunExecutionEvidence',
-  'MintFirstRunExecutionEvidence',
-  'GetProductControlRecord',
-  'GetProductControlSelectedDataRoot',
-  'EnsureProductControlRecordCreated',
-  'SelectProductControlDataRoot',
-  'SetProductControlFirstRunInstallLevel',
-  'CompleteProductControlFirstRunDeviceEnvironmentScan',
-  'AdmitProductControlReadyForUse',
-  'RecordProductControlAccountDefaultProfileEvidence',
-  'RecordProductControlFirstRunLocalAiReadyEvidence',
-  'ReconcileProductControlFirstRunSetupState',
-].map((method) => `/nimi.runtime.v1.RuntimeLocalService/${method}`));
-
 const RETIRED_PUBLIC_VOCABULARY = Object.freeze([
   'ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP',
   'ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP',
@@ -557,21 +533,24 @@ function validateTransport(bundle, issues) {
     .sort();
   if (!equalArray(actualLocalAppHostMethods, expectedLocalAppHostMethods)) invalidRoute = true;
 
-  const expectedDesktopProductControlIds = [...DESKTOP_PRODUCT_CONTROL_METHODS].sort();
+  const runtimeLocalService = (rpcMethods?.services ?? [])
+    .find((service) => service?.name === 'RuntimeLocalService');
+  const desktopProductControlMethods = (runtimeLocalService?.methods ?? [])
+    .filter((method) => String(method?.protected_transport_ref || '').startsWith('/nimi.runtime.v1.RuntimeLocalService/'))
+    .map((method) => String(method.protected_transport_ref));
+  const expectedDesktopProductControlIds = [...desktopProductControlMethods].sort();
   const desktopProductControlRows = (matrix?.methods ?? [])
     .filter((row) => row?.operation_class === 'desktop_product_control');
   const actualDesktopProductControlIds = desktopProductControlRows
     .map((row) => String(row?.method_id || ''))
     .sort();
   const localPostureByMethod = rowsBy(local?.methods, 'method_id');
-  const runtimeLocalService = (rpcMethods?.services ?? [])
-    .find((service) => service?.name === 'RuntimeLocalService');
   const rpcMethodByName = rowsBy(runtimeLocalService?.methods, 'name');
   let desktopProductControlInvalid = !equalArray(
     actualDesktopProductControlIds,
     expectedDesktopProductControlIds,
   );
-  for (const methodId of DESKTOP_PRODUCT_CONTROL_METHODS) {
+  for (const methodId of desktopProductControlMethods) {
     const route = desktopProductControlRows.find((row) => row?.method_id === methodId);
     const posture = localPostureByMethod.get(methodId);
     const methodName = methodId.slice(methodId.lastIndexOf('/') + 1);

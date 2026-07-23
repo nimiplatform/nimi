@@ -81,7 +81,7 @@ test('Desktop wires Runtime Agent conversation summaries as read-only projection
   );
 
   assert.match(adapter, /createNimiRuntimeAgentConsumeClient/);
-  assert.match(adapter, /sdk\.runtime\(\)\.agents/);
+  assert.match(adapter, /sdk\.accountProduct\(\)\.agents/);
   assert.match(adapter, /sdk\.appId\(\)/);
   assert.match(adapter, /anchors\.listSummaries/);
   assert.match(adapter, /statusFilter:\s*\['active'\]/);

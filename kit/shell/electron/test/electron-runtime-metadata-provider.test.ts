@@ -39,7 +39,7 @@ describe('Electron Runtime trusted metadata provider', () => {
     await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
       command: STANDARD_COMMANDS.unary,
       payload: {
-        methodId: '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth',
+        methodId: '/nimi.runtime.v1.RuntimeModelService/ListModels',
         requestBytesBase64: '',
       },
     })).rejects.toMatchObject({

@@ -81,7 +81,7 @@ async function resolveGroupSourceLocalAgentRef(input: {
   runtimeSourceRef: string;
   sdk: DesktopRendererSdkPort;
 }): Promise<string> {
-  const runtime = input.sdk.runtime();
+  const runtime = input.sdk.accountProduct();
   const response = await input.sdk.withRuntimeProtectedScopes(
     ['runtime.agent.read'],
     (callOptions) => runtime.agents.listAgents({
@@ -208,7 +208,7 @@ export async function commitRealmGroupSourceMessageCandidateHandoff(
       return {
         appId: sdk.appId(),
         auth: accountRuntime.auth,
-        agent: sdk.runtime().agents,
+        agent: sdk.runtimeAgentOwner(),
       };
     },
     getSubjectUserId: () => currentUserId,

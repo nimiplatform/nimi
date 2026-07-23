@@ -46,7 +46,7 @@ type SchedulingJudgement struct {
 // SchedulingEvaluationTarget is the K-SCHED-002 atomic scheduling input.
 type SchedulingEvaluationTarget struct {
 	Capability string
-	TargetID      string
+	TargetID   string
 	ProfileID  string
 	Hint       *ResourceHint
 }
@@ -521,7 +521,7 @@ func normalizeSchedulingTargets(targets []SchedulingEvaluationTarget) []Scheduli
 	for _, target := range targets {
 		normalized = append(normalized, SchedulingEvaluationTarget{
 			Capability: strings.TrimSpace(target.Capability),
-			TargetID:      strings.TrimSpace(target.TargetID),
+			TargetID:   strings.TrimSpace(target.TargetID),
 			ProfileID:  strings.TrimSpace(target.ProfileID),
 			Hint:       target.Hint,
 		})

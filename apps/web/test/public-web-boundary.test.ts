@@ -106,12 +106,16 @@ test('web documents and config keep the public-web contract explicit', () => {
     path.join(webRoot, 'src/desktop-adapter/runtime-bootstrap.web.ts'),
     'utf8',
   );
+  const postPermalink = readFileSync(path.join(webRoot, 'src/post-permalink-page.tsx'), 'utf8');
 
   assert.match(agents, /@desktop-public\/\*/);
   assert.match(readme, /Desktop public-for-web boundary/);
   assert.match(viteConfig, /find: '@desktop-public'/);
   assert.match(viteConfig, /@nimiplatform\\\/kit\\\/telemetry/);
   assert.match(viteConfig, /kit\/telemetry\/src\/telemetry\/index\.ts/);
+  assert.match(viteConfig, /envPrefix:\s*\[\]/);
+  assert.doesNotMatch(viteConfig, /envPrefix:[^\n]*['"](?:NIMI_|VITE_)/);
+  assert.doesNotMatch(postPermalink, /import\.meta\.env\.NIMI_/);
   const runtimeWireTypesAliasIndex = viteConfig.indexOf("find: '@nimiplatform/sdk/runtime/wire-types'");
   const runtimeAliasIndex = viteConfig.indexOf("find: '@nimiplatform/sdk/runtime',");
   assert.notEqual(runtimeWireTypesAliasIndex, -1);

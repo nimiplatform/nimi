@@ -39,10 +39,10 @@ type Catalog struct {
 
 // Sentinel errors returned by the loader and matcher.
 var (
-	ErrCatalogParse            = errors.New("host-capability catalog parse failed")
-	ErrCatalogMissingFields    = errors.New("host-capability catalog is missing table_family or owner or catalog_id")
-	ErrCatalogMissingProfile   = errors.New("host-capability catalog has no profiles")
-	ErrProfileMissingID        = errors.New("host-capability profile is missing profile_id")
-	ErrProfileMissingPlatform  = errors.New("host-capability profile is missing platform_tuple.os or platform_tuple.arch")
-	ErrNoMatchingHostProfile   = errors.New("host-capability no matching profile for runtime platform")
+	ErrCatalogParse           = errors.New("host-capability catalog parse failed")
+	ErrCatalogMissingFields   = errors.New("host-capability catalog is missing table_family or owner or catalog_id")
+	ErrCatalogMissingProfile  = errors.New("host-capability catalog has no profiles")
+	ErrProfileMissingID       = errors.New("host-capability profile is missing profile_id")
+	ErrProfileMissingPlatform = errors.New("host-capability profile is missing platform_tuple.os or platform_tuple.arch")
+	ErrNoMatchingHostProfile  = errors.New("host-capability no matching profile for runtime platform")
 )

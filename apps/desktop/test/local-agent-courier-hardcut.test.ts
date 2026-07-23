@@ -49,7 +49,7 @@ test('source chat launch delegates CharacterSourceRefV3 and request id to the SD
   assert.doesNotMatch(launchTarget, /runtime-source:\$\{/);
   assert.doesNotMatch(launchTarget, /source\.id\s+as\s+runtimeSourceRef/);
 
-  assert.match(materialization, /sdk\.runtime\(\)\.materializeRealmSource/);
+  assert.match(materialization, /sdk\.accountProduct\(\)\.materializeRealmSource/);
   assert.match(materialization, /materializeRealmSource/);
   assert.match(materialization, /sourceRef,/);
   assert.match(materialization, /requestId: createNimiClientId\('desktop-source-materialization'\)/);

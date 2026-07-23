@@ -201,7 +201,7 @@ function createDesktopRuntimeAgentSessionSnapshotClient(
   sdk: ReturnType<typeof useDesktopRendererBindings>['sdk'],
 ) {
   return createNimiRuntimeAgentConsumeClient({
-    runtime: { agents: sdk.runtime().agents },
+    runtime: { agents: sdk.accountProduct().agents },
     runtimeAppId: sdk.appId(),
   });
 }

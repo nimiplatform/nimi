@@ -5,8 +5,8 @@ import type {
 } from '@nimiplatform/kit/features/chat/headless';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import type {
+  NimiDesktopAccountProductRuntimeClient,
   NimiRuntimeAgentResolvedMessageActionEnvelope,
-  Runtime,
 } from '@nimiplatform/sdk/runtime';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import type { StreamController } from '../turns/stream-controller.js';
@@ -109,7 +109,7 @@ async function* runRuntimeOwnedAgentTurn(input: {
   userText: string;
   userAttachments: readonly AgentChatUserAttachment[];
   streamController: StreamController;
-  readArtifactBytes: Runtime['artifacts']['readArtifactBytes'];
+  readArtifactBytes: NimiDesktopAccountProductRuntimeClient['artifacts']['readArtifactBytes'];
 }): AsyncIterable<ConversationTurnEvent> {
   let reasoningText = '';
   let outputText = '';
@@ -361,7 +361,7 @@ export function createRuntimeAgentChatConversationProvider(
           streamController: options.streamController,
           readArtifactBytes: (request, callOptions) => {
             if (!options.sdk) throw new Error('DESKTOP_RUNTIME_ARTIFACT_READER_MISSING');
-            return options.sdk.runtime().artifacts.readArtifactBytes(request, callOptions);
+            return options.sdk.accountProduct().artifacts.readArtifactBytes(request, callOptions);
           },
         })) {
           yield event;

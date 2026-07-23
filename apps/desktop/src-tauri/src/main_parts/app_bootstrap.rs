@@ -474,6 +474,9 @@ pub(crate) fn run() {
                 tauri::RunEvent::WindowEvent { label, event, .. } => {
                     if label == "main" && matches!(event, tauri::WindowEvent::Destroyed) {
                         set_desktop_open_intent_ready(app_handle, false);
+                        tauri::async_runtime::spawn(async {
+                            nimi_shell_tauri::capabilities::runtime::invalidate_desktop_host().await;
+                        });
                     }
                 }
                 tauri::RunEvent::ExitRequested { api, .. } => {

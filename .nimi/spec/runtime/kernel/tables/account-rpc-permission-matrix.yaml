@@ -42,7 +42,7 @@ platform_transport_binding:
       transport_class: desktop_control
       binding: verified_platform_transport
       carrier_role: bundled_avatar_host
-      profile_ref: bundled-avatar-runtime-profile.yaml#bundled_avatar_v1
+      profile_ref: first-party-protected-runtime-profiles.yaml#bundled_avatar_v1
   coverage:
     caller_methods: every_allow_when_method_with_a_resolved_protected_origin_requirement
     broker_consumer_admission: every_row_with_a_resolved_protected_origin_requirement
@@ -51,7 +51,7 @@ platform_transport_binding:
     generic_requirement: protected_bundled_origin
     generic_disposition: unchanged_and_not_transport_admitted
     admitted_profile_requirement: protected_bundled_avatar_origin
-    admitted_profile_ref: bundled-avatar-runtime-profile.yaml#bundled_avatar_v1
+    admitted_profile_ref: first-party-protected-runtime-profiles.yaml#bundled_avatar_v1
     missing_or_other_profile: deny
 decision_schema:
   fields: [caller_class, runtime_caller_mode, methods, source_rule]

@@ -29,11 +29,19 @@ func With(ctx context.Context, principal Principal) context.Context {
 }
 
 func FromContext(ctx context.Context) (Principal, bool) {
+	principal, ok := AttachedToContext(ctx)
+	return principal, ok && principal.Valid()
+}
+
+// AttachedToContext reports transport-attached principal presence even after
+// lifecycle invalidation, so a stale protected call cannot degrade into an
+// ordinary caller path.
+func AttachedToContext(ctx context.Context) (Principal, bool) {
 	if ctx == nil {
 		return Principal{}, false
 	}
 	principal, ok := ctx.Value(contextKey{}).(Principal)
-	return principal, ok && principal.Valid()
+	return principal, ok
 }
 
 func (principal Principal) Valid() bool {
