@@ -12,6 +12,7 @@ const mainLayoutSettingsMenuSource = readWorkspaceFile('src/shell/renderer/app-s
 const mainLayoutTopbarSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-topbar.tsx');
 const navConfigSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/navigation-config.tsx');
 const shellChromeClassesSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/shell-chrome-classes.ts');
+const rendererStylesSource = readWorkspaceFile('src/shell/renderer/styles.css');
 
 test('shell chrome retune: rail and topbar shells stay transparent chrome without shell dividers', () => {
   assert.match(mainLayoutViewSource, /<aside[\s\S]*data-testid=\{E2E_IDS\.shellSidebarRail\}/);
@@ -19,7 +20,9 @@ test('shell chrome retune: rail and topbar shells stay transparent chrome withou
   assert.doesNotMatch(mainLayoutViewSource, /data-testid=\{E2E_IDS\.shellSidebarRail\}[\s\S]*border-r/u);
   assert.match(mainLayoutTopbarSource, /<div className="flex h-full w-full min-w-0 items-center overflow-hidden border-b border-\[color-mix\(in_srgb,var\(--nimi-border-subtle\)_78%,white\)\] px-1">/);
   assert.match(mainLayoutTopbarSource, /className="min-w-0 flex-1 overflow-hidden" data-titlebar-region="content"/u);
-  assert.match(mainLayoutTopbarSource, /className="ml-2 flex shrink-0 items-center gap-2 sm:ml-auto sm:gap-7" data-titlebar-region="actions"/u);
+  assert.match(mainLayoutTopbarSource, /className="desktop-shell-topbar__actions ml-2 flex shrink-0 items-center gap-2" data-titlebar-region="actions"/u);
+  assert.match(rendererStylesSource, /@container nimi-ui-module-desktop-surface \(min-width: 640px\)[\s\S]*\.desktop-shell-topbar__actions \{[\s\S]*margin-left: auto;[\s\S]*gap: 1\.75rem;/u);
+  assert.doesNotMatch(mainLayoutTopbarSource, /sm:ml-auto|sm:gap-7/u);
   assert.doesNotMatch(mainLayoutTopbarSource, /import logoImage from '\.\.\/\.\.\/assets\/logo\.svg';/u);
   assert.doesNotMatch(mainLayoutTopbarSource, /<img\s+src=\{logoImage\}\s+alt="Nimi"[\s\S]*\/>/u);
   assert.doesNotMatch(mainLayoutTopbarSource, /<Surface[\s\S]*material="glass-thick"/u);
