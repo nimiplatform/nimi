@@ -29,6 +29,14 @@ const personaPayload = {
   committedAt: 42,
 };
 
+test('zhiyu derives the canonical persona from the shared Scenario projection', () => {
+  const initial = zhiyuSimulatorBehavior.initialState({
+    ...initialInput,
+    sharedProjection: { persona: personaPayload },
+  });
+  assert.deepEqual(initial.personaReference, personaPayload);
+});
+
 test('zhiyu persona.project commits the persona reference and emits the declared event', () => {
   const initial = zhiyuSimulatorBehavior.initialState(initialInput);
   const reduced = zhiyuSimulatorBehavior.reduce(

@@ -98,6 +98,18 @@ function personaPayload(payload: JsonRecord): JsonRecord {
   };
 }
 
+function personaReference(value: ZhiyuSimulatorJsonValue): JsonRecord {
+  const payload = record(value, 'PERSONA_REFERENCE');
+  const meta = interactionEnvelope(payload, 'PERSONA_REFERENCE');
+  return {
+    protocolRevision: 1,
+    ecosystemRevision: meta.ecosystemRevision,
+    interactionId: meta.interactionId,
+    persona: personaPayload(payload),
+    committedAt: meta.committedAt,
+  };
+}
+
 function cardPayload(payload: JsonRecord): JsonRecord {
   const card = record(payload.card, 'REQUEST_CARD');
   return {
@@ -108,13 +120,16 @@ function cardPayload(payload: JsonRecord): JsonRecord {
 
 export const zhiyuSimulatorBehavior = Object.freeze({
   initialState(input: ZhiyuSimulatorInitialInput): ZhiyuSimulatorJsonValue {
+    const shared = record(input.sharedProjection, 'SHARED_PROJECTION');
     return {
       protocolRevision: 1,
       scenario: scenarioData(input.moduleData),
       turnSequence: 0,
       turns: [],
       ecosystemReference: null,
-      personaReference: null,
+      personaReference: shared.persona === undefined || shared.persona === null
+        ? null
+        : personaReference(shared.persona),
       handoff: null,
       carry: null,
     };
@@ -149,14 +164,7 @@ export const zhiyuSimulatorBehavior = Object.freeze({
       };
     }
     if (envelope.type === 'zhiyu.persona.project') {
-      const meta = interactionEnvelope(payload, 'PERSONA_REFERENCE');
-      const reference = {
-        protocolRevision: 1,
-        ecosystemRevision: meta.ecosystemRevision,
-        interactionId: meta.interactionId,
-        persona: personaPayload(payload),
-        committedAt: meta.committedAt,
-      };
+      const reference = personaReference(payload);
       return {
         state: { ...current, personaReference: reference },
         events: [{ type: 'zhiyu.persona.projected', payload: reference }],

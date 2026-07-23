@@ -159,9 +159,35 @@ function payloadRecord(envelope: TesterSimulatorCommandEnvelope): JsonRecord {
   return record(envelope.payload, 'COMMAND_PAYLOAD');
 }
 
+function personaReference(value: TesterSimulatorJsonValue): JsonRecord {
+  const reference = record(value, 'PERSONA_REFERENCE');
+  if (reference.protocolRevision !== 1
+    || !Number.isSafeInteger(reference.ecosystemRevision)
+    || typeof reference.interactionId !== 'string'
+    || !reference.interactionId
+    || !Number.isSafeInteger(reference.committedAt)) {
+    throw new Error('TESTER_SIMULATOR_PERSONA_REFERENCE_INVALID');
+  }
+  const persona = record(reference.persona, 'PERSONA_REFERENCE');
+  return {
+    protocolRevision: 1,
+    ecosystemRevision: reference.ecosystemRevision,
+    interactionId: reference.interactionId,
+    persona: {
+      accountId: text(persona.accountId, 'PERSONA_ACCOUNT'),
+      userId: text(persona.userId, 'PERSONA_USER'),
+      displayName: text(persona.displayName, 'PERSONA_DISPLAY_NAME'),
+      role: text(persona.role, 'PERSONA_ROLE'),
+      realmEnvironmentId: text(persona.realmEnvironmentId, 'PERSONA_REALM_ENV'),
+    },
+    committedAt: reference.committedAt,
+  };
+}
+
 export const testerSimulatorBehavior = Object.freeze({
   initialState(input: TesterSimulatorInitialInput): TesterSimulatorJsonValue {
     const scenario = scenarioData(input.moduleData);
+    const shared = record(input.sharedProjection, 'SHARED_PROJECTION');
     return {
       protocolRevision: 1,
       scenario,
@@ -173,7 +199,9 @@ export const testerSimulatorBehavior = Object.freeze({
       actionLog: [],
       capabilityExecutions: [],
       ecosystemReference: null,
-      personaReference: null,
+      personaReference: shared.persona === undefined || shared.persona === null
+        ? null
+        : personaReference(shared.persona),
     };
   },
 
@@ -209,29 +237,10 @@ export const testerSimulatorBehavior = Object.freeze({
       };
     }
     if (envelope.type === 'tester.persona.observe') {
-      if (payload.protocolRevision !== 1
-        || !Number.isSafeInteger(payload.ecosystemRevision)
-        || typeof payload.interactionId !== 'string'
-        || !Number.isSafeInteger(payload.committedAt)) {
-        throw new Error('TESTER_SIMULATOR_PERSONA_REFERENCE_INVALID');
-      }
-      const persona = record(payload.persona, 'PERSONA_REFERENCE');
       return {
         state: {
           ...current,
-          personaReference: {
-            protocolRevision: 1,
-            ecosystemRevision: payload.ecosystemRevision,
-            interactionId: payload.interactionId,
-            persona: {
-              accountId: text(persona.accountId, 'PERSONA_ACCOUNT'),
-              userId: text(persona.userId, 'PERSONA_USER'),
-              displayName: text(persona.displayName, 'PERSONA_DISPLAY_NAME'),
-              role: text(persona.role, 'PERSONA_ROLE'),
-              realmEnvironmentId: text(persona.realmEnvironmentId, 'PERSONA_REALM_ENV'),
-            },
-            committedAt: payload.committedAt,
-          },
+          personaReference: personaReference(payload),
         },
         events: [],
       };

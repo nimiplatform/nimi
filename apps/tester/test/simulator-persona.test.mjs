@@ -61,6 +61,14 @@ const personaPayload = {
   committedAt: 42,
 };
 
+test('tester derives the canonical persona from the shared Scenario projection', () => {
+  const initial = testerSimulatorBehavior.initialState({
+    ...initialInput,
+    sharedProjection: { persona: personaPayload },
+  });
+  assert.deepEqual(initial.personaReference, personaPayload);
+});
+
 test('tester persona.observe commits the persona reference without events', () => {
   const initial = testerSimulatorBehavior.initialState(initialInput);
   const reduced = testerSimulatorBehavior.reduce(
