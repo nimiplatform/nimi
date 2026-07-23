@@ -72,6 +72,10 @@ export function MainLayout() {
   const userAvatarUrl = typeof user?.avatarUrl === 'string' ? user.avatarUrl : null;
   const userEmail = typeof user?.email === 'string' ? user.email : null;
 
+  useEffect(() => {
+    bindings.surfaceLifecycle.reportReadyCandidate({ contractId: 'desktop.main.usable' });
+  }, [bindings]);
+
   const [developerModeEnabled, setDeveloperModeEnabled] = useState(
     () => bindings.app.projection.developerModeEnabled(),
   );

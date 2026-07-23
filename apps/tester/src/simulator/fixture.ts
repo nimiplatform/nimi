@@ -14,6 +14,25 @@ export const simulatorConformanceFixture = {
           committedAt: { kind: 'integer', minimum: 0 },
         },
       },
+      'tester.persona.observe': {
+        kind: 'object',
+        properties: {
+          protocolRevision: { kind: 'integer', minimum: 1, maximum: 1 },
+          ecosystemRevision: { kind: 'integer', minimum: 1 },
+          interactionId: { kind: 'string', minLength: 1, maxLength: 256 },
+          persona: {
+            kind: 'object',
+            properties: {
+              accountId: { kind: 'string', minLength: 1, maxLength: 128 },
+              userId: { kind: 'string', minLength: 1, maxLength: 128 },
+              displayName: { kind: 'string', minLength: 1, maxLength: 128 },
+              role: { kind: 'string', minLength: 1, maxLength: 128 },
+              realmEnvironmentId: { kind: 'string', minLength: 1, maxLength: 128 },
+            },
+          },
+          committedAt: { kind: 'integer', minimum: 0 },
+        },
+      },
       'tester.run.allocate': {
         kind: 'object',
         properties: {},

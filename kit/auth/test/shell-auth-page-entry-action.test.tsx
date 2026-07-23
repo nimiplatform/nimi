@@ -1,4 +1,4 @@
-import { act } from 'react';
+import { act, StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -29,6 +29,34 @@ function authAdapter() {
 }
 
 describe('ShellAuthPage entry action semantics', () => {
+  it('reports readiness once per canonical instance under StrictMode replay', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const firstReady = vi.fn();
+    const secondReady = vi.fn();
+    const commonProps = {
+      adapter: authAdapter(),
+      session: { mode: 'embedded' as const, authStatus: 'unauthenticated' as const },
+      branding: { networkLabel: 'Nimi', logo: '/logo.png', logoAltText: 'Nimi Logo' },
+      appearance: { theme: 'desktop' as const },
+    };
+
+    act(() => {
+      root.render(
+        <StrictMode>
+          <ShellAuthPage {...commonProps} onActionableReady={firstReady} />
+          <ShellAuthPage {...commonProps} adapter={authAdapter()} onActionableReady={secondReady} />
+        </StrictMode>,
+      );
+    });
+
+    expect(firstReady).toHaveBeenCalledTimes(1);
+    expect(secondReady).toHaveBeenCalledTimes(1);
+    act(() => root.unmount());
+    container.remove();
+  });
+
   it('fires once at the logo stage and turns the compact logo into an unmarked Back control', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);

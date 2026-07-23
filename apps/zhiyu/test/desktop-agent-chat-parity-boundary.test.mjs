@@ -563,18 +563,18 @@ test('Desktop Agent Center is closed by default and closed layout centers the ch
   );
   assert.match(
     css,
-    /@media \(max-width:\s*980px\)[\s\S]*?\.zhiyu-agent-chat__layout,\s*\.zhiyu-agent-chat__layout\.is-side-closed\s*\{[\s\S]*?grid-template-columns:\s*58px minmax\(0,\s*1fr\);[\s\S]*?"presence conversation"[\s\S]*?"presence side";[\s\S]*?\.zhiyu-agent-chat__layout\.is-side-closed\s*\{[\s\S]*?grid-template-areas:\s*"presence conversation";/,
+    /@container nimi-ui-module-zhiyu-surface \(max-width:\s*980px\)[\s\S]*?\.zhiyu-agent-chat__layout,\s*\.zhiyu-agent-chat__layout\.is-side-closed\s*\{[\s\S]*?grid-template-columns:\s*58px minmax\(0,\s*1fr\);[\s\S]*?"presence conversation"[\s\S]*?"presence side";[\s\S]*?\.zhiyu-agent-chat__layout\.is-side-closed\s*\{[\s\S]*?grid-template-areas:\s*"presence conversation";/,
     'narrow layout must keep the compact relationship rail and remove the side sheet from the closed primary grid',
   );
   assert.match(
     css,
-    /@media \(max-width:\s*640px\)[\s\S]*?\.zhiyu-agent-chat__layout,\s*\.zhiyu-agent-chat__layout\.is-side-closed\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\);[\s\S]*?grid-template-rows:\s*52px auto;[\s\S]*?grid-template-areas:\s*"presence"\s*"conversation";[\s\S]*?\.zhiyu-agent-chat__layout:not\(\.is-side-closed\)\s*\{[\s\S]*?grid-template-rows:\s*52px auto auto;[\s\S]*?grid-template-areas:\s*"presence"\s*"conversation"\s*"side";/,
+    /@container nimi-ui-module-zhiyu-surface \(max-width:\s*640px\)[\s\S]*?\.zhiyu-agent-chat__layout,\s*\.zhiyu-agent-chat__layout\.is-side-closed\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\);[\s\S]*?grid-template-rows:\s*52px auto;[\s\S]*?grid-template-areas:\s*"presence"\s*"conversation";[\s\S]*?\.zhiyu-agent-chat__layout:not\(\.is-side-closed\)\s*\{[\s\S]*?grid-template-rows:\s*52px auto auto;[\s\S]*?grid-template-areas:\s*"presence"\s*"conversation"\s*"side";/,
     'phone layout must move the relationship rail above the chat canvas so the canonical composer keeps its width floor',
   );
   assert.match(
     css,
-    /@media \(max-width:\s*640px\)[\s\S]*?\.zhiyu-chat-canvas\s*\{[\s\S]*?height:\s*calc\(100vh - 52px\);[\s\S]*?min-height:\s*calc\(100vh - 52px\);/,
-    'phone chat canvas height must subtract the top relationship rail instead of inheriting desktop 100vh and clipping the composer',
+    /@container nimi-ui-module-zhiyu-surface \(max-width:\s*640px\)[\s\S]*?\.zhiyu-chat-canvas\s*\{[\s\S]*?height:\s*calc\(100cqh - 52px\);[\s\S]*?min-height:\s*calc\(100cqh - 52px\);/,
+    'phone chat canvas height must subtract the top relationship rail from its renderer surface instead of clipping the composer',
   );
 });
 
@@ -590,7 +590,7 @@ test('Desktop Agent Center side sheet uses Desktop shared side-sheet density', a
   );
   assert.match(
     surfaceSource,
-    /className="zhiyu-agent-center mr-2 my-12 flex h-\[calc\(100vh-96px\)\][\s\S]*?w-\[min\(500px,calc\(100vw-96px\)\)\][\s\S]*?\[grid-area:side\]/,
+    /className="zhiyu-agent-center mr-2 my-12 flex h-\[calc\(100cqh-96px\)\][\s\S]*?w-\[min\(500px,calc\(100cqw-96px\)\)\][\s\S]*?\[grid-area:side\]/,
     'Agent Center side-sheet dimensions must live on the TSX structure that mirrors Desktop ChatSideSheet density',
   );
   assert.doesNotMatch(surfaceSource, /my-\[72px\]|h-\[calc\(100vh-144px\)\]/);

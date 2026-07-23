@@ -1,4 +1,4 @@
-import { useLayoutEffect } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { AmbientBackground, TooltipProvider } from '@nimiplatform/kit/ui';
 
 import { ProductArea } from '../shell/routes/product-area.js';
@@ -6,7 +6,10 @@ import { TesterRendererProvider } from './context.js';
 import type { TesterCanonicalRendererBindings } from './contract.js';
 
 function TesterMainSurface(props: { readonly bindings: TesterCanonicalRendererBindings }) {
+  const readyCandidateReportedRef = useRef(false);
   useLayoutEffect(() => {
+    if (readyCandidateReportedRef.current) return;
+    readyCandidateReportedRef.current = true;
     props.bindings.surfaceLifecycle.reportReadyCandidate({
       contractId: 'tester.main.usable',
     });

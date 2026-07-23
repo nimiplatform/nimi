@@ -41,7 +41,7 @@ export function StatusBanner() {
   const message = formatStatusBannerMessage(statusBanner.message);
 
   return (
-    <div className={`fixed bottom-4 left-1/2 z-50 w-[min(calc(100vw-2rem),42rem)] -translate-x-1/2 rounded-lg border px-3 py-2 text-sm shadow-lg ${colorClass}`}>
+    <div className={`fixed bottom-4 left-1/2 z-50 w-[min(calc(100cqw-2rem),42rem)] -translate-x-1/2 rounded-lg border px-3 py-2 text-sm shadow-lg ${colorClass}`}>
       <div className="flex min-w-0 items-start justify-between gap-3">
         <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">{message}</span>
         <div className="flex shrink-0 items-center gap-2">

@@ -14,9 +14,10 @@ import type {
   DesktopSimulatorPrepareContext,
   DesktopSimulatorRouteState,
 } from './protocol.js';
-import { createUnavailableDesktopFirstRunPort } from '../shell/renderer/renderer/first-run-port.js';
+import { createDesktopSimulatorProductControlPort } from './product-control-port.js';
 import { createMemoryDesktopRendererSettingsPort } from '../shell/renderer/renderer/settings-port.js';
-import { createUnavailableDesktopRendererAuthPort } from '../shell/renderer/renderer/auth-port.js';
+import { createDesktopSimulatorAuthSessionPort } from './auth-port.js';
+import { createDesktopSimulatorAIConfigPort } from './ai-config-port.js';
 import { createDesktopRendererRuntimeConfigNavigationPort } from '../shell/renderer/renderer/runtime-config-navigation-port.js';
 import { createUnavailableDesktopRendererProfileLibraryPort } from '../shell/renderer/renderer/profile-library-port.js';
 import { createUnavailableDesktopRendererOfflinePort } from '../shell/renderer/renderer/offline-port.js';
@@ -97,6 +98,54 @@ export function createDesktopSimulatorBindings(
   });
   if (!timerCleanup.ok) throw new Error('DESKTOP_SIMULATOR_TIMER_CLEANUP_REJECTED');
 
+  const authSession = createDesktopSimulatorAuthSessionPort(context);
+  const aiConfigPort = createDesktopSimulatorAIConfigPort(context.projection.get);
+  const unavailableRuntimeFacade = Object.freeze({});
+
+  const handoffSubscription = context.events.subscribe('desktop.handoff.requested', (value) => {
+    const payload = record(value, 'HANDOFF_REQUEST_EVENT');
+    if (payload.originInstanceId !== context.instanceId) return;
+    const route = record(payload.route ?? null, 'HANDOFF_REQUEST_ROUTE');
+    const card = record(payload.card ?? null, 'HANDOFF_REQUEST_CARD');
+    void context.interactions.emit({
+      protocol: 'nimi.simulator.interaction/v1',
+      interactionId: `${context.instanceId}:${String(payload.requestId ?? 'sim-handoff-0')}`,
+      targets: ['zhiyu'],
+      type: 'handoff.surface.commit',
+      payload: {
+        targetSurfaceId: String(payload.targetSurfaceId ?? ''),
+        route: route as DesktopSimulatorJsonValue,
+        card: card as DesktopSimulatorJsonValue,
+      },
+    });
+  });
+  if (!handoffSubscription.ok) {
+    throw new Error(`DESKTOP_SIMULATOR_HANDOFF_EVENT_REJECTED:${handoffSubscription.error.code}`);
+  }
+  const carrySubscription = context.events.subscribe('desktop.carry.requested', (value) => {
+    const payload = record(value, 'CARRY_REQUEST_EVENT');
+    if (payload.originInstanceId !== context.instanceId) return;
+    const card = record(payload.card ?? null, 'CARRY_REQUEST_CARD');
+    void context.interactions.emit({
+      protocol: 'nimi.simulator.interaction/v1',
+      interactionId: `${context.instanceId}:${String(payload.requestId ?? 'sim-carry-0')}`,
+      targets: ['zhiyu'],
+      type: 'agent.context.carry',
+      payload: {
+        carry: String(payload.carry ?? ''),
+        card: card as DesktopSimulatorJsonValue,
+      },
+    });
+  });
+  if (!carrySubscription.ok) {
+    throw new Error(`DESKTOP_SIMULATOR_CARRY_EVENT_REJECTED:${carrySubscription.error.code}`);
+  }
+  const productRequestCleanup = context.cleanup.add(() => {
+    handoffSubscription.value();
+    carrySubscription.value();
+  });
+  if (!productRequestCleanup.ok) throw new Error('DESKTOP_SIMULATOR_PRODUCT_REQUEST_CLEANUP_REJECTED');
+
   const scheduleRendererTimer: DesktopCanonicalRendererBindings['clock']['schedule'] = (delayMs, listener) => {
     timerSequence += 1;
     const token = `${context.instanceId}:timer:${timerSequence}`;
@@ -137,19 +186,19 @@ export function createDesktopSimulatorBindings(
     localization: context.kit.localization,
     kit: context.kit,
     sdk: Object.freeze({
-      isSessionReady: () => false,
-      isRuntimeAccountSessionReady: () => false,
+      isSessionReady: authSession.isSessionReady,
+      isRuntimeAccountSessionReady: authSession.isSessionReady,
       appId: simulatorSdkUnadmitted,
       client: simulatorSdkUnadmitted,
-      runtime: simulatorSdkUnadmitted,
+      runtime: () => unavailableRuntimeFacade as ReturnType<DesktopCanonicalRendererBindings['sdk']['runtime']>,
       runtimeAgentTurns: simulatorSdkUnadmitted,
       hostRuntimeAgent: simulatorSdkUnadmitted,
-      accountRuntime: simulatorSdkUnadmitted,
+      accountRuntime: () => authSession.accountRuntime,
       runtimeRouteAccess: simulatorSdkUnadmitted,
       loadRouteOptions: simulatorSdkUnadmitted,
       conversationCapabilityRuntime: () => null,
       runtimeHealthCoordinator: simulatorSdkUnadmitted,
-      aiConfig: simulatorSdkUnadmitted,
+      aiConfig: () => aiConfigPort,
       realm: simulatorSdkUnadmitted,
       offline: createUnavailableDesktopRendererOfflinePort('DESKTOP_SIMULATOR_OFFLINE_UNADMITTED'),
       socialData: Object.freeze({
@@ -173,7 +222,7 @@ export function createDesktopSimulatorBindings(
           },
         }),
       }),
-      accountCaller: simulatorSdkUnadmitted,
+      accountCaller: () => authSession.caller,
       withRuntimeProtectedScopes: async () => simulatorSdkUnadmitted(),
     }),
     app: {
@@ -181,13 +230,13 @@ export function createDesktopSimulatorBindings(
         initialState: () => ({
           aiConfig: createEmptyNimiAIConfig(createNimiBuiltInChatAIScopeRef('nimi')),
           bootstrapError: null,
-          bootstrapReady: false,
+          bootstrapReady: true,
           chatThinkingPreference: 'off' as const,
           development: false,
         }),
         attention: createIdleAppAttentionState,
         localDevelopmentAvailable: () => false,
-        loginMode: () => 'embedded',
+        loginMode: () => 'desktop-browser',
         developerModeEnabled: () => false,
         viewportWidth: () => 1_280,
         documentVisible: () => true,
@@ -198,8 +247,8 @@ export function createDesktopSimulatorBindings(
         walletCheckoutBaseUrl: () => 'https://simulator.invalid/',
       }),
       commands: Object.freeze({
-        auth: createUnavailableDesktopRendererAuthPort(),
-        firstRun: createUnavailableDesktopFirstRunPort('DESKTOP_SIMULATOR_FIRST_RUN_UNADMITTED'),
+        auth: authSession.authPort,
+        firstRun: createDesktopSimulatorProductControlPort(context.projection.get),
         runtimeConfigNavigation: createDesktopRendererRuntimeConfigNavigationPort(),
         settings: createMemoryDesktopRendererSettingsPort(),
         profileLibrary: createUnavailableDesktopRendererProfileLibraryPort(),
@@ -243,8 +292,10 @@ export function createDesktopSimulatorBindings(
         persistChatThinkingPreference() {
           throw new Error('DESKTOP_SIMULATOR_CHAT_PREFERENCE_UNADMITTED');
         },
-        async reconcileLoginState() {
-          return Object.freeze({ clearAuthSession: false });
+        async reconcileLoginState({ authStatus }: Parameters<
+          DesktopCanonicalRendererBindings['app']['commands']['reconcileLoginState']
+        >[0]) {
+          return authSession.reconcileLoginState({ authStatus });
         },
         setActiveScopeForMode() {
           throw new Error('DESKTOP_SIMULATOR_CHAT_MODE_UNADMITTED');
@@ -381,8 +432,8 @@ export function createDesktopSimulatorBindings(
           DesktopCanonicalRendererBindings['app']['events']['connectLifecycle']
         >[0]) {
           lifecycle.setBootstrapError(null);
-          lifecycle.clearAuthSession();
-          return () => undefined;
+          lifecycle.setBootstrapReady(true);
+          return authSession.bindLifecycle(lifecycle);
         },
       }),
     },

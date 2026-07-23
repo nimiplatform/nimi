@@ -21,11 +21,15 @@ requires:
   kit_capabilities: []
   sdk_methods: []
   simulator_commands:
+    - zhiyu.carry.accept
     - zhiyu.ecosystem.project
+    - zhiyu.handoff.accept
+    - zhiyu.persona.project
     - zhiyu.turn.allocate
     - zhiyu.turn.submit
   simulator_events:
     - zhiyu.conversation.updated
     - zhiyu.ecosystem.projected
+    - zhiyu.persona.projected
 fixtures:
   conformance: src/simulator/fixture.ts

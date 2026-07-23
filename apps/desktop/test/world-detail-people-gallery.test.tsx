@@ -125,7 +125,7 @@ test('gallery overlay keeps a full-screen backdrop while its panel clears the ti
   assert.match(markup, /position:fixed;inset:0/);
   assert.match(markup, /padding-top:72px/);
   assert.match(markup, /padding-bottom:24px/);
-  assert.match(markup, /max-height:calc\(100vh - 72px - 24px\)/);
+  assert.match(markup, /max-height:calc\(100cqh - 72px - 24px\)/);
 });
 
 test('archive page renders as an in-page drill-down without the modal backdrop', () => {

@@ -130,7 +130,7 @@ function RecipeInspector({
         tone="panel"
         elevation="floating"
         padding="none"
-        className="kit-doc__inspector sticky top-0 grid max-h-[calc(100vh-2rem)] min-w-0 content-start gap-5 overflow-y-auto rounded-3xl p-5"
+        className="kit-doc__inspector sticky top-0 grid max-h-[calc(100cqh-2rem)] min-w-0 content-start gap-5 overflow-y-auto rounded-3xl p-5"
         aria-label={`${recipe.name} Recipe Inspector`}
       >
         <div className="flex min-w-0 items-start justify-between gap-3">

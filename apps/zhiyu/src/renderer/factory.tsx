@@ -1,11 +1,14 @@
-import { useLayoutEffect } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { NimiThemeProvider } from '@nimiplatform/kit/ui';
 
 import { ZhiyuCanonicalApp } from '../shell/app/App.js';
 import type { ZhiyuCanonicalRendererBindings } from './contract.js';
 
 function ZhiyuMainSurface(props: { readonly bindings: ZhiyuCanonicalRendererBindings }) {
+  const readyCandidateReportedRef = useRef(false);
   useLayoutEffect(() => {
+    if (readyCandidateReportedRef.current) return;
+    readyCandidateReportedRef.current = true;
     props.bindings.surfaceLifecycle.reportReadyCandidate({
       contractId: 'zhiyu.main.usable',
     });

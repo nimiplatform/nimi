@@ -3,7 +3,7 @@ import { Button, OverlayShell, Tooltip } from '@nimiplatform/kit/ui';
 import { NimiLabAccountMenu } from '../shell/account/account-panel.js';
 import type { RuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
 import { useTesterRendererHost } from '../renderer/context.js';
-import type { TesterEcosystemReferenceProjection } from '../renderer/contract.js';
+import type { TesterEcosystemReferenceProjection, TesterPersonaReferenceProjection } from '../renderer/contract.js';
 import { getTesterCapability, testerCapabilities, type TesterCapabilityId } from './tester-capabilities.js';
 import { shouldPersistTesterArtifactRecord } from './tester-artifact-persistence.js';
 import {
@@ -144,6 +144,9 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
   const [ecosystemReference, setEcosystemReference] = useState<TesterEcosystemReferenceProjection | null>(
     () => rendererHost.app.projection.ecosystemReference(),
   );
+  const [personaReference, setPersonaReference] = useState<TesterPersonaReferenceProjection | null>(
+    () => rendererHost.app.projection.personaReference(),
+  );
   const [permissionLabOpen, setPermissionLabOpen] = useState(false);
 
   const capability = useMemo(() => getTesterCapability(activeCapabilityId), [activeCapabilityId]);
@@ -206,6 +209,16 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
         || typeof reference.checkpointId !== 'string'
         || typeof reference.label !== 'string') return;
       setEcosystemReference(reference as TesterEcosystemReferenceProjection);
+    },
+  ), [rendererHost]);
+
+  useEffect(() => rendererHost.app.events.subscribe(
+    'tester.persona.reference-updated',
+    (payload) => {
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return;
+      const reference = payload as Partial<TesterPersonaReferenceProjection>;
+      if (typeof reference.displayName !== 'string' || typeof reference.userId !== 'string') return;
+      setPersonaReference(reference as TesterPersonaReferenceProjection);
     },
   ), [rendererHost]);
 
@@ -389,6 +402,16 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
                         className="workbench-topbar__attachment workbench-topbar__attachment--success"
                       >
                         Ecosystem revision {ecosystemReference.ecosystemRevision}
+                      </output>
+                    ) : null}
+                    {personaReference ? (
+                      <output
+                        role="status"
+                        data-nimi-semantic-id="tester-persona-reference"
+                        data-persona-id={personaReference.userId}
+                        className="workbench-topbar__attachment workbench-topbar__attachment--success"
+                      >
+                        模拟居民 {personaReference.displayName}
                       </output>
                     ) : null}
                     <Tooltip

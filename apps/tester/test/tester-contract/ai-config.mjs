@@ -391,7 +391,7 @@ test('tester AI config remains visibly fail-closed until the local-app carrier a
   assert.doesNotMatch(styles, /\.studio-run-target/);
   assert.doesNotMatch(styles, /\.studio-run-target__params/);
   assert.match(styles, /\.studio-generate-action--configure\s*\{[^}]*background:\s*var\(--nimi-action-primary-bg-hover\)/s);
-  assert.match(styles, /\.workbench\s*\{[^}]*--nimi-ui-module-tester-studio-side-panel-width:\s*min\(360px,\s*calc\(100vw - 48px\)\)/s);
+  assert.match(styles, /\.workbench\s*\{[^}]*--nimi-ui-module-tester-studio-side-panel-width:\s*min\(360px,\s*calc\(100cqw - 48px\)\)/s);
   assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*position:\s*absolute/s);
   assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*box-sizing:\s*border-box/s);
   assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*width:\s*var\(--nimi-ui-module-tester-studio-side-panel-width\)/s);
@@ -402,7 +402,7 @@ test('tester AI config remains visibly fail-closed until the local-app carrier a
   assert.match(capabilities, /nimiOverlayPanelMotion\(\{ kind: 'drawer', reducedMotion \}\)/);
   assert.match(capabilities, /<motion\.aside[\s\S]*\{\.\.\.drawerMotion\}/);
   assert.doesNotMatch(styles, /section-ai-testing-drawer-slide-in/);
-  assert.match(styles, /@media \(max-width:\s*720px\)[\s\S]*\.section-ai-testing__drawer[\s\S]*width:\s*100%/);
+  assert.match(styles, /@container nimi-ui-module-tester-surface \(max-width:\s*720px\)[\s\S]*\.section-ai-testing__drawer[\s\S]*width:\s*100%/);
 });
 
 test('tester capability model config drawer section follows the active left rail capability while open', async () => {

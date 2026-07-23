@@ -362,7 +362,7 @@ function AuditDateTimeField({
       <PopoverContent
         align="start"
         sideOffset={8}
-        className="w-[min(29rem,calc(100vw-2rem))] overflow-hidden rounded-2xl p-0"
+        className="w-[min(29rem,calc(100cqw-2rem))] overflow-hidden rounded-2xl p-0"
         onOpenAutoFocus={(event) => event.preventDefault()}
       >
         <div ref={contentRef}>
@@ -599,8 +599,8 @@ export function GlobalAuditSection({
       {/* Event List */}
       <div className="mt-4 min-w-0 overflow-hidden rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/40">
         <ScrollArea
-          className="min-w-0 max-h-[calc(100vh-34rem)]"
-          viewportClassName="min-w-0 max-h-[calc(100vh-34rem)]"
+          className="min-w-0 max-h-[calc(100cqh-34rem)]"
+          viewportClassName="min-w-0 max-h-[calc(100cqh-34rem)]"
         >
           {events.length === 0 ? (
             <div className="flex flex-col items-center gap-1.5 px-6 py-10 text-center">

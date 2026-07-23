@@ -3,7 +3,7 @@
 .runtime-check-screen,
 .runtime-unavailable-screen,
 .runtime-login-screen {
-  min-height: 100vh;
+  min-height: 100cqh;
   position: relative;
 }
 
@@ -63,7 +63,7 @@
   right: 24px;
   bottom: 24px;
   z-index: 20;
-  max-width: min(420px, calc(100vw - 48px));
+  max-width: min(420px, calc(100cqw - 48px));
 }
 
 .runtime-alert-copy {

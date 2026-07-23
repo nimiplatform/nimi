@@ -40,7 +40,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
 
   return (
     <div
-      className={`absolute inset-x-0 ${props.titlebarTopInsetClass} z-[11000] flex h-14 items-center nimi-material-glass-regular bg-[color-mix(in_srgb,var(--nimi-surface-canvas)_12%,transparent)] px-2 backdrop-blur-[var(--nimi-backdrop-blur-regular)] sm:px-3 ${props.titlebarLeftInsetClass}`}
+      className={`desktop-shell-topbar absolute inset-x-0 ${props.titlebarTopInsetClass} z-[11000] flex h-14 items-center nimi-material-glass-regular bg-[color-mix(in_srgb,var(--nimi-surface-canvas)_12%,transparent)] px-2 backdrop-blur-[var(--nimi-backdrop-blur-regular)] ${props.titlebarLeftInsetClass}`}
       data-shell-titlebar="true"
       onMouseDown={props.onMouseDown}
     >
@@ -50,7 +50,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
             {props.titlebarContent}
           </div>
         ) : null}
-        <div className="ml-2 flex shrink-0 items-center gap-2 sm:ml-auto sm:gap-7" data-titlebar-region="actions">
+        <div className="desktop-shell-topbar__actions ml-2 flex shrink-0 items-center gap-2" data-titlebar-region="actions">
           {anonymousMode ? (
             <div className="flex items-center gap-2">
               {props.activeTab !== 'chat' ? (

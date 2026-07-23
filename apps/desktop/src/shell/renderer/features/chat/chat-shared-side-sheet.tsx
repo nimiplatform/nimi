@@ -30,8 +30,8 @@ export type ChatSideSheetProps = {
 export function ChatSideSheet(props: ChatSideSheetProps) {
   const { t } = useTranslation();
   const widthClassName = props.sheetKey === 'settings'
-    ? 'w-[min(500px,calc(100vw-96px))]'
-    : 'w-[min(340px,calc(100vw-96px))]';
+    ? 'w-[min(500px,calc(100cqw-96px))]'
+    : 'w-[min(340px,calc(100cqw-96px))]';
 
   return (
     <aside

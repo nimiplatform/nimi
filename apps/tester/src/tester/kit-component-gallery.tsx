@@ -67,7 +67,7 @@ export function KitComponentGallery(_props: { onOpenSection?: (target: string) =
   return (
     <div className="kit-doc grid h-full min-h-0 min-w-0 grid-cols-[260px_minmax(0,1fr)] items-stretch gap-4 overflow-x-hidden overflow-y-auto p-4 max-[880px]:grid-cols-1" data-testid="nimi-tester-ui-recipes">
       {/* Left — library nav. Sticky while the canvas to its right scrolls. */}
-      <Surface as="aside" material="glass-regular" padding="none" elevation="raised" className="kit-doc__library sticky top-0 flex h-[calc(100vh-2rem)] min-h-0 max-h-none flex-col gap-4 self-stretch overflow-hidden p-4 max-[880px]:static max-[880px]:h-auto max-[880px]:overflow-visible" aria-label="Kit library navigation">
+      <Surface as="aside" material="glass-regular" padding="none" elevation="raised" className="kit-doc__library sticky top-0 flex h-[calc(100cqh-2rem)] min-h-0 max-h-none flex-col gap-4 self-stretch overflow-hidden p-4 max-[880px]:static max-[880px]:h-auto max-[880px]:overflow-visible" aria-label="Kit library navigation">
         <div className="kit-doc__intro min-w-0">
           <p className="eyebrow">Nimi UI Kit</p>
           <h1 className="m-0 text-2xl font-bold tracking-tight">UI Recipes</h1>

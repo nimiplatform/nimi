@@ -15,15 +15,31 @@ renderer:
     - id: main
       factory_surface: main
       label: Nimi Desktop
-      initial_route: /login
+      initial_route: /
       readiness_contract: desktop.main.usable
 requires:
   kit_capabilities: []
-  sdk_methods: []
+  sdk_methods:
+    - nimi.runtime.account.getAccountSessionStatus
+    - nimi.runtime.account.beginLogin
+    - nimi.runtime.account.completeLogin
+    - nimi.runtime.account.logout
   simulator_commands:
+    - desktop.auth.begin-login
+    - desktop.auth.complete-login
+    - desktop.auth.logout
+    - desktop.auth.oauth.open
+    - desktop.carry.request
+    - desktop.handoff.request
     - desktop.locale.apply
     - desktop.renderer.timer.fire
   simulator_events:
+    - desktop.auth.login.pending
+    - desktop.auth.oauth.callback
+    - desktop.auth.session.anonymous
+    - desktop.auth.session.authenticated
+    - desktop.carry.requested
+    - desktop.handoff.requested
     - desktop.renderer.timer.fired
 fixtures:
   conformance: src/simulator/fixture.ts

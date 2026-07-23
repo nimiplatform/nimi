@@ -467,7 +467,7 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
               <span>{t('runtimeConfig.runtime.auditColReason', { defaultValue: 'Reason' })}</span>
               <span />
             </div>
-            <ScrollArea className="max-h-[calc(100vh-30rem)]" viewportClassName="max-h-[calc(100vh-30rem)]">
+            <ScrollArea className="max-h-[calc(100cqh-30rem)]" viewportClassName="max-h-[calc(100cqh-30rem)]">
               <div className="divide-y divide-[var(--nimi-border-subtle)]/50">
                 {filteredAudits.map((event) => (
                   <AuditTableRow key={event.id} event={event} />

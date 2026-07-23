@@ -46,11 +46,18 @@ export interface TesterEcosystemReferenceProjection {
   readonly label: string;
 }
 
+export interface TesterPersonaReferenceProjection {
+  readonly displayName: string;
+  readonly userId: string;
+  readonly role: string;
+}
+
 export interface TesterRendererProjectionPort {
   runtimePlatform(): Promise<RuntimePlatformProjection>;
   aiConfigSummary(): Promise<TesterAIConfigSummary>;
   runHistory(): Promise<TesterRunHistory>;
   ecosystemReference(): TesterEcosystemReferenceProjection | null;
+  personaReference(): TesterPersonaReferenceProjection | null;
   preferences(): TesterPreferences;
   promptDraft(key: TesterPromptDraftKey, enabled: boolean): TesterPromptDraftLoadResult;
 }

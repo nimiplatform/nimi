@@ -275,7 +275,7 @@ function PeopleArchiveShell({
         zIndex: 1,
         width: '100%',
         maxWidth: 1080,
-        maxHeight: modal ? `calc(100vh - ${PEOPLE_GALLERY_TOP_OFFSET_PX}px - ${PEOPLE_GALLERY_BOTTOM_GUTTER_PX}px)` : undefined,
+        maxHeight: modal ? `calc(100cqh - ${PEOPLE_GALLERY_TOP_OFFSET_PX}px - ${PEOPLE_GALLERY_BOTTOM_GUTTER_PX}px)` : undefined,
         minHeight: modal ? undefined : PEOPLE_ARCHIVE_PANEL_MIN_HEIGHT_PX,
         display: 'flex',
         flexDirection: 'column',

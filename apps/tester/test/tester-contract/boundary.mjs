@@ -135,6 +135,9 @@ test('tester left rail keeps compact icon spacing and solid green active state',
   const styles = read('src/tester/tester-workbench.css');
 
   assert.match(styles, /aside\[aria-label="Nimi Lab workspace navigation"\]\{[^}]*padding: 24px 14px 18px/);
+  assert.match(styles, /@container nimi-ui-module-tester-surface \(max-width: 720px\)\{[^}]*grid-template-columns: 48px minmax\(0, 1fr\)/);
+  assert.match(styles, /@container nimi-ui-module-tester-surface \(max-width: 720px\)[\s\S]*?aside\[aria-label="Nimi Lab workspace navigation"\]\{ display: grid; width: 48px;/);
+  assert.doesNotMatch(styles, /aside\[aria-label="Nimi Lab workspace navigation"\]\{ display: none;/);
   assert.match(styles, /aside\[aria-label="Nimi Lab workspace navigation"\] nav\{[^}]*gap: 8px/);
   assert.match(styles, /aside\[aria-label="Nimi Lab workspace navigation"\] ul\{[^}]*gap: 8px/);
   assert.match(styles, /\[data-nav-placement="bottom"\]\{ margin-top: auto;/);
@@ -305,8 +308,8 @@ test('tester UI Recipes is an industrial two-pane kit component workbench', () =
   assert.match(gallery, /kit-doc__canvas/);
   assert.match(galleryEntry, /grid-cols-\[260px_minmax\(0,1fr\)\]/);
   assert.doesNotMatch(galleryEntry, /grid-cols-\[300px_minmax\(0,1fr\)\]/);
-  assert.match(galleryEntry, /kit-doc__library[^"]*h-\[calc\(100vh-2rem\)\]/);
-  assert.doesNotMatch(galleryEntry, /kit-doc__library[^"]*max-h-\[calc\(100vh-2rem\)\][^"]*self-start/);
+  assert.match(galleryEntry, /kit-doc__library[^"]*h-\[calc\(100cqh-2rem\)\]/);
+  assert.doesNotMatch(galleryEntry, /kit-doc__library[^"]*max-h-\[calc\(100cqh-2rem\)\][^"]*self-start/);
   assert.match(gallery, /RecipeWorkspace/);
   assert.match(gallery, /Recipe Inspector/);
   assert.match(gallery, /Copy selected recipe/);

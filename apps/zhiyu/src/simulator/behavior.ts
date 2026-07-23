@@ -24,6 +24,9 @@ interface ZhiyuSimulatorState extends JsonRecord {
   readonly turnSequence: number;
   readonly turns: readonly JsonRecord[];
   readonly ecosystemReference: JsonRecord | null;
+  readonly personaReference: JsonRecord | null;
+  readonly handoff: JsonRecord | null;
+  readonly carry: JsonRecord | null;
 }
 
 function record(value: ZhiyuSimulatorJsonValue, label: string): JsonRecord {
@@ -66,6 +69,43 @@ function state(value: ZhiyuSimulatorJsonValue): ZhiyuSimulatorState {
   return candidate as unknown as ZhiyuSimulatorState;
 }
 
+function interactionEnvelope(payload: JsonRecord, label: string): {
+  readonly ecosystemRevision: number;
+  readonly interactionId: string;
+  readonly committedAt: number;
+} {
+  if (payload.protocolRevision !== 1
+    || !Number.isSafeInteger(payload.ecosystemRevision)
+    || typeof payload.interactionId !== 'string'
+    || !Number.isSafeInteger(payload.committedAt)) {
+    throw new Error(`ZHIYU_SIMULATOR_${label}_INVALID`);
+  }
+  return {
+    ecosystemRevision: payload.ecosystemRevision as number,
+    interactionId: payload.interactionId,
+    committedAt: payload.committedAt as number,
+  };
+}
+
+function personaPayload(payload: JsonRecord): JsonRecord {
+  const persona = record(payload.persona, 'PERSONA_REFERENCE');
+  return {
+    accountId: text(persona.accountId, 'PERSONA_ACCOUNT'),
+    userId: text(persona.userId, 'PERSONA_USER'),
+    displayName: text(persona.displayName, 'PERSONA_DISPLAY_NAME'),
+    role: text(persona.role, 'PERSONA_ROLE'),
+    realmEnvironmentId: text(persona.realmEnvironmentId, 'PERSONA_REALM_ENV'),
+  };
+}
+
+function cardPayload(payload: JsonRecord): JsonRecord {
+  const card = record(payload.card, 'REQUEST_CARD');
+  return {
+    title: text(card.title, 'REQUEST_CARD_TITLE'),
+    detail: text(card.detail, 'REQUEST_CARD_DETAIL'),
+  };
+}
+
 export const zhiyuSimulatorBehavior = Object.freeze({
   initialState(input: ZhiyuSimulatorInitialInput): ZhiyuSimulatorJsonValue {
     return {
@@ -74,6 +114,9 @@ export const zhiyuSimulatorBehavior = Object.freeze({
       turnSequence: 0,
       turns: [],
       ecosystemReference: null,
+      personaReference: null,
+      handoff: null,
+      carry: null,
     };
   },
   reduce(
@@ -103,6 +146,57 @@ export const zhiyuSimulatorBehavior = Object.freeze({
       return {
         state: { ...current, ecosystemReference: reference },
         events: [{ type: 'zhiyu.ecosystem.projected', payload: reference }],
+      };
+    }
+    if (envelope.type === 'zhiyu.persona.project') {
+      const meta = interactionEnvelope(payload, 'PERSONA_REFERENCE');
+      const reference = {
+        protocolRevision: 1,
+        ecosystemRevision: meta.ecosystemRevision,
+        interactionId: meta.interactionId,
+        persona: personaPayload(payload),
+        committedAt: meta.committedAt,
+      };
+      return {
+        state: { ...current, personaReference: reference },
+        events: [{ type: 'zhiyu.persona.projected', payload: reference }],
+      };
+    }
+    if (envelope.type === 'zhiyu.handoff.accept') {
+      const meta = interactionEnvelope(payload, 'HANDOFF');
+      const route = record(payload.route, 'HANDOFF_ROUTE');
+      if (typeof route.pathname !== 'string' || !Array.isArray(route.search)) {
+        throw new Error('ZHIYU_SIMULATOR_HANDOFF_INVALID');
+      }
+      return {
+        state: {
+          ...current,
+          handoff: {
+            targetSurfaceId: text(payload.targetSurfaceId, 'HANDOFF_SURFACE'),
+            route: {
+              pathname: route.pathname,
+              search: route.search,
+              fragment: route.fragment === null || typeof route.fragment === 'string' ? route.fragment : null,
+            },
+            card: cardPayload(payload),
+            committedAt: meta.committedAt,
+          },
+        },
+        events: [],
+      };
+    }
+    if (envelope.type === 'zhiyu.carry.accept') {
+      const meta = interactionEnvelope(payload, 'CARRY');
+      return {
+        state: {
+          ...current,
+          carry: {
+            carry: text(payload.carry, 'CARRY_SUMMARY'),
+            card: cardPayload(payload),
+            committedAt: meta.committedAt,
+          },
+        },
+        events: [],
       };
     }
     if (envelope.type === 'zhiyu.turn.allocate') {

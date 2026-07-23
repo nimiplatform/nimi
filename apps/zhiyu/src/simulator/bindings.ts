@@ -21,6 +21,9 @@ type Projection = {
   };
   readonly turnSequence: number;
   readonly ecosystemReference: JsonRecord | null;
+  readonly personaReference: JsonRecord | null;
+  readonly handoff: JsonRecord | null;
+  readonly carry: JsonRecord | null;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -36,10 +39,39 @@ function projection(context: ZhiyuSimulatorPrepareContext): Projection {
     || !Array.isArray(value.scenario.agents)
     || typeof value.scenario.responseText !== 'string'
     || !Number.isSafeInteger(value.turnSequence)
-    || (value.ecosystemReference !== null && !isRecord(value.ecosystemReference))) {
+    || (value.ecosystemReference !== null && !isRecord(value.ecosystemReference))
+    || (value.personaReference !== null && !isRecord(value.personaReference))
+    || (value.handoff !== null && !isRecord(value.handoff))
+    || (value.carry !== null && !isRecord(value.carry))) {
     throw new Error('ZHIYU_SIMULATOR_PROJECTION_INVALID');
   }
   return value as unknown as Projection;
+}
+
+function ecosystemRevisionOf(value: Projection): number | null {
+  const reference = value.ecosystemReference;
+  return reference && Number.isSafeInteger(reference.ecosystemRevision)
+    ? reference.ecosystemRevision as number
+    : null;
+}
+
+function personaDisplayNameOf(value: Projection): string | null {
+  const reference = value.personaReference;
+  if (!reference || !isRecord(reference.persona) || typeof reference.persona.displayName !== 'string') {
+    return null;
+  }
+  return reference.persona.displayName;
+}
+
+/** 生态 revision text stays the primary status; the simulated persona joins
+ * it with an explicit 模拟 honesty marker (P-SIM-001). */
+function companionStatusText(value: Projection): string {
+  const revision = ecosystemRevisionOf(value);
+  const personaName = personaDisplayNameOf(value);
+  if (revision !== null && personaName) return `生态 revision ${revision} · 模拟居民 ${personaName}`;
+  if (revision !== null) return `生态 revision ${revision}`;
+  if (personaName) return `模拟居民 ${personaName} · 模拟身份投影`;
+  return '等待与你对话';
 }
 
 function simulatedHome(
@@ -135,9 +167,7 @@ function simulatedHome(
       observedAt: new Date(context.clock.now()).toISOString(),
       stateUpdatedAt: new Date(context.clock.now()).toISOString(),
       executionState: 'idle',
-      statusText: currentProjection.ecosystemReference
-        ? `生态 revision ${String(currentProjection.ecosystemReference.ecosystemRevision)}`
-        : '等待与你对话',
+      statusText: companionStatusText(currentProjection),
       participationMode: 'idle',
       participationSource: 'simulator-state-engine',
       projectedFields: ['executionState', 'statusText', 'participationMode'],
@@ -290,11 +320,13 @@ export function createZhiyuSimulatorBindings(
   });
   if (!eventSubscription.ok) throw new Error('ZHIYU_SIMULATOR_EVENT_SUBSCRIPTION_REJECTED');
   let observedEcosystemRevision = 0;
+  let observedPersonaKey: string | null = null;
   const projectEcosystemCompanion = (
-    reference: JsonRecord,
+    value: Projection,
   ): ZhiyuEvidence['companion'] | null => {
-    if (!Number.isSafeInteger(reference.ecosystemRevision)) return null;
-    const revision = reference.ecosystemRevision as number;
+    const revision = ecosystemRevisionOf(value) ?? 0;
+    const personaName = personaDisplayNameOf(value);
+    if (revision === 0 && !personaName) return null;
     const baseline = publishedEvidence?.companion ?? simulatedHome(context, null).companion;
     observedEcosystemRevision = Math.max(observedEcosystemRevision, revision);
     return {
@@ -304,18 +336,24 @@ export function createZhiyuSimulatorBindings(
       reasonCode: 'simulator-ecosystem-reference-projected',
       actionHint: 'inspect_simulated_ecosystem_revision',
       source: 'simulator',
-      message: `Shared simulated ecosystem revision ${revision} reached Zhiyu.`,
+      message: personaName
+        ? `Simulated resident ${personaName} joined the shared ecosystem projection.`
+        : `Shared simulated ecosystem revision ${revision} reached Zhiyu.`,
       executionState: 'idle',
-      statusText: `生态 revision ${revision}`,
+      statusText: companionStatusText(value),
       observedAt: new Date(context.clock.now()).toISOString(),
     };
   };
   const unsubscribeProjection = context.projection.subscribe(() => {
-    const reference = projection(context).ecosystemReference;
-    if (!reference || !Number.isSafeInteger(reference.ecosystemRevision)) return;
-    const revision = reference.ecosystemRevision as number;
-    if (revision <= observedEcosystemRevision) return;
-    const companion = projectEcosystemCompanion(reference);
+    const value = projection(context);
+    const revision = ecosystemRevisionOf(value) ?? 0;
+    const personaReference = value.personaReference;
+    const personaKey = personaReference && typeof personaReference.interactionId === 'string'
+      ? personaReference.interactionId
+      : null;
+    if (revision <= observedEcosystemRevision && personaKey === observedPersonaKey) return;
+    observedPersonaKey = personaKey;
+    const companion = projectEcosystemCompanion(value);
     if (!companion) return;
     for (const listener of companionListeners) listener(companion);
   });
@@ -469,9 +507,9 @@ export function createZhiyuSimulatorBindings(
         },
         subscribeCompanion({ onCompanion }: Parameters<ZhiyuCanonicalRendererBindings['app']['events']['subscribeCompanion']>[0]) {
           companionListeners.add(onCompanion);
-          const reference = projection(context).ecosystemReference;
-          if (reference) {
-            const companion = projectEcosystemCompanion(reference);
+          const value = projection(context);
+          if (ecosystemRevisionOf(value) !== null || personaDisplayNameOf(value) !== null) {
+            const companion = projectEcosystemCompanion(value);
             if (companion) onCompanion(companion);
           }
           return () => companionListeners.delete(onCompanion);

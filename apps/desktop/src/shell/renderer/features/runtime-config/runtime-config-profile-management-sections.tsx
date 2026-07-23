@@ -42,7 +42,7 @@ export function ProfileEditorModal(props: {
           aria-labelledby="runtime-profiles-editor-title"
           aria-modal="true"
           role="dialog"
-          className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-xl"
+          className="mx-auto flex min-h-[calc(100cqh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-xl"
           data-testid="runtime-profiles-editor"
         >
           <header className="border-b border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,var(--nimi-surface-panel))] px-5 py-4 sm:px-6">

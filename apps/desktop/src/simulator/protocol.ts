@@ -76,6 +76,11 @@ export interface DesktopSimulatorPrepareContext {
 export interface DesktopSimulatorCommandEnvelope {
   readonly type: string;
   readonly payload: DesktopSimulatorJsonValue;
+  readonly issuer: {
+    readonly kind: 'instance' | 'shell';
+    readonly moduleId: string | null;
+    readonly instanceId: string | null;
+  };
 }
 
 export interface DesktopSimulatorBehaviorContext {
@@ -91,6 +96,7 @@ export interface DesktopSimulatorInitialInput {
 }
 
 export interface DesktopSimulatorProjectionInput {
+  readonly instanceId: string;
   readonly surfaceId: string;
   readonly route: DesktopSimulatorRouteState;
   readonly sharedProjection: DesktopSimulatorJsonValue;

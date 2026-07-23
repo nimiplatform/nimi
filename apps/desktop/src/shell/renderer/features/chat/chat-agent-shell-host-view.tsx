@@ -70,7 +70,7 @@ export function resolveAgentConversationHostView(input: {
       pendingThinkingLabel: input.labels.pendingThinkingLabel,
       pendingStopLabel: input.labels.pendingStopLabel,
       formatDateLabel,
-      widthClassName: input.transcriptWidthClassName || 'max-w-[min(920px,calc(100vw-620px))]',
+      widthClassName: input.transcriptWidthClassName || 'max-w-[min(920px,calc(100cqw-620px))]',
       widthPositionClassName: input.transcriptWidthPositionClassName || 'mx-auto',
       scrollViewportWidthClassName: input.transcriptScrollViewportWidthClassName || 'w-full',
       scrollViewportPositionClassName: input.transcriptScrollViewportPositionClassName || '',

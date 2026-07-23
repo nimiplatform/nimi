@@ -317,7 +317,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
       <InlineFeedback
         feedback={feedback}
         onDismiss={() => setFeedback(null)}
-        className="absolute left-1/2 top-20 z-30 w-[min(720px,calc(100vw-160px))] -translate-x-1/2 shadow-[0_18px_48px_rgba(15,23,42,0.16)]"
+        className="absolute left-1/2 top-20 z-30 w-[min(720px,calc(100cqw-160px))] -translate-x-1/2 shadow-[0_18px_48px_rgba(15,23,42,0.16)]"
       />
       <ExploreView
         selectedCategory={selectedCategory}

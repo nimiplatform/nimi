@@ -27,7 +27,7 @@ function DesktopMainSurface(props: {
   return (
     <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light" defaultDensity="compact">
       <div
-        className="nimi-ui-module--desktop min-h-px"
+        className="nimi-ui-module--desktop"
         data-nimi-semantic-id="desktop-main-root"
         id={props.bindings.scope.domId('main-root')}
         role="region"
@@ -71,12 +71,26 @@ export const desktopCanonicalRendererFactory = Object.freeze({
   factoryId: 'desktop/canonical-renderer',
   createInstance(bindings: DesktopCanonicalRendererBindings) {
     let disposed = false;
-    const resources = createDesktopRendererResources(bindings);
+    let readyCandidateReported = false;
+    const instanceBindings: DesktopCanonicalRendererBindings = Object.freeze({
+      ...bindings,
+      surfaceLifecycle: Object.freeze({
+        ...bindings.surfaceLifecycle,
+        reportReadyCandidate(
+          input: Parameters<DesktopCanonicalRendererBindings['surfaceLifecycle']['reportReadyCandidate']>[0],
+        ) {
+          if (readyCandidateReported) return;
+          readyCandidateReported = true;
+          bindings.surfaceLifecycle.reportReadyCandidate(input);
+        },
+      }),
+    });
+    const resources = createDesktopRendererResources(instanceBindings);
     const main = Object.freeze({
       id: 'main' as const,
       render() {
         if (disposed) throw new Error('DESKTOP_CANONICAL_INSTANCE_DISPOSED');
-        return <DesktopMainSurface bindings={bindings} resources={resources} />;
+        return <DesktopMainSurface bindings={instanceBindings} resources={resources} />;
       },
     });
     return {

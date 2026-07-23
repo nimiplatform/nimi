@@ -59,6 +59,7 @@ interface TesterSimulatorState extends JsonRecord {
   readonly actionLog: readonly JsonRecord[];
   readonly capabilityExecutions: readonly JsonRecord[];
   readonly ecosystemReference: JsonRecord | null;
+  readonly personaReference: JsonRecord | null;
 }
 
 function record(value: TesterSimulatorJsonValue, label: string): JsonRecord {
@@ -172,6 +173,7 @@ export const testerSimulatorBehavior = Object.freeze({
       actionLog: [],
       capabilityExecutions: [],
       ecosystemReference: null,
+      personaReference: null,
     };
   },
 
@@ -200,6 +202,34 @@ export const testerSimulatorBehavior = Object.freeze({
             interactionId: payload.interactionId,
             checkpointId: payload.checkpointId,
             label: payload.label,
+            committedAt: payload.committedAt,
+          },
+        },
+        events: [],
+      };
+    }
+    if (envelope.type === 'tester.persona.observe') {
+      if (payload.protocolRevision !== 1
+        || !Number.isSafeInteger(payload.ecosystemRevision)
+        || typeof payload.interactionId !== 'string'
+        || !Number.isSafeInteger(payload.committedAt)) {
+        throw new Error('TESTER_SIMULATOR_PERSONA_REFERENCE_INVALID');
+      }
+      const persona = record(payload.persona, 'PERSONA_REFERENCE');
+      return {
+        state: {
+          ...current,
+          personaReference: {
+            protocolRevision: 1,
+            ecosystemRevision: payload.ecosystemRevision,
+            interactionId: payload.interactionId,
+            persona: {
+              accountId: text(persona.accountId, 'PERSONA_ACCOUNT'),
+              userId: text(persona.userId, 'PERSONA_USER'),
+              displayName: text(persona.displayName, 'PERSONA_DISPLAY_NAME'),
+              role: text(persona.role, 'PERSONA_ROLE'),
+              realmEnvironmentId: text(persona.realmEnvironmentId, 'PERSONA_REALM_ENV'),
+            },
             committedAt: payload.committedAt,
           },
         },

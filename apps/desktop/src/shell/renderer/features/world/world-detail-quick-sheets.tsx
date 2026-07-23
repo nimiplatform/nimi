@@ -39,9 +39,9 @@ export function WorldCharacterQuickSheet({
         onClick={onClose}
       />
       <div className="relative flex items-center justify-center">
-        <section className="relative z-10 w-full max-w-[620px] max-h-[calc(100vh-3rem)] overflow-hidden rounded-[28px] border border-[var(--nimi-action-primary-bg)]/20 bg-[#0d1511]/96 shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
+        <section className="relative z-10 w-full max-w-[620px] max-h-[calc(100cqh-3rem)] overflow-hidden rounded-[28px] border border-[var(--nimi-action-primary-bg)]/20 bg-[#0d1511]/96 shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--nimi-action-primary-bg)]/50 to-transparent" />
-          <ScrollArea className="max-h-[calc(100vh-3rem-2px)]" viewportClassName="px-6 pb-6 pt-5">
+          <ScrollArea className="max-h-[calc(100cqh-3rem-2px)]" viewportClassName="px-6 pb-6 pt-5">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <div className="text-xs uppercase tracking-[0.16em] text-[#86f0ca]/76">

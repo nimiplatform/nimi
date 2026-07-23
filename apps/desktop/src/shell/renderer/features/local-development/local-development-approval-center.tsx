@@ -96,7 +96,7 @@ export function LocalDevelopmentApprovalCenter() {
       closeOnBackdrop={false}
       onClose={busy ? undefined : () => { void submit('deny'); }}
       dataTestId="local-development-approval-dialog"
-      panelClassName="max-h-[calc(100vh-32px)] overflow-hidden flex flex-col"
+      panelClassName="max-h-[calc(100cqh-32px)] overflow-hidden flex flex-col"
       contentClassName="min-h-0 flex flex-1 overflow-hidden"
       title={(
         <div className="flex min-w-0 items-start justify-between gap-3">

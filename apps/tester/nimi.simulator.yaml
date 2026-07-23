@@ -28,6 +28,7 @@ requires:
     - tester.ecosystem.observe
     - tester.history.append
     - tester.image-history.append
+    - tester.persona.observe
     - tester.prompt.save
     - tester.run.allocate
   simulator_events: []

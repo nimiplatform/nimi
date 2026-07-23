@@ -92,8 +92,8 @@ test('inline feedback wraps long runtime diagnostic messages', () => {
 test('status banner respects narrow viewport and wraps long diagnostics', () => {
   assert.match(
     statusBannerSource,
-    /w-\[min\(calc\(100vw-2rem\),42rem\)\]/,
-    'global status banner must not exceed the narrow viewport width',
+    /w-\[min\(calc\(100cqw-2rem\),42rem\)\]/,
+    'global status banner must not exceed the canonical renderer container width',
   );
   assert.match(
     statusBannerSource,

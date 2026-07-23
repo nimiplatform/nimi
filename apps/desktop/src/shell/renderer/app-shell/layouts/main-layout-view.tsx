@@ -288,7 +288,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     <AmbientBackground
       data-testid={E2E_IDS.mainShell}
       variant="mesh"
-      className="flex h-screen w-screen flex-col overflow-hidden bg-[var(--nimi-surface-canvas)]"
+      className="flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden bg-[var(--nimi-surface-canvas)]"
     >
       <MainLayoutTopBar
         authStatus={props.authStatus}
@@ -334,6 +334,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                 <motion.button
                   type="button"
                   data-testid={E2E_IDS.navTab('home')}
+                  data-nimi-semantic-id="desktop-main-shell-primary"
                   whileHover={interactiveMotion.whileHover}
                   whileTap={interactiveMotion.whileTap}
                   transition={interactiveMotion.transition}

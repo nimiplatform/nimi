@@ -168,8 +168,8 @@ test('left relationship rail uses desktop chat avatar rail structure', () => {
   );
   assert.match(
     css,
-    /@media \(max-width:\s*640px\)[\s\S]*?\.zhiyu-agent-rail\s*\{[\s\S]*?height:\s*52px;[\s\S]*?min-height:\s*52px;/,
-    'narrow viewports must keep the relationship rail in the top presence row instead of inheriting a 100vh sidebar',
+    /@container nimi-ui-module-zhiyu-surface \(max-width:\s*640px\)[\s\S]*?\.zhiyu-agent-rail\s*\{[\s\S]*?height:\s*52px;[\s\S]*?min-height:\s*52px;/,
+    'narrow renderer surfaces must keep the relationship rail in the top presence row instead of inheriting the browser viewport height',
   );
   assert.doesNotMatch(
     css,
@@ -183,17 +183,17 @@ test('narrow open Agent Center stacks below conversation as an operable side she
 
   assert.match(
     css,
-    /@media \(max-width:\s*640px\)[\s\S]*?\.zhiyu-agent-chat__layout:not\(\.is-side-closed\)\s*\{[\s\S]*?grid-template-areas:\s*"presence"\s*"conversation"\s*"side";/,
+    /@container nimi-ui-module-zhiyu-surface \(max-width:\s*640px\)[\s\S]*?\.zhiyu-agent-chat__layout:not\(\.is-side-closed\)\s*\{[\s\S]*?grid-template-areas:\s*"presence"\s*"conversation"\s*"side";/,
     'open Agent Center must be a real narrow grid row below the conversation instead of overlaying earlier content',
   );
   assert.match(
     css,
-    /@media \(max-width:\s*640px\)[\s\S]*?\.zhiyu-agent-chat__layout:not\(\.is-side-closed\) \.zhiyu-agent-center\s*\{[\s\S]*?position:\s*relative;[\s\S]*?height:\s*auto;[\s\S]*?width:\s*100%;[\s\S]*?min-height:\s*min\(640px,\s*calc\(100vh - 20px\)\);/,
+    /@container nimi-ui-module-zhiyu-surface \(max-width:\s*640px\)[\s\S]*?\.zhiyu-agent-chat__layout:not\(\.is-side-closed\) \.zhiyu-agent-center\s*\{[\s\S]*?position:\s*relative;[\s\S]*?height:\s*auto;[\s\S]*?width:\s*100%;[\s\S]*?min-height:\s*min\(640px,\s*calc\(100cqh - 20px\)\);/,
     'open Agent Center must occupy its grid row with a stable usable minimum height',
   );
   assert.match(
     css,
-    /@media \(max-width:\s*640px\)[\s\S]*?\.zhiyu-agent-chat__layout:not\(\.is-side-closed\) \[data-zhiyu-agent-center-kit-surface="true"\]\s*\{[\s\S]*?overflow-y:\s*auto;[\s\S]*?-webkit-overflow-scrolling:\s*touch;/,
+    /@container nimi-ui-module-zhiyu-surface \(max-width:\s*640px\)[\s\S]*?\.zhiyu-agent-chat__layout:not\(\.is-side-closed\) \[data-zhiyu-agent-center-kit-surface="true"\]\s*\{[\s\S]*?overflow-y:\s*auto;[\s\S]*?-webkit-overflow-scrolling:\s*touch;/,
     'narrow Agent Center body must own vertical scrolling inside its grid row',
   );
 });
@@ -255,7 +255,7 @@ test('source-not-ready partner stays disabled and exposes an actionable recovery
   assert.match(css, /\.zhiyu-agent-rail__agent\.is-unavailable\s*\{/);
   assert.match(css, /\.zhiyu-source-not-ready-empty__actions\s*\{[\s\S]*?flex-wrap:\s*wrap;/);
   assert.match(css, /\.zhiyu-source-not-ready-empty__diagnostics code\s*\{[\s\S]*?display:\s*block;[\s\S]*?white-space:\s*normal;[\s\S]*?overflow-wrap:\s*anywhere;/);
-  assert.match(css, /@media \(max-width:\s*640px\)[\s\S]*?\.zhiyu-source-not-ready-empty__actions > button\s*\{[\s\S]*?width:\s*100%;/);
+  assert.match(css, /@container nimi-ui-module-zhiyu-surface \(max-width:\s*640px\)[\s\S]*?\.zhiyu-source-not-ready-empty__actions > button\s*\{[\s\S]*?width:\s*100%;/);
 });
 
 test('no-partner transcript empty state keeps the relationship rail empty and shows honest explore guidance', () => {

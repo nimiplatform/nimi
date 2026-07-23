@@ -2,13 +2,13 @@
   .runtime-check-screen,
   .runtime-unavailable-screen,
   .runtime-login-screen {
-    min-height: 100vh;
+    min-height: 100cqh;
     position: relative;
   }
 
   .runtime-login-screen--panel {
-    width: min(520px, calc(100vw - 32px));
-    height: min(600px, calc(100vh - 96px));
+    width: min(520px, calc(100cqw - 32px));
+    height: min(600px, calc(100cqh - 96px));
     min-height: 0;
     overflow: hidden;
     border: 1px solid var(--nimi-material-glass-thick-border);
@@ -93,7 +93,7 @@
     right: 24px;
     bottom: 24px;
     z-index: 20;
-    max-width: min(420px, calc(100vw - 48px));
+    max-width: min(420px, calc(100cqw - 48px));
   }
 
   .runtime-alert-copy {
@@ -140,7 +140,7 @@
        document-level scrollbar / empty band below the shell, and unlike hidden it
        cannot be programmatically scrolled by focus/scroll anchoring. Content
        scrolls internally in the workbench content area, not at the page level. */
-    height: 100vh;
+    height: 100%;
     overflow: clip;
     display: flex;
     flex-direction: column;
@@ -250,7 +250,7 @@
     max-width: 760px;
   }
 
-  @media (max-width: 640px) {
+  @container nimi-ui-module-tester-surface (max-width: 640px) {
     .product-hero {
       display: grid;
       padding: 20px;

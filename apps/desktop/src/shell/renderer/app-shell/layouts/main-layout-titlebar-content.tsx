@@ -45,7 +45,7 @@ export function MainLayoutTitlebarContent(props: MainLayoutTitlebarContentProps)
           onSelect={props.onExploreSectionChange}
           variant="topbar"
         />
-        <div className="hidden min-w-0 flex-1 items-center justify-center px-4 lg:flex">
+        <div className="desktop-shell-titlebar-search min-w-0 flex-1 items-center justify-center px-4">
           <div className="w-full min-w-[260px] max-w-[500px]">
             <ExploreSearchField
               value={props.exploreSearchText}

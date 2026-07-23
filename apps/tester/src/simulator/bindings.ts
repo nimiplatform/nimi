@@ -72,6 +72,7 @@ interface TesterProjection extends JsonRecord {
   readonly promptDrafts: Readonly<Record<string, string>>;
   readonly aiConfig: JsonRecord;
   readonly ecosystemReference: JsonRecord | null;
+  readonly personaReference: JsonRecord | null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -124,7 +125,8 @@ function projection(context: TesterSimulatorPrepareContext): TesterProjection {
     || !Array.isArray(value.imageHistory)
     || !isRecord(value.promptDrafts)
     || !isRecord(value.aiConfig)
-    || (value.ecosystemReference !== null && !isRecord(value.ecosystemReference))) {
+    || (value.ecosystemReference !== null && !isRecord(value.ecosystemReference))
+    || (value.personaReference !== null && !isRecord(value.personaReference))) {
     throw new Error('Tester simulated projection is invalid.');
   }
   return value as unknown as TesterProjection;
@@ -485,25 +487,47 @@ export function createTesterSimulatorBindings(
     for (const listener of routeListeners) listener();
   });
   const ecosystemListeners = new Set<(payload: unknown) => void>();
+  const personaListeners = new Set<(payload: unknown) => void>();
   let observedEcosystemRevision = 0;
+  let observedPersonaKey: string | null = null;
   const unsubscribeProjection = context.projection.subscribe(() => {
-    const reference = projection(context).ecosystemReference;
-    if (!reference || !Number.isSafeInteger(reference.ecosystemRevision)) return;
-    const revision = reference.ecosystemRevision as number;
-    if (revision <= observedEcosystemRevision) return;
-    observedEcosystemRevision = revision;
-    const payload = Object.freeze({
-      ecosystemRevision: revision,
-      checkpointId: reference.checkpointId,
-      label: reference.label,
-    });
-    for (const listener of ecosystemListeners) listener(payload);
+    const value = projection(context);
+    const reference = value.ecosystemReference;
+    if (reference && Number.isSafeInteger(reference.ecosystemRevision)) {
+      const revision = reference.ecosystemRevision as number;
+      if (revision > observedEcosystemRevision) {
+        observedEcosystemRevision = revision;
+        const payload = Object.freeze({
+          ecosystemRevision: revision,
+          checkpointId: reference.checkpointId,
+          label: reference.label,
+        });
+        for (const listener of ecosystemListeners) listener(payload);
+      }
+    }
+    const personaReference = value.personaReference;
+    const personaKey = personaReference && typeof personaReference.interactionId === 'string'
+      ? personaReference.interactionId
+      : null;
+    if (personaReference && personaKey && personaKey !== observedPersonaKey) {
+      observedPersonaKey = personaKey;
+      const persona = isRecord(personaReference.persona) ? personaReference.persona : null;
+      if (persona && typeof persona.displayName === 'string' && typeof persona.userId === 'string') {
+        const payload = Object.freeze({
+          displayName: persona.displayName,
+          userId: persona.userId,
+          role: typeof persona.role === 'string' ? persona.role : '',
+        });
+        for (const listener of personaListeners) listener(payload);
+      }
+    }
   });
   const cleanupRegistration = context.cleanup.add(() => {
     routeListeners.clear();
     unsubscribeRoute();
     unsubscribeProjection();
     ecosystemListeners.clear();
+    personaListeners.clear();
   });
   if (!cleanupRegistration.ok) throw new Error('TESTER_SIMULATOR_ROUTE_CLEANUP_REJECTED');
   const sdk = createSdkFacade(context);
@@ -537,6 +561,19 @@ export function createTesterSimulatorBindings(
             label: reference.label,
           });
         },
+        personaReference() {
+          const reference = projection(context).personaReference;
+          if (!reference || !isRecord(reference.persona)
+            || typeof reference.persona.displayName !== 'string'
+            || typeof reference.persona.userId !== 'string') {
+            return null;
+          }
+          return Object.freeze({
+            displayName: reference.persona.displayName,
+            userId: reference.persona.userId,
+            role: typeof reference.persona.role === 'string' ? reference.persona.role : '',
+          });
+        },
         preferences() {
           return { schemaVersion: 1 as const, draftPersistence: true, verboseConsole: false };
         },
@@ -558,11 +595,15 @@ export function createTesterSimulatorBindings(
       commands,
       events: Object.freeze({
         subscribe(eventType: string, listener: (payload: unknown) => void): () => void {
-          if (eventType !== 'tester.ecosystem.reference-updated') {
-            throw hostError('Tester event is not declared in this scenario.', 'TESTER_SIMULATED_EVENT_UNDECLARED');
+          if (eventType === 'tester.ecosystem.reference-updated') {
+            ecosystemListeners.add(listener);
+            return () => ecosystemListeners.delete(listener);
           }
-          ecosystemListeners.add(listener);
-          return () => ecosystemListeners.delete(listener);
+          if (eventType === 'tester.persona.reference-updated') {
+            personaListeners.add(listener);
+            return () => personaListeners.delete(listener);
+          }
+          throw hostError('Tester event is not declared in this scenario.', 'TESTER_SIMULATED_EVENT_UNDECLARED');
         },
       }),
     },
