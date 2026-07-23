@@ -22,6 +22,8 @@ import type { RuntimeAccountAuthProjection } from '../src/shell/renderer/app-she
  */
 
 const LOGIN_CALLBACK_URL = 'http://127.0.0.1:43110/oauth/callback';
+const BROWSER_CALLBACK_URL = 'http://127.0.0.1:29365/oauth/callback';
+const SECOND_BROWSER_CALLBACK_URL = 'http://127.0.0.1:20481/oauth/callback';
 
 type JsonRecord = { readonly [key: string]: DesktopSimulatorJsonValue };
 
@@ -264,14 +266,17 @@ function createInstance(engine: ReturnType<typeof createEngineHarness>, instance
   return { bindings, lifecycle, cleanupTasks, disconnectLifecycle };
 }
 
-async function driveSimulatedLogin(instance: ReturnType<typeof createInstance>) {
+async function driveSimulatedLogin(
+  instance: ReturnType<typeof createInstance>,
+  browserCallbackUrl = BROWSER_CALLBACK_URL,
+) {
   const auth = instance.bindings.app.commands.auth;
   const attempt = await auth.runtimeAccountBroker.begin({
-    callbackUrl: LOGIN_CALLBACK_URL,
+    callbackUrl: browserCallbackUrl,
     timeoutMs: 60_000,
   });
   const listen = auth.oauthBridge.oauthListenForCode({
-    redirectUri: LOGIN_CALLBACK_URL,
+    redirectUri: browserCallbackUrl,
     timeoutMs: 60_000,
   });
   const opened = await auth.oauthBridge.openExternalUrl(attempt.authorizationUrl);
@@ -281,7 +286,7 @@ async function driveSimulatedLogin(instance: ReturnType<typeof createInstance>) 
     code: String(callback.code || ''),
     state: attempt.state,
     nonce: attempt.nonce,
-    callbackUrl: LOGIN_CALLBACK_URL,
+    callbackUrl: browserCallbackUrl,
   });
   return { attempt, opened, callback, completion };
 }
@@ -342,6 +347,7 @@ test('Desktop Simulator projection boots authenticated and drives logout plus Ru
   const authorizationUrl = new URL(attempt.authorizationUrl);
   assert.equal(authorizationUrl.protocol, 'https:');
   assert.equal(authorizationUrl.pathname, '/oauth/authorize');
+  assert.equal(authorizationUrl.searchParams.get('redirect_uri'), LOGIN_CALLBACK_URL);
   assert.equal(authorizationUrl.searchParams.get('state'), 'sim-oauth-state-1');
   assert.equal(authorizationUrl.hash, '');
   assert.deepEqual(opened, { opened: true });
@@ -493,7 +499,7 @@ test('Desktop Simulator simulated re-login is deterministic across fresh engines
     const engine = createEngineHarness();
     const instance = createInstance(engine, '1:instance:1');
     await instance.bindings.sdk.accountRuntime().account.logout({ caller: instance.bindings.sdk.accountCaller(), reason: 'desktop_logout' });
-    const flow = await driveSimulatedLogin(instance);
+    const flow = await driveSimulatedLogin(instance, SECOND_BROWSER_CALLBACK_URL);
     return {
       attempt: flow.attempt,
       user: flow.completion.user,
@@ -524,6 +530,12 @@ test('Desktop Simulator auth port fails closed for out-of-order login steps', as
     caller: instance.bindings.sdk.accountCaller(), reason: 'desktop_logout',
   });
 
+  await assert.rejects(
+    () => auth.runtimeAccountBroker.begin({
+      callbackUrl: 'https://example.invalid/oauth/callback',
+      timeoutMs: 60_000,
+    }),
+  );
   await assert.rejects(
     () => auth.runtimeAccountBroker.complete({
       loginAttemptId: 'sim-login-attempt-1',

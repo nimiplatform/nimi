@@ -38,6 +38,8 @@ const METHOD_GET_SESSION_STATUS = 'nimi.runtime.account.getAccountSessionStatus'
 const METHOD_BEGIN_LOGIN = 'nimi.runtime.account.beginLogin' as const;
 const METHOD_COMPLETE_LOGIN = 'nimi.runtime.account.completeLogin' as const;
 const METHOD_LOGOUT = 'nimi.runtime.account.logout' as const;
+const SIMULATOR_OAUTH_REDIRECT_URI = 'http://127.0.0.1:43110/oauth/callback';
+const SIMULATOR_OAUTH_CALLBACK_ORIGIN = 'http://127.0.0.1:43110';
 
 type JsonRecord = { readonly [key: string]: DesktopSimulatorJsonValue };
 
@@ -157,6 +159,21 @@ function text(value: DesktopSimulatorJsonValue | undefined, label: string): stri
 
 function runtimeAccountOwned(route: string): never {
   throw new Error(`Desktop ${route} is owned by RuntimeAccountService`);
+}
+
+function assertLoopbackCallback(redirectUri: string, callbackOrigin?: string): void {
+  let redirect: URL;
+  try {
+    redirect = new URL(redirectUri);
+  } catch {
+    throw new Error('DESKTOP_SIMULATOR_AUTH_REDIRECT_URI_INVALID');
+  }
+  if (redirect.protocol !== 'http:'
+    || (redirect.hostname !== '127.0.0.1' && redirect.hostname !== 'localhost')
+    || redirect.username || redirect.password || redirect.hash
+    || (callbackOrigin !== undefined && redirect.origin !== callbackOrigin)) {
+    throw new Error('DESKTOP_SIMULATOR_AUTH_REDIRECT_URI_INVALID');
+  }
 }
 
 function dispositionForCommandError(code: string): NimiTestingHostFailureDisposition {
@@ -352,11 +369,12 @@ export function createDesktopSimulatorAuthSessionPort(
       }
       if (methodId === METHOD_BEGIN_LOGIN) {
         const input = request as BeginLoginRequest;
+        assertLoopbackCallback(input.redirectUri, input.callbackOrigin);
         clearPendingNotice();
         const invoked = await invokeEngine('desktop.auth.begin-login', {
           instanceId: context.instanceId,
-          redirectUri: input.redirectUri,
-          callbackOrigin: input.callbackOrigin,
+          redirectUri: SIMULATOR_OAUTH_REDIRECT_URI,
+          callbackOrigin: SIMULATOR_OAUTH_CALLBACK_ORIGIN,
           requestedScopes: [...input.requestedScopes],
           ttlSeconds: input.ttlSeconds,
         });
@@ -376,14 +394,15 @@ export function createDesktopSimulatorAuthSessionPort(
       }
       if (methodId === METHOD_COMPLETE_LOGIN) {
         const input = request as CompleteLoginRequest;
+        assertLoopbackCallback(input.redirectUri, input.callbackOrigin);
         const invoked = await invokeEngine('desktop.auth.complete-login', {
           instanceId: context.instanceId,
           loginAttemptId: input.loginAttemptId,
           code: input.code,
           state: input.state,
           nonce: input.nonce,
-          redirectUri: input.redirectUri,
-          callbackOrigin: input.callbackOrigin,
+          redirectUri: SIMULATOR_OAUTH_REDIRECT_URI,
+          callbackOrigin: SIMULATOR_OAUTH_CALLBACK_ORIGIN,
         });
         if (!invoked.ok) return { ok: false as const, error: { disposition: invoked.disposition } };
         const snapshot = readAuthProjection();
@@ -495,7 +514,8 @@ export function createDesktopSimulatorAuthSessionPort(
   const oauthBridge: ShellOAuthBridge = Object.freeze({
     hasShellHostInvoke: () => true,
     oauthListenForCode: (payload) => new Promise((resolve) => {
-      oauthListeners.set(payload.redirectUri, resolve);
+      assertLoopbackCallback(payload.redirectUri);
+      oauthListeners.set(SIMULATOR_OAUTH_REDIRECT_URI, resolve);
     }),
     oauthTokenExchange: async () => {
       throw new Error('Desktop OAuth exchange is owned by RuntimeAccountService');
