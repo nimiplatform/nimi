@@ -28,8 +28,8 @@ first.
 
 - Repo-wide product authority remains under `.nimi/spec/**`.
 - Connector provider/model semantics must align with
-  `.nimi/spec/runtime/connector.md`, `.nimi/spec/runtime/kernel/connector-contract.md`,
-  and the imported kernel provider catalog/capability tables.
+  `.nimi/spec/canonical/runtime/ai-provider.authority.yaml` and
+  `.nimi/spec/canonical/runtime/model-catalog.authority.yaml`.
 - `runtime/catalog/source/providers/*.source.yaml` is a reviewed authoring work
   surface for generated projections, not parallel semantic truth.
 - Browser output, aggregate listings, and live probe output are support inputs

@@ -149,7 +149,7 @@ Health endpoints:
 - User-facing setup should prefer env-backed credentials; inline `apiKey` is fallback-only
 - `config` changes that touch runtime wiring remain restart-scoped
 - Connector/provider authority is the repo-local `.nimi` spec surface:
-  `.nimi/spec/runtime/connector.md`, `.nimi/spec/runtime/kernel/connector-contract.md`,
+  `.nimi/spec/canonical/runtime/ai-provider.authority.yaml`, `.nimi/spec/canonical/runtime/model-catalog.authority.yaml`,
   and imported kernel provider catalog/capability tables. Runtime catalog source
   files and generated snapshots are support/projection inputs, not standalone
   product truth.

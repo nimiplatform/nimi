@@ -1,14 +1,5 @@
-# SDKS Spec
+# SDKs Domain — Migrated
 
-Status: active product authority.
+本域已全量迁入 canonical authority。规范权威见 `.nimi/spec/canonical/sdks/*.authority.yaml`;域索引与冻结素材声明见 `kernel/index.md`;原文散文见 `docs/authority/sdks-*-rationale.md`(非规范)。
 
-The `sdks` domain governs the SDK family under `sdks/**`, including the
-TypeScript next-major `@nimiplatform/sdk` implementation and generated
-Runtime/Realm cores for Python, Go, and Rust.
-
-Reading order:
-
-1. `kernel/index.md`
-2. `.nimi/spec/canonical/sdks/*.authority.yaml` (client-core, feature-clients,
-   realm-consumer)
-3. Kernel tables under `kernel/tables/**`
+不得基于本文件推断权威。

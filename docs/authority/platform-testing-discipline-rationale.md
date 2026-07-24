@@ -245,3 +245,5 @@ axis that starts a complete environment independently is forbidden.
 - AUTHORITY-RELATION subject=l5-baseline action=start object=full-product-environment value=one-per-run polarity=require
 - AUTHORITY-RELATION subject=l5-baseline action=require object=calibration-2x10-evaluator-semantic-threshold value=denied polarity=forbid
 - AUTHORITY-RELATION subject=process-start-count action=derive object=journey-environment-declaration value=required polarity=require
+
+> 注:本文成文于 S6 域 1(测试治理拆除波),原始源文件(test-governance 族)已整体退役至 Git 历史,无逐节 source 标记;本文即该族散文的唯一存档。

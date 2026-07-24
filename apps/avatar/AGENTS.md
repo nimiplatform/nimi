@@ -83,10 +83,10 @@ derivation history remains in Git and is not an active truth surface:
 
 Platform contracts are consumed from active `.nimi/spec/**` authority:
 
-- APML wire format → `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
-- APML LLM compliance → `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
+- APML wire format → `.nimi/spec/canonical/runtime/agent-participation.authority.yaml`(原文 `docs/authority/runtime-agent-participation-rationale.md`)
+- APML LLM compliance → `.nimi/spec/canonical/runtime/agent-participation.authority.yaml`
 - Activity ontology → `.nimi/spec/canonical/runtime/agent-participation.authority.yaml` and `config/runtime-agent-activity-ontology.yaml`
-- HookIntent / event owner map → `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md` and `.nimi/spec/canonical/runtime/agent-participation.authority.yaml`
+- HookIntent / event owner map → `.nimi/spec/canonical/runtime/agent-participation.authority.yaml`
 - SDK runtime consume surface → `.nimi/spec/canonical/sdks/client-core.authority.yaml`
 - Presentation Timeline boundary → `.nimi/spec/canonical/runtime/agent-participation.authority.yaml`
 

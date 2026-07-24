@@ -1,7 +1,7 @@
 # sdks/ AGENTS.md
 ## Scope
 - Applies to `sdks/**`.
-- `.nimi/spec/sdks/**` owns the new SDK family.
+- `.nimi/spec/canonical/sdks/*.authority.yaml` owns the new SDK family(原文散文 `docs/authority/sdks-*-rationale.md`).
 - `sdks/typescript/**` is the TypeScript-first next major `@nimiplatform/sdk`.
 - Python/Go/Rust stay generated Runtime/Realm core until TypeScript stabilizes.
 ## Hard Boundaries
@@ -12,7 +12,7 @@
 - Adapter public surfaces live in adapter packages, not base SDK shims.
 - Unsupported capability fails closed. No pseudo-success or hidden bypass.
 ## Retrieval Defaults
-- Start in `sdks/typescript`, `sdks/generators`, `sdks/conformance`, and `.nimi/spec/sdks/kernel`.
+- Start in `sdks/typescript`, `sdks/generators`, `sdks/conformance`, and `.nimi/spec/canonical/sdks`.
 - For generated drift, inspect proto/OpenAPI input before generated output.
 - Skip `archive/**`, `**/dist/**`, `**/generated/**`, and dependency folders.
 ## Verification Commands
