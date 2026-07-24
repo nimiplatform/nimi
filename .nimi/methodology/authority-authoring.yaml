@@ -1,0 +1,147 @@
+version: 2
+id: nimicoding.authority-authoring
+purpose: Author explicit project authority under .nimi/spec without inference.
+authority_boundary:
+  canonical_root: .nimi/spec
+  sources: ["*.authority.yaml", "*.authority.md"]
+  rule: The project owns product meaning; nimicoding formats, validates, and derives read-only results.
+  AI_inputs: [this_guide, task_authority, bounded_discovery, exact_query_or_bounded_context, diagnostics]
+  do_not_read: [complete_authority_corpus, contracts, package_internal_specs]
+
+daily_workflow:
+  - If no exact ID is known, run nimicoding authority discover <path> <query> --max-candidates 10 --max-snippet-terms 24 --max-bytes 131072 --json. Filters are exact; pass --preview-direction, --relations, and --max-edges together. It neither selects nor proves absence.
+  - Select an ID only from task or product authority. Use nimicoding authority query <path> <id> --max-bytes <positive-integer> --json for one unit, or context <path> <id> --max-units <positive-integer> --max-bytes <positive-integer> --json for its declared outgoing applies_to/supersedes closure. Context is not complete task context.
+  - Modify only project-owned canonical authority. Choose every product value before writing; never infer an ID, owner, scope, condition, failure, or relation.
+  - Run nimicoding authority fmt <changed-file> for each changed file.
+  - Run nimicoding authority check <complete-path> --json, then compile the same complete path only after check succeeds.
+  - For semantic changes, run diff and impact with explicit budgets and complete inputs; address every obligation and rerun impact.
+  - Never continue from compiler diagnostics, unknown IDs, budget failures, or partial/guessed results.
+
+source_profiles:
+  yaml:
+    shape: A closed top-level mapping with exact format nimicoding.authority/v1 and one non-empty units sequence; each item is one closed unit mapping.
+    identity: Every unit has an explicit stable ID; file organization and order never define identity.
+  markdown:
+    shape: Exactly one unit per file. Front matter carries format, id, kind, owner, lifecycle, and, for active rules, modality and scope; relations are also front matter.
+    title: One plain level-one heading.
+    sections:
+      active_definition: [Meaning]
+      active_rule: [Statement, Condition, Failure]
+      removed_unit: [Removal reason]
+    boundary: Each section is one plain-text line; no free prose or unknown Markdown structures.
+  shared_text_rule: Text fields are non-empty trimmed single-line Unicode. Follow diagnostics for lexical violations.
+
+common_fields:
+  id: Stable dot-separated lower-case identity; never reuse a removed ID.
+  kind: rule or definition.
+  owner: One accountable dot-separated lower-case owner identity.
+  lifecycle: active or removed.
+  title: Required non-normative display label.
+  relations: Explicit type/target pairs; admitted units use [] when none.
+
+unit_shapes:
+  active_definition:
+    required: [id, kind, owner, lifecycle, title, meaning, relations]
+    fixed: {kind: definition, lifecycle: active}
+    forbidden: [modality, scope, statement, condition, failure, reason]
+  active_rule:
+    required: [id, kind, owner, lifecycle, title, modality, scope, statement, condition, failure, relations]
+    fixed: {kind: rule, lifecycle: active}
+    modality: must or must_not.
+    scope: Non-empty unique product surfaces.
+    condition: Write the actual condition; use Always. only when unconditional.
+    failure: State observable failure; never pseudo-success or silent fallback.
+    forbidden: [meaning, reason]
+  removed_tombstone:
+    required: [id, kind, owner, lifecycle, title, reason, relations]
+    fixed: {lifecycle: removed}
+    boundary: Preserve the stable identity and kind. reason is lifecycle rationale, not normative replacement content.
+    forbidden: [meaning, modality, scope, statement, condition, failure]
+
+relation_rules:
+  applies_to: Required one or more times from each active rule to active definitions only.
+  supersedes: Optional from active or removed to one removed unit of the same kind; at most one incoming/outgoing edge, acyclic linear lineage.
+  resolution: Targets resolve by exact ID in the complete checked input. Invalid, dangling, mismatched, cyclic, duplicate, or inferred edges fail.
+
+formatter_and_diagnostics:
+  - fmt accepts one file, canonicalizes only explicit structure, and does not admit authority or invent keys, values, headings, semantics, or relations.
+  - check/compile use the complete path and fail closed; compile emits no public or partial AuthorityIR.
+  - Diagnostics give locations, reasons, conflicts, and repair categories, never product values.
+  - Fix values only from task or product authority. Do not use defaults, fallback data, historical inference, internal contracts, or wildcard corpus reading.
+
+change_workflow:
+  diff: nimicoding authority diff <before-path> <after-path> --max-bytes <positive-integer> --json
+  impact: nimicoding authority impact <before-path> <after-path> --dispositions <file> --max-bytes <positive-integer> --json
+  boundaries:
+    - Diff compares complete canonical inputs; formatting, profile, file, and order-only changes are semantic zero.
+    - Impact follows declared reverse applies_to/supersedes only. Each impacted active rule needs evidence for every before/after scope consumer and one test obligation.
+    - Diff/impact budgets cover complete compact payloads; budget failure returns no partial result.
+    - Dispositions are local evidence under .nimi/local, never authority or proof that implementation, consumers, or tests are synchronized.
+
+disposition_authoring:
+  workflow:
+    - Write the empty skeleton and run impact to obtain exact obligations from the failed result.
+    - Add exactly one entry per impacted active rule using real project evidence, then rerun impact with the same budget. Missing or extra dispositions fail.
+  empty_skeleton: |
+    format: nimicoding.authority-impact-dispositions/v1
+    rules: []
+  complete_example: |
+    format: nimicoding.authority-impact-dispositions/v1
+    rules:
+      - id: rule.checkout-session
+        consumers:
+          - scope: api.checkout
+            status: addressed
+            evidence: src/checkout/session-handler.ts
+        test:
+          status: addressed
+          evidence: tests/checkout-session.test.ts
+
+canonical_examples:
+  complete_yaml_lifecycle: |
+    format: nimicoding.authority/v1
+    units:
+      - id: definition.session-v0
+        kind: definition
+        owner: team.identity
+        lifecycle: removed
+        title: Legacy session
+        reason: Replaced by the current session definition.
+        relations: []
+      - id: definition.session
+        kind: definition
+        owner: team.identity
+        lifecycle: active
+        title: Session
+        meaning: A server-issued identity context presented with a protected request.
+        relations:
+          - type: supersedes
+            target: definition.session-v0
+      - id: rule.checkout-no-anonymous-v0
+        kind: rule
+        owner: team.checkout
+        lifecycle: removed
+        title: Legacy anonymous checkout prohibition
+        reason: Replaced by the current checkout prohibition.
+        relations: []
+      - id: rule.checkout-no-anonymous
+        kind: rule
+        owner: team.checkout
+        lifecycle: active
+        title: Anonymous checkout is prohibited
+        modality: must_not
+        scope:
+          - api.checkout
+        statement: Checkout creates an order without a valid session.
+        condition: Always.
+        failure: Reject the request before creating an order.
+        relations:
+          - type: applies_to
+            target: definition.session
+          - type: supersedes
+            target: rule.checkout-no-anonymous-v0
+
+final_boundaries:
+  - Canonical authority is only project-authored *.authority.yaml or *.authority.md under .nimi/spec; derived outputs and local evidence are not authority.
+  - All derived read commands are bounded and read-only; none selects authority, supplies complete task context, or proves completion.
+  - Unsupported or historical formats are not inferred, migrated, or admitted.

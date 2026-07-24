@@ -23,8 +23,8 @@ importers:
         version: 2.9.0
     devDependencies:
       '@nimiplatform/nimi-coding':
-        specifier: ^0.3.1
-        version: 0.3.1
+        specifier: link:../nimi-coding
+        version: link:../nimi-coding
       '@protobuf-ts/plugin':
         specifier: 2.11.1
         version: 2.11.1

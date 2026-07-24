@@ -77,12 +77,6 @@ jobs:
       - name: Spec semantic completeness assurance
         run: pnpm check:spec-semantic-completeness
 
-      - name: Spec audit contract assurance
-        run: pnpm exec nimicoding validate-spec-audit
-
-      - name: Spec tree contract assurance
-        run: pnpm exec nimicoding validate-spec-tree
-
   sdk-release-assurance:
     runs-on: ubuntu-latest
     steps:

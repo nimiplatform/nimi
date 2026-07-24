@@ -92,7 +92,6 @@
     "generate:runtime-connector-auth-profiles": "node scripts/generate-runtime-connector-auth-profiles.mjs",
     "generate:macos-protected-local-profile": "node scripts/generate-macos-protected-local-profile.mjs",
     "generate:sdk-connector-auth-acquisition-profiles": "node scripts/generate-sdk-connector-auth-acquisition-profiles.mjs",
-    "nimicoding:generate-spec-derived-docs": "pnpm exec nimicoding generate-spec-derived-docs",
     "generate:nimi-ui-lib": "node scripts/generate-nimi-ui-lib.mjs",
     "generate:nimi-design-artifacts": "node scripts/generate-nimi-design-md.mjs --write",
     "check:avatar-external-driver-runtime-boundary": "node scripts/check-avatar-external-driver-runtime-boundary.mjs",
@@ -252,7 +251,7 @@
     "check:zhiyu-no-direct-ai-consumption": "node scripts/check-zhiyu-app-boundaries.mjs no-direct-ai-consumption",
     "check:zhiyu-conversation-artifact-boundary": "node scripts/check-zhiyu-app-boundaries.mjs conversation-artifact-boundary",
     "check:zhiyu-local-persistence-boundary": "node scripts/check-zhiyu-app-boundaries.mjs local-persistence-boundary",
-    "check:zhiyu": "pnpm check:zhiyu-spec-consistency && pnpm check:zhiyu-spec-negative-fixtures && pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope zhiyu --check && pnpm check:zhiyu-acceptance-matrix && pnpm check:zhiyu-first-party-carrier-consumption && pnpm check:zhiyu-sdk-kit-turn-consumption && pnpm check:zhiyu-no-duplicate-turn-reducer && pnpm check:zhiyu-config-boundary && pnpm check:zhiyu-no-direct-ai-consumption && pnpm check:zhiyu-conversation-artifact-boundary && pnpm check:zhiyu-local-persistence-boundary",
+    "check:zhiyu": "pnpm check:zhiyu-spec-consistency && pnpm check:zhiyu-spec-negative-fixtures && pnpm check:zhiyu-acceptance-matrix && pnpm check:zhiyu-first-party-carrier-consumption && pnpm check:zhiyu-sdk-kit-turn-consumption && pnpm check:zhiyu-no-duplicate-turn-reducer && pnpm check:zhiyu-config-boundary && pnpm check:zhiyu-no-direct-ai-consumption && pnpm check:zhiyu-conversation-artifact-boundary && pnpm check:zhiyu-local-persistence-boundary",
     "check:zhiyu-bootstrap": "pnpm --filter @nimiplatform/zhiyu check:bootstrap",
     "check:zhiyu-acceptance": "pnpm --filter @nimiplatform/zhiyu test:acceptance",
     "check:account-session-hardcut": "node scripts/check-account-session-hardcut.mjs",
@@ -368,11 +367,7 @@
     "nimicoding:sync:apply": "pnpm check:nimicoding-host-hardcut && pnpm exec nimicoding sync --apply",
     "check:nimi-coding-seed-sync": "pnpm nimicoding:sync",
     "nimicoding:doctor": "pnpm exec nimicoding doctor",
-    "nimicoding:validate-spec-governance": "pnpm exec nimicoding validate-spec-governance",
     "nimicoding:validate-ai-governance": "pnpm exec nimicoding validate-ai-governance",
-    "nimicoding:validate-spec-audit": "pnpm exec nimicoding validate-spec-audit",
-    "nimicoding:validate-spec-tree": "pnpm exec nimicoding validate-spec-tree",
-    "nimicoding:blueprint-audit": "pnpm exec nimicoding blueprint-audit --write-local",
     "check:no-retired-methodology-refs": "node scripts/check-no-retired-methodology-refs.mjs",
     "check:nimi-nimicoding-split-readiness": "node scripts/check-nimi-nimicoding-split-readiness.mjs",
     "check:no-public-mod-extension-admission": "node scripts/check-no-public-mod-extension-admission.mjs",
@@ -385,7 +380,7 @@
     "yaml": "^2.9.0"
   },
   "devDependencies": {
-    "@nimiplatform/nimi-coding": "^0.3.1",
+    "@nimiplatform/nimi-coding": "link:../nimi-coding",
     "@protobuf-ts/plugin": "2.11.1"
   }
 }
