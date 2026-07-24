@@ -2387,3 +2387,87 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.embodiment-input-plane
+  - id: definition.nimi.runtime.agent-participation.first-party-product-carrier-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: "[authority-boundary-contract; permission-posture] Runtime first-party product carrier plane"
+    meaning: The Runtime first-party product carrier plane owns attested principal binding, exact protected operation admission, account and generation binding, protected native carrier custody, owner policy, audit lineage, and fail-closed authorization for incubated first-party consumers without converting product operations or base entitlements into public app permissions.
+    relations: []
+  - id: definition.nimi.runtime.agent-participation.source-context-projection-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: "[authority-boundary-contract; agent-conversation-anchor-surface] Runtime LocalAgent source and turn context projection plane"
+    meaning: The Runtime LocalAgent source and turn context projection plane owns the bounded read-only LocalAgentSourceContextStatus and AgentTurnContextSummary projections, including readiness and failure state, truncation and budget facts, lane summaries, safe correlation fields, and the exclusion of raw source, context, prompt, memory, transcript, proof, provider, tool, and diagnostic material.
+    relations: []
+  - id: rule.nimi.runtime.agent-participation.r161
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: "[authority-boundary-contract; permission-posture] Incubated first-party product access requires an attested carrier"
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime admits an incubated first-party consumer to its protected agent turn, voice, derived artifact, cognition memory, and agent AI config product operations only through a Runtime-admitted carrier binding an attested first-party principal to the exact operation set, current account and generation, protected native carrier, Runtime owner policy, and audit lineage, while manifest permissions remain empty until a public permission is separately admitted and account session, app-private storage, mandatory AI metering, and Runtime-selected AI route consumption remain base entitlements or execution policy rather than permissions.
+    condition: Whenever an incubated first-party consumer requests a protected Runtime agent product operation.
+    failure: Reject the operation with typed unavailable or permission status when any carrier binding, policy, or audit input is absent or invalid.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.first-party-product-carrier-plane
+  - id: rule.nimi.runtime.agent-participation.r162
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: "[authority-boundary-contract; permission-posture] Mutable development identity never proves first-party admission"
+    modality: must_not
+    scope:
+      - runtime.agent-participation
+    statement: A mutable local-development app id, display app id, manifest text, local project approval, account session, subject user id, requested public permission scope, or product-local authority clause serves as positive first-party carrier evidence or substitutes for the Runtime-issued scoped binding required by an admitted binding-only operation.
+    condition: Whenever first-party identity or protected Runtime agent operation admission is evaluated.
+    failure: Fail closed before the protected operation and retain the caller principal only as access and audit subject.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.first-party-product-carrier-plane
+  - id: rule.nimi.runtime.agent-participation.r163
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: "[authority-boundary-contract; agent-conversation-anchor-surface] LocalAgent source and turn context status is bounded Runtime projection"
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime and SDK project LocalAgent source readiness only through LocalAgentSourceContextStatus and turn context summary only through AgentTurnContextSummary, preserving typed ready, blocked, truncated, and failed state, typed reasons, budgets and truncation facts, lane ids, statuses, and counts, and safe hashes as display or correlation fields rather than prompt, binding, or execution inputs.
+    condition: Whenever LocalAgent source readiness or assembled turn context status crosses the Runtime boundary.
+    failure: Reject unknown, partial, or contradictory projection shape or state as typed unavailable rather than partner-ready or execution-ready.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.source-context-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r164
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: "[conversation-surface-contract; agent-conversation-anchor-surface] LocalAgent projection never exposes reconstructable context"
+    modality: must_not
+    scope:
+      - runtime.agent-participation
+    statement: A LocalAgent source or turn context status projection exposes raw source, world, prompt, lane text or order, transcript text, private memory, packet or proof material, provider or tool payload, free-form diagnostics, profile metadata context, a context manifest, or fields from which a consumer can reconstruct or override Runtime prompt assembly.
+    condition: Whenever LocalAgent source or turn context status is projected, adapted, or consumed.
+    failure: Reject the projection or consumer attachment without emitting ready state or accepting caller-composed context.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.source-context-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r165
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: "[avatar-voice-surface-contract; configuration-surface-contract] Recorded voice transcription uses committed Runtime agent AI config"
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: A user-initiated recorded-audio transcription for an agent conversation enters only through the typed Runtime AI scenario transcription surface, resolves audio.transcribe from the committed Runtime agent AI config, accepts no caller-selected provider, model, route, or execution binding, and returns a typed transcript result that becomes composer input only and never an accepted agent turn by implication.
+    condition: Whenever recorded audio is transcribed for an agent conversation composer.
+    failure: Reject missing or unusable transcription binding and caller-carried routing material with typed non-success and no app-local speech-to-text fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.ai-config-plane

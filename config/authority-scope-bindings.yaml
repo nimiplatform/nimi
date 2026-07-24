@@ -106,6 +106,10 @@ scopes:
         value: "apps/avatar/**"
       - kind: path_glob
         value: "kit/features/avatar/**"
+  - scope: zhiyu.local-partner-surface
+    bindings:
+      - kind: path_glob
+        value: "apps/zhiyu/**"
   - scope: desktop.ai-consumption
     bindings:
       - kind: path_glob

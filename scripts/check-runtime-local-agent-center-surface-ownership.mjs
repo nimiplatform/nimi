@@ -104,7 +104,7 @@ async function checkSpec() {
   const registryPath = 'config/platform-nimi-kit-registry.yaml';
   const desktopKitPath = '.nimi/spec/canonical/desktop/shell-ui.authority.yaml';
   const desktopConversationPath = '.nimi/spec/canonical/desktop/agent-projection.authority.yaml';
-  const zhiyuPath = '.nimi/spec/zhiyu/kernel/configuration-surface-contract.md';
+  const zhiyuPath = 'docs/authority/zhiyu-local-partner-surface-rationale.md';
   const avatarPath = 'docs/authority/runtime-agent-participation-rationale.md';
 
   if (!await exists(contractPath)) {
@@ -118,7 +118,7 @@ async function checkSpec() {
     assertContains(source, 'Zhiyu `AgentCenterCapabilityProbePanel` / Capability Studio', 'Zhiyu capability tooling classification', contractPath, findings);
     assertContains(source, 'Runtime Agent AI Config-owned', 'audio and voice workflow owner decision', contractPath, findings);
     assertContains(source, 'Agent Center may render and edit them only through the admitted Runtime/SDK ai-config adapter', 'audio and voice workflow editable adapter decision', contractPath, findings);
-    assertContains(source, '`local_history` is admitted only as non-semantic UI recents', 'local_history owner decision', contractPath, findings);
+    assertContains(source, '`local_history` and `ui.last_section` are dropped without replacement', 'local_history and ui.last_section owner decision', contractPath, findings);
   }
 
   for (const relPath of [registryPath, desktopKitPath, desktopConversationPath, zhiyuPath, avatarPath]) {
@@ -144,7 +144,7 @@ async function checkSpec() {
 
   const zhiyu = await readText(zhiyuPath);
   assertContains(zhiyu, 'Z-CONFIG-006 Kit Agent Center Consumer Boundary', 'Zhiyu Kit consumer boundary', zhiyuPath, findings);
-  assertContains(zhiyu, '`voice.avatar_autoplay` | Host-local playback UI preference only', 'Zhiyu voice owner decision', zhiyuPath, findings);
+  assertContains(zhiyu, '`voice.avatar_autoplay` | Retired as host-local preference. Runtime `AgentPresentationProfile.avatar_autoplay` is the single persistent home.', 'Zhiyu voice owner decision', zhiyuPath, findings);
 
   const avatar = await readText(avatarPath);
   assertContains(avatar, 'Agent Center Appearance Boundary', 'Avatar appearance boundary', avatarPath, findings);

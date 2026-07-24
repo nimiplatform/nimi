@@ -1,62 +1,14 @@
-# Zhiyu Kernel Contracts
+# Zhiyu Kernel — Migrated Domain Index
 
-This directory is the formal authority for Zhiyu product behavior.
+本域契约散文与表已全量迁入 canonical authority(2026-07-25)。
 
-## Scope
+## Canonical 容器(规范权威)
 
-Zhiyu is a first-party bundled developer-only incubated app that provides a
-local partner center. It consumes Platform, Runtime, SDK, Kit, Desktop, Realm,
-Cognition, and Avatar authority; it does not replace those owners.
+| 容器 | 覆盖面 |
+|---|---|
+| `.nimi/spec/canonical/zhiyu/local-partner-surface.authority.yaml` | 知遇 app 产品面:产品承诺与状态机/首屏与重连/本地持久化边界/伙伴选择与 desktop-open 交接/创作活动/诚实文案姿态/诊断次级面/孵化发布姿态 |
+| `.nimi/spec/canonical/runtime/agent-participation.authority.yaml` | Runtime 产权:本地 agent 会话/anchor/turn/AI 配置真相/语音/记忆与 artifact 投影/权限载体裁定 |
 
-## Rule IDs
+原文散文见 `docs/authority/zhiyu-local-partner-surface-rationale.md`(非规范);机器行数据见 `config/zhiyu-*.yaml`(头注声明非权威)。dev-workflow G2 入口钩子(check-zhiyu-local-development-entry)为 D4 载体,零改动保留。
 
-Zhiyu rule IDs use `Z-<DOMAIN>-NNN`.
-
-Allowed domains:
-
-- `PROD`
-- `AUTH`
-- `STATE`
-- `PARTNER`
-- `CHAT`
-- `CONFIG`
-- `MEM`
-- `AV`
-- `ACT`
-- `COPY`
-- `DIAG`
-- `GATE`
-- `REL`
-- `PERSIST`
-
-## Contracts
-
-| Contract | Rule IDs | Purpose |
-| --- | --- | --- |
-| `product-authority-contract.md` | `Z-PROD-*` | Product promise, release posture, non-goals |
-| `authority-boundary-contract.md` | `Z-AUTH-*` | Cross-owner boundary and forbidden local truth |
-| `local-partner-center-state-contract.md` | `Z-STATE-*` | Product states and transitions |
-| `partner-selection-handoff-contract.md` | `Z-PARTNER-*` | Partner selection and Desktop/Realm handoff |
-| `conversation-surface-contract.md` | `Z-CHAT-*` | Runtime Agent conversation consumption |
-| `configuration-surface-contract.md` | `Z-CONFIG-*` | AI config and Avatar config operation surface |
-| `memory-state-projection-contract.md` | `Z-MEM-*` | Read-only memory projection |
-| `avatar-voice-surface-contract.md` | `Z-AV-*` | Avatar and voice posture |
-| `creation-activity-contract.md` | `Z-ACT-*` | Partner activities and image hard cut |
-| `main-ui-copy-contract.md` | `Z-COPY-*` | Chinese main UI copy boundary |
-| `diagnostics-dev-mode-contract.md` | `Z-DIAG-*` | Developer diagnostics surface |
-| `testing-contract.md` | `Z-GATE-*` | Executable test topology and acceptance gates |
-| `incubation-release-contract.md` | `Z-REL-*` | Bundled developer-only release posture |
-| `local-persistence-boundary-contract.md` | `Z-PERSIST-*` | Local persistence boundary |
-
-## Tables
-
-Typed facts live under `tables/`. The authoritative table list is checked by
-`scripts/check-zhiyu-spec-kernel-consistency.mjs`.
-
-## Priority
-
-When conflicts occur:
-
-1. Upstream owner specs define upstream truth.
-2. Zhiyu kernel defines Zhiyu product surface and consumption requirements.
-3. App implementation and tests follow this kernel.
+不得基于本索引推断权威;权威只在 canonical 容器。

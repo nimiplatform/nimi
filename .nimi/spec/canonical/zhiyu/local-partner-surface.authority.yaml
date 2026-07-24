@@ -1,0 +1,767 @@
+format: nimicoding.authority/v1
+units:
+  - id: definition.nimi.zhiyu.local-partner-surface.product-boundary
+    kind: definition
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-PROD-001 Zhiyu local partner surface
+    meaning: The Zhiyu local partner surface is the first-party bundled developer-only incubated app product for presenting the current local partner, partner availability, bounded readiness, conversation, configuration, recoverable failure, and secondary developer diagnostics without acquiring upstream Runtime, Desktop, Realm, SDK, Kit, Avatar, Cognition, provider, model, voice, memory, or artifact truth.
+    relations: []
+  - id: definition.nimi.zhiyu.local-partner-surface.partner-center-state
+    kind: definition
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-STATE-001 local partner center state
+    meaning: Local partner center state is the closed Zhiyu product state projection over admitted upstream status and local presentation state, with exactly local_service_unavailable, no_partner, partner_candidates_unselected, model_config_not_ready, partner_ready, partner_responding, and recoverable_failure.
+    relations: []
+  - id: definition.nimi.zhiyu.local-partner-surface.local-persistence-boundary
+    kind: definition
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-PERSIST-001 local persistence boundary
+    meaning: The Zhiyu local persistence boundary contains only non-authoritative app-local current-partner reference, user-interface preferences, and owner-aware diagnostics projection cache while excluding upstream conversation, cognition, configuration, media-artifact, and Simulator truth.
+    relations: []
+  - id: definition.nimi.zhiyu.local-partner-surface.partner-handoff
+    kind: definition
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-PARTNER-002 partner selection handoff
+    meaning: A Zhiyu partner handoff is a request through the typed NimiDesktopOpenIntent projection and desktop-open.openIntent standard-shell operation to navigate an already-running ready Desktop to its existing partner-selection surface without creating partner, source, profile, Realm, or LocalAgent truth.
+    relations: []
+  - id: definition.nimi.zhiyu.local-partner-surface.honest-copy-posture
+    kind: definition
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-COPY-001 honest main-interface copy posture
+    meaning: Honest copy posture is Chinese-first human-readable Zhiyu product copy that states the current partner, real state, available next step, and recoverable failure while reserving owner-aware engineering detail for diagnostics.
+    relations: []
+  - id: definition.nimi.zhiyu.local-partner-surface.creation-activity
+    kind: definition
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-ACT-001 partner creation activity boundary
+    meaning: A Zhiyu creation activity is a text organization, summary, drafting, or similar partner activity performed through the admitted partner conversation path, never an app-owned image-generation or direct text-generation capability.
+    relations: []
+  - id: definition.nimi.zhiyu.local-partner-surface.conversation-surface
+    kind: definition
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-CHAT-001 partner conversation surface
+    meaning: The Zhiyu conversation surface is an app-local copy, layout, composer, artifact-display, failure, and diagnostics projection over typed Runtime Agent and public SDK or Kit conversation surfaces without owning transport, stream assembly, terminal recovery, continuity, context composition, route, memory, voice, or execution truth.
+    relations: []
+  - id: definition.nimi.zhiyu.local-partner-surface.configuration-surface
+    kind: definition
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-CONFIG-001 partner configuration surface
+    meaning: The Zhiyu configuration surface is a partner-settings or secondary placement for public Kit Agent Center controls and admitted owner facades that display and submit model and presentation configuration while preserving upstream custody and typed unavailable states.
+    relations: []
+  - id: definition.nimi.zhiyu.local-partner-surface.avatar-voice-surface
+    kind: definition
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-AV-001 Avatar and voice surface
+    meaning: The Zhiyu Avatar and voice surface provides owner-facade configuration and launch affordances plus Runtime-projected voice playback and Runtime scenario transcription capture without embedding a carrier or owning Avatar, route, rendering, audio-artifact, playback, or lipsync truth.
+    relations: []
+  - id: definition.nimi.zhiyu.local-partner-surface.memory-projection-surface
+    kind: definition
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-MEM-001 read-only memory projection surface
+    meaning: The Zhiyu memory projection surface is a read-only presentation of admitted current-partner memory, revisit continuity, relationship, and state summaries without memory editing, synthesis, or ownership.
+    relations: []
+  - id: definition.nimi.zhiyu.local-partner-surface.diagnostics-surface
+    kind: definition
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-DIAG-001 secondary diagnostics surface
+    meaning: The Zhiyu diagnostics surface is a secondary developer-only product surface that presents bounded technical observations with owner, reason, trace, and next step without defining product shape or upstream truth.
+    relations: []
+  - id: definition.nimi.zhiyu.local-partner-surface.projected-artifact
+    kind: definition
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-CHAT-005 projected conversation artifact
+    meaning: A projected conversation artifact is a Runtime-owned image artifact presented by Zhiyu from an admitted conversation artifact or action projection with loading, failure, and accessible-label presentation but no app-local generation, fetch, retry, or persistence ownership.
+    relations: []
+  - id: definition.nimi.zhiyu.local-partner-surface.native-host-boundary
+    kind: definition
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-AUTH-003 app-owned native host boundary
+    meaning: The Zhiyu native host boundary owns only its app-local SQLite, media handling, settings, routes, cache, and explicitly implemented native commands, while operating-system rights and protected Runtime, Realm, Cognition, notification, external-file, and cross-app resources remain with their existing owners.
+    relations: []
+  - id: rule.nimi.zhiyu.local-partner-surface.r001
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-PROD-001 partner-first product promise
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu presents the current local partner, real availability and readiness, partner conversation, configuration, recoverable failure, and secondary diagnostics as one partner-first product surface.
+    condition: Whenever the Zhiyu primary product surface is composed.
+    failure: Reject a surface that omits the partner center or makes diagnostics, readiness accounting, or a generic dashboard the product.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.product-boundary
+  - id: rule.nimi.zhiyu.local-partner-surface.r002
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-PROD-002 incubation does not lower product behavior
+    modality: must_not
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu uses its first-party bundled developer-only incubated posture to lower fail-closed behavior, fabricate capability, or promote developer diagnostics to the first screen.
+    condition: Whenever incubation or developer-only status affects product behavior.
+    failure: Preserve the real product state and keep diagnostics secondary.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.diagnostics-surface
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.product-boundary
+  - id: rule.nimi.zhiyu.local-partner-surface.r003
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-PROD-003 upstream ownership exclusion
+    modality: must_not
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu acts as a partner creation tool, Runtime Agent, direct provider or model consumer, AIConfig tester, Avatar carrier runtime, memory editor, Runtime dashboard, Desktop clone, Desktop private-source consumer, or owner of Runtime, Realm, Desktop, SDK, Kit, Cognition, Avatar, voice, memory, provider, model, or artifact truth.
+    condition: Whenever Zhiyu consumes or presents an upstream-owned capability.
+    failure: Reject the ownership transfer and retain only the typed public projection, facade operation, or reference to the owning authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.product-boundary
+  - id: rule.nimi.zhiyu.local-partner-surface.r004
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-STATE-001 closed product state machine
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu occupies exactly one of local_service_unavailable, no_partner, partner_candidates_unselected, model_config_not_ready, partner_ready, partner_responding, or recoverable_failure and changes state only when the matching typed entry or exit condition is observed.
+    condition: Whenever partner center state is initialized, projected, or transitioned.
+    failure: Enter the matching unavailable or recoverable state and reject unknown states, mixed states, and transitions unsupported by typed conditions.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.partner-center-state
+  - id: rule.nimi.zhiyu.local-partner-surface.r005
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-STATE-001 state conditions and actions
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Local service failure permits service check and diagnostics; absent partner permits Desktop partner-selection handoff; unselected candidates permit selection; invalid or missing Runtime model configuration permits configuration; ready partner permits conversation, configuration, and Avatar affordances; responding partner permits draft editing but not sending; and recoverable failure permits retry and diagnostics.
+    condition: Whenever Zhiyu derives actions for the current product state.
+    failure: Hide or disable an action not admitted by the current state and never project a more ready state from action availability.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.partner-center-state
+  - id: rule.nimi.zhiyu.local-partner-surface.r006
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-STATE-002 local partner center is the first screen
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: The first Zhiyu screen presents the local partner center state rather than a diagnostics dashboard, readiness checklist, capability studio, evidence wall, or disabled-card wall.
+    condition: Whenever Zhiyu opens or returns to its primary surface.
+    failure: Replace the non-product first screen with the current fail-closed partner center state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.partner-center-state
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.product-boundary
+  - id: rule.nimi.zhiyu.local-partner-surface.r007
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-STATE-003 bounded projection state fails closed
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu preserves typed ready, blocked, truncated, and failed LocalAgent source and context projections, maps unknown, partial, malformed, unsupported, or absent-required projection to unavailable or recoverable failure, and never derives readiness from raw source, profile, prompt, lane, memory, proof, diagnostics, hash, count, or app-local state.
+    condition: Whenever upstream source or turn-context projection contributes to partner center state.
+    failure: Withhold partner_ready, expose the typed owner-aware failure, and discard any locally recomputed readiness claim.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.partner-center-state
+  - id: rule.nimi.zhiyu.local-partner-surface.r008
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-STATE-004 check local service performs reconnect
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: The check-local-service action performs the admitted real health reconnect across the Runtime, authentication, and SDK bridge, refreshes product state, and presents owner-aware failure plus diagnostics when reconnect fails.
+    condition: Whenever the user invokes check local service.
+    failure: Report the typed reconnect failure and keep the corresponding unavailable state instead of returning no-op or synthetic success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.partner-center-state
+  - id: rule.nimi.zhiyu.local-partner-surface.r009
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-STATE-005 emotion projection preserves Runtime ontology
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu preserves admitted Runtime Agent emotion ontology id and intensity, derives AvatarEmotionCue only through the public Kit avatar emotion mapping, exposes both accepted axes, and leaves the current emotion unchanged for non-emotion activity events.
+    condition: Whenever Zhiyu projects companion emotion.
+    failure: Produce typed emotionViolation evidence without displaying rejected raw values when id or intensity is unknown or neutral carries intensity.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.partner-center-state
+  - id: rule.nimi.zhiyu.local-partner-surface.r010
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-PERSIST-001 allowed local persistence is closed
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu persists only an upstream-referencing non-identity current-partner reference, non-authoritative user-interface preferences containing no Runtime configuration truth, and an owner-aware diagnostics projection cache containing no raw upstream truth.
+    condition: Whenever Zhiyu writes or restores durable app-local state.
+    failure: Reject any unlisted durable state and keep the affected product projection unavailable until the owner surface supplies it.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.local-persistence-boundary
+  - id: rule.nimi.zhiyu.local-partner-surface.r011
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-PERSIST-002 upstream and Simulator truth is never persisted
+    modality: must_not
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu persists canonical transcript, turn, session recovery, memory, agent state, provider or model route, Runtime AI config, Avatar resource or config, voice artifact, image artifact, Runtime snapshot, raw source or context, Simulator identity, epoch, replay, logical-clock, mock projection, scenario snapshot, or Simulator operation-result truth.
+    condition: Whenever app-local storage, cache, settings, SQLite, or media handling receives product or Simulator data.
+    failure: Reject and erase the forbidden persistence input without reconstructing a local substitute.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.local-persistence-boundary
+  - id: rule.nimi.zhiyu.local-partner-surface.r012
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-PERSIST-003 recovery uses admitted Runtime projection
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Conversation recovery and snapshot replay consume admitted Runtime or SDK recovery surfaces, while Simulator reset recreates deterministic scenario projection without hydrating Zhiyu storage or invoking production recovery.
+    condition: Whenever conversation state or a Simulator scenario is recovered or reset.
+    failure: Fail recovery when the owning projection is unavailable and reject local transcript, replay, or scenario state as a recovery source.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.local-persistence-boundary
+  - id: rule.nimi.zhiyu.local-partner-surface.r013
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-AUTH-003 app-owned native state remains bounded
+    modality: must_not
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu app-owned SQLite, media handling, settings, routes, cache, or native commands claim operating-system rights or protected Runtime, Realm, Cognition, notification, external-file, or cross-app resource authority.
+    condition: Whenever the Zhiyu native host stores data or executes an app command.
+    failure: Deny the protected operation unless its owner-admitted carrier or permission and required operating-system grant are present.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.local-persistence-boundary
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.native-host-boundary
+  - id: rule.nimi.zhiyu.local-partner-surface.r014
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-PARTNER-001 no partner or source creation
+    modality: must_not
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu creates local partners, LocalAgents, PersonaCharacters, profiles, character materialization truth, Realm source-materialization packets, Runtime challenges, validated uploads, snapshots, or identity mappings from CharacterSourceRefV3, WorldCharacter, PersonaCharacter, profile, fixture, brand, or app-local data.
+    condition: Whenever no partner exists or partner selection is requested.
+    failure: Withhold creation success and use only the Desktop partner-selection handoff governed by rule.nimi.desktop.product-surfaces.r006 and rule.nimi.desktop.product-surfaces.r007.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.partner-handoff
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.product-boundary
+  - id: rule.nimi.zhiyu.local-partner-surface.r015
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-PARTNER-002 typed Desktop Open handoff
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu requests existing partner selection only with NimiDesktopOpenIntent kind open-explore, section personas, and productIntent select-partner through desktop-open.openIntent, as governed by rule.nimi.platform.core-protocol.p-dopen-001a and rule.nimi.desktop.product-surfaces.r014.
+    condition: Whenever Zhiyu offers navigation to Desktop partner selection.
+    failure: Reject any different target, arbitrary URL, menu-bar event, Desktop-private IPC, materialization payload, or locally invented handoff.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.partner-handoff
+  - id: rule.nimi.zhiyu.local-partner-surface.r016
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-PARTNER-002 Desktop Open failure remains visible
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu maps every typed Desktop Open unavailable, not-running, not-ready, invalid, unsupported, authentication-failed, or host-unavailable result to honest guidance and never starts Desktop, queues the request, or reports navigation success.
+    condition: Whenever desktop-open.openIntent cannot complete immediately.
+    failure: Keep partner selection incomplete and present the exact bounded unavailable guidance.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.honest-copy-posture
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.partner-handoff
+  - id: rule.nimi.zhiyu.local-partner-surface.r017
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-PARTNER-003 current partner is an upstream projection
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu presents current-partner identity and availability only from admitted upstream partner projection, bounded LocalAgentSourceContextStatus, and admitted opaque inventory or provenance, and stores no raw source, profile, context, or alternate identity mapping.
+    condition: Whenever a current or candidate partner is displayed or selected.
+    failure: Treat unknown or partial status as unavailable and reject fixture, brand, or app-local identity as current-partner truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.partner-center-state
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.partner-handoff
+  - id: rule.nimi.zhiyu.local-partner-surface.r018
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-CHAT-001 public Runtime and Kit conversation consumption
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu conversation consumes the public Runtime Agent client, turn runner, and turns module from @nimiplatform/sdk/runtime with the owner-required scoped binding and uses public Kit headless Runtime Agent event projection and reducer surfaces instead of app-authored transport or projection truth.
+    condition: Whenever Zhiyu starts, streams, projects, recovers, or renders a partner turn.
+    failure: Reject private, raw, unbound, locally reduced, or app-owned transport and keep the conversation unavailable.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.conversation-surface
+  - id: rule.nimi.zhiyu.local-partner-surface.r019
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-CHAT-001 bounded parity presentation
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu may adapt app identity, Chinese copy, layout, current-partner selection, composer placement, failure projection, and diagnostics entries while shared typed SDK or Kit state mapping remains the sole conversation projection reducer.
+    condition: Whenever Zhiyu implements Desktop Agent Chat parity in its app product surface.
+    failure: Reject any app-local transport, terminal, snapshot, context, route, provider, model, memory, Avatar, voice, lipsync, or execution truth and retain presentation-only behavior.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.conversation-surface
+  - id: rule.nimi.zhiyu.local-partner-surface.r020
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-CHAT-003 direct AI and context assembly are forbidden
+    modality: must_not
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu partner paths call direct AI text generation, raw runtime.agent messaging, memory write, app-local voice render, provider or model helpers, or attach app-composed source, world, profile, prompt, role, lane, transcript, memory, tool, proof, manifest, realmProfileContext, or execution-binding material to a turn.
+    condition: Whenever Zhiyu constructs a partner conversation or activity request.
+    failure: Reject the request before execution and require the typed Runtime Agent operation with Runtime-owned identities and context.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.conversation-surface
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.creation-activity
+  - id: rule.nimi.zhiyu.local-partner-surface.r021
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-CHAT-004 composer remains editable but cannot queue
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: While the current partner responds, Zhiyu preserves editable draft text, disables send until the turn completes, and exposes neither queued turns nor continuous sends.
+    condition: Whenever a Runtime Agent turn is in progress.
+    failure: Block additional submission without discarding the editable draft.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.conversation-surface
+  - id: rule.nimi.zhiyu.local-partner-surface.r022
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-CHAT-005 projected artifacts have display-only behavior
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu may render Runtime conversation image artifact and action projections with loading state, load failure, and an accessible label, but it never requests image generation, edits an image prompt, selects an image model, fetches through an app-local seam, calls a provider, owns retry, or persists artifact truth.
+    condition: Whenever an image artifact is announced or displayed in conversation.
+    failure: Show typed load or projection failure and remove any generation, local fetch, retry, or storage success claim.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.conversation-surface
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.projected-artifact
+  - id: rule.nimi.zhiyu.local-partner-surface.r023
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-ACT-001 partner activities use conversation
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Text organization, summary, drafting, and similar partner activities execute as admitted Runtime Agent conversation turns rather than direct text-generation helpers.
+    condition: Whenever the user invokes a partner creation activity.
+    failure: Reject direct generation and keep the activity unavailable until the admitted conversation path is available.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.conversation-surface
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.creation-activity
+  - id: rule.nimi.zhiyu.local-partner-surface.r024
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-ACT-002 image creation is absent
+    modality: must_not
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu exposes an image studio, image prompt tool, image provider or model control, app-local image generation, or projected artifact display as an image-creation capability.
+    condition: Whenever Zhiyu composes activities, tools, or conversation artifact actions.
+    failure: Remove the image-creation action and retain only admitted Runtime-owned artifact display.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.creation-activity
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.projected-artifact
+  - id: rule.nimi.zhiyu.local-partner-surface.r025
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-CONFIG-001 Kit Agent Center has user-facing placement
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu provides Kit Agent Center as a partner-settings or secondary surface for viewing and operating the Runtime Agent AI Config of the current partner, with bounded read-only source and context status separated from model configuration and execution binding.
+    condition: Whenever current-partner settings are opened.
+    failure: Present a typed configuration-unavailable state when the public Kit or Runtime facade is absent.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.configuration-surface
+  - id: rule.nimi.zhiyu.local-partner-surface.r026
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-CONFIG-002 configuration mutations use owner facades
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu submits Runtime Agent AI Config changes through typed Kit Agent Center controls and Runtime or SDK runtime.agent.ai_config facades with expected_revision, keeps stale conflicts visible, and never overwrites a newer Runtime revision.
+    condition: Whenever a model or Runtime Agent AI Config edit is submitted.
+    failure: Keep the local edit uncommitted and show typed validation, stale-revision, permission, binding, or facade failure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.configuration-surface
+  - id: rule.nimi.zhiyu.local-partner-surface.r027
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-CONFIG-004 configuration surfaces fail closed
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Configuration remains unavailable when an upstream facade, permission, binding, validation, owner admission, or complete typed source or context projection is missing, and a rendered control never proves that a change is admitted or persisted.
+    condition: Whenever configuration is displayed, validated, submitted, or confirmed.
+    failure: Show the typed unavailable or rejected state without deriving readiness from profile metadata, raw diagnostics, hashes, or locally assembled context.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.configuration-surface
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.honest-copy-posture
+  - id: rule.nimi.zhiyu.local-partner-surface.r028
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-CONFIG-005 retired app-local configuration remains absent
+    modality: must_not
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu exposes __nimiZhiyuAgentCenterLocalConfig, zhiyu:agent-center-local-config, renderer-local Agent Center schemas, private avatar.import or background.import commands, app-local local_history, app-local ui.last_section, or host-local voice.avatar_autoplay persistence.
+    condition: Whenever Agent Center configuration or product-local settings are constructed or persisted.
+    failure: Reject the retired bridge or setting; local_history and ui.last_section have no replacement, and avatar_autoplay remains only in Runtime AgentPresentationProfile.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.configuration-surface
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.local-persistence-boundary
+  - id: rule.nimi.zhiyu.local-partner-surface.r029
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-CONFIG-006 Kit placement excludes product shell and harness truth
+    modality: must_not
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu places partner selection, partner header, close control, side-sheet chrome, developer tools, app-specific diagnostics, Capability Studio, app-scope AIConfig storage, direct AI consume wrappers, technical gating surfaces, or product-shell controls inside Kit Agent Center.
+    condition: Whenever Zhiyu composes Kit Agent Center or developer tooling.
+    failure: Keep Kit Agent Center bounded to its public configuration controls and place separate dev-only tools outside the product shell and product Electron AIConfig storage.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.configuration-surface
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.diagnostics-surface
+  - id: rule.nimi.zhiyu.local-partner-surface.r030
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-CONFIG-003 Avatar import and selection use admitted facades
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu offers Live2D or VRM import through Kit Shell standard agent-center operations when host custody exists, displays import validation, selects admitted resources through Runtime AgentPresentationProfile, and presents the selected upstream projection without storing resource or Avatar config truth.
+    condition: Whenever Avatar configuration is displayed or changed.
+    failure: Show typed import, custody, validation, selection, or host-unavailable state and never bypass the Avatar validator or mutate carrier runtime directly.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.avatar-voice-surface
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.configuration-surface
+  - id: rule.nimi.zhiyu.local-partner-surface.r031
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-AV-002 Avatar posture is launch-only
+    modality: must_not
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu embeds an Avatar carrier, owns its live-instance lifecycle, or presents a ready Avatar instance without an admitted owner facade and positive public launch handoff result.
+    condition: Whenever Avatar launch is offered or completed.
+    failure: Keep launch disabled or unavailable with a bounded reason and do not fabricate an embedded or live instance.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.avatar-voice-surface
+  - id: rule.nimi.zhiyu.local-partner-surface.r032
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-AV-003 Runtime voice playback projection only
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu plays voice only from positive typed Runtime or SDK voice projection, preserving voice_output_mode, distinct voice_playback_state, chunk ordering, interruption, and final Runtime artifact replay semantics.
+    condition: Whenever a partner turn requests or streams voice playback.
+    failure: Enter typed playback-unavailable or failed state when Runtime truth is absent, simulated, incomplete, stale, or out of order.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.avatar-voice-surface
+  - id: rule.nimi.zhiyu.local-partner-surface.r033
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-AV-003 voice capture uses Runtime scenario transcription
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu records voice input, submits it only through the Runtime audio.transcribe scenario surface using the Runtime-owned committed transcription route, and projects the returned transcript into the editable composer.
+    condition: Whenever the user submits recorded voice input.
+    failure: Show typed capture or transcription failure without selecting provider, model, execution binding, or app-local route.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.avatar-voice-surface
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.conversation-surface
+  - id: rule.nimi.zhiyu.local-partner-surface.r034
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-AV-003 no local speech route or durable cache
+    modality: must_not
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu selects a voice provider or model, runs app-local text-to-speech or speech-to-text, carries execution binding on capture, stores durable voice cache truth, or fabricates playback or lipsync readiness.
+    condition: Whenever voice capture, synthesis, playback, replay, or lipsync is presented.
+    failure: Reject the local speech path and require the typed Runtime scenario, projection, artifact, or failure result.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.avatar-voice-surface
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.local-persistence-boundary
+  - id: rule.nimi.zhiyu.local-partner-surface.r035
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-MEM-001 memory and relationship display is read-only
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu displays only admitted current-partner memory, revisit continuity, relationship, and state-summary projections and preserves their owner-provided unavailable state without synthesizing conclusions.
+    condition: Whenever a memory, continuity, relationship, or state summary is shown.
+    failure: Hide or mark unavailable any unowned, malformed, partial, locally inferred, or stale summary.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.memory-projection-surface
+  - id: rule.nimi.zhiyu.local-partner-surface.r036
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-MEM-002 no user memory-write surface
+    modality: must_not
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu exposes direct memory write, edit, advanced jailbreak-style memory write, a user-visible memory-write feature, SDK writeMemory, or an equivalent memory helper.
+    condition: Whenever a partner memory or relationship surface is composed or invoked.
+    failure: Reject the write and retain a read-only projection even when an upstream registry admits owner-reviewed memory operations.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.memory-projection-surface
+  - id: rule.nimi.zhiyu.local-partner-surface.r037
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-DIAG-001 diagnostics remains secondary
+    modality: must_not
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Diagnostics or dev mode defines the first screen, primary navigation, product state, or capability availability.
+    condition: Whenever diagnostics is opened or diagnostic information is available.
+    failure: Keep diagnostics behind the partner product surface and derive product behavior only from admitted product and owner projections.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.diagnostics-surface
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.product-boundary
+  - id: rule.nimi.zhiyu.local-partner-surface.r038
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-DIAG-002 owner-aware diagnostics
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Each Zhiyu technical diagnostic identifies the owning domain, bounded reason, trace, and next step while preserving raw upstream truth with its owner.
+    condition: Whenever technical detail is shown in diagnostics.
+    failure: Omit unowned raw detail and show an owner-aware unavailable diagnostic instead of a fabricated explanation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.diagnostics-surface
+  - id: rule.nimi.zhiyu.local-partner-surface.r039
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-DIAG-003 verification material cannot define product truth
+    modality: must_not
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Diagnostics, tests, release evidence, screenshots, fixtures, source inspection, cached artifacts, old end-to-end results, closeout reports, or success-shaped mocks establish product readiness, product shape, upstream success, or authority.
+    condition: Whenever Zhiyu capability or readiness is evaluated or presented.
+    failure: Keep the capability unavailable until the real admitted owner path returns positive typed product truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.diagnostics-surface
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.product-boundary
+  - id: rule.nimi.zhiyu.local-partner-surface.r040
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-COPY-001 main-interface copy is Chinese-first and human-readable
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu main-interface copy describes the current partner, real state, available next step, and recoverable failure in Chinese-first human-readable language.
+    condition: Whenever user-facing primary product copy is rendered.
+    failure: Replace opaque, stale, or capability-inaccurate copy with bounded honest product language.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.honest-copy-posture
+  - id: rule.nimi.zhiyu.local-partner-surface.r041
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-COPY-002 engineering detail is diagnostics-only
+    modality: must_not
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu primary product copy exposes owner implementation names, protocol vocabulary, scope identifiers, target references, reason codes, admission labels, fixture language, transport names, or equivalent engineering terms.
+    condition: Whenever main-interface copy describes state, failure, or an action.
+    failure: Translate the bounded state into human-readable product copy and reserve owner, reason, trace, and engineering detail for diagnostics.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.diagnostics-surface
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.honest-copy-posture
+  - id: rule.nimi.zhiyu.local-partner-surface.r042
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-COPY-003 copy matches real capability
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Every Zhiyu button label, empty state, and failure message describes only the currently admitted action and presents honest guidance when a Desktop, Runtime, Avatar, Kit, or host facade is unavailable.
+    condition: Whenever an action or capability state is presented.
+    failure: Disable or remove the fake action and show the bounded real next step without promising success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.honest-copy-posture
+  - id: rule.nimi.zhiyu.local-partner-surface.r043
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-REL-001 bundled developer-only release posture
+    modality: must
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu consumes the Platform registry identity nimi.zhiyu and release descriptor nimi.zhiyu.bundled-with-nimi and remains bundled, developer-only, and incubated until an admitted owner release posture changes it.
+    condition: Whenever Zhiyu release posture is presented or packaged.
+    failure: Reject a public, standalone, or mature-release claim unsupported by the admitted Platform release posture.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.product-boundary
+  - id: rule.nimi.zhiyu.local-partner-surface.r044
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-REL-002 registry admission grants no upstream ownership
+    modality: must_not
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu interprets registry admission, manifest presence, base entitlement, operating-system right, or local app identity as permission for or ownership of an upstream protected operation.
+    condition: Whenever Zhiyu checks permission, entitlement, registry, or host posture.
+    failure: Require the exact owner-admitted carrier or public permission and remain fail closed when it is absent.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.native-host-boundary
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.product-boundary
+  - id: rule.nimi.zhiyu.local-partner-surface.r045
+    kind: rule
+    owner: team.zhiyu
+    lifecycle: active
+    title: Z-AUTH-005 public SDK and Kit consumption boundary
+    modality: must_not
+    scope:
+      - zhiyu.local-partner-surface
+    statement: Zhiyu replaces required public SDK or Kit surfaces with private Desktop source, app-owned upstream reducers, raw protocol clients, duplicate configuration stores, context assemblers, or private host command vocabulary.
+    condition: Whenever Zhiyu integrates conversation, configuration, Avatar, voice, memory, or Desktop handoff behavior.
+    failure: Reject the private or duplicate integration and consume the admitted typed public surface with owner-required binding.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.configuration-surface
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.conversation-surface
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.product-boundary

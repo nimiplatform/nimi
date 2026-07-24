@@ -17,7 +17,7 @@ const appShellRoots = [
   'apps/zhiyu/src',
   'apps/zhiyu/src-electron',
 ];
-const tablesRoot = '.nimi/spec/zhiyu/kernel/tables';
+const tablesRoot = 'config';
 const agentCenterLocalConfigHardcutFiles = new Set([
   'apps/zhiyu/src-electron/agent-center-local-config.ts',
   'apps/zhiyu/src-electron/agent-center-local-config-schema.ts',
@@ -189,14 +189,14 @@ function checkConfigBoundary() {
     ...walkFiles('apps/zhiyu/src/shell/avatar'),
     ...walkFiles('apps/zhiyu/src-electron'),
   ];
-  requireFileIncludes('.nimi/spec/zhiyu/kernel/configuration-surface-contract.md', [
+  requireFileIncludes('docs/authority/zhiyu-local-partner-surface-rationale.md', [
     'Z-CONFIG-005',
     'Retired Agent Center Local Config Bridge',
     '__nimiZhiyuAgentCenterLocalConfig',
     'Kit Shell standard `agent-center`',
     'Runtime `AgentPresentationProfile`',
   ]);
-  requireFileIncludes(`${tablesRoot}/local-persistence-boundary.yaml`, [
+  requireFileIncludes(`${tablesRoot}/zhiyu-local-persistence-boundary.yaml`, [
     'agent_center_local_config_hardcut',
     'retired',
     'source_rule: Z-CONFIG-005',
@@ -237,7 +237,7 @@ function checkConfigBoundary() {
 }
 
 function checkNoDirectAIConsumption() {
-  const table = readYaml(`${tablesRoot}/sdk-kit-consumption-surface.yaml`);
+  const table = readYaml(`${tablesRoot}/zhiyu-sdk-kit-consumption-surface.yaml`);
   const symbolPatterns = (Array.isArray(table?.rows) ? table.rows : [])
     .filter((row) => row?.kind === 'forbidden_surface')
     .map((row) => String(row?.symbol || '').trim())

@@ -1,8 +1,11 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/zhiyu/local-partner-surface.authority.yaml
+# Rationale: docs/authority/zhiyu-local-partner-surface-rationale.md
 version: 1
 table_family: product_record_schema
 owner: zhiyu
 record_id: zhiyu_permission_posture
-path: .nimi/spec/zhiyu/kernel/tables/permission-posture.yaml
+path: config/zhiyu-permission-posture.yaml
 schema_version: 2
 source_rule: Z-AUTH-003
 required_top_level_fields:
