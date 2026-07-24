@@ -1,5 +1,7 @@
 # Desktop Tauri Command Execution Contract
 
+> 本文为 rationale/历史散文，非规范权威；规范 = `.nimi/spec/canonical/desktop/command-execution.authority.yaml`。
+
 > Owner Domain: `D-GATE-*`
 
 This contract governs Desktop Tauri invoke command execution posture. It is the normative authority for command responsiveness classification; external-host task state and execution dossiers are non-authoritative evidence only.

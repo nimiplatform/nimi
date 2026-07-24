@@ -16,7 +16,7 @@ const commandDispositionPath = path.join(
 );
 const classificationPath = path.join(
   repoRoot,
-  '.nimi/spec/desktop/kernel/tables/command-execution-classification.yaml',
+  'config/desktop-command-execution-classification.yaml',
 );
 
 type CommandSurfaceReport = {

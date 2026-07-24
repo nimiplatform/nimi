@@ -61,7 +61,7 @@ test('macOS smoke commands remain registered as acceptance instrumentation only'
   const appLocal = new Set(report.appLocalRegistered);
   const kit = new Set(report.kitRegistered);
   const classification = fs.readFileSync(
-    path.join(repoRoot, '.nimi/spec/desktop/kernel/tables/command-execution-classification.yaml'),
+    path.join(repoRoot, 'config/desktop-command-execution-classification.yaml'),
     'utf8',
   );
   const ipcCommands = fs.readFileSync(

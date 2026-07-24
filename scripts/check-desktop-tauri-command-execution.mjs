@@ -7,7 +7,7 @@ import YAML from 'yaml';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
-const tableRel = '.nimi/spec/desktop/kernel/tables/command-execution-classification.yaml';
+const tableRel = 'config/desktop-command-execution-classification.yaml';
 const tablePath = path.join(repoRoot, tableRel);
 const ipcCommandsRel = '.nimi/spec/desktop/kernel/tables/ipc-commands.yaml';
 const ipcCommandsPath = path.join(repoRoot, ipcCommandsRel);

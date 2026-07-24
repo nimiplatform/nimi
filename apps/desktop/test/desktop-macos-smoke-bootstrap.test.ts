@@ -116,7 +116,7 @@ test('desktop macos smoke commands are fixture-gated instrumentation only', () =
     'utf8',
   );
   const classificationSource = fs.readFileSync(
-    path.join(root, '../../.nimi/spec/desktop/kernel/tables/command-execution-classification.yaml'),
+    path.join(root, '../../config/desktop-command-execution-classification.yaml'),
     'utf8',
   );
 

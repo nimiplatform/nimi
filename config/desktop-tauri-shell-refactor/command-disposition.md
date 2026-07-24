@@ -2,7 +2,7 @@
 
 Date: 2026-07-09
 
-This tracked config report is machine-checkable audit evidence for the Desktop Tauri shell refactor. It is not parallel authority. The executable command surface remains `.nimi/spec/desktop/kernel/tables/ipc-commands.yaml`, `.nimi/spec/desktop/kernel/tables/command-execution-classification.yaml`, and `apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs`.
+This tracked config report is machine-checkable audit evidence for the Desktop Tauri shell refactor. It is not parallel authority. The executable command surface remains `.nimi/spec/desktop/kernel/tables/ipc-commands.yaml` and `apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs`; execution classification machine config is `config/desktop-command-execution-classification.yaml`, and its normative authority is `.nimi/spec/canonical/desktop/command-execution.authority.yaml`.
 
 Current command accounting after the Agent Center Kit-shell hardcut:
 

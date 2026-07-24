@@ -165,7 +165,7 @@ test('Runtime Agent conversation summary adapter keeps Runtime anchor identity e
 });
 
 test('Desktop command classification no longer admits chat_agent store commands', () => {
-  const table = readWorkspaceFile('.nimi/spec/desktop/kernel/tables/command-execution-classification.yaml');
+  const table = readWorkspaceFile('config/desktop-command-execution-classification.yaml');
 
   assert.doesNotMatch(table, /memory_embedding_runtime_(?:inspect|request_bind|request_cutover)/);
   assert.match(table, /family: chat_ai_local_store[\s\S]*?regex: "\^chat_ai_\.\*\$"[\s\S]*?remediation_required: false/);

@@ -203,6 +203,10 @@ jobs:
         run: pnpm check:no-app-realm-rest-bypass
       - name: gate.workflow.actionlint
         run: pnpm check:actionlint
+      - name: authority.canonical.check
+        run: pnpm spec:authority:check
+      - name: authority.canonical.anchors
+        run: pnpm spec:authority:anchors
 
   workspace-regression:
     needs: changes

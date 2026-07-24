@@ -50,7 +50,7 @@ test('Desktop Tauri registered invoke commands match active IPC spec exactly', (
 });
 
 test('Desktop command classification does not claim Tester World-Tour commands', () => {
-  const source = read('.nimi/spec/desktop/kernel/tables/command-execution-classification.yaml');
+  const source = read('config/desktop-command-execution-classification.yaml');
   assert.doesNotMatch(source, /open_world_tour_window/);
   assert.doesNotMatch(source, /claim_world_tour_viewer_launch/);
   assert.doesNotMatch(source, /world_tour_render_acceptance_(?:load|save)/);

@@ -1,0 +1,315 @@
+format: nimicoding.authority/v1
+units:
+  - id: definition.nimi.desktop.command-execution.ui-sync
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop ui_sync execution class
+    meaning: ui_sync is a Desktop registered-command execution class for pure in-memory or constant configuration reads only, with no reachable I/O, process, network, dialog, lock wait, recursive walk, hashing, archive, socket, sleep, raw thread, spawn_blocking, or block_on work.
+    relations: []
+  - id: definition.nimi.desktop.command-execution.request-response-async
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop request_response_async execution class
+    meaning: request_response_async is a Desktop registered-command execution class for async request and response work whose network, Runtime bridge unary or stream, daemon status, and package-owned bridge operations remain async-aware and never hide synchronous blocking work as success.
+    relations: []
+  - id: definition.nimi.desktop.command-execution.background-job
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop background_job execution class
+    meaning: background_job is a Desktop registered-command execution class for long-running transfer, install, archive, copy, import, hash, scan, migration, rebuild, or bulk mutation that returns an accepted job and progress contract or an equivalent admitted background handoff with command-family ownership of cancellation, progress, failure, and rollback semantics.
+    relations: []
+  - id: definition.nimi.desktop.command-execution.bounded-blocking-with-admission
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop bounded_blocking_with_admission execution class
+    meaning: bounded_blocking_with_admission is a Desktop registered-command execution class for explicitly admitted small synchronous work with a named risk family, owner, and bound, limited to native UI handoff, one-shot local store reads or writes, small fixture reads, and user-triggered operating-system actions.
+    relations: []
+  - id: definition.nimi.desktop.command-execution.registered-disabled-stub
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop registered_disabled_stub execution class
+    meaning: registered_disabled_stub is a Desktop registered-command execution class for a registered command that intentionally returns a fail-closed error with no active side effect; it grants no risk waiver and requires reclassification before re-enabling.
+    relations: []
+  - id: definition.nimi.desktop.command-execution.dormant-admitted
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop dormant_admitted command class
+    meaning: dormant_admitted is a Desktop dormant-command class for an annotated but unregistered command intentionally retained as unavailable code whose re-registration requires an active execution classification first.
+    relations: []
+  - id: definition.nimi.desktop.command-execution.dead-for-removal
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop dead_for_removal command class
+    meaning: dead_for_removal is a Desktop dormant-command class for an annotated but unregistered command that is not needed and must be deleted before closure.
+    relations: []
+  - id: definition.nimi.desktop.command-execution.risk-catalog
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop command blocking risk catalog
+    meaning: The Desktop command blocking risk families are blocking_http, sync_dns_or_connect, runtime_bridge_block_on, block_on_variants, process_command, archive_or_compression, sqlite_sync, std_fs, native_dialog, thread_sleep, raw_thread_spawn, spawn_blocking, sync_lock_contention, cpu_hash_or_codec, sync_socket_bind, os_browser_handoff, window_handoff, and sync_keyring_dialog.
+    relations: []
+  - id: definition.nimi.desktop.command-execution.registered-surface
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop generate_handler registered invoke surface
+    meaning: The Desktop registered invoke surface is the balanced registration list supplied to tauri::generate_handler! by apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs, including admitted Kit shell handler macro expansions, resolved against annotated command definitions under apps/desktop/src-tauri/src and kit/shell/tauri/src.
+    relations: []
+  - id: rule.nimi.desktop.command-execution.r001
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Every registered command has exactly one execution class
+    modality: must
+    scope:
+      - desktop.command-execution
+    statement: Every command in the Desktop registered invoke surface belongs to exactly one admitted execution class.
+    condition: Whenever a command is registered through the Desktop invoke surface.
+    failure: Reject the registered surface while any command has no execution class or matches more than one execution class.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.background-job
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.bounded-blocking-with-admission
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.registered-disabled-stub
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.registered-surface
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.request-response-async
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.ui-sync
+  - id: rule.nimi.desktop.command-execution.r002
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Registered command behavior conforms to its execution class
+    modality: must
+    scope:
+      - desktop.command-execution
+    statement: Every registered Desktop command satisfies the complete meaning of its assigned execution class.
+    condition: Whenever registered-command behavior is implemented, changed, or evaluated.
+    failure: Reject the command classification until the implementation conforms to its assigned execution class.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.background-job
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.bounded-blocking-with-admission
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.registered-disabled-stub
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.request-response-async
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.ui-sync
+  - id: rule.nimi.desktop.command-execution.r003
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Synchronous blocking requires bounded admission
+    modality: must
+    scope:
+      - desktop.command-execution
+    statement: A registered command that performs synchronous blocking work on the invoke execution path uses bounded_blocking_with_admission with a cataloged risk family, explicit owner, and explicit bound.
+    condition: Whenever synchronous blocking work is reachable from a registered command on the invoke execution path.
+    failure: Reject the command until blocking is removed from the invoke path or the command receives complete bounded blocking admission.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.bounded-blocking-with-admission
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.registered-surface
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.risk-catalog
+  - id: rule.nimi.desktop.command-execution.r004
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Async syntax and wrappers do not prove responsiveness
+    modality: must_not
+    scope:
+      - desktop.command-execution
+    statement: An async function signature or a spawn_blocking wrapper is treated as sufficient evidence of command responsiveness or as a final execution model without background_job or bounded_blocking_with_admission classification and explicit ownership and observability.
+    condition: Whenever registered-command responsiveness or execution classification is evaluated.
+    failure: Reject the claimed classification and require behavior-level execution evidence.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.background-job
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.bounded-blocking-with-admission
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.request-response-async
+  - id: rule.nimi.desktop.command-execution.r005
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Registered surface parsing and definition resolution fail closed
+    modality: must
+    scope:
+      - desktop.command-execution
+    statement: The Desktop registered invoke surface is parsed with balanced brackets and every registered command resolves to an annotated definition in an admitted Desktop or Kit command root.
+    condition: Whenever the Desktop registered invoke surface is evaluated.
+    failure: Reject zero-command parses, unbalanced or unparseable registration, and registered commands without a resolved annotated definition.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.registered-surface
+  - id: rule.nimi.desktop.command-execution.r006
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Package-owned commands remain first-class Desktop surface
+    modality: must
+    scope:
+      - desktop.command-execution
+    statement: Registered package-owned command families, including oauth_, runtime_bridge_, log_renderer_event, open_external_url, and shared runtime_defaults implementations, receive the same definition resolution, execution classification, and risk admission as app-local commands.
+    condition: Whenever a package-owned command is registered by the Desktop host.
+    failure: Reject any registered package-owned command treated as unscannable or outside Desktop execution classification.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.registered-surface
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.risk-catalog
+  - id: rule.nimi.desktop.command-execution.r007
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Cataloged risks require explicit admission
+    modality: must_not
+    scope:
+      - desktop.command-execution
+    statement: New command code touches a cataloged blocking risk source without an execution classification and explicit admission for that risk family.
+    condition: Whenever new or changed command code reaches a cataloged risk source.
+    failure: Reject the command change until both execution classification and explicit risk admission are present.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.registered-surface
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.risk-catalog
+  - id: rule.nimi.desktop.command-execution.r008
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Remediation markers do not close command debt
+    modality: must_not
+    scope:
+      - desktop.command-execution
+    statement: A remediation_required marker is treated as closure of existing command-execution debt.
+    condition: Whenever an existing command family is marked remediation_required.
+    failure: Keep the command family open as a remediation obligation and report it as unresolved.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.risk-catalog
+  - id: rule.nimi.desktop.command-execution.r009
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Every annotated unregistered command has one dormant class
+    modality: must
+    scope:
+      - desktop.command-execution
+    statement: Every annotated but unregistered Desktop or Kit Tauri command belongs to exactly one of dormant_admitted or dead_for_removal.
+    condition: Whenever an annotated command is absent from the Desktop registered invoke surface.
+    failure: Reject the dormant inventory while a command is unclassified or matches more than one dormant class.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.dead-for-removal
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.dormant-admitted
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.registered-surface
+  - id: rule.nimi.desktop.command-execution.r010
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Active and dormant classifications are disjoint
+    modality: must_not
+    scope:
+      - desktop.command-execution
+    statement: A registered command remains under dormant classification or an annotated unregistered command satisfies active remediation accounting.
+    condition: Whenever active and dormant command classifications are evaluated.
+    failure: Reject the overlapping classification and exclude dormant commands from active remediation counts.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.dead-for-removal
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.dormant-admitted
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.registered-surface
+  - id: rule.nimi.desktop.command-execution.r011
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Dormant admission cannot bypass active classification
+    modality: must_not
+    scope:
+      - desktop.command-execution
+    statement: A dormant_admitted command is re-registered before receiving an active execution classification.
+    condition: Whenever a dormant_admitted command is proposed for Desktop registration.
+    failure: Reject registration until active execution classification and required risk admissions are complete.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.dormant-admitted
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.registered-surface
+  - id: rule.nimi.desktop.command-execution.r012
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Dead commands are removed before closure
+    modality: must
+    scope:
+      - desktop.command-execution
+    statement: Every command classified dead_for_removal is deleted before command-execution closure.
+    condition: Whenever command-execution work containing a dead_for_removal command reaches closure.
+    failure: Keep the work open until the dead annotated command is deleted.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.dead-for-removal
+  - id: rule.nimi.desktop.command-execution.r013
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Command execution validation fails closed
+    modality: must
+    scope:
+      - desktop.command-execution
+    statement: Desktop command-execution validation rejects missing definitions, missing execution or dormant classifications, missing risk catalog entries, unadmitted direct blocking risks, and zero or unparseable registered surfaces while reporting remediation_required families without treating them as closed.
+    condition: Whenever the Desktop command-execution boundary is validated.
+    failure: Return a failing validation result with the unresolved command families and risks instead of success or partial closure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.dead-for-removal
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.dormant-admitted
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.registered-surface
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.risk-catalog
+  - id: rule.nimi.desktop.command-execution.r014
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Remediation requires implementation and gate evidence
+    modality: must
+    scope:
+      - desktop.command-execution
+    statement: Command-execution remediation starts from the machine-consumed classification backlog and removes a family from remediation_required only after implementation and current gate evidence prove the target execution class.
+    condition: Whenever a command family is proposed to leave remediation_required.
+    failure: Keep remediation_required set until both implementation and current gate evidence prove the target class.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.background-job
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.bounded-blocking-with-admission
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.registered-disabled-stub
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.request-response-async
+      - type: applies_to
+        target: definition.nimi.desktop.command-execution.ui-sync

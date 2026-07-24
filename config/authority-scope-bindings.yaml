@@ -1,0 +1,14 @@
+format: nimicoding.scope-bindings/v1
+scopes:
+  - scope: nimi.spec-admission
+    bindings:
+      - kind: path_glob
+        value: ".nimi/spec/canonical/**/*.authority.yaml"
+  - scope: desktop.command-execution
+    bindings:
+      - kind: path_glob
+        value: "apps/desktop/src-tauri/src/**/*.rs"
+      - kind: path_glob
+        value: "kit/shell/tauri/src/**/*.rs"
+      - kind: command
+        value: "check:desktop-tauri-command-execution"
