@@ -15,7 +15,7 @@ const repoRoot = path.resolve(scriptDir, '..');
 // feed clone, friends-invite system clone.
 
 // Product-copy / marketing / install-gateway surfaces only. The
-// canonical anti-target rules in `.nimi/spec/platform/kernel/nimi-ecosystem-contract.md`
+// canonical anti-target rules in `docs/authority/platform-app-ecosystem-rationale.md`
 // legitimately document forbidden phrasing as rules and must not be
 // scanned by this gate (they OWN the rule, not violate it).
 const TARGET_GLOBS = [

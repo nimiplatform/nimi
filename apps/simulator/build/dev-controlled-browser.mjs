@@ -64,7 +64,7 @@ function qualificationWatchRoots() {
   const inputs = loadQualificationInputs();
   const roots = new Set([
     CONFIG_ROOT,
-    path.join(REPO_ROOT, '.nimi', 'spec', 'platform', 'kernel', 'tables'),
+    path.join(REPO_ROOT, 'config'),
     path.join(REPO_ROOT, 'apps', 'web', 'src'),
     path.join(REPO_ROOT, 'apps', 'web', 'package.json'),
     path.join(REPO_ROOT, 'apps', 'web', 'vite.config.ts'),

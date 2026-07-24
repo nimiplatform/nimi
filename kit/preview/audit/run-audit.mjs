@@ -71,7 +71,7 @@ function buildPreview() {
 // --- static source assertions ------------------------------------------------
 
 function readSpecMotionValues() {
-  const themes = YAML.parse(fs.readFileSync(path.join(repoRoot, '.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml'), 'utf8'));
+  const themes = YAML.parse(fs.readFileSync(path.join(repoRoot, 'config/platform-nimi-ui-themes.yaml'), 'utf8'));
   const light = themes.packs.find((p) => p.theme_id === 'nimi-light');
   const v = light.values;
   return {

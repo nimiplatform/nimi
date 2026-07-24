@@ -1,0 +1,200 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/platform/app-ecosystem.authority.yaml
+# Rationale: docs/authority/platform-app-ecosystem-rationale.md
+version: 8
+table_family: owner_matrix
+owner: platform
+matrix_id: nimi_app_local_development_admission
+description: Production Developer Mode project authorization, supervision, iteration, and invalidation semantics for the final local_development provenance class.
+authority_refs: [P-NAPP-035, P-DEV-006, K-APP-028, K-APP-029, K-PLOCAL-009, K-ACCSVC-026, K-GRANT-014, D-IPC-019, D-IPC-020, P-KIT-046, P-SCAF-018, S-TRANSPORT-014]
+trust_class:
+  id: local_development
+  taxonomy_ref: tables/nimi-app-local-trust-classes.yaml
+  mutable_project_allowed: true
+  product_release_conversion: forbidden_new_immutable_admission_required
+  app_id_collision_inherits_state: false
+developer_mode:
+  shipped_in_production: true
+  default_enabled: false
+  global_toggle_grants_capability: false
+  hidden_flag_env_or_argv_enablement: forbidden
+  disable_effect:
+    active_sessions: revoke
+    run_once_authorizations: revoke
+    allow_project_authorizations: preserve_without_autostart
+    immutable_records: unaffected
+user_development_authorization:
+  owner: runtime_k_app
+  bindings:
+    - local_os_user_anchor
+    - local_app_principal_id
+    - canonical_project_file_id
+    - declared_app_id
+    - manifest_permission_requirement_fingerprint
+    - account_id
+    - fixed_shell_entry_policy
+  choices: [run_once, allow_project]
+  initial_approval_authority: foreground_verified_desktop_confirmation_with_native_code_risk_acknowledgement
+  separate_os_credential_or_realm_reauthentication_for_zero_permission_project_consent: forbidden
+  initial_permission_decision_state: none
+  allow_project_reuse_requires_fresh_presence: false
+  account_switch_transfers_authorization: false
+  permission_requirements_may_be_empty: true
+  app_owned_native_host_storage: allowed
+  nimi_permission_required_for_app_owned_native_host_storage: false
+  renderer_direct_native_filesystem_access: forbidden
+  renderer_storage_or_account_partition_projection: forbidden
+  app_owned_host_commands: exact_app_registered_typed_allowlist
+  app_owned_host_commands_create_nimi_grant: false
+  consent_storage:
+    owner: runtime_protected_service_authority
+    root_lifetime: stable_across_runtime_candidate_and_acceptance_round_replacement
+    candidate_payload_or_selected_product_data_root: forbidden
+    app_renderer_environment_or_argv_selection: forbidden
+    candidate_local_principal_projection_rebuild: allowed_from_exact_consent_only
+permission_requirements:
+  manifest_field: permissions
+  owner: platform_permission_catalog
+  current_admitted_permission_ids: []
+  item_shape:
+    required_fields: [id, reason]
+    optional_fields: []
+    duplicate_id: forbidden
+    unknown_or_reserved_id: forbidden
+  permission_requirement_fingerprint_inclusion: canonical_sorted_id_and_reason_set
+  empty_list_valid: true
+  request_eligibility_only: true
+  creates_operation_grant: false
+  creates_scoped_binding: false
+  owner_selector_and_permission_decision_still_required: true
+  app_owned_authority_or_base_entitlement_inclusion: forbidden
+  app_renderer_or_manifest_positive_authority: forbidden
+technical_launch_and_session:
+  owner: runtime_k_plocal
+  transport: local_app_host
+  session_role: local_app_session
+  bindings:
+    - development_authorization_id
+    - local_app_principal_id
+    - local_app_record_id
+    - provenance_revision
+    - project_generation
+    - launch_lease_id
+    - desktop_supervisor_process
+    - host_process_tuple
+    - executable_and_build_digest
+    - controlled_renderer_origin_and_output_roots
+    - shell_kind
+    - account_generation
+    - account_id
+    - opaque_app_data_partition
+    - runtime_boot_epoch
+  new_process_requires_new_lease_and_session: true
+  material_visibility: runtime_and_native_host_private_only
+  renderer_cli_terminal_visibility: forbidden
+electron_user_data_partition:
+  owner: desktop_supervisor
+  data_class: app_owned_authority
+  nimi_permission_or_grant: forbidden
+  platform_roots:
+    windows: active_user_home_app_data_local_nimi_local_app_hosts_v1
+    macos: active_user_library_application_support_nimi_local_app_hosts_v1
+  leaf: domain_separated_sha256_of_runtime_authorization_id
+  raw_authorization_account_project_app_epoch_or_session_material_in_path_or_argv: forbidden
+  platform_required_checks:
+    windows: [canonical_ancestors, no_reparse_point_or_symlink, directory]
+    macos: [canonical_ancestors, no_symlink, active_user_owner, directory, no_group_or_world_access, mode_0700]
+  same_authorization_controlled_restart: reuse
+  new_authorization_reapproval_account_change_or_project_identity_change: new_partition
+  acceptance_cdp_override: isolated_temporary_root_non_authorizing
+continuity_matrix:
+  no_reapproval_new_lease_and_session_required:
+    - renderer_hmr_or_reload
+    - electron_main_or_preload_controlled_rebuild_and_restart
+    - tauri_host_controlled_rebuild_and_restart
+    - controlled_host_replacement_same_authorization
+    - runtime_restart_during_live_supervisor_run
+    - supervisor_run_replacement
+    - desktop_restart
+    - runtime_restart_upgrade_or_reinstall
+    - developer_mode_reenable
+    - original_account_return
+  invalidate_or_require_fresh_approval:
+    - permission_requirement_change
+    - declared_app_id_change
+    - canonical_project_file_identity_change
+    - copied_project
+    - shell_or_entry_policy_change
+    - account_id_change
+    - native_execution_risk_or_disclosure_revision_change
+    - authorization_revoke
+    - authority_integrity_or_provenance_failure
+    - host_outside_verified_supervisor
+    - executable_or_renderer_origin_outside_controlled_outputs
+    - remote_or_uncontrolled_dev_server
+lifetimes:
+  run_once_ends_on: [supervisor_run_termination, mode_off, logout_or_account_switch, revoke, identity_permission_requirement_or_shell_mismatch]
+  run_once_terminal_transition: tombstone_principal_and_mark_record_removed
+  subsequent_run_once: fresh_approval_new_principal_and_record
+  allow_project_on_mode_off: durable_consent_preserved_live_authority_revoked
+  allow_project_on_supervisor_run_termination: durable_consent_preserved_live_authority_revoked
+  allow_project_on_runtime_boot_epoch_change: durable_consent_preserved_live_authority_revoked
+  allow_project_auto_runs_after_reenable: false
+  allow_project_account_switch: live_authority_revoked_consent_remains_bound_to_original_account_and_reuses_without_presence_after_return
+risk_and_background:
+  production_account_allowed_through_runtime_mediation: true
+  runtime_credential_custody_required: true
+  native_os_risk_disclosure_required: true
+  native_os_or_realm_presence_required_for_project_run_consent: false
+  nimi_owned_permission_or_sensitive_operation_presence: owned_by_the_requested_operation_not_project_launch
+  nimi_permissions_cover_all_windows_rights: false
+  nimi_managed_logon_or_boot_autostart: forbidden
+operation_posture:
+  same_permission_and_owner_policy_as_other_trust_classes: true
+  app_private_base_entitlement_requires_grant: false
+  app_private_base_entitlement_requires_live_principal_session_account_binding: true
+  app_owned_host_operations_are_nimi_operations: false
+  selected_checkpoint_families: []
+  blocked_until_atomic_public_permission_or_attested_first_party_carrier:
+    - runtime_artifact_read
+    - runtime_agent_conversation
+    - runtime_agent_selected_voice
+  missing_families: typed_owner_unavailable
+  generic_protected_proxy: forbidden
+owners: &nimi_app_local_development_admission_rows
+  app_tools: project_validation_build_coordination_and_user_safe_status_only
+  desktop: confirmation_ui_and_verified_supervisor
+  runtime_k_app: authorization_principal_and_record
+  runtime_k_plocal: launch_process_and_session
+  runtime_k_grant: account_principal_grant
+  runtime_account_service: credential_custody_and_enforcement_coordination
+  runtime_agent_service_and_cognition: agent_conversation_and_memory_semantics
+  sdk_and_kit: typed_client_and_host_private_carrier
+platform_posture:
+  windows: final_fixed_service_positive_required
+  macos:
+    aggregate: requirements_complete_fail_closed_pending_signed_native_and_live_admission
+    electron: fail_closed_pending_Developer_ID_hardened_notarized_Desktop_Runtime_and_independent_local_app_host_plus_real_DOM_CDP_process_acceptance
+    tauri: fail_closed_pending_independent_Rust_WKWebView_command_install_update_and_live_acceptance
+    non_product_local_development:
+      profile_id: macos_local_development_v1
+      admission: local_development_non_product_admitted
+      product_admission_promotion: forbidden
+      electron: admitted_only_after_local_CA_signed_hardened_Runtime_Desktop_independent_local_app_host_and_same_candidate_real_DOM_CDP_process_lifecycle_negative_acceptance
+      tauri: fail_closed_pending_independent_Rust_WKWebView_command_install_update_and_live_acceptance
+      service_lifecycle: root_owned_launchd_system_job_ai.nimi.runtime.dev_with_dedicated__nimiruntimedev_principal
+      transport: launchd_socket_activated_UDS_with_mutual_audit_token_dynamic_SecCode_exact_local_CA_leaf_SPKI_vnode_and_liveness_verification
+      custody: Runtime_only_System_Keychain_namespace_ai.nimi.runtime.protected-local.dev.v1
+      signing: local_CA_distinct_role_leaves_Team_ID_absent_no_notarization_or_Gatekeeper_claim
+      realm: compile_time_fixed_local_Realm_broker_http_127.0.0.1_3002_production_endpoints_forbidden
+      app_owned_sqlite_requires_nimi_permission: false
+      acceptance_evidence_root: .nimi/local/acceptance/date-macos-runtime-desktop-zhiyu
+    service_profile_ref: .nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml#macos
+    transport_profile_ref: .nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml#macos
+    custody_profile_ref: .nimi/spec/runtime/kernel/tables/protected-local-custody-profiles.yaml#macos
+    launch_profile_ref: .nimi/spec/runtime/kernel/tables/protected-local-launch-session-profiles.yaml#macos
+    trust_profile_ref: protected-local-executable-trust-sets.yaml#macos
+    source_rule: P-NAPP-037
+  linux: fail_closed_pending_independent_admission
+  localhost_grpc_or_same_user_daemon_fallback: forbidden
+rows: *nimi_app_local_development_admission_rows

@@ -64,7 +64,7 @@ function getLine(source, index) {
 }
 
 async function loadCheckedAppRoots() {
-  const tablePath = path.join(repoRoot, '.nimi/spec/platform/kernel/tables/nimi-app-identity-surfaces.yaml');
+  const tablePath = path.join(repoRoot, 'config/platform-nimi-app-identity-surfaces.yaml');
   const source = await fs.readFile(tablePath, 'utf8');
   const parsed = YAML.parse(source);
   const apps = Array.isArray(parsed?.apps) ? parsed.apps : [];

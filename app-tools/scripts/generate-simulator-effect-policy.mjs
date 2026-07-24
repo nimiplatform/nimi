@@ -10,10 +10,10 @@ const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const APP_TOOLS_ROOT = path.resolve(SCRIPT_DIR, '..');
 const AUTHORITY_PATH = path.resolve(
   APP_TOOLS_ROOT,
-  '../.nimi/spec/platform/kernel/tables/simulator-browser-effects.yaml',
+  '../config/platform-simulator-browser-effects.yaml',
 );
 const OUTPUT_PATH = path.resolve(APP_TOOLS_ROOT, 'lib/simulator-effect-policy.generated.mjs');
-const AUTHORITY_LABEL = '.nimi/spec/platform/kernel/tables/simulator-browser-effects.yaml';
+const AUTHORITY_LABEL = 'config/platform-simulator-browser-effects.yaml';
 const CLASSIFICATIONS = new Set(['forbidden', 'port_only', 'pure_read']);
 
 function sha256(bytes) {

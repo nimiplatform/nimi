@@ -3,7 +3,7 @@
  *
  * Glass material primitive contract carve-out (wave-b fork F6).
  *
- * Authority: `.nimi/spec/platform/kernel/nimi-ui-material-contract.md`
+ * Authority: `docs/authority/platform-ui-design-system-rationale.md`
  * + `kit/ui/AGENTS.md` "Glass Material Consumption (P-DESIGN-022)".
  *
  * Tier taxonomy (5-tier, 2026-04-18 admission):

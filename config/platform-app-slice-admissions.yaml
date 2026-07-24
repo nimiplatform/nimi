@@ -1,0 +1,29 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/platform/authority-admission.authority.yaml
+# Rationale: docs/authority/platform-authority-admission-rationale.md
+version: 1
+table_family: product_catalog
+owner: platform
+catalog_id: platform_app_slice_admissions
+entries:
+  - tester
+admissions:
+  - app_id: tester
+    owner_domain: tester
+    admission_posture: active
+    authority_root: apps/tester/spec
+    evidence_roots:
+      - apps/tester/package.json
+      - apps/tester/src
+      - apps/tester/src-electron
+      - apps/tester/src-tauri
+      - apps/tester/test
+    may_not_override:
+      - .nimi/spec/runtime/**
+      - .nimi/spec/sdks/**
+      - .nimi/spec/realm/**
+      - .nimi/spec/canonical/platform/**
+      - .nimi/spec/desktop/**
+      - .nimi/spec/cognition/**
+      - .nimi/spec/avatar/**
+    source_rule: P-APP-001

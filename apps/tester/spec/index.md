@@ -5,7 +5,7 @@
 This admitted app-local slice owns Tester product renderer composition,
 production host bindings, the Tester Simulator module input, and Tester-owned
 conformance fixtures. Admission is controlled only by
-`.nimi/spec/platform/kernel/tables/app-slice-admissions.yaml` under
+`config/platform-app-slice-admissions.yaml` under
 `P-APP-001..006`.
 
 It is subordinate to `.nimi/spec/**`. It cannot redefine Platform Simulator,

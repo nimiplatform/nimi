@@ -15,8 +15,8 @@ const defaultEvidencePath = path.join(
   repoRoot,
   '.nimi/local/evidence/zhiyu/pp12/zhiyu-release-artifact-evidence.json',
 );
-const defaultRegistryPath = path.join(repoRoot, '.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml');
-const defaultDescriptorPath = path.join(repoRoot, '.nimi/spec/platform/kernel/tables/nimi-app-release-descriptors.yaml');
+const defaultRegistryPath = path.join(repoRoot, 'config/platform-nimi-app-registry.yaml');
+const defaultDescriptorPath = path.join(repoRoot, 'config/platform-nimi-app-release-descriptors.yaml');
 const defaultOutputPath = path.join(
   repoRoot,
   '.nimi/local/evidence/zhiyu/pp12/zhiyu-release-readiness-report.json',

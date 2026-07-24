@@ -191,7 +191,7 @@ fn desktop_open_intent_golden_vectors_match_platform_table() {
 
 fn read_golden_vectors() -> GoldenVectorTable {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../../.nimi/spec/platform/kernel/tables/desktop-open-intent-golden-vectors.yaml");
+        .join("../../../scripts/testdata/desktop-open-intent-golden-vectors.yaml");
     serde_yaml::from_str(
         &std::fs::read_to_string(&path)
             .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display())),

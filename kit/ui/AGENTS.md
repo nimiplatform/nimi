@@ -19,11 +19,11 @@
   Surface/Button/Field shells locally once the kit surface exists.
 - Hand-authored CSS rule bodies in `styles.css` must not target class
   names declared as slots or class_groups in
-  `.nimi/spec/platform/kernel/tables/nimi-ui-primitives.yaml`. This is
+  `config/platform-nimi-ui-primitives.yaml`. This is
   enforced by `pnpm check:nimi-ui-pattern`.
 - Token authority lives in
-  `.nimi/spec/platform/kernel/tables/nimi-ui-tokens.yaml` and
-  `.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml`. `kit/ui` is
+  `config/platform-nimi-ui-tokens.yaml` and
+  `config/platform-nimi-ui-themes.yaml`. `kit/ui` is
   a generator consumer, not an authority parallel. Token edits happen
   in the yaml tables; `kit/ui/src/generated/**` is produced by
   `pnpm generate:nimi-ui-lib` and must not be hand-edited.
@@ -46,16 +46,16 @@
   arbitrary values outside kit surfaces.
 - Adding a 6th tier requires a new admission; this boundary does not
   pre-authorize future expansion.
-- Spec companion: `.nimi/spec/platform/kernel/nimi-ui-material-contract.md`.
+- Spec companion: `docs/authority/platform-ui-design-system-rationale.md`.
 
 ## Retrieval Defaults
 
 - Start in `kit/ui/src/components`, `kit/ui/src/design-tokens.ts`,
   `kit/ui/src/styles.css`, `kit/ui/src/theme.tsx`,
-  `.nimi/spec/platform/kernel/design-pattern-contract.md`,
-  `.nimi/spec/platform/kernel/nimi-ui-material-contract.md`,
-  `.nimi/spec/platform/kernel/tables/nimi-ui-tokens.yaml`, and
-  `.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml`.
+  `docs/authority/platform-ui-design-system-rationale.md`,
+  `docs/authority/platform-ui-design-system-rationale.md`,
+  `config/platform-nimi-ui-tokens.yaml`, and
+  `config/platform-nimi-ui-themes.yaml`.
 - Skip `kit/ui/src/generated/**` except for drift inspection. Never
   hand-edit generated files.
 

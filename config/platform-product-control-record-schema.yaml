@@ -1,0 +1,257 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/platform/product-lifecycle.authority.yaml
+# Rationale: docs/authority/platform-product-lifecycle-rationale.md
+version: 2
+table_family: product_record_schema
+owner: platform
+record_id: nimi_product_control_record
+path: <runtime_owner_state_root>/nimi.json
+path_binding:
+  production_fixed_service: installer_verified_service_state_root
+  non_production_runtime: parent_owner_root_derived_from_runtime_local_state_path
+  non_release_dev_kernel_checkpoint: signed_candidate_profile_derived_service_owned_checkpoint_partition
+  caller_or_environment_override: forbidden
+  dual_read_or_migration_fallback: forbidden
+source_rule: P-COLD-015
+schema_version: 1
+required_top_level_fields:
+  - schemaVersion
+  - installId
+  - productVersion
+  - state
+  - dataRoot
+  - firstRun
+  - pointers
+  - repair
+state_field:
+  owner: platform_cold_start
+  enum_ref: P-COLD-009
+  ready_state: ready_for_use
+invariants:
+  - id: product-control-record-owner
+    requirement: <runtime_owner_state_root>/nimi.json is the only installed product readiness control record; production binds runtime_owner_state_root to the installer-verified service root before listener startup.
+  - id: selected-data-root-required-before-heavy-setup
+    requirement: dataRoot.path must be an absolute user-selected nimi_data path before downloads, dependency installation, app package install, model materialization, or environment setup.
+  - id: selected-data-root-evidence
+    requirement: dataRoot selectedAt and verifiedAt evidence must exist after native-host OS service-principal access preparation and Runtime verification; ready_for_use requires dataRoot.status=ready. On Windows the user remains root owner, only the exact fixed NimiRuntime service SID receives inherited selected-tree access, and reparse-point roots fail closed.
+  - id: local-install-level-only
+    requirement: firstRun.installLevel must be minimal or recommended; cloud, hybrid, connector, video, and app-specific levels are invalid.
+  - id: ready-evidence-required
+    requirement: ready_for_use requires firstRun.completed=true, completedAt, initializationPlanId, baselineProfileRef, baselineCommitId, accountDefaultProfileRef, non-empty builtInAiConfigRefs, runtimeBaselineRef, and executionEvidenceRef.
+  - id: ready-evidence-owner-verification
+    requirement: every first-run ready evidence ref must be resolved by its canonical owner/verifier; string shape, field presence, renderer-provided refs, or localStorage values are not verification.
+  - id: backend-admission-only
+    requirement: ready_for_use may be written only by the product-control backend admission operation after composing all owner evidence in the canonical order.
+  - id: runtime-config-pointer-non-owner
+    requirement: pointers.runtimeConfigPath is forbidden; product control may project selected dataRoot only through an exact typed protected Runtime operation and never stores or exposes a service config path.
+  - id: app-projection-pointer-non-owner
+    requirement: pointers.appRegistry and pointers.appPackages are forbidden; product control cannot point at, recreate, migrate, or treat user-local app registry/package projections as discovery, identity, package, grant, inventory, or readiness truth.
+  - id: repair-fail-closed
+    requirement: repair.required or invalid product-control shape routes to repair_required or blocked, never ordinary ready.
+  - id: non-release-checkpoint-round-partition
+    requirement: The first signed-installer dev_kernel_checkpoint installation creates a durable development state lineage from exact trial id, first-install developmentStateCandidateId, and a cryptographically random acceptanceRoundId. Ordinary signed Runtime candidate updates preserve that exact lineage and Product Control record; candidate rotation never creates a fresh installId, resets grants, or abandons selected payloads. A new lineage requires an explicit destructive repair/reset operation. Existing or damaged records and every production profile retain normal repair/fail-closed semantics; HOME, TEMP, renderer state, endpoint, environment, argv, and request fields cannot select a lineage or enable reset.
+projection_fields:
+  dataRootProposal:
+    record_field: false
+    required_profile: dev_kernel_checkpoint
+    owner: runtime_protected_product_control
+    derivation: signed_installer_explicit_development_data_root_binding_or_verified_interactive_windows_sid_os_profile_mapping_plus_signed_trial_id_plus_build_record_verified_runtime_candidate_id
+    semantics: visible_confirmable_proposal_only
+    selection_effect: none
+    forbidden_inputs: [home, userprofile, temp, renderer_state, environment, argv, endpoint, request_field]
+    explicit_binding_constraints: [existing_absolute_non_volume_root, non_reparse_directory, fixed_service_accessible, candidate_bound_protected_profile]
+    payload_reuse_semantics: current_candidate_reverifies_catalog_hash_manifest_compatibility_and_activation_without_importing_prior_registry_or_readiness
+ready_admission:
+  source_rule: P-COLD-016
+  logical_operation: AdmitProductReadyForUse
+  owner: runtime_product_control_service
+  writable_record: <runtime_owner_state_root>/nimi.json
+  caller_boundary:
+    allowed_callers:
+      - desktop_host_first_run_coordinator
+      - admitted_repair_flow_backend
+    forbidden_callers:
+      - renderer
+      - app_local_rest
+      - sdk_consumer_without_backend_admission
+      - localStorage
+      - direct_file_edit
+  composition_order:
+    - product_control_record_shape_and_selected_data_root
+    - authenticated_runtime_account_session
+    - account_default_profile_library_evidence
+    - selected_local_first_run_factory_profile
+    - runtime_baseline_readiness
+    - built_in_ai_config_evidence
+    - runtime_baseline_execution_evidence
+    - atomic_ready_for_use_record_write
+  forbidden_positive_inputs:
+    - renderer_provided_string_refs
+    - renderer_local_state
+    - localStorage
+    - desktop_path_cache
+    - runtime_config_alone
+    - file_existence
+    - directory_presence
+    - endpoint_probe
+    - route_health
+    - process_liveness
+    - import_success
+    - script_exit
+    - transfer_completion
+    - cloud_api
+    - cloud_only_profile
+    - cloud_first_profile
+    - hybrid_profile
+    - video_generation_pack
+    - connector_setup
+    - app_specific_pack
+    - provider_model_constants
+  record_write_rules:
+    - ready_for_use writes must be atomic and include firstRun.completed=true and completedAt.
+    - failed verification must leave state at the earliest affected non-ready product-control state.
+    - idempotent retries may reuse owner evidence only while each owner verifier still resolves the ref as valid.
+    - repair or invalidation of any required evidence after ready_for_use must route to repair_required, blocked, or not_logged_in according to the failed owner.
+evidence_contracts:
+  accountDefaultProfileRef:
+    owner_rule_ref: P-AIPS-013
+    owner: account_profile_library
+    verifier: local_product_profile_library
+    ref_semantics: durable local Account Default Profile library record bound to authenticated account_id and selected dataRootRef
+    required_projection:
+      - account_id
+      - dataRootRef
+      - profile_id_default
+      - profile_version_or_hash
+      - source_policy_ref
+      - source_catalog_version
+      - createdAt_or_updatedAt
+    prerequisite_evidence:
+      - authenticated_runtime_account_session
+    failure_projection: local_ai_ready_or_blocked
+    forbidden_as_truth:
+      - renderer_profile_state
+      - sdk_cache
+      - app_local_cache
+      - realm_oauth_token
+      - realm_profile_projection
+      - subject_user_id
+      - decoded_token_claims
+      - string_only_ref
+  builtInAiConfigRefs:
+    owner_rule_ref: D-AIPC-013
+    owner: desktop_chat_feature_scope_owner
+    verifier: Desktop host AIConfig authority plus SDK Runtime / Kit projection from Runtime executionEvidenceRef proof
+    required_scopes:
+      - scope_id: desktop.chat.nimi
+        scopeRef:
+          kind: feature
+          ownerId: desktop.chat
+          surfaceId: nimi
+      - scope_id: desktop.chat.agent
+        scopeRef:
+          kind: feature
+          ownerId: desktop.chat
+          surfaceId: agent
+    ref_semantics: durable refs to committed full materialized AIConfig records for every required built-in chat scope
+    required_projection:
+      - scopeRef
+      - aiProfileRef_or_hash
+      - aiConfigVersion_or_hash
+      - writer_identity
+      - committedAt
+    failure_projection: local_ai_ready_or_blocked
+    forbidden_as_truth:
+      - generic_chat_scope
+      - renderer_local_state
+      - localStorage
+      - current_tab
+      - route_health
+      - string_only_scopeRef
+  runtimeBaselineRef:
+    owner_rule_ref: K-LENV-ACT-011
+    owner: runtime_local_service
+    verifier: RuntimeLocalService
+    ref_semantics: durable activation-readiness evidence for the selected local first-run baseline
+    required_projection:
+      - selected_local_factory_aiProfile_ref
+      - install_level
+      - runtime_data_root_or_dataRootRef
+      - required_dependency_families
+      - selected_source_record_ids
+      - activation_ready_responses
+      - materialization_or_system_source_verification_evidence
+      - observed_at
+      - runtime_audit_sequence
+    failure_projection: local_ai_profile_selected_environment_not_ready_or_repair_required
+    forbidden_as_truth:
+      - materialization_success_alone
+      - file_existence
+      - endpoint_probe
+      - route_health
+      - process_liveness
+      - import_success
+      - previous_health_success
+  executionEvidenceRef:
+    owner_rule_ref: K-AIEXEC-007
+    owner: runtime_execution
+    verifier: Runtime execution audit/evidence record
+    ref_semantics: durable execution proof for the selected local first-run baseline capability set
+    required_projection:
+      - selected_local_factory_aiProfile_ref
+      - install_level
+      - runtimeBaselineRef
+      - dataRootRef
+      - local_execution_target_evidence
+      - selected_baseline_capability_proof
+      - submit_specific_scheduling_judgement_when_evaluated
+      - terminal_result
+      - timestamps
+      - runtime_audit_sequence
+    selected_local_first_run_baseline_proof:
+      minimal:
+        - local_text_chat_execution
+        - local_basic_stt_execution
+        - local_basic_tts_execution
+      recommended: selected local recommended capabilities from confirmed plan
+    failure_projection: local_ai_ready_or_blocked
+    forbidden_as_truth:
+      - desktop_snapshot_alone
+      - scope_aggregate_probe
+      - route_health
+      - warmup_only_check
+      - cloud_api
+      - cloud_only
+      - cloud_first
+      - hybrid
+      - video_generation
+      - connector_setup
+      - app_specific_pack
+fields:
+  dataRoot:
+    required_when_states:
+      - data_root_selected
+      - ai_environment_unconfigured
+      - local_ai_profile_selected_assets_missing
+      - local_ai_profile_selected_environment_not_ready
+      - local_ai_assets_downloaded_environment_not_ready
+      - local_ai_ready
+      - ready_for_use
+    fields:
+      path: absolute user-selected nimi_data path
+      status: selected | ready | repair_required
+      selectedAt: timestamp for user selection
+      verifiedAt: timestamp for writability and required directory verification
+  firstRun:
+    fields:
+      installLevel: minimal | recommended
+      aiProfileAlias: admitted first-run local factory AIProfile alias
+      completed: boolean
+      completedAt: timestamp
+      initializationPlanId: Runtime/Desktop initialization plan evidence ref
+      baselineProfileRef: selected local baseline profile ref
+      baselineCommitId: baseline profile commit ref
+      accountDefaultProfileRef: Account Default Profile evidence ref
+      builtInAiConfigRefs: non-empty built-in AIConfig refs
+      runtimeBaselineRef: Runtime baseline readiness evidence ref
+      executionEvidenceRef: baseline execution evidence ref

@@ -14,11 +14,11 @@ boundary work, read:
 1. `AGENTS.md`
 2. nearest app `AGENTS.md`
 3. `.nimi/spec/INDEX.md`
-4. `.nimi/spec/platform/kernel/nimi-ecosystem-contract.md`
-5. `.nimi/spec/platform/kernel/nimi-app-admission-contract.md`
-6. `.nimi/spec/platform/kernel/app-slice-admission-contract.md`
-7. `.nimi/spec/platform/kernel/kit-contract.md`
-8. `.nimi/spec/platform/kernel/tables/nimi-data-directory-ownership.yaml`
+4. `docs/authority/platform-app-ecosystem-rationale.md`
+5. `docs/authority/platform-app-ecosystem-rationale.md`
+6. `docs/authority/platform-authority-admission-rationale.md`
+7. `docs/authority/platform-ui-design-system-rationale.md`
+8. `config/platform-nimi-data-directory-ownership.yaml`
 9. `.nimi/spec/runtime/kernel/app-messaging-contract.md`
 10. `.nimi/spec/runtime/kernel/config-contract.md`
 11. `.nimi/spec/sdk/kernel/nimi-app-client-contract.md`

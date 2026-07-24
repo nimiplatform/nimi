@@ -5,7 +5,7 @@ import path from 'node:path';
 import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
 
 const root = process.cwd();
-const tablePath = '.nimi/spec/platform/kernel/tables/nimi-app-identity-surfaces.yaml';
+const tablePath = 'config/platform-nimi-app-identity-surfaces.yaml';
 const table = readYamlWithFragments(path.join(root, tablePath));
 const rows = Array.isArray(table?.apps) ? table.apps : [];
 const appIdPattern = new RegExp(String(table?.identity_schema?.app_id_pattern || ''));

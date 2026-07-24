@@ -1,0 +1,249 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/platform/simulator.authority.yaml
+# Rationale: docs/authority/platform-simulator-rationale.md
+version: 1
+table_family: protocol_surface
+owner: platform
+protocol_id: platform_simulator_browser_effects
+source_rule: P-SIM-018
+
+surfaces:
+  - effect_classification
+  - owner_and_phase_admission
+  - enforcement_and_proof
+
+classification:
+  pure_read:
+    state_authority: forbidden
+    cleanup_registration: not_required
+  port_only:
+    direct_selected_source_access: forbidden
+    cleanup_registration: required_when_resource_is_allocated
+  forbidden:
+    invocation: forbidden
+
+scope:
+  governed_code:
+    - selected_app_renderer_source
+    - app_simulator_adapter
+    - selected_dependency_reachable_from_app_source
+  excluded_from_global_effect_catalog:
+    - react_element_scoped_event_handlers
+    - mutation_of_nodes_owned_by_the_current_react_root
+    - detached_node_construction_before_mount
+  excluded_effects_must_still_obey:
+    - assigned_renderer_and_overlay_roots
+    - instance_identity_scope
+    - simulator_css_boundary
+
+phases:
+  - bootstrap
+  - module_evaluation
+  - instance_lifecycle
+  - render
+  - callback
+  - test_only
+
+owners:
+  - simulator_bootstrap
+  - simulator_shell
+  - simulator_state_engine
+  - kit_coordinator
+  - kit_primitive
+  - sdk_harness
+  - app_adapter
+  - canonical_renderer
+  - selected_dependency
+
+entries:
+  - id: network_fetch
+    browser_surface: globalThis.fetch
+    classification: forbidden
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    phases: [module_evaluation, instance_lifecycle, render, callback]
+    reason: selected_modules_use_typed_facades_and_never_open_real_network_transport
+  - id: network_xhr
+    browser_surface: XMLHttpRequest
+    classification: forbidden
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    phases: [module_evaluation, instance_lifecycle, render, callback]
+    reason: selected_modules_use_typed_facades_and_never_open_real_network_transport
+  - id: network_socket
+    browser_surface: WebSocket
+    classification: forbidden
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    phases: [module_evaluation, instance_lifecycle, render, callback]
+    reason: simulator_streams_are_state_engine_resources
+  - id: network_event_source
+    browser_surface: EventSource
+    classification: forbidden
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    phases: [module_evaluation, instance_lifecycle, render, callback]
+    reason: simulator_streams_are_state_engine_resources
+  - id: network_beacon
+    browser_surface: navigator.sendBeacon
+    classification: forbidden
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    phases: [module_evaluation, instance_lifecycle, render, callback]
+    reason: release_artifact_has_no_app_telemetry_transport
+  - id: persistent_web_storage
+    browser_surface: localStorage
+    classification: forbidden
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    phases: [module_evaluation, instance_lifecycle, render, callback]
+    reason: simulated_auth_and_all_persistence_shaped_behavior_are_erasable_state_engine_state
+  - id: session_web_storage
+    browser_surface: sessionStorage
+    classification: forbidden
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    phases: [module_evaluation, instance_lifecycle, render, callback]
+    reason: session_state_is_owned_by_the_simulator_state_engine
+  - id: indexed_database
+    browser_surface: indexedDB
+    classification: forbidden
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    phases: [module_evaluation, instance_lifecycle, render, callback]
+    reason: simulated_auth_never_uses_browser_persistence
+  - id: cache_storage
+    browser_surface: globalThis.caches
+    classification: forbidden
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    phases: [module_evaluation, instance_lifecycle, render, callback]
+    reason: simulated_auth_never_uses_cache_or_service_worker_session_persistence
+  - id: cookie_storage
+    browser_surface: document.cookie
+    classification: forbidden
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    phases: [module_evaluation, instance_lifecycle, render, callback]
+    reason: simulated_authenticated_projection_is_state_engine_state_not_an_account_cookie_or_persistent_session
+  - id: origin_private_filesystem
+    browser_surface: navigator.storage.getDirectory
+    classification: forbidden
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    phases: [module_evaluation, instance_lifecycle, render, callback]
+    reason: selected_modules_have_no_file_persistence_authority
+  - id: file_picker
+    browser_surface: showOpenFilePicker|showSaveFilePicker|showDirectoryPicker
+    classification: forbidden
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    phases: [module_evaluation, instance_lifecycle, render, callback]
+    reason: simulator_fixture_selection_is_owned_by_the_shell
+  - id: service_worker_registration
+    browser_surface: navigator.serviceWorker.register
+    classification: forbidden
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    phases: [module_evaluation, instance_lifecycle, render, callback]
+    reason: the_simulator_has_one_static_final_build_and_no_runtime_module_loader
+  - id: worker_construction
+    browser_surface: Worker|SharedWorker
+    classification: forbidden
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    phases: [module_evaluation, instance_lifecycle, render, callback]
+    reason: selected_module_execution_is_in_process_and_deterministically_ordered
+  - id: cross_context_channel
+    browser_surface: BroadcastChannel|MessageChannel|MessagePort.postMessage|window.postMessage
+    classification: forbidden
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    phases: [module_evaluation, instance_lifecycle, render, callback]
+    reason: cross_app_interaction_uses_the_state_engine_catalog
+  - id: top_level_navigation
+    browser_surface: window.open|location.assign|location.replace|HTMLFormElement.submit
+    classification: forbidden
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    phases: [module_evaluation, instance_lifecycle, render, callback]
+    reason: navigation_is_a_typed_shell_operation
+  - id: clipboard
+    browser_surface: navigator.clipboard.read|navigator.clipboard.write|document.execCommand
+    classification: forbidden
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    phases: [module_evaluation, instance_lifecycle, render, callback]
+    reason: simulator_scenarios_do_not_grant_clipboard_capability
+  - id: wall_clock
+    browser_surface: Date.now|new_Date_without_explicit_value|performance.timeOrigin
+    classification: forbidden
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    phases: [module_evaluation, instance_lifecycle, render, callback]
+    reason: committed_state_uses_the_logical_clock_port
+  - id: nondeterministic_random
+    browser_surface: Math.random|crypto.getRandomValues|crypto.randomUUID
+    classification: forbidden
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    phases: [module_evaluation, instance_lifecycle, render, callback]
+    reason: committed_state_uses_the_state_engine_random_port
+  - id: timer_scheduling
+    browser_surface: setTimeout|setInterval|queueMicrotask
+    classification: port_only
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    permitted_owner: simulator_state_engine
+    permitted_port: SimulatorClockPort
+    phases: [instance_lifecycle, callback]
+    state_authority: logical_clock_only
+  - id: animation_frame
+    browser_surface: requestAnimationFrame|cancelAnimationFrame
+    classification: port_only
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    permitted_owners: [simulator_shell, kit_primitive]
+    phases: [instance_lifecycle, callback]
+    state_authority: forbidden
+    permitted_purposes: [readiness_barrier, visual_primitive]
+  - id: global_listener
+    browser_surface: window.addEventListener|document.addEventListener
+    classification: port_only
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    permitted_owners: [simulator_shell, kit_coordinator]
+    phases: [bootstrap, instance_lifecycle]
+    catalog: simulator-listener-families.yaml
+  - id: global_dom_mutation
+    browser_surface: document.documentElement|document.body|HTMLElement.inert|global_aria_state|global_scroll_lock
+    classification: port_only
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    permitted_owners: [simulator_shell, kit_coordinator]
+    phases: [bootstrap, instance_lifecycle, callback]
+    state_authority: forbidden
+  - id: overlay_portal
+    browser_surface: portal_into_assigned_overlay_root
+    classification: port_only
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    permitted_owners: [simulator_shell, kit_coordinator, kit_primitive]
+    phases: [render, callback]
+    target: leased_instance_overlay_root_only
+  - id: layout_read
+    browser_surface: getBoundingClientRect|getComputedStyle|matchMedia
+    classification: pure_read
+    governed_owners: [canonical_renderer, selected_dependency, kit_primitive]
+    phases: [render, callback]
+    state_authority: forbidden
+  - id: layout_observer
+    browser_surface: ResizeObserver|IntersectionObserver|MutationObserver
+    classification: port_only
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    permitted_owners: [simulator_shell, kit_coordinator, kit_primitive]
+    phases: [instance_lifecycle, callback]
+    cleanup: disconnect_before_instance_token_settlement
+    state_authority: forbidden
+  - id: integrity_timing
+    browser_surface: performance.now
+    classification: pure_read
+    governed_owners: [simulator_bootstrap, simulator_shell]
+    phases: [bootstrap, instance_lifecycle, test_only]
+    permitted_purposes: [integrity_watchdog, performance_evidence]
+    state_authority: forbidden
+  - id: qualification_trace
+    browser_surface: globalThis.__NIMI_SIMULATOR_QUALIFICATION_BEGIN_V1__|globalThis.__NIMI_SIMULATOR_QUALIFICATION_MARK_V1__|globalThis.__NIMI_SIMULATOR_QUALIFICATION_END_V1__
+    classification: port_only
+    governed_owners: [app_adapter, canonical_renderer, selected_dependency]
+    permitted_owner: simulator_shell
+    phases: [instance_lifecycle, test_only]
+    permitted_purposes: [paint_composite_trace_evidence]
+    cleanup: end_or_cancel_before_readiness_terminal
+    state_authority: forbidden
+
+enforcement:
+  manifest_declared_exemption: forbidden
+  runtime_monkey_patch_as_release_proof: forbidden
+  required_proofs:
+    - static_reachability_scan
+    - app_tools_conformance
+    - browser_effect_probe
+    - lifecycle_cleanup_probe
+  violation_result: SIMULATOR_EFFECT_FORBIDDEN

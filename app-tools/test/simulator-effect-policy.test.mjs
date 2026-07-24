@@ -21,7 +21,7 @@ function probeFor(surface) {
 test('generated effect policy binds its canonical authority identity', () => {
   assert.equal(
     SIMULATOR_EFFECT_POLICY.authority.path,
-    '.nimi/spec/platform/kernel/tables/simulator-browser-effects.yaml',
+    'config/platform-simulator-browser-effects.yaml',
   );
   assert.equal(SIMULATOR_EFFECT_POLICY.authority.sourceRule, 'P-SIM-018');
   assert.match(SIMULATOR_EFFECT_POLICY.authority.digest, /^sha256:[0-9a-f]{64}$/u);

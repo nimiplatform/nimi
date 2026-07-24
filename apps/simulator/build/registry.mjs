@@ -44,11 +44,11 @@ function readPolicyIdentity(repoRoot, relativePath) {
 function policyCatalogs(repoRoot, mandatorySingleton) {
   return {
     mandatorySingleton,
-    browserEffect: readPolicyIdentity(repoRoot, '.nimi/spec/platform/kernel/tables/simulator-browser-effects.yaml'),
+    browserEffect: readPolicyIdentity(repoRoot, 'config/platform-simulator-browser-effects.yaml'),
     hostBindings: [
-      readPolicyIdentity(repoRoot, '.nimi/spec/platform/kernel/tables/simulator-module-contract.yaml'),
+      readPolicyIdentity(repoRoot, 'config/platform-simulator-module-contract.yaml'),
     ],
-    listenerFamilies: readPolicyIdentity(repoRoot, '.nimi/spec/platform/kernel/tables/simulator-listener-families.yaml'),
+    listenerFamilies: readPolicyIdentity(repoRoot, 'config/platform-simulator-listener-families.yaml'),
   };
 }
 

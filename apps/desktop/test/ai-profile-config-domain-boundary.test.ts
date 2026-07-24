@@ -46,7 +46,7 @@ test('built-in first-run AIConfig evidence is Desktop host placement over canoni
   const appBootstrap = read('apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs');
   const runtimeBootstrap = read('apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts');
   const runtimeSlice = read('apps/desktop/src/shell/renderer/app-shell/providers/runtime-slice.ts');
-  const productControlSchema = read('.nimi/spec/platform/kernel/tables/product-control-record-schema.yaml');
+  const productControlSchema = read('config/platform-product-control-record-schema.yaml');
 
   assert.match(desktopAiConfigLibrary, /BUILT_IN_CHAT_SURFACE_IDS: &\[&str\] = &\["nimi", "agent"\]/);
   assert.match(desktopAiConfigLibrary, /BUILT_IN_AI_CONFIG_SCOPE_KIND: &str = "feature"/);
@@ -85,8 +85,8 @@ test('built-in first-run AIConfig evidence is Desktop host placement over canoni
 });
 
 test('Account Default Profile library is account-local evidence, not scope AIConfig mutation', () => {
-  const localConfigRegistry = read('.nimi/spec/platform/kernel/tables/local-config-file-registry.yaml');
-  const policy = read('.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md');
+  const localConfigRegistry = read('config/platform-local-config-file-registry.yaml');
+  const policy = read('docs/authority/platform-core-protocol-rationale.md');
   const accountProfileLibrary = readRustModule(
     'apps/desktop/src-tauri/src/account_profile_library.rs',
     'apps/desktop/src-tauri/src/account_profile_library',

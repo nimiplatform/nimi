@@ -1,0 +1,161 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/platform/simulator.authority.yaml
+# Rationale: docs/authority/platform-simulator-rationale.md
+version: 1
+table_family: protocol_surface
+owner: platform
+protocol_id: platform_simulator_selected_source
+source_rule: P-SIM-003
+surfaces:
+  - selected_source_descriptor
+  - source_location
+  - app_production_inventory
+  - host_invocation_inventory
+  - materialization
+  - resolved_registry
+
+descriptor:
+  schema: nimi.simulator.selected-source/v1
+  owner: simulator
+  required_fields:
+    - schema
+    - module_id
+    - sources
+    - app_production
+    - host_invocations
+    - manifest
+  sources_non_empty: true
+  source_ids_unique: true
+  required_app_source_id: app
+  source_app_id_ref:
+    required: false
+    creates_app_identity: false
+
+source_location:
+  required_fields:
+    - id
+    - kind
+    - repository_key
+    - object_format
+    - object_id
+    - root
+    - expected_digest
+    - authority_refs
+    - authority_index_digest
+  kinds: [workspace, external-repository]
+  repository_key_pattern: "^[a-z][a-z0-9]*(?:[-/][a-z0-9]+)*$"
+  repository_key_min_ascii_bytes: 2
+  repository_key_max_ascii_bytes: 128
+  object_formats:
+    git-sha1: { lowercase_hex_length: 40 }
+    git-sha256: { lowercase_hex_length: 64 }
+  object_kind: commit
+  branch: forbidden
+  tag: forbidden
+  abbreviated_object_id: forbidden
+  implicit_tag_peeling: forbidden
+  authority_refs_non_empty: true
+
+app_production_inventory:
+  required_fields: [source_id, entries, inventory_digest, inventory_authority_refs]
+  source_id: app
+  entries_non_empty: true
+  manifest_byte_equality: composition.app_production_entries
+  completeness_owner: simulator_selection_authority
+  authority_refs_non_empty: true
+
+host_invocation_inventory:
+  required_fields: [entries, inventory_digest, inventory_authority_refs]
+  entry_fields: [id, source_id, entry, authority_refs]
+  manifest_equality: not_applicable
+  completeness_owner: selected_host_build_authority
+  each_entry_uses_own_source_location: true
+  authority_refs_non_empty: true
+
+materialization:
+  accepted_git_modes: ["100644", "100755"]
+  symlink: forbidden
+  submodule: forbidden
+  git_lfs_pointer: forbidden
+  non_nfc_path: forbidden
+  case_fold_collision: forbidden
+  line_ending_rewrite: forbidden
+  source_install_script_execution: forbidden
+  source_build_script_execution: forbidden
+  path_max_utf8_bytes: 4096
+  execution_profiles:
+    development_and_functional_test:
+      dirty_workspace: permitted
+      bytes_source: selected_object_blob_only
+      workspace_only_bytes_consumed: false
+      releasable: false_when_dirty
+    release_and_artifact_qualification:
+      dirty_selected_workspace_root: forbidden
+      failure_code: SIM_SOURCE_DIRTY_RELEASE
+  local_dirty_workspace_evidence: non_releasable_only
+  git_bytes_source: selected_object_blob
+
+source_digest_v1:
+  algorithm: sha256
+  rendered_pattern: "^sha256:[0-9a-f]{64}$"
+  domain_separator_utf8_nul: "nimi-simulator-source-v1\\0"
+  ordering: lexicographic_nfc_posix_relative_path_utf8_bytes
+  row_encoding:
+    - unsigned_uint32_big_endian_path_byte_length
+    - path_utf8_bytes
+    - six_ascii_git_mode_bytes
+    - unsigned_uint64_big_endian_file_byte_length
+    - unchanged_file_bytes
+
+resolver:
+  owner: simulator
+  app_owned_alias: forbidden
+  app_owned_plugin: forbidden
+  app_owned_export_condition: forbidden
+  app_owned_lockfile: forbidden
+  app_owned_override: forbidden
+  identity_tuple:
+    - package_root
+    - exact_version
+    - lock_identity
+    - export_subpath
+    - phase
+    - ordered_conditions
+    - canonical_target
+  phases: [types, runtime, style]
+  context_sensitive_runtime_identity: required
+
+resolved_registry:
+  generated_only: true
+  hand_authored_module_row: forbidden
+  required_fields:
+    - protocol
+    - moduleId
+    - sourceAppIdRef
+    - sourceLocations
+    - appProductionEntries
+    - appProductionInventoryAuthorityRefs
+    - appProductionInventoryDigest
+    - hostInvocations
+    - hostInvocationInventoryAuthorityRefs
+    - hostInvocationInventoryDigest
+    - canonicalFactoryGraphProofDigest
+    - factoryPath
+    - rendererPath
+    - adapterPath
+    - stylePath
+    - surfaces
+    - requirements
+    - resolvedPackages
+    - cssNamespace
+    - canonicalStyleInputDigest
+    - zIndexRange
+    - orderingKey
+    - policyCatalogs
+    - appToolsReportDigest
+  serialized_path_roots:
+    - source/{module_id}/{source_location_id}/
+    - package/{package_name}@{version}/
+  absolute_path_serialization: forbidden
+  registry_order: orderingKey_then_moduleId
+  app_tools_report_revalidation: required

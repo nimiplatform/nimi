@@ -11,7 +11,7 @@ const POSITIONING =
 
 function makeFixture(overrides = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-release-promise-copy-'));
-  fs.mkdirSync(path.join(root, '.nimi/spec/platform/kernel/tables'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'config'), { recursive: true });
   fs.mkdirSync(path.join(root, 'app-tools'), { recursive: true });
   fs.mkdirSync(path.join(root, 'apps/tester'), { recursive: true });
   fs.mkdirSync(path.join(root, 'docs/platform/agents'), { recursive: true });
@@ -20,7 +20,7 @@ function makeFixture(overrides = {}) {
   fs.mkdirSync(path.join(root, 'sdks'), { recursive: true });
 
   const files = {
-    '.nimi/spec/platform/kernel/tables/release-promise-freeze.yaml': [
+    'config/platform-release-promise-freeze.yaml': [
       'positioning:',
       `  statement: ${POSITIONING}`,
       '',

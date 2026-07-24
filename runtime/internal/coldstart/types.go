@@ -1,5 +1,5 @@
 // Package coldstart implements the typed cold-start state projection
-// per .nimi/spec/platform/kernel/cold-start-authority-contract.md
+// per docs/authority/platform-product-lifecycle-rationale.md
 // (P-COLD-001..P-COLD-008).
 //
 // Cold start spans the time between process launch and when all

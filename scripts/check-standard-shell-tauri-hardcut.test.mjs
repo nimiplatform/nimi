@@ -12,7 +12,7 @@ function source(relativePath) {
 
 function sources() {
   return {
-    canonical: source('.nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml'),
+    canonical: source('config/platform-standard-shell-capabilities.yaml'),
     typescriptCatalog: source('kit/shell/capabilities/src/catalog.ts'),
     rustCatalog: source('kit/shell/tauri/src/capabilities/catalog.rs'),
     rendererAliases: source('kit/shell/renderer/src/bridge/tauri-api.ts'),

@@ -6,8 +6,8 @@ import YAML from 'yaml';
 
 const repoRoot = process.cwd();
 const kitRoot = path.join(repoRoot, 'kit');
-const registryPath = path.join(repoRoot, '.nimi', 'spec', 'platform', 'kernel', 'tables', 'nimi-kit-registry.yaml');
-const standardShellCatalogPath = path.join(repoRoot, '.nimi', 'spec', 'platform', 'kernel', 'tables', 'standard-shell-capabilities.yaml');
+const registryPath = path.join(repoRoot, 'config', 'platform-nimi-kit-registry.yaml');
+const standardShellCatalogPath = path.join(repoRoot, 'config', 'platform-standard-shell-capabilities.yaml');
 const packageJsonPath = path.join(kitRoot, 'package.json');
 
 const allowedKinds = new Set(['foundation', 'feature', 'logic', 'infra']);

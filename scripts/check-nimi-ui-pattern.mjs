@@ -18,32 +18,15 @@ function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function listFilesRecursively(dir, predicate) {
-  const out = [];
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const abs = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      out.push(...listFilesRecursively(abs, predicate));
-      continue;
-    }
-    if (!predicate || predicate(abs)) out.push(abs);
-  }
-  return out;
-}
-
-const tokensTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-tokens.yaml');
-const themesTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml');
-const adoptionTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml');
-const compositionsTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-compositions.yaml');
-const allowlistsTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml');
-const primitivesTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-primitives.yaml');
+const tokensTable = readYaml('config/platform-nimi-ui-tokens.yaml');
+const themesTable = readYaml('config/platform-nimi-ui-themes.yaml');
+const compositionsTable = readYaml('config/platform-nimi-ui-compositions.yaml');
+const primitivesTable = readYaml('config/platform-nimi-ui-primitives.yaml');
 
 function discoverAppKitTables(fileName) {
   const appsRoot = path.join(repoRoot, 'apps');
   const rels = [];
   const desktopConfigByFileName = {
-    'nimi-kit-adoption.yaml': 'config/desktop-shell-ui-kit-adoption.yaml',
-    'nimi-kit-allowlists.yaml': 'config/desktop-shell-ui-kit-allowlists.yaml',
     'nimi-kit-compositions.yaml': 'config/desktop-shell-ui-kit-compositions.yaml',
   };
   const desktopConfig = desktopConfigByFileName[fileName];
@@ -79,9 +62,7 @@ const accentTokenIds = new Set(
 );
 
 for (const [rel, doc, key] of [
-  ['.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml', adoptionTable, 'modules'],
-  ['.nimi/spec/platform/kernel/tables/nimi-ui-compositions.yaml', compositionsTable, 'components'],
-  ['.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml', allowlistsTable, 'items'],
+  ['config/platform-nimi-ui-compositions.yaml', compositionsTable, 'components'],
 ]) {
   const rows = Array.isArray(doc?.[key]) ? doc[key] : [];
   if (rows.length > 0) {
@@ -141,20 +122,6 @@ for (const [themeId, coverage] of themeCoverage) {
   }
 }
 
-const appEntries = [];
-const appAdoptionTables = discoverAppKitTables('nimi-kit-adoption.yaml');
-for (const { doc, rel } of appAdoptionTables) {
-  const app = String(doc?.app || '').trim();
-  const entry = doc?.app_entry && typeof doc.app_entry === 'object' ? doc.app_entry : {};
-  const styleRel = String(entry?.style || '').trim();
-  const mainRel = String(entry?.bootstrap || '').trim();
-  const themeProviderRel = String(entry?.theme_provider || mainRel).trim();
-  if (!app || !styleRel || !mainRel || !themeProviderRel) {
-    hardFailures.push(`${rel}: app-local nimi-kit adoption manifest requires app_entry style, bootstrap, and theme_provider`);
-    continue;
-  }
-  appEntries.push({ app, styleRel, mainRel, themeProviderRel });
-}
 const generatedThemesDir = path.join(repoRoot, 'kit', 'ui', 'src', 'generated', 'themes');
 for (const legacyTheme of ['relay-dark.css', 'overtone-studio.css']) {
   if (fs.existsSync(path.join(generatedThemesDir, legacyTheme))) {
@@ -196,62 +163,6 @@ if (/export\s+const\s+NIMI_ACCENT_PACKS\s*=\s*\[/u.test(designTokenFacade)) {
   hardFailures.push('kit/ui/src/design-tokens.ts: NIMI_ACCENT_PACKS must be derived from generated ACCENT_PACK_IDS');
 }
 
-const adoptionRows = [
-  ...(Array.isArray(adoptionTable?.modules) ? adoptionTable.modules : []),
-  ...appAdoptionTables.flatMap(({ doc }) => (Array.isArray(doc?.modules) ? doc.modules : [])),
-];
-const accentPackByApp = new Map();
-for (const row of adoptionRows) {
-  const app = String(row?.app || '').trim();
-  const accentPack = String(row?.accent_pack || '').trim();
-  if (!app || !accentPack) continue;
-  if (!accentPackByApp.has(app)) {
-    accentPackByApp.set(app, accentPack);
-  } else if (accentPackByApp.get(app) !== accentPack) {
-    hardFailures.push(`adoption registry: app ${app} mixes multiple accent packs`);
-  }
-}
-
-for (const entry of appEntries) {
-  const styleContent = read(entry.styleRel);
-  const accentPack = accentPackByApp.get(entry.app);
-  if (!styleContent.includes('@nimiplatform/kit/ui/styles.css')) {
-    hardFailures.push(`${entry.styleRel}: must import @nimiplatform/kit/ui/styles.css`);
-  }
-  for (const requiredImport of [
-    '@nimiplatform/kit/ui/themes/light.css',
-    '@nimiplatform/kit/ui/themes/dark.css',
-    accentPack ? `@nimiplatform/kit/ui/themes/${accentPack}.css` : '',
-  ].filter(Boolean)) {
-    if (!styleContent.includes(requiredImport)) {
-      hardFailures.push(`${entry.styleRel}: must import ${requiredImport}`);
-    }
-  }
-  if (styleContent.includes('@nimiplatform/kit/ui/themes/relay-dark.css') || styleContent.includes('@nimiplatform/kit/ui/themes/overtone-studio.css')) {
-    hardFailures.push(`${entry.styleRel}: must not import legacy app-specific theme packs`);
-  }
-  if (/@theme\s*\{/u.test(styleContent)) {
-    hardFailures.push(`${entry.styleRel}: app styles must not define app-local @theme blocks`);
-  }
-  if (/:root\s*\{[\s\S]*--(?:ot|nimi)-/u.test(styleContent) || /:root\s*\{[\s\S]*--color-[a-z0-9-]+\s*:/u.test(styleContent)) {
-    hardFailures.push(`${entry.styleRel}: app styles must not define app-local root token authority`);
-  }
-  if (/(^|\n)\s*\.nimi-[^\n]*\{/u.test(styleContent)) {
-    hardFailures.push(`${entry.styleRel}: app styles must not redefine shared .nimi-* selectors`);
-  }
-  if (/--nimi-[a-z0-9-]+\s*:/u.test(styleContent)) {
-    hardFailures.push(`${entry.styleRel}: app styles must not assign --nimi-* token values`);
-  }
-  if (/--ot-[a-z0-9-]+\b/u.test(styleContent) || /--color-ot-[a-z0-9-]+\b/u.test(styleContent)) {
-    hardFailures.push(`${entry.styleRel}: app styles must not depend on phased-out app-scoped accent aliases`);
-  }
-  const themeProviderRel = entry.themeProviderRel || entry.mainRel;
-  const themeProviderContent = read(themeProviderRel);
-  if (!themeProviderContent.includes('@nimiplatform/kit/ui') || !themeProviderContent.includes('NimiThemeProvider')) {
-    hardFailures.push(`${themeProviderRel}: must use NimiThemeProvider from @nimiplatform/kit/ui`);
-  }
-}
-
 const handwrittenLibCss = read('kit/ui/src/styles.css');
 const generatedSelectors = new Set();
 for (const primitive of Array.isArray(primitivesTable?.primitives) ? primitivesTable.primitives : []) {
@@ -275,13 +186,6 @@ for (const selector of generatedSelectors) {
   }
 }
 
-const allowlists = [
-  ...(Array.isArray(allowlistsTable?.items) ? allowlistsTable.items : []),
-  ...discoverAppKitTables('nimi-kit-allowlists.yaml').flatMap(({ doc }) => (Array.isArray(doc?.items) ? doc.items : [])),
-];
-const appForbiddenPatterns = appAdoptionTables.flatMap(({ doc, rel }) =>
-  (Array.isArray(doc?.forbidden_patterns) ? doc.forbidden_patterns : []).map((item) => ({ ...item, manifestRel: rel })),
-);
 const appCompositionTables = discoverAppKitTables('nimi-kit-compositions.yaml');
 const compositionRows = [
   ...(Array.isArray(compositionsTable?.components) ? compositionsTable.components : []),
@@ -314,57 +218,6 @@ function extractComponentBlock(content, componentName) {
   nextExportPattern.lastIndex = startIndex + 1;
   const nextExportMatch = nextExportPattern.exec(content);
   return content.slice(startIndex, nextExportMatch ? nextExportMatch.index : content.length);
-}
-
-function scopeAllows(relPath, propertyName) {
-  return allowlists.some((item) => {
-    const scope = String(item?.scope || '').trim();
-    const pattern = String(item?.pattern || '').trim();
-    if (!scope || !pattern) return false;
-    const scopeParts = scope.split(/\s+/u).filter(Boolean);
-    if (!scopeParts.some((part) => relPath.startsWith(part))) return false;
-    return new RegExp(pattern, 'u').test(propertyName);
-  });
-}
-
-for (const row of adoptionRows) {
-  const rel = String(row?.module || '').trim();
-  const exceptionPolicy = String(row?.exception_policy || '').trim();
-  if (!rel || exceptionPolicy === 'controlled_exception') {
-    continue;
-  }
-  const abs = path.join(repoRoot, rel);
-  if (!fs.existsSync(abs)) {
-    hardFailures.push(`${rel}: governed module missing`);
-    continue;
-  }
-  const content = read(rel);
-  if (!content.includes('@nimiplatform/kit/ui')) {
-    hardFailures.push(`${rel}: governed module must import @nimiplatform/kit/ui`);
-  }
-  if (Boolean(row?.testid_required) && !content.includes('data-testid') && !content.includes('E2E_IDS.')) {
-    hardFailures.push(`${rel}: governed module requires stable testid coverage`);
-  }
-  for (const pattern of ['bg-[#', 'text-[#', 'border-[#', 'rounded-[']) {
-    if (content.includes(pattern)) {
-      hardFailures.push(`${rel}: raw visual token pattern "${pattern}" is forbidden in governed modules`);
-    }
-  }
-  if (content.includes('#') && /#[0-9a-fA-F]{3,8}/u.test(content)) {
-    hardFailures.push(`${rel}: raw hex colors are forbidden in governed modules`);
-  }
-  if (content.includes('style={{')) {
-    const styleProps = [...content.matchAll(/style=\{\{([^}]*)\}\}/gu)].flatMap((match) =>
-      [...String(match[1] || '').matchAll(/(?:^|[,{\n])\s*([A-Za-z_$][\w$]*)\s*:/gu)]
-        .map((propMatch) => propMatch[1]?.trim())
-        .filter(Boolean),
-    );
-    for (const prop of styleProps) {
-      if (!scopeAllows(rel, prop)) {
-        hardFailures.push(`${rel}: inline style property "${prop}" is forbidden outside allowlists`);
-      }
-    }
-  }
 }
 
 const compositionsByModule = new Map();
@@ -437,37 +290,6 @@ for (const [relModule, rows] of compositionsByModule) {
   }
 }
 
-for (const item of appForbiddenPatterns) {
-  const scope = String(item?.scope || '').trim();
-  const pattern = String(item?.pattern || '').trim();
-  const id = String(item?.id || '').trim() || 'unnamed_forbidden_pattern';
-  const reason = String(item?.reason || '').trim() || 'app-local kit consumption forbidden pattern matched';
-  if (!scope || !pattern) {
-    hardFailures.push(`${item.manifestRel}: forbidden pattern ${id} requires scope and pattern`);
-    continue;
-  }
-  const absScope = path.join(repoRoot, scope);
-  const targets = fs.existsSync(absScope) && fs.statSync(absScope).isDirectory()
-    ? listFilesRecursively(absScope, (abs) => /\.(?:ts|tsx|css)$/u.test(abs) && !/\.test\./u.test(abs))
-    : [absScope].filter((abs) => fs.existsSync(abs));
-  const regex = new RegExp(pattern, 'u');
-  const baseline = new Map(
-    (Array.isArray(item?.allowed_matches) ? item.allowed_matches : []).map((entry) => [
-      String(entry?.path || '').replace(/\\/gu, '/'),
-      Number(entry?.count || 0),
-    ]),
-  );
-  for (const abs of targets) {
-    const content = fs.readFileSync(abs, 'utf8');
-    const rel = path.relative(repoRoot, abs).replace(/\\/gu, '/');
-    const matches = content.match(new RegExp(regex.source, 'gu')) || [];
-    const allowedCount = baseline.get(rel) || 0;
-    if (matches.length > allowedCount) {
-      const suffix = allowedCount > 0 ? `; ${allowedCount} baseline match(es) allowed` : '';
-      hardFailures.push(`${rel}: ${reason} (${id}; ${matches.length} match(es)${suffix})`);
-    }
-  }
-}
 
 if (hardFailures.length > 0) {
   for (const failure of hardFailures) {

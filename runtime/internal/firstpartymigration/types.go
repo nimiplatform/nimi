@@ -1,6 +1,6 @@
 // Package firstpartymigration implements the typed migration state
 // machine for first-party Nimi App hardcut per
-// `.nimi/spec/platform/kernel/nimi-first-party-migration-contract.md`.
+// `docs/authority/platform-product-lifecycle-rationale.md`.
 //
 // Per closed redesign first-party hardcut policy: migration preserves
 // admitted user state or fails closed with recovery. Standalone

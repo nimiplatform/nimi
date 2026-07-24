@@ -19,7 +19,7 @@ type GoldenVectorTable = {
 
 const goldenVectorPath = path.resolve(
   process.cwd(),
-  '../.nimi/spec/platform/kernel/tables/desktop-open-intent-golden-vectors.yaml',
+  '../scripts/testdata/desktop-open-intent-golden-vectors.yaml',
 );
 
 const rejectedGoldenPayloads: Record<string, unknown> = {

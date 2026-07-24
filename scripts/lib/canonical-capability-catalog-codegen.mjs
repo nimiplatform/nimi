@@ -207,7 +207,7 @@ export function renderCanonicalCapabilityCatalogModule(doc) {
 
   const lines = [];
   lines.push('// GENERATED FILE — DO NOT EDIT.');
-  lines.push('// Source: .nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml');
+  lines.push('// Source: config/platform-canonical-capability-catalog.yaml');
   lines.push('// Emitter: scripts/gen-canonical-capability-catalog.mjs');
   lines.push('// Authority: P-CAPCAT-001 / P-CAPCAT-002 / P-CAPCAT-003 / P-CAPCAT-004');
   lines.push('');

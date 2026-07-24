@@ -385,7 +385,7 @@ function assertFinalPackageIdentity(packageName, rootSpecifier, lockRow, package
 }
 
 export function resolveMandatorySingletons({ repoRoot, simulatorRoot, moduleRequirements = [] }) {
-  const policyPath = path.join(repoRoot, '.nimi/spec/platform/kernel/tables/simulator-mandatory-singletons.yaml');
+  const policyPath = path.join(repoRoot, 'config/platform-simulator-mandatory-singletons.yaml');
   const policyBytes = readFileSync(policyPath);
   const policy = parseYaml(policyBytes.toString('utf8'));
   if (!Array.isArray(policy.packages) || !Array.isArray(policy.entries)) {

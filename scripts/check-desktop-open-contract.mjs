@@ -263,8 +263,8 @@ if (/console\.(?:log|error|warn).*token/u.test(electronHost)) {
 }
 
 for (const [relPath, needles] of [
-  ['.nimi/spec/platform/kernel/desktop-open-intent-contract.md', ['desktop-electron-local-app-host']],
-  ['.nimi/spec/platform/kernel/tables/desktop-open-intents.yaml', ['desktop-electron-local-app-host']],
+  ['docs/authority/platform-core-protocol-rationale.md', ['desktop-electron-local-app-host']],
+  ['config/platform-desktop-open-intents.yaml', ['desktop-electron-local-app-host']],
   ['sdks/typescript/core/app/desktop-open.ts', ['desktop-electron-local-app-host']],
   ['apps/desktop/src-tauri/src/desktop_open_intent_parser.rs', ['desktop-electron-local-app-host']],
   ['apps/desktop/e2e/fixtures/desktop-open-test-launcher.mjs', [
@@ -279,7 +279,7 @@ for (const [relPath, needles] of [
 ]) {
   failures.push(...requireText(relPath, needles));
 }
-const standardShellCapabilities = parseYaml('.nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml');
+const standardShellCapabilities = parseYaml('config/platform-standard-shell-capabilities.yaml');
 const localAppCapabilitySet = standardShellCapabilities.capability_sets?.find(
   (entry) => entry?.set_id === 'local-app-standard-shell-v1',
 );
@@ -314,7 +314,7 @@ for (const [kind, table] of Object.entries(targetTables)) {
 const targetEntries = Object.fromEntries(
   Object.entries(targetTables).map(([kind, table]) => [kind, new Set(table?.entries ?? [])]),
 );
-const goldenVectors = parseYaml('.nimi/spec/platform/kernel/tables/desktop-open-intent-golden-vectors.yaml');
+const goldenVectors = parseYaml('scripts/testdata/desktop-open-intent-golden-vectors.yaml');
 for (const vector of goldenVectors.accepted ?? []) {
   const intent = vector.envelope?.intent ?? {};
   let key;

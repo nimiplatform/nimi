@@ -10,7 +10,7 @@ function readSource(relativePath: string): string {
 const chatSettingsStorageSource = readSource('../src/shell/renderer/features/chat/chat-settings-storage.ts');
 const chatAgentShellAdapterSource = readSource('../src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx');
 const hardcutTestSource = readSource('chat-agent-behavior-storage-hardcut.test.ts');
-const packageAuthoritySource = readSource('../../../.nimi/spec/platform/kernel/package-authority-admission-contract.md');
+const packageAuthoritySource = readSource('../../../docs/authority/platform-authority-admission-rationale.md');
 
 test('agent chat behavior settings no longer have a durable renderer storage key', () => {
   assert.doesNotMatch(chatSettingsStorageSource, /AGENT_CHAT_BEHAVIOR_SETTINGS_STORAGE_KEY/);

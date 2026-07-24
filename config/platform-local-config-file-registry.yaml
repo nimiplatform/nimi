@@ -1,0 +1,54 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/platform/product-lifecycle.authority.yaml
+# Rationale: docs/authority/platform-product-lifecycle-rationale.md
+version: 2
+table_family: owner_matrix
+owner: platform
+matrix_id: platform_local_config_migration_registry
+description: >-
+  Canonical membership registry for the Runtime-owner and ~/.nimi governed
+  config file family.
+  Source authority is local-config-migration-contract.md (P-MIG-001, P-MIG-003).
+  Records which ~/.nimi user-local config files share the cross-file validation
+  framework and which authority owns each file's schema field definitions. Does
+  not define schema fields and does not author old-schema migration steps.
+  Production Runtime service configuration is explicitly excluded; retired
+  ~/.nimi/runtime/config.json is not membership or migration input.
+rows:
+  - config_files_1
+  - config_files_2
+  - config_files_3
+  - every governed ~/.nimi user-local config file must declare its schema owner
+    and current-schema validation framework authority before it is admitted to ordinary
+    readiness paths
+  - old schemaVersion values fail closed to repair unless a future admitted
+    owner packet explicitly adds a migration capability
+  - Runtime service-owned configuration is outside this user-local registry;
+    retired ~/.nimi/runtime/config.json import is forbidden by K-CFG-001
+  - Runtime product control is rooted at <runtime_owner_state_root>/nimi.json;
+    production binds that root to installer-verified service state and never
+    reads an interactive-user copy or fallback
+  - Runtime-owned local-app principal, record, permission-decision, session, inventory, and
+    package-seam state is excluded; retired user-local app projections are not
+    repair or migration inputs
+  - unknown future schemaVersion or broken pointer in any governed file routes
+    to repair_required or blocked per P-MIG-004, never a raw error
+
+config_files:
+  - config_file_id: nimi_json
+    path: "<runtime_owner_state_root>/nimi.json"
+    schema_owner: runtime_product_control_service
+    framework_authority: P-MIG-003
+    source_rule: P-MIG-001
+
+  - config_file_id: runtime_default_json
+    path: "~/.nimi/runtime/default.json"
+    schema_owner: runtime_config
+    framework_authority: P-MIG-003
+    source_rule: P-MIG-001
+
+  - config_file_id: factory_index_json
+    path: "~/.nimi/profiles/factory-index.json"
+    schema_owner: factory_profile_index
+    framework_authority: P-MIG-003
+    source_rule: P-MIG-001

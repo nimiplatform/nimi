@@ -318,7 +318,7 @@ export function PreviewApp({ params }: { params: PreviewParams }) {
       {showSection('overlays') ? <OverlaysSection forcedOverlay={params.overlay} /> : null}
       {showSection('feedback') ? <FeedbackSection /> : null}
       <footer className="pt-4">
-        <NimiText role="caption">{SECTIONS.length} sections · governed by .nimi/spec/platform/kernel</NimiText>
+        <NimiText role="caption">{SECTIONS.length} sections · governed by canonical platform authority</NimiText>
       </footer>
     </div>
   );

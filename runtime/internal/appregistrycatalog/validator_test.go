@@ -6,7 +6,7 @@ import (
 )
 
 // admittedAliasFixture mirrors the admitted factory AIProfile aliases
-// in `.nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml`
+// in `config/platform-ai-profile-factory-catalog.yaml`
 // (cloud-first, local-standard, local-speech-ready, local-gpu,
 // hybrid-recommended). Validator does not parse the catalog itself;
 // tests supply the alias set directly.

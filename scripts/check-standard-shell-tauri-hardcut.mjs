@@ -33,7 +33,7 @@ const sourceRoots = ['apps', 'kit'];
 const failures = [];
 
 failures.push(...verifyAgentCenterParity({
-  canonical: readRepo('.nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml'),
+  canonical: readRepo('config/platform-standard-shell-capabilities.yaml'),
   typescriptCatalog: readRepo('kit/shell/capabilities/src/catalog.ts'),
   rustCatalog: readRepo('kit/shell/tauri/src/capabilities/catalog.rs'),
   rendererAliases: readRepo('kit/shell/renderer/src/bridge/tauri-api.ts'),

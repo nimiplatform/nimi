@@ -4,20 +4,18 @@ version: alpha
 description: Repository entrypoint for the generated Nimi Kit DESIGN.md projection.
 authority:
   owner: platform
-  canonical: .nimi/spec/platform/kernel/**
+  canonical: .nimi/spec/canonical/platform/ui-design-system.authority.yaml
   projection: kit/DESIGN.md
   generatedBy: scripts/generate-nimi-design-md.mjs
   writeCommand: node scripts/generate-nimi-design-md.mjs --write
   checkCommand: node scripts/generate-nimi-design-md.mjs --check
 sources:
-  - .nimi/spec/platform/kernel/tables/nimi-ui-tokens.yaml
-  - .nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml
-  - .nimi/spec/platform/kernel/tables/nimi-ui-primitives.yaml
-  - .nimi/spec/platform/kernel/tables/nimi-ui-primitives/*.yaml
-  - .nimi/spec/platform/kernel/tables/nimi-ui-compositions.yaml
-  - .nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml
-  - .nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml
-  - .nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml
+  - config/platform-nimi-ui-tokens.yaml
+  - config/platform-nimi-ui-themes.yaml
+  - config/platform-nimi-ui-primitives.yaml
+  - config/platform-nimi-ui-primitives/*.yaml
+  - config/platform-nimi-ui-compositions.yaml
+  - config/platform-nimi-kit-registry.yaml
 projection:
   target: kit/DESIGN.md
   kind: entrypoint
@@ -33,7 +31,7 @@ artifacts:
 
 The compact UI/UX design projection for coding agents is [kit/DESIGN.md](kit/DESIGN.md). Machine-readable artifacts live next to it: [kit/design_tokens.json](kit/design_tokens.json), [kit/design-projection.json](kit/design-projection.json), and [kit/tailwind-theme.css](kit/tailwind-theme.css).
 
-Canonical authority remains `.nimi/spec/platform/kernel/**`; this root file exists so tools that look for repository-level `DESIGN.md` can discover the Kit projection without inventing a second design source.
+Canonical authority remains `.nimi/spec/canonical/platform/ui-design-system.authority.yaml`; this root file exists so tools that look for repository-level `DESIGN.md` can discover the Kit projection without inventing a second design source.
 
 ## Overview
 
@@ -42,6 +40,6 @@ Use `kit/DESIGN.md` before creating or changing Nimi UI. If the desired behavior
 ## Do's and Don'ts
 
 - Do read `kit/DESIGN.md` for complete tokens, components, and guardrails.
-- Do treat `.nimi/spec/platform/kernel/**` as canonical authority.
+- Do treat `.nimi/spec/canonical/platform/ui-design-system.authority.yaml` as canonical authority.
 - Do regenerate all design artifacts from the same script after admitted spec changes.
 - Don't hand-edit generated DESIGN.md files.

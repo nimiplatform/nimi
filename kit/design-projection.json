@@ -6,21 +6,19 @@
   "designVersion": 2,
   "authority": {
     "owner": "platform",
-    "canonical": ".nimi/spec/platform/kernel/**",
+    "canonical": ".nimi/spec/canonical/platform/ui-design-system.authority.yaml",
     "projection": "kit/DESIGN.md",
     "generatedBy": "scripts/generate-nimi-design-md.mjs",
     "writeCommand": "node scripts/generate-nimi-design-md.mjs --write",
     "checkCommand": "node scripts/generate-nimi-design-md.mjs --check"
   },
   "sources": [
-    ".nimi/spec/platform/kernel/tables/nimi-ui-tokens.yaml",
-    ".nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml",
-    ".nimi/spec/platform/kernel/tables/nimi-ui-primitives.yaml",
-    ".nimi/spec/platform/kernel/tables/nimi-ui-primitives/*.yaml",
-    ".nimi/spec/platform/kernel/tables/nimi-ui-compositions.yaml",
-    ".nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml",
-    ".nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml",
-    ".nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml"
+    "config/platform-nimi-ui-tokens.yaml",
+    "config/platform-nimi-ui-themes.yaml",
+    "config/platform-nimi-ui-primitives.yaml",
+    "config/platform-nimi-ui-primitives/*.yaml",
+    "config/platform-nimi-ui-compositions.yaml",
+    "config/platform-nimi-kit-registry.yaml"
   ],
   "colors": {
     "danger": "#dc2626",
@@ -4063,8 +4061,6 @@
           "rule": "Expressive density must be explicit at the page or composition boundary and must not be used as precedent for operational chrome."
         }
       }
-    ],
-    "adoption": [],
-    "allowlists": []
+    ]
   }
 }

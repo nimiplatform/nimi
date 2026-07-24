@@ -1,8 +1,6 @@
 export function checkNimiDesignTables({
   cwd,
   definedRuleIds,
-  designAdoptionTable,
-  designAllowlistsTable,
   designCompositionsTable,
   designPrimitivesTable,
   designThemesTable,
@@ -12,12 +10,10 @@ export function checkNimiDesignTables({
   path,
   read,
 }) {
-  const tokensRel = '.nimi/spec/platform/kernel/tables/nimi-ui-tokens.yaml';
-  const primitivesRel = '.nimi/spec/platform/kernel/tables/nimi-ui-primitives.yaml';
-  const themesRel = '.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml';
-  const adoptionRel = '.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml';
-  const compositionsRel = '.nimi/spec/platform/kernel/tables/nimi-ui-compositions.yaml';
-  const allowlistsRel = '.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml';
+  const tokensRel = 'config/platform-nimi-ui-tokens.yaml';
+  const primitivesRel = 'config/platform-nimi-ui-primitives.yaml';
+  const themesRel = 'config/platform-nimi-ui-themes.yaml';
+  const compositionsRel = 'config/platform-nimi-ui-compositions.yaml';
 
   const tokens = Array.isArray(designTokensTable?.tokens) ? designTokensTable.tokens : [];
   const allowedCategories = new Set([
@@ -153,28 +149,7 @@ export function checkNimiDesignTables({
     }
   }
 
-  const modules = Array.isArray(designAdoptionTable?.modules) ? designAdoptionTable.modules : [];
   const platformCoreApps = new Set();
-  for (const row of modules) {
-    const id = String(row?.id || '').trim();
-    const app = String(row?.app || '').trim();
-    const relModule = String(row?.module || '').trim();
-    const schemeSupport = Array.isArray(row?.scheme_support) ? row.scheme_support.map((item) => String(item || '').trim()).filter(Boolean) : [];
-    const defaultScheme = String(row?.default_scheme || '').trim();
-    const accentPack = String(row?.accent_pack || '').trim();
-    const source = String(row?.source_rule || '').trim();
-    if (!id || !relModule || !defaultScheme || !accentPack) fail(`${adoptionRel}: adoption rows require id, module, default_scheme, accent_pack`);
-    if (app && !platformCoreApps.has(app)) fail(`${adoptionRel}: ${id} must move app ${app} adoption truth to the app-local kit manifest`);
-    if (/^apps\//u.test(relModule)) fail(`${adoptionRel}: ${id} must not reference app module ${relModule}`);
-    if (schemeSupport.length === 0) fail(`${adoptionRel}: ${id} must declare non-empty scheme_support`);
-    if (!schemeSupport.every((scheme) => scheme === 'light' || scheme === 'dark')) fail(`${adoptionRel}: ${id} has invalid scheme_support values`);
-    if (!schemeSupport.includes(defaultScheme)) fail(`${adoptionRel}: ${id} default_scheme must be included in scheme_support`);
-    if (!themeCoverage.has(`nimi-${defaultScheme}`)) fail(`${adoptionRel}: ${id} references unknown foundation scheme nimi-${defaultScheme}`);
-    if (themeKinds.get(accentPack) !== 'accent') fail(`${adoptionRel}: ${id} references unknown accent pack ${accentPack}`);
-    if (!fs.existsSync(path.join(cwd, relModule))) fail(`${adoptionRel}: ${id} module does not exist ${relModule}`);
-    if (!definedRuleIds.has(source)) fail(`${adoptionRel}: ${id} references unknown source_rule ${source}`);
-  }
-
   const densityModes = Array.isArray(designCompositionsTable?.density_modes) ? designCompositionsTable.density_modes : [];
   const allowedDensityModeIds = new Set(['density.compact', 'density.regular', 'density.expressive']);
   for (const row of densityModes) {
@@ -242,18 +217,6 @@ export function checkNimiDesignTables({
     if (!definedRuleIds.has(source)) fail(`${compositionsRel}: ${id} references unknown source_rule ${source}`);
   }
 
-  const allowlists = Array.isArray(designAllowlistsTable?.items) ? designAllowlistsTable.items : [];
-  for (const item of allowlists) {
-    const id = String(item?.id || '').trim();
-    const pattern = String(item?.pattern || '').trim();
-    const scope = String(item?.scope || '').trim();
-    const source = String(item?.source_rule || '').trim();
-    if (!id || !pattern || !scope) fail(`${allowlistsRel}: allowlist rows require id, pattern, scope`);
-    if (/\bapps\/[^/\s]+/u.test(scope)) {
-      fail(`${allowlistsRel}: ${id} must move app allowlist scope to the app-local kit manifest`);
-    }
-    if (!definedRuleIds.has(source)) fail(`${allowlistsRel}: ${id} references unknown source_rule ${source}`);
-  }
 
   if (!tokenIds.has('motion.slow')) {
     fail(`${tokensRel}: toolkit token taxonomy must define motion.slow`);

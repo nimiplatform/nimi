@@ -15,7 +15,7 @@ const paths = {
   identityAccess: '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml',
   rpcMethods: 'config/runtime-rpc-methods.yaml',
   rpcMigration: '.nimi/spec/runtime/kernel/tables/rpc-migration-map/methods-identity-app.yaml',
-  appRegistry: '.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml',
+  appRegistry: 'config/platform-nimi-app-registry.yaml',
   sdkMethodGroups: 'config/sdks-runtime-method-groups.yaml',
   avatarAcceptance: '.nimi/spec/avatar/kernel/tables/acceptance-recording-matrix.yaml',
 };

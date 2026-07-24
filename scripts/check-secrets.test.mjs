@@ -60,7 +60,7 @@ test('generated Platform catalog projections are excluded while their authority 
     );
   }
 
-  const sourcePath = '.nimi/spec/platform/kernel/tables/nimi-app-release-descriptors.yaml';
+  const sourcePath = 'config/platform-nimi-app-release-descriptors.yaml';
   const { scanned, excluded } = filterSecretScanFiles([sourcePath, ...generatedPaths]);
   assert.deepEqual(scanned, [sourcePath]);
   assert.deepEqual(excluded.map((entry) => entry.file), generatedPaths);

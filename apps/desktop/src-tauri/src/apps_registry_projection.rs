@@ -7,7 +7,7 @@
 //! This file is a READ-ONLY projection of Platform catalog truth. It is
 //! regenerated deterministically from the packaged Platform Nimi App registry
 //! catalog (`nimi_shell_tauri::capabilities::platform_projection::nimi_app_registry`, itself
-//! generated from `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml` +
+//! generated from `config/platform-nimi-app-registry.yaml` +
 //! `nimi-app-release-descriptors.yaml`). It is never hand-edited.
 //!
 //! It is the source the Desktop Apps bridge reads — `generated.ts` is retired

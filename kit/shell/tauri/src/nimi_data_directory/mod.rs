@@ -1,8 +1,8 @@
 //! `nimi_data` directory ownership enforcement + destructive cleanup.
 //!
-//! Spec authority: `.nimi/spec/platform/kernel/local-config-migration-contract.md`
+//! Spec authority: `docs/authority/platform-product-lifecycle-rationale.md`
 //! `P-MIG-006`, `P-MIG-008`, and the kernel table
-//! `.nimi/spec/platform/kernel/tables/nimi-data-directory-ownership.yaml`.
+//! `config/platform-nimi-data-directory-ownership.yaml`.
 //!
 //! This module is shared host/scaffold infrastructure for Nimi apps. It owns
 //! the reusable Rust/Tauri primitive for materializing the declared `nimi_data`

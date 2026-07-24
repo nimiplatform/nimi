@@ -12,10 +12,10 @@ const gateRelative = 'scripts/check-local-app-owner-boundary.mjs';
 const bundleFiles = [
   gateRelative,
   'docs/authority/runtime-protected-session-rationale.md',
-  '.nimi/spec/platform/kernel/nimi-app-admission-contract.md',
-  '.nimi/spec/platform/kernel/kit-contract.md',
-  '.nimi/spec/platform/kernel/app-permission-contract.md',
-  '.nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml',
+  'docs/authority/platform-app-ecosystem-rationale.md',
+  'docs/authority/platform-ui-design-system-rationale.md',
+  'docs/authority/platform-app-ecosystem-rationale.md',
+  'config/platform-standard-shell-capabilities.yaml',
   '.nimi/spec/canonical/desktop/shell-runtime.authority.yaml',
 ];
 
@@ -91,7 +91,7 @@ test('rejects widening a zero-permission session into protected authority', asyn
 
 test('rejects positive immutable package behavior before 0P', async () => {
   await mutateAndReject(
-    '.nimi/spec/platform/kernel/nimi-app-admission-contract.md',
+    'docs/authority/platform-app-ecosystem-rationale.md',
     'Immutable positive package behavior remains unavailable until 0P.',
     'Immutable positive package behavior is available before 0P.',
     'IMMUTABLE_PACKAGE_UNAVAILABLE_MISSING',
@@ -100,7 +100,7 @@ test('rejects positive immutable package behavior before 0P', async () => {
 
 test('rejects host-owned local-app session binding', async () => {
   await mutateAndReject(
-    '.nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml',
+    'config/platform-standard-shell-capabilities.yaml',
     'runtime_owned_request_empty_local_app_session',
     'host_owned_local_app_session',
     'AUTH_BINDING_OWNER_INVALID',

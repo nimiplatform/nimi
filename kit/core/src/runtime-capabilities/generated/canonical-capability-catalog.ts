@@ -1,5 +1,5 @@
 // GENERATED FILE — DO NOT EDIT.
-// Source: .nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml
+// Source: config/platform-canonical-capability-catalog.yaml
 // Emitter: scripts/gen-canonical-capability-catalog.mjs
 // Authority: P-CAPCAT-001 / P-CAPCAT-002 / P-CAPCAT-003 / P-CAPCAT-004
 

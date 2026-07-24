@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
-const authBindingTable = '.nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml';
+const authBindingTable = 'config/platform-standard-shell-capabilities.yaml';
 
 const authorityRules = [
   {
@@ -58,7 +58,7 @@ const authorityRules = [
   },
   {
     ruleId: 'P-NAPP-009',
-    contract: '.nimi/spec/platform/kernel/nimi-app-admission-contract.md',
+    contract: 'docs/authority/platform-app-ecosystem-rationale.md',
     clauses: [
       ['PLATFORM_VOCABULARY_OWNER_MISSING', /Platform owns verified catalog\/release,[\s\S]*publisher\/review posture, the permission vocabulary, and the closed local[\s\S]*provenance taxonomy/iu],
       ['RUNTIME_KERNEL_OWNER_SPLIT_MISSING', /Runtime K-APP owns PC-local principals and records;[\s\S]*canonical domain owners own admitted permission decisions and K-GRANT defines[\s\S]*Runtime-owned lifecycle boundary; K-PLOCAL owns launch\/process\/session/iu],
@@ -69,7 +69,7 @@ const authorityRules = [
   },
   {
     ruleId: 'P-NAPP-033',
-    contract: '.nimi/spec/platform/kernel/nimi-app-admission-contract.md',
+    contract: 'docs/authority/platform-app-ecosystem-rationale.md',
     clauses: [
       ['LOCAL_DEVELOPMENT_NOT_CATALOG_TRACK_MISSING', /`local_development` is not[\s\S]*a catalog track/iu],
       ['IMMUTABLE_PACKAGE_UNAVAILABLE_MISSING', /Immutable positive package behavior remains unavailable until 0P/iu],
@@ -77,7 +77,7 @@ const authorityRules = [
   },
   {
     ruleId: 'P-NAPP-034',
-    contract: '.nimi/spec/platform/kernel/nimi-app-admission-contract.md',
+    contract: 'docs/authority/platform-app-ecosystem-rationale.md',
     clauses: [
       ['FIXED_SERVICE_LAUNCH_BOUNDARY_MISSING', /Positive third-party sessions[\s\S]*require the[\s\S]*same-OS fixed Runtime service[\s\S]*`PrepareLocalAppLaunch`[\s\S]*native peer\/process\/executable[\s\S]*proof/iu],
       ['LEASE_RENDERER_CUSTODY_DENIAL_MISSING', /launch lease is necessary but not durable identity and never enters[\s\S]*renderer\/app state/iu],
@@ -86,7 +86,7 @@ const authorityRules = [
   },
   {
     ruleId: 'P-KIT-044',
-    contract: '.nimi/spec/platform/kernel/kit-contract.md',
+    contract: 'docs/authority/platform-ui-design-system-rationale.md',
     clauses: [
       ['KIT_TRUTH_NON_OWNER_MISSING', /Kit owns typed shell APIs and trusted carrier implementation only[\s\S]*cannot[\s\S]*create account, principal, provenance, record, permission decision, launch,[\s\S]*process, session, or owner-operation truth/iu],
       ['REQUEST_EMPTY_LOCAL_APP_CARRIER_MISSING', /host-private carrier opens one common[\s\S]*request-empty local-app session/iu],
@@ -99,7 +99,7 @@ const authorityRules = [
   },
   {
     ruleId: 'P-PERM-011',
-    contract: '.nimi/spec/platform/kernel/app-permission-contract.md',
+    contract: 'docs/authority/platform-app-ecosystem-rationale.md',
     clauses: [
       ['APP_PRIVATE_STORAGE_BASE_ENTITLEMENT_MISSING', /An app does not ask Nimi for permission to use its own SQLite, JSON store,[\s\S]*media, settings, cache or product routes/iu],
       ['NATIVE_APP_STORAGE_AUTHORITY_MISSING', /Native app storage[\s\S]*is `app_owned_authority` under actual OS rights/iu],
@@ -108,7 +108,7 @@ const authorityRules = [
   },
   {
     ruleId: 'P-PERM-015',
-    contract: '.nimi/spec/platform/kernel/app-permission-contract.md',
+    contract: 'docs/authority/platform-app-ecosystem-rationale.md',
     clauses: [
       ['FIVE_AUTHORITY_CLASSES_MISSING', /`base_entitlement`[\s\S]*`user_permission`[\s\S]*`one_shot_consent`[\s\S]*`app_owned_authority`[\s\S]*`os_right`/iu],
       ['AUTHORITY_CLASS_EXCLUSIVITY_MISSING', /The classes are mutually exclusive/iu],
@@ -117,7 +117,7 @@ const authorityRules = [
   },
   {
     ruleId: 'P-PERM-017',
-    contract: '.nimi/spec/platform/kernel/app-permission-contract.md',
+    contract: 'docs/authority/platform-app-ecosystem-rationale.md',
     clauses: [
       ['ATOMIC_PERMISSION_ADMISSION_MISSING', /permission is admitted only when all of these land atomically:[\s\S]*catalog row[\s\S]*decision owner[\s\S]*endpoint[\s\S]*SDK\/Kit[\s\S]*approval UI[\s\S]*audit/iu],
       ['DURABLE_PERMISSION_CONTROL_MISSING', /Durable permissions additionally require settings and[\s\S]*revoke UI/iu],

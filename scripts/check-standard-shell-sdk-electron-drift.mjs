@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const catalogPath = path.join(repoRoot, '.nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml');
+const catalogPath = path.join(repoRoot, 'config/platform-standard-shell-capabilities.yaml');
 const sdkPath = path.join(repoRoot, 'sdks/typescript/runtime/electron-ipc.ts');
 
 const catalog = YAML.parse(readFileSync(catalogPath, 'utf8'));

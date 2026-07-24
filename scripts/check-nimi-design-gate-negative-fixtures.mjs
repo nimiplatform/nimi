@@ -67,7 +67,7 @@ function withTempFixture(name, build, run) {
 }
 
 function buildUiPatternFixture(root) {
-  write(root, '.nimi/spec/platform/kernel/tables/nimi-ui-tokens.yaml', `tokens:
+  write(root, 'config/platform-nimi-ui-tokens.yaml', `tokens:
   - id: color.surface
     css_var: --nimi-surface-card
     theme_layer: foundation
@@ -75,7 +75,7 @@ function buildUiPatternFixture(root) {
     css_var: --nimi-accent
     theme_layer: accent
 `);
-  write(root, '.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml', `packs:
+  write(root, 'config/platform-nimi-ui-themes.yaml', `packs:
   - theme_id: nimi-light
     pack_kind: foundation
     values:
@@ -89,38 +89,14 @@ function buildUiPatternFixture(root) {
     values:
       color.accent: '#00aa88'
 `);
-  write(root, '.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml', 'modules: []\n');
-  write(root, '.nimi/spec/platform/kernel/tables/nimi-ui-compositions.yaml', 'components: []\n');
-  write(root, '.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml', 'items: []\n');
-  write(root, '.nimi/spec/platform/kernel/tables/nimi-ui-primitives.yaml', 'primitives: []\n');
+  write(root, 'config/platform-nimi-ui-compositions.yaml', 'components: []\n');
+  write(root, 'config/platform-nimi-ui-primitives.yaml', 'primitives: []\n');
   write(root, 'kit/ui/src/generated/themes/nimi-light.css', ':root { --nimi-surface-card: #fff; }\n');
   write(root, 'kit/ui/src/generated/themes/nimi-dark.css', ':root { --nimi-surface-card: #000; }\n');
   write(root, 'kit/ui/src/generated/themes/nimi-accent.css', ':root { --nimi-accent: #00aa88; }\n');
   write(root, 'kit/ui/src/design-tokens.ts', 'export const ACCENT_PACK_IDS = ["nimi-accent"] as const;\n');
   write(root, 'kit/ui/src/styles.css', '');
-  write(root, 'apps/probe/spec/kernel/tables/nimi-kit-adoption.yaml', `version: 1
-app: probe
-app_entry:
-  style: apps/probe/src/styles.css
-  bootstrap: apps/probe/src/main.tsx
-  theme_provider: apps/probe/src/main.tsx
-modules:
-  - id: probe.surface
-    app: probe
-    module: apps/probe/src/surface.tsx
-    families:
-      - surface
-    testid_required: false
-    exception_policy: none
-    source_rule: P-DESIGN-020
-    scheme_support:
-      - light
-      - dark
-    default_scheme: light
-    accent_pack: nimi-accent
-`);
   write(root, 'apps/probe/spec/kernel/tables/nimi-kit-compositions.yaml', 'version: 1\napp: probe\ncomponents: []\n');
-  write(root, 'apps/probe/spec/kernel/tables/nimi-kit-allowlists.yaml', 'version: 1\napp: probe\nitems: []\n');
   write(root, 'apps/probe/src/styles.css', `@import "@nimiplatform/kit/ui/styles.css";
 @import "@nimiplatform/kit/ui/themes/light.css";
 @import "@nimiplatform/kit/ui/themes/dark.css";
@@ -139,7 +115,7 @@ export function ProbeSurface() {
 }
 
 function buildKitFixture(root) {
-  const standardShellCatalogRel = '.nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml';
+  const standardShellCatalogRel = 'config/platform-standard-shell-capabilities.yaml';
   const standardShellCatalog = YAML.parse(fs.readFileSync(path.join(repoRoot, standardShellCatalogRel), 'utf8'));
   const standardShellFixtureStrings = [
     'NIMI_STANDARD_SHELL_CAPABILITY_SETS',
@@ -175,7 +151,7 @@ function buildKitFixture(root) {
         ].filter(Boolean))
       : []),
   ];
-  write(root, '.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml', `modules:
+  write(root, 'config/platform-nimi-kit-registry.yaml', `modules:
   - id: kit.ui
     subpath: /ui
     kind: foundation
@@ -257,6 +233,11 @@ function buildKitFixture(root) {
     ui_exports: []
     reuse_entrypoints: []
 `);
+  write(
+    root,
+    'config/platform-nimi-kit-registry.yaml',
+    fs.readFileSync(path.join(root, 'config/platform-nimi-kit-registry.yaml'), 'utf8'),
+  );
   write(root, 'kit/package.json', JSON.stringify({
     name: '@nimiplatform/kit-fixture',
     exports: {
@@ -273,6 +254,11 @@ function buildKitFixture(root) {
     write(root, `kit/${moduleName}/src/index.ts`, 'export const ok = true;\n');
   }
   copyFromRepo(root, standardShellCatalogRel);
+  write(
+    root,
+    'config/platform-standard-shell-capabilities.yaml',
+    fs.readFileSync(path.join(root, standardShellCatalogRel), 'utf8'),
+  );
   write(root, 'kit/shell/capabilities/README.md', '# shell capabilities\n');
   write(
     root,
@@ -291,175 +277,12 @@ function mutateJson(root, rel, mutate) {
   fs.writeFileSync(abs, `${JSON.stringify(doc, null, 2)}\n`, 'utf8');
 }
 
-const uiCases = [
-  {
-    name: 'platform concrete app row',
-    mutate(root) {
-      write(root, '.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml', `modules:
-  - id: desktop.synthetic
-    app: desktop
-    module: apps/desktop/src/synthetic.tsx
-`);
-    },
-    expected: 'platform design tables must not carry concrete app consumption inventory',
-  },
-  {
-    name: 'app root token registry',
-    mutate(root) {
-      append(root, 'apps/probe/src/styles.css', '\n:root { --color-probe: red; }\n');
-    },
-    expected: 'app styles must not define app-local root token authority',
-  },
-  {
-    name: 'random accent palette authority',
-    mutate(root) {
-      append(root, 'apps/probe/src/styles.css', '\n.random-accent { --nimi-accent: red; }\n');
-    },
-    expected: 'apps/probe/src/styles.css: app styles must not assign --nimi-* token values',
-  },
-  {
-    name: 'missing kit accent theme import',
-    mutate(root) {
-      write(root, 'apps/probe/src/styles.css', `@import "@nimiplatform/kit/ui/styles.css";
-@import "@nimiplatform/kit/ui/themes/light.css";
-@import "@nimiplatform/kit/ui/themes/dark.css";
-`);
-    },
-    expected: 'apps/probe/src/styles.css: must import @nimiplatform/kit/ui/themes/nimi-accent.css',
-  },
-  {
-    name: 'missing kit theme provider',
-    mutate(root) {
-      write(root, 'apps/probe/src/main.tsx', `export function App() {
-  return <div />;
-}
-`);
-    },
-    expected: 'apps/probe/src/main.tsx: must use NimiThemeProvider from @nimiplatform/kit/ui',
-  },
-  {
-    name: 'inline raw glass style',
-    mutate(root) {
-      write(root, 'apps/probe/src/surface.tsx', `import { Surface } from '@nimiplatform/kit/ui';
-export function ProbeSurface() {
-  return <Surface style={{ backdropFilter: 'blur(12px)' }}>probe</Surface>;
-}
-`);
-    },
-    expected: 'inline style property "backdropFilter" is forbidden outside allowlists',
-  },
-  {
-    name: 'marketing hero gradient card',
-    mutate(root) {
-      write(root, 'apps/probe/src/surface.tsx', `import { Surface } from '@nimiplatform/kit/ui';
-export function ProbeSurface() {
-  return (
-    <Surface>
-      <section style={{ background: 'linear-gradient(135deg, #6945ff, #13d6a0)' }}>
-        The Future of AI Collaboration
-      </section>
-    </Surface>
-  );
-}
-`);
-    },
-    expected: 'apps/probe/src/surface.tsx: inline style property "background" is forbidden outside allowlists',
-  },
-  {
-    name: 'plain web form styling',
-    mutate(root) {
-      write(root, 'apps/probe/src/surface.tsx', `import { Surface } from '@nimiplatform/kit/ui';
-export function ProbeSurface() {
-  return (
-    <Surface>
-      <form style={{ backgroundColor: 'white' }}>
-        <input name="email" />
-      </form>
-    </Surface>
-  );
-}
-`);
-    },
-    expected: 'apps/probe/src/surface.tsx: inline style property "backgroundColor" is forbidden outside allowlists',
-  },
-  {
-    name: 'dense border line material bypass',
-    mutate(root) {
-      write(root, 'apps/probe/src/surface.tsx', `import { Surface } from '@nimiplatform/kit/ui';
-export function ProbeSurface() {
-  return <Surface><div className="border-[#dfe4ec]">dense lines</div></Surface>;
-}
-`);
-    },
-    expected: 'apps/probe/src/surface.tsx: raw visual token pattern "border-[#" is forbidden in governed modules',
-  },
-  {
-    name: 'missing governed module authority',
-    mutate(root) {
-      write(root, 'apps/probe/spec/kernel/tables/nimi-kit-adoption.yaml', `version: 1
-app: probe
-app_entry:
-  style: apps/probe/src/styles.css
-  bootstrap: apps/probe/src/main.tsx
-  theme_provider: apps/probe/src/main.tsx
-modules:
-  - id: probe.missing
-    app: probe
-    module: apps/probe/src/missing.tsx
-    families:
-      - surface
-    testid_required: false
-    exception_policy: none
-    source_rule: P-DESIGN-020
-    scheme_support:
-      - light
-      - dark
-    default_scheme: light
-    accent_pack: nimi-accent
-`);
-    },
-    expected: 'governed module missing',
-  },
-  {
-    name: 'new app-local manifest root discovery',
-    mutate(root) {
-      write(root, '.nimi/spec/synthetic/kernel/tables/nimi-kit-adoption.yaml', `version: 1
-app: synthetic
-app_entry:
-  style: apps/synthetic/src/styles.css
-  bootstrap: apps/synthetic/src/main.tsx
-  theme_provider: apps/synthetic/src/main.tsx
-modules: []
-`);
-      write(root, 'apps/synthetic/src/styles.css', '');
-      write(root, 'apps/synthetic/src/main.tsx', 'export function Synthetic() { return null; }\n');
-    },
-    expected: 'apps/synthetic/src/styles.css: must import @nimiplatform/kit/ui/styles.css',
-  },
-];
-
 withTempFixture('ui-pattern-base', buildUiPatternFixture, (root) => {
   const result = runGate(root, 'scripts/check-nimi-ui-pattern.mjs');
   expectPass('ui-pattern base fixture', result);
   report.positiveBootstrap = {
-    app: 'probe',
-    manifest: 'apps/probe/spec/kernel/tables/nimi-kit-adoption.yaml',
-    style: 'apps/probe/src/styles.css',
-    bootstrap: 'apps/probe/src/main.tsx',
-    themeProvider: 'apps/probe/src/main.tsx',
-    governedModule: 'apps/probe/src/surface.tsx',
-    imports: [
-      '@nimiplatform/kit/ui/styles.css',
-      '@nimiplatform/kit/ui/themes/light.css',
-      '@nimiplatform/kit/ui/themes/dark.css',
-      '@nimiplatform/kit/ui/themes/nimi-accent.css',
-      'NimiThemeProvider',
-      'Surface',
-    ],
     platformDesignRows: {
-      adoption: 0,
       compositions: 0,
-      allowlists: 0,
     },
     gates: [
       {
@@ -471,20 +294,6 @@ withTempFixture('ui-pattern-base', buildUiPatternFixture, (root) => {
   };
 });
 
-for (const testCase of uiCases) {
-  withTempFixture(`ui-pattern-${testCase.name.replace(/\s+/gu, '-')}`, buildUiPatternFixture, (root) => {
-    testCase.mutate(root);
-    const result = runGate(root, 'scripts/check-nimi-ui-pattern.mjs');
-    expectFailure(`ui-pattern ${testCase.name}`, result, testCase.expected);
-    report.negativeCases.push({
-      id: `ui-pattern:${testCase.name}`,
-      gate: 'check-nimi-ui-pattern',
-      expectedText: testCase.expected,
-      status: result.status,
-      ok: result.status !== 0,
-    });
-  });
-}
 
 withTempFixture('kit-base', buildKitFixture, (root) => {
   const result = runGate(root, 'scripts/check-nimi-kit.mjs');

@@ -54,7 +54,7 @@ const SKIP_DIRS = new Set([
 
 const ALLOWLIST = new Set([
   '.nimi/spec/platform/kernel/index.md',
-  '.nimi/spec/platform/kernel/mod-extension-retirement-contract.md',
+  'docs/authority/platform-app-ecosystem-rationale.md',
   'scripts/check-no-public-mod-extension-admission.mjs',
   'scripts/check-p-moex-anti-targets.mjs',
 ]);

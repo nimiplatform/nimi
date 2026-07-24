@@ -1,0 +1,89 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/platform/simulator.authority.yaml
+# Rationale: docs/authority/platform-simulator-rationale.md
+version: 1
+table_family: protocol_surface
+owner: platform
+protocol_id: platform_simulator_listener_families
+source_rule: P-SIM-017
+
+surfaces:
+  - global_listener_family_ownership
+  - subscriber_coordination
+  - lifecycle_cleanup_verification
+
+coordination_contract:
+  direct_selected_source_global_listener: forbidden
+  subscriber_interface: provider_scoped_kit_coordinator
+  coordinator_instances_per_simulator_session: 1
+  listener_instances_per_family_and_target: 1
+  subscriber_order: overlay_order_then_instance_creation_sequence_then_subscription_sequence
+  duplicate_owner: forbidden
+  undeclared_family: forbidden
+  cleanup: last_subscriber_removes_listener_before_session_settlement
+
+families:
+  - id: keyboard
+    event_target: document
+    event_types: [keydown, keyup]
+    listener_owner: kit_coordinator
+    capture: true
+    passive: false
+    responsibilities: [escape_order, shortcut_routing, keyboard_overlay_policy]
+  - id: pointer_dismissal
+    event_target: document
+    event_types: [pointerdown, click]
+    listener_owner: kit_coordinator
+    capture: true
+    passive: true
+    responsibilities: [outside_press_order, overlay_dismissal]
+  - id: focus
+    event_target: document
+    event_types: [focusin, focusout]
+    listener_owner: kit_coordinator
+    capture: true
+    passive: false
+    responsibilities: [focus_restore, focus_containment, active_overlay_focus]
+  - id: route_history
+    event_target: window
+    event_types: [popstate]
+    listener_owner: simulator_shell
+    capture: false
+    passive: true
+    responsibilities: [shell_route_deserialization]
+  - id: viewport
+    event_target: window
+    event_types: [resize]
+    listener_owner: simulator_shell
+    capture: false
+    passive: true
+    responsibilities: [shell_viewport_projection]
+  - id: document_visibility
+    event_target: document
+    event_types: [visibilitychange]
+    listener_owner: simulator_shell
+    capture: false
+    passive: true
+    responsibilities: [visual_evidence_annotation]
+    state_authority: forbidden
+  - id: integrity_error
+    event_target: window
+    event_types: [error, unhandledrejection]
+    listener_owner: simulator_bootstrap
+    capture: true
+    passive: false
+    responsibilities: [attribution, failure_scope, release_evidence]
+
+element_scoped_events:
+  ownership: current_react_root
+  global_coordinator_registration: not_required
+  cross_instance_dispatch: forbidden
+  simulator_state_write: typed_operation_only
+
+verification:
+  required:
+    - one_physical_listener_per_family_and_target
+    - deterministic_subscriber_order
+    - no_selected_source_global_listener
+    - cleanup_returns_to_zero_after_session_dispose
+  violation_result: SIMULATOR_EFFECT_FORBIDDEN

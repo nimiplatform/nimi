@@ -14,7 +14,7 @@ function fixtureManifest(overrides = {}) {
     version: 2,
     policy_id: 'nimi.nimicoding-host-boundary-hardcut.v2',
     authority: {
-      path: '.nimi/spec/platform/kernel/package-authority-admission-contract.md',
+      path: '.nimi/spec/canonical/platform/authority-admission.authority.yaml',
       required_rule_ids: ['P-PKG-010', 'P-PKG-011'],
     },
     package: {
@@ -49,7 +49,7 @@ async function createFixtureRoot() {
   const root = await mkdtemp(path.join(os.tmpdir(), 'nimi-host-hardcut-'));
   await write(
     root,
-    '.nimi/spec/platform/kernel/package-authority-admission-contract.md',
+    '.nimi/spec/canonical/platform/authority-admission.authority.yaml',
     'P-PKG-010\nP-PKG-011\n',
   );
   await write(root, '.nimi/topics/retired-topic/evidence.md', 'historical audit-sweep evidence\n');

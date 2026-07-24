@@ -5,7 +5,7 @@
 //
 // Computes WCAG 2.1 AA contrast ratios for every admitted material tier ×
 // surface tone × theme combination declared in
-// .nimi/spec/platform/kernel/tables/nimi-ui-{tokens,themes}.yaml.
+// config/platform-nimi-ui-{tokens,themes}.yaml.
 //
 // For glass materials (semitransparent fills), the "effective background"
 // is the material bg alpha-composited over the surface tone. Contrast is
@@ -15,7 +15,7 @@
 // Forward-compat: the tier list is derived from the yaml at runtime. No
 // hardcoded tier names. Works with either admitted 3-tier or 5-tier taxonomy.
 //
-// Spec: P-DESIGN-022 (material layering) + .nimi/spec/platform/kernel/
+// Spec: P-DESIGN-022 (material layering) + canonical platform ui-design-system authority
 // nimi-ui-material-contract.md §3 (4.5:1 threshold).
 //
 // Exit 0 on green. Exit 1 on any (tier, tone, theme) combination failing
@@ -92,8 +92,8 @@ function contrast(a, b) {
 
 // ---------- Spec loading ----------
 
-const tokensDoc = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-tokens.yaml');
-const themesDoc = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml');
+const tokensDoc = readYaml('config/platform-nimi-ui-tokens.yaml');
+const themesDoc = readYaml('config/platform-nimi-ui-themes.yaml');
 
 const tokens = Array.isArray(tokensDoc?.tokens) ? tokensDoc.tokens : [];
 const packs = Array.isArray(themesDoc?.packs) ? themesDoc.packs : [];

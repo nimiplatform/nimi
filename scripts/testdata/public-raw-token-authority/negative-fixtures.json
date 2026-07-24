@@ -47,7 +47,7 @@
   {
     "fixture_id": "platform-capability-reintroduced",
     "code": "PUBLIC_RAW_TOKEN_CAPABILITY_FORBIDDEN",
-    "path": ".nimi/spec/platform/kernel/tables/nimi-app-registry.yaml",
+    "path": "config/platform-nimi-app-registry.yaml",
     "mutation": {
       "kind": "yaml_append_to_match",
       "path": ["apps"],

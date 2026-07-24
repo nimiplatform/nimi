@@ -1,8 +1,8 @@
 // Package appregistrycatalog implements the Runtime-side typed consumer of the
 // Platform Nimi App registry catalog at
-// .nimi/spec/platform/kernel/tables/nimi-app-registry.yaml.
+// config/platform-nimi-app-registry.yaml.
 //
-// Authority: .nimi/spec/platform/kernel/nimi-app-admission-contract.md
+// Authority: docs/authority/platform-app-ecosystem-rationale.md
 // (P-NAPP-001..P-NAPP-012). This package consumes the registry read-only;
 // it does not own the schema or admission policy. Per P-NAPP-012, only
 // package_kind=nimi-app rows are admitted; the loader fails closed on

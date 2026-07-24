@@ -16,7 +16,7 @@ const repoRoot = path.resolve(scriptDir, '..');
 // variants.
 
 const TARGET_GLOBS = [
-  '.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml',
+  'config/platform-nimi-app-registry.yaml',
   'runtime/internal/services/app',
   'sdks/typescript/core/app',
 ];

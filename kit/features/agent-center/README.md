@@ -44,8 +44,8 @@ autonomy configuration.
 
 ## Before Building Locally
 
-Read `.nimi/spec/platform/kernel/agent-center-contract.md`,
-`.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml`, `DESIGN.md`, and
+Read `docs/authority/platform-ui-design-system-rationale.md`,
+`config/platform-nimi-kit-registry.yaml`, `DESIGN.md`, and
 `kit/DESIGN.md` before changing this feature. Runtime SDK consumption must stay
 behind `@nimiplatform/kit/core/sdk-contract`; app-specific surfaces belong in
 the host app placement outside Kit Agent Center.

@@ -40,7 +40,7 @@ export {
 } from './codegen-catalog.js';
 
 // Canonical capability catalog (spec-resident, generated from
-// .nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml).
+// config/platform-canonical-capability-catalog.yaml).
 // See P-CAPCAT-001 / P-CAPCAT-002 / P-CAPCAT-003.
 export type {
   CanonicalCapabilitySectionId,

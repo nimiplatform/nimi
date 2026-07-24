@@ -1,0 +1,169 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/platform/core-protocol.authority.yaml
+# Rationale: docs/authority/platform-core-protocol-rationale.md
+version: 1
+table_family: protocol_surface
+owner: platform
+protocol_id: platform_audit_events
+surfaces:
+  - protocol_validation_failed
+  - action_execution_committed
+  - action_execution_failed
+  - action_compensation_triggered
+  - transit_denied
+  - social_admission_denied
+  - economy_settlement_applied
+  - context_handoff_applied
+  - presence_state_changed
+  - timeflow_drift_exceeded
+  - app_authorization_granted
+  - scope_manifest_registered
+  - scope_manifest_validation_failed
+  - scope_catalog_published
+  - scope_catalog_revoked
+  - app_mode_violation_denied
+  - app_resource_scope_denied
+  - app_consent_validation_failed
+  - world_extension_bound
+  - world_extension_unbound
+  - world_extension_write_denied
+  - participantId
+  - traceId
+  - timestamp
+  - domain
+  - reasonCode
+  - protocolVersion
+  - protocol
+  - ai_last_mile
+  - primitive
+  - app_auth
+  - scope
+  - app_mode
+  - app_resource
+  - world_app_binding
+events:
+  - name: protocol_validation_failed
+    group: protocol
+    source_rule: P-PROTO-001
+  - name: action_execution_committed
+    group: ai_last_mile
+    source_rule: P-ALMI-011
+  - name: action_execution_failed
+    group: ai_last_mile
+    source_rule: P-ALMI-011
+  - name: action_compensation_triggered
+    group: ai_last_mile
+    source_rule: P-ALMI-011
+  - name: transit_denied
+    group: primitive
+    source_rule: P-PROTO-103
+  - name: social_admission_denied
+    group: primitive
+    source_rule: P-PROTO-101
+  - name: economy_settlement_applied
+    group: primitive
+    source_rule: P-PROTO-102
+  - name: context_handoff_applied
+    group: primitive
+    source_rule: P-PROTO-104
+  - name: presence_state_changed
+    group: primitive
+    source_rule: P-PROTO-105
+  - name: timeflow_drift_exceeded
+    group: primitive
+    source_rule: P-PROTO-100
+  - name: app_authorization_granted
+    group: app_auth
+    source_rule: P-PROTO-030
+  - name: scope_manifest_registered
+    group: scope
+    source_rule: P-PROTO-021
+  - name: scope_manifest_validation_failed
+    group: scope
+    source_rule: P-PROTO-021
+  - name: scope_catalog_published
+    group: scope
+    source_rule: P-PROTO-040
+  - name: scope_catalog_revoked
+    group: scope
+    source_rule: P-PROTO-040
+  - name: app_mode_violation_denied
+    group: app_mode
+    source_rule: P-PROTO-060
+  - name: app_resource_scope_denied
+    group: app_resource
+    source_rule: P-PROTO-030
+  - name: app_consent_validation_failed
+    group: app_resource
+    source_rule: P-PROTO-030
+  - name: world_extension_bound
+    group: world_app_binding
+    source_rule: P-PROTO-050
+  - name: world_extension_unbound
+    group: world_app_binding
+    source_rule: P-PROTO-050
+  - name: world_extension_write_denied
+    group: world_app_binding
+    source_rule: P-PROTO-050
+
+base_required_fields:
+  - participantId
+  - traceId
+  - timestamp
+  - domain
+  - reasonCode
+  - protocolVersion
+
+group_context_fields:
+  protocol:
+    - capabilityProfileRef
+    - capabilityMode
+  ai_last_mile:
+    - actionId
+    - executionId
+    - principalId
+    - principalType
+    - idempotencyKey
+  primitive:
+    - worldId
+    - primitive
+  app_auth:
+    - appId
+    - principalId
+    - principalType
+    - tokenId
+    - policyPreset
+    - policyVersion
+  scope:
+    - appId
+    - scopeCatalogVersion
+  app_mode:
+    - appId
+    - capabilityMode
+  app_resource:
+    - appId
+    - principalId
+    - principalType
+    - subjectUserId
+    - resourceSelectorHash
+  world_app_binding:
+    - worldId
+    - extensionAppId
+    - bindingStatus
+
+event_specific_fields:
+  action_execution_committed:
+    - executionMode
+    - auditEventMap
+  action_execution_failed:
+    - executionMode
+    - failureStage
+  action_compensation_triggered:
+    - compensationActionId
+    - failedExecutionId
+  app_authorization_granted:
+    - consentId
+    - consentVersion
+  app_consent_validation_failed:
+    - consentId
+    - consentVersion

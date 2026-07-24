@@ -31,7 +31,7 @@
 //   - Segment B (pinned known debt); each entry requires an exact canonical
 //     authority reference.
 //
-// Spec companion: .nimi/spec/platform/kernel/nimi-ui-material-contract.md
+// Spec companion: docs/authority/platform-ui-design-system-rationale.md
 //
 // Exit 0 on green. Exit 1 with a per-file violation report otherwise.
 
@@ -355,7 +355,7 @@ function main() {
     }
   }
   process.stderr.write(`\nAllowlist: ${ALLOWLIST_FILE}\n`);
-  process.stderr.write(`Spec: .nimi/spec/platform/kernel/nimi-ui-material-contract.md\n`);
+  process.stderr.write(`Spec: docs/authority/platform-ui-design-system-rationale.md\n`);
   process.exit(1);
 }
 

@@ -20,7 +20,7 @@ export const generatedSecretScanExcludes = [
   {
     label: 'Platform app catalog projections',
     pattern: /^(?:kit\/shell\/capabilities\/src\/platform-projection\.ts|kit\/shell\/tauri\/src\/platform_catalog\/nimi_app_registry\.rs|sdks\/typescript\/core\/app\/platform-catalog\.generated\.ts)$/u,
-    source: '.nimi/spec/platform/kernel/tables/nimi-app-{registry,release-descriptors}.yaml',
+    source: 'config/platform-nimi-app-{registry,release-descriptors}.yaml',
     driftGate: 'pnpm check:platform-catalog-drift',
   },
 ];

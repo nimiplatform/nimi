@@ -40,7 +40,7 @@ function run(root, args = []) {
 function buildFixture({ declareFragments = true } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-design-md-'));
   write(root, 'kit/README.md', '# @nimiplatform/kit\n');
-  write(root, '.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml', `version: 1
+  write(root, 'config/platform-nimi-kit-registry.yaml', `version: 1
 modules:
   - id: kit.ui
     description: Cross-app design system built on Radix UI + CVA + Tailwind, with nimi semantic tokens
@@ -49,7 +49,7 @@ modules:
       - ./ui/styles.css
     source_rule: P-KIT-010
 `);
-  write(root, '.nimi/spec/platform/kernel/tables/nimi-ui-tokens.yaml', `version: 2
+  write(root, 'config/platform-nimi-ui-tokens.yaml', `version: 2
 tokens:
   - id: surface.card
     category: surface
@@ -101,7 +101,7 @@ tokens:
     source_rule: P-DESIGN-003
     theme_layer: foundation
 `);
-  write(root, '.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml', `version: 2
+  write(root, 'config/platform-nimi-ui-themes.yaml', `version: 2
 packs:
   - theme_id: nimi-light
     pack_kind: foundation
@@ -124,16 +124,16 @@ packs:
       action.primary_bg: '#45B8D6'
       status.info: '#3B82F6'
 `);
-  write(root, '.nimi/spec/platform/kernel/tables/nimi-ui-primitives.yaml', `version: 2
+  write(root, 'config/platform-nimi-ui-primitives.yaml', `version: 2
 surfaces:
   - primitive.surface
   - primitive.action
 ${declareFragments ? `fragments:
   primitives:
-    - .nimi/spec/platform/kernel/tables/nimi-ui-primitives/surface-action.yaml
+    - config/platform-nimi-ui-primitives/surface-action.yaml
 ` : ''}
 `);
-  write(root, '.nimi/spec/platform/kernel/tables/nimi-ui-primitives/surface-action.yaml', `version: 2
+  write(root, 'config/platform-nimi-ui-primitives/surface-action.yaml', `version: 2
 primitives:
   - id: primitive.surface
     family: surface
@@ -165,7 +165,7 @@ primitives:
           styles:
             background-color: var(--nimi-status-info)
 `);
-  write(root, '.nimi/spec/platform/kernel/tables/nimi-ui-compositions.yaml', `version: 1
+  write(root, 'config/platform-nimi-ui-compositions.yaml', `version: 1
 components: []
 density_modes:
   - id: density.compact
@@ -180,8 +180,6 @@ density_modes:
     typography:
       body: 13-14px
 `);
-  write(root, '.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml', 'version: 1\nmodules: []\n');
-  write(root, '.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml', 'version: 1\nitems: []\n');
   return root;
 }
 
@@ -196,7 +194,7 @@ test('renders Google DESIGN.md-shaped Nimi design projection from spec authority
     assert.match(body, /^---\nname: Nimi Kit Design System\n/m);
     assert.match(body, /systemVersion: 1/m);
     assert.match(body, /designVersion: 2/m);
-    assert.match(body, /sources:\n  - \.nimi\/spec\/platform\/kernel\/tables\/nimi-ui-tokens.yaml/m);
+    assert.match(body, /sources:\n  - config\/platform-nimi-ui-tokens.yaml/m);
     assert.equal(frontMatter.tokens, undefined);
     assert.equal(frontMatter.componentStandards, undefined);
     assert.deepEqual(Object.keys(frontMatter.colors), ['info', 'primary', 'surface']);

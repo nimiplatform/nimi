@@ -1,7 +1,7 @@
 /**
  * Glass material taxonomy primitive (5-tier admitted, 2026-04-18).
  *
- * Authority: `.nimi/spec/platform/kernel/nimi-ui-material-contract.md`.
+ * Authority: `docs/authority/platform-ui-design-system-rationale.md`.
  * Generator parallel: kit/ui/src/design-tokens.ts re-exports
  * `SurfaceMaterial` / `SurfaceMaterialTransparency` from this file so
  * that the public `kit/ui` barrel and the carved-out `kit/ui/glass`

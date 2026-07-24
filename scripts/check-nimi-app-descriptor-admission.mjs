@@ -8,7 +8,7 @@ import YAML from 'yaml';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
-const defaultDescriptorPath = path.join(repoRoot, '.nimi/spec/platform/kernel/tables/nimi-app-release-descriptors.yaml');
+const defaultDescriptorPath = path.join(repoRoot, 'config/platform-nimi-app-release-descriptors.yaml');
 
 const externalClass = 'external-immutable-artifact';
 const sandboxSourceKind = 'admission-sandbox-https-artifact';

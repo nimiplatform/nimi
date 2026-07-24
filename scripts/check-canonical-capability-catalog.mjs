@@ -25,7 +25,7 @@ import {
 } from './lib/canonical-capability-catalog-codegen.mjs';
 
 const cwd = process.cwd();
-const catalogRel = '.nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml';
+const catalogRel = 'config/platform-canonical-capability-catalog.yaml';
 const providerCapsRel = 'config/runtime-provider-capabilities.yaml';
 const localAdapterRel = 'config/runtime-local-adapter-routing.yaml';
 const generatedRel = 'kit/core/src/runtime-capabilities/generated/canonical-capability-catalog.ts';

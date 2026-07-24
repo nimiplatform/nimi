@@ -24,7 +24,7 @@ import {
 function findRepoRoot(start = process.cwd()): string {
   let current = resolve(start);
   while (current !== dirname(current)) {
-    if (existsSync(resolve(current, '.nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml'))) {
+    if (existsSync(resolve(current, 'config/platform-standard-shell-capabilities.yaml'))) {
       return current;
     }
     current = dirname(current);
@@ -32,10 +32,10 @@ function findRepoRoot(start = process.cwd()): string {
   throw new Error('Unable to locate repo root for standard-shell-capabilities.yaml');
 }
 
-const catalogPath = resolve(findRepoRoot(), '.nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml');
-const aiProfileCatalogPath = resolve(findRepoRoot(), '.nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml');
-const appRegistryCatalogPath = resolve(findRepoRoot(), '.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml');
-const releaseDescriptorCatalogPath = resolve(findRepoRoot(), '.nimi/spec/platform/kernel/tables/nimi-app-release-descriptors.yaml');
+const catalogPath = resolve(findRepoRoot(), 'config/platform-standard-shell-capabilities.yaml');
+const aiProfileCatalogPath = resolve(findRepoRoot(), 'config/platform-ai-profile-factory-catalog.yaml');
+const appRegistryCatalogPath = resolve(findRepoRoot(), 'config/platform-nimi-app-registry.yaml');
+const releaseDescriptorCatalogPath = resolve(findRepoRoot(), 'config/platform-nimi-app-release-descriptors.yaml');
 
 function readYamlList(section: string, content: string): string[] {
   const start = content.indexOf(`${section}:\n`);

@@ -352,3 +352,123 @@ scopes:
         value: "tests/**/*.mjs"
       - kind: command
         value: "test"
+  - scope: platform.core-protocol
+    bindings:
+      - kind: path_glob
+        value: "proto/**/*"
+      - kind: path_glob
+        value: "runtime/internal/protocol/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/ai/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/app/**/*.go"
+      - kind: path_glob
+        value: "sdks/typescript/**/*.ts"
+      - kind: path_glob
+        value: "kit/core/src/runtime-capabilities/**/*"
+      - kind: path_glob
+        value: "config/runtime-provider-capabilities.yaml"
+      - kind: path_glob
+        value: "config/runtime-local-adapter-routing.yaml"
+  - scope: platform.ui-design-system
+    bindings:
+      - kind: path_glob
+        value: "kit/ui/**/*"
+      - kind: path_glob
+        value: "kit/features/agent-center/src/**/*"
+      - kind: path_glob
+        value: "kit/DESIGN.md"
+      - kind: path_glob
+        value: "kit/README.md"
+      - kind: path_glob
+        value: "kit/design_tokens.json"
+      - kind: path_glob
+        value: "kit/design-projection.json"
+      - kind: path_glob
+        value: "kit/tailwind-theme.css"
+      - kind: path_glob
+        value: "config/desktop-shell-ui-*.yaml"
+  - scope: platform.simulator
+    bindings:
+      - kind: path_glob
+        value: "apps/simulator/**"
+      - kind: path_glob
+        value: "app-tools/lib/simulator-*"
+      - kind: path_glob
+        value: "app-tools/scripts/*simulator*"
+  - scope: platform.app-ecosystem
+    bindings:
+      - kind: path_glob
+        value: "runtime/internal/services/runtimeagent/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/cognition/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/app/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/account/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/localappkernel/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/protectedlocal/**/*.go"
+      - kind: path_glob
+        value: "apps/desktop/src-electron/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src-tauri/src/**/*.rs"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/features/chat/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/features/agents/**/*"
+      - kind: path_glob
+        value: "kit/shell/protected-local/src/**/*"
+      - kind: path_glob
+        value: "sdks/typescript/**/*.ts"
+  - scope: platform.product-lifecycle
+    bindings:
+      - kind: path_glob
+        value: "apps/desktop/product-control-core/src/*"
+      - kind: path_glob
+        value: "apps/desktop/src-electron/product-control-*.ts"
+      - kind: path_glob
+        value: "apps/desktop/src-tauri/src/desktop_product_control*.rs"
+      - kind: path_glob
+        value: "apps/desktop/src-tauri/src/desktop_product_control/*"
+      - kind: path_glob
+        value: "apps/desktop/src-tauri/src/nimi_data_directory.rs"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/first-run/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/features/nimi-home/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/features/home/*"
+      - kind: path_glob
+        value: "kit/shell/tauri/src/nimi_data_directory/*"
+      - kind: path_glob
+        value: "runtime/internal/services/localservice/product_control*.go"
+      - kind: path_glob
+        value: "runtime/internal/materializationreadiness/*.go"
+      - kind: path_glob
+        value: "runtime/internal/engine/*materializer*.go"
+  - scope: platform.authority-admission
+    bindings:
+      - kind: path_glob
+        value: "apps/*/spec/*"
+      - kind: path_glob
+        value: "apps/*/spec/**/*"
+      - kind: path_glob
+        value: ".nimi/config/*"
+      - kind: path_glob
+        value: ".nimi/contracts/*"
+      - kind: path_glob
+        value: ".nimi/methodology/*"
+      - kind: path_glob
+        value: ".nimi/spec/realm/*"
+  - scope: platform.governance-release
+    bindings:
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/infra/offline/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/infra/realm/**/*"
+      - kind: path_glob
+        value: "runtime/internal/services/account/**/*.go"
+      - kind: path_glob
+        value: "sdks/typescript/realm/**/*"

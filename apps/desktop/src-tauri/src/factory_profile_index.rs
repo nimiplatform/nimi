@@ -8,7 +8,7 @@
 //! This file is a READ-ONLY projection of official catalog truth. It is
 //! regenerated deterministically from the packaged Platform factory catalog
 //! (`nimi_shell_tauri::capabilities::ai_profile`, itself generated
-//! from `.nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml`).
+//! from `config/platform-ai-profile-factory-catalog.yaml`).
 //! It is never hand-edited and never carries user edits.
 //!
 //! It is NOT the user's editable profile library and it does NOT own or mutate

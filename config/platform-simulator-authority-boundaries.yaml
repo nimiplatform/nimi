@@ -1,0 +1,99 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/platform/simulator.authority.yaml
+# Rationale: docs/authority/platform-simulator-rationale.md
+version: 1
+table_family: owner_matrix
+owner: platform
+matrix_id: platform_simulator_authority_boundaries
+source_rule: P-SIM-001
+rows:
+  - id: simulator-product
+    owner: platform
+    responsibility: Simulator product identity, selected-source protocol, deterministic State Engine, simulated session presentation truth, final build, integrated qualification, and release evidence
+    relation: owns
+    authority_refs: [P-SIM-001, P-SIM-010, P-SIM-024]
+    boundary: May own deterministic authenticated presentation and per-instance session overrides only; does not own App UI, Kit primitives, SDK public semantics, Runtime, Realm, product identity, permission, admission, or product messaging truth.
+  - id: platform-architecture
+    owner: platform
+    responsibility: Existing layer and dependency direction
+    relation: cross_reference_no_semantic_change
+    authority_refs: [P-ARCH-001, P-ARCH-002, P-ARCH-003, P-ARCH-004, P-ARCH-005, P-ARCH-011, P-ARCH-020, P-ARCH-021]
+    boundary: Simulator is an App-layer browser product and cannot import Runtime internals or create a new platform truth layer.
+  - id: web-release
+    owner: platform-web
+    responsibility: Separation of apps/web, independent Simulator origin, Cloudflare adapter, and evidence-root relationship
+    relation: amended
+    authority_refs: [P-WEB-001, P-WEB-002, P-WEB-004, P-WEB-005, P-SIM-002]
+    boundary: Web may link to Simulator but cannot bundle it or extend Desktop shell-mode truth.
+  - id: app-identity-admission
+    owner: platform-app-admission
+    responsibility: Canonical App identity, publication, review, install, trust, permission, and descriptor truth
+    relation: unchanged_excluded
+    authority_refs: [P-NAPP-009, P-NAPP-010, P-NAPP-011, P-NAPP-012, P-NAPP-013, P-NAPP-033, P-APP-001, P-APP-006, P-SIM-005]
+    boundary: Module and instance IDs plus technical qualification never create App identity or admission.
+  - id: ecosystem
+    owner: platform-ecosystem
+    responsibility: Ecosystem trust and third-party product policy
+    relation: cross_reference_no_public_pipeline
+    authority_refs: [P-ECO-008, P-ECO-010, P-SIM-005, P-SIM-021]
+    boundary: External repository means source location only and creates no publication or trust tier.
+  - id: kit
+    owner: platform-kit
+    responsibility: Reusable provider-scoped renderer host, opaque identity scope, theme and overlay targets, and overlay coordinator seam
+    relation: amended
+    authority_refs: [P-KIT-001, P-KIT-002, P-KIT-003, P-KIT-010, P-KIT-041C, P-KIT-042, P-KIT-080, P-KIT-090, P-SIM-016, P-SIM-017]
+    boundary: Kit owns reusable types and behavior; Simulator owns concrete leases and effect allowance.
+  - id: sdk
+    owner: sdks
+    responsibility: Host-neutral typed facade, deterministic harness projection, and NimiError mapping
+    relation: amended
+    authority_refs: [S-BOUNDARY-001, S-BOUNDARY-004, S-BOUNDARY-005, S-BOUNDARY-006, S-TRANSPORT-001, S-ERROR-003, S-ERROR-010, S-ERROR-015, S-PKG-001, S-PKG-003, P-SIM-016]
+    boundary: SDK creates no Simulator state, production transport, endpoint, credential, principal, or Simulator-named public error.
+  - id: app-tools
+    owner: platform-scaffolding
+    responsibility: App-side Manifest, source, factory, Adapter, fixture, import, and effect conformance report
+    relation: amended
+    authority_refs: [P-SCAF-001, P-SCAF-003, P-SCAF-004, P-SCAF-008, P-SCAF-009, P-SCAF-011, P-SCAF-012, P-SCAF-015, P-SCAF-017, P-SIM-020]
+    boundary: app-tools validates submitted source but cannot select a module or certify the integrated graph.
+  - id: desktop
+    owner: desktop
+    responsibility: Desktop canonical renderer factory, native and Web production bindings, App Adapter, App fixtures, canonical post-login Shell readiness marker, and canonical style input
+    relation: amended
+    authority_refs: [D-BOOT-002, D-BOOT-004, D-BOOT-008, D-BOOT-009, D-SHELL-001, D-SHELL-004, D-SHELL-005, D-SHELL-006, D-SHELL-008, D-SHELL-018, D-SHELL-019, D-SHELL-022, D-STATE-005, D-ERR-006, D-GATE-001, D-GATE-010, D-GATE-080, D-GATE-090, P-SIM-006, P-SIM-007, P-SIM-014]
+    boundary: Desktop keeps its UI and production behavior; Simulator supplies per-instance bindings and State Engine projections but owns no Desktop store, route, provider, readiness DOM, or UI fork.
+  - id: zhiyu
+    owner: zhiyu
+    responsibility: Zhiyu canonical renderer factory, production binding, App Adapter, App fixture, and simulated projection mapping
+    relation: amended
+    authority_refs: [Z-PROD-001, Z-PROD-002, Z-PROD-003, Z-PROD-004, Z-STATE-001, Z-STATE-002, Z-STATE-003, Z-STATE-004, Z-STATE-005, Z-AUTH-001, Z-AUTH-004, Z-AUTH-005, Z-AUTH-006, Z-PERSIST-001, Z-PERSIST-002, Z-PERSIST-003, Z-GATE-001, Z-GATE-007, P-SIM-006, P-SIM-007]
+    boundary: Simulated partner/auth/conversation state cannot enter Zhiyu persistence or Runtime paths.
+  - id: tester
+    owner: tester
+    responsibility: Tester canonical renderer factory, production bindings, Simulator Adapter, App fixtures, and reference-consumer assertions
+    relation: admitted_app_slice
+    authority_refs: [P-APP-001, P-APP-002, P-APP-003, P-APP-004, P-APP-005, P-APP-006, P-SCAF-015, P-SIM-024]
+    boundary: Tester proves the generic App contract but owns no global Simulator or platform semantics.
+  - id: runtime-realm
+    owner: runtime_and_realm
+    responsibility: Runtime execution and Realm canonical business truth
+    relation: unchanged_excluded
+    authority_refs: [P-SIM-001, P-SIM-010, P-SIM-018]
+    boundary: A simulated authenticated projection never widens this authority; no real Runtime, Realm, provider, model, account, token, credential, Cookie, browser auth storage, network, permission, or persistence path executes in Simulator.
+  - id: app-messaging
+    owner: runtime-app-messaging
+    responsibility: Product App-message delivery, history, audit, and authorization
+    relation: unchanged_excluded
+    authority_refs: [P-SIM-015]
+    boundary: Simulator interaction IDs and events are an independent presentation protocol and never K-APP truth.
+  - id: release-governance
+    owner: platform-release
+    responsibility: Registry-owned executable gate identity and hash-rooted release evidence
+    relation: amended
+    authority_refs: [P-GOV-003, P-GOV-011, P-GOV-023, P-GOV-025, P-RELG-001, P-RELG-006, P-RELG-008, P-RELG-013, P-SIM-020, P-SIM-023]
+    boundary: I0 admits only the structural Simulator authority gate; implementation gates require executable commands before registry admission.
+  - id: test-governance
+    owner: platform-test
+    responsibility: One executable suite topology and evidence classification vocabulary
+    relation: cross_reference_no_new_suite_at_i0
+    authority_refs: [P-TEST-001, P-TEST-002, P-TEST-003, P-TEST-004, P-TEST-005, P-TEST-006, P-TEST-007, P-TEST-008, P-SIM-020]
+    boundary: Simulator tests enter the platform topology only when real test sources and commands exist; plan fixtures are not test evidence.

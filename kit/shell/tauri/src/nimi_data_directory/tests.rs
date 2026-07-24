@@ -31,7 +31,7 @@ fn write_file(path: &Path, contents: &[u8]) {
 #[test]
 fn matrix_mirrors_kernel_table_rows() {
     let table_path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../../.nimi/spec/platform/kernel/tables/nimi-data-directory-ownership.yaml");
+        .join("../../../config/platform-nimi-data-directory-ownership.yaml");
     let raw = fs::read_to_string(&table_path)
         .unwrap_or_else(|error| panic!("read kernel table {}: {error}", table_path.display()));
     let table_ids: Vec<String> = raw

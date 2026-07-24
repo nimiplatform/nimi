@@ -15,8 +15,8 @@ import YAML from 'yaml';
 import { sha256Digest, stableJsonDigest } from '@nimiplatform/app-tools/simulator-conformance';
 import { GENERATED_ROOT, REPO_ROOT, SIMULATOR_ROOT } from './paths.mjs';
 
-const EFFECTS_TABLE = '.nimi/spec/platform/kernel/tables/simulator-browser-effects.yaml';
-const LISTENERS_TABLE = '.nimi/spec/platform/kernel/tables/simulator-listener-families.yaml';
+const EFFECTS_TABLE = 'config/platform-simulator-browser-effects.yaml';
+const LISTENERS_TABLE = 'config/platform-simulator-listener-families.yaml';
 
 const OWNER_MAP = {
   simulator_bootstrap: 'simulator-bootstrap',

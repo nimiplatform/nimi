@@ -7,7 +7,7 @@ import process from 'node:process';
 import { pathToFileURL } from 'node:url';
 import YAML from 'yaml';
 
-const FREEZE_PATH = '.nimi/spec/platform/kernel/tables/release-promise-freeze.yaml';
+const FREEZE_PATH = 'config/platform-release-promise-freeze.yaml';
 
 const PUBLIC_COPY_FILES = Object.freeze([
   'README.md',

@@ -25,8 +25,8 @@ const settingsPanelSource = readWorkspace('src/shell/renderer/features/settings/
 const desktopStylesSource = readWorkspace('src/shell/renderer/styles.css');
 const adoptionTable = readRepo('config/desktop-shell-ui-kit-adoption.yaml');
 const compositionsTable = readRepo('config/desktop-shell-ui-kit-compositions.yaml');
-const designContractSource = readRepo('.nimi/spec/platform/kernel/design-pattern-contract.md');
-const designOverviewSource = readRepo('.nimi/spec/platform/design-pattern.md');
+const designContractSource = readRepo('docs/authority/platform-ui-design-system-rationale.md');
+const designOverviewSource = readRepo('docs/authority/platform-ui-design-system-rationale.md');
 
 test('desktop kit registries align with the desktop chat relationship rail refactor', () => {
   assert.doesNotMatch(adoptionTable, /features\/chats\/chat-list\.tsx/);

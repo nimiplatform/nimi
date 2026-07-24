@@ -1,0 +1,209 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/platform/simulator.authority.yaml
+# Rationale: docs/authority/platform-simulator-rationale.md
+version: 1
+table_family: protocol_surface
+owner: platform
+protocol_id: platform_simulator_module_contract
+source_rule: P-SIM-004
+surfaces:
+  - manifest
+  - canonical_renderer_factory
+  - renderer_module
+  - adapter
+  - interaction
+  - result
+
+protocol_versions:
+  module: nimi.simulator.module/v1
+  operation: nimi.simulator.operation/v1
+  interaction: nimi.simulator.interaction/v1
+  renderer_host: nimi.renderer.host/v1
+  version_negotiation: forbidden
+  compatibility_reader: forbidden
+
+manifest:
+  path: nimi.simulator.yaml
+  parser:
+    format: YAML-1.2-core
+    duplicate_keys: reject
+    anchors: reject
+    aliases: reject
+    merge_keys: reject
+    custom_tags: reject
+    non_string_mapping_keys: reject
+    unknown_fields: reject
+  required_fields:
+    - schema
+    - module_id
+    - composition.factory_entry
+    - composition.factory_export
+    - composition.style_entry
+    - composition.app_production_entries
+    - renderer.entry
+    - renderer.export
+    - renderer.adapter_entry
+    - renderer.adapter_export
+    - renderer.surfaces
+    - requires.kit_capabilities
+    - requires.sdk_methods
+    - requires.simulator_commands
+    - requires.simulator_events
+    - fixtures.conformance
+  surface_fields:
+    - id
+    - factory_surface
+    - label
+    - initial_route
+    - readiness_contract
+  surface_invariants:
+    - surfaces is non-empty
+    - exactly one surface has id main
+    - every surface has a readiness_contract
+    - every factory_surface resolves from the canonical factory
+  forbidden_fields:
+    - source_repository
+    - source_revision
+    - source_digest
+    - publisher
+    - trust
+    - signature
+    - review
+    - admission
+    - credential
+    - token
+    - endpoint
+    - environment
+    - permission
+    - runtime_capability
+    - install_command
+    - build_command
+    - bundler_plugin
+    - export_condition
+    - html_entry
+    - root_entry
+    - bootstrap_entry
+    - prebuilt_javascript
+    - prebuilt_css
+    - chunk_name
+    - ordering_key
+    - deployment_route
+    - sdk_transport
+    - shell_mode
+    - runtime_fallback
+
+identifiers:
+  module_id_pattern: "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+  module_id_min_ascii_bytes: 2
+  module_id_max_ascii_bytes: 64
+  non_main_surface_id_pattern: "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+  command_event_pattern: "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\\.[a-z][a-z0-9-]*){2,}$"
+  command_event_max_ascii_bytes: 128
+  simulator_owned_prefix: simulator.
+  app_owned_simulator_prefix: forbidden
+  derived_root_class: nimi-ui-module--{module_id}
+  derived_global_prefix: nimi-ui-module-{module_id}-
+  route:
+    leading_slashes: 1
+    max_utf8_bytes: 512
+    scheme: forbidden
+    authority: forbidden
+    backslash: forbidden
+    control_character: forbidden
+    parent_segment: forbidden
+
+source_relative_path:
+  encoding: UTF-8
+  normalization: NFC
+  separator: /
+  leading_slash: forbidden
+  leading_dot_slash: forbidden
+  empty_segment: forbidden
+  dot_segment: forbidden
+  parent_segment: forbidden
+  url: forbidden
+  symlink_escape: forbidden
+  package_cache_path: forbidden
+  generated_bundle: forbidden
+  conditional_path: forbidden
+
+canonical_renderer_factory:
+  owner: selected_app
+  construction: synchronous
+  required_surface: main
+  creates_per_instance:
+    - provider_graph
+    - app_store
+    - query_client
+    - localization
+    - route_state
+    - caches
+    - subscriptions
+    - named_surfaces
+  binding_fields:
+    - protocol
+    - scope
+    - capabilities
+    - localization
+    - kit
+    - sdk
+    - app.projection
+    - app.commands
+    - app.events
+    - route
+    - clock
+    - surfaceLifecycle
+  forbidden_inputs:
+    - hostKind
+    - isSimulator
+    - shellMode
+    - environment
+    - providerIdentity
+    - rawModuleId
+    - rawInstanceId
+    - rawEpoch
+  forbidden_actions:
+    - createRoot
+    - production_transport_construction
+    - browser_history_construction
+    - process_global_host_install
+    - module_scope_mutable_renderer_resource
+    - state_engine_internal_import
+
+renderer_module:
+  fields: [protocol, moduleId, factory]
+  import_side_effects: forbidden
+  self_mount: forbidden
+  simulator_only_ui: forbidden
+  conformance_fixture_in_production_graph: forbidden
+
+adapter:
+  owner: selected_app
+  fields: [protocol, moduleId, behavior, create]
+  instance_methods: [prepare, activate, deactivate, dispose]
+  instances_shared_between_renderer_instances: forbidden
+  first_effect_phase: prepare
+  exact_bindings_required: true
+  forbidden_actions:
+    - return_react_node
+    - query_app_dom
+    - mutate_app_dom
+    - construct_renderer_resources
+    - replace_routes
+    - patch_source
+    - inject_app_css
+    - choose_alternate_factory
+    - expose_host_discriminator
+
+interaction:
+  required_fields: [protocol, interactionId, source, targets, type, payload]
+  payload: validated_json_value
+  target_resolution: generated_registry_and_live_instances
+  direct_app_import: forbidden
+  product_app_message_transport: forbidden
+
+result:
+  success_shape: { required_fields: [ok, value], ok: true }
+  failure_shape: { required_fields: [ok, error], ok: false }
+  silent_noop: forbidden
+  success_shaped_placeholder: forbidden

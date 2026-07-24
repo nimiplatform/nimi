@@ -43,7 +43,7 @@ const mainSource = readFileSync(
 const productControlSchemaSource = readFileSync(
   resolve(
     import.meta.dirname,
-    '../../../.nimi/spec/platform/kernel/tables/product-control-record-schema.yaml',
+    '../../../config/platform-product-control-record-schema.yaml',
   ),
   'utf8',
 );

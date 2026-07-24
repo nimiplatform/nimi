@@ -90,7 +90,7 @@ const firstRunSetupChecklistSource = readFileSync(
   'utf8',
 );
 const aiProfilePolicySource = readFileSync(
-  resolve(import.meta.dirname, '../../../.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md'),
+  resolve(import.meta.dirname, '../../../docs/authority/platform-core-protocol-rationale.md'),
   'utf8',
 );
 // S6 domain-3 W6: local-engine contract migrated to canonical authority; the

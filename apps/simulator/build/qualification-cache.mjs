@@ -89,11 +89,11 @@ function buildToolchainInventory({ repoRoot, simulatorRoot }) {
 }
 
 function buildPolicyInventory(repoRoot) {
-  const policyRoot = path.join(repoRoot, '.nimi', 'spec', 'platform', 'kernel', 'tables');
+  const policyRoot = path.join(repoRoot, 'config');
   return readdirSync(policyRoot, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && entry.name.startsWith('simulator-') && entry.name.endsWith('.yaml'))
+    .filter((entry) => entry.isFile() && entry.name.startsWith('platform-simulator-') && entry.name.endsWith('.yaml'))
     .map((entry) => ({
-      path: `.nimi/spec/platform/kernel/tables/${entry.name}`,
+      path: `config/${entry.name}`,
       digest: sha256Digest(readFileSync(path.join(policyRoot, entry.name))),
     }))
     .sort((left, right) => left.path.localeCompare(right.path));

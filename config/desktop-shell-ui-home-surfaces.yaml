@@ -36,8 +36,8 @@ surfaces:
     surface_label: First-Run
     owner: desktop_nimi_home_shell
     source_authority:
-      - .nimi/spec/platform/kernel/cold-start-authority-contract.md
-      - .nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md
+      - .nimi/spec/canonical/platform/product-lifecycle.authority.yaml
+      - .nimi/spec/canonical/platform/core-protocol.authority.yaml
       - .nimi/spec/runtime/kernel/local-environment-consumer-activation-contract.md
     allowed_projection_scope:
       - cold_start_state_per_P_COLD_001
@@ -54,8 +54,8 @@ surfaces:
     surface_label: Apps
     owner: desktop_nimi_home_shell
     source_authority:
-      - .nimi/spec/platform/kernel/nimi-home-contract.md
-      - .nimi/spec/platform/kernel/nimi-app-admission-contract.md
+      - .nimi/spec/canonical/platform/product-lifecycle.authority.yaml
+      - .nimi/spec/canonical/platform/app-ecosystem.authority.yaml
       - .nimi/spec/sdks/kernel/nimi-app-client-contract.md
     allowed_projection_scope:
       - ordinary_visible_nimi_app_listing_consumed_from_registry_projection
@@ -73,7 +73,7 @@ surfaces:
     surface_label: Agent Chat
     owner: desktop_nimi_home_shell
     source_authority:
-      - .nimi/spec/platform/kernel/nimi-home-contract.md
+      - .nimi/spec/canonical/platform/product-lifecycle.authority.yaml
       - .nimi/spec/canonical/desktop/agent-projection.authority.yaml
       - .nimi/spec/sdks/kernel/ai-config-surface-contract.md
     allowed_projection_scope:
@@ -108,7 +108,7 @@ surfaces:
     surface_label: App Health
     owner: desktop_nimi_home_shell
     source_authority:
-      - .nimi/spec/platform/kernel/nimi-home-contract.md
+      - .nimi/spec/canonical/platform/product-lifecycle.authority.yaml
     allowed_projection_scope:
       - app_runtime_registration_status_consumed_from_runtime
       - app_health_consumed_from_app_registry
@@ -121,7 +121,7 @@ surfaces:
     surface_label: Account
     owner: desktop_nimi_home_shell
     source_authority:
-      - .nimi/spec/platform/kernel/cold-start-authority-contract.md
+      - .nimi/spec/canonical/platform/product-lifecycle.authority.yaml
       - .nimi/spec/canonical/desktop/shell-runtime.authority.yaml
     allowed_projection_scope:
       - sign_in_skip_local_posture_per_P_COLD_004
@@ -137,7 +137,7 @@ surfaces:
     owner: desktop_nimi_home_shell
     source_authority:
       - .nimi/spec/canonical/desktop/ai-consumption.authority.yaml
-      - .nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md
+      - .nimi/spec/canonical/platform/core-protocol.authority.yaml
     allowed_projection_scope:
       - scope_bound_aiconfig_edit_per_D_AIPC_011
       - ai_profile_selection_per_P_AIPS_010
@@ -179,9 +179,9 @@ surfaces:
     surface_label: Failure Projection
     owner: desktop_nimi_home_shell
     source_authority:
-      - .nimi/spec/platform/kernel/cold-start-authority-contract.md
-      - .nimi/spec/platform/kernel/nimi-self-update-contract.md
-      - .nimi/spec/platform/kernel/nimi-package-release-contract.md
+      - .nimi/spec/canonical/platform/product-lifecycle.authority.yaml
+      - .nimi/spec/canonical/platform/product-lifecycle.authority.yaml
+      - .nimi/spec/canonical/platform/product-lifecycle.authority.yaml
       - .nimi/spec/runtime/kernel/local-environment-consumer-activation-contract.md
     allowed_projection_scope:
       - typed_failure_state_per_P_COLD_001

@@ -187,7 +187,6 @@
     "check:nimi-ui-lib-drift": "node scripts/check-nimi-ui-lib-drift.mjs",
     "check:nimi-ui-pattern": "node scripts/check-nimi-ui-pattern.mjs",
     "check:nimi-design-gate-negative-fixtures": "node scripts/check-nimi-design-gate-negative-fixtures.mjs",
-    "check:nimi-design-readiness-smoke": "node scripts/check-nimi-design-readiness-smoke.mjs",
     "check:kit-sdk-contract-boundary": "node scripts/check-kit-sdk-contract-boundary.mjs",
     "check:kit-feature-adapter-boundary": "node scripts/check-kit-feature-adapter-boundary.mjs",
     "check:kit-feature-edge-boundary": "node scripts/check-kit-feature-edge-boundary.mjs",

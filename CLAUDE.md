@@ -15,7 +15,7 @@
 
 The hook covers Read/Edit/Write, so module AGENTS.md context is injected automatically for file-level operations. For search-based exploration (Grep, Glob, Bash), Read the relevant module's AGENTS.md manually before acting on results.
 
-When iterating app UI or interaction flows, inspect `kit/README.md`, the relevant module README under `kit/**`, and `.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml` before designing a new app-local shell.
+When iterating app UI or interaction flows, inspect `kit/README.md`, the relevant module README under `kit/**`, and `config/platform-nimi-kit-registry.yaml` before designing a new app-local shell.
 
 | File path prefix | AGENTS.md to read |
 |---|---|

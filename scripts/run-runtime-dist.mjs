@@ -11,7 +11,7 @@ const binaryName = process.platform === 'win32' ? 'nimi.exe' : 'nimi';
 const binaryPath = path.join(distDir, binaryName);
 const windowsDevSigningScript = path.join(repoRoot, 'scripts', 'lib', 'windows-dev-signing.ps1');
 const rootEnvPath = path.join(repoRoot, '.env');
-const devAppRegistryPath = path.join(repoRoot, '.nimi', 'spec', 'platform', 'kernel', 'tables', 'nimi-app-registry.yaml');
+const devAppRegistryPath = path.join(repoRoot, 'config', 'platform-nimi-app-registry.yaml');
 
 function parseEnvLine(line) {
   const trimmed = line.trim();

@@ -174,7 +174,7 @@ async function main() {
 
   if (violations.length > 0) {
     process.stderr.write('Factory AIProfile consumer code must not embed provider/connector/engine/model identifier string constants.\n');
-    process.stderr.write('Reference: .nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md (P-AIPS-008).\n');
+    process.stderr.write('Reference: docs/authority/platform-core-protocol-rationale.md (P-AIPS-008).\n');
     process.stderr.write('Catalog rows are the only authorized location; use scopeRef + profileId references instead of string constants.\n');
     for (const violation of violations) {
       process.stderr.write(`- ${violation}\n`);

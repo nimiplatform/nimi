@@ -94,7 +94,7 @@ const SIBLING_GATE_NAME = 'check-no-ai-profile-provider-model-constants.mjs';
 // The replacement Platform authority contract file mentions the
 // forbidden owner names by name inside its `MUST NOT` clauses; those
 // are declarative anti-pattern callouts, not active owner surfaces.
-const AUTHORITY_CONTRACT_FILE = '.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md';
+const AUTHORITY_CONTRACT_FILE = 'docs/authority/platform-core-protocol-rationale.md';
 
 function isSelfFile(relative) {
   if (relative === `scripts/${SELF_FILE_NAME}`) return true;
@@ -225,7 +225,7 @@ async function main() {
   const violations = await collectViolations(files);
   if (violations.length > 0) {
     process.stderr.write('No active fourth AI/default owner surface is admitted after the 2026-05-18 foundation correction.\n');
-    process.stderr.write('Reference: .nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md (P-AIPS-001, P-AIPS-008).\n');
+    process.stderr.write('Reference: docs/authority/platform-core-protocol-rationale.md (P-AIPS-001, P-AIPS-008).\n');
     process.stderr.write('Only AIProfile / AIConfig / AISnapshot plus the Platform factory AIProfile catalog and AIProfile selection policy may own product default vocabulary.\n');
     for (const violation of violations) {
       process.stderr.write(`- ${violation}\n`);

@@ -6,7 +6,7 @@ Platform catalog projections, and feature modules that every Nimi consumer
 needs, so app authors do not have to rebuild baseline styling, interaction
 shells, or platform wiring. The kit is a reusable projection of
 platform-governed design and integration contracts; canonical semantics remain
-in `.nimi/spec/platform/kernel/**`.
+in `.nimi/spec/canonical/platform/ui-design-system.authority.yaml`.
 
 ## Installation
 
@@ -44,7 +44,7 @@ under "Semver Discipline".
 Before building app-local UI, shell glue, auth flows, telemetry, model
 configuration, chat, avatar, generation, commerce, or runtime-bound
 adapter code, check this README, the target module README, and
-`.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml`. Reuse an
+`config/platform-nimi-kit-registry.yaml`. Reuse an
 existing `@nimiplatform/kit` export when it covers the baseline behavior;
 extend the kit surface first when the missing behavior is cross-app.
 
@@ -53,7 +53,7 @@ extend the kit surface first when the missing behavior is cross-app.
 `kit/DESIGN.md` is the generated Google DESIGN.md-style projection for
 Nimi Kit UI/UX work. It combines DESIGN.md-compatible YAML front matter
 with human-readable guidance for agents, but canonical authority remains
-in `.nimi/spec/platform/kernel/**`.
+in `.nimi/spec/canonical/platform/ui-design-system.authority.yaml`.
 
 The generated design artifact set is:
 
@@ -109,7 +109,7 @@ The current package publishes 70 public subpath exports through
 
 The complete npm subpath inventory is the `exports` object in
 `kit/package.json`. Platform registry guidance remains in
-`.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml`.
+`config/platform-nimi-kit-registry.yaml`.
 
 ## Import Patterns by Sub-module
 
@@ -133,7 +133,7 @@ import { FOCUS_RING_CLASS_NAME, VISUALLY_HIDDEN_CLASS_NAME, VISUALLY_HIDDEN_STYL
 
 Available themes: `light`, `dark`, `nimi-accent`, and the
 `nimi-density-compact` density overlay (P-DESIGN-028). Theme tokens are
-projected from `.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml`.
+projected from `config/platform-nimi-ui-themes.yaml`.
 
 ### Auth
 

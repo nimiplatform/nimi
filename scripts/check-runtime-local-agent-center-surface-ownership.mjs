@@ -100,8 +100,8 @@ function collectForbidden(source, relPath, checks, findings) {
 async function checkSpec() {
   const findings = [];
   const scanned = [];
-  const contractPath = '.nimi/spec/platform/kernel/agent-center-contract.md';
-  const registryPath = '.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml';
+  const contractPath = 'docs/authority/platform-ui-design-system-rationale.md';
+  const registryPath = 'config/platform-nimi-kit-registry.yaml';
   const desktopKitPath = '.nimi/spec/canonical/desktop/shell-ui.authority.yaml';
   const desktopConversationPath = '.nimi/spec/canonical/desktop/agent-projection.authority.yaml';
   const zhiyuPath = '.nimi/spec/zhiyu/kernel/configuration-surface-contract.md';

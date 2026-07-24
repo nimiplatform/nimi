@@ -1,0 +1,2436 @@
+format: nimicoding.authority/v1
+units:
+  - id: definition.nimi.platform.core-protocol.protocol-version
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: Protocol version
+    meaning: A protocol version has major, minor, and patch components and uses strict compatibility in version one.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.participant-profile
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: Participant capability profile
+    meaning: A participant capability profile is the statically published capability description referenced by a Realm or Runtime participant.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.realm-primitive-layer
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: Realm primitive protocol layer
+    meaning: The platform protocol layer exposes the six world primitives Timeflow, Social, Economy, Transit, Context, and Presence while the Realm canonical surface separately elaborates their semantic core and read path.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.l0-envelope
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: L0 request envelope
+    meaning: The L0 request envelope carries protocol version, participant protocol version, participant identity, domain, optional app identity, trace identity, idempotency identity, and world and primitive identity for world-primitive requests through gRPC metadata while the business payload remains in the proto body.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.protected-app-authorization
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: Protected app authorization decision
+    meaning: A protected app authorization decision combines platform permission vocabulary, a Runtime local principal and record, exact account-and-principal grant truth, protected process and session truth, and domain-owner policy into one immutable per-call decision.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.world-app-binding
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: World and extension-app binding
+    meaning: A world and extension-app binding is uniquely identified by worldId and extensionAppId, has active, suspended, or revoked status, permits new-to-active, active-to-suspended, active-to-revoked, suspended-to-active, and suspended-to-revoked transitions, and treats revoked as terminal.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.app-mode
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: App mode access boundary
+    meaning: Render-app mode permits read-only world-primitive access and app-auth access without a world binding, while extension-app mode permits read-write world-primitive access and app-auth access only with an active world binding.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.action-plane
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: External Agent action plane
+    meaning: The Runtime action plane comprises the External Agent gateway and server entry, token, session, and grant ledger, action descriptor registry, execution-context verification, completion ledger, and audit-query boundary exposed to consumers through typed SDK projection.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.execution-principal
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: AI execution principal
+    meaning: An AI execution principal is one of Human, NimiAgent, ExternalAgent, Device, or Service.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.action-descriptor
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: Action descriptor
+    meaning: An action descriptor contains actionId, inputSchema, outputSchema, riskLevel, executionMode, idempotent, supportsDryRun, auditEventMap, and compensation, with riskLevel in low, medium, or high and executionMode in full, guarded, or opaque.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.action-execution
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: Action execution protocol
+    meaning: Action execution proceeds through discover, dry-run, verify, commit, and audit, where full execution uses dry-run and post-commit verification, guarded execution may substitute preflight and uses strong audit, and opaque execution uses persistent audit.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.ai-route
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: AI route
+    meaning: An AI route has source local or cloud, and local privacy semantics apply only to a local route.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.ai-scope-ref
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: AIScopeRef canonical identity
+    meaning: AIScopeRef is the canonical cross-surface AI configuration scope identity with kind app, module, or feature, an ownerId, and an optional surfaceId, whose tuple forms a stable unique key.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.ai-scope-lifecycle
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: AIScopeRef lifecycle
+    meaning: An AIScopeRef lifecycle follows its owner entity from creation through existence and destruction, and an owner normally has one canonical AI scope unless it declares a small explicit set of stable first-class AI feature surfaces.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.materialized-ai-config
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: Materialized scoped AI configuration
+    meaning: A scoped AIConfig is fully materialized without an implicit inheritance or runtime fallback chain, while profile application may copy defaults before independent use.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.built-in-chat-scopes
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: First-run built-in chat scopes
+    meaning: The required first-run built-in chat scopes are feature owner desktop.chat with surfaceId nimi and feature owner desktop.chat with surfaceId agent, representing two stable Desktop chat sub-surfaces rather than routes, conversations, tabs, agents, messages, or generic active-chat keys.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.app-launch-ai-scope
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: Nimi App launch AI scope
+    meaning: A Nimi App launch AI scope has kind app, ownerId equal to the admitted dot-separated app_id, and an optional stable manifest-declared user-comprehensible AI feature surfaceId.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.capability-catalog
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: Canonical capability catalog
+    meaning: The canonical capability catalog is the single enumeration of active and deferred CanonicalCapabilityId values and gives each active capability a section, editor kind, runtime source reference, internationalization keys, and runtime evidence class without owning provider, model, engine, routing, binding preference, or permission state.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.capability-source-resolver
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: Capability runtime source resolver
+    meaning: A capability runtime source resolver maps provider-capabilities to providers capability tokens and local-adapter-routing to route capability tokens, supports distinct additional runtime tables on one canonical row, and compares active and table-scoped deferred catalog tokens with the complete union admitted by both runtime tables.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.deferred-capability
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: Deferred capability entry
+    meaning: A deferred capability entry acknowledges a runtime-admitted token that is not an admitted CanonicalCapabilityId and records a non-empty capability, reason, and source platform rule.
+    relations: []
+  - id: rule.nimi.platform.core-protocol.p-proto-001
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-001 strict-only version negotiation
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Version negotiation rejects unequal major versions, rejects a participant minor version unequal to the platform minor version, ignores patch for protocol semantics, and accepts only strict compatibility mode in version one.
+    condition: Whenever a participant negotiates protocol compatibility.
+    failure: Reject the participant before processing its protocol request.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protocol-version
+  - id: rule.nimi.platform.core-protocol.p-proto-002
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-002 static participant profiles
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Realm and Runtime provide capabilityProfileRef, publish fixed-participant profiles statically with versions, and use one realm.core-profile version track for all six primitives without per-primitive tracks or remote hot delivery.
+    condition: Whenever participant capability profiles are published or resolved.
+    failure: Reject a missing, dynamically delivered, or independently versioned primitive profile.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.participant-profile
+  - id: rule.nimi.platform.core-protocol.p-proto-003a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-003 Realm primitive execution sovereignty
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Semantic execution and truth for all six primitives remain on the Realm canonical surface, while Runtime and apps only consume or transport primitive operations.
+    condition: Whenever a participant executes or represents a six-primitive operation.
+    failure: Reject a non-Realm provider with REALM_PRIMITIVE_PROVIDER_FORBIDDEN and prevent substitute execution.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.realm-primitive-layer
+  - id: rule.nimi.platform.core-protocol.p-proto-003b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-003 primitive layer is not a semantic-core alias
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: Platform text aliases the six-primitive protocol layer to the complete Realm semantic core structure.
+    condition: Whenever the primitive protocol layer is documented or projected.
+    failure: Reject the alias and retain a separate reference to the Realm canonical surface.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.realm-primitive-layer
+  - id: rule.nimi.platform.core-protocol.p-proto-010
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-010 request envelope requirements
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Every request carries participantId, every write carries idempotencyKey, and a world-primitive request carries worldId and primitive.
+    condition: Whenever an L0 request is admitted.
+    failure: Reject the request before domain execution when any required field is absent.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.l0-envelope
+  - id: rule.nimi.platform.core-protocol.p-proto-010b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-010 protected local app authority
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: A non-Realm participant writes through the world-primitive domain, or x-nimi-domain, appId metadata, or the request body supplies protected local-app authority.
+    condition: Whenever a local app request or world-primitive write is authorized.
+    failure: Reject the operation and derive local-app authority only from protected transport and body-independent Runtime context.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protected-app-authorization
+  - id: rule.nimi.platform.core-protocol.p-proto-011
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-011 gRPC envelope mapping
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: gRPC transports L0 fields as x-nimi-protocol-version, x-nimi-participant-protocol-version, x-nimi-participant-id, x-nimi-domain, x-nimi-app-id, x-nimi-trace-id, x-nimi-idempotency-key, x-nimi-world-id, and x-nimi-primitive metadata and transports the business payload in the proto body.
+    condition: Whenever an L0 envelope is mapped to gRPC.
+    failure: Reject a request whose envelope is mapped through the payload or whose required world metadata is absent.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.l0-envelope
+  - id: rule.nimi.platform.core-protocol.p-proto-020
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-020 app authorization ownership boundaries
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Each protected app call uses the platform permission vocabulary, Runtime local principal and record, exact account-and-principal grant truth, protected process and session truth, domain-owner policy, and transport-only SDK and Kit projections without minting an app-held access token.
+    condition: Whenever a protected app call is authorized or projected.
+    failure: Reject any decision that omits an owner input, moves authority into a projection, or issues an app-held token.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protected-app-authorization
+  - id: rule.nimi.platform.core-protocol.p-proto-021
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-021 canonical operation authority
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: A local app publishes a free-form scope extension or an app_id namespace, manifest, or SDK catalog adds or widens authority.
+    condition: Whenever an app operation is admitted or described.
+    failure: Reject the extension and resolve the operation from its canonical capability or resource fingerprint and owner policy.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protected-app-authorization
+  - id: rule.nimi.platform.core-protocol.p-proto-030
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-030 removed public app credentials
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: A public app authorization, preset, token issuance, credential grant, request-body consent, custom scope, resource selector, app identity, external-principal session, parent token, or bearer authorizes an operation or mints a protected credential.
+    condition: Whenever a protected app operation is evaluated.
+    failure: Reject the operation, keep former wire identities reserved and absent from proto, generated, SDK, handler, and persistence surfaces, and return no reusable credential.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protected-app-authorization
+  - id: rule.nimi.platform.core-protocol.p-proto-030b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-030 exact private operation evaluation
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Runtime-private operation evaluation requires an exact protected origin and exact operation policy.
+    condition: Whenever Runtime evaluates a protected app operation.
+    failure: Fail closed without issuing a credential when either exact input is unavailable.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protected-app-authorization
+  - id: rule.nimi.platform.core-protocol.p-proto-035
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-035 public delegation removed
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: A parent token, scope subset, TTL, resource selector, canDelegate value, preset, chain record, or former delegation field admits a child credential or compatibility path.
+    condition: Whenever protected credential delegation is requested or interpreted.
+    failure: Reject delegation and retain former fields only as removal inventory.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protected-app-authorization
+  - id: rule.nimi.platform.core-protocol.p-proto-040
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-040 current permission decisions
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: After public-permission admission, the canonical owner atomically increments decision revision on request, approval, denial, revocation, and expiry, and every operation resolves the current decision and exact selector without rotating the identity session.
+    condition: Whenever an admitted public permission changes or protects an operation.
+    failure: Reject stale or snapshot authorization and ensure the next operation observes the mutation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protected-app-authorization
+  - id: rule.nimi.platform.core-protocol.p-proto-040b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-040 no pre-admission positive store
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: A positive decision store or permission mutation path exists before the public permission is fully admitted.
+    condition: Before public-permission admission.
+    failure: Remove the positive store or mutation path and deny positive authorization.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protected-app-authorization
+  - id: rule.nimi.platform.core-protocol.p-proto-050
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-050 world-app write admission
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: A render-app world write is rejected, and an extension-app world write requires an active worldId and extensionAppId binding.
+    condition: Whenever an app requests a world write.
+    failure: Reject the write before primitive execution.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.world-app-binding
+  - id: rule.nimi.platform.core-protocol.p-proto-050b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-050 unique binding state machine
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Each world has at most one active extension-app binding, replacement first suspends or revokes the active binding, and binding transitions follow the defined state machine with revoked terminal.
+    condition: Whenever a world-app binding is created or changes state.
+    failure: Reject a second active binding, an illegal transition, or reactivation of a revoked binding.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.world-app-binding
+  - id: rule.nimi.platform.core-protocol.p-proto-060
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-060 app mode boundary
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: App domain access follows the declared mode and the render-app or extension-app access matrix.
+    condition: Whenever an app accesses a protocol domain.
+    failure: Reject a mode, domain, scope, or world-relation mismatch with the mode-violation reasonCode and its canonical actionHint.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-mode
+  - id: rule.nimi.platform.core-protocol.p-proto-070
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-070 cross-primitive consistency
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Transit satisfies Social, Economy, and Context constraints, Presence changes preserve Social admission, Timeflow preserves Economy settlement windows, and Context injection preserves Identity and Agent core anchors.
+    condition: Whenever multiple primitives participate in one operation.
+    failure: Reject the operation when any cross-primitive constraint fails.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.realm-primitive-layer
+  - id: rule.nimi.platform.core-protocol.p-proto-070b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-070 no silent primitive degradation
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: An unexecuted primitive is silently degraded to bypass an admission rule.
+    condition: Whenever a required primitive cannot execute.
+    failure: Fail closed and expose the unmet primitive admission requirement.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.realm-primitive-layer
+  - id: rule.nimi.platform.core-protocol.p-proto-100
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-100 Timeflow primitive
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Timeflow uses its canonical primitive fields, keeps world time monotonic, triggers audit when drift exceeds budget, and makes replay reproducible.
+    condition: Whenever Timeflow is executed.
+    failure: Reject a non-monotonic or non-reproducible transition and emit the required drift audit.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.realm-primitive-layer
+  - id: rule.nimi.platform.core-protocol.p-proto-101
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-101 Social primitive
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Social uses its canonical primitive fields and produces decidable admission, explainable rejection, and reproducible decay.
+    condition: Whenever Social is executed.
+    failure: Reject an indeterminate admission, unexplained rejection, or non-reproducible decay.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.realm-primitive-layer
+  - id: rule.nimi.platform.core-protocol.p-proto-102
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-102 Economy primitive
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Economy uses its canonical primitive fields, conserves value transfer, and keeps settlement windows auditable.
+    condition: Whenever Economy is executed.
+    failure: Reject non-conserving value transfer or an unauditable settlement window.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.realm-primitive-layer
+  - id: rule.nimi.platform.core-protocol.p-proto-103
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-103 Transit primitive
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Transit uses its canonical primitive fields, enforces dual-gate admission, makes state transitions traceable, and returns actionHint on rejection.
+    condition: Whenever Transit is executed.
+    failure: Reject admission without both gates or an untraceable transition and include actionHint on denial.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.realm-primitive-layer
+  - id: rule.nimi.platform.core-protocol.p-proto-104
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-104 Context primitive
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Context uses its canonical primitive fields, makes trimming observable, keeps priority stable, and audits handoff.
+    condition: Whenever Context is executed.
+    failure: Reject hidden trimming, unstable priority, or unaudited handoff.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.realm-primitive-layer
+  - id: rule.nimi.platform.core-protocol.p-proto-105
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PROTO-105 Presence primitive
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Presence uses its canonical primitive fields, keeps state recoverable, converges expired state automatically, and merges cross-device state deterministically.
+    condition: Whenever Presence is executed.
+    failure: Reject unrecoverable state or nondeterministic merge and converge expired state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.realm-primitive-layer
+  - id: rule.nimi.platform.core-protocol.p-almi-001
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ALMI-001 two-part AI last mile
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: The AI last mile provides both relationship continuity through World, Agent, and Memory and standardized capability access through Local AI Runtime and the External Agent action plane.
+    condition: Whenever the AI last mile is delivered.
+    failure: Treat the last mile as unavailable when either part is absent.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.action-plane
+  - id: rule.nimi.platform.core-protocol.p-almi-002
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ALMI-002 Runtime action plane boundary
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Action execution uses Runtime-owned descriptors, the ExternalAgent gateway, permission checks, persisted execution state, completion records, and the audit boundary, while Desktop, Web, Kit, and apps consume only typed SDK projections.
+    condition: Whenever an External Agent action is discovered, executed, completed, or audited.
+    failure: Reject renderer-local, host-only, app-local, or Tauri-local action, token, success, handler-state, or audit authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.action-plane
+  - id: rule.nimi.platform.core-protocol.p-almi-003
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ALMI-003 least-privilege principals
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Every execution principal receives least privilege constrained by applicable time, scenario, quota, device, and validity conditions, and every high-risk write has explicit consent and auditable attribution.
+    condition: Whenever an AI execution principal is authorized.
+    failure: Deny authorization when least privilege, required constraints, consent, or attribution is absent.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.execution-principal
+  - id: rule.nimi.platform.core-protocol.p-almi-004
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ALMI-004 ExternalAgent admission
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: A third-party agent uses the ExternalAgent principal, presents an explicitly issued time-limited credential and principalId, issuer, and signature, verifies Friendship in delegated mode, and uses an independent account in autonomous mode.
+    condition: Whenever an ExternalAgent calls the action plane.
+    failure: Reject the call when identity, credential, signature, mode, or Friendship requirements fail.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.execution-principal
+  - id: rule.nimi.platform.core-protocol.p-almi-010
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ALMI-010 action registration constraints
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Every registered action provides the complete descriptor, sets supportsDryRun false for opaque mode, and excludes high risk from opaque mode.
+    condition: Whenever an action is registered.
+    failure: Reject an incomplete descriptor, dry-runnable opaque action, or high-risk opaque action.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.action-descriptor
+  - id: rule.nimi.platform.core-protocol.p-almi-011a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ALMI-011 execution ordering and durability
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Action execution follows discover, dry-run or admitted preflight, verify, commit, and audit order, gives writes an idempotencyKey, gives multi-action orchestration compensation, persists the execution ledger at commit, and reuses the same idempotencyKey on retry.
+    condition: Whenever an action is executed or retried.
+    failure: Fail closed before or at commit when ordering, idempotency, compensation, or persistence is absent or uncertain.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.action-execution
+  - id: rule.nimi.platform.core-protocol.p-almi-011b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ALMI-011 failure transitions
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Any failed stage enters audit with its reason, dry-run failure has no side effect, verify failure terminates execution, and commit failure invokes declared compensation.
+    condition: Whenever an action execution stage fails.
+    failure: Stop execution, prevent or compensate side effects as applicable, and persist the failure audit.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.action-execution
+  - id: rule.nimi.platform.core-protocol.p-almi-011c
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ALMI-011 execution-level guarantees
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Full execution performs dry-run and post-commit verification, guarded execution performs preflight when substituting for dry-run and uses strong audit, and opaque execution persists audit and excludes high risk.
+    condition: Whenever an action executes under an executionMode.
+    failure: Reject execution that does not satisfy its mode guarantees.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.action-execution
+  - id: rule.nimi.platform.core-protocol.p-almi-020
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ALMI-020 explicit AI routing
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: AI routing uses only local or cloud source, exposes every fallback, and claims local privacy semantics only for a local route.
+    condition: Whenever an AI route is selected or changed.
+    failure: Reject an unknown or hidden route and withhold local privacy claims from cloud routing.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-route
+  - id: rule.nimi.platform.core-protocol.p-almi-030
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ALMI-030 action-plane availability boundaries
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: The action plane separates control and data planes, locally caches policy and authorization decisions, writes audit asynchronously by default, and keeps p95 control-plane overhead at or below 20 milliseconds.
+    condition: Whenever the action plane serves an action.
+    failure: Treat the service-level boundary as violated and do not conceal the violation with success data.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.action-plane
+  - id: rule.nimi.platform.core-protocol.p-almi-030b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ALMI-030 risk-sensitive policy failure
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: A policy failure may use controlled fail-open only for a read-only low-risk action and defaults to fail-closed for every high-risk write.
+    condition: Whenever action policy evaluation fails.
+    failure: Deny a high-risk write and reject any uncontrolled or ineligible fail-open.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.action-descriptor
+  - id: rule.nimi.platform.core-protocol.p-aisc-001
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AISC-001 AIScopeRef identity semantics
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: AIScopeRef uses the closed app, module, and feature kind set, gives app to app identity, module only to a canonical module owner, and feature only to an independently reusable feature owner without fragmenting app or module truth.
+    condition: Whenever an AI configuration scope identity is created or interpreted.
+    failure: Reject an unknown kind, unstable tuple, ineligible owner, or fragmented identity.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-scope-ref
+  - id: rule.nimi.platform.core-protocol.p-aisc-002a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AISC-002 unique owner-driven scope lifecycle
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Every AIScopeRef remains globally unique for its lifetime, is produced by a canonical factory or registry, follows owner lifecycle, and invalidates or removes bound AIConfig when destroyed.
+    condition: Whenever an AI scope is created, retained, or destroyed.
+    failure: Reject an ad hoc or duplicate key and remove orphaned configuration.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-scope-lifecycle
+  - id: rule.nimi.platform.core-protocol.p-aisc-002b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AISC-002 bounded multi-scope use
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: An owner creates extra AIScopeRef values for a tab, session, thread, document, selected record, modal, wizard step, route, window, conversation, or other transient UI or domain object.
+    condition: Whenever an owner has not declared a stable first-class AI feature surface.
+    failure: Keep one canonical owner scope and represent current-object selection as domain state within it.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-scope-lifecycle
+  - id: rule.nimi.platform.core-protocol.p-aisc-003
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AISC-003 no implicit AIConfig inheritance
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: A scoped AIConfig inherits implicitly or references another scope at runtime as a fallback.
+    condition: Whenever a scoped AIConfig is materialized or resolved.
+    failure: Reject the fallback chain and use a full materialized config or explicit copy-on-write profile application.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.materialized-ai-config
+  - id: rule.nimi.platform.core-protocol.p-aisc-004
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AISC-004 cross-surface applicability
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: AIScopeRef applies to Desktop and Web, while each surface defines any surface-specific behavior in its own kernel contract.
+    condition: Whenever AIScopeRef is consumed on Desktop or Web.
+    failure: Reject a consumer-local change to the cross-surface identity contract.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-scope-ref
+  - id: rule.nimi.platform.core-protocol.p-aisc-005
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AISC-005 allowed consumers preserve schema
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: Desktop AIConfig storage or selection, SDK typed config, profile, or snapshot APIs, or Runtime execution-snapshot evidence extends AIScopeRef with consumer-local fields.
+    condition: Whenever an admitted kernel consumer needs extra scope annotation.
+    failure: Keep AIScopeRef unchanged and place the annotation in a separate consumer-owned structure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-scope-ref
+  - id: rule.nimi.platform.core-protocol.p-aisc-006a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AISC-006 exact built-in chat scopes
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: First-run builtInAiConfigRefs contains exactly the two required desktop.chat feature scopes with nimi and agent surfaceId values.
+    condition: Whenever first-run built-in chat AIConfig references are produced or consumed.
+    failure: Reject an incomplete, additional, merged, or differently shaped required built-in chat scope set.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.built-in-chat-scopes
+  - id: rule.nimi.platform.core-protocol.p-aisc-006b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AISC-006 no built-in chat substitutes
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: First-run substitutes an app-kind desktop or desktop-chat identity, one merged desktop.chat scope, a feature scope without surfaceId, a consumer-local string, or a generic fallback for either required built-in chat scope.
+    condition: Whenever a built-in chat scope is resolved.
+    failure: Reject the substitute and require the exact feature identity.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.built-in-chat-scopes
+  - id: rule.nimi.platform.core-protocol.p-aisc-007a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AISC-007 explicit Nimi App launch scope
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Nimi App Open carries an explicit canonical-factory or registry-produced app-kind AIScopeRef whose ownerId is the admitted app_id and whose optional surfaceId is a stable manifest-declared AI feature surface.
+    condition: Whenever an admitted Nimi App is launched through Open flow.
+    failure: Reject launch when scope is absent, inferred, unadmitted, transient, or not manifest-declared.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-launch-ai-scope
+  - id: rule.nimi.platform.core-protocol.p-aisc-007b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AISC-007 app scope lifecycle
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: App-launch AIConfig follows app identity lifecycle and is invalidated or removed when the app leaves the account library.
+    condition: Whenever an admitted app is removed from the account library.
+    failure: Remove or invalidate the app-scoped configuration and reject orphaned use.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-launch-ai-scope
+  - id: rule.nimi.platform.core-protocol.p-aisc-007c
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AISC-007 no app-launch fallback or chat reuse
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: App launch uses a generic, inferred, omitted, previous, active-selection, renderer-local, or consumer-default scope, reuses a built-in chat feature scope, converts that feature shape into app scope, or fragments app AIConfig across undeclared surfaces.
+    condition: Whenever an app-launch scope is selected or resolved.
+    failure: Fail closed and require the exact admitted app-owned scope.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-launch-ai-scope
+  - id: rule.nimi.platform.core-protocol.p-capcat-001a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-CAPCAT-001 canonical capability admission
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Every emitted or accepted CanonicalCapabilityId appears as an active or deferred canonical catalog entry, and every new canonical identity receives a catalog row before consumer use.
+    condition: Whenever an app, Kit module, Runtime surface, or other consumer emits or accepts a capability identity.
+    failure: Reject an identity absent from the canonical catalog.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-catalog
+  - id: rule.nimi.platform.core-protocol.p-capcat-001b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-CAPCAT-001 catalog row schema and boundaries
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Each active catalog row provides capabilityId, section, editorKind, sourceRef, i18nKeys, and runtimeEvidenceClass, uses the closed section and editorKind sets, and does not admit provider, model, engine, routing, or binding preference.
+    condition: Whenever an active capability row is admitted or read.
+    failure: Reject an incomplete row, an unknown enum value, or authority outside the catalog boundary.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-catalog
+  - id: rule.nimi.platform.core-protocol.p-capcat-002a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-CAPCAT-002 runtime source references
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Every active capability row carries a structured primary sourceRef to provider-capabilities or local-adapter-routing and may carry only distinct-table additionalRuntimeTables entries that resolve under the same table-specific semantics.
+    condition: Whenever an active capability row is admitted or resolved.
+    failure: Reject an absent, unknown, duplicate-table, or unresolved runtime source anchor.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-source-resolver
+  - id: rule.nimi.platform.core-protocol.p-capcat-002b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-CAPCAT-002 capability source consistency
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Active primary and additional source anchors resolve, and the union of active and table-scoped deferred catalog tokens equals the capability-token union admitted by provider-capabilities and local-adapter-routing.
+    condition: Whenever catalog and runtime capability consistency is evaluated.
+    failure: Fail closed on any unresolved anchor, missing token, extra token, partial result, silent skip, or placeholder admission.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-source-resolver
+  - id: rule.nimi.platform.core-protocol.p-capcat-003a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-CAPCAT-003 deferred entry completeness
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Every runtime-admitted capability not active in the canonical identity set has a deferred entry with non-empty capability, reason, and source_rule referencing the platform rule that owns deferral.
+    condition: Whenever a runtime capability token is not admitted as an active canonical row.
+    failure: Reject an absent or incomplete deferred entry.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.deferred-capability
+  - id: rule.nimi.platform.core-protocol.p-capcat-003b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-CAPCAT-003 deferred tokens are not canonical identities
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: An app, Kit module, or Runtime consumer emits or accepts a deferred token as a CanonicalCapabilityId.
+    condition: Whenever a deferred capability token reaches a canonical identity consumer.
+    failure: Reject the token as not admitted to the canonical identity set.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.deferred-capability
+  - id: definition.nimi.platform.core-protocol.protocol-error-code
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: protocol-error-codes protocol error code
+    meaning: A protocol error code is a member of the closed platform protocol error vocabulary and has exactly one category and one owning platform source rule.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.protocol-error-category
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: protocol-error-codes error category
+    meaning: A protocol error category is exactly one of version, capability_profile, protocol_envelope, local_app, app_auth, app_mode, world_app_binding, admission, state_machine, consistency, or permission.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.protocol-audit-event
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: audit-events protocol audit event
+    meaning: A protocol audit event is a member of the closed platform audit-event vocabulary with one protocol, ai_last_mile, primitive, app_auth, scope, app_mode, app_resource, or world_app_binding group and the fields required by its base schema, group, and event type.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.protocol-compatibility-matrix
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: compliance-test-matrix product compatibility boundary
+    meaning: The protocol compatibility matrix is the product obligation set that keeps envelope, profile, app authorization, world binding, primitive, action-plane, and architecture semantics mutually compatible without defining test topology, runners, or evidence accounting.
+    relations: []
+  - id: rule.nimi.platform.core-protocol.p-proto-error-001
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: protocol-error-codes P-PROTO closed error vocabulary
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Every protocol failure uses exactly one code from the closed protocol-error-codes vocabulary, and every admitted code has exactly one category and one owning P-PROTO source rule.
+    condition: Whenever a protocol failure is produced, transported, or interpreted.
+    failure: Fail closed and reject an unknown, uncategorized, multiply categorized, or ownerless error code.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protocol-error-category
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protocol-error-code
+  - id: rule.nimi.platform.core-protocol.p-proto-error-002
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: protocol-error-codes P-PROTO category semantics
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Protocol error categories preserve the closed category meanings, and an error with a declared actionHint returns that canonical actionable hint without category substitution.
+    condition: Whenever a protocol error is classified or exposed to a participant.
+    failure: Reject an unknown category, category mismatch, missing declared actionHint, or substitute hint.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protocol-error-category
+  - id: rule.nimi.platform.core-protocol.p-proto-100-fields
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: protocol-primitives P-PROTO-100 Timeflow wire fields
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: A Timeflow primitive contract requires numeric ratio greater than zero and at most 1440, integer tickSeconds from 1 through 3600, integer driftBudgetSecondsPerHour from 0 through 120, catchUpPolicy PAUSE or FAST_FORWARD, and rewindAllowed fixed false in version 0.1.
+    condition: Whenever a Timeflow primitive contract is admitted or interpreted.
+    failure: Reject the contract when a required field is absent, mistyped, out of range, outside its enum, or not fixed as required.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.realm-primitive-layer
+  - id: rule.nimi.platform.core-protocol.p-proto-101-fields
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: protocol-primitives P-PROTO-101 Social wire fields
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: A Social primitive contract requires relationshipTypes containing HUMAN_HUMAN, HUMAN_AGENT, and AGENT_AGENT, preconditionModel FRIENDSHIP_GATE or OPEN, reputationScale with integer min and max satisfying zero at most min less than max at most 10000, decayWindowHours at least one, and blockPolicy HARD_DENY or SOFT_DENY.
+    condition: Whenever a Social primitive contract is admitted or interpreted.
+    failure: Reject the contract when a required field, required relationship type, valid range, or admitted enum value is absent.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.realm-primitive-layer
+  - id: rule.nimi.platform.core-protocol.p-proto-102-fields
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: protocol-primitives P-PROTO-102 Economy wire fields
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: An Economy primitive contract requires a Realm-globally-unique currencyNamespace formed as worldId.currencyName with a lower-case alphanumeric-or-hyphen currencyName of at most 32 characters, transferMode DIRECT or ESCROW, settlementWindowSeconds from 60 through 86400, conservationRequired fixed true in version 0.1, and inflationPolicy FIXED_CAP or PROGRAMMATIC.
+    condition: Whenever an Economy primitive contract is admitted or interpreted.
+    failure: Reject the contract when a required field, namespace constraint, range, fixed value, or admitted enum value is absent.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.realm-primitive-layer
+  - id: rule.nimi.platform.core-protocol.p-proto-103-fields
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: protocol-primitives P-PROTO-103 Transit wire fields
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: A Transit primitive contract requires nonnegative integer ingressUserQuotaPerDay and ingressWorldQuotaPerDay, carryPolicy IDENTITY_ONLY, IDENTITY_AND_AGENT, or FULL, mappingPolicy STRICT_MAP or ADAPTIVE_MAP, and transitStateModel fixed ACTIVE_COMPLETED_ONLY in version 0.1.
+    condition: Whenever a Transit primitive contract is admitted or interpreted.
+    failure: Reject the contract when a required field, nonnegative quota, admitted enum value, or fixed state model is absent.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.realm-primitive-layer
+  - id: rule.nimi.platform.core-protocol.p-proto-104-fields
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: protocol-primitives P-PROTO-104 Context wire fields
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: A Context primitive contract requires contextScope SESSION, WORLD, or DEVICE, retentionTtlSeconds at least 60, ordered injectionPriority values drawn only from identity, agent_persona, world_rules, conversation, memory_recall, and tool_context with lower indexes injected first, truncationPolicy SUMMARY_FIRST or RECENCY_FIRST, and handoffPolicy EXPLICIT_ONLY or ASSISTED.
+    condition: Whenever a Context primitive contract is admitted or interpreted.
+    failure: Reject the contract when a required field, range, priority member or order, or admitted enum value is invalid.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.realm-primitive-layer
+  - id: rule.nimi.platform.core-protocol.p-proto-105-fields
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: protocol-primitives P-PROTO-105 Presence wire fields
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: A Presence primitive contract requires presenceStates containing ACTIVE, IDLE, AWAY, and OFFLINE, heartbeatSeconds from 5 through 120, ttlSeconds at least twice heartbeatSeconds, staleTransition fixed FORCE_OFFLINE in version 0.1, and deviceMergePolicy LATEST_WINS or PRIORITY_ORDER.
+    condition: Whenever a Presence primitive contract is admitted or interpreted.
+    failure: Reject the contract when a required field, required state, range relation, fixed transition, or admitted merge policy is absent.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.realm-primitive-layer
+  - id: rule.nimi.platform.core-protocol.p-proto-002-profiles
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: participant-profiles P-PROTO-002 closed profile definitions
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: The closed fixed-participant profile set contains realm at realm.core-profile.v1.0.0 as a reference to Realm-owned provider capability for all six primitives and runtime_local at runtime.access-profile.v1.0.0 as provider of app-auth, while SDK remains a bridge without a participant profile.
+    condition: Whenever a fixed participant profile is published, resolved, or negotiated.
+    failure: Reject an unknown profile, mismatched reference, incomplete declared capability set, SDK profile, or platform claim of Realm semantic ownership.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.participant-profile
+  - id: rule.nimi.platform.core-protocol.p-almi-003-participant-types
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: participant-profiles P-ALMI-003 closed participant type projection
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: The closed participant type set is human, nimi-agent, external-agent, external-app, external-service, device, and service, where external-app and external-service refine the Service principal projection and do not create new execution-principal types.
+    condition: Whenever a protocol participant type is declared or mapped to an execution principal.
+    failure: Reject an unknown participant type or a projection that creates an unauthorized principal type.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.execution-principal
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.participant-profile
+  - id: rule.nimi.platform.core-protocol.p-proto-audit-001
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: audit-events P-PROTO closed event and group boundary
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Every platform protocol audit record uses exactly one event type from the closed audit-events vocabulary and exactly one admitted event group, and each event type retains its owning source rule.
+    condition: Whenever a platform protocol audit record is emitted or interpreted.
+    failure: Reject an unknown event type, unknown group, group mismatch, or ownerless event.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protocol-audit-event
+  - id: rule.nimi.platform.core-protocol.p-proto-audit-002
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: audit-events P-PROTO required field schema
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Every protocol audit event carries participantId, traceId, timestamp, domain, reasonCode, and protocolVersion and also carries every context field required by its group and every field required by its event type.
+    condition: Whenever a platform protocol audit event is emitted or accepted.
+    failure: Reject or mark failed any audit event missing a required base, group-context, or event-specific field without fabricating a value.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protocol-audit-event
+  - id: rule.nimi.platform.core-protocol.p-proto-030-035-presets
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: app-authorization-presets P-PROTO-030 P-PROTO-035 deny-all tombstone
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: A retired public grant preset, including readOnly, full, or delegate, is consumed in production, issues authority, participates in validation, or enables a compatibility path.
+    condition: Whenever app authorization presets are resolved or interpreted.
+    failure: Deny authorization and treat the preset inventory only as a removal tombstone.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protected-app-authorization
+  - id: rule.nimi.platform.core-protocol.p-proto-error-map-001
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: error-code-mapping P-PROTO cross-layer semantic consistency
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: A mapped platform error and Runtime reason code preserve the same failure semantics and canonical token across Runtime, typed SDK projections, and Desktop consumers without broadening, substitution, or renumbering.
+    condition: Whenever a mapped protocol error is produced, projected, or consumed across layers.
+    failure: Fail closed on a missing mapping, semantic mismatch, token mismatch, numeric mismatch, or consumer-local substitute.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protocol-error-code
+  - id: rule.nimi.platform.core-protocol.p-proto-error-map-002
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: error-code-mapping P-PROTO mapping category closure
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Every protocol error mapping has exactly one category from mapped, realm_only, or unmapped_v1, mapped entries resolve an exact Runtime reason code, realm_only entries remain protocol or Realm concerns without a Runtime substitute, and unmapped_v1 entries remain explicitly deferred without generic fallback.
+    condition: Whenever protocol-to-Runtime error correspondence is declared or resolved.
+    failure: Reject an unknown or inconsistent category, unresolved mapped entry, Runtime substitute for realm_only, or fallback for unmapped_v1.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protocol-error-code
+  - id: rule.nimi.platform.core-protocol.p-ctm-l0
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: compliance-test-matrix L0 P-PROTO-001 P-PROTO-010 P-PROTO-011 compatibility
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: L0 compatibility preserves strict version negotiation, mutually compatible request and response envelope handling, exact gRPC metadata mapping, required participantId, valid domain-field combinations, explainable canonical error codes, and complete required audit fields across protocol participants.
+    condition: Whenever an L0 protocol producer, transport, or consumer changes.
+    failure: Reject the change when any L0 producer and consumer disagree on an admitted value, field, mapping, rejection, error meaning, or audit requirement.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.l0-envelope
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protocol-compatibility-matrix
+  - id: rule.nimi.platform.core-protocol.p-ctm-l1
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: compliance-test-matrix L1 P-PROTO-002 P-PROTO-003 P-PROTO-020 P-PROTO-040 compatibility
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: L1 compatibility preserves Realm and Runtime profile correspondence, all six Realm profile references, admitted capability modes, rejection of non-Realm primitive providers, scopeCatalogVersion consistency, and separation of ExternalPrincipal proof from protected local-app authorization without an app-held token.
+    condition: Whenever participant-profile or protected app-authorization semantics change.
+    failure: Reject the change when profiles, modes, provider sovereignty, catalog versions, principal proof, or local-app authorization become inconsistent across participants.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.participant-profile
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protected-app-authorization
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protocol-compatibility-matrix
+  - id: rule.nimi.platform.core-protocol.p-ctm-l1-app-auth
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: compliance-test-matrix L1_app_auth P-PROTO-030 P-PROTO-035 compatibility
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Local-app authorization compatibility preserves request-empty opening of a process-bound zero-permission session without credentials or owner identifiers and exposes through SDK, Kit, and Desktop only session posture, public permission status and request, base entitlements, and exact app-owned commands without a bearer, generic Runtime forwarder, or retired grant family.
+    condition: Whenever the local-app session or its consumer projection changes.
+    failure: Reject the change when session opening gains caller-supplied authority or a consumer gains credential, owner, generic-forwarding, or retired-grant authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protected-app-authorization
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protocol-compatibility-matrix
+  - id: rule.nimi.platform.core-protocol.p-ctm-l1-world-app
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: compliance-test-matrix L1_world_app P-PROTO-050 P-PROTO-060 compatibility
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: World-app compatibility preserves render-app read-only access and write rejection, exact extension-app worldId and appId binding admission and unbound rejection, the bindingStatus state machine, immediate effect of creator binding changes, and the app-mode domain access matrix.
+    condition: Whenever world-app binding, app mode, or a consuming surface changes.
+    failure: Reject the change when any producer or consumer admits a stale binding, illegal state, render write, unbound extension write, or mode-domain mismatch.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-mode
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protocol-compatibility-matrix
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.world-app-binding
+  - id: rule.nimi.platform.core-protocol.p-ctm-l2
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: compliance-test-matrix L2 P-PROTO-070 P-PROTO-100 through P-PROTO-105 compatibility
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: L2 compatibility preserves admitted and rejected Timeflow, Social, Economy, Transit, Context, and Presence semantics, deterministic replay where the primitive contract requires it, and fail-closed cross-primitive consistency across Realm producers and protocol consumers.
+    condition: Whenever a six-primitive contract, producer, transport, or consumer changes.
+    failure: Reject the change when primitive acceptance, rejection, replay, or cross-primitive consistency differs from the canonical contract.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protocol-compatibility-matrix
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.realm-primitive-layer
+  - id: rule.nimi.platform.core-protocol.p-ctm-l3-almi
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: compliance-test-matrix L3_almi P-ALMI-002 P-ALMI-003 P-ALMI-004 P-ALMI-010 P-ALMI-011 P-ALMI-020 P-ALMI-030 compatibility
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Action-plane compatibility preserves Runtime-owned action registration and dispatch, least-privilege principals, ExternalAgent credential lifecycle, descriptor-registry consistency, execution state transitions, admitted latency and availability boundaries, and explicit local-or-cloud AI routing across typed consumers.
+    condition: Whenever the action plane or a typed action-plane consumer changes.
+    failure: Reject the change when ownership, privilege, credential lifecycle, descriptors, execution transitions, service boundaries, or route meaning diverges across layers.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.action-plane
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protocol-compatibility-matrix
+  - id: rule.nimi.platform.core-protocol.p-ctm-l3-arch
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: compliance-test-matrix L3_arch P-ARCH-001 P-ARCH-011 P-ARCH-020 P-ARCH-030 compatibility
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Architecture compatibility preserves canonical layer ownership, SDK bridge isolation, separation of credential control and data planes, and the protocol and execution audit layers without moving authority into an app or projection.
+    condition: Whenever a protocol layer boundary, SDK bridge, credential plane, or audit projection changes.
+    failure: Reject the change when layers collapse, SDK becomes protocol authority, credential planes merge, or an audit projection becomes product truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.action-plane
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protected-app-authorization
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protocol-audit-event
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protocol-compatibility-matrix
+  - id: definition.nimi.platform.core-protocol.factory-ai-profile-catalog
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: Factory AIProfile catalog
+    meaning: The Platform-owned factory AIProfile catalog is a closed set of portable profile templates selected by a deterministic Platform policy from Runtime evidence and explicit user posture and applied to a scope through a typed profile reference.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.factory-ai-profile-row
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: Factory AIProfile row
+    meaning: A factory AIProfile row is keyed by privacy posture, compute posture, canonical capability set, and routing policy, separates portable profile fields from selection-only host and posture inputs, and uses an alias only as a readable projection.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.factory-profile-cloud-first
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: cloud-first factory AIProfile row
+    meaning: The cloud-first row is cloud-ok, cloud-only, and cloud-first for text.generate, text.generate.vision, text.embed, audio.synthesize, audio.transcribe, image.generate, and image.edit on windows-amd64-cpu, windows-amd64-nvidia-cuda, and darwin-arm64-metal, has no local pack or dependency reference, requires no materialization confirmation, and applies after initialization to first-party apps and scope-bound apply.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.factory-profile-local-standard
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: local-standard factory AIProfile row
+    meaning: The local-standard row is local-preferred, cpu-only, and local-first for text.generate and text.embed on windows-amd64-cpu, darwin-arm64-metal, and windows-amd64-nvidia-cuda, references local-text with native-engine-package.llama and model.asset, requires materialization confirmation, and applies after initialization to first-party apps and scope-bound apply.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.factory-profile-local-speech-ready
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: local-speech-ready factory AIProfile row
+    meaning: The local-speech-ready row is local-preferred, cpu-only, and local-first for text.generate, audio.transcribe, and audio.synthesize on windows-amd64-cpu, darwin-arm64-metal, and windows-amd64-nvidia-cuda, references local-text and local-speech with native-engine-package.llama, python.tool.uv, python.runtime, python.venv, python.package-set, and model.asset, requires confirmation, and applies to minimal or recommended first-run, first-party apps, and scope-bound apply.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.factory-profile-local-gpu
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: local-gpu factory AIProfile row
+    meaning: The local-gpu row is local-preferred, cuda-capable, and local-first for text.generate, text.generate.vision, audio.transcribe, audio.synthesize, image.generate, and image.edit on windows-amd64-nvidia-cuda and darwin-arm64-metal, references local-text, local-speech, local-image-native, and local-gpu-support with accelerator.cuda.runtime, native-engine-package.llama, native-engine-package.stablediffusion-ggml, python.tool.uv, python.runtime, python.venv, python.package-set, python.torch-wheel, model.asset, and model.companion-asset, requires confirmation, and applies to recommended first-run, first-party apps, and scope-bound apply.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.factory-profile-hybrid-recommended
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: hybrid-recommended factory AIProfile row
+    meaning: The hybrid-recommended row is cloud-ok, cuda-capable, and hybrid-explicit for text.generate, text.generate.vision, text.embed, audio.transcribe, audio.synthesize, image.generate, image.edit, and video.generate on windows-amd64-nvidia-cuda, darwin-arm64-metal, and windows-amd64-cpu, references local-text, local-speech, and local-image-native with native-engine-package.llama, native-engine-package.stablediffusion-ggml, python.tool.uv, python.runtime, python.venv, python.package-set, model.asset, and model.companion-asset, requires confirmation, and applies after initialization to first-party apps and scope-bound apply.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.ai-profile-selection
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: AIProfile selection result
+    meaning: An AIProfile selection result is a typed factory AIProfile reference and typed reason produced deterministically from admitted Runtime host evidence and explicit user posture without becoming live configuration or execution readiness.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.ai-profile-apply-state
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: AIProfile apply state
+    meaning: The closed AIProfile apply states are ai-profile-pending, ai-profile-accepted, ai-profile-setup-required, ai-profile-applied, ai-profile-materializing, ai-profile-active, and ai-profile-failed, with non-ready and failure reasons preserved.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.first-party-ai-profile-hint
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: First-party AIProfile hint
+    meaning: A first-party AIProfile hint is a typed reference from an admitted app registry row or manifest to an admitted factory profile and recommends an experience without granting identity, data, consumption, memory, cognition, or permission authority.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.account-default-profile
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: Account Default Profile
+    meaning: The Account Default Profile is the durable account-scoped local profile-library record at ~/.nimi/accounts/<account-id>/profiles/default.json, seeded or restored during first-run and never sourced from Realm identity material or an ambient projection.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.capability-governance
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: Canonical capability governance metadata
+    meaning: Canonical capability governance metadata maps text.generate and text.generate.vision to runtime-route, local-or-cloud-by-selected-route, zhiyu-retains-no-provider-payload, change-runtime-route-or-revoke-connector, and runtime-route-evidence; text.embed to runtime-memory-route, local-or-cloud-by-embedding-route, runtime-memory-policy, memory-policy-or-route-owner, and runtime-memory-evidence; audio.synthesize and audio.transcribe to runtime-audio-route, local-or-cloud-by-selected-route, runtime-audio-policy, route-or-connector-owner, and runtime-scenario-job-evidence; voice_workflow.voice_clone and voice_workflow.voice_design to runtime-voice-workflow, local-or-cloud-by-workflow-route, runtime-voice-asset-policy, runtime-voice-asset-owner, and runtime-scenario-job-evidence; image.generate, image.edit, and video.generate to runtime-media-route, local-or-cloud-by-selected-route, runtime-artifact-policy, route-or-artifact-owner, and runtime-scenario-job-evidence; and world.generate to runtime-world-route, local-or-cloud-by-selected-route, runtime-artifact-policy, route-or-artifact-owner, and runtime-scenario-job-evidence, in owner, dataMovement, retention, revocation, and auditSource order without moving route or permission authority into the catalog.
+    relations: []
+  - id: rule.nimi.platform.core-protocol.p-aips-001a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-001 Platform selection ownership
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Platform owns the factory catalog and deterministic selection semantics, Runtime supplies only admitted host evidence and owns execution preparation, materialization, readiness, route feasibility, and execution evidence, each scope or app owner owns live AIConfig intent, and SDK owns typed projection.
+    condition: Whenever a factory profile is selected, prepared, applied, or executed.
+    failure: Reject any selection or execution path that moves one of these responsibilities to another layer.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-profile-selection
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.factory-ai-profile-catalog
+  - id: rule.nimi.platform.core-protocol.p-aips-001b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-001 no fourth AI truth
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: The factory catalog, selection policy, or a renamed subordinate helper owns or persists live AIConfig, AISnapshot, installation state, materialization jobs, selected sources, host profiles, local packs, dependency schemas, activation reasons, or any fourth live AI configuration truth outside AIProfile, AIConfig, and AISnapshot.
+    condition: Whenever selection or factory-profile state is defined or persisted.
+    failure: Reject the duplicate truth surface and retain authority with its canonical owner.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.factory-ai-profile-catalog
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.materialized-ai-config
+  - id: rule.nimi.platform.core-protocol.p-aips-001c
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-001 portable catalog boundary
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Factory rows contain only portable AIProfile intent and product recommendation semantics, exclude local paths, installation, health, and other host state, and commit selected intent through typed apply to the owning scope.
+    condition: Whenever a factory row is admitted or selected intent is committed.
+    failure: Reject a non-portable row or a commit outside typed scope-owned apply.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.factory-ai-profile-row
+  - id: rule.nimi.platform.core-protocol.p-aips-002a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-002 factory row schema
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Every factory row provides alias, privacy_posture, compute_posture, capability_set, routing_policy, host_capability_profile_refs, local_compute_pack_refs, dependency_family_refs, materialization_confirmation_required, applicable_scopes, first_run_install_levels, and source_rule and uses only the declared closed enums.
+    condition: Whenever a factory row is admitted or interpreted.
+    failure: Reject a missing field, unknown enum member, or unresolved required value.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.factory-ai-profile-row
+  - id: rule.nimi.platform.core-protocol.p-aips-002b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-002 matrix and field separation
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: A readable alias neither owns schema nor binds a provider, connector, engine, or model, portable capability, generation, companion, policy, style, and UX intent remains separate from selection-only posture, host-profile, pack, dependency, and confirmation inputs, and selection-only fields are never written by profile apply.
+    condition: Whenever a factory row is represented, selected, or applied.
+    failure: Reject schema authority in an alias, a concrete vendor binding, field conflation, or selection input written into AIConfig.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.factory-ai-profile-row
+  - id: rule.nimi.platform.core-protocol.p-aips-002c
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-002 closed factory profile rows
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: The closed factory catalog contains exactly cloud-first, local-standard, local-speech-ready, local-gpu, and hybrid-recommended with the dimensions, references, confirmation posture, scopes, and install levels defined by their canonical rows.
+    condition: Whenever the factory catalog is published, selected, or validated.
+    failure: Reject a missing, additional, renamed, or semantically changed row without explicit Platform authority revision.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.factory-ai-profile-catalog
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.factory-profile-cloud-first
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.factory-profile-hybrid-recommended
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.factory-profile-local-gpu
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.factory-profile-local-speech-ready
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.factory-profile-local-standard
+  - id: rule.nimi.platform.core-protocol.p-aips-003a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-003 fixed apply chain
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Selection returns a typed factory reference, descriptor preparation and Runtime readiness precede aiProfile.apply, successful apply atomically overwrites one scope-bound fully materialized AIConfig, each turn freezes AISnapshot, and Runtime execution consumes materialization evidence.
+    condition: Whenever a factory profile enters the apply or execution chain.
+    failure: Reject a bypass, partial overlay, placeholder disabled capability, scope fallback, or out-of-order execution.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-profile-selection
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.materialized-ai-config
+  - id: rule.nimi.platform.core-protocol.p-aips-003b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-003 readiness before live write
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Alias acceptance, preview, probe, and prepare do not prove readiness, every required slice proves apply eligibility before a live write, and an unresolved, unsupported, credential-missing, association-missing, or unready result returns typed setup-required with no new live config while preserving any valid existing AIConfig.
+    condition: Whenever profile apply eligibility is evaluated.
+    failure: Fail closed without writing or replacing live AIConfig and report the typed apply failure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-profile-apply-state
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.materialized-ai-config
+  - id: rule.nimi.platform.core-protocol.p-aips-003c
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-003 independent local customization
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: Scope-local AIConfig customization mutates its source AIProfile or factory catalog row, or a first-run, app hint, or apply path directly creates a selected-source record or bypasses the Runtime activation request and response boundary.
+    condition: Whenever an applied configuration is customized or a profile path requests activation.
+    failure: Preserve the profile and catalog unchanged and route activation through its canonical Runtime boundary.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.factory-ai-profile-row
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.materialized-ai-config
+  - id: rule.nimi.platform.core-protocol.p-aips-004a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-004 admitted deterministic inputs
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Selection consumes only admitted Runtime host-capability, local-pack-readiness, and dependency-plan evidence plus explicit user-declared posture, resolves every referenced Runtime row, and never derives posture from chat selection, active app state, or ambient state.
+    condition: Whenever the selection policy evaluates a candidate.
+    failure: Reject an unresolved reference, invented Runtime axis, or implicit posture input.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-profile-selection
+  - id: rule.nimi.platform.core-protocol.p-aips-004b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-004 typed output and decision boundary
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Selection executes on Home, Desktop, or SDK surfaces, returns only a typed catalog profile reference and typed reason, and leaves host detection, pack arbitration, and activation planning to Runtime rather than alias schema or Runtime-owned product-default logic.
+    condition: Whenever selection is implemented or returns a result.
+    failure: Reject a Runtime product selector, string error, generic enum, alias-based host decision, or consumer-invented host axis.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-profile-selection
+  - id: rule.nimi.platform.core-protocol.p-aips-005a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-005 canonical capability binding
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Every factory capability_set contains only admitted CanonicalCapabilityId values, and a deferred token is either excluded from unadmitted applicable scopes or accompanied by an explicit fail-closed Runtime fallback declaration.
+    condition: Whenever a factory row declares a capability.
+    failure: Reject an unknown canonical identity or a silently referenced deferred capability.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-catalog
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.deferred-capability
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.factory-ai-profile-row
+  - id: rule.nimi.platform.core-protocol.p-aips-005b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-005 no hidden vendor default
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: An alias, catalog row, UI, SDK, app, first-party binding, or policy text uses a provider, connector, engine, or model identifier as default-experience truth or reconstructs hidden vendor preference from multiple capability references.
+    condition: Whenever a factory experience is declared, projected, or consumed.
+    failure: Reject the vendor default and retain connector or model preference with Runtime or the referenced connector authority without defining Realm ownership.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.factory-ai-profile-catalog
+  - id: rule.nimi.platform.core-protocol.p-aips-006a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-006 posture and fallback semantics
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Cloud-ok permits admitted cloud routing without extra local readiness, local-preferred prioritizes a ready selected local source and otherwise preserves the exact non-ready state unless an explicit hybrid binding permits cloud, and local-required prohibits cloud for its declared slice and fails closed when local readiness is absent.
+    condition: Whenever privacy posture is evaluated for a capability slice.
+    failure: Reject an implicit fallback, an overstated ready result, or cloud execution for a local-required slice.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-profile-apply-state
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.factory-ai-profile-row
+  - id: rule.nimi.platform.core-protocol.p-aips-006b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-006 authoritative routing declaration
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: The typed cloud-first, local-first, or hybrid-explicit routing policy governs runtime routing and spend evaluation, consumers keep no independent routing string or provider override, local failure cannot become cloud success without hybrid binding, and a cloud-only row requests no local dependency.
+    condition: Whenever routing policy is stored, projected, or evaluated.
+    failure: Reject a consumer override, hidden fallback, spend mismatch, or cloud-only local request.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.factory-ai-profile-row
+  - id: rule.nimi.platform.core-protocol.p-aips-007a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-007 materialization state projection
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Materialization requests use the admitted Runtime start, cancel, retry, and repair command surface, SDK projection preserves needs_confirmation, queued, downloading, verifying, installing, repair_required, failed, unsupported, and cancelled, product text may rename but not collapse states, and ready or ai-profile-active requires complete ready_system or ready_managed activation-gate evidence.
+    condition: Whenever confirmation, materialization, or activation state is projected.
+    failure: Fail closed, retain the exact non-ready state, and withhold ready or active projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-profile-apply-state
+  - id: rule.nimi.platform.core-protocol.p-aips-007b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-007 readiness authority
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: Readiness is inferred from file existence, endpoint reachability, transfer completion, package presence, PATH precedence, import success or contents, script exit, process liveness, warmup, previous health, or an AIConfig probe, and Runtime confirmation omits dependency family, known size, storage category, or no-system-mutation policy.
+    condition: Whenever profile materialization readiness or confirmation is determined.
+    failure: Reject inferred readiness or incomplete confirmation and require activation-gate evidence.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-profile-apply-state
+  - id: rule.nimi.platform.core-protocol.p-aips-008
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-008 no provider or model constants
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: Factory-policy text, catalog data, Home or first-run code, SDK profile or config surfaces, first-party bindings, documentation constants, UI strings, generated snapshots, placeholders, fallbacks, or bootstrap seeds embed a provider, connector, engine, or model constant as default-experience truth or provide a compatibility alias for one.
+    condition: Whenever a factory profile producer or consumer supplies default-experience data.
+    failure: Reject the constant, alias, or indirect hard-coded default without fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.factory-ai-profile-catalog
+  - id: rule.nimi.platform.core-protocol.p-aips-009a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-009 typed first-party hint
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: An admitted first-party app declares its recommended default experience through a typed registry or manifest reference to an admitted factory profile and applies it explicitly and atomically to the app AIScopeRef when requested by the user.
+    condition: Whenever a first-party app declares or applies a default-experience hint.
+    failure: Reject an untyped, unresolved, implicit, or non-atomic hint application.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-launch-ai-scope
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.first-party-ai-profile-hint
+  - id: rule.nimi.platform.core-protocol.p-aips-009b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-009 hint has no authority or parallel truth
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: A first-party hint creates account, data, agent identity, AI consumption, memory, cognition, or permission authority, bypasses registry admission, permission fabric, activation readiness, or provider-constant boundaries, or maintains a parallel default track or second AIConfig truth for the same scope.
+    condition: Whenever a first-party hint is declared or consumed.
+    failure: Deny the unauthorized effect or bypass and remove the parallel truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.first-party-ai-profile-hint
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.materialized-ai-config
+  - id: rule.nimi.platform.core-protocol.p-aips-010a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-010 closed apply state machine
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: First-run and every scope-bound apply expose the closed typed AIProfile apply states with accepted distinct from applied, materializing distinct from hard failure, active supported only by complete readiness, failed retaining its Runtime reason source, and no generic ready or unavailable substitute.
+    condition: Whenever alias acceptance, apply, materialization, or activation is projected.
+    failure: Reject an unknown, collapsed, skipped, untyped, or unsupported state transition.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-profile-apply-state
+  - id: rule.nimi.platform.core-protocol.p-aips-010b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-010 preservation and recovery
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Accepted but unready profiles project setup-required, materializing, or failed rather than active, setup-required and materializing preserve valid existing AIConfig without placeholders, failed offers cancel, retry, repair, or alias change as applicable, and pending never selects an implicit cloud or local fallback.
+    condition: Whenever an apply is not fully active.
+    failure: Withhold active, preserve existing valid config, and expose the exact recovery path without implicit fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-profile-apply-state
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.materialized-ai-config
+  - id: rule.nimi.platform.core-protocol.p-aips-011
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-011 cloud-only row constraints
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: A cloud-only row has empty local_compute_pack_refs and dependency_family_refs, materialization_confirmation_required false, routing_policy cloud-first or hybrid-explicit, and no local-environment activation request.
+    condition: Whenever a cloud-only factory row is admitted or applied.
+    failure: Reject the row or activation request as an admission failure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.factory-ai-profile-row
+  - id: rule.nimi.platform.core-protocol.p-aips-012a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-012 applicable scope closure
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: applicable_scopes is a non-empty subset of first-run, first-party-app, and scope-bound-apply, first-party-app uses a typed admitted hint, scope-bound-apply works with any admitted AIScopeRef, and no undeclared future scope is injected.
+    condition: Whenever factory-row applicability is declared or interpreted.
+    failure: Reject an empty, unknown, untyped, or implicitly extensible applicability declaration.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-scope-ref
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.factory-ai-profile-row
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.first-party-ai-profile-hint
+  - id: rule.nimi.platform.core-protocol.p-aips-012b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-012 first-run local baseline
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: A first-run row declares minimal, recommended, or both and is a local baseline that excludes cloud-only, cloud-first, hybrid-explicit, video, cloud connectors, and app-specific readiness, while a non-first-run row has no install level; minimal covers admitted local text, chat, basic STT, and basic TTS packs, and recommended may add admitted embedding, image, or GPU packs only with evidence and confirmation.
+    condition: Whenever first-run eligibility or install-level coverage is declared.
+    failure: Reject a non-local candidate, forbidden dependency, missing baseline pack, unsupported install level, or non-first-run install level.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.built-in-chat-scopes
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.factory-ai-profile-row
+  - id: rule.nimi.platform.core-protocol.p-aips-013a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-013 durable account profile binding
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: accountDefaultProfileRef resolves to the durable local account profile record, exactly matches the authenticated Runtime account_id and selected dataRootRef, and the record contains profileId default, a profile version or content hash, source policy reference, source catalog version, and createdAt or updatedAt.
+    condition: Whenever Account Default Profile evidence is admitted for product readiness.
+    failure: Fail closed on a missing field, unresolved record, account mismatch, or data-root mismatch.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.account-default-profile
+  - id: rule.nimi.platform.core-protocol.p-aips-013b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-013 first-run seed and restore boundary
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: First-run seeds Account Default Profile from machine capability, install level, factory selection policy, catalog row, and user-confirmed plan or restores it explicitly, source is a resolvable Platform factory seed or explicit restore, and an official factory update never silently overwrites an existing record.
+    condition: Whenever Account Default Profile is created, restored, or a factory catalog is updated.
+    failure: Reject an unconfirmed or unresolved source and preserve the existing account record from silent overwrite.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.account-default-profile
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.factory-ai-profile-catalog
+  - id: rule.nimi.platform.core-protocol.p-aips-013c
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-AIPS-013 forbidden profile evidence and independent scopes
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: A missing, stale, unhashable, wrong-account, wrong-data-root, caller-provided, string-only, or unresolved-source reference passes product readiness, Realm OAuth tokens or profile projections, decoded claims, subject_user_id, RuntimeAccountService, renderer state, SDK cache, or app cache supplies profile content, or editing the default profile mutates an existing scope-bound AIConfig.
+    condition: Whenever Account Default Profile content evidence or edits are evaluated.
+    failure: Fail closed, treat Realm account-session material only as an account_id reference, and require explicit atomic apply before any scope changes.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.account-default-profile
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.materialized-ai-config
+  - id: rule.nimi.platform.core-protocol.p-capcat-004
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: canonical-capability-catalog P-CAPCAT-004 governance metadata
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Every active canonical capability row carries non-empty governance owner, dataMovement, retention, revocation, and auditSource metadata whose route-specific meaning remains consistent with its runtime source and does not grant catalog-owned route or permission authority.
+    condition: Whenever an active canonical capability row is admitted or consumed for governance projection.
+    failure: Reject missing, unresolved, contradictory, or authority-expanding governance metadata.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-catalog
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-governance
+  - id: definition.nimi.platform.core-protocol.architecture-layer-model
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH execution layer model
+    meaning: The platform layer model places the installable Nimi product and its Nimi Home entry shell above Nimi Apps, SDK bridges, parallel Realm and Runtime authority surfaces, and independently owned cognition authority without exposing private implementation topology.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.cognition-domain
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH cognition authority domain
+    meaning: Cognition is an independent authority domain bridged and consumed by Runtime and SDK rather than a seventh execution-host layer or a subdivision of Realm or Runtime.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.desktop-home-shell
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH Desktop-hosted Nimi Home shell
+    meaning: Desktop is the current host implementation of the Nimi Home entry shell while Nimi is the installable product name and Nimi App is the public distribution, installation, and authorization unit.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.world-evolution-engine
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH World Evolution Engine placement
+    meaning: World Evolution Engine is a shared cross-app and cross-domain execution layer whose Platform authority is limited to placement, boundary, naming, and packaging guardrails while Runtime owns its execution semantics.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.world-domain-facade
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH sdk world facade
+    meaning: sdk/world is the app-facing world-domain facade for world-truth consumption, world-input projection, generation and materialization orchestration, fixture-package consumption, renderer-orchestration consumption, and world-session composition without replacing Realm truth or Runtime provider execution.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.desktop-open-contract
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: P-DOPEN running Desktop open contract
+    meaning: DesktopOpenIntent, projected publicly in TypeScript as NimiDesktopOpenIntent, is the sole closed cross-app protocol for asking an already-running Nimi Desktop process through desktop-open.openIntent to focus and open an admitted Desktop-owned surface.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.desktop-open-target
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: P-DOPEN closed target kind
+    meaning: A Desktop Open target kind is exactly open-explore, open-runtime-config, open-agents, open-apps, or open-settings, while target-specific values remain owned by the referenced Desktop target catalog.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.desktop-open-envelope
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: P-DOPEN closed intent envelope
+    meaning: DesktopOpenEnvelope version one contains host-injected sourceApp, host-injected sourceHost, a host-generated-or-validated requestId, and one closed Desktop Open intent with no unknown fields.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.desktop-open-result
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: P-DOPEN closed domain result
+    meaning: The version-one Desktop Open domain result vocabulary is exactly desktop-open-desktop-not-running, desktop-open-desktop-not-ready, desktop-open-intent-invalid, desktop-open-target-unsupported, desktop-open-bridge-auth-failed, and desktop-open-host-unavailable.
+    relations: []
+  - id: definition.nimi.platform.core-protocol.desktop-open-transport
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: P-DOPEN running presence transport
+    meaning: The production Desktop Open transport is the Desktop-owned running presence descriptor and exact-loopback bridge invoked by Kit standard shell hosts without starting Desktop or creating another listener.
+    relations: []
+  - id: rule.nimi.platform.core-protocol.p-arch-001a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-001 public product and layer framing
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Public architecture identifies Nimi as the installable long-term user product, Nimi Home as its currently Desktop-hosted entry shell, Nimi App as the public distribution, installation, and authorization unit, and the canonical public authority entry as nimi/.nimi/spec/**.
+    condition: Whenever the public top-layer architecture is described.
+    failure: Reject a product, shell, app-unit, or canonical-entry description that changes this layer framing.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.architecture-layer-model
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.desktop-home-shell
+  - id: rule.nimi.platform.core-protocol.p-arch-001b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-001 independent cognition authority
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: Platform architecture makes cognition a seventh execution-host layer or silently places its authority under Realm or Runtime.
+    condition: Whenever cognition is placed or consumed in the layer model.
+    failure: Reject the placement and preserve cognition as an independently bridged authority domain.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.cognition-domain
+  - id: rule.nimi.platform.core-protocol.p-arch-001c
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-001 public projection boundary
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: Public top-layer architecture exposes private implementation topology, source-checkout shape, semantic-owner paths, or Realm-facing content outside an admitted public projection boundary.
+    condition: Whenever a public architecture or Realm-facing projection is published.
+    failure: Reject the private detail and retain only public authority surfaces and routing references.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.architecture-layer-model
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.realm-primitive-layer
+  - id: rule.nimi.platform.core-protocol.p-arch-002
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-002 parallel layers and fixed protocols
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Realm and Runtime remain parallel and mutually independent, communicate through SDK bridging, expose Realm through REST and WebSocket and Runtime through gRPC, and give Nimi Apps one @nimiplatform/sdk entry.
+    condition: Whenever layers communicate or an app accesses the platform.
+    failure: Reject a direct Realm-to-Runtime dependency, non-SDK app entry, or substituted canonical protocol.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.architecture-layer-model
+  - id: rule.nimi.platform.core-protocol.p-arch-003
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-003 Realm responsibility allocation
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Platform architecture references the Realm canonical surface as shared persistent-world truth owner for auth, social, chat, economy, world, agent, and cloud audit, keeps six-primitive execution in the separate Platform primitive layer, and leaves semantic persistence and read paths with Realm-owned Truth, World State, World History, Chat, and adjacent formal domains.
+    condition: Whenever Realm responsibilities or primitive ownership are allocated by Platform text.
+    failure: Reject an allocation that moves Realm-owned domains, aliases the primitive layer to Realm internals, or authors Realm internal semantics.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.realm-primitive-layer
+  - id: rule.nimi.platform.core-protocol.p-arch-004
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-004 Runtime responsibility allocation
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Runtime remains an independent local background process owning multimodal AI inference, explicit local-or-cloud AI routing, process and model management, Workflow DAG, GPU arbitration, local data and knowledge stores, Credential Plane, MCP Server, local audit, inter-app communication, app authorization gateway, and the Runtime-facing cognition and agent-core bridge.
+    condition: Whenever Platform architecture allocates Runtime responsibilities.
+    failure: Reject an allocation that removes these responsibilities from Runtime or makes Runtime dependent on an app layer.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.architecture-layer-model
+  - id: rule.nimi.platform.core-protocol.p-arch-005
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-005 single target architecture
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Architecture execution uses one target state, reset-first data posture, and AI-first execution without long-lived parallel legacy and target tracks.
+    condition: Whenever an architecture transition or execution mode is selected.
+    failure: Reject a long-lived dual track or compatibility target that preserves the superseded architecture.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.architecture-layer-model
+  - id: rule.nimi.platform.core-protocol.p-arch-010
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-010 frozen version-one execution stack
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Version one uses Go, llama plus media plus sidecar for local models, nimiLLM for remote models, explicit local or cloud routing without silent fallback, Runtime-owned connector or provider credential custody without caller injection, and Workflow DAG as an independent capability.
+    condition: Whenever the version-one execution stack is implemented or described.
+    failure: Reject a substituted language or stack, hidden route fallback, caller credential injection, or collapsed workflow capability.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-route
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.architecture-layer-model
+  - id: rule.nimi.platform.core-protocol.p-arch-011
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-011 isolated production credential plane
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: Production accepts apiKeyEnv, inline request credentials, Desktop, SDK, or renderer credential injection, user-session vault credentials, app-owned secret providers, or synthetic probe credentials in place of Runtime resolution of an opaque connectorId or credentialRef inside its isolated service principal.
+    condition: Whenever a production credential is resolved or product behavior is claimed from a probe.
+    failure: Deny the operation, preserve Runtime custody, and withhold product evidence from non-product probe credentials.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protected-app-authorization
+  - id: rule.nimi.platform.core-protocol.p-arch-020
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-020 sole SDK developer entry
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Desktop and third-party apps use the same SDK API as the sole developer platform entry, with node-grpc and tauri-ipc transport profiles and local-broker reserved as future.
+    condition: Whenever a developer client or transport profile accesses platform capabilities.
+    failure: Reject a second developer entry, a Desktop-private API variant, or present use of the future local-broker profile.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.architecture-layer-model
+  - id: rule.nimi.platform.core-protocol.p-arch-021a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-021 Desktop shell and Apps projection
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Desktop remains the host of Nimi Home rather than a public ontology owner or flagship product name, ordinary product wording uses Apps instead of historical App Store, Library, or Discovery, and lower-level historical projections remain subordinate shell surfaces.
+    condition: Whenever the Desktop-hosted product shell or its ordinary app surface is named.
+    failure: Reject Desktop as the product ontology, a superseded ordinary label, or a subordinate projection presented as product authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.desktop-home-shell
+  - id: rule.nimi.platform.core-protocol.p-arch-021b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-021 Desktop shell ownership exclusions
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: A Desktop-hosted Home, Runtime Console, diagnostics, settings, Library, Discovery, or Apps projection owns Runtime materialization, app registry or admission, Realm or cognition truth, marketplace economy truth, factory profile selection, Home information architecture, release identity, self-update policy, daemon handoff, or selected-source records.
+    condition: Whenever a Desktop-hosted projection allocates authority.
+    failure: Reject the ownership claim and retain each domain with its referenced canonical owner surface without reinterpreting that owner's internals.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.desktop-home-shell
+  - id: rule.nimi.platform.core-protocol.p-arch-022
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-022 World Evolution Engine owner split
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Platform owns only World Evolution Engine placement, boundary, naming, and packaging guardrails, and Runtime owns its execution semantics through a Runtime kernel contract.
+    condition: Whenever World Evolution Engine authority is allocated.
+    failure: Reject Platform-authored execution semantics or an execution placement without a Runtime semantic owner.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.world-evolution-engine
+  - id: rule.nimi.platform.core-protocol.p-arch-023
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-023 World Evolution Engine non-owner boundary
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: World Evolution Engine is defined as a narrative feature shell, SDK semantic owner, Realm canonical truth owner, consumer-specific orchestration shell, or replacement owner for world state, world history, or narrative truth.
+    condition: Whenever World Evolution Engine placement or ownership is described.
+    failure: Reject the ownership expansion and preserve each referenced canonical owner.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.world-evolution-engine
+  - id: rule.nimi.platform.core-protocol.p-arch-024
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-024 World Evolution Engine SDK-only cross-layer access
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: World Evolution Engine performs every cross-layer Realm or Runtime read, control, and commit request through an SDK public surface without importing runtime/internal/**, Realm private clients or transports, SDK private internals, host bridge details, app-private clients, or another private boundary.
+    condition: Whenever World Evolution Engine crosses a Realm or Runtime layer boundary.
+    failure: Reject the placement as inadmissible before the private dependency or bypass executes.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.world-evolution-engine
+  - id: rule.nimi.platform.core-protocol.p-arch-025a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-025 admitted World Evolution Engine placement shapes
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: World Evolution Engine uses either a Runtime semantic contract with an SDK-mediated consumer seam or Platform boundary text plus a Runtime semantic contract and optional adapter-driven consumer helper layer.
+    condition: Whenever World Evolution Engine is placed or packaged.
+    failure: Reject any placement shape outside the closed admitted set.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.world-evolution-engine
+  - id: rule.nimi.platform.core-protocol.p-arch-025b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-025 pure consumer helper boundary
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: A kit/** or equivalent shared World Evolution Engine helper remains pure consumer logic and does not acquire Runtime or Realm write authority, canonical truth ownership, or private-client dependencies.
+    condition: Whenever an optional shared consumer helper provides the default integration surface.
+    failure: Reject or remove the helper when it crosses the consumer-only boundary.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.world-evolution-engine
+  - id: rule.nimi.platform.core-protocol.p-arch-026
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-026 inadmissible World Evolution Engine placements
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: SDK becomes World Evolution Engine semantic owner, an app or host directly accesses Runtime internals or Realm private surfaces, a consumer couples to shared-kernel internals, a private bridge, singleton, or client creates a second control path, or shared code acquires commit authorization, canonical history, canonical state, Runtime audit, or stable-event truth.
+    condition: Whenever a World Evolution Engine placement or control path is proposed or used.
+    failure: Reject the placement and remove the duplicate authority or private access path.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.world-evolution-engine
+  - id: rule.nimi.platform.core-protocol.p-arch-027a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-027 consumer interaction boundary
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Apps, narrative-engine, and other World Evolution Engine consumers interact only through an SDK public surface, host-injected facade, or explicit adapter or event boundary.
+    condition: Whenever a consumer interacts with World Evolution Engine.
+    failure: Reject an interaction through a private Runtime or Realm boundary.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.world-evolution-engine
+  - id: rule.nimi.platform.core-protocol.p-arch-027b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-027 shared execution rewrite hardcut
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: An app or narrative consumer independently rewrites the tick loop, replay semantics, checkpoint semantics, or shared execution authority, or kit/**, an app, or narrative-engine acquires write, commit-authorization, or canonical-truth authority.
+    condition: Whenever a World Evolution Engine consumer implements execution behavior.
+    failure: Reject the duplicate implementation or authority and route the consumer through the shared boundary.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.world-evolution-engine
+  - id: rule.nimi.platform.core-protocol.p-arch-028a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-028 workflow surface is not engine truth
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: Platform placement text promotes Runtime workflow DAG, task, node, or output-event surfaces to World Evolution Engine semantic ownership, canonical naming, or stable-event truth.
+    condition: Whenever existing Runtime workflow surfaces are considered for World Evolution Engine use.
+    failure: Reject the promotion and preserve Runtime-local ownership.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.world-evolution-engine
+  - id: rule.nimi.platform.core-protocol.p-arch-028b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-028 Runtime decides partial workflow reuse
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Any reuse of Runtime workflow or output-event stream shape, status vocabulary, or adapter seams remains a Runtime-local candidate until a Runtime kernel contract explicitly decides its extent.
+    condition: Whenever partial workflow reuse is proposed for World Evolution Engine.
+    failure: Withhold canonical reuse and stable semantics until the Runtime contract makes the decision.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.world-evolution-engine
+  - id: rule.nimi.platform.core-protocol.p-arch-029
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-029 consumer API contract home and owner split
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: The World Evolution Engine app-consumer API contract resides under .nimi/spec/sdks/kernel/** and owns only facade composition, read and observe versus command and request admissibility, and no-leak, no-widening, and no-bypass framing, while Runtime owns execution semantics, SDK projection owns visible shape, and host and app owners retain implementation strategy.
+    condition: Whenever the consumer-facing World Evolution Engine API is specified or changed.
+    failure: Reject a different contract home or an authority allocation that widens the consumer contract beyond its seam.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.world-evolution-engine
+  - id: rule.nimi.platform.core-protocol.p-arch-030
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-030 independent audit layers
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Runtime local audit independently records AI calls, model operations, app communication, and authorization chains, Realm cloud audit independently records business and compliance operations, and local audit may optionally report to cloud aggregation without merging ownership.
+    condition: Whenever audit events cross or are allocated between Runtime and Realm.
+    failure: Reject merged audit truth or a mandatory aggregation dependency between the independent layers.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protocol-audit-event
+  - id: rule.nimi.platform.core-protocol.p-arch-031
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-031 sdk world facade boundary
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: sdk/world replaces Realm world truth, Runtime provider execution, World Evolution Engine, or K-WEV ownership, becomes a second public platform entry, or absorbs renderer-driver implementation, provider-native request ownership, or shared-projection truth when internal orchestration is factored into a core such as nimi-world.
+    condition: Whenever sdk/world or its internal core is implemented, projected, or renamed.
+    failure: Reject the authority expansion and retain sdk/world as the app-facing facade adjacent to its canonical owners.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.world-domain-facade
+  - id: rule.nimi.platform.core-protocol.p-dopen-001a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-DOPEN-001 sole running Desktop operation
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Every other-app request to focus a running Desktop and open an admitted Desktop-owned surface uses DesktopOpenIntent through desktop-open.openIntent and its NimiDesktopOpenIntent SDK projection.
+    condition: Whenever an app requests navigation in an already-running Desktop.
+    failure: Reject any alternate cross-app Desktop-open contract or operation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.desktop-open-contract
+  - id: rule.nimi.platform.core-protocol.p-dopen-001b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-DOPEN-001 no Desktop-private navigation bypass
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: An app constructs a Desktop URL, emits a Desktop menu-bar event, or calls Desktop-private IPC to request Desktop navigation.
+    condition: Whenever an app requests Desktop focus or navigation.
+    failure: Reject the bypass and require desktop-open.openIntent.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.desktop-open-contract
+  - id: rule.nimi.platform.core-protocol.p-dopen-002
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-DOPEN-002 running-only fail-closed boundary
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Desktop Open never starts Desktop, maps missing, stale, malformed, refused, or mismatched presence to desktop-open-desktop-not-running, maps running but not ready to desktop-open-desktop-not-ready, and does not queue while Desktop is not ready.
+    condition: Whenever Desktop presence or readiness cannot admit immediate execution.
+    failure: Return the exact typed result without starting Desktop, queuing, or reporting success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.desktop-open-result
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.desktop-open-transport
+  - id: rule.nimi.platform.core-protocol.p-dopen-003
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-DOPEN-003 closed target kinds and Desktop ownership
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Desktop Open accepts only the five closed target kinds and resolves target-specific enum values from the referenced Desktop catalog without duplicating Desktop information-architecture truth in Platform.
+    condition: Whenever a Desktop Open target is admitted or interpreted.
+    failure: Return desktop-open-target-unsupported for an unknown target and reject Platform-owned target-specific values.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.desktop-open-target
+  - id: rule.nimi.platform.core-protocol.p-dopen-004a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-DOPEN-004 exact closed envelope
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: DesktopOpenEnvelope uses schemaVersion one, host-injected sourceApp and sourceHost, a host-generated-or-validated requestId matching ^desktop-open-[A-Za-z0-9][A-Za-z0-9._:-]{0,114}$ with maximum length 128, and one closed intent, and rejects unknown fields.
+    condition: Whenever a Desktop Open envelope is created, admitted, or decoded.
+    failure: Return desktop-open-intent-invalid before dispatch when a field, value, grammar, length, or closure requirement fails.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.desktop-open-envelope
+  - id: rule.nimi.platform.core-protocol.p-dopen-004b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-DOPEN-004 untrusted app identity fields
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: Application code supplies a trusted Desktop Open identity field, sourceApp becomes authorization truth, or sourceApp or open-apps.appId violates the canonical Platform app-id grammar or Desktop Open maximum length 96.
+    condition: Whenever Desktop Open source or target app identity is injected or authorized.
+    failure: Reject the envelope and derive identity only from the verified host without granting authority from sourceApp.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.desktop-open-envelope
+  - id: rule.nimi.platform.core-protocol.p-dopen-005a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-DOPEN-005 closed intent is not a URL opener
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: desktop-open.openIntent accepts a raw URL, OAuth URL, OS custom scheme, browser-navigation request, or other arbitrary navigation payload.
+    condition: Whenever Desktop Open input is admitted.
+    failure: Return desktop-open-intent-invalid without opening or forwarding the payload.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.desktop-open-contract
+  - id: rule.nimi.platform.core-protocol.p-dopen-005b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-DOPEN-005 OAuth opener isolation
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: oauth.openExternalUrl dispatches Desktop Open Intent or admits a Desktop Open reserved loopback route before bridge authentication.
+    condition: Whenever the OAuth external opener handles a URL or route.
+    failure: Reject the reserved route before bridge authentication and keep the protocols isolated.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.desktop-open-transport
+  - id: rule.nimi.platform.core-protocol.p-dopen-006
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-DOPEN-006 canonical running transport
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Production Desktop Open uses the Desktop-owned running presence descriptor and exact-loopback bridge through a Kit standard shell host and never uses an OS custom scheme that can cold-start Desktop.
+    condition: Whenever a production Desktop Open intent is transported.
+    failure: Reject a custom-scheme or noncanonical transport before Desktop navigation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.desktop-open-transport
+  - id: rule.nimi.platform.core-protocol.p-dopen-007a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-DOPEN-007 verified local-app source host
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: A verified local-nimi-app-standard-shell-v1 carrier injects desktop-electron-local-app-host as sourceHost without application selection, override, or collapse into generic Electron identity.
+    condition: Whenever a verified Electron local-app host creates a Desktop Open envelope.
+    failure: Reject an absent, caller-selected, overridden, or collapsed host class.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.desktop-open-envelope
+  - id: rule.nimi.platform.core-protocol.p-dopen-007b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-DOPEN-007 source host has provenance only
+    modality: must_not
+    scope:
+      - platform.core-protocol
+    statement: desktop-electron-local-app-host supplies principal, grant, session, package, or authorization truth rather than routing provenance only.
+    condition: Whenever local-app sourceHost is interpreted.
+    failure: Deny the authority claim and use independently verified authorization inputs.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.desktop-open-envelope
+  - id: rule.nimi.platform.core-protocol.p-dopen-007c
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-DOPEN-007 local-app shell transport closure
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: The local-app standard shell admits exactly desktop-open.openIntent, reads the existing Desktop presence descriptor, invokes the existing exact-loopback bridge, creates no listener, avoids Runtime public TCP, and maps missing or stale presence to desktop-open-desktop-not-running.
+    condition: Whenever the verified Electron local-app host performs Desktop Open.
+    failure: Reject a Desktop URL, generic navigation proxy, raw loopback request, cold-start operation, new listener, Runtime TCP route, or incorrect presence result.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.desktop-open-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.desktop-open-transport
+  - id: rule.nimi.platform.core-protocol.p-dopen-008a
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-DOPEN-008 closed version-one result codes
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Every version-one Desktop Open domain outcome uses exactly one admitted result code and never emits desktop-open-bridge-unavailable.
+    condition: Whenever Desktop Open returns a domain result.
+    failure: Reject an unknown or unadmitted result and return the applicable admitted failure without pseudo-success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.desktop-open-result
+  - id: rule.nimi.platform.core-protocol.p-dopen-008b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-DOPEN-008 presence failures are not bridge unavailable
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Connection refusal, a stale or malformed descriptor, a non-loopback endpoint, or bridgeId mismatch resolves to desktop-open-desktop-not-running rather than a bridge-unavailable substitute.
+    condition: Whenever the Desktop-owned bridge presence fails validation or connection.
+    failure: Return desktop-open-desktop-not-running without fallback or substitute result.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.desktop-open-result
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.desktop-open-transport
+  - id: rule.nimi.platform.core-protocol.p-dopen-table-source-hosts
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: desktop-open-intents P-DOPEN-001 closed sourceHost values
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: Desktop Open sourceHost is exactly electron-standard-shell, tauri-standard-shell, desktop-electron-local-app-host, or dev-fixture, and the SDK and Kit projections remain @nimiplatform/sdk/app and @nimiplatform/kit/core/desktop-open.
+    condition: Whenever a Desktop Open source host or public projection is emitted or accepted.
+    failure: Reject an unknown sourceHost or a projection outside the declared public surfaces.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.desktop-open-envelope
+  - id: rule.nimi.platform.core-protocol.p-arch-011b
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-ARCH-011 isolated synthetic probe credentials
+    modality: must
+    scope:
+      - platform.core-protocol
+    statement: A synthetic probe fixture uses non-product credentials only when separately signed and remains isolated from the production credential plane and product-behavior claims.
+    condition: Whenever a synthetic probe uses a credential.
+    failure: Reject an unsigned or product credential and withhold the probe from product evidence.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.protected-app-authorization

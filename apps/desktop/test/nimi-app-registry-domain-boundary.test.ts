@@ -10,14 +10,14 @@ const retiredPackageKindPattern = new RegExp(`package_kind:\\s*(${['public', 'mo
 
 describe('Nimi App registry/admission domain boundary', () => {
   it('keeps admission, registry, and release descriptor authority in platform spec tables', () => {
-    const admissionContract = readRepo('.nimi/spec/platform/kernel/nimi-app-admission-contract.md');
-    const appSliceContract = readRepo('.nimi/spec/platform/kernel/app-slice-admission-contract.md');
-    const registryTable = readRepo('.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml');
+    const admissionContract = readRepo('docs/authority/platform-app-ecosystem-rationale.md');
+    const appSliceContract = readRepo('docs/authority/platform-authority-admission-rationale.md');
+    const registryTable = readRepo('config/platform-nimi-app-registry.yaml');
     const releaseDescriptors = readRepo(
-      '.nimi/spec/platform/kernel/tables/nimi-app-release-descriptors.yaml',
+      'config/platform-nimi-app-release-descriptors.yaml',
     );
     const localConfigRegistry = readRepo(
-      '.nimi/spec/platform/kernel/tables/local-config-file-registry.yaml',
+      'config/platform-local-config-file-registry.yaml',
     );
 
     assert.match(admissionContract, /Platform (owns|拥有) verified Nimi App catalog\/release admission/);

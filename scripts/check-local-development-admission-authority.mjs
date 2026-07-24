@@ -9,13 +9,13 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
 export const authorityPaths = Object.freeze({
-  policy: '.nimi/spec/platform/kernel/tables/nimi-app-local-development-admission.yaml',
-  platform: '.nimi/spec/platform/kernel/nimi-app-local-admission-contract.md',
+  policy: 'config/platform-nimi-app-local-development-admission.yaml',
+  platform: 'docs/authority/platform-app-ecosystem-rationale.md',
   runtimeSession: 'docs/authority/runtime-protected-session-rationale.md',
   account: 'docs/authority/runtime-protected-session-rationale.md',
   grant: '.nimi/spec/canonical/runtime/security-core.authority.yaml',
   desktop: '.nimi/spec/canonical/desktop/bridge-ipc.authority.yaml',
-  kit: '.nimi/spec/platform/kernel/kit-contract.md',
+  kit: 'docs/authority/platform-ui-design-system-rationale.md',
   sdk: 'docs/authority/sdks-client-core-rationale.md',
   principalSchema: '.nimi/spec/runtime/kernel/tables/local-app-principal-record-schema.yaml',
   grantSchema: '.nimi/spec/runtime/kernel/tables/local-app-grant-binding-schema.yaml',

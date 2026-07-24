@@ -1,0 +1,282 @@
+format: nimicoding.authority/v1
+units:
+  - id: definition.nimi.platform.authority-admission.app-slice
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: P-APP-001 and P-APP-002 subordinate app slice
+    meaning: An admitted app slice lives beneath the spec root of an admitted app, has no authority by location alone, and may define only that app's local shell, renderer, Tauri host, route, package, fixture, and app-specific feature contracts without becoming independent or repo-wide authority.
+    relations: []
+  - id: definition.nimi.platform.authority-admission.app-admission-matrix
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: app-slice-admissions admission matrix
+    meaning: The app admission matrix admits tester under apps/tester/spec as a tester-owned subordinate app slice and admits no app slice outside an active app boundary.
+    relations: []
+  - id: definition.nimi.platform.authority-admission.package-authority
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: P-PKG-001 and P-PKG-002 package authority boundary
+    meaning: An admitted package authority is an externally owned package spec root limited to reusable methodology, spec-construction contracts and configuration, and deterministic validator semantics without acquiring host product authority.
+    relations: []
+  - id: definition.nimi.platform.authority-admission.host-package-projection
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: P-PKG-003 host-local package projection
+    meaning: A host package projection is a Nimi-local support surface under .nimi/config, .nimi/contracts, or .nimi/methodology that may project admitted package semantics but has no independent semantic authority.
+    relations: []
+  - id: definition.nimi.platform.authority-admission.external-host-workflow
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: P-PKG-010 external AI host workflow
+    meaning: The external AI host exclusively owns repository task identity and status, planning, decomposition, agent scheduling, waiting, resumption, continuation, and completion or blocked verdicts, while deterministic tooling may consume transient host inputs without owning or persisting parallel workflow state.
+    relations: []
+  - id: definition.nimi.platform.authority-admission.realm-delegated-projection
+    kind: definition
+    owner: team.platform
+    lifecycle: active
+    title: P-PKG-009 Realm delegated projection reference boundary
+    meaning: The .nimi/spec/realm subtree is a reference-only delegated projection from an external authority, and this host definition neither defines Realm ownership nor creates authority for the host to author that subtree.
+    relations: []
+  - id: rule.nimi.platform.authority-admission.p-app-001
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-APP-001 app location grants no independent authority
+    modality: must_not
+    scope:
+      - platform.authority-admission
+    statement: A file under apps/**/spec/** claims repo-wide or independent authority merely from its location or without an active app admission boundary.
+    condition: Whenever an app-local specification is authored or interpreted.
+    failure: Reject the authority claim and treat the file as non-authoritative until its app boundary is admitted.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.app-admission-matrix
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.app-slice
+  - id: rule.nimi.platform.authority-admission.p-app-002
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-APP-002 subordinate app scope
+    modality: must_not
+    scope:
+      - platform.authority-admission
+    statement: An admitted app slice claims semantics outside its own local shell, renderer, Tauri host, route, package, fixture, or app-specific feature boundary or becomes alternate Platform, Runtime, SDK, Realm, Cognition, Avatar, or Desktop kernel truth.
+    condition: Whenever an admitted app slice defines or projects a contract.
+    failure: Reject the out-of-bound clause and require the owning canonical domain authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.app-slice
+  - id: rule.nimi.platform.authority-admission.p-app-003
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-APP-003 canonical authority cannot be overridden
+    modality: must_not
+    scope:
+      - platform.authority-admission
+    statement: An app-local specification overrides canonical Runtime transport or authentication, SDK public surfaces, Realm truth, Platform Kit, design or governance, Desktop kernel, Cognition, or Avatar semantics.
+    condition: Whenever app-local and canonical authority conflict.
+    failure: Reject or de-admit the conflicting app clause and preserve the canonical owner-domain semantics.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.app-slice
+  - id: rule.nimi.platform.authority-admission.p-app-006
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-APP-006 inactive app slices have no authority
+    modality: must_not
+    scope:
+      - platform.authority-admission
+    statement: An inactive, obsolete, removed, or otherwise unadmitted app slice continues to constrain product semantics.
+    condition: Whenever app-slice authority is resolved.
+    failure: Exclude the slice from authority and require a current active app admission before using its semantics.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.app-admission-matrix
+  - id: rule.nimi.platform.authority-admission.app-slice-admissions-matrix
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: app-slice-admissions closed admitted boundary
+    modality: must
+    scope:
+      - platform.authority-admission
+    statement: The admitted tester slice remains subordinate to apps/tester/spec, tester-owned, and limited by the app-slice boundary.
+    condition: Whenever the tester app specification supplies local semantics.
+    failure: Reject semantics resolved from a different root, owner, or authority level.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.app-admission-matrix
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.app-slice
+  - id: rule.nimi.platform.authority-admission.p-pkg-001
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PKG-001 package authority requires explicit admission
+    modality: must_not
+    scope:
+      - platform.authority-admission
+    statement: Workspace membership, package naming, directory shape, or package presence alone grants package-local specifications authority in the Nimi host.
+    condition: Whenever package authority is resolved.
+    failure: Reject the inferred authority and require an explicit host admission boundary.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.package-authority
+  - id: rule.nimi.platform.authority-admission.p-pkg-002
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PKG-002 package authority scope
+    modality: must_not
+    scope:
+      - platform.authority-admission
+    statement: An admitted package overrides Nimi product authority under .nimi/spec/** or promotes host-local projections into package truth.
+    condition: Whenever package semantics are consumed by the host.
+    failure: Reject the conflicting package or projection claim and preserve Nimi product authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.host-package-projection
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.package-authority
+  - id: rule.nimi.platform.authority-admission.p-pkg-003
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PKG-003 host and package truth remain distinct
+    modality: must_not
+    scope:
+      - platform.authority-admission
+    statement: Host-local support configuration is treated as independent package or product truth, or package-owned source is silently treated as a host-local projection.
+    condition: Whenever host-local and package-owned surfaces are interpreted.
+    failure: Reject the ownership substitution and resolve semantics from the explicitly admitted owner.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.host-package-projection
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.package-authority
+  - id: rule.nimi.platform.authority-admission.p-pkg-004
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PKG-004 package projection has one ownership line
+    modality: must
+    scope:
+      - platform.authority-admission
+    statement: Reusable package semantics remain package-owned while .nimi/spec/** alone determines whether and how the Nimi host admits or projects them.
+    condition: Whenever package authority and a host-local projection describe the same contract family.
+    failure: Fail closed until the package and host authority lines are explicit and non-conflicting.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.host-package-projection
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.package-authority
+  - id: rule.nimi.platform.authority-admission.p-pkg-009
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PKG-009 Realm delegated projection is reference-only
+    modality: must_not
+    scope:
+      - platform.authority-admission
+    statement: The Nimi host authors, rewrites, or infers source ownership for the externally owned .nimi/spec/realm delegated projection.
+    condition: Whenever the Realm projection is maintained or interpreted by the host.
+    failure: Reject the host-authored semantics and preserve the frozen delegated projection boundary.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.realm-delegated-projection
+  - id: rule.nimi.platform.authority-admission.p-pkg-010-owner
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PKG-010 external host owns workflow orchestration
+    modality: must_not
+    scope:
+      - platform.authority-admission
+    statement: Nimi-coding, its package authority, or its host-local projections create, mirror, interpret, advance, resume, close, or execute repository task or workflow state.
+    condition: Whenever repository work is orchestrated.
+    failure: Reject the package-owned workflow action and leave lifecycle control exclusively with the external AI host.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.external-host-workflow
+  - id: rule.nimi.platform.authority-admission.p-pkg-010-gates
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PKG-010 host respects authority and deterministic verdicts
+    modality: must
+    scope:
+      - platform.authority-admission
+    statement: The external AI host consumes .nimi/spec/** authority and deterministic gate verdicts when deciding completion without overriding them or delegating its next execution step to nimi-coding.
+    condition: Whenever the external AI host evaluates continuation, completion, or blockage.
+    failure: Withhold the host verdict until authority and gate results are honored without transferring workflow ownership.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.external-host-workflow
+  - id: rule.nimi.platform.authority-admission.p-pkg-011-ceiling
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PKG-011 nimi-coding admission ceiling
+    modality: must
+    scope:
+      - platform.authority-admission
+    statement: The Nimi host admits nimi-coding only for structured specification and methodology semantics, deterministic validation, generation and gate commands, and evidence contracts or projections, with support configuration serving only as non-authoritative input to those roles.
+    condition: Whenever a nimi-coding package surface is admitted or consumed.
+    failure: Reject any package role outside the admission ceiling.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.host-package-projection
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.package-authority
+  - id: rule.nimi.platform.authority-admission.p-pkg-011-hardcut
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PKG-011 repository workflow hardcut
+    modality: must_not
+    scope:
+      - platform.authority-admission
+    statement: The Nimi host requires, generates, routes, or mirrors nimi-coding-owned topic lifecycle, wave or packet execution DAGs, run ledgers, execution cursors, package completion state, goal bridges, automatic continuation, package resume loops, or nested external-AI-host launches.
+    condition: Whenever nimi-coding integrates with repository-work orchestration.
+    failure: Reject the integration and ensure any package-resident workflow surface cannot affect host execution, verdicts, or completion.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.external-host-workflow
+  - id: rule.nimi.platform.authority-admission.p-pkg-011-product-exclusion
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: P-PKG-011 product workflows remain outside the repository hardcut
+    modality: must_not
+    scope:
+      - platform.authority-admission
+    statement: The repository-work hardcut renames, retires, or constrains Runtime K-WF product workflows, Nimi App product or developer workflows, Nimi2D Image2 pipelines, or domain-native motion and scenario semantics.
+    condition: Whenever the repository-work hardcut is applied.
+    failure: Reject the overreach and preserve the owner-domain product semantics.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.external-host-workflow
+  - id: rule.nimi.platform.authority-admission.package-authority-admissions-matrix
+    kind: rule
+    owner: team.platform
+    lifecycle: active
+    title: package-authority-admissions nimi-coding boundary
+    modality: must
+    scope:
+      - platform.authority-admission
+    statement: The nimi-coding admission resolves reusable package semantics from package://@nimiplatform/nimi-coding/spec, limits host projections to .nimi/config, .nimi/contracts, and .nimi/methodology, and cannot override canonical Nimi owner domains.
+    condition: Whenever the Nimi host consumes admitted nimi-coding semantics.
+    failure: Reject a different package root, host projection family, or owner-domain override.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.host-package-projection
+      - type: applies_to
+        target: definition.nimi.platform.authority-admission.package-authority

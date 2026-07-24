@@ -256,7 +256,7 @@ ai_governance:
       - docs/**
       - .local/**
       - .github/workflows/release.yml
-      - .nimi/spec/platform/kernel/tables/nimi-ui-tokens.yaml
+      - config/platform-nimi-ui-tokens.yaml
       - runtime/catalog/source/providers/dashscope.source.yaml
       - "**/generated/**"
       - "**/gen/**"

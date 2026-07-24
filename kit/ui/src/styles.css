@@ -114,7 +114,7 @@ button:not(:disabled),
  * component code via Tailwind arbitrary values and React inline styles.
  * Hand-authored rule bodies in this file must not target class names
  * declared as slots or class_groups in
- * `.nimi/spec/platform/kernel/tables/nimi-ui-primitives.yaml` — that is
+ * `config/platform-nimi-ui-primitives.yaml` — that is
  * the existing convention (see `Surface` using `bg-[var(--nimi-surface-card)]`
  * rather than `.nimi-surface--card`) and is enforced by
  * `pnpm check:nimi-ui-pattern`.
