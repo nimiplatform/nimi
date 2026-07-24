@@ -36,6 +36,8 @@
       "^Google$",
       "^Google login$",
       "^Nimi$",
+    "^Nimi Desktop$",
+    "^new Promise\\b",
       "^(mp3|wav|ogg|pcm|auto|base64|url)$",
       "^/absolute/path/to/nimi_data$"
     ]

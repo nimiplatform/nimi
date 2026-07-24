@@ -67,9 +67,6 @@ Owner bucket vocabulary:
 | `desktop_avatar_launch_handoff` | `desktop-product` | `runtime-bridge/chat-agent-avatar-launcher.ts` | Launches Desktop avatar process/window handoff. | None admitted. |
 | `desktop_avatar_close_handoff` | `desktop-product` | `runtime-bridge/chat-agent-avatar-launcher.ts` | Closes Desktop avatar process/window handoff. | None admitted. |
 | `desktop_avatar_instance_registry_list` | `desktop-product` | `runtime-bridge/chat-agent-avatar-instance-registry.ts` | Lists Desktop avatar instance registry projection. | None admitted. |
-| `desktop_macos_smoke_context_get` | `desktop-acceptance-instrumentation` | `runtime-bridge/macos-smoke.ts`, `runtime-parsers.ts` | Fixture-gated macOS smoke context read. | Remove only after equivalent real shell acceptance runner exists. |
-| `desktop_macos_smoke_report_write` | `desktop-acceptance-instrumentation` | `runtime-bridge/macos-smoke.ts`, `runtime-parsers.ts` | Fixture-gated macOS smoke report writer. | Remove only after equivalent real shell acceptance runner exists. |
-| `desktop_macos_smoke_ping` | `desktop-acceptance-instrumentation` | `runtime-bridge/macos-smoke.ts`, `main.tsx` | Fixture-gated macOS smoke backend stage ping. | Remove only after equivalent real shell acceptance runner exists. |
 | `menu_bar_sync_runtime_health` | `desktop-product` | `runtime-bridge/menu-bar.ts` | Synchronizes Desktop menu-bar runtime health projection. | None admitted. |
 | `menu_bar_complete_quit` | `desktop-product` | `runtime-bridge/menu-bar.ts` | Completes Desktop menu-bar quit lifecycle. | None admitted. |
 | `chat_ai_list_threads` | `future-redesign-retained` | `runtime-bridge/chat-ai-store.ts` | Retained Desktop local SQLite chat thread list. | Pending decision: admitted Desktop local truth or runtime ownership. |
