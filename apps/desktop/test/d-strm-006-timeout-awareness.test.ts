@@ -15,7 +15,7 @@ import {
 
 const SPEC_TIMEOUTS_PATH = resolve(
   import.meta.dirname,
-  '../../../.nimi/spec/runtime/kernel/tables/ai-timeout-defaults.yaml',
+  '../../../config/runtime-ai-timeout-defaults.yaml',
 );
 const RETIRED_HOST_CAPABILITIES_PATH = resolve(
   import.meta.dirname,

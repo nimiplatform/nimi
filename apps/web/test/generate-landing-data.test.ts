@@ -7,11 +7,11 @@ import { parse as parseYaml } from 'yaml';
 test('landing data generator treats local as an admitted capabilities-only provider', () => {
   const appRoot = new URL('..', import.meta.url);
   const providerCatalog = parseYaml(
-    readFileSync(new URL('../../.nimi/spec/runtime/kernel/tables/provider-catalog.yaml', appRoot), 'utf8'),
+    readFileSync(new URL('../../config/runtime-provider-catalog.yaml', appRoot), 'utf8'),
   );
   const providerCapabilitiesSource = parseYaml(
     readFileSync(
-      new URL('../../.nimi/spec/runtime/kernel/tables/provider-capabilities.yaml', appRoot),
+      new URL('../../config/runtime-provider-capabilities.yaml', appRoot),
       'utf8',
     ),
   );
@@ -44,7 +44,7 @@ test('landing data generator treats local as an admitted capabilities-only provi
   );
   assert.match(
     providerCapabilities,
-    /\*   \.nimi\/spec\/runtime\/kernel\/tables\/provider-capabilities\.yaml/,
+    /\*   config\/runtime-provider-capabilities\.yaml/,
   );
   assert.doesNotMatch(providerCapabilities, /[A-Za-z]:\\/);
 });

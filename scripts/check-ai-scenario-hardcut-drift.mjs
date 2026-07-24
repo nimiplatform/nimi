@@ -48,12 +48,7 @@ const allowLineMatch = [
   },
   {
     key: 'stream_generate',
-    rel: '.nimi/spec/runtime/kernel/rpc-surface.md',
-    allow: (line) => line.includes('StreamGenerateText'),
-  },
-  {
-    key: 'stream_generate',
-    rel: 'scripts/check-runtime-spec-kernel-consistency.mjs',
+    rel: 'docs/authority/runtime-protected-session-rationale.md',
     allow: (line) => line.includes('StreamGenerateText'),
   },
 ];
@@ -95,7 +90,7 @@ function walk(absPath, out) {
 }
 
 function isRpcSurfaceForbiddenNameListLine(rel, lines, lineIndex) {
-  if (rel !== '.nimi/spec/runtime/kernel/rpc-surface.md') {
+  if (rel !== 'docs/authority/runtime-protected-session-rationale.md') {
     return false;
   }
   const line = String(lines[lineIndex] || '');
@@ -174,3 +169,4 @@ if (failures.length > 0) {
 }
 
 process.stdout.write(`AI scenario hard-cut drift check passed (${files.length} file(s) scanned)\n`);
+

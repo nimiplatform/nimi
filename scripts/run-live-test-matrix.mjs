@@ -26,7 +26,7 @@ const runtimeLiveSmokeFile = path.join(
 );
 const providerCatalogFile = path.join(
   repoRoot,
-  '.nimi/spec/runtime/kernel/tables/provider-catalog.yaml',
+  'config/runtime-provider-catalog.yaml',
 );
 const reportDir = path.join(repoRoot, '.local', 'report');
 const reportPath = path.join(reportDir, 'live-test-coverage.yaml');

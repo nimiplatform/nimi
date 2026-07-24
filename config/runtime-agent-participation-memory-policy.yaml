@@ -1,0 +1,55 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/runtime/agent-participation.authority.yaml
+# Rationale: docs/authority/runtime-agent-participation-rationale.md
+version: 1
+table_family: owner_matrix
+owner: runtime
+matrix_id: runtime_agent_participation_memory_policy
+rows:
+  - canonical_agent_chat
+  - realm_group_source
+  - scenario_sandbox
+  - oasis_world_participation
+  - external_agent_entry
+  - debug_or_probe
+  - source_rule
+  - non_canonical_default
+  - default_write_without_promotion
+  - implementation_admission
+source_rule: K-AGCORE-084
+memory_write_defaults:
+  - profile: canonical_agent_chat
+    source_rule: K-AGCORE-075
+    memory_write_default: CANONICAL_WRITE_ALLOWED
+    cognition_commit_default: existing_canonical_policy
+    canonical_chat_commit_default: existing_canonical_policy
+  - profile: realm_group_source
+    source_rule: K-AGCORE-076
+    memory_write_default: WRITE_NONE
+    cognition_commit_default: forbid
+    canonical_chat_commit_default: forbid
+  - profile: scenario_sandbox
+    source_rule: K-AGCORE-077
+    memory_write_default: WRITE_NONE
+    cognition_commit_default: forbid
+    canonical_chat_commit_default: forbid
+  - profile: oasis_world_participation
+    source_rule: K-AGCORE-078
+    memory_write_default: WRITE_NONE
+    cognition_commit_default: forbid
+    canonical_chat_commit_default: forbid
+  - profile: external_agent_entry
+    source_rule: K-AGCORE-079
+    memory_write_default: WRITE_NONE
+    cognition_commit_default: forbid
+    canonical_chat_commit_default: forbid
+  - profile: debug_or_probe
+    source_rule: K-AGCORE-080
+    memory_write_default: WRITE_NONE
+    cognition_commit_default: forbid
+    canonical_chat_commit_default: forbid
+promotion_posture:
+  source_rule: K-AGCORE-072
+  non_canonical_default: explicit_candidate
+  default_write_without_promotion: forbidden
+  implementation_admission: promotion-boundary

@@ -10,7 +10,7 @@ export const MODES = Object.freeze([
 ]);
 
 export const AUTHORITY_PATHS = Object.freeze({
-  contract: '.nimi/spec/runtime/kernel/protected-local-session-contract.md',
+  contract: 'docs/authority/runtime-protected-session-rationale.md',
   osProfiles: '.nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml',
   runtimePrincipals: '.nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml',
   custodyProfiles: '.nimi/spec/runtime/kernel/tables/protected-local-custody-profiles.yaml',
@@ -23,7 +23,7 @@ export const AUTHORITY_PATHS = Object.freeze({
   identityPosture: '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml',
   localPosture: '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/local-connector-model.yaml',
   artifactPosture: '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/audit-artifact-workflow.yaml',
-  rpcMethods: '.nimi/spec/runtime/kernel/tables/rpc-methods.yaml',
+  rpcMethods: 'config/runtime-rpc-methods.yaml',
   trust: '.nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml',
   sdkGroups: '.nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml',
 });
@@ -799,3 +799,4 @@ export function runNegativeFixtures(baseline, fixtures) {
     };
   });
 }
+

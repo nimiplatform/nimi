@@ -26,8 +26,8 @@ import {
 
 const cwd = process.cwd();
 const catalogRel = '.nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml';
-const providerCapsRel = '.nimi/spec/runtime/kernel/tables/provider-capabilities.yaml';
-const localAdapterRel = '.nimi/spec/runtime/kernel/tables/local-adapter-routing.yaml';
+const providerCapsRel = 'config/runtime-provider-capabilities.yaml';
+const localAdapterRel = 'config/runtime-local-adapter-routing.yaml';
 const generatedRel = 'kit/core/src/runtime-capabilities/generated/canonical-capability-catalog.ts';
 
 const violations = [];

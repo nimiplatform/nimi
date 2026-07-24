@@ -1,0 +1,942 @@
+format: nimicoding.authority/v1
+units:
+  - id: definition.nimi.runtime.model-catalog.catalog-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime model catalog plane
+    meaning: The Runtime model catalog plane owns provider-scoped snapshot and source truth for models, voices, pricing, capabilities, and activation, together with catalog resolution order, overlay merge semantics, and lookup fail-close behavior for every catalog consumer.
+    relations: []
+  - id: definition.nimi.runtime.model-catalog.local-resolver-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime local resolver plane
+    meaning: The Runtime local resolver plane owns the local-plane catalog row schema, installable variant and companion identity, curated install-level presets, and the deterministic resolution of install level and host posture into per-slot installable assets with typed fail-close outcomes.
+    relations: []
+  - id: definition.nimi.runtime.model-catalog.provider-metadata-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime provider metadata plane
+    meaning: The Runtime provider metadata plane owns the merged source-provider schema, the source runtime metadata block and its one-way projections into registries and tables, reviewed selection and option metadata, and the boundary between source providers and runtime infrastructure providers.
+    relations: []
+  - id: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime voice-workflow catalog plane
+    meaning: The Runtime voice-workflow catalog plane owns synthesis voice blocks, voice workflow model declarations, workflow-to-synthesis binding matrices, voice handle policies, language profiles, video capability blocks, and the family-scoped catalog admission truth for local speech.
+    relations: []
+  - id: definition.nimi.runtime.model-catalog.voice-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime voice plane
+    meaning: The Runtime voice plane owns voice creation scenario execution, the VoiceReference and VoiceAsset public contracts, voice discovery channels, tenant and target binding guarantees, agent voice output policy, voice streaming and interruption truth, and the third-party voice transport boundary.
+    relations: []
+  - id: definition.nimi.runtime.model-catalog.workflow-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime workflow plane
+    meaning: The Runtime workflow plane owns workflow DAG definitions, the closed node and state registries, the workflow event stream protocol, execution and resume modes, node tracking and retry fields, and cancellation semantics for AI-orchestrating workflows.
+    relations: []
+  - id: rule.nimi.runtime.model-catalog.r001
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Catalog snapshot and source layout is fixed
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Runtime loads built-in model catalog defaults only from the provider-scoped snapshot files under runtime/catalog/providers, source-provider authoring truth lives only under runtime/catalog/source/providers as one provider source file or one provider directory of merged fragments, and projected registry or spec tables derive from that source without ever serving as the runtime load source or reverse-owning endpoint, default-model, or capability truth.
+    condition: Whenever Runtime or tooling loads, projects, or edits model catalog truth.
+    failure: Reject catalog loads or projections from any surface outside the declared snapshot and source layout.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r002
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Snapshot provider schema is fixed
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Every provider snapshot document declares version, provider, catalog_version, and inventory_mode limited to static_source or dynamic_endpoint, models rows are omitted only by dynamic_endpoint providers that carry provider-level dynamic inventory metadata instead, each models row carries provider, model_id, model_type, updated_at, capabilities, pricing, and source_ref, and voices rows are present whenever TTS-capable models exist with each row carrying voice_set_id, provider, voice_id, name, langs, model_ids, and source_ref.
+    condition: Whenever a provider snapshot document is authored, generated, or loaded.
+    failure: Reject snapshot documents missing required fields or using an undeclared inventory mode.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r003
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Capability-conditional row fields are exact
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: A remote static_source text.generate row carries a positive context_window_tokens from a source model override or the reviewed conservative provider floor while non-text rows never carry it, audio.synthesize rows carry voice_set_id, video.generate rows carry video_generation, image.generate rows carry image_request_options once image route metadata is admitted, and embedding with a positive dimension appears only on a text.embed row with one admitted output dimension where it is the catalog authority for the runtime memory embedding profile dimension while variable-dimension models omit it and embedding-profile resolution fails closed instead of fabricating a dimension.
+    condition: Whenever capability-conditional snapshot row fields are authored or validated.
+    failure: Reject rows whose capability-conditional fields are missing, misplaced, or fabricated.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r004
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Pricing entries are normalized
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: pricing uses only the metering units token, char, second, and request with values priced per one million tokens, per one million characters, per sixty seconds, and per single request respectively, every entry carries input, output, currency, as_of, and notes, unknown pricing appears only as the literal string unknown, and local rows with currency none set input and output to the literal string 0.
+    condition: Whenever a catalog pricing entry is authored or validated.
+    failure: Reject pricing entries with undeclared units, missing fields, or unknown values outside the literal form.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r005
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Catalog entries are source traceable
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Every model and voice entry carries a source_ref with the authoritative provider documentation URL and a retrieved_at date.
+    condition: Whenever a model or voice catalog entry is authored or validated.
+    failure: Reject entries without traceable source references.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r006
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Catalog resolution order is closed
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Runtime catalog resolution consults the required built-in snapshot first and the optional local custom provider directory second, no remote metadata cache or refresh path exists as a non-scenario catalog source, and the dynamic connector discovery cache for dynamic_endpoint providers stays a runtime execution cache that never becomes a second catalog truth source.
+    condition: Whenever Runtime resolves model catalog truth.
+    failure: Reject catalog reads from undeclared sources and discovery caches claiming catalog authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r007
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Custom catalog overrides stay local and safe
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Custom catalog overrides are local files only that never fetch provider metadata from remote discovery endpoints, pass parse validation before activation, fall back to the last-known-good built-in snapshot on invalid input, and introduce no startup dependency on mutable external metadata.
+    condition: Whenever a custom catalog override is ingested or activated.
+    failure: Reject the override and keep serving the last-known-good built-in snapshot.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r008
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Overlay merge is model grained and user isolated
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Custom catalog overlays persist as provider-scoped local fragments merged at model granularity where effective provider state is the built-in document plus overlay upserts, an overlay entry with the same model_id overrides the built-in entry, built-in models unmentioned by overlays remain visible and continue receiving built-in upgrades, and user-created models and overrides stay isolated to the requesting subject user without mutating other users' effective catalogs.
+    condition: Whenever catalog overlays are stored or merged into effective provider state.
+    failure: Reject full-snapshot overlays, lost built-in rows, and cross-user overlay leakage.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r009
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Desktop consumes runtime catalog truth
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Desktop catalog browsing and editing consume runtime model catalog truth resolved from the provider snapshots plus overlay merge semantics, include providers that exist only in runtime catalog truth such as local, and never treat the projected remote-provider table as the catalog page truth source.
+    condition: Whenever Desktop renders or edits the model catalog.
+    failure: Reject desktop catalog surfaces built on projected tables or a second catalog truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r010
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Catalog lookups fail closed
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: An unknown model returns AI_MODEL_NOT_FOUND, an unsupported voice returns AI_MEDIA_OPTION_UNSUPPORTED, and no catalog lookup silently falls back to legacy hardcoded voice or model lists.
+    condition: Whenever a catalog model or voice lookup fails.
+    failure: Return the exact typed failure without hardcoded fallback rows.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r011
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Capability vocabulary is canonical and closed
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Source, snapshot, registry, resolver, scenario guard, and live-provider checks use only the canonical capability tokens text.generate, text.generate.vision, text.generate.audio, text.generate.video, text.embed, image.generate, image.edit, video.generate, world.generate, audio.synthesize, audio.transcribe, music.generate, music.generate.iteration, voice_workflow.voice_clone, and voice_workflow.voice_design, retired tokens including chat, embedding, image, tts, stt, video_generation, and the speech-prefixed, voice-dotted, and llm-prefixed families are invalid on those surfaces, and local legacy tokens convert through the capability vocabulary mapping before entering any semantic surface.
+    condition: Whenever a capability token is declared or consumed on a catalog semantic surface.
+    failure: Reject undeclared or retired capability tokens at validation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r012
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Activation requires a wired adapter
+    modality: must_not
+    scope:
+      - runtime.model-catalog
+    statement: A catalog source marks a capability or workflow binding active without a wired runtime adapter, declares an unimplemented provider, capability, or workflow, or lets runtime availability diverge from the declared source and snapshot activation surface.
+    condition: Whenever catalog activation state is declared or consumed for routing.
+    failure: Deny activation and routing for unwired declarations.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r013
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Source schema v3 structure is fixed
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: A merged source-provider entry uses schema v3 whose core structure is runtime, models, language_profiles, and sources plus optional voice_sets, voice_workflow_models, and model_workflow_bindings, runtime.inventory_mode is required with values static_source or dynamic_endpoint, dynamic_endpoint requires runtime.dynamic_inventory, and dynamic_endpoint entries may omit models, selection_profiles, and the default text model.
+    condition: Whenever a source-provider entry is merged or validated.
+    failure: Reject source entries outside the v3 structure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.provider-metadata-plane
+  - id: rule.nimi.runtime.model-catalog.r014
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Context window floors are reviewed source truth
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: A static_source remote source whose models declare text.generate declares a positive provider-default context_window_tokens or a positive per-row override, the value is the reviewed conservative request-capacity floor rather than a guessed general default, the model row override takes precedence over the provider default, and alias expansion inherits the canonical model's exact value.
+    condition: Whenever source context window capacity is declared or expanded.
+    failure: Fail closed in generation and freshness gating when the floor is missing or inconsistent.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.provider-metadata-plane
+  - id: rule.nimi.runtime.model-catalog.r015
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime metadata projects one way from source
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Non-scenario provider metadata lives in the merged source runtime block with at least runtime_plane, managed_connector_supported, inline_supported, default_endpoint, requires_explicit_endpoint, and inventory_mode, dynamic_endpoint sources also declare dynamic_inventory with at least discovery_transport, cache_ttl_sec, selection_mode, and failure_policy, and the generated provider registry and projected provider tables derive one way from that source metadata without any table reverse-owning endpoint or default-model truth.
+    condition: Whenever provider runtime metadata is declared, generated, or consumed.
+    failure: Reject projections that bypass or reverse the source metadata ownership.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.provider-metadata-plane
+  - id: rule.nimi.runtime.model-catalog.r016
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Reviewed text defaults are singular
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: For static_source providers declaring a general text selection profile the reviewed profile owns text default truth while snapshot and registry default_text_model remain equal-valued compatibility projections whose mismatch fails generation and freshness gating closed, and for dynamic_endpoint providers default_text_model and selection_profiles are not machine fallback truth so a missing configured default combined with a missing live selection fails closed with an actionable hint.
+    condition: Whenever a provider text default is declared, projected, or resolved.
+    failure: Fail closed on default mismatch or missing dynamic default instead of guessing a model.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.provider-metadata-plane
+  - id: rule.nimi.runtime.model-catalog.r017
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Infra providers cannot pose as sources
+    modality: must_not
+    scope:
+      - runtime.model-catalog
+    statement: The runtime infrastructure providers nimillm, openai_compatible, and volcengine_openspeech appear as source-provider capability declarations instead of remaining registry and routing layer identities.
+    condition: Whenever provider identities are declared in catalog source.
+    failure: Reject infra-provider entries at source validation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.provider-metadata-plane
+  - id: rule.nimi.runtime.model-catalog.r018
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Reviewed selection and option metadata are placed exactly
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: selection_profiles are source-authored and reviewed with reviewed_at and freshness_sla_days and reference only same-provider models with matching capability, voice request options appear only on audio.synthesize models, transcription metadata only on audio.transcribe models, embedding metadata only on text.embed models carrying only model-inherent dimension facts, and image_request_options only on image.generate models expressing response_formats, max_images_per_request, supports_negative_prompt, supports_reference_images, supports_mask, supports_seed, supports_size, supports_aspect_ratio, supports_quality, and supports_style as the sole image request metadata source for route description.
+    condition: Whenever reviewed selection or option metadata is authored or consumed.
+    failure: Reject unreviewed, misplaced, or reverse-derived selection and option metadata.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.provider-metadata-plane
+  - id: rule.nimi.runtime.model-catalog.r019
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Synthesis rows declare the voice block
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Every audio.synthesize model row declares a voice capability block with discovery_mode limited to static_catalog, dynamic_user_scoped, or mixed, supports_voice_ref_kinds, voice_set_ref whenever discovery includes the static catalog channel, and langs_ref.
+    condition: Whenever a synthesis-capable catalog row is authored or validated.
+    failure: Reject synthesis rows without a complete voice block.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r020
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Workflow models are declared explicitly
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: voice_workflow_models declare workflow_model_id, workflow_type limited to voice_clone or voice_design, input_contract_ref, output_persistence, target_model_refs, and langs_ref, and a declared request-options provider extension carries only extension namespace and schema identity for metadata projection.
+    condition: Whenever a voice workflow model is declared in catalog source.
+    failure: Reject workflow model declarations with missing fields or transport-bearing extension truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r021
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Workflow binding matrix is explicit
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: model_workflow_bindings declare the workflow-to-synthesis compatibility matrix as the single binding truth, implicit provider-side compatibility does not exist, whether a workflow family requires a target synthesis binding is expressed only by binding truth, resolve, describe, and health checking consume the matrix whenever it requires a target synthesis model, and cross-plane local and cloud reuse holds only when explicitly declared by authority.
+    condition: Whenever workflow-to-synthesis compatibility is declared or consumed.
+    failure: Reject implicit, guessed, or cross-plane compatibility outside the declared matrix.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r022
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Desktop speech bundle is a projection
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: A Desktop local speech bundle projection reads only runtime catalog truth and runtime-owned asset and service truth, mints no second bundle catalog, bundle row, or generic local speech marketplace truth, never flattens the qwen3_asr and qwen3_tts family lines into one canonical install row, keeps its admitted scope fixed to baseline local speech, and never rewrites the catalog into an install truth owner from Desktop or shell helpers.
+    condition: Whenever Desktop projects admitted local speech rows as a user-facing bundle.
+    failure: Reject second bundle truths and flattened or rewritten catalog rows.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r023
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Language profiles are dual track
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Source language configuration supports region codes and short codes as parallel tracks whose coexistence never triggers automatic mapping, and any mapping policy is declared explicitly.
+    condition: Whenever source language profiles are declared or mapped.
+    failure: Reject implicit region-to-short-code mapping.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r024
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: ElevenLabs source profile minimum is fixed
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: The ElevenLabs source uses schema v3 and declares synthesize-capable models whose provider-global preset voices enumerate through the static catalog channel with voice_set_ref, a voice clone workflow model mapped to the provider voices-add endpoint, a voice design workflow model mapped to the provider preview-then-create flow, an explicit workflow binding matrix, and voice handle policies defaulting to provider_persistent persistence with user_scoped scope.
+    condition: Whenever the ElevenLabs source entry is authored or validated.
+    failure: Reject ElevenLabs source entries missing the minimum profile.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r025
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Dynamic user voices stay out of snapshots
+    modality: must_not
+    scope:
+      - runtime.model-catalog
+    statement: A flattened snapshot for a provider whose voice discovery mode includes dynamic_user_scoped enumerates the provider's dynamic user voices beyond a minimal placeholder entry, or replaces runtime ListVoiceAssets discovery as the source of real custom voices.
+    condition: Whenever a dynamic user-scoped voice snapshot is generated.
+    failure: Reject snapshots enumerating dynamic user voices beyond the minimal placeholder.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r026
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Video capability blocks are complete
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Every video.generate model declares a video_generation block containing modes, input_roles, limits, options, and outputs, the minimum mode set is t2v, i2v_first_frame, i2v_first_last, and i2v_reference, input_roles model the per-mode allowed canonical role sets consumed together with the mode-level minimum role constraints so every requested role belongs to the mode's allowed set, count caps come only from limits rather than role existence, and outputs declare video_url and last_frame_url availability explicitly.
+    condition: Whenever a video capability block is authored or validated.
+    failure: Reject incomplete video blocks and role or output truth inferred from provider documentation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r027
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Video-only providers need no voices
+    modality: must_not
+    scope:
+      - runtime.model-catalog
+    statement: A provider without audio.synthesize is required to define voice_set_id or voices rows, or the runtime loader and consistency gates reject its catalog for the missing voice mapping.
+    condition: Whenever a video-only provider catalog is loaded or gated.
+    failure: The voice requirement is invalid and the voice-free catalog loads.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r028
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Transcription declarations are reviewed and honest
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: audio.transcribe is declared only on source providers with a completed runtime review and a real execution path, unreviewed providers fail closed without infra-provider semantics implying support, the local provider declares workflow models, bindings, handle policies, and workflow capability truth only within the admitted family boundary rather than a generic green state, local speech rows expose ready only after the admitted plain-speech proof holds with capabilities matching admitted capability truth, and non-ready or placeholder rows are never promoted to capability success by route or model health.
+    condition: Whenever transcription or local workflow capability is declared or projected from catalog truth.
+    failure: Fail closed on unreviewed, unadmitted, or placeholder-backed capability declarations.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r029
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Workflow handle policies gate activation
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: A source provider or family whose voice workflow can produce reusable handle or asset truth declares voice handle policies answering persistence, scope, default_ttl, delete_semantics, and runtime_reconciliation_required with values drawn from the runtime voice enum registry, and a workflow-capable provider or family without a declared handle policy is never marked active or admitted.
+    condition: Whenever a workflow-capable provider or family is declared or admitted.
+    failure: Deny activation and admission until the handle policy is declared.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r030
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Baseline local speech freeze is lane exact
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: The baseline local speech freeze fixes Qwen3-ASR-0.6B as the default STT lane with Qwen3-ASR-1.7B deferred until an independent premium admission, Qwen3-TTS-12Hz-0.6B-CustomVoice as the plain synthesis lane, Qwen3-TTS-12Hz-0.6B-Base as the clone workflow lane, and Qwen3-TTS-12Hz-1.7B-VoiceDesign as the design workflow lane, source and binding truth express these subroles explicitly rather than one ambiguous bucket, install truth keeps the Qwen3-TTS and Qwen3-ASR lines as split environment topologies, the freeze is a baseline admitted default mapping rather than a generic family coverage rule, and cloud plain TTS migration follows only from separate reviewed default truth.
+    condition: Whenever baseline local speech catalog, binding, or install truth is declared.
+    failure: Reject fuzzy buckets, implicit family generalization, and merged environment topology.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r031
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Local rows carry the local-plane block
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Every local runtime-plane models row carries a local-plane block whose install facts declare repo, revision, install_kind limited to binary, weights, or verified-hf-multi-file, entry, artifact_roles, and preferred_engine limited to llama, media, speech, or sidecar, whose variants list one or more installable quantization variants each declaring variant_id, quant, files, per-file sha256 hashes, total_size_bytes, and host_requirement with accelerator limited to cpu, metal, or cuda, min_ram_bytes, and min_vram_bytes for non-cpu accelerators, whose optional per-variant entry defaults to the single file for single-file variants and to the install entry for multi-file bundles, and whose fitness declares param_count and context_length, while row capabilities use only canonical tokens and the block covers every first-run capability tier without schema forks.
+    condition: Whenever a local-plane catalog row is authored or validated.
+    failure: Reject local rows missing block structure, integrity material, or canonical capabilities.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.local-resolver-plane
+  - id: rule.nimi.runtime.model-catalog.r032
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Variants are the installable identity
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: The variant_id is the installable identity consumed as the asset_id of model asset dependencies and verified installs, two quantization variants and accelerator-specific rows of one quant are distinct installable assets under the same schema, verified-row host fitness consumes each variant's host_requirement as exact input rather than filename or size inference, and any variant missing complete integrity hashes fails closed.
+    condition: Whenever local variant identity or fitness is resolved.
+    failure: Fail closed on missing integrity material and reject inferred fitness or collapsed variant identity.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.local-resolver-plane
+  - id: rule.nimi.runtime.model-catalog.r033
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Companions are parent-bound passive assets
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: A companions list appears only on rows whose engine needs it, each companion is a parent-bound passive asset inline under its row declaring companion_kind from the passive-kind enumeration, engine_slot as an engine injection role rather than occurrence identity, an optional occurrence_policy of single, repeatable_ordered, or forbidden, and install and variants isomorphic to the main model, companions carry no capabilities or fitness, a resolved companion variant becomes a companion-asset dependency keyed by its parent row's resolved asset identity even when files are physically shared, and ordered occurrence identity belongs to profile descriptors so catalog rows never collapse repeated companion use into an unordered slot-to-asset map.
+    condition: Whenever companion assets are declared or resolved from catalog rows.
+    failure: Reject shared-row companions, active companion semantics, and unordered occurrence collapse.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.local-resolver-plane
+  - id: rule.nimi.runtime.model-catalog.r034
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Presets bind install levels to curated slots
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: A local runtime-plane source carries a presets section whose only install level keys are minimal and recommended aligned with the first-run install levels, each level is one single fixed curated model set whose cross-machine scaling comes from variant selection rather than additional presets, each slot's model_ref resolves to an admitted same-provider row whose capabilities contain the slot capability, each preset capability set is a consistent subset of its bound factory profile capability set, required slots enter the readiness gate while host-conditional slots may be omitted on unfit hosts, text.embed is never a preset slot at any install level, the presets section exists only in runtime catalog source rather than the factory profile catalog, and slots for unwired capabilities or variants are never marked activatable required slots.
+    condition: Whenever local presets are authored, validated, or consumed.
+    failure: Reject unknown levels, unresolvable slots, embedding slots, and preset truth outside catalog source.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.local-resolver-plane
+  - id: rule.nimi.runtime.model-catalog.r035
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Local resolution is deterministic and single
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Runtime resolves an install level and host posture into per-slot installable bindings through one deterministic resolver whose output for identical install level, host posture, and catalog version is identical, that consumes only the runtime-collected local device profile without reprobing hardware, that serves first-run, first-party-app, and scope-bound-apply callers alike, and whose readiness activation and materialization seams both consume the same resolved model set with each slot projecting slot, capability, asset_id, and variant_id where asset_id is the variant identity.
+    condition: Whenever an install level is resolved into concrete local assets.
+    failure: Reject parallel resolver logic, hardware reprobing, and divergent per-seam resolutions.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.local-resolver-plane
+  - id: rule.nimi.runtime.model-catalog.r036
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Variant selection is tiered and rank ordered
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: For each preset slot the resolver evaluates every variant's eligibility from host accelerator availability and estimated footprint against the fixed tier thresholds of recommended within seventy percent, runnable within eighty-five percent, and tight within one hundred percent of the host budget, selects the highest quant rank among variants reaching at least runnable using the fixed catalog order of F16 over Q8_0 over Q6_K over Q5_K_M over Q4_K_M over Q4_0 over Q3 over Q2 with a stable catalog-defined tie-break, never auto-selects tight or not_recommended variants, reuses the existing local fitness machinery as the variant selector without a second fitness mechanism, lowers confidence with typed reasons on incomplete metadata or device profile instead of silently selecting, and runs the identical algorithm for every companion of the slot extending the slot result with companion bindings.
+    condition: Whenever the resolver selects local variants for a preset slot.
+    failure: Reject silent tight selections, second fitness mechanisms, and companion-specific selection paths.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.local-resolver-plane
+  - id: rule.nimi.runtime.model-catalog.r037
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Resolver outcomes are closed
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: When every required slot is satisfied the resolver returns the resolved model set with omitted host-conditional slots excluded and annotated local_model_resolve_slot_omitted, when any required slot or any of its companions is unsatisfiable at any install level the resolver returns fail-close with local_model_resolve_host_unsupported, an unknown install level fails closed with local_model_resolve_install_level_invalid, and the resolver never substitutes another preset for the user's selected install level.
+    condition: Whenever resolver outcomes are produced.
+    failure: Return the typed outcome without preset substitution or new outcome types.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.local-resolver-plane
+  - id: rule.nimi.runtime.model-catalog.r038
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Resolver failures stay typed and honest
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: The three resolver reason codes are registered in the activation-gate reason-code registry as runtime-owned activation projections that consumers never invent, fail-close outcomes carry their typed reason and project to blocked, repair-required, or unsupported states, no slot is silently satisfied by a tight or not_recommended variant, no placeholder asset identity or pseudo-ready state exists outside a resolved model set, and the resolved variant identity fills the baseline consumer binding so downstream model asset dependency keys are non-empty.
+    condition: Whenever resolver results feed activation, first-run, or materialization consumers.
+    failure: Reject unregistered reasons, placeholder identities, and fabricated readiness.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.local-resolver-plane
+  - id: rule.nimi.runtime.model-catalog.r039
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Voice creation runs on the scenario surface
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Voice clone and voice design execute only as scenario jobs on the runtime AI service whose public voice surface is exactly SubmitScenarioJob, GetScenarioJob, CancelScenarioJob, SubscribeScenarioJobEvents, GetVoiceAsset, ListVoiceAssets, DeleteVoiceAsset, and ListPresetVoices, and no separate public voice service exists.
+    condition: Whenever the public voice surface is defined or consumed.
+    failure: Reject undeclared public voice methods or a parallel voice service.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-plane
+  - id: rule.nimi.runtime.model-catalog.r040
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Provider steps and private parameters stay encapsulated
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: A provider-native multi-step voice creation flow is encapsulated in one scenario job lifecycle exposing only the unified state machine, event stream, and a VoiceAsset plus VoiceReference result without leaking internal provider steps as public RPCs, and provider-private parameters travel only through namespaced scenario extensions constrained by the extension registry rather than free passthrough.
+    condition: Whenever a voice creation workflow executes against a provider.
+    failure: Reject leaked provider steps and unregistered extension passthrough.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-plane
+  - id: rule.nimi.runtime.model-catalog.r041
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Voice references use closed kinds
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: A VoiceReference admits exactly the reference kinds preset_voice_id, voice_asset_id, and provider_voice_ref drawn from the runtime voice enum registry, an ordinary profile or SDK surface receiving a bare provider handle or an undiscriminated free-string voice reference fails closed instead of upgrading it to a public binding, provider-returned native handles converge into the VoiceAsset plus VoiceReference public contract, and embedding a VoiceReference in the runtime agent presentation profile transfers no voice workflow, discovery, or asset ownership.
+    condition: Whenever a voice reference is created, bound, or consumed.
+    failure: Fail closed on undiscriminated references and reject provider handles as public identity.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-plane
+  - id: rule.nimi.runtime.model-catalog.r042
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: VoiceAsset shape and identity are fixed
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: A VoiceAsset carries at least voice_asset_id, app_id, subject_user_id, workflow_type, provider, target_ref, voice_asset_target_ref, provider_voice_ref, persistence, and status with persistence and status values from the runtime voice enum registry, its durable identity is voice_asset_id plus voice_asset_target_ref, and residual model identifiers remain guarded non-identity facts.
+    condition: Whenever a VoiceAsset is created, stored, or projected.
+    failure: Reject assets missing required fields or deriving identity from model identifiers.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-plane
+  - id: rule.nimi.runtime.model-catalog.r043
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Profile binding requires durable persistence
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: A VoiceAsset bound by an assistant profile through voice_asset_id holds a durable persistence class and survives pruning of its originating voice workflow job retention, and a session-ephemeral local-generated VoiceAsset is not a profile-bindable durable identity before a durable local substrate is separately admitted so binding it fails closed.
+    condition: Whenever an assistant profile binds a voice asset.
+    failure: Fail closed on non-durable bindings instead of masquerading them as durable.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-plane
+  - id: rule.nimi.runtime.model-catalog.r044
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Voice assets stay tenant scoped
+    modality: must_not
+    scope:
+      - runtime.model-catalog
+    statement: A VoiceAsset read, list, bind, or delete crosses the owning app_id or subject_user_id boundary.
+    condition: Whenever voice assets are accessed.
+    failure: Fail closed without cross-tenant disclosure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-plane
+  - id: rule.nimi.runtime.model-catalog.r045
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Synthesis honors the bound target
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: VoiceAsset creation binds voice_asset_target_ref, and a synthesis request whose target ref mismatches the bound voice_asset_target_ref returns AI_VOICE_TARGET_MODEL_MISMATCH.
+    condition: Whenever a voice asset is created or consumed for synthesis.
+    failure: Return the exact mismatch code instead of executing on an incompatible target.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-plane
+  - id: rule.nimi.runtime.model-catalog.r046
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Discovery channels stay separated
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Preset voices are discovered only through ListPresetVoices serving catalog snapshot or explicit local custom truth, user custom voices only through ListVoiceAssets, the static_catalog, dynamic_user_scoped, and mixed discovery modes map exactly onto those channels with mixed exposing both, and the channels never merge into one mixed listing.
+    condition: Whenever voice discovery is served or consumed.
+    failure: Reject mixed-stream listings and channel responsibilities outside the discovery mode.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-plane
+  - id: rule.nimi.runtime.model-catalog.r047
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Preset metadata stays optional
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: ListPresetVoices supports optional cross-provider metadata extensions such as tags, categories, and preview URLs whose absence keeps fields omissible without rejecting a provider's preset listing.
+    condition: Whenever preset voice metadata is returned.
+    failure: Return the listing with omitted fields instead of rejecting metadata-poor providers.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-plane
+  - id: rule.nimi.runtime.model-catalog.r048
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Voice errors use the typed family
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Voice input, workflow, asset state, permission, and job errors map to the AI_VOICE reason-code family and fail closed.
+    condition: Whenever a voice operation fails.
+    failure: Return the typed voice failure without generic or silent outcomes.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-plane
+  - id: rule.nimi.runtime.model-catalog.r049
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Baseline workflow admission is family scoped
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: The admitted baseline local workflow family stays qwen3_tts with admitted workflow types limited to voice_clone and voice_design, and baseline local generated workflow handles keep persistence session_ephemeral, delete_semantics runtime_authoritative_delete, and runtime_reconciliation_required false without promising a durable local voice asset substrate.
+    condition: Whenever baseline local voice workflow admission or handles are projected.
+    failure: Fail closed on unadmitted families and reject handles promoted to durable truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-plane
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
+  - id: rule.nimi.runtime.model-catalog.r050
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Agent voice policy is runtime owned
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Agent voice output policy lives on Runtime with avatar autoplay persisted per agent only on the runtime agent presentation profile, desktop autoplay fixed false for Desktop agent chat until a Desktop authority admits a user-facing setting, default_voice_reference as the agent-owned reference for ordinary synthesis, the synthesis intent, local or cloud speech route policy, and voice clone and design intent owned by runtime agent AI config, and durable voice artifact retention with user cleanup, while Desktop, Zhiyu, and Avatar render controls and consume projections without deciding provider route, model binding, workflow choice, or whether a committed assistant message has voice semantics, voice identity follows the agent profile rather than avatar assets, avatar instances, or chat surfaces, and hosts never persist autoplay in app-local or kit-local config.
+    condition: Whenever agent voice policy is stored, mutated, or consumed.
+    failure: Reject consumer-owned policy state and route or identity decisions outside Runtime.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-plane
+  - id: rule.nimi.runtime.model-catalog.r051
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Playable projections are policy gated and truthful
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Runtime emits a playable voice projection for an ordinary assistant message only when the effective playback target is admitted by policy and the speech route resolves to playable audio, and a missing TTS model, missing or default voice reference, unhealthy route, provider failure, or unavailable voice workflow completes the agent turn as normal text-only output without fake playback success or synthetic audio bytes unless another hard turn error exists.
+    condition: Whenever an agent turn evaluates voice output.
+    failure: Complete the turn text-only with the real reason instead of fabricated playback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-plane
+  - id: rule.nimi.runtime.model-catalog.r052
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Agent voice has three orthogonal axes
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Agent voice truth separates the transport execution mode, voice_output_mode limited to native_stream, simulated_stream, batch_final_artifact, and text_only from the runtime voice enum registry, and voice_playback_state limited to active, completed, failed, interrupted, and canceled, no axis absorbs another, playback states are never encoded as output modes, consumers read the positive voice_output_mode rather than inferring realtime from event shape, and realtime acceptance requires the positive native_stream value.
+    condition: Whenever agent voice output truth is projected or consumed.
+    failure: Reject axis conflation, inferred realtime acceptance, and playback states as output modes.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-plane
+  - id: rule.nimi.runtime.model-catalog.r053
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Voice streams keep turn identity and admitted transport
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: A voice stream stays bound to the same agent_id, conversation_anchor_id, turn_id, stream_id, and committed message_id as its text turn, transient native chunks flow only through the admitted SubscribeAgentVoiceStream transport consumed by SDK as a typed agent voice stream, raw audio bytes never embed in runtime agent app messages or presentation projection events, exactly one final durable audio artifact persists for replay when a stream completes successfully, and per-chunk durable artifact identities require a separately admitted retention authority before use.
+    condition: Whenever agent voice streams or their artifacts are produced or consumed.
+    failure: Reject identity drift, undeclared transports, inline raw bytes, and per-chunk durable minting.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-plane
+  - id: rule.nimi.runtime.model-catalog.r054
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Interruption is one runtime truth
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: InterruptAgentVoicePlayback targets an active voice stream identity, cancels the provider stream and transient broker, and emits the terminal playback projection with voice_playback_state interrupted while preserving the selected voice_output_mode, runtime cancellation of an active voiced turn cancels the LLM stream, the TTS stream, queued voice chunks, and terminal playback projection as one accepted interruption truth, voice playback interruption stays distinct from chat turn interruption which alone proves nothing about playback, and Avatar interrupt remains a request that never locally synthesizes successful interruption.
+    condition: Whenever agent voice playback is interrupted or a voiced turn is canceled.
+    failure: Reject local-stop-only or turn-event-only interruption claims and partial cancellation truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-plane
+  - id: rule.nimi.runtime.model-catalog.r055
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Voice caches and cleanup stay runtime owned
+    modality: must_not
+    scope:
+      - runtime.model-catalog
+    statement: Avatar owns durable voice cache state, or a Desktop cleanup surface deletes generated voice artifacts through anything but the runtime-owned artifact and voice cleanup surface.
+    condition: Whenever generated voice retention is cached or cleaned by consumers.
+    failure: Reject consumer-owned durable voice caches and out-of-band cleanup.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-plane
+  - id: rule.nimi.runtime.model-catalog.r056
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Third-party voice transport is closed
+    modality: must_not
+    scope:
+      - runtime.model-catalog
+    statement: A Runtime agent voice operation is admitted on the third-party local_app_host transport, a local-app session, manifest declaration, agent identifier, or app-owned command authorizes transcription, voice-stream subscription, generic AI execution, route selection, or provider selection under the reserved agents.interact permission, SubscribeAgentVoiceStream serves consumers beyond its protected or scoped first-party set, or a future third-party voice slice restores fine-grained agent-voice permission strings or a generic Runtime proxy instead of atomically admitting the public permission, typed SDK operation, Runtime owner policy, bounded selector rules, shell carrier projection, revocation behavior, and product UX.
+    condition: Whenever third-party transports or permissions meet agent voice capability.
+    failure: Fail closed on the reserved boundary without partial voice admissions.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-plane
+  - id: rule.nimi.runtime.model-catalog.r057
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Workflow definitions are explicit DAGs
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: A workflow definition declares workflow_type, nodes, and edges where each edge carries from_node_id, from_output, to_node_id, and to_input, nodes declare depends_on prerequisites consumed for topological ordering, submission requires app_id and at least one node in an acyclic graph with timeout_ms as the total workflow timeout, and acceptance returns a ULID task_id with an accepted flag.
+    condition: Whenever a workflow is defined or submitted.
+    failure: Reject cyclic, empty, or unidentified workflow submissions.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.workflow-plane
+  - id: rule.nimi.runtime.model-catalog.r058
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Workflow node registry is closed
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Workflow nodes admit exactly the fifteen registered types spanning the AI nodes AI_GENERATE, AI_STREAM, AI_EMBED, AI_IMAGE, AI_VIDEO, AI_TTS, AI_STT, AI_TTS_CREATE_VOICE, and AI_TTS_SYNTHESIZE, the transform nodes TRANSFORM_EXTRACT, TRANSFORM_TEMPLATE, and TRANSFORM_SCRIPT, and the control nodes CONTROL_BRANCH, CONTROL_MERGE, and CONTROL_NOOP, each node carries its matching typed config through the type_config discriminator whose branch agrees with node_type at runtime validation, and CONTROL_MERGE strategies admit only ALL, ANY, and N_OF_M with min_completed.
+    condition: Whenever workflow nodes are declared or validated.
+    failure: Reject unknown node types, mismatched config branches, and undeclared merge strategies.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.workflow-plane
+  - id: rule.nimi.runtime.model-catalog.r059
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: AI nodes execute through scenarios
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: AI workflow node execution lands on the unified scenario surface with AI_GENERATE and AI_STREAM as TEXT_GENERATE, AI_EMBED as TEXT_EMBED, AI_IMAGE as IMAGE_GENERATE, AI_VIDEO as VIDEO_GENERATE, AI_TTS as SPEECH_SYNTHESIZE, AI_STT as SPEECH_TRANSCRIBE, and AI_TTS_CREATE_VOICE as VOICE_CLONE or VOICE_DESIGN selected by workflow_type, and any compatibility wrapper preserves scenario semantics externally.
+    condition: Whenever an AI workflow node executes.
+    failure: Reject AI node execution that bypasses scenario semantics.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.workflow-plane
+  - id: rule.nimi.runtime.model-catalog.r060
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Workflow states are closed
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Workflow status admits exactly ACCEPTED, QUEUED, RUNNING, COMPLETED, FAILED, CANCELED, and SKIPPED with COMPLETED, FAILED, CANCELED, and SKIPPED as the only terminal states, and node status reuses the same enumeration.
+    condition: Whenever workflow or node status is created, transitioned, or projected.
+    failure: Reject undeclared states or terminal semantics outside the closed set.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.workflow-plane
+  - id: rule.nimi.runtime.model-catalog.r061
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Workflow events carry a fixed protocol
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: SubscribeWorkflowEvents streams events carrying event_type, a monotonically increasing sequence, task_id, trace_id, timestamp, node_id for node-level events, progress_percent from zero to one hundred, reason_code on failure and completion events, and an extension payload, event types admit exactly STARTED, NODE_STARTED, NODE_PROGRESS, NODE_COMPLETED, NODE_SKIPPED, COMPLETED, FAILED, CANCELED, NODE_EXTERNAL_SUBMITTED, NODE_EXTERNAL_RUNNING, NODE_EXTERNAL_COMPLETED, and NODE_EXTERNAL_FAILED, and the NODE_COMPLETED payload of a voice-creating node can carry voice_asset_id for downstream nodes.
+    condition: Whenever workflow events are emitted or consumed.
+    failure: Reject undeclared event types, sequence regressions, or lost voice asset payloads.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.workflow-plane
+  - id: rule.nimi.runtime.model-catalog.r062
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Execution and resume modes are closed
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Node execution modes admit exactly INLINE for in-process synchronous execution and EXTERNAL_ASYNC for delegation through callback_ref whose callback protocol remains unadmitted until separately defined, and external resume strategies admit exactly AUTO continuing automatically on external completion and MANUAL awaiting an explicit trigger.
+    condition: Whenever workflow node execution or resume modes are declared or executed.
+    failure: Reject undeclared modes and callback execution before its protocol is admitted.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.workflow-plane
+  - id: rule.nimi.runtime.model-catalog.r063
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Node tracking and retry fields are fixed
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: Node status tracking carries node_id, status, attempt, reason, provider_job_id, next_poll_at, retry_count, and last_error, and node retry configuration uses retry_max_attempts with zero meaning no retry plus a retry_backoff policy string.
+    condition: Whenever node status or retry configuration is stored or projected.
+    failure: Reject undeclared tracking fields or retry semantics.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.workflow-plane
+  - id: rule.nimi.runtime.model-catalog.r064
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Workflow cancellation is asynchronous and honest
+    modality: must
+    scope:
+      - runtime.model-catalog
+    statement: CancelWorkflow acknowledges only acceptance of the cancellation request, actual cancellation takes effect at the execution engine's next checkpoint, nodes already terminal are not canceled, and completed cancellation emits the CANCELED event.
+    condition: Whenever a workflow cancellation is requested or completed.
+    failure: Reject synchronous-success claims and cancellations of terminal nodes.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.workflow-plane

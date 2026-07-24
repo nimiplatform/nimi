@@ -133,12 +133,12 @@ tracked reader guide is
 [Avatar Kernel Authority Map](../../.nimi/spec/avatar/kernel/index.md).
 
 - [APML wire format](../../.nimi/spec/runtime/kernel/agent-output-wire-contract.md)
-- [Activity ontology](../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md) and [activity ontology table](../../.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml)
+- [Activity ontology](../../.nimi/spec/canonical/runtime/agent-participation.authority.yaml) and [activity ontology table](../../config/runtime-agent-activity-ontology.yaml)
 - [HookIntent and event owner map](../../.nimi/spec/runtime/kernel/agent-hook-intent-contract.md)
-- [Runtime projection stream](../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
+- [Runtime projection stream](../../.nimi/spec/canonical/runtime/agent-participation.authority.yaml)
 - [Conversation anchor](../../.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md)
 - [SDK runtime consume surface](../../.nimi/spec/sdks/kernel/runtime-contract.md)
-- [Presentation Timeline admission boundary](../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
+- [Presentation Timeline admission boundary](../../.nimi/spec/canonical/runtime/agent-participation.authority.yaml)
 
 ## Carrier Notes
 

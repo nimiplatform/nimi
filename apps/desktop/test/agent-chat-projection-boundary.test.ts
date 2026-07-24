@@ -53,7 +53,7 @@ test('Agent Chat spec forbids draft, archive, rename, and offline transcript per
 
 test('Agent Chat store cutover is closed by Runtime and SDK replacement coverage', () => {
   const desktopSpec = readWorkspaceFile('.nimi/spec/canonical/desktop/agent-projection.authority.yaml');
-  const runtimeSpec = readWorkspaceFile('.nimi/spec/runtime/kernel/runtime-agent-service-contract.md');
+  const runtimeSpec = readWorkspaceFile('docs/authority/runtime-agent-service-rationale.md');
   const retiredStore = readAuthorityUnit(desktopSpec, 'rule.nimi.desktop.agent-projection.r026');
   const summaries = readAuthorityUnit(desktopSpec, 'rule.nimi.desktop.agent-projection.r028');
   const snapshotRecovery = readAuthorityUnit(desktopSpec, 'rule.nimi.desktop.agent-projection.r029');
@@ -90,8 +90,8 @@ test('Agent Chat store cutover is closed by Runtime and SDK replacement coverage
 });
 
 test('Runtime admits Agent Chat conversation summaries before store cutover implementation', () => {
-  const runtimeSpec = readWorkspaceFile('.nimi/spec/runtime/kernel/runtime-agent-service-contract.md');
-  const rpcMethods = readWorkspaceFile('.nimi/spec/runtime/kernel/tables/rpc-methods.yaml');
+  const runtimeSpec = readWorkspaceFile('docs/authority/runtime-agent-service-rationale.md');
+  const rpcMethods = readWorkspaceFile('config/runtime-rpc-methods.yaml');
   const sdkMethods = readWorkspaceFile('.nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml');
 
   assert.match(runtimeSpec, /K-AGCORE-006b/);
@@ -227,3 +227,4 @@ test('Desktop projection cache store bridge is hard-cut', () => {
   assert.doesNotMatch(runtimeProvider, /chat-agent-continuity|commitProviderOutcome|createAgentLocalChatContinuityAdapter/);
   assert.doesNotMatch(runtimeProvider, /chatAgentStoreClient\.commitTurnResult/);
 });
+

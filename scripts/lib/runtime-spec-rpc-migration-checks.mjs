@@ -1,5 +1,5 @@
 export function checkRpcMigrationMapCoverage({ fail, fs, protoRoot, readYaml, walk }) {
-  const rpcMethods = readYaml('.nimi/spec/runtime/kernel/tables/rpc-methods.yaml');
+  const rpcMethods = readYaml('config/runtime-rpc-methods.yaml');
   const migration = readYaml('.nimi/spec/runtime/kernel/tables/rpc-migration-map.yaml');
   const protoMap = parseProtoServiceMethodMap({ fs, protoRoot, walk });
 

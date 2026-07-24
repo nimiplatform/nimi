@@ -163,21 +163,6 @@ export function renderJobStates(doc) {
   return `${out}\n`;
 }
 
-export function renderStateTransitions(doc) {
-  const machines = doc?.machines || [];
-  let out = '';
-  for (const machine of machines) {
-    out += `**${machine.machine}**\n\n`;
-    out += `状态: ${(machine.states || []).join(' → ')}\n\n`;
-    out += '| 从 | 到 | 触发条件 |\n|---|---|---|\n';
-    for (const transition of machine.transitions || []) {
-      out += `| ${transition.from} | ${transition.to} | ${transition.trigger} |\n`;
-    }
-    out += '\n';
-  }
-  return out;
-}
-
 export function renderKeySourceTruthTable(doc) {
   const cases = doc?.cases || [];
   let out = '| 场景 | key_source | connector_id | inline 凭据 | 有效 | 错误码 |\n|---|---|---|---|---|---|\n';
@@ -450,8 +435,8 @@ export function renderRuleEvidence(doc) {
 }
 
 export const runtimeKernelFiles = [
-  'rpc-surface.md', 'rpc-local-service-contract.md', 'rpc-route-describe-contract.md', 'authz-ownership.md', 'authn-token-validation.md',
-  'auth-service.md', 'grant-service.md', 'key-source-routing.md',
+  'rpc-surface.md', 'rpc-local-service-contract.md', 'rpc-route-describe-contract.md',
+  'auth-service.md',
   'scenario-job-lifecycle.md', 'local-category-capability.md',
   'local-profile-application-contract.md', 'local-catalog-recommendation-contract.md',
   'local-asset-storage-manifest-contract.md',
@@ -459,15 +444,13 @@ export const runtimeKernelFiles = [
   'local-engine-protocol-health-contract.md', 'local-engine-runtime-environment-contract.md',
   'local-engine-accelerator-contract.md',
   'local-engine-speech-contract.md', 'device-profile-contract.md',
-  'endpoint-security.md',
   'streaming-contract.md', 'error-model.md', 'pagination-filtering.md', 'audit-contract.md',
   'daemon-lifecycle.md', 'provider-health-contract.md', 'workflow-contract.md',
   'model-service-contract.md', 'knowledge-contract.md', 'app-messaging-contract.md',
   'app-lifecycle-contract.md', 'app-projection-contract.md',
   'cli-onboarding-contract.md',
   'config-contract.md', 'connector-contract.md',
-  'nimillm-contract.md', 'multimodal-provider-contract.md', 'delivery-gates-contract.md',
-  'proto-governance-contract.md',
+  'nimillm-contract.md', 'multimodal-provider-contract.md',
   'ai-profile-execution-contract.md',
   'world-evolution-engine-contract.md',
 ];

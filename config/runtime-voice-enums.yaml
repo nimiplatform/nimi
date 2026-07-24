@@ -1,0 +1,212 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/runtime/agent-participation.authority.yaml (voice stream axes)
+#   and .nimi/spec/canonical/runtime/rpc-foundations.authority.yaml (voice workflow/reference/asset enums)
+# Rationale: docs/authority/runtime-agent-participation-rationale.md
+version: 1
+table_family: closed_enum
+owner: runtime
+enum_id: runtime_voice_enums
+values:
+  - unspecified
+  - voice_clone
+  - voice_design
+  - preset_voice_id
+  - voice_asset_id
+  - provider_voice_ref
+  - persistence_types_1
+  - persistence_types_2
+  - persistence_types_3
+  - handle_scopes_1
+  - handle_scopes_2
+  - delete_semantics_1
+  - delete_semantics_2
+  - asset_statuses_1
+  - asset_statuses_2
+  - asset_statuses_3
+  - asset_statuses_4
+  - asset_statuses_5
+  - output_modes_1
+  - output_modes_2
+  - output_modes_3
+  - output_modes_4
+  - output_modes_5
+  - playback_states_1
+  - playback_states_2
+  - playback_states_3
+  - playback_states_4
+  - playback_states_5
+  - playback_states_6
+workflow_types:
+  - workflow_type: unspecified
+    enum_name: VOICE_WORKFLOW_TYPE_UNSPECIFIED
+    enum_value: 0
+    description: proto zero sentinel for unset workflow type
+    source_rule: K-VOICE-002
+  - workflow_type: voice_clone
+    enum_name: VOICE_WORKFLOW_TYPE_VOICE_CLONE
+    enum_value: 1
+    description: create voice asset from reference voice/audio input
+    source_rule: K-VOICE-002
+  - workflow_type: voice_design
+    enum_name: VOICE_WORKFLOW_TYPE_VOICE_DESIGN
+    enum_value: 2
+    description: create voice asset from text instruction
+    source_rule: K-VOICE-002
+
+reference_kinds:
+  - kind: unspecified
+    enum_name: VOICE_REFERENCE_KIND_UNSPECIFIED
+    enum_value: 0
+    description: proto zero sentinel for unset voice reference kind
+    source_rule: K-VOICE-003
+  - kind: preset_voice_id
+    enum_name: VOICE_REFERENCE_KIND_PRESET
+    enum_value: 1
+    description: provider preset/system voice id
+    source_rule: K-VOICE-003
+  - kind: voice_asset_id
+    enum_name: VOICE_REFERENCE_KIND_VOICE_ASSET
+    enum_value: 2
+    description: runtime-managed voice asset id
+    source_rule: K-VOICE-003
+  - kind: provider_voice_ref
+    enum_name: VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF
+    enum_value: 3
+    description: provider-native custom voice reference
+    source_rule: K-VOICE-003
+
+persistence_types:
+  - persistence: unspecified
+    enum_name: VOICE_ASSET_PERSISTENCE_UNSPECIFIED
+    enum_value: 0
+    description: proto zero sentinel for unset persistence policy
+    source_rule: K-VOICE-004
+  - persistence: provider_persistent
+    enum_name: VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT
+    enum_value: 1
+    description: stored by provider and reusable across sessions
+    source_rule: K-VOICE-004
+  - persistence: session_ephemeral
+    enum_name: VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL
+    enum_value: 2
+    description: short-lived session scoped voice asset
+    source_rule: K-VOICE-004
+
+handle_scopes:
+  - scope: user_scoped
+    enum_name: VOICE_HANDLE_SCOPE_USER_SCOPED
+    enum_value: 1
+    description: handle/asset is visible only to the subject user inside the runtime tenant boundary
+    source_rule: K-VOICE-015
+  - scope: app_scoped
+    enum_name: VOICE_HANDLE_SCOPE_APP_SCOPED
+    enum_value: 2
+    description: handle/asset is reusable inside one app scope but not cross-tenant global
+    source_rule: K-VOICE-015
+
+delete_semantics:
+  - delete_semantics: runtime_authoritative_delete
+    enum_name: VOICE_HANDLE_DELETE_RUNTIME_AUTHORITATIVE
+    enum_value: 1
+    description: runtime-owned asset deletion is the public source of truth
+    source_rule: K-VOICE-015
+  - delete_semantics: best_effort_provider_delete
+    enum_name: VOICE_HANDLE_DELETE_BEST_EFFORT_PROVIDER
+    enum_value: 2
+    description: runtime deletes local asset truth and attempts provider cleanup on a best-effort basis
+    source_rule: K-VOICE-015
+
+asset_statuses:
+  - status: UNSPECIFIED
+    enum_name: VOICE_ASSET_STATUS_UNSPECIFIED
+    enum_value: 0
+    description: proto zero sentinel for unset voice asset status
+    source_rule: K-VOICE-004
+  - status: ACTIVE
+    enum_name: VOICE_ASSET_STATUS_ACTIVE
+    enum_value: 1
+    description: voice asset is valid and can be synthesized
+    source_rule: K-VOICE-004
+  - status: EXPIRED
+    enum_name: VOICE_ASSET_STATUS_EXPIRED
+    enum_value: 2
+    description: asset expired by lifecycle policy
+    source_rule: K-VOICE-004
+  - status: DELETED
+    enum_name: VOICE_ASSET_STATUS_DELETED
+    enum_value: 3
+    description: asset deleted and no longer routable
+    source_rule: K-VOICE-004
+  - status: FAILED
+    enum_name: VOICE_ASSET_STATUS_FAILED
+    enum_value: 4
+    description: asset creation failed or became unusable
+    source_rule: K-VOICE-004
+
+# voice_output_mode is the positive, authoritative selected output-truth axis for
+# speech execution and agent voice projection. It is distinct from execution mode
+# (ai.proto ExecutionMode = sync|stream|async_job) and from voice_playback_state.
+# native_stream and simulated_stream are the only values reachable at the
+# SPEECH_SYNTHESIZE scenario-stream layer; batch_final_artifact and text_only are
+# additionally reachable as Runtime Agent orchestration outcomes.
+output_modes:
+  - output_mode: unspecified
+    enum_name: VOICE_OUTPUT_MODE_UNSPECIFIED
+    enum_value: 0
+    description: proto zero sentinel; also used by non-speech scenario streams
+    source_rule: K-VOICE-019
+  - output_mode: native_stream
+    enum_name: VOICE_OUTPUT_MODE_NATIVE_STREAM
+    enum_value: 1
+    description: provider/route natively streams playable non-final audio before full synthesis completion
+    source_rule: K-VOICE-019
+  - output_mode: simulated_stream
+    enum_name: VOICE_OUTPUT_MODE_SIMULATED_STREAM
+    enum_value: 2
+    description: chunks derived from a completed payload; honest degradation, never native realtime
+    source_rule: K-VOICE-019
+  - output_mode: batch_final_artifact
+    enum_name: VOICE_OUTPUT_MODE_BATCH_FINAL_ARTIFACT
+    enum_value: 3
+    description: synthesis produced a single final durable artifact with no live stream
+    source_rule: K-VOICE-019
+  - output_mode: text_only
+    enum_name: VOICE_OUTPUT_MODE_TEXT_ONLY
+    enum_value: 4
+    description: no playable audio; turn completed as text-only with no fake audio artifact
+    source_rule: K-VOICE-019
+
+# voice_playback_state is the separate lifecycle axis for agent voice playback.
+# failed / interrupted / canceled are lifecycle outcomes and must never be encoded
+# as voice_output_mode values.
+playback_states:
+  - state: unspecified
+    enum_name: VOICE_PLAYBACK_STATE_UNSPECIFIED
+    enum_value: 0
+    description: proto zero sentinel for unset playback lifecycle state
+    source_rule: K-VOICE-019
+  - state: active
+    enum_name: VOICE_PLAYBACK_STATE_ACTIVE
+    enum_value: 1
+    description: playback requested and/or in progress for the selected output mode
+    source_rule: K-VOICE-019
+  - state: completed
+    enum_name: VOICE_PLAYBACK_STATE_COMPLETED
+    enum_value: 2
+    description: playback finished naturally
+    source_rule: K-VOICE-019
+  - state: failed
+    enum_name: VOICE_PLAYBACK_STATE_FAILED
+    enum_value: 3
+    description: playback or synthesis failed with a terminal reason
+    source_rule: K-VOICE-019
+  - state: interrupted
+    enum_name: VOICE_PLAYBACK_STATE_INTERRUPTED
+    enum_value: 4
+    description: Runtime-owned voice-playback interruption truth for an active turn
+    source_rule: K-VOICE-019
+  - state: canceled
+    enum_name: VOICE_PLAYBACK_STATE_CANCELED
+    enum_value: 5
+    description: playback canceled before natural completion
+    source_rule: K-VOICE-019

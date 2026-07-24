@@ -85,10 +85,10 @@ Platform contracts are consumed from active `.nimi/spec/**` authority:
 
 - APML wire format → `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
 - APML LLM compliance → `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
-- Activity ontology → `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` and `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
-- HookIntent / event owner map → `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md` and `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
+- Activity ontology → `.nimi/spec/canonical/runtime/agent-participation.authority.yaml` and `config/runtime-agent-activity-ontology.yaml`
+- HookIntent / event owner map → `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md` and `.nimi/spec/canonical/runtime/agent-participation.authority.yaml`
 - SDK runtime consume surface → `.nimi/spec/sdks/kernel/runtime-contract.md`
-- Presentation Timeline boundary → `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
+- Presentation Timeline boundary → `.nimi/spec/canonical/runtime/agent-participation.authority.yaml`
 
 Nimi Avatar-specific contracts in `.nimi/spec/avatar/kernel/**` do not re-define upstream; they define Avatar-local behavior and downstream implementation binding.
 

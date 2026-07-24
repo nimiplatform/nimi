@@ -1,0 +1,2123 @@
+format: nimicoding.authority/v1
+units:
+  - id: definition.nimi.runtime.agent-participation.conversation-anchor-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime agent conversation anchor plane
+    meaning: The Runtime agent conversation anchor plane owns cross-surface conversation continuity through ConversationAnchor truth, including anchor shape and lifecycle, continuity identity scopes, explicit open, attach, late-join, and recovery semantics, sharing and isolation across surfaces and anchors, and the Avatar live instance binding recovery boundary.
+    relations: []
+  - id: definition.nimi.runtime.agent-participation.hook-intent-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime agent hook intent plane
+    meaning: The Runtime agent hook intent plane owns narrow-admission HookIntent truth for deferred continuation on the live agent path, including the typed intent shape, the closed trigger and effect matrix, admission states, the public hook projection seam, and runtime-owned admission gates.
+    relations: []
+  - id: definition.nimi.runtime.agent-participation.output-wire-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime agent output wire plane
+    meaning: The Runtime agent output wire plane owns the model-facing APML output wire for reactive agent chat and runtime-private executors, including tag and vocabulary admission, parser fail-close semantics, the JSON exclusion boundary, the projection boundary into typed runtime families, the post-turn action and hook split, and parser acceptance authority over prompts and consumers.
+    relations: []
+  - id: definition.nimi.runtime.agent-participation.presentation-profile-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime agent presentation profile plane
+    meaning: The Runtime agent presentation profile plane owns persistent agent presentation truth through AgentPresentationProfile, including the stable field boundary, the typed proto projection seam, partial mutation with compare-and-set revisions, protected write authorization, the opaque ref grammar, default voice binding, the projection-only consumer boundary, deferred presentation scope, and desktop carrier non-ownership.
+    relations: []
+  - id: definition.nimi.runtime.agent-participation.presentation-stream-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime agent presentation stream plane
+    meaning: The Runtime agent presentation stream plane owns transient multi-surface turn, presentation, state, and proactive projection as committed stream truth, including the pinned projection family and envelope schema set, family scoping, current emotion projection, turn commit and failure semantics, the activity ontology boundary, the narrow event owner map, presentation timeline truth, and agent voice stream projection.
+    relations: []
+  - id: definition.nimi.runtime.agent-participation.avatar-debug-projection-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime avatar debug projection plane
+    meaning: The Runtime avatar debug projection plane owns avatar debug probe request, result, and replay semantics visible outside Avatar, including typed request and result envelopes, the closed status vocabulary, replay keys and records, and the app-facing avatar debug projection families.
+    relations: []
+  - id: rule.nimi.runtime.agent-participation.r001
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Conversation anchor authority is Runtime owned
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: RuntimeAgentService owns cross-surface conversation continuity through runtime-owned ConversationAnchor truth, remains multi-agent by default with ConversationAnchor closing per-agent continuity rather than a system-wide singleton session, owns continuity identity, anchor-scoped turn and message id scope, anchor-scoped interrupt propagation, and the attach, late-join, and recovery boundary for host surfaces, and never owns desktop-only window lifecycle, avatar-only placement or renderer-local interaction state, or provider-native transcript truth.
+    condition: Whenever live agent surfaces participate in a conversation.
+    failure: Reject continuity semantics owned outside Runtime and implicit global-session collapse.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
+  - id: rule.nimi.runtime.agent-participation.r002
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Anchor shape is committed and reconstructable
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: The admitted ConversationAnchor shape remains reconstructable through committed runtime truth and includes at least conversation_anchor_id, agent_id, subject_user_id, anchor status and lifecycle metadata, and last committed turn and message identity.
+    condition: Whenever a conversation anchor is created, stored, or projected.
+    failure: Reject anchors missing required shape fields or not reconstructable from committed truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
+  - id: rule.nimi.runtime.agent-participation.r003
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Continuity identity scopes are fixed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: agent_id is agent identity scope and not conversation continuity scope, conversation_anchor_id is the only admitted cross-surface conversation continuity scope, turn_id and message_id are unique within one conversation_anchor_id, and stream_id identifies one owned presentation or turn stream and remains anchor-scoped.
+    condition: Whenever turn, message, or stream identity is minted or interpreted.
+    failure: Reject cross-anchor identity reuse and continuity inferred from agent identity alone.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
+  - id: rule.nimi.runtime.agent-participation.r004
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: No platform default agent or implicit attachment
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime owns no platform-level default or current agent, any app-local current, default, or pinned agent choice resolves to an explicit agent_id before crossing into runtime-owned truth, and host surfaces attach to an existing anchor or open a new one explicitly rather than inferring that the same agent means the same conversation.
+    condition: Whenever a surface selects an agent or attaches to a conversation.
+    failure: Reject implicit default-agent resolution and implicit same-agent conversation attachment.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
+  - id: rule.nimi.runtime.agent-participation.r005
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Anchor open and recovery are explicit and committed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: OpenConversationAnchor requires explicit agent_id plus subject_user_id and returns a committed ConversationAnchorSnapshot, GetConversationAnchorSnapshot recovers committed continuity through explicit agent_id plus conversation_anchor_id, a turn request references only an existing committed conversation_anchor_id, client-side shadow anchor creation is not admitted, and late-join surfaces recover current continuity through runtime-owned anchor and session snapshot truth rather than parser internals or app-local history.
+    condition: Whenever an anchor is opened, recovered, referenced by a turn request, or late-joined.
+    failure: Reject shadow anchors, unanchored turn requests, and recovery from app-local history.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
+  - id: rule.nimi.runtime.agent-participation.r006
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Sharing and isolation follow anchor attachment
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Surfaces attached to the same ConversationAnchor share runtime.agent.turn.*, runtime.agent.presentation.*, and turn-interrupt semantics, different anchors under the same agent_id never share turn_id, message_id, or interrupt propagation by implication, and agent-scoped runtime.agent.state.*, runtime.agent.memory.*, and runtime.agent.hook.* projections observed across anchors are never reinterpreted as one conversation stream.
+    condition: Whenever projections are shared or isolated across surfaces and anchors.
+    failure: Reject implied cross-anchor sharing and cross-anchor reinterpretation as one conversation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
+  - id: rule.nimi.runtime.agent-participation.r007
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Avatar live instance binding recovers fail-closed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime owns the recovery binding from an explicit avatar_instance_id to an existing conversation_anchor_id, Desktop registers the binding only after opening or recovering the anchor through Runtime, Avatar resolves it only after validating the minimal launch agent selector through Runtime or SDK into local agent identity, the binding is keyed by explicit avatar_instance_id plus local agent identity so same-agent identity alone never implies conversation continuity, registration and resolution return a committed ConversationAnchorSnapshot, and registration never creates anchors, chooses packages, or widens Avatar launch payload authority.
+    condition: Whenever an Avatar window instance binds to or recovers a conversation anchor.
+    failure: Fail closed on identity mismatch, missing anchor, or missing binding instead of implying continuity.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
+  - id: rule.nimi.runtime.agent-participation.r008
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Hook intent authority is narrow and Runtime owned
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: RuntimeAgentService owns narrow-admission HookIntent truth for deferred continuation on the live agent path, including validation of model-proposed intent, admission and rejection decisions, pending lifecycle truth, and execution outcome with replay-visible observability, and never owns a general timer, deadline, or appointment object model or host automation and proactive contact semantics beyond the admitted effect set.
+    condition: Whenever deferred continuation is proposed or scheduled on the live agent path.
+    failure: Reject hook semantics owned outside Runtime and generalized scheduling object models.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.hook-intent-plane
+  - id: rule.nimi.runtime.agent-participation.r009
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: HookIntent shape and admission states are closed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: HookIntent carries intent_id, agent_id, optional conversation_anchor_id, originating_turn_id, and originating_stream_id, trigger_family, trigger_detail, effect, and admission_state, trigger_family admits only time and event, trigger_detail admits only time delay_ms, event user-idle with idle_ms, and event chat-ended, effect admits only follow-up-turn, and admission states are reconstructable through committed runtime truth and include proposed, pending, rejected, running, completed, failed, canceled, and rescheduled.
+    condition: Whenever a HookIntent is proposed, stored, or transitioned.
+    failure: Reject intents missing required fields or carrying undeclared triggers, effects, or states.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.hook-intent-plane
+  - id: rule.nimi.runtime.agent-participation.r010
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Hook projection seam is closed and observable
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: The public hook seam is exactly runtime.agent.hook.intent_proposed, pending, rejected, running, completed, failed, canceled, and rescheduled, intent_proposed projects a validated APML hook proposal before runtime admission finalizes, APML projection is the only admitted model-facing hook proposal source and strict JSON message-action follow-up-turn is not admitted, pending is the only admitted accepted-into-scheduler state, reject reasons, conflict replacement, and budget or autonomy denial remain observable through runtime.agent.hook.rejected, and hook projection requires agent_id with origin linkage to conversation_anchor_id, originating_turn_id, and originating_stream_id preserved when present.
+    condition: Whenever hook intent state is projected to consumers.
+    failure: Reject undeclared hook events, JSON-sourced proposals, and dropped origin linkage.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.hook-intent-plane
+  - id: rule.nimi.runtime.agent-participation.r011
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Hook admission gates stay Runtime owned
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime validates trigger and effect compatibility before a proposal becomes pending truth, budget, autonomy, cadence-spacing, and conflict or replace policy remain runtime-owned admission gates, a new pending intent replaces an older pending follow-up on the same continuity branch only through explicit runtime-visible conflict handling, failed admission is never silently ignored or converted into process-local hidden timer behavior, widening beyond the admitted trigger and effect matrix requires a later dedicated runtime rule, and proactive interruptibility may reference HookIntent ids as trigger source evidence without widening the matrix, creating notification delivery, or authorizing app or renderer scheduling.
+    condition: Whenever a hook proposal is admitted, rejected, replaced, or referenced.
+    failure: Reject silent admission failure, hidden local timers, and implicit matrix widening.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.hook-intent-plane
+  - id: rule.nimi.runtime.agent-participation.r012
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: APML is the model-facing output wire authority
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: RuntimeAgentService owns the model-facing output wire for reactive agent chat turns and runtime-private agent executors with APML inline markup as the admitted wire format, owning APML tag admission, parser validation and fail-close semantics, mapping from APML semantic units into runtime-owned typed projections, and the boundary between model-facing wire syntax and app-facing durable events, and never owning renderer-local interpolation or animation physics, desktop-local prompt UI wording, provider-specific hidden formatting hacks, or app-facing raw parser event consumption.
+    condition: Whenever agent model output is produced or interpreted.
+    failure: Reject wire semantics owned outside Runtime and unvalidated model output consumption.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.output-wire-plane
+  - id: rule.nimi.runtime.agent-participation.r013
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Public chat APML vocabulary is closed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Public reactive chat APML admits only message, sibling action with kind image or voice, time-hook, and event-hook top-level tags, the message body is user-visible text plus optional emotion and activity cues projecting only to runtime-owned current emotion state and the admitted runtime activity ontology, action admits only prompt-payload with kind image or voice and a required prompt-text child, event-hook admits only the narrow HookIntent v1 event subset of event-user-idle with a positive idle duration or event-chat-ended and carries a follow-up-turn effect, public chat APML admits no direct motion, expression, look-at, pose, speech-prosody, surface-routing, notification, tool, chain-of-thought, memory-write, posture or status, hook-cancel, namespace extension, or parser-event syntax, and Avatar auto-adapter routes, capability profiles, mapping sidecars, and confidence labels live downstream of runtime projection and are not public tags.
+    condition: Whenever public chat model output is parsed or admitted.
+    failure: Reject unadmitted tags, attributes, and vocabulary instead of best-effort interpretation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.output-wire-plane
+  - id: rule.nimi.runtime.agent-participation.r014
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: JSON is not a model-facing wire
+    modality: must_not
+    scope:
+      - runtime.agent-participation
+    statement: Strict single-object JSON message-action output is admitted as a model-facing wire authority, or model-facing JSON compatibility, fenced recovery, wrapper stripping, or best-effort JSON repair is retained, beyond JSON existing as runtime-internal typed transport or persistence serialization after APML has been validated and projected.
+    condition: Whenever model output format compatibility is considered.
+    failure: Reject JSON model-output acceptance and repair paths.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.output-wire-plane
+  - id: rule.nimi.runtime.agent-participation.r015
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Malformed APML fails the turn closed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Malformed APML fails closed with observable turn failure and never leaves a turn in an uncommitted pending state, and any future public APML widening for direct presentation controls, prosody, routing, notification, tools, memory or state mutation, namespaces, video actions, or raw apml.* events requires new admitted runtime authority before implementation.
+    condition: Whenever APML validation fails or public APML widening is proposed.
+    failure: Fail the turn observably and reject unadmitted widening.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.output-wire-plane
+  - id: rule.nimi.runtime.agent-participation.r016
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: APML projects into typed families before product truth
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: APML is a model-facing input contract rather than the durable app consumption contract, the durable app product path is runtime.agent.turn.*, runtime.agent.presentation.*, runtime.agent.state.*, and runtime.agent.hook.*, APML text becomes committed assistant message text only after the runtime turn commit point, APML activity, expression, posture, and status cues become product truth only through admitted presentation and state projection families, APML hook tags only propose HookIntent with Runtime owning validation, admission, scheduling, and public lifecycle events, apps never consume raw apml.* parser events as their durable product path without a later admitting rule, parser diagnostics never replace typed runtime event envelopes, and public activity projects through runtime.agent.presentation.activity_requested with Avatar backend route selection downstream and never feeding back into parser acceptance or ontology ownership.
+    condition: Whenever APML output becomes app-visible product state.
+    failure: Reject product truth derived outside the typed projection families.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.output-wire-plane
+  - id: rule.nimi.runtime.agent-participation.r017
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Post-turn actions and hooks split by owner
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Immediate image and voice requests may project into post-turn action indications after the assistant message commit point, video remains deferred until a later admission covers execution and consumer semantics, deferred continuation is represented as runtime-owned HookIntent rather than a desktop message-action modality, and unsupported or owner-mismatched APML tags are rejected rather than silently translated into local timers, hidden actions, or best-effort UI side effects.
+    condition: Whenever post-turn modality requests or deferred proposals are handled.
+    failure: Reject silent translation and unadmitted video execution.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.output-wire-plane
+  - id: rule.nimi.runtime.agent-participation.r018
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime-private executor APML is a hard cut
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime-private model executors use APML extraction documents with admitted roots message, life-turn, chat-track-sidecar, and canonical-review as root-specific dialects rather than synonyms of the public chat vocabulary, the admitted private vocabulary includes behavioral-posture with posture-class, action-family, interrupt-mode, transition reason, truth basis ids, and optional status text, canonical-memory-candidates with typed candidate payload children, and next-hook-intent with one admitted trigger child and a follow-up-turn effect, every document has a single root beginning with the root tag after whitespace trimming, unknown tags, unknown or duplicate attributes, unsupported hierarchy, text in non-text containers, XML namespaces, comments, processing instructions, code fences, prose wrappers, and multiple roots fail closed, output proposes posture, status, memory candidates, hook intents, hook cancellations, narratives, truths, or relations only inside the root-specific admitted shape, RuntimeAgentService validates and projects output through typed admission before committing events, hooks, memory, posture, or review outcomes, and no runtime-private executor retains JSON model-output compatibility or silently downgrades invalid APML into success.
+    condition: Whenever a runtime-private executor emits or Runtime interprets private APML output.
+    failure: Fail closed on invalid documents instead of downgraded or synthesized success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.output-wire-plane
+  - id: rule.nimi.runtime.agent-participation.r019
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Parsers are the acceptance authority
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: First-party prompts teach only admitted public APML shapes, runtime parsers remain the authority for acceptance or rejection, invalid model output fails closed with diagnostics and no placeholder success, parsers never strip wrappers, repair malformed XML, recover fenced APML, or translate invalid output into a best-effort success envelope, Desktop and SDK consumers never re-accept model output that Runtime would reject on the same admitted path, and provider-specific hidden formatting, grammar hacks, or constrained decoding may be added only by later explicit authority and never weakens parser fail-close semantics.
+    condition: Whenever model-output compliance or acceptance is decided.
+    failure: Reject prompt-side or consumer-side acceptance that bypasses parser authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.output-wire-plane
+  - id: rule.nimi.runtime.agent-participation.r020
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Persistent presentation truth is Runtime owned
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: RuntimeAgentService owns persistent agent presentation truth through AgentPresentationProfile, covering default avatar renderer and backend selection, stable avatar asset and model reference, stable expression and idle preset references, stable presentation-policy defaults, default voice binding through runtime-owned VoiceReference, avatar autoplay policy for ordinary assistant playback, and a stable background asset reference as an opaque presentation ref, and never owns current emotion as persistent profile truth, current gesture or action cues, current speaking or listening phase, per-frame viseme or amplitude state, or renderer-local camera, lighting, or post-process state, with current emotion living on the transient runtime.agent.state.* seam and never smuggled into the profile.
+    condition: Whenever persistent agent presentation truth is defined or stored.
+    failure: Reject transient state inside the persistent profile and profile truth owned outside Runtime.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-profile-plane
+  - id: rule.nimi.runtime.agent-participation.r021
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Profile fields are stable, opaque, and fail closed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: The admitted public AgentPresentationProfile boundary is limited to stable presentation inputs such as backend_kind, avatar_asset_ref, expression_profile_ref, idle_preset, interaction_policy_ref, optional default VoiceReference, avatar_autoplay, and background_asset_ref, fields stay stable enough to survive app restart and cross-surface reuse, provider or asset-specific detail is stored only as auxiliary metadata rather than a second canonical shape, display labels, temporary URLs, and renderer-local cache handles never become the canonical profile key, missing required stable fields fail closed rather than fabricating a fallback avatar, avatar and background refs are opaque with asset bytes, managed local paths, local asset URLs, and Live2D adapter sidecar payloads remaining under the admitted host-local custody owner, avatar_autoplay is the single persistent per-agent autoplay home never mirrored into app-local Agent Center config, and an unresolved host-local background ref projects a fail-closed re-import state instead of a ready background.
+    condition: Whenever profile fields are stored, validated, or projected.
+    failure: Reject unstable canonical keys, fabricated fallbacks, and non-opaque asset custody.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-profile-plane
+  - id: rule.nimi.runtime.agent-participation.r022
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Profile projection uses typed proto fields only
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime projects the selected profile through typed AgentRecord.presentation_profile field 8 and its committed revision through AgentRecord.presentation_profile_revision field 9, generic metadata.presentationProfile is not an admitted read or storage seam, and a non-empty AgentPresentationProfile carries its matching uint64 revision at field 10 while field number 9 inside that message remains reserved.
+    condition: Whenever the presentation profile is projected or read.
+    failure: Reject generic metadata seams and untyped profile projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-profile-plane
+  - id: rule.nimi.runtime.agent-participation.r023
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Profile mutation is partial and fail closed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: SetAgentPresentationProfile admits partial field mutation where callers set or clear avatar_asset_ref, backend_kind, background_asset_ref, default VoiceReference, and avatar_autoplay independently, autoplay, background, and default voice are editable before an avatar asset exists, Kit Agent Center avatar and background import completion commits the minted opaque ref through this mutation path with shell-local selected state never counting as success, and mutation fails closed on invalid voice reference kind, malformed opaque ref, missing auth scope, or expected revision conflict.
+    condition: Whenever the presentation profile is mutated.
+    failure: Fail closed instead of partially applying or locally simulating the mutation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-profile-plane
+  - id: rule.nimi.runtime.agent-participation.r024
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Profile mutation uses CAS revisions
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Every set, patch, and clear mutation carries expected_revision as optional uint64 field 6 so an omitted token is distinguishable from the valid initial revision 0, a never-mutated absent profile starts at committed revision 0, each successful mutation advances the committed revision by exactly one including a clear, a cleared profile remains absent while its last committed revision remains available for the next compare-and-set, Runtime compares and commits the profile plus revision in one lock or transaction boundary, a stale revision fails with gRPC ABORTED and AGENT_PRESENTATION_REVISION_CONFLICT without partially changing profile fields, and SetAgentPresentationProfileResponse.committed_revision as uint64 field 2 returns the committed revision even when the profile response field is absent after clear.
+    condition: Whenever a profile mutation is committed or conflicts.
+    failure: Reject non-atomic commits and partial changes on revision conflict.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-profile-plane
+  - id: rule.nimi.runtime.agent-participation.r025
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Profile mutation is a protected write
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: SetAgentPresentationProfile enforces runtime.agent.write or an admitted scoped binding carrying that write capability with an SDK-requested scope never counting as authorization by itself, and InitializeAgent.metadata reserves the presentationProfile and presentationProfileRevision keys so supplying either fails closed and generic metadata cannot bypass the typed mutation, validation, authorization, or compare-and-set boundary.
+    condition: Whenever the profile write surface is invoked.
+    failure: Reject unauthorized writes and metadata bypasses.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-profile-plane
+  - id: rule.nimi.runtime.agent-participation.r026
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Opaque ref grammar is closed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: A non-empty avatar or background opaque ref is either a bare ref of 1 to 256 ASCII bytes with an alphanumeric head and a tail limited to alphanumerics, dot, underscore, at, plus, tilde, and hyphen where a value containing a colon never falls back to the bare form, or a qualified ref of 1 to 2048 ASCII bytes starting with a lowercase namespace of at most 64 characters followed by a colon and a non-empty tail of RFC 3986 URI characters with complete percent escapes, direct namespaces file, data, http, and https are forbidden, profile_media_url is the only URL-bearing namespace and its tail is an absolute https URL with no userinfo, both the raw value and one percent-decoded pass contain no whitespace, control or NUL byte, backslash, POSIX absolute prefix, Windows drive or UNC prefix, dot or dot-dot slash segment, or base64 data marker, clearing a field is represented only by the patch field present with the empty string which is not an opaque ref, and full-profile validation, merged-patch validation, persisted-profile reads, and SDK request and projection validation apply the same admission rules with invalid stored metadata failing closed instead of projecting ready state.
+    condition: Whenever an avatar or background opaque ref is validated, stored, or read.
+    failure: Reject values outside the closed grammar and fail closed on invalid stored refs.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-profile-plane
+  - id: rule.nimi.runtime.agent-participation.r027
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Default voice binds through VoiceReference truth
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: A default voice binds through runtime-owned VoiceReference semantics, voice_asset_id bindings resolve at mutation time to an active, owner-scoped, durable Runtime VoiceAsset with missing, deleted, expired, failed, cross-owner, and session-ephemeral assets rejected and an empty voice reference suffix invalid, the profile references a default voice without owning voice workflow, voice asset lifecycle, or discovery truth, display-only provider labels, preview URLs, and UI-local selections never replace stable VoiceReference truth, and the mutation surface never accepts raw filesystem paths, raw file URLs, asset bytes, package descriptors, backend compatibility tiers, calibration payloads, or Avatar launch payload fields.
+    condition: Whenever a default voice is bound or the mutation surface receives voice or asset material.
+    failure: Reject unresolvable voice bindings and out-of-boundary mutation payloads.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-profile-plane
+  - id: rule.nimi.runtime.agent-participation.r028
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Profile consumption is projection only
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Apps and SDK consumers read AgentPresentationProfile only as runtime-owned projection through runtime.agent.*, cached or adapted surface-local renderer inputs are never canonical runtime truth, transient turn, presentation, and emotion projections remain distinct from the persistent profile, app-local avatar interaction state, voice-session state, and thread-local animation cues are never written back as profile truth, and presentation mutation stays on admitted RuntimeAgentService command paths without full-blob replacement through arbitrary metadata write paths.
+    condition: Whenever consumers read or attempt to write presentation truth.
+    failure: Reject write-back of consumer-local state and non-admitted mutation paths.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-profile-plane
+  - id: rule.nimi.runtime.agent-participation.r029
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Deferred presentation semantics stay excluded
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Per-frame lip-sync and viseme streams, session-local listening and speaking state, pointer and gaze targets, physics simulation and gesture queues, and renderer camera choreography and post-processing remain outside runtime-owned persistent presentation truth unless later admitted explicitly, consumers needing them own them surface-side or wait for later authority admission, and Runtime never absorbs them into AgentPresentationProfile as a generic state bag.
+    condition: Whenever deferred presentation semantics seek persistent profile residence.
+    failure: Reject the absorption and keep the semantics surface-owned or unadmitted.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-profile-plane
+  - id: rule.nimi.runtime.agent-participation.r030
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Desktop carrier truth is not Runtime presentation truth
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime does not own desktop-local avatar registries, per-agent local avatar bindings, desktop-imported VRM or Live2D carrier assets, desktop-local carrier execution, viewport lifecycle, or load-fail precedence as active presentation truth, AgentPresentationProfile is never an instruction to mount desktop-local carriers, runtime metadata, auxiliary profile fields, and generic agent settings never smuggle desktop carrier registry, asset, or binding truth into the profile, and embodiment beyond non-carrier shell presentation hands off to the admitted avatar-app carrier path instead of reviving desktop-local execution.
+    condition: Whenever desktop carrier material approaches Runtime presentation truth.
+    failure: Reject carrier truth inside the profile and revived desktop carrier authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-profile-plane
+  - id: rule.nimi.runtime.agent-participation.r031
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Transient stream authority is Runtime owned
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: RuntimeAgentService owns transient multi-surface agent presentation and reactive turn projection as runtime-owned committed stream truth distinct from the persistent AgentPresentationProfile, owning anchor-scoped turn lifecycle and text projection, anchor-scoped transient presentation requests, runtime-owned current emotion projection, and stream-level commit, interrupt, and failure semantics, and never owning renderer-local interpolation or physics, backend-specific motion handles or Live2D parameter writes, or app-local avatar placement and shell choreography.
+    condition: Whenever transient turn or presentation projection is produced or consumed.
+    failure: Reject transient stream truth owned outside Runtime.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-stream-plane
+  - id: rule.nimi.runtime.agent-participation.r032
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Projection families come from one pinned table
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: The admitted runtime-owned stable projection families across the runtime.agent.turn, runtime.agent.presentation, runtime.agent.state, runtime.agent.hook, runtime.agent.proactive, runtime.agent.session, and runtime.agent.avatar_debug groups, together with their family-specific envelopes and detail payload schemas, are pinned in the runtime agent event projection table as the stable projection payload schema source of truth, and unpinned family names or payload shapes are not admitted projection truth.
+    condition: Whenever a runtime agent projection family or payload shape is emitted or consumed.
+    failure: Reject unpinned families and payload shapes.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-stream-plane
+  - id: rule.nimi.runtime.agent-participation.r033
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Projection envelope identity is mandatory
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: runtime.agent.turn.* and runtime.agent.presentation.* events require agent_id, conversation_anchor_id, turn_id, and stream_id, runtime.agent.state.* and runtime.agent.hook.* events require agent_id with origin linkage to conversation_anchor_id, originating_turn_id, and originating_stream_id present only when the projection is traceable to a specific continuity branch, runtime.agent.proactive.* events require agent_id, projection_id, owner_domain, delivery_channel, and audit_ref with optional origin linkage including source_hook_id and source_cadence_id, runtime.agent.turn.message_committed additionally carries message_id, and playable voice projection events carry the committed assistant message_id in their detail payload so consumers never collapse multiple committed messages under one turn identity.
+    condition: Whenever a runtime agent projection envelope is emitted.
+    failure: Reject envelopes missing required identity or message linkage fields.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-stream-plane
+  - id: rule.nimi.runtime.agent-participation.r034
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Family scoping semantics are fixed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: runtime.agent.turn.* is conversation-anchor-scoped transient projection, runtime.agent.session.* is anchor-scoped recovery projection owned by runtime continuity truth, runtime.agent.presentation.* is stream-scoped transient projection derived from committed runtime interpretation, runtime.agent.state.* remains agent-scoped even when an update originated from one anchor or turn, runtime.agent.turn.post_turn.detail.hook_intent is only a turn-close indication with runtime.agent.hook.* the canonical hook lifecycle seam, PostureProjection is the canonical schema alias for the posture_changed current posture detail, and runtime.agent.proactive.* is the app-facing proactive interruptibility projection family and never a broad event bus, OS notification delivery promise, or app scheduler admission.
+    condition: Whenever projection family scope or aliasing is interpreted.
+    failure: Reject scope reinterpretation and bus or scheduler semantics on proactive projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-stream-plane
+  - id: rule.nimi.runtime.agent-participation.r035
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Consumers use typed projections through validated attachment
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Apps consume the admitted runtime projection families rather than raw apml.* parser events as their durable product path, explicit binding-only consumers receive these projections only through streams that validated the required scoped binding attachment while default local first-party Avatar consumes through normal admitted first-party Runtime and SDK account and agent authorization paths, and Avatar auto-adapter support maps admitted activity ids and admitted state projections to backend routes without consuming raw apml.* parser diagnostics as product input.
+    condition: Whenever a consumer attaches to or consumes runtime agent projections.
+    failure: Reject raw parser event consumption and unvalidated binding-only attachment.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-stream-plane
+  - id: rule.nimi.runtime.agent-participation.r036
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Current emotion is transient runtime state
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Current emotion projects through AgentStateProjection.current_emotion, emotion ids are exactly the emotion category admitted by the agent activity ontology table without substituting downstream Avatar cue names, public change notification uses runtime.agent.state.emotion_changed, emotion is durable-until-replace runtime state never collapsed into posture or persistent presentation profile fields, renderer-specific expression or motion hints may derive from emotion without rewriting current_emotion, and read-only state projection may additionally expose status_text_changed, execution_state_changed, and posture_changed without leaking deeper runtime-private posture machine truth.
+    condition: Whenever current emotion or read-only agent state is projected.
+    failure: Reject substituted cue vocabularies and posture machine leakage.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-stream-plane
+  - id: rule.nimi.runtime.agent-participation.r037
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Turn streams commit channel-scoped with explicit points
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: runtime.agent.turn.text_delta is provisional until runtime.agent.turn.message_committed, every same-turn text delta is projected before message_committed and no late or replayed delta is appended after sealing the committed message, a hard turn failure before message_committed discards provisional text from that stream, sidecar runtime-owned state units such as posture, emotion, memory candidates, and hook intent proposals validate and commit independently, sidecar rejection emits an explicit rejected or failed runtime event without retroactively rolling back an already committed message, and envelope-level hard violations fail the whole turn and suppress message_committed.
+    condition: Whenever turn stream text or sidecar units commit or fail.
+    failure: Reject post-seal deltas, silent sidecar rejection, and commit after envelope violations.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-stream-plane
+  - id: rule.nimi.runtime.agent-participation.r038
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Activity ontology is closed and Runtime owned
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: The app-facing activity ontology for runtime.agent.presentation.activity_requested is pinned in the agent activity ontology table, activity category is exactly one of emotion, interaction, or state, core and extended activity ids are admitted only through that table, public chat output proposing an unknown activity id fails closed before durable turn commit rather than projecting a free-form renderer cue, detail.source records provenance such as apml_output or direct_api and is never a substitute category, detail.intensity is absent or one of weak, moderate, or strong with APML-sourced public activity projections normally omitting intensity, renderer and app mappings may provide backend fallback behavior for admitted ids without re-owning runtime category or intensity truth, and Avatar-owned backend route ids, capability profile ids, generated motion ids, and mapping confidence labels remain downstream projection facts only.
+    condition: Whenever an activity is proposed, projected, or mapped.
+    failure: Fail closed on unknown ids and reject downstream re-ownership of ontology truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-stream-plane
+  - id: rule.nimi.runtime.agent-participation.r039
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Event ownership stays narrow without a broad bus
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime owns the admitted public runtime.agent.* projection families, APML parser events remain runtime-internal diagnostics and never become durable app-facing apml.* product events, Desktop chat shell bridge and handoff semantics and Avatar-local avatar.* event naming remain owned by their own admitted authority, SDK may consume admitted projections without owning platform event ontology, a general cross-app event broker, broad wildcard subscription beyond the admitted turns subscribe path, cancellable before-events as a public broker feature, and SDK app-event emission as a general platform API stay unadmitted, app-local event conventions never redefine runtime-owned runtime.agent.* payloads, and widening into a general event bus requires new admitted runtime and SDK authority.
+    condition: Whenever event ownership or bus semantics are claimed or extended.
+    failure: Reject broad-bus behavior and payload redefinition outside the owner map.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-stream-plane
+  - id: rule.nimi.runtime.agent-participation.r040
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Presentation timeline truth is Runtime canonical
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime owns stream identity, timebase identity, offset, duration, and deadline semantics, and interrupt propagation for text, activity, voice, and lipsync coordination, apps may schedule rendering locally while consuming runtime-owned timeline metadata and never inventing canonical offsets or stream identity, the admitted timebase includes a monotonic offset basis for scheduling and a wall-clock anchor for trace evidence, voice timing and lipsync frames stay downstream of the same agent_id, conversation_anchor_id, turn_id, and stream_id as the admitted turn and presentation projection families, malformed, missing, negative, or non-monotonic timing metadata in an admitted timeline-bearing event fails closed before durable projection, interrupt or cancel projects a single stream-level cancellation truth applicable to text continuation, voice playback, lipsync frames, and avatar motion scheduling, the branch stays within admitted runtime.agent.* families without a broad app event bus or wildcard API, and Runtime may carry provider-produced timing or audio-level evidence without hardcoding a provider or model as timeline authority.
+    condition: Whenever presentation timeline metadata is produced, consumed, or interrupted.
+    failure: Fail closed on invalid timing and reject app-invented timeline identity.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-stream-plane
+  - id: rule.nimi.runtime.agent-participation.r041
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Agent voice output is policy gated per target
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Ordinary agent voice output is gated by Runtime-owned agent voice policy so text commit never by itself implies playable voice output, Desktop Agent Chat manual playback and Avatar autoplay are distinct playback targets where Runtime owns whether a target receives voice stream or playback projection and apps own only local rendering and playback controls, and missing or unhealthy speech route resolution keeps the turn text-only without emitting a fake playable voice request.
+    condition: Whenever agent voice output eligibility or targeting is decided.
+    failure: Reject ungated playable voice and fabricated playable requests.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-stream-plane
+  - id: rule.nimi.runtime.agent-participation.r042
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Voice stream projection carries positive axes
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: runtime.agent.presentation.voice_playback_requested and runtime.agent.presentation.voice_stream_chunk_available carry the positive voice_output_mode axis limited to native_stream, simulated_stream, batch_final_artifact, and text_only and the separate voice_playback_state axis limited to active, completed, failed, interrupted, and canceled as pinned in the voice enums table, consumers never infer native realtime from event shape, chunk presence, or an omitted boolean, failed, interrupted, and canceled are never encoded as voice_output_mode, native_stream requires playable non-final chunks projected before the final artifact, and simulated_stream payload-slice degradation is positively marked and never satisfies native realtime acceptance.
+    condition: Whenever agent voice stream projection is emitted or interpreted.
+    failure: Reject inferred realtime, mode-encoded failure, and unmarked simulated streams.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-stream-plane
+  - id: rule.nimi.runtime.agent-participation.r043
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Voice chunk custody and terminal semantics are fixed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Voice chunk bytes travel over the admitted typed SDK voice-stream transport as transient chunks, a per-chunk audio_artifact_id is a transient reference to playable chunk audio never reused for lipsync metadata and never implying a durable per-chunk retained artifact, raw audio bytes are never embedded in projection events, each chunk carries the committed assistant message_id in its detail payload, a completed voice stream materializes exactly one final durable audio artifact for replay and export that obeys the runtime artifact inline read cap while per-chunk durable artifacts require separately admitted retention authority, chunk sequence is monotonic per turn_id and stream_id, terminal interruption, cancel, or failure stops further chunk projection and is observable through the same stream identity as voice_playback_state interrupted, canceled, or failed while preserving the selected voice_output_mode, realtime session audio chunk messages belong to the realtime session service and are never the agent voice stream chunk field, and Avatar computes lipsync locally with Runtime never owning renderer mouth parameters.
+    condition: Whenever agent voice chunks stream, complete, or terminate.
+    failure: Reject embedded raw bytes, missing final artifacts, non-monotonic sequences, and post-terminal chunks.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-stream-plane
+  - id: rule.nimi.runtime.agent-participation.r044
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Avatar debug projection authority is Runtime owned
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime owns avatar debug probe request, result, and replay semantics whenever a probe is visible outside Avatar or participates in Desktop product diagnostics, extending the runtime-owned runtime.agent.* projection boundary without transferring APML wire ownership, Avatar backend execution, or Desktop product layout ownership to Runtime.
+    condition: Whenever avatar debug probes cross the Avatar boundary.
+    failure: Reject probe semantics owned outside Runtime and implied ownership transfer.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.avatar-debug-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r045
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Probe requests are typed and payload free
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Avatar debug probe requests are Runtime-owned typed envelopes carrying probe_id, agent_id, conversation_anchor_id, probe_kind, requested_at, and requested_by with optional turn_id, stream_id, avatar_instance_id, and runtime_replay_ref trace fields, probe_kind values are pinned in the avatar debug probe events table, Runtime validates authorization before a request is projected, and requests never carry package descriptors, package paths, raw APML, provider payloads, app data, tokens, or backend command strings.
+    condition: Whenever an avatar debug probe request is created or projected.
+    failure: Reject unauthorized projection and forbidden request payloads.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.avatar-debug-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r046
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Probe results are validated and closed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: SubmitAvatarDebugProbeResult is the only result submit path for Avatar-owned local backend evidence and submission never transfers semantic ownership to Avatar, Runtime validates agent identity, anchor identity, probe kind, status, permission scope, scoped binding attachment, evidence refs, and replay and audit projection before an envelope becomes the public diagnostic result, results carry probe_id, agent_id, probe_kind, status, observed_at, evidence_refs, and reason_code, status admits only passed, failed, unsupported, blocked, and invalid, passed requires concrete Runtime or Avatar evidence, unsupported, blocked, and invalid are terminal diagnostic outcomes, the latest accepted submitted result for a probe_id supersedes a provisional Runtime blocked result in snapshots and result lists, results never expose raw backend payloads or raw provider output, and Avatar backend facts appear only as evidence refs or schema-bound evidence summaries admitted by Avatar contracts.
+    condition: Whenever an avatar debug probe result is submitted or published.
+    failure: Reject unvalidated results, undeclared statuses, evidence-free passes, and raw payload exposure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.avatar-debug-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r047
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Debug replay keys and records are Runtime owned
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime owns avatar debug replay keys with the key set pinned in the avatar debug replay keys table, replay records preserve the request envelope id, result envelope id, authorization verdict, Runtime projection lineage, Avatar backend evidence refs, and redaction state, and Desktop may display replay links through SDK without reconstructing replay from local UI state.
+    condition: Whenever avatar debug replay is recorded or displayed.
+    failure: Reject records missing preserved keys and UI-local replay reconstruction.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.avatar-debug-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r048
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Debug projection families are typed extensions
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: App-facing avatar debug projection is limited to runtime.agent.avatar_debug.probe_requested, runtime.agent.avatar_debug.probe_result, and runtime.agent.avatar_debug.replay_linked pinned in the runtime agent event projection table, these families are Runtime debug and probe projection rather than public APML syntax, Avatar consumes them only through typed SDK or Runtime projection, and Desktop displays them only through typed SDK methods.
+    condition: Whenever avatar debug projection reaches app-facing consumers.
+    failure: Reject unpinned debug families and untyped consumption.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.avatar-debug-projection-plane
+  - id: definition.nimi.runtime.agent-participation.participation-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime agent participation plane
+    meaning: The Runtime agent participation plane owns participation execution semantics for contexts that are not always canonical one-to-one agent chat, including participation profile validation, typed context block admission, prompt assembly policy, output candidate schema, memory read and write verdicts, capability scope verdicts, the closed participation axis registry, and same-agent cross-profile concurrency admission.
+    relations: []
+  - id: definition.nimi.runtime.agent-participation.room-orchestration-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime room orchestration plane
+    meaning: The Runtime room orchestration plane owns horizontal same-room and same-session orchestration for multi-agent and external-participant contexts, including orchestration admission, trigger arbitration, turn ordering, fairness and starvation policy, per-room and per-agent budgets, cancellation and timeout policy, queue status projection posture, external participant admission posture, the closed room axis model and domain matrix, overlay limits, and commit-race handoff.
+    relations: []
+  - id: definition.nimi.runtime.agent-participation.companion-projection-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime companion participation projection plane
+    meaning: The Runtime companion participation projection plane owns the ref-and-status participation projection emitted to companion, desktop, SDK, and debug consumers, including the projection shape, the closed status vocabulary, the participation control surface, the raw payload exclusion boundary, refusal projection, and the presentation room overlay binding.
+    relations: []
+  - id: definition.nimi.runtime.agent-participation.ai-config-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime agent AI config plane
+    meaning: The Runtime agent AI config plane owns the committed agent-instance-scoped AI consume configuration, including the capability binding record shape, the alias-or-pinned binding union, revision and persistence semantics, readiness projection, turn admission binding, action affordance derivation, the config event seam, and bootstrap seeding.
+    relations: []
+  - id: definition.nimi.runtime.agent-participation.app-consume-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime agent app consume plane
+    meaning: The Runtime agent app consume plane owns the app-facing reactive chat consume seam, including the reserved runtime.agent transport target, ingress and projection family closure, the public chat session snapshot query, the third-party local app operation subset, and scoped binding attachment for binding-only consume modes.
+    relations: []
+  - id: definition.nimi.runtime.agent-participation.life-autonomy-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime agent life autonomy plane
+    meaning: The Runtime agent life autonomy plane owns life track execution and autonomy truth, including the runtime-private life loop and life turn executor, behavioral posture machine truth, replication event projection, proactive cadence ownership, the source and binding mutation event grammar, the narrow multi-agent delegation lifecycle boundary, turn and stream terminal coupling, the temporal-autonomy deferral boundary, and the world-shared memory admission boundary.
+    relations: []
+  - id: rule.nimi.runtime.agent-participation.r049
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Participation execution authority is Runtime owned
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime owns agent participation execution semantics for contexts that are not always canonical one-to-one agent chat, including participation profile validation, typed context block admission, prompt assembly policy for participation execution, AI consume and provider routing for participation execution, output candidate schema, memory read verdict, memory write verdict, capability scope verdict, audit and replay linkage, and same-agent cross-profile concurrency admission, and never owns Realm group thread, membership, message, read-state, sync, or commit truth, scenario package, run, branch, replay, or transcript truth, world state, event log, or product ontology, Desktop, Web, or Avatar UI state, or A2A or MCP protocol wire truth.
+    condition: Whenever an agent participates outside or alongside canonical agent chat.
+    failure: Reject participation semantics owned outside Runtime and domain truth absorbed into Runtime.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.participation-plane
+  - id: rule.nimi.runtime.agent-participation.r050
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Non-canonical participation output is candidate first
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Every participation profile except canonical agent chat is non-canonical by default, non-canonical output is returned as an output candidate and by default never writes memory, commits cognition, mutates Realm source-core, or becomes canonical chat history, and promotion into memory, cognition, Realm source-core, or canonical chat requires a separate explicit promotion authority.
+    condition: Whenever non-canonical participation output is produced or handled.
+    failure: Reject default durable writes and unpromoted canonical commitment of non-canonical output.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.participation-plane
+  - id: rule.nimi.runtime.agent-participation.r051
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Participation axis registry is closed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Participation axes are exactly the ten closed families transcript_owner, identity_source, execution_owner, memory_read_scope, memory_write_default, capability_scope, input_trust, output_destination, promotion_posture, and execution_concurrency, apps, SDKs, and product domains never submit open string axis values or domain-local axis extensions, and broadening the registry requires reopening participation axis authority through new admitted authority.
+    condition: Whenever participation axes are declared, consumed, or extended.
+    failure: Reject open axis values, unadmitted axes, and implicit registry broadening.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.participation-plane
+  - id: rule.nimi.runtime.agent-participation.r052
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Transcript owner axis values are fixed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: transcript_owner identifies the owner of transcript or event-log truth, admits only RUNTIME, REALM, SCENARIO_MODULE, OASIS_WORLD_DOMAIN, EXTERNAL_DOMAIN, and EPHEMERAL, and never implies execution owner.
+    condition: Whenever a participation transcript owner is declared or interpreted.
+    failure: Reject undeclared transcript owner values and execution ownership inferred from transcript ownership.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.participation-plane
+  - id: rule.nimi.runtime.agent-participation.r053
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Identity source axis values are fixed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: identity_source identifies the owner and meaning of the participant identity, admits only USER_OWNED_NIMI_AGENT, EXTERNAL_A2A_AGENT, MCP_BACKED_AI_CAPABILITY, SANDBOX_PROJECTION, and NPC_WORLD_ACTOR, and SANDBOX_PROJECTION as an admitted Nimi or user agent projected into a scenario role and NPC_WORLD_ACTOR as domain-owned actor truth are never aliases.
+    condition: Whenever a participant identity source is declared or interpreted.
+    failure: Reject undeclared identity sources and aliasing of sandbox projection with world actors.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.participation-plane
+  - id: rule.nimi.runtime.agent-participation.r054
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Execution owner axis values are fixed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: execution_owner identifies who assembles prompt and context and calls AI, admits only RUNTIME, EXTERNAL_RUNTIME_VIA_ADMITTED_GATEWAY, and NOT_ADMITTED, and external execution never transfers boundary ownership because Runtime retains gateway verdict, policy, audit, and output candidate semantics.
+    condition: Whenever a participation execution owner is declared or interpreted.
+    failure: Reject undeclared execution owners and boundary ownership transferred by external execution.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.participation-plane
+  - id: rule.nimi.runtime.agent-participation.r055
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Memory read scope axis values are fixed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: memory_read_scope identifies which memory may be loaded into participation execution context, admits only CANONICAL_OWNER_POLICY, DYADIC_PRIVATE_ALLOWED, DYADIC_PRIVATE_EXCLUDED, PUBLIC_SHARED_ONLY, DOMAIN_SHARED_ONLY, and NO_MEMORY_READ, and non-canonical participation profiles never read dyadic or private canonical memory by default.
+    condition: Whenever participation memory read scope is declared or applied.
+    failure: Reject undeclared read scopes and default dyadic or private reads on non-canonical profiles.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.participation-plane
+  - id: rule.nimi.runtime.agent-participation.r056
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Memory write default axis values are fixed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: memory_write_default identifies whether participation output may write durable agent truth by default, admits only CANONICAL_WRITE_ALLOWED, WRITE_NONE, and PROMOTION_GATED, and WRITE_NONE is the default for non-canonical profiles.
+    condition: Whenever participation memory write posture is declared or applied.
+    failure: Reject undeclared write defaults and non-canonical profiles defaulting to durable writes.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.participation-plane
+  - id: rule.nimi.runtime.agent-participation.r057
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Capability scope axis values are fixed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: capability_scope identifies which tools, files, delegated capabilities, Realm source-core mutations, paid or cloud operations, or provider access may be used, admits only CANONICAL_AGENT_SCOPE, PROFILE_LIMITED, DOMAIN_LIMITED, DIAGNOSTIC_READ_ONLY, EXTERNAL_GATEWAY_LIMITED, and NONE, and canonical agent chat capability grants never carry into non-canonical participation profiles by default.
+    condition: Whenever participation capability scope is declared or applied.
+    failure: Reject undeclared capability scopes and implicit canonical capability carryover.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.participation-plane
+  - id: rule.nimi.runtime.agent-participation.r058
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Input trust axis values are fixed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: input_trust identifies how prompt assembly ranks and isolates input, admits only TRUSTED_USER, UNTRUSTED_MULTI_PARTY_TRANSCRIPT, SANDBOX_SCRIPT, EXTERNAL_A2A_PAYLOAD, TOOL_PROVIDER_PAYLOAD, WORLD_CONTEXT, and DIAGNOSTIC_INPUT, and untrusted transcript and protocol payload content remains below Runtime system, policy, and profile instructions in prompt assembly.
+    condition: Whenever participation input trust is declared or prompt assembly ranks input.
+    failure: Reject undeclared trust classes and untrusted content ranked above Runtime instructions.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.participation-plane
+  - id: rule.nimi.runtime.agent-participation.r059
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Output destination axis values are fixed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: output_destination identifies where an output candidate may be committed, admits only CANONICAL_CHAT, REALM_GROUP_MESSAGE_CANDIDATE, SCENARIO_TURN_CANDIDATE, WORLD_EVENT_CANDIDATE, EXTERNAL_REPLY_CANDIDATE, DIAGNOSTIC_CANDIDATE, and EPHEMERAL, and a candidate destination never authorizes direct domain commit.
+    condition: Whenever a participation output destination is declared or a candidate is routed.
+    failure: Reject undeclared destinations and direct domain commit inferred from destination.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.participation-plane
+  - id: rule.nimi.runtime.agent-participation.r060
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Promotion posture axis values are fixed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: promotion_posture identifies whether and how non-canonical output may become durable agent truth, admits only NOT_ALLOWED, EXPLICIT_CANDIDATE, EXPLICIT_COMMIT_FLOW, and EXISTING_CANONICAL_POLICY, and promotion remains fail-closed until a later authority admits the promotion flow.
+    condition: Whenever promotion posture is declared or promotion is attempted.
+    failure: Reject undeclared postures and promotion executed without admitted flow authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.participation-plane
+  - id: rule.nimi.runtime.agent-participation.r061
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Execution concurrency axis values are fixed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: execution_concurrency identifies how simultaneous participation triggers for the same agent are admitted, admits only CANONICAL_CHAT_BUDGET, PER_AGENT_PARTICIPATION_QUEUE, PROFILE_ISOLATED_BUDGET, DOMAIN_TRIGGER_QUEUE, REJECT_WHILE_ACTIVE, GATEWAY_BUDGET_QUEUE, and LOW_PRIORITY_CANCELABLE, Runtime owns same-agent cross-profile queueing, cancellation, and budget admission with apps, Realm, scenario, world, external gateways, and debug surfaces never owning the decision, and the axis preserves existing chat, token budget, and cadence authority without creating a second chat track, life track, token budget, or cadence owner.
+    condition: Whenever simultaneous participation triggers for one agent are admitted.
+    failure: Reject undeclared concurrency values and concurrency decisions owned outside Runtime.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.participation-plane
+  - id: rule.nimi.runtime.agent-participation.r062
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Room orchestration authority is Runtime owned
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime owns one horizontal same-room and same-session orchestration authority covering orchestration admission, participant ordering, trigger arbitration, fairness and starvation policy, queueing policy, cancellation and timeout policy, per-room and per-agent budget arbitration, queue visibility and status projection posture, external participant admission posture, and commit-race handoff policy, and never owns Realm group thread, membership, message, read-state, sync, or commit truth, scenario package, run, branch, replay, transcript, or product truth, world state, event log, ontology, or product truth, external protocol wire truth, canonical chat transcript truth, or Desktop, Web, or Avatar UI truth.
+    condition: Whenever multi-agent or external participants share one room or session.
+    failure: Reject orchestration semantics owned outside Runtime and domain truth absorbed into orchestration.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.room-orchestration-plane
+  - id: rule.nimi.runtime.agent-participation.r063
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Room orchestration extends participation without reopening it
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Room orchestration extends and never reopens Runtime agent participation authority, participation prompt assembly and output candidates, participation profile and axis registries, execution concurrency admission, and memory, capability, promotion, and external-entry participation verdicts remain owned by the participation plane, and room orchestration adds no values to the participation axis, profile, or concurrency registries.
+    condition: Whenever room orchestration semantics touch participation authority.
+    failure: Reject participation registry values or verdict ownership introduced through room orchestration.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.room-orchestration-plane
+  - id: rule.nimi.runtime.agent-participation.r064
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Room orchestration axis model is closed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Room orchestration axes are exactly room_session_owner, participant_set_source, trigger_arbitration, turn_ordering, fairness_starvation_policy, budget_owner, queue_status_projection, cancellation_timeout_owner, external_participant_admission, and commit_race_handoff, each axis admits only runtime-owned closed values with room_session_owner limited to the runtime room orchestrator, participant_set_source limited to Realm group membership, scenario participant, world actor, avatar presentation, external gateway identity, and canonical chat anchor evidence, trigger arbitration, turn ordering, fairness, budget, status projection, and cancellation and timeout ownership limited to runtime-owned policy values, external_participant_admission limited to runtime gateway verdict required or not external, and commit_race_handoff limited to runtime candidate handoff with domain commit owner or no domain commit, and open string axis values, domain-local extensions, and new axes without new authority admission are not admitted.
+    condition: Whenever room orchestration axes are declared, consumed, or extended.
+    failure: Reject open axis values, unadmitted axes, and reopened participation axes.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.room-orchestration-plane
+  - id: rule.nimi.runtime.agent-participation.r065
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Room domain matrix is co-frozen and complete
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: The room orchestration domain matrix rows are exactly realm_group, scenario_sandbox, oasis_world, avatar_companion_presentation_room, external_entry_inside_room, and canonical_chat_adjacency, matrix columns match the closed axis model, every required cell names an owner, an allowed evidence source, a forbidden parallel truth, and a handoff or refusal posture, Runtime owns every orchestration cell with domain material admitted only as evidence refs, no required axis, row, column, or owner cell is deferred or marked as future work, and domain overlays refine presentation and evidence binding only after the matrix is closed.
+    condition: Whenever the room orchestration domain matrix is defined, consumed, or extended.
+    failure: Reject missing or deferred cells, unadmitted rows or columns, and overlay-first definitions.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.room-orchestration-plane
+  - id: rule.nimi.runtime.agent-participation.r066
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Room trigger classes and arbitration are fixed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Product domains may supply trigger evidence such as group message, scenario step, world event, avatar presentation event, external protocol signal, or canonical chat turn references without owning same-room arbitration, ordering, fairness, or starvation policy, admitted trigger classes are exactly canonical_user_turn, domain_script_or_step, external_protocol_signal, and avatar_presentation_event in fixed priority order with external protocol signals arbitrated only after gateway verdict, missing trigger evidence fails closed, conflicting trigger evidence is refused by Runtime until resolved before any participant acts, and unknown trigger classes fail closed.
+    condition: Whenever a room participation trigger is admitted or arbitrated.
+    failure: Fail closed on missing, conflicting, or unknown triggers and reject domain-owned arbitration.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.room-orchestration-plane
+  - id: rule.nimi.runtime.agent-participation.r067
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Room ordering and fairness are Runtime deterministic
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Room turn ordering uses the runtime deterministic queue with stable sort keys priority, room id, admitted time, participant ref, and trigger ref, app-local reordering is not admitted, fairness applies per-room round-robin with a runtime priority escape, starvation detection derives from queued age and participant progress with starved entries escalated or refused by Runtime, and domain fairness policy is not admitted.
+    condition: Whenever queued room participants are ordered or fairness is applied.
+    failure: Reject app-local reordering and domain fairness ownership and refuse silent starvation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.room-orchestration-plane
+  - id: rule.nimi.runtime.agent-participation.r068
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Room budgets, cancellation, and timeout are Runtime owned
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Every room composes per-room and per-agent budget admission with neither admitted without the other, external entry rows additionally compose a runtime-owned gateway budget, room budgets preserve existing token budget, execution concurrency, and concurrency policy authority, budget exhaustion returns a typed runtime refusal, cancellation reasons admit only user cancel, room closed, superseded turn, budget exhausted, timeout, gateway revoked, and policy refusal, a missing timeout policy fails closed, concrete numeric budget defaults are implementation or policy profile facts never first defined in an app, and Desktop, Web, Avatar, Realm, scenario, world, external-entry, and SDK surfaces never own room budget, fairness, queue, cancellation, timeout, or exhaustion decisions.
+    condition: Whenever room budgets, cancellation, or timeout are admitted or enforced.
+    failure: Reject domain-owned budget or cancellation authority and fail closed on missing timeout policy.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.room-orchestration-plane
+  - id: rule.nimi.runtime.agent-participation.r069
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Room status projects through runtime agent families only
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Room orchestration status uses existing runtime.agent.* projection authority extended through the pinned runtime agent event projection table, admitted room status facts are exactly admitted, queued, running, canceled, timed_out, refused, candidate_ready, and handed_off as projection facts only, a public runtime.orchestration.* status namespace is not admitted, and status projection creates no transcript truth, commit truth, protocol truth, or UI state truth.
+    condition: Whenever room orchestration status is projected or consumed.
+    failure: Reject undeclared status facts and any public orchestration status namespace.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.room-orchestration-plane
+  - id: rule.nimi.runtime.agent-participation.r070
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: External room entry requires gateway verdict posture
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: External participants enter a room only through runtime gateway verdict posture with gateway verdict, credential custody evidence, consent, audit lineage, and firewall posture when protocol execution occurs all required, and protocol-native readiness, remote agent state, tool availability, or provider metadata remains evidence only and never admits a participant by itself.
+    condition: Whenever an external participant seeks room entry.
+    failure: Fail closed on missing verdict, custody, consent, firewall posture, or audit lineage.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.room-orchestration-plane
+  - id: rule.nimi.runtime.agent-participation.r071
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Room candidates hand off to domain commit owners
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime room orchestration produces output candidates and handoff verdicts and owns commit-race handoff ordering and refusal posture when multiple participants produce candidates for the same room, and never directly commits domain truth because Realm owns group transcript and message commit, scenario owns scenario transcript, run, branch, and replay truth, the world domain owns world state, event log, and ontology truth, canonical chat authority owns canonical chat history, and external domain owners own external protocol and domain truth.
+    condition: Whenever room output candidates approach domain commit.
+    failure: Reject Runtime direct domain commits and uncontrolled commit races.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.room-orchestration-plane
+  - id: rule.nimi.runtime.agent-participation.r072
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Room domain overlays refine and never define
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Registered domain overlays bind product evidence, display and projection guidance, refusal posture, and future packet references to existing matrix rows only after the base matrix is closed, and never add or redefine matrix rows, columns, axes, owner cells, private schedulers, app-local room queues, budget, cancellation, timeout, fairness, or starvation policy, gateway bypasses for external participants, direct Runtime domain commits, or a split public orchestration status namespace.
+    condition: Whenever a room orchestration domain overlay is authored or applied.
+    failure: Reject overlay first-definitions and overlay-owned orchestration policy.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.room-orchestration-plane
+  - id: rule.nimi.runtime.agent-participation.r073
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Room orchestration antipatterns fail closed
+    modality: must_not
+    scope:
+      - runtime.agent-participation
+    statement: An app-local room queue serves as steady-state authority, a domain, app, or SDK surface owns room ordering, fairness, budget, cancellation, or timeout, Runtime directly commits Realm group, scenario, world, canonical chat, or external domain truth, an external participant enters a room on protocol readiness alone, a new participation profile, axis, or concurrency value arises by implication, public orchestration status truth leaves the runtime.agent.* families, or an overlay first-defines an axis, row, column, or owner cell.
+    condition: Whenever room orchestration is implemented or consumed.
+    failure: Fail closed on the antipattern instead of degrading orchestration authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.room-orchestration-plane
+  - id: rule.nimi.runtime.agent-participation.r074
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Companion projection ownership is Runtime held
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime owns CompanionParticipationProjection as the participation status projection for companion, desktop, SDK, and debug consumers, apps and SDKs may render or transport it without reinterpreting it as execution, queue, memory, or commit truth, RuntimeAgentService exposes the projection and control boundary through exactly GetCompanionParticipationProjection, RequestCompanionParticipation, CancelCompanionParticipation, and OpenCompanionParticipationReplay as the canonical product-code entrypoint that may bridge to canonical runtime chat execution, and consumer surface admission and desktop companion panel rendering remain under their own admitted authority without this plane rewriting them.
+    condition: Whenever companion participation status is projected or controlled.
+    failure: Reject projection semantics owned outside Runtime and undeclared control methods.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.companion-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r075
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Companion projection shape is ref and status only
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Every companion participation projection includes projection_id, agent_id, surface_kind, profile_ref, trigger_source, status, and audit_ref, domain or multi-participant contexts additionally include room_orchestration_ref, and execution outcomes use candidate_ref, commit_ref, and refusal_reason instead of embedding raw prompt, raw APML, raw domain payload, or provider output.
+    condition: Whenever a companion participation projection is emitted.
+    failure: Reject projections missing required fields or embedding raw payloads.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.companion-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r076
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Companion status vocabulary is closed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Companion participation status admits only idle, admission_pending, blocked, running, candidate_ready, committed_by_owner, failed, and canceled, and unknown status values fail closed at SDK and app consumers.
+    condition: Whenever companion participation status is projected or consumed.
+    failure: Fail closed on unknown status values instead of best-effort display.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.companion-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r077
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Companion candidate and commit stay separated
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: candidate_ready means Runtime produced a candidate and never authorizes domain commit, canonical chat commit, memory write, cognition write, or Realm source-core mutation, and committed_by_owner is projected only after the owning domain or canonical chat authority reports a typed commit reference.
+    condition: Whenever companion candidate or commit status is projected.
+    failure: Reject commit status without a typed owner commit reference.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.companion-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r078
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Companion trigger sources are causes only
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Companion trigger sources user_explicit, scheduled_proactive, and domain_event are causes rather than authority grants and pass through Runtime participation admission and room or session orchestration when applicable.
+    condition: Whenever a companion participation trigger is handled.
+    failure: Reject trigger-source bypass of participation admission or orchestration.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.companion-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r079
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Companion projection excludes raw payloads
+    modality: must_not
+    scope:
+      - runtime.agent-participation
+    statement: Runtime exposes raw prompt blobs, raw APML or debug payloads, provider request or response payloads, MCP or A2A protocol payloads, memory material, or domain state blobs through the companion projection, or echoes bounded user-authored control text accepted for a user-explicit turn, generated APML, provider payloads, or model output through CompanionParticipationProjection, replay refs, audit refs, candidate refs, or commit refs instead of converting that text into canonical runtime-owned chat execution.
+    condition: Whenever companion projection, replay, or ref content is assembled.
+    failure: Reject the exposure and keep the projection ref and status only.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.companion-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r080
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Companion refusal projects typed and honest
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime refusal, missing domain evidence, invalid room orchestration, budget denial, cancellation, policy denial, and profile mismatch project as blocked, failed, or canceled with a typed refusal_reason, and apps never turn refusals into synthetic candidates.
+    condition: Whenever companion participation does not succeed.
+    failure: Reject untyped refusals and synthetic candidate fabrication.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.companion-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r081
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Companion presentation overlay stays projection only
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: The avatar companion presentation room overlay is a projection overlay bound to the closed room orchestration matrix and creates no new participation profile and no new execution owner.
+    condition: Whenever the companion presentation overlay is applied.
+    failure: Reject profile or execution ownership introduced through the overlay.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.companion-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r082
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Agent AI config authority home is fixed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: RuntimeAgentService owns Runtime agent AI config as one runtime-owned agent-instance-scoped committed AI consume configuration deciding which binding the local agent uses per capability, the admitted capability set is exactly text.generate, text.embed, image.generate, audio.synthesize, audio.transcribe, voice_workflow.voice_clone, and voice_workflow.voice_design with the agent.work.* namespace reserved for future admission, Runtime owns config mutation admission, validation, revisioning, change event emission, and readiness projection derived from the committed config, and never owns provider and model routing execution, connector custody, key-source legality, model catalog truth, or desktop portable AI profile configuration authority for non-agent app AI consume.
+    condition: Whenever agent AI consume bindings are defined or resolved.
+    failure: Reject undeclared capabilities and config authority owned outside Runtime.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.ai-config-plane
+  - id: rule.nimi.runtime.agent-participation.r083
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: One committed AI config per agent instance
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Exactly one committed Runtime agent AI config exists per Runtime local agent instance, all first-party and binding-only consumers read and mutate that record through the admitted RuntimeAgentService RPC surface, apps, SDKs, hosts, and cognition bridges never persist a parallel copy of agent AI consume truth, re-derive it from app AI config overlays at submit time, or carry it as per-turn request payload, and the config is agent-domain committed state never a runtime-global active AI profile.
+    condition: Whenever agent AI consume truth is stored, read, or mutated.
+    failure: Reject parallel copies, overlay re-derivation, per-turn carriage, and global-profile reinterpretation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.ai-config-plane
+  - id: rule.nimi.runtime.agent-participation.r084
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: AI config bindings are alias or pinned
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Each capability binding is an alias-or-pinned union where alias bindings reference only the admitted default target families local/default, local/default-embedding, cloud/default, and the capability-specific local defaults, pinned bindings reference a concrete v2 durable target ref or another spec-admitted typed binding reference, descriptor or evidence fields forbidden on the runtime-facing descriptor boundary are rejected fail-closed, agent-center fixed checkboxes are pure projection of alias-versus-pinned state with no persisted boolean field, and product UI pinning restrictions for the local route and text.embed remain presentation facts that never change the config record shape.
+    condition: Whenever an AI config binding value is written or validated.
+    failure: Reject unadmitted alias families, non-durable pinned refs, and forbidden descriptor fields.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.ai-config-plane
+  - id: rule.nimi.runtime.agent-participation.r085
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: AI config record shape and scopes are closed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: The committed config record carries exactly agent_instance_id, revision, intents, updated_at, and the mutating app id, each intent carries capability, binding, and route policy with only admitted optional references, derived runtime state, readiness, provider health, credential material, and subject identity fields never enter the record, mutation requires the runtime.agent.ai_config.write scope and read requires the runtime.agent.ai_config.read scope or an admitted first-party host equivalence, and platform registry scopes are not a substitute.
+    condition: Whenever the config record is stored, validated, or accessed.
+    failure: Reject undeclared record fields, derived-state smuggling, and unauthorized access.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.ai-config-plane
+  - id: rule.nimi.runtime.agent-participation.r086
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: AI config revisions commit atomically
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: The committed config carries agent instance identity, a monotonic revision, the mutating app id, and the commit timestamp, every successful mutation increments the revision by exactly one and commits atomically through the runtime persistence write path, mutation requests carry an expected revision whose mismatch is a typed concurrent-modification rejection never a silent last-writer win, the committed config survives daemon restart with readiness recomputed rather than restored as stale truth, every mutation emits an observable config-changed event before or together with the first read reflecting it, and config mutation and its evidence enter the audit trail.
+    condition: Whenever the agent AI config is mutated or recovered.
+    failure: Reject non-atomic commits, silent overwrite, hidden mutation, and stale readiness restoration.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.ai-config-plane
+  - id: rule.nimi.runtime.agent-participation.r087
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: AI config readiness is a typed projection
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Per-capability readiness is exactly one of ready, not_configured, and unavailable with typed reason codes limited to route_unhealthy, connector_missing, model_missing, target_missing, probe_failed, embedding_profile_unavailable, voice_reference_missing, voice_workflow_unavailable, and image_route_unavailable, not_configured for a missing committed binding and unavailable for a committed binding whose route is currently unusable are distinct truths never collapsed, readiness recomputes at daemon start, on every config mutation, on default alias target changes, and on provider or route health change evidence rather than a startup-only probe, readiness carries the config revision and probe timestamps so consumers detect staleness without caching readiness as their own truth, and readiness success never admits an action, validates a prompt payload, or replaces explicit profile prepare because execution-time enforcement remains fail-closed.
+    condition: Whenever AI config readiness is computed or consumed.
+    failure: Reject collapsed readiness truths, never-refreshed probes, and readiness used as an execution gate.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.ai-config-plane
+  - id: rule.nimi.runtime.agent-participation.r088
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Turn admission binds committed AI config only
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Agent turn execution resolves AI consume bindings from the committed Runtime agent AI config at turn admission time, request-carried execution bindings, runtime fields, app AI config, or provider and model payloads are rejected with a typed invalid-argument failure, turn admission fixes the resolved bindings and config revision into the turn execution snapshot so an in-flight mutation affects only the next turn, an alias-bound capability snapshot records the alias name, the resolved target ref, and the config revision so a default-target mutation affects alias-bound agents on their next turn and never pinned agents, and conversation anchors never own binding truth because the anchor-committed sticky binding rule is retired.
+    condition: Whenever an agent turn is admitted.
+    failure: Reject request-carried binding truth and anchor-owned bindings with typed failures.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.ai-config-plane
+  - id: rule.nimi.runtime.agent-participation.r089
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: All agent executors share the committed text binding
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Chat track public turns, life track, canonical review, chat-track sidecar, and companion participation executors consume the same committed Runtime agent AI config text.generate binding, runtime-private hardcoded model constants are not admitted as execution binding truth, and a missing required text.generate binding at admission is a typed fail-closed rejection never a silent fallback to another route.
+    condition: Whenever any runtime agent executor resolves its model binding.
+    failure: Fail closed on missing bindings and reject hardcoded or per-executor binding truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.ai-config-plane
+  - id: rule.nimi.runtime.agent-participation.r090
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Action affordances derive from config and readiness
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: The action affordances offered to the model on a turn derive from committed AI config presence plus readiness never from caller-attached material, image action availability is a tri-state of available, not_configured, and unavailable derived at admission, the model-facing output contract states the matching truth for non-available states, planned actions whose capability is unavailable fail as typed action-failed events with reason codes limited to image_binding_missing, image_route_unhealthy, image_execution_failed, voice_binding_missing, voice_route_unhealthy, voice_execution_failed, embedding_binding_missing, embedding_route_unhealthy, and embedding_execution_failed rather than silent drop or pseudo-success, voice generation, voice workflow, and embedding-dependent actions follow the same config-plus-readiness rule with apps rendering Runtime projections only, and apps map typed reasons to product copy without re-deriving availability from app-local route state.
+    condition: Whenever turn action affordances are derived or actions fail.
+    failure: Reject caller-derived affordances, misstated availability, and silent action drops.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.ai-config-plane
+  - id: rule.nimi.runtime.agent-participation.r091
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: AI config event seam is dedicated and clean
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Config and readiness changes reach apps only through the dedicated runtime-owned subscription seam whose event families are exactly the config changed and readiness changed families, the subscription delivers an initial snapshot followed by change events carrying the config revision, the seam is domain-scoped so agent-scoped agent event envelopes are never widened to carry domain config events, subscription requires the same read authority as config read, and events never leak connector secrets, key material, or runtime-private descriptor evidence.
+    condition: Whenever AI config change events are subscribed or delivered.
+    failure: Reject widened envelopes, unauthorized subscription, and secret leakage.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.ai-config-plane
+  - id: rule.nimi.runtime.agent-participation.r092
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: AI config seeds once and never falls back
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime seeds the agent AI config exactly once for a Runtime local agent instance when no committed record exists, the seed commits text.generate bound to the runtime-owned local default alias and text.embed bound to the runtime-owned local embedding default, optional image, audio, and voice workflow capabilities stay absent as not_configured until explicitly configured, seeding is a normal committed mutation producing revision one, an audit record, and a change event, a missing config row after seeding is an internal fail-closed error with turn-time silent fallback to bundled defaults not admitted, and the seed never overwrites an existing committed config including after daemon upgrade or restart.
+    condition: Whenever agent AI config seeding runs or a config row is missing.
+    failure: Fail closed on missing rows and reject overwriting seeds and silent fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.ai-config-plane
+  - id: rule.nimi.runtime.agent-participation.r093
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Reactive consume seam and families are closed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: RuntimeAgentService owns one admitted app-facing reactive chat consume seam whose canonical transport target is the reserved runtime.agent app target acting as carrier only, admitted ingress families on that target are exactly runtime.agent.turn.request and runtime.agent.turn.interrupt, projection on that target is limited to the admitted runtime.agent.turn.* families pinned in the runtime agent event projection table, full public chat session snapshot is a query through GetPublicChatSessionSnapshot never an app-message request and reply pair, steady-state runtime.agent.* lifecycle, state, memory, admin, and read RPC projection is never restated as a second reactive-chat app-message family, semantic ownership of turn and session truth remains on RuntimeAgentService, and the reserved app target is never exposed as a generic message bus.
+    condition: Whenever the app-facing reactive chat seam is defined or consumed.
+    failure: Reject undeclared ingress or projection families and generic bus exposure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.app-consume-plane
+  - id: rule.nimi.runtime.agent-participation.r094
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Hosts consume runtime chat truth through the seam
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Host surfaces consume runtime-owned session, turn, and stream truth through the admitted seam rather than reconstructing shadow chat orchestration, provider-native sidecar parsing, or provider-native transcript truth locally, bind or recover the appropriate conversation anchor explicitly through the runtime-owned anchor open and recovery surface before sending a turn request with app-local guessed anchor ids never admitted as continuity truth, treat typed chat-sidecar and structured projection as runtime-owned semantic output that may be rendered or acted on but never re-derived from raw provider output, and keep transport authorization and subscription posture on the admitted app-messaging path while query surfaces stay on RuntimeAgentService unary RPCs.
+    condition: Whenever a host surface consumes reactive agent chat.
+    failure: Reject shadow orchestration, guessed anchors, and provider-derived canonical truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.app-consume-plane
+  - id: rule.nimi.runtime.agent-participation.r095
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Third-party local apps reach a typed subset
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: A third-party local app reaches only open-conversation, send-turn, subscribe-turn, and conversation-snapshot operations through the common protected local-app carrier, presents no portable credential because the protected transport resolves its current process-bound local-app session, is admitted to a protected agent operation only after the agents.interact permission resolves through its owner-issued selector, current permission decision, and exact agent and conversation policy with all such calls typed unavailable while the permission remains reserved, Runtime maps those typed operations into the canonical seam only after the admitted local-app authorization decision, and the local-app principal remains only the caller, access, and audit subject never a substitute for agent identity, conversation anchor, agent ownership, memory ownership, or subject user identity.
+    condition: Whenever a third-party local app consumes agent conversation operations.
+    failure: Reject out-of-subset operations and principal substitution with typed unavailable or permission status.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.app-consume-plane
+  - id: rule.nimi.runtime.agent-participation.r096
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Binding-only consume attaches scoped bindings
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Explicit binding-only first-party consume modes attach a runtime-issued scoped binding attachment carrying at least the binding id to every app-facing reactive consume operation, covering turn request and interrupt carried over the app service, app-message subscriptions consuming turn or presentation projections, the public chat session snapshot query, and agent event subscriptions merging state, hook, or presentation-adjacent projections, while default local first-party Avatar launch is not binding-only, consumes through admitted first-party Runtime and SDK account and agent authorization paths, and is never forced through the attachment path solely because Desktop launched it.
+    condition: Whenever a binding-only consume operation is issued.
+    failure: Reject binding-only operations without the scoped binding attachment.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.app-consume-plane
+  - id: rule.nimi.runtime.agent-participation.r097
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Scoped binding validation fails closed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime validates every scoped binding attachment against the binding relation including runtime app identity, app or window relation where available, avatar instance identity where available, agent identity, conversation anchor for anchor-scoped surfaces, optional world identity, required scope, state, expiry, and current authenticated account state, missing, revoked, expired, stale, suspended, superseded, replayed, relation-mismatched, scope-mismatched, or account-non-authenticated bindings fail closed with typed unavailable or permission status, and subject user identity remains available for unrelated web, cloud, or external-principal paths while never serving as scoped binding proof.
+    condition: Whenever a scoped binding attachment is validated.
+    failure: Fail closed with typed status instead of admitting an invalid binding.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.app-consume-plane
+  - id: rule.nimi.runtime.agent-participation.r098
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: World-shared admission stays typed and closed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: RuntimeAgentService admits world-shared canonical memory only when runtime-owned world context is sufficiently typed for the bank owner contract, admission requires explicit world identity truth matching the world-shared bank owner shape, Runtime never infers an extra owner dimension from account, app, or renderer-local context, world-shared query and write behavior remains fail-closed inside Runtime while runtime-owned world context is not yet admitted on this path, and deferring world-shared on the runtime path authorizes no app, SDK, or Realm bypasses for canonical agent writes.
+    condition: Whenever world-shared canonical memory is admitted, queried, or written.
+    failure: Fail closed on missing typed world context and reject bypass writes.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.life-autonomy-plane
+  - id: rule.nimi.runtime.agent-participation.r099
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Life track loop is runtime private and honest
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: RuntimeAgentService owns the internal life track execution loop as a runtime-private lifecycle rather than an app-facing RPC surface, the loop scans committed hook store truth rather than caller-provided snapshots, due-hook execution emits outcomes and events through the same committed hook store and committed event log path used by public read surfaces, the loop starts and stops with daemon lifecycle so shutdown leaves no hidden background execution, due hooks fail closed with explicit terminal rejection or failure while no concrete life track executor is admitted, and host-owned trigger admission remains authoritative with non-admitted trigger timing never synthesized into immediate execution.
+    condition: Whenever the life track loop schedules or executes due hooks.
+    failure: Reject hidden execution, snapshot-driven scans, and synthesized trigger timing.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.life-autonomy-plane
+  - id: rule.nimi.runtime.agent-participation.r100
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Life turn executor is bounded and validated
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: RuntimeAgentService may execute life track turns through an in-process runtime-private executor while owning hook gate and scheduler truth, admitted life turn input assembly, canonical memory admission and write projection, status projection mutation, budget accounting, and committed event emission with the AI layer supplying model execution only, the admitted life turn request includes the committed agent record, the committed agent state projection, the triggering pending hook, the admitted canonical recall set, and the autonomy snapshot, the admitted life turn result is limited to a status text diff, posture patch, emotion update, canonical memory candidates, typed hook intent, summary, and token usage carried on the admitted private life-turn output wire, the executor never admits arbitrary attribute mutation, free-form hook logic, direct world or user state mutation, or proactive app-facing initiate-chat semantics, canonical memory candidates still pass runtime-owned canonical class and bank-scope admission before memory writes occur, returned hook intents still pass the same runtime-owned validator and admission path used elsewhere, and invalid executor output fails closed with observable terminal hook failure rather than implicit completion or silent drop.
+    condition: Whenever a runtime-private life turn executes.
+    failure: Fail closed on invalid executor output and reject out-of-boundary executor effects.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.life-autonomy-plane
+  - id: rule.nimi.runtime.agent-participation.r101
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Replication events derive from committed sources
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Agent replication events project from the committed retained runtime-private memory replication update source rather than immediate write-result decoration or snapshot inference, only canonical bank scopes admitted on the public path project with infra-scope memory banks never synthesizing canonical agent replication events, agent-core and agent-dyadic replication updates project to the owning agent identity, world-shared replication updates project to agents whose committed active world identity matches the world-scoped bank owner, and cursor replay and live subscription observe the same replication event ordering as the committed memory replication source after projection commit.
+    condition: Whenever agent replication events are projected or replayed.
+    failure: Reject decorated, inferred, or misordered replication projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.life-autonomy-plane
+  - id: rule.nimi.runtime.agent-participation.r102
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Behavioral posture is runtime-private machine truth
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: RuntimeAgentService owns behavioral posture as runtime-private machine truth for live agent execution covering committed posture state, posture validation, truth-basis binding, chat-track and life-track posture transitions, and projection into human-readable state text, posture remains distinct from the status text projection which is never the authoritative posture state, posture truth retains explicit linkage to the admitted truth ids constraining it when such linkage is present, chat-track and life-track outputs propose posture mutation only through admitted runtime-private typed contracts validated by RuntimeAgentService, invalid posture output fails closed rather than silently mutating committed state, and only the narrower read-only posture projection crosses the public surface.
+    condition: Whenever behavioral posture is stored, mutated, or projected.
+    failure: Reject silent posture mutation and posture machine truth leaking publicly.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.life-autonomy-plane
+  - id: rule.nimi.runtime.agent-participation.r103
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Proactive cadence is opt-in scheduler truth
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: RuntimeAgentService owns proactive life track cadence as runtime-owned scheduler truth covering explicit opt-in autonomy mode, baseline cadence tick policy, host-owned reconciliation between cadence tick and typed hook intent timing, hook cadence-interaction semantics for long-running hooks, and spacing, suspension, and budget gates applied after cadence selection, proactive execution remains explicit opt-in and default off, the admitted autonomy mode family is bounded to off, low, medium, and high unless a later rule admits a wider family, cadence and quota remain distinct with token budget never primary frequency truth, typed hook intents may request callback timing while host runtime remains the only owner of effective next-run computation, hook cadence interaction stays typed rather than a freeform boolean or scheduler blob, long-running hook suppression delays the baseline tick only through admitted typed semantics, the minimum hook interval or its admitted successor remains a hard lower-bound spacing gate after reconciliation, chat track remains reactive and available regardless of cadence mode, and Runtime never owns desktop preset truth, renderer-local scheduling, or provider-owned scheduling.
+    condition: Whenever proactive cadence is configured, reconciled, or executed.
+    failure: Reject default-on autonomy, unbounded modes, and cadence truth owned outside Runtime.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.life-autonomy-plane
+  - id: rule.nimi.runtime.agent-participation.r104
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Source and binding mutations commit as events
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: RuntimeAgentService owns the durable mutation-event grammar for account-scoped source and profile truth and runtime binding truth, committed mutation events cover account agent source revisions and runtime agent bindings with replay-visible revision expectation, conflict posture, forceful replacement, and binding cutover outcomes, mutations never exist only as protocol traffic or host-local narrative reason text, expected revision, conflict, and forceful replacement semantics stay reconstructable through committed mutation events and replay, free-form reason text remains auxiliary audit context never the sole durable mutation truth, and the grammar admission does not by itself finalize a public RPC taxonomy, full wire-format lock-in, or one conflict-resolution algorithm.
+    condition: Whenever account agent source, profile, or runtime binding truth mutates.
+    failure: Reject mutations without committed events and narrative-only mutation truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.life-autonomy-plane
+  - id: rule.nimi.runtime.agent-participation.r105
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Multi-agent delegation claim stays narrow
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: RuntimeAgentService admits a narrow multi-agent claim centered on durable delegation lifecycle, supervisor accountability, scheduler attribution and coordination visibility, and runtime-visible delegation identity and recovery semantics, delegation never mints new principal authority by itself, delegated on-behalf-of authority minting, grant attenuation rules, approval inheritance, and delegated secret-scope semantics remain unadmitted, worker-side externally governed effects remain constrained by ordinary principal, capability, approval, and trust gates, and any future delegated-authority model lands only through separately admitted authority rather than inference from delegation existence.
+    condition: Whenever agent-to-agent delegation semantics are claimed or extended.
+    failure: Reject implied delegated authority and unadmitted trust-model widening.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.life-autonomy-plane
+  - id: rule.nimi.runtime.agent-participation.r106
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Turn and stream terminal coupling is enforced
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: One turn may own multiple stream units, a turn never enters completed while its owned foreground response streams remain in non-terminal live state, turn interruption or abandonment propagates interrupt or terminal semantics onto its still-live owned streams, and a stream outlives one turn only when its longer-running activity anchor is explicit and replayable.
+    condition: Whenever turn and stream lifecycles couple or terminate.
+    failure: Reject completed turns with live streams and unanchored outliving streams.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.life-autonomy-plane
+  - id: rule.nimi.runtime.agent-participation.r107
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Temporal autonomy stays deferred
+    modality: must_not
+    scope:
+      - runtime.agent-participation
+    statement: Timer, deadline, wakeup, appointment, or alarm-style temporal-autonomy objects are admitted as canonical runtime truth, spec or implementation implies such truth without a later dedicated admission, the narrow hook intent surface grows into a general temporal object model beyond relative delay and event-triggered follow-up continuation, or proactive cadence ownership is read as a full time-driven assistant object model.
+    condition: Whenever temporal-autonomy semantics are proposed or interpreted.
+    failure: Reject the temporal object model and keep the scheduler, budget, lease, cadence, and hook baseline.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.life-autonomy-plane
+  - id: definition.nimi.runtime.agent-participation.profile-registry-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime participation profile registry plane
+    meaning: The Runtime participation profile registry plane owns the closed participation profile registry and per-profile axis composition truth, including the six admitted profile kinds, the fixed per-profile axis posture, the typed context block registry, the output candidate schema, and the per-destination commit owner separation.
+    relations: []
+  - id: definition.nimi.runtime.agent-participation.external-entry-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime participation external entry plane
+    meaning: The Runtime participation external entry plane owns the Runtime participation view over external protocol entry, including the closed external entry boundary matrix, the delegated MCP evidence posture, the A2A future seam posture, the external principal writeback boundary, the ordered external gateway chain, and the external protocol client boundary.
+    relations: []
+  - id: definition.nimi.runtime.agent-participation.domain-seam-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime participation domain seam plane
+    meaning: The Runtime participation domain seam plane owns the closed domain future-consumer seam matrix for world and scenario participation, including per-seam typed context admission, domain truth separation, product implementation gates, and pre-promotion write prohibitions.
+    relations: []
+  - id: definition.nimi.runtime.agent-participation.promotion-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime participation promotion plane
+    meaning: The Runtime participation promotion plane owns explicit candidate promotion boundaries from participation output into durable truth, including the closed promotion target registry, per-target source profile admission, required promotion evidence, and fail-closed promotion invariants.
+    relations: []
+  - id: definition.nimi.runtime.agent-participation.realm-group-consumer-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime realm group participation consumer plane
+    meaning: The Runtime realm group participation consumer plane owns the Runtime-side consumer binding for Realm group agent participation, including profile reuse, typed Realm group context admission, candidate output lineage, inherited participation policy, room orchestration binding, and the consumer fail-closed boundary.
+    relations: []
+  - id: rule.nimi.runtime.agent-participation.r108
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Participation profile registry is closed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Participation profile kinds are exactly canonical_agent_chat, realm_group_source, scenario_sandbox, oasis_world_participation, external_agent_entry, and debug_or_probe as pinned in the participation profiles table, each profile is a fixed composition over the closed participation axes rather than a product-local lane name, apps, SDKs, and product domains never extend profile kinds as open strings, an external agent never defaults into the canonical agent chat profile, SANDBOX_PROJECTION identity never aliases NPC_WORLD_ACTOR through profile composition, and canonical agent chat capability grants never carry into another profile through composition defaults.
+    condition: Whenever a participation profile is declared, selected, or composed.
+    failure: Reject unadmitted profile kinds, open-string extension, and forbidden composition defaults.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.profile-registry-plane
+  - id: rule.nimi.runtime.agent-participation.r109
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Canonical chat profile is a reference composition
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: The canonical_agent_chat profile composes RUNTIME transcript ownership, USER_OWNED_NIMI_AGENT identity, RUNTIME execution, CANONICAL_OWNER_POLICY memory read, CANONICAL_WRITE_ALLOWED memory write, CANONICAL_AGENT_SCOPE capability, TRUSTED_USER input trust, CANONICAL_CHAT output destination, EXISTING_CANONICAL_POLICY promotion posture, and CANONICAL_CHAT_BUDGET concurrency, and references existing RuntimeAgentService authority without rewriting canonical conversation anchors, chat track and life track separation, token budget authority, life track cadence authority, or admitted canonical memory policy.
+    condition: Whenever the canonical agent chat profile is composed or consumed.
+    failure: Reject canonical profile compositions that deviate from the fixed posture or rewrite referenced authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.profile-registry-plane
+  - id: rule.nimi.runtime.agent-participation.r110
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Realm group source profile posture is fixed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: The realm_group_source profile represents a Runtime-executed agent reply candidate for a Realm group transcript and composes REALM transcript ownership, USER_OWNED_NIMI_AGENT identity, RUNTIME execution by default, DYADIC_PRIVATE_EXCLUDED memory read, WRITE_NONE memory write, PROFILE_LIMITED capability scope, UNTRUSTED_MULTI_PARTY_TRANSCRIPT input trust, REALM_GROUP_MESSAGE_CANDIDATE output destination, EXPLICIT_CANDIDATE promotion posture, and PER_AGENT_PARTICIPATION_QUEUE concurrency, and Runtime never directly commits Realm group messages because Realm-authenticated commit and anti-spoof validation remain Realm-owned product truth.
+    condition: Whenever the realm group source profile is composed or executed.
+    failure: Reject deviating compositions and direct Runtime group commits.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.profile-registry-plane
+  - id: rule.nimi.runtime.agent-participation.r111
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Domain future profiles compose future-consumer posture
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: scenario_sandbox composes SCENARIO_MODULE transcript ownership, SANDBOX_PROJECTION identity, RUNTIME execution, DOMAIN_SHARED_ONLY memory read, WRITE_NONE memory write, DOMAIN_LIMITED capability scope, SANDBOX_SCRIPT input trust, SCENARIO_TURN_CANDIDATE output destination, EXPLICIT_CANDIDATE promotion posture, and DOMAIN_TRIGGER_QUEUE concurrency, oasis_world_participation composes OASIS_WORLD_DOMAIN transcript ownership, NPC_WORLD_ACTOR identity, RUNTIME execution, DOMAIN_SHARED_ONLY memory read, WRITE_NONE memory write, DOMAIN_LIMITED capability scope, WORLD_CONTEXT input trust, WORLD_EVENT_CANDIDATE output destination, EXPLICIT_CANDIDATE promotion posture, and DOMAIN_TRIGGER_QUEUE concurrency, and both remain future-consumer profiles that admit no scenario or world product ontology, package truth, prompt language, or implementation.
+    condition: Whenever a domain future-consumer profile is composed or consumed.
+    failure: Reject deviating compositions and product ontology admission through these profiles.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.profile-registry-plane
+  - id: rule.nimi.runtime.agent-participation.r112
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: External agent entry profile posture is fixed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: The external_agent_entry profile represents an external participant normalized through the Runtime boundary and composes EXTERNAL_DOMAIN transcript ownership, EXTERNAL_A2A_AGENT or MCP_BACKED_AI_CAPABILITY identity, EXTERNAL_RUNTIME_VIA_ADMITTED_GATEWAY execution, NO_MEMORY_READ memory read, WRITE_NONE memory write, EXTERNAL_GATEWAY_LIMITED capability scope, EXTERNAL_A2A_PAYLOAD or TOOL_PROVIDER_PAYLOAD input trust, EXTERNAL_REPLY_CANDIDATE output destination, NOT_ALLOWED promotion posture, and GATEWAY_BUDGET_QUEUE concurrency, requires an external identity reference, a gateway verdict reference, and a domain context reference, and treats A2A and MCP protocol payloads as non-authoritative with the delegated gateway and protocol boundary remaining delegation owned.
+    condition: Whenever the external agent entry profile is composed or executed.
+    failure: Reject deviating compositions, missing required references, and protocol payload authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.profile-registry-plane
+  - id: rule.nimi.runtime.agent-participation.r113
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Debug or probe profile posture is fixed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: The debug_or_probe profile represents diagnostic participation and composes EPHEMERAL transcript ownership, USER_OWNED_NIMI_AGENT identity, RUNTIME execution, NO_MEMORY_READ memory read, WRITE_NONE memory write, DIAGNOSTIC_READ_ONLY capability scope, DIAGNOSTIC_INPUT input trust, DIAGNOSTIC_CANDIDATE output destination, NOT_ALLOWED promotion posture, and LOW_PRIORITY_CANCELABLE concurrency, consumes existing runtime projection surfaces, and creates no presentation truth ontology.
+    condition: Whenever the debug or probe profile is composed or executed.
+    failure: Reject deviating compositions and diagnostic-created presentation ontology.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.profile-registry-plane
+  - id: rule.nimi.runtime.agent-participation.r114
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Context block registry is typed and profile scoped
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Typed participation context blocks are pinned in the participation context blocks table as a closed registry, each block admits only its declared profiles and carries its declared required reference fields, canonical chat admits the runtime conversation anchor reference, realm group source admits group thread, trigger message, participant, recent group transcript, and agent slot blocks, scenario sandbox admits scenario package, run, branch, visible scene state, and recent sandbox transcript blocks, world participation admits world context, world event, visible world state, recent world transcript or event, and participant blocks, external entry admits external participant identity, external payload, gateway verdict, domain context, and tool or capability blocks, debug or probe admits the diagnostic probe block, product domains supply typed references, projections, and gateway verdict references only, and raw prompt blobs as public participation input and open context block kinds are not admitted.
+    condition: Whenever participation context is submitted or admitted.
+    failure: Reject undeclared blocks, cross-profile block use, missing required fields, and raw prompt input.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.profile-registry-plane
+  - id: rule.nimi.runtime.agent-participation.r115
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Output candidate schema is closed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Every Runtime participation execution returns a typed output candidate carrying participation_id, profile_kind, identity_source, participant_ref, trigger_ref, context_block_refs, output_destination, candidate_ref, policy_verdict_ref, memory_read_verdict, memory_write_verdict, capability_scope_verdict, audit_id, and created_at, carries agent_id when the participant is an owned Nimi agent, and never admits inline raw provider output, raw prompt chains, or raw protocol payloads as public candidate fields.
+    condition: Whenever a participation output candidate is produced or projected.
+    failure: Reject candidates missing required fields or carrying raw payload fields.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.profile-registry-plane
+  - id: rule.nimi.runtime.agent-participation.r116
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Candidate destinations map to domain commit owners
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Output candidates never commit domain transcript truth, CANONICAL_CHAT commits only through existing canonical chat policy, REALM_GROUP_MESSAGE_CANDIDATE commits only through Realm-authenticated commit owned by Realm, SCENARIO_TURN_CANDIDATE and WORLD_EVENT_CANDIDATE await future scenario and world commit authority as future-consumer destinations, EXTERNAL_REPLY_CANDIDATE commits only through the owning domain or external path under gateway verdict, DIAGNOSTIC_CANDIDATE remains read-only or ephemeral, EPHEMERAL admits no durable commit, and direct domain commit from Runtime participation is not admitted.
+    condition: Whenever a candidate approaches its destination commit owner.
+    failure: Reject direct participation commits and destinations without their declared commit owner.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.profile-registry-plane
+  - id: rule.nimi.runtime.agent-participation.r117
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Memory policy defaults are fixed per profile
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Participation memory defaults are pinned in the participation memory policy and memory read scope tables, canonical_agent_chat reads under CANONICAL_OWNER_POLICY and writes under CANONICAL_WRITE_ALLOWED with cognition and canonical chat commits following existing canonical policy, realm_group_source defaults to DYADIC_PRIVATE_EXCLUDED and may additionally bind PUBLIC_SHARED_ONLY, scenario_sandbox and oasis_world_participation read under DOMAIN_SHARED_ONLY, external_agent_entry and debug_or_probe read under NO_MEMORY_READ, every non-canonical profile defaults to WRITE_NONE with cognition commit and canonical chat commit forbidden, DYADIC_PRIVATE_ALLOWED binds to no profile until explicit future authority admits it, and broadening any read scope or write default requires explicit new authority.
+    condition: Whenever participation memory policy is resolved or applied.
+    failure: Reject default dyadic or private reads, default non-canonical writes, and unadmitted broadening.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.participation-plane
+  - id: rule.nimi.runtime.agent-participation.r118
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Capability scope defaults are fixed per profile
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Capability scope bindings are pinned in the participation capability scopes table with CANONICAL_AGENT_SCOPE bound only to canonical_agent_chat, PROFILE_LIMITED only to realm_group_source, DOMAIN_LIMITED only to scenario_sandbox and oasis_world_participation, DIAGNOSTIC_READ_ONLY only to debug_or_probe, EXTERNAL_GATEWAY_LIMITED only to external_agent_entry under a required gateway verdict, and NONE bound to no profile, canonical agent chat capability grants never automatically carry into non-canonical profiles, and Realm source-core mutation, private file access, paid or cloud capability use, external provider calls, and delegated tool execution require an admitted capability scope for the active profile with paid or cloud use under DOMAIN_LIMITED additionally policy gated.
+    condition: Whenever participation capability scope is resolved or a gated capability is requested.
+    failure: Reject cross-profile scope bindings, implicit canonical carryover, and ungated capability use.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.participation-plane
+  - id: rule.nimi.runtime.agent-participation.r119
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Concurrency policy bindings are fixed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Concurrency policy bindings are pinned in the participation concurrency policy table with CANONICAL_CHAT_BUDGET bound to canonical_agent_chat preserving existing chat authority, PER_AGENT_PARTICIPATION_QUEUE bound to realm_group_source, DOMAIN_TRIGGER_QUEUE bound to scenario_sandbox and oasis_world_participation where the domain owns trigger truth and never the execution queue, GATEWAY_BUDGET_QUEUE bound to external_agent_entry under a required gateway verdict, LOW_PRIORITY_CANCELABLE bound to debug_or_probe with Runtime-owned cancellation, and PROFILE_ISOLATED_BUDGET and REJECT_WHILE_ACTIVE bound to no profile by default, Runtime owns cross-profile queueing, cancellation, budget admission, active execution rejection, and audit linkage for admission decisions, and no second chat or life budget owner and no app-local concurrency authority is admitted.
+    condition: Whenever same-agent participation concurrency is admitted or bound.
+    failure: Reject unbound or rebound concurrency rows and concurrency authority owned outside Runtime.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.participation-plane
+  - id: rule.nimi.runtime.agent-participation.r120
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Participation audit layers on runtime audit truth
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Participation execution audit layers on existing runtime audit authority with audit event fields satisfying the admitted runtime audit field and retention rules, participation audit may add domain extension fields, replay lineage references the participation audit_id, no participation-specific side audit store is admitted, and delegated external-entry replay may reference delegated execution evidence lineage without modifying delegation authority.
+    condition: Whenever participation execution is audited or replayed.
+    failure: Reject side audit stores, unlinked replay lineage, and delegation authority rewrites.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.participation-plane
+  - id: rule.nimi.runtime.agent-participation.r121
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Public participation input is typed refs only
+    modality: must_not
+    scope:
+      - runtime.agent-participation
+    statement: A public participation surface accepts a raw prompt blob as its primary semantic input, or runtime-internal backend prompt parameters are exposed as public raw-prompt APIs, beyond the admitted public input shape of typed context block references plus policy and identity references.
+    condition: Whenever public participation input shape is defined or accepted.
+    failure: Reject raw prompt input surfaces and keep public input typed.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.participation-plane
+  - id: rule.nimi.runtime.agent-participation.r122
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: External entry boundary matrix is closed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: The external entry boundary matrix is the Runtime participation view over external protocol pressure pinned in the participation external entry boundaries table, its rows are exactly MCP_BACKED_AI_CAPABILITY and EXTERNAL_A2A_AGENT, every row declares participation profile, identity source, input trust, protocol authority contract and rule range, required context blocks, required gateway, firewall, audit, and credential verdict references, memory read scope, memory write default, capability scope, output destination, promotion posture, and production-claim posture, and the matrix never defines protocol wire truth and never rewrites delegation authority.
+    condition: Whenever an external entry boundary row is declared, consumed, or extended.
+    failure: Reject unadmitted rows, incomplete row declarations, and protocol truth defined in the matrix.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.external-entry-plane
+  - id: rule.nimi.runtime.agent-participation.r123
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: MCP entry is delegated gateway evidence only
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: MCP_BACKED_AI_CAPABILITY is admitted only as delegated gateway evidence for the external_agent_entry profile, the delegated MCP adapter authority owns adapter and protocol truth, MCP wire objects, tool schemas, tool output, and provider metadata are never Runtime participation semantic authority, Runtime participation consumes only typed gateway verdict, delegated firewall verdict, credential custody reference, audit lineage, and typed output candidate references, pre-firewall MCP output consumption is forbidden, and the production claim for this row is limited to the delegated MCP adapter path.
+    condition: Whenever MCP-backed capability participates through external entry.
+    failure: Reject pre-firewall consumption, protocol semantic authority, and claims beyond the adapter path.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.external-entry-plane
+  - id: rule.nimi.runtime.agent-participation.r124
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: A2A entry stays a future seam
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: EXTERNAL_A2A_AGENT remains a future-seam participation identity source with no production claim, A2A task payloads, agent cards, remote state, and protocol metadata are never Runtime participation semantic authority, production A2A adapter activation, Runtime registration, SDK or proto public surface, app or desktop UI claim, and fake-server success are forbidden without a separate high-risk admission, and any future A2A entry still passes Runtime gateway, policy, audit, and firewall boundaries before any projection or action.
+    condition: Whenever A2A participation is proposed, referenced, or implemented.
+    failure: Fail closed on production claims and boundary bypasses without separate admission.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.external-entry-plane
+  - id: rule.nimi.runtime.agent-participation.r125
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: External principal writeback is forbidden by default
+    modality: must_not
+    scope:
+      - runtime.agent-participation
+    statement: An external participant commits Runtime memory, cognition memory or commit surfaces, canonical chat history, Realm group transcript, scenario transcript, world event truth, or product-domain transcript or state truth by default, or a future promotion from external output proceeds without a later explicitly admitted promotion path that preserves participation memory policy, participation audit, delegation authority, memory authority, and cognition authority.
+    condition: Whenever external participation output approaches durable Nimi truth.
+    failure: Reject the writeback and require the explicitly admitted promotion path.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.external-entry-plane
+  - id: rule.nimi.runtime.agent-participation.r126
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: External entry gateway chain is ordered and fail closed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: External-entry projection follows the fixed order of external identity evidence, protocol adapter or future admission check, gateway verdict, delegated firewall verdict when protocol execution occurs, capability scope verdict, memory read verdict, memory write verdict, audit lineage record, and output candidate projection, pre-verdict consumption is forbidden, and any missing verdict fails closed.
+    condition: Whenever an external entry participation executes or projects.
+    failure: Fail closed on missing or out-of-order verdicts instead of projecting.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.external-entry-plane
+  - id: rule.nimi.runtime.agent-participation.r127
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: External protocol clients stay behind Runtime adapters
+    modality: must_not
+    scope:
+      - runtime.agent-participation
+    statement: An app, desktop, web, avatar, or mod surface runs a direct MCP client outside the Runtime delegated adapter path or a direct A2A client outside a future admitted Runtime adapter, raw protocol payloads appear as public participation fields, participation authority redefines delegated protocol rules, or external server success is fabricated.
+    condition: Whenever external protocol access or evidence is implemented or claimed.
+    failure: Fail closed on direct clients, raw payload fields, protocol redefinition, and fabricated success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.external-entry-plane
+  - id: rule.nimi.runtime.agent-participation.r128
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Domain future seam matrix is closed and declarative
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: The domain future-consumer seam matrix is pinned in the participation domain future seams table with rows exactly oasis_world_participation and scenario_sandbox, every row declares participation profile, transcript owner, identity source, execution owner, authority references, required context blocks, admitted typed context shape, forbidden raw context shape, memory read scope, memory write default, capability scope, output destination, promotion posture, commit owner, Runtime direct-commit posture, and product ontology implementation posture, the matrix implements no product domain, and Runtime participation retains execution semantics only while world state, world history, world commit authorization, scenario package ontology, scenario run, branch, and replay truth, scenario transcript storage, and product-domain visible state truth remain domain owned.
+    condition: Whenever a domain future seam is declared, consumed, or extended.
+    failure: Reject incomplete rows, unadmitted rows, and domain truth absorbed through the seam.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.domain-seam-plane
+  - id: rule.nimi.runtime.agent-participation.r129
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: World seam consumes typed context and never commits
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: The oasis_world_participation seam consumes only typed world context, world event, visible world state, recent world transcript or event, and participant projections, runtime-local world execution evidence is referenced only as evidence while Realm-owned world truth and history remain referenced domain truth never redefined, public raw world prompt blobs, raw world state payloads, raw game scripts as prompts, scene blobs as prompts, and app-local world agent execution are forbidden, output remains a WORLD_EVENT_CANDIDATE, Runtime direct world truth commit is forbidden, and memory, cognition, and canonical chat writes remain forbidden until future promotion authority admits them.
+    condition: Whenever world participation context or output is handled.
+    failure: Reject raw world context, direct world commits, and pre-promotion writes.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.domain-seam-plane
+  - id: rule.nimi.runtime.agent-participation.r130
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Scenario seam consumes typed context and never commits
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: The scenario_sandbox seam remains a pending future-consumer seam whose product requirement stays product-domain pressure rather than active implementation, consumes only typed scenario package, run, branch, visible scene state, and recent sandbox transcript projections with scenario job lifecycle authority referenced only, public raw scenario prompt blobs, custom prompt public APIs, raw scenario package payloads, raw replay branch payloads, and app-local scenario agent execution are forbidden, output remains a SCENARIO_TURN_CANDIDATE, Runtime direct scenario transcript, run, or replay commit is forbidden, and memory, cognition, and canonical chat writes remain forbidden until future promotion authority admits them.
+    condition: Whenever scenario participation context or output is handled.
+    failure: Reject raw scenario context, direct scenario commits, and pre-promotion writes.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.domain-seam-plane
+  - id: rule.nimi.runtime.agent-participation.r131
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Domain product implementation requires separate admission
+    modality: must_not
+    scope:
+      - runtime.agent-participation
+    statement: World or scenario product UI or backend implementation, scenario job execution changes, SDK, proto, app, desktop, or avatar public surfaces for these domains, promotion implementation, or world or scenario product success fixtures land through the participation seam without separate admission, or fake world or scenario product success is claimed through participation evidence.
+    condition: Whenever domain product implementation pressure meets the participation seam.
+    failure: Fail closed and route the implementation through separate domain admission.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.domain-seam-plane
+  - id: rule.nimi.runtime.agent-participation.r132
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Promotion target registry is closed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Promotion is explicit candidate admission rather than default write behavior or transport implementation, promotion targets are pinned in the participation promotion boundaries table as exactly the runtime memory or cognition target, the canonical chat target, the Realm group transcript target, and the domain truth target, every target row declares owning authority, owning rule family, admitted source profiles, forbidden source profiles, required evidence, default write posture, direct-write posture, and missing-evidence policy, and open-string promotion targets are not admitted.
+    condition: Whenever a promotion target is declared, consumed, or extended.
+    failure: Reject unadmitted targets, incomplete target rows, and open-string targets.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.promotion-plane
+  - id: rule.nimi.runtime.agent-participation.r133
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Memory and cognition promotion is owner gated
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Promotion into Runtime memory or cognition passes only through the owning memory and cognition authority boundaries, Runtime participation never directly writes memory or cognition, a memory or cognition promotion candidate carries participation id, source profile, output candidate reference, audit id, provenance reference, policy verdict reference, memory read, memory write, and capability scope verdicts, target owner authorization reference, and explicit user or manager intent reference, admitted source profiles are exactly canonical_agent_chat, realm_group_source, scenario_sandbox, and oasis_world_participation, external_agent_entry and debug_or_probe are forbidden sources, and missing evidence fails closed.
+    condition: Whenever participation output seeks memory or cognition promotion.
+    failure: Fail closed on missing evidence and reject direct writes and forbidden source profiles.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.promotion-plane
+  - id: rule.nimi.runtime.agent-participation.r134
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Canonical chat promotion is owner gated
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Promotion into canonical chat preserves existing RuntimeAgentService canonical chat authority, Runtime participation never appends canonical chat history directly, a canonical chat promotion candidate carries participation id, source profile, output candidate reference, audit id, provenance reference, policy verdict reference, canonical chat owner authorization reference, and explicit user or manager intent reference, admitted source profiles are exactly realm_group_source, scenario_sandbox, and oasis_world_participation, external_agent_entry and debug_or_probe are forbidden sources, and missing evidence fails closed.
+    condition: Whenever participation output seeks canonical chat promotion.
+    failure: Fail closed on missing evidence and reject direct appends and forbidden source profiles.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.promotion-plane
+  - id: rule.nimi.runtime.agent-participation.r135
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Realm group promotion carries Realm commit lineage
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Realm group transcript commit remains Realm owned, Runtime participation never directly commits Realm group messages, a Realm group promotion candidate is valid only for the realm_group_source profile with every other profile forbidden, and the candidate carries participation id, source profile, output candidate reference, audit id, Realm thread reference, runtime participant slot reference, and Realm-authenticated commit reference with missing evidence failing closed.
+    condition: Whenever participation output seeks Realm group transcript promotion.
+    failure: Fail closed on missing lineage and reject non-realm-group sources and direct commits.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.promotion-plane
+  - id: rule.nimi.runtime.agent-participation.r136
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Domain truth promotion is domain gated
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Domain truth promotion remains owned by the target domain, Runtime participation never directly commits world state, world history, scenario transcript, scenario run, branch, or replay truth, or external-domain truth, admitted source profiles are exactly scenario_sandbox and oasis_world_participation with realm_group_source, external_agent_entry, and debug_or_probe forbidden, and a domain truth promotion candidate carries participation id, source profile, output candidate reference, audit id, domain context reference, domain owner authorization reference, and target commit candidate reference with missing evidence failing closed.
+    condition: Whenever participation output seeks domain truth promotion.
+    failure: Fail closed on missing evidence and reject direct domain commits and forbidden sources.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.promotion-plane
+  - id: rule.nimi.runtime.agent-participation.r137
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Promotion invariants fail closed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Promotion admits no non-canonical default writes, no app-local promotion decisions, no external principal self-promotion, no debug or probe promotion, no side audit stores, no promotion transport implementation without promotion transport admission, and no open-string promotion targets, and every promotion candidate carries target owner, audit lineage, provenance, policy verdict, source profile, and output candidate reference with a missing required input always failing closed.
+    condition: Whenever a promotion candidate is produced, admitted, or executed.
+    failure: Fail closed on the missing input and reject the forbidden promotion pattern.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.promotion-plane
+  - id: rule.nimi.runtime.agent-participation.r138
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Realm group consumer reuses the existing profile
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Realm group participation is a Runtime participation consumer bound to the existing realm_group_source profile, and Runtime never creates a new participation profile, concurrency axis value, capability scope, or memory policy for this product surface.
+    condition: Whenever Realm group participation is bound or consumed.
+    failure: Reject new registry values minted for the Realm group surface.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.realm-group-consumer-plane
+  - id: rule.nimi.runtime.agent-participation.r139
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Realm group context admits closed typed references
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime realm_group_source admission consumes only the typed Realm group context references pinned in the realm group participation context table, admitted context covers group thread, membership snapshot, runtime participant slot, trigger event, read cursor, optional reply target, room orchestration, and Realm commit handoff references with their declared required fields, Realm-owned reference truth stays referenced rather than redefined, and raw prompt blobs, provider or model hints from Realm or apps, unbounded transcript dumps, app-local participant lists, direct Realm commit handles, and canonical chat history as default context are forbidden inputs.
+    condition: Whenever Realm group participation context is submitted or admitted.
+    failure: Reject undeclared context kinds, missing required fields, and forbidden context inputs.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.realm-group-consumer-plane
+  - id: rule.nimi.runtime.agent-participation.r140
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Realm group output is a candidate with commit lineage
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime produces only REALM_GROUP_MESSAGE_CANDIDATE output for Realm group participation, candidate output carries lineage sufficient for Realm to validate thread ownership, slot binding, trigger evidence, moderation or refusal posture, and audit and replay before commit, and Runtime never directly writes Realm group messages, never returns a Runtime-committed message id, and never marks Realm commit as successful.
+    condition: Whenever Realm group participation output is produced or handed off.
+    failure: Reject non-candidate output, missing lineage, and Runtime-claimed commit success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.realm-group-consumer-plane
+  - id: rule.nimi.runtime.agent-participation.r141
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Realm group inherits participation policy fail closed
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Realm group participation inherits Runtime participation policy for memory read scope, memory write default, capability scope, and same-agent concurrency with the product default remaining DYADIC_PRIVATE_EXCLUDED, WRITE_NONE, and PROFILE_LIMITED, and Runtime fails closed when a consumer requests a group-limited capability enum, group-local memory write, or default concurrency values outside the closed participation tables.
+    condition: Whenever Realm group participation policy is resolved or a consumer requests overrides.
+    failure: Fail closed on out-of-table policy requests instead of widening policy.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.realm-group-consumer-plane
+  - id: rule.nimi.runtime.agent-participation.r142
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Realm group orchestration binds the closed matrix row
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Same-room ordering, fairness, queueing, budget allocation, cancellation, timeout, status projection, external participant admission, and commit-race handoff for Realm group participation are owned by Runtime room orchestration, Runtime consumers bind to the closed realm_group matrix row and its realm group overlay, and no Realm, SDK, desktop, web, or app-local same-room scheduler is accepted.
+    condition: Whenever Realm group participation is orchestrated in a room.
+    failure: Reject non-runtime schedulers and bindings outside the closed matrix row and overlay.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.realm-group-consumer-plane
+  - id: rule.nimi.runtime.agent-participation.r143
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Realm group consumer antipatterns fail closed
+    modality: must_not
+    scope:
+      - runtime.agent-participation
+    statement: Realm group participation consumption performs desktop or web prompt assembly, provider or model routing outside Runtime, app-local reply queue truth, Runtime direct Realm commit, a public orchestration status namespace outside the admitted runtime agent families, external participant gateway bypass, or any reopening of the participation profile registry, participation axes, concurrency policy, or the room orchestration axis, matrix, and overlay registries.
+    condition: Whenever Realm group participation is implemented or consumed.
+    failure: Fail closed on the antipattern instead of degrading the consumer boundary.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.realm-group-consumer-plane

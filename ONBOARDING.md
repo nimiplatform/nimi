@@ -301,7 +301,7 @@ pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-con
 4. `docs/reference/runtime.md`
 5. `docs/reference/sdk.md`
 6. `spec/runtime/connector.md`（Connector 领域规范）
-7. `spec/runtime/kernel/key-source-routing.md`（凭据路由规范）
+7. `.nimi/spec/canonical/runtime/security-core.authority.yaml`（Runtime 安全核与凭据路由规范）
 
 ## 12. 附：统一 Runtime 命令入口
 

@@ -1,0 +1,208 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/runtime/model-catalog.authority.yaml
+# Rationale: docs/authority/runtime-model-catalog-rationale.md
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_capability_vocabulary_mapping
+entries:
+  - text.generate
+  - text.generate.vision
+  - text.generate.audio
+  - text.generate.video
+  - text.embed
+  - image.generate
+  - image.edit
+  - video.generate
+  - world.generate
+  - audio.synthesize
+  - audio.transcribe
+  - music.generate
+  - music.generate.iteration
+  - voice_workflow.voice_clone
+  - voice_workflow.voice_design
+  - chat
+  - vision
+  - audio_chat
+  - video_chat
+  - image
+  - video
+  - tts
+  - stt
+  - embedding
+  - music
+  - LLM
+  - VISION
+  - IMAGE
+  - TTS
+  - STT
+  - CUSTOM
+  - local_to_canonical_1
+  - local_to_canonical_2
+  - local_to_canonical_3
+  - local_to_canonical_4
+  - local_to_canonical_5
+  - local_to_canonical_6
+  - local_to_canonical_7
+  - local_to_canonical_8
+  - local_to_canonical_9
+  - canonical_only_1
+  - canonical_only_2
+  - canonical_only_3
+  - canonical_only_4
+  - canonical_only_5
+  - huggingface_inference_1
+  - huggingface_inference_2
+  - huggingface_inference_3
+  - huggingface_inference_4
+  - huggingface_inference_5
+  - huggingface_inference_6
+  - huggingface_inference_7
+  - huggingface_inference_8
+  - huggingface_inference_9
+  - huggingface_inference_10
+# Capability Vocabulary Mapping
+# Resolves the dual-track conflict between K-MCAT-024 canonical tokens
+# and K-LOCAL-001/K-LOCAL-026 local runtime tokens.
+#
+# Source rules: K-MCAT-024, K-LOCAL-001, K-LOCAL-002, K-LOCAL-026
+# Cross-ref: K-LOCAL-023 (HuggingFace pipeline_tag inference)
+
+version: 1
+
+# Canonical capability tokens (K-MCAT-024) — the ONLY valid tokens for
+# remote provider source, snapshot, registry, resolver, scenario guard,
+# and live-provider checks.
+canonical_tokens:
+  - text.generate
+  - text.generate.vision
+  - text.generate.audio
+  - text.generate.video
+  - text.embed
+  - image.generate
+  - image.edit
+  - video.generate
+  - world.generate
+  - audio.synthesize
+  - audio.transcribe
+  - music.generate
+  - music.generate.iteration
+  - voice_workflow.voice_clone
+  - voice_workflow.voice_design
+
+# Local runtime tokens (K-LOCAL-026 manifest capabilities field)
+local_manifest_tokens:
+  - chat
+  - vision
+  - audio_chat
+  - video_chat
+  - image
+  - video
+  - tts
+  - stt
+  - embedding
+  - music
+
+# Retired local connector categories. K-RTARGET-006 forbids using these values
+# as active ConnectorService identity. They may be read only as historical
+# import/display metadata.
+retired_local_connector_categories:
+  - LLM
+  - VISION
+  - IMAGE
+  - TTS
+  - STT
+  - CUSTOM
+
+# Mapping: local manifest token -> canonical token(s)
+# Direction: local -> canonical (used when local model participates in
+# scenario routing that requires canonical capability resolution)
+local_to_canonical:
+  - local_token: chat
+    canonical_token: text.generate
+    local_capability_family: LLM
+    source_rule: K-LOCAL-002
+
+  - local_token: vision
+    canonical_token: text.generate.vision
+    local_capability_family: VISION
+    source_rule: K-LOCAL-002
+
+  - local_token: audio_chat
+    canonical_token: text.generate.audio
+    local_capability_family: VISION
+    note: Phase 1 local categories are fixed; multimodal chat with audio input is currently normalized under VISION rather than introducing a separate AUDIO_CHAT category.
+    source_rule: K-LOCAL-002
+
+  - local_token: video_chat
+    canonical_token: text.generate.video
+    local_capability_family: VISION
+    note: Phase 1 local categories are fixed; multimodal chat with video input is currently normalized under VISION rather than introducing a separate VIDEO_CHAT category.
+    source_rule: K-LOCAL-002
+
+  - local_token: embedding
+    canonical_token: text.embed
+    local_capability_family: LLM
+    source_rule: K-LOCAL-002
+
+  - local_token: image
+    canonical_token: image.generate
+    local_capability_family: IMAGE
+    source_rule: K-LOCAL-002
+
+  - local_token: video
+    canonical_token: video.generate
+    local_capability_family: CUSTOM
+    note: No dedicated local capability family; video models use CUSTOM metadata
+    source_rule: K-LOCAL-002
+
+  - local_token: tts
+    canonical_token: audio.synthesize
+    local_capability_family: TTS
+    source_rule: K-LOCAL-002
+
+  - local_token: stt
+    canonical_token: audio.transcribe
+    local_capability_family: STT
+    source_rule: K-LOCAL-002
+
+  - local_token: music
+    canonical_token: music.generate
+    local_capability_family: CUSTOM
+    note: Sidecar music routing uses the local `music` token while public semantic surfaces use canonical `music.generate`.
+    source_rule: K-LOCAL-002
+
+# Canonical tokens with no Phase 1 local equivalent
+canonical_only:
+  - canonical_token: music.generate.iteration
+    note: Iterative music generation remains provider-routed; no Phase 1 local manifest token exists
+  - canonical_token: image.edit
+    note: Prompt-based image editing is a canonical capability routed by media local adapter surfaces; no separate Phase 1 local manifest token exists
+  - canonical_token: voice_workflow.voice_clone
+    note: Voice clone workflow; requires orchestrated pipeline, not single-model local execution
+  - canonical_token: voice_workflow.voice_design
+    note: Voice design workflow; requires orchestrated pipeline, not single-model local execution
+  - canonical_token: world.generate
+    note: Explorable world generation remains provider-routed; no Phase 1 local manifest token exists
+
+# HuggingFace pipeline_tag -> local manifest token (K-LOCAL-023)
+huggingface_inference:
+  - pipeline_tag: text-generation
+    local_token: chat
+  - pipeline_tag: text2text-generation
+    local_token: chat
+  - pipeline_tag: text-to-image
+    local_token: image
+  - pipeline_tag: text-to-video
+    local_token: video
+  - pipeline_tag: text-to-speech
+    local_token: tts
+  - pipeline_tag: text-to-audio
+    local_token: tts
+  - pipeline_tag: automatic-speech-recognition
+    local_token: stt
+  - pipeline_tag: feature-extraction
+    local_token: embedding
+  - pipeline_tag: sentence-similarity
+    local_token: embedding
+  - pipeline_tag: image-text-to-text
+    local_token: vision

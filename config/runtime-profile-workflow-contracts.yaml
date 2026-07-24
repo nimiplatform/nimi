@@ -1,0 +1,244 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/runtime/ai-provider.authority.yaml
+# Rationale: docs/authority/runtime-ai-provider-rationale.md
+version: 1
+table_family: owner_matrix
+owner: runtime
+matrix_id: runtime_profile_workflow_contracts
+source_rule: K-AIEXEC-012
+rows:
+  - workflow contracts are field-level validation shapes
+  - product_state is runtime support/readiness, not AIProfile contract_state
+  - unsupported/proposed required workflows project no-live-config
+  - video workflows are not image workflows with duration parameters
+
+workflows:
+  - workflow_id: native-image-stablediffusion-ggml
+    capability: image.generate
+    execution_mode: local
+    contract_state: declared
+    execution:
+      backend: stablediffusion-ggml
+      backend_class: native_binary
+      backend_family: stablediffusion-ggml
+      profile_kind: single_binary_model
+    model:
+      family_examples:
+        - flux
+        - ideogram4
+        - sdxl
+        - z-image
+        - z-image-turbo
+    asset_topology:
+      main: required
+      components: []
+      companions:
+        - role: lora
+          occurrence_policy: repeatable_ordered
+        - role: text_encoder
+          occurrence_policy: single
+        - role: uncond_diffusion_model
+          occurrence_policy: single
+        - role: vae
+          occurrence_policy: single
+    source_shapes:
+      - huggingface
+      - manual
+    params:
+      required:
+        - prompt
+      optional:
+        - negative_prompt
+        - width
+        - height
+        - steps
+        - guidance_scale
+        - seed
+    runtime_support_source:
+      - local-image-supervised-backend-matrix.yaml
+      - managed-image-backend-packages.yaml
+      - profile-image-family-companion-slots.yaml
+    no_live_config_when:
+      - required_asset_missing
+      - required_companion_missing
+      - backend_package_missing
+      - profile_backend_mismatch
+      - profile_model_family_mismatch
+      - native_backend_package_model_family_unsupported
+
+  - workflow_id: diffusers-image-python-pipeline
+    capability: image.generate
+    execution_mode: local
+    contract_state: proposed
+    execution:
+      backend: diffusers
+      backend_class: python_pipeline
+      backend_family: diffusers
+      profile_kind: workflow_pipeline
+    model:
+      family_examples:
+        - sdxl
+        - flux
+    asset_topology:
+      main: required
+      components:
+        - tokenizer
+        - text_encoder
+        - scheduler_config
+        - vae
+      companions:
+        - role: lora
+          occurrence_policy: repeatable_ordered
+        - role: controlnet
+          occurrence_policy: repeatable_ordered
+    source_shapes:
+      - huggingface
+      - manual
+    environment_requirements:
+      - python.tool.uv
+      - python.runtime
+      - python.venv
+      - python.package-set
+      - python.torch-wheel
+      - accelerator.cuda.runtime
+    params:
+      required:
+        - prompt
+      optional:
+        - negative_prompt
+        - width
+        - height
+        - steps
+        - guidance_scale
+        - scheduler
+        - seed
+    runtime_support_source:
+      - local-image-supervised-backend-matrix.yaml
+      - local-environment-consumer-requirements.yaml
+    no_live_config_when:
+      - product_state_proposed
+      - product_state_unsupported
+      - environment_materializer_unready
+      - workflow_required_component_missing
+      - profile_backend_mismatch
+      - profile_model_family_mismatch
+
+  - workflow_id: local-video-python-pipeline
+    capability: video.generate
+    execution_mode: local
+    contract_state: unsupported
+    execution:
+      backend: video.pipeline
+      backend_class: python_pipeline
+      backend_family: video-python
+      profile_kind: workflow_pipeline
+    model:
+      family_examples:
+        - video-diffusion
+        - wan
+    asset_topology:
+      main: required
+      components:
+        - tokenizer
+        - text_encoder
+        - motion_module
+        - decoder
+        - scheduler_config
+      companions:
+        - role: adapter
+          occurrence_policy: repeatable_ordered
+        - role: controlnet
+          occurrence_policy: repeatable_ordered
+    source_shapes:
+      - huggingface
+      - manual
+    environment_requirements:
+      - python.tool.uv
+      - python.runtime
+      - python.venv
+      - python.package-set
+      - python.torch-wheel
+      - accelerator.cuda.runtime
+    params:
+      required:
+        - prompt
+        - width
+        - height
+        - frame_count
+        - fps
+        - duration
+      optional:
+        - negative_prompt
+        - steps
+        - guidance_scale
+        - seed
+    runtime_support_source:
+      - local-environment-consumer-requirements.yaml
+    no_live_config_when:
+      - no_video_backend_matrix
+      - product_state_unsupported
+      - environment_video_materializer_unready
+      - workflow_video_backend_unavailable
+      - workflow_required_component_missing
+
+  - workflow_id: cloud-connector-generic
+    capability: any-canonical-cloud-capability
+    execution_mode: cloud_connector
+    contract_state: declared
+    connector_shape:
+      required:
+        - provider
+        - provider_capability
+        - remote_model_catalog_id
+        - provider_model_id
+        - credential_policy
+      optional:
+        - connector_selector
+        - params_schema_ref
+        - provider_model_alias
+    runtime_support_source:
+      - connector-contract.md
+      - key-source-routing.md
+    no_secret_projection:
+      - AIProfile
+      - AIConfig
+      - SDK state
+      - Desktop storage
+      - app manifests
+    no_live_config_when:
+      - connector_missing
+      - credentials_required
+      - provider_model_unsupported
+      - capability_mismatch
+
+  - workflow_id: componentized-local-non-media
+    capability: text.generate
+    execution_mode: local
+    contract_state: declared
+    execution:
+      backend: llama.cpp
+      backend_class: native_binary
+      backend_family: llama
+    asset_topology:
+      main: required
+      components:
+        - tokenizer
+        - processor
+        - mmproj
+        - adapter
+      companions: []
+    source_shapes:
+      - huggingface
+      - manual
+    no_live_config_when:
+      - required_component_missing
+      - expected_integrity_mismatch
+      - profile_backend_mismatch
+      - profile_model_family_mismatch
+
+rules:
+  - native image support is reused but cannot stand in for diffusers or video
+  - diffusers and video keep first-class field shapes when support is proposed or unsupported
+  - required unsupported/proposed slices produce setup-required or unsupported no-live-config
+  - optional unsupported/proposed slices may be omitted without placeholder AIConfig
+  - cloud connector workflows never project secrets into portable or live config

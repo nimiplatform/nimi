@@ -3,39 +3,24 @@ profile_id: nimi
 spec_governance:
   canonical_root: .nimi/spec
   validate_commands:
-    cognition:
-      - node scripts/check-cognition-spec-kernel-consistency.mjs
-    cognition-consistency:
-      - node scripts/check-cognition-spec-kernel-consistency.mjs
-    apps/cognition:
-      - node scripts/check-cognition-spec-kernel-consistency.mjs
     zhiyu:
       - node scripts/check-zhiyu-spec-kernel-consistency.mjs
     zhiyu-consistency:
       - node scripts/check-zhiyu-spec-kernel-consistency.mjs
     apps/zhiyu:
       - node scripts/check-zhiyu-spec-kernel-consistency.mjs
-    runtime-consistency:
-      - node scripts/check-runtime-spec-kernel-consistency.mjs
     sdks-consistency:
       - pnpm check:sdk-spec-kernel-consistency
     runtime-delegation-consistency:
-      - node scripts/check-runtime-spec-kernel-consistency.mjs
       - pnpm check:sdk-spec-kernel-consistency
-    avatar:
-      - node scripts/check-avatar-spec-kernel-consistency.mjs
     apps/avatar:
       - pnpm --filter @nimiplatform/avatar check:spec-consistency
       - pnpm check:apps-avatar-isolation
-    realm-consistency:
-      - node scripts/check-realm-spec-kernel-consistency.mjs
   generate_commands:
     cognition:
       - node scripts/generate-cognition-spec-kernel-docs.mjs
     zhiyu:
       - node scripts/generate-zhiyu-spec-kernel-docs.mjs
-    runtime:
-      - node scripts/generate-runtime-spec-kernel-docs.mjs
     sdks:
       - node scripts/generate-sdk-spec-kernel-docs.mjs
     platform:

@@ -93,8 +93,10 @@ const aiProfilePolicySource = readFileSync(
   resolve(import.meta.dirname, '../../../.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md'),
   'utf8',
 );
+// S6 domain-3 W6: local-engine contract migrated to canonical authority; the
+// verbatim prose now lives in the rationale document.
 const runtimeLocalEnvironmentContractSource = readFileSync(
-  resolve(import.meta.dirname, '../../../.nimi/spec/runtime/kernel/local-engine-contract.md'),
+  resolve(import.meta.dirname, '../../../docs/authority/runtime-local-compute-rationale.md'),
   'utf8',
 );
 

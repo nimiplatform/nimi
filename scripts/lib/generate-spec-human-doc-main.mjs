@@ -37,7 +37,6 @@ import {
   renderRpcMethods,
   renderSdkErrorCodes,
   renderServiceOperations,
-  renderStateTransitions,
   renderStoreSlices,
 } from './spec-human-doc-core.mjs';
 import { appendSpecHumanDocNarrative } from './spec-human-doc-narrative.mjs';
@@ -66,8 +65,8 @@ async function main() {
   const d = new DocBuilder(ruleMap);
 
   appendSpecHumanDocNarrative(d);
-  await d.yamlTable(rtTables('provider-catalog.yaml'), renderProviderCatalog);
-  await d.yamlTable(rtTables('provider-capabilities.yaml'), renderProviderCapabilities);
+  await d.yamlTable(configFile('runtime-provider-catalog.yaml'), renderProviderCatalog);
+  await d.yamlTable(configFile('runtime-provider-capabilities.yaml'), renderProviderCapabilities);
 
   await appendSpecHumanDocRuntimeSdkNarrative(d, { renderJobStates, rtTables });
 
@@ -79,11 +78,11 @@ async function main() {
 
 ### 12.1 Runtime — RPC 方法列表
 `);
-  await d.yamlTable(rtTables('rpc-methods.yaml'), renderRpcMethods);
+  await d.yamlTable(configFile('runtime-rpc-methods.yaml'), renderRpcMethods);
 
   d.text(`### 12.2 Runtime — ReasonCode 错误码表
 `);
-  await d.yamlTable(rtTables('reason-codes.yaml'), renderReasonCodes);
+  await d.yamlTable(configFile('runtime-reason-codes.yaml'), renderReasonCodes);
 
   d.text(`### 12.3 Runtime — 错误映射矩阵
 `);
@@ -141,59 +140,55 @@ async function main() {
 `);
   await d.yamlTable(rtTables('connector-auth-profiles.yaml'), renderConnectorAuthProfiles);
 
-  d.text(`### 12.17 Runtime — 状态机
+  d.text(`### 12.17 Runtime — 本地引擎目录
 `);
-  await d.yamlTable(rtTables('state-transitions.yaml'), renderStateTransitions);
+  await d.yamlTable(configFile('runtime-local-engine-catalog.yaml'), renderLocalEngineCatalog);
 
-  d.text(`### 12.18 Runtime — 本地引擎目录
+  d.text(`### 12.18 Runtime — 本地适配器路由
 `);
-  await d.yamlTable(rtTables('local-engine-catalog.yaml'), renderLocalEngineCatalog);
+  await d.yamlTable(configFile('runtime-local-adapter-routing.yaml'), renderLocalAdapterRouting);
 
-  d.text(`### 12.19 Runtime — 本地适配器路由
-`);
-  await d.yamlTable(rtTables('local-adapter-routing.yaml'), renderLocalAdapterRouting);
-
-  d.text(`### 12.20 SDK — 错误码
+  d.text(`### 12.19 SDK — 错误码
 `);
   await d.yamlTable(sdkTables('sdk-error-codes.yaml'), renderSdkErrorCodes);
 
-  d.text(`### 12.21 SDK — Runtime 方法投影分组
+  d.text(`### 12.20 SDK — Runtime 方法投影分组
 `);
   await d.yamlTable(sdkTables('runtime-method-groups.yaml'), renderMethodGroups);
 
-  d.text(`### 12.22 Desktop — 启动阶段
+  d.text(`### 12.21 Desktop — 启动阶段
 `);
   await d.yamlTable(configFile('desktop-shell-runtime-bootstrap-phases.yaml'), renderBootstrapPhases);
 
-  d.text(`### 12.23 Desktop — IPC 命令
+  d.text(`### 12.22 Desktop — IPC 命令
 `);
   await d.yamlTable(configFile('desktop-ipc-commands.yaml'), renderIpcCommands);
 
-  d.text(`### 12.24 Desktop — App Tabs
+  d.text(`### 12.23 Desktop — App Tabs
 `);
   await d.yamlTable(configFile('desktop-shell-ui-app-tabs.yaml'), renderAppTabs);
 
-  d.text(`### 12.25 Desktop — Store Slices
+  d.text(`### 12.24 Desktop — Store Slices
 `);
   await d.yamlTable(configFile('desktop-shell-runtime-store-slices.yaml'), renderStoreSlices);
 
-  d.text(`### 12.26 Desktop — Feature Flags
+  d.text(`### 12.25 Desktop — Feature Flags
 `);
   await d.yamlTable(configFile('desktop-shell-runtime-feature-flags.yaml'), renderFeatureFlags);
 
-  d.text(`### 12.27 Desktop — 数据同步流
+  d.text(`### 12.26 Desktop — 数据同步流
 `);
   await d.yamlTable(configFile('desktop-shell-runtime-data-sync-flows.yaml'), renderDataSyncFlows);
 
-  d.text(`### 12.28 Desktop — 错误码
+  d.text(`### 12.27 Desktop — 错误码
 `);
   await d.yamlTable(configFile('desktop-shell-ui-error-codes.yaml'), renderDesktopErrorCodes);
 
-  d.text(`### 12.29 Desktop — Retry Status Codes
+  d.text(`### 12.28 Desktop — Retry Status Codes
 `);
   await d.yamlTable(configFile('desktop-shell-runtime-retry-status-codes.yaml'), renderRetryStatusCodes);
 
-  d.text(`### 12.30 Desktop — Log Areas
+  d.text(`### 12.29 Desktop — Log Areas
 `);
   await d.yamlTable(configFile('desktop-shell-ui-log-areas.yaml'), renderLogAreas);
 

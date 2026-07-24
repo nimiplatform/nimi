@@ -2,7 +2,7 @@
   {
     "fixture_id": "retired-installed-host-role-reappears",
     "code": "RETIRED_PUBLIC_VOCABULARY_FORBIDDEN",
-    "target": ".nimi/spec/runtime/kernel/protected-local-session-contract.md",
+    "target": "docs/authority/runtime-protected-session-rationale.md",
     "mutation": {
       "kind": "replace_exact",
       "from": "protected-local transport identity, process-bound Desktop control sessions,",
@@ -170,3 +170,4 @@
     }
   }
 ]
+

@@ -11,9 +11,9 @@ const repoRoot = path.resolve(scriptDir, '..');
 export const authorityPaths = Object.freeze({
   policy: '.nimi/spec/platform/kernel/tables/nimi-app-local-development-admission.yaml',
   platform: '.nimi/spec/platform/kernel/nimi-app-local-admission-contract.md',
-  runtimeSession: '.nimi/spec/runtime/kernel/protected-local-session-contract.md',
-  account: '.nimi/spec/runtime/kernel/account-session-contract.md',
-  grant: '.nimi/spec/runtime/kernel/grant-service.md',
+  runtimeSession: 'docs/authority/runtime-protected-session-rationale.md',
+  account: 'docs/authority/runtime-protected-session-rationale.md',
+  grant: '.nimi/spec/canonical/runtime/security-core.authority.yaml',
   desktop: '.nimi/spec/canonical/desktop/bridge-ipc.authority.yaml',
   kit: '.nimi/spec/platform/kernel/kit-contract.md',
   sdk: '.nimi/spec/sdks/kernel/transport-contract.md',
@@ -28,6 +28,7 @@ export const authorityPaths = Object.freeze({
 const yamlKeys = new Set([
   'policy',
   'desktop',
+  'grant',
   'principalSchema',
   'grantSchema',
   'presenceProtocol',
@@ -138,7 +139,9 @@ const requiredRuleClauses = Object.freeze([
   ['platform', ['P-NAPP-035', /sole mutable third-party provenance/iu, /global Developer Mode toggle grants nothing/iu, /run_once.*allow_project/isu, /top-level `permissions` list/iu, /request eligibility only/iu, /current admitted list is empty/iu, /Every build\/host replacement receives\s+a\s+new lease/iu, /boot epoch.*never durable consent/isu, /no token, bearer/iu, /persistent Nimi-managed logon\/boot autostart/iu, /ordinary Windows rights/iu]],
   ['runtimeSession', ['K-PLOCAL-009', /durable user\s+development authorization/iu, /run_once/iu, /allow_project.*across supervisor, Desktop, and Runtime replacement/isu, /actual\s+host PID and creation marker/isu, /new launch lease,\s*process bind and session/isu, /Runtime restart/iu, /never returned through renderer IPC, CLI output/isu, /never\s+autostarts/iu]],
   ['account', ['K-ACCSVC-026', /exact\s+principal.*local record.*process-bound session/isu, /current owner lifecycle/iu, /owner.*resource policy/iu, /creates no synthetic permission/iu]],
-  ['grant', ['K-GRANT-014', /admitted third-party public-permission set is empty/iu, /no positive local permission mutation path/iu, /owner_selector_digest/iu, /every\s+protected endpoint/isu]],
+  ['grant', ['rule.nimi.runtime.security-core.r045', /admitted third-party public-permission set is empty/iu, /no positive local permission mutation path/iu]],
+  ['grant', ['rule.nimi.runtime.security-core.r046', /owner_selector_digest/iu]],
+  ['grant', ['rule.nimi.runtime.security-core.r047', /every protected endpoint/iu]],
   ['desktop', ['rule.nimi.desktop.bridge-ipc.r091', /production account.*defaults off.*grants nothing/isu, /exactly one Dev Trust Set/iu, /allow_project consent across supervisor, Desktop, and Runtime replacement/isu]],
   ['desktop', ['rule.nimi.desktop.bridge-ipc.r097', /fresh host and payload digest observation.*launch lease.*verified process bind.*local-app session/isu, /native Windows execution risk disclosure/iu, /never creates persistent local-development autostart/iu]],
   ['desktop', ['rule.nimi.desktop.bridge-ipc.r098', /local_app_control exists outside the verified Desktop control connection/iu, /principal, record, permission, lease, session, account, or operation-policy truth/iu]],
@@ -631,3 +634,4 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   }
   process.stdout.write('local-development admission authority gate passed\n');
 }
+

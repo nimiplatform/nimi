@@ -9,11 +9,11 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const fixturePath = path.join(scriptDir, 'testdata/public-raw-token-authority/negative-fixtures.json');
 const paths = {
-  accountContract: '.nimi/spec/runtime/kernel/account-session-contract.md',
+  accountContract: 'docs/authority/runtime-protected-session-rationale.md',
   accountMatrix: '.nimi/spec/runtime/kernel/tables/account-rpc-permission-matrix.yaml',
   protectedMatrix: '.nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml',
   identityAccess: '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml',
-  rpcMethods: '.nimi/spec/runtime/kernel/tables/rpc-methods.yaml',
+  rpcMethods: 'config/runtime-rpc-methods.yaml',
   rpcMigration: '.nimi/spec/runtime/kernel/tables/rpc-migration-map/methods-identity-app.yaml',
   appRegistry: '.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml',
   sdkMethodGroups: '.nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml',
@@ -205,3 +205,4 @@ function main() {
 }
 
 main();
+

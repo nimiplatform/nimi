@@ -1,0 +1,57 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/runtime/agent-participation.authority.yaml
+# Rationale: docs/authority/runtime-agent-participation-rationale.md
+version: 1
+table_family: product_catalog
+owner: runtime
+catalog_id: runtime_agent_participation_capability_scopes
+entries:
+  - CANONICAL_AGENT_SCOPE
+  - PROFILE_LIMITED
+  - DOMAIN_LIMITED
+  - DIAGNOSTIC_READ_ONLY
+  - EXTERNAL_GATEWAY_LIMITED
+  - NONE
+  - canonical_chat_capability_carryover_default
+  - app_local_provider_model_hardcoding
+source_rule: K-AGCORE-069
+capability_scopes:
+  - id: CANONICAL_AGENT_SCOPE
+    source_rule: K-AGCORE-075
+    allowed_profiles:
+      - canonical_agent_chat
+    carries_to_non_canonical_by_default: false
+  - id: PROFILE_LIMITED
+    source_rule: K-AGCORE-076
+    allowed_profiles:
+      - realm_group_source
+    agentrule_mutation_default: forbidden
+    private_file_access_default: forbidden
+    paid_cloud_capability_default: forbidden
+  - id: DOMAIN_LIMITED
+    source_rule: K-AGCORE-077
+    allowed_profiles:
+      - scenario_sandbox
+      - oasis_world_participation
+    agentrule_mutation_default: forbidden
+    private_file_access_default: forbidden
+    paid_cloud_capability_default: policy_required
+  - id: DIAGNOSTIC_READ_ONLY
+    source_rule: K-AGCORE-080
+    allowed_profiles:
+      - debug_or_probe
+    agentrule_mutation_default: forbidden
+    private_file_access_default: forbidden
+    paid_cloud_capability_default: forbidden
+  - id: EXTERNAL_GATEWAY_LIMITED
+    source_rule: K-AGCORE-079
+    allowed_profiles:
+      - external_agent_entry
+    requires_gateway_verdict: true
+    k_deleg_boundary: reference_only
+  - id: NONE
+    source_rule: K-AGCORE-069
+    allowed_profiles: []
+governance:
+  canonical_chat_capability_carryover_default: forbidden
+  app_local_provider_model_hardcoding: forbidden

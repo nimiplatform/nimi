@@ -11,7 +11,7 @@ const repoRoot = path.resolve(scriptDir, '..');
 const gateRelative = 'scripts/check-local-app-owner-boundary.mjs';
 const bundleFiles = [
   gateRelative,
-  '.nimi/spec/runtime/kernel/account-session-contract.md',
+  'docs/authority/runtime-protected-session-rationale.md',
   '.nimi/spec/platform/kernel/nimi-app-admission-contract.md',
   '.nimi/spec/platform/kernel/kit-contract.md',
   '.nimi/spec/platform/kernel/app-permission-contract.md',
@@ -82,7 +82,7 @@ test('baseline and independent negative fixtures bind the final local-app author
 
 test('rejects widening a zero-permission session into protected authority', async () => {
   await mutateAndReject(
-    '.nimi/spec/runtime/kernel/account-session-contract.md',
+    'docs/authority/runtime-protected-session-rationale.md',
     'session is valid origin proof and may use only base entitlements',
     'session is valid origin proof and may use protected resources',
     'ZERO_PERMISSION_BOUNDARY_MISSING',
@@ -106,3 +106,4 @@ test('rejects host-owned local-app session binding', async () => {
     'AUTH_BINDING_OWNER_INVALID',
   );
 });
+

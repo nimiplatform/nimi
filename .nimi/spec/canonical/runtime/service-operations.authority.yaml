@@ -1,0 +1,1303 @@
+format: nimicoding.authority/v1
+units:
+  - id: definition.nimi.runtime.service-operations.local-service-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime local service operations plane
+    meaning: The Runtime local service operations plane owns local asset, service, engine, dependency, product-control, transfer, audit, storage-reconciliation, and warm-readiness operations without a second Desktop, SDK, app, or host truth.
+    relations: []
+  - id: definition.nimi.runtime.service-operations.artifact-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime artifact operations plane
+    meaning: The Runtime artifact operations plane owns opaque artifact identity, immutable bytes and metadata, durable audience, authorized inline retrieval, generated voice retention, and bounded cleanup.
+    relations: []
+  - id: definition.nimi.runtime.service-operations.scenario-job-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime scenario job operations plane
+    meaning: The Runtime scenario job operations plane owns asynchronous scenario creation, state, progress, credential snapshots, events, cancellation, artifacts, and terminal failure projection.
+    relations: []
+  - id: definition.nimi.runtime.service-operations.scenario-registry
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime scenario registry
+    meaning: The Runtime scenario registry is the closed discriminator, canonical modality, execution-mode, and profile-field contract for Runtime AI scenarios.
+    relations: []
+  - id: definition.nimi.runtime.service-operations.lifecycle-registry
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime service lifecycle registry
+    meaning: The Runtime service lifecycle registry is the closed state and transition contract for connectors, remote connector deletion, scenario jobs, local models, local services, and model transfer status.
+    relations: []
+  - id: definition.nimi.runtime.service-operations.daemon-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime daemon operations plane
+    meaning: The Runtime daemon operations plane owns boot identity, protected state, health, listener admission, interceptors, idempotency, scheduling, timeouts, configuration, shutdown, restart invalidation, and operational health projection.
+    relations: []
+  - id: definition.nimi.runtime.service-operations.cli-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime CLI operations plane
+    meaning: The Runtime CLI operations plane owns the bounded first-run, generation, model, provider, diagnostic, foreground, and background Runtime command experience while excluding app-author tooling.
+    relations: []
+  - id: rule.nimi.runtime.service-operations.r001
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: RuntimeLocalService is the sole local control plane
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: RuntimeLocalService is the only stable RPC owner for local model and artifact inventory, status, health, audit, import, install, download, orphan adoption, scaffolding, transfer, progress, dependency, engine, product-control, and storage-cutover operations, and Desktop maintains no second writable local-model truth.
+    condition: Whenever a local Runtime resource is listed, observed, materialized, controlled, or reconciled.
+    failure: Reject any operation or projection that creates a second local control plane or writable local-model truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.local-service-plane
+  - id: rule.nimi.runtime.service-operations.r002
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Local listing and health probing remain separate
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: ListLocalAssets returns only the Runtime-admitted local asset inventory snapshot and performs no probe, bootstrap, warm, recovery, or status normalization, while CheckLocalAssetHealth is the explicit endpoint-probe and readiness surface and treats no response or timeout as unavailable.
+    condition: Whenever local assets are listed or explicitly health checked.
+    failure: Fail the health check closed and reject list-driven probing, warming, recovery, or status mutation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.local-service-plane
+  - id: rule.nimi.runtime.service-operations.r003
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Local start warm and background health paths are explicit
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: StartLocalAsset and WarmLocalAsset may start a managed engine, run warm or minimal execution, update warm and status projection, and record structured failure, while the Runtime-owned background health maintainer may update health asynchronously but cannot be replaced or amplified by Desktop, SDK, or app list polling.
+    condition: Whenever local lifecycle, readiness, or background health maintenance runs.
+    failure: Reject consumer-owned lifecycle truth and return structured failure when start, warm, execution, or health proof fails.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.local-service-plane
+  - id: rule.nimi.runtime.service-operations.r004
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Local catalog intake dependency and audit families stay Runtime owned
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: RuntimeLocalService owns verified catalog reads, install-plan resolution, unregistered asset scan and adoption, bundle intake, recommendation feeds, transfers, local services, node catalog and profile resolution, selected source records, environment dependency jobs, activation gates, baseline and first-run evidence, and local audit append and list operations.
+    condition: Whenever a Tier 2 or Tier 3 local operation executes.
+    failure: Reject a consumer-side substitute or a result not derived from Runtime-owned records.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.local-service-plane
+  - id: rule.nimi.runtime.service-operations.r005
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Managed engine lifecycle has one truth
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: RuntimeLocalService owns managed engine process lifecycle and status projection, and Desktop, SDK, and apps do not maintain a second engine process truth.
+    condition: Whenever a managed local engine is started, stopped, observed, or projected.
+    failure: Reject any engine operation based on consumer-owned process truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.local-service-plane
+  - id: rule.nimi.runtime.service-operations.r006
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Product control remains a Runtime state machine
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: RuntimeLocalService owns the runtime-owner-root nimi.json product-control record, data-root layout materialization, install validation, device-scan completion, and every first-run mutation through ready_for_use, while Desktop may provide only bounded OS helpers and explicit backend-verified accountDefaultProfileRef and builtInAiConfigRefs evidence.
+    condition: Whenever ordinary first-run setup reads, reconciles, or mutates product control.
+    failure: Reject a Desktop, SDK, app, or host write that bypasses the Runtime product-control state machine.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.local-service-plane
+  - id: rule.nimi.runtime.service-operations.r007
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: First-run reconciliation derives state on protected transport
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: The fixed production Runtime exposes no ordinary public TCP or HTTP listener; Runtime authenticates submitted host evidence, re-resolves baseline and execution readiness, writes intermediate failures, and atomically commits ready_for_use; ReconcileProductControlFirstRunSetupState accepts an empty request and derives non-ready state, repair posture, and reason, and the exact admitted product-control methods run only on the current mutually verified desktop_control session with all unlisted RuntimeLocalService method ids and bytes rejected before handlers.
+    condition: Whenever production first-run or product-control reconciliation is invoked.
+    failure: Fail closed on consumer-supplied state or reason, missing verified Desktop origin, absent current boot session, public TCP, portable credentials, renderer metadata, or an unlisted method.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.local-service-plane
+  - id: rule.nimi.runtime.service-operations.r008
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Accelerator dependencies require Runtime resolution and confirmation
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Runtime resolves shared accelerator dependency requirements from Runtime authority and returns needs_confirmation or materializable_requires_confirmation before first network materialization, starting install or repair only after explicit user confirmation or an import or install confirmation that clearly covers the dependency.
+    condition: Whenever a supervised local engine requires a managed accelerator dependency.
+    failure: Reject Desktop probing, implicit consent, or dependency materialization before confirmation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.local-service-plane
+  - id: rule.nimi.runtime.service-operations.r009
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Dependency jobs have closed state health and deduplication semantics
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: A Runtime dependency job uses QUEUED, RUNNING, COMPLETED, FAILED, or CANCELED plus private downloading, verifying, or installing detail; projects ready_system, ready_managed, failed, and repair_required health and audit detail; requires no Desktop, SDK, app, or visible-terminal installer; and deduplicates setup per dependency and environment so llama, stable-diffusion.cpp, and Python-native requests share one active job and selected source record.
+    condition: Whenever a managed dependency setup, repair, status, or duplicate request is processed.
+    failure: Reject unknown public job states, consumer-executed installation, duplicate active jobs, or independently re-resolved source records.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.local-service-plane
+  - id: rule.nimi.runtime.service-operations.r010
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Dependency job control targets only Runtime identities
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: StartLocalEnvironmentDependencyJob, CancelLocalEnvironmentDependencyJob, RetryLocalEnvironmentDependencyJob, and RepairLocalEnvironmentDependency target Runtime dependency environments and Runtime job ids, while transfer detail remains diagnostic and cannot replace selected source record or dependency job truth.
+    condition: Whenever a dependency job is started, canceled, retried, repaired, or projected.
+    failure: Reject Desktop rows, engine installers, shell scripts, transfer ids, or progress detail as the dependency authority target.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.local-service-plane
+  - id: rule.nimi.runtime.service-operations.r011
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Dependency plans require concrete asset identities
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: ResolveLocalEnvironmentPlan and ResolveLocalEnvironmentActivationGate use asset_id or local_asset_id for a primary model payload, companion_asset_id for a companion payload, and parent_asset_id for a caller-known parent binding in model.asset and model.companion-asset families.
+    condition: Whenever local environment planning or activation resolves model payloads.
+    failure: Fail closed on a missing required identity or a pack placeholder such as a model-asset or companion-asset name instead of promoting it to a selected source record.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.local-service-plane
+  - id: rule.nimi.runtime.service-operations.r012
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Local state storage roles are disjoint
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: localStatePath is the sole active Runtime local AI state for assets, transfers, dependency assets, setup jobs, cutover evidence, and health projection; managedRoots.models is the payload root derived from dataRootRef unless Runtime config reconciles it; and the Nimi data directory is storage rather than state truth.
+    condition: Whenever Runtime or a host resolves local AI storage.
+    failure: Reject a second state file, a retired-state fallback, a silent dual read or write, or payload existence treated as state truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.local-service-plane
+  - id: rule.nimi.runtime.service-operations.r013
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Data-root changes require an explicit reconciliation plan
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: A Nimi data-directory change produces or submits a Runtime reconciliation plan containing effective localStatePath, effective dataRootRef, managed roots, dependency install root, detected retired inputs, asset counts, conflicts, and whether user confirmation is required before local AI state is assumed usable.
+    condition: Whenever an admitted host changes the Nimi data directory or Runtime storage roots disagree.
+    failure: Keep the existing Runtime state active and reject use of the new roots until the complete plan is accepted.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.local-service-plane
+  - id: rule.nimi.runtime.service-operations.r014
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Local state cutover is explicit idempotent and fail closed
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Retired Desktop state is only an explicit cutover input and cutover is idempotent; not_required means Runtime state and roots agree, required_confirmation means a retired input or path mismatch awaits consent, planned means an accepted plan has not started, running means validation, copy, or rewrite is active, succeeded means cutover completed and retired input left active use, failed means active truth stayed unchanged with cutover_failed or repair_required detail, and cancelled means user cancellation occurred before mutation.
+    condition: Whenever Runtime detects or executes a local-state path cutover.
+    failure: Reject live fallback, secondary reads, dual writes, state mutation after failure, or an undeclared cutover state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.local-service-plane
+  - id: rule.nimi.runtime.service-operations.r015
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Installed truth and local warming require Runtime records
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Public state reports a model installed or dependency ready only from an authoritative active Runtime record, and WarmLocalAsset resolves an installed local model or service and may perform minimal execution before first real request; text models in installed or active status may be selected and Runtime warms them before first text execution without Desktop start or stop truth.
+    condition: Whenever local installation, dependency readiness, selection, or first execution is projected.
+    failure: Reject filesystem-only readiness, fabricated installation, or a requirement for Desktop-maintained lifecycle truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.local-service-plane
+  - id: rule.nimi.runtime.service-operations.r016
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Generic artifact bytes have one authorized read surface
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: RuntimeArtifactService exposes ReadArtifactBytes for full bytes by artifact_id only when the current protected caller matches the durable artifact audience, independently of getScenarioArtifacts job projection and the voice asset library.
+    condition: Whenever an event consumer retrieves a Runtime artifact by id.
+    failure: Reject the read when protected caller or durable audience does not match and never substitute a job or voice-library projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.artifact-plane
+  - id: rule.nimi.runtime.service-operations.r017
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Artifact identity is opaque stable flat and non-authorizing
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: artifact_id is a Runtime-owned opaque string stable for the artifact lifetime, flat without a required job or scenario prefix, unique only within one Runtime instance, and scoped by consumers to their authoritative Runtime client; possession, guessing, observation, replay, or cross-app use grants no authority.
+    condition: Whenever an artifact id is emitted, stored, compared, or presented for retrieval.
+    failure: Reject format inference, cross-Runtime lookup, hierarchical authority, or id possession as authorization proof.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.artifact-plane
+  - id: rule.nimi.runtime.service-operations.r018
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime owns artifact creation reference and idempotent reads
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: A TTS provider, scenario job, realtime session, local voice engine, cache, streaming TTS path, or user upload creates an artifact when bytes materialize, events reference its id, and repeated reads return identical bytes while the artifact remains stored.
+    condition: Whenever Runtime materializes, emits, or rereads an artifact.
+    failure: Reject a reference to unmaterialized bytes or a reread that changes content for the same id.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.artifact-plane
+  - id: rule.nimi.runtime.service-operations.r019
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Referenced artifacts exist before emit and generated voice is durable
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Store.Put of artifact id, bytes, and MIME completes before an event references the id, and generated agent voice artifacts remain on the user's local disk until explicit cleanup or a later admitted quota policy while other TTL, garbage collection, and quota choices remain Runtime implementation details.
+    condition: Whenever Runtime emits an artifact reference or applies artifact retention.
+    failure: Abort the reference and record a fatal emitter violation when storage did not complete, and reject implicit deletion of durable generated voice.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.artifact-plane
+  - id: rule.nimi.runtime.service-operations.r020
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Externally readable artifacts have complete durable audience metadata
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Every externally readable artifact binds producer job, applicable owner account, initiating local_app_principal_id for third-party work, immutable_lineage_id or development authorization plus canonical project identity, host and payload digest slots, producing session, account generation, allowed use, observed size, content SHA-256, and expiry, while app_id remains display or routing metadata only.
+    condition: Whenever an artifact record becomes externally readable.
+    failure: Keep the record internal and deny retrieval when any required audience or integrity field is absent.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.artifact-plane
+  - id: rule.nimi.runtime.service-operations.r021
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Artifact content MIME integrity and audience are immutable
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: After artifact id creation its bytes, MIME, observed size, content hash, and audience never change, except that the generated-voice producer may atomically enrich otherwise identical absent metadata to complete GeneratedVoiceArtifactMetadata before the referencing event without replacing content or audience.
+    condition: Whenever Runtime updates or reads an existing artifact record.
+    failure: Reject mutation, external access to an unbound historical record, or enrichment after the referencing event.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.artifact-plane
+  - id: rule.nimi.runtime.service-operations.r022
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Playable voice artifact ids resolve only to audio
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: A nonterminal voice_playback_requested audio_artifact_id resolves through ReadArtifactBytes to bytes whose MIME starts with audio/, while terminal failed, interrupted, or canceled events may omit playable audio only when they carry a reason.
+    condition: Whenever Runtime emits a voice playback request or a consumer resolves its audio artifact.
+    failure: Reject non-audio bytes, a missing playable artifact on a playback request, or a terminal omission without reason.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.artifact-plane
+  - id: rule.nimi.runtime.service-operations.r023
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Audio identity cannot be overwritten by metadata or fallback
+    modality: must_not
+    scope:
+      - runtime.service-operations
+    statement: Runtime stores lipsync, timing, debug, or synthetic placeholder content under a playable audio artifact id, overwrites provider audio identity with generated lipsync identity, or emits a playable voice request or pseudo-audio artifact for text-only fallback or unavailable TTS.
+    condition: Whenever audio, lipsync, timing, debug, or fallback artifacts are emitted.
+    failure: Keep separate artifact ids with their own MIME types or return the typed unavailable or fallback result without a playable voice request.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.artifact-plane
+  - id: rule.nimi.runtime.service-operations.r024
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Generated voice metadata and cleanup are bounded
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: A generated assistant voice artifact stores agent_id, conversation_anchor_id, turn_id, message_id, voice_reference, speech_model_id, route_policy, mime_type, byte_digest, created_at, and retention_scope, and cleanup by agent_id or conversation_anchor_id removes matching durable audio and voice metadata without mutating committed text or conversation history.
+    condition: Whenever generated assistant voice is stored or cleaned up.
+    failure: Reject storage with incomplete metadata and reject cleanup that changes text or conversation history.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.artifact-plane
+  - id: rule.nimi.runtime.service-operations.r025
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: ReadArtifactBytes wire shape is fixed
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: ReadArtifactBytesRequest requires artifact_id, and ReadArtifactBytesResponse requires full bytes, RFC 6838 mime_type, and int64 size_bytes plus optional mime_inferred defaulting false; Runtime uses application/octet-stream and mime_inferred true only when upstream MIME is absent.
+    condition: Whenever Runtime accepts or returns ReadArtifactBytes.
+    failure: Return ARTIFACT_INVALID_INPUT or reject the response when a required field, complete body, valid MIME, size, or inference marker is missing.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.artifact-plane
+  - id: rule.nimi.runtime.service-operations.r026
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Generated voice cleanup wire semantics are fixed
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: CleanupGeneratedVoiceArtifactsRequest accepts optional agent_id and conversation_anchor_id with at least one required and AND matching when both are present, returns int32 deleted_count and repeated string deleted_artifact_ids, is idempotent with zero for no matches, and deletes only generated_agent_voice retention records rather than scenario media, uploads, text, or history.
+    condition: Whenever CleanupGeneratedVoiceArtifacts runs.
+    failure: Reject an empty selector or any deletion outside the matching generated voice retention class.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.artifact-plane
+  - id: rule.nimi.runtime.service-operations.r027
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Artifact reason codes and meanings are closed
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Artifact failures use ARTIFACT_INVALID_INPUT value 600 for request validation, ARTIFACT_NOT_FOUND value 601 for absent, collected, never-created, or cross-Runtime ids, ARTIFACT_TOO_LARGE value 602 above the inline limit, ARTIFACT_FORBIDDEN value 603 for absent, revoked, expired, or mismatched protected caller or audience, and ARTIFACT_MIME_MISMATCH value 604 only for an SDK expected-MIME-prefix mismatch.
+    condition: Whenever Runtime or SDK classifies an artifact read or validation failure.
+    failure: Reject an unknown value, changed meaning, or server emission of the SDK-only MIME mismatch reason.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.artifact-plane
+  - id: rule.nimi.runtime.service-operations.r028
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Artifact failures use structured carriers
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Runtime artifact handlers carry ARTIFACT reasons in ErrorInfo through grpcerr.WithReasonCode rather than status-message text, and the SDK raises ARTIFACT_MIME_MISMATCH after a case-insensitive expected_mime_prefix check on the received MIME.
+    condition: Whenever an artifact handler or SDK expected-MIME check fails.
+    failure: Reject free-text-only classification, an absent stable reason, or server-side MIME mismatch classification.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.artifact-plane
+  - id: rule.nimi.runtime.service-operations.r029
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Inline artifact retrieval has a hard size ceiling
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: ReadArtifactBytes returns complete bodies only through 32 MiB and returns ARTIFACT_TOO_LARGE for a larger stored artifact without truncation, while generic chunked artifact retrieval remains unavailable until separately admitted.
+    condition: Whenever Runtime evaluates an artifact for inline retrieval.
+    failure: Return ARTIFACT_TOO_LARGE rather than truncate, stream, or partially succeed.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.artifact-plane
+  - id: rule.nimi.runtime.service-operations.r030
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Consumers cannot assume artifact read caching
+    modality: must_not
+    scope:
+      - runtime.service-operations
+    statement: A consumer assumes repeated ReadArtifactBytes calls are cheap or required to be cached by Runtime.
+    condition: Whenever a consumer handles voice_playback_requested or another event artifact.
+    failure: Read once, decode or consume the bytes, drop the local reference when done, and reread only after that local buffer is discarded.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.artifact-plane
+  - id: rule.nimi.runtime.service-operations.r031
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Artifact reads revalidate live caller and durable audience
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Before lookup Runtime revalidates live process, account generation, and durable local-app session, then matches account, principal, exact principal-lineage branch, session, generation, allowed use, and expiry; unbound history, direct local gRPC, wrong audience, revoked or expired records, and guessed ids fail closed.
+    condition: Whenever ReadArtifactBytes authorizes a read.
+    failure: Return ARTIFACT_FORBIDDEN without exposing whether the id exists or which audience field mismatched.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.artifact-plane
+  - id: rule.nimi.runtime.service-operations.r032
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Artifact reads require current owner permission and selector
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: ReadArtifactBytes requires the current Account-owned local-app operation decision and data.scope.read qualified by runtime.artifacts, and the coordinator revalidates local record, permission decision and selector, process-bound session, artifact-owner policy, and durable audience on every read while provenance slots remain opaque before 0P/P.
+    condition: Whenever a third-party local app requests artifact bytes.
+    failure: Deny the read when any current decision, selector, session, owner policy, or audience proof is absent or stale.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.artifact-plane
+  - id: rule.nimi.runtime.service-operations.r033
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Artifact retrieval is a hard cut with distinct typed surfaces
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Pre-audience artifacts inherit no readability from id, local-user ownership, or historical anonymous behavior, while getScenarioArtifacts and getVoiceAsset retain only their separate job-result and voice-library contracts.
+    condition: Whenever an existing artifact or typed media surface is evaluated for retrieval.
+    failure: Deny legacy readability and reject substitution among generic artifact, scenario artifact, and voice asset surfaces.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.artifact-plane
+  - id: rule.nimi.runtime.service-operations.r034
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Artifact storage and SDK projection preserve integrity
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Externally readable records persist observed size, SHA-256, and complete audience, disk reads recheck size and hash, emitters store before emit, handlers use structured reasons, and the SDK exposes the class-member Runtime.artifacts.readBytes rather than a singleton export.
+    condition: Whenever artifact bytes cross storage, event, handler, or SDK boundaries.
+    failure: Fail closed on integrity mismatch, incomplete audience, emit-before-store, unstructured failure, or an alternate SDK surface.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.artifact-plane
+  - id: rule.nimi.runtime.service-operations.r035
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Unadmitted generic artifact operations remain unavailable
+    modality: must_not
+    scope:
+      - runtime.service-operations
+    statement: Runtime exposes cross-device or cross-account artifact sharing, delegated audiences, generic chunked retrieval, generic describeArtifact metadata, generic by-tag or by-source discovery, upload-by-id replacement semantics, or artifact behavior that deprecates lipsync_frame_batch without separate authority.
+    condition: Whenever the generic artifact API is extended.
+    failure: Reject the operation until a future canonical authority explicitly admits it.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.artifact-plane
+  - id: rule.nimi.runtime.service-operations.r036
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Scenario job methods and metadata path are fixed
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: SubmitScenarioJob creates or executes a job, GetScenarioJob queries it, CancelScenarioJob controls it, SubscribeScenarioJobEvents observes it, and GetScenarioArtifacts returns its results; all query and control methods use stored job metadata rather than the connector path.
+    condition: Whenever a ScenarioJob is submitted, queried, canceled, subscribed, or read for artifacts.
+    failure: Reject an undeclared method role or a query or control path that depends on current connector state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.scenario-job-plane
+  - id: rule.nimi.runtime.service-operations.r037
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Scenario job states and terminal semantics are closed
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: ScenarioJob starts at SUBMITTED awaiting scheduling, QUEUED awaits execution resources, RUNNING executes, COMPLETED is terminal success, FAILED is terminal failure, CANCELED is terminal cancellation, and TIMEOUT is terminal timeout; these seven states are exact and the event stream may close normally only after a terminal state.
+    condition: Whenever Runtime creates, transitions, persists, emits, or returns a ScenarioJob.
+    failure: Reject an unknown state, wrong terminal flag, non-SUBMITTED initial state, or normal close before terminal.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.lifecycle-registry
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.scenario-job-plane
+  - id: rule.nimi.runtime.service-operations.r038
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Scenario job transition graph is closed
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: ScenarioJob transitions are exactly SUBMITTED to QUEUED on queue acceptance, RUNNING on provider acceptance, FAILED on pre-run terminal error, CANCELED on user cancel, or TIMEOUT on timeout; QUEUED to RUNNING on provider acceptance, FAILED on pre-run terminal error, CANCELED on user cancel, or TIMEOUT on timeout; and RUNNING to COMPLETED on provider success, FAILED on provider or Runtime failure, CANCELED on user cancel, or TIMEOUT on timeout, with no terminal-state exit.
+    condition: Whenever a ScenarioJob status changes.
+    failure: Reject the transition and preserve the last valid status.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.lifecycle-registry
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.scenario-job-plane
+  - id: rule.nimi.runtime.service-operations.r039
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Scenario jobs and workflows remain distinct state machines
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: ScenarioJob begins at SUBMITTED and never produces SKIPPED, while Workflow begins at ACCEPTED and may use branch-driven SKIPPED; neither state model is projected as the other.
+    condition: Whenever Runtime maps ScenarioJob or Workflow lifecycle state.
+    failure: Reject cross-model state conversion or a SKIPPED ScenarioJob.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.lifecycle-registry
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.scenario-job-plane
+  - id: rule.nimi.runtime.service-operations.r040
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Scenario jobs snapshot and clear execution credentials
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: SubmitScenarioJob copies provider_type, endpoint, and credential from the resolved execution context at creation, later polling, cancellation, and result retrieval use the job snapshot, and terminal transition performs best-effort memory zeroing plus persistent credential deletion.
+    condition: Whenever a ScenarioJob is created, accessed, or reaches terminal state.
+    failure: Reject creation without the complete execution snapshot and do not retain snapshot credentials after terminal cleanup.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.scenario-job-plane
+  - id: rule.nimi.runtime.service-operations.r041
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Connector deletion cannot orphan submitted jobs
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: DeleteConnector does not affect submitted-job observability, cancellation, or artifact retrieval, and revoked snapshot credentials may mark GetScenarioJob FAILED with AI_PROVIDER_AUTH_FAILED while GetScenarioArtifacts returns FAILED_PRECONDITION with AI_PROVIDER_AUTH_FAILED.
+    condition: Whenever a connector is deleted or a provider revokes a job snapshot credential.
+    failure: Preserve metadata-based job control and return the exact revoked-credential mapping rather than a connector lookup result.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.scenario-job-plane
+  - id: rule.nimi.runtime.service-operations.r042
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Terminal job failures have stable and structured layers
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: A terminal failed ScenarioJob carries stable short reason_code and reason_detail for polling and lists plus safe machine-readable reason_metadata for SDK, Desktop, and app NimiError.details projection.
+    condition: Whenever a ScenarioJob reaches a failed terminal outcome.
+    failure: Reject free-text-only failure or a failed terminal snapshot missing either stable summary or safe structured detail.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.scenario-job-plane
+  - id: rule.nimi.runtime.service-operations.r043
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Job reason metadata is safe state-consistent and nonsticky
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: reason_metadata contains only transport-safe machine-readable values, never credentials, headers, tokens, or raw sensitive provider payload, may include provider_message only for approved provider or local-runtime startup failures, is absent from CANCELED and COMPLETED, and appears consistently in SubscribeScenarioJobEvents and GetScenarioJob snapshots.
+    condition: Whenever Runtime stores or projects ScenarioJob failure metadata.
+    failure: Remove unsafe or stale metadata and fail the projection when query and event snapshots disagree.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.scenario-job-plane
+  - id: rule.nimi.runtime.service-operations.r044
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Scenario job progress uses bounded factual fields
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: ScenarioJob progress uses progress_percent from 0 through 100 and, when a backend provides discrete progress, progress_current_step with progress_total_steps, all as snapshot fields without adding a ScenarioJob status.
+    condition: Whenever a backend supplies trustworthy running-job progress.
+    failure: Reject an out-of-range value, incomplete discrete-step pair, or a new lifecycle state used only for progress.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.scenario-job-plane
+  - id: rule.nimi.runtime.service-operations.r045
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Running progress cannot be fabricated or diverge
+    modality: must_not
+    scope:
+      - runtime.service-operations
+    statement: Runtime or a consumer estimates ScenarioJob progress from elapsed time or UI heuristics, or exposes different current progress through GetScenarioJob and SubscribeScenarioJobEvents.
+    condition: Whenever a job remains RUNNING or a backend provides no trustworthy progress.
+    failure: Return status with absent or zero progress when unknown, permit repeated RUNNING events, and let consumers replace old snapshots with the latest consistent snapshot.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.scenario-job-plane
+  - id: rule.nimi.runtime.service-operations.r046
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Scenario discriminators modalities and execution modes are closed
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: The scenario registry is exactly TEXT_GENERATE as text with SYNC and STREAM, TEXT_EMBED as embedding with SYNC, IMAGE_GENERATE as image with ASYNC_JOB, VIDEO_GENERATE as video with ASYNC_JOB, SPEECH_SYNTHESIZE as tts with STREAM and ASYNC_JOB, SPEECH_TRANSCRIBE as stt with ASYNC_JOB, VOICE_CLONE and VOICE_DESIGN as voice with ASYNC_JOB, MUSIC_GENERATE as music with ASYNC_JOB, and WORLD_GENERATE as world with ASYNC_JOB.
+    condition: Whenever Runtime declares, lists, validates, or dispatches a scenario type.
+    failure: Reject an unknown discriminator, mismatched modality, or execution mode outside the exact scenario row.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.scenario-registry
+  - id: rule.nimi.runtime.service-operations.r047
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Scenario profile fields are fixed
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Every ScenarioProfile requires scenario_type and supported_execution_modes and may include only the optional human-readable description field from the admitted profile-field surface.
+    condition: Whenever Runtime returns or consumes a ScenarioProfile.
+    failure: Reject a profile missing a required field or containing an undeclared stable profile field.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.scenario-registry
+  - id: rule.nimi.runtime.service-operations.r048
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Connector status and deletion transitions are closed
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Connector status transitions only ACTIVE to DISABLED and DISABLED to ACTIVE through UpdateConnector, while remote deletion transitions PRESENT to DELETE_PENDING, permits DELETE_PENDING self-retry or startup rescan, and reaches DELETED only after credential cleanup and registry deletion.
+    condition: Whenever a connector status changes or remote connector deletion executes.
+    failure: Reject an undeclared transition, direct PRESENT-to-DELETED removal, or DELETED before credential cleanup.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.lifecycle-registry
+  - id: rule.nimi.runtime.service-operations.r049
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Local model lifecycle expresses availability only
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Local model lifecycle uses INSTALLED to ACTIVE after warm or minimal execution success, INSTALLED to UNHEALTHY after warm or runtime failure, ACTIVE to UNHEALTHY after readiness or runtime failure, UNHEALTHY to ACTIVE after recovery validation, ACTIVE or UNHEALTHY to INSTALLED on the corresponding maintenance stop, ACTIVE to REMOVED on remove, UNHEALTHY to REMOVED on force remove, and INSTALLED to REMOVED on installed-model remove; residency remains separate LocalWarmState, ACTIVE may be COLD, and nonresidency alone never means UNHEALTHY.
+    condition: Whenever Runtime changes or interprets local model lifecycle.
+    failure: Reject an undeclared edge, residency-derived health failure, or conflation of availability with warmth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.lifecycle-registry
+  - id: rule.nimi.runtime.service-operations.r050
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Local service lifecycle expresses process truth only
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Local service lifecycle uses INSTALLED to ACTIVE after spawn and successful probe, ACTIVE to UNHEALTHY after failed health probe, UNHEALTHY to ACTIVE after restart and successful probe, ACTIVE or UNHEALTHY to INSTALLED on stop, and INSTALLED, ACTIVE, or UNHEALTHY to REMOVED on the applicable cleanup path; it expresses service or engine process truth rather than individual model residency.
+    condition: Whenever Runtime changes or interprets local service lifecycle.
+    failure: Reject an undeclared edge or a service state inferred solely from one model's residency.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.lifecycle-registry
+  - id: rule.nimi.runtime.service-operations.r051
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Model transfer status transitions are closed
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Model status transitions only INSTALLED to PULLING for update, PULLING to INSTALLED on success or FAILED on error, FAILED to PULLING on retry, and INSTALLED or FAILED to REMOVED on removal.
+    condition: Whenever Runtime changes model pull or removal status.
+    failure: Reject the transition and preserve the last valid model status.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.lifecycle-registry
+  - id: rule.nimi.runtime.service-operations.r052
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Daemon health states and initial state are fixed
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Runtime daemon health is exactly STOPPED value 1, STARTING value 2, READY value 3, DEGRADED value 4, or STOPPING value 5, with initial state STOPPED and READY meaning requests may be accepted while DEGRADED means partial functionality is unavailable.
+    condition: Whenever Runtime initializes, changes, or projects daemon health.
+    failure: Reject an unknown value, wrong initial state, or false READY projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r053
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Protected state and boot epoch precede every listener
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Before any admitted listener opens Runtime validates protected_local.db against its secure-store anti-rollback anchor, generates a 32-byte CSPRNG boot epoch, and atomically anchors revocation of all nonterminal prior-epoch protected state.
+    condition: Whenever a Runtime production service boots.
+    failure: Disable protected features on ledger unavailability, corruption, rollback mismatch, endpoint ownership failure, or missing required OS primitive without public-TCP or portable-session fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r054
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Production Runtime starts only from signed service identity
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: A production build proves the exact service principal, signed service definition, connected-process signing identity, executable trust row, release digest, account partition, and immutable production configuration before ledger or custody access, and Desktop start or restart invokes only the typed OS service-control gateway.
+    condition: Whenever production Runtime starts or restarts.
+    failure: Reject Desktop-spawned same-user processes, command-line serve, generic user-session keyrings, environment-selected endpoints, user-writable configuration, test trust rows, and Desktop-selected executable paths as production service identity.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r055
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Daemon startup stages are ordered
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Runtime startup verifies service identity and production or test isolation, loads and validates admitted configuration, validates protected custody and commits boot revocation, opens only admitted listeners, starts enabled supervised engines, changes STARTING to READY with matching gRPC health status, and then starts one-second in-memory resource sampling plus AI provider probes.
+    condition: Whenever the daemon starts.
+    failure: Stop before the dependent stage or mark the daemon DEGRADED where explicitly admitted rather than reorder stages or fabricate readiness.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r056
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Supervised engine startup failures degrade with evidence
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: When supervised mode is enabled Runtime creates the engine manager, starts configured enabled engines, injects endpoint environment only after readiness, and on engine startup failure continues daemon startup as DEGRADED with engine-bootstrap audit and provider-unhealthy reason context.
+    condition: Whenever a configured supervised engine starts during daemon boot.
+    failure: Reject a false healthy engine projection or an unaudited startup failure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r057
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Graceful shutdown has one bounded sequence
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Shutdown changes health to STOPPING with matching gRPC health, freezes one daemon-owned deadline, cancels active RPCs and streams, allows a short drain, stops supervised engines, stops sampling and provider probes, closes HTTP with the configured default ten-second timeout, calls gRPC GracefulStop and then ForceStop at the same deadline, and finally changes health to STOPPED.
+    condition: Whenever Runtime receives shutdown.
+    failure: Force bounded process exit at the deadline and never remain indefinitely in STOPPING.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r058
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Forced shutdown is controlled and observable
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: If gRPC does not drain naturally but ForceStop completes process exit within the frozen deadline, shutdown is controlled completion with forced=true lifecycle audit and diagnostics rather than silent or fabricated graceful success, and lifecycle interception permits only read-only methods during STOPPING.
+    condition: Whenever graceful shutdown reaches its deadline or a request arrives during STOPPING.
+    failure: Record the forced path, reject non-read-only work, and fail shutdown if bounded process exit itself does not complete.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r059
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: STOPPING preempts active subsystems without fabricated terminals
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: STOPPING rejects new ScenarioJob and Workflow work as UNAVAILABLE, may close established job, workflow, StreamScenario, and long-lived subscription streams with CANCELLED without fabricated completion, sends supervised engines TERM then KILL after timeout before server close, stops provider probes, and invalidates in-memory sessions on process exit.
+    condition: Whenever daemon shutdown affects active child state machines.
+    failure: Cancel or terminate the child path and reject any fabricated terminal frame, new work, lingering subscription, or engine left beyond its timeout.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r060
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Protected origin is derived before request interpretation
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: On protected transports immutable protected-origin derivation runs before version, protocol, authn, authz, business parsing, token access, or network I/O, binds verified connection and process facts, and assigns public TCP only an explicit non-protected origin that metadata cannot upgrade.
+    condition: Whenever a gRPC call enters Runtime.
+    failure: Reject transport or role mismatch before parsing authority-bearing request material.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r061
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Unary and stream interceptors use one exact order
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: "Runtime registers unary and stream interceptors in this order: protected-origin derives immutable origin, version injects x-nimi-runtime-version, lifecycle rejects non-read-only work in STOPPING or STOPPED, activity tracks active calls and shutdown disposition, protocol parses envelopes and metadata with unary-only idempotency, authn validates authorization metadata, authz protects admitted operations and applies on streams only to ExportAuditEvents, credential-scrub removes sensitive metadata from handler context, and audit records request, response, and usage."
+    condition: Whenever a Runtime gRPC server builds its interceptor chains.
+    failure: Reject server startup when an interceptor is missing, reordered, or applied beyond its admitted unary or stream role.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r062
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Interceptor responsibilities remain separated
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: StreamScenario authorization exceptions remain in request evaluation rather than stream authz and never extend to provider health probes, protected-origin consumes only OS and transport facts, activity tracks method, recent activity, and shutdown disposition without replacing lifecycle gating, and credential-scrub runs after authz but before audit to remove raw credential metadata from handler context.
+    condition: Whenever Runtime processes a request through the interceptor chain.
+    failure: Reject metadata-derived protected origin, duplicated lifecycle authority, misplaced StreamScenario authz, or raw credential propagation into handlers or audit.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r063
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Protocol metadata values have a hard bound
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Every protocol-envelope metadata field value is at most 4096 bytes within the existing 64 KiB gRPC or HTTP header budget.
+    condition: Whenever the protocol interceptor parses envelope metadata.
+    failure: Return PROTOCOL_ENVELOPE_INVALID before handler execution for any oversized field.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r064
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Unary idempotency is bounded and restart-local
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Unary RPC idempotency uses AppID plus IdempotencyKey, returns the cached response without reexecution on a hit, performs no deduplication when the key is absent, expires after 24 hours, stores only in process memory across no restart, and caps at 10000 entries with least-recently-used eviction; streaming RPCs never use this check.
+    condition: Whenever Runtime processes an RPC with optional idempotency metadata.
+    failure: Reject cross-app deduplication, stream deduplication, execution on a live hit, persistence across restart, or unbounded storage.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r065
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: AI scheduling uses ordered global and app limits
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: AI execution acquires a configurable global semaphore defaulting to 8 before a configurable per-app semaphore defaulting to 2, releases in reverse order, maps empty AppID to _default, and marks AcquireResult.Starved true after the configurable default 30-second wait threshold.
+    condition: Whenever an AI execution path acquires scheduler capacity.
+    failure: Reject execution that bypasses either limit or violates acquisition order, and expose starvation rather than silently waiting beyond the threshold.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r066
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: AI timeout defaults and request override are closed
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Default timeouts are 30 seconds for ExecuteScenario TEXT_GENERATE, 60 seconds to first byte and 120 seconds total for StreamScenario, 20 seconds for ExecuteScenario TEXT_EMBED, 120 seconds for image jobs, 300 seconds for video jobs, 45 seconds for StreamScenario SPEECH_SYNTHESIZE, and 90 seconds for speech-transcription jobs; timeout_ms may override only within the server maximum.
+    condition: Whenever Runtime establishes an AI operation deadline.
+    failure: Apply the admitted default or reject an override above the server maximum rather than run without a bound.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r067
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Production configuration has disjoint boot and mutable classes
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Service principal, service definition, listener identity, active release, Realm account endpoints, custody, and production or test posture come only from signed service and release projections and are runtime-immutable, while admitted provider, model, local-engine, and user preferences live in service-principal-owned state and change only through typed protected Desktop control after authorization and closed-schema validation.
+    condition: Whenever production Runtime loads, reads, or changes configuration.
+    failure: Reject mutation of boot security fields and any mutable product change lacking protected authorization or schema admission.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r068
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Production configuration rejects alternate authority
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Production ignores and rejects NIMI_RUNTIME variables, argv-selected endpoints, user-writable files, user-home runtime config, app or renderer metadata, unknown fields, and pre-release legacy import; addresses must be valid host and port values, ShutdownTimeout must be positive, physical paths remain hidden, and reads return only redacted typed projection.
+    condition: Whenever production Runtime parses or projects configuration.
+    failure: Fail configuration closed on an alternate source, unknown field, invalid address, nonpositive timeout, path disclosure, or attempted legacy import.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r069
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Protected configuration mutation has two results
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Typed protected config mutation returns CONFIG_RESTART_REQUIRED when any restart-class field changes and CONFIG_APPLIED for only hot changes or no material change; providers.*, engines.llama.*, and engines.media.* are restart-class, while engines.localai.*, engines.nexa.*, and engines.nimi_media.* are rejected, and Desktop may request typed restart but never stop or select binary or config paths.
+    condition: Whenever Desktop requests a Runtime configuration mutation.
+    failure: Reject an unknown result, wrong restart classification, retired engine field, direct stop, document write, or path selection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r070
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Admitted HTTP health endpoints have fixed semantics
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: On a separately admitted HTTP listener GET /livez returns 200 for process life, GET /readyz and GET /healthz return 200 only in READY and otherwise 503, and GET /v1/runtime/health returns the same full JSON health fields as GetRuntimeHealthResponse.
+    condition: Whenever an admitted Runtime HTTP health listener is active.
+    failure: Reject another method or status mapping and never use these endpoint definitions to manufacture an ordinary production public listener.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r071
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime version metadata is stable per process
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Every gRPC response header carries semver x-nimi-runtime-version fixed at daemon startup for the process, node-grpc SDK consumers cache it from the first successful RPC for compatibility, missing metadata follows SDK best-effort compatibility, and Desktop obtains semantically equivalent daemonVersion through runtime_bridge_status.
+    condition: Whenever Runtime responds over gRPC or a consumer determines daemon compatibility.
+    failure: Reject a changing or non-semver process version and preserve the transport-specific missing-version behavior without inventing a value.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r072
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Restart preserves durable stores but invalidates ephemeral authority
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: A normal fixed-service restart preserves service-owned local-app principal, local record, permission, audit, and RuntimeAgent or Cognition conversation stores, advances the boot epoch, and invalidates all launch leases, process bindings, sessions, challenges, and presence proofs before a protected listener becomes ready; durable permission records authorize nothing until a new session and fresh per-operation resolution.
+    condition: Whenever production Runtime restarts.
+    failure: Deny reuse of every pre-restart process carrier while preserving admitted durable conversation and record continuity.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r073
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Restart integrity failures make protected access unavailable
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: State corruption, rollback mismatch, account partition mismatch, service-owned root mismatch, or inability to commit epoch invalidation makes protected local-app access unavailable.
+    condition: Whenever Runtime validates protected state during restart.
+    failure: Fail closed without direct-daemon, environment-selected-root, portable-session, app-id lookup, or old-process-channel recovery.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r074
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime public first-run command set is stable
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: The Runtime public first-run CLI provides serve, doctor, version, run, model, and provider.
+    condition: Whenever the public Runtime CLI command surface is built or displayed.
+    failure: Fail CLI admission when any required first-run command is absent.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.cli-plane
+  - id: rule.nimi.runtime.service-operations.r075
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Top-level usage prioritizes onboarding
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Top-level nimi usage groups commands under Quick Start, Model Management, Cloud Setup, Runtime Ops, and Advanced/Admin so infrastructure and debugging commands do not obscure first use.
+    condition: Whenever nimi renders top-level help.
+    failure: Reject help output missing a required group or dominated by ungrouped infrastructure commands.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.cli-plane
+  - id: rule.nimi.runtime.service-operations.r076
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Run happy-path targeting is prompt first
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: nimi run takes the prompt first; bare run or --local selects the default local text model, --model selects an explicit local model, --provider selects that provider's default text model, --provider with --model selects an explicit provider model, and --cloud selects the default cloud provider's default text model.
+    condition: Whenever a user invokes the high-level text-generation command.
+    failure: Reject an ambiguous target rather than infer a different route.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.cli-plane
+  - id: rule.nimi.runtime.service-operations.r077
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Run flags and output modes are closed
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: --local and --cloud are mutually exclusive, --provider means cloud and cannot combine with --local, --cloud with --model is not a high-level public shape, default output streams text directly, and only --json returns a structured result.
+    condition: Whenever nimi run validates flags or emits output.
+    failure: Reject a forbidden combination and never silently reinterpret it or return structured output by default.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.cli-plane
+  - id: rule.nimi.runtime.service-operations.r078
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Daemon-down CLI failures are actionable and redacted
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: When the daemon is unreachable, nimi run and nimi provider test fail closed with one executable next-step hint and expose no raw gRPC or dial detail on the public surface.
+    condition: Whenever either command cannot reach Runtime.
+    failure: Return a non-success exit with the bounded hint rather than raw transport detail or pseudo-success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.cli-plane
+  - id: rule.nimi.runtime.service-operations.r079
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Missing local models produce explicit install flow
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: When bare run, --local, or a local --model target is missing, nimi run prompts to install, --yes confirms automatically, and --no-install exits with a directly executable nimi model pull next step.
+    condition: Whenever high-level local targeting resolves no installed model.
+    failure: Do not skip installation silently or continue with another route.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.cli-plane
+  - id: rule.nimi.runtime.service-operations.r080
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Onboarding model and provider namespaces are distinct
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: On the high-level CLI model always identifies a concrete model and provider always means cloud; slash-bearing local model ids are allowed, fully qualified remote model ids remain only on advanced surfaces, and onboarding never infers a provider prefix from model text.
+    condition: Whenever high-level run parses or displays model and provider values.
+    failure: Reject provider aliases in model, remote fully qualified happy paths, and provider inference from model prefixes.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.cli-plane
+  - id: rule.nimi.runtime.service-operations.r081
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Cloud onboarding is provider first and machine scoped
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Public cloud setup uses machine-scoped provider credentials and nimi provider list, set, unset, and test; run supports provider one-shot and machine-default --cloud entry, and when an interactive run identifies a provider with missing credentials it may accept an API key, write canonical config immediately, and continue the same command without account login.
+    condition: Whenever a user configures or first invokes cloud generation.
+    failure: Reject noncanonical credential storage, an account-login prerequisite, or a flow that cannot continue after successful interactive setup.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.cli-plane
+  - id: rule.nimi.runtime.service-operations.r082
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Doctor reports the minimum operational context
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: nimi doctor reports binary version, config path, daemon health, local engine health, configured providers, installed models, and optional SDK detection in the current working directory.
+    condition: Whenever nimi doctor runs.
+    failure: Return a diagnostic failure when required operational context cannot be determined rather than omit it silently.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.cli-plane
+  - id: rule.nimi.runtime.service-operations.r083
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: App author tooling stays outside Runtime CLI
+    modality: must_not
+    scope:
+      - runtime.service-operations
+    statement: The nimi Runtime CLI owns app scaffolding, templates, build profiles, dev, author doctor, update, pack, publish, admission, generated auth helpers, or scaffold audit semantics.
+    condition: Whenever an app-author command or template capability is proposed for nimi.
+    failure: Direct authors to the Platform-governed pnpm dlx @nimiplatform/app-tools nimi-app create, doctor, or update family without importing its authority into Runtime.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.cli-plane
+  - id: rule.nimi.runtime.service-operations.r084
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Version command returns installation diagnostics
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: nimi version outputs the nimi version, Go version, operating system and architecture, and config path.
+    condition: Whenever nimi version runs.
+    failure: Return a command failure when the complete version diagnostic cannot be produced.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.cli-plane
+  - id: rule.nimi.runtime.service-operations.r085
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Serve is foreground only
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: nimi serve is the canonical foreground Runtime command, remains attached, and writes logs directly without implicit daemonization.
+    condition: Whenever the non-product foreground Runtime command runs.
+    failure: Reject implicit backgrounding or detached success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.cli-plane
+  - id: rule.nimi.runtime.service-operations.r086
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Background Runtime commands and meanings are stable
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Background management provides nimi start, stop, status, and logs, where status reports process or instance state and health remains the detailed Runtime health view.
+    condition: Whenever the background Runtime CLI surface is built or invoked.
+    failure: Reject a missing command or a status result presented as the detailed health view.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.cli-plane
+  - id: rule.nimi.runtime.service-operations.r087
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Background start waits for reachable health
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: nimi start returns success only after the child process starts and the Runtime health probe is reachable, with DEGRADED accepted as reachable success.
+    condition: Whenever nimi start launches a background Runtime.
+    failure: Return failure before reachability is proven and never report process creation alone as success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.cli-plane
+  - id: rule.nimi.runtime.service-operations.r088
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Status combines process life and Runtime reachability
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: nimi status checks both process liveness and Runtime reachability rather than only state files and uses distinct exit codes for stopped and live-but-probe-failed outcomes.
+    condition: Whenever nimi status evaluates a background Runtime.
+    failure: Reject state-file-only success or an exit code that conflates stopped with probe failure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.cli-plane
+  - id: rule.nimi.runtime.service-operations.r089
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Stale daemon state yields to live process truth
+    modality: must
+    scope:
+      - runtime.service-operations
+    statement: Background daemon pid, daemon metadata, and lock state are cleaned fail closed when stale, and live process truth takes precedence whenever stored state disagrees.
+    condition: Whenever background CLI reads or reconciles daemon state files.
+    failure: Remove stale state and reject any action or status based on a contradictory file.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.cli-plane

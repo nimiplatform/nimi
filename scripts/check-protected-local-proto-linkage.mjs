@@ -15,7 +15,7 @@ export const SOURCE_PATHS = Object.freeze({
   developmentProto: 'proto/runtime/v1/development.proto',
   identityMap: '.nimi/spec/runtime/kernel/tables/rpc-migration-map/methods-identity-app.yaml',
   excludedMap: '.nimi/spec/runtime/kernel/tables/rpc-migration-map/excluded-proto-methods.yaml',
-  reasonAuthority: '.nimi/spec/runtime/kernel/tables/reason-codes/10-general-auth-connector.yaml',
+  reasonAuthority: 'config/runtime-reason-codes/10-general-auth-connector.yaml',
 });
 
 const RETIRED_PUBLIC_VOCABULARY = Object.freeze([

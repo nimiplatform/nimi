@@ -387,7 +387,7 @@ Active SDK boundary:
 - `runtime.agent.turns.subscribe(...)` may filter by explicit `agentId` and
   optional `conversationAnchorId`
 - emitted SDK event names and payloads must remain downstream of
-  `.nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml`
+  `config/runtime-agent-event-projection.yaml`
 - SDK parsing must fail closed on invalid runtime activity category or
   intensity values
 

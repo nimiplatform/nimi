@@ -10,9 +10,16 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const sourceDir = path.join(repoRoot, 'runtime', 'catalog', 'source', 'providers');
 const generatedPath = path.join(repoRoot, 'runtime', 'internal', 'providerregistry', 'generated.go');
-const providerCatalogTablePath = path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'tables', 'provider-catalog.yaml');
-const providerCapabilitiesTablePath = path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'tables', 'provider-capabilities.yaml');
-const providerExtensionRegistryTablePath = path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'tables', 'provider-extension-registry.yaml');
+const providerCatalogTablePath = path.join(repoRoot, 'config', 'runtime-provider-catalog.yaml');
+const providerCapabilitiesTablePath = path.join(repoRoot, 'config', 'runtime-provider-capabilities.yaml');
+const providerExtensionRegistryTablePath = path.join(repoRoot, 'config', 'runtime-provider-extension-registry.yaml');
+
+const configTableHeader = [
+  '# Non-authoritative machine configuration.',
+  '# Normative authority: .nimi/spec/canonical/runtime/model-catalog.authority.yaml',
+  '# Rationale: docs/authority/runtime-model-catalog-rationale.md',
+  '',
+].join('\n');
 
 const supplementalProviders = [
   {
@@ -569,12 +576,12 @@ async function main() {
   await fs.writeFile(generatedPath, rendered, 'utf8');
   await fs.writeFile(
     providerCatalogTablePath,
-    YAML.stringify(providerCatalogTableDoc(records), { lineWidth: 0 }),
+    configTableHeader + YAML.stringify(providerCatalogTableDoc(records), { lineWidth: 0 }),
     'utf8',
   );
   await fs.writeFile(
     providerCapabilitiesTablePath,
-    YAML.stringify(providerCapabilitiesTableDoc(records), { lineWidth: 0 }),
+    configTableHeader + YAML.stringify(providerCapabilitiesTableDoc(records), { lineWidth: 0 }),
     'utf8',
   );
   process.stdout.write(`generated provider registry: ${path.relative(repoRoot, generatedPath)} (${records.length} providers)\n`);

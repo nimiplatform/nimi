@@ -147,7 +147,7 @@ async function collectSpecScanHits() {
 }
 
 async function checkClassificationInventory() {
-  const contractRel = '.nimi/spec/runtime/kernel/runtime-target-identity-contract.md';
+  const contractRel = 'docs/authority/runtime-rpc-foundations-rationale.md';
   const contract = await read(contractRel);
   const inventory = parseClassificationInventory(contract);
   const hits = await collectSpecScanHits();
@@ -182,7 +182,7 @@ async function checkClassificationInventory() {
 }
 
 async function checkMustMigrateBodiesDoNotAdmitRetiredDurableIdentity() {
-  const contractRel = '.nimi/spec/runtime/kernel/runtime-target-identity-contract.md';
+  const contractRel = 'docs/authority/runtime-rpc-foundations-rationale.md';
   const contract = await read(contractRel);
   const inventory = parseClassificationInventory(contract);
 
@@ -646,3 +646,4 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     process.exitCode = 1;
   });
 }
+

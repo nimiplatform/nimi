@@ -17,11 +17,11 @@ const REPO_ROOT = resolve(APP_ROOT, '..', '..');
 
 const PROVIDER_CATALOG_PATH = resolve(
   REPO_ROOT,
-  '.nimi/spec/runtime/kernel/tables/provider-catalog.yaml',
+  'config/runtime-provider-catalog.yaml',
 );
 const PROVIDER_CAPABILITIES_PATH = resolve(
   REPO_ROOT,
-  '.nimi/spec/runtime/kernel/tables/provider-capabilities.yaml',
+  'config/runtime-provider-capabilities.yaml',
 );
 
 const GENERATED_DIR = resolve(APP_ROOT, 'src/landing/generated');

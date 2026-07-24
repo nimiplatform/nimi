@@ -466,9 +466,9 @@ Account Default Profile content source。
 - `.nimi/spec/runtime/kernel/local-environment-consumer-activation-contract.md`
   — `K-LENV-ACT-001..K-LENV-ACT-010` activation gate authority
 - `.nimi/spec/runtime/kernel/tables/host-capability-profiles.yaml`
-- `.nimi/spec/runtime/kernel/tables/local-compute-packs.yaml`
-- `.nimi/spec/runtime/kernel/tables/local-environment-dependencies.yaml`
-- `.nimi/spec/runtime/kernel/tables/local-environment-materializers.yaml`
+- `config/runtime-local-compute-packs.yaml`
+- `config/runtime-local-environment-dependencies.yaml`
+- `config/runtime-local-environment-materializers.yaml`
 - `.nimi/spec/runtime/kernel/tables/activation-gate-reason-codes.yaml`
 - `.nimi/spec/sdks/kernel/ai-config-surface-contract.md` —
   `S-AICONF-001..S-AICONF-006` SDK AI config typed surface

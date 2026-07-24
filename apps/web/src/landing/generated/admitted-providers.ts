@@ -1,7 +1,7 @@
 /**
  * @generated
- * Source: .nimi/spec/runtime/kernel/tables/provider-catalog.yaml
- *   sha256: 7bf7e60462e2f30be43889c407392fc82e2d9f98a412835d8f99a4f075cf94af
+ * Source: config/runtime-provider-catalog.yaml
+ *   sha256: 687062730dcd66f957737ee1d0f13d39afa05e0e415c913a3c3b6d617f5920b5
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.

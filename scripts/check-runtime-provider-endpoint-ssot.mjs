@@ -10,8 +10,8 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
 const sourceDir = path.join(repoRoot, 'runtime', 'catalog', 'source', 'providers');
-const providerCatalogPath = path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'tables', 'provider-catalog.yaml');
-const providerCapabilitiesPath = path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'tables', 'provider-capabilities.yaml');
+const providerCatalogPath = path.join(repoRoot, 'config', 'runtime-provider-catalog.yaml');
+const providerCapabilitiesPath = path.join(repoRoot, 'config', 'runtime-provider-capabilities.yaml');
 const registryPath = path.join(repoRoot, 'runtime', 'internal', 'providerregistry', 'generated.go');
 const providerCatalogRuntimePath = path.join(repoRoot, 'runtime', 'internal', 'services', 'connector', 'provider_catalog.go');
 const registryGeneratorPath = path.join(repoRoot, 'scripts', 'generate-runtime-provider-registry.mjs');

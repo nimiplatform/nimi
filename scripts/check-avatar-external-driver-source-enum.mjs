@@ -14,7 +14,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FILES = {
   avatarEvent: '.nimi/spec/avatar/kernel/avatar-event-contract.md',
   agentScript: '.nimi/spec/avatar/kernel/agent-script-contract.md',
-  runtimePresentation: '.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md',
+  runtimePresentation: 'docs/authority/runtime-agent-participation-rationale.md',
   driverTypes: 'apps/avatar/src/shell/renderer/driver/types.ts',
   sdkDriver: 'apps/avatar/src/shell/renderer/sdk/SdkDriver.ts',
   eventDispatch: 'apps/avatar/src/shell/renderer/nas/event-dispatch.ts',
@@ -84,7 +84,7 @@ requireExcludes(FILES.sdkDriver, [
 ]);
 
 requireIncludes(FILES.eventDispatch, [
-  "source !== 'apml_output' && source !== 'direct_api' && source !== 'mock'",
+  "source !== 'apml_output' && source !== 'direct_api'",
   'source: activity.source',
   'parseRuntimeProjectionSource',
 ]);
@@ -99,3 +99,4 @@ if (failures > 0) {
 }
 
 console.log('[avatar-external-driver-source-enum] PASS');
+

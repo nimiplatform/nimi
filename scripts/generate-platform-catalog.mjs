@@ -14,10 +14,10 @@ const checkMode = args.has('--check');
 const profileTablePath = path.join(repoRoot, '.nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml');
 const canonicalCapabilityTablePath = path.join(repoRoot, '.nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml');
 const hostCapabilityProfilesTablePath = path.join(repoRoot, '.nimi/spec/runtime/kernel/tables/host-capability-profiles.yaml');
-const localComputePacksTablePath = path.join(repoRoot, '.nimi/spec/runtime/kernel/tables/local-compute-packs.yaml');
+const localComputePacksTablePath = path.join(repoRoot, 'config/runtime-local-compute-packs.yaml');
 const localEnvironmentDependenciesTablePath = path.join(
   repoRoot,
-  '.nimi/spec/runtime/kernel/tables/local-environment-dependencies.yaml',
+  'config/runtime-local-environment-dependencies.yaml',
 );
 const appRegistryTablePath = path.join(repoRoot, '.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml');
 const appReleaseDescriptorTablePath = path.join(repoRoot, '.nimi/spec/platform/kernel/tables/nimi-app-release-descriptors.yaml');

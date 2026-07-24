@@ -16,8 +16,8 @@ Provider snapshot is optimized for runtime resolver compatibility.
 
 Runtime only loads `runtime/catalog/providers/*.yaml`.
 
-`spec/runtime/kernel/tables/provider-catalog.yaml` and
-`spec/runtime/kernel/tables/provider-capabilities.yaml` are generated mirrors of
+`config/runtime-provider-catalog.yaml` and
+`config/runtime-provider-capabilities.yaml` are generated mirrors of
 source-provider runtime metadata. Runtime routing facts must be authored here
 first, then projected into snapshot / registry / spec tables.
 
@@ -113,8 +113,8 @@ When `inventory_mode=dynamic_endpoint`, `runtime.dynamic_inventory` is required:
 These fields drive:
 
 - `runtime/internal/providerregistry/generated.go`
-- `spec/runtime/kernel/tables/provider-catalog.yaml`
-- `spec/runtime/kernel/tables/provider-capabilities.yaml`
+- `config/runtime-provider-catalog.yaml`
+- `config/runtime-provider-capabilities.yaml`
 
 Remote providers must choose exactly one endpoint policy:
 

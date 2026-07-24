@@ -39,11 +39,11 @@
   one-row-per-`capabilityId` invariant while admitting multi-table runtime sources.
 - Resolver semantics are table-specific and fixed:
   - For `table: provider-capabilities`, the resolver flattens
-    `.nimi/spec/runtime/kernel/tables/provider-capabilities.yaml` over
+    `config/runtime-provider-capabilities.yaml` over
     `providers[].capabilities[]` and succeeds when the `capability` value is present in
     the flattened set.
   - For `table: local-adapter-routing`, the resolver reads
-    `.nimi/spec/runtime/kernel/tables/local-adapter-routing.yaml` over
+    `config/runtime-local-adapter-routing.yaml` over
     `routes[].capability` and succeeds when the `capability` value is present.
 - A drift checker is required to run both a consistency predicate (every active row's
   primary `sourceRef` and each `additionalRuntimeTables` entry resolves) and a

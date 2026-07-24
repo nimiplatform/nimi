@@ -1,239 +1,30 @@
-# Runtime Kernel Contracts
+# Runtime Kernel — Migrated Domain Index
 
-> Scope: Runtime 全量服务契约（AI 执行平面 / Auth Core / Workflow / Voice / Audit / Model / Knowledge / Memory / Agent Service / App / Daemon / Config / Connector / Multimodal / Proto Governance）。
+本域契约散文已全量迁入 canonical authority(S6 域 3,2026-07-24)。本目录余件为冻结邻接素材,处置权已移交对应后续包。
 
-## 1. 目标
+## Canonical 容器(规范权威)
 
-本目录是 Runtime 规范的唯一权威层（kernel layer）。
-任何跨域规则只能在 kernel 定义一次，domain 文档只能引用 Rule ID，不得复述规则正文。
+| 容器 | 覆盖面 |
+|---|---|
+| `.nimi/spec/canonical/runtime/security-core.authority.yaml` | 令牌校验/所有权授权/端点安全/grant/密钥路由/workspace 绑定 |
+| `.nimi/spec/canonical/runtime/rpc-foundations.authority.yaml` | 审计/错误模型/分页/route-describe/流式/目标身份/reason-codes 语义 |
+| `.nimi/spec/canonical/runtime/service-operations.authority.yaml` | local service/artifact/scenario-job/daemon 生命周期/CLI onboarding |
+| `.nimi/spec/canonical/runtime/ai-provider.authority.yaml` | AI profile 执行/connector/model service/多模态 provider/nimillm/健康 |
+| `.nimi/spec/canonical/runtime/model-catalog.authority.yaml` | 目录/本地解析/provider 元数据/voice/workflow |
+| `.nimi/spec/canonical/runtime/local-compute.authority.yaml` | 设备画像/资产清单/类目能力/引擎/加速器/物化器/profile 应用 |
+| `.nimi/spec/canonical/runtime/delegation.authority.yaml` | 能力网关/MCP 适配/输出防火墙/审批/审计回放/A2A 负向缝 |
+| `.nimi/spec/canonical/runtime/agent-participation.authority.yaml` | 会话锚/hook/输出线/呈现(流)/avatar 调试/参与全家族/房间编排/AI 配置/app 消费/生命自治 |
+| `.nimi/spec/canonical/runtime/memory-world.authority.yaml` | canonical memory/memory service/substrate/knowledge/scheduling/world-evolution |
+| `.nimi/spec/canonical/runtime/app-surface.authority.yaml` | app 生命周期/消息/投影/local-app 主体记录/scoped 绑定/auth 服务 |
+| `.nimi/spec/canonical/runtime/protected-session.authority.yaml` | 受保护本地会话/账户会话/配置/RPC 面(dev_kernel_checkpoint 语义逐字) |
+| `.nimi/spec/canonical/runtime/agent-service.authority.yaml` | 上下文组装/agent 服务/本地 agent 物化(runtime 消费侧) |
 
-## 2. One Fact One Home
+原文散文(rationale,非规范)见 `docs/authority/runtime-*-rationale.md`;机器行数据见 `config/runtime-*.yaml`(头注声明非权威)。
 
-- 单一事实源：同一规则只允许在一个 kernel 文件定义。
-- 下游投影：`.nimi/spec/runtime/*.md` 仅保留导引和映射，不承载本地规则体系。
-- 冲突处理：若下游与 kernel 冲突，以 kernel 为准；下游同次修正。
+## 冻结邻接素材(本目录余件,零改动保留)
 
-## 3. Rule ID 规范
+- **dev-kernel/local-development 载体(D4,处置权 = dev-kernel 解缠包)**:`tables/protected-local-*.yaml` 六件套、`tables/local-app-*.yaml`、`tables/provider-probe-targets.yaml`、`tables/profile-image-family-companion-slots.yaml`(后两者 runtime Go 测试直读)
+- **realm 冻结(处置权 = realm 合流包)**:`tables/account-rpc-permission-matrix.yaml`、`tables/realm-broker-operations.yaml`、`tables/config-schema.yaml`、`tables/runtime-rpc-auth-posture.yaml`、`tables/error-mapping-matrix/**` realm 分片
+- 其余分片子目录随其父表归属。
 
-- 格式：`K-<DOMAIN>-NNN`
-- `DOMAIN` 固定枚举：
-  - `RPC` `AUTH` `AUTHN` `AUTHSVC` `ACCSVC` `BIND` `GRANT` `KEYSRC` `JOB`
-  - `LOCAL` `LENG` `DEV` `SEC` `STREAM` `ERR` `PAGE` `AUDIT`
-  - `DAEMON` `PROV` `WF` `MODEL` `KNOW` `APP` `CLI`
-  - `CFG` `CONN` `NIMI` `MCAT` `MMPROV` `VOICE` `GATE` `PROTO`
-  - `AIEXEC` `RTARGET` `SCHED` `WEV` `MEM` `MEMSUB` `AGCORE`
-  - `DELEG`
-- `NNN` 三位递增编号，不复用。
-- `NNNa`/`NNNb` 后缀允许用于后插入的细化规则（如 `K-KEYSRC-005a`），保留原有规则编号稳定性。
-
-## 4. 文档所有权
-
-| 文档 | Domain | 说明 |
-|---|---|---|
-| `rpc-surface.md` | `K-RPC-*` | Runtime service scope、method sets、proto naming、disabled names、connector/local/app RPC surface、and local environment plan surface |
-| `rpc-local-service-contract.md` | `K-RPC-*` | RuntimeLocalService method set and local state/config reconciliation authority |
-| `rpc-route-describe-contract.md` | `K-RPC-*` | Runtime route describe typed result schema、producer derivation、fail-close、transport boundary、voice workflow independence、voice asset lifecycle、and workflow family validation |
-| `authz-ownership.md` | `K-AUTH-*` | JWT、owner、信息隐藏、访问门禁 |
-| `authn-token-validation.md` | `K-AUTHN-*` | JWT/JWKS 验签、缓存刷新、时钟偏差、会话失效 |
-| `auth-service.md` | `K-AUTHSVC-*` | RuntimeAuthService 契约与会话生命周期 |
-| `account-session-contract.md` | `K-ACCSVC-*` | Runtime account/token custody, Desktop account control, local-app permission posture/request, authority-class coordinator and user presence; removed public token/credential-grant identities stay reserved |
-| `protected-local-session-contract.md` | `K-PLOCAL-*` | Fixed isolated Runtime service, Desktop `local_app_control`, `local_app_bootstrap`/`local_app_host`, `PrepareLocalAppLaunch`, exact process bind, request-empty common local-app session and restart invalidation |
-| `scoped-app-binding-contract.md` | `K-BIND-*` | Runtime-issued scoped app binding：carrier 分类、生命周期、relation tuple、revocation、replay、Avatar/Desktop binding 规则 |
-| `workspace-binding-contract.md` | `K-BIND-*` | Runtime-issued workspace knowledge binding：Realm membership projection consumption、workspace-specific relation/attachment、issue/revoke lifecycle、internal resolver、decision/audit/fail-close matrix |
-| `grant-service.md` | `K-GRANT-*` | Physically removed public credential/exact-operation grant families, five authority classes, absent pre-admission store and future canonical owner permission lifecycle |
-| `key-source-routing.md` | `K-KEYSRC-*` | `connector_id`/inline 与 metadata 契约 |
-| `scenario-job-lifecycle.md` | `K-JOB-*` | ScenarioJob 生命周期与 owner/credential 快照 |
-| `local-category-capability.md` | `K-LOCAL-*` | 本地模型基础 category、capability、install/catalog intake |
-| `local-profile-application-contract.md` | `K-LOCAL-*` | 本地 profile 解析、apply、路由、companion occurrence 与 override |
-| `local-catalog-recommendation-contract.md` | `K-LOCAL-*` | 本地 catalog search、recommendation、HuggingFace 获取与下载 |
-| `local-asset-storage-manifest-contract.md` | `K-LOCAL-*` | 本地资产存储、manifest、format、runtime ownership、audit 与分页 |
-| `local-engine-contract.md` | `K-LENG-*` | 本地引擎类型、运行模式与 supervised/attached 执行边界 |
-| `local-engine-resolver-contract.md` | `K-LENG-*` | 本地引擎 resolver、canonical mode、internal lifecycle、Python runtime 与错误归因 |
-| `local-engine-protocol-health-contract.md` | `K-LENG-*` | 本地引擎默认端点、协议基线、健康探测、配置、凭据与流式降级 |
-| `local-engine-runtime-environment-contract.md` | `K-LENG-*` | 本地引擎 runtime readiness、managed dependency、activation gate 与 dependency job control |
-| `local-engine-accelerator-contract.md` | `K-LENG-*` | 本地引擎共享 accelerator dependency readiness |
-| `local-engine-speech-contract.md` | `K-LENG-*` | 本地语音引擎 baseline、product posture、supervised readiness |
-| `device-profile-contract.md` | `K-DEV-*` | 设备画像与兼容性判定 |
-| `endpoint-security.md` | `K-SEC-*` | endpoint 安全校验与 TOCTOU 防护 |
-| `streaming-contract.md` | `K-STREAM-*` | 流式阶段边界、终帧与错误语义 |
-| `error-model.md` | `K-ERR-*` | ReasonCode 分层、映射原则 |
-| `pagination-filtering.md` | `K-PAGE-*` | 分页、排序、过滤、token 语义 |
-| `audit-contract.md` | `K-AUDIT-*` | 审计字段、写入义务、统计与健康快照 |
-| `daemon-lifecycle.md` | `K-DAEMON-*` | Fixed-service health/start/stop, bounded shutdown, service-owned configuration, and durable local-app state vs boot-epoch lease/session invalidation |
-| `provider-health-contract.md` | `K-PROV-*` | Provider 探测、状态机、名称归一化 |
-| `workflow-contract.md` | `K-WF-*` | Workflow DAG、节点类型、状态机、事件流 |
-| `voice-contract.md` | `K-VOICE-*` | Voice 工作流、VoiceAsset 生命周期与引用契约 |
-| `model-service-contract.md` | `K-MODEL-*` | 模型注册、能力画像、状态枚举 |
-| `knowledge-contract.md` | `K-KNOW-*` | runtime-local knowledge banks、page lifecycle、keyword search |
-| `runtime-memory-service-contract.md` | `K-MEM-*` | Runtime-owned memory substrate、bank scope、provider boundary、Realm replication |
-| `runtime-memory-substrate-contract.md` | `K-MEMSUB-*` | Runtime-private local memory substrate / Hindsight bridge、health、daemon boundary、runtime-owned typed overlay |
-| `runtime-agent-service-contract.md` | `K-AGCORE-*` | Runtime-owned live agent lifecycle、typed hook admission、public chat conversation surface、token budget、failure semantics、hook store、and agent event source |
-| `runtime-agent-life-autonomy-contract.md` | `K-AGCORE-*` | Runtime-owned Life Track、autonomy cadence、source/profile mutation grammar、delegation boundary、turn/stream terminal coupling、and temporal-autonomy deferral |
-| `runtime-agent-canonical-memory-contract.md` | `K-AGCORE-*` | Runtime-owned canonical review、review status projection、chat-track sidecar、truth read boundary、coordination model、and chat/life evidence admission |
-| `runtime-agent-app-consume-contract.md` | `K-AGCORE-*` | Runtime-owned app-facing reactive chat consume and scoped binding attachment authority |
-| `runtime-local-agent-materialization-contract.md` | `K-AGCORE-*` | Runtime-owned LocalAgent challenge/upload admission、immutable source snapshot/provenance、source-derived context input、deletion/reset、and proactive interruptibility projection |
-| `runtime-agent-ai-config-contract.md` | `K-AGCORE-*` | Runtime Agent AI Config authority、revision persistence、readiness projection、turn admission、available actions、event seam、and bootstrap seeding |
-| `runtime-agent-context-composition-contract.md` | `K-AGCORE-*` | Runtime-owned AgentTurnContextManifest、fixed typed lanes、transcript/memory isolation、catalog budget/truncation、provider/APML fail-close、bounded public summaries、and isolated subject/evaluator AI execution with distinct complete route fingerprints |
-| `runtime-agent-participation-contract.md` | `K-AGCORE-*` | Runtime-owned non-canonical agent participation authority and closed participation axis model |
-| `runtime-agent-participation-profile-contract.md` | `K-AGCORE-*` | Runtime-owned participation profile registry、context block registry、output candidate、and domain commit separation |
-| `runtime-agent-participation-policy-boundary-contract.md` | `K-AGCORE-*` | Runtime-owned participation memory/capability/concurrency policy、audit/replay、raw prompt boundary、external entry gateway、and negative gates |
-| `runtime-agent-participation-domain-promotion-contract.md` | `K-AGCORE-*` | Runtime-owned participation future seams、domain truth separation、product gates、promotion boundary registry、and fail-closed promotion invariants |
-| `multi-agent-room-orchestration-contract.md` | `K-AGCORE-*` | Runtime-owned same-room/session orchestration authority、closed room axis registry、domain matrix、trigger arbitration、budget/cancellation/status/external admission、and domain commit handoff boundary |
-| `realm-group-participation-consumer-contract.md` | `K-AGCORE-*` | Runtime-owned consumer boundary for Realm GROUP agent participation、typed context refs、candidate output、policy inheritance、room-orchestration binding、and no direct Realm commit |
-| `companion-participation-projection-contract.md` | `K-AGCORE-*` | Runtime-owned projection boundary for Avatar companion/persona/debug participation consumers、typed statuses、candidate/commit split、trigger boundary、and no raw payload exposure |
-| `agent-conversation-anchor-contract.md` | `K-AGCORE-*` | Runtime-owned `ConversationAnchor` continuity truth for per-agent multi-surface chat/session sharing inside a multi-agent runtime |
-| `agent-presentation-contract.md` | `K-AGCORE-*` | Runtime-owned persistent `AgentPresentationProfile` truth、default avatar binding、and non-owner boundary for renderer-local state |
-| `agent-presentation-stream-contract.md` | `K-AGCORE-*` | Runtime-owned transient `turn` / `presentation` projection seam、current emotion projection、and stream commit semantics |
-| `avatar-debug-projection-contract.md` | `K-AGCORE-*` | Runtime-owned Avatar debug probe request/result/replay projection semantics and `runtime.agent.avatar_debug.*` event families |
-| `agent-hook-intent-contract.md` | `K-AGCORE-*` | Runtime-owned narrow-admit `HookIntent` truth、admission states、and event seam |
-| `agent-output-wire-contract.md` | `K-AGCORE-*` | Agent chat model-facing APML output wire authority、APML-to-runtime projection boundary、and post-turn action / HookIntent split |
-| `delegated-capability-gateway-contract.md` | `K-DELEG-*` | Runtime-owned delegated provider/session/request/result authority、provider profile lifecycle、streaming result envelope、and no protocol ontology promotion |
-| `delegated-output-firewall-contract.md` | `K-DELEG-*` | Runtime-owned delegated output firewall、observation/suggestion/artifact/failure semantics、streaming chunk quarantine、and fail-closed admission |
-| `delegated-audit-replay-contract.md` | `K-DELEG-*` | Delegation audit/replay payload and lineage extension on top of `K-AUDIT-*` storage |
-| `delegated-approval-contract.md` | `K-DELEG-*` | Runtime-owned delegated approval request/decision/resume semantics and Desktop UX non-owner boundary |
-| `delegated-mcp-adapter-contract.md` | `K-DELEG-*` | Runtime-owned MCP adapter lifecycle、tool discovery/allowlist、token hygiene、quarantined gateway evidence、and no pre-firewall consumption |
-| `delegated-a2a-future-seam-contract.md` | `K-DELEG-*` | Future A2A adapter seam only、no production A2A support、no protocol authority promotion、and no app/Desktop/Avatar bypass |
-| `app-messaging-contract.md` | `K-APP-*` | RuntimeAppService messaging、event stream、reserved runtime.agent target、companion multi-app interaction、and Avatar runtime boundary |
-| `app-lifecycle-contract.md` | `K-APP-*` | Opaque immutable package seams with typed unavailable positive posture, local record lifecycle, protected local-app launch and Developer Mode |
-| `local-app-principal-record-contract.md` | `K-APP-028..031` | SID-derived local OS-user anchor, random non-reused principal, opaque lineage/provenance slots, separate lifecycle record/store, tombstone/no inheritance and resolver boundary |
-| `app-projection-contract.md` | `K-APP-*` | Principal-keyed app storage/audience, exact protected JSON operations, opaque package readiness, account/local-record inventory, and no workspace-adoption authority |
-| `cli-onboarding-contract.md` | `K-CLI-*` | CLI 首次使用、provider-first cloud setup 与 author tooling 边界 |
-| `config-contract.md` | `K-CFG-*` | service-principal-owned closed configuration, signed boot authority, typed protected mutation, secret custody, hardcut/no-import, and selected `nimi_data` dataRootRef projection |
-| `connector-contract.md` | `K-CONN-*` | connector 托管、字段约束、补偿与并发安全 |
-| `runtime-target-identity-contract.md` | `K-RTARGET-*` | Runtime Target Identity v2 durable refs, inventory projection, resolved execution binding, and scan classification authority |
-| `nimillm-contract.md` | `K-NIMI-*` | remote 执行边界、流式与审计对齐 |
-| `model-catalog-contract.md` | `K-MCAT-*` | Runtime model catalog identity、SSOT、field schema、pricing、runtime resolution、overlay、and fail-close baseline |
-| `model-catalog-voice-workflow-contract.md` | `K-MCAT-*` | Runtime model catalog voice、speech、workflow、video、capability vocabulary、selection profile、and local Qwen speech baseline authority |
-| `model-catalog-provider-metadata-contract.md` | `K-MCAT-*` | Runtime model catalog source schema、provider onboarding、activation guardrail、source/infra boundary、and provider runtime metadata projection |
-| `model-catalog-local-resolver-contract.md` | `K-MCAT-*` | Runtime model catalog local-plane row、curated preset、deterministic resolver、variant selection、host-conditional omission、and fail-close discipline |
-| `multimodal-provider-contract.md` | `K-MMPROV-*` | canonical 输入、artifact、adapter 与路由约束（含 `MUSIC_GENERATE` iteration 扩展） |
-| `delivery-gates-contract.md` | `K-GATE-*` | 交付门定义与证据路由 |
-| `proto-governance-contract.md` | `K-PROTO-*` | proto 治理、兼容策略、发布门禁 |
-| `ai-profile-execution-contract.md` | `K-AIEXEC-*` | AIProfile 执行、probe、snapshot、scheduling boundary |
-| `scheduling-contract.md` | `K-SCHED-*` | 调度 five-state preflight judgement、atomic target / aggregate Peek、occupancy、denial |
-| `world-evolution-engine-contract.md` | `K-WEV-*` | World Evolution Engine 的 Runtime-owned event semantics、replay/checkpoint/supervision/effect-stage/commit-request 合同，以及 workflow partial-reuse hardcut |
-
-## 5. 结构化事实源
-
-`tables/` 目录中的 YAML 是自动生成表格与 lint 的事实源：
-
-- `tables/rpc-methods.yaml`
-- `tables/rpc-migration-map.yaml`
-- `tables/scenario-types.yaml`
-- `tables/scenario-execution-matrix.yaml`
-- `tables/scenario-profile-fields.yaml`
-- `tables/reason-codes.yaml`
-- `tables/error-mapping-matrix.yaml`
-- `tables/metadata-keys.yaml`
-- `tables/key-source-truth-table.yaml`
-- `tables/provider-catalog.yaml`
-- `tables/provider-capabilities.yaml`
-- `tables/connector-rpc-field-rules.yaml`
-- `tables/job-states.yaml`
-- `tables/state-transitions.yaml`
-- `tables/local-engine-catalog.yaml`
-- `tables/local-adapter-routing.yaml`
-- `tables/daemon-health-states.yaml`
-- `tables/interceptor-chain.yaml`
-- `tables/protected-local-os-profiles.yaml`
-- `tables/protected-local-custody-profiles.yaml`
-- `tables/protected-local-runtime-principal-profiles.yaml`
-- `tables/protected-local-launch-session-profiles.yaml`
-- `tables/protected-local-lifecycle-intent-protocol.yaml`
-- `tables/protected-local-rpc-transport-matrix.yaml`
-- `tables/protected-local-security-limits.yaml`
-- `tables/local-app-principal-record-schema.yaml`
-- `tables/local-app-grant-binding-schema.yaml`
-- `tables/local-app-presence-protocol.yaml`
-- `tables/ai-timeout-defaults.yaml`
-- `tables/provider-probe-targets.yaml`
-- `tables/workflow-node-types.yaml`
-- `tables/workflow-states.yaml`
-- `tables/voice-enums.yaml`
-- `tables/tts-provider-capability-matrix.yaml`
-- `tables/multimodal-canonical-fields.yaml`
-- `tables/multimodal-artifact-fields.yaml`
-- `tables/provider-extension-registry.yaml`
-- `tables/runtime-memory-bank-scope.yaml`
-- `tables/runtime-memory-hook-trigger.yaml`
-- `tables/runtime-memory-replication-outcome.yaml`
-- `tables/workspace-binding-relation.yaml`
-- `tables/knowledge-action-scope-matrix.yaml`
-- `tables/runtime-agent-service-typed-family.yaml`
-- `tables/runtime-agent-event-projection.yaml`
-- `tables/runtime-agent-ai-config.yaml`
-- `tables/agent-participation-axis-model.yaml`
-- `tables/agent-participation-profiles.yaml`
-- `tables/agent-participation-context-blocks.yaml`
-- `tables/agent-participation-output-destinations.yaml`
-- `tables/agent-participation-memory-policy.yaml`
-- `tables/agent-participation-memory-read-scopes.yaml`
-- `tables/agent-participation-capability-scopes.yaml`
-- `tables/agent-participation-concurrency-policy.yaml`
-- `tables/agent-participation-external-entry-boundaries.yaml`
-- `tables/agent-participation-domain-future-seams.yaml`
-- `tables/agent-participation-promotion-boundaries.yaml`
-- `tables/room-orchestration-axis-model.yaml`
-- `tables/room-orchestration-domain-matrix.yaml`
-- `tables/room-orchestration-trigger-arbitration.yaml`
-- `tables/room-orchestration-budget-policy.yaml`
-- `tables/room-orchestration-domain-overlays.yaml`
-- `tables/realm-group-participation-context.yaml`
-- `tables/avatar-debug-probe-events.yaml`
-- `tables/avatar-debug-replay-keys.yaml`
-- `tables/delegation-provider-profiles.yaml`
-- `tables/delegation-request-fields.yaml`
-- `tables/delegation-result-fields.yaml`
-- `tables/delegation-reason-codes.yaml`
-- `tables/delegation-protocol-adapters.yaml`
-- `tables/runtime-delivery-gates.yaml`
-- `tables/runtime-proto-governance-gates.yaml`
-- `tables/capability-vocabulary-mapping.yaml`
-- `tables/config-schema.yaml`
-- `tables/profile-runtime-descriptor-schema.yaml`
-- `tables/profile-workflow-contracts.yaml`
-- `tables/rule-evidence.yaml`
-
-Runtime provider model/voice default data is maintained outside `spec/` at:
-
-- `runtime/catalog/providers/*.yaml`
-
-## 6. Kernel Companion 约束
-
-- `kernel/companion/*.md` 只做解释层，不定义规则。
-- companion 每个章节必须带 `Anchors:` 指向 kernel Rule ID。
-
-## 7. 结构约束
-
-- kernel 表 `source_rule` 仅允许 `K-*`。
-- domain 文档 Section 0 的导入必须在正文显式落到至少一个具体 Rule ID。
-- 执行态内容不得进入 `/.nimi/spec/**`；repository task / plan / resume state 遵循 `P-PKG-010` 的 external-host ownership；必要的 execution evidence 或 decision dossier 仅作为非权威 local evidence 或 Git history 保留；tracked spec 不依赖具体 local 文件，也不规定 repository task lifecycle 目录。
-
-## 8. 跨域状态机术语映射
-
-不同域的状态机使用不同的状态名称和大小写惯例，以下分歧均为有意设计：
-
-| 域 | 初始态 | 终态（成功） | 终态（超时/过期） | 大小写 | 引用 |
-|---|---|---|---|---|---|
-| ScenarioJob (`K-JOB-*`) | `SUBMITTED` | `COMPLETED` | `TIMEOUT` | UPPER_SNAKE | K-JOB-002 |
-| Workflow (`K-WF-*`) | `ACCEPTED` | `COMPLETED` | — | UPPER_SNAKE | K-WF-003 |
-| Provider Async Task (`K-MMPROV-*`) | `queued` | `succeeded` | `expired` | lower_snake | K-MMPROV-027 |
-
-**设计理由**：
-- ScenarioJob 与 Workflow 是 Runtime 内部域，使用 proto enum 惯例（UPPER_SNAKE）。
-- Provider Async Task 是 provider API 归一化层，使用 lower_snake 以贴近 provider 原始语义。
-- K-MMPROV-027 定义了 provider 异步状态到 ScenarioJob 终态的映射规则（`succeeded→COMPLETED`、`expired→TIMEOUT`、`failed→FAILED`）。
-
-## 9. Scope 与 Deferred
-
-本目录覆盖 Runtime proto 全量服务，包含 `workflow-contract.md` 与 `voice-contract.md` 在内的全部 kernel 合同。审计或实施可以按主题分批进行，但 chunk 边界不是规范边界，不得被写回 spec 作为排除项。
-
-Phase 1 规则构成当前规范基线；Phase 2 kernel contracts 可先以 draft 形态并存，待语义收敛后再提升为规范基线。新增语义必须先入 kernel，再改 domain 与实现。
-
-## 10. 跨层信息引用约定
-
-Runtime kernel 合同中出现的 Desktop（`D-*`）或 SDK（`S-*`）Rule ID 默认用于记录消费方行为、集成上下文或跨层排障锚点。除非规则正文显式声明为共享 gate，此类引用均为信息性引用，不构成 Runtime 侧前置条件。
-
-- Runtime 行为与合规性不得依赖 Desktop/SDK 规则先成立。
-- Desktop/SDK 对自身规则合规性负责；Runtime 仅记录与其交互的消费方假设。
-- 跨层引用应保持说明性文字，例如“Desktop 端（D-SEC-009）始终使用 managed connector 路径”，不得把下游 Rule ID 写成 Runtime required gate。
+不得基于本索引推断权威;权威只在 canonical 容器。

@@ -7,14 +7,12 @@ Runtime 有两类流式模式：场景流（StreamScenario）与任务状态订�
 
 ### 5.1 建流边界
 
-流的建立有一个关键的分界点：AI 推理管道的全部 10 步评估通过后，流才算建立。
+流的建立有一个关键的分界点：AI 推理管道前 9 步校验全部通过后流才算建立，第 10 步开始路由执行。
 
 - **建流前**出错：走普通 gRPC error，和 unary RPC 一样
-- **建流后**出错：优先通过终帧事件通知（\`done=true + reason_code\`），而非中断流
-
-这意味着客户端可以简单地判断：如果收到了第一个流事件，说明认证、授权、凭据校验都已通过，后续错误只可能来自上游 provider。`);
+- **建流后**业务或上游出错：优先通过终帧事件通知（\`done=true + reason_code\`），而非直接中断流`);
   d.blank();
-  d.rule('K-STREAM-002');
+  d.rule('rule.nimi.runtime.rpc-foundations.r057');
 
   d.text(`### 5.2 文本流事件
 
@@ -24,23 +22,24 @@ Runtime 有两类流式模式：场景流（StreamScenario）与任务状态订�
 - 终帧：\`done=true\`，必须携带 \`usage\` 统计（token 用量）。如果上游不提供统计，填 \`-1\`
 - 终帧可以携带最后一段 \`text_delta\`（即最后一个 chunk 和 done 可以合并）`);
   d.blank();
-  d.rule('K-STREAM-003');
+  d.rule('rule.nimi.runtime.rpc-foundations.r058');
 
   d.text(`### 5.3 语音流事件
 
-语音流的事件约定类似，但音频数据和状态信号严格分离：
+语音流的音频数据和状态信号严格分离：
 
-- 中间帧：\`done=false\`，必须携带非空的 \`audio_chunk\`
-- 成功终帧：\`done=true\`，\`audio_chunk\` 为空
-- 失败终帧：\`done=true\`，\`reason_code\` 必填`);
+- started 事件必须以 \`voice_output_mode\` 正向声明 \`native_stream | simulated_stream\`
+- 中间 \`ScenarioStreamDelta.artifact\` 必须携带非空音频 chunk 与 \`audio/*\` MIME type
+- 成功 \`ScenarioStreamCompleted\` 携带 \`finish_reason\`，不再携带 artifact delta
+- 失败 \`ScenarioStreamFailed\` 的 \`reason_code\` 必填`);
   d.blank();
-  d.rule('K-STREAM-004');
+  d.rule('rule.nimi.runtime.rpc-foundations.r059');
 
   d.text(`### 5.4 状态事件流
 
 ScenarioJob 状态事件流不使用 \`done=true\` 语义。当任务到达终态后，服务端正常关闭流（gRPC OK）。`);
   d.blank();
-  d.rule('K-STREAM-005');
+  d.rule('rule.nimi.runtime.rpc-foundations.r060');
 
   d.text(`---
 
@@ -84,11 +83,11 @@ ScenarioJob 有以下状态，其中四个是终态：`);
 
 所有管理操作和推理操作都必须记录审计事件（成功和失败）。审计记录包含最小字段集：`);
   d.blank();
-  d.rule('K-AUDIT-001');
+  d.rule('rule.nimi.runtime.rpc-foundations.r001');
 
   d.text(`审计数据有严格的安全要求：必须脱敏（不记录明文凭据），必须有保留期限（禁止无限保留）。`);
   d.blank();
-  d.rule('K-AUDIT-005');
+  d.rule('rule.nimi.runtime.rpc-foundations.r005');
 
   d.text(`---
 
@@ -103,27 +102,27 @@ Nimi 的错误由两层组成，二者正交：
 
 同一个 ReasonCode 在不同场景下可能对应不同的 gRPC Code。例如 \`AI_CONNECTOR_CREDENTIAL_MISSING\` 在 consume 场景返回 \`FAILED_PRECONDITION\`，在 test-connector 场景返回 \`OK + ok=false\`。`);
   d.blank();
-  d.rule('K-ERR-001');
+  d.rule('rule.nimi.runtime.rpc-foundations.r025');
 
   d.text(`### 8.2 关键映射规则
 
 以下是几个最重要的错误映射规则：`);
   d.blank();
-  d.rule('K-ERR-004');
-  d.rule('K-ERR-005');
+  d.rule('rule.nimi.runtime.rpc-foundations.r028');
+  d.rule('rule.nimi.runtime.rpc-foundations.r029');
 
   d.text(`### 8.3 错误传递机制
 
 错误在不同类型的 RPC 中传递方式不同：`);
   d.blank();
-  d.rule('K-ERR-003');
+  d.rule('rule.nimi.runtime.rpc-foundations.r027');
 
   d.text(`### 8.4 分页与过滤
 
-\`ListConnectors\` 和 \`ListConnectorModels\` 支持分页。页面大小默认 50，最大 200。排序规则是固定的——本地连接器排在前面，远程连接器按创建时间倒序。`);
+\`ListConnectors\` 和 \`ListConnectorModels\` 支持分页。页面大小默认 50，最大 200。\`ListConnectors\` 只列 remote credential connectors，按创建时间倒序并以 connector id 稳定打破并列；本地资产与 profile 由 RuntimeLocalService 分页。`);
   d.blank();
-  d.rule('K-PAGE-001');
-  d.rule('K-PAGE-003');
+  d.rule('rule.nimi.runtime.rpc-foundations.r038');
+  d.rule('rule.nimi.runtime.rpc-foundations.r040');
 
   d.text(`---
 
@@ -165,7 +164,7 @@ Nimi 的错误由两层组成，二者正交：
   d.blank();
   d.rule('S-SURFACE-001');
 
-  d.text(`各子路径的方法投影遵循结构化治理。Runtime SDK 的对外方法按 service 分组，与 \`.nimi/spec/runtime/kernel/tables/rpc-methods.yaml\` 的设计名对齐——投影表 \`tables/runtime-method-groups.yaml\` 是唯一事实源：`);
+  d.text(`各子路径的方法投影遵循结构化治理。Runtime SDK 的对外方法按 service 分组，与 \`config/runtime-rpc-methods.yaml\` 的设计名对齐——投影表 \`tables/runtime-method-groups.yaml\` 是唯一事实源：`);
   d.blank();
   d.rule('S-SURFACE-002');
   d.rule('S-SURFACE-009');
@@ -257,7 +256,7 @@ SDK 本地     → 参数/环境/边界违规   → SDK_* 错误码
   d.blank();
   d.rule('S-ERROR-001');
 
-  d.text(`Runtime ReasonCode 的权威来源是 \`.nimi/spec/runtime/kernel/tables/reason-codes.yaml\`。SDK 文档不得重新分配 ReasonCode 的数值——只做投影，不做重定义。`);
+  d.text(`Runtime ReasonCode 的规范权威是 \`.nimi/spec/canonical/runtime/rpc-foundations.authority.yaml\`；\`config/runtime-reason-codes.yaml\` 仅为机器投影。SDK 文档不得重新分配 ReasonCode 的数值——只做投影，不做重定义。`);
   d.blank();
   d.rule('S-ERROR-002');
 

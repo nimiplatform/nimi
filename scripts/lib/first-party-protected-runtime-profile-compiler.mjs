@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 import YAML from 'yaml';
 
 export const SOURCE_RELATIVE = '.nimi/spec/runtime/kernel/tables/first-party-protected-runtime-profiles.yaml';
-export const RPC_SOURCE_RELATIVE = '.nimi/spec/runtime/kernel/tables/rpc-methods.yaml';
+export const RPC_SOURCE_RELATIVE = 'config/runtime-rpc-methods.yaml';
 export const COMPILER_RELATIVE = 'scripts/generate-first-party-protected-runtime-profiles.mjs';
 export const MANIFEST_RELATIVE = 'sdks/typescript/runtime/first-party-protected-runtime-profiles.manifest.generated.json';
 

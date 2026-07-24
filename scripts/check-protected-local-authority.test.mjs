@@ -276,11 +276,15 @@ test('portable material and production/test trust conversion remain forbidden', 
 });
 
 test('negative fixtures are independent and cover every stable issue code', () => {
+  const declaredAuthorityInputs = new Set(Object.values(AUTHORITY_PATHS));
   assert.deepEqual(fixtures.map((fixture) => fixture.code), expectedCodes);
   assert.equal(new Set(fixtures.map((fixture) => fixture.fixture_id)).size, fixtures.length);
   assert.equal(new Set(fixtures.map((fixture) => `${fixture.target}\n${fixture.mutation.from}`)).size, fixtures.length);
   for (const fixture of fixtures) {
-    assert.match(fixture.target, /^\.nimi\/spec\//u);
+    assert.ok(
+      declaredAuthorityInputs.has(fixture.target),
+      `${fixture.fixture_id} must target a declared authority input; got ${fixture.target}`,
+    );
     assert.equal(fixture.mutation.kind, 'replace_exact');
     assert.match(fixture.mutation.from, /\S/u);
     assert.match(fixture.mutation.to, /\S/u);

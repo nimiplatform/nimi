@@ -1,0 +1,24 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/runtime/agent-participation.authority.yaml
+# Rationale: docs/authority/runtime-agent-participation-rationale.md
+version: 1
+table_family: closed_enum
+owner: runtime
+enum_id: runtime_runtime_memory_hook_trigger
+values:
+  - trigger_kinds_1
+  - trigger_kinds_2
+  - trigger_kinds_3
+trigger_kinds:
+  - trigger_kind: SCHEDULED_TIME
+    source_rule: K-AGCORE-041
+    host_owned: true
+    description: Triggered from an admitted relative delay, optionally bounded by not_before.
+  - trigger_kind: USER_IDLE
+    source_rule: K-AGCORE-041
+    host_owned: true
+    description: Triggered only after host-owned idle detection admits a life check.
+  - trigger_kind: CHAT_ENDED
+    source_rule: K-AGCORE-041
+    host_owned: true
+    description: Triggered after chat continuity closes and host admission allows life execution.

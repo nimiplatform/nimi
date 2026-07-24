@@ -287,7 +287,7 @@ function detectChangedProvidersFromGit(providerUniverse) {
     'runtime/internal/services/ai/live_provider_smoke_test.go',
     'runtime/internal/services/ai/live_provider_smoke_matrix_test.go',
     'config/live/live-test.env.example',
-    '.nimi/spec/runtime/kernel/tables/provider-catalog.yaml',
+    'config/runtime-provider-catalog.yaml',
     'config/live/live-gate-baseline.yaml',
   ];
 

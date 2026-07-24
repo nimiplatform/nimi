@@ -47,7 +47,7 @@ presence never creates a local principal, record, grant, lease, or session.
   use. This is the required/optional/apply/setup declaration; it is distinct
   from Runtime activation consumers.
 - `local_compute_pack_refs` — 引用
-  `.nimi/spec/runtime/kernel/tables/local-compute-packs.yaml` 中已 admit 的
+  `config/runtime-local-compute-packs.yaml` 中已 admit 的
   pack；可为空。
 - `runtime_registration_mode` — 当前 admitted 值集合：`app-managed`。
 - `permission_requirements` — public permission request 列表；每项固定为

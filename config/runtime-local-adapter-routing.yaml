@@ -1,0 +1,89 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/runtime/local-compute.authority.yaml
+# Rationale: docs/authority/runtime-local-compute-rationale.md
+version: 1
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_local_adapter_routing
+surfaces:
+  - routes_1
+  - routes_2
+  - routes_3
+  - routes_4
+  - routes_5
+  - routes_6
+  - routes_7
+  - routes_8
+  - routes_9
+  - routes_10
+  - routes_11
+  - routes_12
+  - routes_13
+  - routes_14
+  - routes_15
+  - routes_16
+routes:
+  - provider: llama
+    capability: chat
+    adapter: llama_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: llama
+    capability: text.generate
+    adapter: llama_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: llama
+    capability: embedding
+    adapter: llama_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: llama
+    capability: embed
+    adapter: llama_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: llama
+    capability: text.embed
+    adapter: llama_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: llama
+    capability: image.understand
+    adapter: llama_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: llama
+    capability: audio.understand
+    adapter: llama_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: media
+    capability: image.generate
+    adapter: media_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: media
+    capability: image.edit
+    adapter: media_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: media
+    capability: video.generate
+    adapter: media_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: media
+    capability: i2v
+    adapter: media_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: speech
+    capability: audio.transcribe
+    adapter: speech_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: speech
+    capability: audio.synthesize
+    adapter: speech_native_adapter
+    source_rule: K-LOCAL-017
+  - provider: sidecar
+    capability: music
+    adapter: sidecar_music_adapter
+    source_rule: K-LOCAL-017
+  - provider: sidecar
+    capability: music.generate
+    adapter: sidecar_music_adapter
+    source_rule: K-LOCAL-017
+  - provider: "*"
+    capability: "*"
+    adapter: openai_compat_adapter
+    source_rule: K-LOCAL-017

@@ -18,11 +18,12 @@ const FILES = {
   avatarIndex: '.nimi/spec/avatar/kernel/index.md',
   avatarEvent: '.nimi/spec/avatar/kernel/avatar-event-contract.md',
   agentScript: '.nimi/spec/avatar/kernel/agent-script-contract.md',
-  runtimeParticipationPolicy: '.nimi/spec/runtime/kernel/runtime-agent-participation-policy-boundary-contract.md',
-  runtimePresentation: '.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md',
-  externalBoundaryTable: '.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml',
+  runtimeParticipationPolicy: 'docs/authority/runtime-agent-participation-rationale.md',
+  runtimePresentation: 'docs/authority/runtime-agent-participation-rationale.md',
+  externalBoundaryTable: 'config/runtime-agent-participation-external-entry-boundaries.yaml',
   driverTypes: 'apps/avatar/src/shell/renderer/driver/types.ts',
   sdkDriver: 'apps/avatar/src/shell/renderer/sdk/SdkDriver.ts',
+  sdkDriverHelpers: 'apps/avatar/src/shell/renderer/sdk/sdk-driver-event-helpers.ts',
   eventDispatch: 'apps/avatar/src/shell/renderer/nas/event-dispatch.ts',
 };
 
@@ -138,8 +139,9 @@ requireIncludes(FILES.runtimePresentation, [
 requireIncludes(FILES.avatarEvent, ['source: enum(apml_output|direct_api|mock)']);
 requireIncludes(FILES.agentScript, ['source: "apml_output" | "direct_api" | "mock";']);
 requireIncludes(FILES.driverTypes, ["export type ActivitySource = 'apml_output' | 'direct_api' | 'mock';"]);
-requireIncludes(FILES.sdkDriver, ['requireRuntimeProjectionSource', "value === 'apml_output' || value === 'direct_api'"]);
-requireIncludes(FILES.eventDispatch, ["source !== 'apml_output' && source !== 'direct_api' && source !== 'mock'"]);
+requireIncludes(FILES.sdkDriver, ['requireRuntimeProjectionSource']);
+requireIncludes(FILES.sdkDriverHelpers, ["value === 'apml_output' || value === 'direct_api'"]);
+requireIncludes(FILES.eventDispatch, ["source !== 'apml_output' && source !== 'direct_api'"]);
 
 for (const relPath of [FILES.avatarEvent, FILES.agentScript, FILES.driverTypes, FILES.sdkDriver, FILES.eventDispatch]) {
   requireExcludes(relPath, [
@@ -168,3 +170,7 @@ if (failures > 0) {
 }
 
 console.log('[avatar-external-driver-runtime-boundary] PASS');
+
+
+
+

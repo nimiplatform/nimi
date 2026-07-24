@@ -26,6 +26,54 @@ function exists(relPath) {
   return fs.existsSync(path.join(cwd, relPath));
 }
 
+// S6 migration: runtime kernel markdown files are being deleted wave by wave;
+// their verbatim prose is retained in docs/authority/runtime-*-rationale.md
+// behind `<!-- source: .nimi/spec/runtime/kernel/<name>.md -->` (or
+// `<!-- migrated-source: ... -->`) markers. Each fragment spans from its
+// marker to the next source marker or end of file.
+const RUNTIME_KERNEL_MD_PREFIX = '.nimi/spec/runtime/kernel/';
+let runtimeKernelRationaleFragments = null;
+
+function loadRuntimeKernelRationaleFragments() {
+  if (runtimeKernelRationaleFragments) return runtimeKernelRationaleFragments;
+  runtimeKernelRationaleFragments = new Map();
+  const docsRoot = path.join(cwd, 'docs/authority');
+  if (!fs.existsSync(docsRoot)) return runtimeKernelRationaleFragments;
+  const markerRe = /<!--\s*(?:[a-z][a-z0-9-]*-)?source:\s*(\S+)\s*-->/g;
+  for (const name of fs.readdirSync(docsRoot)) {
+    if (!/^runtime-.*-rationale\.md$/.test(name)) continue;
+    const content = fs.readFileSync(path.join(docsRoot, name), 'utf8');
+    const markers = [...content.matchAll(markerRe)];
+    for (let i = 0; i < markers.length; i += 1) {
+      const sourceRel = markers[i][1];
+      if (!sourceRel.startsWith(RUNTIME_KERNEL_MD_PREFIX) || !sourceRel.endsWith('.md')) continue;
+      const start = markers[i].index + markers[i][0].length;
+      const end = i + 1 < markers.length ? markers[i + 1].index : content.length;
+      const fragment = content.slice(start, end);
+      const existing = runtimeKernelRationaleFragments.get(sourceRel);
+      runtimeKernelRationaleFragments.set(
+        sourceRel,
+        existing === undefined ? fragment : `${existing}\n${fragment}`,
+      );
+    }
+  }
+  return runtimeKernelRationaleFragments;
+}
+
+function readRuntimeKernelMd(relPath) {
+  if (fs.existsSync(path.join(cwd, relPath))) {
+    return read(relPath);
+  }
+  const fragment = loadRuntimeKernelRationaleFragments().get(relPath);
+  if (fragment === undefined) {
+    throw new Error(
+      `missing runtime kernel markdown and rationale fallback fragment for ${relPath}`
+      + ` (expected "<!-- source: ${relPath} -->" in docs/authority/runtime-*-rationale.md)`,
+    );
+  }
+  return fragment;
+}
+
 function expectRegex(content, pattern, label) {
   if (!pattern.test(content)) {
     fail(`missing ${label}`);
@@ -45,10 +93,16 @@ function collectRuntimeKernelRuleIds() {
     .filter((file) => !file.includes(`${path.sep}generated${path.sep}`))
     .filter((file) => !file.includes(`${path.sep}companion${path.sep}`));
 
+  // Census surface = existing kernel markdown files plus every rationale
+  // fragment preserved for already-deleted kernel markdown (S6 migration).
+  const contents = files.map((file) => read(toRel(file)));
+  for (const [sourceRel, fragment] of loadRuntimeKernelRationaleFragments()) {
+    if (sourceRel.includes('/generated/') || sourceRel.includes('/companion/')) continue;
+    contents.push(fragment);
+  }
+
   const ruleIds = new Set();
-  for (const file of files) {
-    const rel = toRel(file);
-    const content = read(rel);
+  for (const content of contents) {
     for (const match of content.matchAll(/^##\s+(K-[A-Z]+-\d{3})\b/gmu)) {
       ruleIds.add(match[1]);
     }
@@ -120,7 +174,7 @@ function checkAuthJWTOnlyAndReserved() {
     }
   }
 
-  const specAuth = read('.nimi/spec/runtime/kernel/auth-service.md');
+  const specAuth = readRuntimeKernelMd('.nimi/spec/runtime/kernel/auth-service.md');
   expectRegex(specAuth, /##\s+K-AUTHSVC-013\b/m, 'K-AUTHSVC-013 rule definition');
   expectRegex(specAuth, /\bJWT\b/, 'K-AUTHSVC-013 JWT mention');
   expectRegex(specAuth, /(?:reserved[\s\S]*\b2\b|\b2\b[\s\S]*reserved)/m, 'K-AUTHSVC-013 reserved=2 mention');
@@ -140,7 +194,9 @@ function checkConnectorUpdateMaskAndPagination() {
   assertMessageHasFields(listModelsReq, 'ListConnectorModelsRequest', rel, ['page_size', 'page_token']);
   assertMessageHasFields(listModelsResp, 'ListConnectorModelsResponse', rel, ['next_page_token']);
 
-  const specConnector = read('.nimi/spec/runtime/kernel/connector-contract.md');
+  // S6 domain-3 W4: connector contract migrated to canonical authority; the
+  // verbatim prose (K-CONN rule text) now lives in the rationale document.
+  const specConnector = read('docs/authority/runtime-ai-provider-rationale.md');
   expectRegex(specConnector, /##\s+K-CONN-013\b/m, 'K-CONN-013 rule definition');
   expectRegex(specConnector, /\bupdate_mask\b/, 'K-CONN-013 update_mask mention');
   expectRegex(specConnector, /\blabel\b[\s\S]*\bendpoint\b[\s\S]*\bapi_key\b[\s\S]*\bstatus\b/m, 'K-CONN-013 allowed path set mention');
@@ -228,12 +284,24 @@ function checkGrantServiceHardcutAndLocalAppPermissionProjection() {
     expectRegex(accountService, new RegExp(`\\brpc\\s+${method}\\s*\\(`), `${accountRel} RuntimeAccountService.${method}`);
   }
 
-  const grantSpecRel = '.nimi/spec/runtime/kernel/grant-service.md';
-  const grantSpec = read(grantSpecRel);
-  for (const ruleId of ['K-GRANT-001', 'K-GRANT-002', 'K-GRANT-003', 'K-GRANT-014']) {
-    expectRegex(grantSpec, new RegExp(`^##\\s+${ruleId}\\b`, 'm'), `${grantSpecRel} ${ruleId} rule definition`);
+  const grantSpecRel = '.nimi/spec/canonical/runtime/security-core.authority.yaml';
+  const grantSpec = YAML.parse(read(grantSpecRel));
+  const grantRuleIds = new Set((grantSpec?.units ?? []).map((unit) => String(unit?.id ?? '')));
+  for (const ruleId of [
+    'rule.nimi.runtime.security-core.r037',
+    'rule.nimi.runtime.security-core.r038',
+    'rule.nimi.runtime.security-core.r039',
+    'rule.nimi.runtime.security-core.r040',
+    'rule.nimi.runtime.security-core.r041',
+    'rule.nimi.runtime.security-core.r042',
+    'rule.nimi.runtime.security-core.r043',
+    'rule.nimi.runtime.security-core.r044',
+    'rule.nimi.runtime.security-core.r045',
+    'rule.nimi.runtime.security-core.r046',
+    'rule.nimi.runtime.security-core.r047',
+  ]) {
+    if (!grantRuleIds.has(ruleId)) fail(`${grantSpecRel} missing ${ruleId} rule definition`);
   }
-  expectNotRegex(grantSpec, /^##\s+K-GRANT-01[123]\b/m, `${grantSpecRel} retired K-GRANT-011/012/013 authority`);
 
   const schemaRel = '.nimi/spec/runtime/kernel/tables/local-app-grant-binding-schema.yaml';
   const schema = readYaml(schemaRel);
@@ -270,7 +338,7 @@ function checkGrantServiceHardcutAndLocalAppPermissionProjection() {
   }
 
   const authorityTables = [
-    '.nimi/spec/runtime/kernel/tables/rpc-methods.yaml',
+    'config/runtime-rpc-methods.yaml',
     '.nimi/spec/runtime/kernel/tables/rpc-migration-map/methods-identity-app.yaml',
     '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml',
     '.nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml',
@@ -287,7 +355,7 @@ function checkGrantServiceHardcutAndLocalAppPermissionProjection() {
     }
   }
 
-  const rpcMethods = readYaml('.nimi/spec/runtime/kernel/tables/rpc-methods.yaml');
+  const rpcMethods = readYaml('config/runtime-rpc-methods.yaml');
   const rpcAccount = (Array.isArray(rpcMethods?.services) ? rpcMethods.services : [])
     .find((item) => String(item?.name || '') === 'RuntimeAccountService');
   const rpcAccountMethods = Array.isArray(rpcAccount?.methods) ? rpcAccount.methods : [];
@@ -377,7 +445,7 @@ function checkDesktopProductControlProtectedAuthorityLinkage() {
 
   const posture = readYaml('.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/local-connector-model.yaml');
   const postureRows = Array.isArray(posture?.methods) ? posture.methods : [];
-  const rpcMethods = readYaml('.nimi/spec/runtime/kernel/tables/rpc-methods.yaml');
+  const rpcMethods = readYaml('config/runtime-rpc-methods.yaml');
   const runtimeLocal = (Array.isArray(rpcMethods?.services) ? rpcMethods.services : [])
     .find((service) => String(service?.name || '') === 'RuntimeLocalService');
   const runtimeLocalMethods = Array.isArray(runtimeLocal?.methods) ? runtimeLocal.methods : [];
@@ -448,8 +516,8 @@ function checkLocalPaginationAndAuditFields() {
   }
 
   const specLocal = [
-    read('.nimi/spec/runtime/kernel/local-category-capability.md'),
-    read('.nimi/spec/runtime/kernel/local-asset-storage-manifest-contract.md'),
+    readRuntimeKernelMd('.nimi/spec/runtime/kernel/local-category-capability.md'),
+    readRuntimeKernelMd('.nimi/spec/runtime/kernel/local-asset-storage-manifest-contract.md'),
   ].join('\n');
   expectRegex(specLocal, /##\s+K-LOCAL-029\b/m, 'K-LOCAL-029 rule definition');
   expectRegex(specLocal, /##\s+K-LOCAL-030\b/m, 'K-LOCAL-030 rule definition');
@@ -459,7 +527,7 @@ function checkLocalPaginationAndAuditFields() {
     }
   }
 
-  const specPagination = read('.nimi/spec/runtime/kernel/pagination-filtering.md');
+  const specPagination = read('.nimi/spec/canonical/runtime/rpc-foundations.authority.yaml');
   for (const method of [
     'ListLocalAssets',
     'ListVerifiedAssets',
@@ -469,7 +537,7 @@ function checkLocalPaginationAndAuditFields() {
     'ListLocalAudits',
   ]) {
     if (!specPagination.includes(method)) {
-      fail(`.nimi/spec/runtime/kernel/pagination-filtering.md missing method: ${method}`);
+      fail(`rpc-foundations authority missing pagination method: ${method}`);
     }
   }
 }
@@ -487,7 +555,7 @@ function checkReasonCodes359To363Linkage() {
     expectRegex(commonProto, new RegExp(`\\b${name}\\s*=\\s*${value}\\s*;`), `common.proto ${name}=${value}`);
   }
 
-  const reasonCodesDoc = readYaml('.nimi/spec/runtime/kernel/tables/reason-codes.yaml');
+  const reasonCodesDoc = readYaml('config/runtime-reason-codes.yaml');
   const codes = Array.isArray(reasonCodesDoc?.codes) ? reasonCodesDoc.codes : [];
   const byName = new Map(codes.map((item) => [String(item?.name || ''), item]));
   for (const [name, value] of expected) {
@@ -528,10 +596,10 @@ function checkPagingPairsInConnectorProto() {
     assertMessageHasFields(resp, respName, 'proto/runtime/v1/connector.proto', ['next_page_token']);
   }
 
-  const paginationSpec = read('.nimi/spec/runtime/kernel/pagination-filtering.md');
+  const paginationSpec = read('.nimi/spec/canonical/runtime/rpc-foundations.authority.yaml');
   for (const method of ['ListConnectors', 'ListConnectorModels']) {
     if (!paginationSpec.includes(method)) {
-      fail(`.nimi/spec/runtime/kernel/pagination-filtering.md missing pagination anchor for ${method}`);
+      fail(`rpc-foundations authority missing pagination anchor for ${method}`);
     }
   }
 }
@@ -570,7 +638,7 @@ function checkMemoryProtoAdmission() {
   assertMessageHasFields(listBanksReq, 'ListBanksRequest', rel, ['page_size', 'page_token']);
   assertMessageHasFields(listBanksResp, 'ListBanksResponse', rel, ['next_page_token']);
 
-  const specMemory = read('.nimi/spec/runtime/kernel/runtime-memory-service-contract.md');
+  const specMemory = readRuntimeKernelMd('.nimi/spec/runtime/kernel/runtime-memory-service-contract.md');
   for (const token of [
     'scope-typed bank locator family',
     'typed memory record family',
@@ -582,9 +650,9 @@ function checkMemoryProtoAdmission() {
     }
   }
 
-  const paginationSpec = read('.nimi/spec/runtime/kernel/pagination-filtering.md');
+  const paginationSpec = read('.nimi/spec/canonical/runtime/rpc-foundations.authority.yaml');
   if (!paginationSpec.includes('ListBanks')) {
-    fail('.nimi/spec/runtime/kernel/pagination-filtering.md missing pagination anchor for ListBanks');
+    fail('rpc-foundations authority missing pagination anchor for ListBanks');
   }
 }
 
@@ -764,7 +832,7 @@ function checkRuntimeAgentServiceProtoAdmission() {
   assertMessageHasFields(listHooksReq, 'ListPendingHooksRequest', rel, ['page_size', 'page_token']);
   assertMessageHasFields(listHooksResp, 'ListPendingHooksResponse', rel, ['next_page_token']);
 
-  const specAgentService = read('.nimi/spec/runtime/kernel/runtime-agent-service-contract.md');
+  const specAgentService = readRuntimeKernelMd('.nimi/spec/runtime/kernel/runtime-agent-service-contract.md');
   // Normalize whitespace so authority phrases that wrap across lines still
   // match — content equivalence, not formatting equivalence.
   const specAgentServiceFlat = specAgentService.replace(/\s+/g, ' ');
@@ -780,7 +848,7 @@ function checkRuntimeAgentServiceProtoAdmission() {
 
   // K-AGCORE-040..043 narrow-admit HookIntent authority must be referenced by
   // name from the agent-hook-intent contract authority document.
-  const specHookIntent = read('.nimi/spec/runtime/kernel/agent-hook-intent-contract.md');
+  const specHookIntent = readRuntimeKernelMd('.nimi/spec/runtime/kernel/agent-hook-intent-contract.md');
   for (const token of [
     'K-AGCORE-040',
     'K-AGCORE-041',
@@ -808,10 +876,10 @@ function checkRuntimeAgentServiceProtoAdmission() {
     fail('.nimi/spec/runtime/kernel/tables/runtime-agent-service-typed-family.yaml must not declare retired NEXT_HOOK_INTENT family (K-AGCORE-041 admits HookIntent only)');
   }
 
-  const paginationSpec = read('.nimi/spec/runtime/kernel/pagination-filtering.md');
+  const paginationSpec = read('.nimi/spec/canonical/runtime/rpc-foundations.authority.yaml');
   for (const method of ['ListAgents', 'ListPendingHooks']) {
     if (!paginationSpec.includes(method)) {
-      fail(`.nimi/spec/runtime/kernel/pagination-filtering.md missing pagination anchor for ${method}`);
+      fail(`rpc-foundations authority missing pagination anchor for ${method}`);
     }
   }
 }
@@ -848,7 +916,16 @@ function checkAvatarPackageProjectionProtoRetirement() {
   if (exists(contractRel)) {
     fail(`${contractRel} must remain deleted; use rule-evidence retired sentinels instead of active Avatar package projection truth`);
   }
-  const ruleEvidence = JSON.stringify(readYaml('.nimi/spec/runtime/kernel/tables/rule-evidence.rules-agent-core.yaml') ?? {});
+  // S6 domain-1 R-B retired the rule-evidence pointer family; the agent-core
+  // evidence rows survive as fragment payloads under tables/rule-evidence/agent-core/.
+  const ruleEvidenceLegacyRel = '.nimi/spec/runtime/kernel/tables/rule-evidence.rules-agent-core.yaml';
+  const ruleEvidence = exists(ruleEvidenceLegacyRel)
+    ? JSON.stringify(readYaml(ruleEvidenceLegacyRel) ?? {})
+    : JSON.stringify(
+      walk(path.join(cwd, '.nimi/spec/runtime/kernel/tables/rule-evidence/agent-core'))
+        .filter((file) => file.endsWith('.yaml'))
+        .map((file) => readYaml(toRel(file)) ?? {}),
+    );
   for (const token of [
     'Avatar package projection contract withdrawn with Asset Market',
     'K-AGCORE-138',
@@ -858,7 +935,7 @@ function checkAvatarPackageProjectionProtoRetirement() {
     }
   }
 
-  const rpcMethods = read('.nimi/spec/runtime/kernel/tables/rpc-methods.yaml');
+  const rpcMethods = read('config/runtime-rpc-methods.yaml');
   if (rpcMethods.includes('ResolveAvatarPackageLaunchProjection')) {
     fail('rpc-methods.yaml must not list retired ResolveAvatarPackageLaunchProjection');
   }

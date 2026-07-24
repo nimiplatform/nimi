@@ -1,10 +1,10 @@
 /**
  * @generated
  * Sources:
- *   .nimi/spec/runtime/kernel/tables/provider-catalog.yaml
- *     sha256: 7bf7e60462e2f30be43889c407392fc82e2d9f98a412835d8f99a4f075cf94af
- *   .nimi/spec/runtime/kernel/tables/provider-capabilities.yaml
- *     sha256: e5504c6d071e8d73ca76094b39f2fd1b2eeef78cd6c7467130919122ef90cfd3
+ *   config/runtime-provider-catalog.yaml
+ *     sha256: 687062730dcd66f957737ee1d0f13d39afa05e0e415c913a3c3b6d617f5920b5
+ *   config/runtime-provider-capabilities.yaml
+ *     sha256: f0f9a815f1f07a7c42c2da25abccca2b4265e24487dd0b71cdbfe90249527398
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.

@@ -14,18 +14,14 @@ const snapshotDir = path.join(repoRoot, 'runtime', 'catalog', 'providers');
 const goldFixtureDir = path.join(repoRoot, 'config', 'live', 'fixtures', 'ai-gold-path');
 const capabilityVocabularyPath = path.join(
   repoRoot,
-  '.nimi',
-  'spec',
-  'runtime',
-  'kernel',
-  'tables',
-  'capability-vocabulary-mapping.yaml',
+  'config',
+  'runtime-capability-vocabulary-mapping.yaml',
 );
+// Model-catalog kernel prose migrated to the canonical container
+// (.nimi/spec/canonical/runtime/model-catalog.authority.yaml); the retained
+// non-authoritative prose lives in the rationale document below.
 const modelCatalogContractPaths = [
-  path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'model-catalog-contract.md'),
-  path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'model-catalog-voice-workflow-contract.md'),
-  path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'model-catalog-provider-metadata-contract.md'),
-  path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'model-catalog-local-resolver-contract.md'),
+  path.join(repoRoot, 'docs', 'authority', 'runtime-model-catalog-rationale.md'),
 ];
 
 const historicalLegacyCapabilityTokens = [

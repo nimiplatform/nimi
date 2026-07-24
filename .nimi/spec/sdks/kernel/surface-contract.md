@@ -47,7 +47,7 @@ low-level escape hatches or dedicated domain entrypoints.
 
 The vNext TypeScript app-facing Runtime facade projection groups methods
 by service. Method names must align with the corresponding service entries in
-`.nimi/spec/runtime/kernel/tables/rpc-methods.yaml` and use design names. For
+`config/runtime-rpc-methods.yaml` and use design names. For
 the TypeScript facade only, the service list and projected method set are
 governed by
 `.nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml` (S-SURFACE-009);
@@ -195,7 +195,7 @@ It uses an explicit-maintenance plus consistency-check model:
   runtime kernel proto surface.
 - consistency check: every group must declare its corresponding runtime
   service, and method names must be resolvable in
-  `.nimi/spec/runtime/kernel/tables/rpc-methods.yaml`; the check script blocks
+  `config/runtime-rpc-methods.yaml`; the check script blocks
   drift.
 
 The table is not a cross-language core method source, not an omission list for

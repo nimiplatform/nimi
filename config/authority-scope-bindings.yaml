@@ -118,6 +118,206 @@ scopes:
         value: "kit/features/generation/src/**/*"
       - kind: path_glob
         value: "kit/features/model-config/src/**/*"
+  - scope: runtime.security-core
+    bindings:
+      - kind: path_glob
+        value: "runtime/internal/authn/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/endpointsec/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/grpcserver/interceptor_authz*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/auth/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/account/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/connector/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/ai/key_source*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/ai/runtime_resolved_binding.go"
+      - kind: path_glob
+        value: "runtime/internal/services/cognition/*authoriz*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/memory/memory_embedding_authorization.go"
+  - scope: runtime.rpc-foundations
+    bindings:
+      - kind: path_glob
+        value: "runtime/internal/auditlog/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/auditredaction/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/grpcerr/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/materializationreadiness/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/streamutil/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/audit/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/ai/route_describe*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/ai/runtime_*binding*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/ai/runtime_target*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/ai/scenario_stream*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/connector/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/localservice/**/*.go"
+      - kind: path_glob
+        value: "config/runtime-reason-codes.yaml"
+      - kind: path_glob
+        value: "config/runtime-reason-codes/*.yaml"
+      - kind: path_glob
+        value: "config/runtime-activation-gate-reason-codes.yaml"
+      - kind: path_glob
+        value: "config/runtime-metadata-keys.yaml"
+  - scope: runtime.service-operations
+    bindings:
+      - kind: path_glob
+        value: "runtime/cmd/nimi/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/daemon/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/daemonctl/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/engine/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/entrypoint/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/grpcserver/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/httpserver/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/idempotency/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/protectedlocal/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/protocol/envelope/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/scheduler/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/account/local_app_*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/ai/*artifact*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/ai/scenario*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/connector/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/localservice/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/model/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/runtimeagent/*artifact*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/runtimeagent/*voice*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/runtimeartifact/**/*.go"
+  - scope: runtime.ai-provider
+    bindings:
+      - kind: path_glob
+        value: "runtime/internal/nimillm/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/ai/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/connector/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/model/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/providerhealth/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/providerregistry/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/managedimagebackend/**/*.go"
+  - scope: runtime.local-compute
+    bindings:
+      - kind: path_glob
+        value: "runtime/internal/services/localservice/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/engine/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/managedimagebackend/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/localrouting/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/hostcapability/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/ggufmeta/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/modelregistry/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/filedownload/**/*.go"
+  - scope: runtime.delegation
+    bindings:
+      - kind: path_glob
+        value: "runtime/internal/services/delegation/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/runtimeagent/delegated_*.go"
+  - scope: runtime.agent-participation
+    bindings:
+      - kind: path_glob
+        value: "runtime/internal/services/runtimeagent/**/*.go"
+  - scope: runtime.agent-service
+    bindings:
+      - kind: path_glob
+        value: "runtime/internal/services/runtimeagent/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/realmsourcecontract/**/*.go"
+  - scope: runtime.app-surface
+    bindings:
+      - kind: path_glob
+        value: "runtime/internal/services/app/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/auth/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/account/**/*.go"
+  - scope: runtime.protected-session
+    bindings:
+      - kind: path_glob
+        value: "runtime/internal/protectedlocal/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/entrypoint/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/config/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/localappkernel/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/protectedprincipal/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/bundledavatar/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/account/**/*.go"
+  - scope: runtime.memory-world
+    bindings:
+      - kind: path_glob
+        value: "runtime/internal/services/memory/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/cognition/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/memoryengine/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/scheduler/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/runtimeagent/canonical_*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/runtimeagent/review_*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/runtimeagent/*memory*.go"
+  - scope: runtime.model-catalog
+    bindings:
+      - kind: path_glob
+        value: "runtime/internal/aicatalog/**/*.go"
+      - kind: path_glob
+        value: "runtime/catalog/providers/*.yaml"
+      - kind: path_glob
+        value: "runtime/catalog/source/providers/**/*.yaml"
+      - kind: path_glob
+        value: "runtime/internal/services/workflow/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/ai/*voice*.go"
   - scope: platform.testing-discipline
     bindings:
       - kind: path_glob

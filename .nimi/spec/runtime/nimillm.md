@@ -24,7 +24,7 @@ This guide points to the runtime authority surfaces for nimillm. It does not def
 
 ## Tables
 
-- `.nimi/spec/runtime/kernel/tables/accelerator-consumer-requirements.yaml`
+- `config/runtime-accelerator-consumer-requirements.yaml`
 - `.nimi/spec/runtime/kernel/tables/activation-gate-reason-codes.yaml`
 - `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
 - `.nimi/spec/runtime/kernel/tables/agent-participation-axis-model.yaml`

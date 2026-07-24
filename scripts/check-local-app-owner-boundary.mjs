@@ -11,7 +11,7 @@ const authBindingTable = '.nimi/spec/platform/kernel/tables/standard-shell-capab
 const authorityRules = [
   {
     ruleId: 'K-ACCSVC-001',
-    contract: '.nimi/spec/runtime/kernel/account-session-contract.md',
+    contract: 'docs/authority/runtime-protected-session-rationale.md',
     clauses: [
       ['RUNTIME_REALM_OWNER_MISSING', /Runtime is the sole owner of authenticated Realm unary, realtime, and media data planes/iu],
       ['RUNTIME_LOCAL_APP_COORDINATOR_OWNER_MISSING', /Runtime alone owns[\s\S]*Runtime-owned portion of public permission enforcement[\s\S]*per-operation local-app decision coordinator/iu],
@@ -21,7 +21,7 @@ const authorityRules = [
   },
   {
     ruleId: 'K-ACCSVC-022',
-    contract: '.nimi/spec/runtime/kernel/account-session-contract.md',
+    contract: 'docs/authority/runtime-protected-session-rationale.md',
     clauses: [
       ['ATOMIC_LOCAL_APP_SESSION_MISSING', /local-app session only from an atomically consumed[\s\S]*launch lease on the verified child channel/iu],
       ['RUNTIME_DERIVED_LOCAL_APP_IDENTITY_MISSING', /`LOCAL_APP` caller class and[\s\S]*`local_app_principal_id` are Runtime-derived/iu],
@@ -32,7 +32,7 @@ const authorityRules = [
   },
   {
     ruleId: 'K-ACCSVC-023',
-    contract: '.nimi/spec/runtime/kernel/account-session-contract.md',
+    contract: 'docs/authority/runtime-protected-session-rationale.md',
     clauses: [
       ['REALM_EXACT_SOURCE_READINESS_AUTHORITY_MISSING', /InvokeRealmUnary` admits only[\s\S]*source-readiness operations enumerated by[\s\S]*An unlisted operation or any[\s\S]*non-Desktop caller fails[\s\S]*generic proxy[\s\S]*behavior is forbidden/iu],
       ['REALM_FALLBACK_DENIAL_MISSING', /No public grant, portable envelope, renderer\/app token[\s\S]*provider, caller-selected Realm base, direct Realm path, or fallback is[\s\S]*admitted/iu],
@@ -40,7 +40,7 @@ const authorityRules = [
   },
   {
     ruleId: 'K-ACCSVC-024',
-    contract: '.nimi/spec/runtime/kernel/account-session-contract.md',
+    contract: 'docs/authority/runtime-protected-session-rationale.md',
     clauses: [
       ['PRODUCT_PERMISSION_ROWS_MISSING', /public[\s\S]*permission status\/request, selected local-app operations[\s\S]*admitted only through their exact protected-[\s\S]*transport and owner rows[\s\S]*no public permission decision or revoke RPC/iu],
       ['PORTABLE_BLANKET_AUTHORITY_DENIAL_MISSING', /admits no portable envelope, blanket local-app authority or raw-token[\s\S]*projection/iu],
@@ -49,7 +49,7 @@ const authorityRules = [
   },
   {
     ruleId: 'K-ACCSVC-025',
-    contract: '.nimi/spec/runtime/kernel/account-session-contract.md',
+    contract: 'docs/authority/runtime-protected-session-rationale.md',
     clauses: [
       ['SELF_ASSERTED_AUTHORITY_DENIAL_MISSING', /App id, source host, caller enum, manifest, renderer metadata, host[\s\S]*self-description, launch id and portable bearer remain non-authorizing/iu],
       ['NATIVE_CHANNEL_AUTHORITY_MISSING', /Local[\s\S]*app authority comes only from the inherited native channel and its verified live[\s\S]*peer/iu],
@@ -282,3 +282,4 @@ main().catch((error) => {
   process.stderr.write(`local-app owner boundary failed: ${error.stack || error.message}\n`);
   process.exitCode = 1;
 });
+

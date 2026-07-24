@@ -103,6 +103,8 @@ test('gate rejects Desktop/runtime role drift independently of the transport mat
 test('authority input paths remain canonical spec files or tracked config inputs', () => {
   assert.equal(authorityPaths.desktopControls, 'config/desktop-local-app-control-surfaces.yaml');
   for (const [key, relative] of Object.entries(authorityPaths)) {
-    if (key !== 'desktopControls') assert.match(relative, /^\.nimi\/spec\//u);
+    if (key !== 'desktopControls') {
+      assert.match(relative, /^(?:\.nimi\/spec\/|config\/|docs\/authority\/)/u);
+    }
   }
 });

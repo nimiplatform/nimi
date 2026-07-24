@@ -1,0 +1,975 @@
+format: nimicoding.authority/v1
+units:
+  - id: definition.nimi.runtime.agent-service.context-composition-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime agent context composition plane
+    meaning: The Runtime agent context composition plane owns LocalAgent per-turn context compilation, provider-visible request composition, deterministic budgeting, transcript and memory isolation, APML output admission, and bounded public context projections, including the strict AgentTurnContextManifestV1 and its acyclic domain-separated hashes, the typed source compiler with fixed lanes and trust boundaries, transcript, memory, budget, and deterministic truncation semantics, provider composition, media, tool, and APML fail-close boundaries, the bounded LocalAgent context projection families, and conversation-report route identity and capture boundaries, and it applies only to Runtime Agent Chat and other Runtime agent executors that consume a materialized LocalAgent while ordinary non-Agent Nimi Chat systemPrompt authority is unchanged.
+    relations: []
+  - id: definition.nimi.runtime.agent-service.agent-service-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime agent service plane
+    meaning: The Runtime agent service plane owns RuntimeAgentService as the runtime-owned authority for live agent execution, including agent lifecycle, agent identity projection, conversation continuity through runtime-owned ConversationAnchor, life state, autonomy state, hook scheduling admission, agent memory policy, transient turn and presentation projection, agent event emission, the chat and life track split, typed hook intent, the app consumer boundary, the admitted public operation surface with its typed output families, the reserved local-app agent selector boundary, public chat conversation listing, transcript envelope, and cutover prerequisites, the agent chat non-equivalence boundary, token budget authority, fail-close failure semantics, the hook lifecycle store, and the committed agent event stream source.
+    relations: []
+  - id: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime local agent materialization plane
+    meaning: The Runtime local agent materialization plane owns Runtime LocalAgent materialization, immutable source snapshot, deletion and reset, source-derived context input, and proactive interruptibility authority, including the runtime-consumption-side obligations of Realm source materialization, the private challenge, acquisition, and closure-set transaction, the immutable LocalAgentSourceSnapshotV2 record, and v3 provenance, epoch, reset, restart, and no-rebase semantics, while the source-materialization packet protocol body, canonical Character and World visibility, and Packet v3 issuance remain Realm-owned authority that this plane only references and consumes.
+    relations: []
+  - id: rule.nimi.runtime.agent-service.r001
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: The turn context manifest is strict and complete
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Before any provider call, Runtime creates one strict AgentTurnContextManifestV1 for the admitted turn, the manifest contains no raw prompt or lane text, and it records manifest and compiler schema versions, local_agent_ref, conversation_anchor_id, turn id, and request id, source snapshot, source, world, and materialization-context refs and hashes, resolved model route digest, catalog revision, context-window capacity, reserved output, safety, and adapter tokens, and input budget, ordered lane summaries with lane id, authority owner, trust class, typed source refs, item and content hashes, allocation and use tokens, included item and turn counts, omitted and truncated counts, and typed omission and truncation reasons, tool and media capability digest, Runtime transcript head and tail identity and committed turn and item counts, and contextContentHash, promptHash, and manifestInstanceHash.
+    condition: Whenever a LocalAgent turn is admitted for provider invocation.
+    failure: Reject provider invocation without the complete strict manifest.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.context-composition-plane
+  - id: rule.nimi.runtime.agent-service.r002
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: The three manifest hashes are acyclic and domain separated
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: The three manifest hashes are acyclic and domain-separated, contextContentHash is H("nimi.runtime.agent-context-content/v1\0" + canonical ordered semantic lane content) and its input excludes request, turn, attempt, timestamp, provider request, credential, and all derived hashes, promptHash is H("nimi.runtime.agent-provider-prompt/v1\0" + canonical final provider-visible role, content, and tool serialization) and its input excludes provider request id, transport envelope, credential, response, and manifest instance data, and manifestInstanceHash is H("nimi.runtime.agent-context-manifest/v1\0" + canonical manifest without manifestInstanceHash) and its input includes agent, anchor, turn, and request ids, source and world hashes, content and prompt hashes, route and catalog digest, budget use, and the omission and truncation summary.
+    condition: Whenever manifest hashes are computed.
+    failure: Reject hash inputs outside the declared domains and exclusions.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.context-composition-plane
+  - id: rule.nimi.runtime.agent-service.r003
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Manifest and hashes are fixed before invocation
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Equivalent frozen source, Runtime truth, catalog revision, transcript and memory inputs, capabilities, and current turn produce identical lane order and content, contextContentHash, and promptHash, a new request or turn instance changes manifestInstanceHash without forcing content or prompt hashes to change, and the manifest and all three hashes are fixed before provider invocation and do not drift during streaming, APML projection, action execution, cancellation, or turn commit.
+    condition: Whenever equivalent inputs recur or a turn proceeds after manifest fixation.
+    failure: Reject hash or manifest drift after fixation and non-deterministic composition.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.context-composition-plane
+  - id: rule.nimi.runtime.agent-service.r004
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Lane order is fixed and adapters cannot add authority
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Runtime compiles typed snapshot and Runtime truth into the exact lane order runtime_policy, output_contract, source_identity, source_behavior, world_context, relationship_context, source_knowledge, canonical_memory, conversation_history, capability_context, and current_user_turn, where runtime_policy and output_contract are Runtime-authored system authority, source identity, behavior, world, relationships, and knowledge are validated snapshot data, canonical memory and committed transcript remain distinct Runtime-scoped inputs, capabilities and tools derive from Runtime permission, config, and catalog truth, the current turn is typed caller input, and a provider adapter may translate this composition to its wire format but must not reorder lanes, change roles, omit mandatory semantics, or add policy or tool authority.
+    condition: Whenever LocalAgent turn context is compiled or adapted to a provider wire.
+    failure: Reject lane reorder, role change, omitted mandatory semantics, and added authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.context-composition-plane
+  - id: rule.nimi.runtime.agent-service.r005
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: The typed source compiler has one closed path map
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: The typed source compiler has one closed path map that maps profile identity and admitted presentation identity to stable source_identity items and maps profile.narrative summary, archetype, and traits, profile.interactionProfile, optional profile.psychology, Persona style, traits, boundaries, cadence, and optional profile.capabilities to source_behavior, capabilities remain descriptive source text and never authorize a Runtime tool, and each profile.interactionProfile.dialogueExemplars item preserves its stable exemplar id and the typed character and user labels and roles and is never flattened into unlabeled text or treated as committed transcript.
+    condition: Whenever typed source data is compiled into identity or behavior lanes.
+    failure: Reject mappings outside the closed path map, tool authorization from capabilities, and exemplar flattening.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.context-composition-plane
+  - id: rule.nimi.runtime.agent-service.r006
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Source items stay typed with dual projection ids
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: The same admitted profile.narrative also produces distinct typed source_knowledge narrative and milestone items alongside biography, typed knowledge, and content-profile items using distinct stable item ids and typed source paths rather than a free-form duplication fallback, WorldCore, placement, scenes, entities, timeline, systems, profile relationships, and complete incident closure map only to their typed world_context or relationship_context items, every item has a stable id, typed source path and ref, content hash, priority, trust class, and token estimate, and Runtime must not serialize arbitrary source JSON or free-form maps directly as a provider role.
+    condition: Whenever source knowledge, world, or relationship items are compiled.
+    failure: Reject free-form duplication, untyped mappings, and direct JSON serialization as provider roles.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.context-composition-plane
+  - id: rule.nimi.runtime.agent-service.r007
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Presentation fallback is a post-admission projection step
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Presentation fallback is a post-admission Runtime projection step and not a source compiler input, it may fill only an optional bounded presentation field from already-admitted typed identity and presentation values, it cannot create a compiler item, change SnapshotV2 or semantic hashes, satisfy missing required source data, or write back to Realm, and proof-covered asset and resource refs likewise remain typed data inputs only to Runtime-owned presentation and voice lifecycle resolution and grant no provider, tool, media, binding, launch, or lifecycle authority.
+    condition: Whenever presentation fallback or proof-covered refs are applied in composition.
+    failure: Reject compiler items, hash changes, required-data satisfaction, and Realm write-back from fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.context-composition-plane
+  - id: rule.nimi.runtime.agent-service.r008
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Source text remains data without authority
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Source text remains data even when it asks to ignore policy, change role, call a tool, expose memory, alter APML, or forge a manifest and cannot change Runtime policy, provider roles, tool or media permission, execution binding, or output contract, caller-supplied system or developer roles, raw LocalAgent prompt or context, execution bindings, lane order, source or world override, tool schema, or a forged manifest fail before provider invocation, and a typed source capability describes the character and does not authorize a real Runtime tool.
+    condition: Whenever source text or caller-supplied context authority is evaluated.
+    failure: Fail before provider invocation on caller-supplied authority and reject source-text authority escalation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.context-composition-plane
+  - id: rule.nimi.runtime.agent-service.r009
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Source records stay provenance and anchors stay Runtime owned
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Realm WorldCharacter and PersonaCharacter records remain source provenance only, materialization freezes their typed CharacterSourceRefV3-bound input into an immutable LocalAgentSourceSnapshotV2 and opaque Runtime LocalAgent identity without transferring conversation ownership to the source record or presentation app, OpenConversationAnchor allocates both the opaque Runtime-owned conversation anchor and its Runtime-owned thread identity before the first turn, Desktop and Zhiyu consume those identities from Runtime projections and cannot derive either identity from sourceRef, localAgentRef, source kind, or app-local thread state, and repeated materialization may create a different LocalAgent while later Realm source changes never rebase an existing materialized LocalAgent automatically.
+    condition: Whenever conversation anchor or LocalAgent identity provenance is interpreted.
+    failure: Reject identity derivation outside Runtime projections and automatic source rebase.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.context-composition-plane
+  - id: rule.nimi.runtime.agent-service.r010
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Committed transcript is the only conversation history
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Runtime's committed transcript is the only LocalAgent conversation history, every ordinary second and later turn loads committed user and assistant turns from the selected Runtime ConversationAnchor even when the caller submits only the current user input, streaming partials, failed APML, failed or canceled turns, repair attempts, app optimistic text, greetings not committed as turns, and dialogue exemplars are not transcript, and follow-up turns use the same compiler with no separate history path.
+    condition: Whenever LocalAgent conversation history is composed.
+    failure: Reject non-committed inputs as transcript and separate history paths.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.context-composition-plane
+  - id: rule.nimi.runtime.agent-service.r011
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Memory stays a separate account-bound lane
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Canonical memory is a separate lane with its own scope, authority, provenance, rank, and item hash, memory cannot impersonate transcript or source fact, source relationships and interaction-derived relationship or memory cannot overwrite each other, all transcript and memory reads are bound to authenticated account, local_agent_ref, and anchor, different accounts, agents, or anchors cannot leak transcript, agent-scoped canonical memory may cross anchors only where the existing canonical-memory contract admits it, app id is not a partition key, restart must reload the same committed inputs and reproduce the same composition under the same catalog and compiler versions, and Realm offline operation continues from the frozen source snapshot and Runtime-local transcript, memory, relationship, and state without rematerialization or source rebase.
+    condition: Whenever transcript or memory inputs are read or recomposed.
+    failure: Reject unbound reads, cross-scope leakage, and offline rematerialization.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.context-composition-plane
+  - id: rule.nimi.runtime.agent-service.r012
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Budgeting and truncation are deterministic and typed
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Runtime reads context-window capacity from the actual resolved model catalog, reserves provider and adapter overhead, output tokens, and safety margin, allocates mandatory policy, output contract, source identity and core behavior, required world and relationship baseline, capability metadata when present, and the current user turn before optional content, truncation removes whole typed items only in exactly the order of oldest complete conversation-history user and assistant pairs, then lowest-relevance canonical-memory items, then optional dialogue exemplars, then optional biography and source-knowledge items, then optional world, timeline, and scene detail items, stable rank keys and item ids break equal relevance and recency ties, character, byte, or token-fragment truncation is forbidden, the manifest records required, available, allocated, and used tokens plus every omitted and truncated item count and typed reason, and if mandatory lanes exceed capacity composition returns typed context_capacity_exceeded, emits no provider request, and performs zero provider calls.
+    condition: Whenever turn context budgeting or truncation runs.
+    failure: Return typed context_capacity_exceeded without provider calls and reject fragment truncation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.context-composition-plane
+  - id: rule.nimi.runtime.agent-service.r013
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Runtime alone composes provider-visible roles
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Runtime alone creates provider-visible system, user, assistant, and tool roles from the admitted context manifest, provider credentials, transport ids, and provider-private request fields are not context authority and are excluded from the stable content and prompt hashes, local and cloud routes must carry semantically equivalent lane content, and route adapters cannot weaken trust or output rules.
+    condition: Whenever provider-visible roles are composed or routed.
+    failure: Reject provider role creation outside Runtime and route-level trust weakening.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.context-composition-plane
+  - id: rule.nimi.runtime.agent-service.r014
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Tools and media derive from Runtime truth and fail closed
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Tools come only from Runtime permission, capability, readiness, and Runtime Agent AI Config truth, source-declared capabilities never grant a tool, current turn media uses closed typed part and MIME schemas, unknown, malformed, unsupported, or unauthorized media fails before context composition or provider invocation, and no adapter may coerce it to text, silently omit it, or report pseudo-success.
+    condition: Whenever tools or current-turn media are admitted to a turn.
+    failure: Fail before composition or invocation without coercion, omission, or pseudo-success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.context-composition-plane
+  - id: rule.nimi.runtime.agent-service.r015
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: APML output admission fails closed without repair
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Runtime-private APML is the mandatory output_contract lane and remains governed by K-AGCORE-044..048, Runtime validates root, tags, attributes, hierarchy, and typed payload before committing assistant text, actions, emotion, voice, hooks, memory candidates, or events, malformed or unknown APML is a typed turn failure, Runtime, provider, and app must not strip wrappers, repair XML, recover Markdown or fenced output, fall back to JSON, infer missing semantics, or re-accept rejected output, provider call success without valid APML is not product success, and Runtime projections and action, voice, and hook execution consume only the validated result and cannot alter the turn's context hashes.
+    condition: Whenever model-facing agent output is validated or consumed.
+    failure: Fail the turn typed on malformed or unknown APML and reject repair or re-acceptance.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.context-composition-plane
+  - id: rule.nimi.runtime.agent-service.r016
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Public context outputs are two bounded typed families
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: The only public LocalAgent source and context outputs are the typed bounded LocalAgentSourceContextStatus and AgentTurnContextSummary families, LocalAgentSourceContextStatus may expose only ready and state and typed reason code, source kind, ref, and schema and sourceHash, snapshot schema version and hash and captured_at, world content hash and materialization-context hash, and coverage section states and counts, and AgentTurnContextSummary may expose only ready and state and typed reason code, manifest and compiler versions and manifest, content, and prompt hashes, source snapshot hash and safe source and world refs and hashes, ordered lane ids, lane status, and included, omitted, and truncated counts, context budget, used tokens, and typed truncation summary, transcript turn, memory item, media, and tool counts, and route and catalog revision digest.
+    condition: Whenever public LocalAgent source or context projections are served.
+    failure: Reject projections outside the two typed bounded families and their allowlists.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.context-composition-plane
+  - id: rule.nimi.runtime.agent-service.r017
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Context projections never expose private inputs
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: The bounded context projections never expose raw source, world, core, or closure data, prompt or lane text, private memory, transcript text, packet wrapper, proof, or chunks, provider request or response, credential, tool arguments or results, or a free-form map, unknown schema, enum, state, lane, or reason fails closed, SDK, Kit, and apps may display or aggregate the projection but cannot backfill, reinterpret, or cache raw context as an offline success path, and production logs and evidence use the same allowlist plus correlation ids and hashes and never the private inputs.
+    condition: Whenever bounded context projections are consumed, logged, or evidenced.
+    failure: Fail closed on unknown values and reject raw exposure, backfill, and offline caching.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.context-composition-plane
+  - id: rule.nimi.runtime.agent-service.r018
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Conversation report turns bind one Runtime route identity
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Runtime is the only executor for a live LocalAgent conversation-report turn, the route resolves through Runtime Agent AI Config and the Runtime model catalog, an app or test runner cannot call a provider or model directly, supply an execution binding, or embed a provider or model constant, one baseline run selects one route and keeps it stable for both LocalAgents and every reported turn, each turn records a complete resolved route identity binding providerId, modelId, and the resolved modelRevision or a stable catalog-derived model fingerprint plus the catalog revision and Runtime route digest available for that call, missing identity fields, an unresolved route, or silent route drift is an objective execution failure, and no evaluator or second route is required to produce the report while model identity never implies semantic quality.
+    condition: Whenever a live conversation-report turn is executed or its route recorded.
+    failure: Fail on missing route identity, unresolved routes, silent drift, and direct provider calls.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.context-composition-plane
+  - id: rule.nimi.runtime.agent-service.r019
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Report capture stays observational and non-authoritative
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Runtime retains the product-owned LocalAgent identity, conversation anchor, transcript, memory, relationship, state, and hook lineage, the report pipeline may capture their bounded public projections and the committed user and assistant transcript with exact account, source snapshot, LocalAgent, anchor, turn, surface, and model correlation, it cannot read raw system prompts, private context lanes, credentials, proofs, or other Runtime-private inputs, report capture is observational and cannot create or rewrite a product turn, message, transcript entry, memory item, relationship update, LocalAgent, snapshot, anchor, hook, action, or event, it performs no automatic provider retry, a captured reply, optional annotation, or derived review note never becomes source, snapshot, personality, memory, transcript, future context, or an authoritative semantic verdict, and Realm-offline turns continue from the frozen LocalAgent source snapshot and Runtime-local state.
+    condition: Whenever conversation-report capture reads or records agent state.
+    failure: Reject private reads, product mutation, provider retry, and captured content promoted to truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.context-composition-plane
+  - id: rule.nimi.runtime.agent-service.r020
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: RuntimeAgentService is the steady-state transport name
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: RuntimeAgentService is the steady-state design authority name on the canonical spec path, implementation-facing proto transport is required to align to RuntimeAgentService, and RuntimeAgentCoreService is not an admitted steady-state transport name.
+    condition: Whenever the agent service transport or authority name is selected.
+    failure: Reject RuntimeAgentCoreService and misaligned transport names.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r021
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: RuntimeAgentService is the live agent execution authority
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: RuntimeAgentService is the runtime-owned authority for live agent execution and owns agent lifecycle, agent identity projection, conversation continuity through runtime-owned ConversationAnchor, life state, autonomy state, hook scheduling admission, agent memory policy, transient turn and presentation projection, and agent event emission, it consumes RuntimeCognitionService plus retained runtime-private memory depth and must not be collapsed into a cognition or memory engine, runtime is multi-agent by default and may host multiple live agent_id lifecycles concurrently, runtime must not infer or persist any platform-level default or current agent, and every agent-scoped ingress must resolve to explicit agent_id while app-local current, default, or pinned agent selection remains above runtime-owned truth.
+    condition: Whenever live agent execution authority is interpreted.
+    failure: Reject collapse into cognition or memory engines, platform default agents, and implicit agent resolution.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r022
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Chat track and life track stay distinct
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: RuntimeAgentService must maintain two distinct execution tracks where the Chat Track is reactive, driven by user and app interaction, and consumes conversation-anchor continuity and agent projections, and the Life Track is proactive, driven by runtime-owned hook admission, and consumes life state, memory recall, world context, and autonomy policy, and the two tracks may share agent state and memory policy but must not collapse into a single undifferentiated scheduling surface.
+    condition: Whenever agent execution tracks are scheduled or interpreted.
+    failure: Reject collapse into an undifferentiated scheduling surface.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r023
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Life track output emits typed hook intent only
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Life Track model output may not emit free-form execution logic and must emit typed HookIntent only with trigger kinds defined by config/runtime-memory-hook-trigger.yaml, host-owned scheduler and admission is the only scheduling authority, model output may request a typed intent and not executable logic, the scheduler owns timing, admission, cancellation, and budget checks, active chat continuity may delay or suppress life hooks while that suppression remains host-owned, and admitted implementation-facing transport must expose typed trigger-detail and hook-intent families with one branch per admitted trigger kind rather than a generic scheduler blob.
+    condition: Whenever Life Track model output requests deferred execution.
+    failure: Reject free-form execution logic and generic scheduler blobs.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r024
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Canonical agent memory admission is semantically owned
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: RuntimeAgentService is the semantic owner of canonical agent memory and decides which events may become canonical memory, which canonical class applies, which bank scope may be written, which memory layers may be recalled for agent execution, which app-facing canonical memory bank mode and status is exposed, and whether a canonical agent memory bank bind request is admitted, canonical classes continue to align to Realm PUBLIC_SHARED, WORLD_SHARED, and DYADIC, infra scopes wider than canonical classes must not be reinterpreted as canonical memory by apps, RuntimeCognitionService serves the runtime-facing overlap slice while retained runtime-private memory depth stores canonical truth with RuntimeAgentService owning semantic admission in both cases, and app-facing canonical memory bank status and bind must go through RuntimeAgentService while SDKs and apps must not compose canonical bank mode from editable host config, runtime-private embedding inspect state, or raw GetBank projections.
+    condition: Whenever canonical agent memory admission or bank status is decided or consumed.
+    failure: Reject app reinterpretation of infra scopes and bank-mode composition outside RuntimeAgentService.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r025
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Apps consume as controllers and projection readers only
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Apps consume RuntimeAgentService as controllers and projection readers, for a third-party LOCAL_APP the Runtime-derived local_app_principal_id is the caller, access-control, and audit subject only and never becomes agent_id, agent owner, conversation owner, memory-bank owner, subject_user_id, or a default or current agent selector, the local-app operation coordinator must resolve an explicit permitted agent and conversation relation under the canonical RuntimeAgent and Cognition owner policy, apps may initialize agents, read state and memory projections, read the runtime-owned AgentPresentationProfile projection, update state through admitted commands, configure autonomy, and subscribe to agent events, and apps may not own renderer-local canonical agent identity, own renderer-local canonical memory truth, directly schedule life-track execution, directly mutate canonical agent bank scopes through Memory Service, write thread-local avatar interaction state back as runtime-owned presentation truth, attach LocalAgent source, world, relationship, knowledge, transcript, memory, policy, tool, media, or output-contract context to a turn, submit system or developer roles, execution bindings, or a context manifest for Runtime Agent Chat, or infer agent, conversation, memory, or source ownership from app identity, local-app principal, project path, process identity, record, or permission decision.
+    condition: Whenever apps consume RuntimeAgentService.
+    failure: Reject consumer-attached LocalAgent turn context and app-side ownership claims.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r026
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: The public operation set is admitted explicitly
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: RuntimeAgentService admits the public operations MaterializeRealmSource, InitializeAgent, TerminateAgent, GetAgent, ListAgents, OpenConversationAnchor, GetConversationAnchorSnapshot, ListAgentConversationSummaries, RegisterAvatarLiveInstanceBinding, ResolveAvatarLiveInstanceBinding, GetPublicChatSessionSnapshot, GetCompanionParticipationProjection, RequestCompanionParticipation, CancelCompanionParticipation, OpenCompanionParticipationReplay, GetAgentState, UpdateAgentState, EnableAutonomy, DisableAutonomy, SetAutonomyConfig, ListPendingHooks, CancelHook, QueryAgentMemory, WriteAgentMemory, GetAgentCanonicalMemoryBankStatus, RequestAgentCanonicalMemoryBankBind, GetAgentCanonicalMemoryReviewStatus, SetAgentPresentationProfile, and SubscribeAgentEvents.
+    condition: Whenever the RuntimeAgentService public surface is defined or extended.
+    failure: Reject public operations outside the admitted set.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r027
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: The local-app carrier exposes no agent operation
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: The local-app protected carrier currently exposes no RuntimeAgent operation, the public agents.interact permission is reserved so inventory, Agent selection, conversation open, turn, subscription, snapshot, and voice operations all return typed unavailable to LOCAL_APP, a valid local-app session exposes only permission posture and unrelated base entitlements and cannot enumerate Agents to manufacture a selector, and bundled first-party callers retain their separately admitted service entitlements and are not converted into third-party principals.
+    condition: Whenever LOCAL_APP callers reach RuntimeAgent surfaces.
+    failure: Return typed unavailable to LOCAL_APP and reject selector manufacture and principal conversion.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r028
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: The public materialization operation stays bounded
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: The MaterializeRealmSource operation registers the K-AGCORE-139 and K-AGCORE-151..153 semantic surface, its public request contains only AgentRequestContext, bounded request_id, and strict CharacterSourceRefV3, its bounded response contains no Realm bearer or base, grant material, challenge, packet, proof, manifest, segment, component, chunk, or source core, and challenge, acquisition, verification, staging, and atomic commit remain Runtime-private owner APIs.
+    condition: Whenever the public source-materialization operation is consumed or evolved.
+    failure: Reject request or response content outside the registered bounded shapes.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r029
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Primary semantic outputs use Nimi-owned typed messages
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Primary semantic outputs on the RuntimeAgentService surface must use Nimi-owned typed messages, hook trigger detail must remain typed rather than free-form execution payload, recalled agent memory must project typed memory records rather than raw provider JSON, QueryAgentMemory may expose additive narrative projections but must not expose admitted truth state or behavioral posture as public wire truth, a stale narrative projection keeps its explicit stale marker and RuntimeAgentService must not collapse stale narrative context into admitted truth state, agent events must expose explicit failure, reschedule, and budget states as typed event kinds, and app-facing transient turn, presentation, and state projections must use the stable family-specific envelopes and detail shapes pinned in config/runtime-agent-event-projection.yaml.
+    condition: Whenever primary semantic outputs are projected on the public surface.
+    failure: Reject free-form payloads, raw provider JSON, and stale-narrative collapse into truth state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r030
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Transport families stay typed and registered
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Model-facing agent chat output for the Live2D companion substrate continuation is governed by agent-output-wire-contract.md and APML output must be validated and projected into typed runtime events before apps treat it as product truth, LocalAgent turn composition is governed by K-AGCORE-154..158 and public reads and events may carry only LocalAgentSourceContextStatus and AgentTurnContextSummary and never the private manifest or lane content, dynamic envelopes remain limited to auxiliary details and extensions fields, implementation-facing transport must distinguish read projections from mutation commands and public agent state mutation may not devolve into arbitrary blob replacement, implementation-facing transport must reserve typed families for HookIntent, HookOutcome, canonical memory candidate and view, and constrained state mutation payloads, admitted implementation-facing transport must expose hook outcome detail as typed completed, failed, canceled, rescheduled, and rejected families and app-facing state mutation as a typed command and patch union rather than full-state replacement, and the typed family registry is defined by tables/runtime-agent-service-typed-family.yaml.
+    condition: Whenever implementation-facing transport families or output governance are defined.
+    failure: Reject blob replacement, untyped families, and private manifest or lane exposure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r031
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Public surface closure and presentation projections hold
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: No public RuntimeAgentService method may admit proactive initiate-chat, public truth read or write, or public posture mutation unless a later rule explicitly admits those surfaces, and runtime-owned AgentPresentationProfile plus admitted runtime.agent.turn.*, runtime.agent.presentation.*, runtime.agent.state.status_text_changed, runtime.agent.state.execution_state_changed, runtime.agent.state.emotion_changed, and runtime.agent.state.posture_changed projections may be exposed on read or subscription surfaces while renderer-local session state remains out of the public runtime truth model.
+    condition: Whenever public method admission or projection exposure is evaluated.
+    failure: Reject unadmitted proactive, truth, or posture surfaces and renderer-local state in runtime truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r032
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: The local-app agent selector stays reserved
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: No zero-permission Agent inventory exception is admitted, no local-app Agent inventory RPC or shell operation exists and SDK, Kit, Desktop, and compatibility bridges must not recreate one, when agents.interact is admitted as a complete P-PERM-017 slice the canonical Agent owner picker selects the bounded Agent set before the app gets authority, the app receives only the public selected-Agent projection and may then use the operation families mapped to that one product intent, it does not receive full account Agent inventory, raw owner ids, internal operation ids, resource fingerprints, or a selector-building API, and until that owner picker, decision lifecycle, audit, settings and revoke UX, and endpoint enforcement all exist every third-party Agent read or mutation fails closed.
+    condition: Whenever third-party Agent access or inventory is evaluated.
+    failure: Fail closed on every third-party Agent read or mutation before the complete slice exists.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r033
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Chat cache removal requires admitted replacement coverage
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Runtime Agent Chat transcript and session truth already belongs to RuntimeAgentService, but before a host removes an Agent Chat chat_agent_* projection-cache store Runtime and SDK must provide admitted coverage for conversation summary listing scoped to the authenticated calling app, explicit local agent identity, and owner context, recovery of a selected conversation through ConversationAnchor plus GetPublicChatSessionSnapshot, a close, delete, and clear policy for user-visible conversation history, message-level delete and redact policy before any app exposes per-message deletion or redaction controls, a single-active-conversation policy for each CharacterSourceRefV3 or v3 provenance and LocalAgent projection, and explicit rejection of Agent Chat draft persistence, rename and archive conversation semantics, and Desktop offline transcript recovery, and these prerequisites do not admit Desktop-local transcript, message, turn, beat, or projection rebuild truth and only define the Runtime and SDK replacement surface that must exist before host-local migration stores can be removed.
+    condition: Whenever host-local Agent Chat projection caches are removed.
+    failure: Reject cache removal before the admitted replacement coverage exists.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r034
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Conversation summary listing is scoped and read only
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: RuntimeAgentService admits ListAgentConversationSummaries as a read-only conversation-summary query for Runtime-owned Agent Chat anchors, the query must be scoped to the calling app, explicit local agent identity, owner context, and Runtime-owned ConversationAnchor truth, summaries must be ordered by updated_at DESC, conversation_anchor_id ASC and use runtime pagination fields, each summary may expose a display title that is derived presentation text and not a separate persisted Runtime conversation-title truth, each summary may expose last-message role, text, and id and transcript count only as projection data derived from Runtime-owned session transcript state, GetPublicChatSessionSnapshot remains the recovery source for selected conversation transcript and turn detail, and this query does not admit close, delete, clear, archive, rename, draft, or multi-conversation mutation policy while clear, delete, and redact actions remain covered by K-AGCORE-006a prerequisites until explicitly admitted elsewhere.
+    condition: Whenever conversation summaries are listed.
+    failure: Reject unscoped queries, persisted title truth, and mutation policy on this query.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r035
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: One active conversation without rename or archive
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Agent Chat rename and archive are not product surfaces and Runtime must not add persistent user-authored conversation titles, archive flags, or multi-session management for Agent Chat unless a later product decision admits them, Runtime must present one active Agent Chat conversation per runtime source snapshot and LocalAgent projection, and ListAgentConversationSummaries may page over different agents and historical Runtime anchors as migration evidence but must not become a user-facing multi-conversation product model.
+    condition: Whenever Agent Chat conversation management surfaces are evaluated.
+    failure: Reject rename, archive, persistent titles, and multi-conversation product models.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r036
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Transcript entries carry Runtime replay identity
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: GetPublicChatSessionSnapshot owns the app-facing replay envelope for Runtime-owned Agent Chat transcript messages, every projected transcript entry must carry the Runtime-owned replay identity fields id, created_at, and updated_at and when Runtime cannot produce those fields the entry is not replayable and SDK and app consumers must fail closed instead of deriving them, transcript entry status and kind are projection metadata and not model output truth with text transcript entries defaulting to status complete and kind text, transcript entry ids may be derived from conversation_anchor_id plus stable transcript index until Runtime stores per-message ids directly and that derivation is Runtime-owned and must not be re-derived differently by apps, transcript entry timestamps may be derived from Runtime anchor and session time until Runtime stores per-message timestamps directly and apps may display them but must not reinterpret them as provider event time, and richer fields such as reasoning text, trace id, media and artifact metadata, error state, and parent linkage may only be trusted when Runtime projects them with parent linkage for ordinary text assistant replies remaining Runtime-owned replay metadata and not an app-local adjacency inference.
+    condition: Whenever Agent Chat transcript entries are projected or replayed.
+    failure: Fail closed on missing replay identity and reject app-side derivation and reinterpretation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r037
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: The replay envelope admits no local transcript stores
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: The public chat transcript envelope does not admit Desktop-local transcript persistence and exists to let apps replay Runtime session snapshots without fabricating transcript identity locally, it does not admit offline Agent Chat transcript recovery from app storage, and if Runtime is unavailable apps may retain in-memory display state for the current renderer session while restart recovery must come from Runtime snapshots and not from Desktop-local transcript stores.
+    condition: Whenever apps persist or recover Agent Chat transcript state.
+    failure: Reject Desktop-local transcript stores and offline recovery from app storage.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r038
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Agent chat is not a generic chat-history service
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Runtime Agent Chat authority is scoped to Runtime Agent lifecycle and must not be generalized into a daemon-owned product chat-history service for ordinary apps, Agent Chat belongs to RuntimeAgentService because it consumes and mutates agent-owned lifecycle state including explicit agent_id, runtime-owned ConversationAnchor, agent memory policy, turn planning, presentation and action projection, voice and media workflow execution, and agent event emission, Runtime Agent Chat session and transcript replay remains Runtime-owned, runtime.agent app-message traffic is a reserved Agent Chat consume seam and not a generic app chat bus, RuntimeAiService owns AI execution, provider and model routing, readiness, jobs, artifacts, and fail-closed enforcement and does not own ordinary app product session, thread, message, or draft truth by default, generic ChatGPT-like, Codex-like, domain-assistant, or simple LLM product-session history must not be added to Runtime solely because it uses Runtime AI consume, reusable non-authoritative app AI session-loop support belongs in SDK DX surfaces while durable product session truth belongs to the owning app or Realm unless a later Runtime, Cognition, or Platform rule explicitly admits it, and any proposal for a new Runtime-owned AI conversation or session store outside Agent lifecycle must include a separate authority rule naming the lifecycle, security, data-correctness, audit, or cross-app invariant that requires Runtime ownership with ordinary app AI session persistence remaining outside Runtime absent that rule.
+    condition: Whenever Runtime chat-history generalization or new session stores are proposed.
+    failure: Reject generalization and new Runtime session stores without the required authority rule.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r039
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Life track token budgets stay observable quotas
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: RuntimeAgentService owns token budget policy for Life Track autonomy, token budget configuration is runtime-owned and belongs to agent autonomy state, token budget remains a quota and safety guardrail and not the primary cadence truth, budget state must be observable through agent state or agent events and hidden depletion is not admitted, the default budget window is daily unless a stricter runtime-owned policy is admitted elsewhere, budget exhaustion suspends or rejects Life Track execution only while Chat Track remains separately governed by runtime product policy, and model output must not mutate budget truth directly.
+    condition: Whenever Life Track token budgets are configured, consumed, or exhausted.
+    failure: Reject hidden depletion and model-driven budget mutation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r040
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Substrate unavailability fails closed and observable
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: RuntimeAgentService must fail-close on substrate unavailability and keep hook outcomes observable, agent initialization requires runtime-owned local prerequisites to be available and when RuntimeAgentService cannot rely on RuntimeCognitionService, retained runtime-private memory depth, or the required local substrate the call must fail with UNAVAILABLE, the required local memory substrate boundary is the runtime-private contract in K-MEMSUB-* and not a public local-engine target, Realm replication unavailability does not authorize pseudo-success and initialization may proceed only when local bootstrap truth is sufficient and pending replication remains observable, Life Track model failure, memory write failure, or scheduler admission failure must produce an observable agent event or reasoned rejection, and pending hooks may be rescheduled or canceled explicitly but must not disappear silently after a failed life-turn attempt.
+    condition: Whenever substrate unavailability or life-track failures occur.
+    failure: Fail with UNAVAILABLE without pseudo-success and reject silent hook disappearance.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r041
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Hook lifecycle truth lives in a runtime-owned store
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: RuntimeAgentService must keep hook lifecycle truth in a runtime-owned store and owns admitted pending-hook persistence, admission-state transitions for pending, running, completed, failed, canceled, rescheduled, and rejected, host-owned cancellation checks, and life-track execution-state projection derived from hook lifecycle truth, ListPendingHooks must read from runtime-owned hook state and not from caller-supplied projection or ephemeral renderer memory, CancelHook may only transition hooks that remain host-cancelable and terminal hook outcomes must stay immutable, typed HookIntent and typed trigger detail must be validated before a hook becomes admitted scheduler truth, hook admission-state transitions must persist before event publication so that replayed event cursors and hook listing observe the same committed truth, and runtime may keep terminal hook outcomes visible for audit and history while active hook visibility remains distinguishable from terminal outcomes.
+    condition: Whenever hook lifecycle truth is stored, listed, transitioned, or canceled.
+    failure: Reject caller-supplied hook projections, terminal mutation, and unvalidated intents.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r042
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Agent events stream from the committed event log
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: SubscribeAgentEvents must stream from a runtime-owned committed agent event log, lifecycle, hook, memory, budget, and replication events must be appended only after the corresponding runtime-owned state transition or admission outcome is committed, cursor resume semantics must read from the committed event log rather than re-synthesizing events from current snapshots, hook-related events must originate from hook lifecycle transitions and not from thin wrappers around RPC responses, and subscriber filtering may narrow delivery but must not invent missing hook outcomes or hide committed cancellation, failure, or reschedule events.
+    condition: Whenever agent events are appended, streamed, or resumed.
+    failure: Reject uncommitted appends, snapshot re-synthesis, and filtered-away committed outcomes.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r043
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Materialization is the sole LocalAgent creation authority
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: RuntimeAgentService is the sole creation authority for an opaque Runtime LocalAgent identity, its only public source-materialization operation is MaterializeRealmSource, the authenticated request contains exactly an AgentRequestContext, a non-empty bounded request_id, and one strict CharacterSourceRefV3, and the response contains only the opaque local_agent_ref, a bounded LocalAgentSourceContextStatus, an idempotent_replay flag, and a closed reason code.
+    condition: Whenever a LocalAgent is created from a Realm source.
+    failure: Reject creation outside MaterializeRealmSource and content beyond the exact request and response shapes.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r044
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: CharacterSourceRefV3 is a closed discriminated union
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: CharacterSourceRefV3 is a closed discriminated union where worldCharacter contains kind, id, worldId, a worldEntityRef with exact kind worldEntity, matching worldId, and entityId, plus a 64-lowercase-hex sourceHash, and personaCharacter contains kind, id, worldId, ownerAccountId, and a 64-lowercase-hex sourceHash, mixed branches, additional fields, implicit home-world binding, caller-selected account, or any alternate source identity fail closed, and apps and SDKs never submit a Realm base, bearer, grant id, challenge, packet, proof, segment, component, chunk, source core, or LocalAgent identity.
+    condition: Whenever a source ref is submitted or validated for materialization.
+    failure: Fail closed on mixed branches, extra fields, and caller-submitted acquisition material.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r045
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: The acquisition authority chain is exact and private
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Runtime creates the challenge and eight published limits, resolves the current canonical Realm base and authenticated account bearer through Runtime-owned account and custody interfaces, and calls a constructor-injected private RealmMaterializationIssuer, source materialization is an authenticated first-party product operation and not an App permission or synthetic grant, and the production authority chain is exact and internal to Runtime acquisition in that Runtime captures one authenticated account generation and one strict typed source ref selected by the product flow, Runtime sends only that source ref, the authenticated account id, a fresh Runtime challenge, audience, and expiry and the eight published limits to POST /api/realm/core/source-materialization-packets, Realm reloads canonical source, world, and dependency truth, enforces current materialization visibility for the authenticated account, requires complete readiness, and returns a short-lived signed Packet v3, and Runtime verifies the complete Packet, closure, proof, replay, and account binding and performs one atomic LocalAgent commit.
+    condition: Whenever Realm source acquisition is performed.
+    failure: Reject acquisition outside the exact Runtime-private authority chain.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r046
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Materialization consults no permission or grant inputs
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: The materialization request and decision contain or consult none of appId, scopeFamily, scopeName, qualifier, accessGrantId, AppPermissionGrant, a Runtime-local K-GRANT row, or a caller-selected bearer, header, endpoint, or grant id, Runtime must not call a Realm permission request or decision endpoint as part of this flow and especially must not request and approve a grant with the same account bearer, the retired realm_source.snapshot.consume and realm_source.snapshot.bind identifiers are non-authorizing and forbidden from positive implementation or evidence, and MaterializeRealmSource does not establish, infer, request, or check a Runtime-local app permission decision or first-party local app principal, with agent.identity.project and any Avatar local seed grant being neither inputs, authorization gates, nor outputs of this operation.
+    condition: Whenever materialization authorization inputs are evaluated.
+    failure: Reject permission-grant consultation, retired identifiers, and app-permission coupling.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r047
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Realm and Runtime materialization ownership stays split
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Realm owns canonical Character and World visibility and current Packet v3 issuance and has no Agent or LocalAgent ontology, Runtime alone owns acquisition, verification, transaction, LocalAgent, snapshot, provenance, context compilation, and lifecycle, no LocalAgent exists before the verified atomic commit, the immutable snapshot and Runtime LocalAgent agent state never write back Realm source truth, Runtime accepts no HMAC source-materialization proof, and Runtime derives no source, prompt, context, or proof authority from app-metadata fallback.
+    condition: Whenever materialization ownership boundaries are interpreted.
+    failure: Reject Realm-side Agent ontology claims, pre-commit LocalAgents, write-back, HMAC proofs, and metadata fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r048
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Packet consumption verifies independently and fails closed
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Runtime accepts only realm.source-materialization-packet/v3 with a complete MaterializationClosureSetManifestV3 and ordered segments, and before any semantic value is exposed Runtime independently verifies strict closed schema, the eight exact limits, source, account, challenge, audience, TTL, nonce, and replay binding, current-purpose RS256 JWKS, issuer, kid, use, and alg, complete segment and global ordinal coverage, every component, chunk, manifest, context, payload, and packet hash edge, and detached proof, while unknown fields, duplicate keys, trailing bytes, HMAC, stale or removed keys, partial closure, or any mismatch fail closed.
+    condition: Whenever a source-materialization packet is accepted or verified.
+    failure: Fail closed on any verification mismatch before semantic exposure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r049
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: The commit is atomic and private bytes stay private
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Only after all verification checks pass may one atomic commit create exactly one opaque local_agent_ref, its immutable LocalAgentSourceSnapshotV2, and v3 provenance membership, any acquisition, validation, persistence, race, or cleanup failure creates none of those product records, and raw HTTP response, packet wrapper, proof, challenge, nonce, TTL, segment, component, and chunk bytes never cross the Runtime private boundary and are cleared after every success or terminal failure.
+    condition: Whenever materialization commits or terminates.
+    failure: Create no product records on failure and reject private-byte boundary crossing.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r050
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Discovery and idempotency stay Runtime owned
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Runtime local inventory and provenance are the only discovery projections for an existing materialization, environment variables, renderer cache, source fields, app or provider metadata, or deterministic naming cannot produce a local_agent_ref, reconstruct a snapshot, or authorize chat, repeated materialization may create distinct LocalAgents and only an exact Runtime request id plus byte-identical canonical source intent makes a retry idempotent, and Runtime must not create any source-backed LocalAgent as a standalone local-only agent, fake contact, server-bot bypass, Avatar instance, privileged Agent class, official-guide shortcut, quota bypass, or default global agent.
+    condition: Whenever existing materializations are discovered or retried.
+    failure: Reject non-Runtime discovery paths and forbidden LocalAgent classes.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r051
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Source-derived semantics come from the frozen closure only
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Runtime derives LocalAgent identity, behavior, world, relationships, and source knowledge only from the strictly decoded typed semantic closure frozen in LocalAgentSourceSnapshotV2, WorldCharacter and PersonaCharacter identity, presentation, biography, psychology, knowledge, relationships, descriptive capabilities, interaction profile, persona style, content profile, and admitted asset references are typed source inputs and not arbitrary prompt fields or operational authority, proof-covered presentation, resource, and asset references become eligible only after Packet v3 verification and SnapshotV2 admission and are inputs solely to Runtime-owned bounded presentation and voice lifecycle resolution that do not select a provider, grant a tool or media capability, create an Avatar or voice binding, start a lifecycle, or mutate source or snapshot truth, and an invalid or unavailable optional ref fails or shrinks the bounded presentation projection without changing the admitted SnapshotV2, provenance, LocalAgent identity, or Realm record.
+    condition: Whenever source-derived identity or proof-covered references are consumed.
+    failure: Reject derivation outside the frozen closure and authority grants from source references.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r052
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: No packet prompt base and bounded fallback only
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Runtime may apply presentation fallback only after admission and only to an optional bounded presentation field using already-admitted typed identity or presentation values, fallback cannot satisfy a required source field or any verification step, cannot enter SnapshotV2 or its hashes, cannot change sourceHash, and cannot write back to Realm, the optional projection remains absent when no admitted candidate exists, the packet and snapshot must not contain systemPromptBase, an equivalent raw system or developer prompt, or a free-form prompt map, Runtime may project a typed source greeting once for a new conversation and may compile admitted source knowledge through K-AGCORE-142 and K-AGCORE-155, and a greeting or dialogue exemplar is not committed transcript unless Runtime explicitly commits the corresponding assistant turn.
+    condition: Whenever presentation fallback or packet prompt content is evaluated.
+    failure: Reject packet-supplied prompt bases and fallback beyond the optional bounded field.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r053
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: The Nimi guide follows the same source rules
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: The Nimi guide and Archivist follows the same source-materialization rules, its identity, behavior, welcome, and product knowledge must be proof-covered source data, Runtime must not hold a hardcoded guide identity, welcome, prompt, documentation catalog, or privileged guide path as parallel truth, and source knowledge cannot grant tools, permissions, setup completion, install admission, app authority, memory truth, or profile or configuration truth.
+    condition: Whenever guide identity or source knowledge authority is evaluated.
+    failure: Reject hardcoded guide truth and authority grants from source knowledge.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r054
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: TerminateAgent hard-deletes the complete local projection
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: TerminateAgent is a Runtime-local deletion lifecycle for a Runtime-owned LocalAgent projection, Realm source removal or source provenance changes do not issue TerminateAgent and do not hard-delete LocalAgent state, this applies to every Runtime-owned LocalAgent and not only the Nimi guide, TerminateAgent must remove the runtime_local_agent row for the target local_agent_ref and not merely flip a lifecycle status field, when explicitly invoked by Runtime-local delete or reset authority it must atomically remove the immutable source snapshot, provenance-index membership, conversation anchors and committed transcript, agent state projection, runtime-owned pending and terminal hooks, the agent event log, and the agent-scoped memory bank covering MEMORY_BANK_SCOPE_AGENT_CORE and MEMORY_BANK_SCOPE_AGENT_DYADIC owned by that agent, the deletion is a hard delete where the projection and its agent-scoped memory are physically removed, RuntimeAgentService must not retain a TERMINATED tombstone row as the steady-state outcome of local delete or reset, and a later materialization from the same source creates a new opaque LocalAgent identity through K-AGCORE-139 rather than resurrecting deleted state.
+    condition: Whenever a LocalAgent is deleted or reset locally.
+    failure: Reject status-flip deletion, tombstone steady state, and resurrection of deleted state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r055
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Deletion is idempotent, atomic, and fail closed
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: TerminateAgent must be idempotent and for an already-absent local_agent_ref, including a LocalAgent that was never materialized, must succeed as a typed no-op rather than failing with a not-found error, runtime snapshot persistence must not re-insert a deleted local_agent_ref and a snapshot rewrite must exclude deleted projections so a deleted agent never reappears after restart or snapshot replay, TerminateAgent must cancel any active hooks and in-flight execution for the target agent before the projection row is removed so deletion does not strand live runtime work, substrate failure during deletion fails closed with a typed failure status rather than pseudo-success and Runtime owns retry and reporting of Runtime-local deletion failure and must not mask an incomplete deletion, TerminateAgent deletes the runtime-owned LocalAgent projection only and must not mutate, delete, or write back the canonical Realm source identity nor delete account-scoped truth wider than the target agent, and TerminateAgent must not leave a partially deleted agent, snapshot, index membership, conversation or transcript, state, hook, event, or memory projection because deletion completes as one atomic lifecycle result or fails closed as a typed error while snapshot rewrite, restart hydration, safe-result replay, and provenance lookup never resurrect a deleted local_agent_ref and a later materialization receives a new opaque identity and new conversation and memory scope.
+    condition: Whenever TerminateAgent executes or deletion fails.
+    failure: Fail closed typed on incomplete deletion and reject partial deletion and resurrection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r056
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: The typed source compiler is the only turn attachment
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Runtime's typed source compiler is the only authority that attaches frozen source identity, behavior, world, relationship, and knowledge to a LocalAgent turn, it reads LocalAgentSourceSnapshotV2 with compiler compatibility realm-character-v3 and emits the fixed context lanes in K-AGCORE-155, Desktop, SDK, Kit, Zhiyu, another app, Realm, and provider adapters may submit intent or consume bounded status but must not attach source context, choose its lane, serialize it into provider roles, or author a parallel documentation or prompt corpus, source knowledge is a typed source_knowledge lane where each compiled item carries a stable item id, typed source path and ref, content hash, priority, and token estimate, product documentation for the Nimi guide is ordinary proof-covered source knowledge under this rule and not a Runtime-resident catalog, retrieval exception, memory write, or guide-only schema and receives the same budget, trust, injection resistance, and omission semantics as any source knowledge, Runtime must reject consumer-supplied LocalAgent context, caller system or developer roles, execution bindings, forged manifests, and app or provider metadata fallback before provider invocation, and ordinary non-Agent Nimi Chat systemPrompt authority is outside this contract and remains unchanged.
+    condition: Whenever source context is attached to a LocalAgent turn.
+    failure: Reject attachment outside the typed source compiler before provider invocation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r057
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Proactive interruptibility is a bounded projection seam
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: RuntimeAgentService owns proactive_interruptibility_v1 as the bounded app-facing projection for proactive Life Track interruptibility, a Runtime-owned projection and event seam over Runtime autonomy, HookIntent admission, cadence, host scheduler admission, permission state, quiet-hours policy, spacing and frequency gates, delivery and suppression outcomes, and audit linkage rather than a renderer scheduler, OS notification promise, or general automation surface, it owns default-off autonomy-derived interruptibility mode, trigger source classification for admitted Life Track cadence and HookIntent evidence, quiet_hours state and owner and source metadata, frequency_cap state and owner and source metadata, suppression_reason values for typed fail-closed outcomes, Runtime and host audit reference lineage for every projected outcome, and the runtime.agent.proactive.suggested, runtime.agent.proactive.delivered, and runtime.agent.proactive.suppressed projection events, and it does not own renderer-local timers, polling loops, or scheduling logic, app-owned permission grant truth, OS notification delivery truth, broad reminders, appointments, deadlines, wakeups, or calendar semantics, or proactive chat initiation beyond the admitted Runtime and host projection.
+    condition: Whenever proactive interruptibility is projected or its ownership interpreted.
+    failure: Reject ownership claims beyond the bounded projection seam.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r058
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Proactive outcomes stay typed, audited, and default off
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: proactive_interruptibility_v1 is default off and no app or SDK consumer may enable it by rendering UI state or fabricating projection fields, every proactive suggested, delivered, or suppressed outcome must be projected as one of the runtime.agent.proactive.* events admitted in config/runtime-agent-event-projection.yaml and must carry an audit_ref, delivery_channel is exactly in_app_surface or notification.not_admitted where notification.not_admitted is explicit non-delivery for OS notifications and must not be treated as a fake notification success, quiet_hours and frequency_cap are owner-projected fields that SDKs and apps may display or filter but must not infer as authority, missing, denied, revoked, expired, or otherwise unavailable permission evidence suppresses delivery with a typed suppression_reason, proactive_interruptibility_v1 may reference admitted HookIntent ids as source evidence but does not widen HookIntent trigger and effect semantics beyond follow-up-turn, and SDKs and apps must fail closed when required proactive projection fields are absent and must not backfill the projection with app-local timers, permission guesses, or notification assumptions.
+    condition: Whenever proactive outcomes are projected or consumed.
+    failure: Fail closed on absent fields and reject fabricated enablement and fake notification success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r059
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Challenges bind the eight published limits exactly
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: RuntimeAgentService owns the durable challenge, request replay, private segment transaction, and safe-result ledger as private owner APIs used only by MaterializeRealmSource with no public method accepting a challenge, packet, proof, manifest, segment, component, or chunk, each challenge is bound to Runtime instance, authenticated materializer account, the exact canonical CharacterSourceRefV3, request intent, audience, TTL, and the eight published limits maxSegmentBytes <= 8388608, maxSegmentComponentCount <= 256, maxSegmentChunks <= 4096, maxChunkBytes <= 262144, maxSetSegments <= 64, maxSetBytes <= 134217728, maxSetComponentCount <= 16384, and maxSetChunks <= 65536, Runtime may publish lower positive ceilings but never a value above Realm's admitted ceiling, a producer-valid exact boundary passes while every individual limit-plus-one, arithmetic overflow, declared and actual mismatch, or aggregate overflow fails with a typed capacity reason before allocation or product mutation, challenge states are exactly issued -> leased -> consumed | invalidated | expired, and normal restart preserves only an unleased, unexpired issued challenge while data-root identity change invalidates it.
+    condition: Whenever materialization challenges are issued, leased, or validated.
+    failure: Fail typed capacity before allocation and reject public acceptance of private material.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r060
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Attempt states and replay produce one winner
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: The internal attempt states are exactly requested -> acquiring -> verifying -> committing -> committed | failed, with requested | acquiring | verifying -> aborted | expired as terminal alternatives, the canonical intent digest binds authenticated account, request id, and the complete canonical source ref, identical replay returns the one safe committed result, reuse with a different intent fails request_conflict, and concurrent terminal races produce exactly one winner and never a second LocalAgent.
+    condition: Whenever materialization attempts progress or replay.
+    failure: Fail request_conflict on intent reuse and reject second LocalAgents from races.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r061
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Acquisition decoding is bounded, strict, and staged
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: The private issuer performs bounded HTTP acquisition, Runtime derives a checked wire budget from fixed envelope and descriptor allowances, the published set, component, and chunk ceilings, maxSetBytes, and base64 expansion, a streaming closed-schema decoder enforces status, content type, total bytes, and per-string and per-array limits before allocation and rejects duplicate object keys, unknown fields or enums, malformed base64, trailing JSON, partial response, and early connection termination, and it streams verified transport bytes into a principal, account, and attempt-partitioned private staging area with opaque paths and restrictive permissions with no raw response logged or persisted as product state.
+    condition: Whenever packet acquisition streams or stages transport bytes.
+    failure: Reject over-budget, malformed, or partial responses before allocation and raw persistence.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r062
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: The twelve-step verification order is fixed
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Verification order is fixed as first HTTP status, content type, wire budget, and strict envelope schema, second packet schema and source, account, challenge, audience, TTL, nonce, and replay binding, third exact equality with all eight challenge limits, fourth current-authoritative materialization-purpose JWKS and RS256 kid, use, alg, and issuer, fifth closure-set structure, totals, deterministic ordered segment refs, and set manifest hash, sixth every segment manifest, range, length, count, and hash, seventh global component and chunk ordinals and contiguous non-overlapping coverage, eighth canonical component bytes, chunk digests, component digests, and ordered component set, ninth typed source wrapper, owning WorldCore, entity, relationship, and dependency closure, and coverage, tenth source, world, coverage, materialization-context, payload, and packet hashes and detached proof, eleventh SnapshotV2 normalization, strict readback codec, and snapshot hash, and twelfth one atomic LocalAgent plus SnapshotV2 plus provenance plus safe-result commit, missing, duplicate, reordered, overlapping, conflicting, misbound, extra, wrong-count, wrong-length, stale-key, hash, closure, codec, proof, persistence, or cleanup failure atomically terminalizes the attempt without product records, the JWKS fetch is current-authoritative for each attempt with no grace path for removed or stale keys, and semantic source values are unavailable to the compiler until step ten succeeds while product state is unavailable until step twelve commits.
+    condition: Whenever packet verification executes.
+    failure: Terminalize the attempt atomically without product records on any step failure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r063
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Cleanup and startup recovery clear private bytes
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Abort, expiry, validation failure, conflict, commit failure, and startup recovery clear every private transport byte, startup recovery invalidates every unfinished attempt including committing without a durable product transaction, a durably committed transaction replays only its bounded safe result and completes cleanup, and logs, audit, and evidence may contain only allowlisted ids, hashes, counts, state transitions, and reason codes.
+    condition: Whenever attempts terminate or Runtime recovers at startup.
+    failure: Reject retained private bytes and non-allowlisted log content.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r064
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: The snapshot record shape is strict and exact
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: LocalAgentSourceSnapshotV2 is the only active source snapshot schema and a strict first-class Runtime record containing exactly schema and hash, local_agent_ref, and captured_at, safe packet provenance covering packet id and hash, Realm issuer, and signing-key fingerprint, exact CharacterSourceRefV3 and the complete normalized typed WorldCharacter or PersonaCharacter wrapper and profile, complete owning WorldCore, entities, relationships, explicit dependency closure, and coverage manifest, source, world, coverage, materialization-context, payload, ordered-segment, and closure-set hashes, and normalization version plus compiler compatibility realm-character-v3, the record contains no raw packet, proof, challenge, nonce, TTL, or audience, bearer or grant material, segment, chunk, or component bytes, HTTP data, staging path, transaction ledger, provider or private context, or free-form source map, persistence enforces a bidirectional 1:1 relation between each materialized local_agent_ref and its snapshot, and strict decode and snapshot-hash verification run before write, after database readback, and at restart hydration with mismatch unable to produce a chat-ready projection.
+    condition: Whenever the source snapshot is written, read back, or hydrated.
+    failure: Reject non-conforming records and produce no chat-ready projection on mismatch.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r065
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: The snapshot hash covers the canonical semantic tuple
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: snapshot_hash is SHA-256 over nimi.runtime.local-agent-source-snapshot/v2\0 plus the canonical semantic tuple of schema version, normalized CharacterSourceRefV3 and typed source, owning world and complete dependency closure, coverage and semantic hashes, normalization version, and compiler compatibility, it excludes itself, LocalAgent identity, captured_at, packet issuance and proof fields, Runtime instance, database row, request id, and transport state, and equivalent admitted semantics may therefore share a snapshot hash while retaining distinct opaque LocalAgent identities and records.
+    condition: Whenever the snapshot hash is computed or compared.
+    failure: Reject hash inputs outside the canonical semantic tuple.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r066
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: The provenance index is discovery only
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Runtime keeps a separate 1:N provenance index from H("nimi.runtime.realm-source-provenance/v3\0" + canonical CharacterSourceRefV3 + materializationContextHash) to immutable snapshot and agent records, the key is not derived from a legacy tuple, index lookup is discovery only and cannot synthesize an agent, repair a missing or corrupt snapshot, or choose among multiple LocalAgents, snapshot, index, LocalAgent, and safe-result writes share the same atomic materialization transaction, and K-AGCORE-141 termination removes the target membership in the same deletion transaction.
+    condition: Whenever the provenance index is written or consulted.
+    failure: Reject synthesis, repair, and selection through index lookup.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r067
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Epoch v3 fails closed with one guarded reset
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Runtime persistence records source-materialization contract epoch v3, presence of any pre-v3 challenge, upload, raw staging, source-backed agent, snapshot, provenance, or compiler-compatibility record causes startup and materialization to fail closed with source_materialization_data_reset_required, Runtime performs no automatic upgrade, interpretation, alias, dual read or write, or on-read migration, the only admitted transition is an explicit guarded, dry-run-capable scoped reset that before mutation validates a local or disposable data-root identity, inventories every affected source-backed LocalAgent and dependency, acquires an exclusive reset lease, and stops affected in-flight turns and hooks, one atomic transaction hard-deletes each affected agent's snapshot, provenance, conversation and transcript, state, hooks and events, agent-scoped memory, unfinished attempt and challenge, and raw staging, writes epoch v3, and readbacks zero pre-v3, orphan, or residue, any failure rolls back the whole reset and leaves the epoch unchanged, and the reset never changes account, session, or token custody, protected-local ledgers, local-app permission decisions or storage, provider, model, or config, Realm canonical records, or non-source-backed LocalAgents and reports only safe ids and exact counts.
+    condition: Whenever pre-v3 records exist or a scoped reset executes.
+    failure: Fail closed with source_materialization_data_reset_required and roll back incomplete resets.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r068
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: Snapshots never rebase and restart stays offline capable
+    modality: must
+    scope:
+      - runtime.agent-service
+    statement: Source revision, Realm deletion or availability, app metadata, and provider metadata never mutate, rebase, or write back an existing snapshot, after a successful capture Realm may be offline and the LocalAgent remains chat-ready from its validated SnapshotV2 plus Runtime truth, a newer revision creates a new opaque LocalAgent, snapshot, conversation and transcript scope, and memory scope, restart rehydrates the exact validated state without contacting Realm or substituting current source data, and missing or invalid snapshot, provenance, account, agent, or anchor binding fails closed with a typed status.
+    condition: Whenever source revisions change, Realm is offline, or Runtime restarts.
+    failure: Fail closed typed on invalid bindings and reject rebase and substitution.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
