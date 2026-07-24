@@ -16,7 +16,7 @@ export const authorityPaths = Object.freeze({
   grant: '.nimi/spec/canonical/runtime/security-core.authority.yaml',
   desktop: '.nimi/spec/canonical/desktop/bridge-ipc.authority.yaml',
   kit: '.nimi/spec/platform/kernel/kit-contract.md',
-  sdk: '.nimi/spec/sdks/kernel/transport-contract.md',
+  sdk: 'docs/authority/sdks-client-core-rationale.md',
   principalSchema: '.nimi/spec/runtime/kernel/tables/local-app-principal-record-schema.yaml',
   grantSchema: '.nimi/spec/runtime/kernel/tables/local-app-grant-binding-schema.yaml',
   presenceProtocol: '.nimi/spec/runtime/kernel/tables/local-app-presence-protocol.yaml',

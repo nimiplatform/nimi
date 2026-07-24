@@ -4,11 +4,9 @@ import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
-const rootDecisionGatePath = '.nimi/spec/sdks/kernel/tables/typescript-root-composition-decision-gate.yaml';
 
 const SOURCE_ROOTS = ['sdks/typescript', 'apps', 'examples'];
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs', '.mts', '.cts']);
@@ -37,7 +35,12 @@ const SKIP_FILE_PATTERNS = [
   /\.d\.ts$/,
 ];
 
-const EXPECTED_ROOT_OPTION = 'explicit-nimi-client-no-singleton';
+// Owner-approved vNext root composition: explicit-nimi-client-no-singleton.
+// The former decision-gate table was process configuration; the product
+// boundary itself (required root exports, forbidden legacy singleton symbols)
+// is asserted directly here.
+const SDK_ROOT_ENTRY = 'sdks/typescript/index.ts';
+const SDK_ROOT_CLIENT = 'sdks/typescript/root-client.ts';
 const REQUIRED_VNEXT_ROOT_EXPORTS = ['createNimiClient', 'NimiClient', 'NimiClientConfig'];
 const FORBIDDEN_LEGACY_ROOT_SYMBOLS = [
   'createPlatformClient',
@@ -60,26 +63,26 @@ function symbolPattern(symbol) {
   return new RegExp(`\\b${symbol}\\b`, 'g');
 }
 
-function validateRootDecisionGate() {
-  const gate = readYamlWithFragments(path.join(repoRoot, rootDecisionGatePath));
+async function validateRootEntryExports() {
   const violations = [];
-  const selectedOption = String(gate?.scope?.selected_option || '');
-  const approvalStatus = String(gate?.scope?.approval_status || '');
-  const options = Array.isArray(gate?.decision_options) ? gate.decision_options : [];
-  const selected = options.find((option) => option?.id === EXPECTED_ROOT_OPTION);
-  const selectedExports = Array.isArray(selected?.proposed_public_exports)
-    ? selected.proposed_public_exports.map(String)
-    : [];
-
-  if (approvalStatus !== 'owner-approved') {
-    violations.push(`${rootDecisionGatePath}: root composition approval_status must be owner-approved`);
+  let entrySource;
+  try {
+    entrySource = await fs.readFile(path.join(repoRoot, SDK_ROOT_ENTRY), 'utf8');
+  } catch {
+    return [`${SDK_ROOT_ENTRY}: SDK root entry is missing`];
   }
-  if (selectedOption !== EXPECTED_ROOT_OPTION || selected?.status !== 'selected') {
-    violations.push(`${rootDecisionGatePath}: selected_option must be ${EXPECTED_ROOT_OPTION}`);
+  if (!entrySource.includes("'./root-client'")) {
+    violations.push(`${SDK_ROOT_ENTRY}: vNext root entry must re-export ./root-client`);
+  }
+  let clientSource;
+  try {
+    clientSource = await fs.readFile(path.join(repoRoot, SDK_ROOT_CLIENT), 'utf8');
+  } catch {
+    return [...violations, `${SDK_ROOT_CLIENT}: vNext root client module is missing`];
   }
   for (const name of REQUIRED_VNEXT_ROOT_EXPORTS) {
-    if (!selectedExports.includes(name)) {
-      violations.push(`${rootDecisionGatePath}: selected vNext root exports must include ${name}`);
+    if (!symbolPattern(name).test(clientSource)) {
+      violations.push(`${SDK_ROOT_CLIENT}: vNext root composition must expose ${name}`);
     }
   }
   return violations;
@@ -178,7 +181,7 @@ async function main() {
     return;
   }
 
-  const violations = validateRootDecisionGate();
+  const violations = await validateRootEntryExports();
   const files = [];
   for (const root of SOURCE_ROOTS) {
     files.push(...await collectFiles(path.join(repoRoot, root)));

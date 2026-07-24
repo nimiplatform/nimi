@@ -342,7 +342,7 @@ function checkGrantServiceHardcutAndLocalAppPermissionProjection() {
     '.nimi/spec/runtime/kernel/tables/rpc-migration-map/methods-identity-app.yaml',
     '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml',
     '.nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml',
-    '.nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml',
+    'config/sdks-runtime-method-groups.yaml',
   ];
   const authorityCorpus = authorityTables.map(read).join('\n');
   if (/\bRuntimeGrantService\b/.test(authorityCorpus)) {
@@ -378,7 +378,7 @@ function checkGrantServiceHardcutAndLocalAppPermissionProjection() {
     }
   }
 
-  const sdkGroups = readYaml('.nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml');
+  const sdkGroups = readYaml('config/sdks-runtime-method-groups.yaml');
   const sdkAccount = (Array.isArray(sdkGroups?.groups) ? sdkGroups.groups : [])
     .find((item) => String(item?.service || '') === 'RuntimeAccountService');
   const sdkMethods = Array.isArray(sdkAccount?.methods) ? sdkAccount.methods.map(String) : [];
@@ -693,7 +693,7 @@ function checkRuntimeMemorySdkProjection() {
     }
   }
 
-  const methodGroupsRel = '.nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml';
+  const methodGroupsRel = 'config/sdks-runtime-method-groups.yaml';
   const methodGroups = YAML.parse(read(methodGroupsRel));
   const memoryGroup = methodGroups?.groups?.find((group) => group?.group === 'memory_service_projection');
   if (!memoryGroup) {

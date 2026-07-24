@@ -1,38 +1,19 @@
-# SDKS Kernel
+# SDKs Kernel — Migrated Domain Index
 
-Status: active product authority.
+本域契约散文已全量迁入 canonical authority(S6 域 4,2026-07-24)。
 
-The SDKS kernel owns the new SDK family architecture, TypeScript-first
-implementation, adapter capability contracts, feature modules, testing
-contracts, and multi-language scope rules.
+## Canonical 容器(规范权威)
 
-Current scope:
+| 容器 | 覆盖面 |
+|---|---|
+| `.nimi/spec/canonical/sdks/client-core.authority.yaml` | 公开面/runtime 客户端/传输/错误投影/边界/scope(含无 fallback 旋钮与重试不救契约失败硬边界) |
+| `.nimi/spec/canonical/sdks/feature-clients.authority.yaml` | AI 适配与配置/第三方 app 客户端/permission/proposal/connector 认证/本地环境投影/route/delegation/avatar 控制/agent 参与/companion/包治理与 vnext |
+| `.nimi/spec/canonical/sdks/realm-consumer.authority.yaml` | Realm API 消费/生成核心/facade/world/world-evolution 投影与消费/群组参与客户端(Realm 产权只引用) |
 
-- `sdks/typescript/**` is the only full AI/Agent/Feature/Adapter implementation
-  target.
-- `sdks/python/**`, `sdks/go/**`, and `sdks/rust/**` remain generated
-  Runtime/Realm core only until TypeScript stabilizes.
-- Adapter public package names are not decided by source-root files.
-- `realm-core-contract.md` owns Realm generated core authority for the SDK
-  family.
-- `realm-api-consumer-contract.md` owns Nimi's external Realm API
-  consumer boundary; it forbids mirroring Realm authority under
-  `.nimi/spec/realm/**`, binds generated Realm core to current Packet v3 and
-  CharacterSourceRefV3 schemas, and keeps packet acquisition Runtime-private.
-- `runtime-contract.md`, `surface-contract.md`, and `boundary-contract.md` own
-  the closed SDK consumption boundary for Runtime-admitted
-  `MaterializeRealmSource` through
-  `materializeRealmSource({ sourceRef, requestId })`,
-  `LocalAgentSourceContextStatus`, and `AgentTurnContextSummary`; SDK may
-  submit intent and correlate/render bounded results but never acquire packets
-  or assemble LocalAgent context.
-- `runtime-agent-participation-contract.md` owns the vNext SDK-facing Runtime
-  Agent Participation method projection gate.
-- `nimi-proposal-intake-client-contract.md` owns the SDK typed consumer
-  surface for Platform `P-PROP-*` proposal intake.
-- `transport-contract.md` owns the host-injected common local-app carrier;
-  it exposes no principal/grant/session material and cannot widen the exact
-  artifact plus selected RuntimeAgent conversation operation set.
-- `nimi-app-client-contract.md` owns the Nimi App catalog/local-record
-  projection and final local-app SDK consumer boundary; it exposes no package
-  mutation, app-id launch selector, principal selector, bearer, or session proof.
+原文散文见 `docs/authority/sdks-*-rationale.md`(非规范);机器行数据见 `config/sdks-*.yaml`(头注声明非权威)。
+
+## 冻结邻接素材(零改动保留)
+
+- `tables/realm-private-operation-carriers.yaml` — realm 冻结,处置权 = realm 合流包(conformance 运行链原位消费)。
+
+不得基于本索引推断权威;权威只在 canonical 容器。

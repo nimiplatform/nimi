@@ -5,8 +5,8 @@ import YAML from 'yaml';
 export const RUNTIME_FACADE_PATHS = Object.freeze({
   facade: 'sdks/typescript/runtime/index.ts',
   modules: 'sdks/typescript/runtime/runtime-method-modules.ts',
-  methodGroups: '.nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml',
-  exportMap: '.nimi/spec/sdks/kernel/tables/typescript-target-export-map.yaml',
+  methodGroups: 'config/sdks-runtime-method-groups.yaml',
+  exportMap: 'config/sdks-typescript-target-export-map.yaml',
   postureShards: Object.freeze([
     '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml',
     '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/agent-ai-cognition.yaml',

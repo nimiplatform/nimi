@@ -3,7 +3,7 @@
   "generated_by": "sdks/generators/generate.mjs",
   "source_kind": "sdks_spec_table",
   "source_paths": [
-    ".nimi/spec/sdks/kernel/tables/sdk-error-codes.yaml"
+    "config/sdks-error-codes.yaml"
   ],
   "provenance": {
     "source_rule": "S-SURFACE-019"

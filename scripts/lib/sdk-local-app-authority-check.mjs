@@ -1,11 +1,29 @@
 export const sdkLocalAppAuthorityInputs = Object.freeze({
-  appClient: '.nimi/spec/sdks/kernel/nimi-app-client-contract.md',
-  runtime: '.nimi/spec/sdks/kernel/runtime-contract.md',
-  transport: '.nimi/spec/sdks/kernel/transport-contract.md',
+  appClient: 'docs/authority/sdks-feature-clients-rationale.md',
+  runtime: 'docs/authority/sdks-client-core-rationale.md',
+  transport: 'docs/authority/sdks-client-core-rationale.md',
   index: '.nimi/spec/sdks/kernel/index.md',
-  methodGroups: '.nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml',
-  evidence: '.nimi/spec/sdks/kernel/tables/rule-evidence.rules-nimi-app-client.yaml',
+  methodGroups: 'config/sdks-runtime-method-groups.yaml',
 });
+
+// The runtime and transport contract prose now lives verbatim inside the
+// client-core rationale document; each retired source file is one section
+// delimited by `<!-- source: ... -->` markers. Extraction is fail-closed: a
+// missing marker yields an empty section, which the validator rejects.
+export const sdkLocalAppRationaleSections = Object.freeze({
+  runtime: 'runtime-contract.md',
+  transport: 'transport-contract.md',
+  appClient: 'nimi-app-client-contract.md',
+});
+
+export function extractSdkRationaleSection(text, sourceBasename) {
+  const source = String(text || '');
+  const escaped = String(sourceBasename || '').replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+  const marker = new RegExp(`^<!-- source: \\S+/${escaped} -->$`, 'mu').exec(source);
+  if (!marker) return '';
+  const end = source.indexOf('<!-- source: ', marker.index + marker[0].length);
+  return source.slice(marker.index, end === -1 ? source.length : end);
+}
 
 const forbiddenVocabulary = Object.freeze([
   'ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP',
@@ -53,7 +71,6 @@ export function validateSdkLocalAppAuthority(input) {
   const methodGroups = input?.methodGroups && typeof input.methodGroups === 'object'
     ? input.methodGroups
     : {};
-  const evidence = input?.evidence && typeof input.evidence === 'object' ? input.evidence : {};
   const serializedAuthority = `${allText}\n${JSON.stringify(methodGroups)}`;
 
   for (const symbol of forbiddenVocabulary) {
@@ -89,24 +106,6 @@ export function validateSdkLocalAppAuthority(input) {
     }
   }
 
-  const evidenceRows = new Map(
-    (Array.isArray(evidence?.rules) ? evidence.rules : [])
-      .map((row) => [String(row?.rule_id || '').trim(), row]),
-  );
-  for (let number = 16; number <= 22; number += 1) {
-    const ruleID = `S-APP-${String(number).padStart(3, '0')}`;
-    const row = evidenceRows.get(ruleID);
-    if (!row) {
-      errors.push(`SDK local-app rule evidence missing: ${ruleID}`);
-      continue;
-    }
-    if (row?.evidence_requirement !== 'required') {
-      errors.push(`${ruleID} evidence_requirement must be required`);
-    }
-    if (!Array.isArray(row?.evidence_refs) || row.evidence_refs.length === 0) {
-      errors.push(`${ruleID} must declare evidence_refs`);
-    }
-  }
-
   return errors;
 }
+

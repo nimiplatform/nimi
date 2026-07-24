@@ -1,12 +1,12 @@
 import { generatedBy, languages, readYaml, writeJson } from './context.mjs';
 
 export function extractErrorCodes() {
-  const table = readYaml('.nimi/spec/sdks/kernel/tables/sdk-error-codes.yaml');
+  const table = readYaml('config/sdks-error-codes.yaml');
   return {
     contract: 'nimi.sdks.error-codes-manifest.v1',
     generated_by: generatedBy,
     source_kind: 'sdks_spec_table',
-    source_paths: ['.nimi/spec/sdks/kernel/tables/sdk-error-codes.yaml'],
+    source_paths: ['config/sdks-error-codes.yaml'],
     provenance: {
       source_rule: 'S-SURFACE-019',
     },
@@ -24,7 +24,7 @@ export function buildExportManifest(runtime, realm, errorCodes) {
       ...runtime.source_paths,
       ...realm.source_paths,
       ...errorCodes.source_paths,
-      '.nimi/spec/sdks/kernel/surface-contract.md',
+      'docs/authority/sdks-client-core-rationale.md',
     ],
     provenance: {
       source_rule: 'S-SURFACE-019',

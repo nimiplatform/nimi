@@ -18,8 +18,8 @@ import { scanSource } from './scanner';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../../..');
-const mapPath = path.join(repoRoot, '.nimi/spec/sdks/kernel/tables/framework-api-capability-map.yaml');
-const ledgerPath = path.join(repoRoot, '.nimi/spec/sdks/kernel/tables/typescript-adapter-capability-ledger.yaml');
+const mapPath = path.join(repoRoot, 'config/sdks-framework-api-capability-map.yaml');
+const ledgerPath = path.join(repoRoot, 'config/sdks-typescript-adapter-capability-ledger.yaml');
 
 const frameworks = loadFrameworkApiCapabilityMap(readFileSync(mapPath, 'utf8'));
 const ledger = loadAdapterCapabilityLedger(readFileSync(ledgerPath, 'utf8'));
@@ -308,3 +308,4 @@ test('integration: cli end-to-end over a fixture app directory', async () => {
     rmSync(appDir, { recursive: true, force: true });
   }
 });
+

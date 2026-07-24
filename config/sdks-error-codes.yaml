@@ -268,11 +268,11 @@ values:
   - RUNTIME_AGENT_AI_CONFIG_CONCURRENT_MODIFICATION
 fragments:
   codes:
-    - sdk-error-codes/10-core-realm-bootstrap.yaml
-    - sdk-error-codes/20-runtime-transport.yaml
-    - sdk-error-codes/30-runtime-app-auth.yaml
-    - sdk-error-codes/40-ai-avatar-config.yaml
-    - sdk-error-codes/50-first-run-product-control.yaml
-    - sdk-error-codes/60-realm-groups-world.yaml
-    - sdk-error-codes/70-runtime-agent.yaml
-    - sdk-error-codes/80-runtime-local-route-synthetic.yaml
+    - sdks-error-codes/10-core-realm-bootstrap.yaml
+    - sdks-error-codes/20-runtime-transport.yaml
+    - sdks-error-codes/30-runtime-app-auth.yaml
+    - sdks-error-codes/40-ai-avatar-config.yaml
+    - sdks-error-codes/50-first-run-product-control.yaml
+    - sdks-error-codes/60-realm-groups-world.yaml
+    - sdks-error-codes/70-runtime-agent.yaml
+    - sdks-error-codes/80-runtime-local-route-synthetic.yaml

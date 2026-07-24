@@ -7,7 +7,7 @@ import YAML from 'yaml';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
-const tablePath = path.join(repoRoot, '.nimi', 'spec', 'sdks', 'kernel', 'tables', 'connector-auth-acquisition-profiles.yaml');
+const tablePath = path.join(repoRoot, 'config', 'sdks-connector-auth-acquisition-profiles.yaml');
 const runtimeAuthProfilesPath = path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'tables', 'connector-auth-profiles.yaml');
 const sdkVnextOutPath = path.join(repoRoot, 'sdks', 'typescript', 'runtime', 'connector-auth-acquisition-profiles.generated.ts');
 const desktopTauriOutPath = path.join(

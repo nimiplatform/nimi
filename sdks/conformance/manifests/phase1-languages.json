@@ -3,7 +3,7 @@
   "generated_by": "sdks/generators/generate.mjs",
   "source_kind": "sdk_spec_rule",
   "source_paths": [
-    ".nimi/spec/sdks/kernel/surface-contract.md"
+    "docs/authority/sdks-client-core-rationale.md"
   ],
   "source_rule": "S-SURFACE-019",
   "languages": [

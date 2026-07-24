@@ -16,7 +16,7 @@ const paths = {
   rpcMethods: 'config/runtime-rpc-methods.yaml',
   rpcMigration: '.nimi/spec/runtime/kernel/tables/rpc-migration-map/methods-identity-app.yaml',
   appRegistry: '.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml',
-  sdkMethodGroups: '.nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml',
+  sdkMethodGroups: 'config/sdks-runtime-method-groups.yaml',
   avatarAcceptance: '.nimi/spec/avatar/kernel/tables/acceptance-recording-matrix.yaml',
 };
 const accountMethodID = '/nimi.runtime.v1.RuntimeAccountService/GetAccessToken';

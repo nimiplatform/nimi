@@ -6,8 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { collectGapIntel, renderGapIntel } from './generate-sdk-gap-intel.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const ledgerText = readFileSync(path.join(repoRoot, '.nimi/spec/sdks/kernel/tables/typescript-adapter-capability-ledger.yaml'), 'utf8');
-const mapText = readFileSync(path.join(repoRoot, '.nimi/spec/sdks/kernel/tables/framework-api-capability-map.yaml'), 'utf8');
+const ledgerText = readFileSync(path.join(repoRoot, 'config/sdks-typescript-adapter-capability-ledger.yaml'), 'utf8');
+const mapText = readFileSync(path.join(repoRoot, 'config/sdks-framework-api-capability-map.yaml'), 'utf8');
 
 test('gap intel aggregates ledger partial/unsupported claims into themed demand signals', () => {
   const intel = collectGapIntel({ ledgerText, mapText });
@@ -49,3 +49,4 @@ test('gap intel renders a readable report with totals and reading guide', () => 
   assert.match(rendered, /not semantic clustering/);
   assert.match(rendered, /Filter out-of-domain claims/);
 });
+

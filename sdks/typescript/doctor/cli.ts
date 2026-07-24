@@ -60,10 +60,10 @@ function parseArgs(argv: readonly string[]): CliOptions {
   const specRoot = findSpecRoot();
   const resolvedMap = mapPath
     ? path.resolve(mapPath)
-    : specRoot && path.join(specRoot, 'sdks/kernel/tables/framework-api-capability-map.yaml');
+    : specRoot && path.resolve(specRoot, '..', '..', 'config', 'sdks-framework-api-capability-map.yaml');
   const resolvedLedger = ledgerPath
     ? path.resolve(ledgerPath)
-    : specRoot && path.join(specRoot, 'sdks/kernel/tables/typescript-adapter-capability-ledger.yaml');
+    : specRoot && path.resolve(specRoot, '..', '..', 'config', 'sdks-typescript-adapter-capability-ledger.yaml');
   if (!resolvedMap || !existsSync(resolvedMap)) {
     throw new Error(
       'framework-api-capability-map.yaml not found; run inside the nimi repo or pass --map <path>',

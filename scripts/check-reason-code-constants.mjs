@@ -8,7 +8,7 @@ import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const reasonCodeFile = path.join(repoRoot, 'sdks/typescript/types/reason-code.ts');
-const sdkErrorCodesFile = path.join(repoRoot, '.nimi/spec/sdks/kernel/tables/sdk-error-codes.yaml');
+const sdkErrorCodesFile = path.join(repoRoot, 'config/sdks-error-codes.yaml');
 
 const CODE_VALUE_PATTERN = /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$/;
 const SOURCE_ROOTS = [

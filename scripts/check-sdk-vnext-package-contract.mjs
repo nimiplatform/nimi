@@ -16,12 +16,8 @@ const migrationMatrixPath = path.join(
 );
 const targetExportMapPath = path.join(
   repoRoot,
-  '.nimi',
-  'spec',
-  'sdks',
-  'kernel',
-  'tables',
-  'typescript-target-export-map.yaml',
+  'config',
+  'sdks-typescript-target-export-map.yaml',
 );
 
 const REQUIRED_IMPLEMENTED_EXPORTS = new Map([

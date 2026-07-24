@@ -25,7 +25,7 @@ export const AUTHORITY_PATHS = Object.freeze({
   artifactPosture: '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/audit-artifact-workflow.yaml',
   rpcMethods: 'config/runtime-rpc-methods.yaml',
   trust: '.nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml',
-  sdkGroups: '.nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml',
+  sdkGroups: 'config/sdks-runtime-method-groups.yaml',
 });
 
 const EXPECTED_TRANSPORTS = Object.freeze([

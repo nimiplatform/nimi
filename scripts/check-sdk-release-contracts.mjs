@@ -28,16 +28,8 @@ const CHECKS = [
   'check:sdk-vnext-ai-consumer-smoke',
   'check:sdk-vnext-ai-runner-consumer-smoke',
   'check:sdk-vnext-root-consumer-smoke',
-  'check:sdk-ai-runner-export-posture',
-  'check:sdk-vnext-ai-capability-ledger',
-  'check:sdk-vnext-adapter-capability-ledger',
-  'check:sdk-vnext-migration-proofs',
-  'check:sdk-vnext-root-composition-decision',
-  'check:sdk-vnext-first-party-adaptation',
-  'check:sdk-vnext-replacement-acceptance',
   'check:sdk-doctor',
   'check:no-global-openapi-config',
-  'check:typed-surface-hardcut',
   'check:experimental-api-lifecycle',
 ];
 

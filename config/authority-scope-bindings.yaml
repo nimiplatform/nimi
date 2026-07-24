@@ -318,6 +318,34 @@ scopes:
         value: "runtime/internal/services/workflow/**/*.go"
       - kind: path_glob
         value: "runtime/internal/services/ai/*voice*.go"
+  - scope: sdks.client-core
+    bindings:
+      - kind: path_glob
+        value: "sdks/typescript/**/*.ts"
+      - kind: path_glob
+        value: "sdks/generators/**/*.mjs"
+      - kind: path_glob
+        value: "sdks/conformance/**/*"
+  - scope: sdks.feature-clients
+    bindings:
+      - kind: path_glob
+        value: "sdks/typescript/**/*.ts"
+      - kind: path_glob
+        value: "sdks/typescript/adapters/**/*"
+      - kind: path_glob
+        value: "sdks/typescript/features/**/*"
+      - kind: path_glob
+        value: "sdks/typescript/doctor/**/*"
+  - scope: sdks.realm-consumer
+    bindings:
+      - kind: path_glob
+        value: "sdks/typescript/realm/**/*"
+      - kind: path_glob
+        value: "sdks/typescript/core-generated/realm-*.ts"
+      - kind: path_glob
+        value: "runtime/gen/realm/v1/**/*.go"
+      - kind: path_glob
+        value: "sdks/generators/lib/realm-openapi.mjs"
   - scope: platform.testing-discipline
     bindings:
       - kind: path_glob

@@ -168,7 +168,7 @@ export function extractRuntimeProto() {
       source_rule: 'S-SURFACE-019',
       notes: [
         'Runtime core descriptors are derived from Runtime proto.',
-        'Public facade availability is governed by .nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml; generated core descriptors preserve proto coverage and generated clients fail closed for unsupported method kinds.',
+        'Public facade availability is governed by config/sdks-runtime-method-groups.yaml; generated core descriptors preserve proto coverage and generated clients fail closed for unsupported method kinds.',
       ],
     },
     services,

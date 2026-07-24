@@ -39,8 +39,8 @@
     "proto/runtime/v1/workflow.proto",
     "config/realm-openapi-source.json",
     "config/realm-openapi/api-nimi.yaml",
-    ".nimi/spec/sdks/kernel/tables/sdk-error-codes.yaml",
-    ".nimi/spec/sdks/kernel/surface-contract.md"
+    "config/sdks-error-codes.yaml",
+    "docs/authority/sdks-client-core-rationale.md"
   ],
   "provenance": {
     "source_rule": "S-SURFACE-019"

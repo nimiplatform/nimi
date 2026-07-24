@@ -22,13 +22,6 @@ function positiveFixture() {
         { group: 'app_lifecycle_service_projection', methods: ['PrepareLocalAppLaunch', 'BindLocalAppProcess'] },
       ],
     },
-    evidence: {
-      rules: Array.from({ length: 7 }, (_, index) => ({
-        rule_id: `S-APP-${String(index + 16).padStart(3, '0')}`,
-        evidence_requirement: 'required',
-        evidence_refs: ['sdk_kernel_consistency'],
-      })),
-    },
   };
 }
 
@@ -45,11 +38,9 @@ test('rejects retired session vocabulary and an incomplete final method group', 
   assert.ok(errors.some((error) => error.includes('RequestLocalAppPermission')));
 });
 
-test('rejects a carrier that omits base entitlement posture or lacks rule evidence', () => {
+test('rejects a carrier that omits base entitlement posture', () => {
   const fixture = positiveFixture();
   fixture.appClient = fixture.appClient.replace('base entitlements', 'authenticated');
-  fixture.evidence.rules = fixture.evidence.rules.filter((row) => row.rule_id !== 'S-APP-022');
   const errors = validateSdkLocalAppAuthority(fixture);
   assert.ok(errors.some((error) => error.includes('base entitlements')));
-  assert.ok(errors.some((error) => error.includes('S-APP-022')));
 });

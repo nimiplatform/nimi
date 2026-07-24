@@ -404,7 +404,7 @@ export function extractRealmCore() {
     source_state: sourceState,
     source_label: source.source_label,
     source_paths: sourcePaths,
-    authority_refs: source.config.authority_refs || ['.nimi/spec/sdks/kernel/realm-core-contract.md'],
+    authority_refs: source.config.authority_refs || ['.nimi/spec/canonical/sdks/realm-consumer.authority.yaml'],
     provenance: {
       source_rule: 'S-SURFACE-019',
       notes: [

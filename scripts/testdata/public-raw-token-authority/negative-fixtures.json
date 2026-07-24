@@ -35,7 +35,7 @@
   {
     "fixture_id": "sdk-method-reexported",
     "code": "PUBLIC_RAW_TOKEN_SDK_EXPORT_FORBIDDEN",
-    "path": ".nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml",
+    "path": "config/sdks-runtime-method-groups.yaml",
     "mutation": {
       "kind": "yaml_append_to_match",
       "path": ["groups"],

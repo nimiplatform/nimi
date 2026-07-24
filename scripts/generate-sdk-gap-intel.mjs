@@ -6,8 +6,8 @@ import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const LEDGER_PATH = path.join(repoRoot, '.nimi/spec/sdks/kernel/tables/typescript-adapter-capability-ledger.yaml');
-const MAP_PATH = path.join(repoRoot, '.nimi/spec/sdks/kernel/tables/framework-api-capability-map.yaml');
+const LEDGER_PATH = path.join(repoRoot, 'config/sdks-typescript-adapter-capability-ledger.yaml');
+const MAP_PATH = path.join(repoRoot, 'config/sdks-framework-api-capability-map.yaml');
 
 // Stem groups are lexical hints, not semantic clustering: a theme recurring
 // across adapters is the demand signal Runtime roadmap consumes.
@@ -144,3 +144,4 @@ if (isDirectInvocation) {
     console.log(renderGapIntel(intel));
   }
 }
+

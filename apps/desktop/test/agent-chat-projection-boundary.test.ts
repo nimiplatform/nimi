@@ -92,7 +92,7 @@ test('Agent Chat store cutover is closed by Runtime and SDK replacement coverage
 test('Runtime admits Agent Chat conversation summaries before store cutover implementation', () => {
   const runtimeSpec = readWorkspaceFile('docs/authority/runtime-agent-service-rationale.md');
   const rpcMethods = readWorkspaceFile('config/runtime-rpc-methods.yaml');
-  const sdkMethods = readWorkspaceFile('.nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml');
+  const sdkMethods = readWorkspaceFile('config/sdks-runtime-method-groups.yaml');
 
   assert.match(runtimeSpec, /K-AGCORE-006b/);
   assert.match(runtimeSpec, /ListAgentConversationSummaries/);

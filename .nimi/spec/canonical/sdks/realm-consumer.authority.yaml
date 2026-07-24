@@ -1,0 +1,723 @@
+format: nimicoding.authority/v1
+units:
+  - id: definition.nimi.sdks.realm-consumer.external-authority-plane
+    kind: definition
+    owner: team.sdks
+    lifecycle: active
+    title: Realm external authority consumption plane
+    meaning: Realm domain authority is external to Nimi and identified as the external Realm authority; this plane owns Nimi's consumer-side boundary over Realm API projections for SDK, Runtime, Desktop, Web, and apps, including the pointer-only realm spec subtree, and it never defines Realm server truth, Realm domain semantics, or Realm product authority.
+    relations: []
+  - id: definition.nimi.sdks.realm-consumer.generated-core-plane
+    kind: definition
+    owner: team.sdks
+    lifecycle: active
+    title: Realm generated core plane
+    meaning: The Realm generated core plane owns the two admitted generated Realm projections from the configured Realm OpenAPI input, the public SDK core under the SDK generated directories and the Runtime-private carrier under the runtime generated realm directory, together with the Nimi wire-shape projection for CharacterSourceRefV3, the Packet v3 closure set, the eight packet limits, authenticated first-party challenges, current JWKS, ordered segments, the hash graph, and detached-proof carriers, while the closed Runtime-operation inventory remains owned by the realm-private-operation-carriers table.
+    relations: []
+  - id: definition.nimi.sdks.realm-consumer.facade-plane
+    kind: definition
+    owner: team.sdks
+    lifecycle: active
+    title: Realm consumer facade plane
+    meaning: The Realm consumer facade plane owns SDK handwritten typed facade behavior over generated Realm core, covering endpoint and token instance isolation, request transport configuration, typed error projection, retry and refresh orchestration, generated client composition, consumer availability and fail-closed states, current small Realm readiness and source-record reads, and the high-level authenticated Runtime MaterializeRealmSource intent carrying only CharacterSourceRefV3 and requestId.
+    relations: []
+  - id: definition.nimi.sdks.realm-consumer.world-facade-plane
+    kind: definition
+    owner: team.sdks
+    lifecycle: active
+    title: SDK world facade plane
+    meaning: The SDK world facade plane owns the app-facing sdk world facade boundary covering the public world-domain family boundary, the world-input projection boundary, the fixture package boundary, the renderer orchestration versus driver boundary, and the world-session composition boundary, without owning Realm canonical truth semantics, Runtime provider execution semantics, renderer-driver implementation semantics, or branch-local simulation semantics.
+    relations: []
+  - id: definition.nimi.sdks.realm-consumer.world-evolution-projection-plane
+    kind: definition
+    owner: team.sdks
+    lifecycle: active
+    title: World Evolution Engine projection plane
+    meaning: The World Evolution Engine projection plane owns the SDK typed projection boundary that mirrors only contract-visible Runtime World Evolution Engine shapes for execution events, replay, checkpoint, supervision, effect stages, and commit-request staging, with Runtime remaining the semantic owner of those execution rules.
+    relations: []
+  - id: definition.nimi.sdks.realm-consumer.world-evolution-consumer-plane
+    kind: definition
+    owner: team.sdks
+    lifecycle: active
+    title: World Evolution Engine consumer plane
+    meaning: The World Evolution Engine consumer plane owns the downstream app consumer seam that composes SDK projection-visible World Evolution Engine shapes into stable consumer API families, including the selector-read stable method contract, without redefining Runtime execution semantics, SDK projection-visible shape meaning, host bridge concrete APIs, or implementation strategy.
+    relations: []
+  - id: definition.nimi.sdks.realm-consumer.group-participation-plane
+    kind: definition
+    owner: team.sdks
+    lifecycle: active
+    title: Realm group agent participation client plane
+    meaning: The Realm group agent participation client plane owns the SDK typed client facade over Realm GROUP evidence, Runtime Agent Participation, and Runtime Room Orchestration, without owning prompt assembly, provider or model routing, memory policy, participation concurrency, same-room queues, or Realm GROUP commit truth.
+    relations: []
+  - id: rule.nimi.sdks.realm-consumer.r001
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Realm authority stays external and unmirrored
+    modality: must_not
+    scope:
+      - sdks.realm-consumer
+    statement: Nimi specs, SDK docs, Runtime, Desktop, Web, or apps re-declare Realm server or domain rules as local authority, or the realm spec subtree carries anything beyond pointer and navigation files identifying the external Realm authority and routing readers to the SDK consumer authority, including kernel contracts, kernel tables, generated Realm docs, Realm domain guides restating product rules, or delegated projection mirrors.
+    condition: Whenever Realm authority is referenced or the realm spec subtree is populated.
+    failure: Remove the local re-declaration or mirror; Nimi-owned surfaces may reference Realm only as an external dependency, a generated API input, or a consumer projection boundary.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.external-authority-plane
+  - id: rule.nimi.sdks.realm-consumer.r002
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Generated carriers are the consumer floor
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: Stable Realm API consumption starts from a generated Realm carrier sourced from the configured Realm OpenAPI input, public SDK consumption starts from the generated Realm SDK core while Runtime's constructor-injected private RealmMaterializationIssuer starts from the sibling generated Runtime-private carrier because Runtime never imports SDK packages, both projections are emitted by the same SDK generator invocation from the same OpenAPI input, the closed Runtime-operation inventory is owned by the realm-private-operation-carriers table whose rows independently declare runtime_projection and public_sdk_disposition so Runtime generation never implies removal from the public SDK, account-auth and authn operations are generated for Runtime and retained in the public Web SDK while source-materialization packet and JWKS operations are generated for Runtime and forbidden in the public SDK, and Runtime output is split into account-auth, authn, and source-materialization files so no generated carrier becomes a mixed-domain context sink.
+    condition: Whenever Realm API carriers are generated or consumed.
+    failure: Reject bypasses of generated Realm clients including app-local REST helpers, hand-authored endpoint strings, global OpenAPI singleton mutation, and duplicated response-shape declarations; handwritten SDK facades are admitted only when they wrap generated operations with typed fail-closed behavior and restore no second Realm contract.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.generated-core-plane
+  - id: rule.nimi.sdks.realm-consumer.r003
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Source materialization shapes are generated-only
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: Source materialization uses only the generated current Realm Packet v3 and CharacterSourceRefV3 transport shapes, the generated operation families own the authenticated first-party challenge, packet, ordered closure-set segment, component, hash-graph, current-JWKS, and detached-proof shapes, source materialization has no app permission or grant carrier, and SDK and apps never introduce a handwritten materialization DTO, anonymous source payload, fixed audience, raw bundle DTO, or parallel packet decoder.
+    condition: Whenever source materialization shapes are authored or consumed.
+    failure: Reject handwritten materialization DTOs and parallel packet decoders.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.generated-core-plane
+  - id: rule.nimi.sdks.realm-consumer.r004
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Runtime enforcement is not a second transport
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: Runtime account and auth clients and the bounded streaming verifier may own Runtime-private semantic validation state, canonical hashing, cryptographic verification, capacity accounting, and atomic-commit projections as enforcement semantics rather than a second Realm transport contract, they consume generated operation and request and response carriers with generated OpenAPI closure metadata gating every accepted response field family, Runtime never hand-authors a Realm path, request DTO, alternate response field, compatibility decoder, or public packet adapter, and OAuth form requests and JSON requests retain their generated content type so a generator that silently treats a declared request as unknown fails closed.
+    condition: Whenever Runtime-private Realm enforcement is implemented or generated content types are resolved.
+    failure: Fail closed on unknown declared requests and reject hand-authored Realm transport artifacts.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.generated-core-plane
+  - id: rule.nimi.sdks.realm-consumer.r005
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: The SDK owns consumer semantics only
+    modality: must_not
+    scope:
+      - sdks.realm-consumer
+    statement: The SDK owns Realm canonical records or lifecycle truth, Realm auth or session issuance semantics, Realm social, chat, economy, or domain invariants, Realm OpenAPI source authority, server compatibility promises outside the generated API input, or source-materialization packet, audience, proof, manifest, component, or world-closure shape semantics, beyond its admitted consumer semantics of endpoint and token instance isolation, request transport configuration, typed error projection, retry and refresh orchestration, generated client composition, consumer availability and fail-closed states, current small Realm readiness and source-record reads, and the high-level authenticated Runtime MaterializeRealmSource intent carrying only CharacterSourceRefV3 and requestId.
+    condition: Whenever SDK Realm ownership boundaries are evaluated.
+    failure: Reject SDK ownership claims over Realm server truth and materialization shape semantics.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.facade-plane
+  - id: rule.nimi.sdks.realm-consumer.r006
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Local projections never become Realm truth
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: Runtime and Desktop consume Realm projections through SDK-owned typed facades while local Runtime or Desktop state never becomes Realm canonical truth, a local projection that cannot be reconciled with Realm API output fails closed or exposes an explicit unavailable or error projection rather than synthesizing Realm success, Desktop, Kit, and Web submit only CharacterSourceRefV3 and requestId to the high-level authenticated Runtime MaterializeRealmSource operation, Runtime internally resolves the current account, canonical Realm base, bearer, fresh challenge, Packet v3 response, and current JWKS, Realm applies its first-party source visibility and readiness policy directly with no app grant, and no app-facing facade receives or persists packet, proof, segment, or component bytes, chooses an audience, decodes closure truth into app-owned records, or accepts an unknown schema, field, enum, segment kind, limit, or hash branch as local success.
+    condition: Whenever Realm projections are consumed by Runtime, Desktop, Kit, or Web.
+    failure: Fail closed on unreconciled projections and reject synthesized Realm success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.facade-plane
+  - id: rule.nimi.sdks.realm-consumer.r007
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Version drift is handled by regeneration only
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: Realm API drift is handled by regenerating the SDK core from the configured Realm OpenAPI input and updating SDK consumer authority and tests, drift is never patched by copying Realm spec text into the realm spec subtree, freezing stale DTOs in handwritten clients, or adding compatibility aliases that hide server contract changes, and an unknown Packet v3 or challenge schema, field, enum, proof family, component or segment kind, limit, hash edge, or closure branch is version drift that fails closed until the configured Realm OpenAPI input is regenerated with handwritten compatibility readers forbidden.
+    condition: Whenever Realm API drift is detected or handled.
+    failure: Fail closed on unknown shapes and reject compatibility aliases and handwritten readers.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.generated-core-plane
+  - id: rule.nimi.sdks.realm-consumer.r008
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Exactly two generated projections exist
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: Realm generated core under the SDK generated directories is sourced from the configured Realm OpenAPI input of the external Realm authority, Nimi admits exactly two generated projections from that input, the public SDK core and the Runtime-private carrier required by the Runtime import boundary, the same generator run emits and drift-checks both projections with no third projection, packet issuance and current-JWKS acquisition are consumed only by Runtime's private RealmMaterializationIssuer according to the realm-private-operation-carriers table, no handwritten core, facade, app, or public Runtime adapter owns a parallel materialization request DTO or transport path, and Runtime-private streaming verification state remains Runtime enforcement semantics gated by generated field closure.
+    condition: Whenever generated Realm core projections are produced or extended.
+    failure: Reject third projections and parallel materialization DTOs or transport paths.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.generated-core-plane
+  - id: rule.nimi.sdks.realm-consumer.r009
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: The facade fails closed and exposes no packets
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: A handwritten TypeScript Realm facade over generated Realm core fails closed on malformed operation boundaries, never restores global OpenAPI singleton configuration, may validate, route, retry, and correlate current small Realm reads, never exposes packet issuance, challenge, bearer, grant selection, raw packet, proof, segment, or component bytes, or Packet v3 decoding to SDK, Kit, Desktop, or Web callers because those callers submit only CharacterSourceRefV3 and requestId through the authenticated Runtime MaterializeRealmSource facade with Runtime alone acquiring and verifying the generated Packet v3 transport, generated language manifests prove schema and operation shape convergence without proving that every language exposes or can execute every operation, Runtime-private operations are never projected as public SDK methods, and language behavior claims require an executable conformance path that returns normally or a typed error and never panics, traps, or aborts the process.
+    condition: Whenever the Realm facade or language conformance claims are evaluated.
+    failure: Fail closed on malformed boundaries and reject packet exposure and panic paths.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.facade-plane
+  - id: rule.nimi.sdks.realm-consumer.r010
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Local modes admit no generic Realm transport
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: Local Runtime app modes admit no generic authenticated Realm transport, any local Realm access uses an exact Runtime-mediated protected operation only after its operation row and caller carrier are independently admitted, all local modes prohibit app, host, or SDK bearer custody, token or refresh providers, session stores, JWT subject decode, MeService.getMe account truth, Realm login routes, and SDK-owned 401 refresh, public token, refresh, and credential-grant families remain removed with their identities reserved, web, cloud adapter, and external-principal modes may retain app-provided token, subject, and Realm route seams only when explicitly fenced and unreachable from local first-party consumers, and local account, login, and refresh-token custody and Realm mediation truth remain owned by the Runtime account service with SDK projection constrained by the client-core runtime projection authority.
+    condition: Whenever Realm transport modes are composed or fenced.
+    failure: Reject unfenced seams, local bearer custody, and generic authenticated transport.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.facade-plane
+  - id: rule.nimi.sdks.realm-consumer.r011
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Runtime owns the authenticated data plane
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: The SDK owns typed Realm APIs and trusted carriers only while Runtime remains the sole owner of every authenticated Realm data plane including bearer injection, private refresh, unary mediation, realtime connection authority, and media credential exchange, SDK and app inputs never turn an app id, endpoint, token callback, event name, or generated descriptor into authorization or canonical data-plane truth, createRuntimeAccountMediatedRealmTransport stays a reserved typed constructor rather than a generic data-path admission and returns protected-unavailable for every app composition until the exact Runtime operation policy and caller carrier are admitted, when later enabled it sends only typed operation ids on that verified carrier and never accepts or exposes accessToken, refreshToken, authorization headers, Realm base truth, session persistence, refresh callbacks, public grants, or caller-selected origin, installed, developer, and first-party facades never export token wrappers or createRealmWithRuntimeAccountToken, and SDK media helpers remain carrier-only until Runtime admits exact media states, limits, credential custody, and failure behavior.
+    condition: Whenever authenticated Realm data-plane composition or the reserved transport constructor is evaluated.
+    failure: Return protected-unavailable for unadmitted compositions and reject token custody exposure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.facade-plane
+  - id: rule.nimi.sdks.realm-consumer.r012
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Facade instances are isolated
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: The Realm SDK entry is an instantiated facade with endpoint, token, and header state isolated per instance, and request engine configuration takes effect only in instance scope without writing global OpenAPI runtime state.
+    condition: Whenever a Realm facade instance is constructed or configured.
+    failure: Reject shared instance state and global request-engine mutation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.facade-plane
+  - id: rule.nimi.sdks.realm-consumer.r013
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Missing endpoint or token fails closed
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: A missing endpoint or token fails closed except in the explicit NO_AUTH mode, the NO_AUTH boundary admits only the public decision endpoints AuthService.checkEmail returning the typed CheckEmailEntryRoute of register_with_otp, login_with_otp, or login_with_password plus requestEmailOtp, verifyEmailOtp, and passwordLogin which need no prior token, and every other Realm call with a missing accessToken fails closed.
+    condition: Whenever a Realm call runs without full endpoint and token configuration.
+    failure: Fail closed outside the admitted NO_AUTH endpoints.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.facade-plane
+  - id: rule.nimi.sdks.realm-consumer.r014
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Refresh is explicit, single-retry, single-flight
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: The auth refresh strategy is explicitly declared with no implicit background refresh state, without a configured refreshToken callback no automatic refresh occurs and a 401 goes directly to the error projection, accessToken supports a function mode carrying caller-managed manual refresh, with a configured refreshToken callback a 401 triggers refresh and a single retry of the original request, concurrent 401 responses merge into a single-flight refresh, and auth failure retries are limited to one observable attempt.
+    condition: Whenever Realm auth refresh or 401 handling runs.
+    failure: Reject implicit refresh, refresh storms, and unobservable retries.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.facade-plane
+  - id: rule.nimi.sdks.realm-consumer.r015
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Realm readiness probes fail closed
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: A failed Realm ready probe fails closed and throws an error, and callers never substitute event telemetry for the availability judgment or treat the probe failure as a soft telemetry-only signal.
+    condition: Whenever Realm readiness is probed.
+    failure: Throw on probe failure without telemetry substitution.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.facade-plane
+  - id: rule.nimi.sdks.realm-consumer.r016
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Auth errors are never disguised as success
+    modality: must_not
+    scope:
+      - sdks.realm-consumer
+    statement: 401, 403, 429, or 5xx semantics are disguised as successful responses.
+    condition: Whenever Realm error responses are projected.
+    failure: Preserve the typed error projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.facade-plane
+  - id: rule.nimi.sdks.realm-consumer.r017
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Realtime details stay blocked authority conflicts
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: The realtime protocol, dependency, delivery, replay, and event-vocabulary details recorded by the retired realtime clauses remain blocked authority conflicts that are conflict evidence only and are not independently admitted for implementation until Runtime admits the corresponding realtime authority, Runtime compatibility evidence precedes any replay posture because client caches, outboxes, event shapes, and reconnect success cannot establish replay guarantees, the SDK constrains only authentication, state events, and reconnect boundaries, reconnect strategy implementation may vary but never silently drops already-confirmed delivered events, and the SDK maintains no authoritative realtime event-name enumeration because event names follow the backend protocol.
+    condition: Whenever realtime consumption or replay posture is evaluated.
+    failure: Reject independent realtime admissions and silent confirmed-event loss.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.facade-plane
+  - id: rule.nimi.sdks.realm-consumer.r018
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Facade behavior never sources local mirrors
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: Realm facade behavior derives from generated Realm core, explicit SDK consumer authority, and runtime or client mode configuration, and the SDK never consults or recreates the realm spec subtree as Realm server authority inside this repository.
+    condition: Whenever Realm facade behavior is derived.
+    failure: Reject facade behavior sourced from local Realm mirrors.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.external-authority-plane
+  - id: rule.nimi.sdks.realm-consumer.r019
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: The world facade family set is fixed
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: The sdk world facade is the SDK authority home for the app-facing world-domain facade owning only the public world-domain family boundary, the world-input projection boundary, the fixture package boundary, the renderer orchestration versus driver boundary, and the world-session composition boundary, and the baseline family set is fixed to truth, generate, fixture, render, and session with all five families admitted in coarse-grained form.
+    condition: Whenever the world facade surface is defined or extended.
+    failure: Reject ownership beyond the five boundaries and families outside the fixed set.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-facade-plane
+  - id: rule.nimi.sdks.realm-consumer.r020
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: World input and output are projection-shaped
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: Provider-bound world-generation requests pass through a world-domain truth-to-world-input projection layer before final provider request shaping, the world facade never exposes provider-native payloads as the first public input shape, local materialized world output is represented publicly as a fixture package rather than raw provider payload, and current-phase conversion semantics may remain intentionally shallow including identity pass-through where needed.
+    condition: Whenever world generation input or materialized world output is projected.
+    failure: Reject provider-native first input shapes and raw payload exposure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-facade-plane
+  - id: rule.nimi.sdks.realm-consumer.r021
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: World render and session boundaries hold
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: The world render family owns renderer orchestration consume only and may expose render plan, initial coordinate or camera policy, capability requirements, and fallback guidance while never exposing renderer-driver lifecycle, window or canvas ownership, GPU or runtime handles, or renderer-native config blobs as stable public truth, and the world session family owns world-session composition semantics that may compose activity mode, chat context, agent context, and local session status without transferring ownership of chat, agent, cognition, or renderer truth into the world-domain facade.
+    condition: Whenever world render or session surfaces are composed.
+    failure: Reject driver exposure and ownership transfer.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-facade-plane
+  - id: rule.nimi.sdks.realm-consumer.r022
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: World baseline exclusions stay excluded
+    modality: must_not
+    scope:
+      - sdks.realm-consumer
+    statement: The first world facade cut includes shared multi-user projection truth, world simulation semantics, provider-native request authoring, renderer-driver APIs, direct Realm mutation surfaces beyond existing authority homes, or cognition or authoring-workbench ownership.
+    condition: Whenever world facade scope is extended.
+    failure: Reject the excluded surfaces.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-facade-plane
+  - id: rule.nimi.sdks.realm-consumer.r023
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: WEE projection is a downstream mirror only
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: The SDK exposes World Evolution Engine typed projection only as a downstream mirror of the Runtime World Evolution Engine authority, Runtime remains the semantic owner for execution-event, replay, checkpoint, supervision, effect-stage, and commit-request staging semantics, the SDK owns only the typed projection surface, SDK-visible helper type naming, and packaging of normalized contract-visible Runtime shapes, the SDK never widens eventKind, stage, supervision outcome, replay mode, checkpoint meaning, or commit-request authority beyond the Runtime contract, and any semantic change lands in the Runtime authority first with the SDK projecting only the resulting normalized shape.
+    condition: Whenever WEE typed projection is defined or evolved.
+    failure: Reject SDK-side widening and SDK-first semantic changes.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-evolution-projection-plane
+  - id: rule.nimi.sdks.realm-consumer.r024
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: The WEE event envelope is closed
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: The stable top-level SDK World Evolution Engine event projection is limited to eventId, worldId, appId, sessionId, traceId, tick, timestamp, eventKind, stage, actorRefs, causation, correlation, effectClass, reason, and evidenceRefs, kind-specific detail is projected only as a discriminated extension subordinate to the normalized envelope, and the SDK never promotes schemaId, schemaVersion, scope, runMode, Realm commit authorization results, history-append authorization results, workflow DAG, task, or node identity, workflow output event payloads, route_policy, fallback, or a bare payload struct to unconditional top-level shared-kernel truth.
+    condition: Whenever WEE events are projected.
+    failure: Reject envelope widening and promoted substrate fields.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-evolution-projection-plane
+  - id: rule.nimi.sdks.realm-consumer.r025
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Recovery projections stay Runtime-local mirrors
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: SDK replay, checkpoint, and supervision projections are normalized mirrors of contract-visible Runtime shapes limited to replay mode, result, and evidence-reference shapes preserving recorded-replay semantics, checkpoint identifier, reference, and restore-status shapes that remain explicitly Runtime-local, and supervision outcome projection using the closed Runtime-owned set CONTINUE, DEFER, ABORT, and QUARANTINE, the SDK never exposes scheduler internals, queue internals, workflow node progress internals, hidden re-inference controls, route or fallback migration knobs, or checkpoint internals outside contract-visible Runtime results as stable top-level truth, and missing required Runtime shapes, missing required evidence references, or unsupported enum values fail closed without reinterpreting absent evidence as successful replay, restore, or supervision recovery.
+    condition: Whenever replay, checkpoint, or supervision surfaces are projected.
+    failure: Fail closed on missing shapes and reject internals exposure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-evolution-projection-plane
+  - id: rule.nimi.sdks.realm-consumer.r026
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Commit-request staging is adapter-bound only
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: SDK commit-request staging projection is an explicit adapter-bound candidate and result surface whose stable candidate projection includes only the Realm-envelope-compatible fields worldId, appId, sessionId, effectClass, scope, schemaId, schemaVersion, actorRefs, reason, and evidenceRefs, Runtime-local staging references such as sourceEventIds, traceId, tick, causation, correlation, checkpoint references, or supervision references are projected only when Runtime already emits them as explicit contract-visible metadata, and the SDK never exposes commit-request staging as a second write contract, invents a new runMode surface, implies SDK-side commit authorization or automatic history append ownership, or reinterprets adapter-bound candidate creation as canonical Realm mutation success.
+    condition: Whenever commit-request staging is projected.
+    failure: Reject write-contract exposure and implied mutation success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-evolution-projection-plane
+  - id: rule.nimi.sdks.realm-consumer.r027
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Workflow substrate never surfaces
+    modality: must_not
+    scope:
+      - sdks.realm-consumer
+    statement: workflow, task, node, edge, callback_ref, external_async, route_policy, fallback, workflow DAG identity, or workflow output events as canonical event truth appear as World Evolution Engine top-level SDK truth even when Runtime reuses workflow substrate internally.
+    condition: Whenever WEE surfaces are projected over workflow-derived substrate.
+    failure: Keep substrate beneath Runtime internals and reject its surfacing.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-evolution-projection-plane
+  - id: rule.nimi.sdks.realm-consumer.r028
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: WEE projection is public-surface satisfiable
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: WEE SDK projection remains satisfiable through SDK public surface only, never depending on runtime internal packages, Realm private clients or transport, host-private bridge details, or app-private client state, never widening Runtime semantic vocabulary with SDK-only enum values or hidden fallback reinterpretation, and staying fail-close so that unknown or unsupported eventKind, stage, supervision outcome, or replay mode values error, missing required Runtime envelope fields error, unsupported commit-request adapter fields error, and the SDK never synthesizes pseudo-success, default authority, or hidden semantic recovery.
+    condition: Whenever WEE projection dependencies or unknown shapes are evaluated.
+    failure: Error on unknown shapes and reject private dependencies.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-evolution-projection-plane
+  - id: rule.nimi.sdks.realm-consumer.r029
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: The consumer seam owns composition only
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: The WEE app consumer-facing API lands in the SDK authority as a downstream consumer seam where Runtime remains the semantic owner for execution events, replay, checkpoint, supervision, effect-stage ordering, and commit-request staging semantics, the projection plane remains the owner of normalized SDK projection-visible shapes, the consumer seam owns only how app-facing SDK facades compose already-visible shapes into stable consumer API families, and the seam never redefines Runtime execution semantics, redefines projection-visible shape meaning, introduces a second consumer semantic owner outside the SDK authority, or defines host bridge concrete methods, transport bindings, or host implementation internals.
+    condition: Whenever WEE consumer APIs are landed or evolved.
+    failure: Reject semantic redefinition and second consumer owners.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-evolution-consumer-plane
+  - id: rule.nimi.sdks.realm-consumer.r030
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Two consumer families are admissible
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: The stable WEE consumer surface is limited to the read and observe family including observe and selector-read candidates and the command and request family including request, result, and rejection candidates, both composing only SDK projection-visible shapes already admitted by the projection plane, no stable third family exists for workflow substrate truth ownership, host-private control-plane ownership, app-local shadow semantic ownership, or direct Runtime or Realm private client access, and a proposed consumer shape not describable as one of the two families over projection-visible shapes is inadmissible.
+    condition: Whenever WEE consumer surface families are proposed.
+    failure: Reject third families and non-describable shapes.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-evolution-consumer-plane
+  - id: rule.nimi.sdks.realm-consumer.r031
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Read and observe surfaces are read-only
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: The WEE read and observe surface is read-only and exposes only normalized consumer-visible projections composed from existing projection-visible shapes with observe and selector-read as the only candidate sub-families, allowed families are limited to execution event envelope observation over the normalized field set, kind-specific discriminated detail subordinate to the envelope, replay result or replay evidence-reference views, checkpoint identifier, reference, or restore-status views that remain explicitly Runtime-local, supervision outcome views using the closed CONTINUE, DEFER, ABORT, and QUARANTINE vocabulary, and commit-request candidate or result views only as adapter-bound read models, the surface never exposes scheduler internals, queue internals, workflow node or task progress internals, raw checkpoint payloads or restore substrate, hidden re-inference state, or route or fallback migration internals as stable consumer truth, and missing required projection-visible fields or evidence references fail closed without reinterpreting absence as implicit success, recovery, or completion.
+    condition: Whenever WEE read or observe surfaces are exposed.
+    failure: Fail closed on absence and reject internals exposure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-evolution-consumer-plane
+  - id: rule.nimi.sdks.realm-consumer.r032
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Command surfaces are intent seams only
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: The WEE command and request surface exists only as an explicit consumer-intent seam over projection-visible identifiers, selectors, references, and result shapes, admitted requests accept only projection-visible identifiers, references, selectors, filters, or subscription parameters, return explicit typed acknowledgment, result, or rejection shapes without inventing a second semantic vocabulary, and preserve Runtime-owned replay, checkpoint, supervision, and commit-request meaning, the surface never accepts workflow DAG, task, node, edge, or output-event identity as consumer control-plane truth, never accepts raw commit envelopes, raw history-append payloads, or raw checkpoint state as stable inputs, never exposes direct commit authorization, direct history append, or direct canonical world-state mutation as consumer-owned success semantics, never adds fallback, route migration, re-inference, or hidden recovery knobs that are not already projection-visible contract truth, and this landing freezes the category boundary only without defining a concrete method list, transport binding, host bridge shape, or lifecycle implementation.
+    condition: Whenever WEE command or request surfaces are framed.
+    failure: Reject raw substrate inputs and mutation success semantics.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-evolution-consumer-plane
+  - id: rule.nimi.sdks.realm-consumer.r033
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Substrate never leaks into app truth
+    modality: must_not
+    scope:
+      - sdks.realm-consumer
+    statement: The WEE consumer API widens or leaks Runtime-local substrate into app stable truth through workflow DAG, task, node, or output vocabulary as top-level consumer truth, scheduler, queue, or worker-local control knobs, route_policy, fallback, or equivalent recovery or migration controls, runtime-private checkpoint or supervision substrate, consumer-authored reinterpretation of missing evidence, host-private singleton handles, app-private client handles, or direct authoring of canonical Realm mutation truth, canonical history truth, or canonical audit truth, or turns a commit-request candidate into implied Realm mutation success, replay evidence into permission for fresh inference or hybrid replay, read-model absence into synthetic empty success, or Runtime-local execution evidence into Realm or shared canonical truth.
+    condition: Whenever WEE consumer affordances are admitted.
+    failure: Reject the widening or leaking affordance.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-evolution-consumer-plane
+  - id: rule.nimi.sdks.realm-consumer.r034
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Publication carries no implementation assumptions
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: App-facing WEE consumer APIs are published only through SDK public surface preserving one composed contract with the same projection-visible shape vocabulary, the same fail-close behavior, and the same no-leak, no-widening, and no-bypass hardcuts, and consumer APIs never depend on runtime internal packages, Realm private clients or transport, SDK private internals, host bridge private methods, app-private state stores, or bypass clients, and never assume concrete subscription plumbing, buffering strategy, caching policy, or host lifecycle behavior as normative contract because surfaces requiring those assumptions are outside the stable consumer API.
+    condition: Whenever WEE consumer APIs are published.
+    failure: Reject private dependencies and implementation-assumption surfaces.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-evolution-consumer-plane
+  - id: rule.nimi.sdks.realm-consumer.r035
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: One shared typed candidate vocabulary exists
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: App-facing and host-injected WEE facades share one minimal typed candidate vocabulary limited to projection-visible envelope anchors and discriminators, projection-visible replay, checkpoint, and supervision references and outcomes, projection-visible commit-request candidate and result fields, and selector atoms composed only from those already-visible anchors, discriminators, identifiers, references, and adapter-bound candidate fields, selector framing remains projection-derived without a second semantic vocabulary for execution identity, canonical mutation truth, or workflow substrate identity, and shared building blocks never require workflow DAG, task, node, edge, or output identifiers, raw checkpoint payloads or restore substrate, raw commit envelopes, history-append payloads, or audit records as consumer-authored inputs, or host-private or app-private handles.
+    condition: Whenever the shared WEE candidate vocabulary is defined.
+    failure: Reject second vocabularies and substrate identifiers.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-evolution-consumer-plane
+  - id: rule.nimi.sdks.realm-consumer.r036
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Observe candidates keep evidence classes explicit
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: The read-only WEE candidate categories that may advance to later implementation design are ordered execution-event observation over the normalized envelope and subordinate discriminated detail, selector-scoped event and evidence collection views composed from projection-visible anchors and references, Runtime-local replay, checkpoint, and supervision views bounded by the projection plane, and adapter-bound commit-request candidate and result views, every category makes its evidence class explicit distinguishing runtime-local execution evidence, runtime-local recovery evidence, and adapter-bound commit-request views rather than collapsing them into one canonical-truth model, and no category implies shared present-state truth or shared history truth, exposes raw workflow, queue, or scheduler substrate, or treats absence as implicit success, completion, or valid no-op truth.
+    condition: Whenever WEE observe or selector-read candidates advance.
+    failure: Reject collapsed evidence classes and implied shared truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-evolution-consumer-plane
+  - id: rule.nimi.sdks.realm-consumer.r037
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Request candidates preserve typed rejection truth
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: Admissible WEE request-side candidates are limited to requests establishing or scoping an observe flow with projection-visible selectors or references, requests evaluating selector-scoped read models over projection-visible execution or recovery evidence, requests deriving, inspecting, or forwarding replay, checkpoint, or supervision outcomes using Runtime-owned references, and requests deriving, inspecting, or forwarding adapter-bound commit-request candidates or adapter-visible submission outcomes, result and rejection framing stays category-level without freezing a concrete enum set, method list, or transport envelope, admissible results are explicit admission acknowledgments without implied semantic success, explicit typed read models or observation items composed from projection-visible shapes, and explicit Runtime-local outcome or adapter-bound commit-request views, admissible rejection framing is explicit typed failure preserving existing SDK error projection or Runtime reason truth for invalid or incomplete selectors or references, missing required Runtime evidence, unsupported candidate families at the current authority phase, authority or boundary denial, or contract-shape mismatch, and the framing never adds fallback, route migration, re-inference, or hidden recovery knobs, reinterprets commit-request candidacy as canonical mutation success, reinterprets Runtime-local evidence as Realm or shared canonical truth, or synthesizes empty success or silent downgrade when required typed evidence is absent.
+    condition: Whenever WEE request, result, or rejection candidates are framed.
+    failure: Reject recovery knobs and synthesized success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-evolution-consumer-plane
+  - id: rule.nimi.sdks.realm-consumer.r038
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Candidate admission stays category-bounded
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: Admitted WEE consumer candidates cover the app-facing logical facade families and the shared selector, observe-item, read-model, acknowledgment, and rejection type families as category and framing admissions only, selector-read stable methods are the sole exception holding stable method-contract authority, concrete method names, concrete package export names beyond existing public surfaces, concrete host bridge methods or IPC payloads, subscription lifecycle, buffering, caching, pagination, or replay-delivery policy, and batching, session ownership, or host confirmation UX semantics remain outside stable authority and are decided only in later implementation design within current frozen authority, and workflow executor, DAG controller, or task-node control facades, direct canonical world-state mutator, history append, or audit writer facades, raw checkpoint-substrate, supervision-substrate, scheduler, queue, or worker control facades, host bridge passthrough, IPC mirror, or transport-payload passthrough facades, route migration, fallback migration, re-inference, or hidden semantic recovery facades, runtime-private, realm-private, app-private, or bypass facades, any facade turning Runtime-local evidence into Realm or shared canonical truth, and any facade turning commit-request candidacy into implied authorization or canonical mutation success remain inadmissible even for later design.
+    condition: Whenever WEE candidates are admitted to later implementation design.
+    failure: Reject stable-authority claims outside the exception and inadmissible facades.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-evolution-consumer-plane
+  - id: rule.nimi.sdks.realm-consumer.r039
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: The selector-read method matrix is closed
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: The WEE stable selector-read semantic method-category matrix is closed to worldEvolution.executionEvents.read, worldEvolution.replays.read, worldEvolution.checkpoints.read, worldEvolution.supervision.read, and worldEvolution.commitRequests.read over selectors, these logical methods are semantic method categories rather than transport methods, daemon RPC parity, host bridge methods, or IPC payload contracts, no additional stable selector-read method categories are admissible in this phase, and observe or subscribe methods, session or lifecycle methods, replay, checkpoint, or supervision advancement methods, and commit-request forward or submit methods stay outside the stable matrix.
+    condition: Whenever stable WEE selector-read methods are declared.
+    failure: Reject additional categories and out-of-scope methods.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-evolution-consumer-plane
+  - id: rule.nimi.sdks.realm-consumer.r040
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: The shared selector matrix fails closed
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: Only projection-visible selector primitives participate in the stable selector-read contract, executionEvents.read admits the exact-match selectors eventId or the triple worldId plus sessionId plus tick and filter selectors carrying at least one anchor from worldId, sessionId, or traceId optionally with appId and refinements from eventKind, stage, actorRefs, causation, correlation, effectClass, reason, or evidenceRefs while failing closed when eventId is combined with any additional primitive, tick appears without worldId plus sessionId, a refinement appears without an anchor, or appId is the sole primitive, replays.read admits a single projection-visible replay evidence-reference exact match and filter selectors using that reference with optional projection-visible replay-mode refinement or otherwise at least one projection-visible execution-context anchor from worldId, sessionId, or traceId with optional eventId, tick, and replay-mode refinements while failing closed when replay mode, eventId, or tick appears without a reference or anchor or a primitive is not projection-visible for the replay family, checkpoints.read admits checkpointId or a single projection-visible checkpoint-reference exact match and filter selectors using those with optional projection-visible restore-status refinement or otherwise at least one projection-visible anchor from worldId, sessionId, or traceId with optional eventId and tick refinements while failing closed when restore status, eventId, or tick appears without checkpointId, a checkpoint reference, or an anchor or a primitive is not projection-visible for the checkpoint family, supervision.read admits no exact match and filter selectors carrying at least one projection-visible anchor from worldId, sessionId, or traceId with optional eventId, tick, and supervisionOutcome refinements while failing closed when supervisionOutcome, eventId, or tick appears without an anchor or a primitive is not projection-visible for the supervision family, commitRequests.read admits no exact match and filter selectors requiring the adapter-envelope anchors worldId plus appId plus sessionId with optional candidate-envelope refinements from effectClass, scope, actorRefs, reason, or evidenceRefs, the paired schemaId plus schemaVersion, and projected sidecar refinements from sourceEventIds, traceId, tick, causation, correlation, or projection-visible checkpoint or supervision references while failing closed when any required anchor is missing, schemaId and schemaVersion appear unpaired, a sidecar refinement appears without the anchors, or a primitive is not projection-visible for the commit-request family, and globally unknown selector primitives, duplicate primitives with conflicting values, mixed exact-match and filter forms for one method, workflow DAG, task, node, or output vocabulary, and private handles or host-private tokens fail closed.
+    condition: Whenever a stable selector-read selector is evaluated.
+    failure: Fail closed on every listed selector violation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-evolution-consumer-plane
+  - id: rule.nimi.sdks.realm-consumer.r041
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: The shared read-result matrix is bounded
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: Every stable selector-read method returns the shared outer result contract of selector, matchMode, and matches with matchMode closed to exact or filter, no stable result adds cursor, buffering, reconnect, pagination, session-lifecycle, or transport-owned fields, matches may be empty only when the selector is valid and complete, the read-model family is projection-supported, and no admitted match exists, matches is never used to hide missing required evidence, unsupported projection shape, or boundary denial, executionEvents.read returns execution-event views limited to the normalized envelope plus subordinate discriminated detail as Runtime-local execution evidence, replays.read returns replay views limited to projection-visible replay mode, result, and evidence-reference shapes as Runtime-local replay evidence rather than canonical replay authority beyond recorded-replay truth, checkpoints.read returns checkpoint views limited to projection-visible identifier, reference, and restore-status shapes as Runtime-local recovery evidence rather than Realm state or Realm history truth, supervision.read returns supervision views limited to projection-visible outcomes and related references as Runtime-local supervision evidence rather than canonical audit truth or canonical shared-world truth, and commitRequests.read returns commit-request views limited to adapter-envelope-compatible candidate or outcome fields plus admitted projected sidecar references as adapter-bound candidacy or adapter-visible outcome only and never canonical mutation success, canonical history append, or SDK write authority.
+    condition: Whenever stable selector-read results are returned.
+    failure: Reject transport-owned fields and evidence-hiding empty results.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-evolution-consumer-plane
+  - id: rule.nimi.sdks.realm-consumer.r042
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: The rejection category matrix is closed
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: Stable selector-read methods share one closed rejection category matrix of INVALID_SELECTOR for unknown primitives, forbidden primitive families, or forbidden exact-match or filter combinations, INCOMPLETE_SELECTOR for missing required anchors or pairs or syntactically admitted but under-specified selectors, MISSING_REQUIRED_EVIDENCE for valid complete selectors whose required projection-visible evidence or reference is absent for evaluation, UNSUPPORTED_PROJECTION_SHAPE for returned shapes lacking required fields, carrying unsupported enum or discriminator values, or selectors asking for primitives not projection-visible in the chosen read-model family, and BOUNDARY_DENIED for consumers outside the admitted authority boundary or requests requiring private bypass, host-private state, or otherwise forbidden authority crossing, and app-facing publication profiles preserve the same categories, the same fail-close meaning, and the same unknown-category behavior, never replacing the closed set with free-text-only rejection, adding app-only categories, or reinterpreting rejection as empty success or hidden downgrade.
+    condition: Whenever stable selector-read rejections are produced.
+    failure: Reject category replacement and rejection-to-success reinterpretation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-evolution-consumer-plane
+  - id: rule.nimi.sdks.realm-consumer.r043
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Publication layers keep semantic parity
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: The stable selector-read method matrix is one shared semantic contract identical across app-facing SDK publication and host-injected publication for method-category names, the selector matrix, the read-result matrix, the read-only rejection matrix, and the no-leak, no-widening, and no-bypass hardcuts, publication layering may differ only by access path and construction boundary and never by semantic method meaning, and no publication layer uses selector-read stable methods to smuggle observe or subscribe semantics, session or lifecycle semantics, effectful request semantics, host concrete API semantics, or workflow substrate truth.
+    condition: Whenever selector-read publication layers are composed.
+    failure: Reject semantic divergence and smuggled semantics.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.world-evolution-consumer-plane
+  - id: rule.nimi.sdks.realm-consumer.r044
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: The group client binds owners without lanes
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: The SDK exposes Realm Group Agent Participation only as typed methods binding Realm group product authority, Runtime agent participation consumer authority, and the Runtime room orchestration realm_group row and overlay, and the SDK never defines a separate group-agent execution lane, local prompt builder, provider or model selector, memory policy, reply queue, same-room scheduler, or Realm commit shortcut.
+    condition: Whenever group agent participation clients are exposed.
+    failure: Reject separate execution lanes and commit shortcuts.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.group-participation-plane
+  - id: rule.nimi.sdks.realm-consumer.r045
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Group requests carry typed references only
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: SDK group agent requests carry typed Realm references only, covering group thread, membership snapshot, agent slot, trigger event, read cursor, optional reply target, room orchestration projection, and commit handoff references aligned to the Runtime realm group participation context table, and the SDK never accepts raw prompt blobs, unbounded transcript dumps, app-local participant lists, canonical chat history defaults, direct commit handles, or provider or model hints as public group agent inputs.
+    condition: Whenever group agent request inputs are composed.
+    failure: Reject raw prompts and direct commit handles.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.group-participation-plane
+  - id: rule.nimi.sdks.realm-consumer.r046
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Candidate and commit stay split
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: The SDK preserves the split between Runtime candidate output and Realm authenticated commit where Runtime-facing calls may return REALM_GROUP_MESSAGE_CANDIDATE and Realm-facing calls may submit or observe authenticated Realm commit, and the SDK never exposes a helper that makes Runtime directly write a Realm GROUP message.
+    condition: Whenever group candidate or commit surfaces are exposed.
+    failure: Reject direct Runtime GROUP writes.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.group-participation-plane
+  - id: rule.nimi.sdks.realm-consumer.r047
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Group status projects through typed owners
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: The SDK exposes queued, running, refused, cancelled, timed-out, and candidate states only through typed Runtime agent projections plus Realm commit, read, and sync truth, and the SDK never publishes or normalizes a public runtime.orchestration namespace for group participation status.
+    condition: Whenever group participation status is projected.
+    failure: Reject orchestration namespace publication.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.group-participation-plane
+  - id: rule.nimi.sdks.realm-consumer.r048
+    kind: rule
+    owner: team.sdks
+    lifecycle: active
+    title: Group hardcut gates hold and the plan is frozen
+    modality: must
+    scope:
+      - sdks.realm-consumer
+    statement: The SDK fails closed when a Desktop, Web, Avatar, or app consumer attempts to pass public prompt text for execution, choose providers or models, override Runtime memory, capability, or concurrency verdicts, own same-room ordering, fairness, budget, cancellation, or timeout, use GROUP_LIMITED as a capability enum, or bypass Realm authenticated commit, and the group participation client authority freezes the SDK consumer plan only so production SDK method implementation, generated client code, proto changes, Desktop or Web UI work, and app migration require downstream implementation admissions that cite this authority and preserve the hardcut gates.
+    condition: Whenever group participation consumers act or implementation admissions are proposed.
+    failure: Fail closed on consumer bypass and reject uncited implementations.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.group-participation-plane

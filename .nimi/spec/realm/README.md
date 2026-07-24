@@ -6,9 +6,9 @@ This directory intentionally does not mirror Realm authority.
 - Pointer role: external Realm authority
 - Nimi role: Realm API consumer
 - Canonical Nimi consumer contract:
-  `.nimi/spec/sdks/kernel/realm-api-consumer-contract.md`
+  `.nimi/spec/canonical/sdks/realm-consumer.authority.yaml`
 - Generated Realm SDK boundary:
-  `.nimi/spec/sdks/kernel/realm-core-contract.md`
+  `.nimi/spec/canonical/sdks/realm-consumer.authority.yaml` (generated core plane)
 
 Realm server/domain rules belong to `<external-realm-authority>`. This repository records
 only the external dependency and Nimi consumer reading paths; it contains no
