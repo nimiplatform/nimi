@@ -26,7 +26,6 @@ surfaces:
   - data-cleanup
   - support-export
   - apps
-  - macos-smoke
   - chat-ai
   - agent-center
   - storage
@@ -344,22 +343,6 @@ commands:
     module: ui
     description: Finalize explicit app quit after renderer cleanup
     source_rule: D-IPC-005
-
-  # macOS smoke / renderer acceptance helpers
-  - command: desktop_macos_smoke_context_get
-    module: macos-smoke
-    description: Fixture-gated macOS smoke instrumentation; read renderer acceptance context
-    source_rule: D-IPC-009
-
-  - command: desktop_macos_smoke_report_write
-    module: macos-smoke
-    description: Fixture-gated macOS smoke instrumentation; write renderer acceptance report evidence
-    source_rule: D-IPC-009
-
-  - command: desktop_macos_smoke_ping
-    module: macos-smoke
-    description: Fixture-gated macOS smoke instrumentation; ping the acceptance backend from renderer instrumentation
-    source_rule: D-IPC-009
 
   # Chat local AI store
   - command: chat_ai_list_threads

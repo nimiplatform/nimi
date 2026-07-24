@@ -1,5 +1,3 @@
-import type { JsonObject } from './shared.js';
-
 export type {
   RealmDefaults,
   RuntimeExecutionDefaults,
@@ -58,31 +56,4 @@ export type MenuBarRuntimeHealthSyncPayload = {
   runtimeHealthReason?: string;
   providerSummary?: MenuBarProviderSummary;
   updatedAt?: string;
-};
-
-export type DesktopMacosSmokeContext = {
-  enabled: boolean;
-  scenarioId?: string;
-  reportPath?: string;
-  artifactsDir?: string;
-  disableRuntimeBootstrap?: boolean;
-  bootstrapTimeoutMs?: number;
-};
-
-export type DesktopMacosSmokeReportPayload = {
-  ok: boolean;
-  failedStep?: string;
-  steps: string[];
-  errorMessage?: string;
-  errorName?: string;
-  errorStack?: string;
-  errorCause?: string;
-  route?: string;
-  htmlSnapshot?: string;
-  details?: JsonObject;
-};
-
-export type DesktopMacosSmokeReportResult = {
-  reportPath: string;
-  htmlSnapshotPath?: string;
 };

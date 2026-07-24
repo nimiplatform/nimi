@@ -254,32 +254,6 @@ fn desktop_tauri_refuses_account_calls_without_the_protected_desktop_carrier() {
 }
 
 #[test]
-fn renderer_page_load_probe_is_kit_owned_scaffold() {
-    let bootstrap_source = include_str!("app_bootstrap.rs");
-
-    assert!(
-        bootstrap_source.contains("build_renderer_entry_probe_script"),
-        "Desktop must consume the Kit-owned renderer entry probe builder"
-    );
-    assert!(
-        bootstrap_source.contains("RendererEntryProbeScriptConfig"),
-        "Desktop may configure smoke command names, but the probe script shape stays Kit-owned"
-    );
-    assert!(
-        bootstrap_source.contains("desktop_macos_smoke_ping"),
-        "Desktop keeps product-specific macOS smoke command wiring"
-    );
-    assert!(
-        !bootstrap_source.contains("globalRecord.__TAURI__?.core?.invoke"),
-        "Desktop must not handwrite Tauri global probe script internals"
-    );
-    assert!(
-        !bootstrap_source.contains("return import(scriptSrc);"),
-        "Desktop must not own renderer dynamic-import probe orchestration"
-    );
-}
-
-#[test]
 fn http_request_rate_limit_enforces_burst_and_prunes_old_entries() {
     let mut history = VecDeque::new();
     for i in 0..HTTP_REQUEST_RATE_LIMIT_BURST {

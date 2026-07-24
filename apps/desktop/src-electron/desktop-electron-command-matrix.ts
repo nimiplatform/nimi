@@ -129,9 +129,6 @@ const DESKTOP_ELECTRON_NA_COMMANDS = [
   'desktop_update_download',
   'desktop_update_install',
   'desktop_update_restart',
-  'desktop_macos_smoke_context_get',
-  'desktop_macos_smoke_report_write',
-  'desktop_macos_smoke_ping',
   'menu_bar_sync_runtime_health',
   'menu_bar_complete_quit',
 ] as const;

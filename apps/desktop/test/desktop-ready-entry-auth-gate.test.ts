@@ -22,10 +22,6 @@ const anonymousE2eSource = readFileSync(
   resolve(import.meta.dirname, '../e2e/specs/boot.anonymous.login-screen.e2e.mjs'),
   'utf8',
 );
-const smokeScenarioSource = readFileSync(
-  resolve(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/desktop-macos-smoke-scenarios.ts'),
-  'utf8',
-);
 const productControlBridgeSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/product-control.ts'),
   'utf8',
@@ -458,12 +454,10 @@ test('Wave 8: only a backend-admitted ready_for_use projection derives the Ready
   assert.equal(deriveOrdinaryShellAdmission(backendReady), 'ready');
 });
 
-test('Gate 7: anonymous E2E and macOS smoke reject ordinary chat shell', () => {
+test('Gate 7: anonymous E2E rejects ordinary chat shell', () => {
   assert.match(anonymousE2eSource, /boots into login without rendering ordinary shell/);
   assert.doesNotMatch(anonymousE2eSource, /await waitForTestId\(E2E_IDS\.mainShell\)/);
   assert.doesNotMatch(anonymousE2eSource, /await waitForTestId\(E2E_IDS\.panel\('chat'\)\)/);
-  assert.match(smokeScenarioSource, /verify-anonymous-main-shell-absent/);
-  assert.match(smokeScenarioSource, /verify-anonymous-chat-panel-absent/);
 });
 
 test('Wave 1 route-admission single-point: LoginPage and ProductControlWorkflow never render <Navigate>', () => {

@@ -1,7 +1,6 @@
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 
-import { getDesktopMacosSmokeContext } from '../bridge/runtime-bridge/macos-smoke.js';
 import {
   bootstrapRuntime,
   disposeRuntimeBootstrap,
@@ -10,24 +9,10 @@ import type { DesktopRendererLifecyclePort } from './lifecycle-port.js';
 
 const WEB_BOOTSTRAP_TIMEOUT_MS = 15_000;
 const DESKTOP_BOOTSTRAP_TIMEOUT_MS = 25_000;
-const MIN_BOOTSTRAP_TIMEOUT_MS = 5_000;
-const MAX_BOOTSTRAP_TIMEOUT_MS = 180_000;
-
 async function resolveBootstrapTimeoutMs(shellMode: string): Promise<number> {
-  const defaultTimeoutMs = shellMode === 'web'
+  return shellMode === 'web'
     ? WEB_BOOTSTRAP_TIMEOUT_MS
     : DESKTOP_BOOTSTRAP_TIMEOUT_MS;
-  if (shellMode !== 'desktop') return defaultTimeoutMs;
-  try {
-    const context = await getDesktopMacosSmokeContext();
-    const requested = Number(context.bootstrapTimeoutMs || 0);
-    if (!context.enabled || !Number.isFinite(requested) || requested <= 0) {
-      return defaultTimeoutMs;
-    }
-    return Math.min(MAX_BOOTSTRAP_TIMEOUT_MS, Math.max(MIN_BOOTSTRAP_TIMEOUT_MS, requested));
-  } catch {
-    return defaultTimeoutMs;
-  }
 }
 
 export function connectProductionBootstrap(

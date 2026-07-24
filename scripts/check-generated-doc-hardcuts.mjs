@@ -10,7 +10,6 @@ const repoRoot = path.resolve(scriptDir, '..');
 const targetRoots = [
   'scripts/lib',
   'scripts/generate-spec-human-doc-main.mjs',
-  'scripts/generate-desktop-spec-kernel-docs.mjs',
 ];
 
 const retiredNarrativePatterns = [

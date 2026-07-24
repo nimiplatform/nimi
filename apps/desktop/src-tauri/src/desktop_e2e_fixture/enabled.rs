@@ -36,7 +36,6 @@ struct DesktopE2ETauriFixture {
     desktop_release_info: Option<DesktopReleaseInfo>,
     product_control_record: Option<ProductControlRecord>,
     confirm_dialog: Option<DesktopE2EConfirmDialogOverride>,
-    macos_smoke: Option<DesktopE2EMacosSmokeOverride>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -62,17 +61,6 @@ struct DesktopE2EConfirmDialogOverride {
 #[serde(rename_all = "camelCase")]
 struct DesktopE2EConfirmDialogResponse {
     confirmed: bool,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DesktopE2EMacosSmokeOverride {
-    pub enabled: bool,
-    pub scenario_id: Option<String>,
-    pub report_path: Option<String>,
-    pub artifacts_dir: Option<String>,
-    pub disable_runtime_bootstrap: Option<bool>,
-    pub bootstrap_timeout_ms: Option<u64>,
 }
 
 fn confirm_dialog_override_index_store() -> &'static Mutex<usize> {
@@ -694,17 +682,6 @@ pub fn next_confirm_dialog_override() -> Result<Option<bool>, String> {
         selected.unwrap_or(false)
     ));
     Ok(selected)
-}
-
-pub fn macos_smoke_override() -> Result<Option<DesktopE2EMacosSmokeOverride>, String> {
-    let override_payload = load_fixture_manifest()?
-        .and_then(|manifest| manifest.tauri_fixture)
-        .and_then(|fixture| fixture.macos_smoke);
-    append_backend_log(&format!(
-        "macos_smoke_override override_present={}",
-        override_payload.is_some()
-    ));
-    Ok(override_payload)
 }
 
 #[cfg(test)]

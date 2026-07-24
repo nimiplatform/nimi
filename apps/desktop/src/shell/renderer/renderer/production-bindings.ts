@@ -27,7 +27,6 @@ import {
   runDesktopUpdateRestart,
 } from '../infra/bootstrap/desktop-updates.js';
 import type { DesktopRendererLifecyclePort } from './lifecycle-port.js';
-import { connectDesktopMacosSmoke } from '../infra/bootstrap/desktop-macos-smoke.js';
 import { connectProductionBootstrap } from './production-bootstrap.js';
 import { desktopBridge } from '@renderer/bridge';
 import {
@@ -539,13 +538,11 @@ export function createDesktopProductionBindings(
             runtimeHealthCoordinator,
           );
           const disconnectDesktopUpdates = connectDesktopUpdates(lifecycle);
-          const disconnectDesktopMacosSmoke = connectDesktopMacosSmoke(lifecycle);
           const disconnectBootstrap = connectProductionBootstrap(lifecycle);
           return () => {
             if (!active) return;
             active = false;
             connectedLifecycle = null;
-            disconnectDesktopMacosSmoke();
             disconnectDesktopUpdates();
             disconnectMenuBarRuntimeSync();
             disconnectRuntimeHealth();

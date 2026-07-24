@@ -5,16 +5,6 @@ use crate::runtime_bridge::{
 };
 use crate::RuntimeDefaults;
 
-#[derive(Debug, Clone)]
-pub struct DesktopE2EMacosSmokeOverride {
-    pub enabled: bool,
-    pub scenario_id: Option<String>,
-    pub report_path: Option<String>,
-    pub artifacts_dir: Option<String>,
-    pub disable_runtime_bootstrap: Option<bool>,
-    pub bootstrap_timeout_ms: Option<u64>,
-}
-
 pub fn fixture_manifest_path() -> Option<String> {
     None
 }
@@ -44,9 +34,5 @@ pub fn product_control_record_override() -> Result<Option<ProductControlRecord>,
 }
 
 pub fn next_confirm_dialog_override() -> Result<Option<bool>, String> {
-    Ok(None)
-}
-
-pub fn macos_smoke_override() -> Result<Option<DesktopE2EMacosSmokeOverride>, String> {
     Ok(None)
 }

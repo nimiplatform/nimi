@@ -5,7 +5,6 @@ const helperDir = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(helperDir, '..', '..');
 
 export const WDIO_RUNNER = 'wdio';
-export const MACOS_SMOKE_RUNNER = 'macos-smoke';
 export const ELECTRON_HOST_RUNNER = 'electron-host';
 
 export const scenarioRegistry = new Map([

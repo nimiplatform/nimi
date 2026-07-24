@@ -6,7 +6,6 @@ import { motion } from 'motion/react';
 import {
   DEFAULT_DEV_RENDERER_ENTRY_IMPORT_RETRY_DELAYS_MS,
   createRendererEntryModuleLoader,
-  describeRendererEntryFailureReason,
 } from '@nimiplatform/kit/shell/renderer/bootstrap';
 import bootstrapEntryCopy from './locales/en/26-Bootstrap.json';
 import entryLogoImage from './assets/logo.png';
@@ -15,7 +14,6 @@ import './styles.css';
 
 const entryModuleLoader = createRendererEntryModuleLoader({
     retryDelaysMs: import.meta.env.DEV ? DEFAULT_DEV_RENDERER_ENTRY_IMPORT_RETRY_DELAYS_MS : [],
-    reportStage: pingSmokeAsync,
     setTimeout: window.setTimeout.bind(window),
 });
 const loadEntryModule = entryModuleLoader.load;
@@ -43,71 +41,15 @@ const entryBootCopy = bootstrapEntryCopy as {
 
 const ENTRY_BOOT_PROGRESS_FLOOR_PERCENT = 8;
 
-type TauriCoreInvoke = (command: string, args?: Record<string, unknown>) => Promise<unknown>;
-type TauriInvokeOwner = { invoke?: unknown };
-type TauriSmokeGlobal = typeof globalThis & {
-    __TAURI__?: {
-      core?: TauriInvokeOwner;
-      invoke?: unknown;
-    };
-    __TAURI_INTERNALS__?: TauriInvokeOwner;
-    __TAURI_IPC__?: TauriInvokeOwner;
-    window?: {
-      __TAURI__?: {
-        core?: TauriInvokeOwner;
-        invoke?: unknown;
-      };
-      __TAURI_INTERNALS__?: TauriInvokeOwner;
-      __TAURI_IPC__?: TauriInvokeOwner;
-    };
-};
-
-function bindTauriInvoke(owner: TauriInvokeOwner | null | undefined): TauriCoreInvoke | null {
-    const invoke = owner?.invoke;
-    return typeof invoke === 'function' ? (invoke.bind(owner) as TauriCoreInvoke) : null;
-}
-
-function resolveTauriCoreInvoke(): TauriCoreInvoke | null {
-    const tauriGlobal = globalThis as TauriSmokeGlobal;
-    return bindTauriInvoke(tauriGlobal.__TAURI__?.core)
-      || bindTauriInvoke(tauriGlobal.__TAURI__)
-      || bindTauriInvoke(tauriGlobal.__TAURI_INTERNALS__)
-      || bindTauriInvoke(tauriGlobal.__TAURI_IPC__)
-      || bindTauriInvoke(tauriGlobal.window?.__TAURI__?.core)
-      || bindTauriInvoke(tauriGlobal.window?.__TAURI__)
-      || bindTauriInvoke(tauriGlobal.window?.__TAURI_INTERNALS__)
-      || bindTauriInvoke(tauriGlobal.window?.__TAURI_IPC__);
-}
-
-function pingSmokeAsync(event: string, payload?: Record<string, unknown>): void {
-    const invoke = resolveTauriCoreInvoke();
-    if (!invoke) {
-        return;
-    }
-    void invoke('desktop_macos_smoke_ping', {
-      payload: {
-        stage: event,
-        details: payload,
-      },
-    }).catch(() => {});
-}
-
-const describeUnhandledReason = describeRendererEntryFailureReason;
-
 const App = lazy(async () => {
     // Start loading the App chunk immediately — in parallel with runtime
     // hooks and i18n init — so the download overlaps with setup work.
-    try {
-        const appPromise = (async () => {
-            await preflightRendererAppDependencies();
-            return loadEntryModule('entry:renderer-app', () => import('./App'));
-        })();
-        const mod = await appPromise;
-        return { default: mod.default };
-    } catch (error) {
-        pingSmokeAsync('renderer-app-import-failed', describeUnhandledReason(error));
-        throw error;
-    }
+    const appPromise = (async () => {
+        await preflightRendererAppDependencies();
+        return loadEntryModule('entry:renderer-app', () => import('./App'));
+    })();
+    const mod = await appPromise;
+    return { default: mod.default };
 });
 
 type EntryErrorBoundaryState = {
@@ -122,13 +64,6 @@ class EntryErrorBoundary extends React.Component<PropsWithChildren, EntryErrorBo
 
     static getDerivedStateFromError(error: Error): EntryErrorBoundaryState {
         return { error };
-    }
-
-    override componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-        pingSmokeAsync('renderer-entry-boundary-caught', {
-          ...describeUnhandledReason(error),
-          componentStack: errorInfo.componentStack,
-        });
     }
 
     override render() {
@@ -230,23 +165,6 @@ const rootElement = document.getElementById('root');
 if (!rootElement) {
     throw new Error('ROOT_MOUNT_NODE_MISSING');
 }
-pingSmokeAsync('renderer-main-entry');
-window.addEventListener('error', (event) => {
-    pingSmokeAsync('window-page-error', {
-      message: event.message || '',
-      filename: event.filename || '',
-      lineno: event.lineno || 0,
-      colno: event.colno || 0,
-    });
-});
-window.addEventListener('unhandledrejection', (event) => {
-    const reason = describeUnhandledReason(event.reason);
-    pingSmokeAsync('window-page-error', {
-      ...reason,
-      type: 'unhandledrejection',
-    });
-});
-
 // Mount the root immediately. Entry failures stay fail-closed, but they must
 // never collapse into an unobservable blank webview.
 createRoot(rootElement).render(
@@ -264,4 +182,3 @@ createRoot(rootElement).render(
     </NimiThemeProvider>
   </EntryErrorBoundary>,
 );
-pingSmokeAsync('renderer-root-mounted');

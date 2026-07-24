@@ -21,8 +21,6 @@ import {
   stopAuthStateWatcher,
 } from './auth-state-watcher';
 import { registerExitHandler } from './exit-handler';
-import { getDesktopMacosSmokeContext } from '../../bridge/runtime-bridge/macos-smoke';
-import { pingDesktopMacosSmoke } from '../../bridge/runtime-bridge/macos-smoke';
 import { hydrateDesktopAccountProfile } from './runtime-bootstrap-account-profile';
 import { DESKTOP_VERSION_FALLBACK } from './desktop-version';
 import {
@@ -220,8 +218,6 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
     const flowId = createRendererFlowId('renderer-bootstrap');
     const startedAt = performance.now();
     const flags = getShellFeatureFlags();
-    const macosSmokeContext = await getDesktopMacosSmokeContext();
-    const skipHeavyBootstrapForMacosSmoke = Boolean(macosSmokeContext.disableRuntimeBootstrap);
     lifecycle.setAuthBootstrapping();
     lifecycle.setBootstrapReady(false);
 
@@ -264,9 +260,6 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
         });
       }
     }
-    void pingDesktopMacosSmoke('bootstrap-runtime-defaults-ready', {
-      skipHeavyBootstrapForMacosSmoke,
-    }).catch(() => {});
     const defaults = await desktopBridge.getRuntimeDefaults();
     lifecycle.setRuntimeDefaults(defaults);
     let daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
@@ -365,9 +358,6 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
       throw new Error(versionResult.message);
     }
     registerExitHandler({ managed: daemonStatus.managed });
-    void pingDesktopMacosSmoke('bootstrap-platform-client-start', {
-      skipHeavyBootstrapForMacosSmoke,
-    }).catch(() => {});
     clearDesktopNimiClientSession();
     unsubscribeRealmConnectivityEvents?.();
     unsubscribeRealmConnectivityEvents = null;
@@ -461,25 +451,7 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
         });
       }
     }
-    void pingDesktopMacosSmoke('bootstrap-platform-client-done', {
-      skipHeavyBootstrapForMacosSmoke,
-    }).catch(() => {});
-
     startAuthStateWatcher(lifecycle);
-
-    if (!flags.enableRuntimeBootstrap || macosSmokeContext.disableRuntimeBootstrap) {
-      if (macosSmokeContext.disableRuntimeBootstrap) {
-        logRendererEvent({
-          level: 'info',
-          area: 'renderer-bootstrap',
-          message: 'phase:runtime-bootstrap:skipped-for-macos-smoke',
-          flowId,
-          details: {
-            scenarioId: macosSmokeContext.scenarioId || null,
-          },
-        });
-      }
-    }
 
     getOfflineCoordinator().markRuntimeReachability(
       !runtimeUnavailable && accountStatus ? 'reachable' : 'unreachable',
@@ -505,10 +477,6 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
 
     lifecycle.setBootstrapReady(true);
     lifecycle.setBootstrapError(null);
-    void pingDesktopMacosSmoke('bootstrap-ready', {
-      scenarioId: macosSmokeContext.scenarioId || null,
-      skipHeavyBootstrapForMacosSmoke,
-    }).catch(() => {});
     logRendererEvent({
       level: 'info',
       area: 'renderer-bootstrap',
@@ -516,7 +484,7 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
       flowId,
       costMs: Number((performance.now() - startedAt).toFixed(2)),
       details: {
-        localAiRuntimeBootstrap: flags.enableRuntimeBootstrap && !macosSmokeContext.disableRuntimeBootstrap,
+        localAiRuntimeBootstrap: flags.enableRuntimeBootstrap,
       },
     });
   })().catch(async (error) => {

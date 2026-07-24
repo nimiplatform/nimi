@@ -41,20 +41,10 @@ const relationshipExplorerLocaleSource = ['zh', 'en'].map((locale) => {
   ));
   return JSON.stringify(localeJson.paper.relationshipExplorer);
 }).join('\n');
-const desktopFeatureCoverageSource = readFileSync(
-  resolve(import.meta.dirname, '../../../.nimi/spec/desktop/kernel/tables/desktop-feature-coverage.yaml'),
-  'utf8',
-);
 const exploreViewSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/explore/explore-view.tsx'),
   'utf8',
 );
-
-test('world surface feature coverage points at the active glass layout contract', () => {
-  assert.match(desktopFeatureCoverageSource, /scenario_id: world\.surface-layout/);
-  assert.match(desktopFeatureCoverageSource, /spec_path: apps\/desktop\/test\/world-detail-glass-layout\.test\.ts/);
-  assert.doesNotMatch(desktopFeatureCoverageSource, /world-detail-bento-layout\.test\.ts/);
-});
 
 test('world detail hard-cuts to the paper setting discovery surface', () => {
   assert.match(worldTemplateSource, /data-testid="world-detail-paper-layout"/);

@@ -12,8 +12,6 @@ import type {
   DesktopReleaseInfo,
   DesktopUpdateCheckResult,
   DesktopUpdateState,
-  DesktopMacosSmokeContext,
-  DesktopMacosSmokeReportResult,
   MenuBarProviderSummary,
   SystemResourceSnapshot,
 } from './runtime-types';
@@ -97,25 +95,5 @@ export function parseMenuBarProviderSummary(value: unknown): MenuBarProviderSumm
     unhealthy: parseOptionalNumber(record.unhealthy) || 0,
     unknown: parseOptionalNumber(record.unknown) || 0,
     total: parseOptionalNumber(record.total) || 0,
-  };
-}
-
-export function parseDesktopMacosSmokeContext(value: unknown): DesktopMacosSmokeContext {
-  const record = assertRecord(value, 'desktop_macos_smoke_context_get returned invalid payload');
-  return {
-    enabled: Boolean(record.enabled),
-    scenarioId: parseOptionalString(record.scenarioId),
-    reportPath: parseOptionalString(record.reportPath),
-    artifactsDir: parseOptionalString(record.artifactsDir),
-    disableRuntimeBootstrap: Boolean(record.disableRuntimeBootstrap),
-    bootstrapTimeoutMs: parseOptionalNumber(record.bootstrapTimeoutMs),
-  };
-}
-
-export function parseDesktopMacosSmokeReportResult(value: unknown): DesktopMacosSmokeReportResult {
-  const record = assertRecord(value, 'desktop_macos_smoke_report_write returned invalid payload');
-  return {
-    reportPath: parseRequiredString(record.reportPath, 'reportPath', 'desktop_macos_smoke_report_write'),
-    htmlSnapshotPath: parseOptionalString(record.htmlSnapshotPath),
   };
 }

@@ -154,7 +154,7 @@ function ensureSupportedPlatform() {
   const platform = os.platform();
   if (platform === 'darwin') {
     throw new Error(
-      'desktop E2E via tauri-driver is unsupported on macOS per D-GATE-060; run `pnpm --filter @nimiplatform/desktop test:e2e` on Linux/Windows CI, and keep macOS to local/manual smoke only',
+      'desktop E2E via tauri-driver is unsupported on macOS per D-GATE-060; run `pnpm --filter @nimiplatform/desktop test:e2e` on Linux/Windows CI',
     );
   }
 }
@@ -500,7 +500,7 @@ async function runScenario(scenarioId, runIndex) {
     throw new Error(`missing registry entry for ${scenarioId}`);
   }
   if (!isWdioScenarioEntry(scenario)) {
-    throw new Error(`scenario ${scenarioId} is owned by ${scenarioRunner(scenario)}; use scripts/run-macos-smoke.mjs`);
+    throw new Error(`scenario ${scenarioId} is owned by ${scenarioRunner(scenario)}; use the owning runner`);
   }
 
   const appPath = applicationPath();

@@ -315,7 +315,6 @@
     "check:secrets": "node scripts/check-secrets.mjs",
     "check:no-legacy-app-auth-cli": "node scripts/check-hardcut-text-patterns.mjs no-legacy-app-auth-cli",
     "check:desktop-e2e-parity": "pnpm --filter @nimiplatform/desktop run check:e2e-parity",
-    "check:desktop-macos-smoke": "pnpm --filter @nimiplatform/desktop run test:macos:smoke",
     "check:live-provider-invariants": "node --test scripts/check-live-provider-invariants.test.mjs && node scripts/check-live-provider-invariants.mjs",
     "check:live-smoke-gate": "node scripts/check-live-smoke-gate.mjs",
     "check:live-smoke-gate-regression": "node --test scripts/check-live-smoke-gate.test.mjs",

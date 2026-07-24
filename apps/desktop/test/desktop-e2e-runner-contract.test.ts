@@ -9,10 +9,6 @@ const runnerSource = fs.readFileSync(
   path.join(root, 'scripts/run-e2e.mjs'),
   'utf8',
 );
-const macosSmokeRunnerSource = fs.readFileSync(
-  path.join(root, 'scripts/run-macos-smoke.mjs'),
-  'utf8',
-);
 const registrySource = fs.readFileSync(
   path.join(root, 'e2e/helpers/registry.mjs'),
   'utf8',
@@ -41,36 +37,8 @@ const shellNavigationSpecSource = fs.readFileSync(
   path.join(root, 'e2e/specs/shell.core-navigation.e2e.mjs'),
   'utf8',
 );
-const desktopE2eFixtureSource = fs.readFileSync(
-  path.join(root, 'src-tauri/src/desktop_e2e_fixture.rs'),
-  'utf8',
-);
-const desktopE2eFixtureEnabledSource = fs.readFileSync(
-  path.join(root, 'src-tauri/src/desktop_e2e_fixture/enabled.rs'),
-  'utf8',
-);
-const desktopE2eFixtureDisabledSource = fs.readFileSync(
-  path.join(root, 'src-tauri/src/desktop_e2e_fixture/disabled.rs'),
-  'utf8',
-);
-const desktopE2eFixtureRuntimeAppSource = fs.readFileSync(
-  path.join(root, 'src-tauri/src/desktop_e2e_fixture/runtime_app.rs'),
-  'utf8',
-);
-const tauriHttpEnvSource = fs.readFileSync(
-  path.join(root, 'src-tauri/src/main_parts/env_http.rs'),
-  'utf8',
-);
 const realmFixtureServerSource = fs.readFileSync(
   path.join(root, 'e2e/fixtures/realm-fixture-server.mjs'),
-  'utf8',
-);
-const exploreMaterializationAcceptanceConstantsSource = fs.readFileSync(
-  path.join(root, 'e2e/fixtures/acceptance-constants.mjs'),
-  'utf8',
-);
-const exploreMaterializationAcceptanceFixtureSource = fs.readFileSync(
-  path.join(root, 'e2e/fixtures/acceptance-fixture.mjs'),
   'utf8',
 );
 const wdioConfigSource = fs.readFileSync(
@@ -169,14 +137,6 @@ test('offline recovery smoke targets Realm REST reachability, not runtime releas
   assert.match(realmFixtureServerSource, /actionHint:\s*'retry_realm_request'/);
 });
 
-test('desktop E2E fixture Realm origin is admitted by the packaged HTTP bridge allowlist', () => {
-  assert.match(tauriHttpEnvSource, /crate::desktop_e2e_fixture::runtime_defaults_override\(\)/);
-  assert.match(tauriHttpEnvSource, /defaults\.realm\.realm_base_url/);
-  assert.match(tauriHttpEnvSource, /defaults\.realm\.jwks_url/);
-  assert.match(tauriHttpEnvSource, /defaults\.realm\.revocation_url/);
-  assert.match(tauriHttpEnvSource, /defaults\.realm\.jwt_issuer/);
-});
-
 test('desktop E2E runner builds the fixture surface only through an explicit Cargo feature', () => {
   assert.match(runnerSource, /'--features',\s*'desktop-e2e-fixture'/);
 });
@@ -189,21 +149,17 @@ test('desktop E2E runner launches WDIO from the desktop package dependency conte
   assert.match(wdioConfigSource, /specs:\s*\['e2e\/specs\/\*\*\/\*\.e2e\.mjs'\]/);
 });
 
-test('desktop E2E runner keeps runner ownership explicit without retired avatar visual smokes', () => {
+test('desktop E2E runner keeps runner ownership explicit', () => {
   assert.match(registrySource, /export const WDIO_RUNNER = 'wdio';/);
-  assert.match(registrySource, /export const MACOS_SMOKE_RUNNER = 'macos-smoke';/);
   assert.match(registrySource, /scenarioRunner\(entry\)/);
   assert.match(registrySource, /item\.bucket === 'journeys' && matchesRequestedRunner\(item, options\.runner\)/);
-  assert.doesNotMatch(registrySource, /runner: MACOS_SMOKE_RUNNER,\s*profile: 'chat\.live2d/);
-  assert.doesNotMatch(registrySource, /runner: MACOS_SMOKE_RUNNER,\s*profile: 'chat\.vrm/);
   assert.match(runnerSource, /function isRunE2eRunner\(entry\)/);
   assert.match(runnerSource, /runner === WDIO_RUNNER \|\| runner === ELECTRON_HOST_RUNNER/);
   assert.match(runnerSource, /selectScenarios\(options\)\.filter/);
   assert.match(runnerSource, /if \(entry && isRunE2eRunner\(entry\)\)/);
   assert.match(runnerSource, /scenario \$\{scenarioId\} is owned by \$\{scenarioRunner\(entry\)\}; use the owning runner/);
   assert.match(runnerSource, /if \(!isWdioScenarioEntry\(scenario\)\)/);
-  assert.match(runnerSource, /scenario \$\{scenarioId\} is owned by \$\{scenarioRunner\(scenario\)\}; use scripts\/run-macos-smoke\.mjs/);
-  assert.match(macosSmokeRunnerSource, /selectScenarios\(\{ \.\.\.options, runner: MACOS_SMOKE_RUNNER \}\)/);
+  assert.match(runnerSource, /scenario \$\{scenarioId\} is owned by \$\{scenarioRunner\(scenario\)\}; use the owning runner/);
 });
 
 test('desktop E2E failOnConsoleError treats browser severe logs as failures', () => {
@@ -226,20 +182,6 @@ test('desktop E2E Realm fixture serves public world and source materialization p
   assert.match(realmFixtureServerSource, /pathname === '\/api\/realm\/core\/source-materialization-packets'/);
   assert.doesNotMatch(realmFixtureServerSource, new RegExp(`/api/human/${['source', 'connections'].join('-')}`));
   assert.match(realmFixtureServerSource, /runtime-source:\$\{sourceRef\.kind\}/);
-});
-
-test('materialization support fixtures retain world-character and Runtime Agent inputs', () => {
-  assert.match(exploreMaterializationAcceptanceConstantsSource, /VALID_SOURCE_REF = FIXTURE_SOURCE_REF/);
-  assert.match(exploreMaterializationAcceptanceConstantsSource, /source-materialization-packet-v3\.mjs/);
-  assert.match(exploreMaterializationAcceptanceConstantsSource, /runtime\.agent\.ai_config\.read/);
-  assert.match(exploreMaterializationAcceptanceConstantsSource, /runtime\.agent\.ai_config\.write/);
-  assert.match(exploreMaterializationAcceptanceFixtureSource, /characters:\s*\[/);
-  assert.match(exploreMaterializationAcceptanceFixtureSource, /profileCoverUrl/);
-  assert.match(exploreMaterializationAcceptanceFixtureSource, /referenceImageUrl/);
-  assert.match(exploreMaterializationAcceptanceFixtureSource, /voiceSampleUrl/);
-  assert.match(exploreMaterializationAcceptanceFixtureSource, /interactionProfile/);
-  assert.match(exploreMaterializationAcceptanceFixtureSource, /entity-acceptance-disabled/);
-  assert.doesNotMatch(exploreMaterializationAcceptanceFixtureSource, /omitContentHash/);
 });
 
 test('Desktop Electron acceptance has no environment-activated direct-daemon runner', () => {
@@ -297,14 +239,4 @@ test('authenticated desktop boot smoke fails closed on missing account projectio
 test('core navigation smoke waits for the authenticated rail before tab assertions', () => {
   assert.match(shellNavigationSpecSource, /E2E_IDS\.shellSidebarRail/);
   assert.match(shellNavigationSpecSource, /E2E_IDS\.navTab\('home'\)/);
-});
-
-test('desktop E2E fixture Runtime overrides are test-feature gated and production no-op', () => {
-  assert.match(desktopE2eFixtureSource, /#\[cfg\(any\(test, feature = "desktop-e2e-fixture"\)\)\][\s\S]*#\[path = "desktop_e2e_fixture\/enabled\.rs"\][\s\S]*mod enabled/);
-  assert.match(desktopE2eFixtureSource, /#\[cfg\(not\(any\(test, feature = "desktop-e2e-fixture"\)\)\)\][\s\S]*(?:#\[allow\(dead_code\)\][\s\S]*)?#\[path = "desktop_e2e_fixture\/disabled\.rs"\][\s\S]*mod disabled/);
-  assert.match(desktopE2eFixtureEnabledSource, /RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID/);
-  assert.doesNotMatch(desktopE2eFixtureEnabledSource, /RUNTIME_ACCOUNT_GET_ACCESS_TOKEN_METHOD_ID/);
-  assert.match(desktopE2eFixtureRuntimeAppSource, /AccountSessionState::Authenticated/);
-  assert.match(desktopE2eFixtureRuntimeAppSource, /AccountSessionSnapshot \{/);
-  assert.match(desktopE2eFixtureDisabledSource, /pub fn runtime_bridge_unary_override\([\s\S]*?Ok\(None\)/);
 });

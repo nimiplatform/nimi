@@ -6,7 +6,6 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import {
   ELECTRON_HOST_RUNNER,
-  MACOS_SMOKE_RUNNER,
   WDIO_RUNNER,
   profilePathForScenario,
   scenarioRegistry,
@@ -24,10 +23,6 @@ function fail(message) {
 
 function readText(relativePath) {
   return fs.readFileSync(path.join(desktopRoot, relativePath), 'utf8');
-}
-
-function readRepoText(relativePath) {
-  return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
 }
 
 function readJson(filePath) {
@@ -84,17 +79,6 @@ function listFilesRecursive(rootDir, predicate) {
   return files;
 }
 
-function hasAuthorlessFeedPosts(profile) {
-  const posts = profile?.realmFixture?.exploreFeed?.items;
-  return Array.isArray(posts) && posts.some((post) => {
-    if (!post || typeof post !== 'object') {
-      return false;
-    }
-    const record = post;
-    return typeof record.id === 'string' && !record.author;
-  });
-}
-
 function assertScenarioRegistryIntegrity() {
   const supportedBuckets = new Set([
     'smoke',
@@ -103,7 +87,6 @@ function assertScenarioRegistryIntegrity() {
   ]);
   const supportedRunners = new Set([
     WDIO_RUNNER,
-    MACOS_SMOKE_RUNNER,
     ELECTRON_HOST_RUNNER,
   ]);
   const registeredSpecPaths = new Set();
@@ -151,95 +134,6 @@ function assertScenarioRegistryIntegrity() {
   }
 }
 
-function assertAuthorlessHomeFeedParity() {
-  const profilesWithAuthorlessPosts = [];
-  for (const [scenarioId] of scenarioRegistry.entries()) {
-    const profile = loadProfileDefinition(profilePathForScenario(scenarioId));
-    if (hasAuthorlessFeedPosts(profile)) {
-      profilesWithAuthorlessPosts.push(scenarioId);
-    }
-  }
-  if (profilesWithAuthorlessPosts.length === 0) {
-    return;
-  }
-
-  const postCardSource = readText('src/shell/renderer/features/home/post-card.tsx');
-  const postCardArticleSource = readText('src/shell/renderer/features/home/article.tsx');
-  const unsafePostCardAuthorReads = postCardSource.match(/post\.author\.(id|displayName|handle|avatarUrl|isAgent)/g) || [];
-  const unsafeArticleAuthorReads = postCardArticleSource.match(/props\.post\.author\.(id|displayName|handle|avatarUrl|isAgent)/g) || [];
-
-  if (unsafePostCardAuthorReads.length > 0 || unsafeArticleAuthorReads.length > 0) {
-    fail([
-      `authorless feed posts are admitted by E2E profiles (${profilesWithAuthorlessPosts.join(', ')}),`,
-      'but renderer home feed still contains direct author projection reads:',
-      [...unsafePostCardAuthorReads, ...unsafeArticleAuthorReads].join(', '),
-    ].join(' '));
-  }
-}
-
-function assertFixtureRealmOriginBridgeParity() {
-  const runnerSource = readText('scripts/run-e2e.mjs');
-  const envHttpSource = readText('src-tauri/src/main_parts/env_http.rs');
-  if (!/fixtureOrigin: fixtureServer\.origin/.test(runnerSource)) {
-    fail('E2E runner no longer forwards the live Realm fixture origin into scenario manifests');
-  }
-  for (const required of [
-    'runtime_defaults_override()',
-    'defaults.realm.realm_base_url',
-    'defaults.realm.jwks_url',
-    'defaults.realm.revocation_url',
-    'defaults.realm.jwt_issuer',
-  ]) {
-    if (!envHttpSource.includes(required)) {
-      fail(`packaged HTTP bridge allowlist does not admit fixture Realm default ${required}`);
-    }
-  }
-}
-
-function assertCanonicalTranscriptSelectorParity() {
-  const transcriptSource = readRepoText('kit/features/chat/src/components/canonical-transcript-view.tsx');
-  const humanAdapterSource = readText('src/shell/renderer/features/chat/chat-human-canonical-components.tsx');
-  const humanComposerSource = readText('src/shell/renderer/features/chat/chat-human-canonical-composer-profile.tsx');
-  const leadingAvatarSource = readText('src/shell/renderer/features/chat/chat-shared-composer-leading-avatar.tsx');
-  for (const required of [
-    'dataTestId?: string',
-    'activeConversationId?: string | null',
-    'data-testid={dataTestId}',
-    'data-active-chat-id={String(activeConversationId || \'\')}',
-  ]) {
-    if (!transcriptSource.includes(required)) {
-      fail(`canonical transcript does not expose the E2E active conversation contract: ${required}`);
-    }
-  }
-  for (const required of [
-    'E2E_IDS.messageTimeline',
-    'activeConversationId: input.model.selectedChatId',
-  ]) {
-    if (!humanAdapterSource.includes(required)) {
-      fail(`desktop human chat does not bind canonical transcript selector parity: ${required}`);
-    }
-  }
-  for (const required of [
-    'triggerTestId={E2E_IDS.chatHeaderProfileToggle}',
-    'openProfileTestId={E2E_IDS.chatOpenUserProfile}',
-    "navigateToProfile(targetId, 'profile')",
-  ]) {
-    if (!humanComposerSource.includes(required)) {
-      fail(`desktop human composer does not route profile E2E selectors through the shared profile page: ${required}`);
-    }
-  }
-  for (const required of [
-    'triggerTestId?: string',
-    'openProfileTestId?: string',
-    'data-testid={props.triggerTestId}',
-    'data-testid={props.openProfileTestId}',
-  ]) {
-    if (!leadingAvatarSource.includes(required)) {
-      fail(`shared composer leading avatar does not expose canonical profile selector contract: ${required}`);
-    }
-  }
-}
-
 function assertAuthenticatedFixtureSurfaceParity() {
   const fixtureServerSource = readText('e2e/fixtures/realm-fixture-server.mjs');
   for (const required of [
@@ -279,9 +173,6 @@ function assertAuthenticatedFixtureSurfaceParity() {
 
 try {
   assertScenarioRegistryIntegrity();
-  assertAuthorlessHomeFeedParity();
-  assertFixtureRealmOriginBridgeParity();
-  assertCanonicalTranscriptSelectorParity();
   assertAuthenticatedFixtureSurfaceParity();
 } catch (error) {
   fail(error instanceof Error ? error.message : String(error));

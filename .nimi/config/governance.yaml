@@ -22,10 +22,6 @@ spec_governance:
     runtime-delegation-consistency:
       - node scripts/check-runtime-spec-kernel-consistency.mjs
       - pnpm check:sdk-spec-kernel-consistency
-    desktop-consistency:
-      - node scripts/check-desktop-spec-kernel-consistency.mjs
-    apps/desktop:
-      - node scripts/check-desktop-spec-kernel-consistency.mjs
     avatar:
       - node scripts/check-avatar-spec-kernel-consistency.mjs
     apps/avatar:
@@ -42,8 +38,6 @@ spec_governance:
       - node scripts/generate-runtime-spec-kernel-docs.mjs
     sdks:
       - node scripts/generate-sdk-spec-kernel-docs.mjs
-    desktop:
-      - node scripts/generate-desktop-spec-kernel-docs.mjs
     platform:
       - node scripts/generate-platform-spec-kernel-docs.mjs
     avatar:

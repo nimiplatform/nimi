@@ -315,18 +315,6 @@ registered_command_families:
       - sync_lock_contention
     source_rule: D-GATE-092
 
-  - family: macos_smoke_acceptance_instrumentation
-    match:
-      prefix: desktop_macos_smoke_
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: desktop-smoke-instrumentation
-    execution_class: bounded_blocking_with_admission
-    remediation_required: false
-    admitted_risks:
-      - std_fs
-      - sync_lock_contention
-    source_rule: D-GATE-092
-
   - family: runtime_bridge_commands
     match:
       prefix: runtime_bridge_

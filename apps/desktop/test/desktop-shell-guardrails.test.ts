@@ -227,10 +227,6 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
     path.join(import.meta.dirname, '../src/shell/renderer/infra/sdk/desktop-nimi-client-session.ts'),
     'utf8',
   );
-  const smokeDriverSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/desktop-macos-smoke-driver-deps.ts'),
-    'utf8',
-  );
   const sessionLoggingSource = fs.readFileSync(
     path.join(import.meta.dirname, '../src-tauri/src/main_parts/session_logging.rs'),
     'utf8',
@@ -241,7 +237,6 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
   );
   assert.doesNotMatch(authMenuSource, /function toAuthUserRecord/);
   assert.match(mainSource, /createRendererEntryModuleLoader/);
-  assert.match(mainSource, /describeRendererEntryFailureReason/);
   assert.match(rendererBootstrapSource, /ensureNimiShellRuntimeBridgeInstalled/);
   assert.match(rendererBootstrapSource, /await import\('\.\/main\.js'\)/);
   assert.doesNotMatch(rendererBootstrapSource, /installNimiShellRuntimeBridge\(\);/);
@@ -249,13 +244,11 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
   assert.doesNotMatch(mainSource, /function isRetryableEntryImportError|function createEntryImportError|Failed to fetch dynamically imported module|Importing a module script failed/);
   assert.doesNotMatch(desktopTauriConfigSource, /"pubkey"\s*:\s*"dev-placeholder"/);
   assert.doesNotMatch(authAdapterSource, /as Promise</);
-  for (const source of [authAdapterSource, smokeDriverSource]) {
-    assert.match(source, /createNimiDesktopShellRuntimeAccountCaller/);
-    assert.doesNotMatch(source, /appInstanceId:\s*['"`]nimi\.desktop\.local-first-party/);
-    assert.doesNotMatch(source, /deviceId:\s*['"`]desktop-shell/);
-    assert.doesNotMatch(source, /mode:\s*2/);
-    assert.doesNotMatch(source, /scopes:\s*\[\]/);
-  }
+  assert.match(authAdapterSource, /createNimiDesktopShellRuntimeAccountCaller/);
+  assert.doesNotMatch(authAdapterSource, /appInstanceId:\s*['"`]nimi\.desktop\.local-first-party/);
+  assert.doesNotMatch(authAdapterSource, /deviceId:\s*['"`]desktop-shell/);
+  assert.doesNotMatch(authAdapterSource, /mode:\s*2/);
+  assert.doesNotMatch(authAdapterSource, /scopes:\s*\[\]/);
   assert.match(runtimeBootstrapSource, /desktopBridge\.getRuntimeAccountSessionStatus\(\)/);
   assert.doesNotMatch(runtimeBootstrapSource, /createNimiDesktopShellRuntimeAccountCaller/);
   assert.match(desktopClientSessionSource, /createNimiDesktopShellRuntimeAccountCaller/);

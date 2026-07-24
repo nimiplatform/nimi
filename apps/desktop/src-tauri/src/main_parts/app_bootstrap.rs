@@ -3,9 +3,6 @@ use crate::{chat_ai_store, desktop_release, desktop_updates, local_runtime, menu
 use nimi_shell_tauri::{
     capabilities::data::StandardAppStorageRootSlot,
     capabilities::desktop_product_local_agent::desktop_shell_runtime_account_caller,
-    capabilities::diagnostics::{
-        build_renderer_entry_probe_script, RendererEntryProbeScriptConfig,
-    },
     capabilities::local_agent::{set_standard_local_agent_host_hooks, StandardLocalAgentHostHooks},
     capabilities::local_assets::{
         set_standard_local_assets_host_hooks, StandardLocalAssetsHostHooks,
@@ -171,62 +168,8 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
     tauri::Builder::default()
         .plugin(updater_plugin)
         .on_page_load(|webview, payload| {
-            let event = match payload.event() {
-                tauri::webview::PageLoadEvent::Started => "started",
-                tauri::webview::PageLoadEvent::Finished => "finished",
-            };
             if matches!(payload.event(), tauri::webview::PageLoadEvent::Started) {
                 set_desktop_open_intent_ready(webview.app_handle(), false);
-            }
-            let details = json!({
-                "event": event,
-                "url": payload.url().to_string(),
-                "label": webview.label(),
-            });
-            let _ = super::defaults_and_commands::macos_smoke::append_macos_smoke_backend_stage(
-                "window-page-load",
-                Some(&details),
-            );
-            if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
-                // Production builds register the renderer-entry probe, but the probe must stay
-                // side-effect-free unless `desktop_macos_smoke_context_get` reports an enabled
-                // fixture. Any write/report path must route through fixture-gated smoke commands.
-                let probe_script =
-                    match build_renderer_entry_probe_script(&RendererEntryProbeScriptConfig {
-                        started_flag: "__NIMI_MACOS_SMOKE_EVAL_STARTED__".to_string(),
-                        ping_command: "desktop_macos_smoke_ping".to_string(),
-                        report_command: "desktop_macos_smoke_report_write".to_string(),
-                        context_command: "desktop_macos_smoke_context_get".to_string(),
-                        reset_local_storage_scenario_ids: vec![
-                            "boot.anonymous.login-screen".to_string(),
-                        ],
-                    }) {
-                        Ok(script) => script,
-                        Err(error) => {
-                            let _ = super::defaults_and_commands::macos_smoke::append_macos_smoke_backend_stage(
-                                "window-page-error",
-                                Some(&json!({
-                                    "reason": "eval-probe-build-failed",
-                                    "message": error,
-                                    "url": payload.url().to_string(),
-                                    "label": webview.label(),
-                                })),
-                            );
-                            return;
-                        }
-                    };
-                if let Err(error) = webview.eval(probe_script.as_str()) {
-                    let _ =
-                        super::defaults_and_commands::macos_smoke::append_macos_smoke_backend_stage(
-                            "window-page-error",
-                            Some(&json!({
-                                "reason": "eval-dispatch-failed",
-                                "message": error.to_string(),
-                                "url": payload.url().to_string(),
-                                "label": webview.label(),
-                            })),
-                        );
-                }
             }
         })
         .setup(|app| {
@@ -428,9 +371,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             super::defaults_and_commands::window_and_logs::desktop_avatar_launch_handoff,
             super::defaults_and_commands::window_and_logs::desktop_avatar_close_handoff,
             crate::desktop_avatar_instance_registry::commands::desktop_avatar_instance_registry_list,
-            super::defaults_and_commands::macos_smoke::desktop_macos_smoke_context_get,
-            super::defaults_and_commands::macos_smoke::desktop_macos_smoke_report_write,
-            super::defaults_and_commands::macos_smoke::desktop_macos_smoke_ping,
             menu_bar_shell::menu_bar_sync_runtime_health,
             menu_bar_shell::menu_bar_complete_quit,
             chat_ai_store::chat_ai_list_threads,
