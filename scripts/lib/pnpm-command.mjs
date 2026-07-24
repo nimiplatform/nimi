@@ -1,4 +1,4 @@
-import { resolveBinaryOnPath } from './release-gate/env-probe.mjs';
+import { resolveBinaryOnPath } from './binary-path.mjs';
 
 export function pnpmCommandForPlatform(platform = process.platform) {
   return platform === 'win32' ? 'pnpm.cmd' : 'pnpm';

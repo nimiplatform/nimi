@@ -45,7 +45,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      # >>> nimi-release-gate-projection: live-smoke-checks >>>
       - name: gate.live.live2d-companion-timeline-acceptance
         run: pnpm check:live2d-companion-timeline-acceptance
       - name: gate.live.provider-invariants
@@ -54,7 +53,6 @@ jobs:
         run: node scripts/run-live-test-matrix.mjs
       - name: gate.live.smoke-gate
         run: pnpm check:live-smoke-gate --require-release
-      # <<< nimi-release-gate-projection: live-smoke-checks <<<
 
       - name: Upload live smoke coverage
         if: always()
@@ -108,12 +106,9 @@ jobs:
           fi
           echo "tag=${GITHUB_REF_NAME#runtime/}" >> "${GITHUB_OUTPUT}"
 
-      # >>> nimi-release-gate-projection: release-target-runtime-preconditions >>>
       - name: gate.proto.baseline-exists
         run: test -s runtime/proto/runtime-v1.baseline.binpb
-      # <<< nimi-release-gate-projection: release-target-runtime-preconditions <<<
 
-      # >>> nimi-release-gate-projection: release-target-runtime-static-checks >>>
       - name: gate.runtime.ai-scenario-coverage
         run: pnpm check:runtime-ai-scenario-coverage
       - name: gate.runtime.compliance
@@ -133,7 +128,6 @@ jobs:
         run: go run github.com/goreleaser/goreleaser/v2@latest check --config .goreleaser.yml
       - name: gate.workflow.runtime-goreleaser-snapshot
         run: pnpm check:runtime-goreleaser-snapshot
-      # <<< nimi-release-gate-projection: release-target-runtime-static-checks <<<
 
       - name: Goreleaser release
         uses: goreleaser/goreleaser-action@ec59f474b9834571250b370d4735c50f8e2d1e29 # v7.0.0

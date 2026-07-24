@@ -12,7 +12,7 @@
 //
 // Modes:
 //   default    write projections to disk
-//   --check    invoke each surface's projection-drift check (read-only)
+//   --check    invoke each surface generator in check mode (read-only)
 //
 // Determinism: dispatcher only; per-surface generators are pure
 // projection functions plus a single I/O write each. Offline-safe.
@@ -44,8 +44,8 @@ const USAGE = [
   'Usage: node scripts/generate-release-gate-projection-all.mjs [options]',
   '',
   'Options:',
-  '  --check     Invoke each projection-drift check instead of writing',
-  '              (used by nimicoding generate-spec-derived-docs --check)',
+  '  --check     Invoke each surface generator in check mode instead of',
+  '              writing (used by spec-derived projection checks)',
   '  --help      Print this help and exit',
   '',
   'Write mode runs both deterministic projection writers.',
@@ -65,17 +65,11 @@ function runChild(command, args) {
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
 
-  if (opts.check) {
-    const exit = await runChild('node', [
-      'scripts/check-release-gate-projection-drift.mjs',
-    ]);
-    process.exit(exit);
-  }
-
-  for (const [script, args] of [
-    ['scripts/generate-lint-chain.mjs', []],
-    ['scripts/generate-ci-workflow-steps.mjs', []],
+  for (const script of [
+    'scripts/generate-lint-chain.mjs',
+    'scripts/generate-ci-workflow-steps.mjs',
   ]) {
+    const args = opts.check ? ['--check'] : [];
     const exit = await runChild('node', [script, ...args]);
     if (exit !== 0) process.exit(exit);
   }

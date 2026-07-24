@@ -55,7 +55,7 @@ async function zhiyuSources() {
     contract: '../apps/zhiyu/src-electron/local-development-contract.ts',
     main: '../apps/zhiyu/src-electron/main.ts',
     preload: '../apps/zhiyu/src-electron/preload.cts',
-    app: '../apps/zhiyu/src/shell/app/App.tsx',
+    app: '../apps/zhiyu/src/main.tsx',
     inventory: '../apps/zhiyu/src/shell/agent/agent-inventory.ts',
     account: '../apps/zhiyu/src/shell/auth/runtime-account-status.ts',
     platform: '../apps/zhiyu/src/shell/local-development/local-app-runtime-platform.ts',

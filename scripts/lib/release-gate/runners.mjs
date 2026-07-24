@@ -239,7 +239,7 @@ function composePnpm(gate, options = {}) {
 }
 
 function composeNode(gate, options = {}) {
-  // gate.command e.g. "node scripts/check-release-gate-registry-coherence.mjs"
+  // gate.command e.g. "node scripts/check-example-contract.mjs"
   const trimmed = gate.command.trim();
   if (trimmed.startsWith('node ')) {
     const rest = trimmed.slice('node '.length).trim();

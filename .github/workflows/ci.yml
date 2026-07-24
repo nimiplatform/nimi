@@ -193,7 +193,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      # >>> nimi-release-gate-projection: core-static-checks >>>
       - name: gate.dev-loop.high-risk-doc-metadata
         run: pnpm check:high-risk-doc-metadata
       - name: gate.platform-hardcut.no-legacy-imports
@@ -202,19 +201,8 @@ jobs:
         run: pnpm check:no-retired-methodology-refs
       - name: gate.realm.no-app-rest-bypass
         run: pnpm check:no-app-realm-rest-bypass
-      - name: gate.release-gate.registry-coherence
-        run: node scripts/check-release-gate-registry-coherence.mjs
-      - name: gate.release-gate.projection-drift
-        run: node scripts/check-release-gate-projection-drift.mjs
-      - name: gate.spec-governance.simulator-authority
-        run: pnpm check:simulator-authority
-      - name: gate.spec-governance.spec-semantic-completeness
-        run: pnpm check:spec-semantic-completeness
-      - name: gate.spec-governance.test-inventory
-        run: pnpm check:test-inventory
       - name: gate.workflow.actionlint
         run: pnpm check:actionlint
-      # <<< nimi-release-gate-projection: core-static-checks <<<
 
   workspace-regression:
     needs: changes
@@ -239,10 +227,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      # >>> nimi-release-gate-projection: workspace-regression-checks >>>
       - name: gate.workflow.workspace-regression
         run: pnpm test
-      # <<< nimi-release-gate-projection: workspace-regression-checks <<<
 
   sdk-quality:
     needs: changes

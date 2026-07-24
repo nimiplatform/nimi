@@ -130,7 +130,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      # >>> nimi-release-gate-projection: live-smoke-checks >>>
       - name: gate.live.live2d-companion-timeline-acceptance
         run: pnpm check:live2d-companion-timeline-acceptance
       - name: gate.live.provider-invariants
@@ -139,7 +138,6 @@ jobs:
         run: node scripts/run-live-test-matrix.mjs
       - name: gate.live.smoke-gate
         run: pnpm check:live-smoke-gate --require-release
-      # <<< nimi-release-gate-projection: live-smoke-checks <<<
 
       - name: Upload live smoke coverage
         if: always()
@@ -212,7 +210,6 @@ jobs:
           }
           NODE
 
-      # >>> nimi-release-gate-projection: release-target-sdk-static-checks >>>
       - name: gate.desktop.open-intent-contract
         run: pnpm check:desktop-open-contract
       - name: gate.sdk.consumer-smoke
@@ -225,7 +222,6 @@ jobs:
         run: pnpm check:sdk-version-matrix
       - name: gate.security.package-license-matrix
         run: pnpm check:package-license-matrix
-      # <<< nimi-release-gate-projection: release-target-sdk-static-checks <<<
 
       - name: Check duplicate SDK npm version
         run: |
@@ -293,7 +289,6 @@ jobs:
       - name: Install Buf CLI
         run: go install github.com/bufbuild/buf/cmd/buf@v1.70.0
 
-      # >>> nimi-release-gate-projection: release-target-proto-checks >>>
       - name: gate.proto.baseline-exists
         run: test -s runtime/proto/runtime-v1.baseline.binpb
       - name: gate.proto.breaking
@@ -304,7 +299,6 @@ jobs:
         run: pnpm proto:generate
       - name: gate.proto.lint
         run: pnpm proto:lint
-      # <<< nimi-release-gate-projection: release-target-proto-checks <<<
 
       - name: Push proto module (or dry-run)
         run: |
@@ -723,12 +717,10 @@ jobs:
             echo "NIMI_EXPECTED_BUNDLE=${NIMI_EXPECTED_BUNDLE}"
           } >> "${GITHUB_ENV}"
 
-      # >>> nimi-release-gate-projection: release-target-desktop-release-checks >>>
       - name: gate.desktop.updater-artifacts
         run: pnpm --filter @nimiplatform/desktop run check:desktop-updater-artifacts
       - name: gate.security.runtime-release-signing
         run: pnpm check:runtime-release-signing
-      # <<< nimi-release-gate-projection: release-target-desktop-release-checks <<<
 
       - name: Collect desktop supply chain outputs
         id: desktop_supply_chain

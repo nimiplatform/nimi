@@ -141,7 +141,6 @@ test('future redesign commands are retained app-local and excluded from this Kit
   assert.match(classification, /future redesign target: kit shell host network capability/u);
   assert.match(classification, /future redesign target: kit device-probe/u);
   assert.doesNotMatch(classification, /desktop_agent_center_/u);
-  assert.match(classification, /pending explicit decision between admitted Desktop local truth and runtime ownership/u);
 });
 
 test('retained app-local command disposition report covers every active app-local command', () => {

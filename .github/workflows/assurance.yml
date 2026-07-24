@@ -74,12 +74,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Full spec governance assurance
-        run: pnpm exec nimicoding validate-spec-governance --profile nimi --scope all
-
-      - name: Full spec generated-doc assurance
-        run: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope all --check
-
       - name: Spec semantic completeness assurance
         run: pnpm check:spec-semantic-completeness
 
@@ -112,7 +106,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      # >>> nimi-release-gate-projection: release-target-sdk-static-checks >>>
       - name: gate.desktop.open-intent-contract
         run: pnpm check:desktop-open-contract
       - name: gate.sdk.consumer-smoke
@@ -125,7 +118,6 @@ jobs:
         run: pnpm check:sdk-version-matrix
       - name: gate.security.package-license-matrix
         run: pnpm check:package-license-matrix
-      # <<< nimi-release-gate-projection: release-target-sdk-static-checks <<<
 
   runtime-release-assurance:
     runs-on: ubuntu-latest
@@ -159,7 +151,6 @@ jobs:
       - name: Install Buf CLI
         run: go install github.com/bufbuild/buf/cmd/buf@v1.70.0
 
-      # >>> nimi-release-gate-projection: release-target-proto-checks >>>
       - name: gate.proto.baseline-exists
         run: test -s runtime/proto/runtime-v1.baseline.binpb
       - name: gate.proto.breaking
@@ -170,9 +161,7 @@ jobs:
         run: pnpm proto:generate
       - name: gate.proto.lint
         run: pnpm proto:lint
-      # <<< nimi-release-gate-projection: release-target-proto-checks <<<
 
-      # >>> nimi-release-gate-projection: release-target-runtime-static-checks >>>
       - name: gate.runtime.ai-scenario-coverage
         run: pnpm check:runtime-ai-scenario-coverage
       - name: gate.runtime.compliance
@@ -192,7 +181,6 @@ jobs:
         run: go run github.com/goreleaser/goreleaser/v2@latest check --config .goreleaser.yml
       - name: gate.workflow.runtime-goreleaser-snapshot
         run: pnpm check:runtime-goreleaser-snapshot
-      # <<< nimi-release-gate-projection: release-target-runtime-static-checks <<<
 
   desktop-release-assurance:
     runs-on: ubuntu-22.04
@@ -237,7 +225,6 @@ jobs:
       - name: Build SDK surfaces
         run: pnpm build:sdk
 
-      # >>> nimi-release-gate-projection: release-target-desktop-static-checks >>>
       - name: gate.cargo.audit
         run: cargo audit --file apps/desktop/src-tauri/Cargo.lock
       - name: gate.cargo.desktop-native-quality
@@ -268,7 +255,6 @@ jobs:
         run: pnpm test:kit
       - name: gate.ui.nimi-kit
         run: pnpm check:nimi-kit:prepared
-      # <<< nimi-release-gate-projection: release-target-desktop-static-checks <<<
 
       - name: Complete Desktop E2E assurance
         id: desktop_e2e

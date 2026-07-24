@@ -107,6 +107,7 @@ function createRouteRuntime(input: {
         surfaceId: 'desktop.renderer',
       },
     }),
+    getRouteOptionsClient: () => ({}) as never,
     getRuntimeClient: () => ({
       appId: 'nimi.desktop',
       ai: {

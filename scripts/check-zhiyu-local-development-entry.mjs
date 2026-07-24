@@ -14,7 +14,7 @@ export function collectZhiyuLocalDevelopmentEntryViolations(sources) {
   requirePattern(sources.main, /readArgument\('--nimi-dev-renderer-url'\)[\s\S]*resolveZhiyuLocalDevelopmentAgentId/u, 'renderer URL must activate the shared selector contract', violations);
   requirePattern(sources.main, /localDevelopmentPreloadArguments[\s\S]*LOCAL_DEVELOPMENT_PRELOAD_MARKER[\s\S]*localDevelopmentAgentId \? \[`--nimi-dev-agent-id=/u, 'main must omit the optional selector when absent', violations);
   requirePattern(sources.preload, /resolveZhiyuLocalDevelopmentAgentId[\s\S]*exposeInMainWorld\('__nimiZhiyuLocalDevelopment'[\s\S]*isolated-local-development/u, 'preload must expose the bounded local-development shape', violations);
-  requirePattern(sources.app, /if \(localDevelopment\?\.agentId\)[\s\S]*ZhiyuLocalDevelopmentJourney[\s\S]*return <ZhiyuBundledApp \/>/u, 'zero selector must route to bundled UI', violations);
+  requirePattern(sources.app, /\{localDevelopment\?\.agentId \? \([\s\S]*<ZhiyuLocalDevelopmentJourney[\s\S]*\) : \([\s\S]*<AuthGate>[\s\S]*<ZhiyuProductionSurface \/>[\s\S]*<\/AuthGate>[\s\S]*\)\}/u, 'zero selector must route to bundled UI', violations);
   requirePattern(sources.inventory, /if \(!auth\.ready \|\| !auth\.accountId\)[\s\S]*return inventoryUnavailable\([\s\S]*createNimiRuntimeAgentClient/u, 'local development inventory must fail closed before the bundled Runtime Agent client without an account projection', violations);
   if (/zhiyuLocalAppClient\.agent\.|request_bounded_local_app_agent_inventory_authority/u.test(sources.inventory)) {
     violations.push('local development inventory must not claim an unadmitted local-app Agent operation');
@@ -32,7 +32,7 @@ async function readSources() {
     contract: 'apps/zhiyu/src-electron/local-development-contract.ts',
     main: 'apps/zhiyu/src-electron/main.ts',
     preload: 'apps/zhiyu/src-electron/preload.cts',
-    app: 'apps/zhiyu/src/shell/app/App.tsx',
+    app: 'apps/zhiyu/src/main.tsx',
     inventory: 'apps/zhiyu/src/shell/agent/agent-inventory.ts',
     account: 'apps/zhiyu/src/shell/auth/runtime-account-status.ts',
     platform: 'apps/zhiyu/src/shell/local-development/local-app-runtime-platform.ts',
