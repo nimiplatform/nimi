@@ -15,7 +15,7 @@ description: >
 source_authority:
   runtime_projection: .nimi/spec/runtime/kernel/agent-presentation-stream-contract.md
   runtime_activity_ontology: .nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml
-  nimi2d_package_manifest: .nimi/spec/nimi2d/kernel/tables/package-manifest.schema.yaml
+  nimi2d_package_manifest: .nimi/spec/canonical/nimi2d/asset-package.authority.yaml
 
 routes: &avatar_nimi2d_live_action_route_entries
   - route_id: nimi2d_static_visible

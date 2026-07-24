@@ -106,6 +106,18 @@ scopes:
         value: "apps/avatar/**"
       - kind: path_glob
         value: "kit/features/avatar/**"
+  - scope: nimi2d.asset-package
+    bindings:
+      - kind: path_glob
+        value: "nimi2d/**"
+      - kind: path_glob
+        value: "apps/avatar/src/shell/renderer/nimi2d/**"
+  - scope: nimi2d.generation-supply
+    bindings:
+      - kind: path_glob
+        value: "nimi2d/src/node/image2-provider/**"
+      - kind: path_glob
+        value: "nimi2d/src/node/generation-bench*.mjs"
   - scope: zhiyu.local-partner-surface
     bindings:
       - kind: path_glob

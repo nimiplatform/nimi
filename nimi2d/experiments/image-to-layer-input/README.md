@@ -7,7 +7,7 @@ image / layer atlas -> Nimi2D layer-input contract
 ```
 
 Codex Image2 provider workflows are admitted under
-`.nimi/spec/nimi2d/kernel/codex-image2-provider-contract.md`, but provider image
+`docs/authority/nimi2d-asset-package-rationale.md`, but provider image
 artifacts remain upstream evidence. Formal Nimi2D package admission still starts
 at `layer-input.yaml`.
 

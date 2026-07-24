@@ -1,0 +1,288 @@
+format: nimicoding.authority/v1
+units:
+  - id: definition.nimi.nimi2d.generation-supply.domain
+    kind: definition
+    owner: team.nimi2d
+    lifecycle: active
+    title: N2D-IMG2-001 N2D-BENCH-010 generation-supply domain
+    meaning: The Nimi2D generation-supply domain owns provider-neutral pre-admission image-resource supply and the binary product viability decision for generating admissible Nimi2D packages from conforming layer input without owning package truth or Avatar execution.
+    relations: []
+  - id: definition.nimi.nimi2d.generation-supply.provider
+    kind: definition
+    owner: team.nimi2d
+    lifecycle: active
+    title: N2D-IMG2-001 generation provider
+    meaning: A Nimi2D generation provider is an implementation-neutral producer of upstream image resources through the admitted request and artifact protocol.
+    relations: []
+  - id: definition.nimi.nimi2d.generation-supply.request
+    kind: definition
+    owner: team.nimi2d
+    lifecycle: active
+    title: N2D-IMG2-020 provider request
+    meaning: A provider request is the closed version-1 nimi.nimi2d.codex-image2.request wire document that selects an admitted image-resource workflow and contains every referenced request input and artifact path within its request directory.
+    relations: []
+  - id: definition.nimi.nimi2d.generation-supply.artifact
+    kind: definition
+    owner: team.nimi2d
+    lifecycle: active
+    title: N2D-IMG2-021 provider artifact
+    meaning: A provider artifact is the closed version-1 nimi.nimi2d.codex-image2.artifact wire document for a persisted PNG image resource, its producer facts, provenance references, decoded pixel identity, and admission status as pre-admission supply only.
+    relations: []
+  - id: definition.nimi.nimi2d.generation-supply.viability
+    kind: definition
+    owner: team.nimi2d
+    lifecycle: active
+    title: N2D-BENCH-010 N2D-BENCH-011 generation viability
+    meaning: Nimi2D generation viability is the binary go or no_go product decision about whether generation from conforming layer input may be positioned as the default automatic generated avatar asset layer, with no third or waived state.
+    relations: []
+  - id: definition.nimi.nimi2d.generation-supply.boundaries
+    kind: definition
+    owner: team.nimi2d
+    lifecycle: active
+    title: N2D-IMG2-002 N2D-BENCH-001 N2D-BENCH-003 supply boundaries
+    meaning: Provider output precedes layer input, layer input precedes package admission, package viability remains distinct from Avatar runtime proof, and Realm product surfaces are reference-only consumers rather than generation-supply owners.
+    relations: []
+  - id: rule.nimi.nimi2d.generation-supply.r001
+    kind: rule
+    owner: team.nimi2d
+    lifecycle: active
+    title: N2D-IMG2-001 provider-neutral supply route
+    modality: must
+    scope:
+      - nimi2d.generation-supply
+    statement: First-party Nimi2D image-resource generation uses a generation provider through the admitted request and artifact protocol without making any provider brand, executable, adapter, model, command name, launch formula, attempt count, or timeout part of product semantics.
+    condition: Whenever first-party image resources are generated for later Nimi2D processing.
+    failure: Reject an uncontracted supply result and do not infer success from a provider-specific invocation or implementation detail.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.domain
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.provider
+  - id: rule.nimi.nimi2d.generation-supply.r002
+    kind: rule
+    owner: team.nimi2d
+    lifecycle: active
+    title: N2D-IMG2-010 N2D-IMG2-011 N2D-IMG2-012 N2D-IMG2-013 closed workflow kinds
+    modality: must
+    scope:
+      - nimi2d.generation-supply
+    statement: Provider workflow kind is exactly prompt_to_image for a source image, image_prompt_to_image for identity-preserving source improvement, image_to_layer_atlas for diagnostic layer-atlas research, or companion_asset for a wardrobe, accessory, hair-variant, held-prop, or scene source image, and every output remains an image-resource artifact only.
+    condition: Whenever a provider request selects or reports a workflow.
+    failure: Reject an unknown, merged, or differently interpreted workflow kind without registering a provider artifact.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.provider
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.request
+  - id: rule.nimi.nimi2d.generation-supply.r003
+    kind: rule
+    owner: team.nimi2d
+    lifecycle: active
+    title: N2D-IMG2-013 companion ownership boundary
+    modality: must_not
+    scope:
+      - nimi2d.generation-supply
+    statement: A companion_asset request omits its target input kind, companion kind, or required slot kind, redefines the main rig, or satisfies character outfit renderability without later admission as default_outfit or outfit through the layer-input and package boundaries.
+    condition: Whenever companion image-resource supply is requested or consumed.
+    failure: Reject the request or downstream claim without converting the companion artifact into package truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.boundaries
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.request
+  - id: rule.nimi.nimi2d.generation-supply.r004
+    kind: rule
+    owner: team.nimi2d
+    lifecycle: active
+    title: N2D-IMG2-020 closed request wire and containment
+    modality: must
+    scope:
+      - nimi2d.generation-supply
+    statement: Every provider run starts from a request with manifest_kind nimi.nimi2d.codex-image2.request, schema_version 1, workflow kind, target kind, optional contained source-image ref and hash, prompt ref, output-schema ref, expected-image ref, and authority boundary, while prompt, output-schema, expected-image, response, artifact-manifest, and source-image refs are relative paths contained by the request directory.
+    condition: Whenever a provider request is parsed or execution could begin.
+    failure: Reject a missing or unknown request field, an absolute ref, a parent-directory escape, or an unhashed required source image before provider execution or response consumption.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.request
+  - id: rule.nimi.nimi2d.generation-supply.r005
+    kind: rule
+    owner: team.nimi2d
+    lifecycle: active
+    title: N2D-IMG2-021 closed artifact wire and pixel identity
+    modality: must
+    scope:
+      - nimi2d.generation-supply
+    statement: Every registered provider image uses manifest_kind nimi.nimi2d.codex-image2.artifact and schema_version 1 and records producer family, model hint, an actual selected model only when known, execution surface, request and prompt refs, persisted PNG facts, decoded RGBA pixel hash, and pixel-identity evidence, with model hints never represented as selected-model facts.
+    condition: Whenever provider output is registered or represented as admitted producer evidence.
+    failure: Keep unknown producer facts unknown and reject producer admission when the file is absent, not PNG, not decodable as RGBA, mismatched, or missing decoded pixel-identity evidence.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.artifact
+  - id: rule.nimi.nimi2d.generation-supply.r006
+    kind: rule
+    owner: team.nimi2d
+    lifecycle: active
+    title: N2D-IMG2-003 N2D-IMG2-022 fail-closed provider response
+    modality: must
+    scope:
+      - nimi2d.generation-supply
+    statement: A successful provider response identifies a real persisted PNG path matching the request expected-image ref after path resolution and conforms to the response wire for status, summary, image path, optional separate evidence-image path, and failure reason before artifact registration.
+    condition: Whenever a provider response is consumed, replayed, or registered.
+    failure: Return failure without a guessed path or artifact when execution fails, persistence is unrecorded, the response is malformed, the path mismatches, the PNG is absent or invalid, required pixel identity mismatches, or any request kind is unadmitted.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.artifact
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.request
+  - id: rule.nimi.nimi2d.generation-supply.r007
+    kind: rule
+    owner: team.nimi2d
+    lifecycle: active
+    title: N2D-IMG2-003 anti-fabrication boundary
+    modality: must_not
+    scope:
+      - nimi2d.generation-supply
+    statement: A generation provider fabricates an image path, semantic success, policy admission, identity-preservation result, content-admission result, layer-input status, package status, generation viability, or Avatar runtime readiness.
+    condition: Whenever provider prerequisites, output facts, or downstream evidence are missing, malformed, unknown, or failing.
+    failure: Fail closed at the provider boundary and preserve the unknown or failed state without fallback data or pseudo-success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.boundaries
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.provider
+  - id: rule.nimi.nimi2d.generation-supply.r008
+    kind: rule
+    owner: team.nimi2d
+    lifecycle: active
+    title: N2D-IMG2-002 N2D-IMG2-030 pre-admission artifact boundary
+    modality: must_not
+    scope:
+      - nimi2d.generation-supply
+    statement: A provider artifact, raw image, repaired image, atlas, provider workflow result, or provider evidence becomes layer input, package truth, package admission, generation viability, reference-player proof, or Avatar runtime proof merely because provider production or registration succeeded.
+    condition: Whenever provider supply is handed to a downstream Nimi2D or Avatar surface.
+    failure: Retain the output as pre-admission image-resource supply and require each distinct layer-input, package, viability, reference-player, and Avatar-owned gate without inferred fields or bundled success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.artifact
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.boundaries
+  - id: rule.nimi.nimi2d.generation-supply.r009
+    kind: rule
+    owner: team.nimi2d
+    lifecycle: active
+    title: N2D-IMG2-010 N2D-IMG2-011 content and identity posture
+    modality: must
+    scope:
+      - nimi2d.generation-supply
+    statement: A human-form source-image request requires safe fully clothed content, and an image_prompt_to_image request preserves source identity, design intent, age posture, outfit coverage, and content-admission posture rather than silently changing them.
+    condition: Whenever a human-form source image is requested or an existing source image is improved.
+    failure: Reject unsafe, ambiguous, or silently changed output as provider supply without claiming content or identity admission.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.provider
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.request
+  - id: rule.nimi.nimi2d.generation-supply.r010
+    kind: rule
+    owner: team.nimi2d
+    lifecycle: active
+    title: N2D-BENCH-001 N2D-BENCH-002 N2D-BENCH-003 viability input and ownership
+    modality: must
+    scope:
+      - nimi2d.generation-supply
+    statement: Generation viability evaluates package generation only from contract-conformant nimi.nimi2d.layer-input data, treats upstream provider, segmentation, inpainting, source choice, identity, and content-classification quality as external, and treats package-player proof and Avatar Live Action or Runtime projection proof as separate non-substitutable boundaries.
+    condition: Whenever Nimi2D generation viability is evaluated or reported.
+    failure: Return no_go for an invalid or raw-image-like input and reject any upstream, reference-player, Runtime, Realm, or Avatar evidence presented as substitute viability proof.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.boundaries
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.viability
+  - id: rule.nimi.nimi2d.generation-supply.r011
+    kind: rule
+    owner: team.nimi2d
+    lifecycle: active
+    title: N2D-BENCH-010 N2D-BENCH-011 binary go or no-go consequence
+    modality: must
+    scope:
+      - nimi2d.generation-supply
+    statement: Generation viability returns go only when every admitted hard semantic gate and every applicable renderability and capability quality floor passes, otherwise returns no_go, and no_go prohibits positioning Nimi2D as the default automatic PersonaCharacter skin generation layer while permitting separately described hand-authored, semi-automatic, research, or Avatar-target uses.
+    condition: Whenever a generation-viability decision is computed, represented, or used for a product claim.
+    failure: Replace any conditional, waived, partial, skipped, unverified, fixture-only, hand-picked, or unsupported success with no_go and remove the default-generation claim.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.viability
+  - id: rule.nimi.nimi2d.generation-supply.r012
+    kind: rule
+    owner: team.nimi2d
+    lifecycle: active
+    title: N2D-BENCH-020 asset integrity and no-render hard gates
+    modality: must
+    scope:
+      - nimi2d.generation-supply
+    statement: Generation viability requires package asset refs, digests, decoded RGBA facts, bounds, alpha, color space, and draw order to validate, requires every renderable character to have a valid default or selected outfit, and rejects every base-body-only preview, export, render, debug, or viability path.
+    condition: Whenever hard generation-viability semantics are evaluated.
+    failure: Return no_go on any asset-integrity failure, outfitless character rendering, or base-body pixel path.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.viability
+  - id: rule.nimi.nimi2d.generation-supply.r013
+    kind: rule
+    owner: team.nimi2d
+    lifecycle: active
+    title: N2D-BENCH-020 content and adult hard gates
+    modality: must
+    scope:
+      - nimi2d.generation-supply
+    statement: Generation viability requires current unambiguous upstream content-admission evidence and keeps adult-oriented assets, capability claims, generation inputs, and distribution unavailable in version 1.
+    condition: Whenever generated package viability or distribution is evaluated.
+    failure: Return no_go when content evidence is missing, ambiguous, review-required, or failing or when adult-v1 material or capability is present.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.viability
+  - id: rule.nimi.nimi2d.generation-supply.r014
+    kind: rule
+    owner: team.nimi2d
+    lifecycle: active
+    title: N2D-BENCH-020 capability overclaim hard gate
+    modality: must_not
+    scope:
+      - nimi2d.generation-supply
+    statement: Generation viability accepts a requested tier or channel above validator-proven package evidence, counts true viseme as tier-1 success, or counts upstream occlusion quality or Avatar live-action behavior as Nimi2D package capability.
+    condition: Whenever generated capability is evaluated or reported.
+    failure: Return no_go and retain only the lower fully proven Nimi2D package capability without reassigning external-owner evidence.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.boundaries
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.viability
+  - id: rule.nimi.nimi2d.generation-supply.r015
+    kind: rule
+    owner: team.nimi2d
+    lifecycle: active
+    title: N2D-BENCH-020 renderability and capability quality floors
+    modality: must
+    scope:
+      - nimi2d.generation-supply
+    statement: A go decision requires generated anchors and slots to be correct, default-outfit binding to succeed, expressions and tier-1 jaw-amplitude speech mouth movement to be usable, required motion primitives to bind without unsafe poses, and the resulting package to be ready for Nimi2D package admission at its claimed tier.
+    condition: Whenever generation viability is evaluated for a default automatic generated-asset claim.
+    failure: Return no_go when any applicable quality floor fails, regardless of numeric threshold configuration or tracking metrics.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.viability
+  - id: rule.nimi.nimi2d.generation-supply.r016
+    kind: rule
+    owner: team.nimi2d
+    lifecycle: active
+    title: N2D-BENCH-021 closed semantic gate set
+    modality: must_not
+    scope:
+      - nimi2d.generation-supply
+    statement: An unknown metric, tracking measure, corpus property, replay property, report field, waiver, or implementation check is promoted into generation-viability closure without separate canonical authority admission.
+    condition: Whenever generation-supply gate semantics are extended or a go decision is justified.
+    failure: Exclude the unadmitted item from product semantics and return no_go if the admitted semantic gates cannot independently establish go.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.domain
+      - type: applies_to
+        target: definition.nimi.nimi2d.generation-supply.viability

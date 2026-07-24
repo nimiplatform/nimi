@@ -372,15 +372,9 @@ test('live provider invariant guard rejects Nimi2D Image2 direct API key drift',
   const { collectNimi2DImage2LiveRouteDriftRefs } = await import(scriptUrl);
   const tempRoot = await mkdtemp(path.join(tmpdir(), 'nimi2d-image2-boundary-guard-'));
 
-  await mkdir(path.join(tempRoot, '.nimi/spec/nimi2d/kernel'), { recursive: true });
   await mkdir(path.join(tempRoot, 'nimi2d/src/node/image2-provider'), { recursive: true });
   await mkdir(path.join(tempRoot, 'nimi2d/test'), { recursive: true });
 
-  await writeFile(
-    path.join(tempRoot, '.nimi/spec/nimi2d/kernel/codex-image2-provider-contract.md'),
-    `Image2 live path must not use ${'NIMI2D_IMAGE2_' + 'OPENAI_API_KEY'}.`,
-    'utf8',
-  );
   await writeFile(
     path.join(tempRoot, 'nimi2d/src/node/image2-provider/provider-workflow.mjs'),
     `export const bad = "${'openai_' + 'api_key'}";\n`,
@@ -394,7 +388,6 @@ test('live provider invariant guard rejects Nimi2D Image2 direct API key drift',
 
   const driftRefs = collectNimi2DImage2LiveRouteDriftRefs(tempRoot);
   assert.equal(driftRefs.some((ref) => ref.path.endsWith('provider-openai-image-api.mjs')), false);
-  assert.equal(driftRefs.some((ref) => ref.path.endsWith('codex-image2-provider-contract.md')), true);
   assert.equal(driftRefs.some((ref) => ref.path.endsWith('provider-workflow.mjs')), true);
 });
 

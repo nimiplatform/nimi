@@ -213,9 +213,6 @@ function listFilesUnder(rootDir) {
 }
 
 function shouldScanNimi2DImage2LiveRoutePath(relPath) {
-  if (relPath.startsWith('.nimi/spec/nimi2d/')) {
-    return true;
-  }
   if (relPath.startsWith('nimi2d/src/node/image2-provider/')) {
     return true;
   }
@@ -226,15 +223,11 @@ function shouldScanNimi2DImage2LiveRoutePath(relPath) {
 }
 
 function isIsolatedOpenAIImageApiAdapterPath(relPath) {
-  if (relPath.startsWith('.nimi/spec/nimi2d/')) {
-    return false;
-  }
   return /(^|\/)(provider-openai-image-api|[^/]*openai-image-api[^/]*)/.test(relPath);
 }
 
 function collectNimi2DImage2LiveRouteDriftRefs(scanRoot = repoRoot) {
   const roots = [
-    '.nimi/spec/nimi2d',
     'nimi2d/src/node/image2-provider',
     'nimi2d/test',
   ];

@@ -43,7 +43,7 @@ fields:
       package_manifest_ref:
         type: opaque_ref
       package_id:
-        source: ".nimi/spec/nimi2d/kernel/tables/package-manifest.schema.yaml"
+        source: ".nimi/spec/canonical/nimi2d/asset-package.authority.yaml"
       package_digest_sha256:
         type: lowercase_hex
         length: 64
@@ -181,5 +181,5 @@ invariants:
 
 refs:
   contract: "docs/authority/avatar-embodiment-rationale.md"
-  nimi2d_package_manifest: ".nimi/spec/nimi2d/kernel/tables/package-manifest.schema.yaml"
-  nimi2d_generation_bench: ".nimi/spec/nimi2d/kernel/generation-bench-contract.md"
+  nimi2d_package_manifest: ".nimi/spec/canonical/nimi2d/asset-package.authority.yaml"
+  nimi2d_generation_bench: ".nimi/spec/canonical/nimi2d/generation-supply.authority.yaml"
