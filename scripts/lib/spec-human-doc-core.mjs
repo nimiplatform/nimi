@@ -455,20 +455,6 @@ export const runtimeKernelFiles = [
   'world-evolution-engine-contract.md',
 ];
 
-export const cognitionKernelFiles = [
-  'cognition-contract.md',
-  'family-contract.md',
-  'surface-contract.md',
-  'runtime-bridge-contract.md',
-  'runtime-upgrade-contract.md',
-  'memory-service-contract.md',
-  'knowledge-service-contract.md',
-  'skill-service-contract.md',
-  'reference-contract.md',
-  'prompt-serving-contract.md',
-  'completion-contract.md',
-];
-
 export const sdkKernelFiles = [
   'surface-contract.md', 'transport-contract.md',
   'error-projection.md', 'boundary-contract.md',

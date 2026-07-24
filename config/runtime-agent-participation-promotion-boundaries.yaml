@@ -29,8 +29,8 @@ promotion_targets:
     source_rule: K-AGCORE-102
     owner_authority:
       - .nimi/spec/runtime/kernel/runtime-memory-service-contract.md
-      - .nimi/spec/cognition/kernel/runtime-bridge-contract.md
-      - .nimi/spec/cognition/kernel/memory-service-contract.md
+      - .nimi/spec/canonical/cognition/runtime-bridge.authority.yaml
+      - docs/authority/cognition-standalone-services-rationale.md
     owner_rule_families:
       - K-MEM-*
       - C-COG-*

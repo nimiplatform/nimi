@@ -20,7 +20,7 @@ admissions:
       - .nimi/spec/realm/**
       - .nimi/spec/canonical/platform/**
       - .nimi/spec/desktop/**
-      - .nimi/spec/cognition/**
+      - .nimi/spec/canonical/cognition/**
       - .nimi/spec/canonical/avatar/**
     projection_boundary:
       host_project_admission_owner: .nimi/spec/canonical/platform/authority-admission.authority.yaml

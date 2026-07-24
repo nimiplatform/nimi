@@ -7,7 +7,7 @@ import (
 
 // App memory access policy registry.
 //
-// `.nimi/spec/cognition/kernel/app-memory-access-contract.md` (C-APMEM-002)
+// `docs/authority/cognition-standalone-services-rationale.md` (C-APMEM-002)
 // locks the admitted policy enum for app access to cognition memory /
 // knowledge / skill surfaces. The enum is CLOSED: C-APMEM-002 forbids
 // admitting open string policies — adding a policy requires amending the

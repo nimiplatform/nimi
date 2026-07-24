@@ -203,7 +203,7 @@ capabilities:
     authority_refs:
       - .nimi/spec/runtime/kernel/runtime-memory-service-contract.md#K-MEM-001
       - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md#K-AGCORE-004
-      - .nimi/spec/cognition/kernel/memory-service-contract.md
+      - docs/authority/cognition-standalone-services-rationale.md
     login_requirement: realm_login_required
     public_promise: Runtime owns local canonical agent memory policy, bank status projection, query/write admission, and explicit Realm replication outcome when enabled.
     failure_behavior: Missing substrate, invalid scope, unresolved embedding profile, Realm replication failure, or app-private canonical-write attempt fails closed or surfaces observable pending/conflict state.

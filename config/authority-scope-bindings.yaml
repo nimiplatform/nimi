@@ -110,6 +110,14 @@ scopes:
     bindings:
       - kind: path_glob
         value: "apps/zhiyu/**"
+  - scope: cognition.standalone-services
+    bindings:
+      - kind: path_glob
+        value: "runtime/internal/services/cognition/**"
+  - scope: cognition.runtime-bridge
+    bindings:
+      - kind: path_glob
+        value: "runtime/internal/services/cognition/**"
   - scope: desktop.ai-consumption
     bindings:
       - kind: path_glob
