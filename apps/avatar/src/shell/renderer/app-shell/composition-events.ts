@@ -8,7 +8,7 @@
 // `emitCompositionTransition` is driven from a derived-state observer in
 // `App.tsx`.
 //
-// Detail schema source of truth: `.nimi/spec/avatar/kernel/avatar-event-contract.md`.
+// Detail schema source of truth: `docs/authority/avatar-embodiment-rationale.md`.
 
 import { useEffect, useRef } from 'react';
 import { recordAvatarEvidenceEventually, type AvatarCompositionSurface } from './avatar-evidence.js';

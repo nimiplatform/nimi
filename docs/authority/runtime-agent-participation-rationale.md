@@ -2909,3 +2909,467 @@ external participant gateway bypass, or any reopening of `K-AGCORE-073`,
 `K-AGCORE-086`, the Runtime Participation profile registry, or the Room
 Orchestration axis/matrix/overlay registries.
 
+<!-- source: .nimi/spec/avatar/kernel/companion-participation-consumer-contract.md -->
+
+# Companion Participation Consumer Contract
+
+> App: `@nimiplatform/avatar`
+> Owner Domain: Avatar consumer projection, downstream of Runtime `K-AGCORE-*`
+
+This contract defines how Avatar companion/persona and Avatar debug/probe
+surfaces consume Runtime Agent Participation projection. It does not create a
+Runtime Participation profile and does not grant execution authority to any app
+surface.
+
+## Authority Boundary
+
+Runtime owns participation execution semantics:
+
+- profile validation
+- prompt assembly
+- provider/model routing
+- memory/capability verdicts
+- concurrency, budget, cancellation, and audit lineage
+- output candidates and promotion posture
+
+Avatar-owned surfaces may only:
+
+- display typed participation projection
+- display typed presentation timeline state
+- expose bounded controls that call Runtime/SDK typed methods
+- emit Avatar-local UI/render/debug evidence
+- render refusal, blocked, pending, running, candidate, committed, or failed
+  states from typed projection
+
+Avatar-owned surfaces must not:
+
+- assemble prompts
+- call providers or models directly
+- read or write memory/cognition/domain/canonical truth
+- consume raw APML/debug/MCP/A2A payloads as product truth
+- create private queues, schedulers, fairness budgets, cancellation budgets, or
+  Runtime queue status namespaces
+- commit Realm/Scenario/OASIS/domain transcripts
+
+## Surface Kinds
+
+Closed surface kinds are defined in
+[`tables/companion-participation-surface-kinds.yaml`](tables/companion-participation-surface-kinds.yaml).
+
+The initial admitted kinds are:
+
+- `avatar_companion`
+- `desktop_companion_panel`
+- `avatar_debug_workbench` (stable typed probe-client vocabulary; not a
+  Desktop-local workbench UI)
+
+Avatar package/persona choices, such as assistant, character, virtual singer,
+or other stylized persona, are configuration and content choices inside the
+Avatar product. They are not separate participation surface kinds and do not
+create independent execution owners.
+
+## Projection Model
+
+The Avatar consumer reads `runtime.companionParticipation` through the Runtime
+SDK typed module. Avatar product code must not call `runtime.agent.turns`
+directly for companion participation requests or cancellation. The projection
+must include:
+
+- `projection_id`
+- `agent_id`
+- `surface_kind`
+- `profile_ref`
+- `room_orchestration_ref` when more than one participant or domain context is
+  involved
+- `trigger_source`
+- `status`
+- `candidate_ref` when Runtime has produced an output candidate
+- `refusal_reason` when Runtime or room orchestration refuses admission
+- `presentation_ref` when the projection is visual/presentation-only
+- `audit_ref`
+
+Avatar may cache the projection only as transient UI state. It may not promote
+projection content into durable product truth.
+
+## Avatar Implementation Binding
+
+The Avatar shell bootstrap owns the first-party Runtime binding and exposes
+only Avatar-local handle methods backed by SDK companion participation:
+
+- text submit routes to `runtime.companionParticipation.request`
+- foreground voice transcript submit routes to the same request method
+- interrupt/cancel routes to `runtime.companionParticipation.cancel`
+
+The companion surface renders Runtime/SDK projection status as UI state. It
+must treat `blocked`, `failed`, and `canceled` as non-success states and must
+not fall back to local text-turn execution.
+
+## Status Semantics
+
+Allowed status values:
+
+- `idle`
+- `admission_pending`
+- `blocked`
+- `running`
+- `candidate_ready`
+- `committed_by_owner`
+- `failed`
+- `canceled`
+
+`candidate_ready` means Runtime has produced a candidate. It does not mean the
+candidate has been committed to domain truth.
+
+`committed_by_owner` may be displayed only when the domain owner or canonical
+chat owner returns a typed commit projection. Avatar must not infer commit from
+candidate content.
+
+## Trigger Policy
+
+Trigger policy is defined in
+[`tables/companion-participation-trigger-policy.yaml`](tables/companion-participation-trigger-policy.yaml).
+
+Allowed trigger sources:
+
+- `none`
+- `user_explicit`
+- `scheduled_proactive`
+- `domain_event`
+
+Every non-`none` trigger must route through Runtime participation admission and,
+where applicable, room/session orchestration. A trigger source never grants
+prompt, provider/model, memory, cognition, queue, or commit authority.
+
+## Domain Consumption
+
+For Group, Scenario, OASIS/world, and external-entry contexts:
+
+- the domain-specific profile/overlay remains the owner of domain context and
+  commit handoff
+- Avatar companion/persona surfaces display typed projection only
+- missing domain evidence fails closed before Runtime candidate handoff
+- raw domain payloads must not be passed to Avatar as prompt material
+
+## Debug / Probe Consumption
+
+Avatar debug/probe surfaces may show typed Runtime or Avatar evidence:
+
+- Runtime probe ids and replay refs
+- Avatar backend evidence
+- refusal and remediation states
+- visual carrier evidence
+
+They must not consume raw backend bus payloads, raw APML diagnostics, delegated
+provider output, app auth material, or private Runtime internals.
+
+## Fail-Closed Rules
+
+The surface must show a blocked/failed state when:
+
+- projection is missing required ids
+- trigger source is unknown
+- surface kind is unknown
+- profile ref is missing for an execution request
+- room orchestration ref is missing for multi-participant/domain contexts
+- Runtime refusal reason is present
+- candidate ref is missing for `candidate_ready`
+- commit projection is missing for `committed_by_owner`
+
+No UI may convert these failures into a successful reply, synthetic candidate,
+or local fallback execution.
+
+## Agent Center Appearance Boundary
+
+Avatar may consume Agent Center appearance inputs only as admitted local asset
+references and Runtime/SDK presentation projection. This boundary admits local
+Live2D/VRM/background refs, validation evidence, and launch bridge inputs, but
+does not admit any Agent Center model, provider, Runtime Agent AI Config,
+memory, transcript, Runtime snapshot, route, or turn execution truth.
+
+Avatar package resolvers and bridge payload parsers must reject Runtime AI
+config fields, provider/model route fields, memory fields, transcript/session
+recovery fields, Runtime snapshot fields, and arbitrary key growth. Avatar
+package gates remain required before RLA5 closeout.
+
+
+---
+
+<!-- source: .nimi/spec/avatar/kernel/avatar-external-entry-consumer-contract.md -->
+
+# Avatar External Entry Consumer Contract
+
+> Authority: Avatar Kernel
+
+## Scope
+
+This contract owns only how Avatar consumes a Runtime-admitted external-entry
+presentation projection.
+
+It does not own external principal identity, gateway verdicts, firewall
+verdicts, credential custody, consent posture, protocol adapters, provider/model
+routing, audit lineage, or domain writeback.
+
+## Upstream Authority
+
+Avatar external-entry consumption is downstream of:
+
+- `.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md`
+  `K-AGCORE-079..094`
+- `.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml`
+- `.nimi/spec/runtime/kernel/delegated-mcp-adapter-contract.md`
+  `K-DELEG-100..119`
+- `.nimi/spec/runtime/kernel/delegated-a2a-future-seam-contract.md`
+  `K-DELEG-120..129`
+- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
+  `K-AGCORE-049..051`
+
+Avatar must inherit the external-entry boundary matrix. It must not reinterpret
+the matrix locally.
+
+## Consumer Shape
+
+Avatar may render external-entry influence only after Runtime has produced an
+admitted typed presentation projection or an explicitly admitted equivalent
+Avatar consumer envelope.
+
+The projection must carry Runtime-owned provenance such as `apml_output` or
+`direct_api`. `direct_api` means Runtime-admitted direct projection provenance.
+It does not mean a browser, localhost, sidecar, plugin, or arbitrary app can
+write Avatar state directly.
+
+## Forbidden Local Driver Authority
+
+Avatar MUST NOT expose or own:
+
+- an Avatar-local HTTP endpoint
+- an Avatar-local WebSocket endpoint
+- a browser-reachable local state endpoint
+- a Petdex-style `/state` protocol
+- token posture for local driver writes
+- rate-limit posture for local driver writes
+- user-consent posture for local driver writes
+- external provider/model routing
+- external credential custody
+- external protocol adapter truth
+
+These questions belong to Runtime/external-agent-entry/desktop admission, not to
+Avatar.
+
+## No Writeback
+
+External-entry presentation consumption must remain render-only from Avatar's
+perspective.
+
+Avatar MUST NOT turn external-entry projections into:
+
+- memory writes
+- cognition writes
+- canonical chat commits
+- Realm GROUP commits
+- product-domain commits
+- provider/model routing decisions
+- package activation or package lifecycle changes
+
+## Fail-Closed Rendering
+
+Avatar must refuse rendering of an external-entry projection when:
+
+- Runtime admission evidence is missing
+- required gateway/firewall/audit/credential verdict refs are missing
+- provenance is unknown
+- the projection attempts writeback
+- the projection carries raw MCP/A2A/protocol payloads as semantic fields
+- the projection requires an Avatar-local endpoint or local adapter protocol
+
+Refusal must use admitted degraded/debug surfaces. It must not invent a local
+fallback driver, localhost state path, fixture carrier, or static success state.
+
+
+---
+
+<!-- source: .nimi/spec/avatar/kernel/wake-local-audio-lifecycle-contract.md -->
+
+# Wake And Local Audio Lifecycle Contract
+
+> App: `@nimiplatform/avatar`
+> Authority: Avatar kernel contract
+> Status: Active owner-boundary authority
+> Related contracts:
+> - [App shell contract](app-shell-contract.md)
+> - [Avatar event contract](avatar-event-contract.md)
+> - [Companion participation consumer contract](companion-participation-consumer-contract.md)
+> - [Backend branch contract](backend-branch-contract.md)
+
+---
+
+## 1. Scope
+
+This contract defines Avatar-local handling for wake-adjacent and local-audio
+lifecycle states. It does not admit wake-word activation in Avatar UI. It
+establishes the owner boundary required before a future Runtime-owned wake
+phrase lifecycle can be admitted.
+
+Current admitted slice:
+
+- Runtime-owned wake/listening/foreground response projection rendered by Avatar
+- visible local audio privacy feedback for every Runtime-projected capture/playback state
+- Runtime-owned turn and playback projection rendered by Avatar presentation UI
+- backend-local lipsync driven by Runtime-owned audio artifacts
+- fail-closed degraded and blocked states
+
+Out of scope until separate Runtime authority admits it:
+
+- wake-word / wake-phrase activation
+- background listening
+- lock-screen continuation
+- hidden hot mic
+- Avatar-local wake toggles
+- Desktop-local wake parsing
+
+---
+
+## 2. Owner Boundary
+
+| Capability | Runtime owner | Avatar owner | Desktop owner |
+|---|---|---|---|
+| Wake phrase admission | Owns future lifecycle, consent, model/session gating, event projection, and policy | Must not locally admit or fake wake behavior | Must not parse wake audio or create wake truth |
+| Foreground voice / wake listening | Owns wake phrase lifecycle, listener fan-out, accepted turn, transcript, participation, foreground response priority, and turn lifecycle projection | Renders Runtime-projected listening/privacy/playback state and may request foreground response priority; must not start/commit microphone capture locally | May host OS permission prompts and launch handoff only |
+| Background listening | Owns future admitted lifecycle if added | Forbidden in this slice | Forbidden as hidden app behavior |
+| Audio playback | Owns presentation timing, artifact identity, playback state projection, and interruption truth | Owns local playback pipeline, visual speaker state, lipsync sink, and fail-closed rendering | Does not own playback truth |
+| Lipsync | Owns audio artifact and presentation timing; does not own backend mouth parameters | Owns backend-local mouth driver and visible lipsync state | No ownership |
+| Interrupt | Owns accepted cancellation semantics and current-turn result | Owns current-anchor interrupt affordance and request emission | May display host state but cannot cancel independently |
+| Privacy feedback | Owns policy/state projection for future lifecycle modes | Must visibly render mic/audio/privacy state for every local capture/playback state | Owns OS/window-level permission surfacing only |
+
+Boundary invariants:
+
+1. Avatar must not enter listening from local UI state. Listening requires
+   Runtime projection.
+2. Avatar must not represent wake as available unless Runtime has admitted and
+   projected a wake lifecycle in a future authority batch.
+3. Desktop launch context may identify an Avatar instance, agent, and anchor;
+   it must not supply raw wake/audio truth to Avatar.
+4. Runtime turn projection is the only source for reply/pending/interrupted
+   truth. Avatar UI state may be optimistic only for text composer submission
+   and must fail closed on Runtime rejection.
+5. Every state that uses the microphone or plays agent audio must have a visible
+   privacy or activity indicator in the presence capsule.
+6. Avatar autoplay is a per-agent Runtime/local-agent policy. Avatar instance
+   settings must not own voice enablement, TTS route, voice reference, or model
+   choice.
+7. Avatar must not call TTS directly. It only consumes Runtime voice
+   stream/playback projection and Runtime artifact bytes.
+8. If Runtime produces text-only output because TTS is missing or unavailable,
+   Avatar remains text/expression/activity only and must not show fake speaking
+   or fake lipsync.
+
+---
+
+## 3. Lifecycle States
+
+Avatar maps Runtime, local voice capture, audio playback, and lipsync projection
+into the following closed visual lifecycle ids.
+
+| State id | Source inputs | Avatar visual obligation | Allowed action |
+|---|---|---|---|
+| `idle` | ready surface, no active Runtime-projected voice/capture/playback/error | neutral presentation state; no local mic start control | request foreground priority, open composer/settings |
+| `foreground_listening` | Runtime projects this avatar/agent as actively listening | active mic/listening indicator, privacy label when a visible voice overlay is admitted | no local commit; Runtime owns capture lifecycle |
+| `transcribing` | Runtime projects capture/transcription in progress | busy mic indicator, capture privacy no longer active | wait or fail closed |
+| `turn_pending` | transcript/typed turn submitted, Runtime active turn not yet projected | pending indicator | no mic start; allow no fake speaking |
+| `assistant_speaking` | Runtime active turn/reply projection or audio playback started/requested | speaker/lipsync indicator, bounded cue/caption when available | interrupt current anchor turn |
+| `interrupted` | Runtime terminal interrupted/canceled projection or local interrupt result | interrupted indicator, audio/lipsync silent | clear via next turn or anchor change |
+| `muted_or_audio_unavailable` | audio playback failed/canceled/unavailable while surface remains ready | unavailable speaker indicator, no fake lipsync | text may remain based on binding availability |
+| `blocked` | foreground voice availability is blocked or binding missing | mic disabled with visible blocked/error state | text/settings only where binding permits |
+| `error` | local capture/submit error for current anchor | transient error indicator and bounded error text | retry explicit action |
+| `runtime_degraded` | non-ready composition state | degraded surface only; no presence capsule | reload shell if admitted |
+| `wake_future_unadmitted` | requested or configured wake behavior without Runtime admission | fail closed as unavailable; no toggle | none |
+
+The ready state and any degraded state remain mutually exclusive per
+`app-shell-contract.md`; lifecycle states above are sub-states of the ready
+presence capsule unless explicitly marked `runtime_degraded`.
+
+---
+
+## 4. Runtime-Owned Voice Wake
+
+The admitted voice mode is Runtime-owned wake/listening orchestration:
+
+1. Runtime owns microphone listener lifecycle, wake phrase matching, consent,
+   fan-out across multiple avatars, foreground respondent selection, transcript,
+   accepted turn, and final reply truth.
+2. Avatar may request foreground response priority by double-click or context
+   menu. This is only an intent signal; it is not a local capture start.
+3. Avatar renders Runtime-projected voice/listening/playback/lipsync state when
+   Runtime emits it.
+4. Avatar must not expose local start-listening, stop-listening, or commit
+   capture controls in the default embodied output layer.
+5. Text input remains a transient Runtime-bound composer and does not imply
+   voice authority.
+6. When Runtime policy enables per-agent Avatar autoplay, Avatar may automatically
+   play the Runtime-projected voice stream for the active agent/anchor.
+7. When Runtime policy disables Avatar autoplay, Avatar must not request or
+   synthesize speech for ordinary assistant messages.
+
+## 4.1 Runtime-Owned Voice Output Policy
+
+Avatar observes, but does not own, the agent voice output policy admitted by
+`K-VOICE-018`.
+
+Fixed rules:
+
+- `avatar_autoplay` is per agent, not per avatar instance.
+- Avatar-local shell settings may mute local playback or hide captions, but they
+  do not change Runtime policy or voice artifact generation truth.
+- Avatar may compute lipsync locally from playable audio via browser audio
+  processing. Runtime does not own mouth parameters.
+- Generated voice audio persistence and cleanup are Runtime-owned. Avatar does
+  not maintain a durable voice cache.
+
+---
+
+## 5. Future Wake Admission Requirements
+
+A future wake phrase slice must be owned by Runtime before Avatar may expose it.
+Minimum Runtime-owned requirements:
+
+- wake lifecycle projection with admitted state ids
+- policy/consent and profile/session binding
+- wake phrase detector ownership and privacy posture
+- visible state projection for armed/listening/matched/blocked/degraded
+- explicit stop/disable semantics
+- audit/evidence events outside Avatar-local UI truth
+
+Avatar may then render Runtime projection, but must still not own wake parsing,
+background microphone capture, consent policy, or lifecycle admission.
+
+---
+
+## 6. Event Binding
+
+Avatar-local evidence for this lifecycle is limited to UI/render facts:
+
+- `avatar.audio.lifecycle.state_changed`
+- `avatar.audio.privacy.indicator_changed`
+- `avatar.shell.foreground_priority.requested`
+- existing `avatar.audio.playback.*`
+- existing `avatar.lipsync.*`
+
+Runtime-owned wake lifecycle events are not admitted in Avatar authority and
+must not be invented under the `avatar.*` namespace.
+
+---
+
+## 7. Drift Rules
+
+- A wake toggle in Avatar settings is drift until Runtime wake lifecycle
+  authority is admitted.
+- Any Avatar-local transition into listening without Runtime projection is drift.
+- Any Avatar-local start/stop/commit listening control in the default embodied
+  output layer is drift.
+- Any hidden mic, background continuation, or lock-screen continuation is drift.
+- Any local fake transcript/reply/speaking state is drift.
+- Any audio/lipsync success claim without Runtime artifact or backend evidence
+  is drift.
+
+
+---
+

@@ -1,4 +1,4 @@
-// Catalog tests for .nimi/spec/avatar/kernel/tables/vrm-sample-catalog.yaml.
+// Catalog tests for config/avatar-vrm-sample-catalog.yaml.
 //
 // Unit tests for the VRM sample fetcher script
 // (`apps/avatar/scripts/fetch-vrm-models.mjs`). Network is fully mocked

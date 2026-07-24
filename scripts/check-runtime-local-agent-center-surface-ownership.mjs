@@ -105,7 +105,7 @@ async function checkSpec() {
   const desktopKitPath = '.nimi/spec/canonical/desktop/shell-ui.authority.yaml';
   const desktopConversationPath = '.nimi/spec/canonical/desktop/agent-projection.authority.yaml';
   const zhiyuPath = '.nimi/spec/zhiyu/kernel/configuration-surface-contract.md';
-  const avatarPath = '.nimi/spec/avatar/kernel/companion-participation-consumer-contract.md';
+  const avatarPath = 'docs/authority/runtime-agent-participation-rationale.md';
 
   if (!await exists(contractPath)) {
     findings.push(`${contractPath}: missing Agent Center contract`);

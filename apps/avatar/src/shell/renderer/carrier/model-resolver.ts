@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/backend-branch-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // Backend-agnostic ModelManifest resolver. Detects backend kind from the
 // resolved package and returns a discriminated union the rest of the

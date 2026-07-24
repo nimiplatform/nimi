@@ -1,3 +1,6 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/avatar/embodiment-surface.authority.yaml
+# Rationale: docs/authority/avatar-embodiment-rationale.md
 version: 1
 table_family: closed_enum
 owner: avatar
@@ -74,8 +77,8 @@ tiers: &live2d_compatibility_tier_values
 
 diagnostic_namespace: "AVATAR_LIVE2D_COMPAT_*"
 schema_refs:
-  manifest_schema: ".nimi/spec/avatar/kernel/tables/live2d-adapter-manifest.schema.yaml"
-  diagnostics_registry: ".nimi/spec/avatar/kernel/tables/live2d-adapter-diagnostics.yaml"
+  manifest_schema: "config/avatar-live2d-adapter-manifest.schema.yaml"
+  diagnostics_registry: "config/avatar-live2d-adapter-diagnostics.yaml"
 validation_posture:
   manifest_merge: "forbidden"
   upstream_mutation: "forbidden"

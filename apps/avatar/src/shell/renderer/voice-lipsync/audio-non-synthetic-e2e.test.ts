@@ -1,5 +1,5 @@
 // Deterministic non-synthetic audio contract test for
-// .nimi/spec/avatar/kernel/backend-branch-contract.md.
+// docs/authority/avatar-embodiment-rationale.md.
 //
 // Why this file exists:
 //   lipsync-e2e.test.ts proves the orchestrator + state-bus + sink loop. This

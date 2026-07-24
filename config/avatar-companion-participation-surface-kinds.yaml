@@ -1,3 +1,6 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/avatar/embodiment-surface.authority.yaml
+# Rationale: docs/authority/avatar-embodiment-rationale.md
 version: 1
 table_family: protocol_surface
 owner: avatar
@@ -6,7 +9,7 @@ description: >
   Closed Avatar-owned surface-kind vocabulary for companion participation
   consumers. These rows define consumer projection/control posture only; they
   do not create execution authority.
-source_contract: .nimi/spec/avatar/kernel/companion-participation-consumer-contract.md
+source_contract: docs/authority/avatar-embodiment-rationale.md
 surface_kinds: &companion_participation_surface_kind_surfaces
   avatar_companion:
     owner: avatar

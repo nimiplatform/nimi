@@ -1,4 +1,4 @@
-// Contract tests for .nimi/spec/avatar/kernel/backend-branch-contract.md.
+// Contract tests for docs/authority/avatar-embodiment-rationale.md.
 //
 // AudioPipelineController test (renamed from AudioPlaybackController).
 // Verifies hard-cut surface:

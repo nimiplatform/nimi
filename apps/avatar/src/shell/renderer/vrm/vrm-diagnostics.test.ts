@@ -1,4 +1,4 @@
-// Contract tests for .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Contract tests for docs/authority/avatar-embodiment-rationale.md.
 //
 // Verifies the diagnostics module: window global wiring, snapshot shape,
 // SSR-safe attach, and the frameStats boundary (visibleDrawableCount

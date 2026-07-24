@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // Singleton GLTFLoader wired with VRMLoaderPlugin + VRMAnimationLoaderPlugin
 // + the apps/avatar MToon outline policy plugin. Responsible for loading

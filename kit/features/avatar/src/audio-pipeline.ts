@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/backend-branch-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 // AudioPipelineController consumes `runtime.agent.presentation.voice_playback_requested`
 // events through SDK Runtime artifacts; runtime owns the lifecycle
 // (`requested → started → completed | interrupted | failed`) and this

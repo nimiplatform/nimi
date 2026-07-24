@@ -1,4 +1,4 @@
-// Contract tests for .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Contract tests for docs/authority/avatar-embodiment-rationale.md.
 //
 // Tests for vrm-render-target. Most cases use stubMode because jsdom
 // does not provide WebGL. The real-WebGL path is exercised via a

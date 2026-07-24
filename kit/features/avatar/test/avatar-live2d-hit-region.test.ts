@@ -1,4 +1,4 @@
-// Contract tests for .nimi/spec/avatar/kernel/backend-branch-contract.md.
+// Contract tests for docs/authority/avatar-embodiment-rationale.md.
 //
 // Tests for live2d-hit-region:
 //   - `computeLive2DHitRegion` (compatibility-driven bbox)

@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // In-browser VRM diagnostics. Mirrors the Live2D debug pattern documented
 // in `apps/avatar/AGENTS.md` §"Live2D Debugging Workflow" — but unlike

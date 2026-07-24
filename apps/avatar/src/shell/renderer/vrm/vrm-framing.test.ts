@@ -1,4 +1,4 @@
-// Contract tests for .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Contract tests for docs/authority/avatar-embodiment-rationale.md.
 //
 // Verifies the Three.js -> local pure-domain glue: applyVrmFraming computes a
 // scene bbox via Box3.setFromObject and forwards plain-numeric vectors

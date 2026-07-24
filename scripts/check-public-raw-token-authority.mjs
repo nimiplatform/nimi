@@ -17,7 +17,6 @@ const paths = {
   rpcMigration: '.nimi/spec/runtime/kernel/tables/rpc-migration-map/methods-identity-app.yaml',
   appRegistry: 'config/platform-nimi-app-registry.yaml',
   sdkMethodGroups: 'config/sdks-runtime-method-groups.yaml',
-  avatarAcceptance: '.nimi/spec/avatar/kernel/tables/acceptance-recording-matrix.yaml',
 };
 const accountMethodID = '/nimi.runtime.v1.RuntimeAccountService/GetAccessToken';
 const refreshMethodID = '/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession';
@@ -112,12 +111,6 @@ function validateBundle(bundle) {
   }
   if (accountGroup?.methods?.includes('RefreshAccountSession') || accountGroup?.excluded?.some((row) => row?.name === 'RefreshAccountSession')) {
     issues.push(issue('PUBLIC_REFRESH_SDK_EXPORT_FORBIDDEN', paths.sdkMethodGroups, 'SDK account projection retains RefreshAccountSession in an active or excluded method group.'));
-  }
-
-  const avatar = parseYaml(bundle, paths.avatarAcceptance, issues);
-  const absent = avatar?.scenarios?.find((row) => row?.id === 'public_raw_token_surface_absent');
-  if (avatar?.scenarios?.some((row) => row?.id === 'first_party_raw_token_posture') || !absent || absent.mode !== 'degraded') {
-    issues.push(issue('PUBLIC_RAW_TOKEN_AVATAR_ACCEPTANCE_FORBIDDEN', paths.avatarAcceptance, 'Avatar acceptance must prove public token-surface absence.'));
   }
 
   const accountContract = bundle.get(paths.accountContract) ?? '';

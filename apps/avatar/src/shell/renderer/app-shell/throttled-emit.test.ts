@@ -1,4 +1,4 @@
-// Contract tests for .nimi/spec/avatar/kernel/app-shell-contract.md.
+// Contract tests for docs/authority/avatar-embodiment-rationale.md.
 //
 // Unit tests for the generic 100ms-cap consumer-callback throttle used to
 // throttle `onHitRegionChange` payload delivery. Covers the canonical

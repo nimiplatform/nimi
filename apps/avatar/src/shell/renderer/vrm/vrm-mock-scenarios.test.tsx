@@ -1,4 +1,4 @@
-// Scenario tests for .nimi/spec/avatar/kernel/tables/scenario-catalog.yaml.
+// Scenario tests for docs/authority/avatar-embodiment-rationale.md.
 //
 // Programmatically drives the 5 chunk 3-E mock scenarios through the VRM
 // BackendBranch chain end-to-end (generated motion runtime + emote state +

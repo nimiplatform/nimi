@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // Pure types + immutable state-mapping helpers for the VRM viewport. The
 // surface layer reads from this state to drive camera framing

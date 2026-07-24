@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/live2d-render-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // Live2D lipsync driver: maps the wLipSync 6-dim viseme weight snapshot
 // onto Cubism standard mouth parameters (`ParamMouthOpenY`, optionally

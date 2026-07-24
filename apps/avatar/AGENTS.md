@@ -43,7 +43,7 @@ Nimi Avatar 不是常规软件窗口，而是 **桌面悬浮 embodiment surface*
 
 ## Admitted Capability Status
 
-以下仅是 `.nimi/spec/avatar/kernel/tables/feature-matrix.yaml` 当前能力状态的只读摘要，不定义任务编排、阶段状态或 AI host 工作流。
+以下仅是 `docs/authority/avatar-embodiment-rationale.md` 当前能力状态的只读摘要，不定义任务编排、阶段状态或 AI host 工作流。
 
 | Group | 能力 | 状态 |
 |---|---|---|
@@ -63,21 +63,21 @@ Nimi Avatar 不是常规软件窗口，而是 **桌面悬浮 embodiment surface*
 
 - 项目未上线，不留 retired compatibility shim；retired v1 feature-phasing 框架已废弃
 - 不做 MVP / 不做半成品中间态；每次修改都必须端到端交付
-- spec 先行（`.nimi/spec/avatar/kernel/**` 与 `.nimi/spec/**`），spec admit 后再做实现
+- spec 先行（`.nimi/spec/canonical/avatar/embodiment-surface.authority.yaml` 与 `.nimi/spec/canonical/**`），spec admit 后再做实现
 - 不做伪实现 / 伪返回；i18n、design tokens、lipsync 必须真实接通
 - 外部 AI host 独占任务编排；nimi-coding 仅提供已保留的方法论、spec 工具与确定性门禁
 
 ## Spec Authority & Sync
 
-`.nimi/spec/avatar/**` is Nimi Avatar's admitted first-party authority root. Normative content belongs under `.nimi/spec/avatar/kernel/*.md` and `.nimi/spec/avatar/kernel/tables/**`; `.nimi/spec/avatar/index.md` and `.nimi/spec/avatar/nimi-avatar.md` are guides.
+`.nimi/spec/canonical/avatar/embodiment-surface.authority.yaml` is Nimi Avatar's admitted product authority (runtime-owned companion semantics live in `.nimi/spec/canonical/runtime/agent-participation.authority.yaml`). Machine rows live in `config/avatar-*.yaml` (non-authoritative); `docs/authority/avatar-embodiment-rationale.md` is the archived prose guide.
 
 ### Migrated Contract Lineage
 
 The following contracts are admitted first-party Avatar authority. Earlier
 derivation history remains in Git and is not an active truth surface:
 
-- `.nimi/spec/avatar/kernel/agent-script-contract.md` — Avatar agent-script contract
-- `.nimi/spec/avatar/kernel/avatar-event-contract.md` — Avatar event contract
+- `docs/authority/avatar-embodiment-rationale.md` — Avatar agent-script contract
+- `docs/authority/avatar-embodiment-rationale.md` — Avatar event contract
 
 ### Platform-Level Upstream
 
@@ -90,7 +90,7 @@ Platform contracts are consumed from active `.nimi/spec/**` authority:
 - SDK runtime consume surface → `.nimi/spec/canonical/sdks/client-core.authority.yaml`
 - Presentation Timeline boundary → `.nimi/spec/canonical/runtime/agent-participation.authority.yaml`
 
-Nimi Avatar-specific contracts in `.nimi/spec/avatar/kernel/**` do not re-define upstream; they define Avatar-local behavior and downstream implementation binding.
+Nimi Avatar-specific canonical units in `.nimi/spec/canonical/avatar/embodiment-surface.authority.yaml` do not re-define upstream; they define Avatar-local behavior and downstream implementation binding.
 
 ### Key Tables
 
@@ -327,7 +327,7 @@ advertising the workflow as canonical.
 
 ## Retrieval Defaults
 
-Start with: `.nimi/spec/avatar/kernel/tables/`, `.nimi/spec/avatar/kernel/`, `src/shell/renderer/nas/`, `src/shell/renderer/live2d/`, `src/shell/renderer/app-shell/`, `src-tauri/src/`.
+Start with: `.nimi/spec/canonical/avatar/embodiment-surface.authority.yaml`, `config/avatar-*.yaml`, `src/shell/renderer/nas/`, `src/shell/renderer/live2d/`, `src/shell/renderer/app-shell/`, `src-tauri/src/`.
 
 Skip: `node_modules/`, `dist/`, `target/`, lockfiles.
 
@@ -432,7 +432,7 @@ context-lost 不可恢复 / Tauri webview 加载 hang / 嘴型双写冲突。
 5. **expressionManager.setValue 安全 wrap**（缺 preset → throw → catch + 跳过）
 6. **viseme expression preset (aa/ih/ou/ee/oh) 由 lipsync driver 独占**；
    emote state 当 `lipsyncActive=true` 时 suppress viseme 写入（详
-   `.nimi/spec/avatar/kernel/vrm-backend-contract.md`）
+   `docs/authority/avatar-embodiment-rationale.md`）
 7. **wLipSyncNode lazy create per AudioContext 单次**（worklet register 是
    per-context；avatar 全局单 AudioContext，所以仅 createWLipSyncNode 一次）
 8. **AnimationMixer crossFadeFrom** 切换 motion preset；不允许累积多 active

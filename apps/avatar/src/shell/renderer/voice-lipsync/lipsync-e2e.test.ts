@@ -1,5 +1,5 @@
 // Contract test for the avatar audio + lipsync pipeline defined by
-// .nimi/spec/avatar/kernel/backend-branch-contract.md. Exercises:
+// docs/authority/avatar-embodiment-rationale.md. Exercises:
 //
 //   1. Mock SDK Runtime instance that resolves `runtime.artifacts.readArtifactBytes`
 //      with deterministic .wav-shaped bytes.

@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // VRM `BackendHitRegion` factory. Wires the alpha-mask probe path on
 // device tiers A/B (returns a real `isOpaqueAtClientPoint` backed by
@@ -7,10 +7,10 @@
 // with `reason_code: 'device_tier_c'`).
 //
 // Spec authorities:
-//   - .nimi/spec/avatar/kernel/app-shell-contract.md §2.3.1
+//   - docs/authority/avatar-embodiment-rationale.md §2.3.1
 //     (alpha-mask threshold = 10/255; alpha-mask precedes bbox; null
 //      `isOpaqueAtClientPoint` indicates device tier C / not-supported)
-//   - .nimi/spec/avatar/kernel/backend-branch-contract.md §BackendHitRegion
+//   - docs/authority/avatar-embodiment-rationale.md §BackendHitRegion
 //
 // Alpha-mask threshold is centralized as a named contract constant; drift
 // audits forbid scattered float / byte

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Projects the representative sample authority from
-// .nimi/spec/avatar/kernel/tables/vrm-sample-catalog.yaml. Downloads samples to
+// config/avatar-vrm-sample-catalog.yaml. Downloads samples to
 // apps/avatar/.cache/assets/vrm-models/. Idempotent: skips redownload
 // when an existing file already meets `expectedMinBytes`.
 //

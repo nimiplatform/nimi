@@ -1,5 +1,5 @@
-// Authority: .nimi/spec/avatar/kernel/backend-branch-contract.md and
-// .nimi/spec/avatar/kernel/avatar-event-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md and
+// docs/authority/avatar-embodiment-rationale.md.
 //
 // Hard-cut surface:
 //   - The deprecated runtime presentation per-frame mouth-batch consume

@@ -1,3 +1,6 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/avatar/embodiment-surface.authority.yaml
+# Rationale: docs/authority/avatar-embodiment-rationale.md
 version: 1
 table_family: closed_enum
 owner: avatar
@@ -79,8 +82,8 @@ invariants:
   - "Diagnostics never widen public APML, Runtime activity, MCP, A2A, or SDK ontology."
 
 refs:
-  markdown_contract: ".nimi/spec/avatar/kernel/live2d-asset-compatibility-contract.md"
-  manifest_schema: ".nimi/spec/avatar/kernel/tables/live2d-adapter-manifest.schema.yaml"
-  tier_table: ".nimi/spec/avatar/kernel/tables/live2d-compatibility-tiers.yaml"
+  markdown_contract: "docs/authority/avatar-embodiment-rationale.md"
+  manifest_schema: "config/avatar-live2d-adapter-manifest.schema.yaml"
+  tier_table: "config/avatar-live2d-compatibility-tiers.yaml"
 
 values: *live2d_adapter_diagnostic_values

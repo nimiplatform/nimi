@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // Module-level cache for parsed VRM scenes keyed by source URL. Avoids
 // re-parsing the same .vrm file when the same model is reloaded (e.g. R3F

@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/app-shell-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // 60Hz-capped wrapper around the Tauri `set_ignore_cursor_events` IPC.
 // Per app-shell-contract.md §2.3.1, the underlying IPC must not be invoked more than once

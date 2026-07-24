@@ -1,4 +1,4 @@
-// Contract tests for .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Contract tests for docs/authority/avatar-embodiment-rationale.md.
 //
 // Verifies the VRM lifecycle state machine in isolation. Uses
 // `loaderOverride` + `setTimeoutFn` + `clearTimeoutFn` + `nowFn` test

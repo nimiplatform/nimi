@@ -17,7 +17,7 @@ re-implemented locally so that `apps/avatar` remains self-contained
 - **License**: MIT (same as the `@pixiv/three-vrm` npm package this repo
   depends on for VRM runtime)
 - **Original copyright**: `Copyright (c) 2019-PRESENT pixiv Inc.`
-- **Catalog authority**: `.nimi/spec/avatar/kernel/tables/vrm-sample-catalog.yaml`.
+- **Catalog authority**: `config/avatar-vrm-sample-catalog.yaml`.
   The literal airi VRM models cannot be fork-copied
   because the airi repository gitignores
   `**/assets/vrm/models/*`; pixiv/three-vrm is the canonical MIT
@@ -63,7 +63,7 @@ Full upstream LICENSE: <https://github.com/pixiv/three-vrm/blob/release/LICENSE>
   under CC0 licensed sample models
 - **License authority**:
   <https://vroid.pixiv.help/hc/en-us/articles/4402614652569-Do-VRoid-Studio-s-sample-models-come-with-conditions-of-use>
-- **Catalog authority**: `.nimi/spec/avatar/kernel/tables/vrm-sample-catalog.yaml`
+- **Catalog authority**: `config/avatar-vrm-sample-catalog.yaml`
 - **Cache target**:
   `apps/avatar/.cache/assets/vrm-models/HairSample_Female.vrm`
   (gitignored; fetched on demand)
@@ -78,7 +78,7 @@ Full upstream LICENSE: <https://github.com/pixiv/three-vrm/blob/release/LICENSE>
   under CC0 licensed sample models
 - **License authority**:
   <https://vroid.pixiv.help/hc/en-us/articles/4402614652569-Do-VRoid-Studio-s-sample-models-come-with-conditions-of-use>
-- **Catalog authority**: `.nimi/spec/avatar/kernel/tables/vrm-sample-catalog.yaml`
+- **Catalog authority**: `config/avatar-vrm-sample-catalog.yaml`
 - **Cache target**:
   `apps/avatar/.cache/assets/vrm-models/HairSample_Male.vrm`
   (gitignored; fetched on demand)

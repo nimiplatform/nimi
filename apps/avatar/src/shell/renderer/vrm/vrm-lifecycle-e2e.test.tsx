@@ -1,4 +1,4 @@
-// Lifecycle tests for .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Lifecycle tests for docs/authority/avatar-embodiment-rationale.md.
 //
 // End-to-end VRM lifecycle test that drives the full chain:
 //

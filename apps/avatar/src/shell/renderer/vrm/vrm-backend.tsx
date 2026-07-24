@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // VRM BackendBranch factory. It composes emote state, generated motion
 // runtime, the lipsync driver, projection adapter, and VRM audio consumer.

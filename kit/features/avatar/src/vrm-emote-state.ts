@@ -7,7 +7,7 @@
 // the lipsync driver owns viseme writes during active speech.
 //
 // Construction enforces the primary-weight cap (<= 0.8 per emote bundle),
-// as declared by `.nimi/spec/avatar/kernel/tables/vrm-emote-states.yaml`.
+// as declared by `config/avatar-vrm-emote-states.yaml`.
 //
 // expressionManager.setValue is wrapped safely: when a model lacks a
 // referenced preset, the call may throw - we catch + skip silently

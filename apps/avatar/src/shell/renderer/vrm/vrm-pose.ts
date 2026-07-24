@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // Apply a neutral standing idle pose to a freshly-loaded VRM. The default
 // VRM rig comes up in T-pose with arms extended horizontally; without an

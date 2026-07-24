@@ -290,7 +290,7 @@ capabilities:
     authority_refs:
       - .nimi/spec/runtime/kernel/agent-presentation-stream-contract.md#K-AGCORE-051
       - .nimi/spec/runtime/kernel/voice-contract.md
-      - .nimi/spec/avatar/kernel/avatar-event-contract.md
+      - docs/authority/avatar-embodiment-rationale.md
       - .nimi/spec/canonical/desktop/agent-projection.authority.yaml
     login_requirement: realm_login_required
     public_promise: Runtime may project typed presentation, voice playback, lipsync timeline, and artifact references for first-party Avatar consumption.

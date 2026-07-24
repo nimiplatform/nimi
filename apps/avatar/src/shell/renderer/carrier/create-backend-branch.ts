@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/backend-branch-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // THIS IS THE ONLY ALLOWED `model.kind` / `backend.kind` SWITCH SITE in
 // `apps/avatar/src/**`. The static hard-cut grep gate

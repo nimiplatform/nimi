@@ -1,3 +1,6 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/avatar/embodiment-surface.authority.yaml
+# Rationale: docs/authority/avatar-embodiment-rationale.md
 schema_id: nimi.avatar.nimi2d-backend-capability-profile.v1
 table_family: protocol_surface
 owner: avatar
@@ -177,6 +180,6 @@ invariants:
   - "Unsupported non-idle lanes fail closed and cannot count idle fallback as success."
 
 refs:
-  contract: ".nimi/spec/avatar/kernel/nimi2d-backend-contract.md"
+  contract: "docs/authority/avatar-embodiment-rationale.md"
   nimi2d_package_manifest: ".nimi/spec/nimi2d/kernel/tables/package-manifest.schema.yaml"
   nimi2d_generation_bench: ".nimi/spec/nimi2d/kernel/generation-bench-contract.md"

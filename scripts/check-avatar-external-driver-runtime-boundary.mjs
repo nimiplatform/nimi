@@ -14,10 +14,10 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const FILES = {
-  avatarContract: '.nimi/spec/avatar/kernel/avatar-external-entry-consumer-contract.md',
-  avatarIndex: '.nimi/spec/avatar/kernel/index.md',
-  avatarEvent: '.nimi/spec/avatar/kernel/avatar-event-contract.md',
-  agentScript: '.nimi/spec/avatar/kernel/agent-script-contract.md',
+  avatarContract: 'docs/authority/runtime-agent-participation-rationale.md',
+  avatarIndex: 'docs/authority/runtime-agent-participation-rationale.md',
+  avatarEvent: 'docs/authority/avatar-embodiment-rationale.md',
+  agentScript: 'docs/authority/avatar-embodiment-rationale.md',
   runtimeParticipationPolicy: 'docs/authority/runtime-agent-participation-rationale.md',
   runtimePresentation: 'docs/authority/runtime-agent-participation-rationale.md',
   externalBoundaryTable: 'config/runtime-agent-participation-external-entry-boundaries.yaml',

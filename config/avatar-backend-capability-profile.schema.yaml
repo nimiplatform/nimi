@@ -1,6 +1,9 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/avatar/embodiment-surface.authority.yaml
+# Rationale: docs/authority/avatar-embodiment-rationale.md
 schema_id: nimi.avatar.backend-capability-profile.v1
 table_family: product_catalog
-owner: .nimi/spec/avatar
+owner: avatar
 catalog_id: avatar_backend_capability_profile_schema
 entries:
   - id: nimi.avatar.backend-capability-profile.v1
@@ -29,7 +32,7 @@ generated_motion:
     - supported_routes
     - unsupported_routes
     - safety_limits
-  route_id_source: .nimi/spec/avatar/kernel/tables/generated-motion-routes.yaml
+  route_id_source: config/avatar-generated-motion-routes.yaml
   unsupported_route_semantics: fail_closed
 
 vrm_section:
@@ -72,7 +75,7 @@ live2d_section:
 
 nimi2d_section:
   required_when_backend_kind: nimi2d
-  schema_ref: .nimi/spec/avatar/kernel/tables/nimi2d-backend-capability-profile.schema.yaml
+  schema_ref: config/avatar-nimi2d-backend-capability-profile.schema.yaml
   required_fields:
     - package_manifest_ref
     - package_digest_sha256

@@ -1,4 +1,4 @@
-// Contract tests for .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Contract tests for docs/authority/avatar-embodiment-rationale.md.
 //
 // Verifies the VRM BackendAudioConsumer (vrm-audio-consumer.ts). Mirrors
 // the live2d audio consumer test patterns: stub `createWLipSyncNode` via

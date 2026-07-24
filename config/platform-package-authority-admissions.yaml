@@ -21,7 +21,7 @@ admissions:
       - .nimi/spec/canonical/platform/**
       - .nimi/spec/desktop/**
       - .nimi/spec/cognition/**
-      - .nimi/spec/avatar/**
+      - .nimi/spec/canonical/avatar/**
     projection_boundary:
       host_project_admission_owner: .nimi/spec/canonical/platform/authority-admission.authority.yaml
       package_truth_root: package://@nimiplatform/nimi-coding/spec

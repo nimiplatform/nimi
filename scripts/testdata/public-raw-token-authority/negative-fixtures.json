@@ -63,18 +63,6 @@
     "mutation": {
       "kind": "markdown_weaken_public_removal"
     }
-  },
-  {
-    "fixture_id": "avatar-surface-restored",
-    "code": "PUBLIC_RAW_TOKEN_AVATAR_ACCEPTANCE_FORBIDDEN",
-    "path": ".nimi/spec/avatar/kernel/tables/acceptance-recording-matrix.yaml",
-    "mutation": {
-      "kind": "yaml_set_on_match",
-      "path": ["scenarios"],
-      "match": { "field": "id", "value": "public_raw_token_surface_absent" },
-      "field": "id",
-      "value": "first_party_raw_token_posture"
-    }
   }
 ]
 

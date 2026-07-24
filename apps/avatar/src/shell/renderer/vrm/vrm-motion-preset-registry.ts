@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/tables/vrm-motion-presets.yaml.
+// Authority: config/avatar-vrm-motion-presets.yaml.
 //
 // Runtime registry that maps motion preset id → Three.js AnimationAction
 // and drives crossfaded playback against a single per-VRM AnimationMixer.

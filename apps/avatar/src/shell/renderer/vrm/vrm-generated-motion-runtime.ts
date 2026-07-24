@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/generated-motion-provider-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // Avatar-owned VRM generated motion runtime. This is downstream of typed
 // runtime.agent.* projection and does not load .vrma files; .vrma remains

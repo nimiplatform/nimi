@@ -1,4 +1,4 @@
-// Contract tests for .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Contract tests for docs/authority/avatar-embodiment-rationale.md.
 //
 // Tests for vrm-hit-region. Uses an in-memory fake VrmRenderTarget so we
 // can drive the alpha-byte return value deterministically without

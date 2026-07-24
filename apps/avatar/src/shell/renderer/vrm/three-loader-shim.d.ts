@@ -1,4 +1,4 @@
-// Type bridge governed by .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Type bridge governed by docs/authority/avatar-embodiment-rationale.md.
 //
 // `three` does not ship .d.ts for its `examples/jsm/**` add-on modules and
 // we deliberately do not add a workspace-wide `@types/three` dependency at

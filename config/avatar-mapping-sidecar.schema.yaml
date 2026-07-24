@@ -1,6 +1,9 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/avatar/embodiment-surface.authority.yaml
+# Rationale: docs/authority/avatar-embodiment-rationale.md
 schema_id: nimi.avatar.mapping-sidecar.v1
 table_family: product_catalog
-owner: .nimi/spec/avatar
+owner: avatar
 catalog_id: avatar_mapping_sidecar_schema
 entries:
   - id: nimi.avatar.mapping-sidecar.v1
@@ -21,7 +24,7 @@ required_fields:
   - target_fields
   - evidence
 
-route_id_source: .nimi/spec/avatar/kernel/tables/generated-motion-routes.yaml
+route_id_source: config/avatar-generated-motion-routes.yaml
 default_threshold: 0.82
 confidence:
   min: 0

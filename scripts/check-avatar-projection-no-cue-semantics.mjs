@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const THROTTLED_EMIT = 'apps/avatar/src/shell/renderer/app-shell/throttled-emit.ts';
 const EMBODIMENT_STAGE = 'apps/avatar/src/shell/renderer/embodiment-stage/embodiment-stage.tsx';
-const SMOOTHING_CONTRACT = '.nimi/spec/avatar/kernel/projection-backpressure-smoothing-contract.md';
+const SMOOTHING_CONTRACT = 'docs/authority/avatar-embodiment-rationale.md';
 const PROJECTION_SMOOTHING = 'kit/features/avatar/src/avatar-projection-smoothing.ts';
 const PROJECTION_SMOOTHING_TEST = 'kit/features/avatar/test/avatar-projection-smoothing.test.ts';
 const AVATAR_CARRIER = 'apps/avatar/src/shell/renderer/carrier/avatar-carrier.ts';

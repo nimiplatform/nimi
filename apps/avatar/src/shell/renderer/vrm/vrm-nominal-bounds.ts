@@ -1,10 +1,10 @@
-// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // Derives `BackendNominalBounds` (carrier/backend-branch.ts) from a loaded
 // VRM scene + framing intent. Replaces the static placeholder previously
 // hard-coded in `vrm-backend.tsx`. The default (vrm == null / pre-load)
 // matches the policy admitted in
-// `.nimi/spec/avatar/kernel/tables/window-bounds-policy.yaml`
+// `config/avatar-window-bounds-policy.yaml`
 // `backends.vrm` — 360 × 720 with `bottom-companion` framing intent
 // (waist-up, narrow tall window).
 //

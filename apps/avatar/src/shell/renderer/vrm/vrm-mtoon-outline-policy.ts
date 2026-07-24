@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // MToon material loader plugin factory with an outline-fallback policy for
 // GPU environments that cannot render outline meshes acceptably (software

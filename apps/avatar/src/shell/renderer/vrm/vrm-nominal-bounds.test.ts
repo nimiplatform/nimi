@@ -1,4 +1,4 @@
-// Contract tests for .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Contract tests for docs/authority/avatar-embodiment-rationale.md.
 //
 // Verifies that deriveVrmNominalBounds returns the policy default when
 // the VRM is null (boot placeholder), derives clamped bounds from a

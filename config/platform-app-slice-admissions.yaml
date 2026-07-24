@@ -25,5 +25,5 @@ admissions:
       - .nimi/spec/canonical/platform/**
       - .nimi/spec/desktop/**
       - .nimi/spec/cognition/**
-      - .nimi/spec/avatar/**
+      - .nimi/spec/canonical/avatar/**
     source_rule: P-APP-001

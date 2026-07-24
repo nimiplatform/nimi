@@ -1,4 +1,4 @@
-// Contract tests for .nimi/spec/avatar/kernel/app-shell-contract.md.
+// Contract tests for docs/authority/avatar-embodiment-rationale.md.
 //
 // Unit tests for the 60Hz cap on the `set_ignore_cursor_events` IPC
 // wrapper. Covers the canonical rapid-pointermove saturation guard, dedup,

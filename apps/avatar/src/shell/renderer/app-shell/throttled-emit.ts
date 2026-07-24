@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/app-shell-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // Generic trailing-edge debouncer used to throttle the per-frame
 // `onHitRegionChange` consumer callback inside the embodiment-stage. Per

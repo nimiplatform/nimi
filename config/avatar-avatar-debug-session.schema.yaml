@@ -1,6 +1,9 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/avatar/embodiment-surface.authority.yaml
+# Rationale: docs/authority/avatar-embodiment-rationale.md
 schema_id: nimi.avatar.debug-session.v1
 table_family: product_catalog
-owner: .nimi/spec/avatar
+owner: avatar
 catalog_id: avatar_debug_session_schema
 entries:
   - id: nimi.avatar.debug-session.v1

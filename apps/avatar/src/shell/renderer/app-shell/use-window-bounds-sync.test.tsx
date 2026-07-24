@@ -3,7 +3,7 @@
 // Tauri `floatingWindow.setBounds` IPC.
 //
 // Source-of-truth defaults (per
-// .nimi/spec/avatar/kernel/tables/window-bounds-policy.yaml backends.*):
+// config/avatar-window-bounds-policy.yaml backends.*):
 //   - VRM:    nominal_bounds_default = 360 x 720
 //   - Live2D: nominal_bounds_default = 400 x 600
 //

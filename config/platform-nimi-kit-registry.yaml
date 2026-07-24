@@ -454,7 +454,7 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-KIT-071
-    notes: This module is for Desktop chat preview, viewport, stage, and media utility reuse. It is not the launched `apps/avatar` carrier surface, package activation surface, materialization authority, or backend authority. Launched Avatar backend authority remains `.nimi/spec/avatar/kernel/backend-branch-contract.md` with `live2d | vrm | nimi2d`; `AvatarBackendKind` must not admit `sprite2d`, `canvas2d`, or `video` as launched Avatar backend branches. Live2D is shipped as `./features/avatar/live2d` for reusable renderer-domain helpers and optional renderer seams only. App-local viewport policy and product placement are outside platform kit registry truth.
+    notes: This module is for Desktop chat preview, viewport, stage, and media utility reuse. It is not the launched `apps/avatar` carrier surface, package activation surface, materialization authority, or backend authority. Launched Avatar backend authority remains `.nimi/spec/canonical/avatar/embodiment-surface.authority.yaml` with `live2d | vrm | nimi2d`; `AvatarBackendKind` must not admit `sprite2d`, `canvas2d`, or `video` as launched Avatar backend branches. Live2D is shipped as `./features/avatar/live2d` for reusable renderer-domain helpers and optional renderer seams only. App-local viewport policy and product placement are outside platform kit registry truth.
   - id: kit.features.model-picker
     subpath: /features/model-picker
     kind: feature

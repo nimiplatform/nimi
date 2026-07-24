@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/backend-branch-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // Computes BackendHitRegion for the Live2D branch.
 //
@@ -16,12 +16,12 @@
 // and fires `onDegraded({ reason_code: 'device_tier_c' })` once.
 //
 // Spec authorities:
-//   - .nimi/spec/avatar/kernel/app-shell-contract.md §2.3.1
+//   - docs/authority/avatar-embodiment-rationale.md §2.3.1
 //     (alpha-mask threshold = 10/255; alpha-mask precedes bbox; null
 //      `isOpaqueAtClientPoint` indicates device tier C / not-supported)
-//   - .nimi/spec/avatar/kernel/backend-branch-contract.md §BackendHitRegion
-//   - .nimi/spec/avatar/kernel/live2d-render-contract.md §"Hit Testing"
-//   - .nimi/spec/avatar/kernel/live2d-asset-compatibility-contract.md §6
+//   - docs/authority/avatar-embodiment-rationale.md §BackendHitRegion
+//   - docs/authority/avatar-embodiment-rationale.md §"Hit Testing"
+//   - docs/authority/avatar-embodiment-rationale.md §6
 //
 // Alpha-mask threshold is centralized as a named contract constant; drift
 // audits forbid scattered float / byte

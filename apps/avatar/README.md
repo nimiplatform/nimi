@@ -3,7 +3,7 @@
 Nimi Avatar（阿凡达）— 桌面悬浮 embodiment carrier，承载 Nimi agent 的视觉化身。当前 admitted backend union 是 Live2D + VRM；Avatar 不把任何 renderer backend 当 app-local semantic home。
 
 > This README is a non-authoritative operator guide. Normative authority lives
-> under `../../.nimi/spec/avatar/**` and the repo-wide platform specs referenced
+> under `../../.nimi/spec/canonical/avatar/embodiment-surface.authority.yaml` (machine rows in `config/avatar-*.yaml`) and the repo-wide platform specs referenced
 > there.
 
 ## Status
@@ -12,10 +12,10 @@ Nimi Avatar（阿凡达）— 桌面悬浮 embodiment carrier，承载 Nimi agen
 
 ## Quick Links
 
-- [Spec authority map](../../.nimi/spec/avatar/kernel/index.md)
+- [Spec authority map](../../docs/authority/avatar-embodiment-rationale.md)
 - [Live2D integration and adapter authoring](../../docs/avatar/live2d-integration.md)
 - [VRM motion authoring](../../docs/avatar/vrm-motion-authoring.md)
-- [Feature matrix](../../.nimi/spec/avatar/kernel/tables/feature-matrix.yaml)
+- [Feature matrix](../../docs/authority/avatar-embodiment-rationale.md)
 - [AGENTS.md](AGENTS.md) — Module-level rules for AI agents
 
 ## Delivery Waves
@@ -130,7 +130,7 @@ apps/avatar/
 
 Platform-level spec is consumed from active `.nimi/spec/**` authority. The
 tracked reader guide is
-[Avatar Kernel Authority Map](../../.nimi/spec/avatar/kernel/index.md).
+[Avatar Kernel Authority Map](../../docs/authority/avatar-embodiment-rationale.md).
 
 - [APML wire format](../../.nimi/spec/runtime/kernel/agent-output-wire-contract.md)
 - [Activity ontology](../../.nimi/spec/canonical/runtime/agent-participation.authority.yaml) and [activity ontology table](../../config/runtime-agent-activity-ontology.yaml)

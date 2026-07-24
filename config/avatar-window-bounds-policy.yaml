@@ -1,3 +1,6 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/avatar/embodiment-surface.authority.yaml
+# Rationale: docs/authority/avatar-embodiment-rationale.md
 version: 1
 table_family: protocol_surface
 owner: avatar

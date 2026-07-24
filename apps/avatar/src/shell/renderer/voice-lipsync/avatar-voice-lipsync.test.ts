@@ -1,4 +1,4 @@
-// Contract tests for .nimi/spec/avatar/kernel/backend-branch-contract.md.
+// Contract tests for docs/authority/avatar-embodiment-rationale.md.
 //
 // Avatar voice-lipsync orchestrator test. The hard-cut surface:
 //   - The deprecated runtime presentation per-frame mouth-batch consume

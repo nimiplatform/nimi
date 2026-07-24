@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/app-shell-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // Per-device tier detector for the avatar carrier. Implements the
 // Tier A/B/C classification specified in app-shell-contract.md §2.3.2:

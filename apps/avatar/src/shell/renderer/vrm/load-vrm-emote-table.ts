@@ -2,7 +2,7 @@
 // lives in Kit; avatar only owns bundling the spec raw YAML into this app.
 
 import { parse as parseYaml } from 'yaml';
-import emoteTableYaml from '../../../../../../.nimi/spec/avatar/kernel/tables/vrm-emote-states.yaml?raw';
+import emoteTableYaml from '../../../../../../config/avatar-vrm-emote-states.yaml?raw';
 import {
   normalizeVrmEmoteTable,
   type VrmEmoteTable,

@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // Glue layer between Three.js (`Box3` / `Vector3`) and the Avatar-owned pure
 // `computeVrmCameraFraming` domain function.

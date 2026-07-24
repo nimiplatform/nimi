@@ -1,4 +1,4 @@
-// Contract tests for .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Contract tests for docs/authority/avatar-embodiment-rationale.md.
 //
 // Verifies the VRM BackendBranch surface (vrm-carrier-surface.tsx). Uses
 // the runtime's loaderOverride seam to feed a stub VRM, and stubs out

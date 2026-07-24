@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // Thin `.vrma` loader + `clipFromVRMAnimation` wrapper. Houses the
 // `loadVrmAnimation` function that previously lived in vrm-loader.ts

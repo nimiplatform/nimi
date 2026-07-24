@@ -2121,3 +2121,269 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.realm-group-consumer-plane
+  - id: definition.nimi.runtime.agent-participation.companion-wake-voice-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: "[wake-local-audio-lifecycle-contract] Runtime companion wake and voice plane"
+    meaning: The Runtime companion wake and voice plane owns wake, foreground listening, transcript, accepted turn, foreground respondent selection, voice output policy, audio artifact identity, presentation timing, playback and interruption projection, and the closed companion audio lifecycle while Avatar consumes typed status, audio, and presentation cues and owns only local playback, backend lipsync, and visible rendering.
+    relations: []
+  - id: rule.nimi.runtime.agent-participation.r144
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: "[companion-participation-consumer-contract] Companion consumers remain projection only"
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Companion, Desktop, SDK, and debug consumers display typed participation and presentation projection, invoke only bounded Runtime or SDK participation request, cancel, foreground-priority, and replay controls, cache projection only as transient UI state, and never assemble prompts, call providers or models directly, read or write memory, cognition, canonical or domain truth, create private execution queues, schedulers, fairness or cancellation budgets, consume raw APML, debug, MCP, A2A, backend bus, provider, or domain payloads as product truth, or commit transcripts.
+    condition: Whenever a companion participation consumer renders projection or invokes a control.
+    failure: Reject consumer-local execution, durable projection promotion, raw payload consumption, and domain commit.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.companion-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r145
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: "[companion-participation-trigger-policy] Trigger admission matrix is closed"
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Companion trigger_source admits exactly none, user_explicit, scheduled_proactive, and domain_event, none forbids execution and admits only presentation-only or debug or probe projection, user_explicit routes admitted canonical chat, Realm group, scenario, world, or debug profiles through Runtime admission and requires room orchestration for multi-participant or domain context, scheduled_proactive executes only under separately admitted scheduler authority and required room orchestration, domain_event executes only through domain and room orchestration with required domain evidence, and no trigger grants prompt assembly, provider or model routing, memory or cognition write, canonical or domain commit, queue, budget, timeout, fairness, or private scheduler authority.
+    condition: Whenever a companion trigger source is declared, projected, or admitted.
+    failure: Fail closed on an unknown source, missing profile, missing required room orchestration or domain evidence, or execution inferred from trigger presence.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.companion-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r146
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: "[companion-participation-consumer-contract] Projection validation and refusal are fail closed"
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: A companion execution request requires a configured admitted surface_kind and profile_ref, a multi-participant or domain request additionally requires room_orchestration_ref, candidate_ready requires candidate_ref, committed_by_owner requires a typed commit_ref from the commit owner, a visual-only projection may carry presentation_ref without granting execution, and Runtime refusal_reason or a missing required identity, reference, or configured surface kind projects a blocked, failed, or canceled non-success state without synthetic candidate, successful reply, static fixture, or local text-turn fallback.
+    condition: Whenever a companion request or projection is validated or refused.
+    failure: Refuse the request or projection with typed non-success state and no fallback execution.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.companion-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r147
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: "[companion-participation-surface-kinds] Surface modes never grant execution"
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: A configured companion surface kind may project presentation status, participation status, candidate summary, refusal status, typed probe status, typed replay status, or carrier evidence and may expose only user-explicit trigger, interrupt request, debug probe request, or replay-open controls appropriate to that surface, persona variants remain content or configuration rather than participation kinds, and no surface mode grants prompt assembly, provider or model routing, memory write, domain commit, local reply queues, raw debug truth, or raw backend bus truth.
+    condition: Whenever a configured companion surface kind declares projection or control modes.
+    failure: Reject open execution grants, persona-created authority, and modes outside the bounded projection and control posture.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.companion-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r148
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: "[avatar-external-entry-consumer-contract] External entry is typed render-only projection"
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Avatar renders external-entry influence only from a Runtime-admitted typed presentation projection carrying known Runtime provenance and required gateway, firewall when applicable, credential-custody, consent, and audit verdict references, direct_api means Runtime-admitted direct projection rather than direct app write authority, and Avatar never turns the projection into memory or cognition writes, canonical chat, Realm group, or product-domain commits, provider or model routing, package activation, or package lifecycle mutation.
+    condition: Whenever external-entry influence reaches an Avatar presentation consumer.
+    failure: Refuse rendering on missing verdict references, unknown provenance, raw protocol semantic fields, or attempted writeback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.external-entry-plane
+  - id: rule.nimi.runtime.agent-participation.r149
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: "[avatar-external-entry-consumer-contract] Avatar local driver authority is forbidden"
+    modality: must_not
+    scope:
+      - runtime.agent-participation
+    statement: Avatar exposes or owns an Avatar-local HTTP, WebSocket, browser-reachable, localhost state, or equivalent driver endpoint, local-driver token, rate-limit, consent, credential-custody, provider-routing, or protocol-adapter authority, or invents a fallback driver, fixture carrier, or static success state when Runtime external-entry admission fails.
+    condition: Whenever external-entry presentation or local driver behavior is proposed or consumed.
+    failure: Reject the local driver surface and render the typed degraded or refusal projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.external-entry-plane
+  - id: rule.nimi.runtime.agent-participation.r150
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: "[wake-local-audio-lifecycle-contract] Wake and listening truth is Runtime owned"
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime owns microphone listener lifecycle, wake phrase admission and matching, consent and policy, multi-avatar listener fan-out, foreground respondent selection, transcript, accepted turn, foreground response priority, and final reply projection, while Avatar may request foreground priority and render typed state but never enters listening from local UI state, starts, stops, or commits capture locally, exposes a local wake toggle, parses wake audio, performs hidden or background listening, or treats Desktop launch context as wake or audio truth.
+    condition: Whenever companion wake, listening, foreground response, or transcript behavior is available or requested.
+    failure: Fail closed as unavailable until Runtime admits and projects the lifecycle, with no local capture or wake simulation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.companion-wake-voice-plane
+  - id: rule.nimi.runtime.agent-participation.r151
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: "[wake-local-audio-lifecycle-contract] Companion audio lifecycle vocabulary is closed"
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Companion audio lifecycle status admits exactly idle, foreground_listening, transcribing, turn_pending, assistant_speaking, interrupted, muted_or_audio_unavailable, blocked, error, runtime_degraded, and wake_future_unadmitted, Runtime projection is the only source of listening, transcript, turn, reply, playback, interruption, and cancellation truth, and ready lifecycle status never coexists with runtime_degraded.
+    condition: Whenever companion audio lifecycle status is projected or rendered.
+    failure: Reject unknown, contradictory, locally synthesized, or unprojected active status.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.companion-wake-voice-plane
+  - id: rule.nimi.runtime.agent-participation.r152
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: "[wake-local-audio-lifecycle-contract] Voice output and autoplay remain Runtime policy"
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime owns per-agent avatar_autoplay, voice reference and route selection, voice artifact generation, persistence and cleanup, presentation timing, playback state, and accepted interruption truth, Avatar never calls speech synthesis directly or stores a durable voice cache, Avatar-local mute or caption preferences never mutate Runtime policy, enabled autoplay permits local playback only of the Runtime-projected voice stream for the active agent and anchor, disabled autoplay forbids ordinary assistant speech requests, and text-only output never projects fake speaking or lipsync.
+    condition: Whenever companion voice output, autoplay, local playback, or interruption is handled.
+    failure: Reject local synthesis, per-instance voice policy, fabricated speaking, and playback outside the active projected stream.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.companion-wake-voice-plane
+  - id: rule.nimi.runtime.agent-participation.r153
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: "[wake-local-audio-lifecycle-contract] Audio privacy and lipsync ownership stay visible and split"
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Every Runtime-projected microphone capture or agent-audio playback state carries enough typed state for Avatar to render a visible privacy or activity indicator, Avatar may drive backend-local mouth parameters and lipsync only from Runtime-owned playable audio artifacts and presentation timing, Runtime never owns backend mouth parameters, and missing, failed, canceled, or unavailable audio produces silent lipsync and a typed unavailable or interrupted state rather than success.
+    condition: Whenever companion microphone, playback, or lipsync state is projected or rendered.
+    failure: Fail closed on missing Runtime audio truth and reject hidden activity, fake lipsync, and ownership inversion.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.companion-wake-voice-plane
+  - id: rule.nimi.runtime.agent-participation.r154
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: "[avatar-debug-session-contract; avatar-debug-session.schema] Debug session intake is typed and security-clean"
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime owns debug session intake for a typed Avatar probe session carrying debug_session_id, runtime_probe_id, authorized agent_id, backend_kind, probe_kind, observed_at, and optional avatar_instance_id and opaque backend capability profile or package profile references, validates probe authorization and binding before intake, and forbids launch-supplied package descriptors or paths, Desktop binding truth, raw APML, MCP, A2A, provider or app-business payloads, tokens, account_id, user_id, Realm URL, auth material, and backend command strings.
+    condition: Whenever an Avatar debug session is admitted or projected for probe execution.
+    failure: Reject intake with missing required fields, unauthorized identity or binding, non-opaque refs, or forbidden security and payload fields.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.avatar-debug-projection-plane
+  - id: definition.nimi.runtime.agent-participation.nas-execution-constraint-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: "[agent-script-contract] Runtime NAS execution constraint plane"
+    meaning: The Runtime NAS execution constraint plane owns the isolation, ambient-authority exclusion, capability limitation, execution budget, cancellation, shutdown, and honest failure constraints that bound third-party NAS execution over Runtime companion inputs without owning Avatar projection APIs, package mechanics, discovery, or backend adapters.
+    relations: []
+  - id: definition.nimi.runtime.agent-participation.avatar-event-provenance-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: "[avatar-event-contract] Runtime agent event provenance plane"
+    meaning: The Runtime agent event provenance plane owns whose runtime.agent projections participate in Avatar behavior, the provenance guarantees carried by those projections, and the prohibition on Avatar, Desktop, fixtures, or backend state synthesizing Runtime participation truth.
+    relations: []
+  - id: definition.nimi.runtime.agent-participation.embodiment-input-plane
+    kind: definition
+    owner: team.runtime
+    lifecycle: active
+    title: "[embodiment-projection-contract] Runtime embodiment input plane"
+    meaning: The Runtime embodiment input plane owns the closed input ontology and provenance boundary supplied to Avatar embodiment projection, separating Runtime or SDK agent semantic inputs from Avatar shell-local interaction context without owning backend-neutral output cues, branch routing, or backend escape hatches.
+    relations: []
+  - id: rule.nimi.runtime.agent-participation.r155
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: "[agent-script-contract] NAS execution is isolated from host authority"
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Third-party NAS code consuming Runtime companion inputs executes in a dedicated isolated worker context, never through direct renderer-main-thread module execution, receives only an invocation input snapshot, an Avatar-admitted capability proxy, a cancellation signal, and a bounded safe utility subset, rejects every capability call outside the Avatar-admitted allow-list, and never receives renderer, backend, Runtime client, Desktop, filesystem, credential, or host process objects.
+    condition: Whenever third-party NAS code is loaded or invoked over Runtime companion inputs.
+    failure: Reject registration or invocation when isolation is unavailable or a host-authority object would cross the boundary.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.nas-execution-constraint-plane
+  - id: rule.nimi.runtime.agent-participation.r156
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: "[agent-script-contract] NAS ambient authority and escape paths are forbidden"
+    modality: must_not
+    scope:
+      - runtime.agent-participation
+    statement: NAS code accesses ambient network, storage, DOM, renderer-global, worker-messaging, dynamic-code, package-import, dynamic-import, out-of-boundary relative-import, constructor-escape, or branch-local backend-extension authority, and helper code escapes the same admitted package helper boundary or ambient-authority restrictions as its invoking handler.
+    condition: Whenever NAS source or helper code is admitted for execution over Runtime companion inputs.
+    failure: Reject the handler before registration with no fallback execution or placeholder success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.nas-execution-constraint-plane
+  - id: rule.nimi.runtime.agent-participation.r157
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: "[agent-script-contract] NAS budgets and terminal failure are enforced"
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Each NAS activity or event invocation has a maximum execution budget of 5000 milliseconds, each continuous invocation has a maximum execution budget of 1000 milliseconds, budget expiry terminates the isolated worker and rejects the invocation, carrier shutdown cancels in-flight invocations, stops continuous scheduling, and terminates registered workers, and load, boot, execution, cancellation, or timeout failure remains observable as error or warning evidence and never as success.
+    condition: Whenever NAS execution consumes Runtime companion inputs or its carrier shuts down.
+    failure: Terminate or cancel the affected execution, project no successful participation outcome, and retain an observable non-success result.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.nas-execution-constraint-plane
+  - id: rule.nimi.runtime.agent-participation.r158
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: "[avatar-event-contract] Runtime agent event provenance cannot be synthesized"
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Runtime is the only producer of runtime.agent participation, turn, presentation, state, hook, session, proactive, and avatar-debug projection truth, Avatar consumes those families through the typed Runtime or SDK seam with required family identity and origin linkage preserved, an apml_output source identifies validated Runtime APML projection, a direct_api source identifies a Runtime-admitted direct projection rather than an Avatar write, and Avatar-local, Desktop, shell, backend, provider, mock, or fixture events never become, mirror, or imply runtime.agent truth.
+    condition: Whenever a runtime.agent projection causes or is associated with Avatar behavior.
+    failure: Reject unknown or synthetic provenance, missing required lineage, and any locally fabricated participation or presentation success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.avatar-event-provenance-plane
+  - id: rule.nimi.runtime.agent-participation.r159
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: "[embodiment-projection-contract] Embodiment input ontology is closed"
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Embodiment projection input consists only of a typed Runtime or SDK agent semantic bundle and Avatar shell-local context, the agent bundle may carry activity, posture, execution state, status text, active user, world, and session context, conversation-anchor-scoped continuity, and event provenance, and shell-local context may carry window bounds, visibility, focus, pointer, drag, click, hover, and launch-selected agent, avatar-instance, and anchor targeting selectors.
+    condition: Whenever inputs are assembled for Avatar embodiment projection.
+    failure: Reject undeclared input classes, raw provider or parser payloads, backend state promoted as agent semantics, and open extension objects used as product truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.embodiment-input-plane
+  - id: rule.nimi.runtime.agent-participation.r160
+    kind: rule
+    owner: team.runtime
+    lifecycle: active
+    title: "[embodiment-projection-contract] Embodiment input provenance and ownership remain separated"
+    modality: must
+    scope:
+      - runtime.agent-participation
+    statement: Agent semantic fields enter embodiment projection only from typed Runtime or SDK projection with Runtime identity and continuity lineage intact, Avatar shell context remains local interaction evidence that cannot write Runtime semantic truth or prove agent, user, world, session, or conversation identity, launch-selected identifiers remain targeting selectors until validated through the admitted Runtime boundary, and NAS or backend-local state cannot be written back as Runtime, Desktop, or platform truth.
+    condition: Whenever embodiment inputs are accepted, combined, or consumed.
+    failure: Fail closed on missing, mismatched, local-only, or unverifiable provenance without synthesizing a cue, identity, participation event, or successful state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.embodiment-input-plane

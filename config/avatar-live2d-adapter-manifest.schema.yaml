@@ -1,3 +1,6 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/avatar/embodiment-surface.authority.yaml
+# Rationale: docs/authority/avatar-embodiment-rationale.md
 version: 1
 table_family: product_catalog
 owner: avatar
@@ -256,6 +259,6 @@ invariants:
   - "Desktop import or renderer evidence does not prove carrier support."
 
 refs:
-  markdown_contract: ".nimi/spec/avatar/kernel/live2d-asset-compatibility-contract.md"
-  tier_table: ".nimi/spec/avatar/kernel/tables/live2d-compatibility-tiers.yaml"
-  diagnostics_registry: ".nimi/spec/avatar/kernel/tables/live2d-adapter-diagnostics.yaml"
+  markdown_contract: "docs/authority/avatar-embodiment-rationale.md"
+  tier_table: "config/avatar-live2d-compatibility-tiers.yaml"
+  diagnostics_registry: "config/avatar-live2d-adapter-diagnostics.yaml"

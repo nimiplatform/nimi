@@ -1,4 +1,4 @@
-// Contract tests for .nimi/spec/avatar/kernel/app-shell-contract.md.
+// Contract tests for docs/authority/avatar-embodiment-rationale.md.
 //
 // Tests for device-tier-detector. Use probeOverride for deterministic
 // classification across all tier boundaries; verify cache + clear

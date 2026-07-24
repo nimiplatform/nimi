@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // Pure (non-React) VRM lifecycle state machine. The carrier surface
 // subscribes to state transitions and forwards lifecycle evidence via the

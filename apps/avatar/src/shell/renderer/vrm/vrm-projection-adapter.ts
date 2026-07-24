@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // VRM `BackendProjection` adapter — bridges ontology-level projection
 // methods (applyActivity / applyEmotion / applyMotion / applyExpression

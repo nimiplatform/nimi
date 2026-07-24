@@ -2,7 +2,7 @@
 // normalization lives in Kit; avatar only owns bundling the spec raw YAML.
 
 import { parse as parseYaml } from 'yaml';
-import motionPresetsYaml from '../../../../../../.nimi/spec/avatar/kernel/tables/vrm-motion-presets.yaml?raw';
+import motionPresetsYaml from '../../../../../../config/avatar-vrm-motion-presets.yaml?raw';
 import {
   normalizeVrmMotionPresetTable,
   type VrmMotionPresetTable,

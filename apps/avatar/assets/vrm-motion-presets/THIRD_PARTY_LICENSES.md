@@ -10,7 +10,7 @@ sources; their attributions are recorded below.
 - **Upstream project**: [airi](https://github.com/moeru-ai/airi)
 - **License**: MIT
 - **Original copyright**: `Copyright (c) 2024-PRESENT Neko Ayaka`
-- **Catalog authority**: `.nimi/spec/avatar/kernel/tables/vrm-motion-presets.yaml`
+- **Catalog authority**: `config/avatar-vrm-motion-presets.yaml`
 - **Notes**: airi's authored `idle_loop.vrma` is the admitted built-in
   `idle_subtle.vrma`. Any re-authoring must update the canonical registry and
   preserve the `idle_subtle` id used by activity-mapping references.

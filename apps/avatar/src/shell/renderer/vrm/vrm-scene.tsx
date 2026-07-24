@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/vrm-backend-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // Pure presentational R3F scene for the VRM backend. No state, no effects;
 // trusts that the loader has already applied frustumCulled=false on the

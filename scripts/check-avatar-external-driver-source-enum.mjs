@@ -12,8 +12,8 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const FILES = {
-  avatarEvent: '.nimi/spec/avatar/kernel/avatar-event-contract.md',
-  agentScript: '.nimi/spec/avatar/kernel/agent-script-contract.md',
+  avatarEvent: 'docs/authority/avatar-embodiment-rationale.md',
+  agentScript: 'docs/authority/avatar-embodiment-rationale.md',
   runtimePresentation: 'docs/authority/runtime-agent-participation-rationale.md',
   driverTypes: 'apps/avatar/src/shell/renderer/driver/types.ts',
   sdkDriver: 'apps/avatar/src/shell/renderer/sdk/SdkDriver.ts',

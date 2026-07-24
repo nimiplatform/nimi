@@ -100,6 +100,12 @@ scopes:
         value: "kit/features/avatar/src/**/*"
       - kind: path_glob
         value: "kit/features/agent-center/src/**/*"
+  - scope: avatar.embodiment-surface
+    bindings:
+      - kind: path_glob
+        value: "apps/avatar/**"
+      - kind: path_glob
+        value: "kit/features/avatar/**"
   - scope: desktop.ai-consumption
     bindings:
       - kind: path_glob

@@ -1,4 +1,4 @@
-// Authority: .nimi/spec/avatar/kernel/live2d-render-contract.md.
+// Authority: docs/authority/avatar-embodiment-rationale.md.
 //
 // Builds the Live2D BackendBranch by composing the leaf modules
 // (`live2d-carrier-surface`, `live2d-projection-adapter`,

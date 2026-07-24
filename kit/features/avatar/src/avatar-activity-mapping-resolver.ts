@@ -1,5 +1,5 @@
 // Activity-mapping resolver — exposes per-backend activity routing
-// derived from `.nimi/spec/avatar/kernel/tables/activity-mapping.yaml`
+// derived from `config/avatar-activity-mapping.yaml`
 // v2 (multi-backend dual route).
 //
 // The YAML source remains the spec authority; this resolver is the Kit
