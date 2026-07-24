@@ -6,12 +6,12 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 import { startRealmFixtureServer } from '../e2e/fixtures/realm-fixture-server.mjs';
-import { createRealmFixtureManifest } from '../scripts/explore-materialization-acceptance/acceptance-fixture.mjs';
+import { createRealmFixtureManifest } from '../e2e/fixtures/acceptance-fixture.mjs';
 import {
   OWNER_USER_ID,
   VALID_PERSONA_SOURCE_REF,
   VALID_SOURCE_REF,
-} from '../scripts/explore-materialization-acceptance/acceptance-constants.mjs';
+} from '../e2e/fixtures/acceptance-constants.mjs';
 
 type FixtureMaterializationPacket = Record<string, unknown> & {
   readonly keyId: string;

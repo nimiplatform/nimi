@@ -97,7 +97,7 @@ test('a live legacy owner marker is retained for another session', (t) => {
   assert.equal(fs.existsSync(root), true);
 });
 
-test('a mismatched v2 owner marker is retained and fails cleanup closed', (t) => {
+test('a mismatched v2 owner marker produces a cleanup warning and skips the root', (t) => {
   const tmpDir = makeFakeTmpDir(t);
   const root = makeTrialRoot(tmpDir, 'marker-root-mismatch', { owner: 'dead' });
   const markerFile = path.join(root, HARNESS_OWNER_MARKER);
@@ -139,8 +139,8 @@ test('writeHarnessOwnerMarker binds owner identity to root hash and candidate', 
 
 test('sweep removes stale roots, keeps active roots, and ignores foreign directories', (t) => {
   const tmpDir = makeFakeTmpDir(t);
-  const stale = makeTrialRoot(tmpDir, 'full-chain-core-r1-stale', { owner: 'dead' });
-  const active = makeTrialRoot(tmpDir, 'full-chain-core-r1-active');
+  const stale = makeTrialRoot(tmpDir, 'dev-kernel-core-r1-stale', { owner: 'dead' });
+  const active = makeTrialRoot(tmpDir, 'dev-kernel-core-r1-active');
   const foreign = path.join(tmpDir, 'unrelated-dir');
   fs.mkdirSync(foreign, { recursive: true });
   const result = sweepStaleIsolatedTrialRoots({ tmpDir });

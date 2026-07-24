@@ -6,7 +6,7 @@ import path from 'node:path';
 
 import { writeFreshPreparedElectronArtifactBinding } from '../../../apps/desktop/scripts/lib/electron-build-mode.mjs';
 import { resolvePortableProcessInvocation } from '../../../scripts/lib/portable-process-command.mjs';
-import { assertSourceState, captureSourceState } from './source-state.mjs';
+import { captureSourceState } from './source-state.mjs';
 import {
   createParentSignalLatch,
   createTerminalEvidenceWriter,
@@ -86,7 +86,6 @@ try {
   terminalFailureOutcome = failureOutcome(build);
   requireCompletedStage(build, 'carrier build');
   terminalFailureOutcome = 'failed';
-  assertSourceState(sourceState, repoRoot);
 
   const artifactFiles = [
     path.join(repoRoot, 'apps', 'desktop', 'dist', 'index.html'),

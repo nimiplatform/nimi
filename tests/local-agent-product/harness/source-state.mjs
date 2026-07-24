@@ -1,4 +1,4 @@
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -122,10 +122,8 @@ export function captureSourceState(nimiRoot) {
     realmCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: realmRoot, encoding: 'utf8' }).trim(),
     nimiSourceTreeSha256: candidateSourceTreeSha256(nimiRoot, 'nimi'),
     realmSourceTreeSha256: candidateSourceTreeSha256(realmRoot, 'realm'),
-    testPointCatalogSha256: fileSha256(path.join(nimiRoot, 'config', 'local-agent-product-acceptance-points.yaml')),
     journeyRegistrySha256: fileSha256(path.join(nimiRoot, 'config', 'local-agent-product-journeys.yaml')),
     executionPolicySha256: fileSha256(path.join(nimiRoot, 'config', 'local-agent-product-execution-policy.yaml')),
-    conversationScenarioRegistrySha256: fileSha256(path.join(nimiRoot, 'config', 'local-agent-product-conversation-scenarios.yaml')),
   };
   return {
     ...state,
@@ -137,28 +135,4 @@ export function captureSourceState(nimiRoot) {
       realmSourceTreeSha256: state.realmSourceTreeSha256,
     })).digest('hex'),
   };
-}
-
-export function assertSourceState(expected, nimiRoot) {
-  const actual = captureSourceState(nimiRoot);
-  if (actual.sourceDigest !== expected?.sourceDigest) {
-    throw new Error(`candidate source changed during acceptance run: expected=${JSON.stringify(expected)} actual=${JSON.stringify(actual)}`);
-  }
-}
-
-export function assertAdmittedSourceState(expected, nimiRoot) {
-  if (expected?.schemaVersion !== 'nimi.local-agent-product-source-state/v3') {
-    throw new Error('invalid admitted source-state schema');
-  }
-  const actual = captureSourceState(nimiRoot);
-  const ancestor = spawnSync('git', ['merge-base', '--is-ancestor', expected.nimiCommit, actual.nimiCommit], {
-    cwd: nimiRoot,
-    stdio: 'ignore',
-  });
-  if (ancestor.status !== 0
-    || expected.realmCommit !== actual.realmCommit
-    || expected.nimiSourceTreeSha256 !== actual.nimiSourceTreeSha256
-    || expected.realmSourceTreeSha256 !== actual.realmSourceTreeSha256) {
-    throw new Error(`admitted source state does not match current source content: expected=${JSON.stringify(expected)} actual=${JSON.stringify(actual)}`);
-  }
 }

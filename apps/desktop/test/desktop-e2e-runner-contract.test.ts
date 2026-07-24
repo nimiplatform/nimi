@@ -65,16 +65,12 @@ const realmFixtureServerSource = fs.readFileSync(
   path.join(root, 'e2e/fixtures/realm-fixture-server.mjs'),
   'utf8',
 );
-const exploreMaterializationRuntimeAgentConfigSource = fs.readFileSync(
-  path.join(root, 'scripts/explore-materialization-acceptance/acceptance-runtime-agent-config.mjs'),
-  'utf8',
-);
 const exploreMaterializationAcceptanceConstantsSource = fs.readFileSync(
-  path.join(root, 'scripts/explore-materialization-acceptance/acceptance-constants.mjs'),
+  path.join(root, 'e2e/fixtures/acceptance-constants.mjs'),
   'utf8',
 );
 const exploreMaterializationAcceptanceFixtureSource = fs.readFileSync(
-  path.join(root, 'scripts/explore-materialization-acceptance/acceptance-fixture.mjs'),
+  path.join(root, 'e2e/fixtures/acceptance-fixture.mjs'),
   'utf8',
 );
 const wdioConfigSource = fs.readFileSync(
@@ -244,7 +240,6 @@ test('materialization support fixtures retain world-character and Runtime Agent 
   assert.match(exploreMaterializationAcceptanceFixtureSource, /interactionProfile/);
   assert.match(exploreMaterializationAcceptanceFixtureSource, /entity-acceptance-disabled/);
   assert.doesNotMatch(exploreMaterializationAcceptanceFixtureSource, /omitContentHash/);
-  assert.match(exploreMaterializationRuntimeAgentConfigSource, /agentClient\.agentAIConfig\.get/);
 });
 
 test('Desktop Electron acceptance has no environment-activated direct-daemon runner', () => {

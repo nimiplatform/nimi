@@ -10,7 +10,7 @@ import {
 import {
   inspectAccessibility,
   setElectronWindowSize,
-} from '../explore-materialization-acceptance/acceptance-page.mjs';
+} from '../../e2e/fixtures/acceptance-page.mjs';
 
 export async function readOptionalDomAttribute(page, selector, attribute) {
   return await page.evaluate(({ selectorValue, attributeName }) => (

@@ -177,20 +177,43 @@ function markerMatchesRoot(root, marker) {
     && marker.candidateId === candidateIdFor(identity);
 }
 
-export function isStaleTrialRoot(root, { maxAgeMs = DEFAULT_STALE_ROOT_MAX_AGE_MS, now = Date.now() } = {}) {
-  const marker = readOwnerMarker(root);
+function assessTrialRootStaleness(root, { maxAgeMs, now, marker = readOwnerMarker(root) }) {
   if (marker) {
     if (marker.schemaVersion !== 'nimi.local-agent-harness-owner/v2') {
-      if (processAlive(Number(marker.pid))) return false;
-      return rootAgeMs(root, marker, now) > maxAgeMs;
+      if (processAlive(Number(marker.pid))) return { stale: false, warning: null };
+      return { stale: rootAgeMs(root, marker, now) > maxAgeMs, warning: null };
     }
-    // A malformed v2 marker is not deletion authority. The sweep reports the
-    // identity mismatch and retains the root for explicit inspection.
-    if (!markerMatchesRoot(root, marker)) return false;
-    const observedOwner = captureProcessIdentity(Number(marker.pid));
-    if (!sameProcessIdentity(marker, observedOwner)) return true;
+    if (!markerMatchesRoot(root, marker)) {
+      return {
+        stale: false,
+        warning: {
+          code: 'TRIAL_OWNER_MARKER_IDENTITY_MISMATCH',
+          message: 'v2 owner marker does not match the trial root/hash/candidate',
+        },
+      };
+    }
+    const pid = Number(marker.pid);
+    const observedOwner = captureProcessIdentity(pid);
+    if (!observedOwner && processAlive(pid)) {
+      return {
+        stale: false,
+        warning: {
+          code: 'TRIAL_OWNER_IDENTITY_QUERY_FAILED',
+          message: `owner process ${pid} is alive but its identity could not be queried`,
+        },
+      };
+    }
+    if (!sameProcessIdentity(marker, observedOwner)) return { stale: true, warning: null };
   }
-  return rootAgeMs(root, marker, now) > maxAgeMs;
+  return { stale: rootAgeMs(root, marker, now) > maxAgeMs, warning: null };
+}
+
+export function isStaleTrialRoot(root, { maxAgeMs = DEFAULT_STALE_ROOT_MAX_AGE_MS, now = Date.now() } = {}) {
+  try {
+    return assessTrialRootStaleness(root, { maxAgeMs, now }).stale;
+  } catch {
+    return false;
+  }
 }
 
 function readProcessLedger(root) {
@@ -290,40 +313,41 @@ export function sweepStaleIsolatedTrialRoots({ maxAgeMs = DEFAULT_STALE_ROOT_MAX
   let entries = [];
   try {
     entries = fs.readdirSync(tmpDir, { withFileTypes: true });
-  } catch {
+  } catch (error) {
+    failed.push({ root: tmpDir, code: error?.code || 'TRIAL_ROOT_ENUMERATION_FAILED', message: String(error?.message || error) });
     return { swept, active, failed };
   }
   for (const entry of entries) {
     if (!entry.isDirectory() || !entry.name.startsWith(TRIAL_ROOT_PREFIX)) continue;
     const root = path.join(tmpDir, entry.name);
-    const marker = readOwnerMarker(root);
-    if (marker?.schemaVersion === 'nimi.local-agent-harness-owner/v2'
-      && !markerMatchesRoot(root, marker)) {
-      failed.push({
-        root,
-        code: 'TRIAL_OWNER_MARKER_IDENTITY_MISMATCH',
-        message: 'v2 owner marker does not match the trial root/hash/candidate',
-      });
-      continue;
-    }
-    if (!isStaleTrialRoot(root, { maxAgeMs, now })) {
-      active.push(root);
-      continue;
-    }
-    const termination = terminateTrialRootProcesses(root);
-    if (termination.failed.length > 0 || termination.refused.length > 0) {
-      failed.push({
-        root,
-        code: termination.failed[0]?.code || termination.refused[0]?.code || 'PROCESS_CLEANUP_REFUSED',
-        message: termination.failed[0]?.message || `refused to terminate ${termination.refused.length} process identity mismatch(es)`,
-      });
-      continue;
-    }
     try {
+      const marker = readOwnerMarker(root);
+      const assessment = assessTrialRootStaleness(root, { maxAgeMs, now, marker });
+      if (assessment.warning) {
+        failed.push({ root, ...assessment.warning });
+        continue;
+      }
+      if (!assessment.stale) {
+        active.push(root);
+        continue;
+      }
+      const termination = terminateTrialRootProcesses(root);
+      if (termination.failed.length > 0 || termination.refused.length > 0) {
+        failed.push({
+          root,
+          code: termination.failed[0]?.code || termination.refused[0]?.code || 'PROCESS_CLEANUP_REFUSED',
+          message: termination.failed[0]?.message || `refused to terminate ${termination.refused.length} process identity mismatch(es)`,
+        });
+        continue;
+      }
       fs.rmSync(root, { recursive: true, force: true, maxRetries: 3, retryDelay: 500 });
       swept.push(root);
     } catch (error) {
-      failed.push({ root, code: error?.code || 'UNKNOWN', message: String(error?.message || error) });
+      failed.push({
+        root,
+        code: error?.code || 'STALE_TRIAL_ROOT_UNDETERMINED',
+        message: String(error?.message || error),
+      });
     }
   }
   return { swept, active, failed };

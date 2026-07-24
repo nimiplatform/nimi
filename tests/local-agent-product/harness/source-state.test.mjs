@@ -38,15 +38,15 @@ test('candidate source digest excludes workflow, harness, and acceptance bookkee
   const desktopSource = path.join(root, 'apps', 'desktop', 'src', 'source.ts');
   const workflow = path.join(root, '.github', 'workflows', 'release.yml');
   const harness = path.join(root, 'tests', 'local-agent-product', 'harness', 'runner.mjs');
-  const catalog = path.join(root, 'config', 'local-agent-product-acceptance-points.yaml');
+  const bookkeeping = path.join(root, 'config', 'acceptance-bookkeeping.yaml');
   const tauri = path.join(root, 'apps', 'desktop', 'src-tauri', 'src', 'main.rs');
   const desktopTest = path.join(root, 'apps', 'desktop', 'test', 'shell.test.ts');
   try {
-    for (const file of [desktopSource, workflow, harness, catalog, tauri, desktopTest]) fs.mkdirSync(path.dirname(file), { recursive: true });
+    for (const file of [desktopSource, workflow, harness, bookkeeping, tauri, desktopTest]) fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(desktopSource, 'export const source = true;\n');
     fs.writeFileSync(workflow, 'name: release\n');
     fs.writeFileSync(harness, 'export const runner = true;\n');
-    fs.writeFileSync(catalog, 'point_count: 1\n');
+    fs.writeFileSync(bookkeeping, 'record_count: 1\n');
     fs.writeFileSync(tauri, 'fn main() {}\n');
     fs.writeFileSync(desktopTest, 'export const testOnly = true;\n');
     execFileSync('git', ['init'], { cwd: root });
@@ -57,7 +57,7 @@ test('candidate source digest excludes workflow, harness, and acceptance bookkee
     const candidate = candidateSourceTreeSha256(root, 'nimi');
     fs.appendFileSync(workflow, '# bookkeeping\n');
     fs.appendFileSync(harness, '// harness-only\n');
-    fs.appendFileSync(catalog, '# acceptance-only\n');
+    fs.appendFileSync(bookkeeping, '# acceptance-only\n');
     fs.appendFileSync(tauri, '// Tauri-only\n');
     fs.appendFileSync(desktopTest, '// test-only\n');
     assert.equal(candidateSourceTreeSha256(root, 'nimi'), candidate);

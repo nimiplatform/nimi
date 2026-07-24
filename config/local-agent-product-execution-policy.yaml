@@ -1,106 +1,26 @@
-schema_version: nimi.local-agent-product-execution-policy/v4
+schema_version: nimi.local-agent-product-execution-policy/v5
 authority_class: non_authoritative_execution_manifest
-owner: platform-test-governance
-source_rules: [P-TEST-015, P-TEST-016, P-TEST-017, P-TEST-018, P-TEST-019]
-layer_budgets_ms:
-  L0: 180000
-  L1: 480000
-  L2_target: 900000
-  L2_hard: 1200000
-  L3_aggregate_hard: 2700000
-  L4_single_platform_hard: 5400000
-gate_budgets_ms:
-  local_pr_l0_l1_l2_target: 1500000
-  required_pr_job_hard: 1800000
-  core_stability_hard: 3600000
-  extended_hard: 2700000
-  exhaustive_hard: 5400000
-repeat_policies:
-  contract: {local: 1, pr: 1, nightly: 1, process_repeat: false}
-  core: {local: 1, pr: 1, stability: 3, nightly: 3, clean_root_per_repeat: true, fresh_logical_identity_per_repeat: true}
-  extended: {local: 1, related_change: 1, nightly: 1, clean_root_per_repeat: true}
-  exhaustive: {nightly: 1, release: 1, property_repetition_inside_suite: true, full_environment_per_leaf: false}
-suites:
-  - suite_id: contract-smoke
-    layers: [L0, L1]
-    command: pnpm test:local-agent-product-contract
-    max_duration_ms: 480000
-    repeat_policy_ref: contract
-  - suite_id: deterministic-exhaustive
-    layers: [L0, L1, L4]
-    command: pnpm test:local-agent-product:exhaustive
-    max_duration_ms: 5400000
-    repeat_policy_ref: exhaustive
-    repetition_boundary: property_generator_or_schema_mutator_inside_suite
+owner: local-agent-product-harness
+execution_defaults:
+  repeats: 1
+  repeats_option: --repeats
+evidence_retention:
+  posture: diagnostic_only
+  runs_per_gate: 3
+  cleanup_timing: gate_start
 gates:
   first_party_p4:
     command: pnpm test:e2e:first-party-product:p4
-    suites: []
     journeys:
-      - {journey_id: first-party-installed-first-run, repeats: 1}
-      - {journey_id: first-party-direct-nimi, repeats: 1}
-      - {journey_id: first-party-partner-core, repeats: 1}
-  architecture:
-    command: pnpm check:local-agent-product-architecture
-    suites: []
-    journeys: []
-  contract:
-    command: pnpm test:local-agent-product-contract
-    suites: [contract-smoke]
-    journeys: []
+      - first-party-installed-first-run
+      - first-party-direct-nimi
+      - first-party-partner-core
   core:
     command: pnpm test:e2e:local-agent-product:core
-    suites: []
-    journeys: [{journey_id: dev-kernel-core, repeats: 1}]
+    journeys: [dev-kernel-core]
   core_stability:
     command: pnpm test:e2e:local-agent-product:core-stability
-    suites: []
-    journeys: [{journey_id: dev-kernel-core, repeats: 3}]
-  extended:
-    command: pnpm test:e2e:local-agent-product:extended
-    suites: []
-    journeys:
-      - {journey_id: source-revision-no-rebase, repeats: 1}
-      - {journey_id: destructive-termination, repeats: 1}
-      - {journey_id: challenge-replay-concurrency, repeats: 1}
-      - {journey_id: crash-recovery, repeats: 1}
-  exhaustive:
-    command: pnpm test:local-agent-product:exhaustive
-    suites: [deterministic-exhaustive]
-    journeys: []
-  acceptance:
-    command: pnpm check:local-agent-product-acceptance
-    suites: [contract-smoke]
-    journeys: [dev-kernel-core, source-revision-no-rebase, destructive-termination, challenge-replay-concurrency, crash-recovery]
-non_executable_historical_mappings: [full-chain-core, conversation-report-baseline, access-denial, pre-materialization-offline, turn-media-recovery, native-macos-input]
-current_evidence_posture:
-  catalogued_point_count: 169
-  current_executable_point_binding_count: 91
-  historical_mapping_only_point_binding_count: 78
-  current_gate_2_product_point_binding_count: 8
-  current_gate_1_exact_typed_checkpoint_count: 8
-  active_fixed_service_checkpoint_count: 22
-  active_fixed_service_catalogued_point_binding_count: 0
-  historical_mappings_count_as_current_evidence: false
-  catalog_membership_counts_as_current_evidence: false
-  current_point_coverage_status: incomplete
-  current_p4_declared_scope_coverage_status: complete
-required_local_pr_composition: [architecture, contract, core, acceptance]
-active_required_runner: tests/local-agent-product/harness/run-gate.mjs
-forbidden_active_paths:
-  - tests/local-agent-product/harness/run-tier.mjs
-  - tests/local-agent-product/harness/orchestrator.mjs
-  - leaf_per_process
-  - full_environment_starts_equals_leaf_count_times_repeat
-  - tests/local-agent-product/behavior/run-live-behavior.mjs
-  - scripts/check-local-agent-live-behavior.mjs
-  - calibration_per_batch
-  - semantic_admission_threshold
-  - tests/local-agent-product/harness/cross-app-driver.mjs#runFullChainCoreTrial
-  - tests/local-agent-product/conversation-report/run-conversation-report.mjs
-  - tests/local-agent-product/conversation-report/product-driver.mjs#runConversationReportProductTrial
-  - apps/desktop/scripts/run-electron-explore-materialization-acceptance.mjs
-  - apps/desktop/scripts/lib/runtime-local-agent-center-runner.mjs
-  - apps/desktop/scripts/lib/runtime-local-agent-center-evidence.mjs
-  - tests/local-agent-product/harness/native-macos-product.mjs
-i8_execution_in_i7: forbidden
+    journeys: [dev-kernel-core]
+active_runners:
+  - tests/local-agent-product/harness/run-gate.mjs
+  - tests/local-agent-product/harness/run-first-party-signed-candidate-journey.mjs

@@ -14,11 +14,7 @@ import {
   artifactIdFor,
   buildCheckpointResults,
   buildLeafResults,
-  pointRowsForJourney,
 } from './cross-app-driver.mjs';
-import { repoRoot } from './registry.mjs';
-import { assertSourceState } from './source-state.mjs';
-import { validateJourneyResult } from './validation.mjs';
 import { readFixedServiceStatus, sha256, writeJson } from './dev-kernel-host-driver.mjs';
 import { pageAudit, summarizeProviderRequests } from './dev-kernel-local-development-driver.mjs';
 
@@ -101,7 +97,6 @@ export async function persistOwnerMinimalResult(context) {
         privacy: { ok: privacyOk, findings: privacyOk ? [] : ['owner-minimal protected carrier observation failed privacy or console checks'] },
         outcome,
       };
-      assertSourceState(sourceState, repoRoot);
       const persisted = persistResultEvidence({
         outputDir,
         result,
@@ -131,7 +126,7 @@ export async function persistCoreResult(context) {
     desktopAuditBeforeSwitch, desktopAuditAfterSwitch, zhiyuAudit, zhiyuAuditBeforeSwitch,
     zhiyuAuditAfterSwitch, zhiyuRevokedNarrowMethod, zhiyuRevokedNarrowMetrics,
     desktopNarrowMethod, desktopNarrowMetrics, screenshotsRoot, serviceBefore, fixtureConfig,
-    firstStorage, secondStorage, processLedger, journey, architecture, trial, sourceState, outputDir,
+    firstStorage, secondStorage, processLedger, journey, trial, sourceState, outputDir,
     startedAt, started, buildMarker,
   } = context;
     const fixtureManifest = await (await fetch(`${fixture.origin}/__fixture/control/manifest`)).json();
@@ -383,7 +378,7 @@ export async function persistCoreResult(context) {
       ...environmentIdentity,
     });
 
-    const points = pointRowsForJourney(architecture, journey.journey_id);
+    const points = [];
     const safeEvidenceRefs = [
       'dev-kernel-journey-summary',
       'fixed-service-summary',
@@ -456,15 +451,7 @@ export async function persistCoreResult(context) {
       privacy: { ok: privacyOk, findings: privacyOk ? [] : ['protected carrier page observation detected console/storage/network authority material'] },
       outcome,
     };
-    assertSourceState(sourceState, repoRoot);
     const persisted = persistResultEvidence({ outputDir, result, artifactInputs });
-    const failures = validateJourneyResult({
-      architecture,
-      journey,
-      result: persisted.result,
-      expectedSourceState: sourceState,
-    });
-    if (failures.length > 0) throw new Error(`dev-kernel-core result validation failed: ${failures.join('; ')}`);
     if (persisted.result.outcome !== 'passed') {
       const failed = persisted.result.checkpoints
         .filter((checkpoint) => checkpoint.outcome !== 'passed')

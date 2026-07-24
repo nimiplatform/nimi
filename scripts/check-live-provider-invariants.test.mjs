@@ -71,13 +71,7 @@ test('SDK daemon diagnostics retain no direct startup authority', () => {
   assert.deepEqual(refs, []);
 });
 
-test('SDK live acceptance command delegates to the real fixed-service product carrier', () => {
-  const packageJson = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
-  assert.equal(
-    packageJson.scripts?.['check:runtime-agent-ai-config-acceptance'],
-    'pnpm test:e2e:local-agent-product:core',
-  );
-
+test('SDK live acceptance retains the real fixed-service product carrier', () => {
   const journey = fs.readFileSync(path.join(repoRoot, 'config/local-agent-product-journeys.yaml'), 'utf8');
   assert.match(journey, /fixed_windows_service_local_development_cross_app/u);
   assert.match(journey, /fixed_windows_runtime_service/u);

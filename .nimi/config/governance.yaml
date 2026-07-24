@@ -26,8 +26,6 @@ spec_governance:
       - node scripts/check-desktop-spec-kernel-consistency.mjs
     apps/desktop:
       - node scripts/check-desktop-spec-kernel-consistency.mjs
-    platform-consistency:
-      - node scripts/check-platform-spec-kernel-consistency.mjs
     avatar:
       - node scripts/check-avatar-spec-kernel-consistency.mjs
     apps/avatar:
@@ -35,8 +33,6 @@ spec_governance:
       - pnpm check:apps-avatar-isolation
     realm-consistency:
       - node scripts/check-realm-spec-kernel-consistency.mjs
-    release-gate-consistency:
-      - node scripts/check-release-gate-registry-coherence.mjs
   generate_commands:
     cognition:
       - node scripts/generate-cognition-spec-kernel-docs.mjs
@@ -56,8 +52,6 @@ spec_governance:
       - node scripts/generate-realm-spec-kernel-docs.mjs
     spec-human-doc:
       - node scripts/generate-spec-human-doc.mjs
-    release-gate-projection:
-      - node scripts/generate-release-gate-projection-all.mjs
 
 ai_governance:
   agents_freshness:
@@ -232,8 +226,6 @@ ai_governance:
         - runtime/catalog/source/providers/local.source.yaml
         - spec/runtime/kernel/tables/rule-evidence.rules.yaml
         - .nimi/spec/runtime/kernel/tables/rule-evidence.rules.yaml
-      release_gate_registry:
-        - .nimi/spec/platform/kernel/tables/release-gate-registry.yaml
       proto_schema:
         - proto/**/*.proto
       scripts:

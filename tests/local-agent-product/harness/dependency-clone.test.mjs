@@ -7,7 +7,7 @@ import test from 'node:test';
 import {
   DEPENDENCY_LINK_THRESHOLD_BYTES,
   cloneDataRootDependency,
-} from '../../../apps/desktop/scripts/explore-materialization-acceptance/acceptance-files.mjs';
+} from '../../../apps/desktop/e2e/fixtures/acceptance-files.mjs';
 
 const TEST_THRESHOLD = 1024;
 

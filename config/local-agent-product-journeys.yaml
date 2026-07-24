@@ -1,13 +1,10 @@
-schema_version: nimi.local-agent-product-journeys/v3
+schema_version: nimi.local-agent-product-journeys/v4
 authority_class: non_authoritative_execution_manifest
-owner: platform-test-governance
-source_rules: [P-TEST-016, P-TEST-017, P-TEST-018, P-TEST-019]
+owner: local-agent-product-harness
 journeys:
   - journey_id: first-party-installed-first-run
-    execution_disposition: active_checkpoint
     product_gate: gate_0
     applicable_layer: L2
-    evidence_domain: exact_typed_gate_checkpoints
     environment:
       type: installed_windows_first_party_product
       requires_real_realm: true
@@ -18,19 +15,16 @@ journeys:
       start_limits: {provider: 0, realm: 1, runtime: 2, desktop: 1, zhiyu: 0}
     prerequisites: [fresh_same_source_developer_signed_windows_x64_candidate, fixed_windows_runtime_service, installed_desktop_candidate, real_realm_account]
     isolation_level: fresh_product_root_same_candidate
-    repeat_policy_ref: core
     time_budget_ms: 1800000
     checkpoints:
-      - {checkpoint_id: candidate-built-signed-installed, checkpoint_type: candidate_identity, prerequisite_ids: [], covered_leaf_ids: []}
-      - {checkpoint_id: ordinary-desktop-first-run-completed, checkpoint_type: ui_action, prerequisite_ids: [candidate-built-signed-installed], covered_leaf_ids: []}
-      - {checkpoint_id: product-control-owner-ready, checkpoint_type: authoritative_readback, prerequisite_ids: [ordinary-desktop-first-run-completed], covered_leaf_ids: []}
-      - {checkpoint_id: execution-evidence-ref-parseable, checkpoint_type: authoritative_readback, prerequisite_ids: [product-control-owner-ready], covered_leaf_ids: []}
+      - {checkpoint_id: candidate-built-signed-installed, prerequisite_ids: []}
+      - {checkpoint_id: ordinary-desktop-first-run-completed, prerequisite_ids: [candidate-built-signed-installed]}
+      - {checkpoint_id: product-control-owner-ready, prerequisite_ids: [ordinary-desktop-first-run-completed]}
+      - {checkpoint_id: execution-evidence-ref-parseable, prerequisite_ids: [product-control-owner-ready]}
 
   - journey_id: first-party-direct-nimi
-    execution_disposition: active_checkpoint
     product_gate: gate_1
     applicable_layer: L2
-    evidence_domain: exact_typed_gate_checkpoints
     environment:
       type: installed_windows_first_party_product
       requires_real_realm: true
@@ -41,23 +35,20 @@ journeys:
       start_limits: {provider: 1, realm: 1, runtime: 2, desktop: 1, zhiyu: 0}
     prerequisites: [first_party_gate_0_same_candidate_pass]
     isolation_level: reuse_gate_0_product_root_and_candidate
-    repeat_policy_ref: core
     time_budget_ms: 1800000
     checkpoints:
-      - {checkpoint_id: direct-nimi-admitted-local-text-route, checkpoint_type: F-01-admitted-route, prerequisite_ids: [], covered_leaf_ids: []}
-      - {checkpoint_id: direct-nimi-real-local-stream-delta, checkpoint_type: F-01-stream-delta, prerequisite_ids: [direct-nimi-admitted-local-text-route], covered_leaf_ids: []}
-      - {checkpoint_id: direct-nimi-single-terminal, checkpoint_type: F-01-terminal, prerequisite_ids: [direct-nimi-real-local-stream-delta], covered_leaf_ids: []}
-      - {checkpoint_id: direct-nimi-usage-reason, checkpoint_type: F-01-usage-reason, prerequisite_ids: [direct-nimi-single-terminal], covered_leaf_ids: []}
-      - {checkpoint_id: direct-nimi-cancel, checkpoint_type: F-01-cancel, prerequisite_ids: [direct-nimi-usage-reason], covered_leaf_ids: []}
-      - {checkpoint_id: direct-nimi-timeout, checkpoint_type: F-01-timeout, prerequisite_ids: [direct-nimi-cancel], covered_leaf_ids: []}
-      - {checkpoint_id: direct-nimi-model-unavailable, checkpoint_type: F-01-model-unavailable, prerequisite_ids: [direct-nimi-timeout], covered_leaf_ids: []}
-      - {checkpoint_id: direct-nimi-no-cloud-fallback, checkpoint_type: F-01-no-cloud-fallback, prerequisite_ids: [direct-nimi-model-unavailable], covered_leaf_ids: []}
+      - {checkpoint_id: direct-nimi-admitted-local-text-route, prerequisite_ids: []}
+      - {checkpoint_id: direct-nimi-real-local-stream-delta, prerequisite_ids: [direct-nimi-admitted-local-text-route]}
+      - {checkpoint_id: direct-nimi-single-terminal, prerequisite_ids: [direct-nimi-real-local-stream-delta]}
+      - {checkpoint_id: direct-nimi-usage-reason, prerequisite_ids: [direct-nimi-single-terminal]}
+      - {checkpoint_id: direct-nimi-cancel, prerequisite_ids: [direct-nimi-usage-reason]}
+      - {checkpoint_id: direct-nimi-timeout, prerequisite_ids: [direct-nimi-cancel]}
+      - {checkpoint_id: direct-nimi-model-unavailable, prerequisite_ids: [direct-nimi-timeout]}
+      - {checkpoint_id: direct-nimi-no-cloud-fallback, prerequisite_ids: [direct-nimi-model-unavailable]}
 
   - journey_id: first-party-partner-core
-    execution_disposition: active_checkpoint
     product_gate: gate_2
     applicable_layer: L2
-    evidence_domain: local_agent_point_catalog
     environment:
       type: installed_windows_first_party_product
       requires_real_realm: true
@@ -68,20 +59,18 @@ journeys:
       start_limits: {provider: 1, realm: 1, runtime: 2, desktop: 2, zhiyu: 0}
     prerequisites: [first_party_gate_0_same_candidate_pass, first_party_gate_1_pass]
     isolation_level: reuse_gate_0_product_root_and_candidate
-    repeat_policy_ref: core
     time_budget_ms: 3600000
     checkpoints:
-      - {checkpoint_id: realm-source-selected, checkpoint_type: ordinary_ui_action, prerequisite_ids: [], covered_leaf_ids: [R-01]}
-      - {checkpoint_id: materialization-owner-verified, checkpoint_type: ordinary_ui_materialization_with_auxiliary_readback, prerequisite_ids: [realm-source-selected], covered_leaf_ids: [M-01]}
-      - {checkpoint_id: materialization-idempotence-verified, checkpoint_type: ordinary_ui_retry_observation, prerequisite_ids: [materialization-owner-verified], covered_leaf_ids: [M-01]}
-      - {checkpoint_id: characters-projection-visible, checkpoint_type: ordinary_ui_observation, prerequisite_ids: [materialization-idempotence-verified], covered_leaf_ids: [K-03-01]}
-      - {checkpoint_id: ordinary-desktop-open-owner-readback, checkpoint_type: ordinary_ui_open_with_auxiliary_readback, prerequisite_ids: [characters-projection-visible], covered_leaf_ids: [L-01]}
-      - {checkpoint_id: partner-route-ready, checkpoint_type: ordinary_ui_send_admission, prerequisite_ids: [ordinary-desktop-open-owner-readback], covered_leaf_ids: [L-03-02]}
-      - {checkpoint_id: partner-turn-committed-reloaded, checkpoint_type: ordinary_ui_send_terminal_reopen, prerequisite_ids: [partner-route-ready], covered_leaf_ids: [C-05-01, E-03-01, O-03-01]}
-      - {checkpoint_id: partner-negative-mutation-closure, checkpoint_type: auxiliary_negative_runtime_probe, prerequisite_ids: [partner-turn-committed-reloaded], covered_leaf_ids: []}
+      - {checkpoint_id: realm-source-selected, prerequisite_ids: []}
+      - {checkpoint_id: materialization-owner-verified, prerequisite_ids: [realm-source-selected]}
+      - {checkpoint_id: materialization-idempotence-verified, prerequisite_ids: [materialization-owner-verified]}
+      - {checkpoint_id: characters-projection-visible, prerequisite_ids: [materialization-idempotence-verified]}
+      - {checkpoint_id: ordinary-desktop-open-owner-readback, prerequisite_ids: [characters-projection-visible]}
+      - {checkpoint_id: partner-route-ready, prerequisite_ids: [ordinary-desktop-open-owner-readback]}
+      - {checkpoint_id: partner-turn-committed-reloaded, prerequisite_ids: [partner-route-ready]}
+      - {checkpoint_id: partner-negative-mutation-closure, prerequisite_ids: [partner-turn-committed-reloaded]}
 
   - journey_id: dev-kernel-core
-    execution_disposition: active_checkpoint
     applicable_layer: L2
     environment:
       type: fixed_windows_service_local_development_cross_app
@@ -96,275 +85,27 @@ journeys:
       start_limits: {provider: 1, realm: 1, runtime: 3, desktop: 1, zhiyu: 6}
     prerequisites: [fixed_windows_runtime_service, desktop_tauri_candidate, zhiyu_renderer_build, zhiyu_electron_build]
     isolation_level: exclusive_fixed_service_candidate_plus_clean_desktop_zhiyu_roots
-    repeat_policy_ref: core
     time_budget_ms: 1200000
     checkpoints:
-      - {checkpoint_id: fixed-service-ready, prerequisite_ids: [], covered_leaf_ids: []}
-      - {checkpoint_id: production-account-login, prerequisite_ids: [fixed-service-ready], covered_leaf_ids: []}
-      - {checkpoint_id: developer-mode-enabled, prerequisite_ids: [production-account-login], covered_leaf_ids: []}
-      - {checkpoint_id: run-once-project-admitted, prerequisite_ids: [developer-mode-enabled], covered_leaf_ids: []}
-      - {checkpoint_id: local-app-session-bound, prerequisite_ids: [run-once-project-admitted], covered_leaf_ids: []}
-      - {checkpoint_id: app-private-storage-base-entitlement, prerequisite_ids: [local-app-session-bound], covered_leaf_ids: []}
-      - {checkpoint_id: reserved-permission-unavailable, prerequisite_ids: [local-app-session-bound], covered_leaf_ids: []}
-      - {checkpoint_id: reserved-permission-request-denied, prerequisite_ids: [reserved-permission-unavailable], covered_leaf_ids: []}
-      - {checkpoint_id: process-mismatch-denied, prerequisite_ids: [app-private-storage-base-entitlement, reserved-permission-request-denied], covered_leaf_ids: []}
-      - {checkpoint_id: allow-project-admitted, prerequisite_ids: [process-mismatch-denied], covered_leaf_ids: []}
-      - {checkpoint_id: allow-project-authority-boundary, prerequisite_ids: [allow-project-admitted], covered_leaf_ids: []}
-      - {checkpoint_id: edit-build-process-replaced, prerequisite_ids: [allow-project-authority-boundary], covered_leaf_ids: []}
-      - {checkpoint_id: app-private-storage-after-process-replacement, prerequisite_ids: [edit-build-process-replaced], covered_leaf_ids: []}
-      - {checkpoint_id: mode-off-live-authority-revoked, prerequisite_ids: [app-private-storage-after-process-replacement], covered_leaf_ids: []}
-      - {checkpoint_id: allow-project-reused-after-mode-reenable, prerequisite_ids: [mode-off-live-authority-revoked], covered_leaf_ids: []}
-      - {checkpoint_id: fixed-service-restarted, prerequisite_ids: [allow-project-reused-after-mode-reenable], covered_leaf_ids: []}
-      - {checkpoint_id: app-private-storage-after-runtime-restart, prerequisite_ids: [fixed-service-restarted], covered_leaf_ids: []}
-      - {checkpoint_id: account-switch-invalidated, prerequisite_ids: [app-private-storage-after-runtime-restart], covered_leaf_ids: []}
-      - {checkpoint_id: project-revoked-session-invalidated, prerequisite_ids: [account-switch-invalidated], covered_leaf_ids: []}
-      - {checkpoint_id: desktop-real-shell-acceptance, prerequisite_ids: [project-revoked-session-invalidated], covered_leaf_ids: []}
-      - {checkpoint_id: zhiyu-real-shell-acceptance, prerequisite_ids: [project-revoked-session-invalidated], covered_leaf_ids: []}
-      - {checkpoint_id: protected-carrier-privacy-closeout, prerequisite_ids: [desktop-real-shell-acceptance, zhiyu-real-shell-acceptance], covered_leaf_ids: []}
-
-  - journey_id: full-chain-core
-    execution_disposition: historical_mapping_only
-    positive_runtime_path: none_direct_daemon_retired
-    applicable_layer: L2
-    environment:
-      type: full_cross_app
-      requires_real_realm: false
-      supports_real_realm: true
-      requires_desktop: true
-      requires_zhiyu: true
-      requires_native_macos: false
-      start_limits: {provider: 1, realm: 1, runtime: 2, desktop: 1, zhiyu: 1}
-    prerequisites: [desktop_renderer_build, desktop_electron_build, zhiyu_renderer_build, zhiyu_electron_build]
-    isolation_level: clean_account_source_agent_transcript_memory_root_per_repeat
-    repeat_policy_ref: core
-    time_budget_ms: 1200000
-    checkpoints:
-      - {checkpoint_id: provider-ready, prerequisite_ids: [], covered_leaf_ids: []}
-      - {checkpoint_id: runtime-ready, prerequisite_ids: [provider-ready], covered_leaf_ids: []}
-      - {checkpoint_id: realm-ready, prerequisite_ids: [provider-ready], covered_leaf_ids: []}
-      - {checkpoint_id: desktop-ready, prerequisite_ids: [runtime-ready, realm-ready], covered_leaf_ids: []}
-      - {checkpoint_id: runtime-account-login, prerequisite_ids: [desktop-ready], covered_leaf_ids: []}
-      - {checkpoint_id: character-source-selected, prerequisite_ids: [runtime-account-login], covered_leaf_ids: [O-01]}
-      - {checkpoint_id: materialization-challenge, prerequisite_ids: [character-source-selected], covered_leaf_ids: []}
-      - {checkpoint_id: character-packet-v3, prerequisite_ids: [materialization-challenge], covered_leaf_ids: []}
-      - {checkpoint_id: character-snapshot, prerequisite_ids: [character-packet-v3], covered_leaf_ids: [M-06, O-01]}
-      - {checkpoint_id: agent-center-safe-status, prerequisite_ids: [character-snapshot], covered_leaf_ids: [K-02]}
-      - {checkpoint_id: desktop-chat-turn-1, prerequisite_ids: [agent-center-safe-status], covered_leaf_ids: []}
-      - {checkpoint_id: desktop-chat-turn-2, prerequisite_ids: [desktop-chat-turn-1], covered_leaf_ids: [C-05-02, E-03-02, O-03-02]}
-      - {checkpoint_id: desktop-chat-turn-3, prerequisite_ids: [desktop-chat-turn-2], covered_leaf_ids: [C-05-03, O-03-03]}
-      - {checkpoint_id: provider-context-lanes, prerequisite_ids: [desktop-chat-turn-3], covered_leaf_ids: [K-02, C-01, C-02, C-03, C-04, S-02-01, S-03]}
-      - {checkpoint_id: zhiyu-ready, prerequisite_ids: [provider-context-lanes], covered_leaf_ids: []}
-      - {checkpoint_id: zhiyu-character-selected, prerequisite_ids: [zhiyu-ready], covered_leaf_ids: [O-01]}
-      - {checkpoint_id: cross-app-anchor-continuity, prerequisite_ids: [zhiyu-character-selected], covered_leaf_ids: [C-09]}
-      - {checkpoint_id: zhiyu-multiturn, prerequisite_ids: [cross-app-anchor-continuity], covered_leaf_ids: [E-03-03, E-03-04, E-03-05, O-03-06]}
-      - {checkpoint_id: voice-emotion-apml, prerequisite_ids: [zhiyu-multiturn], covered_leaf_ids: [E-04, E-08, E-05-01, E-06-01, E-06-02, E-07-05]}
-      - {checkpoint_id: persona-materialized, prerequisite_ids: [voice-emotion-apml], covered_leaf_ids: [R-02, M-02, O-02]}
-      - {checkpoint_id: character-persona-switch, prerequisite_ids: [persona-materialized], covered_leaf_ids: [L-02, O-02]}
-      - {checkpoint_id: cross-agent-isolation, prerequisite_ids: [character-persona-switch], covered_leaf_ids: [L-02, S-04, S-08]}
-      - {checkpoint_id: runtime-restart, prerequisite_ids: [cross-agent-isolation], covered_leaf_ids: [L-04]}
-      - {checkpoint_id: continuity-after-restart, prerequisite_ids: [runtime-restart], covered_leaf_ids: [L-04, C-08, C-05-04]}
-      - {checkpoint_id: realm-offline, prerequisite_ids: [continuity-after-restart], covered_leaf_ids: [M-06, L-08-03]}
-      - {checkpoint_id: offline-local-chat, prerequisite_ids: [realm-offline], covered_leaf_ids: [L-08-03]}
-      - {checkpoint_id: realm-recovery-no-duplication, prerequisite_ids: [offline-local-chat], covered_leaf_ids: [L-08-04]}
-      - {checkpoint_id: artifact-privacy-closeout, prerequisite_ids: [realm-recovery-no-duplication], covered_leaf_ids: [O-01, O-02, O-03-06]}
-
-  - journey_id: access-denial
-    execution_disposition: historical_mapping_only
-    positive_runtime_path: none_direct_daemon_retired
-    applicable_layer: L3
-    environment:
-      type: cross_account_denial
-      requires_real_realm: false
-      supports_real_realm: true
-      requires_desktop: true
-      requires_zhiyu: false
-      requires_native_macos: false
-      start_limits: {provider: 1, realm: 1, runtime: 1, desktop: 1, zhiyu: 0}
-    prerequisites: [desktop_renderer_build, desktop_electron_build]
-    isolation_level: clean_two_subject_access_root
-    repeat_policy_ref: extended
-    time_budget_ms: 600000
-    checkpoints:
-      - {checkpoint_id: private-persona-denied, prerequisite_ids: [], covered_leaf_ids: [R-04-01]}
-      - {checkpoint_id: nonconnectable-action-disabled, prerequisite_ids: [], covered_leaf_ids: [R-04-02]}
-      - {checkpoint_id: stale-source-denied, prerequisite_ids: [], covered_leaf_ids: [R-04-03]}
-      - {checkpoint_id: forged-proof-denied, prerequisite_ids: [], covered_leaf_ids: [S-01-01]}
-      - {checkpoint_id: issuer-key-denied, prerequisite_ids: [], covered_leaf_ids: [S-01-04]}
-      - {checkpoint_id: account-binding-denied, prerequisite_ids: [], covered_leaf_ids: [S-01-06]}
-      - {checkpoint_id: cross-account-hidden, prerequisite_ids: [], covered_leaf_ids: [S-05]}
-
-  - journey_id: source-revision-no-rebase
-    execution_disposition: active_checkpoint
-    applicable_layer: L3
-    environment:
-      type: targeted_runtime_integration
-      requires_real_realm: false
-      supports_real_realm: true
-      requires_desktop: false
-      requires_zhiyu: false
-      requires_native_macos: false
-      start_limits: {provider: 0, realm: 0, runtime: 1, desktop: 0, zhiyu: 0}
-    prerequisites: []
-    isolation_level: clean_source_revision_root
-    repeat_policy_ref: extended
-    time_budget_ms: 300000
-    checkpoints:
-      - {checkpoint_id: old-agent-stays-pinned, prerequisite_ids: [], covered_leaf_ids: [L-05]}
-      - {checkpoint_id: new-revision-isolated, prerequisite_ids: [old-agent-stays-pinned], covered_leaf_ids: [L-06]}
-
-  - journey_id: destructive-termination
-    execution_disposition: active_checkpoint
-    applicable_layer: L3
-    environment:
-      type: targeted_runtime_integration
-      requires_real_realm: false
-      supports_real_realm: false
-      requires_desktop: false
-      requires_zhiyu: false
-      requires_native_macos: false
-      start_limits: {provider: 0, realm: 0, runtime: 1, desktop: 0, zhiyu: 0}
-    prerequisites: []
-    isolation_level: clean_destructive_agent_root
-    repeat_policy_ref: extended
-    time_budget_ms: 180000
-    checkpoints:
-      - {checkpoint_id: active-agent-atomic-delete, prerequisite_ids: [], covered_leaf_ids: [L-07-01]}
-      - {checkpoint_id: absent-agent-idempotent, prerequisite_ids: [active-agent-atomic-delete], covered_leaf_ids: [L-07-02]}
-      - {checkpoint_id: delete-failure-rollback, prerequisite_ids: [], covered_leaf_ids: [L-07-03]}
-
-  - journey_id: challenge-replay-concurrency
-    execution_disposition: active_checkpoint
-    applicable_layer: L3
-    environment:
-      type: targeted_runtime_integration
-      requires_real_realm: false
-      supports_real_realm: false
-      requires_desktop: false
-      requires_zhiyu: false
-      requires_native_macos: false
-      start_limits: {provider: 0, realm: 0, runtime: 1, desktop: 0, zhiyu: 0}
-    prerequisites: []
-    isolation_level: clean_upload_replay_ledger_root
-    repeat_policy_ref: extended
-    time_budget_ms: 240000
-    checkpoints:
-      - {checkpoint_id: wrong-challenge-denied, prerequisite_ids: [], covered_leaf_ids: [S-01-05]}
-      - {checkpoint_id: nonce-replay-after-restart, prerequisite_ids: [wrong-challenge-denied], covered_leaf_ids: [S-01-07]}
-      - {checkpoint_id: put-conflict-cleanup, prerequisite_ids: [], covered_leaf_ids: [S-01-15]}
-      - {checkpoint_id: begin-conflict-denied, prerequisite_ids: [], covered_leaf_ids: [S-01-16]}
-      - {checkpoint_id: commit-single-winner, prerequisite_ids: [], covered_leaf_ids: [S-01-18]}
-      - {checkpoint_id: abort-commit-single-winner, prerequisite_ids: [], covered_leaf_ids: [S-01-19]}
-
-  - journey_id: crash-recovery
-    execution_disposition: active_checkpoint
-    applicable_layer: L3
-    environment:
-      type: targeted_runtime_integration
-      requires_real_realm: false
-      supports_real_realm: false
-      requires_desktop: false
-      requires_zhiyu: false
-      requires_native_macos: false
-      start_limits: {provider: 0, realm: 0, runtime: 1, desktop: 0, zhiyu: 0}
-    prerequisites: []
-    isolation_level: clean_crash_recovery_root
-    repeat_policy_ref: extended
-    time_budget_ms: 180000
-    checkpoints:
-      - {checkpoint_id: open-upload-crash-recovery, prerequisite_ids: [], covered_leaf_ids: [S-01-21]}
-
-  - journey_id: pre-materialization-offline
-    execution_disposition: historical_mapping_only
-    positive_runtime_path: none_direct_daemon_retired
-    applicable_layer: L3
-    environment:
-      type: offline_product_boundary
-      requires_real_realm: false
-      supports_real_realm: false
-      requires_desktop: true
-      requires_zhiyu: false
-      requires_native_macos: false
-      start_limits: {provider: 1, realm: 1, runtime: 2, desktop: 1, zhiyu: 0}
-    prerequisites: [desktop_renderer_build, desktop_electron_build]
-    isolation_level: clean_pre_materialization_offline_root
-    repeat_policy_ref: extended
-    time_budget_ms: 420000
-    checkpoints:
-      - {checkpoint_id: realm-offline-before-materialize, prerequisite_ids: [], covered_leaf_ids: [L-08-01]}
-      - {checkpoint_id: runtime-offline-before-materialize, prerequisite_ids: [], covered_leaf_ids: [L-08-02]}
-
-  - journey_id: turn-media-recovery
-    execution_disposition: historical_mapping_only
-    positive_runtime_path: none_direct_daemon_retired
-    applicable_layer: L3
-    environment:
-      type: runtime_zhiyu_recovery
-      requires_real_realm: false
-      supports_real_realm: false
-      requires_desktop: false
-      requires_zhiyu: true
-      requires_native_macos: false
-      start_limits: {provider: 1, realm: 1, runtime: 1, desktop: 0, zhiyu: 1}
-    prerequisites: [zhiyu_renderer_build, zhiyu_electron_build]
-    isolation_level: clean_recovery_transcript_root
-    repeat_policy_ref: extended
-    time_budget_ms: 600000
-    checkpoints:
-      - {checkpoint_id: midstream-failure-evidence, prerequisite_ids: [], covered_leaf_ids: [E-03-06]}
-      - {checkpoint_id: voice-interrupt, prerequisite_ids: [], covered_leaf_ids: [E-07-01]}
-      - {checkpoint_id: voice-failure, prerequisite_ids: [], covered_leaf_ids: [E-07-02]}
-      - {checkpoint_id: microphone-denied, prerequisite_ids: [], covered_leaf_ids: [E-07-06]}
-      - {checkpoint_id: transcription-failure, prerequisite_ids: [], covered_leaf_ids: [E-07-07]}
-      - {checkpoint_id: stop-cancels-all, prerequisite_ids: [], covered_leaf_ids: [E-09]}
-      - {checkpoint_id: retry-new-turn, prerequisite_ids: [stop-cancels-all], covered_leaf_ids: [E-10]}
-
-  - journey_id: native-macos-input
-    execution_disposition: historical_mapping_only
-    positive_runtime_path: none_direct_daemon_retired
-    applicable_layer: L3
-    environment:
-      type: native_macos_cross_app
-      requires_real_realm: false
-      supports_real_realm: false
-      requires_desktop: true
-      requires_zhiyu: true
-      requires_native_macos: true
-      start_limits: {provider: 1, realm: 1, runtime: 1, desktop: 1, zhiyu: 1}
-    prerequisites: [macos, desktop_renderer_build, desktop_electron_build, zhiyu_renderer_build, zhiyu_electron_build]
-    isolation_level: clean_native_input_root
-    repeat_policy_ref: extended
-    time_budget_ms: 600000
-    checkpoints:
-      - {checkpoint_id: native-edit-shortcuts, prerequisite_ids: [], covered_leaf_ids: [O-03-04]}
-      - {checkpoint_id: native-ime-composition, prerequisite_ids: [native-edit-shortcuts], covered_leaf_ids: [O-03-05]}
-
-  - journey_id: conversation-report-baseline
-    execution_disposition: historical_mapping_only
-    positive_runtime_path: none_direct_daemon_retired
-    applicable_layer: L5
-    environment:
-      type: single_environment_cross_app_live_provider_report
-      requires_real_realm: false
-      supports_real_realm: true
-      requires_desktop: true
-      requires_zhiyu: true
-      requires_native_macos: false
-      requires_live_provider: true
-      start_limits: {provider: 1, realm: 1, runtime: 2, desktop: 1, zhiyu: 1}
-      materialization_limits: {worldCharacter: 1, personaCharacter: 1}
-      runtime_restart_count: 1
-      realm_offline_transition_count: 1
-    prerequisites: [runtime_catalog_text_route_with_env_credential, desktop_renderer_build, desktop_electron_build, zhiyu_renderer_build, zhiyu_electron_build]
-    isolation_level: one_clean_account_runtime_provider_desktop_zhiyu_root_per_report
-    repeat_policy_ref: conversation_report
-    time_budget_ms: 2700000
-    checkpoints:
-      - {checkpoint_id: report.sources-materialized-once, prerequisite_ids: [], covered_point_ids: []}
-      - {checkpoint_id: report.local-agent-a-stream, prerequisite_ids: [report.sources-materialized-once], covered_point_ids: [P-01-C, P-02-C, P-03-C, P-04-C, P-05-CU, P-05-CC, P-06-CR]}
-      - {checkpoint_id: report.desktop-to-zhiyu-continuation, prerequisite_ids: [report.local-agent-a-stream], covered_point_ids: []}
-      - {checkpoint_id: report.local-agent-b-stream, prerequisite_ids: [report.desktop-to-zhiyu-continuation], covered_point_ids: [P-01-P, P-02-P, P-03-P, P-04-P, P-05-PU, P-05-PC, P-06-PR]}
-      - {checkpoint_id: report.cross-agent-isolation, prerequisite_ids: [report.local-agent-b-stream], covered_point_ids: [P-06-X]}
-      - {checkpoint_id: report.runtime-restart, prerequisite_ids: [report.cross-agent-isolation], covered_point_ids: [P-06-CRS, P-06-PRS]}
-      - {checkpoint_id: report.realm-offline, prerequisite_ids: [report.runtime-restart], covered_point_ids: []}
-      - {checkpoint_id: report.human-review-sections, prerequisite_ids: [report.realm-offline], covered_point_ids: [P-07-I, P-07-W, P-07-S, P-07-B, P-07-U, P-07-R, P-07-X]}
-      - {checkpoint_id: report.bundle-complete, prerequisite_ids: [report.human-review-sections], covered_point_ids: []}
+      - {checkpoint_id: fixed-service-ready, prerequisite_ids: []}
+      - {checkpoint_id: production-account-login, prerequisite_ids: [fixed-service-ready]}
+      - {checkpoint_id: developer-mode-enabled, prerequisite_ids: [production-account-login]}
+      - {checkpoint_id: run-once-project-admitted, prerequisite_ids: [developer-mode-enabled]}
+      - {checkpoint_id: local-app-session-bound, prerequisite_ids: [run-once-project-admitted]}
+      - {checkpoint_id: app-private-storage-base-entitlement, prerequisite_ids: [local-app-session-bound]}
+      - {checkpoint_id: reserved-permission-unavailable, prerequisite_ids: [local-app-session-bound]}
+      - {checkpoint_id: reserved-permission-request-denied, prerequisite_ids: [reserved-permission-unavailable]}
+      - {checkpoint_id: process-mismatch-denied, prerequisite_ids: [app-private-storage-base-entitlement, reserved-permission-request-denied]}
+      - {checkpoint_id: allow-project-admitted, prerequisite_ids: [process-mismatch-denied]}
+      - {checkpoint_id: allow-project-authority-boundary, prerequisite_ids: [allow-project-admitted]}
+      - {checkpoint_id: edit-build-process-replaced, prerequisite_ids: [allow-project-authority-boundary]}
+      - {checkpoint_id: app-private-storage-after-process-replacement, prerequisite_ids: [edit-build-process-replaced]}
+      - {checkpoint_id: mode-off-live-authority-revoked, prerequisite_ids: [app-private-storage-after-process-replacement]}
+      - {checkpoint_id: allow-project-reused-after-mode-reenable, prerequisite_ids: [mode-off-live-authority-revoked]}
+      - {checkpoint_id: fixed-service-restarted, prerequisite_ids: [allow-project-reused-after-mode-reenable]}
+      - {checkpoint_id: app-private-storage-after-runtime-restart, prerequisite_ids: [fixed-service-restarted]}
+      - {checkpoint_id: account-switch-invalidated, prerequisite_ids: [app-private-storage-after-runtime-restart]}
+      - {checkpoint_id: project-revoked-session-invalidated, prerequisite_ids: [account-switch-invalidated]}
+      - {checkpoint_id: desktop-real-shell-acceptance, prerequisite_ids: [project-revoked-session-invalidated]}
+      - {checkpoint_id: zhiyu-real-shell-acceptance, prerequisite_ids: [project-revoked-session-invalidated]}
+      - {checkpoint_id: protected-carrier-privacy-closeout, prerequisite_ids: [desktop-real-shell-acceptance, zhiyu-real-shell-acceptance]}

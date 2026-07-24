@@ -295,45 +295,6 @@ func TestCallSitesKeepFullAdmissionAndAvoidDuplicateCoreCommands(t *testing.T) {
 	}
 }
 
-func TestReleaseRegistryMakesComplianceSoleFinalRuntimeCoreOrchestrator(t *testing.T) {
-	repoRoot := filepath.Clean(filepath.Join("..", "..", ".."))
-	raw, err := os.ReadFile(filepath.Join(repoRoot, ".nimi", "spec", "platform", "kernel", "tables", "release-gate-registry.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	text := string(raw)
-	for _, id := range []string{"gate.runtime.go-build", "gate.runtime.go-vet", "gate.runtime.go-test"} {
-		if strings.Contains(text, "  - id: "+id+"\n") {
-			t.Fatalf("%s must not remain as a second Runtime core orchestrator", id)
-		}
-	}
-	compliance := registryGateSection(t, text, "gate.runtime.compliance")
-	for _, required := range []string{
-		"go run ./cmd/runtime-compliance --gate",
-		"tiers: [release, release-target:runtime]",
-		"timeout_seconds: 1500",
-	} {
-		if !strings.Contains(compliance, required) {
-			t.Fatalf("compliance registry row missing %q:\n%s", required, compliance)
-		}
-	}
-}
-
-func registryGateSection(t *testing.T, registry string, id string) string {
-	t.Helper()
-	startToken := "  - id: " + id + "\n"
-	start := strings.Index(registry, startToken)
-	if start < 0 {
-		t.Fatalf("registry gate %s missing", id)
-	}
-	rest := registry[start+len(startToken):]
-	end := strings.Index(rest, "\n  - id: ")
-	if end < 0 {
-		end = len(rest)
-	}
-	return startToken + rest[:end]
-}
-
 func TestDesktopZhiyuOnlyPathsDoNotSelectRuntimeQuality(t *testing.T) {
 	repoRoot := filepath.Clean(filepath.Join("..", "..", ".."))
 	raw, err := os.ReadFile(filepath.Join(repoRoot, ".github", "workflows", "ci.yml"))

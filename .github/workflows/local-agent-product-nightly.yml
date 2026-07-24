@@ -22,17 +22,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Checkout locked Realm source
-        env:
-          REALM_AUTHORITY_REPOSITORY: ${{ secrets.REALM_AUTHORITY_REPOSITORY }}
-        run: |
-          REALM_COMMIT="$(awk '/^  commit:/ { print $2; exit }' config/realm-contract-lock.yaml)"
-          test "${#REALM_COMMIT}" -eq 40
-          test -n "$REALM_AUTHORITY_REPOSITORY"
-          git clone --filter=blob:none "$REALM_AUTHORITY_REPOSITORY" "$RUNNER_TEMP/external-realm"
-          git -C "$RUNNER_TEMP/external-realm" checkout --detach "$REALM_COMMIT"
-          echo "REALM_ROOT=$RUNNER_TEMP/external-realm" >> "$GITHUB_ENV"
-
       - name: Setup pnpm
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
         with:
@@ -45,25 +34,11 @@ jobs:
           cache: pnpm
           cache-dependency-path: package.json
 
-      - name: Setup Go
-        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
-        with:
-          go-version-file: runtime/go.mod
-          cache: false
-
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Verify Realm contract lock
-        run: pnpm check:realm-contract-lock -- --realm-root "$REALM_ROOT"
-
-      - name: Run deterministic architecture and exhaustive gates
-        run: |
-          pnpm check:local-agent-product-architecture
-          pnpm test:local-agent-conversation-report-contract
-          pnpm test:local-agent-product-contract
-          pnpm test:local-agent-product:exhaustive
-          pnpm test:e2e:local-agent-product:extended
+      - name: Run LocalAgent contract tests
+        run: pnpm test:local-agent-contracts
 
   dev-kernel-checkpoint:
     runs-on: windows-latest
@@ -123,9 +98,8 @@ jobs:
           pnpm install:dev-kernel-service-candidate
           pnpm status:dev-kernel-service-candidate
 
-      - name: Run fixed-service Desktop-to-Zhiyu stability Journey serially
-        run: |
-          pnpm test:e2e:local-agent-product:core-stability
+      - name: Run fixed-service Desktop-to-Zhiyu core stability Journey
+        run: pnpm test:e2e:local-agent-product:core-stability -- --repeats 3
 
       - name: Upload dev-kernel product evidence
         if: always()

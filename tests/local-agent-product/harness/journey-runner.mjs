@@ -3,11 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { withSdkDistLock } from '../../../scripts/lib/sdk-dist-lock.mjs';
 import { runDevKernelCoreTrial } from './dev-kernel-cross-app-driver.mjs';
-import { runCommandExtendedJourneyTrial } from './extended-driver.mjs';
 import { repoRoot } from './registry.mjs';
 import { resolvePortableProcessInvocation } from './process-command.mjs';
 import { pruneRetainedTrialRootPayload } from './sandbox-hygiene.mjs';
-import { assertSourceState } from './source-state.mjs';
 import { createIsolatedJourneyRoot, removeIsolatedTrialRoot } from './trial-root.mjs';
 
 function runProcess(command, args) {
@@ -56,31 +54,23 @@ export async function buildProductPrerequisites(journeys, evidenceRoot) {
   });
 }
 
-function gateSchedule(architecture, gate) {
-  if (gate === 'core') return architecture.policy.gates.core.journeys.map((row) => ({
-    journeyId: row.journey_id,
-    repeats: row.repeats,
+function gateSchedule(architecture, gate, repeats) {
+  const configuredGate = gate === 'core'
+    ? architecture.policy.gates.core
+    : gate === 'core-stability' ? architecture.policy.gates.core_stability : null;
+  if (!configuredGate) throw new Error(`unsupported Journey gate ${gate}`);
+  return configuredGate.journeys.map((row) => ({
+    journeyId: typeof row === 'string' ? row : row.journey_id,
+    repeats,
   }));
-  if (gate === 'core-stability') return architecture.policy.gates.core_stability.journeys.map((row) => ({
-    journeyId: row.journey_id,
-    repeats: row.repeats,
-  }));
-  if (gate === 'extended') return architecture.policy.gates.extended.journeys.map((row) => ({
-    journeyId: row.journey_id,
-    repeats: row.repeats,
-  }));
-  throw new Error(`unsupported Journey gate ${gate}`);
 }
 
-export async function runJourneyGate({ architecture, evidenceRoot, gate, sourceState }) {
-  const schedule = gateSchedule(architecture, gate);
+export async function runJourneyGate({ architecture, evidenceRoot, gate, repeats = 1, sourceState }) {
+  const schedule = gateSchedule(architecture, gate, repeats);
   const journeyById = new Map(architecture.journeys.journeys.map((journey) => [journey.journey_id, journey]));
   const scheduledJourneys = schedule.map((row) => journeyById.get(row.journeyId));
   if (scheduledJourneys.some((journey) => !journey)) throw new Error(`${gate} references an unknown Journey`);
-  const nonExecutable = scheduledJourneys.find((journey) => journey.execution_disposition === 'historical_mapping_only');
-  if (nonExecutable) throw new Error(`${gate} cannot execute historical mapping ${nonExecutable.journey_id}`);
   await buildProductPrerequisites(scheduledJourneys, evidenceRoot);
-  assertSourceState(sourceState, repoRoot);
   const records = [];
   for (const item of schedule) {
     const journey = journeyById.get(item.journeyId);
@@ -94,9 +84,7 @@ export async function runJourneyGate({ architecture, evidenceRoot, gate, sourceS
       const outputDir = path.join(evidenceRoot, 'journeys', journey.journey_id, `repeat-${repeatIndex}`);
       let completed = false;
       try {
-        const persisted = journey.journey_id === 'dev-kernel-core'
-          ? await runDevKernelCoreTrial({ architecture, journey, trial, sourceState, outputDir })
-          : await runExtendedJourneyTrial({ architecture, journey, trial, sourceState, outputDir });
+        const persisted = await runDevKernelCoreTrial({ architecture, journey, trial, sourceState, outputDir });
         records.push({
           kind: 'journey',
           id: journey.journey_id,
@@ -114,12 +102,7 @@ export async function runJourneyGate({ architecture, evidenceRoot, gate, sourceS
           for (const failure of pruned.failed) process.stderr.write(`LocalAgent Journey retained-root prune failed for ${failure.target} (${failure.code})\n`);
         }
       }
-      assertSourceState(sourceState, repoRoot);
     }
   }
   return records;
-}
-
-async function runExtendedJourneyTrial(input) {
-  return runCommandExtendedJourneyTrial(input);
 }

@@ -46,9 +46,7 @@ const tableFiles = [
   `${tablesRoot}/acceptance-gates.yaml`,
   `${tablesRoot}/implementation-acceptance-matrix.yaml`,
   `${tablesRoot}/desktop-agent-chat-hardcut-checkpoint.yaml`,
-  `${tablesRoot}/rule-evidence.yaml`,
-  `${tablesRoot}/rule-evidence.catalog.yaml`,
-  `${tablesRoot}/rule-evidence.rules-core.yaml`,
+  // S6 domain-1 removed input: rule-evidence registry family.
 ];
 
 const requiredFiles = [
@@ -274,10 +272,8 @@ function checkCapabilityPosture() {
 
 function checkTestTopologyBinding() {
   const rel = `${kernelRoot}/testing-contract.md`;
-  requireIncludes(rel, '.nimi/spec/platform/kernel/tables/test-governance-policy.yaml', 'platform test topology authority');
+  // S6 domain-1 removed input: platform test-governance and Zhiyu quarantine policies.
   requireIncludes(rel, 'pnpm check:test-inventory', 'executable topology gate');
-  const retiredTable = `${tablesRoot}/test-quarantine-policy.yaml`;
-  if (exists(retiredTable)) fail(`${retiredTable} is retired parallel truth and must not exist`);
 }
 
 function checkAcceptanceGates() {

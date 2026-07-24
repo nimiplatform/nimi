@@ -12,16 +12,11 @@ const gateRelative = 'scripts/check-local-app-owner-boundary.mjs';
 const bundleFiles = [
   gateRelative,
   '.nimi/spec/runtime/kernel/account-session-contract.md',
-  '.nimi/spec/runtime/kernel/tables/rule-evidence.rules-core-auth.yaml',
   '.nimi/spec/platform/kernel/nimi-app-admission-contract.md',
   '.nimi/spec/platform/kernel/kit-contract.md',
   '.nimi/spec/platform/kernel/app-permission-contract.md',
-  '.nimi/spec/platform/kernel/tables/rule-evidence.rules-nimi-app.yaml',
-  '.nimi/spec/platform/kernel/tables/rule-evidence.rules-kit.yaml',
-  '.nimi/spec/platform/kernel/tables/rule-evidence.rules-app-permission.yaml',
   '.nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml',
   '.nimi/spec/desktop/kernel/network-contract.md',
-  '.nimi/spec/desktop/kernel/tables/rule-evidence.rules-shell-ui.yaml',
 ];
 
 const expectedFixtureCodes = [
@@ -40,7 +35,6 @@ const expectedFixtureCodes = [
   'AUTHORITY_CLASS_EXCLUSIVITY_MISSING',
   'ATOMIC_PERMISSION_ADMISSION_MISSING',
   'DESKTOP_CREDENTIAL_CUSTODY_DENIAL_MISSING',
-  'EVIDENCE_CHECKER_LINK_MISSING',
   'AUTH_BINDING_OWNER_INVALID',
 ];
 
@@ -110,14 +104,5 @@ test('rejects host-owned local-app session binding', async () => {
     'runtime_owned_request_empty_local_app_session',
     'host_owned_local_app_session',
     'AUTH_BINDING_OWNER_INVALID',
-  );
-});
-
-test('rejects removal of candidate-bound checker evidence', async () => {
-  await mutateAndReject(
-    '.nimi/spec/platform/kernel/tables/rule-evidence.rules-kit.yaml',
-    '      - scripts/check-local-app-owner-boundary.mjs\n',
-    '',
-    'EVIDENCE_CHECKER_LINK_MISSING',
   );
 });

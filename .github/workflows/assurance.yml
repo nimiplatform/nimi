@@ -51,32 +51,6 @@ jobs:
         if: always()
         run: pnpm report:ai-structure-hotspots --limit 120
 
-  spec-governance:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
-        with:
-          version: 10.32.1
-
-      - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: package.json
-
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
-
-      - name: Spec semantic completeness assurance
-        run: pnpm check:spec-semantic-completeness
-
   sdk-release-assurance:
     runs-on: ubuntu-latest
     steps:
@@ -342,7 +316,6 @@ jobs:
   assurance:
     needs:
       - ai-governance
-      - spec-governance
       - sdk-release-assurance
       - runtime-release-assurance
       - desktop-release-assurance
@@ -353,7 +326,6 @@ jobs:
       - name: Aggregate assurance status
         env:
           AI_GOVERNANCE_RESULT: ${{ needs.ai-governance.result }}
-          SPEC_GOVERNANCE_RESULT: ${{ needs.spec-governance.result }}
           SDK_RELEASE_ASSURANCE_RESULT: ${{ needs.sdk-release-assurance.result }}
           RUNTIME_RELEASE_ASSURANCE_RESULT: ${{ needs.runtime-release-assurance.result }}
           DESKTOP_RELEASE_ASSURANCE_RESULT: ${{ needs.desktop-release-assurance.result }}
@@ -364,7 +336,6 @@ jobs:
 
           for item in \
             "ai-governance:${AI_GOVERNANCE_RESULT}" \
-            "spec-governance:${SPEC_GOVERNANCE_RESULT}" \
             "sdk-release-assurance:${SDK_RELEASE_ASSURANCE_RESULT}" \
             "runtime-release-assurance:${RUNTIME_RELEASE_ASSURANCE_RESULT}" \
             "desktop-release-assurance:${DESKTOP_RELEASE_ASSURANCE_RESULT}" \

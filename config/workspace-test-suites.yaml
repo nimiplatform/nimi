@@ -77,7 +77,7 @@ suites:
     cwd: .
     workspace_order: 130
     requires_workspace_surfaces: [sdk_dist, kit_dist]
-  - id: local-agent-contract-tests
+  - id: local-agent-contracts
     command: pnpm test:local-agent-contracts
     cwd: .
     workspace_order: 140

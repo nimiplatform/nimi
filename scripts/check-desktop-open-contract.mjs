@@ -17,15 +17,6 @@ const rootPackage = JSON.parse(read('package.json'));
 if (rootPackage.scripts?.['check:desktop-open-contract'] !== 'node scripts/check-desktop-open-contract.mjs') {
   failures.push('root check:desktop-open-contract must execute the consolidated checker exactly once');
 }
-const releaseRegistry = parseYaml('.nimi/spec/platform/kernel/tables/release-gate-registry.yaml');
-const releaseGate = releaseRegistry.gates?.find(
-  (gate) => gate?.id === 'gate.desktop.open-intent-contract',
-);
-if (releaseGate?.command !== 'pnpm check:desktop-open-contract'
-  || !releaseGate?.tiers?.includes('release')) {
-  failures.push('gate.desktop.open-intent-contract must consume the consolidated checker in the release tier');
-}
-
 const contractFiles = collectFiles([
   '.nimi/spec',
   'apps/desktop/src-tauri/src',

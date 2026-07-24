@@ -7,7 +7,7 @@ import path from 'node:path';
 import { _electron as electron, chromium } from 'playwright';
 
 import { startRealmFixtureServer } from '../e2e/fixtures/realm-fixture-server.mjs';
-import { createRealmFixtureManifest } from '../scripts/explore-materialization-acceptance/acceptance-fixture.mjs';
+import { createRealmFixtureManifest } from '../e2e/fixtures/acceptance-fixture.mjs';
 
 const desktopRoot = path.resolve(import.meta.dirname, '..');
 const repoRoot = path.resolve(desktopRoot, '../..');

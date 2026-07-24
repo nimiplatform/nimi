@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 
-import { createRealmFixtureManifest } from '../../../apps/desktop/scripts/explore-materialization-acceptance/acceptance-fixture.mjs';
+import { createRealmFixtureManifest } from '../../../apps/desktop/e2e/fixtures/acceptance-fixture.mjs';
 import { startRealmFixtureServer } from '../../../apps/desktop/e2e/fixtures/realm-fixture-server.mjs';
 import {
   requireWindowsDevSignedFiles,

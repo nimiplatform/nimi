@@ -222,10 +222,6 @@ export function artifactIdFor(prefix, root, file, index) {
   return `${prefix}-${String(index + 1).padStart(2, '0')}-${relative || 'artifact'}`;
 }
 
-export function pointRowsForJourney(architecture, journeyId) {
-  return architecture.points.points.filter((point) => point.execution_binding?.journey_id === journeyId);
-}
-
 export function buildCheckpointResults({ journey, points, facts, correlations, artifactRefs, startedAt, completedAt }) {
   const assertionsByCheckpoint = new Map(journey.checkpoints.map((checkpoint) => [checkpoint.checkpoint_id, []]));
   for (const point of points) {

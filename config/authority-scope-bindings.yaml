@@ -12,3 +12,9 @@ scopes:
         value: "kit/shell/tauri/src/**/*.rs"
       - kind: command
         value: "check:desktop-tauri-command-execution"
+  - scope: platform.testing-discipline
+    bindings:
+      - kind: path_glob
+        value: "tests/**/*.mjs"
+      - kind: command
+        value: "test"

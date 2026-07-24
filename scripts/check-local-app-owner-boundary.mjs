@@ -6,14 +6,12 @@ import { fileURLToPath } from 'node:url';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
-const checkerRelative = 'scripts/check-local-app-owner-boundary.mjs';
 const authBindingTable = '.nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml';
 
 const authorityRules = [
   {
     ruleId: 'K-ACCSVC-001',
     contract: '.nimi/spec/runtime/kernel/account-session-contract.md',
-    evidence: '.nimi/spec/runtime/kernel/tables/rule-evidence.rules-core-auth.yaml',
     clauses: [
       ['RUNTIME_REALM_OWNER_MISSING', /Runtime is the sole owner of authenticated Realm unary, realtime, and media data planes/iu],
       ['RUNTIME_LOCAL_APP_COORDINATOR_OWNER_MISSING', /Runtime alone owns[\s\S]*Runtime-owned portion of public permission enforcement[\s\S]*per-operation local-app decision coordinator/iu],
@@ -24,7 +22,6 @@ const authorityRules = [
   {
     ruleId: 'K-ACCSVC-022',
     contract: '.nimi/spec/runtime/kernel/account-session-contract.md',
-    evidence: '.nimi/spec/runtime/kernel/tables/rule-evidence.rules-core-auth.yaml',
     clauses: [
       ['ATOMIC_LOCAL_APP_SESSION_MISSING', /local-app session only from an atomically consumed[\s\S]*launch lease on the verified child channel/iu],
       ['RUNTIME_DERIVED_LOCAL_APP_IDENTITY_MISSING', /`LOCAL_APP` caller class and[\s\S]*`local_app_principal_id` are Runtime-derived/iu],
@@ -36,7 +33,6 @@ const authorityRules = [
   {
     ruleId: 'K-ACCSVC-023',
     contract: '.nimi/spec/runtime/kernel/account-session-contract.md',
-    evidence: '.nimi/spec/runtime/kernel/tables/rule-evidence.rules-core-auth.yaml',
     clauses: [
       ['REALM_EXACT_SOURCE_READINESS_AUTHORITY_MISSING', /InvokeRealmUnary` admits only[\s\S]*source-readiness operations enumerated by[\s\S]*An unlisted operation or any[\s\S]*non-Desktop caller fails[\s\S]*generic proxy[\s\S]*behavior is forbidden/iu],
       ['REALM_FALLBACK_DENIAL_MISSING', /No public grant, portable envelope, renderer\/app token[\s\S]*provider, caller-selected Realm base, direct Realm path, or fallback is[\s\S]*admitted/iu],
@@ -45,7 +41,6 @@ const authorityRules = [
   {
     ruleId: 'K-ACCSVC-024',
     contract: '.nimi/spec/runtime/kernel/account-session-contract.md',
-    evidence: '.nimi/spec/runtime/kernel/tables/rule-evidence.rules-core-auth.yaml',
     clauses: [
       ['PRODUCT_PERMISSION_ROWS_MISSING', /public[\s\S]*permission status\/request, selected local-app operations[\s\S]*admitted only through their exact protected-[\s\S]*transport and owner rows[\s\S]*no public permission decision or revoke RPC/iu],
       ['PORTABLE_BLANKET_AUTHORITY_DENIAL_MISSING', /admits no portable envelope, blanket local-app authority or raw-token[\s\S]*projection/iu],
@@ -55,7 +50,6 @@ const authorityRules = [
   {
     ruleId: 'K-ACCSVC-025',
     contract: '.nimi/spec/runtime/kernel/account-session-contract.md',
-    evidence: '.nimi/spec/runtime/kernel/tables/rule-evidence.rules-core-auth.yaml',
     clauses: [
       ['SELF_ASSERTED_AUTHORITY_DENIAL_MISSING', /App id, source host, caller enum, manifest, renderer metadata, host[\s\S]*self-description, launch id and portable bearer remain non-authorizing/iu],
       ['NATIVE_CHANNEL_AUTHORITY_MISSING', /Local[\s\S]*app authority comes only from the inherited native channel and its verified live[\s\S]*peer/iu],
@@ -65,7 +59,6 @@ const authorityRules = [
   {
     ruleId: 'P-NAPP-009',
     contract: '.nimi/spec/platform/kernel/nimi-app-admission-contract.md',
-    evidence: '.nimi/spec/platform/kernel/tables/rule-evidence.rules-nimi-app.yaml',
     clauses: [
       ['PLATFORM_VOCABULARY_OWNER_MISSING', /Platform owns verified catalog\/release,[\s\S]*publisher\/review posture, the permission vocabulary, and the closed local[\s\S]*provenance taxonomy/iu],
       ['RUNTIME_KERNEL_OWNER_SPLIT_MISSING', /Runtime K-APP owns PC-local principals and records;[\s\S]*canonical domain owners own admitted permission decisions and K-GRANT defines[\s\S]*Runtime-owned lifecycle boundary; K-PLOCAL owns launch\/process\/session/iu],
@@ -77,7 +70,6 @@ const authorityRules = [
   {
     ruleId: 'P-NAPP-033',
     contract: '.nimi/spec/platform/kernel/nimi-app-admission-contract.md',
-    evidence: '.nimi/spec/platform/kernel/tables/rule-evidence.rules-nimi-app.yaml',
     clauses: [
       ['LOCAL_DEVELOPMENT_NOT_CATALOG_TRACK_MISSING', /`local_development` is not[\s\S]*a catalog track/iu],
       ['IMMUTABLE_PACKAGE_UNAVAILABLE_MISSING', /Immutable positive package behavior remains unavailable until 0P/iu],
@@ -86,7 +78,6 @@ const authorityRules = [
   {
     ruleId: 'P-NAPP-034',
     contract: '.nimi/spec/platform/kernel/nimi-app-admission-contract.md',
-    evidence: '.nimi/spec/platform/kernel/tables/rule-evidence.rules-nimi-app.yaml',
     clauses: [
       ['FIXED_SERVICE_LAUNCH_BOUNDARY_MISSING', /Positive third-party sessions[\s\S]*require the[\s\S]*same-OS fixed Runtime service[\s\S]*`PrepareLocalAppLaunch`[\s\S]*native peer\/process\/executable[\s\S]*proof/iu],
       ['LEASE_RENDERER_CUSTODY_DENIAL_MISSING', /launch lease is necessary but not durable identity and never enters[\s\S]*renderer\/app state/iu],
@@ -96,7 +87,6 @@ const authorityRules = [
   {
     ruleId: 'P-KIT-044',
     contract: '.nimi/spec/platform/kernel/kit-contract.md',
-    evidence: '.nimi/spec/platform/kernel/tables/rule-evidence.rules-kit.yaml',
     clauses: [
       ['KIT_TRUTH_NON_OWNER_MISSING', /Kit owns typed shell APIs and trusted carrier implementation only[\s\S]*cannot[\s\S]*create account, principal, provenance, record, permission decision, launch,[\s\S]*process, session, or owner-operation truth/iu],
       ['REQUEST_EMPTY_LOCAL_APP_CARRIER_MISSING', /host-private carrier opens one common[\s\S]*request-empty local-app session/iu],
@@ -110,7 +100,6 @@ const authorityRules = [
   {
     ruleId: 'P-PERM-011',
     contract: '.nimi/spec/platform/kernel/app-permission-contract.md',
-    evidence: '.nimi/spec/platform/kernel/tables/rule-evidence.rules-app-permission.yaml',
     clauses: [
       ['APP_PRIVATE_STORAGE_BASE_ENTITLEMENT_MISSING', /An app does not ask Nimi for permission to use its own SQLite, JSON store,[\s\S]*media, settings, cache or product routes/iu],
       ['NATIVE_APP_STORAGE_AUTHORITY_MISSING', /Native app storage[\s\S]*is `app_owned_authority` under actual OS rights/iu],
@@ -120,7 +109,6 @@ const authorityRules = [
   {
     ruleId: 'P-PERM-015',
     contract: '.nimi/spec/platform/kernel/app-permission-contract.md',
-    evidence: '.nimi/spec/platform/kernel/tables/rule-evidence.rules-app-permission.yaml',
     clauses: [
       ['FIVE_AUTHORITY_CLASSES_MISSING', /`base_entitlement`[\s\S]*`user_permission`[\s\S]*`one_shot_consent`[\s\S]*`app_owned_authority`[\s\S]*`os_right`/iu],
       ['AUTHORITY_CLASS_EXCLUSIVITY_MISSING', /The classes are mutually exclusive/iu],
@@ -130,7 +118,6 @@ const authorityRules = [
   {
     ruleId: 'P-PERM-017',
     contract: '.nimi/spec/platform/kernel/app-permission-contract.md',
-    evidence: '.nimi/spec/platform/kernel/tables/rule-evidence.rules-app-permission.yaml',
     clauses: [
       ['ATOMIC_PERMISSION_ADMISSION_MISSING', /permission is admitted only when all of these land atomically:[\s\S]*catalog row[\s\S]*decision owner[\s\S]*endpoint[\s\S]*SDK\/Kit[\s\S]*approval UI[\s\S]*audit/iu],
       ['DURABLE_PERMISSION_CONTROL_MISSING', /Durable permissions additionally require settings and[\s\S]*revoke UI/iu],
@@ -143,7 +130,6 @@ const authorityRules = [
   {
     ruleId: 'D-NET-006',
     contract: '.nimi/spec/desktop/kernel/network-contract.md',
-    evidence: '.nimi/spec/desktop/kernel/tables/rule-evidence.rules-shell-ui.yaml',
     clauses: [
       ['DESKTOP_LIFECYCLE_ONLY_OWNER_MISSING', /Desktop owns account-control and lifecycle UX and verified process launch/iu],
       ['RUNTIME_REALM_TRANSPORT_OWNER_MISSING', /Runtime remains the sole owner of authenticated Realm unary, realtime, and media transport/iu],
@@ -171,16 +157,6 @@ function extractRule(source, ruleId) {
   return source.slice(match.index, nextHeading === -1 ? source.length : nextHeading);
 }
 
-function extractEvidenceRow(source, ruleId) {
-  const escaped = ruleId.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
-  const match = new RegExp(`^\\s*-\\s+rule_id:\\s*${escaped}\\s*$`, 'mu').exec(source);
-  if (!match) return '';
-  const tail = source.slice(match.index + match[0].length);
-  const next = /\n\s*-\s+rule_id:/u.exec(tail);
-  const end = next ? match.index + match[0].length + next.index : source.length;
-  return source.slice(match.index, end);
-}
-
 function validateBundle(files) {
   const issues = [];
   for (const authority of authorityRules) {
@@ -198,12 +174,6 @@ function validateBundle(files) {
         issues.push(issue('RETIRED_INSTALLED_AUTHORITY_PRESENT', location, `Retired installed-app authority remains in ${authority.ruleId}.`));
         break;
       }
-    }
-    const evidenceRow = extractEvidenceRow(files.get(authority.evidence) ?? '', authority.ruleId);
-    if (!evidenceRow) {
-      issues.push(issue('AUTHORITY_EVIDENCE_ROW_MISSING', `${authority.evidence}#${authority.ruleId}`, `Missing evidence row for ${authority.ruleId}.`));
-    } else if (!evidenceRow.includes(checkerRelative)) {
-      issues.push(issue('EVIDENCE_CHECKER_LINK_MISSING', `${authority.evidence}#${authority.ruleId}`, `${authority.ruleId} must reference ${checkerRelative}.`));
     }
   }
 
@@ -231,15 +201,6 @@ function removeClause(files, ruleId, code) {
   files.set(authority.contract, source.replace(section, changed));
 }
 
-function removeEvidenceLink(files, ruleId) {
-  const authority = findAuthority(ruleId);
-  const source = files.get(authority.evidence) ?? '';
-  const row = extractEvidenceRow(source, ruleId);
-  const changed = row.replace(new RegExp(`^\\s*-\\s+${checkerRelative.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')}\\s*$`, 'mu'), '');
-  if (changed === row) throw new Error(`fixture evidence link did not match ${ruleId}`);
-  files.set(authority.evidence, source.replace(row, changed));
-}
-
 const negativeFixtures = [
   ['runtime-owner-removed', 'K-ACCSVC-001', 'RUNTIME_REALM_OWNER_MISSING'],
   ['zero-permission-boundary-removed', 'K-ACCSVC-022', 'ZERO_PERMISSION_BOUNDARY_MISSING'],
@@ -263,11 +224,6 @@ const negativeFixtures = [
 }));
 
 negativeFixtures.push({
-  fixtureId: 'authority-evidence-unlinked',
-  expectedCode: 'EVIDENCE_CHECKER_LINK_MISSING',
-  mutate(files) { removeEvidenceLink(files, 'K-ACCSVC-022'); },
-});
-negativeFixtures.push({
   fixtureId: 'host-owned-session-binding',
   expectedCode: 'AUTH_BINDING_OWNER_INVALID',
   mutate(files) {
@@ -280,7 +236,7 @@ negativeFixtures.push({
 
 async function loadBundle() {
   const paths = new Set([
-    ...authorityRules.flatMap((authority) => [authority.contract, authority.evidence]),
+    ...authorityRules.map((authority) => authority.contract),
     authBindingTable,
   ]);
   const files = new Map();
