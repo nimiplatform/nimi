@@ -1,0 +1,18 @@
+table_family: product_catalog
+owner: desktop
+catalog_id: desktop_home_feed_scopes
+authority_refs:
+  - rule.nimi.desktop.product-surfaces.r018
+entries:
+  - id: personal
+    name: Personal
+    semantics: Renders Posts authored by the viewer on the Home feed surface.
+  - id: friends
+    name: Friends
+    semantics: Renders Posts authored by the viewer's ACTIVE human friends that are visible to the viewer.
+  - id: persona_activity
+    name: Persona Activity
+    semantics: Renders public-activity Posts authored by PersonaCharacter sources; LocalAgent private activity is not shown.
+  - id: world_character_activity
+    name: World Character Activity
+    semantics: Renders public-activity Posts authored by explicitly admitted WorldCharacter sources; LocalAgent private activity is not shown.

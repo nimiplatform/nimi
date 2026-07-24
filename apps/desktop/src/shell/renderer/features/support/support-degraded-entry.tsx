@@ -1,7 +1,7 @@
 /**
- * Degraded-state Support entry (`D-SUP-008`).
+ * Degraded-state Support entry (`rule.nimi.desktop.product-surfaces.r029`).
  *
- * `D-SUP-008` requires the `Support` surface — at least the `repair` and
+ * `rule.nimi.desktop.product-surfaces.r029` requires the `Support` surface — at least the `repair` and
  * `recovery` sub-areas — to stay reachable when the ordinary shell cannot be
  * entered (fail-closed product state) or when Settings preference state is
  * itself corrupt. The ordinary `SupportPanel` only mounts inside the

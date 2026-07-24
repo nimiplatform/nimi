@@ -1,6 +1,6 @@
 # 会话能力
 
-> 状态：运行中 (Running)。桌面会话能力合同 (`desktop/kernel/conversation-capability-contract.md`) 是已发布的每一会话能力协商界面。
+> 状态：运行中 (Running)。桌面会话能力合同 (`canonical/desktop/agent-projection.authority.yaml`) 是已发布的每一会话能力协商界面。
 
 桌面会话能力界面管理**会话支持哪些功能**——例如语音开启/关闭、图片附件开启/关闭、工具调用准入等——在每个会话的粒度上。能力集是针对每个会话的，而不是全局针对每个 Agent 的。
 
@@ -32,5 +32,5 @@
 
 ## 来源依据
 
-- [`.nimi/spec/desktop/kernel/conversation-capability-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/conversation-capability-contract.md)
+- [`.nimi/spec/canonical/desktop/agent-projection.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/canonical/desktop/agent-projection.authority.yaml)
 - [`.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md)

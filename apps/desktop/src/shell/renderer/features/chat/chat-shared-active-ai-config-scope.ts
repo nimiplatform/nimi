@@ -25,7 +25,7 @@ import { pushDesktopAIConfigToBoundStore } from '../../app-shell/providers/deskt
  * participation, the LocalAgent-participation path reuses the SAME canonical
  * `desktop.chat.agent` feature scope as Agent Chat. Group participation never
  * mints a group-specific NimiAIConfig scope. Authority:
- * `.nimi/spec/desktop/kernel/conversation-capability-contract.md` plus
+ * `.nimi/spec/canonical/desktop/agent-projection.authority.yaml` plus
  * `.nimi/spec/sdks/kernel/ai-config-surface-contract.md` P-AISC-006.
  *
  * There is NO generic `app:desktop:chat` scope in the chat live path. Human and

@@ -164,7 +164,7 @@ export function SourceDetailView(props: SourceDetailViewProps) {
               )}
             </div>
 
-            {/* Source connection primary action  - Top Right (D-EXPL-006) */}
+            {/* Source connection primary action  - Top Right (rule.nimi.desktop.product-surfaces.r006) */}
             <button
               type="button"
               onClick={handlePrimaryAction}

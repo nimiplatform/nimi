@@ -542,7 +542,7 @@ assertOk((platformTables.compositions?.components ?? []).length === 0, 'platform
 assertOk((platformTables.allowlists?.items ?? []).length === 0, 'platform allowlists table must remain empty', failures);
 
 const appChecks = [
-  verifyAppEntry('desktop', '.nimi/spec/desktop/kernel/tables/nimi-kit-adoption.yaml'),
+  verifyAppEntry('desktop', 'config/desktop-shell-ui-kit-adoption.yaml'),
   verifyAppEntry('avatar', '.nimi/spec/avatar/kernel/tables/nimi-kit-adoption.yaml'),
 ];
 for (const check of appChecks) {

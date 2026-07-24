@@ -4,8 +4,9 @@ import { useTranslation } from 'react-i18next';
 
 /**
  * Canonical Realm feed scopes presented on the Home feed surface.
- * Source of truth: `.nimi/spec/desktop/kernel/tables/home-feed-scopes.yaml`
- * (D-HOMEFEED-004) over Realm `R-FEED-005`.
+ * Authority: `.nimi/spec/canonical/desktop/product-surfaces.authority.yaml`
+ * (`rule.nimi.desktop.product-surfaces.r018`) over Realm `R-FEED-005`.
+ * Machine projection: `config/desktop-product-surfaces-home-feed-scopes.yaml`.
  */
 export const HOME_FEED_SCOPES = NIMI_REALM_FEED_SCOPES;
 export const DEFAULT_HOME_FEED_SCOPE: NimiRealmFeedScope = 'friends';

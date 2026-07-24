@@ -1,7 +1,7 @@
-//! Support `logs` sub-area log-export command (`D-SUP-006`).
+//! Support `logs` sub-area log-export command (`rule.nimi.desktop.product-surfaces.r027`).
 //!
-//! Spec authority: `.nimi/spec/desktop/kernel/support-surface-contract.md`
-//! `D-SUP-006` — the Support `logs` sub-area MUST produce a user-locatable
+//! Spec authority: `.nimi/spec/canonical/desktop/product-surfaces.authority.yaml`
+//! `rule.nimi.desktop.product-surfaces.r027` — the Support `logs` sub-area MUST produce a user-locatable
 //! log-export artifact of the `<nimi_data>/logs/` directory
 //! (`P-MIG-006` `logs` row, owner `runtime_product_support`,
 //! "exportable for support").
@@ -12,11 +12,11 @@
 //! the archive; the artifact is then revealed in the OS file manager so the
 //! user can immediately locate it.
 //!
-//! Fail-closed (`D-SUP-006`): a missing or unreadable `<nimi_data>/logs/`
+//! Fail-closed (`rule.nimi.desktop.product-surfaces.r027`): a missing or unreadable `<nimi_data>/logs/`
 //! directory, or an empty one, yields a typed `Err` — never a fabricated empty
 //! archive or a pseudo-success artifact. The command does not create the
 //! `logs/` directory and never mutates or deletes its contents
-//! (`D-SUP-006` `MUST NOT`).
+//! (`rule.nimi.desktop.product-surfaces.r027` `MUST NOT`).
 
 use std::fs;
 use std::io::{Read, Write};
@@ -43,7 +43,7 @@ pub struct LogsExportResult {
     pub exported_at: String,
 }
 
-/// `D-SUP-006`: export `<nimi_data>/logs/` to a user-locatable archive.
+/// `rule.nimi.desktop.product-surfaces.r027`: export `<nimi_data>/logs/` to a user-locatable archive.
 ///
 /// Resolves the active `nimi_data` data root via the product-control record,
 /// targets `<nimi_data>/logs/`, bundles it into the OS Downloads directory,

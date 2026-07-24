@@ -137,7 +137,7 @@ test('Desktop auth custody stays RuntimeAccountService-owned', () => {
     'utf8',
   );
   const ipcCommandsSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../../../.nimi/spec/desktop/kernel/tables/ipc-commands.yaml'),
+    path.join(import.meta.dirname, '../../../config/desktop-ipc-commands.yaml'),
     'utf8',
   );
   const tauriBootstrapSource = fs.readFileSync(

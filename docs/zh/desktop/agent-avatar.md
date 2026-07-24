@@ -35,7 +35,7 @@
 
 1. **运行时发出临时呈现事件。**
    `runtime.agent.presentation.*` 和 `runtime.agent.state.*` 事件携带阶段、情绪、动作提示、注意力目标和口型同步帧。
-2. **桌面聊天标准化。** 根据 `agent-avatar-surface-contract.md` (D-LLM-053..D-LLM-054)，桌面将这些事件映射到统一的 `AvatarInteractionState`。
+2. **桌面聊天标准化。** 根据 `.nimi/spec/canonical/desktop/agent-projection.authority.yaml` (D-LLM-053..D-LLM-054)，桌面将这些事件映射到统一的 `AvatarInteractionState`。
 3. **可重用套件头像消费。** `kit/features/avatar` 和 `apps/avatar` 都消费标准化的界面输入。两者都不会越过合同去获取隐藏的桌面语义。
 
 这就是为什么聊天界面和独立的 Avatar 载体能够保持同步而无需相互协调——它们都消费相同的运行时呈现事件。
@@ -74,17 +74,16 @@
 
 | 关注点 | 所有者 |
 | --- | --- |
-| 桌面聊天头像临时界面 | 桌面 (`agent-avatar-surface-contract.md`, D-LLM-053..) |
+| 桌面聊天头像临时界面 | 桌面 (`.nimi/spec/canonical/desktop/agent-projection.authority.yaml`, D-LLM-053..) |
 | 持久性展示配置文件+默认声音 | 运行时 (`agent-presentation-contract.md`) |
 | 临时轮次/呈现接口 | 运行时 (`agent-presentation-stream-contract.md`) |
 | Avatar 载体+执行 | Avatar 应用 (`apps/avatar`) |
 | 可重用套件头像消费者 | `kit/features/avatar` |
-| 配置/调试工作台 | 桌面 (`agent-avatar-configuration-contract.md`, `agent-avatar-debug-workbench-contract.md`) |
+| 配置/调试工作台 | 桌面 (`.nimi/spec/canonical/desktop/agent-projection.authority.yaml`, `agent-avatar-debug-workbench-contract.md`) |
 
 ## 来源依据
 
-- [`.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md)
-- [`.nimi/spec/desktop/kernel/agent-avatar-configuration-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/agent-avatar-configuration-contract.md)
+- [`.nimi/spec/canonical/desktop/agent-projection.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/canonical/desktop/agent-projection.authority.yaml)
 - [`.nimi/spec/desktop/kernel/agent-avatar-debug-workbench-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/agent-avatar-debug-workbench-contract.md)
 - [`.nimi/spec/runtime/kernel/agent-presentation-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/agent-presentation-contract.md)
 - [`.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)

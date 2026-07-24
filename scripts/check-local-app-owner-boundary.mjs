@@ -128,8 +128,8 @@ const authorityRules = [
     ],
   },
   {
-    ruleId: 'D-NET-006',
-    contract: '.nimi/spec/desktop/kernel/network-contract.md',
+    ruleId: 'rule.nimi.desktop.shell-runtime.r078',
+    contract: '.nimi/spec/canonical/desktop/shell-runtime.authority.yaml',
     clauses: [
       ['DESKTOP_LIFECYCLE_ONLY_OWNER_MISSING', /Desktop owns account-control and lifecycle UX and verified process launch/iu],
       ['RUNTIME_REALM_TRANSPORT_OWNER_MISSING', /Runtime remains the sole owner of authenticated Realm unary, realtime, and media transport/iu],
@@ -151,10 +151,15 @@ function issue(code, location, reason) {
 
 function extractRule(source, ruleId) {
   const escaped = ruleId.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
-  const match = new RegExp(`^## ${escaped}\\b`, 'mu').exec(source);
-  if (!match) return '';
-  const nextHeading = source.indexOf('\n## ', match.index + match[0].length);
-  return source.slice(match.index, nextHeading === -1 ? source.length : nextHeading);
+  const markdownMatch = new RegExp(`^## ${escaped}\\b`, 'mu').exec(source);
+  if (markdownMatch) {
+    const nextHeading = source.indexOf('\n## ', markdownMatch.index + markdownMatch[0].length);
+    return source.slice(markdownMatch.index, nextHeading === -1 ? source.length : nextHeading);
+  }
+  const yamlMatch = new RegExp(`^  - id: ${escaped}\\s*$`, 'mu').exec(source);
+  if (!yamlMatch) return '';
+  const nextUnit = source.indexOf('\n  - id:', yamlMatch.index + yamlMatch[0].length);
+  return source.slice(yamlMatch.index, nextUnit === -1 ? source.length : nextUnit);
 }
 
 function validateBundle(files) {
@@ -216,7 +221,7 @@ const negativeFixtures = [
   ['app-private-storage-requires-nimi-permission', 'P-PERM-011', 'APP_PRIVATE_STORAGE_BASE_ENTITLEMENT_MISSING'],
   ['authority-classes-collapsed', 'P-PERM-015', 'AUTHORITY_CLASS_EXCLUSIVITY_MISSING'],
   ['permission-admission-partial', 'P-PERM-017', 'ATOMIC_PERMISSION_ADMISSION_MISSING'],
-  ['desktop-credential-custody', 'D-NET-006', 'DESKTOP_CREDENTIAL_CUSTODY_DENIAL_MISSING'],
+  ['desktop-credential-custody', 'rule.nimi.desktop.shell-runtime.r078', 'DESKTOP_CREDENTIAL_CUSTODY_DENIAL_MISSING'],
 ].map(([fixtureId, ruleId, expectedCode]) => ({
   fixtureId,
   expectedCode,

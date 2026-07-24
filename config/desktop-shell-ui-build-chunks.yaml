@@ -1,0 +1,130 @@
+# Non-authoritative Desktop shell UI machine configuration.
+# Normative authority: .nimi/spec/canonical/desktop/shell-ui.authority.yaml
+# Rationale: docs/authority/desktop-shell-ui-rationale.md
+table_family: product_catalog
+owner: desktop
+catalog_id: desktop_build_chunks
+entries:
+  - chunks_1
+  - chunks_2
+  - chunks_3
+  - chunks_4
+  - chunks_5
+  - chunks_6
+  - chunks_7
+  - chunks_8
+  - chunks_9
+  - chunks_10
+  - chunks_11
+  - chunks_12
+  - chunks_13
+# Desktop Vite Build Chunks
+# Source: apps/desktop/vite.config.ts (manualChunks / lazy imports in main-layout-view.tsx)
+
+chunks:
+  - chunk: shell-core
+    includes:
+      - "@nimiplatform/kit/core"
+      - app-shell/providers
+      - app-shell/layouts
+    lazy: false
+    description: Shell framework, store, navigation config
+    source_rule: D-SHELL-004
+
+  - chunk: bridge
+    includes:
+      - bridge/runtime-bridge
+    lazy: false
+    description: Tauri IPC bridge and invoke layer
+    source_rule: D-SHELL-004
+
+  - chunk: chat
+    includes:
+      - features/chats
+      - features/turns
+    lazy: true
+    description: Chat list, message timeline, turn input
+    source_rule: D-SHELL-004
+
+  - chunk: explore
+    includes:
+      - features/explore
+    lazy: true
+    description: Explore discovery feed
+    source_rule: D-SHELL-004
+
+  - chunk: settings
+    includes:
+      - features/settings
+    lazy: true
+    description: Settings panel and extensions
+    source_rule: D-SHELL-004
+
+  - chunk: profile
+    includes:
+      - features/profile
+    lazy: true
+    description: User profile view
+    source_rule: D-SHELL-004
+
+  - chunk: runtime-config-overview
+    includes:
+      - features/runtime-config/runtime-config-page-overview
+      - features/runtime-config/runtime-config-usage-stats-section
+      - features/runtime-config/runtime-config-global-audit-
+    lazy: true
+    description: Runtime Config overview and audit summary
+    source_rule: D-SHELL-004
+
+  - chunk: runtime-config-cloud
+    includes:
+      - features/runtime-config/runtime-config-page-cloud
+      - features/runtime-config/runtime-config-provider-
+      - features/runtime-config/runtime-config-pricing-
+      - features/runtime-config/runtime-config-external-agent-access
+    lazy: true
+    description: Runtime Config cloud provider and external-agent projection UI
+    source_rule: D-SHELL-004
+
+  - chunk: runtime-config-local
+    includes:
+      - features/runtime-config/runtime-config-page-local
+      - features/runtime-config/runtime-config-local-
+      - features/runtime-config/runtime-config-memory-embedding-
+    lazy: true
+    description: Runtime Config local model center and memory embedding projection UI
+    source_rule: D-SHELL-004
+
+  - chunk: runtime-config-runtime
+    includes:
+      - features/runtime-config/runtime-config-page-runtime
+      - features/runtime-config/runtime-daemon-
+      - features/runtime-config/runtime-health-
+      - features/runtime-config/runtime-config-runtime-
+    lazy: true
+    description: Runtime Config daemon/runtime status UI
+    source_rule: D-SHELL-004
+
+  - chunk: runtime-config-catalog
+    includes:
+      - features/runtime-config/runtime-config-page-catalog
+      - features/runtime-config/runtime-config-catalog-
+    lazy: true
+    description: Runtime Config catalog browser
+    source_rule: D-SHELL-004
+
+  - chunk: runtime-config-profiles
+    includes:
+      - features/runtime-config/runtime-config-page-profiles
+      - features/runtime-config/runtime-config-profile-
+    lazy: true
+    description: Runtime Config profile library
+    source_rule: D-SHELL-004
+
+  - chunk: runtime-config-recommend
+    includes:
+      - features/runtime-config/runtime-config-page-recommend
+      - features/runtime-config/runtime-config-page-recommend-
+    lazy: true
+    description: Runtime Config recommendation feed
+    source_rule: D-SHELL-004

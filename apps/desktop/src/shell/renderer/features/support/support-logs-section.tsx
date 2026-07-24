@@ -1,11 +1,11 @@
 /**
- * Support `logs` sub-area (`D-SUP-006`).
+ * Support `logs` sub-area (`rule.nimi.desktop.product-surfaces.r027`).
  *
- * Provides log viewing affordances over the `tables/log-areas.yaml` log areas
+ * Provides log viewing affordances over the `config/desktop-shell-ui-log-areas.yaml` log areas
  * and the SDK-projected `<nimi_data>/logs/` directory (`P-MIG-006` `logs` row,
  * owner `runtime_product_support`).
  *
- * Log EXPORT (`D-SUP-006` "用户可定位的导出工件"): the export action invokes the
+ * Log EXPORT (`rule.nimi.desktop.product-surfaces.r027` "用户可定位的导出工件"): the export action invokes the
  * typed `desktop_logs_export` command, which bundles `<nimi_data>/logs/` into a
  * user-locatable `.zip` archive in the OS Downloads directory and reveals it.
  * On a typed backend failure (missing / unreadable / empty logs directory) the
@@ -30,7 +30,7 @@ import { DESKTOP_LOG_AREAS, DESKTOP_LOG_AREA_LABEL_KEY } from './support-log-are
 
 /**
  * Whether a typed log-export IPC exists. The Support `logs` export artifact
- * (`D-SUP-006`) is produced by the runtime-host `desktop_logs_export` command.
+ * (`rule.nimi.desktop.product-surfaces.r027`) is produced by the runtime-host `desktop_logs_export` command.
  * That typed surface now exists, so the export action is live; the UI still
  * fails closed honestly when the command returns a typed error.
  */
@@ -42,7 +42,7 @@ async function loadLogsProjection(
   return logs.loadStorageDirs();
 }
 
-/** Typed state of the in-component log-export action (`D-SUP-006`). */
+/** Typed state of the in-component log-export action (`rule.nimi.desktop.product-surfaces.r027`). */
 type LogsExportState =
   | { status: 'idle' }
   | { status: 'running' }
@@ -60,7 +60,7 @@ function SupportLogsExportCard() {
       const result = await logs.exportLogs();
       setExportState({ status: 'done', result });
     } catch (error) {
-      // D-SUP-006: a typed backend failure (missing / unreadable / empty logs
+      // rule.nimi.desktop.product-surfaces.r027: a typed backend failure (missing / unreadable / empty logs
       // directory) fails closed to a typed reason — never a fake artifact.
       const reason = error instanceof Error ? error.message : String(error);
       setExportState({ status: 'failed', reason });
@@ -107,7 +107,7 @@ function SupportLogsExportCard() {
       ) : null}
 
       {exportState.status === 'failed' ? (
-        // D-SUP-006: typed fail-closed state. The backend reason is surfaced
+        // rule.nimi.desktop.product-surfaces.r027: typed fail-closed state. The backend reason is surfaced
         // verbatim; no export artifact is fabricated.
         <p
           data-testid="support-logs-export-failed"
@@ -194,7 +194,7 @@ export function SupportLogsSection() {
         </ul>
       </SupportCard>
 
-      {/* D-SUP-006: log export produces a user-locatable archive via the typed
+      {/* rule.nimi.desktop.product-surfaces.r027: log export produces a user-locatable archive via the typed
           desktop_logs_export command; the action fails closed on a typed
           backend error. */}
       {LOG_EXPORT_IPC_AVAILABLE ? <SupportLogsExportCard /> : null}

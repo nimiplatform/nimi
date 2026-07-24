@@ -216,7 +216,7 @@ export async function executeNimiDataCleanup(
   throw new Error('nimi_data cleanup is only available in desktop runtime');
 }
 
-// The Support `logs` export (`D-SUP-006`) bundles the on-disk `<nimi_data>/logs/`
+// The Support `logs` export (`rule.nimi.desktop.product-surfaces.r027`) bundles the on-disk `<nimi_data>/logs/`
 // directory into a user-locatable archive — a desktop Tauri-only capability.
 // The web shell has no nimi_data root, so the export fails closed rather than
 // synthesizing a fake artifact.

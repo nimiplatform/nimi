@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import { parseLogsExportResult } from '../src/shell/renderer/bridge/runtime-bridge/support-logs-export';
 
-test('D-SUP-006: log export parser accepts only concrete non-empty artifacts', () => {
+test('rule.nimi.desktop.product-surfaces.r027: log export parser accepts only concrete non-empty artifacts', () => {
   assert.deepEqual(
     parseLogsExportResult({
       artifactPath: '/tmp/nimi-logs.zip',
@@ -20,7 +20,7 @@ test('D-SUP-006: log export parser accepts only concrete non-empty artifacts', (
   );
 });
 
-test('D-SUP-006: log export parser rejects empty or non-numeric success payloads', () => {
+test('rule.nimi.desktop.product-surfaces.r027: log export parser rejects empty or non-numeric success payloads', () => {
   for (const payload of [
     { artifactPath: '/tmp/nimi-logs.zip', fileCount: 0, byteSize: 128, exportedAt: '2026-06-12T00:00:00Z' },
     { artifactPath: '/tmp/nimi-logs.zip', fileCount: 2, byteSize: 0, exportedAt: '2026-06-12T00:00:00Z' },

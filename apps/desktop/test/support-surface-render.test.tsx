@@ -1,5 +1,5 @@
 /**
- * T10.4 — Support secondary surface render coverage (`D-SUP-001..008`).
+ * T10.4 — Support secondary surface render coverage (`rule.nimi.desktop.product-surfaces.r022..r029`).
  *
  * Static-markup render proofs:
  *   - the Support panel mounts the fixed five-item sub-area sidebar;
@@ -63,7 +63,7 @@ function renderToStaticMarkup(element: React.ReactNode): string {
   );
 }
 
-test('D-SUP-001/002: the Support panel renders the five-item sub-area sidebar', () => {
+test('rule.nimi.desktop.product-surfaces.r022/r023: the Support panel renders the five-item sub-area sidebar', () => {
   const markup = renderToStaticMarkup(React.createElement(SupportPanel));
   assert.match(markup, /data-testid="panel:support"/);
   assert.match(markup, /data-testid="panel:support-sidebar"/);
@@ -72,7 +72,7 @@ test('D-SUP-001/002: the Support panel renders the five-item sub-area sidebar', 
   }
 });
 
-test('D-SUP-003..007: the typed fail-closed surface shows the typed reason and retry', () => {
+test('rule.nimi.desktop.product-surfaces.r024..r028: the typed fail-closed surface shows the typed reason and retry', () => {
   const markup = renderToStaticMarkup(
     React.createElement(SupportFailClosed, {
       testId: 'support-test-fail-closed',
@@ -110,7 +110,7 @@ const SECTIONS: Array<{ name: string; element: React.ReactElement; loadingTestId
 ];
 
 for (const section of SECTIONS) {
-  test(`D-SUP-003..007: ${section.name} starts in a typed loading state, not placeholder data`, () => {
+  test(`rule.nimi.desktop.product-surfaces.r024..r028: ${section.name} starts in a typed loading state, not placeholder data`, () => {
     const markup = renderToStaticMarkup(section.element);
     assert.match(markup, new RegExp(`data-testid="support-section-${section.name}"`));
     // Before the typed projection resolves the sub-area shows loading — never
@@ -119,7 +119,7 @@ for (const section of SECTIONS) {
   });
 }
 
-test('D-SUP-004: updates fails closed before the release projection arrives', () => {
+test('rule.nimi.desktop.product-surfaces.r025: updates fails closed before the release projection arrives', () => {
   // The updates sub-area reads the release projection from the app store
   // (synchronously available, null on a cold store). It must render the
   // section frame without crashing and without fabricating version rows.
@@ -150,7 +150,7 @@ test('D-SUP-004: updates fails closed before the release projection arrives', ()
   assert.doesNotMatch(markup, /data-testid="support-updates-versions"/);
 });
 
-test('D-SUP-008: the degraded entry renders only the trigger when closed', () => {
+test('rule.nimi.desktop.product-surfaces.r029: the degraded entry renders only the trigger when closed', () => {
   const markup = renderToStaticMarkup(React.createElement(SupportDegradedEntry));
   assert.match(markup, /data-testid="support-degraded-entry-trigger"/);
   // The overlay is closed by default — no Support sub-area is mounted until

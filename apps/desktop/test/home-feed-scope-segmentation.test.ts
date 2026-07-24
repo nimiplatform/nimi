@@ -21,7 +21,7 @@ test('Desktop post feed delegates Realm service scope and pagination behavior to
   assert.doesNotMatch(postFeedDataSource, /realm\.services\.PostsService\.getHomeFeed/);
 });
 
-test('Home feed controls present the canonical core feed scopes (D-HOMEFEED-004)', () => {
+test('Home feed controls present the canonical core feed scopes (rule.nimi.desktop.product-surfaces.r018)', () => {
   assert.match(homeFeedControlsSource, /NIMI_REALM_FEED_SCOPES/);
   assert.match(homeFeedControlsSource, /HOME_FEED_SCOPES\s*=\s*NIMI_REALM_FEED_SCOPES/);
   assert.match(homeFeedControlsSource, /from '@nimiplatform\/sdk\/realm'/);
@@ -29,7 +29,7 @@ test('Home feed controls present the canonical core feed scopes (D-HOMEFEED-004)
   assert.doesNotMatch(homeFeedControlsSource, /@runtime\/data-sync/);
 });
 
-test('HomeView reads each scope through the SDK typed feed projection (D-HOMEFEED-006)', () => {
+test('HomeView reads each scope through the SDK typed feed projection (rule.nimi.desktop.product-surfaces.r020)', () => {
   // The feed read goes through realmSocialData.loadPostFeed (SDK typed Realm path),
   // carrying the active scope. No renderer-local REST fetch.
   assert.match(homeViewSource, /realmSocialData\.loadPostFeed\(\{\s*scope:\s*props\.feedScope,/s);
@@ -53,7 +53,7 @@ test('HomeView remounts PostFeed per scope so scope reads are not cross-contamin
   assert.match(homeViewSource, /<PostFeed\s+key=\{postFeedKey\}/s);
 });
 
-test('HomeView does not carry AI execution payload on the feed path (D-HOMEFEED-007)', () => {
+test('HomeView does not carry AI execution payload on the feed path (rule.nimi.desktop.product-surfaces.r021)', () => {
   assert.doesNotMatch(homeViewSource, /AIScopeRef/);
   assert.doesNotMatch(homeViewSource, /loadPostFeed\([^)]*provider/s);
 });

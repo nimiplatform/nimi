@@ -47,7 +47,7 @@ const uiSliceSource = fs.readFileSync(
 );
 
 test('Explore-owned World list routes detail entry through navigateToWorld unified path', () => {
-  // D-EXPL-001: the standalone World surface folds into Explore; the World
+  // rule.nimi.desktop.product-surfaces.r001: the standalone World surface folds into Explore; the World
   // list lives in the Explore panel, not a parallel standalone WorldList.
   assert.doesNotMatch(worldListSource, /export function WorldList\b/);
   assert.match(explorePanelSource, /const navigateToWorld = useAppStore\(\(state\) => state\.navigateToWorld\)/);
@@ -107,7 +107,7 @@ test('world detail cache fallback cannot synchronously crash before list project
 });
 
 test('Explore World list click routes through world detail without app-level dataSync worlds load', () => {
-  // World list navigation now lives in the Explore panel (D-EXPL-001 fold).
+  // World list navigation now lives in the Explore panel (rule.nimi.desktop.product-surfaces.r001 fold).
   assert.match(explorePanelSource, /fetchWorldListItems\(createRealmWorldData\(bindings\.sdk\)\)/);
   assert.doesNotMatch(explorePanelSource, /prefetchWorldDetailPanel/);
   assert.doesNotMatch(explorePanelSource, /prefetchWorldDetailAndHistory\(worldId\)/);

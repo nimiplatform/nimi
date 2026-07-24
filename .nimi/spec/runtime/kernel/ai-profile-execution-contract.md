@@ -369,5 +369,5 @@ Rules:
 - `scheduling-contract.md` — K-SCHED-001~007 (five-state scheduling judgement)
 - `key-source-routing.md` — K-KEYSRC-001~011 (remote binding legality)
 - `connector-contract.md` — K-CONN-001~017 (connector custody and legality)
-- `.nimi/spec/desktop/kernel/ai-profile-config-contract.md` — D-AIPC-001~012 (desktop AI config authority)
+- `.nimi/spec/canonical/desktop/ai-consumption.authority.yaml` — D-AIPC-001~012 (desktop AI config authority)
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-001~005 (AIScopeRef)

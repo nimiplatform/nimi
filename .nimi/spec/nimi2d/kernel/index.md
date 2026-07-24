@@ -221,7 +221,7 @@ Nimi2D consumes, but does not redefine:
 - `.nimi/spec/avatar/kernel/tables/nimi2d-live-action-routes.yaml`
 - `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
 - `.nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml`
-- `.nimi/spec/desktop/kernel/streaming-consumption-contract.md`
+- `.nimi/spec/canonical/desktop/ai-consumption.authority.yaml`
 - `.nimi/spec/platform/kernel/package-authority-admission-contract.md`
 - `.nimi/spec/platform/kernel/tables/package-authority-admissions.yaml`
 

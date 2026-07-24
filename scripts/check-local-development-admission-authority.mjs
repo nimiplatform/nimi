@@ -14,7 +14,7 @@ export const authorityPaths = Object.freeze({
   runtimeSession: '.nimi/spec/runtime/kernel/protected-local-session-contract.md',
   account: '.nimi/spec/runtime/kernel/account-session-contract.md',
   grant: '.nimi/spec/runtime/kernel/grant-service.md',
-  desktop: '.nimi/spec/desktop/kernel/bridge-ipc-contract.md',
+  desktop: '.nimi/spec/canonical/desktop/bridge-ipc.authority.yaml',
   kit: '.nimi/spec/platform/kernel/kit-contract.md',
   sdk: '.nimi/spec/sdks/kernel/transport-contract.md',
   principalSchema: '.nimi/spec/runtime/kernel/tables/local-app-principal-record-schema.yaml',
@@ -22,11 +22,12 @@ export const authorityPaths = Object.freeze({
   presenceProtocol: '.nimi/spec/runtime/kernel/tables/local-app-presence-protocol.yaml',
   transportMatrix: '.nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml',
   rpcAuth: '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml',
-  desktopControls: '.nimi/spec/desktop/kernel/tables/local-app-control-surfaces.yaml',
+  desktopControls: 'config/desktop-local-app-control-surfaces.yaml',
 });
 
 const yamlKeys = new Set([
   'policy',
+  'desktop',
   'principalSchema',
   'grantSchema',
   'presenceProtocol',
@@ -138,8 +139,10 @@ const requiredRuleClauses = Object.freeze([
   ['runtimeSession', ['K-PLOCAL-009', /durable user\s+development authorization/iu, /run_once/iu, /allow_project.*across supervisor, Desktop, and Runtime replacement/isu, /actual\s+host PID and creation marker/isu, /new launch lease,\s*process bind and session/isu, /Runtime restart/iu, /never returned through renderer IPC, CLI output/isu, /never\s+autostarts/iu]],
   ['account', ['K-ACCSVC-026', /exact\s+principal.*local record.*process-bound session/isu, /current owner lifecycle/iu, /owner.*resource policy/iu, /creates no synthetic permission/iu]],
   ['grant', ['K-GRANT-014', /admitted third-party public-permission set is empty/iu, /no positive local permission mutation path/iu, /owner_selector_digest/iu, /every\s+protected endpoint/isu]],
-  ['desktop', ['D-IPC-019', /production account.*off by default.*grants nothing/isu, /exactly one Dev Trust Set/iu, /allow_project.*across supervisor, Desktop, and Runtime replacement/isu, /fresh host\/payload digest.*launch lease.*process bind.*local-app session/isu, /Native\s+Windows execution risk disclosure/isu, /never create persistent/iu]],
-  ['desktop', ['D-IPC-020', /local_app_control.*verified\s+Desktop control connection/isu, /PrepareLocalAppLaunch.*process binding.*native supervisor/isu, /must not enter renderer state,\s*storage, network, logs or errors/isu]],
+  ['desktop', ['rule.nimi.desktop.bridge-ipc.r091', /production account.*defaults off.*grants nothing/isu, /exactly one Dev Trust Set/iu, /allow_project consent across supervisor, Desktop, and Runtime replacement/isu]],
+  ['desktop', ['rule.nimi.desktop.bridge-ipc.r097', /fresh host and payload digest observation.*launch lease.*verified process bind.*local-app session/isu, /native Windows execution risk disclosure/iu, /never creates persistent local-development autostart/iu]],
+  ['desktop', ['rule.nimi.desktop.bridge-ipc.r098', /local_app_control exists outside the verified Desktop control connection/iu, /principal, record, permission, lease, session, account, or operation-policy truth/iu]],
+  ['desktop', ['rule.nimi.desktop.bridge-ipc.r099', /PrepareLocalAppLaunch.*process binding.*Desktop native supervisor/isu, /renderer state, storage, network, logs, and errors/iu]],
   ['kit', ['P-KIT-046', /common local-app host\/client/iu, /controlled process replacement or Runtime restart/iu, /session posture, public permission posture\/request,\s*and app-private JSON storage/isu, /App-native commands remain separate\s*typed host commands/isu, /missing\/untrusted carrier fails closed/iu, /ordinary gRPC/iu]],
   ['sdk', ['S-TRANSPORT-014', /host-injected by Kit.*never\s*renderer-constructed/isu, /request-empty `OpenLocalAppSession`/iu, /controlled host\/Runtime restart/iu, /public permission posture\/request and app-private\s*JSON read\/write\/remove/isu, /Artifact, Agent, conversation, voice/iu, /Missing operation families remain typed unavailable/iu, /localhost gRPC cannot claim/iu]],
 ]);
@@ -165,6 +168,15 @@ function includesAll(value, expected) {
 }
 
 function extractRule(source, ruleId) {
+  if (ruleId.startsWith('rule.')) {
+    try {
+      const authority = YAML.parse(source);
+      const unit = authority?.units?.find((entry) => entry?.id === ruleId);
+      return unit ? YAML.stringify(unit, { lineWidth: 0 }) : '';
+    } catch {
+      return '';
+    }
+  }
   const escaped = ruleId.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
   const match = new RegExp(`^## ${escaped}\\b`, 'mu').exec(source);
   if (!match) return '';

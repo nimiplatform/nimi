@@ -9,8 +9,8 @@ function read(path: string): string {
   return readFileSync(resolve(root, path), 'utf8');
 }
 
-function specCommands(): string[] {
-  const source = read('.nimi/spec/desktop/kernel/tables/ipc-commands.yaml');
+function configuredCommands(): string[] {
+  const source = read('config/desktop-ipc-commands.yaml');
   return [...source.matchAll(/^\s*-\s*command:\s*([A-Za-z0-9_]+)\s*$/gm)]
     .flatMap((match) => (match[1] ? [match[1]] : []))
     .sort();
@@ -45,8 +45,8 @@ function kitInjectedCommands(): string[] {
 
 test('Desktop Tauri registered invoke commands match active IPC spec exactly', () => {
   const registered = [...new Set([...appRegisteredCommands(), ...kitInjectedCommands()])].sort();
-  const spec = specCommands();
-  assert.deepEqual(registered, spec);
+  const configured = configuredCommands();
+  assert.deepEqual(registered, configured);
 });
 
 test('Desktop command classification does not claim Tester World-Tour commands', () => {

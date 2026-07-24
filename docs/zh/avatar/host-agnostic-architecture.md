@@ -55,7 +55,7 @@ Avatar 窗口不知道是 Live2D 还是 VRM 已挂载。它只消费映射。
 1.  **运行时发出 `runtime.agent.state.emotion_changed`。** 具有权威性。
 2.  **映射转换。** Avatar 消费该事件；映射发出一个带有类型化转换的 `avatar.expression.changed` 事件。
 3.  **后端渲染。** Live2D 参数更新；载体显示新表情。
-4.  **桌面聊天表面也反映。** 桌面的 `agent-avatar-surface-contract.md` 直接消费运行时事件；两个表面保持同步，因为运行时是单一数据源。
+4.  **桌面聊天表面也反映。** 桌面的 `.nimi/spec/canonical/desktop/agent-projection.authority.yaml` 直接消费运行时事件；两个表面保持同步，因为运行时是单一数据源。
 
 载体和聊天表面无需相互协调。它们都消费运行时。
 
@@ -68,7 +68,7 @@ Avatar 窗口不知道是 Live2D 还是 VRM 已挂载。它只消费映射。
 | 后端中立映射 API | Avatar | `embodiment-projection-contract.md` |
 | 后端特定执行 | 活动后端分支 | `backend-branch-contract.md` + 各后端契约 |
 | 处理器约定 | Avatar (NAS) | `agent-script-contract.md` |
-| 桌面聊天智能体瞬态表面 | 桌面 | `agent-avatar-surface-contract.md` |
+| 桌面聊天智能体瞬态表面 | 桌面 | `.nimi/spec/canonical/desktop/agent-projection.authority.yaml` |
 
 ## 来源依据
 
@@ -78,4 +78,4 @@ Avatar 窗口不知道是 Live2D 还是 VRM 已挂载。它只消费映射。
 - [`.nimi/spec/avatar/kernel/app-shell-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/app-shell-contract.md)
 - [`.nimi/spec/runtime/kernel/agent-presentation-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/agent-presentation-contract.md)
 - [`.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
-- [`.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md)
+- [`.nimi/spec/canonical/desktop/agent-projection.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/canonical/desktop/agent-projection.authority.yaml)

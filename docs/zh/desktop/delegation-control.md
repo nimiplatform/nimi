@@ -3,7 +3,7 @@
 ## 状态：已准入契约；Desktop 拥有的 surface
 
 桌面 Agent 委托控制面合同
-(`desktop/kernel/agent-delegation-control-surface-contract.md`)
+(`canonical/desktop/agent-projection.authority.yaml`)
 已在内核层面获得准入。面向用户的审批与隔离 UI 属于 Desktop 拥有的 surface；公开行为以 Desktop 暴露面为准。
 
 ## 什么是委托控制
@@ -50,6 +50,6 @@
 
 ## 来源依据
 
-- [`.nimi/spec/desktop/kernel/agent-delegation-control-surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/agent-delegation-control-surface-contract.md)
+- [`.nimi/spec/canonical/desktop/agent-projection.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/canonical/desktop/agent-projection.authority.yaml)
 - [`.nimi/spec/runtime/kernel/delegated-approval-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/delegated-approval-contract.md)
 - [`.nimi/spec/runtime/kernel/delegated-output-firewall-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/delegated-output-firewall-contract.md)

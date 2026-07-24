@@ -454,7 +454,7 @@ Account Default Profile content source。
   `P-CAPCAT-001..P-CAPCAT-003` canonical capability identity authority
 - `.nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml` —
   admitted `CanonicalCapabilityId` rows
-- `.nimi/spec/desktop/kernel/ai-profile-config-contract.md` —
+- `.nimi/spec/canonical/desktop/ai-consumption.authority.yaml` —
   `D-AIPC-001..D-AIPC-012` Desktop consumption rules for `AIProfile` /
   `AIConfig` / `AISnapshot`
 - `.nimi/spec/runtime/kernel/ai-profile-execution-contract.md` —

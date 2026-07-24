@@ -1,7 +1,7 @@
 # Conversation Capability
 
 > Status: Running today. The Desktop conversation capability
-> contract (`desktop/kernel/conversation-capability-contract.md`)
+> contract (`canonical/desktop/agent-projection.authority.yaml`)
 > is the shipped per-conversation capability negotiation surface.
 
 The Desktop Conversation Capability surface governs **what
@@ -46,5 +46,5 @@ truth.
 
 ## Source Basis
 
-- [`.nimi/spec/desktop/kernel/conversation-capability-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/conversation-capability-contract.md)
+- [`.nimi/spec/canonical/desktop/agent-projection.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/canonical/desktop/agent-projection.authority.yaml)
 - [`.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md)

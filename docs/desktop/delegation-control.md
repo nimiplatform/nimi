@@ -3,7 +3,7 @@
 ## Status: Admitted Contract; Desktop-Owned Surface
 
 The Desktop agent delegation control surface contract
-(`desktop/kernel/agent-delegation-control-surface-contract.md`) is
+(`canonical/desktop/agent-projection.authority.yaml`) is
 admitted at the kernel level. The user-facing approval +
 quarantine UI is admitted as direction; public behavior belongs to Desktop,
 not to app-owned SDK code.
@@ -71,6 +71,6 @@ Provider drift or sensitivity classification quarantines an output.
 
 ## Source Basis
 
-- [`.nimi/spec/desktop/kernel/agent-delegation-control-surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/agent-delegation-control-surface-contract.md)
+- [`.nimi/spec/canonical/desktop/agent-projection.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/canonical/desktop/agent-projection.authority.yaml)
 - [`.nimi/spec/runtime/kernel/delegated-approval-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/delegated-approval-contract.md)
 - [`.nimi/spec/runtime/kernel/delegated-output-firewall-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/delegated-output-firewall-contract.md)

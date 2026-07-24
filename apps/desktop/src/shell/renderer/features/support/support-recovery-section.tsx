@@ -1,5 +1,5 @@
 /**
- * Support `recovery` sub-area (`D-SUP-007`).
+ * Support `recovery` sub-area (`rule.nimi.desktop.product-surfaces.r028`).
  *
  * Presents recovery help for fail-closed scenarios — corrupt `~/.nimi`,
  * missing / unreachable `nimi_data`, incomplete first-run. It consumes the

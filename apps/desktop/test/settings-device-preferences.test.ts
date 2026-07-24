@@ -218,7 +218,7 @@ test('appearance theme options are exactly system/light/dark', () => {
 
 test('Settings stays a secondary surface and primary nav stays 6 core items', () => {
   const appTabsSource = readFileSync(
-    path.resolve(desktopDir, '../../.nimi/spec/desktop/kernel/tables/app-tabs.yaml'),
+    path.resolve(desktopDir, '../../config/desktop-shell-ui-app-tabs.yaml'),
     'utf8',
   );
   const coreMatches = appTabsSource.match(/nav_group:\s*core/g) ?? [];

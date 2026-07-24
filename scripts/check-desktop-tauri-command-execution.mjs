@@ -9,7 +9,7 @@ const repoRoot = path.resolve(scriptDir, '..');
 
 const tableRel = 'config/desktop-command-execution-classification.yaml';
 const tablePath = path.join(repoRoot, tableRel);
-const ipcCommandsRel = '.nimi/spec/desktop/kernel/tables/ipc-commands.yaml';
+const ipcCommandsRel = 'config/desktop-ipc-commands.yaml';
 const ipcCommandsPath = path.join(repoRoot, ipcCommandsRel);
 const jsonMode = process.argv.slice(2).includes('--json');
 

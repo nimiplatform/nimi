@@ -28,8 +28,8 @@ const scanSpecs = [
     pattern: /\blocal_runtime::commands::(runtime_local_[a-z0-9_]+)/gu,
   },
   {
-    label: 'Desktop IPC command table',
-    file: '.nimi/spec/desktop/kernel/tables/ipc-commands.yaml',
+    label: 'Desktop IPC command configuration',
+    file: 'config/desktop-ipc-commands.yaml',
     pattern: /^\s*-\s+command:\s*(runtime_local_[a-z0-9_]+)\s*$/gmu,
   },
   {

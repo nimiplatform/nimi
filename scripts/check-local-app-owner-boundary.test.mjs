@@ -16,7 +16,7 @@ const bundleFiles = [
   '.nimi/spec/platform/kernel/kit-contract.md',
   '.nimi/spec/platform/kernel/app-permission-contract.md',
   '.nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml',
-  '.nimi/spec/desktop/kernel/network-contract.md',
+  '.nimi/spec/canonical/desktop/shell-runtime.authority.yaml',
 ];
 
 const expectedFixtureCodes = [

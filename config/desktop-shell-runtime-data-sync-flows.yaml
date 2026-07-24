@@ -1,0 +1,107 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/desktop/shell-runtime.authority.yaml
+# Rationale: docs/authority/desktop-shell-runtime-rationale.md
+config_id: desktop_shell_runtime_data_sync_non_admission_map
+owner: desktop
+flows:
+  - flow: infrastructure
+    methods: []
+    replacement_owners:
+      - sdk
+      - kit
+      - desktop_bounded_shell_scaffold
+    source_rule: rule.nimi.desktop.shell-runtime.r043
+  - flow: auth
+    methods: []
+    replacement_owners:
+      - runtime
+      - realm
+      - sdk
+      - kit
+    source_rule: rule.nimi.desktop.shell-runtime.r044
+  - flow: account_profile
+    methods: []
+    replacement_owners:
+      - realm
+      - sdk
+    source_rule: rule.nimi.desktop.shell-runtime.r045
+  - flow: human_chat
+    methods: []
+    replacement_owners:
+      - realm
+      - sdk
+      - kit
+      - desktop_bounded_shell_scaffold
+    source_rule: rule.nimi.desktop.shell-runtime.r046
+  - flow: social
+    methods: []
+    replacement_owners:
+      - realm
+      - sdk
+      - kit
+      - desktop_bounded_shell_scaffold
+    source_rule: rule.nimi.desktop.shell-runtime.r047
+  - flow: world
+    methods: []
+    replacement_owners:
+      - realm
+      - sdk
+      - kit
+    source_rule: rule.nimi.desktop.shell-runtime.r048
+  - flow: economy
+    methods: []
+    replacement_owners:
+      - realm
+      - kit
+    source_rule: rule.nimi.desktop.shell-runtime.r049
+  - flow: feed_resource
+    methods: []
+    replacement_owners:
+      - realm
+      - sdk
+      - kit
+    source_rule: rule.nimi.desktop.shell-runtime.r050
+  - flow: explore
+    methods: []
+    replacement_owners:
+      - realm
+      - sdk
+      - kit
+    source_rule: rule.nimi.desktop.shell-runtime.r051
+  - flow: notification
+    methods: []
+    replacement_owners:
+      - realm
+      - sdk
+    source_rule: rule.nimi.desktop.shell-runtime.r052
+  - flow: settings
+    methods: []
+    replacement_owners:
+      - realm
+      - sdk
+    source_rule: rule.nimi.desktop.shell-runtime.r053
+  - flow: source
+    methods: []
+    replacement_owners:
+      - realm
+      - runtime
+      - cognition
+      - sdk
+    source_rule: rule.nimi.desktop.shell-runtime.r054
+  - flow: transit
+    methods: []
+    replacement_owners:
+      - realm
+      - runtime
+      - sdk
+      - kit
+    source_rule: rule.nimi.desktop.shell-runtime.r055
+owner_selection:
+  source_rule: rule.nimi.desktop.shell-runtime.r056
+  order:
+    - realm
+    - runtime
+    - cognition
+    - sdk
+    - kit
+    - desktop

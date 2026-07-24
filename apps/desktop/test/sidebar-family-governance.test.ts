@@ -23,8 +23,8 @@ const mainLayoutSettingsMenuSource = readWorkspace('src/shell/renderer/app-shell
 const runtimePanelSource = readWorkspace('src/shell/renderer/features/runtime-config/runtime-config-panel-view.tsx');
 const settingsPanelSource = readWorkspace('src/shell/renderer/features/settings/settings-panel-body.tsx');
 const desktopStylesSource = readWorkspace('src/shell/renderer/styles.css');
-const adoptionTable = readRepo('.nimi/spec/desktop/kernel/tables/nimi-kit-adoption.yaml');
-const compositionsTable = readRepo('.nimi/spec/desktop/kernel/tables/nimi-kit-compositions.yaml');
+const adoptionTable = readRepo('config/desktop-shell-ui-kit-adoption.yaml');
+const compositionsTable = readRepo('config/desktop-shell-ui-kit-compositions.yaml');
 const designContractSource = readRepo('.nimi/spec/platform/kernel/design-pattern-contract.md');
 const designOverviewSource = readRepo('.nimi/spec/platform/design-pattern.md');
 

@@ -28,7 +28,7 @@ the real fail-closed state instead of promising a fake deep link.
 
 This action navigates to existing partner/source selection only. It is not
 Zhiyu source-materialization authority. The source-generic materialization
-intent and Character/Persona action belong to Desktop `D-EXPL-006/007` and
+intent and Character/Persona action belong to Desktop `rule.nimi.desktop.product-surfaces.r006` and `rule.nimi.desktop.product-surfaces.r007` and
 `realm-source-materialization-actions.yaml`.
 
 ## Z-PARTNER-003 Current Partner Projection

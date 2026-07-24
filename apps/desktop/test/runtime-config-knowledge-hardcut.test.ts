@@ -22,7 +22,7 @@ test('runtime config hard-cuts the retired knowledge management page', () => {
     'utf8',
   );
   const buildChunks = readFileSync(
-    path.join(import.meta.dirname, '../../../.nimi/spec/desktop/kernel/tables/build-chunks.yaml'),
+    path.join(import.meta.dirname, '../../../config/desktop-shell-ui-build-chunks.yaml'),
     'utf8',
   );
 

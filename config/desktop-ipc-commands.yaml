@@ -1,0 +1,558 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/desktop/bridge-ipc.authority.yaml
+# Rationale: docs/authority/desktop-bridge-ipc-rationale.md
+table_family: protocol_surface
+owner: desktop
+protocol_id: desktop_ipc_commands
+surfaces:
+  - runtime-defaults
+  - desktop-release
+  - desktop-update
+  - system
+  - http
+  - storage
+  - ai-config
+  - ui
+  - oauth
+  - desktop-open
+  - diagnostics
+  - telemetry
+  - runtime-bridge
+  - runtime-daemon
+  - local-runtime
+  - local-assets
+  - local-agent
+  - avatar
+  - platform-projection
+  - product-control
+  - account-profile-library
+  - data-cleanup
+  - support-export
+  - apps
+  - chat-ai
+  - agent-center
+  - storage
+# Desktop IPC Commands (Tauri invoke)
+# Registration source: apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs
+# Synced: 2026-03-09
+
+commands:
+  # Runtime lifecycle
+  - command: runtime_defaults
+    module: runtime-defaults
+    description: Get realm and runtime execution defaults
+    source_rule: D-IPC-001
+
+  - command: desktop_release_info_get
+    module: desktop-release
+    description: Read validated Desktop-owned release metadata; installed Runtime release and compatibility are projected only by protected-local service status
+    source_rule: D-IPC-015
+
+  - command: desktop_update_state_get
+    module: desktop-update
+    description: Read current desktop updater state machine snapshot
+    source_rule: D-IPC-015
+
+  - command: desktop_update_check
+    module: desktop-update
+    description: Check GitHub release metadata for a newer packaged desktop update
+    source_rule: D-IPC-015
+
+  - command: desktop_update_download
+    module: desktop-update
+    description: Download the currently available packaged desktop update
+    source_rule: D-IPC-015
+
+  - command: desktop_update_install
+    module: desktop-update
+    description: Consume already-downloaded update bytes and enter installer stage for the packaged desktop update
+    source_rule: D-IPC-015
+
+  - command: desktop_update_restart
+    module: desktop-update
+    description: Restart the packaged desktop after updater install is ready
+    source_rule: D-IPC-015
+
+  # Product control / first-run host evidence
+  - command: product_control_record_get
+    module: product-control
+    description: Read the Runtime product-control record projection for the active desktop account scope
+    source_rule: D-IPC-012
+
+  - command: product_control_selected_data_root_get
+    module: product-control
+    description: Read the selected Nimi data root from the product-control record projection
+    source_rule: D-IPC-012
+
+  - command: product_control_record_ensure_created
+    module: product-control
+    description: Ensure a product-control record exists for the active desktop account scope
+    source_rule: D-IPC-012
+
+  - command: product_control_record_select_data_root
+    module: product-control
+    description: Persist the selected data-root decision through the product-control bridge
+    source_rule: D-IPC-012
+
+  - command: product_control_record_complete_first_run_device_environment_scan
+    module: product-control
+    description: Record completion of first-run device-environment scan evidence
+    source_rule: D-IPC-012
+
+  - command: product_control_default_data_root_directory
+    module: product-control
+    description: Resolve the default desktop Nimi data-root directory for first-run setup
+    source_rule: D-IPC-011
+
+  - command: product_control_record_set_first_run_install_level
+    module: product-control
+    description: Record the selected first-run local AI install level
+    source_rule: D-IPC-012
+
+  - command: product_control_record_ensure_account_default_profile
+    module: product-control
+    description: Ensure the account default profile projection needed for first-run readiness
+    source_rule: D-IPC-012
+
+  - command: product_control_record_prepare_first_run_local_ai_ready
+    module: product-control
+    description: Prepare first-run local AI readiness evidence for the selected product-control record
+    source_rule: D-IPC-012
+
+  - command: product_control_record_reconcile_first_run_setup_state
+    module: product-control
+    description: Reconcile first-run setup state against product-control and runtime readiness evidence
+    source_rule: D-IPC-012
+
+  - command: account_default_profile_for_scope_init
+    module: product-control
+    description: Initialize the default account profile for the active desktop scope
+    source_rule: D-IPC-012
+
+  - command: built_in_ai_config_for_scope_init
+    module: product-control
+    description: Initialize built-in AI configuration evidence for the active desktop scope
+    source_rule: D-IPC-012
+
+  - command: product_control_record_admit_ready_for_use
+    module: product-control
+    description: Admit the product-control record as ready for desktop use after required first-run evidence is present
+    source_rule: D-IPC-012
+
+  # Account profile library
+  - command: account_profile_library_list
+    module: account-profile-library
+    description: List account profile library entries for the active desktop account scope
+    source_rule: D-IPC-012
+
+  - command: account_profile_library_create
+    module: account-profile-library
+    description: Create an account profile library entry for the active desktop account scope
+    source_rule: D-IPC-012
+
+  - command: account_profile_library_edit
+    module: account-profile-library
+    description: Edit an account profile library entry for the active desktop account scope
+    source_rule: D-IPC-012
+
+  - command: account_profile_library_import
+    module: account-profile-library
+    description: Import account profile library data for the active desktop account scope
+    source_rule: D-IPC-012
+
+  - command: account_profile_library_export
+    module: account-profile-library
+    description: Export account profile library data for the active desktop account scope
+    source_rule: D-IPC-012
+
+  - command: account_profile_library_delete
+    module: account-profile-library
+    description: Delete an account profile library entry for the active desktop account scope
+    source_rule: D-IPC-012
+
+  # Data cleanup / support export
+  - command: nimi_data_cleanup_plan
+    module: data-cleanup
+    description: Build a Nimi data-directory cleanup plan without deleting files
+    source_rule: D-IPC-011
+
+  - command: nimi_data_cleanup_execute
+    module: data-cleanup
+    description: Execute an admitted Nimi data-directory cleanup plan
+    source_rule: D-IPC-011
+
+  - command: desktop_logs_export
+    module: support-export
+    description: Export desktop support logs through the native host
+    source_rule: D-IPC-009
+
+  # System / telemetry
+  - command: get_system_resource_snapshot
+    module: system
+    description: Collect system resource snapshot (CPU, memory, GPU) for device profiling
+    source_rule: D-IPC-009
+
+  # Admitted shell network helper
+  - command: http_request
+    module: http
+    description: Fail-closed shell network helper for admitted Runtime/Realm origins and generated SDK connector-auth acquisition endpoints
+    source_rule: D-IPC-004
+
+  # UI
+  - command: open_external_url
+    module: ui
+    description: Open external URL in system browser
+    source_rule: D-IPC-005
+
+  - command: desktop_avatar_launch_handoff
+    module: ui
+    description: Launch the avatar app handoff URI with explicit agent/avatar-instance/anchor context and no raw JWT payload
+    source_rule: D-IPC-005
+
+  - command: desktop_avatar_close_handoff
+    module: ui
+    description: Request closure of a specific live avatar instance by avatar_instance_id through the avatar app handoff path without mutating runtime or desktop-local avatar truth
+    source_rule: D-IPC-005
+
+  - command: desktop_avatar_instance_registry_list
+    module: ui
+    description: Read the avatar-published live instance projection for desktop session-link inventory without inventing local carrier truth
+    source_rule: D-IPC-005
+
+  - command: oauth_listen_for_code
+    module: oauth
+    description: Listen for OAuth callback code on redirect URI
+    source_rule: D-IPC-006
+
+  - command: desktop_open_intent_open_intent
+    module: desktop-open
+    description: Standard shell desktop-open.openIntent (platform P-DOPEN-001/P-KIT-041C); kit-owned command sends a host-stamped Desktop Open Intent to the running Desktop bridge without cold-starting Desktop
+    source_rule: D-IPC-018
+
+  - command: desktop_open_intent_set_ready
+    module: desktop-open
+    description: Renderer readiness heartbeat for the running Desktop Open Intent bridge; mounted listener marks ready and reload/window/exit paths reset fail-closed readiness
+    source_rule: D-IPC-018
+
+  - command: confirm_dialog
+    module: ui
+    description: Standard shell-ui confirmDialog (platform P-KIT-041C); kit-owned command, desktop injects the native dialog host adapter
+    source_rule: D-IPC-005
+
+  - command: log_renderer_event
+    module: telemetry
+    description: Forward renderer-side structured log event to Tauri backend logger
+    source_rule: D-IPC-009
+
+  - command: diagnostics_renderer_entry_probe
+    module: diagnostics
+    description: Standard diagnostics rendererEntryProbe (platform P-KIT-041C); kit-owned renderer entry smoke probe command for shell bootstrap/runtime inspection
+    source_rule: D-IPC-016
+
+  - command: focus_main_window
+    module: ui
+    description: Standard shell-ui focusMainWindow (platform P-KIT-041C); kit-owned command, desktop injects the focus target host adapter
+    source_rule: D-IPC-005
+
+  - command: start_window_drag
+    module: ui
+    description: Standard shell-ui startWindowDrag (platform P-KIT-041C); kit-owned command, desktop injects the drag policy host adapter
+    source_rule: D-IPC-005
+
+  # Standard shell data/storage (kit-owned, platform P-KIT-041C)
+  - command: data_path_resolve
+    module: storage
+    description: Standard shell data.pathResolve (platform P-KIT-041C); kit-owned command resolving relative paths under the host-owned app data root
+    source_rule: D-IPC-016
+
+  - command: storage_read_json
+    module: storage
+    description: Standard shell storage.readJson (platform P-KIT-041C); kit-owned command over the host-owned app data root
+    source_rule: D-IPC-016
+
+  - command: storage_write_json
+    module: storage
+    description: Standard shell storage.writeJson (platform P-KIT-041C); kit-owned command over the host-owned app data root
+    source_rule: D-IPC-016
+
+  - command: storage_remove_json
+    module: storage
+    description: Standard shell storage.removeJson (platform P-KIT-041C); kit-owned idempotent removal over the host-owned app data root
+    source_rule: D-IPC-016
+
+  - command: ai_config_get
+    module: ai-config
+    description: Standard shell aiConfig.get (platform P-KIT-044); kit-owned command over the host-owned app AIConfig store
+    source_rule: D-IPC-016
+
+  - command: ai_config_set
+    module: ai-config
+    description: Standard shell aiConfig.set (platform P-KIT-044); kit-owned command over the host-owned app AIConfig store
+    source_rule: D-IPC-016
+
+  # Standard shell file & export surfaces (kit-owned, platform P-KIT-041F)
+  - command: file_dialog_open
+    module: storage
+    description: Standard shell fileDialog.open (platform P-KIT-041F); kit-owned OS open dialog returning host-validated paths
+    source_rule: D-IPC-016
+
+  - command: file_reveal_reveal
+    module: storage
+    description: Standard shell fileReveal.reveal (platform P-KIT-041F); kit-owned reveal of host-validated paths in the OS file manager
+    source_rule: D-IPC-016
+
+  - command: export_save_file
+    module: storage
+    description: Standard shell export.saveFile (platform P-KIT-041F); kit-owned user-facing export write with sanitized collision-free naming
+    source_rule: D-IPC-016
+
+  - command: artifacts_write
+    module: storage
+    description: Standard shell artifacts.write (platform P-KIT-041F); kit-owned binary artifact write under the artifacts/ subtree of the app data root
+    source_rule: D-IPC-016
+
+  # Standard shell local assets, local-agent, avatar, and projection surfaces (kit-owned, platform P-KIT-041C/P-KIT-041F)
+  - command: local_assets_resolve_url
+    module: local-assets
+    description: Standard shell localAssets.resolveUrl; kit-owned local asset URL resolver over host-admitted local asset roots
+    source_rule: D-IPC-016
+
+  - command: local_agent_identity
+    module: local-agent
+    description: Standard shell localAgent.identity; kit-owned fail-closed host hook for Runtime-owned local agent identity projection
+    source_rule: D-IPC-016
+
+  - command: local_agent_runtime_trusted_caller
+    module: local-agent
+    description: Standard shell localAgent.runtimeTrustedCaller; kit-owned fail-closed host hook that rejects renderer-authored identity/auth custody fields
+    source_rule: D-IPC-016
+
+  - command: avatar_asset_resolve
+    module: avatar
+    description: Standard shell avatar.assetResolve; kit-owned avatar asset URL resolver over host-admitted local asset roots
+    source_rule: D-IPC-016
+
+  - command: platform_projection_get
+    module: platform-projection
+    description: Standard shell platformProjection.get; kit-owned deterministic platform projection entrypoint for admitted projection ids
+    source_rule: D-IPC-016
+
+  - command: menu_bar_sync_runtime_health
+    module: ui
+    description: Sync menu bar runtime/provider health summary from renderer to Tauri backend
+    source_rule: D-IPC-005
+
+  - command: menu_bar_complete_quit
+    module: ui
+    description: Finalize explicit app quit after renderer cleanup
+    source_rule: D-IPC-005
+
+  # Chat local AI store
+  - command: chat_ai_list_threads
+    module: chat-ai
+    description: List local chat AI threads from the desktop local store
+    source_rule: D-IPC-011
+
+  - command: chat_ai_get_thread_bundle
+    module: chat-ai
+    description: Read a local chat AI thread bundle from the desktop local store
+    source_rule: D-IPC-011
+
+  - command: chat_ai_create_thread
+    module: chat-ai
+    description: Create a local chat AI thread in the desktop local store
+    source_rule: D-IPC-011
+
+  - command: chat_ai_update_thread_metadata
+    module: chat-ai
+    description: Update local chat AI thread metadata in the desktop local store
+    source_rule: D-IPC-011
+
+  - command: chat_ai_create_message
+    module: chat-ai
+    description: Create a local chat AI message in the desktop local store
+    source_rule: D-IPC-011
+
+  - command: chat_ai_update_message
+    module: chat-ai
+    description: Update a local chat AI message in the desktop local store
+    source_rule: D-IPC-011
+
+  - command: chat_ai_get_draft
+    module: chat-ai
+    description: Read a local chat AI draft from the desktop local store
+    source_rule: D-IPC-011
+
+  - command: chat_ai_put_draft
+    module: chat-ai
+    description: Save a local chat AI draft in the desktop local store
+    source_rule: D-IPC-011
+
+  - command: chat_ai_delete_draft
+    module: chat-ai
+    description: Delete a local chat AI draft from the desktop local store
+    source_rule: D-IPC-011
+
+  # Agent Center local resources (Kit Shell standard host commands; no config get/set surface)
+  - command: agent_center_avatar_asset_import
+    module: agent-center
+    description: Import a user-selected local avatar asset into Kit Shell managed Agent Center storage.
+    source_rule: D-IPC-011
+
+  - command: agent_center_avatar_asset_validate
+    module: agent-center
+    description: Validate a Kit Shell managed local avatar asset manifest and sidecar.
+    source_rule: D-IPC-011
+
+  - command: agent_center_avatar_asset_resolve_preview
+    module: agent-center
+    description: Resolve a Kit Shell managed local avatar asset into a preview model manifest without mutating Runtime presentation truth.
+    source_rule: D-IPC-011
+
+  - command: agent_center_live2d_adapter_import
+    module: agent-center
+    description: Import a user-selected Live2D adapter manifest into Kit Shell managed Agent Center storage.
+    source_rule: D-IPC-011
+
+  - command: agent_center_background_import
+    module: agent-center
+    description: Import a user-selected background image into Kit Shell managed Agent Center storage.
+    source_rule: D-IPC-011
+
+  - command: agent_center_background_get
+    module: agent-center
+    description: Resolve a managed background image into an app-readable local asset URL.
+    source_rule: D-IPC-011
+
+  - command: agent_center_background_validate
+    module: agent-center
+    description: Validate a Kit Shell managed background manifest and sidecar.
+    source_rule: D-IPC-011
+
+  - command: agent_center_background_remove
+    module: agent-center
+    description: Quarantine a Kit Shell managed background asset without mutating Runtime presentation truth.
+    source_rule: D-IPC-011
+
+  - command: agent_center_agent_resources_remove
+    module: agent-center
+    description: Quarantine all Kit Shell managed Agent Center resources for one Runtime local agent.
+    source_rule: D-IPC-011
+
+  - command: agent_center_account_resources_remove
+    module: agent-center
+    description: Quarantine all Kit Shell managed Agent Center resources for one account.
+    source_rule: D-IPC-011
+
+  # Runtime bridge (runtime_bridge) — gRPC transport
+  - command: runtime_bridge_unary
+    module: runtime-bridge
+    description: Forward generated allowlisted ordinary unary calls and the exact Desktop product-control subset; the product-control subset uses the verified Desktop carrier, while every other protected method is rejected or uses its dedicated typed native command.
+    source_rule: D-IPC-012
+
+  - command: runtime_bridge_stream_open
+    module: runtime-bridge
+    description: Open only an independently admitted ordinary public stream; protected streams and authorization-bearing renderer payloads are rejected.
+    source_rule: D-IPC-012
+
+  - command: runtime_bridge_stream_close
+    module: runtime-bridge
+    description: Close an active server-streaming gRPC call via IPC bridge
+    source_rule: D-IPC-012
+
+  - command: runtime_account_session_status
+    module: protected-local-host
+    description: Project exact Runtime account state over the verified Desktop control carrier with no renderer input and no token, session, credential, endpoint, or native authority material.
+    source_rule: D-IPC-001
+
+  - command: runtime_account_session_events_open
+    module: protected-local-host
+    description: Open the protected Runtime account event stream with only a canonical decimal afterSequence supplied by the renderer; native host injects all caller and account authority.
+    source_rule: D-IPC-001
+
+  - command: runtime_account_session_events_close
+    module: protected-local-host
+    description: Close one native-host-issued protected Runtime account event stream without exposing caller authority or generic Runtime stream access.
+    source_rule: D-IPC-001
+
+  - command: runtime_account_begin_login
+    module: protected-local-host
+    description: Begin Runtime-owned Desktop login through the verified account-host carrier; native code supplies the exact caller envelope and returns no token or technical session material.
+    source_rule: D-IPC-001
+
+  - command: runtime_account_complete_login
+    module: protected-local-host
+    description: Complete one Runtime-owned login attempt through the verified account-host carrier; renderer input cannot supply caller authority, endpoint, token custody, or a portable session.
+    source_rule: D-IPC-001
+
+  - command: runtime_account_invoke_realm_unary
+    module: protected-local-host
+    description: Invoke only the exact Runtime-mediated Realm broker vocabulary through the verified account-host carrier; Runtime retains bearer custody and the response is credential-scrubbed.
+    source_rule: D-IPC-001
+
+  - command: runtime_account_logout
+    module: protected-local-host
+    description: Request Runtime-owned logout through the verified account-host carrier with no renderer-held bearer, refresh token, or caller authority.
+    source_rule: D-IPC-001
+
+  - command: runtime_account_switch_account
+    module: protected-local-host
+    description: Request Runtime-owned account switch through the verified account-host carrier; Runtime owns custody, generation change, revocation, and the redacted account projection.
+    source_rule: D-IPC-001
+
+  - command: developer_mode_status
+    module: desktop-local-development
+    description: Project the Runtime-owned production Developer Mode state; renderer storage and preferences are not authority inputs.
+    source_rule: D-IPC-019
+
+  - command: developer_mode_set
+    module: desktop-local-development
+    description: Enable or disable Runtime-owned Developer Mode through the verified Desktop control session; the toggle grants no project or operation capability.
+    source_rule: D-IPC-019
+
+  - command: runtime_bridge_status
+    module: protected-local-host
+    description: Return redacted fixed-service status through the shared native carrier; no PID, address, path, service selector, or credential.
+    source_rule: D-IPC-002
+
+  - command: runtime_bridge_start
+    module: protected-local-host
+    description: Request start of the fixed signed Runtime OS service with no binary, argument, endpoint, or service-name input.
+    source_rule: D-IPC-002
+
+  - command: runtime_bridge_restart
+    module: protected-local-host
+    description: Request verified Runtime self-exit plus OS service-manager recovery and report success only after new-process mutual verification.
+    source_rule: D-IPC-002
+
+  # Local-development confirmation and supervisor (desktop_local_development)
+  - command: local_development_pending_approvals
+    module: desktop-local-development
+    description: List renderer-safe pending project confirmations with app, canonical root, shell, current account, and requested capabilities; no native carrier or technical-session material.
+    source_rule: D-IPC-019
+
+  - command: local_development_decide
+    module: desktop-local-development
+    description: Submit one Desktop confirmation decision for a pending evaluation; the decision does not itself mint or return protected session material.
+    source_rule: D-IPC-019
+
+  - command: local_development_authorizations_list
+    module: desktop-local-development
+    description: List renderer-safe Runtime-owned allow-project development authorization projections for Desktop settings and revocation UX.
+    source_rule: D-IPC-019
+
+  - command: local_development_runs_list
+    module: desktop-local-development
+    description: List stable Desktop supervisor run states without PID, launch ticket, Runtime epoch, protected endpoint, credential, or technical-session proof.
+    source_rule: D-IPC-019
+
+  - command: local_development_authorization_revoke
+    module: desktop-local-development
+    description: Revoke one Runtime-owned allow-project development authorization through the live protected Desktop control connection.
+    source_rule: D-IPC-019
+
+  # Local runtime (local_runtime::commands)
+  - command: runtime_local_pick_asset_manifest_path
+    module: local-runtime
+    description: Pick a local AI asset.manifest.json path under the runtime models root via native file dialog
+    source_rule: D-IPC-011

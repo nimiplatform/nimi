@@ -100,6 +100,9 @@ test('gate rejects Desktop/runtime role drift independently of the transport mat
   assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_RPC_AUTH_INVALID'));
 });
 
-test('authority paths remain canonical spec files', () => {
-  for (const relative of Object.values(authorityPaths)) assert.match(relative, /^\.nimi\/spec\//u);
+test('authority input paths remain canonical spec files or tracked config inputs', () => {
+  assert.equal(authorityPaths.desktopControls, 'config/desktop-local-app-control-surfaces.yaml');
+  for (const [key, relative] of Object.entries(authorityPaths)) {
+    if (key !== 'desktopControls') assert.match(relative, /^\.nimi\/spec\//u);
+  }
 });

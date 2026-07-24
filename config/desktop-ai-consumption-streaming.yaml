@@ -1,0 +1,81 @@
+# Non-authoritative Desktop AI-consumption machine configuration.
+# Normative authority: .nimi/spec/canonical/desktop/ai-consumption.authority.yaml
+# Rationale: docs/authority/desktop-ai-consumption-rationale.md
+version: 1
+table_family: runtime_projection_catalog
+owner: desktop
+catalog_id: desktop_ai_consumption_streaming
+operation_timeouts:
+  - operation: ExecuteScenario
+    capability: TEXT_GENERATE
+    phase: total
+    timeout_seconds: 30
+    ui_posture: loading_then_typed_timeout
+    source_rule: D-STRM-006
+  - operation: StreamScenario
+    capability: TEXT_GENERATE
+    phase: first_chunk
+    timeout_seconds: 10
+    ui_posture: waiting_warning
+    source_rule: D-STRM-006
+  - operation: StreamScenario
+    capability: TEXT_GENERATE
+    phase: total
+    timeout_seconds: 120
+    ui_posture: runtime_terminal_timeout
+    source_rule: D-STRM-006
+  - operation: ExecuteScenario
+    capability: TEXT_EMBED
+    phase: total
+    timeout_seconds: 20
+    ui_posture: loading_then_typed_timeout
+    source_rule: D-STRM-006
+  - operation: StreamScenario
+    capability: SPEECH_SYNTHESIZE
+    phase: total
+    timeout_seconds: 45
+    ui_posture: player_loading_then_typed_timeout
+    source_rule: D-STRM-006
+  - operation: SubmitScenarioJob
+    capability: image
+    phase: total
+    timeout_seconds: 120
+    ui_posture: progress_with_estimate
+    source_rule: D-STRM-006
+  - operation: SubmitScenarioJob
+    capability: video
+    phase: total
+    timeout_seconds: 300
+    ui_posture: progress_with_estimate
+    source_rule: D-STRM-006
+  - operation: SubmitScenarioJob
+    capability: stt
+    phase: total
+    timeout_seconds: 90
+    ui_posture: loading_then_typed_timeout
+    source_rule: D-STRM-006
+scenario_job_terminal_states:
+  - state: COMPLETED
+    ui_posture: show_artifacts_and_hide_progress
+    retry_affordance: false
+    source_rule: D-STRM-005
+  - state: FAILED
+    ui_posture: show_typed_error
+    retry_affordance: true
+    source_rule: D-STRM-005
+  - state: CANCELED
+    ui_posture: show_canceled_and_preserve_history
+    retry_affordance: false
+    source_rule: D-STRM-005
+  - state: TIMEOUT
+    ui_posture: show_timeout_guidance
+    retry_affordance: true
+    source_rule: D-STRM-005
+scenario_job_disconnect_recovery:
+  poll_operation: GetScenarioJob
+  interval_seconds: 2
+  max_attempts: 30
+  max_wait_seconds: 60
+  in_progress_posture: reconnecting
+  exhausted_posture: unknown_status_refresh_later
+  source_rule: D-STRM-010

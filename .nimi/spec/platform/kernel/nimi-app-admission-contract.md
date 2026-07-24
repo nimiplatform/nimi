@@ -774,7 +774,7 @@ control remains unchanged and Desktop-specific.
   - `.nimi/spec/platform/kernel/tables/nimi-app-local-development-admission.yaml`
   - `.nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml`
 - `.nimi/spec/platform/kernel/kit-contract.md` — `P-KIT-041C`, `P-KIT-041E`, `P-KIT-044`
-- `.nimi/spec/desktop/kernel/ui-shell-contract.md` — `D-SHELL-038`
+- `.nimi/spec/canonical/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r038`
 - `.nimi/spec/desktop/kernel/tables/local-app-launch-hosts.yaml`
 - `.nimi/spec/sdks/kernel/nimi-app-client-contract.md` — `S-APP-001..S-APP-022`
 - `.nimi/spec/runtime/kernel/account-session-contract.md` — `K-ACCSVC-*`
@@ -785,4 +785,4 @@ control remains unchanged and Desktop-specific.
 - `.nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml`
 - `.nimi/spec/runtime/kernel/tables/protected-local-custody-profiles.yaml`
 - `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` — `K-LENG-028`
-- `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` — `D-HOME-001..D-HOME-012`
+- `.nimi/spec/canonical/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`

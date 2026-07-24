@@ -1,13 +1,13 @@
 /**
  * Renderer bridge for the Support `logs` sub-area log-export command
- * (`D-SUP-006`).
+ * (`rule.nimi.desktop.product-surfaces.r027`).
  *
  * Backend authority: `apps/desktop/src-tauri/src/desktop_logs_export.rs`,
- * spec `D-SUP-006` in `support-surface-contract.md`. The command bundles
+ * spec `rule.nimi.desktop.product-surfaces.r027` in `.nimi/spec/canonical/desktop/product-surfaces.authority.yaml`. The command bundles
  * `<nimi_data>/logs/` into a user-locatable `.zip` archive in the OS Downloads
  * directory and reveals it in the OS file manager.
  *
- * Fail-closed (`D-SUP-006`): the backend returns a typed `Err` for a missing,
+ * Fail-closed (`rule.nimi.desktop.product-surfaces.r027`): the backend returns a typed `Err` for a missing,
  * unreadable, or empty logs directory. This module parses the typed success
  * payload and otherwise propagates the typed error to the caller — it never
  * fabricates an artifact path or a pseudo-success result.
@@ -16,7 +16,7 @@
 import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from './invoke';
 
-/** Typed result of a successful log export (`D-SUP-006`). */
+/** Typed result of a successful log export (`rule.nimi.desktop.product-surfaces.r027`). */
 export interface LogsExportResult {
   /** Absolute path of the produced `.zip` archive. */
   readonly artifactPath: string;
@@ -57,7 +57,7 @@ export function parseLogsExportResult(value: unknown): LogsExportResult {
 }
 
 /**
- * `D-SUP-006`: export `<nimi_data>/logs/` to a user-locatable archive.
+ * `rule.nimi.desktop.product-surfaces.r027`: export `<nimi_data>/logs/` to a user-locatable archive.
  *
  * Resolves to the typed {@link LogsExportResult} on success. Rejects with the
  * typed backend error when the logs directory is missing, unreadable, or

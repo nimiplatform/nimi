@@ -1,8 +1,8 @@
 /**
- * Desktop log areas, mirroring `.nimi/spec/desktop/kernel/tables/log-areas.yaml`
+ * Desktop log areas, mirroring `config/desktop-shell-ui-log-areas.yaml`
  * (`desktop_log_areas` closed enum, owner: desktop).
  *
- * The Support `logs` sub-area (`D-SUP-006`) projects this fixed product
+ * The Support `logs` sub-area (`rule.nimi.desktop.product-surfaces.r027`) projects this fixed product
  * enumeration so the user can see which log areas exist. The list is a closed
  * enum — desktop kernel owns it; this constant is the renderer projection of
  * the committed kernel table, not a new source of truth.

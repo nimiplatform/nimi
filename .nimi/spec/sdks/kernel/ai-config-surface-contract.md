@@ -392,7 +392,7 @@ passes the compact-ref validator; otherwise it must be rejected, not shimmed.
 
 ## Fact Sources
 
-- `.nimi/spec/desktop/kernel/ai-profile-config-contract.md` — D-AIPC-001~014
+- `.nimi/spec/canonical/desktop/ai-consumption.authority.yaml` — D-AIPC-001~014
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-001~007
 - `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` —
   P-AIPS-009 first-party app AIProfile hint, P-AIPS-013 Account Default Profile

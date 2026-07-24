@@ -6,7 +6,7 @@
 
 定义 `Nimi Home` — Platform 拥有的产品入口/壳层 authority surface。
 本契约只定义产品 ontology 与非 owner 边界，shell IA 与实现细节由
-`.nimi/spec/desktop/kernel/nimi-home-shell-contract.md`（`D-HOME-*`）拥有。
+`.nimi/spec/canonical/desktop/shell-ui.authority.yaml`（`rule.nimi.desktop.shell-ui.r049..r061`）拥有。
 
 不创建 `.nimi/spec/home/**` 平级 kernel。
 
@@ -55,8 +55,8 @@
 
 ## P-HOME-004 — Surface Registry Requirement
 
-`MUST`：`Nimi Home` 的 surface registry（由 Desktop kernel
-`nimi-home-surfaces.yaml` 拥有）必须包含以下入口的 placement 行：
+`MUST`：`Nimi Home` 的 surface placement 由 Desktop canonical shell UI authority
+拥有，并由 `config/desktop-shell-ui-home-surfaces.yaml` 非权威投影为以下入口：
 
 - `first-run`
 - `apps`
@@ -150,7 +150,7 @@ health、Apps 等）。
 - `.nimi/spec/platform/kernel/nimi-package-release-contract.md` — `P-PKGREL-001..P-PKGREL-008`
 - `.nimi/spec/platform/kernel/cold-start-authority-contract.md` — `P-COLD-001..P-COLD-008`
 - `.nimi/spec/platform/kernel/web-release-contract.md` — `P-WEB-*`
-- `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` — `D-HOME-001..D-HOME-012`
-- `.nimi/spec/desktop/kernel/tables/nimi-home-surfaces.yaml`
+- `.nimi/spec/canonical/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`
+- `config/desktop-shell-ui-home-surfaces.yaml` — non-authoritative machine projection
 - `.nimi/spec/sdks/kernel/ai-config-surface-contract.md` — `S-AICONF-001..S-AICONF-006`
 - `.nimi/spec/sdks/kernel/local-environment-projection-contract.md` — `S-RUNTIME-119`

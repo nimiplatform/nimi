@@ -2,7 +2,7 @@
 
 ## 状态：已准入契约；Desktop 拥有的 surface
 
-桌面 AI 配置文件配置合约 (`desktop/kernel/ai-profile-config-contract.md`) 已获得准入。面向用户的 Agent 配置界面属于 Desktop 拥有的 surface。
+桌面 AI 配置文件配置合约 (`.nimi/spec/canonical/desktop/ai-consumption.authority.yaml`) 已获得准入。面向用户的 Agent 配置界面属于 Desktop 拥有的 surface。
 
 ## 该界面是什么
 
@@ -40,6 +40,6 @@
 
 ## 来源依据
 
-- [`.nimi/spec/desktop/kernel/ai-profile-config-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/ai-profile-config-contract.md)
+- [`.nimi/spec/canonical/desktop/ai-consumption.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/canonical/desktop/ai-consumption.authority.yaml)
 - [`.nimi/spec/platform/kernel/ai-scope-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/ai-scope-contract.md)
 - [`.nimi/spec/runtime/kernel/ai-profile-execution-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/ai-profile-execution-contract.md)

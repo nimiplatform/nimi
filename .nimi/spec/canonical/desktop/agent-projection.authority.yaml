@@ -1,0 +1,2882 @@
+format: nimicoding.authority/v1
+units:
+  - id: definition.nimi.desktop.agent-projection.agent-chat
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop Agent Chat projection surface
+    meaning: The Desktop Agent Chat projection surface owns shell placement, visible interaction affordances, typed user-intent handoff, Runtime and SDK projection rendering, explicit unavailable states, and renderer-local ephemeral UI state while Runtime owns Agent Chat orchestration, context, execution, output, voice, media, memory, continuity, lifecycle, and transcript truth.
+    relations: []
+  - id: definition.nimi.desktop.agent-projection.conversation-capability
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop conversation capability projection
+    meaning: The Desktop conversation capability projection is the AIConfig and AISnapshot subordinate submodel containing non-Agent-Chat capability selection, the shared app-facing read model, and per-execution evidence, while Runtime Agent AI Config remains Agent Chat binding and readiness truth.
+    relations: []
+  - id: definition.nimi.desktop.agent-projection.avatar-surface
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop Avatar presentation surface
+    meaning: The Desktop Avatar presentation surface owns current-anchor transient interaction normalization, shell placement, bounded attention and cosmetic state, Avatar launch intent and handoff, and Agent Center placement while Runtime owns persistent presentation refs, Kit Shell owns local asset custody, and Avatar owns carrier execution, preview, readiness, calibration, and visual proof.
+    relations: []
+  - id: definition.nimi.desktop.agent-projection.delegation-control
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop delegated capability control surface
+    meaning: The Desktop delegated capability control surface is the typed RuntimeAgentService-backed product configuration, approval, and diagnostic projection for Runtime-owned delegated provider profiles, decisions, credentials, firewall verdicts, execution semantics, audit, and replay truth.
+    relations: []
+  - id: definition.nimi.desktop.agent-projection.companion-panel
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop companion participation panel surface
+    meaning: The Desktop companion participation panel surface is the desktop_companion_panel placement and bounded user-control projection that consumes the Avatar-owned surface-kind vocabulary and SDK and Runtime companion-participation contract without redefining participation execution, status, prompt, provider, memory, queue, or commit semantics.
+    relations: []
+  - id: definition.nimi.desktop.agent-projection.realm-group-participation
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Realm GROUP agent participation surface
+    meaning: The Realm GROUP agent participation surface is the Desktop and Web control and status projection for Realm GROUP threads that consumes typed SDK, Runtime, and Realm authority without owning execution, prompt, routing, memory, same-room orchestration, or Realm message commit truth.
+    relations: []
+  - id: rule.nimi.desktop.agent-projection.r001
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent Chat accepts only typed user intent
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop submits Agent Chat current-user intent through admitted SDK or Runtime Agent APIs and does not attach prompt, context, role, tool, memory, lane, source, world, profile, anchor, or execution-binding material.
+    condition: Whenever Desktop submits an Agent Chat turn.
+    failure: Reject the submission before execution when it is not a typed current-user intent or contains Desktop-authored execution context.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r002
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent Chat consumes Runtime projection truth
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop consumes runtime.agent.*, runtime.agent.turn.*, runtime.agent.presentation.*, related SDK projections, Runtime session snapshots, and Runtime presentation streams as Agent Chat read, replay, and presentation truth.
+    condition: Whenever Desktop renders or replays Agent Chat state.
+    failure: Show an explicit unavailable state until the admitted Runtime or SDK projection is available.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r003
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Unavailable Agent Chat remains explicit
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Local fallback UI for a missing, disabled, invalid, or rejected Runtime Agent Chat projection remains an explicit unavailable, failed, pending, blocked, or refused product state derived from typed Runtime reason codes.
+    condition: Whenever an Agent Chat projection is not usable.
+    failure: Fail closed as a presentation surface without reporting a successful turn or recovery.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r004
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent Chat cannot synthesize product success
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop synthesizes a successful assistant turn, message, action, voice playback, workflow completion, media result, memory write, job result, or fallback model route without the corresponding Runtime projection or output evidence.
+    condition: Whenever Runtime has not produced the corresponding Agent Chat evidence.
+    failure: Keep the surface non-successful and display the typed unavailable or failure state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r005
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent turn context summary is closed and read-only
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop renders AgentTurnContextSummary only as a closed read-only projection of typed ready, state, reason, versions, hashes, safe refs, lane identifiers, lane status and counts, budget, truncation, transcript, memory, media and tool counts, and route digest.
+    condition: Whenever Desktop displays Agent turn context.
+    failure: Reject an unknown or partial schema, enum, or field set instead of rendering it as valid context.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r006
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Raw Agent turn context is rejected
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop rejects raw source, world, core, closure, prompt, lane or transcript text, private memory, packet, proof, provider payload, credential, tool arguments or results, and free-form context maps from the Agent Chat projection surface.
+    condition: Whenever Agent turn context crosses into Desktop.
+    failure: Do not render, persist, forward, or reinterpret the prohibited context.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r007
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Presentation metadata cannot influence LocalAgent authority
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: realmProfileContext, conversation-anchor or profile metadata, source display metadata, or AgentTurnContextSummary influences LocalAgent source authority, model-facing source authority, or turn-context authority.
+    condition: Whenever Desktop receives presentation or context-summary metadata.
+    failure: Treat the metadata as presentation-only or reject the attempted authority use.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r008
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop has no Agent Chat orchestration stack
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop owns or ships chat-agent-orchestration*, chat-agent-turn-plan, chat-nimi-execution-engine*, Agent Chat executeScenario wrappers, direct Runtime media or workflow invocation helpers, renderer-local voice workflow executors, or renderer-local AI message or action planners.
+    condition: Whenever Desktop Agent Chat execution or helper surfaces are assembled.
+    failure: Remove the orchestration surface and route typed intent through Runtime Agent APIs.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r009
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Projection helpers cannot execute Runtime behavior
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: A Desktop helper that transforms Agent Chat projection data for display is named and structured as a projection or view-model helper and does not call Runtime execution APIs directly.
+    condition: Whenever a future display transformation helper is introduced.
+    failure: Reject the helper as a projection consumer until direct execution behavior is removed.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r010
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop only renders Runtime message and action semantics
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop may display Runtime-projected assistant messages, action states, media, voice and workflow progress, expose typed user controls, and map Runtime failure reason codes to user-facing copy without deciding message, action, workflow, or execution-path truth.
+    condition: Whenever Agent Chat message, action, media, voice, or workflow state is presented.
+    failure: Render only the Runtime projection and reject Desktop-authored semantic decisions.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r011
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Speech input uses admitted Runtime projection
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop invokes admitted Runtime SDK speech-to-text projection only for explicit user voice-input capture before submitting the resulting text intent to Runtime Agent Chat.
+    condition: Whenever the user explicitly captures voice input for Agent Chat.
+    failure: Reject direct provider, local-engine, or app-level REST speech execution.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r012
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Capability readiness does not admit Agent actions
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop uses capability readiness, Runtime job acceptance, local capture state, playback state, source display fields, anchor metadata, profile metadata, or AgentTurnContextSummary to decide assistant action existence, prompt payloads, text or image or voice routing, product success, transcript reveal, caption, voice-session, or model-facing context semantics.
+    condition: Whenever Desktop interprets capability or local presentation state.
+    failure: Wait for Runtime-owned projection or output evidence and keep the product state non-successful.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r013
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent Chat voice playback is manual by default
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: runtime.agent.turn.message_committed renders committed text without automatically starting assistant voice playback.
+    condition: Whenever Desktop receives a committed Agent Chat message.
+    failure: Keep voice playback stopped until an explicit user play action.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r014
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Manual voice requests remain Runtime-owned
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: An explicit user play action requests Runtime voice rendering for the committed message or turn or replays an existing Runtime-owned generated voice artifact.
+    condition: Whenever a user requests Agent Chat voice playback.
+    failure: Return the typed Runtime failure or unavailable state when no admitted voice result exists.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r015
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent Chat cannot call speech providers directly
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop Agent Chat calls provider TTS, local speech engines, or app-level REST bypasses for assistant voice output.
+    condition: Whenever voice rendering or replay is requested.
+    failure: Reject the direct path and use the admitted Runtime voice surface.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r016
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Playback stop and Runtime interruption stay distinct
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Stopping replayed or completed audio stops local playback only, while an active Runtime turn exposes interruption as a separate Runtime-owned cancel or interrupt action.
+    condition: Whenever the user stops audio or an underlying Runtime turn remains active.
+    failure: Do not report local playback stop as Runtime turn cancellation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r017
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Unavailable voice remains text-only
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: A missing TTS model, unhealthy route, or unavailable voice reference remains text-only or unavailable UI and never becomes pseudo voice success.
+    condition: Whenever Runtime voice prerequisites are unavailable.
+    failure: Keep playback unavailable and preserve the committed text projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r018
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Composer text is renderer-session transient
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: User-entered Agent Chat composer text remains in memory only for the active renderer session, is allowed to be lost on reload or restart, and carries no restart-recovery promise.
+    condition: Whenever Desktop holds an Agent Chat draft or composer value.
+    failure: Do not persist the value or reconstruct it after reload or restart.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r019
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop diagnostics remain below product truth
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Renderer-local Agent Chat telemetry and diagnostics remain diagnostic projection data and do not become transcript, execution, success, or recovery truth.
+    condition: Whenever Desktop records or displays Agent Chat diagnostics.
+    failure: Reject any product-state decision sourced only from Desktop telemetry or diagnostics.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r020
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent Chat persistence is UI state or disposable cache only
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop Agent Chat local persistence is limited to non-transcript renderer UI state such as focus, scroll, popovers and transient panel state and a disposable projection cache.
+    condition: Whenever Desktop persists state adjacent to Agent Chat.
+    failure: Reject fields that carry transcript, turn, action, lifecycle, history, anchor, execution, or product-recovery truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r021
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop cannot own Agent Chat transcript truth
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop local persistence becomes canonical Agent Chat transcript, message, action, turn, beat, conversation-anchor, lifecycle, history, assistant greeting, successful turn, prompt trace, turn trace, or projection-rebuild truth.
+    condition: Whenever Agent Chat data is written to Desktop-local storage.
+    failure: Reject the write or retain the data only as disposable non-authoritative projection state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r022
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop provides no offline Agent Chat recovery
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop reconstructs Agent Chat transcript or history from local storage after reload or restart or presents an offline Agent Chat transcript product.
+    condition: Whenever Runtime or SDK projection is unavailable after reload or restart.
+    failure: Fail closed until Runtime or SDK session projection is available and preserve at most current-session in-memory display state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r023
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent Chat has no draft persistence
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop or Runtime and SDK adds Agent Chat draft persistence as a replacement for the retired Desktop draft behavior.
+    condition: Whenever Agent Chat draft storage is proposed or invoked.
+    failure: Keep drafts transient and reject the persistence surface.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r024
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent Chat has no rename or archive semantics
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop admits Agent Chat rename, archive, or user-authored conversation-title metadata, and a display title is anything other than derived projection text.
+    condition: Whenever Desktop presents Agent Chat conversation metadata controls.
+    failure: Remove rename and archive controls and derive any display title from Runtime projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r025
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent Chat has one active Runtime conversation posture
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Agent Chat exposes one active Runtime conversation per runtime source snapshot or CharacterSourceRefV3 and v3 provenance or LocalAgent projection unless a later product authority admits multiple conversations.
+    condition: Whenever Desktop selects or presents an Agent Chat conversation.
+    failure: Reject Desktop-local multi-conversation session management without later product authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r026
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Retired chat_agent store stays absent
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop registers chat_agent_* Tauri commands, exposes chatAgentStoreClient, owns SQLite schema for Agent Chat transcript, message or turn recovery, or retains a steady-state chat_agent_* store, bridge client, or command family.
+    condition: Whenever Desktop assembles Agent Chat storage or bridge surfaces.
+    failure: Remove the retired store surface and recover only from Runtime or SDK projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r027
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Historical projection rows are not recovery truth
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Historical Desktop Agent Chat projection rows are used as a product recovery source.
+    condition: Whenever Agent Chat restarts or rehydrates.
+    failure: Discard the historical recovery path and use Runtime or SDK session projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r028
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Runtime lists Agent Chat conversation summaries
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Runtime or SDK lists the calling app Agent Chat conversation summaries without reading Desktop SQLite.
+    condition: Whenever Desktop requests the available Agent Chat conversation list.
+    failure: Keep the Desktop surface unavailable rather than reading the retired local store.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r029
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Selected Agent Chat recovery uses Runtime anchors and snapshots
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: A selected Agent Chat conversation recovers through ConversationAnchor and GetPublicChatSessionSnapshot with Runtime-owned replay envelope fields for stable message identity, timestamps, status, and kind.
+    condition: Whenever Desktop recovers a selected Agent Chat conversation.
+    failure: Reject recovery that lacks the Runtime anchor, snapshot, or stable replay identity fields.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r030
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Conversation history mutation policy remains Runtime-owned
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Any future user-visible Agent Chat conversation close, delete, or clear policy is owned by Runtime or SDK and is not implemented as Desktop-local deletion after Runtime transcript replay is active.
+    condition: Whenever a close, delete, or clear action is introduced for Agent Chat history.
+    failure: Do not expose the action until the Runtime or SDK policy and projection exist.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r031
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Message mutation policy remains Runtime-owned
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Any future Agent Chat message-level delete or redact policy is owned by Runtime or SDK before Desktop exposes the action.
+    condition: Whenever a message-level delete or redact action is introduced.
+    failure: Keep the Desktop action unavailable until the Runtime or SDK policy exists.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r032
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Optimistic Agent Chat state is memory-only
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop submit paths use only in-memory optimistic projection and replay committed user and assistant transcript state from Runtime session snapshots or runtime.agent.turn.* and runtime.agent.presentation.* projections.
+    condition: Whenever Desktop submits or reconciles an Agent Chat turn.
+    failure: Discard uncommitted optimistic state that lacks Runtime replay evidence.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r033
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Ordinary Nimi Chat is not Agent Chat
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Ordinary Nimi Chat remains an app product feature consuming Runtime AI execution and SDK AI session-loop developer-experience primitives and is not equivalent to Runtime Agent Chat because it has a chat UI, token stream, local history, or tool loop.
+    condition: Whenever Desktop classifies a chat product surface.
+    failure: Reject ownership transfer inferred only from shared chat interaction shapes.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r034
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Ordinary Nimi Chat may own bounded local sessions
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop may persist ordinary Nimi Chat app-specific thread, message, and draft records only while the product does not require Realm cloud, cross-device, social, account-scoped, multi-user, or canonical product truth.
+    condition: Whenever ordinary Nimi Chat stores local product sessions.
+    failure: Reject local ownership when any excluded product-truth requirement applies.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r035
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: chat_ai storage cannot recover Agent Chat
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: The Desktop chat_ai_* Tauri command family is reused for Agent Chat transcript, Runtime Agent turn, action, voice, memory, lifecycle, or conversation-anchor recovery.
+    condition: Whenever chat_ai_* local session storage is read or written.
+    failure: Restrict the command family to ordinary Nimi Chat local product sessions.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r036
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Ordinary chat persistence owns no Runtime authority
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Ordinary Nimi Chat persistence stores provider or model routing, fallback policy, capability readiness, Runtime job authority, canonical memory, permission grants, audit events, or app lifecycle truth.
+    condition: Whenever ordinary Nimi Chat persists a session record.
+    failure: Reject the prohibited authority fields.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r037
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Ordinary chat executes through admitted Runtime and SDK surfaces
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Ordinary Nimi Chat execution consumes admitted Runtime or SDK public surfaces for AI execution, route and readiness projection, streaming, structured output, and scheduling checks.
+    condition: Whenever ordinary Nimi Chat executes AI behavior.
+    failure: Reject private execution, route, streaming, output, or scheduling paths.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r038
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Reusable chat loops belong in SDK DX
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Reusable turn-loop, stream-assembly, local-tool-loop, structured-output, and mock or test transport helpers move to SDK developer-experience surfaces when another app needs the behavior, while Desktop retains only product-specific session policy, UI wiring, and local persistence.
+    condition: Whenever a second app needs an ordinary Nimi Chat helper.
+    failure: Reject cross-app reuse from Desktop-private implementation and use an SDK DX surface.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r039
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Cloud or social ordinary chat needs an admitted owner
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Ordinary Nimi Chat moves canonical ownership to Realm or another admitted product authority before Desktop syncs or commits cloud-canonical, social, account-scoped, cross-device, or multi-user truth.
+    condition: Whenever ordinary Nimi Chat adds any such truth.
+    failure: Block synchronization and commit until the admitted owner exists.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r040
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Ordinary chat memory commits use cognition policy
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Canonical memory or knowledge commits from ordinary Nimi Chat go through admitted Cognition or Runtime memory policy surfaces while Desktop persistence and SDK loop helpers may only stage or preview candidates.
+    condition: Whenever ordinary Nimi Chat proposes canonical memory or knowledge.
+    failure: Reject direct Desktop commit and keep the data as a staged or preview candidate.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r041
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Runtime owns Agent Chat execution and continuity
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Runtime owns live Agent execution, lifecycle, memory policy, conversation continuity, transient turn and presentation projection, and Agent events.
+    condition: Whenever Desktop consumes live Agent Chat behavior.
+    failure: Reject Desktop ownership of those Runtime truths.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r042
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Runtime participation owns prompt and candidate policy
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Runtime Agent participation owns participation profiles, prompt assembly policy, execution owner axes, output candidates, and canonical Agent Chat reference posture.
+    condition: Whenever Desktop presents participation-derived Agent Chat state.
+    failure: Reject Desktop-authored participation or prompt semantics.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r043
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Runtime output wire owns model-facing validation
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Runtime Agent output wire authority owns model-facing output validation and APML projection.
+    condition: Whenever model output reaches Desktop Agent Chat.
+    failure: Reject Desktop validation as canonical wire truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r044
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Runtime presentation stream owns projection envelopes
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Runtime Agent presentation stream authority owns Runtime Agent presentation families and projection envelopes.
+    condition: Whenever Desktop consumes a presentation event or timeline.
+    failure: Reject Desktop-authored projection envelope truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r045
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Runtime voice owns voice product truth
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Runtime voice authority owns voice workflow, VoiceReference, VoiceAsset, and scenario job truth.
+    condition: Whenever Desktop presents Agent Chat voice or workflow state.
+    failure: Reject Desktop-owned voice identity, workflow, artifact, or job truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r046
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop Avatar owns only visual handoff and cues
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: The Desktop Avatar surface owns only Desktop-to-Avatar presentation handoff and transient visual cues and does not own Agent Chat behavior, message, action, workflow, or session truth.
+    condition: Whenever Agent Chat hands presentation state to Avatar.
+    failure: Limit the handoff to the admitted visual projection and launch intent.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r047
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop streaming owns consumption mechanics only
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop streaming behavior owns stream consumption mechanics, cancellation display, and retry UX only, not Agent Chat product semantics.
+    condition: Whenever Agent Chat consumes a Runtime stream.
+    failure: Reject semantic decisions derived from Desktop stream mechanics.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r048
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop state owns UI persistence mechanics only
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop state behavior owns UI-state persistence mechanics only and not Agent Chat execution truth.
+    condition: Whenever Agent Chat state is persisted or restored.
+    failure: Reject execution or transcript truth in the UI-state layer.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r049
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Conversation capability remains subordinate to AIConfig
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Conversation capability selection, projection, and execution evidence remain a submodel of AIConfig and AISnapshot rather than an independent peer authority.
+    condition: Whenever Desktop constructs or persists conversation capability state.
+    failure: Reject a parallel authority model outside AIConfig and AISnapshot.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r050
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Conversation capability has one persistence owner
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: ConversationCapabilitySelectionStore.selectedBindings is the only persistable non-Agent-Chat conversation capability selection truth, ConversationCapabilityProjection is the read-only app-facing model, and ConversationExecutionSnapshot is per-turn or per-job evidence.
+    condition: Whenever Desktop stores or projects non-Agent-Chat capability state.
+    failure: Reject persistence or ownership outside the named layer.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r051
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent Chat readiness stays carved out
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Runtime Agent AI Config readiness is Agent Chat binding and readiness truth, text.generate readiness controls basic send readiness, and image.generate readiness is optional media capability truth that cannot block basic sending.
+    condition: Whenever Desktop computes Agent Chat send or image readiness.
+    failure: Reject Desktop conversation-capability overlay truth and use the Runtime readiness projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r052
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Conversation consumers share one builder
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: AI Chat, Agent Chat, and Runtime Config consume the same shared builder result and do not independently recompute route truth, except that Agent Chat consumes its Runtime Agent AI Config carve-out.
+    condition: Whenever a Desktop capability consumer needs route projection.
+    failure: Reject consumer-local route recomputation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r053
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Runtime bootstrap registers one route facade
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop runtime bootstrap registers exactly one ConversationCapabilityRouteRuntime with the shared builder after the Runtime SDK client materializes and clears it before teardown or rebootstrap.
+    condition: Whenever the Runtime SDK client materializes, tears down, or reboots.
+    failure: Keep capability projection unavailable until exactly one current facade is registered.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r054
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Production route resolution cannot be test-only
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: The production conversation capability resolver exists only in tests or a local consumer while selectedBindings are projected in product code.
+    condition: Whenever production selected bindings are resolved.
+    failure: Fail closed rather than misprojecting the binding as resolved or silently using a test-local resolver.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r055
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Builder inputs are closed
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: The shared conversation capability builder accepts only selectedBindings for the capability, capability-scoped runtime.route.listOptions option truth for hydration, runtime.route.resolve, runtime.route.checkHealth, and runtime.route.describe.
+    condition: Whenever the shared builder resolves a capability.
+    failure: Reject unlisted inputs before building the projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r056
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Route options hydrate identity only
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: runtime.route.listOptions output is used only to hydrate a persisted binding into current Runtime-owned local or cloud route identity and not as metadata or health truth.
+    condition: Whenever route options are consumed by the builder.
+    failure: Reject metadata or health derived from route options.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r057
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop cannot assemble execution routes
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop renderer or host implements model-root normalization, local-engine inference, warm-candidate selection, resolved-binding assembly, or source or model resolution as execution route truth.
+    condition: Whenever Desktop resolves a conversation capability.
+    failure: Use the SDK route facade or fail closed.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r058
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Route describe is typed and non-fabricated
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop consumes only the typed Runtime route-describe logical result, including when transported by scenario probe response metadata, and validates rather than fabricates thinking, multimodal, or workflow metadata from provider, model label, local or cloud posture, endpoint, or UI state.
+    condition: Whenever runtime.route.describe is decoded.
+    failure: Return metadata_missing for absent or invalid typed metadata.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r059
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Legacy route truth inputs stay absent
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: The builder reads thread routeSnapshot, provider or route-kind or local-cloud heuristics, writable runtimeFields route keys, connector default-model fill, or legacy page or thread route metadata as route truth.
+    condition: Whenever capability projection is built.
+    failure: Ignore or reject the legacy input and fail closed when admitted route truth is unavailable.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r060
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Route readiness does not admit modality actions
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: A healthy or metadata-complete image, voice, or video capability is used to infer modality action admission, delayed beats, or prompt payload truth.
+    condition: Whenever capability readiness is presented.
+    failure: Wait for the independently admitted Runtime action or output projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r061
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Selection store contains selectedBindings only
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: ConversationCapabilitySelectionStore contains only selectedBindings and no resolved binding, health, metadata, reasoning support, multimodal support, or passive asset path truth.
+    condition: Whenever the store is encoded, migrated, or persisted.
+    failure: Reject every field outside selectedBindings.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r062
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Missing selection key remains missing
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: An absent selectedBindings capability key means no explicit user selection and cannot be assumed to provide a sendable route.
+    condition: Whenever a capability key is absent.
+    failure: Project selection_missing when no admitted resolved route can be formed.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r063
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Null selection remains explicitly cleared
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: A null selectedBindings capability value means explicitly cleared or disabled and cannot fall back to a default ref, provider default model, or audio.synthesize compatibility path.
+    condition: Whenever a capability selection is null.
+    failure: Project selection_cleared and do not resolve a route.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r064
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Object selection must be typed and current
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: A non-null selectedBindings value is a capability-matching typed binding reference and fails closed when its schema is invalid, its capability mismatches, or its reference is stale.
+    condition: Whenever an object selection is decoded or resolved.
+    failure: Project binding_unresolved and do not create a sendable route.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r065
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Selection codecs preserve presence
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Selection-store codecs and migrations preserve the difference between a missing key and a null value with a recoverable presence bit.
+    condition: Whenever selectedBindings are encoded or migrated.
+    failure: Reject a codec or migration that collapses the two states.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r066
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Memory embedding is outside conversation selection
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: ConversationCapabilitySelectionStore, ConversationCapabilityProjection, or ConversationExecutionSnapshot absorbs editable memory-embedding configuration, memory source intent, resolved embedding state, bank binding, bank migration, rebuild, cutover state, or Runtime memory bank truth.
+    condition: Whenever memory-embedding state is read or written by Desktop.
+    failure: Route intent and projections through Runtime Agent AI Config and Runtime memory owners.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r067
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Embedding routes do not transfer memory ownership
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Runtime memory consumption of text.embed or another embedding route makes the Desktop conversation capability submodel the memory-embedding configuration owner.
+    condition: Whenever an embedding-related route is visible to Desktop.
+    failure: Keep memory configuration and bank truth with Runtime memory authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r068
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Capability projection has a closed field set
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: ConversationCapabilityProjection contains capability, selectedBinding, resolvedBinding, health, metadata, supported, and reasonCode only as its minimum stable app-facing read model.
+    condition: Whenever the builder emits a projection.
+    failure: Reject a projection that omits a required field or uses an unadmitted semantic field.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r069
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Capability reason codes are closed
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: ConversationCapabilityReasonCode is exactly selection_missing, selection_cleared, binding_unresolved, route_unhealthy, metadata_missing, capability_unsupported, host_denied, or null for a supported projection.
+    condition: Whenever a capability reason is projected.
+    failure: Map the producer reason to the closed enum or fail closed.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r070
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Capability failures map deterministically
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Missing selection maps to selection_missing, null selection to selection_cleared, invalid or mismatched or stale selection and empty resolution to binding_unresolved, unavailable or unhealthy health to route_unhealthy, missing or invalid typed metadata to metadata_missing, unsupported Runtime capability to capability_unsupported, and host denial to host_denied.
+    condition: Whenever the projection is unsupported.
+    failure: Reject a producer mapping that does not resolve to the prescribed reason.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r071
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Capability reason precedence is fixed
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Capability failure precedence is host_denied, selection_cleared, selection_missing, capability_unsupported, binding_unresolved, route_unhealthy, then metadata_missing.
+    condition: Whenever more than one capability failure applies.
+    failure: Select the first reason in the fixed precedence and do not expose producer order.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r072
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Producer reasons cannot leak
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: ConversationCapabilityProjection.reasonCode exposes a producer raw string.
+    condition: Whenever an upstream capability producer reports failure.
+    failure: Map to the closed reason enum before projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r073
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Supported capability requires complete evidence
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: supported is true only after selection semantics resolve, resolvedBinding is available, health is not unavailable or unhealthy, and metadata provides the typed result required by Runtime RPC authority.
+    condition: Whenever the builder sets supported.
+    failure: Set supported to false and project the applicable closed reason when any condition fails.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r074
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent Chat consumes only Runtime AI Config readiness
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop Agent Chat sendability and image capability status consume only Runtime Agent AI Config ready, not_configured, or unavailable readiness with typed reasons, and never use SelectionStore, ConversationCapabilityProjection, runtimeFields, or UI-local state as binding or readiness truth.
+    condition: Whenever Agent Chat computes capability readiness.
+    failure: Fail closed to the Runtime readiness state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r075
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent Chat config edits use revisioned Runtime mutation
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Agent Chat model configuration writes through the admitted Runtime Agent AI Config mutation surface with optimistic expected revision and does not persist parallel Agent Chat route truth.
+    condition: Whenever Desktop edits Agent Chat model configuration.
+    failure: Reject stale revisions and parallel persistence.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r076
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent Chat turn carries no execution binding
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: An Agent Chat turn submission carries an execution-binding payload.
+    condition: Whenever Desktop submits an Agent Chat turn.
+    failure: Reject the binding payload and submit typed user intent only.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r077
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Ready does not imply Agent Chat output semantics
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Runtime Agent AI Config ready status is used to infer an Agent Chat action, legal prompt payload, admitted workflow, successful voice playback, or voice-session semantics.
+    condition: Whenever Desktop receives ready status.
+    failure: Wait for Runtime-owned Agent Chat projection or output evidence.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r078
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Realm Agent Chat route resolver stays removed
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop calls data-api.core.agent.chat.route.resolve or treats Realm v1 as Agent Chat route authority.
+    condition: Whenever Agent Chat route resolution is requested.
+    failure: Use Runtime Agent AI Config projection or fail closed.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r079
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop Agent effective overlay stays retired
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop recreates AgentEffectiveCapabilityResolution as Agent Chat capability truth.
+    condition: Whenever Agent Chat capability code is assembled.
+    failure: Remove the overlay and consume Runtime Agent AI Config readiness.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r080
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Execution snapshot is per-execution evidence
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: ConversationExecutionSnapshot uses a ULID executionId and fixes the capability, selection evidence, resolved-binding evidence, and agent-overlay evidence consumed by one turn or job without becoming global route truth.
+    condition: Whenever Desktop records a non-Agent-Chat execution snapshot.
+    failure: Reject non-ULID identity, missing evidence, or reuse as global truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r081
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Execution snapshot cannot replace owners
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: ConversationExecutionSnapshot replaces SelectionStore or ConversationCapabilityProjection as an owner or writes its evidence back as global route truth.
+    condition: Whenever a snapshot is stored or consumed.
+    failure: Keep the snapshot read-only and execution-scoped.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r082
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Runtime evidence slices remain Runtime-owned
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Runtime Agent turn, message, action, workflow, voice, presentation, failure, deferred-continuation, HookIntent proposal, admission, and outcome slices in a snapshot remain read-only Runtime-owned projection evidence.
+    condition: Whenever a snapshot contains a Runtime-owned slice.
+    failure: Reject Desktop creation or reinterpretation of the slice as local execution truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r083
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Thread routeSnapshot stays unadmitted
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop uses a thread-level routeSnapshot as a normative conversation capability contract.
+    condition: Whenever thread state is read for route resolution.
+    failure: Ignore the field and resolve through current admitted authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r084
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Voice workflow intent remains Runtime-owned
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: voice_workflow.voice_clone and voice_workflow.voice_design intent, model and provider selection, execution, and artifact projection remain Runtime Agent AI Config and Runtime voice truth, while Desktop consumes only Runtime or SDK readiness and results.
+    condition: Whenever Desktop presents a voice workflow capability.
+    failure: Reject Desktop generation or independent model or provider decisions.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r085
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Audio health does not enable voice workflows
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Healthy audio.synthesize automatically makes a voice_workflow capability supported.
+    condition: Whenever voice workflow support is projected.
+    failure: Require independent binding, metadata, and compatibility proof.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r086
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Voice workflow failures use capability reasons
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: A voice workflow lacking independent binding, metadata, health, or compatibility proof maps to binding_unresolved, route_unhealthy, metadata_missing, or capability_unsupported.
+    condition: Whenever voice workflow prerequisites are incomplete.
+    failure: Set supported to false with the applicable closed reason.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r087
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Voice workflow consumers share Runtime projection
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Runtime Config, AI and Agent setup, and submit paths consume the same Runtime Agent AI Config and Runtime voice workflow projection and do not treat voice workflow as an implicit audio.synthesize attachment.
+    condition: Whenever a Desktop surface presents voice workflow state.
+    failure: Reject consumer-local workflow capability truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r088
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: runtimeFields is transient execution input only
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Route-related runtimeFields remain execution projection or transient input and never become selection, projection, Agent Chat, deferred-continuation, workflow, voice-session, transcript, or caption truth.
+    condition: Whenever Desktop reads or writes runtimeFields.
+    failure: Reject authority or behavior derived from runtimeFields.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r089
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Runtime Config edits selection rather than projection
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Runtime Config edits SelectionStore or default refs and does not persist resolved binding, health, metadata, or projection reasons.
+    condition: Whenever Runtime Config changes conversation capability settings.
+    failure: Reject persisted derived projection fields.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r090
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent Center embedding uses Runtime owners
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Agent Center memory-embedding intent goes through Runtime Agent AI Config while resolved profile, binding success, bank identity, migration readiness, and cutover completion remain Runtime memory or RuntimeCognitionService projections.
+    condition: Whenever Agent Center presents memory embedding.
+    failure: Reject Desktop-host-owned memory truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r091
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Runtime memory reads use typed boundaries
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Runtime Config reads resolved memory state, bank availability, bind, rebuild, and cutover readiness only through admitted typed host or Runtime boundaries, never renderer-local forms, private loopback HTTP, local-asset heuristics, or convenience canonical-bind endpoints.
+    condition: Whenever Desktop reads Runtime memory readiness.
+    failure: Fail closed when the admitted typed boundary is unavailable.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r092
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Submit paths consume projections only
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: AI and Agent submit paths consume ConversationCapabilityProjection and ConversationExecutionSnapshot for non-Agent-Chat capability evidence, submit typed user intent through admitted SDK or Runtime Agent surfaces, and consume Runtime turn, message, action, and presentation projections.
+    condition: Whenever Desktop submits AI or Agent intent.
+    failure: Reject capability truth reconstructed from writable fields or local UI state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r093
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Deferred continuation remains Runtime-owned
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Deferred continuation and HookIntent proposal, admission, and outcome decisions consume Runtime-owned outputs and are not derived from capability health, runtimeFields, scheduler queues, or UI-local state.
+    condition: Whenever a submit path needs deferred continuation.
+    failure: Fail closed until the Runtime-owned output exists.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r094
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Local capability state cannot derive Agent voice semantics
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop uses capability health, metadata, runtimeFields, voice lists, voice assets, capture state, or UI-local state to derive Agent Chat workflow, voice executor, broader voice session, transcript, or caption semantics.
+    condition: Whenever Desktop presents Agent Chat voice-related state.
+    failure: Use Runtime-owned projection or output truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r095
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent Center uses Kit and Runtime AI Config
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop places Kit Agent Center and provides typed host adapters, while its Agent Chat model and readiness editor reads and mutates Runtime Agent AI Config with expected_revision and generic Desktop AIConfig settings remain outside Agent Center.
+    condition: Whenever Desktop renders Agent Center for Agent Chat.
+    failure: Reject a Desktop-private editor, missing revision check, or generic AIConfig injection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r096
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent Chat diagnostics require accepted Runtime projection
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop displays Agent Chat route, model, or provider identity only when Runtime projects it in an accepted turn or configuration projection; otherwise the diagnostic field is absent.
+    condition: Whenever Desktop renders Agent Chat routing diagnostics.
+    failure: Omit identity not backed by the accepted Runtime projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r097
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop capability state cannot become Agent AI consume truth
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop AIConfig, conversation capability bindings, route cache, runtimeFields, AISnapshot, audio.synthesize state, or voice-workflow state is reinterpreted as Agent Chat AI consume truth, audio binding truth, generation policy, or workflow ownership.
+    condition: Whenever Agent Chat consumes AI configuration.
+    failure: Use Runtime Agent AI Config and Runtime output projection only.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.conversation-capability
+  - id: rule.nimi.desktop.agent-projection.r098
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar interaction state is transient surface truth
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: AvatarInteractionState expresses current-anchor phase and optional emotion, actionCue, attentionTarget, visemeId, and amplitude as Desktop transient surface truth rather than Runtime canonical truth.
+    condition: Whenever Desktop creates Avatar interaction state.
+    failure: Reject persistent or Runtime-authoritative interpretation of the state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r099
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar surface identity is explicit and isolated
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Every Avatar surface instance binds an explicit agent_id, conversation_anchor_id, and surface_instance_id triple, remains recoverable to that relation, and never shares AvatarInteractionState with another instance.
+    condition: Whenever an Avatar surface instance is created or routed.
+    failure: Fail closed when the relation is absent, stale, ambiguous, or shared.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r100
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Surface instance identity stays app-local
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: surface_instance_id scopes AvatarInteractionState only inside the Desktop app and never enters runtime.agent.* event payloads as a Runtime-owned field.
+    condition: Whenever Desktop emits or consumes Runtime Agent events.
+    failure: Strip or reject app-local surface identity at the Runtime event boundary.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r101
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Shared Runtime projections do not merge surface state
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Multiple Avatar surfaces may subscribe to the same agent and conversation anchor Runtime projection while Desktop keeps surface-level routing and state isolated.
+    condition: Whenever multiple surfaces consume one Runtime projection.
+    failure: Reject state merging or cross-instance cue reuse.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r102
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar state fails closed without a valid relation
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop does not guess an active Avatar state when the conversation anchor, surface, agent relation, or permission is missing.
+    condition: Whenever Avatar surface validity is lost.
+    failure: Deterministically tear down or rebuild the state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r103
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar normalization consumes admitted signals only
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Avatar normalization consumes admitted behavior posture, Runtime turn and presentation, Runtime emotion, message-action lifecycle, voice listening and speaking, voice workflow continuity, lifecycle, and autonomy evidence before producing an Avatar-specific signal.
+    condition: Whenever Desktop normalizes an Avatar interaction signal.
+    failure: Reject unadmitted or locally invented upstream semantics.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r104
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Normalization cannot rewrite upstream truth
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Avatar normalization re-decides upstream message, action, emotion, voice, workflow, lifecycle, or autonomy semantics or writes surface emotion, viseme, or amplitude cues back as Runtime truth.
+    condition: Whenever normalized Avatar cues are produced.
+    failure: Keep cues surface-local and preserve upstream projection truth unchanged.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r105
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar consumers share one normalized semantic owner
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Reusable Avatar stage, chat rail, shell animator, playback helper, and renderer backends consume one normalized phase, emotion, attention, and interaction contract and do not derive competing semantic truth.
+    condition: Whenever an Avatar consumer renders interaction state.
+    failure: Reject a backend-local or placement-local semantic fork.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r106
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Chat consumes the reusable Kit Avatar surface
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop Agent Chat supplies normalized presentation and interaction input through reusable kit/features/avatar rather than redefining Avatar semantics in a private chat component.
+    condition: Whenever Agent Chat renders an Avatar stage.
+    failure: Reject the private semantic implementation and use the Kit surface.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r107
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop and Kit Avatar ownership stays split
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop owns placement, permissions, conversation continuity, shell orchestration, launch intent, and handoff while Kit Avatar owns only its reusable renderer and headless contract.
+    condition: Whenever Avatar shell responsibilities are assigned.
+    failure: Reject Kit ownership of Desktop product semantics or Desktop duplication of reusable rendering semantics.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r108
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: All Avatar placements consume one interaction contract
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Right rail, inline stage, popover stage, and future multi-surface placements consume the same AvatarInteractionState authority.
+    condition: Whenever Desktop adds or changes an Avatar placement.
+    failure: Reject placement-specific interaction semantics.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r109
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar cues reset on surface changes
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Surface close, anchor change, agent switch, permission loss, thread switch, or invalid attention input deterministically tears down or rebuilds Avatar interaction, transform, and projected attention state without carrying active cues forward.
+    condition: Whenever the surface relation or valid input changes.
+    failure: Clear stale cues and fail closed until the new relation is valid.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r110
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar interaction snapshots cannot become Runtime profiles
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop persists Avatar interaction snapshots as Runtime-owned LocalAgent profile or persistent presentation truth.
+    condition: Whenever Avatar surface state is saved.
+    failure: Persist only independently admitted cosmetic preferences and keep interaction state transient.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r111
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Deferred Avatar product surfaces stay absent
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop or Kit admits a standalone Avatar editor, authoring workflow, background Avatar continuation, camera choreography, renderer physics or mocap protocol truth, cross-anchor stage synchronization, click or poke reaction, drag-to-rotate behavior, orbit camera, model-inspector manipulation, or Runtime pointer or gaze truth through this surface.
+    condition: Whenever the Avatar surface is extended.
+    failure: Keep the feature unavailable until separately admitted authority exists.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r112
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Static and implementation artifacts are not semantic owners
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Static image rails, voice meters, playback helpers, renderer implementation evidence, Runtime presentation profiles, voice workflow inventories, or app-local animation libraries are treated as Avatar surface semantic truth sources.
+    condition: Whenever Avatar semantics are resolved.
+    failure: Use the admitted normalized surface and upstream Runtime projections.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r113
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop local Avatar carrier stays decommissioned
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop owns or exposes a local Avatar carrier registry, carrier import or asset-read path, renderer or backend path, package descriptor, backend capability profile, per-agent carrier binding, local resource record, backend route, or launch-ready proof.
+    condition: Whenever Desktop assembles Avatar carrier or storage behavior.
+    failure: Remove or disable the local carrier path and fail closed.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r114
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Stale Desktop carrier code remains unreachable
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Any retained stale Desktop-local Avatar registry code remains unreachable from the shipped product, and renderer helpers, shell view models, and Tauri registration fail closed rather than reviving local storage or carrier loading.
+    condition: Whenever stale carrier residue remains in source.
+    failure: Reject the shipped surface if the residue is reachable.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r115
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent Center local assets use current owners
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop may place Kit Agent Center for private local Live2D, VRM, or background selection and review, while Runtime AgentPresentationProfile owns selected refs, Kit Shell owns asset custody and serving, and Avatar owns preview and carrier evidence.
+    condition: Whenever Desktop presents a local Avatar asset control.
+    failure: Reject Desktop-local carrier, binding, selection, preview, or custody ownership.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r116
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop has no per-agent local Avatar binding
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop ships a per-agent local Avatar binding workflow, overrides Runtime presentation or Avatar carrier selection with Desktop-only state, or restores a remembered local binding when launch context is missing.
+    condition: Whenever Desktop resolves Avatar selection or launch.
+    failure: Fail closed until current Runtime, Kit, and Avatar evidence is available.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r117
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar carrier precedence is not Desktop-owned
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop resolves live Avatar rendering through a local precedence such as binding override, Runtime profile, then fallback image, or represents a static chat avatar as a co-equal Live2D or VRM carrier route.
+    condition: Whenever Desktop chooses an Avatar renderer.
+    failure: Use apps/avatar as the only first-party live carrier and keep static decoration non-carrier.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r118
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Retained Desktop Avatar scope is cosmetic and bounded
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Retained Desktop scope is limited to per-agent in-app backdrop binding, separately admitted shell placement preference, explicit Avatar-app launcher and handoff affordances, and read-only Avatar-published live-instance inventory.
+    condition: Whenever Desktop stores or presents Avatar-adjacent shell state.
+    failure: Reject carrier import, binding, loading, rendering, or truth mutation outside the retained scope.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r119
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Live-instance operations use explicit Avatar identity
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop requests reveal, retarget, or close only for an admitted avatar_instance_id, leaves execution to Avatar, and fails closed when the target is missing or stale.
+    condition: Whenever Desktop requests an Avatar live-instance operation.
+    failure: Reject the request without a valid current target.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r120
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar attention projection is bounded
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Avatar attention output is limited to current-viewport attention presence, continuous presence strength, a normalized app-level attention vector, and bounded pointer attentionTarget with subtle head or eye bias.
+    condition: Whenever Avatar consumes shell app attention.
+    failure: Reject raw or unbounded attention output.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r121
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Shell remains the raw attention owner
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Avatar surfaces open a second DOM pointer owner at card or viewport level for the canonical app-attention line.
+    condition: Whenever an Avatar surface consumes app attention.
+    failure: Consume the shell-owned attention projection instead.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r122
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Raw attention cannot enter Runtime truth
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Avatar projection smuggles raw pointer coordinates, viewport bounds, or shell lifecycle events into AgentPresentationProfile or generic chat interaction-summary truth.
+    condition: Whenever attention crosses the Avatar projection boundary.
+    failure: Reject or narrow the payload to the bounded surface interaction object.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r123
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar attention semantics cannot fork by backend
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: A renderer backend or placement defines its own attention semantic owner instead of consuming the shared normalized surface contract.
+    condition: Whenever a backend consumes Avatar attention.
+    failure: Reject the backend fork.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r124
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar attention precedence is fixed
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Avatar attention precedence is active surface validity, speaking or listening phase and lip-sync readability, app-attention head or eye bias, then idle breathing or ambient motion.
+    condition: Whenever multiple Avatar motion inputs compete.
+    failure: Apply the fixed precedence and fail closed when surface validity is absent.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r125
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Attention remains subtle and nonpersistent
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: App attention may bias gaze or head direction without overriding speaking, listening, or lip-sync, degrades smoothly to idle or voice-led behavior, never latches, and never enables unrestricted body rotation, bone manipulation, or camera response.
+    condition: Whenever app-attention motion is rendered.
+    failure: Clamp or clear motion outside the bounded behavior.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r126
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar surface uses a fixed three-layer stack
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop Agent Chat uses a bottom app-native glass layer, optional transparent-by-default in-app backdrop mask from the admitted per-agent binding, and top interactive chat component layer occupying the full area between left navigation and right relationship rail.
+    condition: Whenever the Agent Chat Avatar surface is composed.
+    failure: Reject a stack, backdrop source, or chat occupancy that violates the three-layer model.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r127
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Lower Avatar layers cannot capture interaction
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: The glass or backdrop layer captures pointer events needed by the interactive component layer or becomes a second interaction or backdrop semantic owner.
+    condition: Whenever Avatar surface layers are rendered.
+    failure: Restore interaction to the component layer and consume only the admitted backdrop binding.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r128
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Viewport heuristics cannot become occupancy truth
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Renderer viewport bounds, preferred footprint, or visual footprint heuristics become admitted occupancy rectangles beyond the shell-owned single right dock and flowing taxonomy.
+    condition: Whenever Desktop computes Avatar or transcript layout.
+    failure: Keep the heuristic non-authoritative and within shell layout bounds.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r129
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar placement is a cosmetic preference
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: CanonicalConversationAnchoredSurfacePlacement may persist per target in Desktop-local storage with canonical default right-center and never becomes Runtime presentation truth.
+    condition: Whenever Desktop stores or resolves Avatar placement.
+    failure: Use right-center when absent and reject Runtime ownership claims.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r130
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar transform is transient
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Avatar transform x, y, scale, and optional rotate remain surface-local transient state and reset on teardown, thread switch, agent switch, or permission loss.
+    condition: Whenever Desktop mutates or restores Avatar transform.
+    failure: Reset rather than persist or carry the transform across surface identity.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r131
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Debug transform override stays renderer-local
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Script or debug transform overrides use one renderer-local non-stable channel and are not exposed through SDK, Runtime, or public app surfaces.
+    condition: Whenever a debug override changes Avatar transform.
+    failure: Reject public or cross-layer exposure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r132
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop companion event names are closed
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop companion events are exactly desktop.chat.message.send, desktop.chat.message.receive, desktop.avatar.launch.requested, desktop.avatar.launch.failed, desktop.avatar.handoff.completed, desktop.avatar.handoff.failed, desktop.avatar.instance.reveal_requested, and desktop.avatar.instance.close_requested.
+    condition: Whenever Desktop emits a shell-local Avatar companion event.
+    failure: Reject an unsupported event at the sender or ignore it with observable diagnostics.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r133
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop companion events remain shell-local cues
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop companion events carry explicit agent_id and optional avatar_instance_id for launch, remain first-party shell-local cues, and do not replace Runtime Agent turn, presentation, state, or hook projections.
+    condition: Whenever a Desktop companion event is emitted or consumed.
+    failure: Reject missing identity and any use as Runtime projection truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r134
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop cannot publish a general companion broker
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop companion convention publishes wildcard subscriptions, cancellable before-events, SDK-owned app event APIs, or a general desktop.* event broker.
+    condition: Whenever the shell-local event convention is extended.
+    failure: Reject the broker or wildcard surface.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r135
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Companion event payloads mint no Runtime authority
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop companion event payloads mint Runtime-owned fields, infer conversation continuity from same-agent traffic, or treat live-instance operations as account, binding, package, or conversation authority.
+    condition: Whenever an event payload or live operation is interpreted.
+    failure: Reject the authority claim and preserve the explicit Runtime and Avatar owners.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r136
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Default Avatar launch payload is minimal
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop default Avatar launch payload contains only agent_id, optional avatar_instance_id, and optional non-authoritative launch_source.
+    condition: Whenever Desktop launches Avatar.
+    failure: Reject any additional launch-context field.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r137
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Default Avatar launch creates no binding or anchor
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop issues RuntimeAccountService.IssueScopedAppBinding, calls runtime.agent.anchors.open, pre-creates an anchor, or passes conversation_anchor_id as a default Avatar launch precondition.
+    condition: Whenever Desktop performs the default Avatar launch.
+    failure: Launch only with the minimal intent payload or fail closed.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r138
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar launch carries no private context
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop passes visual package identifiers, paths or descriptors, account id, user id, subject_user_id, Realm URL, access or refresh token, raw JWT, shared auth payload, auth UX route, login bootstrap hint, or configuration record in Avatar launch context.
+    condition: Whenever Desktop constructs Avatar launch context.
+    failure: Reject the launch payload before handoff.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r139
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar validates launch intent
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: agent_id is launch intent only, and Avatar or Runtime validates access before loading private data or a visual package descriptor.
+    condition: Whenever Avatar receives a Desktop launch.
+    failure: Fail closed before private resolution when validation is absent or denied.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r140
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar owns first-party bootstrap and context
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Avatar owns first-party Runtime bootstrap, redacted account projection, Runtime-mediated broker and service use, agent validation, visual package resolution, and Avatar-owned conversation context.
+    condition: Whenever the default Avatar app starts from Desktop intent.
+    failure: Reject Desktop bootstrap or context ownership.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r141
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: start_with_chat has one per-open gate
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: One Desktop gate evaluates launch_mode start_with_chat on every selected-LocalAgent Agent-Chat-open event, including reopen or anchor switch, and explicit setup or quick launch does not use the gate.
+    condition: Whenever Agent Chat opens for a selected LocalAgent.
+    failure: Do not emit start_with_chat intent outside this gate.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r142
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: start_with_chat conditions are closed
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Avatar auto-launch occurs only when the user is logged in, the target is a LocalAgent, an anchor exists, a valid local Avatar asset is selected, backend capability posture is valid, Runtime projection is authorized, launch_mode is start_with_chat, and instance policy resolves safely.
+    condition: Whenever the start_with_chat gate evaluates.
+    failure: Return a typed non-launch state when any condition is false or missing.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r143
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: start_with_chat never guesses readiness
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: A failed auto-launch gate falls back to a remembered binding, guessed launch, idle-motion success, static carrier proxy, or authorization inferred from configuration presence or prior same-agent traffic.
+    condition: Whenever any auto-launch condition fails.
+    failure: Fail closed with the typed configuration or authorization outcome.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r144
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: start_with_chat is not global
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop auto-launches Avatar globally at Nimi startup or from Nimi Chat, Human Chat, Group Chat, relationship management, Explore, Apps, or every source materialization.
+    condition: Whenever a non-LocalAgent Agent Chat entry or app lifecycle event occurs.
+    failure: Do not emit auto-launch intent.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r145
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: start_with_chat preserves minimal launch intent
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: A passed start_with_chat gate emits only the minimal Avatar launch payload and leaves repeated-spawn prevention to instance-policy arbitration.
+    condition: Whenever the auto-launch gate passes.
+    failure: Reject payload widening and duplicate actuation outside arbitration.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r146
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar instance policy is closed
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Avatar launch arbitration uses exactly reuse_active_instance, launch_new_instance, or require_user_selection with default reuse_active_instance for every explicit or start_with_chat launch.
+    condition: Whenever Desktop decides an Avatar launch.
+    failure: Reject an unknown, ignored, or hardcoded policy.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r147
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Reuse policy reuses one matching instance
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: reuse_active_instance reuses an active Avatar instance for the same LocalAgent and conversation anchor and otherwise launches exactly one without a second instance from one Agent-Chat-open event.
+    condition: Whenever reuse_active_instance applies.
+    failure: Reject duplicate launch for the same target and open event.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r148
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: New-instance policy requires bounded user actuation
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: launch_new_instance creates a new instance only for explicit user launch, and with start_with_chat a repeated-spawn guard allows at most one new instance for one open event.
+    condition: Whenever launch_new_instance applies.
+    failure: Reject automatic repeated spawning or re-evaluation duplicates.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r149
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Selection policy does not auto-resolve ambiguity
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: require_user_selection presents user choice when more than one valid instance or asset launch posture exists and launches only after the user chooses.
+    condition: Whenever require_user_selection encounters multiple valid choices.
+    failure: Do not silently select or launch.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r150
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Launch conflicts and missing anchors fail closed
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: An unresolvable live-instance conflict or unavailable conversation anchor becomes a typed failure state and never silently reuses, duplicates, guesses, remembers, or reports success.
+    condition: Whenever launch arbitration cannot resolve an instance or anchor.
+    failure: Return the typed product failure without launch.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r151
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Spawn guard does not create Desktop carrier ownership
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Repeated-spawn protection is implemented as Desktop-local carrier process ownership or promotes Desktop to Avatar instance lifecycle owner.
+    condition: Whenever launch arbitration suppresses a duplicate.
+    failure: Keep Desktop limited to intent arbitration and Avatar as execution owner.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r152
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Arbitration preserves attributable instance identity
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Every launched or reused visible instance remains bound to explicit agent_id, conversation_anchor_id, and surface_instance_id and remains attributable to its LocalAgent for identify, reveal, and close controls.
+    condition: Whenever launch arbitration selects an instance.
+    failure: Reject an instance that cannot be explicitly attributed and controlled.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r153
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop Agent Center configuration is retired
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop owns an Agent Center local configuration schema, app-local Live2D, VRM or background import store, reusable resource-management command surface, preview assembly, or selection persistence.
+    condition: Whenever Desktop assembles Agent Center state or commands.
+    failure: Use Runtime presentation refs, Kit Shell custody operations, and Avatar preview instead.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r154
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop cannot persist Agent Center selection truth
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop persists avatar, background, default-voice, autoplay, local asset, Live2D sidecar, launch policy, instance policy, debug profile, generated-motion policy, or background selection in an app-owned configuration record.
+    condition: Whenever Agent Center selection changes.
+    failure: Write admitted selection through Runtime and keep Desktop state non-authoritative.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r155
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent Center import writes Runtime presentation profile
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Agent Center import completion writes selection through Runtime SetAgentPresentationProfile, while reusable import, validation, local URL serving, and cleanup use Kit Shell standard agent-center operations.
+    condition: Whenever a local Agent Center import completes.
+    failure: Fail closed if either the Runtime write or Kit custody operation is unavailable.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r156
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Retired Avatar configuration fields stay unmigrated
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop migrates or restores local_avatar_asset_ref, live2d_adapter_manifest_source, live2d_adapter_manifest_ref, live2d_calibration_ref, avatar_instance_policy, backend_kind, backend_capability_profile_ref, generated_motion_provider_policy, launch_mode, debug_profile, local_history, or ui.last_section as Desktop Agent Center configuration truth.
+    condition: Whenever legacy Agent Center configuration is decoded or migrated.
+    failure: Leave the retired fields unmigrated and resolve current truth from the admitted owners.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r157
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop Agent Center cannot store carrier internals
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop Agent Center configuration stores package descriptors, paths or bytes, raw assets, launch-local asset ids, account or auth material, binding or registry ids, raw APML, MCP, A2A, delegated or business payloads, backend commands, raw adapter manifests, absolute paths, compatibility tiers, Avatar diagnostics, calibration values, model digests, preview refs, render scale, target FPS, performance policy, or expression inventory.
+    condition: Whenever Agent Center configuration data is accepted.
+    failure: Reject the prohibited field or payload.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r158
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop cannot widen Avatar launch from configuration
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop copies selected refs, custody fields, preview evidence, configuration fields, or carrier readiness into Avatar launch payload or app-local carrier truth.
+    condition: Whenever Agent Center initiates Avatar launch.
+    failure: Use only the minimal Desktop launch intent.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r159
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar resolver ownership is single-cut
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Runtime AgentPresentationProfile owns selected refs, Kit Shell owns local custody and local URL serving, Avatar owns preview, materialization, backend readiness, calibration and carrier proof, and Desktop owns placement and evidence hooks only.
+    condition: Whenever Avatar resources are selected, resolved, previewed, or launched.
+    failure: Reject a second Desktop resolver, carrier registry, per-agent binding, or resource store.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r160
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent Center debug and calibration stay absent
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop renders or maintains renderer-local debug override, Live2D calibration, or debug-control policy inside Agent Center without separate Runtime or Avatar authority.
+    condition: Whenever Agent Center product UI is composed.
+    failure: Keep the surface absent and route any admitted future effect through Runtime, SDK, or Avatar projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r161
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent Center readiness requires all owner evidence
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop Agent Center fails closed when Runtime presentation refs, Kit Shell custody resolution, or Avatar preview-service evidence is unavailable.
+    condition: Whenever Agent Center computes readiness.
+    failure: Show typed unavailable state and do not manufacture readiness.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r162
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Missing Avatar evidence cannot look ready
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop converts missing Runtime, Kit, or Avatar evidence into idle motion, static-carrier success, local-binding success, or launch-ready status.
+    condition: Whenever any readiness evidence is missing.
+    failure: Keep the explicit unavailable or failed state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r163
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar asset controls use Kit Agent Center only
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop exposes private local Live2D or VRM import, validation, review, removal, and selection only by placing Kit Agent Center and using Kit Shell agent-center operations plus Runtime AgentPresentationProfile writes.
+    condition: Whenever Desktop presents local Avatar asset controls.
+    failure: Reject any Desktop-local asset-control path.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r164
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Retired Avatar acquisition paths stay absent
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop creates a browser-reachable Avatar-local install endpoint, Petdex-style local driver protocol, Desktop-owned package install daemon, direct filesystem activation outside Kit custody, Agent Center package inventory, or remote marketplace acquisition surface.
+    condition: Whenever Avatar acquisition or import UX is assembled.
+    failure: Keep the retired path unavailable and use private Kit Agent Center import only.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r165
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Opaque Avatar refs stay with their owners
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop stores Agent Center opaque refs as Desktop configuration truth rather than Runtime presentation refs or Kit Shell custody refs.
+    condition: Whenever Desktop receives an opaque Avatar ref.
+    failure: Keep the ref in the owning Runtime or Kit flow and do not persist a parallel copy.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r166
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Delegation controls use typed RuntimeAgentService
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop delegation surfaces use only ListDelegatedProviderProfiles, UpsertDelegatedProviderProfile, SetDelegatedProviderState, ListDelegatedApprovalRequests, SubmitDelegatedApprovalDecision, ListDelegatedDiagnostics, GetDelegatedReplayTrace, GetDelegatedControlSurfaceSnapshot, and debug-only ExecuteDelegatedCapability through the typed SDK RuntimeAgentService.
+    condition: Whenever Desktop reads or mutates delegated capability state.
+    failure: Reject an unlisted, untyped, or non-SDK path.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.delegation-control
+  - id: rule.nimi.desktop.agent-projection.r167
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop owns no delegated protocol or state
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop imports MCP or A2A clients or protocol SDKs, writes delegated provider state into local app truth, or mutates approval policy, firewall verdict, audit state, or provider execution semantics outside Runtime.
+    condition: Whenever delegated capability UI is implemented.
+    failure: Remove the private protocol or state path and use Runtime projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.delegation-control
+  - id: rule.nimi.desktop.agent-projection.r168
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Delegation cannot bypass Runtime SDK
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop routes delegated control through Realm REST, app-local IPC, or raw Tauri commands that bypass the Runtime SDK bridge.
+    condition: Whenever a delegated control request is sent.
+    failure: Reject the bypass before dispatch.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.delegation-control
+  - id: rule.nimi.desktop.agent-projection.r169
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Delegation placements share one Runtime surface
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Agent Chat settings, Avatar configuration, connector configuration, and approval UX panels consume the same Runtime snapshot and typed SDK methods.
+    condition: Whenever Desktop places delegated capability controls.
+    failure: Reject a placement-local snapshot, mutation, or provider authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.delegation-control
+  - id: rule.nimi.desktop.agent-projection.r170
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent settings cannot create provider authority
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Agent Chat settings turns selected agent or conversation-anchor context into delegated provider authority.
+    condition: Whenever delegation controls are opened from Agent Chat.
+    failure: Keep selection as UI context only.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.delegation-control
+  - id: rule.nimi.desktop.agent-projection.r171
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar delegation diagnostics remain typed
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Avatar configuration feeds raw delegated output or raw apml.*, MCP, or A2A events into Avatar while inspecting delegated capability status.
+    condition: Whenever Avatar configuration displays delegation diagnostics.
+    failure: Display only typed Runtime status.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.delegation-control
+  - id: rule.nimi.desktop.agent-projection.r172
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Connector delegation exposes refs not credentials
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Connector configuration may reference connector://, key-source://, or grant:// Runtime custody identifiers and never exposes raw credential material to delegated provider profiles.
+    condition: Whenever a delegated provider profile selects credentials.
+    failure: Reject raw credential input beyond transient reference-form entry.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.delegation-control
+  - id: rule.nimi.desktop.agent-projection.r173
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Approval UX renders Runtime pending requests
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop approval UX renders pending requests from ListDelegatedApprovalRequests or GetDelegatedControlSurfaceSnapshot and submits approval or rejection only through SubmitDelegatedApprovalDecision.
+    condition: Whenever a delegated approval is displayed or decided.
+    failure: Reject local request fabrication or local decision persistence.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.delegation-control
+  - id: rule.nimi.desktop.agent-projection.r174
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Approval does not execute or admit actions
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop executes a delegated action after approval or converts an approval decision into model context, projection truth, or action admission.
+    condition: Whenever a user approves a delegated request.
+    failure: Return the decision to Runtime and await Runtime-owned execution and projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.delegation-control
+  - id: rule.nimi.desktop.agent-projection.r175
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Terminal approvals cannot reopen locally
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop reopens a non-pending delegated approval locally instead of displaying terminal state or omitting it by filter.
+    condition: Whenever a delegated request is no longer pending.
+    failure: Keep the request terminal or filtered.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.delegation-control
+  - id: rule.nimi.desktop.agent-projection.r176
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Provider profile writes stay typed
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Delegated provider profile writes use UpsertDelegatedProviderProfile and enable or disable uses SetDelegatedProviderState.
+    condition: Whenever Desktop changes a delegated provider profile.
+    failure: Reject local persistence or another mutation path.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.delegation-control
+  - id: rule.nimi.desktop.agent-projection.r177
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Delegated credentials remain in Runtime custody
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: credential_ref identifies Runtime credential custody, and Desktop retains raw delegated credentials in component state only as transient form input needed to submit a Runtime credential reference.
+    condition: Whenever Desktop edits delegated provider credentials.
+    failure: Clear raw input after handoff and reject storage outside Runtime custody.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.delegation-control
+  - id: rule.nimi.desktop.agent-projection.r178
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Delegated transports remain Runtime-managed
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: transport_ref identifies a Runtime-managed transport descriptor and Desktop does not spawn or supervise delegated provider transports.
+    condition: Whenever a delegated provider transport is configured or used.
+    failure: Reject Desktop process ownership and use the Runtime descriptor.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.delegation-control
+  - id: rule.nimi.desktop.agent-projection.r179
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Delegation diagnostics use Runtime evidence
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop diagnostics come only from ListDelegatedDiagnostics, GetDelegatedReplayTrace, or GetDelegatedControlSurfaceSnapshot.
+    condition: Whenever Desktop displays delegated gateway, firewall, audit, or replay evidence.
+    failure: Keep diagnostics unavailable until typed Runtime evidence exists.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.delegation-control
+  - id: rule.nimi.desktop.agent-projection.r180
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Delegation diagnostics preserve evidence identity
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Displayed or copied delegated diagnostics preserve gateway_evidence_id, firewall_input_id, firewall_verdict, runtime_decision, and reason_code.
+    condition: Whenever Desktop renders or copies delegated diagnostics.
+    failure: Reject a diagnostic projection that drops or rewrites required evidence fields.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.delegation-control
+  - id: rule.nimi.desktop.agent-projection.r181
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Delegation replay is redacted
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Replay views render only Runtime-redacted replay stages and do not request, store, or infer raw provider output, hidden prompts, credentials, protocol-native payloads, raw MCP results, raw A2A messages, or quarantine evidence as product truth.
+    condition: Whenever Desktop opens a delegated replay.
+    failure: Reject raw or inferred payload material.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.delegation-control
+  - id: rule.nimi.desktop.agent-projection.r182
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: User-visible delegated results are typed projections
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop and Avatar consume only typed Runtime projections for user-visible delegated results.
+    condition: Whenever a delegated result reaches a user-visible surface.
+    failure: Reject raw provider or protocol output.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.delegation-control
+  - id: rule.nimi.desktop.agent-projection.r183
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop companion panel consumes upstream semantics
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: The desktop_companion_panel placement consumes the Avatar-owned surface-kind vocabulary and typed SDK and Runtime companion-participation projection without redefining status, method, reference, execution, prompt, provider, memory, queue, or commit semantics.
+    condition: Whenever Desktop renders a companion participation panel.
+    failure: Reject a Desktop-local companion semantic model.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.companion-panel
+  - id: rule.nimi.desktop.agent-projection.r184
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Companion panel routes bounded user controls
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop companion panels expose only explicit user trigger, cancel or interrupt, and replay-open controls routed through the typed companion-participation client.
+    condition: Whenever a user acts on the Desktop companion panel.
+    failure: Reject an untyped, direct provider, private Runtime, or local execution path.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.companion-panel
+  - id: rule.nimi.desktop.agent-projection.r185
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop has no companion debug workbench
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop owns or runs a companion participation debug or probe workbench even when typed probe state is visible through SDK or Runtime projection.
+    condition: Whenever debug or probe participation state is presented in Desktop.
+    failure: Display the typed projection without creating a Desktop workbench.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.companion-panel
+  - id: rule.nimi.desktop.agent-projection.r186
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Persona controls remain one companion surface
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop routes Avatar companion or persona controls through the same typed companion panel and does not create a separate Desktop product, app, Runtime facade, prompt path, or execution owner for a persona or package variant.
+    condition: Whenever Desktop presents a companion persona variant.
+    failure: Reject the parallel Desktop surface or owner.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.companion-panel
+  - id: rule.nimi.desktop.agent-projection.r187
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Companion refusal remains explicit
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop renders Runtime refusal, blocked, failed, canceled, and missing-evidence outcomes as explicit product states and never creates a local reply, private-provider retry, hidden refusal, or fake success.
+    condition: Whenever companion participation does not succeed.
+    failure: Keep the typed non-success state visible.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.companion-panel
+  - id: rule.nimi.desktop.agent-projection.r188
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop companion panels have no private scheduler
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop companion panels create app-local schedulers, room queues, fairness budgets, timeout budgets, or queue-status truth.
+    condition: Whenever companion participation is queued, timed, or scheduled.
+    failure: Use the upstream Runtime projection or keep the control unavailable.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.companion-panel
+  - id: rule.nimi.desktop.agent-projection.r189
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Realm GROUP surfaces are typed consumers only
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop and Web present Realm GROUP agent participation controls and status only as consumers of the admitted SDK, Realm product, Runtime consumer, and Runtime realm_group room-orchestration contracts.
+    condition: Whenever a Realm GROUP thread presents agent participation.
+    failure: Reject an app-local authority or keep the surface unavailable.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.realm-group-participation
+  - id: rule.nimi.desktop.agent-projection.r190
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Apps own no GROUP execution stack
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop or Web defines app-local group Agent execution, local AI adapters, prompt builders, provider or model routing, memory policy, reply-queue truth, or same-room scheduler authority.
+    condition: Whenever GROUP participation is implemented.
+    failure: Remove the local stack and consume typed SDK, Runtime, and Realm surfaces.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.realm-group-participation
+  - id: rule.nimi.desktop.agent-projection.r191
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: GROUP control inputs are bounded refs
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Realm GROUP controls pass typed group-thread, membership-snapshot, agent-slot, trigger-event, read-cursor, optional reply-target, and room-orchestration references without raw prompts, provider or model hints, direct commit handles, or unbounded transcripts.
+    condition: Whenever Desktop or Web initiates GROUP participation.
+    failure: Reject the control request when a required ref is missing or a prohibited payload is present.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.realm-group-participation
+  - id: rule.nimi.desktop.agent-projection.r192
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: GROUP candidate and commit truth stay split
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop and Web render Runtime REALM_GROUP_MESSAGE_CANDIDATE state and Realm committed GROUP messages as distinct owner projections; a Runtime candidate is not committed and Realm read or commit truth is not Runtime execution success.
+    condition: Whenever a GROUP candidate or committed message is displayed.
+    failure: Reject synthesized commit success or conflated status.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.realm-group-participation
+  - id: rule.nimi.desktop.agent-projection.r193
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Apps cannot persist GROUP transcript truth
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop or Web writes Realm GROUP transcript truth locally or treats Runtime candidate output as a committed message.
+    condition: Whenever a GROUP candidate or message is received.
+    failure: Keep candidate state non-committed and consume Realm authenticated read or sync truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.realm-group-participation
+  - id: rule.nimi.desktop.agent-projection.r194
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: GROUP status comes from Runtime and Realm
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop and Web display queued, running, refused, cancelled, timed-out, and candidate states only from typed Runtime Agent projection and Realm read or sync truth.
+    condition: Whenever GROUP participation status is shown.
+    failure: Reject locally derived semantic status.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.realm-group-participation
+  - id: rule.nimi.desktop.agent-projection.r195
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Apps cannot create orchestration namespace or store
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop or Web creates a public runtime.orchestration.* product namespace, local queue store, fairness or budget truth, cancellation or timeout truth, or same-room semantic status owner.
+    condition: Whenever GROUP orchestration state is consumed.
+    failure: Use typed Runtime room-orchestration projection only.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.realm-group-participation
+  - id: rule.nimi.desktop.agent-projection.r196
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: GROUP hardcut rejects public execution inputs
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop and Web fail closed on public prompt assembly, provider or model selection, local memory, capability or concurrency verdicts, GROUP_LIMITED capability enum, or group-local queue, fairness, budget, cancellation, or timeout truth.
+    condition: Whenever GROUP participation input or policy is assembled.
+    failure: Reject the product path before Runtime execution.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.realm-group-participation
+  - id: rule.nimi.desktop.agent-projection.r197
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: GROUP commit stays Realm-owned
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Runtime direct Realm GROUP commit or Desktop or Web direct Realm REST bypass is used where typed SDK and Realm calls are required.
+    condition: Whenever a GROUP candidate is committed or messages are read.
+    failure: Reject the bypass and use the Realm-owned authenticated path.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.realm-group-participation
+  - id: rule.nimi.desktop.agent-projection.r198
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: GROUP participation cannot use raw local bridges
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop or Web uses raw Tauri IPC or a local adapter to bypass SDK and Runtime authority for GROUP participation.
+    condition: Whenever a GROUP participation request or projection crosses an app boundary.
+    failure: Reject the local bridge path.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.realm-group-participation
+  - id: rule.nimi.desktop.agent-projection.r199
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar startup cannot infer a default Agent
+    modality: must_not
+    scope:
+      - desktop.agent-projection
+    statement: Desktop launch behavior or the Avatar normal boot path silently bootstraps, selects, guesses, or depends on a default Agent when explicit agent_id launch intent is absent.
+    condition: Whenever Desktop launches Avatar or relies on Avatar normal boot.
+    failure: Keep Desktop handoff unavailable and require explicit agent_id before target-specific launch behavior.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.r200
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Companion controls carry a closed typed reference set
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop companion participation controls use runtime.companionParticipation typed SDK methods and carry only applicable typed agent_id, surface_kind, profile_ref, conversation_anchor_ref, room_orchestration_ref, domain_context_ref, or debug_probe_ref values.
+    condition: Whenever Desktop submits a companion trigger, cancellation, interruption, or replay-open control.
+    failure: Reject the control when an applicable typed reference is missing or an unlisted payload field is present.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.companion-panel
+  - id: rule.nimi.desktop.agent-projection.r201
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: GROUP participation trigger postures are closed
+    modality: must
+    scope:
+      - desktop.agent-projection
+    statement: Desktop and Web expose Realm GROUP Agent Participation initiation or display only as a mention, explicit user action, admitted automation display, or product-disabled posture through typed SDK or Realm references.
+    condition: Whenever a Realm GROUP participation control or status surface is presented.
+    failure: Reject an unadmitted trigger or display posture and do not dispatch GROUP participation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.realm-group-participation

@@ -96,6 +96,6 @@ identity，必须由显式 `web-release-contract.md` cut 处理。
 - `.nimi/spec/platform/kernel/cold-start-authority-contract.md` — `P-COLD-001..P-COLD-008`
 - `.nimi/spec/platform/kernel/web-release-contract.md` — `P-WEB-*`
 - `.nimi/spec/platform/kernel/tables/release-gate-registry.yaml`
-- `.nimi/spec/desktop/kernel/self-update-contract.md`
+- `.nimi/spec/canonical/desktop/shell-runtime.authority.yaml` — desktop-host self-update implementation
 - `.nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md` — `K-LENG-024..K-LENG-027`
 - `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` — `K-LENG-028`

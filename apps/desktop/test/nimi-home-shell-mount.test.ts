@@ -22,7 +22,7 @@ const homeViewSource = readFileSync(
   'utf8',
 );
 
-// D-HOMEFEED-001 / D-HOMEFEED-003: the `home` primary-nav tab renders the Realm
+// rule.nimi.desktop.product-surfaces.r015 / rule.nimi.desktop.product-surfaces.r017: the `home` primary-nav tab renders the Realm
 // feed surface, not the `Nimi Home` installed-shell panel (`NimiHomePanel`).
 test('home tab mounts the Realm feed Home surface, not the Nimi Home shell panel', () => {
   assert.match(mainLayoutViewSource, /features\/home\/home-panel/);
@@ -31,13 +31,13 @@ test('home tab mounts the Realm feed Home surface, not the Nimi Home shell panel
   assert.doesNotMatch(mainLayoutViewSource, /NimiHomePanel/);
 });
 
-// D-HOMEFEED-002: ready Desktop entry is Chat; `home` remains a primary destination.
+// rule.nimi.desktop.product-surfaces.r016: ready Desktop entry is Chat; `home` remains a primary destination.
 test('ready Desktop entry starts at Chat while Home remains a primary destination', () => {
   assert.match(uiSliceSource, /activeTab:\s*'chat'/);
   assert.match(mainLayoutViewSource, /E2E_IDS\.navTab\('home'\)/);
 });
 
-// D-HOMEFEED-001 / D-HOMEFEED-005: the Home feed surface presents the Realm feed
+// rule.nimi.desktop.product-surfaces.r015 / rule.nimi.desktop.product-surfaces.r019: the Home feed surface presents the Realm feed
 // and a Create Post affordance.
 test('Home feed surface presents the Realm post feed and Create Post affordance', () => {
   for (const expected of ['PostFeed', 'CreatePostModal', 'createPostRequestKey']) {
@@ -45,7 +45,7 @@ test('Home feed surface presents the Realm post feed and Create Post affordance'
   }
 });
 
-// D-HOMEFEED-006: the Home feed surface consumes the SDK-typed Realm feed
+// rule.nimi.desktop.product-surfaces.r020: the Home feed surface consumes the SDK-typed Realm feed
 // projection through the Desktop Realm data adapter, not a renderer-local raw fetch.
 test('Home feed surface consumes the SDK-typed Realm feed projection', () => {
   assert.match(homeViewSource, /realmSocialData\.loadPostFeed/);

@@ -17,8 +17,8 @@ const mainLayoutSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts
 const profilePanelSource = readWorkspaceFile('src/shell/renderer/features/profile/profile-panel.tsx');
 const profileDetailModalSource = readWorkspaceFile('src/shell/renderer/features/relationship/profile-detail-modal.tsx');
 const e2eIdsSource = readWorkspaceFile('src/shell/renderer/testability/e2e-ids.ts');
-const stateContractSource = readRepoFile('.nimi/spec/desktop/kernel/state-contract.md');
-const storeSlicesSource = readRepoFile('.nimi/spec/desktop/kernel/tables/store-slices.yaml');
+const stateAuthoritySource = readRepoFile('.nimi/spec/canonical/desktop/shell-runtime.authority.yaml');
+const storeSlicesConfigSource = readRepoFile('config/desktop-shell-runtime-store-slices.yaml');
 
 test('profile detail shell rail: ui slice tracks shared profile overlay state', () => {
   assert.match(storeTypesSource, /profileDetailOverlayOpen: boolean;/);
@@ -61,7 +61,7 @@ test('profile detail shell rail: own profile remains keyed off selectedProfileId
   assert.match(profilePanelSource, /const isOwnProfile = !selectedProfileId;/);
 });
 
-test('profile detail shell rail: desktop state spec documents the overlay state', () => {
-  assert.match(stateContractSource, /profileDetailOverlayOpen/u);
-  assert.match(storeSlicesSource, /profile detail overlay state/u);
+test('profile detail shell rail: desktop state authority documents the overlay state', () => {
+  assert.match(stateAuthoritySource, /profileDetailOverlayOpen/u);
+  assert.match(storeSlicesConfigSource, /name: ui[\s\S]*authority_boundary: renderer_ui_navigation_and_bootstrap_presentation/u);
 });

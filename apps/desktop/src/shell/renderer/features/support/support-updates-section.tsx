@@ -1,13 +1,13 @@
 /**
- * Support `updates` sub-area (`D-SUP-004`).
+ * Support `updates` sub-area (`rule.nimi.desktop.product-surfaces.r025`).
  *
- * The Application Update host the `self-update-contract.md` "更新器可用性投影"
- * assumes. It consumes the `DesktopReleaseInfo` projection from the app store
+ * The Application Update host assumed by the canonical Desktop shell Runtime
+ * self-update plane (`rule.nimi.desktop.shell-runtime.r066..r072`). It consumes the `DesktopReleaseInfo` projection from the app store
  * and triggers the managed `desktop_update_*` commands through the shared
  * `desktop-updates` action layer. It does NOT own update mechanics and never
  * synthesizes default version info — a missing release projection fail-closes.
  *
- * `D-SUP-004` `updaterAvailable=false`: the manual update actions surface the
+ * `rule.nimi.desktop.product-surfaces.r025` `updaterAvailable=false`: the manual update actions surface the
  * typed `updaterUnavailableReason` and are disabled; they never invoke an
  * updater command known to fail.
  */
@@ -125,7 +125,7 @@ export function SupportUpdatesSection() {
             </button>
           </div>
         ) : (
-          // D-SUP-004: updater unavailable — surface the typed reason directly
+          // rule.nimi.desktop.product-surfaces.r025: updater unavailable — surface the typed reason directly
           // and offer no action that would call a failing updater command.
           <p
             data-testid="support-updates-unavailable"

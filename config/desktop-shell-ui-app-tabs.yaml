@@ -1,0 +1,127 @@
+# Non-authoritative Desktop shell UI machine configuration.
+# Normative authority: .nimi/spec/canonical/desktop/shell-ui.authority.yaml
+# Rationale: docs/authority/desktop-shell-ui-rationale.md
+table_family: product_catalog
+owner: desktop
+catalog_id: desktop_app_tabs
+entries:
+  - home
+  - chat
+  - agents
+  - explore
+  - apps
+  - runtime
+  - settings
+  - support
+  - developer-tools
+  - profile
+  - source-detail
+  - world-detail
+  - notification
+  - gift-inbox
+  - privacy-policy
+  - terms-of-service
+# Desktop App Tab Enumeration
+# Source: apps/desktop/src/shell/renderer/app-shell/providers/store-types.ts (AppTab)
+#         apps/desktop/src/shell/renderer/app-shell/layouts/navigation-config.tsx
+
+tabs:
+  # Ordinary primary navigation. Product target:
+  # Home | Chat | Characters | Explore | Apps | Runtime
+  - id: home
+    nav_group: core
+    label: Home
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: chat
+    nav_group: core
+    label: Chat
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: agents
+    nav_group: core
+    label: Characters
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: explore
+    nav_group: core
+    label: Explore
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: apps
+    nav_group: core
+    label: Apps
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: runtime
+    nav_group: core
+    label: Runtime
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  # Secondary/system surfaces. They are not ordinary primary nav entries.
+  - id: settings
+    nav_group: secondary
+    label: Settings
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: support
+    nav_group: secondary
+    label: Support
+    gated_by: null
+    source_rule: rule.nimi.desktop.product-surfaces.r022
+
+  - id: developer-tools
+    nav_group: developer
+    label: Developer Tools
+    gated_by: enableDeveloperTools
+    source_rule: D-DEV-001
+
+  # Detail tabs (navigated to, not in sidebar)
+  - id: profile
+    nav_group: detail
+    label: Profile
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: source-detail
+    nav_group: detail
+    label: Source Detail
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: world-detail
+    nav_group: detail
+    label: World Detail
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: notification
+    nav_group: detail
+    label: Notification
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: gift-inbox
+    nav_group: detail
+    label: Gifts
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: privacy-policy
+    nav_group: detail
+    label: Privacy Policy
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: terms-of-service
+    nav_group: detail
+    label: Terms of Service
+    gated_by: null
+    source_rule: D-SHELL-001

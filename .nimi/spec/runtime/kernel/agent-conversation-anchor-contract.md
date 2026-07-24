@@ -99,8 +99,7 @@ Fixed rules:
 ## Fact Sources
 
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`
-- `.nimi/spec/desktop/kernel/agent-chat-projection-contract.md`
-- `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`
+- `.nimi/spec/canonical/desktop/agent-projection.authority.yaml`
 - `.nimi/spec/avatar/kernel/app-shell-contract.md`
 - `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — runtime projection reader guide and dual-entry session correspondence
 - `.nimi/spec/avatar/kernel/live2d-render-contract.md` — Live2D companion reader guide and conversation continuity correspondence

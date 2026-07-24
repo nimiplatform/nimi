@@ -201,7 +201,7 @@ Active owner map:
 - APML parser events remain runtime-internal diagnostics and must not be exposed
   as durable app-facing `apml.*` product events
 - Desktop owns only chat shell bridge / handoff semantics under
-  `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`
+  `.nimi/spec/canonical/desktop/agent-projection.authority.yaml`
 - Avatar owns Avatar-local `avatar.*` event naming and consume semantics under
   `.nimi/spec/avatar/kernel/avatar-event-contract.md`
 - SDK may consume admitted runtime agent projections but does not own platform
@@ -324,7 +324,7 @@ Fixed rules:
 - `.nimi/spec/runtime/kernel/agent-presentation-contract.md`
 - `.nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml`
 - `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
-- `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`
+- `.nimi/spec/canonical/desktop/agent-projection.authority.yaml`
 - `.nimi/spec/avatar/kernel/avatar-event-contract.md`
 - `.nimi/spec/avatar/kernel/tables/activity-mapping.yaml`
 - `.nimi/spec/runtime/kernel/agent-presentation-contract.md` — runtime projection reader guide and core projection correspondence

@@ -1,0 +1,30 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/desktop/shell-runtime.authority.yaml
+# Rationale: docs/authority/desktop-shell-runtime-rationale.md
+config_id: desktop_shell_runtime_bootstrap_phases
+owner: desktop
+source_rule: rule.nimi.desktop.shell-runtime.r001
+phases:
+  - phase: runtime-defaults
+    order: 1
+    async: true
+  - phase: platform-client
+    order: 2
+    async: true
+  - phase: runtime-host
+    order: 3
+    async: true
+    gated_by: enableRuntimeBootstrap
+  - phase: external-agent
+    order: 4
+    async: true
+    gated_by: enableRuntimeBootstrap
+  - phase: auth-session
+    order: 5
+    async: true
+  - phase: bootstrap-ready
+    order: 6
+    async: false
+constraints:
+  - constraint: idempotency-guard
+    source_rule: rule.nimi.desktop.shell-runtime.r010

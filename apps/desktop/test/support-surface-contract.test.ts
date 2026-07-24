@@ -1,13 +1,13 @@
 /**
- * T10.4 — Support secondary surface acceptance (`D-SUP-001..008`).
+ * T10.4 — Support secondary surface acceptance (`rule.nimi.desktop.product-surfaces.r022..r029`).
  *
- * Acceptance coverage for `.nimi/spec/desktop/kernel/support-surface-contract.md`:
- *   - D-SUP-001: Support is a `nav_group: secondary` surface, reachable from
+ * Acceptance coverage for `.nimi/spec/canonical/desktop/product-surfaces.authority.yaml`:
+ *   - rule.nimi.desktop.product-surfaces.r022: Support is a `nav_group: secondary` surface, reachable from
  *     the account-area menu, and NOT one of the ordinary primary nav tabs.
- *   - D-SUP-002: the surface hosts exactly the five sub-areas.
- *   - D-SUP-003..007: each sub-area consumes a typed projection and fails
+ *   - rule.nimi.desktop.product-surfaces.r023: the surface hosts exactly the five sub-areas.
+ *   - rule.nimi.desktop.product-surfaces.r024..r028: each sub-area consumes a typed projection and fails
  *     closed; recovery uses the copy floor, not raw enum names.
- *   - D-SUP-008: Support (repair + recovery) is reachable from the degraded
+ *   - rule.nimi.desktop.product-surfaces.r029: Support (repair + recovery) is reachable from the degraded
  *     first-run / repair gate.
  *
  * The ordinary primary nav (`Home | Chat | Characters | Explore | Apps
@@ -45,22 +45,22 @@ function readRepo(relativePath: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// D-SUP-001 — Support As Secondary System Surface
+// rule.nimi.desktop.product-surfaces.r022 — Support As Secondary System Surface
 // ---------------------------------------------------------------------------
 
-test('D-SUP-001: app-tabs.yaml registers support as nav_group secondary', () => {
-  const appTabs = readRepo('.nimi/spec/desktop/kernel/tables/app-tabs.yaml');
+test('rule.nimi.desktop.product-surfaces.r022: app-tabs.yaml registers support as nav_group secondary', () => {
+  const appTabs = readRepo('config/desktop-shell-ui-app-tabs.yaml');
   const supportEntry = appTabs.slice(appTabs.indexOf('  - id: support'));
   assert.match(supportEntry, /nav_group:\s*secondary/);
-  assert.match(supportEntry, /source_rule:\s*D-SUP-001/);
+  assert.match(supportEntry, /source_rule:\s*rule\.nimi\.desktop\.product-surfaces\.r022/);
 });
 
-test('D-SUP-001: AppTab type includes support', () => {
+test('rule.nimi.desktop.product-surfaces.r022: AppTab type includes support', () => {
   const storeTypes = readDesktop('src/shell/renderer/app-shell/providers/store-types.ts');
   assert.match(storeTypes, /\bAppTab\b[\s\S]*?\|\s*'support'/);
 });
 
-test('D-SUP-001: support is NOT in the ordinary core nav', () => {
+test('rule.nimi.desktop.product-surfaces.r022: support is NOT in the ordinary core nav', () => {
   const navConfig = readDesktop('src/shell/renderer/app-shell/layouts/navigation-config.tsx');
   const coreNavBlock = navConfig.slice(
     navConfig.indexOf('BASE_CORE_NAV_ITEMS'),
@@ -71,7 +71,7 @@ test('D-SUP-001: support is NOT in the ordinary core nav', () => {
   assert.equal(coreIds.includes('support'), false);
 });
 
-test('D-SUP-001: getCoreNavItems still returns exactly the ordinary items', () => {
+test('rule.nimi.desktop.product-surfaces.r022: getCoreNavItems still returns exactly the ordinary items', () => {
   const navConfig = readDesktop('src/shell/renderer/app-shell/layouts/navigation-config.tsx');
   const fn = navConfig.slice(
     navConfig.indexOf('export function getCoreNavItems'),
@@ -81,7 +81,7 @@ test('D-SUP-001: getCoreNavItems still returns exactly the ordinary items', () =
   assert.doesNotMatch(fn, /support/);
 });
 
-test('D-SUP-001: Support is reachable from the account-area menu', () => {
+test('rule.nimi.desktop.product-surfaces.r022: Support is reachable from the account-area menu', () => {
   const layoutView = readDesktop('src/shell/renderer/app-shell/layouts/main-layout-view.tsx');
   const settingsMenu = readDesktop('src/shell/renderer/app-shell/layouts/main-layout-settings-menu.tsx');
   // The settings/account submenu carries a `support` item that navigates to
@@ -90,7 +90,7 @@ test('D-SUP-001: Support is reachable from the account-area menu', () => {
   assert.match(layoutView, /props\.onNav\('support'\)/);
 });
 
-test('D-SUP-001: the Support panel mounts when the support tab is active', () => {
+test('rule.nimi.desktop.product-surfaces.r022: the Support panel mounts when the support tab is active', () => {
   const layoutView = [
     readDesktop('src/shell/renderer/app-shell/layouts/main-layout-view.tsx'),
     readDesktop('src/shell/renderer/app-shell/layouts/main-layout-panel-stack.tsx'),
@@ -101,24 +101,24 @@ test('D-SUP-001: the Support panel mounts when the support tab is active', () =>
 });
 
 // ---------------------------------------------------------------------------
-// D-SUP-002 — Support Sub-Area Set
+// rule.nimi.desktop.product-surfaces.r023 — Support Sub-Area Set
 // ---------------------------------------------------------------------------
 
-test('D-SUP-002: the surface hosts exactly the five contract sub-areas', () => {
+test('rule.nimi.desktop.product-surfaces.r023: the surface hosts exactly the five contract sub-areas', () => {
   assert.deepEqual(
     [...SUPPORT_SECTION_IDS],
     ['repair', 'updates', 'diagnostics', 'logs', 'recovery'],
   );
 });
 
-test('D-SUP-002: the panel dispatches every sub-area', () => {
+test('rule.nimi.desktop.product-surfaces.r023: the panel dispatches every sub-area', () => {
   const panel = readDesktop('src/shell/renderer/features/support/support-panel.tsx');
   for (const section of SUPPORT_SECTION_IDS) {
     assert.match(panel, new RegExp(`case '${section}':`));
   }
 });
 
-test('D-SUP-002: section id resolution rejects unknown sub-areas', () => {
+test('rule.nimi.desktop.product-surfaces.r023: section id resolution rejects unknown sub-areas', () => {
   assert.equal(resolveSupportSection('updates'), 'updates');
   assert.equal(resolveSupportSection('nonexistent'), 'repair');
   assert.equal(resolveSupportSection(null), 'repair');
@@ -126,14 +126,14 @@ test('D-SUP-002: section id resolution rejects unknown sub-areas', () => {
   assert.equal(isSupportSectionId('settings'), false);
 });
 
-test('D-SUP-002: Support does not host ordinary preference sections', () => {
+test('rule.nimi.desktop.product-surfaces.r023: Support does not host ordinary preference sections', () => {
   const panel = readDesktop('src/shell/renderer/features/support/support-panel.tsx');
   // Ordinary preference surfaces belong to Settings, not Support.
   assert.doesNotMatch(panel, /SettingsPanelBody|LanguageRegionPage|NotificationsPage/);
 });
 
 // ---------------------------------------------------------------------------
-// D-SUP-003..007 — each sub-area consumes a typed projection and fails closed
+// rule.nimi.desktop.product-surfaces.r024..r028 — each sub-area consumes a typed projection and fails closed
 // ---------------------------------------------------------------------------
 
 const SECTION_FILES = {
@@ -145,13 +145,13 @@ const SECTION_FILES = {
 } as const;
 
 for (const [section, file] of Object.entries(SECTION_FILES)) {
-  test(`D-SUP-003..007: ${section} sub-area renders a typed fail-closed surface`, () => {
+  test(`rule.nimi.desktop.product-surfaces.r024..r028: ${section} sub-area renders a typed fail-closed surface`, () => {
     const source = readDesktop(file);
     assert.match(source, /SupportFailClosed/);
   });
 }
 
-test('D-SUP-003: repair delegates cleanup to the managed P-MIG-008 flow', () => {
+test('rule.nimi.desktop.product-surfaces.r024: repair delegates cleanup to the managed P-MIG-008 flow', () => {
   const source = readDesktop(SECTION_FILES.repair);
   // The repair sub-area never deletes data itself — it plans + executes via
   // the nimi_data cleanup bridge and gates destructive cleanup on the token.
@@ -160,14 +160,14 @@ test('D-SUP-003: repair delegates cleanup to the managed P-MIG-008 flow', () => 
   assert.match(source, /NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION/);
 });
 
-test('D-SUP-003: repair surfaces config pointers without recreating them', () => {
+test('rule.nimi.desktop.product-surfaces.r024: repair surfaces config pointers without recreating them', () => {
   const source = readDesktop(SECTION_FILES.repair);
   assert.match(source, /SupportPointerCard/);
   // No pointer-write / recreate path in the repair sub-area.
   assert.doesNotMatch(source, /selectProductDataRoot|setProductFirstRun/);
 });
 
-test('support.updates-release-projection: D-SUP-004 updates consumes the DesktopReleaseInfo projection, not synthesized data', () => {
+test('support.updates-release-projection: rule.nimi.desktop.product-surfaces.r025 updates consumes the DesktopReleaseInfo projection, not synthesized data', () => {
   const source = readDesktop(SECTION_FILES.updates);
   assert.match(source, /desktopReleaseInfo/);
   assert.match(source, /support-updates-fail-closed/);
@@ -180,13 +180,13 @@ test('support.updates-release-projection: D-SUP-004 updates consumes the Desktop
   assert.match(source, /support-updates-unavailable/);
 });
 
-test('D-SUP-005: diagnostics consumes typed runtime projections only', () => {
+test('rule.nimi.desktop.product-surfaces.r026: diagnostics consumes typed runtime projections only', () => {
   const source = readDesktop(SECTION_FILES.diagnostics);
   assert.match(source, /bindings\.app\.commands\.runtimeDaemon\.status\(\)/);
   assert.match(source, /bindings\.app\.commands\.systemResources\.load\(\)/);
 });
 
-test('D-SUP-006: logs consumes the log-areas table and exports via the typed IPC', () => {
+test('rule.nimi.desktop.product-surfaces.r027: logs consumes the log-areas table and exports via the typed IPC', () => {
   const source = readDesktop(SECTION_FILES.logs);
   assert.match(source, /DESKTOP_LOG_AREAS/);
   assert.match(source, /logs\.loadStorageDirs\(\)/);
@@ -201,8 +201,8 @@ test('D-SUP-006: logs consumes the log-areas table and exports via the typed IPC
   assert.match(source, /support-logs-export-done/);
 });
 
-test('D-SUP-006: the log-areas projection matches the kernel closed enum', () => {
-  const logAreasTable = readRepo('.nimi/spec/desktop/kernel/tables/log-areas.yaml');
+test('rule.nimi.desktop.product-surfaces.r027: the log-areas projection matches the kernel closed enum', () => {
+  const logAreasTable = readRepo('config/desktop-shell-ui-log-areas.yaml');
   for (const area of DESKTOP_LOG_AREAS) {
     assert.match(logAreasTable, new RegExp(`- ${area}\\b`));
   }
@@ -210,7 +210,7 @@ test('D-SUP-006: the log-areas projection matches the kernel closed enum', () =>
   assert.equal(DESKTOP_LOG_AREAS.length, 8);
 });
 
-test('D-SUP-007: recovery copy mapping is total and uses the copy floor', () => {
+test('rule.nimi.desktop.product-surfaces.r028: recovery copy mapping is total and uses the copy floor', () => {
   for (const state of NIMI_PRODUCT_CONTROL_STATES) {
     assert.ok(
       Object.prototype.hasOwnProperty.call(NIMI_PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY, state),
@@ -219,7 +219,7 @@ test('D-SUP-007: recovery copy mapping is total and uses the copy floor', () => 
   }
 });
 
-test('D-SUP-007: recovery never shows the raw enum name as primary copy', () => {
+test('rule.nimi.desktop.product-surfaces.r028: recovery never shows the raw enum name as primary copy', () => {
   const source = readDesktop(SECTION_FILES.recovery);
   // Primary title/body come from the copy-floor key; the raw state id is only
   // a secondary technical detail line.
@@ -227,7 +227,7 @@ test('D-SUP-007: recovery never shows the raw enum name as primary copy', () => 
   assert.match(source, /recoveryTechnicalStateLabel/);
 });
 
-test('D-SUP-007: degraded vs repair-routed state classification', () => {
+test('rule.nimi.desktop.product-surfaces.r028: degraded vs repair-routed state classification', () => {
   assert.equal(isNimiProductControlDegradedState('repair_required'), true);
   assert.equal(isNimiProductControlDegradedState('data_root_missing'), true);
   assert.equal(isNimiProductControlDegradedState('ready_for_use'), false);
@@ -237,14 +237,14 @@ test('D-SUP-007: degraded vs repair-routed state classification', () => {
 });
 
 // ---------------------------------------------------------------------------
-// D-SUP-008 — Support Reachability Under Degraded State
+// rule.nimi.desktop.product-surfaces.r029 — Support Reachability Under Degraded State
 // ---------------------------------------------------------------------------
 
-test('D-SUP-008: repair and recovery are the degraded-reachable sub-areas', () => {
+test('rule.nimi.desktop.product-surfaces.r029: repair and recovery are the degraded-reachable sub-areas', () => {
   assert.deepEqual([...SUPPORT_DEGRADED_REACHABLE_SECTIONS], ['repair', 'recovery']);
 });
 
-test('D-SUP-008: the degraded first-run gate mounts the Support degraded entry', () => {
+test('rule.nimi.desktop.product-surfaces.r029: the degraded first-run gate mounts the Support degraded entry', () => {
   // The redesigned first-run gate renders the onboarding wizard. The wizard
   // chrome — present on every phase and terminal screen — mounts the Support
   // degraded entry as the top-right Support pill, so Support stays reachable
@@ -268,7 +268,7 @@ test('D-SUP-008: the degraded first-run gate mounts the Support degraded entry',
   assert.match(terminalScreens, /support\/support-degraded-entry/);
 });
 
-test('D-SUP-008: the first-run gate refreshes product-control while Setup is mounted', () => {
+test('rule.nimi.desktop.product-surfaces.r029: the first-run gate refreshes product-control while Setup is mounted', () => {
   const gatePanel = readDesktop(
     'src/shell/renderer/features/nimi-home/first-run-gate-panel.tsx',
   );
@@ -288,7 +288,7 @@ test('D-SUP-008: the first-run gate refreshes product-control while Setup is mou
   assert.match(gatePanel, /ready_for_use/);
 });
 
-test('D-SUP-008: the degraded entry only exposes repair and recovery', () => {
+test('rule.nimi.desktop.product-surfaces.r029: the degraded entry only exposes repair and recovery', () => {
   const entry = readDesktop('src/shell/renderer/features/support/support-degraded-entry.tsx');
   assert.match(entry, /SUPPORT_DEGRADED_REACHABLE_SECTIONS/);
   assert.match(entry, /SupportRepairSection/);

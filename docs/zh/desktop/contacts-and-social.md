@@ -55,7 +55,7 @@ Nimi 的好友关系是平台规范化真相。一旦准入，它不属于某个
 
 ## 来源依据
 
-- [`.nimi/spec/desktop/kernel/relationship-profile-surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/relationship-profile-surface-contract.md)
+- [`.nimi/spec/canonical/desktop/product-surfaces.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/canonical/desktop/product-surfaces.authority.yaml)
 - [`.nimi/spec/realm/README.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/README.md)
 - [`.nimi/spec/realm/external-realm.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/external-realm.md)
 - [`.nimi/spec/sdks/kernel/realm-api-consumer-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-api-consumer-contract.md)

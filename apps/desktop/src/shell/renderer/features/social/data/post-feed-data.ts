@@ -28,7 +28,7 @@ type PostDto = RealmModel<'PostDto'>;
 type ReportResponseDto = RealmModel<'ReportResponseDto'>;
 
 /**
- * Canonical Realm feed scopes (Realm R-FEED-005, Desktop D-HOMEFEED-004).
+ * Canonical Realm feed scopes (Realm R-FEED-005, Desktop rule.nimi.desktop.product-surfaces.r018).
  * Server-side filter branches; the renderer never infers scope membership
  * client-side.
  */

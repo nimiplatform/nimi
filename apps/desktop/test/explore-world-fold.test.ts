@@ -74,13 +74,13 @@ test('Explore fold keeps PersonaCharacter discovery as Explore-owned discovery w
   assert.match(personaSourceCardSource, /describeCharacterPrimaryAction/);
   assert.doesNotMatch(exploreViewSource, /<ExploreAgentCard/);
   // No source direct-chat path: world-detail's handleChatAgent declaration
-  // and onChatAgent prop binding drift is removed (T3 / D-EXPL-006).
+  // and onChatAgent prop binding drift is removed (T3 / rule.nimi.desktop.product-surfaces.r006).
   assert.doesNotMatch(worldDetailSource, /const handleChatAgent\b/);
   assert.doesNotMatch(worldDetailSource, /onChatAgent=\{/);
 });
 
 test('Explore exposes the canonical three-section discovery IA', () => {
-  // D-EXPL-002: Worlds / Personas / Activity.
+  // rule.nimi.desktop.product-surfaces.r002: Worlds / Personas / Activity.
   assert.match(exploreViewSource, /data-testid=\{E2E_IDS\.exploreSection\('worlds'\)\}/);
   assert.match(exploreViewSource, /data-testid=\{E2E_IDS\.exploreSection\('personas'\)\}/);
   assert.match(exploreViewSource, /data-testid=\{E2E_IDS\.exploreSection\('activity'\)\}/);

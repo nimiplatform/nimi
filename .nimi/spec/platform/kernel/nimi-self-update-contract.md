@@ -66,7 +66,7 @@ ready 投影。
 
 ## P-SUPD-007 — Existing Desktop Self-Update Supersession
 
-`MUST`：现有 `.nimi/spec/desktop/kernel/self-update-contract.md` 继续保留
+`MUST`：`.nimi/spec/canonical/desktop/shell-runtime.authority.yaml` 的 self-update plane 继续保留
 为 desktop-host 实现细节（atomic Desktop release unit、与 independently
 installed Runtime service 的 signed release compatibility、updater
 pubkey/endpoint 实现等）。它在本 Platform policy 之下作为 desktop-hosted
@@ -90,7 +90,7 @@ OS service manager 持有。
 - `.nimi/spec/platform/kernel/nimi-package-release-contract.md` — `P-PKGREL-001..P-PKGREL-008`
 - `.nimi/spec/platform/kernel/cold-start-authority-contract.md` — `P-COLD-001..P-COLD-008`
 - `.nimi/spec/platform/kernel/web-release-contract.md` — `P-WEB-*`
-- `.nimi/spec/desktop/kernel/self-update-contract.md` — desktop-host 实现细节
+- `.nimi/spec/canonical/desktop/shell-runtime.authority.yaml` — desktop-host self-update implementation
 - `.nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md` — `K-LENG-024..K-LENG-027`
 - `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` — `K-LENG-028`
 - `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md`

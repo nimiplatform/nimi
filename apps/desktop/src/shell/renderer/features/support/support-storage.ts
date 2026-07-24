@@ -1,5 +1,5 @@
 /**
- * Local persistence for the `Support` surface (`D-SUP-001`).
+ * Local persistence for the `Support` surface (`rule.nimi.desktop.product-surfaces.r022`).
  *
  * Only the last-selected sub-area is persisted — a pure UI convenience. The
  * Support surface itself never derives product truth from this value; every

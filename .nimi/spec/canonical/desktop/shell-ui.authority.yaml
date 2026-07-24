@@ -1,0 +1,1519 @@
+format: nimicoding.authority/v1
+units:
+  - id: definition.nimi.desktop.shell-ui.shell-plane
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop UI shell plane
+    meaning: The Desktop UI shell plane owns host-visible navigation, renderer layout, shell mode, localization resilience, Desktop-specific visual composition, app-level attention, transcript occupancy, and Desktop Open target application while product, Runtime, Realm, SDK, Kit, and Avatar authorities retain their respective truth.
+    relations: []
+  - id: definition.nimi.desktop.shell-ui.home-shell
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop Nimi Home shell
+    meaning: The Desktop Nimi Home shell is the hosted product-control information architecture and first-run, return-run, Apps, Agent Chat, health, account, settings, diagnostics, update, and explicit failure projection surface that consumes upstream typed authority without becoming its owner.
+    relations: []
+  - id: definition.nimi.desktop.shell-ui.menu-bar
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop menu-bar shell
+    meaning: The Desktop menu-bar shell is the macOS status-item entry, bounded health summary, navigation dispatch, window hide and restore behavior, and explicit Desktop quit surface over the fixed Runtime service and SDK health projections.
+    relations: []
+  - id: definition.nimi.desktop.shell-ui.kit-consumption
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop Kit UI consumption surface
+    meaning: The Desktop Kit UI consumption surface is the app-specific inventory of shared Kit styles, themes, primitives, shell facades, Avatar and Agent Center consumers, retained compositions, and controlled exceptions without a parallel shared primitive, token, custody, or product-truth owner.
+    relations: []
+  - id: definition.nimi.desktop.shell-ui.error-boundary
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop error boundary
+    meaning: The Desktop error boundary converts Desktop-local bridge and operating-system failures and SDK-projected Runtime ReasonCodes into structured NimiError and explicit localized failure presentation while preserving upstream reason, trace, retry, credential-scrubbing, and fail-closed semantics.
+    relations: []
+  - id: definition.nimi.desktop.shell-ui.developer-tools
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop Developer Tools surface
+    meaning: The Desktop Developer Tools surface is a default-hidden internal surface reachable only through the single discoverable production Developer Mode and presents typed diagnostics and local-development posture without granting permission, identity, session, or Runtime authority.
+    relations: []
+  - id: definition.nimi.desktop.shell-ui.telemetry
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop renderer telemetry surface
+    meaning: The Desktop renderer telemetry surface is the structured diagnostic event projection for shell actions, phases, bridge invocations, retries, flow correlation, and upstream trace propagation and never becomes product, transcript, execution, account, or Runtime truth.
+    relations: []
+  - id: rule.nimi.desktop.shell-ui.r001
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Primary navigation and tab groups are closed
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop ordinary primary navigation is exactly Home, Chat, Characters, Explore, Apps, and Runtime in that order; Settings and Support are secondary, Developer Tools is developer-only, Profile, Source Detail, World Detail, Notification, Gifts, Privacy Policy, and Terms of Service are detail surfaces, World is folded into Explore, and Runtime is never hidden by enableRuntimeTab.
+    condition: Whenever Desktop constructs navigation, tab identity, labels, or route groups.
+    failure: Reject missing, extra, reordered, wrongly grouped, or feature-flag-hidden ordinary navigation entries.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r002
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Characters projects Runtime Agent inventory only
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: The Characters primary surface projects Runtime ListAgents source-materialized ACTIVE agents owned by the current account and routes selection to the existing Source Detail dossier without renderer-local Agent truth.
+    condition: Whenever Desktop lists or opens a Character.
+    failure: Keep the surface unavailable or empty according to the typed Runtime projection rather than inventing an Agent row.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r003
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Settings extensions remain first-party host composition
+    modality: must_not
+    scope:
+      - desktop.shell-ui
+    statement: Desktop treats enableSettingsExtensions as a third-party extension channel, installation surface, or registry promise rather than a gate for admitted first-party Settings sections.
+    condition: Whenever Settings extension composition is evaluated.
+    failure: Reject third-party interpretation and retain only admitted host-owned sections.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r004
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Window controls are host-bounded
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop enables title-bar drag only in the Desktop host through the standard start_window_drag shell capability, disables window management in Web, and enables the menu-bar shell only on macOS through enableMenuBarShell.
+    condition: Whenever shell window controls are exposed.
+    failure: Reject host-incompatible window actions and return an explicit unsupported or unavailable result.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.menu-bar
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r005
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Build chunks preserve shell readiness and lazy boundaries
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop loads shell-core and bridge with the first screen and lazy-loads Chat, Explore, Settings, Profile, and Runtime Config overview, cloud, local, runtime, catalog, profiles, and recommendation feature chunks behind Suspense without changing product semantics.
+    condition: Whenever the Desktop renderer build or route loader is assembled.
+    failure: Reject a build that omits first-screen shell dependencies, eagerly collapses the bounded feature set without an admitted replacement, or reports a failed lazy load as successful content.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r006
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Localization failures remain observable and usable
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop uses react-i18next with segmented English and Chinese bundles, resolves navigation labels through Navigation identifiers, records missing-key issues while returning readable fallback copy, records bundle-load failure at error severity, and permits controlled fallback to English without classifying one missing key as renderer-fatal.
+    condition: Whenever a translation key or locale bundle is resolved.
+    failure: Render readable fallback copy and an observable issue instead of crashing, hiding the issue, or reporting an unavailable renderer.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r007
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Main layout has one navigation and content composition
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: MainLayoutView owns one collapsible left navigation and profile rail and one right content region that maps Chat, Explore, Apps, Settings, Profile, Gifts, and Runtime tabs to their admitted panels.
+    condition: Whenever Desktop renders the main shell layout or applies a tab route.
+    failure: Reject duplicate navigation owners, unmapped admitted tabs, and panel selection outside the current tab projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r008
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Shell icons use the closed familiar set
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop shell navigation icons use home, chat, explore, runtime, profile, settings, store, globe, wallet, agent-family, terms-family, privacy, and logout identities, use a familiar app, grid, or store icon for Apps, and use the puzzle icon only for an unknown identity.
+    condition: Whenever Desktop renders a shell navigation icon.
+    failure: Render the prescribed icon or the explicit puzzle fallback without treating an unknown icon as close evidence.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r009
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Shell mode is a closed host projection
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop resolves shell mode as exactly desktop or web from VITE_NIMI_SHELL_MODE, then Tauri runtime presence, then desktop for server rendering; Simulator is never a shell mode and canonical renderer hosts instead receive the opaque host binding.
+    condition: Whenever shell mode or host-specific feature defaults are resolved.
+    failure: Reject unknown modes, global-probe Simulator detection, and a third shell branch.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r010
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Developer Mode has an in-app entry
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop provides a discoverable in-app Developer Mode control for source directories, reload posture, and developer diagnostics rather than requiring startup arguments, environment variables, or hidden shortcuts.
+    condition: Whenever a user enters or leaves Desktop developer behavior.
+    failure: Keep developer-only behavior unavailable until the explicit in-app control is used.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.developer-tools
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r011
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: World Detail section order is fixed
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: World Detail renders Hero, Dashboard, Core Rules, Recommended, Scenes, Timeline, Agents, and Extended in that order, keeps Recommended distinct from the full Agents area, and keeps Scenes before Timeline.
+    condition: Whenever Desktop renders World Detail.
+    failure: Reject reordered, merged, or new page-level sections that alter the admitted sequence.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r012
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: World Detail layout is section-deterministic
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: World Detail uses fixed DOM order and explicit section-local templates, contracts missing data without empty placeholders, keeps Dashboard, Core Rules, and Extended in their admitted controlled arrangements, and never uses dense or masonry reordering across sections.
+    condition: Whenever World Detail selects a responsive layout.
+    failure: Fall back to the prescribed single-column or section-local template rather than reorder content automatically.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r013
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: World Detail cards consume bounded existing data
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: World Detail visual cards consume only existing world detail projections, keep event statistics in Timeline, bound power levels to twelve and realms to eight, render rule items as title and value, and keep mutation type, target path, and reason out of the primary maintenance presentation.
+    condition: Whenever a World Detail visual card is built.
+    failure: Omit unavailable cards or excess items and reject new card-owned product truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r014
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: World Detail motion and hover content are accessible
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: World Detail continuous motion honors reduced-motion, hover-only information is available through a testable tooltip or overlay, stable test identifiers cover section and key visual roots, and the live surface remains on the admitted World Detail template path.
+    condition: Whenever World Detail visual behavior is rendered or tested.
+    failure: Disable or reduce motion, expose equivalent accessible content, and reject an untestable alternate surface.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r015
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Renderer design uses one shared baseline
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop baseline and governed secondary surfaces consume Kit UI primitives, renderer semantic tokens, and shared Desktop facades rather than feature-local action, surface, overlay, or sidebar truth, while machine inventories remain non-authoritative configuration.
+    condition: Whenever a governed Desktop surface introduces or changes shared-looking UI.
+    failure: Reject a parallel primitive family and keep the surface on the shared baseline or an explicitly admitted exception.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r016
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Shared design values resolve through semantic tokens
+    modality: must_not
+    scope:
+      - desktop.shell-ui
+    statement: A governed baseline surface hardcodes shared brand colors, surface colors, elevation, typography, spacing, stroke, state, z-index, radius, or motion values or copies them around the token-to-primitive mapping layer.
+    condition: Whenever shared Desktop visual values are authored.
+    failure: Replace the copied value with a Kit semantic token or an explicitly controlled non-shared exception.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r017
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Surface roles use one taxonomy
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop classifies governed surfaces as canvas, panel, card, hero, or overlay and separately records baseline, secondary, or exception posture without allowing panel to hide a second sidebar family.
+    condition: Whenever a governed renderer surface is registered or composed.
+    failure: Reject unknown surface roles and implicit exception or sidebar semantics.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r018
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Overlay kinds are closed
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop governed overlays use exactly dialog, drawer, popover, or tooltip with shared tone, elevation, stacking, testability, and reduced-motion behavior.
+    condition: Whenever a governed overlay is rendered.
+    failure: Reject an unregistered local overlay shell or unknown overlay kind.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r019
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Canonical renderer hosts share one current surface tree
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop production and Simulator use the same canonical renderer component tree and style closure for current surfaces, while host bindings may alter data and supported operations but never substitute simplified pages, alternate copy, or forked CSS.
+    condition: Whenever a canonical renderer instance is constructed.
+    failure: Reject host-specific UI forks and preserve the current shared surface with explicit unavailable operations.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r020
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: World Detail remains the controlled art-directed exception
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: World Detail may retain bounded independent palette, radius, motion, and visual composition without leaking exception styles into baseline surfaces or weakening its deterministic product contract.
+    condition: Whenever Desktop applies an art-directed surface exception.
+    failure: Reject an exception outside the admitted World Detail or leakage into baseline design.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r021
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Arbitrary visual values require bounded exception configuration
+    modality: must_not
+    scope:
+      - desktop.shell-ui
+    statement: A governed baseline surface uses arbitrary radius or z-index utilities or inline visual styles without a scoped reasoned entry in the Desktop renderer design exception configuration.
+    condition: Whenever a governed renderer module uses an arbitrary visual value.
+    failure: Reject the value or replace it with the shared token and primitive path.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r022
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Governed primitives cannot fork locally
+    modality: must_not
+    scope:
+      - desktop.shell-ui
+    statement: Chat, Explore, or another governed consumer defines a local shared-looking button, card, dialog, drawer, popover, tooltip, or overlay shell instead of composing the Kit or renderer shared primitive.
+    condition: Whenever a governed primitive is added or rewritten.
+    failure: Reject the local shell and route the composition through the shared primitive.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r023
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Runtime and Settings share one sidebar family
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Runtime Config and Settings use desktop-sidebar-v1 with container, header, section labels, one or more item lists, and optional resize handle, while the outer Chat relationship rail remains an app-owned shell composition outside that family.
+    condition: Whenever Desktop renders an internal feature sidebar.
+    failure: Reject an unregistered sidebar family or misclassification of the Chat rail.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r024
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Sidebar item and affordance kinds are closed
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop sidebar items use entity-row, category-row, or nav-row and trailing affordances use badge, status-dot, chevron, or count only.
+    condition: Whenever a shared Desktop sidebar item is composed.
+    failure: Reject unknown item or trailing-affordance kinds.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r025
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Sidebar visuals and resizing are shared
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop governed sidebars use shared background, border, header, padding, height, hover, active, section-label, search, and resize-handle tokens and route dynamic width through SidebarShell and SidebarResizeHandle.
+    condition: Whenever Runtime Config or Settings renders or resizes its sidebar.
+    failure: Reject feature-local sidebar style contracts, inline visual contracts, and local resize implementations.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r026
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Material is an expression of the shared shell baseline
+    modality: must_not
+    scope:
+      - desktop.shell-ui
+    statement: Desktop creates an app-local material registry, ambient gradient registry, accent-baked material truth, or route-specific visual contract instead of consuming admitted Kit material and token-backed shared primitives.
+    condition: Whenever Desktop adopts material or ambient styling.
+    failure: Remove the parallel registry and resolve material through the shared shell baseline.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r027
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Shell frame owns ambient continuity
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop shell frame owns one continuous ambient space and route content composes controlled surfaces above it; route roots do not duplicate whole-page ambient meshes without a separately admitted exception.
+    condition: Whenever Desktop renders ambient background across navigation.
+    failure: Reject route-local ambient ownership and retain shell-level continuity.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r028
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Dense operational surfaces are solid-first
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Settings, Runtime Config, Local Model Center, audit, diagnostics, inspector, and equivalent dense operational surfaces use solid-first presentation and admit local glass only when contrast, scanning, reduced-transparency, and performance remain valid; Chat and Agent gain no glass exception from this rule.
+    condition: Whenever Desktop applies material to a dense operational surface.
+    failure: Fall back to solid presentation and reject unproven glass or exception expansion.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r029
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Secondary cards use the closed hierarchy
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop route-local cards are promoted shared glass cards for non-dense summary and discovery, operational solid cards for dense tools, shared overlay surfaces, or explicitly controlled art-directed exceptions, and profile feed cards remain a converging shared cohort rather than part of the profile hero exception.
+    condition: Whenever a route-local secondary or tertiary card is composed.
+    failure: Reject a feature-local material family, implicit exception, or overlay bypass.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r030
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Chat secondary surfaces converge on shared paths
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Chat floating controls, utility rail actions, session and summary cards, target selectors, and operational inspection panels consume shared action and surface paths, while canonical conversation and Avatar-handoff chrome remain bounded consumers and not automatic exceptions.
+    condition: Whenever Desktop changes Chat secondary or tertiary UI.
+    failure: Reject Chat-only shared-looking primitive or material registries and local Avatar renderer revival.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r031
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Canonical Chat and retired Avatar viewport ownership stay fixed
+    modality: must_not
+    scope:
+      - desktop.shell-ui
+    statement: Desktop adapters replace the canonical transcript or stage shell, rebuild grouping, virtualization, or scroll truth, or revive a local Live2D, VRM, Cubism, Three.js, or Avatar viewport exception through accessory content.
+    condition: Whenever Desktop adapts canonical Chat content or Avatar handoff chrome.
+    failure: Keep the adapter bounded to data and content slots and fail closed without the canonical Kit or Avatar surface.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r032
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Profile detail exception is narrow
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: The shared profile root remains baseline, only the profile detail hero header, aura, hero slab, companion loading and error shell, and bound hero stats or actions may use the controlled exception, and profile posts, likes, collections, media, and gifts remain shared-card convergence surfaces.
+    condition: Whenever Desktop renders shared profile detail or profile content.
+    failure: Reject expansion of hero-specific geometry, glass, or accent into feed cards, overlays, sidebars, or search rows.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r033
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: App attention is transient shell input
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop owns one viewport-scoped active presence, continuous presence strength, and normalized app-viewport x and y attention signal, clears or degrades it on blur, invalid viewport, or teardown, and leaves narrower product semantics to consuming surface authority.
+    condition: Whenever Desktop captures or distributes app-level attention.
+    failure: Reject duplicate feature-local raw pointer owners, persistence, Runtime promotion, and generic click, drag, or camera semantics.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r034
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Transcript occupancy has one shell owner
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop UI Shell owns one right-dock occupancy rectangle with x, y, width, height, and wrap_policy together with transcript viewport coordinates, scroll root, composer clearance, clamping, final derivation, and reflow triggers; Avatar provides advisory placement only and Kit consumes the result.
+    condition: Whenever obstacle-aware Desktop transcript flow is active.
+    failure: Reject Runtime, Avatar, Kit, slot, or renderer-footprint ownership of canonical occupancy geometry.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r035
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Obstacle-flow block taxonomy is closed
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Only pure-text paragraph, heading, list-item, and quote blocks may flow around Desktop transcript occupancy; code, table, media, attachment, HTML, math, custom, mixed, shell-chrome, pending-media, unknown, and newly introduced blocks remain fixed.
+    condition: Whenever Desktop classifies a transcript block for obstacle flow.
+    failure: Fail closed to fixed and reject parser, renderer, slot, or engine widening.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r036
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Transcript stability invariants are shell-owned
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop transcript history has one scroll root, shell-owned composer clearance and near-bottom behavior, reflows only on discrete admitted state changes, freezes occupancy during streaming and pending-first-beat growth, and never reflows from per-frame motion, transforms, physics, or pointer updates.
+    condition: Whenever occupancy or transcript size changes.
+    failure: Preserve the current stable occupancy and reject local scroll, grouping, or timing forks.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r037
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Kit Chat consumes Desktop obstacle flow without ownership transfer
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Kit Chat receives Desktop occupancy and taxonomy only through the canonical adapter, retains shared parity outside the Desktop exception, and does not become a shadow transcript shell owner.
+    condition: Whenever Desktop injects obstacle-flow data into Kit Chat.
+    failure: Reject bypass of CanonicalTranscriptView and any second bubble, grouping, virtualization, or scroll-root implementation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r038
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Local-app launch remains owner-approved and renderer-safe
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop launches an isolated local-development Electron or Tauri child only after Runtime-owned record and Desktop decision success, obtains fresh single-use lease, exact process bind, and request-empty session for every replacement or Runtime restart, excludes bundled apps from third-party records, keeps immutable package launch unavailable before admission, and exposes only typed Kit session, permission posture, base entitlements, and app-owned commands to the renderer.
+    condition: Whenever Desktop presents or performs local-app launch.
+    failure: Deny launch, inheritance, or renderer exposure of account, token, principal, decision, endpoint, lease, session, or internal operation material.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r039
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop Open navigation uses Desktop-owned target mappings
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop applies admitted Desktop Open targets through Desktop store or controller APIs using the retained Desktop target catalogs, and a tab switch alone never satisfies a target that requires page-owned focus state.
+    condition: Whenever a validated Desktop Open Intent reaches renderer navigation.
+    failure: Reject unknown targets and report failure when the complete target mapping cannot be applied.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.home-shell
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r040
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop Kit inventories remain app-local configuration
+    modality: must_not
+    scope:
+      - desktop.shell-ui
+    statement: Platform design tables contain Desktop module inventories, Desktop-owned compositions, or Desktop-specific exception rows, or Desktop treats those machine inventories as a second product authority.
+    condition: Whenever Desktop Kit adoption, composition, or allowlist data is maintained.
+    failure: Keep the inventory in Desktop non-authoritative configuration and preserve product meaning in canonical rules.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+  - id: rule.nimi.desktop.shell-ui.r041
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop imports one Kit theme stack
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop imports Kit base styles, light and dark themes, exactly the nimi-accent pack, and wraps root rendering with NimiThemeProvider from Kit UI.
+    condition: Whenever Desktop initializes renderer styles and theme context.
+    failure: Reject missing, duplicate, app-local, or mixed accent theme authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+  - id: rule.nimi.desktop.shell-ui.r042
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Controlled design exceptions still consume Kit tokens
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: A Desktop controlled visual exception is explicitly configured, consumes Kit semantic tokens, and never defines an independent shared primitive or token system.
+    condition: Whenever Desktop uses controlled_exception posture.
+    failure: Reject unconfigured exceptions and parallel token or primitive systems.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+  - id: rule.nimi.desktop.shell-ui.r043
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Chat obstacle flow remains a Desktop-specific Kit consumer seam
+    modality: must_not
+    scope:
+      - desktop.shell-ui
+    statement: Desktop occupancy and obstacle taxonomy transfer canonical transcript shell, grouping, scroll-root, or virtualization ownership to Desktop or Kit, or widen into shared non-Desktop truth without a separate Platform authority cut.
+    condition: Whenever Desktop uses Kit Chat obstacle-flow adaptation.
+    failure: Preserve canonical owners and reject widened or duplicate shell truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r044
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop facades cannot fork shared shell primitives
+    modality: must_not
+    scope:
+      - desktop.shell-ui
+    statement: A Desktop-specific bridge facade redefines a shared renderer shell primitive instead of consuming the Kit Shell renderer surface.
+    condition: Whenever Desktop retains or adds a local shell facade.
+    failure: Remove the fork and adapt through the shared Kit primitive.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+  - id: rule.nimi.desktop.shell-ui.r045
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Avatar UI consumes typed projections and Kit custody
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop passes resolved Avatar and Runtime presentation projections to Kit Avatar, injects the standard Kit Shell Agent Center capability for managed local bytes and custody metadata, and leaves selected opaque refs with Runtime and renderer execution with Avatar.
+    condition: Whenever Desktop presents Avatar selection, evidence, or handoff UI.
+    failure: Reject arbitrary filesystem product truth and Desktop-owned picker, custody, selection, preview, or renderer truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+  - id: rule.nimi.desktop.shell-ui.r046
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop ships no local live Avatar renderer
+    modality: must_not
+    scope:
+      - desktop.shell-ui
+    statement: Desktop ships a concrete Live2D, VRM, Cubism, or Three.js Avatar viewport, fallback renderer, or lifecycle path when Kit or Avatar execution is unavailable.
+    condition: Whenever Desktop assembles Avatar presentation UI.
+    failure: Fail closed to normalized evidence and launch controls without local renderer execution.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+  - id: rule.nimi.desktop.shell-ui.r047
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Pointer attention semantics stay with Desktop consumers
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop owns raw pointer intake, viewport measurement, smoothing, clamping, and stop-line policy, while Kit Avatar consumes only resolved attention targets, continuous presence, and bounded follow input without owning speaking precedence or Desktop lifecycle.
+    condition: Whenever Desktop supplies attention to Kit Avatar.
+    failure: Reject raw-pointer ownership transfer and Kit-authored Desktop attention semantics.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r048
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent Center is a bounded Kit and Runtime consumer
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop places Kit Agent Center, supplies navigation, scoped Runtime SDK adapters, Kit Shell host capability, typed Avatar launch, and evidence hooks, edits Agent AI configuration only through typed revisioned Runtime controls, drops local_history and ui.last_section without replacement, and owns no reusable Agent Center panels, local configuration, readiness, diagnostics, route, transcript, presentation selection, credential, or voice artifact truth.
+    condition: Whenever Desktop renders or configures Agent Center.
+    failure: Reject Desktop-local Agent Center implementations, arbitrary injected panels, app-local persistence, pseudo voice, and readiness derived outside Runtime, Kit Shell, and Avatar evidence.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.kit-consumption
+  - id: rule.nimi.desktop.shell-ui.r049
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Nimi Home is a hosted shell not a product ontology owner
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop owns Nimi Home hosted information architecture, navigation, placement, windowing, and first-run and return-run implementation while Platform retains product ontology.
+    condition: Whenever Desktop composes Nimi Home.
+    failure: Reject Desktop-defined ontology or an upstream owner taking over Desktop shell placement.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.home-shell
+  - id: rule.nimi.desktop.shell-ui.r050
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: First run consumes typed AI profile and cold-start state
+    modality: must_not
+    scope:
+      - desktop.shell-ui
+    statement: Nimi Home first run projects ready, available, or done without active AI profile and cold-start evidence, skips alias acceptance, or starts local dependency download, installation, or repair before Runtime materializer confirmation.
+    condition: Whenever first-run state is presented or advanced.
+    failure: Remain in the exact typed pending, confirmation, in-progress, failed, or setup-required state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.home-shell
+  - id: rule.nimi.desktop.shell-ui.r051
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Return run preserves fail-closed upstream state
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Nimi Home return run handles Runtime health, account, app status, settings, and Developer Mode transitions without retriggering first run and still projects missing upstream authority through typed cold-start failure states.
+    condition: Whenever an existing installation returns to Nimi Home.
+    failure: Reject skipped authority checks and stale ready projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.home-shell
+  - id: rule.nimi.desktop.shell-ui.r052
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Apps consumes unified SDK inventory only
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Apps is an ordinary Desktop entry whose rows come from NimiAppClient unified Platform catalog, authenticated account inventory, and Runtime local-record projections, display each source and state, filter Avatar, and never read app-local specs, workspace source, package-manager roots, or unadmitted registry rows as visibility truth.
+    condition: Whenever Nimi Home lists Apps.
+    failure: Reject non-SDK inventory and keep unverifiable Apps absent or explicitly unavailable.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.home-shell
+  - id: rule.nimi.desktop.shell-ui.r053
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Apps states and actions remain owner-projected
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Apps preserves distinct catalog-only, account-visible, active, dormant, removed, permission-required, unsupported, policy-blocked, and immutable-package-unavailable states, keeps immutable install, update, and repair success absent before admission, exposes no workspace adoption entry, and shows permission requirements only from an explicit SDK projection rather than capabilitySet.
+    condition: Whenever an Apps card or detail surface renders state or action.
+    failure: Reject collapsed state, renderer-inferred admission or permission, local scanning, and pseudo-success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.home-shell
+  - id: rule.nimi.desktop.shell-ui.r054
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Agent Chat is an in-shell reference surface only
+    modality: must_not
+    scope:
+      - desktop.shell-ui
+    statement: Nimi Home Agent Chat placement owns transcript, history, identity, grant, memory, or ConversationAnchor truth instead of only shell entry and navigation.
+    condition: Whenever Agent Chat appears in Nimi Home.
+    failure: Consume the admitted Runtime, SDK, Realm, Cognition, and permission projections and reject shell-local truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.home-shell
+  - id: rule.nimi.desktop.shell-ui.r055
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Home AI execution carries explicit scope
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Every Nimi Home Agent Chat or shell-internal Runtime AI execution path carries an explicit AIScopeRef.
+    condition: Whenever Nimi Home submits AI execution intent.
+    failure: Reject the request before execution when AIScopeRef is absent or invalid.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.home-shell
+  - id: rule.nimi.desktop.shell-ui.r056
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Home imports no private Runtime Realm or SDK path
+    modality: must_not
+    scope:
+      - desktop.shell-ui
+    statement: Nimi Home imports Runtime internals, Realm private clients or transports, or SDK private internals.
+    condition: Whenever hosted shell dependencies are resolved.
+    failure: Reject the dependency and consume a public typed SDK surface.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.home-shell
+  - id: rule.nimi.desktop.shell-ui.r057
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Home operational surfaces consume typed owner projections
+    modality: must_not
+    scope:
+      - desktop.shell-ui
+    statement: Runtime health, app health, account, settings, diagnostics, Developer Mode, or update UI directly fetches Runtime gRPC, Realm REST, Cognition artifacts, or renderer-local substitutes instead of typed SDK and owner projections.
+    condition: Whenever Nimi Home reads operational state.
+    failure: Keep the surface explicitly unavailable until the typed projection exists.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.home-shell
+  - id: rule.nimi.desktop.shell-ui.r058
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Self-update UI preserves typed failure distinctions
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Nimi Home self-update UI preserves failed, rollback-required, verification-failed, unsupported, and stale-projection distinctions and never mutates Runtime-selected source or local dependency state.
+    condition: Whenever Desktop presents self-update state or intent.
+    failure: Reject collapsed status and unauthorized Runtime mutation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.home-shell
+  - id: rule.nimi.desktop.shell-ui.r059
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Nimi Home first screen is usable product control
+    modality: must_not
+    scope:
+      - desktop.shell-ui
+    statement: The first Nimi Home screen is marketing copy, a landing page, a third-party placeholder, or a generic loading screen without usable setup, account, Runtime health, Settings, or Apps control.
+    condition: Whenever Nimi Home renders its first screen.
+    failure: Render the typed cold-start state together with the applicable actionable product controls.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.home-shell
+  - id: rule.nimi.desktop.shell-ui.r060
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Failure projection is a first-class Home surface
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Nimi Home renders every non-ready upstream authority through a first-class failure surface that preserves typed state, dependency family, and failure reason rather than collapsing to generic unavailable or offline copy.
+    condition: Whenever an upstream Home prerequisite is not ready.
+    failure: Keep the typed failure visible and reject hidden or collapsed failure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.home-shell
+  - id: rule.nimi.desktop.shell-ui.r061
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Apps Open targets cannot fabricate or launch
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: The Apps surface target opens Apps without launch, app-selection additionally selects an existing projected app when appId resolves, and missing or unknown appId never launches or fabricates inventory.
+    condition: Whenever Desktop applies an Apps Open target.
+    failure: Open only the Apps surface or return an explicit target failure without app launch.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.home-shell
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r062
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Menu bar is a macOS Desktop shell entry
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: When enableMenuBarShell is active on macOS, Desktop provides one status-item entry inside the Desktop process while retaining the Dock icon and main window and never changing to accessory-only activation.
+    condition: Whenever the macOS Desktop shell starts.
+    failure: Keep menu-bar behavior disabled on unsupported hosts and reject a separate Runtime or app process.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.menu-bar
+  - id: rule.nimi.desktop.shell-ui.r063
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Menu-bar health has bounded fresh sources
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: The menu bar combines fixed-service lifecycle status with SDK Runtime and provider health plus window visibility, in-flight action, last update, and last error, and after fifteen seconds without renderer refresh displays only daemon lifecycle state.
+    condition: Whenever the menu bar renders or refreshes status.
+    failure: Drop stale Runtime and provider detail and never create a parallel health transport.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.menu-bar
+  - id: rule.nimi.desktop.shell-ui.r064
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Menu-bar structure and actions are closed
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: The menu bar contains a state header, Open Nimi, Runtime Dashboard, Local Models, Cloud Connectors, Settings, Runtime and provider and verified-release summary, Start Runtime, Restart Runtime, Refresh Status, and Quit Nimi; it exposes no stop, external-daemon, binary selector, endpoint, process identifier, or path and enables service actions only after fixed-service and signing verification.
+    condition: Whenever Desktop builds the menu-bar menu.
+    failure: Disable unsafe actions and route unverified or hung service state to signed repair.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.menu-bar
+  - id: rule.nimi.desktop.shell-ui.r065
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Menu-bar navigation is event-dispatched
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Menu-bar navigation first shows and focuses the main window, emits menu-bar://open-tab with only Runtime overview, profiles, models, cloud, environment, or advanced page selection or Settings selection, and lets renderer state apply the route without coupling native code to React instances.
+    condition: Whenever a menu-bar navigation item is activated.
+    failure: Reject invalid payloads and report navigation failure without mutating a React component directly.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.menu-bar
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r066
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Window close hide and explicit quit stay distinct
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: With the macOS menu-bar shell enabled, CloseRequested hides the main window, Open Nimi restores and focuses it, and only explicit Quit Nimi or operating-system quit runs Desktop subscription and watcher cleanup and exits Desktop while leaving the Runtime service running.
+    condition: Whenever the main window closes or Desktop receives quit intent.
+    failure: Reject close-as-quit, quit without cleanup, and Runtime service stop.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.menu-bar
+  - id: rule.nimi.desktop.shell-ui.r067
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop error aliases use the configured closed allowlist
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop bridge error aliases are admitted only when listed in config/desktop-shell-ui-error-codes.yaml while Runtime ReasonCode remains canonical product wire truth and Desktop-local aliases remain diagnostic projections.
+    condition: Whenever Desktop accepts, maps, or emits a bridge error alias.
+    failure: Reject an unlisted alias and preserve an unknown upstream Runtime reason as structured failure rather than inventing a local code.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.error-boundary
+  - id: rule.nimi.desktop.shell-ui.r068
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Local AI aliases preserve failure families
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop maps configured LOCAL_AI_IMPORT, LOCAL_AI_MODEL, and LOCAL_AI_HF_DOWNLOAD aliases to explicit localized import, integrity, capability, interruption, pause, cancellation, disk, and non-resumable failure presentation.
+    condition: Whenever a configured local-AI bridge alias reaches UI.
+    failure: Render the matching failure family and never report import, model, or download success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.error-boundary
+  - id: rule.nimi.desktop.shell-ui.r069
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Endpoint aliases enforce loopback input
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: LOCAL_AI_ENDPOINT_NOT_LOOPBACK and LOCAL_AI_ENDPOINT_INVALID reject local provider endpoints outside localhost, 127.0.0.1, or ::1 or with invalid syntax without treating renderer validation as protected-origin proof.
+    condition: Whenever Desktop validates or maps a local provider endpoint.
+    failure: Reject the endpoint and preserve the typed security failure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.error-boundary
+  - id: rule.nimi.desktop.shell-ui.r070
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Local Speech aliases never replace Runtime reasons
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop treats configured LOCAL_AI_SPEECH aliases as diagnostic bridge aliases only, gives canonical AI_LOCAL_SPEECH Runtime ReasonCodes precedence, and never collapses all speech failures into Qwen TTS bootstrap language.
+    condition: Whenever a local-speech failure is normalized.
+    failure: Use the Runtime reason when present or the bounded Local Speech alias without changing the failure class.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.error-boundary
+  - id: rule.nimi.desktop.shell-ui.r071
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Local Speech copy preserves bundle and capability distinctions
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop distinguishes preflight_blocked, download_or_init_failed after explicit Download, capability_materialization_failed, and bundle_degraded and identifies Local Speech plus STT, TTS, voice clone, or voice design when the failing slice is known.
+    condition: Whenever Desktop renders a Local Speech failure.
+    failure: Show the most specific available bundle or capability failure and never imply Desktop or Tauri owns installation truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.error-boundary
+  - id: rule.nimi.desktop.shell-ui.r072
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Runtime route aliases remain explicit denials
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: LOCAL_LIFECYCLE_WRITE_DENIED remains a lifecycle authorization denial and RUNTIME_ROUTE_CAPABILITY_MISMATCH remains a route capability mismatch rather than a retryable generic failure.
+    condition: Whenever Desktop maps either configured Runtime alias.
+    failure: Preserve the distinct non-success reason and applicable repair action.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.error-boundary
+  - id: rule.nimi.desktop.shell-ui.r073
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Bridge failures normalize to structured NimiError
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: toBridgeNimiError preserves an existing NimiError, otherwise parses structured JSON, then CODE prefix, then display-only pattern inference, then RUNTIME_CALL_FAILED, keeps upstream message and reasonCode, stores localized copy only in details.userMessage, preserves details.rawMessage after credential scrubbing, and never downgrades to a plain Error.
+    condition: Whenever a Desktop bridge operation fails.
+    failure: Return or throw structured NimiError with the highest-priority available fields and no credential leakage.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.error-boundary
+  - id: rule.nimi.desktop.shell-ui.r074
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Bootstrap errors stay production-bound and redacted
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop production bootstrap failure keeps bootstrapReady false, records redacted bootstrapError, clears only the renderer redacted account projection, emits phase:bootstrap:failed at error severity, rethrows the structured failure, and never mutates Runtime custody; Simulator never manufactures this state or leaks Simulator codes into Desktop errors.
+    condition: Whenever production bootstrap terminates with failure.
+    failure: Keep shell bootstrap failed and observable without credential, account, native, or Runtime-owned mutation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.error-boundary
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.telemetry
+  - id: rule.nimi.desktop.shell-ui.r075
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Runtime ReasonCode mapping remains SDK-projected
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop consumes SDK Runtime reason-message and retry projection for provider, connector, model, media, local asset, local speech, authentication, session, app-mode, Runtime, and bridge failures, handles finish-length and content-filter as non-error message metadata, and gives media idempotency conflict explicit treatment.
+    condition: Whenever a Runtime ReasonCode reaches Desktop UI.
+    failure: Preserve the typed reason and retry posture and use structured generic failure only for an unmapped reason without fabricating success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.error-boundary
+  - id: rule.nimi.desktop.shell-ui.r076
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Provider unavailable guidance uses authoritative health context
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop maps AI_PROVIDER_UNAVAILABLE to credential guidance only when SDK provider health is healthy, to availability guidance when health is unhealthy or unknown, and to generic unavailable guidance when provider-level health is not projected.
+    condition: Whenever AI_PROVIDER_UNAVAILABLE is presented.
+    failure: Do not infer credential or network truth without the corresponding SDK health projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.error-boundary
+  - id: rule.nimi.desktop.shell-ui.r077
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Authentication and Local Speech reasons remain semantically distinct
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop projects AUTH_TOKEN_INVALID as reauthentication-required, AUTH_REVOCATION_UNAVAILABLE as retryable unavailable without clearing the session, allows anonymous retry only for independently admitted read surfaces, keeps bounded loading and stale states, and never converts Local Speech download-confirmation-required into automatic background retry.
+    condition: Whenever authentication or Local Speech Runtime reasons are handled.
+    failure: Preserve the typed account or speech state and explicit user action without silent fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.error-boundary
+  - id: rule.nimi.desktop.shell-ui.r078
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Missing lifecycle targets remain typed not-found
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: A local asset lifecycle operation targeting a missing identifier remains an explicit typed not-found failure; the blank legacy operation mapping admits no command-specific success, copy, or recovery semantics.
+    condition: Whenever start, stop, or remove targets an absent local asset.
+    failure: Return the owner-projected not-found state and require a separately admitted mapping for additional behavior.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.error-boundary
+  - id: rule.nimi.desktop.shell-ui.r079
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Runtime Config critical reads fail fast
+    modality: must_not
+    scope:
+      - desktop.shell-ui
+    statement: Runtime Config swallows connector discovery, provider, model, route capability, or local asset failures, substitutes a local catalog as Runtime truth, leaves unbounded loading, or reports successful empty data.
+    condition: Whenever a critical Runtime Config read fails or times out.
+    failure: Throw structured NimiError and render an error banner containing reasonCode and traceId when present.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.error-boundary
+  - id: rule.nimi.desktop.shell-ui.r080
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Runtime execution bridges use Runtime reason as primary code
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop Nimi Chat and Runtime host capability bridges throw NimiError, branch on Runtime reasonCode, retain LOCAL_AI aliases only as extra.localReasonCode diagnostic data, and attach traceId to every Runtime call.
+    condition: Whenever Desktop invokes Runtime execution.
+    failure: Reject plain-Error downgrade, alias-led control flow, and uncorrelated calls.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.error-boundary
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.telemetry
+  - id: rule.nimi.desktop.shell-ui.r081
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Bridge failure logs expose the structured fields
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop bridge failure telemetry carries reasonCode, actionHint, traceId, retryable, and scrubbed rawMessage.
+    condition: Whenever a bridge invocation fails.
+    failure: Reject incomplete or credential-bearing failure telemetry.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.error-boundary
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.telemetry
+  - id: rule.nimi.desktop.shell-ui.r082
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Download failures expose bounded recovery actions
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop maps disk-full to retained partial and resume after cleanup, interrupted and paused to manual resume, cancelled to staging cleanup and reinstall, and hash-mismatch or non-resumable to cleanup or blocked resume and fresh installation.
+    condition: Whenever a configured Hugging Face download failure is presented.
+    failure: Show the exact bounded recovery action and never auto-resume an ineligible session or report completion.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.error-boundary
+  - id: rule.nimi.desktop.shell-ui.r083
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Developer Tools is gated and outside primary navigation
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Developer Tools is a developer-group surface gated by enableDeveloperTools and the explicit Developer Mode and never appears in ordinary primary navigation or ordinary-user close evidence.
+    condition: Whenever Desktop resolves Developer Tools visibility or navigation.
+    failure: Keep the surface invisible and unreachable until Developer Mode is explicitly active.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.developer-tools
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r084
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Developer Mode is discoverable and defaults off
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop exposes enable, disable, and current Developer Mode state in Settings, defaults it off, and never requires environment, argument, or hidden-shortcut entry.
+    condition: Whenever Desktop initializes or changes Developer Mode.
+    failure: Keep developer-only surfaces unavailable until the user explicitly enables the mode in-app.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.developer-tools
+  - id: rule.nimi.desktop.shell-ui.r085
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Developer Tools contains diagnostics only
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Developer Tools makes the previously orphaned Developer page reachable only inside Developer Mode and hosts typed technical diagnostics without ordinary-user product functions or product dependencies.
+    condition: Whenever Desktop composes the Developer Tools surface.
+    failure: Reject orphan, default-visible, or ordinary-product content and dependencies.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.developer-tools
+  - id: rule.nimi.desktop.shell-ui.r086
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: There is one production Developer Mode and trust set
+    modality: must_not
+    scope:
+      - desktop.shell-ui
+    statement: Desktop creates a test-only service principal, developer daemon, environment-selected hidden mode, direct development server trust, renderer authentication, localhost trust, or second developer account or session truth; enabling the one production mode grants permission, principal, grant, lease, or session authority.
+    condition: Whenever local-development trust or identity is established.
+    failure: Deny the path and require the admitted Runtime and Desktop protected flow.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.developer-tools
+  - id: rule.nimi.desktop.shell-ui.r087
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Local-development lifetimes remain owner-projected
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop presents exactly run_once and allow_project decisions, treats allow_project as Runtime-owned durable project consent without autostart, obtains fresh live lease and session after each launch, build, process, or Runtime epoch change, invalidates on revoke or bound project, account, permission, shell, entry, or risk change, and keeps zero-permission session distinct from product permission posture.
+    condition: Whenever Developer Mode presents or advances local-development state.
+    failure: Deny stale live authority, repeated presence not required by owner policy, and fabricated permission approval or management.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.developer-tools
+  - id: rule.nimi.desktop.shell-ui.r088
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Native risk and failure states are actionable
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop discloses native Windows process execution and independent Nimi API policy before first approval and after disclosure revision changes and presents loading, disabled, retry, no-grant, grant-approved, Runtime-unavailable, account-switched, revoked, build-failed, process-replaced, and Runtime-restarted states with readable narrow-screen actions.
+    condition: Whenever local development is confirmed, fails, or changes authority.
+    failure: Reject overflow, toast-only or console-only failure, implicit retry, and pseudo-success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.developer-tools
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.error-boundary
+  - id: rule.nimi.desktop.shell-ui.r089
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Developer and internal surfaces default hidden
+    modality: must_not
+    scope:
+      - desktop.shell-ui
+    statement: A developer or internal surface is visible or reachable in a default installation or through a default-true feature flag before the admitted Developer Mode is enabled.
+    condition: Whenever Desktop initializes surface visibility.
+    failure: Hide and disable the surface until explicit Developer Mode activation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.developer-tools
+  - id: rule.nimi.desktop.shell-ui.r090
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Renderer telemetry payload is structured and bounded
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop renderer telemetry carries optional debug, info, warn, or error level, a configured area, message, optional traceId, flowId, source, costMs, and structured details and remains diagnostic rather than product truth.
+    condition: Whenever Desktop emits a renderer telemetry event.
+    failure: Reject malformed payloads and any use of telemetry alone to decide product success or recovery.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.telemetry
+  - id: rule.nimi.desktop.shell-ui.r091
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Telemetry messages use action or phase form
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop telemetry messages begin with action or phase semantics, and normalization adds action semantics to an unprefixed runtime log message.
+    condition: Whenever a renderer log message is normalized or emitted.
+    failure: Normalize to the closed message form or reject an invalid event.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.telemetry
+  - id: rule.nimi.desktop.shell-ui.r092
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Renderer logger injection is early and observable
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop injects the renderer runtime logger before bootstrap work and forwards it through the Desktop bridge; absence of an injected logger remains an explicit local diagnostic path and never silently proves bootstrap success.
+    condition: Whenever production bootstrap begins or logger injection changes.
+    failure: Preserve observable diagnostics without treating logger fallback as product evidence.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.telemetry
+  - id: rule.nimi.desktop.shell-ui.r093
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Renderer flow identifiers are unique correlations
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: createRendererFlowId produces a prefix, timestamp, and random correlation identifier for one renderer flow without making that identifier session, authority, or product identity.
+    condition: Whenever Desktop begins a multi-event renderer flow.
+    failure: Generate a fresh diagnostic identifier and reject its use as authorization or durable truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.telemetry
+  - id: rule.nimi.desktop.shell-ui.r094
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Bridge invoke telemetry has one terminal event
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Each shared invoke creates a command, timestamp, and random invokeId plus renderer session trace correlation, emits invoke-start at info, then exactly one invoke-success at debug or invoke-failed at error.
+    condition: Whenever Desktop invokes a native bridge command.
+    failure: Treat missing, duplicated, or reordered lifecycle telemetry as an observability failure without changing the command result.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.telemetry
+  - id: rule.nimi.desktop.shell-ui.r095
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Renderer logs forward through the typed bridge shape
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: RendererLogPayload aligns with the renderer runtime telemetry payload, toRendererLogMessage preserves message semantics, and log forwarding uses the typed Desktop bridge operation.
+    condition: Whenever renderer telemetry crosses to the native host.
+    failure: Reject untyped or malformed forwarding and never expose credential-bearing details.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.telemetry
+  - id: rule.nimi.desktop.shell-ui.r096
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Network retry telemetry uses the net area
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop network retry telemetry uses the configured net area, emits retrying at warn, recovered at info, and retry_exhausted at error, and preserves the shared retry helper event semantics.
+    condition: Whenever a Desktop request retries, recovers, or exhausts.
+    failure: Reject wrong area or severity and never emit recovered for a failed request.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.telemetry
+  - id: rule.nimi.desktop.shell-ui.r097
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Upstream trace identifiers propagate globally
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Desktop bridge, Realm feature-data, account, and AI errors and logs preserve upstream trace_id as traceId when present; absence does not require synthesis outside an independently admitted fallback path.
+    condition: Whenever an upstream response or error includes trace_id.
+    failure: Preserve the exact identifier across structured error and telemetry projection without replacement or loss.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.error-boundary
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.telemetry
+  - id: rule.nimi.desktop.shell-ui.r098
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: World Detail internal section templates are fixed
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: World Detail Dashboard places the score matrix and time-flow ring in its primary row and remaining data in lower text cards; Core Rules places the rule summary first, core-system cards in a fixed six-and-six arrangement, and only present support-rule cards in shrinking templates; Extended places World Knowledge Highlights before Runtime and governance content and keeps Runtime and governance at the bottom using only fixed five-and-seven, six-and-six, eight-and-four, or single-column templates.
+    condition: Whenever Desktop composes the internal Dashboard, Core Rules, or Extended layout.
+    failure: Reject reordered semantic groups, automatic dense placement, empty support-card slots, and an unlisted internal template.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r099
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: World Detail power and realm cards have fixed source selection
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: World Detail Power System uses semantic.powerSystems[0], falls back to semantic.standaloneLevels, omits the card when no levels exist, truncates levels at twelve, and renders additional power systems as compact text; Realm Constellation uses semantic.topology, truncates realms at eight, omits the card when neither realms nor topology metadata exist, and renders metadata with an empty state when only metadata exists; both card families remain inside Core Rules.
+    condition: Whenever Desktop builds the Power System or Realm Constellation visual card.
+    failure: Omit unavailable content, truncate excess content, and reject alternate source truth or a new page-level section.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.r100
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Menu-bar header states are closed
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: The Desktop menu-bar state header is exactly running, degraded, starting, stopped, or unavailable.
+    condition: Whenever the menu bar projects its top-level state.
+    failure: Reject an unknown or collapsed header state and preserve the applicable admitted state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.menu-bar
+  - id: rule.nimi.desktop.shell-ui.r101
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Operational reads have bounded terminal projection
+    modality: must
+    scope:
+      - desktop.shell-ui
+    statement: Runtime Config, Local AI, usage, audit, and dependency-setup reads use bounded timeouts and terminate in typed data, error, stale, or authentication-invalid presentation.
+    condition: Whenever Desktop starts an operational read on one of these surfaces.
+    failure: Reject indefinite loading, swallowed failure, and successful empty data substituted for a failed read.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.error-boundary

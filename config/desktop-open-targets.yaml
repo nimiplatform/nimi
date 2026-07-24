@@ -1,0 +1,139 @@
+version: 1
+config_family: desktop_open_targets
+owner: desktop
+catalogs:
+  desktop_open_targets:
+    version: 1
+    table_family: product_catalog
+    owner: desktop
+    catalog_id: desktop_open_targets
+    authority_refs:
+      - D-IPC-018
+      - D-SHELL-039
+    entries:
+      - open-explore
+      - open-runtime-config
+      - open-agents
+      - open-apps
+      - open-settings
+    target_refs:
+      open-explore: config/desktop-open-targets.yaml#/catalogs/desktop_explore_open_targets
+      open-runtime-config: config/desktop-open-targets.yaml#/catalogs/desktop_runtime_config_open_actions
+      open-agents: config/desktop-open-targets.yaml#/catalogs/desktop_agents_open_targets
+      open-apps: config/desktop-open-targets.yaml#/catalogs/desktop_apps_open_targets
+      open-settings: config/desktop-open-targets.yaml#/catalogs/desktop_settings_open_targets
+  desktop_explore_open_targets:
+    version: 1
+    table_family: product_catalog
+    owner: desktop
+    catalog_id: desktop_explore_open_targets
+    authority_refs:
+      - rule.nimi.desktop.product-surfaces.r002
+      - rule.nimi.desktop.product-surfaces.r006
+    entries:
+      - worlds
+      - worlds.discover-worlds
+      - personas
+      - personas.discover-personas
+      - personas.select-partner
+      - activity
+      - activity.view-activity
+    targets:
+      - id: worlds
+        section: worlds
+        active_tab: explore
+        required_renderer_state: explore-section.worlds
+      - id: worlds.discover-worlds
+        section: worlds
+        productIntent: discover-worlds
+        active_tab: explore
+        required_renderer_state: explore-section.worlds
+      - id: personas
+        section: personas
+        active_tab: explore
+        required_renderer_state: explore-section.personas
+      - id: personas.discover-personas
+        section: personas
+        productIntent: discover-personas
+        active_tab: explore
+        required_renderer_state: explore-section.personas
+      - id: personas.select-partner
+        section: personas
+        productIntent: select-partner
+        active_tab: explore
+        required_renderer_state: explore-section.personas
+      - id: activity
+        section: activity
+        active_tab: explore
+        required_renderer_state: explore-section.activity
+      - id: activity.view-activity
+        section: activity
+        productIntent: view-activity
+        active_tab: explore
+        required_renderer_state: explore-section.activity
+    query:
+      allowed_for_sections:
+        - worlds
+        - personas
+        - activity
+      max_unicode_scalars_after_trim: 160
+  desktop_runtime_config_open_actions:
+    version: 1
+    table_family: product_catalog
+    owner: desktop
+    catalog_id: desktop_runtime_config_open_actions
+    authority_refs:
+      - D-SHELL-001
+      - D-IPC-018
+    entries:
+      - cloud.add-connector
+      - models.install-model
+    actions:
+      - id: cloud.add-connector
+        page: cloud
+        action: add-connector
+        required_renderer_state: runtime-config-action-focus.cloud-connector-draft
+      - id: models.install-model
+        page: models
+        action: install-model
+        required_renderer_state: runtime-config-action-focus.models-catalog-install
+  desktop_agents_open_targets:
+    version: 1
+    table_family: product_catalog
+    owner: desktop
+    catalog_id: desktop_agents_open_targets
+    authority_refs:
+      - D-SHELL-001
+    entries:
+      - inventory
+    targets:
+      - id: inventory
+        active_tab: agents
+  desktop_apps_open_targets:
+    version: 1
+    table_family: product_catalog
+    owner: desktop
+    catalog_id: desktop_apps_open_targets
+    authority_refs:
+      - D-HOME-004
+    entries:
+      - surface
+      - app-selection
+    targets:
+      - id: surface
+        active_tab: apps
+      - id: app-selection
+        active_tab: apps
+        optional_field: appId
+  desktop_settings_open_targets:
+    version: 1
+    table_family: product_catalog
+    owner: desktop
+    catalog_id: desktop_settings_open_targets
+    authority_refs:
+      - D-SHELL-001
+    entries:
+      - profile
+    targets:
+      - id: profile
+        selected_settings_id: profile

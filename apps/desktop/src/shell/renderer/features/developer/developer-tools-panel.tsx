@@ -2,7 +2,7 @@
  * `Developer Tools` developer-group surface host (`D-DEV-001` / `D-DEV-003`).
  *
  * `Developer Tools` is a developer / internal surface, NOT an ordinary primary
- * navigation tab. It is registered as the `app-tabs.yaml` `developer-tools`
+ * navigation tab. It is registered as the `config/desktop-shell-ui-app-tabs.yaml` `developer-tools`
  * entry (`nav_group: developer`, `gated_by: enableDeveloperTools`) and is
  * mounted only when admitted Developer Mode is on — the renderer enforces that
  * gate before this panel is ever reached (`main-layout-view.tsx`).

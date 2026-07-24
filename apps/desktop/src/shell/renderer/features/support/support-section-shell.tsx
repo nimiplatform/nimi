@@ -3,7 +3,7 @@
  *
  * `SupportSectionShell` is the scrollable section frame. `SupportFailClosed`
  * is the typed fail-closed surface every sub-area renders when its upstream
- * typed projection is missing or failed (`D-SUP-003..007`) — it shows the
+ * typed projection is missing or failed (`rule.nimi.desktop.product-surfaces.r024..r028`) — it shows the
  * typed reason and a retry affordance, never a fabricated success state.
  */
 
@@ -64,7 +64,7 @@ export function SupportInfoRow(props: { label: string; value: string }) {
 }
 
 /**
- * The typed fail-closed surface (`D-SUP-003..007`). Rendered when a sub-area's
+ * The typed fail-closed surface (`rule.nimi.desktop.product-surfaces.r024..r028`). Rendered when a sub-area's
  * upstream typed projection is missing or failed. It surfaces the typed
  * `reason` and a retry — it never synthesizes a placeholder success.
  */

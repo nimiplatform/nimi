@@ -71,9 +71,9 @@ roots:
   - id: desktop-renderer-design-relative-modules
     owner_domain: desktop
     authority_refs:
-      - .nimi/spec/desktop/kernel/tables/renderer-design-overlays.yaml
-      - .nimi/spec/desktop/kernel/tables/renderer-design-sidebars.yaml
-      - .nimi/spec/desktop/kernel/tables/renderer-design-surfaces.yaml
+      - config/desktop-shell-ui-renderer-design-overlays.yaml
+      - config/desktop-shell-ui-renderer-design-sidebars.yaml
+      - config/desktop-shell-ui-renderer-design-surfaces.yaml
     evidence_roots:
       - apps/desktop/src/shell/renderer
     source_rule: P-GOV-025

@@ -1,0 +1,72 @@
+# Non-authoritative Desktop AI-consumption machine configuration.
+# Normative authority: .nimi/spec/canonical/desktop/ai-consumption.authority.yaml
+# Rationale: docs/authority/desktop-ai-consumption-rationale.md
+version: 1
+table_family: runtime_projection_catalog
+owner: desktop
+catalog_id: desktop_ai_consumption_llm_adapter
+speech_operations:
+  - capability: audio.synthesize
+    route_sequence:
+      - runtime.route.listOptions
+    operations:
+      - runtime.media.tts.list.voices
+      - runtime.media.tts.synthesize
+      - runtime.media.tts.stream
+    source_rule: D-LLM-005
+  - capability: voice_workflow.voice_clone
+    route_sequence:
+      - runtime.route.listOptions
+      - runtime.route.resolve
+      - runtime.route.checkHealth
+      - runtime.route.describe
+    operations:
+      - runtime.media.job.submit
+    source_rule: D-LLM-005
+  - capability: voice_workflow.voice_design
+    route_sequence:
+      - runtime.route.listOptions
+      - runtime.route.resolve
+      - runtime.route.checkHealth
+      - runtime.route.describe
+    operations:
+      - runtime.media.job.submit
+    source_rule: D-LLM-005
+  - capability: audio.transcribe
+    route_sequence: []
+    operations:
+      - runtime.media.stt.transcribe
+    source_rule: D-LLM-005
+inference_audit_projection:
+  event_types:
+    - inference_invoked
+    - inference_failed
+    - fallback_to_cloud
+  sources:
+    - local
+    - cloud
+  modalities:
+    - chat
+    - image
+    - video
+    - tts
+    - stt
+    - embedding
+  adapters:
+    - openai_compat_adapter
+    - llama_native_adapter
+    - media_native_adapter
+    - media_diffusers_adapter
+    - sidecar_music_adapter
+  required_projection_fields:
+    - eventType
+    - source
+    - modality
+    - adapter
+    - policyGate
+    - traceId
+    - routeSource
+    - reasonCode
+  durable_owner: runtime
+  append_surface: RuntimeLocalService.AppendInferenceAudit
+  source_rule: D-LLM-006

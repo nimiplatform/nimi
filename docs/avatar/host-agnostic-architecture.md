@@ -96,7 +96,7 @@ must reflect the same emotion at the same time.
 3. **Backend renders.** Live2D parameters update; carrier shows the
    new expression.
 4. **Desktop chat surface also reflects.** Desktop's
-   `agent-avatar-surface-contract.md` consumes the runtime event
+   `.nimi/spec/canonical/desktop/agent-projection.authority.yaml` consumes the runtime event
    directly; both surfaces stay in sync because runtime is the single
    source.
 
@@ -112,7 +112,7 @@ other. They both consume runtime.
 | backend-neutral projection API | Avatar | `embodiment-projection-contract.md` |
 | backend-specific execution | active backend branch | `backend-branch-contract.md` + per-backend contract |
 | handler convention | Avatar (NAS) | `agent-script-contract.md` |
-| desktop chat avatar transient surface | Desktop | `agent-avatar-surface-contract.md` |
+| desktop chat avatar transient surface | Desktop | `.nimi/spec/canonical/desktop/agent-projection.authority.yaml` |
 
 ## Source Basis
 
@@ -122,4 +122,4 @@ other. They both consume runtime.
 - [`.nimi/spec/avatar/kernel/app-shell-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/app-shell-contract.md)
 - [`.nimi/spec/runtime/kernel/agent-presentation-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/agent-presentation-contract.md)
 - [`.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
-- [`.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md)
+- [`.nimi/spec/canonical/desktop/agent-projection.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/canonical/desktop/agent-projection.authority.yaml)

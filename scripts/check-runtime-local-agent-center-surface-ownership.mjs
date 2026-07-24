@@ -102,8 +102,8 @@ async function checkSpec() {
   const scanned = [];
   const contractPath = '.nimi/spec/platform/kernel/agent-center-contract.md';
   const registryPath = '.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml';
-  const desktopKitPath = '.nimi/spec/desktop/kernel/kit-ui-consumption-contract.md';
-  const desktopConversationPath = '.nimi/spec/desktop/kernel/conversation-capability-contract.md';
+  const desktopKitPath = '.nimi/spec/canonical/desktop/shell-ui.authority.yaml';
+  const desktopConversationPath = '.nimi/spec/canonical/desktop/agent-projection.authority.yaml';
   const zhiyuPath = '.nimi/spec/zhiyu/kernel/configuration-surface-contract.md';
   const avatarPath = '.nimi/spec/avatar/kernel/companion-participation-consumer-contract.md';
 
@@ -136,11 +136,11 @@ async function checkSpec() {
   assertNotContains(registry, 'active_modules', 'non-schema registry field', registryPath, findings);
 
   const desktopKit = await readText(desktopKitPath);
-  assertContains(desktopKit, 'D-SHELL-098 Agent Center Kit Consumer Boundary', 'Desktop Kit Agent Center boundary', desktopKitPath, findings);
-  assertContains(desktopKit, '`local_history` | Non-semantic UI recents only', 'Desktop local_history decision', desktopKitPath, findings);
+  assertContains(desktopKit, 'id: rule.nimi.desktop.shell-ui.r048', 'Desktop Kit Agent Center boundary', desktopKitPath, findings);
+  assertContains(desktopKit, 'drops local_history and ui.last_section without replacement', 'Desktop local_history decision', desktopKitPath, findings);
 
   const desktopConversation = await readText(desktopConversationPath);
-  assertContains(desktopConversation, 'D-LLM-022 Agent Center Runtime Agent AI Config Consumer Boundary', 'Desktop Agent Chat AI config boundary', desktopConversationPath, findings);
+  assertContains(desktopConversation, 'id: rule.nimi.desktop.agent-projection.r095', 'Desktop Agent Chat AI config boundary', desktopConversationPath, findings);
 
   const zhiyu = await readText(zhiyuPath);
   assertContains(zhiyu, 'Z-CONFIG-006 Kit Agent Center Consumer Boundary', 'Zhiyu Kit consumer boundary', zhiyuPath, findings);

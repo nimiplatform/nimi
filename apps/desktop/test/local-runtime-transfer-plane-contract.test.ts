@@ -6,7 +6,7 @@ import test from 'node:test';
 const localAiBridgePath = path.resolve(process.cwd(), 'src/shell/renderer/bridge/runtime-bridge/local-ai.ts');
 const localAiBridgeParsersPath = path.resolve(process.cwd(), 'src/shell/renderer/bridge/runtime-bridge/local-ai-parsers.ts');
 const localModelCenterDownloadsPath = path.resolve(process.cwd(), 'src/shell/renderer/features/runtime-config/runtime-config-use-local-model-center-downloads.ts');
-const buildChunksPath = path.resolve(process.cwd(), '../../.nimi/spec/desktop/kernel/tables/build-chunks.yaml');
+const buildChunksPath = path.resolve(process.cwd(), '../../config/desktop-shell-ui-build-chunks.yaml');
 
 const localModelCenterDownloadsSource = readFileSync(localModelCenterDownloadsPath, 'utf-8');
 const buildChunksSource = readFileSync(buildChunksPath, 'utf-8');

@@ -62,6 +62,7 @@ async function main() {
   const ctTables = (name) => path.join(specDir, 'cognition', 'kernel', 'tables', name);
   const sdkTables = (name) => path.join(specDir, 'sdks', 'kernel', 'tables', name);
   const dtTables = (name) => path.join(specDir, 'desktop', 'kernel', 'tables', name);
+  const configFile = (name) => path.join(repoRoot, 'config', name);
   const d = new DocBuilder(ruleMap);
 
   appendSpecHumanDocNarrative(d);
@@ -74,7 +75,7 @@ async function main() {
 
 ## 12. 附录：参考表
 
-以下表格从 YAML 事实源自动渲染。YAML 文件是权威数据源；如需修改，请编辑 YAML 后重新生成。
+以下表格从 YAML 输入自动渲染。输入的权威身份以其文件声明为准；如需修改，请编辑对应输入后重新生成。
 
 ### 12.1 Runtime — RPC 方法列表
 `);
@@ -162,39 +163,39 @@ async function main() {
 
   d.text(`### 12.22 Desktop — 启动阶段
 `);
-  await d.yamlTable(dtTables('bootstrap-phases.yaml'), renderBootstrapPhases);
+  await d.yamlTable(configFile('desktop-shell-runtime-bootstrap-phases.yaml'), renderBootstrapPhases);
 
   d.text(`### 12.23 Desktop — IPC 命令
 `);
-  await d.yamlTable(dtTables('ipc-commands.yaml'), renderIpcCommands);
+  await d.yamlTable(configFile('desktop-ipc-commands.yaml'), renderIpcCommands);
 
   d.text(`### 12.24 Desktop — App Tabs
 `);
-  await d.yamlTable(dtTables('app-tabs.yaml'), renderAppTabs);
+  await d.yamlTable(configFile('desktop-shell-ui-app-tabs.yaml'), renderAppTabs);
 
   d.text(`### 12.25 Desktop — Store Slices
 `);
-  await d.yamlTable(dtTables('store-slices.yaml'), renderStoreSlices);
+  await d.yamlTable(configFile('desktop-shell-runtime-store-slices.yaml'), renderStoreSlices);
 
   d.text(`### 12.26 Desktop — Feature Flags
 `);
-  await d.yamlTable(dtTables('feature-flags.yaml'), renderFeatureFlags);
+  await d.yamlTable(configFile('desktop-shell-runtime-feature-flags.yaml'), renderFeatureFlags);
 
   d.text(`### 12.27 Desktop — 数据同步流
 `);
-  await d.yamlTable(dtTables('data-sync-flows.yaml'), renderDataSyncFlows);
+  await d.yamlTable(configFile('desktop-shell-runtime-data-sync-flows.yaml'), renderDataSyncFlows);
 
   d.text(`### 12.28 Desktop — 错误码
 `);
-  await d.yamlTable(dtTables('error-codes.yaml'), renderDesktopErrorCodes);
+  await d.yamlTable(configFile('desktop-shell-ui-error-codes.yaml'), renderDesktopErrorCodes);
 
   d.text(`### 12.29 Desktop — Retry Status Codes
 `);
-  await d.yamlTable(dtTables('retry-status-codes.yaml'), renderRetryStatusCodes);
+  await d.yamlTable(configFile('desktop-shell-runtime-retry-status-codes.yaml'), renderRetryStatusCodes);
 
   d.text(`### 12.30 Desktop — Log Areas
 `);
-  await d.yamlTable(dtTables('log-areas.yaml'), renderLogAreas);
+  await d.yamlTable(configFile('desktop-shell-ui-log-areas.yaml'), renderLogAreas);
 
   const output = d.build();
   await finalizeGeneratedDoc({ checkMode, outPath, output, repoRoot });

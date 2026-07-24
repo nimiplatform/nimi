@@ -1,0 +1,21 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/desktop/shell-runtime.authority.yaml
+# Rationale: docs/authority/desktop-shell-runtime-rationale.md
+config_id: desktop_shell_runtime_retry_status_codes
+owner: desktop
+source_rule: rule.nimi.desktop.shell-runtime.r073
+codes:
+  - code: 408
+    reason: Request Timeout
+  - code: 425
+    reason: Too Early
+  - code: 429
+    reason: Too Many Requests
+  - code: 500
+    reason: Internal Server Error
+  - code: 502
+    reason: Bad Gateway
+  - code: 503
+    reason: Service Unavailable
+  - code: 504
+    reason: Gateway Timeout

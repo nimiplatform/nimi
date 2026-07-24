@@ -7,15 +7,7 @@
   ],
   "allowed_unresolved_rule_refs": [
     {
-      "file": ".nimi/spec/desktop/kernel/home-feed-contract.md",
-      "rule_prefix": "R-FEED-"
-    },
-    {
-      "file": ".nimi/spec/desktop/kernel/home-feed-contract.md",
-      "rule_prefix": "R-CORE-010"
-    },
-    {
-      "file": ".nimi/spec/desktop/kernel/realm-group-agent-participation-surface-contract.md",
+      "file": ".nimi/spec/canonical/desktop/agent-projection.authority.yaml",
       "rule_prefix": "R-CHAT-"
     },
     {

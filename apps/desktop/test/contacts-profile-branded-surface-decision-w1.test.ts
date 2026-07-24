@@ -17,12 +17,12 @@ const profilePostsSource = readWorkspaceFile('src/shell/renderer/features/profil
 const profileLikesSource = readWorkspaceFile('src/shell/renderer/features/profile/likes-tab.tsx');
 const profileCollectionsSource = readWorkspaceFile('src/shell/renderer/features/profile/collections-tab.tsx');
 const profileGiftsSource = readWorkspaceFile('src/shell/renderer/features/profile/gifts-tab.tsx');
-const desktopUiShellSpec = readRepoFile('.nimi/spec/desktop/kernel/ui-shell-contract.md');
-const desktopSurfacesSpec = readRepoFile('.nimi/spec/desktop/kernel/tables/renderer-design-surfaces.yaml');
-const desktopKitAdoptionSpec = readRepoFile('.nimi/spec/desktop/kernel/tables/nimi-kit-adoption.yaml');
+const desktopUiShellSpec = readRepoFile('.nimi/spec/canonical/desktop/shell-ui.authority.yaml');
+const desktopSurfacesSpec = readRepoFile('config/desktop-shell-ui-renderer-design-surfaces.yaml');
+const desktopKitAdoptionSpec = readRepoFile('config/desktop-shell-ui-kit-adoption.yaml');
 
 test('W1 shared profile branded decision: hero shell is the only admitted controlled exception cohort', () => {
-  assert.match(desktopUiShellSpec, /## D-SHELL-032 — Shared Profile Detail Hero Exception Freeze/);
+  assert.match(desktopUiShellSpec, /id: rule\.nimi\.desktop\.shell-ui\.r032[\s\S]*title: Profile detail exception is narrow/);
   assert.match(contactsDetailSource, /rounded-\[30px\]|backdrop-blur-\[18px\]|var\(--nimi-action-primary-bg\)/);
   assert.match(contactsDetailShellSource, /rounded-\[34px\]|rounded-\[30px\]|backdrop-blur-\[18px\]/);
   assert.match(desktopSurfacesSpec, /id: relationship\.profile_detail\.hero_exception[\s\S]*surface_profile: exception[\s\S]*exception_policy: controlled[\s\S]*source_rule: D-SHELL-032/);

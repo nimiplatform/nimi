@@ -41,6 +41,15 @@ const primitivesTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-prim
 function discoverAppKitTables(fileName) {
   const appsRoot = path.join(repoRoot, 'apps');
   const rels = [];
+  const desktopConfigByFileName = {
+    'nimi-kit-adoption.yaml': 'config/desktop-shell-ui-kit-adoption.yaml',
+    'nimi-kit-allowlists.yaml': 'config/desktop-shell-ui-kit-allowlists.yaml',
+    'nimi-kit-compositions.yaml': 'config/desktop-shell-ui-kit-compositions.yaml',
+  };
+  const desktopConfig = desktopConfigByFileName[fileName];
+  if (desktopConfig) {
+    rels.push(desktopConfig);
+  }
   if (fs.existsSync(appsRoot)) {
     rels.push(...fs
       .readdirSync(appsRoot, { withFileTypes: true })

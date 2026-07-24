@@ -287,6 +287,6 @@ no alternate active path until their own contract, implementation, and tests
 admit production consumption:
 
 - `delegated-mcp-adapter-contract.md`
-- `agent-delegation-control-surface-contract.md`
+- `.nimi/spec/canonical/desktop/agent-projection.authority.yaml`
 - `delegated-a2a-future-seam-contract.md`
 - Avatar reference-only alignment when Avatar consumption changes

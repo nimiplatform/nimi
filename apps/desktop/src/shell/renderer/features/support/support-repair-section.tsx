@@ -1,5 +1,5 @@
 /**
- * Support `repair` sub-area (`D-SUP-003`).
+ * Support `repair` sub-area (`rule.nimi.desktop.product-surfaces.r024`).
  *
  * Consumes the `P-COLD-*` product-control projection and the `P-MIG-*`
  * `nimi_data` directory-ownership / cleanup bridge. It presents and triggers
@@ -151,7 +151,7 @@ export function SupportRepairSection(props: { onNavigateToRecovery: () => void }
 }
 
 /**
- * Broken-pointer surface (`D-SUP-003` / `P-MIG-004`). Renders the `~/.nimi`
+ * Broken-pointer surface (`rule.nimi.desktop.product-surfaces.r024` / `P-MIG-004`). Renders the `~/.nimi`
  * governed-config pointer set from the product-control record so the user can
  * see which pointer is unresolved. It never recreates a pointer — silent
  * recreation would orphan the user's data root.
@@ -184,7 +184,7 @@ function SupportPointerCard(props: { control: NimiProductControlRecordProjection
 }
 
 /**
- * Destructive-cleanup entry (`D-SUP-003` / `P-MIG-008`). The cleanup is
+ * Destructive-cleanup entry (`rule.nimi.desktop.product-surfaces.r024` / `P-MIG-008`). The cleanup is
  * delegated entirely to the `nimi_data` cleanup bridge: the renderer plans the
  * impact, shows it, requires the explicit confirmation token for any
  * non-pure-cache directory, then runs the confirmed cleanup. It never deletes

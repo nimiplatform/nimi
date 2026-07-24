@@ -1,0 +1,478 @@
+format: nimicoding.authority/v1
+units:
+  - id: definition.nimi.desktop.product-surfaces.explore
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop Explore product surface
+    meaning: Desktop Explore is the ordinary Realm discovery surface for admitted Worlds, PersonaCharacter sources, World-bound WorldCharacter sources, and public Realm activity without owning Realm, source, Runtime, LocalAgent, shell, or AI-execution truth.
+    relations: []
+  - id: definition.nimi.desktop.product-surfaces.home-feed
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop Home feed product surface
+    meaning: The Desktop Home tab is the Realm feed presentation and Create Post affordance inside the installed Nimi Home shell and is distinct from the enclosing shell, its ready entry, and Realm feed truth.
+    relations: []
+  - id: definition.nimi.desktop.product-surfaces.support
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop Support product surface
+    meaning: Desktop Support is the independent secondary system surface for repair, updates, diagnostics, logs and export, and recovery help that consumes owner-typed state and remains reachable during degraded product-control state.
+    relations: []
+  - id: definition.nimi.desktop.product-surfaces.relationship-profile
+    kind: definition
+    owner: team.desktop
+    lifecycle: active
+    title: Desktop contextual relationship and profile surface
+    meaning: Desktop relationship and profile UX is a contextual shared profile and social projection consumed by Home, Chat, Explore, Profile, notifications, World detail, source detail, and local materialization flows rather than a standalone primary product surface.
+    relations: []
+  - id: rule.nimi.desktop.product-surfaces.r001
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Explore is the unified Realm discovery surface
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: Explore is the single ordinary Desktop surface for discovering admitted Realm Worlds, PersonaCharacters, World-bound WorldCharacter sources, and public activity; World is folded into Explore, Apps retains App discovery, and WorldCharacter discovery uses World detail and source detail without a fourth Explore section.
+    condition: Whenever Desktop exposes ordinary Realm discovery or constructs its ordinary navigation destinations.
+    failure: Reject a standalone World destination, App discovery in Explore, a fourth Explore section, or another ordinary Realm discovery owner.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.explore
+  - id: rule.nimi.desktop.product-surfaces.r002
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Explore sections are closed
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: Explore has exactly Worlds for admitted WorldCore browsing and World detail entry, Personas for PersonaCharacter discovery across Worlds, and Activity for admitted public Realm activity from humans, personas, and world characters; config/desktop-product-surfaces-explore-sections.yaml is the non-authoritative machine projection of this closed set, whose meanings remain distinct.
+    condition: Whenever Desktop configures, renders, labels, or selects an Explore section.
+    failure: Reject a missing, additional, renamed, reordered in meaning, or undifferentiated Explore section projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.explore
+  - id: rule.nimi.desktop.product-surfaces.r003
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: World cards consume a closed typed fact set
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: Explore World cards present only name, visual, lineage or world type, tagline or summary, meaningful era or current-time label, sourceSignal such as persona or world-character count, activitySignal, and status from WorldCore or its typed World projection; absent optional fields shrink, and old payloads, prompt or lore fields, invented counts, placeholder eras, and local world facts are never card truth.
+    condition: Whenever Explore builds a World card.
+    failure: Omit an unavailable optional field and reject any untyped, guessed, placeholder, legacy, prompt-derived, or lore-derived World fact.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.explore
+  - id: rule.nimi.desktop.product-surfaces.r004
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: World detail presents bounded typed product facts
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: World detail presents WorldCore overview, semantic or world summary, scenes, locations and entry points, featured WorldCharacter or PersonaCharacter sources with typed source-detail routing, public activity, relevant local materialization availability, and useful governance or status only when corresponding typed data exists; Desktop shell authority retains ordering and responsive layout, and ordinary Explore exposes no Desktop-local source creation entry.
+    condition: Whenever Explore opens or composes World detail.
+    failure: Shrink sections lacking typed data and reject untyped facts, product-surface-owned layout authority, or ordinary Explore authoring controls.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.explore
+  - id: rule.nimi.desktop.product-surfaces.r005
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Character and persona source cards are source-typed
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: PersonaCharacter and WorldCharacter source cards present only displayName or avatar, worldOrigin, sourceKind and supplied role or category, concept or short description, supplied Realm activitySignal, sourceState, and the primaryAction derived from sourceState; Personas enter through Personas, WorldCharacters through World detail and source detail, and sourceState comes only from typed core source data plus bounded Runtime or SDK LocalAgentSourceContextStatus and opaque local-agent inventory or provenance projection, with unknown or partial status unavailable.
+    condition: Whenever Explore renders or routes a PersonaCharacter or WorldCharacter source card.
+    failure: Reject local or guessed source state, a new Explore source section, relationship or quota state as source truth, bare-source chat, and local conversation readiness as PersonaCharacter truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.explore
+  - id: rule.nimi.desktop.product-surfaces.r006
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Source state determines the primary action
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: The source-generic action mapping is exactly materialization_available to Become my partner and MaterializeRealmSource with CharacterSourceRefV3 plus fresh requestId, sign_in_required to disabled Sign in required, source_not_ready to disabled Source not ready, source_access_denied to disabled Source unavailable, materializing to disabled Materializing, local_agent_available to Open partner using Runtime-owned opaque localAgentRef, local_agent_ambiguous to fail-closed Open from partners, runtime_unavailable to disabled Runtime unavailable, and materialization_error to fail-closed Materialization unavailable with the bounded typed Runtime reason; Desktop receives only bounded LocalAgentSourceContextStatus, never source snapshot, packet, proof, raw diagnostics, prompt, context, caller-selected audience, or caller-selected LocalAgent identity.
+    condition: Whenever Desktop derives or performs a WorldCharacter or PersonaCharacter primary action from source state.
+    failure: Reject unknown or partial state as unavailable, disable ineligible or duplicate actions, and never acquire packets, synthesize identity, present Create LocalAgent language, open LocalAgent Chat from a bare source, or report materialization success without Runtime inventory and provenance.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.explore
+  - id: rule.nimi.desktop.product-surfaces.r007
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Source materialization is a bounded Runtime handoff
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: Explore source selection may emit only a local materialization handoff containing exactly canonical CharacterSourceRefV3 and bounded requestId; Runtime owns current account, grant and bearer resolution, challenge, Packet v3 acquisition and strict validation, LocalAgentSourceSnapshotV2, v3 provenance, atomic LocalAgent creation, and Runtime-local deletion or reset, while source removal never deletes LocalAgent state.
+    condition: Whenever a user chooses to materialize a WorldCharacter or PersonaCharacter source.
+    failure: Reject a relationship mutation, durable Realm connection, packet DTO, caller-selected audience, prompt or context, source write-back, renderer-created LocalAgent, cached-card readiness inference, or replacement of Runtime identity and authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.explore
+  - id: rule.nimi.desktop.product-surfaces.r008
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Explore has no source authoring entry
+    modality: must_not
+    scope:
+      - desktop.product-surfaces
+    statement: Explore creates, imports, generates, reviews, publishes, audits, parses, or writes PersonaCharacter or WorldCharacter sources or acts as a source authoring workbench.
+    condition: Whenever Explore presents or handles source content or a creator action.
+    failure: Reject the operation or route a separately admitted typed external studio or forge action that returns only after the owning surface writes core truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.explore
+  - id: rule.nimi.desktop.product-surfaces.r009
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Explore defines no persona draft schema
+    modality: must_not
+    scope:
+      - desktop.product-surfaces
+    statement: Explore defines or retains a local minimum field schema or parallel draft schema for persona creation that can be mistaken for Realm core truth.
+    condition: Whenever Explore consumes or presents pre-acceptance persona data.
+    failure: Reject the schema and consume only Realm core or creator-owned typed projections.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.explore
+  - id: rule.nimi.desktop.product-surfaces.r010
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Explore writes no draft truth
+    modality: must_not
+    scope:
+      - desktop.product-surfaces
+    statement: Explore submits pre-acceptance source data as Realm truth, projects import or generation candidates as accepted source records, or presents generic success for a source write it does not own.
+    condition: Whenever Explore displays or hands off source data before Realm acceptance.
+    failure: Keep the data display-only or handoff-only and reject any unowned write or success projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.explore
+  - id: rule.nimi.desktop.product-surfaces.r011
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Invalid Explore data fails closed
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: Missing or invalid typed Explore fields produce a typed unavailable or failed state or shrink only the affected optional surface; unknown or partial LocalAgentSourceContextStatus schema, enum, state, source kind, reason, or coverage is never materialization-ready or local-agent-ready.
+    condition: Whenever Explore receives missing, invalid, unknown, unsupported, or partial data.
+    failure: Reject guessed names, counts, Worlds, avatars, activity, coerced source fields, local materialization truth, and any success or readiness inferred from invalid data.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.explore
+  - id: rule.nimi.desktop.product-surfaces.r012
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Explore consumes source governance only
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: Explore consumes World policy, source visibility, account capability, moderation, quota, and audit outcomes only through admitted typed projections, receives no raw source or World snapshot, packet, proof, prompt, lane, memory, or context authority, and treats bounded status as presentation input only.
+    condition: Whenever Explore projects or enforces source governance state.
+    failure: Reject renderer-local mutation, policy bypass, visibility bypass, moderation bypass, quota bypass, audit bypass, or promotion of bounded presentation status into source authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.explore
+  - id: rule.nimi.desktop.product-surfaces.r013
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: World creation is not ordinary Explore behavior
+    modality: must_not
+    scope:
+      - desktop.product-surfaces
+    statement: An ordinary Explore section exposes free World creation or local source creation as a Desktop discovery action.
+    condition: Whenever Explore builds an ordinary user action or section.
+    failure: Reject the action and retain World and source creation in a controlled admitted creator or studio path.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.explore
+  - id: rule.nimi.desktop.product-surfaces.r014
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Explore Open targets are closed
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: Explore Open accepts exactly worlds with optional discover-worlds, personas with optional discover-personas or select-partner, and activity with optional view-activity; WorldCharacter materialization remains behind selected World detail and source detail and adds no section or productIntent pair.
+    condition: Whenever Desktop applies an Explore Open Intent section and productIntent pairing.
+    failure: Reject an invalid pairing as desktop-open-target-unsupported and never create WorldCore, PersonaCharacter, Packet v3, or LocalAgent truth while opening Explore.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.explore
+  - id: rule.nimi.desktop.product-surfaces.r015
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Home is the Realm feed surface
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: The Desktop primary-navigation Home tab renders Realm public activity feed and the Create Post entry as its product responsibility and does not absorb Chat, Explore discovery, Apps, or Runtime responsibilities or degrade into a feed-less landing or dashboard screen.
+    condition: Whenever Desktop renders or routes the Home primary-navigation tab.
+    failure: Reject a Home tab without Realm feed semantics or with another primary product responsibility.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.home-feed
+  - id: rule.nimi.desktop.product-surfaces.r016
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Home feed is not the ready entry
+    modality: must_not
+    scope:
+      - desktop.product-surfaces
+    statement: Desktop treats the Home feed surface as Nimi's ready entry or lands the first ready_for_use screen on Home after login and initialization instead of Chat and Nimi Chat.
+    condition: Whenever Desktop selects the post-initialization ready destination.
+    failure: Route the ready entry to Chat and Nimi Chat while keeping Home available only as an actively selected primary destination.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.home-feed
+  - id: rule.nimi.desktop.product-surfaces.r017
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Home feed and Nimi Home do not overlap
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: Home remains the Realm feed and Create Post surface inside Nimi Home, while the enclosing installed Nimi Home shell retains hosted-shell information architecture, navigation, windowing, first-run and return-run state, surface registry, Apps placement, Agent Chat placement, self-update UI, and failure-projection ownership.
+    condition: Whenever Desktop composes, names, or assigns ownership to Home or Nimi Home.
+    failure: Reject an interpretation that equates the two objects, gives shell ownership to Home feed, or lets Home feed redefine or narrow enclosing shell authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.home-feed
+  - id: rule.nimi.desktop.product-surfaces.r018
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Home feed scopes are closed
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: Home presents and distinguishes exactly personal for viewer-authored Posts, friends for visible Posts from the viewer's ACTIVE human friends, persona_activity for public-activity Posts from PersonaCharacter sources, and world_character_activity for public-activity Posts from explicitly admitted WorldCharacter sources; config/desktop-product-surfaces-home-feed-scopes.yaml is the non-authoritative machine projection, while Realm owns scope semantics, visibility, and author attribution.
+    condition: Whenever Home configures, reads, labels, filters, or renders Realm feed scope.
+    failure: Reject a missing, additional, renamed, or semantically collapsed scope and never present LocalAgent private activity as Realm feed content.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.home-feed
+  - id: rule.nimi.desktop.product-surfaces.r019
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Home provides a typed Create Post affordance
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: Home provides a Create Post affordance and submits publication intent through the SDK-typed Realm path, while Realm retains author attribution, attachment envelope, worldId and visibility resolution, content moderation, and truth-write admission; Desktop supplies no client-authoritative authorId, postId, worldId, or contentRating.
+    condition: Whenever Home presents or submits Create Post.
+    failure: Present the typed fail-closed state for attachment, moderation, or Realm-write failure and reject client-owned identifiers, generic success, and synthetic success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.home-feed
+  - id: rule.nimi.desktop.product-surfaces.r020
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Home consumes SDK-typed Realm feed projection
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: Home feed reads and Create Post consume the SDK-typed Realm PostDto and FeedResponseDto path, and pagination consumes Realm cursor-paginated projection without renderer-direct Realm REST, shell-local Post or Feed truth, or placeholder Posts, attachments, counts, and success.
+    condition: Whenever Home reads, paginates, or writes Realm feed content.
+    failure: Fail closed or shrink the affected presentation when the typed projection is absent or failed and reject REST bypass, parallel truth, and fabricated content.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.home-feed
+  - id: rule.nimi.desktop.product-surfaces.r021
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Home feed performs no AI execution
+    modality: must_not
+    scope:
+      - desktop.product-surfaces
+    statement: Home feed carries AIScopeRef, prompt text, provider or model selection, Runtime turn payload, or Runtime AI execution on feed read or Create Post paths.
+    condition: Whenever Home presents, reads, or publishes Realm social content.
+    failure: Reject the AI payload or execution call and preserve Home as a Realm social projection and publication surface only.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.home-feed
+  - id: rule.nimi.desktop.product-surfaces.r022
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Support is an independent secondary system surface
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: Support is registered by config/desktop-shell-ui-app-tabs.yaml as a non-authoritative nav_group secondary projection, remains independent of and peer to Settings, is reachable from menu, account, or Settings entry, and never enters ordinary primary navigation.
+    condition: Whenever Desktop registers, groups, or routes the Support surface.
+    failure: Reject Support or any Support sub-area as an ordinary primary item, a Settings section, a developer surface, or an unreachable secondary surface.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.support
+  - id: rule.nimi.desktop.product-surfaces.r023
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Support sub-areas are closed
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: Support contains exactly repair for configuration, data-root, and dependency repair entry; updates for Desktop update and independently installed Runtime service compatibility or repair projection; diagnostics for aggregated technical diagnostics; logs for log viewing and export; and recovery for recovery help and guidance.
+    condition: Whenever Desktop configures, routes, or renders Support content.
+    failure: Reject a missing or additional Support sub-area, ordinary account, language, appearance, notification, or other preference content, and any developer-surface entry.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.support
+  - id: rule.nimi.desktop.product-surfaces.r024
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Support repair delegates governed repair
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: Support repair presents and invokes the governed flows for repair_required or blocked ~/.nimi configuration, broken pointers without orphaning existing data, and nimi_data data-root repair or migration, while the owning migration and product-control planes retain schema migration, pointer rebuild, data movement, and repair-state truth.
+    condition: Whenever Support presents or triggers a repair operation.
+    failure: Reject Support-local migration, pointer reconstruction, or data movement and block any repair that can delete or orphan user data without the owner-projected impact preview.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.support
+  - id: rule.nimi.desktop.product-surfaces.r025
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Support updates consumes verified owner projections
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: Support updates hosts Application Update, consumes DesktopReleaseInfo for current Desktop release, target Desktop release, and updater state, consumes protected-local service status for verified Runtime service release, mutual compatibility, and repair state, invokes Desktop update only through managed desktop_update commands, and leaves Runtime service update or repair with the independent signed service updater; updaterAvailable false makes silent check a no-op and manual action displays updaterUnavailableReason without invoking a known-failing command.
+    condition: Whenever Support checks, presents, or triggers Desktop or Runtime service update and repair state.
+    failure: Reject renderer-synthesized version defaults, Desktop-manifest Runtime truth, hidden metadata, trust, compatibility, or repair errors, bundled or staged Runtime paths, cross-owner update execution, and pseudo-success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.support
+  - id: rule.nimi.desktop.product-surfaces.r026
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Support diagnostics aggregates typed projections only
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: Support diagnostics aggregates daemon lifecycle, host capability profile, dependency job state, selected source record projection, and other technical diagnostics only through Runtime or SDK typed diagnostic projections and owns no diagnostic, log, or audit truth.
+    condition: Whenever Support presents technical diagnostics.
+    failure: Reject direct Runtime-internal reads, feature-local diagnostic truth, and an ordinary-user product path that depends on diagnostics.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.support
+  - id: rule.nimi.desktop.product-surfaces.r027
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Support logs exports a concrete artifact
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: Support logs provides log viewing and export, consumes the non-authoritative config/desktop-shell-ui-log-areas.yaml projection and the Runtime-product-support-owned logs directory under nimi_data, and produces a non-empty user-locatable export artifact without mutating or deleting retained logs.
+    condition: Whenever Support views or exports logs.
+    failure: Return a typed fail-closed export failure instead of an empty artifact or pseudo-success and reject Support-local retention, cleanup, mutation, or deletion.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.support
+  - id: rule.nimi.desktop.product-surfaces.r028
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Support recovery projects typed recovery guidance
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: Support recovery guides users with damaged ~/.nimi state, missing or unreachable nimi_data, or incomplete first run toward repair and setup using typed fail-closed product-control state and the admitted first-run copy floor, while readiness remains owned by the product-control record.
+    condition: Whenever Desktop presents recovery help for degraded setup or storage state.
+    failure: Reject raw technical enums as primary user copy, untyped guidance, or a Support-authored claim that readiness has been restored.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.support
+  - id: rule.nimi.desktop.product-surfaces.r029
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Support remains reachable while degraded
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: Support and at least its repair and recovery sub-areas remain reachable when Settings preference state is damaged, ordinary shell readiness is unavailable, or product control is fail-closed, without waiting for ready_for_use.
+    condition: Whenever Desktop is in degraded, repair-required, setup-incomplete, or ordinary-shell-unavailable state.
+    failure: Reject a readiness-gated recovery path and expose the bounded repair and recovery entry without fabricating shell readiness.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.support
+  - id: rule.nimi.desktop.product-surfaces.r030
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Relationship and profile UX remains contextual
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: Human and source profile detail remains available through shared profile-detail modal and content components to Home, Explore, Chat, Profile, notification, and other contextual consumers; remove friend, block, unblock, accept or reject friend request, and local materialization handoff use admitted Realm social, Realm core, and Runtime paths, while pending, unavailable, or unsupported materialization fails closed or routes to an admitted in-context action.
+    condition: Whenever Desktop presents profile detail, relationship state, social mutation, or local materialization state.
+    failure: Reject renderer-local social truth, pseudo-success, Realm REST bypass, bare-source direct chat, a standalone primary relationship page, lazy route, E2E page journey, governed page shell, or sidebar, while retaining reusable contextual modal behavior.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.relationship-profile
+  - id: rule.nimi.desktop.product-surfaces.r031
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Relationship categories are closed
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: Contextual relationship and profile consumers distinguish exactly human_friends for ACTIVE human-to-human Friendship relations that resolve to human relationship and Human Chat, and local_agents for Runtime-owned LocalAgents discovered from Runtime inventory and provenance that may expose source provenance and open an existing LocalAgent without treating source records as friends or deriving LocalAgent identity from source metadata; config/desktop-product-surfaces-relationship-categories.yaml is the non-authoritative machine projection.
+    condition: Whenever Desktop categorizes a relationship or source-backed profile entry.
+    failure: Reject an additional or collapsed category, non-ACTIVE human relation as a friend, source record as friendship, or source-derived LocalAgent identity.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.relationship-profile
+  - id: rule.nimi.desktop.product-surfaces.r032
+    kind: rule
+    owner: team.desktop
+    lifecycle: active
+    title: Friend request states and transitions are closed
+    modality: must
+    scope:
+      - desktop.product-surfaces
+    statement: Desktop friend-request projection uses exactly received_pending with accept or reject, sent_pending with cancel and no duplicate resend, accepted as an ACTIVE relationship no longer represented as a request, rejected with no relationship and no automatic duplicate, and cancelled with no relationship; only received_pending transitions to accepted or rejected and sent_pending transitions to accepted by the other party or cancelled by the sender, while Realm social admission alone creates the canonical relationship and config/desktop-product-surfaces-relationship-friend-request-states.yaml is non-authoritative machine projection.
+    condition: Whenever Desktop projects or advances friend-request state.
+    failure: Reject an unknown state or transition, duplicate resend, Desktop-created canonical relationship, automatic duplicate after rejection, and any accepted, rejected, or cancelled request still presented as pending.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.relationship-profile

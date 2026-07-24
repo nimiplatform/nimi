@@ -12,6 +12,112 @@ scopes:
         value: "kit/shell/tauri/src/**/*.rs"
       - kind: command
         value: "check:desktop-tauri-command-execution"
+  - scope: desktop.bridge-ipc
+    bindings:
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/bridge/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src-tauri/src/**/*.rs"
+      - kind: path_glob
+        value: "kit/shell/tauri/src/**/*.rs"
+      - kind: path_glob
+        value: "kit/shell/protected-local/src/**/*.rs"
+  - scope: desktop.shell-runtime
+    bindings:
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/infra/bootstrap/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/infra/offline/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/infra/realm/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/infra/realtime/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/app-shell/providers/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/features/auth/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/features/social/data/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/features/support/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/bridge/runtime-bridge/desktop-release.ts"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/bridge/runtime-bridge/http.ts"
+      - kind: path_glob
+        value: "apps/desktop/src-tauri/src/desktop_release.rs"
+      - kind: path_glob
+        value: "apps/desktop/src-tauri/src/desktop_release/**/*.rs"
+      - kind: path_glob
+        value: "apps/desktop/src-tauri/src/desktop_updates.rs"
+      - kind: path_glob
+        value: "apps/desktop/src-tauri/src/desktop_updates/**/*.rs"
+      - kind: path_glob
+        value: "sdks/typescript/types/network-retry.ts"
+  - scope: desktop.shell-ui
+    bindings:
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src-tauri/src/menu_bar_shell/**/*.rs"
+      - kind: path_glob
+        value: "apps/desktop/vite.config.ts"
+      - kind: path_glob
+        value: "config/desktop-shell-ui-*.yaml"
+  - scope: desktop.product-surfaces
+    bindings:
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/features/explore/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/features/home/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/features/profile/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/features/relationship/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/features/social/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/features/source-detail/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/features/support/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/features/world/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/bridge/runtime-bridge/support-logs-export.ts"
+      - kind: path_glob
+        value: "apps/desktop/src-tauri/src/desktop_logs_export.rs"
+      - kind: path_glob
+        value: "config/desktop-product-surfaces-*.yaml"
+  - scope: desktop.agent-projection
+    bindings:
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/features/chat/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/features/agents/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/app-shell/providers/**/*"
+      - kind: path_glob
+        value: "kit/features/avatar/src/**/*"
+      - kind: path_glob
+        value: "kit/features/agent-center/src/**/*"
+  - scope: desktop.ai-consumption
+    bindings:
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/app-shell/providers/desktop-ai-config-*.ts"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/features/chat/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/features/runtime-config/**/*"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/infra/runtime-agent-ai-config.ts"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/renderer/ai-config-port.ts"
+      - kind: path_glob
+        value: "apps/desktop/src/simulator/ai-config-port.ts"
+      - kind: path_glob
+        value: "kit/features/generation/src/**/*"
+      - kind: path_glob
+        value: "kit/features/model-config/src/**/*"
   - scope: platform.testing-discipline
     bindings:
       - kind: path_glob

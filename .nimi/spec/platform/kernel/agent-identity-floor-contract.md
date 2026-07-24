@@ -103,5 +103,5 @@ closed。
 - `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-010`
 - `.nimi/spec/cognition/kernel/app-memory-access-contract.md` — `C-APMEM-001..C-APMEM-008`
 - `.nimi/spec/sdks/kernel/nimi-permission-client-contract.md` — `S-PERM-001..S-PERM-008`
-- `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` — `D-HOME-001..D-HOME-012`
-- `.nimi/spec/desktop/kernel/agent-chat-projection-contract.md` — `D-LLM-022..D-LLM-026`
+- `.nimi/spec/canonical/desktop/shell-ui.authority.yaml` — `rule.nimi.desktop.shell-ui.r049..r061`
+- `.nimi/spec/canonical/desktop/agent-projection.authority.yaml` — `D-LLM-022..D-LLM-026`

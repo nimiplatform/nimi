@@ -16,34 +16,70 @@ function workspacePathExists(path: string): boolean {
   return existsSync(resolve(repoRoot, path));
 }
 
-test('Agent Chat spec forbids draft, archive, rename, and offline transcript persistence', () => {
-  const spec = readWorkspaceFile('.nimi/spec/desktop/kernel/agent-chat-projection-contract.md');
+function readAuthorityUnit(container: string, unitId: string): string {
+  const normalized = container.replaceAll('\r\n', '\n');
+  const marker = `  - id: ${unitId}\n`;
+  const start = normalized.indexOf(marker);
+  assert.notEqual(start, -1, `missing authority unit ${unitId}`);
+  const end = normalized.indexOf('\n  - id: ', start + marker.length);
+  return normalized.slice(start, end === -1 ? undefined : end);
+}
 
-  assert.match(spec, /D-LLM-025a/);
-  assert.match(spec, /limited to renderer UI state and a disposable projection cache/);
-  assert.match(spec, /must not become canonical Agent Chat transcript/);
-  assert.match(spec, /must not provide offline Agent Chat transcript\s+recovery/);
-  assert.match(spec, /must not persist Agent Chat drafts/);
-  assert.match(spec, /must not admit Agent Chat rename or archive conversation semantics/);
-  assert.match(spec, /single active Runtime conversation per runtime source\s+snapshot/);
-  assert.match(spec, /Runtime-owned session snapshots and `runtime\.agent\.turn\.\*`/);
-  assert.match(spec, /No steady-state Desktop `chat_agent_\*` store/);
+test('Agent Chat spec forbids draft, archive, rename, and offline transcript persistence', () => {
+  const spec = readWorkspaceFile('.nimi/spec/canonical/desktop/agent-projection.authority.yaml');
+  const projectionTruth = readAuthorityUnit(spec, 'rule.nimi.desktop.agent-projection.r002');
+  const persistenceScope = readAuthorityUnit(spec, 'rule.nimi.desktop.agent-projection.r020');
+  const transcriptBoundary = readAuthorityUnit(spec, 'rule.nimi.desktop.agent-projection.r021');
+  const offlineBoundary = readAuthorityUnit(spec, 'rule.nimi.desktop.agent-projection.r022');
+  const draftBoundary = readAuthorityUnit(spec, 'rule.nimi.desktop.agent-projection.r023');
+  const metadataBoundary = readAuthorityUnit(spec, 'rule.nimi.desktop.agent-projection.r024');
+  const conversationPosture = readAuthorityUnit(spec, 'rule.nimi.desktop.agent-projection.r025');
+  const retiredStore = readAuthorityUnit(spec, 'rule.nimi.desktop.agent-projection.r026');
+
+  assert.match(persistenceScope, /non-transcript renderer UI state/);
+  assert.match(persistenceScope, /disposable projection cache/);
+  assert.match(transcriptBoundary, /canonical Agent Chat transcript, message, action, turn, beat, conversation-anchor, lifecycle, history/);
+  assert.match(transcriptBoundary, /assistant greeting, successful turn, prompt trace, turn trace, or projection-rebuild truth/);
+  assert.match(offlineBoundary, /reconstructs Agent Chat transcript or history from local storage after reload or restart/);
+  assert.match(offlineBoundary, /offline Agent Chat transcript product/);
+  assert.match(draftBoundary, /Agent Chat draft persistence/);
+  assert.match(draftBoundary, /Keep drafts transient/);
+  assert.match(metadataBoundary, /rename, archive, or user-authored conversation-title metadata/);
+  assert.match(conversationPosture, /one active Runtime conversation per runtime source snapshot/);
+  assert.match(projectionTruth, /Runtime session snapshots/);
+  assert.match(projectionTruth, /runtime\.agent\.turn\.\*/);
+  assert.match(retiredStore, /steady-state chat_agent_\* store, bridge client, or command family/);
 });
 
 test('Agent Chat store cutover is closed by Runtime and SDK replacement coverage', () => {
-  const desktopSpec = readWorkspaceFile('.nimi/spec/desktop/kernel/agent-chat-projection-contract.md');
+  const desktopSpec = readWorkspaceFile('.nimi/spec/canonical/desktop/agent-projection.authority.yaml');
   const runtimeSpec = readWorkspaceFile('.nimi/spec/runtime/kernel/runtime-agent-service-contract.md');
+  const retiredStore = readAuthorityUnit(desktopSpec, 'rule.nimi.desktop.agent-projection.r026');
+  const summaries = readAuthorityUnit(desktopSpec, 'rule.nimi.desktop.agent-projection.r028');
+  const snapshotRecovery = readAuthorityUnit(desktopSpec, 'rule.nimi.desktop.agent-projection.r029');
+  const draftBoundary = readAuthorityUnit(desktopSpec, 'rule.nimi.desktop.agent-projection.r023');
+  const historyMutation = readAuthorityUnit(desktopSpec, 'rule.nimi.desktop.agent-projection.r030');
+  const messageMutation = readAuthorityUnit(desktopSpec, 'rule.nimi.desktop.agent-projection.r031');
+  const conversationPosture = readAuthorityUnit(desktopSpec, 'rule.nimi.desktop.agent-projection.r025');
+  const optimisticProjection = readAuthorityUnit(desktopSpec, 'rule.nimi.desktop.agent-projection.r032');
+  const offlineBoundary = readAuthorityUnit(desktopSpec, 'rule.nimi.desktop.agent-projection.r022');
 
-  assert.match(desktopSpec, /D-LLM-107/);
-  assert.match(desktopSpec, /projection-cache store is retired/);
-  assert.match(desktopSpec, /must not\s+register `chat_agent_\*` Tauri commands/);
-  assert.match(desktopSpec, /conversation summaries/);
-  assert.match(desktopSpec, /GetPublicChatSessionSnapshot/);
-  assert.match(desktopSpec, /Agent Chat draft persistence is not a product requirement/);
-  assert.match(desktopSpec, /message-level delete \/ redact policy/);
-  assert.match(desktopSpec, /single active Runtime conversation per runtime source\s+snapshot \/ LocalAgent projection/);
-  assert.match(desktopSpec, /in-memory optimistic projection only/);
-  assert.match(desktopSpec, /No offline Agent Chat transcript product is admitted/);
+  assert.match(retiredStore, /Retired chat_agent store stays absent/);
+  assert.match(retiredStore, /chat_agent_\* Tauri commands/);
+  assert.match(retiredStore, /chatAgentStoreClient/);
+  assert.match(retiredStore, /SQLite schema/);
+  assert.match(summaries, /calling app Agent Chat conversation summaries/);
+  assert.match(summaries, /without reading Desktop SQLite/);
+  assert.match(snapshotRecovery, /ConversationAnchor and GetPublicChatSessionSnapshot/);
+  assert.match(snapshotRecovery, /stable message identity, timestamps, status, and kind/);
+  assert.match(draftBoundary, /draft persistence as a replacement for the retired Desktop draft behavior/);
+  assert.match(historyMutation, /close, delete, or clear policy is owned by Runtime or SDK/);
+  assert.match(messageMutation, /message-level delete or redact policy is owned by Runtime or SDK/);
+  assert.match(conversationPosture, /one active Runtime conversation per runtime source snapshot/);
+  assert.match(conversationPosture, /LocalAgent projection/);
+  assert.match(optimisticProjection, /in-memory optimistic projection/);
+  assert.match(optimisticProjection, /Runtime session snapshots or runtime\.agent\.turn\.\*/);
+  assert.match(offlineBoundary, /offline Agent Chat transcript product/);
 
   assert.match(runtimeSpec, /K-AGCORE-006a/);
   assert.match(runtimeSpec, /conversation summary listing scoped to the authenticated calling app/);

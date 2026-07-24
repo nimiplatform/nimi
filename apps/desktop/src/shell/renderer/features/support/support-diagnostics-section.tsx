@@ -1,5 +1,5 @@
 /**
- * Support `diagnostics` sub-area (`D-SUP-005`).
+ * Support `diagnostics` sub-area (`rule.nimi.desktop.product-surfaces.r026`).
  *
  * Aggregates the previously scattered feature-local diagnostics into one
  * technical diagnostics view. It consumes typed Runtime / SDK projections —

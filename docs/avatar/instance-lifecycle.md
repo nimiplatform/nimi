@@ -84,7 +84,7 @@ must not self-decide ready / degraded — it consumes the projection.
 The same agent often appears in:
 
 - Desktop chat (via `kit/features/avatar` consuming
-  `agent-avatar-surface-contract.md`)
+  `.nimi/spec/canonical/desktop/agent-projection.authority.yaml`)
 - The standalone Avatar carrier (this app)
 
 These surfaces stay in sync because both consume the **same runtime
@@ -183,4 +183,4 @@ Degraded is a typed posture, not a fallback.
 - [`.nimi/spec/avatar/nimi-avatar.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/nimi-avatar.md)
 - [`.nimi/spec/avatar/kernel/avatar-event-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/avatar-event-contract.md)
 - [`.nimi/spec/runtime/kernel/avatar-debug-projection-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/avatar-debug-projection-contract.md)
-- [`.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md)
+- [`.nimi/spec/canonical/desktop/agent-projection.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/canonical/desktop/agent-projection.authority.yaml)

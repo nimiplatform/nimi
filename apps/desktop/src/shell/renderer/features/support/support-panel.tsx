@@ -1,11 +1,11 @@
 /**
- * `Support` secondary system surface host (`D-SUP-001` / `D-SUP-002`).
+ * `Support` secondary system surface host (`rule.nimi.desktop.product-surfaces.r022` / `rule.nimi.desktop.product-surfaces.r023`).
  *
  * `Support` is a standalone secondary surface, peer to `Settings`. It is
- * mounted from the `app-tabs.yaml` `support` entry (`nav_group: secondary`)
+ * mounted from the `config/desktop-shell-ui-app-tabs.yaml` `support` entry (`nav_group: secondary`)
  * and is NOT one of the five ordinary primary navigation tabs.
  *
- * The host renders a fixed five-item sub-area sidebar (`D-SUP-002`: repair /
+ * The host renders a fixed five-item sub-area sidebar (`rule.nimi.desktop.product-surfaces.r023`: repair /
  * updates / diagnostics / logs / recovery) and dispatches the active sub-area.
  * Each sub-area owns its own typed-projection load and fail-closed state.
  */

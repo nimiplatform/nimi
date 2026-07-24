@@ -60,7 +60,7 @@ test('repair-runtime-local-models write refuses local_unverified repair without 
 
 test('repair-runtime-local-models write records explicit local_unverified admission ref', async () => {
   const { modelsRoot, localStatePath } = await makeRepairFixture();
-  const admissionRef = '.nimi/spec/desktop/kernel/security-contract.md#D-SEC-006';
+  const admissionRef = '.nimi/spec/canonical/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r029';
   const result = runRepair([
     '--write',
     '--integrity-admission-ref', admissionRef,

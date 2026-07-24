@@ -1,9 +1,9 @@
 /**
- * Support surface sub-area enumeration (`D-SUP-002`).
+ * Support surface sub-area enumeration (`rule.nimi.desktop.product-surfaces.r023`).
  *
  * The `Support` secondary surface hosts exactly — and only — these five
  * sub-areas, in this order. Adding an ordinary preference section here, or a
- * developer-tool entry, violates `D-SUP-002`.
+ * developer-tool entry, violates `rule.nimi.desktop.product-surfaces.r023`.
  */
 
 export type SupportSectionId =
@@ -13,7 +13,7 @@ export type SupportSectionId =
   | 'logs'
   | 'recovery';
 
-/** The canonical, contract-fixed `D-SUP-002` sub-area set, in render order. */
+/** The canonical, contract-fixed `rule.nimi.desktop.product-surfaces.r023` sub-area set, in render order. */
 export const SUPPORT_SECTION_IDS: readonly SupportSectionId[] = [
   'repair',
   'updates',
@@ -33,7 +33,7 @@ export const SUPPORT_SECTION_LABEL_KEY: Record<SupportSectionId, string> = {
 
 /**
  * Sub-areas that must stay reachable under a degraded / fail-closed product
- * state (`D-SUP-008`). Repair and recovery are the user's first-class recovery
+ * state (`rule.nimi.desktop.product-surfaces.r029`). Repair and recovery are the user's first-class recovery
  * entries and may never depend on ordinary shell readiness.
  */
 export const SUPPORT_DEGRADED_REACHABLE_SECTIONS: readonly SupportSectionId[] = [
@@ -45,7 +45,7 @@ export function isSupportSectionId(value: unknown): value is SupportSectionId {
   return typeof value === 'string' && SUPPORT_SECTION_IDS.includes(value as SupportSectionId);
 }
 
-/** Resolve the persisted / requested section to a valid `D-SUP-002` sub-area. */
+/** Resolve the persisted / requested section to a valid `rule.nimi.desktop.product-surfaces.r023` sub-area. */
 export function resolveSupportSection(value: unknown): SupportSectionId {
   return isSupportSectionId(value) ? value : 'repair';
 }

@@ -4,7 +4,9 @@ import { Surface } from '@nimiplatform/kit/ui';
 import { E2E_IDS } from '../../testability/e2e-ids';
 
 // Canonical Explore section catalog. Fact source:
-// .nimi/spec/desktop/kernel/tables/explore-sections.yaml (D-EXPL-002).
+// Authority: .nimi/spec/canonical/desktop/product-surfaces.authority.yaml
+// (rule.nimi.desktop.product-surfaces.r002); machine projection:
+// config/desktop-product-surfaces-explore-sections.yaml.
 // The sections are fixed; do not add/remove/rename without updating the
 // table and the explore-surface-contract.
 export type ExploreSectionId = 'worlds' | 'personas' | 'activity';

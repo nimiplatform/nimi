@@ -213,7 +213,7 @@ failures.push(...findPatternViolations(kitCoreFiles, [
 const desktopNavigation = read('apps/desktop/src/shell/renderer/infra/desktop-open/desktop-open-intent-navigation.ts');
 for (const ownedState of [
   'setExploreActiveSection',
-  'dispatchRuntimeConfigOpenPage',
+  'runtimeConfigNavigation.openPage',
   'dispatchSettingsOpenSection',
   'setAppsDetailAppId',
 ]) {
@@ -290,21 +290,29 @@ if (localAppCapabilitySet?.planned_operations?.includes('desktop-open.openIntent
   failures.push('desktop-open.openIntent remains planned after local-app admission');
 }
 
-const desktopTargets = parseYaml('.nimi/spec/desktop/kernel/tables/desktop-open-targets.yaml');
+const desktopOpenConfig = parseYaml('config/desktop-open-targets.yaml');
+const desktopOpenCatalogs = desktopOpenConfig.catalogs ?? {};
+const desktopTargets = desktopOpenCatalogs.desktop_open_targets;
 const targetTables = {
-  'open-explore': parseYaml('.nimi/spec/desktop/kernel/tables/explore-open-targets.yaml'),
-  'open-runtime-config': parseYaml('.nimi/spec/desktop/kernel/tables/runtime-config-open-actions.yaml'),
-  'open-agents': parseYaml('.nimi/spec/desktop/kernel/tables/agents-open-targets.yaml'),
-  'open-apps': parseYaml('.nimi/spec/desktop/kernel/tables/apps-open-targets.yaml'),
-  'open-settings': parseYaml('.nimi/spec/desktop/kernel/tables/settings-open-targets.yaml'),
+  'open-explore': desktopOpenCatalogs.desktop_explore_open_targets,
+  'open-runtime-config': desktopOpenCatalogs.desktop_runtime_config_open_actions,
+  'open-agents': desktopOpenCatalogs.desktop_agents_open_targets,
+  'open-apps': desktopOpenCatalogs.desktop_apps_open_targets,
+  'open-settings': desktopOpenCatalogs.desktop_settings_open_targets,
 };
-for (const kind of Object.keys(targetTables)) {
-  if (!desktopTargets.target_refs?.[kind]) {
-    failures.push(`desktop-open-targets.yaml missing target_refs.${kind}`);
+if (!desktopTargets) {
+  failures.push('desktop open config missing catalogs.desktop_open_targets');
+}
+for (const [kind, table] of Object.entries(targetTables)) {
+  if (!table) {
+    failures.push(`desktop open config missing catalog for ${kind}`);
+  }
+  if (!desktopTargets?.target_refs?.[kind]) {
+    failures.push(`desktop open config missing target_refs.${kind}`);
   }
 }
 const targetEntries = Object.fromEntries(
-  Object.entries(targetTables).map(([kind, table]) => [kind, new Set(table.entries ?? [])]),
+  Object.entries(targetTables).map(([kind, table]) => [kind, new Set(table?.entries ?? [])]),
 );
 const goldenVectors = parseYaml('.nimi/spec/platform/kernel/tables/desktop-open-intent-golden-vectors.yaml');
 for (const vector of goldenVectors.accepted ?? []) {
@@ -327,17 +335,8 @@ for (const vector of goldenVectors.accepted ?? []) {
 }
 
 const desktopIndex = read('.nimi/spec/desktop/kernel/index.md');
-for (const relPath of [
-  'desktop-open-targets.yaml',
-  'explore-open-targets.yaml',
-  'runtime-config-open-actions.yaml',
-  'settings-open-targets.yaml',
-  'agents-open-targets.yaml',
-  'apps-open-targets.yaml',
-]) {
-  if (!desktopIndex.includes(relPath)) {
-    failures.push(`Desktop kernel index missing ${relPath}`);
-  }
+if (!desktopIndex.includes('config/desktop-open-targets.yaml')) {
+  failures.push('Desktop kernel index missing config/desktop-open-targets.yaml');
 }
 const platformIndex = read('.nimi/spec/platform/kernel/index.md');
 if (!platformIndex.includes('desktop-open-intent-contract.md')
@@ -346,10 +345,9 @@ if (!platformIndex.includes('desktop-open-intent-contract.md')
 }
 
 const ownerContracts = [
-  '.nimi/spec/desktop/kernel/ui-shell-contract.md',
-  '.nimi/spec/desktop/kernel/nimi-home-shell-contract.md',
-  '.nimi/spec/desktop/kernel/explore-surface-contract.md',
-  '.nimi/spec/desktop/kernel/bridge-ipc-contract.md',
+  '.nimi/spec/canonical/desktop/shell-ui.authority.yaml',
+  '.nimi/spec/canonical/desktop/product-surfaces.authority.yaml',
+  '.nimi/spec/canonical/desktop/bridge-ipc.authority.yaml',
 ].map((file) => read(file)).join('\n');
 for (const phrase of ['Settings', 'Agents', 'Apps', 'Runtime Config', 'Explore']) {
   if (!ownerContracts.includes(phrase)) {

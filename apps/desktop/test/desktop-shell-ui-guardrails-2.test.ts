@@ -25,8 +25,8 @@ const createPostModalSource = readSource('../src/shell/renderer/features/profile
 const createPostModalPanelsSource = readSource('../src/shell/renderer/features/profile/create-post-modal-panels.tsx');
 const giftsTabSource = readSource('../src/shell/renderer/features/profile/gifts-tab.tsx');
 const sendGiftModalSource = readSource('../src/shell/renderer/features/economy/send-gift-modal.tsx');
-const designSurfacesTable = readSource('../../../.nimi/spec/desktop/kernel/tables/renderer-design-surfaces.yaml');
-const designOverlaysTable = readSource('../../../.nimi/spec/desktop/kernel/tables/renderer-design-overlays.yaml');
+const designSurfacesTable = readSource('../../../config/desktop-shell-ui-renderer-design-surfaces.yaml');
+const designOverlaysTable = readSource('../../../config/desktop-shell-ui-renderer-design-overlays.yaml');
 
 function collectDesignTableModules(tableSource: string): string[] {
   return [...tableSource.matchAll(/^\s+module:\s+(.+?)\s*$/gmu)]

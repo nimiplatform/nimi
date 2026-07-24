@@ -11,7 +11,7 @@ contract, rule prefix, and authoritative source.
 | Runtime | `.nimi/spec/runtime/kernel/error-model.md` | `K-ERR-*` | Reason codes, error classification, retry vs contract-failure distinction |
 | Runtime streaming | `.nimi/spec/runtime/kernel/streaming-contract.md` | `K-STREAM-*` | Terminal frames, stream-level failure semantics |
 | SDK | `.nimi/spec/sdks/kernel/error-projection.md` | `S-ERROR-*` | App-facing error projection, typed error shapes |
-| Desktop | `.nimi/spec/desktop/kernel/error-boundary-contract.md` | `D-*` | UI error boundary, retry policy, user-facing error rendering |
+| Desktop | `.nimi/spec/canonical/desktop/shell-ui.authority.yaml` | `rule.nimi.desktop.shell-ui.*` | UI error boundary, retry policy, user-facing error rendering |
 
 ## Translation Tables
 
@@ -27,7 +27,7 @@ Per-layer enumerations live in their own tables:
 | `runtime/kernel/tables/reason-codes.yaml` | Runtime |
 | `runtime/kernel/tables/error-mapping-matrix.yaml` | Runtime cross-layer |
 | `.nimi/spec/sdks/kernel/tables/sdk-error-codes.yaml` | SDK |
-| `desktop/kernel/tables/retry-status-codes.yaml` | Desktop |
+| `canonical/desktop/shell-runtime.authority.yaml` | Desktop |
 
 ## Distinguishing Transport Recovery From Contract Failure
 
@@ -70,6 +70,5 @@ lands as:
 - [`.nimi/spec/runtime/kernel/tables/error-mapping-matrix.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/error-mapping-matrix.yaml)
 - [`.nimi/spec/sdks/kernel/error-projection.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/error-projection.md)
 - [`.nimi/spec/sdks/kernel/tables/sdk-error-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/tables/sdk-error-codes.yaml)
-- [`.nimi/spec/desktop/kernel/error-boundary-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/error-boundary-contract.md)
-- [`.nimi/spec/desktop/kernel/network-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/network-contract.md)
-- [`.nimi/spec/desktop/kernel/tables/retry-status-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/tables/retry-status-codes.yaml)
+- [`.nimi/spec/canonical/desktop/shell-ui.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/canonical/desktop/shell-ui.authority.yaml)
+- [`.nimi/spec/canonical/desktop/shell-runtime.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/canonical/desktop/shell-runtime.authority.yaml)

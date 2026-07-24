@@ -1,0 +1,87 @@
+# Non-authoritative machine configuration.
+# Normative authority: .nimi/spec/canonical/desktop/agent-projection.authority.yaml
+# Rationale: docs/authority/desktop-agent-projection-rationale.md
+config_id: desktop_agent_projection_avatar_surface
+owner: desktop
+avatar_interaction_state:
+  source_rule: rule.nimi.desktop.agent-projection.r098
+  required_fields:
+    - phase
+  optional_fields:
+    - emotion
+    - actionCue
+    - attentionTarget
+    - visemeId
+    - amplitude
+attention_projection:
+  source_rule: rule.nimi.desktop.agent-projection.r120
+  outputs:
+    - active_attention_presence
+    - continuous_attention_presence_strength
+    - normalized_app_attention_vector
+    - pointer_attention_target
+    - subtle_head_eye_bias
+  precedence:
+    source_rule: rule.nimi.desktop.agent-projection.r124
+    values:
+      - active_surface_validity
+      - speaking_listening_and_lipsync
+      - app_attention_head_eye_bias
+      - idle_breathing_ambient_motion
+surface_layers:
+  source_rule: rule.nimi.desktop.agent-projection.r126
+  bottom_to_top:
+    - app_native_glass_base
+    - optional_in_app_backdrop_mask
+    - chat_component_layer
+companion_events:
+  source_rule: rule.nimi.desktop.agent-projection.r132
+  names:
+    - desktop.chat.message.send
+    - desktop.chat.message.receive
+    - desktop.avatar.launch.requested
+    - desktop.avatar.launch.failed
+    - desktop.avatar.handoff.completed
+    - desktop.avatar.handoff.failed
+    - desktop.avatar.instance.reveal_requested
+    - desktop.avatar.instance.close_requested
+default_launch_payload:
+  source_rule: rule.nimi.desktop.agent-projection.r136
+  required_fields:
+    - agent_id
+  optional_fields:
+    - avatar_instance_id
+    - launch_source
+start_with_chat_gate:
+  source_rule: rule.nimi.desktop.agent-projection.r142
+  all_required_conditions:
+    - user_logged_in
+    - target_is_local_agent
+    - conversation_anchor_exists
+    - local_avatar_asset_selected_and_valid
+    - backend_capability_posture_valid
+    - runtime_projection_authorized
+    - launch_mode_start_with_chat
+    - instance_policy_resolves_safely
+avatar_instance_policy:
+  source_rule: rule.nimi.desktop.agent-projection.r146
+  default: reuse_active_instance
+  values:
+    - reuse_active_instance
+    - launch_new_instance
+    - require_user_selection
+retired_desktop_configuration_fields:
+  source_rule: rule.nimi.desktop.agent-projection.r156
+  fields:
+    - local_avatar_asset_ref
+    - live2d_adapter_manifest_source
+    - live2d_adapter_manifest_ref
+    - live2d_calibration_ref
+    - avatar_instance_policy
+    - backend_kind
+    - backend_capability_profile_ref
+    - generated_motion_provider_policy
+    - launch_mode
+    - debug_profile
+    - local_history
+    - ui.last_section

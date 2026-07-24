@@ -37,7 +37,7 @@ function listRepoFiles(relativePath: string): string[] {
   return files.sort();
 }
 
-const bridgeIpcSpec = readRepo('.nimi/spec/desktop/kernel/bridge-ipc-contract.md');
+const bridgeIpcAuthority = readRepo('.nimi/spec/canonical/desktop/bridge-ipc.authority.yaml');
 const gitIgnoreSource = readRepo('.gitignore');
 const productControlSource = readRepo('apps/desktop/src-tauri/src/desktop_product_control.rs');
 const productControlOperationsSource = readRepo('apps/desktop/src-tauri/src/desktop_product_control/operations.rs');
@@ -109,7 +109,7 @@ test('Home module map resolves Feed outside the retired dataSync facade', () => 
 test('Desktop runtime bridge commands resolve through the shared Tauri shell authority', () => {
   const mainSource = readRepo('apps/desktop/src-tauri/src/main.rs');
 
-  assert.match(bridgeIpcSpec, /kit\/shell\/tauri\/\*\*/);
+  assert.match(bridgeIpcAuthority, /kit\/shell\/tauri/);
   assert.match(mainSource, /use nimi_shell_tauri::capabilities::runtime as runtime_bridge;/);
   assert.doesNotMatch(mainSource, /\bmod runtime_bridge\b/);
   assert.deepEqual(listRepoFiles('apps/desktop/src-tauri/src/runtime_bridge'), []);

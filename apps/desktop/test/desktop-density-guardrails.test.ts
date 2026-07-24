@@ -9,7 +9,7 @@ const repoRoot = path.resolve(desktopDir, '../..');
 const rendererDir = path.join(desktopDir, 'src/shell/renderer');
 const rendererSurfaceRegistryPath = path.join(
   repoRoot,
-  '.nimi/spec/desktop/kernel/tables/renderer-design-surfaces.yaml',
+  'config/desktop-shell-ui-renderer-design-surfaces.yaml',
 );
 
 const REQUIRED_COMPACT_OPERATIONAL_MODULES = [
