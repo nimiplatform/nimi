@@ -382,11 +382,11 @@ export interface NimiRuntimeAgentConsumeRuntime {
       options?: RuntimeTypedCallOptions,
     ): Promise<{ projection?: CompanionParticipationProjection }>;
     subscribeAgentEvents(request: unknown, options?: RuntimeTypedCallOptions): AsyncIterable<AgentEvent>;
-    requestCompanionParticipation(
+    requestCompanionParticipation?(
       request: unknown,
       options?: RuntimeTypedCallOptions,
     ): Promise<{ projection?: CompanionParticipationProjection }>;
-    cancelCompanionParticipation(
+    cancelCompanionParticipation?(
       request: unknown,
       options?: RuntimeTypedCallOptions,
     ): Promise<{ projection?: CompanionParticipationProjection }>;

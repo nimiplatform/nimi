@@ -86,12 +86,6 @@ function createUnexpectedRuntimeAgentConsumeRuntime(
       subscribeAgentEvents() {
         throw new Error('unexpected');
       },
-      async requestCompanionParticipation() {
-        throw new Error('unexpected');
-      },
-      async cancelCompanionParticipation() {
-        throw new Error('unexpected');
-      },
       ...overrides,
     },
   };
@@ -161,12 +155,6 @@ test('Runtime Agent consume fails closed when turn stream assembly lacks appMess
         throw new Error('unexpected');
       },
       subscribeAgentEvents() {
-        throw new Error('unexpected');
-      },
-      async requestCompanionParticipation() {
-        throw new Error('unexpected');
-      },
-      async cancelCompanionParticipation() {
         throw new Error('unexpected');
       },
     },

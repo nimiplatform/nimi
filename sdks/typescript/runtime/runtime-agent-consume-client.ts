@@ -233,7 +233,11 @@ export function createNimiRuntimeAgentConsumeClient(
       },
       request: async (input, callOptions) => {
         const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
-        const response = await runtime.agents.requestCompanionParticipation({
+        const requestParticipation = requireAgentMethod(
+          runtime.agents.requestCompanionParticipation,
+          'requestCompanionParticipation',
+        );
+        const response = await requestParticipation({
           ...companionParticipationRequest(context, input),
           text: requireText(input.text, 'text'),
           threadId: normalizeText(input.threadId),
@@ -244,7 +248,11 @@ export function createNimiRuntimeAgentConsumeClient(
       },
       cancel: async (input, callOptions) => {
         const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
-        const response = await runtime.agents.cancelCompanionParticipation({
+        const cancelParticipation = requireAgentMethod(
+          runtime.agents.cancelCompanionParticipation,
+          'cancelCompanionParticipation',
+        );
+        const response = await cancelParticipation({
           ...companionParticipationRequest(context, input),
           projectionId: normalizeText(input.projectionId),
           turnId: normalizeText(input.turnId),

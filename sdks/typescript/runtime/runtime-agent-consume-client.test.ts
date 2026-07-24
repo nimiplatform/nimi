@@ -588,12 +588,6 @@ test('Runtime Agent consume client builds canonical Runtime Agent requests', asy
       subscribeAgentEvents() {
         throw new Error('unexpected');
       },
-      async requestCompanionParticipation() {
-        throw new Error('unexpected');
-      },
-      async cancelCompanionParticipation() {
-        throw new Error('unexpected');
-      },
     },
   };
 
@@ -781,12 +775,6 @@ test('Runtime Agent consume client registers Avatar live instance binding throug
       subscribeAgentEvents() {
         throw new Error('unexpected');
       },
-      async requestCompanionParticipation() {
-        throw new Error('unexpected');
-      },
-      async cancelCompanionParticipation() {
-        throw new Error('unexpected');
-      },
     },
   };
 
@@ -915,12 +903,6 @@ test('Runtime Agent consume client fails closed when Avatar binding projection i
         throw new Error('unexpected');
       },
       subscribeAgentEvents() {
-        throw new Error('unexpected');
-      },
-      async requestCompanionParticipation() {
-        throw new Error('unexpected');
-      },
-      async cancelCompanionParticipation() {
         throw new Error('unexpected');
       },
     },
@@ -1196,12 +1178,6 @@ test('Runtime Agent consume client parses public chat session snapshots', async 
         };
       },
       subscribeAgentEvents() {
-        throw new Error('unexpected');
-      },
-      async requestCompanionParticipation() {
-        throw new Error('unexpected');
-      },
-      async cancelCompanionParticipation() {
         throw new Error('unexpected');
       },
     },
