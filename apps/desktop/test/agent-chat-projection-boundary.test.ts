@@ -53,7 +53,7 @@ test('Agent Chat spec forbids draft, archive, rename, and offline transcript per
 
 test('Agent Chat store cutover is closed by Runtime and SDK replacement coverage', () => {
   const desktopSpec = readWorkspaceFile('.nimi/spec/desktop/agent-projection.authority.yaml');
-  const runtimeSpec = readWorkspaceFile('docs/authority/runtime-agent-service-rationale.md');
+  const runtimeSpec = readWorkspaceFile('.nimi/spec/runtime/agent-service.authority.yaml');
   const retiredStore = readAuthorityUnit(desktopSpec, 'rule.nimi.desktop.agent-projection.r026');
   const summaries = readAuthorityUnit(desktopSpec, 'rule.nimi.desktop.agent-projection.r028');
   const snapshotRecovery = readAuthorityUnit(desktopSpec, 'rule.nimi.desktop.agent-projection.r029');
@@ -81,29 +81,31 @@ test('Agent Chat store cutover is closed by Runtime and SDK replacement coverage
   assert.match(optimisticProjection, /Runtime session snapshots or runtime\.agent\.turn\.\*/);
   assert.match(offlineBoundary, /offline Agent Chat transcript product/);
 
-  assert.match(runtimeSpec, /K-AGCORE-006a/);
-  assert.match(runtimeSpec, /conversation summary listing scoped to the authenticated calling app/);
-  assert.match(runtimeSpec, /close \/ delete \/ clear policy/);
-  assert.match(runtimeSpec, /message-level delete \/ redact policy/);
-  assert.match(runtimeSpec, /explicit rejection of Agent Chat draft persistence/);
-  assert.match(runtimeSpec, /do not admit Desktop-local transcript/);
+  const replacementCoverage = readAuthorityUnit(runtimeSpec, 'rule.nimi.runtime.agent-service.r033');
+  assert.match(replacementCoverage, /conversation summary listing scoped to the authenticated calling app/);
+  assert.match(replacementCoverage, /close, delete, and clear policy/);
+  assert.match(replacementCoverage, /message-level delete and redact policy/);
+  assert.match(replacementCoverage, /explicit rejection of Agent Chat draft persistence/);
+  assert.match(replacementCoverage, /do not admit Desktop-local transcript/);
 });
 
 test('Runtime admits Agent Chat conversation summaries before store cutover implementation', () => {
-  const runtimeSpec = readWorkspaceFile('docs/authority/runtime-agent-service-rationale.md');
+  const runtimeSpec = readWorkspaceFile('.nimi/spec/runtime/agent-service.authority.yaml');
+  const summaryQuery = readAuthorityUnit(runtimeSpec, 'rule.nimi.runtime.agent-service.r034');
+  const conversationPolicy = readAuthorityUnit(runtimeSpec, 'rule.nimi.runtime.agent-service.r035');
+  const replayIdentity = readAuthorityUnit(runtimeSpec, 'rule.nimi.runtime.agent-service.r036');
+  const offlineRecovery = readAuthorityUnit(runtimeSpec, 'rule.nimi.runtime.agent-service.r037');
   const rpcMethods = readWorkspaceFile('config/runtime-rpc-methods.yaml');
   const sdkMethods = readWorkspaceFile('config/sdks-runtime-method-groups.yaml');
 
-  assert.match(runtimeSpec, /K-AGCORE-006b/);
-  assert.match(runtimeSpec, /ListAgentConversationSummaries/);
-  assert.match(runtimeSpec, /derived\s+presentation text/);
-  assert.match(runtimeSpec, /does not admit close, delete, clear, archive, rename, draft, or/);
-  assert.match(runtimeSpec, /rename and archive are not product surfaces/);
-  assert.match(runtimeSpec, /one active Agent Chat conversation per runtime source/);
-  assert.match(runtimeSpec, /K-AGCORE-006c/);
-  assert.match(runtimeSpec, /Runtime-owned replay identity fields/);
-  assert.match(runtimeSpec, /must not be re-derived differently by apps/);
-  assert.match(runtimeSpec, /does not admit offline Agent Chat transcript recovery/);
+  assert.match(summaryQuery, /ListAgentConversationSummaries/);
+  assert.match(summaryQuery, /derived presentation text/);
+  assert.match(summaryQuery, /does not admit close, delete, clear, archive, rename, draft, or/);
+  assert.match(conversationPolicy, /rename and archive are not product surfaces/);
+  assert.match(conversationPolicy, /one active Agent Chat conversation per runtime source/);
+  assert.match(replayIdentity, /Runtime-owned replay identity fields/);
+  assert.match(replayIdentity, /must not be re-derived differently by apps/);
+  assert.match(offlineRecovery, /does not admit offline Agent Chat transcript recovery/);
   assert.match(rpcMethods, /name: ListAgentConversationSummaries[\s\S]*?type: unary/);
   assert.match(sdkMethods, /service: RuntimeAgentService[\s\S]*?ListAgentConversationSummaries/);
 });

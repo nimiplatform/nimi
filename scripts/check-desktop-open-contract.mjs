@@ -263,7 +263,12 @@ if (/console\.(?:log|error|warn).*token/u.test(electronHost)) {
 }
 
 for (const [relPath, needles] of [
-  ['docs/authority/platform-core-protocol-rationale.md', ['desktop-electron-local-app-host']],
+  ['.nimi/spec/platform/core-protocol.authority.yaml', [
+    'id: rule.nimi.platform.core-protocol.p-dopen-007a',
+    'injects desktop-electron-local-app-host as sourceHost without application selection',
+    'id: rule.nimi.platform.core-protocol.p-dopen-table-source-hosts',
+    'Desktop Open sourceHost is exactly electron-standard-shell, tauri-standard-shell, desktop-electron-local-app-host, or dev-fixture',
+  ]],
   ['config/platform-desktop-open-intents.yaml', ['desktop-electron-local-app-host']],
   ['sdks/typescript/core/app/desktop-open.ts', ['desktop-electron-local-app-host']],
   ['apps/desktop/src-tauri/src/desktop_open_intent_parser.rs', ['desktop-electron-local-app-host']],
@@ -332,16 +337,6 @@ for (const vector of goldenVectors.accepted ?? []) {
   if (key && !targetEntries[intent.kind]?.has(key)) {
     failures.push(`${vector.id} is absent from the ${intent.kind} target catalog (${key})`);
   }
-}
-
-const desktopIndex = read('.nimi/spec/desktop/kernel/index.md');
-if (!desktopIndex.includes('config/desktop-open-targets.yaml')) {
-  failures.push('Desktop kernel index missing config/desktop-open-targets.yaml');
-}
-const platformIndex = read('.nimi/spec/platform/kernel/index.md');
-if (!platformIndex.includes('desktop-open-intent-contract.md')
-  || !platformIndex.includes('desktop-open-intents.yaml')) {
-  failures.push('Platform kernel index missing the Desktop Open contract or intent table');
 }
 
 const ownerContracts = [

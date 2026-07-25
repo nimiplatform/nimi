@@ -12,9 +12,9 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const FILES = {
-  avatarEvent: 'docs/authority/avatar-embodiment-rationale.md',
-  agentScript: 'docs/authority/avatar-embodiment-rationale.md',
-  runtimePresentation: 'docs/authority/runtime-agent-participation-rationale.md',
+  avatarEvent: '.nimi/spec/avatar/embodiment-surface.authority.yaml',
+  agentScript: '.nimi/spec/runtime/agent-participation.authority.yaml',
+  runtimePresentation: '.nimi/spec/runtime/agent-participation.authority.yaml',
   driverTypes: 'apps/avatar/src/shell/renderer/driver/types.ts',
   sdkDriver: 'apps/avatar/src/shell/renderer/sdk/SdkDriver.ts',
   eventDispatch: 'apps/avatar/src/shell/renderer/nas/event-dispatch.ts',
@@ -51,20 +51,22 @@ function requireExcludes(relPath, needles) {
   return text;
 }
 
-requireIncludes(FILES.runtimePresentation, ['apml_output', 'direct_api']);
+requireIncludes(FILES.runtimePresentation, [
+  'id: rule.nimi.runtime.agent-participation.r038',
+  'detail.source records provenance such as apml_output or direct_api',
+  'id: rule.nimi.runtime.agent-participation.r158',
+  'an apml_output source identifies validated Runtime APML projection',
+  'a direct_api source identifies a Runtime-admitted direct projection rather than an Avatar write',
+]);
+requireExcludes(FILES.runtimePresentation, ['a runtime_projection source identifies']);
 
 requireIncludes(FILES.avatarEvent, [
-  'source: enum(apml_output|direct_api|mock)',
-]);
-requireExcludes(FILES.avatarEvent, [
-  'source: enum(runtime_projection|direct_api)',
+  'id: rule.nimi.avatar.embodiment.r010',
+  'Embodiment projection emits only motion, expression, pose, lookat, speak, parameter_delta, and surface_bounds cues',
 ]);
 
 requireIncludes(FILES.agentScript, [
-  'source: "apml_output" | "direct_api" | "mock";',
-]);
-requireExcludes(FILES.agentScript, [
-  'source: "runtime_projection" | "direct_api";',
+  'Avatar-local, Desktop, shell, backend, provider, mock, or fixture events never become, mirror, or imply runtime.agent truth',
 ]);
 
 requireIncludes(FILES.driverTypes, [

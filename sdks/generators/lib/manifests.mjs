@@ -24,10 +24,10 @@ export function buildExportManifest(runtime, realm, errorCodes) {
       ...runtime.source_paths,
       ...realm.source_paths,
       ...errorCodes.source_paths,
-      'docs/authority/sdks-client-core-rationale.md',
+      '.nimi/spec/sdks/client-core.authority.yaml',
     ],
     provenance: {
-      source_rule: 'S-SURFACE-019',
+      source_rule: 'rule.nimi.sdks.client-core.r063',
     },
     languages,
     core_families: ['runtime', 'realm', 'types'],

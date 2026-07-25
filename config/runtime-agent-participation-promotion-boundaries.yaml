@@ -30,7 +30,7 @@ promotion_targets:
     owner_authority:
       - .nimi/spec/runtime/memory-world.authority.yaml
       - .nimi/spec/cognition/runtime-bridge.authority.yaml
-      - docs/authority/cognition-standalone-services-rationale.md
+      - .nimi/spec/cognition/standalone-services.authority.yaml
     owner_rule_families:
       - K-MEM-*
       - C-COG-*

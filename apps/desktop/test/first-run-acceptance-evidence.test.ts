@@ -89,14 +89,12 @@ const firstRunSetupChecklistSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/first-run/first-run-setup-checklist.ts'),
   'utf8',
 );
-const aiProfilePolicySource = readFileSync(
-  resolve(import.meta.dirname, '../../../docs/authority/platform-core-protocol-rationale.md'),
+const runtimeServiceOperationsAuthoritySource = readFileSync(
+  resolve(import.meta.dirname, '../../../.nimi/spec/runtime/service-operations.authority.yaml'),
   'utf8',
 );
-// S6 domain-3 W6: local-engine contract migrated to canonical authority; the
-// verbatim prose now lives in the rationale document.
-const runtimeLocalEnvironmentContractSource = readFileSync(
-  resolve(import.meta.dirname, '../../../docs/authority/runtime-local-compute-rationale.md'),
+const runtimeLocalComputeAuthoritySource = readFileSync(
+  resolve(import.meta.dirname, '../../../.nimi/spec/runtime/local-compute.authority.yaml'),
   'utf8',
 );
 
@@ -447,8 +445,10 @@ test('ready_for_use has no production renderer/Tauri mark-ready shortcut and rou
 });
 
 test('Runtime materialization orchestration is wired through SDK Runtime local client and no renderer mark-ready shortcut exists', () => {
-  assert.match(aiProfilePolicySource, /StartLocalEnvironmentDependencyJob/);
-  assert.match(runtimeLocalEnvironmentContractSource, /Dependency materialization and repair run as Runtime-owned jobs/);
+  assert.match(runtimeServiceOperationsAuthoritySource, /id: rule\.nimi\.runtime\.service-operations\.r010/);
+  assert.match(runtimeServiceOperationsAuthoritySource, /StartLocalEnvironmentDependencyJob, CancelLocalEnvironmentDependencyJob, RetryLocalEnvironmentDependencyJob, and RepairLocalEnvironmentDependency target Runtime dependency environments and Runtime job ids/);
+  assert.match(runtimeLocalComputeAuthoritySource, /id: rule\.nimi\.runtime\.local-compute\.r070/);
+  assert.match(runtimeLocalComputeAuthoritySource, /those tasks run as Runtime-owned background jobs or health maintainers/);
   assert.match(productionFirstRunPortSource, /firstRunRuntimeLocalClient/);
   assert.doesNotMatch(runtimeMaterializationSource, /firstRunRuntimeLocalClient/);
   assert.match(runtimeMaterializationSource, /resolveNimiFirstRunMaterializationProjection/);

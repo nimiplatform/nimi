@@ -10,7 +10,6 @@ export const MODES = Object.freeze([
 ]);
 
 export const AUTHORITY_PATHS = Object.freeze({
-  contract: 'docs/authority/runtime-protected-session-rationale.md',
   osProfiles: 'config/spec-frozen/runtime/tables/protected-local-os-profiles.yaml',
   runtimePrincipals: 'config/spec-frozen/runtime/tables/protected-local-runtime-principal-profiles.yaml',
   custodyProfiles: 'config/spec-frozen/runtime/tables/protected-local-custody-profiles.yaml',

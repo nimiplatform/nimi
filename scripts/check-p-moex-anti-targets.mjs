@@ -56,7 +56,6 @@ const ALLOWLIST = new Set([
   '.nimi/spec/platform/kernel/index.md',
   '.nimi/spec/platform/app-ecosystem.authority.yaml',
   '.nimi/spec/sdks/feature-clients.authority.yaml',
-  'docs/authority/platform-app-ecosystem-rationale.md',
   'scripts/check-no-public-mod-extension-admission.mjs',
   'scripts/check-p-moex-anti-targets.mjs',
 ]);

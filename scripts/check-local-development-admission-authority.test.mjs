@@ -43,9 +43,9 @@ for (const filename of fs.readdirSync(fixtureDir).filter((entry) => entry.endsWi
   });
 }
 
-test('gate rejects loss of required v2 prose rather than accepting a machine-table-only claim', () => {
+test('gate rejects loss of a required canonical unit statement rather than accepting a machine-table-only claim', () => {
   const bundle = loadAuthorityBundle();
-  bundle.platform = bundle.platform.replace('The global Developer Mode toggle grants nothing.', 'The toggle determines project authority.');
+  bundle.platform = bundle.platform.replace('the global Developer Mode grants nothing', 'the global Developer Mode determines project authority');
   const issues = validateLocalDevelopmentAuthority(bundle);
   assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_AUTHORITY_CLAUSE_MISSING'));
 });
@@ -104,7 +104,7 @@ test('authority input paths remain canonical spec files or tracked config inputs
   assert.equal(authorityPaths.desktopControls, 'config/desktop-local-app-control-surfaces.yaml');
   for (const [key, relative] of Object.entries(authorityPaths)) {
     if (key !== 'desktopControls') {
-      assert.match(relative, /^(?:\.nimi\/spec\/|config\/|docs\/authority\/)/u);
+      assert.match(relative, /^(?:\.nimi\/spec\/|config\/)/u);
     }
   }
 });

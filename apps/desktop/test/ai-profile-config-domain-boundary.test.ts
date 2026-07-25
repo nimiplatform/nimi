@@ -86,7 +86,7 @@ test('built-in first-run AIConfig evidence is Desktop host placement over canoni
 
 test('Account Default Profile library is account-local evidence, not scope AIConfig mutation', () => {
   const localConfigRegistry = read('config/platform-local-config-file-registry.yaml');
-  const policy = read('docs/authority/platform-core-protocol-rationale.md');
+  const policy = read('.nimi/spec/platform/core-protocol.authority.yaml');
   const accountProfileLibrary = readRustModule(
     'apps/desktop/src-tauri/src/account_profile_library.rs',
     'apps/desktop/src-tauri/src/account_profile_library',
@@ -100,7 +100,9 @@ test('Account Default Profile library is account-local evidence, not scope AICon
   const profileLibraryStore = read('apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-profile-library.ts');
 
   assert.doesNotMatch(localConfigRegistry, /schema_owner: account_profile_library/);
-  assert.match(policy, /Account Default Profile 是 account-scoped local AI profile library default/);
+  assert.match(policy, /id: definition\.nimi\.platform\.core-protocol\.account-default-profile/);
+  assert.match(policy, /The Account Default Profile is the durable account-scoped local profile-library record/);
+  assert.match(policy, /seeded or restored during first-run and never sourced from Realm identity material or an ambient projection/);
 
   assert.match(accountProfileLibrary, /account_default_profile_path/);
   assert.match(accountProfileLibrary, /~\/\.nimi\/accounts\/<account-id>\/profiles\/default\.json/);

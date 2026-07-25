@@ -4,10 +4,22 @@ import { validateSdkLocalAppAuthority } from './lib/sdk-local-app-authority-chec
 
 function positiveFixture() {
   return {
-    appClient: 'local-app standardShell base entitlements public-permission',
-    runtime: 'LOCAL_APP principal',
-    transport: 'host-injected request-empty',
-    index: 'nimi-app-client-contract.md',
+    appClient: [
+      'id: rule.nimi.sdks.feature-clients.r034',
+      'local-app maps only to the Runtime LOCAL_APP caller where the SDK receives a host-injected typed standard-shell carrier',
+      'a valid session projects as session-bound independently of every permission so base entitlements may work while protected permissions remain unavailable',
+      'id: rule.nimi.sdks.feature-clients.r040',
+      'permissions.status and permissions.request map only to Runtime GetLocalAppPermissionStatus and RequestLocalAppPermission',
+    ].join('\n'),
+    runtime: [
+      'id: rule.nimi.sdks.client-core.r041',
+      'app-private storage is a base entitlement succeeding for a live principal, session, and account partition without a user permission',
+    ].join('\n'),
+    transport: [
+      'The SDK local-development transport is host-injected by Kit and never renderer-constructed',
+      'request-empty OpenLocalAppSession',
+      'missing operation families remain typed unavailable',
+    ].join('\n'),
     methodGroups: {
       groups: [
         { group: 'auth_service_projection', methods: ['OpenLocalAppSession'] },
@@ -40,7 +52,7 @@ test('rejects retired session vocabulary and an incomplete final method group', 
 
 test('rejects a carrier that omits base entitlement posture', () => {
   const fixture = positiveFixture();
-  fixture.appClient = fixture.appClient.replace('base entitlements', 'authenticated');
+  fixture.appClient = fixture.appClient.replace('base entitlements may work', 'authenticated operations may work');
   const errors = validateSdkLocalAppAuthority(fixture);
   assert.ok(errors.some((error) => error.includes('base entitlements')));
 });

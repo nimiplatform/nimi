@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const THROTTLED_EMIT = 'apps/avatar/src/shell/renderer/app-shell/throttled-emit.ts';
 const EMBODIMENT_STAGE = 'apps/avatar/src/shell/renderer/embodiment-stage/embodiment-stage.tsx';
-const SMOOTHING_CONTRACT = 'docs/authority/avatar-embodiment-rationale.md';
+const SMOOTHING_CONTRACT = '.nimi/spec/avatar/embodiment-surface.authority.yaml';
 const PROJECTION_SMOOTHING = 'kit/features/avatar/src/avatar-projection-smoothing.ts';
 const PROJECTION_SMOOTHING_TEST = 'kit/features/avatar/test/avatar-projection-smoothing.test.ts';
 const AVATAR_CARRIER = 'apps/avatar/src/shell/renderer/carrier/avatar-carrier.ts';
@@ -83,13 +83,15 @@ requireExcludes(EMBODIMENT_STAGE, [
 ]);
 
 requireIncludes(SMOOTHING_CONTRACT, [
-  'K-AGCORE-051',
-  'setSignal',
-  'addSignal',
-  'getSignal',
-  'triggerMotion',
-  'setExpression',
-  'voice/lipsync modules are not part of the smoothing implementation',
+  'id: definition.nimi.avatar.embodiment.renderer-smoothing',
+  'coalesces setSignal writes',
+  'accumulates addSignal writes',
+  'id: rule.nimi.avatar.embodiment.r015',
+  'AV-PROJ-SMOOTH-002 signal-only smoothing',
+  'flushes before triggerMotion, stopMotion, setExpression, clearExpression, setPose, clearPose, wait, getSurfaceBounds, or runDefaultActivity',
+  'id: rule.nimi.avatar.embodiment.r016',
+  'AV-PROJ-SMOOTH-003 no cue authority',
+  'Runtime ordering, activity, expression, motion, speech, lipsync, provenance, readiness, or generated-motion truth',
 ]);
 
 requireIncludes(PROJECTION_SMOOTHING, [

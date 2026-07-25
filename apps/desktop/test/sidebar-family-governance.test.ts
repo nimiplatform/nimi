@@ -25,8 +25,8 @@ const settingsPanelSource = readWorkspace('src/shell/renderer/features/settings/
 const desktopStylesSource = readWorkspace('src/shell/renderer/styles.css');
 const adoptionTable = readRepo('config/desktop-shell-ui-kit-adoption.yaml');
 const compositionsTable = readRepo('config/desktop-shell-ui-kit-compositions.yaml');
-const designContractSource = readRepo('docs/authority/platform-ui-design-system-rationale.md');
-const designOverviewSource = readRepo('docs/authority/platform-ui-design-system-rationale.md');
+const designContractSource = readRepo('.nimi/spec/platform/ui-design-system.authority.yaml');
+const desktopShellUiAuthoritySource = readRepo('.nimi/spec/desktop/shell-ui.authority.yaml');
 
 test('desktop kit registries align with the desktop chat relationship rail refactor', () => {
   assert.doesNotMatch(adoptionTable, /features\/chats\/chat-list\.tsx/);
@@ -51,14 +51,17 @@ test('desktop kit registries align with the desktop chat relationship rail refac
   assert.match(compositionsTable, /component: MainLayoutSettingsMenu/);
 });
 
-test('sidebar family contract is anchored in platform design authority', () => {
-  assert.match(designContractSource, /P-DESIGN-014/u);
-  assert.match(designContractSource, /P-DESIGN-020/u);
-  assert.match(designContractSource, /P-DESIGN-090/u);
-  assert.match(designContractSource, /shared primitive families/i);
-  assert.match(designContractSource, /@nimiplatform\/kit\/ui/u);
-  assert.match(designOverviewSource, /does not define product rules/u);
-  assert.match(designOverviewSource, /\.nimi\/spec\/platform\/kernel\/design-pattern-contract\.md/u);
+test('sidebar family contract is anchored in platform and Desktop authority', () => {
+  assert.match(designContractSource, /id: rule\.nimi\.platform\.ui-design-system\.p-design-001a/u);
+  assert.match(designContractSource, /single cross-app authority for shared primitive families/u);
+  assert.match(designContractSource, /id: rule\.nimi\.platform\.ui-design-system\.p-design-010/u);
+  assert.match(designContractSource, /Kit delivers accessible token-styled shared primitives for surface, action, overlay, sidebar/u);
+  assert.match(designContractSource, /id: rule\.nimi\.platform\.ui-design-system\.p-design-014/u);
+  assert.match(designContractSource, /Shared sidebars and shell navigation use the nimi-sidebar-v1 family/u);
+  assert.match(desktopShellUiAuthoritySource, /id: rule\.nimi\.desktop\.shell-ui\.r023/u);
+  assert.match(desktopShellUiAuthoritySource, /Runtime Config and Settings use desktop-sidebar-v1/u);
+  assert.match(desktopShellUiAuthoritySource, /id: rule\.nimi\.desktop\.shell-ui\.r025/u);
+  assert.match(desktopShellUiAuthoritySource, /route dynamic width through SidebarShell and SidebarResizeHandle/u);
 });
 
 test('governed sidebar modules import and use the shared sidebar primitive', () => {

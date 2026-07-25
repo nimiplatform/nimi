@@ -82,7 +82,7 @@ invariants:
   - "Diagnostics never widen public APML, Runtime activity, MCP, A2A, or SDK ontology."
 
 refs:
-  markdown_contract: "docs/authority/avatar-embodiment-rationale.md"
+  markdown_contract: ".nimi/spec/avatar/embodiment-surface.authority.yaml"
   manifest_schema: "config/avatar-live2d-adapter-manifest.schema.yaml"
   tier_table: "config/avatar-live2d-compatibility-tiers.yaml"
 

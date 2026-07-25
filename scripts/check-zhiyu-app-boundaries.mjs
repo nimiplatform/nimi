@@ -189,12 +189,12 @@ function checkConfigBoundary() {
     ...walkFiles('apps/zhiyu/src/shell/avatar'),
     ...walkFiles('apps/zhiyu/src-electron'),
   ];
-  requireFileIncludes('docs/authority/zhiyu-local-partner-surface-rationale.md', [
-    'Z-CONFIG-005',
-    'Retired Agent Center Local Config Bridge',
+  requireFileIncludes('.nimi/spec/zhiyu/local-partner-surface.authority.yaml', [
+    'id: rule.nimi.zhiyu.local-partner-surface.r028',
+    'Z-CONFIG-005 retired app-local configuration remains absent',
     '__nimiZhiyuAgentCenterLocalConfig',
-    'Kit Shell standard `agent-center`',
-    'Runtime `AgentPresentationProfile`',
+    'zhiyu:agent-center-local-config',
+    'avatar_autoplay remains only in Runtime AgentPresentationProfile',
   ]);
   requireFileIncludes(`${tablesRoot}/zhiyu-local-persistence-boundary.yaml`, [
     'agent_center_local_config_hardcut',

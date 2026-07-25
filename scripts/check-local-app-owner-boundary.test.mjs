@@ -11,10 +11,9 @@ const repoRoot = path.resolve(scriptDir, '..');
 const gateRelative = 'scripts/check-local-app-owner-boundary.mjs';
 const bundleFiles = [
   gateRelative,
-  'docs/authority/runtime-protected-session-rationale.md',
-  'docs/authority/platform-app-ecosystem-rationale.md',
-  'docs/authority/platform-ui-design-system-rationale.md',
-  'docs/authority/platform-app-ecosystem-rationale.md',
+  '.nimi/spec/runtime/protected-session.authority.yaml',
+  '.nimi/spec/platform/app-ecosystem.authority.yaml',
+  '.nimi/spec/platform/ui-design-system.authority.yaml',
   'config/platform-standard-shell-capabilities.yaml',
   '.nimi/spec/desktop/shell-runtime.authority.yaml',
 ];
@@ -82,18 +81,18 @@ test('baseline and independent negative fixtures bind the final local-app author
 
 test('rejects widening a zero-permission session into protected authority', async () => {
   await mutateAndReject(
-    'docs/authority/runtime-protected-session-rationale.md',
-    'session is valid origin proof and may use only base entitlements',
-    'session is valid origin proof and may use protected resources',
+    '.nimi/spec/runtime/protected-session.authority.yaml',
+    'a zero-permission session is valid origin proof and may use only base entitlements',
+    'a zero-permission session is valid origin proof and may use protected resources',
     'ZERO_PERMISSION_BOUNDARY_MISSING',
   );
 });
 
 test('rejects positive immutable package behavior before 0P', async () => {
   await mutateAndReject(
-    'docs/authority/platform-app-ecosystem-rationale.md',
-    'Immutable positive package behavior remains unavailable until 0P.',
-    'Immutable positive package behavior is available before 0P.',
+    '.nimi/spec/platform/app-ecosystem.authority.yaml',
+    'positive immutable behavior remains unavailable until admitted.',
+    'positive immutable behavior is available before admission.',
     'IMMUTABLE_PACKAGE_UNAVAILABLE_MISSING',
   );
 });

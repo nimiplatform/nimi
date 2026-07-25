@@ -9,7 +9,7 @@ description: >
   Closed Avatar-owned surface-kind vocabulary for companion participation
   consumers. These rows define consumer projection/control posture only; they
   do not create execution authority.
-source_contract: docs/authority/avatar-embodiment-rationale.md
+source_contract: .nimi/spec/avatar/embodiment-surface.authority.yaml
 surface_kinds: &companion_participation_surface_kind_surfaces
   avatar_companion:
     owner: avatar

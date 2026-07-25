@@ -3,9 +3,9 @@
   "generated_by": "sdks/generators/generate.mjs",
   "source_kind": "sdk_spec_rule",
   "source_paths": [
-    "docs/authority/sdks-client-core-rationale.md"
+    ".nimi/spec/sdks/client-core.authority.yaml"
   ],
-  "source_rule": "S-SURFACE-019",
+  "source_rule": "rule.nimi.sdks.client-core.r063",
   "languages": [
     "typescript",
     "python",

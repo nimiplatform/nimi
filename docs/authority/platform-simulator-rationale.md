@@ -1,6 +1,8 @@
 # Platform Simulator - Rationale
 
 > 本文为 rationale/历史散文,非规范权威;规范 = `.nimi/spec/platform/simulator.authority.yaml`。
+>
+> **已被取代：** 下文早于 2026-07-25 重设计；其中对 landing page 的否定已失效，`.nimi/spec/platform/simulator.authority.yaml` 是唯一事实来源。
 
 ---
 

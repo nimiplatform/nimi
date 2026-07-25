@@ -121,7 +121,6 @@
     "check:no-portable-privileged-session": "node scripts/check-protected-local-authority.mjs --mode no-portable-privileged-session",
     "check:protected-local-trust-set-isolation": "node scripts/check-protected-local-authority.mjs --mode protected-local-trust-set-isolation",
     "check:local-app-carrier-behavior": "node scripts/check-local-app-carrier-behavior.mjs",
-    "check:public-raw-token-authority-hardcut": "node --test scripts/check-public-raw-token-authority.test.mjs && node scripts/check-public-raw-token-authority.mjs",
     "check:no-public-runtime-account-token": "node --test scripts/check-no-public-runtime-account-token.test.mjs && node scripts/check-no-public-runtime-account-token.mjs",
     "check:sdk-local-app-protected-carrier": "node scripts/check-runtime-account-broker.mjs sdk-local-app-protected-carrier",
     "check:kit-runtime-account-broker-parity": "node scripts/check-runtime-account-broker.mjs kit-runtime-account-broker-parity",

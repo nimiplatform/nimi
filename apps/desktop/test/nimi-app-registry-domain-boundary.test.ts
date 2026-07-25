@@ -10,8 +10,8 @@ const retiredPackageKindPattern = new RegExp(`package_kind:\\s*(${['public', 'mo
 
 describe('Nimi App registry/admission domain boundary', () => {
   it('keeps admission, registry, and release descriptor authority in platform spec tables', () => {
-    const admissionContract = readRepo('docs/authority/platform-app-ecosystem-rationale.md');
-    const appSliceContract = readRepo('docs/authority/platform-authority-admission-rationale.md');
+    const admissionContract = readRepo('.nimi/spec/platform/app-ecosystem.authority.yaml');
+    const appSliceContract = readRepo('.nimi/spec/platform/authority-admission.authority.yaml');
     const registryTable = readRepo('config/platform-nimi-app-registry.yaml');
     const releaseDescriptors = readRepo(
       'config/platform-nimi-app-release-descriptors.yaml',
@@ -20,12 +20,14 @@ describe('Nimi App registry/admission domain boundary', () => {
       'config/platform-local-config-file-registry.yaml',
     );
 
-    assert.match(admissionContract, /Platform (owns|拥有) verified Nimi App catalog\/release admission/);
-    assert.match(admissionContract, /Apps 不得拥有 admission truth/);
-    assert.match(admissionContract, /tables\/nimi-app-registry\.yaml/);
-    assert.match(admissionContract, /tables\/nimi-app-release-descriptors\.yaml/);
-    assert.match(appSliceContract, /only repo-wide admission source for app-local spec slices/);
-    assert.match(appSliceContract, /must not claim repo-wide semantics/);
+    assert.match(admissionContract, /id: rule\.nimi\.platform\.app-ecosystem\.p-napp-001a/);
+    assert.match(admissionContract, /Platform owns verified catalog and release admission/);
+    assert.match(admissionContract, /id: rule\.nimi\.platform\.app-ecosystem\.p-napp-009a/);
+    assert.match(admissionContract, /Apps consumes only admitted registry, package, and SDK projection satisfying the complete listing closure/);
+    assert.match(appSliceContract, /id: rule\.nimi\.platform\.authority-admission\.p-app-001/);
+    assert.match(appSliceContract, /claims repo-wide or independent authority merely from its location/);
+    assert.match(appSliceContract, /id: rule\.nimi\.platform\.authority-admission\.p-app-002/);
+    assert.match(appSliceContract, /claims semantics outside its own local shell, renderer, Tauri host, route, package, fixture, or app-specific feature boundary/);
 
     assert.doesNotMatch(registryTable, retiredPackageKindPattern);
     assert.doesNotMatch(releaseDescriptors, retiredPackageKindPattern);

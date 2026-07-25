@@ -14,12 +14,13 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const FILES = {
-  avatarContract: 'docs/authority/runtime-agent-participation-rationale.md',
-  avatarIndex: 'docs/authority/runtime-agent-participation-rationale.md',
-  avatarEvent: 'docs/authority/avatar-embodiment-rationale.md',
-  agentScript: 'docs/authority/avatar-embodiment-rationale.md',
-  runtimeParticipationPolicy: 'docs/authority/runtime-agent-participation-rationale.md',
-  runtimePresentation: 'docs/authority/runtime-agent-participation-rationale.md',
+  avatarContract: '.nimi/spec/runtime/agent-participation.authority.yaml',
+  avatarIndex: '.nimi/spec/runtime/agent-participation.authority.yaml',
+  avatarEvent: '.nimi/spec/runtime/agent-participation.authority.yaml',
+  agentScript: '.nimi/spec/runtime/agent-participation.authority.yaml',
+  avatarProjection: '.nimi/spec/avatar/embodiment-surface.authority.yaml',
+  runtimeParticipationPolicy: '.nimi/spec/runtime/agent-participation.authority.yaml',
+  runtimePresentation: '.nimi/spec/runtime/agent-participation.authority.yaml',
   externalBoundaryTable: 'config/runtime-agent-participation-external-entry-boundaries.yaml',
   driverTypes: 'apps/avatar/src/shell/renderer/driver/types.ts',
   sdkDriver: 'apps/avatar/src/shell/renderer/sdk/SdkDriver.ts',
@@ -93,31 +94,22 @@ function walk(dirRel) {
 }
 
 requireIncludes(FILES.avatarContract, [
-  'K-AGCORE-079..094',
-  'agent-participation-external-entry-boundaries.yaml',
-  'K-DELEG-100..119',
-  'K-DELEG-120..129',
-  'direct_api` means Runtime-admitted direct projection provenance',
-  'Avatar MUST NOT expose or own',
-  'an Avatar-local HTTP endpoint',
-  'an Avatar-local WebSocket endpoint',
-  'a Petdex-style `/state` protocol',
-  'token posture for local driver writes',
-  'rate-limit posture for local driver writes',
-  'user-consent posture for local driver writes',
-  'External-entry presentation consumption must remain render-only',
-  'Refusal must use admitted degraded/debug surfaces',
+  'id: rule.nimi.runtime.agent-participation.r148',
+  'External entry is typed render-only projection',
+  'direct_api means Runtime-admitted direct projection rather than direct app write authority',
+  'Avatar never turns the projection into memory or cognition writes',
+  'id: rule.nimi.runtime.agent-participation.r149',
+  'Avatar exposes or owns an Avatar-local HTTP, WebSocket, browser-reachable, localhost state, or equivalent driver endpoint',
+  'local-driver token, rate-limit, consent, credential-custody, provider-routing, or protocol-adapter authority',
+  'render the typed degraded or refusal projection',
 ]);
 
-requireIncludes(FILES.avatarIndex, ['avatar-external-entry-consumer-contract.md']);
+requireIncludes(FILES.avatarIndex, ['[avatar-external-entry-consumer-contract]']);
 
 requireIncludes(FILES.runtimeParticipationPolicy, [
-  'K-AGCORE-089 External Entry Boundary Matrix',
-  'K-AGCORE-090 MCP-Backed AI Capability Entry',
-  'K-AGCORE-091 Future A2A External Agent Entry',
-  'K-AGCORE-092',
-  'K-AGCORE-093',
-  'K-AGCORE-094',
+  'definition.nimi.runtime.agent-participation.external-entry-plane',
+  'Runtime-admitted typed presentation projection',
+  'required gateway, firewall when applicable, credential-custody, consent, and audit verdict references',
 ]);
 
 requireIncludes(FILES.externalBoundaryTable, [
@@ -133,17 +125,26 @@ requireIncludes(FILES.externalBoundaryTable, [
 ]);
 
 requireIncludes(FILES.runtimePresentation, [
-  'detail.source` records provenance such as `apml_output` or `direct_api`',
+  'detail.source records provenance such as apml_output or direct_api',
 ]);
 
-requireIncludes(FILES.avatarEvent, ['source: enum(apml_output|direct_api|mock)']);
-requireIncludes(FILES.agentScript, ['source: "apml_output" | "direct_api" | "mock";']);
+requireIncludes(FILES.avatarEvent, [
+  'id: rule.nimi.runtime.agent-participation.r158',
+  'an apml_output source identifies validated Runtime APML projection',
+  'a direct_api source identifies a Runtime-admitted direct projection rather than an Avatar write',
+]);
+requireIncludes(FILES.agentScript, ['Avatar-local, Desktop, shell, backend, provider, mock, or fixture events never become, mirror, or imply runtime.agent truth']);
+requireIncludes(FILES.avatarProjection, [
+  'id: rule.nimi.avatar.embodiment.r010',
+  'Embodiment projection emits only motion, expression, pose, lookat, speak, parameter_delta, and surface_bounds cues',
+  'Reject an unknown cue, semantic writeback, fabricated voice or lipsync state',
+]);
 requireIncludes(FILES.driverTypes, ["export type ActivitySource = 'apml_output' | 'direct_api' | 'mock';"]);
 requireIncludes(FILES.sdkDriver, ['requireRuntimeProjectionSource']);
 requireIncludes(FILES.sdkDriverHelpers, ["value === 'apml_output' || value === 'direct_api'"]);
 requireIncludes(FILES.eventDispatch, ["source !== 'apml_output' && source !== 'direct_api'"]);
 
-for (const relPath of [FILES.avatarEvent, FILES.agentScript, FILES.driverTypes, FILES.sdkDriver, FILES.eventDispatch]) {
+for (const relPath of [FILES.driverTypes, FILES.sdkDriver, FILES.eventDispatch]) {
   requireExcludes(relPath, [
     'source: enum(runtime_projection|direct_api)',
     'source: "runtime_projection" | "direct_api"',

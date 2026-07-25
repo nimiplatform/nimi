@@ -100,25 +100,28 @@ function collectForbidden(source, relPath, checks, findings) {
 async function checkSpec() {
   const findings = [];
   const scanned = [];
-  const contractPath = 'docs/authority/platform-ui-design-system-rationale.md';
+  const contractPath = '.nimi/spec/platform/ui-design-system.authority.yaml';
   const registryPath = 'config/platform-nimi-kit-registry.yaml';
   const desktopKitPath = '.nimi/spec/desktop/shell-ui.authority.yaml';
   const desktopConversationPath = '.nimi/spec/desktop/agent-projection.authority.yaml';
-  const zhiyuPath = 'docs/authority/zhiyu-local-partner-surface-rationale.md';
-  const avatarPath = 'docs/authority/runtime-agent-participation-rationale.md';
+  const zhiyuPath = '.nimi/spec/zhiyu/local-partner-surface.authority.yaml';
+  const avatarPath = '.nimi/spec/runtime/agent-participation.authority.yaml';
 
   if (!await exists(contractPath)) {
     findings.push(`${contractPath}: missing Agent Center contract`);
   } else {
     const source = await readText(contractPath);
     scanned.push(contractPath);
-    assertContains(source, 'kit.features.agent-center', 'Kit Agent Center admission', contractPath, findings);
-    assertContains(source, 'Surface Ownership Matrix', 'surface ownership matrix', contractPath, findings);
-    assertContains(source, 'Desktop `ChatSettingsPanel` injected as `modelContent`', 'Desktop ChatSettingsPanel classification', contractPath, findings);
-    assertContains(source, 'Zhiyu `AgentCenterCapabilityProbePanel` / Capability Studio', 'Zhiyu capability tooling classification', contractPath, findings);
-    assertContains(source, 'Runtime Agent AI Config-owned', 'audio and voice workflow owner decision', contractPath, findings);
-    assertContains(source, 'Agent Center may render and edit them only through the admitted Runtime/SDK ai-config adapter', 'audio and voice workflow editable adapter decision', contractPath, findings);
-    assertContains(source, '`local_history` and `ui.last_section` are dropped without replacement', 'local_history and ui.last_section owner decision', contractPath, findings);
+    assertContains(source, 'id: rule.nimi.platform.ui-design-system.p-agent-center-001a', 'Kit Agent Center ownership unit', contractPath, findings);
+    assertContains(source, 'Kit owns the reusable Agent Center layout, sections, state assembly, typed controls, appearance feature behavior', 'Kit Agent Center reusable ownership', contractPath, findings);
+    assertContains(source, 'id: rule.nimi.platform.ui-design-system.p-agent-center-001b', 'Agent Center non-ownership unit', contractPath, findings);
+    assertContains(source, 'Kit Agent Center owns Runtime Agent execution, lifecycle, memory, event, transcript, AI configuration persistence', 'Runtime truth non-ownership', contractPath, findings);
+    assertContains(source, 'id: rule.nimi.platform.ui-design-system.p-agent-center-003', 'Agent Center persistence boundary unit', contractPath, findings);
+    assertContains(source, 'dropped local history or last-section state', 'local history and last-section owner decision', contractPath, findings);
+    assertContains(source, 'id: rule.nimi.platform.ui-design-system.p-agent-center-004', 'voice workflow adapter unit', contractPath, findings);
+    assertContains(source, 'only through the Runtime AI configuration adapter', 'audio and voice workflow editable adapter decision', contractPath, findings);
+    assertContains(source, 'id: rule.nimi.platform.ui-design-system.p-agent-center-006a', 'Agent Center child allocation unit', contractPath, findings);
+    assertContains(source, 'partner apps retain partner chrome and developer tooling outside', 'partner tooling classification', contractPath, findings);
   }
 
   for (const relPath of [registryPath, desktopKitPath, desktopConversationPath, zhiyuPath, avatarPath]) {
@@ -143,11 +146,14 @@ async function checkSpec() {
   assertContains(desktopConversation, 'id: rule.nimi.desktop.agent-projection.r095', 'Desktop Agent Chat AI config boundary', desktopConversationPath, findings);
 
   const zhiyu = await readText(zhiyuPath);
-  assertContains(zhiyu, 'Z-CONFIG-006 Kit Agent Center Consumer Boundary', 'Zhiyu Kit consumer boundary', zhiyuPath, findings);
-  assertContains(zhiyu, '`voice.avatar_autoplay` | Retired as host-local preference. Runtime `AgentPresentationProfile.avatar_autoplay` is the single persistent home.', 'Zhiyu voice owner decision', zhiyuPath, findings);
+  assertContains(zhiyu, 'id: rule.nimi.zhiyu.local-partner-surface.r029', 'Zhiyu Kit consumer boundary', zhiyuPath, findings);
+  assertContains(zhiyu, 'developer tools, app-specific diagnostics, Capability Studio', 'Zhiyu tooling placement boundary', zhiyuPath, findings);
+  assertContains(zhiyu, 'id: rule.nimi.zhiyu.local-partner-surface.r028', 'Zhiyu retired local config unit', zhiyuPath, findings);
+  assertContains(zhiyu, 'avatar_autoplay remains only in Runtime AgentPresentationProfile', 'Zhiyu voice owner decision', zhiyuPath, findings);
 
   const avatar = await readText(avatarPath);
-  assertContains(avatar, 'Agent Center Appearance Boundary', 'Avatar appearance boundary', avatarPath, findings);
+  assertContains(avatar, 'id: rule.nimi.runtime.agent-participation.r021', 'Runtime presentation profile unit', avatarPath, findings);
+  assertContains(avatar, 'avatar_autoplay is the single persistent per-agent autoplay home never mirrored into app-local Agent Center config', 'Runtime appearance persistence boundary', avatarPath, findings);
 
   return { name: 'spec', findings, scanned };
 }

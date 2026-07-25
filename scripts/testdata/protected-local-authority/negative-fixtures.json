@@ -1,15 +1,5 @@
 [
   {
-    "fixture_id": "retired-installed-host-role-reappears",
-    "code": "RETIRED_PUBLIC_VOCABULARY_FORBIDDEN",
-    "target": "docs/authority/runtime-protected-session-rationale.md",
-    "mutation": {
-      "kind": "replace_exact",
-      "from": "protected-local transport identity, process-bound Desktop control sessions,",
-      "to": "protected-local transport identity, installed_host process-bound Desktop control sessions,"
-    }
-  },
-  {
     "fixture_id": "sid-partition-allows-two-active-anchors",
     "code": "SID_PARTITION_REQUIRED",
     "target": "config/spec-frozen/runtime/tables/local-app-principal-record-schema.yaml",

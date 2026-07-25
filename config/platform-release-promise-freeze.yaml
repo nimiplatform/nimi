@@ -52,7 +52,7 @@ capabilities:
     posture: supported
     owner_domain: platform
     authority_refs:
-      - docs/authority/platform-governance-release-rationale.md#P-GOV-026
+      - .nimi/spec/platform/governance-release.authority.yaml#rule.nimi.platform.governance-release.p-gov-026-positioning
     login_requirement: not_applicable
     public_promise: Nimi product positioning is fixed to the positioning statement in this table.
     failure_behavior: Conflicting public copy must be corrected before release publication.
@@ -104,7 +104,7 @@ capabilities:
       - .nimi/spec/runtime/local-compute.authority.yaml
       - .nimi/spec/runtime/local-compute.authority.yaml
       - .nimi/spec/runtime/local-compute.authority.yaml
-      - docs/authority/platform-governance-release-rationale.md#P-GOV-026
+      - .nimi/spec/platform/governance-release.authority.yaml#rule.nimi.platform.governance-release.p-gov-026-degraded-local-claims
     login_requirement: local_runtime_allowed
     public_promise: Runtime-reachable local AI and current-renderer local agent interaction may operate when Realm is unavailable, without claiming Realm sync, social, economy, or account success.
     failure_behavior: Realm commit, account mutation, economy, source-provenance materialization, and cross-device state fail closed or remain explicit pending intent; local outbox never equals Realm truth.
@@ -203,7 +203,7 @@ capabilities:
     authority_refs:
       - .nimi/spec/runtime/memory-world.authority.yaml#K-MEM-001
       - .nimi/spec/runtime/agent-service.authority.yaml#K-AGCORE-004
-      - docs/authority/cognition-standalone-services-rationale.md
+      - .nimi/spec/cognition/standalone-services.authority.yaml#definition.nimi.cognition.standalone-services.memory-service
     login_requirement: realm_login_required
     public_promise: Runtime owns local canonical agent memory policy, bank status projection, query/write admission, and explicit Realm replication outcome when enabled.
     failure_behavior: Missing substrate, invalid scope, unresolved embedding profile, Realm replication failure, or app-private canonical-write attempt fails closed or surfaces observable pending/conflict state.
@@ -237,7 +237,7 @@ capabilities:
       - .nimi/spec/runtime/agent-participation.authority.yaml#K-AGCORE-043
       - .nimi/spec/runtime/agent-participation.authority.yaml#K-AGCORE-037
       - config/runtime-agent-event-projection.yaml
-      - docs/authority/platform-app-ecosystem-rationale.md#P-PERM-012
+      - .nimi/spec/platform/app-ecosystem.authority.yaml#rule.nimi.platform.app-ecosystem.p-perm-012
     login_requirement: realm_login_required
     public_promise: Runtime may expose the bounded `proactive_interruptibility_v1` in-app projection for default-off opt-in Life Track suggestions, delivered/suppressed state, quiet_hours, frequency_cap, permission state, delivery_channel, suppression_reason, and audit refs.
     failure_behavior: Missing opt-in, denied/revoked permission, quiet_hours active, frequency_cap exceeded, scheduler denial, Runtime unavailable, unsupported delivery channel, or missing audit ref suppresses delivery with typed Runtime/host projection; no renderer timer, app scheduler, pseudo notification, or pseudo-success.
@@ -290,7 +290,7 @@ capabilities:
     authority_refs:
       - .nimi/spec/runtime/agent-participation.authority.yaml#K-AGCORE-051
       - .nimi/spec/runtime/model-catalog.authority.yaml
-      - docs/authority/avatar-embodiment-rationale.md
+      - .nimi/spec/avatar/embodiment-surface.authority.yaml#rule.nimi.avatar.embodiment.r010
       - .nimi/spec/desktop/agent-projection.authority.yaml
     login_requirement: realm_login_required
     public_promise: Runtime may project typed presentation, voice playback, lipsync timeline, and artifact references for first-party Avatar consumption.
@@ -404,9 +404,9 @@ capabilities:
     posture: partial
     owner_domain: platform
     authority_refs:
-      - docs/authority/platform-governance-release-rationale.md#P-GOV-026
-      - docs/authority/platform-core-protocol-rationale.md#P-ARCH-002
-      - docs/authority/platform-core-protocol-rationale.md#P-ARCH-004
+      - .nimi/spec/platform/governance-release.authority.yaml#rule.nimi.platform.governance-release.p-gov-026-owner-boundary
+      - .nimi/spec/platform/core-protocol.authority.yaml#rule.nimi.platform.core-protocol.p-arch-002
+      - .nimi/spec/platform/core-protocol.authority.yaml#rule.nimi.platform.core-protocol.p-arch-004
       - .nimi/spec/sdks/feature-clients.authority.yaml#S-AIP-007
       - .nimi/spec/runtime/security-core.authority.yaml
       - .nimi/spec/runtime/service-operations.authority.yaml

@@ -4,9 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import YAML from 'yaml';
 import {
-  extractSdkRationaleSection,
   sdkLocalAppAuthorityInputs,
-  sdkLocalAppRationaleSections,
   validateSdkLocalAppAuthority,
 } from './lib/sdk-local-app-authority-check.mjs';
 
@@ -15,10 +13,9 @@ const readText = (rel) => fs.readFileSync(path.join(cwd, rel), 'utf8');
 const readYaml = (rel) => YAML.parse(readText(rel));
 
 const errors = validateSdkLocalAppAuthority({
-  appClient: extractSdkRationaleSection(readText(sdkLocalAppAuthorityInputs.appClient), sdkLocalAppRationaleSections.appClient),
-  runtime: extractSdkRationaleSection(readText(sdkLocalAppAuthorityInputs.runtime), sdkLocalAppRationaleSections.runtime),
-  transport: extractSdkRationaleSection(readText(sdkLocalAppAuthorityInputs.transport), sdkLocalAppRationaleSections.transport),
-  index: readText(sdkLocalAppAuthorityInputs.index),
+  appClient: readText(sdkLocalAppAuthorityInputs.appClient),
+  runtime: readText(sdkLocalAppAuthorityInputs.runtime),
+  transport: readText(sdkLocalAppAuthorityInputs.transport),
   methodGroups: readYaml(sdkLocalAppAuthorityInputs.methodGroups),
 });
 

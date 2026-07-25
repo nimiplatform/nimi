@@ -10,13 +10,13 @@ const repoRoot = path.resolve(scriptDir, '..');
 
 export const authorityPaths = Object.freeze({
   policy: 'config/platform-nimi-app-local-development-admission.yaml',
-  platform: 'docs/authority/platform-app-ecosystem-rationale.md',
-  runtimeSession: 'docs/authority/runtime-protected-session-rationale.md',
-  account: 'docs/authority/runtime-protected-session-rationale.md',
+  platform: '.nimi/spec/platform/app-ecosystem.authority.yaml',
+  runtimeSession: '.nimi/spec/runtime/protected-session.authority.yaml',
+  account: '.nimi/spec/runtime/protected-session.authority.yaml',
   grant: '.nimi/spec/runtime/security-core.authority.yaml',
   desktop: '.nimi/spec/desktop/bridge-ipc.authority.yaml',
-  kit: 'docs/authority/platform-ui-design-system-rationale.md',
-  sdk: 'docs/authority/sdks-client-core-rationale.md',
+  kit: '.nimi/spec/platform/ui-design-system.authority.yaml',
+  sdk: '.nimi/spec/sdks/client-core.authority.yaml',
   principalSchema: 'config/spec-frozen/runtime/tables/local-app-principal-record-schema.yaml',
   grantSchema: 'config/spec-frozen/runtime/tables/local-app-grant-binding-schema.yaml',
   presenceProtocol: 'config/spec-frozen/runtime/tables/local-app-presence-protocol.yaml',
@@ -136,9 +136,14 @@ const protectedMethodsExcludedFromLocalApp = Object.freeze([
 ]);
 
 const requiredRuleClauses = Object.freeze([
-  ['platform', ['P-NAPP-035', /sole mutable third-party provenance/iu, /global Developer Mode toggle grants nothing/iu, /run_once.*allow_project/isu, /top-level `permissions` list/iu, /request eligibility only/iu, /current admitted list is empty/iu, /Every build\/host replacement receives\s+a\s+new lease/iu, /boot epoch.*never durable consent/isu, /no token, bearer/iu, /persistent Nimi-managed logon\/boot autostart/iu, /ordinary Windows rights/iu]],
-  ['runtimeSession', ['K-PLOCAL-009', /durable user\s+development authorization/iu, /run_once/iu, /allow_project.*across supervisor, Desktop, and Runtime replacement/isu, /actual\s+host PID and creation marker/isu, /new launch lease,\s*process bind and session/isu, /Runtime restart/iu, /never returned through renderer IPC, CLI output/isu, /never\s+autostarts/iu]],
-  ['account', ['K-ACCSVC-026', /exact\s+principal.*local record.*process-bound session/isu, /current owner lifecycle/iu, /owner.*resource policy/iu, /creates no synthetic permission/iu]],
+  ['platform', ['rule.nimi.platform.app-ecosystem.p-napp-035a', /sole mutable third-party provenance class/iu, /global Developer Mode grants nothing/iu, /run_once or allow_project consent/iu]],
+  ['platform', ['rule.nimi.platform.app-ecosystem.p-napp-035b', /manifest permissions contain only admitted public id and reason requirements/iu, /request eligibility only/iu, /current empty admitted set/iu]],
+  ['platform', ['rule.nimi.platform.app-ecosystem.p-napp-035c', /Every build or host replacement receives a new lease, process binding, and local-app session/iu, /Runtime boot epoch and supervisor-run identity remain session inputs rather than durable consent inputs/iu]],
+  ['platform', ['rule.nimi.platform.app-ecosystem.p-napp-035f', /receives no token, bearer/iu, /persistent managed logon, or boot autostart/iu, /ordinary OS rights of native code/iu]],
+  ['runtimeSession', ['rule.nimi.runtime.protected-session.r022', /durable user development authorization/iu, /run_once/iu, /allow_project preserves the principal and record authorization posture across supervisor, Desktop, and Runtime replacement/iu, /never autostarts/iu]],
+  ['runtimeSession', ['rule.nimi.runtime.protected-session.r024', /actual host PID and creation marker/iu, /short-lived technical session binding/iu, /atomically creating common local_app_session state/iu]],
+  ['runtimeSession', ['rule.nimi.runtime.protected-session.r025', /never returned through renderer IPC, CLI output/iu, /request-empty RenewLocalAppSession/iu]],
+  ['account', ['rule.nimi.runtime.protected-session.r110', /exact principal, local record, process-bound session/iu, /current owner lifecycle/iu, /operation owner's exact resource policy/iu, /creates no synthetic permission/iu]],
   ['grant', ['rule.nimi.runtime.security-core.r045', /admitted third-party public-permission set is empty/iu, /no positive local permission mutation path/iu]],
   ['grant', ['rule.nimi.runtime.security-core.r046', /owner_selector_digest/iu]],
   ['grant', ['rule.nimi.runtime.security-core.r047', /every protected endpoint/iu]],
@@ -146,8 +151,8 @@ const requiredRuleClauses = Object.freeze([
   ['desktop', ['rule.nimi.desktop.bridge-ipc.r097', /fresh host and payload digest observation.*launch lease.*verified process bind.*local-app session/isu, /native Windows execution risk disclosure/iu, /never creates persistent local-development autostart/iu]],
   ['desktop', ['rule.nimi.desktop.bridge-ipc.r098', /local_app_control exists outside the verified Desktop control connection/iu, /principal, record, permission, lease, session, account, or operation-policy truth/iu]],
   ['desktop', ['rule.nimi.desktop.bridge-ipc.r099', /PrepareLocalAppLaunch.*process binding.*Desktop native supervisor/isu, /renderer state, storage, network, logs, and errors/iu]],
-  ['kit', ['P-KIT-046', /common local-app host\/client/iu, /controlled process replacement or Runtime restart/iu, /session posture, public permission posture\/request,\s*and app-private JSON storage/isu, /App-native commands remain separate\s*typed host commands/isu, /missing\/untrusted carrier fails closed/iu, /ordinary gRPC/iu]],
-  ['sdk', ['S-TRANSPORT-014', /host-injected by Kit.*never\s*renderer-constructed/isu, /request-empty `OpenLocalAppSession`/iu, /controlled host\/Runtime restart/iu, /public permission posture\/request and app-private\s*JSON read\/write\/remove/isu, /Artifact, Agent, conversation, voice/iu, /Missing operation families remain typed unavailable/iu, /localhost gRPC cannot claim/iu]],
+  ['kit', ['rule.nimi.platform.ui-design-system.p-kit-046', /common verified carrier/iu, /controlled replacement or restart/iu, /session posture, permission posture or request, and app-private JSON storage/iu, /ordinary-RPC fallback/iu]],
+  ['sdk', ['rule.nimi.sdks.client-core.r041', /host-injected by Kit and never renderer-constructed/iu, /request-empty OpenLocalAppSession/iu, /controlled host or Runtime restart/iu, /public permission posture and request plus app-private JSON read, write, and remove/iu, /Artifact, Agent, conversation, voice/iu, /missing operation families remain typed unavailable/iu, /localhost gRPC cannot claim/iu]],
 ]);
 
 function issue(code, target, reason) {

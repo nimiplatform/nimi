@@ -180,6 +180,6 @@ invariants:
   - "Unsupported non-idle lanes fail closed and cannot count idle fallback as success."
 
 refs:
-  contract: "docs/authority/avatar-embodiment-rationale.md"
+  contract: ".nimi/spec/avatar/embodiment-surface.authority.yaml"
   nimi2d_package_manifest: ".nimi/spec/nimi2d/asset-package.authority.yaml"
   nimi2d_generation_bench: ".nimi/spec/nimi2d/generation-supply.authority.yaml"

@@ -1,29 +1,9 @@
 export const sdkLocalAppAuthorityInputs = Object.freeze({
-  appClient: 'docs/authority/sdks-feature-clients-rationale.md',
-  runtime: 'docs/authority/sdks-client-core-rationale.md',
-  transport: 'docs/authority/sdks-client-core-rationale.md',
-  index: '.nimi/spec/sdks/kernel/index.md',
+  appClient: '.nimi/spec/sdks/feature-clients.authority.yaml',
+  runtime: '.nimi/spec/sdks/client-core.authority.yaml',
+  transport: '.nimi/spec/sdks/client-core.authority.yaml',
   methodGroups: 'config/sdks-runtime-method-groups.yaml',
 });
-
-// The runtime and transport contract prose now lives verbatim inside the
-// client-core rationale document; each retired source file is one section
-// delimited by `<!-- source: ... -->` markers. Extraction is fail-closed: a
-// missing marker yields an empty section, which the validator rejects.
-export const sdkLocalAppRationaleSections = Object.freeze({
-  runtime: 'runtime-contract.md',
-  transport: 'transport-contract.md',
-  appClient: 'nimi-app-client-contract.md',
-});
-
-export function extractSdkRationaleSection(text, sourceBasename) {
-  const source = String(text || '');
-  const escaped = String(sourceBasename || '').replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
-  const marker = new RegExp(`^<!-- source: \\S+/${escaped} -->$`, 'mu').exec(source);
-  if (!marker) return '';
-  const end = source.indexOf('<!-- source: ', marker.index + marker[0].length);
-  return source.slice(marker.index, end === -1 ? source.length : end);
-}
 
 const forbiddenVocabulary = Object.freeze([
   'ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP',
@@ -65,7 +45,6 @@ export function validateSdkLocalAppAuthority(input) {
     ['appClient', input?.appClient],
     ['runtime', input?.runtime],
     ['transport', input?.transport],
-    ['index', input?.index],
   ].map(([name, value]) => [name, String(value || '')]);
   const allText = textEntries.map(([, value]) => value).join('\n');
   const methodGroups = input?.methodGroups && typeof input.methodGroups === 'object'
@@ -78,15 +57,16 @@ export function validateSdkLocalAppAuthority(input) {
   }
 
   const requiredText = [
-    ['appClient', 'local-app'],
-    ['appClient', 'standardShell'],
-    ['appClient', 'base entitlements'],
-    ['appClient', 'public-permission'],
-    ['runtime', 'LOCAL_APP'],
-    ['runtime', 'principal'],
-    ['transport', 'host-injected'],
-    ['transport', 'request-empty'],
-    ['index', 'nimi-app-client-contract.md'],
+    ['appClient', 'id: rule.nimi.sdks.feature-clients.r034'],
+    ['appClient', 'local-app maps only to the Runtime LOCAL_APP caller where the SDK receives a host-injected typed standard-shell carrier'],
+    ['appClient', 'a valid session projects as session-bound independently of every permission so base entitlements may work while protected permissions remain unavailable'],
+    ['appClient', 'id: rule.nimi.sdks.feature-clients.r040'],
+    ['appClient', 'permissions.status and permissions.request map only to Runtime GetLocalAppPermissionStatus and RequestLocalAppPermission'],
+    ['runtime', 'id: rule.nimi.sdks.client-core.r041'],
+    ['runtime', 'app-private storage is a base entitlement succeeding for a live principal, session, and account partition without a user permission'],
+    ['transport', 'The SDK local-development transport is host-injected by Kit and never renderer-constructed'],
+    ['transport', 'request-empty OpenLocalAppSession'],
+    ['transport', 'missing operation families remain typed unavailable'],
   ];
   const textByName = new Map(textEntries);
   for (const [name, token] of requiredText) {
