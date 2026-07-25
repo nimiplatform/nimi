@@ -35,6 +35,9 @@ const NON_STATIC = new Map([
   ['check:kit-visual-audit', 'renders kit surfaces in a browser'],
   ['check:realm-contract-lock', 'requires --realm-root <realm-checkout>'],
   ['check:realm-contract-current', 'requires --realm-root <realm-checkout>'],
+  ['check:dev-kernel-checkpoint-acceptance', 'requires --manifest <candidate-manifest.yaml>'],
+  ['check:zhiyu-bootstrap', 'launches the Zhiyu Electron acceptance suite'],
+  ['check:zhiyu-acceptance', 'launches the Zhiyu Electron acceptance suite'],
 ]);
 
 const scripts = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8')).scripts ?? {};
