@@ -305,7 +305,7 @@
     "sweep:static-gates": "node scripts/sweep-static-gates.mjs",
     "spec:authority:terms": "nimicoding authority terms . --spec .nimi/spec --max-units 5000 --max-terms 20000 --max-bytes 33554432",
     "spec:authority:closed-sets": "nimicoding authority closed-sets . --spec .nimi/spec --max-units 5000 --max-sets 5000 --max-bytes 268435456",
-    "spec:authority:check": "pnpm exec nimicoding authority check .nimi/spec --scope-bindings .nimi/config/authority-scope-bindings.yaml",
+    "spec:authority:check": "pnpm exec nimicoding authority check .nimi/spec --scope-bindings .nimi/config/authority-scope-bindings.yaml --require-format nimicoding.authority/v2",
     "spec:authority:anchors": "pnpm exec nimicoding authority anchors . --spec .nimi/spec --scope-bindings .nimi/config/authority-scope-bindings.yaml --embedded-paths --max-units 5000 --max-anchors 50000 --max-bytes 33554432",
     "nimicoding:sync": "pnpm exec nimicoding sync --check",
     "nimicoding:sync:apply": "pnpm check:nimicoding-host-hardcut && pnpm exec nimicoding sync --apply",

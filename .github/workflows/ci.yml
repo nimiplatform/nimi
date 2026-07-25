@@ -197,6 +197,14 @@ jobs:
         run: pnpm check:high-risk-doc-metadata
       - name: gate.platform-hardcut.no-legacy-imports
         run: pnpm check:no-legacy-imports
+      - name: gate.migrated-outer.check:no-global-openapi-config
+        run: pnpm check:no-global-openapi-config
+      - name: gate.migrated-outer.check:reason-code-constants
+        run: pnpm check:reason-code-constants
+      - name: gate.migrated-outer.check:runtime-bridge-method-drift
+        run: pnpm check:runtime-bridge-method-drift
+      - name: gate.migrated-outer.check:sdk-spec-kernel-consistency
+        run: pnpm check:sdk-spec-kernel-consistency
       - name: gate.platform-hardcut.no-retired-methodology-refs
         run: pnpm check:no-retired-methodology-refs
       - name: gate.realm.no-app-rest-bypass

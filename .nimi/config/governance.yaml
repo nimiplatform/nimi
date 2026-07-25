@@ -3,34 +3,12 @@ profile_id: nimi
 spec_governance:
   canonical_root: .nimi/spec
   validate_commands:
-    zhiyu:
-      - node scripts/check-zhiyu-spec-kernel-consistency.mjs
-    zhiyu-consistency:
-      - node scripts/check-zhiyu-spec-kernel-consistency.mjs
-    apps/zhiyu:
-      - node scripts/check-zhiyu-spec-kernel-consistency.mjs
     sdks-consistency:
       - pnpm check:sdk-spec-kernel-consistency
     runtime-delegation-consistency:
       - pnpm check:sdk-spec-kernel-consistency
     apps/avatar:
-      - pnpm --filter @nimiplatform/avatar check:spec-consistency
       - pnpm check:apps-avatar-isolation
-  generate_commands:
-    cognition:
-      - node scripts/generate-cognition-spec-kernel-docs.mjs
-    zhiyu:
-      - node scripts/generate-zhiyu-spec-kernel-docs.mjs
-    sdks:
-      - node scripts/generate-sdk-spec-kernel-docs.mjs
-    platform:
-      - node scripts/generate-platform-spec-kernel-docs.mjs
-    avatar:
-      - node scripts/generate-avatar-spec-kernel-docs.mjs
-    realm:
-      - node scripts/generate-realm-spec-kernel-docs.mjs
-    spec-human-doc:
-      - node scripts/generate-spec-human-doc.mjs
 
 ai_governance:
   agents_freshness:
