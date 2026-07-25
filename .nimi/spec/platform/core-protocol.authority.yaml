@@ -1526,7 +1526,7 @@ units:
     kind: rule
     title: P-ARCH-029 consumer API contract home and owner split
     modality: must
-    statement: The World Evolution Engine app-consumer API contract resides under .nimi/spec/sdks/kernel/** and owns only facade composition, read and observe versus command and request admissibility, and no-leak, no-widening, and no-bypass framing, while Runtime owns execution semantics, SDK projection owns visible shape, and host and app owners retain implementation strategy.
+    statement: The World Evolution Engine app-consumer API contract resides in the sdks domain authority containers under .nimi/spec/sdks/** and owns only facade composition, read and observe versus command and request admissibility, and no-leak, no-widening, and no-bypass framing, while Runtime owns execution semantics, SDK projection owns visible shape, and host and app owners retain implementation strategy.
     condition: Whenever the consumer-facing World Evolution Engine API is specified or changed.
     failure: Reject a different contract home or an authority allocation that widens the consumer contract beyond its seam.
     relations:

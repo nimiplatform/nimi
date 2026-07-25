@@ -24,8 +24,8 @@ units:
     meaning: The external AI host exclusively owns repository task identity and status, planning, decomposition, agent scheduling, waiting, resumption, continuation, and completion or blocked verdicts, while deterministic tooling may consume transient host inputs without owning or persisting parallel workflow state.
   - id: definition.nimi.platform.authority-admission.realm-delegated-projection
     kind: definition
-    title: P-PKG-009 Realm delegated projection reference boundary
-    meaning: The .nimi/spec/realm subtree is a reference-only delegated projection from an external authority, and this host definition neither defines Realm ownership nor creates authority for the host to author that subtree.
+    title: P-PKG-009 Realm external authority consumption boundary
+    meaning: Realm authority is externally owned in the Realm repository and referenced cross-repo as realm:spec/realm/<container>.authority.yaml, the host consumes it only through pinned consumer contracts and the realm contract lock chain, the host spec root carries no nested Realm authority mirror, and this host definition neither defines Realm ownership nor creates authority for the host to author Realm semantics.
   - id: rule.nimi.platform.authority-admission.p-app-001
     kind: rule
     title: P-APP-001 app location grants no independent authority
@@ -128,11 +128,11 @@ units:
         target: definition.nimi.platform.authority-admission.package-authority
   - id: rule.nimi.platform.authority-admission.p-pkg-009
     kind: rule
-    title: P-PKG-009 Realm delegated projection is reference-only
+    title: P-PKG-009 Realm authority is consumed, never host-authored
     modality: must_not
-    statement: The Nimi host authors, rewrites, or infers source ownership for the externally owned .nimi/spec/realm delegated projection.
-    condition: Whenever the Realm projection is maintained or interpreted by the host.
-    failure: Reject the host-authored semantics and preserve the frozen delegated projection boundary.
+    statement: The Nimi host authors, mirrors, or infers source ownership for externally owned Realm authority, whether by admitting a nested Realm authority subtree under its own spec root or by rewriting pinned consumer contracts away from their admitted Realm source.
+    condition: Whenever Realm semantics are consumed, referenced, or maintained by the host.
+    failure: Reject the host-authored semantics and preserve the externally owned Realm boundary and the pinned consumer-contract lock chain.
     relations:
       - type: applies_to
         target: definition.nimi.platform.authority-admission.realm-delegated-projection

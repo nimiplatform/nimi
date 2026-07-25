@@ -174,9 +174,18 @@ ai_governance:
         error_bytes: 1048576
         error_max_line_bytes: 16000
         error_average_line_bytes: 800
+      authority_container:
+        warning_lines: 2400
+        warning_max_line_bytes: 4000
+        warning_average_line_bytes: 800
+        error_lines: 3200
+        error_max_line_bytes: 16000
+        error_average_line_bytes: 1600
     classifiers:
       openapi_bundle:
         - config/realm-openapi/api-nimi.yaml
+      authority_container:
+        - .nimi/spec/**/*.authority.yaml
       temporary_large_generated:
         - config/*-public-surface-baseline.json
         - sdks/typescript/runtime/wire-types/index.ts
@@ -198,11 +207,13 @@ ai_governance:
         - sdks/typescript/runtime/runtime-agent-consume.test.ts
         - sdks/typescript/runtime/runtime-agent-helpers.test.ts
         - sdks/typescript/runtime/runtime-agent-live-e2e-fixture-realm-server.test-helper.ts
+        - tests/local-agent-product/harness/first-party-product-journey-driver.mjs
       temporary_large_config_inventory:
         - config/zhiyu-test-inventory.yaml
+        - config/platform-standard-shell-capabilities.yaml
       temporary_large_spec_yaml:
         - runtime/catalog/source/providers/local.source.yaml
-        - spec/runtime/kernel/tables/rule-evidence.rules.yaml
+        - config/spec-frozen/runtime/tables/first-party-protected-runtime-profiles.yaml
       proto_schema:
         - proto/**/*.proto
       scripts:

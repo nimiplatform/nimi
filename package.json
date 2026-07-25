@@ -301,6 +301,8 @@
     "check:nimicoding-host-hardcut": "node scripts/check-nimicoding-host-hardcut.mjs",
     "test:nimicoding-host-hardcut": "node --test scripts/nimicoding-host-hardcut.test.mjs",
     "spec:authority:consumers": "nimicoding authority consumers . --spec .nimi/spec --max-files 20000 --max-refs 50000 --max-bytes 268435456",
+    "spec:authority:terms": "nimicoding authority terms . --spec .nimi/spec --max-units 5000 --max-terms 20000 --max-bytes 33554432",
+    "spec:authority:closed-sets": "nimicoding authority closed-sets . --spec .nimi/spec --max-units 5000 --max-sets 5000 --max-bytes 268435456",
     "spec:authority:check": "pnpm exec nimicoding authority check .nimi/spec --scope-bindings .nimi/config/authority-scope-bindings.yaml",
     "spec:authority:anchors": "pnpm exec nimicoding authority anchors . --spec .nimi/spec --scope-bindings .nimi/config/authority-scope-bindings.yaml --embedded-paths --max-units 5000 --max-anchors 50000 --max-bytes 33554432",
     "nimicoding:sync": "pnpm exec nimicoding sync --check",

@@ -37,6 +37,12 @@ const SOURCE_EXTENSIONS = new Set([
   '.yml',
 ]);
 
+// Exact relative-path skips: retired archival prose that is not a normative
+// input and may legitimately narrate the retired mod-extension model.
+const SKIP_PATHS = new Set([
+  'docs/authority',
+]);
+
 const SKIP_DIRS = new Set([
   '.cache',
   '.git',
@@ -53,7 +59,7 @@ const SKIP_DIRS = new Set([
 ]);
 
 const ALLOWLIST = new Set([
-  '.nimi/spec/platform/kernel/index.md',
+  'docs/spec/platform-domain-index.md',
   '.nimi/spec/platform/app-ecosystem.authority.yaml',
   '.nimi/spec/sdks/feature-clients.authority.yaml',
   'scripts/check-no-public-mod-extension-admission.mjs',
@@ -141,6 +147,7 @@ async function collectFiles(target) {
   for (const entry of entries) {
     if (SKIP_DIRS.has(entry.name)) continue;
     const child = path.join(fullPath, entry.name);
+    if (SKIP_PATHS.has(relPath(child))) continue;
     if (entry.isDirectory()) {
       files.push(...await collectFiles(relPath(child)));
       continue;

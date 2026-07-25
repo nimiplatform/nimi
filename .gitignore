@@ -32,6 +32,7 @@ coverage/
 **/target/
 /runtime/nimi
 /runtime/nimi.exe
+/runtime/runtime-compliance.exe
 
 # local model files (large binaries, partial downloads)
 /runtime/models/

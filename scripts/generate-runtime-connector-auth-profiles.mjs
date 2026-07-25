@@ -7,7 +7,7 @@ import YAML from 'yaml';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
-const tablePath = path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'tables', 'connector-auth-profiles.yaml');
+const tablePath = path.join(repoRoot, 'config', 'spec-frozen', 'runtime', 'tables', 'connector-auth-profiles.yaml');
 const runtimeOutPath = path.join(repoRoot, 'runtime', 'internal', 'services', 'connector', 'auth_profiles.generated.go');
 const sdkVnextOutPath = path.join(repoRoot, 'sdks', 'typescript', 'runtime', 'connector-auth-profiles.generated.ts');
 

@@ -48,12 +48,12 @@
     }
   },
   "outputSha256": {
-    "runtime/internal/protectedlocal/first_party_profiles_generated.go": "efdbe2578d8301bf846973e2f2ab94c4f9420fea9235de9086c502f1dee12b8e",
-    "runtime/internal/bundledavatar/profile_generated.go": "d69a563a13553f5616428d7cb5f117d3fd3d9051ee7b0376de713a8b88f1675a",
-    "kit/shell/protected-local/src/first_party_profiles_generated.rs": "4e88b6245b174a5b58d6eddc08c6d220a649ebcff8a05c717730b07677d93001",
-    "kit/shell/electron/src/main/first-party-protected-runtime-profiles.generated.ts": "2be8f323aa78c8776a20097e42bb9cdc533dbc6a8ca6ff2b1ae51cfd13fdd696",
-    "kit/shell/electron/src/main/bundled-avatar-profile.generated.ts": "998246bd40a143a40199ab07aa13f4f7808e3f1a8a1ed9111fd6a45e3668486d",
-    "sdks/typescript/runtime/first-party-protected-runtime-profiles.generated.ts": "5fb72111c9af37d3bff13905045c764e49bbd501fd4833f8525ae6587ec55952",
-    "sdks/typescript/runtime/bundled-avatar-profile.generated.ts": "30a1f473619cd9db5dbeb3bf47fc4f3aee0254f7cea94f38e425f072902cbcdd"
+    "runtime/internal/protectedlocal/first_party_profiles_generated.go": "42565c337b4d9687af94f94018524c191d002bc8fb30648ce3ade92d788b9774",
+    "runtime/internal/bundledavatar/profile_generated.go": "f155884a095ab0c92d88b627ae6854296663cdb2293a56c9ec4a6bd703364767",
+    "kit/shell/protected-local/src/first_party_profiles_generated.rs": "dad1083db0d7fe341a0bb68d30a7fe280387c01fba654c37165ddd278dd3aa78",
+    "kit/shell/electron/src/main/first-party-protected-runtime-profiles.generated.ts": "fedb2c95cd41f2fcd3e43153f2ed582e1d0f7bdaf19f20c2cbc043d15aa81022",
+    "kit/shell/electron/src/main/bundled-avatar-profile.generated.ts": "9766a09d2070289656b12505fac70231c1bcc3be141dc64b3d51206328d78692",
+    "sdks/typescript/runtime/first-party-protected-runtime-profiles.generated.ts": "351bab4d4dd4df77c10f6cc0173905a321a57389b63381be1cdfe403bacca23c",
+    "sdks/typescript/runtime/bundled-avatar-profile.generated.ts": "4a0920428bc4225e511d5a5d2dd39d373d76bdaa15576d142c1b0d164f7b4be3"
   }
 }
