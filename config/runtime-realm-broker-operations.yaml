@@ -1,6 +1,6 @@
 # Non-authoritative machine configuration (active consumer contract).
 # Normative authority: .nimi/spec/runtime/rpc-foundations.authority.yaml
-# External Realm authority (cross-repo): realm:spec/realm/world-state.authority.yaml + realm:spec/realm/world-history.authority.yaml
+# External Realm authority (cross-repo): realm:spec/realm/core.authority.yaml + realm:spec/realm/feed.authority.yaml + realm:spec/realm/asset.authority.yaml
 version: 4
 table_family: protocol_surface
 owner: runtime
@@ -33,6 +33,7 @@ description: >
 operation_schema:
   required_fields:
     - operation_id
+    - authority_ref
     - http_method
     - path_template
     - request_schema_ref
@@ -73,6 +74,7 @@ policy_templates:
 operations:
   - <<: *desktop_source_read
     operation_id: WorldCoreController_getPersonaCharacter
+    authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.r007
     http_method: GET
     path_template: /api/realm/core/persona-characters/by-id/{personaCharacterId}
     request_schema_ref: realm-openapi://operation/WorldCoreController_getPersonaCharacter/request
@@ -82,6 +84,7 @@ operations:
 
   - <<: *desktop_source_read
     operation_id: WorldCoreController_getWorldCharacter
+    authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.r006
     http_method: GET
     path_template: /api/realm/core/world-characters/by-id/{characterId}
     request_schema_ref: realm-openapi://operation/WorldCoreController_getWorldCharacter/request
@@ -91,6 +94,7 @@ operations:
 
   - <<: *desktop_source_read
     operation_id: WorldCoreController_getWorldEntity
+    authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.r005
     http_method: GET
     path_template: /api/realm/core/world-entities/{entityId}
     request_schema_ref: realm-openapi://operation/WorldCoreController_getWorldEntity/request
@@ -100,6 +104,7 @@ operations:
 
   - <<: *desktop_and_bundled_avatar_source_read
     operation_id: WorldCoreController_listPersonaCharacters
+    authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.r007
     http_method: GET
     path_template: /api/realm/core/persona-characters
     request_schema_ref: realm-openapi://operation/WorldCoreController_listPersonaCharacters/request
@@ -110,6 +115,7 @@ operations:
 
   - <<: *desktop_source_read
     operation_id: WorldCoreController_discoverPersonaCharacters
+    authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.r007
     http_method: GET
     path_template: /api/realm/core/persona-characters/discovery
     request_schema_ref: realm-openapi://operation/WorldCoreController_discoverPersonaCharacters/request
@@ -119,6 +125,7 @@ operations:
 
   - <<: *desktop_source_read
     operation_id: WorldCoreController_listWorldRelationships
+    authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.r018
     http_method: GET
     path_template: /api/realm/core/worlds/{worldId}/relationships
     request_schema_ref: realm-openapi://operation/WorldCoreController_listWorldRelationships/request
@@ -128,6 +135,7 @@ operations:
 
   - <<: *desktop_source_read
     operation_id: WorldPublicController_getWorld
+    authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.r004
     http_method: GET
     path_template: /api/world/by-id/{worldId}
     request_schema_ref: realm-openapi://operation/WorldPublicController_getWorld/request
@@ -137,6 +145,7 @@ operations:
 
   - <<: *desktop_source_read
     operation_id: WorldPublicController_getWorldDetailWithCharacters
+    authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.r004
     http_method: GET
     path_template: /api/world/by-id/{worldId}/detail-with-characters
     request_schema_ref: realm-openapi://operation/WorldPublicController_getWorldDetailWithCharacters/request
@@ -147,6 +156,7 @@ operations:
 
   - <<: *desktop_source_read
     operation_id: WorldPublicController_listWorlds
+    authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.r004
     http_method: GET
     path_template: /api/world
     request_schema_ref: realm-openapi://operation/WorldPublicController_listWorlds/request
@@ -163,12 +173,17 @@ forbidden_operation_classes:
 
 explicitly_not_admitted:
   - operation_id: WorldPublicController_listWorldCharacters
+    authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.r006
     reason: no_desktop_source_readiness_consumer
   - operation_id: getExploreFeed
+    authority_ref: realm:spec/realm/feed.authority.yaml#rule.realm.feed.r006
     reason: social_feed_is_outside_source_readiness_scope
   - operation_id: createImageDirectUpload
+    authority_ref: realm:spec/realm/asset.authority.yaml#rule.realm.asset.r103
     reason: response_may_issue_signed_upload_credentials
   - operation_id: createVideoDirectUpload
+    authority_ref: realm:spec/realm/asset.authority.yaml#rule.realm.asset.r103
     reason: response_may_issue_signed_upload_credentials
   - operation_id: createAudioDirectUpload
+    authority_ref: realm:spec/realm/asset.authority.yaml#rule.realm.asset.r103
     reason: response_may_issue_signed_upload_credentials
