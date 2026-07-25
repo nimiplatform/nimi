@@ -82,7 +82,7 @@ units:
     kind: rule
     title: Source materialization is a bounded Runtime handoff
     modality: must
-    statement: Explore source selection may emit only a local materialization handoff containing exactly canonical CharacterSourceRefV3 and bounded requestId; Runtime owns current account, grant and bearer resolution, challenge, Packet v3 acquisition and strict validation, LocalAgentSourceSnapshotV2, v3 provenance, atomic LocalAgent creation, and Runtime-local deletion or reset, while source removal never deletes LocalAgent state.
+    statement: Explore source selection may emit only a local materialization handoff containing exactly canonical CharacterSourceRefV3 and bounded requestId; Runtime owns current account and bearer resolution, challenge, Packet v3 acquisition and strict validation, LocalAgentSourceSnapshotV2, v3 provenance, atomic LocalAgent creation, and Runtime-local deletion or reset, while source removal never deletes LocalAgent state.
     condition: Whenever a user chooses to materialize a WorldCharacter or PersonaCharacter source.
     failure: Reject a relationship mutation, durable Realm connection, packet DTO, caller-selected audience, prompt or context, source write-back, renderer-created LocalAgent, cached-card readiness inference, or replacement of Runtime identity and authority.
     relations:

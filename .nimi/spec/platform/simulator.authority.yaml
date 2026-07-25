@@ -236,7 +236,7 @@ units:
     kind: rule
     title: P-SIM-010 deterministic state partition ownership
     modality: must
-    statement: The State Engine owns only immutable deterministic scenario, ecosystem, Shell and instance presentation, and private App-module partitions; each App reducer writes only its module partition; each Simulator interaction writes only declared Simulator partitions; and each presented product experience is covered by the current Scenario.
+    statement: The State Engine owns only immutable deterministic scenario, ecosystem, and private App-module partitions; Shell chrome presentation state and session-local routing stay outside the State Engine as non-deterministic presentation concerns; each App reducer writes only its module partition; each Simulator interaction writes only declared Simulator partitions; and each presented product experience is covered by the current Scenario.
     condition: Whenever scenario state is initialized, reduced, or projected.
     failure: Reject incomplete product-experience coverage or a write outside the declared partition.
     relations:
@@ -471,7 +471,7 @@ units:
     kind: rule
     title: P-SIM-010 simulator-state-engine-policy snapshot and quiescence invariants
     modality: must
-    statement: The State Engine snapshot is immutable and partitioned into scenario, ecosystem, Shell, instances, and modules; each successful state command increments its revision exactly once; and quiescence requires an empty operation queue, no running subscriber or event callback, no due logical-clock job waiting to enqueue, and no immediately releasable asynchronous reservation, while active reset or lifecycle cleanup prevents session quiescence.
+    statement: The State Engine snapshot is immutable and partitioned into scenario, ecosystem, and modules; each successful state command increments its revision exactly once; and quiescence requires an empty operation queue, no running subscriber or event callback, no due logical-clock job waiting to enqueue, and no immediately releasable asynchronous reservation, while active reset or lifecycle cleanup prevents session quiescence.
     condition: Whenever State Engine snapshot, revision, or quiescence state is evaluated.
     failure: Reject mutable or mispartitioned state, an incorrect revision, or a false quiescence claim.
     relations:
