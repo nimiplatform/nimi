@@ -1,6 +1,6 @@
 // Package materializationreadiness implements the Runtime-owned
 // readiness projection for factory AIProfile materialization per
-// .nimi/spec/runtime/kernel/local-environment-materializers-contract.md.
+// .nimi/spec/canonical/runtime/local-compute.authority.yaml.
 //
 // Activation states and reason codes are sourced from the canonical
 // catalog at runtime/kernel/tables/activation-gate-reason-codes.yaml.

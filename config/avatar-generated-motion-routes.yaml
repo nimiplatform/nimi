@@ -12,9 +12,9 @@ description: >
   tags or runtime activity ontology ids.
 
 source_authority:
-  runtime_projection: .nimi/spec/runtime/kernel/agent-presentation-stream-contract.md
-  runtime_activity_ontology: .nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml
-  public_apml_wire: .nimi/spec/runtime/kernel/agent-output-wire-contract.md
+  runtime_projection: .nimi/spec/canonical/runtime/agent-participation.authority.yaml
+  runtime_activity_ontology: config/runtime-agent-activity-ontology.yaml
+  public_apml_wire: .nimi/spec/canonical/runtime/agent-participation.authority.yaml
 
 public_apml_syntax:
   direct_motion_expression_lookat_pose_tags_admitted: false

@@ -174,7 +174,7 @@ function checkAuthJWTOnlyAndReserved() {
     }
   }
 
-  const specAuth = readRuntimeKernelMd('.nimi/spec/runtime/kernel/auth-service.md');
+  const specAuth = readRuntimeKernelMd('docs/authority/runtime-app-surface-rationale.md');
   expectRegex(specAuth, /##\s+K-AUTHSVC-013\b/m, 'K-AUTHSVC-013 rule definition');
   expectRegex(specAuth, /\bJWT\b/, 'K-AUTHSVC-013 JWT mention');
   expectRegex(specAuth, /(?:reserved[\s\S]*\b2\b|\b2\b[\s\S]*reserved)/m, 'K-AUTHSVC-013 reserved=2 mention');
@@ -515,10 +515,7 @@ function checkLocalPaginationAndAuditFields() {
     assertMessageHasFields(resp, respName, rel, ['next_page_token']);
   }
 
-  const specLocal = [
-    readRuntimeKernelMd('.nimi/spec/runtime/kernel/local-category-capability.md'),
-    readRuntimeKernelMd('.nimi/spec/runtime/kernel/local-asset-storage-manifest-contract.md'),
-  ].join('\n');
+  const specLocal = readRuntimeKernelMd('docs/authority/runtime-local-compute-rationale.md');
   expectRegex(specLocal, /##\s+K-LOCAL-029\b/m, 'K-LOCAL-029 rule definition');
   expectRegex(specLocal, /##\s+K-LOCAL-030\b/m, 'K-LOCAL-030 rule definition');
   for (const token of ['trace_id', 'app_id', 'domain', 'operation', 'subject_user_id', 'local_invoke_profile_id']) {
@@ -638,7 +635,7 @@ function checkMemoryProtoAdmission() {
   assertMessageHasFields(listBanksReq, 'ListBanksRequest', rel, ['page_size', 'page_token']);
   assertMessageHasFields(listBanksResp, 'ListBanksResponse', rel, ['next_page_token']);
 
-  const specMemory = readRuntimeKernelMd('.nimi/spec/runtime/kernel/runtime-memory-service-contract.md');
+  const specMemory = readRuntimeKernelMd('docs/authority/runtime-memory-world-rationale.md');
   for (const token of [
     'scope-typed bank locator family',
     'typed memory record family',
@@ -646,7 +643,7 @@ function checkMemoryProtoAdmission() {
     'infra-only locator branches',
   ]) {
     if (!specMemory.includes(token)) {
-      fail(`.nimi/spec/runtime/kernel/runtime-memory-service-contract.md missing token: ${token}`);
+      fail(`.nimi/spec/canonical/runtime/memory-world.authority.yaml missing token: ${token}`);
     }
   }
 
@@ -832,7 +829,7 @@ function checkRuntimeAgentServiceProtoAdmission() {
   assertMessageHasFields(listHooksReq, 'ListPendingHooksRequest', rel, ['page_size', 'page_token']);
   assertMessageHasFields(listHooksResp, 'ListPendingHooksResponse', rel, ['next_page_token']);
 
-  const specAgentService = readRuntimeKernelMd('.nimi/spec/runtime/kernel/runtime-agent-service-contract.md');
+  const specAgentService = readRuntimeKernelMd('docs/authority/runtime-agent-service-rationale.md');
   // Normalize whitespace so authority phrases that wrap across lines still
   // match — content equivalence, not formatting equivalence.
   const specAgentServiceFlat = specAgentService.replace(/\s+/g, ' ');
@@ -842,13 +839,13 @@ function checkRuntimeAgentServiceProtoAdmission() {
     'typed command/patch union',
   ]) {
     if (!specAgentServiceFlat.includes(token)) {
-      fail(`.nimi/spec/runtime/kernel/runtime-agent-service-contract.md missing token: ${token}`);
+      fail(`.nimi/spec/canonical/runtime/agent-service.authority.yaml missing token: ${token}`);
     }
   }
 
   // K-AGCORE-040..043 narrow-admit HookIntent authority must be referenced by
   // name from the agent-hook-intent contract authority document.
-  const specHookIntent = readRuntimeKernelMd('.nimi/spec/runtime/kernel/agent-hook-intent-contract.md');
+  const specHookIntent = readRuntimeKernelMd('docs/authority/runtime-agent-participation-rationale.md');
   for (const token of [
     'K-AGCORE-040',
     'K-AGCORE-041',
@@ -857,7 +854,7 @@ function checkRuntimeAgentServiceProtoAdmission() {
     'HookIntent',
   ]) {
     if (!specHookIntent.includes(token)) {
-      fail(`.nimi/spec/runtime/kernel/agent-hook-intent-contract.md missing token: ${token}`);
+      fail(`.nimi/spec/canonical/runtime/agent-participation.authority.yaml missing token: ${token}`);
     }
   }
 

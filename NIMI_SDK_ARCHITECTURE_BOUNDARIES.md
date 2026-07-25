@@ -2,7 +2,7 @@
 
 Status: non-authoritative AI handoff.
 
-Spec Status: redesign aligned to `.nimi/spec/sdk/kernel/**`.
+Spec Status: redesign aligned to `.nimi/spec/sdks/kernel/**`.
 Authority Owner: `.nimi/spec/**`.
 Work Type: SDK family architecture redesign.
 Parallel Truth: forbidden. If this file conflicts with `.nimi/spec/**`, the spec wins.
@@ -14,17 +14,17 @@ without prior conversation context.
 
 1. Root `AGENTS.md`.
 2. `.nimi/spec/INDEX.md`.
-3. `.nimi/spec/sdk/kernel/index.md`.
-4. `.nimi/spec/sdk/kernel/surface-contract.md`.
-5. `.nimi/spec/sdk/kernel/boundary-contract.md`.
-6. `.nimi/spec/sdk/kernel/package-governance-contract.md`.
-7. `.nimi/spec/sdk/kernel/testing-gates-contract.md`.
-8. `.nimi/spec/sdk/kernel/runtime-contract.md`.
-9. `.nimi/spec/sdk/kernel/realm-contract.md`.
-10. `.nimi/spec/sdk/kernel/ai-provider-contract.md`.
-11. `.nimi/spec/sdk/kernel/tables/sdk-surfaces.yaml`.
-12. `.nimi/spec/sdk/kernel/tables/runtime-method-groups.yaml`.
-13. `.nimi/spec/sdk/kernel/tables/sdk-testing-gates.yaml`.
+3. `.nimi/spec/sdks/kernel/index.md`.
+4. `.nimi/spec/canonical/sdks/client-core.authority.yaml`.
+5. `.nimi/spec/canonical/sdks/client-core.authority.yaml`.
+6. `.nimi/spec/canonical/sdks/feature-clients.authority.yaml`.
+7. `docs/authority/sdks-testing-gates-rationale.md`.
+8. `.nimi/spec/canonical/sdks/client-core.authority.yaml`.
+9. `.nimi/spec/canonical/sdks/realm-consumer.authority.yaml`.
+10. `.nimi/spec/canonical/sdks/feature-clients.authority.yaml`.
+11. `.nimi/spec/canonical/sdks/client-core.authority.yaml`.
+12. `config/sdks-runtime-method-groups.yaml`.
+13. `docs/authority/sdks-testing-gates-rationale.md`.
 
 ## Final Architecture
 

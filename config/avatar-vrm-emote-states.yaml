@@ -29,7 +29,7 @@ description: >
   suppressed by the emote state machine — the lipsync driver owns viseme
   preset writes during active speech.
 
-source_authority: /.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml
+source_authority: /config/runtime-agent-activity-ontology.yaml
 
 emotes: &vrm_emote_state_values
   neutral:

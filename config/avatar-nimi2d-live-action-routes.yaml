@@ -13,8 +13,8 @@ description: >
   Generation Bench.
 
 source_authority:
-  runtime_projection: .nimi/spec/runtime/kernel/agent-presentation-stream-contract.md
-  runtime_activity_ontology: .nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml
+  runtime_projection: .nimi/spec/canonical/runtime/agent-participation.authority.yaml
+  runtime_activity_ontology: config/runtime-agent-activity-ontology.yaml
   nimi2d_package_manifest: .nimi/spec/canonical/nimi2d/asset-package.authority.yaml
 
 routes: &avatar_nimi2d_live_action_route_entries

@@ -28,7 +28,7 @@ groups:
     service: AIService
     phase: 1
     status: active
-    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    source_kernel_table: config/runtime-rpc-methods.yaml
     methods:
       - ExecuteScenario
       - StreamScenario
@@ -58,7 +58,7 @@ groups:
       K-SCHED-002 PeekScheduling as a typed advisory preflight. This group
       admits the public SDK Runtime facade projection; Runtime remains the
       scheduling authority and Acquire remains authoritative slot admission.
-    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    source_kernel_table: config/runtime-rpc-methods.yaml
     methods:
       - PeekScheduling
     source_rule: S-AICONF-001
@@ -66,7 +66,7 @@ groups:
     service: ConnectorService
     phase: 1
     status: active
-    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    source_kernel_table: config/runtime-rpc-methods.yaml
     methods:
       - CreateConnector
       - GetConnector
@@ -88,7 +88,7 @@ groups:
     service: RuntimeAiRealtimeService
     phase: 1
     status: active
-    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    source_kernel_table: config/runtime-rpc-methods.yaml
     methods:
       - OpenRealtimeSession
       - AppendRealtimeInput
@@ -99,7 +99,7 @@ groups:
     service: RuntimeLocalService
     phase: 1
     status: active
-    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    source_kernel_table: config/runtime-rpc-methods.yaml
     methods:
       - ListLocalAssets
       - RemoveLocalAsset
@@ -167,7 +167,7 @@ groups:
     service: RuntimeAuthService
     phase: 1
     status: active
-    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    source_kernel_table: config/runtime-rpc-methods.yaml
     methods:
       - RegisterApp
       - OpenSession
@@ -191,7 +191,7 @@ groups:
       EXTERNAL_AGENT_ACTION_REGISTRY_EMPTY until the Runtime-owned action
       registry/server lands; apps must not preserve a Desktop/Tauri-local token
       ledger or renderer-local action descriptor truth.
-    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    source_kernel_table: config/runtime-rpc-methods.yaml
     methods:
       - GetExternalAgentGatewayStatus
       - IssueExternalAgentToken
@@ -211,7 +211,7 @@ groups:
       operations, and the login adapter surface;
       Desktop/app code must not own refresh tokens, session stores, shared auth
       files, or direct token refresh seams.
-    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    source_kernel_table: config/runtime-rpc-methods.yaml
     methods:
       - GetAccountSessionStatus
       - SubscribeAccountSessionEvents
@@ -243,7 +243,7 @@ groups:
       run_once/allow_project consent lifetimes, and Runtime-owned revocation. The
       app child does not consume this control group; it receives only the common
       local-app carrier.
-    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    source_kernel_table: config/runtime-rpc-methods.yaml
     methods:
       - GetDeveloperModeStatus
       - SetDeveloperMode
@@ -261,7 +261,7 @@ groups:
       Runtime implementation complete (~4.2K LOC): DAG executor, AI/media
       node orchestration, event streaming. Not exposed through SDK/Desktop
       consumption layers. Deferred per pre-launch audit 2026-03-18.
-    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    source_kernel_table: config/runtime-rpc-methods.yaml
     methods:
       - SubmitWorkflow
       - GetWorkflow
@@ -277,7 +277,7 @@ groups:
       Desktop consumes via IPC bridge (D-IPC-002); SDK projection enables
       standalone SDK consumers to subscribe to health events.
       Split from audit_service_projection per cross-domain audit C-2.
-    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    source_kernel_table: config/runtime-rpc-methods.yaml
     methods:
       - GetRuntimeHealth
       - ListAIProviderHealth
@@ -295,7 +295,7 @@ groups:
       separately admitted. Raw ListAuditEvents and ExportAuditEvents are not
       Desktop fallbacks. Runtime retains the raw SDK methods for their
       separately governed callers.
-    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    source_kernel_table: config/runtime-rpc-methods.yaml
     methods:
       - ListAuditEvents
       - ListDesktopAuditEvents
@@ -310,7 +310,7 @@ groups:
       Runtime implementation complete (~500 LOC): registry enumeration,
       async model pull, removal, health check. Not consumed by Desktop UI.
       Deferred per pre-launch audit 2026-03-18.
-    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    source_kernel_table: config/runtime-rpc-methods.yaml
     methods:
       - ListModels
       - PullModel
@@ -342,7 +342,7 @@ groups:
       shared-truth behavior.
       SDK projection must stay aligned with runtime proto, reason-code, and
       pagination semantics. Desktop product UI may still lag behind.
-    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    source_kernel_table: config/runtime-rpc-methods.yaml
     methods:
       - CreateKnowledgeBank
       - GetKnowledgeBank
@@ -371,7 +371,7 @@ groups:
       security baseline (K-APP-005): rate limiting, loop detection, payload
       size enforcement. SDK projection is landed. Desktop must not treat
       RuntimeAppService as a same-process message bus.
-    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    source_kernel_table: config/runtime-rpc-methods.yaml
     methods:
       - SendAppMessage
       - SubscribeAppMessages
@@ -385,7 +385,7 @@ groups:
       package seams, and protected local-app launch preparation are Runtime-owned
       lifecycle surfaces. App message operations remain in
       app_service_projection because they carry the app-message bus semantics.
-    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    source_kernel_table: config/runtime-rpc-methods.yaml
     methods:
       - GetAccountAppInventory
       - GetAppStorage
@@ -414,7 +414,7 @@ groups:
       Runtime-owned. ReadArtifactBytes is blocked on the ordinary/public
       Runtime facade and is available only through the protected local-app
       carrier with current principal/session/grant/owner decision and audience.
-    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    source_kernel_table: config/runtime-rpc-methods.yaml
     methods:
       - ReadArtifactBytes
       - CleanupGeneratedVoiceArtifacts
@@ -434,7 +434,7 @@ groups:
       backed by retained runtime-private memory depth; they are listed here
       only because the SDK public namespace remains `runtime.memory.*` while
       the underlying RPC owner is `RuntimeCognitionService`.
-    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    source_kernel_table: config/runtime-rpc-methods.yaml
     methods:
       - CreateBank
       - GetBank
@@ -462,7 +462,7 @@ groups:
       decisions, no domain commits. Canonical 1:1 Agent Chat remains on
       runtime.agent.*; participation output stays candidate-first with
       direct domain commit forbidden.
-    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    source_kernel_table: config/runtime-rpc-methods.yaml
     methods:
       - DescribeParticipationProfiles
       - DescribeParticipationContextBlocks
@@ -489,7 +489,7 @@ groups:
     public_projection_families:
       - LocalAgentSourceContextStatus
       - AgentTurnContextSummary
-    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    source_kernel_table: config/runtime-rpc-methods.yaml
     methods:
       - MaterializeRealmSource
       - InitializeAgent

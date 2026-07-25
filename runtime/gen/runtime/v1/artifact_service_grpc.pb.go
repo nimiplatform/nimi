@@ -30,8 +30,8 @@ const (
 // RuntimeArtifactService provides generic by-id artifact bytes retrieval for
 // runtime-emitted artifacts (audio / image / video / music / etc.).
 //
-// Authority: K-AGCORE-053 (.nimi/spec/runtime/kernel/runtime-artifact-contract.md)
-// SDK consume surface: S-RUNTIME-111 (.nimi/spec/sdk/kernel/runtime-contract.md)
+// Authority: K-AGCORE-053 (.nimi/spec/canonical/runtime/service-operations.authority.yaml)
+// SDK consume surface: S-RUNTIME-111 (.nimi/spec/canonical/sdks/client-core.authority.yaml)
 //
 // Use cases:
 //   - avatar app reads voice_playback_requested.audio_artifact_id bytes for
@@ -117,8 +117,8 @@ func (c *runtimeArtifactServiceClient) CleanupGeneratedVoiceArtifacts(ctx contex
 // RuntimeArtifactService provides generic by-id artifact bytes retrieval for
 // runtime-emitted artifacts (audio / image / video / music / etc.).
 //
-// Authority: K-AGCORE-053 (.nimi/spec/runtime/kernel/runtime-artifact-contract.md)
-// SDK consume surface: S-RUNTIME-111 (.nimi/spec/sdk/kernel/runtime-contract.md)
+// Authority: K-AGCORE-053 (.nimi/spec/canonical/runtime/service-operations.authority.yaml)
+// SDK consume surface: S-RUNTIME-111 (.nimi/spec/canonical/sdks/client-core.authority.yaml)
 //
 // Use cases:
 //   - avatar app reads voice_playback_requested.audio_artifact_id bytes for

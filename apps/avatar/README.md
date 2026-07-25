@@ -132,11 +132,11 @@ Platform-level spec is consumed from active `.nimi/spec/**` authority. The
 tracked reader guide is
 [Avatar Kernel Authority Map](../../docs/authority/avatar-embodiment-rationale.md).
 
-- [APML wire format](../../.nimi/spec/runtime/kernel/agent-output-wire-contract.md)
+- [APML wire format](../../.nimi/spec/canonical/runtime/agent-participation.authority.yaml)
 - [Activity ontology](../../.nimi/spec/canonical/runtime/agent-participation.authority.yaml) and [activity ontology table](../../config/runtime-agent-activity-ontology.yaml)
-- [HookIntent and event owner map](../../.nimi/spec/runtime/kernel/agent-hook-intent-contract.md)
+- [HookIntent and event owner map](../../.nimi/spec/canonical/runtime/agent-participation.authority.yaml)
 - [Runtime projection stream](../../.nimi/spec/canonical/runtime/agent-participation.authority.yaml)
-- [Conversation anchor](../../.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md)
+- [Conversation anchor](../../.nimi/spec/canonical/runtime/agent-participation.authority.yaml)
 - [SDK runtime consume surface](../../.nimi/spec/canonical/sdks/client-core.authority.yaml)
 - [Presentation Timeline admission boundary](../../.nimi/spec/canonical/runtime/agent-participation.authority.yaml)
 

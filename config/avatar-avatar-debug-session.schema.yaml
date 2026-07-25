@@ -44,7 +44,7 @@ fields:
       - future
   probe_kind:
     type: ref
-    ref: .nimi/spec/runtime/kernel/tables/avatar-debug-probe-events.yaml
+    ref: config/runtime-avatar-debug-probe-events.yaml
   evidence:
     type: object
     required_fields:

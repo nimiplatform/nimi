@@ -182,7 +182,6 @@ ai_governance:
         - sdks/typescript/runtime/wire-types/index.ts
         - kit/design-projection.json
       temporary_large_production:
-        - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md
         - apps/desktop/scripts/run-e2e.mjs
         - apps/desktop/src-tauri/src/desktop_open_intent.rs
         - apps/desktop/src-tauri/src/desktop_product_control/operations.rs
@@ -204,7 +203,6 @@ ai_governance:
       temporary_large_spec_yaml:
         - runtime/catalog/source/providers/local.source.yaml
         - spec/runtime/kernel/tables/rule-evidence.rules.yaml
-        - .nimi/spec/runtime/kernel/tables/rule-evidence.rules.yaml
       proto_schema:
         - proto/**/*.proto
       scripts:
@@ -230,13 +228,11 @@ ai_governance:
         - "**/e2e/fixtures/**"
       spec_yaml:
         - .nimi/spec/**/*.yaml
-        - .nimi/spec/**/*.yml
         - spec/**/*.yaml
         - spec/**/*.yml
         - apps/**/spec/**/*.yaml
         - apps/**/spec/**/*.yml
       generated:
-        - .nimi/spec/**/kernel/generated/**
         - kit/auth/src/logic/native-oauth-result-logo.ts
         - runtime/internal/providerregistry/generated.go
         - runtime/catalog/providers/**

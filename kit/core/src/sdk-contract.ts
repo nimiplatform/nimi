@@ -17,7 +17,7 @@ import {
  * instead of being scattered through feature modules.
  *
  * This file is not platform authority. SDK public surface admission remains in
- * `.nimi/spec/sdks/kernel/surface-contract.md`; Runtime, Realm, and AI execution
+ * `.nimi/spec/canonical/sdks/client-core.authority.yaml`; Runtime, Realm, and AI execution
  * authority remains in their owning specs and services. This file is the Kit
  * package-local SDK coupling surface.
  *

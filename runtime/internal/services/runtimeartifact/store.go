@@ -1,5 +1,5 @@
 // Package runtimeartifact provides Runtime-owned artifact bytes indexes by id,
-// admitted under K-AGCORE-053 (.nimi/spec/runtime/kernel/runtime-artifact-contract.md).
+// admitted under K-AGCORE-053 (.nimi/spec/canonical/runtime/service-operations.authority.yaml).
 //
 // Read trust is audience-bound. Artifact ids are selectors only; an installed
 // caller must be revalidated against the record's account/app/release/session

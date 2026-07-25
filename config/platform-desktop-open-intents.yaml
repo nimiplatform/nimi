@@ -16,7 +16,7 @@ authority:
   sdk_surface: "@nimiplatform/sdk/app"
   kit_core_surface: "@nimiplatform/kit/core/desktop-open"
   standard_shell_operation: desktop-open.openIntent
-desktop_target_catalog_ref: .nimi/spec/desktop/kernel/tables/desktop-open-targets.yaml
+desktop_target_catalog_ref: config/desktop-open-targets.yaml
 envelope:
   schema_version: 1
   source_app: host-injected-metadata

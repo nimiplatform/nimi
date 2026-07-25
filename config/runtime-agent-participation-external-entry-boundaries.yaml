@@ -35,7 +35,7 @@ boundary_entries:
     input_trust: TOOL_PROVIDER_PAYLOAD
     execution_owner: EXTERNAL_RUNTIME_VIA_ADMITTED_GATEWAY
     protocol_authority:
-      contract: .nimi/spec/runtime/kernel/delegated-mcp-adapter-contract.md
+      contract: .nimi/spec/canonical/runtime/delegation.authority.yaml
       owner_rule_range: K-DELEG-100..119
       posture: delegated_gateway_evidence_only
       semantic_promotion: forbidden
@@ -72,7 +72,7 @@ boundary_entries:
     input_trust: EXTERNAL_A2A_PAYLOAD
     execution_owner: EXTERNAL_RUNTIME_VIA_ADMITTED_GATEWAY
     protocol_authority:
-      contract: .nimi/spec/runtime/kernel/delegated-a2a-future-seam-contract.md
+      contract: .nimi/spec/canonical/runtime/delegation.authority.yaml
       owner_rule_range: K-DELEG-120..129
       posture: future_seam_only
       semantic_promotion: forbidden

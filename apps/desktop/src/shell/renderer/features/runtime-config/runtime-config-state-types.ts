@@ -36,7 +36,7 @@ export type CapabilityV11 = NimiRuntimeLocalRunnableAssetKindId;
 export type SourceIdV11 = 'local' | 'cloud';
 /**
  * Canonical six-section Runtime IA per
- * `.nimi/spec/desktop/kernel/runtime-panel-contract.md`.
+ * `.nimi/spec/canonical/desktop/shell-ui.authority.yaml`.
  * Section merges from the Runtime Surface Cleanup table:
  *  - recommend + local (Local Models) + catalog  -> models
  *  - data-management + runtime (Operations)      -> environment

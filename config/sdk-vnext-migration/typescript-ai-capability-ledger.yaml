@@ -296,8 +296,8 @@ surfaces:
 
   - id: runtime-agent-participation
     current_sources:
-      - .nimi/spec/sdks/kernel/runtime-agent-participation-contract.md
-      - .nimi/spec/sdks/kernel/tables/runtime-agent-participation-methods.yaml
+      - .nimi/spec/canonical/sdks/feature-clients.authority.yaml
+      - config/sdks-runtime-agent-participation-methods.yaml
     current_capability: Current SDK semantic contract for Runtime Agent Participation client methods.
     decision: defer-blocking
     implementation_status: deferred

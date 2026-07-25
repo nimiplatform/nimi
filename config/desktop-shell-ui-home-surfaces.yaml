@@ -38,7 +38,7 @@ surfaces:
     source_authority:
       - .nimi/spec/canonical/platform/product-lifecycle.authority.yaml
       - .nimi/spec/canonical/platform/core-protocol.authority.yaml
-      - .nimi/spec/runtime/kernel/local-environment-consumer-activation-contract.md
+      - .nimi/spec/canonical/runtime/local-compute.authority.yaml
     allowed_projection_scope:
       - cold_start_state_per_P_COLD_001
       - ai_profile_state_per_P_AIPS_010
@@ -56,7 +56,7 @@ surfaces:
     source_authority:
       - .nimi/spec/canonical/platform/product-lifecycle.authority.yaml
       - .nimi/spec/canonical/platform/app-ecosystem.authority.yaml
-      - .nimi/spec/sdks/kernel/nimi-app-client-contract.md
+      - .nimi/spec/canonical/sdks/feature-clients.authority.yaml
     allowed_projection_scope:
       - ordinary_visible_nimi_app_listing_consumed_from_registry_projection
       - install_update_uninstall_card_states_consumed_from_sdk_projection
@@ -75,7 +75,7 @@ surfaces:
     source_authority:
       - .nimi/spec/canonical/platform/product-lifecycle.authority.yaml
       - .nimi/spec/canonical/desktop/agent-projection.authority.yaml
-      - .nimi/spec/sdks/kernel/ai-config-surface-contract.md
+      - .nimi/spec/canonical/sdks/feature-clients.authority.yaml
     allowed_projection_scope:
       - in_shell_reference_surface_placement_per_P_HOME_006
       - aiscoperef_enforced_per_D_HOME_007
@@ -90,10 +90,10 @@ surfaces:
     surface_label: Runtime Health
     owner: desktop_nimi_home_shell
     source_authority:
-      - .nimi/spec/runtime/kernel/local-engine-contract.md
-      - .nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md
-      - .nimi/spec/runtime/kernel/local-environment-materializers-contract.md
-      - .nimi/spec/sdks/kernel/local-environment-projection-contract.md
+      - .nimi/spec/canonical/runtime/local-compute.authority.yaml
+      - .nimi/spec/canonical/runtime/local-compute.authority.yaml
+      - .nimi/spec/canonical/runtime/local-compute.authority.yaml
+      - .nimi/spec/canonical/sdks/feature-clients.authority.yaml
     allowed_projection_scope:
       - daemon_lifecycle_state
       - host_capability_profile_projection
@@ -150,10 +150,10 @@ surfaces:
     surface_label: Diagnostics
     owner: desktop_nimi_home_shell
     source_authority:
-      - .nimi/spec/runtime/kernel/local-engine-contract.md
-      - .nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md
-      - .nimi/spec/runtime/kernel/local-environment-materializers-contract.md
-      - .nimi/spec/sdks/kernel/local-environment-projection-contract.md
+      - .nimi/spec/canonical/runtime/local-compute.authority.yaml
+      - .nimi/spec/canonical/runtime/local-compute.authority.yaml
+      - .nimi/spec/canonical/runtime/local-compute.authority.yaml
+      - .nimi/spec/canonical/sdks/feature-clients.authority.yaml
     allowed_projection_scope:
       - runtime_diagnostic_reports
       - dependency_job_state_projection
@@ -182,7 +182,7 @@ surfaces:
       - .nimi/spec/canonical/platform/product-lifecycle.authority.yaml
       - .nimi/spec/canonical/platform/product-lifecycle.authority.yaml
       - .nimi/spec/canonical/platform/product-lifecycle.authority.yaml
-      - .nimi/spec/runtime/kernel/local-environment-consumer-activation-contract.md
+      - .nimi/spec/canonical/runtime/local-compute.authority.yaml
     allowed_projection_scope:
       - typed_failure_state_per_P_COLD_001
       - typed_self_update_failure_per_P_SUPD_006

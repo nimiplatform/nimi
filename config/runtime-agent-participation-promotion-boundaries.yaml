@@ -28,7 +28,7 @@ promotion_targets:
   - id: RUNTIME_MEMORY_OR_COGNITION
     source_rule: K-AGCORE-102
     owner_authority:
-      - .nimi/spec/runtime/kernel/runtime-memory-service-contract.md
+      - .nimi/spec/canonical/runtime/memory-world.authority.yaml
       - .nimi/spec/canonical/cognition/runtime-bridge.authority.yaml
       - docs/authority/cognition-standalone-services-rationale.md
     owner_rule_families:
@@ -60,7 +60,7 @@ promotion_targets:
   - id: CANONICAL_CHAT
     source_rule: K-AGCORE-103
     owner_authority:
-      - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md
+      - .nimi/spec/canonical/runtime/agent-service.authority.yaml
     owner_rule_families:
       - K-AGCORE-*
     admitted_source_profiles:
@@ -85,7 +85,7 @@ promotion_targets:
   - id: REALM_GROUP_TRANSCRIPT
     source_rule: K-AGCORE-104
     owner_authority:
-      - .nimi/spec/realm/kernel/chat-contract.md
+      - .nimi/spec/realm/external-realm.md
     owner_rule_families:
       - R-CHAT-*
     admitted_source_profiles:
@@ -109,7 +109,7 @@ promotion_targets:
   - id: DOMAIN_TRUTH
     source_rule: K-AGCORE-105
     owner_authority:
-      - .nimi/spec/runtime/kernel/world-evolution-engine-contract.md
+      - .nimi/spec/canonical/runtime/memory-world.authority.yaml
       - future_scenario_authority
       - external_domain_authority
     owner_rule_families:

@@ -119,7 +119,7 @@ Notes:
 - The runtime-facing knowledge/page surface is registered exclusively under
   `RuntimeCognitionService`. There is no separate standalone gRPC service for the
   knowledge surface; the retired topology is recorded in
-  `.nimi/spec/runtime/kernel/knowledge-contract.md` (K-KNOW-001 / K-KNOW-001a).
+  `.nimi/spec/canonical/runtime/memory-world.authority.yaml` (K-KNOW-001 / K-KNOW-001a).
 - standard `grpc.health.v1.Health` probing is also registered for daemon health, but
   it is not part of the runtime-owned proto service inventory above.
 

@@ -79,7 +79,7 @@ export interface NimiRuntimeAgentParticipationSurfaceOptions {
 }
 
 // Method names mirror runtime.agentParticipation.* in
-// .nimi/spec/sdks/kernel/tables/runtime-agent-participation-methods.yaml.
+// config/sdks-runtime-agent-participation-methods.yaml.
 export interface NimiRuntimeAgentParticipationSurface {
   describeProfiles(
     request?: DescribeParticipationProfilesRequest,

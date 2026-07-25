@@ -22022,7 +22022,7 @@ pub struct GetAvatarDebugReplayResponse {
 /// per Runtime Local Agent instance with monotonic revision, expected-revision
 /// optimistic concurrency, and a probe-backed readiness projection. Capability,
 /// readiness-state, and reason vocabularies are admitted in
-/// .nimi/spec/runtime/kernel/tables/runtime-agent-ai-config.yaml.
+/// .nimi/spec/canonical/runtime/agent-participation.authority.yaml.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RuntimeAgentAiConfigIntent {
     #[prost(string, tag = "1")]

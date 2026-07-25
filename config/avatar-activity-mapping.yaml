@@ -25,7 +25,7 @@ description: >
   This mapping remains Avatar backend routing evidence only and must not be
   read as public APML motion syntax or runtime activity ontology ownership.
 
-source_authority: /.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml
+source_authority: /config/runtime-agent-activity-ontology.yaml
 
 naming_rule:
   description: >
